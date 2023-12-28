@@ -75,23 +75,31 @@ libclllvm = static_library(
   dependencies : [dep_llvm, dep_elf, dep_llvmspirvlib, idep_mesautil],
 )
 
-libclspirv = static_library(
-  'clspirv',
-  files('spirv/invocation.cpp', 'spirv/invocation.hpp'),
-  include_directories : clover_incs,
-  cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
-  gnu_symbol_visibility : 'hidden',
-  dependencies : [dep_spirv_tools, idep_mesautil],
-)
+idep_opencl_spirv = null_dep
+if with_opencl_spirv
+  libclspirv = static_library(
+    'clspirv',
+    files('spirv/invocation.cpp', 'spirv/invocation.hpp'),
+    include_directories : clover_incs,
+    cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
+    gnu_symbol_visibility : 'hidden',
+    dependencies : [dep_spirv_tools, idep_mesautil],
+  )
 
-libclnir = static_library(
-  'clnir',
-  files('nir/invocation.cpp', 'nir/invocation.hpp'),
-  include_directories : [clover_incs, inc_mesa],
-  dependencies : idep_nir,
-  cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
-  gnu_symbol_visibility : 'hidden',
-)
+  libclnir = static_library(
+    'clnir',
+    files('nir/invocation.cpp', 'nir/invocation.hpp'),
+    include_directories : [clover_incs, inc_mesa],
+    dependencies : [idep_nir, idep_vtn, idep_mesaclc],
+    cpp_args : [clover_opencl_cpp_args, clover_spirv_cpp_args],
+    gnu_symbol_visibility : 'hidden',
+  )
+
+  idep_opencl_spirv = declare_dependency(
+    dependencies : [idep_nir],
+    link_with : [libclspirv, libclnir],
+  )
+endif
 
 clover_files = files(
   'api/context.cpp',
@@ -163,6 +171,6 @@ libclover = static_library(
     clover_cpp_args,
   ],
   gnu_symbol_visibility : 'hidden',
-  link_with : [libclllvm, libclspirv, libclnir],
-  dependencies : idep_mesautil,
+  link_with : [libclllvm],
+  dependencies : [idep_mesautil, idep_nir, idep_opencl_spirv],
 )

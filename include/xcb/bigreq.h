@@ -54,22 +54,30 @@ typedef struct xcb_big_requests_enable_reply_t {
 } xcb_big_requests_enable_reply_t;
 
 /**
+ * @brief Enable the BIG-REQUESTS extension
  *
  * @param c The connection
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This enables the BIG-REQUESTS extension, which allows for requests larger than
+ * 262140 bytes in length.  When enabled, if the 16-bit length field is zero, it
+ * is immediately followed by a 32-bit length field specifying the length of the
+ * request in 4-byte units.
  *
  */
 xcb_big_requests_enable_cookie_t
 xcb_big_requests_enable (xcb_connection_t *c);
 
 /**
+ * @brief Enable the BIG-REQUESTS extension
  *
  * @param c The connection
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This enables the BIG-REQUESTS extension, which allows for requests larger than
+ * 262140 bytes in length.  When enabled, if the 16-bit length field is zero, it
+ * is immediately followed by a 32-bit length field specifying the length of the
+ * request in 4-byte units.
  *
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be

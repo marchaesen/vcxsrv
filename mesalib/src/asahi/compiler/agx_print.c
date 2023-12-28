@@ -1,25 +1,7 @@
 /*
- * Copyright (C) 2021 Alyssa Rosenzweig <alyssa@rosenzweig.io>
- * Copyright (C) 2019-2020 Collabora, Ltd.
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * Copyright 2019-2020 Collabora, Ltd.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "agx_compiler.h"
@@ -37,8 +19,7 @@ agx_print_sized(char prefix, unsigned value, enum agx_size size, FILE *fp)
       return;
    case AGX_SIZE_64:
       assert((value & 1) == 0);
-      fprintf(fp, "%c%u:%c%u", prefix, value >> 1,
-            prefix, (value >> 1) + 1);
+      fprintf(fp, "%c%u:%c%u", prefix, value >> 1, prefix, (value >> 1) + 1);
       return;
    }
 
@@ -46,7 +27,7 @@ agx_print_sized(char prefix, unsigned value, enum agx_size size, FILE *fp)
 }
 
 static void
-agx_print_index(agx_index index, FILE *fp)
+agx_print_index(agx_index index, bool is_float, FILE *fp)
 {
    switch (index.type) {
    case AGX_INDEX_NULL:
@@ -67,7 +48,17 @@ agx_print_index(agx_index index, FILE *fp)
       break;
 
    case AGX_INDEX_IMMEDIATE:
-      fprintf(fp, "#%u", index.value);
+      if (is_float) {
+         assert(index.value < 0x100);
+         fprintf(fp, "#%f", agx_minifloat_decode(index.value));
+      } else {
+         fprintf(fp, "#%u", index.value);
+      }
+
+      break;
+
+   case AGX_INDEX_UNDEF:
+      fprintf(fp, "undef");
       break;
 
    case AGX_INDEX_UNIFORM:
@@ -83,7 +74,7 @@ agx_print_index(agx_index index, FILE *fp)
    }
 
    /* Print length suffixes if not implied */
-   if (index.type == AGX_INDEX_NORMAL || index.type == AGX_INDEX_IMMEDIATE) {
+   if (index.type == AGX_INDEX_NORMAL) {
       if (index.size == AGX_SIZE_16)
          fprintf(fp, "h");
       else if (index.size == AGX_SIZE_64)
@@ -98,12 +89,29 @@ agx_print_index(agx_index index, FILE *fp)
 }
 
 void
-agx_print_instr(agx_instr *I, FILE *fp)
+agx_print_instr(const agx_instr *I, FILE *fp)
 {
    assert(I->op < AGX_NUM_OPCODES);
    struct agx_opcode_info info = agx_opcodes_info[I->op];
+   bool print_comma = false;
 
-   fprintf(fp, "   %s", info.name);
+   fprintf(fp, "   ");
+
+   agx_foreach_dest(I, d) {
+      if (print_comma)
+         fprintf(fp, ", ");
+      else
+         print_comma = true;
+
+      agx_print_index(I->dest[d], false, fp);
+   }
+
+   if (I->nr_dests) {
+      fprintf(fp, " = ");
+      print_comma = false;
+   }
+
+   fprintf(fp, "%s", info.name);
 
    if (I->saturate)
       fprintf(fp, ".sat");
@@ -113,24 +121,16 @@ agx_print_instr(agx_instr *I, FILE *fp)
 
    fprintf(fp, " ");
 
-   bool print_comma = false;
-
-   for (unsigned d = 0; d < info.nr_dests; ++d) {
+   agx_foreach_src(I, s) {
       if (print_comma)
          fprintf(fp, ", ");
       else
          print_comma = true;
 
-      agx_print_index(I->dest[d], fp);
-   }
-
-   for (unsigned s = 0; s < I->nr_srcs; ++s) {
-      if (print_comma)
-         fprintf(fp, ", ");
-      else
-         print_comma = true;
-
-      agx_print_index(I->src[s], fp);
+      agx_print_index(I->src[s],
+                      agx_opcodes_info[I->op].is_float &&
+                         !(s >= 2 && I->op == AGX_OPCODE_FCMPSEL),
+                      fp);
    }
 
    if (I->mask) {
@@ -149,7 +149,7 @@ agx_print_instr(agx_instr *I, FILE *fp)
       else
          print_comma = true;
 
-      fprintf(fp, "#%X", I->imm);
+      fprintf(fp, "#%" PRIx64, I->imm);
    }
 
    if (info.immediates & AGX_IMMEDIATE_DIM) {
@@ -158,7 +158,7 @@ agx_print_instr(agx_instr *I, FILE *fp)
       else
          print_comma = true;
 
-      fprintf(fp, "dim %u", I->dim); // TODO enumify
+      fputs(agx_dim_as_str(I->dim), fp);
    }
 
    if (info.immediates & AGX_IMMEDIATE_SCOREBOARD) {
@@ -192,7 +192,7 @@ agx_print_instr(agx_instr *I, FILE *fp)
 }
 
 void
-agx_print_block(agx_block *block, FILE *fp)
+agx_print_block(const agx_block *block, FILE *fp)
 {
    fprintf(fp, "block%u {\n", block->index);
 
@@ -219,7 +219,7 @@ agx_print_block(agx_block *block, FILE *fp)
 }
 
 void
-agx_print_shader(agx_context *ctx, FILE *fp)
+agx_print_shader(const agx_context *ctx, FILE *fp)
 {
    agx_foreach_block(ctx, block)
       agx_print_block(block, fp);

@@ -30,6 +30,7 @@
 
 #include "util/format/u_format_s3tc.h"
 #include "util/u_draw.h"
+#include "util/u_endian.h"
 #include "util/u_index_modify.h"
 #include "util/u_memory.h"
 #include "util/u_upload_mgr.h"
@@ -39,9 +40,7 @@
 #include "tgsi/tgsi_ureg.h"
 
 #include "nir.h"
-#include "nir/nir_to_tgsi.h"
 #include "nir/nir_to_tgsi_info.h"
-#include "tgsi/tgsi_from_mesa.h"
 
 void r600_init_command_buffer(struct r600_command_buffer *cb, unsigned num_dw)
 {
@@ -138,21 +137,21 @@ static void r600_texture_barrier(struct pipe_context *ctx, unsigned flags)
 static unsigned r600_conv_pipe_prim(unsigned prim)
 {
 	static const unsigned prim_conv[] = {
-		[PIPE_PRIM_POINTS]			= V_008958_DI_PT_POINTLIST,
-		[PIPE_PRIM_LINES]			= V_008958_DI_PT_LINELIST,
-		[PIPE_PRIM_LINE_LOOP]			= V_008958_DI_PT_LINELOOP,
-		[PIPE_PRIM_LINE_STRIP]			= V_008958_DI_PT_LINESTRIP,
-		[PIPE_PRIM_TRIANGLES]			= V_008958_DI_PT_TRILIST,
-		[PIPE_PRIM_TRIANGLE_STRIP]		= V_008958_DI_PT_TRISTRIP,
-		[PIPE_PRIM_TRIANGLE_FAN]		= V_008958_DI_PT_TRIFAN,
-		[PIPE_PRIM_QUADS]			= V_008958_DI_PT_QUADLIST,
-		[PIPE_PRIM_QUAD_STRIP]			= V_008958_DI_PT_QUADSTRIP,
-		[PIPE_PRIM_POLYGON]			= V_008958_DI_PT_POLYGON,
-		[PIPE_PRIM_LINES_ADJACENCY]		= V_008958_DI_PT_LINELIST_ADJ,
-		[PIPE_PRIM_LINE_STRIP_ADJACENCY]	= V_008958_DI_PT_LINESTRIP_ADJ,
-		[PIPE_PRIM_TRIANGLES_ADJACENCY]		= V_008958_DI_PT_TRILIST_ADJ,
-		[PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY]	= V_008958_DI_PT_TRISTRIP_ADJ,
-		[PIPE_PRIM_PATCHES]                     = V_008958_DI_PT_PATCH,
+		[MESA_PRIM_POINTS]			= V_008958_DI_PT_POINTLIST,
+		[MESA_PRIM_LINES]			= V_008958_DI_PT_LINELIST,
+		[MESA_PRIM_LINE_LOOP]			= V_008958_DI_PT_LINELOOP,
+		[MESA_PRIM_LINE_STRIP]			= V_008958_DI_PT_LINESTRIP,
+		[MESA_PRIM_TRIANGLES]			= V_008958_DI_PT_TRILIST,
+		[MESA_PRIM_TRIANGLE_STRIP]		= V_008958_DI_PT_TRISTRIP,
+		[MESA_PRIM_TRIANGLE_FAN]		= V_008958_DI_PT_TRIFAN,
+		[MESA_PRIM_QUADS]			= V_008958_DI_PT_QUADLIST,
+		[MESA_PRIM_QUAD_STRIP]			= V_008958_DI_PT_QUADSTRIP,
+		[MESA_PRIM_POLYGON]			= V_008958_DI_PT_POLYGON,
+		[MESA_PRIM_LINES_ADJACENCY]		= V_008958_DI_PT_LINELIST_ADJ,
+		[MESA_PRIM_LINE_STRIP_ADJACENCY]	= V_008958_DI_PT_LINESTRIP_ADJ,
+		[MESA_PRIM_TRIANGLES_ADJACENCY]		= V_008958_DI_PT_TRILIST_ADJ,
+		[MESA_PRIM_TRIANGLE_STRIP_ADJACENCY]	= V_008958_DI_PT_TRISTRIP_ADJ,
+		[MESA_PRIM_PATCHES]                     = V_008958_DI_PT_PATCH,
 		[R600_PRIM_RECTANGLE_LIST]		= V_008958_DI_PT_RECTLIST
 	};
 	assert(prim < ARRAY_SIZE(prim_conv));
@@ -162,21 +161,21 @@ static unsigned r600_conv_pipe_prim(unsigned prim)
 unsigned r600_conv_prim_to_gs_out(unsigned mode)
 {
 	static const int prim_conv[] = {
-		[PIPE_PRIM_POINTS]			= V_028A6C_OUTPRIM_TYPE_POINTLIST,
-		[PIPE_PRIM_LINES]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
-		[PIPE_PRIM_LINE_LOOP]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
-		[PIPE_PRIM_LINE_STRIP]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
-		[PIPE_PRIM_TRIANGLES]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_TRIANGLE_STRIP]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_TRIANGLE_FAN]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_QUADS]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_QUAD_STRIP]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_POLYGON]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_LINES_ADJACENCY]		= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
-		[PIPE_PRIM_LINE_STRIP_ADJACENCY]	= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
-		[PIPE_PRIM_TRIANGLES_ADJACENCY]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY]	= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
-		[PIPE_PRIM_PATCHES]			= V_028A6C_OUTPRIM_TYPE_POINTLIST,
+		[MESA_PRIM_POINTS]			= V_028A6C_OUTPRIM_TYPE_POINTLIST,
+		[MESA_PRIM_LINES]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
+		[MESA_PRIM_LINE_LOOP]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
+		[MESA_PRIM_LINE_STRIP]			= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
+		[MESA_PRIM_TRIANGLES]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_TRIANGLE_STRIP]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_TRIANGLE_FAN]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_QUADS]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_QUAD_STRIP]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_POLYGON]			= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_LINES_ADJACENCY]		= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
+		[MESA_PRIM_LINE_STRIP_ADJACENCY]	= V_028A6C_OUTPRIM_TYPE_LINESTRIP,
+		[MESA_PRIM_TRIANGLES_ADJACENCY]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_TRIANGLE_STRIP_ADJACENCY]	= V_028A6C_OUTPRIM_TYPE_TRISTRIP,
+		[MESA_PRIM_PATCHES]			= V_028A6C_OUTPRIM_TYPE_POINTLIST,
 		[R600_PRIM_RECTANGLE_LIST]		= V_028A6C_OUTPRIM_TYPE_TRISTRIP
 	};
 	assert(mode < ARRAY_SIZE(prim_conv));
@@ -545,13 +544,6 @@ static void r600_delete_dsa_state(struct pipe_context *ctx, void *state)
 	free(dsa);
 }
 
-static void r600_bind_vertex_elements(struct pipe_context *ctx, void *state)
-{
-	struct r600_context *rctx = (struct r600_context *)ctx;
-
-	r600_set_cso_state(rctx, &rctx->vertex_fetch_shader, state);
-}
-
 static void r600_delete_vertex_elements(struct pipe_context *ctx, void *state)
 {
 	struct r600_fetch_shader *shader = (struct r600_fetch_shader*)state;
@@ -562,22 +554,37 @@ static void r600_delete_vertex_elements(struct pipe_context *ctx, void *state)
 
 void r600_vertex_buffers_dirty(struct r600_context *rctx)
 {
-	if (rctx->vertex_buffer_state.dirty_mask) {
+	struct r600_fetch_shader *shader = (struct r600_fetch_shader*)rctx->vertex_fetch_shader.cso;
+	if (shader && (rctx->vertex_buffer_state.dirty_mask & shader->buffer_mask)) {
 		rctx->vertex_buffer_state.atom.num_dw = (rctx->b.gfx_level >= EVERGREEN ? 12 : 11) *
-					       util_bitcount(rctx->vertex_buffer_state.dirty_mask);
+					       util_bitcount(rctx->vertex_buffer_state.dirty_mask & shader->buffer_mask);
 		r600_mark_atom_dirty(rctx, &rctx->vertex_buffer_state.atom);
 	}
 }
 
+static void r600_bind_vertex_elements(struct pipe_context *ctx, void *state)
+{
+	struct r600_context *rctx = (struct r600_context *)ctx;
+	struct r600_fetch_shader *prev = (struct r600_fetch_shader*)rctx->vertex_fetch_shader.cso;
+	struct r600_fetch_shader *cso = state;
+
+	r600_set_cso_state(rctx, &rctx->vertex_fetch_shader, state);
+	if (!prev || (cso && cso->buffer_mask &&
+		      (prev->buffer_mask != cso->buffer_mask || memcmp(cso->strides, prev->strides, util_last_bit(cso->buffer_mask))))) {
+		rctx->vertex_buffer_state.dirty_mask |= cso ? cso->buffer_mask : 0;
+		r600_vertex_buffers_dirty(rctx);
+	}
+}
+
 static void r600_set_vertex_buffers(struct pipe_context *ctx,
-				    unsigned start_slot, unsigned count,
+				    unsigned count,
 				    unsigned unbind_num_trailing_slots,
 				    bool take_ownership,
 				    const struct pipe_vertex_buffer *input)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
 	struct r600_vertexbuf_state *state = &rctx->vertex_buffer_state;
-	struct pipe_vertex_buffer *vb = state->vb + start_slot;
+	struct pipe_vertex_buffer *vb = state->vb;
 	unsigned i;
 	uint32_t disable_mask = 0;
 	/* These are the new buffers set by this function. */
@@ -586,12 +593,10 @@ static void r600_set_vertex_buffers(struct pipe_context *ctx,
 	/* Set vertex buffers. */
 	if (input) {
 		for (i = 0; i < count; i++) {
-			if ((input[i].buffer.resource != vb[i].buffer.resource) ||
-			    (vb[i].stride != input[i].stride) ||
-			    (vb[i].buffer_offset != input[i].buffer_offset) ||
-			    (vb[i].is_user_buffer != input[i].is_user_buffer)) {
+			if (likely((input[i].buffer.resource != vb[i].buffer.resource) ||
+				   (vb[i].buffer_offset != input[i].buffer_offset) ||
+				   (vb[i].is_user_buffer != input[i].is_user_buffer))) {
 				if (input[i].buffer.resource) {
-					vb[i].stride = input[i].stride;
 					vb[i].buffer_offset = input[i].buffer_offset;
 					if (take_ownership) {
 						pipe_resource_reference(&vb[i].buffer.resource, NULL);
@@ -606,6 +611,14 @@ static void r600_set_vertex_buffers(struct pipe_context *ctx,
 					pipe_resource_reference(&vb[i].buffer.resource, NULL);
 					disable_mask |= 1 << i;
 				}
+			} else if (input[i].buffer.resource) {
+				if (take_ownership) {
+					pipe_resource_reference(&vb[i].buffer.resource, NULL);
+					vb[i].buffer.resource = input[i].buffer.resource;
+				} else {
+					pipe_resource_reference(&vb[i].buffer.resource,
+								input[i].buffer.resource);
+				}
 			}
 		}
 	} else {
@@ -619,9 +632,6 @@ static void r600_set_vertex_buffers(struct pipe_context *ctx,
 		pipe_resource_reference(&vb[count + i].buffer.resource, NULL);
 	}
 	disable_mask |= ((1ull << unbind_num_trailing_slots) - 1) << count;
-
-	disable_mask <<= start_slot;
-	new_buffer_mask <<= start_slot;
 
 	rctx->vertex_buffer_state.enabled_mask &= ~disable_mask;
 	rctx->vertex_buffer_state.dirty_mask &= rctx->vertex_buffer_state.enabled_mask;
@@ -733,7 +743,7 @@ static void r600_set_sampler_views(struct pipe_context *pipe,
 	dst->views.dirty_mask |= new_mask;
 	dst->views.compressed_depthtex_mask &= dst->views.enabled_mask;
 	dst->views.compressed_colortex_mask &= dst->views.enabled_mask;
-	dst->views.dirty_buffer_constants = TRUE;
+	dst->views.dirty_buffer_constants = true;
 	r600_sampler_views_dirty(rctx, &dst->views);
 
 	if (dirty_sampler_states_mask) {
@@ -830,7 +840,6 @@ static inline void r600_shader_selector_key(const struct pipe_context *ctx,
 
 		if (rctx->ps_shader->current->shader.gs_prim_id_input && !rctx->gs_shader) {
 			key->vs.as_gs_a = true;
-			key->vs.prim_id_out = rctx->ps_shader->current->shader.input[rctx->ps_shader->current->shader.ps_prim_id_input].spi_sid;
 		}
 		key->vs.first_atomic_counter = r600_get_hw_atomic_count(ctx, PIPE_SHADER_VERTEX);
 		break;
@@ -902,7 +911,7 @@ r600_shader_precompile_key(const struct pipe_context *ctx,
 
 	case PIPE_SHADER_TESS_CTRL:
 		/* Prim mode comes from the TES, but we need some valid value. */
-		key->tcs.prim_mode = PIPE_PRIM_TRIANGLES;
+		key->tcs.prim_mode = MESA_PRIM_TRIANGLES;
 		break;
 
 	case PIPE_SHADER_COMPUTE:
@@ -983,23 +992,14 @@ struct r600_pipe_shader_selector *r600_create_shader_state_tokens(struct pipe_co
 								  unsigned pipe_shader_type)
 {
 	struct r600_pipe_shader_selector *sel = CALLOC_STRUCT(r600_pipe_shader_selector);
-	struct r600_screen *rscreen = (struct r600_screen *)ctx->screen;
 
 	sel->type = pipe_shader_type;
 	if (ir == PIPE_SHADER_IR_TGSI) {
 		sel->tokens = tgsi_dup_tokens((const struct tgsi_token *)prog);
 		tgsi_scan_shader(sel->tokens, &sel->info);
 	} else if (ir == PIPE_SHADER_IR_NIR){
-		nir_shader *s = (nir_shader *)prog;
-
-		if (rscreen->b.debug_flags & DBG_USE_TGSI) {
-			sel->tokens = (void *)nir_to_tgsi(s, ctx->screen);
-			ir = PIPE_SHADER_IR_TGSI;
-			tgsi_scan_shader(sel->tokens, &sel->info);
-		} else {
-			sel->nir = s;
-			nir_tgsi_scan_shader(sel->nir, &sel->info, true);
-		}
+		sel->nir = (nir_shader *)prog;
+		nir_tgsi_scan_shader(sel->nir, &sel->info, true);
 	}
 	sel->ir_type = ir;
 	return sel;
@@ -1178,6 +1178,10 @@ void r600_delete_shader_selector(struct pipe_context *ctx,
 	struct r600_pipe_shader *p = sel->current, *c;
 	while (p) {
 		c = p->next_variant;
+		if (p->gs_copy_shader) {
+			r600_pipe_shader_destroy(ctx, p->gs_copy_shader);
+			free(p->gs_copy_shader);
+		}
 		r600_pipe_shader_destroy(ctx, p);
 		free(p);
 		p = c;
@@ -1191,6 +1195,8 @@ void r600_delete_shader_selector(struct pipe_context *ctx,
 	}
 	else if (sel->ir_type == PIPE_SHADER_IR_NIR)
 		ralloc_free(sel->nir);
+	if (sel->nir_blob)
+		free(sel->nir_blob);
 	free(sel);
 }
 
@@ -1292,7 +1298,7 @@ static void r600_set_constant_buffer(struct pipe_context *ctx,
 
 	if (ptr) {
 		/* Upload the user buffer. */
-		if (R600_BIG_ENDIAN) {
+		if (UTIL_ARCH_BIG_ENDIAN) {
 			uint32_t *tmpPtr;
 			unsigned i, size = input->buffer_size;
 
@@ -1475,7 +1481,7 @@ static void r600_setup_buffer_constants(struct r600_context *rctx, int shader_ty
 	if (!samplers->views.dirty_buffer_constants)
 		return;
 
-	samplers->views.dirty_buffer_constants = FALSE;
+	samplers->views.dirty_buffer_constants = false;
 
 	bits = util_last_bit(samplers->views.enabled_mask);
 	array_size = bits * 8 * sizeof(uint32_t);
@@ -1533,8 +1539,8 @@ void eg_setup_buffer_constants(struct r600_context *rctx, int shader_type)
 		return;
 
 	if (images)
-		images->dirty_buffer_constants = FALSE;
-	samplers->views.dirty_buffer_constants = FALSE;
+		images->dirty_buffer_constants = false;
+	samplers->views.dirty_buffer_constants = false;
 
 	bits = sview_bits = util_last_bit(samplers->views.enabled_mask);
 	if (images)
@@ -1964,7 +1970,7 @@ static bool r600_update_derived_state(struct r600_context *rctx)
 	 * it will therefore overwrite the VS slots. If it now gets disabled,
 	 * the VS needs to rebind all buffer/resource/sampler slots - not only
 	 * has TES overwritten the corresponding slots, but when the VS was
-	 * operating as LS the things with correpsonding dirty bits got bound
+	 * operating as LS the things with corresponding dirty bits got bound
 	 * to LS slots and won't reflect what is dirty as VS stage even if the
 	 * TES didn't overwrite it. The story for re-enabled TES is similar.
 	 * In any case, we're not allowed to submit any TES state when
@@ -2018,13 +2024,6 @@ static bool r600_update_derived_state(struct r600_context *rctx)
 		evergreen_update_db_shader_control(rctx);
 	} else {
 		r600_update_db_shader_control(rctx);
-	}
-
-	/* For each shader stage that needs to spill, set up buffer for MEM_SCRATCH */
-	if (rctx->b.gfx_level >= EVERGREEN) {
-		evergreen_setup_scratch_buffers(rctx);
-	} else {
-		r600_setup_scratch_buffers(rctx);
 	}
 
 	/* on R600 we stuff masks + txq info into one constant buffer */
@@ -2127,14 +2126,14 @@ void r600_emit_clip_misc_state(struct r600_context *rctx, struct r600_atom *atom
 static inline void r600_emit_rasterizer_prim_state(struct r600_context *rctx)
 {
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
-	enum pipe_prim_type rast_prim = rctx->current_rast_prim;
+	enum mesa_prim rast_prim = rctx->current_rast_prim;
 
 	/* Skip this if not rendering lines. */
-	if (rast_prim != PIPE_PRIM_LINES &&
-	    rast_prim != PIPE_PRIM_LINE_LOOP &&
-	    rast_prim != PIPE_PRIM_LINE_STRIP &&
-	    rast_prim != PIPE_PRIM_LINES_ADJACENCY &&
-	    rast_prim != PIPE_PRIM_LINE_STRIP_ADJACENCY)
+	if (rast_prim != MESA_PRIM_LINES &&
+	    rast_prim != MESA_PRIM_LINE_LOOP &&
+	    rast_prim != MESA_PRIM_LINE_STRIP &&
+	    rast_prim != MESA_PRIM_LINES_ADJACENCY &&
+	    rast_prim != MESA_PRIM_LINE_STRIP_ADJACENCY)
 		return;
 
 	if (rast_prim == rctx->last_rast_prim)
@@ -2144,7 +2143,7 @@ static inline void r600_emit_rasterizer_prim_state(struct r600_context *rctx)
 	 * reset the stipple pattern at each packet (line strips, line loops).
 	 */
 	radeon_set_context_reg(cs, R_028A0C_PA_SC_LINE_STIPPLE,
-			       S_028A0C_AUTO_RESET_CNTL(rast_prim == PIPE_PRIM_LINES ? 1 : 2) |
+			       S_028A0C_AUTO_RESET_CNTL(rast_prim == MESA_PRIM_LINES ? 1 : 2) |
 			       (rctx->rasterizer ? rctx->rasterizer->pa_sc_line_stipple : 0));
 	rctx->last_rast_prim = rast_prim;
 }
@@ -2219,7 +2218,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 		 */
 		bool gs_tri_strip_adj_fix =
 			!rctx->tes_shader &&
-			info->mode == PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY &&
+			info->mode == MESA_PRIM_TRIANGLE_STRIP_ADJACENCY &&
 			!info->primitive_restart;
 		if (gs_tri_strip_adj_fix != rctx->gs_tri_strip_adj_fix)
 			rctx->gs_tri_strip_adj_fix = gs_tri_strip_adj_fix;
@@ -2288,7 +2287,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 		 * and the indices are emitted via PKT3_DRAW_INDEX_IMMD.
 		 * Indirect draws never use immediate indices.
 		 * Note: Instanced rendering in combination with immediate indices hangs. */
-		if (has_user_indices && (R600_BIG_ENDIAN || indirect ||
+		if (has_user_indices && (UTIL_ARCH_BIG_ENDIAN || indirect ||
 						 info->instance_count > 1 ||
 						 draws[0].count*index_size > 20)) {
 			unsigned start_offset = draws[0].start * index_size;
@@ -2329,7 +2328,7 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 		evergreen_setup_tess_constants(rctx, info, &num_patches);
 
 	/* Emit states. */
-	r600_need_cs_space(rctx, has_user_indices ? 5 : 0, TRUE, util_bitcount(atomic_used_mask));
+	r600_need_cs_space(rctx, has_user_indices ? 5 : 0, true, util_bitcount(atomic_used_mask));
 	r600_flush_emit(rctx);
 
 	mask = rctx->dirty_atoms;
@@ -2406,6 +2405,13 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 		rctx->last_primitive_type = info->mode;
 	}
 
+   /* For each shader stage that needs to spill, set up buffer for MEM_SCRATCH */
+	if (rctx->b.gfx_level >= EVERGREEN) {
+		evergreen_setup_scratch_buffers(rctx);
+	} else {
+		r600_setup_scratch_buffers(rctx);
+	}
+
 	/* Draw packets. */
 	if (likely(!indirect)) {
 		radeon_emit(cs, PKT3(PKT3_NUM_INSTANCES, 0, 0));
@@ -2433,8 +2439,8 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 	if (index_size) {
 		radeon_emit(cs, PKT3(PKT3_INDEX_TYPE, 0, 0));
 		radeon_emit(cs, index_size == 4 ?
-				(VGT_INDEX_32 | (R600_BIG_ENDIAN ? VGT_DMA_SWAP_32_BIT : 0)) :
-				(VGT_INDEX_16 | (R600_BIG_ENDIAN ? VGT_DMA_SWAP_16_BIT : 0)));
+				(VGT_INDEX_32 | (UTIL_ARCH_BIG_ENDIAN ? VGT_DMA_SWAP_32_BIT : 0)) :
+				(VGT_INDEX_16 | (UTIL_ARCH_BIG_ENDIAN ? VGT_DMA_SWAP_16_BIT : 0)));
 
 		if (has_user_indices) {
 			unsigned size_bytes = draws[0].count*index_size;
@@ -2442,7 +2448,9 @@ static void r600_draw_vbo(struct pipe_context *ctx, const struct pipe_draw_info 
 			radeon_emit(cs, PKT3(PKT3_DRAW_INDEX_IMMD, 1 + size_dw, render_cond_bit));
 			radeon_emit(cs, draws[0].count);
 			radeon_emit(cs, V_0287F0_DI_SRC_SEL_IMMEDIATE);
-			radeon_emit_array(cs, info->index.user + draws[0].start * index_size, size_dw);
+			memcpy(cs->current.buf + cs->current.cdw,
+			       info->index.user + draws[0].start * index_size, size_bytes);
+			cs->current.cdw += size_dw;
 		} else {
 			uint64_t va = r600_resource(indexbuf)->gpu_address + index_offset;
 
@@ -2708,7 +2716,7 @@ void r600_emit_shader(struct r600_context *rctx, struct r600_atom *a)
 
 unsigned r600_get_swizzle_combined(const unsigned char *swizzle_format,
 				   const unsigned char *swizzle_view,
-				   boolean vtx)
+				   bool vtx)
 {
 	unsigned i;
 	unsigned char swizzle[4];
@@ -2768,8 +2776,8 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 	struct r600_screen *rscreen = (struct r600_screen *)screen;
 	uint32_t result = 0, word4 = 0, yuv_format = 0;
 	const struct util_format_description *desc;
-	boolean uniform = TRUE;
-	bool is_srgb_valid = FALSE;
+	bool uniform = true;
+	bool is_srgb_valid = false;
 	const unsigned char swizzle_xxxx[4] = {0, 0, 0, 0};
 	const unsigned char swizzle_yyyy[4] = {1, 1, 1, 1};
 	const unsigned char swizzle_xxxy[4] = {0, 0, 0, 1};
@@ -2789,7 +2797,7 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 	 * not divisible by 8.
 	 * Mesa conversion functions don't swap bits for those formats, and because
 	 * we transmit this over a serial bus to the GPU (PCIe), the
-	 * bit-endianess is important!!!
+	 * bit-endianness is important!!!
 	 * In case we have an "opposite" format, just use that for the swizzling
 	 * information. If we don't have such an "opposite" format, we need
 	 * to use a fixed swizzle info instead (see below)
@@ -2808,15 +2816,15 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 		 */
 		if (do_endian_swap) {
 			if (format == PIPE_FORMAT_L4A4_UNORM)
-				word4 |= r600_get_swizzle_combined(swizzle_xxxy, swizzle_view, FALSE);
+				word4 |= r600_get_swizzle_combined(swizzle_xxxy, swizzle_view, false);
 			else if (format == PIPE_FORMAT_B4G4R4A4_UNORM)
-				word4 |= r600_get_swizzle_combined(swizzle_zyxw, swizzle_view, FALSE);
+				word4 |= r600_get_swizzle_combined(swizzle_zyxw, swizzle_view, false);
 			else if (format == PIPE_FORMAT_B4G4R4X4_UNORM || format == PIPE_FORMAT_B5G6R5_UNORM)
-				word4 |= r600_get_swizzle_combined(swizzle_zyx1, swizzle_view, FALSE);
+				word4 |= r600_get_swizzle_combined(swizzle_zyx1, swizzle_view, false);
 			else
-				word4 |= r600_get_swizzle_combined(desc->swizzle, swizzle_view, FALSE);
+				word4 |= r600_get_swizzle_combined(desc->swizzle, swizzle_view, false);
 		} else {
-			word4 |= r600_get_swizzle_combined(desc->swizzle, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(desc->swizzle, swizzle_view, false);
 		}
 	}
 
@@ -2827,50 +2835,50 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 		switch (format) {
 		/* Depth sampler formats. */
 		case PIPE_FORMAT_Z16_UNORM:
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_16;
 			goto out_word4;
 		case PIPE_FORMAT_Z24X8_UNORM:
 		case PIPE_FORMAT_Z24_UNORM_S8_UINT:
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_8_24;
 			goto out_word4;
 		case PIPE_FORMAT_X8Z24_UNORM:
 		case PIPE_FORMAT_S8_UINT_Z24_UNORM:
 			if (rscreen->b.gfx_level < EVERGREEN)
 				goto out_unknown;
-			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, false);
 			result = FMT_24_8;
 			goto out_word4;
 		case PIPE_FORMAT_Z32_FLOAT:
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_32_FLOAT;
 			goto out_word4;
 		case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_X24_8_32_FLOAT;
 			goto out_word4;
 		/* Stencil sampler formats. */
 		case PIPE_FORMAT_S8_UINT:
 			word4 |= S_038010_NUM_FORMAT_ALL(V_038010_SQ_NUM_FORMAT_INT);
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_8;
 			goto out_word4;
 		case PIPE_FORMAT_X24S8_UINT:
 			word4 |= S_038010_NUM_FORMAT_ALL(V_038010_SQ_NUM_FORMAT_INT);
-			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, false);
 			result = FMT_8_24;
 			goto out_word4;
 		case PIPE_FORMAT_S8X24_UINT:
 			if (rscreen->b.gfx_level < EVERGREEN)
 				goto out_unknown;
 			word4 |= S_038010_NUM_FORMAT_ALL(V_038010_SQ_NUM_FORMAT_INT);
-			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_xxxx, swizzle_view, false);
 			result = FMT_24_8;
 			goto out_word4;
 		case PIPE_FORMAT_X32_S8X24_UINT:
 			word4 |= S_038010_NUM_FORMAT_ALL(V_038010_SQ_NUM_FORMAT_INT);
-			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, FALSE);
+			word4 |= r600_get_swizzle_combined(swizzle_yyyy, swizzle_view, false);
 			result = FMT_X24_8_32_FLOAT;
 			goto out_word4;
 		default:
@@ -2925,17 +2933,17 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 		case PIPE_FORMAT_DXT1_SRGB:
 		case PIPE_FORMAT_DXT1_SRGBA:
 			result = FMT_BC1;
-			is_srgb_valid = TRUE;
+			is_srgb_valid = true;
 			goto out_word4;
 		case PIPE_FORMAT_DXT3_RGBA:
 		case PIPE_FORMAT_DXT3_SRGBA:
 			result = FMT_BC2;
-			is_srgb_valid = TRUE;
+			is_srgb_valid = true;
 			goto out_word4;
 		case PIPE_FORMAT_DXT5_RGBA:
 		case PIPE_FORMAT_DXT5_SRGBA:
 			result = FMT_BC3;
-			is_srgb_valid = TRUE;
+			is_srgb_valid = true;
 			goto out_word4;
 		default:
 			goto out_unknown;
@@ -2950,7 +2958,7 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 			case PIPE_FORMAT_BPTC_RGBA_UNORM:
 			case PIPE_FORMAT_BPTC_SRGBA:
 				result = FMT_BC7;
-				is_srgb_valid = TRUE;
+				is_srgb_valid = true;
 				goto out_word4;
 			case PIPE_FORMAT_BPTC_RGB_FLOAT:
 				word4 |= sign_bit[0] | sign_bit[1] | sign_bit[2];
@@ -3034,14 +3042,8 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 		goto out_unknown;
 	}
 
-	/* Find the first non-VOID channel. */
-	for (i = 0; i < 4; i++) {
-		if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID) {
-			break;
-		}
-	}
-
-	if (i == 4)
+	i = util_format_get_first_non_void_channel(format);
+	if (i == -1)
 		goto out_unknown;
 
 	/* uniform formats */
@@ -3073,14 +3075,14 @@ uint32_t r600_translate_texformat(struct pipe_screen *screen,
 			switch (desc->nr_channels) {
 			case 1:
 				result = FMT_8;
-				is_srgb_valid = TRUE;
+				is_srgb_valid = true;
 				goto out_word4;
 			case 2:
 				result = FMT_8_8;
 				goto out_word4;
 			case 4:
 				result = FMT_8_8_8_8;
-				is_srgb_valid = TRUE;
+				is_srgb_valid = true;
 				goto out_word4;
 			}
 			goto out_unknown;
@@ -3260,7 +3262,7 @@ uint32_t r600_translate_colorformat(enum amd_gfx_level chip, enum pipe_format fo
 
 uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap)
 {
-	if (R600_BIG_ENDIAN) {
+	if (UTIL_ARCH_BIG_ENDIAN) {
 		switch(colorformat) {
 		/* 8-bit buffers. */
 		case V_0280A0_COLOR_4_4:
@@ -3272,7 +3274,7 @@ uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap)
 			/*
 			 * No need to do endian swaps on array formats,
 			 * as mesa<-->pipe formats conversion take into account
-			 * the endianess
+			 * the endianness
 			 */
 			return ENDIAN_NONE;
 
@@ -3287,7 +3289,7 @@ uint32_t r600_colorformat_endian_swap(uint32_t colorformat, bool do_endian_swap)
 			/*
 			 * No need to do endian swaps on array formats,
 			 * as mesa<-->pipe formats conversion take into account
-			 * the endianess
+			 * the endianness
 			 */
 			return ENDIAN_NONE;
 

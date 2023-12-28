@@ -118,39 +118,75 @@ typedef struct _XdmAuthKey {
 
 typedef char *XdmcpNetaddr;
 
+#ifndef __has_attribute
+# define __has_attribute(x) 0  /* Compatibility with older compilers */
+#endif
+
+#if __has_attribute(access)
+# define XDM_ACCESS_ATTRIBUTE(X) __attribute__((access X))
+#else
+# define XDM_ACCESS_ATTRIBUTE(X)
+#endif
+
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteARRAY16(XdmcpBufferPtr buffer, const ARRAY16Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteARRAY32(XdmcpBufferPtr buffer, const ARRAY32Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteARRAY8(XdmcpBufferPtr buffer, const ARRAY8Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteARRAYofARRAY8(XdmcpBufferPtr buffer, const ARRAYofARRAY8Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpWriteCARD16(XdmcpBufferPtr buffer, unsigned value);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpWriteCARD32(XdmcpBufferPtr buffer, unsigned value);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpWriteCARD8(XdmcpBufferPtr buffer, unsigned value);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpWriteHeader(XdmcpBufferPtr  buffer, const XdmcpHeaderPtr  header);
 
+XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpFlush(int fd, XdmcpBufferPtr buffer, XdmcpNetaddr to, int tolen);
 
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadARRAY16(XdmcpBufferPtr buffer, ARRAY16Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadARRAY32(XdmcpBufferPtr buffer, ARRAY32Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadARRAY8(XdmcpBufferPtr buffer, ARRAY8Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadARRAYofARRAY8(XdmcpBufferPtr buffer, ARRAYofARRAY8Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadCARD16(XdmcpBufferPtr buffer, CARD16Ptr valuep);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadCARD32(XdmcpBufferPtr buffer, CARD32Ptr valuep);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadCARD8(XdmcpBufferPtr buffer, CARD8Ptr valuep);
+XDM_ACCESS_ATTRIBUTE((read_write, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpReadHeader(XdmcpBufferPtr buffer, XdmcpHeaderPtr header);
 
+XDM_ACCESS_ATTRIBUTE((read_write, 2))
 extern int XdmcpFill(int fd, XdmcpBufferPtr buffer, XdmcpNetaddr from, int *fromlen);
 
+XDM_ACCESS_ATTRIBUTE((read_only, 1))
 extern int XdmcpReadRemaining(const XdmcpBufferPtr buffer);
 
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern void XdmcpDisposeARRAY8(ARRAY8Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern void XdmcpDisposeARRAY16(ARRAY16Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern void XdmcpDisposeARRAY32(ARRAY32Ptr array);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern void XdmcpDisposeARRAYofARRAY8(ARRAYofARRAY8Ptr array);
 
+XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((write_only, 2))
 extern int XdmcpCopyARRAY8(const ARRAY8Ptr src, ARRAY8Ptr dst);
 
+XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpARRAY8Equal(const ARRAY8Ptr array1, const ARRAY8Ptr array2);
 
+XDM_ACCESS_ATTRIBUTE((write_only, 1))
 extern void XdmcpGenerateKey (XdmAuthKeyPtr key);
 extern void XdmcpIncrementKey (XdmAuthKeyPtr key);
 extern void XdmcpDecrementKey (XdmAuthKeyPtr key);
@@ -164,16 +200,25 @@ extern void XdmcpUnwrap(unsigned char *input, unsigned char *wrapper, unsigned c
 #define FALSE	0
 #endif
 
+XDM_ACCESS_ATTRIBUTE((read_only, 1)) XDM_ACCESS_ATTRIBUTE((read_only, 2))
 extern int XdmcpCompareKeys (const XdmAuthKeyPtr a, const XdmAuthKeyPtr b);
 
+XDM_ACCESS_ATTRIBUTE((write_only, 1))
 extern int XdmcpAllocARRAY16 (ARRAY16Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((write_only, 1))
 extern int XdmcpAllocARRAY32 (ARRAY32Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((write_only, 1))
 extern int XdmcpAllocARRAY8 (ARRAY8Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((write_only, 1))
 extern int XdmcpAllocARRAYofARRAY8 (ARRAYofARRAY8Ptr array, int length);
 
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpReallocARRAY16 (ARRAY16Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpReallocARRAY32 (ARRAY32Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpReallocARRAY8 (ARRAY8Ptr array, int length);
+XDM_ACCESS_ATTRIBUTE((read_write, 1))
 extern int XdmcpReallocARRAYofARRAY8 (ARRAYofARRAY8Ptr array, int length);
 
 _XFUNCPROTOEND

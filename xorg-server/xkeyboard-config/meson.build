@@ -1,5 +1,5 @@
 project('xkeyboard-config',
-        version: '2.36.99',
+        version: '2.40',
         license: 'MIT/Expat',
         meson_version: '>= 0.54.0')
 
@@ -56,6 +56,36 @@ if xsltproc.found()
                           install:true,
                           install_dir: dir_man7)
 
+  verify_group_names = find_program('tests/verify-group-names.sh')
+  test('verify group names', verify_group_names)
+endif
+
+# pytest suite
+pymod = import('python')
+python = pymod.find_installation('python3',
+                                 modules: ['pytest'],
+                                 required: false)
+pytest = find_program('pytest-3', 'pytest', required: false)
+enable_pytest = python.found() and pytest.found()
+if enable_pytest
+    pytest_args = ['--verbose', '--log-level=DEBUG']
+    # use pytest xdist if available, it really speeds up the tests cases
+    optional_python_modules = ['xdist']
+    if pymod.find_installation('python3', modules: optional_python_modules, required: false).found()
+        pytest_args += ['-n', 'auto']
+    endif
+
+    # copy our data files over to the build directory so we can use the
+    # builddir as XKB_CONFIG_ROOT
+    foreach dir: ['compat', 'geometry', 'keycodes', 'symbols', 'types']
+        run_command('tests/copydir.sh', dir, check: true)
+    endforeach
+
+    test('pytest', pytest,
+         args: pytest_args,
+         env: ['XKB_CONFIG_ROOT=@0@'.format(meson.build_root())],
+         workdir: meson.source_root(),
+         timeout: 60)
 endif
 
 subdir('po')

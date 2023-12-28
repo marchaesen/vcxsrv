@@ -22,13 +22,9 @@
 
 # This script generates the file api_hw_select_init.h.
 
-import argparse
-import collections
 import license
 import gl_XML
-import sys
 import apiexec
-import re
 
 
 class PrintCode(gl_XML.gl_print_base):
@@ -43,11 +39,9 @@ class PrintCode(gl_XML.gl_print_base):
 
     def printBody(self, api):
         for f in api.functionIterateAll():
-            if f.exec_flavor != 'vtxfmt':
-                continue
-
-            if (re.match('Vertex*', f.name)):
+            if f.has_hw_select_variant:
                 print('SET_{0}(tab, NAME({0}));'.format(f.name))
+
 
 if __name__ == '__main__':
     apiexec.print_glapi_file(PrintCode())

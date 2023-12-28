@@ -7,3 +7,4 @@
   numpad:mac			=	+numpad(mac)
   numpad:microsoft		=	+numpad(microsoft)
   numpad:shift3			=	+numpad(shift3)
+  custom:types			=	+custom

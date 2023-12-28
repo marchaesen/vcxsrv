@@ -31,7 +31,6 @@
 #include "pvr_private.h"
 #include "pvr_shader.h"
 #include "rogue/rogue.h"
-#include "rogue/rogue_shader.h"
 #include "spirv/nir_spirv.h"
 #include "vk_format.h"
 #include "vk_shader_module.h"
@@ -52,7 +51,7 @@
  * \param[in] create_info Shader creation info from Vulkan pipeline.
  * \return A nir_shader* if successful, or NULL if unsuccessful.
  */
-nir_shader *pvr_spirv_to_nir(struct rogue_build_ctx *ctx,
+nir_shader *pvr_spirv_to_nir(rogue_build_ctx *ctx,
                              gl_shader_stage stage,
                              const VkPipelineShaderStageCreateInfo *create_info)
 {
@@ -84,8 +83,7 @@ nir_shader *pvr_spirv_to_nir(struct rogue_build_ctx *ctx,
  * \param[in] nir NIR shader.
  * \return A rogue_shader* if successful, or NULL if unsuccessful.
  */
-struct rogue_shader *pvr_nir_to_rogue(struct rogue_build_ctx *ctx,
-                                      nir_shader *nir)
+rogue_shader *pvr_nir_to_rogue(rogue_build_ctx *ctx, nir_shader *nir)
 {
    return rogue_nir_to_rogue(ctx, nir);
 }
@@ -95,10 +93,11 @@ struct rogue_shader *pvr_nir_to_rogue(struct rogue_build_ctx *ctx,
  *
  * \param[in] ctx Shared multi-stage build context.
  * \param[in] shader Rogue shader.
- * \return A rogue_shader_binary* if successful, or NULL if unsuccessful.
+ * \param[out] binary Array containing shader binary.
  */
-struct rogue_shader_binary *pvr_rogue_to_binary(struct rogue_build_ctx *ctx,
-                                                struct rogue_shader *shader)
+void pvr_rogue_to_binary(rogue_build_ctx *ctx,
+                         rogue_shader *shader,
+                         struct util_dynarray *binary)
 {
-   return rogue_to_binary(ctx, shader);
+   rogue_encode_shader(ctx, shader, binary);
 }

@@ -4,31 +4,31 @@
 #define U_SPLIT_PRIM_H
 
 #include "pipe/p_defines.h"
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "util/u_debug.h"
 
 struct util_split_prim {
    void *priv;
    void (*emit)(void *priv, unsigned start, unsigned count);
-   void (*edge)(void *priv, boolean enabled);
+   void (*edge)(void *priv, bool enabled);
 
    unsigned mode;
    unsigned start;
    unsigned p_start;
    unsigned p_end;
 
-   uint repeat_first:1;
-   uint close_first:1;
-   uint edgeflag_off:1;
+   unsigned repeat_first:1;
+   unsigned close_first:1;
+   unsigned edgeflag_off:1;
 };
 
 static inline void
 util_split_prim_init(struct util_split_prim *s,
                   unsigned mode, unsigned start, unsigned count)
 {
-   if (mode == PIPE_PRIM_LINE_LOOP) {
-      s->mode = PIPE_PRIM_LINE_STRIP;
+   if (mode == MESA_PRIM_LINE_LOOP) {
+      s->mode = MESA_PRIM_LINE_STRIP;
       s->close_first = 1;
    } else {
       s->mode = mode;
@@ -41,7 +41,7 @@ util_split_prim_init(struct util_split_prim *s,
    s->repeat_first = 0;
 }
 
-static inline boolean
+static inline bool
 util_split_prim_next(struct util_split_prim *s, unsigned max_verts)
 {
    int repeat = 0;
@@ -50,8 +50,8 @@ util_split_prim_next(struct util_split_prim *s, unsigned max_verts)
       s->emit(s->priv, s->start, 1);
       max_verts--;
       if (s->edgeflag_off) {
-         s->edge(s->priv, TRUE);
-         s->edgeflag_off = FALSE;
+         s->edge(s->priv, true);
+         s->edgeflag_off = false;
       }
    }
 
@@ -59,47 +59,47 @@ util_split_prim_next(struct util_split_prim *s, unsigned max_verts)
       s->emit(s->priv, s->p_start, s->p_end - s->p_start);
       if (s->close_first)
          s->emit(s->priv, s->start, 1);
-      return TRUE;
+      return true;
    }
 
    switch (s->mode) {
-   case PIPE_PRIM_LINES:
+   case MESA_PRIM_LINES:
       max_verts &= ~1;
       break;
-   case PIPE_PRIM_LINE_STRIP:
+   case MESA_PRIM_LINE_STRIP:
       repeat = 1;
       break;
-   case PIPE_PRIM_POLYGON:
+   case MESA_PRIM_POLYGON:
       max_verts--;
       s->emit(s->priv, s->p_start, max_verts);
-      s->edge(s->priv, FALSE);
+      s->edge(s->priv, false);
       s->emit(s->priv, s->p_start + max_verts, 1);
       s->p_start += max_verts;
-      s->repeat_first = TRUE;
-      s->edgeflag_off = TRUE;
-      return FALSE;
-   case PIPE_PRIM_TRIANGLES:
+      s->repeat_first = true;
+      s->edgeflag_off = true;
+      return false;
+   case MESA_PRIM_TRIANGLES:
       max_verts = max_verts - (max_verts % 3);
       break;
-   case PIPE_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_STRIP:
       /* to ensure winding stays correct, always split
        * on an even number of generated triangles
        */
       max_verts = max_verts & ~1;
       repeat = 2;
       break;
-   case PIPE_PRIM_TRIANGLE_FAN:
-      s->repeat_first = TRUE;
+   case MESA_PRIM_TRIANGLE_FAN:
+      s->repeat_first = true;
       repeat = 1;
       break;
-   case PIPE_PRIM_QUADS:
+   case MESA_PRIM_QUADS:
       max_verts &= ~3;
       break;
-   case PIPE_PRIM_QUAD_STRIP:
+   case MESA_PRIM_QUAD_STRIP:
       max_verts &= ~1;
       repeat = 2;
       break;
-   case PIPE_PRIM_POINTS:
+   case MESA_PRIM_POINTS:
       break;
    default:
       /* TODO: implement adjacency primitives */
@@ -108,7 +108,7 @@ util_split_prim_next(struct util_split_prim *s, unsigned max_verts)
 
    s->emit (s->priv, s->p_start, max_verts);
    s->p_start += (max_verts - repeat);
-   return FALSE;
+   return false;
 }
 
 #endif /* U_SPLIT_PRIM_H */

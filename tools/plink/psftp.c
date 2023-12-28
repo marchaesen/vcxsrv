@@ -1025,7 +1025,7 @@ int sftp_cmd_close(struct sftp_command *cmd)
     }
     do_sftp_cleanup();
 
-    return 0;
+    return 1;
 }
 
 void list_directory_from_sftp_warn_unsorted(void)
@@ -2387,6 +2387,10 @@ static void do_sftp_cleanup(void)
         sfree(homedir);
         homedir = NULL;
     }
+    if (psftp_logctx) {
+        log_free(psftp_logctx);
+        psftp_logctx = NULL;
+    }
 }
 
 int do_sftp(int mode, int modeflags, char *batchfile)
@@ -2836,8 +2840,6 @@ int psftp_main(int argc, char *argv[])
         } else if (strcmp(argv[i], "-V") == 0 ||
                    strcmp(argv[i], "--version") == 0) {
             version();
-        } else if (strcmp(argv[i], "-batch") == 0) {
-            console_batch_mode = true;
         } else if (strcmp(argv[i], "-b") == 0 && i + 1 < argc) {
             mode = 1;
             batchfile = argv[++i];

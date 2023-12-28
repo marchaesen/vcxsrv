@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#include "pan_device.h"
 #include "pan_bo.h"
+#include "pan_device.h"
 
 /* Sample positions are specified partially in hardware, partially in software
  * on Mali. On Midgard, sample positions are completely fixed but need to be
@@ -40,122 +40,108 @@
  */
 
 struct mali_sample_position {
-        uint16_t x, y;
+   uint16_t x, y;
 } __attribute__((packed));
 
 struct mali_sample_positions {
-        struct mali_sample_position positions[32];
-        struct mali_sample_position origin;
-        struct mali_sample_position padding[64 - (32 + 1)];
+   struct mali_sample_position positions[32];
+   struct mali_sample_position origin;
+   struct mali_sample_position padding[64 - (32 + 1)];
 } __attribute__((packed));
 
 /* SAMPLE16 constructs a single sample in terms of 1/16's of the grid, centered
  * at the origin. SAMPLE4/8 swap the units for legibility. */
 
-#define SAMPLE16(x, y) { \
-        (((x) + 8) * (256 / 16)), \
-        (((y) + 8) * (256 / 16)) \
-}
+#define SAMPLE16(x, y)                                                         \
+   {                                                                           \
+      (((x) + 8) * (256 / 16)), (((y) + 8) * (256 / 16))                       \
+   }
 
-#define SAMPLE8(x, y) SAMPLE16((x) * 2, (y) * 2)
-#define SAMPLE4(x, y) SAMPLE16((x) * 4, (y) * 4)
+#define SAMPLE8(x, y) SAMPLE16((x)*2, (y)*2)
+#define SAMPLE4(x, y) SAMPLE16((x)*4, (y)*4)
 
+/* clang-format off */
 const struct mali_sample_positions sample_position_lut[] = {
-        [MALI_SAMPLE_PATTERN_SINGLE_SAMPLED] = {
-                .positions = {
-                        SAMPLE4(0, 0)
-                },
-                .origin = SAMPLE4(0, 0)
-        },
+   [MALI_SAMPLE_PATTERN_SINGLE_SAMPLED] = {
+      .positions = {
+         SAMPLE4(0, 0)
+      },
+      .origin = SAMPLE4(0, 0)
+   },
 
-        [MALI_SAMPLE_PATTERN_ORDERED_4X_GRID] = {
-                .positions = {
-                        SAMPLE4(-1, -1),
-                        SAMPLE4( 1, -1),
-                        SAMPLE4(-1,  1),
-                        SAMPLE4( 1,  1),
-                },
-                .origin = SAMPLE4(0, 0)
-        },
+   [MALI_SAMPLE_PATTERN_ORDERED_4X_GRID] = {
+      .positions = {
+         SAMPLE4(-1, -1),
+         SAMPLE4( 1, -1),
+         SAMPLE4(-1,  1),
+         SAMPLE4( 1,  1),
+      },
+      .origin = SAMPLE4(0, 0)
+   },
 
-        [MALI_SAMPLE_PATTERN_ROTATED_4X_GRID] = {
-                .positions = {
-                        SAMPLE8(-1, -3),
-                        SAMPLE8( 3, -1),
-                        SAMPLE8(-3,  1),
-                        SAMPLE8( 1,  3),
-                },
-                .origin = SAMPLE8(0, 0)
-        },
+   [MALI_SAMPLE_PATTERN_ROTATED_4X_GRID] = {
+      .positions = {
+         SAMPLE8(-1, -3),
+         SAMPLE8( 3, -1),
+         SAMPLE8(-3,  1),
+         SAMPLE8( 1,  3),
+      },
+      .origin = SAMPLE8(0, 0)
+   },
 
-        [MALI_SAMPLE_PATTERN_D3D_8X_GRID] = {
-                .positions = {
-                        SAMPLE16( 1, -3),
-                        SAMPLE16(-1,  3),
-                        SAMPLE16( 5,  1),
-                        SAMPLE16(-3, -5),
-                        SAMPLE16(-5,  5),
-                        SAMPLE16(-7, -1),
-                        SAMPLE16( 3,  7),
-                        SAMPLE16( 7,  -7),
-                },
-                .origin = SAMPLE16(0, 0)
-        },
+   [MALI_SAMPLE_PATTERN_D3D_8X_GRID] = {
+      .positions = {
+         SAMPLE16( 1, -3),
+         SAMPLE16(-1,  3),
+         SAMPLE16( 5,  1),
+         SAMPLE16(-3, -5),
+         SAMPLE16(-5,  5),
+         SAMPLE16(-7, -1),
+         SAMPLE16( 3,  7),
+         SAMPLE16( 7,  -7),
+      },
+      .origin = SAMPLE16(0, 0)
+   },
 
-        [MALI_SAMPLE_PATTERN_D3D_16X_GRID] = {
-                .positions = {
-                        SAMPLE16( 1,  1),
-                        SAMPLE16(-1, -3),
-                        SAMPLE16(-3,  2),
-                        SAMPLE16( 4, -1),
-                        SAMPLE16(-5, -2),
-                        SAMPLE16( 2,  5),
-                        SAMPLE16( 5,  3),
-                        SAMPLE16( 3, -5),
-                        SAMPLE16(-2,  6),
-                        SAMPLE16( 0,  7),
-                        SAMPLE16(-4, -6),
-                        SAMPLE16(-6,  4),
-                        SAMPLE16(-8,  0),
-                        SAMPLE16( 7, -4),
-                        SAMPLE16( 6,  7),
-                        SAMPLE16(-7, -8),
-
-                },
-                .origin = SAMPLE16(0, 0)
-        }
+   [MALI_SAMPLE_PATTERN_D3D_16X_GRID] = {
+      .positions = {
+         SAMPLE16( 1,  1),
+         SAMPLE16(-1, -3),
+         SAMPLE16(-3,  2),
+         SAMPLE16( 4, -1),
+         SAMPLE16(-5, -2),
+         SAMPLE16( 2,  5),
+         SAMPLE16( 5,  3),
+         SAMPLE16( 3, -5),
+         SAMPLE16(-2,  6),
+         SAMPLE16( 0,  7),
+         SAMPLE16(-4, -6),
+         SAMPLE16(-6,  4),
+         SAMPLE16(-8,  0),
+         SAMPLE16( 7, -4),
+         SAMPLE16( 6,  7),
+         SAMPLE16(-7, -8),
+      },
+      .origin = SAMPLE16(0, 0)
+   }
 };
+/* clang-format on */
 
 mali_ptr
 panfrost_sample_positions(const struct panfrost_device *dev,
-                enum mali_sample_pattern pattern)
+                          enum mali_sample_pattern pattern)
 {
-        assert(pattern < ARRAY_SIZE(sample_position_lut));
-        unsigned offset = (pattern * sizeof(sample_position_lut[0]));
-        return dev->sample_positions->ptr.gpu + offset;
+   assert(pattern < ARRAY_SIZE(sample_position_lut));
+   unsigned offset = (pattern * sizeof(sample_position_lut[0]));
+   return dev->sample_positions->ptr.gpu + offset;
 }
 
 void
 panfrost_upload_sample_positions(struct panfrost_device *dev)
 {
-        STATIC_ASSERT(sizeof(sample_position_lut) < 4096);
-        dev->sample_positions = panfrost_bo_create(dev, 4096, 0, "Sample positions");
+   STATIC_ASSERT(sizeof(sample_position_lut) < 4096);
+   dev->sample_positions = panfrost_bo_create(dev, 4096, 0, "Sample positions");
 
-        memcpy(dev->sample_positions->ptr.cpu, sample_position_lut,
-                        sizeof(sample_position_lut));
-}
-
-/* CPU side LUT query, to implement glGetMultisamplefv */
-
-void
-panfrost_query_sample_position(
-                enum mali_sample_pattern pattern,
-                unsigned sample_idx,
-                float *out)
-{
-        struct mali_sample_position pos =
-                sample_position_lut[pattern].positions[sample_idx];
-
-        out[0] = DECODE_FIXED_16(pos.x);
-        out[1] = DECODE_FIXED_16(pos.y);
+   memcpy(dev->sample_positions->ptr.cpu, sample_position_lut,
+          sizeof(sample_position_lut));
 }

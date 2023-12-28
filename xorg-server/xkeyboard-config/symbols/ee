@@ -1,3 +1,5 @@
+// Keyboard layouts for Estonia.
+
 // Estonian keyboard layout, by Ville Hallik <ville@linux.ee>.
 // This layout conforms to both EVS8:1993 and EVS8:2000 standards.
 default partial alphanumeric_keys
@@ -7,24 +9,27 @@ xkb_symbols "basic" {
 
     name[Group1]="Estonian";
 
-    key <TLDE>	{[ dead_caron, dead_tilde,      notsign,      notsign ]};
+    key <TLDE>	{[ dead_caron, dead_tilde,        U2022,periodcentered]}; // bullet
     key <AE03>	{[          3, numbersign,     sterling,     sterling ]};
     key <AE04>	{[          4,   currency,       dollar,       dollar ]};
+    key <AE05>	{[          5,    percent,     EuroSign, threeeighths ]};
     key <AE11>	{[       plus,   question,    backslash, questiondown ]};
-    key <AE12>	{[ dead_acute, dead_grave,        grave,   apostrophe ]};
+    key <AE12>	{[ dead_acute, dead_grave,        grave, dead_cedilla ]};
 
+    key <AD02>	{[          w,          W,       ssharp,  Greek_SIGMA ]};
     key <AD11>	{[ udiaeresis, Udiaeresis, dead_diaeresis, dead_abovering ]};
     key <AD12>	{[     otilde,     Otilde,      section,  dead_macron ]};
 
     key <AC02>	{[          s,          S,       scaron,       Scaron ]};
     key <AC10>	{[ odiaeresis, Odiaeresis,   dead_acute, dead_doubleacute ]};
-    key <AC11>	{[ adiaeresis, Adiaeresis,  asciicircum,   dead_caron ]};
+    key <AC11>	{[ adiaeresis, Adiaeresis,  asciicircum,  dead_circumflex ]};
     key <BKSL>	{[ apostrophe,   asterisk,      onehalf,   dead_breve ]};
 
     key <AB01>	{[          z,          Z,       zcaron,       Zcaron ]};
+    key <AB02>	{[          x,          X, guillemotright,  guillemotleft ]};
     key <AB08>	{[      comma,  semicolon,         less,     multiply ]};
     key <AB09>	{[     period,      colon,      greater,     division ]};
-    key <AB10>	{[      minus, underscore,          bar,     abovedot ]};
+    key <AB10>	{[      minus, underscore,          bar, dead_abovedot]};
 
     include "eurosign(e)"
 
@@ -39,16 +44,17 @@ xkb_symbols "nodeadkeys" {
     name[Group1] = "Estonian (no dead keys)";
 
     key <TLDE>	{[asciicircum, asciitilde                             ]};
-    key <AE12>	{[ apostrophe,      grave                             ]};
+    key <AE12>	{[ apostrophe,      grave,        grave,       dagger ]};
 
     key <AD11>	{[ udiaeresis, Udiaeresis,    diaeresis,       degree ]};
     key <AD12>	{[     otilde,     Otilde,      section,       macron ]};
 
+    key <AC07>	{[          j,          J,          ezh,          EZH ]};
     key <AC10>	{[ odiaeresis, Odiaeresis,        acute,  doubleacute ]};
     key <AC11>	{[ adiaeresis, Adiaeresis,  asciicircum,        caron ]};
     key <BKSL>	{[ apostrophe,   asterisk,      onehalf,        breve ]};
 
-    key <AB10>	{[      minus, underscore, dead_belowdot,    abovedot ]};
+    key <AB10>	{[      minus, underscore,     ellipsis,     abovedot ]};
 };
 
 // The US Dvorak layout with Estonian letters on the third level.

@@ -30,6 +30,8 @@
 #include "pipe/p_context.h"
 #include "freedreno_context.h"
 
+BEGINC;
+
 static inline bool
 fd_depth_enabled(struct fd_context *ctx) assert_dt
 {
@@ -55,20 +57,28 @@ fd_blend_enabled(struct fd_context *ctx, unsigned n) assert_dt
 }
 
 static inline bool
-fd_depth_clip_disabled(struct fd_context *ctx) assert_dt
+fd_depth_clamp_enabled(struct fd_context *ctx) assert_dt
 {
    return !(ctx->rasterizer->depth_clip_near &&
             ctx->rasterizer->depth_clip_far);
 }
 
+void fd_set_shader_buffers(struct pipe_context *pctx,
+                           enum pipe_shader_type shader,
+                           unsigned start, unsigned count,
+                           const struct pipe_shader_buffer *buffers,
+                           unsigned writable_bitmask) in_dt;
+
 void fd_set_shader_images(struct pipe_context *pctx,
                           enum pipe_shader_type shader, unsigned start,
                           unsigned count, unsigned unbind_num_trailing_slots,
-                          const struct pipe_image_view *images);
+                          const struct pipe_image_view *images) in_dt;
 
 void fd_set_framebuffer_state(struct pipe_context *pctx,
                          const struct pipe_framebuffer_state *framebuffer) in_dt;
 
 void fd_state_init(struct pipe_context *pctx);
+
+ENDC;
 
 #endif /* FREEDRENO_STATE_H_ */

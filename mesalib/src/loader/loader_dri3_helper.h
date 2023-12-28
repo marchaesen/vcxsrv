@@ -111,7 +111,6 @@ struct loader_dri3_vtable {
    __DRIcontext *(*get_dri_context)(struct loader_dri3_drawable *);
    __DRIscreen *(*get_dri_screen)(void);
    void (*flush_drawable)(struct loader_dri3_drawable *, unsigned);
-   void (*show_fps)(struct loader_dri3_drawable *, uint64_t);
 };
 
 #define LOADER_DRI3_NUM_BUFFERS (1 + LOADER_DRI3_MAX_BACK)
@@ -138,12 +137,15 @@ struct loader_dri3_drawable {
    enum loader_dri3_drawable_type type;
 
    /* Information about the GPU owning the buffer */
-   __DRIscreen *dri_screen;
-   bool is_different_gpu;
    bool multiplanes_available;
    bool prefer_back_buffer_reuse;
-
-   /* DRI screen created for display GPU in case of prime */
+   __DRIscreen *dri_screen_render_gpu;
+   /* dri_screen_display_gpu holds display GPU in case of prime gpu offloading else
+    * dri_screen_render_gpu and dri_screen_display_gpu is same.
+    * In case of prime gpu offloading, if display and render driver names are different
+    * (potentially not compatible), dri_screen_display_gpu will be NULL but fd_display_gpu
+    * will still hold fd for display driver.
+    */
    __DRIscreen *dri_screen_display_gpu;
 
    /* SBC numbers are tracked by using the serial numbers
@@ -173,12 +175,13 @@ struct loader_dri3_drawable {
    bool first_init;
    bool adaptive_sync;
    bool adaptive_sync_active;
+   bool block_on_depleted_buffers;
+   bool queries_buffer_age;
    int swap_interval;
 
    struct loader_dri3_extensions *ext;
    const struct loader_dri3_vtable *vtable;
 
-   unsigned int swap_method;
    unsigned int back_format;
    xcb_present_complete_mode_t last_present_mode;
 
@@ -206,8 +209,8 @@ int
 loader_dri3_drawable_init(xcb_connection_t *conn,
                           xcb_drawable_t drawable,
                           enum loader_dri3_drawable_type type,
-                          __DRIscreen *dri_screen,
-                          bool is_different_gpu,
+                          __DRIscreen *dri_screen_render_gpu,
+                          __DRIscreen *dri_screen_display_gpu,
                           bool is_multiplanes_available,
                           bool prefer_back_buffer_reuse,
                           const __DRIconfig *dri_config,
@@ -293,4 +296,5 @@ loader_dri3_swapbuffer_barrier(struct loader_dri3_drawable *draw);
 
 void
 loader_dri3_close_screen(__DRIscreen *dri_screen);
+
 #endif

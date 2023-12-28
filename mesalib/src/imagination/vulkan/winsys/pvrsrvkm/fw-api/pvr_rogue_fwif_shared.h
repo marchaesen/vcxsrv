@@ -27,7 +27,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#define ALIGN_ATTR(x) __attribute__((aligned(x)))
+#include "util/macros.h"
 
 /** Indicates the number of RTDATAs per RTDATASET. */
 #define ROGUE_FWIF_NUM_RTDATAS 2U
@@ -63,10 +63,10 @@ struct rogue_fwif_dev_addr {
 };
 
 struct rogue_fwif_dma_addr {
-   uint64_t ALIGN_ATTR(8) dev_vaddr;
+   alignas(8) uint64_t dev_vaddr;
    struct rogue_fwif_dev_addr fw_addr;
    uint32_t padding;
-} ALIGN_ATTR(8);
+};
 
 /**
  * \brief Command data for fence & update types Client CCB commands.
@@ -80,11 +80,11 @@ struct rogue_fwif_ufo {
 
 struct rogue_fwif_cleanup_ctl {
    /** Number of commands received by the FW. */
-   uint32_t submitted_cmds;
+   alignas(8) uint32_t submitted_cmds;
 
    /** Number of commands executed by the FW. */
    uint32_t executed_cmds;
-} ALIGN_ATTR(8);
+};
 
 #define ROGUE_FWIF_PRBUFFER_START 0U
 #define ROGUE_FWIF_PRBUFFER_ZSBUFFER 0U
@@ -103,16 +103,16 @@ enum rogue_fwif_prbuffer_state {
  */
 struct rogue_fwif_prbuffer {
    /** Buffer ID. */
-   uint32_t buffer_id;
+   alignas(8) uint32_t buffer_id;
    /** Needs on-demand Z/S/MSAA buffer allocation. */
-   bool ALIGN_ATTR(4) on_demand;
+   alignas(4) bool on_demand;
    /** Z/S/MSAA - Buffer state. */
    enum rogue_fwif_prbuffer_state state;
    /** Cleanup state. */
    struct rogue_fwif_cleanup_ctl cleanup_state;
    /** Compatibility and other flags. */
    uint32_t pr_buffer_flags;
-} ALIGN_ATTR(8);
+};
 
 /**
  * Used to share frame numbers across UM-KM-FW,
@@ -167,7 +167,7 @@ struct rogue_fwif_cmd_ta_3d_shared {
  */
 struct rogue_fwif_cccb_ctl {
    /** Host write offset into CCB. This must be aligned to 16 bytes. */
-   uint32_t write_offset;
+   alignas(8) uint32_t write_offset;
 
    /**
     * Firmware read offset into CCB. Points to the command that is runnable
@@ -193,7 +193,7 @@ struct rogue_fwif_cccb_ctl {
    uint32_t read_offset4;
 
    uint32_t padding;
-} ALIGN_ATTR(8);
+};
 
 #define ROGUE_FW_LOCAL_FREELIST 0U
 #define ROGUE_FW_GLOBAL_FREELIST 1U
@@ -254,8 +254,8 @@ struct rogue_fwif_cdm_regs_cswitch {
  */
 struct rogue_fwif_static_rendercontext_state {
    /** Geom registers for ctx switch. */
-   struct rogue_fwif_ta_regs_cswitch
-      ALIGN_ATTR(8) ctx_switch_geom_regs[ROGUE_NUM_GEOM_CORES_SIZE];
+   alignas(8) struct rogue_fwif_ta_regs_cswitch
+      ctx_switch_geom_regs[ROGUE_NUM_GEOM_CORES_SIZE];
 };
 
 #define ROGUE_FWIF_STATIC_RENDERCONTEXT_SIZE \
@@ -263,7 +263,7 @@ struct rogue_fwif_static_rendercontext_state {
 
 struct rogue_fwif_static_computecontext_state {
    /** CDM registers for ctx switch. */
-   struct rogue_fwif_cdm_regs_cswitch ALIGN_ATTR(8) ctx_switch_regs;
+   alignas(8) struct rogue_fwif_cdm_regs_cswitch ctx_switch_regs;
 };
 
 #define ROGUE_FWIF_STATIC_COMPUTECONTEXT_SIZE \

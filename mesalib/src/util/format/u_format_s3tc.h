@@ -30,7 +30,7 @@
 #define U_FORMAT_S3TC_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "c99_compat.h"
 

@@ -39,6 +39,7 @@
 #endif
 
 #include "util/compress.h"
+#include "util/perf/cpu_trace.h"
 #include "macros.h"
 
 /* 3 is the recomended level, with 22 as the absolute maximum */
@@ -74,6 +75,7 @@ size_t
 util_compress_deflate(const uint8_t *in_data, size_t in_data_size,
                       uint8_t *out_data, size_t out_buff_size)
 {
+   MESA_TRACE_FUNC();
 #ifdef HAVE_ZSTD
    size_t ret = ZSTD_compress(out_data, out_buff_size, in_data, in_data_size,
                               ZSTD_COMPRESSION_LEVEL);
@@ -124,6 +126,7 @@ bool
 util_compress_inflate(const uint8_t *in_data, size_t in_data_size,
                       uint8_t *out_data, size_t out_data_size)
 {
+   MESA_TRACE_FUNC();
 #ifdef HAVE_ZSTD
    size_t ret = ZSTD_decompress(out_data, out_data_size, in_data, in_data_size);
    return !ZSTD_isError(ret);

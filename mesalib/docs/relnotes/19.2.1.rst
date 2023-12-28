@@ -92,7 +92,7 @@ Ian Romanick (1):
 
 -  nir/range-analysis: Bail if the types don't match
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  intel/fs: Fix fs_inst::flags_read for ANY/ALL predicates
 

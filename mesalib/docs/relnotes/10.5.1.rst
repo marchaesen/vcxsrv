@@ -117,7 +117,7 @@ Ilia Mirkin (3):
 -  freedreno/ir3: fix array count returned by TXQ
 -  freedreno/ir3: get the # of miplevels from getinfo
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  meta/TexSubImage: Stash everything other than PIXEL_TRANSFER/store in
    meta_begin

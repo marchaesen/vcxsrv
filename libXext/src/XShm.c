@@ -262,7 +262,7 @@ Bool XShmDetach(Display *dpy, XShmSegmentInfo *shminfo)
 
 static int _XShmDestroyImage (XImage *ximage)
 {
-	Xfree((char *)ximage);
+	Xfree(ximage);
 	return 1;
 }
 
@@ -280,7 +280,7 @@ XImage *XShmCreateImage (
 {
     register XImage *image;
 
-    image = (XImage *)Xcalloc(1, (unsigned)sizeof(XImage));
+    image = Xcalloc(1, sizeof(XImage));
     if (!image)
 	return image;
     image->data = data;

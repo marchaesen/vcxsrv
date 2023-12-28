@@ -24,7 +24,8 @@ if __name__== '__main__':
                 break
 
     cpp = args[1]
-    ret = subprocess.run(cpp + host_cargs + [args[0].input], stdout=subprocess.PIPE, check=True)
+    cpp_args = [i for i in host_cargs + [args[0].input] if not i.startswith('-g')]
+    ret = subprocess.run(cpp + cpp_args, stdout=subprocess.PIPE, check=True)
 
     stdout = ret.stdout.decode('utf8')
 

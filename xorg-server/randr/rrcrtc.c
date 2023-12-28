@@ -1261,6 +1261,9 @@ ProcRRGetCrtcInfo(ClientPtr client)
         }
     }
 
+    if (pScrPriv->rrCrtcGet)
+        pScrPriv->rrCrtcGet(pScreen, crtc, &rep);
+
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);

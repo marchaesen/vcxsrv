@@ -53,6 +53,8 @@ struct radv_amdgpu_winsys_bo {
       };
       /* virtual bo */
       struct {
+         struct u_rwlock lock;
+
          struct radv_amdgpu_map_range *ranges;
          uint32_t range_count;
          uint32_t range_capacity;

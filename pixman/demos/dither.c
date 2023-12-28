@@ -23,12 +23,12 @@
  * DEALINGS IN THE SOFTWARE.
  */
 #ifdef HAVE_CONFIG_H
-#include "config.h"
+#include "pixman-config.h"
 #endif
 #include <math.h>
 #include <gtk/gtk.h>
 #include <stdlib.h>
-#include "../test/utils.h"
+#include "utils.h"
 #include "gtk-utils.h"
 
 #define WIDTH 1024

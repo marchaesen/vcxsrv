@@ -25,14 +25,18 @@
  *
  * Glamor support and EGL setup.
  */
+#define MESA_EGL_NO_X11_HEADERS
+#define EGL_NO_X11
 
 #include <stdlib.h>
 #include <stdint.h>
 #include <xcb/xcb.h>
 #include <xcb/xcb_aux.h>
 #include <pixman.h>
+#include "glamor_context.h"
 #include "glamor_egl.h"
 #include "glamor_priv.h"
+#include "ephyr.h"
 #include "ephyr_glamor.h"
 #include "os.h"
 
@@ -68,6 +72,64 @@ struct ephyr_glamor {
 
     GLuint vao, vbo;
 };
+
+static void
+glamor_egl_make_current(struct glamor_context *glamor_ctx)
+{
+    /* There's only a single global dispatch table in Mesa.  EGL, GLX,
+     * and AIGLX's direct dispatch table manipulation don't talk to
+     * each other.  We need to set the context to NULL first to avoid
+     * EGL's no-op context change fast path when switching back to
+     * EGL.
+     */
+    eglMakeCurrent(glamor_ctx->display, EGL_NO_SURFACE,
+                   EGL_NO_SURFACE, EGL_NO_CONTEXT);
+
+    if (!eglMakeCurrent(glamor_ctx->display,
+                        glamor_ctx->surface, glamor_ctx->surface,
+                        glamor_ctx->ctx)) {
+        FatalError("Failed to make EGL context current\n");
+    }
+}
+
+void
+glamor_egl_screen_init(ScreenPtr screen, struct glamor_context *glamor_ctx)
+{
+    KdScreenPriv(screen);
+    KdScreenInfo *kd_screen = pScreenPriv->screen;
+    EphyrScrPriv *scrpriv = kd_screen->driver;
+    struct ephyr_glamor *ephyr_glamor = scrpriv->glamor;
+
+    glamor_enable_dri3(screen);
+    glamor_ctx->display = ephyr_glamor->dpy;
+    glamor_ctx->ctx = ephyr_glamor->ctx;
+    glamor_ctx->surface = ephyr_glamor->egl_win;
+    glamor_ctx->make_current = glamor_egl_make_current;
+}
+
+int
+glamor_egl_fd_name_from_pixmap(ScreenPtr screen,
+                               PixmapPtr pixmap,
+                               CARD16 *stride, CARD32 *size)
+{
+    return -1;
+}
+
+
+int
+glamor_egl_fds_from_pixmap(ScreenPtr screen, PixmapPtr pixmap, int *fds,
+                           uint32_t *offsets, uint32_t *strides,
+                           uint64_t *modifier)
+{
+    return 0;
+}
+
+int
+glamor_egl_fd_from_pixmap(ScreenPtr screen, PixmapPtr pixmap,
+                          CARD16 *stride, CARD32 *size)
+{
+    return -1;
+}
 
 static GLuint
 ephyr_glamor_build_glsl_prog(GLuint vs, GLuint fs)

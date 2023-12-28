@@ -83,7 +83,7 @@ static void virgl_set_so_targets(struct pipe_context *ctx,
 
          pipe_resource_reference(&vctx->so_targets[i].base.buffer, targets[i]->buffer);
 
-         vws->emit_res(vws, vctx->cbuf, res->hw_res, FALSE);
+         vws->emit_res(vws, vctx->cbuf, res->hw_res, false);
       } else {
          pipe_resource_reference(&vctx->so_targets[i].base.buffer, NULL);
       }

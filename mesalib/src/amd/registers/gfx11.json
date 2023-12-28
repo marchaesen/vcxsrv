@@ -441,12 +441,16 @@
   "SX_BLEND_OPT_EPSILON__MRT0_EPSILON": {
    "entries": [
     {"name": "EXACT", "value": 0},
-    {"name": "11BIT_FORMAT", "value": 1},
-    {"name": "10BIT_FORMAT", "value": 3},
-    {"name": "8BIT_FORMAT", "value": 6},
-    {"name": "6BIT_FORMAT", "value": 11},
-    {"name": "5BIT_FORMAT", "value": 13},
-    {"name": "4BIT_FORMAT", "value": 15}
+    {"name": "10BIT_FORMAT_0_5", "value": 2},
+    {"name": "10BIT_FORMAT_0_75", "value": 3},
+    {"name": "8BIT_FORMAT_0_5", "value": 6},
+    {"name": "8BIT_FORMAT_0_75", "value": 7},
+    {"name": "6BIT_FORMAT_0_5", "value": 10},
+    {"name": "6BIT_FORMAT_0_75", "value": 11},
+    {"name": "5BIT_FORMAT_0_5", "value": 12},
+    {"name": "5BIT_FORMAT_0_75", "value": 13},
+    {"name": "4BIT_FORMAT_0_5", "value": 14},
+    {"name": "4BIT_FORMAT_0_75", "value": 15}
    ]
   },
   "SX_DOWNCONVERT_FORMAT": {
@@ -1291,39 +1295,15 @@
   },
   {
    "chips": ["gfx11"],
-   "map": {"at": 45056, "to": "mm"},
-   "name": "GUS_IO_RD_COMBINE_FLUSH",
-   "type_ref": "GUS_IO_RD_COMBINE_FLUSH"
+   "map": {"at": 41120, "to": "mm"},
+   "name": "GCVM_L2_PROTECTION_FAULT_STATUS",
+   "type_ref": "GCVM_L2_PROTECTION_FAULT_STATUS"
   },
   {
    "chips": ["gfx11"],
    "map": {"at": 45060, "to": "mm"},
    "name": "SPI_SHADER_PGM_RSRC4_PS",
    "type_ref": "SPI_SHADER_PGM_RSRC4_PS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45064, "to": "mm"},
-   "name": "GUS_IO_RD_PRI_AGE_RATE",
-   "type_ref": "GUS_IO_RD_PRI_AGE_RATE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45068, "to": "mm"},
-   "name": "GUS_IO_WR_PRI_AGE_RATE",
-   "type_ref": "GUS_IO_RD_PRI_AGE_RATE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45072, "to": "mm"},
-   "name": "GUS_IO_RD_PRI_AGE_COEFF",
-   "type_ref": "GUS_IO_RD_PRI_AGE_COEFF"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45076, "to": "mm"},
-   "name": "GUS_IO_WR_PRI_AGE_COEFF",
-   "type_ref": "GUS_IO_RD_PRI_AGE_COEFF"
   },
   {
    "chips": ["gfx11"],
@@ -1521,39 +1501,9 @@
   },
   {
    "chips": ["gfx11"],
-   "map": {"at": 45232, "to": "mm"},
-   "name": "GUS_DRAM_PRI_QUANT1_PRI2",
-   "type_ref": "GUS_DRAM_PRI_QUANT1_PRI2"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45236, "to": "mm"},
-   "name": "GUS_DRAM_PRI_QUANT1_PRI3",
-   "type_ref": "GUS_DRAM_PRI_QUANT1_PRI2"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45240, "to": "mm"},
-   "name": "GUS_DRAM_PRI_QUANT1_PRI4",
-   "type_ref": "GUS_DRAM_PRI_QUANT1_PRI2"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45244, "to": "mm"},
-   "name": "GUS_DRAM_PRI_QUANT1_PRI5",
-   "type_ref": "GUS_DRAM_PRI_QUANT1_PRI2"
-  },
-  {
-   "chips": ["gfx11"],
    "map": {"at": 45248, "to": "mm"},
    "name": "SPI_SHADER_REQ_CTRL_PS",
    "type_ref": "SPI_SHADER_REQ_CTRL_PS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45252, "to": "mm"},
-   "name": "GUS_DRAM_GROUP_BURST",
-   "type_ref": "GUS_DRAM_GROUP_BURST"
   },
   {
    "chips": ["gfx11"],
@@ -1578,264 +1528,6 @@
    "map": {"at": 45268, "to": "mm"},
    "name": "SPI_SHADER_USER_ACCUM_PS_3",
    "type_ref": "SPI_SHADER_USER_ACCUM_PS_0"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45272, "to": "mm"},
-   "name": "GUS_SDP_TAG_RESERVE1",
-   "type_ref": "GUS_SDP_TAG_RESERVE1"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45276, "to": "mm"},
-   "name": "GUS_SDP_VCC_RESERVE0",
-   "type_ref": "GUS_SDP_VCC_RESERVE0"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45280, "to": "mm"},
-   "name": "GUS_SDP_VCC_RESERVE1",
-   "type_ref": "GUS_SDP_VCC_RESERVE1"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45284, "to": "mm"},
-   "name": "GUS_SDP_VCD_RESERVE0",
-   "type_ref": "GUS_SDP_VCC_RESERVE0"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45288, "to": "mm"},
-   "name": "GUS_SDP_VCD_RESERVE1",
-   "type_ref": "GUS_SDP_VCC_RESERVE1"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45292, "to": "mm"},
-   "name": "GUS_SDP_REQ_CNTL",
-   "type_ref": "GUS_SDP_REQ_CNTL"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45296, "to": "mm"},
-   "name": "GUS_MISC",
-   "type_ref": "GUS_MISC"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45300, "to": "mm"},
-   "name": "GUS_LATENCY_SAMPLING",
-   "type_ref": "GUS_LATENCY_SAMPLING"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45304, "to": "mm"},
-   "name": "GUS_ERR_STATUS",
-   "type_ref": "GUS_ERR_STATUS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45308, "to": "mm"},
-   "name": "GUS_MISC2",
-   "type_ref": "GUS_MISC2"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45332, "to": "mm"},
-   "name": "GUS_SDP_ENABLE",
-   "type_ref": "GUS_SDP_ENABLE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45336, "to": "mm"},
-   "name": "GUS_L1_CH0_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45340, "to": "mm"},
-   "name": "GUS_L1_CH0_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45344, "to": "mm"},
-   "name": "GUS_L1_CH0_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45348, "to": "mm"},
-   "name": "GUS_L1_CH0_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45352, "to": "mm"},
-   "name": "GUS_L1_CH0_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45356, "to": "mm"},
-   "name": "GUS_L1_CH0_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45360, "to": "mm"},
-   "name": "GUS_L1_CH1_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45364, "to": "mm"},
-   "name": "GUS_L1_CH1_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45368, "to": "mm"},
-   "name": "GUS_L1_CH1_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45372, "to": "mm"},
-   "name": "GUS_L1_CH1_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45376, "to": "mm"},
-   "name": "GUS_L1_CH1_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45380, "to": "mm"},
-   "name": "GUS_L1_CH1_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45384, "to": "mm"},
-   "name": "GUS_L1_SA0_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45388, "to": "mm"},
-   "name": "GUS_L1_SA0_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45392, "to": "mm"},
-   "name": "GUS_L1_SA0_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45396, "to": "mm"},
-   "name": "GUS_L1_SA0_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45400, "to": "mm"},
-   "name": "GUS_L1_SA0_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45404, "to": "mm"},
-   "name": "GUS_L1_SA0_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45408, "to": "mm"},
-   "name": "GUS_L1_SA1_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45412, "to": "mm"},
-   "name": "GUS_L1_SA1_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45416, "to": "mm"},
-   "name": "GUS_L1_SA1_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45420, "to": "mm"},
-   "name": "GUS_L1_SA1_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45424, "to": "mm"},
-   "name": "GUS_L1_SA1_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45428, "to": "mm"},
-   "name": "GUS_L1_SA1_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45432, "to": "mm"},
-   "name": "GUS_L1_SA2_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45436, "to": "mm"},
-   "name": "GUS_L1_SA2_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45440, "to": "mm"},
-   "name": "GUS_L1_SA2_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45444, "to": "mm"},
-   "name": "GUS_L1_SA2_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45448, "to": "mm"},
-   "name": "GUS_L1_SA2_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45452, "to": "mm"},
-   "name": "GUS_L1_SA2_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45456, "to": "mm"},
-   "name": "GUS_L1_SA3_CMD_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45460, "to": "mm"},
-   "name": "GUS_L1_SA3_CMD_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45464, "to": "mm"},
-   "name": "GUS_L1_SA3_DATA_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45468, "to": "mm"},
-   "name": "GUS_L1_SA3_DATA_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45472, "to": "mm"},
-   "name": "GUS_L1_SA3_DATA_U_IN"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45476, "to": "mm"},
-   "name": "GUS_L1_SA3_DATA_U_OUT"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45480, "to": "mm"},
-   "name": "GUS_MISC3",
-   "type_ref": "GUS_MISC3"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 45484, "to": "mm"},
-   "name": "GUS_WRRSP_FIFO_CNTL",
-   "type_ref": "GUS_WRRSP_FIFO_CNTL"
   },
   {
    "chips": ["gfx11"],
@@ -2362,30 +2054,6 @@
   },
   {
    "chips": ["gfx11"],
-   "map": {"at": 46340, "to": "mm"},
-   "name": "GL1C_STATUS",
-   "type_ref": "GL1C_STATUS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46348, "to": "mm"},
-   "name": "GL1C_UTCL0_CNTL2",
-   "type_ref": "GL1C_UTCL0_CNTL2"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46352, "to": "mm"},
-   "name": "GL1C_UTCL0_STATUS",
-   "type_ref": "GL1C_UTCL0_STATUS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46356, "to": "mm"},
-   "name": "GL1C_UTCL0_RETRY",
-   "type_ref": "GL1C_UTCL0_RETRY"
-  },
-  {
-   "chips": ["gfx11"],
    "map": {"at": 46368, "to": "mm"},
    "name": "SPI_SHADER_PGM_LO_LS"
   },
@@ -2394,78 +2062,6 @@
    "map": {"at": 46372, "to": "mm"},
    "name": "SPI_SHADER_PGM_HI_LS",
    "type_ref": "SPI_SHADER_PGM_HI_PS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46592, "to": "mm"},
-   "name": "CH_ARB_CTRL",
-   "type_ref": "CH_ARB_CTRL"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46600, "to": "mm"},
-   "name": "CH_DRAM_BURST_MASK",
-   "type_ref": "CH_DRAM_BURST_MASK"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46604, "to": "mm"},
-   "name": "CH_ARB_STATUS",
-   "type_ref": "CH_ARB_STATUS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46608, "to": "mm"},
-   "name": "CH_DRAM_BURST_CTRL",
-   "type_ref": "CH_DRAM_BURST_CTRL"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46624, "to": "mm"},
-   "name": "CHA_CHC_CREDITS",
-   "type_ref": "CHA_CHC_CREDITS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46628, "to": "mm"},
-   "name": "CHA_CLIENT_FREE_DELAY",
-   "type_ref": "CHA_CLIENT_FREE_DELAY"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46640, "to": "mm"},
-   "name": "CHI_CHR_REP_FGCG_OVERRIDE",
-   "type_ref": "CHI_CHR_REP_FGCG_OVERRIDE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46672, "to": "mm"},
-   "name": "CH_VC5_ENABLE",
-   "type_ref": "CH_VC5_ENABLE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46848, "to": "mm"},
-   "name": "CHC_CTRL",
-   "type_ref": "CHC_CTRL"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46852, "to": "mm"},
-   "name": "CHC_STATUS",
-   "type_ref": "CHC_STATUS"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46856, "to": "mm"},
-   "name": "CHCG_CTRL",
-   "type_ref": "CHCG_CTRL"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 46860, "to": "mm"},
-   "name": "CHCG_STATUS",
-   "type_ref": "CHCG_STATUS"
   },
   {
    "chips": ["gfx11"],
@@ -2661,11 +2257,6 @@
   },
   {
    "chips": ["gfx11"],
-   "map": {"at": 47244, "to": "mm"},
-   "name": "GL2A_PRIORITY_CTRL"
-  },
-  {
-   "chips": ["gfx11"],
    "map": {"at": 47248, "to": "mm"},
    "name": "COMPUTE_USER_ACCUM_0",
    "type_ref": "SPI_SHADER_USER_ACCUM_PS_0"
@@ -2853,16 +2444,6 @@
    "chips": ["gfx11"],
    "map": {"at": 47612, "to": "mm"},
    "name": "COMPUTE_NOWHERE"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 47616, "to": "mm"},
-   "name": "SH_RESERVED_REG0"
-  },
-  {
-   "chips": ["gfx11"],
-   "map": {"at": 47620, "to": "mm"},
-   "name": "SH_RESERVED_REG1"
   },
   {
    "chips": ["gfx11"],
@@ -10911,7 +10492,10 @@
     {"bits": [21, 21], "name": "SKIP_LOW_COMP_RATIO"},
     {"bits": [22, 22], "name": "FDCC_ENABLE"},
     {"bits": [23, 23], "name": "DCC_COMPRESS_DISABLE"},
-    {"bits": [24, 24], "name": "FRAGMENT_COMPRESS_DISABLE"}
+    {"bits": [24, 24], "name": "FRAGMENT_COMPRESS_DISABLE"},
+    {"bits": [25, 25], "name": "DISABLE_OVERRIDE_INCONSISTENT_KEYS"},
+    {"bits": [26, 26], "name": "ENABLE_MAX_COMP_FRAG_OVERRIDE"},
+    {"bits": [27, 29], "name": "MAX_COMP_FRAGS"}
    ]
   },
   "CB_COLOR0_INFO": {
@@ -11019,127 +10603,6 @@
     {"bits": [20, 23], "name": "TARGET5_ENABLE"},
     {"bits": [24, 27], "name": "TARGET6_ENABLE"},
     {"bits": [28, 31], "name": "TARGET7_ENABLE"}
-   ]
-  },
-  "CHA_CHC_CREDITS": {
-   "fields": [
-    {"bits": [0, 7], "name": "CHC_REQ_CREDITS"},
-    {"bits": [8, 15], "name": "CHCG_REQ_CREDITS"}
-   ]
-  },
-  "CHA_CLIENT_FREE_DELAY": {
-   "fields": [
-    {"bits": [0, 2], "name": "CLIENT_TYPE_0_FREE_DELAY"},
-    {"bits": [3, 5], "name": "CLIENT_TYPE_1_FREE_DELAY"},
-    {"bits": [6, 8], "name": "CLIENT_TYPE_2_FREE_DELAY"},
-    {"bits": [9, 11], "name": "CLIENT_TYPE_3_FREE_DELAY"},
-    {"bits": [12, 14], "name": "CLIENT_TYPE_4_FREE_DELAY"}
-   ]
-  },
-  "CHCG_CTRL": {
-   "fields": [
-    {"bits": [0, 3], "name": "BUFFER_DEPTH_MAX"},
-    {"bits": [4, 7], "name": "VC0_BUFFER_DEPTH_MAX"},
-    {"bits": [8, 14], "name": "GL2_REQ_CREDITS"},
-    {"bits": [15, 21], "name": "GL2_DATA_CREDITS"},
-    {"bits": [22, 22], "name": "TO_L1_REPEATER_FGCG_DISABLE"},
-    {"bits": [23, 23], "name": "TO_L2_REPEATER_FGCG_DISABLE"}
-   ]
-  },
-  "CHCG_STATUS": {
-   "fields": [
-    {"bits": [0, 0], "name": "INPUT_BUFFER_VC0_FIFO_FULL"},
-    {"bits": [1, 1], "name": "OUTPUT_FIFOS_BUSY"},
-    {"bits": [2, 2], "name": "SRC_DATA_FIFO_VC0_FULL"},
-    {"bits": [3, 3], "name": "GL2_REQ_VC0_STALL"},
-    {"bits": [4, 4], "name": "GL2_DATA_VC0_STALL"},
-    {"bits": [5, 5], "name": "GL2_REQ_VC1_STALL"},
-    {"bits": [6, 6], "name": "GL2_DATA_VC1_STALL"},
-    {"bits": [7, 7], "name": "INPUT_BUFFER_VC0_BUSY"},
-    {"bits": [8, 8], "name": "SRC_DATA_FIFO_VC0_BUSY"},
-    {"bits": [9, 9], "name": "GL2_RH_BUSY"},
-    {"bits": [10, 19], "name": "NUM_REQ_PENDING_FROM_L2"},
-    {"bits": [20, 20], "name": "VIRTUAL_FIFO_FULL_STALL"},
-    {"bits": [21, 21], "name": "REQUEST_TRACKER_BUFFER_STALL"},
-    {"bits": [22, 22], "name": "REQUEST_TRACKER_BUSY"},
-    {"bits": [23, 23], "name": "BUFFER_FULL"},
-    {"bits": [24, 24], "name": "INPUT_BUFFER_VC1_BUSY"},
-    {"bits": [25, 25], "name": "SRC_DATA_FIFO_VC1_BUSY"},
-    {"bits": [26, 26], "name": "INPUT_BUFFER_VC1_FIFO_FULL"},
-    {"bits": [27, 27], "name": "SRC_DATA_FIFO_VC1_FULL"}
-   ]
-  },
-  "CHC_CTRL": {
-   "fields": [
-    {"bits": [0, 3], "name": "BUFFER_DEPTH_MAX"},
-    {"bits": [4, 10], "name": "GL2_REQ_CREDITS"},
-    {"bits": [11, 17], "name": "GL2_DATA_CREDITS"},
-    {"bits": [18, 18], "name": "TO_L1_REPEATER_FGCG_DISABLE"},
-    {"bits": [19, 19], "name": "TO_L2_REPEATER_FGCG_DISABLE"},
-    {"bits": [29, 29], "name": "DISABLE_PERF_WR_DATA_ALLOC_COUNT"}
-   ]
-  },
-  "CHC_STATUS": {
-   "fields": [
-    {"bits": [0, 0], "name": "INPUT_BUFFER_VC0_FIFO_FULL"},
-    {"bits": [1, 1], "name": "OUTPUT_FIFOS_BUSY"},
-    {"bits": [2, 2], "name": "SRC_DATA_FIFO_VC0_FULL"},
-    {"bits": [3, 3], "name": "GL2_REQ_VC0_STALL"},
-    {"bits": [4, 4], "name": "GL2_DATA_VC0_STALL"},
-    {"bits": [5, 5], "name": "GL2_REQ_VC1_STALL"},
-    {"bits": [6, 6], "name": "GL2_DATA_VC1_STALL"},
-    {"bits": [7, 7], "name": "INPUT_BUFFER_VC0_BUSY"},
-    {"bits": [8, 8], "name": "SRC_DATA_FIFO_VC0_BUSY"},
-    {"bits": [9, 9], "name": "GL2_RH_BUSY"},
-    {"bits": [10, 19], "name": "NUM_REQ_PENDING_FROM_L2"},
-    {"bits": [20, 20], "name": "VIRTUAL_FIFO_FULL_STALL"},
-    {"bits": [21, 21], "name": "REQUEST_TRACKER_BUFFER_STALL"},
-    {"bits": [22, 22], "name": "REQUEST_TRACKER_BUSY"},
-    {"bits": [23, 23], "name": "BUFFER_FULL"}
-   ]
-  },
-  "CHI_CHR_REP_FGCG_OVERRIDE": {
-   "fields": [
-    {"bits": [0, 0], "name": "CHA_CHIW_REP_FGCG_OVERRIDE"},
-    {"bits": [1, 1], "name": "CHA_CHIR_REP_FGCG_OVERRIDE"},
-    {"bits": [2, 2], "name": "CHA_CHR_SRC_REP_FGCG_OVERRIDE"},
-    {"bits": [3, 3], "name": "CHA_CHR_RET_REP_FGCG_OVERRIDE"}
-   ]
-  },
-  "CH_ARB_CTRL": {
-   "fields": [
-    {"bits": [0, 1], "name": "NUM_MEM_PIPES"},
-    {"bits": [2, 2], "name": "UC_IO_WR_PATH"},
-    {"bits": [3, 3], "name": "FGCG_DISABLE"},
-    {"bits": [4, 4], "name": "PERF_CNTR_EN_OVERRIDE"},
-    {"bits": [5, 12], "name": "CHICKEN_BITS"}
-   ]
-  },
-  "CH_ARB_STATUS": {
-   "fields": [
-    {"bits": [0, 0], "name": "REQ_ARB_BUSY"},
-    {"bits": [1, 1], "name": "RET_ARB_BUSY"}
-   ]
-  },
-  "CH_DRAM_BURST_CTRL": {
-   "fields": [
-    {"bits": [0, 2], "name": "MAX_DRAM_BURST"},
-    {"bits": [3, 3], "name": "BURST_DISABLE"},
-    {"bits": [4, 4], "name": "GATHER_64B_MEMORY_BURST_DISABLE"},
-    {"bits": [5, 5], "name": "GATHER_64B_IO_BURST_DISABLE"},
-    {"bits": [6, 6], "name": "GATHER_32B_MEMORY_BURST_DISABLE"},
-    {"bits": [7, 7], "name": "GATHER_32B_IO_BURST_DISABLE"},
-    {"bits": [8, 8], "name": "WRITE_BURSTABLE_STALL_DISABLE"}
-   ]
-  },
-  "CH_DRAM_BURST_MASK": {
-   "fields": [
-    {"bits": [0, 7], "name": "DRAM_BURST_ADDR_MASK"}
-   ]
-  },
-  "CH_VC5_ENABLE": {
-   "fields": [
-    {"bits": [1, 1], "name": "UTCL2_VC5_ENABLE"}
    ]
   },
   "COHER_DEST_BASE_HI_0": {
@@ -12274,6 +11737,21 @@
     {"bits": [20, 23], "name": "COMPARE_VALUE3"}
    ]
   },
+  "GCVM_L2_PROTECTION_FAULT_STATUS": {
+   "fields": [
+    {"bits": [0, 0], "name": "MORE_FAULTS"},
+    {"bits": [1, 3], "name": "WALKER_ERROR"},
+    {"bits": [4, 7], "name": "PERMISSION_FAULTS"},
+    {"bits": [8, 8], "name": "MAPPING_ERROR"},
+    {"bits": [9, 17], "name": "CID"},
+    {"bits": [18, 18], "name": "RW"},
+    {"bits": [19, 19], "name": "ATOMIC"},
+    {"bits": [20, 23], "name": "VMID"},
+    {"bits": [24, 24], "name": "VF"},
+    {"bits": [25, 28], "name": "VFID"},
+    {"bits": [29, 29], "name": "PRT"}
+   ]
+  },
   "GDS_ATOM_BASE": {
    "fields": [
     {"bits": [0, 11], "name": "BASE"},
@@ -12438,56 +11916,6 @@
   "GFX_COPY_STATE": {
    "fields": [
     {"bits": [0, 2], "name": "SRC_STATE_ID"}
-   ]
-  },
-  "GL1C_STATUS": {
-   "fields": [
-    {"bits": [0, 0], "name": "INPUT_BUFFER_VC0_FIFO_FULL"},
-    {"bits": [1, 1], "name": "OUTPUT_FIFOS_BUSY"},
-    {"bits": [2, 2], "name": "SRC_DATA_FIFO_VC0_FULL"},
-    {"bits": [3, 3], "name": "GL2_REQ_VC0_STALL"},
-    {"bits": [4, 4], "name": "GL2_DATA_VC0_STALL"},
-    {"bits": [5, 5], "name": "GL2_REQ_VC1_STALL"},
-    {"bits": [6, 6], "name": "GL2_DATA_VC1_STALL"},
-    {"bits": [7, 7], "name": "INPUT_BUFFER_VC0_BUSY"},
-    {"bits": [8, 8], "name": "SRC_DATA_FIFO_VC0_BUSY"},
-    {"bits": [9, 9], "name": "GL2_RH_BUSY"},
-    {"bits": [10, 19], "name": "NUM_REQ_PENDING_FROM_L2"},
-    {"bits": [20, 20], "name": "LATENCY_FIFO_FULL_STALL"},
-    {"bits": [21, 21], "name": "TAG_STALL"},
-    {"bits": [22, 22], "name": "TAG_BUSY"},
-    {"bits": [23, 23], "name": "TAG_ACK_STALL"},
-    {"bits": [24, 24], "name": "TAG_GCR_INV_STALL"},
-    {"bits": [25, 25], "name": "TAG_NO_AVAILABLE_LINE_TO_EVICT_STALL"},
-    {"bits": [26, 26], "name": "TAG_EVICT"},
-    {"bits": [27, 30], "name": "TAG_REQUEST_STATE_OPERATION"},
-    {"bits": [31, 31], "name": "TRACKER_LAST_SET_MATCHES_CURRENT_SET"}
-   ]
-  },
-  "GL1C_UTCL0_CNTL2": {
-   "fields": [
-    {"bits": [0, 7], "name": "SPARE"},
-    {"bits": [8, 8], "name": "COMP_SYNC_DISABLE"},
-    {"bits": [9, 9], "name": "MTYPE_OVRD_DIS"},
-    {"bits": [10, 10], "name": "ANY_LINE_VALID"},
-    {"bits": [14, 14], "name": "FORCE_SNOOP"},
-    {"bits": [17, 17], "name": "DISABLE_BURST"},
-    {"bits": [26, 26], "name": "FORCE_FRAG_2M_TO_64K"},
-    {"bits": [30, 30], "name": "FGCG_DISABLE"},
-    {"bits": [31, 31], "name": "BIG_PAGE_DISABLE"}
-   ]
-  },
-  "GL1C_UTCL0_RETRY": {
-   "fields": [
-    {"bits": [0, 7], "name": "INCR"},
-    {"bits": [8, 11], "name": "COUNT"}
-   ]
-  },
-  "GL1C_UTCL0_STATUS": {
-   "fields": [
-    {"bits": [0, 0], "name": "FAULT_DETECTED"},
-    {"bits": [1, 1], "name": "RETRY_DETECTED"},
-    {"bits": [2, 2], "name": "PRT_DETECTED"}
    ]
   },
   "GL2C_PERFCOUNTER0_SELECT1": {
@@ -12657,164 +12085,6 @@
     {"bits": [29, 29], "name": "SC_BUSY"},
     {"bits": [30, 30], "name": "DB_BUSY"},
     {"bits": [31, 31], "name": "CB_BUSY"}
-   ]
-  },
-  "GUS_DRAM_GROUP_BURST": {
-   "fields": [
-    {"bits": [0, 7], "name": "DRAM_LIMIT_LO"},
-    {"bits": [8, 15], "name": "DRAM_LIMIT_HI"}
-   ]
-  },
-  "GUS_DRAM_PRI_QUANT1_PRI2": {
-   "fields": [
-    {"bits": [0, 7], "name": "GROUP4_THRESHOLD"},
-    {"bits": [8, 15], "name": "GROUP5_THRESHOLD"}
-   ]
-  },
-  "GUS_ERR_STATUS": {
-   "fields": [
-    {"bits": [0, 3], "name": "SDP_RDRSP_STATUS"},
-    {"bits": [4, 7], "name": "SDP_WRRSP_STATUS"},
-    {"bits": [8, 9], "name": "SDP_RDRSP_DATASTATUS"},
-    {"bits": [10, 10], "name": "SDP_RDRSP_DATAPARITY_ERROR"},
-    {"bits": [11, 11], "name": "CLEAR_ERROR_STATUS"},
-    {"bits": [12, 12], "name": "BUSY_ON_ERROR"},
-    {"bits": [13, 13], "name": "FUE_FLAG"}
-   ]
-  },
-  "GUS_IO_RD_COMBINE_FLUSH": {
-   "fields": [
-    {"bits": [0, 3], "name": "GROUP0_TIMER"},
-    {"bits": [4, 7], "name": "GROUP1_TIMER"},
-    {"bits": [8, 11], "name": "GROUP2_TIMER"},
-    {"bits": [12, 15], "name": "GROUP3_TIMER"},
-    {"bits": [16, 19], "name": "GROUP4_TIMER"},
-    {"bits": [20, 23], "name": "GROUP5_TIMER"},
-    {"bits": [24, 25], "name": "COMB_MODE"}
-   ]
-  },
-  "GUS_IO_RD_PRI_AGE_COEFF": {
-   "fields": [
-    {"bits": [0, 2], "name": "GROUP0_AGE_COEFFICIENT"},
-    {"bits": [3, 5], "name": "GROUP1_AGE_COEFFICIENT"},
-    {"bits": [6, 8], "name": "GROUP2_AGE_COEFFICIENT"},
-    {"bits": [9, 11], "name": "GROUP3_AGE_COEFFICIENT"},
-    {"bits": [12, 14], "name": "GROUP4_AGE_COEFFICIENT"},
-    {"bits": [15, 17], "name": "GROUP5_AGE_COEFFICIENT"}
-   ]
-  },
-  "GUS_IO_RD_PRI_AGE_RATE": {
-   "fields": [
-    {"bits": [0, 2], "name": "GROUP0_AGING_RATE"},
-    {"bits": [3, 5], "name": "GROUP1_AGING_RATE"},
-    {"bits": [6, 8], "name": "GROUP2_AGING_RATE"},
-    {"bits": [9, 11], "name": "GROUP3_AGING_RATE"},
-    {"bits": [12, 14], "name": "GROUP4_AGING_RATE"},
-    {"bits": [15, 17], "name": "GROUP5_AGING_RATE"}
-   ]
-  },
-  "GUS_LATENCY_SAMPLING": {
-   "fields": [
-    {"bits": [0, 0], "name": "SAMPLER0_DRAM"},
-    {"bits": [1, 1], "name": "SAMPLER1_DRAM"},
-    {"bits": [2, 2], "name": "SAMPLER0_IO"},
-    {"bits": [3, 3], "name": "SAMPLER1_IO"},
-    {"bits": [4, 4], "name": "SAMPLER0_READ"},
-    {"bits": [5, 5], "name": "SAMPLER1_READ"},
-    {"bits": [6, 6], "name": "SAMPLER0_WRITE"},
-    {"bits": [7, 7], "name": "SAMPLER1_WRITE"},
-    {"bits": [8, 8], "name": "SAMPLER0_ATOMIC_RET"},
-    {"bits": [9, 9], "name": "SAMPLER1_ATOMIC_RET"},
-    {"bits": [10, 10], "name": "SAMPLER0_ATOMIC_NORET"},
-    {"bits": [11, 11], "name": "SAMPLER1_ATOMIC_NORET"},
-    {"bits": [12, 19], "name": "SAMPLER0_VC"},
-    {"bits": [20, 27], "name": "SAMPLER1_VC"}
-   ]
-  },
-  "GUS_MISC": {
-   "fields": [
-    {"bits": [0, 0], "name": "RELATIVE_PRI_IN_DRAM_ARB"},
-    {"bits": [1, 1], "name": "RELATIVE_PRI_IN_IO_RD_ARB"},
-    {"bits": [2, 2], "name": "RELATIVE_PRI_IN_IO_WR_ARB"},
-    {"bits": [3, 3], "name": "EARLY_SDP_ORIGDATA"},
-    {"bits": [4, 5], "name": "LINKMGR_DYNAMIC_MODE"},
-    {"bits": [6, 7], "name": "LINKMGR_HALT_THRESHOLD"},
-    {"bits": [8, 9], "name": "LINKMGR_RECONNECT_DELAY"},
-    {"bits": [10, 14], "name": "LINKMGR_IDLE_THRESHOLD"},
-    {"bits": [15, 15], "name": "SEND0_IOWR_ONLY"}
-   ]
-  },
-  "GUS_MISC2": {
-   "fields": [
-    {"bits": [0, 0], "name": "IO_RDWR_PRIORITY_ENABLE"},
-    {"bits": [1, 1], "name": "CH_L1_RO_MASK"},
-    {"bits": [2, 2], "name": "SA0_L1_RO_MASK"},
-    {"bits": [3, 3], "name": "SA1_L1_RO_MASK"},
-    {"bits": [4, 4], "name": "SA2_L1_RO_MASK"},
-    {"bits": [5, 5], "name": "SA3_L1_RO_MASK"},
-    {"bits": [6, 6], "name": "CH_L1_PERF_MASK"},
-    {"bits": [7, 7], "name": "SA0_L1_PERF_MASK"},
-    {"bits": [8, 8], "name": "SA1_L1_PERF_MASK"},
-    {"bits": [9, 9], "name": "SA2_L1_PERF_MASK"},
-    {"bits": [10, 10], "name": "SA3_L1_PERF_MASK"},
-    {"bits": [11, 11], "name": "FP_ATOMICS_ENABLE"},
-    {"bits": [12, 12], "name": "L1_RET_CLKEN"},
-    {"bits": [13, 13], "name": "FGCLKEN_HIGH"},
-    {"bits": [14, 14], "name": "BLOCK_REQUESTS"},
-    {"bits": [15, 15], "name": "REQUESTS_BLOCKED"},
-    {"bits": [16, 16], "name": "RIO_ICG_L1_ROUTER_BUSY_MASK"},
-    {"bits": [17, 17], "name": "WIO_ICG_L1_ROUTER_BUSY_MASK"},
-    {"bits": [18, 18], "name": "DRAM_ICG_L1_ROUTER_BUSY_MASK"}
-   ]
-  },
-  "GUS_MISC3": {
-   "fields": [
-    {"bits": [0, 0], "name": "FP_ATOMICS_LOG"},
-    {"bits": [1, 1], "name": "CLEAR_LOG"}
-   ]
-  },
-  "GUS_SDP_ENABLE": {
-   "fields": [
-    {"bits": [0, 0], "name": "ENABLE"}
-   ]
-  },
-  "GUS_SDP_REQ_CNTL": {
-   "fields": [
-    {"bits": [0, 0], "name": "REQ_PASS_PW_OVERRIDE_READ"},
-    {"bits": [1, 1], "name": "REQ_PASS_PW_OVERRIDE_WRITE"},
-    {"bits": [2, 2], "name": "REQ_PASS_PW_OVERRIDE_ATOMIC"},
-    {"bits": [3, 3], "name": "REQ_CHAIN_OVERRIDE_DRAM"},
-    {"bits": [4, 4], "name": "INNER_DOMAIN_MODE"}
-   ]
-  },
-  "GUS_SDP_TAG_RESERVE1": {
-   "fields": [
-    {"bits": [0, 7], "name": "VC4"},
-    {"bits": [8, 15], "name": "VC5"},
-    {"bits": [16, 23], "name": "VC6"},
-    {"bits": [24, 31], "name": "VC7"}
-   ]
-  },
-  "GUS_SDP_VCC_RESERVE0": {
-   "fields": [
-    {"bits": [0, 5], "name": "VC0_CREDITS"},
-    {"bits": [6, 11], "name": "VC1_CREDITS"},
-    {"bits": [12, 17], "name": "VC2_CREDITS"},
-    {"bits": [18, 23], "name": "VC3_CREDITS"},
-    {"bits": [24, 29], "name": "VC4_CREDITS"}
-   ]
-  },
-  "GUS_SDP_VCC_RESERVE1": {
-   "fields": [
-    {"bits": [0, 5], "name": "VC5_CREDITS"},
-    {"bits": [6, 11], "name": "VC6_CREDITS"},
-    {"bits": [12, 17], "name": "VC7_CREDITS"},
-    {"bits": [31, 31], "name": "DISTRIBUTE_POOL"}
-   ]
-  },
-  "GUS_WRRSP_FIFO_CNTL": {
-   "fields": [
-    {"bits": [0, 5], "name": "THRESHOLD"}
    ]
   },
   "PA_CL_CLIP_CNTL": {
@@ -14558,7 +13828,8 @@
    "fields": [
     {"bits": [1, 1], "name": "EN_REG_RT_INDEX"},
     {"bits": [3, 3], "name": "EN_PRIM_PAYLOAD"},
-    {"bits": [4, 4], "name": "EN_DRAW_VP"}
+    {"bits": [4, 4], "name": "EN_DRAW_VP"},
+    {"bits": [6, 6], "name": "EN_VRS_RATE"}
    ]
   },
   "VGT_ESGS_RING_ITEMSIZE": {

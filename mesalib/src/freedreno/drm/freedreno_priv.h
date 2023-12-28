@@ -41,17 +41,26 @@
 #include "util/hash_table.h"
 #include "util/list.h"
 #include "util/log.h"
+#include "util/perf/cpu_trace.h"
 #include "util/simple_mtx.h"
 #include "util/slab.h"
 #include "util/u_atomic.h"
 #include "util/u_debug.h"
 #include "util/u_math.h"
+#include "util/vma.h"
 
+#include "freedreno_common.h"
 #include "freedreno_dev_info.h"
 #include "freedreno_drmif.h"
 #include "freedreno_ringbuffer.h"
 
 extern simple_mtx_t table_lock;
+extern simple_mtx_t fence_lock;
+
+#define SUBALLOC_SIZE (32 * 1024)
+/* Maximum known alignment requirement is a6xx's TEX_CONST at 16 dwords */
+#define SUBALLOC_ALIGNMENT 64
+#define RING_FLAGS (FD_BO_GPUREADONLY | FD_BO_CACHED_COHERENT)
 
 /*
  * Stupid/simple growable array implementation:
@@ -99,22 +108,100 @@ struct fd_device_funcs {
     */
    struct fd_bo *(*bo_from_handle)(struct fd_device *dev, uint32_t size,
                                    uint32_t handle);
+   uint32_t (*handle_from_dmabuf)(struct fd_device *dev, int fd);
+   struct fd_bo *(*bo_from_dmabuf)(struct fd_device *dev, int fd);
+   void (*bo_close_handle)(struct fd_bo *bo);
 
    struct fd_pipe *(*pipe_new)(struct fd_device *dev, enum fd_pipe_id id,
                                unsigned prio);
+   int (*flush)(struct fd_device *dev);
    void (*destroy)(struct fd_device *dev);
 };
 
 struct fd_bo_bucket {
    uint32_t size;
+   int count, hits, misses, expired;
    struct list_head list;
 };
 
 struct fd_bo_cache {
+   const char *name;
+   simple_mtx_t lock;
    struct fd_bo_bucket cache_bucket[14 * 4];
    int num_buckets;
    time_t time;
 };
+
+/* Probably good for the block size to be a multiple of an available
+ * large-page size.  For overlap of what both the MMU (with 4kb granule)
+ * and SMMU support, 2MB is that overlap.  (Well, 4kb is as well, but
+ * too small to be practical ;-))
+ */
+#define FD_BO_HEAP_BLOCK_SIZE (4 * 1024 * 1024)
+
+/* Zero is an invalid handle, use it to indicate buffers that have been sub-
+ * allocated from a larger backing heap block buffer.
+ */
+#define FD_BO_SUBALLOC_HANDLE 0
+
+static inline bool
+suballoc_bo(struct fd_bo *bo)
+{
+   return bo->handle == FD_BO_SUBALLOC_HANDLE;
+}
+
+/**
+ * A heap is a virtual range of memory that is backed by N physical buffers,
+ * from which buffers can be suballocated.  This requires kernel support for
+ * userspace allocated iova.
+ */
+struct fd_bo_heap {
+   struct fd_device *dev;
+
+   int cnt;
+
+   /**
+    * Buffer allocation flags for buffers allocated from this heap.
+    */
+   uint32_t flags;
+
+   simple_mtx_t lock;
+
+   /**
+    * Ranges of the backing buffer are allocated at a granularity of
+    * SUBALLOC_ALIGNMENT
+    */
+   struct util_vma_heap heap;
+
+   /**
+    * List of recently freed suballocated BOs from this allocator until they
+    * become idle.  Backend should periodically call fd_bo_suballoc_clean()
+    * to check for newly idle entries on the freelist, so that the memory can
+    * be returned to the free heap.
+    */
+   struct list_head freelist;
+
+   /**
+    * The backing buffers.  Maximum total heap size is:
+    *   FD_BO_HEAP_BLOCK_SIZE * ARRAY_SIZE(heap->blocks)
+    */
+   struct fd_bo *blocks[256];
+};
+
+struct fd_bo_heap *fd_bo_heap_new(struct fd_device *dev, uint32_t flags);
+void fd_bo_heap_destroy(struct fd_bo_heap *heap);
+
+struct fd_bo *fd_bo_heap_block(struct fd_bo *bo);
+struct fd_bo *fd_bo_heap_alloc(struct fd_bo_heap *heap, uint32_t size);
+
+static inline uint32_t
+submit_offset(struct fd_bo *bo, uint32_t offset)
+{
+   if (suballoc_bo(bo)) {
+      offset += bo->iova - fd_bo_heap_block(bo)->iova;
+   }
+   return offset;
+}
 
 struct fd_device {
    int fd;
@@ -137,6 +224,16 @@ struct fd_device {
    struct fd_bo_cache bo_cache;
    struct fd_bo_cache ring_cache;
 
+   /**
+    * Heap for mappable + cached-coherent + gpu-readonly (ie. cmdstream)
+    */
+   struct fd_bo_heap *ring_heap;
+
+   /**
+    * Heap for mappable (ie. majority of small buffer allocations, etc)
+    */
+   struct fd_bo_heap *default_heap;
+
    bool has_cached_coherent;
 
    bool closefd; /* call close(fd) upon destruction */
@@ -153,6 +250,7 @@ struct fd_device {
     * to preserve correct order of execution.
     */
    struct list_head deferred_submits;
+   struct fd_fence *deferred_submits_fence;
    unsigned deferred_cmds;
    simple_mtx_t submit_lock;
 
@@ -176,6 +274,12 @@ struct fd_device {
    struct util_queue submit_queue;
 };
 
+static inline bool
+fd_device_threaded_submit(struct fd_device *dev)
+{
+   return util_queue_is_initialized(&dev->submit_queue);
+}
+
 #define foreach_submit(name, list) \
    list_for_each_entry(struct fd_submit, name, list, node)
 #define foreach_submit_safe(name, list) \
@@ -183,15 +287,21 @@ struct fd_device {
 #define last_submit(list) \
    list_last_entry(list, struct fd_submit, node)
 
-void fd_bo_cache_init(struct fd_bo_cache *cache, int coarse);
+#define foreach_bo(name, list) \
+   list_for_each_entry(struct fd_bo, name, list, node)
+#define foreach_bo_safe(name, list) \
+   list_for_each_entry_safe(struct fd_bo, name, list, node)
+#define first_bo(list) \
+   list_first_entry(list, struct fd_bo, node)
+
+
+void fd_bo_cache_init(struct fd_bo_cache *cache, int coarse, const char *name);
 void fd_bo_cache_cleanup(struct fd_bo_cache *cache, time_t time);
 struct fd_bo *fd_bo_cache_alloc(struct fd_bo_cache *cache, uint32_t *size,
                                 uint32_t flags);
 int fd_bo_cache_free(struct fd_bo_cache *cache, struct fd_bo *bo);
 
-/* for where @table_lock is already held: */
-void fd_bo_del_locked(struct fd_bo *bo);
-void fd_device_del_locked(struct fd_device *dev);
+/* for where @fence_lock is already held: */
 void fd_pipe_del_locked(struct fd_pipe *pipe);
 
 struct fd_pipe_funcs {
@@ -226,8 +336,8 @@ struct fd_pipe {
    struct fd_dev_id dev_id;
 
    /**
-    * Note refcnt is *not* atomic, but protected by table_lock, since the
-    * table_lock is held in fd_bo_add_fence(), which is the hotpath.
+    * Note refcnt is *not* atomic, but protected by fence_lock, since the
+    * fence_lock is held in fd_bo_add_fence(), which is the hotpath.
     */
    int32_t refcnt;
 
@@ -247,6 +357,19 @@ struct fd_pipe {
    uint32_t last_submit_fence;
 
    uint32_t last_enqueue_fence;   /* just for debugging */
+
+   /**
+    * Counter for assigning each submit a unique seqno.
+    */
+   seqno_t submit_seqno;
+
+   /**
+    * If we *ever* see an in-fence-fd, assume that userspace is
+    * not relying on implicit fences.
+    */
+   bool no_implicit_sync;
+
+   bool is_64bit;
 
    struct fd_bo *control_mem;
    volatile struct fd_pipe_control *control;
@@ -270,8 +393,8 @@ struct fd_submit_funcs {
    struct fd_ringbuffer *(*new_ringbuffer)(struct fd_submit *submit,
                                            uint32_t size,
                                            enum fd_ringbuffer_flags flags);
-   int (*flush)(struct fd_submit *submit, int in_fence_fd,
-                struct fd_submit_fence *out_fence);
+   struct fd_fence *(*flush)(struct fd_submit *submit, int in_fence_fd,
+                             bool use_fence_fd);
    void (*destroy)(struct fd_submit *submit);
 };
 
@@ -301,11 +424,25 @@ fd_dev_count_deferred_cmds(struct fd_device *dev)
 
 struct fd_bo_funcs {
    int (*offset)(struct fd_bo *bo, uint64_t *offset);
+   void *(*map)(struct fd_bo *bo);
    int (*cpu_prep)(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t op);
-   void (*cpu_fini)(struct fd_bo *bo);
    int (*madvise)(struct fd_bo *bo, int willneed);
    uint64_t (*iova)(struct fd_bo *bo);
    void (*set_name)(struct fd_bo *bo, const char *fmt, va_list ap);
+   int (*dmabuf)(struct fd_bo *bo);
+
+   /**
+    * Optional hook that is called before ->destroy().  In the case of
+    * batch deletes (such as BO cache cleanup or cleaning up a submit)
+    * the ->finalize() hook will be called for all of the BOs being
+    * destroyed followed by dev->flush() and then bo->destroy().  This
+    * allows the backend to batch up processing.  (Ie. this is for
+    * virtio backend to batch ccmds to the host)
+    *
+    * In all cases, dev->flush() will happen after bo->finalize() and
+    * bo->destroy().
+    */
+   void (*finalize)(struct fd_bo *bo);
    void (*destroy)(struct fd_bo *bo);
 
    /**
@@ -318,9 +455,13 @@ struct fd_bo_funcs {
     * Optional, if upload is supported, should upload be preferred?
     */
    bool (*prefer_upload)(struct fd_bo *bo, unsigned len);
+
+   void (*set_metadata)(struct fd_bo *bo, void *metadata, uint32_t metadata_size);
+   int (*get_metadata)(struct fd_bo *bo, void *metadata, uint32_t metadata_size);
 };
 
-void fd_bo_add_fence(struct fd_bo *bo, struct fd_pipe *pipe, uint32_t fence);
+void fd_bo_add_fence(struct fd_bo *bo, struct fd_fence *fence);
+void *fd_bo_map_os_mmap(struct fd_bo *bo);
 
 enum fd_bo_state {
    FD_BO_STATE_IDLE,
@@ -330,8 +471,14 @@ enum fd_bo_state {
 enum fd_bo_state fd_bo_state(struct fd_bo *bo);
 
 void fd_bo_init_common(struct fd_bo *bo, struct fd_device *dev);
+void fd_bo_fini_fences(struct fd_bo *bo);
+void fd_bo_fini_common(struct fd_bo *bo);
 
 struct fd_bo *fd_bo_new_ring(struct fd_device *dev, uint32_t size);
+
+uint32_t fd_handle_from_dmabuf_drm(struct fd_device *dev, int fd);
+struct fd_bo *fd_bo_from_dmabuf_drm(struct fd_device *dev, int fd);
+void fd_bo_close_handle_drm(struct fd_bo *bo);
 
 #define enable_debug 0 /* TODO make dynamic */
 
@@ -340,27 +487,27 @@ bool fd_dbg(void);
 #define INFO_MSG(fmt, ...)                                                     \
    do {                                                                        \
       if (fd_dbg())                                                            \
-         mesa_logi("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);      \
+         mesa_logi("%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);          \
    } while (0)
 #define DEBUG_MSG(fmt, ...)                                                    \
    do                                                                          \
       if (enable_debug) {                                                      \
-         mesa_logd("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);      \
+         mesa_logd("%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);          \
       }                                                                        \
    while (0)
 #define WARN_MSG(fmt, ...)                                                     \
    do {                                                                        \
-      mesa_logw("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);         \
+      mesa_logw("%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);             \
    } while (0)
 #define ERROR_MSG(fmt, ...)                                                    \
    do {                                                                        \
-      mesa_loge("%s:%d: " fmt, __FUNCTION__, __LINE__, ##__VA_ARGS__);         \
+      mesa_loge("%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);             \
    } while (0)
 
 #define U642VOID(x) ((void *)(unsigned long)(x))
 #define VOID2U64(x) ((uint64_t)(unsigned long)(x))
 
-#if HAVE_VALGRIND
+#ifdef HAVE_VALGRIND
 #include <memcheck.h>
 
 /*

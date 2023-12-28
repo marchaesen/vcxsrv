@@ -1,7 +1,7 @@
 %YAML 1.2
 ---
 traces-db:
-  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+  download-url: "https://s3.freedesktop.org/mesa-tracie-public/"
 
 traces:
   0ad/0ad-v2.trace:
@@ -72,10 +72,10 @@ traces:
       checksum: de5452f4cbc0100d8ecb51459e47cd99
   bgfx/29-debugdraw.rdc:
     gl-vmware-llvmpipe:
-      checksum: 164e5226af26b6552506542a45bc6bf5
+      checksum: 015201fe000d6a323b0f7d3f218d3e47
   bgfx/31-rsm.rdc:
     gl-vmware-llvmpipe:
-      checksum: b59d323511488d5c098ebfa9b434c2dc
+      checksum: 4be8fda5d2289296fee9540306aef92e
   bgfx/32-particles.rdc:
     gl-vmware-llvmpipe:
       checksum: 018418bdd7f60a186cce532613b0c7ab
@@ -103,12 +103,6 @@ traces:
   bgfx/40-svt.rdc:
     gl-vmware-llvmpipe:
       checksum: 83bf05971404700b874c4e9d9edd1379
-  glmark2/desktop:windows=4:effect=blur:blur-radius=5:passes=1:separable=true-v2.trace:
-    gl-vmware-llvmpipe:
-      checksum: fa54af7770699dfe78c3e33061312739
-  glmark2/jellyfish-v2.trace:
-    gl-vmware-llvmpipe:
-      checksum: da850394d7f99a895322222cc95170af
   glxgears/glxgears-2-v2.trace:
     gl-vmware-llvmpipe:
       checksum: f8eba0fec6e3e0af9cb09844bc73bdc8
@@ -126,7 +120,7 @@ traces:
       checksum: a55dd3d87a86b3b47121ff67861028c3
   jvgs/jvgs-d27fb67-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: b8c21bf76e667735d1640b215f456531
+      checksum: 43b89627364b4cabbab84931aef4ce5e
   pathfinder/demo-v2.trace:
     gl-vmware-llvmpipe:
       checksum: a053c56658bc830249bc94317a3b3ea8
@@ -138,7 +132,7 @@ traces:
       checksum: db43c733f3f3d5253e263838e58d9111
   paraview/pv-waveletvolume-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: f4af4067b37c00861fa5911e4c0a6629
+      checksum: 7e0fc4f2f8c635e571793ed8fa705f85
   pathfinder/canvas_moire-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 25ba8f18274126670311bd3ffe058f74
@@ -159,9 +153,6 @@ traces:
     gl-vmware-llvmpipe:
       label: [skip, broken]
       text: missing background, error Too many compute shader storage blocks (9/8)
-  freedoom/freedoom-phase2-gl-high.trace:
-    gl-vmware-llvmpipe:
-      label: [unsupported]
   unvanquished/unvanquished-lowest.trace:
     gl-vmware-llvmpipe:
       label: [unsupported]

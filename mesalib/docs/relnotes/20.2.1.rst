@@ -93,7 +93,7 @@ Erik Faye-Lund (1):
 
 - st/mesa: use roundf instead of floorf for lod-bias rounding
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 - nir/liveness: Consider if uses in nir_ssa_defs_interfere
 - nir/cf: Better handle intra-block splits

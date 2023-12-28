@@ -1,26 +1,8 @@
 /*
  * Copyright 2020 Advanced Micro Devices, Inc.
  * Copyright 2020 Valve Corporation
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_RGP_H
@@ -32,9 +14,9 @@
 #include "util/simple_mtx.h"
 
 struct radeon_info;
-struct ac_thread_trace;
-struct ac_thread_trace_data;
-struct ac_spm_trace_data;
+struct ac_sqtt_trace;
+struct ac_sqtt;
+struct ac_spm_trace;
 
 enum rgp_hardware_stages {
    RGP_HW_STAGE_VS = 0,
@@ -54,11 +36,14 @@ struct rgp_shader_data {
    uint32_t vgpr_count;
    uint32_t sgpr_count;
    uint32_t scratch_memory_size;
+   uint32_t lds_size;
    uint32_t wavefront_size;
    uint64_t base_address;
    uint32_t elf_symbol_offset;
    uint32_t hw_stage;
    uint32_t is_combined;
+   char rt_shader_name[32];
+   uint32_t rt_stack_size;
 };
 
 struct rgp_code_object_record {
@@ -66,6 +51,8 @@ struct rgp_code_object_record {
    struct rgp_shader_data shader_data[MESA_VULKAN_SHADER_STAGES];
    uint32_t num_shaders_combined; /* count combined shaders as one count */
    uint64_t pipeline_hash[2];
+
+   bool is_rt;
    struct list_head list;
 };
 
@@ -166,7 +153,7 @@ struct rgp_queue_event_record {
    uint32_t submit_sub_index;
    uint64_t api_id;
    uint64_t cpu_timestamp;
-   uint64_t gpu_timestamps[2];
+   uint64_t *gpu_timestamps[2];
    struct list_head list;
 };
 
@@ -188,10 +175,8 @@ struct rgp_clock_calibration {
    simple_mtx_t lock;
 };
 
-int
-ac_dump_rgp_capture(struct radeon_info *info,
-                    struct ac_thread_trace *thread_trace,
-                    const struct ac_spm_trace_data *spm_trace);
+int ac_dump_rgp_capture(const struct radeon_info *info, struct ac_sqtt_trace *sqtt_trace,
+                        const struct ac_spm_trace *spm_trace);
 
 void
 ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,

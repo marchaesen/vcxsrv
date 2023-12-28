@@ -26,12 +26,12 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "main/glheader.h"
+#include "util/glheader.h"
+#include "util/u_cpu_detect.h"
 #include "main/context.h"
 #include "main/varray.h"
 #include "main/macros.h"
 #include "main/sse_minmax.h"
-#include "x86/common_x86_asm.h"
 #include "util/hash_table.h"
 #include "util/u_memory.h"
 #include "pipe/p_state.h"
@@ -249,7 +249,7 @@ vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
       }
       else {
 #if defined(USE_SSE41)
-         if (cpu_has_sse4_1) {
+         if (util_get_cpu_caps()->has_sse4_1) {
             _mesa_uint_array_min_max(ui_indices, &min_ui, &max_ui, count);
          }
          else
@@ -319,7 +319,7 @@ vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
  * If primitive restart is enabled, we need to ignore restart
  * indexes when computing min/max.
  */
-static void
+void
 vbo_get_minmax_index(struct gl_context *ctx, struct gl_buffer_object *obj,
                      const void *ptr, GLintptr offset, unsigned count,
                      unsigned index_size, bool primitive_restart,
@@ -353,48 +353,6 @@ vbo_get_minmax_index(struct gl_context *ctx, struct gl_buffer_object *obj,
 }
 
 /**
- * Compute min and max elements for nr_prims
- */
-void
-vbo_get_minmax_indices(struct gl_context *ctx,
-                       const struct _mesa_prim *prims,
-                       const struct _mesa_index_buffer *ib,
-                       GLuint *min_index,
-                       GLuint *max_index,
-                       GLuint nr_prims,
-                       bool primitive_restart,
-                       unsigned restart_index)
-{
-   GLuint tmp_min, tmp_max;
-   GLuint i;
-   GLuint count;
-
-   *min_index = ~0;
-   *max_index = 0;
-
-   for (i = 0; i < nr_prims; i++) {
-      const struct _mesa_prim *start_prim;
-
-      start_prim = &prims[i];
-      count = start_prim->count;
-      /* Do combination if possible to reduce map/unmap count */
-      while ((i + 1 < nr_prims) &&
-             (prims[i].start + prims[i].count == prims[i+1].start)) {
-         count += prims[i+1].count;
-         i++;
-      }
-      vbo_get_minmax_index(ctx, ib->obj, ib->ptr,
-                           (ib->obj ? (GLintptr)ib->ptr : 0) +
-                           (start_prim->start << ib->index_size_shift),
-                           count, 1 << ib->index_size_shift,
-                           primitive_restart, restart_index,
-                           &tmp_min, &tmp_max);
-      *min_index = MIN2(*min_index, tmp_min);
-      *max_index = MAX2(*max_index, tmp_max);
-   }
-}
-
-/**
  * Same as vbo_get_minmax_index, but using gallium draw structures.
  */
 bool
@@ -405,6 +363,9 @@ vbo_get_minmax_indices_gallium(struct gl_context *ctx,
 {
    info->min_index = ~0;
    info->max_index = 0;
+
+   struct gl_buffer_object *buf =
+      info->has_user_indices ? NULL : ctx->Array.VAO->IndexBufferObj;
 
    for (unsigned i = 0; i < num_draws; i++) {
       struct pipe_draw_start_count_bias draw = draws[i];
@@ -420,8 +381,7 @@ vbo_get_minmax_indices_gallium(struct gl_context *ctx,
          continue;
 
       unsigned tmp_min, tmp_max;
-      vbo_get_minmax_index(ctx, info->has_user_indices ?
-                              NULL : info->index.gl_bo,
+      vbo_get_minmax_index(ctx, buf,
                            info->index.user,
                            (GLintptr)draw.start * info->index_size,
                            draw.count, info->index_size,

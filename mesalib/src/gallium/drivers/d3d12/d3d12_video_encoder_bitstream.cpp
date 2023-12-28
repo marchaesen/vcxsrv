@@ -26,22 +26,22 @@
 
 d3d12_video_encoder_bitstream::d3d12_video_encoder_bitstream()
 {
-   m_pBitsBuffer       = nullptr;
-   m_uiBitsBufferSize  = 0;
-   m_uiOffset          = 0;
-   m_iBitsToGo         = 32;
-   m_uintEncBuffer     = 0;
-   m_bExternalBuffer   = false;
-   m_bBufferOverflow   = false;
+   m_pBitsBuffer = nullptr;
+   m_uiBitsBufferSize = 0;
+   m_uiOffset = 0;
+   m_iBitsToGo = 32;
+   m_uintEncBuffer = 0;
+   m_bExternalBuffer = false;
+   m_bBufferOverflow = false;
    m_bPreventStartCode = false;
-   m_bAllowReallocate  = false;
+   m_bAllowReallocate = false;
 }
 
 d3d12_video_encoder_bitstream::~d3d12_video_encoder_bitstream()
 {
    if (!m_bExternalBuffer) {
       if (m_pBitsBuffer) {
-         delete[](m_pBitsBuffer);
+         delete[] (m_pBitsBuffer);
          (m_pBitsBuffer) = NULL;
       }
    }
@@ -91,13 +91,13 @@ d3d12_video_encoder_bitstream::exp_Golomb_se(int32_t iVal)
 }
 
 void
-d3d12_video_encoder_bitstream::setup_bitstream(uint32_t uiInitBufferSize, uint8_t *pBuffer)
+d3d12_video_encoder_bitstream::setup_bitstream(uint32_t uiInitBufferSize, uint8_t *pBuffer, size_t initial_byte_offset)
 {
-   m_pBitsBuffer      = pBuffer;
+   m_pBitsBuffer = pBuffer;
    m_uiBitsBufferSize = uiInitBufferSize;
-   m_uiOffset         = 0;
-   memset(m_pBitsBuffer, 0, m_uiBitsBufferSize);
-   m_bExternalBuffer  = true;
+   m_uiOffset = initial_byte_offset;
+   memset(m_pBitsBuffer + initial_byte_offset, 0, m_uiBitsBufferSize - initial_byte_offset);
+   m_bExternalBuffer = true;
    m_bAllowReallocate = false;
 }
 
@@ -113,7 +113,7 @@ d3d12_video_encoder_bitstream::create_bitstream(uint32_t uiInitBufferSize)
    }
 
    m_uiBitsBufferSize = uiInitBufferSize;
-   m_uiOffset         = 0;
+   m_uiOffset = 0;
    memset(m_pBitsBuffer, 0, m_uiBitsBufferSize);
    m_bExternalBuffer = false;
 
@@ -124,7 +124,7 @@ bool
 d3d12_video_encoder_bitstream::reallocate_buffer()
 {
    uint32_t uiBufferSize = m_uiBitsBufferSize * 3 / 2;
-   uint8_t *pNewBuffer   = (uint8_t *) new uint8_t[uiBufferSize];
+   uint8_t *pNewBuffer = (uint8_t *) new uint8_t[uiBufferSize];
 
    if (nullptr == pNewBuffer) {
       return false;
@@ -132,10 +132,10 @@ d3d12_video_encoder_bitstream::reallocate_buffer()
 
    memcpy(pNewBuffer, m_pBitsBuffer, m_uiOffset * sizeof(uint8_t));
    if (m_pBitsBuffer) {
-      delete[](m_pBitsBuffer);
+      delete[] (m_pBitsBuffer);
       (m_pBitsBuffer) = NULL;
    }
-   m_pBitsBuffer      = pNewBuffer;
+   m_pBitsBuffer = pNewBuffer;
    m_uiBitsBufferSize = uiBufferSize;
    return true;
 }
@@ -168,17 +168,17 @@ void
 d3d12_video_encoder_bitstream::get_current_buffer_position_and_size(uint8_t **ppCurrBufPos, int32_t *pdwLeftBufSize)
 {
    assert(32 == m_iBitsToGo && m_uiOffset < m_uiBitsBufferSize);
-   *ppCurrBufPos   = m_pBitsBuffer + m_uiOffset;
+   *ppCurrBufPos = m_pBitsBuffer + m_uiOffset;
    *pdwLeftBufSize = m_uiBitsBufferSize - m_uiOffset;
 }
 
 void
 d3d12_video_encoder_bitstream::attach(uint8_t *pBitsBuffer, uint32_t uiBufferSize)
 {
-   m_pBitsBuffer      = pBitsBuffer;
+   m_pBitsBuffer = pBitsBuffer;
    m_uiBitsBufferSize = uiBufferSize;
-   m_bExternalBuffer  = true;
-   m_bBufferOverflow  = false;
+   m_bExternalBuffer = true;
+   m_bBufferOverflow = false;
    m_bAllowReallocate = false;
 
    clear();
@@ -187,7 +187,7 @@ d3d12_video_encoder_bitstream::attach(uint8_t *pBitsBuffer, uint32_t uiBufferSiz
 void
 d3d12_video_encoder_bitstream::write_byte_start_code_prevention(uint8_t u8Val)
 {
-   int32_t  iOffset = m_uiOffset;
+   int32_t iOffset = m_uiOffset;
    uint8_t *pBuffer = m_pBitsBuffer + iOffset;
 
    if (m_bPreventStartCode && iOffset > 1) {
@@ -208,6 +208,7 @@ d3d12_video_encoder_bitstream::write_byte_start_code_prevention(uint8_t u8Val)
 void
 d3d12_video_encoder_bitstream::put_bits(int32_t uiBitsCount, uint32_t iBitsVal)
 {
+   assert(uiBitsCount > 0);
    assert(uiBitsCount <= 32);
 
    if (uiBitsCount < m_iBitsToGo) {
@@ -224,7 +225,7 @@ d3d12_video_encoder_bitstream::put_bits(int32_t uiBitsCount, uint32_t iBitsVal)
       WRITE_BYTE(*temp);
 
       m_uintEncBuffer = 0;
-      m_iBitsToGo     = 32 - iLeftOverBits;
+      m_iBitsToGo = 32 - iLeftOverBits;
 
       if (iLeftOverBits > 0) {
          m_uintEncBuffer = (iBitsVal << (32 - iLeftOverBits));
@@ -235,37 +236,37 @@ d3d12_video_encoder_bitstream::put_bits(int32_t uiBitsCount, uint32_t iBitsVal)
 void
 d3d12_video_encoder_bitstream::flush()
 {
-   bool isAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+   ASSERTED bool isAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
    assert(isAligned);
 
-   uint32_t temp = (uint32_t)(32 - m_iBitsToGo);
+   uint32_t temp = (uint32_t) (32 - m_iBitsToGo);
 
    if (!verify_buffer(temp >> 3)) {
       return;
    }
 
    while (temp > 0) {
-      WRITE_BYTE((uint8_t)(m_uintEncBuffer >> 24));
+      WRITE_BYTE((uint8_t) (m_uintEncBuffer >> 24));
       m_uintEncBuffer <<= 8;
       temp -= 8;
    }
 
-   m_iBitsToGo     = 32;
+   m_iBitsToGo = 32;
    m_uintEncBuffer = 0;
 }
 
 void
 d3d12_video_encoder_bitstream::append_byte_stream(d3d12_video_encoder_bitstream *pStream)
 {
-   bool isStreamAligned =
+   ASSERTED bool isStreamAligned =
       pStream->is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
    assert(isStreamAligned);
-   bool isThisAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+   ASSERTED bool isThisAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
    assert(isThisAligned);
    assert(m_iBitsToGo == 32);
 
-   uint8_t *pDst  = m_pBitsBuffer + m_uiOffset;
-   uint8_t *pSrc  = pStream->get_bitstream_buffer();
+   uint8_t *pDst = m_pBitsBuffer + m_uiOffset;
+   uint8_t *pSrc = pStream->get_bitstream_buffer();
    uint32_t uiLen = (uint32_t) pStream->get_byte_count();
 
    if (!verify_buffer(uiLen)) {
@@ -274,4 +275,85 @@ d3d12_video_encoder_bitstream::append_byte_stream(d3d12_video_encoder_bitstream 
 
    memcpy(pDst, pSrc, uiLen);
    m_uiOffset += uiLen;
+}
+
+void
+d3d12_video_encoder_bitstream::put_aligning_bits()
+{
+   int32_t iLeft = get_num_bits_for_byte_align();
+   if (iLeft)
+      put_bits(iLeft, 0);   // trailing_zero_bit
+
+   ASSERTED bool isAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+   assert(isAligned);
+}
+
+void
+d3d12_video_encoder_bitstream::put_trailing_bits()
+{
+   // trailing_one_bit shall be equal to 1.
+   // When the syntax element trailing_one_bit is read, it is a requirement that nbBits is greater than zero.
+   put_bits(1, 1);   // trailing_one_bit
+   int32_t nbBits = get_num_bits_for_byte_align();
+   while (nbBits > 0) {
+      put_bits(1, 0);   // trailing_zero_bit
+      nbBits--;
+   }
+   ASSERTED bool isAligned = is_byte_aligned();   // causes side-effects in object state, don't put inside assert()
+   assert(isAligned);
+}
+
+void
+d3d12_video_encoder_bitstream::put_su_bits(uint16_t uiBitsCount, int32_t iBitsVal)
+{
+   put_bits(uiBitsCount, calculate_su_bits(uiBitsCount, iBitsVal));
+}
+
+void
+d3d12_video_encoder_bitstream::put_ns_bits(uint16_t uiBitsCount, uint32_t iBitsVal)
+{
+   if (uiBitsCount > 1) {
+      uint32_t width = 0;
+      uint32_t tmp = uiBitsCount;
+      while (tmp) {
+         tmp = (tmp >> 1);
+         width++;
+      }
+      uint32_t m = (1 << width) - uiBitsCount;
+      if (iBitsVal < m)
+         put_bits(width - 1, iBitsVal);
+      else
+         put_bits(width, iBitsVal + m);
+   }
+}
+
+uint16_t
+d3d12_video_encoder_bitstream::calculate_su_bits(uint16_t uiBitsCount, int32_t iBitsVal)
+{
+   int16_t mask_sign = 1 << (uiBitsCount - 1);
+   if (iBitsVal & mask_sign)
+      iBitsVal = iBitsVal - 2 * mask_sign;
+   return iBitsVal;
+}
+
+void
+d3d12_video_encoder_bitstream::put_le_bytes(size_t uiBytesCount, uint32_t iBitsVal)
+{
+   assert(uiBytesCount <= sizeof(iBitsVal));
+   for (size_t i = 0; i < uiBytesCount; i++) {
+      put_bits(8, static_cast<uint8_t>(iBitsVal & 0xFF));
+      iBitsVal >>= 8;
+   }
+}
+
+void
+d3d12_video_encoder_bitstream::put_leb128_bytes(uint64_t iBitsVal)
+{
+   do {
+      uint8_t cur_byte = (iBitsVal & 0x7F);
+      iBitsVal >>= 7;
+      if (iBitsVal != 0)
+         cur_byte |= 0x80;
+      put_bits(8, cur_byte);
+   } while (iBitsVal != 0);
 }

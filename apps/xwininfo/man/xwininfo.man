@@ -28,11 +28,11 @@
 xwininfo \- window information utility for X
 .SH SYNOPSIS
 .B "xwininfo"
-[\-help] [\-id \fIid\fP] [\-root] [\-name \fIname\fP] [\-int]
+[\-help] [\-id \fIwdid\fP] [\-root] [\-name \fIwdname\fP] [\-int]
 [\-children] [\-tree] [\-stats] [\-bits] [\-events] [\-size] [\-wm] [\-shape]
 [\-frame] [\-all]
 [\-english] [\-metric]
-[\-display \fIdisplay\fP] [\-version]
+[\-display \fIhost:dpy\fP] [\-version]
 .SH DESCRIPTION
 .PP
 .I Xwininfo
@@ -55,16 +55,16 @@ on the screen's root window.
 Print out the `Usage:' command syntax summary.
 .PP
 .TP 8
-.B "\-id \fIid\fP"
-This option allows the user to specify a target window \fIid\fP on the
+.B "\-id \fIwdid\fP"
+This option allows the user to specify a target window \fIwdid\fP on the
 command line rather than using the mouse to select the target window.
 This is very useful in debugging X applications where the target
 window is not mapped to the screen or where the use of the mouse might
 be impossible or interfere with the application.
 .PP
 .TP 8
-.B "\-name \fIname\fP"
-This option allows the user to specify that the window named \fIname\fP
+.B "\-name \fIwdname\fP"
+This option allows the user to specify that the window named \fIwdname\fP
 is the target window on the command line rather than using the mouse to
 select the target window.
 .PP
@@ -150,11 +150,12 @@ same time.
 .TP 8
 .B \-all
 This option is a quick way to ask for all information possible.
+To get all information for all windows use \fB\-tree\fP \fB\-root\fP \fB\-all\fP.
 .PP
 .TP 8
-.B \-display \fIdisplay\fP
+.B "\-d, \-display" \fIhost:dpy\fP
 This option allows you to specify the server to connect to; see \fIX(__miscmansuffix__)\fP.
-PP
+.PP
 .TP 8
 .B \-version
 This option indicates that

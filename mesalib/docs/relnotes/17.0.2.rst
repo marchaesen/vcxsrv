@@ -94,7 +94,7 @@ James Legg (1):
 
 -  radv: Fix using more than 4 bound descriptor sets
 
-Jason Ekstrand (7):
+Faith Ekstrand (7):
 
 -  anv/blorp/clear_subpass: Only set surface clear color for fast clears
 -  anv: Accurately advertise dynamic descriptor limits

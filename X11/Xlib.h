@@ -81,8 +81,10 @@ typedef char *XPointer;
 
 typedef int Bool;
 typedef int Status;
+#ifndef True
 #define True 1
 #define False 0
+#endif
 
 #define QueuedAlready 0
 #define QueuedAfterReading 1
@@ -1732,6 +1734,10 @@ extern VisualID XVisualIDFromVisual(
 /* multithread routines */
 
 extern Status XInitThreads(
+    void
+);
+
+extern Status XFreeThreads(
     void
 );
 

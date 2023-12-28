@@ -106,7 +106,7 @@ Icecream95 (6):
 - pan/bi: Make disassembler build reproducibly
 - panfrost: Fix ubo_mask calculation
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - anv: Don't assume depth/stencil attachments have depth
 - lavapipe: Reset the free_cmd_buffers list in TrimCommandPool

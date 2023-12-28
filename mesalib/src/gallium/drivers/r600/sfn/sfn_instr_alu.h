@@ -40,7 +40,6 @@ class ValueFactory;
 
 class AluInstr : public Instr {
 public:
-
    using SrcValues = std::vector<PVirtualValue, Allocator<PVirtualValue>>;
 
    enum Op2Options {
@@ -50,14 +49,15 @@ public:
       op2_opt_abs_src0 = 1 << 2
    };
 
-   static constexpr const AluBankSwizzle bs[6] = {
-      alu_vec_012,
-      alu_vec_021,
-      alu_vec_120,
-      alu_vec_102,
-      alu_vec_201,
-      alu_vec_210
+   enum SourceMod {
+      mod_none = 0,
+      mod_abs = 1,
+      mod_neg = 2
    };
+
+
+   static constexpr const AluBankSwizzle bs[6] = {
+      alu_vec_012, alu_vec_021, alu_vec_120, alu_vec_102, alu_vec_201, alu_vec_210};
 
    static const AluModifiers src_abs_flags[2];
    static const AluModifiers src_neg_flags[3];
@@ -65,18 +65,27 @@ public:
 
    AluInstr(EAluOp opcode);
    AluInstr(EAluOp opcode, int chan);
-   AluInstr(EAluOp opcode, PRegister dest,
+   AluInstr(EAluOp opcode,
+            PRegister dest,
             SrcValues src0,
-            const std::set<AluModifiers>& flags, int alu_slot);
+            const std::set<AluModifiers>& flags,
+            int alu_slot);
 
-   AluInstr(EAluOp opcode, PRegister dest, PVirtualValue src0,
+   AluInstr(EAluOp opcode,
+            PRegister dest,
+            PVirtualValue src0,
             const std::set<AluModifiers>& flags);
 
-   AluInstr(EAluOp opcode, PRegister dest,
-            PVirtualValue src0, PVirtualValue src1,
+   AluInstr(EAluOp opcode,
+            PRegister dest,
+            PVirtualValue src0,
+            PVirtualValue src1,
             const std::set<AluModifiers>& flags);
 
-   AluInstr(EAluOp opcode, PRegister dest, PVirtualValue src0, PVirtualValue src1,
+   AluInstr(EAluOp opcode,
+            PRegister dest,
+            PVirtualValue src0,
+            PVirtualValue src1,
             PVirtualValue src2,
             const std::set<AluModifiers>& flags);
 
@@ -86,8 +95,16 @@ public:
    void accept(ConstInstrVisitor& visitor) const override;
    void accept(InstrVisitor& visitor) override;
 
-   auto opcode() const {assert(!has_alu_flag(alu_is_lds)); return m_opcode;}
-   auto lds_opcode() const {assert(has_alu_flag(alu_is_lds)); return m_lds_opcode;}
+   auto opcode() const
+   {
+      assert(!has_alu_flag(alu_is_lds));
+      return m_opcode;
+   }
+   auto lds_opcode() const
+   {
+      assert(has_alu_flag(alu_is_lds));
+      return m_lds_opcode;
+   }
 
    bool can_propagate_src() const;
    bool can_propagate_dest() const;
@@ -95,70 +112,105 @@ public:
    bool replace_source(PRegister old_src, PVirtualValue new_src) override;
    bool replace_dest(PRegister new_dest, AluInstr *move_instr) override;
 
-   void set_op(EAluOp op) {m_opcode = op;}
+   bool can_replace_source(PRegister old_src, PVirtualValue new_src);
+   bool do_replace_source(PRegister old_src, PVirtualValue new_src);
 
-   PRegister dest() const {return m_dest;}
-   unsigned n_sources() const {return m_src.size();}
+   void set_op(EAluOp op) { m_opcode = op; }
 
-   int dest_chan() const {return m_dest ? m_dest->chan() : m_fallback_chan;}
+   PRegister dest() const { return m_dest; }
+   unsigned n_sources() const { return m_src.size(); }
 
-   PVirtualValue psrc(unsigned i) {return i < m_src.size() ? m_src[i] : nullptr;}
-   VirtualValue& src(unsigned i) {assert(i < m_src.size() && m_src[i]); return *m_src[i];}
-   const VirtualValue& src(unsigned i) const {assert(i < m_src.size() && m_src[i]); return *m_src[i];}
+   int dest_chan() const { return m_dest ? m_dest->chan() : m_fallback_chan; }
+
+   const VirtualValue *psrc(unsigned i) const { return i < m_src.size() ? m_src[i] : nullptr; }
+   PVirtualValue psrc(unsigned i) { return i < m_src.size() ? m_src[i] : nullptr; }
+   VirtualValue& src(unsigned i)
+   {
+      assert(i < m_src.size() && m_src[i]);
+      return *m_src[i];
+   }
+   const VirtualValue& src(unsigned i) const
+   {
+      assert(i < m_src.size() && m_src[i]);
+      return *m_src[i];
+   }
 
    void set_sources(SrcValues src);
-   const SrcValues& sources() const {return m_src;}
+   const SrcValues& sources() const { return m_src; }
    void pin_sources_to_chan();
 
    int register_priority() const;
 
-   void reset_alu_flag(AluModifiers flag) {m_alu_flags.reset(flag);}
-   void set_alu_flag(AluModifiers flag) {m_alu_flags.set(flag);}
-   bool has_alu_flag(AluModifiers f) const {return m_alu_flags.test(f);}
+   void reset_alu_flag(AluModifiers flag) { m_alu_flags.reset(flag); }
+   void set_alu_flag(AluModifiers flag) { m_alu_flags.set(flag); }
+   bool has_alu_flag(AluModifiers f) const { return m_alu_flags.test(f); }
 
-   ECFAluOpCode cf_type() const {return m_cf_type;}
-   void set_cf_type(ECFAluOpCode cf_type){ m_cf_type = cf_type; }
-   void set_bank_swizzle(AluBankSwizzle swz) {m_bank_swizzle = swz;}
-   AluBankSwizzle bank_swizzle() const {return m_bank_swizzle;}
+   ECFAluOpCode cf_type() const { return m_cf_type; }
+   void set_cf_type(ECFAluOpCode cf_type) { m_cf_type = cf_type; }
+   void set_bank_swizzle(AluBankSwizzle swz) { m_bank_swizzle = swz; }
+   AluBankSwizzle bank_swizzle() const { return m_bank_swizzle; }
 
-   void set_index_offset(unsigned offs) {m_idx_offset = offs;}
-   auto  index_offset() const {return m_idx_offset;}
+   void set_index_offset(unsigned offs) { m_idx_offset = offs; }
+   auto index_offset() const { return m_idx_offset; }
 
    bool is_equal_to(const AluInstr& lhs) const;
 
    bool has_lds_access() const;
    bool has_lds_queue_read() const;
+   bool is_kill() const;
 
    static const std::map<ECFAluOpCode, std::string> cf_map;
    static const std::map<AluBankSwizzle, std::string> bank_swizzle_map;
-   static Instr::Pointer from_string(std::istream &is, ValueFactory& value_factory, AluGroup *);
+   static Instr::Pointer
+   from_string(std::istream& is, ValueFactory& value_factory, AluGroup *, bool is_cayman);
    static bool from_nir(nir_alu_instr *alu, Shader& shader);
 
-   int alu_slots() const {return m_alu_slots;}
+   int alu_slots() const { return m_alu_slots; }
 
-   AluGroup *split(ValueFactory &vf);
+   AluGroup *split(ValueFactory& vf);
 
-   bool end_group() const override { return m_alu_flags.test(alu_last_instr);}
+   bool end_group() const override { return m_alu_flags.test(alu_last_instr); }
 
    static const std::set<AluModifiers> empty;
    static const std::set<AluModifiers> write;
    static const std::set<AluModifiers> last;
    static const std::set<AluModifiers> last_write;
 
-   std::tuple<PRegister, bool, bool> indirect_addr() const;
+   std::tuple<PRegister, bool, PRegister> indirect_addr() const;
+   void update_indirect_addr(PRegister old_reg, PRegister reg) override;
 
    void add_extra_dependency(PVirtualValue reg);
 
-   void set_required_slots(int nslots) { m_required_slots = nslots;}
-   unsigned  required_slots() const { return m_required_slots;}
+   void set_required_slots(int nslots) { m_required_slots = nslots; }
+   unsigned required_slots() const { return m_required_slots; }
 
-   void add_priority(int priority) { m_priority += priority;}
-   int priority() const { return m_priority;}
-   void inc_priority() { ++m_priority;}
+   void add_priority(int priority) { m_priority += priority; }
+   int priority() const { return m_priority; }
+   void inc_priority() { ++m_priority; }
 
-   void set_parent_group(AluGroup *group) { m_parent_group = group;}
+   void set_parent_group(AluGroup *group) { m_parent_group = group; }
+   AluGroup *parent_group() { return m_parent_group;}
 
-   AluInstr *as_alu() override { return this;}
+   AluInstr *as_alu() override { return this; }
+
+   uint8_t allowed_src_chan_mask() const override;
+   uint8_t allowed_dest_chan_mask() const {return m_allowed_dest_mask;}
+
+   void inc_ar_uses() { ++m_num_ar_uses;}
+   auto num_ar_uses() const {return m_num_ar_uses;}
+
+   bool replace_src(int i, PVirtualValue new_src, uint32_t to_set,
+                    SourceMod to_clear);
+
+   void set_source_mod(int src, SourceMod mod) {
+      m_source_modifiers |= mod << (2 * src);
+   }
+   auto has_source_mod(int src, SourceMod mod) const {
+      return (m_source_modifiers & (mod << (2 * src))) != 0;
+   }
+   void reset_source_mod(int src, SourceMod mod) {
+      m_source_modifiers &= ~(mod << (2 * src));
+   }
 
 private:
    friend class AluGroup;
@@ -190,10 +242,13 @@ private:
    int m_alu_slots{1};
    int m_fallback_chan{0};
    unsigned m_idx_offset{0};
-   unsigned m_required_slots{0};
+   int m_required_slots{0};
    int m_priority{0};
    std::set<PRegister, std::less<PRegister>, Allocator<PRegister>> m_extra_dependencies;
    AluGroup *m_parent_group{nullptr};
+   unsigned m_allowed_dest_mask{0xf};
+   unsigned m_num_ar_uses{0};
+   uint32_t m_source_modifiers{0};
 };
 
 class AluInstrVisitor : public InstrVisitor {
@@ -202,21 +257,20 @@ public:
    void visit(Block *instr) override;
    void visit(IfInstr *instr) override;
 
-   void visit(TexInstr *instr) override {(void)instr;}
-   void visit(ExportInstr *instr) override {(void)instr;}
-   void visit(FetchInstr *instr) override {(void)instr;}
-   void visit(ControlFlowInstr *instr) override {(void)instr;}
-   void visit(ScratchIOInstr *instr) override {(void)instr;}
-   void visit(StreamOutInstr *instr) override {(void)instr;}
-   void visit(MemRingOutInstr *instr) override {(void)instr;}
-   void visit(EmitVertexInstr *instr) override {(void)instr;}
-   void visit(GDSInstr *instr) override {(void)instr;};
-   void visit(WriteTFInstr *instr) override {(void)instr;};
-   void visit(LDSAtomicInstr *instr) override {(void)instr;};
-   void visit(LDSReadInstr *instr) override {(void)instr;};
-   void visit(RatInstr *instr) override {(void)instr;};
+   void visit(TexInstr *instr) override { (void)instr; }
+   void visit(ExportInstr *instr) override { (void)instr; }
+   void visit(FetchInstr *instr) override { (void)instr; }
+   void visit(ControlFlowInstr *instr) override { (void)instr; }
+   void visit(ScratchIOInstr *instr) override { (void)instr; }
+   void visit(StreamOutInstr *instr) override { (void)instr; }
+   void visit(MemRingOutInstr *instr) override { (void)instr; }
+   void visit(EmitVertexInstr *instr) override { (void)instr; }
+   void visit(GDSInstr *instr) override { (void)instr; };
+   void visit(WriteTFInstr *instr) override { (void)instr; };
+   void visit(LDSAtomicInstr *instr) override { (void)instr; };
+   void visit(LDSReadInstr *instr) override { (void)instr; };
+   void visit(RatInstr *instr) override { (void)instr; };
 };
 
-
-}
+} // namespace r600
 #endif // INSTRALU_H

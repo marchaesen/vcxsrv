@@ -109,7 +109,8 @@ struct d3d12_video_processor
    std::vector<D3D12_VIDEO_PROCESS_INPUT_STREAM_DESC> m_inputStreamDescs;
    ComPtr<ID3D12VideoProcessor1>                      m_spVideoProcessor;
    ComPtr<ID3D12CommandQueue>                         m_spCommandQueue;
-   ComPtr<ID3D12CommandAllocator>                     m_spCommandAllocator;
+   std::vector<ComPtr<ID3D12CommandAllocator>>        m_spCommandAllocators;
+   std::vector<struct d3d12_fence>                    m_PendingFences;
    ComPtr<ID3D12VideoProcessCommandList1>             m_spCommandList;
 
    std::vector<D3D12_RESOURCE_BARRIER> m_transitionsBeforeCloseCmdList;
@@ -123,6 +124,8 @@ struct d3d12_video_processor
    bool m_needsGPUFlush = false;
 
    D3D12_FEATURE_DATA_VIDEO_PROCESS_MAX_INPUT_STREAMS m_vpMaxInputStreams = { };
+
+   struct d3d12_fence* input_surface_fence = NULL;
 };
 
 struct pipe_video_codec *
@@ -140,6 +143,22 @@ d3d12_video_processor_create_command_objects(struct d3d12_video_processor *pD3D1
 
 D3D12_VIDEO_PROCESS_ORIENTATION
 d3d12_video_processor_convert_pipe_rotation(enum pipe_video_vpp_orientation orientation);
+
+bool
+d3d12_video_processor_ensure_fence_finished(struct pipe_video_codec *codec, uint64_t fenceValueToWaitOn, uint64_t timeout_ns);
+
+bool
+d3d12_video_processor_sync_completion(struct pipe_video_codec *codec, uint64_t fenceValueToWaitOn, uint64_t timeout_ns);
+
+uint64_t
+d3d12_video_processor_pool_current_index(struct d3d12_video_processor *codec);
+
+int d3d12_video_processor_get_processor_fence(struct pipe_video_codec *codec,
+                                              struct pipe_fence_handle *fence,
+                                              uint64_t timeout);
+
+// We need enough to so next item in pipeline doesn't ask for a fence value we lost
+const uint64_t D3D12_VIDEO_PROC_ASYNC_DEPTH = 36;
 
 ///
 /// d3d12_video_processor functions ends

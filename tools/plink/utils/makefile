@@ -23,6 +23,7 @@ CSRCS = \
   cmdline_get_passwd_input_state_new.c \
   conf.c \
   conf_dest.c \
+  conf_data.c \
   conf_launchable.c \
   ctrlparse.c \
   ctrlset_normalise.c \
@@ -46,6 +47,7 @@ CSRCS = \
   host_strrchr.c \
   key_components.c \
   log_proxy_stderr.c \
+	logeventf.c \
   make_spr_sw_abort_static.c \
   marshal.c \
   memory.c \
@@ -85,5 +87,8 @@ CSRCS = \
   x11_dehexify.c \
   x11_identify_auth_proto.c \
   x11_make_greeting.c \
-  x11_parse_ip.c
+  x11_parse_ip.c \
+	decode_utf8_to_wide_string.c \
+	dupwcs.c \
+	burnwcs.c
 

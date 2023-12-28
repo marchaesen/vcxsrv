@@ -48,81 +48,6 @@ ir3_glsl_type_size(const struct glsl_type *type, bool bindless)
    return glsl_count_attribute_slots(type, false);
 }
 
-/* for vertex shader, the inputs are loaded into registers before the shader
- * is executed, so max_regs from the shader instructions might not properly
- * reflect the # of registers actually used, especially in case passthrough
- * varyings.
- *
- * Likewise, for fragment shader, we can have some regs which are passed
- * input values but never touched by the resulting shader (ie. as result
- * of dead code elimination or simply because we don't know how to turn
- * the reg off.
- */
-static void
-fixup_regfootprint(struct ir3_shader_variant *v)
-{
-   unsigned i;
-
-   for (i = 0; i < v->inputs_count; i++) {
-      /* skip frag inputs fetch via bary.f since their reg's are
-       * not written by gpu before shader starts (and in fact the
-       * regid's might not even be valid)
-       */
-      if (v->inputs[i].bary)
-         continue;
-
-      /* ignore high regs that are global to all threads in a warp
-       * (they exist by default) (a5xx+)
-       */
-      if (v->inputs[i].regid >= regid(48, 0))
-         continue;
-
-      if (v->inputs[i].compmask) {
-         unsigned n = util_last_bit(v->inputs[i].compmask) - 1;
-         int32_t regid = v->inputs[i].regid + n;
-         if (v->inputs[i].half) {
-            if (!v->mergedregs) {
-               v->info.max_half_reg = MAX2(v->info.max_half_reg, regid >> 2);
-            } else {
-               v->info.max_reg = MAX2(v->info.max_reg, regid >> 3);
-            }
-         } else {
-            v->info.max_reg = MAX2(v->info.max_reg, regid >> 2);
-         }
-      }
-   }
-
-   for (i = 0; i < v->outputs_count; i++) {
-      /* for ex, VS shaders with tess don't have normal varying outs: */
-      if (!VALIDREG(v->outputs[i].regid))
-         continue;
-      int32_t regid = v->outputs[i].regid + 3;
-      if (v->outputs[i].half) {
-         if (!v->mergedregs) {
-            v->info.max_half_reg = MAX2(v->info.max_half_reg, regid >> 2);
-         } else {
-            v->info.max_reg = MAX2(v->info.max_reg, regid >> 3);
-         }
-      } else {
-         v->info.max_reg = MAX2(v->info.max_reg, regid >> 2);
-      }
-   }
-
-   for (i = 0; i < v->num_sampler_prefetch; i++) {
-      unsigned n = util_last_bit(v->sampler_prefetch[i].wrmask) - 1;
-      int32_t regid = v->sampler_prefetch[i].dst + n;
-      if (v->sampler_prefetch[i].half_precision) {
-         if (!v->mergedregs) {
-            v->info.max_half_reg = MAX2(v->info.max_half_reg, regid >> 2);
-         } else {
-            v->info.max_reg = MAX2(v->info.max_reg, regid >> 3);
-         }
-      } else {
-         v->info.max_reg = MAX2(v->info.max_reg, regid >> 2);
-      }
-   }
-}
-
 /* wrapper for ir3_assemble() which does some info fixup based on
  * shader state.  Non-static since used by ir3_cmdline too.
  */
@@ -185,8 +110,6 @@ ir3_shader_assemble(struct ir3_shader_variant *v)
    v->pvtmem_per_wave = compiler->gen >= 6 && !info->multi_dword_ldp_stp &&
                         ((v->type == MESA_SHADER_COMPUTE) ||
                          (v->type == MESA_SHADER_KERNEL));
-
-   fixup_regfootprint(v);
 
    return bin;
 }
@@ -359,6 +282,8 @@ alloc_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
    case MESA_SHADER_FRAGMENT:
       v->fs.early_fragment_tests = info->fs.early_fragment_tests;
       v->fs.color_is_dual_source = info->fs.color_is_dual_source;
+      v->fs.uses_fbfetch_output  = info->fs.uses_fbfetch_output;
+      v->fs.fbfetch_coherent     = info->fs.fbfetch_coherent;
       break;
 
    case MESA_SHADER_COMPUTE:
@@ -373,13 +298,11 @@ alloc_variant(struct ir3_shader *shader, const struct ir3_shader_key *key,
 
    v->num_ssbos = info->num_ssbos;
    v->num_ibos = info->num_ssbos + info->num_images;
-   v->num_reserved_user_consts = shader->num_reserved_user_consts;
-   v->api_wavesize = shader->api_wavesize;
-   v->real_wavesize = shader->real_wavesize;
+   v->shader_options = shader->options;
 
    if (!v->binning_pass) {
       v->const_state = rzalloc_size(v, sizeof(*v->const_state));
-      v->const_state->shared_consts_enable = shader->shared_consts_enable;
+      v->const_state->push_consts_type = shader->options.push_consts_type;
    }
 
    return v;
@@ -469,6 +392,8 @@ ir3_shader_get_variant(struct ir3_shader *shader,
                        const struct ir3_shader_key *key, bool binning_pass,
                        bool write_disasm, bool *created)
 {
+   MESA_TRACE_FUNC();
+
    mtx_lock(&shader->variants_lock);
    struct ir3_shader_variant *v = shader_variant(shader, key);
 
@@ -492,9 +417,58 @@ ir3_shader_get_variant(struct ir3_shader *shader,
    return v;
 }
 
+struct ir3_shader *
+ir3_shader_passthrough_tcs(struct ir3_shader *vs, unsigned patch_vertices)
+{
+   assert(vs->type == MESA_SHADER_VERTEX);
+   assert(patch_vertices > 0);
+   assert(patch_vertices <= 32);
+
+   unsigned n = patch_vertices - 1;
+   if (!vs->vs.passthrough_tcs[n]) {
+      const nir_shader_compiler_options *options =
+            ir3_get_compiler_options(vs->compiler);
+      nir_shader *tcs =
+            nir_create_passthrough_tcs(options, vs->nir, patch_vertices);
+
+      /* Technically it is an internal shader but it is confusing to
+       * not have it show up in debug output
+       */
+      tcs->info.internal = false;
+
+      nir_assign_io_var_locations(tcs, nir_var_shader_in,
+                                  &tcs->num_inputs,
+                                  tcs->info.stage);
+
+      nir_assign_io_var_locations(tcs, nir_var_shader_out,
+                                  &tcs->num_outputs,
+                                  tcs->info.stage);
+
+      NIR_PASS_V(tcs, nir_lower_system_values);
+
+      nir_shader_gather_info(tcs, nir_shader_get_entrypoint(tcs));
+
+      ir3_finalize_nir(vs->compiler, tcs);
+
+      struct ir3_shader_options ir3_options = {};
+
+      vs->vs.passthrough_tcs[n] =
+            ir3_shader_from_nir(vs->compiler, tcs, &ir3_options, NULL);
+
+      vs->vs.passthrough_tcs_compiled |= BITFIELD_BIT(n);
+   }
+
+   return vs->vs.passthrough_tcs[n];
+}
+
 void
 ir3_shader_destroy(struct ir3_shader *shader)
 {
+   if (shader->type == MESA_SHADER_VERTEX) {
+      u_foreach_bit (b, shader->vs.passthrough_tcs_compiled) {
+         ir3_shader_destroy(shader->vs.passthrough_tcs[b]);
+      }
+   }
    ralloc_free(shader->nir);
    mtx_destroy(&shader->variants_lock);
    ralloc_free(shader);
@@ -533,14 +507,6 @@ ir3_setup_used_key(struct ir3_shader *shader)
 
       if (info->inputs_read & VARYING_BITS_COLOR) {
          key->rasterflat = true;
-      }
-
-      if (info->inputs_read & VARYING_BIT_LAYER) {
-         key->layer_zero = true;
-      }
-
-      if (info->inputs_read & VARYING_BIT_VIEWPORT) {
-         key->view_zero = true;
       }
 
       /* Only used for deciding on behavior of
@@ -610,7 +576,7 @@ trim_constlens(unsigned *constlens, unsigned first_stage, unsigned last_stage,
  * order to satisfy all shared constlen limits.
  */
 uint32_t
-ir3_trim_constlen(struct ir3_shader_variant **variants,
+ir3_trim_constlen(const struct ir3_shader_variant **variants,
                   const struct ir3_compiler *compiler)
 {
    unsigned constlens[MESA_SHADER_STAGES] = {};
@@ -621,7 +587,7 @@ ir3_trim_constlen(struct ir3_shader_variant **variants,
       if (variants[i]) {
          constlens[i] = variants[i]->constlen;
          shared_consts_enable =
-            ir3_const_state(variants[i])->shared_consts_enable;
+            ir3_const_state(variants[i])->push_consts_type == IR3_PUSH_CONSTS_SHARED;
       }
    }
 
@@ -673,10 +639,7 @@ ir3_shader_from_nir(struct ir3_compiler *compiler, nir_shader *nir,
    if (stream_output)
       memcpy(&shader->stream_output, stream_output,
              sizeof(shader->stream_output));
-   shader->num_reserved_user_consts = options->reserved_user_consts;
-   shader->api_wavesize = options->api_wavesize;
-   shader->real_wavesize = options->real_wavesize;
-   shader->shared_consts_enable = options->shared_consts_enable;
+   shader->options = *options;
    shader->nir = nir;
 
    ir3_disk_cache_init_shader_key(compiler, shader);
@@ -779,6 +742,51 @@ dump_const_state(struct ir3_shader_variant *so, FILE *out)
    }
 }
 
+static uint8_t
+find_input_reg_id(struct ir3_shader_variant *so, uint32_t input_idx)
+{
+   uint8_t reg = so->inputs[input_idx].regid;
+   if (so->type != MESA_SHADER_FRAGMENT || !so->ir || VALIDREG(reg))
+      return reg;
+
+   reg = INVALID_REG;
+
+   /* In FS we don't know into which register the input is loaded
+    * until the shader is scanned for the input load instructions.
+    */
+   foreach_block (block, &so->ir->block_list) {
+      foreach_instr_safe (instr, &block->instr_list) {
+         if (instr->opc == OPC_FLAT_B || instr->opc == OPC_BARY_F ||
+             instr->opc == OPC_LDLV) {
+            if (instr->srcs[0]->flags & IR3_REG_IMMED) {
+               unsigned inloc = so->inputs[input_idx].inloc;
+               unsigned instr_inloc = instr->srcs[0]->uim_val;
+               unsigned size = util_bitcount(so->inputs[input_idx].compmask);
+
+               if (instr_inloc == inloc) {
+                  return instr->dsts[0]->num;
+               }
+
+               if (instr_inloc > inloc && instr_inloc < (inloc + size)) {
+                  reg = MIN2(reg, instr->dsts[0]->num);
+               }
+
+               if (instr->dsts[0]->flags & IR3_REG_EI) {
+                  return reg;
+               }
+            }
+         }
+      }
+   }
+
+   return reg;
+}
+
+void
+print_raw(FILE *out, const BITSET_WORD *data, size_t size) {
+   fprintf(out, "raw 0x%X%X\n", data[0], data[1]);
+}
+
 void
 ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 {
@@ -806,10 +814,11 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
    for (i = 0; i < so->num_sampler_prefetch; i++) {
       const struct ir3_sampler_prefetch *fetch = &so->sampler_prefetch[i];
       fprintf(out,
-              "@tex(%sr%d.%c)\tsrc=%u, samp=%u, tex=%u, wrmask=0x%x, cmd=%u\n",
+              "@tex(%sr%d.%c)\tsrc=%u, samp=%u, tex=%u, wrmask=0x%x, opc=%s\n",
               fetch->half_precision ? "h" : "", fetch->dst >> 2,
               "xyzw"[fetch->dst & 0x3], fetch -> src, fetch -> samp_id,
-              fetch -> tex_id, fetch -> wrmask, fetch -> cmd);
+              fetch -> tex_id, fetch -> wrmask,
+              disasm_a3xx_instr_name(fetch->tex_opc));
    }
 
    const struct ir3_const_state *const_state = ir3_const_state(so);
@@ -822,11 +831,12 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
               const_state->immediates[i * 4 + 3]);
    }
 
-   isa_decode(bin, so->info.sizedwords * 4, out,
+   isa_disasm(bin, so->info.sizedwords * 4, out,
               &(struct isa_decode_options){
-                 .gpu_id = fd_dev_gpu_id(ir->compiler->dev_id),
+                 .gpu_id = ir->compiler->gen * 100,
                  .show_errors = true,
                  .branch_labels = true,
+                 .no_match_cb = print_raw,
               });
 
    fprintf(out, "; %s: outputs:", type);
@@ -840,7 +850,8 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
 
    fprintf(out, "; %s: inputs:", type);
    for (i = 0; i < so->inputs_count; i++) {
-      uint8_t regid = so->inputs[i].regid;
+      uint8_t regid = find_input_reg_id(so, i);
+
       fprintf(out, " r%d.%c (%s slot=%d cm=%x,il=%u,b=%u)", (regid >> 2),
               "xyzw"[regid & 0x3], input_name(so, i), so -> inputs[i].slot,
               so->inputs[i].compmask, so->inputs[i].inloc, so->inputs[i].bary);
@@ -856,9 +867,10 @@ ir3_shader_disasm(struct ir3_shader_variant *so, uint32_t *bin, FILE *out)
       so->info.cov_count, so->info.sizedwords);
 
    fprintf(out,
-           "; %s prog %d/%d: %u last-baryf, %d half, %d full, %u constlen\n",
+           "; %s prog %d/%d: %u last-baryf, %u last-helper, %d half, %d full, %u constlen\n",
            type, so->shader_id, so->id, so->info.last_baryf,
-           so->info.max_half_reg + 1, so->info.max_reg + 1, so->constlen);
+           so->info.last_helper, so->info.max_half_reg + 1,
+           so->info.max_reg + 1, so->constlen);
 
    fprintf(
       out,

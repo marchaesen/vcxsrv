@@ -230,7 +230,7 @@ CreateRasterizerState(
 
    state.point_quad_rasterization = 1;
    state.point_size = 1.0f;
-   state.point_tri_clip = 1;
+   state.point_line_tri_clip = 1;
 
    state.line_width = 1.0f;
    state.line_rectangular = 0;

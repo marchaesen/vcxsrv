@@ -52,6 +52,7 @@ struct pvr_texture_state_info {
    enum pvr_memlayout mem_layout;
    uint32_t flags;
    VkImageViewType type;
+   VkImageAspectFlags aspect_mask;
    bool is_cube;
    enum pvr_texture_state tex_state_type;
    VkExtent3D extent;
@@ -106,7 +107,7 @@ struct pvr_texture_state_info {
 
 VkResult
 pvr_pack_tex_state(struct pvr_device *device,
-                   struct pvr_texture_state_info *info,
+                   const struct pvr_texture_state_info *info,
                    uint64_t state[static const ROGUE_NUM_TEXSTATE_IMAGE_WORDS]);
 
 #endif /* PVR_TEX_STATE_H */

@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_FENCE_H
 #define VN_PROTOCOL_DRIVER_FENCE_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /*
@@ -471,9 +471,9 @@ static inline VkResult vn_decode_vkWaitForFences_reply(struct vn_cs_decoder *dec
     return ret;
 }
 
-static inline size_t vn_sizeof_vkResetFenceResource100000MESA(VkDevice device, VkFence fence)
+static inline size_t vn_sizeof_vkResetFenceResourceMESA(VkDevice device, VkFence fence)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResource100000MESA_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResourceMESA_EXT;
     const VkFlags cmd_flags = 0;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
 
@@ -483,9 +483,9 @@ static inline size_t vn_sizeof_vkResetFenceResource100000MESA(VkDevice device, V
     return cmd_size;
 }
 
-static inline void vn_encode_vkResetFenceResource100000MESA(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence)
+static inline void vn_encode_vkResetFenceResourceMESA(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResource100000MESA_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResourceMESA_EXT;
 
     vn_encode_VkCommandTypeEXT(enc, &cmd_type);
     vn_encode_VkFlags(enc, &cmd_flags);
@@ -494,9 +494,9 @@ static inline void vn_encode_vkResetFenceResource100000MESA(struct vn_cs_encoder
     vn_encode_VkFence(enc, &fence);
 }
 
-static inline size_t vn_sizeof_vkResetFenceResource100000MESA_reply(VkDevice device, VkFence fence)
+static inline size_t vn_sizeof_vkResetFenceResourceMESA_reply(VkDevice device, VkFence fence)
 {
-    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResource100000MESA_EXT;
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkResetFenceResourceMESA_EXT;
     size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
 
     /* skip device */
@@ -505,17 +505,17 @@ static inline size_t vn_sizeof_vkResetFenceResource100000MESA_reply(VkDevice dev
     return cmd_size;
 }
 
-static inline void vn_decode_vkResetFenceResource100000MESA_reply(struct vn_cs_decoder *dec, VkDevice device, VkFence fence)
+static inline void vn_decode_vkResetFenceResourceMESA_reply(struct vn_cs_decoder *dec, VkDevice device, VkFence fence)
 {
     VkCommandTypeEXT command_type;
     vn_decode_VkCommandTypeEXT(dec, &command_type);
-    assert(command_type == VK_COMMAND_TYPE_vkResetFenceResource100000MESA_EXT);
+    assert(command_type == VK_COMMAND_TYPE_vkResetFenceResourceMESA_EXT);
 
     /* skip device */
     /* skip fence */
 }
 
-static inline void vn_submit_vkCreateFence(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateFence(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -527,16 +527,16 @@ static inline void vn_submit_vkCreateFence(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateFence_reply(device, pCreateInfo, pAllocator, pFence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateFence(enc, cmd_flags, device, pCreateInfo, pAllocator, pFence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyFence(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyFence(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -548,16 +548,16 @@ static inline void vn_submit_vkDestroyFence(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyFence_reply(device, fence, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyFence(enc, cmd_flags, device, fence, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkResetFences(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t fenceCount, const VkFence* pFences, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkResetFences(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t fenceCount, const VkFence* pFences, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -569,16 +569,16 @@ static inline void vn_submit_vkResetFences(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkResetFences_reply(device, fenceCount, pFences) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkResetFences(enc, cmd_flags, device, fenceCount, pFences);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetFenceStatus(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetFenceStatus(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -590,16 +590,16 @@ static inline void vn_submit_vkGetFenceStatus(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetFenceStatus_reply(device, fence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetFenceStatus(enc, cmd_flags, device, fence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkWaitForFences(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkWaitForFences(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -611,160 +611,160 @@ static inline void vn_submit_vkWaitForFences(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkWaitForFences_reply(device, fenceCount, pFences, waitAll, timeout) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkWaitForFences(enc, cmd_flags, device, fenceCount, pFences, waitAll, timeout);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkResetFenceResource100000MESA(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkResetFenceResourceMESA(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkFence fence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
-    size_t cmd_size = vn_sizeof_vkResetFenceResource100000MESA(device, fence);
+    size_t cmd_size = vn_sizeof_vkResetFenceResourceMESA(device, fence);
     if (cmd_size > sizeof(local_cmd_data)) {
         cmd_data = malloc(cmd_size);
         if (!cmd_data)
             cmd_size = 0;
     }
-    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkResetFenceResource100000MESA_reply(device, fence) : 0;
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkResetFenceResourceMESA_reply(device, fence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
-        vn_encode_vkResetFenceResource100000MESA(enc, cmd_flags, device, fence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_encode_vkResetFenceResourceMESA(enc, cmd_flags, device, fence);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateFence(struct vn_instance *vn_instance, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence)
+static inline VkResult vn_call_vkCreateFence(struct vn_ring *vn_ring, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateFence(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pFence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateFence(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pFence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateFence_reply(dec, device, pCreateInfo, pAllocator, pFence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateFence(struct vn_instance *vn_instance, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence)
+static inline void vn_async_vkCreateFence(struct vn_ring *vn_ring, VkDevice device, const VkFenceCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkFence* pFence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateFence(vn_instance, 0, device, pCreateInfo, pAllocator, pFence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateFence(vn_ring, 0, device, pCreateInfo, pAllocator, pFence, &submit);
 }
 
-static inline void vn_call_vkDestroyFence(struct vn_instance *vn_instance, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyFence(struct vn_ring *vn_ring, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyFence(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyFence(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyFence_reply(dec, device, fence, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyFence(struct vn_instance *vn_instance, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyFence(struct vn_ring *vn_ring, VkDevice device, VkFence fence, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyFence(vn_instance, 0, device, fence, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyFence(vn_ring, 0, device, fence, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkResetFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences)
+static inline VkResult vn_call_vkResetFences(struct vn_ring *vn_ring, VkDevice device, uint32_t fenceCount, const VkFence* pFences)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetFences(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetFences(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkResetFences_reply(dec, device, fenceCount, pFences);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkResetFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences)
+static inline void vn_async_vkResetFences(struct vn_ring *vn_ring, VkDevice device, uint32_t fenceCount, const VkFence* pFences)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetFences(vn_instance, 0, device, fenceCount, pFences, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetFences(vn_ring, 0, device, fenceCount, pFences, &submit);
 }
 
-static inline VkResult vn_call_vkGetFenceStatus(struct vn_instance *vn_instance, VkDevice device, VkFence fence)
+static inline VkResult vn_call_vkGetFenceStatus(struct vn_ring *vn_ring, VkDevice device, VkFence fence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetFenceStatus(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetFenceStatus(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkGetFenceStatus_reply(dec, device, fence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkGetFenceStatus(struct vn_instance *vn_instance, VkDevice device, VkFence fence)
+static inline void vn_async_vkGetFenceStatus(struct vn_ring *vn_ring, VkDevice device, VkFence fence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetFenceStatus(vn_instance, 0, device, fence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetFenceStatus(vn_ring, 0, device, fence, &submit);
 }
 
-static inline VkResult vn_call_vkWaitForFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
+static inline VkResult vn_call_vkWaitForFences(struct vn_ring *vn_ring, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkWaitForFences(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, waitAll, timeout, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkWaitForFences(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fenceCount, pFences, waitAll, timeout, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkWaitForFences_reply(dec, device, fenceCount, pFences, waitAll, timeout);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkWaitForFences(struct vn_instance *vn_instance, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
+static inline void vn_async_vkWaitForFences(struct vn_ring *vn_ring, VkDevice device, uint32_t fenceCount, const VkFence* pFences, VkBool32 waitAll, uint64_t timeout)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkWaitForFences(vn_instance, 0, device, fenceCount, pFences, waitAll, timeout, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkWaitForFences(vn_ring, 0, device, fenceCount, pFences, waitAll, timeout, &submit);
 }
 
-static inline void vn_call_vkResetFenceResource100000MESA(struct vn_instance *vn_instance, VkDevice device, VkFence fence)
+static inline void vn_call_vkResetFenceResourceMESA(struct vn_ring *vn_ring, VkDevice device, VkFence fence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetFenceResource100000MESA(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetFenceResourceMESA(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, fence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
-        vn_decode_vkResetFenceResource100000MESA_reply(dec, device, fence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_decode_vkResetFenceResourceMESA_reply(dec, device, fence);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkResetFenceResource100000MESA(struct vn_instance *vn_instance, VkDevice device, VkFence fence)
+static inline void vn_async_vkResetFenceResourceMESA(struct vn_ring *vn_ring, VkDevice device, VkFence fence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetFenceResource100000MESA(vn_instance, 0, device, fence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetFenceResourceMESA(vn_ring, 0, device, fence, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_FENCE_H */

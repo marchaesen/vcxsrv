@@ -35,7 +35,8 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "util/os_time.h"
-#include "os/os_thread.h"
+#include "util/simple_mtx.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include <stdio.h>
@@ -68,7 +69,7 @@ struct nic_info
  */
 static int gnic_count = 0;
 static struct list_head gnic_list;
-static mtx_t gnic_mutex = _MTX_INITIALIZER_NP;
+static simple_mtx_t gnic_mutex = SIMPLE_MTX_INITIALIZER;
 
 static struct nic_info *
 find_nic_by_name(const char *n, int mode)
@@ -96,13 +97,13 @@ get_file_value(const char *fname, uint64_t *value)
    return 0;
 }
 
-static boolean
+static bool
 get_nic_bytes(const char *fn, uint64_t *bytes)
 {
    if (get_file_value(fn, bytes) < 0)
-      return FALSE;
+      return false;
 
-   return TRUE;
+   return true;
 }
 
 static void
@@ -334,9 +335,9 @@ hud_get_num_nics(bool displayhelp)
    char name[64];
 
    /* Return the number if network interfaces. */
-   mtx_lock(&gnic_mutex);
+   simple_mtx_lock(&gnic_mutex);
    if (gnic_count) {
-      mtx_unlock(&gnic_mutex);
+      simple_mtx_unlock(&gnic_mutex);
       return gnic_count;
    }
 
@@ -346,7 +347,7 @@ hud_get_num_nics(bool displayhelp)
    list_inithead(&gnic_list);
    DIR *dir = opendir("/sys/class/net/");
    if (!dir) {
-      mtx_unlock(&gnic_mutex);
+      simple_mtx_unlock(&gnic_mutex);
       return 0;
    }
 
@@ -422,7 +423,7 @@ hud_get_num_nics(bool displayhelp)
 
    }
 
-   mtx_unlock(&gnic_mutex);
+   simple_mtx_unlock(&gnic_mutex);
    return gnic_count;
 }
 

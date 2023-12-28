@@ -354,6 +354,7 @@ d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_
 
 void
 d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& parentVPS,
+         const struct pipe_h265_enc_seq_param & seqData,
          uint8_t seq_parameter_set_id,
          const D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC& encodeResolution,
          const D3D12_BOX& crop_window_upper_layer,
@@ -437,7 +438,47 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    m_latest_sps.sps_temporal_mvp_enabled_flag = 0;
    m_latest_sps.strong_intra_smoothing_enabled_flag = 0;
 
-   m_latest_sps.vui_parameters_present_flag = 0;
+   m_latest_sps.vui_parameters_present_flag = seqData.vui_parameters_present_flag;
+   m_latest_sps.vui.aspect_ratio_idc = seqData.aspect_ratio_idc;
+   m_latest_sps.vui.sar_width = seqData.sar_width;
+   m_latest_sps.vui.sar_height = seqData.sar_height;
+   m_latest_sps.vui.video_format = seqData.video_format;
+   m_latest_sps.vui.video_full_range_flag = seqData.video_full_range_flag;
+   m_latest_sps.vui.colour_primaries = seqData.colour_primaries;
+   m_latest_sps.vui.transfer_characteristics = seqData.transfer_characteristics;
+   m_latest_sps.vui.matrix_coeffs = seqData.matrix_coefficients;
+   m_latest_sps.vui.chroma_sample_loc_type_top_field = seqData.chroma_sample_loc_type_top_field;
+   m_latest_sps.vui.chroma_sample_loc_type_bottom_field = seqData.chroma_sample_loc_type_bottom_field;
+   m_latest_sps.vui.def_disp_win_left_offset = seqData.def_disp_win_left_offset;
+   m_latest_sps.vui.def_disp_win_right_offset = seqData.def_disp_win_right_offset;
+   m_latest_sps.vui.def_disp_win_top_offset = seqData.def_disp_win_top_offset;
+   m_latest_sps.vui.def_disp_win_bottom_offset = seqData.def_disp_win_bottom_offset;
+   m_latest_sps.vui.num_units_in_tick = seqData.num_units_in_tick;
+   m_latest_sps.vui.time_scale = seqData.time_scale;
+   m_latest_sps.vui.num_ticks_poc_diff_one_minus1 = seqData.num_ticks_poc_diff_one_minus1;
+   m_latest_sps.vui.min_spatial_segmentation_idc = seqData.min_spatial_segmentation_idc;
+   m_latest_sps.vui.max_bytes_per_pic_denom = seqData.max_bytes_per_pic_denom;
+   m_latest_sps.vui.max_bits_per_min_cu_denom = seqData.max_bits_per_min_cu_denom;
+   m_latest_sps.vui.log2_max_mv_length_horizontal = seqData.log2_max_mv_length_horizontal;
+   m_latest_sps.vui.log2_max_mv_length_vertical = seqData.log2_max_mv_length_vertical;
+   m_latest_sps.vui.aspect_ratio_info_present_flag = seqData.vui_flags.aspect_ratio_info_present_flag;
+   m_latest_sps.vui.timing_info_present_flag = seqData.vui_flags.timing_info_present_flag;
+   m_latest_sps.vui.video_signal_type_present_flag = seqData.vui_flags.video_signal_type_present_flag;
+   m_latest_sps.vui.colour_description_present_flag = seqData.vui_flags.colour_description_present_flag;
+   m_latest_sps.vui.chroma_loc_info_present_flag = seqData.vui_flags.chroma_loc_info_present_flag;
+   m_latest_sps.vui.overscan_info_present_flag = seqData.vui_flags.overscan_info_present_flag;
+   m_latest_sps.vui.overscan_appropriate_flag = seqData.vui_flags.overscan_appropriate_flag;
+   m_latest_sps.vui.neutral_chroma_indication_flag = seqData.vui_flags.neutral_chroma_indication_flag;
+   m_latest_sps.vui.field_seq_flag = seqData.vui_flags.field_seq_flag;
+   m_latest_sps.vui.frame_field_info_present_flag = seqData.vui_flags.frame_field_info_present_flag;
+   m_latest_sps.vui.default_display_window_flag = seqData.vui_flags.default_display_window_flag;
+   m_latest_sps.vui.poc_proportional_to_timing_flag = seqData.vui_flags.poc_proportional_to_timing_flag;
+   m_latest_sps.vui.hrd_parameters_present_flag = seqData.vui_flags.hrd_parameters_present_flag;
+   m_latest_sps.vui.bitstream_restriction_flag = seqData.vui_flags.bitstream_restriction_flag;
+   m_latest_sps.vui.tiles_fixed_structure_flag = seqData.vui_flags.tiles_fixed_structure_flag;
+   m_latest_sps.vui.motion_vectors_over_pic_boundaries_flag = seqData.vui_flags.motion_vectors_over_pic_boundaries_flag;
+   m_latest_sps.vui.restricted_ref_pic_lists_flag = seqData.vui_flags.restricted_ref_pic_lists_flag;
+
    m_latest_sps.sps_extension_flag = 0;
 
    // Print built SPS structure
@@ -633,9 +674,47 @@ d3d12_video_bitstream_builder_hevc::print_sps(const HevcSeqParameterSet& SPS)
    debug_printf("sps_temporal_mvp_enabled_flag: %d\n", SPS.sps_temporal_mvp_enabled_flag);
    debug_printf("strong_intra_smoothing_enabled_flag: %d\n", SPS.strong_intra_smoothing_enabled_flag);
    debug_printf("vui_parameters_present_flag: %d\n", SPS.vui_parameters_present_flag);
+   debug_printf("aspect_ratio_info_present_flag: %d\n", SPS.vui.aspect_ratio_info_present_flag);
+   debug_printf("aspect_ratio_idc: %d\n", SPS.vui.aspect_ratio_idc);
+   debug_printf("sar_width: %d\n", SPS.vui.sar_width);
+   debug_printf("sar_height: %d\n", SPS.vui.sar_height);
+   debug_printf("overscan_info_present_flag: %d\n", SPS.vui.overscan_info_present_flag);
+   debug_printf("overscan_appropriate_flag: %d\n", SPS.vui.overscan_appropriate_flag);
+   debug_printf("video_signal_type_present_flag: %d\n", SPS.vui.video_signal_type_present_flag);
+   debug_printf("video_format: %d\n", SPS.vui.video_format);
+   debug_printf("video_full_range_flag: %d\n", SPS.vui.video_full_range_flag);
+   debug_printf("colour_description_present_flag: %d\n", SPS.vui.colour_description_present_flag);
+   debug_printf("colour_primaries: %d\n", SPS.vui.colour_primaries);
+   debug_printf("transfer_characteristics: %d\n", SPS.vui.transfer_characteristics);
+   debug_printf("matrix_coeffs: %d\n", SPS.vui.matrix_coeffs);
+   debug_printf("chroma_loc_info_present_flag: %d\n", SPS.vui.chroma_loc_info_present_flag);
+   debug_printf("chroma_sample_loc_type_top_field: %d\n", SPS.vui.chroma_sample_loc_type_top_field);
+   debug_printf("chroma_sample_loc_type_bottom_field: %d\n", SPS.vui.chroma_sample_loc_type_bottom_field);
+   debug_printf("neutral_chroma_indication_flag: %d\n", SPS.vui.neutral_chroma_indication_flag);
+   debug_printf("field_seq_flag: %d\n", SPS.vui.field_seq_flag);
+   debug_printf("frame_field_info_present_flag: %d\n", SPS.vui.frame_field_info_present_flag);
+   debug_printf("default_display_window_flag: %d\n", SPS.vui.default_display_window_flag);
+   debug_printf("def_disp_win_left_offset: %d\n", SPS.vui.def_disp_win_left_offset);
+   debug_printf("def_disp_win_right_offset: %d\n", SPS.vui.def_disp_win_right_offset);
+   debug_printf("def_disp_win_top_offset: %d\n", SPS.vui.def_disp_win_top_offset);
+   debug_printf("def_disp_win_bottom_offset: %d\n", SPS.vui.def_disp_win_bottom_offset);
+   debug_printf("timing_info_present_flag: %d\n", SPS.vui.timing_info_present_flag);
+   debug_printf("num_units_in_tick: %d\n", SPS.vui.num_units_in_tick);
+   debug_printf("time_scale: %d\n", SPS.vui.time_scale);
+   debug_printf("poc_proportional_to_timing_flag: %d\n", SPS.vui.poc_proportional_to_timing_flag);
+   debug_printf("num_ticks_poc_diff_one_minus1: %d\n", SPS.vui.num_ticks_poc_diff_one_minus1);
+   debug_printf("hrd_parameters_present_flag: %d\n", SPS.vui.hrd_parameters_present_flag);
+   debug_printf("bitstream_restriction_flag: %d\n", SPS.vui.bitstream_restriction_flag);
+   debug_printf("tiles_fixed_structure_flag: %d\n", SPS.vui.tiles_fixed_structure_flag);
+   debug_printf("motion_vectors_over_pic_boundaries_flag: %d\n", SPS.vui.motion_vectors_over_pic_boundaries_flag);
+   debug_printf("restricted_ref_pic_lists_flag: %d\n", SPS.vui.restricted_ref_pic_lists_flag);
+   debug_printf("min_spatial_segmentation_idc: %d\n", SPS.vui.min_spatial_segmentation_idc);
+   debug_printf("max_bytes_per_pic_denom: %d\n", SPS.vui.max_bytes_per_pic_denom);
+   debug_printf("max_bits_per_min_cu_denom: %d\n", SPS.vui.max_bits_per_min_cu_denom);
+   debug_printf("log2_max_mv_length_horizontal: %d\n", SPS.vui.log2_max_mv_length_horizontal);
+   debug_printf("log2_max_mv_length_vertical: %d\n", SPS.vui.log2_max_mv_length_vertical);
    debug_printf("sps_extension_flag: %d\n", SPS.sps_extension_flag);
    debug_printf("sps_extension_data_flag: %d\n", SPS.sps_extension_data_flag);
-
 
    debug_printf("HevcSeqParameterSet values end\n--------------------------------------\n");
 }

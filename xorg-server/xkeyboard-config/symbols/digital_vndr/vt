@@ -20,7 +20,7 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
@@ -37,23 +37,23 @@
 // Revision 1.1.2.5  1995/07/11  21:20:50  William_Walker
 // 	Make RALT act as RALT
 // 	[1995/07/11  21:18:28  William_Walker]
-// 
+//
 // Revision 1.1.2.4  1995/06/27  12:18:41  William_Walker
 // 	Add LK201 and LK450 support as well as TW and DP variants.
 // 	[1995/06/26  20:30:37  William_Walker]
-// 
+//
 // Revision 1.1.2.3  1995/06/09	 20:55:21  William_Walker
 // 	Add VT105 layout support and ISO group support
 // 	[1995/06/09  20:43:09  William_Walker]
-// 
+//
 // Revision 1.1.2.2  1995/06/05	 19:25:04  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:17:58  William_Walker]
-// 
+//
 // EndLog
-// 
-// @(#)RCSfile: vt  Revision: /main/3  (DEC) Date: 1996/01/24 12:15:08 
-// 
+//
+// @(#)RCSfile: vt  Revision: /main/3  (DEC) Date: 1996/01/24 12:15:08
+//
 xkb_symbols "vt105" {
 
     // Modifier mappings

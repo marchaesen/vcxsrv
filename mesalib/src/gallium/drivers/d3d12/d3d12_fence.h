@@ -44,13 +44,13 @@ inline HANDLE
 d3d12_fence_create_event(int *fd)
 {
    *fd = -1;
-   return CreateEvent(NULL, FALSE, FALSE, NULL);
+   return CreateEvent(NULL, false, false, NULL);
 }
 
 inline bool
 d3d12_fence_wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
 {
-   DWORD timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : timeout_ns / NsPerMs;
+   DWORD timeout_ms = (timeout_ns == OS_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? INFINITE : timeout_ns / NsPerMs;
    return WaitForSingleObject(event, timeout_ms) == WAIT_OBJECT_0;
 }
 #else
@@ -75,7 +75,7 @@ d3d12_fence_create_event(int *fd)
 inline bool
 d3d12_fence_wait_event(HANDLE event, int event_fd, uint64_t timeout_ns)
 {
-   int timeout_ms = (timeout_ns == PIPE_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? -1 : timeout_ns / NsPerMs;
+   int timeout_ms = (timeout_ns == OS_TIMEOUT_INFINITE || timeout_ns > MaxTimeoutInNs) ? -1 : timeout_ns / NsPerMs;
    return sync_wait(event_fd, timeout_ms) == 0;
 }
 #endif

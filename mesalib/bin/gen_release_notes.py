@@ -168,6 +168,7 @@ class Inliner(states.Inliner):
                 break
         # Quote all original backslashes
         checked = re.sub('\x00', "\\\x00", checked)
+        checked = re.sub('@', '\\@', checked)
         return docutils.utils.unescape(checked, 1)
 
 inliner = Inliner();
@@ -175,7 +176,7 @@ inliner = Inliner();
 
 async def gather_commits(version: str) -> str:
     p = await asyncio.create_subprocess_exec(
-        'git', 'log', '--oneline', f'mesa-{version}..', '--grep', r'Closes: \(https\|#\).*',
+        'git', 'log', '--oneline', f'mesa-{version}..', '-i', '--grep', r'\(Closes\|Fixes\): \(https\|#\).*',
         stdout=asyncio.subprocess.PIPE)
     out, _ = await p.communicate()
     assert p.returncode == 0, f"git log didn't work: {version}"
@@ -193,22 +194,34 @@ async def parse_issues(commits: str) -> typing.List[str]:
         out = _out.decode().split('\n')
 
         for line in reversed(out):
-            if line.startswith('Closes:'):
-                bug = line.lstrip('Closes:').strip()
-                if bug.startswith('https://gitlab.freedesktop.org/mesa/mesa'):
-                    # This means we have a bug in the form "Closes: https://..."
-                    issues.append(os.path.basename(urllib.parse.urlparse(bug).path))
-                elif ',' in bug:
-                    issues.extend([b.strip().lstrip('#') for b in bug.split(',')])
-                elif bug.startswith('#'):
-                    issues.append(bug.lstrip('#'))
+            if not line.lower().startswith(('closes:', 'fixes:')):
+                continue
+            bug = line.split(':', 1)[1].strip()
+            if (bug.startswith('https://gitlab.freedesktop.org/mesa/mesa')
+                # Avoid parsing "merge_requests" URL. Note that a valid issue
+                # URL may or may not contain the "/-/" text, so we check if
+                # the word "issues" is contained in URL.
+                and '/issues' in bug):
+                # This means we have a bug in the form "Closes: https://..."
+                issues.append(os.path.basename(urllib.parse.urlparse(bug).path))
+            elif ',' in bug:
+                multiple_bugs = [b.strip().lstrip('#') for b in bug.split(',')]
+                if not all(b.isdigit() for b in multiple_bugs):
+                    # this is likely a "Fixes" tag that refers to a commit name
+                    continue
+                issues.extend(multiple_bugs)
+            elif bug.startswith('#'):
+                issues.append(bug.lstrip('#'))
 
     return issues
 
 
 async def gather_bugs(version: str) -> typing.List[str]:
     commits = await gather_commits(version)
-    issues = await parse_issues(commits)
+    if commits:
+        issues = await parse_issues(commits)
+    else:
+        issues = []
 
     loop = asyncio.get_event_loop()
     async with aiohttp.ClientSession(loop=loop) as session:
@@ -227,7 +240,12 @@ async def get_bug(session: aiohttp.ClientSession, bug_id: str) -> str:
     params = {'iids[]': bug_id}
     async with session.get(url, params=params) as response:
         content = await response.json()
-    return content[0]['title']
+    if not content:
+        # issues marked as "confidential" look like "404" page for
+        # unauthorized users
+        return f'Confidential issue #{bug_id}'
+    else:
+        return content[0]['title']
 
 
 async def get_shortlog(version: str) -> str:
@@ -262,7 +280,7 @@ def calculate_next_version(version: str, is_point: bool) -> str:
 def calculate_previous_version(version: str, is_point: bool) -> str:
     """Calculate the previous version to compare to.
 
-    In the case of -rc to final that verison is the previous .0 release,
+    In the case of -rc to final that version is the previous .0 release,
     (19.3.0 in the case of 20.0.0, for example). for point releases that is
     the last point release. This value will be the same as the input value
     for a point release, but different for a major release.
@@ -281,22 +299,47 @@ def calculate_previous_version(version: str, is_point: bool) -> str:
 
 
 def get_features(is_point_release: bool) -> typing.Generator[str, None, None]:
-    p = pathlib.Path(__file__).parent.parent / 'docs' / 'relnotes' / 'new_features.txt'
-    if p.exists():
+    p = pathlib.Path('docs') / 'relnotes' / 'new_features.txt'
+    if p.exists() and p.stat().st_size > 0:
         if is_point_release:
             print("WARNING: new features being introduced in a point release", file=sys.stderr)
         with p.open('rt') as f:
             for line in f:
-                yield line
-            else:
-                yield "None"
+                yield line.rstrip()
         p.unlink()
+        subprocess.run(['git', 'add', p])
     else:
         yield "None"
 
 
+def update_release_notes_index(version: str) -> None:
+    relnotes_index_path = pathlib.Path('docs') / 'relnotes.rst'
+
+    with relnotes_index_path.open('r') as f:
+        relnotes = f.readlines()
+
+    new_relnotes = []
+    first_list = True
+    second_list = True
+    for line in relnotes:
+        if first_list and line.startswith('-'):
+            first_list = False
+            new_relnotes.append(f'-  :doc:`{version} release notes <relnotes/{version}>`\n')
+        if (not first_list and second_list and
+            re.match(r'   \d+.\d+(.\d+)? <relnotes/\d+.\d+(.\d+)?>', line)):
+            second_list = False
+            new_relnotes.append(f'   {version} <relnotes/{version}>\n')
+        new_relnotes.append(line)
+
+    with relnotes_index_path.open('w', encoding='utf-8') as f:
+        for line in new_relnotes:
+            f.write(line)
+
+    subprocess.run(['git', 'add', relnotes_index_path])
+
+
 async def main() -> None:
-    v = pathlib.Path(__file__).parent.parent / 'VERSION'
+    v = pathlib.Path('VERSION')
     with v.open('rt') as f:
         raw_version = f.read().strip()
     is_point_release = '-rc' not in raw_version
@@ -313,8 +356,8 @@ async def main() -> None:
         gather_bugs(previous_version),
     )
 
-    final = pathlib.Path(__file__).parent.parent / 'docs' / 'relnotes' / f'{this_version}.rst'
-    with final.open('wt') as f:
+    final = pathlib.Path('docs') / 'relnotes' / f'{this_version}.rst'
+    with final.open('wt', encoding='utf-8') as f:
         try:
             f.write(TEMPLATE.render(
                 bugfix=is_point_release,
@@ -331,8 +374,12 @@ async def main() -> None:
             ))
         except:
             print(exceptions.text_error_template().render())
+            return
 
     subprocess.run(['git', 'add', final])
+
+    update_release_notes_index(this_version)
+
     subprocess.run(['git', 'commit', '-m',
                     f'docs: add release notes for {this_version}'])
 

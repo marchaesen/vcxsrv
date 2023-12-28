@@ -671,8 +671,8 @@ AllocNewConnection(XtransConnInfo trans_conn, int fd, CARD32 conn_time)
     set_poll_client(client);
 
 #ifdef DEBUG
-    ErrorF("AllocNewConnection: client index = %d, socket fd = %d\n",
-           client->index, fd);
+    ErrorF("AllocNewConnection: client index = %d, socket fd = %d, local = %d\n",
+           client->index, fd, client->local);
 #endif
 #ifdef XSERVER_DTRACE
     XSERVER_CLIENT_CONNECT(client->index, fd);
@@ -1106,7 +1106,7 @@ ListenOnOpenFD(int fd, int noxauth)
         }
     }
 
-    if (!display_env) {
+    if (!display_env || display_env[0] != '/') {
         /* Just some default so things don't break and die. */
         snprintf(port, sizeof(port), ":%d", atoi(display));
     }

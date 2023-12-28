@@ -48,7 +48,7 @@ static void
 FUNC(FUNC_VARS)
 {
    unsigned idx[6], i;
-   ushort flags;
+   uint16_t flags;
    LOCAL_VARS
 
    FUNC_ENTER;
@@ -56,18 +56,18 @@ FUNC(FUNC_VARS)
    /* prim, prim_flags, count, and last_vertex_last should have been defined */
    if (0) {
       debug_printf("%s: prim 0x%x, prim_flags 0x%x, count %d, last_vertex_last %d\n",
-            __FUNCTION__, prim, prim_flags, count, last_vertex_last);
+            __func__, prim, prim_flags, count, last_vertex_last);
    }
 
    switch (prim) {
-   case PIPE_PRIM_POINTS:
+   case MESA_PRIM_POINTS:
       for (i = 0; i < count; i++) {
          idx[0] = GET_ELT(i);
          POINT(idx[0]);
       }
       break;
 
-   case PIPE_PRIM_LINES:
+   case MESA_PRIM_LINES:
       flags = DRAW_PIPE_RESET_STIPPLE;
       for (i = 0; i + 1 < count; i += 2) {
          idx[0] = GET_ELT(i);
@@ -76,8 +76,8 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
+   case MESA_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_STRIP:
       if (count >= 2) {
          flags = (prim_flags & DRAW_SPLIT_BEFORE) ? 0 : DRAW_PIPE_RESET_STIPPLE;
          idx[1] = GET_ELT(0);
@@ -89,12 +89,12 @@ FUNC(FUNC_VARS)
             LINE(flags, idx[0], idx[1]);
          }
          /* close the loop */
-         if (prim == PIPE_PRIM_LINE_LOOP && !prim_flags)
+         if (prim == MESA_PRIM_LINE_LOOP && !prim_flags)
             LINE(flags, idx[1], idx[2]);
       }
       break;
 
-   case PIPE_PRIM_TRIANGLES:
+   case MESA_PRIM_TRIANGLES:
       flags = DRAW_PIPE_RESET_STIPPLE | DRAW_PIPE_EDGE_FLAG_ALL;
       for (i = 0; i + 2 < count; i += 3) {
          idx[0] = GET_ELT(i);
@@ -104,7 +104,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_STRIP:
       if (count >= 3) {
          flags = DRAW_PIPE_RESET_STIPPLE | DRAW_PIPE_EDGE_FLAG_ALL;
          idx[1] = GET_ELT(0);
@@ -137,7 +137,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_TRIANGLE_FAN:
+   case MESA_PRIM_TRIANGLE_FAN:
       if (count >= 3) {
          flags = DRAW_PIPE_RESET_STIPPLE | DRAW_PIPE_EDGE_FLAG_ALL;
          idx[0] = GET_ELT(0);
@@ -163,7 +163,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_QUADS:
+   case MESA_PRIM_QUADS:
       if (last_vertex_last) {
          for (i = 0; i + 3 < count; i += 4) {
             idx[0] = GET_ELT(i);
@@ -216,7 +216,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_QUAD_STRIP:
+   case MESA_PRIM_QUAD_STRIP:
       if (count >= 4) {
          idx[2] = GET_ELT(0);
          idx[3] = GET_ELT(1);
@@ -276,9 +276,9 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_POLYGON:
+   case MESA_PRIM_POLYGON:
       if (count >= 3) {
-         ushort edge_next, edge_finish;
+         uint16_t edge_next, edge_finish;
 
          if (last_vertex_last) {
             flags = (DRAW_PIPE_RESET_STIPPLE |
@@ -320,7 +320,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_LINES_ADJACENCY:
+   case MESA_PRIM_LINES_ADJACENCY:
       flags = DRAW_PIPE_RESET_STIPPLE;
       for (i = 0; i + 3 < count; i += 4) {
          idx[0] = GET_ELT(i);
@@ -331,7 +331,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
       if (count >= 4) {
          flags = (prim_flags & DRAW_SPLIT_BEFORE) ? 0 : DRAW_PIPE_RESET_STIPPLE;
          idx[1] = GET_ELT(0);
@@ -348,7 +348,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
+   case MESA_PRIM_TRIANGLES_ADJACENCY:
       flags = DRAW_PIPE_RESET_STIPPLE | DRAW_PIPE_EDGE_FLAG_ALL;
       for (i = 0; i + 5 < count; i += 6) {
          idx[0] = GET_ELT(i);
@@ -361,7 +361,7 @@ FUNC(FUNC_VARS)
       }
       break;
 
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
       if (count >= 6) {
          flags = DRAW_PIPE_RESET_STIPPLE | DRAW_PIPE_EDGE_FLAG_ALL;
          idx[0] = GET_ELT(1);

@@ -33,7 +33,7 @@ default xkb_keycodes "macintosh" {
    <FK14> = 183;
    <FK15> = 184;
    <KPEQ> = 157;
-   
+
 };
 
 xkb_keycodes "old" {

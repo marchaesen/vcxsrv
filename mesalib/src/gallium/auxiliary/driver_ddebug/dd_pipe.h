@@ -32,7 +32,7 @@
 #include "pipe/p_state.h"
 #include "pipe/p_screen.h"
 #include "dd_util.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/list.h"
 #include "util/u_log.h"
 #include "util/u_queue.h"
@@ -170,7 +170,7 @@ struct call_texture_subdata {
    struct pipe_box box;
    const void *data;
    unsigned stride;
-   unsigned layer_stride;
+   uintptr_t layer_stride;
 };
 
 struct dd_call

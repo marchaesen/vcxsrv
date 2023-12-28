@@ -29,7 +29,7 @@
 #define SP_TEX_TILE_CACHE_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "sp_limits.h"
 
 

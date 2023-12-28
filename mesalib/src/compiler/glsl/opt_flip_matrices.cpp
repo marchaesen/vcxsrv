@@ -70,8 +70,8 @@ ir_visitor_status
 matrix_flipper::visit_enter(ir_expression *ir)
 {
    if (ir->operation != ir_binop_mul ||
-       !ir->operands[0]->type->is_matrix() ||
-       !ir->operands[1]->type->is_vector())
+       !glsl_type_is_matrix(ir->operands[0]->type) ||
+       !glsl_type_is_vector(ir->operands[1]->type))
       return visit_continue;
 
    ir_variable *mat_var = ir->operands[0]->variable_referenced();

@@ -51,7 +51,4 @@ struct vn_renderer_shmem *
 vn_renderer_shmem_cache_get(struct vn_renderer_shmem_cache *cache,
                             size_t size);
 
-void
-vn_renderer_shmem_cache_debug_dump(struct vn_renderer_shmem_cache *cache);
-
 #endif /* VN_RENDERER_INTERNAL_H */

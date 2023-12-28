@@ -2,24 +2,7 @@
 ************************************************************************************************************************
 *
 *  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
-* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE
+*  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
 
@@ -40,8 +23,8 @@ extern "C"
 {
 #endif
 
-#define ADDRLIB_VERSION_MAJOR 6
-#define ADDRLIB_VERSION_MINOR 2
+#define ADDRLIB_VERSION_MAJOR 8
+#define ADDRLIB_VERSION_MINOR 9
 #define ADDRLIB_VERSION ((ADDRLIB_VERSION_MAJOR << 16) | ADDRLIB_VERSION_MINOR)
 
 /// Virtually all interface functions need ADDR_HANDLE as first parameter
@@ -127,7 +110,7 @@ typedef union _ADDR_CHANNEL_SETTING
     struct
     {
         UINT_8 valid   : 1;    ///< Indicate whehter this channel setting is valid
-        UINT_8 channel : 2;    ///< 0 for x channel, 1 for y channel, 2 for z channel
+        UINT_8 channel : 2;    ///< 0 for x channel, 1 for y channel, 2 for z channel, 3 for MSAA sample index
         UINT_8 index   : 5;    ///< Channel index
     };
     UINT_8 value;              ///< Value
@@ -161,18 +144,29 @@ typedef union _ADDR_EQUATION_KEY
 * @brief address equation structure
 ****************************************************************************************************
 */
-#define ADDR_MAX_EQUATION_BIT 20u
+#define ADDR_MAX_LEGACY_EQUATION_COMP 3u
+#define ADDR_MAX_EQUATION_COMP        5u
+#define ADDR_MAX_EQUATION_BIT         20u
 
 // Invalid equation index
 #define ADDR_INVALID_EQUATION_INDEX 0xFFFFFFFF
 
 typedef struct _ADDR_EQUATION
 {
-    ADDR_CHANNEL_SETTING addr[ADDR_MAX_EQUATION_BIT];  ///< addr setting
-                                                       ///< each bit is result of addr ^ xor ^ xor2
-    ADDR_CHANNEL_SETTING xor1[ADDR_MAX_EQUATION_BIT];  ///< xor setting
-    ADDR_CHANNEL_SETTING xor2[ADDR_MAX_EQUATION_BIT];  ///< xor2 setting
+    union
+    {
+        struct {
+            ADDR_CHANNEL_SETTING addr[ADDR_MAX_EQUATION_BIT];  ///< addr setting
+            ADDR_CHANNEL_SETTING xor1[ADDR_MAX_EQUATION_BIT];  ///< xor setting
+            ADDR_CHANNEL_SETTING xor2[ADDR_MAX_EQUATION_BIT];  ///< xor2 setting
+            ADDR_CHANNEL_SETTING xor3[ADDR_MAX_EQUATION_BIT];  ///< xor3 setting
+            ADDR_CHANNEL_SETTING xor4[ADDR_MAX_EQUATION_BIT];  ///< xor4 setting
+        };
+        ///< Components showing the sources of each bit; each bit is result of addr ^ xor ^ xor2...
+        ADDR_CHANNEL_SETTING comps[ADDR_MAX_EQUATION_COMP][ADDR_MAX_EQUATION_BIT];
+    };
     UINT_32              numBits;                      ///< The number of bits in equation
+    UINT_32              numBitComponents;             ///< The max number of channels contributing to a bit
     BOOL_32              stackedDepthSlices;           ///< TRUE if depth slices are treated as being
                                                        ///< stacked vertically prior to swizzling
 } ADDR_EQUATION;
@@ -1728,6 +1722,30 @@ typedef enum _AddrSwizzleGenOption
 
 /**
 ****************************************************************************************************
+*   AddrBlockType
+*
+*   @brief
+*       Macro define resource block type
+****************************************************************************************************
+*/
+typedef enum
+{
+    AddrBlockLinear = 0, // Resource uses linear swizzle mode
+    AddrBlockMicro = 1, // Resource uses 256B block
+    AddrBlockThin4KB = 2, // Resource uses thin 4KB block
+    AddrBlockThick4KB = 3, // Resource uses thick 4KB block
+    AddrBlockThin64KB = 4, // Resource uses thin 64KB block
+    AddrBlockThick64KB = 5, // Resource uses thick 64KB block
+    AddrBlockThinVar = 6, // Resource uses thin var block
+    AddrBlockThickVar = 7, // Resource uses thick var block
+    AddrBlockMaxTiledType,
+
+    AddrBlockThin256KB = AddrBlockThinVar,
+    AddrBlockThick256KB = AddrBlockThickVar,
+} AddrBlockType;
+
+/**
+****************************************************************************************************
 *   AddrSwizzleOption
 *
 *   @brief
@@ -2411,7 +2429,8 @@ typedef union _ADDR2_SURFACE_FLAGS
         UINT_32 metaRbUnaligned   :  1; ///< This resource has rb unaligned metadata
         UINT_32 metaPipeUnaligned :  1; ///< This resource has pipe unaligned metadata
         UINT_32 view3dAs2dArray   :  1; ///< This resource is a 3D resource viewed as 2D array
-        UINT_32 reserved          : 13; ///< Reserved bits
+        UINT_32 allowExtEquation  :  1; ///< If unset, only legacy DX eqs are allowed (2 XORs)
+        UINT_32 reserved          : 12; ///< Reserved bits
     };
 
     UINT_32 value;
@@ -2588,7 +2607,7 @@ typedef struct _ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT
 {
     UINT_32    size;             ///< Size of this structure in bytes
 
-    UINT_64    addr;             ///< Byte address
+    UINT_64    addr;             ///< Byte offset from the image starting address
     UINT_32    bitPosition;      ///< Bit position within surfaceAddr, 0-7.
                                  ///  For surface bpp < 8, e.g. FMT_1.
     UINT_32    prtBlockIndex;    ///< Index of a PRT tile (64K block)
@@ -3929,6 +3948,20 @@ ADDR_E_RETURNCODE ADDR_API Addr2GetPreferredSurfaceSetting(
 
 /**
 ****************************************************************************************************
+*   Addr2GetPossibleSwizzleModes
+*
+*   @brief
+*       Returns a list of swizzle modes that are valid from the hardware's perspective for the
+*       client to choose from
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetPossibleSwizzleModes(
+    ADDR_HANDLE                                   hLib,
+    const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
+    ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut);
+
+/**
+****************************************************************************************************
 *   Addr2IsValidDisplaySwizzleMode
 *
 *   @brief
@@ -3940,6 +3973,65 @@ ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
     AddrSwizzleMode swizzleMode,
     UINT_32         bpp,
     BOOL_32         *pResult);
+
+/**
+****************************************************************************************************
+*   Addr2GetAllowedBlockSet
+*
+*   @brief
+*       Returns the set of allowed block sizes given the allowed swizzle modes and resource type
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetAllowedBlockSet(
+    ADDR_HANDLE      hLib,
+    ADDR2_SWMODE_SET allowedSwModeSet,
+    AddrResourceType rsrcType,
+    ADDR2_BLOCK_SET* pAllowedBlockSet);
+
+/**
+****************************************************************************************************
+*   Addr2GetAllowedSwSet
+*
+*   @brief
+*       Returns the set of allowed swizzle types given the allowed swizzle modes
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetAllowedSwSet(
+    ADDR_HANDLE       hLib,
+    ADDR2_SWMODE_SET  allowedSwModeSet,
+    ADDR2_SWTYPE_SET* pAllowedSwSet);
+
+/**
+****************************************************************************************************
+*   Addr2IsBlockTypeAvailable
+*
+*   @brief
+*       Determine whether a block type is allowed in a given blockSet
+****************************************************************************************************
+*/
+BOOL_32 Addr2IsBlockTypeAvailable(ADDR2_BLOCK_SET blockSet, AddrBlockType blockType);
+
+/**
+****************************************************************************************************
+*   Addr2BlockTypeWithinMemoryBudget
+*
+*   @brief
+*       Determine whether a new block type is acceptable based on memory waste ratio. Will favor
+*       larger block types.
+****************************************************************************************************
+*/
+BOOL_32 Addr2BlockTypeWithinMemoryBudget(
+    UINT_64 minSize,
+    UINT_64 newBlockTypeSize,
+    UINT_32 ratioLow,
+    UINT_32 ratioHi,
+#if defined(__cplusplus)
+    DOUBLE  memoryBudget = 0.0f,
+    BOOL_32 newBlockTypeBigger = TRUE);
+#else
+    DOUBLE  memoryBudget,
+    BOOL_32 newBlockTypeBigger);
+#endif
 
 #if defined(__cplusplus)
 }

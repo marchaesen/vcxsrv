@@ -72,28 +72,27 @@ set_src_live(nir_src *src, void *void_state)
 {
    struct live_defs_state *state = void_state;
 
-   if (src->is_ssa) {
-      nir_instr *instr = src->ssa->parent_instr;
+   nir_instr *instr = src->ssa->parent_instr;
 
-      if (is_sysval(instr) || instr->type == nir_instr_type_deref)
-         return true;
+   if (is_sysval(instr) || instr->type == nir_instr_type_deref)
+      return true;
 
-      switch (instr->type) {
-      case nir_instr_type_load_const:
-      case nir_instr_type_ssa_undef:
+   switch (instr->type) {
+   case nir_instr_type_load_const:
+   case nir_instr_type_undef:
+      return true;
+   case nir_instr_type_alu: {
+      /* alu op bypass */
+      nir_alu_instr *alu = nir_instr_as_alu(instr);
+      if (instr->pass_flags & BYPASS_SRC) {
+         for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++)
+            set_src_live(&alu->src[i].src, state);
          return true;
-      case nir_instr_type_alu: {
-         /* alu op bypass */
-         nir_alu_instr *alu = nir_instr_as_alu(instr);
-         if (instr->pass_flags & BYPASS_SRC) {
-            for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++)
-               set_src_live(&alu->src[i].src, state);
-            return true;
-         }
-      } break;
-      default:
-         break;
       }
+      break;
+   }
+   default:
+      break;
    }
 
    unsigned i = state->live_map[src_index(state->impl, src)];
@@ -131,16 +130,16 @@ etna_live_defs(nir_function_impl *impl, struct live_def *defs, unsigned *live_ma
    nir_foreach_block(block, impl) {
       block_live_index[block->index] = state.num_defs;
       nir_foreach_instr(instr, block) {
-         nir_dest *dest = dest_for_instr(instr);
-         if (!dest)
+         nir_def *def = def_for_instr(instr);
+         if (!def)
             continue;
 
-         unsigned idx = dest_index(impl, dest);
+         unsigned idx = def_index(impl, def);
          /* register is already in defs */
          if (live_map[idx] != ~0u)
             continue;
 
-         defs[state.num_defs] = (struct live_def) {instr, dest, state.num_defs, 0};
+         defs[state.num_defs] = (struct live_def) {instr, def, state.num_defs, 0};
 
          /* input live from the start */
          if (instr->type == nir_instr_type_intrinsic) {
@@ -202,7 +201,7 @@ etna_live_defs(nir_function_impl *impl, struct live_def *defs, unsigned *live_ma
          }
 
          /* don't set_src_live for not-emitted instructions */
-         if (instr->pass_flags)
+         if (is_dead_instruction(instr))
             continue;
 
          unsigned index = state.index;
@@ -214,7 +213,17 @@ etna_live_defs(nir_function_impl *impl, struct live_def *defs, unsigned *live_ma
                state.index = ~0u;
          }
 
-         nir_foreach_src(instr, set_src_live, &state);
+         bool processed = false;
+
+         if (instr->type == nir_instr_type_intrinsic) {
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic == nir_intrinsic_decl_reg ||
+               intr->intrinsic == nir_intrinsic_store_reg)
+               processed = true;
+         }
+
+         if (!processed)
+            nir_foreach_src(instr, set_src_live, &state);
 
          state.index = index;
       }

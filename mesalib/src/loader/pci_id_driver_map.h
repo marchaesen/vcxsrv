@@ -44,7 +44,7 @@ static const int vmwgfx_chip_ids[] = {
 #undef CHIPSET
 };
 
-bool is_kernel_i915(int fd);
+bool iris_predicate(int fd);
 
 static const struct {
    int vendor_id;
@@ -55,7 +55,7 @@ static const struct {
 } driver_map[] = {
    { 0x8086, "i915", i915_chip_ids, ARRAY_SIZE(i915_chip_ids) },
    { 0x8086, "crocus", crocus_chip_ids, ARRAY_SIZE(crocus_chip_ids) },
-   { 0x8086, "iris", NULL, -1, is_kernel_i915 },
+   { 0x8086, "iris", NULL, -1, iris_predicate },
    { 0x1002, "r300", r300_chip_ids, ARRAY_SIZE(r300_chip_ids) },
    { 0x1002, "r600", r600_chip_ids, ARRAY_SIZE(r600_chip_ids) },
    { 0x1002, "radeonsi", NULL, -1 },

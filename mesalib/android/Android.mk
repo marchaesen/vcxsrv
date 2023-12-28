@@ -30,18 +30,19 @@ LIBDRM_VERSION = $(shell cat external/libdrm/meson.build | grep -o "\<version\>\
 
 MESA_VK_LIB_SUFFIX_amd := radeon
 MESA_VK_LIB_SUFFIX_intel := intel
+MESA_VK_LIB_SUFFIX_intel_hasvk := intel_hasvk
 MESA_VK_LIB_SUFFIX_freedreno := freedreno
 MESA_VK_LIB_SUFFIX_broadcom := broadcom
 MESA_VK_LIB_SUFFIX_panfrost := panfrost
-MESA_VK_LIB_SUFFIX_virtio-experimental := virtio
+MESA_VK_LIB_SUFFIX_virtio := virtio
 MESA_VK_LIB_SUFFIX_swrast := lvp
 
 include $(CLEAR_VARS)
 
 LOCAL_SHARED_LIBRARIES := libc libdl libdrm libm liblog libcutils libz libc++ libnativewindow libsync libhardware
 LOCAL_STATIC_LIBRARIES := libexpat libarect libelf
-LOCAL_HEADER_LIBRARIES := libnativebase_headers hwvulkan_headers libbacktrace_headers
-MESON_GEN_PKGCONFIGS := backtrace cutils expat hardware libdrm:$(LIBDRM_VERSION) nativewindow sync zlib:1.2.11 libelf
+LOCAL_HEADER_LIBRARIES := libnativebase_headers hwvulkan_headers
+MESON_GEN_PKGCONFIGS := cutils expat hardware libdrm:$(LIBDRM_VERSION) nativewindow sync zlib:1.2.11 libelf
 LOCAL_CFLAGS += $(BOARD_MESA3D_CFLAGS)
 
 ifneq ($(filter swrast,$(BOARD_MESA3D_GALLIUM_DRIVERS) $(BOARD_MESA3D_VULKAN_DRIVERS)),)
@@ -60,9 +61,15 @@ LOCAL_SHARED_LIBRARIES += libdrm_intel
 MESON_GEN_PKGCONFIGS += libdrm_intel:$(LIBDRM_VERSION)
 endif
 
-ifneq ($(filter radeonsi amd,$(BOARD_MESA3D_GALLIUM_DRIVERS) $(BOARD_MESA3D_VULKAN_DRIVERS)),)
-MESON_GEN_LLVM_STUB := true
+ifneq ($(filter radeonsi,$(BOARD_MESA3D_GALLIUM_DRIVERS)),)
+ifneq ($(MESON_GEN_LLVM_STUB),)
 LOCAL_CFLAGS += -DFORCE_BUILD_AMDGPU   # instructs LLVM to declare LLVMInitializeAMDGPU* functions
+# The flag is required for the Android-x86 LLVM port that follows the AOSP LLVM porting rules
+# https://osdn.net/projects/android-x86/scm/git/external-llvm-project
+endif
+endif
+
+ifneq ($(filter radeonsi amd,$(BOARD_MESA3D_GALLIUM_DRIVERS) $(BOARD_MESA3D_VULKAN_DRIVERS)),)
 LOCAL_SHARED_LIBRARIES += libdrm_amdgpu
 MESON_GEN_PKGCONFIGS += libdrm_amdgpu:$(LIBDRM_VERSION)
 endif
@@ -157,6 +164,7 @@ include $(BUILD_PREBUILT)
 endif
 endef
 
+ifneq ($(strip $(BOARD_MESA3D_GALLIUM_DRIVERS)),)
 # Module 'libgallium_dri', produces '/vendor/lib{64}/dri/libgallium_dri.so'
 # This module also trigger DRI symlinks creation process
 $(eval $(call mesa3d-lib,libgallium_dri,.so.0,dri,MESA3D_GALLIUM_DRI_BIN))
@@ -169,6 +177,7 @@ $(eval $(call mesa3d-lib,libEGL_mesa,.so.1,egl,MESA3D_LIBEGL_BIN))
 $(eval $(call mesa3d-lib,libGLESv1_CM_mesa,.so.1,egl,MESA3D_LIBGLESV1_BIN))
 # Module 'libGLESv2_mesa', produces '/vendor/lib{64}/egl/libGLESv2_mesa.so'
 $(eval $(call mesa3d-lib,libGLESv2_mesa,.so.2,egl,MESA3D_LIBGLESV2_BIN))
+endif
 
 # Modules 'vulkan.{driver_name}', produces '/vendor/lib{64}/hw/vulkan.{driver_name}.so' HAL
 $(foreach driver,$(BOARD_MESA3D_VULKAN_DRIVERS), \

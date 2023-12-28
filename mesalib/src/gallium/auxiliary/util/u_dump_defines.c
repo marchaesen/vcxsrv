@@ -65,7 +65,7 @@ util_dump_enum_continuous(unsigned value,
 
 #define DEFINE_UTIL_STR_CONTINUOUS(_name) \
    const char * \
-   util_str_##_name(unsigned value, boolean shortened) \
+   util_str_##_name(unsigned value, bool shortened) \
    { \
       if(shortened) \
          return util_dump_enum_continuous(value, ARRAY_SIZE(util_##_name##_short_names), util_##_name##_short_names); \
@@ -80,7 +80,7 @@ util_dump_enum_continuous(unsigned value,
  */
 #define DEFINE_UTIL_STR_CONTINUOUS_COUNT(_name, _count) \
    const char * \
-   util_str_##_name(unsigned value, boolean shortened) \
+   util_str_##_name(unsigned value, bool shortened) \
    { \
       STATIC_ASSERT(ARRAY_SIZE(util_##_name##_names) == _count); \
       STATIC_ASSERT(ARRAY_SIZE(util_##_name##_short_names) == _count); \
@@ -455,21 +455,21 @@ DEFINE_UTIL_STR_CONTINUOUS(query_value_type)
 
 static const char *
 util_prim_mode_names[] = {
-   "PIPE_PRIM_POINTS",
-   "PIPE_PRIM_LINES",
-   "PIPE_PRIM_LINE_LOOP",
-   "PIPE_PRIM_LINE_STRIP",
-   "PIPE_PRIM_TRIANGLES",
-   "PIPE_PRIM_TRIANGLE_STRIP",
-   "PIPE_PRIM_TRIANGLE_FAN",
-   "PIPE_PRIM_QUADS",
-   "PIPE_PRIM_QUAD_STRIP",
-   "PIPE_PRIM_POLYGON",
-   "PIPE_PRIM_LINES_ADJACENCY",
-   "PIPE_PRIM_LINE_STRIP_ADJACENCY",
-   "PIPE_PRIM_TRIANGLES_ADJACENCY",
-   "PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY",
-   "PIPE_PRIM_PATCHES",
+   "MESA_PRIM_POINTS",
+   "MESA_PRIM_LINES",
+   "MESA_PRIM_LINE_LOOP",
+   "MESA_PRIM_LINE_STRIP",
+   "MESA_PRIM_TRIANGLES",
+   "MESA_PRIM_TRIANGLE_STRIP",
+   "MESA_PRIM_TRIANGLE_FAN",
+   "MESA_PRIM_QUADS",
+   "MESA_PRIM_QUAD_STRIP",
+   "MESA_PRIM_POLYGON",
+   "MESA_PRIM_LINES_ADJACENCY",
+   "MESA_PRIM_LINE_STRIP_ADJACENCY",
+   "MESA_PRIM_TRIANGLES_ADJACENCY",
+   "MESA_PRIM_TRIANGLE_STRIP_ADJACENCY",
+   "MESA_PRIM_PATCHES",
 };
 
 static const char *

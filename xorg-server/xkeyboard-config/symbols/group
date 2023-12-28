@@ -65,8 +65,8 @@ xkb_symbols "lalt_toggle" {
 // (depending on which Shift is pressed first).
 partial modifier_keys
 xkb_symbols "shifts_toggle" {
-    key <LFSH> {[  Shift_L,  ISO_Prev_Group  ]};
-    key <RTSH> {[  Shift_R,  ISO_Next_Group  ]};
+    key <LFSH> {[  Shift_L,  ISO_Prev_Group  ], type[group1] = "TWO_LEVEL" };
+    key <RTSH> {[  Shift_R,  ISO_Next_Group  ], type[group1] = "TWO_LEVEL" };
 };
 
 // Pressing Caps_Lock switches to the next group,
@@ -76,11 +76,10 @@ xkb_symbols "caps_toggle" {
     key <CAPS> {[  ISO_Next_Group,  Caps_Lock  ], type[group1] = "TWO_LEVEL" };
 };
 
-// Pressing Shift+Caps_Lock switches to the next group,
-// while plain Caps_Lock toggles CapsLock.
+// Pressing Shift+Caps_Lock switches to the next group.
 partial modifier_keys
 xkb_symbols "shift_caps_toggle" {
-    key <CAPS> {[  Caps_Lock,  ISO_Next_Group  ], type[group1] = "TWO_LEVEL" };
+    key <CAPS> {[  any,  ISO_Next_Group  ], type[group1] = "TWO_LEVEL" };
 };
 
 // Pressing Alt+Space switches to the next group.
@@ -297,11 +296,10 @@ xkb_symbols "rctrl_toggle" {
     key <RCTL> {[  ISO_Next_Group  ]};
 };
 
-// Pressing Alt+Caps_Lock switches to the next group,
-// while pressing Caps_Lock alone toggles CapsLock.
+// Pressing Alt+Caps_Lock switches to the next group.
 partial modifier_keys
 xkb_symbols "alt_caps_toggle" {
-    key <CAPS> {[  Caps_Lock, ISO_Next_Group  ], type[group1] = "PC_ALT_LEVEL2" };
+    key <CAPS> {[  any,  ISO_Next_Group  ], type[group1] = "PC_ALT_LEVEL2" };
 };
 
 hidden partial modifier_keys

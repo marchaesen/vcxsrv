@@ -28,7 +28,7 @@
  * \author Brian Paul
  */
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/macros.h"
 #include "main/errors.h"
 #include "util/u_memory.h"
@@ -222,7 +222,6 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
    }
 
    if (needSizeValues > paramList->SizeValues) {
-      unsigned oldSize = paramList->SizeValues;
       paramList->SizeValues = needSizeValues + 16; /* alloc some extra */
 
       paramList->ParameterValues = (gl_constant_value *)
@@ -235,8 +234,8 @@ _mesa_reserve_parameter_storage(struct gl_program_parameter_list *paramList,
                        paramList->SizeValues * sizeof(gl_constant_value) +
                        12, 16);
       /* The values are written to the shader cache, so clear them. */
-      memset(paramList->ParameterValues + oldSize, 0,
-             (paramList->SizeValues - oldSize) * sizeof(gl_constant_value));
+      memset(paramList->ParameterValues + oldValNum, 0,
+             (paramList->SizeValues - oldValNum) * sizeof(gl_constant_value));
    }
 }
 
@@ -303,6 +302,7 @@ _mesa_add_parameter(struct gl_program_parameter_list *paramList,
 
    memset(&paramList->Parameters[oldNum], 0,
           sizeof(struct gl_program_parameter));
+   memset(&paramList->ParameterValues[oldValNum], 0, padded_size);
 
    struct gl_program_parameter *p = paramList->Parameters + oldNum;
    p->Name = strdup(name ? name : "");

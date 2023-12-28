@@ -87,6 +87,76 @@ VkResult pvr_srv_init_module(int fd, enum pvr_srvkm_module_type module)
    return VK_SUCCESS;
 }
 
+VkResult pvr_srv_set_timeline_sw_only(int sw_timeline_fd)
+{
+   int ret;
+
+   assert(sw_timeline_fd >= 0);
+
+   ret = drmIoctl(sw_timeline_fd, DRM_IOCTL_SRVKM_SYNC_FORCE_SW_ONLY_CMD, NULL);
+
+   if (unlikely(ret < 0)) {
+      return vk_errorf(
+         NULL,
+         VK_ERROR_OUT_OF_HOST_MEMORY,
+         "DRM_IOCTL_SRVKM_SYNC_FORCE_SW_ONLY_CMD failed, Errno: %s",
+         strerror(errno));
+   }
+
+   return VK_SUCCESS;
+}
+
+VkResult pvr_srv_create_sw_fence(int sw_timeline_fd,
+                                 int *new_fence_fd,
+                                 uint64_t *sync_pt_idx)
+{
+   struct drm_srvkm_sw_sync_create_fence_data data = { .name[0] = '\0' };
+   int ret;
+
+   assert(sw_timeline_fd >= 0);
+   assert(new_fence_fd != NULL);
+
+   ret =
+      drmIoctl(sw_timeline_fd, DRM_IOCTL_SRVKM_SW_SYNC_CREATE_FENCE_CMD, &data);
+
+   if (unlikely(ret < 0)) {
+      return vk_errorf(
+         NULL,
+         VK_ERROR_OUT_OF_HOST_MEMORY,
+         "DRM_IOCTL_SRVKM_SW_SYNC_CREATE_FENCE_CMD failed, Errno: %s",
+         strerror(errno));
+   }
+
+   *new_fence_fd = data.fence;
+   if (sync_pt_idx)
+      *sync_pt_idx = data.sync_pt_idx;
+
+   return VK_SUCCESS;
+}
+
+VkResult pvr_srv_sw_sync_timeline_increment(int sw_timeline_fd,
+                                            uint64_t *sync_pt_idx)
+{
+   struct drm_srvkm_sw_timeline_advance_data data = { 0 };
+   int ret;
+
+   assert(sw_timeline_fd >= 0);
+
+   ret = drmIoctl(sw_timeline_fd, DRM_IOCTL_SRVKM_SW_SYNC_INC_CMD, &data);
+
+   if (unlikely(ret < 0)) {
+      return vk_errorf(NULL,
+                       VK_ERROR_OUT_OF_HOST_MEMORY,
+                       "DRM_IOCTL_SRVKM_SW_SYNC_INC_CMD failed, Errno: %s",
+                       strerror(errno));
+   }
+
+   if (sync_pt_idx)
+      *sync_pt_idx = data.sync_pt_idx;
+
+   return VK_SUCCESS;
+}
+
 VkResult pvr_srv_connection_create(int fd, uint64_t *const bvnc_out)
 {
    struct pvr_srv_bridge_connect_cmd cmd = {
@@ -237,6 +307,37 @@ void pvr_srv_free_sync_primitive_block(int fd, void *handle)
                     "PVR_SRV_BRIDGE_SYNC_FREESYNCPRIMITIVEBLOCK",
                     ret);
    }
+}
+
+VkResult
+pvr_srv_set_sync_primitive(int fd, void *handle, uint32_t index, uint32_t value)
+{
+   struct pvr_srv_bridge_sync_prim_set_cmd cmd = {
+      .handle = handle,
+      .index = index,
+      .value = value,
+   };
+
+   struct pvr_srv_bridge_sync_prim_set_ret ret = {
+      .error = PVR_SRV_ERROR_BRIDGE_CALL_FAILED,
+   };
+
+   int result;
+
+   result = pvr_srv_bridge_call(fd,
+                                PVR_SRV_BRIDGE_SYNC,
+                                PVR_SRV_BRIDGE_SYNC_SYNCPRIMSET,
+                                &cmd,
+                                sizeof(cmd),
+                                &ret,
+                                sizeof(ret));
+   if (result || ret.error != PVR_SRV_OK) {
+      return vk_bridge_err(VK_ERROR_UNKNOWN,
+                           "PVR_SRV_BRIDGE_SYNC_SYNCPRIMSET",
+                           ret);
+   }
+
+   return VK_SUCCESS;
 }
 
 VkResult pvr_srv_get_heap_count(int fd, uint32_t *const heap_count_out)

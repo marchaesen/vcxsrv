@@ -1,10 +1,8 @@
-//
-// X keyboard maps for Finland
-//
+// Keyboard layouts for Finland.
+
 // SFS 5966 / Kotoistus keymap created by Troy Korjuslommi
 // Classic keymap based on traditional by Marko Myllynen
 // Eliminate deadkeys alternative sent by Linus Torvalds
-//
 
 default partial alphanumeric_keys
 xkb_symbols "kotoistus" {
@@ -207,18 +205,18 @@ xkb_symbols "smi" {
 partial alphanumeric_keys
 xkb_symbols "mac" {
 
-    // Macintosh keyboard for Finland based on Swedish(Macintosh) keyboard
-
     include "se(mac)"
 
     name[Group1]="Finnish (Macintosh)";
 };
 
+
+// EXTRAS:
+
 partial alphanumeric_keys
 xkb_symbols "sun_type6" {
-    // #HW-SPECIFIC
 
-    // Sun Type 6/7 keyboard for Finland
+    // #HW-SPECIFIC
 
     include "sun_vndr/fi(sun_type6)"
 

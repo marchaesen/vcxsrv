@@ -1,36 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <registry>
-    <!--
-    Copyright (c) 2013-2016 The Khronos Group Inc.
+    <comment>
+Copyright 2013-2020 The Khronos Group Inc.
+SPDX-License-Identifier: Apache-2.0
 
-    Permission is hereby granted, free of charge, to any person obtaining a
-    copy of this software and/or associated documentation files (the
-    "Materials"), to deal in the Materials without restriction, including
-    without limitation the rights to use, copy, modify, merge, publish,
-    distribute, sublicense, and/or sell copies of the Materials, and to
-    permit persons to whom the Materials are furnished to do so, subject to
-    the following conditions:
-
-    The above copyright notice and this permission notice shall be included
-    in all copies or substantial portions of the Materials.
-
-    THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-    EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-    MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-    IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-    CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-    TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-    MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
-    -->
-    <!--
-    This file, wgl.xml, is the WGL API Registry. The older ".spec" file
-    format has been retired and will no longer be updated with new
-    extensions and API versions. The canonical version of the registry,
-    together with documentation, schema, and Python generator scripts used
-    to generate C header files for WGL, can always be found in the Khronos
-    Registry at
-        http://www.opengl.org/registry/
-    -->
+This file, wgl.xml, is the WGL API Registry. The canonical version of the
+registry, together with documentation, schema, and Python generator scripts
+used to generate C header files for WGL, can always be found in the Khronos
+Registry at https://github.com/KhronosGroup/OpenGL-Registry
+    </comment>
 
     <!-- SECTION: WGL type definitions. Does not include base Windows types. -->
 
@@ -390,7 +368,12 @@
         <enum value="0x20A8"        name="WGL_TYPE_RGBA_UNSIGNED_FLOAT_EXT"/>
         <enum value="0x20A9"        name="WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB"/>
         <enum value="0x20A9"        name="WGL_FRAMEBUFFER_SRGB_CAPABLE_EXT"/>
-            <unused start="0x20AA" end="0x20AF"/>
+        <enum value="0x20AA"        name="WGL_CONTEXT_MULTIGPU_ATTRIB_NV"/>
+        <enum value="0x20AB"        name="WGL_CONTEXT_MULTIGPU_ATTRIB_SINGLE_NV"/>
+        <enum value="0x20AC"        name="WGL_CONTEXT_MULTIGPU_ATTRIB_AFR_NV"/>
+        <enum value="0x20AD"        name="WGL_CONTEXT_MULTIGPU_ATTRIB_MULTICAST_NV"/>
+        <enum value="0x20AE"        name="WGL_CONTEXT_MULTIGPU_ATTRIB_MULTI_DISPLAY_MULTICAST_NV"/>
+            <unused start="0x20AF" end="0x20AF"/>
         <enum value="0x20B0"        name="WGL_FLOAT_COMPONENTS_NV"/>
         <enum value="0x20B1"        name="WGL_BIND_TO_TEXTURE_RECTANGLE_FLOAT_R_NV"/>
         <enum value="0x20B2"        name="WGL_BIND_TO_TEXTURE_RECTANGLE_FLOAT_RG_NV"/>
@@ -433,6 +416,7 @@
         <enum value="0x21A3"        name="WGL_GPU_RAM_AMD"/>
         <enum value="0x21A4"        name="WGL_GPU_CLOCK_AMD"/>
         <enum value="0x21A5"        name="WGL_GPU_NUM_PIPES_AMD"/>
+        <enum value="0x21A5"        name="WGL_TEXTURE_RECTANGLE_ATI" comment="Duplicates unrelated WGL_GPU_NUM_PIPES_AMD"/>
         <enum value="0x21A6"        name="WGL_GPU_NUM_SIMD_AMD"/>
         <enum value="0x21A7"        name="WGL_GPU_NUM_RB_AMD"/>
         <enum value="0x21A8"        name="WGL_GPU_NUM_SPI_AMD"/>
@@ -457,9 +441,13 @@
     </enums>
 
     <enums namespace="EGL" start="0x3080" end="0x30AF" vendor="KHR" comment="Values shared with EGL. Do not allocate additional values in this range.">
-        <enum value="0x3087" name="WGL_COLORSPACE_EXT"/>
+        <enum value="0x309D" name="WGL_COLORSPACE_EXT"/>
         <enum value="0x3089" name="WGL_COLORSPACE_SRGB_EXT"/>
         <enum value="0x308A" name="WGL_COLORSPACE_LINEAR_EXT"/>
+    </enums>
+
+    <enums namespace="WGL" start="0x31B3" end="0x31B3" vendor="ARB" comment="Shared with GLX.">
+        <enum value="0x31B3" name="WGL_CONTEXT_OPENGL_NO_ERROR_ARB"/>
     </enums>
 
     <enums namespace="GL" start="0x8250" end="0x826F" vendor="ARB" comment="Values shared with GL. Do not allocate additional values in this range.">
@@ -484,7 +472,7 @@
             <param><ptype>HDC</ptype> <name>hdc</name></param>
             <param>int <name>ipfd</name></param>
             <param><ptype>UINT</ptype> <name>cjpfd</name></param>
-            <param>const <ptype>PIXELFORMATDESCRIPTOR</ptype> *<name>ppfd</name></param>
+            <param><ptype>PIXELFORMATDESCRIPTOR</ptype> *<name>ppfd</name></param>
         </command>
         <command>
             <proto>int <name>GetPixelFormat</name></proto>
@@ -539,7 +527,7 @@
         </command>
         <command>
             <proto><ptype>BOOL</ptype> <name>wglBindVideoDeviceNV</name></proto>
-            <param><ptype>HDC</ptype> <name>hDC</name></param>
+            <param><ptype>HDC</ptype> <name>hDc</name></param>
             <param>unsigned int <name>uVideoSlot</name></param>
             <param><ptype>HVIDEOOUTPUTDEVICENV</ptype> <name>hVideoDevice</name></param>
             <param>const int *<name>piAttribList</name></param>
@@ -696,7 +684,7 @@
             <param>int <name>pixelFormat</name></param>
             <param>int <name>layerPlane</name></param>
             <param><ptype>UINT</ptype> <name>nBytes</name></param>
-            <param>const <ptype>LAYERPLANEDESCRIPTOR</ptype> *<name>plpd</name></param>
+            <param><ptype>LAYERPLANEDESCRIPTOR</ptype> *<name>plpd</name></param>
         </command>
         <command>
             <proto><ptype>VOID</ptype> <name>wglDestroyDisplayColorTableEXT</name></proto>
@@ -782,7 +770,7 @@
         </command>
         <command>
             <proto>int <name>wglEnumerateVideoDevicesNV</name></proto>
-            <param><ptype>HDC</ptype> <name>hDC</name></param>
+            <param><ptype>HDC</ptype> <name>hDc</name></param>
             <param><ptype>HVIDEOOUTPUTDEVICENV</ptype> *<name>phDeviceList</name></param>
         </command>
         <command>
@@ -858,7 +846,8 @@
         <command>
             <proto><ptype>UINT</ptype> <name>GetEnhMetaFilePixelFormat</name></proto>
             <param><ptype>HENHMETAFILE</ptype> <name>hemf</name></param>
-            <param>const <ptype>PIXELFORMATDESCRIPTOR</ptype> *<name>ppfd</name></param>
+            <param><ptype>UINT</ptype> <name>cbBuffer</name></param>
+            <param><ptype>PIXELFORMATDESCRIPTOR</ptype> *<name>ppfd</name></param>
         </command>
         <command>
             <proto>const char *<name>wglGetExtensionsStringARB</name></proto>
@@ -913,7 +902,7 @@
         <command>
             <proto><ptype>INT</ptype> <name>wglGetGPUInfoAMD</name></proto>
             <param><ptype>UINT</ptype> <name>id</name></param>
-            <param>int <name>property</name></param>
+            <param><ptype>INT</ptype> <name>property</name></param>
             <param><ptype>GLenum</ptype> <name>dataType</name></param>
             <param><ptype>UINT</ptype> <name>size</name></param>
             <param>void *<name>data</name></param>
@@ -924,7 +913,7 @@
             <param>int <name>iLayerPlane</name></param>
             <param>int <name>iStart</name></param>
             <param>int <name>cEntries</name></param>
-            <param>const <ptype>COLORREF</ptype> *<name>pcr</name></param>
+            <param><ptype>COLORREF</ptype> *<name>pcr</name></param>
         </command>
         <command>
             <proto><ptype>BOOL</ptype> <name>wglGetMscRateOML</name></proto>
@@ -1236,7 +1225,7 @@
         <command>
             <proto><ptype>INT64</ptype> <name>wglSwapLayerBuffersMscOML</name></proto>
             <param><ptype>HDC</ptype> <name>hdc</name></param>
-            <param>int <name>fuPlanes</name></param>
+            <param><ptype>INT</ptype> <name>fuPlanes</name></param>
             <param><ptype>INT64</ptype> <name>target_msc</name></param>
             <param><ptype>INT64</ptype> <name>divisor</name></param>
             <param><ptype>INT64</ptype> <name>remainder</name></param>
@@ -1451,6 +1440,11 @@
                 <command name="wglCreateContextAttribsARB"/>
             </require>
         </extension>
+        <extension name="WGL_ARB_create_context_no_error" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_OPENGL_NO_ERROR_ARB"/>
+            </require>
+        </extension>
         <extension name="WGL_ARB_create_context_profile" supported="wgl">
             <require>
                 <enum name="WGL_CONTEXT_PROFILE_MASK_ARB"/>
@@ -1622,6 +1616,11 @@
         <extension name="WGL_ATI_pixel_format_float" supported="wgl">
             <require>
                 <enum name="WGL_TYPE_RGBA_FLOAT_ATI"/>
+            </require>
+        </extension>
+        <extension name="WGL_ATI_render_texture_rectangle" supported="wgl">
+            <require>
+                <enum name="WGL_TEXTURE_RECTANGLE_ATI"/>
             </require>
         </extension>
         <extension name="WGL_EXT_colorspace" supported="wgl">
@@ -1974,6 +1973,15 @@
                 <command name="wglSwapLayerBuffersMscOML"/>
                 <command name="wglWaitForMscOML"/>
                 <command name="wglWaitForSbcOML"/>
+            </require>
+        </extension>
+        <extension name="WGL_NV_multigpu_context" supported="wgl">
+            <require>
+                <enum name="WGL_CONTEXT_MULTIGPU_ATTRIB_NV"/>
+                <enum name="WGL_CONTEXT_MULTIGPU_ATTRIB_SINGLE_NV"/>
+                <enum name="WGL_CONTEXT_MULTIGPU_ATTRIB_AFR_NV"/>
+                <enum name="WGL_CONTEXT_MULTIGPU_ATTRIB_MULTICAST_NV"/>
+                <enum name="WGL_CONTEXT_MULTIGPU_ATTRIB_MULTI_DISPLAY_MULTICAST_NV"/>
             </require>
         </extension>
     </extensions>

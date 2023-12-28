@@ -29,7 +29,7 @@
 #ifndef ST_DEBUG_H
 #define ST_DEBUG_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
 
 struct st_context;

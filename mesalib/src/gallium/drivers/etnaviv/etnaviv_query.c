@@ -120,6 +120,17 @@ etna_get_driver_query_group_info(struct pipe_screen *pscreen, unsigned index,
 }
 
 static void
+etna_render_condition(struct pipe_context *pctx, struct pipe_query *pq,
+                      bool condition, enum pipe_render_cond_flag mode)
+{
+   struct etna_context *ctx = etna_context(pctx);
+
+   ctx->cond_query = pq;
+   ctx->cond_cond = condition;
+   ctx->cond_mode = mode;
+}
+
+static void
 etna_set_active_query_state(struct pipe_context *pctx, bool enable)
 {
    struct etna_context *ctx = etna_context(pctx);
@@ -149,4 +160,5 @@ etna_query_context_init(struct pipe_context *pctx)
    pctx->end_query = etna_end_query;
    pctx->get_query_result = etna_get_query_result;
    pctx->set_active_query_state = etna_set_active_query_state;
+   pctx->render_condition = etna_render_condition;
 }

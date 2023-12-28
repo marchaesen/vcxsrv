@@ -30,7 +30,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "context.h"
 #include "formats.h"
@@ -347,7 +347,7 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
       formats[n++] = GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT;
    }
 
-   if (ctx->API == API_OPENGLES) {
+   if (_mesa_is_gles1(ctx)) {
       formats[n++] = GL_PALETTE4_RGB8_OES;
       formats[n++] = GL_PALETTE4_RGBA8_OES;
       formats[n++] = GL_PALETTE4_R5_G6_B5_OES;
@@ -402,7 +402,7 @@ _mesa_get_compressed_formats(struct gl_context *ctx, GLint *formats)
     * COMPRESSED_TEXTURE_FORMATS query returns the set of supported specific
     * compressed formats.
     */
-   if (ctx->API == API_OPENGLES2 &&
+   if (_mesa_is_gles2(ctx) &&
        ctx->Extensions.KHR_texture_compression_astc_ldr) {
       formats[n++] = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
       formats[n++] = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;

@@ -90,7 +90,7 @@ render_state_limits_table[D3DRS_BLENDOPALPHA + 1] = {
     __BOOLEAN_RS(FOGENABLE),
     __BOOLEAN_RS(SPECULARENABLE),
     __NO_LIMIT_RS(FOGCOLOR),
-    __MASK_RS(FOGTABLEMODE, 0x00000007),
+    __MASK_RS(FOGTABLEMODE, 0x00000003),
     __NO_LIMIT_RS(FOGSTART), /* a bit more complex than that, lets ignore */
     __NO_LIMIT_RS(FOGEND),
     __NO_LIMIT_RS(FOGDENSITY), /* actually should be between 0.0 and 1.0 */
@@ -115,7 +115,7 @@ render_state_limits_table[D3DRS_BLENDOPALPHA + 1] = {
     __BOOLEAN_RS(CLIPPING),
     __BOOLEAN_RS(LIGHTING),
     __NO_LIMIT_RS(AMBIENT),
-    __MASK_RS(FOGVERTEXMODE, 0x00000007),
+    __MASK_RS(FOGVERTEXMODE, 0x00000003),
     __BOOLEAN_RS(COLORVERTEX),
     __BOOLEAN_RS(LOCALVIEWER),
     __BOOLEAN_RS(NORMALIZENORMALS),

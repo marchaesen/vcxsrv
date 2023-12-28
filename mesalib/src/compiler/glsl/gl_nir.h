@@ -45,8 +45,12 @@ bool gl_nir_lower_samplers(nir_shader *shader,
 bool gl_nir_lower_samplers_as_deref(nir_shader *shader,
                                     const struct gl_shader_program *shader_program);
 
+bool gl_nir_lower_blend_equation_advanced(nir_shader *sh, bool coherent);
+
 bool gl_nir_lower_buffers(nir_shader *shader,
                           const struct gl_shader_program *shader_program);
+
+void gl_nir_lower_named_interface_blocks(struct gl_shader_program *prog);
 
 void gl_nir_lower_packed_varyings(const struct gl_constants *consts,
                                   struct gl_shader_program *prog,

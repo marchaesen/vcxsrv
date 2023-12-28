@@ -28,7 +28,7 @@ xkb_symbols "basic" {
 	key <AD08> { [ i, I, braceright ] };
 	key <AD09> { [ o, O ] };
 	key <AD10> { [ p, P ] };
-	
+
 	key <TAB> { [ Tab, ISO_Left_Tab, Caps_Lock ] };
 
 	key <AC01> { [ a, A ] };
@@ -51,7 +51,7 @@ xkb_symbols "basic" {
 	key <AB07> { [ m, M ] };
 	key <RTSH> { [ Shift_R ] };
 	key <RTRN> { [ Return ] };
-	
+
 	key <RALT> { [ ISO_Level3_Shift ] };
 
 	key <LCTL> { [ Control_L ] };
@@ -59,7 +59,7 @@ xkb_symbols "basic" {
 	key <SPCE> { [ space ] };
 	key <AB08> { [ comma, slash, less ] };
 	key <AB09> { [ period, question, greater ] };
-	
+
 	key <UP> { [ Up, Up, Prior ] };
 	key <LEFT> { [ Left, Left, Home ] };
 	key <DOWN> { [ Down, Down, Next ] };

@@ -19,6 +19,7 @@
 # SOFTWARE.
 
 files_libfreedreno = files(
+  'driinfo_freedreno.h',
   'freedreno_autotune.c',
   'freedreno_autotune.h',
   'freedreno_batch.c',
@@ -178,43 +179,47 @@ files_libfreedreno = files(
   'a5xx/fd5_texture.h',
   'a5xx/fd5_zsa.c',
   'a5xx/fd5_zsa.h',
-  'a6xx/fd6_blend.c',
+  'a6xx/fd6_barrier.cc',
+  'a6xx/fd6_barrier.h',
+  'a6xx/fd6_blend.cc',
   'a6xx/fd6_blend.h',
-  'a6xx/fd6_blitter.c',
+  'a6xx/fd6_blitter.cc',
   'a6xx/fd6_blitter.h',
-  'a6xx/fd6_compute.c',
+  'a6xx/fd6_compute.cc',
   'a6xx/fd6_compute.h',
-  'a6xx/fd6_const.c',
+  'a6xx/fd6_const.cc',
   'a6xx/fd6_const.h',
-  'a6xx/fd6_context.c',
+  'a6xx/fd6_context.cc',
   'a6xx/fd6_context.h',
-  'a6xx/fd6_draw.c',
+  'a6xx/fd6_draw.cc',
   'a6xx/fd6_draw.h',
-  'a6xx/fd6_emit.c',
+  'a6xx/fd6_emit.cc',
   'a6xx/fd6_emit.h',
-  'a6xx/fd6_gmem.c',
+  'a6xx/fd6_gmem.cc',
   'a6xx/fd6_gmem.h',
-  'a6xx/fd6_image.c',
+  'a6xx/fd6_image.cc',
   'a6xx/fd6_image.h',
-  'a6xx/fd6_program.c',
+  'a6xx/fd6_program.cc',
   'a6xx/fd6_program.h',
-  'a6xx/fd6_query.c',
+  'a6xx/fd6_query.cc',
   'a6xx/fd6_query.h',
-  'a6xx/fd6_rasterizer.c',
+  'a6xx/fd6_rasterizer.cc',
   'a6xx/fd6_rasterizer.h',
-  'a6xx/fd6_resource.c',
+  'a6xx/fd6_resource.cc',
   'a6xx/fd6_resource.h',
-  'a6xx/fd6_screen.c',
+  'a6xx/fd6_screen.cc',
   'a6xx/fd6_screen.h',
-  'a6xx/fd6_texture.c',
+  'a6xx/fd6_texture.cc',
   'a6xx/fd6_texture.h',
-  'a6xx/fd6_vsc.c',
+  'a6xx/fd6_vsc.cc',
   'a6xx/fd6_vsc.h',
-  'a6xx/fd6_zsa.c',
+  'a6xx/fd6_zsa.cc',
   'a6xx/fd6_zsa.h',
   'ir3/ir3_cache.c',
   'ir3/ir3_cache.h',
   'ir3/ir3_const.h',
+  'ir3/ir3_descriptor.c',
+  'ir3/ir3_descriptor.h',
   'ir3/ir3_gallium.c',
   'ir3/ir3_gallium.h',
 )
@@ -225,7 +230,7 @@ freedreno_tracepoints = custom_target(
   output: ['freedreno_tracepoints.c', 'freedreno_tracepoints.h'],
   command: [
     prog_python, '@INPUT@',
-    '-p', join_paths(meson.source_root(), 'src/util/perf/'),
+    '-p', join_paths(dir_source_root, 'src/util/perf/'),
     '-C', '@OUTPUT0@',
     '-H', '@OUTPUT1@',
   ],
@@ -241,13 +246,36 @@ freedreno_includes = [
 ]
 
 freedreno_c_args = [no_override_init_args]
-if cc.has_argument('-Wpacked-bitfield-compat')
-  freedreno_c_args += '-Wno-packed-bitfield-compat'
-endif
+freedreno_c_args += cc.get_supported_arguments([
+  '-Wno-packed-bitfield-compat',
+  '-Wno-array-bounds',
+])
 
 freedreno_cpp_args = []
-if cpp.has_argument('-Wpacked-bitfield-compat')
-  freedreno_cpp_args += '-Wno-packed-bitfield-compat'
+freedreno_cpp_args += cpp.get_supported_arguments([
+  '-fno-exceptions',
+  '-fno-rtti',
+  '-Wno-packed-bitfield-compat',
+  '-Wno-c99-designator',
+  '-Wno-reorder-init-list',
+  '-Wno-address-of-temporary',
+  '-Wno-c++11-narrowing',
+  '-Wno-narrowing',
+  '-Wno-sign-compare',
+  '-Wno-missing-field-initializers',
+  '-Wno-reorder',
+  '-Wno-array-bounds',
+  '-Wno-overflow',
+  '-Wno-c++11-narrowing',
+])
+
+# HACK compiler.get_supported_arguments()/has_argument() do not seem
+# to be reliable for cross builds (!?!) so just jam in some args we
+# need and hope for the best
+if meson.is_cross_build()
+  freedreno_cpp_args += '-Wno-array-bounds'
+  freedreno_cpp_args += '-Wno-c++11-narrowing'
+  freedreno_cpp_args += '-Wno-c99-designator'
 endif
 
 libfreedreno_dependencies = [
@@ -275,7 +303,6 @@ libfreedreno = static_library(
   cpp_args : [freedreno_cpp_args],
   gnu_symbol_visibility : 'hidden',
   dependencies : libfreedreno_dependencies,
-  override_options : ['cpp_std=c++17'],
 )
 
 driver_freedreno = declare_dependency(
@@ -301,6 +328,7 @@ ir3_compiler = executable(
   include_directories : freedreno_includes,
   dependencies : [
     idep_nir,
+    idep_vtn,
     idep_mesautil,
   ],
   link_with : [

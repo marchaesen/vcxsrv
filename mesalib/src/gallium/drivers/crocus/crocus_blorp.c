@@ -169,7 +169,7 @@ blorp_alloc_general_state(struct blorp_batch *blorp_batch,
    return blorp_alloc_dynamic_state(blorp_batch, size, alignment, offset);
 }
 
-static void
+static bool
 blorp_alloc_binding_table(struct blorp_batch *blorp_batch,
                           unsigned num_entries,
                           unsigned state_size,
@@ -188,6 +188,8 @@ blorp_alloc_binding_table(struct blorp_batch *blorp_batch,
                                      &(surface_offsets)[i], NULL);
       bt_map[i] = surface_offsets[i];
    }
+
+   return true;
 }
 
 static uint32_t
@@ -412,6 +414,18 @@ static void
 blorp_measure_end(struct blorp_batch *blorp_batch,
                   const struct blorp_params *params)
 {
+}
+
+static void
+blorp_emit_pre_draw(struct blorp_batch *batch, const struct blorp_params *params)
+{
+   /* "Not implemented" */
+}
+
+static void
+blorp_emit_post_draw(struct blorp_batch *batch, const struct blorp_params *params)
+{
+   /* "Not implemented" */
 }
 
 void

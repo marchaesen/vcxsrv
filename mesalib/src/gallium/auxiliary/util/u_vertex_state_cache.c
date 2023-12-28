@@ -75,7 +75,6 @@ util_vertex_state_cache_get(struct pipe_screen *screen,
 
    memset(&key, 0, sizeof(key));
    key.input.indexbuf = indexbuf;
-   key.input.vbuffer.stride = buffer->stride;
    assert(!buffer->is_user_buffer);
    key.input.vbuffer.buffer_offset = buffer->buffer_offset;
    key.input.vbuffer.buffer = buffer->buffer;

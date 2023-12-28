@@ -95,7 +95,7 @@ Bug fixes
 -  `Bug 99451 <https://bugs.freedesktop.org/show_bug.cgi?id=99451>`__ -
    polygon offset use after free
 -  `Bug 99456 <https://bugs.freedesktop.org/show_bug.cgi?id=99456>`__ -
-   Firefox crashing when opening about:support with WebGL2 enabled
+   Firefox crashing when opening \about:support with WebGL2 enabled
 -  `Bug 99465 <https://bugs.freedesktop.org/show_bug.cgi?id=99465>`__ -
    vtn_vector_construct writing out of bounds when given multiple
    non-zero length sources

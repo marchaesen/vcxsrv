@@ -156,7 +156,7 @@ vc4_flush_jobs_reading_resource(struct vc4_context *vc4,
 }
 
 /**
- * Returns a vc4_job struture for tracking V3D rendering to a particular FBO.
+ * Returns a vc4_job structure for tracking V3D rendering to a particular FBO.
  *
  * If we've already started rendering to this FBO, then return old same job,
  * otherwise make a new one.  If we're beginning rendering to an FBO, make
@@ -505,7 +505,7 @@ vc4_job_submit(struct vc4_context *vc4, struct vc4_job *job)
         if (vc4->last_emit_seqno - vc4->screen->finished_seqno > 5) {
                 if (!vc4_wait_seqno(vc4->screen,
                                     vc4->last_emit_seqno - 5,
-                                    PIPE_TIMEOUT_INFINITE,
+                                    OS_TIMEOUT_INFINITE,
                                     "job throttling")) {
                         fprintf(stderr, "Job throttling failed\n");
                 }
@@ -513,7 +513,7 @@ vc4_job_submit(struct vc4_context *vc4, struct vc4_job *job)
 
         if (VC4_DBG(ALWAYS_SYNC)) {
                 if (!vc4_wait_seqno(vc4->screen, vc4->last_emit_seqno,
-                                    PIPE_TIMEOUT_INFINITE, "sync")) {
+                                    OS_TIMEOUT_INFINITE, "sync")) {
                         fprintf(stderr, "Wait failed.\n");
                         abort();
                 }

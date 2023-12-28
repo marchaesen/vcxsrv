@@ -50,3 +50,4 @@ void v3dX(simulator_perfmon_start)(struct v3d_hw *v3d,
 void v3dX(simulator_perfmon_stop)(struct v3d_hw *v3d,
                                   uint32_t ncounters,
                                   uint64_t *values);
+void v3dX(simulator_get_perfcnt_total)(uint32_t *count);

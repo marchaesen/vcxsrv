@@ -27,6 +27,7 @@
 #include "vc4_qir.h"
 #include "vc4_qpu.h"
 #include "util/ralloc.h"
+#include "util/u_debug_cb.h"
 
 static void
 vc4_dump_program(struct vc4_compile *c)
@@ -680,10 +681,14 @@ vc4_generate_code(struct vc4_context *vc4, struct vc4_compile *c)
         cycles += c->qpu_inst_count - inst_count_at_schedule_time;
 
         if (VC4_DBG(SHADERDB)) {
-                fprintf(stderr, "SHADER-DB: %s prog %d/%d: %d estimated cycles\n",
-                        qir_get_stage_name(c->stage),
-                        c->program_id, c->variant_id,
-                        cycles);
+                util_debug_message(&vc4->base.debug, SHADER_INFO,
+                                   "%s shader: %d inst, %d threads, %d uniforms, %d max-temps, %d estimated-cycles",
+                                   qir_get_stage_name(c->stage),
+                                   c->qpu_inst_count,
+                                   1 + c->fs_threaded,
+                                   c->num_uniforms,
+                                   c->max_reg_pressure,
+                                   cycles);
         }
 
         if (VC4_DBG(QPU))

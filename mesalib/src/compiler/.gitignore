@@ -1,0 +1,8 @@
+builtin_types.*
+builtin_ctypes.c
+glsl/astc_glsl.h
+glsl/bc1_glsl.h
+glsl/bc4_glsl.h
+glsl/cross_platform_settings_piece_all.h
+glsl/etc2_rgba_stitch_glsl.h
+

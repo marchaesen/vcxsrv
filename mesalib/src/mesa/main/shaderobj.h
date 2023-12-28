@@ -27,9 +27,8 @@
 #define SHADEROBJ_H
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "compiler/shader_enums.h"
-#include "program/link_program.h"
 #include "util/macros.h"
 
 

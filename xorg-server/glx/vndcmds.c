@@ -166,9 +166,6 @@ static int CommonLoseCurrent(ClientPtr client, GlxContextTagInfo *tagInfo)
             tagInfo->tag, // No old context tag,
             None, None, None, 0);
 
-    if (ret == Success) {
-        GlxFreeContextTag(tagInfo);
-    }
     return ret;
 }
 
@@ -260,7 +257,6 @@ static int CommonMakeCurrent(ClientPtr client,
             if (ret != Success) {
                 return ret;
             }
-            oldTag = NULL;
         }
 
         if (newVendor != NULL) {
@@ -271,6 +267,9 @@ static int CommonMakeCurrent(ClientPtr client,
         } else {
             reply.contextTag = 0;
         }
+
+        GlxFreeContextTag(oldTag);
+        oldTag = NULL;
     }
 
     reply.contextTag = GlxCheckSwap(client, reply.contextTag);

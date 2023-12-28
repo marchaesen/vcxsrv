@@ -25,19 +25,6 @@ dEQP-EGL.functional.color_clears.single_context.gles3.rgb888_pbuffer
 dEQP-EGL.functional.color_clears.single_context.gles3.rgb888_window
 dEQP-EGL.functional.color_clears.single_context.gles3.rgba8888_pbuffer
 dEQP-EGL.functional.color_clears.single_context.gles3.rgba8888_window
-dEQP-EGL.functional.create_context_ext.gl_31.rgba8888_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.gl_32.rgb888_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.gl_32.rgba8888_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.gles_20.rgba8888_depth_stencil
-dEQP-EGL.functional.create_context_ext.gles_30.rgba8888_depth_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_30.rgb888_depth_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_30.rgb888_no_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_31.rgb888_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_31.rgba8888_no_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_32.rgb888_no_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_32.rgba8888_no_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gl_33.rgba8888_depth_no_stencil
-dEQP-EGL.functional.create_context_ext.robust_gles_2_ext.rgb888_no_depth_no_stencil
 dEQP-EGL.functional.render.multi_context.gles2_gles3.rgb888_pbuffer
 dEQP-EGL.functional.render.multi_context.gles2_gles3.rgb888_window
 dEQP-EGL.functional.render.multi_context.gles2_gles3.rgba8888_pbuffer
@@ -70,16 +57,12 @@ dEQP-EGL.functional.render.single_context.gles3.rgb888_pbuffer
 dEQP-EGL.functional.render.single_context.gles3.rgb888_window
 dEQP-EGL.functional.render.single_context.gles3.rgba8888_pbuffer
 dEQP-EGL.functional.render.single_context.gles3.rgba8888_window
-dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.sync_status.vertex
 dEQP-EGL.functional.sharing.gles2.buffer.render
 dEQP-EGL.functional.sharing.gles2.multithread.random_egl_server_sync.textures.copyteximage2d.13
 dEQP-EGL.functional.sharing.gles2.multithread.random_egl_sync.textures.copyteximage2d.0
 dEQP-EGL.functional.sharing.gles2.multithread.random.textures.copyteximage2d.16
 dEQP-EGL.functional.sharing.gles2.multithread.simple.buffers.bufferdata
-dEQP-EGL.functional.wide_color.pbuffer_8888_colorspace_srgb
-dEQP-EGL.functional.wide_color.pbuffer_888_colorspace_srgb
-dEQP-EGL.functional.wide_color.window_8888_colorspace_default
-dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb
+wayland-dEQP-EGL.functional.color_clears.multi_context.gles1_gles2.rgba4444_window
 
 # Started at least by Jan 2020, current as of May 2021
 dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
@@ -88,12 +71,21 @@ dEQP-GLES31.functional.layout_binding.ssbo.fragment_binding_array
 dEQP-GLES3.functional.fbo.blit.conversion.rg8i_to_r16i
 dEQP-GLES3.functional.fbo.blit.conversion.rg8_to_r16f
 
+# Noticed on July 2023
+KHR-GL46.buffer_storage.map_persistent_flush
+
 # First noticed Jun 1 2020 on an innocent branch.
-KHR-GL33.packed_depth_stencil.verify_copy_tex_image.depth32f_stencil8
+KHR-GL46.packed_depth_stencil.verify_copy_tex_image.depth32f_stencil8
+
+KHR-GL46.shader_image_size.basic-nonMS-fs-float
+KHR-GL46.shader_image_size.advanced-nonMS-fs-float
+KHR-GL46.shader_image_size.advanced-nonMS-fs-uint
 
 # Flaky with introduction of testing
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
 KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support
+
+# [  359.031093] *** gpu fault: ttbr0=00000001040d6000 iova=0000001012c0a880 dir=WRITE type=TRANSLATION source=UCHE (0,0,0,1)
 KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls
 
 # edfff331b3241d1c18d5c589fcdf75728089c886 mostly fixed this, but apparently it still flakes.
@@ -122,8 +114,7 @@ KHR-GLES31.core.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std4
 
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
 glx@glx_arb_sync_control@waitformsc
-glx@glx-copy-sub-buffer.*
-glx@glx-swap-copy
+glx@glx-swap-event_async
 glx@glx-swap-event_interval
 glx@glx-visuals-depth
 glx@glx-visuals-stencil
@@ -186,3 +177,52 @@ spec@egl_nok_texture_from_pixmap@basic
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
 spec@glsl-1.30@execution@texelfetch fs sampler2d 1x71-501x71
+
+# Started around 2022-06-26, first time was on an unlikely MR.
+KHR-GLES31.core.shader_image_size.advanced-nonMS-fs-int
+KHR-GL46.shader_image_size.advanced-nonMS-fs-int
+KHR-GLES31.core.shader_image_size.basic-nonMS-fs-float
+KHR-GLES31.core.shader_image_size.basic-nonMS-fs-int
+KHR-GLES31.core.shader_image_size.basic-nonMS-fs-uint
+
+# An old classic I thought I fixed at one point, but it still haunts us (particularly sensitive to specific frequencies iirc)
+spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-blit
+
+# Flakes from aug-oct 2022.
+spec@ext_timer_query@time-elapsed
+spec@ext_texture_lod_bias@lodbias
+
+# Started around 2022-11-16, first appeared in https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/19588
+# Tracking issue: https://gitlab.freedesktop.org/mesa/mesa/-/issues/7713
+KHR-GL46.shader_storage_buffer_object.advanced-unsizedArrayLength-fs-std430-matC-pad
+
+# sometimes passes.
+KHR-GL46.shader_image_load_store.basic-allTargets-store
+
+# First appeared 2022-09-28, innocent branch
+KHR-GLES31.core.shader_image_load_store.basic-allTargets-atomicFS
+
+KHR-GL46.shader_image_load_store.basic-allTargets-atomic
+
+# intermittently crashing with a sig11, maybe starting around 2023-01-18.
+# One log had the kernel complaining about allocating memory.
+spec@!opengl 1.1@max-texture-size
+
+# First seen 2023-05-05
+gmem-unaligned-dEQP-VK.renderpass.suballocation.load_store_op_none.depthstencil_d32_sfloat_s8_uint_load_op_depth_load_stencil_none_store_op_depth_store_stencil_none_stencil_write_off
+
+KHR-GL46.buffer_storage.map_persistent_dispatch
+KHR-GL46.buffer_storage.map_persistent_flush
+KHR-GL46.compute_shader.atomic-case1
+KHR-GL46.compute_shader.resource-uniform
+KHR-GL46.sepshaderobjs.StateInteraction
+KHR-GL46.shader_bitfield_operation.findMSB.ivec4_2
+KHR-GL46.shader_bitfield_operation.imulExtended.ivec2_3
+KHR-GL46.shader_bitfield_operation.ldexp.vec2_1
+KHR-GL46.shader_bitfield_operation.uaddCarry.uint_1
+KHR-GL46.shader_multisample_interpolation.render.base.rgba8.samples_4
+KHR-GL46.shader_storage_buffer_object.basic-atomic-case3-cs
+KHR-GL46.shader_storage_buffer_object.basic-matrixOperations-case3-cs
+
+# recently started flaking towards to UnexpectedPass
+spec@ext_external_objects@vk-depth-display@D24S8

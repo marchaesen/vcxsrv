@@ -189,7 +189,7 @@ _mesa_CreateMemoryObjectsEXT(GLsizei n, GLuint *memoryObjects)
    const char *func = "glCreateMemoryObjectsEXT";
 
    if (MESA_VERBOSE & (VERBOSE_API))
-      _mesa_debug(ctx, "%s(%d, %p)", func, n, memoryObjects);
+      _mesa_debug(ctx, "%s(%d, %p)\n", func, n, memoryObjects);
 
    if (!ctx->Extensions.EXT_memory_object) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);
@@ -754,8 +754,11 @@ void
 _mesa_delete_semaphore_object(struct gl_context *ctx,
                               struct gl_semaphore_object *semObj)
 {
-   if (semObj != &DummySemaphoreObject)
+   if (semObj != &DummySemaphoreObject) {
+      struct pipe_context *pipe = ctx->pipe;
+      pipe->screen->fence_reference(ctx->screen, &semObj->fence, NULL);
       FREE(semObj);
+   }
 }
 
 void GLAPIENTRY
@@ -766,7 +769,7 @@ _mesa_GenSemaphoresEXT(GLsizei n, GLuint *semaphores)
    const char *func = "glGenSemaphoresEXT";
 
    if (MESA_VERBOSE & (VERBOSE_API))
-      _mesa_debug(ctx, "%s(%d, %p)", func, n, semaphores);
+      _mesa_debug(ctx, "%s(%d, %p)\n", func, n, semaphores);
 
    if (!ctx->Extensions.EXT_semaphore) {
       _mesa_error(ctx, GL_INVALID_OPERATION, "%s(unsupported)", func);

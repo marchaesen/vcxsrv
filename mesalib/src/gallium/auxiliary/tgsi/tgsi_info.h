@@ -28,7 +28,8 @@
 #ifndef TGSI_INFO_H
 #define TGSI_INFO_H
 
-#include "pipe/p_compiler.h"
+#include "compiler/shader_enums.h"
+#include "util/compiler.h"
 #include "pipe/p_shader_tokens.h"
 #include "util/format/u_format.h"
 
@@ -88,9 +89,6 @@ tgsi_get_opcode_info(enum tgsi_opcode opcode);
 const char *
 tgsi_get_opcode_name(enum tgsi_opcode opcode);
 
-const char *
-tgsi_get_processor_name(enum pipe_shader_type processor);
-
 enum tgsi_opcode_type {
    TGSI_TYPE_UNTYPED, /* for MOV */
    TGSI_TYPE_VOID,
@@ -111,10 +109,10 @@ static inline bool tgsi_type_is_64bit(enum tgsi_opcode_type type)
 }
 
 enum tgsi_opcode_type
-tgsi_opcode_infer_src_type(enum tgsi_opcode opcode, uint src_idx);
+tgsi_opcode_infer_src_type(enum tgsi_opcode opcode, unsigned src_idx);
 
 enum tgsi_opcode_type
-tgsi_opcode_infer_dst_type(enum tgsi_opcode opcode, uint dst_idx);
+tgsi_opcode_infer_dst_type(enum tgsi_opcode opcode, unsigned dst_idx);
 
 #if defined __cplusplus
 }

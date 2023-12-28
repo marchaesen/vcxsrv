@@ -1,5 +1,5 @@
 dnl  Copyright 2005 Red Hat, Inc.
-dnl 
+dnl
 dnl  Permission to use, copy, modify, distribute, and sell this software and its
 dnl  documentation for any purpose is hereby granted without fee, provided that
 dnl  the above copyright notice appear in all copies and that both that
@@ -9,7 +9,7 @@ dnl  advertising or publicity pertaining to distribution of the software without
 dnl  specific, written prior permission.  Red Hat makes no
 dnl  representations about the suitability of this software for any purpose.  It
 dnl  is provided "as is" without express or implied warranty.
-dnl 
+dnl
 dnl  RED HAT DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 dnl  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
 dnl  EVENT SHALL RED HAT BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -21,14 +21,19 @@ dnl
 dnl Process this file with autoconf to create configure.
 
 # Initialize Autoconf
-AC_PREREQ([2.60])
-AC_INIT([xkbcomp], [1.3.1],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xkbcomp])
+AC_PREREQ([2.70])
+AC_INIT([xkbcomp], [1.4.6],
+        [https://gitlab.freedesktop.org/xorg/app/xkbcomp/-/issues], [xkbcomp])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
+# to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
+
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
 m4_ifndef([XORG_MACROS_VERSION],
@@ -45,13 +50,13 @@ if test ! -f "$srcdir/xkbparse.c"; then
    fi
 fi
 
-AC_CHECK_FUNCS([strdup strcasecmp])
-
-REQUIRED_MODULES="x11 xkbfile xproto >= 7.0.17"
+AC_CHECK_FUNCS([asprintf reallocarray recallocarray strdup strcasecmp])
 
 # Checks for pkg-config packages
-PKG_CHECK_MODULES(XKBCOMP, [$REQUIRED_MODULES])
-AC_SUBST(REQUIRED_MODULES)
+PKG_CHECK_MODULES(XKBCOMP, [x11 xkbfile xproto >= 7.0.17])
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_SYS_LARGEFILE
 
 AC_ARG_WITH([xkb_config_root],
     [AS_HELP_STRING([--with-xkb-config-root=<paths>],

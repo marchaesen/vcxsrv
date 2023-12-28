@@ -169,7 +169,7 @@ _mesa_get_current_tex_object(struct gl_context *ctx, GLenum target)
       case GL_TEXTURE_3D:
          return texUnit->CurrentTex[TEXTURE_3D_INDEX];
       case GL_PROXY_TEXTURE_3D:
-         return !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D)
+         return !(_mesa_is_gles2(ctx) && !ctx->Extensions.OES_texture_3D)
              ? ctx->Texture.ProxyTex[TEXTURE_3D_INDEX] : NULL;
       case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
       case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
@@ -303,9 +303,7 @@ void
 _mesa_update_texture_object_swizzle(struct gl_context *ctx,
                                     struct gl_texture_object *texObj)
 {
-   if (texObj->Attrib.BaseLevel >= MAX_TEXTURE_LEVELS)
-      return;
-   const struct gl_texture_image *img = texObj->Image[0][texObj->Attrib.BaseLevel];
+   const struct gl_texture_image *img = _mesa_base_tex_image(texObj);
    if (!img)
       return;
 
@@ -395,7 +393,7 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->Sampler.Attrib.CompareFunc = GL_LEQUAL;       /* ARB_shadow */
    obj->Sampler.Attrib.state.compare_mode = PIPE_TEX_COMPARE_NONE;
    obj->Sampler.Attrib.state.compare_func = PIPE_FUNC_LEQUAL;
-   obj->Attrib.DepthMode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
+   obj->Attrib.DepthMode = _mesa_is_desktop_gl_core(ctx) ? GL_RED : GL_LUMINANCE;
    obj->StencilSampling = false;
    obj->Sampler.Attrib.CubeMapSeamless = GL_FALSE;
    obj->Sampler.Attrib.state.seamless_cube_map = false;
@@ -408,8 +406,8 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
    obj->Sampler.Attrib.sRGBDecode = GL_DECODE_EXT;
    obj->Sampler.Attrib.ReductionMode = GL_WEIGHTED_AVERAGE_EXT;
    obj->Sampler.Attrib.state.reduction_mode = PIPE_TEX_REDUCTION_WEIGHTED_AVERAGE;
-   obj->BufferObjectFormat = ctx->API == API_OPENGL_COMPAT ? GL_LUMINANCE8 : GL_R8;
-   obj->_BufferObjectFormat = ctx->API == API_OPENGL_COMPAT
+   obj->BufferObjectFormat = _mesa_is_desktop_gl_compat(ctx) ? GL_LUMINANCE8 : GL_R8;
+   obj->_BufferObjectFormat = _mesa_is_desktop_gl_compat(ctx)
       ? MESA_FORMAT_L_UNORM8 : MESA_FORMAT_R_UNORM8;
    obj->Attrib.ImageFormatCompatibilityType = GL_IMAGE_FORMAT_COMPATIBILITY_BY_SIZE;
 
@@ -436,7 +434,6 @@ _mesa_initialize_texture_object( struct gl_context *ctx,
  * Allocate and initialize a new texture object.  But don't put it into the
  * texture object hash table.
  *
- * \param shared the shared GL state structure to contain the texture object
  * \param name integer name for the texture object
  * \param target either GL_TEXTURE_1D, GL_TEXTURE_2D, GL_TEXTURE_3D,
  * GL_TEXTURE_CUBE_MAP or GL_TEXTURE_RECTANGLE_NV.  zero is ok for the sake
@@ -975,14 +972,15 @@ _mesa_dirty_texobj(struct gl_context *ctx, struct gl_texture_object *texObj)
 
 /**
  * Return pointer to a default/fallback texture of the given type/target.
- * The texture is an RGBA texture with all texels = (0,0,0,1).
+ * The texture is an RGBA texture with all texels = (0,0,0,1) OR
+ * a depth texture that returns 0.
  * That's the value a GLSL sampler should get when sampling from an
  * incomplete texture.
  */
 struct gl_texture_object *
-_mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
+_mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex, bool is_depth)
 {
-   if (!ctx->Shared->FallbackTex[tex]) {
+   if (!ctx->Shared->FallbackTex[tex][is_depth]) {
       /* create fallback texture now */
       const GLsizei width = 1, height = 1;
       GLsizei depth = 1;
@@ -1068,9 +1066,14 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
       texObj->Sampler.Attrib.state.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
       texObj->Sampler.Attrib.state.mag_img_filter = PIPE_TEX_FILTER_NEAREST;
 
-      texFormat = st_ChooseTextureFormat(ctx, target,
-                                         GL_RGBA, GL_RGBA,
-                                         GL_UNSIGNED_BYTE);
+      if (is_depth)
+         texFormat = st_ChooseTextureFormat(ctx, target,
+                                            GL_DEPTH_COMPONENT, GL_DEPTH_COMPONENT,
+                                            GL_UNSIGNED_INT);
+      else
+         texFormat = st_ChooseTextureFormat(ctx, target,
+                                            GL_RGBA, GL_RGBA,
+                                            GL_UNSIGNED_BYTE);
 
       /* need a loop here just for cube maps */
       for (face = 0; face < numFaces; face++) {
@@ -1079,29 +1082,54 @@ _mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex)
          /* initialize level[0] texture image */
          texImage = _mesa_get_tex_image(ctx, texObj, faceTarget, 0);
 
-         _mesa_init_teximage_fields(ctx, texImage,
-                                    width,
-                                    (dims > 1) ? height : 1,
-                                    (dims > 2) ? depth : 1,
-                                    0, /* border */
-                                    GL_RGBA, texFormat);
+         GLenum internalFormat = is_depth ? GL_DEPTH_COMPONENT : GL_RGBA;
+         if (tex == TEXTURE_2D_MULTISAMPLE_INDEX ||
+             tex == TEXTURE_2D_MULTISAMPLE_ARRAY_INDEX) {
+            int samples[16];
+            st_QueryInternalFormat(ctx, 0, internalFormat, GL_SAMPLES, samples);
+            _mesa_init_teximage_fields_ms(ctx, texImage,
+                                          width,
+                                          (dims > 1) ? height : 1,
+                                          (dims > 2) ? depth : 1,
+                                          0, /* border */
+                                          internalFormat, texFormat,
+                                          samples[0],
+                                          GL_TRUE);
+         } else {
+            _mesa_init_teximage_fields(ctx, texImage,
+                                       width,
+                                       (dims > 1) ? height : 1,
+                                       (dims > 2) ? depth : 1,
+                                       0, /* border */
+                                       internalFormat, texFormat);
+         }
          _mesa_update_texture_object_swizzle(ctx, texObj);
-         st_TexImage(ctx, dims, texImage,
-                     GL_RGBA, GL_UNSIGNED_BYTE, texel,
-                     &ctx->DefaultPacking);
+         if (ctx->st->can_null_texture && is_depth) {
+            texObj->NullTexture = GL_TRUE;
+         } else {
+            if (is_depth)
+               st_TexImage(ctx, dims, texImage,
+                           GL_DEPTH_COMPONENT, GL_FLOAT, texel,
+                           &ctx->DefaultPacking);
+            else
+               st_TexImage(ctx, dims, texImage,
+                           GL_RGBA, GL_UNSIGNED_BYTE, texel,
+                           &ctx->DefaultPacking);
+         }
       }
 
       _mesa_test_texobj_completeness(ctx, texObj);
       assert(texObj->_BaseComplete);
       assert(texObj->_MipmapComplete);
 
-      ctx->Shared->FallbackTex[tex] = texObj;
+      ctx->Shared->FallbackTex[tex][is_depth] = texObj;
 
       /* Complete the driver's operation in case another context will also
        * use the same fallback texture. */
-      st_glFinish(ctx);
+      if (!ctx->st->can_null_texture || !is_depth)
+         st_glFinish(ctx);
    }
-   return ctx->Shared->FallbackTex[tex];
+   return ctx->Shared->FallbackTex[tex][is_depth];
 }
 
 
@@ -1590,7 +1618,7 @@ _mesa_tex_target_to_index(const struct gl_context *ctx, GLenum target)
       return TEXTURE_2D_INDEX;
    case GL_TEXTURE_3D:
       return (ctx->API != API_OPENGLES &&
-              !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D))
+              !(_mesa_is_gles2(ctx) && !ctx->Extensions.OES_texture_3D))
          ? TEXTURE_3D_INDEX : -1;
    case GL_TEXTURE_CUBE_MAP:
       return TEXTURE_CUBE_INDEX;
@@ -1748,7 +1776,7 @@ _mesa_lookup_or_create_texture(struct gl_context *ctx, GLenum target,
             finish_texture_init(ctx, target, newTexObj, targetIndex);
          }
       } else {
-         if (!no_error && ctx->API == API_OPENGL_CORE) {
+         if (!no_error && _mesa_is_desktop_gl_core(ctx)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(non-gen name)", caller);
             return NULL;

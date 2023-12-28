@@ -46,7 +46,7 @@ Buffer resource: can be used as a vertex, index, constant buffer
 Buffers do not really have a format, it's just bytes, but they are required
 to have their type set to a R8 format (without a specific "just byte" format,
 R8_UINT would probably make the most sense, but for historic reasons R8_UNORM
-is ok too). (This is just to make some shared buffer/texture code easier so
+is OK too). (This is just to make some shared buffer/texture code easier so
 format size can be queried.)
 width0 serves as size, most other resource properties don't apply but must be
 set appropriately (depth0/height0/array_size must be 1, last_level 0).
@@ -69,11 +69,11 @@ TODO there's no CAP bit currently for this, there's also unspecified size etc. l
 TODO: is there any chance of supporting GL pixel buffer object acceleration with this?
 
 
-OpenGL: vertex buffers in GL 1.5 or GL_ARB_vertex_buffer_object
+OpenGL: vertex buffers in GL 1.5 or :ext:`GL_ARB_vertex_buffer_object`
 
-- Binding to stream out requires GL 3.0 or GL_NV_transform_feedback
-- Binding as constant buffers requires GL 3.1 or GL_ARB_uniform_buffer_object
-- Binding to a sampling stage requires GL 3.1 or GL_ARB_texture_buffer_object
+- Binding to stream out requires GL 3.0 or :ext:`GL_NV_transform_feedback`
+- Binding as constant buffers requires GL 3.1 or :ext:`GL_ARB_uniform_buffer_object`
+- Binding to a sampling stage requires GL 3.1 or :ext:`GL_ARB_texture_buffer_object`
 
 D3D11: buffer resources
 - Binding to a render target requires D3D_FEATURE_LEVEL_10_0
@@ -93,7 +93,7 @@ PIPE_TEXTURE_1D / PIPE_TEXTURE_1D_ARRAY
 
 OpenGL: GL_TEXTURE_1D in GL 1.0
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or GL_ARB_texture_non_power_of_two
+- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 D3D11: 1D textures in D3D_FEATURE_LEVEL_10_0
 
@@ -107,7 +107,8 @@ PIPE_TEXTURE_RECT
 - Must use unnormalized coordinates
 - Must use a clamp wrap mode
 
-OpenGL: GL_TEXTURE_RECTANGLE in GL 3.1 or GL_ARB_texture_rectangle or GL_NV_texture_rectangle
+OpenGL: GL_TEXTURE_RECTANGLE in GL 3.1 or :ext:`GL_ARB_texture_rectangle` or
+:ext:`GL_NV_texture_rectangle`
 
 OpenCL: can create OpenCL images based on this, that can then be sampled arbitrarily
 
@@ -128,7 +129,7 @@ PIPE_TEXTURE_2D / PIPE_TEXTURE_2D_ARRAY
 
 OpenGL: GL_TEXTURE_2D in GL 1.0
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or GL_ARB_texture_non_power_of_two
+- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 OpenCL: can create OpenCL images based on this, that can then be sampled arbitrarily
 
@@ -147,9 +148,9 @@ Mipmap dimensions are reduced in all 3 coordinates.
 - array_size must be 1
 - Must use normalized coordinates
 
-OpenGL: GL_TEXTURE_3D in GL 1.2 or GL_EXT_texture3D
+OpenGL: GL_TEXTURE_3D in GL 1.2 or :ext:`GL_EXT_texture3D`
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or GL_ARB_texture_non_power_of_two
+- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
 
 D3D11: 3D textures
 
@@ -173,11 +174,11 @@ resulting in filtering taking samples from multiple surfaces near to the edge.
       width and height must be powers of two
 - Must use normalized coordinates
 
-OpenGL: GL_TEXTURE_CUBE_MAP in GL 1.3 or EXT_texture_cube_map
+OpenGL: GL_TEXTURE_CUBE_MAP in GL 1.3 or :ext:`GL_EXT_texture_cube_map`
 
-- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or GL_ARB_texture_non_power_of_two
-- Seamless cube maps require GL 3.2 or GL_ARB_seamless_cube_map or GL_AMD_seamless_cubemap_per_texture
-- Cube map arrays require GL 4.0 or GL_ARB_texture_cube_map_array
+- PIPE_CAP_NPOT_TEXTURES is equivalent to GL 2.0 or :ext:`GL_ARB_texture_non_power_of_two`
+- Seamless cube maps require GL 3.2 or :ext:`GL_ARB_seamless_cube_map` or :ext:`GL_AMD_seamless_cubemap_per_texture`
+- Cube map arrays require GL 4.0 or :ext:`GL_ARB_texture_cube_map_array`
 
 D3D11: 2D array textures with the D3D11_RESOURCE_MISC_TEXTURECUBE flag
 
@@ -191,7 +192,7 @@ Surfaces are views of a resource that can be bound as a framebuffer to serve as 
 
 TODO: write much more on surfaces
 
-OpenGL: FBOs are collections of surfaces in GL 3.0 or GL_ARB_framebuffer_object
+OpenGL: FBOs are collections of surfaces in GL 3.0 or :ext:`GL_ARB_framebuffer_object`
 
 D3D11: render target views and depth/stencil views
 

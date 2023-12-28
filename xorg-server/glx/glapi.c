@@ -48,6 +48,7 @@
 #endif
 #include <unistd.h>
 
+#undef _WINDOWS_
 #include "glapi.h"
 #include "glheader.h"
 #include "dispatch.h"

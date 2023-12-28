@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_SAMPLER_H
 #define VN_PROTOCOL_DRIVER_SAMPLER_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkSamplerReductionModeCreateInfo chain */
@@ -119,6 +119,61 @@ vn_encode_VkSamplerCustomBorderColorCreateInfoEXT(struct vn_cs_encoder *enc, con
     vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_self(enc, val);
 }
 
+/* struct VkSamplerBorderColorComponentMappingCreateInfoEXT chain */
+
+static inline size_t
+vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT_self(const VkSamplerBorderColorComponentMappingCreateInfoEXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkComponentMapping(&val->components);
+    size += vn_sizeof_VkBool32(&val->srgb);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT(const VkSamplerBorderColorComponentMappingCreateInfoEXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkSamplerBorderColorComponentMappingCreateInfoEXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkComponentMapping(enc, &val->components);
+    vn_encode_VkBool32(enc, &val->srgb);
+}
+
+static inline void
+vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT(struct vn_cs_encoder *enc, const VkSamplerBorderColorComponentMappingCreateInfoEXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT });
+    vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT_self(enc, val);
+}
+
 /* struct VkSamplerCreateInfo chain */
 
 static inline size_t
@@ -148,6 +203,14 @@ vn_sizeof_VkSamplerCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkSamplerCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkSamplerCustomBorderColorCreateInfoEXT_self((const VkSamplerCustomBorderColorCreateInfoEXT *)pnext);
+            return size;
+        case VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(412 /* VK_EXT_border_color_swizzle */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkSamplerCreateInfo_pnext(pnext->pNext);
+            size += vn_sizeof_VkSamplerBorderColorComponentMappingCreateInfoEXT_self((const VkSamplerBorderColorComponentMappingCreateInfoEXT *)pnext);
             return size;
         default:
             /* ignore unknown/unsupported struct */
@@ -221,6 +284,14 @@ vn_encode_VkSamplerCreateInfo_pnext(struct vn_cs_encoder *enc, const void *val)
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkSamplerCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkSamplerCustomBorderColorCreateInfoEXT_self(enc, (const VkSamplerCustomBorderColorCreateInfoEXT *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_SAMPLER_BORDER_COLOR_COMPONENT_MAPPING_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(412 /* VK_EXT_border_color_swizzle */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkSamplerCreateInfo_pnext(enc, pnext->pNext);
+            vn_encode_VkSamplerBorderColorComponentMappingCreateInfoEXT_self(enc, (const VkSamplerBorderColorComponentMappingCreateInfoEXT *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */
@@ -387,7 +458,7 @@ static inline void vn_decode_vkDestroySampler_reply(struct vn_cs_decoder *dec, V
     /* skip pAllocator */
 }
 
-static inline void vn_submit_vkCreateSampler(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateSampler(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -399,16 +470,16 @@ static inline void vn_submit_vkCreateSampler(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateSampler_reply(device, pCreateInfo, pAllocator, pSampler) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateSampler(enc, cmd_flags, device, pCreateInfo, pAllocator, pSampler);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroySampler(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroySampler(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -420,54 +491,54 @@ static inline void vn_submit_vkDestroySampler(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroySampler_reply(device, sampler, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroySampler(enc, cmd_flags, device, sampler, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateSampler(struct vn_instance *vn_instance, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler)
+static inline VkResult vn_call_vkCreateSampler(struct vn_ring *vn_ring, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateSampler(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSampler, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateSampler(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSampler, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateSampler_reply(dec, device, pCreateInfo, pAllocator, pSampler);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateSampler(struct vn_instance *vn_instance, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler)
+static inline void vn_async_vkCreateSampler(struct vn_ring *vn_ring, VkDevice device, const VkSamplerCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkSampler* pSampler)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateSampler(vn_instance, 0, device, pCreateInfo, pAllocator, pSampler, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateSampler(vn_ring, 0, device, pCreateInfo, pAllocator, pSampler, &submit);
 }
 
-static inline void vn_call_vkDestroySampler(struct vn_instance *vn_instance, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroySampler(struct vn_ring *vn_ring, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroySampler(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, sampler, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroySampler(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, sampler, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroySampler_reply(dec, device, sampler, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroySampler(struct vn_instance *vn_instance, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroySampler(struct vn_ring *vn_ring, VkDevice device, VkSampler sampler, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroySampler(vn_instance, 0, device, sampler, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroySampler(vn_ring, 0, device, sampler, pAllocator, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_SAMPLER_H */

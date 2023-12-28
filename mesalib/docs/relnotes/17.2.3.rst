@@ -85,7 +85,7 @@ Ilia Mirkin (2):
 -  nv50/ir: fix 64-bit integer shifts
 -  nv50,nvc0: fix push hint logic in presence of a start offset
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  intel/compiler: Don't cmod propagate into a saturated operation
 -  intel/compiler: Don't propagate cmod into integer multiplies

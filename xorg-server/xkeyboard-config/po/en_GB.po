@@ -885,10 +885,6 @@ msgstr "Latin Unicode qwerty"
 msgid "Latin qwerty"
 msgstr "Latin qwerty"
 
-#: ../rules/base.xml.in.h:214
-msgid "Latin with guillemots"
-msgstr "Latin with guillemots"
-
 #: ../rules/base.xml.in.h:215
 msgid "Latvia"
 msgstr "Latvia"
@@ -1670,10 +1666,6 @@ msgstr ""
 msgid "Use Slovenian digraphs"
 msgstr ""
 
-#: ../rules/base.xml.in.h:405
-msgid "Use guillemots for quotes"
-msgstr ""
-
 #: ../rules/base.xml.in.h:406
 msgid "Use keyboard LED to show alternative group."
 msgstr "Use keyboard LED to show alternative group."
@@ -1705,10 +1697,6 @@ msgstr "Winkeys"
 #: ../rules/base.xml.in.h:413
 msgid "With &lt;\\|&gt; key"
 msgstr "With &lt;\\|&gt; key"
-
-#: ../rules/base.xml.in.h:414
-msgid "With guillemots"
-msgstr "With guillemots"
 
 #: ../rules/base.xml.in.h:415
 msgid "Yahoo! Internet Keyboard"

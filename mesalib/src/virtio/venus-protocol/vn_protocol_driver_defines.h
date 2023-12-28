@@ -18,8 +18,10 @@
 #define VK_STRUCTURE_TYPE_RING_CREATE_INFO_MESA ((VkStructureType)1000384000)
 #define VK_STRUCTURE_TYPE_MEMORY_RESOURCE_PROPERTIES_MESA ((VkStructureType)1000384001)
 #define VK_STRUCTURE_TYPE_IMPORT_MEMORY_RESOURCE_INFO_MESA ((VkStructureType)1000384002)
-#define VK_STRUCTURE_TYPE_MEMORY_RESOURCE_ALLOCATION_SIZE_PROPERTIES_100000_MESA ((VkStructureType)1000384003)
-#define VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_RESOURCE_INFO_100000_MESA ((VkStructureType)1000384004)
+#define VK_STRUCTURE_TYPE_MEMORY_RESOURCE_ALLOCATION_SIZE_PROPERTIES_MESA ((VkStructureType)1000384003)
+#define VK_STRUCTURE_TYPE_IMPORT_SEMAPHORE_RESOURCE_INFO_MESA ((VkStructureType)1000384004)
+#define VK_STRUCTURE_TYPE_DEVICE_QUEUE_TIMELINE_INFO_MESA ((VkStructureType)1000384005)
+#define VK_STRUCTURE_TYPE_RING_MONITOR_INFO_MESA ((VkStructureType)1000384006)
 
 typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkCreateInstance_EXT = 0,
@@ -326,6 +328,8 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkGetMemoryFdPropertiesKHR_EXT = 194,
     VK_COMMAND_TYPE_vkImportSemaphoreFdKHR_EXT = 242,
     VK_COMMAND_TYPE_vkGetSemaphoreFdKHR_EXT = 243,
+    VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT = 249,
+    VK_COMMAND_TYPE_vkCmdPushDescriptorSetWithTemplateKHR_EXT = 250,
     VK_COMMAND_TYPE_vkCmdBeginConditionalRenderingEXT_EXT = 240,
     VK_COMMAND_TYPE_vkCmdEndConditionalRenderingEXT_EXT = 241,
     VK_COMMAND_TYPE_vkImportFenceFdKHR_EXT = 238,
@@ -334,10 +338,33 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT_EXT = 235,
     VK_COMMAND_TYPE_vkGetCalibratedTimestampsEXT_EXT = 236,
     VK_COMMAND_TYPE_vkCmdSetLineStippleEXT_EXT = 237,
+    VK_COMMAND_TYPE_vkCmdSetVertexInputEXT_EXT = 255,
     VK_COMMAND_TYPE_vkCmdSetPatchControlPointsEXT_EXT = 233,
     VK_COMMAND_TYPE_vkCmdSetLogicOpEXT_EXT = 234,
+    VK_COMMAND_TYPE_vkCmdSetColorWriteEnableEXT_EXT = 254,
     VK_COMMAND_TYPE_vkCmdDrawMultiEXT_EXT = 247,
     VK_COMMAND_TYPE_vkCmdDrawMultiIndexedEXT_EXT = 248,
+    VK_COMMAND_TYPE_vkCmdSetTessellationDomainOriginEXT_EXT = 256,
+    VK_COMMAND_TYPE_vkCmdSetDepthClampEnableEXT_EXT = 257,
+    VK_COMMAND_TYPE_vkCmdSetPolygonModeEXT_EXT = 258,
+    VK_COMMAND_TYPE_vkCmdSetRasterizationSamplesEXT_EXT = 259,
+    VK_COMMAND_TYPE_vkCmdSetSampleMaskEXT_EXT = 260,
+    VK_COMMAND_TYPE_vkCmdSetAlphaToCoverageEnableEXT_EXT = 261,
+    VK_COMMAND_TYPE_vkCmdSetAlphaToOneEnableEXT_EXT = 262,
+    VK_COMMAND_TYPE_vkCmdSetLogicOpEnableEXT_EXT = 263,
+    VK_COMMAND_TYPE_vkCmdSetColorBlendEnableEXT_EXT = 264,
+    VK_COMMAND_TYPE_vkCmdSetColorBlendEquationEXT_EXT = 265,
+    VK_COMMAND_TYPE_vkCmdSetColorWriteMaskEXT_EXT = 266,
+    VK_COMMAND_TYPE_vkCmdSetRasterizationStreamEXT_EXT = 267,
+    VK_COMMAND_TYPE_vkCmdSetConservativeRasterizationModeEXT_EXT = 268,
+    VK_COMMAND_TYPE_vkCmdSetExtraPrimitiveOverestimationSizeEXT_EXT = 269,
+    VK_COMMAND_TYPE_vkCmdSetDepthClipEnableEXT_EXT = 270,
+    VK_COMMAND_TYPE_vkCmdSetSampleLocationsEnableEXT_EXT = 271,
+    VK_COMMAND_TYPE_vkCmdSetColorBlendAdvancedEXT_EXT = 272,
+    VK_COMMAND_TYPE_vkCmdSetProvokingVertexModeEXT_EXT = 273,
+    VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT = 274,
+    VK_COMMAND_TYPE_vkCmdSetLineStippleEnableEXT_EXT = 275,
+    VK_COMMAND_TYPE_vkCmdSetDepthClipNegativeOneToOneEXT_EXT = 276,
     VK_COMMAND_TYPE_vkSetReplyCommandStreamMESA_EXT = 178,
     VK_COMMAND_TYPE_vkSeekReplyCommandStreamMESA_EXT = 179,
     VK_COMMAND_TYPE_vkExecuteCommandStreamsMESA_EXT = 180,
@@ -346,15 +373,24 @@ typedef enum VkCommandTypeEXT {
     VK_COMMAND_TYPE_vkNotifyRingMESA_EXT = 190,
     VK_COMMAND_TYPE_vkWriteRingExtraMESA_EXT = 191,
     VK_COMMAND_TYPE_vkGetMemoryResourcePropertiesMESA_EXT = 192,
-    VK_COMMAND_TYPE_vkResetFenceResource100000MESA_EXT = 244,
-    VK_COMMAND_TYPE_vkWaitSemaphoreResource100000MESA_EXT = 245,
-    VK_COMMAND_TYPE_vkImportSemaphoreResource100000MESA_EXT = 246,
-    VK_COMMAND_TYPE_vkGetVenusExperimentalFeatureData100000MESA_EXT = 195,
+    VK_COMMAND_TYPE_vkResetFenceResourceMESA_EXT = 244,
+    VK_COMMAND_TYPE_vkWaitSemaphoreResourceMESA_EXT = 245,
+    VK_COMMAND_TYPE_vkImportSemaphoreResourceMESA_EXT = 246,
+    VK_COMMAND_TYPE_vkSubmitVirtqueueSeqnoMESA_EXT = 251,
+    VK_COMMAND_TYPE_vkWaitVirtqueueSeqnoMESA_EXT = 252,
+    VK_COMMAND_TYPE_vkWaitRingSeqnoMESA_EXT = 253,
 } VkCommandTypeEXT;
 
 typedef enum VkCommandFlagBitsEXT {
     VK_COMMAND_GENERATE_REPLY_BIT_EXT = 0x00000001,
 } VkCommandFlagBitsEXT;
+
+typedef enum VkRingStatusFlagBitsMESA {
+    VK_RING_STATUS_NONE_MESA = 0,
+    VK_RING_STATUS_IDLE_BIT_MESA = 0x00000001,
+    VK_RING_STATUS_FATAL_BIT_MESA = 0x00000002,
+    VK_RING_STATUS_ALIVE_BIT_MESA = 0x00000004,
+} VkRingStatusFlagBitsMESA;
 
 typedef VkFlags VkCommandFlagsEXT;
 
@@ -363,6 +399,8 @@ typedef VkFlags VkCommandStreamExecutionFlagsMESA;
 typedef VkFlags VkRingCreateFlagsMESA;
 
 typedef VkFlags VkRingNotifyFlagsMESA;
+
+typedef VkFlags VkRingStatusFlagsMESA;
 
 typedef struct VkCommandStreamDescriptionMESA {
     uint32_t resourceId;
@@ -392,6 +430,12 @@ typedef struct VkRingCreateInfoMESA {
     size_t extraSize;
 } VkRingCreateInfoMESA;
 
+typedef struct VkRingMonitorInfoMESA {
+    VkStructureType sType;
+    const void* pNext;
+    uint32_t maxReportingPeriodMicroseconds;
+} VkRingMonitorInfoMESA;
+
 typedef struct VkMemoryResourcePropertiesMESA {
     VkStructureType sType;
     void* pNext;
@@ -404,24 +448,23 @@ typedef struct VkImportMemoryResourceInfoMESA {
     uint32_t resourceId;
 } VkImportMemoryResourceInfoMESA;
 
-typedef struct VkVenusExperimentalFeatures100000MESA {
-    VkBool32 memoryResourceAllocationSize;
-    VkBool32 globalFencing;
-    VkBool32 largeRing;
-    VkBool32 syncFdFencing;
-} VkVenusExperimentalFeatures100000MESA;
-
-typedef struct VkMemoryResourceAllocationSizeProperties100000MESA {
+typedef struct VkMemoryResourceAllocationSizePropertiesMESA {
     VkStructureType sType;
     void* pNext;
     uint64_t allocationSize;
-} VkMemoryResourceAllocationSizeProperties100000MESA;
+} VkMemoryResourceAllocationSizePropertiesMESA;
 
-typedef struct VkImportSemaphoreResourceInfo100000MESA {
+typedef struct VkImportSemaphoreResourceInfoMESA {
     VkStructureType sType;
     const void* pNext;
     VkSemaphore semaphore;
     uint32_t resourceId;
-} VkImportSemaphoreResourceInfo100000MESA;
+} VkImportSemaphoreResourceInfoMESA;
+
+typedef struct VkDeviceQueueTimelineInfoMESA {
+    VkStructureType sType;
+    const void* pNext;
+    uint32_t ringIdx;
+} VkDeviceQueueTimelineInfoMESA;
 
 #endif /* VN_PROTOCOL_DRIVER_DEFINES_H */

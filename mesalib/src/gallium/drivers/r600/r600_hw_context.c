@@ -31,7 +31,7 @@
 
 
 void r600_need_cs_space(struct r600_context *ctx, unsigned num_dw,
-			boolean count_draw_in, unsigned num_atomics)
+			bool count_draw_in, unsigned num_atomics)
 {
 	/* Flush the DMA IB if it's not empty. */
 	if (radeon_emitted(&ctx->b.dma.cs, 0))
@@ -167,7 +167,7 @@ void r600_flush_emit(struct r600_context *rctx)
 
 	if (rctx->b.flags & R600_CONTEXT_INV_CONST_CACHE) {
 		/* Direct constant addressing uses the shader cache.
-		 * Indirect contant addressing uses the vertex cache. */
+		 * Indirect constant addressing uses the vertex cache. */
 		cp_coher_cntl |= S_0085F0_SH_ACTION_ENA(1) |
 				 (rctx->has_vertex_cache ? S_0085F0_VC_ACTION_ENA(1)
 							 : S_0085F0_TC_ACTION_ENA(1));
@@ -528,7 +528,7 @@ void r600_cp_dma_copy_buffer(struct r600_context *rctx,
 
 		r600_need_cs_space(rctx,
 				   10 + (rctx->b.flags ? R600_MAX_FLUSH_CS_DWORDS : 0) +
-				   3 + R600_MAX_PFP_SYNC_ME_DWORDS, FALSE, 0);
+				   3 + R600_MAX_PFP_SYNC_ME_DWORDS, false, 0);
 
 		/* Flush the caches for the first copy only. */
 		if (rctx->b.flags) {

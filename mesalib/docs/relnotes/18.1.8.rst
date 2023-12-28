@@ -118,7 +118,7 @@ Ian Romanick (2):
 -  i965/vec4: Correctly handle uniform sources in
    generate_tes_add_indirect_urb_offset
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  anv: Fill holes in the VF VUE to zero
 -  nir/algebraic: Be more careful converting ushr to extract_u8/16

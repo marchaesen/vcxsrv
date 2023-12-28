@@ -56,12 +56,17 @@ const driOptionDescription gallium_driconf[] = {
 };
 
 int
-pipe_loader_probe(struct pipe_loader_device **devs, int ndev)
+pipe_loader_probe(struct pipe_loader_device **devs, int ndev, bool with_zink)
 {
    int i, n = 0;
 
    for (i = 0; i < ARRAY_SIZE(backends); i++)
       n += backends[i](&devs[n], MAX2(0, ndev - n));
+
+#if defined(HAVE_ZINK) && defined(HAVE_LIBDRM)
+   if (with_zink)
+      n += pipe_loader_drm_zink_probe(&devs[n], MAX2(0, ndev - n));
+#endif
 
    return n;
 }
@@ -97,8 +102,12 @@ merge_driconf(const driOptionDescription *driver_driconf, unsigned driver_count,
       return NULL;
    }
 
-   memcpy(merged, gallium_driconf, sizeof(*merged) * gallium_count);
-   memcpy(&merged[gallium_count], driver_driconf, sizeof(*merged) * driver_count);
+   if (gallium_count)
+      memcpy(merged, gallium_driconf, sizeof(*merged) * gallium_count);
+   if (driver_count) {
+      memcpy(&merged[gallium_count], driver_driconf,
+             sizeof(*merged) * driver_count);
+   }
 
    *merged_count = driver_count + gallium_count;
    return merged;

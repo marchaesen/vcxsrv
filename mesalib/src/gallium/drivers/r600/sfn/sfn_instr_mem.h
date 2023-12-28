@@ -34,12 +34,10 @@ namespace r600 {
 
 class Shader;
 
-class GDSInstr : public Instr {
+class GDSInstr : public Instr, public Resource {
 public:
-
-   GDSInstr(ESDOp op, Register *dest,
-            const RegisterVec4& src, int uav_base,
-            PRegister uav_id);
+   GDSInstr(
+      ESDOp op, Register *dest, const RegisterVec4& src, int uav_base, PRegister uav_id);
 
    bool is_equal_to(const GDSInstr& lhs) const;
 
@@ -48,22 +46,22 @@ public:
 
    bool do_ready() const override;
 
-   auto opcode() const {return m_op;}
-   auto src() const { return m_src;}
+   auto opcode() const { return m_op; }
+   auto& src() { return m_src; }
+   auto& src() const { return m_src; }
 
-   const auto& dest() const { return m_dest;}
-   auto& dest() { return m_dest;}
-
-   auto uav_id() const {return m_uav_id;}
-   auto uav_base() const {return m_uav_base;}
+   const auto& dest() const { return m_dest; }
+   auto& dest() { return m_dest; }
 
    static auto from_string(std::istream& is, ValueFactory& value_factory) -> Pointer;
 
    static bool emit_atomic_counter(nir_intrinsic_instr *intr, Shader& shader);
-   uint32_t slots() const override {return 1;};
+   uint32_t slots() const override { return 1; };
+   uint8_t allowed_src_chan_mask() const override;
+
+   void update_indirect_addr(PRegister old_reg, PRegister addr) override;
 
 private:
-
    static bool emit_atomic_read(nir_intrinsic_instr *intr, Shader& shader);
    static bool emit_atomic_op2(nir_intrinsic_instr *intr, Shader& shader);
    static bool emit_atomic_inc(nir_intrinsic_instr *intr, Shader& shader);
@@ -76,13 +74,10 @@ private:
 
    RegisterVec4 m_src;
 
-   int m_uav_base{0};
-   PRegister m_uav_id{nullptr};
    std::bitset<8> m_tex_flags;
 };
 
-
-class RatInstr : public Instr {
+class RatInstr : public Instr, public Resource {
 
 public:
    enum ERatOp {
@@ -127,38 +122,44 @@ public:
       UNSUPPORTED
    };
 
-   RatInstr(ECFOpCode cf_opcode, ERatOp rat_op,
-            const RegisterVec4& data, const RegisterVec4& index,
-            int rat_id, PRegister rat_id_offset,
-            int burst_count, int comp_mask, int element_size);
+   RatInstr(ECFOpCode cf_opcode,
+            ERatOp rat_op,
+            const RegisterVec4& data,
+            const RegisterVec4& index,
+            int rat_id,
+            PRegister rat_id_offset,
+            int burst_count,
+            int comp_mask,
+            int element_size);
 
-   auto rat_id_offset() const { return m_rat_id_offset;}
-   int  rat_id() const { return m_rat_id;}
+   ERatOp rat_op() const { return m_rat_op; }
 
-   ERatOp rat_op() const {return m_rat_op;}
+   const auto& value() const { return m_data; }
+   auto& value() { return m_data; }
 
-   const auto& value() const { return m_data;}
-   auto& value() { return m_data;}
+   const auto& addr() const { return m_index; }
+   auto& addr() { return m_index; }
 
-   const auto& addr() const { return m_index;}
-   auto& addr() { return m_index;}
+   int data_gpr() const { return m_data.sel(); }
+   int index_gpr() const { return m_index.sel(); }
+   int elm_size() const { return m_element_size; }
 
-   int data_gpr() const {return m_data.sel();}
-   int index_gpr() const {return m_index.sel();}
-   int elm_size() const {return m_element_size;}
+   int comp_mask() const { return m_comp_mask; }
 
-   int comp_mask() const {return m_comp_mask;}
+   bool need_ack() const { return m_need_ack; }
+   int burst_count() const { return m_burst_count; }
 
-   bool need_ack() const {return m_need_ack;}
-   int burst_count() const {return m_burst_count;}
+   int data_swz(int chan) const { return m_data[chan]->chan(); }
 
-   int data_swz(int chan) const {return m_data[chan]->chan();}
+   ECFOpCode cf_opcode() const { return m_cf_opcode; }
 
-   ECFOpCode cf_opcode() const { return m_cf_opcode;}
-
-   void set_ack() {m_need_ack = true; set_mark(); }
-   void set_mark() {m_need_mark = true; }
-   bool mark() {return m_need_mark;}
+   void set_ack()
+   {
+      m_need_ack = true;
+      set_mark();
+   }
+   void set_mark() { m_need_mark = true; }
+   bool mark() { return m_need_mark; }
 
    void accept(ConstInstrVisitor& visitor) const override;
    void accept(InstrVisitor& visitor) override;
@@ -167,7 +168,10 @@ public:
 
    static bool emit(nir_intrinsic_instr *intr, Shader& shader);
 
+   void update_indirect_addr(PRegister old_reg, PRegister addr) override;
+
 private:
+   static bool emit_global_store(nir_intrinsic_instr *intr, Shader& shader);
 
    static bool emit_ssbo_load(nir_intrinsic_instr *intr, Shader& shader);
    static bool emit_ssbo_store(nir_intrinsic_instr *intr, Shader& shader);
@@ -177,6 +181,7 @@ private:
    static bool emit_image_store(nir_intrinsic_instr *intr, Shader& shader);
    static bool emit_image_load_or_atomic(nir_intrinsic_instr *intr, Shader& shader);
    static bool emit_image_size(nir_intrinsic_instr *intr, Shader& shader);
+   static bool emit_image_samples(nir_intrinsic_instr *intrin, Shader& shader);
 
    bool do_ready() const override;
    void do_print(std::ostream& os) const override;
@@ -186,9 +191,7 @@ private:
 
    RegisterVec4 m_data;
    RegisterVec4 m_index;
-   PRegister m_rat_id_offset{nullptr};
 
-   int m_rat_id{0};
    int m_burst_count{0};
    int m_comp_mask{15};
    int m_element_size{3};
@@ -196,7 +199,6 @@ private:
    bool m_need_mark{false};
 };
 
-
-}
+} // namespace r600
 
 #endif // GDSINSTR_H

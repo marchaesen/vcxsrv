@@ -23,7 +23,7 @@
 #ifndef R300_CHIPSET_H
 #define R300_CHIPSET_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 /* these are sizes in dwords */
 #define R300_HIZ_LIMIT 10240
@@ -50,13 +50,13 @@ struct r300_capabilities {
     /* The number of texture units. */
     unsigned num_tex_units;
     /* Whether or not TCL is physically present */
-    boolean has_tcl;
+    bool has_tcl;
     /* Some chipsets do not have HiZ RAM - other have varying amounts. */
     int hiz_ram;
     /* Some chipsets have zmask ram per pipe some don't. */
     int zmask_ram;
     /* CMASK is for MSAA colorbuffer compression and fast clear. */
-    boolean has_cmask;
+    bool has_cmask;
     /* Compression mode for ZMASK. */
     enum r300_zmask_compression z_compress;
     /* Whether or not this is RV350 or newer, including all r400 and r500
@@ -65,12 +65,12 @@ struct r300_capabilities {
      * - Better MACRO_SWITCH in texture tiling
      * - Half float vertex
      * - More HyperZ optimizations */
-    boolean is_rv350;
+    bool is_rv350;
     /* Whether or not this is R400. The differences compared their rv350
      * cousins are:
      * - Extended fragment shader registers
      * - 3DC texture compression (RGTC2) */
-    boolean is_r400;
+    bool is_r400;
     /* Whether or not this is an RV515 or newer; R500s have many differences
      * that require extra consideration, compared to their rv350 cousins:
      * - Extra bit of width and height on texture sizes
@@ -81,13 +81,13 @@ struct r300_capabilities {
      * - 24-bit depth textures
      * - Stencil back-face reference value
      * - Ability to render up to 2^24 - 1 vertices with signed index offset */
-    boolean is_r500;
+    bool is_r500;
     /* Whether or not the second pixel pipe is accessed with the high bit */
-    boolean high_second_pipe;
+    bool high_second_pipe;
     /* DXTC texture swizzling. */
-    boolean dxtc_swizzle;
+    bool dxtc_swizzle;
     /* Whether R500_US_FORMAT0_0 exists (R520-only and depends on DRM). */
-    boolean has_us_format;
+    bool has_us_format;
 };
 
 void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps);

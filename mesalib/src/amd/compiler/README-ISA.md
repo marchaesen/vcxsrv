@@ -113,6 +113,18 @@ Some instructions have a `_LEGACY` variant which implements "DX9 rules", in whic
 the zero "wins" in multiplications, ie. `0.0*x` is always `0.0`. The VEGA ISA
 mentions `V_MAC_LEGACY_F32` but this instruction is not really there on VEGA.
 
+## LDS size and allocation granule
+
+GFX7-8 ISA manuals are mistaken about the available LDS size.
+
+* GFX7+ workgroups can use 64KB LDS.
+  There is 64KB LDS per CU.
+* GFX6 workgroups can use 32KB LDS.
+  There is 64KB LDS per CU, but a single workgroup can only use half of it.
+
+ Regarding the LDS allocation granule, Mesa has the correct details and
+ the ISA manuals are mistaken.
+
 ## `m0` with LDS instructions on Vega and newer
 
 The Vega ISA doc (both the old one and the "7nm" one) claims that LDS instructions
@@ -177,6 +189,20 @@ On GFX9, the A16 field enables both 16 bit addresses and derivatives.
 Since GFX10+ these are fully independent of each other, A16 controls 16 bit addresses
 and G16 opcodes 16 bit derivatives. A16 without G16 uses 32 bit derivatives.
 
+## POPS collision wave ID argument (GFX9-10.3)
+
+The 2020 RDNA and RDNA 2 ISA references contain incorrect offsets and widths of
+the fields of the "POPS collision wave ID" SGPR argument.
+
+According to the code generated for Rasterizer Ordered View usage in Direct3D,
+the correct layout is:
+
+* [31]: Whether overlap has occurred.
+* [29:28] (GFX10+) / [28] (GFX9): ID of the packer the wave should be associated
+  with.
+* [25:16]: Newest overlapped wave ID.
+* [9:0]: Current wave ID.
+
 # Hardware Bugs
 
 ## SMEM corrupts VCCZ on SI/CI
@@ -193,6 +219,11 @@ Currently, we don't do this.
 [See this LLVM source.](https://github.com/llvm/llvm-project/blob/main/llvm/lib/Target/AMDGPU/Utils/AMDGPUBaseInfo.cpp#L1917-L1922)
 
 This leads to wrong bounds checking, using a VGPR offset fixes it.
+
+## unused VMEM/DS destination lanes can't be used without waiting
+
+On GFX11, we can't safely read/write unused lanes of VMEM/DS destination
+VGPRs without waiting for the load to finish.
 
 ## GCN / GFX6 hazards
 
@@ -220,7 +251,7 @@ VMEM/FLAT/GLOBAL/SCRATCH/DS instruction reads an SGPR (or EXEC, or M0).
 Then, a SALU/SMEM instruction writes the same SGPR.
 
 Mitigated by:
-A VALU instruction or an `s_waitcnt vmcnt(0)` between the two instructions.
+A VALU instruction or an `s_waitcnt` between the two instructions.
 
 ### SMEMtoVectorWriteHazard
 
@@ -237,8 +268,8 @@ is located at this offset.
 
 ### InstFwdPrefetchBug
 
-According to LLVM, the `s_inst_prefetch` instruction can cause a hang.
-There are no further details.
+According to LLVM, the `s_inst_prefetch` instruction can cause a hang on GFX10.
+Seems to be resolved on GFX10.3+. There are no further details.
 
 ### LdsMisalignedBug
 
@@ -288,3 +319,53 @@ Only `s_waitcnt_vscnt null, 0`. Needed even if the first instruction is a load.
 
 NSA MIMG instructions should be limited to 3 dwords before GFX10.3 to avoid
 stability issues: https://reviews.llvm.org/D103348
+
+## RDNA3 / GFX11 hazards
+
+### VcmpxPermlaneHazard
+
+Same as GFX10.
+
+### LdsDirectVALUHazard
+
+Triggered by:
+LDSDIR instruction writing a VGPR soon after it's used by a VALU instruction.
+
+Mitigated by:
+A vdst wait, preferably using the LDSDIR's field.
+
+### LdsDirectVMEMHazard
+
+Triggered by:
+LDSDIR instruction writing a VGPR after it's used by a VMEM/DS instruction.
+
+Mitigated by:
+Waiting for the VMEM/DS instruction to finish, a VALU or export instruction, or
+`s_waitcnt_depctr 0xffe3`.
+
+### VALUTransUseHazard
+
+Triggered by:
+A VALU instruction reading a VGPR written by a transcendental VALU instruction without 6+ VALU or 2+
+transcendental instructions in-between.
+
+Mitigated by:
+A va_vdst=0 wait: `s_waitcnt_deptr 0x0fff`
+
+### VALUPartialForwardingHazard
+
+Triggered by:
+A VALU instruction reading two VGPRs: one written before an exec write by SALU and one after. To
+trigger, there must be less than 3 VALU between the first and second VGPR writes and less than 5
+VALU between the second VGPR write and the current instruction.
+
+Mitigated by:
+A va_vdst=0 wait: `s_waitcnt_deptr 0x0fff`
+
+### VALUMaskWriteHazard
+
+Triggered by:
+SALU writing then reading a SGPR that was previously used as a lane mask for a VALU.
+
+Mitigated by:
+A VALU instruction reading a SGPR or with literal, or a sa_sdst=0 wait: `s_waitcnt_depctr 0xfffe`

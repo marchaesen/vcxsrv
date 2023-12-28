@@ -1,14 +1,14 @@
 %YAML 1.2
 ---
 traces-db:
-  download-url: "https://minio-packet.freedesktop.org/mesa-tracie-public/"
+  download-url: "https://s3.freedesktop.org/mesa-tracie-public/"
 
 traces:
   0ad/0ad-v2.trace:
     crocus-g41:
       checksum: f4f723a73fde41b8a00a2a6518190adf
     crocus-hsw:
-      checksum: 6567807570543c2875fc6912f00687e5
+      checksum: 3ba17078e281e3d73a0e2d5d72ebf869
   behdad-glyphy/glyphy-v2.trace:
     crocus-g41:
       label: [skip, flakes, broken]
@@ -89,7 +89,8 @@ traces:
     crocus-g41:
       checksum: 0f14a88f511cd886c920238c80017e5d
     crocus-hsw:
-      checksum: ec6b2615ab12db73126e06e6b20663ec
+      checksum: d77b3697a9b1a47611cde275aa6cb912
+      text: "https://gitlab.freedesktop.org/mesa/mesa/-/issues/9159"
   paraview/pv-manyspheres-v2.trace:
     crocus-hsw:
       checksum: 73e5d34fb13268b0c7126297bfc34965
@@ -115,7 +116,7 @@ traces:
       label: [skip, flakes]
   supertuxkart/supertuxkart-mansion-egl-gles-v2.trace:
     crocus-hsw:
-      checksum: 8f1224abf2fab07f7dc31ae26312c948
+      checksum: c59dc93744d2dfcf172aa3f26ce2a62e
   valve/counterstrike-v2.trace:
     crocus-g41:
       checksum: 90c01e73b3544cb477ac6109bc61bef1
@@ -163,21 +164,20 @@ traces:
       label: [unsupported]
     crocus-hsw:
       checksum: c07530897dc5a6882cbf35737334336b
-  freedoom/freedoom-phase2-gl-high.trace:
-    crocus-g41:
-      label: [unsupported]
-    crocus-hsw:
-      checksum: 997ec70d945fdbda8a98efe831000338
   unvanquished/unvanquished-lowest.trace:
     crocus-g41:
       label: [unsupported]
     crocus-hsw:
+      label: [skip, flakes]
       checksum: 884096b6dd40e2f500d0837501287fac
+      text: "https://gitlab.freedesktop.org/mesa/mesa/-/issues/7158"
   unvanquished/unvanquished-ultra.trace:
     crocus-g41:
       label: [unsupported]
     crocus-hsw:
+      label: [skip, flakes]
       checksum: 99b3ec85e4b9335c3cffc49a63c0c62c
+      text: "Text glyphs render incorrectly sometimes."
   warzone2100/warzone2100-default.trace:
     crocus-g41:
       label: [unsupported]

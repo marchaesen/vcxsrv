@@ -7,9 +7,6 @@ endif
 
 srcdir=.
 
-u_indices_gen.c: indices/u_indices_gen.py
-	$(PYTHON3) $< > $@
-
 format_srgb.c: format_srgb.py
 	$(PYTHON3) $(srcdir)/format_srgb.py > $@
 
@@ -30,4 +27,10 @@ driconf_static_deps := 00-mesa-defaults.conf
 
 driconf_static.h: $(driconf_static_deps)
 	$(PYTHON3) $(driconf_static_gen) $^ $@
+
+u_indices_gen.c: ../gallium/auxiliary/indices/u_indices_gen.py
+	$(PYTHON3) $< $@
+
+u_unfilled_gen.c: ../gallium/auxiliary/indices/u_unfilled_gen.py
+	$(PYTHON3) $< $@
 

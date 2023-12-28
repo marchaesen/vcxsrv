@@ -35,7 +35,7 @@
 
 #include "pipe/p_defines.h"
 #include "util/u_debug.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "util/list.h"
 #include "util/u_mm.h"

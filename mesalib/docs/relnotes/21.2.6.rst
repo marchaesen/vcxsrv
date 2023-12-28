@@ -83,7 +83,7 @@ Ian Romanick (1):
 
 - glsl/nir: Don't build soft float64 when it cannot be used
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - anv: Fix FlushMappedMemoryRanges for odd mmap offsets
 

@@ -2,26 +2,7 @@
  * Copyright © 2021 Advanced Micro Devices, Inc.
  * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_SURFACE_TEST_COMMON_H
@@ -29,6 +10,7 @@
 
 #include "ac_gpu_info.h"
 #include "amdgfxregs.h"
+#include "addrlib/src/amdgpu_asic_addr.h"
 
 typedef void (*gpu_init_func)(struct radeon_info *info);
 
@@ -139,9 +121,9 @@ static void init_gfx103(struct radeon_info *info)
 
 static void init_gfx11(struct radeon_info *info)
 {
-   info->family = CHIP_UNKNOWN;
+   info->family = CHIP_NAVI31;
    info->gfx_level = GFX11;
-   info->family_id = 0x00;
+   info->family_id = FAMILY_NV3;
    info->chip_external_rev = 0x01;
    info->use_display_dcc_unaligned = false;
    info->use_display_dcc_with_retile_blit = true;
@@ -181,6 +163,15 @@ static struct testcase testcases[] = {
    {"gfx103_8pipe", init_gfx103, 3, 3},
    {"gfx103_4pipe", init_gfx103, 2, 2},
    {"gfx103_4pipe_2pkr", init_gfx103, 1, 2},
+   {"gfx103_4pipe_1pkr", init_gfx103, 0, 2},
+   {"gfx103_2pipe_1pkr", init_gfx103, 0, 1},
+   {"gfx11_32pipe", init_gfx11, 5, 5},
+   {"gfx11_16pipe", init_gfx11, 4, 4},
+   {"gfx11_8pipe", init_gfx11, 3, 3},
+   {"gfx11_4pipe", init_gfx11, 2, 2},
+   {"gfx11_4pipe_2pkr", init_gfx11, 1, 2},
+   {"gfx11_4pipe_1pkr", init_gfx11, 0, 2},
+   {"gfx11_2pipe_1pkr", init_gfx11, 0, 1},
 };
 
 static struct radeon_info get_radeon_info(struct testcase *testcase)

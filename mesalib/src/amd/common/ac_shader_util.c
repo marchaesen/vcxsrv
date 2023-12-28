@@ -1,31 +1,14 @@
 /*
  * Copyright 2012 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "ac_shader_util.h"
 #include "ac_gpu_info.h"
 
 #include "sid.h"
-#include "u_math.h"
+#include "util/u_math.h"
 
 #include <assert.h>
 #include <stdlib.h>
@@ -364,7 +347,7 @@ unsigned ac_get_tbuffer_format(enum amd_gfx_level gfx_level, unsigned dfmt, unsi
       // Use the regularity properties of the combined format enum.
       //
       // Note: float is incompatible with 8-bit data formats,
-      //       [us]{norm,scaled} are incomparible with 32-bit data formats.
+      //       [us]{norm,scaled} are incompatible with 32-bit data formats.
       //       [us]scaled are not writable.
       switch (nfmt) {
       case V_008F0C_BUF_NUM_FORMAT_UNORM:
@@ -489,7 +472,7 @@ const struct ac_data_format_info *ac_get_data_format_info(unsigned dfmt)
    [(int)PIPE_FORMAT_R10G10B10A2_UINT] = {DST_SEL(X,Y,Z,W), 4, 4, 0, FMTP(2_10_10_10, UINT)}, \
    [(int)PIPE_FORMAT_R10G10B10A2_SINT] = {DST_SEL(X,Y,Z,W), 4, 4, 0, FMTP(2_10_10_10, SINT), \
                                           AA(AC_ALPHA_ADJUST_SINT)}, \
-   [(int)PIPE_FORMAT_R11G11B10_FLOAT] = {DST_SEL(X,Y,Z,W), 4, 3, 0, FMTP(10_11_11, FLOAT)}, \
+   [(int)PIPE_FORMAT_R11G11B10_FLOAT] = {DST_SEL(X,Y,Z,1), 4, 3, 0, FMTP(10_11_11, FLOAT)}, \
 
 #define HW_FMT(dfmt, nfmt) (V_008F0C_BUF_DATA_FORMAT_##dfmt | (V_008F0C_BUF_NUM_FORMAT_##nfmt << 4))
 #define HW_FMT_INVALID (V_008F0C_BUF_DATA_FORMAT_INVALID | (V_008F0C_BUF_NUM_FORMAT_UNORM << 4))
@@ -527,6 +510,65 @@ const struct ac_vtx_format_info *
 ac_get_vtx_format_info(enum amd_gfx_level level, enum radeon_family family, enum pipe_format fmt)
 {
    return &ac_get_vtx_format_info_table(level, family)[fmt];
+}
+
+/**
+ * Check whether the specified fetch size is safe to use with MTBUF.
+ *
+ * Split typed vertex buffer loads when necessary to avoid any
+ * alignment issues that trigger memory violations and eventually a GPU
+ * hang. This can happen if the stride (static or dynamic) is unaligned and
+ * also if the VBO offset is aligned to a scalar (eg. stride is 8 and VBO
+ * offset is 2 for R16G16B16A16_SNORM).
+ */
+static bool
+is_fetch_size_safe(const enum amd_gfx_level gfx_level, const struct ac_vtx_format_info* vtx_info,
+                   const unsigned offset, const unsigned alignment, const unsigned channels)
+{
+   if (!(vtx_info->has_hw_format & BITFIELD_BIT(channels - 1)))
+      return false;
+
+   unsigned vertex_byte_size = vtx_info->chan_byte_size * channels;
+   return (gfx_level >= GFX7 && gfx_level <= GFX9) ||
+          (offset % vertex_byte_size == 0 && MAX2(alignment, 1) % vertex_byte_size == 0);
+}
+
+/**
+ * Gets the number of channels that can be safely fetched by MTBUF (typed buffer load)
+ * instructions without triggering alignment-related issues.
+ */
+unsigned
+ac_get_safe_fetch_size(const enum amd_gfx_level gfx_level, const struct ac_vtx_format_info* vtx_info,
+                       const unsigned offset, const unsigned max_channels, const unsigned alignment,
+                       const unsigned num_channels)
+{
+   /* Packed formats can't be split. */
+   if (!vtx_info->chan_byte_size)
+      return vtx_info->num_channels;
+
+   /* Early exit if the specified number of channels is fine. */
+   if (is_fetch_size_safe(gfx_level, vtx_info, offset, alignment, num_channels))
+      return num_channels;
+
+   /* First, assume that more load instructions are worse and try using a larger data format. */
+   unsigned new_channels = num_channels + 1;
+   while (new_channels <= max_channels &&
+          !is_fetch_size_safe(gfx_level, vtx_info, offset, alignment, new_channels)) {
+      new_channels++;
+   }
+
+   /* Found a feasible load size. */
+   if (new_channels <= max_channels)
+      return new_channels;
+
+   /* Try decreasing load size (at the cost of more load instructions). */
+   new_channels = num_channels;
+   while (new_channels > 1 &&
+          !is_fetch_size_safe(gfx_level, vtx_info, offset, alignment, new_channels)) {
+      new_channels--;
+   }
+
+   return new_channels;
 }
 
 enum ac_image_dim ac_get_sampler_dim(enum amd_gfx_level gfx_level, enum glsl_sampler_dim dim,
@@ -578,14 +620,10 @@ enum ac_image_dim ac_get_image_dim(enum amd_gfx_level gfx_level, enum glsl_sampl
 }
 
 unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
-                                  signed char *face_vgpr_index_ptr,
-                                  signed char *ancillary_vgpr_index_ptr,
-                                  signed char *sample_coverage_vgpr_index_ptr)
+                                  uint8_t *num_fragcoord_components)
 {
    unsigned num_input_vgprs = 0;
-   signed char face_vgpr_index = -1;
-   signed char ancillary_vgpr_index = -1;
-   signed char sample_coverage_vgpr_index = -1;
+   unsigned fragcoord_components = 0;
 
    if (G_0286CC_PERSP_SAMPLE_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 2;
@@ -603,37 +641,51 @@ unsigned ac_get_fs_input_vgpr_cnt(const struct ac_shader_config *config,
       num_input_vgprs += 2;
    if (G_0286CC_LINE_STIPPLE_TEX_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
-   if (G_0286CC_POS_X_FLOAT_ENA(config->spi_ps_input_addr))
+   if (G_0286CC_POS_X_FLOAT_ENA(config->spi_ps_input_addr)) {
       num_input_vgprs += 1;
-   if (G_0286CC_POS_Y_FLOAT_ENA(config->spi_ps_input_addr))
-      num_input_vgprs += 1;
-   if (G_0286CC_POS_Z_FLOAT_ENA(config->spi_ps_input_addr))
-      num_input_vgprs += 1;
-   if (G_0286CC_POS_W_FLOAT_ENA(config->spi_ps_input_addr))
-      num_input_vgprs += 1;
-   if (G_0286CC_FRONT_FACE_ENA(config->spi_ps_input_addr)) {
-      face_vgpr_index = num_input_vgprs;
-      num_input_vgprs += 1;
+      fragcoord_components++;
    }
-   if (G_0286CC_ANCILLARY_ENA(config->spi_ps_input_addr)) {
-      ancillary_vgpr_index = num_input_vgprs;
+   if (G_0286CC_POS_Y_FLOAT_ENA(config->spi_ps_input_addr)) {
       num_input_vgprs += 1;
+      fragcoord_components++;
    }
-   if (G_0286CC_SAMPLE_COVERAGE_ENA(config->spi_ps_input_addr)) {
-      sample_coverage_vgpr_index = num_input_vgprs;
+   if (G_0286CC_POS_Z_FLOAT_ENA(config->spi_ps_input_addr)) {
       num_input_vgprs += 1;
+      fragcoord_components++;
    }
+   if (G_0286CC_POS_W_FLOAT_ENA(config->spi_ps_input_addr)) {
+      num_input_vgprs += 1;
+      fragcoord_components++;
+   }
+   if (G_0286CC_FRONT_FACE_ENA(config->spi_ps_input_addr))
+      num_input_vgprs += 1;
+   if (G_0286CC_ANCILLARY_ENA(config->spi_ps_input_addr))
+      num_input_vgprs += 1;
+   if (G_0286CC_SAMPLE_COVERAGE_ENA(config->spi_ps_input_addr))
+      num_input_vgprs += 1;
    if (G_0286CC_POS_FIXED_PT_ENA(config->spi_ps_input_addr))
       num_input_vgprs += 1;
 
-   if (face_vgpr_index_ptr)
-      *face_vgpr_index_ptr = face_vgpr_index;
-   if (ancillary_vgpr_index_ptr)
-      *ancillary_vgpr_index_ptr = ancillary_vgpr_index;
-   if (sample_coverage_vgpr_index_ptr)
-      *sample_coverage_vgpr_index_ptr = sample_coverage_vgpr_index;
+   if (num_fragcoord_components)
+      *num_fragcoord_components = fragcoord_components;
 
    return num_input_vgprs;
+}
+
+uint16_t ac_get_ps_iter_mask(unsigned ps_iter_samples)
+{
+   /* The bit pattern matches that used by fixed function fragment
+    * processing.
+    */
+   switch (ps_iter_samples) {
+   case 1: return 0xffff;
+   case 2: return 0x5555;
+   case 4: return 0x1111;
+   case 8: return 0x0101;
+   case 16: return 0x0001;
+   default:
+      unreachable("invalid sample count");
+   }
 }
 
 void ac_choose_spi_color_formats(unsigned format, unsigned swap, unsigned ntype,
@@ -788,6 +840,8 @@ void ac_compute_late_alloc(const struct radeon_info *info, bool ngg, bool ngg_cu
        */
       if (ngg_culling)
          *late_alloc_wave64 = info->min_good_cu_per_sa * 10;
+      else if (info->gfx_level >= GFX11)
+         *late_alloc_wave64 = 63;
       else
          *late_alloc_wave64 = info->min_good_cu_per_sa * 4;
 
@@ -897,9 +951,8 @@ unsigned ac_compute_ngg_workgroup_size(unsigned es_verts, unsigned gs_inst_prims
    return CLAMP(workgroup_size, 1, 256);
 }
 
-void ac_set_reg_cu_en(void *cs, unsigned reg_offset, uint32_t value, uint32_t clear_mask,
-                      unsigned value_shift, const struct radeon_info *info,
-                      void set_sh_reg(void*, unsigned, uint32_t))
+uint32_t ac_apply_cu_en(uint32_t value, uint32_t clear_mask, unsigned value_shift,
+                        const struct radeon_info *info)
 {
    /* Register field position and mask. */
    uint32_t cu_en_mask = ~clear_mask;
@@ -909,14 +962,12 @@ void ac_set_reg_cu_en(void *cs, unsigned reg_offset, uint32_t value, uint32_t cl
 
    /* AND the field by spi_cu_en. */
    uint32_t spi_cu_en = info->spi_cu_en >> value_shift;
-   uint32_t new_value = (value & ~cu_en_mask) |
-                        (((cu_en & spi_cu_en) << cu_en_shift) & cu_en_mask);
-
-   set_sh_reg(cs, reg_offset, new_value);
+   return (value & ~cu_en_mask) |
+          (((cu_en & spi_cu_en) << cu_en_shift) & cu_en_mask);
 }
 
 /* Return the register value and tune bytes_per_wave to increase scratch performance. */
-void ac_get_scratch_tmpring_size(const struct radeon_info *info, bool compute,
+void ac_get_scratch_tmpring_size(const struct radeon_info *info,
                                  unsigned bytes_per_wave, unsigned *max_seen_bytes_per_wave,
                                  uint32_t *tmpring_size)
 {
@@ -949,10 +1000,178 @@ void ac_get_scratch_tmpring_size(const struct radeon_info *info, bool compute,
    *max_seen_bytes_per_wave = MAX2(*max_seen_bytes_per_wave, bytes_per_wave);
 
    unsigned max_scratch_waves = info->max_scratch_waves;
-   if (info->gfx_level >= GFX11 && !compute)
-      max_scratch_waves /= info->num_se; /* WAVES is per SE for SPI_TMPRING_SIZE. */
+   if (info->gfx_level >= GFX11)
+      max_scratch_waves /= info->num_se; /* WAVES is per SE */
 
    /* TODO: We could decrease WAVES to make the whole buffer fit into the infinity cache. */
    *tmpring_size = S_0286E8_WAVES(max_scratch_waves) |
                    S_0286E8_WAVESIZE(*max_seen_bytes_per_wave >> size_shift);
+}
+
+/* Get chip-agnostic memory instruction access flags (as opposed to chip-specific GLC/DLC/SLC)
+ * from a NIR memory intrinsic.
+ */
+enum gl_access_qualifier ac_get_mem_access_flags(const nir_intrinsic_instr *instr)
+{
+   enum gl_access_qualifier access =
+      nir_intrinsic_has_access(instr) ? nir_intrinsic_access(instr) : 0;
+
+   /* Determine ACCESS_MAY_STORE_SUBDWORD. (for the GFX6 TC L1 bug workaround) */
+   if (!nir_intrinsic_infos[instr->intrinsic].has_dest) {
+      switch (instr->intrinsic) {
+      case nir_intrinsic_bindless_image_store:
+         access |= ACCESS_MAY_STORE_SUBDWORD;
+         break;
+
+      case nir_intrinsic_store_ssbo:
+      case nir_intrinsic_store_buffer_amd:
+      case nir_intrinsic_store_global:
+      case nir_intrinsic_store_global_amd:
+         if (access & ACCESS_USES_FORMAT_AMD ||
+             (nir_intrinsic_has_align_offset(instr) && nir_intrinsic_align(instr) % 4 != 0) ||
+             ((instr->src[0].ssa->bit_size / 8) * instr->src[0].ssa->num_components) % 4 != 0)
+            access |= ACCESS_MAY_STORE_SUBDWORD;
+         break;
+
+      default:
+         unreachable("unexpected store instruction");
+      }
+   }
+
+   return access;
+}
+
+/* Convert chip-agnostic memory access flags into hw-specific cache flags.
+ *
+ * "access" must be a result of ac_get_mem_access_flags() with the appropriate ACCESS_TYPE_*
+ * flags set.
+ */
+union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
+                                              enum gl_access_qualifier access)
+{
+   union ac_hw_cache_flags result;
+   result.value = 0;
+
+   assert(util_bitcount(access & (ACCESS_TYPE_LOAD | ACCESS_TYPE_STORE |
+                                  ACCESS_TYPE_ATOMIC)) == 1);
+   assert(!(access & ACCESS_TYPE_SMEM) || access & ACCESS_TYPE_LOAD);
+   assert(!(access & ACCESS_IS_SWIZZLED_AMD) || !(access & ACCESS_TYPE_SMEM));
+   assert(!(access & ACCESS_MAY_STORE_SUBDWORD) || access & ACCESS_TYPE_STORE);
+
+   bool scope_is_device = access & (ACCESS_COHERENT | ACCESS_VOLATILE);
+
+   if (info->gfx_level >= GFX11) {
+      /* GFX11 simplified it and exposes what is actually useful.
+       *
+       * GLC means device scope for loads only. (stores and atomics are always device scope)
+       * SLC means non-temporal for GL1 and GL2 caches. (GL1 = hit-evict, GL2 = stream, unavailable in SMEM)
+       * DLC means non-temporal for MALL. (noalloc, i.e. coherent bypass)
+       *
+       * GL0 doesn't have a non-temporal flag, so you always get LRU caching in CU scope.
+       */
+      if (access & ACCESS_TYPE_LOAD && scope_is_device)
+         result.value |= ac_glc;
+
+      if (access & ACCESS_NON_TEMPORAL && !(access & ACCESS_TYPE_SMEM))
+         result.value |= ac_slc;
+   } else if (info->gfx_level >= GFX10) {
+      /* GFX10-10.3:
+       *
+       * VMEM and SMEM loads (SMEM only supports the first four):
+       * !GLC && !DLC && !SLC means CU scope          <== use for normal loads with CU scope
+       *  GLC && !DLC && !SLC means SA scope
+       * !GLC &&  DLC && !SLC means CU scope, GL1 bypass
+       *  GLC &&  DLC && !SLC means device scope      <== use for normal loads with device scope
+       * !GLC && !DLC &&  SLC means CU scope, non-temporal (GL0 = GL1 = hit-evict, GL2 = stream)  <== use for non-temporal loads with CU scope
+       *  GLC && !DLC &&  SLC means SA scope, non-temporal (GL1 = hit-evict, GL2 = stream)
+       * !GLC &&  DLC &&  SLC means CU scope, GL0 non-temporal, GL1-GL2 coherent bypass (GL0 = hit-evict, GL1 = bypass, GL2 = noalloc)
+       *  GLC &&  DLC &&  SLC means device scope, GL2 coherent bypass (noalloc)  <== use for non-temporal loads with device scope
+       *
+       * VMEM stores/atomics (stores are CU scope only if they overwrite the whole cache line,
+       * atomics are always device scope, GL1 is always bypassed):
+       * !GLC && !DLC && !SLC means CU scope          <== use for normal stores with CU scope
+       *  GLC && !DLC && !SLC means device scope      <== use for normal stores with device scope
+       * !GLC &&  DLC && !SLC means CU scope, GL2 non-coherent bypass
+       *  GLC &&  DLC && !SLC means device scope, GL2 non-coherent bypass
+       * !GLC && !DLC &&  SLC means CU scope, GL2 non-temporal (stream)  <== use for non-temporal stores with CU scope
+       *  GLC && !DLC &&  SLC means device scope, GL2 non-temporal (stream)  <== use for non-temporal stores with device scope
+       * !GLC &&  DLC &&  SLC means CU scope, GL2 coherent bypass (noalloc)
+       *  GLC &&  DLC &&  SLC means device scope, GL2 coherent bypass (noalloc)
+       *
+       * "stream" allows write combining in GL2. "coherent bypass" doesn't.
+       * "non-coherent bypass" doesn't guarantee ordering with any coherent stores.
+       */
+      if (scope_is_device && !(access & ACCESS_TYPE_ATOMIC))
+         result.value |= ac_glc | (access & ACCESS_TYPE_LOAD ? ac_dlc : 0);
+
+      if (access & ACCESS_NON_TEMPORAL && !(access & ACCESS_TYPE_SMEM))
+         result.value |= ac_slc;
+   } else {
+      /* GFX6-GFX9:
+       *
+       * VMEM loads:
+       * !GLC && !SLC means CU scope
+       *  GLC && !SLC means (GFX6: device scope, GFX7-9: device scope [*])
+       * !GLC &&  SLC means (GFX6: CU scope, GFX7: device scope, GFX8-9: CU scope), GL2 non-temporal (stream)
+       *  GLC &&  SLC means device scope, GL2 non-temporal (stream)
+       *
+       * VMEM stores (atomics don't have [*]):
+       * !GLC && !SLC means (GFX6: CU scope, GFX7-9: device scope [*])
+       *  GLC && !SLC means (GFX6-7: device scope, GFX8-9: device scope [*])
+       * !GLC &&  SLC means (GFX6: CU scope, GFX7-9: device scope [*]), GL2 non-temporal (stream)
+       *  GLC &&  SLC means device scope, GL2 non-temporal (stream)
+       *
+       * [*] data can be cached in GL1 for future CU scope
+       *
+       * SMEM loads:
+       *  GLC means device scope (available on GFX8+)
+       */
+      if (scope_is_device && !(access & ACCESS_TYPE_ATOMIC)) {
+         /* SMEM doesn't support the device scope on GFX6-7. */
+         assert(info->gfx_level >= GFX8 || !(access & ACCESS_TYPE_SMEM));
+         result.value |= ac_glc;
+      }
+
+      if (access & ACCESS_NON_TEMPORAL && !(access & ACCESS_TYPE_SMEM))
+         result.value |= ac_slc;
+
+      /* GFX6 has a TC L1 bug causing corruption of 8bit/16bit stores. All store opcodes not
+       * aligned to a dword are affected.
+       */
+      if (info->gfx_level == GFX6 && access & ACCESS_MAY_STORE_SUBDWORD)
+         result.value |= ac_glc;
+   }
+
+   if (access & ACCESS_IS_SWIZZLED_AMD)
+      result.value |= ac_swizzled;
+
+   return result;
+}
+
+unsigned ac_get_all_edge_flag_bits(void)
+{
+   /* This will be extended in the future. */
+   return (1u << 9) | (1u << 19) | (1u << 29);
+}
+
+/**
+ * Returns a unique index for a per-patch semantic name and index. The index
+ * must be less than 32, so that a 32-bit bitmask of used inputs or outputs
+ * can be calculated.
+ */
+unsigned
+ac_shader_io_get_unique_index_patch(unsigned semantic)
+{
+   switch (semantic) {
+   case VARYING_SLOT_TESS_LEVEL_OUTER:
+      return 0;
+   case VARYING_SLOT_TESS_LEVEL_INNER:
+      return 1;
+   default:
+      if (semantic >= VARYING_SLOT_PATCH0 && semantic < VARYING_SLOT_PATCH0 + 30)
+         return 2 + (semantic - VARYING_SLOT_PATCH0);
+
+      assert(!"invalid semantic");
+      return 0;
+   }
 }

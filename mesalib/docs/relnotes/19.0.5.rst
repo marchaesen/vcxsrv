@@ -72,7 +72,7 @@ Ian Romanick (1):
 
 -  Revert "nir: add late opt to turn inot/b2f combos back to bcsel"
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  intel/fs/ra: Only add dest interference to sources that exist
 -  intel/fs/ra: Stop adding RA interference to too many SENDS nodes

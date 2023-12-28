@@ -37,6 +37,7 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
 
+#include "stw_gdishim.h"
 #include "gldrv.h"
 #include "stw_context.h"
 #include "stw_device.h"
@@ -106,13 +107,13 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
    struct stw_context *curctx = stw_current_context();
    struct stw_framebuffer *fb, *old_fb, *old_fbRead;
    GLenum texFormat, srcBuffer, target;
-   boolean retVal;
+   bool retVal;
    const struct stw_pixelformat_info *pfiSave;
 
    /*
     * Implementation notes:
     * Ideally, we'd implement this function with the
-    * st_context_iface::teximage() function which replaces a specific
+    * st_context_teximage() function which replaces a specific
     * texture image with a different resource (the pbuffer).
     * The main problem however, is the pbuffer image is upside down relative
     * to the texture image.
@@ -130,33 +131,33 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
    if (!curctx) {
       debug_printf("No rendering context in wglBindTexImageARB()\n");
       SetLastError(ERROR_INVALID_OPERATION);
-      return FALSE;
+      return false;
    }
 
    fb = stw_framebuffer_from_HPBUFFERARB(hPbuffer);
    if (!fb) {
       debug_printf("Invalid pbuffer handle in wglBindTexImageARB()\n");
       SetLastError(ERROR_INVALID_HANDLE);
-      return FALSE;
+      return false;
    }
 
    srcBuffer = translate_ibuffer(iBuffer);
    if (srcBuffer == GL_NONE) {
       debug_printf("Invalid buffer 0x%x in wglBindTexImageARB()\n", iBuffer);
       SetLastError(ERROR_INVALID_DATA);
-      return FALSE;
+      return false;
    }
 
    target = translate_target(fb->textureTarget);
    if (target == GL_NONE) {
       debug_printf("no texture target in wglBindTexImageARB()\n");
-      return FALSE;
+      return false;
    }
 
    texFormat = translate_texture_format(fb->textureFormat);
    if (texFormat == GL_NONE) {
       debug_printf("no texture format in wglBindTexImageARB()\n");
-      return FALSE;
+      return false;
    }
 
    old_fb = curctx->current_framebuffer;
@@ -176,7 +177,7 @@ wglBindTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
    fb->pfi = pfiSave;
    if (!retVal) {
       debug_printf("stw_make_current(#1) failed in wglBindTexImageARB()\n");
-      return FALSE;
+      return false;
    }
 
    st_copy_framebuffer_to_texture(srcBuffer, fb->width, fb->height,
@@ -204,17 +205,17 @@ wglReleaseTexImageARB(HPBUFFERARB hPbuffer, int iBuffer)
    if (!fb) {
       debug_printf("Invalid pbuffer handle in wglReleaseTexImageARB()\n");
       SetLastError(ERROR_INVALID_HANDLE);
-      return FALSE;
+      return false;
    }
 
    srcBuffer = translate_ibuffer(iBuffer);
    if (srcBuffer == GL_NONE) {
       debug_printf("Invalid buffer 0x%x in wglReleaseTexImageARB()\n", iBuffer);
       SetLastError(ERROR_INVALID_DATA);
-      return FALSE;
+      return false;
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -226,7 +227,7 @@ wglSetPbufferAttribARB(HPBUFFERARB hPbuffer, const int *piAttribList)
 
    if (!fb) {
       SetLastError(ERROR_INVALID_HANDLE);
-      return FALSE;
+      return false;
    }
 
    for (i = 0; piAttribList[i]; i += 2) {
@@ -245,16 +246,16 @@ wglSetPbufferAttribARB(HPBUFFERARB hPbuffer, const int *piAttribList)
                          "wglSetPbufferAttribARB()\n",
                          piAttribList[i]);
             SetLastError(ERROR_INVALID_DATA);
-            return FALSE;
+            return false;
          }
          break;
       default:
          debug_printf("Invalid attribute 0x%x in wglSetPbufferAttribARB()\n",
                       piAttribList[i]);
          SetLastError(ERROR_INVALID_DATA);
-         return FALSE;
+         return false;
       }
    }
 
-   return TRUE;
+   return true;
 }

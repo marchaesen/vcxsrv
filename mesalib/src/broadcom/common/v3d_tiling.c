@@ -28,6 +28,7 @@
  */
 
 #include <stdint.h>
+#include "util/u_box.h" /* FIXME: avoid include this */ 
 #include "v3d_tiling.h"
 #include "broadcom/common/v3d_cpu_tiling.h"
 

@@ -31,7 +31,6 @@
 #include "util/u_memory.h"
 #include "util/u_prim.h"
 
-#include "tgsi/tgsi_parse.h"
 #include "nir/nir_to_tgsi_info.h"
 
 #include "draw_fs.h"

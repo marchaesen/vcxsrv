@@ -122,7 +122,7 @@ Ilia Mirkin (1):
 
 -  nv50/ir: fix threads calculation for non-compute shaders
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  anv/cmd_buffer: Properly handle render passes with 0 attachments
 -  anv: Stop leaking the no_aux sampler surface state

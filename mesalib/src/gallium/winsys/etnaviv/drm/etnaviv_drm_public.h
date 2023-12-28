@@ -28,10 +28,12 @@
 #define __ETNA_DRM_PUBLIC_H__
 
 struct pipe_screen;
+struct pipe_screen_config;
 struct renderonly;
 
 struct pipe_screen *
-etna_drm_screen_create_renderonly(struct renderonly *ro);
+etna_drm_screen_create_renderonly(int fd, struct renderonly *ro,
+                                  const struct pipe_screen_config *config);
 
 struct pipe_screen *
 etna_drm_screen_create(int fd);

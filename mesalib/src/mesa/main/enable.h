@@ -32,7 +32,7 @@
 #define ENABLE_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

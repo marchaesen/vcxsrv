@@ -109,6 +109,21 @@ When enabled, this option allows the driver to use gamma ramps with more
 entries, if supported by the kernel. By default, GAMMA_LUT will be used for
 kms drivers which are known to be safe for use of GAMMA_LUT.
 .TP
+.BI "Option \*qTearFree\*q \*q" boolean \*q
+Enable tearing prevention using the hardware page flipping mechanism.
+It allocates two extra scanout buffers for each CRTC and utilizes damage
+tracking to minimize buffer copying and skip unnecessary flips when the
+screen's contents have not changed. It works on transformed screens too, such
+as rotated and scaled CRTCs. When PageFlip is enabled, fullscreen DRI
+applications will still have the discretion to not use tearing prevention.
+.br
+The default is
+.B on.
+.TP
+.BI "Option \*qAtomic\*q \*q" boolean \*q
+Enable atomic modesetting when supported.  The default is
+.B off.
+.TP
 .SH "SEE ALSO"
 @xservername@(@appmansuffix@), @xconfigfile@(@filemansuffix@), Xserver(@appmansuffix@),
 X(@miscmansuffix@)

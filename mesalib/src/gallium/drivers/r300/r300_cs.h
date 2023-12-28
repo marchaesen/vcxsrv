@@ -53,7 +53,7 @@
 #define END_CS do { \
     if (cs_count != 0) \
         debug_printf("r300: Warning: cs_count off by %d at (%s, %s:%i)\n", \
-                     cs_count, __FUNCTION__, __FILE__, __LINE__); \
+                     cs_count, __func__, __FILE__, __LINE__); \
     cs_count = 0; \
 } while (0)
 

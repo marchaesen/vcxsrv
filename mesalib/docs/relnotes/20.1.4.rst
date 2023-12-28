@@ -66,7 +66,7 @@ Erik Faye-Lund (1):
 
 - mesa/program: fix shadow property for samplers
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - spirv: Skip phis in unreachable blocks in the second phi pass
 - spirv: Allow block-decorated struct types for constants

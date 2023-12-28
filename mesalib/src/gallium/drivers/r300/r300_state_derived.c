@@ -108,6 +108,15 @@ static void r300_draw_emit_all_attribs(struct r300_context* r300)
         }
     }
 
+    /* Texcoords */
+    for (i = 0; i < ATTR_TEXCOORD_COUNT && gen_count < 8; i++) {
+        if (vs_outputs->texcoord[i] != ATTR_UNUSED &&
+            (!(r300->sprite_coord_enable & (1U << i)) || !r300->is_point)) {
+            r300_draw_emit_attrib(r300, EMIT_4F, vs_outputs->texcoord[i]);
+            gen_count++;
+        }
+    }
+
     /* Fog coordinates. */
     if (gen_count < 8 && vs_outputs->fog != ATTR_UNUSED) {
         r300_draw_emit_attrib(r300, EMIT_4F, vs_outputs->fog);
@@ -313,8 +322,8 @@ static void r300_update_rs_block(struct r300_context *r300)
     void (*rX00_rs_col_write)(struct r300_rs_block*, int, int, enum r300_rs_col_write_type);
     void (*rX00_rs_tex)(struct r300_rs_block*, int, int, enum r300_rs_swizzle);
     void (*rX00_rs_tex_write)(struct r300_rs_block*, int, int);
-    boolean any_bcolor_used = vs_outputs->bcolor[0] != ATTR_UNUSED ||
-                              vs_outputs->bcolor[1] != ATTR_UNUSED;
+    bool any_bcolor_used = vs_outputs->bcolor[0] != ATTR_UNUSED ||
+                           vs_outputs->bcolor[1] != ATTR_UNUSED;
     int *stream_loc_notcl = r300->stream_loc_notcl;
     uint32_t stuffing_enable = 0;
 
@@ -429,15 +438,17 @@ static void r300_update_rs_block(struct r300_context *r300)
         fprintf(stderr, "r300: ERROR: FS input FACE unassigned.\n");
     }
 
-    /* Re-use color varyings for texcoords if possible.
+    /* Re-use color varyings for generics if possible.
      *
      * The colors are interpolated as 20-bit floats (reduced precision),
      * Use this hack only if there are too many generic varyings.
-     * (number of generic varyings + fog + wpos > 8) */
+     * (number of generics + texcoords + fog + wpos + pcoord > 8) */
     if (r300->screen->caps.is_r500 && !any_bcolor_used && !r300->flatshade &&
-	fs_inputs->face == ATTR_UNUSED &&
-        vs_outputs->num_generic + (vs_outputs->fog != ATTR_UNUSED) +
-        (fs_inputs->wpos != ATTR_UNUSED) > 8) {
+        fs_inputs->face == ATTR_UNUSED &&
+        vs_outputs->num_texcoord + vs_outputs->num_generic +
+        (vs_outputs->fog != ATTR_UNUSED) + (fs_inputs->wpos != ATTR_UNUSED) +
+        (vs_outputs->pcoord != ATTR_UNUSED) > 8 &&
+        fs_inputs->num_generic > fs_inputs->num_texcoord) {
 	for (i = 0; i < ATTR_GENERIC_COUNT && col_count < 2; i++) {
 	    /* Cannot use color varyings for sprite coords. */
 	    if (fs_inputs->generic[i] != ATTR_UNUSED &&
@@ -481,9 +492,9 @@ static void r300_update_rs_block(struct r300_context *r300)
 	gen_offset = i;
     }
 
-    /* Rasterize texture coordinates. */
+    /* Rasterize generics. */
     for (i = gen_offset; i < ATTR_GENERIC_COUNT && tex_count < 8; i++) {
-	boolean sprite_coord = false;
+	bool sprite_coord = false;
 
 	if (fs_inputs->generic[i] != ATTR_UNUSED) {
 	    sprite_coord = !!(r300->sprite_coord_enable & (1 << i)) && r300->is_point;
@@ -528,6 +539,131 @@ static void r300_update_rs_block(struct r300_context *r300)
                     i, sprite_coord ? " (sprite coord)" : "");
             }
         }
+    }
+
+    gen_offset = 0;
+    /* Re-use color varyings for texcoords if possible.
+     *
+     * The colors are interpolated as 20-bit floats (reduced precision),
+     * Use this hack only if there are too many generic varyings.
+     * (number of generics + texcoords + fog + wpos + pcoord > 8) */
+    if (r300->screen->caps.is_r500 && !any_bcolor_used && !r300->flatshade &&
+        fs_inputs->face == ATTR_UNUSED &&
+        vs_outputs->num_texcoord + vs_outputs->num_generic +
+        (vs_outputs->fog != ATTR_UNUSED) + (fs_inputs->wpos != ATTR_UNUSED) +
+        (vs_outputs->pcoord != ATTR_UNUSED) > 8 &&
+        fs_inputs->num_generic <= fs_inputs->num_texcoord) {
+	for (i = 0; i < ATTR_TEXCOORD_COUNT && col_count < 2; i++) {
+	    /* Cannot use color varyings for sprite coords. */
+	    if (fs_inputs->texcoord[i] != ATTR_UNUSED &&
+		(r300->sprite_coord_enable & (1U << i)) && r300->is_point) {
+		break;
+	    }
+
+	    if (vs_outputs->texcoord[i] != ATTR_UNUSED) {
+		/* Set up the color in VAP. */
+		rs.vap_vsm_vtx_assm |= R300_INPUT_CNTL_COLOR;
+		rs.vap_out_vtx_fmt[0] |=
+			R300_VAP_OUTPUT_VTX_FMT_0__COLOR_0_PRESENT << col_count;
+		stream_loc_notcl[loc++] = 2 + col_count;
+
+		/* Rasterize it. */
+		rX00_rs_col(&rs, col_count, col_count, SWIZ_XYZW);
+
+		/* Write it to the FS input register if it's needed by the FS. */
+		if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+		    rX00_rs_col_write(&rs, col_count, fp_offset, WRITE_COLOR);
+		    fp_offset++;
+
+		    DBG(r300, DBG_RS,
+			"r300: Rasterized texcoord %i redirected to color %i and written to FS.\n",
+		        i, col_count);
+		} else {
+		    DBG(r300, DBG_RS, "r300: Rasterized texcoord %i redirected to color %i unused.\n",
+		        i, col_count);
+		}
+		col_count++;
+	    } else {
+		/* Skip the FS input register, leave it uninitialized. */
+		/* If we try to set it to (0,0,0,1), it will lock up. */
+		if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+		    fp_offset++;
+
+		    DBG(r300, DBG_RS, "r300: FS input texcoord %i unassigned.\n", i);
+		}
+	    }
+	}
+	gen_offset = i;
+    }
+
+    /* Rasterize texcords. */
+    for (i = gen_offset; i < ATTR_TEXCOORD_COUNT && tex_count < 8; i++) {
+        bool sprite_coord = false;
+
+        if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+            sprite_coord = !!(r300->sprite_coord_enable & (1 << i)) && r300->is_point;
+        }
+
+        if (vs_outputs->texcoord[i] != ATTR_UNUSED || sprite_coord) {
+            if (!sprite_coord) {
+                /* Set up the texture coordinates in VAP. */
+                rs.vap_vsm_vtx_assm |= (R300_INPUT_CNTL_TC0 << tex_count);
+                rs.vap_out_vtx_fmt[1] |= (4 << (3 * tex_count));
+                stream_loc_notcl[loc++] = 6 + tex_count;
+            } else
+                stuffing_enable |=
+                    R300_GB_TEX_ST << (R300_GB_TEX0_SOURCE_SHIFT + (tex_count*2));
+
+            /* Rasterize it. */
+            rX00_rs_tex(&rs, tex_count, tex_ptr,
+			sprite_coord ? SWIZ_XY01 : SWIZ_XYZW);
+
+            /* Write it to the FS input register if it's needed by the FS. */
+            if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+                rX00_rs_tex_write(&rs, tex_count, fp_offset);
+                fp_offset++;
+
+                DBG(r300, DBG_RS,
+                    "r300: Rasterized texcoord %i written to FS%s in texcoord %d.\n",
+                    i, sprite_coord ? " (sprite coord)" : "", tex_count);
+            } else {
+                DBG(r300, DBG_RS,
+                    "r300: Rasterized texcoord %i unused%s.\n",
+                    i, sprite_coord ? " (sprite coord)" : "");
+            }
+            tex_count++;
+            tex_ptr += sprite_coord ? 2 : 4;
+        } else {
+            /* Skip the FS input register, leave it uninitialized. */
+            /* If we try to set it to (0,0,0,1), it will lock up. */
+            if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+                fp_offset++;
+
+                DBG(r300, DBG_RS, "r300: FS input texcoord %i unassigned%s.\n",
+                    i, sprite_coord ? " (sprite coord)" : "");
+            }
+        }
+    }
+
+    /* Rasterize pointcoord. */
+    if (fs_inputs->pcoord != ATTR_UNUSED && tex_count < 8) {
+
+        stuffing_enable |=
+            R300_GB_TEX_ST << (R300_GB_TEX0_SOURCE_SHIFT + (tex_count*2));
+
+        /* Rasterize it. */
+        rX00_rs_tex(&rs, tex_count, tex_ptr, SWIZ_XY01);
+
+        /* Write it to the FS input register if it's needed by the FS. */
+        rX00_rs_tex_write(&rs, tex_count, fp_offset);
+        fp_offset++;
+
+        DBG(r300, DBG_RS,
+            "r300: Rasterized pointcoord %i written to FS%s in texcoord %d.\n",
+            i, " (sprite coord)", tex_count);
+
+        tex_count++;
+        tex_ptr += 2;
     }
 
     for (; i < ATTR_GENERIC_COUNT; i++) {
@@ -625,8 +761,10 @@ static void r300_update_rs_block(struct r300_context *r300)
     rs.inst_count = count - 1;
 
     /* set the GB enable flags */
-    if (r300->sprite_coord_enable && r300->is_point)
+    if ((r300->sprite_coord_enable || fs_inputs->pcoord != ATTR_UNUSED) &&
+         r300->is_point) {
 	stuffing_enable |= R300_GB_POINT_STUFF_ENABLE;
+    }
 
     rs.gb_enable = stuffing_enable;
 
@@ -646,13 +784,13 @@ static void rgba_to_bgra(float color[4])
 
 static uint32_t r300_get_border_color(enum pipe_format format,
                                       const float border[4],
-                                      boolean is_r500)
+                                      bool is_r500)
 {
-    const struct util_format_description *desc;
+    const struct util_format_description *desc = util_format_description(format);
     float border_swizzled[4] = {0};
     union util_color uc = {0};
 
-    desc = util_format_description(format);
+    assume(desc);
 
     /* Do depth formats first. */
     if (util_format_is_depth_or_stencil(format)) {
@@ -795,7 +933,7 @@ static void r300_merge_textures_and_samplers(struct r300_context* r300)
     unsigned base_level, min_level, level_count, i, j, size;
     unsigned count = MIN2(state->sampler_view_count,
                           state->sampler_state_count);
-    boolean has_us_format = r300->screen->caps.has_us_format;
+    bool has_us_format = r300->screen->caps.has_us_format;
 
     /* The KIL opcode fix, see below. */
     if (!count && !r300->screen->caps.is_r500)
@@ -878,10 +1016,10 @@ static void r300_merge_textures_and_samplers(struct r300_context* r300)
                 if (sampler->state.compare_mode == PIPE_TEX_COMPARE_NONE) {
                     texstate->format.format1 |=
                         r300_get_swizzle_combined(depth_swizzle,
-                                                  view->swizzle, FALSE);
+                                                  view->swizzle, false);
                 } else {
                     texstate->format.format1 |=
-                        r300_get_swizzle_combined(depth_swizzle, NULL, FALSE);
+                        r300_get_swizzle_combined(depth_swizzle, NULL, false);
                 }
             }
 
@@ -983,7 +1121,7 @@ static void r300_merge_textures_and_samplers(struct r300_context* r300)
                         r300_translate_tex_filters(PIPE_TEX_FILTER_NEAREST,
                                                    PIPE_TEX_FILTER_NEAREST,
                                                    PIPE_TEX_FILTER_NEAREST,
-                                                   FALSE);
+                                                   false);
                 texstate->filter1 = 0;
                 texstate->border_color = 0;
 
@@ -1048,7 +1186,7 @@ static void r300_validate_fragment_shader(struct r300_context *r300)
 
             /* Does Multiwrite need to be changed? */
             if (fb->nr_cbufs > 1) {
-                boolean new_multiwrite =
+                bool new_multiwrite =
                     r300_fragment_shader_writes_all(r300_fs(r300));
 
                 if (r300->fb_multiwrite != new_multiwrite) {

@@ -490,14 +490,7 @@ Test:SpvParserCFGTest_ClassifyCFGEdges_LoopContinue_FromNestedSwitchDefaultBody_
 Test:SpvParserCFGTest_ClassifyCFGEdges_LoopContinue_FromNestedSwitchDefaultBody_Unconditional.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_LoopContinue_LoopBodyToContinue.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_Pathological_Forward_LoopHeadSplitBody.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_ClassifyCFGEdges_Pathological_Forward_Premerge.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_ClassifyCFGEdges_Pathological_Forward_Premerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_Pathological_Forward_Regardless.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_SwitchBreak_FromNestedIf_Conditional.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ClassifyCFGEdges_SwitchBreak_FromNestedIf_Unconditional.spvasm:main|Fragment: Pass
@@ -537,14 +530,7 @@ Test:SpvParserCFGTest_ComputeBlockOrder_Nest_If_In_SwitchCase.spvasm:main|Fragme
 Test:SpvParserCFGTest_ComputeBlockOrder_Nest_IfBreak_In_SwitchCase.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ComputeBlockOrder_Nest_IfFallthrough_In_SwitchCase.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ComputeBlockOrder_OneBlock.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_ComputeBlockOrder_ReorderSequence.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_ComputeBlockOrder_ReorderSequence.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ComputeBlockOrder_RespectConditionalBranchOrder.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ComputeBlockOrder_RespectSwitchCaseFallthrough.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_ComputeBlockOrder_RespectSwitchCaseFallthrough_FromCaseToDefaultToCase.spvasm:main|Fragment: Pass
@@ -604,45 +590,17 @@ Test:SpvParserCFGTest_EmitBody_BranchConditional_SwitchBreak_SwitchBreak_NotLast
 Test:SpvParserCFGTest_EmitBody_FalseBranch_LoopBreak.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_FalseBranch_LoopContinue.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_FalseBranch_SwitchBreak.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_EmitBody_If_Else_Premerge.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_EmitBody_If_Else_Premerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_If_Empty.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_If_Nest_If.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_If_NoThen_Else.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_If_Then_Else.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_EmitBody_If_Then_Else_Premerge.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_EmitBody_If_Then_Else_Premerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_If_Then_NoElse.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_EmitBody_If_Then_Premerge.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_EmitBody_If_Then_Premerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_IfBreak_FromElse_ForwardWithinElse.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_IfBreak_FromThen_ForwardWithinThen.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_EmitBody_IfBreak_FromThenWithForward_FromElseWithForward_AlsoPremerge.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_EmitBody_IfBreak_FromThenWithForward_FromElseWithForward_AlsoPremerge.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_IfSelection_TrueBranch_LoopBreak.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_Kill_InsideIf.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_EmitBody_Kill_InsideLoop.spvasm:main|Fragment: Pass
@@ -691,30 +649,9 @@ Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_FalseBranch_LoopContinue_Ok
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_FalseBranch_SwitchBreak_Ok.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_IfOnly.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_NoIf.spvasm:main|Fragment: Pass
-Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_ElseDirectToThen.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
-Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_Simple.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
-Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_ThenDirectToElse.spvasm:main|Fragment: Fail
-SPIR-V parsing FAILED:
-
-    Invalid back or cross-edge in the CFG
-    0 bytes into the SPIR-V binary
-Compilation failed
-
-
+Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_ElseDirectToThen.spvasm:main|Fragment: Pass
+Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_Simple.spvasm:main|Fragment: Pass
+Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Premerge_ThenDirectToElse.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_Regardless.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_ThenElse.spvasm:main|Fragment: Pass
 Test:SpvParserCFGTest_FindIfSelectionInternalHeaders_TrueBranch_LoopBreak_Ok.spvasm:main|Fragment: Pass
@@ -1002,7 +939,6 @@ SPIR-V parsing FAILED:
 
     Vulkan memory model is unsupported by this driver
     68 bytes into the SPIR-V binary
-Compilation failed
 
 
 Test:SpvParserTest_Impl_Source_InvalidId.spvasm:main|GLCompute: Pass
@@ -1152,7 +1088,6 @@ SPIR-V parsing FAILED:
 
     Invalid type for an SSA value
     408 bytes into the SPIR-V binary
-Compilation failed
 
 
 Test:SpvParserTest_VectorExtractDynamic_SignedIndex.spvasm:main|GLCompute: Pass

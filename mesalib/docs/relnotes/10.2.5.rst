@@ -92,7 +92,7 @@ Ilia Mirkin (5):
 -  nvc0/ir: use manual TXD when offsets are involved
 -  nvc0: make sure that the local memory allocation is aligned to 0x10
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  main/format_pack: Fix a wrong datatype in pack_ubyte_R8G8_UNORM
 -  main/get_hash_params: Add GL_SAMPLE_SHADING_ARB

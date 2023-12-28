@@ -116,12 +116,18 @@
  * issues: using intrinsics where available, falling back to library
  * implementations where not.
  */
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
-#include <windows.h>
 #include <intrin.h>
 #include <assert.h>
+
+__forceinline char _interlockedadd8(char volatile * _Addend, char _Value)
+{
+   return _InterlockedExchangeAdd8(_Addend, _Value) + _Value;
+}
+
+__forceinline short _interlockedadd16(short volatile * _Addend, short _Value)
+{
+   return _InterlockedExchangeAdd16(_Addend, _Value) + _Value;
+}
 
 /* MSVC supports decltype keyword, but it's only supported on C++ and doesn't
  * quite work here; and if a C++-only solution is worthwhile, then it would be
@@ -140,52 +146,58 @@
    ((void) p_atomic_inc_return(_v))
 
 #define p_atomic_inc_return(_v) (\
+   sizeof *(_v) == sizeof(char)    ? p_atomic_add_return((_v), 1) : \
    sizeof *(_v) == sizeof(short)   ? _InterlockedIncrement16((short *)  (_v)) : \
    sizeof *(_v) == sizeof(long)    ? _InterlockedIncrement  ((long *)   (_v)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedIncrement64 ((__int64 *)(_v)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedincrement64((__int64 *)(_v)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_dec(_v) \
    ((void) p_atomic_dec_return(_v))
 
 #define p_atomic_dec_return(_v) (\
+   sizeof *(_v) == sizeof(char)    ? p_atomic_add_return((_v), -1) : \
    sizeof *(_v) == sizeof(short)   ? _InterlockedDecrement16((short *)  (_v)) : \
    sizeof *(_v) == sizeof(long)    ? _InterlockedDecrement  ((long *)   (_v)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedDecrement64 ((__int64 *)(_v)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockeddecrement64((__int64 *)(_v)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_add(_v, _i) \
    ((void) p_atomic_fetch_add((_v), (_i)))
 
 #define p_atomic_add_return(_v, _i) (\
-   sizeof *(_v) == sizeof(long)    ? InterlockedAdd  ((long *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedAdd64((__int64 *)(_v), (_i)) : \
+   sizeof *(_v) == sizeof(char)    ? _interlockedadd8 ((char *)   (_v), (_i)) : \
+   sizeof *(_v) == sizeof(short)   ? _interlockedadd16((short *)  (_v), (_i)) : \
+   sizeof *(_v) == sizeof(long)    ? _interlockedadd  ((long *)   (_v), (_i)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedadd64((__int64 *)(_v), (_i)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_fetch_add(_v, _i) (\
    sizeof *(_v) == sizeof(char)    ? _InterlockedExchangeAdd8 ((char *)   (_v), (_i)) : \
    sizeof *(_v) == sizeof(short)   ? _InterlockedExchangeAdd16((short *)  (_v), (_i)) : \
-   sizeof *(_v) == sizeof(long)    ? InterlockedExchangeAdd  ((long *)   (_v), (_i)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedExchangeAdd64((__int64 *)(_v), (_i)) : \
+   sizeof *(_v) == sizeof(long)    ? _InterlockedExchangeAdd  ((long *)   (_v), (_i)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedexchangeadd64((__int64 *)(_v), (_i)) : \
                                      (assert(!"should not get here"), 0))
 
 #define p_atomic_cmpxchg(_v, _old, _new) (\
    sizeof *(_v) == sizeof(char)    ? _InterlockedCompareExchange8 ((char *)   (_v), (char)   (_new), (char)   (_old)) : \
    sizeof *(_v) == sizeof(short)   ? _InterlockedCompareExchange16((short *)  (_v), (short)  (_new), (short)  (_old)) : \
    sizeof *(_v) == sizeof(long)    ? _InterlockedCompareExchange  ((long *)   (_v), (long)   (_new), (long)   (_old)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedCompareExchange64 ((__int64 *)(_v), (__int64)(_new), (__int64)(_old)) : \
+   sizeof *(_v) == sizeof(__int64) ? _InterlockedCompareExchange64((__int64 *)(_v), (__int64)(_new), (__int64)(_old)) : \
                                      (assert(!"should not get here"), 0))
 
 #if defined(_WIN64)
-#define p_atomic_cmpxchg_ptr(_v, _old, _new) (void *)InterlockedCompareExchange64((__int64 *)(_v), (__int64)(_new), (__int64)(_old))
+#define p_atomic_cmpxchg_ptr(_v, _old, _new) (void *)_InterlockedCompareExchange64((__int64 *)(_v), (__int64)(_new), (__int64)(_old))
 #else
-#define p_atomic_cmpxchg_ptr(_v, _old, _new) (void *)InterlockedCompareExchange((long *)(_v), (long)(_new), (long)(_old))
+#define p_atomic_cmpxchg_ptr(_v, _old, _new) (void *)_InterlockedCompareExchange((long *)(_v), (long)(_new), (long)(_old))
 #endif
 
 #define PIPE_NATIVE_ATOMIC_XCHG
 #define p_atomic_xchg(_v, _new) (\
-   sizeof *(_v) == sizeof(long)    ? InterlockedExchange  ((long *)   (_v), (long)   (_new)) : \
-   sizeof *(_v) == sizeof(__int64) ? InterlockedExchange64((__int64 *)(_v), (__int64)(_new)) : \
+   sizeof *(_v) == sizeof(char)    ? _InterlockedExchange8 ((char *)   (_v), (char)   (_new)) : \
+   sizeof *(_v) == sizeof(short)   ? _InterlockedExchange16((short *)  (_v), (short)  (_new)) : \
+   sizeof *(_v) == sizeof(long)    ? _InterlockedExchange  ((long *)   (_v), (long)   (_new)) : \
+   sizeof *(_v) == sizeof(__int64) ? _interlockedexchange64((__int64 *)(_v), (__int64)(_new)) : \
                                      (assert(!"should not get here"), 0))
 
 #endif
@@ -276,6 +288,28 @@
 #endif
 
 #ifndef PIPE_NATIVE_ATOMIC_XCHG
+static inline uint8_t p_atomic_xchg_8(uint8_t *v, uint8_t i)
+{
+   uint8_t actual = p_atomic_read(v);
+   uint8_t expected;
+   do {
+      expected = actual;
+      actual = p_atomic_cmpxchg(v, expected, i);
+   } while (expected != actual);
+   return actual;
+}
+
+static inline uint16_t p_atomic_xchg_16(uint16_t *v, uint16_t i)
+{
+   uint16_t actual = p_atomic_read(v);
+   uint16_t expected;
+   do {
+      expected = actual;
+      actual = p_atomic_cmpxchg(v, expected, i);
+   } while (expected != actual);
+   return actual;
+}
+
 static inline uint32_t p_atomic_xchg_32(uint32_t *v, uint32_t i)
 {
    uint32_t actual = p_atomic_read(v);
@@ -299,9 +333,39 @@ static inline uint64_t p_atomic_xchg_64(uint64_t *v, uint64_t i)
 }
 
 #define p_atomic_xchg(v, i) (__typeof(*(v)))( \
+   sizeof(*(v)) == sizeof(uint8_t)  ? p_atomic_xchg_8 ((uint8_t  *)(v), (uint8_t )(i)) : \
+   sizeof(*(v)) == sizeof(uint16_t) ? p_atomic_xchg_16((uint16_t *)(v), (uint16_t)(i)) : \
    sizeof(*(v)) == sizeof(uint32_t) ? p_atomic_xchg_32((uint32_t *)(v), (uint32_t)(i)) : \
    sizeof(*(v)) == sizeof(uint64_t) ? p_atomic_xchg_64((uint64_t *)(v), (uint64_t)(i)) : \
                                       (assert(!"should not get here"), 0))
 #endif
+
+/* On x86 we can have sizeof(uint64_t) = 8 and _Alignof(uint64_t) = 4. causing split locks. The
+ * implementation does handle that correctly, but with an internal mutex. Extend the alignment to
+ * avoid this.
+ * `p_atomic_int64_t` and `p_atomic_uint64_t` are used for casting any pointer to
+ * `p_atomic_int64_t *` and `p_atomic_uint64_t *`. That's for telling the compiler is accessing
+ * the 64 bits atomic in 8 byte aligned way to avoid clang `misaligned atomic operation` warning.
+ * To define 64 bits atomic memeber in struct type,
+ * use `alignas(8) int64_t $member` or `alignas(8) uint64_t $member` is enough.
+ */
+typedef struct
+#ifdef _MSC_VER
+ __declspec(align(8))
+#else
+ __attribute__((aligned(8)))
+#endif
+{
+   int64_t value;
+} p_atomic_int64_t;
+typedef struct
+{
+#ifdef _MSC_VER
+ __declspec(align(8))
+#else
+ __attribute__((aligned(8)))
+#endif
+   uint64_t value;
+} p_atomic_uint64_t;
 
 #endif /* U_ATOMIC_H */

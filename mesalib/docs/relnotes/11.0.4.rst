@@ -30,9 +30,9 @@ Bug fixes
 This list is likely incomplete.
 
 -  `Bug 86281 <https://bugs.freedesktop.org/show_bug.cgi?id=86281>`__ -
-   brw_meta_fast_clear (brw=brw@entry=0x7fffd4097a08,
-   fb=fb@entry=0x7fffd40fa900, buffers=buffers@entry=2,
-   partial_clear=partial_clear@entry=false)
+   brw_meta_fast_clear (brw=brw\@entry=0x7fffd4097a08,
+   fb=fb\@entry=0x7fffd40fa900, buffers=buffers\@entry=2,
+   partial_clear=partial_clear\@entry=false)
 -  `Bug 86720 <https://bugs.freedesktop.org/show_bug.cgi?id=86720>`__ -
    [radeon] Europa Universalis 4 freezing during game start (10.3.3+,
    still broken on 11.0.2)

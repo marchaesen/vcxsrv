@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: MIT
+# Copyright © 2023 Intel Corporation
+
+option(
+  'xthreads',
+  type : 'boolean',
+  value : true,
+  description : 'Whether libXau should be compiled with thread support.'
+)

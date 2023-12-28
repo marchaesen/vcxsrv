@@ -156,7 +156,7 @@ struct crocus_vtable {
    bool (*calculate_urb_fence)(struct crocus_batch *batch, unsigned csize,
                                unsigned vsize, unsigned sfsize);
    void (*batch_reset_dirty)(struct crocus_batch *batch);
-   unsigned (*translate_prim_type)(enum pipe_prim_type prim, uint8_t verts_per_patch);
+   unsigned (*translate_prim_type)(enum mesa_prim prim, uint8_t verts_per_patch);
 
    void (*update_so_strides)(struct crocus_context *ice,
                              uint16_t *strides);

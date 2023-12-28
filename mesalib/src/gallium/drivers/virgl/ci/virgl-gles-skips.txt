@@ -2,7 +2,7 @@
 # non-zero-length and not starting with '#', will regex match to
 # delete lines from the test list.  Be careful.
 
-KHR-GL32.packed_pixels.varied_rectangle.depth*
+KHR-GL32.packed_pixels.varied_rectangle.depth.*
 
 # too slow (>15s compile on host causes timeouts that make for flakes)
 dEQP-GLES31.functional.ssbo.layout.random.all_shared_buffer.36

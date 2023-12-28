@@ -27,6 +27,7 @@
 #include "vk_cmd_queue.h"
 #include "vk_graphics_state.h"
 #include "vk_log.h"
+#include "vk_meta.h"
 #include "vk_object.h"
 #include "util/list.h"
 #include "util/u_dynarray.h"
@@ -59,6 +60,7 @@ struct vk_attachment_state {
    VkClearValue clear_value;
 };
 
+/** Command buffer ops */
 struct vk_command_buffer_ops {
    /** Creates a command buffer
     *
@@ -88,6 +90,14 @@ struct vk_command_buffer_ops {
    void (*destroy)(struct vk_command_buffer *);
 };
 
+enum mesa_vk_command_buffer_state {
+   MESA_VK_COMMAND_BUFFER_STATE_INVALID,
+   MESA_VK_COMMAND_BUFFER_STATE_INITIAL,
+   MESA_VK_COMMAND_BUFFER_STATE_RECORDING,
+   MESA_VK_COMMAND_BUFFER_STATE_EXECUTABLE,
+   MESA_VK_COMMAND_BUFFER_STATE_PENDING,
+};
+
 struct vk_command_buffer {
    struct vk_object_base base;
 
@@ -100,6 +110,9 @@ struct vk_command_buffer {
 
    struct vk_dynamic_graphics_state dynamic_graphics_state;
 
+   /** State of the command buffer */
+   enum mesa_vk_command_buffer_state state;
+
    /** Command buffer recording error state. */
    VkResult record_result;
 
@@ -108,6 +121,9 @@ struct vk_command_buffer {
 
    /** Command list for emulated secondary command buffers */
    struct vk_cmd_queue cmd_queue;
+
+   /** Object list for meta objects */
+   struct vk_meta_object_list meta_objects;
 
    /**
     * VK_EXT_debug_utils
@@ -132,11 +148,11 @@ struct vk_command_buffer {
     * call. This means that there can be no more than one such label at a
     * time.
     *
-    * \c labels contains all active labels at this point in order of submission
-    * \c region_begin denotes whether the most recent label opens a new region
-    * If \t labels is empty \t region_begin must be true.
+    * ``labels`` contains all active labels at this point in order of
+    * submission ``region_begin`` denotes whether the most recent label opens
+    * a new region If ``labels`` is empty ``region_begin`` must be true.
     *
-    * Anytime we modify labels, we first check for \c region_begin. If it's
+    * Anytime we modify labels, we first check for ``region_begin``. If it's
     * false, it means that the most recent label was submitted by
     * `*InsertDebugUtilsLabel` and we need to remove it before doing anything
     * else.
@@ -178,6 +194,13 @@ vk_command_buffer_reset(struct vk_command_buffer *command_buffer);
 
 void
 vk_command_buffer_recycle(struct vk_command_buffer *command_buffer);
+
+void
+vk_command_buffer_begin(struct vk_command_buffer *command_buffer,
+                        const VkCommandBufferBeginInfo *pBeginInfo);
+
+VkResult
+vk_command_buffer_end(struct vk_command_buffer *command_buffer);
 
 void
 vk_command_buffer_finish(struct vk_command_buffer *command_buffer);

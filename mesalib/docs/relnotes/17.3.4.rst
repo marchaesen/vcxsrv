@@ -155,7 +155,7 @@ Indrajit Das (4):
 -  radeon/vcn: update quantiser matrices only when requested
 -  st/va: clear pointers for mpeg2 quantiser matrices
 
-Jason Ekstrand (19):
+Faith Ekstrand (19):
 
 -  i965: Call brw_cache_flush_for_render in predraw_resolve_framebuffer
 -  i965: Add more precise cache tracking helpers

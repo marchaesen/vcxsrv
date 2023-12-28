@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 
-#define XCB_XFIXES_MAJOR_VERSION 5
+#define XCB_XFIXES_MAJOR_VERSION 6
 #define XCB_XFIXES_MINOR_VERSION 0
 
 XCB_EXTERN xcb_extension_t xcb_xfixes_id;
@@ -234,6 +234,9 @@ typedef struct xcb_xfixes_bad_region_error_t {
     uint8_t  response_type;
     uint8_t  error_code;
     uint16_t sequence;
+    uint32_t bad_value;
+    uint16_t minor_opcode;
+    uint8_t  major_opcode;
 } xcb_xfixes_bad_region_error_t;
 
 typedef enum xcb_xfixes_region_enum_t {
@@ -733,6 +736,63 @@ typedef struct xcb_xfixes_delete_pointer_barrier_request_t {
     uint16_t             length;
     xcb_xfixes_barrier_t barrier;
 } xcb_xfixes_delete_pointer_barrier_request_t;
+
+typedef enum xcb_xfixes_client_disconnect_flags_t {
+    XCB_XFIXES_CLIENT_DISCONNECT_FLAGS_DEFAULT = 0,
+/**< The default behavior for regular clients: the X11 server won't terminate as long
+as such clients are still connected, and should this client disconnect, the
+server will continue running so long as other clients (that have not set
+XFixesClientDisconnectFlagTerminate) are connected. */
+
+    XCB_XFIXES_CLIENT_DISCONNECT_FLAGS_TERMINATE = 1
+/**< Indicates to the X11 server that it can ignore the client and terminate itself
+even though the client is still connected to the X11 server. */
+
+} xcb_xfixes_client_disconnect_flags_t;
+
+/** Opcode for xcb_xfixes_set_client_disconnect_mode. */
+#define XCB_XFIXES_SET_CLIENT_DISCONNECT_MODE 33
+
+/**
+ * @brief xcb_xfixes_set_client_disconnect_mode_request_t
+ **/
+typedef struct xcb_xfixes_set_client_disconnect_mode_request_t {
+    uint8_t  major_opcode;
+    uint8_t  minor_opcode;
+    uint16_t length;
+    uint32_t disconnect_mode;
+} xcb_xfixes_set_client_disconnect_mode_request_t;
+
+/**
+ * @brief xcb_xfixes_get_client_disconnect_mode_cookie_t
+ **/
+typedef struct xcb_xfixes_get_client_disconnect_mode_cookie_t {
+    unsigned int sequence;
+} xcb_xfixes_get_client_disconnect_mode_cookie_t;
+
+/** Opcode for xcb_xfixes_get_client_disconnect_mode. */
+#define XCB_XFIXES_GET_CLIENT_DISCONNECT_MODE 34
+
+/**
+ * @brief xcb_xfixes_get_client_disconnect_mode_request_t
+ **/
+typedef struct xcb_xfixes_get_client_disconnect_mode_request_t {
+    uint8_t  major_opcode;
+    uint8_t  minor_opcode;
+    uint16_t length;
+} xcb_xfixes_get_client_disconnect_mode_request_t;
+
+/**
+ * @brief xcb_xfixes_get_client_disconnect_mode_reply_t
+ **/
+typedef struct xcb_xfixes_get_client_disconnect_mode_reply_t {
+    uint8_t  response_type;
+    uint8_t  pad0;
+    uint16_t sequence;
+    uint32_t length;
+    uint32_t disconnect_mode;
+    uint8_t  pad1[20];
+} xcb_xfixes_get_client_disconnect_mode_reply_t;
 
 /**
  *
@@ -1992,6 +2052,81 @@ xcb_xfixes_delete_pointer_barrier_checked (xcb_connection_t     *c,
 xcb_void_cookie_t
 xcb_xfixes_delete_pointer_barrier (xcb_connection_t     *c,
                                    xcb_xfixes_barrier_t  barrier);
+
+/**
+ * @brief Sets the disconnect mode for the client.
+ *
+ * @param c The connection
+ * @param disconnect_mode The new disconnect mode.
+ * @return A cookie
+ *
+ * No description yet
+ *
+ * This form can be used only if the request will not cause
+ * a reply to be generated. Any returned error will be
+ * saved for handling by xcb_request_check().
+ */
+xcb_void_cookie_t
+xcb_xfixes_set_client_disconnect_mode_checked (xcb_connection_t *c,
+                                               uint32_t          disconnect_mode);
+
+/**
+ * @brief Sets the disconnect mode for the client.
+ *
+ * @param c The connection
+ * @param disconnect_mode The new disconnect mode.
+ * @return A cookie
+ *
+ * No description yet
+ *
+ */
+xcb_void_cookie_t
+xcb_xfixes_set_client_disconnect_mode (xcb_connection_t *c,
+                                       uint32_t          disconnect_mode);
+
+/**
+ *
+ * @param c The connection
+ * @return A cookie
+ *
+ * Delivers a request to the X server.
+ *
+ */
+xcb_xfixes_get_client_disconnect_mode_cookie_t
+xcb_xfixes_get_client_disconnect_mode (xcb_connection_t *c);
+
+/**
+ *
+ * @param c The connection
+ * @return A cookie
+ *
+ * Delivers a request to the X server.
+ *
+ * This form can be used only if the request will cause
+ * a reply to be generated. Any returned error will be
+ * placed in the event queue.
+ */
+xcb_xfixes_get_client_disconnect_mode_cookie_t
+xcb_xfixes_get_client_disconnect_mode_unchecked (xcb_connection_t *c);
+
+/**
+ * Return the reply
+ * @param c      The connection
+ * @param cookie The cookie
+ * @param e      The xcb_generic_error_t supplied
+ *
+ * Returns the reply of the request asked by
+ *
+ * The parameter @p e supplied to this function must be NULL if
+ * xcb_xfixes_get_client_disconnect_mode_unchecked(). is used.
+ * Otherwise, it stores the error if any.
+ *
+ * The returned value must be freed by the caller using free().
+ */
+xcb_xfixes_get_client_disconnect_mode_reply_t *
+xcb_xfixes_get_client_disconnect_mode_reply (xcb_connection_t                                *c,
+                                             xcb_xfixes_get_client_disconnect_mode_cookie_t   cookie  /**< */,
+                                             xcb_generic_error_t                            **e);
 
 
 #ifdef __cplusplus

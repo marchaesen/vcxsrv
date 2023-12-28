@@ -27,44 +27,6 @@
 #include "fb.h"
 
 static void
-fbTile(FbBits * dst, FbStride dstStride, int dstX, int width, int height,
-       FbBits * tile, FbStride tileStride, int tileWidth, int tileHeight,
-       int alu, FbBits pm, int bpp, int xRot, int yRot)
-{
-    int tileX, tileY;
-    int widthTmp;
-    int h, w;
-    int x, y;
-
-    modulus(-yRot, tileHeight, tileY);
-    y = 0;
-    while (height) {
-        h = tileHeight - tileY;
-        if (h > height)
-            h = height;
-        height -= h;
-        widthTmp = width;
-        x = dstX;
-        modulus(dstX - xRot, tileWidth, tileX);
-        while (widthTmp) {
-            w = tileWidth - tileX;
-            if (w > widthTmp)
-                w = widthTmp;
-            widthTmp -= w;
-            fbBlt(tile + tileY * tileStride,
-                  tileStride,
-                  tileX,
-                  dst + y * dstStride,
-                  dstStride, x, w, h, alu, pm, bpp, FALSE, FALSE);
-            x += w;
-            tileX = 0;
-        }
-        y += h;
-        tileY = 0;
-    }
-}
-
-static void
 fbStipple(FbBits * dst, FbStride dstStride,
           int dstX, int dstBpp,
           int width, int height,

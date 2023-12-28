@@ -93,6 +93,7 @@ MAIN_FILES = \
 	main/format_fallback.c \
 	main/format_info.h \
 	main/format_pack.h \
+	main/unmarshal_table.c \
 	main/marshal_generated0.c \
 	main/marshal_generated1.c \
 	main/marshal_generated2.c \
@@ -124,6 +125,7 @@ MAIN_FILES = \
 	main/glthread.c \
 	main/glthread_bufferobj.c \
 	main/glthread_draw.c \
+	main/glthread_draw_unroll.c \
         main/glthread_get.c \
 	main/glthread_marshal.h \
 	main/glthread_shaderobj.c \
@@ -358,6 +360,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_context.h \
 	state_tracker/st_copytex.c \
 	state_tracker/st_copytex.h \
+	state_tracker/st_nir_lower_position_invariant.c \
+	state_tracker/st_texcompress_compute.c \
 	state_tracker/st_debug.c \
 	state_tracker/st_debug.h \
 	state_tracker/st_draw.c \
@@ -370,7 +374,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_gen_mipmap.c \
 	state_tracker/st_gen_mipmap.h \
 	state_tracker/st_gl_api.h \
-	state_tracker/st_glsl_to_ir.cpp \
 	state_tracker/st_glsl_to_ir.h \
 	state_tracker/st_glsl_to_nir.cpp \
 	state_tracker/st_manager.c \
@@ -395,7 +398,8 @@ STATETRACKER_FILES = \
 	state_tracker/st_vdpau.c \
 	state_tracker/st_vdpau.h \
 	state_tracker/st_pbo_compute.c \
-	state_tracker/st_draw_hw_select.c
+	state_tracker/st_draw_hw_select.c \
+	state_tracker/st_nir_lower_fog.c
 
 PROGRAM_FILES = \
 	program/arbprogparse.c \

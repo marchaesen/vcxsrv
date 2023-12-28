@@ -120,6 +120,12 @@ extern _X_EXPORT void glamor_clear_pixmap(PixmapPtr pixmap);
 
 extern _X_EXPORT void glamor_block_handler(ScreenPtr screen);
 
+/* This function should be called after glamor_init,
+ * but before adding a glamor GLX provider */
+extern _X_EXPORT void glamor_set_glvnd_vendor(ScreenPtr screen,
+                                              const char *vendor);
+extern _X_EXPORT const char *glamor_get_glvnd_vendor(ScreenPtr screen);
+
 extern _X_EXPORT PixmapPtr glamor_create_pixmap(ScreenPtr screen, int w, int h,
                                                 int depth, unsigned int usage);
 extern _X_EXPORT Bool glamor_destroy_pixmap(PixmapPtr pixmap);

@@ -24,10 +24,10 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "sfn_instr_export.h"
 #include "sfn_shader_tess.h"
-#include "sfn_shader_vs.h"
 
+#include "sfn_instr_export.h"
+#include "sfn_shader_vs.h"
 
 #include <sstream>
 
@@ -36,18 +36,18 @@ namespace r600 {
 using std::string;
 
 TCSShader::TCSShader(const r600_shader_key& key):
-   Shader("TCS"),
-   m_tcs_prim_mode(key.tcs.prim_mode)
+    Shader("TCS", key.tcs.first_atomic_counter),
+    m_tcs_prim_mode(key.tcs.prim_mode)
 {
-
 }
 
-bool TCSShader::do_scan_instruction(nir_instr *instr)
+bool
+TCSShader::do_scan_instruction(nir_instr *instr)
 {
    if (instr->type != nir_instr_type_intrinsic)
       return false;
 
-   nir_intrinsic_instr *ii =  nir_instr_as_intrinsic(instr);
+   nir_intrinsic_instr *ii = nir_instr_as_intrinsic(instr);
 
    switch (ii->intrinsic) {
    case nir_intrinsic_load_primitive_id:
@@ -69,42 +69,41 @@ bool TCSShader::do_scan_instruction(nir_instr *instr)
    return true;
 }
 
-int TCSShader::do_allocate_reserved_registers()
+int
+TCSShader::do_allocate_reserved_registers()
 {
    if (m_sv_values.test(es_primitive_id)) {
       m_primitive_id = value_factory().allocate_pinned_register(0, 0);
-      m_primitive_id->pin_live_range(true);
    }
 
    if (m_sv_values.test(es_invocation_id)) {
       m_invocation_id = value_factory().allocate_pinned_register(0, 2);
-      m_invocation_id->pin_live_range(true);
    }
 
    if (m_sv_values.test(es_rel_patch_id)) {
-      m_rel_patch_id = value_factory().allocate_pinned_register(0, 1);;
-      m_rel_patch_id->pin_live_range(true);
+      m_rel_patch_id = value_factory().allocate_pinned_register(0, 1);
    }
 
    if (m_sv_values.test(es_tess_factor_base)) {
       m_tess_factor_base = value_factory().allocate_pinned_register(0, 3);
-      m_tess_factor_base->pin_live_range(true);
    }
 
-   return value_factory().next_register_index();;
+   return value_factory().next_register_index();
+   ;
 }
 
-bool TCSShader::process_stage_intrinsic(nir_intrinsic_instr *instr)
+bool
+TCSShader::process_stage_intrinsic(nir_intrinsic_instr *instr)
 {
    switch (instr->intrinsic) {
    case nir_intrinsic_load_tcs_rel_patch_id_r600:
-      return emit_simple_mov(instr->dest, 0, m_rel_patch_id);
+      return emit_simple_mov(instr->def, 0, m_rel_patch_id);
    case nir_intrinsic_load_invocation_id:
-      return emit_simple_mov(instr->dest, 0, m_invocation_id);
+      return emit_simple_mov(instr->def, 0, m_invocation_id);
    case nir_intrinsic_load_primitive_id:
-      return emit_simple_mov(instr->dest, 0, m_primitive_id);
+      return emit_simple_mov(instr->def, 0, m_primitive_id);
    case nir_intrinsic_load_tcs_tess_factor_base_r600:
-      return emit_simple_mov(instr->dest, 0, m_tess_factor_base);
+      return emit_simple_mov(instr->def, 0, m_tess_factor_base);
    case nir_intrinsic_store_tf_r600:
       return store_tess_factor(instr);
    default:
@@ -112,38 +111,23 @@ bool TCSShader::process_stage_intrinsic(nir_intrinsic_instr *instr)
    }
 }
 
-bool TCSShader::store_tess_factor(nir_intrinsic_instr* instr)
+bool
+TCSShader::store_tess_factor(nir_intrinsic_instr *instr)
 {
-   bool two_parts = nir_src_num_components(instr->src[0]) == 4;
-
-   auto value0 = value_factory().temp_vec4(pin_group, {0, 1, 7, 7});
-   emit_instruction(new AluInstr(op1_mov, value0[0], value_factory().src(instr->src[0], 0),
-                                 AluInstr::write));
-   emit_instruction(new AluInstr(op1_mov, value0[1], value_factory().src(instr->src[0], 1),
-                                 two_parts ? AluInstr::write : AluInstr::last_write));
-
-
-   if (two_parts) {
-      auto value1 = value_factory().temp_vec4(pin_group, {2, 3, 7, 7});
-      emit_instruction(new AluInstr(op1_mov, value1[0], value_factory().src(instr->src[0], 2),
-                                    AluInstr::write));
-      emit_instruction(new AluInstr(op1_mov, value1[1], value_factory().src(instr->src[0], 3),
-                                    AluInstr::last_write));
-      emit_instruction(new WriteTFInstr(value1));
-   }
-
+   auto value0 = value_factory().src_vec4(instr->src[0], pin_group, {0, 1, 7, 7});
    emit_instruction(new WriteTFInstr(value0));
    return true;
 }
 
-
-void TCSShader::do_get_shader_info(r600_shader *sh_info)
+void
+TCSShader::do_get_shader_info(r600_shader *sh_info)
 {
    sh_info->processor_type = PIPE_SHADER_TESS_CTRL;
    sh_info->tcs_prim_mode = m_tcs_prim_mode;
 }
 
-bool TCSShader::read_prop(std::istream& is)
+bool
+TCSShader::read_prop(std::istream& is)
 {
    string value;
    is >> value;
@@ -164,16 +148,18 @@ bool TCSShader::read_prop(std::istream& is)
    return true;
 }
 
-void TCSShader::do_print_properties(std::ostream& os) const
+void
+TCSShader::do_print_properties(std::ostream& os) const
 {
    os << "PROP TCS_PRIM_MODE:" << m_tcs_prim_mode << "\n";
 }
 
-TESShader::TESShader(const pipe_stream_output_info *so_info, const r600_shader *gs_shader,
+TESShader::TESShader(const pipe_stream_output_info *so_info,
+                     const r600_shader *gs_shader,
                      const r600_shader_key& key):
-   VertexStageShader("TES"),
-   m_vs_as_gs_a(key.vs.as_gs_a),
-   m_tes_as_es(key.tes.as_es)
+    VertexStageShader("TES", key.tes.first_atomic_counter),
+    m_vs_as_gs_a(key.vs.as_gs_a),
+    m_tes_as_es(key.tes.as_es)
 {
    if (key.tes.as_es)
       m_export_processor = new VertexExportForGS(this, gs_shader);
@@ -181,7 +167,8 @@ TESShader::TESShader(const pipe_stream_output_info *so_info, const r600_shader *
       m_export_processor = new VertexExportForFs(this, so_info, key);
 }
 
-bool TESShader::do_scan_instruction(nir_instr *instr)
+bool
+TESShader::do_scan_instruction(nir_instr *instr)
 {
    if (instr->type != nir_instr_type_intrinsic)
       return false;
@@ -189,7 +176,7 @@ bool TESShader::do_scan_instruction(nir_instr *instr)
    auto intr = nir_instr_as_intrinsic(instr);
 
    switch (intr->intrinsic) {
-   case nir_intrinsic_load_tess_coord_r600:
+   case nir_intrinsic_load_tess_coord_xy:
       m_sv_values.set(es_tess_coord);
       break;
    case nir_intrinsic_load_primitive_id:
@@ -200,33 +187,14 @@ bool TESShader::do_scan_instruction(nir_instr *instr)
       break;
    case nir_intrinsic_store_output: {
       int driver_location = nir_intrinsic_base(intr);
-      int location = nir_intrinsic_io_semantics(intr).location;
-      auto semantic = r600_get_varying_semantic(location);
-      tgsi_semantic name = (tgsi_semantic)semantic.first;
-      unsigned sid = semantic.second;
+      auto location = static_cast<gl_varying_slot>(nir_intrinsic_io_semantics(intr).location);
       auto write_mask = nir_intrinsic_write_mask(intr);
 
       if (location == VARYING_SLOT_LAYER)
          write_mask = 4;
 
-      ShaderOutput output(driver_location, name, write_mask);
-      output.set_sid(sid);
+      ShaderOutput output(driver_location, write_mask, location);
 
-      switch (location) {
-      case VARYING_SLOT_PSIZ:
-      case VARYING_SLOT_POS:
-      case VARYING_SLOT_CLIP_VERTEX:
-      case VARYING_SLOT_EDGE: {
-         break;
-      }
-      case VARYING_SLOT_CLIP_DIST0:
-      case VARYING_SLOT_CLIP_DIST1:
-      case VARYING_SLOT_VIEWPORT:
-      case VARYING_SLOT_LAYER:
-      case VARYING_SLOT_VIEW_INDEX:
-      default:
-         output.set_is_param(true);
-      }
       add_output(output);
       break;
    }
@@ -236,37 +204,35 @@ bool TESShader::do_scan_instruction(nir_instr *instr)
    return true;
 }
 
-int TESShader::do_allocate_reserved_registers()
+int
+TESShader::do_allocate_reserved_registers()
 {
    if (m_sv_values.test(es_tess_coord)) {
       m_tess_coord[0] = value_factory().allocate_pinned_register(0, 0);
-      m_tess_coord[0]->pin_live_range(true);
       m_tess_coord[1] = value_factory().allocate_pinned_register(0, 1);
-      m_tess_coord[1]->pin_live_range(true);
    }
 
    if (m_sv_values.test(es_rel_patch_id)) {
       m_rel_patch_id = value_factory().allocate_pinned_register(0, 2);
-      m_rel_patch_id->pin_live_range(true);
    }
 
    if (m_sv_values.test(es_primitive_id) || m_vs_as_gs_a) {
       m_primitive_id = value_factory().allocate_pinned_register(0, 3);
-      m_primitive_id->pin_live_range(true);
    }
    return value_factory().next_register_index();
 }
 
-bool TESShader::process_stage_intrinsic(nir_intrinsic_instr *intr)
+bool
+TESShader::process_stage_intrinsic(nir_intrinsic_instr *intr)
 {
    switch (intr->intrinsic) {
-   case nir_intrinsic_load_tess_coord_r600:
-      return emit_simple_mov(intr->dest, 0, m_tess_coord[0], pin_none) &&
-            emit_simple_mov(intr->dest, 1, m_tess_coord[1], pin_none);
+   case nir_intrinsic_load_tess_coord_xy:
+      return emit_simple_mov(intr->def, 0, m_tess_coord[0], pin_none) &&
+             emit_simple_mov(intr->def, 1, m_tess_coord[1], pin_none);
    case nir_intrinsic_load_primitive_id:
-      return emit_simple_mov(intr->dest, 0, m_primitive_id);
+      return emit_simple_mov(intr->def, 0, m_primitive_id);
    case nir_intrinsic_load_tcs_rel_patch_id_r600:
-      return emit_simple_mov(intr->dest, 0, m_rel_patch_id);
+      return emit_simple_mov(intr->def, 0, m_rel_patch_id);
    case nir_intrinsic_store_output:
       return m_export_processor->store_output(*intr);
    default:
@@ -274,27 +240,30 @@ bool TESShader::process_stage_intrinsic(nir_intrinsic_instr *intr)
    }
 }
 
-void TESShader::do_get_shader_info(r600_shader *sh_info)
+void
+TESShader::do_get_shader_info(r600_shader *sh_info)
 {
    sh_info->processor_type = PIPE_SHADER_TESS_EVAL;
    m_export_processor->get_shader_info(sh_info);
 }
 
-void TESShader::do_finalize()
+void
+TESShader::do_finalize()
 {
    m_export_processor->finalize();
 }
 
-bool TESShader::TESShader::read_prop(std::istream& is)
+bool
+TESShader::TESShader::read_prop(std::istream& is)
 {
    (void)is;
    return true;
 }
 
-void TESShader::do_print_properties(std::ostream& os) const
+void
+TESShader::do_print_properties(std::ostream& os) const
 {
    (void)os;
 }
 
-
-}
+} // namespace r600

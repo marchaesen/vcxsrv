@@ -77,7 +77,7 @@ default xkb_geometry "dell101" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -95,24 +95,24 @@ default xkb_geometry "dell101" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -248,7 +248,7 @@ xkb_geometry "dell65x" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -266,24 +266,24 @@ xkb_geometry "dell65x" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -366,14 +366,14 @@ xkb_geometry "dellm65" {
     labelColor = "white";
 
     shape "BACKGROUND"  { cornerRadius = 3, { [  308,  152 ] } };
-    shape "BACKGROUND2" { cornerRadius = 2, { [  7, 22 ], 
+    shape "BACKGROUND2" { cornerRadius = 2, { [  7, 22 ],
                                               [ 171, 22 ],
                                               [ 171, 10 ],
                                               [ 301, 10 ],
                                               [ 301, 148 ],
                                               [ 244, 148 ],
                                               [ 244, 132 ],
-                                              [   7, 132] } }; 
+                                              [   7, 132] } };
     solid "Background" {
 	shape = "BACKGROUND";
 	top = 0;
@@ -435,12 +435,12 @@ xkb_geometry "dellm65" {
        key.gap = 0;
        row {
 	    top = 0;
-            keys {      { <MENU>, 165 }, <PRSC>, <NMLK>, <PAUS>, 
+            keys {      { <MENU>, 165 }, <PRSC>, <NMLK>, <PAUS>,
                         { <INS>, 1 },  <HOME>, <PGUP> };
        };
        row {
 	    top = 12;
-            keys { <ESC>, { <FK01>, 1 }, <FK02>, <FK03>, <FK04>, 
+            keys { <ESC>, { <FK01>, 1 }, <FK02>, <FK03>, <FK04>,
                           { <FK05>, 1 }, <FK06>, <FK07>, <FK08>,
                           { <FK09>, 1 }, <FK10>, <FK11>, <FK12>,
                           { <DELE>,  1 }, <END>, <PGDN> };
@@ -459,7 +459,7 @@ xkb_geometry "dellm65" {
    shape "LALT" { cornerRadius = 1, { [ 25, 19 ] }, { [ 2, 1 ], [ 23, 15 ] } };
    shape "RCTL" { cornerRadius = 1, { [ 25, 19 ] }, { [ 2, 1 ], [ 23, 15 ] } };
    shape "SPCE" { cornerRadius = 1, { [ 96, 19 ] }, { [ 2, 1 ], [ 94, 15 ] } };
-   
+
 
    section "Alpha" {
        top = 36;
@@ -478,27 +478,27 @@ xkb_geometry "dellm65" {
        row {
 	    top = 20;
             keys { { <TAB>, "TABK" },
-		   { <AD01>, 1 }, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   { <AD01>, 1 }, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, 1, "BKSL" } };
 	};
        row {
 	    top = 39;
             keys { { <CAPS>, "CAPS" },
-		   { <AC01>, 1 }, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   { <AC01>, 1 }, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, 1, "RTRN" } };
 	};
        row {
 	    top = 58;
             keys { { <LFSH>, "LFSH" },
-		   { <AB01>, 1 }, <AB02>, <AB03>, <AB04>, <AB05>, 
-		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		   { <AB01>, 1 }, <AB02>, <AB03>, <AB04>, <AB05>,
+		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, 1, "RTSH" } };
 	};
        row {
            top = 77;
-           keys { { <LCTL>, "LCTL" }, { <LWIN>, 20 }, { <LALT>, "LALT" }, 
+           keys { { <LCTL>, "LCTL" }, { <LWIN>, 20 }, { <LALT>, "LALT" },
                   { <SPCE>, "SPCE" }, <RALT>, { <RCTL>, "RCTL" } };
 	};
    };
@@ -509,7 +509,7 @@ xkb_geometry "dellm65" {
         left = 243;
         width = 54;
         height = 36;
-        
+
        key.color = "grey80";
         key.shape = "SKEY";
         row {
@@ -518,7 +518,7 @@ xkb_geometry "dellm65" {
 
            keys { <UP> };
         };
-  
+
         row {
             top = 17;
             left = 2;
@@ -533,11 +533,11 @@ xkb_geometry "dellm65" {
       priority = 255;
       color = "blue";
       shape = "STIK";
-      top = 90; 
+      top = 90;
       left = 135;
   };
 };
- 
+
 xkb_geometry "latitude" {
 	description="Dell Latitude";
 	width=304.2; height=219.1;
@@ -605,7 +605,7 @@ xkb_geometry "latitude" {
 		{<AD04>, "NORM", 1}, {<AD05>, "NORM", 1}, {<AD06>, "NORM", 1}, {<AD07>, "NORM", 1}, {<AD08>, "NORM", 1},
 		{<AD09>, "NORM", 1}, {<AD10>, "NORM", 1}, {<AD11>, "NORM", 1}, {<AD12>, "NORM", 1}, {<RTRN>, "RTRN", 1}};};
 	row {top=38; left=0; keys {{<CAPS>, "CAPS", 0}, {<AC01>, "NORM", 1}, {<AC02>, "NORM", 1}, {<AC03>, "NORM", 1},
-		{<AC04>, "NORM", 1}, {<AC05>, "NORM", 1}, {<AC06>, "NORM", 1}, {<AC07>, "NORM", 1}, {<AC08>, "NORM", 1}, 
+		{<AC04>, "NORM", 1}, {<AC05>, "NORM", 1}, {<AC06>, "NORM", 1}, {<AC07>, "NORM", 1}, {<AC08>, "NORM", 1},
 		{<AC09>, "NORM", 1}, {<AC10>, "NORM", 1}, {<AC11>, "NORM", 1}, {<AC12>, "NORM", 1}};};
 	// TODO There's a weird <> key here, check it out:
 	row {top=57; left=0; keys {{<LFSH>, "LFSH", 0}, {<AB01>, "NORM", 1}, {<AB02>, "NORM", 1}, {<AB03>, "NORM", 1},
@@ -617,7 +617,7 @@ xkb_geometry "latitude" {
 
 	shape "ARROW" {corner=1.5, {[17,15]}, {[2,0.5],[15,13]}};
 	section "Arrows" {key.color="grey"; priority=110; top=112; left=240; width=43; height=31;
-		row {top=0; left=18; keys {{<UP>, "ARROW", 0}};};	
+		row {top=0; left=18; keys {{<UP>, "ARROW", 0}};};
 		row {top=16; left=0; keys {{<LEFT>, "ARROW", 0}, {<DOWN>, "ARROW", 1}, {<RGHT>, "ARROW", 1}};};
 	}; // End of "Arrows" section
 
@@ -627,7 +627,7 @@ xkb_geometry "latitude" {
 	indicator.onColor="green";
 	indicator.offColor="grey";
 	indicator.top=7;
-	indicator.shape="LED"; 
+	indicator.shape="LED";
 	indicator.priority=200;
 	indicator "Num Lock" {left=72;};
 	indicator "Caps Lock" {left=80;};
@@ -638,7 +638,7 @@ xkb_geometry "latitude" {
 	shape "ROUND" {corner=5, {[10,10]}};
 	shape "POWER" {corner=7, {[15,15]}};
 	section "Topbuttons" {key.color="grey"; priority=110; top=2; left=100;
-		row {top=2; left=0; keys {{<VLUP>, "ROUND", 0}, {<VLDN>, "ROUND", 3}, {<MUTE>, "ROUND", 3}};};	
+		row {top=2; left=0; keys {{<VLUP>, "ROUND", 0}, {<VLDN>, "ROUND", 3}, {<MUTE>, "ROUND", 3}};};
 		row {top=0; left=45; keys {{<POWR>, "POWER", 0}};};
 	}; // End of "TopButtons" section
 };

@@ -28,8 +28,6 @@
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
 #include "util/u_bitmask.h"
-#include "tgsi/tgsi_parse.h"
-#include "tgsi/tgsi_text.h"
 
 #include "svga_context.h"
 #include "svga_cmd.h"
@@ -78,6 +76,10 @@ svga_bind_gs_state(struct pipe_context *pipe, void *shader)
 
    svga->curr.user_gs = gs;
    svga->dirty |= SVGA_NEW_GS;
+
+   /* Check if the shader uses samplers */
+   svga_set_curr_shader_use_samplers_flag(svga, PIPE_SHADER_GEOMETRY,
+                                          svga_shader_use_samplers(&gs->base));
 }
 
 

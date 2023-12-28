@@ -10,35 +10,32 @@
 struct panfrost_device;
 struct panfrost_perf;
 
-namespace pps
-{
-class PanfrostDevice
-{
-   public:
+namespace pps {
+class PanfrostDevice {
+ public:
    PanfrostDevice(int fd);
    ~PanfrostDevice();
 
    PanfrostDevice(const PanfrostDevice &) = delete;
    PanfrostDevice &operator=(const PanfrostDevice &) = delete;
 
-   PanfrostDevice(PanfrostDevice&&);
-   PanfrostDevice& operator=(PanfrostDevice&&);
+   PanfrostDevice(PanfrostDevice &&);
+   PanfrostDevice &operator=(PanfrostDevice &&);
 
    void *ctx = nullptr;
-   struct panfrost_device* dev = nullptr;
+   struct panfrost_device *dev = nullptr;
 };
 
-class PanfrostPerf
-{
-   public:
-   PanfrostPerf(const PanfrostDevice& dev);
+class PanfrostPerf {
+ public:
+   PanfrostPerf(const PanfrostDevice &dev);
    ~PanfrostPerf();
 
    PanfrostPerf(const PanfrostPerf &) = delete;
    PanfrostPerf &operator=(const PanfrostPerf &) = delete;
 
-   PanfrostPerf(PanfrostPerf&&);
-   PanfrostPerf& operator=(PanfrostPerf&&);
+   PanfrostPerf(PanfrostPerf &&);
+   PanfrostPerf &operator=(PanfrostPerf &&);
 
    int enable() const;
    void disable() const;

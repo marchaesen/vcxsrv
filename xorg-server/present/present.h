@@ -29,7 +29,15 @@
 
 typedef enum {
     PRESENT_FLIP_REASON_UNKNOWN,
-    PRESENT_FLIP_REASON_BUFFER_FORMAT
+    PRESENT_FLIP_REASON_BUFFER_FORMAT,
+
+    /* Don't add new flip reasons after the TearFree ones, since it's expected
+     * that the TearFree reasons are the highest ones in order to allow doing
+     * `reason >= PRESENT_FLIP_REASON_DRIVER_TEARFREE` to check if a reason is
+     * PRESENT_FLIP_REASON_DRIVER_TEARFREE{_FLIPPING}.
+     */
+    PRESENT_FLIP_REASON_DRIVER_TEARFREE,
+    PRESENT_FLIP_REASON_DRIVER_TEARFREE_FLIPPING
 } PresentFlipReason;
 
 typedef struct present_vblank present_vblank_rec, *present_vblank_ptr;
@@ -148,6 +156,9 @@ present_event_notify(uint64_t event_id, uint64_t ust, uint64_t msc);
 
 extern _X_EXPORT Bool
 present_screen_init(ScreenPtr screen, present_screen_info_ptr info);
+
+extern _X_EXPORT void
+present_check_flips(WindowPtr window);
 
 typedef void (*present_complete_notify_proc)(WindowPtr window,
                                              CARD8 kind,

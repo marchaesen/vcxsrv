@@ -20,11 +20,11 @@
  * OF THIS SOFTWARE.
  */
 
-@RET@		FcBool
-@FUNC@		FcDirCacheUnlink
-@TYPE1@		const FcChar8 *			@ARG1@		dir
-@TYPE2@		FcConfig *			@ARG2@		config
-@PURPOSE@	Remove all caches related to <parameter>dir</parameter>
+@RET@           FcBool
+@FUNC@          FcDirCacheUnlink
+@TYPE1@         const FcChar8 *                 @ARG1@          dir
+@TYPE2@         FcConfig *                      @ARG2@          config
+@PURPOSE@       Remove all caches related to <parameter>dir</parameter>
 @DESC@
 Scans the cache directories in <parameter>config</parameter>, removing any
 instances of the cache file for <parameter>dir</parameter>. Returns FcFalse
@@ -32,21 +32,21 @@ when some internal error occurs (out of memory, etc). Errors actually
 unlinking any files are ignored.
 @@
 
-@RET@		FcBool 	
-@FUNC@		FcDirCacheValid 
-@TYPE1@		const FcChar8 *			@ARG1@		dir
-@PURPOSE@	check directory cache 
+@RET@           FcBool
+@FUNC@          FcDirCacheValid
+@TYPE1@         const FcChar8 *                 @ARG1@          dir
+@PURPOSE@       check directory cache
 @DESC@
 Returns FcTrue if <parameter>dir</parameter> has an associated valid cache
 file, else returns FcFalse
 @@
 
-@RET@		FcCache *
-@FUNC@		FcDirCacheLoad
-@TYPE1@		const FcChar8 *			@ARG1@		dir
-@TYPE2@		FcConfig *			@ARG2@		config
-@TYPE3@		FcChar8 **			@ARG3@		cache_file
-@PURPOSE@	load a directory cache
+@RET@           FcCache *
+@FUNC@          FcDirCacheLoad
+@TYPE1@         const FcChar8 *                 @ARG1@          dir
+@TYPE2@         FcConfig *                      @ARG2@          config
+@TYPE3@         FcChar8 **                      @ARG3@          cache_file
+@PURPOSE@       load a directory cache
 @DESC@
 Loads the cache related to <parameter>dir</parameter>. If no cache file
 exists, returns NULL. The name of the cache file is returned in
@@ -54,23 +54,23 @@ exists, returns NULL. The name of the cache file is returned in
 FcDirCacheRead.
 @@
 
-@RET@		FcCache *
-@FUNC@		FcDirCacheRescan
-@TYPE1@		const FcChar8 *			@ARG1@		dir
-@TYPE2@		FcConfig *    			@ARG2@		config
-@PURPOSE@	Re-scan a directory cache
+@RET@           FcCache *
+@FUNC@          FcDirCacheRescan
+@TYPE1@         const FcChar8 *                 @ARG1@          dir
+@TYPE2@         FcConfig *                      @ARG2@          config
+@PURPOSE@       Re-scan a directory cache
 @DESC@
 Re-scan directories only at <parameter>dir</parameter> and update the cache.
 returns NULL if failed.
-@SINCE@		2.11.1
+@SINCE@         2.11.1
 @@
 
-@RET@		FcCache *
-@FUNC@		FcDirCacheRead
-@TYPE1@		const FcChar8 *			@ARG1@		dir
-@TYPE2@		FcBool%				@ARG2@		force
-@TYPE3@		FcConfig *			@ARG3@		config
-@PURPOSE@	read or construct a directory cache
+@RET@           FcCache *
+@FUNC@          FcDirCacheRead
+@TYPE1@         const FcChar8 *                 @ARG1@          dir
+@TYPE2@         FcBool%                         @ARG2@          force
+@TYPE3@         FcConfig *                      @ARG3@          config
+@PURPOSE@       read or construct a directory cache
 @DESC@
 This returns a cache for <parameter>dir</parameter>. If
 <parameter>force</parameter> is FcFalse, then an existing, valid cache file
@@ -78,21 +78,21 @@ will be used. Otherwise, a new cache will be created by scanning the
 directory and that returned.
 @@
 
-@RET@		FcCache *
-@FUNC@		FcDirCacheLoadFile
-@TYPE1@		const FcChar8 *			@ARG1@		cache_file
-@TYPE2@		struct stat *			@ARG2@		file_stat
-@PURPOSE@	load a cache file
+@RET@           FcCache *
+@FUNC@          FcDirCacheLoadFile
+@TYPE1@         const FcChar8 *                 @ARG1@          cache_file
+@TYPE2@         struct stat *                   @ARG2@          file_stat
+@PURPOSE@       load a cache file
 @DESC@
 This function loads a directory cache from
 <parameter>cache_file</parameter>. If <parameter>file_stat</parameter> is
 non-NULL, it will be filled with the results of stat(2) on the cache file.
 @@
 
-@RET@		void
-@FUNC@		FcDirCacheUnload
-@TYPE1@		FcCache *			@ARG1@		cache
-@PURPOSE@	unload a cache file
+@RET@           void
+@FUNC@          FcDirCacheUnload
+@TYPE1@         FcCache *                       @ARG1@          cache
+@PURPOSE@       unload a cache file
 @DESC@
 This function dereferences <parameter>cache</parameter>. When no other
 references to it remain, all memory associated with the cache will be freed.

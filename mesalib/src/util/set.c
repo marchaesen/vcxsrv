@@ -604,33 +604,6 @@ _mesa_set_next_entry(const struct set *ht, struct set_entry *entry)
    return NULL;
 }
 
-struct set_entry *
-_mesa_set_random_entry(struct set *ht,
-                       int (*predicate)(struct set_entry *entry))
-{
-   struct set_entry *entry;
-   uint32_t i = rand() % ht->size;
-
-   if (ht->entries == 0)
-      return NULL;
-
-   for (entry = ht->table + i; entry != ht->table + ht->size; entry++) {
-      if (entry_is_present(entry) &&
-          (!predicate || predicate(entry))) {
-         return entry;
-      }
-   }
-
-   for (entry = ht->table; entry != ht->table + i; entry++) {
-      if (entry_is_present(entry) &&
-          (!predicate || predicate(entry))) {
-         return entry;
-      }
-   }
-
-   return NULL;
-}
-
 /**
  * Helper to create a set with pointer keys.
  */

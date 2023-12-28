@@ -23,8 +23,8 @@
  */
 
 #include "aco_ir.h"
+#include "aco_util.h"
 
-#include <map>
 #include <unordered_map>
 #include <vector>
 
@@ -84,9 +84,6 @@ struct InstrHash {
     */
    std::size_t operator()(Instruction* instr) const
    {
-      if (instr->isVOP3())
-         return hash_murmur_32<VOP3_instruction>(instr);
-
       if (instr->isDPP16())
          return hash_murmur_32<DPP16_instruction>(instr);
 
@@ -96,9 +93,15 @@ struct InstrHash {
       if (instr->isSDWA())
          return hash_murmur_32<SDWA_instruction>(instr);
 
+      if (instr->isVINTERP_INREG())
+         return hash_murmur_32<VINTERP_inreg_instruction>(instr);
+
+      if (instr->isVALU())
+         return hash_murmur_32<VALU_instruction>(instr);
+
       switch (instr->format) {
       case Format::SMEM: return hash_murmur_32<SMEM_instruction>(instr);
-      case Format::VINTRP: return hash_murmur_32<Interp_instruction>(instr);
+      case Format::VINTRP: return hash_murmur_32<VINTRP_instruction>(instr);
       case Format::DS: return hash_murmur_32<DS_instruction>(instr);
       case Format::SOPP: return hash_murmur_32<SOPP_instruction>(instr);
       case Format::SOPK: return hash_murmur_32<SOPK_instruction>(instr);
@@ -163,44 +166,45 @@ struct InstrPred {
          }
       }
 
-      if (a->opcode == aco_opcode::v_readfirstlane_b32)
-         return a->pass_flags == b->pass_flags;
+      if (a->isVALU()) {
+         VALU_instruction& aV = a->valu();
+         VALU_instruction& bV = b->valu();
+         if (aV.abs != bV.abs || aV.neg != bV.neg || aV.clamp != bV.clamp || aV.omod != bV.omod ||
+             aV.opsel != bV.opsel || aV.opsel_lo != bV.opsel_lo || aV.opsel_hi != bV.opsel_hi)
+            return false;
 
-      if (a->isVOP3()) {
-         VOP3_instruction& a3 = a->vop3();
-         VOP3_instruction& b3 = b->vop3();
-         for (unsigned i = 0; i < 3; i++) {
-            if (a3.abs[i] != b3.abs[i] || a3.neg[i] != b3.neg[i])
-               return false;
-         }
-         return a3.clamp == b3.clamp && a3.omod == b3.omod && a3.opsel == b3.opsel;
+         if (a->opcode == aco_opcode::v_permlane16_b32 ||
+             a->opcode == aco_opcode::v_permlanex16_b32 ||
+             a->opcode == aco_opcode::v_readfirstlane_b32)
+            return aV.pass_flags == bV.pass_flags;
       }
       if (a->isDPP16()) {
          DPP16_instruction& aDPP = a->dpp16();
          DPP16_instruction& bDPP = b->dpp16();
          return aDPP.pass_flags == bDPP.pass_flags && aDPP.dpp_ctrl == bDPP.dpp_ctrl &&
                 aDPP.bank_mask == bDPP.bank_mask && aDPP.row_mask == bDPP.row_mask &&
-                aDPP.bound_ctrl == bDPP.bound_ctrl && aDPP.abs[0] == bDPP.abs[0] &&
-                aDPP.abs[1] == bDPP.abs[1] && aDPP.neg[0] == bDPP.neg[0] &&
-                aDPP.neg[1] == bDPP.neg[1];
+                aDPP.bound_ctrl == bDPP.bound_ctrl && aDPP.fetch_inactive == bDPP.fetch_inactive;
       }
       if (a->isDPP8()) {
          DPP8_instruction& aDPP = a->dpp8();
          DPP8_instruction& bDPP = b->dpp8();
-         return aDPP.pass_flags == bDPP.pass_flags &&
-                !memcmp(aDPP.lane_sel, bDPP.lane_sel, sizeof(aDPP.lane_sel));
+         return aDPP.pass_flags == bDPP.pass_flags && aDPP.lane_sel == bDPP.lane_sel &&
+                aDPP.fetch_inactive == bDPP.fetch_inactive;
       }
       if (a->isSDWA()) {
          SDWA_instruction& aSDWA = a->sdwa();
          SDWA_instruction& bSDWA = b->sdwa();
          return aSDWA.sel[0] == bSDWA.sel[0] && aSDWA.sel[1] == bSDWA.sel[1] &&
-                aSDWA.dst_sel == bSDWA.dst_sel && aSDWA.abs[0] == bSDWA.abs[0] &&
-                aSDWA.abs[1] == bSDWA.abs[1] && aSDWA.neg[0] == bSDWA.neg[0] &&
-                aSDWA.neg[1] == bSDWA.neg[1] && aSDWA.clamp == bSDWA.clamp &&
-                aSDWA.omod == bSDWA.omod;
+                aSDWA.dst_sel == bSDWA.dst_sel;
       }
 
       switch (a->format) {
+      case Format::SOP1: {
+         if (a->opcode == aco_opcode::s_sendmsg_rtn_b32 ||
+             a->opcode == aco_opcode::s_sendmsg_rtn_b64)
+            return false;
+         return true;
+      }
       case Format::SOPK: {
          if (a->opcode == aco_opcode::s_getreg_b32)
             return false;
@@ -211,29 +215,22 @@ struct InstrPred {
       case Format::SMEM: {
          SMEM_instruction& aS = a->smem();
          SMEM_instruction& bS = b->smem();
-         /* isel shouldn't be creating situations where this assertion fails */
-         assert(aS.prevent_overflow == bS.prevent_overflow);
          return aS.sync == bS.sync && aS.glc == bS.glc && aS.dlc == bS.dlc && aS.nv == bS.nv &&
-                aS.disable_wqm == bS.disable_wqm && aS.prevent_overflow == bS.prevent_overflow;
+                aS.disable_wqm == bS.disable_wqm;
       }
       case Format::VINTRP: {
-         Interp_instruction& aI = a->vintrp();
-         Interp_instruction& bI = b->vintrp();
+         VINTRP_instruction& aI = a->vintrp();
+         VINTRP_instruction& bI = b->vintrp();
          if (aI.attribute != bI.attribute)
             return false;
          if (aI.component != bI.component)
             return false;
          return true;
       }
-      case Format::VOP3P: {
-         VOP3P_instruction& a3P = a->vop3p();
-         VOP3P_instruction& b3P = b->vop3p();
-         for (unsigned i = 0; i < 3; i++) {
-            if (a3P.neg_lo[i] != b3P.neg_lo[i] || a3P.neg_hi[i] != b3P.neg_hi[i])
-               return false;
-         }
-         return a3P.opsel_lo == b3P.opsel_lo && a3P.opsel_hi == b3P.opsel_hi &&
-                a3P.clamp == b3P.clamp;
+      case Format::VINTERP_INREG: {
+         VINTERP_inreg_instruction& aI = a->vinterp_inreg();
+         VINTERP_inreg_instruction& bI = b->vinterp_inreg();
+         return aI.wait_exp == bI.wait_exp;
       }
       case Format::PSEUDO_REDUCTION: {
          Pseudo_reduction_instruction& aR = a->reduction();
@@ -248,6 +245,12 @@ struct InstrPred {
          DS_instruction& bD = b->ds();
          return aD.sync == bD.sync && aD.pass_flags == bD.pass_flags && aD.gds == bD.gds &&
                 aD.offset0 == bD.offset0 && aD.offset1 == bD.offset1;
+      }
+      case Format::LDSDIR: {
+         LDSDIR_instruction& aD = a->ldsdir();
+         LDSDIR_instruction& bD = b->ldsdir();
+         return aD.sync == bD.sync && aD.attr == bD.attr && aD.attr_chan == bD.attr_chan &&
+                aD.wait_vdst == bD.wait_vdst;
       }
       case Format::MTBUF: {
          MTBUF_instruction& aM = a->mtbuf();
@@ -284,12 +287,13 @@ struct InstrPred {
    }
 };
 
-using expr_set = std::unordered_map<Instruction*, uint32_t, InstrHash, InstrPred>;
+using expr_set = aco::unordered_map<Instruction*, uint32_t, InstrHash, InstrPred>;
 
 struct vn_ctx {
    Program* program;
+   monotonic_buffer_resource m;
    expr_set expr_values;
-   std::map<uint32_t, Temp> renames;
+   aco::unordered_map<uint32_t, Temp> renames;
 
    /* The exec id should be the same on the same level of control flow depth.
     * Together with the check for dominator relations, it is safe to assume
@@ -298,7 +302,7 @@ struct vn_ctx {
     */
    uint32_t exec_id = 1;
 
-   vn_ctx(Program* program_) : program(program_)
+   vn_ctx(Program* program_) : program(program_), m(), expr_values(m), renames(m)
    {
       static_assert(sizeof(Temp) == 4, "Temp must fit in 32bits");
       unsigned size = 0;
@@ -355,7 +359,9 @@ can_eliminate(aco_ptr<Instruction>& instr)
    }
 
    if (instr->definitions.empty() || instr->opcode == aco_opcode::p_phi ||
-       instr->opcode == aco_opcode::p_linear_phi || instr->definitions[0].isNoCSE())
+       instr->opcode == aco_opcode::p_linear_phi ||
+       instr->opcode == aco_opcode::p_pops_gfx9_add_exiting_wave_id ||
+       instr->definitions[0].isNoCSE())
       return false;
 
    return true;
@@ -378,7 +384,7 @@ process_block(vn_ctx& ctx, Block& block)
       }
 
       if (instr->opcode == aco_opcode::p_discard_if ||
-          instr->opcode == aco_opcode::p_demote_to_helper)
+          instr->opcode == aco_opcode::p_demote_to_helper || instr->opcode == aco_opcode::p_end_wqm)
          ctx.exec_id++;
 
       if (!can_eliminate(instr)) {
@@ -433,7 +439,7 @@ process_block(vn_ctx& ctx, Block& block)
 }
 
 void
-rename_phi_operands(Block& block, std::map<uint32_t, Temp>& renames)
+rename_phi_operands(Block& block, aco::unordered_map<uint32_t, Temp>& renames)
 {
    for (aco_ptr<Instruction>& phi : block.instructions) {
       if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
@@ -468,6 +474,9 @@ value_numbering(Program* program)
          ctx.exec_id -= block.linear_preds.size();
          loop_headers.pop_back();
       }
+
+      if (block.logical_idom == (int)block.index)
+         ctx.expr_values.clear();
 
       if (block.logical_idom != -1)
          process_block(ctx, block);

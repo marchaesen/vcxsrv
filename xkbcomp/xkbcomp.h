@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -32,6 +32,10 @@
 #endif
 
 #include <unistd.h>
+#ifdef HAVE_CONFIG_H
+#include "config.h"
+#endif
+
 #include <X11/Xlib.h>
 #include <X11/XKBlib.h>
 
@@ -111,7 +115,6 @@ typedef struct _ParseCommon
 #define	CreateKeyNames(x)	((x)->flags&AutoKeyNames)
 
 extern unsigned warningLevel;
-extern unsigned optionalParts;
 
 typedef struct _IncludeStmt
 {
@@ -169,7 +172,7 @@ typedef struct _Expr
         unsigned uval;
         int ival;
         char keyName[5];
-        Opaque ptr;
+        void *ptr;
     } value;
 } ExprDef;
 
@@ -361,7 +364,7 @@ extern Bool CompileKeyTypes(XkbFile * /* file */ ,
 
 typedef struct _LEDInfo *LEDInfoPtr;
 
-extern Bool CompileCompatMap(XkbFile * /* file */ ,
+extern Bool CompileCompatMap(const XkbFile * /* file */ ,
                              XkbFileInfo * /* result */ ,
                              unsigned /* merge */ ,
                              LEDInfoPtr *       /* unboundLEDs */
@@ -378,13 +381,8 @@ extern Bool CompileSymbols(XkbFile * /* file */ ,
 #define	WantFullNames	(1<<3)
 #define	ListRecursive	(1<<4)
 
-extern char *rootDir;
 extern unsigned verboseLevel;
 extern unsigned dirsToStrip;
-
-extern Bool AddListing(char * /* file */ ,
-                       char *   /* map */
-    );
 
 extern Bool AddMatchingFiles(char *     /* head_in */
     );
@@ -392,7 +390,7 @@ extern Bool AddMatchingFiles(char *     /* head_in */
 extern int AddMapOnly(char *    /* map */
     );
 
-extern int GenerateListing(char *       /* filename */
+extern int GenerateListing(const char * /* filename */
     );
 
 #endif /* XKBCOMP_H */

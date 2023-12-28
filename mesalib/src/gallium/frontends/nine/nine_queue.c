@@ -21,7 +21,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE. */
 
 #include "nine_queue.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/macros.h"
 #include "nine_helpers.h"
 
@@ -247,7 +247,7 @@ nine_queue_create(void)
     (void) mtx_init(&ctx->mutex_push, mtx_plain);
 
     /* Block until first cmdbuf has been flushed. */
-    ctx->worker_wait = TRUE;
+    ctx->worker_wait = true;
 
     return ctx;
 failed:

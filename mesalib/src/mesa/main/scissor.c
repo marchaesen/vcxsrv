@@ -23,7 +23,7 @@
  */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/mtypes.h"
@@ -50,9 +50,6 @@ set_scissor_no_notify(struct gl_context *ctx, unsigned idx,
        width == ctx->Scissor.ScissorArray[idx].Width &&
        height == ctx->Scissor.ScissorArray[idx].Height)
       return;
-
-   if (ctx->Scissor.EnableFlags)
-      st_flush_bitmap_cache(st_context(ctx));
 
    FLUSH_VERTICES(ctx, 0, GL_SCISSOR_BIT);
    ctx->NewDriverState |= ST_NEW_SCISSOR;

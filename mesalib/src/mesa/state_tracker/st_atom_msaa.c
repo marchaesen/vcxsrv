@@ -144,12 +144,11 @@ st_update_sample_state(struct st_context *st)
 void
 st_update_sample_shading(struct st_context *st)
 {
-   if (!st->fp)
-      return;
+   struct gl_program *fp = st->ctx->FragmentProgram._Current;
 
-   if (!st->ctx->Extensions.ARB_sample_shading)
+   if (!fp || !st->ctx->Extensions.ARB_sample_shading)
       return;
 
    cso_set_min_samples(st->cso_context,
-                       _mesa_get_min_invocations_per_fragment(st->ctx, st->fp));
+                       _mesa_get_min_invocations_per_fragment(st->ctx, fp));
 }

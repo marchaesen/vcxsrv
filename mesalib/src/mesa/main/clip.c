@@ -23,7 +23,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "clip.h"
 #include "context.h"
 #include "macros.h"

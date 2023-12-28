@@ -3,180 +3,106 @@
 // levels.
 
 
-////////////////////////////////////////
-// Only Space
+// --- Just Space.
 
 partial
 xkb_symbols "none" {
-  key <SPCE> {
-    type[Group1]="ONE_LEVEL",
-    symbols[Group1]= [ space ]
-  };
+  key <SPCE> {[  space  ], type[group1]="ONE_LEVEL" };
 };
 
 
-////////////////////////////////////////
-// No-Break Space
+// --- Plus No-Break Space.
 
 partial
 xkb_symbols "level2" {
-  key <SPCE> {
-    type[Group1]="TWO_LEVEL",
-    symbols[Group1]= [ space, nobreakspace ]
-  };
+  key <SPCE> {[  space,  nobreakspace  ], type[group1]="TWO_LEVEL" };
 };
 
-
-// level3 & level3ns provide no-breaking spaces starting from level3
-// This is good for typographers but experience shows many users accidently
-// type no-breaking spaces on the CLI (resulting in errors)
 partial
 xkb_symbols "level3" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, space, nobreakspace ]
-  };
+  key <SPCE> {[  space,  space,  nobreakspace  ], type[group1]="FOUR_LEVEL" };
 };
 
-// for this reason pushing no-breaking spaces to level4 is the safe default nowadays
+// Experience has shown that users accidently type non-breaking spaces when
+// NBSP is on level 3, so having it on level 4 is the safe default nowadays.
 partial
 xkb_symbols "level4" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, space, space, nobreakspace ]
-  };
+  key <SPCE> {[  space,  space,  space,  nobreakspace  ], type[group1]="FOUR_LEVEL" };
 };
 
 
-////////////////////////////////////////
-// Narrow No-Break Space
+// --- Plus Narrow No-Break Space
 
-// level3n provides narrow no-breaking space in addition to the normal one
 partial
 xkb_symbols "level3n" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, space, nobreakspace, 0x100202F ]
-  };
+  key <SPCE> {[  space,  space,  nobreakspace,  U202F  ], type[group1]="FOUR_LEVEL" };
 };
 
-// level4n provides narrow no-breaking space in addition to the normal one
+// NNBSP on level 6 (needing a level5 chooser).
 partial
 xkb_symbols "level4n" {
- key <SPCE> {
-   type[Group1]="EIGHT_LEVEL",
-   symbols[Group1]= [ space, space, space, nobreakspace, space, 0x100202F, NoSymbol, NoSymbol ]
- };
+  key <SPCE> {[  space,  space,  space,  nobreakspace,  space,  U202F,  any,  any  ],
+                 type[group1]="EIGHT_LEVEL" };
 };
 
-// level4nl provides narrow no-breaking space in addition to the normal one
-// without forcing the use of level5 for mostly four-level layouts
-// Used by fr(oss), be(oss)…
+// NNBSP on level 6 (accessed with Ctrl+Shift).
 partial
 xkb_symbols "level4nl" {
- key <SPCE> {
-   type[Group1]="LOCAL_EIGHT_LEVEL",
-   symbols[Group1]= [ space, space, space, nobreakspace, space, 0x100202F, NoSymbol, NoSymbol ]
- };
+  key <SPCE> {[  space,  space,  space,  nobreakspace,  space,  U202F,  any,  any  ],
+                 type[group1]="EIGHT_LEVEL_BY_CTRL" };
 };
 
 
-////////////////////////////////////////
-// Zero-Width Non-Joiner & Zero-Width Joiner
-// Author: Behnam Esfahbod <behnam@esfahbod.info>
-
-// ZWNJ and ZWJ are widely used in Persian, Kurdinsh, Pashto, Uzbek and other
-// languages that use PersoArabic script.
-
+// Zero-Width Non-Joiner (ZWNJ) and Zero-Width Joiner (ZWJ) are widely used
+// in Persian, Kurdish, Pashto, Uzbek, and other languages in their area.
 
 // ZWNJ on level 2
 partial
 xkb_symbols "zwnj2" {
-  key <SPCE> {
-    type[Group1]="TWO_LEVEL",
-    symbols[Group1]= [ space, 0x100200c ]
-  };
+  key <SPCE> {[  space,  U200c  ], type[group1]="TWO_LEVEL" };
 };
-
 
 // ZWNJ on level 2
 // ZWJ on level 3
 partial
 xkb_symbols "zwnj2zwj3" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, 0x100200d ]
-  };
+  key <SPCE> {[  space,  U200c,  U200d  ], type[group1]="FOUR_LEVEL" };
 };
-
 
 // ZWNJ on level 2
 // ZWJ on level 3
 // NBSP on level 4
 partial
 xkb_symbols "zwnj2zwj3nb4" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, 0x100200d, nobreakspace ]
-  };
+  key <SPCE> {[  space,  U200c,  U200d,  nobreakspace  ], type[group1]="FOUR_LEVEL" };
 };
-
 
 // ZWNJ on level 2
 // NBSP on level 3
 partial
 xkb_symbols "zwnj2nb3" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, nobreakspace ]
-  };
+  key <SPCE> {[  space,  U200c,  nobreakspace  ], type[group1]="FOUR_LEVEL" };
 };
-
 
 // ZWNJ on level 2
 // NBSP on level 3
 // ZWJ on level 4
 partial
 xkb_symbols "zwnj2nb3zwj4" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, nobreakspace, 0x100200d ]
-  };
+  key <SPCE> {[  space,  U200c,  nobreakspace,  U200d  ], type[group1]="FOUR_LEVEL" };
 };
-
 
 // ZWNJ on level 2
 // NBSP on level 3
 // NNBSP on level 4
-// Used by ir(pes)
 partial
 xkb_symbols "zwnj2nb3nnb4" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, 0x100200c, nobreakspace, 0x100202F ]
-  };
+  key <SPCE> {[  space,  U200c,  nobreakspace,  U202F  ], type[group1]="FOUR_LEVEL" };
 };
-
 
 // ZWNJ on level 3
 // ZWJ on level 4
-// Used by in(deva), in(olpc)
 partial
 xkb_symbols "zwnj3zwj4" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, space, 0x100200c, 0x100200d ]
-  };
-};
-
-
-// NBSP on level 2
-// ZWNJ on level 3
-// Used by lk(sin_phonetic)
-partial
-xkb_symbols "nb2zwnj3s" {
-  key <SPCE> {
-    type[Group1]="FOUR_LEVEL",
-    symbols[Group1]= [ space, nobreakspace, 0x100200c, NoSymbol ]
-  };
+  key <SPCE> {[  space,  space,  U200c,  U200d  ], type[group1]="FOUR_LEVEL" };
 };

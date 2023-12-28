@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -38,7 +38,6 @@
 #include "draw_pipe.h"
 
 
-
 struct offset_stage {
    struct draw_stage stage;
 
@@ -48,25 +47,23 @@ struct offset_stage {
 };
 
 
-
-static inline struct offset_stage *offset_stage( struct draw_stage *stage )
+static inline struct offset_stage *
+offset_stage(struct draw_stage *stage)
 {
    return (struct offset_stage *) stage;
 }
-
-
-
 
 
 /**
  * Offset tri Z.  Some hardware can handle this, but not usually when
  * doing unfilled rendering.
  */
-static void do_offset_tri( struct draw_stage *stage,
-			   struct prim_header *header )
+static void
+do_offset_tri(struct draw_stage *stage,
+              struct prim_header *header)
 {
    const unsigned pos = draw_current_shader_position_output(stage->draw);
-   struct offset_stage *offset = offset_stage(stage);   
+   struct offset_stage *offset = offset_stage(stage);
    float inv_det = 1.0f / header->det;
 
    /* Window coords:
@@ -90,10 +87,9 @@ static void do_offset_tri( struct draw_stage *stage,
    float dzdx = fabsf(a * inv_det);
    float dzdy = fabsf(b * inv_det);
 
-   float zoffset, mult;
+   float mult = MAX2(dzdx, dzdy) * offset->scale;
 
-   mult = MAX2(dzdx, dzdy) * offset->scale;
-
+   float zoffset;
    if (stage->draw->floating_point_depth) {
       float bias;
       union fi maxz;
@@ -124,12 +120,13 @@ static void do_offset_tri( struct draw_stage *stage,
    v1[2] = SATURATE(v1[2] + zoffset);
    v2[2] = SATURATE(v2[2] + zoffset);
 
-   stage->next->tri( stage->next, header );
+   stage->next->tri(stage->next, header);
 }
 
 
-static void offset_tri( struct draw_stage *stage,
-			struct prim_header *header )
+static void
+offset_tri(struct draw_stage *stage,
+           struct prim_header *header)
 {
    struct prim_header tmp;
 
@@ -140,21 +137,22 @@ static void offset_tri( struct draw_stage *stage,
    tmp.v[1] = dup_vert(stage, header->v[1], 1);
    tmp.v[2] = dup_vert(stage, header->v[2], 2);
 
-   do_offset_tri( stage, &tmp );
+   do_offset_tri(stage, &tmp);
 }
 
 
-static void offset_first_tri( struct draw_stage *stage, 
-			      struct prim_header *header )
+static void
+offset_first_tri(struct draw_stage *stage,
+                 struct prim_header *header)
 {
    struct offset_stage *offset = offset_stage(stage);
    const struct pipe_rasterizer_state *rast = stage->draw->rasterizer;
    unsigned fill_mode = rast->fill_front;
-   boolean do_offset;
+   bool do_offset;
 
    if (rast->fill_back != rast->fill_front) {
       /* Need to check for back-facing triangle */
-      boolean ccw = header->det < 0.0f;
+      bool ccw = header->det < 0.0f;
       if (ccw != rast->front_ccw)
          fill_mode = rast->fill_back;
    }
@@ -189,46 +187,46 @@ static void offset_first_tri( struct draw_stage *stage,
       } else {
          offset->units = (float) (rast->offset_units * stage->draw->mrd * 2);
       }
-   }
-   else {
+   } else {
       offset->scale = 0.0f;
       offset->clamp = 0.0f;
       offset->units = 0.0f;
    }
 
-
    stage->tri = offset_tri;
-   stage->tri( stage, header );
+   stage->tri(stage, header);
 }
 
 
-
-
-static void offset_flush( struct draw_stage *stage,
-			  unsigned flags )
+static void
+offset_flush(struct draw_stage *stage,
+             unsigned flags)
 {
    stage->tri = offset_first_tri;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 }
 
 
-static void offset_reset_stipple_counter( struct draw_stage *stage )
+static void
+offset_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void offset_destroy( struct draw_stage *stage )
+static void
+offset_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
 /**
  * Create polygon offset drawing stage.
  */
-struct draw_stage *draw_offset_stage( struct draw_context *draw )
+struct draw_stage *
+draw_offset_stage(struct draw_context *draw)
 {
    struct offset_stage *offset = CALLOC_STRUCT(offset_stage);
    if (!offset)
@@ -244,14 +242,14 @@ struct draw_stage *draw_offset_stage( struct draw_context *draw )
    offset->stage.reset_stipple_counter = offset_reset_stipple_counter;
    offset->stage.destroy = offset_destroy;
 
-   if (!draw_alloc_temp_verts( &offset->stage, 3 ))
+   if (!draw_alloc_temp_verts(&offset->stage, 3))
       goto fail;
 
    return &offset->stage;
 
 fail:
    if (offset)
-      offset->stage.destroy( &offset->stage );
+      offset->stage.destroy(&offset->stage);
 
    return NULL;
 }

@@ -1,8 +1,8 @@
-dnl 
+dnl
 dnl  fontconfig/configure.in
-dnl 
+dnl
 dnl  Copyright © 2003 Keith Packard
-dnl 
+dnl
 dnl  Permission to use, copy, modify, distribute, and sell this software and its
 dnl  documentation for any purpose is hereby granted without fee, provided that
 dnl  the above copyright notice appear in all copies and that both that
@@ -12,7 +12,7 @@ dnl  advertising or publicity pertaining to distribution of the software without
 dnl  specific, written prior permission.  The authors make no
 dnl  representations about the suitability of this software for any purpose.  It
 dnl  is provided "as is" without express or implied warranty.
-dnl 
+dnl
 dnl  THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 dnl  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
 dnl  EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -23,17 +23,17 @@ dnl  PERFORMANCE OF THIS SOFTWARE.
 dnl
 dnl Process this file with autoconf to create configure.
 
-AC_PREREQ(2.61)
+AC_PREREQ([2.71])
 
 dnl ==========================================================================
-dnl                               Versioning              
+dnl                               Versioning
 dnl ==========================================================================
 
 dnl This is the package version number, not the shared library
 dnl version.  This same version number must appear in fontconfig/fontconfig.h
 dnl Yes, it is a pain to synchronize version numbers.  Unfortunately, it's
 dnl not possible to extract the version number here from fontconfig.h
-AC_INIT([fontconfig], [2.14.0], [https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new])
+AC_INIT([fontconfig],[2.15.0],[https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new])
 AM_INIT_AUTOMAKE([1.11 parallel-tests dist-xz])
 m4_ifdef([AM_SILENT_RULES],[AM_SILENT_RULES([yes])])
 
@@ -74,7 +74,7 @@ dnl bump revision when fixing bugs
 dnl bump current and age, reset revision to zero when adding APIs
 dnl bump current, leave age, reset revision to zero when changing/removing APIS
 LIBT_CURRENT=13
-LIBT_REVISION=0
+LIBT_REVISION=1
 AC_SUBST(LIBT_CURRENT)
 AC_SUBST(LIBT_REVISION)
 LIBT_AGE=12
@@ -149,8 +149,7 @@ AM_CONDITIONAL(ENABLE_SHARED, test "$enable_shared" = "yes")
 dnl ==========================================================================
 
 AC_ARG_WITH(arch,
-	[AC_HELP_STRING([--with-arch=ARCH],
-			[Force architecture to ARCH])],
+	[AS_HELP_STRING([--with-arch=ARCH],[Force architecture to ARCH])],
 	arch="$withval", arch=auto)
 
 if test "x$arch" != xauto; then
@@ -162,7 +161,11 @@ dnl ==========================================================================
 
 # Checks for header files.
 AC_HEADER_DIRENT
-AC_HEADER_STDC
+# Autoupdate added the next two lines to ensure that your configure
+# script's behavior did not change.  They are probably safe to remove.
+AC_CHECK_INCLUDES_DEFAULT
+AC_PROG_EGREP
+
 AC_CHECK_HEADERS([dirent.h fcntl.h stdlib.h string.h unistd.h sys/statvfs.h sys/vfs.h sys/statfs.h sys/param.h sys/mount.h])
 AX_CREATE_STDINT_H([src/fcstdint.h])
 
@@ -232,12 +235,10 @@ AC_MSG_RESULT($FC_GPERF_SIZE_T)
 # Checks for iconv
 #
 AC_ARG_ENABLE(iconv,
-	[AC_HELP_STRING([--enable-iconv],
-			[Use iconv to support non-Unicode SFNT name])],
+	[AS_HELP_STRING([--enable-iconv],[Use iconv to support non-Unicode SFNT name])],
 	,enable_iconv=no)
 AC_ARG_WITH(libiconv,
-	[AC_HELP_STRING([--with-libiconv=DIR],
-			[Use libiconv in DIR])],
+	[AS_HELP_STRING([--with-libiconv=DIR],[Use libiconv in DIR])],
 	[if test "x$withval" = "xyes"; then
 		libiconv_prefix=$prefix
 	 else
@@ -245,13 +246,11 @@ AC_ARG_WITH(libiconv,
 	 fi],
 	[libiconv_prefix=auto])
 AC_ARG_WITH(libiconv-includes,
-	[AC_HELP_STRING([--with-libiconv-includes=DIR],
-			[Use libiconv includes in DIR])],
+	[AS_HELP_STRING([--with-libiconv-includes=DIR],[Use libiconv includes in DIR])],
 	[libiconv_includes=$withval],
 	[libiconv_includes=auto])
 AC_ARG_WITH(libiconv-lib,
-	[AC_HELP_STRING([--with-libiconv-lib=DIR],
-			[Use libiconv library in DIR])],
+	[AS_HELP_STRING([--with-libiconv-lib=DIR],[Use libiconv library in DIR])],
 	[libiconv_lib=$withval],
 	[libiconv_lib=auto])
 
@@ -284,24 +283,18 @@ if test "x$enable_iconv" != "xno"; then
 		CFLAGS="$CFLAGS $libiconv_cflags"
 		LIBS="$LIBS $libiconv_libs"
 
-		AC_TRY_LINK([#include <iconv.h>],
-			[iconv_open ("from", "to");],
-			[iconv_type="libiconv"
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <iconv.h>]], [[iconv_open ("from", "to");]])],[iconv_type="libiconv"
 			 use_iconv=1
 			 ICONV_CFLAGS="$libiconv_cflags"
 			 ICONV_LIBS="$libiconv_libs"
-			 ],
-			[use_iconv=0])
+			 ],[use_iconv=0])
 
 		CFLAGS="$iconvsaved_CFLAGS"
 		LIBS="$iconvsaved_LIBS"
 	fi
 	if test "x$use_iconv" = "x0"; then
-		AC_TRY_LINK([#include <iconv.h>],
-			[iconv_open ("from", "to");],
-			[iconv_type="libc"
-			 use_iconv=1],
-			[iconv_type="not found"
+		AC_LINK_IFELSE([AC_LANG_PROGRAM([[#include <iconv.h>]], [[iconv_open ("from", "to");]])],[iconv_type="libc"
+			 use_iconv=1],[iconv_type="not found"
 			 use_iconv=0])
 	fi
 
@@ -342,17 +335,15 @@ CFLAGS="$fontconfig_save_cflags"
 # Check expat configuration
 #
 AC_ARG_WITH(expat,
-	[AC_HELP_STRING([--with-expat=DIR],
-			[Use Expat in DIR])],
+	[AS_HELP_STRING([--with-expat=DIR],[Use Expat in DIR])],
 	[expat_prefix=$withval],
 	[expat_prefix=auto])
 AC_ARG_WITH(expat-includes,
-	[AC_HELP_STRING([--with-expat-includes=DIR],
-			[Use Expat includes in DIR])],
+	[AS_HELP_STRING([--with-expat-includes=DIR],[Use Expat includes in DIR])],
 	[expat_includes=$withval],
 	[expat_includes=auto])
 AC_ARG_WITH(expat-lib,
-	[AC_HELP_STRING([--with-expat-lib=DIR])],
+	[AS_HELP_STRING([--with-expat-lib=DIR])],
 	[expat_lib=$withval],
 	[expat_lib=auto])
 
@@ -422,8 +413,7 @@ fi
 # Check libxml2 configuration
 #
 AC_ARG_ENABLE(libxml2,
-	[AC_HELP_STRING([--enable-libxml2],
-			[Use libxml2 instead of Expat])])
+	[AS_HELP_STRING([--enable-libxml2],[Use libxml2 instead of Expat])])
 
 if test "$enable_libxml2" = "yes"; then
     PKG_CHECK_MODULES([LIBXML2], [libxml-2.0 >= 2.6])
@@ -456,12 +446,29 @@ AC_SUBST(JSONC_CFLAGS)
 AC_SUBST(JSONC_LIBS)
 
 #
+# Set default sub-pixel rendering
+#
+
+AC_ARG_WITH(default-sub-pixel-rendering,
+    [AS_HELP_STRING([--with-default-sub-pixel-rendering=NAME],[Enable your preferred sub-pixel rendering configuration (none/bgr/rgb/vbgr/vrgb) [default=none]])],
+    preferred_sub_pixel_rendering="$withval", preferred_sub_pixel_rendering=none)
+
+case "$preferred_sub_pixel_rendering" in
+none|bgr|rgb|vbgr|vrgb)
+    PREFERRED_SUB_PIXEL_RENDERING="$preferred_sub_pixel_rendering"
+    AC_SUBST(PREFERRED_SUB_PIXEL_RENDERING)
+    ;;
+*)
+    AC_MSG_ERROR([Invalid sub-pixel rendering. please choose one of none, bgr, rgb, vbgr, or vrgb])
+    ;;
+esac
+
+#
 # Set default hinting
 #
 
 AC_ARG_WITH(default-hinting,
-	[AC_HELP_STRING([--with-default-hinting=NAME],
-			[Enable your preferred hinting configuration (none/slight/medium/full) [default=slight]])],
+	[AS_HELP_STRING([--with-default-hinting=NAME],[Enable your preferred hinting configuration (none/slight/medium/full) [default=slight]])],
 	preferred_hinting="$withval", preferred_hinting=slight)
 
 case "$preferred_hinting" in
@@ -479,8 +486,7 @@ esac
 #
 
 AC_ARG_WITH(default-fonts,
-	[AC_HELP_STRING([--with-default-fonts=DIR1,DIR2,...],
-			[Use fonts from DIR1,DIR2,... when config is busted])],
+	[AS_HELP_STRING([--with-default-fonts=DIR1,DIR2,...],[Use fonts from DIR1,DIR2,... when config is busted])],
 	default_fonts="$withval", default_fonts=yes)
 
 case "$default_fonts" in
@@ -519,8 +525,7 @@ AC_SUBST(FC_DEFAULT_FONTS)
 # local.conf or ~/.fonts.conf
 #
 AC_ARG_WITH(add-fonts,
-	[AC_HELP_STRING([--with-add-fonts=DIR1,DIR2,...],
-			[Find additional fonts in DIR1,DIR2,... ])],
+	[AS_HELP_STRING([--with-add-fonts=DIR1,DIR2,...],[Find additional fonts in DIR1,DIR2,... ])],
 	add_fonts="$withval", add_fonts=yes)
 
 case "$add_fonts" in
@@ -562,7 +567,7 @@ case "$FC_ADD_FONTS" in
 "")
 	;;
 *)
-	FC_FONTPATH=`echo $FC_ADD_FONTS | 
+	FC_FONTPATH=`echo $FC_ADD_FONTS |
 			sed -e 's/^/<dir>/' -e 's/$/<\/dir>/' -e 's/,/<\/dir> <dir>/g'`
 	;;
 esac
@@ -573,8 +578,7 @@ AC_SUBST(FC_FONTPATH)
 # Set default cache directory path
 #
 AC_ARG_WITH(cache-dir,
-	[AC_HELP_STRING([--with-cache-dir=DIR],
-			[Use DIR to store cache files [default=LOCALSTATEDIR/cache/fontconfig]])],
+	[AS_HELP_STRING([--with-cache-dir=DIR],[Use DIR to store cache files [default=LOCALSTATEDIR/cache/fontconfig]])],
 	fc_cachedir="$withval", fc_cachedir=yes)
 
 case $fc_cachedir in
@@ -601,23 +605,19 @@ AC_SUBST(FC_FONTDATE)
 #
 
 AC_ARG_WITH(templatedir,
-	[AC_HELP_STRING([--with-templatedir=DIR],
-			[Use DIR to store the configuration template files [default=DATADIR/fontconfig/conf.avail]])],
+	[AS_HELP_STRING([--with-templatedir=DIR],[Use DIR to store the configuration template files [default=DATADIR/fontconfig/conf.avail]])],
 	[templatedir="$withval"],
 	[templatedir=yes])
 AC_ARG_WITH(baseconfigdir,
-	[AC_HELP_STRING([--with-baseconfigdir=DIR],
-			[Use DIR to store the base configuration files [default=SYSCONFDIR/fonts]])],
+	[AS_HELP_STRING([--with-baseconfigdir=DIR],[Use DIR to store the base configuration files [default=SYSCONFDIR/fonts]])],
 	[baseconfigdir="$withval"],
 	[baseconfigdir=yes])
 AC_ARG_WITH(configdir,
-	[AC_HELP_STRING([--with-configdir=DIR],
-			[Use DIR to store active configuration files [default=BASECONFIGDIR/conf.d]])],
+	[AS_HELP_STRING([--with-configdir=DIR],[Use DIR to store active configuration files [default=BASECONFIGDIR/conf.d]])],
 	[configdir="$withval"],
 	[configdir=yes])
 AC_ARG_WITH(xmldir,
-	[AC_HELP_STRING([--with-xmldir=DIR],
-			[Use DIR to store XML schema files [default=DATADIR/xml/fontconfig]])],
+	[AS_HELP_STRING([--with-xmldir=DIR],[Use DIR to store XML schema files [default=DATADIR/xml/fontconfig]])],
 	[xmldir="$withval"],
 	[xmldir=yes])
 
@@ -668,29 +668,29 @@ dnl ===========================================================================
 
 AC_CACHE_CHECK([stdatomic.h atomic primitives], fc_cv_have_stdatomic_atomic_primitives, [
 	fc_cv_have_stdatomic_atomic_primitives=false
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 		#include <stdatomic.h>
 
 		void memory_barrier (void) { atomic_thread_fence (memory_order_acq_rel); }
 		int atomic_add (atomic_int *i) { return atomic_fetch_add_explicit (i, 1, memory_order_relaxed); }
 		int mutex_trylock (atomic_flag *m) { return atomic_flag_test_and_set_explicit (m, memory_order_acquire); }
 		void mutex_unlock (atomic_flag *m) { atomic_flag_clear_explicit (m, memory_order_release); }
-		], [], fc_cv_have_stdatomic_atomic_primitives=true
-	)
+		]], [[]])],[fc_cv_have_stdatomic_atomic_primitives=true
+	],[])
 ])
 if $fc_cv_have_stdatomic_atomic_primitives; then
-	AC_DEFINE(HAVE_STDATOMIC_PRIMITIVES, 1, [Have Intel __sync_* atomic primitives])
+	AC_DEFINE(HAVE_STDATOMIC_PRIMITIVES, 1, [Have C99 stdatomic atomic primitives])
 fi
 
 AC_CACHE_CHECK([for Intel atomic primitives], fc_cv_have_intel_atomic_primitives, [
 	fc_cv_have_intel_atomic_primitives=false
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 		void memory_barrier (void) { __sync_synchronize (); }
 		int atomic_add (int *i) { return __sync_fetch_and_add (i, 1); }
 		int mutex_trylock (int *m) { return __sync_lock_test_and_set (m, 1); }
 		void mutex_unlock (int *m) { __sync_lock_release (m); }
-		], [], fc_cv_have_intel_atomic_primitives=true
-	)
+		]], [[]])],[fc_cv_have_intel_atomic_primitives=true
+	],[])
 ])
 if $fc_cv_have_intel_atomic_primitives; then
 	AC_DEFINE(HAVE_INTEL_ATOMIC_PRIMITIVES, 1, [Have Intel __sync_* atomic primitives])
@@ -698,15 +698,15 @@ fi
 
 AC_CACHE_CHECK([for Solaris atomic operations], fc_cv_have_solaris_atomic_ops, [
 	fc_cv_have_solaris_atomic_ops=false
-	AC_TRY_LINK([
+	AC_LINK_IFELSE([AC_LANG_PROGRAM([[
 		#include <atomic.h>
 		/* This requires Solaris Studio 12.2 or newer: */
 		#include <mbarrier.h>
 		void memory_barrier (void) { __machine_rw_barrier (); }
 		int atomic_add (volatile unsigned *i) { return atomic_add_int_nv (i, 1); }
 		void *atomic_ptr_cmpxchg (volatile void **target, void *cmp, void *newval) { return atomic_cas_ptr (target, cmp, newval); }
-		], [], fc_cv_have_solaris_atomic_ops=true
-	)
+		]], [[]])],[fc_cv_have_solaris_atomic_ops=true
+	],[])
 ])
 if $fc_cv_have_solaris_atomic_ops; then
 	AC_DEFINE(HAVE_SOLARIS_ATOMIC_OPS, 1, [Have Solaris __machine_*_barrier and atomic_* operations])
@@ -759,8 +759,7 @@ if test x$HASDOCBOOK = xno; then
 fi
 
 AC_ARG_ENABLE(docs,
-	[AC_HELP_STRING([--disable-docs],
-			[Don't build and install documentation])],
+	[AS_HELP_STRING([--disable-docs],[Don't build and install documentation])],
 	,
 	enable_docs=$default_docs)
 
@@ -786,8 +785,7 @@ if test $cross_compiling = "yes"; then
 	default_cache_build="no"
 fi
 AC_ARG_ENABLE(cache-build,
-	[AC_HELP_STRING([--disable-cache-build],
-			[Don't run fc-cache during the build])],
+	[AS_HELP_STRING([--disable-cache-build],[Don't run fc-cache during the build])],
 	,
 	enable_cache_build=$default_cache_build)
 

@@ -30,7 +30,7 @@
  */
 
 #ifdef HAVE_CONFIG_H
-#include <config.h>
+#include <pixman-config.h>
 #endif
 
 #if defined USE_X86_MMX || defined USE_ARM_IWMMXT || defined USE_LOONGSON_MMI
@@ -60,7 +60,7 @@ _mm_empty (void)
 #endif
 
 #ifdef USE_X86_MMX
-# if (defined(__SUNPRO_C) || defined(_MSC_VER) || defined(_WIN64))
+# if (defined(__SSE2__) || defined(__SUNPRO_C) || defined(_MSC_VER) || defined(_WIN64))
 #  include <xmmintrin.h>
 # else
 /* We have to compile with -msse to use xmmintrin.h, but that causes SSE

@@ -68,6 +68,22 @@ struct d3d12_resource_state
    d3d12_subresource_state *subresource_states;
 };
 
+/* Stores the current desired state of either an entire resource, or each subresource. */
+struct d3d12_desired_resource_state
+{
+   bool homogenous;
+   bool pending_memory_barrier;
+   uint32_t num_subresources;
+   D3D12_RESOURCE_STATES* subresource_states;
+};
+
+struct d3d12_context_state_table_entry
+{
+   struct d3d12_desired_resource_state desired;
+   struct d3d12_resource_state batch_begin, batch_end;
+};
+
+
 bool
 d3d12_resource_state_init(d3d12_resource_state *state, uint32_t subresource_count, bool simultaneous_access);
 
@@ -82,5 +98,8 @@ d3d12_context_state_table_destroy(struct d3d12_context *ctx);
 
 bool
 d3d12_context_state_resolve_submission(struct d3d12_context *ctx, struct d3d12_batch *batch);
+
+void
+d3d12_destroy_context_state_table_entry(d3d12_context_state_table_entry* entry);
 
 #endif // D3D12_RESOURCE_STATE_H

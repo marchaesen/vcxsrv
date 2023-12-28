@@ -33,23 +33,23 @@
 #include "util/u_memory.h"
 #include "util/u_simple_shaders.h"
 
-static nir_ssa_def *
+static nir_def *
 nir_cull_face(nir_builder *b, nir_variable *vertices, bool ccw)
 {
-   nir_ssa_def *v0 =
+   nir_def *v0 =
        nir_load_deref(b, nir_build_deref_array(b, nir_build_deref_var(b, vertices), nir_imm_int(b, 0)));
-   nir_ssa_def *v1 =
+   nir_def *v1 =
        nir_load_deref(b, nir_build_deref_array(b, nir_build_deref_var(b, vertices), nir_imm_int(b, 1)));
-   nir_ssa_def *v2 =
+   nir_def *v2 =
        nir_load_deref(b, nir_build_deref_array(b, nir_build_deref_var(b, vertices), nir_imm_int(b, 2)));
 
-   nir_ssa_def *dir = nir_fdot(b, nir_cross4(b, nir_fsub(b, v1, v0),
+   nir_def *dir = nir_fdot(b, nir_cross4(b, nir_fsub(b, v1, v0),
                                                nir_fsub(b, v2, v0)),
                                    nir_imm_vec4(b, 0.0, 0.0, -1.0, 0.0));
    if (ccw)
-       return nir_fge(b, nir_imm_int(b, 0), dir);
+       return nir_fle_imm(b, dir, 0.0f);
    else
-       return nir_flt(b, nir_imm_int(b, 0), dir);
+       return nir_fgt_imm(b, dir, 0.0f);
 }
 
 static void
@@ -71,7 +71,7 @@ static d3d12_shader_selector*
 d3d12_make_passthrough_gs(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
 {
    struct d3d12_shader_selector *gs;
-   uint64_t varyings = key->varyings.mask;
+   uint64_t varyings = key->varyings->mask;
    nir_shader *nir;
    struct pipe_shader_state templ;
 
@@ -82,8 +82,8 @@ d3d12_make_passthrough_gs(struct d3d12_context *ctx, struct d3d12_gs_variant_key
    nir = b.shader;
    nir->info.inputs_read = varyings;
    nir->info.outputs_written = varyings;
-   nir->info.gs.input_primitive = GL_POINTS;
-   nir->info.gs.output_primitive = GL_POINTS;
+   nir->info.gs.input_primitive = MESA_PRIM_POINTS;
+   nir->info.gs.output_primitive = MESA_PRIM_POINTS;
    nir->info.gs.vertices_in = 1;
    nir->info.gs.vertices_out = 1;
    nir->info.gs.invocations = 1;
@@ -94,32 +94,32 @@ d3d12_make_passthrough_gs(struct d3d12_context *ctx, struct d3d12_gs_variant_key
       char tmp[100];
       const int i = u_bit_scan64(&varyings);
 
-      unsigned frac_slots = key->varyings.slots[i].location_frac_mask;
+      unsigned frac_slots = key->varyings->slots[i].location_frac_mask;
       while (frac_slots) {
          nir_variable *in, *out;
          int j = u_bit_scan(&frac_slots);
 
-         snprintf(tmp, ARRAY_SIZE(tmp), "in_%d", key->varyings.slots[i].vars[j].driver_location);
+         snprintf(tmp, ARRAY_SIZE(tmp), "in_%d", key->varyings->slots[i].vars[j].driver_location);
          in = nir_variable_create(nir,
                                   nir_var_shader_in,
-                                  glsl_array_type(key->varyings.slots[i].types[j], 1, false),
+                                  glsl_array_type(key->varyings->slots[i].types[j], 1, false),
                                   tmp);
          in->data.location = i;
          in->data.location_frac = j;
-         in->data.driver_location = key->varyings.slots[i].vars[j].driver_location;
-         in->data.interpolation = key->varyings.slots[i].vars[j].interpolation;
-         in->data.compact = key->varyings.slots[i].vars[j].compact;
+         in->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
+         in->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
+         in->data.compact = key->varyings->slots[i].vars[j].compact;
 
-         snprintf(tmp, ARRAY_SIZE(tmp), "out_%d", key->varyings.slots[i].vars[j].driver_location);
+         snprintf(tmp, ARRAY_SIZE(tmp), "out_%d", key->varyings->slots[i].vars[j].driver_location);
          out = nir_variable_create(nir,
                                    nir_var_shader_out,
-                                   key->varyings.slots[i].types[j],
+                                   key->varyings->slots[i].types[j],
                                    tmp);
          out->data.location = i;
          out->data.location_frac = j;
-         out->data.driver_location = key->varyings.slots[i].vars[j].driver_location;
-         out->data.interpolation = key->varyings.slots[i].vars[j].interpolation;
-         out->data.compact = key->varyings.slots[i].vars[j].compact;
+         out->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
+         out->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
+         out->data.compact = key->varyings->slots[i].vars[j].compact;
 
          nir_deref_instr *in_value = nir_build_deref_array(&b, nir_build_deref_var(&b, in),
                                                                nir_imm_int(&b, 0));
@@ -148,28 +148,28 @@ struct emit_primitives_context
    nir_builder b;
 
    unsigned num_vars;
-   nir_variable *in[VARYING_SLOT_MAX];
-   nir_variable *out[VARYING_SLOT_MAX];
+   nir_variable *in[VARYING_SLOT_MAX * 4];
+   nir_variable *out[VARYING_SLOT_MAX * 4];
    nir_variable *front_facing_var;
 
    nir_loop *loop;
    nir_deref_instr *loop_index_deref;
-   nir_ssa_def *loop_index;
-   nir_ssa_def *edgeflag_cmp;
-   nir_ssa_def *front_facing;
+   nir_def *loop_index;
+   nir_def *edgeflag_cmp;
+   nir_def *front_facing;
 };
 
 static bool
 d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
                                struct d3d12_context *ctx,
                                struct d3d12_gs_variant_key *key,
-                               uint16_t output_primitive,
+                               enum mesa_prim output_primitive,
                                unsigned vertices_out)
 {
    nir_builder *b = &emit_ctx->b;
    nir_variable *edgeflag_var = NULL;
    nir_variable *pos_var = NULL;
-   uint64_t varyings = key->varyings.mask;
+   uint64_t varyings = key->varyings->mask;
 
    emit_ctx->ctx = ctx;
 
@@ -180,7 +180,7 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
    nir_shader *nir = b->shader;
    nir->info.inputs_read = varyings;
    nir->info.outputs_written = varyings;
-   nir->info.gs.input_primitive = GL_TRIANGLES;
+   nir->info.gs.input_primitive = MESA_PRIM_TRIANGLES;
    nir->info.gs.output_primitive = output_primitive;
    nir->info.gs.vertices_in = 3;
    nir->info.gs.vertices_out = vertices_out;
@@ -191,19 +191,19 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
       char tmp[100];
       const int i = u_bit_scan64(&varyings);
 
-      unsigned frac_slots = key->varyings.slots[i].location_frac_mask;
+      unsigned frac_slots = key->varyings->slots[i].location_frac_mask;
       while (frac_slots) {
          int j = u_bit_scan(&frac_slots);
          snprintf(tmp, ARRAY_SIZE(tmp), "in_%d", emit_ctx->num_vars);
          emit_ctx->in[emit_ctx->num_vars] = nir_variable_create(nir,
                                                                 nir_var_shader_in,
-                                                                glsl_array_type(key->varyings.slots[i].types[j], 3, 0),
+                                                                glsl_array_type(key->varyings->slots[i].types[j], 3, 0),
                                                                 tmp);
          emit_ctx->in[emit_ctx->num_vars]->data.location = i;
          emit_ctx->in[emit_ctx->num_vars]->data.location_frac = j;
-         emit_ctx->in[emit_ctx->num_vars]->data.driver_location = key->varyings.slots[i].vars[j].driver_location;
-         emit_ctx->in[emit_ctx->num_vars]->data.interpolation = key->varyings.slots[i].vars[j].interpolation;
-         emit_ctx->in[emit_ctx->num_vars]->data.compact = key->varyings.slots[i].vars[j].compact;
+         emit_ctx->in[emit_ctx->num_vars]->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
+         emit_ctx->in[emit_ctx->num_vars]->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
+         emit_ctx->in[emit_ctx->num_vars]->data.compact = key->varyings->slots[i].vars[j].compact;
 
          /* Don't create an output for the edge flag variable */
          if (i == VARYING_SLOT_EDGE) {
@@ -216,13 +216,13 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
          snprintf(tmp, ARRAY_SIZE(tmp), "out_%d", emit_ctx->num_vars);
          emit_ctx->out[emit_ctx->num_vars] = nir_variable_create(nir,
                                                                  nir_var_shader_out,
-                                                                 key->varyings.slots[i].types[j],
+                                                                 key->varyings->slots[i].types[j],
                                                                  tmp);
          emit_ctx->out[emit_ctx->num_vars]->data.location = i;
          emit_ctx->out[emit_ctx->num_vars]->data.location_frac = j;
-         emit_ctx->out[emit_ctx->num_vars]->data.driver_location = key->varyings.slots[i].vars[j].driver_location;
-         emit_ctx->out[emit_ctx->num_vars]->data.interpolation = key->varyings.slots[i].vars[j].interpolation;
-         emit_ctx->out[emit_ctx->num_vars]->data.compact = key->varyings.slots[i].vars[j].compact;
+         emit_ctx->out[emit_ctx->num_vars]->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
+         emit_ctx->out[emit_ctx->num_vars]->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
+         emit_ctx->out[emit_ctx->num_vars]->data.compact = key->varyings->slots[i].vars[j].compact;
 
          emit_ctx->num_vars++;
       }
@@ -245,10 +245,10 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
    emit_ctx->loop_index_deref = nir_build_deref_var(b, loop_index_var);
    nir_store_deref(b, emit_ctx->loop_index_deref, nir_imm_int(b, 0), 1);
 
-   nir_ssa_def *diagonal_vertex = NULL;
+   nir_def *diagonal_vertex = NULL;
    if (key->edge_flag_fix) {
-      nir_ssa_def *prim_id = nir_load_primitive_id(b);
-      nir_ssa_def *odd = nir_build_alu(b, nir_op_imod,
+      nir_def *prim_id = nir_load_primitive_id(b);
+      nir_def *odd = nir_build_alu(b, nir_op_imod,
                                        prim_id,
                                        nir_imm_int(b, 2),
                                        NULL, NULL);
@@ -280,16 +280,15 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
    emit_ctx->loop = nir_push_loop(b);
 
    emit_ctx->loop_index = nir_load_deref(b, emit_ctx->loop_index_deref);
-   nir_ssa_def *cmp = nir_ige(b, emit_ctx->loop_index,
-                              nir_imm_int(b, 3));
+   nir_def *cmp = nir_ige_imm(b, emit_ctx->loop_index, 3);
    nir_if *loop_check = nir_push_if(b, cmp);
    nir_jump(b, nir_jump_break);
    nir_pop_if(b, loop_check);
 
    if (edgeflag_var) {
-      nir_ssa_def *edge_flag =
+      nir_def *edge_flag =
          nir_load_deref(b, nir_build_deref_array(b, nir_build_deref_var(b, edgeflag_var), emit_ctx->loop_index));
-      nir_ssa_def *is_edge = nir_feq(b, nir_channel(b, edge_flag, 0), nir_imm_float(b, 1.0));
+      nir_def *is_edge = nir_feq_imm(b, nir_channel(b, edge_flag, 0), 1.0);
       if (emit_ctx->edgeflag_cmp)
          emit_ctx->edgeflag_cmp = nir_iand(b, emit_ctx->edgeflag_cmp, is_edge);
       else
@@ -297,7 +296,7 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
    }
 
    if (key->edge_flag_fix) {
-      nir_ssa_def *is_edge = nir_ine(b, emit_ctx->loop_index, diagonal_vertex);
+      nir_def *is_edge = nir_ine(b, emit_ctx->loop_index, diagonal_vertex);
       if (emit_ctx->edgeflag_cmp)
          emit_ctx->edgeflag_cmp = nir_iand(b, emit_ctx->edgeflag_cmp, is_edge);
       else
@@ -341,7 +340,7 @@ d3d12_emit_points(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
    struct emit_primitives_context emit_ctx = {0};
    nir_builder *b = &emit_ctx.b;
 
-   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, GL_POINTS, 3);
+   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, MESA_PRIM_POINTS, 3);
 
    /**
     *  if (edge_flag)
@@ -354,7 +353,7 @@ d3d12_emit_points(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
     *  EmitVertex();
     */
    for (unsigned i = 0; i < emit_ctx.num_vars; ++i) {
-      nir_ssa_def *index = (key->flat_varyings & (1ull << emit_ctx.in[i]->data.location))  ?
+      nir_def *index = (key->flat_varyings & (1ull << emit_ctx.in[i]->data.location))  ?
                               nir_imm_int(b, (key->flatshade_first ? 0 : 2)) : emit_ctx.loop_index;
       nir_deref_instr *in_value = nir_build_deref_array(b, nir_build_deref_var(b, emit_ctx.in[i]), index);
       if (emit_ctx.in[i]->data.location == VARYING_SLOT_POS && emit_ctx.edgeflag_cmp) {
@@ -381,13 +380,13 @@ d3d12_emit_lines(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
    struct emit_primitives_context emit_ctx = {0};
    nir_builder *b = &emit_ctx.b;
 
-   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, GL_LINE_STRIP, 6);
+   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, MESA_PRIM_LINE_STRIP, 6);
 
-   nir_ssa_def *next_index = nir_imod(b, nir_iadd_imm(b, emit_ctx.loop_index, 1), nir_imm_int(b, 3));
+   nir_def *next_index = nir_imod_imm(b, nir_iadd_imm(b, emit_ctx.loop_index, 1), 3);
 
    /* First vertex */
    for (unsigned i = 0; i < emit_ctx.num_vars; ++i) {
-      nir_ssa_def *index = (key->flat_varyings & (1ull << emit_ctx.in[i]->data.location)) ?
+      nir_def *index = (key->flat_varyings & (1ull << emit_ctx.in[i]->data.location)) ?
                               nir_imm_int(b, (key->flatshade_first ? 0 : 2)) : emit_ctx.loop_index;
       nir_deref_instr *in_value = nir_build_deref_array(b, nir_build_deref_var(b, emit_ctx.in[i]), index);
       copy_vars(b, nir_build_deref_var(b, emit_ctx.out[i]), in_value);
@@ -398,7 +397,7 @@ d3d12_emit_lines(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key)
 
    /* Second vertex. If not an edge, use same position as first vertex */
    for (unsigned i = 0; i < emit_ctx.num_vars; ++i) {
-      nir_ssa_def *index = next_index;
+      nir_def *index = next_index;
       if (emit_ctx.in[i]->data.location == VARYING_SLOT_POS)
          index = nir_bcsel(b, emit_ctx.edgeflag_cmp, next_index, emit_ctx.loop_index);
       else if (key->flat_varyings & (1ull << emit_ctx.in[i]->data.location))
@@ -421,7 +420,7 @@ d3d12_emit_triangles(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key
    struct emit_primitives_context emit_ctx = {0};
    nir_builder *b = &emit_ctx.b;
 
-   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, GL_TRIANGLE_STRIP, 3);
+   d3d12_begin_emit_primitives_gs(&emit_ctx, ctx, key, MESA_PRIM_TRIANGLE_STRIP, 3);
 
    /**
     *  [...] // Copy variables
@@ -429,7 +428,7 @@ d3d12_emit_triangles(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key
     *  EmitVertex();
     */
 
-   nir_ssa_def *incr = NULL;
+   nir_def *incr = NULL;
 
    if (key->provoking_vertex > 0)
       incr = nir_imm_int(b, key->provoking_vertex);
@@ -437,12 +436,12 @@ d3d12_emit_triangles(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key
       incr = nir_imm_int(b, 3);
 
    if (key->alternate_tri) {
-      nir_ssa_def *odd = nir_imod(b, nir_load_primitive_id(b), nir_imm_int(b, 2));
+      nir_def *odd = nir_imod_imm(b, nir_load_primitive_id(b), 2);
       incr = nir_isub(b, incr, odd);
    }
 
    assert(incr != NULL);
-   nir_ssa_def *index = nir_imod(b, nir_iadd(b, emit_ctx.loop_index, incr), nir_imm_int(b, 3));
+   nir_def *index = nir_imod_imm(b, nir_iadd(b, emit_ctx.loop_index, incr), 3);
    for (unsigned i = 0; i < emit_ctx.num_vars; ++i) {
       nir_deref_instr *in_value = nir_build_deref_array(b, nir_build_deref_var(b, emit_ctx.in[i]), index);
       copy_vars(b, nir_build_deref_var(b, emit_ctx.out[i]), in_value);
@@ -455,13 +454,17 @@ d3d12_emit_triangles(struct d3d12_context *ctx, struct d3d12_gs_variant_key *key
 static uint32_t
 hash_gs_variant_key(const void *key)
 {
-   return _mesa_hash_data(key, sizeof(struct d3d12_gs_variant_key));
+   d3d12_gs_variant_key *v = (d3d12_gs_variant_key*)key;
+   uint32_t hash = _mesa_hash_data(v, offsetof(d3d12_gs_variant_key, varyings));
+   if (v->varyings)
+      hash = _mesa_hash_data_with_seed(v->varyings->slots, sizeof(v->varyings->slots[0]) * v->varyings->max, hash);
+   return hash;
 }
 
 static bool
 equals_gs_variant_key(const void *a, const void *b)
 {
-   return memcmp(a, b, sizeof(struct d3d12_gs_variant_key)) == 0;
+   return memcmp(a, b, sizeof(d3d12_gs_variant_key)) == 0;
 }
 
 void

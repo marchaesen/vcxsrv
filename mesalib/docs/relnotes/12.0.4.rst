@@ -151,7 +151,7 @@ James Legg (1):
 
 -  radeonsi: Fix primitive restart when index changes
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 -  nir/spirv: Swap the argument order for AtomicCompareExchange
 -  nir/spirv: Use the correct sources for CompareExchange on images

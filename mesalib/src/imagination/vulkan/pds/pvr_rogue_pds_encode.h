@@ -60,7 +60,7 @@ pvr_pds_inst_decode_field_range_regs32(uint32_t value)
    return 3;
 }
 
-static ALWAYS_INLINE uint32_t pvr_pds_inst_encode_stflp64(uint32_t cc,
+static ALWAYS_INLINE uint32_t pvr_pds_inst_encode_sftlp64(uint32_t cc,
                                                           uint32_t lop,
                                                           uint32_t im,
                                                           uint32_t src0,
@@ -112,7 +112,7 @@ pvr_pds_inst_decode_field_range_regs32tp(uint32_t value)
    return 2;
 }
 
-static ALWAYS_INLINE uint32_t pvr_pds_inst_encode_stflp32(uint32_t im,
+static ALWAYS_INLINE uint32_t pvr_pds_inst_encode_sftlp32(uint32_t im,
                                                           uint32_t cc,
                                                           uint32_t lop,
                                                           uint32_t src0,

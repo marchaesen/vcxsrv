@@ -217,7 +217,7 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
        * But as-is, our implementation gives acceptable results and passes
        * Piglit's MSAA point smooth test.
        */
-      rast->templ.point_smooth = TRUE;
+      rast->templ.point_smooth = true;
    }
 
    if (rast->templ.point_smooth &&
@@ -228,7 +228,7 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
        * pipe_rasterizer_state::point_size value, not when the point size
        * is set in the VS.
        */
-      rast->templ.point_smooth = FALSE;
+      rast->templ.point_smooth = false;
    }
 
    if (rast->templ.point_smooth) {
@@ -295,13 +295,13 @@ svga_create_rasterizer_state(struct pipe_context *pipe,
       int fill_front = templ->fill_front;
       int fill_back = templ->fill_back;
       int fill = PIPE_POLYGON_MODE_FILL;
-      boolean offset_front = util_get_offset(templ, fill_front);
-      boolean offset_back = util_get_offset(templ, fill_back);
-      boolean offset = FALSE;
+      bool offset_front = util_get_offset(templ, fill_front);
+      bool offset_back = util_get_offset(templ, fill_back);
+      bool offset = false;
 
       switch (templ->cull_face) {
       case PIPE_FACE_FRONT_AND_BACK:
-         offset = FALSE;
+         offset = false;
          fill = PIPE_POLYGON_MODE_FILL;
          break;
 

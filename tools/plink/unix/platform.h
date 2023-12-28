@@ -60,10 +60,12 @@ struct Filename {
 };
 FILE *f_open(const struct Filename *, char const *, bool);
 
+#ifndef SUPERSEDE_FONTSPEC_FOR_TESTING
 struct FontSpec {
     char *name;    /* may be "" to indicate no selected font at all */
 };
 struct FontSpec *fontspec_new(const char *name);
+#endif
 
 extern const struct BackendVtable pty_backend;
 
@@ -81,6 +83,8 @@ extern const struct BackendVtable pty_backend;
 typedef void *HelpCtx;
 #define NULL_HELPCTX ((HelpCtx)NULL)
 #define HELPCTX(x) NULL
+
+typedef const char *FILESELECT_FILTER_TYPE;
 #define FILTER_KEY_FILES NULL          /* FIXME */
 #define FILTER_DYNLIB_FILES NULL       /* FIXME */
 
@@ -225,10 +229,10 @@ SeatPromptResult gtk_seat_confirm_ssh_host_key(
     char *keystr, SeatDialogText *text, HelpCtx helpctx,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
 SeatPromptResult gtk_seat_confirm_weak_crypto_primitive(
-    Seat *seat, const char *algtype, const char *algname,
+    Seat *seat, SeatDialogText *text,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
 SeatPromptResult gtk_seat_confirm_weak_cached_hostkey(
-    Seat *seat, const char *algname, const char *betteralgs,
+    Seat *seat, SeatDialogText *text,
     void (*callback)(void *ctx, SeatPromptResult result), void *ctx);
 const SeatDialogPromptDescriptions *gtk_seat_prompt_descriptions(Seat *seat);
 #ifdef MAY_REFER_TO_GTK_IN_HEADERS
@@ -332,6 +336,8 @@ void gtk_setup_config_box(
  */
 #define DEFAULT_CODEPAGE 0xFFFF
 #define CP_UTF8 CS_UTF8                /* from libcharset */
+#define CP_437 CS_CP437                /* used for test suites */
+#define CP_ISO8859_1 CS_ISO8859_1      /* used for test suites */
 
 #define strnicmp strncasecmp
 #define stricmp strcasecmp

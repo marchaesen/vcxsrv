@@ -9,7 +9,7 @@ AM_CFLAGS=$(CWARNFLAGS)
 
 libXext_la_LDFLAGS = -version-number $(XEXT_SOREV) -no-undefined
 
-libXext_la_LIBADD = $(XEXT_LIBS)
+libXext_la_LIBADD = $(LTLIBOBJS) $(XEXT_LIBS)
 
 libXext_la_SOURCES = \
 	DPMS.c \
@@ -27,7 +27,9 @@ libXext_la_SOURCES = \
 	Xdbe.c \
         Xge.c \
 	extutil.c \
-	globals.c
+	extutilP.h \
+	reallocarray.h \
+        globals.c
 
 libXextincludedir = $(includedir)/X11/extensions
 libXextinclude_HEADERS = $(top_srcdir)/include/X11/extensions/dpms.h \

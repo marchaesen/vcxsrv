@@ -11,9 +11,9 @@ each directory.
    -  **amd** - AMD-specific sources
 
       -  **addrlib** - common sources for creating images
-      -  **common** - common code between RADV, radeonsi and ACO
+      -  **common** - common code between RADV, RadeonSI and ACO
       -  **compiler** - ACO shader compiler
-      -  **llvm** - common code between RADV and radeonsi for compiling
+      -  **llvm** - common code between RADV and RadeonSI for compiling
          shaders using LLVM
       -  **registers** - register definitions
       -  **vulkan** - RADV Vulkan implementation for AMD Southern Island
@@ -64,8 +64,8 @@ each directory.
       -  **vbo** - Vertex Buffer Object code. All drawing with
          glBegin/glEnd, glDrawArrays, display lists, etc. goes through
          this module. The results is a well-defined set of vertex arrays
-         which are passed to the device driver (or tnl module) for
-         rendering.
+         which are passed to the device driver (or transform and lighting
+         module) for rendering.
       -  **x86** - Assembly code/optimizations for 32-bit x86 systems
          (not used with Gallium)
       -  **x86-64** - Assembly code/optimizations for 64-bit x86 systems
@@ -87,8 +87,6 @@ each directory.
          -  **nouveau** - Driver for NVIDIA GPUs.
          -  **panfrost** - Driver for ARM Mali Txxx (Midgard) and
             Gxx (Bifrost) GPUs.
-         -  **radeon** - Shared module for the r600 and radeonsi
-            drivers.
          -  **r300** - Driver for ATI R300 - R500.
          -  **r600** - Driver for ATI/AMD R600 - Northern Island (Terascale).
          -  **radeonsi** - Driver for AMD Southern Island and newer (GCN, RDNA).
@@ -116,7 +114,6 @@ each directory.
             shaders. Incomplete.
          -  **hud** - Heads-Up Display, an overlay showing GPU statistics
          -  **pipebuffer** - utility module for managing buffers
-         -  **rbug** - Gallium remote debug utility
          -  **rtasm** - run-time assembly/machine code generation.
             Currently there's run-time code generation for x86/SSE,
             PowerPC and Cell SPU.
@@ -136,11 +133,11 @@ each directory.
          device drivers
 
          -  **clover** - OpenCL frontend
-         -  **d3d10umd** - D3D10 frontend for Windows only. It's similar to Microsoft WARP, but using llvmpipe/softpipe.
+         -  **d3d10umd** - D3D10 frontend for Windows only. It's similar to Microsoft WARP, but using LLVMpipe/Softpipe.
          -  **dri** - Meta frontend for DRI drivers, see mesa/state_tracker
          -  **glx** - Meta frontend for GLX
          -  **hgl** - Haiku OpenGL
-         -  **lavapipe** - Vulkan frontend, software Vulkan rasterizer using llvmpipe.
+         -  **lavapipe** - Vulkan frontend, software Vulkan rasterizer using LLVMpipe.
          -  **nine** - D3D9 frontend, see targets/d3dadapter9
          -  **omx** - OpenMAX Bellagio frontend
          -  **osmesa** - Off-screen OpenGL rendering library
@@ -148,7 +145,6 @@ each directory.
          -  **vdpau** - VDPAU frontend
          -  **wgl** - Windows WGL frontend
          -  **xa** - XA frontend
-         -  **xvmc** - XvMC frontend
 
       -  **winsys** - The device drivers are platform-independent, the
          winsys connects them to various platforms. There is usually one winsys
@@ -163,21 +159,20 @@ each directory.
    -  **targets** - These control how the Gallium code is compiled into
       different libraries. Each of these roughly corresponds to one frontend.
 
-         -  **d3dadapter9** - d3dadapter9.so for Wine
-         -  **dri** - libgallium_dri.so loaded by libGL.so
-         -  **graw** - raw Gallium interface without a frontend
-         -  XXX more
+      -  **d3dadapter9** - d3dadapter9.so for Wine
+      -  **dri** - libgallium_dri.so loaded by libGL.so
+      -  XXX more
 
    -  **glx** - The GLX library code for building libGL.so using DRI
       drivers.
    -  **loader** - Used by libGL.so to find and load the appropriate DRI driver.
    -  **panfrost** - Panfrost-specific sources
 
-         -  **bifrost** - shader compiler for the Bifrost generation GPUs
-         -  **lib** - GPU data structures (command stream) support code`
-         -  **midgard** - shader compiler for the Midgard generation GPUs
-         -  **shared** - shared Mali code between Lima and Panfrost
-         -  **util** - shared code between Midgard and Bifrost shader compilers
+      -  **compiler** - shader compiler for Bifrost and newer GPUs
+      -  **lib** - GPU data structures (command stream) support code
+      -  **midgard** - shader compiler for the Midgard generation GPUs
+      -  **shared** - shared Mali code between Lima and Panfrost
+      -  **util** - shared code between Midgard and Bifrost shader compilers
 
    -  **util** - Various utility codes
    -  **vulkan** - Common code for Vulkan drivers

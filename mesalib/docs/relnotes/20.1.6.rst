@@ -87,7 +87,7 @@ Icenowy Zheng (1):
 
 - panfrost: signal syncobj if nothing is going to be flushed
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - anv: Advertise shaderIntegerFunctions2
 - spirv: Don't emit RMW for vector indexing in shared or global

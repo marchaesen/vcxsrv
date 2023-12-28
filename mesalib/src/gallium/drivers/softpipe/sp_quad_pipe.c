@@ -42,7 +42,7 @@ insert_stage_at_head(struct softpipe_context *sp, struct quad_stage *quad)
 void
 sp_build_quad_pipeline(struct softpipe_context *sp)
 {
-   boolean early_depth_test =
+   bool early_depth_test =
       (sp->depth_stencil->depth_enabled &&
       sp->framebuffer.zsbuf &&
       !sp->depth_stencil->alpha_enabled &&

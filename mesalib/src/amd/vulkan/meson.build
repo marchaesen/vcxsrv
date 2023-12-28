@@ -18,24 +18,76 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+radv_entrypoints_gen_command = [
+  prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
+  '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@',
+  '--beta', with_vulkan_beta.to_string()
+]
+
+radv_entrypoints_gen_command += [
+  # RADV entrypooints
+  '--prefix', 'radv',
+
+  # Tracing layer entrypoints
+  '--device-prefix', 'sqtt',
+  '--device-prefix', 'rra',
+  '--device-prefix', 'rmv',
+
+  # Application layer entrypoints
+  '--device-prefix', 'metro_exodus',
+  '--device-prefix', 'rage2',
+]
+
 radv_entrypoints = custom_target(
   'radv_entrypoints',
   input : [vk_entrypoints_gen, vk_api_xml],
   output : ['radv_entrypoints.h', 'radv_entrypoints.c'],
-  command : [
-    prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
-    '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'radv',
-    '--device-prefix', 'sqtt', '--device-prefix', 'metro_exodus',
-    '--device-prefix', 'rra',
-  ],
+  command : radv_entrypoints_gen_command,
   depend_files : vk_entrypoints_gen_depend_files,
 )
 
 libradv_files = files(
   'bvh/bvh.h',
   'layers/radv_metro_exodus.c',
+  'layers/radv_rage2.c',
+  'layers/radv_rmv_layer.c',
   'layers/radv_rra_layer.c',
   'layers/radv_sqtt_layer.c',
+  'meta/radv_meta.c',
+  'meta/radv_meta.h',
+  'meta/radv_meta_astc_decode.c',
+  'meta/radv_meta_blit.c',
+  'meta/radv_meta_blit2d.c',
+  'meta/radv_meta_buffer.c',
+  'meta/radv_meta_bufimage.c',
+  'meta/radv_meta_clear.c',
+  'meta/radv_meta_copy.c',
+  'meta/radv_meta_copy_vrs_htile.c',
+  'meta/radv_meta_dcc_retile.c',
+  'meta/radv_meta_decompress.c',
+  'meta/radv_meta_etc_decode.c',
+  'meta/radv_meta_fast_clear.c',
+  'meta/radv_meta_fmask_copy.c',
+  'meta/radv_meta_fmask_expand.c',
+  'meta/radv_meta_resolve.c',
+  'meta/radv_meta_resolve_cs.c',
+  'meta/radv_meta_resolve_fs.c',
+  'nir/radv_nir.h',
+  'nir/radv_nir_apply_pipeline_layout.c',
+  'nir/radv_nir_export_multiview.c',
+  'nir/radv_nir_lower_abi.c',
+  'nir/radv_nir_lower_cooperative_matrix.c',
+  'nir/radv_nir_lower_fs_barycentric.c',
+  'nir/radv_nir_lower_fs_intrinsics.c',
+  'nir/radv_nir_lower_hit_attrib_derefs.c',
+  'nir/radv_nir_lower_intrinsics_early.c',
+  'nir/radv_nir_lower_io.c',
+  'nir/radv_nir_lower_poly_line_smooth.c',
+  'nir/radv_nir_lower_primitive_shading_rate.c',
+  'nir/radv_nir_lower_ray_queries.c',
+  'nir/radv_nir_lower_view_index.c',
+  'nir/radv_nir_lower_viewport_to_zero.c',
+  'nir/radv_nir_lower_vs_inputs.c',
   'winsys/null/radv_null_bo.c',
   'winsys/null/radv_null_bo.h',
   'winsys/null/radv_null_cs.c',
@@ -43,49 +95,41 @@ libradv_files = files(
   'winsys/null/radv_null_winsys.c',
   'winsys/null/radv_null_winsys_public.h',
   'radv_acceleration_structure.c',
-  'radv_acceleration_structure.h',
   'radv_android.c',
+  'radv_buffer.c',
+  'radv_buffer_view.c',
   'radv_cmd_buffer.c',
+  'radv_cp_reg_shadowing.c',
   'radv_cs.h',
   'radv_debug.c',
   'radv_debug.h',
   'radv_device.c',
+  'radv_device_memory.c',
   'radv_descriptor_set.c',
   'radv_descriptor_set.h',
   'radv_device_generated_commands.c',
+  'radv_event.c',
   'radv_formats.c',
   'radv_image.c',
-  'radv_meta.c',
-  'radv_meta.h',
-  'radv_meta_blit.c',
-  'radv_meta_blit2d.c',
-  'radv_meta_buffer.c',
-  'radv_meta_bufimage.c',
-  'radv_meta_clear.c',
-  'radv_meta_copy.c',
-  'radv_meta_copy_vrs_htile.c',
-  'radv_meta_dcc_retile.c',
-  'radv_meta_decompress.c',
-  'radv_meta_etc_decode.c',
-  'radv_meta_fast_clear.c',
-  'radv_meta_fmask_copy.c',
-  'radv_meta_fmask_expand.c',
-  'radv_meta_resolve.c',
-  'radv_meta_resolve_cs.c',
-  'radv_meta_resolve_fs.c',
-  'radv_nir_apply_pipeline_layout.c',
-  'radv_nir_lower_abi.c',
-  'radv_nir_lower_ray_queries.c',
-  'radv_nir_lower_ycbcr_textures.c',
+  'radv_image_view.c',
+  'radv_instance.c',
   'radv_perfcounter.c',
+  'radv_physical_device.c',
   'radv_pipeline.c',
   'radv_pipeline_cache.c',
+  'radv_pipeline_compute.c',
+  'radv_pipeline_graphics.c',
   'radv_pipeline_rt.c',
   'radv_private.h',
+  'radv_queue.c',
   'radv_radeon_winsys.h',
+  'radv_rmv.c',
   'radv_rra.c',
   'radv_rt_common.c',
-  'radv_sdma_copy_image.c',
+  'radv_rt_shader.c',
+  'radv_sampler.c',
+  'radv_sdma.c',
+  'radv_sdma.h',
   'radv_shader.c',
   'radv_shader.h',
   'radv_shader_args.c',
@@ -94,14 +138,11 @@ libradv_files = files(
   'radv_spm.c',
   'radv_sqtt.c',
   'radv_query.c',
+  'radv_video.c',
   'radv_wsi.c',
   'si_cmd_buffer.c',
   'vk_format.h',
 )
-
-files_drirc = files('00-radv-defaults.conf')
-
-install_data(files_drirc, install_dir : join_paths(get_option('datadir'), 'drirc.d'))
 
 if not with_platform_windows
   libradv_files += files(
@@ -149,16 +190,6 @@ if with_platform_android
   radv_deps += dep_android
 endif
 
-# When static linking LLVM, all its symbols are public API.
-# That may cause symbol collision, so explicitly demote everything.
-libvulkan_radeon_ld_args = []
-libvulkan_radeon_link_depends = []
-
-if with_ld_version_script
-  libvulkan_radeon_ld_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'vulkan.sym')]
-  libvulkan_radeon_link_depends += files('vulkan.sym')
-endif
-
 radv_build_id = get_option('radv-build-id')
 if radv_build_id != ''
   radv_flags += '-DRADV_BUILD_ID_OVERRIDE="' + radv_build_id + '"'
@@ -169,7 +200,7 @@ libvulkan_radeon = shared_library(
   [libradv_files, radv_entrypoints, sha1_h, radix_sort_spv, bvh_spv],
   vs_module_defs : vulkan_api_def,
   include_directories : [
-    inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_amd, inc_amd_common, inc_amd_common_llvm, inc_compiler, inc_util,
+    inc_include, inc_src, inc_amd, inc_amd_common, inc_amd_common_llvm, inc_util,
   ],
   link_with : [
     libamd_common, libamd_common_llvm, libamdgpu_addrlib,
@@ -184,11 +215,11 @@ libvulkan_radeon = shared_library(
   c_args : [no_override_init_args, radv_flags, c_msvc_compat_args],
   cpp_args : [radv_flags, cpp_msvc_compat_args],
   link_args : [
-    ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections, libvulkan_radeon_ld_args,
+    ld_args_build_id, ld_args_bsymbolic, ld_args_gc_sections, vulkan_icd_link_args,
   ],
-  link_depends : [libvulkan_radeon_link_depends,],
+  link_depends : vulkan_icd_link_depends,
   gnu_symbol_visibility : 'hidden',
-  name_prefix : host_machine.system() == 'windows' ? '' : 'lib',
+  name_prefix : host_machine.system() == 'windows' ? '' : [],
   install : true,
 )
 
@@ -230,23 +261,53 @@ radeon_icd = custom_target(
   command : icd_command,
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
+  install_tag : 'runtime',
   install : true,
 )
 
-if meson.version().version_compare('>= 0.58')
-  _dev_icdname = 'radeon_devenv_icd.@0@.json'.format(host_machine.cpu())
-  custom_target(
-    'radeon_devenv_icd',
-    input : [vk_icd_gen, vk_api_xml],
-    output : _dev_icdname,
-    command : [
-      prog_python, '@INPUT0@',
-      '--api-version', '1.3', '--xml', '@INPUT1@',
-      '--lib-path', meson.current_build_dir() / icd_file_name,
-      '--out', '@OUTPUT@',
-    ],
-    build_by_default : true,
-  )
+_dev_icdname = 'radeon_devenv_icd.@0@.json'.format(host_machine.cpu())
+_dev_icd = custom_target(
+  'radeon_devenv_icd',
+  input : [vk_icd_gen, vk_api_xml],
+  output : _dev_icdname,
+  command : [
+    prog_python, '@INPUT0@',
+    '--api-version', '1.3', '--xml', '@INPUT1@',
+    '--lib-path', meson.current_build_dir() / icd_file_name,
+    '--out', '@OUTPUT@',
+  ],
+  build_by_default : true,
+)
 
-  devenv.append('VK_ICD_FILENAMES', meson.current_build_dir() / _dev_icdname)
+devenv.append('VK_ICD_FILENAMES', _dev_icd.full_path())
+
+if with_tests
+  test(
+    'radv_tests',
+    executable(
+      'radv_tests',
+      files(
+        'nir/radv_nir_lower_hit_attrib_derefs.c',
+        'tests/radv_nir_lower_hit_attrib_derefs_tests.cpp',
+      ),
+      cpp_args : [cpp_msvc_compat_args],
+      gnu_symbol_visibility : 'hidden',
+      include_directories : [
+        inc_include,
+        inc_src,
+        inc_mapi,
+        inc_mesa,
+        inc_gallium,
+        inc_gallium_aux,
+        inc_amd,
+        inc_amd_common,
+        inc_compiler,
+        inc_util,
+        include_directories('.'),
+      ],
+      dependencies : [dep_thread, idep_gtest, idep_nir, idep_mesautil],
+    ),
+    suite : ['compiler', 'nir'],
+    protocol : 'gtest',
+  )
 endif

@@ -143,7 +143,7 @@ Ilia Mirkin (2):
 - ci: remove nouveau from shader-db runs
 - nv50/ir: fix texture size for msaa textures
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 - anv: Clean up anv_device_memory::base on failure
 - anv: Clean up anv_descriptor_pool::base on the error path

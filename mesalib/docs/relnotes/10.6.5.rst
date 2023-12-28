@@ -67,7 +67,7 @@ Ilia Mirkin (3):
 -  gm107/ir: indirect handle goes first on maxwell also
 -  nv50,nvc0: take level into account when doing eng2d multi-layer blits
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  meta/copy_image: Stash off the scissor
 -  mesa/formats: Only do byteswapping for packed formats

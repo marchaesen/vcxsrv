@@ -30,6 +30,8 @@
 #ifndef RADEON_PROGRAM_UTIL_H
 #define RADEON_PROGRAM_UTIL_H
 
+#include <stdbool.h>
+
 #include "radeon_opcodes.h"
 
 struct radeon_compiler;
@@ -87,6 +89,7 @@ unsigned int rc_source_type_swz(unsigned int swizzle);
 unsigned int rc_source_type_mask(unsigned int mask);
 
 unsigned int rc_inst_can_use_presub(
+	struct radeon_compiler * c,
 	struct rc_instruction * inst,
 	rc_presubtract_op presub_op,
 	unsigned int presub_writemask,
@@ -125,4 +128,5 @@ float rc_get_constant_value(
 
 unsigned int rc_get_scalar_src_swz(unsigned int swizzle);
 
+bool rc_inst_has_three_diff_temp_srcs(struct rc_instruction *inst);
 #endif /* RADEON_PROGRAM_UTIL_H */

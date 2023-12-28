@@ -63,12 +63,12 @@ _nine_debug_printf( unsigned long flag,
                     const char *fmt,
                     ... )
 {
-    static boolean first = TRUE;
+    static bool first = true;
     static unsigned long dbg_flags = DBG_ERROR | DBG_WARN;
     unsigned long tid = 0;
 
     if (first) {
-        first = FALSE;
+        first = false;
         dbg_flags |= debug_get_flags_option("NINE_DEBUG", nine_debug_flags, 0);
     }
 

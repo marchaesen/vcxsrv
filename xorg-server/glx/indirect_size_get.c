@@ -30,11 +30,11 @@
 #include <dix-config.h>
 #else
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #endif
 
-#include <GL/gl.h>
+#include "GL/gl.h"
 #include "indirect_size_get.h"
 #include "glxserver.h"
 #include "indirect_util.h"

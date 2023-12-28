@@ -88,7 +88,7 @@ Ian Romanick (2):
 -  soft-fp64/fsat: Correctly handle NaN
 -  soft-fp64: Split a block that was missing a cast on a comparison
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  intel/blorp: Add support for swizzling fast-clear colors
 -  anv: Swizzle fast-clear values

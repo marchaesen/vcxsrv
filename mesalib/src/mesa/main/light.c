@@ -24,7 +24,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 #include "light.h"
@@ -877,7 +877,7 @@ _mesa_GetMaterialiv( GLenum face, GLenum pname, GLint *params )
    GLuint f;
    GLfloat (*mat)[4] = ctx->Light.Material.Attrib;
 
-   assert(ctx->API == API_OPENGL_COMPAT);
+   assert(_mesa_is_desktop_gl_compat(ctx));
 
    FLUSH_VERTICES(ctx, 0, 0); /* update materials */
    FLUSH_CURRENT(ctx, 0); /* update ctx->Light.Material from vertex buffer */
@@ -1269,8 +1269,8 @@ _mesa_init_lighting( struct gl_context *ctx )
                                                NULL );
 
    ctx->Light.ColorMaterialEnabled = GL_FALSE;
-   ctx->Light.ClampVertexColor = ctx->API == API_OPENGL_COMPAT;
-   ctx->Light._ClampVertexColor = ctx->API == API_OPENGL_COMPAT;
+   ctx->Light.ClampVertexColor = _mesa_is_desktop_gl_compat(ctx);
+   ctx->Light._ClampVertexColor = _mesa_is_desktop_gl_compat(ctx);
 
    /* Miscellaneous */
    ctx->Light._NeedEyeCoords = GL_FALSE;

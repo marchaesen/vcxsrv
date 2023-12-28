@@ -27,7 +27,7 @@
 #define R300_SCREEN_BUFFER_H
 
 #include <stdio.h>
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "util/u_transfer.h"
 

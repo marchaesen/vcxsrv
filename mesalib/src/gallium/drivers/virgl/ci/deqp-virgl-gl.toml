@@ -42,8 +42,6 @@ timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
 caselists = [
-    "/deqp/mustpass/gl30-master.txt",
-    "/deqp/mustpass/gl31-master.txt",
     "/deqp/mustpass/gl32-master.txt",
 ]
 deqp_args = [

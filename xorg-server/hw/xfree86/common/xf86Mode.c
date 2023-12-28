@@ -230,6 +230,8 @@ xf86ModeStatusToString(ModeStatus status)
         return "monitor doesn't support reduced blanking";
     case MODE_BANDWIDTH:
         return "mode requires too much memory bandwidth";
+    case MODE_DUPLICATE:
+        return "the same mode has been added";
     case MODE_BAD:
         return "unknown reason";
     case MODE_ERROR:

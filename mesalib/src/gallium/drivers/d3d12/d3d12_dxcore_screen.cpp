@@ -24,7 +24,7 @@
 #include "d3d12_screen.h"
 #include "d3d12_public.h"
 
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/u_memory.h"
 #include "util/u_dl.h"
 
@@ -232,7 +232,10 @@ d3d12_create_dxcore_screen(struct sw_winsys *winsys, LUID *adapter_luid)
    if (!screen)
       return nullptr;
 
-   d3d12_init_screen_base(&screen->base, winsys, adapter_luid);
+   if (!d3d12_init_screen_base(&screen->base, winsys, adapter_luid)) {
+      d3d12_destroy_screen(&screen->base);
+      return nullptr;
+   }
    screen->base.base.destroy = d3d12_destroy_dxcore_screen;
    screen->base.init = d3d12_init_dxcore_screen;
    screen->base.deinit = d3d12_deinit_dxcore_screen;
@@ -242,5 +245,35 @@ d3d12_create_dxcore_screen(struct sw_winsys *winsys, LUID *adapter_luid)
       return nullptr;
    }
 
+   return &screen->base.base;
+}
+
+struct pipe_screen *
+d3d12_create_dxcore_screen_from_d3d12_device(struct sw_winsys *winsys, IUnknown* pDevUnk, LUID **out_adapter_luid)
+{
+   struct d3d12_dxcore_screen *screen = CALLOC_STRUCT(d3d12_dxcore_screen);
+   if (!screen)
+      return nullptr;
+
+   if (FAILED(pDevUnk->QueryInterface(IID_PPV_ARGS(&screen->base.dev)))) {
+      d3d12_destroy_screen(&screen->base);
+      return nullptr;
+   }
+
+   LUID adapter_luid = GetAdapterLuid(screen->base.dev);
+   if (!d3d12_init_screen_base(&screen->base, winsys, &adapter_luid)) {
+      d3d12_destroy_screen(&screen->base);
+      return nullptr;
+   }
+   screen->base.base.destroy = d3d12_destroy_dxcore_screen;
+   screen->base.init = d3d12_init_dxcore_screen;
+   screen->base.deinit = d3d12_deinit_dxcore_screen;
+
+   if (!d3d12_init_dxcore_screen(&screen->base)) {
+      d3d12_destroy_dxcore_screen(&screen->base.base);
+      return nullptr;
+   }
+
+   *out_adapter_luid = &screen->base.adapter_luid;
    return &screen->base.base;
 }

@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+# Copyright (c) 2010, Oracle and/or its affiliates.
 #
 # Permission is hereby granted, free of charge, to any person obtaining a
 # copy of this software and associated documentation files (the "Software"),
@@ -36,7 +36,7 @@ libman_PRE =				\
 
 libman_DATA = $(libman_PRE:man=$(LIB_MAN_SUFFIX))
 
-EXTRA_DIST = $(libman_PRE)
+EXTRA_DIST = $(libman_PRE) meson.build
 
 CLEANFILES = $(libman_DATA)
 

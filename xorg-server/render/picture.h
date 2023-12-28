@@ -125,7 +125,10 @@ typedef enum _PictFormatShort {
 /* 1bpp formats */
     PICT_a1 = PIXMAN_a1,
 
-    PICT_g1 = PIXMAN_g1
+    PICT_g1 = PIXMAN_g1,
+
+/* YCbCr formats */
+    PICT_yuv2 = PIXMAN_yuy2
 } PictFormatShort;
 
 /*

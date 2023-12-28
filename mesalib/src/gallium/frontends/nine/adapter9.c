@@ -172,12 +172,12 @@ NineAdapter9_GetAdapterIdentifier( struct NineAdapter9 *This,
     return D3D_OK;
 }
 
-static inline boolean
+static inline bool
 backbuffer_format( D3DFORMAT dfmt,
                    D3DFORMAT bfmt,
-                   boolean win )
+                   bool win )
 {
-    if (dfmt == D3DFMT_A2R10G10B10 && win) { return FALSE; }
+    if (dfmt == D3DFMT_A2R10G10B10 && win) { return false; }
 
     if ((dfmt == D3DFMT_A2R10G10B10 && bfmt == dfmt) ||
         (dfmt == D3DFMT_X8R8G8B8 && (bfmt == dfmt ||
@@ -185,10 +185,10 @@ backbuffer_format( D3DFORMAT dfmt,
         (dfmt == D3DFMT_X1R5G5B5 && (bfmt == dfmt ||
                                      bfmt == D3DFMT_A1R5G5B5)) ||
         (dfmt == D3DFMT_R5G6B5 && bfmt == dfmt)) {
-        return TRUE;
+        return true;
     }
 
-    return FALSE;
+    return false;
 }
 
 HRESULT NINE_WINAPI
@@ -221,10 +221,10 @@ NineAdapter9_CheckDeviceType( struct NineAdapter9 *This,
      * the format passes with NINE_BIND_BACKBUFFER_FLAGS */
     dfmt = d3d9_to_pipe_format_checked(screen, AdapterFormat, PIPE_TEXTURE_2D,
                                        1,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
     bfmt = d3d9_to_pipe_format_checked(screen, BackBufferFormat, PIPE_TEXTURE_2D,
                                        1,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
     if (dfmt == PIPE_FORMAT_NONE || bfmt == PIPE_FORMAT_NONE) {
         DBG("Unsupported Adapter/BackBufferFormat.\n");
         return D3DERR_NOTAVAILABLE;
@@ -233,9 +233,9 @@ NineAdapter9_CheckDeviceType( struct NineAdapter9 *This,
     return D3D_OK;
 }
 
-static inline boolean
+static inline bool
 display_format( D3DFORMAT fmt,
-                boolean win )
+                bool win )
 {
     /* http://msdn.microsoft.com/en-us/library/bb172558(v=VS.85).aspx#BackBuffer_or_Display_Formats */
     static const D3DFORMAT allowed[] = {
@@ -246,15 +246,15 @@ display_format( D3DFORMAT fmt,
     };
     unsigned i;
 
-    if (fmt == D3DFMT_A2R10G10B10 && win) { return FALSE; }
+    if (fmt == D3DFMT_A2R10G10B10 && win) { return false; }
 
     for (i = 0; i < sizeof(allowed)/sizeof(D3DFORMAT); i++) {
-        if (fmt == allowed[i]) { return TRUE; }
+        if (fmt == allowed[i]) { return true; }
     }
-    return FALSE;
+    return false;
 }
 
-static inline boolean
+static inline bool
 adapter_format( D3DFORMAT fmt )
 {
     /* Formats that are compatible to display_format (modulo alpha bits) */
@@ -269,9 +269,9 @@ adapter_format( D3DFORMAT fmt )
     unsigned i;
 
     for (i = 0; i < sizeof(allowed)/sizeof(D3DFORMAT); i++) {
-        if (fmt == allowed[i]) { return TRUE; }
+        if (fmt == allowed[i]) { return true; }
     }
-    return FALSE;
+    return false;
 }
 
 HRESULT NINE_WINAPI
@@ -287,7 +287,7 @@ NineAdapter9_CheckDeviceFormat( struct NineAdapter9 *This,
     enum pipe_format pf;
     enum pipe_texture_target target;
     unsigned bind = 0;
-    boolean srgb;
+    bool srgb;
 
     /* Check adapter format. */
 
@@ -298,14 +298,14 @@ NineAdapter9_CheckDeviceFormat( struct NineAdapter9 *This,
 
     /* Wine tests, but suspicious. Needs more tests. */
     user_assert(adapter_format(AdapterFormat), D3DERR_INVALIDCALL);
-    user_assert(display_format(AdapterFormat, FALSE), D3DERR_NOTAVAILABLE);
+    user_assert(display_format(AdapterFormat, false), D3DERR_NOTAVAILABLE);
 
     hr = NineAdapter9_GetScreen(This, DeviceType, &screen);
     if (FAILED(hr))
         return hr;
     pf = d3d9_to_pipe_format_checked(screen, AdapterFormat, PIPE_TEXTURE_2D, 0,
                                      PIPE_BIND_DISPLAY_TARGET |
-                                     PIPE_BIND_SHARED, FALSE, FALSE);
+                                     PIPE_BIND_SHARED, false, false);
     if (pf == PIPE_FORMAT_NONE) {
         DBG("AdapterFormat %s not available.\n",
             d3dformat_to_string(AdapterFormat));
@@ -393,7 +393,7 @@ NineAdapter9_CheckDeviceFormat( struct NineAdapter9 *This,
 
     srgb = (Usage & (D3DUSAGE_QUERY_SRGBREAD | D3DUSAGE_QUERY_SRGBWRITE)) != 0;
     pf = d3d9_to_pipe_format_checked(screen, CheckFormat, target,
-                                     0, bind, srgb, FALSE);
+                                     0, bind, srgb, false);
     if (pf == PIPE_FORMAT_NONE) {
         DBG("NOT AVAILABLE\n");
         return D3DERR_NOTAVAILABLE;
@@ -445,7 +445,7 @@ NineAdapter9_CheckDeviceMultiSampleType( struct NineAdapter9 *This,
         bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET;
 
     pf = d3d9_to_pipe_format_checked(screen, SurfaceFormat, PIPE_TEXTURE_2D,
-                                     0, PIPE_BIND_SAMPLER_VIEW, FALSE, FALSE);
+                                     0, PIPE_BIND_SAMPLER_VIEW, false, false);
 
     if (pf == PIPE_FORMAT_NONE && SurfaceFormat != D3DFMT_NULL) {
         DBG("%s not available.\n", d3dformat_to_string(SurfaceFormat));
@@ -453,7 +453,7 @@ NineAdapter9_CheckDeviceMultiSampleType( struct NineAdapter9 *This,
     }
 
     pf = d3d9_to_pipe_format_checked(screen, SurfaceFormat, PIPE_TEXTURE_2D,
-                                     MultiSampleType, bind, FALSE, FALSE);
+                                     MultiSampleType, bind, false, false);
 
     if (pf == PIPE_FORMAT_NONE && SurfaceFormat != D3DFMT_NULL) {
         DBG("%s with %u samples not available.\n",
@@ -500,16 +500,16 @@ NineAdapter9_CheckDepthStencilMatch( struct NineAdapter9 *This,
     if (FAILED(hr)) { return hr; }
 
     dfmt = d3d9_to_pipe_format_checked(screen, AdapterFormat, PIPE_TEXTURE_2D, 0,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
     bfmt = d3d9_to_pipe_format_checked(screen, RenderTargetFormat,
                                        PIPE_TEXTURE_2D, 0,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
     if (RenderTargetFormat == D3DFMT_NULL)
         bfmt = dfmt;
     zsfmt = d3d9_to_pipe_format_checked(screen, DepthStencilFormat,
                                         PIPE_TEXTURE_2D, 0,
                                         d3d9_get_pipe_depth_format_bindings(DepthStencilFormat),
-                                        FALSE, FALSE);
+                                        false, false);
     if (dfmt == PIPE_FORMAT_NONE ||
         bfmt == PIPE_FORMAT_NONE ||
         zsfmt == PIPE_FORMAT_NONE) {
@@ -536,16 +536,16 @@ NineAdapter9_CheckDeviceFormatConversion( struct NineAdapter9 *This,
         nine_D3DDEVTYPE_to_str(DeviceType),
         d3dformat_to_string(SourceFormat), d3dformat_to_string(TargetFormat));
 
-    user_assert(backbuffer_format(TargetFormat, SourceFormat, FALSE),
+    user_assert(backbuffer_format(TargetFormat, SourceFormat, false),
                 D3DERR_NOTAVAILABLE);
 
     hr = NineAdapter9_GetScreen(This, DeviceType, &screen);
     if (FAILED(hr)) { return hr; }
 
     dfmt = d3d9_to_pipe_format_checked(screen, TargetFormat, PIPE_TEXTURE_2D, 1,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
     bfmt = d3d9_to_pipe_format_checked(screen, SourceFormat, PIPE_TEXTURE_2D, 1,
-                                       NINE_BIND_BACKBUFFER_FLAGS, FALSE, FALSE);
+                                       NINE_BIND_BACKBUFFER_FLAGS, false, false);
 
     if (dfmt == PIPE_FORMAT_NONE || bfmt == PIPE_FORMAT_NONE) {
         DBG("%s to %s not supported.\n",
@@ -649,7 +649,8 @@ NineAdapter9_GetDeviceCaps( struct NineAdapter9 *This,
                                D3DPIPECAP(MIXED_COLORBUFFER_FORMATS, D3DPMISCCAPS_MRTINDEPENDENTBITDEPTHS) |
                                D3DPMISCCAPS_MRTPOSTPIXELSHADERBLENDING |
                                D3DPMISCCAPS_FOGVERTEXCLAMPED;
-    if (!screen->get_param(screen, PIPE_CAP_VS_WINDOW_SPACE_POSITION))
+    if (!screen->get_param(screen, PIPE_CAP_VS_WINDOW_SPACE_POSITION) &&
+        !screen->get_param(screen, PIPE_CAP_DEPTH_CLIP_DISABLE))
         pCaps->PrimitiveMiscCaps |= D3DPMISCCAPS_CLIPTLVERTS;
 
     pCaps->RasterCaps =
@@ -1003,7 +1004,7 @@ NineAdapter9_GetDeviceCaps( struct NineAdapter9 *This,
     pCaps->MaxVShaderInstructionsExecuted = MAX2(65535, pCaps->MaxVertexShader30InstructionSlots * 32);
     pCaps->MaxPShaderInstructionsExecuted = MAX2(65535, pCaps->MaxPixelShader30InstructionSlots * 32);
 
-    if (debug_get_bool_option("NINE_DUMP_CAPS", FALSE))
+    if (debug_get_bool_option("NINE_DUMP_CAPS", false))
         nine_dump_D3DCAPS9(DBG_CHANNEL, pCaps);
 
     return D3D_OK;
@@ -1057,7 +1058,7 @@ NineAdapter9_CreateDevice( struct NineAdapter9 *This,
     params.BehaviorFlags = BehaviorFlags;
 
     hr = NineDevice9_new(screen, &params, &caps, pPresentationParameters,
-                         pD3D9, pPresentationGroup, This->ctx, FALSE, NULL,
+                         pD3D9, pPresentationGroup, This->ctx, false, NULL,
                          (struct NineDevice9 **)ppReturnedDeviceInterface,
                          minor);
     if (FAILED(hr)) {
@@ -1156,5 +1157,5 @@ HRESULT
 NineAdapter9_new( struct d3dadapter9_context *pCTX,
                   struct NineAdapter9 **ppOut )
 {
-    NINE_NEW(Adapter9, ppOut, FALSE, /* args */ pCTX);
+    NINE_NEW(Adapter9, ppOut, false, /* args */ pCTX);
 }

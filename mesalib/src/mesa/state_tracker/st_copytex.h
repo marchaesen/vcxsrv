@@ -24,7 +24,7 @@
 #ifndef ST_COPYTEX_H
 #define ST_COPYTEX_H
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 extern void
 st_copy_framebuffer_to_texture(GLenum srcBuffer,

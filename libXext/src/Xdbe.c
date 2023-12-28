@@ -40,6 +40,7 @@
 #include <X11/extensions/Xdbe.h>
 #include <X11/extensions/dbeproto.h>
 #include <limits.h>
+#include "reallocarray.h"
 
 static XExtensionInfo _dbe_info_data;
 static XExtensionInfo *dbe_info = &_dbe_info_data;
@@ -348,7 +349,7 @@ XdbeScreenVisualInfo *XdbeGetVisualInfo (
 
     /* allocate list of visual information to be returned */
     if ((*num_screens > 0) && (*num_screens < 65536))
-        scrVisInfo = Xmalloc(*num_screens * sizeof(XdbeScreenVisualInfo));
+        scrVisInfo = Xcalloc(*num_screens, sizeof(XdbeScreenVisualInfo));
     else
         scrVisInfo = NULL;
     if (scrVisInfo == NULL) {
@@ -367,19 +368,19 @@ XdbeScreenVisualInfo *XdbeGetVisualInfo (
 
         if (c < 65536) {
             scrVisInfo[i].count = c;
-            scrVisInfo[i].visinfo = Xmalloc(c * sizeof(XdbeVisualInfo));
+            scrVisInfo[i].visinfo = Xmallocarray(c, sizeof(XdbeVisualInfo));
         } else
             scrVisInfo[i].visinfo = NULL;
 
         /* if we can not allocate the list of visual/depth info
-         * then free the lists that we already allocate as well
+         * then free the lists that we already allocated as well
          * as the visual info list itself
          */
         if (scrVisInfo[i].visinfo == NULL) {
             for (j = 0; j < i; j++) {
-                Xfree ((char *)scrVisInfo[j].visinfo);
+                Xfree (scrVisInfo[j].visinfo);
             }
-            Xfree ((char *)scrVisInfo);
+            Xfree (scrVisInfo);
             _XEatDataWords(dpy, rep.length);
             UnlockDisplay (dpy);
             SyncHandle ();
@@ -443,8 +444,7 @@ XdbeBackBufferAttributes *XdbeGetBackBufferAttributes(
 
     DbeCheckExtension(dpy, info, (XdbeBackBufferAttributes *)NULL);
 
-    if (!(attr =
-       (XdbeBackBufferAttributes *)Xmalloc(sizeof(XdbeBackBufferAttributes)))) {
+    if (!(attr = Xmalloc(sizeof(XdbeBackBufferAttributes)))) {
         return NULL;
     }
 

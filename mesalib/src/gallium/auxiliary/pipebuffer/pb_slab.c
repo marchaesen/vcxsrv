@@ -73,14 +73,16 @@ pb_slab_reclaim(struct pb_slabs *slabs, struct pb_slab_entry *entry)
 
 #define MAX_FAILED_RECLAIMS 2
 
-static void
+static unsigned
 pb_slabs_reclaim_locked(struct pb_slabs *slabs)
 {
    struct pb_slab_entry *entry, *next;
    unsigned num_failed_reclaims = 0;
+   unsigned num_reclaims = 0;
    LIST_FOR_EACH_ENTRY_SAFE(entry, next, &slabs->reclaim, head) {
       if (slabs->can_reclaim(slabs->priv, entry)) {
          pb_slab_reclaim(slabs, entry);
+         num_reclaims++;
       /* there are typically three possible scenarios when reclaiming:
        * - all entries reclaimed
        * - no entries reclaimed
@@ -93,17 +95,21 @@ pb_slabs_reclaim_locked(struct pb_slabs *slabs)
          break;
       }
    }
+   return num_reclaims;
 }
 
-static void
+static unsigned
 pb_slabs_reclaim_all_locked(struct pb_slabs *slabs)
 {
    struct pb_slab_entry *entry, *next;
+   unsigned num_reclaims = 0;
    LIST_FOR_EACH_ENTRY_SAFE(entry, next, &slabs->reclaim, head) {
       if (slabs->can_reclaim(slabs->priv, entry)) {
          pb_slab_reclaim(slabs, entry);
+         num_reclaims++;
       }
    }
+   return num_reclaims;
 }
 
 /* Allocate a slab entry of the given size from the given heap.
@@ -215,12 +221,14 @@ pb_slab_free(struct pb_slabs* slabs, struct pb_slab_entry *entry)
  * some no longer used memory. However, calling this function is not strictly
  * required since pb_slab_alloc will eventually do the same thing.
  */
-void
+unsigned
 pb_slabs_reclaim(struct pb_slabs *slabs)
 {
+   unsigned num_reclaims;
    simple_mtx_lock(&slabs->mutex);
-   pb_slabs_reclaim_locked(slabs);
+   num_reclaims = pb_slabs_reclaim_locked(slabs);
    simple_mtx_unlock(&slabs->mutex);
+   return num_reclaims;
 }
 
 /* Initialize the slabs manager.

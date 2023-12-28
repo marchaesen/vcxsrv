@@ -4,10 +4,11 @@ Command Pools
 The Vulkan runtime code provides a common ``VkCommandPool`` implementation
 which makes managing the lifetimes of command buffers and recycling their
 internal state easier.  To use the common command pool a driver needs to
-fill out a :cpp:struct:`vk_command_buffer_ops` struct and set the
-``command_buffer_ops`` field of :cpp:struct:`vk_device`.
+fill out a :c:struct:`vk_command_buffer_ops` struct and set the
+``command_buffer_ops`` field of :c:struct:`vk_device`.
 
-.. doxygenstruct:: vk_command_buffer_ops
+.. c:autostruct:: vk_command_buffer_ops
+   :file: src/vulkan/runtime/vk_command_buffer.h
    :members:
 
 By reducing the entirety of command buffer lifetime management to these
@@ -21,7 +22,7 @@ Command Buffer Recycling
 The common command pool provides automatic command buffer recycling as long
 as the driver uses the common ``vkAllocateCommandBuffers()`` and
 ``vkFreeCommandBuffers()`` implementations.  The driver must also provide the
-``reset`` function pointer in :cpp:struct:`vk_command_buffer_ops`.
+``reset`` function pointer in :c:struct:`vk_command_buffer_ops`.
 
 With the common command buffer pool, when the client calls
 ``vkFreeCommandBuffers()``, the command buffers are not immediately freed.
@@ -39,7 +40,7 @@ Custom command pools
 
 If a driver wishes to recycle at a finer granularity than whole command
 buffers, they can do so by providing their own command pool implementation
-which wraps :cpp:struct:`vk_command_pool`.  The common use-case here is if
+which wraps :c:struct:`vk_command_pool`.  The common use-case here is if
 the driver wants to pool command-buffer-internal objects at a finer
 granularity than whole command buffers.  The command pool provides a place
 where things like GPU command buffers or upload buffers can be cached
@@ -53,7 +54,7 @@ entrypoints:
  - ``vkTrimCommandPool()``
 
 All of the other entrypoints will be handled by common code so long as the
-driver's command pool derives from :cpp:struct:`vk_command_pool`.
+driver's command pool derives from :c:struct:`vk_command_pool`.
 
 The driver implementation of the command buffer ``recycle()`` function
 should respect ``VK_COMMAND_BUFFER_RESET_RELEASE_RESOURCES_BIT`` and, when
@@ -64,15 +65,21 @@ come from the common command buffer code when a command buffer is recycled.
 
 The driver's implementation of ``vkTrimCommandPool()`` should free any
 resources that have been cached within the command pool back to the device
-or back to the OS.  It **must** also call :cpp:func:`vk_command_pool_trim`
+or back to the OS.  It **must** also call :c:func:`vk_command_pool_trim`
 to allow the common code to free any recycled command buffers.
 
 Reference
 ---------
 
-.. doxygenstruct:: vk_command_pool
+.. c:autostruct:: vk_command_pool
+   :file: src/vulkan/runtime/vk_command_pool.h
    :members:
 
-.. doxygenfunction:: vk_command_pool_init
-.. doxygenfunction:: vk_command_pool_finish
-.. doxygenfunction:: vk_command_pool_trim
+.. c:autofunction:: vk_command_pool_init
+   :file: src/vulkan/runtime/vk_command_pool.h
+
+.. c:autofunction:: vk_command_pool_finish
+   :file: src/vulkan/runtime/vk_command_pool.h
+
+.. c:autofunction:: vk_command_pool_trim
+   :file: src/vulkan/runtime/vk_command_pool.h

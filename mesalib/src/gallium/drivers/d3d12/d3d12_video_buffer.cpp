@@ -33,6 +33,8 @@
 #include "vl/vl_video_buffer.h"
 #include "util/u_sampler.h"
 #include "frontend/winsys_handle.h"
+#include "d3d12_format.h"
+#include "d3d12_screen.h"
 
 static struct pipe_video_buffer *
 d3d12_video_buffer_create_impl(struct pipe_context *pipe,
@@ -58,10 +60,11 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
    pD3D12VideoBuffer->base.height        = tmpl->height;
    pD3D12VideoBuffer->base.interlaced    = tmpl->interlaced;
    pD3D12VideoBuffer->base.associated_data = nullptr;
-   pD3D12VideoBuffer->base.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET;
+   pD3D12VideoBuffer->base.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_CUSTOM;
 
    // Fill vtable
    pD3D12VideoBuffer->base.destroy                     = d3d12_video_buffer_destroy;
+   pD3D12VideoBuffer->base.get_resources               = d3d12_video_buffer_resources;
    pD3D12VideoBuffer->base.get_sampler_view_planes     = d3d12_video_buffer_get_sampler_view_planes;
    pD3D12VideoBuffer->base.get_sampler_view_components = d3d12_video_buffer_get_sampler_view_components;
    pD3D12VideoBuffer->base.get_surfaces                = d3d12_video_buffer_get_surfaces;
@@ -72,9 +75,20 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
    templ.target     = PIPE_TEXTURE_2D;
    templ.bind       = pD3D12VideoBuffer->base.bind;
    templ.format     = pD3D12VideoBuffer->base.buffer_format;
-   // YUV 4:2:0 formats in D3D12 need to have multiple of 2 dimensions
-   templ.width0     = align(pD3D12VideoBuffer->base.width, 2);
-   templ.height0    = align(pD3D12VideoBuffer->base.height, 2);
+   if (handle)
+   {
+      // YUV 4:2:0 formats in D3D12 always require multiple of 2 dimensions
+      // We must respect the input dimensions of the imported resource handle (e.g no extra aligning)
+      templ.width0     = align(pD3D12VideoBuffer->base.width, 2);
+      templ.height0    = align(pD3D12VideoBuffer->base.height, 2);
+   }
+   else
+   {
+      // When creating (e.g not importing) resources we allocate
+      // with a higher alignment to maximize HW compatibility
+      templ.width0     = align(pD3D12VideoBuffer->base.width, 2);
+      templ.height0    = align(pD3D12VideoBuffer->base.height, 16);
+   }
    templ.depth0     = 1;
    templ.array_size = 1;
    templ.flags      = 0;
@@ -107,17 +121,45 @@ failed:
    return nullptr;
 }
 
-
 /**
  * creates a video buffer from a handle
  */
 struct pipe_video_buffer *
-d3d12_video_buffer_from_handle( struct pipe_context *pipe,
-                              const struct pipe_video_buffer *tmpl,
-                              struct winsys_handle *handle,
-                              unsigned usage)
+d3d12_video_buffer_from_handle(struct pipe_context *pipe,
+                               const struct pipe_video_buffer *tmpl,
+                               struct winsys_handle *handle,
+                               unsigned usage)
 {
-   return d3d12_video_buffer_create_impl(pipe, tmpl, handle, usage);
+   struct pipe_video_buffer updated_template = {};
+   if ((handle->format == PIPE_FORMAT_NONE) || (tmpl == nullptr) || (tmpl->buffer_format == PIPE_FORMAT_NONE) ||
+       (tmpl->width == 0) || (tmpl->height == 0)) {
+      ID3D12Resource *d3d12_res = nullptr;
+      if (handle->type == WINSYS_HANDLE_TYPE_D3D12_RES) {
+         d3d12_res = (ID3D12Resource *) handle->com_obj;
+      } else if (handle->type == WINSYS_HANDLE_TYPE_FD) {
+#ifdef _WIN32
+         HANDLE d3d_handle = handle->handle;
+#else
+         HANDLE d3d_handle = (HANDLE) (intptr_t) handle->handle;
+#endif
+         if (FAILED(d3d12_screen(pipe->screen)->dev->OpenSharedHandle(d3d_handle, IID_PPV_ARGS(&d3d12_res)))) {
+            return NULL;
+         }
+      }
+      D3D12_RESOURCE_DESC res_desc = GetDesc(d3d12_res);
+      updated_template.width = res_desc.Width;
+      updated_template.height = res_desc.Height;
+      updated_template.buffer_format = d3d12_get_pipe_format(res_desc.Format);
+      handle->format = updated_template.buffer_format;
+
+      // if passed an external com_ptr (e.g WINSYS_HANDLE_TYPE_D3D12_RES) do not release it
+      if (handle->type == WINSYS_HANDLE_TYPE_FD)
+         d3d12_res->Release();
+   } else {
+      updated_template = *tmpl;
+   }
+
+   return d3d12_video_buffer_create_impl(pipe, &updated_template, handle, usage);
 }
 
 /**
@@ -148,13 +190,6 @@ d3d12_video_buffer_destroy(struct pipe_video_buffer *buffer)
       d3d12_video_buffer_destroy_associated_data(pD3D12VideoBuffer->base.associated_data);
       // Set to nullptr after cleanup, no dangling pointers
       pD3D12VideoBuffer->base.associated_data = nullptr;
-   }
-
-   // Destroy (if any) codec where the associated data came from
-   if (pD3D12VideoBuffer->base.codec != nullptr) {
-      d3d12_video_decoder_destroy(pD3D12VideoBuffer->base.codec);
-      // Set to nullptr after cleanup, no dangling pointers
-      pD3D12VideoBuffer->base.codec = nullptr;
    }
 
    for (uint i = 0; i < pD3D12VideoBuffer->surfaces.size(); ++i) {
@@ -231,6 +266,32 @@ error:
    }
 
    return nullptr;
+}
+
+/**
+ * get an individual resource for each plane,
+ * only returns existing resources by reference
+ */
+void
+d3d12_video_buffer_resources(struct pipe_video_buffer *buffer,
+                             struct pipe_resource **resources)
+{
+   struct d3d12_video_buffer *pD3D12VideoBuffer = (struct d3d12_video_buffer *) buffer;
+   assert(pD3D12VideoBuffer);
+
+   // pCurPlaneResource refers to the planar resource, not the overall resource.
+   // in d3d12_resource this is handled by having a linked list of planes with
+   // d3dRes->base.next ptr to next plane resource
+   // starting with the plane 0 being the overall resource
+   struct pipe_resource *pCurPlaneResource = &pD3D12VideoBuffer->texture->base.b;
+
+   for (uint i = 0; i < pD3D12VideoBuffer->num_planes; ++i) {
+      assert(pCurPlaneResource); // the d3d12_resource has a linked list with the exact name of number of elements
+                                 // as planes
+
+      resources[i] = pCurPlaneResource;
+      pCurPlaneResource = pCurPlaneResource->next;
+   }
 }
 
 /**

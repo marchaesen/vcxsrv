@@ -663,7 +663,7 @@ xwl_glamor_eglstream_init_wl_registry(struct xwl_screen *xwl_screen,
     struct xwl_eglstream_private *xwl_eglstream =
         xwl_eglstream_get(xwl_screen);
 
-    if (strcmp(name, "wl_eglstream_display") == 0) {
+    if (strcmp(name, wl_eglstream_display_interface.name) == 0) {
         xwl_eglstream->display = wl_registry_bind(
             wl_registry, id, &wl_eglstream_display_interface, version);
 
@@ -671,11 +671,11 @@ xwl_glamor_eglstream_init_wl_registry(struct xwl_screen *xwl_screen,
                                           &eglstream_display_listener,
                                           xwl_screen);
         return TRUE;
-    } else if (strcmp(name, "wl_eglstream_controller") == 0) {
+    } else if (strcmp(name, wl_eglstream_controller_interface.name) == 0) {
         xwl_eglstream->controller = wl_registry_bind(
             wl_registry, id, &wl_eglstream_controller_interface, version);
         return TRUE;
-    } else if (strcmp(name, "zwp_linux_dmabuf_v1") == 0) {
+    } else if (strcmp(name, zwp_linux_dmabuf_v1_interface.name) == 0) {
         xwl_screen_set_dmabuf_interface(xwl_screen, id, version);
         return TRUE;
     }
@@ -932,7 +932,7 @@ static const dri3_screen_info_rec xwl_dri3_info = {
     .open_client = xwl_dri3_open_client,
     .get_formats = xwl_glamor_get_formats,
     .get_modifiers = xwl_glamor_get_modifiers,
-    .get_drawable_modifiers = glamor_get_drawable_modifiers,
+    .get_drawable_modifiers = xwl_glamor_get_drawable_modifiers,
 };
 
 static Bool
@@ -961,6 +961,11 @@ xwl_glamor_eglstream_init_egl(struct xwl_screen *xwl_screen)
         EGL_NONE,
     };
     int n;
+
+    if (!(xwl_screen->glamor & XWL_GLAMOR_GL)) {
+        ErrorF("glamor: eglstream backend requires desktop OpenGL\n");
+        goto error;
+    }
 
     xwl_screen->egl_display = glamor_egl_get_display(
         EGL_PLATFORM_DEVICE_EXT, xwl_eglstream->egl_device);
@@ -1118,6 +1123,7 @@ xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
     xwl_screen->eglstream_backend.post_damage = xwl_glamor_eglstream_post_damage;
     xwl_screen->eglstream_backend.allow_commits = xwl_glamor_eglstream_allow_commits;
     xwl_screen->eglstream_backend.check_flip = xwl_glamor_eglstream_check_flip;
+    xwl_screen->eglstream_backend.get_main_device = NULL;
     xwl_screen->eglstream_backend.is_available = TRUE;
     xwl_screen->eglstream_backend.backend_flags = XWL_EGL_BACKEND_NO_FLAG;
 }

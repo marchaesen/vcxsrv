@@ -78,7 +78,7 @@ default xkb_geometry "pc101" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -96,24 +96,24 @@ default xkb_geometry "pc101" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -238,7 +238,7 @@ xkb_geometry "pc102" {
 		    { <FK01>, 10 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -249,31 +249,31 @@ xkb_geometry "pc102" {
 	    top= 1;
 	    keys { <TLDE>, <AE01>, <AE02>, <AE03>, <AE04>,
 		   <AE05>, <AE06>, <AE07>, <AE08>, <AE09>,
-		   <AE10>, <AE11>, <AE12>, 
+		   <AE10>, <AE11>, <AE12>,
 		   { <BKSP>, "BKSP", color="grey20" }
 	    };
 	};
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <BKSL>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -397,7 +397,7 @@ xkb_geometry "pc104" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -415,24 +415,24 @@ xkb_geometry "pc104" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -560,7 +560,7 @@ xkb_geometry "pc105" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -578,24 +578,24 @@ xkb_geometry "pc105" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
-		   <AD11>, <AD12>, { <RTRN>, "RTRN", color="grey20" } 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
+		   <AD11>, <AD12>, { <RTRN>, "RTRN", color="grey20" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
-		   <AC11>, <BKSL> 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
+		   <AC11>, <BKSL>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <LSGT>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};
@@ -801,23 +801,23 @@ xkb_geometry "pc86" {
 	row {
 	    top = 20;
 	    keys { { <TAB>, shape="NARR", color="grey30" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <AD13>, shape="NARR" }
 	    };
 	};
 	row {
 	    top = 39;
 	    keys { { <CAPS>, color="grey30" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, shape="WIDEST", color="grey30" }
 	    };
 	};
 	row {
 	    top = 58;
 	    keys { { <LFSH>, shape="WIDEST", color="grey30" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, shape="WIDER", color="grey30" }
 	    };
@@ -894,7 +894,7 @@ xkb_geometry "pc104alt" {
 		    { <FK01>, 20 }, <FK02>, <FK03>, <FK04>,
 		    { <FK05>, 11 }, <FK06>, <FK07>, <FK08>,
 		    { <FK09>, 11 }, <FK10>, <FK11>, <FK12>,
-		    { <PRSC>, 8 }, <SCLK>, <PAUS> 
+		    { <PRSC>, 8 }, <SCLK>, <PAUS>
 	    };
 	};
     }; // End of "Function" section
@@ -912,8 +912,8 @@ xkb_geometry "pc104alt" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 //		   <AD11>, <AD12>, { <RTRN>, -13, "RTRN", color="grey20" }
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", color="grey20" }
 	    };
@@ -921,16 +921,16 @@ xkb_geometry "pc104alt" {
 	row {
 	    top= 39;
 	    keys { { <CAPS>, "CAPS", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "RTSH", color="grey20" }
 	    };
 	};

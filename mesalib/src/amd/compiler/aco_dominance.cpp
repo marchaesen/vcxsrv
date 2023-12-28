@@ -41,11 +41,16 @@ namespace aco {
 void
 dominator_tree(Program* program)
 {
-   program->blocks[0].logical_idom = 0;
-   program->blocks[0].linear_idom = 0;
-
-   for (unsigned i = 1; i < program->blocks.size(); i++) {
+   for (unsigned i = 0; i < program->blocks.size(); i++) {
       Block& block = program->blocks[i];
+
+      /* If this block has no predecessor, it dominates itself by definition */
+      if (block.linear_preds.empty()) {
+         block.linear_idom = block.index;
+         block.logical_idom = block.index;
+         continue;
+      }
+
       int new_logical_idom = -1;
       int new_linear_idom = -1;
       for (unsigned pred_idx : block.logical_preds) {

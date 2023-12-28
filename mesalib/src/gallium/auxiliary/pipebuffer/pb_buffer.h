@@ -44,7 +44,7 @@
 #define PB_BUFFER_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
 #include "util/u_inlines.h"
 #include "pipe/p_defines.h"
@@ -255,7 +255,11 @@ pb_destroy(void *winsys, struct pb_buffer *buf)
    assert(buf);
    if (!buf)
       return;
-   assert(!pipe_is_referenced(&buf->reference));
+
+   /* we can't assert(!pipe_is_referenced(&buf->reference)) because the winsys
+    * might have means to revive a buf whose refcount reaches 0, such as when
+    * destroy and import race against each other
+    */
    buf->vtbl->destroy(winsys, buf);
 }
 
@@ -287,16 +291,16 @@ pb_reference_with_winsys(void *winsys,
  * Utility function to check whether the provided alignment is consistent with
  * the requested or not.
  */
-static inline boolean
+static inline bool
 pb_check_alignment(uint32_t requested, uint32_t provided)
 {
    if (!requested)
-      return TRUE;
+      return true;
    if (requested > provided)
-      return FALSE;
+      return false;
    if (provided % requested != 0)
-      return FALSE;
-   return TRUE;
+      return false;
+   return true;
 }
 
 
@@ -304,10 +308,10 @@ pb_check_alignment(uint32_t requested, uint32_t provided)
  * Utility function to check whether the provided alignment is consistent with
  * the requested or not.
  */
-static inline boolean
+static inline bool
 pb_check_usage(unsigned requested, unsigned provided)
 {
-   return (requested & provided) == requested ? TRUE : FALSE;
+   return (requested & provided) == requested ? true : false;
 }
 
 #ifdef __cplusplus

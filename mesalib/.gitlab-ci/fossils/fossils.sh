@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2086 # we want word splitting
+# shellcheck disable=SC2155
 
 FOSSILS_SCRIPT_DIR="$(dirname "$(readlink -f "$0")")"
 FOSSILS_YAML="$(readlink -f "$1")"
@@ -10,7 +12,7 @@ clone_fossils_db()
     local commit="$2"
     rm -rf fossils-db
     git clone --no-checkout "$repo" fossils-db
-    (cd fossils-db; git reset "$commit" || git reset "origin/$commit")
+    (cd fossils-db || return; git reset "$commit" || git reset "origin/$commit")
 }
 
 query_fossils_yaml()
@@ -51,7 +53,7 @@ fetch_fossil()
 if [[ -n "$(query_fossils_yaml fossils_db_repo)" ]]; then
     clone_fossils_db "$(query_fossils_yaml fossils_db_repo)" \
                      "$(query_fossils_yaml fossils_db_commit)"
-    cd fossils-db
+    cd fossils-db || return
 else
     echo "Warning: No fossils-db entry in $FOSSILS_YAML, assuming fossils-db is current directory"
 fi
@@ -65,8 +67,8 @@ create_clean_git
 for fossil in $(query_fossils_yaml fossils)
 do
     fetch_fossil "$fossil" || exit $?
-    fossilize-replay --num-threads 4 $fossil 1>&2 2> $FOSSILS_RESULTS/fossil_replay.txt
-    if [ $? != 0 ]; then
+    if ! fossilize-replay --num-threads 4 $fossil 1>&2 2> $FOSSILS_RESULTS/fossil_replay.txt;
+    then
         echo "Replay of $fossil failed"
         grep "pipeline crashed or hung" $FOSSILS_RESULTS/fossil_replay.txt
         exit 1

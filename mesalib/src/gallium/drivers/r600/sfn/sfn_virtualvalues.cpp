@@ -25,60 +25,69 @@
  */
 
 #include "sfn_virtualvalues.h"
+
 #include "sfn_alu_defines.h"
-#include "sfn_valuefactory.h"
-#include "sfn_instr.h"
 #include "sfn_debug.h"
-
+#include "sfn_instr.h"
+#include "sfn_valuefactory.h"
 #include "util/macros.h"
+#include "util/u_math.h"
 
-#include <ostream>
-#include <iostream>
 #include <iomanip>
+#include <iostream>
 #include <limits>
+#include <ostream>
 #include <sstream>
 
 namespace r600 {
 
-std::ostream& operator << (std::ostream& os, Pin pin)
+std::ostream&
+operator<<(std::ostream& os, Pin pin)
 {
-#define PRINT_PIN(X) case pin_ ## X : os << #X; break
+#define PRINT_PIN(X)                                                                     \
+   case pin_##X:                                                                         \
+      os << #X;                                                                          \
+      break
    switch (pin) {
-   PRINT_PIN(chan);
-   PRINT_PIN(array);
-   PRINT_PIN(fully);
-   PRINT_PIN(group);
-   PRINT_PIN(chgr);
-   PRINT_PIN(free);
+      PRINT_PIN(chan);
+      PRINT_PIN(array);
+      PRINT_PIN(fully);
+      PRINT_PIN(group);
+      PRINT_PIN(chgr);
+      PRINT_PIN(free);
    case pin_none:
-   default:
-      ;
+   default:;
    }
 #undef PRINT_PIN
    return os;
 }
 
 VirtualValue::VirtualValue(int sel, int chan, Pin pin):
-   m_sel(sel), m_chan(chan), m_pins(pin)
+    m_sel(sel),
+    m_chan(chan),
+    m_pins(pin)
 {
 #if __cpp_exceptions >= 199711L
-   ASSERT_OR_THROW(m_sel < virtual_register_base || pin != pin_fully, "Register is virtual but pinned to sel");
+   ASSERT_OR_THROW(m_sel < virtual_register_base || pin != pin_fully,
+                   "Register is virtual but pinned to sel");
 #endif
 }
 
-bool VirtualValue::ready(int block, int index) const
+bool
+VirtualValue::ready(int block, int index) const
 {
    (void)block;
    (void)index;
    return true;
 }
 
-bool VirtualValue::is_virtual() const
+bool
+VirtualValue::is_virtual() const
 {
    return m_sel >= virtual_register_base;
 }
 
-class ValueComparer: public ConstRegisterVisitor {
+class ValueComparer : public ConstRegisterVisitor {
 public:
    ValueComparer();
    ValueComparer(const Register *value);
@@ -96,6 +105,7 @@ public:
    void visit(const InlineConstant& other) override;
 
    bool m_result;
+
 private:
    const Register *m_register;
    const LocalArray *m_array;
@@ -105,27 +115,33 @@ private:
    const InlineConstant *m_inline_constant;
 };
 
-class ValueCompareCreater: public ConstRegisterVisitor {
+class ValueCompareCreater : public ConstRegisterVisitor {
 public:
-   void visit(const Register& value) { compare = ValueComparer(&value);}
-   void visit(const LocalArray& value) {compare = ValueComparer(&value);}
-   void visit(const LocalArrayValue& value) {compare = ValueComparer(&value);}
-   void visit(const UniformValue& value) {compare = ValueComparer(&value);}
-   void visit(const LiteralConstant& value) {compare = ValueComparer(&value);}
-   void visit(const InlineConstant& value) {compare = ValueComparer(&value);}
+   void visit(const Register& value) { compare = ValueComparer(&value); }
+   void visit(const LocalArray& value) { compare = ValueComparer(&value); }
+   void visit(const LocalArrayValue& value) { compare = ValueComparer(&value); }
+   void visit(const UniformValue& value) { compare = ValueComparer(&value); }
+   void visit(const LiteralConstant& value) { compare = ValueComparer(&value); }
+   void visit(const InlineConstant& value) { compare = ValueComparer(&value); }
 
    ValueComparer compare;
 };
 
-VirtualValue::Pointer VirtualValue::from_string(const std::string& s)
+VirtualValue::Pointer
+VirtualValue::from_string(const std::string& s)
 {
    switch (s[0]) {
    case 'S':
-   case 'R': return Register::from_string(s);
-   case 'L': return LiteralConstant::from_string(s);
-   case 'K': return UniformValue::from_string(s);
-   case 'P': return InlineConstant::param_from_string(s);
-   case 'I': return InlineConstant::from_string(s);
+   case 'R':
+      return Register::from_string(s);
+   case 'L':
+      return LiteralConstant::from_string(s);
+   case 'K':
+      return UniformValue::from_string(s, nullptr);
+   case 'P':
+      return InlineConstant::param_from_string(s);
+   case 'I':
+      return InlineConstant::from_string(s);
 
    default:
       std::cerr << "'" << s << "'";
@@ -133,11 +149,10 @@ VirtualValue::Pointer VirtualValue::from_string(const std::string& s)
    }
 }
 
-bool VirtualValue::equal_to(const VirtualValue& other) const
+bool
+VirtualValue::equal_to(const VirtualValue& other) const
 {
-   bool result = m_sel == other.m_sel &&
-         m_chan == other.m_chan &&
-         m_pins == other.m_pins;
+   bool result = m_sel == other.m_sel && m_chan == other.m_chan && m_pins == other.m_pins;
 
    if (result) {
       ValueCompareCreater comp_creater;
@@ -149,19 +164,23 @@ bool VirtualValue::equal_to(const VirtualValue& other) const
    return result;
 }
 
-VirtualValue::Pointer VirtualValue::get_addr() const
+VirtualValue::Pointer
+VirtualValue::get_addr() const
 {
-   class GetAddressRegister: public ConstRegisterVisitor {
+   class GetAddressRegister : public ConstRegisterVisitor {
    public:
-      void visit(const VirtualValue& value) {(void)value;}
-      void visit(const Register& value) {(void)value;};
-      void visit(const LocalArray& value) {(void)value;}
-      void visit(const LocalArrayValue& value) {m_result = value.addr();}
-      void visit(const UniformValue& value) {(void)value;}
-      void visit(const LiteralConstant& value) {(void)value;}
-      void visit(const InlineConstant& value) {(void)value;}
+      void visit(const VirtualValue& value) { (void)value; }
+      void visit(const Register& value) { (void)value; };
+      void visit(const LocalArray& value) { (void)value; }
+      void visit(const LocalArrayValue& value) { m_result = value.addr(); }
+      void visit(const UniformValue& value) { (void)value; }
+      void visit(const LiteralConstant& value) { (void)value; }
+      void visit(const InlineConstant& value) { (void)value; }
 
-      GetAddressRegister() : m_result(nullptr) {}
+      GetAddressRegister():
+          m_result(nullptr)
+      {
+      }
 
       PVirtualValue m_result;
    };
@@ -171,57 +190,53 @@ VirtualValue::Pointer VirtualValue::get_addr() const
 }
 
 Register::Register(int sel, int chan, Pin pin):
-   VirtualValue(sel, chan, pin)
+    VirtualValue(sel, chan, pin)
 {
 }
 
-void Register::add_parent(Instr *instr)
+void
+Register::add_parent(Instr *instr)
 {
    m_parents.insert(instr);
-   instr->add_use();
    add_parent_to_array(instr);
 }
 
-void Register::add_parent_to_array(Instr *instr)
+void
+Register::add_parent_to_array(Instr *instr)
 {
    (void)instr;
 }
 
-void Register::del_parent(Instr *instr)
+void
+Register::del_parent(Instr *instr)
 {
    m_parents.erase(instr);
-   instr->dec_use();
    del_parent_from_array(instr);
 }
 
-void Register::del_parent_from_array(Instr *instr)
+void
+Register::del_parent_from_array(Instr *instr)
 {
    (void)instr;
 }
 
-
-void Register::add_use(Instr *instr)
+void
+Register::add_use(Instr *instr)
 {
-   const auto& [itr, inserted] = m_uses.insert(instr);  {}
-
-   if (inserted) {
-      for (auto& p: m_parents)
-         p->add_use();
-   }
+   m_uses.insert(instr);
 }
 
-void Register::del_use(Instr *instr)
+void
+Register::del_use(Instr *instr)
 {
    sfn_log << SfnLog::opt << "Del use of " << *this << " in " << *instr << "\n";
    if (m_uses.find(instr) != m_uses.end()) {
       m_uses.erase(instr);
-      if (is_ssa())
-         for (auto& p: m_parents)
-            p->dec_use();
    }
 }
 
-bool Register::ready(int block, int index) const
+bool
+Register::ready(int block, int index) const
 {
    for (auto p : m_parents) {
       if (p->block_id() <= block) {
@@ -233,43 +248,64 @@ bool Register::ready(int block, int index) const
    return true;
 }
 
-void Register::accept(RegisterVisitor& visitor)
+void
+Register::accept(RegisterVisitor& visitor)
 {
    visitor.visit(*this);
 }
 
-void Register::accept(ConstRegisterVisitor& visitor) const
+void
+Register::accept(ConstRegisterVisitor& visitor) const
 {
    visitor.visit(*this);
 }
 
-
-void Register::pin_live_range(bool start, bool end)
+void
+Register::print(std::ostream& os) const
 {
-   m_pin_start = start;
-   m_pin_end = end;
-}
+   if (m_flags.test(addr_or_idx)) {
+      switch (sel()) {
+      case AddressRegister::addr: os << "AR"; break;
+      case AddressRegister::idx0: os << "IDX0"; break;
+      case AddressRegister::idx1: os << "IDX1"; break;
+      default:
+         unreachable("Wrong address ID");
+      }
+      return;
+   }
 
-void Register::set_is_ssa(bool value)
-{
-   m_is_ssa = value;
-}
+   os << (m_flags.test(ssa) ? "S" : "R") << sel() << "." << chanchar[chan()];
 
-void Register::print(std::ostream& os) const
-{
-   os << (m_is_ssa ? "S" : "R") << sel() << "." << chanchar[chan()];
-
-   if (pin() !=  pin_none)
+   if (pin() != pin_none)
       os << "@" << pin();
+   if (m_flags.any()) {
+      os << "{";
+      if (m_flags.test(ssa))
+         os << "s";
+      if (m_flags.test(pin_start))
+         os << "b";
+      if (m_flags.test(pin_end))
+         os << "e";
+      os << "}";
+   }
 }
 
-Register::Pointer Register::from_string(const std::string &s)
+Register::Pointer
+Register::from_string(const std::string& s)
 {
    std::string numstr;
    char chan = 0;
    std::string pinstr;
 
-   assert(s[0] == 'R' || s[0] == '_' || s[0] == 'S' );
+   if (s == "AR") {
+      return new AddressRegister(AddressRegister::addr);
+   } else if (s == "IDX0") {
+      return new AddressRegister(AddressRegister::idx0);
+   } else if (s == "IDX1") {
+      return new AddressRegister(AddressRegister::idx1);
+   }
+
+   assert(s[0] == 'R' || s[0] == '_' || s[0] == 'S');
 
    int type = 0;
    for (unsigned i = 1; i < s.length(); ++i) {
@@ -282,9 +318,15 @@ Register::Pointer Register::from_string(const std::string &s)
       }
 
       switch (type) {
-      case 0: numstr.append(1, s[i]); break;
-      case 1: chan = s[i]; break;
-      case 2: pinstr.append(1, s[i]); break;
+      case 0:
+         numstr.append(1, s[i]);
+         break;
+      case 1:
+         chan = s[i];
+         break;
+      case 2:
+         pinstr.append(1, s[i]);
+         break;
       default:
          unreachable("Malformed register string");
       }
@@ -313,42 +355,58 @@ Register::Pointer Register::from_string(const std::string &s)
       p = pin_free;
 
    switch (chan) {
-   case 'x' : chan = 0; break;
-   case 'y' : chan = 1; break;
-   case 'z' : chan = 2; break;
-   case 'w' : chan = 3; break;
-   case '0' : chan = 4; break;
-   case '1' : chan = 5; break;
-   case '_' : chan = 7; break;
+   case 'x':
+      chan = 0;
+      break;
+   case 'y':
+      chan = 1;
+      break;
+   case 'z':
+      chan = 2;
+      break;
+   case 'w':
+      chan = 3;
+      break;
+   case '0':
+      chan = 4;
+      break;
+   case '1':
+      chan = 5;
+      break;
+   case '_':
+      chan = 7;
+      break;
    }
 
-   auto reg = new Register( sel, chan, p);
-   reg->set_is_ssa(s[0] == 'S');
+   auto reg = new Register(sel, chan, p);
+   if (s[0] == 'S')
+      reg->set_flag(ssa);
    if (p == pin_fully || p == pin_array)
-      reg->pin_live_range(true);
+      reg->set_flag(pin_start);
    return reg;
 }
 
 RegisterVec4::RegisterVec4():
-   m_sel(-1),
-   m_swz({7,7,7,7}),
-   m_values({nullptr, nullptr, nullptr, nullptr})
+    m_sel(-1),
+    m_swz({7, 7, 7, 7}),
+    m_values({nullptr, nullptr, nullptr, nullptr})
 {
 }
 
 RegisterVec4::RegisterVec4(int sel, bool is_ssa, const Swizzle& swz, Pin pin):
-   m_sel(sel),
-   m_swz(swz)
+    m_sel(sel),
+    m_swz(swz)
 {
    for (int i = 0; i < 4; ++i) {
-      m_values[i] = new Element( *this, new Register(m_sel, swz[i], pin));
-      m_values[i]->value()->set_is_ssa(is_ssa);
+      m_values[i] = new Element(*this, new Register(m_sel, swz[i], pin));
+      if (is_ssa)
+         m_values[i]->value()->set_flag(Register::ssa);
    }
 }
 
 RegisterVec4::RegisterVec4(const RegisterVec4& orig):
-   m_sel(orig.m_sel),
-   m_swz(orig.m_swz)
+    m_sel(orig.m_sel),
+    m_swz(orig.m_swz)
 {
    for (int i = 0; i < 4; ++i)
       m_values[i] = new Element(*this, orig.m_values[i]->value());
@@ -370,12 +428,12 @@ RegisterVec4::RegisterVec4(PRegister x, PRegister y, PRegister z, PRegister w, P
       m_sel = 0;
 
    if (!(x && y && z && w))
-      dummy = new Register (m_sel, 7, pin_none);
+      dummy = new Register(m_sel, 7, pin_none);
 
-   m_values[0] = new Element(*this,  x ? x : dummy);
-   m_values[1] = new Element(*this,  y ? y : dummy);
-   m_values[2] = new Element(*this,  z ? z : dummy);
-   m_values[3] = new Element(*this,  w ? w : dummy);
+   m_values[0] = new Element(*this, x ? x : dummy);
+   m_values[1] = new Element(*this, y ? y : dummy);
+   m_values[2] = new Element(*this, z ? z : dummy);
+   m_values[3] = new Element(*this, w ? w : dummy);
 
    for (int i = 0; i < 4; ++i) {
       if (m_values[0]->value()->pin() == pin_fully) {
@@ -389,13 +447,12 @@ RegisterVec4::RegisterVec4(PRegister x, PRegister y, PRegister z, PRegister w, P
       case pin_none:
       case pin_free:
          m_values[i]->value()->set_pin(pin);
-      break;
+         break;
       case pin_chan:
          if (pin == pin_group)
             m_values[i]->value()->set_pin(pin_chgr);
-      break;
-      default:
-         ;
+         break;
+      default:;
       }
 
       m_swz[i] = m_values[i]->value()->chan();
@@ -403,32 +460,35 @@ RegisterVec4::RegisterVec4(PRegister x, PRegister y, PRegister z, PRegister w, P
    }
 }
 
-void RegisterVec4::add_use(Instr *instr)
+void
+RegisterVec4::add_use(Instr *instr)
 {
-   for (auto& r: m_values) {
+   for (auto& r : m_values) {
       if (r->value()->chan() < 4)
-          r->value()->add_use(instr);
+         r->value()->add_use(instr);
    }
 }
 
-void RegisterVec4::del_use(Instr *instr)
+void
+RegisterVec4::del_use(Instr *instr)
 {
-   for (auto& r: m_values) {
+   for (auto& r : m_values) {
       r->value()->del_use(instr);
    }
 }
 
-bool RegisterVec4::has_uses() const
+bool
+RegisterVec4::has_uses() const
 {
-   for (auto& r: m_values) {
+   for (auto& r : m_values) {
       if (r->value()->has_uses())
          return true;
    }
    return false;
 }
 
-
-int RegisterVec4::sel() const
+int
+RegisterVec4::sel() const
 {
    int comp = 0;
    while (comp < 4 && m_values[comp]->value()->chan() > 3)
@@ -436,7 +496,8 @@ int RegisterVec4::sel() const
    return comp < 4 ? m_values[comp]->value()->sel() : 0;
 }
 
-bool RegisterVec4::ready(int block_id, int index) const
+bool
+RegisterVec4::ready(int block_id, int index) const
 {
    for (int i = 0; i < 4; ++i) {
       if (m_values[i]->value()->chan() < 4) {
@@ -447,14 +508,16 @@ bool RegisterVec4::ready(int block_id, int index) const
    return true;
 }
 
-void RegisterVec4::print(std::ostream& os) const
+void
+RegisterVec4::print(std::ostream& os) const
 {
-   os << (m_values[0]->value()->is_ssa() ? 'S' : 'R') << sel() << ".";
+   os << (m_values[0]->value()->has_flag(Register::ssa) ? 'S' : 'R') << sel() << ".";
    for (int i = 0; i < 4; ++i)
-      os << VirtualValue::chanchar[m_swz[i]];
+      os << VirtualValue::chanchar[m_values[i]->value()->chan()];
 }
 
-bool operator == (const RegisterVec4& lhs, const RegisterVec4& rhs)
+bool
+operator==(const RegisterVec4& lhs, const RegisterVec4& rhs)
 {
    for (int i = 0; i < 4; ++i) {
       assert(lhs[i]);
@@ -467,39 +530,43 @@ bool operator == (const RegisterVec4& lhs, const RegisterVec4& rhs)
 }
 
 RegisterVec4::Element::Element(const RegisterVec4& parent, int chan):
-   m_parent(parent),
-   m_value(new Register(parent.m_sel, chan, pin_none))
+    m_parent(parent),
+    m_value(new Register(parent.m_sel, chan, pin_none))
 {
 }
 
 RegisterVec4::Element::Element(const RegisterVec4& parent, PRegister value):
-   m_parent(parent),
-   m_value(value)
+    m_parent(parent),
+    m_value(value)
 {
 }
 
 LiteralConstant::LiteralConstant(uint32_t value):
-   VirtualValue(ALU_SRC_LITERAL, -1, pin_none),
-   m_value(value)
+    VirtualValue(ALU_SRC_LITERAL, -1, pin_none),
+    m_value(value)
 {
 }
 
-void LiteralConstant::accept(RegisterVisitor& vistor)
-{
-   vistor.visit(*this);
-}
-
-void LiteralConstant::accept(ConstRegisterVisitor& vistor) const
+void
+LiteralConstant::accept(RegisterVisitor& vistor)
 {
    vistor.visit(*this);
 }
 
-void LiteralConstant::print(std::ostream& os) const
+void
+LiteralConstant::accept(ConstRegisterVisitor& vistor) const
+{
+   vistor.visit(*this);
+}
+
+void
+LiteralConstant::print(std::ostream& os) const
 {
    os << "L[0x" << std::hex << m_value << std::dec << "]";
 }
 
-LiteralConstant::Pointer LiteralConstant::from_string(const std::string& s)
+LiteralConstant::Pointer
+LiteralConstant::from_string(const std::string& s)
 {
    if (s[1] != '[')
       return nullptr;
@@ -519,40 +586,39 @@ LiteralConstant::Pointer LiteralConstant::from_string(const std::string& s)
 
    uint32_t num;
    n >> std::hex >> num;
-   return new LiteralConstant( num);
+   return new LiteralConstant(num);
 }
-
 
 // Inline constants usually don't care about the channel but
 // ALU_SRC_PV should be pinned, but we only emit these constants
 // very late, and based on the real register they replace
 InlineConstant::InlineConstant(int sel, int chan):
-   VirtualValue(sel, chan, pin_none)
+    VirtualValue(sel, chan, pin_none)
 {
 }
 
-void InlineConstant::accept(RegisterVisitor& vistor)
-{
-   vistor.visit(*this);
-}
-
-void InlineConstant::accept(ConstRegisterVisitor& vistor) const
+void
+InlineConstant::accept(RegisterVisitor& vistor)
 {
    vistor.visit(*this);
 }
 
-void InlineConstant::print(std::ostream& os) const
+void
+InlineConstant::accept(ConstRegisterVisitor& vistor) const
+{
+   vistor.visit(*this);
+}
+
+void
+InlineConstant::print(std::ostream& os) const
 {
    auto ivalue = alu_src_const.find(static_cast<AluInlineConstants>(sel()));
    if (ivalue != alu_src_const.end()) {
-      os << "I[" << ivalue->second.descr<< "]";
+      os << "I[" << ivalue->second.descr << "]";
       if (ivalue->second.use_chan)
          os << "." << chanchar[chan()];
-   } else if (sel() >= ALU_SRC_PARAM_BASE &&
-              sel() <  ALU_SRC_PARAM_BASE + 32 ) {
-      os << "Param"
-          << sel() - ALU_SRC_PARAM_BASE
-          << "." << chanchar[chan()];
+   } else if (sel() >= ALU_SRC_PARAM_BASE && sel() < ALU_SRC_PARAM_BASE + 32) {
+      os << "Param" << sel() - ALU_SRC_PARAM_BASE << "." << chanchar[chan()];
    } else {
       unreachable("Unknown inline constant");
    }
@@ -560,7 +626,8 @@ void InlineConstant::print(std::ostream& os) const
 
 std::map<std::string, std::pair<AluInlineConstants, bool>> InlineConstant::s_opmap;
 
-InlineConstant::Pointer InlineConstant::from_string(const std::string& s)
+InlineConstant::Pointer
+InlineConstant::from_string(const std::string& s)
 {
    std::string namestr;
    char chan = 0;
@@ -581,7 +648,7 @@ InlineConstant::Pointer InlineConstant::from_string(const std::string& s)
    AluInlineConstants value = ALU_SRC_UNKNOWN;
    bool use_chan = false;
 
-   if (entry == s_opmap.end())  {
+   if (entry == s_opmap.end()) {
       for (auto& [opcode, descr] : alu_src_const) {
          if (namestr == descr.descr) {
             value = opcode;
@@ -596,26 +663,41 @@ InlineConstant::Pointer InlineConstant::from_string(const std::string& s)
       use_chan = entry->second.second;
    }
 
-   ASSERT_OR_THROW(value != ALU_SRC_UNKNOWN, "Unknwon inline constant was given");
+   ASSERT_OR_THROW(value != ALU_SRC_UNKNOWN, "Unknown inline constant was given");
 
    if (use_chan) {
       ASSERT_OR_THROW(s[i + 1] == '.', "inline const channel not started with '.'");
       switch (s[i + 2]) {
-      case 'x': chan = 0; break;
-      case 'y': chan = 1; break;
-      case 'z': chan = 2; break;
-      case 'w': chan = 3; break;
-      case '0': chan = 4; break;
-      case '1': chan = 5; break;
-      case '_': chan = 7; break;
+      case 'x':
+         chan = 0;
+         break;
+      case 'y':
+         chan = 1;
+         break;
+      case 'z':
+         chan = 2;
+         break;
+      case 'w':
+         chan = 3;
+         break;
+      case '0':
+         chan = 4;
+         break;
+      case '1':
+         chan = 5;
+         break;
+      case '_':
+         chan = 7;
+         break;
       default:
-         ASSERT_OR_THROW(0, "invalied inline const channel ");
+         ASSERT_OR_THROW(0, "invalid inline const channel ");
       }
    }
-   return new InlineConstant( value, chan);
+   return new InlineConstant(value, chan);
 }
 
-InlineConstant::Pointer InlineConstant::param_from_string(const std::string& s)
+InlineConstant::Pointer
+InlineConstant::param_from_string(const std::string& s)
 {
    assert(s.substr(0, 5) == "Param");
 
@@ -623,64 +705,81 @@ InlineConstant::Pointer InlineConstant::param_from_string(const std::string& s)
    int i = 5;
    while (isdigit(s[i])) {
       param *= 10;
-      param +=  s[i] - '0';
+      param += s[i] - '0';
       ++i;
    }
 
    int chan = 7;
    assert(s[i] == '.');
-   switch (s[i+1]) {
-   case 'x': chan = 0; break;
-   case 'y': chan = 1; break;
-   case 'z': chan = 2; break;
-   case 'w': chan = 3; break;
+   switch (s[i + 1]) {
+   case 'x':
+      chan = 0;
+      break;
+   case 'y':
+      chan = 1;
+      break;
+   case 'z':
+      chan = 2;
+      break;
+   case 'w':
+      chan = 3;
+      break;
    default:
       unreachable("unsupported channel char");
    }
 
-   return new InlineConstant( ALU_SRC_PARAM_BASE + param, chan);
+   return new InlineConstant(ALU_SRC_PARAM_BASE + param, chan);
 }
 
 UniformValue::UniformValue(int sel, int chan, int kcache_bank):
-   VirtualValue(sel, chan, pin_none),
-   m_kcache_bank(kcache_bank),
-   m_buf_addr(nullptr)
+    VirtualValue(sel, chan, pin_none),
+    m_kcache_bank(kcache_bank),
+    m_buf_addr(nullptr)
 {
 }
 
-UniformValue::UniformValue(int sel, int chan, PVirtualValue buf_addr):
-   VirtualValue(sel, chan, pin_none),
-   m_kcache_bank(0),
-   m_buf_addr(buf_addr)
+UniformValue::UniformValue(int sel, int chan, PVirtualValue buf_addr, int kcache_bank):
+    VirtualValue(sel, chan, pin_none),
+    m_kcache_bank(kcache_bank),
+    m_buf_addr(buf_addr)
 {
 }
 
-void UniformValue::accept(RegisterVisitor& vistor)
-{
-   vistor.visit(*this);
-}
-
-void UniformValue::accept(ConstRegisterVisitor& vistor) const
+void
+UniformValue::accept(RegisterVisitor& vistor)
 {
    vistor.visit(*this);
 }
 
-PVirtualValue UniformValue::buf_addr() const
+void
+UniformValue::accept(ConstRegisterVisitor& vistor) const
+{
+   vistor.visit(*this);
+}
+
+PVirtualValue
+UniformValue::buf_addr() const
 {
    return m_buf_addr;
 }
 
-void UniformValue::print(std::ostream& os) const
+void UniformValue::set_buf_addr(PVirtualValue addr)
+{
+   m_buf_addr = addr; 
+}
+
+void
+UniformValue::print(std::ostream& os) const
 {
    os << "KC" << m_kcache_bank;
    if (m_buf_addr) {
-      os << "[" << *m_buf_addr
-         << "]";
+      os << "[" << *m_buf_addr << "]";
    }
    os << "[" << (sel() - 512) << "]." << chanchar[chan()];
 }
 
-bool UniformValue::equal_buf_and_cache(const UniformValue& other) const
+bool
+UniformValue::equal_buf_and_cache(const UniformValue& other) const
 {
    bool result = m_kcache_bank == other.m_kcache_bank;
    if (result) {
@@ -693,11 +792,13 @@ bool UniformValue::equal_buf_and_cache(const UniformValue& other) const
    return result;
 }
 
-
-UniformValue::Pointer UniformValue::from_string(const std::string& s)
+UniformValue::Pointer
+UniformValue::from_string(const std::string& s, ValueFactory *factory)
 {
    assert(s[1] == 'C');
    std::istringstream is(s.substr(2));
+
+   VirtualValue *bufid = nullptr;
    int bank;
    char c;
    is >> bank;
@@ -705,10 +806,31 @@ UniformValue::Pointer UniformValue::from_string(const std::string& s)
 
    assert(c == '[');
 
+   std::stringstream index0_ss;
+
    int index;
-   is >> index;
 
    is >> c;
+   while (c != ']' && is.good()) {
+      index0_ss << c;
+      is >> c;
+   }
+
+   auto index0_str = index0_ss.str();
+   if (isdigit(index0_str[0])) {
+      std::istringstream is_digit(index0_str);
+      is_digit >> index;
+   } else {
+      bufid = factory ?
+                 factory->src_from_string(index0_str) :
+                 Register::from_string(index0_str);
+      assert(c == ']');
+      is >> c;
+      assert(c == '[');
+      is >> index;
+      is >> c;
+   }
+
    assert(c == ']');
    is >> c;
    assert(c == '.');
@@ -716,94 +838,118 @@ UniformValue::Pointer UniformValue::from_string(const std::string& s)
    is >> c;
    int chan = 0;
    switch (c) {
-   case 'x': chan = 0; break;
-   case 'y': chan = 1; break;
-   case 'z': chan = 2; break;
-   case 'w': chan = 3; break;
+   case 'x':
+      chan = 0;
+      break;
+   case 'y':
+      chan = 1;
+      break;
+   case 'z':
+      chan = 2;
+      break;
+   case 'w':
+      chan = 3;
+      break;
    default:
-      unreachable("Unknown channle when reading uniform");
+      unreachable("Unknown channel when reading uniform");
    }
-   return new UniformValue(index + 512, chan, bank);
+   if (bufid)
+      return new UniformValue(index + 512, chan, bufid, bank);
+   else
+      return new UniformValue(index + 512, chan, bank);
 }
 
 LocalArray::LocalArray(int base_sel, int nchannels, int size, int frac):
-   Register(base_sel, nchannels, pin_array),
-   m_base_sel(base_sel),
-   m_nchannels(nchannels),
-   m_size(size),
-   m_values(size * nchannels),
-   m_frac(frac)
+    Register(base_sel, nchannels, pin_array),
+    m_base_sel(base_sel),
+    m_nchannels(nchannels),
+    m_size(size),
+    m_values(size * nchannels),
+    m_frac(frac)
 {
    assert(nchannels <= 4);
    assert(nchannels + frac <= 4);
 
-   sfn_log << SfnLog::reg << "Allocate array A" <<  base_sel << "("
-           << size << ", " << frac << ", " << nchannels << ")\n";
+   sfn_log << SfnLog::reg << "Allocate array A" << base_sel << "(" << size << ", " << frac
+           << ", " << nchannels << ")\n";
 
+   auto pin = m_size > 1 ? pin_array : (nchannels > 1 ? pin_none : pin_free);
    for (int c = 0; c < nchannels; ++c) {
       for (unsigned i = 0; i < m_size; ++i) {
-         PRegister reg = new Register( base_sel + i, c + frac, pin_array);
+         PRegister reg = new Register(base_sel + i, c + frac, pin);
          m_values[m_size * c + i] = new LocalArrayValue(reg, *this);
-
-         /* Pin the array register on the start, because currently we don't
-          * don't track the first write to an array element as write to all
-          * array elements, and it seems that the one can not just use registers
-          * that are not written to in an array for other purpouses */
-         m_values[m_size * c + i]->pin_live_range(true);
       }
    }
 }
 
-void LocalArray::accept(RegisterVisitor& vistor)
+void
+LocalArray::accept(RegisterVisitor& vistor)
 {
    vistor.visit(*this);
 }
 
-void LocalArray::accept(ConstRegisterVisitor& vistor) const
+void
+LocalArray::accept(ConstRegisterVisitor& vistor) const
 {
    vistor.visit(*this);
 }
 
-void LocalArray::print(std::ostream& os) const
+void
+LocalArray::print(std::ostream& os) const
 {
-   os << "A" << m_base_sel << "[0 " << ":" << m_values.size() << "].";
+   os << "A" << m_base_sel << "[0 "
+      << ":" << m_values.size() << "].";
    for (unsigned i = 0; i < m_nchannels; ++i) {
       os << chanchar[i];
    }
 }
 
-
-size_t LocalArray::size() const
+size_t
+LocalArray::size() const
 {
    return m_size;
 }
 
-uint32_t LocalArray::nchannels() const
+uint32_t
+LocalArray::nchannels() const
 {
    return m_nchannels;
 }
 
-PRegister LocalArray::element(size_t offset, PVirtualValue indirect, uint32_t chan)
+PRegister
+LocalArray::element(size_t offset, PVirtualValue indirect, uint32_t chan)
 {
    ASSERT_OR_THROW(offset < m_size, "Array: index out of range");
    ASSERT_OR_THROW(chan < m_nchannels, "Array: channel out of range");
 
-   sfn_log << SfnLog::reg << "Request element A" << m_base_sel << "["  << offset;
+   sfn_log << SfnLog::reg << "Request element A" << m_base_sel << "[" << offset;
    if (indirect)
-      sfn_log   << "+" << *indirect;
+      sfn_log << "+" << *indirect;
    sfn_log << SfnLog::reg << "]\n";
 
    if (indirect) {
-      class ResolveDirectArrayElement: public ConstRegisterVisitor {
+      class ResolveDirectArrayElement : public ConstRegisterVisitor {
       public:
-         void visit(const Register& value) {(void) value;};
-         void visit(const LocalArray& value) {(void)value; unreachable("An array can't be used as address");}
-         void visit(const LocalArrayValue& value) {(void) value;}
-         void visit(const UniformValue& value) {(void)value;}
-         void visit(const LiteralConstant& value) {offset = value.value(); is_contant = true;}
-         void visit(const InlineConstant& value) {(void)value;}
+         void visit(const Register& value) { (void)value; };
+         void visit(const LocalArray& value)
+         {
+            (void)value;
+            unreachable("An array can't be used as address");
+         }
+         void visit(const LocalArrayValue& value) { (void)value; }
+         void visit(const UniformValue& value) { (void)value; }
+         void visit(const LiteralConstant& value)
+         {
+            offset = value.value();
+            is_contant = true;
+         }
+         void visit(const InlineConstant& value) { (void)value; }
 
-         ResolveDirectArrayElement(): offset(0), is_contant(false) {}
+         ResolveDirectArrayElement():
+             offset(0),
+             is_contant(false)
+         {
+         }
 
          int offset;
          bool is_contant;
@@ -821,7 +967,7 @@ PRegister LocalArray::element(size_t offset, PVirtualValue indirect, uint32_t ch
 
    LocalArrayValue *reg = m_values[m_size * chan + offset];
    if (indirect) {
-      reg = new LocalArrayValue( reg, indirect, *this);
+      reg = new LocalArrayValue(reg, indirect, *this);
       m_values_indirect.push_back(reg);
    }
 
@@ -829,7 +975,15 @@ PRegister LocalArray::element(size_t offset, PVirtualValue indirect, uint32_t ch
    return reg;
 }
 
-bool LocalArray::ready_for_direct(int block, int index, int chan) const
+void LocalArray::add_parent_to_elements(int chan, Instr *instr)
+{
+   for (auto& e : m_values)
+      if (e->chan() == chan)
+         e->add_parent(instr);
+}
+
+bool
+LocalArray::ready_for_direct(int block, int index, int chan) const
 {
    if (!Register::ready(block, index))
       return false;
@@ -845,7 +999,8 @@ bool LocalArray::ready_for_direct(int block, int index, int chan) const
    return true;
 }
 
-bool LocalArray::ready_for_indirect(int block, int index, int chan) const
+bool
+LocalArray::ready_for_indirect(int block, int index, int chan) const
 {
    int offset = (chan - m_frac) * m_size;
    for (unsigned i = 0; i < m_size; ++i) {
@@ -856,75 +1011,87 @@ bool LocalArray::ready_for_indirect(int block, int index, int chan) const
    return ready_for_direct(block, index, chan);
 }
 
-
-LocalArrayValue::LocalArrayValue(PRegister reg, PVirtualValue index,
-                                 LocalArray& array):
-   Register(reg->sel(), reg->chan(), pin_array),
-   m_addr(index),
-   m_array(array)
+LocalArrayValue::LocalArrayValue(PRegister reg, PVirtualValue index, LocalArray& array):
+    Register(reg->sel(), reg->chan(), pin_array),
+    m_addr(index),
+    m_array(array)
 {
 }
 
-const Register& LocalArray::operator ()(size_t idx, size_t chan) const
+const Register&
+LocalArray::operator()(size_t idx, size_t chan) const
 {
-   return *m_values[m_size  * (chan - m_frac) + idx];
+   return *m_values[m_size * (chan - m_frac) + idx];
 }
 
 LocalArrayValue::LocalArrayValue(PRegister reg, LocalArray& array):
-   LocalArrayValue(reg, nullptr, array)
+    LocalArrayValue(reg, nullptr, array)
 {
-
 }
 
-
-PVirtualValue LocalArrayValue::addr() const
+PVirtualValue
+LocalArrayValue::addr() const
 {
    return m_addr;
 }
 
-const LocalArray& LocalArrayValue::array() const
+void LocalArrayValue::set_addr(PRegister addr)
+{
+   m_addr = addr;
+}
+
+
+const LocalArray&
+LocalArrayValue::array() const
 {
    return m_array;
 }
 
-
-void LocalArrayValue::forward_del_use(Instr *instr)
+void
+LocalArrayValue::forward_del_use(Instr *instr)
 {
    if (m_addr && m_addr->as_register())
       m_addr->as_register()->del_use(instr);
 }
 
-void LocalArrayValue::forward_add_use(Instr *instr)
+void
+LocalArrayValue::forward_add_use(Instr *instr)
 {
    if (m_addr && m_addr->as_register())
       m_addr->as_register()->add_use(instr);
 }
 
-void LocalArrayValue::accept(RegisterVisitor& vistor)
+void
+LocalArrayValue::accept(RegisterVisitor& vistor)
 {
    vistor.visit(*this);
 }
 
-void LocalArrayValue::accept(ConstRegisterVisitor& vistor) const
+void
+LocalArrayValue::accept(ConstRegisterVisitor& vistor) const
 {
    vistor.visit(*this);
 }
 
-void LocalArrayValue::add_parent_to_array(Instr *instr)
+void
+LocalArrayValue::add_parent_to_array(Instr *instr)
 {
-   m_array.add_parent(instr);
+   if (m_addr)
+      m_array.add_parent_to_elements(chan(), instr);
 }
 
-void LocalArrayValue::del_parent_from_array(Instr *instr)
+void
+LocalArrayValue::del_parent_from_array(Instr *instr)
 {
    m_array.del_parent(instr);
 }
 
-void LocalArrayValue::print(std::ostream& os) const
+void
+LocalArrayValue::print(std::ostream& os) const
 {
    int offset = sel() - m_array.sel();
    os << "A" << m_array.sel() << "[";
-   if ( offset > 0 && m_addr)
+   if (offset > 0 && m_addr)
       os << offset << "+" << *m_addr;
    else if (m_addr)
       os << *m_addr;
@@ -933,99 +1100,113 @@ void LocalArrayValue::print(std::ostream& os) const
    os << "]." << chanchar[chan()];
 }
 
-bool LocalArrayValue::ready(int block, int index) const
-{   
-   return m_addr ?
-         (m_array.ready_for_indirect(block, index, chan()) && m_addr->ready(block, index)):
-            m_array.ready_for_direct(block, index, chan());
+bool
+LocalArrayValue::ready(int block, int index) const
+{
+   return m_addr ? (m_array.ready_for_indirect(block, index, chan()) &&
+                    m_addr->ready(block, index))
+                 : m_array.ready_for_direct(block, index, chan());
 }
 
-ValueComparer::ValueComparer() :
-   m_result(false),
-   m_register(nullptr),
-   m_array(nullptr),
-   m_array_value(nullptr),
-   m_uniform_value(nullptr),
-   m_literal_value(nullptr),
-   m_inline_constant(nullptr)
-{}
+ValueComparer::ValueComparer():
+    m_result(false),
+    m_register(nullptr),
+    m_array(nullptr),
+    m_array_value(nullptr),
+    m_uniform_value(nullptr),
+    m_literal_value(nullptr),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const Register *value):
-   m_result(false),
-   m_register(value),
-   m_array(nullptr),
-   m_array_value(nullptr),
-   m_uniform_value(nullptr),
-   m_literal_value(nullptr),
-   m_inline_constant(nullptr)
-{}
+    m_result(false),
+    m_register(value),
+    m_array(nullptr),
+    m_array_value(nullptr),
+    m_uniform_value(nullptr),
+    m_literal_value(nullptr),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const LocalArray *value):
-   m_result(false),
-   m_register(nullptr),
-   m_array(value),
-   m_array_value(nullptr),
-   m_uniform_value(nullptr),
-   m_literal_value(nullptr),
-   m_inline_constant(nullptr)
-{}
+    m_result(false),
+    m_register(nullptr),
+    m_array(value),
+    m_array_value(nullptr),
+    m_uniform_value(nullptr),
+    m_literal_value(nullptr),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const LocalArrayValue *value):
-   m_result(false),
-   m_register(nullptr),
-   m_array(nullptr),
-   m_array_value(value),
-   m_uniform_value(nullptr),
-   m_literal_value(nullptr),
-   m_inline_constant(nullptr)
-{}
+    m_result(false),
+    m_register(nullptr),
+    m_array(nullptr),
+    m_array_value(value),
+    m_uniform_value(nullptr),
+    m_literal_value(nullptr),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const UniformValue *value):
-   m_result(false),
-   m_register(nullptr),
-   m_array(nullptr),
-   m_array_value(nullptr),
-   m_uniform_value(value),
-   m_literal_value(nullptr),
-   m_inline_constant(nullptr)
-{}
+    m_result(false),
+    m_register(nullptr),
+    m_array(nullptr),
+    m_array_value(nullptr),
+    m_uniform_value(value),
+    m_literal_value(nullptr),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const LiteralConstant *value):
-   m_result(false),
-   m_register(nullptr),
-   m_array(nullptr),
-   m_array_value(nullptr),
-   m_uniform_value(nullptr),
-   m_literal_value(value),
-   m_inline_constant(nullptr)
-{}
+    m_result(false),
+    m_register(nullptr),
+    m_array(nullptr),
+    m_array_value(nullptr),
+    m_uniform_value(nullptr),
+    m_literal_value(value),
+    m_inline_constant(nullptr)
+{
+}
 
 ValueComparer::ValueComparer(const InlineConstant *value):
-   m_result(false),
-   m_register(nullptr),
-   m_array(nullptr),
-   m_array_value(nullptr),
-   m_uniform_value(nullptr),
-   m_literal_value(nullptr),
-   m_inline_constant(value)
-{}
+    m_result(false),
+    m_register(nullptr),
+    m_array(nullptr),
+    m_array_value(nullptr),
+    m_uniform_value(nullptr),
+    m_literal_value(nullptr),
+    m_inline_constant(value)
+{
+}
 
-void ValueComparer::visit(const Register& other)
+void
+ValueComparer::visit(const Register& other)
 {
    (void)other;
-   m_result = !!m_register;
+   if (m_register) {
+      m_result = other.flags() == m_register->flags();
+   } else
+      m_result = false;
 };
 
-void ValueComparer::visit(const LocalArray& other)
+void
+ValueComparer::visit(const LocalArray& other)
 {
    m_result = false;
    if (m_array) {
-      m_result = m_array->size() == other.size() &&
-            m_array->nchannels() == other.nchannels();
+      m_result =
+         m_array->size() == other.size() && m_array->nchannels() == other.nchannels();
    }
 };
 
-void ValueComparer::visit(const LocalArrayValue& other)
+void
+ValueComparer::visit(const LocalArrayValue& other)
 {
    m_result = false;
    if (m_array_value) {
@@ -1042,7 +1223,8 @@ void ValueComparer::visit(const LocalArrayValue& other)
    }
 };
 
-void ValueComparer::visit(const UniformValue& value)
+void
+ValueComparer::visit(const UniformValue& value)
 {
    m_result = false;
    if (m_uniform_value) {
@@ -1059,16 +1241,75 @@ void ValueComparer::visit(const UniformValue& value)
    }
 };
 
-void ValueComparer::visit(const LiteralConstant& other)
+void
+ValueComparer::visit(const LiteralConstant& other)
 {
    m_result = m_literal_value && (m_literal_value->value() == other.value());
 };
 
-void ValueComparer::visit(const InlineConstant& other)
+void
+ValueComparer::visit(const InlineConstant& other)
 {
    (void)other;
    m_result = !!m_inline_constant;
 };
 
+class CheckConstValue : public ConstRegisterVisitor {
+public:
+   CheckConstValue(uint32_t _test_value):
+       test_value(_test_value)
+   {
+   }
+   CheckConstValue(float _test_value):
+       test_value(fui(_test_value))
+   {
+   }
+
+   void visit(const Register& value) override { (void)value; }
+   void visit(const LocalArray& value) override { (void)value; }
+   void visit(const LocalArrayValue& value) override { (void)value; }
+   void visit(const UniformValue& value) override { (void)value; }
+
+   void visit(const LiteralConstant& value) override
+   {
+      result = value.value() == test_value;
+   }
+   void visit(const InlineConstant& value) override
+   {
+      switch (test_value) {
+      case 0:
+         result = value.sel() == ALU_SRC_0;
+         break;
+      case 1:
+         result = value.sel() == ALU_SRC_1_INT;
+         break;
+      case 0x3f800000 /* 1.0f */:
+         result = value.sel() == ALU_SRC_1;
+         break;
+      case 0x3f000000 /* 0.5f */:
+         result = value.sel() == ALU_SRC_0_5;
+         break;
+      }
+   }
+
+   uint32_t test_value;
+   bool result{false};
+};
+
+bool
+value_is_const_uint(const VirtualValue& val, uint32_t value)
+{
+   CheckConstValue test(value);
+   val.accept(test);
+   return test.result;
+}
+
+bool
+value_is_const_float(const VirtualValue& val, float value)
+{
+   CheckConstValue test(value);
+   val.accept(test);
+   return test.result;
+}
 
 } // namespace r600

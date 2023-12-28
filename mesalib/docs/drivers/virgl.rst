@@ -30,7 +30,7 @@ Current status
 * Many pieces are now upstreamed in various projects.
 * Kernel Linux 4.2 contains the modesetting only drivers. Linux 4.4
   contains the 3D supported pieces.
-* Mesa main contains the virgl 3D driver.
+* Mesa main contains the VirGL 3D driver.
 * QEMU 2.4 contained the initial virtio-gpu with no acceleration
   support. QEMU 2.5 contains 3D support only with the GTK3 frontend with
   GL enabled.
@@ -45,7 +45,7 @@ Run a desktop and most 3D games I've thrown at it.
 Scope
 -----
 
-The project is currently investigating the desktop virtualisation use case
+The project is currently investigating the desktop virtualization use case
 only. This use case is where the viewer, host and guest are all running on
 the same machine (i.e. workstation or laptop). Some areas are in scope for
 future investigation but not being looked at, at this time.
@@ -83,4 +83,4 @@ mailing list: virglrenderer-devel@lists.freedesktop.org
 
 https://lists.freedesktop.org/mailman/listinfo/virglrenderer-devel
 
-irc: `#virgil3d on OFTC <irc://irc.oftc.net/virgil3d>`__.
+IRC: `#virgil3d on OFTC <irc://irc.oftc.net/virgil3d>`__.

@@ -38,6 +38,7 @@ extern "C" {
 #define D3D12_DEBUG_RESOURCE      (1 << 5)
 #define D3D12_DEBUG_DEBUG_LAYER   (1 << 6)
 #define D3D12_DEBUG_GPU_VALIDATOR (1 << 7)
+#define D3D12_DEBUG_SINGLETON     (1 << 8)
 
 extern uint32_t d3d12_debug;
 

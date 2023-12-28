@@ -31,9 +31,11 @@
 class BBitmap;
 class BRect;
 
-class HGLWinsysContext {
+class BitmapHook {
 public:
-	virtual void Display(BBitmap *bitmap, BRect *updateRect) = 0;
+	virtual ~BitmapHook() {};
+	virtual void GetSize(uint32_t &width, uint32_t &height) = 0;
+	virtual BBitmap *SetBitmap(BBitmap *bmp) = 0;
 };
 #endif
 

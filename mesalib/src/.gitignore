@@ -45,3 +45,7 @@ mesa/main/marshal_generated.h
 gallium/auxiliary/indices/u_indices_gen.c
 gallium/auxiliary/tr_util.h
 gallium/targets/dri/tr_util.c
+mesa/main/api_beginend_init.h
+mesa/main/unmarshal_table.c
+util/u_indices_gen.c
+util/u_unfilled_gen.c

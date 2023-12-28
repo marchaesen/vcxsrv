@@ -31,6 +31,21 @@
 #include "rogue/rogue.h"
 #include "util/macros.h"
 
+static const char *
+pvr_cmd_stream_type_to_str(const enum pvr_cmd_stream_type stream_type)
+{
+   switch (stream_type) {
+   case PVR_CMD_STREAM_TYPE_INVALID:
+      return "INVALID";
+   case PVR_CMD_STREAM_TYPE_GRAPHICS:
+      return "GRAPHICS";
+   case PVR_CMD_STREAM_TYPE_COMPUTE:
+      return "COMPUTE";
+   default:
+      return NULL;
+   }
+}
+
 /******************************************************************************
    CR
  ******************************************************************************/
@@ -55,6 +70,44 @@ pvr_cr_isp_aa_mode_type(uint32_t samples)
    }
 }
 
+/* clang-format off */
+static inline bool
+pvr_zls_format_type_is_packed(enum PVRX(CR_ZLS_FORMAT_TYPE) type)
+/* clang-format on */
+{
+   switch (type) {
+   case PVRX(CR_ZLS_FORMAT_TYPE_24BITINT):
+   case PVRX(CR_ZLS_FORMAT_TYPE_F64Z):
+      return true;
+
+   case PVRX(CR_ZLS_FORMAT_TYPE_F32Z):
+   case PVRX(CR_ZLS_FORMAT_TYPE_16BITINT):
+      return false;
+
+   default:
+      unreachable("Invalid ZLS format type");
+   }
+}
+
+/* clang-format off */
+static inline bool
+pvr_zls_format_type_is_int(enum PVRX(CR_ZLS_FORMAT_TYPE) type)
+/* clang-format on */
+{
+   switch (type) {
+   case PVRX(CR_ZLS_FORMAT_TYPE_24BITINT):
+   case PVRX(CR_ZLS_FORMAT_TYPE_16BITINT):
+      return true;
+
+   case PVRX(CR_ZLS_FORMAT_TYPE_F32Z):
+   case PVRX(CR_ZLS_FORMAT_TYPE_F64Z):
+      return false;
+
+   default:
+      unreachable("Invalid ZLS format type");
+   }
+}
+
 /******************************************************************************
    PDS
  ******************************************************************************/
@@ -73,6 +126,49 @@ pvr_pdsinst_doutu_sample_rate_from_rogue(enum rogue_msaa_mode msaa_mode)
       return PVRX(PDSINST_DOUTU_SAMPLE_RATE_FULL);
    default:
       unreachable("Undefined MSAA mode.");
+   }
+}
+
+/******************************************************************************
+   PBESTATE
+ ******************************************************************************/
+
+enum pvr_pbe_source_start_pos {
+   PVR_PBE_STARTPOS_BIT0,
+   PVR_PBE_STARTPOS_BIT32,
+   PVR_PBE_STARTPOS_BIT64,
+   PVR_PBE_STARTPOS_BIT96,
+   /* The below values are available if has_eight_output_registers feature is
+    * enabled.
+    */
+   PVR_PBE_STARTPOS_BIT128,
+   PVR_PBE_STARTPOS_BIT160,
+   PVR_PBE_STARTPOS_BIT192,
+   PVR_PBE_STARTPOS_BIT224,
+};
+
+static inline enum ROGUE_PBESTATE_SOURCE_POS
+pvr_pbestate_source_pos(enum pvr_pbe_source_start_pos pos)
+{
+   switch (pos) {
+   case PVR_PBE_STARTPOS_BIT0:
+   case PVR_PBE_STARTPOS_BIT128:
+      return ROGUE_PBESTATE_SOURCE_POS_START_BIT0;
+
+   case PVR_PBE_STARTPOS_BIT32:
+   case PVR_PBE_STARTPOS_BIT160:
+      return ROGUE_PBESTATE_SOURCE_POS_START_BIT32;
+
+   case PVR_PBE_STARTPOS_BIT64:
+   case PVR_PBE_STARTPOS_BIT192:
+      return ROGUE_PBESTATE_SOURCE_POS_START_BIT64;
+
+   case PVR_PBE_STARTPOS_BIT96:
+   case PVR_PBE_STARTPOS_BIT224:
+      return ROGUE_PBESTATE_SOURCE_POS_START_BIT96;
+
+   default:
+      unreachable("Undefined PBE source pos.");
    }
 }
 
@@ -128,6 +224,27 @@ static inline enum PVRX(TEXSTATE_CMP_MODE) pvr_texstate_cmpmode(VkCompareOp op)
 {
    /* enum values are identical, so we can just cast the input directly. */
    return (enum PVRX(TEXSTATE_CMP_MODE))op;
+}
+
+/******************************************************************************
+   VDMCTRL
+ ******************************************************************************/
+
+/* clang-format off */
+static inline uint32_t
+pvr_vdmctrl_index_size_nr_bytes(enum PVRX(VDMCTRL_INDEX_SIZE) index_size)
+/* clang-format on */
+{
+   switch (index_size) {
+   case PVRX(VDMCTRL_INDEX_SIZE_B8):
+      return 1;
+   case PVRX(VDMCTRL_INDEX_SIZE_B16):
+      return 2;
+   case PVRX(VDMCTRL_INDEX_SIZE_B32):
+      return 4;
+   default:
+      return 0;
+   }
 }
 
 #endif /* PVR_CSB_ENUM_HELPERS_H */

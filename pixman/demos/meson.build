@@ -47,7 +47,7 @@ if dep_gtk.found()
   libdemo = static_library(
     'demo',
     ['gtk-utils.c', config_h, version_h],
-    dependencies : [dep_gtk, dep_glib, dep_png, dep_m, dep_openmp],
+    dependencies : [libtestutils_dep, dep_gtk, dep_glib, dep_png, dep_m, dep_openmp],
     include_directories : inc_pixman,
   )
 
@@ -57,8 +57,8 @@ if dep_gtk.found()
         d,
         [d + '.c', config_h, version_h],
         c_args : extra_demo_cflags,
-        link_with : [libdemo, libtestutils],
-        dependencies : [dep_glib, dep_gtk, dep_openmp, idep_pixman],
+        link_with : [libdemo],
+        dependencies : [idep_pixman, libtestutils_dep, dep_glib, dep_gtk, dep_openmp, dep_png],
       )
     endforeach
   endif

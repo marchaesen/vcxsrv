@@ -1,4 +1,4 @@
-# R600 shader from NIR
+#R600 shader from NIR
 
 This code is an attempt to implement a NIR backend for r600.
 
@@ -29,6 +29,3 @@ piglit:
   - don't rely on the backend to merge some alu groups
 
 ## There are still some hangs
-
-
-

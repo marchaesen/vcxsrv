@@ -22,7 +22,7 @@ inc_broadcom = include_directories('.', 'cle')
 
 subdir('cle')
 
-v3d_versions = ['33', '41', '42']
+v3d_versions = ['42', '71']
 v3d_libs = []
 
 if with_gallium_v3d or with_broadcom_vk
@@ -43,7 +43,7 @@ foreach ver : v3d_versions
       files('clif/v3dx_dump.c'),
       v3d_xml_pack
     ],
-    include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],
+    include_directories : [inc_include, inc_src, inc_broadcom],
     c_args : [no_override_init_args, '-DV3D_VERSION=' + ver],
     gnu_symbol_visibility : 'hidden',
     dependencies: [dep_valgrind, dep_thread],
@@ -74,7 +74,7 @@ libbroadcom_v3d = static_library(
     files('common/v3d_debug.c', 'common/v3d_device_info.c', 'clif/clif_dump.c', 'common/v3d_util.c'),
     v3d_xml_pack,
   ],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom],
+  include_directories : [inc_include, inc_src, inc_broadcom],
   c_args : [no_override_init_args],
   gnu_symbol_visibility : 'hidden',
   link_whole : v3d_libs + per_version_libs,

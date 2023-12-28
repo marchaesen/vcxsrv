@@ -40,6 +40,15 @@ afuc_lexer = custom_target(
   ]
 )
 
+encode_h = custom_target(
+  'encode.h',
+  input: ['afuc.xml'],
+  output: 'encode.h',
+  command: [
+    prog_isaspec_encode, '--xml', '@INPUT@', '--out-h', '@OUTPUT@'
+  ],
+)
+
 asm = executable(
   'afuc-asm',
   [
@@ -48,6 +57,7 @@ asm = executable(
     'util.h',
     afuc_lexer,
     afuc_parser,
+    encode_h,
   ],
   include_directories: [
     inc_freedreno_rnn, inc_include, inc_src, inc_util,
@@ -68,9 +78,19 @@ if with_tests
     diff,
     args: ['-u', files('../.gitlab-ci/reference/afuc_test.fw'), asm_fw],
     suite: 'freedreno',
-    workdir: meson.source_root()
+    workdir: dir_source_root
   )
 endif
+
+afuc_isa = custom_target(
+  'afuc-isa',
+  input: ['afuc.xml'],
+  output: ['afuc-isa.c', 'afuc-isa.h'],
+  command: [
+    prog_isaspec_decode, '--xml', '@INPUT@',
+    '--out-c', '@OUTPUT0@', '--out-h', '@OUTPUT1@',
+  ],
+)
 
 # Disasm requires mmaping >4GB
 if cc.sizeof('size_t') > 4
@@ -85,6 +105,7 @@ if cc.sizeof('size_t') > 4
       'emu-ui.c',
       'util.c',
       'util.h',
+      afuc_isa,
     ],
     include_directories: [
       inc_freedreno,
@@ -96,8 +117,7 @@ if cc.sizeof('size_t') > 4
     link_with: [
       libfreedreno_rnn,
     ],
-    dependencies: [
-    ],
+    dependencies: [idep_mesautil, idep_isaspec_decode],
     build_by_default : with_tools.contains('freedreno'),
     install: install_fd_decode_tools,
   )
@@ -112,7 +132,7 @@ if cc.sizeof('size_t') > 4
       diff,
       args: ['-u', files('../.gitlab-ci/reference/afuc_test.asm'), disasm_fw],
       suite: 'freedreno',
-      workdir: meson.source_root()
+      workdir: dir_source_root
     )
   endif
 endif

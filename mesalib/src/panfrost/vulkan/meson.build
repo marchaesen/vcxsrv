@@ -29,6 +29,7 @@ panvk_entrypoints = custom_target(
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'panvk',
     '--device-prefix', 'panvk_v6', '--device-prefix', 'panvk_v7',
+    '--beta', with_vulkan_beta.to_string()
   ],
   depend_files : vk_entrypoints_gen_depend_files,
 )
@@ -47,7 +48,6 @@ libpanvk_files = files(
   'panvk_private.h',
   'panvk_query.c',
   'panvk_shader.c',
-  'panvk_util.c',
   'panvk_wsi.c',
 ) + [vk_cmd_enqueue_entrypoints[0], vk_common_entrypoints[0]]
 
@@ -76,8 +76,7 @@ foreach arch : ['6', '7']
     include_directories : [
       inc_include,
       inc_src,
-      inc_compiler,
-      inc_gallium, # XXX: pipe/p_format.h
+      inc_gallium, # XXX: util/format/u_formats.h
       inc_gallium_aux, # XXX: renderonly
       inc_panfrost,
     ],
@@ -95,8 +94,14 @@ foreach arch : ['6', '7']
 endforeach
 
 if with_platform_wayland
-  panvk_deps += [dep_wayland_client, dep_wl_protocols]
+  panvk_deps += dep_wayland_client
   libpanvk_files += [wayland_drm_client_protocol_h, wayland_drm_protocol_c]
+endif
+
+if with_platform_android
+  panvk_deps += [dep_android]
+  panvk_flags += '-DVK_USE_PLATFORM_ANDROID_KHR'
+  libpanvk_files += files('panvk_android.c')
 endif
 
 libvulkan_panfrost = shared_library(
@@ -105,8 +110,7 @@ libvulkan_panfrost = shared_library(
   include_directories : [
     inc_include,
     inc_src,
-    inc_compiler,
-    inc_gallium, # XXX: pipe/p_format.h
+    inc_gallium, # XXX: util/format/u_formats.h
     inc_gallium_aux, # XXX: renderonly
     inc_panfrost,
   ],
@@ -145,30 +149,29 @@ panfrost_icd = custom_target(
   output : 'panfrost_icd.@0@.json'.format(host_machine.cpu()),
   command : [
     prog_python, '@INPUT0@',
-    '--api-version', '1.1', '--xml', '@INPUT1@',
+    '--api-version', '1.0', '--xml', '@INPUT1@',
     '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
                              'libvulkan_panfrost.so'),
     '--out', '@OUTPUT@',
   ],
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
+  install_tag : 'runtime',
   install : true,
 )
 
-if meson.version().version_compare('>= 0.58')
-  _dev_icdname = 'panfrost_devenv_icd.@0@.json'.format(host_machine.cpu())
-  custom_target(
-    'panfrost_devenv_icd',
-    input : [vk_icd_gen, vk_api_xml],
-    output : _dev_icdname,
-    command : [
-      prog_python, '@INPUT0@',
-      '--api-version', '1.1', '--xml', '@INPUT1@',
-      '--lib-path', meson.current_build_dir() / 'libvulkan_panfrost.so',
-      '--out', '@OUTPUT@',
-    ],
-    build_by_default : true,
-  )
+_dev_icdname = 'panfrost_devenv_icd.@0@.json'.format(host_machine.cpu())
+_dev_icd = custom_target(
+  'panfrost_devenv_icd',
+  input : [vk_icd_gen, vk_api_xml],
+  output : _dev_icdname,
+  command : [
+    prog_python, '@INPUT0@',
+    '--api-version', '1.0', '--xml', '@INPUT1@',
+    '--lib-path', meson.current_build_dir() / 'libvulkan_panfrost.so',
+    '--out', '@OUTPUT@',
+  ],
+  build_by_default : true,
+)
 
-  devenv.append('VK_ICD_FILENAMES', meson.current_build_dir() / _dev_icdname)
-endif
+devenv.append('VK_ICD_FILENAMES', _dev_icd.full_path())

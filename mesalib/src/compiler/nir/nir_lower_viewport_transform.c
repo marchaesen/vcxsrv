@@ -40,66 +40,59 @@
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 
-void
+static bool
+lower_viewport_transform_instr(nir_builder *b, nir_intrinsic_instr *intr,
+                               void *data)
+{
+   if (intr->intrinsic != nir_intrinsic_store_deref)
+      return false;
+
+   nir_variable *var = nir_intrinsic_get_var(intr, 0);
+   if (var->data.mode != nir_var_shader_out ||
+       var->data.location != VARYING_SLOT_POS)
+      return false;
+
+   b->cursor = nir_before_instr(&intr->instr);
+
+   /* Grab the source and viewport */
+   nir_def *input_point = intr->src[1].ssa;
+   nir_def *scale = nir_load_viewport_scale(b);
+   nir_def *offset = nir_load_viewport_offset(b);
+
+   /* World space to normalised device coordinates to screen space */
+
+   nir_def *w_recip = nir_frcp(b, nir_channel(b, input_point, 3));
+
+   nir_def *ndc_point = nir_fmul(b, nir_trim_vector(b, input_point, 3),
+                                 w_recip);
+
+   nir_def *screen = nir_fadd(b, nir_fmul(b, ndc_point, scale),
+                              offset);
+
+   /* gl_Position will be written out in screenspace xyz, with w set to
+    * the reciprocal we computed earlier. The transformed w component is
+    * then used for perspective-correct varying interpolation. The
+    * transformed w component must preserve its original sign; this is
+    * used in depth clipping computations
+    */
+
+   nir_def *screen_space = nir_vec4(b,
+                                    nir_channel(b, screen, 0),
+                                    nir_channel(b, screen, 1),
+                                    nir_channel(b, screen, 2),
+                                    w_recip);
+
+   nir_src_rewrite(&intr->src[1], screen_space);
+   return true;
+}
+
+bool
 nir_lower_viewport_transform(nir_shader *shader)
 {
-   assert((shader->info.stage == MESA_SHADER_VERTEX)
-         || (shader->info.stage == MESA_SHADER_GEOMETRY)
-         || (shader->info.stage == MESA_SHADER_TESS_EVAL));
+   assert((shader->info.stage == MESA_SHADER_VERTEX) || (shader->info.stage == MESA_SHADER_GEOMETRY) || (shader->info.stage == MESA_SHADER_TESS_EVAL));
 
-   nir_foreach_function(func, shader) {
-      nir_foreach_block(block, func->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-            if (intr->intrinsic != nir_intrinsic_store_deref)
-               continue;
-
-            nir_variable *var = nir_intrinsic_get_var(intr, 0);
-            if (var->data.mode != nir_var_shader_out ||
-                var->data.location != VARYING_SLOT_POS)
-               continue;
-
-            nir_builder b;
-            nir_builder_init(&b, func->impl);
-            b.cursor = nir_before_instr(instr);
-
-            /* Grab the source and viewport */
-            nir_ssa_def *input_point = nir_ssa_for_src(&b, intr->src[1], 4);
-            nir_ssa_def *scale = nir_load_viewport_scale(&b);
-            nir_ssa_def *offset = nir_load_viewport_offset(&b);
-
-            /* World space to normalised device coordinates to screen space */
-
-            nir_ssa_def *w_recip = nir_frcp(&b, nir_channel(&b, input_point, 3));
-
-            nir_ssa_def *ndc_point = nir_fmul(&b,
-                  nir_channels(&b, input_point, 0x7), w_recip);
-
-            nir_ssa_def *screen = nir_fadd(&b,
-                  nir_fmul(&b, ndc_point, scale), offset);
-
-            /* gl_Position will be written out in screenspace xyz, with w set to
-             * the reciprocal we computed earlier. The transformed w component is
-             * then used for perspective-correct varying interpolation. The
-             * transformed w component must preserve its original sign; this is
-             * used in depth clipping computations
-             */
-
-            nir_ssa_def *screen_space = nir_vec4(&b,
-                             nir_channel(&b, screen, 0),
-                             nir_channel(&b, screen, 1),
-                             nir_channel(&b, screen, 2),
-                             w_recip);
-
-            nir_instr_rewrite_src(instr, &intr->src[1],
-                                  nir_src_for_ssa(screen_space));
-         }
-      }
-
-      nir_metadata_preserve(func->impl, nir_metadata_block_index |
-                            nir_metadata_dominance);
-   }
+   return nir_shader_intrinsics_pass(shader, lower_viewport_transform_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       NULL);
 }

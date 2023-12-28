@@ -18,6 +18,8 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
+inc_util_c11 = [include_directories('../..')]
+
 files_mesa_util_c11 = files(
   'time.c',
 )
@@ -34,7 +36,7 @@ endif
 _libmesa_util_c11 = static_library(
   'mesa_util_c11',
   [files_mesa_util_c11],
-  include_directories : [inc_include, inc_src],
+  include_directories : inc_util_c11,
   c_args : [c_msvc_compat_args],
   gnu_symbol_visibility : 'hidden',
   build_by_default : false
@@ -42,6 +44,6 @@ _libmesa_util_c11 = static_library(
 
 idep_mesautilc11 = declare_dependency(
   link_with : _libmesa_util_c11,
-  include_directories : [inc_include, inc_src],
+  include_directories : inc_util_c11,
   dependencies : [dep_clock, dep_thread, dep_atomic, dep_m, dep_valgrind],
 )

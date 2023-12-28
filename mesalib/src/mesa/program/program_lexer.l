@@ -26,7 +26,7 @@
 #include <unistd.h>
 #endif
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 #include "program/prog_instruction.h"
 #include "program/prog_statevars.h"

@@ -27,7 +27,7 @@
 #ifndef TEXGETIMAGE_H
 #define TEXGETIMAGE_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 struct gl_texture_image;

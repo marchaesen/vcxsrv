@@ -55,7 +55,7 @@ tgsi_parse_free(
 {
 }
 
-boolean
+bool
 tgsi_parse_end_of_tokens(
    struct tgsi_parse_context *ctx )
 {
@@ -143,7 +143,7 @@ tgsi_parse_token(
    case TGSI_TOKEN_TYPE_IMMEDIATE:
    {
       struct tgsi_full_immediate *imm = &ctx->FullToken.FullImmediate;
-      uint imm_count;
+      unsigned imm_count;
 
       memset(imm, 0, sizeof *imm);
       copy_token(&imm->Immediate, &token);
@@ -251,7 +251,7 @@ tgsi_parse_token(
    case TGSI_TOKEN_TYPE_PROPERTY:
    {
       struct tgsi_full_property *prop = &ctx->FullToken.FullProperty;
-      uint prop_count;
+      unsigned prop_count;
 
       memset(prop, 0, sizeof *prop);
       copy_token(&prop->Property, &token);
@@ -307,21 +307,6 @@ tgsi_free_tokens(const struct tgsi_token *tokens)
    FREE((void *) tokens);
 }
 
-
-void
-tgsi_dump_tokens(const struct tgsi_token *tokens)
-{
-   const unsigned *dwords = (const unsigned *)tokens;
-   int nr = tgsi_num_tokens(tokens);
-   int i;
-   
-   STATIC_ASSERT(sizeof(*tokens) == sizeof(unsigned));
-
-   debug_printf("const unsigned tokens[%d] = {\n", nr);
-   for (i = 0; i < nr; i++)
-      debug_printf("0x%08x,\n", dwords[i]);
-   debug_printf("};\n");
-}
 
 unsigned
 tgsi_get_processor_type(const struct tgsi_token *tokens)

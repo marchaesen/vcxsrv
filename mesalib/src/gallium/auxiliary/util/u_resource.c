@@ -64,3 +64,35 @@ util_resource_size(const struct pipe_resource *res)
 
    return size;
 }
+
+/**
+ * Return the number of the resources.
+ */
+unsigned
+util_resource_num(const struct pipe_resource *res)
+{
+   const struct pipe_resource *cur;
+   unsigned count;
+
+   for (count = 0, cur = res; cur; cur = cur->next)
+      count++;
+
+   return count;
+}
+
+/**
+ * Return the resource at the given index.
+ */
+struct pipe_resource *
+util_resource_at_index(const struct pipe_resource *res, unsigned index)
+{
+   const struct pipe_resource *cur;
+   unsigned count;
+
+   for (count = 0, cur = res; cur; cur = cur->next) {
+      if (count++ == index)
+         return (struct pipe_resource *)cur;
+   }
+
+   return NULL;
+}

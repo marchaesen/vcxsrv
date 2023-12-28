@@ -94,7 +94,7 @@ Bug fixes
 - Substance Painter 6.1.3 black glitches on Radeon RX570
 - vkCmdCopyImage broadcasts subsample 0 of MSAA src into all subsamples of dst on RADV
 - Crash in ruvd_end_frame when calling vaBeginPicture/vaEndPicture without rendering anything
-- X-Plane 11 Installer crashes on startup since `glsl: declare gl_Layer/gl_ViewportIndex/gl_ViewportMask as vs builtins`
+- X-Plane 11 Installer crashes on startup since ``glsl: declare gl_Layer/gl_ViewportIndex/gl_ViewportMask as vs builtins``
 - Horizon Zero Dawn graphics corruption with with radv
 - Amber test opt_peel_loop_initial_if: Assertion failed
 - Dirt Rally: Flickering glitches on certain foliage since Mesa 20.1.0 caused by MSAA
@@ -122,7 +122,7 @@ Bug fixes
 - Mesa 20.2.0-rc1 fails to build for AMD
 - Assertion failure compiling shader from Zigguart
 - Panfrost locks for waiting fence when running Source engine games
-- ci: `-Dtools=panfrost` should be build-tested
+- ci: ``-Dtools=panfrost`` should be build-tested
 - panfrost: Register allocation fails for Firefox WebRender shaders
 - VRAM leak with vuilkan external memory + opengl memory objects
 - [vulkan/build] Recent build system changes made VK_EXT_acquire_xlib_display unnecessarily depend on GBM
@@ -130,7 +130,7 @@ Bug fixes
 - Possible array out of bounds in brw_vec4_nir.cpp
 - freedreno/a6xx: incorrect rendering in asphalt 9
 - [tgl][bisected][regression][iris] failure on dEQP-EGL.functional.wide_color.pbuffer_8888_colorspace_default
-- Multiply defined symbols compiling with gcc@10.1.0
+- Multiply defined symbols compiling with gcc\@10.1.0
 - shrinking descriptor pool on intel+vulkan
 - dEQP-VK.renderpass2.dedicated_allocation.attachment.1.12 fails on NAVI14
 - turnip: binning and indirect dependency
@@ -147,7 +147,7 @@ Bug fixes
 - SPIR-V parsing fails in src/compiler/spirv/vtn_cfg.c
 - Weird GLSL bug
 - iris driver is broken in Freedesktop 19.08
-- LLVM not properly shutdown in `si_pipe.c`?
+- LLVM not properly shutdown in ``si_pipe.c``?
 - Panfrost: add current status to docs/features.txt
 - Opengl incorrect rendering on yuzu Amd
 - RADV: VK_ACCESS_MEMORY_READ/WRITE_BIT is not implemented
@@ -184,7 +184,7 @@ Bug fixes
 - Missing render Information on Stellaris
 - freedreno/ir3: allow copy-propagate from array
 - Zink + GALLIUM_HUD SIGSEGV
-- piglit spec@egl_ext_device_base@conformance fails LLVM 11 Git assertion since "llvmpipe/fs: add caching support"
+- piglit spec\@egl_ext_device_base\@conformance fails LLVM 11 Git assertion since "llvmpipe/fs: add caching support"
 - llvmpipe: 1x1 framebuffer with a 2x2 viewport
 - [regression] nir build failure
 - ci: need to end baremetal tests after kernel panic/instaboot
@@ -227,7 +227,7 @@ Bug fixes
 - finish converting from fnv1a to xxhash
 - Hang in iris_dri in kitty
 - Setting twice value to output_stream in radv_nir_to_llvm.c
-- Overwriting value of `jit_tex->sample_stride` in lp_setup.c
+- Overwriting value of ``jit_tex->sample_stride`` in lp_setup.c
 - [AMDGPU][OpenGL] apitrace of kernel/firmware crash that requires a reboot
 - Flickering in Superposition benchmark
 - Double lock in fbobject.c
@@ -320,7 +320,7 @@ Alyssa Rosenzweig (475):
 - pan/mdg: Rename .one to .sat_signed
 - pan/mdg: Move constant switch opts to algebraic pass
 - pan/mdg: Drop forever todo
-- pan/mdg: Drop `opt` in name of midgard_opt_cull_dead_branch
+- pan/mdg: Drop ``opt`` in name of midgard_opt_cull_dead_branch
 - pan/mdg: Enable nir_opt_algebraic_distribute_src_mods
 - panfrost: Update dEQP expectation list
 - panfrost: Setup gl_FragCoord as sysval on Bifrost
@@ -509,7 +509,7 @@ Alyssa Rosenzweig (475):
 - pan/bi: Remove comment about old scheduler design
 - pan/bi: Move bi_registers to common IR structures
 - pan/bi: Move bi_registers to bi_bundle
-- pan/bi: Drop `struct` from bi_registers
+- pan/bi: Drop ``struct`` from bi_registers
 - pan/bi: Add FILE* argument to bi_print_registers
 - pan/bi: Move bi_flip_ports out of port assignment
 - pan/bi: Document constant count invariant
@@ -1878,7 +1878,7 @@ Eric Engestrom (146):
 - cut 20.1 branch
 - docs: update calendar for 20.1.0-rc2
 - post_version.py: fix branch name construction for release candidates
-- post_version.py: invert `is_point` into `is_first_release` to make its purpose clearer
+- post_version.py: invert ``is_point`` into ``is_first_release`` to make its purpose clearer
 - post_version.py: stop adding release candidates to the index and relnotes
 - docs: update calendar for 20.1.0-rc3
 - gitlab-ci: exclude scripts that don't affect the build
@@ -1888,7 +1888,7 @@ Eric Engestrom (146):
 - util/rand_xor: extend the urandom path to all non-Windows platforms
 - docs: update calendar for 20.1.0-rc4
 - anv: pass the fd directly to anv_gem_reg_read()
-- anv: replace magic `| 1` with already #define'd name
+- anv: replace magic ``| 1`` with already #define'd name
 - anv: disable VK_EXT_calibrated_timestamps when the timestamp register is unreadable
 - git_sha1_gen.py: fix out-of-date comment
 - git_sha1_gen.py: fix code style
@@ -1933,15 +1933,15 @@ Eric Engestrom (146):
 - docs: publish our release maintainers' keys
 - docs: remind release maintainers to sign the tarballs and publish their key
 - docs: suggest alternative installation methods for meson
-- docs: stop considering `Cc: mesa-stable` as an email address
+- docs: stop considering ``Cc: mesa-stable`` as an email address
 - docs: reword "sending a patch revision" to "updating a merge request"
-- docs: drop `git sendemail` instructions
-- docs: prefer `Fixes:` over `Cc: mesa-stable`
+- docs: drop ``git sendemail`` instructions
+- docs: prefer ``Fixes:`` over ``Cc: mesa-stable``
 - docs: add some formatting to the "backport merge request" option
 - docs: reword a sentence a bit
 - docs: make it clear that the tags needs to be in the commit message
-- docs: move `Fixes:` tag explanation to its own section
-- docs: move "stable" tag explanation next to `Fixes:`
+- docs: move ``Fixes:`` tag explanation to its own section
+- docs: move "stable" tag explanation next to ``Fixes:``
 - driconf: drop 28% catalan translation
 - driconf: drop 15% german translation
 - driconf: drop 26% spanish translation
@@ -1965,14 +1965,14 @@ Eric Engestrom (146):
 - docs: update calendar and link releases notes for 20.1.3
 - docs: fix a bunch of typos
 - egl: always compile surfaceless
-- vulkan: automatically compile the `display` platform when available
+- vulkan: automatically compile the ``display`` platform when available
 - meson: move xlib-lease block further down
-- egl: automatically compile the `drm` platform when available
-- introduce `commit_in_branch.py` script to help devs figure this out
+- egl: automatically compile the ``drm`` platform when available
+- introduce ``commit_in_branch.py`` script to help devs figure this out
 - bin/gen_release_notes.py: drop new_features.txt when we release XX.Y.0
 - egl/wayland: add missing newline between functions
 - glx: drop always-true #ifdef
-- docs/submittingpatches: add more than one `Cc: mesa-stable` example to the examples list
+- docs/submittingpatches: add more than one ``Cc: mesa-stable`` example to the examples list
 - meson/intel: add missing dep on git_sha1.h
 - meson: fix android vulkan build
 - egl: inline fallback for create_pixmap_surface
@@ -2009,7 +2009,7 @@ Eric Engestrom (146):
 - egl: const _eglDriver
 - egl/haiku: drop overwritten preset of EGL version
 - egl: consistently use dri2_egl_display() helper macro
-- meson: fix `-D xlib-lease=auto` detection
+- meson: fix ``-D xlib-lease=auto`` detection
 - docs: add release notes for 20.1.5
 - docs: update calendar and link releases notes for 20.1.5
 - pick-ui: specify git commands in "resolve cherry pick" message
@@ -2499,7 +2499,7 @@ Jan Zielinski (1):
 
 - gallium/swr: Fix crashes in sampling code
 
-Jason Ekstrand (167):
+Faith Ekstrand (167):
 
 - intel/eu: Use non-coherent mode (BTI=253) for stateless A64 messages
 - Revert "anv/gen12: Temporarily disable VK_KHR_buffer_device_address (and EXT)"
@@ -3471,7 +3471,7 @@ Michel Dänzer (38):
 - gitlab-ci: Install g++-mingw-w64-x86-64-win32 instead of mingw-w64
 - Revert "ac,radeonsi: fix compilations issues with LLVM 11"
 - Revert "gallium/gallivm: fix compilation issues with llvm 11"
-- gitlab-ci: Enable -Werror in `meson-s390x` job
+- gitlab-ci: Enable -Werror in ``meson-s390x`` job
 - gitlab-ci: Also list arm/x86_build in needs: of test jobs
 - gitlab-ci: x86_test-base image as common base for x86_test-gl/vk
 - gitlab-ci: Pull in GCC 9 from Debian testing in x86_test-gl/vk images
@@ -3822,7 +3822,7 @@ Rhys Perry (174):
 - aco: allow reading/writing upper halves/bytes when possible
 - aco: prefer 4-byte aligned definitions
 - aco: add Info::{operand_size,definition_size}
-- aco: use Info::definition_size instead of definition's regclass
+- aco: use \Info::definition_size instead of definition's regclass
 - aco: fix moving sub-dword values out of a register for a fixed definition
 - aco: use num_opcodes instead of last_opcode
 - aco: improve code for f2{i,u}{8,16}
@@ -4608,7 +4608,7 @@ Timothy Arceri (69):
 - nv30: add missing fallthrough comment
 - meson: turn on Wimplicit-fallthrough project wide
 - nouveau: fix pointer-sign warning
-- gitlab-ci: Enable -Werror in `meson-classic` job
+- gitlab-ci: Enable -Werror in ``meson-classic`` job
 - r600/radeonsi: silence zero-length-bounds gcc warnings
 - radeonsi: fix SI_NUM_ATOMS
 - iris: fix maybe-uninitialized warning for initial_state variable
@@ -4624,7 +4624,7 @@ Timothy Arceri (69):
 - etnaviv: add missing fallthrough comments
 - lima: add missing fallthrough comments
 - lima: add missing break
-- gitlab-ci: Enable -Werror in `meson-gallium` job
+- gitlab-ci: Enable -Werror in ``meson-gallium`` job
 
 Timur Kristóf (4):
 

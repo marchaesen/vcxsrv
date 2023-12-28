@@ -40,6 +40,8 @@ void print_shader_info(FILE *f , int id, struct r600_shader *shader)
    if (shader->NAME[i].ELM) fprintf(f, "  shader->"  #NAME "[%d]." #ELM "=%d;\n", i, (int)shader->NAME[i].ELM)
 #define PRINT_UINT_ARRAY_ELM(NAME, ELM) \
    if (shader->NAME[i].ELM) fprintf(f, "  shader->"  #NAME "[%d]." #ELM" =%u;\n", i, (unsigned)shader->NAME[i].ELM)
+#define PRINT_BOOL_ARRAY_ELM(NAME, ELM) \
+   if (shader->NAME[i].ELM) fprintf(f, "  shader->"  #NAME "[%d]." #ELM "=%s;\n", i, shader->NAME[i].ELM ? "true" : "false")
 
    fprintf(f, "#include \"gallium/drivers/r600/r600_shader.h\"\n");
    fprintf(f, "void shader_%d_fill_data(struct r600_shader *shader)\n{\n", id);
@@ -51,34 +53,28 @@ void print_shader_info(FILE *f , int id, struct r600_shader *shader)
    PRINT_UINT_MEMBER(nhwatomic);
    PRINT_UINT_MEMBER(nlds);
    PRINT_UINT_MEMBER(nsys_inputs);
+   PRINT_UINT_MEMBER(highest_export_param);
 
    for (unsigned i = 0; i < shader->ninput; ++i) {
-      PRINT_UINT_ARRAY_ELM(input, name);
+      PRINT_INT_ARRAY_ELM(input, varying_slot);
+      PRINT_INT_ARRAY_ELM(input, system_value);
       PRINT_UINT_ARRAY_ELM(input, gpr);
-      PRINT_UINT_ARRAY_ELM(input, done);
-      PRINT_INT_ARRAY_ELM(input, sid);
       PRINT_INT_ARRAY_ELM(input, spi_sid);
       PRINT_UINT_ARRAY_ELM(input, interpolate);
       PRINT_UINT_ARRAY_ELM(input, ij_index);
       PRINT_UINT_ARRAY_ELM(input, interpolate_location); //  TGSI_INTERPOLATE_LOC_CENTER, CENTROID, SAMPLE
       PRINT_UINT_ARRAY_ELM(input, lds_pos); /* for evergreen */
-      PRINT_UINT_ARRAY_ELM(input, back_color_input);
-      PRINT_UINT_ARRAY_ELM(input, write_mask);
       PRINT_INT_ARRAY_ELM(input, ring_offset);
+      PRINT_BOOL_ARRAY_ELM(input, uses_interpolate_at_centroid);
    }
 
    for (unsigned i = 0; i < shader->noutput; ++i) {
-      PRINT_UINT_ARRAY_ELM(output, name);
+      PRINT_INT_ARRAY_ELM(output, varying_slot);
+      PRINT_INT_ARRAY_ELM(output, frag_result);
       PRINT_UINT_ARRAY_ELM(output, gpr);
-      PRINT_UINT_ARRAY_ELM(output, done);
-      PRINT_INT_ARRAY_ELM(output, sid);
       PRINT_INT_ARRAY_ELM(output, spi_sid);
-      PRINT_UINT_ARRAY_ELM(output, interpolate);
-      PRINT_UINT_ARRAY_ELM(output, ij_index);
-      PRINT_UINT_ARRAY_ELM(output, interpolate_location); //  TGSI_INTERPOLATE_LOC_CENTER, CENTROID, SAMPLE
-      PRINT_UINT_ARRAY_ELM(output, lds_pos); /* for evergreen */
-      PRINT_UINT_ARRAY_ELM(output, back_color_input);
       PRINT_UINT_ARRAY_ELM(output, write_mask);
+      PRINT_INT_ARRAY_ELM(output, export_param);
       PRINT_INT_ARRAY_ELM(output, ring_offset);
    }
 
@@ -131,7 +127,6 @@ void print_shader_info(FILE *f , int id, struct r600_shader *shader)
    PRINT_UINT_MEMBER(vs_as_gs_a);
    PRINT_UINT_MEMBER(tes_as_es);
    PRINT_UINT_MEMBER(tcs_prim_mode);
-   PRINT_UINT_MEMBER(ps_prim_id_input);
 
    if (shader->num_arrays > 0) {
       fprintf(stderr, "  shader->arrays = new r600_shader_array[%d];\n", shader->num_arrays);
@@ -178,7 +173,7 @@ void print_pipe_info(FILE *f, struct tgsi_shader_info *shader)
       PRINT_UINT_ARRAY_MEMBER(input_usage_mask, i);
    }
 
-   for (int i = 0; i < shader->num_inputs; ++i) {
+   for (int i = 0; i < shader->num_outputs; ++i) {
       PRINT_UINT_ARRAY_MEMBER(output_semantic_name, i);
       PRINT_UINT_ARRAY_MEMBER(output_semantic_index, i);
       PRINT_UINT_ARRAY_MEMBER(output_usagemask, i);

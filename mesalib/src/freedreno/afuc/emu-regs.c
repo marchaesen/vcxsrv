@@ -62,6 +62,9 @@ emu_set_control_reg(struct emu *emu, unsigned n, uint32_t val)
    EMU_CONTROL_REG(PACKET_TABLE_WRITE_ADDR);
    EMU_CONTROL_REG(REG_WRITE);
    EMU_CONTROL_REG(REG_WRITE_ADDR);
+   EMU_CONTROL_REG(BV_CNTL);
+   EMU_CONTROL_REG(LPAC_CNTL);
+   EMU_CONTROL_REG(THREAD_SYNC);
 
    assert(n < ARRAY_SIZE(emu->control_regs.val));
    BITSET_SET(emu->control_regs.written, n);
@@ -86,9 +89,36 @@ emu_set_control_reg(struct emu *emu, unsigned n, uint32_t val)
 
       emu_set_gpu_reg(emu, write_addr++, val);
       emu_set_reg32(emu, &REG_WRITE_ADDR, write_addr | (flags << 16));
+   } else if (gpuver >= 7 && n == emu_reg_offset(&BV_CNTL)) {
+      /* This is sort-of a hack, but emulate what the BV bootstrap routine
+       * does so that the main bootstrap routine doesn't get stuck.
+       */
+      emu_set_reg32(emu, &THREAD_SYNC,
+                    emu_get_reg32(emu, &THREAD_SYNC) & ~(1u << 1));
+   } else if (gpuver >= 7 && n == emu_reg_offset(&LPAC_CNTL)) {
+      /* This is sort-of a hack, but emulate what the LPAC bootstrap routine
+       * does so that the main bootstrap routine doesn't get stuck.
+       */
+      emu_set_reg32(emu, &THREAD_SYNC,
+                    emu_get_reg32(emu, &THREAD_SYNC) & ~(1u << 2));
    } else if (is_draw_state_control_reg(n)) {
       emu_set_draw_state_reg(emu, n, val);
    }
+}
+
+uint32_t
+emu_get_sqe_reg(struct emu *emu, unsigned n)
+{
+   assert(n < ARRAY_SIZE(emu->sqe_regs.val));
+   return emu->sqe_regs.val[n];
+}
+
+void
+emu_set_sqe_reg(struct emu *emu, unsigned n, uint32_t val)
+{
+   assert(n < ARRAY_SIZE(emu->sqe_regs.val));
+   BITSET_SET(emu->sqe_regs.written, n);
+   emu->sqe_regs.val[n] = val;
 }
 
 static uint32_t
@@ -320,6 +350,12 @@ const struct emu_reg_accessor emu_control_accessor = {
       .get_offset = afuc_control_reg,
       .get = emu_get_control_reg,
       .set = emu_set_control_reg,
+};
+
+const struct emu_reg_accessor emu_sqe_accessor = {
+      .get_offset = afuc_sqe_reg,
+      .get = emu_get_sqe_reg,
+      .set = emu_set_sqe_reg,
 };
 
 const struct emu_reg_accessor emu_pipe_accessor = {

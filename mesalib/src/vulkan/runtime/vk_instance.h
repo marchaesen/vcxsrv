@@ -29,6 +29,7 @@
 
 #include "c11/threads.h"
 #include "util/list.h"
+#include "util/u_debug.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -58,6 +59,14 @@ struct vk_app_info {
 struct _drmDevice;
 struct vk_physical_device;
 
+enum vk_trace_mode {
+   /** Radeon Memory Visualizer */
+   VK_TRACE_MODE_RMV = 1 << 0,
+
+   /** Number of common trace modes. */
+   VK_TRACE_MODE_COUNT = 1,
+};
+
 /** Base struct for all `VkInstance` implementations
  *
  * This contains data structures necessary for detecting enabled extensions,
@@ -77,6 +86,13 @@ struct vk_instance {
 
    /** VkInstanceCreateInfo::pApplicationInfo */
    struct vk_app_info app_info;
+
+   /** Table of all supported instance extensions
+    *
+    * This is the static const struct passed by the driver as the
+    * `supported_extensions` parameter to `vk_instance_init()`.
+    */
+   const struct vk_instance_extension_table *supported_extensions;
 
    /** Table of all enabled instance extensions
     *
@@ -151,6 +167,12 @@ struct vk_instance {
 
       mtx_t mutex;
    } physical_devices;
+
+   /** Enabled tracing modes */
+   uint64_t trace_mode;
+
+   uint32_t trace_frame;
+   char *trace_trigger_file;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_instance, base, VkInstance,
@@ -161,18 +183,18 @@ VK_DEFINE_HANDLE_CASTS(vk_instance, base, VkInstance,
  * Along with initializing the data structures in `vk_instance`, this function
  * validates the Vulkan version number provided by the client and checks that
  * every extension specified by
- * `VkInstanceCreateInfo::ppEnabledExtensionNames` is actually supported by
+ * ``VkInstanceCreateInfo::ppEnabledExtensionNames`` is actually supported by
  * the implementation and returns `VK_ERROR_EXTENSION_NOT_PRESENT` if an
  * unsupported extension is requested.
  *
- * @param[out] instance             The instance to initialize
- * @param[in]  supported_extensions Table of all instance extensions supported
- *                                  by this instance
- * @param[in]  dispatch_table       Instance-level dispatch table
- * @param[in]  pCreateInfo          VkInstanceCreateInfo pointer passed to
- *                                  `vkCreateInstance()`
- * @param[in]  alloc                Allocation callbacks used to create this
- *                                  instance; must not be `NULL`
+ * :param instance:             |out| The instance to initialize
+ * :param supported_extensions: |in|  Table of all instance extensions supported
+ *                                    by this instance
+ * :param dispatch_table:       |in|  Instance-level dispatch table
+ * :param pCreateInfo:          |in|  VkInstanceCreateInfo pointer passed to
+ *                                    `vkCreateInstance()`
+ * :param alloc:                |in|  Allocation callbacks used to create this
+ *                                    instance; must not be `NULL`
  */
 VkResult MUST_CHECK
 vk_instance_init(struct vk_instance *instance,
@@ -183,7 +205,7 @@ vk_instance_init(struct vk_instance *instance,
 
 /** Tears down a vk_instance
  *
- * @param[out] instance             The instance to tear down
+ * :param instance:     |out| The instance to tear down
  */
 void
 vk_instance_finish(struct vk_instance *instance);
@@ -216,6 +238,13 @@ vk_instance_get_proc_addr_unchecked(const struct vk_instance *instance,
 PFN_vkVoidFunction
 vk_instance_get_physical_device_proc_addr(const struct vk_instance *instance,
                                           const char *name);
+
+void
+vk_instance_add_driver_trace_modes(struct vk_instance *instance,
+                                   const struct debug_control *modes);
+
+uint32_t
+vk_get_negotiated_icd_version(void);
 
 #ifdef __cplusplus
 }

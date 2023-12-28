@@ -155,6 +155,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--out-c', help='Output C file.')
     parser.add_argument('--out-h', help='Output H file.')
+    parser.add_argument('--beta', required=True, help='Enable beta extensions.')
     parser.add_argument('--xml',
                         help='Vulkan API XML file.',
                         required=True,
@@ -162,17 +163,17 @@ def main():
                         dest='xml_files')
     args = parser.parse_args()
 
-    entrypoints = get_entrypoints_from_xml(args.xml_files)
+    entrypoints = get_entrypoints_from_xml(args.xml_files, args.beta)
 
     # For outputting entrypoints.h we generate a anv_EntryPoint() prototype
     # per entry point.
     try:
         if args.out_h:
-            with open(args.out_h, 'w') as f:
+            with open(args.out_h, 'w', encoding='utf-8') as f:
                 f.write(TEMPLATE_H.render(entrypoints=entrypoints,
                                           filename=os.path.basename(__file__)))
         if args.out_c:
-            with open(args.out_c, 'w') as f:
+            with open(args.out_c, 'w', encoding='utf-8') as f:
                 f.write(TEMPLATE_C.render(entrypoints=entrypoints,
                                           filename=os.path.basename(__file__)))
     except Exception:

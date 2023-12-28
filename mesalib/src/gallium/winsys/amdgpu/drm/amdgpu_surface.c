@@ -1,28 +1,8 @@
 /*
  * Copyright © 2011 Red Hat All Rights Reserved.
  * Copyright © 2014 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "amdgpu_winsys.h"
@@ -61,6 +41,7 @@ static int amdgpu_surface_sanity(const struct pipe_resource *tex)
 }
 
 static int amdgpu_surface_init(struct radeon_winsys *rws,
+                               const struct radeon_info *info,
                                const struct pipe_resource *tex,
                                uint64_t flags, unsigned bpe,
                                enum radeon_surf_mode mode,
@@ -92,6 +73,9 @@ static int amdgpu_surface_init(struct radeon_winsys *rws,
                   tex->target == PIPE_TEXTURE_1D_ARRAY;
    config.is_3d = tex->target == PIPE_TEXTURE_3D;
    config.is_cube = tex->target == PIPE_TEXTURE_CUBE;
+   config.is_array = tex->target == PIPE_TEXTURE_1D_ARRAY ||
+                     tex->target == PIPE_TEXTURE_2D_ARRAY ||
+                     tex->target == PIPE_TEXTURE_CUBE_ARRAY;
 
    /* Use different surface counters for color and FMASK, so that MSAA MRTs
     * always use consecutive surface indices when FMASK is allocated between
@@ -103,7 +87,8 @@ static int amdgpu_surface_init(struct radeon_winsys *rws,
    if (flags & RADEON_SURF_Z_OR_SBUFFER)
       config.info.surf_index = NULL;
 
-   return ac_compute_surface(ws->addrlib, &ws->info, &config, mode, surf);
+   /* Use radeon_info from the driver, not the winsys. The driver is allowed to change it. */
+   return ac_compute_surface(ws->addrlib, info, &config, mode, surf);
 }
 
 void amdgpu_surface_init_functions(struct amdgpu_screen_winsys *ws)

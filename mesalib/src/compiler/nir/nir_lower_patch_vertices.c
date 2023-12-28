@@ -22,7 +22,6 @@
  */
 
 #include "nir_builder.h"
-#include "program/prog_instruction.h"
 
 static nir_variable *
 make_uniform(nir_shader *nir, const gl_state_index16 *tokens)
@@ -31,12 +30,8 @@ make_uniform(nir_shader *nir, const gl_state_index16 *tokens)
     * special handling in uniform setup.
     */
    nir_variable *var =
-      nir_variable_create(nir, nir_var_uniform, glsl_int_type(),
-                          "gl_PatchVerticesIn");
-   var->num_state_slots = 1;
-   var->state_slots = ralloc_array(var, nir_state_slot, var->num_state_slots);
-   memcpy(var->state_slots[0].tokens, tokens, sizeof(*tokens) * STATE_LENGTH);
-   var->state_slots[0].swizzle = SWIZZLE_XXXX;
+      nir_state_variable_create(nir, glsl_int_type(),
+                                "gl_PatchVerticesIn", tokens);
 
    return var;
 }
@@ -67,41 +62,38 @@ nir_lower_patch_vertices(nir_shader *nir,
    if (static_count == 0 && !uniform_state_tokens)
       return false;
 
-   nir_foreach_function(function, nir) {
-      if (function->impl) {
-         nir_foreach_block(block, function->impl) {
-            nir_builder b;
-            nir_builder_init(&b, function->impl);
-            nir_foreach_instr_safe(instr, block) {
-               if (instr->type == nir_instr_type_intrinsic) {
-                  nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-                  if (intr->intrinsic != nir_intrinsic_load_patch_vertices_in)
-                     continue;
+   nir_foreach_function_impl(impl, nir) {
+      nir_foreach_block(block, impl) {
+         nir_builder b = nir_builder_create(impl);
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type == nir_instr_type_intrinsic) {
+               nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+               if (intr->intrinsic != nir_intrinsic_load_patch_vertices_in)
+                  continue;
 
-                  b.cursor = nir_before_instr(&intr->instr);
+               b.cursor = nir_before_instr(&intr->instr);
 
-                  nir_ssa_def *val = NULL;
-                  if (static_count) {
-                     val = nir_imm_int(&b, static_count);
-                  } else {
-                     if (!var)
-                        var = make_uniform(nir, uniform_state_tokens);
+               nir_def *val = NULL;
+               if (static_count) {
+                  val = nir_imm_int(&b, static_count);
+               } else {
+                  if (!var)
+                     var = make_uniform(nir, uniform_state_tokens);
 
-                     val = nir_load_var(&b, var);
-                  }
-
-                  progress = true;
-                  nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                                           val);
-                  nir_instr_remove(instr);
+                  val = nir_load_var(&b, var);
                }
+
+               progress = true;
+               nir_def_rewrite_uses(&intr->def,
+                                    val);
+               nir_instr_remove(instr);
             }
          }
+      }
 
-         if (progress) {
-            nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                                  nir_metadata_dominance);
-         }
+      if (progress) {
+         nir_metadata_preserve(impl, nir_metadata_block_index |
+                                        nir_metadata_dominance);
       }
    }
 

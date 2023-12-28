@@ -1,7 +1,9 @@
+# LLVM 16.0.0
+
 # piglit failures
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-swap-event_interval,Fail
-glx@glx-visuals-depth -pixmap,Crash
-glx@glx-visuals-stencil -pixmap,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
@@ -15,22 +17,12 @@ glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
 glx@glx_ext_no_config_context@no fbconfig,Fail
-spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=6,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=8,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
-spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@read-front samples=8,Fail
-spec@arb_bindless_texture@compiler@images@arith-bound-image.frag,Crash
+spec@!opengl 1.1@line-smooth-stipple,Fail
+spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
 spec@arb_bindless_texture@compiler@samplers@arith-bound-sampler-texture2d.frag,Crash
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
@@ -77,16 +69,9 @@ spec@arb_program_interface_query@arb_program_interface_query-getprogramresourcei
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-write,Crash
 spec@egl_ext_protected_content@conformance,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
-spec@glsl-1.20@execution@fs-nan-builtin-max,Fail
-spec@glsl-1.20@execution@fs-nan-builtin-min,Fail
-spec@glsl-1.20@execution@vs-nan-builtin-max,Fail
-spec@glsl-1.20@execution@vs-nan-builtin-min,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2x4-mat2x4,Fail
@@ -139,14 +124,20 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gles srgb-fp@sRGB decode ful
 spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 
 # glcts failures
-## Test issue - https://github.com/KhronosGroup/VK-GL-CTS/issues/251
-KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead,Fail
+GTF-GL46.gtf21.GL3Tests.texture_lod_bias.texture_lod_bias_all,Fail
+GTF-GL46.gtf30.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_multisample,Fail
+GTF-GL46.gtf32.GL3Tests.fragment_coord_conventions.fragment_coord_conventions_32_multisample,Fail
 ## Fail because GFX10+ removed MS texture support (see si_get_sparse_texture_virtual_page_size)
 KHR-GL46.sparse_texture2_tests.SparseTexture2Allocation,Fail
 KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment,Fail
 ## https://gitlab.freedesktop.org/mesa/mesa/-/issues/636
-KHR-GL46.sparse_texture2_tests.SparseTexture2Lookup,Crash
 KHR-GL46.sparse_texture2_tests.StandardPageSizesTestCase,Fail
 KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
+KHR-GL46.shader_image_load_store.basic-allTargets-atomic,Fail
+KHR-Single-GL46.enhanced_layouts.xfb_capture_inactive_output_component,Fail
+
+# escts failures
+KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreCS,Fail
+KHR-GLES31.core.shader_image_load_store.basic-allTargets-loadStoreVS,Fail

@@ -93,7 +93,7 @@ Emil Velikov (2):
 -  docs: Add sha256 sums for the 10.4.2 release
 -  Update version to 10.4.3
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  mesa: Fix clamping to -1.0 in snorm_to_float
 

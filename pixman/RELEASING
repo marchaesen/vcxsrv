@@ -10,12 +10,11 @@ Here are the steps to follow to create a new pixman release:
 
 	git log master...origin		(no output; note: *3* dots)
 
-2) Increment pixman_(major|minor|micro) in configure.ac and meson.build
-   according to the directions in those files.
+2) Increment the version in meson.build.
 
 3) Make sure that new version works, including
 
-	- make distcheck passes
+	- meson test passes
 
 	- the X server still works with the new pixman version
 	  installed

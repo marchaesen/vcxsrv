@@ -8,7 +8,7 @@
 # us:"Atsina"
 # us:"Cherokee"
 # us:"Coeur d'Alene Salish"
-# us:"Czech Slovak and German (US)"
+# us:"Czech, Slovak and German (US)"
 # us:"English (3l)"
 # us:"English (3l, Chromebook)"
 # us:"English (3l, emacs)"

@@ -134,6 +134,7 @@ struct etna_cmd_stream_priv {
 	struct etna_pipe *pipe;
 
 	uint32_t last_timestamp;
+	uint32_t offset_end_of_context_init;
 
 	/* submit ioctl related tables: */
 	struct {
@@ -189,17 +190,17 @@ extern int etna_mesa_debug;
 
 #define INFO_MSG(fmt, ...) \
 		do { mesa_logi("%s:%d: " fmt, \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+				__func__, __LINE__, ##__VA_ARGS__); } while (0)
 #define DEBUG_MSG(fmt, ...) \
 		do if (etna_mesa_debug & ETNA_DRM_MSGS) { \
 		     mesa_logd("%s:%d: " fmt, \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+				__func__, __LINE__, ##__VA_ARGS__); } while (0)
 #define WARN_MSG(fmt, ...) \
 		do { mesa_logw("%s:%d: " fmt, \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+				__func__, __LINE__, ##__VA_ARGS__); } while (0)
 #define ERROR_MSG(fmt, ...) \
 		do { mesa_loge("%s:%d: " fmt, \
-				__FUNCTION__, __LINE__, ##__VA_ARGS__); } while (0)
+				__func__, __LINE__, ##__VA_ARGS__); } while (0)
 
 #define DEBUG_BO(msg, bo)						\
    DEBUG_MSG("%s %p, va: 0x%.8x, size: 0x%.8x, flags: 0x%.8x, "		\

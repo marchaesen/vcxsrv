@@ -36,7 +36,7 @@
 
 #include <windows.h>
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_context.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
@@ -44,6 +44,7 @@
 #include "util/u_memory.h"
 #include "frontend/sw_winsys.h"
 #include "gdi_sw_winsys.h"
+#include "wgl/stw_gdishim.h"
 
 
 struct gdi_sw_displaytarget
@@ -57,7 +58,7 @@ struct gdi_sw_displaytarget
 
    void *data;
 
-   BITMAPINFO bmi;
+   BITMAPV5HEADER bmi;
 };
 
 
@@ -77,6 +78,10 @@ gdi_sw_is_displaytarget_format_supported( struct sw_winsys *ws,
    switch(format) {
    case PIPE_FORMAT_B8G8R8X8_UNORM:
    case PIPE_FORMAT_B8G8R8A8_UNORM:
+   case PIPE_FORMAT_B5G6R5_UNORM:
+   case PIPE_FORMAT_B5G5R5A1_UNORM:
+   case PIPE_FORMAT_B4G4R4A4_UNORM:
+   case PIPE_FORMAT_R10G10B10A2_UNORM:
       return true;
 
    /* TODO: Support other formats possible with BMPs, as described in 
@@ -149,17 +154,34 @@ gdi_sw_displaytarget_create(struct sw_winsys *winsys,
    if(!gdt->data)
       goto no_data;
 
-   gdt->bmi.bmiHeader.biSize = sizeof(BITMAPINFOHEADER);
-   gdt->bmi.bmiHeader.biWidth = gdt->stride / cpp;
-   gdt->bmi.bmiHeader.biHeight= -(long)height;
-   gdt->bmi.bmiHeader.biPlanes = 1;
-   gdt->bmi.bmiHeader.biBitCount = bpp;
-   gdt->bmi.bmiHeader.biCompression = BI_RGB;
-   gdt->bmi.bmiHeader.biSizeImage = 0;
-   gdt->bmi.bmiHeader.biXPelsPerMeter = 0;
-   gdt->bmi.bmiHeader.biYPelsPerMeter = 0;
-   gdt->bmi.bmiHeader.biClrUsed = 0;
-   gdt->bmi.bmiHeader.biClrImportant = 0;
+   gdt->bmi.bV5Size = sizeof(BITMAPV5HEADER);
+   gdt->bmi.bV5Width = gdt->stride / cpp;
+   gdt->bmi.bV5Height = -(long)height;
+   gdt->bmi.bV5Planes = 1;
+   gdt->bmi.bV5BitCount = bpp;
+   gdt->bmi.bV5Compression = BI_RGB;
+   gdt->bmi.bV5SizeImage = 0;
+   gdt->bmi.bV5XPelsPerMeter = 0;
+   gdt->bmi.bV5YPelsPerMeter = 0;
+   gdt->bmi.bV5ClrUsed = 0;
+   gdt->bmi.bV5ClrImportant = 0;
+
+   if (format == PIPE_FORMAT_B5G6R5_UNORM) {
+      gdt->bmi.bV5Compression = BI_BITFIELDS;
+      gdt->bmi.bV5RedMask = 0xF800;
+      gdt->bmi.bV5GreenMask = 0x07E0;
+      gdt->bmi.bV5BlueMask = 0x001F;
+   } else if (format == PIPE_FORMAT_B4G4R4A4_UNORM) {
+      gdt->bmi.bV5Compression = BI_BITFIELDS;
+      gdt->bmi.bV5RedMask = 0x0F00;
+      gdt->bmi.bV5GreenMask = 0x00F0;
+      gdt->bmi.bV5BlueMask = 0x000F;
+   } else if (format == PIPE_FORMAT_R10G10B10A2_UNORM) {
+      gdt->bmi.bV5Compression = BI_BITFIELDS;
+      gdt->bmi.bV5RedMask = 0x000003FF;
+      gdt->bmi.bV5GreenMask = 0x000FFC00;
+      gdt->bmi.bV5BlueMask = 0x3FF00000;
+   }
 
    *stride = gdt->stride;
    return (struct sw_displaytarget *)gdt;
@@ -202,7 +224,7 @@ gdi_sw_display( struct sw_winsys *winsys,
     StretchDIBits(hDC,
                   0, 0, gdt->width, gdt->height,
                   0, 0, gdt->width, gdt->height,
-                  gdt->data, &gdt->bmi, 0, SRCCOPY);
+                  gdt->data, (BITMAPINFO *)&gdt->bmi, 0, SRCCOPY);
 }
 
 static void

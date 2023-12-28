@@ -61,7 +61,7 @@
 #define HIGH_WORD(X) ((X & 0xFFFF0000) >> 16)
 
 
-#if defined(PIPE_CC_GCC) && (PIPE_CC_GCC_VERSION > 502) && (defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64))
+#if DETECT_CC_GCC && (DETECT_CC_GCC_VERSION > 502) && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
 
 /**
  * Hypervisor-specific bi-directional communication channel.  Should never
@@ -124,7 +124,7 @@
  * @si:  [OUT]
  * @di:  [OUT]
  */
-#if defined(PIPE_ARCH_X86_64)
+#if DETECT_ARCH_X86_64
 
 typedef uint64_t VMW_REG;
 
@@ -273,7 +273,7 @@ typedef uint32_t VMW_REG;
          (void) ax; (void) bx; (void) cx;         \
          (void) dx; (void) si; (void) di;
 
-#endif /* #if PIPE_CC_GCC */
+#endif /* #if DETECT_CC_GCC */
 
 
 enum rpc_msg_type {

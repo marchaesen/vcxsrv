@@ -182,11 +182,6 @@ vir_print_reg(struct v3d_compile *c, const struct qinst *inst,
                 break;
         }
 
-        case QFILE_VPM:
-                fprintf(stderr, "vpm%d.%d",
-                        reg.index / 4, reg.index % 4);
-                break;
-
         case QFILE_TEMP:
                 fprintf(stderr, "t%d", reg.index);
                 break;
@@ -197,9 +192,6 @@ static void
 vir_dump_sig_addr(const struct v3d_device_info *devinfo,
                   const struct v3d_qpu_instr *instr)
 {
-        if (devinfo->ver < 41)
-                return;
-
         if (!instr->sig_magic)
                 fprintf(stderr, ".rf%d", instr->sig_addr);
         else {
@@ -270,8 +262,8 @@ vir_dump_alu(struct v3d_compile *c, struct qinst *inst)
                 vir_print_reg(c, inst, inst->dst);
                 fprintf(stderr, "%s", v3d_qpu_pack_name(instr->alu.add.output_pack));
 
-                unpack[0] = instr->alu.add.a_unpack;
-                unpack[1] = instr->alu.add.b_unpack;
+                unpack[0] = instr->alu.add.a.unpack;
+                unpack[1] = instr->alu.add.b.unpack;
         } else {
                 fprintf(stderr, "%s", v3d_qpu_mul_op_name(instr->alu.mul.op));
                 fprintf(stderr, "%s", v3d_qpu_cond_name(instr->flags.mc));
@@ -282,8 +274,8 @@ vir_dump_alu(struct v3d_compile *c, struct qinst *inst)
                 vir_print_reg(c, inst, inst->dst);
                 fprintf(stderr, "%s", v3d_qpu_pack_name(instr->alu.mul.output_pack));
 
-                unpack[0] = instr->alu.mul.a_unpack;
-                unpack[1] = instr->alu.mul.b_unpack;
+                unpack[0] = instr->alu.mul.a.unpack;
+                unpack[1] = instr->alu.mul.b.unpack;
         }
 
         for (int i = 0; i < nsrc; i++) {

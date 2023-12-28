@@ -21,8 +21,8 @@
  * SOFTWARE.
  */
 
-#include "pan_ir.h"
 #include "compiler/nir/nir_builder.h"
+#include "pan_ir.h"
 
 /* Sample positions are supplied in a packed 8:8 fixed-point vec2 format in GPU
  * memory indexed by the sample. We lower in NIR to take advantage of possible
@@ -33,43 +33,38 @@
  * it's a pretty trivial difference */
 
 static bool
-pan_lower_sample_pos_impl(struct nir_builder *b,
-                nir_instr *instr, UNUSED void *data)
+pan_lower_sample_pos_impl(struct nir_builder *b, nir_intrinsic_instr *intr,
+                          UNUSED void *data)
 {
-        if (instr->type != nir_instr_type_intrinsic)
-                return false;
+   if (intr->intrinsic != nir_intrinsic_load_sample_pos)
+      return false;
 
-        nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-        if (intr->intrinsic != nir_intrinsic_load_sample_pos)
-                return false;
+   b->cursor = nir_before_instr(&intr->instr);
 
-        b->cursor = nir_before_instr(instr);
+   /* Elements are 4 bytes */
+   nir_def *addr =
+      nir_iadd(b, nir_load_sample_positions_pan(b),
+               nir_u2u64(b, nir_imul_imm(b, nir_load_sample_id(b), 4)));
 
-        /* Elements are 4 bytes */
-        nir_ssa_def *addr = nir_iadd(b,
-                        nir_load_sample_positions_pan(b),
-                        nir_u2u64(b, nir_imul_imm(b, nir_load_sample_id(b), 4)));
+   /* Decode 8:8 fixed-point */
+   nir_def *raw = nir_load_global(b, addr, 2, 2, 16);
+   nir_def *decoded = nir_fmul_imm(b, nir_i2f16(b, raw), 1.0 / 256.0);
 
-        /* Decode 8:8 fixed-point */
-        nir_ssa_def *raw = nir_load_global(b, addr, 2, 2, 16);
-        nir_ssa_def *decoded = nir_fmul_imm(b, nir_i2f16(b, raw), 1.0 / 256.0);
+   /* Make NIR validator happy */
+   if (decoded->bit_size != intr->def.bit_size)
+      decoded = nir_f2fN(b, decoded, intr->def.bit_size);
 
-        /* Make NIR validator happy */
-        if (decoded->bit_size != nir_dest_bit_size(intr->dest))
-                decoded = nir_f2fN(b, decoded, nir_dest_bit_size(intr->dest));
-
-        nir_ssa_def_rewrite_uses(&intr->dest.ssa, decoded);
-        return true;
+   nir_def_rewrite_uses(&intr->def, decoded);
+   return true;
 }
 
 bool
 pan_lower_sample_pos(nir_shader *shader)
 {
-        if (shader->info.stage != MESA_SHADER_FRAGMENT)
-                return false;
+   if (shader->info.stage != MESA_SHADER_FRAGMENT)
+      return false;
 
-        return nir_shader_instructions_pass(shader,
-                        pan_lower_sample_pos_impl,
-                        nir_metadata_block_index | nir_metadata_dominance,
-                        NULL);
+   return nir_shader_intrinsics_pass(
+      shader, pan_lower_sample_pos_impl,
+      nir_metadata_block_index | nir_metadata_dominance, NULL);
 }

@@ -37,6 +37,7 @@ static const struct {
    uint32_t num_render_backends;
    bool has_dedicated_vram;
 } gpu_info[] = {
+   /* clang-format off */
    [CHIP_TAHITI] = {0x6780, 8, true},
    [CHIP_PITCAIRN] = {0x6800, 8, true},
    [CHIP_VERDE] = {0x6820, 4, true},
@@ -60,7 +61,7 @@ static const struct {
    [CHIP_VEGA20] = {0x66A0, 16, true},
    [CHIP_RAVEN] = {0x15DD, 2, false},
    [CHIP_RENOIR] = {0x1636, 2, false},
-   [CHIP_ARCTURUS] = {0x738C, 2, true},
+   [CHIP_MI100] = {0x738C, 2, true},
    [CHIP_NAVI10] = {0x7310, 16, true},
    [CHIP_NAVI12] = {0x7360, 8, true},
    [CHIP_NAVI14] = {0x7340, 8, true},
@@ -68,7 +69,8 @@ static const struct {
    [CHIP_VANGOGH] = {0x163F, 8, false},
    [CHIP_NAVI22] = {0x73C0, 8, true},
    [CHIP_NAVI23] = {0x73E0, 8, true},
-   [CHIP_GFX1100] = {0xdead, 8, true}, /* TODO: fill with real info. */
+   [CHIP_NAVI31] = {0x744C, 24, true},
+   /* clang-format on */
 };
 
 static void
@@ -86,7 +88,7 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *info)
          info->family = i;
          info->name = ac_get_family_name(i);
 
-         if (info->family >= CHIP_GFX1100)
+         if (info->family >= CHIP_NAVI31)
             info->gfx_level = GFX11;
          else if (i >= CHIP_NAVI21)
             info->gfx_level = GFX10_3;
@@ -112,47 +114,55 @@ radv_null_winsys_query_info(struct radeon_winsys *rws, struct radeon_info *info)
    info->max_se = 4;
    info->num_se = 4;
    if (info->gfx_level >= GFX10_3)
-      info->max_wave64_per_simd = 16;
+      info->max_waves_per_simd = 16;
    else if (info->gfx_level >= GFX10)
-      info->max_wave64_per_simd = 20;
+      info->max_waves_per_simd = 20;
    else if (info->family >= CHIP_POLARIS10 && info->family <= CHIP_VEGAM)
-      info->max_wave64_per_simd = 8;
+      info->max_waves_per_simd = 8;
    else
-      info->max_wave64_per_simd = 10;
+      info->max_waves_per_simd = 10;
 
    if (info->gfx_level >= GFX10)
-      info->num_physical_sgprs_per_simd = 128 * info->max_wave64_per_simd * 2;
+      info->num_physical_sgprs_per_simd = 128 * info->max_waves_per_simd;
    else if (info->gfx_level >= GFX8)
       info->num_physical_sgprs_per_simd = 800;
    else
       info->num_physical_sgprs_per_simd = 512;
 
-   info->num_physical_wave64_vgprs_per_simd = info->gfx_level >= GFX10 ? 512 : 256;
+   info->has_3d_cube_border_color_mipmap = true;
+   info->has_image_opcodes = true;
+
+   if (info->family == CHIP_NAVI31 || info->family == CHIP_NAVI32)
+      info->num_physical_wave64_vgprs_per_simd = 768;
+   else if (info->gfx_level >= GFX10)
+      info->num_physical_wave64_vgprs_per_simd = 512;
+   else
+      info->num_physical_wave64_vgprs_per_simd = 256;
    info->num_simd_per_compute_unit = info->gfx_level >= GFX10 ? 2 : 4;
-   info->lds_size_per_workgroup = info->gfx_level >= GFX10 ? 128 * 1024 : 64 * 1024;
+   info->lds_size_per_workgroup = info->gfx_level >= GFX10  ? 128 * 1024
+                                  : info->gfx_level >= GFX7 ? 64 * 1024
+                                                            : 32 * 1024;
    info->lds_encode_granularity = info->gfx_level >= GFX7 ? 128 * 4 : 64 * 4;
-   info->lds_alloc_granularity =
-      info->gfx_level >= GFX10_3 ? 256 * 4 : info->lds_encode_granularity;
+   info->lds_alloc_granularity = info->gfx_level >= GFX10_3 ? 256 * 4 : info->lds_encode_granularity;
    info->max_render_backends = gpu_info[info->family].num_render_backends;
 
    info->has_dedicated_vram = gpu_info[info->family].has_dedicated_vram;
    info->has_packed_math_16bit = info->gfx_level >= GFX9;
 
-   info->has_image_load_dcc_bug =
-      info->family == CHIP_NAVI23 || info->family == CHIP_VANGOGH;
+   info->has_image_load_dcc_bug = info->family == CHIP_NAVI23 || info->family == CHIP_VANGOGH;
 
    info->has_accelerated_dot_product =
-      info->family == CHIP_ARCTURUS || info->family == CHIP_ALDEBARAN ||
-      info->family == CHIP_VEGA20 || info->family >= CHIP_NAVI12;
+      info->family == CHIP_VEGA20 || (info->family >= CHIP_MI100 && info->family != CHIP_NAVI10);
 
    info->address32_hi = info->gfx_level >= GFX9 ? 0xffff8000u : 0x0;
 
    info->has_rbplus = info->family == CHIP_STONEY || info->gfx_level >= GFX9;
    info->rbplus_allowed =
-      info->has_rbplus &&
-      (info->family == CHIP_STONEY || info->family == CHIP_VEGA12 || info->family == CHIP_RAVEN ||
-       info->family == CHIP_RAVEN2 || info->family == CHIP_RENOIR || info->gfx_level >= GFX10_3);
+      info->has_rbplus && (info->family == CHIP_STONEY || info->family == CHIP_VEGA12 || info->family == CHIP_RAVEN ||
+                           info->family == CHIP_RAVEN2 || info->family == CHIP_RENOIR || info->gfx_level >= GFX10_3);
 
+   info->has_scheduled_fence_dependency = true;
+   info->has_gang_submit = true;
 }
 
 static const char *

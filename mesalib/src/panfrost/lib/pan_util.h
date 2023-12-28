@@ -28,58 +28,59 @@
 #ifndef PAN_UTIL_H
 #define PAN_UTIL_H
 
-#include <stdint.h>
 #include <stdbool.h>
+#include <stdint.h>
 #include "util/format/u_format.h"
 
-#define PAN_DBG_PERF            0x0001
-#define PAN_DBG_TRACE           0x0002
-#define PAN_DBG_DEQP            0x0004
-#define PAN_DBG_DIRTY           0x0008
-#define PAN_DBG_SYNC            0x0010
-#define PAN_DBG_PRECOMPILE      0x0020
-#define PAN_DBG_NOFP16          0x0040
-#define PAN_DBG_NO_CRC          0x0080
-#define PAN_DBG_GL3             0x0100
-#define PAN_DBG_NO_AFBC         0x0200
-#define PAN_DBG_MSAA16          0x0400
-#define PAN_DBG_INDIRECT        0x0800
-#define PAN_DBG_LINEAR          0x1000
-#define PAN_DBG_NO_CACHE        0x2000
-#define PAN_DBG_DUMP            0x4000
+#define PAN_DBG_PERF  0x0001
+#define PAN_DBG_TRACE 0x0002
+/* 0x4 unused */
+#define PAN_DBG_DIRTY 0x0008
+#define PAN_DBG_SYNC  0x0010
+/* 0x20 unused */
+#define PAN_DBG_NOFP16  0x0040
+#define PAN_DBG_CRC     0x0080
+#define PAN_DBG_GL3     0x0100
+#define PAN_DBG_NO_AFBC 0x0200
+#define PAN_DBG_MSAA16  0x0400
+/* 0x800 unused */
+#define PAN_DBG_LINEAR   0x1000
+#define PAN_DBG_NO_CACHE 0x2000
+#define PAN_DBG_DUMP     0x4000
 
 #ifndef NDEBUG
-#define PAN_DBG_OVERFLOW        0x8000
+#define PAN_DBG_OVERFLOW 0x8000
 #endif
 
+#define PAN_DBG_YUV        0x20000
+#define PAN_DBG_FORCE_PACK 0x40000
+
 struct panfrost_device;
+struct pan_blendable_format;
 
-unsigned
-panfrost_translate_swizzle_4(const unsigned char swizzle[4]);
+unsigned panfrost_translate_swizzle_4(const unsigned char swizzle[4]);
 
-void
-panfrost_invert_swizzle(const unsigned char *in, unsigned char *out);
+void panfrost_invert_swizzle(const unsigned char *in, unsigned char *out);
 
-unsigned
-panfrost_format_to_bifrost_blend(const struct panfrost_device *dev,
-                                 enum pipe_format format,
-                                 bool dithered);
+unsigned panfrost_format_to_bifrost_blend(const struct panfrost_device *dev,
+                                          enum pipe_format format,
+                                          bool dithered);
 
-void
-pan_pack_color(uint32_t *packed, const union pipe_color_union *color,
-               enum pipe_format format, bool dithered);
+void pan_pack_color(const struct pan_blendable_format *blendable_formats,
+                    uint32_t *packed, const union pipe_color_union *color,
+                    enum pipe_format format, bool dithered);
 
 /* Get the last blend shader, for an erratum workaround on v5 */
 
 static inline uint64_t
 panfrost_last_nonnull(uint64_t *ptrs, unsigned count)
 {
-        for (signed i = ((signed) count - 1); i >= 0; --i) {
-                if (ptrs[i])
-                        return ptrs[i];
-        }
+   for (signed i = ((signed)count - 1); i >= 0; --i) {
+      if (ptrs[i])
+         return ptrs[i];
+   }
 
-        return 0;
+   return 0;
 }
 
 #endif /* PAN_UTIL_H */

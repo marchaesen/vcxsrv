@@ -30,6 +30,8 @@
 
 #include <stdio.h>
 
+#include "util/detect_os.h"
+
 #ifdef HAVE_LIBUNWIND
 #define UNW_LOCAL_ONLY
 #include <libunwind.h>
@@ -51,7 +53,7 @@ extern "C" {
 /**
  * Represent a frame from a stack backtrace.
  *
-#if defined(PIPE_OS_WINDOWS) && !defined(HAVE_LIBUNWIND)
+#if DETECT_OS_WINDOWS && !defined(HAVE_LIBUNWIND)
  * XXX: Do not change this. (passed to Windows' CaptureStackBackTrace())
 #endif
  *

@@ -280,7 +280,7 @@ D3DKMTQueryAdapterInfo(CONST D3DKMT_QUERYADAPTERINFO *pData)
          if (pResult->Version != KMTUMDVERSION_DX10 &&
              pResult->Version != KMTUMDVERSION_DX11) {
          DebugPrintf("%s: unsupported UMD version (%u)\n",
-                     __FUNCTION__, pResult->Version);
+                     __func__, pResult->Version);
             return STATUS_INVALID_PARAMETER;
          }
          HMODULE hModule = 0;
@@ -308,7 +308,7 @@ D3DKMTQueryAdapterInfo(CONST D3DKMT_QUERYADAPTERINFO *pData)
    case KMTQAITYPE_CHECKDRIVERUPDATESTATUS:
       {
          BOOL *pResult = (BOOL *)pData->pPrivateDriverData;
-         *pResult = FALSE;
+         *pResult = false;
          return STATUS_SUCCESS;
       }
    case KMTQAITYPE_DRIVERVERSION:
@@ -320,7 +320,7 @@ D3DKMTQueryAdapterInfo(CONST D3DKMT_QUERYADAPTERINFO *pData)
    case KMTQAITYPE_XBOX:
       {
          BOOL *pResult = (BOOL *)pData->pPrivateDriverData;
-         *pResult = FALSE;
+         *pResult = false;
          return STATUS_SUCCESS;
       }
    case KMTQAITYPE_PHYSICALADAPTERCOUNT:
@@ -334,7 +334,7 @@ D3DKMTQueryAdapterInfo(CONST D3DKMT_QUERYADAPTERINFO *pData)
       return STATUS_SUCCESS;
    default:
       DebugPrintf("%s: unsupported query type (Type=%u, PrivateDriverDataSize=%u)\n",
-                  __FUNCTION__, pData->Type, pData->PrivateDriverDataSize);
+                  __func__, pData->Type, pData->PrivateDriverDataSize);
       ZeroMemory(pData->pPrivateDriverData, pData->PrivateDriverDataSize);
       return STATUS_NOT_IMPLEMENTED;
    }
@@ -628,7 +628,7 @@ EXTERN_C BOOLEAN APIENTRY
 D3DKMTCheckExclusiveOwnership(VOID)
 {
    LOG_UNSUPPORTED_ENTRYPOINT();
-   return FALSE;
+   return false;
 }
 
 

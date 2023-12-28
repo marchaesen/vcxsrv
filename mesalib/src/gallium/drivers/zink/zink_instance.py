@@ -43,9 +43,10 @@ EXTENSIONS = [
         nonstandard=True),
     Extension("VK_KHR_surface"),
     Extension("VK_EXT_headless_surface"),
-    Extension("VK_KHR_wayland_surface"),
+    Extension("VK_KHR_wayland_surface",
+              conditions=["!display_dev"]),
     Extension("VK_KHR_xcb_surface",
-              conditions=["!instance_info->disable_xcb_surface"]),
+              conditions=["!display_dev"]),
     Extension("VK_KHR_win32_surface"),
 ]
 
@@ -67,9 +68,9 @@ header_code = """
 #ifndef ZINK_INSTANCE_H
 #define ZINK_INSTANCE_H
 
-#include "os/os_process.h"
+#include "util/u_process.h"
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 #if defined(__APPLE__)
 // Source of MVK_VERSION
@@ -81,7 +82,6 @@ struct zink_screen;
 
 struct zink_instance_info {
    uint32_t loader_version;
-   bool disable_xcb_surface;
 
 %for ext in extensions:
    bool have_${ext.name_with_vendor()};
@@ -93,7 +93,7 @@ struct zink_instance_info {
 };
 
 bool
-zink_create_instance(struct zink_screen *screen);
+zink_create_instance(struct zink_screen *screen, bool display_dev);
 
 void
 zink_verify_instance_extensions(struct zink_screen *screen);
@@ -124,7 +124,7 @@ impl_code = """
 #include "zink_screen.h"
 
 bool
-zink_create_instance(struct zink_screen *screen)
+zink_create_instance(struct zink_screen *screen, bool display_dev)
 {
    struct zink_instance_info *instance_info = &screen->instance_info;
 
@@ -235,12 +235,11 @@ zink_create_instance(struct zink_screen *screen)
    VkApplicationInfo ai = {0};
    ai.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
 
-   char proc_name[128];
-   if (os_get_process_name(proc_name, ARRAY_SIZE(proc_name)))
-      ai.pApplicationName = proc_name;
-   else
-      ai.pApplicationName = "unknown";
+   const char *proc_name = util_get_process_name();
+   if (!proc_name)
+      proc_name = "unknown";
 
+   ai.pApplicationName = proc_name;
    ai.pEngineName = "mesa zink";
    ai.apiVersion = instance_info->loader_version;
 
@@ -387,12 +386,12 @@ if __name__ == "__main__":
         print("zink_instance.py: Found {} error(s) in total. Quitting.".format(error_count))
         exit(1)
 
-    with open(header_path, "w") as header_file:
+    with open(header_path, "w", encoding='utf-8') as header_file:
         header = Template(header_code).render(extensions=extensions, layers=layers, registry=registry).strip()
         header = replace_code(header, replacement)
         print(header, file=header_file)
 
-    with open(impl_path, "w") as impl_file:
+    with open(impl_path, "w", encoding='utf-8') as impl_file:
         impl = Template(impl_code).render(extensions=extensions, layers=layers, registry=registry).strip()
         impl = replace_code(impl, replacement)
         print(impl, file=impl_file)

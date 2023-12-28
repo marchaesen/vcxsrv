@@ -7,38 +7,23 @@ spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-ve
 # #6322
 spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 
-
-# #6905
-glx@glx-swap-copy,Fail
-
 #kopper regressions/changes
-glx@extension string sanity,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_ust_test,Fail
 
 
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_x,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 
 # this test tries to be error-compatible with nvidia. spoiler: mesa isn't, and no driver can pass it
 glx@glx_arb_create_context@invalid flag,Fail
 
-glx@glx-copy-sub-buffer,Fail
-glx@glx-copy-sub-buffer samples=2,Fail
-glx@glx-copy-sub-buffer samples=4,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth,Crash
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
@@ -53,22 +38,7 @@ glx@glx_ext_import_context@imported context has same context id,Fail
 glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
-shaders@glsl-fs-pointcoord,Fail
-shaders@point-vertex-id divisor,Fail
-shaders@point-vertex-id gl_instanceid,Fail
-shaders@point-vertex-id gl_instanceid divisor,Fail
-shaders@point-vertex-id gl_vertexid,Fail
-shaders@point-vertex-id gl_vertexid divisor,Fail
-shaders@point-vertex-id gl_vertexid gl_instanceid,Fail
-shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Fail
-spec@!opengl 1.0@gl-1.0-edgeflag,Fail
-spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
-spec@!opengl 1.1@linestipple,Fail
-spec@!opengl 1.1@linestipple@Factor 2x,Fail
-spec@!opengl 1.1@linestipple@Factor 3x,Fail
-spec@!opengl 1.1@linestipple@Line loop,Fail
-spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-facing,Fail
 spec@!opengl 1.1@polygon-mode-offset,Fail
@@ -86,19 +56,11 @@ spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fai
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on right edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,Fail
 spec@!opengl 1.2@copyteximage 3d,Fail
-spec@!opengl 2.0@depth-tex-modes-glsl,Fail
-spec@!opengl 2.0@gl-2.0-edgeflag,Fail
-spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
-spec@!opengl es 2.0@glsl-fs-pointcoord,Fail
-spec@arb_depth_texture@depth-tex-modes,Fail
-spec@arb_framebuffer_object@fbo-gl_pointcoord,Fail
-spec@arb_get_program_binary@restore-sso-program,Fail
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-tf-separate,Fail
 spec@arb_pipeline_statistics_query@arb_pipeline_statistics_query-frag,Fail
-spec@arb_point_sprite@arb_point_sprite-checkerboard,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
@@ -157,35 +119,7 @@ spec@ext_framebuffer_multisample@interpolation 4 centroid-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 4 centroid-edges,Fail
 spec@ext_framebuffer_multisample@interpolation 4 non-centroid-deriv-disabled,Fail
 spec@ext_framebuffer_multisample@interpolation 4 non-centroid-disabled,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-intel_external_sampler_only,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_attributes,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-invalid_hints,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-missing_attributes,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-ownership_transfer,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-reimport-bug,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_argb8888,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_ayuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_nv12,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p016,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y412,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
-spec@ext_image_dma_buf_import@ext_image_dma_buf_import-unsupported_format,Fail
 spec@ext_packed_float@query-rgba-signed-components,Fail
-spec@ext_texture_swizzle@depth_texture_mode_and_swizzle,Fail
 spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 
 spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
@@ -204,9 +138,6 @@ spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
 spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-load,Crash
 spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-store,Crash
 
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-read,Crash
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-write,Crash
-
 #literally no driver can pass these
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
@@ -216,13 +147,6 @@ spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
 spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index,Fail
 spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index2,Fail
 spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-non-const-uniform-index,Fail
-spec@arb_fragment_program_shadow@tex-shadow1d,Fail
-spec@arb_fragment_program_shadow@tex-shadow2d,Fail
-spec@arb_fragment_program_shadow@tex-shadow2drect,Fail
-spec@arb_fragment_program_shadow@txp-shadow1d,Fail
-spec@arb_fragment_program_shadow@txp-shadow2d,Fail
-spec@arb_fragment_program_shadow@txp-shadow2drect,Fail
-spec@arb_gl_spirv@execution@xfb@vs_block_array,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x4-mat2x4,Fail
@@ -262,49 +186,7 @@ spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-double-fl
 spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec2-vec2,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec3-vec3,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@vert-conversion-explicit-dvec4-vec4,Fail
-spec@arb_shader_storage_buffer_object@execution@ssbo-atomiccompswap-int,Fail
-spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-01,Fail
-spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-03,Fail
-spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-07,Fail
-spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-08,Fail
-spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-cumulative,Fail
 spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drect,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drect-01,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drect-03,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drect-07,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drect-08,Fail
-spec@arb_texture_rectangle@glsl-fs-shadow2drectproj,Fail
-spec@arb_texture_rg@execution@fs-shadow2d-red-01,Fail
-spec@arb_texture_rg@execution@fs-shadow2d-red-02,Fail
-spec@arb_texture_rg@execution@fs-shadow2d-red-03,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray-01,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray-03,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray-07,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray-08,Fail
-spec@ext_texture_array@glsl-fs-shadow1darray-bias,Fail
-spec@ext_texture_array@glsl-fs-shadow2darray,Fail
-spec@ext_texture_array@glsl-fs-shadow2darray-01,Fail
-spec@ext_texture_array@glsl-fs-shadow2darray-03,Fail
-spec@ext_texture_array@glsl-fs-shadow2darray-07,Fail
-spec@ext_texture_array@glsl-fs-shadow2darray-08,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-01,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-03,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-07,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-08,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1d-bias,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1dproj,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow1dproj-bias,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-01,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-03,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-07,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-08,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2d-bias,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2dproj,Fail
-spec@glsl-1.10@execution@samplers@glsl-fs-shadow2dproj-bias,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2-mat2,Fail
@@ -347,3 +229,14 @@ spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec2-vec2,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec3-vec3,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec4-vec4,Fail
 spec@glsl-4.50@execution@ssbo-atomiccompswap-int,Fail
+
+spec@ext_transform_feedback@tessellation quads wireframe,Fail
+
+# Debian 12 CI update, see https://gitlab.freedesktop.org/mesa/mesa/-/issues/9072
+spec@ext_packed_float@multisample-formats 4 gl_ext_packed_float,Crash
+spec@ext_transform_feedback@tessellation quad_strip wireframe,Crash
+spec@!opengl 1.0@gl-1.0-dlist-beginend,Crash
+spec@arb_clip_control@arb_clip_control-depth-precision,Crash
+spec@nv_texture_barrier@blending-in-shader,Crash
+
+spec@arb_viewport_array@display-list,Fail

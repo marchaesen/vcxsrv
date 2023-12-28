@@ -24,11 +24,11 @@
 #define VIRGL_DRM_WINSYS_H
 
 #include <stdint.h>
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_defines.h"
 #include "pipe/p_state.h"
 #include "util/list.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "virgl/virgl_winsys.h"
 #include "vtest/vtest_protocol.h"

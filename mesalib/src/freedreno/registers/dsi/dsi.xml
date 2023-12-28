@@ -347,6 +347,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="RGB_SWAP" low="8" high="10" type="dsi_rgb_swap"/>
 		<bitfield name="INPUT_RGB_SWAP" low="12" high="14" type="dsi_rgb_swap"/>
 		<bitfield name="BURST_MODE" pos="16" type="boolean"/>
+		<bitfield name="DATABUS_WIDEN" pos="20" type="boolean"/>
 	</reg32>
 	<reg32 offset="0x001b8" name="CMD_MODE_MDP_STREAM2_CTRL">
 		<bitfield name="DATA_TYPE" low="0" high="5" type="uint"/>

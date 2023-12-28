@@ -505,6 +505,8 @@ extern _X_EXPORT void XkbUpdateIndicators(DeviceIntPtr /* keybd */ ,
                                           XkbEventCausePtr      /* cause */
     );
 
+extern void XkbForceUpdateDeviceLEDs(DeviceIntPtr /* keybd */);
+
 extern _X_EXPORT void XkbUpdateAllDeviceIndicators(XkbChangesPtr /* changes */,
                                                    XkbEventCausePtr /* cause */
     );

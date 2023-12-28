@@ -52,6 +52,6 @@ if with_tests
       link_with : [libpanfrost_shared],
     ),
     suite : ['panfrost'],
-    protocol : gtest_test_protocol,
+    protocol : 'gtest',
   )
 endif

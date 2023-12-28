@@ -21,9 +21,9 @@
  * IN THE SOFTWARE.
  */
 #include <math.h>
+#include "util/u_vector.h"
 #include "nir.h"
 #include "nir_builder.h"
-#include "util/u_vector.h"
 
 /**
  * Lower flrp instructions.
@@ -47,20 +47,20 @@ static void
 replace_with_strict_ffma(struct nir_builder *bld, struct u_vector *dead_flrp,
                          struct nir_alu_instr *alu)
 {
-   nir_ssa_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
-   nir_ssa_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
-   nir_ssa_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
+   nir_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
+   nir_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
+   nir_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
 
-   nir_ssa_def *const neg_a = nir_fneg(bld, a);
+   nir_def *const neg_a = nir_fneg(bld, a);
    nir_instr_as_alu(neg_a->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const inner_ffma = nir_ffma(bld, neg_a, c, a);
+   nir_def *const inner_ffma = nir_ffma(bld, neg_a, c, a);
    nir_instr_as_alu(inner_ffma->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const outer_ffma = nir_ffma(bld, b, c, inner_ffma);
+   nir_def *const outer_ffma = nir_ffma(bld, b, c, inner_ffma);
    nir_instr_as_alu(outer_ffma->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, outer_ffma);
+   nir_def_rewrite_uses(&alu->def, outer_ffma);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -76,24 +76,24 @@ static void
 replace_with_single_ffma(struct nir_builder *bld, struct u_vector *dead_flrp,
                          struct nir_alu_instr *alu)
 {
-   nir_ssa_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
-   nir_ssa_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
-   nir_ssa_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
+   nir_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
+   nir_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
+   nir_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
 
-   nir_ssa_def *const neg_c = nir_fneg(bld, c);
+   nir_def *const neg_c = nir_fneg(bld, c);
    nir_instr_as_alu(neg_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const one_minus_c =
+   nir_def *const one_minus_c =
       nir_fadd(bld, nir_imm_floatN_t(bld, 1.0f, c->bit_size), neg_c);
    nir_instr_as_alu(one_minus_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const b_times_c = nir_fmul(bld, b, c);
+   nir_def *const b_times_c = nir_fmul(bld, b, c);
    nir_instr_as_alu(b_times_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const final_ffma = nir_ffma(bld, a, one_minus_c, b_times_c);
+   nir_def *const final_ffma = nir_ffma(bld, a, one_minus_c, b_times_c);
    nir_instr_as_alu(final_ffma->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, final_ffma);
+   nir_def_rewrite_uses(&alu->def, final_ffma);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -109,27 +109,27 @@ static void
 replace_with_strict(struct nir_builder *bld, struct u_vector *dead_flrp,
                     struct nir_alu_instr *alu)
 {
-   nir_ssa_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
-   nir_ssa_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
-   nir_ssa_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
+   nir_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
+   nir_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
+   nir_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
 
-   nir_ssa_def *const neg_c = nir_fneg(bld, c);
+   nir_def *const neg_c = nir_fneg(bld, c);
    nir_instr_as_alu(neg_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const one_minus_c =
+   nir_def *const one_minus_c =
       nir_fadd(bld, nir_imm_floatN_t(bld, 1.0f, c->bit_size), neg_c);
    nir_instr_as_alu(one_minus_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const first_product = nir_fmul(bld, a, one_minus_c);
+   nir_def *const first_product = nir_fmul(bld, a, one_minus_c);
    nir_instr_as_alu(first_product->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const second_product = nir_fmul(bld, b, c);
+   nir_def *const second_product = nir_fmul(bld, b, c);
    nir_instr_as_alu(second_product->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const sum = nir_fadd(bld, first_product, second_product);
+   nir_def *const sum = nir_fadd(bld, first_product, second_product);
    nir_instr_as_alu(sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, sum);
+   nir_def_rewrite_uses(&alu->def, sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -145,23 +145,23 @@ static void
 replace_with_fast(struct nir_builder *bld, struct u_vector *dead_flrp,
                   struct nir_alu_instr *alu)
 {
-   nir_ssa_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
-   nir_ssa_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
-   nir_ssa_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
+   nir_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
+   nir_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
+   nir_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
 
-   nir_ssa_def *const neg_a = nir_fneg(bld, a);
+   nir_def *const neg_a = nir_fneg(bld, a);
    nir_instr_as_alu(neg_a->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const b_minus_a = nir_fadd(bld, b, neg_a);
+   nir_def *const b_minus_a = nir_fadd(bld, b, neg_a);
    nir_instr_as_alu(b_minus_a->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const product = nir_fmul(bld, c, b_minus_a);
+   nir_def *const product = nir_fmul(bld, c, b_minus_a);
    nir_instr_as_alu(product->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const sum = nir_fadd(bld, a, product);
+   nir_def *const sum = nir_fadd(bld, a, product);
    nir_instr_as_alu(sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, sum);
+   nir_def_rewrite_uses(&alu->def, sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -180,17 +180,17 @@ replace_with_expanded_ffma_and_add(struct nir_builder *bld,
                                    struct u_vector *dead_flrp,
                                    struct nir_alu_instr *alu, bool subtract_c)
 {
-   nir_ssa_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
-   nir_ssa_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
-   nir_ssa_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
+   nir_def *const a = nir_ssa_for_alu_src(bld, alu, 0);
+   nir_def *const b = nir_ssa_for_alu_src(bld, alu, 1);
+   nir_def *const c = nir_ssa_for_alu_src(bld, alu, 2);
 
-   nir_ssa_def *const b_times_c = nir_fmul(bld, b, c);
+   nir_def *const b_times_c = nir_fmul(bld, b, c);
    nir_instr_as_alu(b_times_c->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *inner_sum;
+   nir_def *inner_sum;
 
    if (subtract_c) {
-      nir_ssa_def *const neg_c = nir_fneg(bld, c);
+      nir_def *const neg_c = nir_fneg(bld, c);
       nir_instr_as_alu(neg_c->parent_instr)->exact = alu->exact;
 
       inner_sum = nir_fadd(bld, a, neg_c);
@@ -200,10 +200,10 @@ replace_with_expanded_ffma_and_add(struct nir_builder *bld,
 
    nir_instr_as_alu(inner_sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def *const outer_sum = nir_fadd(bld, inner_sum, b_times_c);
+   nir_def *const outer_sum = nir_fadd(bld, inner_sum, b_times_c);
    nir_instr_as_alu(outer_sum->parent_instr)->exact = alu->exact;
 
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, outer_sum);
+   nir_def_rewrite_uses(&alu->def, outer_sum);
 
    /* DO NOT REMOVE the original flrp yet.  Many of the lowering choices are
     * based on other uses of the sources.  Removing the flrp may cause the
@@ -230,9 +230,9 @@ all_same_constant(const nir_alu_instr *instr, unsigned src, double *result)
       return false;
 
    const uint8_t *const swizzle = instr->src[src].swizzle;
-   const unsigned num_components = nir_dest_num_components(instr->dest.dest);
+   const unsigned num_components = instr->def.num_components;
 
-   if (instr->dest.dest.ssa.bit_size == 32) {
+   if (instr->def.bit_size == 32) {
       const float first = val[swizzle[0]].f32;
 
       for (unsigned i = 1; i < num_components; i++) {
@@ -266,9 +266,9 @@ sources_are_constants_with_similar_magnitudes(const nir_alu_instr *instr)
 
    const uint8_t *const swizzle0 = instr->src[0].swizzle;
    const uint8_t *const swizzle1 = instr->src[1].swizzle;
-   const unsigned num_components = nir_dest_num_components(instr->dest.dest);
+   const unsigned num_components = instr->def.num_components;
 
-   if (instr->dest.dest.ssa.bit_size == 32) {
+   if (instr->def.bit_size == 32) {
       for (unsigned i = 0; i < num_components; i++) {
          int exp0;
          int exp1;
@@ -333,7 +333,7 @@ get_similar_flrp_stats(nir_alu_instr *alu, struct similar_flrp_stats *st)
 
    nir_foreach_use(other_use, alu->src[2].src.ssa) {
       /* Is the use also a flrp? */
-      nir_instr *const other_instr = other_use->parent_instr;
+      nir_instr *const other_instr = nir_src_parent_instr(other_use);
       if (other_instr->type != nir_instr_type_alu)
          continue;
 
@@ -367,7 +367,7 @@ convert_flrp_instruction(nir_builder *bld,
                          bool always_precise)
 {
    bool have_ffma = false;
-   unsigned bit_size = nir_dest_bit_size(alu->dest.dest);
+   unsigned bit_size = alu->def.bit_size;
 
    if (bit_size == 16)
       have_ffma = !bld->shader->options->lower_ffma16;
@@ -599,8 +599,7 @@ lower_flrp_impl(nir_function_impl *impl,
                 unsigned lowering_mask,
                 bool always_precise)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -608,7 +607,7 @@ lower_flrp_impl(nir_function_impl *impl,
             nir_alu_instr *const alu = nir_instr_as_alu(instr);
 
             if (alu->op == nir_op_flrp &&
-                (alu->dest.dest.ssa.bit_size & lowering_mask)) {
+                (alu->def.bit_size & lowering_mask)) {
                convert_flrp_instruction(&b, dead_flrp, alu, always_precise);
             }
          }
@@ -616,7 +615,7 @@ lower_flrp_impl(nir_function_impl *impl,
    }
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
 }
 
 /**
@@ -638,11 +637,8 @@ nir_lower_flrp(nir_shader *shader,
    if (!u_vector_init_pow2(&dead_flrp, 8, sizeof(struct nir_alu_instr *)))
       return false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         lower_flrp_impl(function->impl, &dead_flrp, lowering_mask,
-                         always_precise);
-      }
+   nir_foreach_function_impl(impl, shader) {
+      lower_flrp_impl(impl, &dead_flrp, lowering_mask, always_precise);
    }
 
    /* Progress was made if the dead list is not empty.  Remove all the

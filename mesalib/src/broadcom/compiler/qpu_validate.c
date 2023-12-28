@@ -41,6 +41,7 @@ struct v3d_qpu_validate_state {
         int last_sfu_write;
         int last_branch_ip;
         int last_thrsw_ip;
+        int first_tlb_z_write;
 
         /* Set when we've found the last-THRSW signal, or if we were started
          * in single-segment mode.
@@ -110,10 +111,57 @@ static void
 qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
 {
         const struct v3d_device_info *devinfo = state->c->devinfo;
+
+        if (qinst->is_tlb_z_write && state->ip < state->first_tlb_z_write)
+                state->first_tlb_z_write = state->ip;
+
         const struct v3d_qpu_instr *inst = &qinst->qpu;
+
+        if (inst->type == V3D_QPU_INSTR_TYPE_BRANCH &&
+            state->first_tlb_z_write >= 0 &&
+            state->ip > state->first_tlb_z_write &&
+            inst->branch.msfign != V3D_QPU_MSFIGN_NONE &&
+            inst->branch.cond != V3D_QPU_BRANCH_COND_ALWAYS &&
+            inst->branch.cond != V3D_QPU_BRANCH_COND_A0 &&
+            inst->branch.cond != V3D_QPU_BRANCH_COND_NA0) {
+                fail_instr(state, "Implicit branch MSF read after TLB Z write");
+        }
 
         if (inst->type != V3D_QPU_INSTR_TYPE_ALU)
                 return;
+
+        if (inst->alu.add.op == V3D_QPU_A_SETMSF &&
+            state->first_tlb_z_write >= 0 &&
+            state->ip > state->first_tlb_z_write) {
+                fail_instr(state, "SETMSF after TLB Z write");
+        }
+
+        if (state->first_tlb_z_write >= 0 &&
+            state->ip > state->first_tlb_z_write &&
+            inst->alu.add.op == V3D_QPU_A_MSF) {
+                fail_instr(state, "MSF read after TLB Z write");
+        }
+
+        if (devinfo->ver < 71) {
+                if (inst->sig.small_imm_a || inst->sig.small_imm_c ||
+                    inst->sig.small_imm_d) {
+                        fail_instr(state, "small imm a/c/d added after V3D 7.1");
+                }
+        } else {
+                if ((inst->sig.small_imm_a || inst->sig.small_imm_b) &&
+                    !vir_is_add(qinst)) {
+                        fail_instr(state, "small imm a/b used but no ADD inst");
+                }
+                if ((inst->sig.small_imm_c || inst->sig.small_imm_d) &&
+                    !vir_is_mul(qinst)) {
+                        fail_instr(state, "small imm c/d used but no MUL inst");
+                }
+                if (inst->sig.small_imm_a + inst->sig.small_imm_b +
+                    inst->sig.small_imm_c + inst->sig.small_imm_d > 1) {
+                        fail_instr(state, "only one small immediate can be "
+                                   "enabled per instruction");
+                }
+        }
 
         /* LDVARY writes r5 two instructions later and LDUNIF writes
          * r5 one instruction later, which is illegal to have
@@ -128,7 +176,7 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
          *
          * FIXME: This would not check correctly for V3D 4.2 versions lower
          * than V3D 4.2.14, but that is not a real issue because the simulator
-         * will still catch this, and we are not really targetting any such
+         * will still catch this, and we are not really targeting any such
          * versions anyway.
          */
         if (state->c->devinfo->ver < 42) {
@@ -194,8 +242,14 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
                                    "SFU write started during THRSW delay slots ");
                 }
 
-                if (inst->sig.ldvary)
-                        fail_instr(state, "LDVARY during THRSW delay slots");
+                if (inst->sig.ldvary) {
+                        if (devinfo->ver == 42)
+                                fail_instr(state, "LDVARY during THRSW delay slots");
+                        if (devinfo->ver >= 71 &&
+                            state->ip - state->last_thrsw_ip == 2) {
+                                fail_instr(state, "LDVARY in 2nd THRSW delay slot");
+                        }
+                }
         }
 
         (void)qpu_magic_waddr_matches; /* XXX */
@@ -222,7 +276,7 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
             vpm_writes +
             tlb_writes +
             tsy_writes +
-            inst->sig.ldtmu +
+            (devinfo->ver == 42 ? inst->sig.ldtmu : 0) +
             inst->sig.ldtlb +
             inst->sig.ldvpm +
             inst->sig.ldtlbu > 1) {
@@ -262,17 +316,48 @@ qpu_validate_inst(struct v3d_qpu_validate_state *state, struct qinst *qinst)
             inst->type == V3D_QPU_INSTR_TYPE_ALU) {
                 if ((inst->alu.add.op != V3D_QPU_A_NOP &&
                      !inst->alu.add.magic_write)) {
-                        fail_instr(state, "RF write after THREND");
+                        if (devinfo->ver == 42) {
+                                fail_instr(state, "RF write after THREND");
+                        } else if (devinfo->ver >= 71) {
+                                if (state->last_thrsw_ip - state->ip == 0) {
+                                        fail_instr(state,
+                                                   "ADD RF write at THREND");
+                                }
+                                if (inst->alu.add.waddr == 2 ||
+                                    inst->alu.add.waddr == 3) {
+                                        fail_instr(state,
+                                                   "RF2-3 write after THREND");
+                                }
+                        }
                 }
 
                 if ((inst->alu.mul.op != V3D_QPU_M_NOP &&
                      !inst->alu.mul.magic_write)) {
-                        fail_instr(state, "RF write after THREND");
+                        if (devinfo->ver == 42) {
+                                fail_instr(state, "RF write after THREND");
+                        } else if (devinfo->ver >= 71) {
+                                if (state->last_thrsw_ip - state->ip == 0) {
+                                        fail_instr(state,
+                                                   "MUL RF write at THREND");
+                                }
+
+                                if (inst->alu.mul.waddr == 2 ||
+                                    inst->alu.mul.waddr == 3) {
+                                        fail_instr(state,
+                                                   "RF2-3 write after THREND");
+                                }
+                        }
                 }
 
                 if (v3d_qpu_sig_writes_address(devinfo, &inst->sig) &&
                     !inst->sig_magic) {
-                        fail_instr(state, "RF write after THREND");
+                        if (devinfo->ver == 42) {
+                                fail_instr(state, "RF write after THREND");
+                        } else if (devinfo->ver >= 71 &&
+                                   (inst->sig_addr == 2 ||
+                                    inst->sig_addr == 3)) {
+                                fail_instr(state, "RF2-3 write after THREND");
+                        }
                 }
 
                 /* GFXH-1625: No TMUWT in the last instruction */
@@ -321,6 +406,7 @@ qpu_validate(struct v3d_compile *c)
                 .last_sfu_write = -10,
                 .last_thrsw_ip = -10,
                 .last_branch_ip = -10,
+                .first_tlb_z_write = INT_MAX,
                 .ip = 0,
 
                 .last_thrsw_found = !c->last_thrsw,

@@ -26,7 +26,7 @@
 #include <assert.h>
 #include <string.h>
 
-#include "util/debug.h"
+#include "util/u_debug.h"
 #include "util/macros.h"
 #include "util/os_time.h"
 
@@ -202,7 +202,7 @@ get_max_abs_timeout_ns(void)
 {
    static int max_timeout_ms = -1;
    if (max_timeout_ms < 0)
-      max_timeout_ms = env_var_as_unsigned("MESA_VK_MAX_TIMEOUT", 0);
+      max_timeout_ms = debug_get_num_option("MESA_VK_MAX_TIMEOUT", 0);
 
    if (max_timeout_ms == 0)
       return UINT64_MAX;
@@ -399,4 +399,48 @@ vk_sync_export_sync_file(struct vk_device *device,
 {
    assert(!(sync->flags & VK_SYNC_IS_TIMELINE));
    return sync->type->export_sync_file(device, sync, sync_file);
+}
+
+VkResult
+vk_sync_import_win32_handle(struct vk_device *device,
+                            struct vk_sync *sync,
+                            void *handle,
+                            const wchar_t *name)
+{
+   VkResult result = sync->type->import_win32_handle(device, sync, handle, name);
+   if (unlikely(result != VK_SUCCESS))
+      return result;
+
+   sync->flags |= VK_SYNC_IS_SHAREABLE |
+                  VK_SYNC_IS_SHARED;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+vk_sync_export_win32_handle(struct vk_device *device,
+                            struct vk_sync *sync,
+                            void **handle)
+{
+   assert(sync->flags & VK_SYNC_IS_SHAREABLE);
+
+   VkResult result = sync->type->export_win32_handle(device, sync, handle);
+   if (unlikely(result != VK_SUCCESS))
+      return result;
+
+   sync->flags |= VK_SYNC_IS_SHARED;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+vk_sync_set_win32_export_params(struct vk_device *device,
+                                struct vk_sync *sync,
+                                const void *security_attributes,
+                                uint32_t access,
+                                const wchar_t *name)
+{
+   assert(sync->flags & VK_SYNC_IS_SHARED);
+
+   return sync->type->set_win32_export_params(device, sync, security_attributes, access, name);
 }

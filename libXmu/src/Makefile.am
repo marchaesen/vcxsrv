@@ -5,14 +5,14 @@ BITMAP_DEFINES = -DBITMAPDIR=\"$(includedir)/X11/bitmaps\"
 AM_CPPFLAGS = \
 	-I${top_srcdir}/include \
 	-I${top_srcdir}/include/X11/Xmu \
-	$(BITMAP_DEFINES) -D_BSD_SOURCE
+	$(BITMAP_DEFINES) -D_CONST_X_STRING
 
 AM_CFLAGS = $(CWARNFLAGS) $(XMU_CFLAGS)
 
 libXmu_la_LDFLAGS = -version-number 6:2:0 -no-undefined
 libXmuu_la_LDFLAGS = -version-number 1:0:0 -no-undefined
 
-libXmu_la_LIBADD = $(XMU_LIBS)
+libXmu_la_LIBADD = $(LTLIBOBJS) $(XMU_LIBS)
 libXmuu_la_LIBADD = $(XMUU_LIBS)
 
 libXmuu_la_SOURCES = \
@@ -24,6 +24,7 @@ libXmuu_la_SOURCES = \
 
 libXmu_la_SOURCES = \
 	$(libXmuu_la_SOURCES) \
+	Xmuint.h \
 	AllCmap.c \
 	Atoms.c \
 	Clip.c \

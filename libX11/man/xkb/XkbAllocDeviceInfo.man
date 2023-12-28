@@ -1,5 +1,5 @@
 '\" t
-.\" Copyright 1999 Oracle and/or its affiliates. All rights reserved.
+.\" Copyright (c) 1999, Oracle and/or its affiliates.
 .\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
 .\" copy of this software and associated documentation files (the "Software"),
@@ -58,10 +58,8 @@ is nonzero,
 .I sz_leds 
 XkbDeviceLedInfoRec structures are also allocated and linked into the XkbDeviceInfoRec structure. If 
 you request XkbDeviceLedInfoRec structures be allocated using this request, you must initialize them 
-explicitly.
-
-To obtain an XkbDeviceLedInfoRec structure, use 
-.I XkbAllocDeviceLedInfo.
+explicitly, by using
+.BR XkbAddDeviceLedInfo (__libmansuffix__).
 .SH STRUCTURES
 .LP
 Information about X Input Extension devices is transferred between a client program and the Xkb 
@@ -97,4 +95,4 @@ extension in an XkbDeviceInfoRec structure:
     } XkbDeviceLedInfoRec, *XkbDeviceLedInfoPtr;
 .fi    
 .SH "SEE ALSO"
-.BR XkbAllocDeviceLedInfo (__libmansuffix__)
+.BR XkbAddDeviceLedInfo (__libmansuffix__)

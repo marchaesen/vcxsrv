@@ -23,8 +23,8 @@
  *
  */
 
-#include "pan_device.h"
 #include "panvk_mempool.h"
+#include "pan_device.h"
 
 /* Knockoff u_upload_mgr. Uploads wherever we left off, allocating new entries
  * when needed.
@@ -47,7 +47,8 @@ panvk_pool_alloc_backing(struct panvk_pool *pool, size_t bo_sz)
 
    /* If there's a free BO in our BO pool, let's pick it. */
    if (pool->bo_pool && bo_sz == pool->base.slab_size &&
-       util_dynarray_num_elements(&pool->bo_pool->free_bos, struct panfrost_bo *)) {
+       util_dynarray_num_elements(&pool->bo_pool->free_bos,
+                                  struct panfrost_bo *)) {
       bo = util_dynarray_pop(&pool->bo_pool->free_bos, struct panfrost_bo *);
    } else {
       /* We don't know what the BO will be used for, so let's flag it
@@ -56,12 +57,11 @@ panvk_pool_alloc_backing(struct panvk_pool *pool, size_t bo_sz)
        * flags to this function and keep the read/write,
        * fragment/vertex+tiler pools separate.
        */
-      bo = panfrost_bo_create(pool->base.dev, bo_sz,
-                              pool->base.create_flags,
+      bo = panfrost_bo_create(pool->base.dev, bo_sz, pool->base.create_flags,
                               pool->base.label);
    }
 
-   if (bo->size == pool->base.slab_size)
+   if (panfrost_bo_size(bo) == pool->base.slab_size)
       util_dynarray_append(&pool->bos, struct panfrost_bo *, bo);
    else
       util_dynarray_append(&pool->big_bos, struct panfrost_bo *, bo);
@@ -82,9 +82,8 @@ panvk_pool_alloc_aligned(struct panvk_pool *pool, size_t sz, unsigned alignment)
 
    /* If we don't fit, allocate a new backing */
    if (unlikely(bo == NULL || (offset + sz) >= pool->base.slab_size)) {
-      bo = panvk_pool_alloc_backing(pool,
-                                    ALIGN_POT(MAX2(pool->base.slab_size, sz),
-                                    4096));
+      bo = panvk_pool_alloc_backing(
+         pool, ALIGN_POT(MAX2(pool->base.slab_size, sz), 4096));
       offset = 0;
    }
 
@@ -100,10 +99,9 @@ panvk_pool_alloc_aligned(struct panvk_pool *pool, size_t sz, unsigned alignment)
 PAN_POOL_ALLOCATOR(struct panvk_pool, panvk_pool_alloc_aligned)
 
 void
-panvk_pool_init(struct panvk_pool *pool,
-                struct panfrost_device *dev, struct panvk_bo_pool *bo_pool,
-                unsigned create_flags, size_t slab_size, const char *label,
-                bool prealloc)
+panvk_pool_init(struct panvk_pool *pool, struct panfrost_device *dev,
+                struct panvk_bo_pool *bo_pool, unsigned create_flags,
+                size_t slab_size, const char *label, bool prealloc)
 {
    memset(pool, 0, sizeof(*pool));
    pan_pool_init(&pool->base, dev, create_flags, slab_size, label);
@@ -151,7 +149,7 @@ panvk_pool_get_bo_handles(struct panvk_pool *pool, uint32_t *handles)
 {
    unsigned idx = 0;
    util_dynarray_foreach(&pool->bos, struct panfrost_bo *, bo) {
-      assert((*bo)->gem_handle > 0);
-      handles[idx++] = (*bo)->gem_handle;
+      assert(panfrost_bo_handle(*bo) > 0);
+      handles[idx++] = panfrost_bo_handle(*bo);
    }
 }

@@ -31,78 +31,71 @@
 #include <stdint.h>
 
 struct lcra_state {
-        unsigned node_count;
+   unsigned node_count;
 
-        /* Alignment for node in log2(bytes)+1. Since alignment must be
-         * non-negative power-of-two, the elements are strictly positive
-         * integers. Zero is the sentinel for a missing node. In upper word,
-         * bound. */
-        unsigned *alignment;
+   /* Alignment for node in log2(bytes)+1. Since alignment must be
+    * non-negative power-of-two, the elements are strictly positive
+    * integers. Zero is the sentinel for a missing node. In upper word,
+    * bound. */
+   unsigned *alignment;
 
-        /* Linear constraints imposed. Nested array sized upfront, organized as
-         * linear[node_left][node_right]. That is, calculate indices as:
-         *
-         * Each element is itself a bit field denoting whether (c_j - c_i) bias
-         * is present or not, including negative biases.
-         *
-         * Note for Midgard, there are 16 components so the bias is in range
-         * [-15, 15] so encoded by 32-bit field. */
+   /* Linear constraints imposed. Nested array sized upfront, organized as
+    * linear[node_left][node_right]. That is, calculate indices as:
+    *
+    * Each element is itself a bit field denoting whether (c_j - c_i) bias
+    * is present or not, including negative biases.
+    *
+    * Note for Midgard, there are 16 components so the bias is in range
+    * [-15, 15] so encoded by 32-bit field. */
 
-        uint32_t *linear;
+   uint32_t *linear;
 
-        /* Per node max modulus constraints */
-        uint8_t *modulus;
+   /* Per node max modulus constraints */
+   uint8_t *modulus;
 
-        /* Classes allow nodes to be partitioned with a starting register.
-         * Classes cannot interfere; that is, they are true partitions in the
-         * usual sense of the word. class_count is the number of classes.
-         * class[] is indexed by a node to get the mapped class. class_start is
-         * biased to all solutions in the class. */
+   /* Classes allow nodes to be partitioned with a starting register.
+    * Classes cannot interfere; that is, they are true partitions in the
+    * usual sense of the word. class_count is the number of classes.
+    * class[] is indexed by a node to get the mapped class. class_start is
+    * biased to all solutions in the class. */
 
-        unsigned class_count;
-        unsigned *class;
-        unsigned *class_start;
-        unsigned *class_size;
-        bool *class_disjoint;
+   unsigned class_count;
+   unsigned *class;
+   unsigned *class_start;
+   unsigned *class_size;
+   bool *class_disjoint;
 
-        /* Before solving, forced registers; after solving, solutions. */
-        unsigned *solutions;
+   /* Before solving, forced registers; after solving, solutions. */
+   unsigned *solutions;
 
-        /* For register spilling, the costs to spill nodes (as set by the user)
-         * are in spill_cost[], negative if a node is unspillable. Internally,
-         * spill_class specifies which class to spill (whichever class failed
-         * to allocate) */
+   /* For register spilling, the costs to spill nodes (as set by the user)
+    * are in spill_cost[], negative if a node is unspillable. Internally,
+    * spill_class specifies which class to spill (whichever class failed
+    * to allocate) */
 
-        signed *spill_cost;
-        unsigned spill_class;
+   signed *spill_cost;
+   unsigned spill_class;
 };
 
-struct lcra_state *
-lcra_alloc_equations(
-                unsigned node_count, unsigned class_count);
+struct lcra_state *lcra_alloc_equations(unsigned node_count,
+                                        unsigned class_count);
 
-void
-lcra_free(struct lcra_state *l);
+void lcra_free(struct lcra_state *l);
 
-void
-lcra_set_disjoint_class(struct lcra_state *l, unsigned c1, unsigned c2);
+void lcra_set_disjoint_class(struct lcra_state *l, unsigned c1, unsigned c2);
 
-void
-lcra_set_alignment(struct lcra_state *l, unsigned node, unsigned align_log2, unsigned bound);
+void lcra_set_alignment(struct lcra_state *l, unsigned node,
+                        unsigned align_log2, unsigned bound);
 
-void
-lcra_restrict_range(struct lcra_state *l, unsigned node, unsigned len);
+void lcra_restrict_range(struct lcra_state *l, unsigned node, unsigned len);
 
-void
-lcra_add_node_interference(struct lcra_state *l, unsigned i, unsigned cmask_i, unsigned j, unsigned cmask_j);
+void lcra_add_node_interference(struct lcra_state *l, unsigned i,
+                                unsigned cmask_i, unsigned j, unsigned cmask_j);
 
-bool
-lcra_solve(struct lcra_state *l);
+bool lcra_solve(struct lcra_state *l);
 
-void
-lcra_set_node_spill_cost(struct lcra_state *l, unsigned node, signed cost);
+void lcra_set_node_spill_cost(struct lcra_state *l, unsigned node, signed cost);
 
-signed
-lcra_get_best_spill_node(struct lcra_state *l);
+signed lcra_get_best_spill_node(struct lcra_state *l);
 
 #endif

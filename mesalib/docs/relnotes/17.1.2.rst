@@ -92,7 +92,7 @@ Ian Romanick (3):
 -  r100,r200: Don't assume glVisual is non-NULL during context creation
 -  r100: Use \_mesa_get_format_base_format in radeon_update_wrapper
 
-Jason Ekstrand (17):
+Faith Ekstrand (17):
 
 -  anv: Handle color layout transitions from the UNINITIALIZED layout
 -  anv: Handle transitioning depth from UNDEFINED to other layouts

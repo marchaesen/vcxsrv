@@ -1,7 +1,13 @@
 '''
 This module contains helper classes for alignment arithmetic and checks
 '''
-import math
+
+from sys import version_info
+
+if version_info[:2] >= (3, 5):
+    from math import gcd
+else:
+    from fractions import gcd
 
 class Alignment(object):
 
@@ -72,14 +78,14 @@ class Alignment(object):
     def combine_with(self, other):
         # returns the alignment that is guaranteed when
         # both, self or other, can happen
-        new_align = math.gcd(self.align, other.align)
+        new_align = gcd(self.align, other.align)
         new_offset_candidate1 = self.offset % new_align
         new_offset_candidate2 = other.offset % new_align
         if new_offset_candidate1 == new_offset_candidate2:
             new_offset = new_offset_candidate1
         else:
             offset_diff = abs(new_offset_candidate2 - new_offset_candidate1)
-            new_align = math.gcd(new_align, offset_diff)
+            new_align = gcd(new_align, offset_diff)
             new_offset_candidate1 = self.offset % new_align
             new_offset_candidate2 = other.offset % new_align
             assert new_offset_candidate1 == new_offset_candidate2

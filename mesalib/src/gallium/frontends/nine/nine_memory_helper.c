@@ -110,7 +110,7 @@
 #define DBG_CHANNEL (DBG_BASETEXTURE|DBG_SURFACE|DBG_VOLUME|DBG_TEXTURE|DBG_CUBETEXTURE)
 
 /* Use memfd only for 32 bits. Check for memfd_create support */
-#if defined(PIPE_ARCH_X86) && defined(HAVE_MEMFD_CREATE)
+#if DETECT_ARCH_X86 && defined(HAVE_MEMFD_CREATE)
 #define NINE_ENABLE_MEMFD
 #endif
 

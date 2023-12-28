@@ -78,8 +78,7 @@ emit_copies(nir_builder *b, struct exec_list *dest_vars,
 static void
 emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    if (state->shader->info.stage == MESA_SHADER_GEOMETRY) {
       /* For geometry shaders, we have to emit the output copies right
@@ -99,7 +98,7 @@ emit_output_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
          }
       }
    } else if (impl == state->entrypoint) {
-      b.cursor = nir_before_block(nir_start_block(impl));
+      b.cursor = nir_before_impl(impl);
       emit_copies(&b, &state->old_outputs, &state->new_outputs);
 
       /* For all other shader types, we need to do the copies right before
@@ -199,7 +198,7 @@ emit_interp(nir_builder *b, nir_deref_instr **old_interp_deref,
    nir_intrinsic_instr *new_interp =
       nir_intrinsic_instr_create(b->shader, interp->intrinsic);
 
-   new_interp->src[0] = nir_src_for_ssa(&new_interp_deref->dest.ssa);
+   new_interp->src[0] = nir_src_for_ssa(&new_interp_deref->def);
    if (interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
        interp->intrinsic == nir_intrinsic_interp_deref_at_offset ||
        interp->intrinsic == nir_intrinsic_interp_deref_at_vertex) {
@@ -207,13 +206,12 @@ emit_interp(nir_builder *b, nir_deref_instr **old_interp_deref,
    }
 
    new_interp->num_components = interp->num_components;
-   nir_ssa_dest_init(&new_interp->instr, &new_interp->dest,
-                     interp->dest.ssa.num_components,
-                     interp->dest.ssa.bit_size, NULL);
+   nir_def_init(&new_interp->instr, &new_interp->def,
+                interp->def.num_components, interp->def.bit_size);
 
    nir_builder_instr_insert(b, &new_interp->instr);
-   nir_store_deref(b, temp_deref, &new_interp->dest.ssa,
-                   (1 << interp->dest.ssa.num_components) - 1);
+   nir_store_deref(b, temp_deref, &new_interp->def,
+                   (1 << interp->def.num_components) - 1);
 }
 
 static void
@@ -245,8 +243,8 @@ fixup_interpolation_instr(struct lower_io_state *state,
     * load from it. We can reuse the original deref, since it points to the
     * correct part of the temporary.
     */
-   nir_ssa_def *load = nir_load_deref(b, nir_src_as_deref(interp->src[0]));
-   nir_ssa_def_rewrite_uses(&interp->dest.ssa, load);
+   nir_def *load = nir_load_deref(b, nir_src_as_deref(interp->src[0]));
+   nir_def_rewrite_uses(&interp->def, load);
    nir_instr_remove(&interp->instr);
 
    nir_deref_path_finish(&interp_path);
@@ -262,7 +260,7 @@ fixup_interpolation(struct lower_io_state *state, nir_function_impl *impl,
             continue;
 
          nir_intrinsic_instr *interp = nir_instr_as_intrinsic(instr);
-         
+
          if (interp->intrinsic == nir_intrinsic_interp_deref_at_centroid ||
              interp->intrinsic == nir_intrinsic_interp_deref_at_sample ||
              interp->intrinsic == nir_intrinsic_interp_deref_at_offset ||
@@ -277,9 +275,7 @@ static void
 emit_input_copies_impl(struct lower_io_state *state, nir_function_impl *impl)
 {
    if (impl == state->entrypoint) {
-      nir_builder b;
-      nir_builder_init(&b, impl);
-      b.cursor = nir_before_block(nir_start_block(impl));
+      nir_builder b = nir_builder_at(nir_before_impl(impl));
       emit_copies(&b, &state->old_inputs, &state->new_inputs);
       if (state->shader->info.stage == MESA_SHADER_FRAGMENT)
          fixup_interpolation(state, impl, &b);
@@ -363,18 +359,15 @@ nir_lower_io_to_temporaries(nir_shader *shader, nir_function_impl *entrypoint,
       _mesa_hash_table_insert(state.input_map, var, input);
    }
 
-   nir_foreach_function(function, shader) {
-      if (function->impl == NULL)
-         continue;
-
+   nir_foreach_function_impl(impl, shader) {
       if (inputs)
-         emit_input_copies_impl(&state, function->impl);
+         emit_input_copies_impl(&state, impl);
 
       if (outputs)
-         emit_output_copies_impl(&state, function->impl);
+         emit_output_copies_impl(&state, impl);
 
-      nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                            nir_metadata_dominance);
+      nir_metadata_preserve(impl, nir_metadata_block_index |
+                                     nir_metadata_dominance);
    }
 
    exec_list_append(&shader->variables, &state.old_inputs);

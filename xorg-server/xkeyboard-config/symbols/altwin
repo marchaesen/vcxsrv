@@ -3,7 +3,7 @@ partial modifier_keys
 xkb_symbols "meta_alt" {
     key <LALT> {[  Alt_L,  Meta_L  ]};
     key <RALT> {[  Alt_R,  Meta_R  ], type[group1] = "TWO_LEVEL" };
-    modifier_map Mod1 { Alt_L, Alt_R, Meta_L, Meta_R };
+    modifier_map Mod1 { <LALT>, <RALT> };
 };
 
 // Alt is mapped to the Super and the usual Alt.
@@ -38,7 +38,7 @@ xkb_symbols "ctrl_alt_win" {
     key <RWIN> {[  Alt_R,  Meta_R  ]};
     key <LCTL> {[  Super_L  ]};
     key <RCTL> {[  Super_R  ]};
-    modifier_map Control { <RALT>, <LALT> };
+    modifier_map Control { <LALT>, <RALT> };
     modifier_map Mod1 { <LWIN>, <RWIN> };
     modifier_map Mod4 { <LCTL>, <RCTL> };
 };
@@ -50,7 +50,7 @@ xkb_symbols "meta_win" {
     key <RALT> {[  Alt_R,  Alt_R  ], type[group1] = "TWO_LEVEL" };
     key <LWIN> {[  Meta_L  ]};
     key <RWIN> {[  Meta_R  ]};
-    modifier_map Mod1 { Alt_L, Alt_R };
+    modifier_map Mod1 { <LALT>, <RALT> };
     modifier_map Mod4 { <META>, Meta_L, Meta_R };
 };
 
@@ -59,7 +59,7 @@ partial modifier_keys
 xkb_symbols "left_meta_win" {
     key <LALT> {[  Alt_L,  Alt_L  ]};
     key <LWIN> {[  Meta_L  ]};
-    modifier_map Mod1 { Alt_L };
+    modifier_map Mod1 { <LALT> };
     modifier_map Mod4 { <META>, Meta_L };
 };
 
@@ -81,6 +81,7 @@ xkb_symbols "menu" {
 partial modifier_keys
 xkb_symbols "menu_win" {
     key <MENU> {[  Super_R  ]};
+    modifier_map Mod4 { <MENU> };
 };
 
 // Make the right Super key an additional Alt,
@@ -91,8 +92,8 @@ xkb_symbols "alt_super_win" {
     key <RWIN> {[  Alt_R,  Meta_R  ]};
     key <LWIN> {[  Super_L ]};
     key <MENU> {[  Super_R  ]};
-    modifier_map Mod1 { Alt_L, Alt_R, Meta_L, Meta_R };
-    modifier_map Mod4 { Super_L, Super_R };
+    modifier_map Mod1 { <LALT>, <RWIN> };
+    modifier_map Mod4 { <LWIN>, <MENU> };
 };
 
 // Swap the left Alt and Super.
@@ -100,6 +101,8 @@ partial modifier_keys
 xkb_symbols "swap_lalt_lwin" {
     key <LALT> {[  Super_L  ], type[group1] = "ONE_LEVEL" };
     key <LWIN> {[  Alt_L,  Meta_L  ]};
+    modifier_map Mod4 { <LALT> };
+    modifier_map Mod1 { <LWIN> };
 };
 
 // Swap the right Alt and Super.
@@ -107,6 +110,8 @@ hidden partial modifier_keys
 xkb_symbols "swap_ralt_rwin" {
     key <RALT> {[  Super_R  ], type[group1] = "ONE_LEVEL" };
     key <RWIN> {[  Alt_R,  Meta_R  ]};
+    modifier_map Mod4 { <RALT> };
+    modifier_map Mod1 { <RWIN> };
 };
 
 // Swap Alt and Super.

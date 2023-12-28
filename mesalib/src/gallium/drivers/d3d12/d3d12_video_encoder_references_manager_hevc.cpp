@@ -53,8 +53,8 @@ d3d12_video_encoder_references_manager_hevc::reset_gop_tracking_and_dpb()
    m_CurrentFrameReferencesData.ReconstructedPicTexture = { nullptr, 0 };
 
    // Reset DPB storage
-   uint32_t numPicsBeforeClearInDPB = m_rDPBStorageManager.get_number_of_pics_in_dpb();
-   uint32_t cFreedResources = m_rDPBStorageManager.clear_decode_picture_buffer();
+   ASSERTED uint32_t numPicsBeforeClearInDPB = m_rDPBStorageManager.get_number_of_pics_in_dpb();
+   ASSERTED uint32_t cFreedResources = m_rDPBStorageManager.clear_decode_picture_buffer();
    assert(numPicsBeforeClearInDPB == cFreedResources);
 
    // Initialize if needed the reconstructed picture allocation for the first IDR picture in the GOP
@@ -70,7 +70,7 @@ d3d12_video_encoder_references_manager_hevc::reset_gop_tracking_and_dpb()
 }
 
 // Calculates the picture control structure for the current frame
-void
+bool
 d3d12_video_encoder_references_manager_hevc::get_current_frame_picture_control_data(
    D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA &codecAllocation)
 {
@@ -134,6 +134,10 @@ d3d12_video_encoder_references_manager_hevc::get_current_frame_picture_control_d
                                          });
 
          assert(foundItemIt != m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.end());
+         if (foundItemIt == m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.end())
+         {
+            return true;
+         }
          m_curFrameState.pList0ReferenceFrames[l0Idx] =
             std::distance(m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.begin(), foundItemIt);
          m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors[m_curFrameState.pList0ReferenceFrames[l0Idx]].base.IsRefUsedByCurrentPic = true;
@@ -160,6 +164,10 @@ d3d12_video_encoder_references_manager_hevc::get_current_frame_picture_control_d
                                          });
 
          assert(foundItemIt != m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.end());
+         if (foundItemIt == m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.end())
+         {
+            return true;
+         }
          m_curFrameState.pList1ReferenceFrames[l1Idx] =
             std::distance(m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors.begin(), foundItemIt);
          m_CurrentFrameReferencesData.pReferenceFramesReconPictureDescriptors[m_curFrameState.pList1ReferenceFrames[l1Idx]].base.IsRefUsedByCurrentPic = true;
@@ -187,6 +195,7 @@ d3d12_video_encoder_references_manager_hevc::get_current_frame_picture_control_d
 
    print_l0_l1_lists();
    print_dpb();
+   return true;
 }
 
 // Returns the resource allocation for a reconstructed picture output for the current frame

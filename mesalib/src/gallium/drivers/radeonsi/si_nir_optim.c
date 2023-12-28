@@ -1,24 +1,7 @@
 /*
  * Copyright 2021 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "si_pipe.h"
@@ -30,9 +13,6 @@
 static bool
 add_src_instr_to_worklist(nir_src *src, void *wl)
 {
-   if (!src->is_ssa)
-      return false;
-
    nir_instr_worklist_push_tail(wl, src->ssa->parent_instr);
    return true;
 }
@@ -95,8 +75,8 @@ check_instr_depends_on_tex(nir_intrinsic_instr *store)
 static bool
 get_output_as_const_value(nir_shader *shader, float values[4])
 {
-   nir_foreach_function(function, shader) {
-      nir_foreach_block_reverse(block, function->impl) {
+   nir_foreach_function_impl(impl, shader) {
+      nir_foreach_block_reverse(block, impl) {
          nir_foreach_instr_reverse_safe(instr, block) {
             switch (instr->type) {
                case nir_instr_type_intrinsic: {
@@ -126,12 +106,9 @@ struct replace_param {
 };
 
 static bool
-store_instr_depends_on_tex(nir_builder *b, nir_instr *instr, void *state)
+store_instr_depends_on_tex(nir_builder *b, nir_intrinsic_instr *intrin,
+                           void *state)
 {
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
    if (intrin->intrinsic != nir_intrinsic_store_output)
       return false;
 
@@ -155,8 +132,8 @@ replace_tex_by_imm(nir_builder *b, nir_instr *instr, void *state)
       return false;
 
    b->cursor = nir_instr_remove(&tex->instr);
-   nir_ssa_def *imm = nir_imm_vec4(b, p->value[0], p->value[1], p->value[2], p->value[3]);
-   nir_ssa_def_rewrite_uses(&tex->dest.ssa, imm);
+   nir_def *imm = nir_imm_vec4(b, p->value[0], p->value[1], p->value[2], p->value[3]);
+   nir_def_rewrite_uses(&tex->def, imm);
    return true;
 }
 
@@ -180,7 +157,7 @@ si_nir_is_output_const_if_tex_is_const(nir_shader *shader, float *in, float *out
    p.texunit = texunit;
 
    /* Test if the single store_output only depends on constants and a single texture op */
-   if (nir_shader_instructions_pass(shader, store_instr_depends_on_tex, nir_metadata_all, &p)) {
+   if (nir_shader_intrinsics_pass(shader, store_instr_depends_on_tex, nir_metadata_all, &p)) {
       assert(*p.texunit != -1);
 
       /* Replace nir_tex_instr using texunit by vec4(v) */

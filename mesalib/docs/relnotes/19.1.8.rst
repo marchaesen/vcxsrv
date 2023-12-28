@@ -142,7 +142,7 @@ Hal Gentz (1):
 
 -  gallium/osmesa: Fix the inability to set no context as current.
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir/repair_ssa: Replace the unreachable check with the phi builder
 -  intel/fs: Fix fs_inst::flags_read for ANY/ALL predicates
@@ -205,9 +205,7 @@ Paulo Zanoni (1):
 
 Prodea Alexandru-Liviu (1):
 
--  scons/MSYS2-MinGW-W64: Fix build options defaults Signed-off-by:
-   Prodea Alexandru-Liviu <liviuprodea@yahoo.com> Reviewed-by: Jose
-   Fonseca <jfonseca@vmware.com> Cc: <mesa-stable@lists.freedesktop.org>
+-  scons/MSYS2-MinGW-W64: Fix build options defaults
 
 Rhys Perry (2):
 

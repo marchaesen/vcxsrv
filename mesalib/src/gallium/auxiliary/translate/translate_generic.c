@@ -1,6 +1,6 @@
 /**************************************************************************
  *
- * Copyright 2007 VMware, Inc.
+ * Copyright 2007-2023 VMware, Inc.
  * All Rights Reserved.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -142,10 +142,10 @@ ATTRIB(R32G32B32_FLOAT,      3, float, float, TO_32_FLOAT)
 ATTRIB(R32G32_FLOAT,         2, float, float, TO_32_FLOAT)
 ATTRIB(R32_FLOAT,            1, float, float, TO_32_FLOAT)
 
-ATTRIB(R16G16B16A16_FLOAT,   4, float, ushort, TO_16_FLOAT)
-ATTRIB(R16G16B16_FLOAT,      3, float, ushort, TO_16_FLOAT)
-ATTRIB(R16G16_FLOAT,         2, float, ushort, TO_16_FLOAT)
-ATTRIB(R16_FLOAT,            1, float, ushort, TO_16_FLOAT)
+ATTRIB(R16G16B16A16_FLOAT,   4, float, uint16_t, TO_16_FLOAT)
+ATTRIB(R16G16B16_FLOAT,      3, float, uint16_t, TO_16_FLOAT)
+ATTRIB(R16G16_FLOAT,         2, float, uint16_t, TO_16_FLOAT)
+ATTRIB(R16_FLOAT,            1, float, uint16_t, TO_16_FLOAT)
 
 ATTRIB(R32G32B32A32_USCALED, 4, float, unsigned, TO_32_USCALED)
 ATTRIB(R32G32B32_USCALED,    3, float, unsigned, TO_32_USCALED)
@@ -167,40 +167,40 @@ ATTRIB(R32G32B32_SNORM,    3, float, int, TO_32_SNORM)
 ATTRIB(R32G32_SNORM,       2, float, int, TO_32_SNORM)
 ATTRIB(R32_SNORM,          1, float, int, TO_32_SNORM)
 
-ATTRIB(R16G16B16A16_USCALED, 4, float, ushort, TO_16_USCALED)
-ATTRIB(R16G16B16_USCALED,    3, float, ushort, TO_16_USCALED)
-ATTRIB(R16G16_USCALED,       2, float, ushort, TO_16_USCALED)
-ATTRIB(R16_USCALED,          1, float, ushort, TO_16_USCALED)
+ATTRIB(R16G16B16A16_USCALED, 4, float, uint16_t, TO_16_USCALED)
+ATTRIB(R16G16B16_USCALED,    3, float, uint16_t, TO_16_USCALED)
+ATTRIB(R16G16_USCALED,       2, float, uint16_t, TO_16_USCALED)
+ATTRIB(R16_USCALED,          1, float, uint16_t, TO_16_USCALED)
 
 ATTRIB(R16G16B16A16_SSCALED, 4, float, short, TO_16_SSCALED)
 ATTRIB(R16G16B16_SSCALED,    3, float, short, TO_16_SSCALED)
 ATTRIB(R16G16_SSCALED,       2, float, short, TO_16_SSCALED)
 ATTRIB(R16_SSCALED,          1, float, short, TO_16_SSCALED)
 
-ATTRIB(R16G16B16A16_UNORM, 4, float, ushort, TO_16_UNORM)
-ATTRIB(R16G16B16_UNORM,    3, float, ushort, TO_16_UNORM)
-ATTRIB(R16G16_UNORM,       2, float, ushort, TO_16_UNORM)
-ATTRIB(R16_UNORM,          1, float, ushort, TO_16_UNORM)
+ATTRIB(R16G16B16A16_UNORM, 4, float, uint16_t, TO_16_UNORM)
+ATTRIB(R16G16B16_UNORM,    3, float, uint16_t, TO_16_UNORM)
+ATTRIB(R16G16_UNORM,       2, float, uint16_t, TO_16_UNORM)
+ATTRIB(R16_UNORM,          1, float, uint16_t, TO_16_UNORM)
 
 ATTRIB(R16G16B16A16_SNORM, 4, float, short, TO_16_SNORM)
 ATTRIB(R16G16B16_SNORM,    3, float, short, TO_16_SNORM)
 ATTRIB(R16G16_SNORM,       2, float, short, TO_16_SNORM)
 ATTRIB(R16_SNORM,          1, float, short, TO_16_SNORM)
 
-ATTRIB(R8G8B8A8_USCALED,   4, float, ubyte, TO_8_USCALED)
-ATTRIB(R8G8B8_USCALED,     3, float, ubyte, TO_8_USCALED)
-ATTRIB(R8G8_USCALED,       2, float, ubyte, TO_8_USCALED)
-ATTRIB(R8_USCALED,         1, float, ubyte, TO_8_USCALED)
+ATTRIB(R8G8B8A8_USCALED,   4, float, uint8_t, TO_8_USCALED)
+ATTRIB(R8G8B8_USCALED,     3, float, uint8_t, TO_8_USCALED)
+ATTRIB(R8G8_USCALED,       2, float, uint8_t, TO_8_USCALED)
+ATTRIB(R8_USCALED,         1, float, uint8_t, TO_8_USCALED)
 
 ATTRIB(R8G8B8A8_SSCALED,  4, float, char, TO_8_SSCALED)
 ATTRIB(R8G8B8_SSCALED,    3, float, char, TO_8_SSCALED)
 ATTRIB(R8G8_SSCALED,      2, float, char, TO_8_SSCALED)
 ATTRIB(R8_SSCALED,        1, float, char, TO_8_SSCALED)
 
-ATTRIB(R8G8B8A8_UNORM,  4, float, ubyte, TO_8_UNORM)
-ATTRIB(R8G8B8_UNORM,    3, float, ubyte, TO_8_UNORM)
-ATTRIB(R8G8_UNORM,      2, float, ubyte, TO_8_UNORM)
-ATTRIB(R8_UNORM,        1, float, ubyte, TO_8_UNORM)
+ATTRIB(R8G8B8A8_UNORM,  4, float, uint8_t, TO_8_UNORM)
+ATTRIB(R8G8B8_UNORM,    3, float, uint8_t, TO_8_UNORM)
+ATTRIB(R8G8_UNORM,      2, float, uint8_t, TO_8_UNORM)
+ATTRIB(R8_UNORM,        1, float, uint8_t, TO_8_UNORM)
 
 ATTRIB(R8G8B8A8_SNORM,  4, float, char, TO_8_SNORM)
 ATTRIB(R8G8B8_SNORM,    3, float, char, TO_8_SNORM)
@@ -212,15 +212,15 @@ ATTRIB(R32G32B32_UINT,    3, uint32_t, unsigned, TO_INT)
 ATTRIB(R32G32_UINT,       2, uint32_t, unsigned, TO_INT)
 ATTRIB(R32_UINT,          1, uint32_t, unsigned, TO_INT)
 
-ATTRIB(R16G16B16A16_UINT, 4, uint32_t, ushort, TO_INT)
-ATTRIB(R16G16B16_UINT,    3, uint32_t, ushort, TO_INT)
-ATTRIB(R16G16_UINT,       2, uint32_t, ushort, TO_INT)
-ATTRIB(R16_UINT,          1, uint32_t, ushort, TO_INT)
+ATTRIB(R16G16B16A16_UINT, 4, uint32_t, uint16_t, TO_INT)
+ATTRIB(R16G16B16_UINT,    3, uint32_t, uint16_t, TO_INT)
+ATTRIB(R16G16_UINT,       2, uint32_t, uint16_t, TO_INT)
+ATTRIB(R16_UINT,          1, uint32_t, uint16_t, TO_INT)
 
-ATTRIB(R8G8B8A8_UINT,   4, uint32_t, ubyte, TO_INT)
-ATTRIB(R8G8B8_UINT,     3, uint32_t, ubyte, TO_INT)
-ATTRIB(R8G8_UINT,       2, uint32_t, ubyte, TO_INT)
-ATTRIB(R8_UINT,         1, uint32_t, ubyte, TO_INT)
+ATTRIB(R8G8B8A8_UINT,   4, uint32_t, uint8_t, TO_INT)
+ATTRIB(R8G8B8_UINT,     3, uint32_t, uint8_t, TO_INT)
+ATTRIB(R8G8_UINT,       2, uint32_t, uint8_t, TO_INT)
+ATTRIB(R8_UINT,         1, uint32_t, uint8_t, TO_INT)
 
 ATTRIB(R32G32B32A32_SINT, 4, int32_t, int, TO_INT)
 ATTRIB(R32G32B32_SINT,    3, int32_t, int, TO_INT)
@@ -241,7 +241,7 @@ static void
 emit_A8R8G8B8_UNORM(const void *attrib, void *ptr)
 {
    float *in = (float *)attrib;
-   ubyte *out = (ubyte *)ptr;
+   uint8_t *out = (uint8_t *)ptr;
    out[0] = TO_8_UNORM(in[3]);
    out[1] = TO_8_UNORM(in[0]);
    out[2] = TO_8_UNORM(in[1]);
@@ -252,7 +252,7 @@ static void
 emit_B8G8R8A8_UNORM(const void *attrib, void *ptr)
 {
    float *in = (float *)attrib;
-   ubyte *out = (ubyte *)ptr;
+   uint8_t *out = (uint8_t *)ptr;
    out[2] = TO_8_UNORM(in[0]);
    out[1] = TO_8_UNORM(in[1]);
    out[0] = TO_8_UNORM(in[2]);
@@ -584,12 +584,13 @@ get_emit_func(enum pipe_format format)
    }
 }
 
-static ALWAYS_INLINE void PIPE_CDECL
+static ALWAYS_INLINE void UTIL_CDECL
 generic_run_one(struct translate_generic *tg,
                 unsigned elt,
                 unsigned start_instance,
                 unsigned instance_id,
-                void *vert)
+                void *vert,
+                unsigned index_size)
 {
    unsigned nr_attrs = tg->nr_attrib;
    unsigned attr;
@@ -613,8 +614,10 @@ generic_run_one(struct translate_generic *tg,
          }
          else {
             index = elt;
-            /* clamp to avoid going out of bounds */
-            index = MIN2(index, tg->attrib[attr].max_index);
+            if (index_size > 0) {
+               /* clamp to avoid going out of bounds */
+               index = MIN2(index, tg->attrib[attr].max_index);
+            }
          }
 
          src = tg->attrib[attr].input_ptr +
@@ -651,7 +654,7 @@ generic_run_one(struct translate_generic *tg,
 /**
  * Fetch vertex attributes for 'count' vertices.
  */
-static void PIPE_CDECL
+static void UTIL_CDECL
 generic_run_elts(struct translate *translate,
                  const unsigned *elts,
                  unsigned count,
@@ -664,12 +667,12 @@ generic_run_elts(struct translate *translate,
    unsigned i;
 
    for (i = 0; i < count; i++) {
-      generic_run_one(tg, *elts++, start_instance, instance_id, vert);
+      generic_run_one(tg, *elts++, start_instance, instance_id, vert, 4);
       vert += tg->translate.key.output_stride;
    }
 }
 
-static void PIPE_CDECL
+static void UTIL_CDECL
 generic_run_elts16(struct translate *translate,
                    const uint16_t *elts,
                    unsigned count,
@@ -682,12 +685,12 @@ generic_run_elts16(struct translate *translate,
    unsigned i;
 
    for (i = 0; i < count; i++) {
-      generic_run_one(tg, *elts++, start_instance, instance_id, vert);
+      generic_run_one(tg, *elts++, start_instance, instance_id, vert, 2);
       vert += tg->translate.key.output_stride;
    }
 }
 
-static void PIPE_CDECL
+static void UTIL_CDECL
 generic_run_elts8(struct translate *translate,
                   const uint8_t *elts,
                   unsigned count,
@@ -700,12 +703,12 @@ generic_run_elts8(struct translate *translate,
    unsigned i;
 
    for (i = 0; i < count; i++) {
-      generic_run_one(tg, *elts++, start_instance, instance_id, vert);
+      generic_run_one(tg, *elts++, start_instance, instance_id, vert, 1);
       vert += tg->translate.key.output_stride;
    }
 }
 
-static void PIPE_CDECL
+static void UTIL_CDECL
 generic_run(struct translate *translate,
             unsigned start,
             unsigned count,
@@ -718,7 +721,7 @@ generic_run(struct translate *translate,
    unsigned i;
 
    for (i = 0; i < count; i++) {
-      generic_run_one(tg, start + i, start_instance, instance_id, vert);
+      generic_run_one(tg, start + i, start_instance, instance_id, vert, 0);
       vert += tg->translate.key.output_stride;
    }
 }
@@ -754,7 +757,7 @@ generic_release(struct translate *translate)
    FREE(translate);
 }
 
-static boolean
+static bool
 is_legal_int_format_combo(const struct util_format_description *src,
                           const struct util_format_description *dst)
 {
@@ -764,15 +767,15 @@ is_legal_int_format_combo(const struct util_format_description *src,
    for (i = 0; i < nr; i++) {
       /* The signs must match. */
       if (src->channel[i].type != dst->channel[i].type) {
-         return FALSE;
+         return false;
       }
 
       /* Integers must not lose precision at any point in the pipeline. */
       if (src->channel[i].size > dst->channel[i].size) {
-         return FALSE;
+         return false;
       }
    }
-   return TRUE;
+   return true;
 }
 
 struct translate *
@@ -843,128 +846,128 @@ translate_generic_create(const struct translate_key *key)
    return &tg->translate;
 }
 
-boolean
+bool
 translate_generic_is_output_format_supported(enum pipe_format format)
 {
    switch(format) {
-   case PIPE_FORMAT_R64G64B64A64_FLOAT: return TRUE;
-   case PIPE_FORMAT_R64G64B64_FLOAT: return TRUE;
-   case PIPE_FORMAT_R64G64_FLOAT: return TRUE;
-   case PIPE_FORMAT_R64_FLOAT: return TRUE;
+   case PIPE_FORMAT_R64G64B64A64_FLOAT: return true;
+   case PIPE_FORMAT_R64G64B64_FLOAT: return true;
+   case PIPE_FORMAT_R64G64_FLOAT: return true;
+   case PIPE_FORMAT_R64_FLOAT: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_FLOAT: return TRUE;
-   case PIPE_FORMAT_R32G32B32_FLOAT: return TRUE;
-   case PIPE_FORMAT_R32G32_FLOAT: return TRUE;
-   case PIPE_FORMAT_R32_FLOAT: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_FLOAT: return true;
+   case PIPE_FORMAT_R32G32B32_FLOAT: return true;
+   case PIPE_FORMAT_R32G32_FLOAT: return true;
+   case PIPE_FORMAT_R32_FLOAT: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_FLOAT: return TRUE;
-   case PIPE_FORMAT_R16G16B16_FLOAT: return TRUE;
-   case PIPE_FORMAT_R16G16_FLOAT: return TRUE;
-   case PIPE_FORMAT_R16_FLOAT: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_FLOAT: return true;
+   case PIPE_FORMAT_R16G16B16_FLOAT: return true;
+   case PIPE_FORMAT_R16G16_FLOAT: return true;
+   case PIPE_FORMAT_R16_FLOAT: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_USCALED: return TRUE;
-   case PIPE_FORMAT_R32G32B32_USCALED: return TRUE;
-   case PIPE_FORMAT_R32G32_USCALED: return TRUE;
-   case PIPE_FORMAT_R32_USCALED: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_USCALED: return true;
+   case PIPE_FORMAT_R32G32B32_USCALED: return true;
+   case PIPE_FORMAT_R32G32_USCALED: return true;
+   case PIPE_FORMAT_R32_USCALED: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_SSCALED: return TRUE;
-   case PIPE_FORMAT_R32G32B32_SSCALED: return TRUE;
-   case PIPE_FORMAT_R32G32_SSCALED: return TRUE;
-   case PIPE_FORMAT_R32_SSCALED: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_SSCALED: return true;
+   case PIPE_FORMAT_R32G32B32_SSCALED: return true;
+   case PIPE_FORMAT_R32G32_SSCALED: return true;
+   case PIPE_FORMAT_R32_SSCALED: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_UNORM: return TRUE;
-   case PIPE_FORMAT_R32G32B32_UNORM: return TRUE;
-   case PIPE_FORMAT_R32G32_UNORM: return TRUE;
-   case PIPE_FORMAT_R32_UNORM: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_UNORM: return true;
+   case PIPE_FORMAT_R32G32B32_UNORM: return true;
+   case PIPE_FORMAT_R32G32_UNORM: return true;
+   case PIPE_FORMAT_R32_UNORM: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_SNORM: return TRUE;
-   case PIPE_FORMAT_R32G32B32_SNORM: return TRUE;
-   case PIPE_FORMAT_R32G32_SNORM: return TRUE;
-   case PIPE_FORMAT_R32_SNORM: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_SNORM: return true;
+   case PIPE_FORMAT_R32G32B32_SNORM: return true;
+   case PIPE_FORMAT_R32G32_SNORM: return true;
+   case PIPE_FORMAT_R32_SNORM: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_USCALED: return TRUE;
-   case PIPE_FORMAT_R16G16B16_USCALED: return TRUE;
-   case PIPE_FORMAT_R16G16_USCALED: return TRUE;
-   case PIPE_FORMAT_R16_USCALED: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_USCALED: return true;
+   case PIPE_FORMAT_R16G16B16_USCALED: return true;
+   case PIPE_FORMAT_R16G16_USCALED: return true;
+   case PIPE_FORMAT_R16_USCALED: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_SSCALED: return TRUE;
-   case PIPE_FORMAT_R16G16B16_SSCALED: return TRUE;
-   case PIPE_FORMAT_R16G16_SSCALED: return TRUE;
-   case PIPE_FORMAT_R16_SSCALED: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_SSCALED: return true;
+   case PIPE_FORMAT_R16G16B16_SSCALED: return true;
+   case PIPE_FORMAT_R16G16_SSCALED: return true;
+   case PIPE_FORMAT_R16_SSCALED: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_UNORM: return TRUE;
-   case PIPE_FORMAT_R16G16B16_UNORM: return TRUE;
-   case PIPE_FORMAT_R16G16_UNORM: return TRUE;
-   case PIPE_FORMAT_R16_UNORM: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_UNORM: return true;
+   case PIPE_FORMAT_R16G16B16_UNORM: return true;
+   case PIPE_FORMAT_R16G16_UNORM: return true;
+   case PIPE_FORMAT_R16_UNORM: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_SNORM: return TRUE;
-   case PIPE_FORMAT_R16G16B16_SNORM: return TRUE;
-   case PIPE_FORMAT_R16G16_SNORM: return TRUE;
-   case PIPE_FORMAT_R16_SNORM: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_SNORM: return true;
+   case PIPE_FORMAT_R16G16B16_SNORM: return true;
+   case PIPE_FORMAT_R16G16_SNORM: return true;
+   case PIPE_FORMAT_R16_SNORM: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_USCALED: return TRUE;
-   case PIPE_FORMAT_R8G8B8_USCALED: return TRUE;
-   case PIPE_FORMAT_R8G8_USCALED: return TRUE;
-   case PIPE_FORMAT_R8_USCALED: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_USCALED: return true;
+   case PIPE_FORMAT_R8G8B8_USCALED: return true;
+   case PIPE_FORMAT_R8G8_USCALED: return true;
+   case PIPE_FORMAT_R8_USCALED: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_SSCALED: return TRUE;
-   case PIPE_FORMAT_R8G8B8_SSCALED: return TRUE;
-   case PIPE_FORMAT_R8G8_SSCALED: return TRUE;
-   case PIPE_FORMAT_R8_SSCALED: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_SSCALED: return true;
+   case PIPE_FORMAT_R8G8B8_SSCALED: return true;
+   case PIPE_FORMAT_R8G8_SSCALED: return true;
+   case PIPE_FORMAT_R8_SSCALED: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_UNORM: return TRUE;
-   case PIPE_FORMAT_R8G8B8_UNORM: return TRUE;
-   case PIPE_FORMAT_R8G8_UNORM: return TRUE;
-   case PIPE_FORMAT_R8_UNORM: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_UNORM: return true;
+   case PIPE_FORMAT_R8G8B8_UNORM: return true;
+   case PIPE_FORMAT_R8G8_UNORM: return true;
+   case PIPE_FORMAT_R8_UNORM: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_SNORM: return TRUE;
-   case PIPE_FORMAT_R8G8B8_SNORM: return TRUE;
-   case PIPE_FORMAT_R8G8_SNORM: return TRUE;
-   case PIPE_FORMAT_R8_SNORM: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_SNORM: return true;
+   case PIPE_FORMAT_R8G8B8_SNORM: return true;
+   case PIPE_FORMAT_R8G8_SNORM: return true;
+   case PIPE_FORMAT_R8_SNORM: return true;
 
-   case PIPE_FORMAT_A8R8G8B8_UNORM: return TRUE;
-   case PIPE_FORMAT_B8G8R8A8_UNORM: return TRUE;
+   case PIPE_FORMAT_A8R8G8B8_UNORM: return true;
+   case PIPE_FORMAT_B8G8R8A8_UNORM: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_UINT: return TRUE;
-   case PIPE_FORMAT_R32G32B32_UINT: return TRUE;
-   case PIPE_FORMAT_R32G32_UINT: return TRUE;
-   case PIPE_FORMAT_R32_UINT: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_UINT: return true;
+   case PIPE_FORMAT_R32G32B32_UINT: return true;
+   case PIPE_FORMAT_R32G32_UINT: return true;
+   case PIPE_FORMAT_R32_UINT: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_UINT: return TRUE;
-   case PIPE_FORMAT_R16G16B16_UINT: return TRUE;
-   case PIPE_FORMAT_R16G16_UINT: return TRUE;
-   case PIPE_FORMAT_R16_UINT: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_UINT: return true;
+   case PIPE_FORMAT_R16G16B16_UINT: return true;
+   case PIPE_FORMAT_R16G16_UINT: return true;
+   case PIPE_FORMAT_R16_UINT: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_UINT: return TRUE;
-   case PIPE_FORMAT_R8G8B8_UINT: return TRUE;
-   case PIPE_FORMAT_R8G8_UINT: return TRUE;
-   case PIPE_FORMAT_R8_UINT: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_UINT: return true;
+   case PIPE_FORMAT_R8G8B8_UINT: return true;
+   case PIPE_FORMAT_R8G8_UINT: return true;
+   case PIPE_FORMAT_R8_UINT: return true;
 
-   case PIPE_FORMAT_R32G32B32A32_SINT: return TRUE;
-   case PIPE_FORMAT_R32G32B32_SINT: return TRUE;
-   case PIPE_FORMAT_R32G32_SINT: return TRUE;
-   case PIPE_FORMAT_R32_SINT: return TRUE;
+   case PIPE_FORMAT_R32G32B32A32_SINT: return true;
+   case PIPE_FORMAT_R32G32B32_SINT: return true;
+   case PIPE_FORMAT_R32G32_SINT: return true;
+   case PIPE_FORMAT_R32_SINT: return true;
 
-   case PIPE_FORMAT_R16G16B16A16_SINT: return TRUE;
-   case PIPE_FORMAT_R16G16B16_SINT: return TRUE;
-   case PIPE_FORMAT_R16G16_SINT: return TRUE;
-   case PIPE_FORMAT_R16_SINT: return TRUE;
+   case PIPE_FORMAT_R16G16B16A16_SINT: return true;
+   case PIPE_FORMAT_R16G16B16_SINT: return true;
+   case PIPE_FORMAT_R16G16_SINT: return true;
+   case PIPE_FORMAT_R16_SINT: return true;
 
-   case PIPE_FORMAT_R8G8B8A8_SINT: return TRUE;
-   case PIPE_FORMAT_R8G8B8_SINT: return TRUE;
-   case PIPE_FORMAT_R8G8_SINT: return TRUE;
-   case PIPE_FORMAT_R8_SINT: return TRUE;
+   case PIPE_FORMAT_R8G8B8A8_SINT: return true;
+   case PIPE_FORMAT_R8G8B8_SINT: return true;
+   case PIPE_FORMAT_R8G8_SINT: return true;
+   case PIPE_FORMAT_R8_SINT: return true;
 
-   case PIPE_FORMAT_B10G10R10A2_UNORM: return TRUE;
-   case PIPE_FORMAT_B10G10R10A2_USCALED: return TRUE;
-   case PIPE_FORMAT_B10G10R10A2_SNORM: return TRUE;
-   case PIPE_FORMAT_B10G10R10A2_SSCALED: return TRUE;
+   case PIPE_FORMAT_B10G10R10A2_UNORM: return true;
+   case PIPE_FORMAT_B10G10R10A2_USCALED: return true;
+   case PIPE_FORMAT_B10G10R10A2_SNORM: return true;
+   case PIPE_FORMAT_B10G10R10A2_SSCALED: return true;
 
-   case PIPE_FORMAT_R10G10B10A2_UNORM: return TRUE;
-   case PIPE_FORMAT_R10G10B10A2_USCALED: return TRUE;
-   case PIPE_FORMAT_R10G10B10A2_SNORM: return TRUE;
-   case PIPE_FORMAT_R10G10B10A2_SSCALED: return TRUE;
+   case PIPE_FORMAT_R10G10B10A2_UNORM: return true;
+   case PIPE_FORMAT_R10G10B10A2_USCALED: return true;
+   case PIPE_FORMAT_R10G10B10A2_SNORM: return true;
+   case PIPE_FORMAT_R10G10B10A2_SSCALED: return true;
 
-   default: return FALSE;
+   default: return false;
    }
 }

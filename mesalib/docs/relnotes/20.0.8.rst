@@ -133,7 +133,7 @@ Jan Palus (1):
 
 -  targets/opencl: fix build against LLVM>=10 with Polly support
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  anv:gpu_memcpy: Emit 3DSTATE_VF_INDEXING on Gen8+
 -  nir/lower_double_ops: Rework the if (progress) tree

@@ -529,6 +529,52 @@ util_format_uyvy_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
    }
 }
 
+void
+util_format_vyuy_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                              const uint8_t *restrict src_row, unsigned src_stride,
+                              unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      float *dst = dst_row;
+      const uint32_t *src = (const uint32_t *)src_row;
+      uint32_t value;
+      uint8_t y0, y1, u, v;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         value = util_cpu_to_le32(*src++);
+
+         v  = (value >>  0) & 0xff;
+         y0 = (value >>  8) & 0xff;
+         u  = (value >> 16) & 0xff;
+         y1 = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_float(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+         dst += 4;
+
+         util_format_yuv_to_rgb_float(y1, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+         dst += 4;
+      }
+
+      if (x < width) {
+         value = util_cpu_to_le32(*src);
+
+         v  = (value >>  0) & 0xff;
+         y0 = (value >>  8) & 0xff;
+         u  = (value >> 16) & 0xff;
+         y1 = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_float(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+      }
+
+      src_row = (uint8_t *)src_row + src_stride;
+      dst_row = (uint8_t *)dst_row + dst_stride;
+   }
+}
 
 void
 util_format_uyvy_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
@@ -577,6 +623,52 @@ util_format_uyvy_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stri
    }
 }
 
+void
+util_format_vyuy_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                               const uint8_t *restrict src_row, unsigned src_stride,
+                               unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      uint8_t *dst = dst_row;
+      const uint32_t *src = (const uint32_t *)src_row;
+      uint32_t value;
+      uint8_t y0, y1, u, v;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         value = util_cpu_to_le32(*src++);
+
+         v  = (value >>  0) & 0xff;
+         y0 = (value >>  8) & 0xff;
+         u  = (value >> 16) & 0xff;
+         y1 = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_8unorm(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+         dst += 4;
+
+         util_format_yuv_to_rgb_8unorm(y1, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+         dst += 4;
+      }
+
+      if (x < width) {
+         value = util_cpu_to_le32(*src);
+
+         v  = (value >>  0) & 0xff;
+         y0 = (value >>  8) & 0xff;
+         u  = (value >> 16) & 0xff;
+         y1 = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_8unorm(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+      }
+
+      src_row += src_stride/sizeof(*src_row);
+      dst_row += dst_stride/sizeof(*dst_row);
+   }
+}
 
 void
 util_format_uyvy_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
@@ -620,6 +712,58 @@ util_format_uyvy_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
          value  = u;
          value |= (uint32_t)y0 <<  8;
          value |= (uint32_t)v  << 16;
+         value |= (uint32_t)y1 << 24;
+
+         *dst = util_le32_to_cpu(value);
+      }
+
+      dst_row += dst_stride/sizeof(*dst_row);
+      src_row += src_stride/sizeof(*src_row);
+   }
+}
+
+void
+util_format_vyuy_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                            const float *restrict src_row, unsigned src_stride,
+                            unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      const float *src = src_row;
+      uint32_t *dst = (uint32_t *)dst_row;
+      uint8_t y0, y1, u, v;
+      uint32_t value;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         uint8_t y0, y1, u0, u1, v0, v1, u, v;
+
+         util_format_rgb_float_to_yuv(src[0], src[1], src[2],
+                                      &y0, &u0, &v0);
+         util_format_rgb_float_to_yuv(src[4], src[5], src[6],
+                                      &y1, &u1, &v1);
+
+         u = (u0 + u1 + 1) >> 1;
+         v = (v0 + v1 + 1) >> 1;
+
+         value  = v;
+         value |= (uint32_t)y0 <<  8;
+         value |= (uint32_t)u  << 16;
+         value |= (uint32_t)y1 << 24;
+
+         *dst++ = util_le32_to_cpu(value);
+
+         src += 8;
+      }
+
+      if (x < width) {
+         util_format_rgb_float_to_yuv(src[0], src[1], src[2],
+                                      &y0, &u, &v);
+         y1 = 0;
+
+         value  = v;
+         value |= (uint32_t)y0 <<  8;
+         value |= (uint32_t)u  << 16;
          value |= (uint32_t)y1 << 24;
 
          *dst = util_le32_to_cpu(value);
@@ -683,6 +827,57 @@ util_format_uyvy_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride
    }
 }
 
+void
+util_format_vyuy_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                             const uint8_t *restrict src_row, unsigned src_stride,
+                             unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      const uint8_t *src = src_row;
+      uint32_t *dst = (uint32_t *)dst_row;
+      uint8_t y0, y1, u, v;
+      uint32_t value;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         uint8_t y0, y1, u0, u1, v0, v1, u, v;
+
+         util_format_rgb_8unorm_to_yuv(src[0], src[1], src[2],
+                                       &y0, &u0, &v0);
+         util_format_rgb_8unorm_to_yuv(src[4], src[5], src[6],
+                                       &y1, &u1, &v1);
+
+         u = (u0 + u1 + 1) >> 1;
+         v = (v0 + v1 + 1) >> 1;
+
+         value  = v;
+         value |= (uint32_t)y0 <<  8;
+         value |= (uint32_t)u  << 16;
+         value |= (uint32_t)y1 << 24;
+
+         *dst++ = util_le32_to_cpu(value);
+
+         src += 8;
+      }
+
+      if (x < width) {
+         util_format_rgb_8unorm_to_yuv(src[0], src[1], src[2],
+                                       &y0, &u, &v);
+         y1 = 0;
+
+         value  = v;
+         value |= (uint32_t)y0 <<  8;
+         value |= (uint32_t)u  << 16;
+         value |= (uint32_t)y1 << 24;
+
+         *dst = util_le32_to_cpu(value);
+      }
+
+      dst_row += dst_stride/sizeof(*dst_row);
+      src_row += src_stride/sizeof(*src_row);
+   }
+}
 
 void
 util_format_uyvy_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
@@ -697,6 +892,26 @@ util_format_uyvy_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
    y = src[1 + i*2];
    u = src[0];
    v = src[2];
+
+   util_format_yuv_to_rgb_float(y, u, v, &dst[0], &dst[1], &dst[2]);
+
+   dst[3] = 1.0f;
+}
+
+
+void
+util_format_vyuy_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
+                             unsigned i, ASSERTED unsigned j)
+{
+   float *dst = in_dst;
+   uint8_t y, u, v;
+
+   assert(i < 2);
+   assert(j < 1);
+
+   y = src[1 + i*2];
+   v = src[0];
+   u = src[2];
 
    util_format_yuv_to_rgb_float(y, u, v, &dst[0], &dst[1], &dst[2]);
 
@@ -751,6 +966,53 @@ util_format_yuyv_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
    }
 }
 
+void
+util_format_yvyu_unpack_rgba_float(void *restrict dst_row, unsigned dst_stride,
+                              const uint8_t *restrict src_row, unsigned src_stride,
+                              unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      float *dst = dst_row;
+      const uint32_t *src = (const uint32_t *)src_row;
+      uint32_t value;
+      uint8_t y0, y1, u, v;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         value = util_cpu_to_le32(*src++);
+
+         y0 = (value >>  0) & 0xff;
+         u  = (value >> 24) & 0xff;
+         y1 = (value >> 16) & 0xff;
+         v  = (value >>  8) & 0xff;
+
+         util_format_yuv_to_rgb_float(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+         dst += 4;
+
+         util_format_yuv_to_rgb_float(y1, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+         dst += 4;
+      }
+
+      if (x < width) {
+         value = util_cpu_to_le32(*src);
+
+         y0 = (value >>  0) & 0xff;
+         u  = (value >> 24) & 0xff;
+         y1 = (value >> 16) & 0xff;
+         v  = (value >>  8) & 0xff;
+
+         util_format_yuv_to_rgb_float(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 1.0f; /* a */
+      }
+
+      src_row = (uint8_t *)src_row + src_stride;
+      dst_row = (uint8_t *)dst_row + dst_stride;
+   }
+}
+
 
 void
 util_format_yuyv_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
@@ -789,6 +1051,53 @@ util_format_yuyv_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stri
          u  = (value >>  8) & 0xff;
          y1 = (value >> 16) & 0xff;
          v  = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_8unorm(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+      }
+
+      src_row += src_stride/sizeof(*src_row);
+      dst_row += dst_stride/sizeof(*dst_row);
+   }
+}
+
+void
+util_format_yvyu_unpack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                               const uint8_t *restrict src_row, unsigned src_stride,
+                               unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      uint8_t *dst = dst_row;
+      const uint32_t *src = (const uint32_t *)src_row;
+      uint32_t value;
+      uint8_t y0, y1, u, v;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         value = util_cpu_to_le32(*src++);
+
+         y0 = (value >>  0) & 0xff;
+         v  = (value >>  8) & 0xff;
+         y1 = (value >> 16) & 0xff;
+         u  = (value >> 24) & 0xff;
+
+         util_format_yuv_to_rgb_8unorm(y0, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+         dst += 4;
+
+         util_format_yuv_to_rgb_8unorm(y1, u, v, &dst[0], &dst[1], &dst[2]);
+         dst[3] = 0xff; /* a */
+         dst += 4;
+      }
+
+      if (x < width) {
+         value = util_cpu_to_le32(*src);
+
+         y0 = (value >>  0) & 0xff;
+         v  = (value >>  8) & 0xff;
+         y1 = (value >> 16) & 0xff;
+         u  = (value >> 24) & 0xff;
 
          util_format_yuv_to_rgb_8unorm(y0, u, v, &dst[0], &dst[1], &dst[2]);
          dst[3] = 0xff; /* a */
@@ -852,6 +1161,57 @@ util_format_yuyv_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
    }
 }
 
+void
+util_format_yvyu_pack_rgba_float(uint8_t *restrict dst_row, unsigned dst_stride,
+                            const float *restrict src_row, unsigned src_stride,
+                            unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      const float *src = src_row;
+      uint32_t *dst = (uint32_t *)dst_row;
+      uint8_t y0, y1, u, v;
+      uint32_t value;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         uint8_t y0, y1, u0, u1, v0, v1, u, v;
+
+         util_format_rgb_float_to_yuv(src[0], src[1], src[2],
+                                      &y0, &u0, &v0);
+         util_format_rgb_float_to_yuv(src[4], src[5], src[6],
+                                      &y1, &u1, &v1);
+
+         u = (u0 + u1 + 1) >> 1;
+         v = (v0 + v1 + 1) >> 1;
+
+         value  = y0;
+         value |= (uint32_t)v  <<  8;
+         value |= (uint32_t)y1 << 16;
+         value |= (uint32_t)u  << 24;
+
+         *dst++ = util_le32_to_cpu(value);
+
+         src += 8;
+      }
+
+      if (x < width) {
+         util_format_rgb_float_to_yuv(src[0], src[1], src[2],
+                                      &y0, &u, &v);
+         y1 = 0;
+
+         value  = y0;
+         value |= (uint32_t)v  <<  8;
+         value |= (uint32_t)y1 << 16;
+         value |= (uint32_t)u  << 24;
+
+         *dst = util_le32_to_cpu(value);
+      }
+
+      dst_row += dst_stride/sizeof(*dst_row);
+      src_row += src_stride/sizeof(*src_row);
+   }
+}
 
 void
 util_format_yuyv_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
@@ -905,6 +1265,58 @@ util_format_yuyv_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride
    }
 }
 
+void
+util_format_yvyu_pack_rgba_8unorm(uint8_t *restrict dst_row, unsigned dst_stride,
+                             const uint8_t *restrict src_row, unsigned src_stride,
+                             unsigned width, unsigned height)
+{
+   unsigned x, y;
+
+   for (y = 0; y < height; y += 1) {
+      const uint8_t *src = src_row;
+      uint32_t *dst = (uint32_t *)dst_row;
+      uint8_t y0, y1, u, v;
+      uint32_t value;
+
+      for (x = 0; x + 1 < width; x += 2) {
+         uint8_t y0, y1, u0, u1, v0, v1, u, v;
+
+         util_format_rgb_8unorm_to_yuv(src[0], src[1], src[2],
+                                       &y0, &u0, &v0);
+         util_format_rgb_8unorm_to_yuv(src[4], src[5], src[6],
+                                       &y1, &u1, &v1);
+
+         u = (u0 + u1 + 1) >> 1;
+         v = (v0 + v1 + 1) >> 1;
+
+         value  = y0;
+         value |= (uint32_t)v  <<  8;
+         value |= (uint32_t)y1 << 16;
+         value |= (uint32_t)u  << 24;
+
+         *dst++ = util_le32_to_cpu(value);
+
+         src += 8;
+      }
+
+      if (x < width) {
+         util_format_rgb_8unorm_to_yuv(src[0], src[1], src[2],
+                                       &y0, &u, &v);
+         y1 = 0;
+
+         value  = y0;
+         value |= (uint32_t)v  <<  8;
+         value |= (uint32_t)y1 << 16;
+         value |= (uint32_t)u  << 24;
+
+         *dst = util_le32_to_cpu(value);
+      }
+
+      dst_row += dst_stride/sizeof(*dst_row);
+      src_row += src_stride/sizeof(*src_row);
+   }
+}
+
 
 void
 util_format_yuyv_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
@@ -919,6 +1331,25 @@ util_format_yuyv_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
    y = src[0 + i*2];
    u = src[1];
    v = src[3];
+
+   util_format_yuv_to_rgb_float(y, u, v, &dst[0], &dst[1], &dst[2]);
+
+   dst[3] = 1.0f;
+}
+
+void
+util_format_yvyu_fetch_rgba(void *restrict in_dst, const uint8_t *restrict src,
+                             unsigned i, ASSERTED unsigned j)
+{
+   float *dst = in_dst;
+   uint8_t y, u, v;
+
+   assert(i < 2);
+   assert(j < 1);
+
+   y = src[0 + i*2];
+   u = src[3];
+   v = src[1];
 
    util_format_yuv_to_rgb_float(y, u, v, &dst[0], &dst[1], &dst[2]);
 

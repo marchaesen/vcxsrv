@@ -27,7 +27,7 @@
  * versions, so we just explicitly set the V3D_VERSION and include v3dx_pack
  * here
  */
-#define V3D_VERSION 33
+#define V3D_VERSION 42
 #include "broadcom/common/v3d_macros.h"
 #include "broadcom/cle/v3dx_pack.h"
 
@@ -58,6 +58,14 @@ v3dv_cl_destroy(struct v3dv_cl *cl)
 static bool
 cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, bool use_branch)
 {
+   /* If we are growing, double the BO allocation size to reduce the number
+    * of allocations with large command buffers. This has a very significant
+    * impact on the number of draw calls per second reported by vkoverhead.
+    */
+   space = align(space, 4096);
+   if (cl->bo)
+      space = MAX2(cl->bo->size * 2, space);
+
    struct v3dv_bo *bo = v3dv_bo_alloc(cl->job->device, space, "CL", true);
    if (!bo) {
       fprintf(stderr, "failed to allocate memory for command list\n");
@@ -114,14 +122,18 @@ v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space)
     * end with a 'return from sub list' command.
     */
    bool needs_return_from_sub_list = false;
-   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY) {
-      if (cl->size > 0) {
+   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY && cl->size > 0)
          needs_return_from_sub_list = true;
-         space += cl_packet_length(RETURN_FROM_SUB_LIST);
-      }
-   } else {
-      space += cl_packet_length(BRANCH);
-   }
+
+   /*
+    * The CLE processor in the simulator tries to read V3D_CL_MAX_INSTR_SIZE
+    * bytes form the CL for each new instruction. If the last instruction in our
+    * CL is smaller than that, and there are not at least V3D_CL_MAX_INSTR_SIZE
+    * bytes until the end of the BO, it will read out of bounds and possibly
+    * cause a GMP violation interrupt to trigger. Ensure we always have at
+    * least that many bytes available to read with the last instruction.
+    */
+   space += V3D_CL_MAX_INSTR_SIZE;
 
    if (v3dv_cl_offset(cl) + space <= cl->size)
       return;

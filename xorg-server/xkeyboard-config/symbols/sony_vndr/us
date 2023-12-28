@@ -77,7 +77,7 @@ xkb_symbols "nwp5461" {
     key  <KP1> { [ KP_1		]	};
     key  <KP2> { [ KP_2		]	};
     key  <KP3> { [ KP_3		]	};
-    key <KPEN> { [ KP_Enter	]	}; 
+    key <KPEN> { [ KP_Enter	]	};
 
     key  <KP0> { [ KP_0		]	};
     key <KPDC> { [ KP_Decimal	]	};

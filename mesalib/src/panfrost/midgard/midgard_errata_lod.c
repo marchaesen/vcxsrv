@@ -35,57 +35,53 @@ bool midgard_nir_lod_errata(nir_shader *shader);
 static bool
 nir_lod_errata_instr(nir_builder *b, nir_instr *instr, void *data)
 {
-        if (instr->type != nir_instr_type_tex)
-                return false;
+   if (instr->type != nir_instr_type_tex)
+      return false;
 
-        nir_tex_instr *tex = nir_instr_as_tex(instr);
-        b->cursor = nir_before_instr(instr);
+   nir_tex_instr *tex = nir_instr_as_tex(instr);
+   b->cursor = nir_before_instr(instr);
 
-        /* The errata only applies to textureLod ("TEXGRD") */
-        if (tex->op != nir_texop_txl)
-                return false;
+   /* The errata only applies to textureLod ("TEXGRD") */
+   if (tex->op != nir_texop_txl)
+      return false;
 
-        /* Let's grab the sampler parameters */
-        nir_intrinsic_instr *l = nir_intrinsic_instr_create(b->shader,
-                        nir_intrinsic_load_sampler_lod_parameters_pan);
-        l->num_components = 3;
-        nir_ssa_dest_init(&l->instr, &l->dest, 3, 32, NULL);
+   /* Let's grab the sampler parameters */
+   nir_intrinsic_instr *l = nir_intrinsic_instr_create(
+      b->shader, nir_intrinsic_load_sampler_lod_parameters_pan);
+   l->num_components = 3;
+   nir_def_init(&l->instr, &l->def, 3, 32);
 
-        /* TODO: Indirect samplers, separate sampler objects XXX */
-        nir_src idx = nir_src_for_ssa(nir_imm_int(b, tex->texture_index));
-        nir_src_copy(&l->src[0], &idx, &l->instr);
+   /* TODO: Indirect samplers, separate sampler objects XXX */
+   l->src[0] = nir_src_for_ssa(nir_imm_int(b, tex->texture_index));
 
-        nir_builder_instr_insert(b, &l->instr);
-        nir_ssa_def *params = &l->dest.ssa;
+   nir_builder_instr_insert(b, &l->instr);
+   nir_def *params = &l->def;
 
-        /* Extract the individual components */
-        nir_ssa_def *min_lod = nir_channel(b, params, 0);
-        nir_ssa_def *max_lod = nir_channel(b, params, 1);
-        nir_ssa_def *lod_bias = nir_channel(b, params, 2);
+   /* Extract the individual components */
+   nir_def *min_lod = nir_channel(b, params, 0);
+   nir_def *max_lod = nir_channel(b, params, 1);
+   nir_def *lod_bias = nir_channel(b, params, 2);
 
-        /* Rewrite the LOD with bias/clamps. Order sensitive. */
-        for (unsigned i = 0; i < tex->num_srcs; i++) {
-                if (tex->src[i].src_type != nir_tex_src_lod)
-                        continue;
+   /* Rewrite the LOD with bias/clamps. Order sensitive. */
+   for (unsigned i = 0; i < tex->num_srcs; i++) {
+      if (tex->src[i].src_type != nir_tex_src_lod)
+         continue;
 
-                nir_ssa_def *lod = nir_ssa_for_src(b, tex->src[i].src, 1);
+      nir_def *lod = tex->src[i].src.ssa;
 
-                nir_ssa_def *biased = nir_fadd(b, lod, lod_bias);
-                nir_ssa_def *clamped = nir_fmin(b,
-                                nir_fmax(b, biased, min_lod), max_lod);
+      nir_def *biased = nir_fadd(b, lod, lod_bias);
+      nir_def *clamped = nir_fmin(b, nir_fmax(b, biased, min_lod), max_lod);
 
-                nir_instr_rewrite_src(&tex->instr, &tex->src[i].src,
-                                nir_src_for_ssa(clamped));
-        }
+      nir_src_rewrite(&tex->src[i].src, clamped);
+   }
 
-        return true;
+   return true;
 }
 
 bool
 midgard_nir_lod_errata(nir_shader *shader)
 {
-        return nir_shader_instructions_pass(shader,
-                                            nir_lod_errata_instr,
-                                            nir_metadata_block_index | nir_metadata_dominance,
-                                            NULL);
+   return nir_shader_instructions_pass(
+      shader, nir_lod_errata_instr,
+      nir_metadata_block_index | nir_metadata_dominance, NULL);
 }

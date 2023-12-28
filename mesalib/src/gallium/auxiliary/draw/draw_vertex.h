@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -39,7 +39,7 @@
 #define DRAW_VERTEX_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "util/u_debug.h"
 #include "util/u_memory.h"
@@ -66,10 +66,9 @@ enum attrib_emit {
  */
 struct vertex_info
 {
-   uint num_attribs;
-   uint hwfmt[4];      /**< hardware format info for this format */
-   uint size;          /**< total vertex size in dwords */
-   
+   unsigned num_attribs;
+   unsigned size;      /**< total vertex size in dwords */
+
    /* Keep this small and at the end of the struct to allow quick
     * memcmp() comparisons.
     */
@@ -79,26 +78,29 @@ struct vertex_info
    } attrib[PIPE_MAX_SHADER_OUTPUTS];
 };
 
+
 static inline size_t
-draw_vinfo_size( const struct vertex_info *a )
+draw_vinfo_size(const struct vertex_info *a)
 {
    return offsetof(const struct vertex_info, attrib[a->num_attribs]);
 }
 
+
 static inline int
-draw_vinfo_compare( const struct vertex_info *a,
-                    const struct vertex_info *b )
+draw_vinfo_compare(const struct vertex_info *a,
+                   const struct vertex_info *b)
 {
-   size_t sizea = draw_vinfo_size( a );
-   return memcmp( a, b, sizea );
+   size_t sizea = draw_vinfo_size(a);
+   return memcmp(a, b, sizea);
 }
 
+
 static inline void
-draw_vinfo_copy( struct vertex_info *dst,
-                 const struct vertex_info *src )
+draw_vinfo_copy(struct vertex_info *dst,
+                const struct vertex_info *src)
 {
-   size_t size = draw_vinfo_size( src );
-   memcpy( dst, src, size );
+   size_t size = draw_vinfo_size(src);
+   memcpy(dst, src, size);
 }
 
 
@@ -111,10 +113,10 @@ draw_vinfo_copy( struct vertex_info *dst,
  */
 static inline uint
 draw_emit_vertex_attr(struct vertex_info *vinfo,
-                      enum attrib_emit emit, 
+                      enum attrib_emit emit,
                       int src_index)
 {
-   const uint n = vinfo->num_attribs;
+   const unsigned n = vinfo->num_attribs;
 
    /* If the src_index is negative, meaning it hasn't been found
     * we'll assign it all zeros later - set to DRAW_ATTR_NONEXIST */
@@ -130,13 +132,17 @@ draw_emit_vertex_attr(struct vertex_info *vinfo,
 }
 
 
-extern void draw_compute_vertex_size(struct vertex_info *vinfo);
-
-void draw_dump_emitted_vertex(const struct vertex_info *vinfo, 
-                              const uint8_t *data);
+void
+draw_compute_vertex_size(struct vertex_info *vinfo);
 
 
-static inline enum pipe_format draw_translate_vinfo_format(enum attrib_emit emit)
+void
+draw_dump_emitted_vertex(const struct vertex_info *vinfo,
+                         const uint8_t *data);
+
+
+static inline enum pipe_format
+draw_translate_vinfo_format(enum attrib_emit emit)
 {
    switch (emit) {
    case EMIT_OMIT:
@@ -160,7 +166,9 @@ static inline enum pipe_format draw_translate_vinfo_format(enum attrib_emit emit
    }
 }
 
-static inline unsigned draw_translate_vinfo_size(enum attrib_emit emit)
+
+static inline unsigned
+draw_translate_vinfo_size(enum attrib_emit emit)
 {
    switch (emit) {
    case EMIT_OMIT:

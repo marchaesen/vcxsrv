@@ -2,28 +2,8 @@
  * Copyright © 2008 Jérôme Glisse
  * Copyright © 2011 Marek Olšák <maraeo@gmail.com>
  * Copyright © 2015 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AMDGPU_BO_H
@@ -42,7 +22,7 @@ struct amdgpu_sparse_backing_chunk;
 struct amdgpu_sparse_backing {
    struct list_head list;
 
-   struct amdgpu_winsys_bo *bo;
+   struct amdgpu_bo_real *bo;
 
    /* Sorted list of free chunks. */
    struct amdgpu_sparse_backing_chunk *chunks;
@@ -55,48 +35,23 @@ struct amdgpu_sparse_commitment {
    uint32_t page;
 };
 
+enum amdgpu_bo_type {
+   AMDGPU_BO_SLAB,
+   AMDGPU_BO_SPARSE,
+   AMDGPU_BO_REAL, /* only REAL enums can be present after this */
+   AMDGPU_BO_REAL_REUSABLE,
+};
+
+/* Anything above REAL will use the BO list for REAL. */
+#define NUM_BO_LIST_TYPES (AMDGPU_BO_REAL + 1)
+
+/* Base class of the buffer object that other structures inherit. */
 struct amdgpu_winsys_bo {
    struct pb_buffer base;
-   union {
-      struct {
-         amdgpu_va_handle va_handle;
-#if DEBUG
-         struct list_head global_list_item;
-#endif
-         void *cpu_ptr; /* for user_ptr and permanent maps */
-         uint32_t kms_handle;
-         int map_count;
-
-         bool is_user_ptr;
-         bool use_reusable_pool;
-
-         /* Whether buffer_get_handle or buffer_from_handle has been called,
-          * it can only transition from false to true. Protected by lock.
-          */
-         bool is_shared;
-      } real;
-      struct {
-         struct pb_slab_entry entry;
-         struct amdgpu_winsys_bo *real;
-      } slab;
-      struct {
-         amdgpu_va_handle va_handle;
-
-         uint32_t num_va_pages;
-         uint32_t num_backing_pages;
-
-         struct list_head backing;
-
-         /* Commitment information for each page of the virtual memory area. */
-         struct amdgpu_sparse_commitment *commitments;
-      } sparse;
-   } u;
-
-   amdgpu_bo_handle bo; /* NULL for slab entries and sparse buffers */
-   uint64_t va;
+   enum amdgpu_bo_type type;
 
    uint32_t unique_id;
-   simple_mtx_t lock;
+   uint64_t va;
 
    /* how many command streams, which are being emitted in a separate
     * thread, is this bo referenced in? */
@@ -106,16 +61,104 @@ struct amdgpu_winsys_bo {
    uint16_t num_fences;
    uint16_t max_fences;
    struct pipe_fence_handle **fences;
+};
 
-   struct pb_cache_entry cache_entry[];
+/* Real GPU memory allocation managed by the amdgpu kernel driver.
+ *
+ * There are also types of buffers that are not "real" kernel allocations, such as slab entry
+ * BOs, which are suballocated from real BOs, and sparse BOs, which initially only allocate
+ * the virtual address range, not memory.
+ */
+struct amdgpu_bo_real {
+   struct amdgpu_winsys_bo b;
+
+   amdgpu_bo_handle bo;
+   amdgpu_va_handle va_handle;
+   void *cpu_ptr; /* for user_ptr and permanent maps */
+   int map_count;
+   uint32_t kms_handle;
+#if DEBUG
+   struct list_head global_list_item;
+#endif
+   simple_mtx_t lock;
+
+   bool is_user_ptr;
+
+   /* Whether buffer_get_handle or buffer_from_handle has been called,
+    * it can only transition from false to true. Protected by lock.
+    */
+   bool is_shared;
+};
+
+/* Same as amdgpu_bo_real except this BO isn't destroyed when its reference count drops to 0.
+ * Instead it's cached in pb_cache for later reuse.
+ */
+struct amdgpu_bo_real_reusable {
+   struct amdgpu_bo_real b;
+   struct pb_cache_entry cache_entry;
+};
+
+/* Sparse BO. This only allocates the virtual address range for the BO. The physical storage is
+ * allocated on demand by the user using radeon_winsys::buffer_commit with 64KB granularity.
+ */
+struct amdgpu_bo_sparse {
+   struct amdgpu_winsys_bo b;
+   amdgpu_va_handle va_handle;
+
+   uint32_t num_va_pages;
+   uint32_t num_backing_pages;
+   simple_mtx_t lock;
+
+   struct list_head backing;
+
+   /* Commitment information for each page of the virtual memory area. */
+   struct amdgpu_sparse_commitment *commitments;
+};
+
+/* Suballocated buffer using the slab allocator. This BO is only 1 piece of a larger buffer
+ * called slab, which is a buffer that's divided into smaller equal-sized buffers.
+ */
+struct amdgpu_bo_slab {
+   struct amdgpu_winsys_bo b;
+   struct amdgpu_bo_real *real;
+   struct pb_slab_entry entry;
 };
 
 struct amdgpu_slab {
    struct pb_slab base;
    unsigned entry_size;
    struct amdgpu_winsys_bo *buffer;
-   struct amdgpu_winsys_bo *entries;
+   struct amdgpu_bo_slab *entries;
 };
+
+static inline bool is_real_bo(struct amdgpu_winsys_bo *bo)
+{
+   return bo->type >= AMDGPU_BO_REAL;
+}
+
+static struct amdgpu_bo_real *get_real_bo(struct amdgpu_winsys_bo *bo)
+{
+   assert(is_real_bo(bo));
+   return (struct amdgpu_bo_real*)bo;
+}
+
+static struct amdgpu_bo_real_reusable *get_real_bo_reusable(struct amdgpu_winsys_bo *bo)
+{
+   assert(bo->type == AMDGPU_BO_REAL_REUSABLE);
+   return (struct amdgpu_bo_real_reusable*)bo;
+}
+
+static struct amdgpu_bo_sparse *get_sparse_bo(struct amdgpu_winsys_bo *bo)
+{
+   assert(bo->type == AMDGPU_BO_SPARSE && bo->base.usage & RADEON_FLAG_SPARSE);
+   return (struct amdgpu_bo_sparse*)bo;
+}
+
+static struct amdgpu_bo_slab *get_slab_bo(struct amdgpu_winsys_bo *bo)
+{
+   assert(bo->type == AMDGPU_BO_SLAB);
+   return (struct amdgpu_bo_slab*)bo;
+}
 
 bool amdgpu_bo_can_reclaim(struct amdgpu_winsys *ws, struct pb_buffer *_buf);
 struct pb_buffer *amdgpu_bo_create(struct amdgpu_winsys *ws,

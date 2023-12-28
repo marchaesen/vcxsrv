@@ -13,10 +13,14 @@ option('tools', type : 'feature', value : 'auto', yield : true,
   description: 'Build command-line tools (fc-list, fc-query, etc.)')
 option('cache-build', type : 'feature', value : 'enabled',
   description: 'Run fc-cache on install')
+option('iconv', type: 'feature', value: 'disabled')
 
 # Defaults
 option('default-hinting', type: 'combo', choices: ['none', 'slight', 'medium', 'full'], value: 'slight',
   description: 'Preferred hinting configuration')
+
+option('default-sub-pixel-rendering', type: 'combo', choices: ['none', 'bgr', 'rgb', 'vbgr', 'vrgb'], value: 'none',
+  description: 'Preferred sub-pixel rendering configuration')
 
 option('default-fonts-dirs', type: 'array', value: ['yes'],
   description: 'Use fonts from DIR1,DIR2,... when config is busted (set to "yes" for generic system-specific defaults)')

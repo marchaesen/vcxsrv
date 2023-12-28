@@ -63,6 +63,7 @@ lima_screen_destroy(struct pipe_screen *pscreen)
    lima_bo_cache_fini(screen);
    lima_bo_table_fini(screen);
    disk_cache_destroy(screen->disk_cache);
+   lima_resource_screen_destroy(screen);
    ralloc_free(screen);
 }
 
@@ -84,7 +85,7 @@ lima_screen_get_name(struct pipe_screen *pscreen)
 static const char *
 lima_screen_get_vendor(struct pipe_screen *pscreen)
 {
-   return "lima";
+   return "Mesa";
 }
 
 static const char *
@@ -107,12 +108,7 @@ lima_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_TEXTURE_SWIZZLE:
    case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
    case PIPE_CAP_TEXTURE_BARRIER:
-   case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
    case PIPE_CAP_SURFACE_SAMPLE_COUNT:
-      return 1;
-
-   /* Unimplemented, but for exporting OpenGL 2.0 */
-   case PIPE_CAP_POINT_SPRITE:
       return 1;
 
    /* not clear supported */
@@ -233,9 +229,6 @@ get_vertex_shader_param(struct lima_screen *screen,
    case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
       return 1;
 
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-      return PIPE_SHADER_IR_NIR;
-
    case PIPE_SHADER_CAP_MAX_TEMPS:
       return 256; /* need investigate */
 
@@ -274,9 +267,6 @@ get_fragment_shader_param(struct lima_screen *screen,
    case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
    case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
       return 16; /* need investigate */
-
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-      return PIPE_SHADER_IR_NIR;
 
    case PIPE_SHADER_CAP_MAX_TEMPS:
       return 256; /* need investigate */
@@ -601,7 +591,7 @@ static const struct debug_named_value lima_debug_options[] = {
           "print debug info for shader disk cache" },
         { "noblit", LIMA_DEBUG_NO_BLIT,
           "use generic u_blitter instead of lima-specific" },
-        { NULL }
+        DEBUG_NAMED_VALUE_END
 };
 
 DEBUG_GET_ONCE_FLAGS_OPTION(lima_debug, "LIMA_DEBUG", lima_debug_options, 0)
@@ -651,8 +641,16 @@ lima_get_disk_shader_cache (struct pipe_screen *pscreen)
    return screen->disk_cache;
 }
 
+static int
+lima_screen_get_fd(struct pipe_screen *pscreen)
+{
+   struct lima_screen *screen = lima_screen(pscreen);
+   return screen->fd;
+}
+
 struct pipe_screen *
-lima_screen_create(int fd, struct renderonly *ro)
+lima_screen_create(int fd, const struct pipe_screen_config *config,
+                   struct renderonly *ro)
 {
    uint64_t system_memory;
    struct lima_screen *screen;
@@ -735,6 +733,7 @@ lima_screen_create(int fd, struct renderonly *ro)
    pp_frame_rsw[13] = 0x00000100;
 
    screen->base.destroy = lima_screen_destroy;
+   screen->base.get_screen_fd = lima_screen_get_fd;
    screen->base.get_name = lima_screen_get_name;
    screen->base.get_vendor = lima_screen_get_vendor;
    screen->base.get_device_vendor = lima_screen_get_device_vendor;
@@ -753,8 +752,6 @@ lima_screen_create(int fd, struct renderonly *ro)
    lima_disk_cache_init(screen);
 
    slab_create_parent(&screen->transfer_pool, sizeof(struct lima_transfer), 16);
-
-   screen->refcnt = 1;
 
    return &screen->base;
 

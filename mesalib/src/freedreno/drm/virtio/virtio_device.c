@@ -30,51 +30,43 @@
 
 #include "virtio_priv.h"
 
+
+static int virtio_execbuf_flush(struct fd_device *dev);
+
 static void
 virtio_device_destroy(struct fd_device *dev)
 {
    struct virtio_device *virtio_dev = to_virtio_device(dev);
 
-   fd_bo_del_locked(virtio_dev->shmem_bo);
    util_vma_heap_finish(&virtio_dev->address_space);
+}
+
+static uint32_t
+virtio_handle_from_dmabuf(struct fd_device *dev, int fd)
+{
+   struct virtio_device *virtio_dev = to_virtio_device(dev);
+
+   return vdrm_dmabuf_to_handle(virtio_dev->vdrm, fd);
+}
+
+static void
+virtio_close_handle(struct fd_bo *bo)
+{
+   struct virtio_device *virtio_dev = to_virtio_device(bo->dev);
+
+   vdrm_bo_close(virtio_dev->vdrm, bo->handle);
 }
 
 static const struct fd_device_funcs funcs = {
    .bo_new = virtio_bo_new,
    .bo_from_handle = virtio_bo_from_handle,
+   .handle_from_dmabuf = virtio_handle_from_dmabuf,
+   .bo_from_dmabuf = fd_bo_from_dmabuf_drm,
+   .bo_close_handle = virtio_close_handle,
    .pipe_new = virtio_pipe_new,
+   .flush = virtio_execbuf_flush,
    .destroy = virtio_device_destroy,
 };
-
-static int
-get_capset(int fd, struct virgl_renderer_capset_drm *caps)
-{
-   struct drm_virtgpu_get_caps args = {
-         .cap_set_id = VIRGL_RENDERER_CAPSET_DRM,
-         .cap_set_ver = 0,
-         .addr = VOID2U64(caps),
-         .size = sizeof(*caps),
-   };
-
-   memset(caps, 0, sizeof(*caps));
-
-   return virtio_ioctl(fd, VIRTGPU_GET_CAPS, &args);
-}
-
-static int
-set_context(int fd)
-{
-   struct drm_virtgpu_context_set_param params[] = {
-         { VIRTGPU_CONTEXT_PARAM_CAPSET_ID, VIRGL_RENDERER_CAPSET_DRM },
-         { VIRTGPU_CONTEXT_PARAM_NUM_RINGS, 64 },
-   };
-   struct drm_virtgpu_context_init args = {
-      .num_params = ARRAY_SIZE(params),
-      .ctx_set_params = VOID2U64(params),
-   };
-
-   return virtio_ioctl(fd, VIRTGPU_CONTEXT_INIT, &args);
-}
 
 static void
 set_debuginfo(struct fd_device *dev)
@@ -114,7 +106,7 @@ set_debuginfo(struct fd_device *dev)
    memcpy(&req->payload[0], comm, comm_len);
    memcpy(&req->payload[comm_len], cmdline, cmdline_len);
 
-   virtio_execbuf(dev, &req->hdr, false);
+   vdrm_send_req(to_virtio_device(dev)->vdrm, &req->hdr, false);
 
    free(req);
 }
@@ -124,8 +116,8 @@ virtio_device_new(int fd, drmVersionPtr version)
 {
    struct virgl_renderer_capset_drm caps;
    struct virtio_device *virtio_dev;
+   struct vdrm_device *vdrm;
    struct fd_device *dev;
-   int ret;
 
    STATIC_ASSERT(FD_BO_PREP_READ == MSM_PREP_READ);
    STATIC_ASSERT(FD_BO_PREP_WRITE == MSM_PREP_WRITE);
@@ -135,16 +127,13 @@ virtio_device_new(int fd, drmVersionPtr version)
    if (debug_get_bool_option("FD_NO_VIRTIO", false))
       return NULL;
 
-   ret = get_capset(fd, &caps);
-   if (ret) {
-      INFO_MSG("could not get caps: %s", strerror(errno));
+   vdrm = vdrm_device_connect(fd, VIRTGPU_DRM_CONTEXT_MSM);
+   if (!vdrm) {
+      INFO_MSG("could not connect vdrm");
       return NULL;
    }
 
-   if (caps.context_type != VIRTGPU_DRM_CONTEXT_MSM) {
-      INFO_MSG("wrong context_type: %u", caps.context_type);
-      return NULL;
-   }
+   caps = vdrm->caps;
 
    INFO_MSG("wire_format_version: %u", caps.wire_format_version);
    INFO_MSG("version_major:       %u", caps.version_major);
@@ -161,29 +150,23 @@ virtio_device_new(int fd, drmVersionPtr version)
 
    if (caps.wire_format_version != 2) {
       ERROR_MSG("Unsupported protocol version: %u", caps.wire_format_version);
-      return NULL;
+      goto error;
    }
 
    if ((caps.version_major != 1) || (caps.version_minor < FD_VERSION_SOFTPIN)) {
       ERROR_MSG("unsupported version: %u.%u.%u", caps.version_major,
                 caps.version_minor, caps.version_patchlevel);
-      return NULL;
+      goto error;
    }
 
    if (!caps.u.msm.va_size) {
       ERROR_MSG("No address space");
-      return NULL;
-   }
-
-   ret = set_context(fd);
-   if (ret) {
-      INFO_MSG("Could not set context type: %s", strerror(errno));
-      return NULL;
+      goto error;
    }
 
    virtio_dev = calloc(1, sizeof(*virtio_dev));
    if (!virtio_dev)
-      return NULL;
+      goto error;
 
    dev = &virtio_dev->base;
    dev->funcs = &funcs;
@@ -192,15 +175,12 @@ virtio_device_new(int fd, drmVersionPtr version)
    dev->has_cached_coherent = caps.u.msm.has_cached_coherent;
 
    p_atomic_set(&virtio_dev->next_blob_id, 1);
-
-   virtio_dev->caps = caps;
+   virtio_dev->shmem = to_msm_shmem(vdrm->shmem);
+   virtio_dev->vdrm = vdrm;
 
    util_queue_init(&dev->submit_queue, "sq", 8, 1, 0, NULL);
 
    dev->bo_size = sizeof(struct virtio_bo);
-
-   simple_mtx_init(&virtio_dev->rsp_lock, mtx_plain);
-   simple_mtx_init(&virtio_dev->eb_lock, mtx_plain);
 
    set_debuginfo(dev);
 
@@ -210,175 +190,16 @@ virtio_device_new(int fd, drmVersionPtr version)
    simple_mtx_init(&virtio_dev->address_space_lock, mtx_plain);
 
    return dev;
-}
 
-void *
-virtio_alloc_rsp(struct fd_device *dev, struct msm_ccmd_req *req, uint32_t sz)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-   unsigned off;
-
-   simple_mtx_lock(&virtio_dev->rsp_lock);
-
-   sz = align(sz, 8);
-
-   if ((virtio_dev->next_rsp_off + sz) >= virtio_dev->rsp_mem_len)
-      virtio_dev->next_rsp_off = 0;
-
-   off = virtio_dev->next_rsp_off;
-   virtio_dev->next_rsp_off += sz;
-
-   simple_mtx_unlock(&virtio_dev->rsp_lock);
-
-   req->rsp_off = off;
-
-   struct msm_ccmd_rsp *rsp = (void *)&virtio_dev->rsp_mem[off];
-   rsp->len = sz;
-
-   return rsp;
-}
-
-static int execbuf_flush_locked(struct fd_device *dev, int *out_fence_fd);
-
-static int
-execbuf_locked(struct fd_device *dev, void *cmd, uint32_t cmd_size,
-               uint32_t *handles, uint32_t num_handles,
-               int in_fence_fd, int *out_fence_fd, int ring_idx)
-{
-#define COND(bool, val) ((bool) ? (val) : 0)
-   struct drm_virtgpu_execbuffer eb = {
-         .flags = COND(out_fence_fd, VIRTGPU_EXECBUF_FENCE_FD_OUT) |
-                  COND(in_fence_fd != -1, VIRTGPU_EXECBUF_FENCE_FD_IN) |
-                  VIRTGPU_EXECBUF_RING_IDX,
-         .fence_fd = in_fence_fd,
-         .size  = cmd_size,
-         .command = VOID2U64(cmd),
-         .ring_idx = ring_idx,
-         .bo_handles = VOID2U64(handles),
-         .num_bo_handles = num_handles,
-   };
-
-   int ret = virtio_ioctl(dev->fd, VIRTGPU_EXECBUFFER, &eb);
-   if (ret) {
-      ERROR_MSG("EXECBUFFER failed: %s", strerror(errno));
-      return ret;
-   }
-
-   if (out_fence_fd)
-      *out_fence_fd = eb.fence_fd;
-
-   return 0;
-}
-
-/**
- * Helper for "execbuf" ioctl.. note that in virtgpu execbuf is just
- * a generic "send commands to host", not necessarily specific to
- * cmdstream execution.
- *
- * Note that ring_idx 0 is the "CPU ring", ie. for synchronizing btwn
- * guest and host CPU.
- */
-int
-virtio_execbuf_fenced(struct fd_device *dev, struct msm_ccmd_req *req,
-                      uint32_t *handles, uint32_t num_handles,
-                      int in_fence_fd, int *out_fence_fd, int ring_idx)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-   int ret;
-
-   simple_mtx_lock(&virtio_dev->eb_lock);
-   execbuf_flush_locked(dev, NULL);
-   req->seqno = ++virtio_dev->next_seqno;
-
-   ret = execbuf_locked(dev, req, req->len, handles, num_handles,
-                        in_fence_fd, out_fence_fd, ring_idx);
-
-   simple_mtx_unlock(&virtio_dev->eb_lock);
-
-   return ret;
+error:
+   vdrm_device_close(vdrm);
+   return NULL;
 }
 
 static int
-execbuf_flush_locked(struct fd_device *dev, int *out_fence_fd)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-   int ret;
-
-   if (!virtio_dev->reqbuf_len)
-      return 0;
-
-   ret = execbuf_locked(dev, virtio_dev->reqbuf, virtio_dev->reqbuf_len,
-                        NULL, 0, -1, out_fence_fd, 0);
-   if (ret)
-      return ret;
-
-   virtio_dev->reqbuf_len = 0;
-   virtio_dev->reqbuf_cnt = 0;
-
-   return 0;
-}
-
-int
 virtio_execbuf_flush(struct fd_device *dev)
 {
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-   simple_mtx_lock(&virtio_dev->eb_lock);
-   int ret = execbuf_flush_locked(dev, NULL);
-   simple_mtx_unlock(&virtio_dev->eb_lock);
-   return ret;
-}
-
-int
-virtio_execbuf(struct fd_device *dev, struct msm_ccmd_req *req, bool sync)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-   int fence_fd, ret = 0;
-
-   simple_mtx_lock(&virtio_dev->eb_lock);
-   req->seqno = ++virtio_dev->next_seqno;
-
-   if ((virtio_dev->reqbuf_len + req->len) > sizeof(virtio_dev->reqbuf)) {
-      ret = execbuf_flush_locked(dev, NULL);
-      if (ret)
-         goto out_unlock;
-   }
-
-   memcpy(&virtio_dev->reqbuf[virtio_dev->reqbuf_len], req, req->len);
-   virtio_dev->reqbuf_len += req->len;
-   virtio_dev->reqbuf_cnt++;
-
-   if (!sync)
-      goto out_unlock;
-
-   ret = execbuf_flush_locked(dev, &fence_fd);
-
-out_unlock:
-   simple_mtx_unlock(&virtio_dev->eb_lock);
-
-   if (ret)
-      return ret;
-
-   if (sync) {
-      MESA_TRACE_BEGIN("virtio_execbuf sync");
-      sync_wait(fence_fd, -1);
-      close(fence_fd);
-      virtio_host_sync(dev, req);
-      MESA_TRACE_END();
-   }
-
-   return 0;
-}
-
-/**
- * Wait until host as processed the specified request.
- */
-void
-virtio_host_sync(struct fd_device *dev, const struct msm_ccmd_req *req)
-{
-   struct virtio_device *virtio_dev = to_virtio_device(dev);
-
-   while (fd_fence_before(virtio_dev->shmem->seqno, req->seqno))
-      sched_yield();
+   return vdrm_flush(to_virtio_device(dev)->vdrm);
 }
 
 /**
@@ -387,6 +208,8 @@ virtio_host_sync(struct fd_device *dev, const struct msm_ccmd_req *req)
 int
 virtio_simple_ioctl(struct fd_device *dev, unsigned cmd, void *_req)
 {
+   MESA_TRACE_FUNC();
+   struct vdrm_device *vdrm = to_virtio_device(dev)->vdrm;
    unsigned req_len = sizeof(struct msm_ccmd_ioctl_simple_req);
    unsigned rsp_len = sizeof(struct msm_ccmd_ioctl_simple_rsp);
 
@@ -402,9 +225,9 @@ virtio_simple_ioctl(struct fd_device *dev, unsigned cmd, void *_req)
    req->cmd = cmd;
    memcpy(req->payload, _req, _IOC_SIZE(cmd));
 
-   rsp = virtio_alloc_rsp(dev, &req->hdr, rsp_len);
+   rsp = vdrm_alloc_rsp(vdrm, &req->hdr, rsp_len);
 
-   int ret = virtio_execbuf(dev, &req->hdr, true);
+   int ret = vdrm_send_req(vdrm, &req->hdr, true);
 
    if (cmd & IOC_OUT)
       memcpy(_req, rsp->payload, _IOC_SIZE(cmd));

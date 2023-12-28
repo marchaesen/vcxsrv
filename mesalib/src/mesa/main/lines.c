@@ -23,7 +23,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "lines.h"
 #include "macros.h"
@@ -61,7 +61,7 @@ line_width(struct gl_context *ctx, GLfloat width, bool no_error)
     * *NOT* removed in a later spec.  Therefore, we only disallow this in a
     * forward compatible context.
     */
-   if (!no_error && ctx->API == API_OPENGL_CORE
+   if (!no_error && _mesa_is_desktop_gl_core(ctx)
        && ((ctx->Const.ContextFlags & GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT)
            != 0)
        && width > 1.0F) {

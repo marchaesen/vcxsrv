@@ -53,20 +53,19 @@ lp_build_alpha_test(struct gallivm_state *gallivm,
                     struct lp_build_mask_context *mask,
                     LLVMValueRef alpha,
                     LLVMValueRef ref,
-                    boolean do_branch)
+                    bool do_branch)
 {
    struct lp_build_context bld;
-   LLVMValueRef test;
 
    lp_build_context_init(&bld, gallivm, type);
 
    /*
     * Alpha testing needs to be done in the color buffer precision.
     *
-    * TODO: Ideally, instead of duplicating the color conversion code, we would do
-    * alpha testing after converting the output colors, but that's not very
-    * convenient, because it needs to be done before depth testing.  Hopefully
-    * LLVM will detect and remove the duplicate expression.
+    * TODO: Ideally, instead of duplicating the color conversion code, we
+    * would do alpha testing after converting the output colors, but that's
+    * not very convenient, because it needs to be done before depth testing.
+    * Hopefully LLVM will detect and remove the duplicate expression.
     *
     * FIXME: This should be generalized to formats other than rgba8 variants.
     */
@@ -84,7 +83,7 @@ lp_build_alpha_test(struct gallivm_state *gallivm,
       lp_build_context_init(&bld, gallivm, type);
    }
 
-   test = lp_build_cmp(&bld, func, alpha, ref);
+   LLVMValueRef test = lp_build_cmp(&bld, func, alpha, ref);
 
    lp_build_name(test, "alpha_mask");
 

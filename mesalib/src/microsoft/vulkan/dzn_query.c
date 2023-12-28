@@ -28,7 +28,7 @@
 #include "vk_debug_report.h"
 #include "vk_util.h"
 
-#include "os_time.h"
+#include "util/os_time.h"
 
 static D3D12_QUERY_HEAP_TYPE
 dzn_query_pool_get_heap_type(VkQueryType in)
@@ -133,7 +133,7 @@ dzn_query_pool_create(struct dzn_device *device,
    }
 
    D3D12_HEAP_PROPERTIES hprops =
-      dzn_ID3D12Device2_GetCustomHeapProperties(device->dev, 0, D3D12_HEAP_TYPE_DEFAULT);
+      dzn_ID3D12Device4_GetCustomHeapProperties(device->dev, 0, D3D12_HEAP_TYPE_DEFAULT);
    D3D12_RESOURCE_DESC rdesc = {
       .Dimension = D3D12_RESOURCE_DIMENSION_BUFFER,
       .Alignment = D3D12_DEFAULT_RESOURCE_PLACEMENT_ALIGNMENT,
@@ -150,7 +150,7 @@ dzn_query_pool_create(struct dzn_device *device,
    hres = ID3D12Device1_CreateCommittedResource(device->dev, &hprops,
                                                 D3D12_HEAP_FLAG_NONE,
                                                 &rdesc,
-                                                D3D12_RESOURCE_STATE_COPY_DEST,
+                                                D3D12_RESOURCE_STATE_COMMON,
                                                 NULL,
                                                 &IID_ID3D12Resource,
                                                 (void **)&qpool->resolve_buffer);
@@ -159,13 +159,13 @@ dzn_query_pool_create(struct dzn_device *device,
       return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
    }
 
-   hprops = dzn_ID3D12Device2_GetCustomHeapProperties(device->dev, 0,
+   hprops = dzn_ID3D12Device4_GetCustomHeapProperties(device->dev, 0,
                                                       D3D12_HEAP_TYPE_READBACK);
    rdesc.Width = info->queryCount * (qpool->query_size + sizeof(uint64_t));
    hres = ID3D12Device1_CreateCommittedResource(device->dev, &hprops,
                                                 D3D12_HEAP_FLAG_NONE,
                                                 &rdesc,
-                                                D3D12_RESOURCE_STATE_COPY_DEST,
+                                                D3D12_RESOURCE_STATE_COMMON,
                                                 NULL,
                                                 &IID_ID3D12Resource,
                                                 (void **)&qpool->collect_buffer);
@@ -240,7 +240,7 @@ dzn_ResetQueryPool(VkDevice device,
          query->fence = NULL;
       }
    }
-   mtx_lock(&qpool->queries_lock);
+   mtx_unlock(&qpool->queries_lock);
 
    memset((uint8_t *)qpool->collect_map + dzn_query_pool_get_result_offset(qpool, firstQuery),
           0, queryCount * qpool->query_size);

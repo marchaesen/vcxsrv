@@ -50,15 +50,12 @@ SOFTWARE.
 #include "misc.h"
 #include <stdarg.h>
 #include <stdint.h>
+#if defined(HAVE_REALLOCARRAY)
+#include <stdlib.h>       /* for reallocarray */
+#endif
 #include <string.h>
 #ifdef MONOTONIC_CLOCK
 #include <time.h>
-#endif
-#if defined(HAVE_LIBBSD) && defined(HAVE_REALLOCARRAY)
-#include <bsd/stdlib.h>       /* for reallocarray */
-#endif
-#if defined(HAVE_LIBBSD) && defined(HAVE_STRLCPY)
-#include <bsd/string.h>       /* for strlcpy, strlcat */
 #endif
 
 #define SCREEN_SAVER_ON   0

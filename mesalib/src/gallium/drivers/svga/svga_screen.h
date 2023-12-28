@@ -28,7 +28,7 @@
 
 
 #include "pipe/p_screen.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 
 #include "svga_screen_cache.h"
 
@@ -48,9 +48,9 @@ struct svga_screen
    SVGA3dHardwareVersion hw_version;
 
    /** Device caps */
-   boolean haveProvokingVertex;
-   boolean haveLineStipple, haveLineSmooth;
-   boolean haveBlendLogicops;
+   bool haveProvokingVertex;
+   bool haveLineStipple, haveLineSmooth;
+   bool haveBlendLogicops;
    float maxLineWidth, maxLineWidthAA;
    float maxPointSize;
    float pointSmoothThreshold; /** Disable point AA for sizes less than this */
@@ -72,8 +72,7 @@ struct svga_screen
       unsigned no_cache_index_buffers:1;
       unsigned tessellation:1;
       unsigned sampler_state_mapping:1;
-      unsigned nir:1;
-      unsigned pad:23;
+      unsigned pad:24;
    } debug;
 
    unsigned texture_timestamp;

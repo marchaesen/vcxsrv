@@ -42,11 +42,5 @@ struct v3d_query
 };
 
 struct pipe_query *v3d_create_query_pipe(struct v3d_context *v3d, unsigned query_type, unsigned index);
-struct pipe_query *v3d_create_batch_query_perfcnt(struct v3d_context *v3d, unsigned num_queries,
-                                                  unsigned *query_types);
-int v3d_get_driver_query_group_info_perfcnt(struct v3d_screen *screen, unsigned index,
-                                            struct pipe_driver_query_group_info *info);
-int v3d_get_driver_query_info_perfcnt(struct v3d_screen *screen, unsigned index,
-                                      struct pipe_driver_query_info *info);
 
 #endif /* V3D_QUERY_H */

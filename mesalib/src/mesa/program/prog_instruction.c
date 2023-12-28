@@ -27,7 +27,7 @@
 #include <stdio.h>
 #include <assert.h>
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "prog_instruction.h"
 #include "prog_parameter.h"
 
@@ -61,22 +61,6 @@ _mesa_init_instructions(struct prog_instruction *inst, GLuint count)
 
 
 /**
- * Copy an array of program instructions.
- * \param dest  pointer to destination.
- * \param src  pointer to source.
- * \param n  number of instructions to copy.
- * \return pointer to destination.
- */
-struct prog_instruction *
-_mesa_copy_instructions(struct prog_instruction *dest,
-                        const struct prog_instruction *src, GLuint n)
-{
-   memcpy(dest, src, n * sizeof(struct prog_instruction));
-   return dest;
-}
-
-
-/**
  * Basic info about each instruction
  */
 struct instruction_info
@@ -96,12 +80,7 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_ABS,    "ABS",     1, 1 },
    { OPCODE_ADD,    "ADD",     2, 1 },
    { OPCODE_ARL,    "ARL",     1, 1 },
-   { OPCODE_BGNLOOP,"BGNLOOP", 0, 0 },
-   { OPCODE_BGNSUB, "BGNSUB",  0, 0 },
-   { OPCODE_BRK,    "BRK",     0, 0 },
-   { OPCODE_CAL,    "CAL",     0, 0 },
    { OPCODE_CMP,    "CMP",     3, 1 },
-   { OPCODE_CONT,   "CONT",    0, 0 },
    { OPCODE_COS,    "COS",     1, 1 },
    { OPCODE_DDX,    "DDX",     1, 1 },
    { OPCODE_DDY,    "DDY",     1, 1 },
@@ -110,16 +89,11 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_DP4,    "DP4",     2, 1 },
    { OPCODE_DPH,    "DPH",     2, 1 },
    { OPCODE_DST,    "DST",     2, 1 },
-   { OPCODE_ELSE,   "ELSE",    0, 0 },
    { OPCODE_END,    "END",     0, 0 },
-   { OPCODE_ENDIF,  "ENDIF",   0, 0 },
-   { OPCODE_ENDLOOP,"ENDLOOP", 0, 0 },
-   { OPCODE_ENDSUB, "ENDSUB",  0, 0 },
    { OPCODE_EX2,    "EX2",     1, 1 },
    { OPCODE_EXP,    "EXP",     1, 1 },
    { OPCODE_FLR,    "FLR",     1, 1 },
    { OPCODE_FRC,    "FRC",     1, 1 },
-   { OPCODE_IF,     "IF",      1, 0 },
    { OPCODE_KIL,    "KIL",     1, 0 },
    { OPCODE_LG2,    "LG2",     1, 1 },
    { OPCODE_LIT,    "LIT",     1, 1 },
@@ -130,13 +104,8 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_MIN,    "MIN",     2, 1 },
    { OPCODE_MOV,    "MOV",     1, 1 },
    { OPCODE_MUL,    "MUL",     2, 1 },
-   { OPCODE_NOISE1, "NOISE1",  1, 1 },
-   { OPCODE_NOISE2, "NOISE2",  1, 1 },
-   { OPCODE_NOISE3, "NOISE3",  1, 1 },
-   { OPCODE_NOISE4, "NOISE4",  1, 1 },
    { OPCODE_POW,    "POW",     2, 1 },
    { OPCODE_RCP,    "RCP",     1, 1 },
-   { OPCODE_RET,    "RET",     0, 0 },
    { OPCODE_RSQ,    "RSQ",     1, 1 },
    { OPCODE_SCS,    "SCS",     1, 1 },
    { OPCODE_SGE,    "SGE",     2, 1 },
@@ -150,7 +119,6 @@ static const struct instruction_info InstInfo[MAX_OPCODE] = {
    { OPCODE_TXD,    "TXD",     3, 1 },
    { OPCODE_TXL,    "TXL",     1, 1 },
    { OPCODE_TXP,    "TXP",     1, 1 },
-   { OPCODE_TRUNC,  "TRUNC",   1, 1 },
    { OPCODE_XPD,    "XPD",     2, 1 }
 };
 

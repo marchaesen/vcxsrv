@@ -26,18 +26,18 @@
  **************************************************************************/
 
 
+#include "hash_table.h"
+#include "macros.h"
 #include "os_misc.h"
 #include "os_file.h"
-#include "macros.h"
+#include "ralloc.h"
+#include "simple_mtx.h"
 
 #include <stdarg.h>
 
 
 #if DETECT_OS_WINDOWS
 
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN      // Exclude rarely-used stuff from Windows headers
-#endif
 #include <windows.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -57,7 +57,7 @@
 #  include <unistd.h>
 #  include <log/log.h>
 #  include <cutils/properties.h>
-#elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
+#elif DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD || DETECT_OS_MANAGARM
 #  include <unistd.h>
 #elif DETECT_OS_OPENBSD || DETECT_OS_FREEBSD
 #  include <sys/resource.h>
@@ -107,6 +107,7 @@ os_log_message(const char *message)
 
 #if DETECT_OS_WINDOWS
    OutputDebugStringA(message);
+#if !defined(_GAMING_XBOX)
    if(GetConsoleWindow() && !IsDebuggerPresent()) {
       fflush(stdout);
       fputs(message, fout);
@@ -116,6 +117,7 @@ os_log_message(const char *message)
       fputs(message, fout);
       fflush(fout);
    }
+#endif
 #else /* !DETECT_OS_WINDOWS */
    fflush(stdout);
    fputs(message, fout);
@@ -128,17 +130,7 @@ os_log_message(const char *message)
 
 #if DETECT_OS_ANDROID
 #  include <ctype.h>
-#  include "hash_table.h"
-#  include "ralloc.h"
-#  include "simple_mtx.h"
-
-static struct hash_table *options_tbl;
-
-static void
-options_tbl_fini(void)
-{
-   _mesa_hash_table_destroy(options_tbl, NULL);
-}
+#  include "c11/threads.h"
 
 /**
  * Get an option value from android's property system, as a fallback to
@@ -156,28 +148,11 @@ options_tbl_fini(void)
  *  - MESA_EXTENSION_OVERRIDE -> mesa.extension.override
  *  - GALLIUM_HUD -> mesa.gallium.hud
  *
- * Note that we use a hashtable for two purposes:
- *  1) Avoid re-translating the option name on subsequent lookups
- *  2) Avoid leaking memory.  Because property_get() returns the
- *     property value into a user allocated buffer, we cannot return
- *     that directly to the caller, so we need to strdup().  With the
- *     hashtable, subsquent lookups can return the existing string.
  */
-static const char *
+static char *
 os_get_android_option(const char *name)
 {
-   if (!options_tbl) {
-      options_tbl = _mesa_hash_table_create(NULL, _mesa_hash_string,
-            _mesa_key_string_equal);
-      atexit(options_tbl_fini);
-   }
-
-   struct hash_entry *entry = _mesa_hash_table_search(options_tbl, name);
-   if (entry) {
-      return entry->data;
-   }
-
-   char value[PROPERTY_VALUE_MAX];
+   static thread_local char os_android_option_value[PROPERTY_VALUE_MAX];
    char key[PROPERTY_KEY_MAX];
    char *p = key, *end = key + PROPERTY_KEY_MAX;
    /* add "mesa." prefix if necessary: */
@@ -192,20 +167,30 @@ os_get_android_option(const char *name)
       }
    }
 
-   const char *opt = NULL;
-   int len = property_get(key, value, NULL);
+   int len = property_get(key, os_android_option_value, NULL);
    if (len > 1) {
-      opt = ralloc_strdup(options_tbl, value);
+      return os_android_option_value;
    }
-
-   _mesa_hash_table_insert(options_tbl, name, (void *)opt);
-
-   return opt;
+   return NULL;
 }
 #endif
 
+#if DETECT_OS_WINDOWS
 
-#if !defined(EMBEDDED_DEVICE)
+/* getenv doesn't necessarily reflect changes to the environment
+ * that have been made during the process lifetime, if either the
+ * setter uses a different CRT (e.g. due to static linking) or the
+ * setter used the Win32 API directly. */
+const char *
+os_get_option(const char *name)
+{
+   static thread_local char value[_MAX_ENV];
+   DWORD size = GetEnvironmentVariableA(name, value, _MAX_ENV);
+   return (size > 0 && size < _MAX_ENV) ? value : NULL;
+}
+
+#else
+
 const char *
 os_get_option(const char *name)
 {
@@ -217,7 +202,61 @@ os_get_option(const char *name)
 #endif
    return opt;
 }
-#endif /* !EMBEDDED_DEVICE */
+
+#endif
+
+static struct hash_table *options_tbl;
+static bool options_tbl_exited = false;
+static simple_mtx_t options_tbl_mtx = SIMPLE_MTX_INITIALIZER;
+
+/**
+ * NOTE: The strings that allocated with ralloc_strdup(options_tbl, ...)
+ * are freed by _mesa_hash_table_destroy automatically
+ */
+static void
+options_tbl_fini(void)
+{
+   simple_mtx_lock(&options_tbl_mtx);
+   _mesa_hash_table_destroy(options_tbl, NULL);
+   options_tbl = NULL;
+   options_tbl_exited = true;
+   simple_mtx_unlock(&options_tbl_mtx);
+}
+
+const char *
+os_get_option_cached(const char *name)
+{
+   const char *opt = NULL;
+   simple_mtx_lock(&options_tbl_mtx);
+   if (options_tbl_exited) {
+      opt = os_get_option(name);
+      goto exit_mutex;
+   }
+
+   if (!options_tbl) {
+      options_tbl = _mesa_hash_table_create(NULL, _mesa_hash_string,
+            _mesa_key_string_equal);
+      if (options_tbl == NULL) {
+         goto exit_mutex;
+      }
+      atexit(options_tbl_fini);
+   }
+   struct hash_entry *entry = _mesa_hash_table_search(options_tbl, name);
+   if (entry) {
+      opt = entry->data;
+      goto exit_mutex;
+   }
+
+   char *name_dup = ralloc_strdup(options_tbl, name);
+   if (name_dup == NULL) {
+      goto exit_mutex;
+   }
+   opt = ralloc_strdup(options_tbl, os_get_option(name));
+   _mesa_hash_table_insert(options_tbl, name_dup, (void *)opt);
+exit_mutex:
+   simple_mtx_unlock(&options_tbl_mtx);
+   return opt;
+}
 
 /**
  * Return the size of the total physical memory.
@@ -227,7 +266,7 @@ os_get_option(const char *name)
 bool
 os_get_total_physical_memory(uint64_t *size)
 {
-#if DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD
+#if DETECT_OS_LINUX || DETECT_OS_CYGWIN || DETECT_OS_SOLARIS || DETECT_OS_HURD || DETECT_OS_MANAGARM
    const long phys_pages = sysconf(_SC_PHYS_PAGES);
    const long page_size = sysconf(_SC_PAGE_SIZE);
 
@@ -271,7 +310,7 @@ os_get_total_physical_memory(uint64_t *size)
    status.dwLength = sizeof(status);
    ret = GlobalMemoryStatusEx(&status);
    *size = status.ullTotalPhys;
-   return (ret == TRUE);
+   return (ret == true);
 #else
 #error unexpected platform in os_misc.c
    return false;
@@ -328,7 +367,7 @@ os_get_available_system_memory(uint64_t *size)
    status.dwLength = sizeof(status);
    ret = GlobalMemoryStatusEx(&status);
    *size = status.ullAvailPhys;
-   return (ret == TRUE);
+   return (ret == true);
 #else
    return false;
 #endif

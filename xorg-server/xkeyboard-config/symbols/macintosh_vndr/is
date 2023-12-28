@@ -64,16 +64,16 @@ xkb_symbols "basic" {
 	key <AE02> {	[	2,		quotedbl, 	at,		VoidSymbol	]	};
 	key <AE03> {	[	3,		numbersign, 	U2122,		sterling	]	};
 	key <AE04> {	[	4,		dollar, 	U00A2,		EuroSign	]	};
-	key <AE05> {	[	5,		percent, 	U2030,		infinity	]	};
+	key <AE05> {	[	5,		percent,	permille,	infinity	]	};
 	key <AE06> {	[	6,		ampersand, 	asciicircum,	U2044		]	};
-	key <AE07> {	[	7,		slash, 	backslash,	U00F7		]	};
+	key <AE07> {	[	7,		slash, 		backslash,	U00F7		]	};
 	key <AE08> {	[	8,		parenleft, 	bracketleft,	braceleft	]	};
 	key <AE09> {	[	9,		parenright, 	bracketright,	braceright	]	};
-	key <AE10> {	[	0,		equal, 	U2260,		U2248		]	};
+	key <AE10> {	[	0,		equal,		U2260,		U2248		]	};
 	key <AE11> {	[	odiaeresis,	Odiaeresis, 	oslash,		Oslash		]	};
 	key <AE12> {	[	minus,		underscore, 	endash,		emdash		]	};
 
-	
+
 	//-- Row 4 (D) --//
 	key <AD01> {	[	q,		Q, 	paragraph,	VoidSymbol	]	};
 	key <AD02> {	[	w,		W, 	U2211,		VoidSymbol	]	};
@@ -87,8 +87,8 @@ xkb_symbols "basic" {
 	key <AD10> {	[	p,		P, 	Greek_pi,	Greek_PI	]	};
 	key <AD11> {	[	eth,		ETH,		U201e,		U201c		]	};
 	key <AD12> {	[	apostrophe,	question, 	questiondown,	U00B7		]	};
-	
-	
+
+
 	//-- Row 3 (C) --//
 	key <AC01> {	[	a,		A, 	aring,		Aring		]	};
 	key <AC02> {	[	s,		S, 	ssharp,		abovedot	]	};
@@ -102,8 +102,8 @@ xkb_symbols "basic" {
 	key <AC10> {	[	ae,		AE, 	oe,		OE		]	};
 	key <AC11> {	[	dead_acute,	dead_diaeresis, 	U201A,		U2018		]	};
 	key <BKSL> {	[	plus,		asterisk, 	U2022,		plusminus	]	};
-	
-	
+
+
 	//-- Row 2  (B) --//
 	key <LSGT> {	[	less,		greater, 	section,	UF8FF		]	};
 	key <AB01> {	[	z,		Z, 	U3A9,		VoidSymbol	]	};

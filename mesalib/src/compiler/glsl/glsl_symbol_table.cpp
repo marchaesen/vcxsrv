@@ -85,7 +85,7 @@ public:
    symbol_table_entry(const glsl_type *t, enum ir_variable_mode mode) :
       v(0), f(0), t(0), ibu(0), iss(0), ibi(0), ibo(0), a(0)
    {
-      assert(t->is_interface());
+      assert(glsl_type_is_interface(t));
       add_interface(t, mode);
    }
    symbol_table_entry(const class ast_type_specifier *a):
@@ -106,7 +106,7 @@ glsl_symbol_table::glsl_symbol_table()
    this->separate_function_namespace = false;
    this->table = _mesa_symbol_table_ctor();
    this->mem_ctx = ralloc_context(NULL);
-   this->linalloc = linear_alloc_parent(this->mem_ctx, 0);
+   this->linalloc = linear_context(this->mem_ctx);
 }
 
 glsl_symbol_table::~glsl_symbol_table()
@@ -175,7 +175,7 @@ bool glsl_symbol_table::add_type(const char *name, const glsl_type *t)
 bool glsl_symbol_table::add_interface(const char *name, const glsl_type *i,
                                       enum ir_variable_mode mode)
 {
-   assert(i->is_interface());
+   assert(glsl_type_is_interface(i));
    symbol_table_entry *entry = get_entry(name);
    if (entry == NULL) {
       symbol_table_entry *entry =

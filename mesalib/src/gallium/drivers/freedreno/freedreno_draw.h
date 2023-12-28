@@ -39,6 +39,7 @@ struct fd_ringbuffer;
 
 void fd_draw_init(struct pipe_context *pctx);
 
+#ifndef __cplusplus
 static inline void
 fd_draw(struct fd_batch *batch, struct fd_ringbuffer *ring,
         enum pc_di_primtype primtype, enum pc_di_vis_cull_mode vismode,
@@ -169,6 +170,24 @@ fd_draw_emit(struct fd_batch *batch, struct fd_ringbuffer *ring,
    fd_draw(batch, ring, primtype, vismode, src_sel, draw->count,
            info->instance_count - 1, idx_type, idx_size, idx_offset,
            idx_buffer);
+}
+#endif
+
+static inline void
+fd_blend_tracking(struct fd_context *ctx)
+   assert_dt
+{
+   if (ctx->dirty & FD_DIRTY_BLEND) {
+      struct fd_batch *batch = ctx->batch;
+      struct pipe_framebuffer_state *pfb = &batch->framebuffer;
+
+      if (ctx->blend->logicop_enable)
+         batch->gmem_reason |= FD_GMEM_LOGICOP_ENABLED;
+      for (unsigned i = 0; i < pfb->nr_cbufs; i++) {
+         if (ctx->blend->rt[i].blend_enable)
+            batch->gmem_reason |= FD_GMEM_BLEND_ENABLED;
+      }
+   }
 }
 
 #endif /* FREEDRENO_DRAW_H_ */

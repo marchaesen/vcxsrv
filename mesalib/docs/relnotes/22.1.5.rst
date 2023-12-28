@@ -95,7 +95,7 @@ Icecream95 (2):
 - panfrost: Only emit images when they are present
 - panfrost: Don't unbind recently bound streamout targets
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - vulkan/nir: Don't remove dead XFB outputs
 

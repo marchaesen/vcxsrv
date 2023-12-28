@@ -25,7 +25,7 @@ drm_shim = static_library(
     'device.c',
     'drm_shim.c',
   ],
-  include_directories: [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+  include_directories: [inc_include, inc_src],
   dependencies: [dep_libdrm, idep_mesautil, dep_dl],
   gnu_symbol_visibility : 'hidden',
 )

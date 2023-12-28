@@ -69,36 +69,30 @@
 static inline unsigned
 midgard_get_quirks(unsigned gpu_id)
 {
-        switch (gpu_id) {
-        case 0x600:
-        case 0x620:
-                return MIDGARD_OLD_BLEND |
-                        MIDGARD_BROKEN_BLEND_LOADS |
-                        MIDGARD_BROKEN_LOD |
-                        MIDGARD_NO_UPPER_ALU |
-                        MIDGARD_NO_OOO;
+   switch (gpu_id) {
+   case 0x600:
+   case 0x620:
+      return MIDGARD_OLD_BLEND | MIDGARD_BROKEN_BLEND_LOADS |
+             MIDGARD_BROKEN_LOD | MIDGARD_NO_UPPER_ALU | MIDGARD_NO_OOO;
 
-        case 0x720:
-                return MIDGARD_INTERPIPE_REG_ALIASING | 
-                        MIDGARD_OLD_BLEND |
-                        MIDGARD_BROKEN_LOD |
-                        MIDGARD_NO_UPPER_ALU |
-                        MIDGARD_NO_OOO;
+   case 0x720:
+      return MIDGARD_INTERPIPE_REG_ALIASING | MIDGARD_OLD_BLEND |
+             MIDGARD_BROKEN_LOD | MIDGARD_NO_UPPER_ALU | MIDGARD_NO_OOO;
 
-        case 0x820:
-        case 0x830:
-                return MIDGARD_INTERPIPE_REG_ALIASING;
+   case 0x820:
+   case 0x830:
+      return MIDGARD_INTERPIPE_REG_ALIASING;
 
-        case 0x750:
-                return MIDGARD_NO_UPPER_ALU;
+   case 0x750:
+      return MIDGARD_NO_UPPER_ALU;
 
-        case 0x860:
-        case 0x880:
-                return 0;
+   case 0x860:
+   case 0x880:
+      return 0;
 
-        default:
-                unreachable("Invalid Midgard GPU ID");
-        }
+   default:
+      unreachable("Invalid Midgard GPU ID");
+   }
 }
 
 #endif

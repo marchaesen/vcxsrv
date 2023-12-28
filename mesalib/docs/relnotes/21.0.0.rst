@@ -1672,7 +1672,7 @@ Jan Beich (1):
 
 - util: unbreak on BSDs after MSVC changes
 
-Jason Ekstrand (63):
+Faith Ekstrand (63):
 
 - intel/fs: Fix use of undefined value in fixup_nomask_control_flow
 - nir/lower_io: Add data OOB asserts to write_constant

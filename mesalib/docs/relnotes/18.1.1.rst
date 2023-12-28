@@ -87,7 +87,7 @@ Jan Vesely (1):
 
 -  eg/compute: Use reference counting to handle compute memory pool.
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  intel/eu: Set EXECUTE_1 when setting the rounding mode in cr0
 -  intel/blorp: Support blits and clears on surfaces with offsets

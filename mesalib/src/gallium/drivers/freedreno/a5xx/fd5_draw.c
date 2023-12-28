@@ -105,6 +105,8 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
    if (!emit.prog)
       return false;
 
+   fd_blend_tracking(ctx);
+
    const struct ir3_shader_variant *vp = fd5_emit_get_vp(&emit);
    const struct ir3_shader_variant *fp = fd5_emit_get_fp(&emit);
 
@@ -149,17 +151,17 @@ fd5_draw_vbo(struct fd_context *ctx, const struct pipe_draw_info *info,
    return true;
 }
 
-static bool
-is_z32(enum pipe_format format)
+static void
+fd5_draw_vbos(struct fd_context *ctx, const struct pipe_draw_info *info,
+              unsigned drawid_offset,
+              const struct pipe_draw_indirect_info *indirect,
+              const struct pipe_draw_start_count_bias *draws,
+              unsigned num_draws,
+              unsigned index_offset)
+   assert_dt
 {
-   switch (format) {
-   case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
-   case PIPE_FORMAT_Z32_UNORM:
-   case PIPE_FORMAT_Z32_FLOAT:
-      return true;
-   default:
-      return false;
-   }
+   for (unsigned i = 0; i < num_draws; i++)
+      fd5_draw_vbo(ctx, info, drawid_offset, indirect, &draws[i], index_offset);
 }
 
 static void
@@ -233,20 +235,20 @@ fd5_clear_lrz(struct fd_batch *batch, struct fd_resource *zsbuf, double depth)
 }
 
 static bool
-fd5_clear(struct fd_context *ctx, unsigned buffers,
+fd5_clear(struct fd_context *ctx, enum fd_buffer_mask buffers,
           const union pipe_color_union *color, double depth,
           unsigned stencil) assert_dt
 {
    struct fd_ringbuffer *ring = ctx->batch->draw;
    struct pipe_framebuffer_state *pfb = &ctx->batch->framebuffer;
 
-   if ((buffers & (PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL)) &&
+   if ((buffers & (FD_BUFFER_DEPTH | FD_BUFFER_STENCIL)) &&
        is_z32(pfb->zsbuf->format))
       return false;
 
    fd5_emit_render_cntl(ctx, true, false);
 
-   if (buffers & PIPE_CLEAR_COLOR) {
+   if (buffers & FD_BUFFER_COLOR) {
       for (int i = 0; i < pfb->nr_cbufs; i++) {
          union util_color uc = {0};
 
@@ -306,14 +308,14 @@ fd5_clear(struct fd_context *ctx, unsigned buffers,
       }
    }
 
-   if (pfb->zsbuf && (buffers & (PIPE_CLEAR_DEPTH | PIPE_CLEAR_STENCIL))) {
+   if (pfb->zsbuf && (buffers & (FD_BUFFER_DEPTH | FD_BUFFER_STENCIL))) {
       uint32_t clear = util_pack_z_stencil(pfb->zsbuf->format, depth, stencil);
       uint32_t mask = 0;
 
-      if (buffers & PIPE_CLEAR_DEPTH)
+      if (buffers & FD_BUFFER_DEPTH)
          mask |= 0x1;
 
-      if (buffers & PIPE_CLEAR_STENCIL)
+      if (buffers & FD_BUFFER_STENCIL)
          mask |= 0x2;
 
       OUT_PKT4(ring, REG_A5XX_RB_BLIT_CNTL, 1);
@@ -328,7 +330,7 @@ fd5_clear(struct fd_context *ctx, unsigned buffers,
 
       fd5_emit_blit(ctx->batch, ring);
 
-      if (pfb->zsbuf && (buffers & PIPE_CLEAR_DEPTH)) {
+      if (pfb->zsbuf && (buffers & FD_BUFFER_DEPTH)) {
          struct fd_resource *zsbuf = fd_resource(pfb->zsbuf->texture);
          if (zsbuf->lrz) {
             zsbuf->lrz_valid = true;
@@ -348,6 +350,6 @@ void
 fd5_draw_init(struct pipe_context *pctx) disable_thread_safety_analysis
 {
    struct fd_context *ctx = fd_context(pctx);
-   ctx->draw_vbo = fd5_draw_vbo;
+   ctx->draw_vbos = fd5_draw_vbos;
    ctx->clear = fd5_clear;
 }

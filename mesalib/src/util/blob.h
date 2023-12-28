@@ -66,7 +66,7 @@ struct blob {
    bool fixed_allocation;
 
    /**
-    * True if we've ever failed to realloc or if we go pas the end of a fixed
+    * True if we've ever failed to realloc or if we go past the end of a fixed
     * allocation blob.
     */
    bool out_of_memory;

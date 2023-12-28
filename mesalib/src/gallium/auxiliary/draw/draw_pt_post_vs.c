@@ -48,10 +48,11 @@ struct pt_post_vs {
 
    unsigned flags;
 
-   boolean (*run)( struct pt_post_vs *pvs,
-                   struct draw_vertex_info *info,
-                   const struct draw_prim_info *prim_info );
+   bool (*run)(struct pt_post_vs *pvs,
+               struct draw_vertex_info *info,
+               const struct draw_prim_info *prim_info);
 };
+
 
 static inline void
 initialize_vertex_header(struct vertex_header *header)
@@ -62,14 +63,16 @@ initialize_vertex_header(struct vertex_header *header)
    header->vertex_id = UNDEFINED_VERTEX_ID;
 }
 
+
 static inline float
 dot4(const float *a, const float *b)
 {
-   return (a[0]*b[0] +
-           a[1]*b[1] +
-           a[2]*b[2] +
-           a[3]*b[3]);
+   return (a[0] * b[0] +
+           a[1] * b[1] +
+           a[2] * b[2] +
+           a[3] * b[3]);
 }
+
 
 #define FLAGS (0)
 #define TAG(x) x##_none
@@ -119,48 +122,48 @@ dot4(const float *a, const float *b)
 #include "draw_cliptest_tmp.h"
 
 
-
-boolean draw_pt_post_vs_run( struct pt_post_vs *pvs,
-                             struct draw_vertex_info *info,
-                             const struct draw_prim_info *prim_info )
+bool
+draw_pt_post_vs_run(struct pt_post_vs *pvs,
+                    struct draw_vertex_info *info,
+                    const struct draw_prim_info *prim_info)
 {
-   return pvs->run( pvs, info, prim_info );
+   return pvs->run(pvs, info, prim_info);
 }
 
 
-void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
-			      boolean clip_xy,
-			      boolean clip_z,
-                              boolean clip_user,
-                              boolean guard_band,
-			      boolean bypass_viewport,
-                              boolean clip_halfz,
-			      boolean need_edgeflags )
+void
+draw_pt_post_vs_prepare(struct pt_post_vs *pvs,
+                        bool clip_xy,
+                        bool clip_z,
+                        bool clip_user,
+                        bool guard_band,
+                        bool bypass_viewport,
+                        bool clip_halfz,
+                        bool need_edgeflags)
 {
    pvs->flags = 0;
 
    if (clip_xy && !guard_band) {
       pvs->flags |= DO_CLIP_XY;
-      ASSIGN_4V( pvs->draw->plane[0], -1,  0,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[1],  1,  0,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[2],  0, -1,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[3],  0,  1,  0, 1 );
-   }
-   else if (clip_xy && guard_band) {
+      ASSIGN_4V(pvs->draw->plane[0], -1,  0,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[1],  1,  0,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[2],  0, -1,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[3],  0,  1,  0, 1);
+   } else if (clip_xy && guard_band) {
       pvs->flags |= DO_CLIP_XY_GUARD_BAND;
-      ASSIGN_4V( pvs->draw->plane[0], -0.5,  0,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[1],  0.5,  0,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[2],  0, -0.5,  0, 1 );
-      ASSIGN_4V( pvs->draw->plane[3],  0,  0.5,  0, 1 );
+      ASSIGN_4V(pvs->draw->plane[0], -0.5,  0,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[1],  0.5,  0,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[2],  0, -0.5,  0, 1);
+      ASSIGN_4V(pvs->draw->plane[3],  0,  0.5,  0, 1);
    }
 
    if (clip_z) {
       if (clip_halfz) {
          pvs->flags |= DO_CLIP_HALF_Z;
-         ASSIGN_4V( pvs->draw->plane[4],  0,  0,  1, 0 );
+         ASSIGN_4V(pvs->draw->plane[4],  0,  0,  1, 0);
       } else {
          pvs->flags |= DO_CLIP_FULL_Z;
-         ASSIGN_4V( pvs->draw->plane[4],  0,  0,  1, 1 );
+         ASSIGN_4V(pvs->draw->plane[4],  0,  0,  1, 1);
       }
    }
 
@@ -179,40 +182,31 @@ void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
    case 0:
       pvs->run = do_cliptest_none;
       break;
-
    case DO_CLIP_XY | DO_CLIP_FULL_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_fullz_viewport;
       break;
-
    case DO_CLIP_XY | DO_CLIP_HALF_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_halfz_viewport;
       break;
-
    case DO_CLIP_XY_GUARD_BAND | DO_CLIP_HALF_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_gb_halfz_viewport;
       break;
-
    case DO_CLIP_XY_GUARD_BAND | DO_CLIP_FULL_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_gb_fullz_viewport;
       break;
-
    case DO_CLIP_FULL_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_fullz_viewport;
       break;
-
    case DO_CLIP_HALF_Z | DO_VIEWPORT:
       pvs->run = do_cliptest_halfz_viewport;
       break;
-
    case DO_CLIP_XY | DO_CLIP_FULL_Z | DO_CLIP_USER | DO_VIEWPORT:
       pvs->run = do_cliptest_xy_fullz_user_viewport;
       break;
-
    case (DO_CLIP_XY | DO_CLIP_FULL_Z | DO_CLIP_USER |
          DO_VIEWPORT | DO_EDGEFLAG):
       pvs->run = do_cliptest_xy_fullz_user_viewport_edgeflag;
       break;
-      
    default:
       pvs->run = do_cliptest_generic;
       break;
@@ -220,9 +214,10 @@ void draw_pt_post_vs_prepare( struct pt_post_vs *pvs,
 }
 
 
-struct pt_post_vs *draw_pt_post_vs_create( struct draw_context *draw )
+struct pt_post_vs *
+draw_pt_post_vs_create(struct draw_context *draw)
 {
-   struct pt_post_vs *pvs = CALLOC_STRUCT( pt_post_vs );
+   struct pt_post_vs *pvs = CALLOC_STRUCT(pt_post_vs);
    if (!pvs)
       return NULL;
 
@@ -231,7 +226,9 @@ struct pt_post_vs *draw_pt_post_vs_create( struct draw_context *draw )
    return pvs;
 }
 
-void draw_pt_post_vs_destroy( struct pt_post_vs *pvs )
+
+void
+draw_pt_post_vs_destroy(struct pt_post_vs *pvs)
 {
    FREE(pvs);
 }

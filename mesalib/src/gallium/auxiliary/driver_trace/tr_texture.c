@@ -116,3 +116,48 @@ trace_transfer_destroy(struct trace_context *tr_context,
    FREE(tr_trans);
 }
 
+/* Arbitrarily large refcount to "avoid having the driver bypass the samplerview wrapper and destroying
+the samplerview prematurely" see 7f5a3530125 ("aux/trace: use private refcounts for samplerviews") */
+#define SAMPLER_VIEW_PRIVATE_REFCOUNT 100000000
+
+struct pipe_sampler_view *
+trace_sampler_view_create(struct trace_context *tr_ctx,
+                  struct pipe_resource *tr_res,
+                  struct pipe_sampler_view *view)
+{
+   assert(tr_res == view->texture);
+   struct trace_sampler_view *tr_view = CALLOC_STRUCT(trace_sampler_view);
+   memcpy(&tr_view->base, view, sizeof(struct pipe_sampler_view));
+   tr_view->base.reference.count = 1;
+   tr_view->base.texture = NULL;
+   pipe_resource_reference(&tr_view->base.texture, tr_res);
+   tr_view->base.context = &tr_ctx->base;
+   tr_view->sampler_view = view;
+   view->reference.count += SAMPLER_VIEW_PRIVATE_REFCOUNT;
+   tr_view->refcount = SAMPLER_VIEW_PRIVATE_REFCOUNT;
+   return &tr_view->base;
+}
+
+void
+trace_sampler_view_destroy(struct trace_sampler_view *tr_view)
+{
+   p_atomic_add(&tr_view->sampler_view->reference.count, -tr_view->refcount);
+   pipe_sampler_view_reference(&tr_view->sampler_view, NULL);
+   pipe_resource_reference(&tr_view->base.texture, NULL);
+   FREE(tr_view);
+}
+
+struct pipe_sampler_view *
+trace_sampler_view_unwrap(struct trace_sampler_view *tr_view)
+{
+   if (!tr_view)
+      return NULL;
+   tr_view->refcount--;
+   if (!tr_view->refcount) {
+      tr_view->refcount = SAMPLER_VIEW_PRIVATE_REFCOUNT;
+      p_atomic_add(&tr_view->sampler_view->reference.count, tr_view->refcount);
+   }
+   return tr_view->sampler_view;
+}
+
+#undef SAMPLER_VIEW_PRIVATE_REFCOUNT

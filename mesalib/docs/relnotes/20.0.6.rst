@@ -78,7 +78,7 @@ Erik Faye-Lund (2):
 -  mesa/gallium: do not use enum for bit-allocated member
 -  meson: correct windows-version define
 
-Jason Ekstrand (12):
+Faith Ekstrand (12):
 
 -  anv: Move vb_emit setup closer to where it's used in flush_state
 -  anv: Apply any needed PIPE_CONTROLs before emitting state

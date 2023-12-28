@@ -19,98 +19,56 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand <jason@jlekstrand.net>
  */
 
 #include "nir.h"
-#include "nir_builder.h"
+#include "nir_builtin_builder.h"
 
-/**
- * This file implements a NIR lowering pass to perform the normalization of
- * the cubemap coordinates to have the largest magnitude component be -1.0
- * or 1.0.  This is based on the old GLSL IR based pass by Eric.
+/*
+ * Lower cubemap coordinate to have normalized coordinates where the largest
+ * magnitude component is -1.0 or 1.0.
  */
-
 static bool
-normalize_cubemap_coords_block(nir_block *block, nir_builder *b)
+normalize_cubemap_coords(nir_builder *b, nir_instr *instr, void *data)
 {
-   bool progress = false;
+   if (instr->type != nir_instr_type_tex)
+      return false;
 
-   nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_tex)
-         continue;
+   nir_tex_instr *tex = nir_instr_as_tex(instr);
+   if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
+      return false;
 
-      nir_tex_instr *tex = nir_instr_as_tex(instr);
-      if (tex->sampler_dim != GLSL_SAMPLER_DIM_CUBE)
-         continue;
+   b->cursor = nir_before_instr(instr);
 
-      b->cursor = nir_before_instr(&tex->instr);
+   int idx = nir_tex_instr_src_index(tex, nir_tex_src_coord);
+   if (idx < 0)
+      return false;
 
-      for (unsigned i = 0; i < tex->num_srcs; i++) {
-         if (tex->src[i].src_type != nir_tex_src_coord)
-            continue;
+   nir_def *orig_coord =
+      tex->src[idx].src.ssa;
+   assert(orig_coord->num_components >= 3);
 
-         nir_ssa_def *orig_coord =
-            nir_ssa_for_src(b, tex->src[i].src, nir_tex_instr_src_size(tex, i));
-         assert(orig_coord->num_components >= 3);
+   nir_def *orig_xyz = nir_trim_vector(b, orig_coord, 3);
+   nir_def *norm = nir_fmax_abs_vec_comp(b, orig_xyz);
+   nir_def *normalized = nir_fmul(b, orig_coord, nir_frcp(b, norm));
 
-         nir_ssa_def *abs = nir_fabs(b, orig_coord);
-         nir_ssa_def *norm = nir_fmax(b, nir_channel(b, abs, 0),
-                                         nir_fmax(b, nir_channel(b, abs, 1),
-                                                     nir_channel(b, abs, 2)));
-
-         nir_ssa_def *normalized = nir_fmul(b, orig_coord, nir_frcp(b, norm));
-
-         /* Array indices don't have to be normalized, so make a new vector
-          * with the coordinate's array index untouched.
-          */
-         if (tex->coord_components == 4) {
-            normalized = nir_vec4(b,
-                                  nir_channel(b, normalized, 0),
-                                  nir_channel(b, normalized, 1),
-                                  nir_channel(b, normalized, 2),
-                                  nir_channel(b, orig_coord, 3));
-         }
-
-         nir_instr_rewrite_src(&tex->instr,
-                               &tex->src[i].src,
-                               nir_src_for_ssa(normalized));
-
-         progress = true;
-      }
+   /* Array indices don't have to be normalized, so make a new vector
+    * with the coordinate's array index untouched.
+    */
+   if (tex->coord_components == 4) {
+      normalized = nir_vector_insert_imm(b, normalized,
+                                         nir_channel(b, orig_coord, 3), 3);
    }
 
-   return progress;
-}
-
-static bool
-normalize_cubemap_coords_impl(nir_function_impl *impl)
-{
-   nir_builder b;
-   nir_builder_init(&b, impl);
-   bool progress = false;
-
-   nir_foreach_block(block, impl) {
-      progress |= normalize_cubemap_coords_block(block, &b);
-   }
-
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
-
-   return progress;
+   nir_src_rewrite(&tex->src[idx].src, normalized);
+   return true;
 }
 
 bool
 nir_normalize_cubemap_coords(nir_shader *shader)
 {
-   bool progress = false;
-
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress = normalize_cubemap_coords_impl(function->impl) || progress;
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader, normalize_cubemap_coords,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       NULL);
 }

@@ -13,8 +13,8 @@ default partial xkb_types "default" {
 	map[Shift+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_ALPHABETIC" {
@@ -22,14 +22,15 @@ default partial xkb_types "default" {
 	map[None] = Level1;
 	map[Shift] = Level2;
 	map[Lock] = Level2;
+	map[Shift+Lock] = Level1;
 	map[LevelThree] = Level3;
 	map[Shift+LevelThree] = Level4;
 	map[Lock+LevelThree] = Level4;
 	map[Shift+Lock+LevelThree] = Level3;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_SEMIALPHABETIC" {
@@ -37,6 +38,7 @@ default partial xkb_types "default" {
 	map[None] = Level1;
 	map[Shift] = Level2;
 	map[Lock] = Level2;
+	map[Shift+Lock] = Level1;
 	map[LevelThree] = Level3;
 	map[Shift+LevelThree] = Level4;
 	map[Lock+LevelThree] = Level3;
@@ -45,8 +47,24 @@ default partial xkb_types "default" {
 	preserve[Shift+Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
+    };
+
+    type "FOUR_LEVEL_KEYPAD" {
+	modifiers = Shift + NumLock + LevelThree;
+	map[None] = Level1;
+	map[Shift] = Level2;
+	map[NumLock] = Level2;
+	map[Shift+NumLock] = Level1;
+	map[LevelThree] = Level3;
+	map[Shift+LevelThree] = Level4;
+	map[NumLock+LevelThree] = Level4;
+	map[Shift+NumLock+LevelThree] = Level3;
+	level_name[Level1] = "Base";
+	level_name[Level2] = "Shift/Numlock";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift/Numlock AltGr";
     };
 
     // A four-level keypad variant. The first two levels are controlled by
@@ -55,29 +73,30 @@ default partial xkb_types "default" {
     type "FOUR_LEVEL_MIXED_KEYPAD" {
 	modifiers = Shift + NumLock + LevelThree;
 	map[None] = Level1;
-	map[Shift+NumLock] = Level1;
-	map[NumLock] = Level2;
 	map[Shift] = Level2;
+	map[NumLock] = Level2;
+	map[Shift+NumLock] = Level1;
 	map[LevelThree] = Level3;
-	map[NumLock+LevelThree] = Level3;
 	map[Shift+LevelThree] = Level4;
+	map[NumLock+LevelThree] = Level3;
 	map[Shift+NumLock+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Number";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     // Base level, two shifted LevelThree levels, one Ctrl+Alt command level.
     type "FOUR_LEVEL_X" {
 	modifiers = Shift + LevelThree + Control + Alt;
 	map[None] = Level1;
+	map[Shift] = Level1;
 	map[LevelThree] = Level2;
 	map[Shift+LevelThree] = Level3;
 	map[Control+Alt] = Level4;
 	level_name[Level1] = "Base";
-	level_name[Level2] = "Alt Base";
-	level_name[Level3] = "Shift Alt";
+	level_name[Level2] = "AltGr";
+	level_name[Level3] = "Shift AltGr";
 	level_name[Level4] = "Ctrl+Alt";
     };
 
@@ -94,12 +113,12 @@ default partial xkb_types "default" {
 	map[Shift+LevelThree] = Level4;
 	map[Lock+LevelThree] = Level3;
 	map[Shift+Lock+LevelThree] = Level3;
-	preserve[Lock]= Lock;
-	preserve[Lock+LevelThree]= Lock;
+	preserve[Lock] = Lock;
+	preserve[Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "AltGr Base";
-	level_name[Level4] = "Shift AltGr";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Caps / Shift AltGr";
     };
 
     // Five levels: the normal four levels with Shift and LevelThree,
@@ -117,30 +136,8 @@ default partial xkb_types "default" {
 	map[Shift+Lock+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
 	level_name[Level5] = "Lock";
-    };
-};
-
-// This enables the four-level shifting also for the keypad.
-partial xkb_types "keypad" {
-
-    virtual_modifiers  LevelThree;
-
-    type "FOUR_LEVEL_KEYPAD" {
-	modifiers = Shift + NumLock + LevelThree;
-	map[None] = Level1;
-	map[Shift] = Level2;
-	map[NumLock] = Level2;
-	map[Shift+NumLock] = Level1;
-	map[LevelThree] = Level3;
-	map[Shift+LevelThree] = Level4;
-	map[NumLock+LevelThree] = Level4;
-	map[Shift+NumLock+LevelThree] = Level3;
-	level_name[Level1] = "Base";
-	level_name[Level2] = "Number";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Alt Number";
     };
 };

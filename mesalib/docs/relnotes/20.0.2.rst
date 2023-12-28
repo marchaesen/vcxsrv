@@ -91,7 +91,7 @@ Francisco Jerez (1):
 -  intel/fs: Fix workaround for VxH indirect addressing bug under
    control flow.
 
-Jason Ekstrand (9):
+Faith Ekstrand (9):
 
 -  isl: Set 3DSTATE_DEPTH_BUFFER::Depth correctly for 3D surfaces
 -  iris: Don't skip fast depth clears if the color changed

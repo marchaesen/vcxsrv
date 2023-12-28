@@ -8,7 +8,7 @@
 #ifndef ATIFRAGSHADER_H
 #define ATIFRAGSHADER_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 
 struct gl_context;

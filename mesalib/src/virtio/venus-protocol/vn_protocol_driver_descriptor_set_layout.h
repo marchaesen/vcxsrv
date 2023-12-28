@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_DESCRIPTOR_SET_LAYOUT_H
 #define VN_PROTOCOL_DRIVER_DESCRIPTOR_SET_LAYOUT_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkDescriptorSetLayoutBinding */
@@ -130,13 +130,13 @@ vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(const void *val)
             size += vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(pnext->pNext);
             size += vn_sizeof_VkDescriptorSetLayoutBindingFlagsCreateInfo_self((const VkDescriptorSetLayoutBindingFlagsCreateInfo *)pnext);
             return size;
-        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE:
-            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */))
+        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */) && !vn_cs_renderer_protocol_has_extension(495 /* VK_EXT_mutable_descriptor_type */))
                 break;
             size += vn_sizeof_simple_pointer(pnext);
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkDescriptorSetLayoutCreateInfo_pnext(pnext->pNext);
-            size += vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self((const VkMutableDescriptorTypeCreateInfoVALVE *)pnext);
+            size += vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT_self((const VkMutableDescriptorTypeCreateInfoEXT *)pnext);
             return size;
         default:
             /* ignore unknown/unsupported struct */
@@ -190,13 +190,13 @@ vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(struct vn_cs_encoder *enc, const
             vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(enc, pnext->pNext);
             vn_encode_VkDescriptorSetLayoutBindingFlagsCreateInfo_self(enc, (const VkDescriptorSetLayoutBindingFlagsCreateInfo *)pnext);
             return;
-        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE:
-            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */))
+        case VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT:
+            if (!vn_cs_renderer_protocol_has_extension(352 /* VK_VALVE_mutable_descriptor_type */) && !vn_cs_renderer_protocol_has_extension(495 /* VK_EXT_mutable_descriptor_type */))
                 break;
             vn_encode_simple_pointer(enc, pnext);
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkDescriptorSetLayoutCreateInfo_pnext(enc, pnext->pNext);
-            vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_self(enc, (const VkMutableDescriptorTypeCreateInfoVALVE *)pnext);
+            vn_encode_VkMutableDescriptorTypeCreateInfoEXT_self(enc, (const VkMutableDescriptorTypeCreateInfoEXT *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */
@@ -703,7 +703,7 @@ static inline void vn_decode_vkGetDescriptorSetLayoutSupport_reply(struct vn_cs_
     }
 }
 
-static inline void vn_submit_vkCreateDescriptorSetLayout(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateDescriptorSetLayout(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -715,16 +715,16 @@ static inline void vn_submit_vkCreateDescriptorSetLayout(struct vn_instance *vn_
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateDescriptorSetLayout_reply(device, pCreateInfo, pAllocator, pSetLayout) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateDescriptorSetLayout(enc, cmd_flags, device, pCreateInfo, pAllocator, pSetLayout);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyDescriptorSetLayout(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyDescriptorSetLayout(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -736,16 +736,16 @@ static inline void vn_submit_vkDestroyDescriptorSetLayout(struct vn_instance *vn
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyDescriptorSetLayout_reply(device, descriptorSetLayout, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyDescriptorSetLayout(enc, cmd_flags, device, descriptorSetLayout, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetDescriptorSetLayoutSupport(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetDescriptorSetLayoutSupport(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -757,73 +757,73 @@ static inline void vn_submit_vkGetDescriptorSetLayoutSupport(struct vn_instance 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetDescriptorSetLayoutSupport_reply(device, pCreateInfo, pSupport) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetDescriptorSetLayoutSupport(enc, cmd_flags, device, pCreateInfo, pSupport);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout)
+static inline VkResult vn_call_vkCreateDescriptorSetLayout(struct vn_ring *vn_ring, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateDescriptorSetLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSetLayout, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateDescriptorSetLayout(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pSetLayout, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateDescriptorSetLayout_reply(dec, device, pCreateInfo, pAllocator, pSetLayout);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout)
+static inline void vn_async_vkCreateDescriptorSetLayout(struct vn_ring *vn_ring, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkDescriptorSetLayout* pSetLayout)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateDescriptorSetLayout(vn_instance, 0, device, pCreateInfo, pAllocator, pSetLayout, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateDescriptorSetLayout(vn_ring, 0, device, pCreateInfo, pAllocator, pSetLayout, &submit);
 }
 
-static inline void vn_call_vkDestroyDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyDescriptorSetLayout(struct vn_ring *vn_ring, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyDescriptorSetLayout(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorSetLayout, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyDescriptorSetLayout(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, descriptorSetLayout, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyDescriptorSetLayout_reply(dec, device, descriptorSetLayout, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyDescriptorSetLayout(struct vn_instance *vn_instance, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyDescriptorSetLayout(struct vn_ring *vn_ring, VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyDescriptorSetLayout(vn_instance, 0, device, descriptorSetLayout, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyDescriptorSetLayout(vn_ring, 0, device, descriptorSetLayout, pAllocator, &submit);
 }
 
-static inline void vn_call_vkGetDescriptorSetLayoutSupport(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport)
+static inline void vn_call_vkGetDescriptorSetLayoutSupport(struct vn_ring *vn_ring, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetDescriptorSetLayoutSupport(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pSupport, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetDescriptorSetLayoutSupport(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pSupport, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetDescriptorSetLayoutSupport_reply(dec, device, pCreateInfo, pSupport);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetDescriptorSetLayoutSupport(struct vn_instance *vn_instance, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport)
+static inline void vn_async_vkGetDescriptorSetLayoutSupport(struct vn_ring *vn_ring, VkDevice device, const VkDescriptorSetLayoutCreateInfo* pCreateInfo, VkDescriptorSetLayoutSupport* pSupport)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetDescriptorSetLayoutSupport(vn_instance, 0, device, pCreateInfo, pSupport, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetDescriptorSetLayoutSupport(vn_ring, 0, device, pCreateInfo, pSupport, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_DESCRIPTOR_SET_LAYOUT_H */

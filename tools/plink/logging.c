@@ -22,8 +22,9 @@ struct LogContext {
     int logtype;                       /* cached out of conf */
 };
 
-static Filename *xlatlognam(Filename *s, char *hostname, int port,
-                            struct tm *tm);
+static Filename *xlatlognam(const Filename *s,
+                            const char *hostname, int port,
+                            const struct tm *tm);
 
 /*
  * Internal wrapper function which must be called for _all_ output
@@ -173,7 +174,7 @@ void logfopen(LogContext *ctx)
         filename_free(ctx->currlogfilename);
     ctx->currlogfilename =
         xlatlognam(conf_get_filename(ctx->conf, CONF_logfilename),
-                   conf_get_str(ctx->conf, CONF_host),
+                   conf_dest(ctx->conf),    /* hostname or serial line */
                    conf_get_int(ctx->conf, CONF_port), &tm);
 
     if (open_for_write_would_lose_data(ctx->currlogfilename)) {
@@ -251,26 +252,6 @@ void logevent(LogContext *ctx, const char *event)
     } else {
         logevent_internal(ctx, event);
     }
-}
-
-void logevent_and_free(LogContext *ctx, char *event)
-{
-    logevent(ctx, event);
-    sfree(event);
-}
-
-void logeventvf(LogContext *ctx, const char *fmt, va_list ap)
-{
-    logevent_and_free(ctx, dupvprintf(fmt, ap));
-}
-
-void logeventf(LogContext *ctx, const char *fmt, ...)
-{
-    va_list ap;
-
-    va_start(ap, fmt);
-    logeventvf(ctx, fmt, ap);
-    va_end(ap);
 }
 
 /*
@@ -451,10 +432,12 @@ void log_reconfig(LogContext *ctx, Conf *conf)
  *
  * "&Y":YYYY   "&m":MM   "&d":DD   "&T":hhmmss   "&h":<hostname>   "&&":&
  */
-static Filename *xlatlognam(Filename *src, char *hostname, int port,
-                            struct tm *tm)
+static Filename *xlatlognam(const Filename *src,
+                            const char *hostname, int port,
+                            const struct tm *tm)
 {
-    char buf[32], *bufp;
+    char buf[32];
+    const char *bufp;
     int size;
     strbuf *buffer;
     const char *s;

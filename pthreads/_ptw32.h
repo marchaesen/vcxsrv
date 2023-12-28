@@ -73,8 +73,7 @@
 #endif
 
 #ifndef  __PTW32_CDECL
-/* FIXME: another internal macro; should have two initial underscores;
- * Nominally, we prefer to use __cdecl calling convention for all our
+/* Nominally, we prefer to use __cdecl calling convention for all our
  * functions, but we map it through this macro alias to facilitate the
  * possible choice of alternatives; for example:
  */

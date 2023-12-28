@@ -54,9 +54,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/ge.h>
 
-/* defined in Xge.c */
-extern _X_HIDDEN Bool
-xgeExtRegister(Display* dpy, int extension, XExtensionHooks* callbacks);
+#include "extutilP.h"
 
 /*
  * XextCreateExtension - return an extension descriptor containing context
@@ -65,8 +63,7 @@ xgeExtRegister(Display* dpy, int extension, XExtensionHooks* callbacks);
  */
 XExtensionInfo *XextCreateExtension (void)
 {
-    register XExtensionInfo *info =
-      (XExtensionInfo *) Xmalloc (sizeof (XExtensionInfo));
+    register XExtensionInfo *info = Xmalloc (sizeof (XExtensionInfo));
 
     if (info) {
 	info->head = NULL;
@@ -85,7 +82,7 @@ void XextDestroyExtension (XExtensionInfo *info)
     info->head = NULL;			/* to catch refs after this */
     info->cur = NULL;
     info->ndisplays = 0;
-    XFree ((char *) info);
+    XFree (info);
 }
 
 
@@ -103,7 +100,7 @@ XExtDisplayInfo *XextAddDisplay (
 {
     XExtDisplayInfo *dpyinfo;
 
-    dpyinfo = (XExtDisplayInfo *) Xmalloc (sizeof (XExtDisplayInfo));
+    dpyinfo = Xmalloc (sizeof (XExtDisplayInfo));
     if (!dpyinfo) return NULL;
     dpyinfo->display = dpy;
     dpyinfo->data = data;
@@ -205,7 +202,7 @@ int XextRemoveDisplay (XExtensionInfo *extinfo, Display *dpy)
     if (dpyinfo == extinfo->cur) extinfo->cur = NULL;  /* flush cache */
     _XUnlockMutex(_Xglobal_lock);
 
-    Xfree ((char *) dpyinfo);
+    Xfree (dpyinfo);
     return 1;
 }
 

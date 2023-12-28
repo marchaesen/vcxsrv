@@ -31,7 +31,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/u_transfer.h"
-#include "tgsi/tgsi_parse.h"
 
 #include "svga_context.h"
 #include "svga_cmd.h"
@@ -42,7 +41,7 @@
 
 static void
 svga_set_vertex_buffers(struct pipe_context *pipe,
-                        unsigned start_slot, unsigned count,
+                        unsigned count,
                         unsigned unbind_num_trailing_slots,
                         bool take_ownership,
                         const struct pipe_vertex_buffer *buffers)
@@ -51,7 +50,7 @@ svga_set_vertex_buffers(struct pipe_context *pipe,
 
    util_set_vertex_buffers_count(svga->curr.vb,
                                  &svga->curr.num_vertex_buffers,
-                                 buffers, start_slot, count,
+                                 buffers, count,
                                  unbind_num_trailing_slots,
                                  take_ownership);
 
@@ -64,14 +63,14 @@ svga_set_vertex_buffers(struct pipe_context *pipe,
  * Range adjustment scales and biases values from [0,1] to [-1,1].
  * This lets us avoid the swtnl path.
  */
-static boolean
+static bool
 attrib_needs_range_adjustment(enum pipe_format format)
 {
    switch (format) {
    case PIPE_FORMAT_R8G8B8_SNORM:
-      return TRUE;
+      return true;
    default:
-      return FALSE;
+      return false;
    }
 }
 
@@ -154,7 +153,7 @@ define_input_element_object(struct svga_context *svga,
       elements[i].inputRegister = i;
 
       if (elements[i].format == SVGA3D_FORMAT_INVALID) {
-         velems->need_swvfetch = TRUE;
+         velems->need_swvfetch = true;
       }
 
       if (util_format_is_pure_integer(elem->src_format)) {
@@ -216,7 +215,7 @@ translate_vertex_decls(struct svga_context *svga,
       velems->decl_type[i] = translate_vertex_format_to_decltype(f);
       if (velems->decl_type[i] == SVGA3D_DECLTYPE_MAX) {
          /* Unsupported format - use software fetch */
-         velems->need_swvfetch = TRUE;
+         velems->need_swvfetch = true;
       }
 
       /* Check for VS-based adjustments */
@@ -245,7 +244,7 @@ svga_create_vertex_elements_state(struct pipe_context *pipe,
       velems->count = count;
       memcpy(velems->velem, attribs, sizeof(*attribs) * count);
 
-      velems->need_swvfetch = FALSE;
+      velems->need_swvfetch = false;
       velems->adjust_attrib_range = 0x0;
       velems->attrib_is_pure_int = 0x0;
       velems->adjust_attrib_w_1 = 0x0;
@@ -262,6 +261,8 @@ svga_create_vertex_elements_state(struct pipe_context *pipe,
       else {
          translate_vertex_decls(svga, velems);
       }
+      for (unsigned i = 0; i < count; i++)
+         velems->strides[attribs[i].vertex_buffer_index] = attribs[i].src_stride;
    }
 
    svga->hud.num_vertexelement_objects++;

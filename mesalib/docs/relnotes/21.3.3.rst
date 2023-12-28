@@ -73,7 +73,7 @@ Francisco Jerez (1):
 
 - intel/fs: Add physical fall-through CFG edge for unconditional BREAK instruction.
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - vulkan/log: Don't assert on non-client-visible objects
 

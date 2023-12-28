@@ -57,791 +57,821 @@ used.
 
 .. opcode:: ARL - Address Register Load
 
-.. math::
+   .. math::
 
-  dst.x = (int) \lfloor src.x\rfloor
+      dst.x = (int) \lfloor src.x\rfloor
 
-  dst.y = (int) \lfloor src.y\rfloor
+      dst.y = (int) \lfloor src.y\rfloor
 
-  dst.z = (int) \lfloor src.z\rfloor
+      dst.z = (int) \lfloor src.z\rfloor
 
-  dst.w = (int) \lfloor src.w\rfloor
+      dst.w = (int) \lfloor src.w\rfloor
 
 
 .. opcode:: MOV - Move
 
-.. math::
+   .. math::
 
-  dst.x = src.x
+      dst.x = src.x
 
-  dst.y = src.y
+      dst.y = src.y
 
-  dst.z = src.z
+      dst.z = src.z
 
-  dst.w = src.w
+      dst.w = src.w
 
 
 .. opcode:: LIT - Light Coefficients
 
-.. math::
+   .. math::
 
-  dst.x &= 1 \\
-  dst.y &= max(src.x, 0) \\
-  dst.z &= (src.x > 0) ? max(src.y, 0)^{clamp(src.w, -128, 128))} : 0 \\
-  dst.w &= 1
+      dst.x = 1
+
+      dst.y = max(src.x, 0)
+
+      dst.z =
+      \left\{
+      \begin{array}{ c l }
+         max(src.y, 0)^{clamp(src.w, -128, 128)} & \quad \textrm{if } src.x \gt 0 \\
+         0                                       & \quad \textrm{otherwise}
+      \end{array}
+      \right.
+
+      dst.w = 1
 
 
 .. opcode:: RCP - Reciprocal
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = \frac{1}{src.x}
+      dst = \frac{1}{src.x}
 
 
 .. opcode:: RSQ - Reciprocal Square Root
 
-This instruction replicates its result. The results are undefined for src <= 0.
+   This instruction replicates its result. The results are undefined for *src* <= 0.
 
-.. math::
+   .. math::
 
-  dst = \frac{1}{\sqrt{src.x}}
+      dst = \frac{1}{\sqrt{src.x}}
 
 
 .. opcode:: SQRT - Square Root
 
-This instruction replicates its result. The results are undefined for src < 0.
+   This instruction replicates its result. The results are undefined for *src* < 0.
 
-.. math::
+   .. math::
 
-  dst = {\sqrt{src.x}}
+      dst = {\sqrt{src.x}}
 
 
 .. opcode:: EXP - Approximate Exponential Base 2
 
-.. math::
+   .. math::
 
-  dst.x &= 2^{\lfloor src.x\rfloor} \\
-  dst.y &= src.x - \lfloor src.x\rfloor \\
-  dst.z &= 2^{src.x} \\
-  dst.w &= 1
+      dst.x &= 2^{\lfloor src.x\rfloor} \\
+      dst.y &= src.x - \lfloor src.x\rfloor \\
+      dst.z &= 2^{src.x} \\
+      dst.w &= 1
 
 
 .. opcode:: LOG - Approximate Logarithm Base 2
 
-.. math::
+   .. math::
 
-  dst.x &= \lfloor\log_2{|src.x|}\rfloor \\
-  dst.y &= \frac{|src.x|}{2^{\lfloor\log_2{|src.x|}\rfloor}} \\
-  dst.z &= \log_2{|src.x|} \\
-  dst.w &= 1
+      dst.x &= \lfloor\log_2{|src.x|}\rfloor \\
+      dst.y &= \frac{|src.x|}{2^{\lfloor\log_2{|src.x|}\rfloor}} \\
+      dst.z &= \log_2{|src.x|} \\
+      dst.w &= 1
 
 
 .. opcode:: MUL - Multiply
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x
+      dst.x = src0.x \times src1.x
 
-  dst.y = src0.y \times src1.y
+      dst.y = src0.y \times src1.y
 
-  dst.z = src0.z \times src1.z
+      dst.z = src0.z \times src1.z
 
-  dst.w = src0.w \times src1.w
+      dst.w = src0.w \times src1.w
 
 
 .. opcode:: ADD - Add
 
-.. math::
+   .. math::
 
-  dst.x = src0.x + src1.x
+      dst.x = src0.x + src1.x
 
-  dst.y = src0.y + src1.y
+      dst.y = src0.y + src1.y
 
-  dst.z = src0.z + src1.z
+      dst.z = src0.z + src1.z
 
-  dst.w = src0.w + src1.w
+      dst.w = src0.w + src1.w
 
 
 .. opcode:: DP3 - 3-component Dot Product
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = src0.x \times src1.x + src0.y \times src1.y + src0.z \times src1.z
+      \begin{aligned}
+      dst = & src0.x \times src1.x +\\
+            & src0.y \times src1.y +\\
+            & src0.z \times src1.z
+      \end{aligned}
 
 
 .. opcode:: DP4 - 4-component Dot Product
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = src0.x \times src1.x + src0.y \times src1.y + src0.z \times src1.z + src0.w \times src1.w
+      \begin{aligned}
+      dst = & src0.x \times src1.x +\\
+            & src0.y \times src1.y +\\
+            & src0.z \times src1.z +\\
+            & src0.w \times src1.w
+      \end{aligned}
 
 
 .. opcode:: DST - Distance Vector
 
-.. math::
+   .. math::
 
-  dst.x &= 1\\
-  dst.y &= src0.y \times src1.y\\
-  dst.z &= src0.z\\
-  dst.w &= src1.w
+      dst.x &= 1\\
+      dst.y &= src0.y \times src1.y\\
+      dst.z &= src0.z\\
+      dst.w &= src1.w
 
 
 .. opcode:: MIN - Minimum
 
-.. math::
+   .. math::
 
-  dst.x = min(src0.x, src1.x)
+      dst.x = min(src0.x, src1.x)
 
-  dst.y = min(src0.y, src1.y)
+      dst.y = min(src0.y, src1.y)
 
-  dst.z = min(src0.z, src1.z)
+      dst.z = min(src0.z, src1.z)
 
-  dst.w = min(src0.w, src1.w)
+      dst.w = min(src0.w, src1.w)
 
 
 .. opcode:: MAX - Maximum
 
-.. math::
+   .. math::
 
-  dst.x = max(src0.x, src1.x)
+      dst.x = max(src0.x, src1.x)
 
-  dst.y = max(src0.y, src1.y)
+      dst.y = max(src0.y, src1.y)
 
-  dst.z = max(src0.z, src1.z)
+      dst.z = max(src0.z, src1.z)
 
-  dst.w = max(src0.w, src1.w)
+      dst.w = max(src0.w, src1.w)
 
 
 .. opcode:: SLT - Set On Less Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x < src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y < src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y < src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z < src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z < src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w < src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w < src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: SGE - Set On Greater Equal Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x >= src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x >= src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y >= src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y >= src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z >= src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z >= src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w >= src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w >= src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: MAD - Multiply And Add
 
-Perform a * b + c. The implementation is free to decide whether there is an
-intermediate rounding step or not.
+   Perform a * b + c. The implementation is free to decide whether there is an
+   intermediate rounding step or not.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x + src2.x
+      dst.x = src0.x \times src1.x + src2.x
 
-  dst.y = src0.y \times src1.y + src2.y
+      dst.y = src0.y \times src1.y + src2.y
 
-  dst.z = src0.z \times src1.z + src2.z
+      dst.z = src0.z \times src1.z + src2.z
 
-  dst.w = src0.w \times src1.w + src2.w
+      dst.w = src0.w \times src1.w + src2.w
 
 
 .. opcode:: LRP - Linear Interpolate
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x + (1 - src0.x) \times src2.x
+      dst.x = src0.x \times src1.x + (1 - src0.x) \times src2.x
 
-  dst.y = src0.y \times src1.y + (1 - src0.y) \times src2.y
+      dst.y = src0.y \times src1.y + (1 - src0.y) \times src2.y
 
-  dst.z = src0.z \times src1.z + (1 - src0.z) \times src2.z
+      dst.z = src0.z \times src1.z + (1 - src0.z) \times src2.z
 
-  dst.w = src0.w \times src1.w + (1 - src0.w) \times src2.w
+      dst.w = src0.w \times src1.w + (1 - src0.w) \times src2.w
 
 
 .. opcode:: FMA - Fused Multiply-Add
 
-Perform a * b + c with no intermediate rounding step.
+   Perform a * b + c with no intermediate rounding step.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x + src2.x
+      dst.x = src0.x \times src1.x + src2.x
 
-  dst.y = src0.y \times src1.y + src2.y
+      dst.y = src0.y \times src1.y + src2.y
 
-  dst.z = src0.z \times src1.z + src2.z
+      dst.z = src0.z \times src1.z + src2.z
 
-  dst.w = src0.w \times src1.w + src2.w
+      dst.w = src0.w \times src1.w + src2.w
 
 
 .. opcode:: FRC - Fraction
 
-.. math::
+   .. math::
 
-  dst.x = src.x - \lfloor src.x\rfloor
+      dst.x = src.x - \lfloor src.x\rfloor
 
-  dst.y = src.y - \lfloor src.y\rfloor
+      dst.y = src.y - \lfloor src.y\rfloor
 
-  dst.z = src.z - \lfloor src.z\rfloor
+      dst.z = src.z - \lfloor src.z\rfloor
 
-  dst.w = src.w - \lfloor src.w\rfloor
+      dst.w = src.w - \lfloor src.w\rfloor
 
 
 .. opcode:: FLR - Floor
 
-.. math::
+   .. math::
 
-  dst.x = \lfloor src.x\rfloor
+      dst.x = \lfloor src.x\rfloor
 
-  dst.y = \lfloor src.y\rfloor
+      dst.y = \lfloor src.y\rfloor
 
-  dst.z = \lfloor src.z\rfloor
+      dst.z = \lfloor src.z\rfloor
 
-  dst.w = \lfloor src.w\rfloor
+      dst.w = \lfloor src.w\rfloor
 
 
 .. opcode:: ROUND - Round
 
-.. math::
+   .. math::
 
-  dst.x = round(src.x)
+      dst.x = round(src.x)
 
-  dst.y = round(src.y)
+      dst.y = round(src.y)
 
-  dst.z = round(src.z)
+      dst.z = round(src.z)
 
-  dst.w = round(src.w)
+      dst.w = round(src.w)
 
 
 .. opcode:: EX2 - Exponential Base 2
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = 2^{src.x}
+      dst = 2^{src.x}
 
 
 .. opcode:: LG2 - Logarithm Base 2
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = \log_2{src.x}
+      dst = \log_2{src.x}
 
 
 .. opcode:: POW - Power
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = src0.x^{src1.x}
+      dst = src0.x^{src1.x}
 
 
 .. opcode:: LDEXP - Multiply Number by Integral Power of 2
 
-src1 is an integer.
+   *src1* is an integer.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x * 2^{src1.x}
-  dst.y = src0.y * 2^{src1.y}
-  dst.z = src0.z * 2^{src1.z}
-  dst.w = src0.w * 2^{src1.w}
+      dst.x = src0.x * 2^{src1.x}
+
+      dst.y = src0.y * 2^{src1.y}
+
+      dst.z = src0.z * 2^{src1.z}
+
+      dst.w = src0.w * 2^{src1.w}
 
 
 .. opcode:: COS - Cosine
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = \cos{src.x}
+      dst = \cos{src.x}
 
 
 .. opcode:: DDX, DDX_FINE - Derivative Relative To X
 
-The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
-advertised. When it is, the fine version guarantees one derivative per row
-while DDX is allowed to be the same for the entire 2x2 quad.
+   The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
+   advertised. When it is, the fine version guarantees one derivative per
+   row while DDX is allowed to be the same for the entire 2x2 quad.
 
-.. math::
+   .. math::
 
-  dst.x = partialx(src.x)
+      dst.x = partialx(src.x)
 
-  dst.y = partialx(src.y)
+      dst.y = partialx(src.y)
 
-  dst.z = partialx(src.z)
+      dst.z = partialx(src.z)
 
-  dst.w = partialx(src.w)
+      dst.w = partialx(src.w)
 
 
 .. opcode:: DDY, DDY_FINE - Derivative Relative To Y
 
-The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
-advertised. When it is, the fine version guarantees one derivative per column
-while DDY is allowed to be the same for the entire 2x2 quad.
+   The fine variant is only used when ``PIPE_CAP_FS_FINE_DERIVATIVE`` is
+   advertised. When it is, the fine version guarantees one derivative per
+   column while DDY is allowed to be the same for the entire 2x2 quad.
 
-.. math::
+   .. math::
 
-  dst.x = partialy(src.x)
+      dst.x = partialy(src.x)
 
-  dst.y = partialy(src.y)
+      dst.y = partialy(src.y)
 
-  dst.z = partialy(src.z)
+      dst.z = partialy(src.z)
 
-  dst.w = partialy(src.w)
+      dst.w = partialy(src.w)
 
 
 .. opcode:: PK2H - Pack Two 16-bit Floats
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = f32\_to\_f16(src.x) | f32\_to\_f16(src.y) << 16
-
+      \begin{aligned}
+      dst = & f32\_to\_f16(src.x) | \\
+          ( & f32\_to\_f16(src.y) \ll 16)
+      \end{aligned}
 
 .. opcode:: PK2US - Pack Two Unsigned 16-bit Scalars
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = f32\_to\_unorm16(src.x) | f32\_to\_unorm16(src.y) << 16
+      \begin{aligned}
+      dst = & f32\_to\_unorm16(src.x) | \\
+          ( & f32\_to\_unorm16(src.y) \ll 16)
+      \end{aligned}
 
 
 .. opcode:: PK4B - Pack Four Signed 8-bit Scalars
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = f32\_to\_snorm8(src.x) |
-        (f32\_to\_snorm8(src.y) << 8) |
-        (f32\_to\_snorm8(src.z) << 16) |
-        (f32\_to\_snorm8(src.w) << 24)
+      \begin{aligned}
+      dst = & f32\_to\_snorm8(src.x) | \\
+          ( & f32\_to\_snorm8(src.y) \ll 8) | \\
+          ( & f32\_to\_snorm8(src.z) \ll 16) | \\
+          ( & f32\_to\_snorm8(src.w) \ll 24)
+      \end{aligned}
 
 
 .. opcode:: PK4UB - Pack Four Unsigned 8-bit Scalars
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = f32\_to\_unorm8(src.x) |
-        (f32\_to\_unorm8(src.y) << 8) |
-        (f32\_to\_unorm8(src.z) << 16) |
-        (f32\_to\_unorm8(src.w) << 24)
+      \begin{aligned}
+      dst = & f32\_to\_unorm8(src.x) | \\
+          ( & f32\_to\_unorm8(src.y) \ll 8) | \\
+          ( & f32\_to\_unorm8(src.z) \ll 16) | \\
+          ( & f32\_to\_unorm8(src.w) \ll 24)
+      \end{aligned}
 
 
 .. opcode:: SEQ - Set On Equal
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x == src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x == src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y == src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y == src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z == src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z == src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w == src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w == src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: SGT - Set On Greater Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x > src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x > src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y > src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y > src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z > src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z > src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w > src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w > src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: SIN - Sine
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = \sin{src.x}
+      dst = \sin{src.x}
 
 
 .. opcode:: SLE - Set On Less Equal Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x <= src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x <= src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y <= src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y <= src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z <= src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z <= src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w <= src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w <= src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: SNE - Set On Not Equal
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x != src1.x) ? 1.0F : 0.0F
+      dst.x = (src0.x != src1.x) ? 1.0F : 0.0F
 
-  dst.y = (src0.y != src1.y) ? 1.0F : 0.0F
+      dst.y = (src0.y != src1.y) ? 1.0F : 0.0F
 
-  dst.z = (src0.z != src1.z) ? 1.0F : 0.0F
+      dst.z = (src0.z != src1.z) ? 1.0F : 0.0F
 
-  dst.w = (src0.w != src1.w) ? 1.0F : 0.0F
+      dst.w = (src0.w != src1.w) ? 1.0F : 0.0F
 
 
 .. opcode:: TEX - Texture Lookup
 
-  for array textures src0.y contains the slice for 1D,
-  and src0.z contain the slice for 2D.
+   for array textures *src0.y* contains the slice for 1D,
+   and *src0.z* contain the slice for 2D.
 
-  for shadow textures with no arrays (and not cube map),
-  src0.z contains the reference value.
+   for shadow textures with no arrays (and not cube map),
+   *src0.z* contains the reference value.
 
-  for shadow textures with arrays, src0.z contains
-  the reference value for 1D arrays, and src0.w contains
-  the reference value for 2D arrays and cube maps.
+   for shadow textures with arrays, *src0.z* contains
+   the reference value for 1D arrays, and *src0.w* contains
+   the reference value for 2D arrays and cube maps.
 
-  for cube map array shadow textures, the reference value
-  cannot be passed in src0.w, and TEX2 must be used instead.
+   for cube map array shadow textures, the reference value
+   cannot be passed in *src0.w*, and TEX2 must be used instead.
 
-.. math::
+   .. math::
 
-  coord = src0
+      coord = src0
 
-  shadow_ref = src0.z or src0.w (optional)
+      shadow\_ref = src0.z \textrm{ or } src0.w \textrm{ (optional)}
 
-  unit = src1
+      unit = src1
 
-  dst = texture\_sample(unit, coord, shadow_ref)
+      dst = texture\_sample(unit, coord, shadow\_ref)
 
 
 .. opcode:: TEX2 - Texture Lookup (for shadow cube map arrays only)
 
-  this is the same as TEX, but uses another reg to encode the
-  reference value.
+   this is the same as TEX, but uses another reg to encode the
+   reference value.
 
-.. math::
+   .. math::
 
-  coord = src0
+      coord = src0
 
-  shadow_ref = src1.x
+      shadow\_ref = src1.x
 
-  unit = src2
+      unit = src2
 
-  dst = texture\_sample(unit, coord, shadow_ref)
-
-
+      dst = texture\_sample(unit, coord, shadow\_ref)
 
 
 .. opcode:: TXD - Texture Lookup with Derivatives
 
-.. math::
+   .. math::
 
-  coord = src0
+      coord = src0
 
-  ddx = src1
+      ddx = src1
 
-  ddy = src2
+      ddy = src2
 
-  unit = src3
+      unit = src3
 
-  dst = texture\_sample\_deriv(unit, coord, ddx, ddy)
+      dst = texture\_sample\_deriv(unit, coord, ddx, ddy)
 
 
 .. opcode:: TXP - Projective Texture Lookup
 
-.. math::
+   .. math::
 
-  coord.x = src0.x / src0.w
+      coord.x = src0.x / src0.w
 
-  coord.y = src0.y / src0.w
+      coord.y = src0.y / src0.w
 
-  coord.z = src0.z / src0.w
+      coord.z = src0.z / src0.w
 
-  coord.w = src0.w
+      coord.w = src0.w
 
-  unit = src1
+      unit = src1
 
-  dst = texture\_sample(unit, coord)
+      dst = texture\_sample(unit, coord)
 
 
 .. opcode:: UP2H - Unpack Two 16-Bit Floats
 
-.. math::
+   .. math::
 
-  dst.x = f16\_to\_f32(src0.x \& 0xffff)
+      dst.x = f16\_to\_f32(src0.x \& 0xffff)
 
-  dst.y = f16\_to\_f32(src0.x >> 16)
+      dst.y = f16\_to\_f32(src0.x \gg 16)
 
-  dst.z = f16\_to\_f32(src0.x \& 0xffff)
+      dst.z = f16\_to\_f32(src0.x \& 0xffff)
 
-  dst.w = f16\_to\_f32(src0.x >> 16)
+      dst.w = f16\_to\_f32(src0.x \gg 16)
 
-.. note::
+   .. note::
 
-   Considered for removal.
+      Considered for removal.
 
 .. opcode:: UP2US - Unpack Two Unsigned 16-Bit Scalars
 
-  TBD
+   TBD
 
-.. note::
+   .. note::
 
-   Considered for removal.
+      Considered for removal.
 
 .. opcode:: UP4B - Unpack Four Signed 8-Bit Values
 
-  TBD
+   TBD
 
-.. note::
+   .. note::
 
-   Considered for removal.
+      Considered for removal.
 
 .. opcode:: UP4UB - Unpack Four Unsigned 8-Bit Scalars
 
-  TBD
+   TBD
 
-.. note::
+   .. note::
 
-   Considered for removal.
+      Considered for removal.
 
 
 .. opcode:: ARR - Address Register Load With Round
 
-.. math::
+   .. math::
 
-  dst.x = (int) round(src.x)
+      dst.x = (int) round(src.x)
 
-  dst.y = (int) round(src.y)
+      dst.y = (int) round(src.y)
 
-  dst.z = (int) round(src.z)
+      dst.z = (int) round(src.z)
 
-  dst.w = (int) round(src.w)
+      dst.w = (int) round(src.w)
 
 
 .. opcode:: SSG - Set Sign
 
-.. math::
+   .. math::
 
-  dst.x = (src.x > 0) ? 1 : (src.x < 0) ? -1 : 0
+      dst.x = (src.x > 0) ? 1 : (src.x < 0) ? -1 : 0
 
-  dst.y = (src.y > 0) ? 1 : (src.y < 0) ? -1 : 0
+      dst.y = (src.y > 0) ? 1 : (src.y < 0) ? -1 : 0
 
-  dst.z = (src.z > 0) ? 1 : (src.z < 0) ? -1 : 0
+      dst.z = (src.z > 0) ? 1 : (src.z < 0) ? -1 : 0
 
-  dst.w = (src.w > 0) ? 1 : (src.w < 0) ? -1 : 0
+      dst.w = (src.w > 0) ? 1 : (src.w < 0) ? -1 : 0
 
 
 .. opcode:: CMP - Compare
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < 0) ? src1.x : src2.x
+      dst.x = (src0.x < 0) ? src1.x : src2.x
 
-  dst.y = (src0.y < 0) ? src1.y : src2.y
+      dst.y = (src0.y < 0) ? src1.y : src2.y
 
-  dst.z = (src0.z < 0) ? src1.z : src2.z
+      dst.z = (src0.z < 0) ? src1.z : src2.z
 
-  dst.w = (src0.w < 0) ? src1.w : src2.w
+      dst.w = (src0.w < 0) ? src1.w : src2.w
 
 
 .. opcode:: KILL_IF - Conditional Discard
 
-  Conditional discard.  Allowed in fragment shaders only.
+   Conditional discard.  Allowed in fragment shaders only.
 
-.. math::
+   Pseudocode::
 
-  if (src.x < 0 || src.y < 0 || src.z < 0 || src.w < 0)
-    discard
-  endif
+      if (src.x < 0 || src.y < 0 || src.z < 0 || src.w < 0)
+         discard
+      endif
 
 
 .. opcode:: KILL - Discard
 
-  Unconditional discard.  Allowed in fragment shaders only.
+   Unconditional discard.  Allowed in fragment shaders only.
 
 
 .. opcode:: DEMOTE - Demote Invocation to a Helper
 
-  This demotes the current invocation to a helper, but continues
-  execution (while KILL may or may not terminate the
-  invocation). After this runs, all the usual helper invocation rules
-  apply about discarding buffer and render target writes. This is
-  useful for having accurate derivatives in the other invocations
-  which have not been demoted.
+   This demotes the current invocation to a helper, but continues
+   execution (while KILL may or may not terminate the
+   invocation). After this runs, all the usual helper invocation rules
+   apply about discarding buffer and render target writes. This is
+   useful for having accurate derivatives in the other invocations
+   which have not been demoted.
 
-  Allowed in fragment shaders only.
+   Allowed in fragment shaders only.
 
 
 .. opcode:: READ_HELPER - Reads Invocation Helper Status
 
-  This is identical to ``TGSI_SEMANTIC_HELPER_INVOCATION``, except
-  this will read the current value, which might change as a result of
-  a ``DEMOTE`` instruction.
+   This is identical to ``TGSI_SEMANTIC_HELPER_INVOCATION``, except
+   this will read the current value, which might change as a result of
+   a ``DEMOTE`` instruction.
 
-  Allowed in fragment shaders only.
+   Allowed in fragment shaders only.
 
 
 .. opcode:: TXB - Texture Lookup With Bias
 
-  for cube map array textures and shadow cube maps, the bias value
-  cannot be passed in src0.w, and TXB2 must be used instead.
+   for cube map array textures and shadow cube maps, the bias value
+   cannot be passed in *src0.w*, and TXB2 must be used instead.
 
-  if the target is a shadow texture, the reference value is always
-  in src.z (this prevents shadow 3d and shadow 2d arrays from
-  using this instruction, but this is not needed).
+   if the target is a shadow texture, the reference value is always
+   in *src.z* (this prevents shadow 3d and shadow 2d arrays from
+   using this instruction, but this is not needed).
 
-.. math::
+   .. math::
 
-  coord.x = src0.x
+      coord.x = src0.x
 
-  coord.y = src0.y
+      coord.y = src0.y
 
-  coord.z = src0.z
+      coord.z = src0.z
 
-  coord.w = none
+      coord.w = none
 
-  bias = src0.w
+      bias = src0.w
 
-  unit = src1
+      unit = src1
 
-  dst = texture\_sample(unit, coord, bias)
+      dst = texture\_sample(unit, coord, bias)
 
 
 .. opcode:: TXB2 - Texture Lookup With Bias (some cube maps only)
 
-  this is the same as TXB, but uses another reg to encode the
-  LOD bias value for cube map arrays and shadow cube maps.
-  Presumably shadow 2d arrays and shadow 3d targets could use
-  this encoding too, but this is not legal.
+   this is the same as TXB, but uses another reg to encode the
+   LOD bias value for cube map arrays and shadow cube maps.
+   Presumably shadow 2d arrays and shadow 3d targets could use
+   this encoding too, but this is not legal.
 
-  if the target is a shadow cube map array, the reference value is in
-  src1.y.
+   if the target is a shadow cube map array, the reference value is in
+   *src1.y*.
 
-.. math::
+   .. math::
 
-  coord = src0
+      coord = src0
 
-  bias = src1.x
+      bias = src1.x
 
-  unit = src2
+      unit = src2
 
-  dst = texture\_sample(unit, coord, bias)
+      dst = texture\_sample(unit, coord, bias)
 
 
 .. opcode:: DIV - Divide
 
-.. math::
+   .. math::
 
-  dst.x = \frac{src0.x}{src1.x}
+      dst.x = \frac{src0.x}{src1.x}
 
-  dst.y = \frac{src0.y}{src1.y}
+      dst.y = \frac{src0.y}{src1.y}
 
-  dst.z = \frac{src0.z}{src1.z}
+      dst.z = \frac{src0.z}{src1.z}
 
-  dst.w = \frac{src0.w}{src1.w}
+      dst.w = \frac{src0.w}{src1.w}
 
 
 .. opcode:: DP2 - 2-component Dot Product
 
-This instruction replicates its result.
+   This instruction replicates its result.
 
-.. math::
+   .. math::
 
-  dst = src0.x \times src1.x + src0.y \times src1.y
-
+      \begin{aligned}
+      dst = & src0.x \times src1.x + \\
+            & src0.y \times src1.y
+      \end{aligned}
 
 .. opcode:: TEX_LZ - Texture Lookup With LOD = 0
 
-  This is the same as TXL with LOD = 0. Like every texture opcode, it obeys
-  pipe_sampler_view::u.tex.first_level and pipe_sampler_state::min_lod.
-  There is no way to override those two in shaders.
+   This is the same as TXL with LOD = 0. Like every texture opcode, it obeys
+   pipe_sampler_view::u.tex.first_level and pipe_sampler_state::min_lod.
+   There is no way to override those two in shaders.
 
-.. math::
+   .. math::
 
-  coord.x = src0.x
+      coord.x = src0.x
 
-  coord.y = src0.y
+      coord.y = src0.y
 
-  coord.z = src0.z
+      coord.z = src0.z
 
-  coord.w = none
+      coord.w = none
 
-  lod = 0
+      lod = 0
 
-  unit = src1
+      unit = src1
 
-  dst = texture\_sample(unit, coord, lod)
+      dst = texture\_sample(unit, coord, lod)
 
 
 .. opcode:: TXL - Texture Lookup With explicit LOD
 
-  for cube map array textures, the explicit LOD value
-  cannot be passed in src0.w, and TXL2 must be used instead.
+   for cube map array textures, the explicit LOD value
+   cannot be passed in *src0.w*, and TXL2 must be used instead.
 
-  if the target is a shadow texture, the reference value is always
-  in src.z (this prevents shadow 3d / 2d array / cube targets from
-  using this instruction, but this is not needed).
+   if the target is a shadow texture, the reference value is always
+   in *src.z* (this prevents shadow 3d / 2d array / cube targets from
+   using this instruction, but this is not needed).
 
-.. math::
+   .. math::
 
-  coord.x = src0.x
+      coord.x = src0.x
 
-  coord.y = src0.y
+      coord.y = src0.y
 
-  coord.z = src0.z
+      coord.z = src0.z
 
-  coord.w = none
+      coord.w = none
 
-  lod = src0.w
+      lod = src0.w
 
-  unit = src1
+      unit = src1
 
-  dst = texture\_sample(unit, coord, lod)
+      dst = texture\_sample(unit, coord, lod)
 
 
 .. opcode:: TXL2 - Texture Lookup With explicit LOD (for cube map arrays only)
 
-  this is the same as TXL, but uses another reg to encode the
-  explicit LOD value.
-  Presumably shadow 3d / 2d array / cube targets could use
-  this encoding too, but this is not legal.
+   this is the same as TXL, but uses another reg to encode the
+   explicit LOD value.
+   Presumably shadow 3d / 2d array / cube targets could use
+   this encoding too, but this is not legal.
 
-  if the target is a shadow cube map array, the reference value is in
-  src1.y.
+   if the target is a shadow cube map array, the reference value is in
+   *src1.y*.
 
-.. math::
+   .. math::
 
-  coord = src0
+      coord = src0
 
-  lod = src1.x
+      lod = src1.x
 
-  unit = src2
+      unit = src2
 
-  dst = texture\_sample(unit, coord, lod)
+      dst = texture\_sample(unit, coord, lod)
 
 
 Compute ISA
@@ -854,144 +884,151 @@ XXX doesn't look like most of the opcodes really belong here.
 
 .. opcode:: CEIL - Ceiling
 
-.. math::
+   .. math::
 
-  dst.x = \lceil src.x\rceil
+      dst.x = \lceil src.x\rceil
 
-  dst.y = \lceil src.y\rceil
+      dst.y = \lceil src.y\rceil
 
-  dst.z = \lceil src.z\rceil
+      dst.z = \lceil src.z\rceil
 
-  dst.w = \lceil src.w\rceil
+      dst.w = \lceil src.w\rceil
 
 
 .. opcode:: TRUNC - Truncate
 
-.. math::
+   .. math::
 
-  dst.x = trunc(src.x)
+      dst.x = trunc(src.x)
 
-  dst.y = trunc(src.y)
+      dst.y = trunc(src.y)
 
-  dst.z = trunc(src.z)
+      dst.z = trunc(src.z)
 
-  dst.w = trunc(src.w)
+      dst.w = trunc(src.w)
 
 
 .. opcode:: MOD - Modulus
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \bmod src1.x
+      dst.x = src0.x \bmod src1.x
 
-  dst.y = src0.y \bmod src1.y
+      dst.y = src0.y \bmod src1.y
 
-  dst.z = src0.z \bmod src1.z
+      dst.z = src0.z \bmod src1.z
 
-  dst.w = src0.w \bmod src1.w
+      dst.w = src0.w \bmod src1.w
 
 
 .. opcode:: UARL - Integer Address Register Load
 
-  Moves the contents of the source register, assumed to be an integer, into the
-  destination register, which is assumed to be an address (ADDR) register.
+   Moves the contents of the source register, assumed to be an integer, into the
+   destination register, which is assumed to be an address (ADDR) register.
 
 
 .. opcode:: TXF - Texel Fetch
 
-  As per NV_gpu_shader4, extract a single texel from a specified texture
-  image or PIPE_BUFFER resource. The source sampler may not be a CUBE or
-  SHADOW.  src 0 is a
-  four-component signed integer vector used to identify the single texel
-  accessed. 3 components + level.  If the texture is multisampled, then
-  the fourth component indicates the sample, not the mipmap level.
-  Just like texture instructions, an optional
-  offset vector is provided, which is subject to various driver restrictions
-  (regarding range, source of offsets). This instruction ignores the sampler
-  state.
+   As per :ext:`GL_NV_gpu_program4`, extract a single texel from a specified
+   texture image or PIPE_BUFFER resource. The source sampler may not be a
+   CUBE or SHADOW.  *src0* is a
+   four-component signed integer vector used to identify the single texel
+   accessed. 3 components + level.  If the texture is multisampled, then
+   the fourth component indicates the sample, not the mipmap level.
+   Just like texture instructions, an optional
+   offset vector is provided, which is subject to various driver restrictions
+   (regarding range, source of offsets). This instruction ignores the sampler
+   state.
 
-  TXF(uint_vec coord, int_vec offset).
+   TXF(uint_vec coord, int_vec offset).
 
 
 .. opcode:: TXQ - Texture Size Query
 
-  As per NV_gpu_program4, retrieve the dimensions of the texture depending on
-  the target. For 1D (width), 2D/RECT/CUBE (width, height), 3D (width, height,
-  depth), 1D array (width, layers), 2D array (width, height, layers).
-  Also return the number of accessible levels (last_level - first_level + 1)
-  in W.
+   As per :ext:`GL_NV_gpu_program4`, retrieve the dimensions of the texture
+   depending on   the target. For 1D (width), 2D/RECT/CUBE (width, height),
+   3D (width, height, depth), 1D array (width, layers), 2D array (width,
+   height, layers).  Also return the number of accessible levels
+   (last_level - first_level + 1) in W.
 
-  For components which don't return a resource dimension, their value
-  is undefined.
+   For components which don't return a resource dimension, their value
+   is undefined.
 
-.. math::
+   .. math::
 
-  lod = src0.x
+      lod = src0.x
 
-  dst.x = texture\_width(unit, lod)
+      dst.x = texture\_width(unit, lod)
 
-  dst.y = texture\_height(unit, lod)
+      dst.y = texture\_height(unit, lod)
 
-  dst.z = texture\_depth(unit, lod)
+      dst.z = texture\_depth(unit, lod)
 
-  dst.w = texture\_levels(unit)
+      dst.w = texture\_levels(unit)
 
 
 .. opcode:: TXQS - Texture Samples Query
 
-  This retrieves the number of samples in the texture, and stores it
-  into the x component as an unsigned integer. The other components are
-  undefined.  If the texture is not multisampled, this function returns
-  (1, undef, undef, undef).
+   This retrieves the number of samples in the texture, and stores it
+   into the x component as an unsigned integer. The other components are
+   undefined.  If the texture is not multisampled, this function returns
+   (1, undef, undef, undef).
 
-.. math::
+   .. math::
 
-  dst.x = texture\_samples(unit)
+      dst.x = texture\_samples(unit)
 
 
 .. opcode:: TG4 - Texture Gather
 
-  As per ARB_texture_gather, gathers the four texels to be used in a bi-linear
-  filtering operation and packs them into a single register.  Only works with
-  2D, 2D array, cubemaps, and cubemaps arrays.  For 2D textures, only the
-  addressing modes of the sampler and the top level of any mip pyramid are
-  used. Set W to zero.  It behaves like the TEX instruction, but a filtered
-  sample is not generated. The four samples that contribute to filtering are
-  placed into xyzw in clockwise order, starting with the (u,v) texture
-  coordinate delta at the following locations (-, +), (+, +), (+, -), (-, -),
-  where the magnitude of the deltas are half a texel.
+   As per :ext:`GL_ARB_texture_gather`, gathers the four texels to be used in a
+   bi-linear   filtering operation and packs them into a single register.
+   Only works with 2D, 2D array, cubemaps, and cubemaps arrays.  For 2D
+   textures, only the addressing modes of the sampler and the top level of any
+   mip pyramid are used. Set W to zero.  It behaves like the TEX instruction,
+   but a filtered sample is not generated. The four samples that contribute to
+   filtering are placed into XYZW in clockwise order, starting with the (u,v)
+   texture coordinate delta at the following locations (-, +), (+, +), (+, -),
+   (-, -), where the magnitude of the deltas are half a texel.
 
-  PIPE_CAP_TEXTURE_SM5 enhances this instruction to support shadow per-sample
-  depth compares, single component selection, and a non-constant offset. It
-  doesn't allow support for the GL independent offset to get i0,j0. This would
-  require another CAP is hw can do it natively. For now we lower that before
-  TGSI.
+   PIPE_CAP_TEXTURE_SM5 enhances this instruction to support shadow per-sample
+   depth compares, single component selection, and a non-constant offset. It
+   doesn't allow support for the GL independent offset to get i0,j0. This would
+   require another CAP is HW can do it natively. For now we lower that before
+   TGSI.
 
-  PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE changes the encoding so that component
-  is stored in the sampler source swizzle x.
-
-.. math::
-
-   coord = src0
+   PIPE_CAP_TGSI_TG4_COMPONENT_IN_SWIZZLE changes the encoding so that component
+   is stored in the sampler source swizzle x.
 
    (without TGSI_TG4_COMPONENT_IN_SWIZZLE)
-   component = src1
 
-   dst = texture\_gather4 (unit, coord, component)
+   .. math::
+
+      coord = src0
+
+      component = src1
+
+      dst = texture\_gather4 (unit, coord, component)
 
    (with TGSI_TG4_COMPONENT_IN_SWIZZLE)
-   dst = texture\_gather4 (unit, coord)
-   component is encoded in sampler swizzle.
 
-(with SM5 - cube array shadow)
+   .. math::
 
-.. math::
+      coord = src0
 
-   coord = src0
+      dst = texture\_gather4 (unit, coord)
 
-   compare = src1
+      \text{component is encoded in sampler swizzle.}
 
-   dst = texture\_gather (uint, coord, compare)
+   (with SM5 - cube array shadow)
+
+   .. math::
+
+      coord = src0
+
+      compare = src1
+
+      dst = texture\_gather (uint, coord, compare)
 
 .. opcode:: LODQ - level of detail query
 
@@ -1000,11 +1037,11 @@ XXX doesn't look like most of the opcodes really belong here.
    component contains the LOD that will be accessed, based on min/max LODs
    and mipmap filters.
 
-.. math::
+   .. math::
 
-   coord = src0
+      coord = src0
 
-   dst.xy = lodq(uint, coord);
+      dst.xy = lodq(uint, coord);
 
 .. opcode:: CLOCK - retrieve the current shader time
 
@@ -1015,9 +1052,9 @@ XXX doesn't look like most of the opcodes really belong here.
    should be shifted up so that the most significant bit of the time
    is the most significant bit of the 64-bit value.
 
-.. math::
+   .. math::
 
-   dst.xy = clock()
+      dst.xy = clock()
 
 
 Integer ISA
@@ -1030,30 +1067,30 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
 
    Rounding is unspecified (round to nearest even suggested).
 
-.. math::
+   .. math::
 
-  dst.x = (float) src.x
+      dst.x = (float) src.x
 
-  dst.y = (float) src.y
+      dst.y = (float) src.y
 
-  dst.z = (float) src.z
+      dst.z = (float) src.z
 
-  dst.w = (float) src.w
+      dst.w = (float) src.w
 
 
 .. opcode:: U2F - Unsigned Integer To Float
 
    Rounding is unspecified (round to nearest even suggested).
 
-.. math::
+   .. math::
 
-  dst.x = (float) src.x
+      dst.x = (float) src.x
 
-  dst.y = (float) src.y
+      dst.y = (float) src.y
 
-  dst.z = (float) src.z
+      dst.z = (float) src.z
 
-  dst.w = (float) src.w
+      dst.w = (float) src.w
 
 
 .. opcode:: F2I - Float to Signed Integer
@@ -1061,15 +1098,15 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
    Rounding is towards zero (truncate).
    Values outside signed range (including NaNs) produce undefined results.
 
-.. math::
+   .. math::
 
-  dst.x = (int) src.x
+      dst.x = (int) src.x
 
-  dst.y = (int) src.y
+      dst.y = (int) src.y
 
-  dst.z = (int) src.z
+      dst.z = (int) src.z
 
-  dst.w = (int) src.w
+      dst.w = (int) src.w
 
 
 .. opcode:: F2U - Float to Unsigned Integer
@@ -1077,15 +1114,15 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
    Rounding is towards zero (truncate).
    Values outside unsigned range (including NaNs) produce undefined results.
 
-.. math::
+   .. math::
 
-  dst.x = (unsigned) src.x
+      dst.x = (unsigned) src.x
 
-  dst.y = (unsigned) src.y
+      dst.y = (unsigned) src.y
 
-  dst.z = (unsigned) src.z
+      dst.z = (unsigned) src.z
 
-  dst.w = (unsigned) src.w
+      dst.w = (unsigned) src.w
 
 
 .. opcode:: UADD - Integer Add
@@ -1093,15 +1130,15 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
    This instruction works the same for signed and unsigned integers.
    The low 32bit of the result is returned.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x + src1.x
+      dst.x = src0.x + src1.x
 
-  dst.y = src0.y + src1.y
+      dst.y = src0.y + src1.y
 
-  dst.z = src0.z + src1.z
+      dst.z = src0.z + src1.z
 
-  dst.w = src0.w + src1.w
+      dst.w = src0.w + src1.w
 
 
 .. opcode:: UMAD - Integer Multiply And Add
@@ -1109,15 +1146,15 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
    This instruction works the same for signed and unsigned integers.
    The multiplication returns the low 32bit (as does the result itself).
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x + src2.x
+      dst.x = src0.x \times src1.x + src2.x
 
-  dst.y = src0.y \times src1.y + src2.y
+      dst.y = src0.y \times src1.y + src2.y
 
-  dst.z = src0.z \times src1.z + src2.z
+      dst.z = src0.z \times src1.z + src2.z
 
-  dst.w = src0.w \times src1.w + src2.w
+      dst.w = src0.w \times src1.w + src2.w
 
 
 .. opcode:: UMUL - Integer Multiply
@@ -1125,266 +1162,266 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
    This instruction works the same for signed and unsigned integers.
    The low 32bit of the result is returned.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \times src1.x
+      dst.x = src0.x \times src1.x
 
-  dst.y = src0.y \times src1.y
+      dst.y = src0.y \times src1.y
 
-  dst.z = src0.z \times src1.z
+      dst.z = src0.z \times src1.z
 
-  dst.w = src0.w \times src1.w
+      dst.w = src0.w \times src1.w
 
 
 .. opcode:: IMUL_HI - Signed Integer Multiply High Bits
 
    The high 32bits of the multiplication of 2 signed integers are returned.
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x \times src1.x) >> 32
+      dst.x = (src0.x \times src1.x) \gg 32
 
-  dst.y = (src0.y \times src1.y) >> 32
+      dst.y = (src0.y \times src1.y) \gg 32
 
-  dst.z = (src0.z \times src1.z) >> 32
+      dst.z = (src0.z \times src1.z) \gg 32
 
-  dst.w = (src0.w \times src1.w) >> 32
+      dst.w = (src0.w \times src1.w) \gg 32
 
 
 .. opcode:: UMUL_HI - Unsigned Integer Multiply High Bits
 
    The high 32bits of the multiplication of 2 unsigned integers are returned.
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x \times src1.x) >> 32
+      dst.x = (src0.x \times src1.x) \gg 32
 
-  dst.y = (src0.y \times src1.y) >> 32
+      dst.y = (src0.y \times src1.y) \gg 32
 
-  dst.z = (src0.z \times src1.z) >> 32
+      dst.z = (src0.z \times src1.z) \gg 32
 
-  dst.w = (src0.w \times src1.w) >> 32
+      dst.w = (src0.w \times src1.w) \gg 32
 
 
 .. opcode:: IDIV - Signed Integer Division
 
    TBD: behavior for division by zero.
 
-.. math::
+   .. math::
 
-  dst.x = \frac{src0.x}{src1.x}
+      dst.x = \frac{src0.x}{src1.x}
 
-  dst.y = \frac{src0.y}{src1.y}
+      dst.y = \frac{src0.y}{src1.y}
 
-  dst.z = \frac{src0.z}{src1.z}
+      dst.z = \frac{src0.z}{src1.z}
 
-  dst.w = \frac{src0.w}{src1.w}
+      dst.w = \frac{src0.w}{src1.w}
 
 
 .. opcode:: UDIV - Unsigned Integer Division
 
-   For division by zero, 0xffffffff is returned.
+   For division by zero, ``0xffffffff`` is returned.
 
-.. math::
+   .. math::
 
-  dst.x = \frac{src0.x}{src1.x}
+      dst.x = \frac{src0.x}{src1.x}
 
-  dst.y = \frac{src0.y}{src1.y}
+      dst.y = \frac{src0.y}{src1.y}
 
-  dst.z = \frac{src0.z}{src1.z}
+      dst.z = \frac{src0.z}{src1.z}
 
-  dst.w = \frac{src0.w}{src1.w}
+      dst.w = \frac{src0.w}{src1.w}
 
 
 .. opcode:: UMOD - Unsigned Integer Remainder
 
-   If second arg is zero, 0xffffffff is returned.
+   If *src1* is zero, ``0xffffffff`` is returned.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \bmod src1.x
+      dst.x = src0.x \bmod src1.x
 
-  dst.y = src0.y \bmod src1.y
+      dst.y = src0.y \bmod src1.y
 
-  dst.z = src0.z \bmod src1.z
+      dst.z = src0.z \bmod src1.z
 
-  dst.w = src0.w \bmod src1.w
+      dst.w = src0.w \bmod src1.w
 
 
 .. opcode:: NOT - Bitwise Not
 
-.. math::
+   .. math::
 
-  dst.x = \sim src.x
+      dst.x = \sim src.x
 
-  dst.y = \sim src.y
+      dst.y = \sim src.y
 
-  dst.z = \sim src.z
+      dst.z = \sim src.z
 
-  dst.w = \sim src.w
+      dst.w = \sim src.w
 
 
 .. opcode:: AND - Bitwise And
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \& src1.x
+      dst.x = src0.x \& src1.x
 
-  dst.y = src0.y \& src1.y
+      dst.y = src0.y \& src1.y
 
-  dst.z = src0.z \& src1.z
+      dst.z = src0.z \& src1.z
 
-  dst.w = src0.w \& src1.w
+      dst.w = src0.w \& src1.w
 
 
 .. opcode:: OR - Bitwise Or
 
-.. math::
+   .. math::
 
-  dst.x = src0.x | src1.x
+      dst.x = src0.x | src1.x
 
-  dst.y = src0.y | src1.y
+      dst.y = src0.y | src1.y
 
-  dst.z = src0.z | src1.z
+      dst.z = src0.z | src1.z
 
-  dst.w = src0.w | src1.w
+      dst.w = src0.w | src1.w
 
 
 .. opcode:: XOR - Bitwise Xor
 
-.. math::
+   .. math::
 
-  dst.x = src0.x \oplus src1.x
+      dst.x = src0.x \oplus src1.x
 
-  dst.y = src0.y \oplus src1.y
+      dst.y = src0.y \oplus src1.y
 
-  dst.z = src0.z \oplus src1.z
+      dst.z = src0.z \oplus src1.z
 
-  dst.w = src0.w \oplus src1.w
+      dst.w = src0.w \oplus src1.w
 
 
 .. opcode:: IMAX - Maximum of Signed Integers
 
-.. math::
+   .. math::
 
-  dst.x = max(src0.x, src1.x)
+      dst.x = max(src0.x, src1.x)
 
-  dst.y = max(src0.y, src1.y)
+      dst.y = max(src0.y, src1.y)
 
-  dst.z = max(src0.z, src1.z)
+      dst.z = max(src0.z, src1.z)
 
-  dst.w = max(src0.w, src1.w)
+      dst.w = max(src0.w, src1.w)
 
 
 .. opcode:: UMAX - Maximum of Unsigned Integers
 
-.. math::
+   .. math::
 
-  dst.x = max(src0.x, src1.x)
+      dst.x = max(src0.x, src1.x)
 
-  dst.y = max(src0.y, src1.y)
+      dst.y = max(src0.y, src1.y)
 
-  dst.z = max(src0.z, src1.z)
+      dst.z = max(src0.z, src1.z)
 
-  dst.w = max(src0.w, src1.w)
+      dst.w = max(src0.w, src1.w)
 
 
 .. opcode:: IMIN - Minimum of Signed Integers
 
-.. math::
+   .. math::
 
-  dst.x = min(src0.x, src1.x)
+      dst.x = min(src0.x, src1.x)
 
-  dst.y = min(src0.y, src1.y)
+      dst.y = min(src0.y, src1.y)
 
-  dst.z = min(src0.z, src1.z)
+      dst.z = min(src0.z, src1.z)
 
-  dst.w = min(src0.w, src1.w)
+      dst.w = min(src0.w, src1.w)
 
 
 .. opcode:: UMIN - Minimum of Unsigned Integers
 
-.. math::
+   .. math::
 
-  dst.x = min(src0.x, src1.x)
+      dst.x = min(src0.x, src1.x)
 
-  dst.y = min(src0.y, src1.y)
+      dst.y = min(src0.y, src1.y)
 
-  dst.z = min(src0.z, src1.z)
+      dst.z = min(src0.z, src1.z)
 
-  dst.w = min(src0.w, src1.w)
+      dst.w = min(src0.w, src1.w)
 
 
 .. opcode:: SHL - Shift Left
 
-   The shift count is masked with 0x1f before the shift is applied.
+   The shift count is masked with ``0x1f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x << (0x1f \& src1.x)
+      dst.x = src0.x \ll (0x1f \& src1.x)
 
-  dst.y = src0.y << (0x1f \& src1.y)
+      dst.y = src0.y \ll (0x1f \& src1.y)
 
-  dst.z = src0.z << (0x1f \& src1.z)
+      dst.z = src0.z \ll (0x1f \& src1.z)
 
-  dst.w = src0.w << (0x1f \& src1.w)
+      dst.w = src0.w \ll (0x1f \& src1.w)
 
 
 .. opcode:: ISHR - Arithmetic Shift Right (of Signed Integer)
 
-   The shift count is masked with 0x1f before the shift is applied.
+   The shift count is masked with ``0x1f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x >> (0x1f \& src1.x)
+      dst.x = src0.x \gg (0x1f \& src1.x)
 
-  dst.y = src0.y >> (0x1f \& src1.y)
+      dst.y = src0.y \gg (0x1f \& src1.y)
 
-  dst.z = src0.z >> (0x1f \& src1.z)
+      dst.z = src0.z \gg (0x1f \& src1.z)
 
-  dst.w = src0.w >> (0x1f \& src1.w)
+      dst.w = src0.w \gg (0x1f \& src1.w)
 
 
 .. opcode:: USHR - Logical Shift Right
 
-   The shift count is masked with 0x1f before the shift is applied.
+   The shift count is masked with ``0x1f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.x = src0.x >> (unsigned) (0x1f \& src1.x)
+      dst.x = src0.x \gg (unsigned) (0x1f \& src1.x)
 
-  dst.y = src0.y >> (unsigned) (0x1f \& src1.y)
+      dst.y = src0.y \gg (unsigned) (0x1f \& src1.y)
 
-  dst.z = src0.z >> (unsigned) (0x1f \& src1.z)
+      dst.z = src0.z \gg (unsigned) (0x1f \& src1.z)
 
-  dst.w = src0.w >> (unsigned) (0x1f \& src1.w)
+      dst.w = src0.w \gg (unsigned) (0x1f \& src1.w)
 
 
 .. opcode:: UCMP - Integer Conditional Move
 
-.. math::
+   .. math::
 
-  dst.x = src0.x ? src1.x : src2.x
+      dst.x = src0.x ? src1.x : src2.x
 
-  dst.y = src0.y ? src1.y : src2.y
+      dst.y = src0.y ? src1.y : src2.y
 
-  dst.z = src0.z ? src1.z : src2.z
+      dst.z = src0.z ? src1.z : src2.z
 
-  dst.w = src0.w ? src1.w : src2.w
+      dst.w = src0.w ? src1.w : src2.w
 
 
 
 .. opcode:: ISSG - Integer Set Sign
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < 0) ? -1 : (src0.x > 0) ? 1 : 0
+      dst.x = (src0.x < 0) ? -1 : (src0.x > 0) ? 1 : 0
 
-  dst.y = (src0.y < 0) ? -1 : (src0.y > 0) ? 1 : 0
+      dst.y = (src0.y < 0) ? -1 : (src0.y > 0) ? 1 : 0
 
-  dst.z = (src0.z < 0) ? -1 : (src0.z > 0) ? 1 : 0
+      dst.z = (src0.z < 0) ? -1 : (src0.z > 0) ? 1 : 0
 
-  dst.w = (src0.w < 0) ? -1 : (src0.w > 0) ? 1 : 0
+      dst.w = (src0.w < 0) ? -1 : (src0.w > 0) ? 1 : 0
 
 
 
@@ -1392,166 +1429,166 @@ Support for these opcodes indicated by PIPE_SHADER_CAP_INTEGERS (all of them?)
 
    Same comparison as SLT but returns integer instead of 1.0/0.0 float
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < src1.x) ? \sim 0 : 0
+      dst.x = (src0.x < src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y < src1.y) ? \sim 0 : 0
+      dst.y = (src0.y < src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z < src1.z) ? \sim 0 : 0
+      dst.z = (src0.z < src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w < src1.w) ? \sim 0 : 0
+      dst.w = (src0.w < src1.w) ? \sim 0 : 0
 
 
 .. opcode:: ISLT - Signed Integer Set On Less Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < src1.x) ? \sim 0 : 0
+      dst.x = (src0.x < src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y < src1.y) ? \sim 0 : 0
+      dst.y = (src0.y < src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z < src1.z) ? \sim 0 : 0
+      dst.z = (src0.z < src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w < src1.w) ? \sim 0 : 0
+      dst.w = (src0.w < src1.w) ? \sim 0 : 0
 
 
 .. opcode:: USLT - Unsigned Integer Set On Less Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x < src1.x) ? \sim 0 : 0
+      dst.x = (src0.x < src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y < src1.y) ? \sim 0 : 0
+      dst.y = (src0.y < src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z < src1.z) ? \sim 0 : 0
+      dst.z = (src0.z < src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w < src1.w) ? \sim 0 : 0
+      dst.w = (src0.w < src1.w) ? \sim 0 : 0
 
 
 .. opcode:: FSGE - Float Set On Greater Equal Than (ordered)
 
    Same comparison as SGE but returns integer instead of 1.0/0.0 float
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x >= src1.x) ? \sim 0 : 0
+      dst.x = (src0.x >= src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y >= src1.y) ? \sim 0 : 0
+      dst.y = (src0.y >= src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z >= src1.z) ? \sim 0 : 0
+      dst.z = (src0.z >= src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w >= src1.w) ? \sim 0 : 0
+      dst.w = (src0.w >= src1.w) ? \sim 0 : 0
 
 
 .. opcode:: ISGE - Signed Integer Set On Greater Equal Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x >= src1.x) ? \sim 0 : 0
+      dst.x = (src0.x >= src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y >= src1.y) ? \sim 0 : 0
+      dst.y = (src0.y >= src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z >= src1.z) ? \sim 0 : 0
+      dst.z = (src0.z >= src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w >= src1.w) ? \sim 0 : 0
+      dst.w = (src0.w >= src1.w) ? \sim 0 : 0
 
 
 .. opcode:: USGE - Unsigned Integer Set On Greater Equal Than
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x >= src1.x) ? \sim 0 : 0
+      dst.x = (src0.x >= src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y >= src1.y) ? \sim 0 : 0
+      dst.y = (src0.y >= src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z >= src1.z) ? \sim 0 : 0
+      dst.z = (src0.z >= src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w >= src1.w) ? \sim 0 : 0
+      dst.w = (src0.w >= src1.w) ? \sim 0 : 0
 
 
 .. opcode:: FSEQ - Float Set On Equal (ordered)
 
    Same comparison as SEQ but returns integer instead of 1.0/0.0 float
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x == src1.x) ? \sim 0 : 0
+      dst.x = (src0.x == src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y == src1.y) ? \sim 0 : 0
+      dst.y = (src0.y == src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z == src1.z) ? \sim 0 : 0
+      dst.z = (src0.z == src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w == src1.w) ? \sim 0 : 0
+      dst.w = (src0.w == src1.w) ? \sim 0 : 0
 
 
 .. opcode:: USEQ - Integer Set On Equal
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x == src1.x) ? \sim 0 : 0
+      dst.x = (src0.x == src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y == src1.y) ? \sim 0 : 0
+      dst.y = (src0.y == src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z == src1.z) ? \sim 0 : 0
+      dst.z = (src0.z == src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w == src1.w) ? \sim 0 : 0
+      dst.w = (src0.w == src1.w) ? \sim 0 : 0
 
 
 .. opcode:: FSNE - Float Set On Not Equal (unordered)
 
    Same comparison as SNE but returns integer instead of 1.0/0.0 float
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x != src1.x) ? \sim 0 : 0
+      dst.x = (src0.x != src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y != src1.y) ? \sim 0 : 0
+      dst.y = (src0.y != src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z != src1.z) ? \sim 0 : 0
+      dst.z = (src0.z != src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w != src1.w) ? \sim 0 : 0
+      dst.w = (src0.w != src1.w) ? \sim 0 : 0
 
 
 .. opcode:: USNE - Integer Set On Not Equal
 
-.. math::
+   .. math::
 
-  dst.x = (src0.x != src1.x) ? \sim 0 : 0
+      dst.x = (src0.x != src1.x) ? \sim 0 : 0
 
-  dst.y = (src0.y != src1.y) ? \sim 0 : 0
+      dst.y = (src0.y != src1.y) ? \sim 0 : 0
 
-  dst.z = (src0.z != src1.z) ? \sim 0 : 0
+      dst.z = (src0.z != src1.z) ? \sim 0 : 0
 
-  dst.w = (src0.w != src1.w) ? \sim 0 : 0
+      dst.w = (src0.w != src1.w) ? \sim 0 : 0
 
 
 .. opcode:: INEG - Integer Negate
 
   Two's complement.
 
-.. math::
+   .. math::
 
-  dst.x = -src.x
+      dst.x = -src.x
 
-  dst.y = -src.y
+      dst.y = -src.y
 
-  dst.z = -src.z
+      dst.z = -src.z
 
-  dst.w = -src.w
+      dst.w = -src.w
 
 
 .. opcode:: IABS - Integer Absolute Value
 
-.. math::
+   .. math::
 
-  dst.x = |src.x|
+      dst.x = |src.x|
 
-  dst.y = |src.y|
+      dst.y = |src.y|
 
-  dst.z = |src.z|
+      dst.z = |src.z|
 
-  dst.w = |src.w|
+      dst.w = |src.w|
 
 Bitwise ISA
 ^^^^^^^^^^^
@@ -1559,70 +1596,70 @@ These opcodes are used for bit-level manipulation of integers.
 
 .. opcode:: IBFE - Signed Bitfield Extract
 
-  Like GLSL bitfieldExtract. Extracts a set of bits from the input, and
-  sign-extends them if the high bit of the extracted window is set.
+   Like GLSL bitfieldExtract. Extracts a set of bits from the input, and
+   sign-extends them if the high bit of the extracted window is set.
 
-  Pseudocode::
+   Pseudocode::
 
-    def ibfe(value, offset, bits):
-      if offset < 0 or bits < 0 or offset + bits > 32:
-        return undefined
-      if bits == 0: return 0
-      # Note: >> sign-extends
-      return (value << (32 - offset - bits)) >> (32 - bits)
+      def ibfe(value, offset, bits):
+         if offset < 0 or bits < 0 or offset + bits > 32:
+            return undefined
+         if bits == 0: return 0
+         # Note: >> sign-extends
+         return (value << (32 - offset - bits)) >> (32 - bits)
 
 .. opcode:: UBFE - Unsigned Bitfield Extract
 
-  Like GLSL bitfieldExtract. Extracts a set of bits from the input, without
-  any sign-extension.
+   Like GLSL bitfieldExtract. Extracts a set of bits from the input, without
+   any sign-extension.
 
-  Pseudocode::
+   Pseudocode::
 
-    def ubfe(value, offset, bits):
-      if offset < 0 or bits < 0 or offset + bits > 32:
-        return undefined
-      if bits == 0: return 0
-      # Note: >> does not sign-extend
-      return (value << (32 - offset - bits)) >> (32 - bits)
+      def ubfe(value, offset, bits):
+         if offset < 0 or bits < 0 or offset + bits > 32:
+            return undefined
+         if bits == 0: return 0
+         # Note: >> does not sign-extend
+         return (value << (32 - offset - bits)) >> (32 - bits)
 
 .. opcode:: BFI - Bitfield Insert
 
-  Like GLSL bitfieldInsert. Replaces a bit region of 'base' with the low bits
-  of 'insert'.
+   Like GLSL bitfieldInsert. Replaces a bit region of 'base' with the low bits
+   of 'insert'.
 
-  Pseudocode::
+   Pseudocode::
 
-    def bfi(base, insert, offset, bits):
-      if offset < 0 or bits < 0 or offset + bits > 32:
-        return undefined
-      # << defined such that mask == ~0 when bits == 32, offset == 0
-      mask = ((1 << bits) - 1) << offset
-      return ((insert << offset) & mask) | (base & ~mask)
+      def bfi(base, insert, offset, bits):
+         if offset < 0 or bits < 0 or offset + bits > 32:
+            return undefined
+         # << defined such that mask == ~0 when bits == 32, offset == 0
+         mask = ((1 << bits) - 1) << offset
+         return ((insert << offset) & mask) | (base & ~mask)
 
 .. opcode:: BREV - Bitfield Reverse
 
-  See SM5 instruction BFREV. Reverses the bits of the argument.
+   See SM5 instruction BFREV. Reverses the bits of the argument.
 
 .. opcode:: POPC - Population Count
 
-  See SM5 instruction COUNTBITS. Counts the number of set bits in the argument.
+   See SM5 instruction COUNTBITS. Counts the number of set bits in the argument.
 
 .. opcode:: LSB - Index of lowest set bit
 
-  See SM5 instruction FIRSTBIT_LO. Computes the 0-based index of the first set
-  bit of the argument. Returns -1 if none are set.
+   See SM5 instruction FIRSTBIT_LO. Computes the 0-based index of the first set
+   bit of the argument. Returns -1 if none are set.
 
 .. opcode:: IMSB - Index of highest non-sign bit
 
-  See SM5 instruction FIRSTBIT_SHI. Computes the 0-based index of the highest
-  non-sign bit of the argument (i.e. highest 0 bit for negative numbers,
-  highest 1 bit for positive numbers). Returns -1 if all bits are the same
-  (i.e. for inputs 0 and -1).
+   See SM5 instruction FIRSTBIT_SHI. Computes the 0-based index of the highest
+   non-sign bit of the argument (i.e. highest 0 bit for negative numbers,
+   highest 1 bit for positive numbers). Returns -1 if all bits are the same
+   (i.e. for inputs 0 and -1).
 
 .. opcode:: UMSB - Index of highest set bit
 
-  See SM5 instruction FIRSTBIT_HI. Computes the 0-based index of the highest
-  set bit of the argument. Returns -1 if none are set.
+   See SM5 instruction FIRSTBIT_HI. Computes the 0-based index of the highest
+   set bit of the argument. Returns -1 if none are set.
 
 Geometry ISA
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -1632,14 +1669,14 @@ in any other type of shader.
 
 .. opcode:: EMIT - Emit
 
-  Generate a new vertex for the current primitive into the specified vertex
-  stream using the values in the output registers.
+   Generate a new vertex for the current primitive into the specified vertex
+   stream using the values in the output registers.
 
 
 .. opcode:: ENDPRIM - End Primitive
 
-  Complete the current primitive in the specified vertex stream (consisting of
-  the emitted vertices), and start a new one.
+   Complete the current primitive in the specified vertex stream (consisting of
+   the emitted vertices), and start a new one.
 
 
 GLSL ISA
@@ -1651,19 +1688,23 @@ Some require glsl version 1.30 (UIF/SWITCH/CASE/DEFAULT/ENDSWITCH).
 
 .. opcode:: CAL - Subroutine Call
 
-  push(pc)
-  pc = target
+   Pseudocode::
+
+      push(pc)
+      pc = target
 
 
 .. opcode:: RET - Subroutine Call Return
 
-  pc = pop()
+   Pseudocode::
+
+      pc = pop()
 
 
 .. opcode:: CONT - Continue
 
-  Unconditionally moves the point of execution to the instruction after the
-  last bgnloop. The instruction must appear within a bgnloop/endloop.
+   Unconditionally moves the point of execution to the instruction after the
+   last BGNLOOP. The instruction must appear within a BGNLOOP/ENDLOOP.
 
 .. note::
 
@@ -1673,62 +1714,62 @@ Some require glsl version 1.30 (UIF/SWITCH/CASE/DEFAULT/ENDSWITCH).
 
 .. opcode:: BGNLOOP - Begin a Loop
 
-  Start a loop. Must have a matching endloop.
+   Start a loop. Must have a matching ENDLOOP.
 
 
 .. opcode:: BGNSUB - Begin Subroutine
 
-  Starts definition of a subroutine. Must have a matching endsub.
+   Starts definition of a subroutine. Must have a matching ENDSUB.
 
 
 .. opcode:: ENDLOOP - End a Loop
 
-  End a loop started with bgnloop.
+   End a loop started with BGNLOOP.
 
 
 .. opcode:: ENDSUB - End Subroutine
 
-  Ends definition of a subroutine.
+   Ends definition of a subroutine.
 
 
 .. opcode:: NOP - No Operation
 
-  Do nothing.
+   Do nothing.
 
 
 .. opcode:: BRK - Break
 
-  Unconditionally moves the point of execution to the instruction after the
-  next endloop or endswitch. The instruction must appear within a loop/endloop
-  or switch/endswitch.
+   Unconditionally moves the point of execution to the instruction after the
+   next ENDLOOP or ENDSWITCH. The instruction must appear within a
+   BGNLOOP/ENDLOOP or SWITCH/ENDSWITCH.
 
 
 .. opcode:: IF - Float If
 
-  Start an IF ... ELSE .. ENDIF block.  Condition evaluates to true if
+   Start an IF ... ELSE .. ENDIF block.  Condition evaluates to true if
 
-    src0.x != 0.0
+      *src0.x* != 0.0
 
-  where src0.x is interpreted as a floating point register.
+   where *src0.x* is interpreted as a floating point register.
 
 
 .. opcode:: UIF - Bitwise If
 
-  Start an UIF ... ELSE .. ENDIF block. Condition evaluates to true if
+   Start an UIF ... ELSE .. ENDIF block. Condition evaluates to true if
 
-    src0.x != 0
+      *src0.x* != 0
 
-  where src0.x is interpreted as an integer register.
+   where *src0.x* is interpreted as an integer register.
 
 
 .. opcode:: ELSE - Else
 
-  Starts an else block, after an IF or UIF statement.
+   Starts an else block, after an IF or UIF statement.
 
 
 .. opcode:: ENDIF - End If
 
-  Ends an IF or UIF block.
+   Ends an IF or UIF block.
 
 
 .. opcode:: SWITCH - Switch
@@ -1738,26 +1779,26 @@ Some require glsl version 1.30 (UIF/SWITCH/CASE/DEFAULT/ENDSWITCH).
    ends when a BRK is hit, but just like in C falling through to other cases
    without a break is allowed. Similarly, DEFAULT label is allowed anywhere not
    just as last statement, and fallthrough is allowed into/from it.
-   CASE src arguments are evaluated at bit level against the SWITCH src argument.
+   CASE *src* arguments are evaluated at bit level against the SWITCH *src* argument.
 
    Example::
 
-     SWITCH src[0].x
-     CASE src[0].x
-     (some instructions here)
-     (optional BRK here)
-     DEFAULT
-     (some instructions here)
-     (optional BRK here)
-     CASE src[0].x
-     (some instructions here)
-     (optional BRK here)
-     ENDSWITCH
+      SWITCH src[0].x
+      CASE src[0].x
+      (some instructions here)
+      (optional BRK here)
+      DEFAULT
+      (some instructions here)
+      (optional BRK here)
+      CASE src[0].x
+      (some instructions here)
+      (optional BRK here)
+      ENDSWITCH
 
 
 .. opcode:: CASE - Switch case
 
-   This represents a switch case label. The src arg must be an integer immediate.
+   This represents a switch case label. The *src* arg must be an integer immediate.
 
 
 .. opcode:: DEFAULT - Switch default
@@ -1781,17 +1822,17 @@ interpolateAt* functions. The first argument of each of these must come from
 
 .. opcode:: INTERP_CENTROID - Interpolate at the centroid
 
-   Interpolates the varying specified by src0 at the centroid
+   Interpolates the varying specified by *src0* at the centroid
 
 .. opcode:: INTERP_SAMPLE - Interpolate at the specified sample
 
-   Interpolates the varying specified by src0 at the sample id specified by
-   src1.x (interpreted as an integer)
+   Interpolates the varying specified by *src0* at the sample id
+   specified by *src1.x* (interpreted as an integer)
 
 .. opcode:: INTERP_OFFSET - Interpolate at the specified offset
 
-   Interpolates the varying specified by src0 at the offset src1.xy from the
-   pixel center (interpreted as floats)
+   Interpolates the varying specified by *src0* at the offset *src1.xy*
+   from the pixel center (interpreted as floats)
 
 
 .. _doubleopcodes:
@@ -1804,250 +1845,236 @@ two-component vectors with doubled precision in each component.
 
 .. opcode:: DABS - Absolute
 
-.. math::
+   .. math::
 
-  dst.xy = |src0.xy|
+      dst.xy = |src0.xy|
 
-  dst.zw = |src0.zw|
+      dst.zw = |src0.zw|
 
 .. opcode:: DADD - Add
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy + src1.xy
+      dst.xy = src0.xy + src1.xy
 
-  dst.zw = src0.zw + src1.zw
+      dst.zw = src0.zw + src1.zw
 
 .. opcode:: DSEQ - Set on Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy == src1.xy ? \sim 0 : 0
+      dst.x = src0.xy == src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw == src1.zw ? \sim 0 : 0
+      dst.z = src0.zw == src1.zw ? \sim 0 : 0
 
 .. opcode:: DSNE - Set on Not Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy != src1.xy ? \sim 0 : 0
+      dst.x = src0.xy != src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw != src1.zw ? \sim 0 : 0
+      dst.z = src0.zw != src1.zw ? \sim 0 : 0
 
 .. opcode:: DSLT - Set on Less than
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy < src1.xy ? \sim 0 : 0
+      dst.x = src0.xy < src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw < src1.zw ? \sim 0 : 0
+      dst.z = src0.zw < src1.zw ? \sim 0 : 0
 
 .. opcode:: DSGE - Set on Greater equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy >= src1.xy ? \sim 0 : 0
+      dst.x = src0.xy >= src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw >= src1.zw ? \sim 0 : 0
+      dst.z = src0.zw >= src1.zw ? \sim 0 : 0
 
 .. opcode:: DFRAC - Fraction
 
-.. math::
+   .. math::
 
-  dst.xy = src.xy - \lfloor src.xy\rfloor
+      dst.xy = src.xy - \lfloor src.xy\rfloor
 
-  dst.zw = src.zw - \lfloor src.zw\rfloor
+      dst.zw = src.zw - \lfloor src.zw\rfloor
 
 .. opcode:: DTRUNC - Truncate
 
-.. math::
+   .. math::
 
-  dst.xy = trunc(src.xy)
+      dst.xy = trunc(src.xy)
 
-  dst.zw = trunc(src.zw)
+      dst.zw = trunc(src.zw)
 
 .. opcode:: DCEIL - Ceiling
 
-.. math::
+   .. math::
 
-  dst.xy = \lceil src.xy\rceil
+      dst.xy = \lceil src.xy\rceil
 
-  dst.zw = \lceil src.zw\rceil
+      dst.zw = \lceil src.zw\rceil
 
 .. opcode:: DFLR - Floor
 
-.. math::
+   .. math::
 
-  dst.xy = \lfloor src.xy\rfloor
+      dst.xy = \lfloor src.xy\rfloor
 
-  dst.zw = \lfloor src.zw\rfloor
+      dst.zw = \lfloor src.zw\rfloor
 
 .. opcode:: DROUND - Fraction
 
-.. math::
+   .. math::
 
-  dst.xy = round(src.xy)
+      dst.xy = round(src.xy)
 
-  dst.zw = round(src.zw)
+      dst.zw = round(src.zw)
 
 .. opcode:: DSSG - Set Sign
 
-.. math::
+   .. math::
 
-  dst.xy = (src.xy > 0) ? 1.0 : (src.xy < 0) ? -1.0 : 0.0
+      dst.xy = (src.xy > 0) ? 1.0 : (src.xy < 0) ? -1.0 : 0.0
 
-  dst.zw = (src.zw > 0) ? 1.0 : (src.zw < 0) ? -1.0 : 0.0
-
-.. opcode:: DFRACEXP - Convert Number to Fractional and Integral Components
-
-Like the ``frexp()`` routine in many math libraries, this opcode stores the
-exponent of its source to ``dst0``, and the significand to ``dst1``, such that
-:math:`dst1 \times 2^{dst0} = src` . The results are replicated across
-channels.
-
-.. math::
-
-  dst0.xy = dst.zw = frac(src.xy)
-
-  dst1 = frac(src.xy)
-
+      dst.zw = (src.zw > 0) ? 1.0 : (src.zw < 0) ? -1.0 : 0.0
 
 .. opcode:: DLDEXP - Multiply Number by Integral Power of 2
 
-This opcode is the inverse of :opcode:`DFRACEXP`. The second
-source is an integer.
+   This opcode is the inverse of frexp. The second
+   source is an integer.
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \times 2^{src1.x}
+      dst.xy = src0.xy \times 2^{src1.x}
 
-  dst.zw = src0.zw \times 2^{src1.z}
+      dst.zw = src0.zw \times 2^{src1.z}
 
 .. opcode:: DMIN - Minimum
 
-.. math::
+   .. math::
 
-  dst.xy = min(src0.xy, src1.xy)
+      dst.xy = min(src0.xy, src1.xy)
 
-  dst.zw = min(src0.zw, src1.zw)
+      dst.zw = min(src0.zw, src1.zw)
 
 .. opcode:: DMAX - Maximum
 
-.. math::
+   .. math::
 
-  dst.xy = max(src0.xy, src1.xy)
+      dst.xy = max(src0.xy, src1.xy)
 
-  dst.zw = max(src0.zw, src1.zw)
+      dst.zw = max(src0.zw, src1.zw)
 
 .. opcode:: DMUL - Multiply
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \times src1.xy
+      dst.xy = src0.xy \times src1.xy
 
-  dst.zw = src0.zw \times src1.zw
+      dst.zw = src0.zw \times src1.zw
 
 
 .. opcode:: DMAD - Multiply And Add
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \times src1.xy + src2.xy
+      dst.xy = src0.xy \times src1.xy + src2.xy
 
-  dst.zw = src0.zw \times src1.zw + src2.zw
+      dst.zw = src0.zw \times src1.zw + src2.zw
 
 
 .. opcode:: DFMA - Fused Multiply-Add
 
-Perform a * b + c with no intermediate rounding step.
+   Perform a * b + c with no intermediate rounding step.
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \times src1.xy + src2.xy
+      dst.xy = src0.xy \times src1.xy + src2.xy
 
-  dst.zw = src0.zw \times src1.zw + src2.zw
+      dst.zw = src0.zw \times src1.zw + src2.zw
 
 
 .. opcode:: DDIV - Divide
 
-.. math::
+   .. math::
 
-  dst.xy = \frac{src0.xy}{src1.xy}
+      dst.xy = \frac{src0.xy}{src1.xy}
 
-  dst.zw = \frac{src0.zw}{src1.zw}
+      dst.zw = \frac{src0.zw}{src1.zw}
 
 
 .. opcode:: DRCP - Reciprocal
 
-.. math::
+   .. math::
 
-   dst.xy = \frac{1}{src.xy}
+      dst.xy = \frac{1}{src.xy}
 
-   dst.zw = \frac{1}{src.zw}
+      dst.zw = \frac{1}{src.zw}
 
 .. opcode:: DSQRT - Square Root
 
-.. math::
+   .. math::
 
-   dst.xy = \sqrt{src.xy}
+      dst.xy = \sqrt{src.xy}
 
-   dst.zw = \sqrt{src.zw}
+      dst.zw = \sqrt{src.zw}
 
 .. opcode:: DRSQ - Reciprocal Square Root
 
-.. math::
+   .. math::
 
-   dst.xy = \frac{1}{\sqrt{src.xy}}
+      dst.xy = \frac{1}{\sqrt{src.xy}}
 
-   dst.zw = \frac{1}{\sqrt{src.zw}}
+      dst.zw = \frac{1}{\sqrt{src.zw}}
 
 .. opcode:: F2D - Float to Double
 
-.. math::
+   .. math::
 
-   dst.xy = double(src0.x)
+      dst.xy = double(src0.x)
 
-   dst.zw = double(src0.y)
+      dst.zw = double(src0.y)
 
 .. opcode:: D2F - Double to Float
 
-.. math::
+   .. math::
 
-   dst.x = float(src0.xy)
+      dst.x = float(src0.xy)
 
-   dst.y = float(src0.zw)
+      dst.y = float(src0.zw)
 
 .. opcode:: I2D - Int to Double
 
-.. math::
+   .. math::
 
-   dst.xy = double(src0.x)
+      dst.xy = double(src0.x)
 
-   dst.zw = double(src0.y)
+      dst.zw = double(src0.y)
 
 .. opcode:: D2I - Double to Int
 
-.. math::
+   .. math::
 
-   dst.x = int(src0.xy)
+      dst.x = int(src0.xy)
 
-   dst.y = int(src0.zw)
+      dst.y = int(src0.zw)
 
 .. opcode:: U2D - Unsigned Int to Double
 
-.. math::
+   .. math::
 
-   dst.xy = double(src0.x)
+      dst.xy = double(src0.x)
 
-   dst.zw = double(src0.y)
+      dst.zw = double(src0.y)
 
 .. opcode:: D2U - Double to Unsigned Int
 
-.. math::
+   .. math::
 
-   dst.x = unsigned(src0.xy)
+      dst.x = unsigned(src0.xy)
 
-   dst.y = unsigned(src0.zw)
+      dst.y = unsigned(src0.zw)
 
 64-bit Integer ISA
 ^^^^^^^^^^^^^^^^^^
@@ -2057,271 +2084,271 @@ two-component vectors with 64-bits in each component.
 
 .. opcode:: I64ABS - 64-bit Integer Absolute Value
 
-.. math::
+   .. math::
 
-  dst.xy = |src0.xy|
+      dst.xy = |src0.xy|
 
-  dst.zw = |src0.zw|
+      dst.zw = |src0.zw|
 
 .. opcode:: I64NEG - 64-bit Integer Negate
 
-  Two's complement.
+   Two's complement.
 
-.. math::
+   .. math::
 
-  dst.xy = -src.xy
+      dst.xy = -src.xy
 
-  dst.zw = -src.zw
+      dst.zw = -src.zw
 
 .. opcode:: I64SSG - 64-bit Integer Set Sign
 
-.. math::
+   .. math::
 
-  dst.xy = (src0.xy < 0) ? -1 : (src0.xy > 0) ? 1 : 0
+      dst.xy = (src0.xy < 0) ? -1 : (src0.xy > 0) ? 1 : 0
 
-  dst.zw = (src0.zw < 0) ? -1 : (src0.zw > 0) ? 1 : 0
+      dst.zw = (src0.zw < 0) ? -1 : (src0.zw > 0) ? 1 : 0
 
 .. opcode:: U64ADD - 64-bit Integer Add
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy + src1.xy
+      dst.xy = src0.xy + src1.xy
 
-  dst.zw = src0.zw + src1.zw
+      dst.zw = src0.zw + src1.zw
 
 .. opcode:: U64MUL - 64-bit Integer Multiply
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy * src1.xy
+      dst.xy = src0.xy * src1.xy
 
-  dst.zw = src0.zw * src1.zw
+      dst.zw = src0.zw * src1.zw
 
 .. opcode:: U64SEQ - 64-bit Integer Set on Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy == src1.xy ? \sim 0 : 0
+      dst.x = src0.xy == src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw == src1.zw ? \sim 0 : 0
+      dst.z = src0.zw == src1.zw ? \sim 0 : 0
 
 .. opcode:: U64SNE - 64-bit Integer Set on Not Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy != src1.xy ? \sim 0 : 0
+      dst.x = src0.xy != src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw != src1.zw ? \sim 0 : 0
+      dst.z = src0.zw != src1.zw ? \sim 0 : 0
 
 .. opcode:: U64SLT - 64-bit Unsigned Integer Set on Less Than
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy < src1.xy ? \sim 0 : 0
+      dst.x = src0.xy < src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw < src1.zw ? \sim 0 : 0
+      dst.z = src0.zw < src1.zw ? \sim 0 : 0
 
 .. opcode:: U64SGE - 64-bit Unsigned Integer Set on Greater Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy >= src1.xy ? \sim 0 : 0
+      dst.x = src0.xy >= src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw >= src1.zw ? \sim 0 : 0
+      dst.z = src0.zw >= src1.zw ? \sim 0 : 0
 
 .. opcode:: I64SLT - 64-bit Signed Integer Set on Less Than
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy < src1.xy ? \sim 0 : 0
+      dst.x = src0.xy < src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw < src1.zw ? \sim 0 : 0
+      dst.z = src0.zw < src1.zw ? \sim 0 : 0
 
 .. opcode:: I64SGE - 64-bit Signed Integer Set on Greater Equal
 
-.. math::
+   .. math::
 
-  dst.x = src0.xy >= src1.xy ? \sim 0 : 0
+      dst.x = src0.xy >= src1.xy ? \sim 0 : 0
 
-  dst.z = src0.zw >= src1.zw ? \sim 0 : 0
+      dst.z = src0.zw >= src1.zw ? \sim 0 : 0
 
 .. opcode:: I64MIN - Minimum of 64-bit Signed Integers
 
-.. math::
+   .. math::
 
-  dst.xy = min(src0.xy, src1.xy)
+      dst.xy = min(src0.xy, src1.xy)
 
-  dst.zw = min(src0.zw, src1.zw)
+      dst.zw = min(src0.zw, src1.zw)
 
 .. opcode:: U64MIN - Minimum of 64-bit Unsigned Integers
 
-.. math::
+   .. math::
 
-  dst.xy = min(src0.xy, src1.xy)
+      dst.xy = min(src0.xy, src1.xy)
 
-  dst.zw = min(src0.zw, src1.zw)
+      dst.zw = min(src0.zw, src1.zw)
 
 .. opcode:: I64MAX - Maximum of 64-bit Signed Integers
 
-.. math::
+   .. math::
 
-  dst.xy = max(src0.xy, src1.xy)
+      dst.xy = max(src0.xy, src1.xy)
 
-  dst.zw = max(src0.zw, src1.zw)
+      dst.zw = max(src0.zw, src1.zw)
 
 .. opcode:: U64MAX - Maximum of 64-bit Unsigned Integers
 
-.. math::
+   .. math::
 
-  dst.xy = max(src0.xy, src1.xy)
+      dst.xy = max(src0.xy, src1.xy)
 
-  dst.zw = max(src0.zw, src1.zw)
+      dst.zw = max(src0.zw, src1.zw)
 
 .. opcode:: U64SHL - Shift Left 64-bit Unsigned Integer
 
-   The shift count is masked with 0x3f before the shift is applied.
+   The shift count is masked with ``0x3f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy << (0x3f \& src1.x)
+      dst.xy = src0.xy \ll (0x3f \& src1.x)
 
-  dst.zw = src0.zw << (0x3f \& src1.y)
+      dst.zw = src0.zw \ll (0x3f \& src1.y)
 
 .. opcode:: I64SHR - Arithmetic Shift Right (of 64-bit Signed Integer)
 
-   The shift count is masked with 0x3f before the shift is applied.
+   The shift count is masked with ``0x3f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy >> (0x3f \& src1.x)
+      dst.xy = src0.xy \gg (0x3f \& src1.x)
 
-  dst.zw = src0.zw >> (0x3f \& src1.y)
+      dst.zw = src0.zw \gg (0x3f \& src1.y)
 
 .. opcode:: U64SHR - Logical Shift Right (of 64-bit Unsigned Integer)
 
-   The shift count is masked with 0x3f before the shift is applied.
+   The shift count is masked with ``0x3f`` before the shift is applied.
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy >> (unsigned) (0x3f \& src1.x)
+      dst.xy = src0.xy \gg (unsigned) (0x3f \& src1.x)
 
-  dst.zw = src0.zw >> (unsigned) (0x3f \& src1.y)
+      dst.zw = src0.zw \gg (unsigned) (0x3f \& src1.y)
 
 .. opcode:: I64DIV - 64-bit Signed Integer Division
 
-.. math::
+   .. math::
 
-  dst.xy = \frac{src0.xy}{src1.xy}
+      dst.xy = \frac{src0.xy}{src1.xy}
 
-  dst.zw = \frac{src0.zw}{src1.zw}
+      dst.zw = \frac{src0.zw}{src1.zw}
 
 .. opcode:: U64DIV - 64-bit Unsigned Integer Division
 
-.. math::
+   .. math::
 
-  dst.xy = \frac{src0.xy}{src1.xy}
+      dst.xy = \frac{src0.xy}{src1.xy}
 
-  dst.zw = \frac{src0.zw}{src1.zw}
+      dst.zw = \frac{src0.zw}{src1.zw}
 
 .. opcode:: U64MOD - 64-bit Unsigned Integer Remainder
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \bmod src1.xy
+      dst.xy = src0.xy \bmod src1.xy
 
-  dst.zw = src0.zw \bmod src1.zw
+      dst.zw = src0.zw \bmod src1.zw
 
 .. opcode:: I64MOD - 64-bit Signed Integer Remainder
 
-.. math::
+   .. math::
 
-  dst.xy = src0.xy \bmod src1.xy
+      dst.xy = src0.xy \bmod src1.xy
 
-  dst.zw = src0.zw \bmod src1.zw
+      dst.zw = src0.zw \bmod src1.zw
 
 .. opcode:: F2U64 - Float to 64-bit Unsigned Int
 
-.. math::
+   .. math::
 
-   dst.xy = (uint64_t) src0.x
+      dst.xy = (uint64_t) src0.x
 
-   dst.zw = (uint64_t) src0.y
+      dst.zw = (uint64_t) src0.y
 
 .. opcode:: F2I64 - Float to 64-bit Int
 
-.. math::
+   .. math::
 
-   dst.xy = (int64_t) src0.x
+      dst.xy = (int64_t) src0.x
 
-   dst.zw = (int64_t) src0.y
+      dst.zw = (int64_t) src0.y
 
 .. opcode:: U2I64 - Unsigned Integer to 64-bit Integer
 
    This is a zero extension.
 
-.. math::
+   .. math::
 
-   dst.xy = (int64_t) src0.x
+      dst.xy = (int64_t) src0.x
 
-   dst.zw = (int64_t) src0.y
+      dst.zw = (int64_t) src0.y
 
 .. opcode:: I2I64 - Signed Integer to 64-bit Integer
 
    This is a sign extension.
 
-.. math::
+   .. math::
 
-   dst.xy = (int64_t) src0.x
+      dst.xy = (int64_t) src0.x
 
-   dst.zw = (int64_t) src0.y
+      dst.zw = (int64_t) src0.y
 
 .. opcode:: D2U64 - Double to 64-bit Unsigned Int
 
-.. math::
+   .. math::
 
-   dst.xy = (uint64_t) src0.xy
+      dst.xy = (uint64_t) src0.xy
 
-   dst.zw = (uint64_t) src0.zw
+      dst.zw = (uint64_t) src0.zw
 
 .. opcode:: D2I64 - Double to 64-bit Int
 
-.. math::
+   .. math::
 
-   dst.xy = (int64_t) src0.xy
+      dst.xy = (int64_t) src0.xy
 
-   dst.zw = (int64_t) src0.zw
+      dst.zw = (int64_t) src0.zw
 
 .. opcode:: U642F - 64-bit unsigned integer to float
 
-.. math::
+   .. math::
 
-   dst.x = (float) src0.xy
+      dst.x = (float) src0.xy
 
-   dst.y = (float) src0.zw
+      dst.y = (float) src0.zw
 
 .. opcode:: I642F - 64-bit Int to Float
 
-.. math::
+   .. math::
 
-   dst.x = (float) src0.xy
+      dst.x = (float) src0.xy
 
-   dst.y = (float) src0.zw
+      dst.y = (float) src0.zw
 
 .. opcode:: U642D - 64-bit unsigned integer to double
 
-.. math::
+   .. math::
 
-   dst.xy = (double) src0.xy
+      dst.xy = (double) src0.xy
 
-   dst.zw = (double) src0.zw
+      dst.zw = (double) src0.zw
 
 .. opcode:: I642D - 64-bit Int to double
 
-.. math::
+   .. math::
 
-   dst.xy = (double) src0.xy
+      dst.xy = (double) src0.xy
 
-   dst.zw = (double) src0.zw
+      dst.zw = (double) src0.zw
 
 .. _samplingopcodes:
 
@@ -2335,201 +2362,201 @@ after lookup.
 
 .. opcode:: SAMPLE
 
-  Using provided address, sample data from the specified texture using the
-  filtering mode identified by the given sampler. The source data may come from
-  any resource type other than buffers.
+   Using provided address, sample data from the specified texture using the
+   filtering mode identified by the given sampler. The source data may come from
+   any resource type other than buffers.
 
-  Syntax: ``SAMPLE dst, address, sampler_view, sampler``
+   Syntax: ``SAMPLE dst, address, sampler_view, sampler``
 
-  Example: ``SAMPLE TEMP[0], TEMP[1], SVIEW[0], SAMP[0]``
+   Example: ``SAMPLE TEMP[0], TEMP[1], SVIEW[0], SAMP[0]``
 
 .. opcode:: SAMPLE_I
 
-  Simplified alternative to the SAMPLE instruction.  Using the provided
-  integer address, SAMPLE_I fetches data from the specified sampler view
-  without any filtering.  The source data may come from any resource type
-  other than CUBE.
+   Simplified alternative to the SAMPLE instruction.  Using the provided
+   integer address, SAMPLE_I fetches data from the specified sampler view
+   without any filtering.  The source data may come from any resource type
+   other than CUBE.
 
-  Syntax: ``SAMPLE_I dst, address, sampler_view``
+   Syntax: ``SAMPLE_I dst, address, sampler_view``
 
-  Example: ``SAMPLE_I TEMP[0], TEMP[1], SVIEW[0]``
+   Example: ``SAMPLE_I TEMP[0], TEMP[1], SVIEW[0]``
 
-  The 'address' is specified as unsigned integers. If the 'address' is out of
-  range [0...(# texels - 1)] the result of the fetch is always 0 in all
-  components.  As such the instruction doesn't honor address wrap modes, in
-  cases where that behavior is desirable 'SAMPLE' instruction should be used.
-  address.w always provides an unsigned integer mipmap level. If the value is
-  out of the range then the instruction always returns 0 in all components.
-  address.yz are ignored for buffers and 1d textures.  address.z is ignored
-  for 1d texture arrays and 2d textures.
+   The 'address' is specified as unsigned integers. If the 'address' is out of
+   range [0...(# texels - 1)] the result of the fetch is always 0 in all
+   components.  As such the instruction doesn't honor address wrap modes, in
+   cases where that behavior is desirable 'SAMPLE' instruction should be used.
+   address.w always provides an unsigned integer mipmap level. If the value is
+   out of the range then the instruction always returns 0 in all components.
+   address.yz are ignored for buffers and 1d textures.  address.z is ignored
+   for 1d texture arrays and 2d textures.
 
-  For 1D texture arrays address.y provides the array index (also as unsigned
-  integer). If the value is out of the range of available array indices
-  [0... (array size - 1)] then the opcode always returns 0 in all components.
-  For 2D texture arrays address.z provides the array index, otherwise it
-  exhibits the same behavior as in the case for 1D texture arrays.  The exact
-  semantics of the source address are presented in the table below:
+   For 1D texture arrays address.y provides the array index (also as unsigned
+   integer). If the value is out of the range of available array indices
+   [0... (array size - 1)] then the opcode always returns 0 in all components.
+   For 2D texture arrays address.z provides the array index, otherwise it
+   exhibits the same behavior as in the case for 1D texture arrays.  The exact
+   semantics of the source address are presented in the table below:
 
-  +---------------------------+----+-----+-----+---------+
-  | resource type             | X  |  Y  |  Z  |    W    |
-  +===========================+====+=====+=====+=========+
-  | ``PIPE_BUFFER``           | x  |     |     | ignored |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_1D``       | x  |     |     |   mpl   |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_2D``       | x  |  y  |     |   mpl   |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_3D``       | x  |  y  |  z  |   mpl   |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_RECT``     | x  |  y  |     |   mpl   |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_CUBE``     | not allowed as source    |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_1D_ARRAY`` | x  | idx |     |   mpl   |
-  +---------------------------+----+-----+-----+---------+
-  | ``PIPE_TEXTURE_2D_ARRAY`` | x  |  y  | idx |   mpl   |
-  +---------------------------+----+-----+-----+---------+
+   +---------------------------+----+-----+-----+---------+
+   | resource type             | X  |  Y  |  Z  |    W    |
+   +===========================+====+=====+=====+=========+
+   | ``PIPE_BUFFER``           | x  |     |     | ignored |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_1D``       | x  |     |     |   mpl   |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_2D``       | x  |  y  |     |   mpl   |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_3D``       | x  |  y  |  z  |   mpl   |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_RECT``     | x  |  y  |     |   mpl   |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_CUBE``     | not allowed as source    |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_1D_ARRAY`` | x  | idx |     |   mpl   |
+   +---------------------------+----+-----+-----+---------+
+   | ``PIPE_TEXTURE_2D_ARRAY`` | x  |  y  | idx |   mpl   |
+   +---------------------------+----+-----+-----+---------+
 
-  Where 'mpl' is a mipmap level and 'idx' is the array index.
+   Where 'mpl' is a mipmap level and 'idx' is the array index.
 
 .. opcode:: SAMPLE_I_MS
 
-  Just like SAMPLE_I but allows fetch data from multi-sampled surfaces.
+   Just like SAMPLE_I but allows fetch data from multi-sampled surfaces.
 
-  Syntax: ``SAMPLE_I_MS dst, address, sampler_view, sample``
+   Syntax: ``SAMPLE_I_MS dst, address, sampler_view, sample``
 
 .. opcode:: SAMPLE_B
 
-  Just like the SAMPLE instruction with the exception that an additional bias
-  is applied to the level of detail computed as part of the instruction
-  execution.
+   Just like the SAMPLE instruction with the exception that an additional bias
+   is applied to the level of detail computed as part of the instruction
+   execution.
 
-  Syntax: ``SAMPLE_B dst, address, sampler_view, sampler, lod_bias``
+   Syntax: ``SAMPLE_B dst, address, sampler_view, sampler, lod_bias``
 
-  Example: ``SAMPLE_B TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2].x``
+   Example: ``SAMPLE_B TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2].x``
 
 .. opcode:: SAMPLE_C
 
-  Similar to the SAMPLE instruction but it performs a comparison filter. The
-  operands to SAMPLE_C are identical to SAMPLE, except that there is an
-  additional float32 operand, reference value, which must be a register with
-  single-component, or a scalar literal.  SAMPLE_C makes the hardware use the
-  current samplers compare_func (in pipe_sampler_state) to compare reference
-  value against the red component value for the surce resource at each texel
-  that the currently configured texture filter covers based on the provided
-  coordinates.
+   Similar to the SAMPLE instruction but it performs a comparison filter. The
+   operands to SAMPLE_C are identical to SAMPLE, except that there is an
+   additional float32 operand, reference value, which must be a register with
+   single-component, or a scalar literal.  SAMPLE_C makes the hardware use the
+   current samplers compare_func (in pipe_sampler_state) to compare reference
+   value against the red component value for the source resource at each texel
+   that the currently configured texture filter covers based on the provided
+   coordinates.
 
-  Syntax: ``SAMPLE_C dst, address, sampler_view.r, sampler, ref_value``
+   Syntax: ``SAMPLE_C dst, address, sampler_view.r, sampler, ref_value``
 
-  Example: ``SAMPLE_C TEMP[0], TEMP[1], SVIEW[0].r, SAMP[0], TEMP[2].x``
+   Example: ``SAMPLE_C TEMP[0], TEMP[1], SVIEW[0].r, SAMP[0], TEMP[2].x``
 
 .. opcode:: SAMPLE_C_LZ
 
-  Same as SAMPLE_C, but LOD is 0 and derivatives are ignored. The LZ stands
-  for level-zero.
+   Same as SAMPLE_C, but LOD is 0 and derivatives are ignored. The LZ stands
+   for level-zero.
 
-  Syntax: ``SAMPLE_C_LZ dst, address, sampler_view.r, sampler, ref_value``
+   Syntax: ``SAMPLE_C_LZ dst, address, sampler_view.r, sampler, ref_value``
 
-  Example: ``SAMPLE_C_LZ TEMP[0], TEMP[1], SVIEW[0].r, SAMP[0], TEMP[2].x``
+   Example: ``SAMPLE_C_LZ TEMP[0], TEMP[1], SVIEW[0].r, SAMP[0], TEMP[2].x``
 
 
 .. opcode:: SAMPLE_D
 
-  SAMPLE_D is identical to the SAMPLE opcode except that the derivatives for
-  the source address in the x direction and the y direction are provided by
-  extra parameters.
+   SAMPLE_D is identical to the SAMPLE opcode except that the derivatives for
+   the source address in the x direction and the y direction are provided by
+   extra parameters.
 
-  Syntax: ``SAMPLE_D dst, address, sampler_view, sampler, der_x, der_y``
+   Syntax: ``SAMPLE_D dst, address, sampler_view, sampler, der_x, der_y``
 
-  Example: ``SAMPLE_D TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2], TEMP[3]``
+   Example: ``SAMPLE_D TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2], TEMP[3]``
 
 .. opcode:: SAMPLE_L
 
-  SAMPLE_L is identical to the SAMPLE opcode except that the LOD is provided
-  directly as a scalar value, representing no anisotropy.
+   SAMPLE_L is identical to the SAMPLE opcode except that the LOD is provided
+   directly as a scalar value, representing no anisotropy.
 
-  Syntax: ``SAMPLE_L dst, address, sampler_view, sampler, explicit_lod``
+   Syntax: ``SAMPLE_L dst, address, sampler_view, sampler, explicit_lod``
 
-  Example: ``SAMPLE_L TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2].x``
+   Example: ``SAMPLE_L TEMP[0], TEMP[1], SVIEW[0], SAMP[0], TEMP[2].x``
 
 .. opcode:: GATHER4
 
-  Gathers the four texels to be used in a bi-linear filtering operation and
-  packs them into a single register.  Only works with 2D, 2D array, cubemaps,
-  and cubemaps arrays.  For 2D textures, only the addressing modes of the
-  sampler and the top level of any mip pyramid are used. Set W to zero.  It
-  behaves like the SAMPLE instruction, but a filtered sample is not
-  generated. The four samples that contribute to filtering are placed into
-  xyzw in counter-clockwise order, starting with the (u,v) texture coordinate
-  delta at the following locations (-, +), (+, +), (+, -), (-, -), where the
-  magnitude of the deltas are half a texel.
+   Gathers the four texels to be used in a bi-linear filtering operation and
+   packs them into a single register.  Only works with 2D, 2D array, cubemaps,
+   and cubemaps arrays.  For 2D textures, only the addressing modes of the
+   sampler and the top level of any mip pyramid are used. Set W to zero.  It
+   behaves like the SAMPLE instruction, but a filtered sample is not
+   generated. The four samples that contribute to filtering are placed into
+   XYZW in counter-clockwise order, starting with the (u,v) texture coordinate
+   delta at the following locations (-, +), (+, +), (+, -), (-, -), where the
+   magnitude of the deltas are half a texel.
 
 
 .. opcode:: SVIEWINFO
 
-  Query the dimensions of a given sampler view.  dst receives width, height,
-  depth or array size and number of mipmap levels as int4. The dst can have a
-  writemask which will specify what info is the caller interested in.
+   Query the dimensions of a given sampler view.  dst receives width, height,
+   depth or array size and number of mipmap levels as int4. The dst can have a
+   writemask which will specify what info is the caller interested in.
 
-  Syntax: ``SVIEWINFO dst, src_mip_level, sampler_view``
+   Syntax: ``SVIEWINFO dst, src_mip_level, sampler_view``
 
-  Example: ``SVIEWINFO TEMP[0], TEMP[1].x, SVIEW[0]``
+   Example: ``SVIEWINFO TEMP[0], TEMP[1].x, SVIEW[0]``
 
-  src_mip_level is an unsigned integer scalar. If it's out of range then
-  returns 0 for width, height and depth/array size but the total number of
-  mipmap is still returned correctly for the given sampler view.  The returned
-  width, height and depth values are for the mipmap level selected by the
-  src_mip_level and are in the number of texels.  For 1d texture array width
-  is in dst.x, array size is in dst.y and dst.z is 0. The number of mipmaps is
-  still in dst.w.  In contrast to d3d10 resinfo, there's no way in the tgsi
-  instruction encoding to specify the return type (float/rcpfloat/uint), hence
-  always using uint. Also, unlike the SAMPLE instructions, the swizzle on src1
-  resinfo allowing swizzling dst values is ignored (due to the interaction
-  with rcpfloat modifier which requires some swizzle handling in the state
-  tracker anyway).
+   src_mip_level is an unsigned integer scalar. If it's out of range then
+   returns 0 for width, height and depth/array size but the total number of
+   mipmap is still returned correctly for the given sampler view.  The returned
+   width, height and depth values are for the mipmap level selected by the
+   src_mip_level and are in the number of texels.  For 1d texture array width
+   is in dst.x, array size is in dst.y and dst.z is 0. The number of mipmaps is
+   still in dst.w.  In contrast to d3d10 resinfo, there's no way in the tgsi
+   instruction encoding to specify the return type (float/rcpfloat/uint), hence
+   always using uint. Also, unlike the SAMPLE instructions, the swizzle on src1
+   resinfo allowing swizzling dst values is ignored (due to the interaction
+   with rcpfloat modifier which requires some swizzle handling in the state
+   tracker anyway).
 
 .. opcode:: SAMPLE_POS
 
-  Query the position of a sample in the given resource or render target
-  when per-sample fragment shading is in effect.
+   Query the position of a sample in the given resource or render target
+   when per-sample fragment shading is in effect.
 
-  Syntax: ``SAMPLE_POS dst, source, sample_index``
+   Syntax: ``SAMPLE_POS dst, source, sample_index``
 
-  dst receives float4 (x, y, undef, undef) indicated where the sample is
-  located. Sample locations are in the range [0, 1] where 0.5 is the center
-  of the fragment.
+   dst receives float4 (x, y, undef, undef) indicated where the sample is
+   located. Sample locations are in the range [0, 1] where 0.5 is the center
+   of the fragment.
 
-  source is either a sampler view (to indicate a shader resource) or temp
-  register (to indicate the render target).  The source register may have
-  an optional swizzle to apply to the returned result
+   source is either a sampler view (to indicate a shader resource) or temp
+   register (to indicate the render target).  The source register may have
+   an optional swizzle to apply to the returned result
 
-  sample_index is an integer scalar indicating which sample position is to
-  be queried.
+   sample_index is an integer scalar indicating which sample position is to
+   be queried.
 
-  If per-sample shading is not in effect or the source resource or render
-  target is not multisampled, the result is (0.5, 0.5, undef, undef).
+   If per-sample shading is not in effect or the source resource or render
+   target is not multisampled, the result is (0.5, 0.5, undef, undef).
 
-  NOTE: no driver has implemented this opcode yet (and no gallium frontend
-  emits it).  This information is subject to change.
+   NOTE: no driver has implemented this opcode yet (and no gallium frontend
+   emits it).  This information is subject to change.
 
 .. opcode:: SAMPLE_INFO
 
-  Query the number of samples in a multisampled resource or render target.
+   Query the number of samples in a multisampled resource or render target.
 
-  Syntax: ``SAMPLE_INFO dst, source``
+   Syntax: ``SAMPLE_INFO dst, source``
 
-  dst receives int4 (n, 0, 0, 0) where n is the number of samples in a
-  resource or the render target.
+   dst receives int4 (n, 0, 0, 0) where n is the number of samples in a
+   resource or the render target.
 
-  source is either a sampler view (to indicate a shader resource) or temp
-  register (to indicate the render target).  The source register may have
-  an optional swizzle to apply to the returned result
+   source is either a sampler view (to indicate a shader resource) or temp
+   register (to indicate the render target).  The source register may have
+   an optional swizzle to apply to the returned result
 
-  If per-sample shading is not in effect or the source resource or render
-  target is not multisampled, the result is (1, 0, 0, 0).
+   If per-sample shading is not in effect or the source resource or render
+   target is not multisampled, the result is (1, 0, 0, 0).
 
-  NOTE: no driver has implemented this opcode yet (and no gallium frontend
-  emits it).  This information is subject to change.
+   NOTE: no driver has implemented this opcode yet (and no gallium frontend
+   emits it).  This information is subject to change.
 
 .. opcode:: LOD - level of detail
 
@@ -2552,78 +2579,72 @@ For these opcodes, the resource can be a BUFFER, IMAGE, or MEMORY.
 
 .. opcode:: LOAD - Fetch data from a shader buffer or image
 
-               Syntax: ``LOAD dst, resource, address``
+   Syntax: ``LOAD dst, resource, address``
 
-               Example: ``LOAD TEMP[0], BUFFER[0], TEMP[1]``
+   Example: ``LOAD TEMP[0], BUFFER[0], TEMP[1]``
 
-               Using the provided integer address, LOAD fetches data
-               from the specified buffer or texture without any
-               filtering.
+   Using the provided integer address, LOAD fetches data from the
+   specified buffer or texture without any filtering.
 
-               The 'address' is specified as a vector of unsigned
-               integers.  If the 'address' is out of range the result
-               is unspecified.
+   The 'address' is specified as a vector of unsigned integers.  If the
+   'address' is out of range the result is unspecified.
 
-               Only the first mipmap level of a resource can be read
-               from using this instruction.
+   Only the first mipmap level of a resource can be read from using this
+   instruction.
 
-               For 1D or 2D texture arrays, the array index is
-               provided as an unsigned integer in address.y or
-               address.z, respectively.  address.yz are ignored for
-               buffers and 1D textures.  address.z is ignored for 1D
-               texture arrays and 2D textures.  address.w is always
-               ignored.
+   For 1D or 2D texture arrays, the array index is provided as an
+   unsigned integer in address.y or address.z, respectively.  address.yz
+   are ignored for buffers and 1D textures.  address.z is ignored for 1D
+   texture arrays and 2D textures.  address.w is always ignored.
 
-               A swizzle suffix may be added to the resource argument
-               this will cause the resource data to be swizzled accordingly.
+   A swizzle suffix may be added to the resource argument this will
+   cause the resource data to be swizzled accordingly.
 
 .. opcode:: STORE - Write data to a shader resource
 
-               Syntax: ``STORE resource, address, src``
+   Syntax: ``STORE resource, address, src``
 
-               Example: ``STORE BUFFER[0], TEMP[0], TEMP[1]``
+   Example: ``STORE BUFFER[0], TEMP[0], TEMP[1]``
 
-               Using the provided integer address, STORE writes data
-               to the specified buffer or texture.
+   Using the provided integer address, STORE writes data to the
+   specified buffer or texture.
 
-               The 'address' is specified as a vector of unsigned
-               integers.  If the 'address' is out of range the result
-               is unspecified.
+   The 'address' is specified as a vector of unsigned integers.  If the
+   'address' is out of range the result is unspecified.
 
-               Only the first mipmap level of a resource can be
-               written to using this instruction.
+   Only the first mipmap level of a resource can be written to using
+   this instruction.
 
-               For 1D or 2D texture arrays, the array index is
-               provided as an unsigned integer in address.y or
-               address.z, respectively.  address.yz are ignored for
-               buffers and 1D textures.  address.z is ignored for 1D
-               texture arrays and 2D textures.  address.w is always
-               ignored.
+   For 1D or 2D texture arrays, the array index is provided as an
+   unsigned integer in address.y or address.z, respectively.
+   address.yz are ignored for buffers and 1D textures.  address.z is
+   ignored for 1D texture arrays and 2D textures.  address.w is always
+   ignored.
 
 .. opcode:: RESQ - Query information about a resource
 
-  Syntax: ``RESQ dst, resource``
+   Syntax: ``RESQ dst, resource``
 
-  Example: ``RESQ TEMP[0], BUFFER[0]``
+   Example: ``RESQ TEMP[0], BUFFER[0]``
 
-  Returns information about the buffer or image resource. For buffer
-  resources, the size (in bytes) is returned in the x component. For
-  image resources, .xyz will contain the width/height/layers of the
-  image, while .w will contain the number of samples for multi-sampled
-  images.
+   Returns information about the buffer or image resource. For buffer
+   resources, the size (in bytes) is returned in the x component. For
+   image resources, .xyz will contain the width/height/layers of the
+   image, while .w will contain the number of samples for multi-sampled
+   images.
 
 .. opcode:: FBFETCH - Load data from framebuffer
 
-  Syntax: ``FBFETCH dst, output``
+   Syntax: ``FBFETCH dst, output``
 
-  Example: ``FBFETCH TEMP[0], OUT[0]``
+   Example: ``FBFETCH TEMP[0], OUT[0]``
 
-  This is only valid on ``COLOR`` semantic outputs. Returns the color
-  of the current position in the framebuffer from before this fragment
-  shader invocation. May return the same value from multiple calls for
-  a particular output within a single invocation. Note that result may
-  be undefined if a fragment is drawn multiple times without a blend
-  barrier in between.
+   This is only valid on ``COLOR`` semantic outputs. Returns the color
+   of the current position in the framebuffer from before this fragment
+   shader invocation. May return the same value from multiple calls for
+   a particular output within a single invocation. Note that result may
+   be undefined if a fragment is drawn multiple times without a blend
+   barrier in between.
 
 
 .. _bindlessopcodes:
@@ -2636,19 +2657,19 @@ require PIPE_CAP_BINDLESS_TEXTURE.
 
 .. opcode:: IMG2HND - Get a bindless handle for a image
 
-  Syntax: ``IMG2HND dst, image``
+   Syntax: ``IMG2HND dst, image``
 
-  Example: ``IMG2HND TEMP[0], IMAGE[0]``
+   Example: ``IMG2HND TEMP[0], IMAGE[0]``
 
-  Sets 'dst' to a bindless handle for 'image'.
+   Sets 'dst' to a bindless handle for 'image'.
 
 .. opcode:: SAMP2HND - Get a bindless handle for a sampler
 
-  Syntax: ``SAMP2HND dst, sampler``
+   Syntax: ``SAMP2HND dst, sampler``
 
-  Example: ``SAMP2HND TEMP[0], SAMP[0]``
+   Example: ``SAMP2HND TEMP[0], SAMP[0]``
 
-  Sets 'dst' to a bindless handle for 'sampler'.
+   Sets 'dst' to a bindless handle for 'sampler'.
 
 
 .. _threadsyncopcodes:
@@ -2662,30 +2683,30 @@ programs.
 
 .. opcode:: BARRIER - Thread group barrier
 
-  ``BARRIER``
+   ``BARRIER``
 
-  This opcode suspends the execution of the current thread until all
-  the remaining threads in the working group reach the same point of
-  the program.  Results are unspecified if any of the remaining
-  threads terminates or never reaches an executed BARRIER instruction.
+   This opcode suspends the execution of the current thread until all
+   the remaining threads in the working group reach the same point of
+   the program.  Results are unspecified if any of the remaining
+   threads terminates or never reaches an executed BARRIER instruction.
 
 .. opcode:: MEMBAR - Memory barrier
 
-  ``MEMBAR type``
+   ``MEMBAR type``
 
-  This opcode waits for the completion of all memory accesses based on
-  the type passed in. The type is an immediate bitfield with the following
-  meaning:
+   This opcode waits for the completion of all memory accesses based on
+   the type passed in. The type is an immediate bitfield with the following
+   meaning:
 
-  Bit 0: Shader storage buffers
-  Bit 1: Atomic buffers
-  Bit 2: Images
-  Bit 3: Shared memory
-  Bit 4: Thread group
+   Bit 0: Shader storage buffers
+   Bit 1: Atomic buffers
+   Bit 2: Images
+   Bit 3: Shared memory
+   Bit 4: Thread group
 
-  These may be passed in in any combination. An implementation is free to not
-  distinguish between these as it sees fit. However these map to all the
-  possibilities made available by GLSL.
+   These may be passed in in any combination. An implementation is free to not
+   distinguish between these as it sees fit. However these map to all the
+   possibilities made available by GLSL.
 
 .. _atomopcodes:
 
@@ -2699,204 +2720,209 @@ location is guaranteed to be performed strictly before or after the
 entire execution of the atomic operation. The resource may be a BUFFER,
 IMAGE, HWATOMIC, or MEMORY.  In the case of an image, the offset works
 the same as for ``LOAD`` and ``STORE``, specified above. For atomic
-counters, the offset is an immediate index to the base hw atomic
+counters, the offset is an immediate index to the base HW atomic
 counter for this operation.
 These atomic operations may only be used with 32-bit integer image formats.
 
 .. opcode:: ATOMUADD - Atomic integer addition
 
-  Syntax: ``ATOMUADD dst, resource, offset, src``
+   Syntax: ``ATOMUADD dst, resource, offset, src``
 
-  Example: ``ATOMUADD TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMUADD TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = dst_x + src_x
+      resource[offset] = dst_x + src_x
 
 
 .. opcode:: ATOMFADD - Atomic floating point addition
 
-  Syntax: ``ATOMFADD dst, resource, offset, src``
+   Syntax: ``ATOMFADD dst, resource, offset, src``
 
-  Example: ``ATOMFADD TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMFADD TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = dst_x + src_x
+      resource[offset] = dst_x + src_x
 
 
 .. opcode:: ATOMXCHG - Atomic exchange
 
-  Syntax: ``ATOMXCHG dst, resource, offset, src``
+   Syntax: ``ATOMXCHG dst, resource, offset, src``
 
-  Example: ``ATOMXCHG TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMXCHG TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = src_x
+      resource[offset] = src_x
 
 
 .. opcode:: ATOMCAS - Atomic compare-and-exchange
 
-  Syntax: ``ATOMCAS dst, resource, offset, cmp, src``
+   Syntax: ``ATOMCAS dst, resource, offset, cmp, src``
 
-  Example: ``ATOMCAS TEMP[0], BUFFER[0], TEMP[1], TEMP[2], TEMP[3]``
+   Example: ``ATOMCAS TEMP[0], BUFFER[0], TEMP[1], TEMP[2], TEMP[3]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x == cmp_x ? src_x : dst_x)
+      resource[offset] = (dst_x == cmp_x ? src_x : dst_x)
 
 
 .. opcode:: ATOMAND - Atomic bitwise And
 
-  Syntax: ``ATOMAND dst, resource, offset, src``
+   Syntax: ``ATOMAND dst, resource, offset, src``
 
-  Example: ``ATOMAND TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMAND TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = dst_x \& src_x
+      resource[offset] = dst_x \& src_x
 
 
 .. opcode:: ATOMOR - Atomic bitwise Or
 
-  Syntax: ``ATOMOR dst, resource, offset, src``
+   Syntax: ``ATOMOR dst, resource, offset, src``
 
-  Example: ``ATOMOR TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMOR TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = dst_x | src_x
+      resource[offset] = dst_x | src_x
 
 
 .. opcode:: ATOMXOR - Atomic bitwise Xor
 
-  Syntax: ``ATOMXOR dst, resource, offset, src``
+   Syntax: ``ATOMXOR dst, resource, offset, src``
 
-  Example: ``ATOMXOR TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMXOR TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = dst_x \oplus src_x
+      resource[offset] = dst_x \oplus src_x
 
 
 .. opcode:: ATOMUMIN - Atomic unsigned minimum
 
-  Syntax: ``ATOMUMIN dst, resource, offset, src``
+   Syntax: ``ATOMUMIN dst, resource, offset, src``
 
-  Example: ``ATOMUMIN TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMUMIN TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x < src_x ? dst_x : src_x)
+      resource[offset] = (dst_x < src_x ? dst_x : src_x)
 
 
 .. opcode:: ATOMUMAX - Atomic unsigned maximum
 
-  Syntax: ``ATOMUMAX dst, resource, offset, src``
+   Syntax: ``ATOMUMAX dst, resource, offset, src``
 
-  Example: ``ATOMUMAX TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMUMAX TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x > src_x ? dst_x : src_x)
+      resource[offset] = (dst_x > src_x ? dst_x : src_x)
 
 
 .. opcode:: ATOMIMIN - Atomic signed minimum
 
-  Syntax: ``ATOMIMIN dst, resource, offset, src``
+   Syntax: ``ATOMIMIN dst, resource, offset, src``
 
-  Example: ``ATOMIMIN TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMIMIN TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x < src_x ? dst_x : src_x)
+      resource[offset] = (dst_x < src_x ? dst_x : src_x)
 
 
 .. opcode:: ATOMIMAX - Atomic signed maximum
 
-  Syntax: ``ATOMIMAX dst, resource, offset, src``
+   Syntax: ``ATOMIMAX dst, resource, offset, src``
 
-  Example: ``ATOMIMAX TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMIMAX TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x > src_x ? dst_x : src_x)
+      resource[offset] = (dst_x > src_x ? dst_x : src_x)
 
 
 .. opcode:: ATOMINC_WRAP - Atomic increment + wrap around
 
-  Syntax: ``ATOMINC_WRAP dst, resource, offset, src``
+   Syntax: ``ATOMINC_WRAP dst, resource, offset, src``
 
-  Example: ``ATOMINC_WRAP TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMINC_WRAP TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset] + 1
+      dst_x = resource[offset] + 1
 
-  resource[offset] = dst_x <= src_x ? dst_x : 0
+      resource[offset] = dst_x <= src_x ? dst_x : 0
 
 
 .. opcode:: ATOMDEC_WRAP - Atomic decrement + wrap around
 
-  Syntax: ``ATOMDEC_WRAP dst, resource, offset, src``
+   Syntax: ``ATOMDEC_WRAP dst, resource, offset, src``
 
-  Example: ``ATOMDEC_WRAP TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
+   Example: ``ATOMDEC_WRAP TEMP[0], BUFFER[0], TEMP[1], TEMP[2]``
 
-  The following operation is performed atomically:
+   The following operation is performed atomically:
 
-.. math::
+   .. math::
 
-  dst_x = resource[offset]
+      dst_x = resource[offset]
 
-  resource[offset] = (dst_x > 0 && dst_x < src_x) ? dst_x - 1 : 0
-
+      resource[offset] =
+      \left\{
+      \begin{array}{ c l }
+         dst_x - 1 & \quad \textrm{if } dst_x \gt 0 \textrm{ and } dst_x \lt src_x \\
+         0         & \quad \textrm{otherwise}
+      \end{array}
+      \right.
 
 .. _interlaneopcodes:
 
@@ -2910,56 +2936,56 @@ is treated as a boolean and produce a 64-bit value.
 
 .. opcode:: VOTE_ANY - Value is set in any of the active invocations
 
-  Syntax: ``VOTE_ANY dst, value``
+   Syntax: ``VOTE_ANY dst, value``
 
-  Example: ``VOTE_ANY TEMP[0].x, TEMP[1].x``
+   Example: ``VOTE_ANY TEMP[0].x, TEMP[1].x``
 
 
 .. opcode:: VOTE_ALL - Value is set in all of the active invocations
 
-  Syntax: ``VOTE_ALL dst, value``
+   Syntax: ``VOTE_ALL dst, value``
 
-  Example: ``VOTE_ALL TEMP[0].x, TEMP[1].x``
+   Example: ``VOTE_ALL TEMP[0].x, TEMP[1].x``
 
 
 .. opcode:: VOTE_EQ - Value is the same in all of the active invocations
 
-  Syntax: ``VOTE_EQ dst, value``
+   Syntax: ``VOTE_EQ dst, value``
 
-  Example: ``VOTE_EQ TEMP[0].x, TEMP[1].x``
+   Example: ``VOTE_EQ TEMP[0].x, TEMP[1].x``
 
 
 .. opcode:: BALLOT - Lanemask of whether the value is set in each active
             invocation
 
-  Syntax: ``BALLOT dst, value``
+   Syntax: ``BALLOT dst, value``
 
-  Example: ``BALLOT TEMP[0].xy, TEMP[1].x``
+   Example: ``BALLOT TEMP[0].xy, TEMP[1].x``
 
-  When the argument is a constant true, this produces a bitmask of active
-  invocations. In fragment shaders, this can include helper invocations
-  (invocations whose outputs and writes to memory are discarded, but which
-  are used to compute derivatives).
+   When the argument is a constant true, this produces a bitmask of active
+   invocations. In fragment shaders, this can include helper invocations
+   (invocations whose outputs and writes to memory are discarded, but which
+   are used to compute derivatives).
 
 
 .. opcode:: READ_FIRST - Broadcast the value from the first active
             invocation to all active lanes
 
-  Syntax: ``READ_FIRST dst, value``
+   Syntax: ``READ_FIRST dst, value``
 
-  Example: ``READ_FIRST TEMP[0], TEMP[1]``
+   Example: ``READ_FIRST TEMP[0], TEMP[1]``
 
 
 .. opcode:: READ_INVOC - Retrieve the value from the given invocation
             (need not be uniform)
 
-  Syntax: ``READ_INVOC dst, value, invocation``
+   Syntax: ``READ_INVOC dst, value, invocation``
 
-  Example: ``READ_INVOC TEMP[0].xy, TEMP[1].xy, TEMP[2].x``
+   Example: ``READ_INVOC TEMP[0].xy, TEMP[1].xy, TEMP[2].x``
 
-  invocation.x controls the invocation number to read from for all channels.
-  The invocation number must be the same across all active invocations in a
-  sub-group; otherwise, the results are undefined.
+   invocation.x controls the invocation number to read from for all channels.
+   The invocation number must be the same across all active invocations in a
+   sub-group; otherwise, the results are undefined.
 
 
 Explanation of symbols used
@@ -2970,47 +2996,47 @@ Functions
 ^^^^^^^^^^^^^^
 
 
-  :math:`|x|`       Absolute value of `x`.
+   :math:`|x|`       Absolute value of ``x``.
 
-  :math:`\lceil x \rceil` Ceiling of `x`.
+   :math:`\lceil x \rceil` Ceiling of ``x``.
 
-  clamp(x,y,z)      Clamp x between y and z.
-                    (x < y) ? y : (x > z) ? z : x
+   clamp(x,y,z)      Clamp x between y and z.
+                     (x < y) ? y : (x > z) ? z : x
 
-  :math:`\lfloor x\rfloor` Floor of `x`.
+   :math:`\lfloor x\rfloor` Floor of ``x``.
 
-  :math:`\log_2{x}` Logarithm of `x`, base 2.
+   :math:`\log_2{x}` Logarithm of ``x``, base 2.
 
-  max(x,y)          Maximum of x and y.
-                    (x > y) ? x : y
+   max(x,y)          Maximum of x and y.
+                     (x > y) ? x : y
 
-  min(x,y)          Minimum of x and y.
-                    (x < y) ? x : y
+   min(x,y)          Minimum of x and y.
+                     (x < y) ? x : y
 
-  partialx(x)       Derivative of x relative to fragment's X.
+   partialx(x)       Derivative of x relative to fragment's X.
 
-  partialy(x)       Derivative of x relative to fragment's Y.
+   partialy(x)       Derivative of x relative to fragment's Y.
 
-  pop()             Pop from stack.
+   pop()             Pop from stack.
 
-  :math:`x^y`       `x` to the power `y`.
+   :math:`x^y`       ``x`` to the power ``y``.
 
-  push(x)           Push x on stack.
+   push(x)           Push x on stack.
 
-  round(x)          Round x.
+   round(x)          Round x.
 
-  trunc(x)          Truncate x, i.e. drop the fraction bits.
+   trunc(x)          Truncate x, i.e. drop the fraction bits.
 
 
 Keywords
 ^^^^^^^^^^^^^
 
 
-  discard           Discard fragment.
+   discard           Discard fragment.
 
-  pc                Program counter.
+   pc                Program counter.
 
-  target            Label of target instruction.
+   target            Label of target instruction.
 
 
 Other tokens
@@ -3217,14 +3243,14 @@ where F will be positive when the fragment belongs to a front-facing polygon,
 and negative when the fragment belongs to a back-facing polygon.
 
 If it is a system value, it will be an integer vector in the form (F, 0, 0, 1),
-where F is 0xffffffff when the fragment belongs to a front-facing polygon and
-0 when the fragment belongs to a back-facing polygon.
+where F is ``0xffffffff`` when the fragment belongs to a front-facing polygon
+and ``0`` when the fragment belongs to a back-facing polygon.
 
 
 TGSI_SEMANTIC_EDGEFLAG
 """"""""""""""""""""""
 
-For vertex shaders, this sematic label indicates that an input or
+For vertex shaders, this semantic label indicates that an input or
 output is a boolean edge flag.  The register layout is [F, x, x, x]
 where F is 0.0 or 1.0 and x = don't care.  Normally, the vertex shader
 simply copies the edge flag input to the edgeflag output.
@@ -3533,7 +3559,7 @@ TGSI_SEMANTIC_VIEWPORT_MASK
 """""""""""""""""""""""""""
 
 A bit mask of viewports to broadcast the current primitive to. See
-GL_NV_viewport_array2 for more details.
+:ext:`GL_NV_viewport_array2` for more details.
 
 
 TGSI_SEMANTIC_TESS_DEFAULT_OUTER_LEVEL
@@ -3553,8 +3579,8 @@ Declaration Interpolate
 
 This token is only valid for fragment shader INPUT declarations.
 
-The Interpolate field specifes the way input is being interpolated by
-the rasteriser and is one of TGSI_INTERPOLATE_*.
+The Interpolate field specifies the way input is being interpolated by
+the rasterizer and is one of TGSI_INTERPOLATE_*.
 
 The Location field specifies the location inside the pixel that the
 interpolation should be done at, one of ``TGSI_INTERPOLATE_LOC_*``. Note that
@@ -3572,7 +3598,7 @@ DCL SVIEW[#], resource, type(s)
 Declares a shader input sampler view and assigns it to a SVIEW[#]
 register.
 
-resource can be one of BUFFER, 1D, 2D, 3D, 1DArray and 2DArray.
+resource can be one of BUFFER, 1D, 2D, 3D, 1D_ARRAY and 2D_ARRAY.
 
 type must be 1 or 4 entries (if specifying on a per-component
 level) out of UNORM, SNORM, SINT, UINT and FLOAT.
@@ -3600,8 +3626,8 @@ DCL RES[#], resource [, WR] [, RAW]
 Declares a shader input resource and assigns it to a RES[#]
 register.
 
-resource can be one of BUFFER, 1D, 2D, 3D, CUBE, 1DArray and
-2DArray.
+resource can be one of BUFFER, 1D, 2D, 3D, CUBE, 1D_ARRAY and
+2D_ARRAY.
 
 If the RAW keyword is not specified, the texture data will be
 subject to conversion, swizzling and scaling as required to yield
@@ -3662,7 +3688,7 @@ If LOWER_LEFT, the position will be (0,0) at the lower left corner and
 increase upward and rightward.
 
 OpenGL defaults to LOWER_LEFT, and is configurable with the
-GL_ARB_fragment_coord_conventions extension.
+:ext:`GL_ARB_fragment_coord_conventions` extension.
 
 DirectX 9/10 use UPPER_LEFT.
 
@@ -3672,15 +3698,15 @@ FS_COORD_PIXEL_CENTER
 Specifies the fragment shader TGSI_SEMANTIC_POSITION pixel center convention.
 The default value is HALF_INTEGER.
 
-If HALF_INTEGER, the fractionary part of the position will be 0.5
-If INTEGER, the fractionary part of the position will be 0.0
+If HALF_INTEGER, the fractional part of the position will be 0.5
+If INTEGER, the fractional part of the position will be 0.0
 
 Note that this does not affect the set of fragments generated by
 rasterization, which is instead controlled by half_pixel_center in the
 rasterizer.
 
 OpenGL defaults to HALF_INTEGER, and is configurable with the
-GL_ARB_fragment_coord_conventions extension.
+:ext:`GL_ARB_fragment_coord_conventions` extension.
 
 DirectX 9 uses INTEGER.
 DirectX 10 uses HALF_INTEGER.
@@ -3730,8 +3756,8 @@ as well.
 TES_PRIM_MODE
 """""""""""""
 
-This sets the tessellation primitive mode, one of ``PIPE_PRIM_TRIANGLES``,
-``PIPE_PRIM_QUADS``, or ``PIPE_PRIM_LINES``. (Unlike in GL, there is no
+This sets the tessellation primitive mode, one of ``MESA_PRIM_TRIANGLES``,
+``MESA_PRIM_QUADS``, or ``MESA_PRIM_LINES``. (Unlike in GL, there is no
 separate isolines settings, the regular lines is assumed to mean isolines.)
 
 TES_SPACING
@@ -3840,12 +3866,12 @@ well.
 | UV                 | XXX TBD      | (0, 0, 0, 1)       | (u, v, 1, 1) |
 |                    |              | [#envmap-bumpmap]_ |              |
 +--------------------+--------------+--------------------+--------------+
-| Z                  | XXX TBD      | (z, z, z, 1)       | (0, z, 0, 1) |
+| Z                  | (z, z, z, z) | (z, z, z, 1)       | (0, z, 0, 1) |
 |                    |              | [#depth-tex-mode]_ |              |
 +--------------------+--------------+--------------------+--------------+
 | S                  | (s, s, s, s) | unknown            | unknown      |
 +--------------------+--------------+--------------------+--------------+
 
-.. [#envmap-bumpmap] http://www.opengl.org/registry/specs/ATI/envmap_bumpmap.txt
+.. [#envmap-bumpmap] https://registry.khronos.org/OpenGL/extensions/ATI/ATI_envmap_bumpmap.txt
 .. [#depth-tex-mode] the default is (z, z, z, 1) but may also be (0, 0, 0, z)
    or (z, z, z, z) depending on the value of GL_DEPTH_TEXTURE_MODE.

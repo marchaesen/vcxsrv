@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
  /*
@@ -33,7 +33,7 @@
 #ifndef DRAW_PIPE_H
 #define DRAW_PIPE_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "draw_private.h"       /* for sizeof(vertex_header) */
 #include "draw_context.h"
 
@@ -43,11 +43,10 @@
  */
 struct prim_header {
    float det;                 /**< front/back face determinant */
-   ushort flags;
-   ushort pad;
+   uint16_t flags;
+   uint16_t pad;
    struct vertex_header *v[3];  /**< 1 to 3 vertex pointers */
 };
-
 
 
 /**
@@ -63,40 +62,36 @@ struct draw_stage
    struct vertex_header **tmp;  /**< temp vert storage, such as for clipping */
    unsigned nr_tmps;
 
-   void (*point)( struct draw_stage *,
-		  struct prim_header * );
+   void (*point)(struct draw_stage *, struct prim_header *);
 
-   void (*line)( struct draw_stage *,
-		 struct prim_header * );
+   void (*line)(struct draw_stage *, struct prim_header *);
 
-   void (*tri)( struct draw_stage *,
-		struct prim_header * );
+   void (*tri)(struct draw_stage *, struct prim_header *);
 
-   void (*flush)( struct draw_stage *,
-		  unsigned flags );
+   void (*flush)(struct draw_stage *, unsigned flags);
 
-   void (*reset_stipple_counter)( struct draw_stage * );
+   void (*reset_stipple_counter)(struct draw_stage *);
 
-   void (*destroy)( struct draw_stage * );
+   void (*destroy)(struct draw_stage *);
 };
 
 
-extern struct draw_stage *draw_unfilled_stage( struct draw_context *context );
-extern struct draw_stage *draw_twoside_stage( struct draw_context *context );
-extern struct draw_stage *draw_offset_stage( struct draw_context *context );
-extern struct draw_stage *draw_clip_stage( struct draw_context *context );
-extern struct draw_stage *draw_flatshade_stage( struct draw_context *context );
-extern struct draw_stage *draw_cull_stage( struct draw_context *context );
-extern struct draw_stage *draw_user_cull_stage( struct draw_context *draw );
-extern struct draw_stage *draw_stipple_stage( struct draw_context *context );
-extern struct draw_stage *draw_wide_line_stage( struct draw_context *context );
-extern struct draw_stage *draw_wide_point_stage( struct draw_context *context );
-extern struct draw_stage *draw_validate_stage( struct draw_context *context );
+struct draw_stage *draw_unfilled_stage(struct draw_context *context);
+struct draw_stage *draw_twoside_stage(struct draw_context *context);
+struct draw_stage *draw_offset_stage(struct draw_context *context);
+struct draw_stage *draw_clip_stage(struct draw_context *context);
+struct draw_stage *draw_flatshade_stage(struct draw_context *context);
+struct draw_stage *draw_cull_stage(struct draw_context *context);
+struct draw_stage *draw_user_cull_stage(struct draw_context *draw);
+struct draw_stage *draw_stipple_stage(struct draw_context *context);
+struct draw_stage *draw_wide_line_stage(struct draw_context *context);
+struct draw_stage *draw_wide_point_stage(struct draw_context *context);
+struct draw_stage *draw_validate_stage(struct draw_context *context);
 
-extern void draw_free_temp_verts( struct draw_stage *stage );
-extern boolean draw_alloc_temp_verts( struct draw_stage *stage, unsigned nr );
+void draw_free_temp_verts(struct draw_stage *stage);
+bool draw_alloc_temp_verts(struct draw_stage *stage, unsigned nr);
 
-extern void draw_reset_vertex_ids( struct draw_context *draw );
+void draw_reset_vertex_ids(struct draw_context *draw);
 
 void draw_pipe_passthrough_tri(struct draw_stage *stage, struct prim_header *header);
 void draw_pipe_passthrough_line(struct draw_stage *stage, struct prim_header *header);
@@ -109,6 +104,7 @@ void draw_aaline_prepare_outputs(struct draw_context *context,
 void draw_unfilled_prepare_outputs(struct draw_context *context,
                                    struct draw_stage *stage);
 
+
 /**
  * Get a writeable copy of a vertex.
  * \param stage  drawing stage info
@@ -117,12 +113,12 @@ void draw_unfilled_prepare_outputs(struct draw_context *context,
  * \return  pointer to the copied vertex
  */
 static inline struct vertex_header *
-dup_vert( struct draw_stage *stage,
-	  const struct vertex_header *vert,
-	  unsigned idx )
-{   
+dup_vert(struct draw_stage *stage,
+         const struct vertex_header *vert,
+         unsigned idx)
+{
    struct vertex_header *tmp = stage->tmp[idx];
-   const uint vsize = sizeof(struct vertex_header)
+   const unsigned vsize = sizeof(struct vertex_header)
       + draw_num_shader_outputs(stage->draw) * 4 * sizeof(float);
    memcpy(tmp, vert, vsize);
    tmp->vertex_id = UNDEFINED_VERTEX_ID;

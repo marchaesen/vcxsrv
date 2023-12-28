@@ -45,6 +45,9 @@ class Driver
    Driver(const Driver &) = delete;
    Driver &operator=(const Driver &) = delete;
 
+   /// @return Whether dump_perfcnt is preemptible
+   virtual bool is_dump_perfcnt_preemptible() const { return true; }
+
    /// @return The minimum sampling period for the current device
    virtual uint64_t get_min_sampling_period_ns() = 0;
 
@@ -80,6 +83,12 @@ class Driver
 
    /// Sample a timestamp from the GPU
    virtual uint64_t gpu_timestamp() const = 0;
+
+   /// Sample a timestamp from both the CPU & the GPU
+   ///
+   /// This is useful when the driver can do a better timestamp correlation
+   /// than sampling separately CPU & GPU timestamps.
+   virtual bool cpu_gpu_timestamp(uint64_t &cpu_timestamp, uint64_t &gpu_timestamp) const = 0;
 
    DrmDevice drm_device;
 

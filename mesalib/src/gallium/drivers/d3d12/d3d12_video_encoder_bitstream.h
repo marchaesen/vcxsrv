@@ -36,17 +36,24 @@ class d3d12_video_encoder_bitstream
    void get_current_buffer_position_and_size(uint8_t **ppCurrBufPos, int32_t *pdwLeftBufSize);
    void inc_current_offset(int32_t dwOffset);
    bool create_bitstream(uint32_t uiInitBufferSize);
-   void setup_bitstream(uint32_t uiInitBufferSize, uint8_t *pBuffer);
+   void setup_bitstream(uint32_t uiInitBufferSize, uint8_t *pBuffer, size_t initial_byte_offset);
    void attach(uint8_t *pBitsBuffer, uint32_t uiBufferSize);
    void put_bits(int32_t uiBitsCount, uint32_t iBitsVal);
    void flush();
    void exp_Golomb_ue(uint32_t uiVal);
    void exp_Golomb_se(int32_t iVal);
+   void put_aligning_bits();
+   void put_trailing_bits();
+   void put_su_bits(uint16_t uiBitsCount, int32_t iBitsVal);
+   void put_ns_bits(uint16_t uiBitsCount, uint32_t iBitsVal);
+   uint16_t calculate_su_bits(uint16_t uiBitsCount, int32_t iBitsVal);
+   void put_le_bytes(size_t uiBytesCount, uint32_t iBitsVal);
+   void put_leb128_bytes(uint64_t iBitsVal);
 
    inline void clear()
    {
-      m_iBitsToGo     = 32;
-      m_uiOffset      = 0;
+      m_iBitsToGo = 32;
+      m_uiOffset = 0;
       m_uintEncBuffer = 0;
    };
 
@@ -90,8 +97,8 @@ class d3d12_video_encoder_bitstream
    bool m_bAllowReallocate;
 
  private:
-   void    write_byte_start_code_prevention(uint8_t u8Val);
-   bool    reallocate_buffer();
+   void write_byte_start_code_prevention(uint8_t u8Val);
+   bool reallocate_buffer();
    int32_t get_exp_golomb0_code_len(uint32_t uiVal);
 
    const uint8_t m_iLog_2_N[256] = {
@@ -109,9 +116,9 @@ class d3d12_video_encoder_bitstream
    uint32_t m_uiBitsBufferSize;
    uint32_t m_uiOffset;
 
-   bool     m_bExternalBuffer;
+   bool m_bExternalBuffer;
    uint32_t m_uintEncBuffer;
-   int32_t  m_iBitsToGo;
+   int32_t m_iBitsToGo;
 
    bool m_bPreventStartCode;
 };

@@ -37,13 +37,14 @@
 #define Display void
 #endif
 
-#include "os/os_thread.h"
+#include "util/simple_mtx.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "loader/loader.h"
 
 #include "vid_omx_common.h"
 
-static mtx_t omx_lock = _MTX_INITIALIZER_NP;
+static simple_mtx_t omx_lock = SIMPLE_MTX_INITIALIZER;
 static Display *omx_display = NULL;
 static struct vl_screen *omx_screen = NULL;
 static unsigned omx_usecount = 0;
@@ -53,7 +54,7 @@ static int drm_fd;
 struct vl_screen *omx_get_screen(void)
 {
    static bool first_time = true;
-   mtx_lock(&omx_lock);
+   simple_mtx_lock(&omx_lock);
 
    if (!omx_screen) {
       if (first_time) {
@@ -87,17 +88,17 @@ struct vl_screen *omx_get_screen(void)
 
    ++omx_usecount;
 
-   mtx_unlock(&omx_lock);
+   simple_mtx_unlock(&omx_lock);
    return omx_screen;
 
 error:
-   mtx_unlock(&omx_lock);
+   simple_mtx_unlock(&omx_lock);
    return NULL;
 }
 
 void omx_put_screen(void)
 {
-   mtx_lock(&omx_lock);
+   simple_mtx_lock(&omx_lock);
    if ((--omx_usecount) == 0) {
       omx_screen->destroy(omx_screen);
       omx_screen = NULL;
@@ -107,5 +108,5 @@ void omx_put_screen(void)
       else
          XCloseDisplay(omx_display);
    }
-   mtx_unlock(&omx_lock);
+   simple_mtx_unlock(&omx_lock);
 }

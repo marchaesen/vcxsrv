@@ -32,4 +32,5 @@ CSRCS = 	\
 	fbsolid.c	\
 	fbtrap.c	\
 	fbutil.c	\
-	fbwindow.c
+	fbwindow.c \
+	fbtile.c

@@ -106,16 +106,16 @@ util_hash_table_get(struct hash_table *ht,
 }
 
 
-enum pipe_error
+int
 util_hash_table_foreach(struct hash_table *ht,
-                        enum pipe_error (*callback)
+                        int (*callback)
                         (void *key, void *value, void *data),
                         void *data)
 {
    hash_table_foreach(ht, entry) {
-      enum pipe_error error = callback((void*)entry->key, entry->data, data);
-      if (error != PIPE_OK)
+      int error = callback((void*)entry->key, entry->data, data);
+      if (error != 0)
          return error;
    }
-   return PIPE_OK;
+   return 0;
 }

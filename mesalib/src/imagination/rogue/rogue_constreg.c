@@ -25,7 +25,7 @@
 #include <stdint.h>
 #include <stdlib.h>
 
-#include "rogue_constreg.h"
+#include "rogue.h"
 #include "util/macros.h"
 
 /**
@@ -37,10 +37,10 @@
 /**
  * \brief Mapping of constant register values and their indices.
  */
-struct rogue_constreg {
+typedef struct rogue_constreg_map {
    uint32_t value;
-   size_t index;
-};
+   unsigned index;
+} rogue_constreg_map;
 
 #define CONSTREG(VALUE, INDEX)            \
    {                                      \
@@ -50,7 +50,7 @@ struct rogue_constreg {
 /**
  * \brief Constant register values (sorted for bsearch).
  */
-static const struct rogue_constreg const_regs[] = {
+static const rogue_constreg_map const_regs[] = {
    CONSTREG(0x00000000U, 0U), /* 0   (INT32) / 0.0 (Float) */
    CONSTREG(0x00000001U, 1U), /* 1   (INT32) */
    CONSTREG(0x00000002U, 2U), /* 2   (INT32) */
@@ -153,7 +153,7 @@ static const struct rogue_constreg const_regs[] = {
 #undef CONSTREG
 
 /**
- * \brief Comparison function for bsearch() to support struct rogue_constreg.
+ * \brief Comparison function for bsearch() to support rogue_constreg_map.
  *
  * \param[in] lhs The left hand side of the comparison.
  * \param[in] rhs The right hand side of the comparison.
@@ -161,8 +161,8 @@ static const struct rogue_constreg const_regs[] = {
  */
 static int constreg_cmp(const void *lhs, const void *rhs)
 {
-   const struct rogue_constreg *l = lhs;
-   const struct rogue_constreg *r = rhs;
+   const rogue_constreg_map *l = lhs;
+   const rogue_constreg_map *r = rhs;
 
    if (l->value < r->value)
       return -1;
@@ -173,24 +173,24 @@ static int constreg_cmp(const void *lhs, const void *rhs)
 }
 
 /**
- * \brief Determines whether a given integer value exists in a constant
- * register.
+ * \brief Determines whether a given value exists in a constant register.
  *
- * \param[in] value The value required.
+ * \param[in] imm The immediate value required.
  * \return The index of the constant register containing the value, or
  * ROGUE_NO_CONST_REG if the value is not found.
  */
-size_t rogue_constreg_lookup(uint32_t value)
+PUBLIC
+unsigned rogue_constreg_lookup(rogue_imm_t imm)
 {
-   struct rogue_constreg constreg_target = {
-      .value = value,
+   rogue_constreg_map constreg_target = {
+      .value = imm.u32,
    };
-   const struct rogue_constreg *constreg;
+   const rogue_constreg_map *constreg;
 
    constreg = bsearch(&constreg_target,
                       const_regs,
                       ARRAY_SIZE(const_regs),
-                      sizeof(struct rogue_constreg),
+                      sizeof(rogue_constreg_map),
                       constreg_cmp);
    if (!constreg)
       return ROGUE_NO_CONST_REG;

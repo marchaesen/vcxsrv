@@ -533,17 +533,17 @@ FcPatternObjectInsertElt (FcPattern *p, FcObject object)
 		p->size++;
 	    }
 	}
-	
+
 	e = FcPatternElts(p);
 	/* move elts up */
 	memmove (e + i + 1,
 		 e + i,
 		 sizeof (FcPatternElt) *
 		 (FcPatternObjectCount (p) - i));
-		
+
 	/* bump count */
 	p->num++;
-	
+
 	e[i].object = object;
 	e[i].values = NULL;
     }
@@ -1559,7 +1559,7 @@ FcValueListSerialize (FcSerialize *serialize, const FcValueList *vl)
 							  FcValueList);
 	else
 	    head_serialized = vl_serialized;
-	
+
 	vl_serialized->next = NULL;
 	vl_serialized->value.type = vl->value.type;
 	switch ((int) vl->value.type) {

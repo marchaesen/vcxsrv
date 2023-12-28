@@ -120,7 +120,7 @@ default xkb_symbols "us" {
 };
 
 xkb_symbols "de" {
-    include "ataritt(us)"
+    include "xfree68_vndr/ataritt(us)"
 
     name[Group1]= "German";
 

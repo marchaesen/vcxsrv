@@ -94,23 +94,23 @@ fd2_screen_is_format_supported(struct pipe_screen *pscreen,
 }
 
 /* clang-format off */
-static const enum pc_di_primtype a22x_primtypes[PIPE_PRIM_MAX] = {
-   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
-   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
-   [PIPE_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
-   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
+static const enum pc_di_primtype a22x_primtypes[MESA_PRIM_COUNT] = {
+   [MESA_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
+   [MESA_PRIM_LINES]          = DI_PT_LINELIST,
+   [MESA_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
+   [MESA_PRIM_LINE_LOOP]      = DI_PT_LINELOOP,
+   [MESA_PRIM_TRIANGLES]      = DI_PT_TRILIST,
+   [MESA_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
+   [MESA_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
 };
 
-static const enum pc_di_primtype a20x_primtypes[PIPE_PRIM_MAX] = {
-   [PIPE_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
-   [PIPE_PRIM_LINES]          = DI_PT_LINELIST,
-   [PIPE_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
-   [PIPE_PRIM_TRIANGLES]      = DI_PT_TRILIST,
-   [PIPE_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
-   [PIPE_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
+static const enum pc_di_primtype a20x_primtypes[MESA_PRIM_COUNT] = {
+   [MESA_PRIM_POINTS]         = DI_PT_POINTLIST_PSIZE,
+   [MESA_PRIM_LINES]          = DI_PT_LINELIST,
+   [MESA_PRIM_LINE_STRIP]     = DI_PT_LINESTRIP,
+   [MESA_PRIM_TRIANGLES]      = DI_PT_TRILIST,
+   [MESA_PRIM_TRIANGLE_STRIP] = DI_PT_TRISTRIP,
+   [MESA_PRIM_TRIANGLE_FAN]   = DI_PT_TRIFAN,
 };
 /* clang-format on */
 

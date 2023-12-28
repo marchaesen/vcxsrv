@@ -109,22 +109,22 @@ static struct asm_instruction *asm_instruction_copy_ctor(
 #define TRUE (!FALSE)
 #endif
 
-#define YYLLOC_DEFAULT(Current, Rhs, N)					\
-   do {									\
-      if (N) {							\
-	 (Current).first_line = YYRHSLOC(Rhs, 1).first_line;		\
-	 (Current).first_column = YYRHSLOC(Rhs, 1).first_column;	\
-	 (Current).position = YYRHSLOC(Rhs, 1).position;		\
-	 (Current).last_line = YYRHSLOC(Rhs, N).last_line;		\
-	 (Current).last_column = YYRHSLOC(Rhs, N).last_column;		\
-      } else {								\
-	 (Current).first_line = YYRHSLOC(Rhs, 0).last_line;		\
-	 (Current).last_line = (Current).first_line;			\
-	 (Current).first_column = YYRHSLOC(Rhs, 0).last_column;		\
-	 (Current).last_column = (Current).first_column;		\
-	 (Current).position = YYRHSLOC(Rhs, 0).position			\
-	    + (Current).first_column;					\
-      }									\
+#define YYLLOC_DEFAULT(Current, Rhs, N)                          \
+   do {                                                          \
+      if (N) {                                                   \
+         (Current).first_line = YYRHSLOC(Rhs, 1).first_line;     \
+         (Current).first_column = YYRHSLOC(Rhs, 1).first_column; \
+         (Current).position = YYRHSLOC(Rhs, 1).position;         \
+         (Current).last_line = YYRHSLOC(Rhs, N).last_line;       \
+         (Current).last_column = YYRHSLOC(Rhs, N).last_column;   \
+      } else {                                                   \
+         (Current).first_line = YYRHSLOC(Rhs, 0).last_line;      \
+         (Current).last_line = (Current).first_line;             \
+         (Current).first_column = YYRHSLOC(Rhs, 0).last_column;  \
+         (Current).last_column = (Current).first_column;         \
+         (Current).position = YYRHSLOC(Rhs, 0).position          \
+         + (Current).first_column;                               \
+      }                                                          \
    } while(0)
 %}
 
@@ -290,1072 +290,1080 @@ yylex(YYSTYPE *yylval_param, YYLTYPE *yylloc_param,
 }
 %}
 
+/* The directive: %destructor is called to clean up the stack
+ * after a parser error.
+ */
+%destructor { free($$); } IDENTIFIER USED_IDENTIFIER
+
 %%
 
 program: language optionSequence statementSequence END
-	;
+   ;
 
 language: ARBvp_10
-	{
-	   if (state->prog->Target != GL_VERTEX_PROGRAM_ARB) {
-	      yyerror(& @1, state, "invalid fragment program header");
+   {
+      if (state->prog->Target != GL_VERTEX_PROGRAM_ARB) {
+         yyerror(& @1, state, "invalid fragment program header");
 
-	   }
-	   state->mode = ARB_vertex;
-	}
-	| ARBfp_10
-	{
-	   if (state->prog->Target != GL_FRAGMENT_PROGRAM_ARB) {
-	      yyerror(& @1, state, "invalid vertex program header");
-	   }
-	   state->mode = ARB_fragment;
+      }
+      state->mode = ARB_vertex;
+   }
+   | ARBfp_10
+   {
+      if (state->prog->Target != GL_FRAGMENT_PROGRAM_ARB) {
+         yyerror(& @1, state, "invalid vertex program header");
+      }
+      state->mode = ARB_fragment;
 
-	   state->option.TexRect =
-	      (state->ctx->Extensions.NV_texture_rectangle != GL_FALSE);
-	}
-	;
+      state->option.TexRect =
+         (state->ctx->Extensions.NV_texture_rectangle != GL_FALSE);
+   }
+   ;
 
 optionSequence: optionSequence option
-	|
-	;
+   |
+   ;
 
 option: OPTION string ';'
-	{
-	   int valid = 0;
+   {
+      int valid = 0;
 
-	   if (state->mode == ARB_vertex) {
-	      valid = _mesa_ARBvp_parse_option(state, $2);
-	   } else if (state->mode == ARB_fragment) {
-	      valid = _mesa_ARBfp_parse_option(state, $2);
-	   }
+      if (state->mode == ARB_vertex) {
+         valid = _mesa_ARBvp_parse_option(state, $2);
+      } else if (state->mode == ARB_fragment) {
+         valid = _mesa_ARBfp_parse_option(state, $2);
+      }
 
 
-	   free($2);
+      free($2);
 
-	   if (!valid) {
-	      const char *const err_str = (state->mode == ARB_vertex)
-		 ? "invalid ARB vertex program option"
-		 : "invalid ARB fragment program option";
+      if (!valid) {
+         const char *const err_str = (state->mode == ARB_vertex)
+            ? "invalid ARB vertex program option"
+            : "invalid ARB fragment program option";
 
-	      yyerror(& @2, state, err_str);
-	      YYERROR;
-	   }
-	}
-	;
+         yyerror(& @2, state, err_str);
+         YYERROR;
+      }
+   }
+   ;
 
 statementSequence: statementSequence statement
-	|
-	;
+   |
+   ;
 
 statement: instruction ';'
-	{
-	   if ($1 != NULL) {
-	      if (state->inst_tail == NULL) {
-		 state->inst_head = $1;
-	      } else {
-		 state->inst_tail->next = $1;
-	      }
+   {
+      if ($1 != NULL) {
+         if (state->inst_tail == NULL) {
+       state->inst_head = $1;
+         } else {
+       state->inst_tail->next = $1;
+         }
 
-	      state->inst_tail = $1;
-	      $1->next = NULL;
+         state->inst_tail = $1;
+         $1->next = NULL;
 
               state->prog->arb.NumInstructions++;
-	   }
-	}
-	| namingStatement ';'
-	;
+      }
+   }
+   | namingStatement ';'
+   ;
 
 instruction: ALU_instruction
-	{
-	   $$ = $1;
+   {
+      $$ = $1;
            state->prog->arb.NumAluInstructions++;
-	}
-	| TexInstruction
-	{
-	   $$ = $1;
+   }
+   | TexInstruction
+   {
+      $$ = $1;
            state->prog->arb.NumTexInstructions++;
-	}
-	;
+   }
+   ;
 
 ALU_instruction: ARL_instruction
-	| VECTORop_instruction
-	| SCALARop_instruction
-	| BINSCop_instruction
-	| BINop_instruction
-	| TRIop_instruction
-	| SWZ_instruction
-	;
+   | VECTORop_instruction
+   | SCALARop_instruction
+   | BINSCop_instruction
+   | BINop_instruction
+   | TRIop_instruction
+   | SWZ_instruction
+   ;
 
 TexInstruction: SAMPLE_instruction
-	| KIL_instruction
-	| TXD_instruction
-	;
+   | KIL_instruction
+   | TXD_instruction
+   ;
 
 ARL_instruction: ARL maskedAddrReg ',' scalarSrcReg
-	{
-	   $$ = asm_instruction_ctor(OPCODE_ARL, & $2, & $4, NULL, NULL);
-	}
-	;
+   {
+      $$ = asm_instruction_ctor(OPCODE_ARL, & $2, & $4, NULL, NULL);
+   }
+   ;
 
 VECTORop_instruction: VECTOR_OP maskedDstReg ',' swizzleSrcReg
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
-	}
-	;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+   }
+   ;
 
 SCALARop_instruction: SCALAR_OP maskedDstReg ',' scalarSrcReg
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
-	}
-	;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+   }
+   ;
 
 BINSCop_instruction: BINSC_OP maskedDstReg ',' scalarSrcReg ',' scalarSrcReg
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
-	}
-	;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
+   }
+   ;
 
 
 BINop_instruction: BIN_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
-	}
-	;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, NULL);
+   }
+   ;
 
 TRIop_instruction: TRI_OP maskedDstReg ','
                    swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
-	}
-	;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
+   }
+   ;
 
 SAMPLE_instruction: SAMPLE_OP maskedDstReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
-	   if ($$ != NULL) {
-	      const GLbitfield tex_mask = (1U << $6);
-	      GLbitfield shadow_tex = 0;
-	      GLbitfield target_mask = 0;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+      if ($$ != NULL) {
+         const GLbitfield tex_mask = (1U << $6);
+         GLbitfield shadow_tex = 0;
+         GLbitfield target_mask = 0;
 
 
-	      $$->Base.TexSrcUnit = $6;
+         $$->Base.TexSrcUnit = $6;
 
-	      if ($8 < 0) {
-		 shadow_tex = tex_mask;
+         if ($8 < 0) {
+            shadow_tex = tex_mask;
 
-		 $$->Base.TexSrcTarget = -$8;
-		 $$->Base.TexShadow = 1;
-	      } else {
-		 $$->Base.TexSrcTarget = $8;
-	      }
+            $$->Base.TexSrcTarget = -$8;
+            $$->Base.TexShadow = 1;
+         } else {
+            $$->Base.TexSrcTarget = $8;
+         }
 
-	      target_mask = (1U << $$->Base.TexSrcTarget);
+         target_mask = (1U << $$->Base.TexSrcTarget);
 
-	      /* If this texture unit was previously accessed and that access
-	       * had a different texture target, generate an error.
-	       *
-	       * If this texture unit was previously accessed and that access
-	       * had a different shadow mode, generate an error.
-	       */
-	      if ((state->prog->TexturesUsed[$6] != 0)
-		  && ((state->prog->TexturesUsed[$6] != target_mask)
-		      || ((state->prog->ShadowSamplers & tex_mask)
-			  != shadow_tex))) {
-		 yyerror(& @8, state,
-			 "multiple targets used on one texture image unit");
-		 YYERROR;
-	      }
+         /* If this texture unit was previously accessed and that access
+          * had a different texture target, generate an error.
+          *
+          * If this texture unit was previously accessed and that access
+          * had a different shadow mode, generate an error.
+          */
+         if ((state->prog->TexturesUsed[$6] != 0)
+             && ((state->prog->TexturesUsed[$6] != target_mask)
+                 || ((state->prog->ShadowSamplers & tex_mask)
+                     != shadow_tex))) {
+            yyerror(& @8, state,
+                    "multiple targets used on one texture image unit");
+            free($$);
+            YYERROR;
+         }
 
 
-	      state->prog->TexturesUsed[$6] |= target_mask;
-	      state->prog->ShadowSamplers |= shadow_tex;
-	   }
-	}
-	;
+         state->prog->TexturesUsed[$6] |= target_mask;
+         state->prog->ShadowSamplers |= shadow_tex;
+      }
+   }
+   ;
 
 KIL_instruction: KIL swizzleSrcReg
-	{
-	   $$ = asm_instruction_ctor(OPCODE_KIL, NULL, & $2, NULL, NULL);
-	   state->fragment.UsesKill = 1;
-	}
-	;
+   {
+      $$ = asm_instruction_ctor(OPCODE_KIL, NULL, & $2, NULL, NULL);
+      state->fragment.UsesKill = 1;
+   }
+   ;
 
 TXD_instruction: TXD_OP maskedDstReg ',' swizzleSrcReg ',' swizzleSrcReg ',' swizzleSrcReg ',' texImageUnit ',' texTarget
-	{
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
-	   if ($$ != NULL) {
-	      const GLbitfield tex_mask = (1U << $10);
-	      GLbitfield shadow_tex = 0;
-	      GLbitfield target_mask = 0;
+   {
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, & $6, & $8);
+      if ($$ != NULL) {
+         const GLbitfield tex_mask = (1U << $10);
+         GLbitfield shadow_tex = 0;
+         GLbitfield target_mask = 0;
 
 
-	      $$->Base.TexSrcUnit = $10;
+         $$->Base.TexSrcUnit = $10;
 
-	      if ($12 < 0) {
-		 shadow_tex = tex_mask;
+         if ($12 < 0) {
+            shadow_tex = tex_mask;
 
-		 $$->Base.TexSrcTarget = -$12;
-		 $$->Base.TexShadow = 1;
-	      } else {
-		 $$->Base.TexSrcTarget = $12;
-	      }
+            $$->Base.TexSrcTarget = -$12;
+            $$->Base.TexShadow = 1;
+         } else {
+            $$->Base.TexSrcTarget = $12;
+         }
 
-	      target_mask = (1U << $$->Base.TexSrcTarget);
+         target_mask = (1U << $$->Base.TexSrcTarget);
 
-	      /* If this texture unit was previously accessed and that access
-	       * had a different texture target, generate an error.
-	       *
-	       * If this texture unit was previously accessed and that access
-	       * had a different shadow mode, generate an error.
-	       */
-	      if ((state->prog->TexturesUsed[$10] != 0)
-		  && ((state->prog->TexturesUsed[$10] != target_mask)
-		      || ((state->prog->ShadowSamplers & tex_mask)
-			  != shadow_tex))) {
-		 yyerror(& @12, state,
-			 "multiple targets used on one texture image unit");
-		 YYERROR;
-	      }
+         /* If this texture unit was previously accessed and that access
+          * had a different texture target, generate an error.
+          *
+          * If this texture unit was previously accessed and that access
+          * had a different shadow mode, generate an error.
+          */
+         if ((state->prog->TexturesUsed[$10] != 0)
+             && ((state->prog->TexturesUsed[$10] != target_mask)
+                 || ((state->prog->ShadowSamplers & tex_mask)
+                     != shadow_tex))) {
+            yyerror(& @12, state,
+               "multiple targets used on one texture image unit");
+            free($$);
+            YYERROR;
+         }
 
 
-	      state->prog->TexturesUsed[$10] |= target_mask;
-	      state->prog->ShadowSamplers |= shadow_tex;
-	   }
-	}
-	;
+         state->prog->TexturesUsed[$10] |= target_mask;
+         state->prog->ShadowSamplers |= shadow_tex;
+      }
+   }
+   ;
 
 texImageUnit: TEXTURE_UNIT optTexImageUnitNum
-	{
-	   $$ = $2;
-	}
-	;
+   {
+      $$ = $2;
+   }
+   ;
 
 texTarget: TEX_1D  { $$ = TEXTURE_1D_INDEX; }
-	| TEX_2D   { $$ = TEXTURE_2D_INDEX; }
-	| TEX_3D   { $$ = TEXTURE_3D_INDEX; }
-	| TEX_CUBE { $$ = TEXTURE_CUBE_INDEX; }
-	| TEX_RECT { $$ = TEXTURE_RECT_INDEX; }
-	| TEX_SHADOW1D   { $$ = -TEXTURE_1D_INDEX; }
-	| TEX_SHADOW2D   { $$ = -TEXTURE_2D_INDEX; }
-	| TEX_SHADOWRECT { $$ = -TEXTURE_RECT_INDEX; }
-	| TEX_ARRAY1D         { $$ = TEXTURE_1D_ARRAY_INDEX; }
-	| TEX_ARRAY2D         { $$ = TEXTURE_2D_ARRAY_INDEX; }
-	| TEX_ARRAYSHADOW1D   { $$ = -TEXTURE_1D_ARRAY_INDEX; }
-	| TEX_ARRAYSHADOW2D   { $$ = -TEXTURE_2D_ARRAY_INDEX; }
-	;
+   | TEX_2D   { $$ = TEXTURE_2D_INDEX; }
+   | TEX_3D   { $$ = TEXTURE_3D_INDEX; }
+   | TEX_CUBE { $$ = TEXTURE_CUBE_INDEX; }
+   | TEX_RECT { $$ = TEXTURE_RECT_INDEX; }
+   | TEX_SHADOW1D   { $$ = -TEXTURE_1D_INDEX; }
+   | TEX_SHADOW2D   { $$ = -TEXTURE_2D_INDEX; }
+   | TEX_SHADOWRECT { $$ = -TEXTURE_RECT_INDEX; }
+   | TEX_ARRAY1D         { $$ = TEXTURE_1D_ARRAY_INDEX; }
+   | TEX_ARRAY2D         { $$ = TEXTURE_2D_ARRAY_INDEX; }
+   | TEX_ARRAYSHADOW1D   { $$ = -TEXTURE_1D_ARRAY_INDEX; }
+   | TEX_ARRAYSHADOW2D   { $$ = -TEXTURE_2D_ARRAY_INDEX; }
+   ;
 
 SWZ_instruction: SWZ maskedDstReg ',' srcReg ',' extendedSwizzle
-	{
-	   /* FIXME: Is this correct?  Should the extenedSwizzle be applied
-	    * FIXME: to the existing swizzle?
-	    */
-	   $4.Base.Swizzle = $6.swizzle;
-	   $4.Base.Negate = $6.mask;
+   {
+      /* FIXME: Is this correct?  Should the extenedSwizzle be applied
+       * FIXME: to the existing swizzle?
+       */
+      $4.Base.Swizzle = $6.swizzle;
+      $4.Base.Negate = $6.mask;
 
-	   $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
-	}
-	;
+      $$ = asm_instruction_copy_ctor(& $1, & $2, & $4, NULL, NULL);
+   }
+   ;
 
 scalarSrcReg: optionalSign scalarUse
-	{
-	   $$ = $2;
+   {
+      $$ = $2;
 
-	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
-	   }
-	}
-	;
+      if ($1) {
+         $$.Base.Negate = ~$$.Base.Negate;
+      }
+   }
+   ;
 
 scalarUse:  srcReg scalarSuffix
-	{
-	   $$ = $1;
+   {
+      $$ = $1;
 
-	   $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
-						    $2.swizzle);
-	}
-	;
+      $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
+                                               $2.swizzle);
+   }
+   ;
 
 swizzleSrcReg: optionalSign srcReg swizzleSuffix
-	{
-	   $$ = $2;
+   {
+      $$ = $2;
 
-	   if ($1) {
-	      $$.Base.Negate = ~$$.Base.Negate;
-	   }
+      if ($1) {
+         $$.Base.Negate = ~$$.Base.Negate;
+      }
 
-	   $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
-						    $3.swizzle);
-	}
-	;
+      $$.Base.Swizzle = _mesa_combine_swizzles($$.Base.Swizzle,
+                                               $3.swizzle);
+   }
+   ;
 
 maskedDstReg: dstReg optionalMask
-	{
-	   $$ = $1;
-	   $$.WriteMask = $2.mask;
+   {
+      $$ = $1;
+      $$.WriteMask = $2.mask;
 
-	   if ($$.File == PROGRAM_OUTPUT) {
-	      /* Technically speaking, this should check that it is in
-	       * vertex program mode.  However, PositionInvariant can never be
-	       * set in fragment program mode, so it is somewhat irrelevant.
-	       */
-	      if (state->option.PositionInvariant
-	       && ($$.Index == VARYING_SLOT_POS)) {
-		 yyerror(& @1, state, "position-invariant programs cannot "
-			 "write position");
-		 YYERROR;
-	      }
+      if ($$.File == PROGRAM_OUTPUT) {
+         /* Technically speaking, this should check that it is in
+          * vertex program mode.  However, PositionInvariant can never be
+          * set in fragment program mode, so it is somewhat irrelevant.
+          */
+         if (state->option.PositionInvariant
+             && ($$.Index == VARYING_SLOT_POS)) {
+            yyerror(& @1, state, "position-invariant programs cannot "
+                    "write position");
+            YYERROR;
+         }
 
-              state->prog->info.outputs_written |= BITFIELD64_BIT($$.Index);
-	   }
-	}
-	;
+         state->prog->info.outputs_written |= BITFIELD64_BIT($$.Index);
+      }
+   }
+   ;
 
 maskedAddrReg: addrReg addrWriteMask
-	{
-	   set_dst_reg(& $$, PROGRAM_ADDRESS, 0);
-	   $$.WriteMask = $2.mask;
-	}
-	;
+   {
+      set_dst_reg(& $$, PROGRAM_ADDRESS, 0);
+      $$.WriteMask = $2.mask;
+   }
+   ;
 
 extendedSwizzle: extSwizComp ',' extSwizComp ',' extSwizComp ',' extSwizComp
-	{
-	   const unsigned xyzw_valid =
-	      ($1.xyzw_valid << 0)
-	      | ($3.xyzw_valid << 1)
-	      | ($5.xyzw_valid << 2)
-	      | ($7.xyzw_valid << 3);
-	   const unsigned rgba_valid =
-	      ($1.rgba_valid << 0)
-	      | ($3.rgba_valid << 1)
-	      | ($5.rgba_valid << 2)
-	      | ($7.rgba_valid << 3);
+   {
+      const unsigned xyzw_valid =
+         ($1.xyzw_valid << 0)
+         | ($3.xyzw_valid << 1)
+         | ($5.xyzw_valid << 2)
+         | ($7.xyzw_valid << 3);
+      const unsigned rgba_valid =
+         ($1.rgba_valid << 0)
+         | ($3.rgba_valid << 1)
+         | ($5.rgba_valid << 2)
+         | ($7.rgba_valid << 3);
 
-	   /* All of the swizzle components have to be valid in either RGBA
-	    * or XYZW.  Note that 0 and 1 are valid in both, so both masks
-	    * can have some bits set.
-	    *
-	    * We somewhat deviate from the spec here.  It would be really hard
-	    * to figure out which component is the error, and there probably
-	    * isn't a lot of benefit.
-	    */
-	   if ((rgba_valid != 0x0f) && (xyzw_valid != 0x0f)) {
-	      yyerror(& @1, state, "cannot combine RGBA and XYZW swizzle "
-		      "components");
-	      YYERROR;
-	   }
+      /* All of the swizzle components have to be valid in either RGBA
+       * or XYZW.  Note that 0 and 1 are valid in both, so both masks
+       * can have some bits set.
+       *
+       * We somewhat deviate from the spec here.  It would be really hard
+       * to figure out which component is the error, and there probably
+       * isn't a lot of benefit.
+       */
+      if ((rgba_valid != 0x0f) && (xyzw_valid != 0x0f)) {
+         yyerror(& @1, state, "cannot combine RGBA and XYZW swizzle "
+            "components");
+         YYERROR;
+      }
 
-	   $$.swizzle = MAKE_SWIZZLE4($1.swz, $3.swz, $5.swz, $7.swz);
-	   $$.mask = ($1.negate) | ($3.negate << 1) | ($5.negate << 2)
-	      | ($7.negate << 3);
-	}
-	;
+      $$.swizzle = MAKE_SWIZZLE4($1.swz, $3.swz, $5.swz, $7.swz);
+      $$.mask = ($1.negate) | ($3.negate << 1) | ($5.negate << 2)
+         | ($7.negate << 3);
+   }
+   ;
 
 extSwizComp: optionalSign extSwizSel
-	{
-	   $$ = $2;
-	   $$.negate = ($1) ? 1 : 0;
-	}
-	;
+   {
+      $$ = $2;
+      $$.negate = ($1) ? 1 : 0;
+   }
+   ;
 
 extSwizSel: INTEGER
-	{
-	   if (($1 != 0) && ($1 != 1)) {
-	      yyerror(& @1, state, "invalid extended swizzle selector");
-	      YYERROR;
-	   }
+   {
+      if (($1 != 0) && ($1 != 1)) {
+         yyerror(& @1, state, "invalid extended swizzle selector");
+         YYERROR;
+      }
 
-	   $$.swz = ($1 == 0) ? SWIZZLE_ZERO : SWIZZLE_ONE;
+      $$.swz = ($1 == 0) ? SWIZZLE_ZERO : SWIZZLE_ONE;
            $$.negate = 0;
 
-	   /* 0 and 1 are valid for both RGBA swizzle names and XYZW
-	    * swizzle names.
-	    */
-	   $$.xyzw_valid = 1;
-	   $$.rgba_valid = 1;
-	}
-	| string
-	{
-	   char s;
+      /* 0 and 1 are valid for both RGBA swizzle names and XYZW
+       * swizzle names.
+       */
+      $$.xyzw_valid = 1;
+      $$.rgba_valid = 1;
+   }
+   | string
+   {
+      char s;
 
-	   if (strlen($1) > 1) {
-	      yyerror(& @1, state, "invalid extended swizzle selector");
-	      YYERROR;
-	   }
+      if (strlen($1) > 1) {
+         yyerror(& @1, state, "invalid extended swizzle selector");
+         free($1);
+         YYERROR;
+      }
 
-	   s = $1[0];
-	   free($1);
+      s = $1[0];
+      free($1);
 
            $$.rgba_valid = 0;
            $$.xyzw_valid = 0;
            $$.negate = 0;
 
-	   switch (s) {
-	   case 'x':
-	      $$.swz = SWIZZLE_X;
-	      $$.xyzw_valid = 1;
-	      break;
-	   case 'y':
-	      $$.swz = SWIZZLE_Y;
-	      $$.xyzw_valid = 1;
-	      break;
-	   case 'z':
-	      $$.swz = SWIZZLE_Z;
-	      $$.xyzw_valid = 1;
-	      break;
-	   case 'w':
-	      $$.swz = SWIZZLE_W;
-	      $$.xyzw_valid = 1;
-	      break;
+      switch (s) {
+      case 'x':
+         $$.swz = SWIZZLE_X;
+         $$.xyzw_valid = 1;
+         break;
+      case 'y':
+         $$.swz = SWIZZLE_Y;
+         $$.xyzw_valid = 1;
+         break;
+      case 'z':
+         $$.swz = SWIZZLE_Z;
+         $$.xyzw_valid = 1;
+         break;
+      case 'w':
+         $$.swz = SWIZZLE_W;
+         $$.xyzw_valid = 1;
+         break;
 
-	   case 'r':
-	      $$.swz = SWIZZLE_X;
-	      $$.rgba_valid = 1;
-	      break;
-	   case 'g':
-	      $$.swz = SWIZZLE_Y;
-	      $$.rgba_valid = 1;
-	      break;
-	   case 'b':
-	      $$.swz = SWIZZLE_Z;
-	      $$.rgba_valid = 1;
-	      break;
-	   case 'a':
-	      $$.swz = SWIZZLE_W;
-	      $$.rgba_valid = 1;
-	      break;
+      case 'r':
+         $$.swz = SWIZZLE_X;
+         $$.rgba_valid = 1;
+         break;
+      case 'g':
+         $$.swz = SWIZZLE_Y;
+         $$.rgba_valid = 1;
+         break;
+      case 'b':
+         $$.swz = SWIZZLE_Z;
+         $$.rgba_valid = 1;
+         break;
+      case 'a':
+         $$.swz = SWIZZLE_W;
+         $$.rgba_valid = 1;
+         break;
 
-	   default:
-	      yyerror(& @1, state, "invalid extended swizzle selector");
-	      YYERROR;
-	      break;
-	   }
-	}
-	;
+      default:
+         yyerror(& @1, state, "invalid extended swizzle selector");
+         YYERROR;
+         break;
+      }
+   }
+   ;
 
 srcReg: USED_IDENTIFIER /* temporaryReg | progParamSingle */
-	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+   {
+      struct asm_symbol *const s = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $1);
 
-	   free($1);
+      free($1);
 
-	   if (s == NULL) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type != at_param) && (s->type != at_temp)
-		      && (s->type != at_attrib)) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type == at_param) && s->param_is_array) {
-	      yyerror(& @1, state, "non-array access to array PARAM");
-	      YYERROR;
-	   }
+      if (s == NULL) {
+         yyerror(& @1, state, "invalid operand variable");
+         YYERROR;
+      } else if ((s->type != at_param) && (s->type != at_temp)
+            && (s->type != at_attrib)) {
+         yyerror(& @1, state, "invalid operand variable");
+         YYERROR;
+      } else if ((s->type == at_param) && s->param_is_array) {
+         yyerror(& @1, state, "non-array access to array PARAM");
+         YYERROR;
+      }
 
-	   init_src_reg(& $$);
-	   switch (s->type) {
-	   case at_temp:
-	      set_src_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
-	      break;
-	   case at_param:
-              set_src_reg_swz(& $$, s->param_binding_type,
-                              s->param_binding_begin,
-                              s->param_binding_swizzle);
-	      break;
-	   case at_attrib:
-	      set_src_reg(& $$, PROGRAM_INPUT, s->attrib_binding);
+      init_src_reg(& $$);
+      switch (s->type) {
+      case at_temp:
+         set_src_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
+         break;
+      case at_param:
+         set_src_reg_swz(& $$, s->param_binding_type,
+                         s->param_binding_begin,
+                         s->param_binding_swizzle);
+         break;
+      case at_attrib:
+         set_src_reg(& $$, PROGRAM_INPUT, s->attrib_binding);
               state->prog->info.inputs_read |= BITFIELD64_BIT($$.Base.Index);
 
-	      if (!validate_inputs(& @1, state)) {
-		 YYERROR;
-	      }
-	      break;
+         if (!validate_inputs(& @1, state)) {
+            YYERROR;
+         }
+         break;
 
-	   default:
-	      YYERROR;
-	      break;
-	   }
-	}
-	| attribBinding
-	{
-	   set_src_reg(& $$, PROGRAM_INPUT, $1);
+      default:
+         YYERROR;
+         break;
+      }
+   }
+   | attribBinding
+   {
+      set_src_reg(& $$, PROGRAM_INPUT, $1);
            state->prog->info.inputs_read |= BITFIELD64_BIT($$.Base.Index);
 
-	   if (!validate_inputs(& @1, state)) {
-	      YYERROR;
-	   }
-	}
-	| progParamArray '[' progParamArrayMem ']'
-	{
-	   if (! $3.Base.RelAddr
-	       && ((unsigned) $3.Base.Index >= $1->param_binding_length)) {
-	      yyerror(& @3, state, "out of bounds array access");
-	      YYERROR;
-	   }
+      if (!validate_inputs(& @1, state)) {
+         YYERROR;
+      }
+   }
+   | progParamArray '[' progParamArrayMem ']'
+   {
+      if (! $3.Base.RelAddr
+          && ((unsigned) $3.Base.Index >= $1->param_binding_length)) {
+         yyerror(& @3, state, "out of bounds array access");
+         YYERROR;
+      }
 
-	   init_src_reg(& $$);
-	   $$.Base.File = $1->param_binding_type;
+      init_src_reg(& $$);
+      $$.Base.File = $1->param_binding_type;
 
-	   if ($3.Base.RelAddr) {
+      if ($3.Base.RelAddr) {
               state->prog->arb.IndirectRegisterFiles |= (1 << $$.Base.File);
-	      $1->param_accessed_indirectly = 1;
+         $1->param_accessed_indirectly = 1;
 
-	      $$.Base.RelAddr = 1;
-	      $$.Base.Index = $3.Base.Index;
-	      $$.Symbol = $1;
-	   } else {
-	      $$.Base.Index = $1->param_binding_begin + $3.Base.Index;
-	   }
-	}
-	| paramSingleItemUse
-	{
-           gl_register_file file = ($1.name != NULL)
-	      ? $1.param_binding_type
-	      : PROGRAM_CONSTANT;
+         $$.Base.RelAddr = 1;
+         $$.Base.Index = $3.Base.Index;
+         $$.Symbol = $1;
+      } else {
+         $$.Base.Index = $1->param_binding_begin + $3.Base.Index;
+      }
+   }
+   | paramSingleItemUse
+   {
+      gl_register_file file = ($1.name != NULL)
+         ? $1.param_binding_type
+         : PROGRAM_CONSTANT;
            set_src_reg_swz(& $$, file, $1.param_binding_begin,
                            $1.param_binding_swizzle);
-	}
-	;
+   }
+   ;
 
 dstReg: resultBinding
-	{
-	   set_dst_reg(& $$, PROGRAM_OUTPUT, $1);
-	}
-	| USED_IDENTIFIER /* temporaryReg | vertexResultReg */
-	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+   {
+      set_dst_reg(& $$, PROGRAM_OUTPUT, $1);
+   }
+   | USED_IDENTIFIER /* temporaryReg | vertexResultReg */
+   {
+      struct asm_symbol *const s = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $1);
 
-	   free($1);
+      free($1);
 
-	   if (s == NULL) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type != at_output) && (s->type != at_temp)) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   }
+      if (s == NULL) {
+         yyerror(& @1, state, "invalid operand variable");
+         YYERROR;
+      } else if ((s->type != at_output) && (s->type != at_temp)) {
+         yyerror(& @1, state, "invalid operand variable");
+         YYERROR;
+      }
 
-	   switch (s->type) {
-	   case at_temp:
-	      set_dst_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
-	      break;
-	   case at_output:
-	      set_dst_reg(& $$, PROGRAM_OUTPUT, s->output_binding);
-	      break;
-	   default:
-	      set_dst_reg(& $$, s->param_binding_type, s->param_binding_begin);
-	      break;
-	   }
-	}
-	;
+      switch (s->type) {
+      case at_temp:
+         set_dst_reg(& $$, PROGRAM_TEMPORARY, s->temp_binding);
+         break;
+      case at_output:
+         set_dst_reg(& $$, PROGRAM_OUTPUT, s->output_binding);
+         break;
+      default:
+         set_dst_reg(& $$, s->param_binding_type, s->param_binding_begin);
+         break;
+      }
+   }
+   ;
 
 progParamArray: USED_IDENTIFIER
-	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+   {
+      struct asm_symbol *const s = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $1);
 
-	   free($1);
+      free($1);
 
-	   if (s == NULL) {
-	      yyerror(& @1, state, "invalid operand variable");
-	      YYERROR;
-	   } else if ((s->type != at_param) || !s->param_is_array) {
-	      yyerror(& @1, state, "array access to non-PARAM variable");
-	      YYERROR;
-	   } else {
-	      $$ = s;
-	   }
-	}
-	;
+      if (s == NULL) {
+         yyerror(& @1, state, "invalid operand variable");
+         YYERROR;
+      } else if ((s->type != at_param) || !s->param_is_array) {
+         yyerror(& @1, state, "array access to non-PARAM variable");
+         YYERROR;
+      } else {
+         $$ = s;
+      }
+   }
+   ;
 
 progParamArrayMem: progParamArrayAbs | progParamArrayRel;
 
 progParamArrayAbs: INTEGER
-	{
-	   init_src_reg(& $$);
-	   $$.Base.Index = $1;
-	}
-	;
+   {
+      init_src_reg(& $$);
+      $$.Base.Index = $1;
+   }
+   ;
 
 progParamArrayRel: addrReg addrComponent addrRegRelOffset
-	{
-	   /* FINISHME: Add support for multiple address registers.
-	    */
-	   /* FINISHME: Add support for 4-component address registers.
-	    */
-	   init_src_reg(& $$);
-	   $$.Base.RelAddr = 1;
-	   $$.Base.Index = $3;
-	}
-	;
+   {
+      /* FINISHME: Add support for multiple address registers.
+       */
+      /* FINISHME: Add support for 4-component address registers.
+       */
+      init_src_reg(& $$);
+      $$.Base.RelAddr = 1;
+      $$.Base.Index = $3;
+   }
+   ;
 
 addrRegRelOffset:              { $$ = 0; }
-	| '+' addrRegPosOffset { $$ = $2; }
-	| '-' addrRegNegOffset { $$ = -$2; }
-	;
+   | '+' addrRegPosOffset { $$ = $2; }
+   | '-' addrRegNegOffset { $$ = -$2; }
+   ;
 
 addrRegPosOffset: INTEGER
-	{
-	   if (($1 < 0) || ($1 > (state->limits->MaxAddressOffset - 1))) {
-              char s[100];
-              snprintf(s, sizeof(s),
-                             "relative address offset too large (%d)", $1);
-	      yyerror(& @1, state, s);
-	      YYERROR;
-	   } else {
-	      $$ = $1;
-	   }
-	}
-	;
+   {
+      if (($1 < 0) || ($1 > (state->limits->MaxAddressOffset - 1))) {
+         char s[100];
+         snprintf(s, sizeof(s),
+                  "relative address offset too large (%d)", $1);
+         yyerror(& @1, state, s);
+         YYERROR;
+      } else {
+         $$ = $1;
+      }
+   }
+   ;
 
 addrRegNegOffset: INTEGER
-	{
-	   if (($1 < 0) || ($1 > state->limits->MaxAddressOffset)) {
-              char s[100];
-              snprintf(s, sizeof(s),
+   {
+      if (($1 < 0) || ($1 > state->limits->MaxAddressOffset)) {
+         char s[100];
+         snprintf(s, sizeof(s),
                              "relative address offset too large (%d)", $1);
-	      yyerror(& @1, state, s);
-	      YYERROR;
-	   } else {
-	      $$ = $1;
-	   }
-	}
-	;
+         yyerror(& @1, state, s);
+         YYERROR;
+      } else {
+         $$ = $1;
+      }
+   }
+   ;
 
 addrReg: USED_IDENTIFIER
-	{
-	   struct asm_symbol *const s = (struct asm_symbol *)
+   {
+      struct asm_symbol *const s = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $1);
 
-	   free($1);
+      free($1);
 
-	   if (s == NULL) {
-	      yyerror(& @1, state, "invalid array member");
-	      YYERROR;
-	   } else if (s->type != at_address) {
-	      yyerror(& @1, state,
-		      "invalid variable for indexed array access");
-	      YYERROR;
-	   } else {
-	      $$ = s;
-	   }
-	}
-	;
+      if (s == NULL) {
+         yyerror(& @1, state, "invalid array member");
+         YYERROR;
+      } else if (s->type != at_address) {
+         yyerror(& @1, state,
+                 "invalid variable for indexed array access");
+         YYERROR;
+      } else {
+         $$ = s;
+      }
+   }
+   ;
 
 addrComponent: MASK1
-	{
-	   if ($1.mask != WRITEMASK_X) {
-	      yyerror(& @1, state, "invalid address component selector");
-	      YYERROR;
-	   } else {
-	      $$ = $1;
-	   }
-	}
-	;
+   {
+      if ($1.mask != WRITEMASK_X) {
+         yyerror(& @1, state, "invalid address component selector");
+         YYERROR;
+      } else {
+         $$ = $1;
+      }
+   }
+   ;
 
 addrWriteMask: MASK1
-	{
-	   if ($1.mask != WRITEMASK_X) {
-	      yyerror(& @1, state,
-		      "address register write mask must be \".x\"");
-	      YYERROR;
-	   } else {
-	      $$ = $1;
-	   }
-	}
-	;
+   {
+      if ($1.mask != WRITEMASK_X) {
+         yyerror(& @1, state,
+            "address register write mask must be \".x\"");
+         YYERROR;
+      } else {
+         $$ = $1;
+      }
+   }
+   ;
 
 scalarSuffix: MASK1;
 
 swizzleSuffix: MASK1
-	| MASK4
-	| SWIZZLE
-	|              { $$.swizzle = SWIZZLE_NOOP; $$.mask = WRITEMASK_XYZW; }
-	;
+   | MASK4
+   | SWIZZLE
+   |              { $$.swizzle = SWIZZLE_NOOP; $$.mask = WRITEMASK_XYZW; }
+   ;
 
 optionalMask: MASK4 | MASK3 | MASK2 | MASK1
-	|              { $$.swizzle = SWIZZLE_NOOP; $$.mask = WRITEMASK_XYZW; }
-	;
+   |              { $$.swizzle = SWIZZLE_NOOP; $$.mask = WRITEMASK_XYZW; }
+   ;
 
 namingStatement: ATTRIB_statement
-	| PARAM_statement
-	| TEMP_statement
-	| ADDRESS_statement
-	| OUTPUT_statement
-	| ALIAS_statement
-	;
+   | PARAM_statement
+   | TEMP_statement
+   | ADDRESS_statement
+   | OUTPUT_statement
+   | ALIAS_statement
+   ;
 
 ATTRIB_statement: ATTRIB IDENTIFIER '=' attribBinding
-	{
-	   struct asm_symbol *const s =
-	      declare_variable(state, $2, at_attrib, & @2);
+   {
+      struct asm_symbol *const s =
+         declare_variable(state, $2, at_attrib, & @2);
 
-	   if (s == NULL) {
-	      free($2);
-	      YYERROR;
-	   } else {
-	      s->attrib_binding = $4;
-	      state->InputsBound |= BITFIELD64_BIT(s->attrib_binding);
+      if (s == NULL) {
+         free($2);
+         YYERROR;
+      } else {
+         s->attrib_binding = $4;
+         state->InputsBound |= BITFIELD64_BIT(s->attrib_binding);
 
-	      if (!validate_inputs(& @4, state)) {
-		 YYERROR;
-	      }
-	   }
-	}
-	;
+         if (!validate_inputs(& @4, state)) {
+       YYERROR;
+         }
+      }
+   }
+   ;
 
 attribBinding: VERTEX vtxAttribItem
-	{
-	   $$ = $2;
-	}
-	| FRAGMENT fragAttribItem
-	{
-	   $$ = $2;
-	}
-	;
+   {
+      $$ = $2;
+   }
+   | FRAGMENT fragAttribItem
+   {
+      $$ = $2;
+   }
+   ;
 
 vtxAttribItem: POSITION
-	{
-	   $$ = VERT_ATTRIB_POS;
-	}
-	| NORMAL
-	{
-	   $$ = VERT_ATTRIB_NORMAL;
-	}
-	| COLOR optColorType
-	{
-	   $$ = VERT_ATTRIB_COLOR0 + $2;
-	}
-	| FOGCOORD
-	{
-	   $$ = VERT_ATTRIB_FOG;
-	}
-	| TEXCOORD optTexCoordUnitNum
-	{
-	   $$ = VERT_ATTRIB_TEX0 + $2;
-	}
-	| MATRIXINDEX '[' vtxWeightNum ']'
-	{
-	   yyerror(& @1, state, "GL_ARB_matrix_palette not supported");
-	   YYERROR;
-	}
-	| VTXATTRIB '[' vtxAttribNum ']'
-	{
-	   $$ = VERT_ATTRIB_GENERIC0 + $3;
-	}
-	;
+   {
+      $$ = VERT_ATTRIB_POS;
+   }
+   | NORMAL
+   {
+      $$ = VERT_ATTRIB_NORMAL;
+   }
+   | COLOR optColorType
+   {
+      $$ = VERT_ATTRIB_COLOR0 + $2;
+   }
+   | FOGCOORD
+   {
+      $$ = VERT_ATTRIB_FOG;
+   }
+   | TEXCOORD optTexCoordUnitNum
+   {
+      $$ = VERT_ATTRIB_TEX0 + $2;
+   }
+   | MATRIXINDEX '[' vtxWeightNum ']'
+   {
+      yyerror(& @1, state, "GL_ARB_matrix_palette not supported");
+      YYERROR;
+   }
+   | VTXATTRIB '[' vtxAttribNum ']'
+   {
+      $$ = VERT_ATTRIB_GENERIC0 + $3;
+   }
+   ;
 
 vtxAttribNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->limits->MaxAttribs) {
-	      yyerror(& @1, state, "invalid vertex attribute reference");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->limits->MaxAttribs) {
+         yyerror(& @1, state, "invalid vertex attribute reference");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 vtxWeightNum: INTEGER;
 
 fragAttribItem: POSITION
-	{
-	   $$ = VARYING_SLOT_POS;
-	}
-	| COLOR optColorType
-	{
-	   $$ = VARYING_SLOT_COL0 + $2;
-	}
-	| FOGCOORD
-	{
-	   $$ = VARYING_SLOT_FOGC;
-	}
-	| TEXCOORD optTexCoordUnitNum
-	{
-	   $$ = VARYING_SLOT_TEX0 + $2;
-	}
-	;
+   {
+      $$ = VARYING_SLOT_POS;
+   }
+   | COLOR optColorType
+   {
+      $$ = VARYING_SLOT_COL0 + $2;
+   }
+   | FOGCOORD
+   {
+      $$ = VARYING_SLOT_FOGC;
+   }
+   | TEXCOORD optTexCoordUnitNum
+   {
+      $$ = VARYING_SLOT_TEX0 + $2;
+   }
+   ;
 
 PARAM_statement: PARAM_singleStmt | PARAM_multipleStmt;
 
 PARAM_singleStmt: PARAM IDENTIFIER paramSingleInit
-	{
-	   struct asm_symbol *const s =
-	      declare_variable(state, $2, at_param, & @2);
+   {
+      struct asm_symbol *const s =
+         declare_variable(state, $2, at_param, & @2);
 
-	   if (s == NULL) {
-	      free($2);
-	      YYERROR;
-	   } else {
-	      s->param_binding_type = $3.param_binding_type;
-	      s->param_binding_begin = $3.param_binding_begin;
-	      s->param_binding_length = $3.param_binding_length;
-              s->param_binding_swizzle = $3.param_binding_swizzle;
-	      s->param_is_array = 0;
-	   }
-	}
-	;
+      if (s == NULL) {
+         free($2);
+         YYERROR;
+      } else {
+         s->param_binding_type = $3.param_binding_type;
+         s->param_binding_begin = $3.param_binding_begin;
+         s->param_binding_length = $3.param_binding_length;
+         s->param_binding_swizzle = $3.param_binding_swizzle;
+         s->param_is_array = 0;
+      }
+   }
+   ;
 
 PARAM_multipleStmt: PARAM IDENTIFIER '[' optArraySize ']' paramMultipleInit
-	{
-	   if (($4 != 0) && ((unsigned) $4 != $6.param_binding_length)) {
-	      free($2);
-	      yyerror(& @4, state,
-		      "parameter array size and number of bindings must match");
-	      YYERROR;
-	   } else {
-	      struct asm_symbol *const s =
-		 declare_variable(state, $2, $6.type, & @2);
+   {
+      if (($4 != 0) && ((unsigned) $4 != $6.param_binding_length)) {
+         free($2);
+         yyerror(& @4, state,
+                 "parameter array size and number of bindings must match");
+         YYERROR;
+      } else {
+         struct asm_symbol *const s =
+            declare_variable(state, $2, $6.type, & @2);
 
-	      if (s == NULL) {
-		 free($2);
-		 YYERROR;
-	      } else {
-		 s->param_binding_type = $6.param_binding_type;
-		 s->param_binding_begin = $6.param_binding_begin;
-		 s->param_binding_length = $6.param_binding_length;
-                 s->param_binding_swizzle = SWIZZLE_XYZW;
-		 s->param_is_array = 1;
-	      }
-	   }
-	}
-	;
+         if (s == NULL) {
+            free($2);
+            YYERROR;
+         } else {
+            s->param_binding_type = $6.param_binding_type;
+            s->param_binding_begin = $6.param_binding_begin;
+            s->param_binding_length = $6.param_binding_length;
+            s->param_binding_swizzle = SWIZZLE_XYZW;
+            s->param_is_array = 1;
+         }
+      }
+   }
+   ;
 
 optArraySize:
-	{
-	   $$ = 0;
-	}
-	| INTEGER
+   {
+      $$ = 0;
+   }
+   | INTEGER
         {
-	   if (($1 < 1) || ((unsigned) $1 > state->limits->MaxParameters)) {
-              char msg[100];
-              snprintf(msg, sizeof(msg),
-                             "invalid parameter array size (size=%d max=%u)",
-                             $1, state->limits->MaxParameters);
-	      yyerror(& @1, state, msg);
-	      YYERROR;
-	   } else {
-	      $$ = $1;
-	   }
-	}
-	;
+      if (($1 < 1) || ((unsigned) $1 > state->limits->MaxParameters)) {
+         char msg[100];
+         snprintf(msg, sizeof(msg),
+                  "invalid parameter array size (size=%d max=%u)",
+                  $1, state->limits->MaxParameters);
+         yyerror(& @1, state, msg);
+         YYERROR;
+      } else {
+         $$ = $1;
+      }
+   }
+   ;
 
 paramSingleInit: '=' paramSingleItemDecl
-	{
-	   $$ = $2;
-	}
-	;
+   {
+      $$ = $2;
+   }
+   ;
 
 paramMultipleInit: '=' '{' paramMultInitList '}'
-	{
-	   $$ = $3;
-	}
-	;
+   {
+      $$ = $3;
+   }
+   ;
 
 paramMultInitList: paramMultipleItem
-	| paramMultInitList ',' paramMultipleItem
-	{
-	   $1.param_binding_length += $3.param_binding_length;
-	   $$ = $1;
-	}
-	;
+   | paramMultInitList ',' paramMultipleItem
+   {
+      $1.param_binding_length += $3.param_binding_length;
+      $$ = $1;
+   }
+   ;
 
 paramSingleItemDecl: stateSingleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_state(state->prog, & $$, $1);
-	}
-	| programSingleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_param(state->prog, & $$, $1);
-	}
-	| paramConstDecl
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
-	}
-	;
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_state(state->prog, & $$, $1);
+   }
+   | programSingleItem
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_param(state->prog, & $$, $1);
+   }
+   | paramConstDecl
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
+   }
+   ;
 
 paramSingleItemUse: stateSingleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_state(state->prog, & $$, $1);
-	}
-	| programSingleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_param(state->prog, & $$, $1);
-	}
-	| paramConstUse
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
-	}
-	;
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_state(state->prog, & $$, $1);
+   }
+   | programSingleItem
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_param(state->prog, & $$, $1);
+   }
+   | paramConstUse
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_const(state->prog, & $$, & $1, GL_TRUE);
+   }
+   ;
 
 paramMultipleItem: stateMultipleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_state(state->prog, & $$, $1);
-	}
-	| programMultipleItem
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_param(state->prog, & $$, $1);
-	}
-	| paramConstDecl
-	{
-	   memset(& $$, 0, sizeof($$));
-	   $$.param_binding_begin = ~0;
-	   initialize_symbol_from_const(state->prog, & $$, & $1, GL_FALSE);
-	}
-	;
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_state(state->prog, & $$, $1);
+   }
+   | programMultipleItem
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_param(state->prog, & $$, $1);
+   }
+   | paramConstDecl
+   {
+      memset(& $$, 0, sizeof($$));
+      $$.param_binding_begin = ~0;
+      initialize_symbol_from_const(state->prog, & $$, & $1, GL_FALSE);
+   }
+   ;
 
 stateMultipleItem: stateSingleItem        { memcpy($$, $1, sizeof($$)); }
-	| STATE stateMatrixRows           { memcpy($$, $2, sizeof($$)); }
-	;
+   | STATE stateMatrixRows           { memcpy($$, $2, sizeof($$)); }
+   ;
 
 stateSingleItem: STATE stateMaterialItem  { memcpy($$, $2, sizeof($$)); }
-	| STATE stateLightItem            { memcpy($$, $2, sizeof($$)); }
-	| STATE stateLightModelItem       { memcpy($$, $2, sizeof($$)); }
-	| STATE stateLightProdItem        { memcpy($$, $2, sizeof($$)); }
-	| STATE stateTexGenItem           { memcpy($$, $2, sizeof($$)); }
-	| STATE stateTexEnvItem           { memcpy($$, $2, sizeof($$)); }
-	| STATE stateFogItem              { memcpy($$, $2, sizeof($$)); }
-	| STATE stateClipPlaneItem        { memcpy($$, $2, sizeof($$)); }
-	| STATE statePointItem            { memcpy($$, $2, sizeof($$)); }
-	| STATE stateMatrixRow            { memcpy($$, $2, sizeof($$)); }
-	| STATE stateDepthItem            { memcpy($$, $2, sizeof($$)); }
-	;
+   | STATE stateLightItem            { memcpy($$, $2, sizeof($$)); }
+   | STATE stateLightModelItem       { memcpy($$, $2, sizeof($$)); }
+   | STATE stateLightProdItem        { memcpy($$, $2, sizeof($$)); }
+   | STATE stateTexGenItem           { memcpy($$, $2, sizeof($$)); }
+   | STATE stateTexEnvItem           { memcpy($$, $2, sizeof($$)); }
+   | STATE stateFogItem              { memcpy($$, $2, sizeof($$)); }
+   | STATE stateClipPlaneItem        { memcpy($$, $2, sizeof($$)); }
+   | STATE statePointItem            { memcpy($$, $2, sizeof($$)); }
+   | STATE stateMatrixRow            { memcpy($$, $2, sizeof($$)); }
+   | STATE stateDepthItem            { memcpy($$, $2, sizeof($$)); }
+   ;
 
 stateMaterialItem: MATERIAL optFaceType stateMatProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_MATERIAL;
-	   $$[1] = $3 + $2;
-	   $$[2] = 0;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_MATERIAL;
+      $$[1] = $3 + $2;
+      $$[2] = 0;
+   }
+   ;
 
 stateMatProperty: ambDiffSpecPropertyMaterial
-	{
-	   $$ = $1;
-	}
-	| EMISSION
-	{
-	   $$ = MAT_ATTRIB_FRONT_EMISSION;
-	}
-	| SHININESS
-	{
-	   $$ = MAT_ATTRIB_FRONT_SHININESS;
-	}
-	;
+   {
+      $$ = $1;
+   }
+   | EMISSION
+   {
+      $$ = MAT_ATTRIB_FRONT_EMISSION;
+   }
+   | SHININESS
+   {
+      $$ = MAT_ATTRIB_FRONT_SHININESS;
+   }
+   ;
 
 stateLightItem: LIGHT '[' stateLightNumber ']' stateLightProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_LIGHT;
-	   $$[1] = $3;
-	   $$[2] = $5;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_LIGHT;
+      $$[1] = $3;
+      $$[2] = $5;
+   }
+   ;
 
 stateLightProperty: ambDiffSpecPropertyLight
-	{
-	   $$ = $1;
-	}
-	| POSITION
-	{
-	   $$ = STATE_POSITION;
-	}
-	| ATTENUATION
-	{
-	   $$ = STATE_ATTENUATION;
-	}
-	| SPOT stateSpotProperty
-	{
-	   $$ = $2;
-	}
-	| HALF
-	{
-	   $$ = STATE_HALF_VECTOR;
-	}
-	;
+   {
+      $$ = $1;
+   }
+   | POSITION
+   {
+      $$ = STATE_POSITION;
+   }
+   | ATTENUATION
+   {
+      $$ = STATE_ATTENUATION;
+   }
+   | SPOT stateSpotProperty
+   {
+      $$ = $2;
+   }
+   | HALF
+   {
+      $$ = STATE_HALF_VECTOR;
+   }
+   ;
 
 stateSpotProperty: DIRECTION
-	{
-	   $$ = STATE_SPOT_DIRECTION;
-	}
-	;
+   {
+      $$ = STATE_SPOT_DIRECTION;
+   }
+   ;
 
 stateLightModelItem: LIGHTMODEL stateLModProperty
-	{
-	   $$[0] = $2[0];
-	   $$[1] = $2[1];
-	}
-	;
+   {
+      $$[0] = $2[0];
+      $$[1] = $2[1];
+   }
+   ;
 
 stateLModProperty: AMBIENT
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_LIGHTMODEL_AMBIENT;
-	}
-	| optFaceType SCENECOLOR
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_LIGHTMODEL_SCENECOLOR;
-	   $$[1] = $1;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_LIGHTMODEL_AMBIENT;
+   }
+   | optFaceType SCENECOLOR
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_LIGHTMODEL_SCENECOLOR;
+      $$[1] = $1;
+   }
+   ;
 
 stateLightProdItem: LIGHTPROD '[' stateLightNumber ']' optFaceType stateLProdProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_LIGHTPROD;
-	   $$[1] = $3;
-	   $$[2] = $6 + $5;
-	   $$[3] = 0;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_LIGHTPROD;
+      $$[1] = $3;
+      $$[2] = $6 + $5;
+      $$[3] = 0;
+   }
+   ;
 
 stateLProdProperty: ambDiffSpecPropertyMaterial;
 
 stateTexEnvItem: TEXENV optLegacyTexUnitNum stateTexEnvProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = $3;
-	   $$[1] = $2;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = $3;
+      $$[1] = $2;
+   }
+   ;
 
 stateTexEnvProperty: COLOR
-	{
-	   $$ = STATE_TEXENV_COLOR;
-	}
-	;
+   {
+      $$ = STATE_TEXENV_COLOR;
+   }
+   ;
 
 ambDiffSpecPropertyMaterial: AMBIENT
-	{
-	   $$ = MAT_ATTRIB_FRONT_AMBIENT;
-	}
-	| DIFFUSE
-	{
-	   $$ = MAT_ATTRIB_FRONT_DIFFUSE;
-	}
-	| SPECULAR
-	{
-	   $$ = MAT_ATTRIB_FRONT_SPECULAR;
-	}
-	;
+   {
+      $$ = MAT_ATTRIB_FRONT_AMBIENT;
+   }
+   | DIFFUSE
+   {
+      $$ = MAT_ATTRIB_FRONT_DIFFUSE;
+   }
+   | SPECULAR
+   {
+      $$ = MAT_ATTRIB_FRONT_SPECULAR;
+   }
+   ;
 
 ambDiffSpecPropertyLight: AMBIENT
         {
@@ -1372,268 +1380,268 @@ ambDiffSpecPropertyLight: AMBIENT
         ;
 
 stateLightNumber: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxLights) {
-	      yyerror(& @1, state, "invalid light selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxLights) {
+         yyerror(& @1, state, "invalid light selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 stateTexGenItem: TEXGEN optTexCoordUnitNum stateTexGenType stateTexGenCoord
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_TEXGEN;
-	   $$[1] = $2;
-	   $$[2] = $3 + $4;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_TEXGEN;
+      $$[1] = $2;
+      $$[2] = $3 + $4;
+   }
+   ;
 
 stateTexGenType: EYE
-	{
-	   $$ = STATE_TEXGEN_EYE_S;
-	}
-	| OBJECT
-	{
-	   $$ = STATE_TEXGEN_OBJECT_S;
-	}
-	;
+   {
+      $$ = STATE_TEXGEN_EYE_S;
+   }
+   | OBJECT
+   {
+      $$ = STATE_TEXGEN_OBJECT_S;
+   }
+   ;
 stateTexGenCoord: TEXGEN_S
-	{
-	   $$ = STATE_TEXGEN_EYE_S - STATE_TEXGEN_EYE_S;
-	}
-	| TEXGEN_T
-	{
-	   $$ = STATE_TEXGEN_EYE_T - STATE_TEXGEN_EYE_S;
-	}
-	| TEXGEN_R
-	{
-	   $$ = STATE_TEXGEN_EYE_R - STATE_TEXGEN_EYE_S;
-	}
-	| TEXGEN_Q
-	{
-	   $$ = STATE_TEXGEN_EYE_Q - STATE_TEXGEN_EYE_S;
-	}
-	;
+   {
+      $$ = STATE_TEXGEN_EYE_S - STATE_TEXGEN_EYE_S;
+   }
+   | TEXGEN_T
+   {
+      $$ = STATE_TEXGEN_EYE_T - STATE_TEXGEN_EYE_S;
+   }
+   | TEXGEN_R
+   {
+      $$ = STATE_TEXGEN_EYE_R - STATE_TEXGEN_EYE_S;
+   }
+   | TEXGEN_Q
+   {
+      $$ = STATE_TEXGEN_EYE_Q - STATE_TEXGEN_EYE_S;
+   }
+   ;
 
 stateFogItem: FOG stateFogProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = $2;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = $2;
+   }
+   ;
 
 stateFogProperty: COLOR
-	{
-	   $$ = STATE_FOG_COLOR;
-	}
-	| PARAMS
-	{
-	   $$ = STATE_FOG_PARAMS;
-	}
-	;
+   {
+      $$ = STATE_FOG_COLOR;
+   }
+   | PARAMS
+   {
+      $$ = STATE_FOG_PARAMS;
+   }
+   ;
 
 stateClipPlaneItem: CLIP '[' stateClipPlaneNum ']' PLANE
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_CLIPPLANE;
-	   $$[1] = $3;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_CLIPPLANE;
+      $$[1] = $3;
+   }
+   ;
 
 stateClipPlaneNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxClipPlanes) {
-	      yyerror(& @1, state, "invalid clip plane selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxClipPlanes) {
+         yyerror(& @1, state, "invalid clip plane selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 statePointItem: POINT_TOK statePointProperty
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = $2;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = $2;
+   }
+   ;
 
 statePointProperty: SIZE_TOK
-	{
-	   $$ = STATE_POINT_SIZE;
-	}
-	| ATTENUATION
-	{
-	   $$ = STATE_POINT_ATTENUATION;
-	}
-	;
+   {
+      $$ = STATE_POINT_SIZE;
+   }
+   | ATTENUATION
+   {
+      $$ = STATE_POINT_ATTENUATION;
+   }
+   ;
 
 stateMatrixRow: stateMatrixItem ROW '[' stateMatrixRowNum ']'
-	{
-	   $$[0] = $1[0] + $1[2];
-	   $$[1] = $1[1];
-	   $$[2] = $4;
-	   $$[3] = $4;
-	}
-	;
+   {
+      $$[0] = $1[0] + $1[2];
+      $$[1] = $1[1];
+      $$[2] = $4;
+      $$[3] = $4;
+   }
+   ;
 
 stateMatrixRows: stateMatrixItem optMatrixRows
-	{
-	   $$[0] = $1[0] + $1[2];
-	   $$[1] = $1[1];
-	   $$[2] = $2[2];
-	   $$[3] = $2[3];
-	}
-	;
+   {
+      $$[0] = $1[0] + $1[2];
+      $$[1] = $1[1];
+      $$[2] = $2[2];
+      $$[3] = $2[3];
+   }
+   ;
 
 optMatrixRows:
-	{
-	   $$[2] = 0;
-	   $$[3] = 3;
-	}
-	| ROW '[' stateMatrixRowNum DOT_DOT stateMatrixRowNum ']'
-	{
-	   /* It seems logical that the matrix row range specifier would have
-	    * to specify a range or more than one row (i.e., $5 > $3).
-	    * However, the ARB_vertex_program spec says "a program will fail
-	    * to load if <a> is greater than <b>."  This means that $3 == $5
-	    * is valid.
-	    */
-	   if ($3 > $5) {
-	      yyerror(& @3, state, "invalid matrix row range");
-	      YYERROR;
-	   }
+   {
+      $$[2] = 0;
+      $$[3] = 3;
+   }
+   | ROW '[' stateMatrixRowNum DOT_DOT stateMatrixRowNum ']'
+   {
+      /* It seems logical that the matrix row range specifier would have
+       * to specify a range or more than one row (i.e., $5 > $3).
+       * However, the ARB_vertex_program spec says "a program will fail
+       * to load if <a> is greater than <b>."  This means that $3 == $5
+       * is valid.
+       */
+      if ($3 > $5) {
+         yyerror(& @3, state, "invalid matrix row range");
+         YYERROR;
+      }
 
-	   $$[2] = $3;
-	   $$[3] = $5;
-	}
-	;
+      $$[2] = $3;
+      $$[3] = $5;
+   }
+   ;
 
 stateMatrixItem: MATRIX stateMatrixName stateOptMatModifier
-	{
-	   $$[0] = $2[0];
-	   $$[1] = $2[1];
-	   $$[2] = $3;
-	}
-	;
+   {
+      $$[0] = $2[0];
+      $$[1] = $2[1];
+      $$[2] = $3;
+   }
+   ;
 
 stateOptMatModifier:
-	{
-	   $$ = STATE_MATRIX_NO_MODIFIER;
-	}
-	| stateMatModifier
-	{
-	   $$ = $1;
-	}
-	;
+   {
+      $$ = STATE_MATRIX_NO_MODIFIER;
+   }
+   | stateMatModifier
+   {
+      $$ = $1;
+   }
+   ;
 
 stateMatModifier: INVERSE
-	{
-	   $$ = STATE_MATRIX_INVERSE;
-	}
-	| TRANSPOSE
-	{
-	   $$ = STATE_MATRIX_TRANSPOSE;
-	}
-	| INVTRANS
-	{
-	   $$ = STATE_MATRIX_INVTRANS;
-	}
-	;
+   {
+      $$ = STATE_MATRIX_INVERSE;
+   }
+   | TRANSPOSE
+   {
+      $$ = STATE_MATRIX_TRANSPOSE;
+   }
+   | INVTRANS
+   {
+      $$ = STATE_MATRIX_INVTRANS;
+   }
+   ;
 
 stateMatrixRowNum: INTEGER
-	{
-	   if ($1 > 3) {
-	      yyerror(& @1, state, "invalid matrix row reference");
-	      YYERROR;
-	   }
+   {
+      if ($1 > 3) {
+         yyerror(& @1, state, "invalid matrix row reference");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 stateMatrixName: MODELVIEW stateOptModMatNum
-	{
-	   $$[0] = STATE_MODELVIEW_MATRIX;
-	   $$[1] = $2;
-	}
-	| PROJECTION
-	{
-	   $$[0] = STATE_PROJECTION_MATRIX;
-	   $$[1] = 0;
-	}
-	| MVP
-	{
-	   $$[0] = STATE_MVP_MATRIX;
-	   $$[1] = 0;
-	}
-	| TEXTURE optTexCoordUnitNum
-	{
-	   $$[0] = STATE_TEXTURE_MATRIX;
-	   $$[1] = $2;
-	}
-	| PALETTE '[' statePaletteMatNum ']'
-	{
-	   yyerror(& @1, state, "GL_ARB_matrix_palette not supported");
-	   YYERROR;
-	}
-	| MAT_PROGRAM '[' stateProgramMatNum ']'
-	{
-	   $$[0] = STATE_PROGRAM_MATRIX;
-	   $$[1] = $3;
-	}
-	;
+   {
+      $$[0] = STATE_MODELVIEW_MATRIX;
+      $$[1] = $2;
+   }
+   | PROJECTION
+   {
+      $$[0] = STATE_PROJECTION_MATRIX;
+      $$[1] = 0;
+   }
+   | MVP
+   {
+      $$[0] = STATE_MVP_MATRIX;
+      $$[1] = 0;
+   }
+   | TEXTURE optTexCoordUnitNum
+   {
+      $$[0] = STATE_TEXTURE_MATRIX;
+      $$[1] = $2;
+   }
+   | PALETTE '[' statePaletteMatNum ']'
+   {
+      yyerror(& @1, state, "GL_ARB_matrix_palette not supported");
+      YYERROR;
+   }
+   | MAT_PROGRAM '[' stateProgramMatNum ']'
+   {
+      $$[0] = STATE_PROGRAM_MATRIX;
+      $$[1] = $3;
+   }
+   ;
 
 stateOptModMatNum:
-	{
-	   $$ = 0;
-	}
-	| '[' stateModMatNum ']'
-	{
-	   $$ = $2;
-	}
-	;
+   {
+      $$ = 0;
+   }
+   | '[' stateModMatNum ']'
+   {
+      $$ = $2;
+   }
+   ;
 stateModMatNum: INTEGER
-	{
-	   /* Since GL_ARB_vertex_blend isn't supported, only modelview matrix
-	    * zero is valid.
-	    */
-	   if ($1 != 0) {
-	      yyerror(& @1, state, "invalid modelview matrix index");
-	      YYERROR;
-	   }
+   {
+      /* Since GL_ARB_vertex_blend isn't supported, only modelview matrix
+       * zero is valid.
+       */
+      if ($1 != 0) {
+         yyerror(& @1, state, "invalid modelview matrix index");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 statePaletteMatNum: INTEGER
-	{
-	   /* Since GL_ARB_matrix_palette isn't supported, just let any value
-	    * through here.  The error will be generated later.
-	    */
-	   $$ = $1;
-	}
-	;
+   {
+      /* Since GL_ARB_matrix_palette isn't supported, just let any value
+       * through here.  The error will be generated later.
+       */
+      $$ = $1;
+   }
+   ;
 stateProgramMatNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxProgramMatrices) {
-	      yyerror(& @1, state, "invalid program matrix selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxProgramMatrices) {
+         yyerror(& @1, state, "invalid program matrix selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 stateDepthItem: DEPTH RANGE
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = STATE_DEPTH_RANGE;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = STATE_DEPTH_RANGE;
+   }
+   ;
 
 
 programSingleItem: progEnvParam | progLocalParam;
@@ -1641,87 +1649,87 @@ programSingleItem: progEnvParam | progLocalParam;
 programMultipleItem: progEnvParams | progLocalParams;
 
 progEnvParams: PROGRAM ENV '[' progEnvParamNums ']'
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = state->state_param_enum_env;
-	   $$[1] = $4[0];
-	   $$[2] = $4[1];
-           $$[3] = 0;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = state->state_param_enum_env;
+      $$[1] = $4[0];
+      $$[2] = $4[1];
+      $$[3] = 0;
+   }
+   ;
 
 progEnvParamNums: progEnvParamNum
-	{
-	   $$[0] = $1;
-	   $$[1] = $1;
-	}
-	| progEnvParamNum DOT_DOT progEnvParamNum
-	{
-	   $$[0] = $1;
-	   $$[1] = $3;
-	}
-	;
+   {
+      $$[0] = $1;
+      $$[1] = $1;
+   }
+   | progEnvParamNum DOT_DOT progEnvParamNum
+   {
+      $$[0] = $1;
+      $$[1] = $3;
+   }
+   ;
 
 progEnvParam: PROGRAM ENV '[' progEnvParamNum ']'
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = state->state_param_enum_env;
-	   $$[1] = $4;
-	   $$[2] = $4;
-           $$[3] = 0;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = state->state_param_enum_env;
+      $$[1] = $4;
+      $$[2] = $4;
+      $$[3] = 0;
+   }
+   ;
 
 progLocalParams: PROGRAM LOCAL '[' progLocalParamNums ']'
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = state->state_param_enum_local;
-	   $$[1] = $4[0];
-	   $$[2] = $4[1];
-           $$[3] = 0;
-	}
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = state->state_param_enum_local;
+      $$[1] = $4[0];
+      $$[2] = $4[1];
+      $$[3] = 0;
+   }
 
 progLocalParamNums: progLocalParamNum
-	{
-	   $$[0] = $1;
-	   $$[1] = $1;
-	}
-	| progLocalParamNum DOT_DOT progLocalParamNum
-	{
-	   $$[0] = $1;
-	   $$[1] = $3;
-	}
-	;
+   {
+      $$[0] = $1;
+      $$[1] = $1;
+   }
+   | progLocalParamNum DOT_DOT progLocalParamNum
+   {
+      $$[0] = $1;
+      $$[1] = $3;
+   }
+   ;
 
 progLocalParam: PROGRAM LOCAL '[' progLocalParamNum ']'
-	{
-	   memset($$, 0, sizeof($$));
-	   $$[0] = state->state_param_enum_local;
-	   $$[1] = $4;
-	   $$[2] = $4;
-           $$[3] = 0;
-	}
-	;
+   {
+      memset($$, 0, sizeof($$));
+      $$[0] = state->state_param_enum_local;
+      $$[1] = $4;
+      $$[2] = $4;
+      $$[3] = 0;
+   }
+   ;
 
 progEnvParamNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->limits->MaxEnvParams) {
-	      yyerror(& @1, state, "invalid environment parameter reference");
-	      YYERROR;
-	   }
-	   $$ = $1;
-	}
-	;
+   {
+      if ((unsigned) $1 >= state->limits->MaxEnvParams) {
+         yyerror(& @1, state, "invalid environment parameter reference");
+         YYERROR;
+      }
+      $$ = $1;
+   }
+   ;
 
 progLocalParamNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->limits->MaxLocalParams) {
-	      yyerror(& @1, state, "invalid local parameter reference");
-	      YYERROR;
-	   }
-	   $$ = $1;
-	}
-	;
+   {
+      if ((unsigned) $1 >= state->limits->MaxLocalParams) {
+         yyerror(& @1, state, "invalid local parameter reference");
+         YYERROR;
+      }
+      $$ = $1;
+   }
+   ;
 
 
 
@@ -1729,353 +1737,355 @@ paramConstDecl: paramConstScalarDecl | paramConstVector;
 paramConstUse: paramConstScalarUse | paramConstVector;
 
 paramConstScalarDecl: signedFloatConstant
-	{
-	   $$.count = 4;
-	   $$.data[0].f = $1;
-	   $$.data[1].f = $1;
-	   $$.data[2].f = $1;
-	   $$.data[3].f = $1;
-	}
-	;
+   {
+      $$.count = 4;
+      $$.data[0].f = $1;
+      $$.data[1].f = $1;
+      $$.data[2].f = $1;
+      $$.data[3].f = $1;
+   }
+   ;
 
 paramConstScalarUse: REAL
-	{
-	   $$.count = 1;
-	   $$.data[0].f = $1;
-	   $$.data[1].f = $1;
-	   $$.data[2].f = $1;
-	   $$.data[3].f = $1;
-	}
-	| INTEGER
-	{
-	   $$.count = 1;
-	   $$.data[0].f = (float) $1;
-	   $$.data[1].f = (float) $1;
-	   $$.data[2].f = (float) $1;
-	   $$.data[3].f = (float) $1;
-	}
-	;
+   {
+      $$.count = 1;
+      $$.data[0].f = $1;
+      $$.data[1].f = $1;
+      $$.data[2].f = $1;
+      $$.data[3].f = $1;
+   }
+   | INTEGER
+   {
+      $$.count = 1;
+      $$.data[0].f = (float) $1;
+      $$.data[1].f = (float) $1;
+      $$.data[2].f = (float) $1;
+      $$.data[3].f = (float) $1;
+   }
+   ;
 
 paramConstVector: '{' signedFloatConstant '}'
-	{
-	   $$.count = 4;
-	   $$.data[0].f = $2;
-	   $$.data[1].f = 0.0f;
-	   $$.data[2].f = 0.0f;
-	   $$.data[3].f = 1.0f;
-	}
-	| '{' signedFloatConstant ',' signedFloatConstant '}'
-	{
-	   $$.count = 4;
-	   $$.data[0].f = $2;
-	   $$.data[1].f = $4;
-	   $$.data[2].f = 0.0f;
-	   $$.data[3].f = 1.0f;
-	}
-	| '{' signedFloatConstant ',' signedFloatConstant ','
+   {
+      $$.count = 4;
+      $$.data[0].f = $2;
+      $$.data[1].f = 0.0f;
+      $$.data[2].f = 0.0f;
+      $$.data[3].f = 1.0f;
+   }
+   | '{' signedFloatConstant ',' signedFloatConstant '}'
+   {
+      $$.count = 4;
+      $$.data[0].f = $2;
+      $$.data[1].f = $4;
+      $$.data[2].f = 0.0f;
+      $$.data[3].f = 1.0f;
+   }
+   | '{' signedFloatConstant ',' signedFloatConstant ','
               signedFloatConstant '}'
-	{
-	   $$.count = 4;
-	   $$.data[0].f = $2;
-	   $$.data[1].f = $4;
-	   $$.data[2].f = $6;
-	   $$.data[3].f = 1.0f;
-	}
-	| '{' signedFloatConstant ',' signedFloatConstant ','
+   {
+      $$.count = 4;
+      $$.data[0].f = $2;
+      $$.data[1].f = $4;
+      $$.data[2].f = $6;
+      $$.data[3].f = 1.0f;
+   }
+   | '{' signedFloatConstant ',' signedFloatConstant ','
               signedFloatConstant ',' signedFloatConstant '}'
-	{
-	   $$.count = 4;
-	   $$.data[0].f = $2;
-	   $$.data[1].f = $4;
-	   $$.data[2].f = $6;
-	   $$.data[3].f = $8;
-	}
-	;
+   {
+      $$.count = 4;
+      $$.data[0].f = $2;
+      $$.data[1].f = $4;
+      $$.data[2].f = $6;
+      $$.data[3].f = $8;
+   }
+   ;
 
 signedFloatConstant: optionalSign REAL
-	{
-	   $$ = ($1) ? -$2 : $2;
-	}
-	| optionalSign INTEGER
-	{
-	   $$ = (float)(($1) ? -$2 : $2);
-	}
-	;
+   {
+      $$ = ($1) ? -$2 : $2;
+   }
+   | optionalSign INTEGER
+   {
+      $$ = (float)(($1) ? -$2 : $2);
+   }
+   ;
 
 optionalSign: '+'        { $$ = FALSE; }
-	| '-'            { $$ = TRUE;  }
-	|                { $$ = FALSE; }
-	;
+   | '-'            { $$ = TRUE;  }
+   |                { $$ = FALSE; }
+   ;
 
 TEMP_statement: TEMP { $<integer>$ = $1; } varNameList
-	;
+   ;
 
 ADDRESS_statement: ADDRESS { $<integer>$ = $1; } varNameList
-	;
+   ;
 
 varNameList: varNameList ',' IDENTIFIER
-	{
-	   if (!declare_variable(state, $3, $<integer>0, & @3)) {
-	      free($3);
-	      YYERROR;
-	   }
-	}
-	| IDENTIFIER
-	{
-	   if (!declare_variable(state, $1, $<integer>0, & @1)) {
-	      free($1);
-	      YYERROR;
-	   }
-	}
-	;
+   {
+      if (!declare_variable(state, $3, $<integer>0, & @3)) {
+         free($3);
+         YYERROR;
+      }
+   }
+   | IDENTIFIER
+   {
+      if (!declare_variable(state, $1, $<integer>0, & @1)) {
+         free($1);
+         YYERROR;
+      }
+   }
+   ;
 
 OUTPUT_statement: OUTPUT IDENTIFIER '=' resultBinding
-	{
-	   struct asm_symbol *const s =
-	      declare_variable(state, $2, at_output, & @2);
+   {
+      struct asm_symbol *const s =
+         declare_variable(state, $2, at_output, & @2);
 
-	   if (s == NULL) {
-	      free($2);
-	      YYERROR;
-	   } else {
-	      s->output_binding = $4;
-	   }
-	}
-	;
+      if (s == NULL) {
+         free($2);
+         YYERROR;
+      } else {
+         s->output_binding = $4;
+      }
+   }
+   ;
 
 resultBinding: RESULT POSITION
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_POS;
-	   } else {
-	      yyerror(& @2, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| RESULT FOGCOORD
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_FOGC;
-	   } else {
-	      yyerror(& @2, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| RESULT resultColBinding
-	{
-	   $$ = $2;
-	}
-	| RESULT POINTSIZE
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_PSIZ;
-	   } else {
-	      yyerror(& @2, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| RESULT TEXCOORD optTexCoordUnitNum
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_TEX0 + $3;
-	   } else {
-	      yyerror(& @2, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| RESULT DEPTH
-	{
-	   if (state->mode == ARB_fragment) {
-	      $$ = FRAG_RESULT_DEPTH;
-	   } else {
-	      yyerror(& @2, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	;
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_POS;
+      } else {
+         yyerror(& @2, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | RESULT FOGCOORD
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_FOGC;
+      } else {
+         yyerror(& @2, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | RESULT resultColBinding
+   {
+      $$ = $2;
+   }
+   | RESULT POINTSIZE
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_PSIZ;
+      } else {
+         yyerror(& @2, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | RESULT TEXCOORD optTexCoordUnitNum
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_TEX0 + $3;
+      } else {
+         yyerror(& @2, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | RESULT DEPTH
+   {
+      if (state->mode == ARB_fragment) {
+         $$ = FRAG_RESULT_DEPTH;
+      } else {
+         yyerror(& @2, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   ;
 
 resultColBinding: COLOR optResultFaceType optResultColorType
-	{
-	   $$ = $2 + $3;
-	}
-	;
+   {
+      $$ = $2 + $3;
+   }
+   ;
 
 optResultFaceType:
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_COL0;
-	   } else {
-	      if (state->option.DrawBuffers)
-		 $$ = FRAG_RESULT_DATA0;
-	      else
-		 $$ = FRAG_RESULT_COLOR;
-	   }
-	}
-	| '[' INTEGER ']'
-	{
-	   if (state->mode == ARB_vertex) {
-	      yyerror(& @1, state, "invalid program result name");
-	      YYERROR;
-	   } else {
-	      if (!state->option.DrawBuffers) {
-		 /* From the ARB_draw_buffers spec (same text exists
-		  * for ATI_draw_buffers):
-		  *
-		  *     If this option is not specified, a fragment
-		  *     program that attempts to bind
-		  *     "result.color[n]" will fail to load, and only
-		  *     "result.color" will be allowed.
-		  */
-		 yyerror(& @1, state,
-			 "result.color[] used without "
-			 "`OPTION ARB_draw_buffers' or "
-			 "`OPTION ATI_draw_buffers'");
-		 YYERROR;
-	      } else if ($2 >= state->MaxDrawBuffers) {
-		 yyerror(& @1, state,
-			 "result.color[] exceeds MAX_DRAW_BUFFERS_ARB");
-		 YYERROR;
-	      }
-	      $$ = FRAG_RESULT_DATA0 + $2;
-	   }
-	}
-	| FRONT
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_COL0;
-	   } else {
-	      yyerror(& @1, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| BACK
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = VARYING_SLOT_BFC0;
-	   } else {
-	      yyerror(& @1, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	;
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_COL0;
+      } else {
+         if (state->option.DrawBuffers)
+            $$ = FRAG_RESULT_DATA0;
+         else
+            $$ = FRAG_RESULT_COLOR;
+      }
+   }
+   | '[' INTEGER ']'
+   {
+      if (state->mode == ARB_vertex) {
+         yyerror(& @1, state, "invalid program result name");
+         YYERROR;
+      } else {
+         if (!state->option.DrawBuffers) {
+            /* From the ARB_draw_buffers spec (same text exists
+             * for ATI_draw_buffers):
+             *
+             *     If this option is not specified, a fragment
+             *     program that attempts to bind
+             *     "result.color[n]" will fail to load, and only
+             *     "result.color" will be allowed.
+             */
+            yyerror(& @1, state,
+                    "result.color[] used without "
+                    "`OPTION ARB_draw_buffers' or "
+                    "`OPTION ATI_draw_buffers'");
+            YYERROR;
+         } else if ($2 >= state->MaxDrawBuffers) {
+            yyerror(& @1, state,
+                    "result.color[] exceeds MAX_DRAW_BUFFERS_ARB");
+            YYERROR;
+         }
+         $$ = FRAG_RESULT_DATA0 + $2;
+      }
+   }
+   | FRONT
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_COL0;
+      } else {
+         yyerror(& @1, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | BACK
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = VARYING_SLOT_BFC0;
+      } else {
+         yyerror(& @1, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   ;
 
 optResultColorType:
-	{
-	   $$ = 0;
-	}
-	| PRIMARY
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = 0;
-	   } else {
-	      yyerror(& @1, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	| SECONDARY
-	{
-	   if (state->mode == ARB_vertex) {
-	      $$ = 1;
-	   } else {
-	      yyerror(& @1, state, "invalid program result name");
-	      YYERROR;
-	   }
-	}
-	;
+   {
+      $$ = 0;
+   }
+   | PRIMARY
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = 0;
+      } else {
+         yyerror(& @1, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   | SECONDARY
+   {
+      if (state->mode == ARB_vertex) {
+         $$ = 1;
+      } else {
+         yyerror(& @1, state, "invalid program result name");
+         YYERROR;
+      }
+   }
+   ;
 
 optFaceType:    { $$ = 0; }
-	| FRONT	{ $$ = 0; }
-	| BACK  { $$ = 1; }
-	;
+   | FRONT { $$ = 0; }
+   | BACK  { $$ = 1; }
+   ;
 
 optColorType:       { $$ = 0; }
-	| PRIMARY   { $$ = 0; }
-	| SECONDARY { $$ = 1; }
-	;
+   | PRIMARY   { $$ = 0; }
+   | SECONDARY { $$ = 1; }
+   ;
 
 optTexCoordUnitNum:                { $$ = 0; }
-	| '[' texCoordUnitNum ']'  { $$ = $2; }
-	;
+   | '[' texCoordUnitNum ']'  { $$ = $2; }
+   ;
 
 optTexImageUnitNum:                { $$ = 0; }
-	| '[' texImageUnitNum ']'  { $$ = $2; }
-	;
+   | '[' texImageUnitNum ']'  { $$ = $2; }
+   ;
 
 optLegacyTexUnitNum:               { $$ = 0; }
-	| '[' legacyTexUnitNum ']' { $$ = $2; }
-	;
+   | '[' legacyTexUnitNum ']' { $$ = $2; }
+   ;
 
 texCoordUnitNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxTextureCoordUnits) {
-	      yyerror(& @1, state, "invalid texture coordinate unit selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxTextureCoordUnits) {
+         yyerror(& @1, state, "invalid texture coordinate unit selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 texImageUnitNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxTextureImageUnits) {
-	      yyerror(& @1, state, "invalid texture image unit selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxTextureImageUnits) {
+         yyerror(& @1, state, "invalid texture image unit selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 legacyTexUnitNum: INTEGER
-	{
-	   if ((unsigned) $1 >= state->MaxTextureUnits) {
-	      yyerror(& @1, state, "invalid texture unit selector");
-	      YYERROR;
-	   }
+   {
+      if ((unsigned) $1 >= state->MaxTextureUnits) {
+         yyerror(& @1, state, "invalid texture unit selector");
+         YYERROR;
+      }
 
-	   $$ = $1;
-	}
-	;
+      $$ = $1;
+   }
+   ;
 
 ALIAS_statement: ALIAS IDENTIFIER '=' USED_IDENTIFIER
-	{
-	   struct asm_symbol *exist = (struct asm_symbol *)
+   {
+      struct asm_symbol *exist = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $2);
-	   struct asm_symbol *target = (struct asm_symbol *)
+      struct asm_symbol *target = (struct asm_symbol *)
               _mesa_symbol_table_find_symbol(state->st, $4);
 
-	   free($4);
+      free($4);
 
-	   if (exist != NULL) {
-	      char m[1000];
-	      snprintf(m, sizeof(m), "redeclared identifier: %s", $2);
-	      free($2);
-	      yyerror(& @2, state, m);
-	      YYERROR;
-	   } else if (target == NULL) {
-	      free($2);
-	      yyerror(& @4, state,
-		      "undefined variable binding in ALIAS statement");
-	      YYERROR;
-	   } else {
-              _mesa_symbol_table_add_symbol(state->st, $2, target);
-	   }
-	}
-	;
+      if (exist != NULL) {
+         char m[1000];
+         snprintf(m, sizeof(m), "redeclared identifier: %s", $2);
+         free($2);
+         yyerror(& @2, state, m);
+         YYERROR;
+      } else if (target == NULL) {
+         free($2);
+         yyerror(& @4, state,
+                 "undefined variable binding in ALIAS statement");
+         YYERROR;
+      } else {
+         _mesa_symbol_table_add_symbol(state->st, $2, target);
+         free($2);
+      }
+      (void)yynerrs;
+   }
+   ;
 
 string: IDENTIFIER
-	| USED_IDENTIFIER
-	;
+   | USED_IDENTIFIER
+   ;
 
 %%
 
 void
 asm_instruction_set_operands(struct asm_instruction *inst,
-			     const struct prog_dst_register *dst,
-			     const struct asm_src_register *src0,
-			     const struct asm_src_register *src1,
-			     const struct asm_src_register *src2)
+                             const struct prog_dst_register *dst,
+                             const struct asm_src_register *src0,
+                             const struct asm_src_register *src1,
+                             const struct asm_src_register *src2)
 {
    /* In the core ARB extensions only the KIL instruction doesn't have a
     * destination register.
@@ -2111,10 +2121,10 @@ asm_instruction_set_operands(struct asm_instruction *inst,
 
 struct asm_instruction *
 asm_instruction_ctor(enum prog_opcode op,
-		     const struct prog_dst_register *dst,
-		     const struct asm_src_register *src0,
-		     const struct asm_src_register *src1,
-		     const struct asm_src_register *src2)
+                     const struct prog_dst_register *dst,
+                     const struct asm_src_register *src0,
+                     const struct asm_src_register *src1,
+                     const struct asm_src_register *src2)
 {
    struct asm_instruction *inst = calloc(1, sizeof(struct asm_instruction));
 
@@ -2131,10 +2141,10 @@ asm_instruction_ctor(enum prog_opcode op,
 
 struct asm_instruction *
 asm_instruction_copy_ctor(const struct prog_instruction *base,
-			  const struct prog_dst_register *dst,
-			  const struct asm_src_register *src0,
-			  const struct asm_src_register *src1,
-			  const struct asm_src_register *src2)
+                          const struct prog_dst_register *dst,
+                          const struct asm_src_register *src0,
+                          const struct asm_src_register *src1,
+                          const struct asm_src_register *src2)
 {
    struct asm_instruction *inst = CALLOC_STRUCT(asm_instruction);
 
@@ -2170,8 +2180,8 @@ set_dst_reg(struct prog_dst_register *r, gl_register_file file, GLint index)
    assert(index <= maxIndex);
    (void) maxIndex;
    assert(file == PROGRAM_TEMPORARY ||
-	  file == PROGRAM_ADDRESS ||
-	  file == PROGRAM_OUTPUT);
+          file == PROGRAM_ADDRESS ||
+          file == PROGRAM_OUTPUT);
    memset(r, 0, sizeof(*r));
    r->File = file;
    r->Index = index;
@@ -2265,7 +2275,7 @@ validate_inputs(struct YYLTYPE *locp, struct asm_parser_state *state)
 
 struct asm_symbol *
 declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
-		 struct YYLTYPE *locp)
+                 struct YYLTYPE *locp)
 {
    struct asm_symbol *s = NULL;
    struct asm_symbol *exist = (struct asm_symbol *)
@@ -2282,30 +2292,30 @@ declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
       switch (t) {
       case at_temp:
          if (state->prog->arb.NumTemporaries >= state->limits->MaxTemps) {
-	    yyerror(locp, state, "too many temporaries declared");
-	    free(s);
-	    return NULL;
-	 }
+            yyerror(locp, state, "too many temporaries declared");
+            free(s);
+            return NULL;
+         }
 
          s->temp_binding = state->prog->arb.NumTemporaries;
          state->prog->arb.NumTemporaries++;
-	 break;
+         break;
 
       case at_address:
          if (state->prog->arb.NumAddressRegs >=
              state->limits->MaxAddressRegs) {
-	    yyerror(locp, state, "too many address registers declared");
-	    free(s);
-	    return NULL;
-	 }
+            yyerror(locp, state, "too many address registers declared");
+            free(s);
+            return NULL;
+         }
 
-	 /* FINISHME: Add support for multiple address registers.
-	  */
+         /* FINISHME: Add support for multiple address registers.
+          */
          state->prog->arb.NumAddressRegs++;
-	 break;
+         break;
 
       default:
-	 break;
+         break;
       }
 
       _mesa_symbol_table_add_symbol(state->st, s->name, s);
@@ -2318,7 +2328,7 @@ declare_variable(struct asm_parser_state *state, char *name, enum asm_type t,
 
 
 int add_state_reference(struct gl_program_parameter_list *param_list,
-			const gl_state_index16 tokens[STATE_LENGTH])
+                        const gl_state_index16 tokens[STATE_LENGTH])
 {
    const GLuint size = 4; /* XXX fix */
    char *name;
@@ -2338,8 +2348,8 @@ int add_state_reference(struct gl_program_parameter_list *param_list,
 
 int
 initialize_symbol_from_state(struct gl_program *prog,
-			     struct asm_symbol *param_var,
-			     const gl_state_index16 tokens[STATE_LENGTH])
+                             struct asm_symbol *param_var,
+                             const gl_state_index16 tokens[STATE_LENGTH])
 {
    int idx = -1;
    gl_state_index16 state_tokens[STATE_LENGTH];
@@ -2361,21 +2371,21 @@ initialize_symbol_from_state(struct gl_program *prog,
       const int last_row = state_tokens[3];
 
       for (row = first_row; row <= last_row; row++) {
-	 state_tokens[2] = state_tokens[3] = row;
+         state_tokens[2] = state_tokens[3] = row;
 
-	 idx = add_state_reference(prog->Parameters, state_tokens);
-	 if (param_var->param_binding_begin == ~0U) {
-	    param_var->param_binding_begin = idx;
+         idx = add_state_reference(prog->Parameters, state_tokens);
+         if (param_var->param_binding_begin == ~0U) {
+            param_var->param_binding_begin = idx;
             param_var->param_binding_swizzle = SWIZZLE_XYZW;
          }
 
-	 param_var->param_binding_length++;
+         param_var->param_binding_length++;
       }
    }
    else {
       idx = add_state_reference(prog->Parameters, state_tokens);
       if (param_var->param_binding_begin == ~0U) {
-	 param_var->param_binding_begin = idx;
+         param_var->param_binding_begin = idx;
          param_var->param_binding_swizzle = SWIZZLE_XYZW;
       }
       param_var->param_binding_length++;
@@ -2387,8 +2397,8 @@ initialize_symbol_from_state(struct gl_program *prog,
 
 int
 initialize_symbol_from_param(struct gl_program *prog,
-			     struct asm_symbol *param_var,
-			     const gl_state_index16 tokens[STATE_LENGTH])
+                             struct asm_symbol *param_var,
+                             const gl_state_index16 tokens[STATE_LENGTH])
 {
    int idx = -1;
    gl_state_index16 state_tokens[STATE_LENGTH];
@@ -2417,20 +2427,20 @@ initialize_symbol_from_param(struct gl_program *prog,
       const int last_row = state_tokens[2];
 
       for (row = first_row; row <= last_row; row++) {
-	 state_tokens[1] = state_tokens[2] = row;
+         state_tokens[1] = state_tokens[2] = row;
 
-	 idx = add_state_reference(prog->Parameters, state_tokens);
-	 if (param_var->param_binding_begin == ~0U) {
-	    param_var->param_binding_begin = idx;
+         idx = add_state_reference(prog->Parameters, state_tokens);
+         if (param_var->param_binding_begin == ~0U) {
+            param_var->param_binding_begin = idx;
             param_var->param_binding_swizzle = SWIZZLE_XYZW;
          }
-	 param_var->param_binding_length++;
+         param_var->param_binding_length++;
       }
    }
    else {
       idx = add_state_reference(prog->Parameters, state_tokens);
       if (param_var->param_binding_begin == ~0U) {
-	 param_var->param_binding_begin = idx;
+         param_var->param_binding_begin = idx;
          param_var->param_binding_swizzle = SWIZZLE_XYZW;
       }
       param_var->param_binding_length++;
@@ -2452,8 +2462,8 @@ initialize_symbol_from_param(struct gl_program *prog,
  */
 int
 initialize_symbol_from_const(struct gl_program *prog,
-			     struct asm_symbol *param_var,
-			     const struct asm_vector *vec,
+                             struct asm_symbol *param_var,
+                             const struct asm_vector *vec,
                              GLboolean allowSwizzle)
 {
    unsigned swizzle;
@@ -2517,7 +2527,7 @@ yyerror(YYLTYPE *locp, struct asm_parser_state *state, const char *s)
    }
 
    err_str = make_error_string("line %u, char %u: error: %s\n",
-			       locp->first_line, locp->first_column, s);
+                               locp->first_line, locp->first_column, s);
    _mesa_set_program_error(state->ctx, locp->position, err_str);
 
    if (err_str) {
@@ -2528,7 +2538,7 @@ yyerror(YYLTYPE *locp, struct asm_parser_state *state, const char *s)
 
 GLboolean
 _mesa_parse_arb_program(struct gl_context *ctx, GLenum target, const GLubyte *str,
-			GLsizei len, struct asm_parser_state *state)
+                        GLsizei len, struct asm_parser_state *state)
 {
    struct asm_instruction *inst;
    unsigned i;

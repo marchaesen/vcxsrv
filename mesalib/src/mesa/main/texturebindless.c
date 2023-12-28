@@ -21,7 +21,7 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "enums.h"
 
@@ -240,6 +240,7 @@ new_texture_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
                                                     true, false);
    } else {
       view = st_get_buffer_sampler_view_from_stobj(st, texObj, false);
+      sampler.unnormalized_coords = 0;
    }
 
    return pipe->create_texture_handle(pipe, view, &sampler);
@@ -364,7 +365,7 @@ get_image_handle(struct gl_context *ctx, struct gl_texture_object *texObj,
 
    /* Request a new image handle from the driver. */
    struct pipe_image_view image;
-   st_convert_image(st_context(ctx), &imgObj, &image, GL_READ_WRITE);
+   st_convert_image(st_context(ctx), &imgObj, &image, 0);
    handle = ctx->pipe->create_image_handle(ctx->pipe, &image);
    if (!handle) {
       mtx_unlock(&ctx->Shared->HandlesMutex);

@@ -25,10 +25,10 @@
 #include "dzn_physical_device_enum.h"
 #include "dzn_dxgi.h"
 
-#include "log.h"
+#include "util/log.h"
 
 VkResult
-dzn_enumerate_physical_devices_dxgi(struct dzn_instance *instance)
+dzn_enumerate_physical_devices_dxgi(struct vk_instance *instance)
 {
    IDXGIFactory4 *factory = dxgi_get_factory(false);
    IDXGIAdapter1 *adapter = NULL;

@@ -42,13 +42,16 @@ FcFontSetCreate (void)
 void
 FcFontSetDestroy (FcFontSet *s)
 {
-    int	    i;
+    if (s)
+    {
+	int	    i;
 
-    for (i = 0; i < s->nfont; i++)
-	FcPatternDestroy (s->fonts[i]);
-    if (s->fonts)
-	free (s->fonts);
-    free (s);
+	for (i = 0; i < s->nfont; i++)
+	    FcPatternDestroy (s->fonts[i]);
+	if (s->fonts)
+	    free (s->fonts);
+	free (s);
+    }
 }
 
 FcBool

@@ -91,9 +91,9 @@ This list is likely incomplete.
 -  `Bug 84677 <https://bugs.freedesktop.org/show_bug.cgi?id=84677>`__ -
    Triangle disappears with glPolygonMode GL_LINE
 -  `Bug 86281 <https://bugs.freedesktop.org/show_bug.cgi?id=86281>`__ -
-   brw_meta_fast_clear (brw=brw@entry=0x7fffd4097a08,
-   fb=fb@entry=0x7fffd40fa900, buffers=buffers@entry=2,
-   partial_clear=partial_clear@entry=false)
+   brw_meta_fast_clear (brw=brw\@entry=0x7fffd4097a08,
+   fb=fb\@entry=0x7fffd40fa900, buffers=buffers\@entry=2,
+   partial_clear=partial_clear\@entry=false)
 -  `Bug 86469 <https://bugs.freedesktop.org/show_bug.cgi?id=86469>`__ -
    Unreal Engine demo doesn't run
 -  `Bug 86720 <https://bugs.freedesktop.org/show_bug.cgi?id=86720>`__ -

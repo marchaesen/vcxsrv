@@ -23,7 +23,7 @@
 
 #include "ir3_compiler.h"
 #include "ir3_ra.h"
-#include "ralloc.h"
+#include "util/ralloc.h"
 
 /* This pass "merges" compatible phi-web SSA values. First, we insert a bunch
  * of parallelcopy's to trivially turn the program into CSSA form. Then we

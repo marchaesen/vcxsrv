@@ -76,7 +76,7 @@ u_trace_pipe_context_init(struct u_trace_context *utctx,
 inline void
 trace_framebuffer_state(struct u_trace *ut, void *cs, const struct pipe_framebuffer_state *pfb)
 {
-   if (likely(!u_trace_instrument()))
+   if (likely(!u_trace_enabled(ut->utctx)))
       return;
 
    trace_framebuffer(ut, cs, pfb);

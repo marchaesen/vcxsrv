@@ -36,11 +36,11 @@ FUNC(FUNC_VARS)
    if (0) {
       debug_printf("%s: prim 0x%x, start %d, count %d, max_count_simple %d, "
                    "max_count_loop %d, max_count_fan %d\n",
-                   __FUNCTION__, prim, start, count, max_count_simple,
+                   __func__, prim, start, count, max_count_simple,
                    max_count_loop, max_count_fan);
    }
 
-   if (prim == PIPE_PRIM_PATCHES) {
+   if (prim == MESA_PRIM_PATCHES) {
       first = vsplit->draw->pt.vertices_per_patch;
       incr = vsplit->draw->pt.vertices_per_patch;
    } else
@@ -62,8 +62,7 @@ FUNC(FUNC_VARS)
    /* no splitting required */
    if (count <= max_count_simple) {
       SEGMENT_SIMPLE(0x0, start, count);
-   }
-   else {
+   } else {
       const unsigned rollback = first - incr;
       unsigned flags = DRAW_SPLIT_AFTER, seg_start = 0, seg_max;
 
@@ -79,22 +78,22 @@ FUNC(FUNC_VARS)
        * That is, remaining is implicitly trimmed.
        */
       switch (prim) {
-      case PIPE_PRIM_PATCHES:
-      case PIPE_PRIM_POINTS:
-      case PIPE_PRIM_LINES:
-      case PIPE_PRIM_LINE_STRIP:
-      case PIPE_PRIM_TRIANGLES:
-      case PIPE_PRIM_TRIANGLE_STRIP:
-      case PIPE_PRIM_QUADS:
-      case PIPE_PRIM_QUAD_STRIP:
-      case PIPE_PRIM_LINES_ADJACENCY:
-      case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      case PIPE_PRIM_TRIANGLES_ADJACENCY:
-      case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      case MESA_PRIM_PATCHES:
+      case MESA_PRIM_POINTS:
+      case MESA_PRIM_LINES:
+      case MESA_PRIM_LINE_STRIP:
+      case MESA_PRIM_TRIANGLES:
+      case MESA_PRIM_TRIANGLE_STRIP:
+      case MESA_PRIM_QUADS:
+      case MESA_PRIM_QUAD_STRIP:
+      case MESA_PRIM_LINES_ADJACENCY:
+      case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      case MESA_PRIM_TRIANGLES_ADJACENCY:
+      case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
          seg_max =
             draw_pt_trim_count(MIN2(max_count_simple, count), first, incr);
-         if (prim == PIPE_PRIM_TRIANGLE_STRIP ||
-             prim == PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY) {
+         if (prim == MESA_PRIM_TRIANGLE_STRIP ||
+             prim == MESA_PRIM_TRIANGLE_STRIP_ADJACENCY) {
             /* make sure we flush even number of triangles at a time */
             if (seg_max < count && !(((seg_max - first) / incr) & 1))
                seg_max -= incr;
@@ -108,8 +107,7 @@ FUNC(FUNC_VARS)
                seg_start += seg_max - rollback;
 
                flags |= DRAW_SPLIT_BEFORE;
-            }
-            else {
+            } else {
                flags &= ~DRAW_SPLIT_AFTER;
 
                SEGMENT_SIMPLE(flags, start + seg_start, remaining);
@@ -118,7 +116,7 @@ FUNC(FUNC_VARS)
          } while (seg_start < count);
          break;
 
-      case PIPE_PRIM_LINE_LOOP:
+      case MESA_PRIM_LINE_LOOP:
          seg_max =
             draw_pt_trim_count(MIN2(max_count_loop, count), first, incr);
 
@@ -130,8 +128,7 @@ FUNC(FUNC_VARS)
                seg_start += seg_max - rollback;
 
                flags |= DRAW_SPLIT_BEFORE;
-            }
-            else {
+            } else {
                flags &= ~DRAW_SPLIT_AFTER;
 
                SEGMENT_LOOP(flags, start + seg_start, remaining, start);
@@ -140,8 +137,8 @@ FUNC(FUNC_VARS)
          } while (seg_start < count);
          break;
 
-      case PIPE_PRIM_TRIANGLE_FAN:
-      case PIPE_PRIM_POLYGON:
+      case MESA_PRIM_TRIANGLE_FAN:
+      case MESA_PRIM_POLYGON:
          seg_max =
             draw_pt_trim_count(MIN2(max_count_fan, count), first, incr);
 
@@ -153,8 +150,7 @@ FUNC(FUNC_VARS)
                seg_start += seg_max - rollback;
 
                flags |= DRAW_SPLIT_BEFORE;
-            }
-            else {
+            } else {
                flags &= ~DRAW_SPLIT_AFTER;
 
                SEGMENT_FAN(flags, start + seg_start, remaining, start);

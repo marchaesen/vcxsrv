@@ -54,6 +54,17 @@ from The Open Group.
 #include "misc.h"
 #include "set.h"
 
+/*
+ * Ideally we would always use _Alignof(type) here, but that requires C11, so
+ * we approximate this using sizeof(void*) for older C standards as that
+ * should be a valid assumption on all supported architectures.
+ */
+#if defined(__STDC__) && (__STDC_VERSION__ - 0 >= 201112L)
+#define MinSetAlignment(type) max(_Alignof(type), _Alignof(unsigned long))
+#else
+#define MinSetAlignment(type) max(sizeof(void*), sizeof(unsigned long))
+#endif
+
 static int
 maxMemberInInterval(RecordSetInterval * pIntervals, int nIntervals)
 {
@@ -179,7 +190,7 @@ BitVectorSetMemoryRequirements(RecordSetInterval * pIntervals, int nIntervals,
 {
     int nlongs;
 
-    *alignment = sizeof(unsigned long);
+    *alignment = MinSetAlignment(BitVectorSet);
     nlongs = (maxMember + BITS_PER_LONG) / BITS_PER_LONG;
     return (sizeof(BitVectorSet) + nlongs * sizeof(unsigned long));
 }
@@ -289,7 +300,7 @@ static int
 IntervalListMemoryRequirements(RecordSetInterval * pIntervals, int nIntervals,
                                int maxMember, int *alignment)
 {
-    *alignment = sizeof(unsigned long);
+    *alignment = MinSetAlignment(IntervalListSet);
     return sizeof(IntervalListSet) + nIntervals * sizeof(RecordSetInterval);
 }
 

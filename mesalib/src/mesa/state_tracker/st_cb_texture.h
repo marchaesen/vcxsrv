@@ -30,7 +30,7 @@
 #define ST_CB_TEXTURE_H
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 struct dd_function_table;
 struct gl_context;

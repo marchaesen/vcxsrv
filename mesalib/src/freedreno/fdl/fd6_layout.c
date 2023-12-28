@@ -58,9 +58,27 @@ fdl6_get_ubwc_blockwidth(const struct fdl_layout *layout,
       *blockwidth = 16;
       *blockheight = 8;
       return;
-   } else if (layout->format == PIPE_FORMAT_Y8_UNORM) {
+   }
+
+   if (layout->format == PIPE_FORMAT_Y8_UNORM) {
       *blockwidth = 32;
       *blockheight = 8;
+      return;
+   }
+
+   /* special case for 2bpp + MSAA (not layout->cpp is already
+    * pre-multiplied by nr_samples):
+    */
+   if ((layout->cpp / layout->nr_samples == 2) && (layout->nr_samples > 1)) {
+      if (layout->nr_samples == 2) {
+         *blockwidth = 8;
+         *blockheight = 4;
+      } else if (layout->nr_samples == 4) {
+         *blockwidth = 4;
+         *blockheight = 4;
+      } else {
+         unreachable("bad nr_samples");
+      }
       return;
    }
 
@@ -83,11 +101,13 @@ fdl6_tile_alignment(struct fdl_layout *layout, uint32_t *heightalign)
       layout->pitchalign = 2;
    }
 
-   /* note: this base_align is *probably* not always right,
-    * it doesn't really get tested. for example with UBWC we might
-    * want 4k alignment, since we align UBWC levels to 4k
+   /* Empirical evidence suggests that images with UBWC could have much
+    * looser alignment requirements, however the validity of alignment is
+    * heavily undertested and the "officially" supported alignment is 4096b.
     */
-   if (layout->cpp == 1)
+   if (layout->ubwc)
+      layout->base_align = 4096;
+   else if (layout->cpp == 1)
       layout->base_align = 64;
    else if (layout->cpp == 2)
       layout->base_align = 128;

@@ -724,6 +724,7 @@ XkbFreeInfo(XkbSrvInfoPtr xkbi)
         XkbFreeKeyboard(xkbi->desc, XkbAllComponentsMask, TRUE);
         xkbi->desc = NULL;
     }
+    free(xkbi->filters);
     free(xkbi);
     return;
 }

@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -33,10 +33,6 @@
 #include <unistd.h>
 #include <X11/extensions/XKM.h>
 #include "xkbpath.h"
-
-#ifndef DFLT_XKB_CONFIG_ROOT
-#define DFLT_XKB_CONFIG_ROOT	"xkbdata"
-#endif
 
 #ifndef PATH_MAX
 #define	PATH_MAX 1024
@@ -58,7 +54,7 @@ static char **includePath; /* Holds all directories we might be including data f
  * @param nextop_rtrn Set to the next operation in the complete statement.
  * @param extra_data Set to the string between ( and ), if any.
  *
- * @return True if parsing was succcessful, False for an illegal string.
+ * @return True if parsing was successful, False for an illegal string.
  *
  * Example: "evdev+aliases(qwerty)"
  *      str_inout = aliases(qwerty)
@@ -128,7 +124,7 @@ XkbParseIncludeMap(char **str_inout, char **file_rtrn, char **map_rtrn,
         }
         else if (str[0] == '(')
         {
-            uFree(*extra_data);
+            free(*extra_data);
             return False;
         }
         else
@@ -139,8 +135,8 @@ XkbParseIncludeMap(char **str_inout, char **file_rtrn, char **map_rtrn,
             tmp = strchr(str, ')');
             if ((tmp == NULL) || (tmp[1] != '\0'))
             {
-                uFree(*file_rtrn);
-                uFree(*extra_data);
+                free(*file_rtrn);
+                free(*extra_data);
                 return False;
             }
             *tmp++ = '\0';
@@ -180,20 +176,15 @@ XkbAddDefaultDirectoriesToPath(void)
 /**
  * Remove all entries from the global includePath.
  */
-void
+static void
 XkbClearIncludePath(void)
 {
-    register int i;
-
     if (szPath > 0)
     {
-        for (i = 0; i < nPathEntries; i++)
+        for (int i = 0; i < nPathEntries; i++)
         {
-            if (includePath[i] != NULL)
-            {
-                uFree(includePath[i]);
-                includePath[i] = NULL;
-            }
+            free(includePath[i]);
+            includePath[i] = NULL;
         }
         nPathEntries = 0;
     }
@@ -217,28 +208,30 @@ XkbAddDirectoryToPath(const char *dir)
     len = strlen(dir);
     if (len + 2 >= PATH_MAX)
     {                           /* allow for '/' and at least one character */
-        ERROR2("Path entry (%s) too long (maxiumum length is %d)\n",
+        ERROR("Path entry (%s) too long (maximum length is %d)\n",
                dir, PATH_MAX - 3);
         return False;
     }
     if (nPathEntries >= szPath)
     {
+        char **new;
         szPath += PATH_CHUNK;
-        includePath = (char **) realloc(includePath, szPath * sizeof(char *));
-        if (includePath == NULL)
+        new = (char **) realloc(includePath, szPath * sizeof(char *));
+        if (new == NULL)
         {
             WSGO("Allocation failed (includePath)\n");
             return False;
         }
+        else
+            includePath = new;
     }
-    includePath[nPathEntries] =
-        (char *) calloc(strlen(dir) + 1, sizeof(char));
+    includePath[nPathEntries] = strdup(dir);
     if (includePath[nPathEntries] == NULL)
     {
-        WSGO1("Allocation failed (includePath[%d])\n", nPathEntries);
+        WSGO("Allocation failed (includePath[%d])\n", nPathEntries);
         return False;
     }
-    strcpy(includePath[nPathEntries++], dir);
+    nPathEntries++;
     return True;
 }
 
@@ -291,7 +284,7 @@ XkbDirectoryForInclude(unsigned type)
 
 typedef struct _FileCacheEntry
 {
-    char *name;
+    const char *name;
     unsigned type;
     char *path;
     void *data;
@@ -313,7 +306,7 @@ static FileCacheEntry *fileCache;
  * @return The data from the overwritten file or NULL.
  */
 void *
-XkbAddFileToCache(char *name, unsigned type, char *path, void *data)
+XkbAddFileToCache(const char *name, unsigned type, char *path, void *data)
 {
     FileCacheEntry *entry;
 
@@ -322,20 +315,22 @@ XkbAddFileToCache(char *name, unsigned type, char *path, void *data)
         if ((type == entry->type) && (uStringEqual(name, entry->name)))
         {
             void *old = entry->data;
-            WSGO2("Replacing file cache entry (%s/%d)\n", name, type);
+            WSGO("Replacing file cache entry (%s/%d)\n", name, type);
             entry->path = path;
             entry->data = data;
             return old;
         }
     }
-    entry = uTypedAlloc(FileCacheEntry);
+    entry = malloc(sizeof(FileCacheEntry));
     if (entry != NULL)
     {
-        entry->name = name;
-        entry->type = type;
-        entry->path = path;
-        entry->data = data;
-        entry->next = fileCache;
+        *entry = (FileCacheEntry) {
+            .name = name,
+            .type = type,
+            .path = path,
+            .data = data,
+            .next = fileCache
+        };
         fileCache = entry;
     }
     return NULL;
@@ -351,7 +346,7 @@ XkbAddFileToCache(char *name, unsigned type, char *path, void *data)
  * @return the data from the cache entry or NULL if no matching entry was found.
  */
 void *
-XkbFindFileInCache(char *name, unsigned type, char **pathRtrn)
+XkbFindFileInCache(const char *name, unsigned type, char **pathRtrn)
 {
     FileCacheEntry *entry;
 
@@ -379,25 +374,25 @@ XkbFindFileInCache(char *name, unsigned type, char **pathRtrn)
  * pathRtrn is undefined.
  */
 FILE *
-XkbFindFileInPath(char *name, unsigned type, char **pathRtrn)
+XkbFindFileInPath(const char *name, unsigned type, char **pathRtrn)
 {
-    register int i;
     FILE *file = NULL;
-    int nameLen, typeLen, pathLen;
-    char buf[PATH_MAX], *typeDir;
+    int nameLen, typeLen;
+    char buf[PATH_MAX];
+    const char *typeDir;
 
     typeDir = XkbDirectoryForInclude(type);
     nameLen = strlen(name);
     typeLen = strlen(typeDir);
-    for (i = 0; i < nPathEntries; i++)
+    for (int i = 0; i < nPathEntries; i++)
     {
-        pathLen = strlen(includePath[i]);
+        int pathLen = strlen(includePath[i]);
         if (typeLen < 1)
             continue;
 
         if ((nameLen + typeLen + pathLen + 2) >= PATH_MAX)
         {
-            ERROR3("File name (%s/%s/%s) too long\n", includePath[i],
+            ERROR("File name (%s/%s/%s) too long\n", includePath[i],
                    typeDir, name);
             ACTION("Ignored\n");
             continue;
@@ -410,9 +405,7 @@ XkbFindFileInPath(char *name, unsigned type, char **pathRtrn)
 
     if ((file != NULL) && (pathRtrn != NULL))
     {
-        *pathRtrn = (char *) calloc(strlen(buf) + 1, sizeof(char));
-        if (*pathRtrn != NULL)
-            strcpy(*pathRtrn, buf);
+        *pathRtrn = strdup(buf);
     }
     return file;
 }

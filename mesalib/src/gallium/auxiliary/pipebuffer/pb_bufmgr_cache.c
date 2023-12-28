@@ -34,9 +34,9 @@
  */
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "util/list.h"
 
@@ -206,9 +206,11 @@ pb_cache_manager_create_buffer(struct pb_manager *_mgr,
    struct pb_cache_manager *mgr = pb_cache_manager(_mgr);
    struct pb_cache_buffer *buf;
 
+   pb_size aligned_size = align64(size, desc->alignment);
+
    /* get a buffer from the cache */
    buf = (struct pb_cache_buffer *)
-         pb_cache_reclaim_buffer(&mgr->cache, size, desc->alignment,
+         pb_cache_reclaim_buffer(&mgr->cache, aligned_size, desc->alignment,
                                  desc->usage, 0);
    if (buf)
       return &buf->base;
@@ -218,12 +220,12 @@ pb_cache_manager_create_buffer(struct pb_manager *_mgr,
    if (!buf)
       return NULL;
    
-   buf->buffer = mgr->provider->create_buffer(mgr->provider, size, desc);
+   buf->buffer = mgr->provider->create_buffer(mgr->provider, aligned_size, desc);
 
    /* Empty the cache and try again. */
    if (!buf->buffer) {
       pb_cache_release_all_buffers(&mgr->cache);
-      buf->buffer = mgr->provider->create_buffer(mgr->provider, size, desc);
+      buf->buffer = mgr->provider->create_buffer(mgr->provider, aligned_size, desc);
    }
 
    if(!buf->buffer) {
@@ -233,7 +235,7 @@ pb_cache_manager_create_buffer(struct pb_manager *_mgr,
    
    assert(pipe_is_referenced(&buf->buffer->reference));
    assert(pb_check_alignment(desc->alignment, 1u << buf->buffer->alignment_log2));
-   assert(buf->buffer->size >= size);
+   assert(buf->buffer->size >= aligned_size);
    
    pipe_reference_init(&buf->base.reference, 1);
    buf->base.alignment_log2 = buf->buffer->alignment_log2;

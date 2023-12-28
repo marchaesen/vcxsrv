@@ -37,6 +37,12 @@ percent(uint64_t a, uint64_t b)
    return 100.f * (a / static_cast<double>(b));
 }
 
+bool
+FreedrenoDriver::is_dump_perfcnt_preemptible() const
+{
+   return false;
+}
+
 uint64_t
 FreedrenoDriver::get_min_sampling_period_ns()
 {
@@ -403,21 +409,19 @@ FreedrenoDriver::configure_counters(bool reset, bool wait)
       (enum fd_ringbuffer_flags)(FD_RINGBUFFER_PRIMARY | FD_RINGBUFFER_GROWABLE);
    struct fd_ringbuffer *ring = fd_submit_new_ringbuffer(submit, 0x1000, flags);
 
-   for (auto countable : countables)
+   for (const auto &countable : countables)
       countable.configure(ring, reset);
 
-   struct fd_submit_fence fence = {};
-   util_queue_fence_init(&fence.ready);
+   struct fd_fence *fence = fd_submit_flush(submit, -1, false);
 
-   fd_submit_flush(submit, -1, &fence);
-
-   util_queue_fence_wait(&fence.ready);
+   fd_fence_flush(fence);
+   fd_fence_del(fence);
 
    fd_ringbuffer_del(ring);
    fd_submit_del(submit);
 
    if (wait)
-      fd_pipe_wait(pipe, &fence.fence);
+      fd_pipe_wait(pipe, fence);
 }
 
 /**
@@ -428,7 +432,7 @@ FreedrenoDriver::collect_countables()
 {
    last_dump_ts = perfetto::base::GetBootTimeNs().count();
 
-   for (auto countable : countables)
+   for (const auto &countable : countables)
       countable.collect();
 }
 
@@ -476,10 +480,10 @@ FreedrenoDriver::init_perfcnt()
 
    state.resize(next_countable_id);
 
-   for (auto countable : countables)
+   for (const auto &countable : countables)
       countable.resolve();
 
-   info = fd_dev_info(dev_id);
+   info = fd_dev_info_raw(dev_id);
 
    io = fd_dt_find_io();
    if (!io) {
@@ -593,7 +597,7 @@ FreedrenoDriver::Countable::Countable(FreedrenoDriver *d, std::string name)
 
 /* Emit register writes on ring to configure counter/countable muxing: */
 void
-FreedrenoDriver::Countable::configure(struct fd_ringbuffer *ring, bool reset)
+FreedrenoDriver::Countable::configure(struct fd_ringbuffer *ring, bool reset) const
 {
    const struct fd_perfcntr_countable *countable = d->state[id].countable;
    const struct fd_perfcntr_counter   *counter   = d->state[id].counter;
@@ -624,24 +628,22 @@ FreedrenoDriver::Countable::configure(struct fd_ringbuffer *ring, bool reset)
 
 /* Collect current counter value and calculate delta since last sample: */
 void
-FreedrenoDriver::Countable::collect()
+FreedrenoDriver::Countable::collect() const
 {
    const struct fd_perfcntr_counter *counter = d->state[id].counter;
 
    d->state[id].last_value = d->state[id].value;
 
-   uint32_t *reg_lo = (uint32_t *)d->io + counter->counter_reg_lo;
-   uint32_t *reg_hi = (uint32_t *)d->io + counter->counter_reg_hi;
+   /* this is true on a5xx and later */
+   assert(counter->counter_reg_lo + 1 == counter->counter_reg_hi);
+   uint64_t *reg = (uint64_t *)((uint32_t *)d->io + counter->counter_reg_lo);
 
-   uint32_t lo = *reg_lo;
-   uint32_t hi = *reg_hi;
-
-   d->state[id].value = lo | ((uint64_t)hi << 32);
+   d->state[id].value = *reg;
 }
 
 /* Resolve the countable and assign next counter from it's group: */
 void
-FreedrenoDriver::Countable::resolve()
+FreedrenoDriver::Countable::resolve() const
 {
    for (unsigned i = 0; i < d->num_perfcntrs; i++) {
       const struct fd_perfcntr_group *g = &d->perfcntrs[i];
@@ -706,6 +708,13 @@ uint64_t
 FreedrenoDriver::gpu_timestamp() const
 {
    return perfetto::base::GetBootTimeNs().count();
+}
+
+bool
+FreedrenoDriver::cpu_gpu_timestamp(uint64_t &, uint64_t &) const
+{
+   /* Not supported */
+   return false;
 }
 
 } // namespace pps

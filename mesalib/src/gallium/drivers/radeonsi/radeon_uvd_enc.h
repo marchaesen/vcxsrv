@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2018 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -322,6 +303,31 @@ typedef struct ruvd_enc_feedback_buffer_s {
    uint32_t feedback_data_size;
 } ruvd_enc_feedback_buffer_t;
 
+typedef struct ruvd_enc_vui_info_s
+{
+   uint32_t vui_parameters_present_flag;
+   struct {
+      uint32_t aspect_ratio_info_present_flag : 1;
+      uint32_t timing_info_present_flag : 1;
+      uint32_t video_signal_type_present_flag : 1;
+      uint32_t colour_description_present_flag : 1;
+      uint32_t chroma_loc_info_present_flag : 1;
+   } flags;
+   uint32_t aspect_ratio_idc;
+   uint32_t sar_width;
+   uint32_t sar_height;
+   uint32_t num_units_in_tick;
+   uint32_t time_scale;
+   uint32_t video_format;
+   uint32_t video_full_range_flag;
+   uint32_t colour_primaries;
+   uint32_t transfer_characteristics;
+   uint32_t matrix_coefficients;
+   uint32_t chroma_sample_loc_type_top_field;
+   uint32_t chroma_sample_loc_type_bottom_field;
+   uint32_t max_num_reorder_frames;
+} ruvd_enc_vui_info;
+
 typedef void (*radeon_uvd_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer **handle,
                                           struct radeon_surf **surface);
 
@@ -358,6 +364,7 @@ struct radeon_uvd_enc_pic {
    unsigned bit_depth_chroma_minus8;
    unsigned nal_unit_type;
    unsigned max_num_merge_cand;
+   ruvd_enc_vui_info vui_info;
 
    bool not_referenced;
    bool is_iframe;

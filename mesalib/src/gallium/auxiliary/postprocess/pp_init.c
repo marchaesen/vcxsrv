@@ -25,7 +25,7 @@
  *
  **************************************************************************/
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 #include "postprocess/filters.h"
 #include "postprocess/pp_private.h"
@@ -37,10 +37,21 @@
 #include "util/u_memory.h"
 #include "cso_cache/cso_context.h"
 
+const struct pp_filter_t pp_filters[PP_FILTERS] = {
+/*    name			inner	shaders	verts	init			run                       free   */
+   { "pp_noblue",		0,	2,	1,	pp_noblue_init,		pp_nocolor,               pp_nocolor_free },
+   { "pp_nogreen",		0,	2,	1,	pp_nogreen_init,	pp_nocolor,               pp_nocolor_free },
+   { "pp_nored",		0,	2,	1,	pp_nored_init,		pp_nocolor,               pp_nocolor_free },
+   { "pp_celshade",		0,	2,	1,	pp_celshade_init,	pp_nocolor,               pp_celshade_free },
+   { "pp_jimenezmlaa",		2,	5,	2,	pp_jimenezmlaa_init,	pp_jimenezmlaa,           pp_jimenezmlaa_free },
+   { "pp_jimenezmlaa_color",	2,	5,	2,	pp_jimenezmlaa_init_color, pp_jimenezmlaa_color,  pp_jimenezmlaa_free },
+};
+
 /** Initialize the post-processing queue. */
 struct pp_queue_t *
 pp_init(struct pipe_context *pipe, const unsigned int *enabled,
-        struct cso_context *cso, struct st_context_iface *st)
+        struct cso_context *cso, struct st_context *st,
+        pp_st_invalidate_state_func st_invalidate_state)
 {
    unsigned int num_filters = 0;
    unsigned int curpos = 0, i, tmp_req = 0;
@@ -78,7 +89,7 @@ pp_init(struct pipe_context *pipe, const unsigned int *enabled,
       goto error;
    }
 
-   ppq->p = pp_init_prog(ppq, pipe, cso, st);
+   ppq->p = pp_init_prog(ppq, pipe, cso, st, st_invalidate_state);
    if (ppq->p == NULL) {
       pp_debug("pp_init_prog returned NULL.\n");
       goto error;
@@ -242,7 +253,7 @@ pp_debug(const char *fmt, ...)
 {
    va_list ap;
 
-   if (!debug_get_bool_option("PP_DEBUG", FALSE))
+   if (!debug_get_bool_option("PP_DEBUG", false))
       return;
 
    va_start(ap, fmt);

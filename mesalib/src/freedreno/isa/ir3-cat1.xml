@@ -223,7 +223,7 @@ SOFTWARE.
 
 <bitset name="#cat1-gpr-src" size="8">
 	<display>
-		{SRC_R}{HALF}{SRC}
+		{LAST}{SRC_R}{HALF}{SRC}
 	</display>
 	<field name="SRC" low="0" high="7" type="#reg-gpr"/>
 	<encode type="struct ir3_register *">
@@ -275,12 +275,18 @@ SOFTWARE.
 
 <bitset name="mov-gpr" extends="#instruction-cat1-mov">
 	<field name="SRC" low="0" high="7" type="#cat1-gpr-src">
+		<param name="LAST"/>
 		<param name="SRC_R"/>
 		<param name="HALF"/>
 	</field>
-	<pattern low="8" high="31">000000000000000000000000</pattern>
+	<pattern low="8" high="9">00</pattern>
+	<field name="LAST" pos="10" type="bool" display="(last)"/>
+	<pattern low="11" high="31">000000000000000000000</pattern>
 	<field name="SRC_R" pos="43" type="bool" display="(r)"/>
 	<pattern low="53" high="54">00</pattern>
+	<encode>
+		<map name="LAST">!!(src->srcs[0]->flags &amp; IR3_REG_LAST_USE)</map>
+	</encode>
 </bitset>
 
 <bitset name="#instruction-cat1-relative" extends="#instruction-cat1-mov">

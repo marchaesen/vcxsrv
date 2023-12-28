@@ -1,23 +1,24 @@
 /*
+ * Copyright © 2022 Thomas E. Dickey
  * Copyright © 2000 Keith Packard
  *
  * Permission to use, copy, modify, distribute, and sell this software and its
  * documentation for any purpose is hereby granted without fee, provided that
- * the above copyright notice appear in all copies and that both that
- * copyright notice and this permission notice appear in supporting
- * documentation, and that the name of Keith Packard not be used in
- * advertising or publicity pertaining to distribution of the software without
- * specific, written prior permission.  Keith Packard makes no
+ * the above copyright notice appear in all copies and that both that copyright
+ * notice and this permission notice appear in supporting documentation, and
+ * that the name of the above copyright holders not be used in advertising or
+ * publicity pertaining to distribution of the software without specific,
+ * written prior permission.  The above copyright holders make no
  * representations about the suitability of this software for any purpose.  It
  * is provided "as is" without express or implied warranty.
  *
- * KEITH PACKARD DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
- * INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
- * EVENT SHALL KEITH PACKARD BE LIABLE FOR ANY SPECIAL, INDIRECT OR
- * CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
- * DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
- * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
- * PERFORMANCE OF THIS SOFTWARE.
+ * THE ABOVE LISTED COPYRIGHT HOLDER(S) DISCLAIM ALL WARRANTIES WITH REGARD TO
+ * THIS SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND
+ * FITNESS, IN NO EVENT SHALL THE ABOVE LISTED COPYRIGHT HOLDER(S) BE LIABLE
+ * FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER
+ * RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF
+ * CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
+ * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
 #ifndef _XFT_H_
@@ -55,6 +56,7 @@
 #define XFT_XLFD		"xlfd"
 #define XFT_MAX_GLYPH_MEMORY	"maxglyphmemory"
 #define XFT_MAX_UNREF_FONTS	"maxunreffonts"
+#define XFT_TRACK_MEM_USAGE	"trackmemusage"
 
 extern FT_Library	_XftFTlibrary;
 
@@ -104,7 +106,7 @@ typedef struct _XftGlyphFontSpec {
 
 _XFUNCPROTOBEGIN
 
-    
+
 /* xftcolor.c */
 Bool
 XftColorAllocName (Display  *dpy,
@@ -129,13 +131,13 @@ XftColorFree (Display	*dpy,
 /* xftdpy.c */
 Bool
 XftDefaultHasRender (Display *dpy);
-    
+
 Bool
 XftDefaultSet (Display *dpy, FcPattern *defaults);
 
 void
 XftDefaultSubstitute (Display *dpy, int screen, FcPattern *pattern);
-    
+
 /* xftdraw.c */
 
 XftDraw *
@@ -149,7 +151,7 @@ XftDrawCreateBitmap (Display  *dpy,
 		     Pixmap   bitmap);
 
 XftDraw *
-XftDrawCreateAlpha (Display *dpy, 
+XftDrawCreateAlpha (Display *dpy,
 		    Pixmap  pixmap,
 		    int	    depth);
 
@@ -191,7 +193,7 @@ void
 XftDrawString8 (XftDraw		    *draw,
 		_Xconst XftColor    *color,
 		XftFont		    *pub,
-		int		    x, 
+		int		    x,
 		int		    y,
 		_Xconst FcChar8	    *string,
 		int		    len);
@@ -218,7 +220,7 @@ void
 XftDrawStringUtf8 (XftDraw	    *draw,
 		   _Xconst XftColor *color,
 		   XftFont	    *pub,
-		   int		    x, 
+		   int		    x,
 		   int		    y,
 		   _Xconst FcChar8  *string,
 		   int		    len);
@@ -262,7 +264,7 @@ XftDrawGlyphFontSpec (XftDraw			*draw,
 void
 XftDrawRect (XftDraw		*draw,
 	     _Xconst XftColor	*color,
-	     int		x, 
+	     int		x,
 	     int		y,
 	     unsigned int	width,
 	     unsigned int	height);
@@ -296,35 +298,35 @@ XftGlyphExtents (Display	    *dpy,
 void
 XftTextExtents8 (Display	    *dpy,
 		 XftFont	    *pub,
-		 _Xconst FcChar8    *string, 
+		 _Xconst FcChar8    *string,
 		 int		    len,
 		 XGlyphInfo	    *extents);
 
 void
 XftTextExtents16 (Display	    *dpy,
 		  XftFont	    *pub,
-		  _Xconst FcChar16  *string, 
+		  _Xconst FcChar16  *string,
 		  int		    len,
 		  XGlyphInfo	    *extents);
 
 void
 XftTextExtents32 (Display	    *dpy,
 		  XftFont	    *pub,
-		  _Xconst FcChar32  *string, 
+		  _Xconst FcChar32  *string,
 		  int		    len,
 		  XGlyphInfo	    *extents);
-    
+
 void
 XftTextExtentsUtf8 (Display	    *dpy,
 		    XftFont	    *pub,
-		    _Xconst FcChar8 *string, 
+		    _Xconst FcChar8 *string,
 		    int		    len,
 		    XGlyphInfo	    *extents);
 
 void
 XftTextExtentsUtf16 (Display		*dpy,
 		     XftFont		*pub,
-		     _Xconst FcChar8	*string, 
+		     _Xconst FcChar8	*string,
 		     FcEndian		endian,
 		     int		len,
 		     XGlyphInfo		*extents);
@@ -366,8 +368,8 @@ FcBool
 XftFontInfoEqual (_Xconst XftFontInfo *a, _Xconst XftFontInfo *b);
 
 XftFont *
-XftFontOpenInfo (Display	*dpy, 
-		 FcPattern	*pattern, 
+XftFontOpenInfo (Display	*dpy,
+		 FcPattern	*pattern,
 		 XftFontInfo	*fi);
 
 XftFont *
@@ -410,12 +412,12 @@ FcBool
 XftCharExists (Display	    *dpy,
 	       XftFont	    *pub,
 	       FcChar32    ucs4);
-    
+
 FT_UInt
-XftCharIndex (Display	    *dpy, 
+XftCharIndex (Display	    *dpy,
 	      XftFont	    *pub,
 	      FcChar32	    ucs4);
-    
+
 /* xftinit.c */
 FcBool
 XftInit (_Xconst char *config);
@@ -431,8 +433,11 @@ XftListFonts (Display	*dpy,
 	      ...) _X_SENTINEL(0);
 
 /* xftname.c */
-FcPattern 
+FcPattern
 *XftNameParse (_Xconst char *name);
+
+FcBool
+XftNameUnparse (FcPattern *pat, char *dest, int len);
 
 /* xftrender.c */
 void
@@ -465,7 +470,7 @@ XftCharSpecRender (Display		*dpy,
 		   Picture		src,
 		   XftFont		*pub,
 		   Picture		dst,
-		   int			srcx, 
+		   int			srcx,
 		   int			srcy,
 		   _Xconst XftCharSpec	*chars,
 		   int			len);
@@ -611,7 +616,7 @@ XftTextRenderUtf16 (Display	    *dpy,
 /* xftxlfd.c */
 FcPattern *
 XftXlfdParse (_Xconst char *xlfd_orig, Bool ignore_scalable, Bool complete);
-    
+
 _XFUNCPROTOEND
 
 #endif /* _XFT_H_ */

@@ -96,7 +96,7 @@ Ian Romanick (4):
 -  nir: Use nir_src_bit_size instead of alu1->dest.dest.ssa.bit_size
 -  mesa: Set minimum possible GLSL version
 
-Jason Ekstrand (13):
+Faith Ekstrand (13):
 
 -  nir/instr_set: Expose nir_instrs_equal()
 -  nir/loop_analyze: Fix phi-of-identical-alu detection

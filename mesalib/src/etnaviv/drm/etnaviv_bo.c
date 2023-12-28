@@ -24,13 +24,13 @@
  *    Christian Gmeiner <christian.gmeiner@gmail.com>
  */
 
-#include "os/os_mman.h"
+#include "util/os_mman.h"
 #include "util/hash_table.h"
 
 #include "etnaviv_priv.h"
 #include "etnaviv_drmif.h"
 
-simple_mtx_t etna_device_lock = _SIMPLE_MTX_INITIALIZER_NP;
+simple_mtx_t etna_device_lock = SIMPLE_MTX_INITIALIZER;
 
 /* set buffer name, and add to table, call w/ etna_drm_table_lock held: */
 static void set_name(struct etna_bo *bo, uint32_t name)
@@ -138,8 +138,8 @@ static struct etna_bo *lookup_bo(void *tbl, uint32_t handle)
 		/* found, incr refcnt and return: */
 		bo = etna_bo_ref(entry->data);
 
-		/* don't break the bucket if this bo was found in one */
-		if (list_is_linked(&bo->list)) {
+		/* don't break the bucket/zombie list if this bo was found in one */
+		if (!list_is_empty(&bo->list)) {
 			VG_BO_OBTAIN(bo);
 			etna_device_ref(bo->dev);
 			list_delinit(&bo->list);

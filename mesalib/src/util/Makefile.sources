@@ -17,8 +17,6 @@ MESA_UTIL_FILES := \
 	crc32.h \
 	dag.c \
 	dag.h \
-	debug.c \
-	debug.h \
 	disk_cache.c \
 	disk_cache.h \
 	disk_cache_os.c \
@@ -55,12 +53,16 @@ MESA_UTIL_FILES := \
 	format_srgb.h \
 	fossilize_db.c \
 	fossilize_db.h \
+	futex.c \
 	futex.h \
 	half_float.c \
 	half_float.h \
 	hash_table.c \
 	hash_table.h \
+	u_dynarray.c \
 	u_idalloc.c \
+	u_thread.c \
+	u_hash_table.c \
 	u_idalloc.h \
 	list.h \
 	log.c \
@@ -122,6 +124,8 @@ MESA_UTIL_FILES := \
 	u_thread.h \
 	u_vector.c \
 	u_vector.h \
+	u_call_once.c \
+	u_call_once.h \
 	u_debug.c \
 	u_debug.h \
 	u_debug_memory.c \
@@ -147,10 +151,13 @@ MESA_UTIL_FILES := \
         u_qsort.cpp \
 	u_debug_describe.c \
 	indices/u_primconvert.c \
-	u_indices_gen.c \
+        u_indices_gen.c \
+        u_unfilled_gen.c \
 	u_dl.c \
         u_worklist.c \
-        streaming-load-memcpy.c
+        streaming-load-memcpy.c \
+	texcompress_astc_luts_wrap.cpp \
+	texcompress_astc_luts.cpp
 
 
 MESA_UTIL_GENERATED_FILES = \

@@ -27,16 +27,17 @@ AC_PREREQ([2.60])
 # version.  This version number will be substituted into Xft.h
 # Please bump the minor library number at each release as well.
 #
-AC_INIT([libXft], [2.3.2],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXft])
+AC_INIT([libXft], [2.3.8],
+        [https://gitlab.freedesktop.org/xorg/lib/libXft/issues], [libXft])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([m4])
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Initialize libtool
-AC_PROG_LIBTOOL
+LT_INIT
 
 # Require X.Org macros 1.8 or later for MAN_SUBSTS set by XORG_MANPAGE_SECTIONS
 m4_ifndef([XORG_MACROS_VERSION],

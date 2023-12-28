@@ -1,0 +1,55 @@
+#! /bin/sh
+# -*- sh -*-
+# Copyright (C) 2023 fontconfig Authors
+# SPDX-License-Identifier: MIT
+
+set -e
+
+: "${TMPDIR=/tmp}"
+
+case "$OSTYPE" in
+    msys ) MyPWD=$(pwd -W) ;;  # On Msys/MinGW, returns a MS Windows style path.
+    *    ) MyPWD=$(pwd)    ;;  # On any other platforms, returns a Unix style path.
+esac
+
+TESTDIR=${srcdir-"$MyPWD"}
+BUILDTESTDIR=${builddir-"$MyPWD"}
+
+BASEDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
+FONTDIR="$BASEDIR"/fonts
+CACHEDIR="$BASEDIR"/cache.dir
+EXPECTED=${EXPECTED-"out.expected"}
+
+FCLIST="$LOG_COMPILER ../../fc-list/fc-list$EXEEXT"
+FCCACHE="$LOG_COMPILER ../../fc-cache/fc-cache$EXEEXT"
+FCMATCH="$LOG_COMPILER ../../fc-match/fc-match$EXEEXT"
+
+if [ -x "$(command -v bwrap)" ]; then
+    BWRAP="$(command -v bwrap)"
+fi
+
+FONT1=$TESTDIR/../4x6.pcf
+FONT2=$TESTDIR/../8x16.pcf
+TEST=""
+
+clean_exit() {
+    rc=$?
+    trap - INT TERM ABRT EXIT
+    if [ "x$TEST" != "x" ]; then
+        echo "Aborting from '$TEST' with the exit code $rc"
+    fi
+    rm -rf $BASEDIR
+    exit $rc
+}
+trap clean_exit INT TERM ABRT EXIT
+
+prep() {
+    rm -rf "$CACHEDIR"
+    rm -rf "$FONTDIR"
+    mkdir "$FONTDIR"
+}
+
+dotest () {
+    TEST=$1
+    test x"$VERBOSE" = x || echo "Running: $TEST"
+}

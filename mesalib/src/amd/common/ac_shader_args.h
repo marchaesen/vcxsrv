@@ -1,24 +1,7 @@
 /*
  * Copyright 2019 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_SHADER_ARGS_H
@@ -40,6 +23,7 @@ enum ac_arg_regfile
 
 enum ac_arg_type
 {
+   AC_ARG_INVALID = -1,
    AC_ARG_FLOAT,
    AC_ARG_INT,
    AC_ARG_CONST_PTR,       /* Pointer to i8 array */
@@ -63,7 +47,9 @@ struct ac_shader_args {
       enum ac_arg_regfile file;
       uint8_t offset;
       uint8_t size;
-      bool skip;
+      bool skip : 1;
+      bool pending_vmem : 1; /* Loaded from VMEM and needs waitcnt before use. */
+      bool preserved : 1;
    } args[AC_MAX_ARGS];
 
    uint16_t arg_count;
@@ -73,6 +59,11 @@ struct ac_shader_args {
    uint16_t return_count;
    uint16_t num_sgprs_returned;
    uint16_t num_vgprs_returned;
+
+   /* User data 0/1. GFX: descriptor list, Compute: scratch BO. These are the SGPRs used by RADV for
+    * scratch and have to be accessed using llvm.amdgcn.implicit.buffer.ptr for LLVM in that case.
+    */
+   struct ac_arg ring_offsets;
 
    /* VS */
    struct ac_arg base_vertex;
@@ -112,7 +103,22 @@ struct ac_shader_args {
    struct ac_arg gs2vs_offset;      /* legacy GS */
    struct ac_arg gs_wave_id;        /* legacy GS */
    struct ac_arg gs_attr_offset;    /* gfx11+: attribute ring offset in 512B increments */
-   struct ac_arg gs_vtx_offset[6];  /* GFX6-8: [0-5], GFX9+: [0-2] packed */
+
+   /* GS vertex indices/offsets:
+    *
+    * GFX6-8: [0-5] 6x uint32, multiplied by VGT_ESGS_RING_ITEMSIZE by hw
+    * GFX9-11 non-passthrough: [0-2] 6x packed uint16, multiplied by VGT_ESGS_RING_ITEMSIZE by hw
+    *
+    * GFX10-11 passthrough: [0] 1x uint32 with the following bitfields matching the prim export:
+    *    [0:8]    vertex index 0
+    *    [9]      edgeflag 0
+    *    [10:18]  vertex index 1
+    *    [19]     edgeflag 1
+    *    [20:28]  vertex index 2
+    *    [29]     edgeflag 2
+    *    [31]     0 (valid prim)
+    */
+   struct ac_arg gs_vtx_offset[6];
    struct ac_arg gs_prim_id;
    struct ac_arg gs_invocation_id;
 
@@ -127,6 +133,8 @@ struct ac_shader_args {
    struct ac_arg ancillary;
    struct ac_arg sample_coverage;
    struct ac_arg prim_mask;
+   struct ac_arg pops_collision_wave_id;
+   struct ac_arg load_provoking_vtx;
    struct ac_arg persp_sample;
    struct ac_arg persp_center;
    struct ac_arg persp_centroid;
@@ -134,6 +142,7 @@ struct ac_shader_args {
    struct ac_arg linear_sample;
    struct ac_arg linear_center;
    struct ac_arg linear_centroid;
+   struct ac_arg pos_fixed_pt;
 
    /* CS */
    struct ac_arg local_invocation_ids;
@@ -149,14 +158,40 @@ struct ac_shader_args {
    struct ac_arg inline_push_consts[AC_MAX_INLINE_PUSH_CONSTS];
    uint64_t inline_push_const_mask;
    struct ac_arg view_index;
-   struct ac_arg sbt_descriptors;
-   struct ac_arg ray_launch_size_addr;
    struct ac_arg force_vrs_rates;
-   struct ac_arg rt_dynamic_callable_stack_base;
+
+   /* RT */
+   struct {
+      struct ac_arg uniform_shader_addr;
+      struct ac_arg sbt_descriptors;
+      struct ac_arg launch_size;
+      struct ac_arg launch_size_addr;
+      struct ac_arg launch_id;
+      struct ac_arg dynamic_callable_stack_base;
+      struct ac_arg traversal_shader_addr;
+      struct ac_arg shader_addr;
+      struct ac_arg shader_record;
+      struct ac_arg payload_offset;
+      struct ac_arg ray_origin;
+      struct ac_arg ray_tmin;
+      struct ac_arg ray_direction;
+      struct ac_arg ray_tmax;
+      struct ac_arg cull_mask_and_flags;
+      struct ac_arg sbt_offset;
+      struct ac_arg sbt_stride;
+      struct ac_arg miss_index;
+      struct ac_arg accel_struct;
+      struct ac_arg primitive_id;
+      struct ac_arg instance_addr;
+      struct ac_arg geometry_id_and_flags;
+      struct ac_arg hit_kind;
+   } rt;
 };
 
 void ac_add_arg(struct ac_shader_args *info, enum ac_arg_regfile regfile, unsigned registers,
                 enum ac_arg_type type, struct ac_arg *arg);
 void ac_add_return(struct ac_shader_args *info, enum ac_arg_regfile regfile);
+void ac_add_preserved(struct ac_shader_args *info, const struct ac_arg *arg);
+void ac_compact_ps_vgpr_args(struct ac_shader_args *info, uint32_t spi_ps_input);
 
 #endif

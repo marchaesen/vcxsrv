@@ -85,32 +85,8 @@ This section describes the requirements to make an XFree86 4.0
 libGL.so-compatible hardware driver.  It is not intended for end
 users of libGL.so.
 
-
-XFree86 source files
-
-libGL.so is built inside XFree86 with sources found in xc/lib/GL/.
-Specifically, libGL.so is built from:
-
-	xc/lib/GL/glx/*.c
-	xc/lib/dri/XF86dri.c
-	xc/lib/dri/dri_glx.c
-	xc/lib/GL/mesa/src/glapi.c
-	xc/lib/GL/mesa/src/glapitemp.h
-	xc/lib/GL/mesa/src/glapitable.h
-	xc/lib/GL/mesa/src/glapioffsets.h
-	xc/lib/GL/mesa/src/glapinoop.c
-	xc/lib/GL/mesa/src/glheader.h
-	xc/lib/GL/mesa/src/glthread.c
-	xc/lib/GL/mesa/src/glthread.h
-	xc/lib/GL/mesa/src/X86/glapi_x86.S
-	xc/lib/GL/mesa/src/X86/assyntax.h
-
-Understand that the mesa/src/gl*.[ch] files are not tied to Mesa.  They
-have no dependencies on the rest of Mesa and are designed to be reusable
-in a number of projects.
-
-The glapi_x86.X and assyntax.h files implement x86-optimized dispatch
-of GL functions.  They are not required; C-based dispatch can be used
+The gl_x86_asm.py and assyntax.h files implement x86-optimized dispatch
+of GL functions. They are not required; C-based dispatch can be used
 instead, with a slight performance penalty.
 
 

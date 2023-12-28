@@ -768,11 +768,6 @@ spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_draw_indirect@gl_vertexid used with gldrawarraysindirect,Fail
 spec@arb_draw_indirect@gl_vertexid used with gldrawelementsindirect,Fail
 
-# "	intrinsic copy_deref (ssa_2, ssa_3) (dst_access=0, src_access=0)
-#  error: glsl_get_bare_type(dst->type) == glsl_get_bare_type(src->type) (../src/compiler/nir/nir_validate.c:643)"
-# since ntt copy-deref optimization, probably.
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-write,Crash
-
 # "Testing level 3
 # Probe at (0,8)
 #   Expected: 219
@@ -1496,19 +1491,6 @@ spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
-
-# GBM front read failures
-spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=6,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=8,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
-spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@read-front samples=8,Fail
 
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled,Fail
 spec@!opengl 1.1@texwrap formats bordercolor-swizzled@GL_RGB10- swizzled- border color only,Fail

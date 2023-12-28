@@ -800,15 +800,15 @@ vn_sizeof_VkClearColorValue_tag(const VkClearColorValue *val, uint32_t tag)
     switch (tag) {
     case 0:
         size += vn_sizeof_array_size(4);
-    size += vn_sizeof_float_array(val->float32, 4);
+        size += vn_sizeof_float_array(val->float32, 4);
         break;
     case 1:
         size += vn_sizeof_array_size(4);
-    size += vn_sizeof_int32_t_array(val->int32, 4);
+        size += vn_sizeof_int32_t_array(val->int32, 4);
         break;
     case 2:
         size += vn_sizeof_array_size(4);
-    size += vn_sizeof_uint32_t_array(val->uint32, 4);
+        size += vn_sizeof_uint32_t_array(val->uint32, 4);
         break;
     default:
         assert(false);
@@ -830,15 +830,15 @@ vn_encode_VkClearColorValue_tag(struct vn_cs_encoder *enc, const VkClearColorVal
     switch (tag) {
     case 0:
         vn_encode_array_size(enc, 4);
-    vn_encode_float_array(enc, val->float32, 4);
+        vn_encode_float_array(enc, val->float32, 4);
         break;
     case 1:
         vn_encode_array_size(enc, 4);
-    vn_encode_int32_t_array(enc, val->int32, 4);
+        vn_encode_int32_t_array(enc, val->int32, 4);
         break;
     case 2:
         vn_encode_array_size(enc, 4);
-    vn_encode_uint32_t_array(enc, val->uint32, 4);
+        vn_encode_uint32_t_array(enc, val->uint32, 4);
         break;
     default:
         assert(false);
@@ -852,10 +852,10 @@ vn_encode_VkClearColorValue(struct vn_cs_encoder *enc, const VkClearColorValue *
     vn_encode_VkClearColorValue_tag(enc, val, 2); /* union with default tag */
 }
 
-/* struct VkMutableDescriptorTypeListVALVE */
+/* struct VkMutableDescriptorTypeListEXT */
 
 static inline size_t
-vn_sizeof_VkMutableDescriptorTypeListVALVE(const VkMutableDescriptorTypeListVALVE *val)
+vn_sizeof_VkMutableDescriptorTypeListEXT(const VkMutableDescriptorTypeListEXT *val)
 {
     size_t size = 0;
     size += vn_sizeof_uint32_t(&val->descriptorTypeCount);
@@ -869,7 +869,7 @@ vn_sizeof_VkMutableDescriptorTypeListVALVE(const VkMutableDescriptorTypeListVALV
 }
 
 static inline void
-vn_encode_VkMutableDescriptorTypeListVALVE(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeListVALVE *val)
+vn_encode_VkMutableDescriptorTypeListEXT(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeListEXT *val)
 {
     vn_encode_uint32_t(enc, &val->descriptorTypeCount);
     if (val->pDescriptorTypes) {
@@ -880,17 +880,17 @@ vn_encode_VkMutableDescriptorTypeListVALVE(struct vn_cs_encoder *enc, const VkMu
     }
 }
 
-/* struct VkMutableDescriptorTypeCreateInfoVALVE chain */
+/* struct VkMutableDescriptorTypeCreateInfoEXT chain */
 
 static inline size_t
-vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_pnext(const void *val)
+vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT_pnext(const void *val)
 {
     /* no known/supported struct */
     return vn_sizeof_simple_pointer(NULL);
 }
 
 static inline size_t
-vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self(const VkMutableDescriptorTypeCreateInfoVALVE *val)
+vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT_self(const VkMutableDescriptorTypeCreateInfoEXT *val)
 {
     size_t size = 0;
     /* skip val->{sType,pNext} */
@@ -898,7 +898,7 @@ vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self(const VkMutableDescriptorT
     if (val->pMutableDescriptorTypeLists) {
         size += vn_sizeof_array_size(val->mutableDescriptorTypeListCount);
         for (uint32_t i = 0; i < val->mutableDescriptorTypeListCount; i++)
-            size += vn_sizeof_VkMutableDescriptorTypeListVALVE(&val->pMutableDescriptorTypeLists[i]);
+            size += vn_sizeof_VkMutableDescriptorTypeListEXT(&val->pMutableDescriptorTypeLists[i]);
     } else {
         size += vn_sizeof_array_size(0);
     }
@@ -906,45 +906,290 @@ vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self(const VkMutableDescriptorT
 }
 
 static inline size_t
-vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE(const VkMutableDescriptorTypeCreateInfoVALVE *val)
+vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT(const VkMutableDescriptorTypeCreateInfoEXT *val)
 {
     size_t size = 0;
 
     size += vn_sizeof_VkStructureType(&val->sType);
-    size += vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_pnext(val->pNext);
-    size += vn_sizeof_VkMutableDescriptorTypeCreateInfoVALVE_self(val);
+    size += vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT_pnext(val->pNext);
+    size += vn_sizeof_VkMutableDescriptorTypeCreateInfoEXT_self(val);
 
     return size;
 }
 
 static inline void
-vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_pnext(struct vn_cs_encoder *enc, const void *val)
+vn_encode_VkMutableDescriptorTypeCreateInfoEXT_pnext(struct vn_cs_encoder *enc, const void *val)
 {
     /* no known/supported struct */
     vn_encode_simple_pointer(enc, NULL);
 }
 
 static inline void
-vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_self(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeCreateInfoVALVE *val)
+vn_encode_VkMutableDescriptorTypeCreateInfoEXT_self(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeCreateInfoEXT *val)
 {
     /* skip val->{sType,pNext} */
     vn_encode_uint32_t(enc, &val->mutableDescriptorTypeListCount);
     if (val->pMutableDescriptorTypeLists) {
         vn_encode_array_size(enc, val->mutableDescriptorTypeListCount);
         for (uint32_t i = 0; i < val->mutableDescriptorTypeListCount; i++)
-            vn_encode_VkMutableDescriptorTypeListVALVE(enc, &val->pMutableDescriptorTypeLists[i]);
+            vn_encode_VkMutableDescriptorTypeListEXT(enc, &val->pMutableDescriptorTypeLists[i]);
     } else {
         vn_encode_array_size(enc, 0);
     }
 }
 
 static inline void
-vn_encode_VkMutableDescriptorTypeCreateInfoVALVE(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeCreateInfoVALVE *val)
+vn_encode_VkMutableDescriptorTypeCreateInfoEXT(struct vn_cs_encoder *enc, const VkMutableDescriptorTypeCreateInfoEXT *val)
 {
-    assert(val->sType == VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE);
-    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_VALVE });
-    vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_pnext(enc, val->pNext);
-    vn_encode_VkMutableDescriptorTypeCreateInfoVALVE_self(enc, val);
+    assert(val->sType == VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT });
+    vn_encode_VkMutableDescriptorTypeCreateInfoEXT_pnext(enc, val->pNext);
+    vn_encode_VkMutableDescriptorTypeCreateInfoEXT_self(enc, val);
+}
+
+/* struct VkDescriptorImageInfo */
+
+static inline size_t
+vn_sizeof_VkDescriptorImageInfo(const VkDescriptorImageInfo *val)
+{
+    size_t size = 0;
+    size += vn_sizeof_VkSampler(&val->sampler);
+    size += vn_sizeof_VkImageView(&val->imageView);
+    size += vn_sizeof_VkImageLayout(&val->imageLayout);
+    return size;
+}
+
+static inline void
+vn_encode_VkDescriptorImageInfo(struct vn_cs_encoder *enc, const VkDescriptorImageInfo *val)
+{
+    vn_encode_VkSampler(enc, &val->sampler);
+    vn_encode_VkImageView(enc, &val->imageView);
+    vn_encode_VkImageLayout(enc, &val->imageLayout);
+}
+
+/* struct VkDescriptorBufferInfo */
+
+static inline size_t
+vn_sizeof_VkDescriptorBufferInfo(const VkDescriptorBufferInfo *val)
+{
+    size_t size = 0;
+    size += vn_sizeof_VkBuffer(&val->buffer);
+    size += vn_sizeof_VkDeviceSize(&val->offset);
+    size += vn_sizeof_VkDeviceSize(&val->range);
+    return size;
+}
+
+static inline void
+vn_encode_VkDescriptorBufferInfo(struct vn_cs_encoder *enc, const VkDescriptorBufferInfo *val)
+{
+    vn_encode_VkBuffer(enc, &val->buffer);
+    vn_encode_VkDeviceSize(enc, &val->offset);
+    vn_encode_VkDeviceSize(enc, &val->range);
+}
+
+/* struct VkWriteDescriptorSetInlineUniformBlock chain */
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self(const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->dataSize);
+    if (val->pData) {
+        size += vn_sizeof_array_size(val->dataSize);
+        size += vn_sizeof_blob_array(val->pData, val->dataSize);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSetInlineUniformBlock(const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_pnext(val->pNext);
+    size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(struct vn_cs_encoder *enc, const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->dataSize);
+    if (val->pData) {
+        vn_encode_array_size(enc, val->dataSize);
+        vn_encode_blob_array(enc, val->pData, val->dataSize);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSetInlineUniformBlock(struct vn_cs_encoder *enc, const VkWriteDescriptorSetInlineUniformBlock *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK });
+    vn_encode_VkWriteDescriptorSetInlineUniformBlock_pnext(enc, val->pNext);
+    vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(enc, val);
+}
+
+/* struct VkWriteDescriptorSet chain */
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSet_pnext(const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+    size_t size = 0;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK:
+            if (!vn_cs_renderer_protocol_has_extension(139 /* VK_EXT_inline_uniform_block */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkWriteDescriptorSet_pnext(pnext->pNext);
+            size += vn_sizeof_VkWriteDescriptorSetInlineUniformBlock_self((const VkWriteDescriptorSetInlineUniformBlock *)pnext);
+            return size;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSet_self(const VkWriteDescriptorSet *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_VkDescriptorSet(&val->dstSet);
+    size += vn_sizeof_uint32_t(&val->dstBinding);
+    size += vn_sizeof_uint32_t(&val->dstArrayElement);
+    size += vn_sizeof_uint32_t(&val->descriptorCount);
+    size += vn_sizeof_VkDescriptorType(&val->descriptorType);
+    if (val->pImageInfo) {
+        size += vn_sizeof_array_size(val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            size += vn_sizeof_VkDescriptorImageInfo(&val->pImageInfo[i]);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    if (val->pBufferInfo) {
+        size += vn_sizeof_array_size(val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            size += vn_sizeof_VkDescriptorBufferInfo(&val->pBufferInfo[i]);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    if (val->pTexelBufferView) {
+        size += vn_sizeof_array_size(val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            size += vn_sizeof_VkBufferView(&val->pTexelBufferView[i]);
+    } else {
+        size += vn_sizeof_array_size(0);
+    }
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkWriteDescriptorSet(const VkWriteDescriptorSet *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkWriteDescriptorSet_pnext(val->pNext);
+    size += vn_sizeof_VkWriteDescriptorSet_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSet_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    const VkBaseInStructure *pnext = val;
+
+    while (pnext) {
+        switch ((int32_t)pnext->sType) {
+        case VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK:
+            if (!vn_cs_renderer_protocol_has_extension(139 /* VK_EXT_inline_uniform_block */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkWriteDescriptorSet_pnext(enc, pnext->pNext);
+            vn_encode_VkWriteDescriptorSetInlineUniformBlock_self(enc, (const VkWriteDescriptorSetInlineUniformBlock *)pnext);
+            return;
+        default:
+            /* ignore unknown/unsupported struct */
+            break;
+        }
+        pnext = pnext->pNext;
+    }
+
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSet_self(struct vn_cs_encoder *enc, const VkWriteDescriptorSet *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_VkDescriptorSet(enc, &val->dstSet);
+    vn_encode_uint32_t(enc, &val->dstBinding);
+    vn_encode_uint32_t(enc, &val->dstArrayElement);
+    vn_encode_uint32_t(enc, &val->descriptorCount);
+    vn_encode_VkDescriptorType(enc, &val->descriptorType);
+    if (val->pImageInfo) {
+        vn_encode_array_size(enc, val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            vn_encode_VkDescriptorImageInfo(enc, &val->pImageInfo[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+    if (val->pBufferInfo) {
+        vn_encode_array_size(enc, val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            vn_encode_VkDescriptorBufferInfo(enc, &val->pBufferInfo[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+    if (val->pTexelBufferView) {
+        vn_encode_array_size(enc, val->descriptorCount);
+        for (uint32_t i = 0; i < val->descriptorCount; i++)
+            vn_encode_VkBufferView(enc, &val->pTexelBufferView[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline void
+vn_encode_VkWriteDescriptorSet(struct vn_cs_encoder *enc, const VkWriteDescriptorSet *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET });
+    vn_encode_VkWriteDescriptorSet_pnext(enc, val->pNext);
+    vn_encode_VkWriteDescriptorSet_self(enc, val);
 }
 
 /* struct VkMemoryDedicatedRequirements chain */

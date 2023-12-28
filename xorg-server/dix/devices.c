@@ -424,6 +424,10 @@ EnableDevice(DeviceIntPtr dev, BOOL sendevent)
 
     if (!IsMaster(dev) && !IsFloating(dev))
         XkbPushLockedStateToSlaves(GetMaster(dev, MASTER_KEYBOARD), 0, 0);
+
+    /* Now make sure our LEDs are in sync with the locked state */
+    XkbForceUpdateDeviceLEDs(dev);
+
     RecalculateMasterButtons(dev);
 
     /* initialise an idle timer for this device*/
@@ -825,6 +829,14 @@ FreeDeviceClass(int type, void **class)
         free((*t));
         break;
     }
+    case XIGestureClass:
+    {
+        GestureClassPtr *g = (GestureClassPtr *) class;
+
+        GestureFreeGestureInfo(&(*g)->gesture);
+        free((*g));
+        break;
+    }
     case FocusClass:
     {
         FocusClassPtr *f = (FocusClassPtr *) class;
@@ -939,6 +951,7 @@ FreeAllDeviceClasses(ClassesPtr classes)
     FreeDeviceClass(ButtonClass, (void *) &classes->button);
     FreeDeviceClass(FocusClass, (void *) &classes->focus);
     FreeDeviceClass(ProximityClass, (void *) &classes->proximity);
+    FreeDeviceClass(XIGestureClass, (void*) &classes->gesture);
 
     FreeFeedbackClass(KbdFeedbackClass, (void *) &classes->kbdfeed);
     FreeFeedbackClass(PtrFeedbackClass, (void *) &classes->ptrfeed);
@@ -2529,6 +2542,8 @@ RecalculateMasterButtons(DeviceIntPtr slave)
 
     if (master->button && master->button->numButtons != maxbuttons) {
         int i;
+        int last_num_buttons = master->button->numButtons;
+
         DeviceChangedEvent event; memset(&event, 0, sizeof(event));
         event.header = ET_Internal;
         event.type = ET_DeviceChanged;
@@ -2538,6 +2553,14 @@ RecalculateMasterButtons(DeviceIntPtr slave)
         event.buttons.num_buttons = maxbuttons;
 
         master->button->numButtons = maxbuttons;
+        if (last_num_buttons < maxbuttons) {
+            master->button->xkb_acts = xnfreallocarray(master->button->xkb_acts,
+                                                       maxbuttons,
+                                                       sizeof(XkbAction));
+            memset(&master->button->xkb_acts[last_num_buttons],
+                   0,
+                   (maxbuttons - last_num_buttons) * sizeof(XkbAction));
+        }
 
         memcpy(&event.buttons.names, master->button->labels, maxbuttons *
                sizeof(Atom));
@@ -2632,6 +2655,7 @@ AttachDevice(ClientPtr client, DeviceIntPtr dev, DeviceIntPtr master)
         screen = miPointerGetScreen(dev);
         screen->DeviceCursorCleanup(dev, screen);
         free(dev->spriteInfo->sprite);
+        dev->spriteInfo->sprite = NULL;
     }
 
     dev->master = master;

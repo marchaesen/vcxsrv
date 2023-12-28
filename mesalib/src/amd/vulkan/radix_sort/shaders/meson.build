@@ -29,7 +29,7 @@ radix_sort_shaders = [
   'scatter_1_odd.comp'
 ]
 
-shader_include_dir = meson.source_root() + '/src/amd/vulkan/radix_sort/targets/u64'
+shader_include_dir = dir_source_root + '/src/amd/vulkan/radix_sort/targets/u64'
 
 shader_include_files = files(
   'bufref.h',
@@ -37,7 +37,7 @@ shader_include_files = files(
   'prefix.h',
   'push.h',
   'scatter.glsl',
-  meson.source_root() + '/src/amd/vulkan/radix_sort/targets/u64/config.h'
+  dir_source_root + '/src/amd/vulkan/radix_sort/targets/u64/config.h'
 )
 
 radix_sort_spv = []

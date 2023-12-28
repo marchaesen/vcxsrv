@@ -101,7 +101,7 @@ Gert Wollny (1):
 
 -  r600: Fix maximum line width
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  anv: Properly advertise sampledImageIntegerSampleCounts
 -  intel/nir: Add a memory barrier before barrier()

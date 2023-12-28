@@ -484,7 +484,7 @@ static void * h264e_prc_ctor(void *ap_obj, va_list * app)
    priv->force_pic_type.IntraRefreshVOP = OMX_FALSE;
    priv->frame_num = 0;
    priv->pic_order_cnt = 0;
-   priv->restricted_b_frames = debug_get_bool_option("OMX_USE_RESTRICTED_B_FRAMES", FALSE);
+   priv->restricted_b_frames = debug_get_bool_option("OMX_USE_RESTRICTED_B_FRAMES", false);
    priv->scale.xWidth = OMX_VID_ENC_SCALING_WIDTH_DEFAULT;
    priv->scale.xHeight = OMX_VID_ENC_SCALING_WIDTH_DEFAULT;
    priv->in_port_disabled_   = false;

@@ -156,7 +156,7 @@ Bug fixes
 -  [Bisected] i965: CS:GO crashes in emit_deref_copy_load_store with
    debug Mesa
 -  radv/aco Jedi Fallen Order hair rendering buggy
--  Inaccurate information on https://www.mesa3d.org/repository.html
+-  Inaccurate information on https://docs.mesa3d.org/repository.html
    about how to get git write access.
 -  [RADV] VK_KHR_timeline_semaphore balloons in runtime
 -  Shadow of Mordor has randomly dancing black shadows on Talion's face
@@ -1551,7 +1551,7 @@ Jan Zielinski (8):
 -  gallium/swr: fix tessellation state save/restore
 -  docs: Update SWR tessellation support
 
-Jason Ekstrand (212):
+Faith Ekstrand (212):
 
 -  util: Add a util_sparse_array data structure
 -  anv: Move refcount to anv_bo
@@ -2173,8 +2173,8 @@ Marek Olšák (245):
 -  st/mesa: call nir_opt_access only once
 -  st/mesa: call nir_lower_flrp only once per shader
 -  compiler: make variable::data::binding unsigned
--  nir: pack nir_variable::data::stream
--  nir: pack nir_variable::data::xfb\_\*
+-  nir: pack nir_variable::\data::stream
+-  nir: pack nir_variable::\data::xfb\_\*
 -  radeonsi: use IR SHA1 as the cache key for the in-memory shader cache
 -  radeonsi: don't keep compute shader IR after compilation
 -  radeonsi: keep serialized NIR instead of nir_shader in

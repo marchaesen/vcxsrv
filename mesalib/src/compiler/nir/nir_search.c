@@ -19,17 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
-#include <inttypes.h>
 #include "nir_search.h"
+#include <inttypes.h>
+#include "util/half_float.h"
 #include "nir_builder.h"
 #include "nir_worklist.h"
-#include "util/half_float.h"
 
 /* This should be the same as nir_search_max_comm_ops in nir_algebraic.py. */
 #define NIR_SEARCH_MAX_COMM_OPS 8
@@ -57,12 +53,23 @@ static bool
 nir_algebraic_automaton(nir_instr *instr, struct util_dynarray *states,
                         const struct per_op_table *pass_op_table);
 
-static const uint8_t identity_swizzle[NIR_MAX_VEC_COMPONENTS] =
-{
-    0,  1,  2,  3,
-    4,  5,  6,  7,
-    8,  9, 10, 11,
-   12, 13, 14, 15,
+static const uint8_t identity_swizzle[NIR_MAX_VEC_COMPONENTS] = {
+   0,
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9,
+   10,
+   11,
+   12,
+   13,
+   14,
+   15,
 };
 
 /**
@@ -74,9 +81,6 @@ static bool
 src_is_type(nir_src src, nir_alu_type type)
 {
    assert(type != nir_type_invalid);
-
-   if (!src.is_ssa)
-      return false;
 
    if (src.ssa->parent_instr->type == nir_instr_type_alu) {
       nir_alu_instr *src_alu = nir_instr_as_alu(src.ssa->parent_instr);
@@ -116,86 +120,69 @@ nir_op_matches_search_op(nir_op nop, uint16_t sop)
    if (sop <= nir_last_opcode)
       return nop == sop;
 
-#define MATCH_FCONV_CASE(op) \
-   case nir_search_op_##op: \
+#define MATCH_FCONV_CASE(op)           \
+   case nir_search_op_##op:            \
       return nop == nir_op_##op##16 || \
              nop == nir_op_##op##32 || \
              nop == nir_op_##op##64;
 
-#define MATCH_ICONV_CASE(op) \
-   case nir_search_op_##op: \
-      return nop == nir_op_##op##8 || \
+#define MATCH_ICONV_CASE(op)           \
+   case nir_search_op_##op:            \
+      return nop == nir_op_##op##8 ||  \
              nop == nir_op_##op##16 || \
              nop == nir_op_##op##32 || \
              nop == nir_op_##op##64;
 
-#define MATCH_BCONV_CASE(op) \
-   case nir_search_op_##op: \
-      return nop == nir_op_##op##1 || \
-             nop == nir_op_##op##32;
-
    switch (sop) {
-   MATCH_FCONV_CASE(i2f)
-   MATCH_FCONV_CASE(u2f)
-   MATCH_FCONV_CASE(f2f)
-   MATCH_ICONV_CASE(f2u)
-   MATCH_ICONV_CASE(f2i)
-   MATCH_ICONV_CASE(u2u)
-   MATCH_ICONV_CASE(i2i)
-   MATCH_FCONV_CASE(b2f)
-   MATCH_ICONV_CASE(b2i)
-   MATCH_BCONV_CASE(i2b)
-   MATCH_BCONV_CASE(f2b)
+      MATCH_FCONV_CASE(i2f)
+      MATCH_FCONV_CASE(u2f)
+      MATCH_FCONV_CASE(f2f)
+      MATCH_ICONV_CASE(f2u)
+      MATCH_ICONV_CASE(f2i)
+      MATCH_ICONV_CASE(u2u)
+      MATCH_ICONV_CASE(i2i)
+      MATCH_FCONV_CASE(b2f)
+      MATCH_ICONV_CASE(b2i)
    default:
       unreachable("Invalid nir_search_op");
    }
 
 #undef MATCH_FCONV_CASE
 #undef MATCH_ICONV_CASE
-#undef MATCH_BCONV_CASE
 }
 
 uint16_t
 nir_search_op_for_nir_op(nir_op nop)
 {
 #define MATCH_FCONV_CASE(op) \
-   case nir_op_##op##16: \
-   case nir_op_##op##32: \
-   case nir_op_##op##64: \
+   case nir_op_##op##16:     \
+   case nir_op_##op##32:     \
+   case nir_op_##op##64:     \
       return nir_search_op_##op;
 
 #define MATCH_ICONV_CASE(op) \
-   case nir_op_##op##8: \
-   case nir_op_##op##16: \
-   case nir_op_##op##32: \
-   case nir_op_##op##64: \
+   case nir_op_##op##8:      \
+   case nir_op_##op##16:     \
+   case nir_op_##op##32:     \
+   case nir_op_##op##64:     \
       return nir_search_op_##op;
-
-#define MATCH_BCONV_CASE(op) \
-   case nir_op_##op##1: \
-   case nir_op_##op##32: \
-      return nir_search_op_##op;
-
 
    switch (nop) {
-   MATCH_FCONV_CASE(i2f)
-   MATCH_FCONV_CASE(u2f)
-   MATCH_FCONV_CASE(f2f)
-   MATCH_ICONV_CASE(f2u)
-   MATCH_ICONV_CASE(f2i)
-   MATCH_ICONV_CASE(u2u)
-   MATCH_ICONV_CASE(i2i)
-   MATCH_FCONV_CASE(b2f)
-   MATCH_ICONV_CASE(b2i)
-   MATCH_BCONV_CASE(i2b)
-   MATCH_BCONV_CASE(f2b)
+      MATCH_FCONV_CASE(i2f)
+      MATCH_FCONV_CASE(u2f)
+      MATCH_FCONV_CASE(f2f)
+      MATCH_ICONV_CASE(f2u)
+      MATCH_ICONV_CASE(f2i)
+      MATCH_ICONV_CASE(u2u)
+      MATCH_ICONV_CASE(i2i)
+      MATCH_FCONV_CASE(b2f)
+      MATCH_ICONV_CASE(b2i)
    default:
       return nop;
    }
 
 #undef MATCH_FCONV_CASE
 #undef MATCH_ICONV_CASE
-#undef MATCH_BCONV_CASE
 }
 
 static nir_op
@@ -204,52 +191,50 @@ nir_op_for_search_op(uint16_t sop, unsigned bit_size)
    if (sop <= nir_last_opcode)
       return sop;
 
-#define RET_FCONV_CASE(op) \
-   case nir_search_op_##op: \
-      switch (bit_size) { \
-      case 16: return nir_op_##op##16; \
-      case 32: return nir_op_##op##32; \
-      case 64: return nir_op_##op##64; \
-      default: unreachable("Invalid bit size"); \
+#define RET_FCONV_CASE(op)                \
+   case nir_search_op_##op:               \
+      switch (bit_size) {                 \
+      case 16:                            \
+         return nir_op_##op##16;          \
+      case 32:                            \
+         return nir_op_##op##32;          \
+      case 64:                            \
+         return nir_op_##op##64;          \
+      default:                            \
+         unreachable("Invalid bit size"); \
       }
 
-#define RET_ICONV_CASE(op) \
-   case nir_search_op_##op: \
-      switch (bit_size) { \
-      case 8:  return nir_op_##op##8; \
-      case 16: return nir_op_##op##16; \
-      case 32: return nir_op_##op##32; \
-      case 64: return nir_op_##op##64; \
-      default: unreachable("Invalid bit size"); \
-      }
-
-#define RET_BCONV_CASE(op) \
-   case nir_search_op_##op: \
-      switch (bit_size) { \
-      case 1: return nir_op_##op##1; \
-      case 32: return nir_op_##op##32; \
-      default: unreachable("Invalid bit size"); \
+#define RET_ICONV_CASE(op)                \
+   case nir_search_op_##op:               \
+      switch (bit_size) {                 \
+      case 8:                             \
+         return nir_op_##op##8;           \
+      case 16:                            \
+         return nir_op_##op##16;          \
+      case 32:                            \
+         return nir_op_##op##32;          \
+      case 64:                            \
+         return nir_op_##op##64;          \
+      default:                            \
+         unreachable("Invalid bit size"); \
       }
 
    switch (sop) {
-   RET_FCONV_CASE(i2f)
-   RET_FCONV_CASE(u2f)
-   RET_FCONV_CASE(f2f)
-   RET_ICONV_CASE(f2u)
-   RET_ICONV_CASE(f2i)
-   RET_ICONV_CASE(u2u)
-   RET_ICONV_CASE(i2i)
-   RET_FCONV_CASE(b2f)
-   RET_ICONV_CASE(b2i)
-   RET_BCONV_CASE(i2b)
-   RET_BCONV_CASE(f2b)
+      RET_FCONV_CASE(i2f)
+      RET_FCONV_CASE(u2f)
+      RET_FCONV_CASE(f2f)
+      RET_ICONV_CASE(f2u)
+      RET_ICONV_CASE(f2i)
+      RET_ICONV_CASE(u2u)
+      RET_ICONV_CASE(i2i)
+      RET_FCONV_CASE(b2f)
+      RET_ICONV_CASE(b2i)
    default:
       unreachable("Invalid nir_search_op");
    }
 
 #undef RET_FCONV_CASE
 #undef RET_ICONV_CASE
-#undef RET_BCONV_CASE
 }
 
 static bool
@@ -259,15 +244,6 @@ match_value(const nir_algebraic_table *table,
             struct match_state *state)
 {
    uint8_t new_swizzle[NIR_MAX_VEC_COMPONENTS];
-
-   /* Searching only works on SSA values because, if it's not SSA, we can't
-    * know if the value changed between one instance of that value in the
-    * expression and another.  Also, the replace operation will place reads of
-    * that value right before the last instruction in the expression we're
-    * replacing so those reads will happen after the original reads and may
-    * not be valid if they're register reads.
-    */
-   assert(instr->src[src].src.is_ssa);
 
    /* If the source is an explicitly sized source, then we need to reset
     * both the number of components and the swizzle.
@@ -302,8 +278,6 @@ match_value(const nir_algebraic_table *table,
          if (state->variables[var->variable].src.ssa != instr->src[src].src.ssa)
             return false;
 
-         assert(!instr->src[src].abs && !instr->src[src].negate);
-
          for (unsigned i = 0; i < num_components; ++i) {
             if (state->variables[var->variable].swizzle[i] != new_swizzle[i])
                return false;
@@ -325,8 +299,6 @@ match_value(const nir_algebraic_table *table,
 
          state->variables_seen |= (1 << var->variable);
          state->variables[var->variable].src = instr->src[src].src;
-         state->variables[var->variable].abs = false;
-         state->variables[var->variable].negate = false;
 
          for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; ++i) {
             if (i < num_components)
@@ -401,10 +373,8 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
    if (!nir_op_matches_search_op(instr->op, expr->opcode))
       return false;
 
-   assert(instr->dest.dest.is_ssa);
-
    if (expr->value.bit_size > 0 &&
-       instr->dest.dest.ssa.bit_size != expr->value.bit_size)
+       instr->def.bit_size != expr->value.bit_size)
       return false;
 
    state->inexact_match = expr->inexact || state->inexact_match;
@@ -412,7 +382,6 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
    if (state->inexact_match && state->has_exact_alu)
       return false;
 
-   assert(!instr->dest.saturate);
    assert(nir_op_infos[instr->op].num_inputs > 0);
 
    /* If we have an explicitly sized destination, we can only handle the
@@ -434,8 +403,9 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
     */
    unsigned comm_op_flip =
       (expr->comm_expr_idx >= 0 &&
-       expr->comm_expr_idx < NIR_SEARCH_MAX_COMM_OPS) ?
-      ((state->comm_op_direction >> expr->comm_expr_idx) & 1) : 0;
+       expr->comm_expr_idx < NIR_SEARCH_MAX_COMM_OPS)
+         ? ((state->comm_op_direction >> expr->comm_expr_idx) & 1)
+         : 0;
 
    bool matched = true;
    for (unsigned i = 0; i < nir_op_infos[instr->op].num_inputs; i++) {
@@ -481,10 +451,8 @@ construct_value(nir_builder *build,
          num_components = nir_op_infos[op].output_size;
 
       nir_alu_instr *alu = nir_alu_instr_create(build->shader, op);
-      nir_ssa_dest_init(&alu->instr, &alu->dest.dest, num_components,
-                        dst_bit_size, NULL);
-      alu->dest.write_mask = (1 << num_components) - 1;
-      alu->dest.saturate = false;
+      nir_def_init(&alu->instr, &alu->def, num_components,
+                   dst_bit_size);
 
       /* We have no way of knowing what values in a given search expression
        * map to a particular replacement value.  Therefore, if the
@@ -507,15 +475,13 @@ construct_value(nir_builder *build,
 
       nir_builder_instr_insert(build, &alu->instr);
 
-      assert(alu->dest.dest.ssa.index ==
+      assert(alu->def.index ==
              util_dynarray_num_elements(state->states, uint16_t));
       util_dynarray_append(state->states, uint16_t, 0);
       nir_algebraic_automaton(&alu->instr, state->states, state->pass_op_table);
 
       nir_alu_src val;
-      val.src = nir_src_for_ssa(&alu->dest.dest.ssa);
-      val.negate = false;
-      val.abs = false,
+      val.src = nir_src_for_ssa(&alu->def);
       memcpy(val.swizzle, identity_swizzle, sizeof val.swizzle);
 
       return val;
@@ -526,7 +492,7 @@ construct_value(nir_builder *build,
       assert(state->variables_seen & (1 << var->variable));
 
       nir_alu_src val = { NIR_SRC_INIT };
-      nir_alu_src_copy(&val, &state->variables[var->variable], NULL);
+      nir_alu_src_copy(&val, &state->variables[var->variable]);
       assert(!var->is_constant);
 
       for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
@@ -539,7 +505,7 @@ construct_value(nir_builder *build,
       const nir_search_constant *c = nir_search_value_as_constant(value);
       unsigned bit_size = replace_bitsize(value, search_bitsize, state);
 
-      nir_ssa_def *cval;
+      nir_def *cval;
       switch (c->type) {
       case nir_type_float:
          cval = nir_imm_floatN_t(build, c->data.d, bit_size);
@@ -566,8 +532,6 @@ construct_value(nir_builder *build,
 
       nir_alu_src val;
       val.src = nir_src_for_ssa(cval);
-      val.negate = false;
-      val.abs = false,
       memset(val.swizzle, 0, sizeof val.swizzle);
 
       return val;
@@ -578,7 +542,8 @@ construct_value(nir_builder *build,
    }
 }
 
-UNUSED static void dump_value(const nir_algebraic_table *table, const nir_search_value *val)
+UNUSED static void
+dump_value(const nir_algebraic_table *table, const nir_search_value *val)
 {
    switch (val->type) {
    case nir_search_value_constant: {
@@ -588,10 +553,10 @@ UNUSED static void dump_value(const nir_algebraic_table *table, const nir_search
          fprintf(stderr, "%f", sconst->data.d);
          break;
       case nir_type_int:
-         fprintf(stderr, "%"PRId64, sconst->data.i);
+         fprintf(stderr, "%" PRId64, sconst->data.i);
          break;
       case nir_type_uint:
-         fprintf(stderr, "0x%"PRIx64, sconst->data.u);
+         fprintf(stderr, "0x%" PRIx64, sconst->data.u);
          break;
       case nir_type_bool:
          fprintf(stderr, "%s", sconst->data.u != 0 ? "True" : "False");
@@ -616,15 +581,15 @@ UNUSED static void dump_value(const nir_algebraic_table *table, const nir_search
       if (expr->inexact)
          fprintf(stderr, "~");
       switch (expr->opcode) {
-#define CASE(n) \
-      case nir_search_op_##n: fprintf(stderr, #n); break;
-      CASE(f2b)
-      CASE(b2f)
-      CASE(b2i)
-      CASE(i2b)
-      CASE(i2i)
-      CASE(f2i)
-      CASE(i2f)
+#define CASE(n)            \
+   case nir_search_op_##n: \
+      fprintf(stderr, #n); \
+      break;
+         CASE(b2f)
+         CASE(b2i)
+         CASE(i2i)
+         CASE(f2i)
+         CASE(i2f)
 #undef CASE
       default:
          fprintf(stderr, "%s", nir_op_infos[expr->opcode].name);
@@ -654,11 +619,11 @@ add_uses_to_worklist(nir_instr *instr,
                      struct util_dynarray *states,
                      const struct per_op_table *pass_op_table)
 {
-   nir_ssa_def *def = nir_instr_ssa_def(instr);
+   nir_def *def = nir_instr_def(instr);
 
    nir_foreach_use_safe(use_src, def) {
-      if (nir_algebraic_automaton(use_src->parent_instr, states, pass_op_table))
-         nir_instr_worklist_push_tail(worklist, use_src->parent_instr);
+      if (nir_algebraic_automaton(nir_src_parent_instr(use_src), states, pass_op_table))
+         nir_instr_worklist_push_tail(worklist, nir_src_parent_instr(use_src));
    }
 }
 
@@ -685,7 +650,7 @@ nir_algebraic_update_automaton(nir_instr *new_instr,
    nir_instr_worklist_destroy(automaton_worklist);
 }
 
-static nir_ssa_def *
+static nir_def *
 nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
                   struct hash_table *range_ht,
                   struct util_dynarray *states,
@@ -697,10 +662,8 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
 {
    uint8_t swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
 
-   for (unsigned i = 0; i < instr->dest.dest.ssa.num_components; ++i)
+   for (unsigned i = 0; i < instr->def.num_components; ++i)
       swizzle[i] = i;
-
-   assert(instr->dest.dest.is_ssa);
 
    struct match_state state;
    state.inexact_match = false;
@@ -723,7 +686,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
       state.variables_seen = 0;
 
       if (match_expression(table, search, instr,
-                           instr->dest.dest.ssa.num_components,
+                           instr->def.num_components,
                            swizzle, &state)) {
          found = true;
          break;
@@ -737,7 +700,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    dump_value(&search->value);
    fprintf(stderr, " -> ");
    dump_value(replace);
-   fprintf(stderr, " ssa_%d\n", instr->dest.dest.ssa.index);
+   fprintf(stderr, " ssa_%d\n", instr->def.index);
 #endif
 
    /* If the instruction at the root of the expression tree being replaced is
@@ -779,15 +742,15 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    state.states = states;
 
    nir_alu_src val = construct_value(build, replace,
-                                     instr->dest.dest.ssa.num_components,
-                                     instr->dest.dest.ssa.bit_size,
+                                     instr->def.num_components,
+                                     instr->def.bit_size,
                                      &state, &instr->instr);
 
    /* Note that NIR builder will elide the MOV if it's a no-op, which may
     * allow more work to be done in a single pass through algebraic.
     */
-   nir_ssa_def *ssa_val =
-      nir_mov_alu(build, val, instr->dest.dest.ssa.num_components);
+   nir_def *ssa_val =
+      nir_mov_alu(build, val, instr->def.num_components);
    if (ssa_val->index == util_dynarray_num_elements(states, uint16_t)) {
       util_dynarray_append(states, uint16_t, 0);
       nir_algebraic_automaton(ssa_val->parent_instr, states, table->pass_op_table);
@@ -796,7 +759,7 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
    /* Rewrite the uses of the old SSA value to the new one, and recurse
     * through the uses updating the automaton's state.
     */
-   nir_ssa_def_rewrite_uses(&instr->dest.dest.ssa, ssa_val);
+   nir_def_rewrite_uses(&instr->def, ssa_val);
    nir_algebraic_update_automaton(ssa_val->parent_instr, algebraic_worklist,
                                   states, table->pass_op_table);
 
@@ -839,7 +802,7 @@ nir_algebraic_automaton(nir_instr *instr, struct util_dynarray *states,
       }
 
       uint16_t *state = util_dynarray_element(states, uint16_t,
-                                              alu->dest.dest.ssa.index);
+                                              alu->def.index);
       if (*state != tbl->table[index]) {
          *state = tbl->table[index];
          return true;
@@ -877,10 +840,8 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
       return false;
 
    nir_alu_instr *alu = nir_instr_as_alu(instr);
-   if (!alu->dest.dest.is_ssa)
-      return false;
 
-   unsigned bit_size = alu->dest.dest.ssa.bit_size;
+   unsigned bit_size = alu->def.bit_size;
    const unsigned execution_mode =
       build->shader->info.float_controls_execution_mode;
    const bool ignore_inexact =
@@ -888,7 +849,7 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
       nir_is_denorm_flush_to_zero(execution_mode, bit_size);
 
    int xform_idx = *util_dynarray_element(states, uint16_t,
-                                          alu->dest.dest.ssa.index);
+                                          alu->def.index);
    for (const struct transform *xform = &table->transforms[table->transform_offsets[xform_idx]];
         xform->condition_offset != ~0;
         xform++) {
@@ -912,14 +873,13 @@ nir_algebraic_impl(nir_function_impl *impl,
 {
    bool progress = false;
 
-   nir_builder build;
-   nir_builder_init(&build, impl);
+   nir_builder build = nir_builder_create(impl);
 
    /* Note: it's important here that we're allocating a zeroed array, since
     * state 0 is the default state, which means we don't have to visit
     * anything other than constants and ALU instructions.
     */
-   struct util_dynarray states = {0};
+   struct util_dynarray states = { 0 };
    if (!util_dynarray_resize(&states, uint16_t, impl->ssa_alloc)) {
       nir_metadata_preserve(impl, nir_metadata_all);
       return false;
@@ -974,7 +934,7 @@ nir_algebraic_impl(nir_function_impl *impl,
 
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                                     nir_metadata_dominance);
    } else {
       nir_metadata_preserve(impl, nir_metadata_all);
    }

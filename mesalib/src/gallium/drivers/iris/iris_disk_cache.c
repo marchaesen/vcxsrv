@@ -103,6 +103,8 @@ iris_disk_cache_store(struct disk_cache *cache,
    /* We write the following data to the cache blob:
     *
     * 1. Prog data (must come first because it has the assembly size)
+    *   - Zero out pointer values in prog data, so cache entries will be
+    *     consistent.
     * 2. Assembly code
     * 3. Number of entries in the system value array
     * 4. System value array
@@ -111,7 +113,14 @@ iris_disk_cache_store(struct disk_cache *cache,
     * 7. Legacy param array (only used for compute workgroup ID)
     * 8. Binding table
     */
-   blob_write_bytes(&blob, shader->prog_data, brw_prog_data_size(stage));
+   size_t prog_data_s = brw_prog_data_size(stage);
+   union brw_any_prog_data serializable;
+   assert(prog_data_s <= sizeof(serializable));
+   memcpy(&serializable, shader->prog_data, prog_data_s);
+   serializable.base.param = NULL;
+   serializable.base.relocs = NULL;
+   blob_write_bytes(&blob, &serializable, prog_data_s);
+
    blob_write_bytes(&blob, shader->map, shader->prog_data->program_size);
    blob_write_uint32(&blob, shader->num_system_values);
    blob_write_bytes(&blob, shader->system_values,
@@ -268,7 +277,7 @@ iris_disk_cache_init(struct iris_screen *screen)
    /* array length = print length + nul char + 1 extra to verify it's unused */
    char renderer[11];
    UNUSED int len =
-      snprintf(renderer, sizeof(renderer), "iris_%04x", screen->pci_id);
+      snprintf(renderer, sizeof(renderer), "iris_%04x", screen->devinfo->pci_device_id);
    assert(len == sizeof(renderer) - 2);
 
    const struct build_id_note *note =

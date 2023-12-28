@@ -36,14 +36,10 @@
 #include "cso_hash.h"
 
 
-static inline struct cso_hash *_cso_hash_for_type(struct cso_cache *sc, enum cso_cache_type type)
-{
-   return &sc->hashes[type];
-}
-
 /* Default delete callback. It can also be used by custom callbacks. */
-void cso_delete_state(struct pipe_context *pipe, void *state,
-                      enum cso_cache_type type)
+void
+cso_delete_state(struct pipe_context *pipe, void *state,
+                 enum cso_cache_type type)
 {
    switch (type) {
    case CSO_BLEND:
@@ -70,18 +66,20 @@ void cso_delete_state(struct pipe_context *pipe, void *state,
 }
 
 
-static inline void sanitize_hash(struct cso_cache *sc,
-                                 struct cso_hash *hash,
-                                 enum cso_cache_type type,
-                                 int max_size)
+static inline void
+sanitize_hash(struct cso_cache *sc,
+              struct cso_hash *hash,
+              enum cso_cache_type type,
+              int max_size)
 {
    if (sc->sanitize_cb)
       sc->sanitize_cb(hash, type, max_size, sc->sanitize_data);
 }
 
 
-static inline void sanitize_cb(struct cso_hash *hash, enum cso_cache_type type,
-			       int max_size, void *user_data)
+static inline void
+sanitize_cb(struct cso_hash *hash, enum cso_cache_type type,
+            int max_size, void *user_data)
 {
    struct cso_cache *cache = (struct cso_cache *)user_data;
 
@@ -102,38 +100,29 @@ static inline void sanitize_cb(struct cso_hash *hash, enum cso_cache_type type,
    }
 }
 
+
 struct cso_hash_iter
 cso_insert_state(struct cso_cache *sc,
                  unsigned hash_key, enum cso_cache_type type,
                  void *state)
 {
-   struct cso_hash *hash = _cso_hash_for_type(sc, type);
+   struct cso_hash *hash = &sc->hashes[type];
    sanitize_hash(sc, hash, type, sc->max_size);
-
    return cso_hash_insert(hash, hash_key, state);
 }
 
-struct cso_hash_iter
-cso_find_state(struct cso_cache *sc,
-               unsigned hash_key, enum cso_cache_type type)
-{
-   struct cso_hash *hash = _cso_hash_for_type(sc, type);
 
-   return cso_hash_find(hash, hash_key);
-}
-
-
-void *cso_hash_find_data_from_template( struct cso_hash *hash,
-				        unsigned hash_key, 
-				        void *templ,
-				        int size )
+void *
+cso_hash_find_data_from_template(struct cso_hash *hash,
+                                 unsigned hash_key,
+                                 void *templ,
+                                 int size )
 {
    struct cso_hash_iter iter = cso_hash_find(hash, hash_key);
    while (!cso_hash_iter_is_null(iter)) {
       void *iter_data = cso_hash_iter_data(iter);
       if (!memcmp(iter_data, templ, size)) {
-	 /* We found a match
-	  */
+         /* We found a match */
          return iter_data;
       }
       iter = cso_hash_iter_next(iter);
@@ -142,40 +131,27 @@ void *cso_hash_find_data_from_template( struct cso_hash *hash,
 }
 
 
-struct cso_hash_iter cso_find_state_template(struct cso_cache *sc,
-                                             unsigned hash_key, enum cso_cache_type type,
-                                             void *templ, unsigned size)
-{
-   struct cso_hash_iter iter = cso_find_state(sc, hash_key, type);
-   while (!cso_hash_iter_is_null(iter)) {
-      void *iter_data = cso_hash_iter_data(iter);
-      if (!memcmp(iter_data, templ, size))
-         return iter;
-      iter = cso_hash_iter_next(iter);
-   }
-   return iter;
-}
-
-void cso_cache_init(struct cso_cache *sc, struct pipe_context *pipe)
+void
+cso_cache_init(struct cso_cache *sc, struct pipe_context *pipe)
 {
    memset(sc, 0, sizeof(*sc));
 
-   sc->max_size           = 4096;
+   sc->max_size = 4096;
    for (int i = 0; i < CSO_CACHE_MAX; i++)
       cso_hash_init(&sc->hashes[i]);
 
-   sc->sanitize_cb        = sanitize_cb;
-   sc->sanitize_data      = sc;
+   sc->sanitize_cb = sanitize_cb;
+   sc->sanitize_data = sc;
    sc->delete_cso = (cso_delete_cso_callback)cso_delete_state;
    sc->delete_cso_ctx = pipe;
 }
 
-static void cso_delete_all(struct cso_cache *sc, enum cso_cache_type type)
-{
-   struct cso_hash *hash = _cso_hash_for_type(sc, type);
-   struct cso_hash_iter iter;
 
-   iter = cso_hash_first_node(hash);
+static void
+cso_delete_all(struct cso_cache *sc, enum cso_cache_type type)
+{
+   struct cso_hash *hash = &sc->hashes[type];
+   struct cso_hash_iter iter = cso_hash_first_node(hash);
    while (!cso_hash_iter_is_null(iter)) {
       void *state = cso_hash_iter_data(iter);
       iter = cso_hash_iter_next(iter);
@@ -185,10 +161,10 @@ static void cso_delete_all(struct cso_cache *sc, enum cso_cache_type type)
    }
 }
 
-void cso_cache_delete(struct cso_cache *sc)
-{
-   int i;
 
+void
+cso_cache_delete(struct cso_cache *sc)
+{
    /* delete driver data */
    cso_delete_all(sc, CSO_BLEND);
    cso_delete_all(sc, CSO_DEPTH_STENCIL_ALPHA);
@@ -196,31 +172,35 @@ void cso_cache_delete(struct cso_cache *sc)
    cso_delete_all(sc, CSO_SAMPLER);
    cso_delete_all(sc, CSO_VELEMENTS);
 
-   for (i = 0; i < CSO_CACHE_MAX; i++)
+   for (int i = 0; i < CSO_CACHE_MAX; i++)
       cso_hash_deinit(&sc->hashes[i]);
 }
 
-void cso_set_maximum_cache_size(struct cso_cache *sc, int number)
-{
-   int i;
 
+void
+cso_set_maximum_cache_size(struct cso_cache *sc, int number)
+{
    sc->max_size = number;
 
-   for (i = 0; i < CSO_CACHE_MAX; i++)
+   for (int i = 0; i < CSO_CACHE_MAX; i++)
       sanitize_hash(sc, &sc->hashes[i], i, sc->max_size);
 }
 
-void cso_cache_set_sanitize_callback(struct cso_cache *sc,
-                                     cso_sanitize_callback cb,
-                                     void *user_data)
+
+void
+cso_cache_set_sanitize_callback(struct cso_cache *sc,
+                                cso_sanitize_callback cb,
+                                void *user_data)
 {
-   sc->sanitize_cb   = cb;
+   sc->sanitize_cb = cb;
    sc->sanitize_data = user_data;
 }
 
-void cso_cache_set_delete_cso_callback(struct cso_cache *sc,
-                                       cso_delete_cso_callback delete_cso,
-                                       void *ctx)
+
+void
+cso_cache_set_delete_cso_callback(struct cso_cache *sc,
+                                  cso_delete_cso_callback delete_cso,
+                                  void *ctx)
 {
    sc->delete_cso = delete_cso;
    sc->delete_cso_ctx = ctx;

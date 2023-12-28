@@ -34,7 +34,7 @@
 
 #include <stdbool.h>
 #include <stdint.h>
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "c11/threads.h"
 #include "util/simple_mtx.h"

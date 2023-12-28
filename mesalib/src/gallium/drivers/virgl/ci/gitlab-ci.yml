@@ -1,12 +1,5 @@
-.virpipe-test:
-  extends:
-    - .test-gl
-    - .virgl-rules
-  variables:
-    GALLIVM_PERF: nopt
-    FLAKES_CHANNEL: "#virgl-ci"
-  script:
-    - xvfb-run --server-args='-noreset' sh -c "GALLIUM_DRIVER=virpipe install/deqp-runner.sh"
+include:
+  - local: 'src/gallium/drivers/virgl/ci/gitlab-ci-inc.yml'
 
 virpipe-on-gl:
   extends:
@@ -15,19 +8,8 @@ virpipe-on-gl:
   variables:
     DEQP_SUITE: virpipe-gl
     GPU_VERSION: virpipe-gl
-  tags:
-    - mesa-swrast
-
-.virgl-test:
-  extends:
-    - .test-gl
-    - .virgl-rules
-  variables:
-    FLAKES_CHANNEL: "#virgl-ci"
-    GALLIUM_DRIVER: "virgl"
-    CROSVM_GALLIUM_DRIVER: "llvmpipe"
-    CROSVM_GPU_ARGS: "gles=false,backend=virglrenderer,egl=true,surfaceless=true,width=1024,height=768"
-    GALLIVM_PERF: "nopt,no_quad_lod"
+    PIGLIT_PLATFORM: x11_egl
+    DEQP_FRACTION: 4
 
 virgl-on-gl:
   variables:
@@ -56,43 +38,24 @@ virgl-traces:
     - .piglit-traces-test
   variables:
     EGL_PLATFORM: "surfaceless"
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "${CI_PROJECT_DIR}/install/traces-virgl.yml"
+    PIGLIT_TRACES_FILE: traces-virgl.yml
     PIGLIT_REPLAY_DEVICE_NAME: "gl-virgl"
     PIGLIT_RESULTS: "virgl-replay"
     LD_LIBRARY_PATH: "${CI_PROJECT_DIR}/install/lib/"     # For Crosvm
   tags:
     - kvm
   script:
+    - . "$SCRIPTS_DIR"/setup-test-env.sh
     # Use all threads for rendering and only run one job at a time
     # Couldn't get GitLab CI to correctly substitute the variable in the yaml
     - LP_NUM_THREADS=${FDO_CI_CONCURRENT} FDO_CI_CONCURRENT=1 install/crosvm-runner.sh install/piglit/piglit-traces.sh
 
-.virgl-iris-test:
-  extends:
-    - .lava-piglit-traces:amd64
-  variables:
-    DEVICE_TYPE: asus-cx9400-volteer
-    BOOT_METHOD: depthcharge
-    HWCI_KERNEL_MODULES: vhost_vsock
-    HWCI_KVM: "true"
-    HWCI_TEST_SCRIPT: "LP_NUM_THREADS=${FDO_CI_CONCURRENT} FDO_CI_CONCURRENT=1 /install/crosvm-runner.sh /install/piglit/piglit-traces.sh"
-    GPU_VERSION: virgl
-    DRIVER_NAME: virgl
-    GALLIUM_DRIVER: virgl
-    CROSVM_GALLIUM_DRIVER: iris
-    CROSVM_GPU_ARGS: "gles=false,backend=virglrenderer,egl=true,surfaceless=true,width=1024,height=768"
-    EGL_PLATFORM: surfaceless
-    PIGLIT_PROFILES: replay
-    PIGLIT_REPLAY_DESCRIPTION_FILE: "/install/traces-virgl-iris.yml"
-    RUNNER_TAG: mesa-ci-x86-64-lava-asus-cx9400-volteer
-
-virgl-iris-traces:
+.virgl-iris-traces:
   extends:
     - .virgl-iris-test
-    - .virgl-rules
-    - .test-manual-mr
+    - .virgl-iris-manual-rules
   variables:
-    PIGLIT_REPLAY_EXTRA_ARGS: "--keep-image --download-caching-proxy-url=${FDO_HTTP_CACHE_URI}"
+    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=${FDO_HTTP_CACHE_URI}"
 
 virgl-iris-traces-performance:
   extends:
@@ -103,4 +66,13 @@ virgl-iris-traces-performance:
     PIGLIT_REPLAY_SUBCOMMAND: profile
     PIGLIT_REPLAY_LOOP_TIMES: 150
     PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=${FDO_HTTP_CACHE_URI}"
-  allow_failure: true
+
+android-virgl-llvmpipe:
+  extends:
+    - .test-android
+    - .virgl-rules
+  variables:
+    ANDROID_GPU_MODE: drm_virgl
+    ANDROID_DRIVER: virtio_gpu
+    GPU_VERSION: virgl-gl
+    DEQP_SUITE: android-virgl

@@ -38,7 +38,9 @@ void vlVaHandlePictureParameterBufferMJPEG(vlVaDriver *drv, vlVaContext *context
    context->desc.mjpeg.picture_parameter.picture_width = mjpeg->picture_width;
    context->desc.mjpeg.picture_parameter.picture_height = mjpeg->picture_height;
 
-   for (i = 0; i < mjpeg->num_components; ++i) {
+   STATIC_ASSERT(sizeof(mjpeg->components) ==
+                 sizeof(context->desc.mjpeg.picture_parameter.components));
+   for (i = 0; i < MIN2(mjpeg->num_components, ARRAY_SIZE(mjpeg->components)); ++i) {
       context->desc.mjpeg.picture_parameter.components[i].component_id =
          mjpeg->components[i].component_id;
       context->desc.mjpeg.picture_parameter.components[i].h_sampling_factor =
@@ -54,6 +56,19 @@ void vlVaHandlePictureParameterBufferMJPEG(vlVaDriver *drv, vlVaContext *context
    }
 
    context->desc.mjpeg.picture_parameter.num_components = mjpeg->num_components;
+
+#if VA_CHECK_VERSION(1, 21, 0)
+   context->desc.mjpeg.picture_parameter.crop_x = mjpeg->crop_rectangle.x;
+   context->desc.mjpeg.picture_parameter.crop_y = mjpeg->crop_rectangle.y;
+   context->desc.mjpeg.picture_parameter.crop_width = mjpeg->crop_rectangle.width;
+   context->desc.mjpeg.picture_parameter.crop_height = mjpeg->crop_rectangle.height;
+#else
+   context->desc.mjpeg.picture_parameter.crop_x = mjpeg->va_reserved[0] & 0xffff;
+   context->desc.mjpeg.picture_parameter.crop_y = (mjpeg->va_reserved[0] >> 16) & 0xffff;
+   context->desc.mjpeg.picture_parameter.crop_width = mjpeg->va_reserved[1] & 0xffff;
+   context->desc.mjpeg.picture_parameter.crop_height = (mjpeg->va_reserved[1] >> 16) & 0xffff;
+#endif
+
 }
 
 void vlVaHandleIQMatrixBufferMJPEG(vlVaContext *context, vlVaBuffer *buf)
@@ -73,6 +88,8 @@ void vlVaHandleHuffmanTableBufferType(vlVaContext *context, vlVaBuffer *buf)
 
    assert(buf->size >= sizeof(VASliceParameterBufferJPEGBaseline) && buf->num_elements == 1);
 
+   STATIC_ASSERT(sizeof(mjpeg->load_huffman_table) ==
+                 sizeof(context->desc.mjpeg.huffman_table.load_huffman_table));
    for (i = 0; i < 2; ++i) {
       context->desc.mjpeg.huffman_table.load_huffman_table[i] = mjpeg->load_huffman_table[i];
 
@@ -101,7 +118,9 @@ void vlVaHandleSliceParameterBufferMJPEG(vlVaContext *context, vlVaBuffer *buf)
    context->desc.mjpeg.slice_parameter.slice_horizontal_position = mjpeg->slice_horizontal_position;
    context->desc.mjpeg.slice_parameter.slice_vertical_position = mjpeg->slice_vertical_position;
 
-   for (i = 0; i < mjpeg->num_components; ++i) {
+   STATIC_ASSERT(sizeof(mjpeg->components) ==
+                 sizeof(context->desc.mjpeg.slice_parameter.components));
+   for (i = 0; i < MIN2(mjpeg->num_components, ARRAY_SIZE(mjpeg->components)); ++i) {
       context->desc.mjpeg.slice_parameter.components[i].component_selector =
          mjpeg->components[i].component_selector;
       context->desc.mjpeg.slice_parameter.components[i].dc_table_selector =

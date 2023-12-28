@@ -49,7 +49,7 @@ u_suballocator_init(struct u_suballocator *allocator,
                     struct pipe_context *pipe,
                     unsigned size, unsigned bind,
                     enum pipe_resource_usage usage, unsigned flags,
-                    boolean zero_buffer_memory)
+                    bool zero_buffer_memory)
 {
    memset(allocator, 0, sizeof(*allocator));
 

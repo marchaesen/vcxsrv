@@ -19,17 +19,13 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
+#include <math.h>
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_constant_expressions.h"
 #include "nir_deref.h"
-#include <math.h>
 
 /*
  * Implements SSA-based constant folding.
@@ -45,9 +41,6 @@ try_fold_alu(nir_builder *b, nir_alu_instr *alu)
 {
    nir_const_value src[NIR_MAX_VEC_COMPONENTS][NIR_MAX_VEC_COMPONENTS];
 
-   if (!alu->dest.dest.is_ssa)
-      return false;
-
    /* In the case that any outputs/inputs have unsized types, then we need to
     * guess the bit-size. In this case, the validator ensures that all
     * bit-sizes match so we can just take the bit-size from first
@@ -59,12 +52,9 @@ try_fold_alu(nir_builder *b, nir_alu_instr *alu)
     */
    unsigned bit_size = 0;
    if (!nir_alu_type_get_type_size(nir_op_infos[alu->op].output_type))
-      bit_size = alu->dest.dest.ssa.bit_size;
+      bit_size = alu->def.bit_size;
 
    for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; i++) {
-      if (!alu->src[i].src.is_ssa)
-         return false;
-
       if (bit_size == 0 &&
           !nir_alu_type_get_type_size(nir_op_infos[alu->op].input_types[i]))
          bit_size = alu->src[i].src.ssa->bit_size;
@@ -73,37 +63,31 @@ try_fold_alu(nir_builder *b, nir_alu_instr *alu)
 
       if (src_instr->type != nir_instr_type_load_const)
          return false;
-      nir_load_const_instr* load_const = nir_instr_as_load_const(src_instr);
+      nir_load_const_instr *load_const = nir_instr_as_load_const(src_instr);
 
       for (unsigned j = 0; j < nir_ssa_alu_instr_src_components(alu, i);
            j++) {
          src[i][j] = load_const->value[alu->src[i].swizzle[j]];
       }
-
-      /* We shouldn't have any source modifiers in the optimization loop. */
-      assert(!alu->src[i].abs && !alu->src[i].negate);
    }
 
    if (bit_size == 0)
       bit_size = 32;
-
-   /* We shouldn't have any saturate modifiers in the optimization loop. */
-   assert(!alu->dest.saturate);
 
    nir_const_value dest[NIR_MAX_VEC_COMPONENTS];
    nir_const_value *srcs[NIR_MAX_VEC_COMPONENTS];
    memset(dest, 0, sizeof(dest));
    for (unsigned i = 0; i < nir_op_infos[alu->op].num_inputs; ++i)
       srcs[i] = src[i];
-   nir_eval_const_opcode(alu->op, dest, alu->dest.dest.ssa.num_components,
+   nir_eval_const_opcode(alu->op, dest, alu->def.num_components,
                          bit_size, srcs,
                          b->shader->info.float_controls_execution_mode);
 
    b->cursor = nir_before_instr(&alu->instr);
-   nir_ssa_def *imm = nir_build_imm(b, alu->dest.dest.ssa.num_components,
-                                       alu->dest.dest.ssa.bit_size,
-                                       dest);
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa, imm);
+   nir_def *imm = nir_build_imm(b, alu->def.num_components,
+                                alu->def.bit_size,
+                                dest);
+   nir_def_rewrite_uses(&alu->def, imm);
    nir_instr_remove(&alu->instr);
    nir_instr_free(&alu->instr);
 
@@ -126,6 +110,12 @@ const_value_for_deref(nir_deref_instr *deref)
    if (var->constant_initializer == NULL)
       goto fail;
 
+   if (var->constant_initializer->is_null_constant) {
+      /* Doesn't matter what casts are in the way, it's all zeros */
+      nir_deref_path_finish(&path);
+      return var->constant_initializer->values;
+   }
+
    nir_constant *c = var->constant_initializer;
    nir_const_value *v = NULL; /* Vector value for array-deref-of-vec */
 
@@ -142,12 +132,12 @@ const_value_for_deref(nir_deref_instr *deref)
 
          uint64_t idx = nir_src_as_uint(p->arr.index);
          if (c->num_elements > 0) {
-            assert(glsl_type_is_array(path.path[i-1]->type));
+            assert(glsl_type_is_array(path.path[i - 1]->type));
             if (idx >= c->num_elements)
                goto fail;
             c = c->elements[idx];
          } else {
-            assert(glsl_type_is_vector(path.path[i-1]->type));
+            assert(glsl_type_is_vector(path.path[i - 1]->type));
             assert(glsl_type_is_scalar(p->type));
             if (idx >= NIR_MAX_VEC_COMPONENTS)
                goto fail;
@@ -157,7 +147,7 @@ const_value_for_deref(nir_deref_instr *deref)
       }
 
       case nir_deref_type_struct:
-         assert(glsl_type_is_struct(path.path[i-1]->type));
+         assert(glsl_type_is_struct(path.path[i - 1]->type));
          assert(v == NULL && c->num_elements > 0);
          if (p->strct.index >= c->num_elements)
             goto fail;
@@ -171,6 +161,7 @@ const_value_for_deref(nir_deref_instr *deref)
 
    /* We have to have ended at a vector */
    assert(c->num_elements == 0);
+   nir_deref_path_finish(&path);
    return v ? v : c->values;
 
 fail:
@@ -217,9 +208,9 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
       nir_const_value *v = const_value_for_deref(deref);
       if (v) {
          b->cursor = nir_before_instr(&intrin->instr);
-         nir_ssa_def *val = nir_build_imm(b, intrin->dest.ssa.num_components,
-                                             intrin->dest.ssa.bit_size, v);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, val);
+         nir_def *val = nir_build_imm(b, intrin->def.num_components,
+                                      intrin->def.bit_size, v);
+         nir_def_rewrite_uses(&intrin->def, val);
          nir_instr_remove(&intrin->instr);
          return true;
       }
@@ -240,25 +231,25 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
       assert(base + range <= b->shader->constant_data_size);
 
       b->cursor = nir_before_instr(&intrin->instr);
-      nir_ssa_def *val;
+      nir_def *val;
       if (offset >= range) {
-         val = nir_ssa_undef(b, intrin->dest.ssa.num_components,
-                                intrin->dest.ssa.bit_size);
+         val = nir_undef(b, intrin->def.num_components,
+                         intrin->def.bit_size);
       } else {
          nir_const_value imm[NIR_MAX_VEC_COMPONENTS];
          memset(imm, 0, sizeof(imm));
-         uint8_t *data = (uint8_t*)b->shader->constant_data + base;
+         uint8_t *data = (uint8_t *)b->shader->constant_data + base;
          for (unsigned i = 0; i < intrin->num_components; i++) {
-            unsigned bytes = intrin->dest.ssa.bit_size / 8;
+            unsigned bytes = intrin->def.bit_size / 8;
             bytes = MIN2(bytes, range - offset);
 
             memcpy(&imm[i].u64, data + offset, bytes);
             offset += bytes;
          }
-         val = nir_build_imm(b, intrin->dest.ssa.num_components,
-                                intrin->dest.ssa.bit_size, imm);
+         val = nir_build_imm(b, intrin->def.num_components,
+                             intrin->def.bit_size, imm);
       }
-      nir_ssa_def_rewrite_uses(&intrin->dest.ssa, val);
+      nir_def_rewrite_uses(&intrin->def, val);
       nir_instr_remove(&intrin->instr);
       return true;
    }
@@ -282,8 +273,8 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
        * the data is constant.
        */
       if (nir_src_is_const(intrin->src[0])) {
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  intrin->src[0].ssa);
+         nir_def_rewrite_uses(&intrin->def,
+                              intrin->src[0].ssa);
          nir_instr_remove(&intrin->instr);
          return true;
       }
@@ -293,8 +284,8 @@ try_fold_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin,
    case nir_intrinsic_vote_ieq:
       if (nir_src_is_const(intrin->src[0])) {
          b->cursor = nir_before_instr(&intrin->instr);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                  nir_imm_true(b));
+         nir_def_rewrite_uses(&intrin->def,
+                              nir_imm_true(b));
          nir_instr_remove(&intrin->instr);
          return true;
       }
@@ -347,6 +338,27 @@ try_fold_tex_offset(nir_tex_instr *tex, unsigned *index,
 }
 
 static bool
+try_fold_texel_offset_src(nir_tex_instr *tex)
+{
+   int offset_src = nir_tex_instr_src_index(tex, nir_tex_src_offset);
+   if (offset_src < 0)
+      return false;
+
+   unsigned size = nir_tex_instr_src_size(tex, offset_src);
+   nir_tex_src *src = &tex->src[offset_src];
+
+   for (unsigned i = 0; i < size; i++) {
+      nir_scalar comp = nir_scalar_resolved(src->src.ssa, i);
+      if (!nir_scalar_is_const(comp) || nir_scalar_as_uint(comp) != 0)
+         return false;
+   }
+
+   nir_tex_instr_remove_src(tex, offset_src);
+
+   return true;
+}
+
+static bool
 try_fold_tex(nir_builder *b, nir_tex_instr *tex)
 {
    bool progress = false;
@@ -359,6 +371,9 @@ try_fold_tex(nir_builder *b, nir_tex_instr *tex)
    /* txb with a bias of constant zero is just tex. */
    if (tex->op == nir_texop_txb)
       progress |= try_fold_txb_to_tex(b, tex);
+
+   /* tex with a zero offset is just tex. */
+   progress |= try_fold_texel_offset_src(tex);
 
    return progress;
 }
@@ -388,7 +403,7 @@ nir_opt_constant_folding(nir_shader *shader)
 
    bool progress = nir_shader_instructions_pass(shader, try_fold_instr,
                                                 nir_metadata_block_index |
-                                                nir_metadata_dominance,
+                                                   nir_metadata_dominance,
                                                 &state);
 
    /* This doesn't free the constant data if there are no constant loads because

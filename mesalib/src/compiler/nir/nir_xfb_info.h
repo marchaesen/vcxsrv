@@ -42,6 +42,7 @@ typedef struct {
    uint8_t buffer;
    uint16_t offset;
    uint8_t location;
+   bool high_16bits;
    uint8_t component_mask;
    uint8_t component_offset;
 } nir_xfb_output_info;
@@ -81,9 +82,8 @@ nir_gather_xfb_info_with_varyings(nir_shader *shader,
                                   void *mem_ctx,
                                   nir_xfb_varyings_info **varyings_info);
 
-nir_xfb_info *
-nir_gather_xfb_info_from_intrinsics(nir_shader *nir,
-                                    int slot_to_register[NUM_TOTAL_VARYING_SLOTS]);
+void
+nir_gather_xfb_info_from_intrinsics(nir_shader *nir);
 
 void
 nir_print_xfb_info(nir_xfb_info *info, FILE *fp);

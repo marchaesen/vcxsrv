@@ -34,7 +34,7 @@
 #include "hud/hud_context.h"
 #include "frontend/drm_driver.h"
 
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "threadpool.h"
 
 /* POSIX thread function */
@@ -66,7 +66,7 @@ threadpool_worker(void *data)
         pthread_mutex_unlock(&pool->m);
         task->work(task->data);
         pthread_mutex_lock(&pool->m);
-        task->finished = TRUE;
+        task->finished = true;
         pthread_cond_broadcast(&task->finish);
     }
 
@@ -112,7 +112,7 @@ _mesa_threadpool_destroy(struct NineSwapChain9 *swapchain, struct threadpool *po
         return;
 
     pthread_mutex_lock(&pool->m);
-    pool->shutdown = TRUE;
+    pool->shutdown = true;
     pthread_cond_broadcast(&pool->new_work);
     pthread_mutex_unlock(&pool->m);
 

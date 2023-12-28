@@ -573,7 +573,7 @@ fd4_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd4_emit *emit)
 
          OUT_PKT0(ring, REG_A4XX_VFD_FETCH(j), 4);
          OUT_RING(ring, A4XX_VFD_FETCH_INSTR_0_FETCHSIZE(fs - 1) |
-                           A4XX_VFD_FETCH_INSTR_0_BUFSTRIDE(vb->stride) |
+                           A4XX_VFD_FETCH_INSTR_0_BUFSTRIDE(elem->src_stride) |
                            COND(elem->instance_divisor,
                                 A4XX_VFD_FETCH_INSTR_0_INSTANCED) |
                            COND(switchnext, A4XX_VFD_FETCH_INSTR_0_SWITCHNEXT));
@@ -784,8 +784,8 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
       struct pipe_scissor_state *scissor = fd_context_get_scissor(ctx);
 
       OUT_PKT0(ring, REG_A4XX_GRAS_SC_WINDOW_SCISSOR_BR, 2);
-      OUT_RING(ring, A4XX_GRAS_SC_WINDOW_SCISSOR_BR_X(scissor->maxx - 1) |
-                        A4XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(scissor->maxy - 1));
+      OUT_RING(ring, A4XX_GRAS_SC_WINDOW_SCISSOR_BR_X(scissor->maxx) |
+                        A4XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(scissor->maxy));
       OUT_RING(ring, A4XX_GRAS_SC_WINDOW_SCISSOR_TL_X(scissor->minx) |
                         A4XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(scissor->miny));
 
@@ -800,14 +800,17 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
    }
 
    if (dirty & FD_DIRTY_VIEWPORT) {
+      struct pipe_viewport_state *vp = & ctx->viewport[0];
+
       fd_wfi(ctx->batch, ring);
+
       OUT_PKT0(ring, REG_A4XX_GRAS_CL_VPORT_XOFFSET_0, 6);
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0(ctx->viewport.translate[0]));
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0(ctx->viewport.scale[0]));
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0(ctx->viewport.translate[1]));
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(ctx->viewport.scale[1]));
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(ctx->viewport.translate[2]));
-      OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(ctx->viewport.scale[2]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_XOFFSET_0(vp->translate[0]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_XSCALE_0(vp->scale[0]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_YOFFSET_0(vp->translate[1]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_YSCALE_0(vp->scale[1]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZOFFSET_0(vp->translate[2]));
+      OUT_RING(ring, A4XX_GRAS_CL_VPORT_ZSCALE_0(vp->scale[2]));
    }
 
    if (dirty &
@@ -819,7 +822,7 @@ fd4_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
             pipe_surface_format(ctx->batch->framebuffer.zsbuf),
             UTIL_FORMAT_COLORSPACE_ZS, 0);
       }
-      util_viewport_zmin_zmax(&ctx->viewport, ctx->rasterizer->clip_halfz,
+      util_viewport_zmin_zmax(&ctx->viewport[0], ctx->rasterizer->clip_halfz,
                               &zmin, &zmax);
 
       OUT_PKT0(ring, REG_A4XX_RB_VPORT_Z_CLAMP(0), 2);

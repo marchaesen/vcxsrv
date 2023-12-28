@@ -134,4 +134,6 @@
 #define   EG_S_028C70_FAST_CLEAR(x)                       (((unsigned)(x) & 0x1) << 17)
 #define   SI_S_028C70_FAST_CLEAR(x)                       (((unsigned)(x) & 0x1) << 13)
 
+#define R600_MAX_ALU_CONST_BUFFERS 16
+
 #endif

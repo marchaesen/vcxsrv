@@ -37,8 +37,15 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/file.h>
+#include <sys/stat.h>
 #include <sys/types.h>
 #include <unistd.h>
+
+#ifdef FOZ_DB_UTIL_DYNAMIC_LIST
+#include <sys/inotify.h>
+#endif
+
+#include "util/u_debug.h"
 
 #include "crc32.h"
 #include "hash_table.h"
@@ -90,7 +97,9 @@ check_files_opened_successfully(FILE *file, FILE *db_idx)
 }
 
 static bool
-create_foz_db_filenames(char *cache_path, char *name, char **filename,
+create_foz_db_filenames(const char *cache_path,
+                        char *name,
+                        char **filename,
                         char **idx_filename)
 {
    if (asprintf(filename, "%s/%s.foz", cache_path, name) == -1)
@@ -250,62 +259,40 @@ load_foz_dbs(struct foz_db *foz_db, FILE *db_idx, uint8_t file_idx,
 
    flock(fileno(foz_db->file[file_idx]), LOCK_UN);
 
-   update_foz_index(foz_db, db_idx, file_idx);
+   if (foz_db->updater.thrd) {
+   /* If MESA_DISK_CACHE_READ_ONLY_FOZ_DBS_DYNAMIC_LIST is enabled, access to
+    * the foz_db hash table requires locking to prevent racing between this
+    * updated thread loading DBs at runtime and cache entry read/writes. */
+      simple_mtx_lock(&foz_db->mtx);
+      update_foz_index(foz_db, db_idx, file_idx);
+      simple_mtx_unlock(&foz_db->mtx);
+   } else {
+      update_foz_index(foz_db, db_idx, file_idx);
+   }
 
    foz_db->alive = true;
    return true;
 
 fail:
    flock(fileno(foz_db->file[file_idx]), LOCK_UN);
-   foz_destroy(foz_db);
    return false;
 }
 
-/* Here we open mesa cache foz dbs files. If the files exist we load the index
- * db into a hash table. The index db contains the offsets needed to later
- * read cache entries from the foz db containing the actual cache entries.
- */
-bool
-foz_prepare(struct foz_db *foz_db, char *cache_path)
+static void
+load_foz_dbs_ro(struct foz_db *foz_db, char *foz_dbs_ro)
 {
+   uint8_t file_idx = 1;
    char *filename = NULL;
    char *idx_filename = NULL;
-   if (!create_foz_db_filenames(cache_path, "foz_cache", &filename, &idx_filename))
-      return false;
 
-   /* Open the default foz dbs for read/write. If the files didn't already exist
-    * create them.
-    */
-   foz_db->file[0] = fopen(filename, "a+b");
-   foz_db->db_idx = fopen(idx_filename, "a+b");
-
-   free(filename);
-   free(idx_filename);
-
-   if (!check_files_opened_successfully(foz_db->file[0], foz_db->db_idx))
-      return false;
-
-   simple_mtx_init(&foz_db->mtx, mtx_plain);
-   simple_mtx_init(&foz_db->flock_mtx, mtx_plain);
-   foz_db->mem_ctx = ralloc_context(NULL);
-   foz_db->index_db = _mesa_hash_table_u64_create(NULL);
-
-   if (!load_foz_dbs(foz_db, foz_db->db_idx, 0, false))
-      return false;
-
-   uint8_t file_idx = 1;
-   char *foz_dbs = getenv("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS");
-   if (!foz_dbs)
-      return true;
-
-   for (unsigned n; n = strcspn(foz_dbs, ","), *foz_dbs;
-        foz_dbs += MAX2(1, n)) {
-      char *foz_db_filename = strndup(foz_dbs, n);
+   for (unsigned n; n = strcspn(foz_dbs_ro, ","), *foz_dbs_ro;
+        foz_dbs_ro += MAX2(1, n)) {
+      char *foz_db_filename = strndup(foz_dbs_ro, n);
 
       filename = NULL;
       idx_filename = NULL;
-      if (!create_foz_db_filenames(cache_path, foz_db_filename, &filename,
-                                   &idx_filename)) {
+      if (!create_foz_db_filenames(foz_db->cache_path, foz_db_filename,
+                                   &filename, &idx_filename)) {
          free(foz_db_filename);
          continue; /* Ignore invalid user provided filename and continue */
       }
@@ -327,7 +314,10 @@ foz_prepare(struct foz_db *foz_db, char *cache_path)
 
       if (!load_foz_dbs(foz_db, db_idx, file_idx, true)) {
          fclose(db_idx);
-         return false;
+         fclose(foz_db->file[file_idx]);
+         foz_db->file[file_idx] = NULL;
+
+         continue; /* Ignore invalid user provided foz db */
       }
 
       fclose(db_idx);
@@ -336,13 +326,240 @@ foz_prepare(struct foz_db *foz_db, char *cache_path)
       if (file_idx >= FOZ_MAX_DBS)
          break;
    }
+}
+
+#ifdef FOZ_DB_UTIL_DYNAMIC_LIST
+static bool
+check_file_already_loaded(struct foz_db *foz_db,
+                          FILE *db_file,
+                          uint8_t max_file_idx)
+{
+   struct stat new_file_stat;
+
+   if (fstat(fileno(db_file), &new_file_stat) == -1)
+      return false;
+
+   for (int i = 0; i < max_file_idx; i++) {
+      struct stat loaded_file_stat;
+
+      if (fstat(fileno(foz_db->file[i]), &loaded_file_stat) == -1)
+         continue;
+
+      if ((loaded_file_stat.st_dev == new_file_stat.st_dev) &&
+          (loaded_file_stat.st_ino == new_file_stat.st_ino))
+         return true;
+   }
+
+   return false;
+}
+
+static bool
+load_from_list_file(struct foz_db *foz_db, const char *foz_dbs_list_filename)
+{
+   uint8_t file_idx;
+   char list_entry[PATH_MAX];
+
+   /* Find the first empty file idx slot */
+   for (file_idx = 0; file_idx < FOZ_MAX_DBS; file_idx++) {
+      if (!foz_db->file[file_idx])
+         break;
+   }
+
+   if (file_idx >= FOZ_MAX_DBS)
+      return false;
+
+   FILE *foz_dbs_list_file = fopen(foz_dbs_list_filename, "rb");
+   if (!foz_dbs_list_file)
+      return false;
+
+   while (fgets(list_entry, sizeof(list_entry), foz_dbs_list_file)) {
+      char *db_filename = NULL;
+      char *idx_filename = NULL;
+      FILE *db_file = NULL;
+      FILE *idx_file = NULL;
+
+      list_entry[strcspn(list_entry, "\n")] = '\0';
+
+      if (!create_foz_db_filenames(foz_db->cache_path, list_entry,
+                                   &db_filename, &idx_filename))
+         continue;
+
+      db_file = fopen(db_filename, "rb");
+      idx_file = fopen(idx_filename, "rb");
+
+      free(db_filename);
+      free(idx_filename);
+
+      if (!check_files_opened_successfully(db_file, idx_file))
+         continue;
+
+      if (check_file_already_loaded(foz_db, db_file, file_idx)) {
+         fclose(db_file);
+         fclose(idx_file);
+
+         continue;
+      }
+
+      /* Must be set before calling load_foz_dbs() */
+      foz_db->file[file_idx] = db_file;
+
+      if (!load_foz_dbs(foz_db, idx_file, file_idx, true)) {
+         fclose(db_file);
+         fclose(idx_file);
+         foz_db->file[file_idx] = NULL;
+
+         continue;
+      }
+
+      fclose(idx_file);
+      file_idx++;
+
+      if (file_idx >= FOZ_MAX_DBS)
+         break;
+   }
+
+   fclose(foz_dbs_list_file);
+   return true;
+}
+
+static int
+foz_dbs_list_updater_thrd(void *data)
+{
+   char buf[10 * (sizeof(struct inotify_event) + NAME_MAX + 1)];
+   struct foz_db *foz_db = data;
+   struct foz_dbs_list_updater *updater = &foz_db->updater;
+
+   while (1) {
+      int len = read(updater->inotify_fd, buf, sizeof(buf));
+
+      if (len == -1 && errno != EAGAIN)
+         return errno;
+
+      int i = 0;
+      while (i < len) {
+         struct inotify_event *event = (struct inotify_event *)&buf[i];
+
+         i += sizeof(struct inotify_event) + event->len;
+
+         if (event->mask & IN_CLOSE_WRITE)
+            load_from_list_file(foz_db, foz_db->updater.list_filename);
+
+         /* List file deleted or watch removed by foz destroy */
+         if ((event->mask & IN_DELETE_SELF) || (event->mask & IN_IGNORED))
+            return 0;
+      }
+   }
+
+   return 0;
+}
+
+static bool
+foz_dbs_list_updater_init(struct foz_db *foz_db, char *list_filename)
+{
+   struct foz_dbs_list_updater *updater = &foz_db->updater;
+
+   /* Initial load */
+   if (!load_from_list_file(foz_db, list_filename))
+      return false;
+
+   updater->list_filename = list_filename;
+
+   int fd = inotify_init1(IN_CLOEXEC);
+   if (fd < 0)
+      return false;
+
+   int wd = inotify_add_watch(fd, foz_db->updater.list_filename,
+                              IN_CLOSE_WRITE | IN_DELETE_SELF);
+   if (wd < 0) {
+      close(fd);
+      return false;
+   }
+
+   updater->inotify_fd = fd;
+   updater->inotify_wd = wd;
+
+   if (thrd_create(&updater->thrd, foz_dbs_list_updater_thrd, foz_db)) {
+      inotify_rm_watch(fd, wd);
+      close(fd);
+
+      return false;
+   }
 
    return true;
+}
+#endif
+
+/* Here we open mesa cache foz dbs files. If the files exist we load the index
+ * db into a hash table. The index db contains the offsets needed to later
+ * read cache entries from the foz db containing the actual cache entries.
+ */
+bool
+foz_prepare(struct foz_db *foz_db, char *cache_path)
+{
+   char *filename = NULL;
+   char *idx_filename = NULL;
+
+   simple_mtx_init(&foz_db->mtx, mtx_plain);
+   simple_mtx_init(&foz_db->flock_mtx, mtx_plain);
+   foz_db->mem_ctx = ralloc_context(NULL);
+   foz_db->index_db = _mesa_hash_table_u64_create(NULL);
+   foz_db->cache_path = cache_path;
+
+   /* Open the default foz dbs for read/write. If the files didn't already exist
+    * create them.
+    */
+   if (debug_get_bool_option("MESA_DISK_CACHE_SINGLE_FILE", false)) {
+      if (!create_foz_db_filenames(cache_path, "foz_cache",
+                                   &filename, &idx_filename))
+         goto fail;
+
+      foz_db->file[0] = fopen(filename, "a+b");
+      foz_db->db_idx = fopen(idx_filename, "a+b");
+
+      free(filename);
+      free(idx_filename);
+
+      if (!check_files_opened_successfully(foz_db->file[0], foz_db->db_idx))
+         goto fail;
+
+      if (!load_foz_dbs(foz_db, foz_db->db_idx, 0, false))
+         goto fail;
+   }
+
+   char *foz_dbs_ro = getenv("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS");
+   if (foz_dbs_ro)
+      load_foz_dbs_ro(foz_db, foz_dbs_ro);
+
+#ifdef FOZ_DB_UTIL_DYNAMIC_LIST
+   char *foz_dbs_list =
+      getenv("MESA_DISK_CACHE_READ_ONLY_FOZ_DBS_DYNAMIC_LIST");
+   if (foz_dbs_list)
+      foz_dbs_list_updater_init(foz_db, foz_dbs_list);
+#endif
+
+   return true;
+
+fail:
+   foz_destroy(foz_db);
+
+   return false;
 }
 
 void
 foz_destroy(struct foz_db *foz_db)
 {
+#ifdef FOZ_DB_UTIL_DYNAMIC_LIST
+   struct foz_dbs_list_updater *updater = &foz_db->updater;
+   if (updater->thrd) {
+      inotify_rm_watch(updater->inotify_fd, updater->inotify_wd);
+      /* inotify_rm_watch() triggers the IN_IGNORE event for the thread
+       * to exit.
+       */
+      thrd_join(updater->thrd, NULL);
+      close(updater->inotify_fd);
+   }
+#endif
+
    if (foz_db->db_idx)
       fclose(foz_db->db_idx);
    for (unsigned i = 0; i < FOZ_MAX_DBS; i++) {
@@ -356,6 +573,8 @@ foz_destroy(struct foz_db *foz_db)
       simple_mtx_destroy(&foz_db->flock_mtx);
       simple_mtx_destroy(&foz_db->mtx);
    }
+
+   memset(foz_db, 0, sizeof(*foz_db));
 }
 
 /* Here we lookup a cache entry in the index hash table. If an entry is found
@@ -376,7 +595,7 @@ foz_read_entry(struct foz_db *foz_db, const uint8_t *cache_key_160bit,
 
    struct foz_db_entry *entry =
       _mesa_hash_table_u64_search(foz_db->index_db, hash);
-   if (!entry) {
+   if (!entry && foz_db->db_idx) {
       update_foz_index(foz_db, foz_db->db_idx, 0);
       entry = _mesa_hash_table_u64_search(foz_db->index_db, hash);
    }
@@ -437,7 +656,7 @@ foz_write_entry(struct foz_db *foz_db, const uint8_t *cache_key_160bit,
 {
    uint64_t hash = truncate_hash_to_64bits(cache_key_160bit);
 
-   if (!foz_db->alive)
+   if (!foz_db->alive || !foz_db->file[0])
       return false;
 
    /* The flock is per-fd, not per thread, we do it outside of the main mutex to avoid having to

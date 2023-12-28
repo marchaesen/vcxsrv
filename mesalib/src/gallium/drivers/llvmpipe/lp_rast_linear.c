@@ -46,7 +46,7 @@ static void
 lp_rast_linear_clear(struct lp_rasterizer_task *task,
                      const union lp_rast_cmd_arg arg)
 {
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    union util_color uc = arg.clear_rb->color_val;
 
@@ -240,17 +240,15 @@ void
 lp_linear_rasterize_bin(struct lp_rasterizer_task *task,
                         const struct cmd_bin *bin)
 {
-   const struct cmd_block *block;
-   unsigned k;
-
    STATIC_ASSERT(ARRAY_SIZE(dispatch_linear) == LP_RAST_OP_MAX);
 
-   if (0) debug_printf("%s\n", __FUNCTION__);
+   if (0) debug_printf("%s\n", __func__);
 
+   const struct cmd_block *block;
    for (block = bin->head; block; block = block->next) {
-      for (k = 0; k < block->count; k++) {
+      for (unsigned k = 0; k < block->count; k++) {
          assert(dispatch_linear[block->cmd[k]]);
-         dispatch_linear[block->cmd[k]]( task, block->arg[k] );
+         dispatch_linear[block->cmd[k]](task, block->arg[k]);
       }
    }
 }

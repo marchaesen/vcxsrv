@@ -11,6 +11,7 @@ vn_entrypoints = custom_target(
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'vn',
+    '--beta', with_vulkan_beta.to_string()
   ],
 )
 
@@ -20,33 +21,32 @@ virtio_icd = custom_target(
   output : 'virtio_icd.@0@.json'.format(host_machine.cpu()),
   command : [
     prog_python, '@INPUT0@',
-    '--api-version', '1.2', '--xml', '@INPUT1@',
+    '--api-version', '1.3', '--xml', '@INPUT1@',
     '--lib-path', join_paths(get_option('prefix'), get_option('libdir'),
                              'libvulkan_virtio.so'),
     '--out', '@OUTPUT@',
   ],
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
+  install_tag : 'runtime',
   install : true,
 )
 
-if meson.version().version_compare('>= 0.58')
-  _dev_icdname = 'virtio_devenv_icd.@0@.json'.format(host_machine.cpu())
-  custom_target(
-    'virtio_devenv_icd',
-    input : [vk_icd_gen, vk_api_xml],
-    output : _dev_icdname,
-    command : [
-      prog_python, '@INPUT0@',
-      '--api-version', '1.2', '--xml', '@INPUT1@',
-      '--lib-path', meson.current_build_dir() / 'libvulkan_virtio.so',
-      '--out', '@OUTPUT@',
-    ],
-    build_by_default : true,
-  )
+_dev_icdname = 'virtio_devenv_icd.@0@.json'.format(host_machine.cpu())
+_dev_icd = custom_target(
+  'virtio_devenv_icd',
+  input : [vk_icd_gen, vk_api_xml],
+  output : _dev_icdname,
+  command : [
+    prog_python, '@INPUT0@',
+    '--api-version', '1.3', '--xml', '@INPUT1@',
+    '--lib-path', meson.current_build_dir() / 'libvulkan_virtio.so',
+    '--out', '@OUTPUT@',
+  ],
+  build_by_default : true,
+)
 
-  devenv.append('VK_ICD_FILENAMES', meson.current_build_dir() / _dev_icdname)
-endif
+devenv.append('VK_ICD_FILENAMES', _dev_icd.full_path())
 
 libvn_files = files(
   'vn_buffer.c',
@@ -116,7 +116,8 @@ libvulkan_virtio = shared_library(
   link_with : vn_libs,
   dependencies : [vn_deps],
   c_args : [vn_flags],
-  link_args : [ld_args_bsymbolic, ld_args_gc_sections],
+  link_args : [vulkan_icd_link_args, ld_args_bsymbolic, ld_args_gc_sections],
+  link_depends : vulkan_icd_link_depends,
   gnu_symbol_visibility : 'hidden',
   install : true,
 )

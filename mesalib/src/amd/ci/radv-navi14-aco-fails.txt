@@ -1,6 +1,0 @@
-# The following are a guess, based on navi10
-dEQP-VK.rasterization.rasterization_order_attachment_access.depth.samples_1.multi_draw_barriers,Fail
-dEQP-VK.rasterization.rasterization_order_attachment_access.stencil.samples_1.multi_draw_barriers,Fail
-dEQP-VK.rasterization.rasterization_order_attachment_access.stencil.samples_2.multi_draw_barriers,Fail
-dEQP-VK.rasterization.rasterization_order_attachment_access.stencil.samples_4.multi_draw_barriers,Fail
-dEQP-VK.rasterization.rasterization_order_attachment_access.stencil.samples_8.multi_draw_barriers,Fail

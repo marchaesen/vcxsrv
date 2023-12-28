@@ -6,7 +6,7 @@
 default
 partial alphanumeric_keys
 xkb_symbols "extended" {
-    
+
     name[Group1]= "Switzerland - German, Mac";
 
     key <AE01> { [	1,	plus, 		plusminus,	infinity	]	};
@@ -25,7 +25,7 @@ xkb_symbols "extended" {
     key <AD02> { [	w,	W, 	Greek_SIGMA,	Aacute			]	};
     key <AD03> { [ 	e,	E, 	EuroSign,	Ediaeresis		]	};
     key <AD04> { [ 	r,	R, 	registered,	Egrave			]	};
-    key <AD05> { [ 	t,	T, 	dagger,		Icircumflex		]	}; 
+    key <AD05> { [ 	t,	T, 	dagger,		Icircumflex		]	};
     key <AD06> { [	z,	Z, 	Greek_OMEGA,	Iacute			]	};
     key <AD07> { [ 	u,	U, 	degree,		Ugrave			]	};
     key <AD08> { [ 	i,	I, 	exclamdown,	idotless		]	};
@@ -34,7 +34,7 @@ xkb_symbols "extended" {
     key <AD11> { [	udiaeresis,	egrave, 	section,	ydiaeresis ]	};
     key <AD12> { [	dead_diaeresis,	exclam, 	grave,		apostrophe ]	};
     key <AC01> { [ 	a,	A, 	aring,		Aring			]	};
-    key <AC02> { [ 	s,	S, 	ssharp, 	U1E9E			]	}; 
+    key <AC02> { [ 	s,	S, 	ssharp, 	U1E9E			]	};
 					// ligature fl
     key <AC03> { [ 	d,	D, 	Greek_sigma,	NoSymbol		]	};
 			// partialderivative is not available here att
@@ -50,7 +50,7 @@ xkb_symbols "extended" {
     key <AB02> { [ 	x,	X, 	similarequal,	trademark		]	};
     key <AB03> { [ 	c,	C, 	copyright,	NoSymbol		]	};
     key <AB04> { [ 	v,	V, 	radical,	diamond			]	};
-    key <AB05> { [ 	b,	B, 	integral,	NoSymbol		]	};  
+    key <AB05> { [ 	b,	B, 	integral,	NoSymbol		]	};
     key <AB06> { [ 	n,	N, 	dead_tilde, 	enopencircbullet	]       };
 					// to be fixed att
     key <AB07> { [ 	m,	M, 	mu,		dead_abovering		]       };
@@ -68,12 +68,12 @@ xkb_symbols "extended" {
     include "level3(ralt_switch)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "de" {
     include "macintosh_vndr/ch(extended)"
 };
 
-partial alphanumeric_keys 
+partial alphanumeric_keys
 xkb_symbols "fr" {
 
     include "macintosh_vndr/ch(extended)"

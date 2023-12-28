@@ -78,7 +78,7 @@ void u_default_texture_subdata(struct pipe_context *pipe,
                                const struct pipe_box *box,
                                const void *data,
                                unsigned stride,
-                               unsigned layer_stride)
+                               uintptr_t layer_stride)
 {
    struct pipe_transfer *transfer = NULL;
    const uint8_t *src_data = data;

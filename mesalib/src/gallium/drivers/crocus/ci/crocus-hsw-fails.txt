@@ -1,35 +1,20 @@
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
-spec@!opengl 1.0@depth-clear-precision-check@depth32f_stencil8,Fail
-
-# frontbuffer reading failures?
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=6,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=8,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
-spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@read-front samples=8,Fail
-spec@!opengl 1.1@windowoverlap,Fail
-
-fast_color_clear@fcc-write-after-clear,Fail
 
 spec@!opengl 1.0@gl-1.0-swapbuffers-behavior,Fail
 
 # Compat mode failure
 spec@!opengl 1.0@rasterpos,Fail
 
+spec@!opengl 1.1@line-smooth-coverage,Fail
+spec@!opengl 1.1@line-smooth-stipple,Fail
+
 spec@!opengl 1.1@linestipple,Fail
 spec@!opengl 1.1@linestipple@Factor 2x,Fail
 spec@!opengl 1.1@linestipple@Factor 3x,Fail
 spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
-
-spec@!opengl 3.0@clearbuffer-bug,Fail
 
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
@@ -38,8 +23,6 @@ spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-first,Fail
 
 spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
-
-spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-non-uniform-control-flow-ssbo,Fail
 
 spec@arb_indirect_parameters@conditional-render,Fail
 spec@arb_indirect_parameters@conditional-render@Query result: Fail. Inverted mode: No.  Points drawn: 6,Fail
@@ -112,6 +95,8 @@ spec@arb_sample_shading@samplemask 8@0.500000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 8@1.000000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 8@noms mask_in_one,Fail
 spec@arb_sample_shading@samplemask 8@sample mask_in_one,Fail
+
+spec@arb_viewport_array@display-list,Fail
 
 spec@arb_shader_image_load_store@early-z,Fail
 spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
@@ -197,6 +182,10 @@ KHR-GL46.direct_state_access.textures_storage_multisample_3d_rgb32i,Fail
 KHR-GL46.direct_state_access.textures_storage_multisample_3d_rgba16i,Fail
 KHR-GL46.direct_state_access.textures_storage_multisample_3d_rgba32i,Fail
 KHR-GL46.direct_state_access.textures_storage_multisample_3d_rgba8i,Fail
+
+# glcts: ../src/compiler/nir/nir.h:127: nir_component_mask: Assertion `nir_num_components_valid(num_components)' failed.
+KHR-GL46.gpu_shader_fp64.fp64.state_query,Crash
+
 KHR-GL46.sample_shading.render.rgba8i.full,Fail
 KHR-GL46.sample_shading.render.rgba8i.half,Fail
 KHR-GL46.sample_shading.render.rgba8i.none,Fail
@@ -209,6 +198,10 @@ KHR-GL46.sample_variables.mask.rgba8i.samples_1.mask_5,Fail
 KHR-GL46.sample_variables.mask.rgba8i.samples_1.mask_6,Fail
 KHR-GL46.sample_variables.mask.rgba8i.samples_1.mask_7,Fail
 KHR-GL46.sample_variables.mask.rgba8i.samples_1.mask_zero,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/8900
+KHR-GL46.shader_texture_image_samples_tests.texture_functional_test,Fail
+
 KHR-GL46.shader_multisample_interpolation.render.base.rgba8i.samples_1,Fail
 KHR-GL46.shader_multisample_interpolation.render.centroid.rgba8i.samples_1,Fail
 KHR-GL46.shader_multisample_interpolation.render.interpolate_at_centroid.rgba8i.samples_1,Fail
@@ -958,3 +951,10 @@ spec@nv_copy_image@nv_copy_image-formats --samples=8@Source: GL_RGBA8UI/Destinat
 spec@nv_copy_image@nv_copy_image-formats --samples=8@Source: GL_RGBA8UI/Destination: GL_RGBA8I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=8@Source: GL_RGBA8_SNORM/Destination: GL_RG16I,Fail
 spec@nv_copy_image@nv_copy_image-formats --samples=8@Source: GL_RGBA8_SNORM/Destination: GL_RGBA8I,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/8348
+KHR-GL46.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_tessLevel,Fail
+KHR-GL46.tessellation_shader.tessellation_shader_tessellation.TES,Fail
+spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads,Fail
+spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads-dlist,Fail
+spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-tris,Fail

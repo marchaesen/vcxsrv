@@ -32,4 +32,4 @@ spec@ext_gpu_shader4@tex-miplevel-selection gpu4texture() 2darray
 #   Expected: 0 255 0
 #   Observed: 255 255 255
 #   Failure with 1 vec4 varyings used in varying index 0
-shaders@glsl-max-varyings,Fail
+shaders@glsl-max-varyings

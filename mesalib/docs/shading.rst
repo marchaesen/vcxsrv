@@ -2,7 +2,7 @@ Shading Language
 ================
 
 This page describes the features and status of Mesa's support for the
-`OpenGL Shading Language <https://opengl.org/documentation/glsl/>`__.
+`OpenGL Shading Language <https://www.khronos.org/opengl/wiki/OpenGL_Shading_Language>`__.
 
 .. _envvars:
 
@@ -71,9 +71,9 @@ language.
 
 Several GLSL extensions are also supported:
 
--  GL_ARB_draw_buffers
--  GL_ARB_fragment_coord_conventions
--  GL_ARB_shader_bit_encoding
+-  :ext:`GL_ARB_draw_buffers`
+-  :ext:`GL_ARB_fragment_coord_conventions`
+-  :ext:`GL_ARB_shader_bit_encoding`
 
 Unsupported Features
 --------------------
@@ -95,7 +95,8 @@ Implementation Notes
 --------------------
 
 -  Shading language programs are compiled into low-level programs very
-   similar to those of GL_ARB_vertex/fragment_program.
+   similar to those of :ext:`GL_ARB_vertex_program` /
+   :ext:`GL_ARB_fragment_program`.
 -  All vector types (vec2, vec3, vec4, bvec2, etc) currently occupy full
    float[4] registers.
 -  Float constants and variables are packed so that up to four floats
@@ -130,19 +131,18 @@ Stand-alone GLSL Compiler
 -------------------------
 
 The stand-alone GLSL compiler program can be used to compile GLSL
-shaders into low-level GPU code.
+shaders into GLSL IR code.
 
 This tool is useful for:
 
--  Inspecting GPU code to gain insight into compilation
--  Generating initial GPU code for subsequent hand-tuning
+-  Inspecting GLSL frontend behavior to gain insight into compilation
 -  Debugging the GLSL compiler itself
 
-After building Mesa, the compiler can be found at
-src/compiler/glsl/glsl_compiler
+After building Mesa with the ``-Dtools=glsl`` meson option, the compiler will be
+installed as the binary ``glsl_compiler``.
 
 Here's an example of using the compiler to compile a vertex shader and
-emit GL_ARB_vertex_program-style instructions:
+emit :ext:`GL_ARB_vertex_program`-style instructions:
 
 .. code-block:: console
 
@@ -150,10 +150,10 @@ emit GL_ARB_vertex_program-style instructions:
 
 Options include
 
--  **--dump-ast** - dump GPU code
+-  **--dump-ast** - dump source syntax tree
 -  **--dump-hir** - dump high-level IR code
 -  **--dump-lir** - dump low-level IR code
--  **--dump-builder** - dump GLSL IR code
+-  **--dump-builder** - dump C++ ir_builder code to generate the shader's GLSL IR
 -  **--link** - link shaders
 -  **--just-log** - display only shader / linker info if exist, without
    any header or separator

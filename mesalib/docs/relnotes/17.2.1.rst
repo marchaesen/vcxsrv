@@ -97,7 +97,7 @@ Grazvydas Ignotas (1):
 
 -  radv: don't assert on empty hash table
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  anv/formats: Nicely handle unknown VkFormat enums
 -  spirv: Add support for the HelperInvocation builtin

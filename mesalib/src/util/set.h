@@ -114,10 +114,6 @@ _mesa_set_next_entry(const struct set *set, struct set_entry *entry);
 struct set_entry *
 _mesa_set_next_entry_unsafe(const struct set *set, struct set_entry *entry);
 
-struct set_entry *
-_mesa_set_random_entry(struct set *set,
-                       int (*predicate)(struct set_entry *entry));
-
 struct set *
 _mesa_pointer_set_create(void *mem_ctx);
 

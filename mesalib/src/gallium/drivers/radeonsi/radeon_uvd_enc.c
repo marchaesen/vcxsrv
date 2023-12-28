@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2018 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -49,6 +30,37 @@
 #define UVD_HEVC_LEVEL_6   180
 #define UVD_HEVC_LEVEL_6_1 183
 #define UVD_HEVC_LEVEL_6_2 186
+
+static void radeon_uvd_enc_get_vui_param(struct radeon_uvd_encoder *enc,
+                                         struct pipe_h265_enc_picture_desc *pic)
+{
+   enc->enc_pic.vui_info.vui_parameters_present_flag =
+      pic->seq.vui_parameters_present_flag;
+   enc->enc_pic.vui_info.flags.aspect_ratio_info_present_flag =
+      pic->seq.vui_flags.aspect_ratio_info_present_flag;
+   enc->enc_pic.vui_info.flags.timing_info_present_flag =
+      pic->seq.vui_flags.timing_info_present_flag;
+   enc->enc_pic.vui_info.flags.video_signal_type_present_flag =
+      pic->seq.vui_flags.video_signal_type_present_flag;
+   enc->enc_pic.vui_info.flags.colour_description_present_flag =
+      pic->seq.vui_flags.colour_description_present_flag;
+   enc->enc_pic.vui_info.flags.chroma_loc_info_present_flag =
+      pic->seq.vui_flags.chroma_loc_info_present_flag;
+   enc->enc_pic.vui_info.aspect_ratio_idc = pic->seq.aspect_ratio_idc;
+   enc->enc_pic.vui_info.sar_width = pic->seq.sar_width;
+   enc->enc_pic.vui_info.sar_height = pic->seq.sar_height;
+   enc->enc_pic.vui_info.num_units_in_tick = pic->seq.num_units_in_tick;
+   enc->enc_pic.vui_info.time_scale = pic->seq.time_scale;
+   enc->enc_pic.vui_info.video_format = pic->seq.video_format;
+   enc->enc_pic.vui_info.video_full_range_flag = pic->seq.video_full_range_flag;
+   enc->enc_pic.vui_info.colour_primaries = pic->seq.colour_primaries;
+   enc->enc_pic.vui_info.transfer_characteristics = pic->seq.transfer_characteristics;
+   enc->enc_pic.vui_info.matrix_coefficients = pic->seq.matrix_coefficients;
+   enc->enc_pic.vui_info.chroma_sample_loc_type_top_field =
+      pic->seq.chroma_sample_loc_type_top_field;
+   enc->enc_pic.vui_info.chroma_sample_loc_type_bottom_field =
+      pic->seq.chroma_sample_loc_type_bottom_field;
+}
 
 static void radeon_uvd_enc_get_param(struct radeon_uvd_encoder *enc,
                                      struct pipe_h265_enc_picture_desc *pic)
@@ -99,6 +111,7 @@ static void radeon_uvd_enc_get_param(struct radeon_uvd_encoder *enc,
    enc->enc_pic.sample_adaptive_offset_enabled_flag = pic->seq.sample_adaptive_offset_enabled_flag;
    enc->enc_pic.pcm_enabled_flag = 0; /*HW not support PCM */
    enc->enc_pic.sps_temporal_mvp_enabled_flag = pic->seq.sps_temporal_mvp_enabled_flag;
+   radeon_uvd_enc_get_vui_param(enc, pic);
 }
 
 static void flush(struct radeon_uvd_encoder *enc)
@@ -231,6 +244,10 @@ static void radeon_uvd_enc_destroy(struct pipe_video_codec *encoder)
       enc->fb = &fb;
       enc->destroy(enc);
       flush(enc);
+      if (enc->si) {
+         si_vid_destroy_buffer(enc->si);
+         FREE(enc->si);
+      }
       si_vid_destroy_buffer(&fb);
    }
 
@@ -240,7 +257,7 @@ static void radeon_uvd_enc_destroy(struct pipe_video_codec *encoder)
 }
 
 static void radeon_uvd_enc_get_feedback(struct pipe_video_codec *encoder, void *feedback,
-                                        unsigned *size)
+                                        unsigned *size, struct pipe_enc_feedback_metadata* metadata)
 {
    struct radeon_uvd_encoder *enc = (struct radeon_uvd_encoder *)encoder;
    struct rvid_buffer *fb = feedback;
@@ -258,6 +275,14 @@ static void radeon_uvd_enc_get_feedback(struct pipe_video_codec *encoder, void *
 
    si_vid_destroy_buffer(fb);
    FREE(fb);
+}
+
+static void radeon_uvd_enc_destroy_fence(struct pipe_video_codec *encoder,
+                                         struct pipe_fence_handle *fence)
+{
+   struct radeon_uvd_encoder *enc = (struct radeon_uvd_encoder *)encoder;
+
+   enc->ws->fence_reference(&fence, NULL);
 }
 
 struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,
@@ -290,19 +315,16 @@ struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,
    enc->base.end_frame = radeon_uvd_enc_end_frame;
    enc->base.flush = radeon_uvd_enc_flush;
    enc->base.get_feedback = radeon_uvd_enc_get_feedback;
+   enc->base.destroy_fence = radeon_uvd_enc_destroy_fence;
    enc->get_buffer = get_buffer;
    enc->bits_in_shifter = 0;
    enc->screen = context->screen;
    enc->ws = ws;
 
-   if (!ws->cs_create(&enc->cs, sctx->ctx, AMD_IP_UVD_ENC, radeon_uvd_enc_cs_flush, enc, false)) {
+   if (!ws->cs_create(&enc->cs, sctx->ctx, AMD_IP_UVD_ENC, radeon_uvd_enc_cs_flush, enc)) {
       RVID_ERR("Can't get command submission context.\n");
       goto error;
    }
-
-   struct rvid_buffer si;
-   si_vid_create_buffer(enc->screen, &si, 128 * 1024, PIPE_USAGE_STAGING);
-   enc->si = &si;
 
    templat.buffer_format = PIPE_FORMAT_NV12;
    templat.width = enc->base.width;

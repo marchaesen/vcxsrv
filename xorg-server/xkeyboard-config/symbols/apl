@@ -16,16 +16,16 @@
 
 // This file doesn't deal with all the combining stuff -- I'm not an APL programmer,
 // and am not quite sure what's needed here.  However, it may be possible to get this
-// working with dead keys and the like.  Patches gratefully accepted.  
+// working with dead keys and the like.  Patches gratefully accepted.
 // [Geoff Streeter: What has been done to is to support all of the APL overstrikes in the compose table]
 
 // Some of the shift-key assignments may differ from the APL tradition.  If
-// that's not considered acceptable, it should be possible to remap the 
+// that's not considered acceptable, it should be possible to remap the
 // shift keys.  I have striven, however, to ensure that the use of shift keys
-// in these maps is at least self-consistent.  
+// in these maps is at least self-consistent.
 
-// I'm assuming that this will be used with another keyboard layout (ie. for 
-// your language), with a special shift key to use these maps.  
+// I'm assuming that this will be used with another keyboard layout (ie. for
+// your language), with a special shift key to use these maps.
 
 // 2018-07-02 added some codes to the Unicode Private Use page.
 // 2017-02-27 changed ¤ to ⌺, added ⊆
@@ -244,7 +244,7 @@ xkb_symbols "apl2" {
 	key <AB10> { [	slash,		backslash,	U233F	] }; // /: ⌿ -- AFS Slash Bar
 
 	key <AC10> { [	bracketleft, 	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
-	key <AC11> { [	bracketright, 	parenright, 	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
+	key <AC11> { [	bracketright, 	parenright, 	U2355	] }; // ': ⍕ -- [See N key in SAX layout]
 
 	key <AD11> { [	NoSymbol,	U2192,		U235E	] }; // [: (←) → ⍞ -- Rightwards Arrow / AFS Quote Quad
 	key <AD12> { [	U2337,		U2378,		U2359	] }; // ]: ⌷ ⍸ ⍙ -- AFS Squish Quad / AFS Iota Underbar / AFS Delta Underbar
@@ -264,7 +264,7 @@ xkb_symbols "apl2" {
 
 	key <BKSL> { [	U2261,		U2377,		U2364	] }; // \: ≡ ⍷ ⍤ -- Identical To / AFS Epsilon Underbar / AFS Jot Diaeresis
 
-	key <TLDE> { [	NoSymbol,	U233B,		U2342	] }; // `: ⌻ ⍂ -- 
+	key <TLDE> { [	NoSymbol,	U233B,		U2342	] }; // `: ⌻ ⍂ --
 
 	include "level3(ralt_switch)"
 };
@@ -299,7 +299,7 @@ xkb_symbols "aplplusII" {
 
 	// AFS is short for APL Functional Symbol
 	key <AC10> { [	bracketleft,	parenleft,	U234E	] }; // ;: ⍎ -- [See B key in SAX layout]
-	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout] 
+	key <AC11> { [	bracketright,	parenright,	U2355	] }; // ': ⍕ -- [See N key in SAX layout]
 	key <AD11> { [	U2190,		NoSymbol,	U235E	] }; // [: ← ⍞ -- Leftwards Arrow / AFS Quote Quad
 	key <AD12> { [	U2192,		NoSymbol,	U236C	] }; // ]: → ⍬ -- Rightwards Arrow / AFS Zilde
 	key <AE01> { [	NoSymbol, 	NoSymbol, 	U2261	] }; // 1: ≡ -- Identical To
@@ -361,7 +361,7 @@ xkb_symbols "aplx" {
 };
 
 // APL language support for the Dyalog keyboard.
-// Dyalog Ltd sell this keyboard with APL engravings. The current model is 
+// Dyalog Ltd sell this keyboard with APL engravings. The current model is
 // engraved on a Cherry G80. Base languages for US, UK and DK are availible.
 
 // Geoff Streeter, Dyalog Ltd. 2007-09-03
@@ -383,7 +383,7 @@ xkb_symbols "aplx" {
 // add omega underbar 2019-03-22
 // change all "partial hidden" to "hidden partial" - seems to be a compiler change
 
-// The intention is that this keyboard layout overlays a base keyboard that provides 
+// The intention is that this keyboard layout overlays a base keyboard that provides
 // the alphabet and similar. If this keyboard is placed as the 2nd layout then it can
 // be reached with a latching shift to increase group by one.
 
@@ -538,7 +538,7 @@ xkb_symbols "dyalog_codes" {
 //	.
 //     F│F15 │F31 │F47 │F63 │    │F207│F223│F239│F255│
 //	└────┴────┴────┴────┴....┴────┴────┴────┴────┘
-//	
+//
 //	whilst these locations are defined. Dyalog's "aplkeys/xterm" file copes with
 //	normal function keys from the base keyboard rather than this overlay
 

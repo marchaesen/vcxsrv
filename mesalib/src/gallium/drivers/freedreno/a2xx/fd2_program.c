@@ -28,7 +28,6 @@
 #include "nir/tgsi_to_nir.h"
 #include "pipe/p_state.h"
 #include "tgsi/tgsi_dump.h"
-#include "tgsi/tgsi_parse.h"
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"
@@ -176,7 +175,7 @@ patch_vtx_fetch(struct fd_context *ctx, struct pipe_vertex_element *elem,
    instr->num_format_all = fmt.num_format;
    instr->format = fmt.format;
    instr->exp_adjust_all = fmt.exp_adjust;
-   instr->stride = ctx->vtx.vertexbuf.vb[elem->vertex_buffer_index].stride;
+   instr->stride = elem->src_stride;
    instr->offset = elem->src_offset;
 }
 

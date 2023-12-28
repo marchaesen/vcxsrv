@@ -1,6 +1,0 @@
-#!/bin/sh
-
-awk '/shortDescr/{print toupper($0)}' ../rules/base.xml.in | sed 's/<[^>]*>//g;s/ //g' | sort | uniq > xml.sd
-awk '{print $1}' ../docs/iso3166-3.csv | sort > iso.sd
-diff -u iso.sd xml.sd | grep '+'
-

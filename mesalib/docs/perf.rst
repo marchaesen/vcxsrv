@@ -40,5 +40,5 @@ Performance tips for software rendering:
    start your X server with startx -- -bpp 32 instead of startx -- -bpp
    24
 #. Try disabling dithering with the MESA_NO_DITHER environment variable.
-   If this env var is defined Mesa will disable dithering and the
-   command glEnable(GL_DITHER) will be ignored.
+   If this environment variable is defined Mesa will disable dithering
+   and the command glEnable(GL_DITHER) will be ignored.

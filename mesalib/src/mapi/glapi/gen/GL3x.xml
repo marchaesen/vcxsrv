@@ -262,7 +262,7 @@
 
   <function name="VertexAttribIPointer" es2="3.0" marshal="async"
             no_error="true"
-            marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index), size, type, stride, pointer);">
+            marshal_call_after="if (COMPAT) _mesa_glthread_AttribPointer(ctx, VERT_ATTRIB_GENERIC(index), MESA_PACK_VFORMAT(type, size, 0, 1, 0), stride, pointer);">
     <param name="index" type="GLuint"/>
     <param name="size" type="GLint"/>
     <param name="type" type="GLenum"/>
@@ -334,7 +334,7 @@
     <param name="w" type="GLuint"/>
   </function>
 
-  <function name="VertexAttribI1iv" exec="vtxfmt">
+  <function name="VertexAttribI1iv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLint *" count="1"/>
   </function>
@@ -354,7 +354,7 @@
     <param name="v" type="const GLint *"/>
   </function>
 
-  <function name="VertexAttribI1uiv" exec="vtxfmt">
+  <function name="VertexAttribI1uiv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLuint *" count="1"/>
   </function>
@@ -374,22 +374,22 @@
     <param name="v" type="const GLuint *"/>
   </function>
 
-  <function name="VertexAttribI4bv" exec="vtxfmt">
+  <function name="VertexAttribI4bv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLbyte *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4sv" exec="vtxfmt">
+  <function name="VertexAttribI4sv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLshort *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4ubv" exec="vtxfmt">
+  <function name="VertexAttribI4ubv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLubyte *" count="4"/>
   </function>
 
-  <function name="VertexAttribI4usv" exec="vtxfmt">
+  <function name="VertexAttribI4usv" exec="beginend">
     <param name="index" type="GLuint"/>
     <param name="v" type="const GLushort *" count="4"/>
   </function>
@@ -546,14 +546,14 @@
   <enum name="PRIMITIVE_RESTART"              value="0x8F9D"/>
   <enum name="PRIMITIVE_RESTART_INDEX"        value="0x8F9E"/>
 
-  <function name="DrawArraysInstanced" alias="DrawArraysInstancedARB" es2="2.0">
+  <function name="DrawArraysInstancedARB" alias="DrawArraysInstanced">
     <param name="mode" type="GLenum"/>
     <param name="first" type="GLint"/>
     <param name="count" type="GLsizei"/>
     <param name="primcount" type="GLsizei"/>
   </function>
 
-  <function name="DrawElementsInstanced" alias="DrawElementsInstancedARB" es2="2.0">
+  <function name="DrawElementsInstancedARB" alias="DrawElementsInstanced">
     <param name="mode" type="GLenum"/>
     <param name="count" type="GLsizei"/>
     <param name="type" type="GLenum"/>

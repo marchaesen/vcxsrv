@@ -43,9 +43,9 @@ default xkb_geometry "FlexPro" {
     shape "BKSL" { { [ 23,18] }, { [2,1], [21,17] } };
     shape "RTRN" {
         approx = { [16, 0], [38,37] },
-        { [16, 0], [38, 0], [38,37], 
+        { [16, 0], [38, 0], [38,37],
 	  [ 0,37], [ 0,19], [16,19] },
-        { [18, 1], [36, 1], [36,36], 
+        { [18, 1], [36, 1], [36,36],
 	  [ 2,36], [ 2,20], [18,20] } };
     shape "CAPS" { { [36,18] }, { [2,1], [34,17] } };
     shape "SHFT" { { [46,18] }, { [2,1], [44,17] } };
@@ -107,8 +107,8 @@ default xkb_geometry "FlexPro" {
 	left= 53;
 	row {
 	    top= 1;
-	    keys { 
-		{ <ESC>, color="grey20" }, { <BKSL>, "BKSL", color="grey20" }, 
+	    keys {
+		{ <ESC>, color="grey20" }, { <BKSL>, "BKSL", color="grey20" },
 		<AE01>, <AE02>, <AE03>, <AE04>,
 		<AE05>, <AE06>, <AE07>, <AE08>, <AE09>,
 		<AE10>, <AE11>, <AE12>,
@@ -117,42 +117,42 @@ default xkb_geometry "FlexPro" {
 	};
 	row {
 	    top= 20;
-	    keys { 
+	    keys {
 		{ <TLDE>, color="grey20" },  { <TAB>, "TABK", color="grey20" },
-		<AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		<AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		<AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		<AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		<AD11>, <AD12>,
 		{ <RTRN>, "RTRN", -14, color="grey20" }
 	    };
 	};
 	row {
 	    top= 39;
-	    keys { 
+	    keys {
 		{ <LCTL>, color="grey20" }, { <CAPS>, "CAPS", color="grey20" },
-		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
+		<AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
 		<AC06>, <AC07>, <AC08>, <AC09>, <AC10>, <AC11>
 	    };
 	};
 	row {
 	    top= 58;
-	    keys { 
-		{ <LFSH>, color="grey20" }, 
-		{ <LFSH>, "SHFT", color="grey20" }, 
-		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
-		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>, 
+	    keys {
+		{ <LFSH>, color="grey20" },
+		{ <LFSH>, "SHFT", color="grey20" },
+		<AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
+		<AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		{ <RTSH>, "SHFT", color="grey20" }
 	    };
 	};
 	row {
 	    top= 77;
 	    key.color= "grey20";
-	    keys { 
-		<LALT>, 
-		{ <LCTL>, shape="LCTL" }, 
+	    keys {
+		<LALT>,
+		{ <LCTL>, shape="LCTL" },
 		{ <LALT>, shape="LALT" },
 		{ <SPCE>, shape="LSPC", 4, color="white" },
 		{ <SPCE>, shape="RSPC",color="white" },
-		{ <RALT>, shape="RALT", 4 }, 
+		{ <RALT>, shape="RALT", 4 },
 		{ <RCTL>, shape="RCTL" }
 	    };
 	};
@@ -206,11 +206,11 @@ default xkb_geometry "FlexPro" {
     text "CapsLockLabel"	{ left= 465; text="Caps\nLock"; };
     text "ScrollLockLabel"	{ left= 487; text="Scroll\nLock"; };
 
-    logo "FlexProLogoImage" 	{ 
+    logo "FlexProLogoImage" 	{
 	top= 12;
 	left= 45;
-	name= "KeyTronic"; 
-	shape= "LOGO"; 
+	name= "KeyTronic";
+	shape= "LOGO";
     };
     text "KeyTronicLogoText"	{
 	top= 15;

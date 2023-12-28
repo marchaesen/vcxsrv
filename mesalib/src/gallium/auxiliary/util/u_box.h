@@ -194,7 +194,22 @@ u_box_union_3d(struct pipe_box *dst,
    dst->z = z;
 }
 
-static inline boolean
+static inline bool
+u_box_test_intersection_1d(const struct pipe_box *a,
+                           const struct pipe_box *b)
+{
+   int ax[2], bx[2];
+
+   ax[0] = MIN2(a->x, a->x + a->width);
+   ax[1] = MAX2(a->x, a->x + a->width - 1);
+
+   bx[0] = MIN2(b->x, b->x + b->width);
+   bx[1] = MAX2(b->x, b->x + b->width - 1);
+
+   return ax[1] >= bx[0] && bx[1] >= ax[0];
+}
+
+static inline bool
 u_box_test_intersection_2d(const struct pipe_box *a,
                            const struct pipe_box *b)
 {
@@ -213,9 +228,34 @@ u_box_test_intersection_2d(const struct pipe_box *a,
 
    for (i = 0; i < 2; ++i) {
       if (a_l[i] > b_r[i] || a_r[i] < b_l[i])
-         return FALSE;
+         return false;
    }
-   return TRUE;
+   return true;
+}
+
+static inline bool
+u_box_test_intersection_3d(const struct pipe_box *a,
+                           const struct pipe_box *b)
+{
+   int ax[2], ay[2], ad[2], bx[2], by[2], bd[2];
+
+   ax[0] = MIN2(a->x, a->x + a->width);
+   ax[1] = MAX2(a->x, a->x + a->width - 1);
+   ay[0] = MIN2(a->y, a->y + a->height);
+   ay[1] = MAX2(a->y, a->y + a->height - 1);
+   ad[0] = MIN2(a->z, a->z + a->depth);
+   ad[1] = MAX2(a->z, a->z + a->depth - 1);
+
+   bx[0] = MIN2(b->x, b->x + b->width);
+   bx[1] = MAX2(b->x, b->x + b->width - 1);
+   by[0] = MIN2(b->y, b->y + b->height);
+   by[1] = MAX2(b->y, b->y + b->height - 1);
+   bd[0] = MIN2(b->z, b->z + b->depth);
+   bd[1] = MAX2(b->z, b->z + b->depth - 1);
+
+   return ax[1] >= bx[0] && bx[1] >= ax[0] &&
+          ay[1] >= by[0] && by[1] >= ay[0] &&
+          ad[1] >= bd[0] && bd[1] >= ad[0];
 }
 
 static inline void

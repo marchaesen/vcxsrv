@@ -128,5 +128,5 @@ if __name__ == "__main__":
         collect_opcodes(spirv_info),
     ]
 
-    with open(pargs.out, 'w') as f:
+    with open(pargs.out, 'w', encoding='utf-8') as f:
         f.write(TEMPLATE.render(info=info))

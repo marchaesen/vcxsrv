@@ -40,7 +40,7 @@ import nir_opcodes
 OP_DESC_TEMPLATE = mako.template.Template("""
 <%
 def src_decl_list(num_srcs):
-   return ', '.join('nir_ssa_def *src' + str(i) for i in range(num_srcs))
+   return ', '.join('nir_def *src' + str(i) for i in range(num_srcs))
 
 def to_yn(b):
     return 'Y' if b else 'N'
@@ -58,6 +58,8 @@ def to_yn(b):
      - ${to_yn('associative' in op.algebraic_properties)}
      - ${to_yn('2src_commutative' in op.algebraic_properties)}
 
+${("**Description:** " + op.description) if op.description != "" else ""}
+
 **Constant-folding:**
 
 .. code-block:: c
@@ -66,7 +68,7 @@ ${textwrap.indent(op.const_expr, '    ')}
 
 **Builder function:**
 
-.. c:function:: nir_ssa_def *nir_${op.name}(nir_builder *, ${src_decl_list(op.num_inputs)})
+.. c:function:: nir_def *nir_${op.name}(nir_builder *, ${src_decl_list(op.num_inputs)})
 """)
 
 def parse_rst(state, parent, rst):

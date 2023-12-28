@@ -514,60 +514,14 @@ dEQP-GLES31.functional.state_query.texture.texture_2d_multisample_array.texture_
 dEQP-GLES31.functional.state_query.texture.texture_2d_multisample_array.texture_immutable_levels_pure_uint,Fail
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth32f_stencil8.linear_size_npot,Fail
 dEQP-GLES31.functional.texture.border_clamp.depth_compare_mode.depth32f_stencil8.linear_size_pot,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_linear_clamp_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_linear_mirror_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_linear_repeat_clamp,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_linear_repeat_mirror,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_linear_repeat_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_linear_clamp_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_linear_mirror_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_linear_repeat_clamp,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_linear_repeat_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_nearest_clamp_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_nearest_mirror_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_nearest_repeat_clamp,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_linear_nearest_repeat_mirror,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_linear_clamp_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_linear_mirror_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_linear_repeat_clamp,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_linear_repeat_mirror,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_nearest_repeat_clamp,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_nearest_repeat_mirror,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_mipmap_nearest_nearest_repeat_repeat,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.combinations.nearest_nearest_repeat_mirror,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_linear_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_nearest,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb10_a2_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb565_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb565_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb5_a1_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb5_a1_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb9_e5_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgb9_e5_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba16f_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba16f_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba4_nearest,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba4_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba8_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba8_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba8_snorm_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.rgba8_snorm_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.sr8_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.srg8_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.srg8_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.srg8_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.srgb8_alpha8_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.formats.srgb8_alpha8_nearest_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_linear_mipmap_nearest,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_nearest_mipmap_linear,Fail
 dEQP-GLES31.functional.texture.filtering.cube_array.sizes.128x128x12_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.sizes.63x63x18_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.sizes.64x64x12_nearest_mipmap_linear,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.sizes.64x64x12_nearest_mipmap_nearest,Fail
-dEQP-GLES31.functional.texture.filtering.cube_array.sizes.8x8x6_nearest,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8.no_corners.size_pot.clamp_to_edge_repeat,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8.no_corners.size_pot.mirrored_repeat_clamp_to_edge,Fail
 dEQP-GLES31.functional.texture.gather.basic.cube.rgba8.no_corners.size_pot.repeat_mirrored_repeat,Fail
@@ -908,9 +862,11 @@ KHR-GLES31.core.texture_storage_multisample.GLCoverage.gl_tex_parameter_handlers
 
 fast_color_clear@fcc-front-buffer-distraction,Fail
 
+glx@glx-make-current,Fail
+
 
 glx@glx-multi-context-front,Fail
-glx@glx-swap-copy,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 
 # X Error of failed request:  BadMatch (invalid parameter attributes)
@@ -1036,7 +992,6 @@ spec@!opengl 3.2@layered-rendering@clear-color-all-types 2d_multisample_array si
 spec@!opengl 3.2@minmax,Fail
 spec@!opengl 3.2@pointsprite-origin,Fail
 spec@!opengl 3.3@minmax,Fail
-spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
 spec@!opengl es 3.0@minmax,Fail
 spec@arb_blend_func_extended@arb_blend_func_extended-fbo-extended-blend-pattern_gles2,Crash
 spec@arb_color_buffer_float@gl_rgba8_snorm-render,Fail
@@ -1319,5 +1274,12 @@ spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
-spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail
+spec@nv_shader_atomic_float@execution@ssbo-atomicexchange-float,Fail
+
+spec@arb_viewport_array@display-list,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_image,Fail
+spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail

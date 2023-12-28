@@ -356,32 +356,10 @@ get_packed_varying_deref(struct lower_packed_varyings_state *state,
    return deref;
 }
 
-static nir_ssa_def *
-i2u(struct lower_packed_varyings_state *state, nir_ssa_def *value)
-{
-   value =
-      nir_build_alu(&state->b,
-                    nir_type_conversion_op(nir_type_int, nir_type_uint,
-                                           nir_rounding_mode_undef),
-                    value, NULL, NULL, NULL);
-   return value;
-}
-
-static nir_ssa_def *
-u2i(struct lower_packed_varyings_state *state, nir_ssa_def *value)
-{
-   value =
-      nir_build_alu(&state->b,
-                    nir_type_conversion_op(nir_type_uint, nir_type_int,
-                                           nir_rounding_mode_undef),
-                    value, NULL, NULL, NULL);
-   return value;
-}
-
 struct packing_store_values {
    bool is_64bit;
    unsigned writemasks[2];
-   nir_ssa_def *values[2];
+   nir_def *values[2];
    nir_deref_instr *deref;
 };
 
@@ -396,7 +374,7 @@ bitwise_assign_pack(struct lower_packed_varyings_state *state,
                     nir_deref_instr *packed_deref,
                     nir_deref_instr *unpacked_deref,
                     const struct glsl_type *unpacked_type,
-                    nir_ssa_def *value,
+                    nir_def *value,
                     unsigned writemask)
 
 {
@@ -416,8 +394,6 @@ bitwise_assign_pack(struct lower_packed_varyings_state *state,
       assert(packed_base_type == GLSL_TYPE_INT);
       switch (unpacked_base_type) {
       case GLSL_TYPE_UINT:
-         value = u2i(state, value);
-         break;
       case GLSL_TYPE_FLOAT:
          value = nir_mov(&state->b, value);
          break;
@@ -430,37 +406,28 @@ bitwise_assign_pack(struct lower_packed_varyings_state *state,
 
             unsigned swiz_x = 0;
             unsigned writemask = 0x3;
-            nir_ssa_def *swizzle = nir_swizzle(&state->b, value, &swiz_x, 1);
-            nir_ssa_def *x_value = nir_unpack_64_2x32(&state->b, swizzle);
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               x_value = u2i(state, x_value);
+            nir_def *swizzle = nir_swizzle(&state->b, value, &swiz_x, 1);
 
             store_state->is_64bit = true;
             store_state->deref = packed_deref;
-            store_state->values[0] = x_value;
+            store_state->values[0] = nir_unpack_64_2x32(&state->b, swizzle);
             store_state->writemasks[0] = writemask;
 
             unsigned swiz_y = 1;
             writemask = 0xc;
             swizzle = nir_swizzle(&state->b, value, &swiz_y, 1);
-            nir_ssa_def *y_value = nir_unpack_64_2x32(&state->b, swizzle);
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               y_value = u2i(state, y_value);
 
             store_state->deref = packed_deref;
-            store_state->values[1] = y_value;
+            store_state->values[1] = nir_unpack_64_2x32(&state->b, swizzle);
             store_state->writemasks[1] = writemask;
             return store_state;
          } else {
             value = nir_unpack_64_2x32(&state->b, value);
-
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               value = u2i(state, value);
          }
          break;
       case GLSL_TYPE_SAMPLER:
       case GLSL_TYPE_IMAGE:
-         value = u2i(state, nir_unpack_64_2x32(&state->b, value));
+         value = nir_unpack_64_2x32(&state->b, value);
          break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
@@ -483,7 +450,7 @@ bitwise_assign_unpack(struct lower_packed_varyings_state *state,
                       nir_deref_instr *unpacked_deref,
                       nir_deref_instr *packed_deref,
                       const struct glsl_type *unpacked_type,
-                      nir_ssa_def *value, unsigned writemask)
+                      nir_def *value, unsigned writemask)
 {
    nir_variable *packed_var = nir_deref_instr_get_variable(packed_deref);
 
@@ -503,8 +470,6 @@ bitwise_assign_unpack(struct lower_packed_varyings_state *state,
 
       switch (unpacked_base_type) {
       case GLSL_TYPE_UINT:
-         value = i2u(state, value);
-         break;
       case GLSL_TYPE_FLOAT:
          value = nir_mov(&state->b, value);
          break;
@@ -517,38 +482,31 @@ bitwise_assign_unpack(struct lower_packed_varyings_state *state,
 
             unsigned swiz_xy[2] = {0, 1};
             writemask = 1 << (ffs(writemask) - 1);
-            nir_ssa_def *xy_value = nir_swizzle(&state->b, value, swiz_xy, 2);
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               xy_value = i2u(state, xy_value);
 
-            xy_value = nir_pack_64_2x32(&state->b, xy_value);
             store_state->is_64bit = true;
             store_state->deref = unpacked_deref;
-            store_state->values[0] = xy_value;
+            store_state->values[0] =
+               nir_pack_64_2x32(&state->b,
+                                nir_swizzle(&state->b, value, swiz_xy, 2));
             store_state->writemasks[0] = writemask;
 
             unsigned swiz_zw[2] = {2, 3};
             writemask = writemask << 1;
-            nir_ssa_def *zw_value = nir_swizzle(&state->b, value, swiz_zw, 2);
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               zw_value = i2u(state, zw_value);
 
-            zw_value = nir_pack_64_2x32(&state->b, zw_value);
             store_state->deref = unpacked_deref;
-            store_state->values[1] = zw_value;
+            store_state->values[1] =
+               nir_pack_64_2x32(&state->b,
+                                nir_swizzle(&state->b, value, swiz_zw, 2));
             store_state->writemasks[1] = writemask;
 
             return store_state;
          } else {
-            if (unpacked_base_type != GLSL_TYPE_INT64)
-               value = i2u(state, value);
-
             value = nir_pack_64_2x32(&state->b, value);
          }
          break;
       case GLSL_TYPE_SAMPLER:
       case GLSL_TYPE_IMAGE:
-         value = nir_pack_64_2x32(&state->b, i2u(state, value));
+         value = nir_pack_64_2x32(&state->b, value);
          break;
       default:
          assert(!"Unexpected type conversion while lowering varyings");
@@ -565,7 +523,7 @@ bitwise_assign_unpack(struct lower_packed_varyings_state *state,
 
 static void
 create_store_deref(struct lower_packed_varyings_state *state,
-                   nir_deref_instr *deref, nir_ssa_def *value,
+                   nir_deref_instr *deref, nir_def *value,
                    unsigned writemask, bool is_64bit)
 {
    /* If dest and value have different number of components pack the srcs
@@ -574,7 +532,7 @@ create_store_deref(struct lower_packed_varyings_state *state,
    const struct glsl_type *type = glsl_without_array(deref->type);
    unsigned comps = glsl_get_vector_elements(type);
    if (value->num_components != comps) {
-      nir_ssa_def *srcs[4];
+      nir_def *srcs[4];
 
       unsigned comp = 0;
       for (unsigned i = 0; i < comps; i++) {
@@ -585,7 +543,7 @@ create_store_deref(struct lower_packed_varyings_state *state,
                srcs[i] = nir_swizzle(&state->b, value, &comp, 1);
             comp++;
          } else {
-            srcs[i] = nir_ssa_undef(&state->b, 1,
+            srcs[i] = nir_undef(&state->b, 1,
                                     glsl_type_is_64bit(type) ? 64 : 32);
          }
       }
@@ -597,7 +555,7 @@ create_store_deref(struct lower_packed_varyings_state *state,
 
 static unsigned
 lower_varying(struct lower_packed_varyings_state *state,
-              nir_ssa_def *rhs_swizzle, unsigned writemask,
+              nir_def *rhs_swizzle, unsigned writemask,
               const struct glsl_type *type, unsigned fine_location,
               nir_variable *unpacked_var, nir_deref_instr *unpacked_var_deref,
               const char *name, bool gs_input_toplevel, unsigned vertex_index);
@@ -618,7 +576,7 @@ lower_varying(struct lower_packed_varyings_state *state,
  */
 static unsigned
 lower_arraylike(struct lower_packed_varyings_state *state,
-                nir_ssa_def *rhs_swizzle, unsigned writemask,
+                nir_def *rhs_swizzle, unsigned writemask,
                 const struct glsl_type *type, unsigned fine_location,
                 nir_variable *unpacked_var, nir_deref_instr *unpacked_var_deref,
                 const char *name, bool gs_input_toplevel, unsigned vertex_index)
@@ -682,7 +640,7 @@ lower_arraylike(struct lower_packed_varyings_state *state,
  */
 static unsigned
 lower_varying(struct lower_packed_varyings_state *state,
-              nir_ssa_def *rhs_swizzle, unsigned writemask,
+              nir_def *rhs_swizzle, unsigned writemask,
               const struct glsl_type *type, unsigned fine_location,
               nir_variable *unpacked_var, nir_deref_instr *unpacked_var_deref,
               const char *name, bool gs_input_toplevel, unsigned vertex_index)
@@ -783,10 +741,10 @@ lower_varying(struct lower_packed_varyings_state *state,
             ralloc_asprintf(state->mem_ctx, "%s.%s", name, left_swizzle_name) :
             NULL;
 
-         nir_ssa_def *left_swizzle = NULL;
+         nir_def *left_swizzle = NULL;
          unsigned left_writemask = ~0u;
          if (state->mode == nir_var_shader_out) {
-            nir_ssa_def *ssa_def = rhs_swizzle ?
+            nir_def *ssa_def = rhs_swizzle ?
                rhs_swizzle : nir_load_deref(&state->b, unpacked_var_deref);
             left_swizzle =
                nir_swizzle(&state->b, ssa_def,
@@ -809,10 +767,10 @@ lower_varying(struct lower_packed_varyings_state *state,
          ralloc_asprintf(state->mem_ctx, "%s.%s", name, right_swizzle_name) :
          NULL;
 
-      nir_ssa_def *right_swizzle = NULL;
+      nir_def *right_swizzle = NULL;
       unsigned right_writemask = ~0u;
       if (state->mode == nir_var_shader_out) {
-        nir_ssa_def *ssa_def = rhs_swizzle ?
+        nir_def *ssa_def = rhs_swizzle ?
            rhs_swizzle : nir_load_deref(&state->b, unpacked_var_deref);
         right_swizzle =
            nir_swizzle(&state->b, ssa_def,
@@ -852,7 +810,7 @@ lower_varying(struct lower_packed_varyings_state *state,
       struct packing_store_values *store_value;
       if (state->mode == nir_var_shader_out) {
          unsigned writemask = ((1 << components) - 1) << location_frac;
-         nir_ssa_def *value = rhs_swizzle ? rhs_swizzle :
+         nir_def *value = rhs_swizzle ? rhs_swizzle :
             nir_load_deref(&state->b, unpacked_var_deref);
 
          store_value =
@@ -864,9 +822,9 @@ lower_varying(struct lower_packed_varyings_state *state,
             swizzle_values[i] = i + location_frac;
          }
 
-         nir_ssa_def *ssa_def = &packed_deref->dest.ssa;
+         nir_def *ssa_def = &packed_deref->def;
          ssa_def = nir_load_deref(&state->b, packed_deref);
-         nir_ssa_def *swizzle =
+         nir_def *swizzle =
             nir_swizzle(&state->b, ssa_def, swizzle_values, components);
 
          store_value = bitwise_assign_unpack(state, unpacked_var_deref,
@@ -979,7 +937,7 @@ lower_packed_inputs(struct lower_packed_varyings_state *state)
    /* Shader inputs need to be lowered at the beginning of main() so set bulder
     * cursor to insert packing code at the start of the main function.
     */
-   state->b.cursor = nir_before_block(nir_start_block(state->impl));
+   state->b.cursor = nir_before_impl(state->impl);
 
    /* insert new varyings, lower old ones to locals and add unpacking code a
     * the start of the shader.
@@ -1052,7 +1010,7 @@ gl_nir_lower_packed_varyings(const struct gl_constants *consts,
       assert(f->impl == impl);
    }
 
-   nir_builder_init(&state.b, impl);
+   state.b = nir_builder_create(impl);
    state.consts = consts;
    state.prog = prog;
    state.mem_ctx = mem_ctx;

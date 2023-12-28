@@ -39,7 +39,7 @@
  */
 
 #include <windows.h>
-#include "pipe/p_config.h"
+#include "util/detect.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -49,9 +49,10 @@
 # include <io.h>
 #endif
 
-#include "pipe/p_compiler.h"
-#include "os/os_thread.h"
+#include "util/compiler.h"
+#include "util/u_thread.h"
 #include "util/os_time.h"
+#include "util/simple_mtx.h"
 #include "util/u_debug.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
@@ -66,7 +67,7 @@
 
 static bool close_stream = false;
 static FILE *stream = NULL;
-static mtx_t call_mutex = _MTX_INITIALIZER_NP;
+static simple_mtx_t call_mutex = SIMPLE_MTX_INITIALIZER;
 static long unsigned call_no = 0;
 static bool dumping = false;
 static long nir_count = 0;
@@ -86,7 +87,7 @@ trace_dump_check_trigger(void)
    if (!trigger_filename)
       return;
 
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
    if (trigger_active) {
       trigger_active = false;
    } else {
@@ -99,7 +100,7 @@ trace_dump_check_trigger(void)
          }
       }
    }
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
 }
 
 bool
@@ -305,12 +306,12 @@ bool trace_dump_trace_enabled(void)
 
 void trace_dump_call_lock(void)
 {
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
 }
 
 void trace_dump_call_unlock(void)
 {
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
 }
 
 /*
@@ -334,24 +335,24 @@ bool trace_dumping_enabled_locked(void)
 
 void trace_dumping_start(void)
 {
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
    trace_dumping_start_locked();
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
 }
 
 void trace_dumping_stop(void)
 {
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
    trace_dumping_stop_locked();
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
 }
 
 bool trace_dumping_enabled(void)
 {
    bool ret;
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
    ret = trace_dumping_enabled_locked();
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
    return ret;
 }
 
@@ -398,14 +399,14 @@ void trace_dump_call_end_locked(void)
 
 void trace_dump_call_begin(const char *klass, const char *method)
 {
-   mtx_lock(&call_mutex);
+   simple_mtx_lock(&call_mutex);
    trace_dump_call_begin_locked(klass, method);
 }
 
 void trace_dump_call_end(void)
 {
    trace_dump_call_end_locked();
-   mtx_unlock(&call_mutex);
+   simple_mtx_unlock(&call_mutex);
 }
 
 void trace_dump_arg_begin(const char *name)
@@ -444,7 +445,7 @@ void trace_dump_ret_end(void)
    trace_dump_newline();
 }
 
-void trace_dump_bool(int value)
+void trace_dump_bool(bool value)
 {
    if (!dumping)
       return;
@@ -452,20 +453,20 @@ void trace_dump_bool(int value)
    trace_dump_writef("<bool>%c</bool>", value ? '1' : '0');
 }
 
-void trace_dump_int(long long int value)
+void trace_dump_int(int64_t value)
 {
    if (!dumping)
       return;
 
-   trace_dump_writef("<int>%lli</int>", value);
+   trace_dump_writef("<int>%" PRIi64 "</int>", value);
 }
 
-void trace_dump_uint(long long unsigned value)
+void trace_dump_uint(uint64_t value)
 {
    if (!dumping)
       return;
 
-   trace_dump_writef("<uint>%llu</uint>", value);
+   trace_dump_writef("<uint>%" PRIu64 "</uint>", value);
 }
 
 void trace_dump_float(double value)
@@ -501,17 +502,18 @@ void trace_dump_box_bytes(const void *data,
                           struct pipe_resource *resource,
 			  const struct pipe_box *box,
 			  unsigned stride,
-			  unsigned slice_stride)
+			  uint64_t slice_stride)
 {
    enum pipe_format format = resource->format;
-   size_t size;
+   uint64_t size;
 
    assert(box->height > 0);
    assert(box->depth > 0);
 
-   size =  util_format_get_nblocksx(format, box->width )      * util_format_get_blocksize(format)
-        + (util_format_get_nblocksy(format, box->height) - 1) * stride
-        +                                  (box->depth   - 1) * slice_stride;
+   size = util_format_get_nblocksx(format, box->width ) *
+          (uint64_t)util_format_get_blocksize(format) +
+          (util_format_get_nblocksy(format, box->height) - 1) *
+          (uint64_t)stride + (box->depth - 1) * slice_stride;
 
    /*
     * Only dump buffer transfers to avoid huge files.
@@ -521,6 +523,7 @@ void trace_dump_box_bytes(const void *data,
       size = 0;
    }
 
+   assert(size <= SIZE_MAX);
    trace_dump_bytes(data, size);
 }
 
@@ -658,14 +661,8 @@ void trace_dump_nir(void *nir)
    if (!dumping)
       return;
 
-   if (nir_count < 0) {
+   if (--nir_count < 0) {
       fputs("<string>...</string>", stream);
-      return;
-   }
-
-   if ((nir_count--) == 0) {
-      fputs("<string>Set GALLIUM_TRACE_NIR to a sufficiently big number "
-            "to enable NIR shader dumping.</string>", stream);
       return;
    }
 

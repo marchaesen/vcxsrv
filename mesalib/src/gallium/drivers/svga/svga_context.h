@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -35,8 +35,6 @@
 
 #include "util/u_blitter.h"
 #include "util/list.h"
-
-#include "tgsi/tgsi_scan.h"
 
 #include "svga_screen.h"
 #include "svga_state.h"
@@ -91,6 +89,7 @@ enum svga_hud {
  * including the zero slot for the default constant buffer.
  */
 #define SVGA_MAX_CONST_BUFS 15
+#define SVGA_MAX_RAW_BUFS   64
 
 /**
  * Maximum constant buffer size that can be set in the
@@ -100,10 +99,10 @@ enum svga_hud {
 #define SVGA_MAX_CONST_BUF_SIZE (4096 * 4 * sizeof(int))
 
 #define CONST0_UPLOAD_ALIGNMENT 256
+#define SVGA_MAX_UAVIEWS        SVGA3D_DX11_1_MAX_UAVIEWS
 #define SVGA_MAX_IMAGES         SVGA3D_MAX_UAVIEWS
 #define SVGA_MAX_SHADER_BUFFERS	SVGA3D_MAX_UAVIEWS
 #define SVGA_MAX_ATOMIC_BUFFERS	SVGA3D_MAX_UAVIEWS
-#define SVGA_MAX_UAVIEWS        SVGA3D_DX11_1_MAX_UAVIEWS
 
 enum svga_surface_state
 {
@@ -136,12 +135,12 @@ struct svga_blend_state {
    struct {
       uint8_t writemask;
 
-      boolean blend_enable;
+      bool blend_enable;
       uint8_t srcblend;
       uint8_t dstblend;
       uint8_t blendeq;
 
-      boolean separate_alpha_blend_enable;
+      bool separate_alpha_blend_enable;
       uint8_t srcblend_alpha;
       uint8_t dstblend_alpha;
       uint8_t blendeq_alpha;
@@ -181,9 +180,9 @@ struct svga_depth_stencil_state {
 #define SVGA_UNFILLED_LINE    1
 #define SVGA_UNFILLED_POINT   2
 
-#define SVGA_PIPELINE_FLAG_POINTS   (1<<PIPE_PRIM_POINTS)
-#define SVGA_PIPELINE_FLAG_LINES    (1<<PIPE_PRIM_LINES)
-#define SVGA_PIPELINE_FLAG_TRIS     (1<<PIPE_PRIM_TRIANGLES)
+#define SVGA_PIPELINE_FLAG_POINTS   (1<<MESA_PRIM_POINTS)
+#define SVGA_PIPELINE_FLAG_LINES    (1<<MESA_PRIM_LINES)
+#define SVGA_PIPELINE_FLAG_TRIS     (1<<MESA_PRIM_TRIANGLES)
 
 #define SVGA_MAX_FRAMEBUFFER_DEFAULT_SAMPLES 4
 
@@ -207,7 +206,7 @@ struct svga_rasterizer_state {
 
    unsigned hw_fillmode:2;         /* PIPE_POLYGON_MODE_x */
 
-   /** Which prims do we need help for?  Bitmask of (1 << PIPE_PRIM_x) flags */
+   /** Which prims do we need help for?  Bitmask of (1 << MESA_PRIM_x) flags */
    unsigned need_pipeline:16;
 
    SVGA3dRasterizerStateId id;    /**< vgpu10 */
@@ -264,6 +263,7 @@ struct svga_velems_state {
    unsigned count;
    struct pipe_vertex_element velem[PIPE_MAX_ATTRIBS];
    SVGA3dDeclType decl_type[PIPE_MAX_ATTRIBS]; /**< vertex attrib formats */
+   uint16_t strides[PIPE_MAX_ATTRIBS];
 
    /** Bitmasks indicating which attributes need format conversion */
    unsigned adjust_attrib_range;     /**< range adjustment */
@@ -276,7 +276,7 @@ struct svga_velems_state {
    unsigned attrib_puint_to_uscaled; /**< 10_10_10_2 packed uint -> uscaled */
    unsigned attrib_puint_to_sscaled; /**< 10_10_10_2 packed uint -> sscaled */
 
-   boolean need_swvfetch;
+   bool need_swvfetch;
 
    SVGA3dElementLayoutId id; /**< VGPU10 */
 };
@@ -322,7 +322,7 @@ struct svga_state
     * svga_shader_emitter_v10.num_shader_consts.
     */
    struct pipe_constant_buffer constbufs[PIPE_SHADER_TYPES][SVGA_MAX_CONST_BUFS];
-   struct svga_raw_buffer rawbufs[PIPE_SHADER_TYPES][SVGA_MAX_CONST_BUFS];
+   struct svga_raw_buffer rawbufs[PIPE_SHADER_TYPES][SVGA_MAX_RAW_BUFS];
 
    struct pipe_framebuffer_state framebuffer;
    float depthscale;
@@ -339,10 +339,11 @@ struct svga_state
    struct pipe_clip_state clip;
    struct pipe_viewport_state viewport[SVGA3D_DX_MAX_VIEWPORTS];
 
+   bool use_samplers[PIPE_SHADER_TYPES];
    unsigned num_samplers[PIPE_SHADER_TYPES];
    unsigned num_sampler_views[PIPE_SHADER_TYPES];
    unsigned num_vertex_buffers;
-   enum pipe_prim_type reduced_prim;
+   enum mesa_prim reduced_prim;
 
    unsigned vertex_id_bias;
 
@@ -379,7 +380,7 @@ struct svga_state
 struct svga_prescale {
    float translate[4];
    float scale[4];
-   boolean enabled;
+   bool enabled;
 };
 
 struct svga_depthrange {
@@ -414,7 +415,7 @@ struct svga_hw_view_state
    struct svga_sampler_view *v;
    unsigned min_lod;
    unsigned max_lod;
-   boolean dirty;
+   bool dirty;
 };
 
 /* Updated by calling svga_update_state( SVGA_STATE_HW_DRAW )
@@ -445,8 +446,8 @@ struct svga_hw_draw_state
    /** Currently bound constant buffer, per shader stage */
    struct pipe_resource *constbuf[PIPE_SHADER_TYPES][SVGA_MAX_CONST_BUFS];
    struct svga_constant_buffer constbufoffsets[PIPE_SHADER_TYPES][SVGA_MAX_CONST_BUFS];
-   struct svga_raw_buffer rawbufs[PIPE_SHADER_TYPES][SVGA_MAX_CONST_BUFS];
-   unsigned enabled_rawbufs[PIPE_SHADER_TYPES];
+   struct svga_raw_buffer rawbufs[PIPE_SHADER_TYPES][SVGA_MAX_RAW_BUFS];
+   uint64_t enabled_rawbufs[PIPE_SHADER_TYPES];
 
    /** Bitmask of enabled constant buffers */
    unsigned enabled_constbufs[PIPE_SHADER_TYPES];
@@ -487,8 +488,8 @@ struct svga_hw_draw_state
    /* used for rebinding */
    unsigned default_constbuf_size[PIPE_SHADER_TYPES];
 
-   boolean rasterizer_discard; /* set if rasterization is disabled */
-   boolean has_backed_views;   /* set if any of the rtv/dsv is a backed surface view */
+   bool rasterizer_discard; /* set if rasterization is disabled */
+   bool has_backed_views;   /* set if any of the rtv/dsv is a backed surface view */
 
    /* Image Views */
    int uavSpliceIndex;
@@ -498,6 +499,7 @@ struct svga_hw_draw_state
    /* Shader Buffers */
    unsigned num_shader_buffers[PIPE_SHADER_TYPES];
    struct svga_shader_buffer shader_buffers[PIPE_SHADER_TYPES][SVGA_MAX_SHADER_BUFFERS];
+   uint64_t enabled_raw_shaderbufs[PIPE_SHADER_TYPES];
 
    /* HW Atomic Buffers */
    unsigned num_atomic_buffers;
@@ -526,14 +528,14 @@ struct svga_hw_draw_state
 struct svga_sw_state
 {
    /* which parts we need */
-   boolean need_swvfetch;
-   boolean need_pipeline;
-   boolean need_swtnl;
+   bool need_swvfetch;
+   bool need_pipeline;
+   bool need_swtnl;
 
    /* Flag to make sure that need sw is on while
     * updating state within a swtnl call.
     */
-   boolean in_swtnl_draw;
+   bool in_swtnl_draw;
 };
 
 
@@ -580,15 +582,15 @@ struct svga_context
    struct u_upload_mgr *tex_upload;
 
    struct {
-      boolean no_swtnl;
-      boolean force_swtnl;
-      boolean use_min_mipmap;
+      bool no_swtnl;
+      bool force_swtnl;
+      bool use_min_mipmap;
 
       /* incremented for each shader */
       unsigned shader_id;
 
-      boolean no_line_width;
-      boolean force_hw_line_stipple;
+      bool no_line_width;
+      bool force_hw_line_stipple;
 
       /** To report perf/conformance/etc issues to the gallium frontend */
       struct util_debug_callback callback;
@@ -598,8 +600,8 @@ struct svga_context
       struct draw_context *draw;
       struct vbuf_render *backend;
       unsigned hw_prim;
-      boolean new_vbuf;
-      boolean new_vdecl;
+      bool new_vbuf;
+      bool new_vdecl;
    } swtnl;
 
    /* Bitmask of blend state objects IDs */
@@ -647,8 +649,11 @@ struct svga_context
       /** bitmasks of which const buffers are changed */
       unsigned dirty_constbufs[PIPE_SHADER_TYPES];
 
-      /** bitmasks of which const buffers to be bound as raw buffers */
+      /** bitmasks of which const buffers to be bound as srv raw buffers */
       unsigned raw_constbufs[PIPE_SHADER_TYPES];
+
+      /** bitmasks of which shader buffers to be bound as srv raw buffers */
+      uint64_t raw_shaderbufs[PIPE_SHADER_TYPES];
 
       unsigned texture_timestamp;
       unsigned uav_timestamp[2];
@@ -732,11 +737,11 @@ struct svga_context
       uint64_t num_generate_mipmap;     /**< SVGA_QUERY_NUM_GENERATE_MIPMAP */
       uint64_t shader_mem_used;         /**< SVGA_QUERY_SHADER_MEM_USED */
 
-      boolean uses_time;                /**< os_time_get() calls needed? */
+      bool uses_time;                /**< os_time_get() calls needed? */
    } hud;
 
    /** The currently bound stream output targets */
-   boolean in_streamout;                /* Set if streamout is active */
+   bool in_streamout;                /* Set if streamout is active */
    unsigned num_so_targets;
    struct svga_winsys_surface *so_surfaces[SVGA3D_DX_MAX_SOTARGETS];
    struct pipe_stream_output_target *so_targets[SVGA3D_DX_MAX_SOTARGETS];
@@ -769,11 +774,11 @@ struct svga_context
    /** Current conditional rendering predicate */
    struct {
       SVGA3dQueryId query_id;
-      boolean cond;
+      bool cond;
    } pred;
 
-   boolean render_condition;
-   boolean disable_rasterizer; /* Set if to disable rasterization */
+   bool render_condition;
+   bool disable_rasterizer; /* Set if to disable rasterization */
    uint8_t patch_vertices;
 
    struct {
@@ -781,7 +786,7 @@ struct svga_context
       struct svga_vertex_shader *vs;
       struct svga_tes_shader *tes;
       unsigned vertices_per_patch;
-      boolean passthrough;
+      bool passthrough;
    } tcs;
 
    struct svga_cache_uav cache_uav;
@@ -898,7 +903,7 @@ void svga_context_finish(struct svga_context *svga);
 void svga_hwtnl_flush_retry( struct svga_context *svga );
 void svga_hwtnl_flush_buffer( struct svga_context *svga,
                               struct pipe_resource *buffer );
-boolean svga_hwtnl_has_pending_prim(struct svga_hwtnl *);
+bool svga_hwtnl_has_pending_prim(struct svga_hwtnl *);
 
 void svga_surfaces_flush(struct svga_context *svga);
 
@@ -907,8 +912,8 @@ svga_context_create(struct pipe_screen *screen,
                     void *priv, unsigned flags);
 
 void svga_toggle_render_condition(struct svga_context *svga,
-                                  boolean render_condition_enabled,
-                                  boolean on);
+                                  bool render_condition_enabled,
+                                  bool on);
 
 int svga_define_rasterizer_object(struct svga_context *svga,
                                   struct svga_rasterizer_state *,
@@ -956,49 +961,49 @@ svga_sws(struct svga_context *svga)
    return svga_screen(svga->pipe.screen)->sws;
 }
 
-static inline boolean
+static inline bool
 svga_have_gb_objects(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_gb_objects;
 }
 
-static inline boolean
+static inline bool
 svga_have_gb_dma(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_gb_dma;
 }
 
-static inline boolean
+static inline bool
 svga_have_vgpu10(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_vgpu10;
 }
 
-static inline boolean
+static inline bool
 svga_have_sm4_1(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_sm4_1;
 }
 
-static inline boolean
+static inline bool
 svga_have_sm5(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_sm5;
 }
 
-static inline boolean
+static inline bool
 svga_have_gl43(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->have_gl43;
 }
 
-static inline boolean
+static inline bool
 svga_need_to_rebind_resources(const struct svga_context *svga)
 {
    return svga_screen(svga->pipe.screen)->sws->need_to_rebind_resources;
 }
 
-static inline boolean
+static inline bool
 svga_rects_equal(const SVGA3dRect *r1, const SVGA3dRect *r2)
 {
    return memcmp(r1, r2, sizeof(*r1)) == 0;
@@ -1010,7 +1015,7 @@ svga_rects_equal(const SVGA3dRect *r1, const SVGA3dRect *r2)
  * if the number of sampler states exceeds the SVGA device limit or
  * the sampler state mapping environment variable is set.
  */
-static inline boolean
+static inline bool
 svga_use_sampler_state_mapping(const struct svga_context *svga,
                                unsigned num_sampler_states)
 {
@@ -1018,6 +1023,24 @@ svga_use_sampler_state_mapping(const struct svga_context *svga,
           (svga_screen(svga->pipe.screen)->debug.sampler_state_mapping ||
            num_sampler_states > SVGA3D_DX_MAX_SAMPLERS);
 }
+
+
+static inline void
+svga_set_curr_shader_use_samplers_flag(struct svga_context *svga,
+                                       enum pipe_shader_type shader_type,
+                                       bool use_samplers)
+{
+   svga->curr.use_samplers[shader_type] = use_samplers;
+}
+
+
+static inline bool
+svga_curr_shader_use_samplers(const struct svga_context *svga,
+	                      enum pipe_shader_type shader_type)
+{
+   return svga->curr.use_samplers[shader_type];
+}
+
 
 /**
  * If the Gallium HUD is enabled, this will return the current time.
@@ -1052,7 +1075,7 @@ svga_get_time(struct svga_context *svga)
  * the _retry parameter to TRUE.
  */
 #define SVGA_TRY_MAP(_func, _retry) \
-   ((SVGA_DEBUG & DEBUG_RETRY) ? (_retry) = TRUE, NULL : (_func))
+   ((SVGA_DEBUG & DEBUG_RETRY) ? (_retry) = true, NULL : (_func))
 #else
 
 #define SVGA_TRY(_func) (_func)
@@ -1112,7 +1135,7 @@ svga_retry_exit(struct svga_context *svga)
  */
 #define SVGA_RETRY(_svga, _func)                \
    do {                                         \
-      UNUSED boolean retried;                   \
+      UNUSED bool retried;                      \
                                                 \
       SVGA_RETRY_CHECK(_svga, _func, retried);  \
    } while(0)

@@ -36,6 +36,7 @@
 #include "st_context.h"
 #include "st_atom.h"
 #include "st_cb_bitmap.h"
+#include "st_manager.h"
 #include "st_texture.h"
 #include "st_util.h"
 #include "pipe/p_context.h"
@@ -115,6 +116,9 @@ st_update_framebuffer_state( struct st_context *st )
    struct gl_renderbuffer *rb;
    GLuint i;
 
+   /* Window framebuffer changes are received here. */
+   st_manager_validate_framebuffers(st);
+
    st_flush_bitmap_cache(st);
    st_invalidate_readpix_cache(st);
 
@@ -135,6 +139,7 @@ st_update_framebuffer_state( struct st_context *st )
    framebuffer.height = _mesa_geometric_height(fb);
    framebuffer.samples = _mesa_geometric_samples(fb);
    framebuffer.layers = _mesa_geometric_layers(fb);
+   framebuffer.resolve = fb->resolve;
 
    /* Examine Mesa's ctx->DrawBuffer->_ColorDrawBuffers state
     * to determine which surfaces to draw to

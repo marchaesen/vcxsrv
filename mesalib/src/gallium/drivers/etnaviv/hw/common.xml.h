@@ -10,10 +10,10 @@ git clone git://0x04.net/rules-ng-ng
 The rules-ng-ng source files this header was generated from are:
 - texdesc_3d.xml (   3183 bytes, from 2018-02-10 13:09:26)
 - copyright.xml  (   1597 bytes, from 2018-02-10 13:09:26)
-- common.xml     (  35468 bytes, from 2020-01-04 20:02:31)
-- common_3d.xml  (  15058 bytes, from 2020-04-17 16:31:50)
+- common.xml     (  35465 bytes, from 2023-11-13 11:29:31)
+- common_3d.xml  (  15069 bytes, from 2023-11-13 11:29:31)
 
-Copyright (C) 2012-2020 by the following authors:
+Copyright (C) 2012-2023 by the following authors:
 - Wladimir J. van der Laan <laanwj@gmail.com>
 - Christian Gmeiner <christian.gmeiner@gmail.com>
 - Lucas Stach <l.stach@pengutronix.de>

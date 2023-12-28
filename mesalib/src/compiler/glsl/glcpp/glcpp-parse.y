@@ -100,6 +100,9 @@ static token_list_t *
 _token_list_create(glcpp_parser_t *parser);
 
 static void
+_token_list_prepend(glcpp_parser_t *parser, token_list_t *list, token_t *token);
+
+static void
 _token_list_append(glcpp_parser_t *parser, token_list_t *list, token_t *token);
 
 static void
@@ -218,653 +221,655 @@ add_builtin_define(glcpp_parser_t *parser, const char *name, int value);
 %%
 
 input:
-	/* empty */
-|	input line
+   /* empty */
+|  input line
 ;
 
 line:
-	control_line
-|	SPACE control_line
-|	text_line {
-		_glcpp_parser_print_expanded_token_list (parser, $1);
-		_mesa_string_buffer_append_char(parser->output, '\n');
-	}
-|	expanded_line
+   control_line
+|  SPACE control_line
+|  text_line {
+      _glcpp_parser_print_expanded_token_list (parser, $1);
+      _mesa_string_buffer_append_char(parser->output, '\n');
+   }
+|  expanded_line
 ;
 
 expanded_line:
-	IF_EXPANDED expression NEWLINE {
-		if (parser->is_gles && $2.undefined_macro)
-			glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
-		_glcpp_parser_skip_stack_push_if (parser, & @1, $2.value);
-	}
-|	ELIF_EXPANDED expression NEWLINE {
-		if (parser->is_gles && $2.undefined_macro)
-			glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
-		_glcpp_parser_skip_stack_change_if (parser, & @1, "elif", $2.value);
-	}
-|	LINE_EXPANDED integer_constant NEWLINE {
-		parser->has_new_line_number = 1;
-		parser->new_line_number = $2;
-		_mesa_string_buffer_printf(parser->output, "#line %" PRIiMAX "\n", $2);
-	}
-|	LINE_EXPANDED integer_constant integer_constant NEWLINE {
-		parser->has_new_line_number = 1;
-		parser->new_line_number = $2;
-		parser->has_new_source_number = 1;
-		parser->new_source_number = $3;
-		_mesa_string_buffer_printf(parser->output,
-					   "#line %" PRIiMAX " %" PRIiMAX "\n",
-					    $2, $3);
-	}
-|	LINE_EXPANDED integer_constant PATH NEWLINE {
-		parser->has_new_line_number = 1;
-		parser->new_line_number = $2;
-		_mesa_string_buffer_printf(parser->output,
-					   "#line %" PRIiMAX " %s\n",
-					    $2, $3);
-	}
+   IF_EXPANDED expression NEWLINE {
+      if (parser->is_gles && $2.undefined_macro)
+         glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
+      _glcpp_parser_skip_stack_push_if (parser, & @1, $2.value);
+   }
+|  ELIF_EXPANDED expression NEWLINE {
+      if (parser->is_gles && $2.undefined_macro)
+         glcpp_error(& @1, parser, "undefined macro %s in expression (illegal in GLES)", $2.undefined_macro);
+      _glcpp_parser_skip_stack_change_if (parser, & @1, "elif", $2.value);
+   }
+|  LINE_EXPANDED integer_constant NEWLINE {
+      parser->has_new_line_number = 1;
+      parser->new_line_number = $2;
+      _mesa_string_buffer_printf(parser->output, "#line %" PRIiMAX "\n", $2);
+   }
+|  LINE_EXPANDED integer_constant integer_constant NEWLINE {
+      parser->has_new_line_number = 1;
+      parser->new_line_number = $2;
+      parser->has_new_source_number = 1;
+      parser->new_source_number = $3;
+      _mesa_string_buffer_printf(parser->output,
+                  "#line %" PRIiMAX " %" PRIiMAX "\n",
+                   $2, $3);
+   }
+|  LINE_EXPANDED integer_constant PATH NEWLINE {
+      parser->has_new_line_number = 1;
+      parser->new_line_number = $2;
+      _mesa_string_buffer_printf(parser->output,
+                  "#line %" PRIiMAX " %s\n",
+                   $2, $3);
+   }
 ;
 
 define:
-	OBJ_IDENTIFIER replacement_list NEWLINE {
-		_define_object_macro (parser, & @1, $1, $2);
-	}
-|	FUNC_IDENTIFIER '(' ')' replacement_list NEWLINE {
-		_define_function_macro (parser, & @1, $1, NULL, $4);
-	}
-|	FUNC_IDENTIFIER '(' identifier_list ')' replacement_list NEWLINE {
-		_define_function_macro (parser, & @1, $1, $3, $5);
-	}
+   OBJ_IDENTIFIER replacement_list NEWLINE {
+      _define_object_macro (parser, & @1, $1, $2);
+   }
+|  FUNC_IDENTIFIER '(' ')' replacement_list NEWLINE {
+      _define_function_macro (parser, & @1, $1, NULL, $4);
+   }
+|  FUNC_IDENTIFIER '(' identifier_list ')' replacement_list NEWLINE {
+      _define_function_macro (parser, & @1, $1, $3, $5);
+   }
 ;
 
 control_line:
-	control_line_success {
-		_mesa_string_buffer_append_char(parser->output, '\n');
-	}
-|	control_line_error
-|	HASH_TOKEN LINE pp_tokens NEWLINE {
+   control_line_success {
+      _mesa_string_buffer_append_char(parser->output, '\n');
+   }
+|  control_line_error
+|  HASH_TOKEN LINE pp_tokens NEWLINE {
 
-		if (parser->skip_stack == NULL ||
-		    parser->skip_stack->type == SKIP_NO_SKIP)
-		{
-			_glcpp_parser_expand_and_lex_from (parser,
-							   LINE_EXPANDED, $3,
-							   EXPANSION_MODE_IGNORE_DEFINED);
-		}
-	}
+      if (parser->skip_stack == NULL ||
+          parser->skip_stack->type == SKIP_NO_SKIP)
+      {
+         _glcpp_parser_expand_and_lex_from (parser,
+                        LINE_EXPANDED, $3,
+                        EXPANSION_MODE_IGNORE_DEFINED);
+      }
+   }
 ;
 
 control_line_success:
-	HASH_TOKEN DEFINE_TOKEN define
-|	HASH_TOKEN UNDEF IDENTIFIER NEWLINE {
-		struct hash_entry *entry;
+   HASH_TOKEN DEFINE_TOKEN define
+|  HASH_TOKEN UNDEF IDENTIFIER NEWLINE {
+      struct hash_entry *entry;
 
-                /* Section 3.4 (Preprocessor) of the GLSL ES 3.00 spec says:
-                 *
-                 *    It is an error to undefine or to redefine a built-in
-                 *    (pre-defined) macro name.
-                 *
-                 * The GLSL ES 1.00 spec does not contain this text, but
-                 * dEQP's preprocess test in GLES2 checks for it.
-                 *
-                 * Section 3.3 (Preprocessor) revision 7, of the GLSL 4.50
-                 * spec says:
-                 *
-                 *    By convention, all macro names containing two consecutive
-                 *    underscores ( __ ) are reserved for use by underlying
-                 *    software layers. Defining or undefining such a name
-                 *    in a shader does not itself result in an error, but may
-                 *    result in unintended behaviors that stem from having
-                 *    multiple definitions of the same name. All macro names
-                 *    prefixed with "GL_" (...) are also reseved, and defining
-                 *    such a name results in a compile-time error.
-                 *
-                 * The code below implements the same checks as GLSLang.
-                 */
-		if (strncmp("GL_", $3, 3) == 0)
-			glcpp_error(& @1, parser, "Built-in (pre-defined)"
-				    " names beginning with GL_ cannot be undefined.");
-		else if (strstr($3, "__") != NULL) {
-			if (parser->is_gles
-			    && parser->version >= 300
-			    && (strcmp("__LINE__", $3) == 0
-				|| strcmp("__FILE__", $3) == 0
-				|| strcmp("__VERSION__", $3) == 0)) {
-				glcpp_error(& @1, parser, "Built-in (pre-defined)"
-					    " names cannot be undefined.");
-			} else if (parser->is_gles && parser->version <= 300) {
-				glcpp_error(& @1, parser,
-					    " names containing consecutive underscores"
-					    " are reserved.");
-			} else {
-				glcpp_warning(& @1, parser,
-					      " names containing consecutive underscores"
-					      " are reserved.");
-			}
-		}
+      /* Section 3.4 (Preprocessor) of the GLSL ES 3.00 spec says:
+       *
+       *    It is an error to undefine or to redefine a built-in
+       *    (pre-defined) macro name.
+       *
+       * The GLSL ES 1.00 spec does not contain this text, but
+       * dEQP's preprocess test in GLES2 checks for it.
+       *
+       * Section 3.3 (Preprocessor) revision 7, of the GLSL 4.50
+       * spec says:
+       *
+       *    By convention, all macro names containing two consecutive
+       *    underscores ( __ ) are reserved for use by underlying
+       *    software layers. Defining or undefining such a name
+       *    in a shader does not itself result in an error, but may
+       *    result in unintended behaviors that stem from having
+       *    multiple definitions of the same name. All macro names
+       *    prefixed with "GL_" (...) are also reseved, and defining
+       *    such a name results in a compile-time error.
+       *
+       * The code below implements the same checks as GLSLang.
+       */
+      if (strncmp("GL_", $3, 3) == 0)
+         glcpp_error(& @1, parser, "Built-in (pre-defined)"
+                " names beginning with GL_ cannot be undefined.");
+      else if (strstr($3, "__") != NULL) {
+         if (parser->is_gles
+             && parser->version >= 300
+             && (strcmp("__LINE__", $3) == 0
+            || strcmp("__FILE__", $3) == 0
+            || strcmp("__VERSION__", $3) == 0)) {
+            glcpp_error(& @1, parser, "Built-in (pre-defined)"
+                   " names cannot be undefined.");
+         } else if (parser->is_gles && parser->version <= 300) {
+            glcpp_error(& @1, parser,
+                   " names containing consecutive underscores"
+                   " are reserved.");
+         } else {
+            glcpp_warning(& @1, parser,
+                     " names containing consecutive underscores"
+                     " are reserved.");
+         }
+      }
 
-		entry = _mesa_hash_table_search (parser->defines, $3);
-		if (entry) {
-			_mesa_hash_table_remove (parser->defines, entry);
-		}
-	}
-|	HASH_TOKEN INCLUDE NEWLINE {
-		size_t include_cursor = _mesa_get_shader_include_cursor(parser->gl_ctx->Shared);
+      entry = _mesa_hash_table_search (parser->defines, $3);
+      if (entry) {
+         _mesa_hash_table_remove (parser->defines, entry);
+      }
+   }
+|  HASH_TOKEN INCLUDE NEWLINE {
+      size_t include_cursor = _mesa_get_shader_include_cursor(parser->gl_ctx->Shared);
 
-		/* Remove leading and trailing "" or <> */
-		char *start = strchr($2, '"');
-		if (!start) {
-			_mesa_set_shader_include_cursor(parser->gl_ctx->Shared, 0);
-			start = strchr($2, '<');
-		}
-		char *path = strndup(start + 1, strlen(start + 1) - 1);
+      /* Remove leading and trailing "" or <> */
+      char *start = strchr($2, '"');
+      if (!start) {
+         _mesa_set_shader_include_cursor(parser->gl_ctx->Shared, 0);
+         start = strchr($2, '<');
+      }
+      char *path = strndup(start + 1, strlen(start + 1) - 1);
 
-		const char *shader =
-			_mesa_lookup_shader_include(parser->gl_ctx, path, false);
-		free(path);
+      const char *shader =
+         _mesa_lookup_shader_include(parser->gl_ctx, path, false);
+      free(path);
 
-		if (!shader)
-			glcpp_error(&@1, parser, "%s not found", $2);
-		else {
-			/* Create a temporary parser with the same settings */
-			glcpp_parser_t *tmp_parser =
-				glcpp_parser_create(parser->gl_ctx, parser->extensions, parser->state);
-			tmp_parser->version_set = true;
-			tmp_parser->version = parser->version;
+      if (!shader)
+         glcpp_error(&@1, parser, "%s not found", $2);
+      else {
+         /* Create a temporary parser with the same settings */
+         glcpp_parser_t *tmp_parser =
+            glcpp_parser_create(parser->gl_ctx, parser->extensions, parser->state);
+         tmp_parser->version_set = true;
+         tmp_parser->version = parser->version;
 
-			/* Set the shader source and run the lexer */
-			glcpp_lex_set_source_string(tmp_parser, shader);
+         /* Set the shader source and run the lexer */
+         glcpp_lex_set_source_string(tmp_parser, shader);
 
-			/* Copy any existing define macros to the temporary
-			 * shade include parser.
-			 */
-			struct define_include di;
-			di.parser = tmp_parser;
-			di.loc = &@1;
+         /* Copy any existing define macros to the temporary
+          * shade include parser.
+          */
+         struct define_include di;
+         di.parser = tmp_parser;
+         di.loc = &@1;
 
-			hash_table_call_foreach(parser->defines,
-						glcpp_parser_copy_defines,
-						&di);
+         hash_table_call_foreach(parser->defines,
+                  glcpp_parser_copy_defines,
+                  &di);
 
-			/* Print out '#include' to the glsl parser. We do this
-			 * so that it can do the error checking require to
-			 * make sure the ARB_shading_language_include
-			 * extension is enabled.
-			 */
-			_mesa_string_buffer_printf(parser->output, "#include\n");
+         /* Print out '#include' to the glsl parser. We do this
+          * so that it can do the error checking require to
+          * make sure the ARB_shading_language_include
+          * extension is enabled.
+          */
+         _mesa_string_buffer_printf(parser->output, "#include\n");
 
-			/* Parse the include string before adding to the
-			 * preprocessor output.
-			 */
-			glcpp_parser_parse(tmp_parser);
-			_mesa_string_buffer_printf(parser->info_log, "%s",
-						   tmp_parser->info_log->buf);
-			_mesa_string_buffer_printf(parser->output, "%s",
-						   tmp_parser->output->buf);
+         /* Parse the include string before adding to the
+          * preprocessor output.
+          */
+         glcpp_parser_parse(tmp_parser);
+         _mesa_string_buffer_printf(parser->info_log, "%s",
+                     tmp_parser->info_log->buf);
+         _mesa_string_buffer_printf(parser->output, "%s",
+                     tmp_parser->output->buf);
 
-			/* Copy any new define macros to the parent parser
-			 * and steal the memory of our temp parser so we don't
-			 * free these new defines before they are no longer
-			 * needed.
-			 */
-			di.parser = parser;
-			di.loc = &@1;
-			ralloc_steal(parser, tmp_parser);
+         /* Copy any new define macros to the parent parser
+          * and steal the memory of our temp parser so we don't
+          * free these new defines before they are no longer
+          * needed.
+          */
+         di.parser = parser;
+         di.loc = &@1;
+         ralloc_steal(parser, tmp_parser);
 
-			hash_table_call_foreach(tmp_parser->defines,
-						glcpp_parser_copy_defines,
-						&di);
+         hash_table_call_foreach(tmp_parser->defines,
+                  glcpp_parser_copy_defines,
+                  &di);
 
-			/* Destroy tmp parser memory we no longer need */
-			glcpp_lex_destroy(tmp_parser->scanner);
-			_mesa_hash_table_destroy(tmp_parser->defines, NULL);
-		}
+         /* Destroy tmp parser memory we no longer need */
+         glcpp_lex_destroy(tmp_parser->scanner);
+         _mesa_hash_table_destroy(tmp_parser->defines, NULL);
+      }
 
-		_mesa_set_shader_include_cursor(parser->gl_ctx->Shared, include_cursor);
-	}
-|	HASH_TOKEN IF pp_tokens NEWLINE {
-		/* Be careful to only evaluate the 'if' expression if
-		 * we are not skipping. When we are skipping, we
-		 * simply push a new 0-valued 'if' onto the skip
-		 * stack.
-		 *
-		 * This avoids generating diagnostics for invalid
-		 * expressions that are being skipped. */
-		if (parser->skip_stack == NULL ||
-		    parser->skip_stack->type == SKIP_NO_SKIP)
-		{
-			_glcpp_parser_expand_and_lex_from (parser,
-							   IF_EXPANDED, $3,
-							   EXPANSION_MODE_EVALUATE_DEFINED);
-		}	
-		else
-		{
-			_glcpp_parser_skip_stack_push_if (parser, & @1, 0);
-			parser->skip_stack->type = SKIP_TO_ENDIF;
-		}
-	}
-|	HASH_TOKEN IF NEWLINE {
-		/* #if without an expression is only an error if we
-		 *  are not skipping */
-		if (parser->skip_stack == NULL ||
-		    parser->skip_stack->type == SKIP_NO_SKIP)
-		{
-			glcpp_error(& @1, parser, "#if with no expression");
-		}	
-		_glcpp_parser_skip_stack_push_if (parser, & @1, 0);
-	}
-|	HASH_TOKEN IFDEF IDENTIFIER junk NEWLINE {
-		struct hash_entry *entry =
-				_mesa_hash_table_search(parser->defines, $3);
-		macro_t *macro = entry ? entry->data : NULL;
-		_glcpp_parser_skip_stack_push_if (parser, & @1, macro != NULL);
-	}
-|	HASH_TOKEN IFNDEF IDENTIFIER junk NEWLINE {
-		struct hash_entry *entry =
-				_mesa_hash_table_search(parser->defines, $3);
-		macro_t *macro = entry ? entry->data : NULL;
-		_glcpp_parser_skip_stack_push_if (parser, & @3, macro == NULL);
-	}
-|	HASH_TOKEN ELIF pp_tokens NEWLINE {
-		/* Be careful to only evaluate the 'elif' expression
-		 * if we are not skipping. When we are skipping, we
-		 * simply change to a 0-valued 'elif' on the skip
-		 * stack.
-		 *
-		 * This avoids generating diagnostics for invalid
-		 * expressions that are being skipped. */
-		if (parser->skip_stack &&
-		    parser->skip_stack->type == SKIP_TO_ELSE)
-		{
-			_glcpp_parser_expand_and_lex_from (parser,
-							   ELIF_EXPANDED, $3,
-							   EXPANSION_MODE_EVALUATE_DEFINED);
-		}
-		else if (parser->skip_stack &&
-		    parser->skip_stack->has_else)
-		{
-			glcpp_error(& @1, parser, "#elif after #else");
-		}
-		else
-		{
-			_glcpp_parser_skip_stack_change_if (parser, & @1,
-							    "elif", 0);
-		}
-	}
-|	HASH_TOKEN ELIF NEWLINE {
-		/* #elif without an expression is an error unless we
-		 * are skipping. */
-		if (parser->skip_stack &&
-		    parser->skip_stack->type == SKIP_TO_ELSE)
-		{
-			glcpp_error(& @1, parser, "#elif with no expression");
-		}
-		else if (parser->skip_stack &&
-		    parser->skip_stack->has_else)
-		{
-			glcpp_error(& @1, parser, "#elif after #else");
-		}
-		else
-		{
-			_glcpp_parser_skip_stack_change_if (parser, & @1,
-							    "elif", 0);
-			glcpp_warning(& @1, parser, "ignoring illegal #elif without expression");
-		}
-	}
-|	HASH_TOKEN ELSE { parser->lexing_directive = 1; } NEWLINE {
-		if (parser->skip_stack &&
-		    parser->skip_stack->has_else)
-		{
-			glcpp_error(& @1, parser, "multiple #else");
-		}
-		else
-		{
-			_glcpp_parser_skip_stack_change_if (parser, & @1, "else", 1);
-			if (parser->skip_stack)
-				parser->skip_stack->has_else = true;
-		}
-	}
-|	HASH_TOKEN ENDIF {
-		_glcpp_parser_skip_stack_pop (parser, & @1);
-	} NEWLINE
-|	HASH_TOKEN VERSION_TOKEN version_constant NEWLINE {
-		if (parser->version_set) {
-			glcpp_error(& @1, parser, "#version must appear on the first line");
-		}
-		_glcpp_parser_handle_version_declaration(parser, $3, NULL, true);
-	}
-|	HASH_TOKEN VERSION_TOKEN version_constant IDENTIFIER NEWLINE {
-		if (parser->version_set) {
-			glcpp_error(& @1, parser, "#version must appear on the first line");
-		}
-		_glcpp_parser_handle_version_declaration(parser, $3, $4, true);
-	}
-|	HASH_TOKEN NEWLINE {
-		glcpp_parser_resolve_implicit_version(parser);
-	}
-|	HASH_TOKEN PRAGMA NEWLINE {
-		_mesa_string_buffer_printf(parser->output, "#%s", $2);
-	}
+      _mesa_set_shader_include_cursor(parser->gl_ctx->Shared, include_cursor);
+   }
+|  HASH_TOKEN IF pp_tokens NEWLINE {
+      /* Be careful to only evaluate the 'if' expression if
+       * we are not skipping. When we are skipping, we
+       * simply push a new 0-valued 'if' onto the skip
+       * stack.
+       *
+       * This avoids generating diagnostics for invalid
+       * expressions that are being skipped. */
+      if (parser->skip_stack == NULL ||
+          parser->skip_stack->type == SKIP_NO_SKIP)
+      {
+         _glcpp_parser_expand_and_lex_from (parser,
+                        IF_EXPANDED, $3,
+                        EXPANSION_MODE_EVALUATE_DEFINED);
+      }
+      else
+      {
+         _glcpp_parser_skip_stack_push_if (parser, & @1, 0);
+         parser->skip_stack->type = SKIP_TO_ENDIF;
+      }
+   }
+|  HASH_TOKEN IF NEWLINE {
+      /* #if without an expression is only an error if we
+       *  are not skipping */
+      if (parser->skip_stack == NULL ||
+          parser->skip_stack->type == SKIP_NO_SKIP)
+      {
+         glcpp_error(& @1, parser, "#if with no expression");
+      }
+      _glcpp_parser_skip_stack_push_if (parser, & @1, 0);
+   }
+|  HASH_TOKEN IFDEF IDENTIFIER junk NEWLINE {
+      struct hash_entry *entry =
+            _mesa_hash_table_search(parser->defines, $3);
+      macro_t *macro = entry ? entry->data : NULL;
+      _glcpp_parser_skip_stack_push_if (parser, & @1, macro != NULL);
+   }
+|  HASH_TOKEN IFNDEF IDENTIFIER junk NEWLINE {
+      struct hash_entry *entry =
+            _mesa_hash_table_search(parser->defines, $3);
+      macro_t *macro = entry ? entry->data : NULL;
+      _glcpp_parser_skip_stack_push_if (parser, & @3, macro == NULL);
+   }
+|  HASH_TOKEN ELIF pp_tokens NEWLINE {
+      /* Be careful to only evaluate the 'elif' expression
+       * if we are not skipping. When we are skipping, we
+       * simply change to a 0-valued 'elif' on the skip
+       * stack.
+       *
+       * This avoids generating diagnostics for invalid
+       * expressions that are being skipped. */
+      if (parser->skip_stack &&
+          parser->skip_stack->type == SKIP_TO_ELSE)
+      {
+         _glcpp_parser_expand_and_lex_from (parser,
+                        ELIF_EXPANDED, $3,
+                        EXPANSION_MODE_EVALUATE_DEFINED);
+      }
+      else if (parser->skip_stack &&
+          parser->skip_stack->has_else)
+      {
+         glcpp_error(& @1, parser, "#elif after #else");
+      }
+      else
+      {
+         _glcpp_parser_skip_stack_change_if (parser, & @1,
+                         "elif", 0);
+      }
+   }
+|  HASH_TOKEN ELIF NEWLINE {
+      /* #elif without an expression is an error unless we
+       * are skipping. */
+      if (parser->skip_stack &&
+          parser->skip_stack->type == SKIP_TO_ELSE)
+      {
+         glcpp_error(& @1, parser, "#elif with no expression");
+      }
+      else if (parser->skip_stack &&
+          parser->skip_stack->has_else)
+      {
+         glcpp_error(& @1, parser, "#elif after #else");
+      }
+      else
+      {
+         _glcpp_parser_skip_stack_change_if (parser, & @1,
+                         "elif", 0);
+         glcpp_warning(& @1, parser, "ignoring illegal #elif without expression");
+      }
+   }
+|  HASH_TOKEN ELSE { parser->lexing_directive = 1; } NEWLINE {
+      if (parser->skip_stack &&
+          parser->skip_stack->has_else)
+      {
+         glcpp_error(& @1, parser, "multiple #else");
+      }
+      else
+      {
+         _glcpp_parser_skip_stack_change_if (parser, & @1, "else", 1);
+         if (parser->skip_stack)
+            parser->skip_stack->has_else = true;
+      }
+   }
+|  HASH_TOKEN ENDIF {
+      _glcpp_parser_skip_stack_pop (parser, & @1);
+   } NEWLINE
+|  HASH_TOKEN VERSION_TOKEN version_constant NEWLINE {
+      if (parser->version_set) {
+         glcpp_error(& @1, parser, "#version must appear on the first line");
+      }
+      _glcpp_parser_handle_version_declaration(parser, $3, NULL, true);
+   }
+|  HASH_TOKEN VERSION_TOKEN version_constant IDENTIFIER NEWLINE {
+      if (parser->version_set) {
+         glcpp_error(& @1, parser, "#version must appear on the first line");
+      }
+      _glcpp_parser_handle_version_declaration(parser, $3, $4, true);
+   }
+|  HASH_TOKEN NEWLINE {
+      glcpp_parser_resolve_implicit_version(parser);
+   }
+|  HASH_TOKEN PRAGMA NEWLINE {
+      _mesa_string_buffer_printf(parser->output, "#%s", $2);
+   }
 ;
 
 control_line_error:
-	HASH_TOKEN ERROR_TOKEN NEWLINE {
-		glcpp_error(& @1, parser, "#%s", $2);
-	}
-|	HASH_TOKEN DEFINE_TOKEN NEWLINE {
-		glcpp_error (& @1, parser, "#define without macro name");
-	}
-|	HASH_TOKEN GARBAGE pp_tokens NEWLINE  {
-		glcpp_error (& @1, parser, "Illegal non-directive after #");
-	}
+   HASH_TOKEN ERROR_TOKEN NEWLINE {
+      glcpp_error(& @1, parser, "#%s", $2);
+   }
+|  HASH_TOKEN DEFINE_TOKEN NEWLINE {
+      glcpp_error (& @1, parser, "#define without macro name");
+   }
+|  HASH_TOKEN GARBAGE pp_tokens NEWLINE  {
+      glcpp_error (& @1, parser, "Illegal non-directive after #");
+   }
 ;
 
 integer_constant:
-	INTEGER_STRING {
-		/* let strtoll detect the base */
-		$$ = strtoll ($1, NULL, 0);
-	}
-|	INTEGER {
-		$$ = $1;
-	}
+   INTEGER_STRING {
+      /* let strtoll detect the base */
+      $$ = strtoll ($1, NULL, 0);
+   }
+|  INTEGER {
+      $$ = $1;
+   }
 
 version_constant:
-	INTEGER_STRING {
-	   /* Both octal and hexadecimal constants begin with 0. */
-	   if ($1[0] == '0' && $1[1] != '\0') {
-		glcpp_error(&@1, parser, "invalid #version \"%s\" (not a decimal constant)", $1);
-		$$ = 0;
-	   } else {
-		$$ = strtoll($1, NULL, 10);
-	   }
-	}
+   INTEGER_STRING {
+      /* Both octal and hexadecimal constants begin with 0. */
+      if ($1[0] == '0' && $1[1] != '\0') {
+      glcpp_error(&@1, parser, "invalid #version \"%s\" (not a decimal constant)", $1);
+      $$ = 0;
+      } else {
+      $$ = strtoll($1, NULL, 10);
+      }
+   }
 
 expression:
-	integer_constant {
-		$$.value = $1;
-		$$.undefined_macro = NULL;
-	}
-|	IDENTIFIER {
-		$$.value = 0;
-		if (parser->is_gles)
-			$$.undefined_macro = linear_strdup(parser->linalloc, $1);
-		else
-			$$.undefined_macro = NULL;
-	}
-|	expression OR expression {
-		$$.value = $1.value || $3.value;
+   integer_constant {
+      $$.value = $1;
+      $$.undefined_macro = NULL;
+   }
+|  IDENTIFIER {
+      $$.value = 0;
+      if (parser->is_gles)
+         $$.undefined_macro = linear_strdup(parser->linalloc, $1);
+      else
+         $$.undefined_macro = NULL;
+   }
+|  expression OR expression {
+      $$.value = $1.value || $3.value;
 
-		/* Short-circuit: Only flag undefined from right side
-		 * if left side evaluates to false.
-		 */
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+      /* Short-circuit: Only flag undefined from right side
+       * if left side evaluates to false.
+       */
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else if (! $1.value)
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression AND expression {
-		$$.value = $1.value && $3.value;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression AND expression {
+      $$.value = $1.value && $3.value;
 
-		/* Short-circuit: Only flag undefined from right-side
-		 * if left side evaluates to true.
-		 */
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+      /* Short-circuit: Only flag undefined from right-side
+       * if left side evaluates to true.
+       */
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else if ($1.value)
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '|' expression {
-		$$.value = $1.value | $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '|' expression {
+      $$.value = $1.value | $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '^' expression {
-		$$.value = $1.value ^ $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '^' expression {
+      $$.value = $1.value ^ $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '&' expression {
-		$$.value = $1.value & $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '&' expression {
+      $$.value = $1.value & $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression NOT_EQUAL expression {
-		$$.value = $1.value != $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression NOT_EQUAL expression {
+      $$.value = $1.value != $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression EQUAL expression {
-		$$.value = $1.value == $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression EQUAL expression {
+      $$.value = $1.value == $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression GREATER_OR_EQUAL expression {
-		$$.value = $1.value >= $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression GREATER_OR_EQUAL expression {
+      $$.value = $1.value >= $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression LESS_OR_EQUAL expression {
-		$$.value = $1.value <= $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression LESS_OR_EQUAL expression {
+      $$.value = $1.value <= $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '>' expression {
-		$$.value = $1.value > $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '>' expression {
+      $$.value = $1.value > $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '<' expression {
-		$$.value = $1.value < $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '<' expression {
+      $$.value = $1.value < $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression RIGHT_SHIFT expression {
-		$$.value = $1.value >> $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression RIGHT_SHIFT expression {
+      $$.value = $1.value >> $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression LEFT_SHIFT expression {
-		$$.value = $1.value << $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression LEFT_SHIFT expression {
+      $$.value = $1.value << $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '-' expression {
-		$$.value = $1.value - $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '-' expression {
+      $$.value = $1.value - $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '+' expression {
-		$$.value = $1.value + $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '+' expression {
+      $$.value = $1.value + $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '%' expression {
-		if ($3.value == 0) {
-			yyerror (& @1, parser,
-				 "zero modulus in preprocessor directive");
-		} else {
-			$$.value = $1.value % $3.value;
-		}
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '%' expression {
+      if ($3.value == 0) {
+         yyerror (& @1, parser,
+             "zero modulus in preprocessor directive");
+      } else {
+         $$.value = $1.value % $3.value;
+      }
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '/' expression {
-		if ($3.value == 0) {
-			yyerror (& @1, parser,
-				 "division by 0 in preprocessor directive");
-		} else {
-			$$.value = $1.value / $3.value;
-		}
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '/' expression {
+      if ($3.value == 0) {
+         yyerror (& @1, parser,
+             "division by 0 in preprocessor directive");
+      } else {
+         $$.value = $1.value / $3.value;
+      }
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	expression '*' expression {
-		$$.value = $1.value * $3.value;
-		if ($1.undefined_macro)
-			$$.undefined_macro = $1.undefined_macro;
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  expression '*' expression {
+      $$.value = $1.value * $3.value;
+      if ($1.undefined_macro)
+         $$.undefined_macro = $1.undefined_macro;
                 else
-			$$.undefined_macro = $3.undefined_macro;
-	}
-|	'!' expression %prec UNARY {
-		$$.value = ! $2.value;
-		$$.undefined_macro = $2.undefined_macro;
-	}
-|	'~' expression %prec UNARY {
-		$$.value = ~ $2.value;
-		$$.undefined_macro = $2.undefined_macro;
-	}
-|	'-' expression %prec UNARY {
-		$$.value = - $2.value;
-		$$.undefined_macro = $2.undefined_macro;
-	}
-|	'+' expression %prec UNARY {
-		$$.value = + $2.value;
-		$$.undefined_macro = $2.undefined_macro;
-	}
-|	'(' expression ')' {
-		$$ = $2;
-	}
+         $$.undefined_macro = $3.undefined_macro;
+   }
+|  '!' expression %prec UNARY {
+      $$.value = ! $2.value;
+      $$.undefined_macro = $2.undefined_macro;
+   }
+|  '~' expression %prec UNARY {
+      $$.value = ~ $2.value;
+      $$.undefined_macro = $2.undefined_macro;
+   }
+|  '-' expression %prec UNARY {
+      $$.value = - $2.value;
+      $$.undefined_macro = $2.undefined_macro;
+   }
+|  '+' expression %prec UNARY {
+      $$.value = + $2.value;
+      $$.undefined_macro = $2.undefined_macro;
+   }
+|  '(' expression ')' {
+      $$ = $2;
+   }
 ;
 
 identifier_list:
-	IDENTIFIER {
-		$$ = _string_list_create (parser);
-		_string_list_append_item (parser, $$, $1);
-	}
-|	identifier_list ',' IDENTIFIER {
-		$$ = $1;	
-		_string_list_append_item (parser, $$, $3);
-	}
+   IDENTIFIER {
+      $$ = _string_list_create (parser);
+      _string_list_append_item (parser, $$, $1);
+   }
+|  identifier_list ',' IDENTIFIER {
+      $$ = $1;
+      _string_list_append_item (parser, $$, $3);
+   }
 ;
 
 text_line:
-	NEWLINE { $$ = NULL; }
-|	pp_tokens NEWLINE
+   NEWLINE { $$ = NULL; }
+|  pp_tokens NEWLINE
 ;
 
 replacement_list:
-	/* empty */ { $$ = NULL; }
-|	pp_tokens
+   /* empty */ { $$ = NULL; }
+|  pp_tokens
 ;
 
 junk:
-	/* empty */
-|	pp_tokens {
-		if (parser->gl_ctx->Const.AllowExtraPPTokens)
-			glcpp_warning(&@1, parser, "extra tokens at end of directive");
-		else
-			glcpp_error(&@1, parser, "extra tokens at end of directive");
-	}
+   /* empty */
+|  pp_tokens {
+      if (parser->gl_ctx->Const.AllowExtraPPTokens)
+         glcpp_warning(&@1, parser, "extra tokens at end of directive");
+      else
+         glcpp_error(&@1, parser, "extra tokens at end of directive");
+
+      (void)yynerrs;
+   }
 ;
 
 pp_tokens:
-	preprocessing_token {
-		parser->space_tokens = 1;
-		$$ = _token_list_create (parser);
-		_token_list_append (parser, $$, $1);
-	}
-|	pp_tokens preprocessing_token {
-		$$ = $1;
-		_token_list_append (parser, $$, $2);
-	}
+   preprocessing_token {
+      parser->space_tokens = 1;
+      $$ = _token_list_create (parser);
+      _token_list_append (parser, $$, $1);
+   }
+|  pp_tokens preprocessing_token {
+      $$ = $1;
+      _token_list_append (parser, $$, $2);
+   }
 ;
 
 preprocessing_token:
-	IDENTIFIER {
-		$$ = _token_create_str (parser, IDENTIFIER, $1);
-		$$->location = yylloc;
-	}
-|	INTEGER_STRING {
-		$$ = _token_create_str (parser, INTEGER_STRING, $1);
-		$$->location = yylloc;
-	}
-|	PATH {
-		$$ = _token_create_str (parser, PATH, $1);
-		$$->location = yylloc;
-	}
-|	operator {
-		$$ = _token_create_ival (parser, $1, $1);
-		$$->location = yylloc;
-	}
-|	DEFINED {
-		$$ = _token_create_ival (parser, DEFINED, DEFINED);
-		$$->location = yylloc;
-	}
-|	OTHER {
-		$$ = _token_create_str (parser, OTHER, $1);
-		$$->location = yylloc;
-	}
-|	SPACE {
-		$$ = _token_create_ival (parser, SPACE, SPACE);
-		$$->location = yylloc;
-	}
+   IDENTIFIER {
+      $$ = _token_create_str (parser, IDENTIFIER, $1);
+      $$->location = yylloc;
+   }
+|  INTEGER_STRING {
+      $$ = _token_create_str (parser, INTEGER_STRING, $1);
+      $$->location = yylloc;
+   }
+|  PATH {
+      $$ = _token_create_str (parser, PATH, $1);
+      $$->location = yylloc;
+   }
+|  operator {
+      $$ = _token_create_ival (parser, $1, $1);
+      $$->location = yylloc;
+   }
+|  DEFINED {
+      $$ = _token_create_ival (parser, DEFINED, DEFINED);
+      $$->location = yylloc;
+   }
+|  OTHER {
+      $$ = _token_create_str (parser, OTHER, $1);
+      $$->location = yylloc;
+   }
+|  SPACE {
+      $$ = _token_create_ival (parser, SPACE, SPACE);
+      $$->location = yylloc;
+   }
 ;
 
 operator:
-	'['			{ $$ = '['; }
-|	']'			{ $$ = ']'; }
-|	'('			{ $$ = '('; }
-|	')'			{ $$ = ')'; }
-|	'{'			{ $$ = '{'; }
-|	'}'			{ $$ = '}'; }
-|	'.'			{ $$ = '.'; }
-|	'&'			{ $$ = '&'; }
-|	'*'			{ $$ = '*'; }
-|	'+'			{ $$ = '+'; }
-|	'-'			{ $$ = '-'; }
-|	'~'			{ $$ = '~'; }
-|	'!'			{ $$ = '!'; }
-|	'/'			{ $$ = '/'; }
-|	'%'			{ $$ = '%'; }
-|	LEFT_SHIFT		{ $$ = LEFT_SHIFT; }
-|	RIGHT_SHIFT		{ $$ = RIGHT_SHIFT; }
-|	'<'			{ $$ = '<'; }
-|	'>'			{ $$ = '>'; }
-|	LESS_OR_EQUAL		{ $$ = LESS_OR_EQUAL; }
-|	GREATER_OR_EQUAL	{ $$ = GREATER_OR_EQUAL; }
-|	EQUAL			{ $$ = EQUAL; }
-|	NOT_EQUAL		{ $$ = NOT_EQUAL; }
-|	'^'			{ $$ = '^'; }
-|	'|'			{ $$ = '|'; }
-|	AND			{ $$ = AND; }
-|	OR			{ $$ = OR; }
-|	';'			{ $$ = ';'; }
-|	','			{ $$ = ','; }
-|	'='			{ $$ = '='; }
-|	PASTE			{ $$ = PASTE; }
-|	PLUS_PLUS		{ $$ = PLUS_PLUS; }
-|	MINUS_MINUS		{ $$ = MINUS_MINUS; }
+   '['               { $$ = '['; }
+|  ']'               { $$ = ']'; }
+|  '('               { $$ = '('; }
+|  ')'               { $$ = ')'; }
+|  '{'               { $$ = '{'; }
+|  '}'               { $$ = '}'; }
+|  '.'               { $$ = '.'; }
+|  '&'               { $$ = '&'; }
+|  '*'               { $$ = '*'; }
+|  '+'               { $$ = '+'; }
+|  '-'               { $$ = '-'; }
+|  '~'               { $$ = '~'; }
+|  '!'               { $$ = '!'; }
+|  '/'               { $$ = '/'; }
+|  '%'               { $$ = '%'; }
+|  LEFT_SHIFT        { $$ = LEFT_SHIFT; }
+|  RIGHT_SHIFT       { $$ = RIGHT_SHIFT; }
+|  '<'               { $$ = '<'; }
+|  '>'               { $$ = '>'; }
+|  LESS_OR_EQUAL     { $$ = LESS_OR_EQUAL; }
+|  GREATER_OR_EQUAL  { $$ = GREATER_OR_EQUAL; }
+|  EQUAL             { $$ = EQUAL; }
+|  NOT_EQUAL         { $$ = NOT_EQUAL; }
+|  '^'               { $$ = '^'; }
+|  '|'               { $$ = '|'; }
+|  AND               { $$ = AND; }
+|  OR                { $$ = OR; }
+|  ';'               { $$ = ';'; }
+|  ','               { $$ = ','; }
+|  '='               { $$ = '='; }
+|  PASTE             { $$ = PASTE; }
+|  PLUS_PLUS         { $$ = PLUS_PLUS; }
+|  MINUS_MINUS       { $$ = MINUS_MINUS; }
 ;
 
 %%
@@ -1086,6 +1091,18 @@ _token_list_create(glcpp_parser_t *parser)
    list->non_space_tail = NULL;
 
    return list;
+}
+
+void
+_token_list_prepend(glcpp_parser_t *parser, token_list_t *list, token_t *token)
+{
+   token_node_t *node;
+
+   node = linear_alloc_child(parser->linalloc, sizeof(token_node_t));
+   node->token = token;
+   node->next = list->head;
+
+   list->head = node;
 }
 
 void
@@ -1480,7 +1497,7 @@ glcpp_parser_create(struct gl_context *gl_ctx,
    glcpp_lex_init_extra (parser, &parser->scanner);
    parser->defines = _mesa_hash_table_create(NULL, _mesa_hash_string,
                                              _mesa_key_string_equal);
-   parser->linalloc = linear_alloc_parent(parser, 0);
+   parser->linalloc = linear_context(parser);
    parser->active = NULL;
    parser->lexing_directive = 0;
    parser->lexing_version_directive = 0;
@@ -1952,8 +1969,8 @@ _glcpp_parser_expand_function(glcpp_parser_t *parser, token_node_t *node,
  */
 static token_list_t *
 _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
-                          token_node_t **last, expansion_mode_t mode,
-                          int line)
+                          token_node_t *node_prev, token_node_t **last,
+                          expansion_mode_t mode, int line)
 {
    token_t *token = node->token;
    const char *identifier;
@@ -2016,6 +2033,22 @@ _glcpp_parser_expand_node(glcpp_parser_t *parser, token_node_t *node,
          return _token_list_create_with_one_space(parser);
 
       replacement = _token_list_copy(parser, macro->replacements);
+
+      /* If needed insert space in front of replacements to isolate them from
+       * the code they will be inserted into. For example:
+       *
+       *    #define VALUE -1.0
+       *    int a = -VALUE;
+       *
+       * Should be evaluated to int a = - -1.0; not int a = --1.0;
+       */
+      if (node_prev &&
+          (node_prev->token->type == '-' || node_prev->token->type == '+') &&
+          node_prev->token->type == replacement->head->token->type) {
+         token_t *new_token = _token_create_ival(parser, SPACE, SPACE);
+         _token_list_prepend(parser, replacement, new_token);
+      }
+
       _glcpp_parser_apply_pastes(parser, replacement);
       return replacement;
    }
@@ -2122,7 +2155,8 @@ _glcpp_parser_expand_token_list(glcpp_parser_t *parser, token_list_t *list,
       while (parser->active && parser->active->marker == node)
          _parser_active_list_pop (parser);
 
-      expansion = _glcpp_parser_expand_node (parser, node, &last, mode, line);
+      expansion =
+         _glcpp_parser_expand_node(parser, node, node_prev, &last, mode, line);
       if (expansion) {
          token_node_t *n;
 

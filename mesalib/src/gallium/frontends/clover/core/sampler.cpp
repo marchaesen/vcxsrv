@@ -51,7 +51,7 @@ void *
 sampler::bind(command_queue &q) {
    struct pipe_sampler_state info {};
 
-   info.normalized_coords = norm_mode();
+   info.unnormalized_coords = !norm_mode();
 
    info.wrap_s = info.wrap_t = info.wrap_r =
       (addr_mode() == CL_ADDRESS_CLAMP_TO_EDGE ? PIPE_TEX_WRAP_CLAMP_TO_EDGE :

@@ -27,22 +27,13 @@
 #include <stdbool.h>
 
 #include "nir.h"
-#include "dxil_validator.h"
+#include "dxil_versions.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
 struct blob;
-
-enum dxil_sysvalue_type {
-   DXIL_NO_SYSVALUE = 0,
-   DXIL_SYSVALUE,
-   DXIL_GENERATED_SYSVALUE
-};
-
-enum dxil_sysvalue_type
-nir_var_to_dxil_sysvalue_type(nir_variable *var, uint64_t other_stage_mask);
 
 /* Controls how resource decls/accesses are handled. Common to all:
  *   Images, textures, and samplers map to D3D UAV, SRV, and sampler types
@@ -51,12 +42,13 @@ nir_var_to_dxil_sysvalue_type(nir_variable *var, uint64_t other_stage_mask);
  */
 enum dxil_environment {
    /* In the GL environment:
-    *   Samplers/textures are lowered, vars/intrinsics use binding to refer to them; dynamic array indexing not yet supported
+    *   Samplers/textures are lowered, vars/intrinsics use binding to refer to them; dynamic array indexing supported with offset srcs
     *     The lowering done by mesa/st assigns bindings from 0 -> N
     *   All other resource variables have driver_location set instead, assigned from 0 -> N
-    *   UBOs may or may not have interface variables, and are declared from ubo_binding_offset -> num_ubos; no dynamic indexing yet
-    *   SSBOs may or may not have interface variables, and are declared from from 0 -> num_ssbos; no dynamic indexing yet
+    *   UBOs may or may not have interface variables, and are declared from ubo_binding_offset -> num_ubos
+    *   SSBOs may or may not have interface variables, and are declared from from 0 -> num_ssbos
     *   Images are *not* lowered, so that dynamic indexing can deterministically get a base binding via the deref chain
+    *     TODO: Maybe support lowering and use nir_intrinsic_range_base to get the base
     *   No immediate constant buffer, or scratch
     */
    DXIL_ENVIRONMENT_GL,
@@ -72,24 +64,15 @@ enum dxil_environment {
    DXIL_ENVIRONMENT_CL,
    /* In the Vulkan environment:
     *   All resources use binding / descriptor_set for identification
-    *   Samplers/textures/images are not lowered
-    *     Deref chains are walked to emit the DXIL handle to the resource; dynamic indexing supported
+    *   Samplers/textures/images support two modes:
+    *     1. Derefs: deref chains are walked to emit the DXIL handle to the resource; dynamic indexing supported
+    *     2. Bindless: the resource source is assumed as an index into a descriptor heap
     *   UBOs/SSBOs are struct variables in the NIR, accessed via vulkan_resource_index/load_vulkan_descriptor; dynamic indexing supported
-    *   Read-only SSBOs, as declared in the SPIR-V, are bound as raw buffer SRVs instead of UAVs
+    *     If load_vulkan_descriptor gets an index that didn't come from vulkan_resource_index, it is assumed to be an index into a descriptor heap
+    *   Read-only SSBOs, as declared in the SPIR-V, are bound as raw buffer SRVs instead of UAVs, unless they're lowered to bindless
     *   No immediate constant buffer or scratch
     */
    DXIL_ENVIRONMENT_VULKAN,
-};
-
-enum dxil_shader_model {
-   SHADER_MODEL_6_0 = 0x60000,
-   SHADER_MODEL_6_1,
-   SHADER_MODEL_6_2,
-   SHADER_MODEL_6_3,
-   SHADER_MODEL_6_4,
-   SHADER_MODEL_6_5,
-   SHADER_MODEL_6_6,
-   SHADER_MODEL_6_7,
 };
 
 struct nir_to_dxil_options {
@@ -102,8 +85,8 @@ struct nir_to_dxil_options {
    unsigned num_kernel_globals;
    unsigned input_clip_size;
    enum dxil_environment environment;
-   uint32_t shader_model_max;
-   uint32_t validator_version_max;
+   enum dxil_shader_model shader_model_max;
+   enum dxil_validator_version validator_version_max;
 };
 
 typedef void (*dxil_msg_callback)(void *priv, const char *msg);
@@ -118,7 +101,13 @@ nir_to_dxil(struct nir_shader *s, const struct nir_to_dxil_options *opts,
             const struct dxil_logger *logger, struct blob *blob);
 
 const nir_shader_compiler_options*
-dxil_get_nir_compiler_options(void);
+dxil_get_base_nir_compiler_options(void);
+
+void
+dxil_get_nir_compiler_options(nir_shader_compiler_options *options,
+                              enum dxil_shader_model shader_model_max,
+                              unsigned supported_int_sizes,
+                              unsigned supported_float_sizes);
 
 #ifdef __cplusplus
 }

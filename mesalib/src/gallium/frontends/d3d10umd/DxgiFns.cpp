@@ -200,7 +200,7 @@ _GetGammaCaps( DXGI_DDI_ARG_GET_GAMMA_CONTROL_CAPS *GetCaps )
 
    pCaps = GetCaps->pGammaCapabilities;
 
-   pCaps->ScaleAndOffsetSupported = FALSE;
+   pCaps->ScaleAndOffsetSupported = false;
    pCaps->MinConvertedValue = 0.0;
    pCaps->MaxConvertedValue = 1.0;
    pCaps->NumGammaControlPoints = 17;

@@ -33,7 +33,7 @@
 #ifndef ST_SHADER_SVGA_H
 #define ST_SHADER_SVGA_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 struct sh_op
 {

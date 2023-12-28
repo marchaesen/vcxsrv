@@ -33,7 +33,7 @@
 #define BUFFERS_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "menums.h"
 
 struct gl_context;

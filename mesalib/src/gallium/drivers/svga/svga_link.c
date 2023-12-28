@@ -27,6 +27,7 @@
 #include "svga_link.h"
 #include "svga_debug.h"
 
+#include "tgsi/tgsi_scan.h"
 #include "tgsi/tgsi_strings.h"
 
 

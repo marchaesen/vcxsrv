@@ -205,7 +205,8 @@ ProcChangeProperty(ClientPtr client)
     WindowPtr pWin;
     char format, mode;
     unsigned long len;
-    int sizeInBytes, totalSize, err;
+    int sizeInBytes, err;
+    uint64_t totalSize;
 
     REQUEST(xChangePropertyReq);
 

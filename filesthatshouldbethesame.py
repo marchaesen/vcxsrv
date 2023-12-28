@@ -250,6 +250,7 @@ def CompareFiles(f1name, f2name):
 
     return False
   except Exception as e:
+    print(e)
     if not os.path.exists(f1name):
         print("\n"+f1name+" does not exist\n")
     elif not os.path.exists(f2name):

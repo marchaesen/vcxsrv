@@ -26,7 +26,7 @@
 #ifndef PIPELINEOBJ_H
 #define PIPELINEOBJ_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #ifdef __cplusplus
 extern "C" {

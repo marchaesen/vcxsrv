@@ -84,8 +84,8 @@ add_printf_test(struct gallivm_state *gallivm)
 }
 
 
-PIPE_ALIGN_STACK
-static boolean
+UTIL_ALIGN_STACK
+static bool
 test_printf(unsigned verbose, FILE *fp,
             const struct printf_test_case *testcase)
 {
@@ -93,10 +93,10 @@ test_printf(unsigned verbose, FILE *fp,
    struct gallivm_state *gallivm;
    LLVMValueRef test;
    test_printf_t test_printf_func;
-   boolean success = TRUE;
+   bool success = true;
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module", context, NULL);
@@ -118,10 +118,10 @@ test_printf(unsigned verbose, FILE *fp,
 }
 
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp)
 {
-   boolean success = TRUE;
+   bool success = true;
 
    test_printf(verbose, fp, NULL);
 
@@ -129,7 +129,7 @@ test_all(unsigned verbose, FILE *fp)
 }
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n)
 {
@@ -137,9 +137,9 @@ test_some(unsigned verbose, FILE *fp,
 }
 
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp)
 {
    printf("no test_single()");
-   return TRUE;
+   return true;
 }

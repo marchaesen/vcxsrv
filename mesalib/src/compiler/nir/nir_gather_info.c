@@ -23,30 +23,37 @@
 
 #include "nir.h"
 #include "nir_deref.h"
-#include "main/menums.h"
 
 #include "util/set.h"
 
 static bool
 src_is_invocation_id(const nir_src *src)
 {
-   assert(src->is_ssa);
-   if (src->ssa->parent_instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   return nir_instr_as_intrinsic(src->ssa->parent_instr)->intrinsic ==
-             nir_intrinsic_load_invocation_id;
+   nir_scalar s = nir_scalar_resolved(src->ssa, 0);
+   return nir_scalar_is_intrinsic(s) &&
+          nir_scalar_intrinsic_op(s) == nir_intrinsic_load_invocation_id;
 }
 
 static bool
-src_is_local_invocation_index(const nir_src *src)
+src_is_local_invocation_index(nir_shader *shader, const nir_src *src)
 {
-   assert(src->is_ssa);
-   if (src->ssa->parent_instr->type != nir_instr_type_intrinsic)
+   assert(shader->info.stage == MESA_SHADER_MESH && !shader->info.workgroup_size_variable);
+
+   nir_scalar s = nir_scalar_resolved(src->ssa, 0);
+   if (!nir_scalar_is_intrinsic(s))
       return false;
 
-   return nir_instr_as_intrinsic(src->ssa->parent_instr)->intrinsic ==
-             nir_intrinsic_load_local_invocation_index;
+   const nir_intrinsic_op op = nir_scalar_intrinsic_op(s);
+   if (op == nir_intrinsic_load_local_invocation_index)
+      return true;
+   if (op != nir_intrinsic_load_local_invocation_id)
+      return false;
+
+   unsigned nz_ids = 0;
+   for (unsigned i = 0; i < 3; i++)
+      nz_ids |= (shader->info.workgroup_size[i] > 1) ? (1u << i) : 0;
+
+   return nz_ids == 0 || (util_bitcount(nz_ids) == 1 && s.comp == ffs(nz_ids) - 1);
 }
 
 static void
@@ -69,7 +76,7 @@ get_deref_info(nir_shader *shader, nir_variable *var, nir_deref_instr *deref,
       if (shader->info.stage == MESA_SHADER_TESS_CTRL)
          *cross_invocation = !src_is_invocation_id(&(*p)->arr.index);
       else if (shader->info.stage == MESA_SHADER_MESH)
-         *cross_invocation = !src_is_local_invocation_index(&(*p)->arr.index);
+         *cross_invocation = !src_is_local_invocation_index(shader, &(*p)->arr.index);
       p++;
    }
 
@@ -113,8 +120,7 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
             return;
 
          bitfield = BITFIELD64_BIT(idx - VARYING_SLOT_PATCH0);
-      }
-      else {
+      } else {
          /* Varyings might still have temp locations so abort */
          if (idx >= VARYING_SLOT_MAX)
             return;
@@ -175,8 +181,10 @@ set_io_mask(nir_shader *shader, nir_variable *var, int offset, int len,
 
          if (var->data.fb_fetch_output) {
             shader->info.outputs_read |= bitfield;
-            if (shader->info.stage == MESA_SHADER_FRAGMENT)
+            if (shader->info.stage == MESA_SHADER_FRAGMENT) {
                shader->info.fs.uses_fbfetch_output = true;
+               shader->info.fs.fbfetch_coherent = var->data.access & ACCESS_COHERENT;
+            }
          }
 
          if (shader->info.stage == MESA_SHADER_FRAGMENT &&
@@ -210,10 +218,7 @@ mark_whole_variable(nir_shader *shader, nir_variable *var,
       type = glsl_get_array_element(type);
    }
 
-   const unsigned slots =
-      var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
-                        : glsl_count_attribute_slots(type, false);
-
+   const unsigned slots = nir_variable_count_slots(var, type);
    set_io_mask(shader, var, 0, slots, deref, is_output_read);
 }
 
@@ -227,9 +232,7 @@ get_io_offset(nir_deref_instr *deref, nir_variable *var, bool is_arrayed,
          return 0;
       }
       assert(deref->deref_type == nir_deref_type_array);
-      return nir_src_is_const(deref->arr.index) ?
-             (nir_src_as_uint(deref->arr.index) + var->data.location_frac) / 4u :
-             (unsigned)-1;
+      return nir_src_is_const(deref->arr.index) ? (nir_src_as_uint(deref->arr.index) + var->data.location_frac) / 4u : (unsigned)-1;
    }
 
    unsigned offset = 0;
@@ -287,10 +290,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
    if (offset == -1)
       return false;
 
-   const unsigned slots =
-      var->data.compact ? DIV_ROUND_UP(glsl_get_length(type), 4)
-                        : glsl_count_attribute_slots(type, false);
-
+   const unsigned slots = nir_variable_count_slots(var, type);
    if (offset >= slots) {
       /* Constant index outside the bounds of the matrix/array.  This could
        * arise as a result of constant folding of a legal GLSL program.
@@ -304,7 +304,7 @@ try_mask_partial_io(nir_shader *shader, nir_variable *var,
       return false;
    }
 
-   unsigned len = glsl_count_attribute_slots(deref->type, false);
+   unsigned len = nir_deref_count_slots(deref, var);
    set_io_mask(shader, var, offset, len, deref, is_output_read);
    return true;
 }
@@ -340,99 +340,26 @@ nir_intrinsic_writes_external_memory(const nir_intrinsic_instr *instr)
    case nir_intrinsic_atomic_counter_exchange_deref:
    case nir_intrinsic_atomic_counter_comp_swap:
    case nir_intrinsic_atomic_counter_comp_swap_deref:
-   case nir_intrinsic_bindless_image_atomic_add:
-   case nir_intrinsic_bindless_image_atomic_and:
-   case nir_intrinsic_bindless_image_atomic_comp_swap:
-   case nir_intrinsic_bindless_image_atomic_dec_wrap:
-   case nir_intrinsic_bindless_image_atomic_exchange:
-   case nir_intrinsic_bindless_image_atomic_fadd:
-   case nir_intrinsic_bindless_image_atomic_imax:
-   case nir_intrinsic_bindless_image_atomic_imin:
-   case nir_intrinsic_bindless_image_atomic_inc_wrap:
-   case nir_intrinsic_bindless_image_atomic_or:
-   case nir_intrinsic_bindless_image_atomic_umax:
-   case nir_intrinsic_bindless_image_atomic_umin:
-   case nir_intrinsic_bindless_image_atomic_xor:
+   case nir_intrinsic_bindless_image_atomic:
+   case nir_intrinsic_bindless_image_atomic_swap:
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_store_raw_intel:
-   case nir_intrinsic_global_atomic_add:
-   case nir_intrinsic_global_atomic_and:
-   case nir_intrinsic_global_atomic_comp_swap:
-   case nir_intrinsic_global_atomic_exchange:
-   case nir_intrinsic_global_atomic_fadd:
-   case nir_intrinsic_global_atomic_fcomp_swap:
-   case nir_intrinsic_global_atomic_fmax:
-   case nir_intrinsic_global_atomic_fmin:
-   case nir_intrinsic_global_atomic_imax:
-   case nir_intrinsic_global_atomic_imin:
-   case nir_intrinsic_global_atomic_or:
-   case nir_intrinsic_global_atomic_umax:
-   case nir_intrinsic_global_atomic_umin:
-   case nir_intrinsic_global_atomic_xor:
-   case nir_intrinsic_global_atomic_add_ir3:
-   case nir_intrinsic_global_atomic_and_ir3:
-   case nir_intrinsic_global_atomic_comp_swap_ir3:
-   case nir_intrinsic_global_atomic_exchange_ir3:
-   case nir_intrinsic_global_atomic_imax_ir3:
-   case nir_intrinsic_global_atomic_imin_ir3:
-   case nir_intrinsic_global_atomic_or_ir3:
-   case nir_intrinsic_global_atomic_umax_ir3:
-   case nir_intrinsic_global_atomic_umin_ir3:
-   case nir_intrinsic_global_atomic_xor_ir3:
-   case nir_intrinsic_image_atomic_add:
-   case nir_intrinsic_image_atomic_and:
-   case nir_intrinsic_image_atomic_comp_swap:
-   case nir_intrinsic_image_atomic_dec_wrap:
-   case nir_intrinsic_image_atomic_exchange:
-   case nir_intrinsic_image_atomic_fadd:
-   case nir_intrinsic_image_atomic_imax:
-   case nir_intrinsic_image_atomic_imin:
-   case nir_intrinsic_image_atomic_inc_wrap:
-   case nir_intrinsic_image_atomic_or:
-   case nir_intrinsic_image_atomic_umax:
-   case nir_intrinsic_image_atomic_umin:
-   case nir_intrinsic_image_atomic_xor:
-   case nir_intrinsic_image_deref_atomic_add:
-   case nir_intrinsic_image_deref_atomic_and:
-   case nir_intrinsic_image_deref_atomic_comp_swap:
-   case nir_intrinsic_image_deref_atomic_dec_wrap:
-   case nir_intrinsic_image_deref_atomic_exchange:
-   case nir_intrinsic_image_deref_atomic_fadd:
-   case nir_intrinsic_image_deref_atomic_imax:
-   case nir_intrinsic_image_deref_atomic_imin:
-   case nir_intrinsic_image_deref_atomic_inc_wrap:
-   case nir_intrinsic_image_deref_atomic_or:
-   case nir_intrinsic_image_deref_atomic_umax:
-   case nir_intrinsic_image_deref_atomic_umin:
-   case nir_intrinsic_image_deref_atomic_xor:
+   case nir_intrinsic_global_atomic:
+   case nir_intrinsic_global_atomic_swap:
+   case nir_intrinsic_global_atomic_ir3:
+   case nir_intrinsic_global_atomic_swap_ir3:
+   case nir_intrinsic_image_atomic:
+   case nir_intrinsic_image_atomic_swap:
+   case nir_intrinsic_image_deref_atomic:
+   case nir_intrinsic_image_deref_atomic_swap:
    case nir_intrinsic_image_deref_store:
    case nir_intrinsic_image_deref_store_raw_intel:
    case nir_intrinsic_image_store:
    case nir_intrinsic_image_store_raw_intel:
-   case nir_intrinsic_ssbo_atomic_add:
-   case nir_intrinsic_ssbo_atomic_add_ir3:
-   case nir_intrinsic_ssbo_atomic_and:
-   case nir_intrinsic_ssbo_atomic_and_ir3:
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-   case nir_intrinsic_ssbo_atomic_comp_swap_ir3:
-   case nir_intrinsic_ssbo_atomic_exchange:
-   case nir_intrinsic_ssbo_atomic_exchange_ir3:
-   case nir_intrinsic_ssbo_atomic_fadd:
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
-   case nir_intrinsic_ssbo_atomic_fmax:
-   case nir_intrinsic_ssbo_atomic_fmin:
-   case nir_intrinsic_ssbo_atomic_imax:
-   case nir_intrinsic_ssbo_atomic_imax_ir3:
-   case nir_intrinsic_ssbo_atomic_imin:
-   case nir_intrinsic_ssbo_atomic_imin_ir3:
-   case nir_intrinsic_ssbo_atomic_or:
-   case nir_intrinsic_ssbo_atomic_or_ir3:
-   case nir_intrinsic_ssbo_atomic_umax:
-   case nir_intrinsic_ssbo_atomic_umax_ir3:
-   case nir_intrinsic_ssbo_atomic_umin:
-   case nir_intrinsic_ssbo_atomic_umin_ir3:
-   case nir_intrinsic_ssbo_atomic_xor:
-   case nir_intrinsic_ssbo_atomic_xor_ir3:
+   case nir_intrinsic_ssbo_atomic:
+   case nir_intrinsic_ssbo_atomic_swap:
+   case nir_intrinsic_ssbo_atomic_ir3:
+   case nir_intrinsic_ssbo_atomic_swap_ir3:
    case nir_intrinsic_store_global:
    case nir_intrinsic_store_global_ir3:
    case nir_intrinsic_store_global_amd:
@@ -441,20 +368,8 @@ nir_intrinsic_writes_external_memory(const nir_intrinsic_instr *instr)
       return true;
 
    case nir_intrinsic_store_deref:
-   case nir_intrinsic_deref_atomic_add:
-   case nir_intrinsic_deref_atomic_imin:
-   case nir_intrinsic_deref_atomic_umin:
-   case nir_intrinsic_deref_atomic_imax:
-   case nir_intrinsic_deref_atomic_umax:
-   case nir_intrinsic_deref_atomic_and:
-   case nir_intrinsic_deref_atomic_or:
-   case nir_intrinsic_deref_atomic_xor:
-   case nir_intrinsic_deref_atomic_exchange:
-   case nir_intrinsic_deref_atomic_comp_swap:
-   case nir_intrinsic_deref_atomic_fadd:
-   case nir_intrinsic_deref_atomic_fmin:
-   case nir_intrinsic_deref_atomic_fmax:
-   case nir_intrinsic_deref_atomic_fcomp_swap:
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_deref_atomic_swap:
       return nir_deref_mode_may_be(nir_src_as_deref(instr->src[0]),
                                    nir_var_mem_ssbo | nir_var_mem_global);
 
@@ -467,21 +382,8 @@ static bool
 intrinsic_is_bindless(nir_intrinsic_instr *instr)
 {
    switch (instr->intrinsic) {
-   case nir_intrinsic_bindless_image_atomic_add:
-   case nir_intrinsic_bindless_image_atomic_and:
-   case nir_intrinsic_bindless_image_atomic_comp_swap:
-   case nir_intrinsic_bindless_image_atomic_dec_wrap:
-   case nir_intrinsic_bindless_image_atomic_exchange:
-   case nir_intrinsic_bindless_image_atomic_fadd:
-   case nir_intrinsic_bindless_image_atomic_fmax:
-   case nir_intrinsic_bindless_image_atomic_fmin:
-   case nir_intrinsic_bindless_image_atomic_imax:
-   case nir_intrinsic_bindless_image_atomic_imin:
-   case nir_intrinsic_bindless_image_atomic_inc_wrap:
-   case nir_intrinsic_bindless_image_atomic_or:
-   case nir_intrinsic_bindless_image_atomic_umax:
-   case nir_intrinsic_bindless_image_atomic_umin:
-   case nir_intrinsic_bindless_image_atomic_xor:
+   case nir_intrinsic_bindless_image_atomic:
+   case nir_intrinsic_bindless_image_atomic_swap:
    case nir_intrinsic_bindless_image_descriptor_amd:
    case nir_intrinsic_bindless_image_format:
    case nir_intrinsic_bindless_image_load:
@@ -507,9 +409,15 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
 {
    uint64_t slot_mask = 0;
    uint16_t slot_mask_16bit = 0;
+   bool is_patch_special = false;
 
    if (nir_intrinsic_infos[instr->intrinsic].index_map[NIR_INTRINSIC_IO_SEMANTICS] > 0) {
       nir_io_semantics semantics = nir_intrinsic_io_semantics(instr);
+
+      is_patch_special = semantics.location == VARYING_SLOT_TESS_LEVEL_INNER ||
+                         semantics.location == VARYING_SLOT_TESS_LEVEL_OUTER ||
+                         semantics.location == VARYING_SLOT_BOUNDING_BOX0 ||
+                         semantics.location == VARYING_SLOT_BOUNDING_BOX1;
 
       if (semantics.location >= VARYING_SLOT_PATCH0 &&
           semantics.location <= VARYING_SLOT_PATCH31) {
@@ -542,17 +450,14 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       FALLTHROUGH; /* quads with helper lanes only might be discarded entirely */
    case nir_intrinsic_discard:
    case nir_intrinsic_discard_if:
-      /* Freedreno uses the discard_if intrinsic to end GS invocations that
-       * don't produce a vertex, so we only set uses_discard if executing on
-       * a fragment shader. */
-      if (shader->info.stage == MESA_SHADER_FRAGMENT)
-         shader->info.fs.uses_discard = true;
-      break;
-
    case nir_intrinsic_terminate:
    case nir_intrinsic_terminate_if:
-      assert(shader->info.stage == MESA_SHADER_FRAGMENT);
-      shader->info.fs.uses_discard = true;
+      /* Freedreno uses discard_if() to end GS invocations that don't produce
+       * a vertex and RADV uses terminate() to end ray-tracing shaders,
+       * so only set uses_discard for fragment shaders.
+       */
+      if (shader->info.stage == MESA_SHADER_FRAGMENT)
+         shader->info.fs.uses_discard = true;
       break;
 
    case nir_intrinsic_interp_deref_at_centroid:
@@ -561,10 +466,10 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_interp_deref_at_vertex:
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref:
-   case nir_intrinsic_copy_deref:{
+   case nir_intrinsic_copy_deref: {
       nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
       if (nir_deref_mode_is_one_of(deref, nir_var_shader_in |
-                                          nir_var_shader_out)) {
+                                             nir_var_shader_out)) {
          nir_variable *var = nir_deref_instr_get_variable(deref);
          bool is_output_read = false;
          if (var->data.mode == nir_var_shader_out &&
@@ -602,17 +507,29 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       break;
    }
 
+   case nir_intrinsic_bindless_image_load: {
+      enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
+      if (dim != GLSL_SAMPLER_DIM_SUBPASS &&
+          dim != GLSL_SAMPLER_DIM_SUBPASS_MS)
+         break;
+      shader->info.fs.uses_fbfetch_output = true;
+      break;
+   }
+
    case nir_intrinsic_load_input:
    case nir_intrinsic_load_per_vertex_input:
    case nir_intrinsic_load_input_vertex:
    case nir_intrinsic_load_interpolated_input:
       if (shader->info.stage == MESA_SHADER_TESS_EVAL &&
-          instr->intrinsic == nir_intrinsic_load_input) {
+          instr->intrinsic == nir_intrinsic_load_input &&
+          !is_patch_special) {
          shader->info.patch_inputs_read |= slot_mask;
          if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
             shader->info.patch_inputs_read_indirectly |= slot_mask;
       } else {
          shader->info.inputs_read |= slot_mask;
+         if (nir_intrinsic_io_semantics(instr).high_dvec2)
+            shader->info.dual_slot_inputs |= slot_mask;
          shader->info.inputs_read_16bit |= slot_mask_16bit;
          if (!nir_src_is_const(*nir_get_io_offset_src(instr))) {
             shader->info.inputs_read_indirectly |= slot_mask;
@@ -630,7 +547,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_per_vertex_output:
    case nir_intrinsic_load_per_primitive_output:
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
-          instr->intrinsic == nir_intrinsic_load_output) {
+          instr->intrinsic == nir_intrinsic_load_output &&
+          !is_patch_special) {
          shader->info.patch_outputs_read |= slot_mask;
          if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
             shader->info.patch_outputs_accessed_indirectly |= slot_mask;
@@ -652,7 +570,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       if (shader->info.stage == MESA_SHADER_MESH &&
           (instr->intrinsic == nir_intrinsic_load_per_vertex_output ||
            instr->intrinsic == nir_intrinsic_load_per_primitive_output) &&
-          !src_is_local_invocation_index(nir_get_io_arrayed_index_src(instr)))
+          !src_is_local_invocation_index(shader, nir_get_io_arrayed_index_src(instr)))
          shader->info.mesh.ms_cross_invocation_output_access |= slot_mask;
 
       if (shader->info.stage == MESA_SHADER_FRAGMENT &&
@@ -664,7 +582,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_store_per_vertex_output:
    case nir_intrinsic_store_per_primitive_output:
       if (shader->info.stage == MESA_SHADER_TESS_CTRL &&
-          instr->intrinsic == nir_intrinsic_store_output) {
+          instr->intrinsic == nir_intrinsic_store_output &&
+          !is_patch_special) {
          shader->info.patch_outputs_written |= slot_mask;
          if (!nir_src_is_const(*nir_get_io_offset_src(instr)))
             shader->info.patch_outputs_accessed_indirectly |= slot_mask;
@@ -680,7 +599,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
       if (shader->info.stage == MESA_SHADER_MESH &&
           (instr->intrinsic == nir_intrinsic_store_per_vertex_output ||
            instr->intrinsic == nir_intrinsic_store_per_primitive_output) &&
-          !src_is_local_invocation_index(nir_get_io_arrayed_index_src(instr)))
+          !src_is_local_invocation_index(shader, nir_get_io_arrayed_index_src(instr)))
          shader->info.mesh.ms_cross_invocation_output_access |= slot_mask;
 
       if (shader->info.stage == MESA_SHADER_FRAGMENT &&
@@ -691,8 +610,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_color0:
    case nir_intrinsic_load_color1:
       shader->info.inputs_read |=
-         BITFIELD64_BIT(VARYING_SLOT_COL0 <<
-                        (instr->intrinsic == nir_intrinsic_load_color1));
+         BITFIELD64_BIT(VARYING_SLOT_COL0 << (instr->intrinsic == nir_intrinsic_load_color1));
       FALLTHROUGH;
    case nir_intrinsic_load_subgroup_size:
    case nir_intrinsic_load_subgroup_invocation:
@@ -714,6 +632,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_invocation_id:
    case nir_intrinsic_load_frag_coord:
    case nir_intrinsic_load_frag_shading_rate:
+   case nir_intrinsic_load_fully_covered:
    case nir_intrinsic_load_point_coord:
    case nir_intrinsic_load_line_coord:
    case nir_intrinsic_load_front_face:
@@ -723,6 +642,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_sample_mask_in:
    case nir_intrinsic_load_helper_invocation:
    case nir_intrinsic_load_tess_coord:
+   case nir_intrinsic_load_tess_coord_xy:
    case nir_intrinsic_load_patch_vertices_in:
    case nir_intrinsic_load_primitive_id:
    case nir_intrinsic_load_tess_level_outer:
@@ -760,6 +680,8 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_load_mesh_view_count:
    case nir_intrinsic_load_gs_header_ir3:
    case nir_intrinsic_load_tcs_header_ir3:
+   case nir_intrinsic_load_ray_triangle_vertex_positions:
+   case nir_intrinsic_load_layer_id:
       BITSET_SET(shader->info.system_values_read,
                  nir_system_value_from_intrinsic(instr->intrinsic));
       break;
@@ -799,6 +721,21 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
          shader->info.fs.uses_sample_qualifier = true;
       break;
 
+   case nir_intrinsic_load_barycentric_coord_pixel:
+   case nir_intrinsic_load_barycentric_coord_centroid:
+   case nir_intrinsic_load_barycentric_coord_sample:
+   case nir_intrinsic_load_barycentric_coord_at_offset:
+   case nir_intrinsic_load_barycentric_coord_at_sample:
+      if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_SMOOTH ||
+          nir_intrinsic_interp_mode(instr) == INTERP_MODE_NONE) {
+         BITSET_SET(shader->info.system_values_read, SYSTEM_VALUE_BARYCENTRIC_PERSP_COORD);
+      } else if (nir_intrinsic_interp_mode(instr) == INTERP_MODE_NOPERSPECTIVE) {
+         BITSET_SET(shader->info.system_values_read, SYSTEM_VALUE_BARYCENTRIC_LINEAR_COORD);
+      }
+      break;
+
+   case nir_intrinsic_quad_vote_any:
+   case nir_intrinsic_quad_vote_all:
    case nir_intrinsic_quad_broadcast:
    case nir_intrinsic_quad_swap_horizontal:
    case nir_intrinsic_quad_swap_vertical:
@@ -820,6 +757,7 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_ballot_find_lsb:
    case nir_intrinsic_ballot_find_msb:
    case nir_intrinsic_first_invocation:
+   case nir_intrinsic_last_invocation:
    case nir_intrinsic_read_invocation:
    case nir_intrinsic_read_first_invocation:
    case nir_intrinsic_elect:
@@ -830,47 +768,61 @@ gather_intrinsic_info(nir_intrinsic_instr *instr, nir_shader *shader,
    case nir_intrinsic_shuffle_xor:
    case nir_intrinsic_shuffle_up:
    case nir_intrinsic_shuffle_down:
+   case nir_intrinsic_masked_swizzle_amd:
+   case nir_intrinsic_mbcnt_amd:
    case nir_intrinsic_write_invocation_amd:
-      if (shader->info.stage == MESA_SHADER_FRAGMENT)
-         shader->info.fs.needs_all_helper_invocations = true;
-      if (shader->info.stage == MESA_SHADER_COMPUTE ||
-          gl_shader_stage_is_mesh(shader->info.stage))
-         shader->info.uses_wide_subgroup_intrinsics = true;
+      shader->info.uses_wide_subgroup_intrinsics = true;
+
+      if (shader->info.stage == MESA_SHADER_FRAGMENT &&
+          shader->info.fs.require_full_quads)
+         shader->info.fs.needs_quad_helper_invocations = true;
       break;
 
    case nir_intrinsic_end_primitive:
    case nir_intrinsic_end_primitive_with_counter:
+   case nir_intrinsic_end_primitive_nv:
       assert(shader->info.stage == MESA_SHADER_GEOMETRY);
       shader->info.gs.uses_end_primitive = 1;
       FALLTHROUGH;
 
    case nir_intrinsic_emit_vertex:
    case nir_intrinsic_emit_vertex_with_counter:
+   case nir_intrinsic_emit_vertex_nv:
       shader->info.gs.active_stream_mask |= 1 << nir_intrinsic_stream_id(instr);
 
       break;
 
-   case nir_intrinsic_control_barrier:
-      shader->info.uses_control_barrier = true;
-      break;
-
-   case nir_intrinsic_scoped_barrier:
+   case nir_intrinsic_barrier:
       shader->info.uses_control_barrier |=
-         nir_intrinsic_execution_scope(instr) != NIR_SCOPE_NONE;
+         nir_intrinsic_execution_scope(instr) != SCOPE_NONE;
 
       shader->info.uses_memory_barrier |=
-         nir_intrinsic_memory_scope(instr) != NIR_SCOPE_NONE;
+         nir_intrinsic_memory_scope(instr) != SCOPE_NONE;
       break;
 
-   case nir_intrinsic_memory_barrier:
-   case nir_intrinsic_group_memory_barrier:
-   case nir_intrinsic_memory_barrier_atomic_counter:
-   case nir_intrinsic_memory_barrier_buffer:
-   case nir_intrinsic_memory_barrier_image:
-   case nir_intrinsic_memory_barrier_shared:
-   case nir_intrinsic_memory_barrier_tcs_patch:
-      shader->info.uses_memory_barrier = true;
+   case nir_intrinsic_store_zs_agx:
+      shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DEPTH) |
+                                      BITFIELD64_BIT(FRAG_RESULT_STENCIL);
       break;
+
+   case nir_intrinsic_sample_mask_agx:
+      shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK);
+      break;
+
+   case nir_intrinsic_discard_agx:
+      shader->info.fs.uses_discard = true;
+      break;
+
+   case nir_intrinsic_launch_mesh_workgroups:
+   case nir_intrinsic_launch_mesh_workgroups_with_payload_deref: {
+      for (unsigned i = 0; i < 3; ++i) {
+         nir_scalar dim = nir_scalar_resolved(instr->src[0].ssa, i);
+         if (nir_scalar_is_const(dim))
+            shader->info.mesh.ts_mesh_dispatch_dimensions[i] =
+               nir_scalar_as_uint(dim);
+      }
+      break;
+   }
 
    default:
       shader->info.uses_bindless |= intrinsic_is_bindless(instr);
@@ -916,21 +868,14 @@ gather_tex_info(nir_tex_instr *instr, nir_shader *shader)
 static void
 gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
 {
-   switch (instr->op) {
-   case nir_op_fddx:
-   case nir_op_fddy:
-      shader->info.uses_fddx_fddy = true;
-      FALLTHROUGH;
-   case nir_op_fddx_fine:
-   case nir_op_fddy_fine:
-   case nir_op_fddx_coarse:
-   case nir_op_fddy_coarse:
-      if (shader->info.stage == MESA_SHADER_FRAGMENT)
-         shader->info.fs.needs_quad_helper_invocations = true;
-      break;
-   default:
-      break;
+   if (nir_op_is_derivative(instr->op) &&
+       shader->info.stage == MESA_SHADER_FRAGMENT) {
+
+      shader->info.fs.needs_quad_helper_invocations = true;
    }
+
+   if (instr->op == nir_op_fddx || instr->op == nir_op_fddy)
+      shader->info.uses_fddx_fddy = true;
 
    const nir_op_info *info = &nir_op_infos[instr->op];
 
@@ -941,9 +886,9 @@ gather_alu_info(nir_alu_instr *instr, nir_shader *shader)
          shader->info.bit_sizes_int |= nir_src_bit_size(instr->src[i].src);
    }
    if (nir_alu_type_get_base_type(info->output_type) == nir_type_float)
-      shader->info.bit_sizes_float |= nir_dest_bit_size(instr->dest.dest);
+      shader->info.bit_sizes_float |= instr->def.bit_size;
    else
-      shader->info.bit_sizes_int |= nir_dest_bit_size(instr->dest.dest);
+      shader->info.bit_sizes_int |= instr->def.bit_size;
 }
 
 static void
@@ -1001,7 +946,8 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
       if (var->data.bindless || var->interface_type)
          continue;
 
-      shader->info.num_textures += glsl_type_get_sampler_count(var->type);
+      shader->info.num_textures += glsl_type_get_sampler_count(var->type) +
+                                   glsl_type_get_texture_count(var->type);
       shader->info.num_images += glsl_type_get_image_count(var->type);
    }
 
@@ -1013,6 +959,7 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    }
 
    shader->info.inputs_read = 0;
+   shader->info.dual_slot_inputs = 0;
    shader->info.outputs_written = 0;
    shader->info.outputs_read = 0;
    shader->info.inputs_read_16bit = 0;
@@ -1041,7 +988,6 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
       shader->info.fs.color_is_dual_source = false;
       shader->info.fs.uses_fbfetch_output = false;
       shader->info.fs.needs_quad_helper_invocations = false;
-      shader->info.fs.needs_all_helper_invocations = false;
    }
    if (shader->info.stage == MESA_SHADER_TESS_CTRL) {
       shader->info.tess.tcs_cross_invocation_inputs_read = 0;
@@ -1049,6 +995,11 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
    }
    if (shader->info.stage == MESA_SHADER_MESH) {
       shader->info.mesh.ms_cross_invocation_output_access = 0;
+   }
+   if (shader->info.stage == MESA_SHADER_TASK) {
+      shader->info.mesh.ts_mesh_dispatch_dimensions[0] = 0;
+      shader->info.mesh.ts_mesh_dispatch_dimensions[1] = 0;
+      shader->info.mesh.ts_mesh_dispatch_dimensions[2] = 0;
    }
 
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
@@ -1094,10 +1045,8 @@ nir_shader_gather_info(nir_shader *shader, nir_function_impl *entrypoint)
 
       shader->info.ray_queries += MAX2(glsl_get_aoa_size(var->type), 1);
    }
-   nir_foreach_function(func, shader) {
-      if (!func->impl)
-         continue;
-      nir_foreach_function_temp_variable(var, func->impl) {
+   nir_foreach_function_impl(impl, shader) {
+      nir_foreach_function_temp_variable(var, impl) {
          if (!var->data.ray_query)
             continue;
 

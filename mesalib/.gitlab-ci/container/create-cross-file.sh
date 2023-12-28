@@ -2,19 +2,18 @@
 
 arch=$1
 cross_file="/cross_file-$arch.txt"
-/usr/share/meson/debcrossgen --arch "$arch" -o "$cross_file"
+meson env2mfile --cross --debarch "$arch" -o "$cross_file"
+
 # Explicitly set ccache path for cross compilers
 sed -i "s|/usr/bin/\([^-]*\)-linux-gnu\([^-]*\)-g|/usr/lib/ccache/\\1-linux-gnu\\2-g|g" "$cross_file"
-if [ "$arch" = "i386" ]; then
-    # Work around a bug in debcrossgen that should be fixed in the next release
-    sed -i "s|cpu_family = 'i686'|cpu_family = 'x86'|g" "$cross_file"
-fi
+
 # Rely on qemu-user being configured in binfmt_misc on the host
 # shellcheck disable=SC1003 # how this sed doesn't seems to work for me locally
 sed -i -e '/\[properties\]/a\' -e "needs_exe_wrapper = False" "$cross_file"
 
-# Add a line for rustc, which debcrossgen is missing.
-cc=$(sed -n 's|c = .\(.*\).|\1|p' < "$cross_file")
+# Add a line for rustc, which meson env2mfile is missing.
+cc=$(sed -n "s|^c\s*=\s*\[?'\(.*\)'\]?|\1|p" < "$cross_file")
+
 if [[ "$arch" = "arm64" ]]; then
     rust_target=aarch64-unknown-linux-gnu
 elif [[ "$arch" = "armhf" ]]; then
@@ -28,6 +27,7 @@ elif [[ "$arch" = "s390x" ]]; then
 else
     echo "Needs rustc target mapping"
 fi
+
 # shellcheck disable=SC1003 # how this sed doesn't seems to work for me locally
 sed -i -e '/\[binaries\]/a\' -e "rust = ['rustc', '--target=$rust_target', '-C', 'linker=$cc']" "$cross_file"
 
@@ -47,7 +47,8 @@ if [[ -n "$GCC_ARCH" ]]; then
         echo "set(CMAKE_SYSTEM_PROCESSOR arm)";
         echo "set(CMAKE_C_COMPILER /usr/lib/ccache/$GCC_ARCH-gcc)";
         echo "set(CMAKE_CXX_COMPILER /usr/lib/ccache/$GCC_ARCH-g++)";
-        echo "set(ENV{PKG_CONFIG} \"/usr/bin/$GCC_ARCH-pkg-config\")";
+        echo "set(CMAKE_CXX_FLAGS_INIT \"-Wno-psabi\")";  # makes ABI warnings quiet for ARMv7
+        echo "set(ENV{PKG_CONFIG} \"/usr/bin/$GCC_ARCH-pkgconf\")";
         echo "set(DE_CPU $DE_CPU)";
     } > "$toolchain_file"
 fi

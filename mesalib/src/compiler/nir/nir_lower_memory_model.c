@@ -44,19 +44,8 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *modes,
       *modes = nir_src_as_deref(intrin->src[0])->modes;
       *writes = true;
       break;
-   case nir_intrinsic_image_deref_atomic_add:
-   case nir_intrinsic_image_deref_atomic_fadd:
-   case nir_intrinsic_image_deref_atomic_umin:
-   case nir_intrinsic_image_deref_atomic_imin:
-   case nir_intrinsic_image_deref_atomic_umax:
-   case nir_intrinsic_image_deref_atomic_imax:
-   case nir_intrinsic_image_deref_atomic_fmin:
-   case nir_intrinsic_image_deref_atomic_fmax:
-   case nir_intrinsic_image_deref_atomic_and:
-   case nir_intrinsic_image_deref_atomic_or:
-   case nir_intrinsic_image_deref_atomic_xor:
-   case nir_intrinsic_image_deref_atomic_exchange:
-   case nir_intrinsic_image_deref_atomic_comp_swap:
+   case nir_intrinsic_image_deref_atomic:
+   case nir_intrinsic_image_deref_atomic_swap:
       *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       *writes = true;
@@ -69,20 +58,8 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *modes,
       *modes = nir_var_mem_ssbo;
       *writes = true;
       break;
-   case nir_intrinsic_ssbo_atomic_add:
-   case nir_intrinsic_ssbo_atomic_imin:
-   case nir_intrinsic_ssbo_atomic_umin:
-   case nir_intrinsic_ssbo_atomic_imax:
-   case nir_intrinsic_ssbo_atomic_umax:
-   case nir_intrinsic_ssbo_atomic_and:
-   case nir_intrinsic_ssbo_atomic_or:
-   case nir_intrinsic_ssbo_atomic_xor:
-   case nir_intrinsic_ssbo_atomic_exchange:
-   case nir_intrinsic_ssbo_atomic_comp_swap:
-   case nir_intrinsic_ssbo_atomic_fadd:
-   case nir_intrinsic_ssbo_atomic_fcomp_swap:
-   case nir_intrinsic_ssbo_atomic_fmax:
-   case nir_intrinsic_ssbo_atomic_fmin:
+   case nir_intrinsic_ssbo_atomic:
+   case nir_intrinsic_ssbo_atomic_swap:
       *modes = nir_var_mem_ssbo;
       *reads = true;
       *writes = true;
@@ -95,20 +72,8 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *modes,
       *modes = nir_var_mem_global;
       *writes = true;
       break;
-   case nir_intrinsic_global_atomic_add:
-   case nir_intrinsic_global_atomic_imin:
-   case nir_intrinsic_global_atomic_umin:
-   case nir_intrinsic_global_atomic_imax:
-   case nir_intrinsic_global_atomic_umax:
-   case nir_intrinsic_global_atomic_and:
-   case nir_intrinsic_global_atomic_or:
-   case nir_intrinsic_global_atomic_xor:
-   case nir_intrinsic_global_atomic_exchange:
-   case nir_intrinsic_global_atomic_comp_swap:
-   case nir_intrinsic_global_atomic_fadd:
-   case nir_intrinsic_global_atomic_fcomp_swap:
-   case nir_intrinsic_global_atomic_fmax:
-   case nir_intrinsic_global_atomic_fmin:
+   case nir_intrinsic_global_atomic:
+   case nir_intrinsic_global_atomic_swap:
       *modes = nir_var_mem_global;
       *reads = true;
       *writes = true;
@@ -121,20 +86,8 @@ get_intrinsic_info(nir_intrinsic_instr *intrin, nir_variable_mode *modes,
       *modes = nir_src_as_deref(intrin->src[0])->modes;
       *writes = true;
       break;
-   case nir_intrinsic_deref_atomic_add:
-   case nir_intrinsic_deref_atomic_imin:
-   case nir_intrinsic_deref_atomic_umin:
-   case nir_intrinsic_deref_atomic_imax:
-   case nir_intrinsic_deref_atomic_umax:
-   case nir_intrinsic_deref_atomic_and:
-   case nir_intrinsic_deref_atomic_or:
-   case nir_intrinsic_deref_atomic_xor:
-   case nir_intrinsic_deref_atomic_exchange:
-   case nir_intrinsic_deref_atomic_comp_swap:
-   case nir_intrinsic_deref_atomic_fadd:
-   case nir_intrinsic_deref_atomic_fmin:
-   case nir_intrinsic_deref_atomic_fmax:
-   case nir_intrinsic_deref_atomic_fcomp_swap:
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_deref_atomic_swap:
       *modes = nir_src_as_deref(intrin->src[0])->modes;
       *reads = true;
       *writes = true;
@@ -152,7 +105,7 @@ visit_instr(nir_instr *instr, uint32_t *cur_modes, unsigned vis_avail_sem)
       return false;
    nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
 
-   if (intrin->intrinsic == nir_intrinsic_scoped_barrier &&
+   if (intrin->intrinsic == nir_intrinsic_barrier &&
        (nir_intrinsic_memory_semantics(intrin) & vis_avail_sem)) {
       *cur_modes |= nir_intrinsic_memory_modes(intrin);
 
@@ -215,6 +168,7 @@ lower_make_visible(nir_cf_node *cf_node, uint32_t *cur_modes)
    }
    case nir_cf_node_loop: {
       nir_loop *loop = nir_cf_node_as_loop(cf_node);
+      assert(!nir_loop_has_continue_construct(loop));
       bool loop_progress;
       do {
          loop_progress = false;
@@ -254,6 +208,7 @@ lower_make_available(nir_cf_node *cf_node, uint32_t *cur_modes)
    }
    case nir_cf_node_loop: {
       nir_loop *loop = nir_cf_node_as_loop(cf_node);
+      assert(!nir_loop_has_continue_construct(loop));
       bool loop_progress;
       do {
          loop_progress = false;

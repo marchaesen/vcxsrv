@@ -157,6 +157,7 @@
 		<attribute name="length" type="rng:HexOrNumber" use="required" />
 		<attribute name="varset" type="NMTOKEN" use="optional" />
 		<attribute name="variants" type="string" use="optional" />
+		<attribute name="usage" type="string" use="optional" />
 	</complexType>
 
 	<complexType name="stripeType">
@@ -203,6 +204,7 @@
 		<attribute name="pos" type="nonNegativeInteger" use="optional" />
 		<attribute name="align" type="nonNegativeInteger" use="optional" />
 		<attribute name="radix" type="nonNegativeInteger" use="optional" />
+		<attribute name="usage" type="string" use="optional" />
 	</complexType>
 
 	<complexType name="bitsetType">
@@ -218,6 +220,7 @@
 		<attribute name="inline" type="rng:Boolean" use="optional" />
 		<attribute name="bare" type="rng:Boolean" use="optional" />
 		<attribute name="prefix" type="NMTOKENS" use="optional" />
+		<attribute name="varset" type="NMTOKEN" use="optional" />
 	</complexType>
 
 	<complexType name="bitfieldType">

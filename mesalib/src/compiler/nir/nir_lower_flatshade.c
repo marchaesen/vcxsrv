@@ -21,7 +21,6 @@
  * SOFTWARE.
  */
 
-
 #include "nir.h"
 #include "nir_builder.h"
 

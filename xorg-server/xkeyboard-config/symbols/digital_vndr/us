@@ -20,7 +20,7 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
@@ -37,27 +37,27 @@
 // Revision 1.1.6.2  1995/10/25  21:01:25  William_Walker
 // 	Add pc104-key support
 // 	[1995/10/23  15:46:27  William_Walker]
-// 
+//
 // Revision 1.1.2.7  1995/06/27  12:18:40  William_Walker
 // 	Add LK201 and LK450 support as well as TW and DP variants.
 // 	[1995/06/26  20:30:33  William_Walker]
-// 
+//
 // Revision 1.1.2.6  1995/06/09	 20:55:20  William_Walker
 // 	Add VT105 layout support and ISO group support
 // 	[1995/06/09  20:43:05  William_Walker]
-// 
+//
 // Revision 1.1.2.5  1995/06/08	 21:05:49  William_Walker
 // 	Use ISO_Next_Group instead of grouplock
 // 	[1995/06/08  21:03:56  William_Walker]
-// 
+//
 // Revision 1.1.2.4  1995/06/05	 19:25:00  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:17:54  William_Walker]
-// 
+//
 // EndLog
-// 
-// @(#)RCSfile: us  Revision: /main/4  (DEC) Date: 1996/01/24 12:15:05 
-// 
+//
+// @(#)RCSfile: us  Revision: /main/4  (DEC) Date: 1996/01/24 12:15:05
+//
 
 // **************************************************************
 // *								*
@@ -130,7 +130,7 @@ xkb_symbols "us" {
 xkb_symbols "vt105-tw" {
     include "digital_vndr/us(us)"
     include "digital_vndr/vt(vt105)"
-    override key <AE03> { 
+    override key <AE03> {
 	symbols[Group1]= [ 3, numbersign ],
 	symbols[Group2]= [ sterling ]
     };
@@ -152,7 +152,7 @@ xkb_symbols "vt108-tw" {
     include "digital_vndr/us(us)"
     include "digital_vndr/vt(vt108)"
     replace key <LCMP> { [ Multi_key ] };
-    override key <AE03> { 
+    override key <AE03> {
 	symbols[Group1]= [ 3, numbersign ],
 	symbols[Group2]= [ sterling ]
     };

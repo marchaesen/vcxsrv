@@ -71,8 +71,7 @@ XauFileName (void)
     }
     size = strlen (name) + strlen(&slashDotXauthority[1]) + 2;
     if ((size > bsize) || (buf == NULL)) {
-	if (buf)
-	    free (buf);
+	free (buf);
         assert(size > 0);
 	buf = malloc (size);
 	if (!buf) {
@@ -88,6 +87,6 @@ XauFileName (void)
 	bsize = size;
     }
     snprintf (buf, bsize, "%s%s", name,
-              slashDotXauthority + (name[1] == '\0' ? 1 : 0));
+              slashDotXauthority + (name[0] == '/' && name[1] == '\0' ? 1 : 0));
     return buf;
 }

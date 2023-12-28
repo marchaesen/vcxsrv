@@ -1,14 +1,17 @@
+include:
+  - local: 'src/microsoft/ci/gitlab-ci-inc.yml'
+
 test-spirv2dxil-windows:
   extends:
-    - .build-windows
-    - .use-windows_test_vs2019
+    - .use-windows_test_msvc
     - .spirv2dxil-test-rules
   stage: layered-backends
   dependencies:
-    - windows-vs2019
+    - windows-msvc
   needs:
-    - windows-vs2019
-    - windows_test_vs2019
+    - windows-msvc
+    - windows_test_msvc
+    - !reference [.required-for-hardware-jobs, needs]
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
   script:
@@ -21,17 +24,20 @@ test-spirv2dxil-windows:
 
 test-dozen-deqp:
   extends:
-    - .build-windows
-    - .use-windows_test_vs2019
+    - .use-windows_test_msvc
     - .dozen-test-rules
   stage: layered-backends
   dependencies:
-    - windows-vs2019
+    - windows-msvc
   needs:
-    - windows-vs2019
-    - windows_test_vs2019
+    - windows-msvc
+    - windows_test_msvc
+    - !reference [.required-for-hardware-jobs, needs]
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
+    DZN_AGILITY_RELATIVE_PATH: "D3D12\\"
+    DZN_AGILITY_SDK_VERSION: 610
+    DEQP_FRACTION: 4
   script:
     - . _install/deqp_runner_run.ps1
   artifacts:

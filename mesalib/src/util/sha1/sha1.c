@@ -51,7 +51,7 @@ typedef union {
 /*
  * Hash a single 512-bit block. This is the core of the algorithm.
  */
-void
+static void
 SHA1Transform(uint32_t state[5], const uint8_t buffer[SHA1_BLOCK_LENGTH])
 {
 	uint32_t a, b, c, d, e;
@@ -144,7 +144,7 @@ SHA1Update(SHA1_CTX *context, const uint8_t *data, size_t len)
 /*
  * Add padding and return the message digest.
  */
-void
+static void
 SHA1Pad(SHA1_CTX *context)
 {
 	uint8_t finalcount[8];

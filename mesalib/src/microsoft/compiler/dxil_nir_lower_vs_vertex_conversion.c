@@ -48,25 +48,25 @@ lower_vs_vertex_conversion_filter(const nir_instr *instr, const void *options)
          (get_input_target_format(var, options) != PIPE_FORMAT_NONE);
 }
 
-typedef  nir_ssa_def *
-(*shift_right_func)(nir_builder *build, nir_ssa_def *src0, nir_ssa_def *src1);
+typedef  nir_def *
+(*shift_right_func)(nir_builder *build, nir_def *src0, nir_def *src1);
 
 /* decoding the signed vs unsigned scaled format is handled
  * by applying the signed or unsigned shift right function
  * accordingly */
-static nir_ssa_def *
-from_10_10_10_2_scaled(nir_builder *b, nir_ssa_def *src,
-                       nir_ssa_def *lshift, shift_right_func shr)
+static nir_def *
+from_10_10_10_2_scaled(nir_builder *b, nir_def *src,
+                       nir_def *lshift, shift_right_func shr)
 {
-   nir_ssa_def *rshift = nir_imm_ivec4(b, 22, 22, 22, 30);
+   nir_def *rshift = nir_imm_ivec4(b, 22, 22, 22, 30);
    return nir_i2f32(b, shr(b, nir_ishl(b, src, lshift), rshift));
 }
 
-static nir_ssa_def *
-from_10_10_10_2_snorm(nir_builder *b, nir_ssa_def *src, nir_ssa_def *lshift)
+static nir_def *
+from_10_10_10_2_snorm(nir_builder *b, nir_def *src, nir_def *lshift)
 {
-   nir_ssa_def *split = from_10_10_10_2_scaled(b, src, lshift, nir_ishr);
-   nir_ssa_def *scale_rgb = nir_imm_vec4(b,
+   nir_def *split = from_10_10_10_2_scaled(b, src, lshift, nir_ishr);
+   nir_def *scale_rgb = nir_imm_vec4(b,
                                          1.0f / 0x1ff,
                                          1.0f / 0x1ff,
                                          1.0f / 0x1ff,
@@ -74,11 +74,11 @@ from_10_10_10_2_snorm(nir_builder *b, nir_ssa_def *src, nir_ssa_def *lshift)
    return nir_fmul(b, split, scale_rgb);
 }
 
-static nir_ssa_def *
-from_10_10_10_2_unorm(nir_builder *b, nir_ssa_def *src, nir_ssa_def *lshift)
+static nir_def *
+from_10_10_10_2_unorm(nir_builder *b, nir_def *src, nir_def *lshift)
 {
-   nir_ssa_def *split = from_10_10_10_2_scaled(b, src, lshift, nir_ushr);
-   nir_ssa_def *scale_rgb = nir_imm_vec4(b,
+   nir_def *split = from_10_10_10_2_scaled(b, src, lshift, nir_ushr);
+   nir_def *scale_rgb = nir_imm_vec4(b,
                                          1.0f / 0x3ff,
                                          1.0f / 0x3ff,
                                          1.0f / 0x3ff,
@@ -86,19 +86,19 @@ from_10_10_10_2_unorm(nir_builder *b, nir_ssa_def *src, nir_ssa_def *lshift)
    return nir_fmul(b, split, scale_rgb);
 }
 
-inline static nir_ssa_def *
+inline static nir_def *
 lshift_rgba(nir_builder *b)
 {
    return nir_imm_ivec4(b, 22, 12, 2, 0);
 }
 
-inline static nir_ssa_def *
+inline static nir_def *
 lshift_bgra(nir_builder *b)
 {
    return nir_imm_ivec4(b, 2, 12, 22, 0);
 }
 
-static nir_ssa_def *
+static nir_def *
 lower_vs_vertex_conversion_impl(nir_builder *b, nir_instr *instr, void *options)
 {
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
@@ -111,11 +111,11 @@ lower_vs_vertex_conversion_impl(nir_builder *b, nir_instr *instr, void *options)
              fmt == PIPE_FORMAT_R8G8B8_UINT ||
              fmt == PIPE_FORMAT_R16G16B16_SINT ||
              fmt == PIPE_FORMAT_R16G16B16_UINT);
-      if (intr->dest.ssa.num_components == 3)
+      if (intr->def.num_components == 3)
          return NULL;
-      return nir_vector_insert_imm(b, &intr->dest.ssa, nir_imm_int(b, 1), 3);
+      return nir_vector_insert_imm(b, &intr->def, nir_imm_int(b, 1), 3);
    } else {
-      nir_ssa_def *src = nir_channel(b, &intr->dest.ssa, 0);
+      nir_def *src = nir_channel(b, &intr->def, 0);
 
       switch (fmt) {
       case PIPE_FORMAT_R10G10B10A2_SNORM:
@@ -134,10 +134,10 @@ lower_vs_vertex_conversion_impl(nir_builder *b, nir_instr *instr, void *options)
          return from_10_10_10_2_scaled(b, src, lshift_bgra(b), nir_ushr);
       case PIPE_FORMAT_R8G8B8A8_USCALED:
       case PIPE_FORMAT_R16G16B16A16_USCALED:
-         return nir_u2f32(b, &intr->dest.ssa);
+         return nir_u2f32(b, &intr->def);
       case PIPE_FORMAT_R8G8B8A8_SSCALED:
       case PIPE_FORMAT_R16G16B16A16_SSCALED:
-         return nir_i2f32(b, &intr->dest.ssa);
+         return nir_i2f32(b, &intr->def);
 
       default:
          unreachable("Unsupported emulated vertex format");

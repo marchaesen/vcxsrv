@@ -40,11 +40,11 @@ meson.build @dbaker @eric
 ##########
 
 # NIR
-/src/compiler/nir/ @jekstrand
+/src/compiler/nir/ @gfxstrand
 
 # Vulkan
-/src/vulkan/ @eric @jekstrand
-/include/vulkan/ @eric @jekstrand
+/src/vulkan/ @eric @gfxstrand
+/include/vulkan/ @eric @gfxstrand
 
 
 #############
@@ -79,12 +79,9 @@ meson.build @dbaker @eric
 /src/glx/*glvnd* @kbrenneman
 
 # Haiku
-/include/HaikuGL/ @kallisti5
 /src/egl/drivers/haiku/ @kallisti5
 /src/gallium/frontends/hgl/ @kallisti5
-/src/gallium/targets/haiku-softpipe/ @kallisti5
 /src/gallium/winsys/sw/hgl/ @kallisti5
-/src/hgl/ @kallisti5
 
 # Loader - DRI/classic
 /src/loader/ @xexaxo
@@ -123,16 +120,16 @@ meson.build @dbaker @eric
 /src/gallium/drivers/freedreno/ @robclark
 
 # Imagination
-/include/drm-uapi/pvr_drm.h @CreativeCylon @frankbinns @rajnesh-kanwal
-/src/imagination/ @CreativeCylon @frankbinns @rajnesh-kanwal
+/include/drm-uapi/pvr_drm.h @CreativeCylon @frankbinns @MTCoster
+/src/imagination/ @CreativeCylon @frankbinns @MTCoster
 /src/imagination/rogue/ @simon-perretta-img
 
 # Intel
-/include/drm-uapi/i915_drm.h @kwg @llandwerlin @jekstrand @idr
-/include/pci_ids/i*_pci_ids.h @kwg @llandwerlin @jekstrand @idr
-/src/intel/ @kwg @llandwerlin @jekstrand @idr
-/src/gallium/winsys/iris/ @kwg @llandwerlin @jekstrand @idr
-/src/gallium/drivers/iris/ @kwg @llandwerlin @jekstrand @idr
+/include/drm-uapi/i915_drm.h @kwg @llandwerlin @gfxstrand @idr
+/include/pci_ids/i*_pci_ids.h @kwg @llandwerlin @gfxstrand @idr
+/src/intel/ @kwg @llandwerlin @gfxstrand @idr
+/src/gallium/winsys/iris/ @kwg @llandwerlin @gfxstrand @idr
+/src/gallium/drivers/iris/ @kwg @llandwerlin @gfxstrand @idr
 /src/gallium/drivers/i915/ @anholt
 
 # Microsoft
@@ -140,9 +137,16 @@ meson.build @dbaker @eric
 /src/gallium/drivers/d3d12/ @jenatali
 
 # Panfrost
-/src/panfrost/ @alyssa
-/src/panfrost/vulkan/ @bbrezillon
-/src/gallium/drivers/panfrost/ @alyssa
+/src/panfrost/ @bbrezillon
+/src/panfrost/midgard @italove
+/src/gallium/drivers/panfrost/ @bbrezillon
+
+# R300
+/src/gallium/drivers/r300/ @ondracka @gawin
+
+# VirGL - Video
+/src/gallium/drivers/virgl/virgl_video.* @flynnjiang
+/src/virtio/virtio-gpu/virgl_video_hw.h @flynnjiang
 
 # VMware
 /src/gallium/drivers/svga/ @brianp @charmainel

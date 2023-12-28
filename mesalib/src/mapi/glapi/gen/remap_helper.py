@@ -29,33 +29,6 @@ import license
 import gl_XML
 
 
-def get_function_spec(func):
-    sig = ""
-    # derive parameter signature
-    for p in func.parameterIterator():
-        if p.is_padding:
-            continue
-        # FIXME: This is a *really* ugly hack. :(
-        tn = p.type_expr.get_base_type_node()
-        if p.is_pointer():
-            sig += 'p'
-        elif tn.integer:
-            sig += 'i'
-        elif tn.size == 4:
-            sig += 'f'
-        else:
-            sig += 'd'
-
-    spec = [sig]
-    for ent in func.entry_points:
-        spec.append("gl" + ent)
-
-    # spec is terminated by an empty string
-    spec.append('')
-
-    return spec
-
-
 class PrintGlRemap(gl_XML.gl_print_base):
     def __init__(self):
         gl_XML.gl_print_base.__init__(self)
@@ -89,8 +62,6 @@ class PrintGlRemap(gl_XML.gl_print_base):
         for f in api.functionIterateAll():
             pool_indices[f] = index
 
-            spec = get_function_spec(f)
-
             # a function has either assigned offset, fixed offset,
             # or no offset
             if f.assign_offset:
@@ -102,9 +73,8 @@ class PrintGlRemap(gl_XML.gl_print_base):
 
             print('   /* _mesa_function_pool[%d]: %s (%s) */' \
                             % (index, f.name, comments))
-            for line in spec:
-                print('   "%s\\0"' % line)
-                index += len(line) + 1
+            print('   "gl%s\\0"' % f.entry_points[0])
+            index += len(f.entry_points[0]) + 3
         print('   ;')
         print('')
 

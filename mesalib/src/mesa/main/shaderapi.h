@@ -28,7 +28,7 @@
 #define SHADERAPI_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "compiler/shader_enums.h"
 #include "util/mesa-sha1.h"
 
@@ -200,6 +200,10 @@ const char *
 _mesa_lookup_shader_include(struct gl_context *ctx, char *path,
                             bool error_check);
 
+GLuint
+_mesa_CreateShaderProgramv_impl(struct gl_context *ctx,
+                                GLenum type, GLsizei count,
+                                const GLchar* const *strings);
 #ifdef __cplusplus
 }
 #endif

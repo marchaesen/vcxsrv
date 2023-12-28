@@ -181,7 +181,8 @@ print_instr_name(struct log_stream *stream, struct ir3_instruction *instr,
          }
       }
 
-      if (instr->opc != OPC_MOVMSK && instr->opc != OPC_SCAN_MACRO) {
+      if (instr->opc != OPC_MOVMSK && instr->opc != OPC_SCAN_MACRO &&
+          instr->opc != OPC_PUSH_CONSTS_LOAD_MACRO) {
          mesa_log_stream_printf(stream, ".%s%s",
                                 type_name(instr->cat1.src_type),
                                 type_name(instr->cat1.dst_type));
@@ -405,6 +406,11 @@ print_instr(struct log_stream *stream, struct ir3_instruction *instr, int lvl)
       mesa_log_stream_printf(stream, ", tex=%d, samp=%d, input_offset=%d",
                              instr->prefetch.tex, instr->prefetch.samp,
                              instr->prefetch.input_offset);
+   } else if (instr->opc == OPC_PUSH_CONSTS_LOAD_MACRO) {
+      mesa_log_stream_printf(
+         stream, " dst_offset=%d, src_offset = %d, src_size = %d",
+         instr->push_consts.dst_base, instr->push_consts.src_base,
+         instr->push_consts.src_size);
    }
 
    if (is_flow(instr) && instr->cat0.target) {

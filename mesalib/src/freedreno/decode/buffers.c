@@ -28,6 +28,7 @@
 
 #include <assert.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "util/rb_tree.h"
 #include "buffers.h"
@@ -44,7 +45,7 @@ struct buffer {
    struct {
       unsigned offset;
       unsigned dumped_mask;
-   } offsets[64];
+   } offsets[256];
    unsigned noffsets;
 };
 
@@ -191,7 +192,20 @@ add_buffer(uint64_t gpuaddr, unsigned int len, void *hostptr)
       rb_tree_insert(&buffers, &buf->node, buffer_insert_cmp);
    }
 
-   assert(buf->gpuaddr == gpuaddr);
+   /* We can end up in scenarios where we capture parts of a buffer that
+    * has been suballocated from twice, once as a dumped buffer and once
+    * as a cmd.. possibly the kernel should get more clever about this,
+    * but we need to tolerate it:
+    */
+   if (buf->gpuaddr != gpuaddr) {
+      assert(gpuaddr > buf->gpuaddr);
+      assert((gpuaddr + len) <= (buf->gpuaddr + buf->len));
+
+      void *ptr = ((uint8_t *)buf->hostptr) + (gpuaddr - buf->gpuaddr);
+      assert(!memcmp(ptr, hostptr, len));
+
+      return;
+   }
 
    buf->hostptr = hostptr;
    buf->len = len;

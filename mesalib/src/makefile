@@ -59,12 +59,15 @@ INCLUDES += \
 	$(top_srcdir)/src/mapi/ \
 	$(top_srcdir)/src/mesa/ \
 	$(top_srcdir)/src/gallium/include \
-	$(top_srcdir)/src/gallium/auxiliary
+	$(top_srcdir)/src/gallium/auxiliary \
+	$(OBJDIR)
 
 libglsl_util_la_SOURCES = \
 	mesa/main/extensions_table.c \
 	mesa/program/prog_parameter.c \
 	mesa/program/symbol_table.c \
+	c11/impl/time.c \
+	loader/loader.c
 
 #DEFINES=\
 #_LIB\
@@ -81,7 +84,7 @@ DEFINES = WIN32 SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MAC
 CSRCS := $(notdir $(subst /,$/,$(libglsl_util_la_SOURCES)))
 CSRCS := $(CSRCS:%.h=)
 
-vpath %.c mesa\main:mesa\program
+vpath %.c mesa\main:mesa\program:c11/impl:loader
 
 LIBDIRS=$(dir $(INCLUDELIBFILES))
 SERVLIBDIRS=$(dir $(INCLUDESERVLIBFILES))

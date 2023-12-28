@@ -110,7 +110,7 @@ Iago Toral Quiroga (1):
 
 -  anv/device: fix maximum number of images supported
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  anv/nir: Rework arguments to apply_pipeline_layout
 -  anv: Only parse pImmutableSamplers if the descriptor has samplers

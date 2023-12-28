@@ -25,9 +25,9 @@
 ]>
 <!--
     fontconfig/doc/local-fontconfig-devel.sgml
-   
+
     Copyright © 2003 Keith Packard
-   
+
     Permission to use, copy, modify, distribute, and sell this software and its
     documentation for any purpose is hereby granted without fee, provided that
     the above copyright notice appear in all copies and that both that
@@ -37,7 +37,7 @@
     specific, written prior permission.  The authors make no
     representations about the suitability of this software for any purpose.  It
     is provided "as is" without express or implied warranty.
-   
+
     THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
     INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
     EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -47,22 +47,22 @@
     PERFORMANCE OF THIS SOFTWARE.
 -->
 <article>
-	<title>Fontconfig Developers Reference, Version &version; </title>
-	<artheader>
-		<author>
-			<firstname>Keith</firstname>
-			<surname>Packard</surname>
-			<affiliation><orgname>
-				HP Cambridge Research Lab
-			</orgname></affiliation>
-		</author>
-		<authorinitials>KRP</authorinitials>
-		<productname>Fontconfig</productname>
-		<productnumber>&version;</productnumber>
-		<LegalNotice>
-			<simpara>		
+        <title>Fontconfig Developers Reference, Version &version; </title>
+        <artheader>
+                <author>
+                        <firstname>Keith</firstname>
+                        <surname>Packard</surname>
+                        <affiliation><orgname>
+                                HP Cambridge Research Lab
+                        </orgname></affiliation>
+                </author>
+                <authorinitials>KRP</authorinitials>
+                <productname>Fontconfig</productname>
+                <productnumber>&version;</productnumber>
+                <LegalNotice>
+                        <simpara>
 Copyright © 2002 Keith Packard
-			</simpara><simpara>
+                        </simpara><simpara>
 Permission to use, copy, modify, distribute, and sell this software and its
 documentation for any purpose is hereby granted without fee, provided that
 the above copyright notice appear in all copies and that both that
@@ -72,7 +72,7 @@ advertising or publicity pertaining to distribution of the software without
 specific, written prior permission.  The authors make no
 representations about the suitability of this software for any purpose.  It
 is provided "as is" without express or implied warranty.
-			</simpara><simpara>
+                        </simpara><simpara>
 THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
 EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -80,9 +80,9 @@ CONSEQUENTIAL DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
 DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE OR OTHER
 TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR
 PERFORMANCE OF THIS SOFTWARE.
-			</simpara>
-		</LegalNotice>
-	</artheader>
+                        </simpara>
+                </LegalNotice>
+        </artheader>
 <sect1><title>DESCRIPTION</title>
   <para>
 Fontconfig is a library designed to provide system-wide font configuration,
@@ -103,7 +103,7 @@ data found within.  From an external perspective, configuration of the
 library consists of generating a valid XML tree and feeding that to
 FcConfigParse.  The only other mechanism provided to applications for
 changing the running configuration is to add fonts and directories to the
-list of application-provided font files.  
+list of application-provided font files.
     </para><para>
 The intent is to make font configurations relatively static, and shared by
 as many applications as possible.  It is hoped that this will lead to more
@@ -175,7 +175,7 @@ convenience for the application's rendering mechanism.
                                                   face object
     rasterizer     FC_RASTERIZER          String  Which rasterizer is in use (deprecated)
     outline        FC_OUTLINE             Bool    Whether the glyphs are outlines
-    scalable       FC_SCALABLE            Bool    Whether glyphs can be scaled
+    scalable       FC_SCALABLE            Bool    Whether the glyphs are outlines or have color
     dpi            FC_DPI                 Double  Target dots per inch
     rgba           FC_RGBA                Int     unknown, rgb, bgr, vrgb,
                                                   vbgr, none - subpixel geometry
@@ -183,6 +183,7 @@ convenience for the application's rendering mechanism.
                                                   conversions (deprecated)
     minspace       FC_MINSPACE            Bool    Eliminate leading from line
                                                   spacing
+    matrix         FC_MATRIX              Matrix  Hold an affine transformation
     charset        FC_CHARSET             CharSet Unicode chars encoded by
                                                   the font
     lang           FC_LANG                LangSet Set of RFC-3066-style
@@ -207,12 +208,15 @@ convenience for the application's rendering mechanism.
     hash           FC_HASH                String  SHA256 hash value of the font data
                                                   with "sha256:" prefix (deprecated)
     postscriptname FC_POSTSCRIPT_NAME     String  Font name in PostScript
-    symbol         FC_SYMBOL              Bool    Whether font uses MS symbol-font encoding
     color          FC_COLOR               Bool    Whether any glyphs have color
+    symbol         FC_SYMBOL              Bool    Whether font uses MS symbol-font encoding
     fontvariations FC_FONT_VARIATIONS     String  comma-separated string of axes in variable font
     variable       FC_VARIABLE            Bool    Whether font is Variable Font
     fonthashint    FC_FONT_HAS_HINT       Bool    Whether font has hinting
     order          FC_ORDER               Int     Order number of the font
+    desktop        FC_DESKTOP_NAME        String  Current desktop name
+    namedinstance  FC_NAMED_INSTANCE      Bool    Whether font is a named instance
+    fontwarapper   FC_FONT_WRAPPER        String  The font wrapper format
     </programlisting>
   </sect2>
 </sect1>
@@ -284,9 +288,9 @@ types.  The 'type' tag indicates which member is valid.
                         double d;
                         const FcMatrix *m;
                         const FcCharSet *c;
-			void *f;
-			const FcLangSet *l;
-			const FcRange   *r;
+                        void *f;
+                        const FcLangSet *l;
+                        const FcRange   *r;
                 } u;
         } FcValue;
     </programlisting>
@@ -302,9 +306,9 @@ types.  The 'type' tag indicates which member is valid.
         FcTypeBool      b               b
         FcTypeMatrix    m               FcMatrix *
         FcTypeCharSet   c               FcCharSet *
-	FcTypeFTFace	f		void * (FT_Face)
-	FcTypeLangSet	l		FcLangSet *
-	FcTypeRange	r		FcRange *
+        FcTypeFTFace    f               void * (FT_Face)
+        FcTypeLangSet   l               FcLangSet *
+        FcTypeRange     r               FcRange *
     </programlisting>
     </para>
   </sect2>
@@ -497,7 +501,7 @@ functions.
   <sect2><title>FcValue</title>
     <para>
 FcValue is a structure containing a type tag and a union of all possible
-datatypes.  The tag is an enum of type 
+datatypes.  The tag is an enum of type
 <emphasis>FcType</emphasis>
 and is intended to provide a measure of run-time
 typechecking, although that depends on careful programming.

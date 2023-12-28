@@ -8,6 +8,31 @@
 /* 3 seconds */
 #define VN_RENDERER_SHMEM_CACHE_EXPIRACY (3ll * 1000 * 1000)
 
+static void
+vn_renderer_shmem_cache_dump(struct vn_renderer_shmem_cache *cache)
+{
+   simple_mtx_lock(&cache->mutex);
+
+   vn_log(NULL, "dumping renderer shmem cache");
+   vn_log(NULL, "  cache skip: %d", cache->debug.cache_skip_count);
+   vn_log(NULL, "  cache hit: %d", cache->debug.cache_hit_count);
+   vn_log(NULL, "  cache miss: %d", cache->debug.cache_miss_count);
+
+   uint32_t bucket_mask = cache->bucket_mask;
+   while (bucket_mask) {
+      const int idx = u_bit_scan(&bucket_mask);
+      const struct vn_renderer_shmem_bucket *bucket = &cache->buckets[idx];
+      uint32_t count = 0;
+      list_for_each_entry(struct vn_renderer_shmem, shmem, &bucket->shmems,
+                          cache_head)
+         count++;
+      if (count)
+         vn_log(NULL, "  buckets[%d]: %d shmems", idx, count);
+   }
+
+   simple_mtx_unlock(&cache->mutex);
+}
+
 void
 vn_renderer_shmem_cache_init(struct vn_renderer_shmem_cache *cache,
                              struct vn_renderer *renderer,
@@ -34,6 +59,9 @@ vn_renderer_shmem_cache_fini(struct vn_renderer_shmem_cache *cache)
 {
    if (!cache->initialized)
       return;
+
+   if (VN_DEBUG(CACHE))
+      vn_renderer_shmem_cache_dump(cache);
 
    while (cache->bucket_mask) {
       const int idx = u_bit_scan(&cache->bucket_mask);
@@ -151,30 +179,4 @@ vn_renderer_shmem_cache_get(struct vn_renderer_shmem_cache *cache,
    simple_mtx_unlock(&cache->mutex);
 
    return shmem;
-}
-
-/* for debugging only */
-void
-vn_renderer_shmem_cache_debug_dump(struct vn_renderer_shmem_cache *cache)
-{
-   simple_mtx_lock(&cache->mutex);
-
-   vn_log(NULL, "dumping shmem cache");
-   vn_log(NULL, "  cache skip: %d", cache->debug.cache_skip_count);
-   vn_log(NULL, "  cache hit: %d", cache->debug.cache_hit_count);
-   vn_log(NULL, "  cache miss: %d", cache->debug.cache_miss_count);
-
-   uint32_t bucket_mask = cache->bucket_mask;
-   while (bucket_mask) {
-      const int idx = u_bit_scan(&bucket_mask);
-      const struct vn_renderer_shmem_bucket *bucket = &cache->buckets[idx];
-      uint32_t count = 0;
-      list_for_each_entry(struct vn_renderer_shmem, shmem, &bucket->shmems,
-                          cache_head)
-         count++;
-      if (count)
-         vn_log(NULL, "  buckets[%d]: %d shmems", idx, count);
-   }
-
-   simple_mtx_unlock(&cache->mutex);
 }

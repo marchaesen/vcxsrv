@@ -1,6 +1,9 @@
 build_standalone_pbproxy = get_option('xpbproxy')
 
-pbproxy_defs = [bundle_id_def]
+pbproxy_defs = [
+    '-DXQUARTZ_DATA_DIR="@0@"'.format(xquartz_data_dir),
+    bundle_id_def
+]
 if build_standalone_pbproxy
     pbproxy_defs += ['-DSTANDALONE_XPBPROXY']
 endif

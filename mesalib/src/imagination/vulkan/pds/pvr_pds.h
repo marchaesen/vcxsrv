@@ -96,6 +96,12 @@ enum pvr_pds_vertex_attrib_program_type {
    PVR_PDS_VERTEX_ATTRIB_PROGRAM_COUNT
 };
 
+enum pvr_pds_addr_literal_type {
+   PVR_PDS_ADDR_LITERAL_DESC_SET_ADDRS_TABLE,
+   PVR_PDS_ADDR_LITERAL_PUSH_CONSTS,
+   PVR_PDS_ADDR_LITERAL_BLEND_CONSTANTS,
+};
+
 /*****************************************************************************
  Structure definitions
 *****************************************************************************/
@@ -431,7 +437,7 @@ struct pvr_pds_vertex_shader_program {
 
    bool iterate_instance_id;
    uint32_t instance_id_register;
-   uint32_t instance_ID_modifier;
+   uint32_t instance_id_modifier;
    uint32_t base_instance;
 
    bool iterate_remap_id;
@@ -571,6 +577,29 @@ struct pvr_pds_ldst_control {
  */
 #define PVR_PDS_COMPUTE_INPUT_REG_UNUSED 0xFFFFFFFFU
 
+static inline void pvr_pds_compute_shader_program_init(
+   struct pvr_pds_compute_shader_program *program)
+{
+   *program = (struct pvr_pds_compute_shader_program){
+      .local_input_regs = {
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+      },
+      .work_group_input_regs = {
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+      },
+      .global_input_regs = {
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+         PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+      },
+      .barrier_coefficient = PVR_PDS_COMPUTE_INPUT_REG_UNUSED,
+   };
+}
+
 /*****************************************************************************
  function declarations
 *****************************************************************************/
@@ -595,6 +624,7 @@ uint32_t pvr_pds_encode_dma_burst(uint32_t *dma_control,
                                   uint32_t dest_offset,
                                   uint32_t dma_size,
                                   uint64_t src_address,
+                                  bool last,
                                   const struct pvr_device_info *dev_info);
 
 void pvr_pds_setup_doutu(struct pvr_pds_usc_task_control *usc_task_control,
@@ -688,15 +718,6 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
                        uint32_t *restrict buffer,
                        enum pvr_pds_generate_mode gen_mode,
                        const struct pvr_device_info *dev_info);
-
-#define pvr_pds_set_sizes_compute_shader(X, Y) \
-   pvr_pds_compute_shader(X, NULL, PDS_GENERATE_SIZES, Y)
-
-#define pvr_pds_generate_compute_shader_data_segment(X, Y, Z) \
-   pvr_pds_compute_shader(X, Y, PDS_GENERATE_DATA_SEGMENT, Z)
-
-#define pvr_pds_generate_compute_shader_code_segment(X, Y, Z) \
-   pvr_pds_compute_shader(X, Y, PDS_GENERATE_CODE_SEGMENT, Z)
 
 /* Vertex Secondary */
 #define pvr_pds_set_sizes_vertex_shader_sa(X, Y) \
@@ -867,13 +888,18 @@ struct pvr_pds_descriptor_set {
                                    */
 };
 
+struct pvr_pds_addr_literal {
+   enum pvr_pds_addr_literal_type type;
+   unsigned int destination;
+};
+
 #define PVR_BUFFER_TYPE_UBO (0)
-#define PVR_BUFFER_TYPES_COMPILE_TIME (1)
+#define PVR_BUFFER_TYPE_COMPILE_TIME (1)
 #define PVR_BUFFER_TYPE_BLEND_CONSTS (2)
 #define PVR_BUFFER_TYPE_PUSH_CONSTS (3)
-#define PVR_BUFFER_TYPES_BUFFER_LENGTHS (4)
+#define PVR_BUFFER_TYPE_BUFFER_LENGTHS (4)
 #define PVR_BUFFER_TYPE_DYNAMIC (5)
-#define PVR_BUFFER_TYPES_UBO_ZEROING (6)
+#define PVR_BUFFER_TYPE_UBO_ZEROING (6)
 #define PVR_BUFFER_TYPE_INVALID (~0)
 
 struct pvr_pds_buffer {
@@ -895,10 +921,13 @@ struct pvr_pds_buffer {
 
 #define PVR_PDS_MAX_BUFFERS (24)
 
-struct pvr_descriptor_program_input {
+struct pvr_pds_descriptor_program_input {
    /* User-specified descriptor sets. */
    unsigned int descriptor_set_count;
    struct pvr_pds_descriptor_set descriptor_sets[8];
+
+   unsigned int addr_literal_count;
+   struct pvr_pds_addr_literal addr_literals[8];
 
    /* "State" buffers, including:
     * compile-time constants
@@ -949,7 +978,7 @@ struct pvr_pds_vertex_primary_program_input {
    /* Control for the DOUTU that kicks the vertex USC shader. */
    struct pvr_pds_usc_task_control usc_task_control;
    /* List of DMAs (of size dma_count). */
-   struct pvr_pds_vertex_dma *dma_list;
+   const struct pvr_pds_vertex_dma *dma_list;
    uint32_t dma_count;
 
    /* ORd bitfield of PVR_PDS_VERTEX_FLAGS_* */
@@ -987,6 +1016,9 @@ struct pvr_pds_vertex_primary_program_input {
 #define PVR_PDS_CONST_MAP_ENTRY_TYPE_BASE_VERTEX (12)
 #define PVR_PDS_CONST_MAP_ENTRY_TYPE_BASE_WORKGROUP (13)
 #define PVR_PDS_CONST_MAP_ENTRY_TYPE_COND_RENDER (14)
+
+#define PVR_PDS_CONST_MAP_ENTRY_TYPE_ADDR_LITERAL_BUFFER (15)
+#define PVR_PDS_CONST_MAP_ENTRY_TYPE_ADDR_LITERAL (16)
 
 /* We pack all the following structs tightly into a buffer using += sizeof(x)
  * offsets, this can lead to data that is not native aligned. Supplying the
@@ -1121,6 +1153,18 @@ struct pvr_pds_const_map_entry_cond_render {
    uint32_t cond_render_pred_temp;
 } PVR_ALIGNED;
 
+struct pvr_pds_const_map_entry_addr_literal_buffer {
+   uint8_t type;
+   uint8_t const_offset;
+
+   uint32_t size;
+} PVR_ALIGNED;
+
+struct pvr_pds_const_map_entry_addr_literal {
+   uint8_t type;
+   enum pvr_pds_addr_literal_type addr_type;
+} PVR_ALIGNED;
+
 struct pvr_pds_info {
    uint32_t temps_required;
    uint32_t code_size_in_dwords;
@@ -1133,7 +1177,7 @@ struct pvr_pds_info {
 };
 
 void pvr_pds_generate_descriptor_upload_program(
-   struct pvr_descriptor_program_input *input_program,
+   struct pvr_pds_descriptor_program_input *input_program,
    uint32_t *code_section,
    struct pvr_pds_info *info);
 void pvr_pds_generate_vertex_primary_program(

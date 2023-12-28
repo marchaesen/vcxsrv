@@ -182,7 +182,7 @@ Euro Truck Simulator
   893943 glDrawArrays(mode = GL_TRIANGLES, first = 0, count = 6)
 
 At the start of this frame, buffer 14 and 15 haven't been used in the previous 2
-frames, and the ``GL_ARB_sync`` fence has ensured that the GPU has at least started
+frames, and the :ext:`GL_ARB_sync` fence has ensured that the GPU has at least started
 frame n-1 as the CPU starts the current frame. The first map is ``offset = 0,
 INVALIDATE_BUFFER | UNSYNCHRONIZED``, which suggests that the driver should
 reallocate storage for the mapping even in the ``UNSYNCHRONIZED`` case, except
@@ -237,7 +237,7 @@ Plague Inc
   1640863 glDrawElementsBaseVertex(mode = GL_TRIANGLES, count = 6, type = GL_UNSIGNED_SHORT, indices = 0x58, basevertex = 4)
 
 At the start of this frame, the VBOs haven't been used in about 6 frames, and
-the ``GL_ARB_sync`` fence has ensured that the GPU has started frame n-1.
+the :ext:`GL_ARB_sync` fence has ensured that the GPU has started frame n-1.
 
 Note the use of ``glFlushMappedBufferRange()`` on a small fraction of the size
 of the VBO -- it is important that a blitting driver make use of the flush
@@ -299,7 +299,7 @@ Tabletop Simulator
   1289068 glDrawArrays(mode = GL_TRIANGLE_STRIP, first = 8, count = 4)
   1289553 glXSwapBuffers(dpy = 0x3e10810, drawable = 23068692)
 
-In this app, buffer 480 gets used like this every other frame.  The ``GL_ARB_sync``
+In this app, buffer 480 gets used like this every other frame.  The :ext:`GL_ARB_sync`
 fence ensures that frame n-1 has started on the GPU before CPU work starts on
 the current frame, so the unsynchronized access to the buffers is safe.
 
@@ -337,7 +337,7 @@ Hollow Knight
   1873097 glDrawElementsBaseVertex(mode = GL_TRIANGLES, count = 36, type = GL_UNSIGNED_SHORT, indices = 0x2d0, basevertex = 240)
 
 In this app, buffer 29/30 get used like this starting from offset 0 every other
-frame.  The ``GL_ARB_sync`` fence is used to make sure that the GPU has reached the
+frame.  The :ext:`GL_ARB_sync` fence is used to make sure that the GPU has reached the
 start of the previous frame before we go unsynchronized writing over the n-2
 frame's buffer.
 
@@ -363,7 +363,7 @@ Borderlands 2
   3563064 glBindBufferARB(target = GL_ELEMENT_ARRAY_BUFFER, buffer = 875)
   3563065 glDrawElementsInstancedARB(mode = GL_TRIANGLES, count = 72, type = GL_UNSIGNED_SHORT, indices = NULL, instancecount = 28)
 
-The ``GL_ARB_sync`` fence ensures that the GPU has started frame n-1 before the CPU
+The :ext:`GL_ARB_sync` fence ensures that the GPU has started frame n-1 before the CPU
 starts on the current frame.
 
 This sequence of buffer uploads appears in each frame with the same buffer

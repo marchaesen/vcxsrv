@@ -17,52 +17,25 @@
 
 #include "vn_wsi.h"
 
-struct vn_physical_device_features {
-   VkPhysicalDeviceFeatures vulkan_1_0;
-   VkPhysicalDeviceVulkan11Features vulkan_1_1;
-   VkPhysicalDeviceVulkan12Features vulkan_1_2;
-   VkPhysicalDeviceVulkan13Features vulkan_1_3;
-
-   /* Vulkan 1.3: The extensions for the below structs were promoted, but some
-    * struct members were omitted from VkPhysicalDeviceVulkan13Features.
-    */
-   VkPhysicalDevice4444FormatsFeaturesEXT _4444_formats;
-   VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extended_dynamic_state;
-   VkPhysicalDeviceExtendedDynamicState2FeaturesEXT extended_dynamic_state_2;
-   VkPhysicalDeviceTexelBufferAlignmentFeaturesEXT texel_buffer_alignment;
-   VkPhysicalDeviceYcbcr2Plane444FormatsFeaturesEXT ycbcr_2plane_444_formats;
-
-   /* EXT */
-   VkPhysicalDeviceConditionalRenderingFeaturesEXT conditional_rendering;
-   VkPhysicalDeviceCustomBorderColorFeaturesEXT custom_border_color;
-   VkPhysicalDeviceDepthClipEnableFeaturesEXT depth_clip_enable;
-   VkPhysicalDeviceImageViewMinLodFeaturesEXT image_view_min_lod;
-   VkPhysicalDeviceIndexTypeUint8FeaturesEXT index_type_uint8;
-   VkPhysicalDeviceLineRasterizationFeaturesEXT line_rasterization;
-   VkPhysicalDeviceMultiDrawFeaturesEXT multi_draw;
-   VkPhysicalDevicePrimitiveTopologyListRestartFeaturesEXT
-      primitive_topology_list_restart;
-   VkPhysicalDeviceProvokingVertexFeaturesEXT provoking_vertex;
-   VkPhysicalDeviceRobustness2FeaturesEXT robustness_2;
-   VkPhysicalDeviceTransformFeedbackFeaturesEXT transform_feedback;
-   VkPhysicalDeviceVertexAttributeDivisorFeaturesEXT vertex_attribute_divisor;
-
-   /* vendor */
-   VkPhysicalDeviceMutableDescriptorTypeFeaturesVALVE mutable_descriptor_type;
-};
-
 struct vn_physical_device_properties {
    VkPhysicalDeviceProperties vulkan_1_0;
    VkPhysicalDeviceVulkan11Properties vulkan_1_1;
    VkPhysicalDeviceVulkan12Properties vulkan_1_2;
    VkPhysicalDeviceVulkan13Properties vulkan_1_3;
 
+   /* KHR */
+   VkPhysicalDevicePushDescriptorPropertiesKHR push_descriptor;
+
    /* EXT */
    VkPhysicalDeviceConservativeRasterizationPropertiesEXT
       conservative_rasterization;
    VkPhysicalDeviceCustomBorderColorPropertiesEXT custom_border_color;
+   VkPhysicalDeviceExtendedDynamicState3PropertiesEXT extended_dynamic_state_3;
+   VkPhysicalDeviceGraphicsPipelineLibraryPropertiesEXT
+      graphics_pipeline_library;
    VkPhysicalDeviceLineRasterizationPropertiesEXT line_rasterization;
    VkPhysicalDeviceMultiDrawPropertiesEXT multi_draw;
+   VkPhysicalDevicePCIBusInfoPropertiesEXT pci_bus_info;
    VkPhysicalDeviceProvokingVertexPropertiesEXT provoking_vertex;
    VkPhysicalDeviceRobustness2PropertiesEXT robustness_2;
    VkPhysicalDeviceTransformFeedbackPropertiesEXT transform_feedback;
@@ -97,22 +70,27 @@ struct vn_physical_device {
    struct vk_device_extension_table renderer_extensions;
    uint32_t *extension_spec_versions;
 
-   struct vn_physical_device_features features;
    struct vn_physical_device_properties properties;
+   enum VkDriverId renderer_driver_id;
 
    VkQueueFamilyProperties2 *queue_family_properties;
    uint32_t queue_family_count;
+   bool sparse_binding_disabled;
 
-   VkPhysicalDeviceMemoryProperties2 memory_properties;
+   VkPhysicalDeviceMemoryProperties memory_properties;
+   uint32_t coherent_uncached;
+   uint32_t incoherent_cached;
 
    struct {
       VkExternalMemoryHandleTypeFlagBits renderer_handle_type;
       VkExternalMemoryHandleTypeFlags supported_handle_types;
    } external_memory;
 
-   /* syncFdFencing allows driver to query renderer sync_fd features */
-   VkExternalFenceFeatureFlags renderer_sync_fd_fence_features;
-   VkExternalSemaphoreFeatureFlags renderer_sync_fd_semaphore_features;
+   struct {
+      bool fence_exportable;
+      bool semaphore_exportable;
+      bool semaphore_importable;
+   } renderer_sync_fd;
 
    VkExternalFenceHandleTypeFlags external_fence_handles;
    VkExternalSemaphoreHandleTypeFlags external_binary_semaphore_handles;

@@ -65,6 +65,9 @@ class GpuDataSource : public perfetto::DataSource<GpuDataSource, GpuDataSourceTr
 
    /// GPU timestamp of packet sent with counter descriptors
    uint64_t descriptor_gpu_timestamp = 0;
+
+   /// Used to track the first available counters
+   bool got_first_counters = false;
 };
 
 } // namespace pps

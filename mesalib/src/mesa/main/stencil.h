@@ -32,7 +32,7 @@
 #define STENCIL_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "macros.h"
 
 struct gl_context;

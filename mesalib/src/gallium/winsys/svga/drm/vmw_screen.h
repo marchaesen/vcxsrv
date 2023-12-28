@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2009-2015 VMware, Inc.  All rights reserved.
+ * Copyright 2009-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -35,12 +35,12 @@
 #define VMW_SCREEN_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 
 #include "svga_winsys.h"
 #include "pipebuffer/pb_buffer_fenced.h"
-#include <os/os_thread.h>
+#include "util/u_thread.h"
 #include <sys/types.h>
 
 #define VMW_GMR_POOL_SIZE (16*1024*1024)
@@ -58,7 +58,7 @@ struct pb_manager;
 struct vmw_region;
 
 struct vmw_cap_3d {
-   boolean has_cap;
+   bool has_cap;
    SVGA3dDevCapResult result;
 };
 
@@ -74,29 +74,26 @@ struct vmw_winsys_screen
       uint64_t max_mob_memory;
       uint64_t max_surface_memory;
       uint64_t max_texture_size;
-      boolean have_drm_2_6;
-      boolean have_drm_2_9;
+      bool have_drm_2_6;
+      bool have_drm_2_9;
       uint32_t drm_execbuf_version;
-      boolean have_drm_2_15;
-      boolean have_drm_2_16;
-      boolean have_drm_2_17;
-      boolean have_drm_2_18;
-      boolean have_drm_2_19;
-      boolean have_drm_2_20;
+      bool have_drm_2_15;
+      bool have_drm_2_16;
+      bool have_drm_2_17;
+      bool have_drm_2_18;
+      bool have_drm_2_19;
+      bool have_drm_2_20;
    } ioctl;
 
    struct {
-      struct pb_manager *gmr;
-      struct pb_manager *gmr_mm;
-      struct pb_manager *gmr_fenced;
-      struct pb_manager *gmr_slab;
-      struct pb_manager *gmr_slab_fenced;
+      struct pb_manager *dma_base;
+      struct pb_manager *dma_mm;
       struct pb_manager *query_mm;
       struct pb_manager *query_fenced;
-      struct pb_manager *mob_fenced;
-      struct pb_manager *mob_cache;
-      struct pb_manager *mob_shader_slab;
-      struct pb_manager *mob_shader_slab_fenced;
+      struct pb_manager *dma_fenced;
+      struct pb_manager *dma_cache;
+      struct pb_manager *dma_slab;
+      struct pb_manager *dma_slab_fenced;
    } pools;
 
    struct pb_fence_ops *fence_ops;
@@ -121,8 +118,8 @@ struct vmw_winsys_screen
    cnd_t cs_cond;
    mtx_t cs_mutex;
 
-   boolean force_coherent;
-   boolean cache_maps;
+   bool force_coherent;
+   bool cache_maps;
 };
 
 
@@ -141,7 +138,7 @@ vmw_ioctl_context_create(struct vmw_winsys_screen *vws);
 
 uint32
 vmw_ioctl_extended_context_create(struct vmw_winsys_screen *vws,
-                                  boolean vgpu10);
+                                  bool vgpu10);
 
 void
 vmw_ioctl_context_destroy(struct vmw_winsys_screen *vws,
@@ -229,20 +226,19 @@ vmw_ioctl_shader_destroy(struct vmw_winsys_screen *vws, uint32 shid);
 
 int
 vmw_ioctl_syncforcpu(struct vmw_region *region,
-                     boolean dont_block,
-                     boolean readonly,
-                     boolean allow_cs);
+                     bool dont_block,
+                     bool readonly,
+                     bool allow_cs);
 void
 vmw_ioctl_releasefromcpu(struct vmw_region *region,
-                         boolean readonly,
-                         boolean allow_cs);
+                         bool readonly,
+                         bool allow_cs);
 /* Initialize parts of vmw_winsys_screen at startup:
  */
-boolean vmw_ioctl_init(struct vmw_winsys_screen *vws);
-boolean vmw_pools_init(struct vmw_winsys_screen *vws);
-boolean vmw_query_pools_init(struct vmw_winsys_screen *vws);
-boolean vmw_mob_pools_init(struct vmw_winsys_screen *vws);
-boolean vmw_winsys_screen_init_svga(struct vmw_winsys_screen *vws);
+bool vmw_ioctl_init(struct vmw_winsys_screen *vws);
+bool vmw_pools_init(struct vmw_winsys_screen *vws);
+bool vmw_query_pools_init(struct vmw_winsys_screen *vws);
+bool vmw_winsys_screen_init_svga(struct vmw_winsys_screen *vws);
 
 void vmw_ioctl_cleanup(struct vmw_winsys_screen *vws);
 void vmw_pools_cleanup(struct vmw_winsys_screen *vws);
@@ -259,7 +255,7 @@ void
 vmw_fences_signal(struct pb_fence_ops *fence_ops,
                   uint32_t signaled,
                   uint32_t emitted,
-                  boolean has_emitted);
+                  bool has_emitted);
 
 struct svga_winsys_gb_shader *
 vmw_svga_winsys_shader_create(struct svga_winsys_screen *sws,

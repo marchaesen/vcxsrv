@@ -28,6 +28,9 @@
 #include <math.h>
 #include <stdbool.h>
 
+/* All 1's but don't overflow the GUARDBAND_CLIP_ADJ bitfields: */
+#define MAX_GB 0x1ff
+
 static inline unsigned
 fd_calc_guardband(float offset, float scale, bool is_a3xx)
 {
@@ -57,13 +60,14 @@ fd_calc_guardband(float offset, float scale, bool is_a3xx)
    const float gb_adj = fminf(-gb_min_ndc, gb_max_ndc);
 
    /* The viewport should always be contained in the guardband. */
-   assert(gb_adj >= 1.0);
+   if (gb_adj < 1.0)
+      return MAX_GB;
 
    /* frexp returns an unspecified value if given an infinite value, which
     * can happen if scale == 0.
     */
    if (isinf(gb_adj))
-      return 0x1ff;
+      return MAX_GB;
 
    /* Convert gb_adj to 3.6 floating point, rounding down since it's always
     * safe to make the guard band smaller (but not the other way around!).
@@ -85,11 +89,12 @@ fd_calc_guardband(float offset, float scale, bool is_a3xx)
     */
    int gb_adj_exp;
    float gb_adj_mantissa = frexpf(gb_adj, &gb_adj_exp);
-   assert(gb_adj_exp > 0);
+   if (gb_adj_exp <= 0)
+      return MAX_GB;
 
    /* Round non-representable numbers down to the largest possible number. */
    if (gb_adj_exp > 8)
-      return 0x1ff;
+      return MAX_GB;
 
    return ((gb_adj_exp - 1) << 6) |
           ((unsigned)truncf(gb_adj_mantissa * (1 << 7)) - (1 << 6));

@@ -177,7 +177,7 @@ Ilia Mirkin (3):
 - glsl: fix explicit-location ifc matching in presence of array types
 - freedreno: use OUT_WFI for emit_marker
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - anv: Set CONTEXT_PARAM_RECOVERABLE to false
 

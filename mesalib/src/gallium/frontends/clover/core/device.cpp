@@ -25,12 +25,16 @@
 #include "core/platform.hpp"
 #include "pipe/p_screen.h"
 #include "pipe/p_state.h"
-#include "spirv/invocation.hpp"
 #include "util/bitscan.h"
+#include "util/disk_cache.h"
 #include "util/u_debug.h"
+#include "nir.h"
+#include <fstream>
+
+#ifdef HAVE_CLOVER_SPIRV
 #include "spirv/invocation.hpp"
 #include "nir/invocation.hpp"
-#include <fstream>
+#endif
 
 using namespace clover;
 
@@ -134,6 +138,27 @@ namespace {
 
       return version;
    }
+
+   static cl_device_type
+   parse_env_device_type() {
+      const char* val = getenv("CLOVER_DEVICE_TYPE");
+      if (!val) {
+         return 0;
+      }
+      if (strcmp(val, "cpu") == 0) {
+         return CL_DEVICE_TYPE_CPU;
+      }
+      if (strcmp(val, "gpu") == 0) {
+         return CL_DEVICE_TYPE_GPU;
+      }
+      if (strcmp(val, "accelerator") == 0) {
+         return CL_DEVICE_TYPE_ACCELERATOR;
+      }
+      /* CL_DEVICE_TYPE_CUSTOM isn't implemented
+      because CL_DEVICE_TYPE_CUSTOM is OpenCL 1.2
+      and Clover is OpenCL 1.1. */
+      return 0;
+   }
 }
 
 device::device(clover::platform &platform, pipe_loader_device *ldev) :
@@ -189,6 +214,11 @@ device::operator==(const device &dev) const {
 
 cl_device_type
 device::type() const {
+   cl_device_type type = parse_env_device_type();
+   if (type != 0) {
+      return type;
+   }
+
    switch (ldev->type) {
    case PIPE_LOADER_DEVICE_SOFTWARE:
       return CL_DEVICE_TYPE_CPU;
@@ -333,7 +363,12 @@ device::image_support() const {
 
 bool
 device::has_doubles() const {
-   return pipe->get_param(pipe, PIPE_CAP_DOUBLES);
+   nir_shader_compiler_options *options =
+         (nir_shader_compiler_options *)pipe->get_compiler_options(pipe,
+                                                                   PIPE_SHADER_IR_NIR,
+                                                                   PIPE_SHADER_COMPUTE);
+   return pipe->get_param(pipe, PIPE_CAP_DOUBLES) &&
+         !(options->lower_doubles_options & nir_lower_fp64_full_software);
 }
 
 bool
@@ -400,8 +435,11 @@ device::max_block_size() const {
 
 cl_uint
 device::subgroup_size() const {
-   return get_compute_param<uint32_t>(pipe, ir_format(),
-                                      PIPE_COMPUTE_CAP_SUBGROUP_SIZE)[0];
+   cl_uint subgroup_sizes =
+      get_compute_param<uint32_t>(pipe, ir_format(), PIPE_COMPUTE_CAP_SUBGROUP_SIZES)[0];
+   if (!subgroup_sizes)
+      return 0;
+   return 1 << (util_last_bit(subgroup_sizes) - 1);
 }
 
 cl_uint
@@ -490,9 +528,11 @@ device::supported_extensions() const {
       vec.push_back( cl_name_version{ CL_MAKE_VERSION(1, 0, 0), "cl_khr_fp16" } );
    if (svm_support())
       vec.push_back( cl_name_version{ CL_MAKE_VERSION(1, 0, 0), "cl_arm_shared_virtual_memory" } );
+#ifdef HAVE_CLOVER_SPIRV
    if (!clover::spirv::supported_versions().empty() &&
        supports_ir(PIPE_SHADER_IR_NIR_SERIALIZED))
       vec.push_back( cl_name_version{ CL_MAKE_VERSION(1, 0, 0), "cl_khr_il_program" } );
+#endif
    vec.push_back( cl_name_version{ CL_MAKE_VERSION(1, 0, 0), "cl_khr_extended_versioning" } );
    return vec;
 }
@@ -515,7 +555,11 @@ device::supported_extensions_as_string() const {
 
 std::vector<cl_name_version>
 device::supported_il_versions() const {
+#ifdef HAVE_CLOVER_SPIRV
    return clover::spirv::supported_versions();
+#else
+   return {};
+#endif
 }
 
 const void *

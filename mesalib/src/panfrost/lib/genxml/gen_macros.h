@@ -56,45 +56,48 @@
 static inline unsigned
 pan_arch(unsigned gpu_id)
 {
-        switch (gpu_id) {
-        case 0x600:
-        case 0x620:
-        case 0x720:
-                return 4;
-        case 0x750:
-        case 0x820:
-        case 0x830:
-        case 0x860:
-        case 0x880:
-                return 5;
-        default:
-                return gpu_id >> 12;
-        }
+   switch (gpu_id) {
+   case 0x600:
+   case 0x620:
+   case 0x720:
+      return 4;
+   case 0x750:
+   case 0x820:
+   case 0x830:
+   case 0x860:
+   case 0x880:
+      return 5;
+   default:
+      return gpu_id >> 12;
+   }
 }
 
 /* Base macro defined on the command line. */
 #ifndef PAN_ARCH
-#  include "genxml/common_pack.h"
+#include "genxml/common_pack.h"
 #else
 
 /* Suffixing macros */
 #if (PAN_ARCH == 4)
-#  define GENX(X) X##_v4
-#  include "genxml/v4_pack.h"
+#define GENX(X) X##_v4
+#include "genxml/v4_pack.h"
 #elif (PAN_ARCH == 5)
-#  define GENX(X) X##_v5
-#  include "genxml/v5_pack.h"
+#define GENX(X) X##_v5
+#include "genxml/v5_pack.h"
 #elif (PAN_ARCH == 6)
-#  define GENX(X) X##_v6
-#  include "genxml/v6_pack.h"
+#define GENX(X) X##_v6
+#include "genxml/v6_pack.h"
 #elif (PAN_ARCH == 7)
-#  define GENX(X) X##_v7
-#  include "genxml/v7_pack.h"
+#define GENX(X) X##_v7
+#include "genxml/v7_pack.h"
 #elif (PAN_ARCH == 9)
-#  define GENX(X) X##_v9
-#  include "genxml/v9_pack.h"
+#define GENX(X) X##_v9
+#include "genxml/v9_pack.h"
+#elif (PAN_ARCH == 10)
+#define GENX(X) X##_v10
+#include "genxml/v10_pack.h"
 #else
-#  error "Need to add suffixing macro for this architecture"
+#error "Need to add suffixing macro for this architecture"
 #endif
 
 #endif /* PAN_ARCH */

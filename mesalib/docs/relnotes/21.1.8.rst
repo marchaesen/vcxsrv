@@ -63,7 +63,7 @@ Ilia Mirkin (1):
 
 - mesa: don't return errors for gl_* GetFragData* queries
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - anv: Set CONTEXT_PARAM_RECOVERABLE to false
 

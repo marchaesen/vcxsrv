@@ -56,7 +56,11 @@ read_counted_string (unsigned short *countp, char **stringp, FILE *file)
     	if (!data)
 	    return 0;
 	if (fread (data, sizeof (char), len, file) != len) {
+#ifdef HAVE_EXPLICIT_BZERO
+	    explicit_bzero (data, len);
+#else
 	    bzero (data, len);
+#endif
 	    free (data);
 	    return 0;
     	}
@@ -69,39 +73,44 @@ read_counted_string (unsigned short *countp, char **stringp, FILE *file)
 Xauth *
 XauReadAuth (FILE *auth_file)
 {
-    Xauth   local;
+    Xauth   local = { 0, 0, NULL, 0, NULL, 0, NULL, 0, NULL };
     Xauth   *ret;
 
-    if (read_short (&local.family, auth_file) == 0)
-	return NULL;
-    if (read_counted_string (&local.address_length, &local.address, auth_file) == 0)
-	return NULL;
-    if (read_counted_string (&local.number_length, &local.number, auth_file) == 0) {
-	if (local.address) free (local.address);
-	return NULL;
+    if (read_short (&local.family, auth_file) == 0) {
+	goto fail;
+    }
+    if (read_counted_string (&local.address_length, &local.address, auth_file)
+        == 0) {
+	goto fail;
+    }
+    if (read_counted_string (&local.number_length, &local.number, auth_file)
+        == 0) {
+	goto fail;
     }
     if (read_counted_string (&local.name_length, &local.name, auth_file) == 0) {
-	if (local.address) free (local.address);
-	if (local.number) free (local.number);
-	return NULL;
+	goto fail;
     }
     if (read_counted_string (&local.data_length, &local.data, auth_file) == 0) {
-	if (local.address) free (local.address);
-	if (local.number) free (local.number);
-	if (local.name) free (local.name);
-	return NULL;
+	goto fail;
     }
-    ret = (Xauth *) malloc (sizeof (Xauth));
-    if (!ret) {
-	if (local.address) free (local.address);
-	if (local.number) free (local.number);
-	if (local.name) free (local.name);
-	if (local.data) {
-	    bzero (local.data, local.data_length);
-	    free (local.data);
-	}
-	return NULL;
+    ret = malloc (sizeof (Xauth));
+    if (ret == NULL) {
+	goto fail;
     }
     *ret = local;
     return ret;
+
+  fail:
+    free (local.address);
+    free (local.number);
+    free (local.name);
+    if (local.data) {
+#ifdef HAVE_EXPLICIT_BZERO
+	explicit_bzero (local.data, local.data_length);
+#else
+	bzero (local.data, local.data_length);
+#endif
+	free (local.data);
+    }
+    return NULL;
 }

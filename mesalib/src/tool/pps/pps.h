@@ -27,6 +27,8 @@ enum class State {
 /// @return True if ok, false otherwise
 bool check(int res, const char *msg);
 
+void make_thread_rt();
+
 /// @param num Numerator
 /// @param den Denominator
 /// @return A ratio between two floating point numbers, or 0 if the denominator is 0

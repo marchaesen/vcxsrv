@@ -15,7 +15,7 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "main/get.h"
 #include "util/macros.h"
 #include "api_exec_decl.h"

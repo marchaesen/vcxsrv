@@ -88,8 +88,8 @@ fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond) assert_dt
    util_blitter_save_so_targets(ctx->blitter, ctx->streamout.num_targets,
                                 ctx->streamout.targets);
    util_blitter_save_rasterizer(ctx->blitter, ctx->rasterizer);
-   util_blitter_save_viewport(ctx->blitter, &ctx->viewport);
-   util_blitter_save_scissor(ctx->blitter, &ctx->scissor);
+   util_blitter_save_viewport(ctx->blitter, &ctx->viewport[0]);
+   util_blitter_save_scissor(ctx->blitter, &ctx->scissor[0]);
    util_blitter_save_fragment_shader(ctx->blitter, ctx->prog.fs);
    util_blitter_save_blend(ctx->blitter, ctx->blend);
    util_blitter_save_depth_stencil_alpha(ctx->blitter, ctx->zsa);
@@ -235,7 +235,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    pctx->set_viewport_states(pctx, 0, 1, &vp);
 
    pctx->bind_vertex_elements_state(pctx, ctx->solid_vbuf_state.vtx);
-   pctx->set_vertex_buffers(pctx, blitter->vb_slot, 1, 0, false,
+   pctx->set_vertex_buffers(pctx, 1, 0, false,
                             &ctx->solid_vbuf_state.vertexbuf.vb[0]);
    pctx->set_stream_output_targets(pctx, 0, NULL, NULL);
 
@@ -254,7 +254,7 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    pctx->bind_tes_state(pctx, NULL);
 
    struct pipe_draw_info info = {
-      .mode = PIPE_PRIM_MAX, /* maps to DI_PT_RECTLIST */
+      .mode = MESA_PRIM_COUNT, /* maps to DI_PT_RECTLIST */
       .index_bounds_valid = true,
       .max_index = 1,
       .instance_count = MAX2(1, pfb->layers),
@@ -276,6 +276,35 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    util_blitter_restore_render_cond(blitter);
    util_blitter_unset_running_flag(blitter);
 
+   fd_blitter_pipe_end(ctx);
+}
+
+/* Partially generic clear_render_target implementation using u_blitter */
+void
+fd_blitter_clear_render_target(struct pipe_context *pctx, struct pipe_surface *ps,
+                               const union pipe_color_union *color, unsigned x,
+                               unsigned y, unsigned w, unsigned h,
+                               bool render_condition_enabled)
+{
+   struct fd_context *ctx = fd_context(pctx);
+
+   fd_blitter_pipe_begin(ctx, render_condition_enabled);
+   util_blitter_clear_render_target(ctx->blitter, ps, color, x, y, w, h);
+   fd_blitter_pipe_end(ctx);
+}
+
+/* Partially generic clear_depth_stencil implementation using u_blitter */
+void
+fd_blitter_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
+                               unsigned buffers, double depth, unsigned stencil,
+                               unsigned x, unsigned y, unsigned w, unsigned h,
+                               bool render_condition_enabled)
+{
+   struct fd_context *ctx = fd_context(pctx);
+
+   fd_blitter_pipe_begin(ctx, render_condition_enabled);
+   util_blitter_clear_depth_stencil(ctx->blitter, ps, buffers, depth,
+                                    stencil, x, y, w, h);
    fd_blitter_pipe_end(ctx);
 }
 

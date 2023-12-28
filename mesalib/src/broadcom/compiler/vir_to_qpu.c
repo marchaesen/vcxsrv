@@ -86,15 +86,32 @@ new_qpu_nop_before(struct qinst *inst)
         return q;
 }
 
+static void
+v3d71_set_src(struct v3d_qpu_instr *instr, uint8_t *raddr, struct qpu_reg src)
+{
+        /* If we have a small immediate move it from inst->raddr_b to the
+         * corresponding raddr.
+         */
+        if (src.smimm) {
+                assert(instr->sig.small_imm_a || instr->sig.small_imm_b ||
+                       instr->sig.small_imm_c || instr->sig.small_imm_d);
+                *raddr = instr->raddr_b;
+                return;
+        }
+
+        assert(!src.magic);
+        *raddr = src.index;
+}
+
 /**
  * Allocates the src register (accumulator or register file) into the RADDR
  * fields of the instruction.
  */
 static void
-set_src(struct v3d_qpu_instr *instr, enum v3d_qpu_mux *mux, struct qpu_reg src)
+v3d42_set_src(struct v3d_qpu_instr *instr, enum v3d_qpu_mux *mux, struct qpu_reg src)
 {
         if (src.smimm) {
-                assert(instr->sig.small_imm);
+                assert(instr->sig.small_imm_b);
                 *mux = V3D_QPU_MUX_B;
                 return;
         }
@@ -106,20 +123,20 @@ set_src(struct v3d_qpu_instr *instr, enum v3d_qpu_mux *mux, struct qpu_reg src)
                 return;
         }
 
-        if (instr->alu.add.a != V3D_QPU_MUX_A &&
-            instr->alu.add.b != V3D_QPU_MUX_A &&
-            instr->alu.mul.a != V3D_QPU_MUX_A &&
-            instr->alu.mul.b != V3D_QPU_MUX_A) {
+        if (instr->alu.add.a.mux != V3D_QPU_MUX_A &&
+            instr->alu.add.b.mux != V3D_QPU_MUX_A &&
+            instr->alu.mul.a.mux != V3D_QPU_MUX_A &&
+            instr->alu.mul.b.mux != V3D_QPU_MUX_A) {
                 instr->raddr_a = src.index;
                 *mux = V3D_QPU_MUX_A;
         } else {
                 if (instr->raddr_a == src.index) {
                         *mux = V3D_QPU_MUX_A;
                 } else {
-                        assert(!(instr->alu.add.a == V3D_QPU_MUX_B &&
-                                 instr->alu.add.b == V3D_QPU_MUX_B &&
-                                 instr->alu.mul.a == V3D_QPU_MUX_B &&
-                                 instr->alu.mul.b == V3D_QPU_MUX_B) ||
+                        assert(!(instr->alu.add.a.mux == V3D_QPU_MUX_B &&
+                                 instr->alu.add.b.mux == V3D_QPU_MUX_B &&
+                                 instr->alu.mul.a.mux == V3D_QPU_MUX_B &&
+                                 instr->alu.mul.b.mux == V3D_QPU_MUX_B) ||
                                src.index == instr->raddr_b);
 
                         instr->raddr_b = src.index;
@@ -128,33 +145,40 @@ set_src(struct v3d_qpu_instr *instr, enum v3d_qpu_mux *mux, struct qpu_reg src)
         }
 }
 
-static bool
-is_no_op_mov(struct qinst *qinst)
+/*
+ * The main purpose of the following wrapper is to make calling set_src
+ * cleaner. This is the reason it receives both mux and raddr pointers. Those
+ * will be filled or not based on the device version.
+ */
+static void
+set_src(struct v3d_qpu_instr *instr,
+        enum v3d_qpu_mux *mux,
+        uint8_t *raddr,
+        struct qpu_reg src,
+        const struct v3d_device_info *devinfo)
 {
-        static const struct v3d_qpu_sig no_sig = {0};
+        if (devinfo->ver < 71)
+                return v3d42_set_src(instr, mux, src);
+        else
+                return v3d71_set_src(instr, raddr, src);
+}
 
-        /* Make sure it's just a lone MOV. */
-        if (qinst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||
-            qinst->qpu.alu.mul.op != V3D_QPU_M_MOV ||
-            qinst->qpu.alu.add.op != V3D_QPU_A_NOP ||
-            memcmp(&qinst->qpu.sig, &no_sig, sizeof(no_sig)) != 0) {
-                return false;
-        }
-
-        /* Check if it's a MOV from a register to itself. */
+static bool
+v3d42_mov_src_and_dst_equal(struct qinst *qinst)
+{
         enum v3d_qpu_waddr waddr = qinst->qpu.alu.mul.waddr;
         if (qinst->qpu.alu.mul.magic_write) {
                 if (waddr < V3D_QPU_WADDR_R0 || waddr > V3D_QPU_WADDR_R4)
                         return false;
 
-                if (qinst->qpu.alu.mul.a !=
+                if (qinst->qpu.alu.mul.a.mux !=
                     V3D_QPU_MUX_R0 + (waddr - V3D_QPU_WADDR_R0)) {
                         return false;
                 }
         } else {
                 int raddr;
 
-                switch (qinst->qpu.alu.mul.a) {
+                switch (qinst->qpu.alu.mul.a.mux) {
                 case V3D_QPU_MUX_A:
                         raddr = qinst->qpu.raddr_a;
                         break;
@@ -168,10 +192,61 @@ is_no_op_mov(struct qinst *qinst)
                         return false;
         }
 
+        return true;
+}
+
+static bool
+v3d71_mov_src_and_dst_equal(struct qinst *qinst)
+{
+        if (qinst->qpu.alu.mul.magic_write)
+                return false;
+
+        enum v3d_qpu_waddr waddr = qinst->qpu.alu.mul.waddr;
+        int raddr;
+
+        raddr = qinst->qpu.alu.mul.a.raddr;
+        if (raddr != waddr)
+                return false;
+
+        return true;
+}
+
+static bool
+mov_src_and_dst_equal(struct qinst *qinst,
+                      const struct v3d_device_info *devinfo)
+{
+        if (devinfo->ver < 71)
+                return v3d42_mov_src_and_dst_equal(qinst);
+        else
+                return v3d71_mov_src_and_dst_equal(qinst);
+}
+
+
+static bool
+is_no_op_mov(struct qinst *qinst,
+             const struct v3d_device_info *devinfo)
+{
+        static const struct v3d_qpu_sig no_sig = {0};
+
+        /* Make sure it's just a lone MOV. We only check for M_MOV. Although
+         * for V3D 7.x there is also A_MOV, we don't need to check for it as
+         * we always emit using M_MOV. We could use A_MOV later on the
+         * squedule to improve performance
+         */
+        if (qinst->qpu.type != V3D_QPU_INSTR_TYPE_ALU ||
+            qinst->qpu.alu.mul.op != V3D_QPU_M_MOV ||
+            qinst->qpu.alu.add.op != V3D_QPU_A_NOP ||
+            memcmp(&qinst->qpu.sig, &no_sig, sizeof(no_sig)) != 0) {
+                return false;
+        }
+
+        if (!mov_src_and_dst_equal(qinst, devinfo))
+                return false;
+
         /* No packing or flags updates, or we need to execute the
          * instruction.
          */
-        if (qinst->qpu.alu.mul.a_unpack != V3D_QPU_UNPACK_NONE ||
+        if (qinst->qpu.alu.mul.a.unpack != V3D_QPU_UNPACK_NONE ||
             qinst->qpu.alu.mul.output_pack != V3D_QPU_PACK_NONE ||
             qinst->qpu.flags.mc != V3D_QPU_COND_NONE ||
             qinst->qpu.flags.mpf != V3D_QPU_PF_NONE ||
@@ -187,16 +262,12 @@ v3d_generate_code_block(struct v3d_compile *c,
                         struct qblock *block,
                         struct qpu_reg *temp_registers)
 {
-        int last_vpm_read_index = -1;
-
         vir_for_each_inst_safe(qinst, block) {
 #if 0
                 fprintf(stderr, "translating qinst to qpu: ");
                 vir_dump_inst(c, qinst);
                 fprintf(stderr, "\n");
 #endif
-
-                struct qinst *temp;
 
                 if (vir_has_uniform(qinst))
                         c->num_uniforms++;
@@ -214,9 +285,10 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 break;
                         case QFILE_NULL:
                                 /* QFILE_NULL is an undef, so we can load
-                                 * anything. Using reg 0
+                                 * anything. Using a reg that doesn't have
+                                 * sched. restrictions.
                                  */
-                                src[i] = qpu_reg(0);
+                                src[i] = qpu_reg(5);
                                 break;
                         case QFILE_LOAD_IMM:
                                 assert(!"not reached");
@@ -226,18 +298,6 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 break;
                         case QFILE_SMALL_IMM:
                                 src[i].smimm = true;
-                                break;
-
-                        case QFILE_VPM:
-                                assert((int)qinst->src[i].index >=
-                                       last_vpm_read_index);
-                                (void)last_vpm_read_index;
-                                last_vpm_read_index = qinst->src[i].index;
-
-                                temp = new_qpu_nop_before(qinst);
-                                temp->qpu.sig.ldvpm = true;
-
-                                src[i] = qpu_magic(V3D_QPU_WADDR_R3);
                                 break;
                         }
                 }
@@ -260,10 +320,6 @@ v3d_generate_code_block(struct v3d_compile *c,
                         dst = temp_registers[qinst->dst.index];
                         break;
 
-                case QFILE_VPM:
-                        dst = qpu_magic(V3D_QPU_WADDR_VPM);
-                        break;
-
                 case QFILE_SMALL_IMM:
                 case QFILE_LOAD_IMM:
                         assert(!"not reached");
@@ -275,10 +331,15 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 assert(qinst->qpu.alu.add.op == V3D_QPU_A_NOP);
                                 assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
 
-                                if (!dst.magic ||
-                                    dst.index != V3D_QPU_WADDR_R5) {
-                                        assert(c->devinfo->ver >= 40);
+                                bool use_rf;
+                                if (c->devinfo->has_accumulators) {
+                                        use_rf = !dst.magic ||
+                                                 dst.index != V3D_QPU_WADDR_R5;
+                                } else {
+                                        use_rf = dst.magic || dst.index != 0;
+                                }
 
+                                if (use_rf) {
                                         if (qinst->qpu.sig.ldunif) {
                                            qinst->qpu.sig.ldunif = false;
                                            qinst->qpu.sig.ldunifrf = true;
@@ -298,13 +359,18 @@ v3d_generate_code_block(struct v3d_compile *c,
                                 qinst->qpu.sig_magic = dst.magic;
                         } else if (qinst->qpu.alu.add.op != V3D_QPU_A_NOP) {
                                 assert(qinst->qpu.alu.mul.op == V3D_QPU_M_NOP);
+
                                 if (nsrc >= 1) {
                                         set_src(&qinst->qpu,
-                                                &qinst->qpu.alu.add.a, src[0]);
+                                                &qinst->qpu.alu.add.a.mux,
+                                                &qinst->qpu.alu.add.a.raddr,
+                                                src[0], c->devinfo);
                                 }
                                 if (nsrc >= 2) {
                                         set_src(&qinst->qpu,
-                                                &qinst->qpu.alu.add.b, src[1]);
+                                                &qinst->qpu.alu.add.b.mux,
+                                                &qinst->qpu.alu.add.b.raddr,
+                                                src[1], c->devinfo);
                                 }
 
                                 qinst->qpu.alu.add.waddr = dst.index;
@@ -312,17 +378,21 @@ v3d_generate_code_block(struct v3d_compile *c,
                         } else {
                                 if (nsrc >= 1) {
                                         set_src(&qinst->qpu,
-                                                &qinst->qpu.alu.mul.a, src[0]);
+                                                &qinst->qpu.alu.mul.a.mux,
+                                                &qinst->qpu.alu.mul.a.raddr,
+                                                src[0], c->devinfo);
                                 }
                                 if (nsrc >= 2) {
                                         set_src(&qinst->qpu,
-                                                &qinst->qpu.alu.mul.b, src[1]);
+                                                &qinst->qpu.alu.mul.b.mux,
+                                                &qinst->qpu.alu.mul.b.raddr,
+                                                src[1], c->devinfo);
                                 }
 
                                 qinst->qpu.alu.mul.waddr = dst.index;
                                 qinst->qpu.alu.mul.magic_write = dst.magic;
 
-                                if (is_no_op_mov(qinst)) {
+                                if (is_no_op_mov(qinst, c->devinfo)) {
                                         vir_remove_instruction(c, qinst);
                                         continue;
                                 }
@@ -377,11 +447,7 @@ v3d_dump_qpu(struct v3d_compile *c)
                 const char *str = v3d_qpu_disasm(c->devinfo, c->qpu_insts[i]);
                 fprintf(stderr, "0x%016"PRIx64" %s", c->qpu_insts[i], str);
 
-                /* We can only do this on 4.x, because we're not tracking TMU
-                 * implicit uniforms here on 3.x.
-                 */
-                if (c->devinfo->ver >= 40 &&
-                    reads_uniform(c->devinfo, c->qpu_insts[i])) {
+                if (reads_uniform(c->devinfo, c->qpu_insts[i])) {
                         fprintf(stderr, " (");
                         vir_dump_uniform(c->uniform_contents[next_uniform],
                                          c->uniform_data[next_uniform]);
@@ -393,8 +459,7 @@ v3d_dump_qpu(struct v3d_compile *c)
         }
 
         /* Make sure our dumping lined up. */
-        if (c->devinfo->ver >= 40)
-                assert(next_uniform == c->num_uniforms);
+        assert(next_uniform == c->num_uniforms);
 
         fprintf(stderr, "\n");
 }

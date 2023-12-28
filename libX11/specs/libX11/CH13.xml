@@ -8045,7 +8045,11 @@ set to
 <symbol>XIMPreeditPosition</symbol>.
 When specified to any input method other than 
 <symbol>XIMPreeditPosition</symbol>,
-this <acronym>XIC</acronym> value is ignored.
+this <acronym>XIC</acronym> value is ignored.  Some Xlib implementations
+will allow this to be set when
+<symbol>XNInputStyle</symbol> is set to
+<symbol>XIMPreeditCallbacks</symbol>.  Behavior in that case is
+implementation defined.
 </para>
 <para>
 <!-- .LP -->

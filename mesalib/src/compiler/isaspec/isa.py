@@ -43,7 +43,7 @@ class BitSetPattern(object):
         self.match      = bitset.match
         self.dontcare   = bitset.dontcare
         self.mask       = bitset.mask
-        self.field_mask = bitset.field_mask;
+        self.field_mask = bitset.field_mask
 
     def merge(self, pattern):
         p = BitSetPattern(pattern)
@@ -76,9 +76,9 @@ def extract_pattern(xml, name, is_defined_bits=None):
 
     assert (len(patstr) == (1 + high - low)), "Invalid {} length in {}: {}..{}".format(xml.tag, name, low, high)
     if is_defined_bits is not None:
-        assert not is_defined_bits(mask), "Redefined bits in {} {}: {}..{}".format(xml.tag, name, low, high);
+        assert not is_defined_bits(mask), "Redefined bits in {} {}: {}..{}".format(xml.tag, name, low, high)
 
-    match = 0;
+    match = 0
     dontcare = 0
 
     for n in range(0, len(patstr)):
@@ -114,6 +114,7 @@ class BitSetField(object):
             self.params.append([name, aas])
         self.expr = None
         self.display = None
+        self.call = 'call' in xml.attrib and xml.attrib['call'] == 'true'
         if 'display' in xml.attrib:
             self.display = xml.attrib['display'].strip()
 
@@ -176,6 +177,7 @@ class BitSetDerivedField(BitSetField):
         self.display = None
         if 'display' in xml.attrib:
             self.display = xml.attrib['display'].strip()
+        self.call = 'call' in xml.attrib and xml.attrib['call'] == 'true'
 
 class BitSetCase(object):
     """Class that encapsulates a single bitset case
@@ -240,6 +242,14 @@ class BitSetEncode(object):
             if 'force' in map.attrib and map.attrib['force']  == 'true':
                 self.forced[name] = 'true'
 
+class BitSetDecode(object):
+    """Additional data that may be associated with a root bitset node
+       to provide additional information needed to generate helpers
+       to decode the bitset.
+    """
+    def __init__(self, xml):
+        pass
+
 class BitSet(object):
     """Class that encapsulates a single bitset rule
     """
@@ -247,6 +257,8 @@ class BitSet(object):
         self.isa = isa
         self.xml = xml
         self.name = xml.attrib['name']
+        self.display_name = xml.attrib['displayname'] if 'displayname' in xml.attrib else self.name
+        self.meta = {}
 
         # Used for generated encoder, to de-duplicate encoding for
         # similar instructions:
@@ -263,6 +275,9 @@ class BitSet(object):
         self.encode = None
         if xml.find('encode') is not None:
             self.encode = BitSetEncode(xml.find('encode'))
+        self.decode = None
+        if xml.find('decode') is not None:
+            self.decode = BitSetDecode(xml.find('encode'))
 
         self.gen_min = 0
         self.gen_max = (1 << 32) - 1
@@ -272,6 +287,9 @@ class BitSet(object):
                 self.gen_min = int(gen.attrib['min'])
             if 'max' in gen.attrib:
                 self.gen_max = int(gen.attrib['max'])
+
+        if xml.find('meta') is not None:
+            self.meta = xml.find('meta').attrib
 
         # Collect up the match/dontcare/mask bitmasks for
         # this bitset case:
@@ -291,7 +309,7 @@ class BitSet(object):
             dbg("field: {}.{} => {:016x}".format(self.name, field.name, m))
             # For default case, we don't expect any bits to be doubly defined:
             assert not is_defined_bits(m), "Redefined bits in field {}.{}: {}..{}".format(
-                self.name, field.name, field.low, field.high);
+                self.name, field.name, field.low, field.high)
             self.field_mask |= m
 
         def update_override_bitmask_field(bs, field):
@@ -367,18 +385,56 @@ class BitSet(object):
             return self.isa.bitsets[self.extends].get_root()
         return self
 
+    def get_meta(self):
+        meta = {}
+
+        if self.extends is not None:
+            meta = self.isa.bitsets[self.extends].get_meta()
+
+        if self.meta:
+            meta.update(self.meta)
+
+        return meta
+
+class BitSetTemplate(object):
+    """Class that encapsulates a template declaration
+    """
+    def __init__(self, isa, xml):
+        self.isa = isa
+        self.name = xml.attrib['name']
+        self.display = xml.text.strip()
+        dbg("found template '{}: {}'".format(self.name, self.display))
+
+class BitSetEnumValue(object):
+    """Class that encapsulates an enum value
+    """
+    def __init__(self, isa, xml):
+        self.isa = isa
+        self.displayname = xml.attrib['display']
+        self.value = xml.attrib['val']
+        self.name = xml.attrib.get('name')
+
+    def __str__(self):
+        return self.displayname
+
+    def get_name(self):
+        return self.name or self.displayname
+
+    def get_value(self):
+        return self.value
+
 class BitSetEnum(object):
     """Class that encapsulates an enum declaration
     """
     def __init__(self, isa, xml):
         self.isa = isa
         self.name = xml.attrib['name']
+
         # Table mapping value to name
-        # TODO currently just mapping to 'display' name, but if we
-        # need more attributes then maybe need BitSetEnumValue?
         self.values = {}
         for value in xml.findall('value'):
-            self.values[value.attrib['val']] = value.attrib['display']
+            v = BitSetEnumValue(self, value)
+            self.values[v.get_value()] = v
 
     def get_c_name(self):
         return 'enum_' + get_c_name(self.name)
@@ -412,6 +468,9 @@ class ISA(object):
 
         # Table of (globally defined) expressions:
         self.expressions = {}
+
+        # Table of templates:
+        self.templates = {}
 
         # Table of enums:
         self.enums = {}
@@ -454,6 +513,11 @@ class ISA(object):
         # Extract expressions:
         self.parse_expressions(root)
 
+        # Extract templates:
+        for template in root.findall('template'):
+            t = BitSetTemplate(self, template)
+            self.templates[t.name] = t
+
         # Extract enums:
         for enum in root.findall('enum'):
             e = BitSetEnum(self, enum)
@@ -471,7 +535,16 @@ class ISA(object):
             self.bitsets[b.name] = b
             self.leafs.setdefault(b.name, []).append(b)
 
+        # Resolve all templates:
+        for _, bitset in self.bitsets.items():
+            for case in bitset.cases:
+                if case.display:
+                    case.display = self.resolve_templates(case.display)
+
     def validate_isa(self):
+        # We only support multiples of 32 bits for now
+        assert self.bitsize % 32 == 0
+
         # Do one-time fixups
         # Remove non-leaf nodes from the leafs table:
         for name, bitsets in list(self.leafs.items()):
@@ -488,7 +561,7 @@ class ISA(object):
 
         # Validate that all bitset fields have valid types, and in
         # the case of bitset type, the sizes match:
-        builtin_types = ['branch', 'int', 'uint', 'hex', 'offset', 'uoffset', 'float', 'bool', 'enum']
+        builtin_types = ['branch', 'absbranch', 'int', 'uint', 'hex', 'offset', 'uoffset', 'float', 'bool', 'bool_inv', 'enum', 'custom']
         for bitset_name, bitset in self.bitsets.items():
             if bitset.extends is not None:
                 assert bitset.extends in self.bitsets, "{} extends invalid type: {}".format(
@@ -576,3 +649,23 @@ class ISA(object):
                 continue
             for bitset in bitsets:
                 yield name, bitset
+
+    def resolve_templates(self, display_string):
+        matches = re.findall(r'\{([^\}]+)\}', display_string)
+        for m in matches:
+            if m in self.templates:
+                display_string = display_string.replace("{" + m + "}", self.templates[m].display)
+
+        return display_string
+
+    def instructions(self):
+        instr = []
+
+        for _, root in self.roots.items():
+            for _, leafs in self.leafs.items():
+                for leaf in leafs:
+                    if leaf.get_root() == root:
+                        if not leaf.get_c_name().startswith('__'):
+                            instr.append(leaf)
+
+        return instr

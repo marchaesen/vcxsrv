@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -52,13 +52,13 @@ Copyright 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -69,17 +69,16 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 
 ******************************************************************/
-
+#include "utils.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <X11/keysym.h>
+#undef ERROR
 #include <X11/Xwindows.h>
-
-#if defined(sgi)
-#include <malloc.h>
-#endif
+#undef ERROR
+#define ERROR printf
 
 #define	DEBUG_VAR listingDebug
 #include "xkbcomp.h"
@@ -135,7 +134,9 @@ SOFTWARE.
 
 #define	lowbit(x)	((x) & (-(x)))
 
+#ifdef DEBUG
 unsigned int listingDebug;
+#endif
 
 static int szListing = 0;
 static int nListed = 0;
@@ -164,7 +165,7 @@ AddMapOnly(char *map)
             szMapOnly = 5;
         else
             szMapOnly *= 2;
-        mapOnly = uTypedRealloc(list, szMapOnly, char *);
+        mapOnly = reallocarray(list, szMapOnly, sizeof(char *));
         if (!mapOnly)
         {
             WSGO("Couldn't allocate list of maps\n");
@@ -175,7 +176,7 @@ AddMapOnly(char *map)
     return 1;
 }
 
-int
+static int
 AddListing(char *file, char *map)
 {
     if (nListed >= szListing)
@@ -184,7 +185,7 @@ AddListing(char *file, char *map)
             szListing = 10;
         else
             szListing *= 2;
-        list = uTypedRealloc(list, szListing, Listing);
+        list = reallocarray(list, szListing, sizeof(Listing));
         if (!list)
         {
             WSGO("Couldn't allocate list of files and maps\n");
@@ -204,10 +205,10 @@ AddListing(char *file, char *map)
 /***====================================================================***/
 
 static void
-ListFile(FILE * outFile, char *fileName, XkbFile * map)
+ListFile(FILE *outFile, const char *fileName, XkbFile *map)
 {
-    register unsigned flags;
-    char *mapName;
+    unsigned flags;
+    const char *mapName;
 
     flags = map->flags;
     if ((flags & XkbLC_Hidden) && (!(verboseLevel & WantHiddenMaps)))
@@ -237,7 +238,7 @@ ListFile(FILE * outFile, char *fileName, XkbFile * map)
         mapName = NULL;
     if (dirsToStrip > 0)
     {
-        char *tmp, *last;
+        const char *tmp, *last;
         int i;
         for (i = 0, tmp = last = fileName; (i < dirsToStrip) && tmp; i++)
         {
@@ -288,7 +289,7 @@ AddDirectory(char *head, char *ptrn, char *rest, char *map)
             tmp = strchr(tmp, ')');
             if ((tmp == NULL) || (tmp[1] != '\0'))
             {
-                ERROR1("File and map must have the format file(map)\n");
+                ERROR("File and map must have the format file(map)\n");
                 return 0;
             }
             *map = '\0';
@@ -313,28 +314,33 @@ AddDirectory(char *head, char *ptrn, char *rest, char *map)
     {
         char *tmp, *filename;
         struct stat sbuf;
-        size_t tmpsize;
 
         filename = FileName(file);
         if (!filename || filename[0] == '.')
             continue;
         if (ptrn && (!XkbNameMatchesPattern(filename, ptrn)))
             continue;
-        tmpsize = (head ? strlen(head) : 0) + strlen(filename) + 2;
-        tmp = uAlloc(tmpsize);
+#ifdef HAVE_ASPRINTF
+        if (asprintf(&tmp, "%s%s%s",
+                     (head ? head : ""), (head ? "/" : ""), filename) < 0)
+            continue;
+#else
+        size_t tmpsize = (head ? strlen(head) : 0) + strlen(filename) + 2;
+        tmp = malloc(tmpsize);
         if (!tmp)
             continue;
         snprintf(tmp, tmpsize, "%s%s%s",
                  (head ? head : ""), (head ? "/" : ""), filename);
+#endif
         if (stat(tmp, &sbuf) < 0)
         {
-            uFree(tmp);
+            free(tmp);
             continue;
         }
         if (((rest != NULL) && (!S_ISDIR(sbuf.st_mode))) ||
             ((map != NULL) && (S_ISDIR(sbuf.st_mode))))
         {
-            uFree(tmp);
+            free(tmp);
             continue;
         }
         if (S_ISDIR(sbuf.st_mode))
@@ -398,7 +404,7 @@ AddMatchingFiles(char *head_in)
         || (head
             && ((strchr(head, '(') != NULL) || (strchr(head, ')') != NULL))))
     {
-        ERROR1("Files/maps to list must have the form file(map)\n");
+        ERROR("Files/maps to list must have the form file(map)\n");
         ACTION("Illegal specifier ignored\n");
         return 0;
     }
@@ -410,13 +416,11 @@ AddMatchingFiles(char *head_in)
 static Bool
 MapMatches(char *mapToConsider, char *ptrn)
 {
-    int i;
-
     if (ptrn != NULL)
         return XkbNameMatchesPattern(mapToConsider, ptrn);
     if (nMapOnly < 1)
         return True;
-    for (i = 0; i < nMapOnly; i++)
+    for (int i = 0; i < nMapOnly; i++)
     {
         if (XkbNameMatchesPattern(mapToConsider, mapOnly[i]))
             return True;
@@ -425,24 +429,21 @@ MapMatches(char *mapToConsider, char *ptrn)
 }
 
 int
-GenerateListing(char *out_name)
+GenerateListing(const char *out_name)
 {
-    int i;
-    FILE *inputFile, *outFile;
-    XkbFile *rtrn, *mapToUse;
-    unsigned oldWarningLevel;
-    char *mapName;
+    FILE *outFile;
+    XkbFile *rtrn;
 
     if (nFilesListed < 1)
     {
-        ERROR1("Must specify at least one file or pattern to list\n");
+        ERROR("Must specify at least one file or pattern to list\n");
         return 0;
     }
     if ((!out_name) || ((out_name[0] == '-') && (out_name[1] == '\0')))
         outFile = stdout;
     else if ((outFile = fopen(out_name, "w")) == NULL)
     {
-        ERROR1("Cannot open \"%s\" to write keyboard description\n",
+        ERROR("Cannot open \"%s\" to write keyboard description\n",
                out_name);
         ACTION("Exiting\n");
         return 0;
@@ -451,8 +452,9 @@ GenerateListing(char *out_name)
     if (warningLevel > 9)
         fprintf(stderr, "should list:\n");
 #endif
-    for (i = 0; i < nListed; i++)
+    for (int i = 0; i < nListed; i++)
     {
+        unsigned oldWarningLevel;
 #ifdef DEBUG
         if (warningLevel > 9)
         {
@@ -465,12 +467,13 @@ GenerateListing(char *out_name)
         warningLevel = 0;
         if (list[i].file)
         {
+            FILE *inputFile;
             struct stat sbuf;
 
             if (stat(list[i].file, &sbuf) < 0)
             {
                 if (oldWarningLevel > 5)
-                    WARN1("Couldn't open \"%s\"\n", list[i].file);
+                    WARN("Couldn't open \"%s\"\n", list[i].file);
                 continue;
             }
             if (S_ISDIR(sbuf.st_mode))
@@ -484,14 +487,14 @@ GenerateListing(char *out_name)
             if (!inputFile)
             {
                 if (oldWarningLevel > 5)
-                    WARN1("Couldn't open \"%s\"\n", list[i].file);
+                    WARN("Couldn't open \"%s\"\n", list[i].file);
                 continue;
             }
             setScanState(list[i].file, 1);
             if (XKBParseFile(inputFile, &rtrn) && (rtrn != NULL))
             {
-                mapName = list[i].map;
-                mapToUse = rtrn;
+                char *mapName = list[i].map;
+                XkbFile *mapToUse = rtrn;
                 for (; mapToUse; mapToUse = (XkbFile *) mapToUse->common.next)
                 {
                     if (!MapMatches(mapToUse->name, mapName))
@@ -502,6 +505,10 @@ GenerateListing(char *out_name)
             fclose(inputFile);
         }
         warningLevel = oldWarningLevel;
+    }
+    if (outFile != stdout)
+    {
+        fclose(outFile);
     }
     return 1;
 }

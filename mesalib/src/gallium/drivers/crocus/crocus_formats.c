@@ -456,7 +456,7 @@ crocus_is_format_supported(struct pipe_screen *pscreen,
           pformat == PIPE_FORMAT_X24S8_UINT ||
           pformat == PIPE_FORMAT_S8X24_UINT ||
           pformat == PIPE_FORMAT_X32_S8X24_UINT)
-         return FALSE;
+         return false;
    }
 
    const struct isl_format_layout *fmtl = isl_format_get_layout(format);

@@ -35,6 +35,12 @@ void
 etna_lower_alu(nir_shader *shader, bool has_new_transcendentals);
 
 bool
+etna_nir_lower_texture(nir_shader *s, struct etna_shader_key *key);
+
+bool
+etna_nir_lower_to_source_mods(nir_shader *shader);
+
+bool
 etna_nir_lower_ubo_to_uniform(nir_shader *shader);
 
 #endif

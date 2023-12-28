@@ -1,5 +1,5 @@
-#!/bin/sh
-
+#!/usr/bin/env bash
+# shellcheck disable=SC2086 # we want word splitting
 set -e
 
 # If run outside of a deqp-runner invoction (e.g. piglit trace replay), then act
@@ -35,7 +35,7 @@ set_vsock_context() {
     rm -rf $VM_TEMP_DIR
     mkdir $VM_TEMP_DIR || return 1
 
-    VSOCK_CID=$(((CI_JOB_ID & 0x1ffffff) | ((${THREAD} & 0x7f) << 25)))
+    VSOCK_CID=$(((CI_JOB_ID & 0x1ffffff) | ((THREAD & 0x7f) << 25)))
     VSOCK_STDOUT=5001
     VSOCK_STDERR=5002
 
@@ -66,9 +66,11 @@ set_vsock_context || { echo "Could not generate crosvm vsock CID" >&2; exit 1; }
 echo "Variables passed through:"
 SCRIPT_DIR=$(readlink -en "${0%/*}")
 ${SCRIPT_DIR}/common/generate-env.sh | tee ${VM_TEMP_DIR}/crosvm-env.sh
+cp ${SCRIPT_DIR}/setup-test-env.sh ${VM_TEMP_DIR}/setup-test-env.sh
 
 # Set the crosvm-script as the arguments of the current script
-echo "$@" > ${VM_TEMP_DIR}/crosvm-script.sh
+echo ". ${VM_TEMP_DIR}/setup-test-env.sh" > ${VM_TEMP_DIR}/crosvm-script.sh
+echo "$@" >> ${VM_TEMP_DIR}/crosvm-script.sh
 
 # Setup networking
 /usr/sbin/iptables-legacy -w -t nat -A POSTROUTING -o eth0 -j MASQUERADE
@@ -95,10 +97,11 @@ NIR_DEBUG="novalidate" \
 LIBGL_ALWAYS_SOFTWARE=${CROSVM_LIBGL_ALWAYS_SOFTWARE} \
 GALLIUM_DRIVER=${CROSVM_GALLIUM_DRIVER} \
 VK_ICD_FILENAMES=$CI_PROJECT_DIR/install/share/vulkan/icd.d/${CROSVM_VK_DRIVER}_icd.x86_64.json \
-crosvm run \
-    --gpu "${CROSVM_GPU_ARGS}" -m "${CROSVM_MEMORY:-4096}" -c 2 --disable-sandbox \
+crosvm --no-syslog run \
+    --gpu "${CROSVM_GPU_ARGS}" --gpu-render-server "path=/usr/local/libexec/virgl_render_server" \
+    -m "${CROSVM_MEMORY:-4096}" -c "${CROSVM_CPU:-2}" --disable-sandbox \
     --shared-dir /:my_root:type=fs:writeback=true:timeout=60:cache=always \
-    --host_ip "192.168.30.1" --netmask "255.255.255.0" --mac "AA:BB:CC:00:00:12" \
+    --net "host-ip=192.168.30.1,netmask=255.255.255.0,mac=AA:BB:CC:00:00:12" \
     -s $VM_SOCKET \
     --cid ${VSOCK_CID} -p "${CROSVM_KERN_ARGS}" \
     /lava-files/${KERNEL_IMAGE_NAME:-bzImage} > ${VM_TEMP_DIR}/crosvm 2>&1

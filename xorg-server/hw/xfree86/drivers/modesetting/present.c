@@ -165,6 +165,13 @@ ms_present_abort_vblank(RRCrtcPtr crtc, uint64_t event_id, uint64_t msc)
 {
     ScreenPtr screen = crtc->pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
+#ifdef GLAMOR_HAS_GBM
+    xf86CrtcPtr xf86_crtc = crtc->devPrivate;
+
+    /* Check if this is a fake flip routed through TearFree and abort it */
+    if (ms_tearfree_dri_abort(xf86_crtc, ms_present_event_match, &event_id))
+        return;
+#endif
 
     ms_drm_abort(scrn, ms_present_event_match, &event_id);
 }
@@ -318,14 +325,35 @@ ms_present_check_flip(RRCrtcPtr crtc,
     modesettingPtr ms = modesettingPTR(scrn);
 
     if (ms->drmmode.sprites_visible > 0)
-        return FALSE;
+        goto no_flip;
+
+    if (ms->drmmode.pending_modeset)
+        goto no_flip;
 
     if(!ms_present_check_unflip(crtc, window, pixmap, sync_flip, reason))
-        return FALSE;
+        goto no_flip;
 
     ms->flip_window = window;
 
     return TRUE;
+
+no_flip:
+    /* Export some info about TearFree if Present can't flip anyway */
+    if (reason) {
+        xf86CrtcPtr xf86_crtc = crtc->devPrivate;
+        drmmode_crtc_private_ptr drmmode_crtc = xf86_crtc->driver_private;
+        drmmode_tearfree_ptr trf = &drmmode_crtc->tearfree;
+
+        if (ms_tearfree_is_active_on_crtc(xf86_crtc)) {
+            if (trf->flip_seq)
+                /* The driver has a TearFree flip pending */
+                *reason = PRESENT_FLIP_REASON_DRIVER_TEARFREE_FLIPPING;
+            else
+                /* The driver uses TearFree flips and there's no flip pending */
+                *reason = PRESENT_FLIP_REASON_DRIVER_TEARFREE;
+        }
+    }
+    return FALSE;
 }
 
 /*
@@ -343,11 +371,12 @@ ms_present_flip(RRCrtcPtr crtc,
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
     xf86CrtcPtr xf86_crtc = crtc->devPrivate;
-    drmmode_crtc_private_ptr drmmode_crtc = xf86_crtc->driver_private;
     Bool ret;
     struct ms_present_vblank_event *event;
 
-    if (!ms_present_check_flip(crtc, ms->flip_window, pixmap, sync_flip, NULL))
+    /* A NULL pixmap means this is a fake flip to be routed through TearFree */
+    if (pixmap &&
+        !ms_present_check_flip(crtc, ms->flip_window, pixmap, sync_flip, NULL))
         return FALSE;
 
     event = calloc(1, sizeof(struct ms_present_vblank_event));
@@ -360,6 +389,12 @@ ms_present_flip(RRCrtcPtr crtc,
     event->event_id = event_id;
     event->unflip = FALSE;
 
+    /* Register the fake flip (indicated by a NULL pixmap) with TearFree */
+    if (!pixmap)
+        return ms_do_pageflip(screen, NULL, event, xf86_crtc, FALSE,
+                              ms_present_flip_handler, ms_present_flip_abort,
+                              "Present-TearFree-flip");
+
     /* A window can only flip if it covers the entire X screen.
      * Only one window can flip at a time.
      *
@@ -371,7 +406,7 @@ ms_present_flip(RRCrtcPtr crtc,
         ms_present_set_screen_vrr(scrn, TRUE);
     }
 
-    ret = ms_do_pageflip(screen, pixmap, event, drmmode_crtc->vblank_pipe, !sync_flip,
+    ret = ms_do_pageflip(screen, pixmap, event, xf86_crtc, !sync_flip,
                          ms_present_flip_handler, ms_present_flip_abort,
                          "Present-flip");
     if (ret)
@@ -403,7 +438,7 @@ ms_present_unflip(ScreenPtr screen, uint64_t event_id)
     event->unflip = TRUE;
 
     if (ms_present_check_unflip(NULL, screen->root, pixmap, TRUE, NULL) &&
-        ms_do_pageflip(screen, pixmap, event, -1, FALSE,
+        ms_do_pageflip(screen, pixmap, event, NULL, FALSE,
                        ms_present_flip_handler, ms_present_flip_abort,
                        "Present-unflip")) {
         return;

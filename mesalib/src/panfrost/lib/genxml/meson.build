@@ -20,7 +20,7 @@
 # SOFTWARE.
 
 pan_packers = []
-foreach packer : ['common', 'v4', 'v5', 'v6', 'v7', 'v9']
+foreach packer : ['common', 'v4', 'v5', 'v6', 'v7', 'v9', 'v10']
   pan_packers += custom_target(
     packer + '_pack.h',
     input : ['gen_pack.py', packer + '.xml'],
@@ -37,10 +37,10 @@ idep_pan_packers = declare_dependency(
 
 libpanfrost_decode_per_arch = []
 
-foreach ver : ['4', '5', '6', '7', '9']
+foreach ver : ['4', '5', '6', '7', '9', '10']
   libpanfrost_decode_per_arch += static_library(
     'pandecode-arch-v' + ver,
-    ['decode.c', pan_packers],
+    ['decode.c', 'decode_jm.c', 'decode_csf.c', pan_packers],
     include_directories : [inc_include, inc_src, inc_panfrost],
     dependencies : [dep_libdrm, idep_pan_packers, idep_nir],
     c_args : [no_override_init_args, '-DPAN_ARCH=' + ver],

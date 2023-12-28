@@ -32,9 +32,10 @@
 
 #include <windows.h>
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
+#include "util/simple_mtx.h"
 #include "util/u_debug.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 
 #include "rtasm_execmem.h"
@@ -43,14 +44,11 @@
 #define MAP_ANONYMOUS MAP_ANON
 #endif
 
-#if defined(PIPE_OS_WINDOWS)
-#ifndef WIN32_LEAN_AND_MEAN
-#define WIN32_LEAN_AND_MEAN 1
-#endif
+#if DETECT_OS_WINDOWS
 #include <windows.h>
 #endif
 
-#if defined(PIPE_OS_UNIX)
+#if DETECT_OS_UNIX
 
 
 /*
@@ -64,7 +62,7 @@
 
 #define EXEC_HEAP_SIZE (10*1024*1024)
 
-static mtx_t exec_mutex = _MTX_INITIALIZER_NP;
+static simple_mtx_t exec_mutex = SIMPLE_MTX_INITIALIZER;
 
 static struct mem_block *exec_heap = NULL;
 static unsigned char *exec_mem = NULL;
@@ -75,11 +73,11 @@ init_heap(void)
 {
    if (!exec_heap)
       exec_heap = u_mmInit( 0, EXEC_HEAP_SIZE );
-   
+
    if (!exec_mem)
       exec_mem = (unsigned char *) mmap(NULL, EXEC_HEAP_SIZE,
-					PROT_EXEC | PROT_READ | PROT_WRITE, 
-					MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+         PROT_EXEC | PROT_READ | PROT_WRITE,
+         MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 
    return (exec_mem != MAP_FAILED);
 }
@@ -91,7 +89,7 @@ rtasm_exec_malloc(size_t size)
    struct mem_block *block = NULL;
    void *addr = NULL;
 
-   mtx_lock(&exec_mutex);
+   simple_mtx_lock(&exec_mutex);
 
    if (!init_heap())
       goto bail;
@@ -103,33 +101,33 @@ rtasm_exec_malloc(size_t size)
 
    if (block)
       addr = exec_mem + block->ofs;
-   else 
+   else
       debug_printf("rtasm_exec_malloc failed\n");
 
 bail:
-   mtx_unlock(&exec_mutex);
-   
+   simple_mtx_unlock(&exec_mutex);
+
    return addr;
 }
 
- 
-void 
+
+void
 rtasm_exec_free(void *addr)
 {
-   mtx_lock(&exec_mutex);
+   simple_mtx_lock(&exec_mutex);
 
    if (exec_heap) {
       struct mem_block *block = u_mmFindBlock(exec_heap, (unsigned char *)addr - exec_mem);
-   
+
       if (block)
-	 u_mmFreeMem(block);
+         u_mmFreeMem(block);
    }
 
-   mtx_unlock(&exec_mutex);
+   simple_mtx_unlock(&exec_mutex);
 }
 
 
-#elif defined(PIPE_OS_WINDOWS)
+#elif DETECT_OS_WINDOWS
 
 
 /*
@@ -163,8 +161,8 @@ rtasm_exec_malloc(size_t size)
    return MALLOC( size );
 }
 
- 
-void 
+
+void
 rtasm_exec_free(void *addr)
 {
    FREE(addr);

@@ -9,6 +9,7 @@ INCLUDES += \
 	$(top_srcdir)/src \
 	$(top_srcdir)/src/mapi \
 	$(top_srcdir)/src/mesa/ \
+	$(top_srcdir)/src/compiler\
 	$(top_srcdir)/src/compiler/glsl\
 	$(top_srcdir)/src/compiler/spirv\
 	$(top_srcdir)/src/compiler/nir \

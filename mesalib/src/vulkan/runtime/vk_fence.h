@@ -51,7 +51,7 @@ struct vk_fence {
     *
     * This field must be last
     */
-   _Alignas(8) struct vk_sync permanent;
+   alignas(8) struct vk_sync permanent;
 };
 
 VK_DEFINE_NONDISP_HANDLE_CASTS(vk_fence, base, VkFence,

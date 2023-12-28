@@ -32,7 +32,7 @@
  */
 
 #include <stdbool.h>
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/draw_validate.h"
 #include "main/enums.h"

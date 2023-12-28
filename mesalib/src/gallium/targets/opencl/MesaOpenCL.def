@@ -1,5 +1,0 @@
-EXPORTS
-clGetPlatformInfo
-clGetExtensionFunctionAddress
-clGetExtensionFunctionAddressForPlatform
-clIcdGetPlatformIDsKHR

@@ -364,7 +364,8 @@ clEnqueueTask(cl_command_queue d_q, cl_kernel d_kern,
 }
 
 CLOVER_API cl_int
-clEnqueueNativeKernel(cl_command_queue d_q, void (*func)(void *),
+clEnqueueNativeKernel(cl_command_queue d_q,
+                      void (CL_CALLBACK * func)(void *),
                       void *args, size_t args_size,
                       cl_uint num_mems, const cl_mem *d_mems,
                       const void **mem_handles, cl_uint num_deps,

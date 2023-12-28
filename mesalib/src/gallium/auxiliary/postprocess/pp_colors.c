@@ -65,7 +65,7 @@ pp_nored_init(struct pp_queue_t *ppq, unsigned int n, unsigned int val)
    ppq->shaders[n][1] =
       pp_tgsi_to_state(ppq->p->pipe, nored, false, "nored");
 
-   return (ppq->shaders[n][1] != NULL) ? TRUE : FALSE;
+   return (ppq->shaders[n][1] != NULL) ? true : false;
 }
 
 
@@ -75,7 +75,7 @@ pp_nogreen_init(struct pp_queue_t *ppq, unsigned int n, unsigned int val)
    ppq->shaders[n][1] =
       pp_tgsi_to_state(ppq->p->pipe, nogreen, false, "nogreen");
 
-   return (ppq->shaders[n][1] != NULL) ? TRUE : FALSE;
+   return (ppq->shaders[n][1] != NULL) ? true : false;
 }
 
 
@@ -85,7 +85,7 @@ pp_noblue_init(struct pp_queue_t *ppq, unsigned int n, unsigned int val)
    ppq->shaders[n][1] =
       pp_tgsi_to_state(ppq->p->pipe, noblue, false, "noblue");
 
-   return (ppq->shaders[n][1] != NULL) ? TRUE : FALSE;
+   return (ppq->shaders[n][1] != NULL) ? true : false;
 }
 
 /* Free functions */

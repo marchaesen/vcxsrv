@@ -29,100 +29,80 @@
 #error "no arch"
 #endif
 
-#include <vulkan/vulkan.h>
 #include "compiler/shader_enums.h"
+#include <vulkan/vulkan.h>
+
+void panvk_per_arch(emit_varying)(const struct panvk_device *dev,
+                                  const struct panvk_varyings_info *varyings,
+                                  gl_shader_stage stage, unsigned idx,
+                                  void *attrib);
+
+void panvk_per_arch(emit_varyings)(const struct panvk_device *dev,
+                                   const struct panvk_varyings_info *varyings,
+                                   gl_shader_stage stage, void *descs);
 
 void
-panvk_per_arch(emit_varying)(const struct panvk_device *dev,
-                             const struct panvk_varyings_info *varyings,
-                             gl_shader_stage stage, unsigned idx,
-                             void *attrib);
+   panvk_per_arch(emit_varying_bufs)(const struct panvk_varyings_info *varyings,
+                                     void *descs);
+
+void panvk_per_arch(emit_attrib_bufs)(const struct panvk_attribs_info *info,
+                                      const struct panvk_attrib_buf *bufs,
+                                      unsigned buf_count,
+                                      const struct panvk_draw_info *draw,
+                                      void *descs);
+
+void panvk_per_arch(emit_attribs)(const struct panvk_device *dev,
+                                  const struct panvk_draw_info *draw,
+                                  const struct panvk_attribs_info *attribs,
+                                  const struct panvk_attrib_buf *bufs,
+                                  unsigned buf_count, void *descs);
+
+void panvk_per_arch(emit_ubo)(mali_ptr address, size_t size, void *desc);
+
+void panvk_per_arch(emit_ubos)(const struct panvk_pipeline *pipeline,
+                               const struct panvk_descriptor_state *state,
+                               void *descs);
+
+void panvk_per_arch(emit_sampler)(const VkSamplerCreateInfo *pCreateInfo,
+                                  void *desc);
+
+void panvk_per_arch(emit_vertex_job)(const struct panvk_pipeline *pipeline,
+                                     const struct panvk_draw_info *draw,
+                                     void *job);
 
 void
-panvk_per_arch(emit_varyings)(const struct panvk_device *dev,
-                              const struct panvk_varyings_info *varyings,
-                              gl_shader_stage stage,
-                              void *descs);
+   panvk_per_arch(emit_compute_job)(const struct panvk_pipeline *pipeline,
+                                    const struct panvk_dispatch_info *dispatch,
+                                    void *job);
 
-void
-panvk_per_arch(emit_varying_bufs)(const struct panvk_varyings_info *varyings,
-                                  void *descs);
+void panvk_per_arch(emit_tiler_job)(const struct panvk_pipeline *pipeline,
+                                    const struct panvk_draw_info *draw,
+                                    void *job);
 
-void
-panvk_per_arch(emit_attrib_bufs)(const struct panvk_attribs_info *info,
-                                 const struct panvk_attrib_buf *bufs,
-                                 unsigned buf_count,
-                                 const struct panvk_draw_info *draw,
-                                 void *descs);
+void panvk_per_arch(emit_viewport)(const VkViewport *viewport,
+                                   const VkRect2D *scissor, void *vpd);
 
-void
-panvk_per_arch(emit_attribs)(const struct panvk_device *dev,
-                             const struct panvk_draw_info *draw,
-                             const struct panvk_attribs_info *attribs,
-                             const struct panvk_attrib_buf *bufs,
-                             unsigned buf_count,
-                             void *descs);
+void panvk_per_arch(emit_blend)(const struct panvk_device *dev,
+                                const struct panvk_pipeline *pipeline,
+                                unsigned rt, void *bd);
 
-void
-panvk_per_arch(emit_ubo)(mali_ptr address, size_t size,  void *desc);
+void panvk_per_arch(emit_blend_constant)(const struct panvk_device *dev,
+                                         const struct panvk_pipeline *pipeline,
+                                         unsigned rt, const float *constants,
+                                         void *bd);
 
-void
-panvk_per_arch(emit_ubos)(const struct panvk_pipeline *pipeline,
-                          const struct panvk_descriptor_state *state,
-                          void *descs);
+void panvk_per_arch(emit_dyn_fs_rsd)(const struct panvk_pipeline *pipeline,
+                                     const struct panvk_cmd_state *state,
+                                     void *rsd);
 
-void
-panvk_per_arch(emit_sampler)(const VkSamplerCreateInfo *pCreateInfo,
-                             void *desc);
+void panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
+                                      const struct panvk_pipeline *pipeline,
+                                      void *rsd);
 
-void
-panvk_per_arch(emit_vertex_job)(const struct panvk_pipeline *pipeline,
-                                const struct panvk_draw_info *draw,
-                                void *job);
+void panvk_per_arch(emit_non_fs_rsd)(const struct panvk_device *dev,
+                                     const struct pan_shader_info *shader_info,
+                                     mali_ptr shader_ptr, void *rsd);
 
-void
-panvk_per_arch(emit_compute_job)(const struct panvk_pipeline *pipeline,
-                                 const struct panvk_dispatch_info *dispatch,
-                                 void *job);
-
-void
-panvk_per_arch(emit_tiler_job)(const struct panvk_pipeline *pipeline,
-                               const struct panvk_draw_info *draw,
-                               void *job);
-
-void
-panvk_per_arch(emit_viewport)(const VkViewport *viewport,
-                              const VkRect2D *scissor,
-                              void *vpd);
-
-void
-panvk_per_arch(emit_blend)(const struct panvk_device *dev,
-                           const struct panvk_pipeline *pipeline,
-                           unsigned rt, void *bd);
-
-void
-panvk_per_arch(emit_blend_constant)(const struct panvk_device *dev,
-                                    const struct panvk_pipeline *pipeline,
-                                    unsigned rt, const float *constants,
-                                    void *bd);
-
-void
-panvk_per_arch(emit_dyn_fs_rsd)(const struct panvk_pipeline *pipeline,
-                                const struct panvk_cmd_state *state,
-                                void *rsd);
-
-void
-panvk_per_arch(emit_base_fs_rsd)(const struct panvk_device *dev,
-                                 const struct panvk_pipeline *pipeline,
-                                 void *rsd);
-
-void
-panvk_per_arch(emit_non_fs_rsd)(const struct panvk_device *dev,
-                                const struct pan_shader_info *shader_info,
-                                mali_ptr shader_ptr,
-                                void *rsd);
-
-void
-panvk_per_arch(emit_tiler_context)(const struct panvk_device *dev,
-                                   unsigned width, unsigned height,
-                                   const struct panfrost_ptr *descs);
+void panvk_per_arch(emit_tiler_context)(const struct panvk_device *dev,
+                                        unsigned width, unsigned height,
+                                        const struct panfrost_ptr *descs);

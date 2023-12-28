@@ -29,7 +29,13 @@
 
 #include "pipe/p_context.h"
 
+#include "common/freedreno_common.h"
+
+BEGINC;
+
 void fd_prog_init(struct pipe_context *pctx);
 void fd_prog_fini(struct pipe_context *pctx);
+
+ENDC;
 
 #endif /* FREEDRENO_PROGRAM_H_ */

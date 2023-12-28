@@ -48,9 +48,9 @@ in this Software without prior written authorization from The Open Group.
 
   The binary protocol has the following format:
 
-	Card8:		8-bit unsingned integer
-	Card16:		16-bit unsingned integer
-	Card32:		32-bit unsingned integer
+	Card8:		8-bit unsigned integer
+	Card16:		16-bit unsigned integer
+	Card32:		32-bit unsigned integer
 	Int16:		16-bit signed integer
 	Window:		32-bit value
 	Widget:		32-bit value
@@ -59,7 +59,7 @@ in this Software without prior written authorization from The Open Group.
 	[a][b][c] represent an exclusive list of choices.
 
 	All widgets are passed as a list of widgets, containing the
-	full instance heirarch of this widget.  The hierarchy is ordered
+	full instance heirarchy of this widget.  The hierarchy is ordered
 	from parent to child.  Thus the first element of each list is
 	the root of the widget tree (this makes verifying that the widget
 	still exists, MUCH faster).
@@ -128,9 +128,9 @@ in this Software without prior written authorization from The Open Group.
 		window:		Card32
          	toolkit:        String8
 
-	Send Widget Tree returns the toolkit type, and a fuly specified list
+        SendWidgetTree returns the toolkit type, and a fully specified list
         of widgets for each widget in the tree.  This is enough information
-        to completely reconstruct the entire widget heirarchy.
+        to completely reconstruct the entire widget hierarchy.
 
 	The window return value contains the Xid of the window currently
 	used by this widget.  If the widget is unrealized then 0 is returned,
@@ -194,8 +194,8 @@ in this Software without prior written authorization from The Open Group.
 			Class:	String8
 			Type:	String8 ]
 
-	GetResource retrieves the kind, name, class and type for every
-	widget passed to it.  If an error occured with the resource fetch
+	GetResources retrieves the kind, name, class, and type for every
+	widget passed to it.  If an error occurred with the resource fetch
 	Error will be set to True for the given widget and a message
 	is returned rather than the resource info.
 
@@ -220,11 +220,11 @@ in this Software without prior written authorization from The Open Group.
 	      	  Height:	Card16
 		  BorderWidth:	Card16 ]
 
-	GetGeometry retreives the mapping state, x, y, width, height
-	and border width for each widget specified.  If an error occured
+	GetGeometry retrieves the mapping state, x, y, width, height
+	and border width for each widget specified.  If an error occurred
 	with the geometry fetch "Error" will be set to True for the given
 	widget and a message is returned rather than the geometry info.
-	X an Y corrospond to the root coordinates of the upper left corner
+	X an Y correspond to the root coordinates of the upper left corner
 	of the widget (outside the window border).
 
   FindChild:
@@ -237,7 +237,7 @@ in this Software without prior written authorization from The Open Group.
 
 	Widget:		ListOfWidgets
 
-	Find Child returns a descendent of the widget specified that
+	FindChild returns a descendent of the widget specified that
 	is at the root coordinates specified.
 
 	NOTE:

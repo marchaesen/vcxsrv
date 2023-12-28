@@ -1,28 +1,8 @@
 /*
  * Copyright © 2011 Marek Olšák <maraeo@gmail.com>
  * Copyright © 2015 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AMDGPU_CS_H
@@ -44,8 +24,14 @@ struct amdgpu_ctx {
    amdgpu_bo_handle user_fence_bo;
    uint64_t *user_fence_cpu_address_base;
    int refcount;
-   unsigned initial_num_total_rejected_cs;
-   bool rejected_any_cs;
+
+   /* If true, report lost contexts and skip command submission.
+    * If false, terminate the process.
+    */
+   bool allow_context_lost;
+
+   /* Lost context status due to ioctl and allocation failures. */
+   enum pipe_reset_status sw_status;
 };
 
 struct amdgpu_cs_buffer {
@@ -61,11 +47,9 @@ enum ib_type {
 };
 
 struct amdgpu_ib {
-   struct radeon_cmdbuf *rcs; /* pointer to the driver-owned data */
-
    /* A buffer out of which new IBs are allocated. */
-   struct pb_buffer        *big_ib_buffer;
-   uint8_t                 *ib_mapped;
+   struct pb_buffer        *big_buffer;
+   uint8_t                 *big_buffer_cpu_ptr;
    unsigned                used_ib_space;
 
    /* The maximum seen size from cs_check_space. If the driver does
@@ -74,10 +58,13 @@ struct amdgpu_ib {
     */
    unsigned                max_check_space_size;
 
-   unsigned                max_ib_size;
+   unsigned                max_ib_size_dw;
+   /* ptr_ib_size initially points to cs->csc->chunk_ib->ib_bytes.
+    * If in amdgpu_cs_check_space() ib chaining is required, then ptr_ib_size will point
+    * to indirect buffer packet size field.
+    */
    uint32_t                *ptr_ib_size;
-   bool                    ptr_ib_size_inside_ib;
-   enum ib_type            ib_type;
+   bool                    is_chained_ib;
 };
 
 struct amdgpu_fence_list {
@@ -86,29 +73,23 @@ struct amdgpu_fence_list {
    unsigned                    max;
 };
 
+struct amdgpu_buffer_list {
+   unsigned                    max_buffers;
+   unsigned                    num_buffers;
+   struct amdgpu_cs_buffer     *buffers;
+};
+
 struct amdgpu_cs_context {
-   struct drm_amdgpu_cs_chunk_ib ib[IB_NUM];
+   struct drm_amdgpu_cs_chunk_ib chunk_ib[IB_NUM];
    uint32_t                    *ib_main_addr; /* the beginning of IB before chaining */
 
    struct amdgpu_winsys *ws;
 
    /* Buffers. */
-   unsigned                    max_real_buffers;
-   unsigned                    num_real_buffers;
-   struct amdgpu_cs_buffer     *real_buffers;
-
-   unsigned                    num_slab_buffers;
-   unsigned                    max_slab_buffers;
-   struct amdgpu_cs_buffer     *slab_buffers;
-
-   unsigned                    num_sparse_buffers;
-   unsigned                    max_sparse_buffers;
-   struct amdgpu_cs_buffer     *sparse_buffers;
-
+   struct amdgpu_buffer_list   buffer_lists[NUM_BO_LIST_TYPES];
    int16_t                     *buffer_indices_hashlist;
 
    struct amdgpu_winsys_bo     *last_added_bo;
-   unsigned                    last_added_bo_index;
    unsigned                    last_added_bo_usage;
 
    struct amdgpu_fence_list    fence_dependencies;
@@ -128,11 +109,15 @@ struct amdgpu_cs_context {
 #define BUFFER_HASHLIST_SIZE 32768
 
 struct amdgpu_cs {
-   struct amdgpu_ib main; /* must be first because this is inherited */
+   struct amdgpu_ib main_ib; /* must be first because this is inherited */
    struct amdgpu_winsys *ws;
    struct amdgpu_ctx *ctx;
-   enum amd_ip_type ip_type;
+
+   /*
+    * Ensure a 64-bit alignment for drm_amdgpu_cs_chunk_fence.
+    */
    struct drm_amdgpu_cs_chunk_fence fence_chunk;
+   enum amd_ip_type ip_type;
 
    /* We flip between these two CS. While one is being consumed
     * by the kernel in another thread, the other one is being filled
@@ -154,13 +139,14 @@ struct amdgpu_cs {
    /* Flush CS. */
    void (*flush_cs)(void *ctx, unsigned flags, struct pipe_fence_handle **fence);
    void *flush_data;
-   bool allow_context_lost;
    bool noop;
    bool has_chaining;
 
    struct util_queue_fence flush_completed;
    struct pipe_fence_handle *next_fence;
    struct pb_buffer *preamble_ib_bo;
+
+   struct drm_amdgpu_cs_chunk_cp_gfx_shadow mcbp_fw_shadow_chunk;
 };
 
 struct amdgpu_fence {
@@ -215,13 +201,14 @@ static inline void amdgpu_fence_reference(struct pipe_fence_handle **dst,
    *adst = asrc;
 }
 
-int amdgpu_lookup_buffer_any_type(struct amdgpu_cs_context *cs, struct amdgpu_winsys_bo *bo);
+struct amdgpu_cs_buffer *
+amdgpu_lookup_buffer_any_type(struct amdgpu_cs_context *cs, struct amdgpu_winsys_bo *bo);
 
 static inline struct amdgpu_cs *
 amdgpu_cs(struct radeon_cmdbuf *rcs)
 {
    struct amdgpu_cs *cs = (struct amdgpu_cs*)rcs->priv;
-   assert(!cs || cs->main.ib_type == IB_MAIN);
+   assert(cs);
    return cs;
 }
 
@@ -232,7 +219,14 @@ static inline bool
 amdgpu_bo_is_referenced_by_cs(struct amdgpu_cs *cs,
                               struct amdgpu_winsys_bo *bo)
 {
-   return amdgpu_lookup_buffer_any_type(cs->csc, bo) != -1;
+   return amdgpu_lookup_buffer_any_type(cs->csc, bo) != NULL;
+}
+
+static inline unsigned get_buf_list_idx(struct amdgpu_winsys_bo *bo)
+{
+   /* AMDGPU_BO_REAL_REUSABLE maps to AMDGPU_BO_REAL. */
+   static_assert(ARRAY_SIZE(((struct amdgpu_cs_context*)NULL)->buffer_lists) == NUM_BO_LIST_TYPES, "");
+   return MIN2(bo->type, AMDGPU_BO_REAL);
 }
 
 static inline bool
@@ -240,18 +234,9 @@ amdgpu_bo_is_referenced_by_cs_with_usage(struct amdgpu_cs *cs,
                                          struct amdgpu_winsys_bo *bo,
                                          unsigned usage)
 {
-   int index;
-   struct amdgpu_cs_buffer *buffer;
+   struct amdgpu_cs_buffer *buffer = amdgpu_lookup_buffer_any_type(cs->csc, bo);
 
-   index = amdgpu_lookup_buffer_any_type(cs->csc, bo);
-   if (index == -1)
-      return false;
-
-   buffer = bo->bo ? &cs->csc->real_buffers[index] :
-            bo->base.usage & RADEON_FLAG_SPARSE ? &cs->csc->sparse_buffers[index] :
-            &cs->csc->slab_buffers[index];
-
-   return (buffer->usage & usage) != 0;
+   return buffer && (buffer->usage & usage) != 0;
 }
 
 bool amdgpu_fence_wait(struct pipe_fence_handle *fence, uint64_t timeout,

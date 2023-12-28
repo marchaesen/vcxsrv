@@ -48,7 +48,7 @@ struct d3d12_video_decoder_references_manager
 
    bool is_pipe_buffer_underlying_output_decode_allocation()
    {
-      return (!is_reference_only() && is_array_of_textures());
+      return (is_reference_only() || is_array_of_textures());
    }
 
    void mark_all_references_as_unused();
@@ -56,6 +56,8 @@ struct d3d12_video_decoder_references_manager
 
    template <typename T, size_t size>
    void mark_references_in_use(const T (&picEntries)[size]);
+   template <typename T, size_t size>
+   void mark_references_in_use_av1(const T (&picEntries)[size]);
    void mark_reference_in_use(uint16_t index);
 
    uint16_t store_future_reference(uint16_t index,
@@ -67,6 +69,9 @@ struct d3d12_video_decoder_references_manager
    // after the method returns
    template <typename T, size_t size>
    void update_entries(T (&picEntries)[size], std::vector<D3D12_RESOURCE_BARRIER> &outNeededTransitions);
+
+   template <typename T, size_t size>
+   void update_entries_av1(T (&picEntries)[size], std::vector<D3D12_RESOURCE_BARRIER> &outNeededTransitions);
 
    void get_reference_only_output(
       struct pipe_video_buffer *  pCurrentDecodeTarget,
@@ -83,35 +88,32 @@ struct d3d12_video_decoder_references_manager
 
    void print_dpb();
 
+   uint8_t get_unused_index7bits()
+   {
+      for (uint32_t testIdx = 0; testIdx < 127; testIdx++) {
+         auto it = std::find_if(m_DecodeTargetToOriginalIndex7Bits.begin(), m_DecodeTargetToOriginalIndex7Bits.end(),
+            [&testIdx](const std::pair< struct pipe_video_buffer*, uint8_t > &p) {
+               return p.second == testIdx;
+            });
+
+         if (it == m_DecodeTargetToOriginalIndex7Bits.end())
+            return testIdx;
+      }
+      debug_printf(
+         "[d3d12_video_decoder_references_manager] d3d12_video_decoder_references_manager - Decode - No available "
+         "fresh indices left.\n");
+      assert(false);
+      return 0;
+   }
+
    ///
    /// Get the Index7Bits associated with this decode target
    /// If there isn't one assigned yet, gives out a fresh/unused Index7Bits
    ///
    uint8_t get_index7bits(struct pipe_video_buffer * pDecodeTarget) {
-      bool bDecodeTargetAlreadyHasIndex = (m_DecodeTargetToOriginalIndex7Bits.count(pDecodeTarget) > 0);
-      if(bDecodeTargetAlreadyHasIndex)
-      {
-         return m_DecodeTargetToOriginalIndex7Bits[pDecodeTarget];
-      } else {
-         uint8_t freshIdx = m_CurrentIndex7BitsAvailable;
-         
-         // Make sure next "available" index is not already used. Should be cleaned up and there shouldn't be never 127 in flight used indices
-            #if DEBUG
-               auto it = std::find_if(m_DecodeTargetToOriginalIndex7Bits.begin(), m_DecodeTargetToOriginalIndex7Bits.end(),
-                  [&freshIdx](const std::pair< struct pipe_video_buffer*, uint8_t > &p) {
-                     return p.second == freshIdx;
-                  });
-
-               assert(it == m_DecodeTargetToOriginalIndex7Bits.end());
-            #endif
-
-         // Point to next circular index for next call
-         m_CurrentIndex7BitsAvailable = ((m_CurrentIndex7BitsAvailable + 1) % 127);
-
-         // Assign freshIdx to pDecodeTarget
-         m_DecodeTargetToOriginalIndex7Bits[pDecodeTarget] = freshIdx;
-         return freshIdx;
-      }
+      if(m_DecodeTargetToOriginalIndex7Bits.count(pDecodeTarget) == 0)
+         m_DecodeTargetToOriginalIndex7Bits[pDecodeTarget] = get_unused_index7bits();
+      return m_DecodeTargetToOriginalIndex7Bits[pDecodeTarget];
    }
 
  private:
@@ -142,10 +144,7 @@ struct d3d12_video_decoder_references_manager
    std::vector<ReferenceData> m_referenceDXVAIndices;
    
    std::map<struct pipe_video_buffer *, uint8_t> m_DecodeTargetToOriginalIndex7Bits = { };
-   uint8_t m_CurrentIndex7BitsAvailable = 0;
  
-   ComPtr<ID3D12Resource> m_pClearDecodedOutputTexture;
-
    const struct d3d12_screen *       m_pD3D12Screen;
    uint16_t                          m_invalidIndex;
    d3d12_video_decode_dpb_descriptor m_dpbDescriptor      = {};
@@ -214,6 +213,67 @@ d3d12_video_decoder_references_manager::mark_references_in_use(const T (&picEntr
 {
    for (auto &picEntry : picEntries) {
       mark_reference_in_use(picEntry.Index7Bits);
+   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+template <typename T, size_t size>
+void
+d3d12_video_decoder_references_manager::update_entries_av1(T (&picEntries)[size],
+                                                       std::vector<D3D12_RESOURCE_BARRIER> &outNeededTransitions)
+{
+   outNeededTransitions.clear();
+
+   for (auto &picEntry : picEntries) {
+      // uint16_t update_entry(
+      //     uint16_t index, // in
+      //     ID3D12Resource*& pOutputReference, // out -> new reference slot assigned or nullptr
+      //     uint32_t& OutputSubresource, // out -> new reference slot assigned or 0
+      //     bool& outNeedsTransitionToDecodeRead // out -> indicates if output resource argument has to be transitioned
+      //     to D3D12_RESOURCE_STATE_VIDEO_DECODE_READ by the caller
+      // );
+
+      ID3D12Resource *pOutputReference               = {};
+      uint32_t        OutputSubresource              = 0u;
+      bool            outNeedsTransitionToDecodeRead = false;
+
+      picEntry =
+         update_entry(picEntry, pOutputReference, OutputSubresource, outNeedsTransitionToDecodeRead);
+
+      if (outNeedsTransitionToDecodeRead) {
+         ///
+         /// The subresource indexing in D3D12 Video within the DPB doesn't take into account the Y, UV planes (ie.
+         /// subresource 0, 1, 2, 3..., N are different full NV12 references in the DPB) but when using the subresources
+         /// in other areas of D3D12 we need to convert it to the D3D12CalcSubresource format, explained in
+         /// https://docs.microsoft.com/en-us/windows/win32/direct3d12/subresources
+         ///
+         CD3DX12_RESOURCE_DESC refDesc(GetDesc(pOutputReference));
+         uint32_t              MipLevel, PlaneSlice, ArraySlice;
+         D3D12DecomposeSubresource(OutputSubresource,
+                                   refDesc.MipLevels,
+                                   refDesc.ArraySize(),
+                                   MipLevel,
+                                   ArraySlice,
+                                   PlaneSlice);
+
+         for (PlaneSlice = 0; PlaneSlice < m_formatInfo.PlaneCount; PlaneSlice++) {
+            uint planeOutputSubresource = refDesc.CalcSubresource(MipLevel, ArraySlice, PlaneSlice);
+            outNeededTransitions.push_back(CD3DX12_RESOURCE_BARRIER::Transition(pOutputReference,
+                                                                                D3D12_RESOURCE_STATE_COMMON,
+                                                                                D3D12_RESOURCE_STATE_VIDEO_DECODE_READ,
+                                                                                planeOutputSubresource));
+         }
+      }
+   }
+}
+
+//----------------------------------------------------------------------------------------------------------------------------------
+template <typename T, size_t size>
+void
+d3d12_video_decoder_references_manager::mark_references_in_use_av1(const T (&picEntries)[size])
+{
+   for (auto &picEntry : picEntries) {
+      mark_reference_in_use(picEntry);
    }
 }
 

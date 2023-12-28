@@ -62,9 +62,9 @@ Environment variables
 These are some Lima-specific environment variables that may aid in
 debugging. None of this is required for normal use.
 
-.. envvar:: LIMA_DEBUG <flags> ("")
+.. envvar:: LIMA_DEBUG
 
-accepts the following comma-separated list of flags:
+  accepts the following comma-separated list of flags:
 
   ``bocache``
     print debug info for BO cache
@@ -75,7 +75,7 @@ accepts the following comma-separated list of flags:
   ``gp``
     print GP shader compiler result of each stage
   ``noblit``
-    use generic u_blitter instead of lima-specific
+    use generic u_blitter instead of Lima-specific
   ``nobocache``
     disable BO cache
   ``nogrowheap``
@@ -92,21 +92,21 @@ accepts the following comma-separated list of flags:
     disable multi job optimization
 
 
-.. envvar:: LIMA_CTX_NUM_PLB <int> (None)
+.. envvar:: LIMA_CTX_NUM_PLB
 
-set number of PLB per context (used for development purposes)
+  set number of PLB per context (used for development purposes)
 
-.. envvar:: LIMA_PLB_MAX_BLK <int> (None)
+.. envvar:: LIMA_PLB_MAX_BLK
 
-set PLB max block (used for development purposes)
+  set PLB max block (used for development purposes)
 
-.. envvar:: LIMA_PPIR_FORCE_SPILLING <int> (None)
+.. envvar:: LIMA_PPIR_FORCE_SPILLING
 
-force spilling of variables in ppir (used for development purposes)
+  force spilling of variables in PPIR (used for development purposes)
 
-.. envvar:: LIMA_PLB_PP_STREAM_CACHE_SIZE <int> (None)
+.. envvar:: LIMA_PLB_PP_STREAM_CACHE_SIZE
 
-set PP stream cache size (used for development purposes)
+  set PP stream cache size (used for development purposes)
 
 Known hardware limitations
 --------------------------
@@ -131,9 +131,9 @@ Here are some known caveats in OpenGL support:
     that may affect the quality of the texture lookup.
 
 - Lima supports FP16 textures in OpenGL ES (through
-  ``GL_OES_texture_half_float``), but not in OpenGL.
-  This is because it would require ``ARB_texture_float`` which would also
-  require 32-bit float textures, that the Mali-4xx does not support.
+  :ext:`GL_OES_texture_half_float<GL_OES_texture_float>`), but not in OpenGL.
+  This is because it would require :ext:`GL_ARB_texture_float` which would
+  also require 32-bit float textures, that the Mali-4xx does not support.
 - Rendering to FP16 is possible, but the result is clamped to the
   [0.0,1.0] range.
 
@@ -166,7 +166,7 @@ How complete is Lima? Is reverse engineering complete?
 
 At the time of writing, with local runs of the
 `OpenGL ES Conformance Tests <https://github.com/KhronosGroup/VK-GL-CTS/>`__
-(deqp) for OpenGL ES 2.0, Lima reports **97%** pass rate.
+(dEQP) for OpenGL ES 2.0, Lima reports **97%** pass rate.
 This coverage is on par with coverage provided by the ARM Mali driver.
 Some tests that pass with Lima fail on Mali and vice versa. Some of
 these issues are related to precision limitations which likely don’t
@@ -252,6 +252,6 @@ Reference
 ---------
 
 Luc Verhaegen’s original Lima site:
-http://web.archive.org/web/20180106112822/http://limadriver.org/
+https://web.archive.org/web/20180101212947/http://limadriver.org/
 
-.. _Mesa issue: https://gitlab.freedesktop.org/mesa/mesa/issues?label_name%5B%5D=lima
+.. _Mesa issue: https://gitlab.freedesktop.org/mesa/mesa/-/issues?label_name%5B%5D=lima

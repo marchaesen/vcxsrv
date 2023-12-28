@@ -20,10 +20,10 @@
  * OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#ifndef ST_ATIFS_TO_TGSI_H
-#define ST_ATIFS_TO_TGSI_H
+#ifndef ST_ATIFS_TO_NIR_H
+#define ST_ATIFS_TO_NIR_H
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "pipe/p_defines.h"
 #include "compiler/nir/nir.h"
 
@@ -38,16 +38,13 @@ struct st_fp_variant_key;
 
 nir_shader *
 st_translate_atifs_program(struct ati_fragment_shader *atifs,
-                           const struct st_fp_variant_key *key,
                            struct gl_program *program,
                            const nir_shader_compiler_options *options);
 
-
-void
-st_init_atifs_prog(struct gl_context *ctx, struct gl_program *prog);
+bool st_nir_lower_atifs_samplers(struct nir_shader *s, const uint8_t *texture_index);
 
 #if defined __cplusplus
 } /* extern "C" */
 #endif
 
-#endif /* ST_ATIFS_TO_TGSI_H */
+#endif /* ST_ATIFS_TO_NIR_H */

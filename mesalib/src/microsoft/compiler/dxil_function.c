@@ -51,13 +51,16 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.isSpecialFloat", "b", "iO", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.binary", "O", "iOO", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.bufferStore", "v", "i@iiOOOOc", DXIL_ATTR_KIND_NONE},
+{"dx.op.rawBufferStore", "v", "i@iiOOOOci", DXIL_ATTR_KIND_NONE},
 {"dx.op.bufferLoad", "R", "i@ii", DXIL_ATTR_KIND_READ_ONLY},
+{"dx.op.rawBufferLoad", "R", "i@iici", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.attributeAtVertex", "O", "iiicc", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.sample", "R", "i@@ffffiiif", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleBias", "R", "i@@ffffiiiff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleLevel", "R", "i@@ffffiiif", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleGrad", "R", "i@@ffffiiifffffff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleCmp", "R", "i@@ffffiiiff", DXIL_ATTR_KIND_READ_ONLY},
+{"dx.op.sampleCmpLevel", "R", "i@@ffffiiiff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleCmpLevelZero", "R", "i@@ffffiiif", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.textureLoad", "R", "i@iiiiiii", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.textureGather", "R", "i@@ffffiii", DXIL_ATTR_KIND_READ_ONLY},
@@ -74,6 +77,7 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.primitiveID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.outputControlPointID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.gsInstanceID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.viewID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.domainLocation", "f", "ii", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.legacyF16ToF32", "f", "ii", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.legacyF32ToF16", "i", "if", DXIL_ATTR_KIND_READ_ONLY},
@@ -89,7 +93,24 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.loadPatchConstant", "O", "iiic", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.loadOutputControlPoint", "O", "iiici", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.createHandleFromBinding", "@", "i#ib", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.createHandleFromHeap", "@", "iibb", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.annotateHandle", "@", "i@P", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.isHelperLane", "b", "i", DXIL_ATTR_KIND_READ_ONLY},
+{"dx.op.waveIsFirstLane", "b", "i", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveGetLaneIndex", "i", "i", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.waveGetLaneCount", "i", "i", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.waveReadLaneFirst", "O", "iO", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveReadLaneAt", "O", "iOi", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveAnyTrue", "b", "ib", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveAllTrue", "b", "ib", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveActiveAllEqual", "b", "iO", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveActiveBallot", "F", "ib", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveActiveOp", "O", "iOcc", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.waveActiveBit", "O", "iOc", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.wavePrefixOp", "O", "iOcc", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.quadReadLaneAt", "O", "iOi", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.quadOp", "O", "iOc", DXIL_ATTR_KIND_NO_UNWIND},
+{"dx.op.dot4AddPacked", "i", "iiii", DXIL_ATTR_KIND_READ_NONE},
 };
 
 struct func_descr {
@@ -200,6 +221,7 @@ get_type_from_string(struct dxil_module *mod, const char *param_descr,
          const struct dxil_type *target = get_type_from_string(mod, param_descr, overload, idx);
          return dxil_module_get_pointer_type(mod, target);
       }
+   case DXIL_FUNC_PARAM_FOURI32: return dxil_module_get_fouri32_type(mod);
    default:
       assert(0 && "unknown type identifier");
    }

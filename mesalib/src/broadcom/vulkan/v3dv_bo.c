@@ -135,11 +135,28 @@ bo_free(struct v3dv_device *device,
    assert(p_atomic_read(&bo->refcnt) == 0);
    assert(bo->map == NULL);
 
+   if (!bo->is_import) {
+      device->bo_count--;
+      device->bo_size -= bo->size;
+
+      if (dump_stats) {
+         fprintf(stderr, "Freed %s%s%dkb:\n",
+                 bo->name ? bo->name : "",
+                 bo->name ? " " : "",
+                 bo->size / 1024);
+         bo_dump_stats(device);
+      }
+   }
+
+   uint32_t handle = bo->handle;
    /* Our BO structs are stored in a sparse array in the physical device,
     * so we don't want to free the BO pointer, instead we want to reset it
     * to 0, to signal that array entry as being free.
+    *
+    * We must do the reset before we actually free the BO in the kernel, since
+    * otherwise there is a chance the application creates another BO in a
+    * different thread and gets the same array entry, causing a race.
     */
-   uint32_t handle = bo->handle;
    memset(bo, 0, sizeof(*bo));
 
    struct drm_gem_close c;
@@ -147,18 +164,7 @@ bo_free(struct v3dv_device *device,
    c.handle = handle;
    int ret = v3dv_ioctl(device->pdevice->render_fd, DRM_IOCTL_GEM_CLOSE, &c);
    if (ret != 0)
-      fprintf(stderr, "close object %d: %s\n", bo->handle, strerror(errno));
-
-   device->bo_count--;
-   device->bo_size -= bo->size;
-
-   if (dump_stats) {
-      fprintf(stderr, "Freed %s%s%dkb:\n",
-              bo->name ? bo->name : "",
-              bo->name ? " " : "",
-              bo->size / 1024);
-      bo_dump_stats(device);
-   }
+      fprintf(stderr, "close object %d: %s\n", handle, strerror(errno));
 
    return ret == 0;
 }
@@ -199,7 +205,19 @@ v3dv_bo_init(struct v3dv_bo *bo,
    bo->name = name;
    bo->private = private;
    bo->dumb_handle = -1;
+   bo->is_import = false;
    list_inithead(&bo->list_link);
+}
+
+void
+v3dv_bo_init_import(struct v3dv_bo *bo,
+                    uint32_t handle,
+                    uint32_t size,
+                    uint32_t offset,
+                    bool private)
+{
+   v3dv_bo_init(bo, handle, size, offset, "import", private);
+   bo->is_import = true;
 }
 
 struct v3dv_bo *
@@ -321,7 +339,7 @@ v3dv_bo_map(struct v3dv_device *device, struct v3dv_bo *bo, uint32_t size)
    if (!ok)
       return false;
 
-   ok = v3dv_bo_wait(device, bo, PIPE_TIMEOUT_INFINITE);
+   ok = v3dv_bo_wait(device, bo, OS_TIMEOUT_INFINITE);
    if (!ok) {
       fprintf(stderr, "memory wait for map failed\n");
       return false;
@@ -341,7 +359,7 @@ v3dv_bo_unmap(struct v3dv_device *device, struct v3dv_bo *bo)
    bo->map_size = 0;
 }
 
-static boolean
+static bool
 reallocate_size_list(struct v3dv_bo_cache *cache,
                      struct v3dv_device *device,
                      uint32_t size)

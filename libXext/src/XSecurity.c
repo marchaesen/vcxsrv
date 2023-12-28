@@ -283,7 +283,7 @@ XSecurityGenerateAuthorization(
      * XSecurityAllocXauth; in both cases, you just free one pointer.
      */
 
-    if ((auth_return = (Xauth *)Xcalloc(1,
+    if ((auth_return = Xcalloc(1,
 		(sizeof(Xauth) + auth_in->name_length + rep.dataLength))))
     {
 	auth_return->data_length = rep.dataLength;

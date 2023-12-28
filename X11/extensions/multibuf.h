@@ -42,7 +42,7 @@ typedef XID Multibuffer;
 typedef struct {
     int	type;		    /* of event */
     unsigned long serial;   /* # of last request processed by server */
-    int send_event;	    /* true if this came frome a SendEvent request */
+    int send_event;	    /* true if this came from a SendEvent request */
     Display *display;	    /* Display the event was read from */
     Multibuffer buffer;	    /* buffer of event */
     int	state;		    /* see Clobbered constants above */
@@ -51,7 +51,7 @@ typedef struct {
 typedef struct {
     int	type;		    /* of event */
     unsigned long serial;   /* # of last request processed by server */
-    int send_event;	    /* true if this came frome a SendEvent request */
+    int send_event;	    /* true if this came from a SendEvent request */
     Display *display;	    /* Display the event was read from */
     Multibuffer buffer;	    /* buffer of event */
 } XmbufUpdateNotifyEvent;
@@ -99,7 +99,7 @@ typedef struct {
  * per-screen buffer info (there will be lists of them)
  */
 typedef struct {
-    VisualID visualid;		/* visual usuable at this depth */
+    VisualID visualid;		/* visual usable at this depth */
     int max_buffers;		/* most buffers for this visual */
     int depth;			/* depth of buffers to be created */
 } XmbufBufferInfo;

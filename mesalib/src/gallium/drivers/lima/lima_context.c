@@ -147,6 +147,7 @@ lima_context_destroy(struct pipe_context *pctx)
 
    lima_program_fini(ctx);
    lima_state_fini(ctx);
+   util_unreference_framebuffer_state(&ctx->framebuffer.base);
 
    if (ctx->blitter)
       util_blitter_destroy(ctx->blitter);

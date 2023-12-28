@@ -26,7 +26,7 @@
 
 #include "util/u_debug.h"
 #include "util/u_memory.h"
-#include "os/os_process.h"
+#include "util/u_process.h"
 
 #include <stdio.h>
 #include <errno.h>
@@ -48,9 +48,9 @@ static void r300_apply_hyperz_blacklist(struct r300_capabilities* caps)
         "firefox",
     };
     int i;
-    char proc_name[128];
-    
-    if (!os_get_process_name(proc_name, sizeof(proc_name)))
+    const char *proc_name = util_get_process_name();
+
+    if (!proc_name)
         return;
 
     for (i = 0; i < ARRAY_SIZE(list); i++) {
@@ -80,34 +80,34 @@ void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps)
     }
 
     /* Defaults. */
-    caps->high_second_pipe = FALSE;
+    caps->high_second_pipe = false;
     caps->num_vert_fpus = 0;
     caps->hiz_ram = 0;
     caps->zmask_ram = 0;
-    caps->has_cmask = FALSE;
+    caps->has_cmask = false;
 
 
     switch (caps->family) {
     case CHIP_R300:
     case CHIP_R350:
-        caps->high_second_pipe = TRUE;
+        caps->high_second_pipe = true;
         caps->num_vert_fpus = 4;
-        caps->has_cmask = TRUE; /* guessed because there is also HiZ */
+        caps->has_cmask = true; /* guessed because there is also HiZ */
         caps->hiz_ram = R300_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;
 
     case CHIP_RV350:
     case CHIP_RV370:
-        caps->high_second_pipe = TRUE;
+        caps->high_second_pipe = true;
         caps->num_vert_fpus = 2;
         caps->zmask_ram = RV3xx_ZMASK_SIZE;
         break;
 
     case CHIP_RV380:
-        caps->high_second_pipe = TRUE;
+        caps->high_second_pipe = true;
         caps->num_vert_fpus = 2;
-        caps->has_cmask = TRUE; /* guessed because there is also HiZ */
+        caps->has_cmask = true; /* guessed because there is also HiZ */
         caps->hiz_ram = R300_HIZ_LIMIT;
         caps->zmask_ram = RV3xx_ZMASK_SIZE;
         break;
@@ -130,28 +130,28 @@ void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps)
     case CHIP_R481:
     case CHIP_RV410:
         caps->num_vert_fpus = 6;
-        caps->has_cmask = TRUE; /* guessed because there is also HiZ */
+        caps->has_cmask = true; /* guessed because there is also HiZ */
         caps->hiz_ram = R300_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;
 
     case CHIP_R520:
         caps->num_vert_fpus = 8;
-        caps->has_cmask = TRUE;
+        caps->has_cmask = true;
         caps->hiz_ram = R300_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;
 
     case CHIP_RV515:
         caps->num_vert_fpus = 2;
-        caps->has_cmask = TRUE;
+        caps->has_cmask = true;
         caps->hiz_ram = R300_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;
 
     case CHIP_RV530:
         caps->num_vert_fpus = 5;
-        caps->has_cmask = TRUE;
+        caps->has_cmask = true;
         caps->hiz_ram = RV530_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;
@@ -160,7 +160,7 @@ void r300_parse_chipset(uint32_t pci_id, struct r300_capabilities* caps)
     case CHIP_RV560:
     case CHIP_RV570:
         caps->num_vert_fpus = 8;
-        caps->has_cmask = TRUE;
+        caps->has_cmask = true;
         caps->hiz_ram = RV530_HIZ_LIMIT;
         caps->zmask_ram = PIPE_ZMASK_SIZE;
         break;

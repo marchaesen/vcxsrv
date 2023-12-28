@@ -32,51 +32,99 @@
 #include "u_bitcast.h"
 #include "util/format/u_format.h"
 #include "u_sampler.h"
-#include "tgsi/tgsi_text.h"
-#include "tgsi/tgsi_ureg.h"
+#include "nir/nir_builder.h"
 #include "u_inlines.h"
 #include "u_compute.h"
 
 static void *blit_compute_shader(struct pipe_context *ctx)
 {
-   static const char text[] =
-      "COMP\n"
-      "PROPERTY CS_FIXED_BLOCK_WIDTH 64\n"
-      "PROPERTY CS_FIXED_BLOCK_HEIGHT 1\n"
-      "PROPERTY CS_FIXED_BLOCK_DEPTH 1\n"
-      "DCL SV[0], THREAD_ID\n"
-      "DCL SV[1], BLOCK_ID\n"
-      "DCL IMAGE[0], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT, WR\n"
-      "DCL SAMP[0]\n"
-      "DCL SVIEW[0], 2D_ARRAY, FLOAT\n"
-      "DCL CONST[0][0..2]\n" // 0:xyzw 1:xyzw
-      "DCL TEMP[0..4], LOCAL\n"
-      "IMM[0] UINT32 {64, 1, 0, 0}\n"
+   /*
+      #version 450
 
-      "UMAD TEMP[0].xyz, SV[1].xyzz, IMM[0].xyyy, SV[0].xyzz\n"
-      "U2F TEMP[1].xyz, TEMP[0]\n"
-      "MAD TEMP[2].xyz, TEMP[1], CONST[0][1], CONST[0][0]\n"
-      "TEX_LZ TEMP[3], TEMP[2], SAMP[0], 2D_ARRAY\n"
-      "UADD TEMP[4].xyz, TEMP[0], CONST[0][2]\n"
-      "STORE IMAGE[0], TEMP[4], TEMP[3], 2D_ARRAY, PIPE_FORMAT_R32G32B32A32_FLOAT\n"
-      "END\n";
+      layout (local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
+      layout (binding = 0) uniform sampler2DArray samp;
+      layout (binding = 0, rgba32f) uniform writeonly image2D image;
 
-   struct tgsi_token tokens[1024];
+      layout (std140, binding = 0) uniform ubo
+      {
+         vec4 src;
+         vec4 scale;
+         ivec4 dst;
+         vec4 coord_max;
+      };
+
+      void main()
+      {
+         ivec3 pos = ivec3(gl_GlobalInvocationID.xyz);
+         vec3 tex_pos = vec3(pos.x + 0.5, pos.y + 0.5, pos.z);
+         tex_pos = tex_pos * scale.xyz + src.xyz;
+         tex_pos.xy = min(tex_pos.xy, coord_max.xy);
+         vec4 color = texture(samp, tex_pos);
+         ivec2 image_pos = pos.xy + dst.xy;
+         imageStore(image, image_pos, color);
+      }
+   */
+   const struct glsl_type *sampler_type =
+      glsl_sampler_type(GLSL_SAMPLER_DIM_2D, /*is_shadow*/ false, /*is_array*/ true, GLSL_TYPE_FLOAT);
+   const struct glsl_type *image_type =
+      glsl_image_type(GLSL_SAMPLER_DIM_2D, /*is_array*/ true, GLSL_TYPE_FLOAT);
+   const nir_shader_compiler_options *options =
+      ctx->screen->get_compiler_options(ctx->screen, PIPE_SHADER_IR_NIR, PIPE_SHADER_COMPUTE);
+
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, options, "blit_cs");
+   b.shader->info.workgroup_size[0] = 64;
+   b.shader->info.workgroup_size[1] = 1;
+   b.shader->info.workgroup_size[2] = 1;
+   b.shader->info.num_ubos = 1;
+
+   nir_def *zero = nir_imm_int(&b, 0);
+   nir_def *undef32 = nir_undef(&b, 1, 32);
+
+   nir_def *params[4];
+   b.shader->num_uniforms = ARRAY_SIZE(params);
+   for (unsigned i = 0; i < b.shader->num_uniforms; ++i)
+      params[i] = nir_load_ubo(&b, 4, 32, zero, nir_imm_int(&b, i * 16), .align_mul = 4, .range = ~0);
+
+   nir_variable *sampler = nir_variable_create(b.shader, nir_var_uniform, sampler_type, "sampler");
+   sampler->data.binding = 0;
+   BITSET_SET(b.shader->info.textures_used, 0);
+   BITSET_SET(b.shader->info.samplers_used, 0);
+
+   nir_variable *image = nir_variable_create(b.shader, nir_var_image, image_type, "image");
+   image->data.binding = 0;
+   image->data.image.format = PIPE_FORMAT_R32G32B32A32_FLOAT;
+   BITSET_SET(b.shader->info.images_used, 0);
+
+   nir_def *block_ids = nir_load_workgroup_id(&b);
+   nir_def *local_ids = nir_load_local_invocation_id(&b);
+   nir_def *ids = nir_iadd(&b, nir_imul(&b, block_ids, nir_imm_ivec3(&b, 64, 1, 1)), local_ids);
+
+   nir_def *tex_pos = nir_u2f32(&b, ids);
+   tex_pos = nir_fadd(&b, tex_pos, nir_imm_vec3(&b, 0.5f, 0.5f, 0.0f));
+   tex_pos = nir_ffma(&b, tex_pos, params[1], params[0]);
+   nir_def *z = nir_channel(&b, tex_pos, 2);
+   tex_pos = nir_fmin(&b, tex_pos, params[3]);
+   tex_pos = nir_vector_insert_imm(&b, tex_pos, z, 2);
+   tex_pos = nir_channels(&b, tex_pos, 0x7);
+
+   nir_deref_instr *tex_deref = nir_build_deref_var(&b, sampler);
+   nir_def *color = nir_tex_deref(&b, tex_deref, tex_deref, tex_pos);
+
+   nir_def *image_pos = nir_pad_vector_imm_int(&b, ids, 0, 4);
+   image_pos = nir_iadd(&b, image_pos, params[2]);
+   nir_image_deref_store(&b, &nir_build_deref_var(&b, image)->def, image_pos, undef32, color, zero);
+
+   ctx->screen->finalize_nir(ctx->screen, b.shader);
+
    struct pipe_compute_state state = {0};
-
-   if (!tgsi_text_translate(text, tokens, ARRAY_SIZE(tokens))) {
-      assert(false);
-      return NULL;
-   }
-
-   state.ir_type = PIPE_SHADER_IR_TGSI;
-   state.prog = tokens;
+   state.ir_type = PIPE_SHADER_IR_NIR;
+   state.prog = b.shader;
 
    return ctx->create_compute_state(ctx, &state);
 }
 
 void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_info,
-                       void **compute_state, bool half_texel_offset)
+                       void **compute_state)
 {
    if (blit_info->src.box.width == 0 || blit_info->src.box.height == 0 ||
        blit_info->dst.box.width == 0 || blit_info->dst.box.height == 0)
@@ -91,10 +139,9 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
    float x_scale = blit_info->src.box.width / (float)blit_info->dst.box.width;
    float y_scale = blit_info->src.box.height / (float)blit_info->dst.box.height;
    float z_scale = blit_info->src.box.depth / (float)blit_info->dst.box.depth;
-   float offset = half_texel_offset ? 0.5 : 0.0;
 
-   unsigned data[] = {u_bitcast_f2u((blit_info->src.box.x + offset) / (float)src->width0),
-                      u_bitcast_f2u((blit_info->src.box.y + offset) / (float)src->height0),
+   unsigned data[] = {u_bitcast_f2u(blit_info->src.box.x / (float)src->width0),
+                      u_bitcast_f2u(blit_info->src.box.y / (float)src->height0),
                       u_bitcast_f2u(blit_info->src.box.z),
                       u_bitcast_f2u(0),
                       u_bitcast_f2u(x_scale / src->width0),
@@ -104,6 +151,12 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
                       blit_info->dst.box.x,
                       blit_info->dst.box.y,
                       blit_info->dst.box.z,
+                      0,
+                      u_bitcast_f2u((blit_info->src.box.x + blit_info->src.box.width - 0.5) /
+                                    (float)src->width0),
+                      u_bitcast_f2u((blit_info->src.box.y + blit_info->src.box.height - 0.5) /
+                                    (float)src->height0),
+                      0,
                       0};
 
    struct pipe_constant_buffer cb = {0};
@@ -125,7 +178,6 @@ void util_compute_blit(struct pipe_context *ctx, struct pipe_blit_info *blit_inf
    sampler_state.wrap_s = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    sampler_state.wrap_t = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    sampler_state.wrap_r = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
-   sampler_state.normalized_coords = 1;
 
    if (blit_info->filter == PIPE_TEX_FILTER_LINEAR) {
       sampler_state.min_img_filter = PIPE_TEX_FILTER_LINEAR;

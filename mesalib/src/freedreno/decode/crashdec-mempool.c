@@ -29,6 +29,12 @@ static void
 dump_mem_pool_reg_write(unsigned reg, uint32_t data, unsigned context,
                         bool pipe)
 {
+   /* TODO deal better somehow w/ 64b regs: */
+   struct regacc r = {
+         .rnn = pipe ? rnn_pipe : NULL,
+         .regbase = reg,
+         .value = data,
+   };
    if (pipe) {
       struct rnndecaddrinfo *info = rnn_reginfo(rnn_pipe, reg);
       printf("\t\twrite %s (%02x) pipe\n", info->name, reg);
@@ -37,11 +43,12 @@ dump_mem_pool_reg_write(unsigned reg, uint32_t data, unsigned context,
          /* registers that ignore their payload */
       } else {
          printf("\t\t\t");
-         dump_register(rnn_pipe, reg, data);
+         dump_register(&r);
       }
+      rnn_reginfo_free(info);
    } else {
       printf("\t\twrite %s (%05x) context %d\n", regname(reg, 1), reg, context);
-      dump_register_val(reg, data, 2);
+      dump_register_val(&r, 2);
    }
 }
 

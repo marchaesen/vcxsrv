@@ -36,6 +36,8 @@
 extern "C" {
 #endif
 
+extern unsigned util_dynarray_is_data_stack_allocated;
+
 /* A zero-initialized version of this is guaranteed to represent an
  * empty array.
  *
@@ -58,10 +60,20 @@ util_dynarray_init(struct util_dynarray *buf, void *mem_ctx)
 }
 
 static inline void
+util_dynarray_init_from_stack(struct util_dynarray *buf, void *data, unsigned capacity)
+{
+   memset(buf, 0, sizeof(*buf));
+   buf->mem_ctx = &util_dynarray_is_data_stack_allocated;
+   buf->data = data;
+   buf->capacity = capacity;
+}
+
+static inline void
 util_dynarray_fini(struct util_dynarray *buf)
 {
    if (buf->data) {
-      if (buf->mem_ctx) {
+      if (buf->mem_ctx == &util_dynarray_is_data_stack_allocated) {
+      } else if (buf->mem_ctx) {
          ralloc_free(buf->data);
       } else {
          free(buf->data);
@@ -85,7 +97,13 @@ util_dynarray_ensure_cap(struct util_dynarray *buf, unsigned newcap)
       unsigned capacity = MAX3(DYN_ARRAY_INITIAL_SIZE, buf->capacity * 2, newcap);
       void *data;
 
-      if (buf->mem_ctx) {
+      if (buf->mem_ctx == &util_dynarray_is_data_stack_allocated) {
+         data = malloc(capacity);
+         if (data) {
+            memcpy(data, buf->data, buf->size);
+            buf->mem_ctx = NULL;
+         }
+      } else if (buf->mem_ctx) {
          data = reralloc_size(buf->mem_ctx, buf->data, capacity);
       } else {
          data = realloc(buf->data, capacity);
@@ -148,6 +166,9 @@ util_dynarray_grow_bytes(struct util_dynarray *buf, unsigned ngrow, size_t eltsi
 static inline void
 util_dynarray_trim(struct util_dynarray *buf)
 {
+   if (buf->mem_ctx == &util_dynarray_is_data_stack_allocated)
+      return;
+
    if (buf->size != buf->capacity) {
       if (buf->size) {
          if (buf->mem_ctx) {
@@ -165,6 +186,16 @@ util_dynarray_trim(struct util_dynarray *buf)
          buf->data = NULL;
          buf->capacity = 0;
       }
+   }
+}
+
+static inline void
+util_dynarray_append_dynarray(struct util_dynarray *buf,
+                              const struct util_dynarray *other)
+{
+   if (other->size > 0) {
+      void *p = util_dynarray_grow_bytes(buf, 1, other->size);
+      memcpy(p, other->data, other->size);
    }
 }
 

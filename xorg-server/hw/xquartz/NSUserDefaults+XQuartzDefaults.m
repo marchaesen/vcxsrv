@@ -96,10 +96,6 @@ NSString * const XQuartzPrefKeySyncPrimaryOnSelect = @"sync_primary_on_select";
             defaults = [[[NSUserDefaults alloc] initWithSuiteName:defaultsDomain] retain];
         }
 
-        NSArray * const defaultAppsMenu = @[
-            @[NSLocalizedString(@"Terminal", @"Terminal"), @"xterm", @"n"],
-        ];
-
         NSString *defaultWindowItemModifiers = @"command";
         NSString * const defaultWindowItemModifiersLocalized = NSLocalizedString(@"window item modifiers", @"window item modifiers");
         if (![defaultWindowItemModifiersLocalized isEqualToString:@"window item modifiers"]) {
@@ -107,7 +103,6 @@ NSString * const XQuartzPrefKeySyncPrimaryOnSelect = @"sync_primary_on_select";
         }
 
         NSDictionary<NSString *, id> * const defaultDefaultsDict = @{
-            XQuartzPrefKeyAppsMenu : defaultAppsMenu,
             XQuartzPrefKeyFakeButtons : @(NO),
             // XQuartzPrefKeyFakeButton2 nil default
             // XQuartzPrefKeyFakeButton3 nil default
@@ -141,6 +136,10 @@ NSString * const XQuartzPrefKeySyncPrimaryOnSelect = @"sync_primary_on_select";
         };
 
         [defaults registerDefaults:defaultDefaultsDict];
+
+        NSString * const systemDefaultsPlistPath = [@(XQUARTZ_DATA_DIR) stringByAppendingPathComponent:@"defaults.plist"];
+        NSDictionary <NSString *, id> * const systemDefaultsDict = [NSDictionary dictionaryWithContentsOfFile:systemDefaultsPlistPath];
+        [defaults registerDefaults:systemDefaultsDict];
     });
 
     return defaults;

@@ -34,19 +34,14 @@
 #include "r300_reg.h"
 
 struct r300_stencilref_context {
-    void (*draw_vbo)(struct pipe_context *pipe,
-                     const struct pipe_draw_info *info,
-                     unsigned drawid_offset,
-                     const struct pipe_draw_indirect_info *indirect,
-                     const struct pipe_draw_start_count_bias *draws,
-                     unsigned num_draws);
+    pipe_draw_func draw_vbo;
 
     uint32_t rs_cull_mode;
     uint32_t zb_stencilrefmask;
-    ubyte ref_value_front;
+    uint8_t ref_value_front;
 };
 
-static boolean r300_stencilref_needed(struct r300_context *r300)
+static bool r300_stencilref_needed(struct r300_context *r300)
 {
     struct r300_dsa_state *dsa = (struct r300_dsa_state*)r300->dsa_state.state;
 

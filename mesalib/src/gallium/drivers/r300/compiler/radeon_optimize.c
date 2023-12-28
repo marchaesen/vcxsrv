@@ -71,7 +71,8 @@ static void copy_propagate_scan_read(void * data, struct rc_instruction * inst,
 	rc_register_file file = src->File;
 	struct rc_reader_data * reader_data = data;
 
-	if(!rc_inst_can_use_presub(inst,
+	if(!rc_inst_can_use_presub(reader_data->C,
+				inst,
 				reader_data->Writer->U.I.PreSub.Opcode,
 				rc_swizzle_to_writemask(src->Swizzle),
 				src,
@@ -87,11 +88,26 @@ static void copy_propagate_scan_read(void * data, struct rc_instruction * inst,
 		return;
 	}
 
+	/* R300/R400 is unhappy about propagating
+	 *  0: MOV temp[1], -none.1111;
+	 *  1: KIL temp[1];
+	 * to
+	 *  0: KIL -none.1111;
+	 *
+	 * R500 is fine with it.
+	 */
+	if (!reader_data->C->is_r500 && inst->U.I.Opcode == RC_OPCODE_KIL &&
+		reader_data->Writer->U.I.SrcReg[0].File == RC_FILE_NONE) {
+		reader_data->Abort = 1;
+		return;
+	}
+
 	/* These instructions cannot read from the constants file.
 	 * see radeonTransformTEX()
 	 */
 	if(reader_data->Writer->U.I.SrcReg[0].File != RC_FILE_TEMPORARY &&
 			reader_data->Writer->U.I.SrcReg[0].File != RC_FILE_INPUT &&
+			reader_data->Writer->U.I.SrcReg[0].File != RC_FILE_NONE &&
 				(inst->U.I.Opcode == RC_OPCODE_TEX ||
 				inst->U.I.Opcode == RC_OPCODE_TXB ||
 				inst->U.I.Opcode == RC_OPCODE_TXP ||
@@ -154,7 +170,7 @@ static void copy_propagate(struct radeon_compiler * c, struct rc_instruction * i
 		       copy_propagate_scan_read, NULL,
 		       is_src_clobbered_scan_write);
 
-	if (reader_data.Abort || reader_data.ReaderCount == 0 || reader_data.ReadersAfterEndloop)
+	if (reader_data.Abort || reader_data.ReaderCount == 0)
 		return;
 
 	/* We can propagate SaturateMode if all the readers are MOV instructions
@@ -224,80 +240,6 @@ static int is_src_uniform_constant(struct rc_src_register src,
 	}
 
 	return 1;
-}
-
-static void constant_folding_mad(struct rc_instruction * inst)
-{
-	rc_swizzle swz = 0;
-	unsigned int negate= 0;
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[2], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MUL;
-			return;
-		}
-	}
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[1], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ONE) {
-			inst->U.I.Opcode = RC_OPCODE_ADD;
-			if (negate)
-				inst->U.I.SrcReg[0].Negate ^= RC_MASK_XYZW;
-			inst->U.I.SrcReg[1] = inst->U.I.SrcReg[2];
-			return;
-		} else if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0] = inst->U.I.SrcReg[2];
-			return;
-		}
-	}
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[0], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ONE) {
-			inst->U.I.Opcode = RC_OPCODE_ADD;
-			if (negate)
-				inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
-			inst->U.I.SrcReg[0] = inst->U.I.SrcReg[2];
-			return;
-		} else if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0] = inst->U.I.SrcReg[2];
-			return;
-		}
-	}
-}
-
-static void constant_folding_mul(struct rc_instruction * inst)
-{
-	rc_swizzle swz = 0;
-	unsigned int negate = 0;
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[0], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ONE) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0] = inst->U.I.SrcReg[1];
-			if (negate)
-				inst->U.I.SrcReg[0].Negate ^= RC_MASK_XYZW;
-			return;
-		} else if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_0000;
-			return;
-		}
-	}
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[1], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ONE) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			if (negate)
-				inst->U.I.SrcReg[0].Negate ^= RC_MASK_XYZW;
-			return;
-		} else if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_0000;
-			return;
-		}
-	}
 }
 
 static void constant_folding_add(struct rc_instruction * inst)
@@ -402,14 +344,8 @@ static void constant_folding(struct radeon_compiler * c, struct rc_instruction *
 		inst->U.I.SrcReg[src] = newsrc;
 	}
 
-	/* Simplify instructions based on constants */
-	if (inst->U.I.Opcode == RC_OPCODE_MAD)
-		constant_folding_mad(inst);
-
-	/* note: MAD can simplify to MUL or ADD */
-	if (inst->U.I.Opcode == RC_OPCODE_MUL)
-		constant_folding_mul(inst);
-	else if (inst->U.I.Opcode == RC_OPCODE_ADD)
+	if (c->type == RC_FRAGMENT_PROGRAM &&
+		inst->U.I.Opcode == RC_OPCODE_ADD)
 		constant_folding_add(inst);
 
 	/* In case this instruction has been converted, make sure all of the
@@ -455,7 +391,9 @@ static void presub_scan_read(
 	struct rc_reader_data * reader_data = data;
 	rc_presubtract_op * presub_opcode = reader_data->CbData;
 
-	if (!rc_inst_can_use_presub(inst, *presub_opcode,
+	if (!rc_inst_can_use_presub(reader_data->C,
+			inst,
+			*presub_opcode,
 			reader_data->Writer->U.I.DstReg.WriteMask,
 			src,
 			&reader_data->Writer->U.I.SrcReg[0],
@@ -543,7 +481,7 @@ static int is_presub_candidate(
 	unsigned int i;
 	unsigned int is_constant[2] = {0, 0};
 
-	assert(inst->U.I.Opcode == RC_OPCODE_ADD);
+	assert(inst->U.I.Opcode == RC_OPCODE_ADD || inst->U.I.Opcode == RC_OPCODE_MAD);
 
 	if (inst->U.I.PreSub.Opcode != RC_PRESUB_NONE
 			|| inst->U.I.SaturateMode
@@ -552,7 +490,7 @@ static int is_presub_candidate(
 		return 0;
 	}
 
-	/* If both sources use a constant swizzle, then we can't convert it to
+	/* If first two sources use a constant swizzle, then we can't convert it to
 	 * a presubtract operation.  In fact for the ADD and SUB presubtract
 	 * operations neither source can contain a constant swizzle.  This
 	 * specific case is checked in peephole_add_presub_add() when
@@ -635,10 +573,27 @@ static void presub_replace_inv(
 	inst_reader->U.I.SrcReg[src_index].Index = RC_PRESUB_INV;
 }
 
+static void presub_replace_bias(
+	struct rc_instruction * inst_mad,
+	struct rc_instruction * inst_reader,
+	unsigned int src_index)
+{
+	/* We must be careful not to modify inst_mad, since it
+	 * is possible it will remain part of the program.*/
+	inst_reader->U.I.PreSub.SrcReg[0] = inst_mad->U.I.SrcReg[0];
+	inst_reader->U.I.PreSub.SrcReg[0].Negate = 0;
+	inst_reader->U.I.PreSub.Opcode = RC_PRESUB_BIAS;
+	inst_reader->U.I.SrcReg[src_index] = chain_srcregs(inst_reader->U.I.SrcReg[src_index],
+						inst_reader->U.I.PreSub.SrcReg[0]);
+
+	inst_reader->U.I.SrcReg[src_index].File = RC_FILE_PRESUB;
+	inst_reader->U.I.SrcReg[src_index].Index = RC_PRESUB_BIAS;
+}
+
 /**
  * PRESUB_INV: ADD TEMP[0], none.1, -TEMP[1]
  * Use the presubtract 1 - src0 for all readers of TEMP[0].  The first source
- * of the add instruction must have the constatnt 1 swizzle.  This function
+ * of the add instruction must have the constant 1 swizzle.  This function
  * does not check const registers to see if their value is 1.0, so it should
  * be called after the constant_folding optimization.
  * @return
@@ -670,8 +625,6 @@ static int peephole_add_presub_inv(
 	if ((inst_add->U.I.SrcReg[1].Negate & inst_add->U.I.DstReg.WriteMask) !=
 						inst_add->U.I.DstReg.WriteMask
 		|| inst_add->U.I.SrcReg[1].Abs
-		|| (inst_add->U.I.SrcReg[1].File != RC_FILE_TEMPORARY
-			&& inst_add->U.I.SrcReg[1].File != RC_FILE_CONSTANT)
 		|| src_has_const_swz(inst_add->U.I.SrcReg[1])) {
 
 		return 0;
@@ -679,6 +632,66 @@ static int peephole_add_presub_inv(
 
 	if (presub_helper(c, inst_add, RC_PRESUB_INV, presub_replace_inv)) {
 		rc_remove_instruction(inst_add);
+		return 1;
+	}
+	return 0;
+}
+
+/**
+ * PRESUB_BIAD: MAD -TEMP[0], 2.0, 1.0
+ * Use the presubtract 1 - 2*src0 for all readers of TEMP[0].  The first source
+ * of the add instruction must have the constant 1 swizzle.  This function
+ * does not check const registers to see if their value is 1.0, so it should
+ * be called after the constant_folding optimization.
+ * @return
+ * 	0 if the MAD instruction is still part of the program.
+ * 	1 if the MAD instruction is no longer part of the program.
+ */
+static int peephole_mad_presub_bias(
+	struct radeon_compiler * c,
+	struct rc_instruction * inst_mad)
+{
+	unsigned int i, swz;
+
+	if (!is_presub_candidate(c, inst_mad))
+		return 0;
+
+	/* Check if src2 is 1. */
+	for(i = 0; i < 4; i++ ) {
+		if (!(inst_mad->U.I.DstReg.WriteMask & (1 << i)))
+			continue;
+
+		swz = GET_SWZ(inst_mad->U.I.SrcReg[2].Swizzle, i);
+		if (swz != RC_SWIZZLE_ONE || inst_mad->U.I.SrcReg[2].Negate & (1 << i))
+			return 0;
+	}
+
+	/* Check if src1 is 2. */
+	struct rc_src_register src1_reg = inst_mad->U.I.SrcReg[1];
+	if ((src1_reg.Negate & inst_mad->U.I.DstReg.WriteMask) != 0 || src1_reg.Abs)
+		return 0;
+        struct rc_constant *constant = &c->Program.Constants.Constants[src1_reg.Index];
+	if (constant->Type != RC_CONSTANT_IMMEDIATE)
+		return 0;
+        for (i = 0; i < 4; i++) {
+		if (!(inst_mad->U.I.DstReg.WriteMask & (1 << i)))
+			continue;
+		swz = GET_SWZ(src1_reg.Swizzle, i);
+		if (swz >= RC_SWIZZLE_ZERO || constant->u.Immediate[swz] != 2.0)
+			return 0;
+	}
+
+	/* Check src0. */
+	if ((inst_mad->U.I.SrcReg[0].Negate & inst_mad->U.I.DstReg.WriteMask) !=
+						inst_mad->U.I.DstReg.WriteMask
+		|| inst_mad->U.I.SrcReg[0].Abs
+		|| src_has_const_swz(inst_mad->U.I.SrcReg[0])) {
+
+		return 0;
+	}
+
+	if (presub_helper(c, inst_mad, RC_PRESUB_BIAS, presub_replace_bias)) {
+		rc_remove_instruction(inst_mad);
 		return 1;
 	}
 	return 0;
@@ -871,15 +884,24 @@ static int peephole_mul_omod(
  */
 static int peephole(struct radeon_compiler * c, struct rc_instruction * inst)
 {
-	switch(inst->U.I.Opcode){
+	if (!c->has_presub)
+		return 0;
+
+	switch(inst->U.I.Opcode) {
 	case RC_OPCODE_ADD:
-		if (c->has_presub) {
-			if(peephole_add_presub_inv(c, inst))
-				return 1;
-			if(peephole_add_presub_add(c, inst))
-				return 1;
-		}
+	{
+		if (peephole_add_presub_inv(c, inst))
+			return 1;
+		if (peephole_add_presub_add(c, inst))
+			return 1;
 		break;
+	}
+	case RC_OPCODE_MAD:
+	{
+		if (peephole_mad_presub_bias(c, inst))
+			return 1;
+		break;
+	}
 	default:
 		break;
 	}
@@ -1311,6 +1333,126 @@ static void merge_channels(struct radeon_compiler * c, struct rc_instruction * i
 	}
 }
 
+/**
+ * Searches for duplicate ARLs/ARRs
+ *
+ * Only a very trivial case is now optimized where if a second one is detected which reads from
+ * the same register as the first one and source is the same, just remove the second one.
+ */
+static void merge_A0_loads(
+	struct radeon_compiler * c,
+	struct rc_instruction * inst,
+	bool is_ARL)
+{
+	unsigned int A0_src_reg = inst->U.I.SrcReg[0].Index;
+	unsigned int A0_src_file = inst->U.I.SrcReg[0].File;
+	unsigned int A0_src_swizzle = inst->U.I.SrcReg[0].Swizzle;
+	int cf_depth = 0;
+
+	struct rc_instruction * cur = inst;
+	while (cur != &c->Program.Instructions) {
+		cur = cur->Next;
+		const struct rc_opcode_info * opcode = rc_get_opcode_info(cur->U.I.Opcode);
+
+		/* Keep it simple for now and stop when encountering any
+		 * control flow besides simple ifs.
+		 */
+		if (opcode->IsFlowControl) {
+			switch (cur->U.I.Opcode) {
+			case RC_OPCODE_IF:
+			{
+				cf_depth++;
+				break;
+			}
+			case RC_OPCODE_ELSE:
+			{
+				if (cf_depth < 1)
+					return;
+				break;
+			}
+			case RC_OPCODE_ENDIF:
+			{
+                                cf_depth--;
+                                break;
+			}
+			default:
+				return;
+			}
+		}
+
+		/* Stop when the original source is overwritten */
+		if (A0_src_reg == cur->U.I.DstReg.Index &&
+			A0_src_file == cur->U.I.DstReg.File &&
+			cur->U.I.DstReg.WriteMask | rc_swizzle_to_writemask(A0_src_swizzle))
+			return;
+
+		/* Wrong A0 load type. */
+		if ((is_ARL && cur->U.I.Opcode == RC_OPCODE_ARR) ||
+		    (!is_ARL && cur->U.I.Opcode == RC_OPCODE_ARL))
+			return;
+
+		if (cur->U.I.Opcode == RC_OPCODE_ARL || cur->U.I.Opcode == RC_OPCODE_ARR) {
+			if (A0_src_reg == cur->U.I.SrcReg[0].Index &&
+			    A0_src_file == cur->U.I.SrcReg[0].File &&
+			    A0_src_swizzle == cur->U.I.SrcReg[0].Swizzle) {
+				struct rc_instruction * next = cur->Next;
+				rc_remove_instruction(cur);
+				cur = next;
+			} else {
+				return;
+			}
+		}
+	}
+}
+
+/**
+ * According to the GLSL spec, round is only 1.30 and up
+ * so the only reason why we should ever see round is if it actually
+ * is lowered ARR (from nine->ttn). In that case we want to reconstruct
+ * the ARR instead of lowering the round.
+ */
+static void transform_vertex_ROUND(struct radeon_compiler* c,
+	struct rc_instruction* inst)
+{
+	struct rc_reader_data readers;
+	rc_get_readers(c, inst, &readers, NULL, NULL, NULL);
+
+	assert(readers.ReaderCount > 0);
+	for (unsigned i = 0; i < readers.ReaderCount; i++) {
+		struct rc_instruction *reader = readers.Readers[i].Inst;
+		if (reader->U.I.Opcode != RC_OPCODE_ARL) {
+			assert(!"Unable to convert ROUND+ARL to ARR\n");
+			return;
+		}
+	}
+
+	/* Only ARL readers, convert all to ARR */
+	for (unsigned i = 0; i < readers.ReaderCount; i++) {
+		readers.Readers[i].Inst->U.I.Opcode = RC_OPCODE_ARR;
+	}
+	/* Switch ROUND to MOV and let copy propagate sort it out later. */
+	inst->U.I.Opcode = RC_OPCODE_MOV;
+}
+
+/**
+ * Apply various optimizations specific to the A0 adress register loads.
+ */
+static void optimize_A0_loads(struct radeon_compiler * c) {
+	struct rc_instruction * inst = c->Program.Instructions.Next;
+
+	while (inst != &c->Program.Instructions) {
+		struct rc_instruction * cur = inst;
+		inst = inst->Next;
+		if (cur->U.I.Opcode == RC_OPCODE_ARL) {
+			merge_A0_loads(c, cur, true);
+		} else if (cur->U.I.Opcode == RC_OPCODE_ARR) {
+			merge_A0_loads(c, cur, false);
+		} else if (cur->U.I.Opcode == RC_OPCODE_ROUND) {
+			transform_vertex_ROUND(c, cur);
+		}
+	}
+}
+
 void rc_optimize(struct radeon_compiler * c, void *user)
 {
 	struct rc_instruction * inst = c->Program.Instructions.Next;
@@ -1330,10 +1472,14 @@ void rc_optimize(struct radeon_compiler * c, void *user)
 		}
 	}
 
+	if (c->type == RC_VERTEX_PROGRAM) {
+		optimize_A0_loads(c);
+	}
+
 	/* Merge MOVs to same source in different channels using the constant
-	 * swizzles.
+	 * swizzle.
 	 */
-	if (c->is_r500) {
+	if (c->is_r500 || c->type == RC_VERTEX_PROGRAM) {
 		inst = c->Program.Instructions.Next;
 		while(inst != &c->Program.Instructions) {
 			struct rc_instruction * cur = inst;
@@ -1356,6 +1502,10 @@ void rc_optimize(struct radeon_compiler * c, void *user)
 		}
 	}
 
+	if (c->type != RC_FRAGMENT_PROGRAM) {
+		return;
+	}
+
 	/* Presubtract operations. */
 	inst = c->Program.Instructions.Next;
 	while(inst != &c->Program.Instructions) {
@@ -1364,10 +1514,7 @@ void rc_optimize(struct radeon_compiler * c, void *user)
 		peephole(c, cur);
 	}
 
-	if (!c->has_omod) {
-		return;
-	}
-
+	/* Output modifiers. */
 	inst = c->Program.Instructions.Next;
 	struct rc_list * var_list = NULL;
 	while(inst != &c->Program.Instructions) {

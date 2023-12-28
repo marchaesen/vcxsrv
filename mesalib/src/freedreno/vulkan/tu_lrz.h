@@ -15,6 +15,7 @@
 enum tu_lrz_force_disable_mask {
    TU_LRZ_FORCE_DISABLE_LRZ = 1 << 0,
    TU_LRZ_FORCE_DISABLE_WRITE = 1 << 1,
+   TU_LRZ_READS_DEST = 1 << 2,              /* Blend/logicop/colormask, etc */
 };
 
 enum tu_lrz_direction {
@@ -56,12 +57,10 @@ tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
                          const VkImageSubresourceRange *pRanges);
 
 void
-tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd,
-                        const VkClearValue *clear_values);
+tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd);
 
 void
-tu_lrz_begin_resumed_renderpass(struct tu_cmd_buffer *cmd,
-                                const VkClearValue *clear_values);
+tu_lrz_begin_resumed_renderpass(struct tu_cmd_buffer *cmd);
 
 void
 tu_lrz_begin_secondary_cmdbuf(struct tu_cmd_buffer *cmd);

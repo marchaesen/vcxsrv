@@ -19,15 +19,9 @@ dEQP-GLES31.functional.image_load_store.3d.load_store.*_single_layer
 # Separate shader and atomics flakiness increased since bfeb0983d3b3 ("ci/freedreno: Disable flaky a530 for now.")
 dEQP-GLES31.functional.separate_shader.*
 
-# Flaky since running more of GLES31
-dEQP-GLES31.functional.texture.border_clamp.*
-
 KHR-GLES31.core.compute_shader.resource-image
 
-KHR-GLES31.core.texture_border_clamp.*
-
 # Occasionally passes
-dEQP-GLES31.functional.draw_base_vertex.draw_elements_instanced_base_vertex.builtin_variable.vertex_id
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls1
 KHR-GLES31.core.arrays_of_arrays.InteractionFunctionCalls2
 
@@ -56,13 +50,9 @@ KHR-GLES31.core.shader_storage_buffer_object.basic-syntax-cs
 # (ci-fd-fastboot-nfs)
 dEQP-GLES31.functional.synchronization.inter_call.without_memory_barrier.*
 
-dEQP-GLES31.functional.texture.gather.basic.2d_array.rgba8.filter_mode.min_nearest_mipmap_nearest_mag_linear
-
-glx@glx-swap-copy
 glx@glx-swap-event_interval
 glx@glx_arb_sync_control@swapbuffersmsc-divisor-zero
 glx@glx_arb_sync_control@waitformsc
-glx@glx-copy-sub-buffer.*
 glx@glx-multithread-texture
 glx@glx-swap-event_async
 shaders@glsl-uniform-interstage-limits@subdivide 5
@@ -114,3 +104,60 @@ spec@!opengl 1.1@depthstencil-default_fb-copypixels
 spec@arb_direct_state_access@gettextureimage-formats
 spec@ext_polygon_offset_clamp@ext_polygon_offset_clamp-draw_gles2
 spec@ext_polygon_offset_clamp@ext_polygon_offset_clamp-draw_gles2@negative clamp
+
+dEQP-GLES31.functional.texture.multisample.samples_1.use_texture_depth_2d
+
+# 1/10 run flake
+dEQP-GLES31.functional.atomic_counter.layout.default_offset_set.inc_dec.8_counters_5_calls_1_thread
+dEQP-GLES31.functional.compute.indirect_dispatch.gen_in_compute.multi_dispatch_reuse_command
+
+KHR-GLES31.core.explicit_uniform_location.uniform-loc-types-samplers
+KHR-GLES31.core.internalformat.copy_tex_image.alpha
+KHR-GLES31.core.internalformat.texture2d.red_integer_int_r32i
+KHR-GLES31.core.internalformat.texture2d.rgb_integer_byte_rgb8i
+KHR-GLES31.core.internalformat.texture2d.rgb_integer_int_rgb32i
+
+spec@glsl-1.10@execution@built-in-functions@fs-all-bvec4
+spec@glsl-1.10@execution@built-in-functions@fs-op-assign-add-ivec4-int
+spec@glsl-1.10@execution@built-in-functions@fs-max-vec2-vec2
+spec@glsl-1.10@execution@built-in-functions@vs-acos-vec3
+spec@glsl-1.10@execution@built-in-functions@vs-dot-vec2-vec2
+spec@glsl-1.10@execution@built-in-functions@vs-dot-vec3-vec3
+spec@glsl-1.10@execution@built-in-functions@vs-op-add-mat4-mat4
+spec@glsl-1.10@execution@built-in-functions@vs-mod-float-float
+spec@glsl-1.10@execution@copy-propagation@glsl-copy-propagation-self-1
+spec@glsl-1.10@execution@copy-propagation@glsl-vs-double-negative-copy-propagation
+spec@glsl-1.10@execution@variable-indexing@fs-varying-mat2-rd
+spec@glsl-1.10@execution@vs-mat2-array-assignment
+spec@glsl-1.10@execution@vs-nested-return-sibling-loop2
+spec@glsl-1.20@execution@built-in-functions@fs-matrixcompmult-mat4x2-mat4x2
+spec@glsl-1.20@execution@built-in-functions@vs-op-ne-mat2x4-mat2x4-using-if
+spec@glsl-1.20@execution@built-in-functions@vs-op-neg-mat3x4
+spec@glsl-1.20@execution@clipping@vs-clip-vertex-different-from-position
+spec@glsl-1.20@execution@const-builtin@glsl-const-builtin-distance
+spec@glsl-1.20@execution@const-builtin@glsl-const-builtin-derivatives
+spec@glsl-1.20@execution@fs-vec4-const-array-indirect-access-128-elements
+spec@glsl-1.20@execution@vs-outerproduct-const-mat3x4
+spec@glsl-1.20@execution@uniform-initializer@fs-int-set-by-other-stage
+spec@glsl-1.30@execution@built-in-functions@fs-abs-ivec2
+spec@glsl-1.30@execution@built-in-functions@fs-cosh-vec4
+spec@glsl-1.30@execution@built-in-functions@fs-op-bitand-not-abs-int-ivec3
+spec@glsl-1.30@execution@built-in-functions@fs-op-bitor-not-abs-int-ivec2
+spec@glsl-1.30@execution@built-in-functions@fs-op-bitxor-neg-ivec3-int
+spec@glsl-1.30@execution@built-in-functions@fs-op-bitxor-ivec3-ivec3
+spec@glsl-1.30@execution@built-in-functions@fs-op-bitxor-uint-uvec3
+spec@glsl-1.30@execution@built-in-functions@vs-lessthanequal-uvec4-uvec4
+spec@glsl-1.30@execution@built-in-functions@vs-op-assign-lshift-uvec2-ivec2
+spec@glsl-1.30@execution@built-in-functions@vs-op-bitand-abs-neg-ivec3-ivec3
+spec@glsl-1.30@execution@built-in-functions@vs-op-bitor-abs-neg-ivec2-int
+spec@glsl-1.30@execution@built-in-functions@vs-op-bitxor-neg-abs-ivec4-ivec4
+spec@glsl-1.30@execution@built-in-functions@vs-op-ne-uvec2-uvec2-using-if
+spec@glsl-1.30@execution@interpolation@interpolation-smooth-other-flat-distance
+spec@glsl-es-3.00@execution@built-in-functions@const-packhalf2x16
+spec@glsl-es-3.00@execution@varying-struct-copy-return-vs
+spec@arb_texture_query_levels@execution@fs-miptree
+spec@amd_shader_trinary_minmax@execution@built-in-functions@fs-max3-vec2-vec2-vec2
+spec@arb_uniform_buffer_object@execution@shared-row_major-array-mat2x2-and-column_major-array-mat2x2
+spec@mesa_shader_integer_functions@execution@built-in-functions@fs-umulextended-only-msb-nonuniform
+# ci-collate: Issue found in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/49445812
+KHR-GLES31.core.compute_shader.simple-compute-shared_context

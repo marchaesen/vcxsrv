@@ -692,8 +692,8 @@ offsets = {
     "GetInfoLogARB": 656,
     "GetObjectParameterfvARB": 657,
     "GetObjectParameterivARB": 658,
-    "DrawArraysInstancedARB": 659,
-    "DrawElementsInstancedARB": 660,
+    "DrawArraysInstanced": 659,
+    "DrawElementsInstanced": 660,
     "BindFramebuffer": 661,
     "BindRenderbuffer": 662,
     "BlitFramebuffer": 663,
@@ -1206,7 +1206,7 @@ offsets = {
     "PushDebugGroup": 1170,
     "SecondaryColor3fEXT": 1171,
     "SecondaryColor3fvEXT": 1172,
-    "MultiDrawElementsEXT": 1173,
+    "MultiDrawElements": 1173,
     "FogCoordfEXT": 1174,
     "FogCoordfvEXT": 1175,
     "ResizeBuffersMESA": 1176,
@@ -1695,15 +1695,15 @@ offsets = {
     "ImportSemaphoreWin32HandleEXT": 1659,
     "ImportMemoryWin32NameEXT": 1660,
     "ImportSemaphoreWin32NameEXT": 1661,
-    "IsDirect": 1662,
-    "QueryVersion": 1663,
-    "WaitGL": 1664,
-    "WaitX": 1665,
-    "CopyContext": 1666,
-    "SwapBuffers": 1667,
-    "UseXFont": 1668,
-    "CreateGLXPixmap": 1669,
-    "DestroyGLXPixmap": 1670,
+    "GetObjectLabelEXT": 1662,
+    "LabelObjectEXT": 1663,
+    "DrawArraysUserBuf": 1664,
+    "DrawElementsUserBuf": 1665,
+    "MultiDrawArraysUserBuf": 1666,
+    "MultiDrawElementsUserBuf": 1667,
+    "DrawArraysInstancedBaseInstanceDrawID": 1668,
+    "DrawElementsInstancedBaseVertexBaseInstanceDrawID": 1669,
+    "InternalInvalidateFramebufferAncillaryMESA": 1670,
     "VendorPrivate": 1671,
     "VendorPrivateWithReply": 1672,
     "QueryExtensionsString": 1673,
@@ -1743,6 +1743,15 @@ offsets = {
     "CreateContext": 1707,
     "DestroyContext": 1708,
     "MakeCurrent": 1709,
+    "IsDirect": 1710,
+    "QueryVersion": 1711,
+    "WaitGL": 1712,
+    "WaitX": 1713,
+    "CopyContext": 1714,
+    "SwapBuffers": 1715,
+    "UseXFont": 1716,
+    "CreateGLXPixmap": 1717,
+    "DestroyGLXPixmap": 1718,
 }
 
 functions = [
@@ -2187,6 +2196,7 @@ functions = [
     "GetnUniformuiv",
     "GetnUniformuivARB",
     "GetObjectLabel",
+    "GetObjectLabelEXT",
     "GetObjectParameterfvARB",
     "GetObjectParameterivARB",
     "GetObjectPtrLabel",
@@ -2318,6 +2328,7 @@ functions = [
     "IsTextureEXT",
     "IsTransformFeedback",
     "IsVertexArray",
+    "LabelObjectEXT",
     "Lightf",
     "Lightfv",
     "Lighti",
@@ -3043,60 +3054,4 @@ functions = [
     "WindowPos3sARB",
     "WindowPos3sv",
     "WindowPos3svARB",
-]
-
-"""Functions that need dispatch slots but are not used
-
-Some of these functions may have GLX protocol support (for
-indirect-rendering).  Other were used in previous versions of Mesa.  They keep
-slots in the dispatch table so that newer versions of libGL can still be used
-with older drivers."""
-unused_functions = [
-    # SGIS_multisample
-    "SampleMaskSGIS",
-    "SamplePatternSGIS",
-
-    # NV_vertex_program
-    "AreProgramsResidentNV",
-    "ExecuteProgramNV",
-    "GetProgramParameterdvNV",
-    "GetProgramParameterfvNV",
-    "GetProgramivNV",
-    "GetProgramStringNV",
-    "GetTrackMatrixivNV",
-    "GetVertexAttribdvNV",
-    "GetVertexAttribfvNV",
-    "GetVertexAttribivNV",
-    "LoadProgramNV",
-    "ProgramParameters4dvNV",
-    "ProgramParameters4fvNV",
-    "RequestResidentProgramsNV",
-    "TrackMatrixNV",
-    "VertexAttribPointerNV",
-
-    # MESA_resize_buffers
-    "ResizeBuffersMESA",
-
-    # ATI_envmap_bumpmap
-    "TexBumpParameterfvATI",
-    "TexBumpParameterivATI",
-    "GetTexBumpParameterfvATI",
-    "GetTexBumpParameterivATI",
-
-    # NV_fragment_program
-    "ProgramNamedParameter4fNV",
-    "ProgramNamedParameter4dNV",
-    "ProgramNamedParameter4fvNV",
-    "ProgramNamedParameter4dvNV",
-    "GetProgramNamedParameterfvNV",
-    "GetProgramNamedParameterdvNV",
-
-    # APPLE_flush_buffer_range
-    "BufferParameteriAPPLE",
-    "FlushMappedBufferRangeAPPLE",
-
-    # EXT_separate_shader_objects
-    "UseShaderProgramEXT",
-    "ActiveProgramEXT",
-    "CreateShaderProgramEXT",
 ]

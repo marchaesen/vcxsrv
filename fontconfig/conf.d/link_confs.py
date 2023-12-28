@@ -34,7 +34,7 @@ if __name__=='__main__':
         except FileNotFoundError:
             pass
         try:
-            os.symlink(src, dst)
+            os.symlink(os.path.relpath(src, start=args.confpath), dst)
         except NotImplementedError:
             # Not supported on this version of Windows
             break

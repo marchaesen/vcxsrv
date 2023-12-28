@@ -7,17 +7,15 @@ default partial xkb_types "pc" {
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Number";
     };
-    include "extra(keypad)"
 };
 
-// On Mac keypads, level 1 and 2 are swapped.
+// On Mac keypads, levels 1 and 2 are swapped.
 partial xkb_types "mac" {
     type "KEYPAD" {
 	modifiers = None;
 	map[None] = Level2;
 	level_name[Level2] = "Number";
     };
-    include "extra(keypad)"
 };
 
 partial xkb_types "microsoft" {
@@ -29,7 +27,6 @@ partial xkb_types "microsoft" {
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Number";
     };
-    include "extra(keypad)"
 };
 
 // Swiss-German style numeric keypad: Shift and NumLock operate as

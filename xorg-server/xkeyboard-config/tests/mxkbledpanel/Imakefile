@@ -1,8 +1,0 @@
-LOCAL_LIBRARIES1 = -lXm
-           SRCS1 = mxkbledpanel.c
-           OBJS1 = mxkbledpanel.o
-
-PROGRAMS=mxkbledpanel
-
-ComplexProgramTarget_1(mxkbledpanel,$(LOCAL_LIBRARIES1),)
-

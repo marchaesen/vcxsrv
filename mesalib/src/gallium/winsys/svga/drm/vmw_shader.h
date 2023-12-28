@@ -34,7 +34,7 @@
 #ifndef VMW_SHADER_H_
 #define VMW_SHADER_H_
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_atomic.h"
 #include "util/u_inlines.h"
 

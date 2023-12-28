@@ -149,8 +149,8 @@ _glapi_get_dispatch_table_size(void);
 
 
 SERVEXTERN int
-_glapi_add_dispatch( const char * const * function_names,
-		     const char * parameter_signature );
+_glapi_add_dispatch(const char *const *function_names,
+                    const char *parameter_signature);
 
 _GLAPI_EXPORT _glapi_proc
 _glapi_get_proc_address(const char *funcName);

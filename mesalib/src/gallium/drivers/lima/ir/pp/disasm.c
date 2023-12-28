@@ -765,16 +765,16 @@ static const int ppir_codegen_field_size[] = {
 };
 
 static void
-bitcopy(char *src, char *dst, unsigned bits, unsigned src_offset)
+bitcopy(unsigned char *src, unsigned char *dst, unsigned bits, unsigned src_offset)
 {
    src += src_offset / 8;
    src_offset %= 8;
 
-   for (int b = bits; b > 0; b -= 8, src++, dst++) {
-      unsigned char out = ((unsigned char) *src) >> src_offset;
+   for (unsigned b = bits; b > 0; b -= MIN2(b, 8), src++, dst++) {
+      unsigned char out = *src >> src_offset;
       if (src_offset > 0 && src_offset + b > 8)
-         out |= ((unsigned char) *(src + 1)) << (8 - src_offset);
-      *dst = (char) out;
+         out |= *(src + 1) << (8 - src_offset);
+      *dst = out;
    }
 }
 
@@ -783,11 +783,11 @@ ppir_disassemble_instr(uint32_t *instr, unsigned offset, FILE *fp)
 {
    ppir_codegen_ctrl *ctrl = (ppir_codegen_ctrl *) instr;
 
-   char *instr_code = (char *) (instr + 1);
+   unsigned char *instr_code = (unsigned char *) (instr + 1);
    unsigned bit_offset = 0;
    bool first = true;
    for (unsigned i = 0; i < ppir_codegen_field_shift_count; i++) {
-      char code[12];
+      unsigned char code[12];
 
       if (!((ctrl->fields >> i) & 1))
          continue;

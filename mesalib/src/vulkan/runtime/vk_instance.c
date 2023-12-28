@@ -23,9 +23,8 @@
 
 #include "vk_instance.h"
 
-#ifdef HAVE_LIBDRM
-#include <xf86drm.h>
-#endif
+#include "util/libdrm.h"
+#include "util/perf/cpu_trace.h"
 
 #include "vk_alloc.h"
 #include "vk_common_entrypoints.h"
@@ -40,6 +39,11 @@
 #define VERSION_IS_1_0(version) \
    (VK_API_VERSION_MAJOR(version) == 1 && VK_API_VERSION_MINOR(version) == 0)
 
+static const struct debug_control trace_options[] = {
+   {"rmv", VK_TRACE_MODE_RMV},
+   {NULL, 0},
+};
+
 VkResult
 vk_instance_init(struct vk_instance *instance,
                  const struct vk_instance_extension_table *supported_extensions,
@@ -48,8 +52,10 @@ vk_instance_init(struct vk_instance *instance,
                  const VkAllocationCallbacks *alloc)
 {
    memset(instance, 0, sizeof(*instance));
-   vk_object_base_init(NULL, &instance->base, VK_OBJECT_TYPE_INSTANCE);
+   vk_object_base_instance_init(instance, &instance->base, VK_OBJECT_TYPE_INSTANCE);
    instance->alloc = *alloc;
+
+   util_cpu_trace_init();
 
    /* VK_EXT_debug_utils */
    /* These messengers will only be used during vkCreateInstance or
@@ -69,8 +75,8 @@ vk_instance_init(struct vk_instance *instance,
          if (!messenger)
             return vk_error(instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-         vk_object_base_init(NULL, &messenger->base,
-                             VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT);
+         vk_object_base_instance_init(instance, &messenger->base,
+                                      VK_OBJECT_TYPE_DEBUG_UTILS_MESSENGER_EXT);
 
          messenger->alloc = *alloc;
          messenger->severity = debugMessengerCreateInfo->messageSeverity;
@@ -135,6 +141,8 @@ vk_instance_init(struct vk_instance *instance,
        !VERSION_IS_1_0(instance->app_info.api_version))
       return VK_ERROR_INCOMPATIBLE_DRIVER;
 
+   instance->supported_extensions = supported_extensions;
+
    for (uint32_t i = 0; i < pCreateInfo->enabledExtensionCount; i++) {
       int idx;
       for (idx = 0; idx < VK_INSTANCE_EXTENSION_COUNT; idx++) {
@@ -153,7 +161,7 @@ vk_instance_init(struct vk_instance *instance,
                           "%s not supported",
                           pCreateInfo->ppEnabledExtensionNames[i]);
 
-#ifdef ANDROID
+#ifdef ANDROID_STRICT
       if (!vk_android_allowed_instance_extensions.extensions[idx])
          return vk_errorf(instance, VK_ERROR_EXTENSION_NOT_PRESENT,
                           "%s not supported",
@@ -188,6 +196,10 @@ vk_instance_init(struct vk_instance *instance,
       mtx_destroy(&instance->debug_utils.callbacks_mutex);
       return vk_error(instance, VK_ERROR_INITIALIZATION_FAILED);
    }
+
+   instance->trace_mode = parse_debug_string(getenv("MESA_VK_TRACE"), trace_options);
+   instance->trace_frame = (uint32_t)debug_get_num_option("MESA_VK_TRACE_FRAME", 0xFFFFFFFF);
+   instance->trace_trigger_file = getenv("MESA_VK_TRACE_TRIGGER");
 
    glsl_type_singleton_init_or_ref();
 
@@ -247,7 +259,7 @@ vk_enumerate_instance_extension_properties(
       if (!supported_extensions->extensions[i])
          continue;
 
-#ifdef ANDROID
+#ifdef ANDROID_STRICT
       if (!vk_android_allowed_instance_extensions.extensions[i])
          continue;
 #endif
@@ -289,6 +301,19 @@ vk_instance_get_proc_addr(const struct vk_instance *instance,
    LOOKUP_VK_ENTRYPOINT(GetInstanceProcAddr);
 
 #undef LOOKUP_VK_ENTRYPOINT
+
+   /* Beginning with ICD interface v7, the following functions can also be
+    * retrieved via vk_icdGetInstanceProcAddr.
+    */
+
+   if (strcmp(name, "vk_icdNegotiateLoaderICDInterfaceVersion") == 0)
+      return (PFN_vkVoidFunction)vk_icdNegotiateLoaderICDInterfaceVersion;
+   if (strcmp(name, "vk_icdGetPhysicalDeviceProcAddr") == 0)
+      return (PFN_vkVoidFunction)vk_icdGetPhysicalDeviceProcAddr;
+#ifdef _WIN32
+   if (strcmp(name, "vk_icdEnumerateAdapterPhysicalDevices") == 0)
+      return (PFN_vkVoidFunction)vk_icdEnumerateAdapterPhysicalDevices;
+#endif
 
    if (instance == NULL)
       return NULL;
@@ -356,10 +381,16 @@ vk_instance_get_physical_device_proc_addr(const struct vk_instance *instance,
                                                              &instance->enabled_extensions);
 }
 
+void
+vk_instance_add_driver_trace_modes(struct vk_instance *instance,
+                                   const struct debug_control *modes)
+{
+   instance->trace_mode |= parse_debug_string(getenv("MESA_VK_TRACE"), modes);
+}
+
 static VkResult
 enumerate_drm_physical_devices_locked(struct vk_instance *instance)
 {
-#ifdef HAVE_LIBDRM
    /* TODO: Check for more devices ? */
    drmDevicePtr devices[8];
    int max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
@@ -387,15 +418,16 @@ enumerate_drm_physical_devices_locked(struct vk_instance *instance)
 
    drmFreeDevices(devices, max_devices);
    return result;
-#endif
-   return VK_SUCCESS;
 }
 
 static VkResult
 enumerate_physical_devices_locked(struct vk_instance *instance)
 {
-   if (instance->physical_devices.enumerate)
-      return instance->physical_devices.enumerate(instance);
+   if (instance->physical_devices.enumerate) {
+      VkResult result = instance->physical_devices.enumerate(instance);
+      if (result != VK_ERROR_INCOMPATIBLE_DRIVER)
+         return result;
+   }
 
    VkResult result = VK_SUCCESS;
 
@@ -447,6 +479,39 @@ vk_common_EnumeratePhysicalDevices(VkInstance _instance, uint32_t *pPhysicalDevi
    return vk_outarray_status(&out);
 }
 
+#ifdef _WIN32
+/* Note: This entrypoint is not exported from ICD DLLs, and is only exposed via
+ * vk_icdGetInstanceProcAddr for loaders with interface v7. This is to avoid
+ * a design flaw in the original loader implementation, which prevented enumeration
+ * of physical devices that didn't have a LUID. This flaw was fixed prior to the
+ * implementation of v7, so v7 loaders are unaffected, and it's safe to support this.
+ */
+VKAPI_ATTR VkResult VKAPI_CALL
+vk_icdEnumerateAdapterPhysicalDevices(VkInstance _instance, LUID adapterLUID,
+                                      uint32_t *pPhysicalDeviceCount,
+                                      VkPhysicalDevice *pPhysicalDevices)
+{
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
+   VK_OUTARRAY_MAKE_TYPED(VkPhysicalDevice, out, pPhysicalDevices, pPhysicalDeviceCount);
+
+   VkResult result = enumerate_physical_devices(instance);
+   if (result != VK_SUCCESS)
+      return result;
+
+   list_for_each_entry(struct vk_physical_device, pdevice,
+                       &instance->physical_devices.list, link) {
+      if (pdevice->properties.deviceLUIDValid &&
+          memcmp(pdevice->properties.deviceLUID, &adapterLUID, sizeof(adapterLUID)) == 0) {
+         vk_outarray_append_typed(VkPhysicalDevice, &out, element) {
+            *element = vk_physical_device_to_handle(pdevice);
+         }
+      }
+   }
+
+   return vk_outarray_status(&out);
+}
+#endif
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_common_EnumeratePhysicalDeviceGroups(VkInstance _instance, uint32_t *pGroupCount,
                                         VkPhysicalDeviceGroupProperties *pGroupProperties)
@@ -470,4 +535,103 @@ vk_common_EnumeratePhysicalDeviceGroups(VkInstance _instance, uint32_t *pGroupCo
    }
 
    return vk_outarray_status(&out);
+}
+
+/* For Windows, PUBLIC is default-defined to __declspec(dllexport) to automatically export the
+ * public entrypoints from a DLL. However, this declspec needs to match between declaration and
+ * definition, and this attribute is not present on the prototypes specified in vk_icd.h. Instead,
+ * we'll use a .def file to manually export these entrypoints on Windows.
+ */
+#ifdef _WIN32
+#undef PUBLIC
+#define PUBLIC
+#endif
+
+/* With version 4+ of the loader interface the ICD should expose
+ * vk_icdGetPhysicalDeviceProcAddr()
+ */
+PUBLIC VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
+vk_icdGetPhysicalDeviceProcAddr(VkInstance  _instance,
+                                const char *pName)
+{
+   VK_FROM_HANDLE(vk_instance, instance, _instance);
+   return vk_instance_get_physical_device_proc_addr(instance, pName);
+}
+
+static uint32_t vk_icd_version = 7;
+
+uint32_t
+vk_get_negotiated_icd_version(void)
+{
+   return vk_icd_version;
+}
+
+PUBLIC VKAPI_ATTR VkResult VKAPI_CALL
+vk_icdNegotiateLoaderICDInterfaceVersion(uint32_t *pSupportedVersion)
+{
+   /* For the full details on loader interface versioning, see
+    * <https://github.com/KhronosGroup/Vulkan-LoaderAndValidationLayers/blob/master/loader/LoaderAndLayerInterface.md>.
+    * What follows is a condensed summary, to help you navigate the large and
+    * confusing official doc.
+    *
+    *   - Loader interface v0 is incompatible with later versions. We don't
+    *     support it.
+    *
+    *   - In loader interface v1:
+    *       - The first ICD entrypoint called by the loader is
+    *         vk_icdGetInstanceProcAddr(). The ICD must statically expose this
+    *         entrypoint.
+    *       - The ICD must statically expose no other Vulkan symbol unless it is
+    *         linked with -Bsymbolic.
+    *       - Each dispatchable Vulkan handle created by the ICD must be
+    *         a pointer to a struct whose first member is VK_LOADER_DATA. The
+    *         ICD must initialize VK_LOADER_DATA.loadMagic to ICD_LOADER_MAGIC.
+    *       - The loader implements vkCreate{PLATFORM}SurfaceKHR() and
+    *         vkDestroySurfaceKHR(). The ICD must be capable of working with
+    *         such loader-managed surfaces.
+    *
+    *    - Loader interface v2 differs from v1 in:
+    *       - The first ICD entrypoint called by the loader is
+    *         vk_icdNegotiateLoaderICDInterfaceVersion(). The ICD must
+    *         statically expose this entrypoint.
+    *
+    *    - Loader interface v3 differs from v2 in:
+    *        - The ICD must implement vkCreate{PLATFORM}SurfaceKHR(),
+    *          vkDestroySurfaceKHR(), and other API which uses VKSurfaceKHR,
+    *          because the loader no longer does so.
+    *
+    *    - Loader interface v4 differs from v3 in:
+    *        - The ICD must implement vk_icdGetPhysicalDeviceProcAddr().
+    *
+    *    - Loader interface v5 differs from v4 in:
+    *        - The ICD must support Vulkan API version 1.1 and must not return
+    *          VK_ERROR_INCOMPATIBLE_DRIVER from vkCreateInstance() unless a
+    *          Vulkan Loader with interface v4 or smaller is being used and the
+    *          application provides an API version that is greater than 1.0.
+    *
+    *    - Loader interface v6 differs from v5 in:
+    *        - Windows ICDs may export vk_icdEnumerateAdapterPhysicalDevices,
+    *          to tie a physical device to a WDDM adapter LUID. This allows the
+    *          loader to sort physical devices according to the same policy as other
+    *          graphics APIs.
+    *        - Note: A design flaw in the loader implementation of v6 means we do
+    *          not actually support returning this function to v6 loaders. See the
+    *          comments around the implementation above. It's still fine to report
+    *          version number 6 without this method being implemented, however.
+    *
+    *    - Loader interface v7 differs from v6 in:
+    *        - If implemented, the ICD must return the following functions via
+    *          vk_icdGetInstanceProcAddr:
+    *            - vk_icdNegotiateLoaderICDInterfaceVersion
+    *            - vk_icdGetPhysicalDeviceProcAddr
+    *            - vk_icdEnumerateAdapterPhysicalDevices
+    *          Exporting these functions from the ICD is optional. If
+    *          vk_icdNegotiateLoaderICDInterfaceVersion is not exported from the
+    *          module, or if VK_LUNARG_direct_driver_loading is being used, then
+    *          vk_icdGetInstanceProcAddr will be the first method called, to query
+    *          for vk_icdNegotiateLoaderICDInterfaceVersion.
+    */
+   vk_icd_version = MIN2(vk_icd_version, *pSupportedVersion);
+   *pSupportedVersion = vk_icd_version;
+   return VK_SUCCESS;
 }

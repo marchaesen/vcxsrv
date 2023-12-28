@@ -27,11 +27,11 @@
 #ifndef __PAN_DECODE_PUBLIC_H__
 #define __PAN_DECODE_PUBLIC_H__
 
+#include <inttypes.h>
+#include <stdbool.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <stddef.h>
-#include <stdbool.h>
-#include <inttypes.h>
 
 /* Public entrypoints for the tracing infrastructure. This API should be kept
  * more or less stable. Don't feel bad if you have to change it; just feel
@@ -42,20 +42,29 @@
  * included in-tree.
  */
 
-void pandecode_initialize(bool to_stderr);
+// TODO: update panwrap
 
-void pandecode_next_frame(void);
+struct pandecode_context;
 
-void pandecode_close(void);
+struct pandecode_context *pandecode_create_context(bool to_stderr);
 
-void
-pandecode_inject_mmap(uint64_t gpu_va, void *cpu, unsigned sz, const char *name);
+void pandecode_next_frame(struct pandecode_context *ctx);
 
-void pandecode_inject_free(uint64_t gpu_va, unsigned sz);
+void pandecode_destroy_context(struct pandecode_context *ctx);
 
-void pandecode_jc(uint64_t jc_gpu_va, unsigned gpu_id);
+void pandecode_inject_mmap(struct pandecode_context *ctx, uint64_t gpu_va,
+                           void *cpu, unsigned sz, const char *name);
 
-void
-pandecode_abort_on_fault(uint64_t jc_gpu_va, unsigned gpu_id);
+void pandecode_inject_free(struct pandecode_context *ctx, uint64_t gpu_va,
+                           unsigned sz);
+
+void pandecode_jc(struct pandecode_context *ctx, uint64_t jc_gpu_va,
+                  unsigned gpu_id);
+
+void pandecode_cs(struct pandecode_context *ctx, mali_ptr queue_gpu_va,
+                  uint32_t size, unsigned gpu_id, uint32_t *regs);
+
+void pandecode_abort_on_fault(struct pandecode_context *ctx, uint64_t jc_gpu_va,
+                              unsigned gpu_id);
 
 #endif /* __MMAP_TRACE_H__ */

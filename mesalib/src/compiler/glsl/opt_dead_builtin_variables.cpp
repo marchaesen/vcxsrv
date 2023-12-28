@@ -24,6 +24,7 @@
 #include "ir.h"
 #include "ir_visitor.h"
 #include "ir_optimization.h"
+#include "linker_util.h"
 
 /**
  * Pre-linking, optimize unused built-in variables

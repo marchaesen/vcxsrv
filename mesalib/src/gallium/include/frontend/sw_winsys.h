@@ -35,7 +35,7 @@
 #define SW_WINSYS_H
 
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "frontend/winsys_handle.h"
 
 #ifdef __cplusplus
@@ -65,6 +65,9 @@ struct sw_winsys
 {
    void 
    (*destroy)( struct sw_winsys *ws );
+
+   int
+   (*get_fd)( struct sw_winsys *ws );
 
    bool
    (*is_displaytarget_format_supported)( struct sw_winsys *ws,

@@ -67,12 +67,39 @@ typedef struct xauth {
 
 _XFUNCPROTOBEGIN
 
+#ifndef __has_attribute
+# define __has_attribute(x) 0  /* Compatibility with older compilers */
+#endif
+
+#if __has_attribute(access)
+# define XAU_ACCESS_ATTRIBUTE(X) __attribute__((access X))
+#else
+# define XAU_ACCESS_ATTRIBUTE(X)
+#endif
+
+#if __has_attribute(malloc)
+# if defined(__clang__)
+/* Clang does not support the optional deallocator argument */
+#  define XAU_MALLOC_ATTRIBUTE(X) __attribute__((malloc))
+# else
+#  define XAU_MALLOC_ATTRIBUTE(X) __attribute__((malloc X))
+# endif
+#else
+# define XAU_MALLOC_ATTRIBUTE(X)
+#endif
+
 char *XauFileName(void);
 
+void XauDisposeAuth(
+Xauth*		/* auth */
+);
+
+XAU_MALLOC_ATTRIBUTE((XauDisposeAuth, 1))
 Xauth *XauReadAuth(
 FILE*	/* auth_file */
 );
 
+XAU_ACCESS_ATTRIBUTE((read_only, 1)) /* file_name */
 int XauLockAuth(
 _Xconst char*	/* file_name */,
 int		/* retries */,
@@ -80,15 +107,20 @@ int		/* timeout */,
 long		/* dead */
 );
 
+XAU_ACCESS_ATTRIBUTE((read_only, 1)) /* file_name */
 int XauUnlockAuth(
 _Xconst char*	/* file_name */
 );
 
+XAU_ACCESS_ATTRIBUTE((read_only, 2)) /* auth */
 int XauWriteAuth(
 FILE*		/* auth_file */,
 Xauth*		/* auth */
 );
 
+XAU_ACCESS_ATTRIBUTE((read_only, 3, 2)) /* address */
+XAU_ACCESS_ATTRIBUTE((read_only, 5, 4)) /* number */
+XAU_ACCESS_ATTRIBUTE((read_only, 7, 6)) /* name */
 Xauth *XauGetAuthByAddr(
 #if NeedWidePrototypes
 unsigned int	/* family */,
@@ -112,6 +144,10 @@ unsigned short	/* name_length */,
 _Xconst char*	/* name */
 );
 
+XAU_ACCESS_ATTRIBUTE((read_only, 3, 2)) /* address */
+XAU_ACCESS_ATTRIBUTE((read_only, 5, 4)) /* number */
+XAU_ACCESS_ATTRIBUTE((read_only, 7, 6)) /* type_names */
+XAU_ACCESS_ATTRIBUTE((read_only, 8, 6)) /* type_lengths */
 Xauth *XauGetBestAuthByAddr(
 #if NeedWidePrototypes
 unsigned int	/* family */,
@@ -132,16 +168,12 @@ char**		/* type_names */,
 _Xconst int*	/* type_lengths */
 );
 
-void XauDisposeAuth(
-Xauth*		/* auth */
-);
-
 _XFUNCPROTOEND
 
 /* Return values from XauLockAuth */
 
 # define LOCK_SUCCESS	0	/* lock succeeded */
-# define LOCK_ERROR	1	/* lock unexpectely failed, check errno */
+# define LOCK_ERROR	1	/* lock unexpectedly failed, check errno */
 # define LOCK_TIMEOUT	2	/* lock failed, timeouts expired */
 
 #endif /* _XAUTH_STRUCT_ONLY */

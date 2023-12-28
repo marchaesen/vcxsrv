@@ -1218,7 +1218,7 @@ Jan Vesely (2):
 -  amd: Make vgpr-spilling depend on llvm version
 -  clover: Fix build after clang r348827
 
-Jason Ekstrand (207):
+Faith Ekstrand (207):
 
 -  vulkan: Update the XML and headers to 1.1.91
 -  intel/fs,vec4: Clean up a repeated pattern with SSBOs
@@ -1884,7 +1884,7 @@ Matt Turner (41):
    nir_shader_get_entrypoint()
 -  nir: Wire up int64 lowering functions
 -  nir: Implement lowering of 64-bit shift operations
--  nir: Add and set info::uses_64bit
+-  nir: Add and set \info::uses_64bit
 -  nir: Create nir_builder in nir_lower_doubles_impl()
 -  nir: Add lowering support for 64-bit operations to software
 -  nir: Unset metadata debug bit if no progress made

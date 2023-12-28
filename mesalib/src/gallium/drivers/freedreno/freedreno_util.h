@@ -32,11 +32,14 @@
 #include "drm/freedreno_drmif.h"
 #include "drm/freedreno_ringbuffer.h"
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_state.h"
 #include "util/compiler.h"
 #include "util/half_float.h"
 #include "util/log.h"
+#ifndef __cplusplus  // TODO fix cpu_trace.h to be c++ friendly
+#include "util/perf/cpu_trace.h"
+#endif
 #include "util/u_debug.h"
 #include "util/u_dynarray.h"
 #include "util/u_math.h"
@@ -115,7 +118,7 @@ extern bool fd_binning_enabled;
    do {                                                                        \
       if (FD_DBG(MSGS))                                                        \
          mesa_logi("%5d: %s:%d: " fmt, ((pid_t)syscall(SYS_gettid)),           \
-                                        __FUNCTION__, __LINE__,                \
+                                        __func__, __LINE__,                    \
                                         ##__VA_ARGS__);                        \
    } while (0)
 
@@ -168,6 +171,12 @@ struct __perf_time_state {
      }))                                                                       \
        ? os_time_get_nano()                                                    \
        : 0)
+
+#define DEFINE_CAST(parent, child)                                             \
+   static inline struct child *child(struct parent *x)                         \
+   {                                                                           \
+      return (struct child *)x;                                                \
+   }
 
 struct fd_context;
 
@@ -385,10 +394,11 @@ __OUT_IB5(struct fd_ringbuffer *ring, struct fd_ringbuffer *target)
    }
 }
 
-/* CP_SCRATCH_REG4 is used to hold base address for query results: */
-// XXX annoyingly scratch regs move on a5xx.. and additionally different
-// packet types.. so freedreno_query_hw is going to need a bit of
-// rework..
+/* CP_SCRATCH_REG4 is used to hold base address for query results:
+ * Note the scratch register move on a5xx+ but this is only used
+ * for pre-a5xx hw queries where we cannot allocate the query buf
+ * until the # of tiles is known.
+ */
 #define HW_QUERY_BASE_REG REG_AXXX_CP_SCRATCH_REG4
 
 #ifdef DEBUG
@@ -412,13 +422,6 @@ emit_marker(struct fd_ringbuffer *ring, int scratch_idx)
    }
 }
 
-static inline uint32_t
-pack_rgba(enum pipe_format format, const float *rgba)
-{
-   union util_color uc;
-   util_pack_color(rgba, format, &uc);
-   return uc.ui[0];
-}
 
 /*
  * a3xx+ helpers:
@@ -441,6 +444,31 @@ fd_msaa_samples(unsigned samples)
       return MSAA_EIGHT;
    }
 }
+
+#define A3XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT (1 << 13)
+
+/* Note that the Vulkan blob on a540 and 640 report a
+ * maxTexelBufferElements of just 65536 (the GLES3.2 and Vulkan
+ * minimum).
+ */
+#define A4XX_MAX_TEXEL_BUFFER_ELEMENTS_UINT (1 << 27)
+
+static inline uint32_t
+fd_clamp_buffer_size(enum pipe_format format, uint32_t size,
+                     unsigned max_texel_buffer_elements)
+{
+   /* The spec says:
+    *    The number of texels in the texel array is then clamped to the value of
+    *    the implementation-dependent limit GL_MAX_TEXTURE_BUFFER_SIZE.
+    *
+    * So compute the number of texels, compare to GL_MAX_TEXTURE_BUFFER_SIZE and update it.
+    */
+   unsigned blocksize = util_format_get_blocksize(format);
+   unsigned elements = MIN2(max_texel_buffer_elements, size / blocksize);
+
+   return elements * blocksize;
+}
+
 
 /*
  * a4xx+ helpers:
@@ -477,6 +505,13 @@ fd4_size2indextype(unsigned index_size)
    DBG("unsupported index size: %d", index_size);
    assert(0);
    return INDEX4_SIZE_32_BIT;
+}
+
+/* Convert 19.2MHz RBBM always-on timer ticks to ns */
+static inline uint64_t
+ticks_to_ns(uint64_t ts)
+{
+   return ts * (1000000000 / 19200000);
 }
 
 #ifdef __cplusplus

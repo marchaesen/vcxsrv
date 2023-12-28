@@ -346,7 +346,7 @@ clCreateImage2D(cl_context d_ctx, cl_mem_flags d_flags,
                 size_t width, size_t height, size_t row_pitch,
                 void *host_ptr, cl_int *r_errcode) {
    const cl_image_desc desc = { CL_MEM_OBJECT_IMAGE2D, width, height, 0, 0,
-                                row_pitch, 0, 0, 0, NULL };
+                                row_pitch, 0, 0, 0, { NULL } };
 
    return clCreateImageWithProperties(d_ctx, NULL, d_flags, format, &desc, host_ptr, r_errcode);
 }
@@ -358,7 +358,7 @@ clCreateImage3D(cl_context d_ctx, cl_mem_flags d_flags,
                 size_t row_pitch, size_t slice_pitch,
                 void *host_ptr, cl_int *r_errcode) {
    const cl_image_desc desc = { CL_MEM_OBJECT_IMAGE3D, width, height, depth, 0,
-                                row_pitch, slice_pitch, 0, 0, NULL };
+                                row_pitch, slice_pitch, 0, 0, { NULL } };
 
    return clCreateImageWithProperties(d_ctx, NULL, d_flags, format, &desc, host_ptr, r_errcode);
 }
@@ -602,14 +602,16 @@ clSVMAlloc(cl_context d_ctx,
    if (!alignment)
       alignment = 0x80; // sizeof(long16)
 
-#if HAVE_POSIX_MEMALIGN
+#if defined(HAVE_POSIX_MEMALIGN)
    bool can_emulate = all_of(std::mem_fn(&device::has_system_svm), ctx.devices());
    if (can_emulate) {
       // we can ignore all the flags as it's not required to honor them.
       void *ptr = nullptr;
       if (alignment < sizeof(void*))
          alignment = sizeof(void*);
-      posix_memalign(&ptr, alignment, size);
+      int ret = posix_memalign(&ptr, alignment, size);
+      if (ret)
+         return nullptr;
 
       if (ptr)
          ctx.add_svm_allocation(ptr, size);

@@ -31,7 +31,7 @@ extern "C" {
 #endif
 
 #define PAN_PERF_MAX_CATEGORIES 4
-#define PAN_PERF_MAX_COUNTERS 64
+#define PAN_PERF_MAX_COUNTERS   64
 
 struct panfrost_device;
 struct panfrost_perf_category;
@@ -85,7 +85,7 @@ struct panfrost_perf_config {
 struct panfrost_perf {
    struct panfrost_device *dev;
 
-   const struct panfrost_perf_config* cfg;
+   const struct panfrost_perf_config *cfg;
 
    // Memory where to dump counter values
    uint32_t *counter_values;
@@ -95,21 +95,17 @@ struct panfrost_perf {
    unsigned category_offset[PAN_PERF_MAX_CATEGORIES];
 };
 
-uint32_t
-panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
-            const struct panfrost_perf *perf);
+uint32_t panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
+                                    const struct panfrost_perf *perf);
 
-void
-panfrost_perf_init(struct panfrost_perf *perf, struct panfrost_device *dev);
+void panfrost_perf_init(struct panfrost_perf *perf,
+                        struct panfrost_device *dev);
 
-int
-panfrost_perf_enable(struct panfrost_perf *perf);
+int panfrost_perf_enable(struct panfrost_perf *perf);
 
-int
-panfrost_perf_disable(struct panfrost_perf *perf);
+int panfrost_perf_disable(struct panfrost_perf *perf);
 
-int
-panfrost_perf_dump(struct panfrost_perf *perf);
+int panfrost_perf_dump(struct panfrost_perf *perf);
 
 #if defined(__cplusplus)
 } // extern "C"

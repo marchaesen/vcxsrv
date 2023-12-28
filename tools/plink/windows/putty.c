@@ -51,7 +51,7 @@ void gui_term_process_cmdline(Conf *conf, char *cmdline)
         int argc, i;
         char **argv;
 
-        split_into_argv(cmdline, &argc, &argv, NULL);
+        split_into_argv(cmdline, false, &argc, &argv, NULL);
 
         for (i = 0; i < argc; i++) {
             char *p = argv[i];
@@ -83,7 +83,7 @@ void gui_term_process_cmdline(Conf *conf, char *cmdline)
                 s2 = dupprintf("%s Warning", appname);
                 if (message_box(NULL, s1, s2,
                                 MB_YESNO | MB_ICONWARNING | MB_DEFBUTTON2,
-                                HELPCTXID(option_cleanup)) == IDYES) {
+                                false, HELPCTXID(option_cleanup)) == IDYES) {
                     cleanup_all();
                 }
                 sfree(s1);

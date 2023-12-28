@@ -86,7 +86,7 @@ _XftSharpGlyphMono (XftDraw	*draw,
 		    }
 		} while (bits & bitsMask);
 		XFillRectangle (draw->dpy, draw->drawable,
-				draw->core.gc, xspan, y, lenspan, 1);
+				draw->core.gc, xspan, y, (unsigned)lenspan, 1);
 		xspan += lenspan;
 		w -= lenspan;
 	    }
@@ -151,7 +151,7 @@ _XftSharpGlyphGray (XftDraw	*draw,
 		    bits = *src++;
 		} while (bits >= 0x80);
 		XFillRectangle (draw->dpy, draw->drawable,
-				draw->core.gc, xspan, y, lenspan, 1);
+				draw->core.gc, xspan, y, (unsigned)lenspan, 1);
 		xspan += lenspan;
 		w -= lenspan;
 	    }
@@ -207,7 +207,7 @@ _XftSharpGlyphRgba (XftDraw	*draw,
 		    bits = *src++;
 		} while (bits >= 0x80000000);
 		XFillRectangle (draw->dpy, draw->drawable,
-				draw->core.gc, xspan, y, lenspan, 1);
+				draw->core.gc, xspan, y, (unsigned)lenspan, 1);
 		xspan += lenspan;
 		w -= lenspan;
 	    }
@@ -233,7 +233,7 @@ typedef void (*XftSharpGlyph) (XftDraw	*draw,
 			       int	y);
 
 static XftSharpGlyph
-_XftSharpGlyphFind (XftDraw *draw, XftFont *public)
+_XftSharpGlyphFind (XftDraw *draw _X_UNUSED, XftFont *public)
 {
     XftFontInt *font = (XftFontInt *) public;
 
@@ -284,7 +284,7 @@ _XftGetField (unsigned long l_pixel, int shift, int len)
 {
     CARD32  pixel = (CARD32) l_pixel;
 
-    pixel = pixel & (((1 << (len)) - 1) << shift);
+    pixel = pixel & (CARD32)(((1 << (len)) - 1) << shift);
     pixel = pixel << (32 - (shift + len)) >> 24;
     while (len < 8)
     {
@@ -301,7 +301,7 @@ _XftPutField (CARD32 pixel, int shift, int len)
 
     shift = shift - (8 - len);
     if (len <= 8)
-	l_pixel &= (((1 << len) - 1) << (8 - len));
+	l_pixel = l_pixel & (unsigned long)(((1 << len) - 1) << (8 - len));
     if (shift < 0)
 	l_pixel >>= -shift;
     else
@@ -373,24 +373,27 @@ _XftSmoothGlyphMono (XImage		*image,
  * Other formats are handled by the general case
  */
 
-#define cvt8888to0565(s)    ((((s) >> 3) & 0x001f) | \
-			     (((s) >> 5) & 0x07e0) | \
-			     (((s) >> 8) & 0xf800))
+#define cvt8888to0565(s)    (CARD16)((((s) >> 3) & 0x001f) | \
+				     (((s) >> 5) & 0x07e0) | \
+				     (((s) >> 8) & 0xf800))
 
 #define cvt0565to8888(s)    (((((s) << 3) & 0xf8) | (((s) >> 2) & 0x7)) | \
 			     ((((s) << 5) & 0xfc00) | (((s) >> 1) & 0x300)) | \
 			     ((((s) << 8) & 0xf80000) | (((s) << 3) & 0x70000)))
 
-#define cvt8888to0555(s)    ((((s) >> 3) & 0x001f) | \
-			     (((s) >> 6) & 0x03e0) | \
-			     (((s) >> 7) & 0x7c00))
+#define cvt8888to0555(s)    (CARD16)((((s) >> 3) & 0x001f) | \
+				     (((s) >> 6) & 0x03e0) | \
+				     (((s) >> 7) & 0x7c00))
 
 #define cvt0555to8888(s)    (((((s) << 3) & 0xf8) | (((s) >> 2) & 0x7)) | \
 			     ((((s) << 6) & 0xf800) | (((s) >> 0) & 0x300)) | \
 			     ((((s) << 9) & 0xf80000) | (((s) << 4) & 0x70000)))
 
 
-#define XftIntMult(a,b,t) ( (t) = (a) * (b) + 0x80, ( ( ( (t)>>8 ) + (t) )>>8 ) )
+#define XftIntMult(a,b,t,cast) \
+        ( ((t) = (cast)((a) * (b) + 0x80)), \
+          ( ( ( (t) >> 8 ) + (t) ) >> 8 ) )
+
 #define XftIntDiv(a,b)	 (((CARD16) (a) * 255) / (b))
 
 #define XftGet8(v,i)   ((CARD16) (CARD8) ((v) >> i))
@@ -403,30 +406,37 @@ _XftSmoothGlyphMono (XImage		*image,
  * this difference will have two versions using the same convention.
  */
 
-#define XftOverU(x,y,i,a,t) ((t) = XftIntMult(XftGet8(y,i),(a),(t)) + XftGet8(x,i),\
-			   (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
+#define XftOverU(x,y,i,a,t) \
+        ((t) = (CARD16) XftIntMult(XftGet8(y,i),(a),(t),CARD16) + \
+               XftGet8(x,i),\
+         (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
 
-#define XftOverC(x,y,i,a,t) ((t) = XftIntMult(XftGet8(y,i),XftGet8(a,i),(t)) + XftGet8(x,i),\
-			    (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
+#define XftOverC(x,y,i,a,t) \
+        ((t) = (CARD16) XftIntMult(XftGet8(y,i),XftGet8(a,i),(t),CARD16) + \
+               XftGet8(x,i),\
+         (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
 
-#define XftInU(x,i,a,t) ((CARD32) XftIntMult(XftGet8(x,i),(a),(t)) << (i))
+#define XftInU(x,i,a,t) \
+        ((CARD32) XftIntMult(XftGet8(x,i),(a),(t),CARD16) << (i))
 
-#define XftInC(x,i,a,t) ((CARD32) XftIntMult(XftGet8(x,i),XftGet8(a,i),(t)) << (i))
+#define XftInC(x,i,a,t) \
+        ((CARD32) XftIntMult(XftGet8(x,i),XftGet8(a,i),(t),CARD32) << (i))
 
-#define XftGen(x,y,i,ax,ay,t,u,v) ((t) = (XftIntMult(XftGet8(y,i),ay,(u)) + \
-					 XftIntMult(XftGet8(x,i),ax,(v))),\
-				  (CARD32) ((CARD8) ((t) | \
-						     (0 - ((t) >> 8)))) << (i))
+#define XftGen(x,y,i,ax,ay,t,u,v) \
+        ((t) = (XftIntMult(XftGet8(y,i),ay,(u),CARD32) + \
+                XftIntMult(XftGet8(x,i),ax,(v),CARD32)),\
+         (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
 
-#define XftAdd(x,y,i,t)	((t) = XftGet8(x,i) + XftGet8(y,i), \
-			 (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
+#define XftAdd(x,y,i,t)	\
+        ((t) = XftGet8(x,i) + XftGet8(y,i), \
+         (CARD32) ((CARD8) ((t) | (0 - ((t) >> 8)))) << (i))
 
 
 static CARD32
 fbOver24 (CARD32 x, CARD32 y)
 {
-    CARD16  a = ~x >> 24;
-    CARD16  t;
+    CARD16  a = (CARD16)(~x >> 24);
+    CARD16  t = 0;
     CARD32  m,n,o;
 
     m = XftOverU(x,y,0,a,t);
@@ -691,7 +701,7 @@ _XftSmoothGlyphGray (XImage		*image,
 
     srca = color->color.alpha >> 8;
     src = (srca << 24 |
-	   (color->color.red & 0xff00) << 8 |
+	   (CARD32)((color->color.red & 0xff00) << 8) |
 	   (color->color.green & 0xff00) |
 	   (color->color.blue) >> 8);
     x -= xftg->metrics.x;
@@ -769,7 +779,7 @@ _XftSmoothGlyphRgba (XImage		*image,
 
     srca = color->color.alpha >> 8;
     src = (srca << 24 |
-	   (color->color.red & 0xff00) << 8 |
+	   (CARD32)((color->color.red & 0xff00) << 8) |
 	   (color->color.green & 0xff00) |
 	   (color->color.blue) >> 8);
     x -= xftg->metrics.x;
@@ -818,9 +828,9 @@ _XftSmoothGlyphRgba (XImage		*image,
     CARD16  __a = XftGet8(msk,i); \
     CARD32  __t, __ta; \
     CARD32  __i; \
-    __t = XftIntMult (XftGet8(src,i), __a,__i); \
-    __ta = (CARD8) ~XftIntMult (srca, __a,__i); \
-    __t = __t + XftIntMult(XftGet8(dst,i),__ta,__i); \
+    __t = XftIntMult (XftGet8(src,i), __a,__i,CARD32); \
+    __ta = (CARD8) ~XftIntMult (srca, __a,__i,CARD32); \
+    __t = __t + XftIntMult(XftGet8(dst,i),__ta,__i,CARD32); \
     __t = (CARD32) (CARD8) (__t | (-(__t >> 8))); \
     result = __t << (i); \
 }
@@ -923,7 +933,7 @@ _XftGlyphDefault (Display *dpy, XftFont   *public)
     return font->glyphs[0];
 }
 
-static int XftGetImageErrorHandler (Display *dpy, XErrorEvent *error_event)
+static int XftGetImageErrorHandler (Display *dpy _X_UNUSED, XErrorEvent *error_event _X_UNUSED)
 {
     return 0;
 }
@@ -1144,7 +1154,7 @@ XftGlyphSpecCore (XftDraw		*draw,
 	    prev_error = XSetErrorHandler (XftGetImageErrorHandler);
 	    image = XGetImage (dpy, draw->drawable,
 			       x1, y1,
-			       width, height, AllPlanes,
+			       (unsigned)width, (unsigned)height, AllPlanes,
 			       ZPixmap);
 	    XSetErrorHandler (prev_error);
 	    if (!image)
@@ -1162,13 +1172,13 @@ XftGlyphSpecCore (XftDraw		*draw,
 	    XGCValues	gcv;
 
 	    pix = XCreatePixmap (dpy, draw->drawable,
-				 width, height, depth);
+				 (unsigned)width, (unsigned)height, depth);
 	    gcv.graphics_exposures = False;
 	    gc = XCreateGC (dpy, pix, GCGraphicsExposures, &gcv);
 	    XCopyArea (dpy, draw->drawable, pix, gc, x1, y1,
-		       width, height, 0, 0);
+		       (unsigned)width, (unsigned)height, 0, 0);
 	    XFreeGC (dpy, gc);
-	    image = XGetImage (dpy, pix, 0, 0, width, height, AllPlanes,
+	    image = XGetImage (dpy, pix, 0, 0, (unsigned)width, (unsigned)height, AllPlanes,
 			       ZPixmap);
 	    XFreePixmap (dpy, pix);
 	}
@@ -1193,7 +1203,7 @@ XftGlyphSpecCore (XftDraw		*draw,
 	if (image->byte_order != XftNativeByteOrder ())
 	    XftSwapImage (image);
 	XPutImage (dpy, draw->drawable, draw->core.gc, image, 0, 0, x1, y1,
-		   width, height);
+		   (unsigned)width, (unsigned)height);
 	XDestroyImage (image);
     }
     else
@@ -1257,8 +1267,8 @@ XftGlyphFontSpecCore (XftDraw			*draw,
 		if (g_x1 < 0)
 		{
 		    /* do nothing if the given glyphs are out of range */
-		    short t = glyphs[i-1].font->max_advance_width
-			+ glyphs[i-1].x;
+		    short t = (short)(glyphs[i-1].font->max_advance_width
+				      + glyphs[i-1].x);
 		    if (t < 0 && glyphs[i-1].x > 0)
 			goto bail1;
 		}
@@ -1305,7 +1315,7 @@ XftGlyphFontSpecCore (XftDraw			*draw,
 	    prev_error = XSetErrorHandler (XftGetImageErrorHandler);
 	    image = XGetImage (dpy, draw->drawable,
 			       x1, y1,
-			       width, height, AllPlanes,
+			       (unsigned)width, (unsigned)height, AllPlanes,
 			       ZPixmap);
 	    XSetErrorHandler (prev_error);
 	    if (!image)
@@ -1323,13 +1333,13 @@ XftGlyphFontSpecCore (XftDraw			*draw,
 	    XGCValues	gcv;
 
 	    pix = XCreatePixmap (dpy, draw->drawable,
-				 width, height, depth);
+				 (unsigned)width, (unsigned)height, depth);
 	    gcv.graphics_exposures = False;
 	    gc = XCreateGC (dpy, pix, GCGraphicsExposures, &gcv);
 	    XCopyArea (dpy, draw->drawable, pix, gc, x1, y1,
-		       width, height, 0, 0);
+		       (unsigned)width, (unsigned)height, 0, 0);
 	    XFreeGC (dpy, gc);
-	    image = XGetImage (dpy, pix, 0, 0, width, height, AllPlanes,
+	    image = XGetImage (dpy, pix, 0, 0, (unsigned)width, (unsigned)height, AllPlanes,
 			       ZPixmap);
 	    XFreePixmap (dpy, pix);
 	}
@@ -1358,7 +1368,7 @@ XftGlyphFontSpecCore (XftDraw			*draw,
 	if (image->byte_order != XftNativeByteOrder ())
 	    XftSwapImage (image);
 	XPutImage (dpy, draw->drawable, draw->core.gc, image, 0, 0, x1, y1,
-		   width, height);
+		   (unsigned)width, (unsigned)height);
 	XDestroyImage (image);
     }
     else

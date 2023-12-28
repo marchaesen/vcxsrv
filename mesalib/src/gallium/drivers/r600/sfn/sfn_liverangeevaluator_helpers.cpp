@@ -27,53 +27,57 @@
 #include "sfn_liverangeevaluator_helpers.h"
 
 #include "sfn_virtualvalues.h"
-
 #include "util/u_math.h"
 
-#include <limits>
 #include <cassert>
 #include <iostream>
+#include <limits>
 
 namespace r600 {
 
-ProgramScope::ProgramScope(ProgramScope *parent, ProgramScopeType type, int id,
-                           int depth, int scope_begin):
-   scope_type(type),
-   scope_id(id),
-   scope_nesting_depth(depth),
-   scope_begin(scope_begin),
-   scope_end(-1),
-   break_loop_line(std::numeric_limits<int>::max()),
-   parent_scope(parent)
+ProgramScope::ProgramScope(
+   ProgramScope *parent, ProgramScopeType type, int id, int depth, int scope_begin):
+    scope_type(type),
+    scope_id(id),
+    scope_nesting_depth(depth),
+    scope_begin(scope_begin),
+    scope_end(-1),
+    break_loop_line(std::numeric_limits<int>::max()),
+    parent_scope(parent)
 {
 }
 
 ProgramScope::ProgramScope():
-   ProgramScope(nullptr, undefined_scope, -1, -1, -1)
+    ProgramScope(nullptr, undefined_scope, -1, -1, -1)
 {
 }
 
-ProgramScopeType ProgramScope::type() const
+ProgramScopeType
+ProgramScope::type() const
 {
    return scope_type;
 }
 
-ProgramScope *ProgramScope::parent() const
+ProgramScope *
+ProgramScope::parent() const
 {
    return parent_scope;
 }
 
-int ProgramScope::nesting_depth() const
+int
+ProgramScope::nesting_depth() const
 {
    return scope_nesting_depth;
 }
 
-bool ProgramScope::is_loop() const
+bool
+ProgramScope::is_loop() const
 {
    return (scope_type == loop_body);
 }
 
-bool ProgramScope::is_in_loop() const
+bool
+ProgramScope::is_in_loop() const
 {
    if (scope_type == loop_body)
       return true;
@@ -84,7 +88,8 @@ bool ProgramScope::is_in_loop() const
    return false;
 }
 
-const ProgramScope *ProgramScope::innermost_loop() const
+const ProgramScope *
+ProgramScope::innermost_loop() const
 {
    if (scope_type == loop_body)
       return this;
@@ -95,7 +100,8 @@ const ProgramScope *ProgramScope::innermost_loop() const
    return nullptr;
 }
 
-const ProgramScope *ProgramScope::outermost_loop() const
+const ProgramScope *
+ProgramScope::outermost_loop() const
 {
    const ProgramScope *loop = nullptr;
    const ProgramScope *p = this;
@@ -109,7 +115,8 @@ const ProgramScope *ProgramScope::outermost_loop() const
    return loop;
 }
 
-bool ProgramScope::is_child_of_ifelse_id_sibling(const ProgramScope *scope) const
+bool
+ProgramScope::is_child_of_ifelse_id_sibling(const ProgramScope *scope) const
 {
    const ProgramScope *my_parent = in_parent_ifelse_scope();
    while (my_parent) {
@@ -124,7 +131,8 @@ bool ProgramScope::is_child_of_ifelse_id_sibling(const ProgramScope *scope) cons
    return false;
 }
 
-bool ProgramScope::is_child_of(const ProgramScope *scope) const
+bool
+ProgramScope::is_child_of(const ProgramScope *scope) const
 {
    const ProgramScope *my_parent = parent();
    while (my_parent) {
@@ -135,7 +143,8 @@ bool ProgramScope::is_child_of(const ProgramScope *scope) const
    return false;
 }
 
-const ProgramScope *ProgramScope::enclosing_conditional() const
+const ProgramScope *
+ProgramScope::enclosing_conditional() const
 {
    if (is_conditional())
       return this;
@@ -146,20 +155,21 @@ const ProgramScope *ProgramScope::enclosing_conditional() const
    return nullptr;
 }
 
-bool ProgramScope::contains_range_of(const ProgramScope& other) const
+bool
+ProgramScope::contains_range_of(const ProgramScope& other) const
 {
    return (begin() <= other.begin()) && (end() >= other.end());
 }
 
-bool ProgramScope::is_conditional() const
+bool
+ProgramScope::is_conditional() const
 {
-   return scope_type == if_branch ||
-         scope_type == else_branch ||
-         scope_type == switch_case_branch ||
-         scope_type == switch_default_branch;
+   return scope_type == if_branch || scope_type == else_branch ||
+          scope_type == switch_case_branch || scope_type == switch_default_branch;
 }
 
-const ProgramScope *ProgramScope::in_else_scope() const
+const ProgramScope *
+ProgramScope::in_else_scope() const
 {
    if (scope_type == else_branch)
       return this;
@@ -170,7 +180,8 @@ const ProgramScope *ProgramScope::in_else_scope() const
    return nullptr;
 }
 
-const ProgramScope *ProgramScope::in_parent_ifelse_scope() const
+const ProgramScope *
+ProgramScope::in_parent_ifelse_scope() const
 {
    if (parent_scope)
       return parent_scope->in_ifelse_scope();
@@ -178,10 +189,10 @@ const ProgramScope *ProgramScope::in_parent_ifelse_scope() const
       return nullptr;
 }
 
-const ProgramScope *ProgramScope::in_ifelse_scope() const
+const ProgramScope *
+ProgramScope::in_ifelse_scope() const
 {
-   if (scope_type == if_branch ||
-       scope_type == else_branch)
+   if (scope_type == if_branch || scope_type == else_branch)
       return this;
 
    if (parent_scope)
@@ -190,20 +201,20 @@ const ProgramScope *ProgramScope::in_ifelse_scope() const
    return nullptr;
 }
 
-bool ProgramScope::is_switchcase_scope_in_loop() const
+bool
+ProgramScope::is_switchcase_scope_in_loop() const
 {
-   return (scope_type == switch_case_branch ||
-           scope_type == switch_default_branch) &&
-         is_in_loop();
+   return (scope_type == switch_case_branch || scope_type == switch_default_branch) &&
+          is_in_loop();
 }
 
-bool ProgramScope::break_is_for_switchcase() const
+bool
+ProgramScope::break_is_for_switchcase() const
 {
    if (scope_type == loop_body)
       return false;
 
-   if (scope_type == switch_case_branch ||
-       scope_type == switch_default_branch ||
+   if (scope_type == switch_case_branch || scope_type == switch_default_branch ||
        scope_type == switch_body)
       return true;
 
@@ -213,28 +224,33 @@ bool ProgramScope::break_is_for_switchcase() const
    return false;
 }
 
-int ProgramScope::id() const
+int
+ProgramScope::id() const
 {
    return scope_id;
 }
 
-int ProgramScope::begin() const
+int
+ProgramScope::begin() const
 {
    return scope_begin;
 }
 
-int ProgramScope::end() const
+int
+ProgramScope::end() const
 {
    return scope_end;
 }
 
-void ProgramScope::set_end(int end)
+void
+ProgramScope::set_end(int end)
 {
    if (scope_end == -1)
       scope_end = end;
 }
 
-void ProgramScope::set_loop_break_line(int line)
+void
+ProgramScope::set_loop_break_line(int line)
 {
    if (scope_type == loop_body) {
       break_loop_line = MIN2(break_loop_line, line);
@@ -244,38 +260,45 @@ void ProgramScope::set_loop_break_line(int line)
    }
 }
 
-int ProgramScope::loop_break_line() const
+int
+ProgramScope::loop_break_line() const
 {
    return break_loop_line;
 }
 
 RegisterCompAccess::RegisterCompAccess(LiveRange range):
-   last_read_scope(nullptr),
-   first_read_scope(nullptr),
-   first_write_scope(nullptr),
-   first_write(range.start),
-   last_read(range.end),
-   last_write(range.start),
-   first_read(std::numeric_limits<int>::max()),
-   conditionality_in_loop_id(conditionality_untouched),
-   if_scope_write_flags(0),
-   next_ifelse_nesting_depth(0),
-   current_unpaired_if_write_scope(nullptr),
-   was_written_in_current_else_scope(false),
-   m_range(range)
+    last_read_scope(nullptr),
+    first_read_scope(nullptr),
+    first_write_scope(nullptr),
+    first_write(range.start),
+    last_read(range.end),
+    last_write(range.start),
+    first_read(std::numeric_limits<int>::max()),
+    conditionality_in_loop_id(conditionality_untouched),
+    if_scope_write_flags(0),
+    next_ifelse_nesting_depth(0),
+    current_unpaired_if_write_scope(nullptr),
+    was_written_in_current_else_scope(false),
+    m_range(range)
 {
-
 }
 
 RegisterCompAccess::RegisterCompAccess():
-   RegisterCompAccess(LiveRange(-1,-1))
+    RegisterCompAccess(LiveRange(-1, -1))
 {
 }
 
-
-void RegisterCompAccess::record_read(int line, ProgramScope *scope, LiveRangeEntry::EUse use)
+void
+RegisterCompAccess::record_read(int block, int line, ProgramScope *scope, LiveRangeEntry::EUse use)
 {
    last_read_scope = scope;
+
+   if (alu_block_id == block_id_uninitalized) {
+      alu_block_id = block;
+   } else if (alu_block_id != block) {
+      alu_block_id = block_id_not_unique;
+   }
+
    if (use != LiveRangeEntry::use_unspecified)
       m_use_type.set(use);
    if (last_read < line)
@@ -305,10 +328,10 @@ void RegisterCompAccess::record_read(int line, ProgramScope *scope, LiveRangeEnt
       if ((conditionality_in_loop_id != write_is_conditional) &&
           (conditionality_in_loop_id != enclosing_loop->id())) {
 
-         if (current_unpaired_if_write_scope)  {
+         if (current_unpaired_if_write_scope) {
 
-            /* Has been written in this or a parent scope? - this makes the temporary
-             * unconditionally set at this point.
+            /* Has been written in this or a parent scope? - this makes the
+             * temporary unconditionally set at this point.
              */
             if (scope->is_child_of(current_unpaired_if_write_scope))
                return;
@@ -332,9 +355,15 @@ void RegisterCompAccess::record_read(int line, ProgramScope *scope, LiveRangeEnt
    }
 }
 
-void RegisterCompAccess::record_write(int line, ProgramScope *scope)
+void
+RegisterCompAccess::record_write(int block, int line, ProgramScope *scope)
 {
    last_write = line;
+   if (alu_block_id == block_id_uninitalized) {
+      alu_block_id = block;
+   } else if (alu_block_id != block) {
+      alu_block_id = block_id_not_unique;
+   }
 
    if (first_write < 0) {
       first_write = line;
@@ -368,11 +397,12 @@ void RegisterCompAccess::record_write(int line, ProgramScope *scope)
     */
    const ProgramScope *ifelse_scope = scope->in_ifelse_scope();
    if (ifelse_scope && ifelse_scope->innermost_loop() &&
-       ifelse_scope->innermost_loop()->id()  != conditionality_in_loop_id)
+       ifelse_scope->innermost_loop()->id() != conditionality_in_loop_id)
       record_ifelse_write(*ifelse_scope);
 }
 
-void RegisterCompAccess::record_ifelse_write(const ProgramScope& scope)
+void
+RegisterCompAccess::record_ifelse_write(const ProgramScope& scope)
 {
    if (scope.type() == if_branch) {
       /* The first write in an IF branch within a loop implies unresolved
@@ -387,7 +417,8 @@ void RegisterCompAccess::record_ifelse_write(const ProgramScope& scope)
    }
 }
 
-void RegisterCompAccess::record_if_write(const ProgramScope& scope)
+void
+RegisterCompAccess::record_if_write(const ProgramScope& scope)
 {
    /* Don't record write if this IF scope if it ...
     * - is not the first write in this IF scope,
@@ -399,19 +430,20 @@ void RegisterCompAccess::record_if_write(const ProgramScope& scope)
     * - is the first one (obviously),
     * - happens in an IF branch that is a child of the ELSE branch of the
     *   last active IF/ELSE pair. In this case recording this write is used to
-    *   established whether the write is (un-)conditional in the scope enclosing
-    *   this outer IF/ELSE pair.
+    *   established whether the write is (un-)conditional in the scope
+    * enclosing this outer IF/ELSE pair.
     */
    if (!current_unpaired_if_write_scope ||
        (current_unpaired_if_write_scope->id() != scope.id() &&
-        scope.is_child_of_ifelse_id_sibling(current_unpaired_if_write_scope)))  {
+        scope.is_child_of_ifelse_id_sibling(current_unpaired_if_write_scope))) {
       if_scope_write_flags |= 1 << next_ifelse_nesting_depth;
       current_unpaired_if_write_scope = &scope;
       next_ifelse_nesting_depth++;
    }
 }
 
-void RegisterCompAccess::record_else_write(const ProgramScope& scope)
+void
+RegisterCompAccess::record_else_write(const ProgramScope& scope)
 {
    int mask = 1 << (next_ifelse_nesting_depth - 1);
 
@@ -427,57 +459,57 @@ void RegisterCompAccess::record_else_write(const ProgramScope& scope)
       if_scope_write_flags &= ~mask;
 
       /* The following code deals with propagating unconditionality from
-          * inner levels of nested IF/ELSE to the outer levels like in
-          *
-          * 1: var t;
-          * 2: if (a) {        <- start scope A
-          * 3:    if (b)
-          * 4:         t = ...
-          * 5:    else
-          * 6:         t = ...
-          * 7: } else {        <- start scope B
-          * 8:    if (c)
-          * 9:         t = ...
-          * A:    else         <- start scope C
-          * B:         t = ...
-          * C: }
-          *
-          */
+       * inner levels of nested IF/ELSE to the outer levels like in
+       *
+       * 1: var t;
+       * 2: if (a) {        <- start scope A
+       * 3:    if (b)
+       * 4:         t = ...
+       * 5:    else
+       * 6:         t = ...
+       * 7: } else {        <- start scope B
+       * 8:    if (c)
+       * 9:         t = ...
+       * A:    else         <- start scope C
+       * B:         t = ...
+       * C: }
+       *
+       */
 
       const ProgramScope *parent_ifelse = scope.parent()->in_ifelse_scope();
 
       if (1 << (next_ifelse_nesting_depth - 1) & if_scope_write_flags) {
          /* We are at the end of scope C and already recorded a write
-             * within an IF scope (A), the sibling of the parent ELSE scope B,
-             * and it is not yet resolved. Mark that as the last relevant
-             * IF scope. Below the write will be resolved for the A/B
-             * scope pair.
-             */
+          * within an IF scope (A), the sibling of the parent ELSE scope B,
+          * and it is not yet resolved. Mark that as the last relevant
+          * IF scope. Below the write will be resolved for the A/B
+          * scope pair.
+          */
          current_unpaired_if_write_scope = parent_ifelse;
       } else {
          current_unpaired_if_write_scope = nullptr;
       }
       /* Promote the first write scope to the enclosing scope because
-     * the current IF/ELSE pair is now irrelevant for the analysis.
-     * This is also required to evaluate the minimum life time for t in
-     * {
-     *    var t;
-     *    if (a)
-     *      t = ...
-     *    else
-     *      t = ...
-     *    x = t;
-     *    ...
-     * }
-     */
+       * the current IF/ELSE pair is now irrelevant for the analysis.
+       * This is also required to evaluate the minimum life time for t in
+       * {
+       *    var t;
+       *    if (a)
+       *      t = ...
+       *    else
+       *      t = ...
+       *    x = t;
+       *    ...
+       * }
+       */
       first_write_scope = scope.parent();
 
       /* If some parent is IF/ELSE and in a loop then propagate the
-          * write to that scope. Otherwise the write is unconditional
-          * because it happens in both corresponding IF/ELSE branches
-          * in this loop, and hence, record the loop id to signal the
-          * resolution.
-          */
+       * write to that scope. Otherwise the write is unconditional
+       * because it happens in both corresponding IF/ELSE branches
+       * in this loop, and hence, record the loop id to signal the
+       * resolution.
+       */
       if (parent_ifelse && parent_ifelse->is_in_loop()) {
          record_ifelse_write(*parent_ifelse);
       } else {
@@ -485,18 +517,20 @@ void RegisterCompAccess::record_else_write(const ProgramScope& scope)
       }
    } else {
       /* The temporary was not written in the IF branch corresponding
-      * to this ELSE branch, hence the write is conditional.
-      */
+       * to this ELSE branch, hence the write is conditional.
+       */
       conditionality_in_loop_id = write_is_conditional;
    }
 }
 
-bool RegisterCompAccess::conditional_ifelse_write_in_loop() const
+bool
+RegisterCompAccess::conditional_ifelse_write_in_loop() const
 {
    return conditionality_in_loop_id <= conditionality_unresolved;
 }
 
-void RegisterCompAccess::propagate_live_range_to_dominant_write_scope()
+void
+RegisterCompAccess::propagate_live_range_to_dominant_write_scope()
 {
    first_write = first_write_scope->begin();
    int lr = first_write_scope->end();
@@ -505,7 +539,8 @@ void RegisterCompAccess::propagate_live_range_to_dominant_write_scope()
       last_read = lr;
 }
 
-void RegisterCompAccess::update_required_live_range()
+void
+RegisterCompAccess::update_required_live_range()
 {
    bool keep_for_full_loop = false;
 
@@ -531,7 +566,8 @@ void RegisterCompAccess::update_required_live_range()
 
    assert(first_write_scope || m_range.start >= 0);
 
-   /* The register was pre-defines, so th first write scope is the outerpost scopw */
+   /* The register was pre-defines, so th first write scope is the outerpost
+    * scopw */
    if (!first_write_scope) {
       first_write_scope = first_read_scope;
       while (first_write_scope->parent())
@@ -544,8 +580,7 @@ void RegisterCompAccess::update_required_live_range()
    /* We read before writing in a loop
     * hence the value must survive the loops
     */
-   if ((first_read <= first_write) &&
-       first_read_scope->is_in_loop()) {
+   if ((first_read <= first_write) && first_read_scope->is_in_loop()) {
       keep_for_full_loop = true;
       enclosing_scope_first_read = first_read_scope->outermost_loop();
    }
@@ -626,12 +661,10 @@ void RegisterCompAccess::update_required_live_range()
    m_range.end = last_read;
 }
 
-const int
-RegisterCompAccess::conditionality_untouched = std::numeric_limits<int>::max();
+const int RegisterCompAccess::conditionality_untouched = std::numeric_limits<int>::max();
 
-const int
-RegisterCompAccess::write_is_unconditional = std::numeric_limits<int>::max() - 1;
-
+const int RegisterCompAccess::write_is_unconditional =
+   std::numeric_limits<int>::max() - 1;
 
 RegisterAccess::RegisterAccess(const std::array<size_t, 4>& sizes)
 {
@@ -639,11 +672,12 @@ RegisterAccess::RegisterAccess(const std::array<size_t, 4>& sizes)
       m_access_record[i].resize(sizes[i]);
 }
 
-RegisterCompAccess& RegisterAccess::operator() (const Register& reg)
+RegisterCompAccess&
+RegisterAccess::operator()(const Register& reg)
 {
    assert(reg.chan() < 4);
    assert(m_access_record[reg.chan()].size() > (size_t)reg.index());
    return m_access_record[reg.chan()][reg.index()];
 }
 
-}
+} // namespace r600

@@ -30,8 +30,8 @@
 
 static VkResult
 radv_null_winsys_bo_create(struct radeon_winsys *_ws, uint64_t size, unsigned alignment,
-                           enum radeon_bo_domain initial_domain, enum radeon_bo_flag flags,
-                           unsigned priority, uint64_t address, struct radeon_winsys_bo **out_bo)
+                           enum radeon_bo_domain initial_domain, enum radeon_bo_flag flags, unsigned priority,
+                           uint64_t address, struct radeon_winsys_bo **out_bo)
 {
    struct radv_null_winsys_bo *bo;
 
@@ -66,8 +66,7 @@ radv_null_winsys_bo_unmap(struct radeon_winsys_bo *_bo)
 }
 
 static VkResult
-radv_null_winsys_bo_make_resident(struct radeon_winsys *_ws, struct radeon_winsys_bo *_bo,
-                                  bool resident)
+radv_null_winsys_bo_make_resident(struct radeon_winsys *_ws, struct radeon_winsys_bo *_bo, bool resident)
 {
    return VK_SUCCESS;
 }

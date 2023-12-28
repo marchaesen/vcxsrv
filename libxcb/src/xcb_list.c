@@ -36,7 +36,7 @@
 
 typedef struct node {
     struct node *next;
-    unsigned int key;
+    uint64_t key;
     void *data;
 } node;
 
@@ -73,7 +73,7 @@ void _xcb_map_delete(_xcb_map *list, xcb_list_free_func_t do_free)
     free(list);
 }
 
-int _xcb_map_put(_xcb_map *list, unsigned int key, void *data)
+int _xcb_map_put(_xcb_map *list, uint64_t key, void *data)
 {
     node *cur = malloc(sizeof(node));
     if(!cur)
@@ -86,7 +86,7 @@ int _xcb_map_put(_xcb_map *list, unsigned int key, void *data)
     return 1;
 }
 
-void *_xcb_map_remove(_xcb_map *list, unsigned int key)
+void *_xcb_map_remove(_xcb_map *list, uint64_t key)
 {
     node **cur;
     for(cur = &list->head; *cur; cur = &(*cur)->next)

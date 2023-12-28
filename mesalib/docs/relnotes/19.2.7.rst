@@ -53,7 +53,7 @@ Ian Romanick (1):
 
 -  intel/fs: Disable conditional discard optimization on Gen4 and Gen5
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv: Set up SBE_SWIZ properly for gl_Viewport
 

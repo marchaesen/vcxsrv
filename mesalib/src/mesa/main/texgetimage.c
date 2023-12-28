@@ -29,7 +29,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "enums.h"
 #include "context.h"
@@ -1393,7 +1393,7 @@ get_texture_image(struct gl_context *ctx,
 {
    struct gl_texture_image *texImage;
    unsigned firstFace, numFaces, i;
-   GLint imageStride;
+   intptr_t imageStride;
 
    FLUSH_VERTICES(ctx, 0, 0);
 

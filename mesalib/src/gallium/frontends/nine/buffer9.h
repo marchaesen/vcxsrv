@@ -58,14 +58,14 @@ struct NineBuffer9
     int16_t bind_count; /* to Device9->state.stream */
     /* Whether only discard and nooverwrite were used so far
      * for this buffer. Allows some optimization. */
-    boolean discard_nooverwrite_only;
-    boolean need_sync_if_nooverwrite;
+    bool discard_nooverwrite_only;
+    bool need_sync_if_nooverwrite;
     struct nine_subbuffer *buf;
 
     /* Specific to managed buffers */
     struct {
         void *data;
-        boolean dirty;
+        bool dirty;
         struct pipe_box dirty_box; /* region in the resource to update */
         struct pipe_box upload_pending_regions; /* region with uploads pending */
         struct list_head list; /* for update_buffers */

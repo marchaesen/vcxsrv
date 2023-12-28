@@ -29,14 +29,13 @@
 #include "pipe/p_screen.h"
 #include "pipe/p_video_codec.h"
 
-#include "frontend/drm_driver.h"
-
 #include "util/u_memory.h"
 #include "util/u_handle_table.h"
 #include "util/u_rect.h"
 #include "util/u_sampler.h"
 #include "util/u_surface.h"
 #include "util/u_video.h"
+#include "util/set.h"
 
 #include "vl/vl_compositor.h"
 #include "vl/vl_video_buffer.h"
@@ -44,8 +43,14 @@
 
 #include "va_private.h"
 
+#ifdef _WIN32
+#include "frontend/winsys_handle.h"
+#include <va/va_win32.h>
+#else
+#include "frontend/drm_driver.h"
 #include <va/va_drmcommon.h>
 #include "drm-uapi/drm_fourcc.h"
+#endif
 
 static const enum pipe_format vpp_surface_formats[] = {
    PIPE_FORMAT_B8G8R8A8_UNORM, PIPE_FORMAT_R8G8B8A8_UNORM,
@@ -79,6 +84,12 @@ vlVaDestroySurfaces(VADriverContextP ctx, VASurfaceID *surface_list, int num_sur
       }
       if (surf->buffer)
          surf->buffer->destroy(surf->buffer);
+      if (surf->ctx) {
+         assert(_mesa_set_search(surf->ctx->surfaces, surf));
+         _mesa_set_remove_key(surf->ctx->surfaces, surf);
+         if (surf->fence && surf->ctx->decoder && surf->ctx->decoder->destroy_fence)
+            surf->ctx->decoder->destroy_fence(surf->ctx->decoder, surf->fence);
+      }
       util_dynarray_fini(&surf->subpics);
       FREE(surf);
       handle_table_remove(drv->htab, surface_list[i]);
@@ -110,19 +121,55 @@ vlVaSyncSurface(VADriverContextP ctx, VASurfaceID render_target)
       return VA_STATUS_ERROR_INVALID_SURFACE;
    }
 
-   if (!surf->feedback) {
-      // No outstanding operation: nothing to do.
+   /* This is checked before getting the context below as
+    * surf->ctx is only set in begin_frame
+    * and not when the surface is created
+    * Some apps try to sync/map the surface right after creation and
+    * would get VA_STATUS_ERROR_INVALID_CONTEXT
+    */
+   if ((!surf->feedback) && (!surf->fence)) {
+      // No outstanding encode/decode operation: nothing to do.
       mtx_unlock(&drv->mutex);
       return VA_STATUS_SUCCESS;
    }
 
-   context = handle_table_get(drv->htab, surf->ctx);
+   context = surf->ctx;
    if (!context) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_CONTEXT;
    }
 
-   if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
+   if (!context->decoder) {
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT;
+   }
+
+   if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
+      /* If driver does not implement get_processor_fence assume no
+       * async work needed to be waited on and return success
+       */
+      int ret = (context->decoder->get_processor_fence) ? 0 : 1;
+
+      if (context->decoder->get_processor_fence)
+         ret = context->decoder->get_processor_fence(context->decoder,
+                                                     surf->fence,
+                                                     PIPE_DEFAULT_DECODER_FEEDBACK_TIMEOUT_NS);
+
+      mtx_unlock(&drv->mutex);
+      // Assume that the GPU has hung otherwise.
+      return ret ? VA_STATUS_SUCCESS : VA_STATUS_ERROR_TIMEDOUT;
+   } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
+      int ret = 0;
+
+      if (context->decoder->get_decoder_fence)
+         ret = context->decoder->get_decoder_fence(context->decoder,
+                                                   surf->fence,
+                                                   PIPE_DEFAULT_DECODER_FEEDBACK_TIMEOUT_NS);
+
+      mtx_unlock(&drv->mutex);
+      // Assume that the GPU has hung otherwise.
+      return ret ? VA_STATUS_SUCCESS : VA_STATUS_ERROR_TIMEDOUT;
+   } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
       if (!drv->pipe->screen->get_video_param(drv->pipe->screen,
                               context->decoder->profile,
                               context->decoder->entrypoint,
@@ -141,7 +188,7 @@ vlVaSyncSurface(VADriverContextP ctx, VASurfaceID render_target)
             }
          }
       }
-      context->decoder->get_feedback(context->decoder, surf->feedback, &(surf->coded_buf->coded_size));
+      context->decoder->get_feedback(context->decoder, surf->feedback, &(surf->coded_buf->coded_size), &(surf->coded_buf->extended_metadata));
       surf->feedback = NULL;
       surf->coded_buf->feedback = NULL;
       surf->coded_buf->associated_encode_input_surf = VA_INVALID_ID;
@@ -172,10 +219,28 @@ vlVaQuerySurfaceStatus(VADriverContextP ctx, VASurfaceID render_target, VASurfac
       return VA_STATUS_ERROR_INVALID_SURFACE;
    }
 
-   context = handle_table_get(drv->htab, surf->ctx);
+   /* This is checked before getting the context below as
+    * surf->ctx is only set in begin_frame
+    * and not when the surface is created
+    * Some apps try to sync/map the surface right after creation and
+    * would get VA_STATUS_ERROR_INVALID_CONTEXT
+    */
+   if ((!surf->feedback) && (!surf->fence)) {
+      // No outstanding encode/decode operation: nothing to do.
+      *status = VASurfaceReady;
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_SUCCESS;
+   }
+
+   context = surf->ctx;
    if (!context) {
       mtx_unlock(&drv->mutex);
       return VA_STATUS_ERROR_INVALID_CONTEXT;
+   }
+
+   if (!context->decoder) {
+      mtx_unlock(&drv->mutex);
+      return VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT;
    }
 
    if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE) {
@@ -183,6 +248,38 @@ vlVaQuerySurfaceStatus(VADriverContextP ctx, VASurfaceID render_target, VASurfac
          *status=VASurfaceReady;
       else
          *status=VASurfaceRendering;
+   } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_BITSTREAM) {
+      int ret = 0;
+
+      if (context->decoder->get_decoder_fence)
+         ret = context->decoder->get_decoder_fence(context->decoder,
+                                                   surf->fence, 0);
+
+      if (ret)
+         *status = VASurfaceReady;
+      else
+      /* An approach could be to just tell the client that this is not
+       * implemented, but this breaks other code.  Compromise by at least
+       * conservatively setting the status to VASurfaceRendering if we can't
+       * query the hardware.  Note that we _must_ set the status here, otherwise
+       * it comes out of the function unchanged. As we are returning
+       * VA_STATUS_SUCCESS, the client would be within his/her rights to use a
+       * potentially uninitialized/invalid status value unknowingly.
+       */
+         *status = VASurfaceRendering;
+   } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
+      /* If driver does not implement get_processor_fence assume no
+       * async work needed to be waited on and return surface ready
+       */
+      int ret = (context->decoder->get_processor_fence) ? 0 : 1;
+
+      if (context->decoder->get_processor_fence)
+         ret = context->decoder->get_processor_fence(context->decoder,
+                                                     surf->fence, 0);
+      if (ret)
+         *status = VASurfaceReady;
+      else
+         *status = VASurfaceRendering;
    }
 
    mtx_unlock(&drv->mutex);
@@ -366,7 +463,8 @@ vlVaPutSurface(VADriverContextP ctx, VASurfaceID surface_id, void* draw, short s
    vl_compositor_clear_layers(&drv->cstate);
 
    if (format == PIPE_FORMAT_B8G8R8A8_UNORM || format == PIPE_FORMAT_B8G8R8X8_UNORM ||
-       format == PIPE_FORMAT_R8G8B8A8_UNORM || format == PIPE_FORMAT_R8G8B8X8_UNORM) {
+       format == PIPE_FORMAT_R8G8B8A8_UNORM || format == PIPE_FORMAT_R8G8B8X8_UNORM ||
+       format == PIPE_FORMAT_L8_UNORM || format == PIPE_FORMAT_Y8_400_UNORM) {
       struct pipe_sampler_view **views;
 
       views = surf->buffer->get_sampler_view_planes(surf->buffer);
@@ -484,6 +582,7 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
          }
       }
    }
+
    if (config->rt_format & VA_RT_FORMAT_YUV420) {
       attribs[i].type = VASurfaceAttribPixelFormat;
       attribs[i].value.type = VAGenericValueTypeInteger;
@@ -491,6 +590,7 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
       attribs[i].value.value.i = VA_FOURCC_NV12;
       i++;
    }
+
    if (config->rt_format & VA_RT_FORMAT_YUV420_10 ||
        (config->rt_format & VA_RT_FORMAT_YUV420 &&
         config->entrypoint == PIPE_VIDEO_ENTRYPOINT_ENCODE)) {
@@ -506,12 +606,50 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
       i++;
    }
 
+   if (config->profile == PIPE_VIDEO_PROFILE_JPEG_BASELINE) {
+      if (config->rt_format & VA_RT_FORMAT_YUV400) {
+         attribs[i].type = VASurfaceAttribPixelFormat;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
+         attribs[i].value.value.i = VA_FOURCC_Y800;
+         i++;
+      }
+
+      if (config->rt_format & VA_RT_FORMAT_YUV422) {
+         attribs[i].type = VASurfaceAttribPixelFormat;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
+         attribs[i].value.value.i = VA_FOURCC_YUY2;
+         i++;
+      }
+
+      if (config->rt_format & VA_RT_FORMAT_YUV444) {
+         attribs[i].type = VASurfaceAttribPixelFormat;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
+         attribs[i].value.value.i = VA_FOURCC_444P;
+         i++;
+      }
+      if (config->rt_format & VA_RT_FORMAT_RGBP) {
+         attribs[i].type = VASurfaceAttribPixelFormat;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
+         attribs[i].value.value.i = VA_FOURCC_RGBP;
+         i++;
+      }
+   }
+
    attribs[i].type = VASurfaceAttribMemoryType;
    attribs[i].value.type = VAGenericValueTypeInteger;
    attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
    attribs[i].value.value.i = VA_SURFACE_ATTRIB_MEM_TYPE_VA |
+#ifdef _WIN32
+         VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE |
+         VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE;
+#else
          VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME |
          VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2;
+#endif
    i++;
 
    attribs[i].type = VASurfaceAttribExternalBufferDescriptor;
@@ -536,6 +674,28 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
                                 PIPE_VIDEO_ENTRYPOINT_PROCESSING,
                                 PIPE_VIDEO_CAP_SUPPORTED))
    {
+      unsigned min_width, min_height;
+      min_width = pscreen->get_video_param(pscreen,
+                                  config->profile, config->entrypoint,
+                                  PIPE_VIDEO_CAP_MIN_WIDTH);
+      min_height = pscreen->get_video_param(pscreen,
+                                  config->profile, config->entrypoint,
+                                  PIPE_VIDEO_CAP_MIN_HEIGHT);
+
+      if (min_width > 0 && min_height > 0) {
+         attribs[i].type = VASurfaceAttribMinWidth;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE;
+         attribs[i].value.value.i = min_width;
+         i++;
+
+         attribs[i].type = VASurfaceAttribMinHeight;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE;
+         attribs[i].value.value.i = min_height;
+         i++;
+      }
+
       attribs[i].type = VASurfaceAttribMaxWidth;
       attribs[i].value.type = VAGenericValueTypeInteger;
       attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE;
@@ -580,6 +740,7 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
    return VA_STATUS_SUCCESS;
 }
 
+#ifndef _WIN32
 static VAStatus
 surface_from_external_memory(VADriverContextP ctx, vlVaSurface *surface,
                              VASurfaceAttribExternalBuffers *memory_attribute,
@@ -694,7 +855,7 @@ surface_from_prime_2(VADriverContextP ctx, vlVaSurface *surface,
        desc->num_layers < 1)
       return VA_STATUS_ERROR_INVALID_PARAMETER;
 
-   if (desc->num_layers != num_format_planes)
+   if (desc->num_layers > VL_NUM_COMPONENTS)
       return VA_STATUS_ERROR_INVALID_PARAMETER;
 
    input_planes = 0;
@@ -728,8 +889,6 @@ surface_from_prime_2(VADriverContextP ctx, vlVaSurface *surface,
    res_templ.last_level = 0;
    res_templ.depth0 = 1;
    res_templ.array_size = 1;
-   res_templ.width0 = desc->width;
-   res_templ.height0 = desc->height;
    res_templ.bind = PIPE_BIND_SAMPLER_VIEW;
    res_templ.usage = PIPE_USAGE_DEFAULT;
    res_templ.format = templat->buffer_format;
@@ -754,6 +913,10 @@ surface_from_prime_2(VADriverContextP ctx, vlVaSurface *surface,
          if (plane < num_format_planes)
             res_templ.format = resource_formats[plane];
 
+         res_templ.width0 = util_format_get_plane_width(templat->buffer_format, plane,
+                                                        desc->width);
+         res_templ.height0 = util_format_get_plane_height(templat->buffer_format, plane,
+                                                          desc->height);
          whandle.stride = desc->layers[layer].pitch[layer_plane];
          whandle.offset = desc->layers[layer].offset[layer_plane];
          whandle.handle = desc->objects[desc->layers[layer].object_index[layer_plane]].fd;
@@ -788,6 +951,48 @@ fail:
       pipe_resource_reference(&resources[i], NULL);
    return result;
 }
+#else
+static VAStatus
+surface_from_external_win32_memory(VADriverContextP ctx, vlVaSurface *surface,
+                             int memory_type, void *res_handle,
+                             struct pipe_video_buffer *templat)
+{
+   vlVaDriver *drv;
+   struct pipe_screen *pscreen;
+   struct winsys_handle whandle;
+   VAStatus result;
+
+   pscreen = VL_VA_PSCREEN(ctx);
+   drv = VL_VA_DRIVER(ctx);
+
+   templat->buffer_format = surface->templat.buffer_format;
+   templat->width = surface->templat.width;
+   templat->height = surface->templat.height;
+
+   memset(&whandle, 0, sizeof(whandle));
+   whandle.format = surface->templat.buffer_format;
+   if (memory_type == VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE) {
+      whandle.type = WINSYS_HANDLE_TYPE_FD;
+      whandle.handle = res_handle;
+   } else if (memory_type == VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE) {
+      whandle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
+      whandle.com_obj = res_handle;
+   } else {
+      return VA_STATUS_ERROR_INVALID_PARAMETER;
+   }
+
+   surface->buffer = drv->pipe->video_buffer_from_handle(drv->pipe, templat, &whandle, PIPE_USAGE_DEFAULT);
+   if (!surface->buffer) {
+      result = VA_STATUS_ERROR_ALLOCATION_FAILED;
+      goto fail;
+   }
+   return VA_STATUS_SUCCESS;
+
+fail:
+   return result;
+}
+
+#endif
 
 VAStatus
 vlVaHandleSurfaceAllocate(vlVaDriver *drv, vlVaSurface *surface,
@@ -813,7 +1018,8 @@ vlVaHandleSurfaceAllocate(vlVaDriver *drv, vlVaSurface *surface,
 
    surfaces = surface->buffer->get_surfaces(surface->buffer);
    for (i = 0; i < VL_MAX_SURFACES; ++i) {
-      union pipe_color_union c = {};
+      union pipe_color_union c;
+      memset(&c, 0, sizeof(c));
 
       if (!surfaces[i])
          continue;
@@ -838,9 +1044,13 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 {
    vlVaDriver *drv;
    VASurfaceAttribExternalBuffers *memory_attribute;
-   VADRMPRIMESurfaceDescriptor *prime_desc;
+#ifdef _WIN32
+   void **win32_handles;
+#else
+   VADRMPRIMESurfaceDescriptor *prime_desc = NULL;
 #ifdef HAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS
    const VADRMFormatModifierList *modifier_list;
+#endif
 #endif
    struct pipe_video_buffer templat;
    struct pipe_screen *pscreen;
@@ -871,7 +1081,6 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 
    /* Default. */
    memory_attribute = NULL;
-   prime_desc = NULL;
    memory_type = VA_SURFACE_ATTRIB_MEM_TYPE_VA;
    expected_fourcc = 0;
    modifiers = NULL;
@@ -893,8 +1102,14 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 
          switch (attrib_list[i].value.value.i) {
          case VA_SURFACE_ATTRIB_MEM_TYPE_VA:
+
+#ifdef _WIN32
+         case VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE:
+         case VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE:
+#else
          case VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME:
          case VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2:
+#endif
             memory_type = attrib_list[i].value.value.i;
             break;
          default:
@@ -904,11 +1119,18 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
       case VASurfaceAttribExternalBufferDescriptor:
          if (attrib_list[i].value.type != VAGenericValueTypePointer)
             return VA_STATUS_ERROR_INVALID_PARAMETER;
+#ifndef _WIN32
          if (memory_type == VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2)
             prime_desc = (VADRMPRIMESurfaceDescriptor *)attrib_list[i].value.value.p;
+#else
+         else if (memory_type == VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE ||
+                  memory_type == VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE)
+            win32_handles = (void**) attrib_list[i].value.value.p;
+#endif
          else
             memory_attribute = (VASurfaceAttribExternalBuffers *)attrib_list[i].value.value.p;
          break;
+#ifndef _WIN32
 #ifdef HAVE_VA_SURFACE_ATTRIB_DRM_FORMAT_MODIFIERS
       case VASurfaceAttribDRMFormatModifiers:
          if (attrib_list[i].value.type != VAGenericValueTypePointer)
@@ -919,6 +1141,7 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
             modifiers_count = modifier_list->num_modifiers;
          }
          break;
+#endif
 #endif
       case VASurfaceAttribUsageHint:
          if (attrib_list[i].value.type != VAGenericValueTypeInteger)
@@ -935,7 +1158,9 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    if (VA_RT_FORMAT_YUV420 != format &&
        VA_RT_FORMAT_YUV422 != format &&
        VA_RT_FORMAT_YUV444 != format &&
+       VA_RT_FORMAT_YUV400 != format &&
        VA_RT_FORMAT_YUV420_10BPP != format &&
+       VA_RT_FORMAT_RGBP != format &&
        VA_RT_FORMAT_RGB32  != format) {
       return VA_STATUS_ERROR_UNSUPPORTED_RT_FORMAT;
    }
@@ -943,6 +1168,13 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    switch (memory_type) {
    case VA_SURFACE_ATTRIB_MEM_TYPE_VA:
       break;
+#ifdef _WIN32
+         case VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE:
+         case VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE:
+         if (!win32_handles)
+            return VA_STATUS_ERROR_INVALID_PARAMETER;
+         break;
+#else
    case VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME:
       if (!memory_attribute)
          return VA_STATUS_ERROR_INVALID_PARAMETER;
@@ -957,6 +1189,7 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
 
       expected_fourcc = prime_desc->fourcc;
       break;
+#endif
    default:
       assert(0);
    }
@@ -981,7 +1214,11 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
    if (expected_fourcc) {
       enum pipe_format expected_format = VaFourccToPipeFormat(expected_fourcc);
 
+#ifndef _WIN32
+      if (expected_format != templat.buffer_format || memory_attribute || prime_desc)
+#else
       if (expected_format != templat.buffer_format || memory_attribute)
+#endif
         templat.interlaced = 0;
 
       templat.buffer_format = expected_format;
@@ -1020,6 +1257,14 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
             goto free_surf;
          break;
 
+#ifdef _WIN32
+      case VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE:
+      case VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE:
+         vaStatus = surface_from_external_win32_memory(ctx, surf, memory_type, win32_handles[i], &templat);
+         if (vaStatus != VA_STATUS_SUCCESS)
+            goto free_surf;
+         break;
+#else
       case VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME:
          vaStatus = surface_from_external_memory(ctx, surf, memory_attribute, i, &templat);
          if (vaStatus != VA_STATUS_SUCCESS)
@@ -1031,6 +1276,7 @@ vlVaCreateSurfaces2(VADriverContextP ctx, unsigned int format,
          if (vaStatus != VA_STATUS_SUCCESS)
             goto free_surf;
          break;
+#endif
       default:
          assert(0);
       }
@@ -1126,11 +1372,13 @@ vlVaQueryVideoProcFilterCaps(VADriverContextP ctx, VAContextID context,
 }
 
 static VAProcColorStandardType vpp_input_color_standards[] = {
-   VAProcColorStandardBT601
+   VAProcColorStandardBT601,
+   VAProcColorStandardBT709
 };
 
 static VAProcColorStandardType vpp_output_color_standards[] = {
-   VAProcColorStandardBT601
+   VAProcColorStandardBT601,
+   VAProcColorStandardBT709
 };
 
 VAStatus
@@ -1243,6 +1491,7 @@ vlVaQueryVideoProcPipelineCaps(VADriverContextP ctx, VAContextID context,
    return VA_STATUS_SUCCESS;
 }
 
+#ifndef _WIN32
 static uint32_t pipe_format_to_drm_format(enum pipe_format format)
 {
    switch (format) {
@@ -1266,10 +1515,14 @@ static uint32_t pipe_format_to_drm_format(enum pipe_format format)
       return DRM_FORMAT_NV12;
    case PIPE_FORMAT_P010:
       return DRM_FORMAT_P010;
+   case PIPE_FORMAT_YUYV:
+   case PIPE_FORMAT_R8G8_R8B8_UNORM:
+      return DRM_FORMAT_YUYV;
    default:
       return DRM_FORMAT_INVALID;
    }
 }
+#endif
 
 #if VA_CHECK_VERSION(1, 1, 0)
 VAStatus
@@ -1285,12 +1538,19 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
    struct pipe_screen *screen;
    VAStatus ret;
    unsigned int usage;
+
+#ifdef _WIN32
+   if ((mem_type != VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE)
+      && (mem_type != VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE))
+      return VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
+
+   if ((flags & VA_EXPORT_SURFACE_COMPOSED_LAYERS) == 0)
+      return VA_STATUS_ERROR_INVALID_SURFACE;
+#else
    int i, p;
-
-   VADRMPRIMESurfaceDescriptor *desc = descriptor;
-
    if (mem_type != VA_SURFACE_ATTRIB_MEM_TYPE_DRM_PRIME_2)
       return VA_STATUS_ERROR_UNSUPPORTED_MEMORY_TYPE;
+#endif
 
    drv    = VL_VA_DRIVER(ctx);
    screen = VL_VA_PSCREEN(ctx);
@@ -1307,7 +1567,6 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
       struct u_rect src_rect, dst_rect;
 
       surf->templat.interlaced = false;
-      surf->obsolete_buf = surf->buffer;
 
       ret = vlVaHandleSurfaceAllocate(drv, surf, &surf->templat, NULL, 0);
       if (ret != VA_STATUS_SUCCESS) {
@@ -1324,10 +1583,11 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
                                    interlaced, surf->buffer,
                                    &src_rect, &dst_rect,
                                    VL_COMPOSITOR_WEAVE);
+      if (interlaced->codec && interlaced->codec->update_decoder_target)
+         interlaced->codec->update_decoder_target(interlaced->codec, interlaced, surf->buffer);
 
       interlaced->destroy(interlaced);
-   } else
-      surf->obsolete_buf = NULL;
+   }
 
    surfaces = surf->buffer->get_surfaces(surf->buffer);
 
@@ -1335,11 +1595,34 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
    if (flags & VA_EXPORT_SURFACE_WRITE_ONLY)
       usage |= PIPE_HANDLE_USAGE_FRAMEBUFFER_WRITE;
 
+#ifdef _WIN32
+   struct winsys_handle whandle;
+   memset(&whandle, 0, sizeof(struct winsys_handle));
+   struct pipe_resource *resource = surfaces[0]->texture;
+
+   if (mem_type == VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE)
+      whandle.type = WINSYS_HANDLE_TYPE_FD;
+   else if (mem_type == VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE)
+      whandle.type = WINSYS_HANDLE_TYPE_D3D12_RES;
+
+   if (!screen->resource_get_handle(screen, drv->pipe, resource,
+                                    &whandle, usage)) {
+      ret = VA_STATUS_ERROR_INVALID_SURFACE;
+      goto fail;
+   }
+
+   if (mem_type == VA_SURFACE_ATTRIB_MEM_TYPE_NTHANDLE)
+      *(HANDLE**)descriptor = whandle.handle;
+   else if (mem_type == VA_SURFACE_ATTRIB_MEM_TYPE_D3D12_RESOURCE)
+      *(void**) descriptor = whandle.com_obj;
+
+#else
+   VADRMPRIMESurfaceDescriptor *desc = descriptor;
    desc->fourcc = PipeFormatToVaFourcc(surf->buffer->buffer_format);
    desc->width  = surf->templat.width;
    desc->height = surf->templat.height;
 
-   for (p = 0; p < VL_MAX_SURFACES; p++) {
+   for (p = 0; p < ARRAY_SIZE(desc->objects); p++) {
       struct winsys_handle whandle;
       struct pipe_resource *resource;
       uint32_t drm_format;
@@ -1399,14 +1682,20 @@ vlVaExportSurfaceHandle(VADriverContextP ctx,
    } else {
       desc->num_layers = p;
    }
+#endif
 
    mtx_unlock(&drv->mutex);
 
    return VA_STATUS_SUCCESS;
 
 fail:
+#ifndef _WIN32
    for (i = 0; i < p; i++)
       close(desc->objects[i].fd);
+#else
+   if(whandle.handle)
+      CloseHandle(whandle.handle);
+#endif
 
    mtx_unlock(&drv->mutex);
 

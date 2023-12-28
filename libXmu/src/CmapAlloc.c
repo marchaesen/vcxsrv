@@ -205,7 +205,7 @@ default_allocation(XVisualInfo *vinfo, unsigned long *red,
  * 	maximum blue value = floor(cube_root(n)) - 1;
  *	maximum green value = n / ((# red values) * (# blue values)) - 1;
  * Which, on a GPX, allows for 252 entries in the best map, out of 254
- * defineable colormap entries.
+ * definable colormap entries.
  */
 
 static void

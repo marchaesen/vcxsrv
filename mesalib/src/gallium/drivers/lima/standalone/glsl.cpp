@@ -37,5 +37,5 @@ lima_do_glsl_optimizations(struct exec_list *ir)
 int
 st_glsl_type_size(const glsl_type *type, bool bindless)
 {
-   return type->count_attribute_slots(false);
+   return glsl_count_attribute_slots(type, false);
 }

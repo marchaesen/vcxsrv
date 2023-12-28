@@ -30,7 +30,7 @@
 #define U_SIMPLE_SHADERS_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_shader_tokens.h"
 
 
@@ -46,16 +46,16 @@ extern "C" {
 
 extern void *
 util_make_vertex_passthrough_shader(struct pipe_context *pipe,
-                                    uint num_attribs,
+                                    unsigned num_attribs,
                                     const enum tgsi_semantic *semantic_names,
-                                    const uint *semantic_indexes,
+                                    const unsigned *semantic_indexes,
                                     bool window_space);
 
 extern void *
 util_make_vertex_passthrough_shader_with_so(struct pipe_context *pipe,
-                                    uint num_attribs,
+                                    unsigned num_attribs,
                                     const enum tgsi_semantic *semantic_names,
-                                    const uint *semantic_indexes,
+                                    const unsigned *semantic_indexes,
                                     bool window_space, bool layered,
                                     const struct pipe_stream_output_info *so);
 
@@ -85,7 +85,7 @@ extern void *
 util_make_fragment_passthrough_shader(struct pipe_context *pipe,
                                       int input_semantic,
                                       int input_interpolate,
-                                      boolean write_all_cbufs);
+                                      bool write_all_cbufs);
 
 
 extern void *
@@ -137,9 +137,9 @@ util_make_fs_msaa_resolve_bilinear(struct pipe_context *pipe,
 
 extern void *
 util_make_geometry_passthrough_shader(struct pipe_context *pipe,
-                                      uint num_attribs,
-                                      const ubyte *semantic_names,
-                                      const ubyte *semantic_indexes);
+                                      unsigned num_attribs,
+                                      const uint8_t *semantic_names,
+                                      const uint8_t *semantic_indexes);
 
 void *
 util_make_fs_pack_color_zs(struct pipe_context *pipe,
@@ -149,12 +149,12 @@ util_make_fs_pack_color_zs(struct pipe_context *pipe,
 
 extern void *
 util_make_tess_ctrl_passthrough_shader(struct pipe_context *pipe,
-                                       uint num_vs_outputs,
-                                       uint num_tes_inputs,
-                                       const ubyte *vs_semantic_names,
-                                       const ubyte *vs_semantic_indexes,
-                                       const ubyte *tes_semantic_names,
-                                       const ubyte *tes_semantic_indexes,
+                                       unsigned num_vs_outputs,
+                                       unsigned num_tes_inputs,
+                                       const uint8_t *vs_semantic_names,
+                                       const uint8_t *vs_semantic_indexes,
+                                       const uint8_t *tes_semantic_names,
+                                       const uint8_t *tes_semantic_indexes,
                                        const unsigned vertices_per_patch);
 
 void *

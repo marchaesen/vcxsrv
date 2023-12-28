@@ -1,6 +1,7 @@
+use libc_rust_gen::free;
 use mesa_rust_gen::*;
 
-use std::ffi::CString;
+use std::ffi::{c_void, CString};
 use std::ops::Deref;
 use std::ptr;
 use std::ptr::NonNull;
@@ -74,10 +75,24 @@ impl DiskCacheBorrowed {
 }
 
 impl DiskCache {
-    pub fn new(name: &str, driver_id: &str, flags: u64) -> Option<Self> {
+    pub fn new(name: &str, func_ptrs: &[*mut c_void], flags: u64) -> Option<Self> {
         let c_name = CString::new(name).unwrap();
-        let c_id = CString::new(driver_id).unwrap();
-        let cache = unsafe { disk_cache_create(c_name.as_ptr(), c_id.as_ptr(), flags) };
+        let mut sha_ctx = SHA1_CTX::default();
+        let mut sha = [0; SHA1_DIGEST_LENGTH as usize];
+        let mut cache_id = [0; SHA1_DIGEST_STRING_LENGTH as usize];
+
+        let cache = unsafe {
+            SHA1Init(&mut sha_ctx);
+
+            for &func_ptr in func_ptrs {
+                if !disk_cache_get_function_identifier(func_ptr, &mut sha_ctx) {
+                    return None;
+                }
+            }
+            SHA1Final(&mut sha, &mut sha_ctx);
+            mesa_bytes_to_hex(cache_id.as_mut_ptr(), sha.as_ptr(), sha.len() as u32);
+            disk_cache_create(c_name.as_ptr(), cache_id.as_ptr(), flags)
+        };
 
         DiskCacheBorrowed::from_ptr(cache).map(|c| Self { inner: c })
     }

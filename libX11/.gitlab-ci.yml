@@ -30,8 +30,8 @@ variables:
   # The tag should be updated each time the list of packages is updated.
   # Changing a tag forces the associated image to be rebuilt.
   # Note: the tag has no meaning, we use a date format purely for readability
-  FDO_DISTRIBUTION_TAG:  '2020-11-16.0'
-  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake make xorg-util-macros xtrans xorgproto libxcb'
+  FDO_DISTRIBUTION_TAG:  '2023-02-06.1'
+  FDO_DISTRIBUTION_PACKAGES:  'git gcc pkgconf autoconf automake libtool make xorg-util-macros xtrans xorgproto libxcb'
 
 
 #
@@ -96,3 +96,12 @@ build:
     - make check
     - make distcheck
     - popd > /dev/null
+
+#
+# Workflow rules needed due to:
+# https://gitlab.freedesktop.org/freedesktop/freedesktop/-/issues/438
+#
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'push'

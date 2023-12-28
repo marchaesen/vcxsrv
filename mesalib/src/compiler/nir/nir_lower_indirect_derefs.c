@@ -29,14 +29,14 @@ static void
 emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
                       nir_deref_instr *parent,
                       nir_deref_instr **deref_arr,
-                      nir_ssa_def **dest, nir_ssa_def *src);
+                      nir_def **dest, nir_def *src);
 
 static void
 emit_indirect_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
                                nir_deref_instr *parent,
                                nir_deref_instr **deref_arr,
                                int start, int end,
-                               nir_ssa_def **dest, nir_ssa_def *src)
+                               nir_def **dest, nir_def *src)
 {
    assert(start < end);
    if (start == end - 1) {
@@ -46,12 +46,12 @@ emit_indirect_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
    } else {
       int mid = start + (end - start) / 2;
 
-      nir_ssa_def *then_dest, *else_dest;
+      nir_def *then_dest, *else_dest;
 
       nir_deref_instr *deref = *deref_arr;
       assert(deref->deref_type == nir_deref_type_array);
 
-      nir_push_if(b, nir_ilt(b, deref->arr.index.ssa, nir_imm_intN_t(b, mid, parent->dest.ssa.bit_size)));
+      nir_push_if(b, nir_ilt_imm(b, deref->arr.index.ssa, mid));
       emit_indirect_load_store_deref(b, orig_instr, parent, deref_arr,
                                      start, mid, &then_dest, src);
       nir_push_else(b, NULL);
@@ -68,7 +68,7 @@ static void
 emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
                       nir_deref_instr *parent,
                       nir_deref_instr **deref_arr,
-                      nir_ssa_def **dest, nir_ssa_def *src)
+                      nir_def **dest, nir_def *src)
 {
    for (; *deref_arr; deref_arr++) {
       nir_deref_instr *deref = *deref_arr;
@@ -93,18 +93,18 @@ emit_load_store_deref(nir_builder *b, nir_intrinsic_instr *orig_instr,
          nir_intrinsic_instr_create(b->shader, orig_instr->intrinsic);
       load->num_components = orig_instr->num_components;
 
-      load->src[0] = nir_src_for_ssa(&parent->dest.ssa);
+      load->src[0] = nir_src_for_ssa(&parent->def);
 
       /* Copy over any other sources.  This is needed for interp_deref_at */
       for (unsigned i = 1;
            i < nir_intrinsic_infos[orig_instr->intrinsic].num_srcs; i++)
-         nir_src_copy(&load->src[i], &orig_instr->src[i], &load->instr);
+         load->src[i] = nir_src_for_ssa(orig_instr->src[i].ssa);
 
-      nir_ssa_dest_init(&load->instr, &load->dest,
-                        orig_instr->dest.ssa.num_components,
-                        orig_instr->dest.ssa.bit_size, NULL);
+      nir_def_init(&load->instr, &load->def,
+                   orig_instr->def.num_components,
+                   orig_instr->def.bit_size);
       nir_builder_instr_insert(b, &load->instr);
-      *dest = &load->dest.ssa;
+      *dest = &load->def;
    } else {
       assert(orig_instr->intrinsic == nir_intrinsic_store_deref);
       nir_store_deref(b, parent, src, nir_intrinsic_write_mask(orig_instr));
@@ -152,6 +152,9 @@ lower_indirect_derefs_block(nir_block *block, nir_builder *b,
       if (!has_indirect || !base || indirect_array_len > max_lower_array_len)
          continue;
 
+      if (glsl_type_is_cmat(base->type))
+         continue;
+
       /* Only lower variables whose mode is in the mask, or compact
        * array variables.  (We can't handle indirects on tightly packed
        * scalar arrays, so we need to lower them regardless.)
@@ -169,14 +172,13 @@ lower_indirect_derefs_block(nir_block *block, nir_builder *b,
       assert(path.path[0] == base);
 
       if (intrin->intrinsic == nir_intrinsic_store_deref) {
-         assert(intrin->src[1].is_ssa);
          emit_load_store_deref(b, intrin, base, &path.path[1],
                                NULL, intrin->src[1].ssa);
       } else {
-         nir_ssa_def *result;
+         nir_def *result;
          emit_load_store_deref(b, intrin, base, &path.path[1],
                                &result, NULL);
-         nir_ssa_def_rewrite_uses(&intrin->dest.ssa, result);
+         nir_def_rewrite_uses(&intrin->def, result);
       }
 
       nir_deref_path_finish(&path);
@@ -191,8 +193,7 @@ static bool
 lower_indirects_impl(nir_function_impl *impl, nir_variable_mode modes,
                      const struct set *vars, uint32_t max_lower_array_len)
 {
-   nir_builder builder;
-   nir_builder_init(&builder, impl);
+   nir_builder builder = nir_builder_create(impl);
    bool progress = false;
 
    nir_foreach_block_safe(block, impl) {
@@ -219,11 +220,9 @@ nir_lower_indirect_derefs(nir_shader *shader, nir_variable_mode modes,
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         progress = lower_indirects_impl(function->impl, modes, NULL,
-                                         max_lower_array_len) || progress;
-      }
+   nir_foreach_function_impl(impl, shader) {
+      progress = lower_indirects_impl(impl, modes, NULL, max_lower_array_len) ||
+                 progress;
    }
 
    return progress;
@@ -235,11 +234,9 @@ nir_lower_indirect_var_derefs(nir_shader *shader, const struct set *vars)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         progress = lower_indirects_impl(function->impl, nir_var_uniform,
-                                         vars, UINT_MAX) || progress;
-      }
+   nir_foreach_function_impl(impl, shader) {
+      progress = lower_indirects_impl(impl, nir_var_uniform, vars, UINT_MAX) ||
+                 progress;
    }
 
    return progress;

@@ -116,3 +116,81 @@ Other negative values generate a
 error.
 If the timeout value is nonzero,
 .B XSetScreenSaver
+enables the screen saver.
+An interval of 0 disables the random-pattern motion.
+Both values are limited to a 16-bit signed integer range by the wire protocol,
+despite the C prototype.
+If no input from devices (keyboard, mouse, and so on) is generated
+for the specified number of timeout seconds once the screen saver is enabled,
+the screen saver is activated.
+.LP
+For each screen,
+if blanking is preferred and the hardware supports video blanking,
+the screen simply goes blank.
+Otherwise, if either exposures are allowed or the screen can be regenerated
+without sending
+.B Expose
+events to clients,
+the screen is tiled with the root window background tile randomly
+re-origined each interval seconds.
+Otherwise, the screens' states do not change,
+and the screen saver is not activated.
+The screen saver is deactivated,
+and all screen states are restored at the next
+keyboard or pointer input or at the next call to
+.B XForceScreenSaver
+with mode
+.BR ScreenSaverReset .
+.LP
+If the server-dependent screen saver method supports periodic change,
+the interval argument serves as a hint about how long the change period
+should be, and zero hints that no periodic change should be made.
+Examples of ways to change the screen include scrambling the colormap
+periodically, moving an icon image around the screen periodically, or tiling
+the screen with the root window background tile, randomly re-origined
+periodically.
+.LP
+.B XSetScreenSaver
+can generate a
+.B BadValue
+error.
+.LP
+If the specified mode is
+.B ScreenSaverActive
+and the screen saver currently is deactivated,
+.B XForceScreenSaver
+activates the screen saver even if the screen saver had been disabled
+with a timeout of zero.
+If the specified mode is
+.B ScreenSaverReset
+and the screen saver currently is enabled,
+.B XForceScreenSaver
+deactivates the screen saver if it was activated,
+and the activation timer is reset to its initial state
+(as if device input had been received).
+.LP
+.B XForceScreenSaver
+can generate a
+.B BadValue
+error.
+.LP
+The
+.B XActivateScreenSaver
+function activates the screen saver.
+.LP
+The
+.B XResetScreenSaver
+function resets the screen saver.
+.LP
+The
+.B XGetScreenSaver
+function gets the current screen saver values.
+.SH DIAGNOSTICS
+.TP 1i
+.B BadValue
+Some numeric value falls outside the range of values accepted by the request.
+Unless a specific range is specified for an argument, the full range defined
+by the argument's type is accepted.  Any argument defined as a set of
+alternatives can generate this error.
+.SH "SEE ALSO"
+\fI\*(xL\fP

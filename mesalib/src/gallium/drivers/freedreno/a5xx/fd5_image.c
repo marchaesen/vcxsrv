@@ -225,7 +225,8 @@ fd5_emit_images(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
       translate_image(&img, &so->si[index]);
 
-      emit_image_tex(ring, m->image_to_tex[index] + m->tex_base, &img, shader);
+      if (m->image_to_tex[index] != IBO_INVALID)
+         emit_image_tex(ring, m->image_to_tex[index] + m->tex_base, &img, shader);
       emit_image_ssbo(ring, v->num_ssbos + index, &img,
                       shader);
    }

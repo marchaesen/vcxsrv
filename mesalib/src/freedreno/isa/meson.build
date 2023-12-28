@@ -34,9 +34,10 @@ isa_depend_files = [
 ir3_isa = custom_target(
   'ir3-isa',
   input: ['ir3.xml'],
-  output: ['isaspec-isa.h', 'ir3-isa.c', 'ir3-isa.h'],
+  output: ['ir3-isa.c', 'ir3-isa.h'],
   command: [
-    prog_isaspec_decode, '@INPUT@', '@OUTPUT@'
+    prog_isaspec_decode, '--xml', '@INPUT@',
+    '--out-c', '@OUTPUT0@', '--out-h', '@OUTPUT1@',
   ],
   depend_files: isa_depend_files,
 )
@@ -53,9 +54,6 @@ libir3decode = static_library(
   include_directories: [
     inc_include,
     inc_src,
-    # Hack for src/util/half_float.h indirect dependency on
-    # gallium headers:
-    inc_gallium,
   ],
   gnu_symbol_visibility: 'hidden',
 )
@@ -76,7 +74,7 @@ encode_h = custom_target(
   input: ['ir3.xml'],
   output: 'encode.h',
   command: [
-    prog_isaspec_encode, '@INPUT@', '@OUTPUT@'
+    prog_isaspec_encode, '--xml', '@INPUT@', '--out-h', '@OUTPUT@'
   ],
   depend_files: isa_depend_files,
 )
@@ -95,7 +93,6 @@ libir3encode = static_library(
     inc_src,
     inc_include,
     inc_freedreno,
-    inc_gallium,
   ],
   gnu_symbol_visibility: 'hidden',
 )

@@ -56,7 +56,7 @@
  */
 
 #include <inttypes.h>
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "context.h"
 #include "macros.h"
@@ -65,6 +65,7 @@
 #include "util/hash_table.h"
 #include "util/set.h"
 #include "util/u_memory.h"
+#include "util/perf/cpu_trace.h"
 
 #include "syncobj.h"
 
@@ -121,6 +122,8 @@ __client_wait_sync(struct gl_context *ctx,
    struct pipe_context *pipe = ctx->pipe;
    struct pipe_screen *screen = pipe->screen;
    struct pipe_fence_handle *fence = NULL;
+
+   MESA_TRACE_FUNC();
 
    /* If the fence doesn't exist, assume it's signalled. */
    simple_mtx_lock(&obj->mutex);
@@ -268,8 +271,8 @@ _mesa_DeleteSync(GLsync sync)
 }
 
 
-static GLsync
-fence_sync(struct gl_context *ctx, GLenum condition, GLbitfield flags)
+GLsync
+_mesa_fence_sync(struct gl_context *ctx, GLenum condition, GLbitfield flags)
 {
    struct gl_sync_object *syncObj;
 
@@ -308,7 +311,7 @@ GLsync GLAPIENTRY
 _mesa_FenceSync_no_error(GLenum condition, GLbitfield flags)
 {
    GET_CURRENT_CONTEXT(ctx);
-   return fence_sync(ctx, condition, flags);
+   return _mesa_fence_sync(ctx, condition, flags);
 }
 
 
@@ -329,7 +332,7 @@ _mesa_FenceSync(GLenum condition, GLbitfield flags)
       return 0;
    }
 
-   return fence_sync(ctx, condition, flags);
+   return _mesa_fence_sync(ctx, condition, flags);
 }
 
 

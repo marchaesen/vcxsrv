@@ -229,7 +229,8 @@ FcAtomicUnlock (FcAtomic *atomic)
 void
 FcAtomicDestroy (FcAtomic *atomic)
 {
-    free (atomic);
+    if (atomic)
+	free (atomic);
 }
 #define __fcatomic__
 #include "fcaliastail.h"

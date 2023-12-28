@@ -82,6 +82,7 @@ static const struct drm_driver_descriptor *driver_descriptors[] = {
    &v3d_driver_descriptor,
    &vc4_driver_descriptor,
    &panfrost_driver_descriptor,
+   &asahi_driver_descriptor,
    &etnaviv_driver_descriptor,
    &tegra_driver_descriptor,
    &lima_driver_descriptor,
@@ -120,7 +121,7 @@ get_driver_descriptor(const char *driver_name, struct util_dl_library **plib)
 }
 
 static bool
-pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd)
+pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd, bool zink)
 {
    struct pipe_loader_drm_device *ddev = CALLOC_STRUCT(pipe_loader_drm_device);
    int vendor_id, chip_id;
@@ -138,7 +139,10 @@ pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd)
    ddev->base.ops = &pipe_loader_drm_ops;
    ddev->fd = fd;
 
-   ddev->base.driver_name = loader_get_driver_for_fd(fd);
+   if (zink)
+      ddev->base.driver_name = strdup("zink");
+   else
+      ddev->base.driver_name = loader_get_driver_for_fd(fd);
    if (!ddev->base.driver_name)
       goto fail;
 
@@ -162,7 +166,7 @@ pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd)
       goto fail;
 
    /* kmsro supports lots of drivers, try as a fallback */
-   if (!ddev->dd)
+   if (!ddev->dd && !zink)
       ddev->dd = get_driver_descriptor("kmsro", plib);
 
    if (!ddev->dd)
@@ -182,7 +186,7 @@ pipe_loader_drm_probe_fd_nodup(struct pipe_loader_device **dev, int fd)
 }
 
 bool
-pipe_loader_drm_probe_fd(struct pipe_loader_device **dev, int fd)
+pipe_loader_drm_probe_fd(struct pipe_loader_device **dev, int fd, bool zink)
 {
    bool ret;
    int new_fd;
@@ -190,7 +194,7 @@ pipe_loader_drm_probe_fd(struct pipe_loader_device **dev, int fd)
    if (fd < 0 || (new_fd = os_dupfd_cloexec(fd)) < 0)
      return false;
 
-   ret = pipe_loader_drm_probe_fd_nodup(dev, new_fd);
+   ret = pipe_loader_drm_probe_fd_nodup(dev, new_fd, zink);
    if (!ret)
       close(new_fd);
 
@@ -206,8 +210,8 @@ open_drm_render_node_minor(int minor)
    return loader_open_device(path);
 }
 
-int
-pipe_loader_drm_probe(struct pipe_loader_device **devs, int ndev)
+static int
+pipe_loader_drm_probe_internal(struct pipe_loader_device **devs, int ndev, bool zink)
 {
    int i, j, fd;
 
@@ -219,7 +223,7 @@ pipe_loader_drm_probe(struct pipe_loader_device **devs, int ndev)
       if (fd < 0)
          continue;
 
-      if (!pipe_loader_drm_probe_fd_nodup(&dev, fd)) {
+      if (!pipe_loader_drm_probe_fd_nodup(&dev, fd, zink)) {
          close(fd);
          continue;
       }
@@ -236,6 +240,20 @@ pipe_loader_drm_probe(struct pipe_loader_device **devs, int ndev)
    return j;
 }
 
+int
+pipe_loader_drm_probe(struct pipe_loader_device **devs, int ndev)
+{
+   return pipe_loader_drm_probe_internal(devs, ndev, false);
+}
+
+#ifdef HAVE_ZINK
+int
+pipe_loader_drm_zink_probe(struct pipe_loader_device **devs, int ndev)
+{
+   return pipe_loader_drm_probe_internal(devs, ndev, true);
+}
+#endif
+
 static void
 pipe_loader_drm_release(struct pipe_loader_device **dev)
 {
@@ -249,6 +267,54 @@ pipe_loader_drm_release(struct pipe_loader_device **dev)
    close(ddev->fd);
    FREE(ddev->base.driver_name);
    pipe_loader_base_release(dev);
+}
+
+int
+pipe_loader_get_compatible_render_capable_device_fd(int kms_only_fd)
+{
+   bool is_platform_device;
+   struct pipe_loader_device *dev;
+   const char * const drivers[] = {
+#if defined GALLIUM_ASAHI
+      "asahi",
+#endif
+#if defined GALLIUM_ETNAVIV
+      "etnaviv",
+#endif
+#if defined GALLIUM_FREEDRENO
+      "msm",
+#endif
+#if defined GALLIUM_LIMA
+      "lima",
+#endif
+#if defined GALLIUM_PANFROST
+      "panfrost",
+#endif
+#if defined GALLIUM_V3D
+      "v3d",
+#endif
+#if defined GALLIUM_VC4
+      "vc4",
+#endif
+   };
+
+   if (!pipe_loader_drm_probe_fd(&dev, kms_only_fd, false))
+      return -1;
+   is_platform_device = (dev->type == PIPE_LOADER_DEVICE_PLATFORM);
+   pipe_loader_release(&dev, 1);
+
+   /* For display-only devices that are not on the platform bus, we can't assume
+    * that any of the rendering devices are compatible. */
+   if (!is_platform_device)
+      return -1;
+
+   /* For platform display-only devices, we try to find a render-capable device
+    * on the platform bus and that should be compatible with the display-only
+    * device. */
+   if (ARRAY_SIZE(drivers) == 0)
+      return -1;
+
+   return loader_open_render_node_platform_device(drivers, ARRAY_SIZE(drivers));
 }
 
 static const struct driOptionDescription *

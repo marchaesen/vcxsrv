@@ -27,9 +27,10 @@
  */
 
 #include <xf86drm.h>
+#include <libsync.h>
 #include "v3d_context.h"
 /* The OQ/semaphore packets are the same across V3D versions. */
-#define V3D_VERSION 33
+#define V3D_VERSION 42
 #include "broadcom/cle/v3dx_pack.h"
 #include "broadcom/common/v3d_macros.h"
 #include "util/hash_table.h"
@@ -277,7 +278,7 @@ v3d_flush_jobs_reading_resource(struct v3d_context *v3d,
 }
 
 /**
- * Returns a v3d_job struture for tracking V3D rendering to a particular FBO.
+ * Returns a v3d_job structure for tracking V3D rendering to a particular FBO.
  *
  * If we've already started rendering to this FBO, then return the same job,
  * otherwise make a new one.  If we're beginning rendering to an FBO, make
@@ -382,9 +383,11 @@ v3d_get_job_for_fbo(struct v3d_context *v3d)
                 job->double_buffer = false;
         }
 
-        v3d_get_tile_buffer_size(job->msaa, job->double_buffer,
+        v3d_get_tile_buffer_size(&v3d->screen->devinfo,
+                                 job->msaa, job->double_buffer,
                                  job->nr_cbufs, job->cbufs, job->bbuf,
-                                 &job->tile_width, &job->tile_height,
+                                 &job->tile_width,
+                                 &job->tile_height,
                                  &job->internal_bpp);
 
         /* The dirty flags are tracking what's been updated while v3d->job has
@@ -463,14 +466,25 @@ v3d_read_and_accumulate_primitive_counters(struct v3d_context *v3d)
 
         perf_debug("stalling on TF counts readback\n");
         struct v3d_resource *rsc = v3d_resource(v3d->prim_counts);
-        if (v3d_bo_wait(rsc->bo, PIPE_TIMEOUT_INFINITE, "prim-counts")) {
+        if (v3d_bo_wait(rsc->bo, OS_TIMEOUT_INFINITE, "prim-counts")) {
                 uint32_t *map = v3d_bo_map(rsc->bo) + v3d->prim_counts_offset;
                 v3d->tf_prims_generated += map[V3D_PRIM_COUNTS_TF_WRITTEN];
-                /* When we only have a vertex shader we determine the primitive
-                 * count in the CPU so don't update it here again.
+                /* When we only have a vertex shader with no primitive
+                 * restart, we determine the primitive count in the CPU so
+                 * don't update it here again.
                  */
-                if (v3d->prog.gs)
+                if (v3d->prog.gs || v3d->prim_restart) {
                         v3d->prims_generated += map[V3D_PRIM_COUNTS_WRITTEN];
+                        uint8_t prim_mode =
+                                v3d->prog.gs ? v3d->prog.gs->prog_data.gs->out_prim_type
+                                             : v3d->prim_mode;
+                        uint32_t vertices_written =
+                                map[V3D_PRIM_COUNTS_TF_WRITTEN] * mesa_vertices_per_prim(prim_mode);
+                        for (int i = 0; i < v3d->streamout.num_targets; i++) {
+                                v3d_stream_output_target(v3d->streamout.targets[i])->offset +=
+                                        vertices_written;
+                        }
+                }
         }
 }
 
@@ -481,6 +495,7 @@ void
 v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
 {
         struct v3d_screen *screen = v3d->screen;
+        struct v3d_device_info *devinfo = &screen->devinfo;
 
         if (!job->needs_flush)
                 goto done;
@@ -495,23 +510,28 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
         if (job->needs_primitives_generated)
                 v3d_ensure_prim_counts_allocated(v3d);
 
-        if (screen->devinfo.ver >= 41)
-                v3d41_emit_rcl(job);
-        else
-                v3d33_emit_rcl(job);
+        v3d_X(devinfo, emit_rcl)(job);
 
-        if (cl_offset(&job->bcl) > 0) {
-                if (screen->devinfo.ver >= 41)
-                        v3d41_bcl_epilogue(v3d, job);
-                else
-                        v3d33_bcl_epilogue(v3d, job);
+        if (cl_offset(&job->bcl) > 0)
+                v3d_X(devinfo, bcl_epilogue)(v3d, job);
+
+        if (v3d->in_fence_fd >= 0) {
+                /* PIPE_CAP_NATIVE_FENCE */
+                if (drmSyncobjImportSyncFile(v3d->fd, v3d->in_syncobj,
+                                             v3d->in_fence_fd)) {
+                   fprintf(stderr, "Failed to import native fence.\n");
+                } else {
+                   job->submit.in_sync_bcl = v3d->in_syncobj;
+                }
+                close(v3d->in_fence_fd);
+                v3d->in_fence_fd = -1;
+        } else {
+                /* While the RCL will implicitly depend on the last RCL to have
+                 * finished, we also need to block on any previous TFU job we
+                 * may have dispatched.
+                 */
+                job->submit.in_sync_rcl = v3d->out_sync;
         }
-
-        /* While the RCL will implicitly depend on the last RCL to have
-         * finished, we also need to block on any previous TFU job we may have
-         * dispatched.
-         */
-        job->submit.in_sync_rcl = v3d->out_sync;
 
         /* Update the sync object for the last rendering by our context. */
         job->submit.out_sync = v3d->out_sync;
@@ -540,7 +560,7 @@ v3d_job_submit(struct v3d_context *v3d, struct v3d_job *job)
         /* On V3D 4.1, the tile alloc/state setup moved to register writes
          * instead of binner packets.
          */
-        if (screen->devinfo.ver >= 41) {
+        if (devinfo->ver >= 42) {
                 v3d_job_add_bo(job, job->tile_alloc);
                 job->submit.qma = job->tile_alloc->offset;
                 job->submit.qms = job->tile_alloc->size;

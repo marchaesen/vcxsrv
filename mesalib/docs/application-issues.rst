@@ -6,7 +6,7 @@ This page documents known issues with some OpenGL applications.
 Topogun
 -------
 
-`Topogun <http://www.topogun.com/>`__ for Linux (version 2, at least)
+`Topogun <https://www.topogun.com/>`__ for Linux (version 2, at least)
 creates a GLX visual without requesting a depth buffer. This causes bad
 rendering if the OpenGL driver happens to choose a visual without a
 depth buffer.

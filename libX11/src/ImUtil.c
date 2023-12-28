@@ -30,6 +30,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xlibint.h>
 #include <X11/Xutil.h>
 #include <stdio.h>
+#include <limits.h>
 #include "ImUtil.h"
 
 static int _XDestroyImage(XImage *);
@@ -361,13 +362,22 @@ XImage *XCreateImage (
 	/*
 	 * compute per line accelerator.
 	 */
-	{
-	if (format == ZPixmap)
+	if (format == ZPixmap) {
+	    if ((INT_MAX / bits_per_pixel) < width) {
+		Xfree(image);
+		return NULL;
+	    }
+
 	    min_bytes_per_line =
-	       ROUNDUP((bits_per_pixel * width), image->bitmap_pad);
-	else
+		ROUNDUP((bits_per_pixel * width), image->bitmap_pad);
+	} else {
+	    if ((INT_MAX - offset) < width) {
+		Xfree(image);
+		return NULL;
+	    }
+
 	    min_bytes_per_line =
-	        ROUNDUP((width + offset), image->bitmap_pad);
+		ROUNDUP((width + offset), image->bitmap_pad);
 	}
 	if (image_bytes_per_line == 0) {
 	    image->bytes_per_line = min_bytes_per_line;

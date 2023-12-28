@@ -125,7 +125,7 @@ exaGetDrawablePixmap(DrawablePtr pDrawable)
 void
 exaGetDrawableDeltas(DrawablePtr pDrawable, PixmapPtr pPixmap, int *xp, int *yp)
 {
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
     if (pDrawable->type == DRAWABLE_WINDOW) {
         *xp = -pPixmap->screen_x;
         *yp = -pPixmap->screen_y;

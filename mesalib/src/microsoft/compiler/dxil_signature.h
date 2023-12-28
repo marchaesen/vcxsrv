@@ -63,7 +63,7 @@ struct dxil_signature_record {
 };
 
 struct dxil_psv_sem_index_table {
-   uint32_t data[80];
+   uint32_t data[128];
    uint32_t size;
 };
 

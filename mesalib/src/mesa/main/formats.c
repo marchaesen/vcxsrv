@@ -412,7 +412,7 @@ _mesa_array_format_flip_channels(mesa_array_format format)
       for (unsigned i = 0; i < 4; i++)
          assert(swizzle[i] != 2 && swizzle[i] != 3);
 
-      static const uint8_t flip_xy[6] = { 1, 0, 2, 3, 4, 5 };
+      static const uint8_t flip_xy[7] = { 1, 0, 2, 3, 4, 5, 6 };
       _mesa_array_format_set_swizzle(&format,
                                      flip_xy[swizzle[0]], flip_xy[swizzle[1]],
                                      flip_xy[swizzle[2]], flip_xy[swizzle[3]]);
@@ -420,7 +420,7 @@ _mesa_array_format_flip_channels(mesa_array_format format)
    }
 
    if (num_channels == 4) {
-      static const uint8_t flip[6] = { 3, 2, 1, 0, 4, 5 };
+      static const uint8_t flip[7] = { 3, 2, 1, 0, 4, 5, 6 };
       _mesa_array_format_set_swizzle(&format,
                                      flip[swizzle[0]], flip[swizzle[1]],
                                      flip[swizzle[2]], flip[swizzle[3]]);
@@ -1020,7 +1020,9 @@ _mesa_uncompressed_format_to_type_and_comps(mesa_format format,
    case MESA_FORMAT_YCBCR:
    case MESA_FORMAT_YCBCR_REV:
    case MESA_FORMAT_RG_RB_UNORM8:
+   case MESA_FORMAT_RB_RG_UNORM8:
    case MESA_FORMAT_GR_BR_UNORM8:
+   case MESA_FORMAT_BR_GR_UNORM8:
       *datatype = GL_UNSIGNED_SHORT;
       *comps = 2;
       return;

@@ -12,8 +12,31 @@
 
 /*---------------------------- macros ---------------------------*/
 
-#ifndef TIME_UTC
+/* Refer to https://htmlpreview.github.io/?https://icube-forge.unistra.fr/icps/c23-library/-/raw/main/README.html#time_monotonic-time_active-time_thread_active */
+#if defined(TIME_UTC) && \
+   defined(TIME_MONOTONIC) && \
+   defined(TIME_ACTIVE) && \
+   defined(TIME_THREAD_ACTIVE) && \
+   defined(TIME_MONOTONIC_RAW)
+/* all needed time base is implemented */
+#else
+#define _TIMESPEC_GET_NEED_IMPL
+#endif
+
+#ifdef _TIMESPEC_GET_NEED_IMPL
+#undef TIME_UTC
+#undef TIME_MONOTONIC
+#undef TIME_ACTIVE
+#undef TIME_THREAD_ACTIVE
+#undef TIME_MONOTONIC_RAW
+/* c11 */
 #define TIME_UTC 1
+/* c23 */
+#define TIME_MONOTONIC 2
+#define TIME_ACTIVE 3
+#define TIME_THREAD_ACTIVE 4
+#define TIME_MONOTONIC_RAW 5
+#define timespec_get c23_timespec_get
 #endif
 
 #ifdef __cplusplus
@@ -37,22 +60,22 @@ struct timespec
 
 /*-------------------------- functions --------------------------*/
 
-#if !defined(HAVE_TIMESPEC_GET)
-#define _HAVE_TIMESPEC_GET_NEED_DECL
+#if defined(_TIMESPEC_GET_NEED_IMPL)
+#define _TIMESPEC_GET_NEED_DECL
 #elif defined(__APPLE__) && defined(__cplusplus) && (__cplusplus < 201703L)
 /* On macOS, the guard for declaration of timespec_get is by
  * (defined(__cplusplus) && __cplusplus >= 201703L),
  * fix the declaration for C++14 and lower here
  */
-#define _HAVE_TIMESPEC_GET_NEED_DECL
+#define _TIMESPEC_GET_NEED_DECL
 #endif
 
-#ifdef _HAVE_TIMESPEC_GET_NEED_DECL
+#ifdef _TIMESPEC_GET_NEED_DECL
 /*-------------------- 7.25.7 Time functions --------------------*/
 // 7.25.6.1
 int
 timespec_get(struct timespec *ts, int base);
-#undef _HAVE_TIMESPEC_GET_NEED_DECL
+#undef _TIMESPEC_GET_NEED_DECL
 #endif
 
 #ifdef __cplusplus

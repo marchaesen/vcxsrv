@@ -46,6 +46,7 @@
 
 #include <stdlib.h>
 #include <string.h>
+#define _WINDOWS_
 #include "glapi/glapi_priv.h"
 
 
@@ -116,6 +117,7 @@ NoOpUnused(void)
 #define DISPATCH_TABLE_NAME __glapi_noop_table
 #define UNUSED_TABLE_NAME __unused_noop_functions
 
+#undef _WINDOWS_
 #include "glapitemp.h"
 
 

@@ -42,20 +42,20 @@
 /**
  * Is (a OP b) == (b OP a)?
  */
-boolean
+bool
 lp_build_blend_func_commutative(enum pipe_blend_func func)
 {
    switch (func) {
    case PIPE_BLEND_ADD:
    case PIPE_BLEND_MIN:
    case PIPE_BLEND_MAX:
-      return TRUE;
+      return true;
    case PIPE_BLEND_SUBTRACT:
    case PIPE_BLEND_REVERSE_SUBTRACT:
-      return FALSE;
+      return false;
    default:
       assert(0);
-      return TRUE;
+      return true;
    }
 }
 
@@ -63,24 +63,24 @@ lp_build_blend_func_commutative(enum pipe_blend_func func)
 /**
  * Whether the blending functions are the reverse of each other.
  */
-boolean
+bool
 lp_build_blend_func_reverse(enum pipe_blend_func rgb_func,
                             enum pipe_blend_func alpha_func)
 {
    if (rgb_func == alpha_func)
-      return FALSE;
+      return false;
    if (rgb_func == PIPE_BLEND_SUBTRACT && alpha_func == PIPE_BLEND_REVERSE_SUBTRACT)
-      return TRUE;
+      return true;
    if (rgb_func == PIPE_BLEND_REVERSE_SUBTRACT && alpha_func == PIPE_BLEND_SUBTRACT)
-      return TRUE;
-   return FALSE;
+      return true;
+   return false;
 }
 
 
 /**
  * Whether the blending factors are complementary of each other.
  */
-static inline boolean
+static inline bool
 lp_build_blend_factor_complementary(unsigned src_factor, unsigned dst_factor)
 {
    STATIC_ASSERT((PIPE_BLENDFACTOR_ZERO ^ 0x10) == PIPE_BLENDFACTOR_ONE);
@@ -93,7 +93,7 @@ lp_build_blend_factor_complementary(unsigned src_factor, unsigned dst_factor)
 /**
  * Whether this is a inverse blend factor
  */
-static inline boolean
+static inline bool
 is_inverse_factor(unsigned factor)
 {
    STATIC_ASSERT(PIPE_BLENDFACTOR_ZERO == 0x11);
@@ -109,7 +109,7 @@ static void
 lp_build_mul_norm_expand(struct lp_build_context *bld,
                          LLVMValueRef a, LLVMValueRef b,
                          LLVMValueRef *resl, LLVMValueRef *resh,
-                         boolean signedness_differs)
+                         bool signedness_differs)
 {
    const struct lp_type type = bld->type;
    struct lp_type wide_type = lp_wider_type(type);
@@ -197,8 +197,8 @@ lp_build_blend(struct lp_build_context *bld,
                LLVMValueRef dst,
                LLVMValueRef src_factor,
                LLVMValueRef dst_factor,
-               boolean not_alpha_dependent,
-               boolean optimise_only)
+               bool not_alpha_dependent,
+               bool optimise_only)
 {
    LLVMValueRef result, src_term, dst_term;
 
@@ -296,9 +296,9 @@ lp_build_blend(struct lp_build_context *bld,
       }
 
       lp_build_mul_norm_expand(bld, src, src_factor, &src_terml, &src_termh,
-                               is_inverse_factor(factor_src) ? TRUE : FALSE);
+                               is_inverse_factor(factor_src) ? true : false);
       lp_build_mul_norm_expand(bld, dst, dst_factor, &dst_terml, &dst_termh,
-                               is_inverse_factor(factor_dst) ? TRUE : FALSE);
+                               is_inverse_factor(factor_dst) ? true : false);
       resl = lp_build_blend_func(&bldw, func, src_terml, dst_terml);
       resh = lp_build_blend_func(&bldw, func, src_termh, dst_termh);
 
@@ -321,7 +321,7 @@ lp_build_alpha_to_coverage(struct gallivm_state *gallivm,
                            struct lp_type type,
                            struct lp_build_mask_context *mask,
                            LLVMValueRef alpha,
-                           boolean do_branch)
+                           bool do_branch)
 {
    struct lp_build_context bld;
    LLVMValueRef test;

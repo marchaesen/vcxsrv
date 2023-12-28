@@ -45,10 +45,6 @@
 
 #include <dispatch/dispatch.h>
 
-#ifdef DEBUG_XP_LOCK_WINDOW
-#include <execinfo.h>
-#endif
-
 #define DEFINE_ATOM_HELPER(func, atom_name)                      \
     static Atom func(void) {                                       \
         static int generation;                                      \
@@ -353,15 +349,8 @@ xprStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow)
     xp_error err;
 
 #ifdef DEBUG_XP_LOCK_WINDOW
-    void* callstack[128];
-    int i, frames = backtrace(callstack, 128);
-    char** strs = backtrace_symbols(callstack, frames);
-
     ErrorF("=== LOCK %d ===\n", (int)x_cvt_vptr_to_uint(wid));
-    for (i = 0; i < frames; ++i) {
-        ErrorF("    %s\n", strs[i]);
-    }
-    free(strs);
+    xorg_backtrace();
 #endif
 
     err = xp_lock_window(x_cvt_vptr_to_uint(
@@ -370,6 +359,10 @@ xprStartDrawing(RootlessFrameID wid, char **pixelData, int *bytesPerRow)
         FatalError("Could not lock window %d for drawing (%d).",
                    (int)x_cvt_vptr_to_uint(
                        wid), (int)err);
+
+#ifdef DEBUG_XP_LOCK_WINDOW
+    ErrorF("  bits: %p\n", *data);
+#endif
 
     *pixelData = data[0];
     *bytesPerRow = rowbytes[0];
@@ -384,15 +377,8 @@ xprStopDrawing(RootlessFrameID wid, Bool flush)
     xp_error err;
 
 #ifdef DEBUG_XP_LOCK_WINDOW
-    void* callstack[128];
-    int i, frames = backtrace(callstack, 128);
-    char** strs = backtrace_symbols(callstack, frames);
-
     ErrorF("=== UNLOCK %d ===\n", (int)x_cvt_vptr_to_uint(wid));
-    for (i = 0; i < frames; ++i) {
-        ErrorF("    %s\n", strs[i]);
-    }
-    free(strs);
+    xorg_backtrace();
 #endif
 
     err = xp_unlock_window(x_cvt_vptr_to_uint(wid), flush);

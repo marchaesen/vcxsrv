@@ -27,7 +27,7 @@
 #define TEXCOMPRESS_CPAL_H
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 extern void
 _mesa_cpal_compressed_teximage2d(GLenum target, GLint level,
 				 GLenum internalFormat,

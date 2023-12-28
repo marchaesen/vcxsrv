@@ -39,7 +39,6 @@
 
 struct access_state {
    nir_shader *shader;
-   bool infer_non_readable;
 
    struct set *vars_written;
    struct set *vars_read;
@@ -50,7 +49,7 @@ struct access_state {
 };
 
 static void
-gather_buffer_access(struct access_state *state, nir_ssa_def *def, bool read, bool write)
+gather_buffer_access(struct access_state *state, nir_def *def, bool read, bool write)
 {
    state->buffers_read |= read;
    state->buffers_written |= write;
@@ -84,19 +83,8 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
    case nir_intrinsic_image_deref_load:
    case nir_intrinsic_image_deref_store:
    case nir_intrinsic_image_deref_sparse_load:
-   case nir_intrinsic_image_deref_atomic_add:
-   case nir_intrinsic_image_deref_atomic_imin:
-   case nir_intrinsic_image_deref_atomic_umin:
-   case nir_intrinsic_image_deref_atomic_imax:
-   case nir_intrinsic_image_deref_atomic_umax:
-   case nir_intrinsic_image_deref_atomic_and:
-   case nir_intrinsic_image_deref_atomic_or:
-   case nir_intrinsic_image_deref_atomic_xor:
-   case nir_intrinsic_image_deref_atomic_exchange:
-   case nir_intrinsic_image_deref_atomic_comp_swap:
-   case nir_intrinsic_image_deref_atomic_fadd:
-   case nir_intrinsic_image_deref_atomic_fmin:
-   case nir_intrinsic_image_deref_atomic_fmax:
+   case nir_intrinsic_image_deref_atomic:
+   case nir_intrinsic_image_deref_atomic_swap:
    case nir_intrinsic_image_deref_samples_identical:
       var = nir_intrinsic_get_var(instr, 0);
       read = instr->intrinsic != nir_intrinsic_image_deref_store;
@@ -117,29 +105,20 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
       }
 
       if ((var->data.mode == nir_var_uniform ||
-           var->data.mode == nir_var_image) && read)
+           var->data.mode == nir_var_image) &&
+          read)
          _mesa_set_add(state->vars_read, var);
       if ((var->data.mode == nir_var_uniform ||
-           var->data.mode == nir_var_image) && write)
+           var->data.mode == nir_var_image) &&
+          write)
          _mesa_set_add(state->vars_written, var);
       break;
 
    case nir_intrinsic_bindless_image_load:
    case nir_intrinsic_bindless_image_store:
    case nir_intrinsic_bindless_image_sparse_load:
-   case nir_intrinsic_bindless_image_atomic_add:
-   case nir_intrinsic_bindless_image_atomic_imin:
-   case nir_intrinsic_bindless_image_atomic_umin:
-   case nir_intrinsic_bindless_image_atomic_imax:
-   case nir_intrinsic_bindless_image_atomic_umax:
-   case nir_intrinsic_bindless_image_atomic_and:
-   case nir_intrinsic_bindless_image_atomic_or:
-   case nir_intrinsic_bindless_image_atomic_xor:
-   case nir_intrinsic_bindless_image_atomic_exchange:
-   case nir_intrinsic_bindless_image_atomic_comp_swap:
-   case nir_intrinsic_bindless_image_atomic_fadd:
-   case nir_intrinsic_bindless_image_atomic_fmin:
-   case nir_intrinsic_bindless_image_atomic_fmax:
+   case nir_intrinsic_bindless_image_atomic:
+   case nir_intrinsic_bindless_image_atomic_swap:
    case nir_intrinsic_bindless_image_samples_identical:
       read = instr->intrinsic != nir_intrinsic_bindless_image_store;
       write = instr->intrinsic != nir_intrinsic_bindless_image_load &&
@@ -156,20 +135,8 @@ gather_intrinsic(struct access_state *state, nir_intrinsic_instr *instr)
 
    case nir_intrinsic_load_deref:
    case nir_intrinsic_store_deref:
-   case nir_intrinsic_deref_atomic_add:
-   case nir_intrinsic_deref_atomic_imin:
-   case nir_intrinsic_deref_atomic_umin:
-   case nir_intrinsic_deref_atomic_imax:
-   case nir_intrinsic_deref_atomic_umax:
-   case nir_intrinsic_deref_atomic_and:
-   case nir_intrinsic_deref_atomic_or:
-   case nir_intrinsic_deref_atomic_xor:
-   case nir_intrinsic_deref_atomic_exchange:
-   case nir_intrinsic_deref_atomic_comp_swap:
-   case nir_intrinsic_deref_atomic_fadd:
-   case nir_intrinsic_deref_atomic_fmin:
-   case nir_intrinsic_deref_atomic_fmax:
-   case nir_intrinsic_deref_atomic_fcomp_swap: {
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_deref_atomic_swap: {
       nir_deref_instr *deref = nir_src_as_deref(instr->src[0]);
       if (!nir_deref_mode_may_be(deref, nir_var_mem_ssbo | nir_var_mem_global))
          break;
@@ -210,7 +177,7 @@ process_variable(struct access_state *state, nir_variable *var)
          access |= ACCESS_NON_WRITEABLE;
    }
 
-   if (state->infer_non_readable && !(access & ACCESS_NON_READABLE)) {
+   if (!(access & ACCESS_NON_READABLE)) {
       if (is_buffer ? !state->buffers_read : !state->images_read)
          access |= ACCESS_NON_READABLE;
       else if ((access & ACCESS_RESTRICT) && !_mesa_set_search(state->vars_read, var))
@@ -250,7 +217,7 @@ update_access(struct access_state *state, nir_intrinsic_instr *instr, bool is_bu
 
    if (is_memory_readonly)
       access |= ACCESS_NON_WRITEABLE;
-   if (state->infer_non_readable && is_memory_writeonly)
+   if (is_memory_writeonly)
       access |= ACCESS_NON_READABLE;
    if (!(access & ACCESS_VOLATILE) && is_memory_readonly)
       access |= ACCESS_CAN_REORDER;
@@ -313,11 +280,10 @@ opt_access_impl(struct access_state *state,
    if (progress) {
       nir_metadata_preserve(impl,
                             nir_metadata_block_index |
-                            nir_metadata_dominance |
-                            nir_metadata_live_ssa_defs |
-                            nir_metadata_loop_analysis);
+                               nir_metadata_dominance |
+                               nir_metadata_live_defs |
+                               nir_metadata_loop_analysis);
    }
-
 
    return progress;
 }
@@ -327,7 +293,6 @@ nir_opt_access(nir_shader *shader, const nir_opt_access_options *options)
 {
    struct access_state state = {
       .shader = shader,
-      .infer_non_readable = options->infer_non_readable,
       .vars_written = _mesa_pointer_set_create(NULL),
       .vars_read = _mesa_pointer_set_create(NULL),
    };
@@ -335,13 +300,11 @@ nir_opt_access(nir_shader *shader, const nir_opt_access_options *options)
    bool var_progress = false;
    bool progress = false;
 
-   nir_foreach_function(func, shader) {
-      if (func->impl) {
-         nir_foreach_block(block, func->impl) {
-            nir_foreach_instr(instr, block) {
-               if (instr->type == nir_instr_type_intrinsic)
-                  gather_intrinsic(&state, nir_instr_as_intrinsic(instr));
-            }
+   nir_foreach_function_impl(impl, shader) {
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr(instr, block) {
+            if (instr->type == nir_instr_type_intrinsic)
+               gather_intrinsic(&state, nir_instr_as_intrinsic(instr));
          }
       }
    }
@@ -354,24 +317,19 @@ nir_opt_access(nir_shader *shader, const nir_opt_access_options *options)
       state.images_read |= state.buffers_read;
    }
 
-   nir_foreach_variable_with_modes(var, shader, nir_var_uniform |
-                                                nir_var_mem_ubo |
-                                                nir_var_mem_ssbo |
-                                                nir_var_image)
+   nir_foreach_variable_with_modes(var, shader, nir_var_uniform | nir_var_mem_ubo | nir_var_mem_ssbo | nir_var_image)
       var_progress |= process_variable(&state, var);
 
-   nir_foreach_function(func, shader) {
-      if (func->impl) {
-         progress |= opt_access_impl(&state, func->impl);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= opt_access_impl(&state, impl);
 
-         /* If we make a change to the uniforms, update all the impls. */
-         if (var_progress) {
-            nir_metadata_preserve(func->impl,
-                                  nir_metadata_block_index |
+      /* If we make a change to the uniforms, update all the impls. */
+      if (var_progress) {
+         nir_metadata_preserve(impl,
+                               nir_metadata_block_index |
                                   nir_metadata_dominance |
-                                  nir_metadata_live_ssa_defs |
+                                  nir_metadata_live_defs |
                                   nir_metadata_loop_analysis);
-         }
       }
    }
 

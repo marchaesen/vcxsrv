@@ -25,6 +25,8 @@ SOFTWARE.
 
 <csbgen name="ROGUE" prefix="CDMCTRL">
 
+  <define name="GUARD_SIZE_DEFAULT" value="64"/>
+
   <enum name="BLOCK_TYPE">
     <value name="COMPUTE_KERNEL"   value="0"/>
     <value name="STREAM_LINK"      value="1"/>

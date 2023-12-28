@@ -29,12 +29,12 @@
 #include "genxml/gen_macros.h"
 #include "panvk_private.h"
 
-#include "util/debug.h"
+#include "drm-uapi/drm_fourcc.h"
 #include "util/u_atomic.h"
+#include "util/u_debug.h"
 #include "vk_format.h"
 #include "vk_object.h"
 #include "vk_util.h"
-#include "drm-uapi/drm_fourcc.h"
 
 static enum mali_texture_dimension
 panvk_view_type_to_mali_tex_dim(VkImageViewType type)
@@ -57,8 +57,7 @@ panvk_view_type_to_mali_tex_dim(VkImageViewType type)
 }
 
 static void
-panvk_convert_swizzle(const VkComponentMapping *in,
-                      unsigned char *out)
+panvk_convert_swizzle(const VkComponentMapping *in, unsigned char *out)
 {
    const VkComponentSwizzle *comp = &in->r;
    for (unsigned i = 0; i < 4; i++) {
@@ -97,22 +96,20 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
    VK_FROM_HANDLE(panvk_image, image, pCreateInfo->image);
    struct panvk_image_view *view;
 
-   view = vk_image_view_create(&device->vk, false, pCreateInfo,
-                               pAllocator, sizeof(*view));
+   view = vk_image_view_create(&device->vk, false, pCreateInfo, pAllocator,
+                               sizeof(*view));
    if (view == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   view->pview = (struct pan_image_view) {
-      .image = &image->pimage,
+   view->pview = (struct pan_image_view){
+      .planes[0] = &image->pimage,
       .format = vk_format_to_pipe_format(view->vk.view_format),
       .dim = panvk_view_type_to_mali_tex_dim(view->vk.view_type),
       .nr_samples = image->pimage.layout.nr_samples,
       .first_level = view->vk.base_mip_level,
-      .last_level = view->vk.base_mip_level +
-                    view->vk.level_count - 1,
+      .last_level = view->vk.base_mip_level + view->vk.level_count - 1,
       .first_layer = view->vk.base_array_layer,
-      .last_layer = view->vk.base_array_layer +
-                    view->vk.layer_count - 1,
+      .last_layer = view->vk.base_array_layer + view->vk.layer_count - 1,
    };
    panvk_convert_swizzle(&view->vk.swizzle, view->pview.swizzle);
 
@@ -127,24 +124,26 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
       view->bo = panfrost_bo_create(pdev, bo_size, 0, "Texture descriptor");
 
       STATIC_ASSERT(sizeof(view->descs.tex) >= pan_size(TEXTURE));
-      GENX(panfrost_new_texture)(pdev, &view->pview, &view->descs.tex, &view->bo->ptr);
+      GENX(panfrost_new_texture)
+      (pdev, &view->pview, &view->descs.tex, &view->bo->ptr);
    }
 
    if (view->vk.usage & VK_IMAGE_USAGE_STORAGE_BIT) {
       uint8_t *attrib_buf = (uint8_t *)view->descs.img_attrib_buf;
       bool is_3d = image->pimage.layout.dim == MALI_TEXTURE_DIMENSION_3D;
       unsigned offset = image->pimage.data.offset;
-      offset += panfrost_texture_offset(&image->pimage.layout,
-                                        view->pview.first_level,
-                                        is_3d ? 0 : view->pview.first_layer,
-                                        is_3d ? view->pview.first_layer : 0);
+      offset +=
+         panfrost_texture_offset(&image->pimage.layout, view->pview.first_level,
+                                 is_3d ? 0 : view->pview.first_layer,
+                                 is_3d ? view->pview.first_layer : 0);
 
       pan_pack(attrib_buf, ATTRIBUTE_BUFFER, cfg) {
-         cfg.type = image->pimage.layout.modifier == DRM_FORMAT_MOD_LINEAR ?
-                    MALI_ATTRIBUTE_TYPE_3D_LINEAR : MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED;
+         cfg.type = image->pimage.layout.modifier == DRM_FORMAT_MOD_LINEAR
+                       ? MALI_ATTRIBUTE_TYPE_3D_LINEAR
+                       : MALI_ATTRIBUTE_TYPE_3D_INTERLEAVED;
          cfg.pointer = image->pimage.data.bo->ptr.gpu + offset;
          cfg.stride = util_format_get_blocksize(view->pview.format);
-         cfg.size = image->pimage.data.bo->size - offset;
+         cfg.size = panfrost_bo_size(image->pimage.data.bo) - offset;
       }
 
       attrib_buf += pan_size(ATTRIBUTE_BUFFER);
@@ -154,9 +153,9 @@ panvk_per_arch(CreateImageView)(VkDevice _device,
          cfg.s_dimension = u_minify(image->pimage.layout.width, level);
          cfg.t_dimension = u_minify(image->pimage.layout.height, level);
          cfg.r_dimension =
-            view->pview.dim == MALI_TEXTURE_DIMENSION_3D ?
-            u_minify(image->pimage.layout.depth, level) :
-            (view->pview.last_layer - view->pview.first_layer + 1);
+            view->pview.dim == MALI_TEXTURE_DIMENSION_3D
+               ? u_minify(image->pimage.layout.depth, level)
+               : (view->pview.last_layer - view->pview.first_layer + 1);
          cfg.row_stride = image->pimage.layout.slices[level].row_stride;
          if (cfg.r_dimension > 1) {
             cfg.slice_stride =
@@ -178,9 +177,8 @@ panvk_per_arch(CreateBufferView)(VkDevice _device,
    VK_FROM_HANDLE(panvk_device, device, _device);
    VK_FROM_HANDLE(panvk_buffer, buffer, pCreateInfo->buffer);
 
-   struct panvk_buffer_view *view =
-      vk_object_zalloc(&device->vk, pAllocator, sizeof(*view),
-                       VK_OBJECT_TYPE_BUFFER_VIEW);
+   struct panvk_buffer_view *view = vk_object_zalloc(
+      &device->vk, pAllocator, sizeof(*view), VK_OBJECT_TYPE_BUFFER_VIEW);
 
    if (!view)
       return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -189,8 +187,8 @@ panvk_per_arch(CreateBufferView)(VkDevice _device,
 
    struct panfrost_device *pdev = &device->physical_device->pdev;
    mali_ptr address = panvk_buffer_gpu_ptr(buffer, pCreateInfo->offset);
-   unsigned size = panvk_buffer_range(buffer, pCreateInfo->offset,
-                                      pCreateInfo->range);
+   unsigned size =
+      panvk_buffer_range(buffer, pCreateInfo->offset, pCreateInfo->range);
    unsigned blksz = util_format_get_blocksize(view->fmt);
    view->elems = size / blksz;
 
@@ -214,7 +212,7 @@ panvk_per_arch(CreateBufferView)(VkDevice _device,
          cfg.levels = 1;
          cfg.array_size = 1;
          cfg.surfaces = view->bo->ptr.gpu;
-         cfg.maximum_lod = cfg.minimum_lod = FIXED_16(0, false);
+         cfg.maximum_lod = cfg.minimum_lod = 0;
       }
    }
 

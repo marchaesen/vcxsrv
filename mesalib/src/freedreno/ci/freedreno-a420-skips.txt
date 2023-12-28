@@ -29,7 +29,6 @@ spec@!opengl 1.1@draw-sync
 spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
 spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9
 spec@glsl-1.30@execution@texelfetch fs sampler2darray 1x129x9-98x129x9
-spec@!opengl 2.0@tex3d-npot
 
 # If we let these tests run in parallel with other piglit tests, we end up
 # intermittent GL_OUT_OF_MEMORY errors in innocent tests.

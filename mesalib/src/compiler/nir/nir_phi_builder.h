@@ -89,7 +89,7 @@ nir_phi_builder_add_value(struct nir_phi_builder *pb, unsigned num_components,
  */
 void
 nir_phi_builder_value_set_block_def(struct nir_phi_builder_value *val,
-                                    nir_block *block, nir_ssa_def *def);
+                                    nir_block *block, nir_def *def);
 
 /* Get the definition for the given value in the given block.
  *
@@ -97,13 +97,13 @@ nir_phi_builder_value_set_block_def(struct nir_phi_builder_value *val,
  * block.  If no definition is immediately available, it will crawl up the
  * dominance tree and insert phi nodes as needed until it finds one.  In the
  * case that no suitable definition is found, it will return the result of a
- * nir_ssa_undef_instr with the correct number of components.
+ * nir_undef_instr with the correct number of components.
  *
  * Because this function only uses the latest available information for any
  * given block, you must have already finished registering definitions for any
  * blocks that dominate the current block in order to get the correct result.
  */
-nir_ssa_def *
+nir_def *
 nir_phi_builder_value_get_block_def(struct nir_phi_builder_value *val,
                                     nir_block *block);
 

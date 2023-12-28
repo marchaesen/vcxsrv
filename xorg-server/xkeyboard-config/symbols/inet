@@ -322,6 +322,9 @@ xkb_symbols "evdev" {
    key <I592>   {       [ ISO_Next_Group                 ]      }; // KEY_KBD_LAYOUT_NEXT
    key <I593>   {       [ XF86EmojiPicker                ]      }; // KEY_EMOJI_PICKER
    key <I594>   {       [ XF86Dictate                    ]      }; // KEY_DICTATE
+   key <I595>   {       [ XF86CameraAccessEnable         ]      }; // KEY_CAMERA_ACCESS_ENABLE
+   key <I596>   {       [ XF86CameraAccessDisable        ]      }; // KEY_CAMERA_ACCESS_DISABLE
+   key <I597>   {       [ XF86CameraAccessToggle         ]      }; // KEY_CAMERA_ACCESS_TOGGLE
    key <I600>   {       [ XF86BrightnessMin              ]      }; // KEY_BRIGHTNESS_MIN
    key <I601>   {       [ XF86BrightnessMax              ]      }; // KEY_BRIGHTNESS_MAX
    key <I616>   {       [ XF86KbdInputAssistPrev         ]      }; // KEY_KBDINPUTASSIST_PREV
@@ -351,6 +354,21 @@ xkb_symbols "evdev" {
    key <I640>   {       [ XF86OnScreenKeyboard           ]      }; // KEY_ONSCREEN_KEYBOARD
    key <I641>   {       [ XF86PrivacyScreenToggle        ]      }; // KEY_PRIVACY_SCREEN_TOGGLE
    key <I642>   {       [ XF86SelectiveScreenshot        ]      }; // KEY_SELECTIVE_SCREENSHOT
+   key <I643>   {       [ XF86NextElement                ]      }; // KEY_NEXT_ELEMENT
+   key <I644>   {       [ XF86PreviousElement            ]      }; // KEY_PREVIOUS_ELEMENT
+   key <I645>   {       [ XF86AutopilotEngageToggle      ]      }; // KEY_AUTOPILOT_ENGAGE_TOGGLE
+   key <I646>   {       [ XF86MarkWaypoint               ]      }; // KEY_MARK_WAYPOINT
+   key <I647>   {       [ XF86Sos                        ]      }; // KEY_SOS
+   key <I648>   {       [ XF86NavChart                   ]      }; // KEY_NAV_CHART
+   key <I649>   {       [ XF86FishingChart               ]      }; // KEY_FISHING_CHART
+   key <I650>   {       [ XF86SingleRangeRadar           ]      }; // KEY_SINGLE_RANGE_RADAR
+   key <I651>   {       [ XF86DualRangeRadar             ]      }; // KEY_DUAL_RANGE_RADAR
+   key <I652>   {       [ XF86RadarOverlay               ]      }; // KEY_RADAR_OVERLAY
+   key <I653>   {       [ XF86TraditionalSonar           ]      }; // KEY_TRADITIONAL_SONAR
+   key <I654>   {       [ XF86ClearvuSonar               ]      }; // KEY_CLEARVU_SONAR
+   key <I655>   {       [ XF86SidevuSonar                ]      }; // KEY_SIDEVU_SONAR
+   key <I656>   {       [ XF86NavInfo                    ]      }; // KEY_NAV_INFO
+   key <I657>   {       [ XF86BrightnessAdjust           ]      }; // KEY_BRIGHTNESS_MENU
    key <I664>   {       [ XF86Macro1                     ]      }; // KEY_MACRO1
    key <I665>   {       [ XF86Macro2                     ]      }; // KEY_MACRO2
    key <I666>   {       [ XF86Macro3                     ]      }; // KEY_MACRO3

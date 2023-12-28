@@ -26,6 +26,7 @@
 
 #include "util/u_dynarray.h"
 #include "util/hash_table.h"
+#include "pipe/p_state.h"
 #include <stdint.h>
 
 #include "d3d12_common.h"
@@ -34,13 +35,23 @@ struct d3d12_bo;
 struct d3d12_descriptor_heap;
 struct d3d12_fence;
 
+
+struct d3d12_sampler_desc_table_key
+{
+   D3D12_CPU_DESCRIPTOR_HANDLE descs[PIPE_MAX_SHADER_SAMPLER_VIEWS];
+   unsigned count;
+};
+
 struct d3d12_batch {
    struct d3d12_fence *fence;
 
    struct hash_table *bos;
+   struct util_dynarray local_bos;
+   struct hash_table *sampler_tables;
    struct set *sampler_views;
    struct set *surfaces;
    struct set *objects;
+   struct set *queries;
 
    struct util_dynarray zombie_samplers;
 
@@ -51,6 +62,7 @@ struct d3d12_batch {
    bool pending_memory_barrier;
 
    uint64_t submit_id;
+   uint32_t ctx_id, ctx_index;
 };
 
 bool
@@ -89,5 +101,9 @@ d3d12_batch_reference_surface_texture(struct d3d12_batch *batch,
 void
 d3d12_batch_reference_object(struct d3d12_batch *batch,
                              ID3D12Object *object);
+
+void
+d3d12_batch_reference_query(struct d3d12_batch *batch,
+                            struct d3d12_query *query);
 
 #endif

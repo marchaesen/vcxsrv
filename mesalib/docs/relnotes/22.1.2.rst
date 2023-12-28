@@ -100,7 +100,7 @@ Ian Romanick (1):
 
 - anv: Remove FS executables when applying the null FS optimization
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - nir/builder: Add a nir_trim_vector helper
 - compiler/types: Don't place members in the previous substruct's end padding

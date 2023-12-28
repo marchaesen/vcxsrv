@@ -32,8 +32,8 @@
 extern "C" {
 #endif
 
-static inline nir_ssa_def *
-nir_round_float_to_int(nir_builder *b, nir_ssa_def *src,
+static inline nir_def *
+nir_round_float_to_int(nir_builder *b, nir_def *src,
                        nir_rounding_mode round)
 {
    switch (round) {
@@ -53,8 +53,8 @@ nir_round_float_to_int(nir_builder *b, nir_ssa_def *src,
    unreachable("unexpected rounding mode");
 }
 
-static inline nir_ssa_def *
-nir_round_float_to_float(nir_builder *b, nir_ssa_def *src,
+static inline nir_def *
+nir_round_float_to_float(nir_builder *b, nir_def *src,
                          unsigned dest_bit_size,
                          nir_rounding_mode round)
 {
@@ -72,32 +72,32 @@ nir_round_float_to_float(nir_builder *b, nir_ssa_def *src,
    switch (round) {
    case nir_rounding_mode_ru: {
       /* If lower-precision conversion results in a lower value, push it
-      * up one ULP. */
-      nir_ssa_def *lower_prec =
+       * up one ULP. */
+      nir_def *lower_prec =
          nir_build_alu(b, low_conv, src, NULL, NULL, NULL);
-      nir_ssa_def *roundtrip =
+      nir_def *roundtrip =
          nir_build_alu(b, high_conv, lower_prec, NULL, NULL, NULL);
-      nir_ssa_def *cmp = nir_flt(b, roundtrip, src);
-      nir_ssa_def *inf = nir_imm_floatN_t(b, INFINITY, dest_bit_size);
+      nir_def *cmp = nir_flt(b, roundtrip, src);
+      nir_def *inf = nir_imm_floatN_t(b, INFINITY, dest_bit_size);
       return nir_bcsel(b, cmp, nir_nextafter(b, lower_prec, inf), lower_prec);
    }
    case nir_rounding_mode_rd: {
       /* If lower-precision conversion results in a higher value, push it
-      * down one ULP. */
-      nir_ssa_def *lower_prec =
+       * down one ULP. */
+      nir_def *lower_prec =
          nir_build_alu(b, low_conv, src, NULL, NULL, NULL);
-      nir_ssa_def *roundtrip =
+      nir_def *roundtrip =
          nir_build_alu(b, high_conv, lower_prec, NULL, NULL, NULL);
-      nir_ssa_def *cmp = nir_flt(b, src, roundtrip);
-      nir_ssa_def *neg_inf = nir_imm_floatN_t(b, -INFINITY, dest_bit_size);
+      nir_def *cmp = nir_flt(b, src, roundtrip);
+      nir_def *neg_inf = nir_imm_floatN_t(b, -INFINITY, dest_bit_size);
       return nir_bcsel(b, cmp, nir_nextafter(b, lower_prec, neg_inf), lower_prec);
    }
    case nir_rounding_mode_rtz:
-      return nir_bcsel(b, nir_flt(b, src, nir_imm_zero(b, 1, src->bit_size)),
-                          nir_round_float_to_float(b, src, dest_bit_size,
-                                                   nir_rounding_mode_ru),
-                          nir_round_float_to_float(b, src, dest_bit_size,
-                                                   nir_rounding_mode_rd));
+      return nir_bcsel(b, nir_flt_imm(b, src, 1),
+                       nir_round_float_to_float(b, src, dest_bit_size,
+                                                nir_rounding_mode_ru),
+                       nir_round_float_to_float(b, src, dest_bit_size,
+                                                nir_rounding_mode_rd));
    case nir_rounding_mode_rtne:
    case nir_rounding_mode_undef:
       break;
@@ -105,8 +105,8 @@ nir_round_float_to_float(nir_builder *b, nir_ssa_def *src,
    unreachable("unexpected rounding mode");
 }
 
-static inline nir_ssa_def *
-nir_round_int_to_float(nir_builder *b, nir_ssa_def *src,
+static inline nir_def *
+nir_round_int_to_float(nir_builder *b, nir_def *src,
                        nir_alu_type src_type,
                        unsigned dest_bit_size,
                        nir_rounding_mode round)
@@ -125,24 +125,25 @@ nir_round_int_to_float(nir_builder *b, nir_ssa_def *src,
    case 64:
       mantissa_bits = 52;
       break;
-   default: unreachable("Unsupported bit size");
+   default:
+      unreachable("Unsupported bit size");
    }
 
    if (src->bit_size < mantissa_bits)
       return src;
 
    if (src_type == nir_type_int) {
-      nir_ssa_def *sign =
-         nir_i2b1(b, nir_ishr(b, src, nir_imm_int(b, src->bit_size - 1)));
-      nir_ssa_def *abs = nir_iabs(b, src);
-      nir_ssa_def *positive_rounded =
+      nir_def *sign =
+         nir_i2b(b, nir_ishr(b, src, nir_imm_int(b, src->bit_size - 1)));
+      nir_def *abs = nir_iabs(b, src);
+      nir_def *positive_rounded =
          nir_round_int_to_float(b, abs, nir_type_uint, dest_bit_size, round);
-      nir_ssa_def *max_positive =
+      nir_def *max_positive =
          nir_imm_intN_t(b, (1ull << (src->bit_size - 1)) - 1, src->bit_size);
       switch (round) {
       case nir_rounding_mode_rtz:
          return nir_bcsel(b, sign, nir_ineg(b, positive_rounded),
-                                   positive_rounded);
+                          positive_rounded);
          break;
       case nir_rounding_mode_ru:
          return nir_bcsel(b, sign,
@@ -161,13 +162,13 @@ nir_round_int_to_float(nir_builder *b, nir_ssa_def *src,
       }
       unreachable("unexpected rounding mode");
    } else {
-      nir_ssa_def *mantissa_bit_size = nir_imm_int(b, mantissa_bits);
-      nir_ssa_def *msb = nir_imax(b, nir_ufind_msb(b, src), mantissa_bit_size);
-      nir_ssa_def *bits_to_lose = nir_isub(b, msb, mantissa_bit_size);
-      nir_ssa_def *one = nir_imm_intN_t(b, 1, src->bit_size);
-      nir_ssa_def *adjust = nir_ishl(b, one, bits_to_lose);
-      nir_ssa_def *mask = nir_inot(b, nir_isub(b, adjust, one));
-      nir_ssa_def *truncated = nir_iand(b, src, mask);
+      nir_def *mantissa_bit_size = nir_imm_int(b, mantissa_bits);
+      nir_def *msb = nir_imax(b, nir_ufind_msb(b, src), mantissa_bit_size);
+      nir_def *bits_to_lose = nir_isub(b, msb, mantissa_bit_size);
+      nir_def *one = nir_imm_intN_t(b, 1, src->bit_size);
+      nir_def *adjust = nir_ishl(b, one, bits_to_lose);
+      nir_def *mask = nir_inot(b, nir_isub(b, adjust, one));
+      nir_def *truncated = nir_iand(b, src, mask);
       switch (round) {
       case nir_rounding_mode_rtz:
       case nir_rounding_mode_rd:
@@ -175,7 +176,7 @@ nir_round_int_to_float(nir_builder *b, nir_ssa_def *src,
          break;
       case nir_rounding_mode_ru:
          return nir_bcsel(b, nir_ieq(b, src, truncated),
-                             src, nir_uadd_sat(b, truncated, adjust));
+                          src, nir_uadd_sat(b, truncated, adjust));
       case nir_rounding_mode_rtne:
       case nir_rounding_mode_undef:
          break;
@@ -229,7 +230,7 @@ static inline void
 nir_get_clamp_limits(nir_builder *b,
                      nir_alu_type src_type,
                      nir_alu_type dest_type,
-                     nir_ssa_def **low, nir_ssa_def **high)
+                     nir_def **low, nir_def **high)
 {
    /* Split types from bit sizes */
    nir_alu_type src_base_type = nir_alu_type_get_base_type(src_type);
@@ -266,8 +267,7 @@ nir_get_clamp_limits(nir_builder *b,
       break;
    }
    case nir_type_uint: {
-      uint64_t uhigh = dest_bit_size == 64 ?
-         ~0ull : (1ull << dest_bit_size) - 1;
+      uint64_t uhigh = dest_bit_size == 64 ? ~0ull : (1ull << dest_bit_size) - 1;
       if (src_base_type != nir_type_float) {
          *low = nir_imm_intN_t(b, 0, src_bit_size);
          if (src_base_type == nir_type_uint || src_bit_size > dest_bit_size)
@@ -314,8 +314,7 @@ nir_get_clamp_limits(nir_builder *b,
          break;
       }
       case nir_type_uint: {
-         uint64_t src_uhigh = src_bit_size == 64 ?
-            ~0ull : (1ull << src_bit_size) - 1;
+         uint64_t src_uhigh = src_bit_size == 64 ? ~0ull : (1ull << src_bit_size) - 1;
          if (src_uhigh > fhigh)
             *high = nir_imm_intN_t(b, fhigh, src_bit_size);
          break;
@@ -338,15 +337,15 @@ nir_get_clamp_limits(nir_builder *b,
 /**
  * Clamp the value into the widest representatble range of the
  * destination type with cmp + bcsel.
- * 
+ *
  * val/val_type: The variables used for bcsel
  * src/src_type: The variables used for comparison
  * dest_type: The type which determines the range used for comparison
  */
-static inline nir_ssa_def *
+static inline nir_def *
 nir_clamp_to_type_range(nir_builder *b,
-                        nir_ssa_def *val, nir_alu_type val_type,
-                        nir_ssa_def *src, nir_alu_type src_type,
+                        nir_def *val, nir_alu_type val_type,
+                        nir_def *src, nir_alu_type src_type,
                         nir_alu_type dest_type)
 {
    assert(nir_alu_type_get_type_size(src_type) == 0 ||
@@ -356,10 +355,10 @@ nir_clamp_to_type_range(nir_builder *b,
       return val;
 
    /* limits of the destination type, expressed in the source type */
-   nir_ssa_def *low = NULL, *high = NULL;
+   nir_def *low = NULL, *high = NULL;
    nir_get_clamp_limits(b, src_type, dest_type, &low, &high);
 
-   nir_ssa_def *low_cond = NULL, *high_cond = NULL;
+   nir_def *low_cond = NULL, *high_cond = NULL;
    switch (nir_alu_type_get_base_type(src_type)) {
    case nir_type_int:
       low_cond = low ? nir_ilt(b, src, low) : NULL;
@@ -377,12 +376,12 @@ nir_clamp_to_type_range(nir_builder *b,
       unreachable("clamping from unknown type");
    }
 
-   nir_ssa_def *val_low = low, *val_high = high;
+   nir_def *val_low = low, *val_high = high;
    if (val_type != src_type) {
       nir_get_clamp_limits(b, val_type, dest_type, &val_low, &val_high);
    }
 
-   nir_ssa_def *res = val;
+   nir_def *res = val;
    if (low_cond && val_low)
       res = nir_bcsel(b, low_cond, val_low, res);
    if (high_cond && val_high)
@@ -431,9 +430,9 @@ nir_simplify_conversion_rounding(nir_alu_type src_type,
    return rounding;
 }
 
-static inline nir_ssa_def *
+static inline nir_def *
 nir_convert_with_rounding(nir_builder *b,
-                          nir_ssa_def *src, nir_alu_type src_type,
+                          nir_def *src, nir_alu_type src_type,
                           nir_alu_type dest_type,
                           nir_rounding_mode round,
                           bool clamp)
@@ -450,7 +449,7 @@ nir_convert_with_rounding(nir_builder *b,
 
    /* Try to simplify the conversion if we can */
    clamp = clamp &&
-      !nir_alu_type_range_contains_type_range(dest_type, src_type);
+           !nir_alu_type_range_contains_type_range(dest_type, src_type);
    round = nir_simplify_conversion_rounding(src_type, dest_type, round);
 
    /* For float -> int/uint conversions, we might not be able to represent
@@ -458,8 +457,8 @@ nir_convert_with_rounding(nir_builder *b,
     * do the comparison in float range, but the bcsel in the destination range.
     */
    bool clamp_after_conversion = clamp &&
-      src_base_type == nir_type_float &&
-      dest_base_type != nir_type_float;
+                                 src_base_type == nir_type_float &&
+                                 dest_base_type != nir_type_float;
 
    /*
     * If we don't care about rounding and clamping, we can just use NIR's
@@ -473,19 +472,18 @@ nir_convert_with_rounding(nir_builder *b,
    if (!clamp && round == nir_rounding_mode_undef) {
       trivial_convert = true;
    } else if (!clamp && src_type == nir_type_float32 &&
-                        dest_type == nir_type_float16 &&
-                        (round == nir_rounding_mode_rtne ||
-                         round == nir_rounding_mode_rtz)) {
+              dest_type == nir_type_float16 &&
+              (round == nir_rounding_mode_rtne ||
+               round == nir_rounding_mode_rtz)) {
       trivial_convert = true;
    } else {
       trivial_convert = false;
    }
-   if (trivial_convert) {
-      nir_op op = nir_type_conversion_op(src_type, dest_type, round);
-      return nir_build_alu(b, op, src, NULL, NULL, NULL);
-   }
 
-   nir_ssa_def *dest = src;
+   if (trivial_convert)
+      return nir_type_convert(b, src, src_type, dest_type, round);
+
+   nir_def *dest = src;
 
    /* clamp the result into range */
    if (clamp && !clamp_after_conversion)

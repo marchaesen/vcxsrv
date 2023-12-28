@@ -105,7 +105,7 @@ Ivan Molodetskikh (1):
 
 -  egl: allow INVALID format for linux_dmabuf
 
-Jason Ekstrand (3):
+Faith Ekstrand (3):
 
 -  nir/copy_prop_vars: Report progress when deleting self-copies
 -  intel/fs: Don't delete coalesced MOVs if they have a cmod

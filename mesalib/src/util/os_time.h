@@ -43,7 +43,8 @@
 extern "C" {
 #endif
 
-/* must be equal to PIPE_TIMEOUT_INFINITE */
+#define ONE_SECOND_IN_NS INT64_C(1000000000)
+
 #define OS_TIMEOUT_INFINITE 0xffffffffffffffffull
 
 /*

@@ -41,6 +41,11 @@
 #include <dxguids/dxguids.h>
 #include <memory>
 
+#ifndef _GAMING_XBOX
+#include <wrl/client.h>
+using Microsoft::WRL::ComPtr;
+#endif
+
 #ifndef GENERIC_ALL
  // This is only added to winadapter.h in newer DirectX-Headers
 #define GENERIC_ALL 0x10000000L
@@ -115,7 +120,7 @@ d3d12_resource_wait_idle(struct d3d12_context *ctx,
    } else {
       d3d12_foreach_submitted_batch(ctx, batch) {
          if (d3d12_batch_has_references(batch, res->bo, want_to_write))
-            d3d12_reset_batch(ctx, batch, PIPE_TIMEOUT_INFINITE);
+            d3d12_reset_batch(ctx, batch, OS_TIMEOUT_INFINITE);
       }
    }
 }
@@ -143,7 +148,12 @@ init_buffer(struct d3d12_screen *screen,
     * element state */
    assert(templ->format == d3d12_emulated_vtx_format(templ->format));
 
-   switch (templ->usage) {
+   if ((templ->flags & PIPE_RESOURCE_FLAG_MAP_PERSISTENT) &&
+       res->base.b.usage == PIPE_USAGE_DEFAULT)
+   {
+      res->base.b.usage = PIPE_USAGE_STAGING;
+   }
+   switch (res->base.b.usage) {
    case PIPE_USAGE_DEFAULT:
    case PIPE_USAGE_IMMUTABLE:
       bufmgr = screen->cache_bufmgr;
@@ -219,8 +229,6 @@ init_texture(struct d3d12_screen *screen,
 
    case PIPE_TEXTURE_CUBE:
    case PIPE_TEXTURE_CUBE_ARRAY:
-      desc.DepthOrArraySize *= 6;
-      FALLTHROUGH;
    case PIPE_TEXTURE_2D:
    case PIPE_TEXTURE_2D_ARRAY:
    case PIPE_TEXTURE_RECT:
@@ -252,16 +260,35 @@ init_texture(struct d3d12_screen *screen,
        */
    }
 
-   if (screen->support_shader_images && templ->nr_samples <= 1) {
-      /* Ideally, we'd key off of PIPE_BIND_SHADER_IMAGE for this, but it doesn't
-       * seem to be set properly. So, all UAV-capable resources need the UAV flag.
-       */
-      D3D12_FEATURE_DATA_FORMAT_SUPPORT support = { desc.Format };
-      if (SUCCEEDED(screen->dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
-         (support.Support2 & (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) ==
-         (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) {
+   const DXGI_FORMAT *format_cast_list = NULL;
+   uint32_t num_castable_formats = 0;
+
+   if (screen->opts12.RelaxedFormatCastingSupported) {
+      /* All formats that fall into a cast set need to be castable and accessible as a shader image. */
+      format_cast_list = d3d12_get_format_cast_list(templ->format, &num_castable_formats);
+      if (format_cast_list != nullptr && !util_format_is_compressed(templ->format) &&
+          screen->support_shader_images && templ->nr_samples <= 1) {
          desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
-         desc.Format = d3d12_get_typeless_format(templ->format);
+      }
+   } else {
+      /* The VA frontend VaFourccToPipeFormat chooses _UNORM types for RGBx formats as typeless formats
+       * such as DXGI_R8G8B8A8_TYPELESS are not supported as Video Processor input/output as specified in:
+       * https://learn.microsoft.com/en-us/windows/win32/direct3ddxgi/hardware-support-for-direct3d-12-1-formats
+       * PIPE_BIND_CUSTOM is used by the video frontend to hint this resource will be used in video and the
+       * original format must be not converted to _TYPELESS
+      */
+      if (((templ->bind & PIPE_BIND_CUSTOM) == 0) &&
+          (screen->support_shader_images && templ->nr_samples <= 1)) {
+         /* Ideally, we'd key off of PIPE_BIND_SHADER_IMAGE for this, but it doesn't
+          * seem to be set properly. So, all UAV-capable resources need the UAV flag.
+          */
+         D3D12_FEATURE_DATA_FORMAT_SUPPORT support = { desc.Format };
+         if (SUCCEEDED(screen->dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_SUPPORT, &support, sizeof(support))) &&
+             (support.Support2 & (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) ==
+             (D3D12_FORMAT_SUPPORT2_UAV_TYPED_LOAD | D3D12_FORMAT_SUPPORT2_UAV_TYPED_STORE)) {
+            desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+            desc.Format = d3d12_get_typeless_format(templ->format);
+         }
       }
    }
 
@@ -271,27 +298,70 @@ init_texture(struct d3d12_screen *screen,
    HRESULT hres = E_FAIL;
    enum d3d12_residency_status init_residency;
 
-   if (heap) {
-      init_residency = d3d12_permanently_resident;
-      hres = screen->dev->CreatePlacedResource(heap,
-                                               placed_offset,
-                                               &desc,
-                                               D3D12_RESOURCE_STATE_COMMON,
-                                               nullptr,
-                                               IID_PPV_ARGS(&d3d12_res));
+   if (screen->opts12.RelaxedFormatCastingSupported) {
+      D3D12_RESOURCE_DESC1 desc1 = {
+         desc.Dimension,
+         desc.Alignment,
+         desc.Width,
+         desc.Height,
+         desc.DepthOrArraySize,
+         desc.MipLevels,
+         desc.Format,
+         desc.SampleDesc,
+         desc.Layout,
+         desc.Flags,
+      };
+      if (heap) {
+         init_residency = d3d12_permanently_resident;
+         hres = screen->dev10->CreatePlacedResource2(heap,
+                                                     placed_offset,
+                                                     &desc1,
+                                                     D3D12_BARRIER_LAYOUT_COMMON,
+                                                     nullptr,
+                                                     num_castable_formats,
+                                                     format_cast_list,
+                                                     IID_PPV_ARGS(&d3d12_res));
+      }
+      else {
+         D3D12_HEAP_PROPERTIES heap_pris = GetCustomHeapProperties(screen->dev, D3D12_HEAP_TYPE_DEFAULT);
+
+         D3D12_HEAP_FLAGS heap_flags = screen->support_create_not_resident ?
+            D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT : D3D12_HEAP_FLAG_NONE;
+         init_residency = screen->support_create_not_resident ? d3d12_evicted : d3d12_resident;
+
+         hres = screen->dev10->CreateCommittedResource3(&heap_pris,
+                                                        heap_flags,
+                                                        &desc1,
+                                                        D3D12_BARRIER_LAYOUT_COMMON,
+                                                        nullptr,
+                                                        nullptr,
+                                                        num_castable_formats,
+                                                        format_cast_list,
+                                                        IID_PPV_ARGS(&d3d12_res));
+      }
    } else {
-      D3D12_HEAP_PROPERTIES heap_pris = GetCustomHeapProperties(screen->dev, D3D12_HEAP_TYPE_DEFAULT);
-
-      D3D12_HEAP_FLAGS heap_flags = screen->support_create_not_resident ?
-         D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT : D3D12_HEAP_FLAG_NONE;
-      init_residency = screen->support_create_not_resident ? d3d12_evicted : d3d12_resident;
-
-      hres = screen->dev->CreateCommittedResource(&heap_pris,
-                                                  heap_flags,
+      if (heap) {
+         init_residency = d3d12_permanently_resident;
+         hres = screen->dev->CreatePlacedResource(heap,
+                                                  placed_offset,
                                                   &desc,
                                                   D3D12_RESOURCE_STATE_COMMON,
-                                                  NULL,
+                                                  nullptr,
                                                   IID_PPV_ARGS(&d3d12_res));
+      } else {
+         D3D12_HEAP_PROPERTIES heap_pris = GetCustomHeapProperties(screen->dev, D3D12_HEAP_TYPE_DEFAULT);
+
+         D3D12_HEAP_FLAGS heap_flags = screen->support_create_not_resident ?
+            D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT : D3D12_HEAP_FLAG_NONE;
+         init_residency = screen->support_create_not_resident ? d3d12_evicted : d3d12_resident;
+
+         hres = screen->dev->CreateCommittedResource(&heap_pris,
+                                                     heap_flags,
+                                                     &desc,
+                                                     D3D12_RESOURCE_STATE_COMMON,
+                                                     NULL,
+                                                     IID_PPV_ARGS(&d3d12_res));
+      }
    }
 
    if (FAILED(hres))
@@ -347,6 +417,7 @@ convert_planar_resource(struct d3d12_resource *res)
 #if DEBUG
       struct d3d12_screen *screen = d3d12_screen(res->base.b.screen);
       D3D12_RESOURCE_DESC desc = GetDesc(res->bo->res);
+      desc.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
       D3D12_PLACED_SUBRESOURCE_FOOTPRINT placed_footprint = {};
       D3D12_SUBRESOURCE_FOOTPRINT *footprint = &placed_footprint.Footprint;
       unsigned subresource = plane * desc.MipLevels * desc.DepthOrArraySize;
@@ -449,6 +520,34 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
    HANDLE d3d_handle = (HANDLE) (intptr_t) handle->handle;
 #endif
 
+#ifndef _GAMING_XBOX
+   if (handle->type == WINSYS_HANDLE_TYPE_D3D12_RES) {
+      ComPtr<IUnknown> screen_device;
+      ComPtr<IUnknown> res_device;
+      screen->dev->QueryInterface(screen_device.GetAddressOf());
+      ((ID3D12DeviceChild *)handle->com_obj)->GetDevice(IID_PPV_ARGS(res_device.GetAddressOf()));
+
+      if (screen_device.Get() != res_device.Get()) {
+         debug_printf("d3d12: Importing resource - Resource's parent device (%p) does not"
+                      " match d3d12 device (%p) instance from this pipe_screen."
+                      " Attempting to re-import via NT Handle...\n", screen_device.Get(), res_device.Get());
+
+         handle->type = WINSYS_HANDLE_TYPE_FD;
+         HRESULT hr = screen->dev->CreateSharedHandle(((ID3D12DeviceChild *)handle->com_obj),
+               nullptr,
+               GENERIC_ALL,
+               nullptr,
+               &d3d_handle);
+
+         if (FAILED(hr)) {
+            debug_printf("d3d12: Error %x - Couldn't export incoming resource com_obj "
+                         "(%p) via shared NT handle.\n", hr, handle->com_obj);
+            return NULL;
+         }
+      }
+   }
+#endif
+
 #ifdef _WIN32
    HANDLE d3d_handle_to_close = nullptr;
    if (handle->type == WINSYS_HANDLE_TYPE_WIN32_NAME) {
@@ -462,10 +561,11 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
    if (res->bo) {
       d3d12_res = res->bo->res;
    } else if (handle->type == WINSYS_HANDLE_TYPE_D3D12_RES) {
-      IUnknown *obj = (IUnknown *)handle->com_obj;
-      (void)obj->QueryInterface(&d3d12_res);
-      (void)obj->QueryInterface(&d3d12_heap);
-      obj->Release();
+      if (handle->modifier == 1) {
+         d3d12_heap = (ID3D12Heap *) handle->com_obj;
+      } else {
+         d3d12_res = (ID3D12Resource *) handle->com_obj;
+      }
    } else {
       screen->dev->OpenSharedHandle(d3d_handle, IID_PPV_ARGS(&d3d12_res));
    }
@@ -497,7 +597,9 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
    /* Get a description for this plane */
    if (templ && handle->format != templ->format) {
       unsigned subresource = handle->plane * incoming_res_desc.MipLevels * incoming_res_desc.DepthOrArraySize;
-      screen->dev->GetCopyableFootprints(&incoming_res_desc, subresource, 1, 0, &placed_footprint, nullptr, nullptr, nullptr);
+      auto temp_desc = incoming_res_desc;
+      temp_desc.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      screen->dev->GetCopyableFootprints(&temp_desc, subresource, 1, 0, &placed_footprint, nullptr, nullptr, nullptr);
    } else {
       footprint->Format = incoming_res_desc.Format;
       footprint->Width = incoming_res_desc.Width;
@@ -619,7 +721,10 @@ d3d12_resource_from_handle(struct pipe_screen *pscreen,
 
       if (res->base.b.format == PIPE_FORMAT_NONE) {
          /* Convert from typeless to a reasonable default */
-         res->base.b.format = d3d12_get_default_pipe_format(incoming_res_desc.Format);
+         if (incoming_res_desc.Format == DXGI_FORMAT_UNKNOWN)
+            res->base.b.format = PIPE_FORMAT_R8_UNORM;
+         else
+            res->base.b.format = d3d12_get_default_pipe_format(incoming_res_desc.Format);
 
          if (res->base.b.format == PIPE_FORMAT_NONE) {
             debug_printf("d3d12: Unable to deduce non-typeless resource format %d\n", incoming_res_desc.Format);
@@ -853,7 +958,12 @@ d3d12_memobj_create_from_handle(struct pipe_screen *pscreen, struct winsys_handl
    }
 
    struct d3d12_screen *screen = d3d12_screen(pscreen);
-   IUnknown *obj;
+#ifdef _GAMING_XBOX
+   IGraphicsUnknown
+#else
+   IUnknown
+#endif
+      *obj;
 #ifdef _WIN32
       HANDLE d3d_handle = handle->handle;
 #else
@@ -888,8 +998,13 @@ d3d12_memobj_create_from_handle(struct pipe_screen *pscreen, struct winsys_handl
    }
    memobj->base.dedicated = dedicated;
 
-   (void)obj->QueryInterface(&memobj->res);
-   (void)obj->QueryInterface(&memobj->heap);
+   obj->AddRef();
+   if (handle->modifier == 1) {
+      memobj->heap = (ID3D12Heap *) obj;
+   } else {
+      memobj->res = (ID3D12Resource *) obj;
+   }
+
    obj->Release();
    if (!memobj->res && !memobj->heap) {
       debug_printf("d3d12: Memory object isn't a resource or heap\n");
@@ -930,6 +1045,7 @@ d3d12_resource_from_memobj(struct pipe_screen *pscreen,
    whandle.com_obj = memobj->res ? (void *) memobj->res : (void *) memobj->heap;
    whandle.offset = offset;
    whandle.format = templ->format;
+   whandle.modifier = memobj->res ? 0 : 1;
 
    // WINSYS_HANDLE_TYPE_D3D12_RES implies taking ownership of the reference
    ((IUnknown *)whandle.com_obj)->AddRef();
@@ -954,17 +1070,7 @@ unsigned int
 get_subresource_id(struct d3d12_resource *res, unsigned resid,
                    unsigned z, unsigned base_level)
 {
-   unsigned resource_stride = res->base.b.last_level + 1;
-   if (res->base.b.target == PIPE_TEXTURE_1D_ARRAY ||
-       res->base.b.target == PIPE_TEXTURE_2D_ARRAY)
-      resource_stride *= res->base.b.array_size;
-
-   if (res->base.b.target == PIPE_TEXTURE_CUBE)
-      resource_stride *= 6;
-
-   if (res->base.b.target == PIPE_TEXTURE_CUBE_ARRAY)
-      resource_stride *= 6 * res->base.b.array_size;
-
+   unsigned resource_stride = (res->base.b.last_level + 1) * res->base.b.array_size;
    unsigned layer_stride = res->base.b.last_level + 1;
 
    return resid * resource_stride + z * layer_stride +
@@ -996,6 +1102,7 @@ fill_buffer_location(struct d3d12_context *ctx,
    D3D12_PLACED_SUBRESOURCE_FOOTPRINT footprint;
    uint64_t offset = 0;
    auto descr = GetDesc(d3d12_resource_underlying(res, &offset));
+   descr.Flags &= ~D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
    ID3D12Device* dev = screen->dev;
 
@@ -1005,7 +1112,7 @@ fill_buffer_location(struct d3d12_context *ctx,
    buf_loc.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
    buf_loc.pResource = d3d12_resource_underlying(staging_res, &offset);
    buf_loc.PlacedFootprint = footprint;
-   buf_loc.PlacedFootprint.Offset += offset;
+   buf_loc.PlacedFootprint.Offset = offset;
    buf_loc.PlacedFootprint.Offset += trans->base.b.offset;
 
    if (util_format_has_depth(util_format_description(res->base.b.format)) &&
@@ -1671,7 +1778,7 @@ d3d12_transfer_map(struct pipe_context *pctx,
                return NULL;
             }
          }
-
+         ptrans->box = original_box;
          d3d12_flush_cmdlist_and_wait(ctx);
       }
 
@@ -1823,6 +1930,7 @@ d3d12_transfer_unmap(struct pipe_context *pctx,
 
                transfer_buf_to_image(ctx, d3d12_resource(planes[plane_slice]), staging_res, trans, 0);
             }
+            ptrans->box = original_box;
          }
 
          pipe_resource_reference(&trans->staging_res, NULL);

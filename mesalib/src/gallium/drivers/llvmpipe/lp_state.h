@@ -61,6 +61,18 @@
 #define LP_NEW_TCS          0x200000
 #define LP_NEW_TES          0x400000
 #define LP_NEW_SAMPLE_MASK  0x800000
+#define LP_NEW_TASK                0x1000000
+#define LP_NEW_TASK_CONSTANTS      0x2000000
+#define LP_NEW_TASK_SAMPLER        0x4000000
+#define LP_NEW_TASK_SAMPLER_VIEW   0x8000000
+#define LP_NEW_TASK_SSBOS         0x10000000
+#define LP_NEW_TASK_IMAGES        0x20000000
+#define LP_NEW_MESH               0x40000000
+#define LP_NEW_MESH_CONSTANTS     0x80000000
+#define LP_NEW_MESH_SAMPLER      0x100000000ULL
+#define LP_NEW_MESH_SAMPLER_VIEW 0x200000000ULL
+#define LP_NEW_MESH_SSBOS        0x400000000ULL
+#define LP_NEW_MESH_IMAGES       0x800000000ULL
 
 #define LP_CSNEW_CS 0x1
 #define LP_CSNEW_CONSTANTS 0x2
@@ -76,19 +88,19 @@ struct llvmpipe_context;
 
 
 struct lp_geometry_shader {
-   boolean no_tokens;
+   bool no_tokens;
    struct pipe_stream_output_info stream_output;
    struct draw_geometry_shader *dgs;
 };
 
 struct lp_tess_ctrl_shader {
-   boolean no_tokens;
+   bool no_tokens;
    struct pipe_stream_output_info stream_output;
    struct draw_tess_ctrl_shader *dtcs;
 };
 
 struct lp_tess_eval_shader {
-   boolean no_tokens;
+   bool no_tokens;
    struct pipe_stream_output_info stream_output;
    struct draw_tess_eval_shader *dtes;
 };
@@ -117,7 +129,19 @@ void
 llvmpipe_update_setup(struct llvmpipe_context *lp);
 
 void
+llvmpipe_update_task_shader(struct llvmpipe_context *lp);
+
+void
+llvmpipe_update_mesh_shader(struct llvmpipe_context *lp);
+
+void
 llvmpipe_update_derived_clear(struct llvmpipe_context *llvmpipe);
+
+void
+llvmpipe_task_update_derived(struct llvmpipe_context *llvmpipe);
+
+void
+llvmpipe_mesh_update_derived(struct llvmpipe_context *llvmpipe);
 
 void
 llvmpipe_update_derived(struct llvmpipe_context *llvmpipe);
@@ -151,6 +175,12 @@ llvmpipe_init_gs_funcs(struct llvmpipe_context *llvmpipe);
 
 void
 llvmpipe_init_tess_funcs(struct llvmpipe_context *llvmpipe);
+
+void
+llvmpipe_init_task_funcs(struct llvmpipe_context *llvmpipe);
+
+void
+llvmpipe_init_mesh_funcs(struct llvmpipe_context *llvmpipe);
 
 void
 llvmpipe_init_rasterizer_funcs(struct llvmpipe_context *llvmpipe);

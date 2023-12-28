@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2017 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -106,6 +87,7 @@
 #define RDECODE_CODEC_H265                                  0x00000010
 #define RDECODE_CODEC_VP9                                   0x00000011
 #define RDECODE_CODEC_AV1                                   0x00000013
+#define RDECODE_MESSAGE_HEVC_DIRECT_REF_LIST                0x00000015
 
 #define RDECODE_ARRAY_MODE_LINEAR                           0x00000000
 #define RDECODE_ARRAY_MODE_MACRO_LINEAR_MICRO_TILED         0x00000001
@@ -159,6 +141,11 @@
 #define RDECODE_SPS_INFO_H264_EXTENSION_SUPPORT_FLAG_SHIFT  7
 
 #define RDECODE_VP9_PROBS_DATA_SIZE                         2304
+
+/* *** decode flags *** */
+#define RDECODE_FLAGS_USE_DYNAMIC_DPB_MASK                  0x00000001
+#define RDECODE_FLAGS_USE_PAL_MASK                          0x00000008
+#define RDECODE_FLAGS_DPB_RESIZE_MASK                       0x00000100
 
 #define mmUVD_JPEG_CNTL                                     0x0200
 #define mmUVD_JPEG_CNTL_BASE_IDX                            1
@@ -229,6 +216,41 @@
 #define vcnipUVD_JPEG_CNTL                                  0x4000
 #define vcnipUVD_JPEG_RB_RPTR                               0x4003
 #define vcnipUVD_JPEG_OUTBUF_WPTR                           0x401d
+#define vcnipUVD_JPEG_DEC_SOFT_RST_1                        0x4051
+#define vcnipUVD_JPEG_PITCH_1                               0x4043
+#define vcnipUVD_JPEG_UV_PITCH_1                            0x4044
+#define vcnipJPEG_DEC_ADDR_MODE_1                           0x404B
+#define vcnipUVD_JPEG_TIER_CNTL2_1                          0x400E
+#define vcnipUVD_JPEG_OUTBUF_CNTL_1                         0x4040
+#define vcnipUVD_JPEG_OUTBUF_WPTR_1                         0x4041
+#define vcnipUVD_JPEG_OUTBUF_RPTR_1                         0x4042
+#define vcnipUVD_JPEG_LUMA_BASE0_0                          0x41C0
+#define vcnipUVD_JPEG_CHROMA_BASE0_0                        0x41C1
+#define vcnipUVD_JPEG_CHROMAV_BASE0_0                       0x41C2
+#define vcnipJPEG_DEC_Y_GFX10_TILING_SURFACE_1              0x4048
+#define vcnipJPEG_DEC_UV_GFX10_TILING_SURFACE_1             0x4049
+#define vcnipUVD_LMI_JPEG_WRITE_64BIT_BAR_HIGH_1            0x40B5
+#define vcnipUVD_LMI_JPEG_WRITE_64BIT_BAR_LOW_1             0x40B4
+#define vcnipUVD_LMI_JPEG_READ_64BIT_BAR_HIGH_1             0x40B3
+#define vcnipUVD_LMI_JPEG_READ_64BIT_BAR_LOW_1              0x40B2
+#define vcnipUVD_JPEG_ROI_CROP_POS_START                    0x401B
+#define vcnipUVD_JPEG_ROI_CROP_POS_STRIDE                   0x401C
+#define vcnipUVD_JPEG_INT_STAT                              0x400B
+#define vcnipUVD_JPEG_FC_SPS_INFO                           0x4052
+#define vcnipUVD_JPEG_SPS_INFO                              0x4006
+#define vcnipUVD_JPEG_FC_R_COEF                             0x4018
+#define vcnipUVD_JPEG_FC_G_COEF                             0x4019
+#define vcnipUVD_JPEG_FC_B_COEF                             0x401A
+#define vcnipUVD_JPEG_FC_VUP_COEF_CNTL0                     0x4010
+#define vcnipUVD_JPEG_FC_VUP_COEF_CNTL1                     0x4011
+#define vcnipUVD_JPEG_FC_VUP_COEF_CNTL2                     0x4012
+#define vcnipUVD_JPEG_FC_VUP_COEF_CNTL3                     0x4013
+#define vcnipUVD_JPEG_FC_HUP_COEF_CNTL0                     0x4014
+#define vcnipUVD_JPEG_FC_HUP_COEF_CNTL1                     0x4015
+#define vcnipUVD_JPEG_FC_HUP_COEF_CNTL2                     0x4016
+#define vcnipUVD_JPEG_FC_HUP_COEF_CNTL3                     0x4017
+#define vcnipUVD_JPEG_FC_TMEOUT_CNT                         0x4183
+#define vcnipUVD_JPEG_SPS1_INFO                             0x4007
 
 #define UVD_BASE_INST0_SEG0                                 0x00007800
 #define UVD_BASE_INST0_SEG1                                 0x00007E00
@@ -560,6 +582,11 @@ typedef struct rvcn_dec_message_dynamic_dpb_t2_s {
     unsigned int dpbAddrLo[16];
     unsigned int dpbAddrHi[16];
 } rvcn_dec_message_dynamic_dpb_t2_t;
+
+typedef struct rvcn_dec_message_hevc_direct_ref_list_s {
+   unsigned int num_direct_reflist;
+   unsigned char multi_direct_reflist[128][2][15];
+} rvcn_dec_message_hevc_direct_ref_list_t;
 
 typedef struct {
    unsigned short viewOrderIndex;
@@ -1154,7 +1181,11 @@ struct jpeg_params {
    unsigned dt_uv_pitch;
    unsigned dt_luma_top_offset;
    unsigned dt_chroma_top_offset;
-   bool direct_reg;
+   unsigned dt_chromav_top_offset;
+   uint16_t crop_x;
+   uint16_t crop_y;
+   uint16_t crop_width;
+   uint16_t crop_height;
 };
 
 #define RDECODE_VCN1_GPCOM_VCPU_CMD   0x2070c

@@ -61,7 +61,7 @@ struct r300_emit_state {
 
 #define error(fmt, args...) do {			\
 		rc_error(&c->Base, "%s::%s(): " fmt "\n",	\
-			__FILE__, __FUNCTION__, ##args);	\
+			__FILE__, __func__, ##args);	\
 	} while(0)
 
 static unsigned int get_msbs_alu(unsigned int bits)
@@ -157,7 +157,11 @@ static int emit_alu(struct r300_emit_state * emit, struct rc_pair_instruction* i
 	PROG_CODE;
 
 	if (code->alu.length >= c->Base.max_alu_insts) {
-		error("Too many ALU instructions");
+		/* rc_recompute_ips does not give an exact count, because it counts extra stuff
+		 * like BEGINTEX, but here it is intended to be only approximative anyway,
+		 * just to give some idea how close to the limit we are. */
+		rc_error(&c->Base, "Too many ALU instructions used: %u, max: %u.\n",
+		         rc_recompute_ips(&c->Base), c->Base.max_alu_insts);
 		return 0;
 	}
 

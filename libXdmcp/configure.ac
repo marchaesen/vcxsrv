@@ -22,21 +22,22 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXdmcp], [1.1.2],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXdmcp])
+AC_INIT([libXdmcp], [1.1.4],
+        [https://gitlab.freedesktop.org/xorg/lib/libxdmcp/-/issues], [libXdmcp])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([m4])
+
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE
-# Must be called before any macros that run the compiler (like AC_PROG_LIBTOOL)
+# Must be called before any macros that run the compiler (like LT_INIT)
 # to avoid autoconf errors.
 AC_USE_SYSTEM_EXTENSIONS
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Initialize libtool
-AC_LIBTOOL_WIN32_DLL
-AC_PROG_LIBTOOL
+LT_INIT([win32-dll])
 
 # Require xorg-macros minimum of 1.16 for unit testing with memory checks
 m4_ifndef([XORG_MACROS_VERSION],
@@ -52,6 +53,9 @@ XORG_CHECK_SGML_DOCTOOLS(1.8)
 # Checks for programs.
 AC_PROG_LN_S
 
+# Checks for header files.
+AC_CHECK_HEADERS([sys/random.h])
+
 # Checks for libraries.
 AC_SEARCH_LIBS([recvfrom],[socket])
 
@@ -63,11 +67,21 @@ case $host_os in
         ;;
 esac
 
-# Checks for library functions.
-AC_CHECK_LIB([bsd], [arc4random_buf])
-AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf])
+# Checks for non-standard functions and fallback to libbsd if we can
+# We only check for arc4random_buf, because if we have that, we don't
+# need/use getentropy.
+AC_LINK_IFELSE([AC_LANG_CALL([], [arc4random_buf])],
+               [TRY_LIBBSD="no"], [TRY_LIBBSD="yes"])
+AS_IF([test "x$TRY_LIBBSD" = "xyes"],
+      [PKG_CHECK_MODULES([LIBBSD], [libbsd-overlay], [
+	CFLAGS="$CFLAGS $LIBBSD_CFLAGS"
+	LIBS="$LIBS $LIBBSD_LIBS"
+], [:])])
 
-# Obtain compiler/linker options for depedencies
+# Checks for library functions.
+AC_CHECK_FUNCS([srand48 lrand48 arc4random_buf getentropy])
+
+# Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(XDMCP, xproto)
 
 if test -f ${srcdir}/Wraphelp.c; then

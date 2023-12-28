@@ -25,7 +25,7 @@
 #include "nir_builder.h"
 #include "lvp_lower_vulkan_resource.h"
 
-static nir_ssa_def *
+static nir_def *
 load_frag_coord(nir_builder *b)
 {
    nir_variable *pos =
@@ -49,8 +49,7 @@ load_frag_coord(nir_builder *b)
 }
 
 static bool
-try_lower_input_load(nir_function_impl *impl, nir_intrinsic_instr *load,
-                     bool use_fragcoord_sysval)
+try_lower_input_load(nir_intrinsic_instr *load, bool use_fragcoord_sysval)
 {
    nir_deref_instr *deref = nir_src_as_deref(load->src[0]);
    assert(glsl_type_is_image(deref->type));
@@ -60,21 +59,19 @@ try_lower_input_load(nir_function_impl *impl, nir_intrinsic_instr *load,
        image_dim != GLSL_SAMPLER_DIM_SUBPASS_MS)
       return false;
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
-   b.cursor = nir_before_instr(&load->instr);
+   nir_builder b = nir_builder_at(nir_before_instr(&load->instr));
 
-   nir_ssa_def *frag_coord = use_fragcoord_sysval ? nir_load_frag_coord(&b)
+   nir_def *frag_coord = use_fragcoord_sysval ? nir_load_frag_coord(&b)
                                                   : load_frag_coord(&b);
    frag_coord = nir_f2i32(&b, frag_coord);
-   nir_ssa_def *offset = nir_ssa_for_src(&b, load->src[1], 2);
-   nir_ssa_def *pos = nir_iadd(&b, frag_coord, offset);
+   nir_def *offset = nir_trim_vector(&b, load->src[1].ssa, 2);
+   nir_def *pos = nir_iadd(&b, frag_coord, offset);
 
-   nir_ssa_def *layer = nir_load_view_index(&b);
-   nir_ssa_def *coord =
+   nir_def *layer = nir_load_view_index(&b);
+   nir_def *coord =
       nir_vec4(&b, nir_channel(&b, pos, 0), nir_channel(&b, pos, 1), layer, nir_imm_int(&b, 0));
 
-   nir_instr_rewrite_src(&load->instr, &load->src[1], nir_src_for_ssa(coord));
+   nir_src_rewrite(&load->src[1], coord);
 
    return true;
 }
@@ -85,11 +82,8 @@ lvp_lower_input_attachments(nir_shader *shader, bool use_fragcoord_sysval)
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (!function->impl)
-         continue;
-
-      nir_foreach_block(block, function->impl) {
+   nir_foreach_function_impl(impl, shader) {
+      nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
             if (instr->type != nir_instr_type_intrinsic)
                continue;
@@ -99,8 +93,7 @@ lvp_lower_input_attachments(nir_shader *shader, bool use_fragcoord_sysval)
             if (load->intrinsic != nir_intrinsic_image_deref_load)
                continue;
 
-            progress |= try_lower_input_load(function->impl, load,
-                                             use_fragcoord_sysval);
+            progress |= try_lower_input_load(load, use_fragcoord_sysval);
          }
       }
    }

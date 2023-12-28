@@ -34,9 +34,9 @@ This list is likely incomplete.
 -  `Bug 55552 <https://bugs.freedesktop.org/show_bug.cgi?id=55552>`__ -
    Compile errors with --enable-mangling
 -  `Bug 86281 <https://bugs.freedesktop.org/show_bug.cgi?id=86281>`__ -
-   brw_meta_fast_clear (brw=brw@entry=0x7fffd4097a08,
-   fb=fb@entry=0x7fffd40fa900, buffers=buffers@entry=2,
-   partial_clear=partial_clear@entry=false)
+   brw_meta_fast_clear (brw=brw\@entry=0x7fffd4097a08,
+   fb=fb\@entry=0x7fffd40fa900, buffers=buffers\@entry=2,
+   partial_clear=partial_clear\@entry=false)
 -  `Bug 91970 <https://bugs.freedesktop.org/show_bug.cgi?id=91970>`__ -
    [BSW regression]
    dEQP-GLES3.functional.shaders.precision.int.highp_mul_vertex

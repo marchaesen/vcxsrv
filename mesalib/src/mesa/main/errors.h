@@ -38,7 +38,7 @@
 
 #include <stdio.h>
 #include <stdarg.h>
-#include "glheader.h"
+#include "util/glheader.h"
 #include "menums.h"
 
 

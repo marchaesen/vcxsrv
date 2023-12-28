@@ -31,8 +31,23 @@
 #include "pipe_loader.h"
 
 struct pipe_loader_ops {
+   /**
+    * Create a pipe_screen for the specified pipe_loader_device.
+    *
+    * Consumers are expected to use pipe_loader_create_screen_vk() or
+    * pipe_loader_create_screen() which will take care of creating the
+    * configuration.
+    *
+    * Implementations should not free the device here, even on failure.
+    *
+    * \param dev The device the screen will be created for
+    * \param config The screen configuration
+    * \param sw_vk Whether the device is for software vulkan
+    * \return a pipe_screen, or NULL on failure
+   */
    struct pipe_screen *(*create_screen)(struct pipe_loader_device *dev,
-                                        const struct pipe_screen_config *config, bool sw_vk);
+                                        const struct pipe_screen_config *config,
+                                        bool sw_vk);
 
    const struct driOptionDescription *(*get_driconf)(struct pipe_loader_device *dev,
                                                      unsigned *count);

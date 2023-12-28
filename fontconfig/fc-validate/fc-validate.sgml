@@ -28,13 +28,13 @@ PERFORMANCE OF THIS SOFTWARE.
      less'.  A typical entry in a Makefile or Makefile.am is:
 
 manpage.1: manpage.sgml
-	docbook-to-man $< > $@
+        docbook-to-man $< > $@
 
 
-	The docbook-to-man binary is found in the docbook-to-man package.
-	Please remember that if you create the nroff version in one of the
-	debian/rules file targets (such as build), you will need to include
-	docbook-to-man in your Build-Depends control field.
+        The docbook-to-man binary is found in the docbook-to-man package.
+        Please remember that if you create the nroff version in one of the
+        debian/rules file targets (such as build), you will need to include
+        docbook-to-man in your Build-Depends control field.
 
   -->
 
@@ -91,8 +91,8 @@ manpage.1: manpage.sgml
         <arg><option>--index</option> <option><replaceable>index</replaceable></option></arg>
       </group>
       <group>
-	<arg><option>-l</option> <option><replaceable>lang</replaceable></option></arg>
-	<arg><option>--lang</option> <option><replaceable>lang</replaceable></option></arg>
+        <arg><option>-l</option> <option><replaceable>lang</replaceable></option></arg>
+        <arg><option>--lang</option> <option><replaceable>lang</replaceable></option></arg>
       </group>
       <arg><option>--verbose</option></arg>
       <arg><option>--version</option></arg>
@@ -122,29 +122,29 @@ manpage.1: manpage.sgml
       <varlistentry>
         <term><option>-i</option>
           <option>--index</option>
-	  <option><replaceable>index</replaceable></option>
+          <option><replaceable>index</replaceable></option>
         </term>
         <listitem>
           <para>Only query face indexed <replaceable>index</replaceable> of
-	  each file.</para>
+          each file.</para>
         </listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>-l</option>
-	  <option>--lang</option>
-	  <option><replaceable>lang</replaceable></option>
-	</term>
-	<listitem>
-	  <para>Set <replaceable>lang</replaceable> as a language instead of current locale. this is used for <option>-m</option>.</para>
-	</listitem>
+        <term><option>-l</option>
+          <option>--lang</option>
+          <option><replaceable>lang</replaceable></option>
+        </term>
+        <listitem>
+          <para>Set <replaceable>lang</replaceable> as a language instead of current locale. this is used for <option>-m</option>.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
-	<term><option>-v</option>
-	  <option>--verbose</option>
-	</term>
-	<listitem>
-	  <para>Show more detailed information.</para>
-	</listitem>
+        <term><option>-v</option>
+          <option>--verbose</option>
+        </term>
+        <listitem>
+          <para>Show more detailed information.</para>
+        </listitem>
       </varlistentry>
       <varlistentry>
         <term><option>-V</option>

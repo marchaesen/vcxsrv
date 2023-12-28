@@ -21,744 +21,1214 @@
  * SOFTWARE.
  */
 
-#include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-
-#include "compiler/shader_enums.h"
-#include "compiler/spirv/nir_spirv.h"
-#include "nir/nir.h"
+#include "compiler/glsl_types.h"
 #include "rogue.h"
-#include "rogue_build_data.h"
-#include "rogue_compiler.h"
-#include "rogue_constreg.h"
-#include "rogue_encode.h"
-#include "rogue_nir.h"
-#include "rogue_nir_helpers.h"
-#include "rogue_operand.h"
-#include "rogue_regalloc.h"
-#include "rogue_shader.h"
-#include "rogue_validate.h"
+#include "util/list.h"
 #include "util/macros.h"
-#include "util/memstream.h"
 #include "util/ralloc.h"
+#include "util/sparse_array.h"
+
+#include <stdbool.h>
 
 /**
  * \file rogue.c
  *
- * \brief Contains the top-level Rogue compiler interface for Vulkan driver and
- * the offline compiler.
+ * \brief Contains general Rogue IR functions.
  */
+
+/* TODO: Tweak these? */
+#define ROGUE_REG_CACHE_NODE_SIZE 512
+#define ROGUE_REGARRAY_CACHE_NODE_SIZE 512
 
 /**
- * \brief Converts a SPIR-V shader to NIR.
+ * \brief Sets an existing register to a (new) class and/or index.
  *
- * \param[in] ctx Shared multi-stage build context.
- * \param[in] stage Shader stage.
- * \param[in] spirv_size SPIR-V data length in DWORDs.
- * \param[in] spirv_data SPIR-V data.
- * \param[in] num_spec Number of SPIR-V specializations.
- * \param[in] spec SPIR-V specializations.
- * \return A nir_shader* if successful, or NULL if unsuccessful.
+ * \param[in] shader The shader containing the register.
+ * \param[in] reg The register being changed.
+ * \param[in] class The new register class.
+ * \param[in] index The new register index.
+ * \return True if the register was updated, else false.
  */
-nir_shader *rogue_spirv_to_nir(struct rogue_build_ctx *ctx,
-                               gl_shader_stage stage,
-                               const char *entry,
-                               size_t spirv_size,
-                               const uint32_t *spirv_data,
-                               unsigned num_spec,
-                               struct nir_spirv_specialization *spec)
+PUBLIC
+bool rogue_reg_set(rogue_shader *shader,
+                   rogue_reg *reg,
+                   enum rogue_reg_class class,
+                   unsigned index)
 {
-   nir_shader *nir;
+   bool changed = true;
 
-   nir = spirv_to_nir(spirv_data,
-                      spirv_size,
-                      spec,
-                      num_spec,
-                      stage,
-                      entry,
-                      rogue_get_spirv_options(ctx->compiler),
-                      rogue_get_compiler_options(ctx->compiler));
-   if (!nir)
-      return NULL;
+   if (reg->class == class && reg->index == index)
+      changed = false;
 
-   ralloc_steal(ctx, nir);
+   const rogue_reg_info *info = &rogue_reg_infos[class];
 
-   /* Apply passes. */
-   if (!rogue_nir_passes(ctx, nir, stage)) {
-      ralloc_free(nir);
-      return NULL;
+   if (info->num) {
+      assert(index < info->num);
+      rogue_set_reg_use(shader, class, index);
    }
 
-   /* Collect I/O data to pass back to the driver. */
-   if (!rogue_collect_io_data(ctx, nir)) {
-      ralloc_free(nir);
-      return NULL;
+   if (reg->class != class) {
+      list_del(&reg->link);
+      list_addtail(&reg->link, &shader->regs[class]);
    }
 
-   return nir;
-}
-
-/**
- * \brief Converts a Rogue shader to binary.
- *
- * \param[in] ctx Shared multi-stage build context.
- * \param[in] shader Rogue shader.
- * \return A rogue_shader_binary* if successful, or NULL if unsuccessful.
- */
-struct rogue_shader_binary *rogue_to_binary(struct rogue_build_ctx *ctx,
-                                            const struct rogue_shader *shader)
-{
-   struct rogue_shader_binary *binary;
-   struct u_memstream mem;
-   size_t buf_size;
-   char *buf;
-
-   if (!rogue_validate_shader(shader))
-      return NULL;
-
-   if (!u_memstream_open(&mem, &buf, &buf_size))
-      return NULL;
-
-   if (!rogue_encode_shader(shader, u_memstream_get(&mem))) {
-      u_memstream_close(&mem);
-      free(buf);
-      return NULL;
-   }
-
-   u_memstream_close(&mem);
-
-   binary = rzalloc_size(ctx, sizeof(*binary) + buf_size);
-   if (!binary) {
-      free(buf);
-      return NULL;
-   }
-
-   binary->size = buf_size;
-   memcpy(binary->data, buf, buf_size);
-
-   free(buf);
-
-   return binary;
-}
-
-static bool
-setup_alu_dest(struct rogue_instr *instr, size_t dest_index, nir_alu_instr *alu)
-{
-   assert(dest_index == 0);
-
-   /* Dest validation. */
-   assert(nir_dest_num_components(alu->dest.dest) == 1 ||
-          nir_dest_num_components(alu->dest.dest) == 4);
-   assert(nir_dest_bit_size(alu->dest.dest) == 32);
-
-   size_t nir_dest_reg = nir_alu_dest_regindex(alu);
-
-   if (nir_dest_num_components(alu->dest.dest) == 1) {
-      CHECK(rogue_instr_set_operand_vreg(instr, dest_index, nir_dest_reg));
-   } else {
-      size_t comp = nir_alu_dest_comp(alu);
-      CHECK(rogue_instr_set_operand_vreg_vec(instr,
-                                             dest_index,
-                                             comp,
-                                             nir_dest_reg));
-   }
-
-   return true;
-}
-
-static bool trans_constreg_operand(struct rogue_instr *instr,
-                                   size_t operand_index,
-                                   uint32_t const_value)
-{
-   size_t const_reg = rogue_constreg_lookup(const_value);
-
-   /* Only values that can be sourced from const regs should be left from the
-    * rogue_nir_constreg pass.
-    */
-   assert(const_reg != ROGUE_NO_CONST_REG);
-
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     operand_index,
-                                     ROGUE_OPERAND_TYPE_REG_CONST,
-                                     const_reg));
-
-   return true;
-}
-
-static bool trans_nir_alu_fmax(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   assert(nir_src_num_components(alu->src[1].src) == 1);
-   assert(nir_src_bit_size(alu->src[1].src) == 32);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MAX);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-
-   for (size_t u = 0; u < nir_op_infos[nir_op_fmax].num_inputs; ++u) {
-      /* Handle values that can be pulled from const regs. */
-      if (nir_alu_src_is_const(alu, u)) {
-         CHECK(trans_constreg_operand(instr, u + 1, nir_alu_src_const(alu, u)));
-         continue;
-      }
-
-      size_t nir_src_reg = nir_alu_src_regindex(alu, u);
-
-      CHECK(rogue_instr_set_operand_vreg(instr, u + 1, nir_src_reg));
-   }
-
-   return true;
-}
-
-static bool trans_nir_alu_fmin(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   assert(nir_src_num_components(alu->src[1].src) == 1);
-   assert(nir_src_bit_size(alu->src[1].src) == 32);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MIN);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-
-   for (size_t u = 0; u < nir_op_infos[nir_op_fmin].num_inputs; ++u) {
-      /* Handle values that can be pulled from const regs. */
-      if (nir_alu_src_is_const(alu, u)) {
-         CHECK(trans_constreg_operand(instr, u + 1, nir_alu_src_const(alu, u)));
-         continue;
-      }
-
-      size_t nir_src_reg = nir_alu_src_regindex(alu, u);
-
-      CHECK(rogue_instr_set_operand_vreg(instr, u + 1, nir_src_reg));
-   }
-
-   return true;
-}
-
-static bool trans_nir_alu_mov_imm(struct rogue_shader *shader,
-                                  nir_alu_instr *alu)
-{
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   uint32_t value = nir_alu_src_const(alu, 0);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MOV_IMM);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-   CHECK(rogue_instr_set_operand_imm(instr, 1, value));
-
-   return true;
-}
-
-static bool trans_nir_alu_mov(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   /* Constant value that isn't in constregs. */
-   if (nir_alu_src_is_const(alu, 0) &&
-       nir_dest_num_components(alu->dest.dest) == 1)
-      return trans_nir_alu_mov_imm(shader, alu);
-
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MOV);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-
-   /* Handle values that can be pulled from const regs. */
-   if (nir_alu_src_is_const(alu, 0)) {
-      return trans_constreg_operand(instr, 1, nir_alu_src_const(alu, 0));
-   }
-
-   size_t nir_src_reg = nir_alu_src_regindex(alu, 0);
-   CHECK(rogue_instr_set_operand_vreg(instr, 1, nir_src_reg));
-
-   return true;
-}
-
-static bool trans_nir_alu_pack_unorm_4x8(struct rogue_shader *shader,
-                                         nir_alu_instr *alu)
-{
-   /* Src/dest validation. */
-   assert(nir_dest_num_components(alu->dest.dest) == 1);
-   assert(nir_dest_bit_size(alu->dest.dest) == 32);
-
-   assert(nir_src_num_components(alu->src[0].src) == 4);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   size_t nir_src_reg = nir_alu_src_regindex(alu, 0);
-   size_t nir_dest_reg = nir_alu_dest_regindex(alu);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_PACK_U8888);
-
-   CHECK(rogue_instr_set_operand_vreg(instr, 0, nir_dest_reg));
-
-   /* Ensure all 4 components are being sourced in order. */
-   for (size_t u = 0; u < nir_src_num_components(alu->src[0].src); ++u)
-      assert(alu->src->swizzle[u] == u);
-
-   CHECK(rogue_instr_set_operand_vreg_vec(instr,
-                                          1,
-                                          ROGUE_COMPONENT_ALL,
-                                          nir_src_reg));
-
-   return true;
-}
-
-static bool trans_nir_alu_fmul(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   assert(nir_src_num_components(alu->src[1].src) == 1);
-   assert(nir_src_bit_size(alu->src[1].src) == 32);
-
-   size_t nir_in_reg_a = nir_alu_src_regindex(alu, 0);
-   size_t nir_in_reg_b = nir_alu_src_regindex(alu, 1);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MUL);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-   CHECK(rogue_instr_set_operand_vreg(instr, 1, nir_in_reg_a));
-   CHECK(rogue_instr_set_operand_vreg(instr, 2, nir_in_reg_b));
-
-   return true;
-}
-
-static bool trans_nir_alu_ffma(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   /* Src validation. */
-   assert(nir_src_num_components(alu->src[0].src) == 1);
-   assert(nir_src_bit_size(alu->src[0].src) == 32);
-
-   assert(nir_src_num_components(alu->src[1].src) == 1);
-   assert(nir_src_bit_size(alu->src[1].src) == 32);
-
-   assert(nir_src_num_components(alu->src[2].src) == 1);
-   assert(nir_src_bit_size(alu->src[2].src) == 32);
-
-   size_t nir_in_reg_a = nir_alu_src_regindex(alu, 0);
-   size_t nir_in_reg_b = nir_alu_src_regindex(alu, 1);
-   size_t nir_in_reg_c = nir_alu_src_regindex(alu, 2);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_FMA);
-
-   CHECK(setup_alu_dest(instr, 0, alu));
-   CHECK(rogue_instr_set_operand_vreg(instr, 1, nir_in_reg_a));
-   CHECK(rogue_instr_set_operand_vreg(instr, 2, nir_in_reg_b));
-   CHECK(rogue_instr_set_operand_vreg(instr, 3, nir_in_reg_c));
-
-   return true;
-}
-
-static bool trans_nir_alu(struct rogue_shader *shader, nir_alu_instr *alu)
-{
-   switch (alu->op) {
-   case nir_op_fmax:
-      return trans_nir_alu_fmax(shader, alu);
-
-   case nir_op_fmin:
-      return trans_nir_alu_fmin(shader, alu);
-
-   case nir_op_pack_unorm_4x8:
-      return trans_nir_alu_pack_unorm_4x8(shader, alu);
-
-   case nir_op_mov:
-      return trans_nir_alu_mov(shader, alu);
-
-   case nir_op_fmul:
-      return trans_nir_alu_fmul(shader, alu);
-
-   case nir_op_ffma:
-      return trans_nir_alu_ffma(shader, alu);
-
-   default:
-      break;
-   }
-
-   unreachable("Unimplemented NIR ALU instruction.");
-}
-
-static bool trans_nir_intrinsic_load_input_fs(struct rogue_shader *shader,
-                                              nir_intrinsic_instr *intr)
-{
-   struct rogue_fs_build_data *fs_data = &shader->ctx->stage_data.fs;
-
-   /* Src/dest validation. */
-   assert(nir_dest_num_components(intr->dest) == 1);
-   assert(nir_dest_bit_size(intr->dest) == 32);
-
-   assert(nir_src_num_components(intr->src[0]) == 1);
-   assert(nir_src_bit_size(intr->src[0]) == 32);
-   assert(nir_intr_src_is_const(intr, 0));
-
-   /* Intrinsic index validation. */
-   assert(nir_intrinsic_dest_type(intr) == nir_type_float32);
-
-   struct nir_io_semantics io_semantics = nir_intrinsic_io_semantics(intr);
-   size_t component = nir_intrinsic_component(intr);
-   size_t coeff_index = rogue_coeff_index_fs(&fs_data->iterator_args,
-                                             io_semantics.location,
-                                             component);
-   size_t wcoeff_index = rogue_coeff_index_fs(&fs_data->iterator_args, ~0, 0);
-   size_t drc_num = rogue_acquire_drc(shader);
-   uint64_t source_count = nir_dest_num_components(intr->dest);
-
-   size_t nir_dest_reg = nir_intr_dest_regindex(intr);
-
-   /* pixiter.w instruction. */
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_PIX_ITER_W);
-
-   CHECK(rogue_instr_set_operand_vreg(instr, 0, nir_dest_reg));
-   CHECK(rogue_instr_set_operand_drc(instr, 1, drc_num));
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     2,
-                                     ROGUE_OPERAND_TYPE_REG_COEFF,
-                                     coeff_index));
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     3,
-                                     ROGUE_OPERAND_TYPE_REG_COEFF,
-                                     wcoeff_index));
-   CHECK(rogue_instr_set_operand_imm(instr, 4, source_count));
-
-   /* wdf instruction must follow the pixiter.w. */
-   instr = rogue_shader_insert(shader, ROGUE_OP_WDF);
-
-   CHECK(rogue_instr_set_operand_drc(instr, 0, drc_num));
-   rogue_release_drc(shader, drc_num);
-
-   return true;
-}
-
-static bool trans_nir_intrinsic_load_input_vs(struct rogue_shader *shader,
-                                              nir_intrinsic_instr *intr)
-{
-   /* Src/dest validation. */
-   assert(nir_dest_num_components(intr->dest) == 1);
-   assert(nir_dest_bit_size(intr->dest) == 32);
-
-   assert(nir_src_num_components(intr->src[0]) == 1);
-   assert(nir_src_bit_size(intr->src[0]) == 32);
-   assert(nir_intr_src_is_const(intr, 0));
-
-   /* Intrinsic index validation. */
-   assert(nir_intrinsic_dest_type(intr) == nir_type_float32);
-
-   size_t component = nir_intrinsic_component(intr);
-   struct nir_io_semantics io_semantics = nir_intrinsic_io_semantics(intr);
-   size_t vi_reg_index = ((io_semantics.location - VERT_ATTRIB_GENERIC0) * 3) +
-                         component; /* TODO: get these properly with the
-                                     * intrinsic index (ssa argument)
-                                     */
-
-   size_t nir_dest_reg = nir_intr_dest_regindex(intr);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MOV);
-
-   CHECK(rogue_instr_set_operand_vreg(instr, 0, nir_dest_reg));
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     1,
-                                     ROGUE_OPERAND_TYPE_REG_VERTEX_IN,
-                                     vi_reg_index));
-
-   return true;
-}
-
-static bool trans_nir_intrinsic_load_input(struct rogue_shader *shader,
-                                           nir_intrinsic_instr *intr)
-{
-   switch (shader->stage) {
-   case MESA_SHADER_FRAGMENT:
-      return trans_nir_intrinsic_load_input_fs(shader, intr);
-
-   case MESA_SHADER_VERTEX:
-      return trans_nir_intrinsic_load_input_vs(shader, intr);
-
-   default:
-      break;
-   }
-
-   unreachable("Unimplemented NIR load_input variant.");
-}
-
-static bool trans_nir_intrinsic_store_output_fs(struct rogue_shader *shader,
-                                                nir_intrinsic_instr *intr)
-{
-   /* Src/dest validation. */
-   assert(nir_src_num_components(intr->src[0]) == 1);
-   assert(nir_src_bit_size(intr->src[0]) == 32);
-   assert(!nir_intr_src_is_const(intr, 0));
-
-   assert(nir_src_num_components(intr->src[1]) == 1);
-   assert(nir_src_bit_size(intr->src[1]) == 32);
-   assert(nir_intr_src_is_const(intr, 1));
-
-   /* Intrinsic index validation. */
-   assert(nir_intrinsic_src_type(intr) == nir_type_uint32);
-
-   /* Fetch the output offset. */
-   /* TODO: Is this really the right value to use for pixel out reg. num? */
-   size_t offset = nir_intr_src_const(intr, 1);
-
-   /* Fetch the components. */
-   size_t src_reg = nir_intr_src_regindex(intr, 0);
-
-   /* mov.olchk instruction. */
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MOV);
-
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     0,
-                                     ROGUE_OPERAND_TYPE_REG_PIXEL_OUT,
-                                     offset));
-   CHECK(rogue_instr_set_operand_vreg(instr, 1, src_reg));
-   CHECK(rogue_instr_set_flag(instr, ROGUE_INSTR_FLAG_OLCHK));
-
-   return true;
-}
-
-static bool trans_nir_intrinsic_store_output_vs(struct rogue_shader *shader,
-                                                nir_intrinsic_instr *intr)
-{
-   struct rogue_vs_build_data *vs_data = &shader->ctx->stage_data.vs;
-
-   /* Src/dest validation. */
-   assert(nir_src_num_components(intr->src[0]) == 1);
-   assert(nir_src_bit_size(intr->src[0]) == 32);
-   assert(!nir_intr_src_is_const(intr, 0));
-
-   assert(nir_src_num_components(intr->src[1]) == 1);
-   assert(nir_src_bit_size(intr->src[1]) == 32);
-   assert(nir_intr_src_is_const(intr, 1));
-
-   /* Intrinsic index validation. */
-   assert(nir_intrinsic_src_type(intr) == nir_type_float32);
-   assert(util_bitcount(nir_intrinsic_write_mask(intr)) == 1);
-
-   struct nir_io_semantics io_semantics = nir_intrinsic_io_semantics(intr);
-   size_t component = nir_intrinsic_component(intr);
-   size_t vo_index = rogue_output_index_vs(&vs_data->outputs,
-                                           io_semantics.location,
-                                           component);
-
-   size_t src_reg = nir_intr_src_regindex(intr, 0);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_VTXOUT);
-
-   CHECK(rogue_instr_set_operand_imm(instr, 0, vo_index));
-   CHECK(rogue_instr_set_operand_vreg(instr, 1, src_reg));
-
-   return true;
-}
-
-static bool trans_nir_intrinsic_store_output(struct rogue_shader *shader,
-                                             nir_intrinsic_instr *intr)
-{
-   switch (shader->stage) {
-   case MESA_SHADER_FRAGMENT:
-      return trans_nir_intrinsic_store_output_fs(shader, intr);
-
-   case MESA_SHADER_VERTEX:
-      return trans_nir_intrinsic_store_output_vs(shader, intr);
-
-   default:
-      break;
-   }
-
-   unreachable("Unimplemented NIR store_output variant.");
-}
-
-static bool trans_nir_intrinsic_load_ubo(struct rogue_shader *shader,
-                                         nir_intrinsic_instr *intr)
-{
-   struct rogue_ubo_data *ubo_data =
-      &shader->ctx->common_data[shader->stage].ubo_data;
-
-   /* Src/dest validation. */
-   assert(nir_dest_num_components(intr->dest) == 1);
-   assert(nir_dest_bit_size(intr->dest) == 32);
-
-   assert(nir_src_num_components(intr->src[0]) == 2);
-   assert(nir_src_bit_size(intr->src[0]) == 32);
-   assert(nir_intr_src_is_const(intr, 0));
-
-   assert(nir_src_num_components(intr->src[1]) == 1);
-   assert(nir_src_bit_size(intr->src[1]) == 32);
-   assert(nir_intr_src_is_const(intr, 1));
-
-   /* Intrinsic index validation. */
-   assert((nir_intrinsic_range_base(intr) % ROGUE_REG_SIZE_BYTES) == 0);
-   assert(nir_intrinsic_range(intr) == ROGUE_REG_SIZE_BYTES);
-
-   size_t nir_dest_reg = nir_intr_dest_regindex(intr);
-
-   size_t desc_set = nir_intr_src_comp_const(intr, 0, 0);
-   size_t binding = nir_intr_src_comp_const(intr, 0, 1);
-   size_t offset = nir_intrinsic_range_base(intr);
-
-   size_t sh_num = rogue_ubo_reg(ubo_data, desc_set, binding, offset);
-
-   struct rogue_instr *instr = rogue_shader_insert(shader, ROGUE_OP_MOV);
-
-   CHECK(rogue_instr_set_operand_vreg(instr, 0, nir_dest_reg));
-   CHECK(rogue_instr_set_operand_reg(instr,
-                                     1,
-                                     ROGUE_OPERAND_TYPE_REG_SHARED,
-                                     sh_num));
-   return true;
-}
-
-static bool trans_nir_intrinsic(struct rogue_shader *shader,
-                                nir_intrinsic_instr *intr)
-{
-   switch (intr->intrinsic) {
-   case nir_intrinsic_load_input:
-      return trans_nir_intrinsic_load_input(shader, intr);
-
-   case nir_intrinsic_store_output:
-      return trans_nir_intrinsic_store_output(shader, intr);
-
-   case nir_intrinsic_load_ubo:
-      return trans_nir_intrinsic_load_ubo(shader, intr);
-
-   default:
-      break;
-   }
-
-   unreachable("Unimplemented NIR intrinsic instruction.");
-}
-
-static bool trans_nir_load_const(struct rogue_shader *shader,
-                                 nir_load_const_instr *load_const)
-{
-   /* Src/dest validation. */
-   assert(load_const->def.bit_size == 32);
-
-   /* Ensure that two-component load_consts are used only by load_ubos. */
-   if (load_const->def.num_components == 2) {
-      nir_foreach_use (use_src, &load_const->def) {
-         nir_instr *instr = use_src->parent_instr;
-         assert(instr->type == nir_instr_type_intrinsic);
-
-         ASSERTED nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-         assert(intr->intrinsic == nir_intrinsic_load_ubo);
-      }
-   } else {
-      assert(load_const->def.num_components == 1);
-   }
-
-   /* TODO: This is currently done in MOV_IMM, but instead now would be the
-    * time to lookup the constant value, see if it lives in const regs, or if
-    * it needs to generate a MOV_IMM (or be constant calc-ed).
-    */
-   return true;
-}
-
-static bool trans_nir_jump_return(struct rogue_shader *shader,
-                                  nir_jump_instr *jump)
-{
-   enum rogue_opcode return_op;
-
-   switch (shader->stage) {
-   case MESA_SHADER_FRAGMENT:
-      return_op = ROGUE_OP_END_FRAG;
-      break;
-
-   case MESA_SHADER_VERTEX:
-      return_op = ROGUE_OP_END_VERT;
-      break;
-
-   default:
-      unreachable("Unimplemented NIR return instruction type.");
-   }
-
-   rogue_shader_insert(shader, return_op);
-
-   return true;
-}
-
-static bool trans_nir_jump(struct rogue_shader *shader, nir_jump_instr *jump)
-{
-   switch (jump->type) {
-   case nir_jump_return:
-      return trans_nir_jump_return(shader, jump);
-
-   default:
-      break;
-   }
-
-   unreachable("Unimplemented NIR jump instruction type.");
+   reg->class = class;
+   reg->index = index;
+   reg->dirty = true;
+
+   /* Clear the old cache entry. */
+   if (reg->cached && *reg->cached == reg)
+      *reg->cached = NULL;
+
+   /* Set new cache entry. */
+   rogue_reg **reg_cached =
+      util_sparse_array_get(&shader->reg_cache[class], index);
+   *reg_cached = reg;
+   reg->cached = reg_cached;
+
+   return changed;
 }
 
 /**
- * \brief Converts a NIR shader to Rogue.
+ * \brief Sets an existing register to a (new) class and/or index, and updates
+ * its usage bitset.
  *
- * \param[in] ctx Shared multi-stage build context.
- * \param[in] nir NIR shader.
- * \return A rogue_shader* if successful, or NULL if unsuccessful.
+ * \param[in] shader The shader containing the register.
+ * \param[in] reg The register being changed.
+ * \param[in] class The new register class.
+ * \param[in] index The new register index.
+ * \return True if the register was updated, else false.
  */
-struct rogue_shader *rogue_nir_to_rogue(struct rogue_build_ctx *ctx,
-                                        const nir_shader *nir)
+PUBLIC
+bool rogue_reg_rewrite(rogue_shader *shader,
+                       rogue_reg *reg,
+                       enum rogue_reg_class class,
+                       unsigned index)
 {
-   gl_shader_stage stage = nir->info.stage;
-   struct rogue_shader *shader = rogue_shader_create(ctx, stage);
-   if (!shader)
-      return NULL;
+   const rogue_reg_info *info = &rogue_reg_infos[reg->class];
+   if (info->num) {
+      assert(rogue_reg_is_used(shader, reg->class, reg->index) &&
+             "Register not in use!");
+      rogue_clear_reg_use(shader, reg->class, reg->index);
+   }
 
-   /* Make sure we only have a single function. */
-   assert(exec_list_length(&nir->functions) == 1);
+   return rogue_reg_set(shader, reg, class, index);
+}
 
-   /* Translate shader entrypoint. */
-   nir_function_impl *entry = nir_shader_get_entrypoint((nir_shader *)nir);
-   nir_foreach_block (block, entry) {
-      nir_foreach_instr (instr, block) {
-         switch (instr->type) {
-         case nir_instr_type_alu:
-            /* TODO: Cleanup on failure. */
-            CHECKF(trans_nir_alu(shader, nir_instr_as_alu(instr)),
-                   "Failed to translate NIR ALU instruction.");
+PUBLIC
+bool rogue_regarray_set(rogue_shader *shader,
+                        rogue_regarray *regarray,
+                        enum rogue_reg_class class,
+                        unsigned base_index,
+                        bool set_regs)
+{
+   bool updated = true;
+
+   if (set_regs) {
+      for (unsigned u = 0; u < regarray->size; ++u) {
+         updated &=
+            rogue_reg_set(shader, regarray->regs[u], class, base_index + u);
+      }
+   }
+
+   if (regarray->cached && *regarray->cached == regarray)
+      *regarray->cached = NULL;
+
+   uint64_t key =
+      rogue_regarray_cache_key(regarray->size, class, base_index, false, 0);
+
+   rogue_regarray **regarray_cached =
+      util_sparse_array_get(&shader->regarray_cache, key);
+   assert(*regarray_cached == NULL);
+
+   *regarray_cached = regarray;
+   regarray->cached = regarray_cached;
+
+   return updated;
+}
+
+bool rogue_regarray_rewrite(rogue_shader *shader,
+                            rogue_regarray *regarray,
+                            enum rogue_reg_class class,
+                            unsigned base_index)
+{
+   bool progress = true;
+
+   enum rogue_reg_class orig_class = regarray->regs[0]->class;
+   unsigned orig_base_index = regarray->regs[0]->index;
+   const rogue_reg_info *info = &rogue_reg_infos[orig_class];
+
+   assert(!regarray->parent);
+
+   if (info->num) {
+      for (unsigned u = 0; u < regarray->size; ++u) {
+         assert(rogue_reg_is_used(shader, orig_class, orig_base_index) &&
+                "Register not in use!");
+         rogue_clear_reg_use(shader, orig_class, orig_base_index);
+      }
+   }
+
+   progress &= rogue_regarray_set(shader, regarray, class, base_index, true);
+
+   rogue_foreach_subarray (subarray, regarray) {
+      unsigned idx_offset = subarray->regs[0]->index - regarray->regs[0]->index;
+      progress &= rogue_regarray_set(shader,
+                                     subarray,
+                                     class,
+                                     base_index + idx_offset,
+                                     false);
+   }
+
+   assert(progress);
+   return progress;
+}
+
+static void rogue_shader_destructor(void *ptr)
+{
+   rogue_shader *shader = ptr;
+   for (unsigned u = 0; u < ARRAY_SIZE(shader->reg_cache); ++u)
+      util_sparse_array_finish(&shader->reg_cache[u]);
+
+   util_sparse_array_finish(&shader->regarray_cache);
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_shader object.
+ *
+ * \param[in] mem_ctx The new shader's memory context.
+ * \param[in] stage The new shader's stage.
+ * \return The new shader.
+ */
+PUBLIC
+rogue_shader *rogue_shader_create(void *mem_ctx, gl_shader_stage stage)
+{
+   rogue_debug_init();
+
+   rogue_shader *shader = rzalloc_size(mem_ctx, sizeof(*shader));
+
+   shader->stage = stage;
+
+   list_inithead(&shader->blocks);
+
+   for (enum rogue_reg_class class = 0; class < ROGUE_REG_CLASS_COUNT;
+        ++class) {
+      list_inithead(&shader->regs[class]);
+
+      const rogue_reg_info *info = &rogue_reg_infos[class];
+      if (info->num) {
+         unsigned bitset_size =
+            sizeof(*shader->regs_used[class]) * BITSET_WORDS(info->num);
+         shader->regs_used[class] = rzalloc_size(shader, bitset_size);
+      }
+   }
+
+   for (unsigned u = 0; u < ARRAY_SIZE(shader->reg_cache); ++u)
+      util_sparse_array_init(&shader->reg_cache[u],
+                             sizeof(rogue_reg *),
+                             ROGUE_REG_CACHE_NODE_SIZE);
+
+   list_inithead(&shader->regarrays);
+
+   util_sparse_array_init(&shader->regarray_cache,
+                          sizeof(rogue_regarray *),
+                          ROGUE_REGARRAY_CACHE_NODE_SIZE);
+
+   for (unsigned u = 0; u < ARRAY_SIZE(shader->drc_trxns); ++u)
+      list_inithead(&shader->drc_trxns[u]);
+
+   list_inithead(&shader->imm_uses);
+
+   ralloc_set_destructor(shader, rogue_shader_destructor);
+
+   return shader;
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_reg object.
+ *
+ * \param[in] shader The shader which will contain the register.
+ * \param[in] class The register class.
+ * \param[in] index The register index.
+ * \param[in] reg_cached The shader register cache.
+ * \return The new register.
+ */
+static rogue_reg *rogue_reg_create(rogue_shader *shader,
+                                   enum rogue_reg_class class,
+                                   uint32_t index,
+                                   rogue_reg **reg_cached)
+{
+   rogue_reg *reg = rzalloc_size(shader, sizeof(*reg));
+
+   reg->shader = shader;
+   reg->class = class;
+   reg->index = index;
+   reg->cached = reg_cached;
+
+   list_addtail(&reg->link, &shader->regs[class]);
+   list_inithead(&reg->writes);
+   list_inithead(&reg->uses);
+
+   const rogue_reg_info *info = &rogue_reg_infos[class];
+   if (info->num) {
+      assert(index < info->num);
+      assert(!rogue_reg_is_used(shader, class, index) &&
+             "Register already in use!");
+      rogue_set_reg_use(shader, class, index);
+   }
+
+   return reg;
+}
+
+/**
+ * \brief Deletes and frees a Rogue register.
+ *
+ * \param[in] reg The register to delete.
+ */
+PUBLIC
+void rogue_reg_delete(rogue_reg *reg)
+{
+   assert(rogue_reg_is_unused(reg));
+   const rogue_reg_info *info = &rogue_reg_infos[reg->class];
+   if (info->num) {
+      assert(rogue_reg_is_used(reg->shader, reg->class, reg->index) &&
+             "Register not in use!");
+      rogue_clear_reg_use(reg->shader, reg->class, reg->index);
+   }
+
+   if (reg->cached && *reg->cached == reg)
+      *reg->cached = NULL;
+
+   list_del(&reg->link);
+   ralloc_free(reg);
+}
+
+static inline rogue_reg *rogue_reg_cached_common(rogue_shader *shader,
+                                                 enum rogue_reg_class class,
+                                                 uint32_t index,
+                                                 uint8_t component,
+                                                 bool vec)
+{
+   uint32_t key = rogue_reg_cache_key(index, vec, component);
+
+   rogue_reg **reg_cached =
+      util_sparse_array_get(&shader->reg_cache[class], key);
+   if (!*reg_cached)
+      *reg_cached = rogue_reg_create(shader, class, key, reg_cached);
+
+   return *reg_cached;
+}
+
+static inline rogue_reg *rogue_reg_cached(rogue_shader *shader,
+                                          enum rogue_reg_class class,
+                                          uint32_t index)
+{
+   return rogue_reg_cached_common(shader, class, index, 0, false);
+}
+
+static inline rogue_reg *rogue_vec_reg_cached(rogue_shader *shader,
+                                              enum rogue_reg_class class,
+                                              unsigned index,
+                                              unsigned component)
+{
+   return rogue_reg_cached_common(shader, class, index, component, true);
+}
+
+/* TODO: Static inline in rogue.h? */
+PUBLIC
+rogue_reg *rogue_ssa_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_SSA, index);
+}
+
+PUBLIC
+rogue_reg *rogue_temp_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_TEMP, index);
+}
+
+PUBLIC
+rogue_reg *rogue_coeff_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_COEFF, index);
+}
+
+PUBLIC
+rogue_reg *rogue_shared_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_SHARED, index);
+}
+
+PUBLIC
+rogue_reg *rogue_const_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_CONST, index);
+}
+
+PUBLIC
+rogue_reg *rogue_pixout_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_PIXOUT, index);
+}
+
+PUBLIC
+rogue_reg *rogue_special_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_SPECIAL, index);
+}
+
+PUBLIC
+rogue_reg *rogue_vtxin_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_VTXIN, index);
+}
+
+PUBLIC
+rogue_reg *rogue_vtxout_reg(rogue_shader *shader, unsigned index)
+{
+   return rogue_reg_cached(shader, ROGUE_REG_CLASS_VTXOUT, index);
+}
+
+PUBLIC
+rogue_reg *
+rogue_ssa_vec_reg(rogue_shader *shader, unsigned index, unsigned component)
+{
+   return rogue_vec_reg_cached(shader, ROGUE_REG_CLASS_SSA, index, component);
+}
+
+static rogue_regarray *rogue_find_common_regarray(rogue_regarray *regarray,
+                                                  bool *is_parent,
+                                                  rogue_reg ***parent_regptr)
+{
+   rogue_regarray *common_regarray = NULL;
+
+   for (unsigned u = 0; u < regarray->size; ++u) {
+      if (regarray->regs[u]->regarray) {
+         if (common_regarray && regarray->regs[u]->regarray != common_regarray)
+            unreachable("Can't have overlapping regarrays.");
+         else if (!common_regarray)
+            common_regarray = regarray->regs[u]->regarray;
+      }
+   }
+
+   if (common_regarray) {
+      unsigned min_index = regarray->regs[0]->index;
+      unsigned max_index = min_index + regarray->size - 1;
+
+      unsigned min_common_index = common_regarray->regs[0]->index;
+      unsigned max_common_index = min_common_index + common_regarray->size - 1;
+
+      /* TODO: Create a new parent array that encapsulates both ranges? */
+      /* Ensure that the new regarray doesn't occupy only part of its parent,
+       * and also registers *beyond* its parent. */
+      if ((min_index > min_common_index && max_index > max_common_index) ||
+          (min_index < min_common_index && max_index < max_common_index))
+         unreachable("Can't have overflowing partial regarrays.");
+
+      *is_parent = regarray->size > common_regarray->size;
+      const rogue_regarray *parent_regarray = *is_parent ? regarray
+                                                         : common_regarray;
+      const rogue_regarray *child_regarray = *is_parent ? common_regarray
+                                                        : regarray;
+
+      for (unsigned u = 0; u < parent_regarray->size; ++u) {
+         if (child_regarray->regs[0]->index ==
+             parent_regarray->regs[u]->index) {
+            *parent_regptr = &parent_regarray->regs[u];
             break;
-
-         case nir_instr_type_intrinsic:
-            CHECKF(trans_nir_intrinsic(shader, nir_instr_as_intrinsic(instr)),
-                   "Failed to translate NIR intrinsic instruction.");
-            break;
-
-         case nir_instr_type_load_const:
-            CHECKF(trans_nir_load_const(shader, nir_instr_as_load_const(instr)),
-                   "Failed to translate NIR load_const instruction.");
-            break;
-
-         case nir_instr_type_jump:
-            CHECKF(trans_nir_jump(shader, nir_instr_as_jump(instr)),
-                   "Failed to translate NIR jump instruction.");
-            break;
-
-         default:
-            unreachable("Unimplemented NIR instruction type.");
          }
       }
    }
 
-   /* Perform register allocation. */
-   /* TODO: handle failure. */
-   if (!rogue_ra_alloc(&shader->instr_list,
-                       shader->ra,
-                       &ctx->common_data[stage].temps,
-                       &ctx->common_data[stage].internals))
+   return common_regarray;
+}
+
+static rogue_regarray *rogue_regarray_create(rogue_shader *shader,
+                                             unsigned size,
+                                             enum rogue_reg_class class,
+                                             unsigned start_index,
+                                             uint8_t component,
+                                             bool vec,
+                                             rogue_regarray **regarray_cached)
+{
+   rogue_regarray *regarray = rzalloc_size(shader, sizeof(*regarray));
+   regarray->regs = rzalloc_size(regarray, sizeof(*regarray->regs) * size);
+   regarray->size = size;
+   regarray->cached = regarray_cached;
+   list_inithead(&regarray->children);
+   list_inithead(&regarray->writes);
+   list_inithead(&regarray->uses);
+
+   for (unsigned u = 0; u < size; ++u) {
+      regarray->regs[u] =
+         vec ? rogue_vec_reg_cached(shader, class, start_index, component + u)
+             : rogue_reg_cached(shader, class, start_index + u);
+   }
+
+   bool is_parent = false;
+   rogue_reg **parent_regptr = NULL;
+   rogue_regarray *common_regarray =
+      rogue_find_common_regarray(regarray, &is_parent, &parent_regptr);
+
+   if (!common_regarray) {
+      /* We don't share any registers with another regarray. */
+      for (unsigned u = 0; u < size; ++u)
+         regarray->regs[u]->regarray = regarray;
+   } else {
+      if (is_parent) {
+         /* We share registers with another regarray, and it is a subset of us.
+          */
+         for (unsigned u = 0; u < common_regarray->size; ++u)
+            common_regarray->regs[u]->regarray = regarray;
+
+         /* Steal its children. */
+         rogue_foreach_subarray_safe (subarray, common_regarray) {
+            unsigned parent_index = common_regarray->regs[0]->index;
+            unsigned child_index = subarray->regs[0]->index;
+            assert(child_index >= parent_index);
+
+            subarray->parent = regarray;
+            subarray->regs = &parent_regptr[child_index - parent_index];
+
+            list_del(&subarray->child_link);
+            list_addtail(&subarray->child_link, &regarray->children);
+         }
+
+         common_regarray->parent = regarray;
+         ralloc_free(common_regarray->regs);
+         common_regarray->regs = parent_regptr;
+         list_addtail(&common_regarray->child_link, &regarray->children);
+      } else {
+         /* We share registers with another regarray, and we are a subset of it.
+          */
+         regarray->parent = common_regarray;
+         ralloc_free(regarray->regs);
+         regarray->regs = parent_regptr;
+         assert(list_is_empty(&regarray->children));
+         list_addtail(&regarray->child_link, &common_regarray->children);
+      }
+   }
+
+   list_addtail(&regarray->link, &shader->regarrays);
+
+   return regarray;
+}
+
+static inline rogue_regarray *
+rogue_regarray_cached_common(rogue_shader *shader,
+                             unsigned size,
+                             enum rogue_reg_class class,
+                             uint32_t start_index,
+                             uint8_t component,
+                             bool vec)
+{
+   uint64_t key =
+      rogue_regarray_cache_key(size, class, start_index, vec, component);
+
+   rogue_regarray **regarray_cached =
+      util_sparse_array_get(&shader->regarray_cache, key);
+   if (!*regarray_cached)
+      *regarray_cached = rogue_regarray_create(shader,
+                                               size,
+                                               class,
+                                               start_index,
+                                               component,
+                                               vec,
+                                               regarray_cached);
+
+   return *regarray_cached;
+}
+
+PUBLIC
+rogue_regarray *rogue_regarray_cached(rogue_shader *shader,
+                                      unsigned size,
+                                      enum rogue_reg_class class,
+                                      uint32_t start_index)
+{
+   return rogue_regarray_cached_common(shader,
+                                       size,
+                                       class,
+                                       start_index,
+                                       0,
+                                       false);
+}
+
+PUBLIC
+rogue_regarray *rogue_vec_regarray_cached(rogue_shader *shader,
+                                          unsigned size,
+                                          enum rogue_reg_class class,
+                                          uint32_t start_index,
+                                          uint8_t component)
+{
+   return rogue_regarray_cached_common(shader,
+                                       size,
+                                       class,
+                                       start_index,
+                                       component,
+                                       true);
+}
+
+PUBLIC
+rogue_regarray *
+rogue_ssa_regarray(rogue_shader *shader, unsigned size, unsigned start_index)
+{
+   return rogue_regarray_cached(shader, size, ROGUE_REG_CLASS_SSA, start_index);
+}
+
+PUBLIC
+rogue_regarray *
+rogue_temp_regarray(rogue_shader *shader, unsigned size, unsigned start_index)
+{
+   return rogue_regarray_cached(shader, size, ROGUE_REG_CLASS_TEMP, start_index);
+}
+
+PUBLIC
+rogue_regarray *
+rogue_coeff_regarray(rogue_shader *shader, unsigned size, unsigned start_index)
+{
+   return rogue_regarray_cached(shader,
+                                size,
+                                ROGUE_REG_CLASS_COEFF,
+                                start_index);
+}
+
+PUBLIC
+rogue_regarray *
+rogue_shared_regarray(rogue_shader *shader, unsigned size, unsigned start_index)
+{
+   return rogue_regarray_cached(shader,
+                                size,
+                                ROGUE_REG_CLASS_SHARED,
+                                start_index);
+}
+
+PUBLIC
+rogue_regarray *rogue_ssa_vec_regarray(rogue_shader *shader,
+                                       unsigned size,
+                                       unsigned start_index,
+                                       unsigned component)
+{
+   return rogue_vec_regarray_cached(shader,
+                                    size,
+                                    ROGUE_REG_CLASS_SSA,
+                                    start_index,
+                                    component);
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_block object.
+ *
+ * \param[in] shader The shader that the new block belongs to.
+ * \param[in] label The (optional) block label.
+ * \return The new block.
+ */
+PUBLIC
+rogue_block *rogue_block_create(rogue_shader *shader, const char *label)
+{
+   rogue_block *block = rzalloc_size(shader, sizeof(*block));
+
+   block->shader = shader;
+   list_inithead(&block->instrs);
+   list_inithead(&block->uses);
+   block->index = shader->next_block++;
+   block->label = ralloc_strdup(block, label);
+
+   return block;
+}
+
+/**
+ * \brief Initialises a Rogue instruction.
+ *
+ * \param[in] instr The instruction to initialise.
+ * \param[in] type The instruction type.
+ * \param[in] block The block which will contain the instruction.
+ */
+static inline void rogue_instr_init(rogue_instr *instr,
+                                    enum rogue_instr_type type,
+                                    rogue_block *block)
+{
+   instr->type = type;
+   instr->exec_cond = ROGUE_EXEC_COND_PE_TRUE;
+   instr->repeat = 1;
+   instr->index = block->shader->next_instr++;
+   instr->block = block;
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_alu_instr object.
+ *
+ * \param[in] block The block that the new ALU instruction belongs to.
+ * \param[in] op The ALU operation.
+ * \return The new ALU instruction.
+ */
+PUBLIC
+rogue_alu_instr *rogue_alu_instr_create(rogue_block *block,
+                                        enum rogue_alu_op op)
+{
+   rogue_alu_instr *alu = rzalloc_size(block, sizeof(*alu));
+   rogue_instr_init(&alu->instr, ROGUE_INSTR_TYPE_ALU, block);
+   alu->op = op;
+
+   return alu;
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_backend_instr object.
+ *
+ * \param[in] block The block that the new backend instruction belongs to.
+ * \param[in] op The backend operation.
+ * \return The new backend instruction.
+ */
+PUBLIC
+rogue_backend_instr *rogue_backend_instr_create(rogue_block *block,
+                                                enum rogue_backend_op op)
+{
+   rogue_backend_instr *backend = rzalloc_size(block, sizeof(*backend));
+   rogue_instr_init(&backend->instr, ROGUE_INSTR_TYPE_BACKEND, block);
+   backend->op = op;
+
+   return backend;
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_ctrl_instr object.
+ *
+ * \param[in] block The block that the new control instruction belongs to.
+ * \param[in] op The control operation.
+ * \return The new control instruction.
+ */
+PUBLIC
+rogue_ctrl_instr *rogue_ctrl_instr_create(rogue_block *block,
+                                          enum rogue_ctrl_op op)
+{
+   rogue_ctrl_instr *ctrl = rzalloc_size(block, sizeof(*ctrl));
+   rogue_instr_init(&ctrl->instr, ROGUE_INSTR_TYPE_CTRL, block);
+   ctrl->op = op;
+
+   return ctrl;
+}
+
+/**
+ * \brief Allocates and initializes a new rogue_bitwise_instr object.
+ *
+ * \param[in] block The block that the new bitwise instruction belongs to.
+ * \param[in] op The bitwise operation.
+ * \return The new bitwise instruction.
+ */
+PUBLIC
+rogue_bitwise_instr *rogue_bitwise_instr_create(rogue_block *block,
+                                                enum rogue_bitwise_op op)
+{
+   rogue_bitwise_instr *bitwise = rzalloc_size(block, sizeof(*bitwise));
+   rogue_instr_init(&bitwise->instr, ROGUE_INSTR_TYPE_BITWISE, block);
+   bitwise->op = op;
+
+   return bitwise;
+}
+
+/**
+ * \brief Tracks/links objects that are written to/modified by an instruction.
+ *
+ * \param[in] instr The instruction.
+ */
+PUBLIC
+void rogue_link_instr_write(rogue_instr *instr)
+{
+   switch (instr->type) {
+   case ROGUE_INSTR_TYPE_ALU: {
+      rogue_alu_instr *alu = rogue_instr_as_alu(instr);
+      const unsigned num_dsts = rogue_alu_op_infos[alu->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&alu->dst[i].ref)) {
+            rogue_reg_write *write = &alu->dst_write[i].reg;
+            rogue_reg *reg = alu->dst[i].ref.reg;
+            rogue_link_instr_write_reg(instr, write, reg, i);
+         } else if (rogue_ref_is_regarray(&alu->dst[i].ref)) {
+            rogue_regarray_write *write = &alu->dst_write[i].regarray;
+            rogue_regarray *regarray = alu->dst[i].ref.regarray;
+            rogue_link_instr_write_regarray(instr, write, regarray, i);
+         } else if (rogue_ref_is_io(&alu->dst[i].ref)) { /* TODO: check WHICH IO
+                                                            IT IS */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BACKEND: {
+      rogue_backend_instr *backend = rogue_instr_as_backend(instr);
+      const unsigned num_dsts = rogue_backend_op_infos[backend->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&backend->dst[i].ref)) {
+            rogue_reg_write *write = &backend->dst_write[i].reg;
+            rogue_reg *reg = backend->dst[i].ref.reg;
+            rogue_link_instr_write_reg(instr, write, reg, i);
+         } else if (rogue_ref_is_regarray(&backend->dst[i].ref)) {
+            rogue_regarray_write *write = &backend->dst_write[i].regarray;
+            rogue_regarray *regarray = backend->dst[i].ref.regarray;
+            rogue_link_instr_write_regarray(instr, write, regarray, i);
+         } else if (rogue_ref_is_io(&backend->dst[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_CTRL: {
+      rogue_ctrl_instr *ctrl = rogue_instr_as_ctrl(instr);
+      const unsigned num_dsts = rogue_ctrl_op_infos[ctrl->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&ctrl->dst[i].ref)) {
+            rogue_reg_write *write = &ctrl->dst_write[i].reg;
+            rogue_reg *reg = ctrl->dst[i].ref.reg;
+            rogue_link_instr_write_reg(instr, write, reg, i);
+         } else if (rogue_ref_is_regarray(&ctrl->dst[i].ref)) {
+            rogue_regarray_write *write = &ctrl->dst_write[i].regarray;
+            rogue_regarray *regarray = ctrl->dst[i].ref.regarray;
+            rogue_link_instr_write_regarray(instr, write, regarray, i);
+         } else if (rogue_ref_is_io(&ctrl->dst[i].ref)) { /* TODO: check WHICH
+                                                             IO IT IS */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BITWISE: {
+      rogue_bitwise_instr *bitwise = rogue_instr_as_bitwise(instr);
+      const unsigned num_dsts = rogue_bitwise_op_infos[bitwise->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&bitwise->dst[i].ref)) {
+            rogue_reg_write *write = &bitwise->dst_write[i].reg;
+            rogue_reg *reg = bitwise->dst[i].ref.reg;
+            rogue_link_instr_write_reg(instr, write, reg, i);
+         } else if (rogue_ref_is_regarray(&bitwise->dst[i].ref)) {
+            rogue_regarray_write *write = &bitwise->dst_write[i].regarray;
+            rogue_regarray *regarray = bitwise->dst[i].ref.regarray;
+            rogue_link_instr_write_regarray(instr, write, regarray, i);
+         } else if (rogue_ref_is_io(&bitwise->dst[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   default:
+      unreachable("Unsupported instruction type.");
+   }
+}
+
+/**
+ * \brief Tracks/links objects that are used by/read from an instruction.
+ *
+ * \param[in] instr The instruction.
+ */
+PUBLIC
+void rogue_link_instr_use(rogue_instr *instr)
+{
+   switch (instr->type) {
+   case ROGUE_INSTR_TYPE_ALU: {
+      rogue_alu_instr *alu = rogue_instr_as_alu(instr);
+      const unsigned num_srcs = rogue_alu_op_infos[alu->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&alu->src[i].ref)) {
+            rogue_reg_use *use = &alu->src_use[i].reg;
+            rogue_reg *reg = alu->src[i].ref.reg;
+            rogue_link_instr_use_reg(instr, use, reg, i);
+         } else if (rogue_ref_is_regarray(&alu->src[i].ref)) {
+            rogue_regarray_use *use = &alu->src_use[i].regarray;
+            rogue_regarray *regarray = alu->src[i].ref.regarray;
+            rogue_link_instr_use_regarray(instr, use, regarray, i);
+         } else if (rogue_ref_is_imm(&alu->src[i].ref)) {
+            rogue_link_imm_use(instr->block->shader,
+                               instr,
+                               i,
+                               rogue_ref_get_imm(&alu->src[i].ref));
+         } else if (rogue_ref_is_io(&alu->src[i].ref)) { /* TODO: check WHICH IO
+                                                            IT IS */
+         } else if (rogue_ref_is_val(&alu->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BACKEND: {
+      rogue_backend_instr *backend = rogue_instr_as_backend(instr);
+      const unsigned num_srcs = rogue_backend_op_infos[backend->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&backend->src[i].ref)) {
+            rogue_reg_use *use = &backend->src_use[i].reg;
+            rogue_reg *reg = backend->src[i].ref.reg;
+            rogue_link_instr_use_reg(instr, use, reg, i);
+         } else if (rogue_ref_is_regarray(&backend->src[i].ref)) {
+            rogue_regarray_use *use = &backend->src_use[i].regarray;
+            rogue_regarray *regarray = backend->src[i].ref.regarray;
+            rogue_link_instr_use_regarray(instr, use, regarray, i);
+         } else if (rogue_ref_is_drc(&backend->src[i].ref)) {
+            rogue_link_drc_trxn(instr->block->shader,
+                                instr,
+                                rogue_ref_get_drc(&backend->src[i].ref));
+         } else if (rogue_ref_is_io(&backend->src[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else if (rogue_ref_is_val(&backend->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_CTRL: {
+      rogue_ctrl_instr *ctrl = rogue_instr_as_ctrl(instr);
+      const unsigned num_srcs = rogue_ctrl_op_infos[ctrl->op].num_srcs;
+
+      /* Branch instruction. */
+      if (!num_srcs && ctrl->target_block) {
+         rogue_link_instr_use_block(instr,
+                                    &ctrl->block_use,
+                                    ctrl->target_block);
+         break;
+      }
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&ctrl->src[i].ref)) {
+            rogue_reg_use *use = &ctrl->src_use[i].reg;
+            rogue_reg *reg = ctrl->src[i].ref.reg;
+            rogue_link_instr_use_reg(instr, use, reg, i);
+         } else if (rogue_ref_is_regarray(&ctrl->src[i].ref)) {
+            rogue_regarray_use *use = &ctrl->src_use[i].regarray;
+            rogue_regarray *regarray = ctrl->src[i].ref.regarray;
+            rogue_link_instr_use_regarray(instr, use, regarray, i);
+         } else if (rogue_ref_is_drc(&ctrl->src[i].ref)) {
+            /* WDF instructions consume/release drcs, handled independently. */
+            if (ctrl->op != ROGUE_CTRL_OP_WDF)
+               rogue_link_drc_trxn(instr->block->shader,
+                                   instr,
+                                   rogue_ref_get_drc(&ctrl->src[i].ref));
+         } else if (rogue_ref_is_io(&ctrl->src[i].ref)) { /* TODO: check WHICH
+                                                             IO IT IS */
+         } else if (rogue_ref_is_val(&ctrl->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BITWISE: {
+      rogue_bitwise_instr *bitwise = rogue_instr_as_bitwise(instr);
+      const unsigned num_srcs = rogue_bitwise_op_infos[bitwise->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&bitwise->src[i].ref)) {
+            rogue_reg_use *use = &bitwise->src_use[i].reg;
+            rogue_reg *reg = bitwise->src[i].ref.reg;
+            rogue_link_instr_use_reg(instr, use, reg, i);
+         } else if (rogue_ref_is_regarray(&bitwise->src[i].ref)) {
+            rogue_regarray_use *use = &bitwise->src_use[i].regarray;
+            rogue_regarray *regarray = bitwise->src[i].ref.regarray;
+            rogue_link_instr_use_regarray(instr, use, regarray, i);
+         } else if (rogue_ref_is_drc(&bitwise->src[i].ref)) {
+            rogue_link_drc_trxn(instr->block->shader,
+                                instr,
+                                rogue_ref_get_drc(&bitwise->src[i].ref));
+         } else if (rogue_ref_is_io(&bitwise->src[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else if (rogue_ref_is_val(&bitwise->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   default:
+      unreachable("Unsupported instruction type.");
+   }
+}
+
+/**
+ * \brief Untracks/unlinks objects that are written to/modified by an
+ * instruction.
+ *
+ * \param[in] instr The instruction.
+ */
+PUBLIC
+void rogue_unlink_instr_write(rogue_instr *instr)
+{
+   switch (instr->type) {
+   case ROGUE_INSTR_TYPE_ALU: {
+      rogue_alu_instr *alu = rogue_instr_as_alu(instr);
+      const unsigned num_dsts = rogue_alu_op_infos[alu->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&alu->dst[i].ref)) {
+            rogue_reg_write *write = &alu->dst_write[i].reg;
+            rogue_unlink_instr_write_reg(instr, write);
+         } else if (rogue_ref_is_regarray(&alu->dst[i].ref)) {
+            rogue_regarray_write *write = &alu->dst_write[i].regarray;
+            rogue_unlink_instr_write_regarray(instr, write);
+         } else if (rogue_ref_is_io(&alu->dst[i].ref)) { /* TODO: check WHICH IO
+                                                            IT IS */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BACKEND: {
+      rogue_backend_instr *backend = rogue_instr_as_backend(instr);
+      const unsigned num_dsts = rogue_backend_op_infos[backend->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&backend->dst[i].ref)) {
+            rogue_reg_write *write = &backend->dst_write[i].reg;
+            rogue_unlink_instr_write_reg(instr, write);
+         } else if (rogue_ref_is_regarray(&backend->dst[i].ref)) {
+            rogue_regarray_write *write = &backend->dst_write[i].regarray;
+            rogue_unlink_instr_write_regarray(instr, write);
+         } else if (rogue_ref_is_io(&backend->dst[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_CTRL: {
+      rogue_ctrl_instr *ctrl = rogue_instr_as_ctrl(instr);
+      const unsigned num_dsts = rogue_ctrl_op_infos[ctrl->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&ctrl->dst[i].ref)) {
+            rogue_reg_write *write = &ctrl->dst_write[i].reg;
+            rogue_unlink_instr_write_reg(instr, write);
+         } else if (rogue_ref_is_regarray(&ctrl->dst[i].ref)) {
+            rogue_regarray_write *write = &ctrl->dst_write[i].regarray;
+            rogue_unlink_instr_write_regarray(instr, write);
+         } else if (rogue_ref_is_io(&ctrl->dst[i].ref)) { /* TODO: check WHICH
+                                                             IO IT IS */
+         } else {
+            unreachable("Unsupported destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BITWISE: {
+      rogue_bitwise_instr *bitwise = rogue_instr_as_bitwise(instr);
+      const unsigned num_dsts = rogue_bitwise_op_infos[bitwise->op].num_dsts;
+
+      for (unsigned i = 0; i < num_dsts; ++i) {
+         if (rogue_ref_is_reg(&bitwise->dst[i].ref)) {
+            rogue_reg_write *write = &bitwise->dst_write[i].reg;
+            rogue_unlink_instr_write_reg(instr, write);
+         } else if (rogue_ref_is_regarray(&bitwise->dst[i].ref)) {
+            rogue_regarray_write *write = &bitwise->dst_write[i].regarray;
+            rogue_unlink_instr_write_regarray(instr, write);
+         } else {
+            unreachable("Invalid destination reference type.");
+         }
+      }
+
+      break;
+   }
+
+   default:
+      unreachable("Unsupported instruction type.");
+   }
+}
+
+/**
+ * \brief Untracks/unlinks objects that are used by/read from an instruction.
+ *
+ * \param[in] instr The instruction.
+ */
+PUBLIC
+void rogue_unlink_instr_use(rogue_instr *instr)
+{
+   switch (instr->type) {
+   case ROGUE_INSTR_TYPE_ALU: {
+      rogue_alu_instr *alu = rogue_instr_as_alu(instr);
+      const unsigned num_srcs = rogue_alu_op_infos[alu->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&alu->src[i].ref)) {
+            rogue_reg_use *use = &alu->src_use[i].reg;
+            rogue_unlink_instr_use_reg(instr, use);
+         } else if (rogue_ref_is_regarray(&alu->src[i].ref)) {
+            rogue_regarray_use *use = &alu->src_use[i].regarray;
+            rogue_unlink_instr_use_regarray(instr, use);
+         } else if (rogue_ref_is_imm(&alu->src[i].ref)) {
+            rogue_unlink_imm_use(instr,
+                                 &rogue_ref_get_imm(&alu->src[i].ref)->use);
+         } else if (rogue_ref_is_io(&alu->src[i].ref)) { /* TODO: check WHICH IO
+                                                            IT IS */
+         } else if (rogue_ref_is_val(&alu->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BACKEND: {
+      rogue_backend_instr *backend = rogue_instr_as_backend(instr);
+      const unsigned num_srcs = rogue_backend_op_infos[backend->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&backend->src[i].ref)) {
+            rogue_reg_use *use = &backend->src_use[i].reg;
+            rogue_unlink_instr_use_reg(instr, use);
+         } else if (rogue_ref_is_regarray(&backend->src[i].ref)) {
+            rogue_regarray_use *use = &backend->src_use[i].regarray;
+            rogue_unlink_instr_use_regarray(instr, use);
+         } else if (rogue_ref_is_drc(&backend->src[i].ref)) {
+            rogue_unlink_drc_trxn(instr->block->shader,
+                                  instr,
+                                  rogue_ref_get_drc(&backend->src[i].ref));
+         } else if (rogue_ref_is_io(&backend->src[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else if (rogue_ref_is_val(&backend->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_CTRL: {
+      rogue_ctrl_instr *ctrl = rogue_instr_as_ctrl(instr);
+      const unsigned num_srcs = rogue_ctrl_op_infos[ctrl->op].num_srcs;
+
+      /* Branch instruction. */
+      if (!num_srcs && ctrl->target_block) {
+         rogue_unlink_instr_use_block(instr, &ctrl->block_use);
+         break;
+      }
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&ctrl->src[i].ref)) {
+            rogue_reg_use *use = &ctrl->src_use[i].reg;
+            rogue_unlink_instr_use_reg(instr, use);
+         } else if (rogue_ref_is_regarray(&ctrl->src[i].ref)) {
+            rogue_regarray_use *use = &ctrl->src_use[i].regarray;
+            rogue_unlink_instr_use_regarray(instr, use);
+         } else if (rogue_ref_is_drc(&ctrl->src[i].ref)) {
+            /* WDF instructions consume/release drcs, handled independently. */
+            if (ctrl->op != ROGUE_CTRL_OP_WDF)
+               rogue_unlink_drc_trxn(instr->block->shader,
+                                     instr,
+                                     rogue_ref_get_drc(&ctrl->src[i].ref));
+         } else if (rogue_ref_is_io(&ctrl->src[i].ref)) { /* TODO: check WHICH
+                                                             IO IT IS */
+         } else if (rogue_ref_is_val(&ctrl->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   case ROGUE_INSTR_TYPE_BITWISE: {
+      rogue_bitwise_instr *bitwise = rogue_instr_as_bitwise(instr);
+      const unsigned num_srcs = rogue_bitwise_op_infos[bitwise->op].num_srcs;
+
+      for (unsigned i = 0; i < num_srcs; ++i) {
+         if (rogue_ref_is_reg(&bitwise->src[i].ref)) {
+            rogue_reg_use *use = &bitwise->src_use[i].reg;
+            rogue_unlink_instr_use_reg(instr, use);
+         } else if (rogue_ref_is_regarray(&bitwise->src[i].ref)) {
+            rogue_regarray_use *use = &bitwise->src_use[i].regarray;
+            rogue_unlink_instr_use_regarray(instr, use);
+         } else if (rogue_ref_is_drc(&bitwise->src[i].ref)) {
+            rogue_unlink_drc_trxn(instr->block->shader,
+                                  instr,
+                                  rogue_ref_get_drc(&bitwise->src[i].ref));
+         } else if (rogue_ref_is_io(&bitwise->src[i].ref)) { /* TODO: check
+                                                                WHICH IO IT IS
+                                                              */
+         } else if (rogue_ref_is_val(&bitwise->src[i].ref)) {
+         } else {
+            unreachable("Unsupported source reference type.");
+         }
+      }
+
+      break;
+   }
+
+   default:
+      unreachable("Unsupported instruction type.");
+   }
+}
+
+static void rogue_compiler_destructor(UNUSED void *ptr)
+{
+   glsl_type_singleton_decref();
+}
+
+/**
+ * \brief Creates and sets up a Rogue compiler context.
+ *
+ * \param[in] dev_info Device info pointer.
+ * \return A pointer to the new compiler context, or NULL on failure.
+ */
+PUBLIC
+rogue_compiler *rogue_compiler_create(const struct pvr_device_info *dev_info)
+{
+   rogue_compiler *compiler;
+
+   rogue_debug_init();
+
+   compiler = rzalloc_size(NULL, sizeof(*compiler));
+   if (!compiler)
       return NULL;
 
-   return shader;
+   compiler->dev_info = dev_info;
+
+   /* TODO: Additional compiler setup (e.g. number of internal registers, BRNs,
+    * and other hw-specific info). */
+
+   glsl_type_singleton_init_or_ref();
+
+   ralloc_set_destructor(compiler, rogue_compiler_destructor);
+
+   return compiler;
 }
 
 /**
@@ -767,16 +1237,19 @@ struct rogue_shader *rogue_nir_to_rogue(struct rogue_build_ctx *ctx,
  * \param[in] compiler The compiler context.
  * \return A pointer to the new build context, or NULL on failure.
  */
-struct rogue_build_ctx *
-rogue_create_build_context(struct rogue_compiler *compiler)
+PUBLIC
+rogue_build_ctx *
+rogue_build_context_create(rogue_compiler *compiler,
+                           struct pvr_pipeline_layout *pipeline_layout)
 {
-   struct rogue_build_ctx *ctx;
+   rogue_build_ctx *ctx;
 
-   ctx = rzalloc_size(compiler, sizeof(*ctx));
+   ctx = rzalloc_size(NULL, sizeof(*ctx));
    if (!ctx)
       return NULL;
 
    ctx->compiler = compiler;
+   ctx->pipeline_layout = pipeline_layout;
 
    /* nir/rogue/binary shaders need to be default-zeroed;
     * this is taken care of by rzalloc_size.

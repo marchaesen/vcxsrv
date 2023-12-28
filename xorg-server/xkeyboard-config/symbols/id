@@ -1,3 +1,5 @@
+// Keyboard layouts for Indonesia.
+
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -218,4 +220,3 @@ xkb_symbols "pegon-phonetic" {
 
     include "level3(ralt_switch)"
 };
-

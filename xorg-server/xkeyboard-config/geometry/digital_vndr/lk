@@ -20,13 +20,13 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
 //
 // HISTORY
-// Log: lk,v 
+// Log: lk,v
 // Revision 1.2  1996/06/18  09:12:47  erik
 // use flags correctly, assorted cleanups and consortium fixes
 //
@@ -37,23 +37,23 @@
 // Revision 1.1.2.5  1995/08/11  19:35:47  William_Walker
 // 	Sync up with Erik's pool.
 // 	[1995/08/11  18:35:58  William_Walker]
-// 
+//
 // Revision 1.1.2.4  1995/06/27  12:17:28  William_Walker
 // 	Rename <TLDE> to ISO9995 compliant <AE00>.
 // 	[1995/06/26  20:23:07  William_Walker]
-// 
+//
 // Revision 1.1.2.3  1995/06/09  20:54:36  William_Walker
 // 	Add VT105 layout support and ISO group support
 // 	[1995/06/09  20:40:38  William_Walker]
-// 
+//
 // Revision 1.1.2.2  1995/06/05  19:21:16  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:05:43  William_Walker]
-// 
+//
 // EndLog
-// 
+//
 // @(#)RCSfile: lk,v  Revision: 1.2  (DEC) Date: 1996/01/24 12:16:00
-// 
+//
 xkb_geometry "lk201" {
     width	       = 530;
     height	       = 170;
@@ -126,16 +126,16 @@ xkb_geometry "lk201" {
 
     section "Alpha" { top = 60;
         row { top = 1; left = 15;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "MED" }
 	    };
         };
         row { top = 21; left = 15;
 	    keys {  { <TAB>, "MED" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
 
@@ -143,13 +143,13 @@ xkb_geometry "lk201" {
         row { top = 41;
 	    keys {  <LCTL>,
 		    { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys {  { <LFSH>, "LONG" },
-		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "LONG" }
 	    };
@@ -258,16 +258,16 @@ xkb_geometry "lk401" {
 
     section "Alpha" { top = 60;
         row { top = 1; left = 15;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "MED" }
 	    };
         };
         row { top = 21; left = 15;
 	    keys {	{ <TAB>, "MED" },
-	    	    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
 
@@ -275,13 +275,13 @@ xkb_geometry "lk401" {
         row { top = 41;
 	    keys {  <LCTL>,
 	    	    { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys { 	{ <LFSH>, "LONG" },
-		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "LONG" }
 	    };
@@ -395,16 +395,16 @@ xkb_geometry "lk450" {
 
     section "Alpha" { top = 60;
         row { top = 1; left = 15;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "MED" }
 	    };
         };
         row { top = 21; left = 15;
 	    keys {	{ <TAB>, "MED" },
-	    	    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
 
@@ -412,13 +412,13 @@ xkb_geometry "lk450" {
         row { top = 41;
 	    keys {  <LCTL>,
 	    	    { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys { 	{ <LFSH>, "LONG" },
-		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "LONG" }
 	    };
@@ -531,29 +531,29 @@ xkb_geometry "lk401bj"
 
     section "Alpha" { top = 60;
         row { top = 1; left = 15;
-	    keys {  <AE00>, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  <AE00>,
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "MED" }
 	    };
         };
         row { top = 21;	left = 15;
 	    keys {  { <TAB>, "MED" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 41;
 	    keys {  <LCTL>,
 		    { <CAPS>, "CAPS" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys {  { <LFSH>, "LONG" },
-		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB00>, <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "LONG" }
 	    };
@@ -667,28 +667,28 @@ xkb_geometry "lk401jj" {
 
     section "Alpha" { top = 70;
         row { top = 1; left = 7;
-	    keys {  { <AE00>, "MED1" }, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  { <AE00>, "MED1" },
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    <AB00>, { <BKSP>, "MED1" }
 	    };
         };
         row { top = 21; left = 7;
 	    keys {  { <TAB>, "LONG1" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 41;
 	    keys {  { <LCTL>, "CTRL" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys {  <CAPS>, { <LFSH>, "LONG1" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    <AB11>, { <RTSH>, "MED" }
 	    };

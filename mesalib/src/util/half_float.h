@@ -32,7 +32,7 @@
 #include "util/u_cpu_detect.h"
 
 #if defined(USE_X86_64_ASM)
-#include <immintrin.h>
+#include <xmmintrin.h>
 #endif
 
 #ifdef __cplusplus
@@ -44,7 +44,6 @@ extern "C" {
 
 uint16_t _mesa_float_to_half_slow(float val);
 float _mesa_half_to_float_slow(uint16_t val);
-uint8_t _mesa_half_to_unorm8(uint16_t v);
 uint16_t _mesa_uint16_div_64k_to_half(uint16_t v);
 
 /*

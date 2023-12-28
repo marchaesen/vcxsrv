@@ -37,6 +37,8 @@
 #include "freedreno_batch.h"
 #include "freedreno_util.h"
 
+BEGINC;
+
 #define PRSC_FMT                                                               \
    "p: target=%s, format=%s, %ux%ux%u, "                                       \
    "array_size=%u, last_level=%u, "                                            \
@@ -137,7 +139,7 @@ struct fd_resource {
    /* bitmask of state this resource could potentially dirty when rebound,
     * see rebind_resource()
     */
-   enum fd_dirty_3d_state dirty;
+   BITMASK_ENUM(fd_dirty_3d_state) dirty;
 
    /* Sequence # incremented each time bo changes: */
    uint16_t seqno;
@@ -180,12 +182,6 @@ fd_resource(struct pipe_resource *ptex)
    return (struct fd_resource *)ptex;
 }
 
-static inline const struct fd_resource *
-fd_resource_const(const struct pipe_resource *ptex)
-{
-   return (const struct fd_resource *)ptex;
-}
-
 static inline struct fd_memory_object *
 fd_memory_object(struct pipe_memory_object *pmemobj)
 {
@@ -217,8 +213,10 @@ resource_busy(struct fd_resource *rsc, unsigned op)
 
 int __fd_resource_wait(struct fd_context *ctx, struct fd_resource *rsc,
                        unsigned op, const char *func);
-#define fd_resource_wait(ctx, rsc, op)                                         \
-   __fd_resource_wait(ctx, rsc, op, __func__)
+#define fd_resource_wait(ctx, rsc, op) ({                                      \
+   MESA_TRACE_FUNC();                                                          \
+   __fd_resource_wait(ctx, rsc, op, __func__);                                 \
+})
 
 static inline void
 fd_resource_lock(struct fd_resource *rsc)
@@ -244,7 +242,7 @@ fd_resource_set_usage(struct pipe_resource *prsc, enum fd_dirty_3d_state usage)
    if (likely(rsc->dirty & usage))
       return;
    fd_resource_lock(rsc);
-   or_mask(rsc->dirty, usage);
+   rsc->dirty |= usage;
    fd_resource_unlock(rsc);
 }
 
@@ -253,6 +251,19 @@ has_depth(enum pipe_format format)
 {
    const struct util_format_description *desc = util_format_description(format);
    return util_format_has_depth(desc);
+}
+
+static inline bool
+is_z32(enum pipe_format format)
+{
+   switch (format) {
+   case PIPE_FORMAT_Z32_FLOAT_S8X24_UINT:
+   case PIPE_FORMAT_Z32_UNORM:
+   case PIPE_FORMAT_Z32_FLOAT:
+      return true;
+   default:
+      return false;
+   }
 }
 
 struct fd_transfer {
@@ -308,16 +319,6 @@ fd_resource_ubwc_offset(struct fd_resource *rsc, unsigned level, unsigned layer)
    return offset;
 }
 
-/* This might be a5xx specific, but higher mipmap levels are always linear: */
-static inline bool
-fd_resource_level_linear(const struct pipe_resource *prsc, int level)
-{
-   struct fd_screen *screen = fd_screen(prsc->screen);
-   assert(!is_a3xx(screen));
-
-   return fdl_level_linear(&fd_resource_const(prsc)->layout, level);
-}
-
 static inline uint32_t
 fd_resource_tile_mode(struct pipe_resource *prsc, int level)
 {
@@ -340,7 +341,7 @@ fd_resource_ubwc_enabled(struct fd_resource *rsc, int level)
  * most of the time)
  */
 static inline unsigned
-fd_resource_nr_samples(struct pipe_resource *prsc)
+fd_resource_nr_samples(const struct pipe_resource *prsc)
 {
    return MAX2(1, prsc->nr_samples);
 }
@@ -393,6 +394,65 @@ fd_batch_resource_read(struct fd_batch *batch,
       fd_batch_resource_read_slowpath(batch, rsc);
 }
 
+static inline bool
+needs_dirty_resource(struct fd_context *ctx, struct pipe_resource *prsc, bool write)
+   assert_dt
+{
+   if (!prsc)
+      return false;
+
+   struct fd_resource *rsc = fd_resource(prsc);
+
+   /* Switching between draw and non_draw will dirty all state, so if
+    * we pick the wrong one, all the bits in the dirty_resource state
+    * will be set anyways.. so no harm, no foul.
+    */
+   struct fd_batch *batch = ctx->batch_nondraw ? ctx->batch_nondraw : ctx->batch;
+
+   if (!batch)
+      return false;
+
+   if (write)
+      return rsc->track->write_batch != batch;
+
+   return !fd_batch_references_resource(batch, rsc);
+}
+
+static inline void
+fd_dirty_resource(struct fd_context *ctx, struct pipe_resource *prsc,
+                  BITMASK_ENUM(fd_dirty_3d_state) dirty, bool write)
+   assert_dt
+{
+   fd_context_dirty(ctx, dirty);
+
+   if (ctx->dirty_resource & dirty)
+      return;
+
+   if (!needs_dirty_resource(ctx, prsc, write))
+      return;
+
+   ctx->dirty_resource |= dirty;
+}
+
+static inline void
+fd_dirty_shader_resource(struct fd_context *ctx, struct pipe_resource *prsc,
+                         enum pipe_shader_type shader,
+                         BITMASK_ENUM(fd_dirty_shader_state) dirty,
+                         bool write)
+   assert_dt
+{
+   fd_context_dirty_shader(ctx, shader, dirty);
+
+   if (ctx->dirty_shader_resource[shader] & dirty)
+      return;
+
+   if (!needs_dirty_resource(ctx, prsc, write))
+      return;
+
+   ctx->dirty_shader_resource[shader] |= dirty;
+   ctx->dirty_resource |= dirty_shader_to_dirty_state(dirty);
+}
+
 static inline enum fdl_view_type
 fdl_type_from_pipe_target(enum pipe_texture_target target) {
    switch (target) {
@@ -413,5 +473,7 @@ fdl_type_from_pipe_target(enum pipe_texture_target target) {
       unreachable("bad texture type");
    }
 }
+
+ENDC;
 
 #endif /* FREEDRENO_RESOURCE_H_ */

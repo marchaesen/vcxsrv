@@ -1,7 +1,7 @@
 #ifndef __GL_CONFIG_H__
 #define __GL_CONFIG_H__
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 /**
  * Framebuffer configuration (aka visual / pixelformat)
@@ -25,9 +25,6 @@ struct gl_config
 
    /* ARB_multisample / SGIS_multisample */
    GLuint samples;
-
-   /* OML_swap_method */
-   GLint swapMethod;
 
    /* EXT_framebuffer_sRGB */
    GLint sRGBCapable;

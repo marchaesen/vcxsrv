@@ -63,7 +63,7 @@ Dylan Baker (7):
 -  cherry-ignore: more 18.2 patches
 -  bump version for 18.1.7 release
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  intel: Switch the order of the 2x MSAA sample positions
 -  anv/lower_ycbcr: Use the binding array size for bounds checks

@@ -21,14 +21,15 @@
  * IN THE SOFTWARE.
  */
 
-#include <u_format.h>
+#include "util/detect_arch.h"
+#include "util/format/u_format.h"
 
-#if (defined(PIPE_ARCH_AARCH64) || defined(PIPE_ARCH_ARM)) && !defined(NO_FORMAT_ASM) && !defined(__SOFTFP__)
+#if (DETECT_ARCH_AARCH64 || DETECT_ARCH_ARM) && !defined(NO_FORMAT_ASM) && !defined(__SOFTFP__)
 
 /* armhf builds default to vfp, not neon, and refuses to compile neon intrinsics
  * unless you tell it "no really".
  */
-#ifdef PIPE_ARCH_ARM
+#if DETECT_ARCH_ARM
 #pragma GCC target ("fpu=neon")
 #endif
 
@@ -62,7 +63,7 @@ const struct util_format_unpack_description *
 util_format_unpack_description_neon(enum pipe_format format)
 {
    /* CPU detect for NEON support.  On arm64, it's implied. */
-#ifdef PIPE_ARCH_ARM
+#if DETECT_ARCH_ARM
    if (!util_get_cpu_caps()->has_neon)
       return NULL;
 #endif
@@ -76,4 +77,4 @@ util_format_unpack_description_neon(enum pipe_format format)
    return &util_format_unpack_descriptions_neon[format];
 }
 
-#endif /* PIPE_ARCH_AARCH64 | PIPE_ARCH_ARM */
+#endif /* DETECT_ARCH_AARCH64 | DETECT_ARCH_ARM */

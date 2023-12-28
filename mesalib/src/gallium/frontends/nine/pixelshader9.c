@@ -54,13 +54,16 @@ NinePixelShader9_ctor( struct NinePixelShader9 *This,
 
     info.type = PIPE_SHADER_FRAGMENT;
     info.byte_code = pFunction;
-    info.const_i_base = NINE_CONST_I_BASE(device->max_ps_const_f) / 16;
-    info.const_b_base = NINE_CONST_B_BASE(device->max_ps_const_f) / 16;
+    info.const_i_base = NINE_CONST_I_BASE(NINE_MAX_CONST_F_PS3) / 16;
+    info.const_b_base = NINE_CONST_B_BASE(NINE_MAX_CONST_F_PS3) / 16;
     info.sampler_mask_shadow = 0x0;
     info.fetch4 = 0x0;
+    info.force_color_in_centroid = 0;
     info.sampler_ps1xtypes = 0x0;
     info.fog_enable = 0;
     info.projected = 0;
+    info.alpha_test_emulation = 0;
+    info.color_flatshade = 0;
     info.add_constants_defs.c_combination = NULL;
     info.add_constants_defs.int_const_added = NULL;
     info.add_constants_defs.bool_const_added = NULL;
@@ -192,8 +195,8 @@ NinePixelShader9_GetVariant( struct NinePixelShader9 *This,
         HRESULT hr;
 
         info.type = PIPE_SHADER_FRAGMENT;
-        info.const_i_base = NINE_CONST_I_BASE(device->max_ps_const_f) / 16;
-        info.const_b_base = NINE_CONST_B_BASE(device->max_ps_const_f) / 16;
+        info.const_i_base = NINE_CONST_I_BASE(NINE_MAX_CONST_F_PS3) / 16;
+        info.const_b_base = NINE_CONST_B_BASE(NINE_MAX_CONST_F_PS3) / 16;
         info.byte_code = This->byte_code.tokens;
         info.sampler_mask_shadow = key & 0xffff;
         /* intended overlap with sampler_mask_shadow */
@@ -211,12 +214,16 @@ NinePixelShader9_GetVariant( struct NinePixelShader9 *This,
         }
         info.fog_enable = device->context.rs[D3DRS_FOGENABLE];
         info.fog_mode = device->context.rs[D3DRS_FOGTABLEMODE];
-        info.force_color_in_centroid = (key >> 22) & 1;
+        info.zfog = device->context.zfog;
         info.add_constants_defs.c_combination =
             nine_shader_constant_combination_get(This->c_combinations, (key >> 24) & 0xff);
         info.add_constants_defs.int_const_added = &This->int_slots_used;
         info.add_constants_defs.bool_const_added = &This->bool_slots_used;
-        info.fetch4 = key >> 32 ;
+        info.fetch4 = (key >> 32) & 0xffff;
+        info.force_color_in_centroid = (key >> 48) & 1;
+        info.alpha_test_emulation = (key >> 49) & 0x7;
+        info.color_flatshade = (key >> 52) & 1;
+        info.force_color_in_centroid &= !info.color_flatshade; /* centroid doesn't make sense with flatshade */
         info.process_vertices = false;
         info.swvp_on = false;
 

@@ -376,7 +376,7 @@ XSyncWaitCondition has the following fields:
 XSyncCounter     trigger.counter;    /*counter to trigger on */
 XSyncValueType   trigger.value_type; /*absolute/relative */
 XSyncValue       trigger.wait_value; /*value to compare counter to */
-XSyncTestType    trigger.test_type;  /*pos/neg comparison/transtion */
+XSyncTestType    trigger.test_type;  /*pos/neg comparison/transition */
 XSyncValue       event_threshold;    /*send event if past threshold */
 </literallayout>
 

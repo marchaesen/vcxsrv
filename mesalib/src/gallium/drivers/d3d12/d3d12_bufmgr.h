@@ -41,6 +41,12 @@ enum d3d12_residency_status {
    d3d12_permanently_resident,
 };
 
+enum batch_bo_reference_state {
+   batch_bo_reference_none = 0,
+   batch_bo_reference_read = (1 << 0),
+   batch_bo_reference_written = (1 << 1),
+};
+
 struct d3d12_bo {
    struct pipe_reference reference;
    struct d3d12_screen *screen;
@@ -59,6 +65,13 @@ struct d3d12_bo {
    int64_t last_used_timestamp;
    uint64_t last_used_fence;
    enum d3d12_residency_status residency_status;
+   uint16_t local_needs_resolve_state;
+
+   unsigned local_context_state_mask;
+   uint8_t local_reference_mask[16];
+
+   d3d12_context_state_table_entry local_context_states[16];
+   uint8_t local_reference_state[16][8];
 };
 
 struct d3d12_buffer {

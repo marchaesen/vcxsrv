@@ -108,6 +108,9 @@ __gen_get_batch_address(struct iris_batch *batch, void *location)
 #define iris_emit_cmd(batch, cmd, name) \
    _iris_pack_command(batch, cmd, __gen_get_batch_dwords(batch, __genxml_cmd_length(cmd)), name)
 
+#define iris_emit_dwords(batch, n) \
+   __gen_get_batch_dwords(batch, n)
+
 #define iris_emit_merge(batch, dwords0, dwords1, num_dwords)    \
    do {                                                         \
       uint32_t *dw = __gen_get_batch_dwords(batch, num_dwords); \

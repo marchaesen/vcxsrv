@@ -72,7 +72,7 @@ Illia Iorin (1):
 
 -  mesa/main: Ignore filter state for MS texture completeness
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv: Stop bounds-checking pushed UBOs
 

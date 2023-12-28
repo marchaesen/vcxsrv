@@ -31,14 +31,14 @@
 
 #include "afuc.h"
 
+extern int gpuver;
+
 #define EMU_NUM_GPR_REGS 32
 
 struct emu_gpr_regs {
    BITSET_DECLARE(written, EMU_NUM_GPR_REGS);
-   union {
-      uint32_t pc;
-      uint32_t val[EMU_NUM_GPR_REGS];
-   };
+   uint32_t pc;
+   uint32_t val[EMU_NUM_GPR_REGS];
 };
 
 #define EMU_NUM_CONTROL_REGS 0x1000
@@ -46,6 +46,13 @@ struct emu_gpr_regs {
 struct emu_control_regs {
    BITSET_DECLARE(written, EMU_NUM_CONTROL_REGS);
    uint32_t val[EMU_NUM_CONTROL_REGS];
+};
+
+#define EMU_NUM_SQE_REGS 0x10
+
+struct emu_sqe_regs {
+   BITSET_DECLARE(written, EMU_NUM_SQE_REGS);
+   uint32_t val[EMU_NUM_SQE_REGS];
 };
 
 #define EMU_NUM_GPU_REGS 0x10000
@@ -106,7 +113,6 @@ emu_queue_pop(struct emu_queue *q, uint32_t *val)
  */
 struct emu_draw_state {
    unsigned prev_draw_state_sel;
-   unsigned write_idx;
    struct {
       union {
          uint32_t hdr;
@@ -155,13 +161,18 @@ struct emu {
     */
    bool quiet;
 
-   bool lpac;
+   enum {
+      EMU_PROC_SQE,
+      EMU_PROC_BV,
+      EMU_PROC_LPAC,
+   } processor;
 
    uint32_t *instrs;
    unsigned sizedwords;
    unsigned gpu_id;
 
    struct emu_control_regs control_regs;
+   struct emu_sqe_regs     sqe_regs;
    struct emu_pipe_regs    pipe_regs;
    struct emu_gpu_regs     gpu_regs;
    struct emu_gpr_regs     gpr_regs;
@@ -181,14 +192,10 @@ struct emu {
    /* (r)un mode, don't stop for input until next waitin: */
    bool run_mode;
 
-   /* carry-bits for add/sub for addhi/subhi */
-   uint32_t carry;
-
-   /* call-stack of saved PCs.. I expect this to be a fixed size, but not
-    * sure what the actual size is
+   /* carry-bits for add/sub for addhi/subhi
+    * TODO: this is probably in a SQE register somewhere
     */
-   uint32_t call_stack[5];
-   int call_stack_idx;
+   uint32_t carry;
 
    /* packet table (aka jmptable) has offsets for pm4 packet handlers: */
    uint32_t jmptbl[0x80];
@@ -248,6 +255,9 @@ void emu_set_gpu_reg(struct emu *emu, unsigned n, uint32_t val);
 uint32_t emu_get_control_reg(struct emu *emu, unsigned n);
 void emu_set_control_reg(struct emu *emu, unsigned n, uint32_t val);
 
+uint32_t emu_get_sqe_reg(struct emu *emu, unsigned n);
+void emu_set_sqe_reg(struct emu *emu, unsigned n, uint32_t val);
+
 /* Register helpers for fixed fxn emulation, to avoid lots of boilerplate
  * for accessing other pipe/control registers.
  *
@@ -265,10 +275,12 @@ struct emu_reg {
 };
 
 extern const struct emu_reg_accessor emu_control_accessor;
+extern const struct emu_reg_accessor emu_sqe_accessor;
 extern const struct emu_reg_accessor emu_pipe_accessor;
 extern const struct emu_reg_accessor emu_gpu_accessor;
 
 #define EMU_CONTROL_REG(name) static struct emu_reg name = { #name, &emu_control_accessor, ~0 }
+#define EMU_SQE_REG(name) static struct emu_reg name = { #name, &emu_sqe_accessor, ~0 }
 #define EMU_PIPE_REG(name)    static struct emu_reg name = { #name, &emu_pipe_accessor, ~0 }
 #define EMU_GPU_REG(name)     static struct emu_reg name = { #name, &emu_gpu_accessor, ~0 }
 
@@ -281,6 +293,7 @@ void emu_set_reg64(struct emu *emu, struct emu_reg *reg, uint64_t val);
 /* Draw-state control reg emulation: */
 uint32_t emu_get_draw_state_reg(struct emu *emu, unsigned n);
 void emu_set_draw_state_reg(struct emu *emu, unsigned n, uint32_t val);
+void emu_set_draw_state_base(struct emu *emu, unsigned n, uint32_t val);
 
 /* Helpers: */
 #define printdelta(fmt, ...) afuc_printc(AFUC_ERR, fmt, ##__VA_ARGS__)

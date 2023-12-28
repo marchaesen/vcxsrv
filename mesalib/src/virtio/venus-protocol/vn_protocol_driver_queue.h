@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_QUEUE_H
 #define VN_PROTOCOL_DRIVER_QUEUE_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkDeviceGroupSubmitInfo chain */
@@ -1254,7 +1254,7 @@ static inline VkResult vn_decode_vkQueueSubmit2_reply(struct vn_cs_decoder *dec,
     return ret;
 }
 
-static inline void vn_submit_vkQueueSubmit(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkQueueSubmit(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1266,16 +1266,16 @@ static inline void vn_submit_vkQueueSubmit(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkQueueSubmit_reply(queue, submitCount, pSubmits, fence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkQueueSubmit(enc, cmd_flags, queue, submitCount, pSubmits, fence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkQueueWaitIdle(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkQueue queue, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkQueueWaitIdle(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkQueue queue, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1287,16 +1287,16 @@ static inline void vn_submit_vkQueueWaitIdle(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkQueueWaitIdle_reply(queue) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkQueueWaitIdle(enc, cmd_flags, queue);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkQueueBindSparse(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkQueueBindSparse(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1308,16 +1308,16 @@ static inline void vn_submit_vkQueueBindSparse(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkQueueBindSparse_reply(queue, bindInfoCount, pBindInfo, fence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkQueueBindSparse(enc, cmd_flags, queue, bindInfoCount, pBindInfo, fence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkQueueSubmit2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkQueueSubmit2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1329,101 +1329,101 @@ static inline void vn_submit_vkQueueSubmit2(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkQueueSubmit2_reply(queue, submitCount, pSubmits, fence) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkQueueSubmit2(enc, cmd_flags, queue, submitCount, pSubmits, fence);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkQueueSubmit(struct vn_instance *vn_instance, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
+static inline VkResult vn_call_vkQueueSubmit(struct vn_ring *vn_ring, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueSubmit(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, submitCount, pSubmits, fence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueSubmit(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, submitCount, pSubmits, fence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkQueueSubmit_reply(dec, queue, submitCount, pSubmits, fence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkQueueSubmit(struct vn_instance *vn_instance, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
+static inline void vn_async_vkQueueSubmit(struct vn_ring *vn_ring, VkQueue queue, uint32_t submitCount, const VkSubmitInfo* pSubmits, VkFence fence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueSubmit(vn_instance, 0, queue, submitCount, pSubmits, fence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueSubmit(vn_ring, 0, queue, submitCount, pSubmits, fence, &submit);
 }
 
-static inline VkResult vn_call_vkQueueWaitIdle(struct vn_instance *vn_instance, VkQueue queue)
+static inline VkResult vn_call_vkQueueWaitIdle(struct vn_ring *vn_ring, VkQueue queue)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueWaitIdle(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueWaitIdle(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkQueueWaitIdle_reply(dec, queue);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkQueueWaitIdle(struct vn_instance *vn_instance, VkQueue queue)
+static inline void vn_async_vkQueueWaitIdle(struct vn_ring *vn_ring, VkQueue queue)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueWaitIdle(vn_instance, 0, queue, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueWaitIdle(vn_ring, 0, queue, &submit);
 }
 
-static inline VkResult vn_call_vkQueueBindSparse(struct vn_instance *vn_instance, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence)
+static inline VkResult vn_call_vkQueueBindSparse(struct vn_ring *vn_ring, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueBindSparse(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, bindInfoCount, pBindInfo, fence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueBindSparse(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, bindInfoCount, pBindInfo, fence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkQueueBindSparse_reply(dec, queue, bindInfoCount, pBindInfo, fence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkQueueBindSparse(struct vn_instance *vn_instance, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence)
+static inline void vn_async_vkQueueBindSparse(struct vn_ring *vn_ring, VkQueue queue, uint32_t bindInfoCount, const VkBindSparseInfo* pBindInfo, VkFence fence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueBindSparse(vn_instance, 0, queue, bindInfoCount, pBindInfo, fence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueBindSparse(vn_ring, 0, queue, bindInfoCount, pBindInfo, fence, &submit);
 }
 
-static inline VkResult vn_call_vkQueueSubmit2(struct vn_instance *vn_instance, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence)
+static inline VkResult vn_call_vkQueueSubmit2(struct vn_ring *vn_ring, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueSubmit2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, submitCount, pSubmits, fence, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueSubmit2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, queue, submitCount, pSubmits, fence, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkQueueSubmit2_reply(dec, queue, submitCount, pSubmits, fence);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkQueueSubmit2(struct vn_instance *vn_instance, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence)
+static inline void vn_async_vkQueueSubmit2(struct vn_ring *vn_ring, VkQueue queue, uint32_t submitCount, const VkSubmitInfo2* pSubmits, VkFence fence)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkQueueSubmit2(vn_instance, 0, queue, submitCount, pSubmits, fence, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkQueueSubmit2(vn_ring, 0, queue, submitCount, pSubmits, fence, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_QUEUE_H */

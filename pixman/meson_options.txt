@@ -80,6 +80,11 @@ option(
   description : 'Use GNU style inline assembler',
 )
 option(
+  'tls',
+  type : 'feature',
+  description : 'Use compiler support for thread-local storage',
+)
+option(
   'cpu-features-path',
   type : 'string',
   description : 'Path to platform-specific cpu-features.[ch] for systems that do not provide it (e.g. Android)',
@@ -114,5 +119,10 @@ option(
 option(
   'tests',
   type : 'feature',
-  description : 'Build tests and demos'
+  description : 'Build tests'
+)
+option(
+  'demos',
+  type : 'feature',
+  description : 'Build demos'
 )

@@ -26,21 +26,19 @@
 
 #include "sfn_instrfactory.h"
 
-#include "sfn_instr_alugroup.h"
+#include "sfn_alu_defines.h"
 #include "sfn_debug.h"
+#include "sfn_instr_alugroup.h"
 #include "sfn_instr_controlflow.h"
 #include "sfn_instr_export.h"
 #include "sfn_instr_fetch.h"
 #include "sfn_instr_lds.h"
 #include "sfn_instr_mem.h"
 #include "sfn_instr_tex.h"
-
-#include "sfn_alu_defines.h"
-
 #include "sfn_shader.h"
 
-#include <string>
 #include <sstream>
+#include <string>
 #include <vector>
 
 namespace r600 {
@@ -49,12 +47,12 @@ using std::string;
 using std::vector;
 
 InstrFactory::InstrFactory():
-   group(nullptr)
+    group(nullptr)
 {
-
 }
 
-PInst InstrFactory::from_string(const std::string& s, int nesting_depth)
+PInst
+InstrFactory::from_string(const std::string& s, int nesting_depth, bool is_cayman)
 {
    string type;
    std::istringstream is(s);
@@ -74,7 +72,7 @@ PInst InstrFactory::from_string(const std::string& s, int nesting_depth)
       group = nullptr;
       return retval;
    } else if (type == "ALU") {
-      result = AluInstr::from_string(is, m_value_factory, group);
+      result = AluInstr::from_string(is, m_value_factory, group, is_cayman);
    } else if (type == "TEX") {
       result = TexInstr::from_string(is, m_value_factory);
    } else if (type == "EXPORT") {
@@ -90,7 +88,7 @@ PInst InstrFactory::from_string(const std::string& s, int nesting_depth)
    } else if (type == "READ_SCRATCH") {
       result = LoadFromScratch::from_string(is, m_value_factory);
    } else if (type == "IF") {
-      result = IfInstr::from_string(is, m_value_factory);
+      result = IfInstr::from_string(is, m_value_factory, is_cayman);
    } else if (type == "WRITE_SCRATCH") {
       result = ScratchIOInstr::from_string(is, m_value_factory);
    } else if (type == "MEM_RING") {
@@ -115,7 +113,8 @@ PInst InstrFactory::from_string(const std::string& s, int nesting_depth)
    return result;
 }
 
-bool InstrFactory::from_nir(nir_instr *instr, Shader& shader)
+bool
+InstrFactory::from_nir(nir_instr *instr, Shader& shader)
 {
    switch (instr->type) {
    case nir_instr_type_alu:
@@ -128,15 +127,16 @@ bool InstrFactory::from_nir(nir_instr *instr, Shader& shader)
       return TexInstr::from_nir(nir_instr_as_tex(instr), shader);
    case nir_instr_type_jump:
       return process_jump(nir_instr_as_jump(instr), shader);
-   case nir_instr_type_ssa_undef:
-      return process_undef(nir_instr_as_ssa_undef(instr), shader);
+   case nir_instr_type_undef:
+      return process_undef(nir_instr_as_undef(instr), shader);
    default:
       fprintf(stderr, "Instruction type %d not supported\n", instr->type);
-   return false;
+      return false;
    }
 }
 
-bool InstrFactory::load_const(nir_load_const_instr *literal, Shader& shader)
+bool
+InstrFactory::load_const(nir_load_const_instr *literal, Shader& shader)
 {
    AluInstr *ir = nullptr;
 
@@ -157,39 +157,50 @@ bool InstrFactory::load_const(nir_load_const_instr *literal, Shader& shader)
          uint32_t v = literal->value[i].i32;
          PVirtualValue src = nullptr;
          switch (v) {
-         case 0: src = m_value_factory.zero(); break;
-      case 1: src = m_value_factory.one_i(); break;
-         case 0xffffffff: src = m_value_factory.inline_const(ALU_SRC_M_1_INT, 0); break;
-         case 0x3f800000: src = m_value_factory.inline_const(ALU_SRC_1, 0); break;
-      case 0x3f000000: src = m_value_factory.inline_const(ALU_SRC_0_5, 0); break;
-         default: src = m_value_factory.literal(v);
-      }
+         case 0:
+            src = m_value_factory.zero();
+            break;
+         case 1:
+            src = m_value_factory.one_i();
+            break;
+         case 0xffffffff:
+            src = m_value_factory.inline_const(ALU_SRC_M_1_INT, 0);
+            break;
+         case 0x3f800000:
+            src = m_value_factory.inline_const(ALU_SRC_1, 0);
+            break;
+         case 0x3f000000:
+            src = m_value_factory.inline_const(ALU_SRC_0_5, 0);
+            break;
+         default:
+            src = m_value_factory.literal(v);
+         }
 
          ir = new AluInstr(op1_mov, dest, src, {alu_write});
          shader.emit_instruction(ir);
       }
       if (ir)
          ir->set_alu_flag(alu_last_instr);
-
    }
    return true;
 }
 
-bool InstrFactory::process_jump(nir_jump_instr *instr, Shader& shader)
+bool
+InstrFactory::process_jump(nir_jump_instr *instr, Shader& shader)
 {
    ControlFlowInstr::CFType type;
    switch (instr->type) {
    case nir_jump_break:
       type = ControlFlowInstr::cf_loop_break;
-   break;
+      break;
 
    case nir_jump_continue:
       type = ControlFlowInstr::cf_loop_continue;
-   break;
+      break;
 
    default: {
-      nir_instr *i = reinterpret_cast<nir_instr*>(instr);
-      sfn_log << SfnLog::err << "Jump instrunction " << *i <<  " not supported\n";
+      nir_instr *i = reinterpret_cast<nir_instr *>(instr);
+      sfn_log << SfnLog::err << "Jump instrunction " << *i << " not supported\n";
       return false;
    }
    }
@@ -199,16 +210,15 @@ bool InstrFactory::process_jump(nir_jump_instr *instr, Shader& shader)
    return true;
 }
 
-bool InstrFactory::process_undef(nir_ssa_undef_instr *undef, Shader& shader)
+bool
+InstrFactory::process_undef(nir_undef_instr *undef, Shader& shader)
 {
    for (int i = 0; i < undef->def.num_components; ++i) {
       auto dest = shader.value_factory().undef(undef->def.index, i);
-      shader.emit_instruction(new AluInstr(op1_mov, dest,
-                                           value_factory().zero(),
-                                           AluInstr::last_write));
+      shader.emit_instruction(
+         new AluInstr(op1_mov, dest, value_factory().zero(), AluInstr::last_write));
    }
    return true;
 }
 
-
-}
+} // namespace r600

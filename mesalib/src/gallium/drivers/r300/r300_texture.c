@@ -100,7 +100,7 @@ static unsigned r300_get_endian_swap(enum pipe_format format)
 
 unsigned r300_get_swizzle_combined(const unsigned char *swizzle_format,
                                    const unsigned char *swizzle_view,
-                                   boolean dxtc_swizzle)
+                                   bool dxtc_swizzle)
 {
     unsigned i;
     unsigned char swizzle[4];
@@ -164,13 +164,13 @@ unsigned r300_get_swizzle_combined(const unsigned char *swizzle_format,
  * makes available X, Y, Z, W, ZERO, and ONE for swizzling. */
 uint32_t r300_translate_texformat(enum pipe_format format,
                                   const unsigned char *swizzle_view,
-                                  boolean is_r500,
-                                  boolean dxtc_swizzle)
+                                  bool is_r500,
+                                  bool dxtc_swizzle)
 {
     uint32_t result = 0;
     const struct util_format_description *desc;
-    unsigned i;
-    boolean uniform = TRUE;
+    int i;
+    bool uniform = true;
     const uint32_t sign_bit[4] = {
         R300_TX_FORMAT_SIGNED_W,
         R300_TX_FORMAT_SIGNED_Z,
@@ -241,10 +241,10 @@ uint32_t r300_translate_texformat(enum pipe_format format,
         format != PIPE_FORMAT_LATC1_UNORM &&
         format != PIPE_FORMAT_LATC1_SNORM) {
         result |= r300_get_swizzle_combined(desc->swizzle, swizzle_view,
-                                            TRUE);
+                                            true);
     } else {
         result |= r300_get_swizzle_combined(desc->swizzle, swizzle_view,
-                                            FALSE);
+                                            false);
     }
 
     /* S3TC formats. */
@@ -358,14 +358,8 @@ uint32_t r300_translate_texformat(enum pipe_format format,
         return ~0; /* Unsupported/unknown. */
     }
 
-    /* Find the first non-VOID channel. */
-    for (i = 0; i < 4; i++) {
-        if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID) {
-            break;
-        }
-    }
-
-    if (i == 4)
+    i = util_format_get_first_non_void_channel(format);
+    if (i == -1)
         return ~0; /* Unsupported/unknown. */
 
     /* And finally, uniform formats. */
@@ -591,21 +585,15 @@ static uint32_t r300_translate_zsformat(enum pipe_format format)
 static uint32_t r300_translate_out_fmt(enum pipe_format format)
 {
     uint32_t modifier = 0;
-    unsigned i;
+    int i;
     const struct util_format_description *desc;
-    boolean uniform_sign;
+    bool uniform_sign;
 
     format = r300_unbyteswap_array_format(format);
     desc = util_format_description(format);
 
-    /* Find the first non-VOID channel. */
-    for (i = 0; i < 4; i++) {
-        if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID) {
-            break;
-        }
-    }
-
-    if (i == 4)
+    i = util_format_get_first_non_void_channel(format);
+    if (i == -1)
         return ~0; /* Unsupported/unknown. */
 
     /* Specifies how the shader output is written to the fog unit. */
@@ -671,10 +659,10 @@ static uint32_t r300_translate_out_fmt(enum pipe_format format)
     }
 
     /* Add sign. */
-    uniform_sign = TRUE;
+    uniform_sign = true;
     for (i = 0; i < desc->nr_channels; i++)
         if (desc->channel[i].type != UTIL_FORMAT_TYPE_SIGNED)
-            uniform_sign = FALSE;
+            uniform_sign = false;
 
     if (uniform_sign)
         modifier |= R300_OUT_SIGN(0xf);
@@ -884,21 +872,21 @@ static uint32_t r300_translate_colormask_swizzle(enum pipe_format format)
     }
 }
 
-boolean r300_is_colorbuffer_format_supported(enum pipe_format format)
+bool r300_is_colorbuffer_format_supported(enum pipe_format format)
 {
     return r300_translate_colorformat(format) != ~0 &&
            r300_translate_out_fmt(format) != ~0 &&
            r300_translate_colormask_swizzle(format) != ~0;
 }
 
-boolean r300_is_zs_format_supported(enum pipe_format format)
+bool r300_is_zs_format_supported(enum pipe_format format)
 {
     return r300_translate_zsformat(format) != ~0;
 }
 
-boolean r300_is_sampler_format_supported(enum pipe_format format)
+bool r300_is_sampler_format_supported(enum pipe_format format)
 {
-    return r300_translate_texformat(format, NULL, TRUE, FALSE) != ~0;
+    return r300_translate_texformat(format, NULL, true, false) != ~0;
 }
 
 void r300_texture_setup_format_state(struct r300_screen *screen,
@@ -911,7 +899,7 @@ void r300_texture_setup_format_state(struct r300_screen *screen,
 {
     struct pipe_resource *pt = &tex->b;
     struct r300_texture_desc *desc = &tex->tex;
-    boolean is_r500 = screen->caps.is_r500;
+    bool is_r500 = screen->caps.is_r500;
     unsigned width, height, depth;
     unsigned txwidth, txheight, txdepth;
 

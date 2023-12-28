@@ -95,7 +95,7 @@ Icecream95 (1):
 
 - pan/mdg: Use the correct swizzle for condition moves
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - vulkan/shader_module: Fix the lifetime of temporary shader modules
 

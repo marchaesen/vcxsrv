@@ -201,7 +201,7 @@ FcDirScanConfig (FcFontSet	*set,
     DIR			*d;
     struct dirent	*e;
     FcStrSet		*files;
-    FcChar8		*file_prefix, *s_dir = NULL;
+    FcChar8		*file_prefix = NULL, *s_dir = NULL;
     FcChar8		*base;
     const FcChar8	*sysroot = FcConfigGetSysRoot (config);
     FcBool		ret = FcTrue;
@@ -213,16 +213,6 @@ FcDirScanConfig (FcFontSet	*set,
     if (!set && !dirs)
 	return FcTrue;
 
-    /* freed below */
-    file_prefix = (FcChar8 *) malloc (strlen ((char *) dir) + 1 + FC_MAX_FILE_LEN + 1);
-    if (!file_prefix) {
-	ret = FcFalse;
-	goto bail;
-    }
-    strcpy ((char *) file_prefix, (char *) dir);
-    strcat ((char *) file_prefix, FC_DIR_SEPARATOR_S);
-    base = file_prefix + strlen ((char *) file_prefix);
-
     if (sysroot)
 	s_dir = FcStrBuildFilename (sysroot, dir, NULL);
     else
@@ -231,6 +221,16 @@ FcDirScanConfig (FcFontSet	*set,
 	ret = FcFalse;
 	goto bail;
     }
+
+    /* freed below */
+    file_prefix = (FcChar8 *) malloc (strlen ((char *) s_dir) + 1 + FC_MAX_FILE_LEN + 1);
+    if (!file_prefix) {
+	ret = FcFalse;
+	goto bail;
+    }
+    strcpy ((char *) file_prefix, (char *) s_dir);
+    strcat ((char *) file_prefix, FC_DIR_SEPARATOR_S);
+    base = file_prefix + strlen ((char *) file_prefix);
 
     if (FcDebug () & FC_DBG_SCAN)
 	printf ("\tScanning dir %s\n", s_dir);

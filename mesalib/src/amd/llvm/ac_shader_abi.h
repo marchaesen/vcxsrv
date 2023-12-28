@@ -1,24 +1,7 @@
 /*
  * Copyright 2017 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_SHADER_ABI_H
@@ -44,10 +27,8 @@ struct ac_shader_abi {
 
    /* These input registers sometimes need to be fixed up. */
    LLVMValueRef vertex_id;
+   LLVMValueRef vs_rel_patch_id;
    LLVMValueRef instance_id;
-   LLVMValueRef persp_centroid, linear_centroid;
-   LLVMValueRef color0, color1;
-   LLVMValueRef user_data;
 
    /* replaced registers when culling enabled */
    LLVMValueRef vertex_id_replaced;
@@ -59,20 +40,6 @@ struct ac_shader_abi {
 
    /* Varying -> attribute number mapping. Also NIR-only */
    unsigned fs_input_attr_indices[MAX_VARYING];
-
-   void (*export_vertex)(struct ac_shader_abi *abi);
-
-   void (*emit_vertex)(struct ac_shader_abi *abi, unsigned stream, LLVMValueRef *addrs);
-
-   void (*emit_primitive)(struct ac_shader_abi *abi, unsigned stream);
-
-   void (*emit_vertex_with_counter)(struct ac_shader_abi *abi, unsigned stream,
-                                    LLVMValueRef vertexidx, LLVMValueRef *addrs);
-
-   LLVMValueRef (*load_inputs)(struct ac_shader_abi *abi,
-                               unsigned driver_location, unsigned component,
-                               unsigned num_components, unsigned vertex_index,
-                               LLVMTypeRef type);
 
    LLVMValueRef (*load_tess_varyings)(struct ac_shader_abi *abi, LLVMTypeRef type,
                                       LLVMValueRef vertex_index, LLVMValueRef param_index,
@@ -94,42 +61,23 @@ struct ac_shader_abi {
    /**
     * Load a descriptor associated to a sampler.
     *
-    * \param descriptor_set the descriptor set index (only for Vulkan)
-    * \param base_index the base index of the sampler variable
-    * \param constant_index constant part of an array index (or 0, if the
-    *                       sampler variable is not an array)
-    * \param index non-constant part of an array index (may be NULL)
+    * \param index of the descriptor
     * \param desc_type the type of descriptor to load
-    * \param image whether the descriptor is loaded for an image operation
     */
-   LLVMValueRef (*load_sampler_desc)(struct ac_shader_abi *abi, unsigned descriptor_set,
-                                     unsigned base_index, unsigned constant_index,
-                                     LLVMValueRef index, enum ac_descriptor_type desc_type,
-                                     bool image, bool write, bool bindless);
+   LLVMValueRef (*load_sampler_desc)(struct ac_shader_abi *abi, LLVMValueRef index,
+                                     enum ac_descriptor_type desc_type);
 
-   LLVMValueRef (*load_sample_position)(struct ac_shader_abi *abi, LLVMValueRef sample_id);
-
-   LLVMValueRef (*load_user_clip_plane)(struct ac_shader_abi *abi, unsigned ucp_id);
-
-   LLVMValueRef (*load_streamout_buffer)(struct ac_shader_abi *abi, unsigned buffer);
-
-   LLVMValueRef (*emit_fbfetch)(struct ac_shader_abi *abi);
-
-   LLVMValueRef (*intrinsic_load)(struct ac_shader_abi *abi, nir_intrinsic_op op);
+   LLVMValueRef (*intrinsic_load)(struct ac_shader_abi *abi, nir_intrinsic_instr *intrin);
 
    /* Whether to clamp the shadow reference value to [0,1]on GFX8. Radeonsi currently
     * uses it due to promoting D16 to D32, but radv needs it off. */
    bool clamp_shadow_reference;
-   bool interp_at_sample_force_center;
 
    /* Whether bounds checks are required */
    bool robust_buffer_access;
 
    /* Check for Inf interpolation coeff */
    bool kill_ps_if_inf_interp;
-
-   /* Whether undef values must be converted to zero */
-   bool convert_undef_to_zero;
 
    /* Clamp div by 0 (so it won't produce NaN) */
    bool clamp_div_by_zero;
@@ -141,8 +89,8 @@ struct ac_shader_abi {
     * waterfall to avoid incorrect rendering. */
    bool use_waterfall_for_divergent_tex_samplers;
 
-   /* Number of all interpolated inputs */
-   unsigned num_interp;
+   /* Whether to disable anisotropic filtering. */
+   bool disable_aniso_single_level;
 };
 
 #endif /* AC_SHADER_ABI_H */

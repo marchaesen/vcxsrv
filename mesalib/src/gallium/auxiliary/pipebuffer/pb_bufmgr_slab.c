@@ -36,9 +36,9 @@
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_debug.h"
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "pipe/p_defines.h"
 #include "util/u_memory.h"
 #include "util/list.h"
@@ -440,6 +440,7 @@ pb_slab_manager_destroy(struct pb_manager *_mgr)
    struct pb_slab_manager *mgr = pb_slab_manager(_mgr);
 
    /* TODO: cleanup all allocated buffers */
+   mtx_destroy(&mgr->mutex);
    FREE(mgr);
 }
 

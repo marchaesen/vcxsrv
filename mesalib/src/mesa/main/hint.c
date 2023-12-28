@@ -24,7 +24,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "enums.h"
 #include "context.h"
 #include "hint.h"
@@ -103,7 +103,7 @@ _mesa_Hint( GLenum target, GLenum mode )
 
       /* GL_SGIS_generate_mipmap */
       case GL_GENERATE_MIPMAP_HINT_SGIS:
-         if (ctx->API == API_OPENGL_CORE)
+         if (_mesa_is_desktop_gl_core(ctx))
             goto invalid_target;
          if (ctx->Hint.GenerateMipmap == mode)
             return;
@@ -113,7 +113,7 @@ _mesa_Hint( GLenum target, GLenum mode )
 
       /* GL_ARB_fragment_shader */
       case GL_FRAGMENT_SHADER_DERIVATIVE_HINT_ARB:
-         if (ctx->API == API_OPENGLES || !ctx->Extensions.ARB_fragment_shader)
+         if (_mesa_is_gles1(ctx) || !ctx->Extensions.ARB_fragment_shader)
             goto invalid_target;
          if (ctx->Hint.FragmentShaderDerivative == mode)
             return;

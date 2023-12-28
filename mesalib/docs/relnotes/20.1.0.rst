@@ -2324,7 +2324,7 @@ Jan Zielinski (8):
 -  gallium/swr: Fix LLVM 11 compilation issues
 -  gallium/swr: Fix crashes and failures in vertex fetch
 
-Jason Ekstrand (202):
+Faith Ekstrand (202):
 
 -  genxml: Add a new 3DSTATE_SF field on gen12
 -  anv,iris: Set 3DSTATE_SF::DerefBlockSize to per-poly on Gen12+

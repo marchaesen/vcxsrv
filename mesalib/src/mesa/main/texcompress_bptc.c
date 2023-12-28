@@ -29,7 +29,7 @@
 #include <stdbool.h>
 #include "texcompress.h"
 #include "texcompress_bptc.h"
-#include "texcompress_bptc_tmp.h"
+#include "util/format/texcompress_bptc_tmp.h"
 #include "texstore.h"
 #include "image.h"
 #include "mtypes.h"

@@ -30,7 +30,6 @@
 
 #include "nir_control_flow.h"
 
-
 /* Internal control-flow modification functions used when inserting/removing
  * instructions.
  */

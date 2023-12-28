@@ -36,6 +36,7 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/extensions/shape.h>
 #include <X11/extensions/shapeproto.h>
 #include <limits.h>
+#include "reallocarray.h"
 
 static XExtensionInfo _shape_info_data;
 static XExtensionInfo *shape_info = &_shape_info_data;
@@ -463,8 +464,8 @@ XRectangle *XShapeGetRectangles (
     rects = NULL;
     if (rep.nrects) {
 	if (rep.nrects < (INT_MAX / sizeof (XRectangle))) {
-	    xrects = Xmalloc (rep.nrects * sizeof (xRectangle));
-	    rects = Xmalloc (rep.nrects * sizeof (XRectangle));
+	    xrects = Xmallocarray (rep.nrects, sizeof (xRectangle));
+	    rects = Xmallocarray (rep.nrects, sizeof (XRectangle));
 	} else {
 	    xrects = NULL;
 	    rects = NULL;

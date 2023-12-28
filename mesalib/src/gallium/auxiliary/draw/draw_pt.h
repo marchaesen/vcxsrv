@@ -33,7 +33,7 @@
 #ifndef DRAW_PT_H
 #define DRAW_PT_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 struct draw_pt_middle_end;
 struct draw_context;
@@ -65,7 +65,7 @@ struct draw_vertex_info;
  */
 struct draw_pt_front_end {
    void (*prepare)(struct draw_pt_front_end *,
-                   enum pipe_prim_type prim,
+                   enum mesa_prim prim,
                    struct draw_pt_middle_end *,
                    unsigned opt);
 
@@ -89,7 +89,7 @@ struct draw_pt_front_end {
  */
 struct draw_pt_middle_end {
    void (*prepare)(struct draw_pt_middle_end *,
-                   enum pipe_prim_type prim,
+                   enum mesa_prim prim,
                    unsigned opt,
                    unsigned *max_vertices);
 
@@ -103,7 +103,7 @@ struct draw_pt_middle_end {
    void (*run)(struct draw_pt_middle_end *,
                const unsigned *fetch_elts,
                unsigned fetch_count,
-               const ushort *draw_elts,
+               const uint16_t *draw_elts,
                unsigned draw_count,
                unsigned prim_flags);
 
@@ -115,10 +115,10 @@ struct draw_pt_middle_end {
    /* Transform all vertices in a linear range and then draw them with
     * the supplied element list.  May fail and return FALSE.
     */
-   boolean (*run_linear_elts)(struct draw_pt_middle_end *,
+   bool (*run_linear_elts)(struct draw_pt_middle_end *,
                               unsigned fetch_start,
                               unsigned fetch_count,
-                              const ushort *draw_elts,
+                              const uint16_t *draw_elts,
                               unsigned draw_count,
                               unsigned prim_flags);
 
@@ -151,7 +151,7 @@ struct draw_pt_front_end *draw_pt_vsplit(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_middle_fse(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit(struct draw_context *draw);
 struct draw_pt_middle_end *draw_pt_fetch_pipeline_or_emit_llvm(struct draw_context *draw);
-
+struct draw_pt_middle_end *draw_pt_mesh_pipeline_or_emit(struct draw_context *draw);
 
 
 /*******************************************************************************
@@ -161,7 +161,7 @@ struct pt_emit;
 
 void
 draw_pt_emit_prepare(struct pt_emit *emit,
-                     enum pipe_prim_type prim,
+                     enum mesa_prim prim,
                      unsigned *max_vertices);
 
 void
@@ -187,7 +187,7 @@ draw_pt_emit_create(struct draw_context *draw);
 struct pt_so_emit;
 
 void
-draw_pt_so_emit_prepare(struct pt_so_emit *emit, boolean use_pre_clip_pos);
+draw_pt_so_emit_prepare(struct pt_so_emit *emit, bool use_pre_clip_pos);
 
 void
 draw_pt_so_emit(struct pt_so_emit *emit,
@@ -237,20 +237,20 @@ draw_pt_fetch_create(struct draw_context *draw);
  */
 struct pt_post_vs;
 
-boolean
+bool
 draw_pt_post_vs_run(struct pt_post_vs *pvs,
                     struct draw_vertex_info *info,
                     const struct draw_prim_info *prim_info);
 
 void
 draw_pt_post_vs_prepare(struct pt_post_vs *pvs,
-                        boolean clip_xy,
-                        boolean clip_z,
-                        boolean clip_user,
-                        boolean guard_band,
-                        boolean bypass_viewport,
-                        boolean clip_halfz,
-                        boolean need_edgeflags);
+                        bool clip_xy,
+                        bool clip_z,
+                        bool clip_user,
+                        bool guard_band,
+                        bool bypass_viewport,
+                        bool clip_halfz,
+                        bool need_edgeflags);
 
 struct pt_post_vs *
 draw_pt_post_vs_create(struct draw_context *draw);
@@ -263,10 +263,13 @@ draw_pt_post_vs_destroy(struct pt_post_vs *pvs);
  * Utils:
  */
 void
-draw_pt_split_prim(enum pipe_prim_type prim, unsigned *first, unsigned *incr);
+draw_pt_split_prim(enum mesa_prim prim, unsigned *first, unsigned *incr);
 
 unsigned
 draw_pt_trim_count(unsigned count, unsigned first, unsigned incr);
 
-
+void
+draw_mesh_middle_end_run(struct draw_pt_middle_end *middle,
+                         struct draw_vertex_info *vert_info,
+                         struct draw_prim_info *prim_info);
 #endif

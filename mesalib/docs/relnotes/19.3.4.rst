@@ -119,7 +119,7 @@ Jan Vesely (1):
 
 -  clover: Use explicit conversion from llvm::StringRef to std::string
 
-Jason Ekstrand (6):
+Faith Ekstrand (6):
 
 -  anv: Insert holes for non-existant XFB varyings
 -  anv: Improve BTI change cache flushing

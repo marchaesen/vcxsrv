@@ -129,7 +129,7 @@ xa_scissor_reset(struct xa_context *ctx)
     ctx->scissor.maxy = 0;
     ctx->scissor.minx = ~0;
     ctx->scissor.miny = ~0;
-    ctx->scissor_valid = FALSE;
+    ctx->scissor_valid = false;
 }
 
 static inline void
@@ -140,7 +140,7 @@ xa_scissor_update(struct xa_context *ctx, unsigned minx, unsigned miny,
     ctx->scissor.maxy = MAX2(ctx->scissor.maxy, maxy);
     ctx->scissor.minx = MIN2(ctx->scissor.minx, minx);
     ctx->scissor.miny = MIN2(ctx->scissor.miny, miny);
-    ctx->scissor_valid = TRUE;
+    ctx->scissor_valid = true;
 }
 
 enum xa_vs_traits {

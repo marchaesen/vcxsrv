@@ -46,9 +46,7 @@ from The Open Group.
 #ifdef WIN32
 #include    <X11/Xw32defs.h>
 #endif
-#ifdef HAVE_LIBBSD
-#include   <bsd/stdlib.h>       /* for arc4random_buf() */
-#endif
+#include   <stdlib.h>       /* for arc4random_buf() */
 
 struct protocol {
     unsigned short name_length;

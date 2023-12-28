@@ -18,19 +18,19 @@ CSRCS = \
 
 getspecfiles:
 	del -e wglext.h
-	wget http://www.opengl.org/registry/api/GL/wglext.h
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/api/GL/wglext.h
 	del -e glxext.h
-	wget http://www.opengl.org/registry/api/GL/glxext.h
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/api/GL/glxext.h
 	del -e glext.h
-	wget http://www.opengl.org/registry/api/GL/glext.h
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/api/GL/glext.h
 	del -e genheaders.py
-	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/genheaders.py
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/xml/genheaders.py
 	del -e reg.py
-	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/reg.py
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/xml/reg.py
 	del -e gl.xml
-	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/gl.xml
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/xml/gl.xml
 	del -e wgl.xml
-	wget --no-check-certificate https://cvs.khronos.org/svn/repos/ogl/trunk/doc/registry/public/api/wgl.xml
+	wget https://raw.githubusercontent.com/KhronosGroup/OpenGL-Registry/main/xml/wgl.xml
 
 $(OBJDIR)\generated_gl_wrappers.c: gen_gl_wrappers.py gl.xml gen_gl_wrappers.py reg.py
 	$(PYTHON3) gen_gl_wrappers.py -outfile $@ -staticwrappers -dispatchheader ../../../glx/dispatch.h

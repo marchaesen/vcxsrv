@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_RENDER_PASS_H
 #define VN_PROTOCOL_DRIVER_RENDER_PASS_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkAttachmentDescription */
@@ -1486,7 +1486,7 @@ static inline VkResult vn_decode_vkCreateRenderPass2_reply(struct vn_cs_decoder 
     return ret;
 }
 
-static inline void vn_submit_vkCreateRenderPass(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateRenderPass(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1498,16 +1498,16 @@ static inline void vn_submit_vkCreateRenderPass(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateRenderPass_reply(device, pCreateInfo, pAllocator, pRenderPass) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateRenderPass(enc, cmd_flags, device, pCreateInfo, pAllocator, pRenderPass);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyRenderPass(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyRenderPass(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1519,16 +1519,16 @@ static inline void vn_submit_vkDestroyRenderPass(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyRenderPass_reply(device, renderPass, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyRenderPass(enc, cmd_flags, device, renderPass, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetRenderAreaGranularity(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetRenderAreaGranularity(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1540,16 +1540,16 @@ static inline void vn_submit_vkGetRenderAreaGranularity(struct vn_instance *vn_i
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetRenderAreaGranularity_reply(device, renderPass, pGranularity) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetRenderAreaGranularity(enc, cmd_flags, device, renderPass, pGranularity);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCreateRenderPass2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreateRenderPass2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -1561,95 +1561,95 @@ static inline void vn_submit_vkCreateRenderPass2(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreateRenderPass2_reply(device, pCreateInfo, pAllocator, pRenderPass) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreateRenderPass2(enc, cmd_flags, device, pCreateInfo, pAllocator, pRenderPass);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreateRenderPass(struct vn_instance *vn_instance, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
+static inline VkResult vn_call_vkCreateRenderPass(struct vn_ring *vn_ring, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pRenderPass, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateRenderPass(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pRenderPass, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateRenderPass_reply(dec, device, pCreateInfo, pAllocator, pRenderPass);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateRenderPass(struct vn_instance *vn_instance, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
+static inline void vn_async_vkCreateRenderPass(struct vn_ring *vn_ring, VkDevice device, const VkRenderPassCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateRenderPass(vn_instance, 0, device, pCreateInfo, pAllocator, pRenderPass, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateRenderPass(vn_ring, 0, device, pCreateInfo, pAllocator, pRenderPass, &submit);
 }
 
-static inline void vn_call_vkDestroyRenderPass(struct vn_instance *vn_instance, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyRenderPass(struct vn_ring *vn_ring, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, renderPass, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyRenderPass(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, renderPass, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyRenderPass_reply(dec, device, renderPass, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyRenderPass(struct vn_instance *vn_instance, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyRenderPass(struct vn_ring *vn_ring, VkDevice device, VkRenderPass renderPass, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyRenderPass(vn_instance, 0, device, renderPass, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyRenderPass(vn_ring, 0, device, renderPass, pAllocator, &submit);
 }
 
-static inline void vn_call_vkGetRenderAreaGranularity(struct vn_instance *vn_instance, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity)
+static inline void vn_call_vkGetRenderAreaGranularity(struct vn_ring *vn_ring, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetRenderAreaGranularity(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, renderPass, pGranularity, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetRenderAreaGranularity(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, renderPass, pGranularity, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkGetRenderAreaGranularity_reply(dec, device, renderPass, pGranularity);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkGetRenderAreaGranularity(struct vn_instance *vn_instance, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity)
+static inline void vn_async_vkGetRenderAreaGranularity(struct vn_ring *vn_ring, VkDevice device, VkRenderPass renderPass, VkExtent2D* pGranularity)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetRenderAreaGranularity(vn_instance, 0, device, renderPass, pGranularity, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetRenderAreaGranularity(vn_ring, 0, device, renderPass, pGranularity, &submit);
 }
 
-static inline VkResult vn_call_vkCreateRenderPass2(struct vn_instance *vn_instance, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
+static inline VkResult vn_call_vkCreateRenderPass2(struct vn_ring *vn_ring, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateRenderPass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pRenderPass, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateRenderPass2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pRenderPass, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreateRenderPass2_reply(dec, device, pCreateInfo, pAllocator, pRenderPass);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreateRenderPass2(struct vn_instance *vn_instance, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
+static inline void vn_async_vkCreateRenderPass2(struct vn_ring *vn_ring, VkDevice device, const VkRenderPassCreateInfo2* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkRenderPass* pRenderPass)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreateRenderPass2(vn_instance, 0, device, pCreateInfo, pAllocator, pRenderPass, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreateRenderPass2(vn_ring, 0, device, pCreateInfo, pAllocator, pRenderPass, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_RENDER_PASS_H */

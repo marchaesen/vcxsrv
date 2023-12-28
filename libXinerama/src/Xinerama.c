@@ -101,7 +101,7 @@ Status XPanoramiXQueryVersion(
 {
     XExtDisplayInfo *info = find_display (dpy);
     xPanoramiXQueryVersionReply	    rep;
-    register xPanoramiXQueryVersionReq  *req;
+    xPanoramiXQueryVersionReq  	   *req;
 
     PanoramiXCheckExtension (dpy, info, 0);
 
@@ -136,7 +136,7 @@ Status XPanoramiXGetState (
 {
     XExtDisplayInfo			*info = find_display (dpy);
     xPanoramiXGetStateReply	rep;
-    register xPanoramiXGetStateReq	*req;
+    xPanoramiXGetStateReq	*req;
 
     PanoramiXCheckExtension (dpy, info, 0);
 
@@ -165,7 +165,7 @@ Status XPanoramiXGetScreenCount (
 {
     XExtDisplayInfo			*info = find_display (dpy);
     xPanoramiXGetScreenCountReply	rep;
-    register xPanoramiXGetScreenCountReq	*req;
+    xPanoramiXGetScreenCountReq		*req;
 
     PanoramiXCheckExtension (dpy, info, 0);
 
@@ -195,7 +195,7 @@ Status XPanoramiXGetScreenSize (
 {
     XExtDisplayInfo			*info = find_display (dpy);
     xPanoramiXGetScreenSizeReply	rep;
-    register xPanoramiXGetScreenSizeReq	*req;
+    xPanoramiXGetScreenSizeReq		*req;
 
     PanoramiXCheckExtension (dpy, info, 0);
 
@@ -303,7 +303,7 @@ XineramaQueryScreens(
     if ((rep.number > 0) && (rep.number <= 1024))
 	scrnInfo = Xmalloc(sizeof(XineramaScreenInfo) * rep.number);
     if (scrnInfo != NULL) {
-	int i;
+	CARD32 i;
 
 	for (i = 0; i < rep.number; i++) {
 	    xXineramaScreenInfo scratch;

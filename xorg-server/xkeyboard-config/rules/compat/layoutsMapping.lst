@@ -1,21 +1,12 @@
-ar	ara
 ben	in(ben)
-bs	ba
 dev	in(deva)
-dvorak	us(dvorak)
-dzdwi	bt
-el	gr
-en_US	latin
 guj	in(guj)
 gur	in(guru)
-iu	ca(ike)
-lo	la
 kan	in(kan)
-mi	mao
 ogham	ie(ogam)
 ori	in(ori)
-sapmi	no(smi)
 syr	sy(syc)
 tel	in(tel)
 tml	in(tam)
 us_intl	us(alt-intl)
+mao	nz(mao)		// Delete in 2028.

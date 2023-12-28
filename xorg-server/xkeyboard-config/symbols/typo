@@ -16,7 +16,7 @@ xkb_symbols "base" {
     key <AE02> { [ NoSymbol,   NoSymbol,           twosuperior,               onehalf ] }; // "2"
     key <AE03> { [ NoSymbol,   NoSymbol,         threesuperior,              onethird ] }; // "3"
     key <AE04> { [ NoSymbol,   NoSymbol,                dollar,            onequarter ] }; // "4"
-    key <AE05> { [ NoSymbol,   NoSymbol,                 U2030,              NoSymbol ] }; // "5"
+    key <AE05> { [ NoSymbol,   NoSymbol,              permille,              NoSymbol ] }; // "5"
     key <AE06> { [ NoSymbol,   NoSymbol,               uparrow,              NoSymbol ] }; // "6"
     key <AE07> { [ NoSymbol,   NoSymbol,             ampersand,          questiondown ] }; // "7"
     key <AE08> { [ NoSymbol,   NoSymbol,              infinity,             oneeighth ] }; // "8"
@@ -60,7 +60,6 @@ xkb_symbols "base" {
     key <SPCE> { [    space,      space,          nobreakspace,          nobreakspace ] }; // " "
 
     // Reference
-    // U+2030 PER MILLE SIGN
     // U+20B4 HRYVNIA SIGN
     // U+0301 COMBINING ACUTE ACCENT
     // U+20BD RUBLE SIGN

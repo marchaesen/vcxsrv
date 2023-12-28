@@ -228,9 +228,19 @@ void vlVaHandleSliceParameterBufferHEVC(vlVaContext *context, vlVaBuffer *buf)
    VASliceParameterBufferHEVC *h265 = buf->data;
 
    assert(buf->size >= sizeof(VASliceParameterBufferHEVC) && buf->num_elements == 1);
-   for (int i = 0 ; i < 2 ; i++) {
+
+   switch(h265->LongSliceFlags.fields.slice_type) {
+   /* Depending on slice_type, only update relevant reference */
+   case 0: /* HEVC_SLICE_B */
       for (int j = 0 ; j < 15 ; j++)
-         context->desc.h265.RefPicList[i][j] = h265->RefPicList[i][j];
+         context->desc.h265.RefPicList[context->desc.h265.slice_parameter.slice_count][1][j] = h265->RefPicList[1][j];
+      FALLTHROUGH;
+   case 1: /* HEVC_SLICE_P */
+      for (int j = 0 ; j < 15 ; j++)
+         context->desc.h265.RefPicList[context->desc.h265.slice_parameter.slice_count][0][j] = h265->RefPicList[0][j];
+      FALLTHROUGH;
+   default:
+      break;
    }
    context->desc.h265.UseRefPicList = true;
 

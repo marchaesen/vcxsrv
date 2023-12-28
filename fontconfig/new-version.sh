@@ -64,9 +64,9 @@ version_note=`echo $version | awk -F. '{
 		printf ("%d.%d.%d\n", $1, $2, $3); }'`
 		
 #
-# Find previous version in README
+# Find previous version in NEWS
 #
-last_note=`grep '^2\.[0-9.]*' README |
+last_note=`grep '^2\.[0-9.]*' NEWS |
 	head -1 |
 	sed 's/ (2\.[0-9]* RC[0-9]*)//'`
 case $last_note in
@@ -82,7 +82,7 @@ case $last_note in
 esac
 
 #
-# Format the current date for the README header
+# Format the current date for the NEWS header
 #
 date=`date '+%Y-%m-%d'`
 
@@ -93,7 +93,7 @@ if [ $version != $last ]; then
 	#
 	# header
 	#
-	(sed '/^2\.[0-9.]*/,$d' README | 
+	(sed '/^2\.[0-9.]*/,$d' NEWS |
 		sed -r -e "s/Version.*/Version $version_note/" \
 		    -e "s/[0-9]{4}\-[0-9]{2}\-[0-9]{2}$/$date/" | awk '
 		    /^[ \t]/ {
@@ -121,17 +121,17 @@ if [ $version != $last ]; then
 	# previous changelogs
 	#
 	
-	sed -n '/^2\.[0-9.]*/,$p' README) > README.tmp ||
-		(echo "README update failed"; exit 1)
+	sed -n '/^2\.[0-9.]*/,$p' NEWS) > NEWS.tmp ||
+		(echo "NEWS update failed"; exit 1)
 	
-	mv README.tmp README
+	mv NEWS.tmp NEWS
 fi
 
 $test git commit -m"Bump version to $version" \
 	configure.ac \
 	fontconfig/fontconfig.h \
 	meson.build \
-	README
+	NEWS
 
 # tag the tree
 $test git tag -s -m "Version $version" $version

@@ -646,7 +646,7 @@ unsigned int	key_action)
 		return(-1);
 	}
 	/*
-	 * use the commmon key/button handling routine
+	 * use the common key/button handling routine
 	 */
 	return(XTestKeyOrButton(display,
 				device_id,
@@ -678,7 +678,7 @@ unsigned int	button_action)
 		return(-1);
 	}
 	/*
-	 * use the commmon key/button handling routine
+	 * use the common key/button handling routine
 	 */
 	return(XTestKeyOrButton(display,
 				device_id,

@@ -24,7 +24,7 @@
 #define VIRGL_DRM_WINSYS_H
 
 #include <stdint.h>
-#include "os/os_thread.h"
+#include "util/u_thread.h"
 #include "pipe/p_state.h"
 #include "util/list.h"
 

@@ -15,3 +15,9 @@
 
 /* Build Xwayland with XWAYLAND extension */
 #mesondefine XWL_HAS_XWAYLAND_EXTENSION
+
+/* Enable EI */
+#mesondefine XWL_HAS_EI
+
+/* Enable XDG portal integration */
+#mesondefine XWL_HAS_EI_PORTAL

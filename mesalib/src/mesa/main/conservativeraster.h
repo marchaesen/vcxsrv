@@ -26,7 +26,7 @@
 #ifndef CONSERVATIVERASTER_H
 #define CONSERVATIVERASTER_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

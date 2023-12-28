@@ -37,7 +37,6 @@
  * However, most device drivers will be able to use the fallback functions
  * in this file.  That is, most drivers will have the following bit of
  * code:
- *   ctx->Driver.TexImage = _mesa_store_teximage;
  *   ctx->Driver.TexSubImage = _mesa_store_texsubimage;
  *   etc...
  *
@@ -52,7 +51,7 @@
 
 
 #include "errors.h"
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "format_pack.h"
 #include "format_utils.h"
@@ -109,7 +108,7 @@ _mesa_memcpy_texture(struct gl_context *ctx,
 {
    const GLint srcRowStride = _mesa_image_row_stride(srcPacking, srcWidth,
                                                      srcFormat, srcType);
-   const GLint srcImageStride = _mesa_image_image_stride(srcPacking,
+   const intptr_t srcImageStride = _mesa_image_image_stride(srcPacking,
                                       srcWidth, srcHeight, srcFormat, srcType);
    const GLubyte *srcImage = (const GLubyte *) _mesa_image_address(dimensions,
         srcPacking, srcAddr, srcWidth, srcHeight, srcFormat, srcType, 0, 0, 0);
@@ -729,7 +728,7 @@ texstore_rgba(TEXSTORE_PARAMS)
        */
       GLint swapSize = _mesa_sizeof_packed_type(srcType);
       if (swapSize == 2 || swapSize == 4) {
-         int imageStride = _mesa_image_image_stride(srcPacking, srcWidth,
+         intptr_t imageStride = _mesa_image_image_stride(srcPacking, srcWidth,
                                                     srcHeight, srcFormat,
                                                     srcType);
          int bufferSize = imageStride * srcDepth;
@@ -989,7 +988,7 @@ store_texsubimage(struct gl_context *ctx,
    const GLenum target = texImage->TexObject->Target;
    GLboolean success = GL_FALSE;
    GLuint dims, slice, numSlices = 1, sliceOffset = 0;
-   GLint srcImageStride = 0;
+   intptr_t srcImageStride = 0;
    const GLubyte *src;
 
    assert(xoffset + width <= texImage->Width);
@@ -1104,37 +1103,6 @@ store_texsubimage(struct gl_context *ctx,
 
    _mesa_unmap_teximage_pbo(ctx, packing);
 }
-
-
-
-/**
- * Fallback code for TexImage().
- * Basically, allocate storage for the texture image, then copy the
- * user's image into it.
- */
-void
-_mesa_store_teximage(struct gl_context *ctx,
-                     GLuint dims,
-                     struct gl_texture_image *texImage,
-                     GLenum format, GLenum type, const GLvoid *pixels,
-                     const struct gl_pixelstore_attrib *packing)
-{
-   assert(dims == 1 || dims == 2 || dims == 3);
-
-   if (texImage->Width == 0 || texImage->Height == 0 || texImage->Depth == 0)
-      return;
-
-   /* allocate storage for texture data */
-   if (!st_AllocTextureImageBuffer(ctx, texImage)) {
-      _mesa_error(ctx, GL_OUT_OF_MEMORY, "glTexImage%uD", dims);
-      return;
-   }
-
-   store_texsubimage(ctx, texImage,
-                     0, 0, 0, texImage->Width, texImage->Height, texImage->Depth,
-                     format, type, pixels, packing, "glTexImage");
-}
-
 
 /*
  * Fallback for Driver.TexSubImage().

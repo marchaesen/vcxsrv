@@ -35,14 +35,22 @@ static locale_t loc;
 #endif
 
 #include "strtod.h"
+#include "util/u_call_once.h"
 
+static void
+_mesa_locale_init_once(void)
+{
+   #if defined(_GNU_SOURCE) && defined(HAVE_STRTOD_L)
+   loc = newlocale(LC_CTYPE_MASK, "C", NULL);
+   atexit(_mesa_locale_fini);
+   #endif
+}
 
 void
 _mesa_locale_init(void)
 {
-#if defined(_GNU_SOURCE) && defined(HAVE_STRTOD_L)
-   loc = newlocale(LC_CTYPE_MASK, "C", NULL);
-#endif
+   static util_once_flag once = UTIL_ONCE_FLAG_INIT;
+   util_call_once(&once, _mesa_locale_init_once);
 }
 
 void
@@ -61,6 +69,7 @@ double
 _mesa_strtod(const char *s, char **end)
 {
 #if defined(_GNU_SOURCE) && defined(HAVE_STRTOD_L)
+   if (!loc) _mesa_locale_init();
    return strtod_l(s, end, loc);
 #else
    return strtod(s, end);
@@ -76,6 +85,7 @@ float
 _mesa_strtof(const char *s, char **end)
 {
 #if defined(_GNU_SOURCE) && defined(HAVE_STRTOD_L)
+   if (!loc) _mesa_locale_init();
    return strtof_l(s, end, loc);
 #elif defined(HAVE_STRTOF)
    return strtof(s, end);

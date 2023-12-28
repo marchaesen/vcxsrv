@@ -170,7 +170,7 @@ main(int argc, char **argv)
       .gmemsize_bytes = gpu_info->gmemsize_bytes,
    };
 
-   screen.info = fd_dev_info(&dev_id);
+   screen.info = fd_dev_info_raw(&dev_id);
 
    /* And finally run thru all the GMEM keys: */
    for (int i = 0; i < ARRAY_SIZE(keys); i++) {

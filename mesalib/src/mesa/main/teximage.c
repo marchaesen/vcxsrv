@@ -30,7 +30,7 @@
  */
 
 #include <stdbool.h>
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "enums.h"
@@ -499,7 +499,7 @@ _mesa_max_texture_levels(const struct gl_context *ctx, GLenum target)
       return ffs(util_next_power_of_two(ctx->Const.MaxTextureSize));
    case GL_TEXTURE_3D:
    case GL_PROXY_TEXTURE_3D:
-      return !(ctx->API == API_OPENGLES2 && !ctx->Extensions.OES_texture_3D)
+      return !(_mesa_is_gles2(ctx) && !ctx->Extensions.OES_texture_3D)
          ? ctx->Const.Max3DTextureLevels : 0;
    case GL_TEXTURE_CUBE_MAP:
    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
@@ -797,9 +797,6 @@ clear_teximage_fields(struct gl_texture_image *img)
    img->Width2 = 0;
    img->Height2 = 0;
    img->Depth2 = 0;
-   img->WidthLog2 = 0;
-   img->HeightLog2 = 0;
-   img->DepthLog2 = 0;
    img->TexFormat = MESA_FORMAT_NONE;
    img->NumSamples = 0;
    img->FixedSampleLocations = GL_TRUE;
@@ -941,7 +938,7 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
    img->Height = height;
    img->Depth = depth;
 
-   GLenum depth_mode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
+   GLenum depth_mode = _mesa_is_desktop_gl_core(ctx) ? GL_RED : GL_LUMINANCE;
 
    /* In ES 3.0, DEPTH_TEXTURE_MODE is expected to be GL_RED for textures
     * with depth component data specified with a sized internal format.
@@ -957,8 +954,7 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
    }
    _mesa_update_teximage_format_swizzle(ctx, img, depth_mode);
 
-   img->Width2 = width - 2 * border;   /* == 1 << img->WidthLog2; */
-   img->WidthLog2 = util_logbase2(img->Width2);
+   img->Width2 = width - 2 * border;
 
    switch(target) {
    case GL_TEXTURE_1D:
@@ -968,22 +964,18 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
          img->Height2 = 0;
       else
          img->Height2 = 1;
-      img->HeightLog2 = 0;
       if (depth == 0)
          img->Depth2 = 0;
       else
          img->Depth2 = 1;
-      img->DepthLog2 = 0;
       break;
    case GL_TEXTURE_1D_ARRAY:
    case GL_PROXY_TEXTURE_1D_ARRAY:
       img->Height2 = height; /* no border */
-      img->HeightLog2 = 0; /* not used */
       if (depth == 0)
          img->Depth2 = 0;
       else
          img->Depth2 = 1;
-      img->DepthLog2 = 0;
       break;
    case GL_TEXTURE_2D:
    case GL_TEXTURE_RECTANGLE:
@@ -1000,13 +992,11 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
    case GL_PROXY_TEXTURE_CUBE_MAP:
    case GL_TEXTURE_2D_MULTISAMPLE:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE:
-      img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
-      img->HeightLog2 = util_logbase2(img->Height2);
+      img->Height2 = height - 2 * border;
       if (depth == 0)
          img->Depth2 = 0;
       else
          img->Depth2 = 1;
-      img->DepthLog2 = 0;
       break;
    case GL_TEXTURE_2D_ARRAY:
    case GL_PROXY_TEXTURE_2D_ARRAY:
@@ -1014,17 +1004,13 @@ _mesa_init_teximage_fields_ms(struct gl_context *ctx,
    case GL_PROXY_TEXTURE_CUBE_MAP_ARRAY:
    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
    case GL_PROXY_TEXTURE_2D_MULTISAMPLE_ARRAY:
-      img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
-      img->HeightLog2 = util_logbase2(img->Height2);
+      img->Height2 = height - 2 * border;
       img->Depth2 = depth; /* no border */
-      img->DepthLog2 = 0; /* not used */
       break;
    case GL_TEXTURE_3D:
    case GL_PROXY_TEXTURE_3D:
-      img->Height2 = height - 2 * border; /* == 1 << img->HeightLog2; */
-      img->HeightLog2 = util_logbase2(img->Height2);
-      img->Depth2 = depth - 2 * border;   /* == 1 << img->DepthLog2; */
-      img->DepthLog2 = util_logbase2(img->Depth2);
+      img->Height2 = height - 2 * border;
+      img->Depth2 = depth - 2 * border;
       break;
    default:
       _mesa_problem(NULL, "invalid target 0x%x in _mesa_init_teximage_fields()",
@@ -1591,6 +1577,21 @@ _mesa_target_can_be_compressed(const struct gl_context *ctx, GLenum target,
       case MESA_FORMAT_LAYOUT_BPTC:
          target_can_be_compresed = ctx->Extensions.ARB_texture_compression_bptc;
          break;
+      case MESA_FORMAT_LAYOUT_S3TC:
+         /* From the EXT_texture_compression_s3tc spec:
+          *
+          *      In extended OpenGL ES 3.0.2 these new tokens are also accepted by the
+          *      <internalformat> parameter of TexImage3D, CompressedTexImage3D,
+          *      TexStorage2D, TexStorage3D and the <format> parameter of
+          *      CompressedTexSubImage3D.
+          *
+          * The spec does not clarify whether the same applies to newer desktop GL versions
+          * (where 3D textures were introduced), check compatibility ext to be safe.
+          */
+         target_can_be_compresed =
+            ctx->Extensions.EXT_texture_compression_s3tc &&
+            (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility);
+         break;
       case MESA_FORMAT_LAYOUT_ASTC:
          target_can_be_compresed =
             ctx->Extensions.KHR_texture_compression_astc_hdr ||
@@ -1826,7 +1827,7 @@ _mesa_legal_texture_base_format_for_target(struct gl_context *ctx,
             target == GL_TEXTURE_CUBE_MAP ||
             target == GL_PROXY_TEXTURE_CUBE_MAP) &&
            (ctx->Version >= 30 || ctx->Extensions.EXT_gpu_shader4
-            || (ctx->API == API_OPENGLES2 && ctx->Extensions.OES_depth_texture_cube_map))) &&
+            || (_mesa_is_gles2(ctx) && ctx->Extensions.OES_depth_texture_cube_map))) &&
           !((target == GL_TEXTURE_CUBE_MAP_ARRAY ||
              target == GL_PROXY_TEXTURE_CUBE_MAP_ARRAY) &&
             _mesa_has_texture_cube_map_array(ctx))) {
@@ -2424,7 +2425,8 @@ copytexture_error_check( struct gl_context *ctx, GLuint dimensions,
          return GL_TRUE;
       }
 
-      if (ctx->ReadBuffer->Visual.samples > 0) {
+      if (!ctx->st_opts->allow_multisampled_copyteximage &&
+          ctx->ReadBuffer->Visual.samples > 0) {
          _mesa_error(ctx, GL_INVALID_OPERATION,
                      "glCopyTexImage%dD(multisample FBO)", dimensions);
          return GL_TRUE;
@@ -2691,9 +2693,29 @@ copytexsubimage_error_check(struct gl_context *ctx, GLuint dimensions,
          return GL_TRUE;
       }
 
-      if (ctx->ReadBuffer->Visual.samples > 0) {
-         _mesa_error(ctx, GL_INVALID_OPERATION,
-                "%s(multisample FBO)", caller);
+      /**
+       * From the GL_EXT_multisampled_render_to_texture spec:
+       *
+       * "An INVALID_OPERATION error is generated by CopyTexSubImage3D,
+       * CopyTexImage2D, or CopyTexSubImage2D if [...] the value of
+       * READ_FRAMEBUFFER_BINDING is non-zero, and:
+       *   - the read buffer selects an attachment that has no image attached,
+       *     or
+       *   - the value of SAMPLE_BUFFERS for the read framebuffer is one."
+       *
+       * [...]
+       * These errors do not apply to textures and renderbuffers that have
+       * associated multisample data specified by the mechanisms described in
+       * this extension, i.e., the above operations are allowed even when
+       * SAMPLE_BUFFERS is non-zero for renderbuffers created via Renderbuffer-
+       * StorageMultisampleEXT or textures attached via FramebufferTexture2D-
+       * MultisampleEXT.
+       */
+      if (!ctx->st_opts->allow_multisampled_copyteximage &&
+          ctx->ReadBuffer->Visual.samples > 0 &&
+          !_mesa_has_rtt_samples(ctx->ReadBuffer)) {
+         _mesa_error(ctx, GL_INVALID_OPERATION, "%s(multisample FBO)",
+                     caller);
          return GL_TRUE;
       }
    }
@@ -3042,7 +3064,7 @@ lookup_texture_ext_dsa(struct gl_context *ctx, GLenum target, GLuint texture,
       bool isGenName;
       texObj = _mesa_lookup_texture(ctx, texture);
       isGenName = texObj != NULL;
-      if (!texObj && ctx->API == API_OPENGL_CORE) {
+      if (!texObj && _mesa_is_desktop_gl_core(ctx)) {
          _mesa_error(ctx, GL_INVALID_OPERATION, "%s(non-gen name)", caller);
          return NULL;
       }
@@ -3146,7 +3168,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
     * call by decompressing the texture.  If we really want to support cpal
     * textures in any driver this would have to be changed.
     */
-   if (ctx->API == API_OPENGLES && compressed && dims == 2) {
+   if (_mesa_is_gles1(ctx) && compressed && dims == 2) {
       switch (internalFormat) {
       case GL_PALETTE4_RGB8_OES:
       case GL_PALETTE4_RGBA8_OES:
@@ -3285,7 +3307,7 @@ teximage(struct gl_context *ctx, GLboolean compressed, GLuint dims,
 
             _mesa_dirty_texobj(ctx, texObj);
             /* only apply depthMode swizzle if it was explicitly changed */
-            GLenum depth_mode = ctx->API == API_OPENGL_CORE ? GL_RED : GL_LUMINANCE;
+            GLenum depth_mode = _mesa_is_desktop_gl_core(ctx) ? GL_RED : GL_LUMINANCE;
             if (texObj->Attrib.DepthMode != depth_mode)
                _mesa_update_teximage_format_swizzle(ctx, texObj->Image[0][texObj->Attrib.BaseLevel], texObj->Attrib.DepthMode);
             _mesa_update_texture_object_swizzle(ctx, texObj);
@@ -3546,8 +3568,10 @@ egl_image_target_texture(struct gl_context *ctx,
       struct st_egl_image stimg;
       bool native_supported;
       if (!st_get_egl_image(ctx, image, PIPE_BIND_SAMPLER_VIEW, caller,
-                            &stimg, &native_supported))
+                            &stimg, &native_supported)) {
+         _mesa_unlock_texture(ctx, texObj);
          return;
+      }
 
       if (tex_storage) {
          /* EXT_EGL_image_storage
@@ -3557,9 +3581,11 @@ egl_image_target_texture(struct gl_context *ctx,
           *    Otherwise, the error INVALID_OPERATION is generated.
           */
          if (stimg.imported_dmabuf &&
-             (target == GL_TEXTURE_2D || target == GL_TEXTURE_EXTERNAL_OES)) {
+             !(target == GL_TEXTURE_2D || target == GL_TEXTURE_EXTERNAL_OES)) {
             _mesa_error(ctx, GL_INVALID_OPERATION,
                         "%s(texture is imported from dmabuf)", caller);
+            pipe_resource_reference(&stimg.texture, NULL);
+            _mesa_unlock_texture(ctx, texObj);
             return;
          }
          st_bind_egl_image(ctx, texObj, texImage, &stimg, true, native_supported);
@@ -3880,7 +3906,7 @@ texturesubimage(struct gl_context *ctx, GLuint dims,
 
    /* Must handle special case GL_TEXTURE_CUBE_MAP. */
    if (texObj->Target == GL_TEXTURE_CUBE_MAP) {
-      GLint imageStride;
+      intptr_t imageStride;
 
       /*
        * What do we do if the user created a texture with the following code
@@ -5521,6 +5547,11 @@ compressed_subtexture_target_check(struct gl_context *ctx, GLenum target,
          case MESA_FORMAT_LAYOUT_BPTC:
             /* valid format */
             break;
+         case MESA_FORMAT_LAYOUT_S3TC:
+            targetOK =
+               ctx->Extensions.EXT_texture_compression_s3tc &&
+               (_mesa_is_gles3(ctx) || ctx->Extensions.ARB_ES3_compatibility);
+            break;
          case MESA_FORMAT_LAYOUT_ASTC:
             targetOK =
                ctx->Extensions.KHR_texture_compression_astc_hdr ||
@@ -6260,7 +6291,7 @@ _mesa_CompressedMultiTexSubImage3DEXT(GLenum texunit, GLenum target,
 mesa_format
 _mesa_get_texbuffer_format(const struct gl_context *ctx, GLenum internalFormat)
 {
-   if (ctx->API == API_OPENGL_COMPAT) {
+   if (_mesa_is_desktop_gl_compat(ctx)) {
       switch (internalFormat) {
       case GL_ALPHA8:
          return MESA_FORMAT_A_UNORM8;

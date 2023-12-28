@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2002, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2002, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -166,7 +166,7 @@ static unsigned int vsockPort = 106000;
 /* others don't need this */
 #define SocketInitOnce() /**/
 
-#ifdef linux
+#ifdef __linux__
 #define HAVE_ABSTRACT_SOCKETS
 #endif
 
@@ -2290,12 +2290,6 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
     struct sockaddr_un	sockname;
     SOCKLEN_T		namelen;
 
-
-    int abstract = 0;
-#ifdef HAVE_ABSTRACT_SOCKETS
-    abstract = ciptr->transptr->flags & TRANS_ABSTRACT;
-#endif
-
     prmsg (2,"SocketUNIXConnect(%d,%s,%s)\n", ciptr->fd, host, port);
 
     /*
@@ -2331,7 +2325,7 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
 
     sockname.sun_family = AF_UNIX;
 
-    if (set_sun_path(port, UNIX_PATH, sockname.sun_path, abstract) != 0) {
+    if (set_sun_path(port, UNIX_PATH, sockname.sun_path, 0) != 0) {
 	prmsg (1, "SocketUNIXConnect: path too long\n");
 	return TRANS_CONNECT_FAILED;
     }
@@ -2346,16 +2340,6 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
     namelen = strlen (sockname.sun_path) + offsetof(struct sockaddr_un, sun_path);
 #endif
 
-
-
-    /*
-     * Adjust the socket path if using abstract sockets.
-     * Done here because otherwise all the strlen() calls above would fail.
-     */
-
-    if (abstract) {
-	sockname.sun_path[0] = '\0';
-    }
 
     /*
      * Do the connect()
@@ -2390,15 +2374,7 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
 		return TRANS_IN_PROGRESS;
 	    else if (olderrno == EINTR)
 		return TRANS_TRY_CONNECT_AGAIN;
-	    else if (olderrno == ENOENT || olderrno == ECONNREFUSED) {
-		/* If opening as abstract socket failed, try again normally */
-		if (abstract) {
-		    ciptr->transptr->flags &= ~(TRANS_ABSTRACT);
-		    return TRANS_TRY_CONNECT_AGAIN;
-		} else {
-		    return TRANS_CONNECT_FAILED;
-		}
-	    } else {
+	    else {
 		prmsg (2,"SocketUNIXConnect: Can't connect: errno = %d\n",
 		       EGET());
 
@@ -2419,9 +2395,6 @@ TRANS(SocketUNIXConnect) (XtransConnInfo ciptr,
 	"SocketUNIXCreateListener: Can't allocate space for the addr\n");
         return TRANS_CONNECT_FAILED;
     }
-
-    if (abstract)
-	sockname.sun_path[0] = '@';
 
     ciptr->family = AF_UNIX;
     ciptr->addrlen = namelen;

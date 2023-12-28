@@ -58,5 +58,6 @@ CSRCS = \
 	UpdMapHint.c \
 	VisCmap.c \
 	WidgetNode.c \
-	Xct.c
+	Xct.c \
+	reallocarray.c
 

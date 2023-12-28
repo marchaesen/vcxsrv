@@ -83,7 +83,7 @@ Ilia Mirkin (1):
 
 -  nvc0/ir: SHLADD's middle source must be an immediate
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  i965/blorp: Do and end-of-pipe sync on both sides of fast-clear ops
 -  i965: Round copy size to the nearest block in intel_miptree_copy

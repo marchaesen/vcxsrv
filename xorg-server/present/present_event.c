@@ -106,7 +106,8 @@ present_event_swap(xGenericEvent *from, xGenericEvent *to)
 }
 
 void
-present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw, WindowPtr sibling)
+present_send_config_notify(WindowPtr window, int x, int y, int w, int h,
+                           int bw, WindowPtr sibling, CARD32 flags)
 {
     present_window_priv_ptr window_priv = present_window_priv(window);
 
@@ -126,7 +127,7 @@ present_send_config_notify(WindowPtr window, int x, int y, int w, int h, int bw,
             .off_y = 0,
             .pixmap_width = w,
             .pixmap_height = h,
-            .pixmap_flags = 0
+            .pixmap_flags = flags
         };
         present_event_ptr event;
 

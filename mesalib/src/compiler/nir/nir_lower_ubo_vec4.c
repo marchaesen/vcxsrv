@@ -73,27 +73,27 @@ nir_lower_ubo_vec4_filter(const nir_instr *instr, const void *data)
 }
 
 static nir_intrinsic_instr *
-create_load(nir_builder *b, nir_ssa_def *block, nir_ssa_def *offset,
+create_load(nir_builder *b, nir_def *block, nir_def *offset,
             unsigned bit_size, unsigned num_components)
 {
-   nir_ssa_def *def = nir_load_ubo_vec4(b, num_components, bit_size, block, offset);
+   nir_def *def = nir_load_ubo_vec4(b, num_components, bit_size, block, offset);
    return nir_instr_as_intrinsic(def->parent_instr);
 }
 
-static nir_ssa_def *
+static nir_def *
 nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
 {
    b->cursor = nir_before_instr(instr);
 
    nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
-   nir_ssa_def *byte_offset = nir_ssa_for_src(b, intr->src[1], 1);
-   nir_ssa_def *vec4_offset = nir_ushr_imm(b, byte_offset, 4);
+   nir_def *byte_offset = intr->src[1].ssa;
+   nir_def *vec4_offset = nir_ushr_imm(b, byte_offset, 4);
 
    unsigned align_mul = nir_intrinsic_align_mul(intr);
    unsigned align_offset = nir_intrinsic_align_offset(intr);
 
-   int chan_size_bytes = intr->dest.ssa.bit_size / 8;
+   int chan_size_bytes = intr->def.bit_size / 8;
    int chans_per_vec4 = 16 / chan_size_bytes;
 
    /* We don't care if someone figured out that things are aligned beyond
@@ -105,17 +105,17 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
 
    unsigned num_components = intr->num_components;
    bool aligned_mul = (align_mul == 16 &&
-                       align_offset +  chan_size_bytes * num_components <= 16);
+                       align_offset + chan_size_bytes * num_components <= 16);
    if (!aligned_mul)
       num_components = chans_per_vec4;
 
    nir_intrinsic_instr *load = create_load(b, intr->src[0].ssa, vec4_offset,
-                                           intr->dest.ssa.bit_size,
+                                           intr->def.bit_size,
                                            num_components);
 
    nir_intrinsic_set_access(load, nir_intrinsic_access(intr));
 
-   nir_ssa_def *result = &load->dest.ssa;
+   nir_def *result = &load->def;
 
    int align_chan_offset = align_offset / chan_size_bytes;
    if (aligned_mul) {
@@ -127,7 +127,7 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
       /* If we're loading a single component, that component alone won't
        * straddle a vec4 boundary so we can do this with a single UBO load.
        */
-      nir_ssa_def *component =
+      nir_def *component =
          nir_iand_imm(b,
                       nir_udiv_imm(b, byte_offset, chan_size_bytes),
                       chans_per_vec4 - 1);
@@ -143,25 +143,24 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
       nir_component_mask_t high_channels =
          low_channels << (8 / chan_size_bytes);
       result = nir_bcsel(b, nir_test_mask(b, byte_offset, 8),
-                            nir_channels(b, result, high_channels),
-                            nir_channels(b, result, low_channels));
+                         nir_channels(b, result, high_channels),
+                         nir_channels(b, result, low_channels));
    } else {
       /* General fallback case: Per-result-channel bcsel-based extraction
        * from two separate vec4 loads.
        */
-      assert(num_components == 4);
-      nir_ssa_def *next_vec4_offset = nir_iadd_imm(b, vec4_offset, 1);
+      nir_def *next_vec4_offset = nir_iadd_imm(b, vec4_offset, 1);
       nir_intrinsic_instr *next_load = create_load(b, intr->src[0].ssa, next_vec4_offset,
-                                                   intr->dest.ssa.bit_size,
+                                                   intr->def.bit_size,
                                                    num_components);
 
-      nir_ssa_def *channels[NIR_MAX_VEC_COMPONENTS];
+      nir_def *channels[NIR_MAX_VEC_COMPONENTS];
       for (unsigned i = 0; i < intr->num_components; i++) {
-         nir_ssa_def *chan_byte_offset = nir_iadd_imm(b, byte_offset, i * chan_size_bytes);
+         nir_def *chan_byte_offset = nir_iadd_imm(b, byte_offset, i * chan_size_bytes);
 
-         nir_ssa_def *chan_vec4_offset = nir_ushr_imm(b, chan_byte_offset, 4);
+         nir_def *chan_vec4_offset = nir_ushr_imm(b, chan_byte_offset, 4);
 
-         nir_ssa_def *component =
+         nir_def *component =
             nir_iand_imm(b,
                          nir_udiv_imm(b, chan_byte_offset, chan_size_bytes),
                          chans_per_vec4 - 1);
@@ -171,8 +170,8 @@ nir_lower_ubo_vec4_lower(nir_builder *b, nir_instr *instr, void *data)
                                                     nir_ieq(b,
                                                             chan_vec4_offset,
                                                             vec4_offset),
-                                                    &load->dest.ssa,
-                                                    &next_load->dest.ssa),
+                                                    &load->def,
+                                                    &next_load->def),
                                           component);
       }
 

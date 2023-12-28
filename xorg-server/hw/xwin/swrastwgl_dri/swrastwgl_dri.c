@@ -9,6 +9,7 @@
 #include <stdint.h>
 
 #include <glx/glheader.h>
+#undef _WINDOWS_
 #include <glx/glapi.h>
 #include <glx/glapitable.h>
 

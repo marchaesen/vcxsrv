@@ -26,8 +26,8 @@
  * IN THE SOFTWARE.
  */
 
-#include "util/bitset.h"
 #include "radv_amdgpu_surface.h"
+#include "util/bitset.h"
 #include "radv_amdgpu_winsys.h"
 #include "radv_private.h"
 #include "sid.h"
@@ -91,6 +91,7 @@ radv_amdgpu_winsys_surface_init(struct radeon_winsys *_ws, const struct ac_surf_
    config.is_1d = type == RADEON_SURF_TYPE_1D || type == RADEON_SURF_TYPE_1D_ARRAY;
    config.is_3d = type == RADEON_SURF_TYPE_3D;
    config.is_cube = type == RADEON_SURF_TYPE_CUBEMAP;
+   config.is_array = type == RADEON_SURF_TYPE_1D_ARRAY || type == RADEON_SURF_TYPE_2D_ARRAY;
 
    return ac_compute_surface(ws->addrlib, &ws->info, &config, mode, surf);
 }

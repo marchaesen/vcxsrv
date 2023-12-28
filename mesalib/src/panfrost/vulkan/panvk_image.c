@@ -28,12 +28,12 @@
 
 #include "panvk_private.h"
 
-#include "util/debug.h"
+#include "drm-uapi/drm_fourcc.h"
 #include "util/u_atomic.h"
+#include "util/u_debug.h"
 #include "vk_format.h"
 #include "vk_object.h"
 #include "vk_util.h"
-#include "drm-uapi/drm_fourcc.h"
 
 unsigned
 panvk_image_get_plane_size(const struct panvk_image *image, unsigned plane)
@@ -53,29 +53,31 @@ static enum mali_texture_dimension
 panvk_image_type_to_mali_tex_dim(VkImageType type)
 {
    switch (type) {
-   case VK_IMAGE_TYPE_1D: return MALI_TEXTURE_DIMENSION_1D;
-   case VK_IMAGE_TYPE_2D: return MALI_TEXTURE_DIMENSION_2D;
-   case VK_IMAGE_TYPE_3D: return MALI_TEXTURE_DIMENSION_3D;
-   default: unreachable("Invalid image type");
+   case VK_IMAGE_TYPE_1D:
+      return MALI_TEXTURE_DIMENSION_1D;
+   case VK_IMAGE_TYPE_2D:
+      return MALI_TEXTURE_DIMENSION_2D;
+   case VK_IMAGE_TYPE_3D:
+      return MALI_TEXTURE_DIMENSION_3D;
+   default:
+      unreachable("Invalid image type");
    }
 }
 
 static VkResult
-panvk_image_create(VkDevice _device,
-                   const VkImageCreateInfo *pCreateInfo,
-                   const VkAllocationCallbacks *alloc,
-                   VkImage *pImage,
-                   uint64_t modifier,
-                   const VkSubresourceLayout *plane_layouts)
+panvk_image_create(VkDevice _device, const VkImageCreateInfo *pCreateInfo,
+                   const VkAllocationCallbacks *alloc, VkImage *pImage,
+                   uint64_t modifier, const VkSubresourceLayout *plane_layouts)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
+   const struct panfrost_device *pdev = &device->physical_device->pdev;
    struct panvk_image *image = NULL;
 
    image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
    if (!image)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   image->pimage.layout = (struct pan_image_layout) {
+   image->pimage.layout = (struct pan_image_layout){
       .modifier = modifier,
       .format = vk_format_to_pipe_format(image->vk.format),
       .dim = panvk_image_type_to_mali_tex_dim(image->vk.image_type),
@@ -85,25 +87,25 @@ panvk_image_create(VkDevice _device,
       .array_size = image->vk.array_layers,
       .nr_samples = image->vk.samples,
       .nr_slices = image->vk.mip_levels,
-      .crc_mode = PAN_IMAGE_CRC_NONE
    };
 
-   pan_image_layout_init(&image->pimage.layout, NULL);
+   pan_image_layout_init(pdev, &image->pimage.layout, NULL);
 
    *pImage = panvk_image_to_handle(image);
    return VK_SUCCESS;
 }
 
 static uint64_t
-panvk_image_select_mod(VkDevice _device,
-                       const VkImageCreateInfo *pCreateInfo,
+panvk_image_select_mod(VkDevice _device, const VkImageCreateInfo *pCreateInfo,
                        const VkSubresourceLayout **plane_layouts)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
    const struct panfrost_device *pdev = &device->physical_device->pdev;
    enum pipe_format fmt = vk_format_to_pipe_format(pCreateInfo->format);
-   bool noafbc = !(device->physical_device->instance->debug_flags & PANVK_DEBUG_AFBC);
-   bool linear = device->physical_device->instance->debug_flags & PANVK_DEBUG_LINEAR;
+   bool noafbc =
+      !(device->physical_device->instance->debug_flags & PANVK_DEBUG_AFBC);
+   bool linear =
+      device->physical_device->instance->debug_flags & PANVK_DEBUG_LINEAR;
 
    *plane_layouts = NULL;
 
@@ -115,8 +117,9 @@ panvk_image_select_mod(VkDevice _device,
          vk_find_struct_const(pCreateInfo->pNext,
                               IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT);
       const VkImageDrmFormatModifierExplicitCreateInfoEXT *drm_explicit_info =
-         vk_find_struct_const(pCreateInfo->pNext,
-                              IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
+         vk_find_struct_const(
+            pCreateInfo->pNext,
+            IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
 
       assert(mod_info || drm_explicit_info);
 
@@ -179,8 +182,8 @@ panvk_image_select_mod(VkDevice _device,
    if (noafbc)
       return DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED;
 
-   uint64_t afbc_type = AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 |
-                        AFBC_FORMAT_MOD_SPARSE;
+   uint64_t afbc_type =
+      AFBC_FORMAT_MOD_BLOCK_SIZE_16x16 | AFBC_FORMAT_MOD_SPARSE;
 
    if (panfrost_afbc_can_ytr(fmt))
       afbc_type |= AFBC_FORMAT_MOD_YTR;
@@ -189,20 +192,19 @@ panvk_image_select_mod(VkDevice _device,
 }
 
 VkResult
-panvk_CreateImage(VkDevice device,
-                  const VkImageCreateInfo *pCreateInfo,
-                  const VkAllocationCallbacks *pAllocator,
-                  VkImage *pImage)
+panvk_CreateImage(VkDevice device, const VkImageCreateInfo *pCreateInfo,
+                  const VkAllocationCallbacks *pAllocator, VkImage *pImage)
 {
    const VkSubresourceLayout *plane_layouts;
-   uint64_t modifier = panvk_image_select_mod(device, pCreateInfo, &plane_layouts);
+   uint64_t modifier =
+      panvk_image_select_mod(device, pCreateInfo, &plane_layouts);
 
-   return panvk_image_create(device, pCreateInfo, pAllocator, pImage, modifier, plane_layouts);
+   return panvk_image_create(device, pCreateInfo, pAllocator, pImage, modifier,
+                             plane_layouts);
 }
 
 void
-panvk_DestroyImage(VkDevice _device,
-                   VkImage _image,
+panvk_DestroyImage(VkDevice _device, VkImage _image,
                    const VkAllocationCallbacks *pAllocator)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
@@ -230,22 +232,21 @@ panvk_plane_index(VkFormat format, VkImageAspectFlags aspect_mask)
 }
 
 void
-panvk_GetImageSubresourceLayout(VkDevice _device,
-                                VkImage _image,
+panvk_GetImageSubresourceLayout(VkDevice _device, VkImage _image,
                                 const VkImageSubresource *pSubresource,
                                 VkSubresourceLayout *pLayout)
 {
    VK_FROM_HANDLE(panvk_image, image, _image);
 
-   unsigned plane = panvk_plane_index(image->vk.format, pSubresource->aspectMask);
+   unsigned plane =
+      panvk_plane_index(image->vk.format, pSubresource->aspectMask);
    assert(plane < PANVK_MAX_PLANES);
 
    const struct pan_image_slice_layout *slice_layout =
       &image->pimage.layout.slices[pSubresource->mipLevel];
 
-   pLayout->offset = slice_layout->offset +
-                     (pSubresource->arrayLayer *
-                      image->pimage.layout.array_stride);
+   pLayout->offset = slice_layout->offset + (pSubresource->arrayLayer *
+                                             image->pimage.layout.array_stride);
    pLayout->size = slice_layout->size;
    pLayout->rowPitch = slice_layout->row_stride;
    pLayout->arrayPitch = image->pimage.layout.array_stride;
@@ -253,8 +254,7 @@ panvk_GetImageSubresourceLayout(VkDevice _device,
 }
 
 void
-panvk_DestroyImageView(VkDevice _device,
-                       VkImageView _view,
+panvk_DestroyImageView(VkDevice _device, VkImageView _view,
                        const VkAllocationCallbacks *pAllocator)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
@@ -268,8 +268,7 @@ panvk_DestroyImageView(VkDevice _device,
 }
 
 void
-panvk_DestroyBufferView(VkDevice _device,
-                        VkBufferView bufferView,
+panvk_DestroyBufferView(VkDevice _device, VkBufferView bufferView,
                         const VkAllocationCallbacks *pAllocator)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
@@ -283,13 +282,14 @@ panvk_DestroyBufferView(VkDevice _device,
 }
 
 VkResult
-panvk_GetImageDrmFormatModifierPropertiesEXT(VkDevice device,
-                                             VkImage _image,
-                                             VkImageDrmFormatModifierPropertiesEXT *pProperties)
+panvk_GetImageDrmFormatModifierPropertiesEXT(
+   VkDevice device, VkImage _image,
+   VkImageDrmFormatModifierPropertiesEXT *pProperties)
 {
    VK_FROM_HANDLE(panvk_image, image, _image);
 
-   assert(pProperties->sType == VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT);
+   assert(pProperties->sType ==
+          VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_PROPERTIES_EXT);
 
    pProperties->drmFormatModifier = image->pimage.layout.modifier;
    return VK_SUCCESS;

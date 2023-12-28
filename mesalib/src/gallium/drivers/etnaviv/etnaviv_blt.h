@@ -37,6 +37,8 @@ struct pipe_context;
 /* src/dest info for image operations */
 struct blt_imginfo
 {
+   unsigned downsample_x : 1; /* Downsample in x direction */
+   unsigned downsample_y : 1; /* Downsample in y direction */
    unsigned use_ts:1;
    struct etna_reloc addr;
    struct etna_reloc ts_addr;

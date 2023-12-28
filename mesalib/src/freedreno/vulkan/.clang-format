@@ -1,17 +1,12 @@
-BasedOnStyle: LLVM
+
+BasedOnStyle: InheritParentConfig
+DisableFormat: false
+
 AlwaysBreakAfterReturnType: TopLevel
 BinPackParameters: false
-BraceWrapping:
-  AfterControlStatement: false
-  AfterEnum: true
-  AfterFunction: true
-  AfterStruct: true
-  BeforeElse: false
-  SplitEmptyFunction: true
-BreakBeforeBraces: Custom
 ColumnLimit: 78
-ContinuationIndentWidth: 3
 Cpp11BracedListStyle: false
+
 IncludeBlocks: Regroup
 IncludeCategories:
   - Regex:           '^"tu_common.h"$'
@@ -24,8 +19,6 @@ IncludeCategories:
     Priority:        2
   - Regex:           '.*'
     Priority:        1
-IndentWidth: 3
-PenaltyBreakBeforeFirstCallParameter: 1
-PenaltyExcessCharacter: 100
+
 SpaceAfterCStyleCast: true
 SpaceBeforeCpp11BracedList: true

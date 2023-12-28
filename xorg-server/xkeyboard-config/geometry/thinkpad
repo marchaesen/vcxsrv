@@ -151,7 +151,7 @@ xkb_geometry "common" {
 	    keys { <LEFT>, <DOWN>, <RGHT> };
 	};
     }; // End of "Navigation" section
-    
+
     shape "STIK" { cornerRadius = 4, { [7, 7] } };
 
     solid "STIK" {
@@ -189,23 +189,23 @@ xkb_geometry "us" {
 	row {
 	    top = 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top = 39;
 	    keys { { <CAPS>, "CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top = 58;
 	    keys { { <LFSH>, "LFSH" },
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, "RTSH" }
 	    };
@@ -241,23 +241,23 @@ xkb_geometry "intl" {
 	row {
 	    top = 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN" }
 	    };
 	};
 	row {
 	    top = 39;
 	    keys { { <CAPS>, "CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <AC12>
 	    };
 	};
 	row {
 	    top = 58;
 	    keys { { <LFSH>, "LFSH" }, <AB00>,
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, "RTSH" }
 	    };
@@ -420,7 +420,7 @@ xkb_geometry "60" {
 	    keys { <LEFT>, <DOWN>, <RGHT> };
 	};
     }; // End of "Navigation" section
-    
+
     shape "STIK" { cornerRadius = 3.5, { [7, 7] } };
 
     solid "STIK" {
@@ -445,23 +445,23 @@ xkb_geometry "60" {
 	row {
 	    top = 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <BKSL>, "BKSL" }
 	    };
 	};
 	row {
 	    top = 39;
 	    keys { { <CAPS>, "CAPS" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, { <RTRN>, "RTRN", color = "blue" }
 	    };
 	};
 	row {
 	    top = 58;
 	    keys { { <LFSH>, "LFSH" },
-		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		   <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		   <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		   { <RTSH>, "RTSH" }
 	    };

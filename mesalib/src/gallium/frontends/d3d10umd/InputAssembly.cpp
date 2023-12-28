@@ -32,9 +32,6 @@
 
 
 #include <stdio.h>
-#if defined(_MSC_VER) && !defined(snprintf)
-#define snprintf _snprintf
-#endif
 
 #include "InputAssembly.h"
 #include "State.h"
@@ -62,42 +59,42 @@ IaSetTopology(D3D10DDI_HDEVICE hDevice,                        // IN
 
    Device *pDevice = CastDevice(hDevice);
 
-   enum pipe_prim_type primitive;
+   enum mesa_prim primitive;
    switch (PrimitiveTopology) {
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_UNDEFINED:
       /* Apps might set topology to UNDEFINED when cleaning up on exit. */
-      primitive = PIPE_PRIM_MAX;
+      primitive = MESA_PRIM_COUNT;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_POINTLIST:
-      primitive = PIPE_PRIM_POINTS;
+      primitive = MESA_PRIM_POINTS;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_LINELIST:
-      primitive = PIPE_PRIM_LINES;
+      primitive = MESA_PRIM_LINES;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_LINESTRIP:
-      primitive = PIPE_PRIM_LINE_STRIP;
+      primitive = MESA_PRIM_LINE_STRIP;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_TRIANGLELIST:
-      primitive = PIPE_PRIM_TRIANGLES;
+      primitive = MESA_PRIM_TRIANGLES;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP:
-      primitive = PIPE_PRIM_TRIANGLE_STRIP;
+      primitive = MESA_PRIM_TRIANGLE_STRIP;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_LINELIST_ADJ:
-      primitive = PIPE_PRIM_LINES_ADJACENCY;
+      primitive = MESA_PRIM_LINES_ADJACENCY;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ:
-      primitive = PIPE_PRIM_LINE_STRIP_ADJACENCY;
+      primitive = MESA_PRIM_LINE_STRIP_ADJACENCY;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ:
-      primitive = PIPE_PRIM_TRIANGLES_ADJACENCY;
+      primitive = MESA_PRIM_TRIANGLES_ADJACENCY;
       break;
    case D3D10_DDI_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ:
-      primitive = PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY;
+      primitive = MESA_PRIM_TRIANGLE_STRIP_ADJACENCY;
       break;
    default:
       assert(0);
-      primitive = PIPE_PRIM_MAX;
+      primitive = MESA_PRIM_COUNT;
       break;
    }
 
@@ -148,20 +145,20 @@ IaSetVertexBuffers(D3D10DDI_HDEVICE hDevice,                                    
       }
 
       if (resource) {
-         vb->stride = pStrides[i];
+         pDevice->vertex_strides[StartBuffer + i] = pStrides[i];
          vb->buffer_offset = pOffsets[i];
          if (vb->is_user_buffer) {
             vb->buffer.resource = NULL;
-            vb->is_user_buffer = FALSE;
+            vb->is_user_buffer = false;
          }
          pipe_resource_reference(&vb->buffer.resource, resource);
       }
       else {
-         vb->stride = 0;
+         pDevice->vertex_strides[StartBuffer + i] = 0;
          vb->buffer_offset = 0;
          if (!vb->is_user_buffer) {
             pipe_resource_reference(&vb->buffer.resource, NULL);
-            vb->is_user_buffer = TRUE;
+            vb->is_user_buffer = true;
          }
          vb->buffer.user = dummy;
       }
@@ -172,16 +169,17 @@ IaSetVertexBuffers(D3D10DDI_HDEVICE hDevice,                                    
 
       /* XXX this is odd... */
       if (!vb->is_user_buffer && !vb->buffer.resource) {
-         vb->stride = 0;
+         pDevice->vertex_strides[i]->stride = 0;
          vb->buffer_offset = 0;
-         vb->is_user_buffer = TRUE;
+         vb->is_user_buffer = true;
          vb->buffer.user = dummy;
       }
    }
 
    /* Resubmit old and new vertex buffers.
     */
-   pipe->set_vertex_buffers(pipe, 0, PIPE_MAX_ATTRIBS, 0, FALSE, pDevice->vertex_buffers);
+   cso_set_vertex_buffers(pDevice->cso, PIPE_MAX_ATTRIBS, 0, false, pDevice->vertex_buffers);
+   pDevice->velems_changed = true;
 }
 
 
@@ -272,10 +270,9 @@ CreateElementLayout(
 {
    LOG_ENTRYPOINT();
 
-   struct pipe_context *pipe = CastPipeContext(hDevice);
    ElementLayout *pElementLayout = CastElementLayout(hElementLayout);
 
-   struct pipe_vertex_element elements[PIPE_MAX_ATTRIBS];
+   struct cso_velems_state elements;
    memset(elements, 0, sizeof elements);
 
    unsigned num_elements = pCreateElementLayout->NumElements;
@@ -284,11 +281,11 @@ CreateElementLayout(
       const D3D10DDIARG_INPUT_ELEMENT_DESC* pVertexElement =
             &pCreateElementLayout->pVertexElements[i];
       struct pipe_vertex_element *ve =
-            &elements[pVertexElement->InputRegister];
+            &elements.velems[pVertexElement->InputRegister];
 
       ve->src_offset          = pVertexElement->AlignedByteOffset;
       ve->vertex_buffer_index = pVertexElement->InputSlot;
-      ve->src_format          = FormatTranslate(pVertexElement->Format, FALSE);
+      ve->src_format          = FormatTranslate(pVertexElement->Format, false);
 
       switch (pVertexElement->InputSlotClass) {
       case D3D10_DDI_INPUT_PER_VERTEX_DATA:
@@ -312,11 +309,11 @@ CreateElementLayout(
 
    /* XXX: What do we do when there's a gap? */
    if (max_elements != num_elements) {
-      DebugPrintf("%s: gap\n", __FUNCTION__);
+      DebugPrintf("%s: gap\n", __func__);
    }
 
-   pElementLayout->handle =
-         pipe->create_vertex_elements_state(pipe, max_elements, elements);
+   elements.count = max_elements;
+   pElementLayout->velems = mem_dup(elements, sizeof(elements));
 }
 
 
@@ -341,7 +338,8 @@ DestroyElementLayout(D3D10DDI_HDEVICE hDevice,                 // IN
    struct pipe_context *pipe = CastPipeContext(hDevice);
    ElementLayout *pElementLayout = CastElementLayout(hElementLayout);
 
-   pipe->delete_vertex_elements_state(pipe, pElementLayout->handle);}
+   free(pElementLayout->velems);
+}
 
 
 /*
@@ -361,10 +359,8 @@ IaSetInputLayout(D3D10DDI_HDEVICE hDevice,               // IN
 {
    LOG_ENTRYPOINT();
 
-   struct pipe_context *pipe = CastPipeContext(hDevice);
-   void *state = CastPipeInputLayout(hInputLayout);
+   Device *pDevice = CastDevice(hDevice);
+   pDevice->element_layout = CastElementLayout(hInputLayout);
+   pDevice->velems_changed = true;
 
-   pipe->bind_vertex_elements_state(pipe, state);
 }
-
-

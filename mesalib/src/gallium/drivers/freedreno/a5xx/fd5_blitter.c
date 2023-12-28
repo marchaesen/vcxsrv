@@ -468,7 +468,7 @@ fd5_blitter_blit(struct fd_context *ctx,
    /* Acc query state will have been dirtied by our fd_batch_update_queries, so
     * the ctx->batch may need to turn its queries back on.
     */
-   ctx->update_active_queries = true;
+   fd_context_dirty(ctx, FD_DIRTY_QUERY);
 
    return true;
 }

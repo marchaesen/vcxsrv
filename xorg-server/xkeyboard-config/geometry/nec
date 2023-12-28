@@ -53,8 +53,8 @@ default xkb_geometry "pc98" {
 	    top= 1;
 	    key.shape="FUNC";
 	    keys {  { <BRK>, "NORM" }, { <PRSC>, "NORM", 5 },
-		    { <FK01>, 6 }, <FK02>, <FK03>, <FK04>, <FK05>, 
-		    { <FK06>, 6 }, <FK07>, <FK08>, <FK09>, <FK10>, 
+		    { <FK01>, 6 }, <FK02>, <FK03>, <FK04>, <FK05>,
+		    { <FK06>, 6 }, <FK07>, <FK08>, <FK09>, <FK10>,
 		    { <FK11>, 6 }, <FK12>, <FK13>, <FK14>, <FK15>
 	    };
 	};
@@ -64,7 +64,7 @@ default xkb_geometry "pc98" {
 	top= 54;
 	row {
 	    top= 1;
-	    keys { { <ESC>, shape="BKSP"}, 
+	    keys { { <ESC>, shape="BKSP"},
 		   <AE01>, <AE02>, <AE03>, <AE04>,
 		   <AE05>, <AE06>, <AE07>, <AE08>, <AE09>,
 		   <AE10>, <AE11>, <AE12>, <BKSL>,
@@ -74,23 +74,23 @@ default xkb_geometry "pc98" {
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
 		   <AD11>, <AD12>, { <RTRN>, "RTRN", 6 }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { <LCTL>, <CAPS>,
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <AC12>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "LFSH" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, <AB11>,
 		    { <RTSH>, "RTSH" }
 	    };
@@ -99,7 +99,7 @@ default xkb_geometry "pc98" {
 	    top= 77;
 	    keys { { <ALGR>, 35 } , <LALT>, { <NFER>, "FUNC" },
 		   { <SPCE>, "SPCE" }, { <XFER>, "FUNC" }
-		   
+
 	    };
 	};
     }; // End of "Alpha" section

@@ -3,10 +3,10 @@
 
 AC_PREREQ(2.57)
 AC_INIT([XCB Proto],
-        1.12,
+        1.16.0,
         [xcb@lists.freedesktop.org])
 AC_CONFIG_SRCDIR([xcb-proto.pc.in])
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 AC_PATH_PROG(XMLLINT, xmllint, no)
 AM_CONDITIONAL(HAVE_XMLLINT, test "x$XMLLINT" != "xno")
@@ -19,4 +19,5 @@ AM_PATH_PYTHON([2.5])
 xcbincludedir='${datadir}/xcb'
 AC_SUBST(xcbincludedir)
 
-AC_OUTPUT([Makefile src/Makefile xcbgen/Makefile xcb-proto.pc])
+AC_CONFIG_FILES([Makefile src/Makefile xcbgen/Makefile xcb-proto.pc])
+AC_OUTPUT

@@ -312,7 +312,7 @@ vc4_set_viewport_states(struct pipe_context *pctx,
 
 static void
 vc4_set_vertex_buffers(struct pipe_context *pctx,
-                       unsigned start_slot, unsigned count,
+                       unsigned count,
                        unsigned unbind_num_trailing_slots,
                        bool take_ownership,
                        const struct pipe_vertex_buffer *vb)
@@ -321,8 +321,7 @@ vc4_set_vertex_buffers(struct pipe_context *pctx,
         struct vc4_vertexbuf_stateobj *so = &vc4->vertexbuf;
 
         util_set_vertex_buffers_mask(so->vb, &so->enabled_mask, vb,
-                                     start_slot, count,
-                                     unbind_num_trailing_slots,
+                                     count, unbind_num_trailing_slots,
                                      take_ownership);
         so->count = util_last_bit(so->enabled_mask);
 

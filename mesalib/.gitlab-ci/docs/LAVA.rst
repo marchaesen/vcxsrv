@@ -1,13 +1,18 @@
 LAVA CI
 =======
 
-`LAVA <https://lavasoftware.org/>`_ is a system for functional testing
-of boards including deploying custom bootloaders and kernels.  This is
-particularly relevant to testing Mesa because we often need to change
-kernels for UAPI changes (and this lets us do full testing of a new
-kernel during development), and our workloads can easily take down
-boards when mistakes are made (kernel oopses, OOMs that take out
-critical system services).
+`LAVA <https://www.lavasoftware.org/>`__ is a system for functional
+testing of boards including deploying custom bootloaders and kernels.
+This is particularly relevant to testing Mesa because we often need
+to change kernels for UAPI changes (and this lets us do full testing
+of a new kernel during development), and our workloads can easily
+take down boards when mistakes are made (kernel oopses, OOMs that
+take out critical system services).
+
+Available LAVA labs
+-------------------
+- Collabora `[dashboard] <https://lava.collabora.dev/scheduler/device_types>`__ (without authentication only health check jobs are displayed)
+- Lima [dashboard not available]
 
 Mesa-LAVA software architecture
 -------------------------------
@@ -39,7 +44,7 @@ Instantiate your boards by creating them in the UI or at the command
 line attached to that device type, then populate their dictionary
 (using an "extends" line probably referencing the board's template in
 ``/etc/lava-dispatcher/device-types``).  Now, go find a relevant
-healthcheck job for your board as a test job definition, or cobble
+health check job for your board as a test job definition, or cobble
 something together from a board that boots using the same boot_method
 and some public images, and figure out how to get your boards booting.
 
@@ -51,7 +56,7 @@ to restrict the jobs it takes or it will grab random jobs from tasks
 across ``gitlab.freedesktop.org``, and your runner isn't ready for
 that.
 
-The Docker image will need access to the lava instance.  If it's on a
+The Docker image will need access to the LAVA instance.  If it's on a
 public network it should be fine.  If you're running the LAVA instance
 on localhost, you'll need to set ``network_mode="host"`` in
 ``/etc/gitlab-runner/config.toml`` so it can access localhost.  Create a
@@ -61,20 +66,20 @@ the web interface, and create an API token.  Copy that into a
 
 .. code-block:: yaml
 
-  default:
-    token: <token contents>
-    uri: <URL to the instance>
-    username: gitlab-runner
+   default:
+      token: <token contents>
+      uri: <URL to the instance>
+      username: gitlab-runner
 
 Add a volume mount of that ``lavacli.yaml`` to
 ``/etc/gitlab-runner/config.toml`` so that the Docker container can
 access it.  You probably have a ``volumes = ["/cache"]`` already, so now it would be::
 
-    volumes = ["/home/anholt/lava-config/lavacli.yaml:/root/.config/lavacli.yaml", "/cache"]
+   volumes = ["/home/anholt/lava-config/lavacli.yaml:/root/.config/lavacli.yaml", "/cache"]
 
 Note that this token is visible to anybody that can submit MRs to
 Mesa!  It is not an actual secret.  We could just bake it into the
-GitLab CI yml, but this way the current method of connecting to the
+GitLab CI YAML, but this way the current method of connecting to the
 LAVA instance is separated from the Mesa branches (particularly
 relevant as we have many stable branches all using CI).
 

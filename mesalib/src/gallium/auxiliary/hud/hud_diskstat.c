@@ -35,7 +35,8 @@
 #include "hud/hud_private.h"
 #include "util/list.h"
 #include "util/os_time.h"
-#include "os/os_thread.h"
+#include "util/simple_mtx.h"
+#include "util/u_thread.h"
 #include "util/u_memory.h"
 #include "util/u_string.h"
 #include <stdio.h>
@@ -83,7 +84,7 @@ struct diskstat_info
  */
 static int gdiskstat_count = 0;
 static struct list_head gdiskstat_list;
-static mtx_t gdiskstat_mutex = _MTX_INITIALIZER_NP;
+static simple_mtx_t gdiskstat_mutex = SIMPLE_MTX_INITIALIZER;
 
 static struct diskstat_info *
 find_dsi_by_name(const char *n, int mode)
@@ -249,9 +250,9 @@ hud_get_num_disks(bool displayhelp)
    char name[64];
 
    /* Return the number of block devices and partitions. */
-   mtx_lock(&gdiskstat_mutex);
+   simple_mtx_lock(&gdiskstat_mutex);
    if (gdiskstat_count) {
-      mtx_unlock(&gdiskstat_mutex);
+      simple_mtx_unlock(&gdiskstat_mutex);
       return gdiskstat_count;
    }
 
@@ -261,7 +262,7 @@ hud_get_num_disks(bool displayhelp)
    list_inithead(&gdiskstat_list);
    DIR *dir = opendir("/sys/block/");
    if (!dir) {
-      mtx_unlock(&gdiskstat_mutex);
+      simple_mtx_unlock(&gdiskstat_mutex);
       return 0;
    }
 
@@ -288,7 +289,7 @@ hud_get_num_disks(bool displayhelp)
       struct dirent *dpart;
       DIR *pdir = opendir(basename);
       if (!pdir) {
-         mtx_unlock(&gdiskstat_mutex);
+         simple_mtx_unlock(&gdiskstat_mutex);
          closedir(dir);
          return 0;
       }
@@ -323,7 +324,7 @@ hud_get_num_disks(bool displayhelp)
          puts(line);
       }
    }
-   mtx_unlock(&gdiskstat_mutex);
+   simple_mtx_unlock(&gdiskstat_mutex);
 
    return gdiskstat_count;
 }

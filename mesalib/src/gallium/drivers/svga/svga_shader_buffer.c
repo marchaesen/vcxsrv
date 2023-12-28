@@ -29,7 +29,6 @@
 #include "util/u_inlines.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
-#include "tgsi/tgsi_parse.h"
 
 #include "svga_context.h"
 #include "svga_cmd.h"
@@ -69,11 +68,11 @@ svga_create_uav_buffer(struct svga_context *svga,
       return uaViewId;
 
    SVGA_DBG(DEBUG_UAV, "%s: resource=0x%x uaViewId=%d\n",
-            __FUNCTION__, buf->buffer, uaViewId);
+            __func__, buf->buffer, uaViewId);
 
    /* Mark this buffer as a uav bound buffer */
    struct svga_buffer *sbuf = svga_buffer(buf->buffer);
-   sbuf->uav = TRUE;
+   sbuf->uav = true;
 
    return uaViewId;
 }
@@ -99,7 +98,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
 #ifdef DEBUG
    const struct pipe_shader_buffer *b = buffers;
    SVGA_DBG(DEBUG_UAV, "%s: shader=%d start=%d num=%d ",
-            __FUNCTION__, shader, start, num);
+            __func__, shader, start, num);
    if (buffers) {
       for (unsigned i = 0; i < num; i++, b++) {
          SVGA_DBG(DEBUG_UAV, " 0x%x ", b);
@@ -111,7 +110,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
    buf = buffers;
    if (buffers) {
       int last_buffer = -1;
-      for (unsigned i = start; i < start + num; i++, buf++) {
+      for (unsigned i = start, j=0; i < start + num; i++, buf++, j++) {
          struct svga_shader_buffer *cbuf = &svga->curr.shader_buffers[shader][i];
 
          if (buf && buf->buffer) {
@@ -126,6 +125,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
             pipe_resource_reference(&cbuf->resource, NULL);
          }
          cbuf->uav_index = -1;
+	 cbuf->writeAccess = (writeable_bitmask & (1 << j)) != 0;
       }
       svga->curr.num_shader_buffers[shader] =
          MAX2(svga->curr.num_shader_buffers[shader], last_buffer + 1);
@@ -144,7 +144,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
 #ifdef DEBUG
    SVGA_DBG(DEBUG_UAV,
             "%s: current num_shader_buffers=%d start=%d num=%d buffers=",
-            __FUNCTION__, svga->curr.num_shader_buffers[shader],
+            __func__, svga->curr.num_shader_buffers[shader],
             start, num);
 
    for (unsigned i = start; i < start + num; i++) {
@@ -178,7 +178,7 @@ svga_set_hw_atomic_buffers(struct pipe_context *pipe,
    assert(start + num <= SVGA_MAX_ATOMIC_BUFFERS);
 
 #ifdef DEBUG
-   SVGA_DBG(DEBUG_UAV, "%s: start=%d num=%d \n", __FUNCTION__, start, num);
+   SVGA_DBG(DEBUG_UAV, "%s: start=%d num=%d \n", __func__, start, num);
 #endif
 
    buf = buffers;
@@ -199,7 +199,7 @@ svga_set_hw_atomic_buffers(struct pipe_context *pipe,
              * the uav buffer can be updated at each draw.
              */
             struct svga_buffer *sbuf = svga_buffer(cbuf->desc.buffer);
-            sbuf->uav = TRUE;
+            sbuf->uav = true;
          }
          else {
             cbuf->desc.buffer = NULL;
@@ -223,7 +223,7 @@ svga_set_hw_atomic_buffers(struct pipe_context *pipe,
 
 #ifdef DEBUG
    SVGA_DBG(DEBUG_UAV, "%s: current num_atomic_buffers=%d start=%d num=%d ",
-            __FUNCTION__, svga->curr.num_atomic_buffers,
+            __func__, svga->curr.num_atomic_buffers,
             start, num);
 
    for (unsigned i = start; i < start + num; i++) {
@@ -342,4 +342,72 @@ svga_validate_shader_buffer_resources(struct svga_context *svga,
    }
 
    return PIPE_OK;
+}
+
+
+/**
+ * Returns TRUE if the shader buffer can be bound to SRV as raw buffer.
+ * It is TRUE if the shader buffer is readonly and the surface already
+ * has the RAW_BUFFER_VIEW bind flag set.
+ */
+bool
+svga_shader_buffer_can_use_srv(struct svga_context *svga,
+			       enum pipe_shader_type shader,
+                               unsigned index,
+                               struct svga_shader_buffer *buf)
+{
+   if (buf->resource) {
+      struct svga_buffer *sbuf = svga_buffer(buf->resource);
+      if (sbuf && !buf->writeAccess && svga_has_raw_buffer_view(sbuf)) {
+         return true;
+      }
+   }
+   return false;
+}
+
+
+#define SVGA_SSBO_SRV_START  SVGA_MAX_CONST_BUFS
+
+/**
+ * Bind the shader buffer as SRV raw buffer.
+ */
+enum pipe_error
+svga_shader_buffer_bind_srv(struct svga_context *svga,
+                            enum pipe_shader_type shader,
+                            unsigned index,
+                            struct svga_shader_buffer *buf)
+{
+   enum pipe_error ret;
+   unsigned slot = index + SVGA_SSBO_SRV_START;
+
+   svga->state.raw_shaderbufs[shader] |= (1 << index);
+   ret = svga_emit_rawbuf(svga, slot, shader, buf->desc.buffer_offset,
+                          buf->desc.buffer_size, buf->resource);
+   if (ret == PIPE_OK)
+      svga->state.hw_draw.enabled_raw_shaderbufs[shader] |= (1 << index);
+
+   return ret;
+}
+
+
+/**
+ * Unbind the shader buffer SRV.
+ */
+enum pipe_error
+svga_shader_buffer_unbind_srv(struct svga_context *svga,
+                              enum pipe_shader_type shader,
+                              unsigned index,
+                              struct svga_shader_buffer *buf)
+{
+   enum pipe_error ret = PIPE_OK;
+   unsigned slot = index + SVGA_SSBO_SRV_START;
+
+   if ((svga->state.hw_draw.enabled_raw_shaderbufs[shader] & (1 << index))
+          != 0) {
+      ret = svga_emit_rawbuf(svga, slot, shader, 0, 0, NULL);
+      if (ret == PIPE_OK)
+         svga->state.hw_draw.enabled_raw_shaderbufs[shader] &= ~(1 << index);
+   }
+   svga->state.raw_shaderbufs[shader] &= ~(1 << index);
+   return ret;
 }

@@ -51,8 +51,8 @@ class FastbootRun:
         try:
             return subprocess.call(cmd, shell=True, timeout=timeout)
         except subprocess.TimeoutExpired:
-            self.print_error("timeout, restarting run...")
-            return 2
+            self.print_error("timeout, abandoning run.")
+            return 1
 
     def run(self):
         if ret := self.logged_system(self.powerup):
@@ -60,20 +60,20 @@ class FastbootRun:
 
         fastboot_ready = False
         for line in self.ser.lines(timeout=2 * 60, phase="bootloader"):
-            if re.search("fastboot: processing commands", line) or \
+            if re.search("[Ff]astboot: [Pp]rocessing commands", line) or \
                     re.search("Listening for fastboot command on", line):
                 fastboot_ready = True
                 break
 
             if re.search("data abort", line):
                 self.print_error(
-                    "Detected crash during boot, restarting run...")
-                return 2
+                    "Detected crash during boot, abandoning run.")
+                return 1
 
         if not fastboot_ready:
             self.print_error(
-                "Failed to get to fastboot prompt, restarting run...")
-            return 2
+                "Failed to get to fastboot prompt, abandoning run.")
+            return 1
 
         if ret := self.logged_system(self.fastboot):
             return ret
@@ -81,7 +81,7 @@ class FastbootRun:
         print_more_lines = -1
         for line in self.ser.lines(timeout=self.test_timeout, phase="test"):
             if print_more_lines == 0:
-                return 2
+                return 1
             if print_more_lines > 0:
                 print_more_lines -= 1
 
@@ -92,20 +92,20 @@ class FastbootRun:
             # when if we see a reboot after we got past fastboot.
             if re.search("PON REASON", line):
                 self.print_error(
-                    "Detected spontaneous reboot, restarting run...")
-                return 2
+                    "Detected spontaneous reboot, abandoning run.")
+                return 1
 
             # db820c sometimes wedges around iommu fault recovery
             if re.search("watchdog: BUG: soft lockup - CPU.* stuck", line):
                 self.print_error(
-                    "Detected kernel soft lockup, restarting run...")
-                return 2
+                    "Detected kernel soft lockup, abandoning run.")
+                return 1
 
             # If the network device dies, it's probably not graphics's fault, just try again.
             if re.search("NETDEV WATCHDOG", line):
                 self.print_error(
-                    "Detected network device failure, restarting run...")
-                return 2
+                    "Detected network device failure, abandoning run.")
+                return 1
 
             # A3xx recovery doesn't quite work. Sometimes the GPU will get
             # wedged and recovery will fail (because power can't be reset?)
@@ -115,7 +115,7 @@ class FastbootRun:
             # of the hang. Once a hang happens, it's pretty chatty.
             if "[drm:adreno_recover] *ERROR* gpu hw init failed: -22" in line:
                 self.print_error(
-                    "Detected GPU hang, restarting run...")
+                    "Detected GPU hang, abandoning run.")
                 if print_more_lines == -1:
                     print_more_lines = 30
 
@@ -127,8 +127,8 @@ class FastbootRun:
                     return 1
 
         self.print_error(
-            "Reached the end of the CPU serial log without finding a result, restarting run...")
-        return 2
+            "Reached the end of the CPU serial log without finding a result, abandoning run.")
+        return 1
 
 
 def main():
@@ -147,13 +147,8 @@ def main():
 
     fastboot = FastbootRun(args, args.test_timeout * 60)
 
-    while True:
-        retval = fastboot.run()
-        fastboot.close()
-        if retval != 2:
-            break
-
-        fastboot = FastbootRun(args, args.test_timeout * 60)
+    retval = fastboot.run()
+    fastboot.close()
 
     fastboot.logged_system(args.powerdown)
 

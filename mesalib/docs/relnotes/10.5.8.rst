@@ -70,7 +70,7 @@ Ilia Mirkin (3):
 -  nv50,nvc0: clamp uniform size to 64k
 -  nvc0/ir: can't have a join on a load with an indirect source
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965/fs: Don't let the EOT send message interfere with the MRF hack
 

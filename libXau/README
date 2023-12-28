@@ -161,7 +161,7 @@ our implementation, it is always the first in the file.
 The Family is specified in two bytes to allow out-of-band values
 (i.e. values not in the Protocol) to be used.  In particular,
 two new values "FamilyLocal" and "FamilyWild" are defined.  FamilyLocal
-refers to any connections using a non-network method of connetion from the
+refers to any connections using a non-network method of connection from the
 local machine (Unix domain sockets, shared memory, loopback serial line).
 In this case the host address is specified by the data returned from
 gethostname() and better be unique in a collection of machines

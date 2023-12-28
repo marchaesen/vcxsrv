@@ -38,13 +38,7 @@ lima_nir_split_load_input_instr(nir_builder *b,
    if (alu->op != nir_op_mov)
       return false;
 
-   if (!alu->dest.dest.is_ssa)
-      return false;
-
-   if (!alu->src[0].src.is_ssa)
-      return false;
-
-   nir_ssa_def *ssa = alu->src[0].src.ssa;
+   nir_def *ssa = alu->src[0].src.ssa;
    if (ssa->parent_instr->type != nir_instr_type_intrinsic)
       return false;
 
@@ -55,19 +49,19 @@ lima_nir_split_load_input_instr(nir_builder *b,
    uint8_t swizzle = alu->src[0].swizzle[0];
    int i;
 
-   for (i = 1; i < nir_dest_num_components(alu->dest.dest); i++)
+   for (i = 1; i < alu->def.num_components; i++)
       if (alu->src[0].swizzle[i] != (swizzle + i))
          break;
 
-   if (i != nir_dest_num_components(alu->dest.dest))
+   if (i != alu->def.num_components)
       return false;
 
    /* mali4xx can't access unaligned vec3, don't split load input */
-   if (nir_dest_num_components(alu->dest.dest) == 3 && swizzle > 0)
+   if (alu->def.num_components == 3 && swizzle > 0)
       return false;
 
    /* mali4xx can't access unaligned vec2, don't split load input */
-   if (nir_dest_num_components(alu->dest.dest) == 2 &&
+   if (alu->def.num_components == 2 &&
        swizzle != 0 && swizzle != 2)
       return false;
 
@@ -75,21 +69,19 @@ lima_nir_split_load_input_instr(nir_builder *b,
    nir_intrinsic_instr *new_intrin = nir_intrinsic_instr_create(
                                           b->shader,
                                           intrin->intrinsic);
-   nir_ssa_dest_init(&new_intrin->instr, &new_intrin->dest,
-                     nir_dest_num_components(alu->dest.dest),
-                     ssa->bit_size,
-                     NULL);
-   new_intrin->num_components = nir_dest_num_components(alu->dest.dest);
+   nir_def_init(&new_intrin->instr, &new_intrin->def,
+                alu->def.num_components, ssa->bit_size);
+   new_intrin->num_components = alu->def.num_components;
    nir_intrinsic_set_base(new_intrin, nir_intrinsic_base(intrin));
    nir_intrinsic_set_component(new_intrin, nir_intrinsic_component(intrin) + swizzle);
    nir_intrinsic_set_dest_type(new_intrin, nir_intrinsic_dest_type(intrin));
 
    /* offset */
-   nir_src_copy(&new_intrin->src[0], &intrin->src[0], &new_intrin->instr);
+   new_intrin->src[0] = nir_src_for_ssa(intrin->src[0].ssa);
 
    nir_builder_instr_insert(b, &new_intrin->instr);
-   nir_ssa_def_rewrite_uses(&alu->dest.dest.ssa,
-                            &new_intrin->dest.ssa);
+   nir_def_rewrite_uses(&alu->def,
+                            &new_intrin->def);
    nir_instr_remove(&alu->instr);
    return true;
 }

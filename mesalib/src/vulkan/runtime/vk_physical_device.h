@@ -26,6 +26,8 @@
 #include "vk_dispatch_table.h"
 #include "vk_extensions.h"
 #include "vk_object.h"
+#include "vk_physical_device_features.h"
+#include "vk_physical_device_properties.h"
 
 #include "util/list.h"
 
@@ -60,6 +62,23 @@ struct vk_physical_device {
     * device setup work has already been done.
     */
    struct vk_device_extension_table supported_extensions;
+
+   /** Table of all supported features
+    *
+    * This table is initialized from the `supported_features` parameter
+    * passed to `vk_physical_device_init()` if not `NULL`.  If a `NULL`
+    * features table is passed, all features are initialized to false and
+    * it's the responsibility of the driver to populate the table.  This may
+    * be useful if the driver's physical device initialization order is such
+    * that feature support cannot be determined until significant physical
+    * device setup work has already been done.
+    */
+   struct vk_features supported_features;
+
+   /** Table of all physical device properties which is initialized similarly
+    * to supported_features
+    */
+   struct vk_properties properties;
 
    /** Physical-device-level dispatch table */
    struct vk_physical_device_dispatch_table dispatch_table;
@@ -98,22 +117,26 @@ VK_DEFINE_HANDLE_CASTS(vk_physical_device, base, VkPhysicalDevice,
 
 /** Initialize a vk_physical_device
  *
- * @param[out] physical_device      The physical device to initialize
- * @param[in]  instance             The instance which is the parent of this
- *                                  physical device
- * @param[in]  supported_extensions Table of all device extensions supported
- *                                  by this physical device
- * @param[in]  dispatch_table       Physical-device-level dispatch table
+ * :param physical_device:      |out| The physical device to initialize
+ * :param instance:             |in|  The instance which is the parent of this
+ *                                    physical device
+ * :param supported_extensions: |in|  Table of all device extensions supported
+ *                                    by this physical device
+ * :param supported_features:   |in|  Table of all features supported by this
+ *                                    physical device
+ * :param dispatch_table:       |in|  Physical-device-level dispatch table
  */
 VkResult MUST_CHECK
 vk_physical_device_init(struct vk_physical_device *physical_device,
                         struct vk_instance *instance,
                         const struct vk_device_extension_table *supported_extensions,
+                        const struct vk_features *supported_features,
+                        const struct vk_properties *properties,
                         const struct vk_physical_device_dispatch_table *dispatch_table);
 
 /** Tears down a vk_physical_device
  *
- * @param[out] physical_device   The physical device to tear down
+ * :param physical_device:      |out| The physical device to tear down
  */
 void
 vk_physical_device_finish(struct vk_physical_device *physical_device);

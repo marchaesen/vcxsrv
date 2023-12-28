@@ -1,7 +1,12 @@
 cc = "clang"
 cxx = "clang++"
 
-extra_cflags = [ "-DSK_ENABLE_DUMP_GPU", "-DSK_BUILD_FOR_SKQP" ]
+extra_cflags = [
+        "-Wno-error",
+
+        "-DSK_ENABLE_DUMP_GPU",
+        "-DSK_BUILD_FOR_SKQP"
+    ]
 extra_cflags_cc = [
         "-Wno-error",
 
@@ -22,6 +27,13 @@ extra_cflags_cc = [
         "-Wno-suggest-destructor-override",
         "-Wno-return-std-move-in-c++11",
         "-Wno-extra-semi-stmt",
+        "-Wno-reserved-identifier",
+        "-Wno-bitwise-instead-of-logical",
+        "-Wno-reserved-identifier",
+        "-Wno-psabi",
+        "-Wno-unused-but-set-variable",
+        "-Wno-sizeof-array-div",
+        "-Wno-string-concatenation",
     ]
 
 cc_wrapper = "ccache"

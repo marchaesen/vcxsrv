@@ -240,7 +240,9 @@ static void _XUnlockDisplay(
     if (lock_hist_loc >= LOCK_HIST_SIZE)
 	lock_hist_loc = 0;
 #endif /* XTHREADS_WARN */
-    xmutex_unlock(dpy->lock->mutex);
+
+    if (dpy->in_ifevent == 0 || !xthread_equal(dpy->ifevent_thread, xthread_self()))
+        xmutex_unlock(dpy->lock->mutex);
 }
 
 
@@ -457,17 +459,20 @@ static void _XLockDisplay(
     XTHREADS_FILE_LINE_ARGS
     )
 {
-#ifdef XTHREADS
     struct _XErrorThreadInfo *ti;
-#endif
+
+    if (dpy->in_ifevent && xthread_equal(dpy->ifevent_thread, xthread_self()))
+        return;
+
 #ifdef XTHREADS_WARN
     _XLockDisplayWarn(dpy, file, line);
 #else
     xmutex_lock(dpy->lock->mutex);
 #endif
+
     if (dpy->lock->locking_level > 0)
-	_XDisplayLockWait(dpy);
-#ifdef XTHREADS
+    _XDisplayLockWait(dpy);
+
     /*
      * Skip the two function calls below which may generate requests
      * when LockDisplay is called from within _XError.
@@ -475,7 +480,7 @@ static void _XLockDisplay(
     for (ti = dpy->error_threads; ti; ti = ti->next)
 	    if (ti->error_thread == xthread_self())
 		    return;
-#endif
+
     _XIDHandler(dpy);
     _XSeqSyncFunction(dpy);
 }
@@ -490,6 +495,9 @@ static void _XInternalLockDisplay(
     XTHREADS_FILE_LINE_ARGS
     )
 {
+    if (dpy->in_ifevent && xthread_equal(dpy->ifevent_thread, xthread_self()))
+        return;
+
 #ifdef XTHREADS_WARN
     _XLockDisplayWarn(dpy, file, line);
 #else
@@ -643,8 +651,31 @@ Status XInitThreads(void)
     return 1;
 }
 
+Status XFreeThreads(void)
+{
+    if (global_lock.lock != NULL) {
+	xmutex_free(global_lock.lock);
+	global_lock.lock = NULL;
+    }
+    if (i18n_lock.lock != NULL) {
+	xmutex_free(i18n_lock.lock);
+	i18n_lock.lock = NULL;
+    }
+    if (conv_lock.lock != NULL) {
+	xmutex_free(conv_lock.lock);
+	conv_lock.lock = NULL;
+    }
+
+    return 1;
+}
+
 #else /* XTHREADS */
 Status XInitThreads(void)
+{
+    return 0;
+}
+
+Status XFreeThreads(void)
 {
     return 0;
 }

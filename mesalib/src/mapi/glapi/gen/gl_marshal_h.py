@@ -52,7 +52,7 @@ class PrintCode(gl_XML.gl_print_base):
         print(footer)
 
     def printBody(self, api):
-        print('#include "GL/gl.h"')
+        print('#include "util/glheader.h"')
         print('')
         print('enum marshal_dispatch_cmd_id')
         print('{')
@@ -66,13 +66,15 @@ class PrintCode(gl_XML.gl_print_base):
         print('')
 
         for func in api.functionIterateAll():
+            func.print_struct(is_header=True)
+
             flavor = func.marshal_flavor()
+
             if flavor in ('custom', 'async'):
-                print('struct marshal_cmd_{0};'.format(func.name))
                 print(('uint32_t _mesa_unmarshal_{0}(struct gl_context *ctx, '
-                       'const struct marshal_cmd_{0} *cmd, const uint64_t *last);').format(func.name))
-                print('{0} GLAPIENTRY _mesa_marshal_{1}({2});'.format(func.return_type, func.name, func.get_parameter_string()))
-            elif flavor == 'sync':
+                       'const struct marshal_cmd_{0} *restrict cmd);').format(func.name))
+
+            if flavor in ('custom', 'async', 'sync') and not func.marshal_is_static():
                 print('{0} GLAPIENTRY _mesa_marshal_{1}({2});'.format(func.return_type, func.name, func.get_parameter_string()))
 
 

@@ -37,9 +37,9 @@ struct fd4_emit;
 
 struct fd4_program_state {
    struct ir3_program_state base;
-   struct ir3_shader_variant *bs; /* VS for when emit->binning */
-   struct ir3_shader_variant *vs;
-   struct ir3_shader_variant *fs; /* FS for when !emit->binning */
+   const struct ir3_shader_variant *bs; /* VS for when emit->binning */
+   const struct ir3_shader_variant *vs;
+   const struct ir3_shader_variant *fs; /* FS for when !emit->binning */
 };
 
 static inline struct fd4_program_state *

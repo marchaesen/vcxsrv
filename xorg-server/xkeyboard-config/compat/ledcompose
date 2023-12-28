@@ -9,8 +9,8 @@ default partial xkb_compatibility "compose"  {
     };
 
    indicator "Compose" {
-       allowExplicit;
-       whichModState= Latched;
-       modifiers= Compose;
+	allowExplicit;
+	whichModState= Latched;
+	modifiers= Compose;
    };
 };

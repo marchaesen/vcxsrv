@@ -24,11 +24,10 @@
  */
 
 #include "v3dv_private.h"
-#include "drm-uapi/drm_fourcc.h"
-#include "wsi_common_entrypoints.h"
 #include "vk_util.h"
 #include "wsi_common.h"
 #include "wsi_common_drm.h"
+#include "wsi_common_entrypoints.h"
 
 static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 v3dv_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
@@ -41,8 +40,53 @@ static bool
 v3dv_wsi_can_present_on_device(VkPhysicalDevice _pdevice, int fd)
 {
    V3DV_FROM_HANDLE(v3dv_physical_device, pdevice, _pdevice);
-
+   assert(pdevice->display_fd != -1);
    return wsi_common_drm_devices_equal(fd, pdevice->display_fd);
+}
+
+
+static void
+filter_surface_capabilities(VkSurfaceKHR _surface,
+                            VkSurfaceCapabilitiesKHR *caps)
+{
+   ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, _surface);
+
+   /* Display images must be linear so they are restricted. This would
+    * affect sampling usages too, but we don't restrict those since we
+    * support on-the-fly conversion to UIF when sampling for simple 2D
+    * images at a performance penalty.
+    */
+   if (surface->platform == VK_ICD_WSI_PLATFORM_DISPLAY)
+      caps->supportedUsageFlags &= ~VK_IMAGE_USAGE_STORAGE_BIT;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+v3dv_GetPhysicalDeviceSurfaceCapabilitiesKHR(
+    VkPhysicalDevice                            physicalDevice,
+    VkSurfaceKHR                                surface,
+    VkSurfaceCapabilitiesKHR*                   pSurfaceCapabilities)
+{
+   VkResult result;
+   result = wsi_GetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice,
+                                                        surface,
+                                                        pSurfaceCapabilities);
+   filter_surface_capabilities(surface, pSurfaceCapabilities);
+   return result;
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+v3dv_GetPhysicalDeviceSurfaceCapabilities2KHR(
+    VkPhysicalDevice                            physicalDevice,
+    const VkPhysicalDeviceSurfaceInfo2KHR*      pSurfaceInfo,
+    VkSurfaceCapabilities2KHR*                  pSurfaceCapabilities)
+{
+   VkResult result;
+   result = wsi_GetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice,
+                                                         pSurfaceInfo,
+                                                         pSurfaceCapabilities);
+   filter_surface_capabilities(pSurfaceInfo->surface,
+                               &pSurfaceCapabilities->surfaceCapabilities);
+   return result;
 }
 
 VkResult
@@ -54,7 +98,8 @@ v3dv_wsi_init(struct v3dv_physical_device *physical_device)
                             v3dv_physical_device_to_handle(physical_device),
                             v3dv_wsi_proc_addr,
                             &physical_device->vk.instance->alloc,
-                            physical_device->master_fd, NULL, false);
+                            physical_device->display_fd, NULL,
+                            &(struct wsi_device_options){.sw_device = false});
 
    if (result != VK_SUCCESS)
       return result;
@@ -74,68 +119,6 @@ v3dv_wsi_finish(struct v3dv_physical_device *physical_device)
    physical_device->vk.wsi_device = NULL;
    wsi_device_finish(&physical_device->wsi_device,
                      &physical_device->vk.instance->alloc);
-}
-
-static void
-constraint_surface_capabilities(VkSurfaceCapabilitiesKHR *caps)
-{
-   /* Our display pipeline requires that images are linear, so we cannot
-    * ensure that our swapchain images can be sampled. If we are running under
-    * a compositor in windowed mode, the DRM modifier negotiation should
-    * probably end up selecting an UIF layout for the swapchain images but it
-    * may still choose linear and send images directly for scanout if the
-    * surface is in fullscreen mode for example. If we are not running under
-    * a compositor, then we would always need them to be linear anyway.
-    */
-   caps->supportedUsageFlags &= ~VK_IMAGE_USAGE_SAMPLED_BIT;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-v3dv_GetPhysicalDeviceSurfaceCapabilitiesKHR(
-    VkPhysicalDevice                            physicalDevice,
-    VkSurfaceKHR                                surface,
-    VkSurfaceCapabilitiesKHR*                   pSurfaceCapabilities)
-{
-   VkResult result;
-   result = wsi_GetPhysicalDeviceSurfaceCapabilitiesKHR(physicalDevice,
-                                                        surface,
-                                                        pSurfaceCapabilities);
-   constraint_surface_capabilities(pSurfaceCapabilities);
-   return result;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-v3dv_GetPhysicalDeviceSurfaceCapabilities2KHR(
-    VkPhysicalDevice                            physicalDevice,
-    const VkPhysicalDeviceSurfaceInfo2KHR*      pSurfaceInfo,
-    VkSurfaceCapabilities2KHR*                  pSurfaceCapabilities)
-{
-   VkResult result;
-   result = wsi_GetPhysicalDeviceSurfaceCapabilities2KHR(physicalDevice,
-                                                         pSurfaceInfo,
-                                                         pSurfaceCapabilities);
-   constraint_surface_capabilities(&pSurfaceCapabilities->surfaceCapabilities);
-   return result;
-}
-
-VKAPI_ATTR VkResult VKAPI_CALL
-v3dv_CreateSwapchainKHR(
-    VkDevice                                     _device,
-    const VkSwapchainCreateInfoKHR*              pCreateInfo,
-    const VkAllocationCallbacks*                 pAllocator,
-    VkSwapchainKHR*                              pSwapchain)
-{
-   V3DV_FROM_HANDLE(v3dv_device, device, _device);
-   struct v3dv_instance *instance = device->instance;
-   struct v3dv_physical_device *pdevice = device->pdevice;
-
-   ICD_FROM_HANDLE(VkIcdSurfaceBase, surface, pCreateInfo->surface);
-   VkResult result =
-      v3dv_physical_device_acquire_display(instance, pdevice, surface);
-   if (result != VK_SUCCESS)
-      return result;
-
-   return wsi_CreateSwapchainKHR(_device, pCreateInfo, pAllocator, pSwapchain);
 }
 
 struct v3dv_image *

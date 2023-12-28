@@ -24,8 +24,12 @@
  *      Vadim Girlin
  */
 
-#include "r600_pipe.h"
 #include "r600_isa.h"
+
+#include "util/macros.h"
+
+#include <assert.h>
+#include <stdlib.h>
 
 const struct alu_op_info r600_alu_op_table[] = {
 		{"ADD",                       2, { 0x00, 0x00 },{  AF_VS, AF_VS, AF_VS, AF_VS},  AF_M_COMM | AF_M_ASSOC },
@@ -535,11 +539,11 @@ r600_isa_cf(unsigned op) {
 	return &cf_op_table[op];
 }
 
-int r600_isa_init(struct r600_context *ctx, struct r600_isa *isa) {
+int r600_isa_init(enum amd_gfx_level gfx_level, struct r600_isa *isa) {
 	unsigned i;
 
-	assert(ctx->b.gfx_level >= R600 && ctx->b.gfx_level <= CAYMAN);
-	isa->hw_class = ctx->b.gfx_level - R600;
+	assert(gfx_level >= R600 && gfx_level <= CAYMAN);
+	isa->hw_class = gfx_level - R600;
 
 	/* reverse lookup maps are required for bytecode parsing */
 

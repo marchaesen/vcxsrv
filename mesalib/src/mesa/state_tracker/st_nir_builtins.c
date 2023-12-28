@@ -20,20 +20,20 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "tgsi/tgsi_from_mesa.h"
 #include "st_nir.h"
 #include "st_program.h"
 
 #include "compiler/nir/nir_builder.h"
 #include "compiler/glsl/gl_nir.h"
 #include "compiler/glsl/gl_nir_linker.h"
-#include "tgsi/tgsi_parse.h"
 
 void
 st_nir_finish_builtin_nir(struct st_context *st, nir_shader *nir)
 {
    struct pipe_screen *screen = st->screen;
    gl_shader_stage stage = nir->info.stage;
+
+   MESA_TRACE_FUNC();
 
    nir->info.separate_shader = true;
    if (stage == MESA_SHADER_FRAGMENT)
@@ -98,8 +98,8 @@ st_nir_make_passthrough_shader(struct st_context *st,
                                const char *shader_name,
                                gl_shader_stage stage,
                                unsigned num_vars,
-                               unsigned *input_locations,
-                               unsigned *output_locations,
+                               const unsigned *input_locations,
+                               const gl_varying_slot *output_locations,
                                unsigned *interpolation_modes,
                                unsigned sysval_mask)
 {
@@ -110,26 +110,22 @@ st_nir_make_passthrough_shader(struct st_context *st,
    nir_builder b = nir_builder_init_simple_shader(stage, options,
                                                   "%s", shader_name);
 
-   char var_name[15];
-
    for (unsigned i = 0; i < num_vars; i++) {
       nir_variable *in;
       if (sysval_mask & (1 << i)) {
-         snprintf(var_name, sizeof(var_name), "sys_%u", input_locations[i]);
-         in = nir_variable_create(b.shader, nir_var_system_value,
-                                  glsl_int_type(), var_name);
+         in = nir_create_variable_with_location(b.shader, nir_var_system_value,
+                                                input_locations[i],
+                                  glsl_int_type());
       } else {
-         snprintf(var_name, sizeof(var_name), "in_%u", input_locations[i]);
-         in = nir_variable_create(b.shader, nir_var_shader_in, vec4, var_name);
+         in = nir_create_variable_with_location(b.shader, nir_var_shader_in,
+                                                input_locations[i], vec4);
       }
-      in->data.location = input_locations[i];
       if (interpolation_modes)
          in->data.interpolation = interpolation_modes[i];
 
-      snprintf(var_name, sizeof(var_name), "out_%u", output_locations[i]);
       nir_variable *out =
-         nir_variable_create(b.shader, nir_var_shader_out, in->type, var_name);
-      out->data.location = output_locations[i];
+         nir_create_variable_with_location(b.shader, nir_var_shader_out,
+                                           output_locations[i], in->type);
       out->data.interpolation = in->data.interpolation;
 
       nir_copy_var(&b, out, in);
@@ -155,14 +151,12 @@ st_nir_make_clearcolor_shader(struct st_context *st)
    b.shader->num_uniforms = 1;
 
    /* Read clear color from constant buffer */
-   nir_ssa_def *clear_color = nir_load_uniform(&b, 4, 32, nir_imm_int(&b,0),
+   nir_def *clear_color = nir_load_uniform(&b, 4, 32, nir_imm_int(&b,0),
                                                .range = 16,
                                                .dest_type = nir_type_float32);
 
-   nir_variable *color_out =
-      nir_variable_create(b.shader, nir_var_shader_out, glsl_vec_type(4),
-                             "outcolor");
-   color_out->data.location = FRAG_RESULT_COLOR;
+   nir_variable *color_out = nir_create_variable_with_location(b.shader, nir_var_shader_out,
+                                                               FRAG_RESULT_COLOR, glsl_vec4_type());
 
    /* Write out the color */
    nir_store_var(&b, color_out, clear_color, 0xf);

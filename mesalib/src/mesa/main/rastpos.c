@@ -28,7 +28,7 @@
  * Raster position operations.
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "feedback.h"
 #include "macros.h"

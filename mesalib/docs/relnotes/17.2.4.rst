@@ -69,7 +69,7 @@ Jan Vesely (1):
 
 -  clover: Fix compilation after clang r315871
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 -  nir/intrinsics: Set the correct num_indices for load_output
 -  intel/fs: Handle flag read/write aliasing in needs_src_copy

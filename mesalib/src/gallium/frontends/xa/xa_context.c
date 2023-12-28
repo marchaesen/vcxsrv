@@ -352,7 +352,7 @@ xa_solid_done(struct xa_context *ctx)
 {
     renderer_draw_flush(ctx);
     ctx->comp = NULL;
-    ctx->has_solid_src = FALSE;
+    ctx->has_solid_src = false;
     ctx->num_bound_samplers = 0;
 }
 
@@ -383,7 +383,7 @@ xa_fence_wait(struct xa_fence *fence, uint64_t timeout)
 
     if (fence->pipe_fence) {
 	struct pipe_screen *screen = fence->xa->screen;
-	boolean timed_out;
+	bool timed_out;
 
 	timed_out = !screen->fence_finish(screen, NULL, fence->pipe_fence, timeout);
 	if (timed_out)

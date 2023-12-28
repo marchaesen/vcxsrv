@@ -28,7 +28,7 @@
 #define VMW_FENCE_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipebuffer/pb_buffer_fenced.h"
 
 struct pipe_fence_handle;

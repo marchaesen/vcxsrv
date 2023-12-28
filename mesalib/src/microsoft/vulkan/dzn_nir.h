@@ -137,6 +137,13 @@ dzn_nir_triangle_fan_rewrite_index_shader(uint8_t old_index_size);
 nir_shader *
 dzn_nir_triangle_fan_prim_restart_rewrite_index_shader(uint8_t old_index_size);
 
+enum dzn_blit_resolve_mode {
+   dzn_blit_resolve_none,
+   dzn_blit_resolve_average,
+   dzn_blit_resolve_min,
+   dzn_blit_resolve_max,
+   dzn_blit_resolve_sample_zero,
+};
 struct dzn_nir_blit_info {
    union {
       struct {
@@ -145,8 +152,8 @@ struct dzn_nir_blit_info {
          uint32_t out_type : 4;
          uint32_t sampler_dim : 4;
          uint32_t src_is_array : 1;
-         uint32_t resolve : 1;
-         uint32_t padding : 12;
+         uint32_t resolve_mode : 3;
+         uint32_t padding : 10;
       };
       const uint32_t hash_key;
    };
@@ -157,5 +164,24 @@ dzn_nir_blit_vs(void);
 
 nir_shader *
 dzn_nir_blit_fs(const struct dzn_nir_blit_info *info);
+
+struct dzn_nir_point_gs_info {
+   unsigned cull_mode;
+   bool front_ccw;
+   bool depth_bias;
+   bool depth_bias_dynamic;
+   DXGI_FORMAT ds_fmt;
+   /* Constant values */
+   float constant_depth_bias;
+   float slope_scaled_depth_bias;
+   float depth_bias_clamp;
+   /* Used for loading dynamic values */
+   struct {
+      uint32_t register_space;
+      uint32_t base_shader_register;
+   } runtime_data_cbv;
+};
+nir_shader *
+dzn_nir_polygon_point_mode_gs(const nir_shader *vs, struct dzn_nir_point_gs_info *info);
 
 #endif

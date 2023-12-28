@@ -58,6 +58,15 @@ void r300_shader_read_fs_inputs(struct tgsi_shader_info* info,
                 fs_inputs->color[index] = i;
                 break;
 
+            case TGSI_SEMANTIC_PCOORD:
+                fs_inputs->pcoord = i;
+                break;
+
+            case TGSI_SEMANTIC_TEXCOORD:
+                assert(index < ATTR_TEXCOORD_COUNT);
+                fs_inputs->texcoord[index] = i;
+                break;
+
             case TGSI_SEMANTIC_GENERIC:
                 assert(index < ATTR_GENERIC_COUNT);
                 fs_inputs->generic[index] = i;
@@ -133,6 +142,14 @@ static void allocate_hardware_inputs(
             allocate(mydata, inputs->generic[i], reg++);
         }
     }
+    for (i = 0; i < ATTR_TEXCOORD_COUNT; i++) {
+        if (inputs->texcoord[i] != ATTR_UNUSED) {
+            allocate(mydata, inputs->texcoord[i], reg++);
+        }
+    }
+    if (inputs->pcoord != ATTR_UNUSED) {
+        allocate(mydata, inputs->pcoord, reg++);
+    }
     if (inputs->fog != ATTR_UNUSED) {
         allocate(mydata, inputs->fog, reg++);
     }
@@ -197,7 +214,7 @@ void r300_fragment_program_get_external_state(
             }
 
             if (t->b.target == PIPE_TEXTURE_3D)
-                state->unit[i].clamp_and_scale_before_fetch = TRUE;
+                state->unit[i].clamp_and_scale_before_fetch = true;
         }
     }
 }
@@ -226,7 +243,7 @@ static void r300_dummy_fragment_shader(
 
     state.tokens = ureg_finalize(ureg);
 
-    shader->dummy = TRUE;
+    shader->dummy = true;
     r300_translate_fragment_shader(r300, shader, state.tokens);
 
     ureg_destroy(ureg);
@@ -436,10 +453,9 @@ static void r300_translate_fragment_shader(
     compiler.Base.is_r500 = r300->screen->caps.is_r500;
     compiler.Base.is_r400 = r300->screen->caps.is_r400;
     compiler.Base.disable_optimizations = DBG_ON(r300, DBG_NO_OPT);
-    compiler.Base.has_half_swizzles = TRUE;
-    compiler.Base.has_presub = TRUE;
-    compiler.Base.has_omod = TRUE;
-    compiler.Base.needs_trig_input_transform = DBG_ON(r300, DBG_USE_TGSI);
+    compiler.Base.has_half_swizzles = true;
+    compiler.Base.has_presub = true;
+    compiler.Base.has_omod = true;
     compiler.Base.max_temp_regs =
         compiler.Base.is_r500 ? 128 : (compiler.Base.is_r400 ? 64 : 32);
     compiler.Base.max_constants = compiler.Base.is_r500 ? 256 : 32;
@@ -463,7 +479,6 @@ static void r300_translate_fragment_shader(
     /* Translate TGSI to our internal representation */
     ttr.compiler = &compiler.Base;
     ttr.info = &shader->info;
-    ttr.use_half_swizzles = TRUE;
 
     r300_tgsi_to_rc(&ttr, tokens);
 
@@ -476,7 +491,7 @@ static void r300_translate_fragment_shader(
 
     if (!r300->screen->caps.is_r500 ||
         compiler.Base.Program.Constants.Count > 200) {
-        compiler.Base.remove_unused_constants = TRUE;
+        compiler.Base.remove_unused_constants = true;
     }
 
     /**
@@ -488,7 +503,7 @@ static void r300_translate_fragment_shader(
      * to read from a newly allocated temporary. */
     if (wpos != ATTR_UNUSED) {
         /* Moving the input to some other reg is not really necessary. */
-        rc_transform_fragment_wpos(&compiler.Base, wpos, wpos, TRUE);
+        rc_transform_fragment_wpos(&compiler.Base, wpos, wpos, true);
     }
 
     if (face != ATTR_UNUSED) {
@@ -560,9 +575,9 @@ static void r300_translate_fragment_shader(
     r300_emit_fs_code_to_buffer(r300, shader);
 }
 
-boolean r300_pick_fragment_shader(struct r300_context *r300,
-                                  struct r300_fragment_shader* fs,
-                                  struct r300_fragment_program_external_state *state)
+bool r300_pick_fragment_shader(struct r300_context *r300,
+                               struct r300_fragment_shader* fs,
+                               struct r300_fragment_program_external_state *state)
 {
     struct r300_fragment_shader_code* ptr;
 
@@ -572,7 +587,7 @@ boolean r300_pick_fragment_shader(struct r300_context *r300,
 
         memcpy(&fs->shader->compare_state, state, sizeof(*state));
         r300_translate_fragment_shader(r300, fs->shader, fs->state.tokens);
-        return TRUE;
+        return true;
 
     } else {
         /* Check if the currently-bound shader has been compiled
@@ -584,10 +599,10 @@ boolean r300_pick_fragment_shader(struct r300_context *r300,
                 if (memcmp(&ptr->compare_state, state, sizeof(*state)) == 0) {
                     if (fs->shader != ptr) {
                         fs->shader = ptr;
-                        return TRUE;
+                        return true;
                     }
                     /* The currently-bound one is OK. */
-                    return FALSE;
+                    return false;
                 }
                 ptr = ptr->next;
             }
@@ -599,9 +614,9 @@ boolean r300_pick_fragment_shader(struct r300_context *r300,
 
             memcpy(&ptr->compare_state, state, sizeof(*state));
             r300_translate_fragment_shader(r300, ptr, fs->state.tokens);
-            return TRUE;
+            return true;
         }
     }
 
-    return FALSE;
+    return false;
 }

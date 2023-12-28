@@ -28,11 +28,12 @@
 #include <vulkan/vulkan.h>
 
 struct pvr_winsys;
-struct vk_sync;
+struct vk_sync_wait;
+struct vk_sync_signal;
 
 VkResult pvr_srv_winsys_null_job_submit(struct pvr_winsys *ws,
-                                        struct vk_sync **waits,
+                                        struct vk_sync_wait *waits,
                                         uint32_t wait_count,
-                                        struct vk_sync *signal_sync);
+                                        struct vk_sync_signal *signal_sync);
 
 #endif /* PVR_SRV_JOB_NULL_H */

@@ -8,7 +8,7 @@
 #ifndef VN_PROTOCOL_DRIVER_PIPELINE_CACHE_H
 #define VN_PROTOCOL_DRIVER_PIPELINE_CACHE_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
 
 /* struct VkPipelineCacheCreateInfo chain */
@@ -350,7 +350,7 @@ static inline VkResult vn_decode_vkMergePipelineCaches_reply(struct vn_cs_decode
     return ret;
 }
 
-static inline void vn_submit_vkCreatePipelineCache(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCreatePipelineCache(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -362,16 +362,16 @@ static inline void vn_submit_vkCreatePipelineCache(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCreatePipelineCache_reply(device, pCreateInfo, pAllocator, pPipelineCache) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCreatePipelineCache(enc, cmd_flags, device, pCreateInfo, pAllocator, pPipelineCache);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkDestroyPipelineCache(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkDestroyPipelineCache(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -383,16 +383,16 @@ static inline void vn_submit_vkDestroyPipelineCache(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkDestroyPipelineCache_reply(device, pipelineCache, pAllocator) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkDestroyPipelineCache(enc, cmd_flags, device, pipelineCache, pAllocator);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkGetPipelineCacheData(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkGetPipelineCacheData(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -404,16 +404,16 @@ static inline void vn_submit_vkGetPipelineCacheData(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkGetPipelineCacheData_reply(device, pipelineCache, pDataSize, pData) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkGetPipelineCacheData(enc, cmd_flags, device, pipelineCache, pDataSize, pData);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkMergePipelineCaches(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkMergePipelineCaches(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -425,98 +425,98 @@ static inline void vn_submit_vkMergePipelineCaches(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkMergePipelineCaches_reply(device, dstCache, srcCacheCount, pSrcCaches) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkMergePipelineCaches(enc, cmd_flags, device, dstCache, srcCacheCount, pSrcCaches);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkCreatePipelineCache(struct vn_instance *vn_instance, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache)
+static inline VkResult vn_call_vkCreatePipelineCache(struct vn_ring *vn_ring, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreatePipelineCache(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pPipelineCache, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreatePipelineCache(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pCreateInfo, pAllocator, pPipelineCache, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkCreatePipelineCache_reply(dec, device, pCreateInfo, pAllocator, pPipelineCache);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkCreatePipelineCache(struct vn_instance *vn_instance, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache)
+static inline void vn_async_vkCreatePipelineCache(struct vn_ring *vn_ring, VkDevice device, const VkPipelineCacheCreateInfo* pCreateInfo, const VkAllocationCallbacks* pAllocator, VkPipelineCache* pPipelineCache)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCreatePipelineCache(vn_instance, 0, device, pCreateInfo, pAllocator, pPipelineCache, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCreatePipelineCache(vn_ring, 0, device, pCreateInfo, pAllocator, pPipelineCache, &submit);
 }
 
-static inline void vn_call_vkDestroyPipelineCache(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator)
+static inline void vn_call_vkDestroyPipelineCache(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyPipelineCache(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, pAllocator, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyPipelineCache(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, pAllocator, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkDestroyPipelineCache_reply(dec, device, pipelineCache, pAllocator);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkDestroyPipelineCache(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator)
+static inline void vn_async_vkDestroyPipelineCache(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache pipelineCache, const VkAllocationCallbacks* pAllocator)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkDestroyPipelineCache(vn_instance, 0, device, pipelineCache, pAllocator, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkDestroyPipelineCache(vn_ring, 0, device, pipelineCache, pAllocator, &submit);
 }
 
-static inline VkResult vn_call_vkGetPipelineCacheData(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData)
+static inline VkResult vn_call_vkGetPipelineCacheData(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetPipelineCacheData(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, pDataSize, pData, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetPipelineCacheData(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pipelineCache, pDataSize, pData, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkGetPipelineCacheData_reply(dec, device, pipelineCache, pDataSize, pData);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkGetPipelineCacheData(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData)
+static inline void vn_async_vkGetPipelineCacheData(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache pipelineCache, size_t* pDataSize, void* pData)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkGetPipelineCacheData(vn_instance, 0, device, pipelineCache, pDataSize, pData, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkGetPipelineCacheData(vn_ring, 0, device, pipelineCache, pDataSize, pData, &submit);
 }
 
-static inline VkResult vn_call_vkMergePipelineCaches(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches)
+static inline VkResult vn_call_vkMergePipelineCaches(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkMergePipelineCaches(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, dstCache, srcCacheCount, pSrcCaches, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkMergePipelineCaches(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, dstCache, srcCacheCount, pSrcCaches, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkMergePipelineCaches_reply(dec, device, dstCache, srcCacheCount, pSrcCaches);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkMergePipelineCaches(struct vn_instance *vn_instance, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches)
+static inline void vn_async_vkMergePipelineCaches(struct vn_ring *vn_ring, VkDevice device, VkPipelineCache dstCache, uint32_t srcCacheCount, const VkPipelineCache* pSrcCaches)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkMergePipelineCaches(vn_instance, 0, device, dstCache, srcCacheCount, pSrcCaches, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkMergePipelineCaches(vn_ring, 0, device, dstCache, srcCacheCount, pSrcCaches, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_PIPELINE_CACHE_H */

@@ -172,7 +172,7 @@ void random_destroy_seed(void) {}
 char *platform_default_s(const char *name) { return NULL; }
 bool platform_default_b(const char *name, bool def) { return def; }
 int platform_default_i(const char *name, int def) { return def; }
-FontSpec *platform_default_fontspec(const char *name) { return fontspec_new(""); }
+FontSpec *platform_default_fontspec(const char *name) { return fontspec_new_default(); }
 Filename *platform_default_filename(const char *name) { return filename_from_str(""); }
 char *x_get_default(const char *key) { return NULL; }
 
@@ -669,8 +669,7 @@ void key_find_callback(void *vctx, char **fingerprints,
 
     if ((ctx->match_comment && !strcmp(ctx->string, comment)) ||
         (ctx->match_fp && match_fingerprint_string(ctx->string, fingerprints,
-                                                   ctx)))
-    {
+                                                   ctx))) {
         if (!ctx->found)
             ctx->found = pageant_pubkey_copy(key);
         ctx->nfound++;

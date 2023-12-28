@@ -106,9 +106,6 @@ tgsi_build_full_instruction(
    struct tgsi_header *header,
    unsigned maxsize );
 
-struct tgsi_full_src_register
-tgsi_full_src_register_from_dst(const struct tgsi_full_dst_register *dst);
-
 #if defined __cplusplus
 }
 #endif

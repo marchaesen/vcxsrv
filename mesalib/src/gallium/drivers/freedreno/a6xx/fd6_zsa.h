@@ -35,8 +35,10 @@
 
 #include "fd6_context.h"
 
+BEGINC;
+
 #define FD6_ZSA_NO_ALPHA    (1 << 0)
-#define FD6_ZSA_DEPTH_CLIP_DISABLE (1 << 1)
+#define FD6_ZSA_DEPTH_CLAMP (1 << 1)
 
 struct fd6_zsa_stateobj {
    struct pipe_depth_stencil_alpha_state base;
@@ -48,9 +50,17 @@ struct fd6_zsa_stateobj {
    uint32_t rb_stencilwrmask;
 
    struct fd6_lrz_state lrz;
-   bool writes_zs; /* writes depth and/or stencil */
-   bool invalidate_lrz;
-   bool alpha_test;
+   bool writes_zs : 1; /* writes depth and/or stencil */
+   bool writes_z : 1;  /* writes depth */
+   bool invalidate_lrz : 1;
+   bool alpha_test : 1;
+
+   /* Track whether we've alread generated perf warns so that
+    * we don't flood the user with LRZ disable warns which can
+    * only be detected at draw time.
+    */
+   bool perf_warn_blend : 1;
+   bool perf_warn_zdir : 1;
 
    struct fd_ringbuffer *stateobj[4];
 };
@@ -68,7 +78,7 @@ fd6_zsa_state(struct fd_context *ctx, bool no_alpha, bool depth_clamp) assert_dt
    if (no_alpha)
       variant |= FD6_ZSA_NO_ALPHA;
    if (depth_clamp)
-      variant |= FD6_ZSA_DEPTH_CLIP_DISABLE;
+      variant |= FD6_ZSA_DEPTH_CLAMP;
    return fd6_zsa_stateobj(ctx->zsa)->stateobj[variant];
 }
 
@@ -76,5 +86,7 @@ void *fd6_zsa_state_create(struct pipe_context *pctx,
                            const struct pipe_depth_stencil_alpha_state *cso);
 
 void fd6_zsa_state_delete(struct pipe_context *pctx, void *hwcso);
+
+ENDC;
 
 #endif /* FD6_ZSA_H_ */

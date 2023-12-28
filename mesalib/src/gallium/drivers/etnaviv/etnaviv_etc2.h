@@ -31,7 +31,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "util/u_dynarray.h"
 
 struct pipe_resource;

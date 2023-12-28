@@ -69,7 +69,7 @@ static const struct debug_named_value vc4_debug_options[] = {
         { "dump", VC4_DEBUG_DUMP,
           "Write a GPU command stream trace file" },
 #endif
-        { NULL }
+        DEBUG_NAMED_VALUE_END
 };
 
 DEBUG_GET_ONCE_FLAGS_OPTION(vc4_debug, "VC4_DEBUG", vc4_debug_options, 0)
@@ -140,7 +140,6 @@ vc4_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
                 /* Supported features (boolean caps). */
         case PIPE_CAP_VERTEX_COLOR_UNCLAMPED:
         case PIPE_CAP_FRAGMENT_COLOR_CLAMPED:
-        case PIPE_CAP_BUFFER_MAP_PERSISTENT_COHERENT:
         case PIPE_CAP_NPOT_TEXTURES:
         case PIPE_CAP_BLEND_EQUATION_SEPARATE:
         case PIPE_CAP_TEXTURE_MULTISAMPLE:
@@ -155,10 +154,6 @@ vc4_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_TILE_RASTER_ORDER:
                 return vc4_has_feature(screen,
                                        DRM_VC4_PARAM_SUPPORTS_FIXED_RCL_ORDER);
-
-                /* lying for GL 2.0 */
-        case PIPE_CAP_POINT_SPRITE:
-                return 1;
 
         case PIPE_CAP_FS_COORD_ORIGIN_UPPER_LEFT:
         case PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER:
@@ -298,16 +293,11 @@ vc4_screen_get_shader_param(struct pipe_screen *pscreen,
         case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
         case PIPE_SHADER_CAP_INT16:
         case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-        case PIPE_SHADER_CAP_DROUND_SUPPORTED:
-        case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
-        case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
         case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
                 return 0;
         case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
         case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
                 return VC4_MAX_TEXTURE_SAMPLERS;
-        case PIPE_SHADER_CAP_PREFERRED_IR:
-                return PIPE_SHADER_IR_NIR;
         case PIPE_SHADER_CAP_SUPPORTED_IRS:
                 return 1 << PIPE_SHADER_IR_NIR;
         case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
@@ -542,8 +532,17 @@ vc4_get_chip_info(struct vc4_screen *screen)
         return true;
 }
 
+static int
+vc4_screen_get_fd(struct pipe_screen *pscreen)
+{
+        struct vc4_screen *screen = vc4_screen(pscreen);
+
+        return screen->fd;
+}
+
 struct pipe_screen *
-vc4_screen_create(int fd, struct renderonly *ro)
+vc4_screen_create(int fd, const struct pipe_screen_config *config,
+                  struct renderonly *ro)
 {
         struct vc4_screen *screen = rzalloc(NULL, struct vc4_screen);
         uint64_t syncobj_cap = 0;
@@ -553,6 +552,7 @@ vc4_screen_create(int fd, struct renderonly *ro)
         pscreen = &screen->base;
 
         pscreen->destroy = vc4_screen_destroy;
+        pscreen->get_screen_fd = vc4_screen_get_fd;
         pscreen->get_param = vc4_screen_get_param;
         pscreen->get_paramf = vc4_screen_get_paramf;
         pscreen->get_shader_param = vc4_screen_get_shader_param;
@@ -609,13 +609,13 @@ vc4_screen_create(int fd, struct renderonly *ro)
         }
 
         /* Generate the bitmask of supported draw primitives. */
-        screen->prim_types = BITFIELD_BIT(PIPE_PRIM_POINTS) |
-                             BITFIELD_BIT(PIPE_PRIM_LINES) |
-                             BITFIELD_BIT(PIPE_PRIM_LINE_LOOP) |
-                             BITFIELD_BIT(PIPE_PRIM_LINE_STRIP) |
-                             BITFIELD_BIT(PIPE_PRIM_TRIANGLES) |
-                             BITFIELD_BIT(PIPE_PRIM_TRIANGLE_STRIP) |
-                             BITFIELD_BIT(PIPE_PRIM_TRIANGLE_FAN);
+        screen->prim_types = BITFIELD_BIT(MESA_PRIM_POINTS) |
+                             BITFIELD_BIT(MESA_PRIM_LINES) |
+                             BITFIELD_BIT(MESA_PRIM_LINE_LOOP) |
+                             BITFIELD_BIT(MESA_PRIM_LINE_STRIP) |
+                             BITFIELD_BIT(MESA_PRIM_TRIANGLES) |
+                             BITFIELD_BIT(MESA_PRIM_TRIANGLE_STRIP) |
+                             BITFIELD_BIT(MESA_PRIM_TRIANGLE_FAN);
 
 
         return pscreen;

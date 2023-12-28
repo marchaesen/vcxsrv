@@ -114,9 +114,5 @@ Generate a source description of the keyboard as output (.xkb extension).
 Generate a compiled keymap file as output (.xkm extension).
 .SH "SEE ALSO"
 X(__miscmansuffix__)
-.SH COPYRIGHT
-Copyright 1994, Silicon Graphics Computer Systems and X Consortium, Inc.
-.br
-See \fIX(__miscmansuffix__)\fP for a full statement of rights and permissions.
 .SH AUTHOR
 Erik Fortune, Silicon Graphics

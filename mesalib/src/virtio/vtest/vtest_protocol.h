@@ -153,7 +153,7 @@
 #ifdef VIRGL_RENDERER_UNSTABLE_APIS
 
 enum vcmd_param  {
-   VCMD_PARAM_MAX_SYNC_QUEUE_COUNT      = 1,
+   VCMD_PARAM_MAX_TIMELINE_COUNT = 1,
 };
 #define VCMD_GET_PARAM_SIZE 1
 #define VCMD_GET_PARAM_PARAM 0
@@ -217,7 +217,7 @@ enum vcmd_sync_wait_flag {
 /* resp poll'able fd */
 
 enum vcmd_submit_cmd2_flag {
-   VCMD_SUBMIT_CMD2_FLAG_SYNC_QUEUE = 1 << 0,
+   VCMD_SUBMIT_CMD2_FLAG_RING_IDX = 1 << 0,
 };
 
 struct vcmd_submit_cmd2_batch {
@@ -230,9 +230,8 @@ struct vcmd_submit_cmd2_batch {
    uint32_t sync_offset;
    uint32_t sync_count;
 
-   /* ignored unless VCMD_SUBMIT_CMD2_FLAG_SYNC_QUEUE is set */
-   uint32_t sync_queue_index;
-   uint64_t sync_queue_id;
+   /* ignored unless VCMD_SUBMIT_CMD2_FLAG_RING_IDX is set */
+   uint32_t ring_idx;
 };
 #define VCMD_SUBMIT_CMD2_BATCH_COUNT 0
 #define VCMD_SUBMIT_CMD2_BATCH_FLAGS(n)            (1 + 8 * (n) + 0)
@@ -240,9 +239,7 @@ struct vcmd_submit_cmd2_batch {
 #define VCMD_SUBMIT_CMD2_BATCH_CMD_SIZE(n)         (1 + 8 * (n) + 2)
 #define VCMD_SUBMIT_CMD2_BATCH_SYNC_OFFSET(n)      (1 + 8 * (n) + 3)
 #define VCMD_SUBMIT_CMD2_BATCH_SYNC_COUNT(n)       (1 + 8 * (n) + 4)
-#define VCMD_SUBMIT_CMD2_BATCH_SYNC_QUEUE_INDEX(n) (1 + 8 * (n) + 5)
-#define VCMD_SUBMIT_CMD2_BATCH_SYNC_QUEUE_ID_LO(n) (1 + 8 * (n) + 6)
-#define VCMD_SUBMIT_CMD2_BATCH_SYNC_QUEUE_ID_HI(n) (1 + 8 * (n) + 7)
+#define VCMD_SUBMIT_CMD2_BATCH_RING_IDX(n)         (1 + 8 * (n) + 5)
 
 #endif /* VIRGL_RENDERER_UNSTABLE_APIS */
 

@@ -25,6 +25,8 @@ SOFTWARE.
 
 <csbgen name="ROGUE" prefix="VDMCTRL">
 
+  <define name="GUARD_SIZE_DEFAULT" value="64"/>
+
   <enum name="BLOCK_TYPE">
     <value name="PPP_STATE_UPDATE" value="0"/>
     <value name="PDS_STATE_UPDATE" value="1"/>

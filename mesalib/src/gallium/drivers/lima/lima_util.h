@@ -31,8 +31,6 @@
 
 struct lima_dump;
 
-bool lima_get_absolute_timeout(uint64_t *timeout);
-
 struct lima_dump *lima_dump_create(void);
 struct lima_dump *lima_dump_next(struct lima_dump *dump);
 void lima_dump_free(struct lima_dump *dump);

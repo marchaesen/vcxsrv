@@ -28,6 +28,7 @@
 #include "util/disk_cache.h"
 #include "virgl_winsys.h"
 #include "compiler/nir/nir.h"
+#include "virtio-gpu/virgl_protocol.h"
 
 enum virgl_debug_flags {
    VIRGL_DEBUG_VERBOSE              = 1 << 0,
@@ -37,11 +38,12 @@ enum virgl_debug_flags {
    VIRGL_DEBUG_SYNC                 = 1 << 4,
    VIRGL_DEBUG_XFER                 = 1 << 5,
    VIRGL_DEBUG_NO_COHERENT          = 1 << 6,
-   VIRGL_DEBUG_USE_TGSI             = 1 << 7,
    VIRGL_DEBUG_L8_SRGB_ENABLE_READBACK = 1 << 8,
    VIRGL_DEBUG_VIDEO                = 1 << 9,
+   VIRGL_DEBUG_SHADER_SYNC          = 1 << 10,
 };
 
+extern const struct debug_named_value virgl_debug_options[];
 extern int virgl_debug;
 
 struct virgl_screen {
@@ -63,6 +65,7 @@ struct virgl_screen {
    bool tweak_gles_apply_bgra_dest_swizzle;
    bool tweak_l8_srgb_readback;
    bool no_coherent;
+   bool shader_sync;
    int32_t tweak_gles_tf3_value;
 
    nir_shader_compiler_options compiler_options;
@@ -85,6 +88,27 @@ bool
 virgl_has_scanout_format(struct virgl_screen *vscreen,
                          enum pipe_format format,
                          bool may_emulate_bgra);
+
+static inline enum virgl_shader_stage
+virgl_shader_stage_convert(enum pipe_shader_type type)
+{
+   switch (type) {
+   case PIPE_SHADER_VERTEX:
+      return VIRGL_SHADER_VERTEX;
+   case PIPE_SHADER_TESS_CTRL:
+      return VIRGL_SHADER_TESS_CTRL;
+   case PIPE_SHADER_TESS_EVAL:
+      return VIRGL_SHADER_TESS_EVAL;
+   case PIPE_SHADER_GEOMETRY:
+      return VIRGL_SHADER_GEOMETRY;
+   case PIPE_SHADER_FRAGMENT:
+      return VIRGL_SHADER_FRAGMENT;
+   case PIPE_SHADER_COMPUTE:
+      return VIRGL_SHADER_COMPUTE;
+   default:
+      unreachable("virgl: unknown shader stage.\n");
+   }
+}
 
 /* GL_ARB_map_buffer_alignment requires 64 as the minimum alignment value.  In
  * addition to complying with the extension, a high enough alignment value is

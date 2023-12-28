@@ -30,11 +30,25 @@
 
 #include "pipe/p_state.h"
 #include "pipe/p_shader_tokens.h"
+#include "pipe/p_video_codec.h"
 
+struct winsys_handle;
 
 void trace_dump_resource_template(const struct pipe_resource *templat);
 
+void trace_dump_video_codec_template(const struct pipe_video_codec *templat);
+
+void trace_dump_video_buffer_template(const struct pipe_video_buffer *templat);
+
+void trace_dump_pipe_picture_desc(const struct pipe_picture_desc *picture);
+
+void trace_dump_pipe_vpp_blend(const struct pipe_vpp_blend *blend);
+
+void trace_dump_pipe_vpp_desc(const struct pipe_vpp_desc *process_properties);
+
 void trace_dump_box(const struct pipe_box *box);
+
+void trace_dump_u_rect(const struct u_rect *rect);
 
 void trace_dump_rasterizer_state(const struct pipe_rasterizer_state *state);
 
@@ -101,4 +115,6 @@ void trace_dump_grid_info(const struct pipe_grid_info *state);
 void trace_dump_image_view(const struct pipe_image_view *view);
 
 void trace_dump_memory_info(const struct pipe_memory_info *state);
+
+void trace_dump_winsys_handle(const struct winsys_handle *whandle);
 #endif /* TR_STATE_H */

@@ -63,7 +63,7 @@ ir3_disk_cache_init(struct ir3_compiler *compiler)
    _mesa_sha1_format(timestamp, id_sha1);
 
    uint64_t driver_flags = ir3_shader_debug;
-   if (compiler->robust_buffer_access2)
+   if (compiler->options.robust_buffer_access2)
       driver_flags |= IR3_DBG_ROBUST_UBO_ACCESS;
    compiler->disk_cache = disk_cache_create(renderer, timestamp, driver_flags);
 }
@@ -90,10 +90,10 @@ ir3_disk_cache_init_shader_key(struct ir3_compiler *compiler,
    _mesa_sha1_update(&ctx, blob.data, blob.size);
    blob_finish(&blob);
 
-   _mesa_sha1_update(&ctx, &shader->api_wavesize,
-                     sizeof(shader->api_wavesize));
-   _mesa_sha1_update(&ctx, &shader->real_wavesize,
-                     sizeof(shader->real_wavesize));
+   _mesa_sha1_update(&ctx, &shader->options.api_wavesize,
+                     sizeof(shader->options.api_wavesize));
+   _mesa_sha1_update(&ctx, &shader->options.real_wavesize,
+                     sizeof(shader->options.real_wavesize));
 
    /* Note that on some gens stream-out is lowered in ir3 to stg.  For later
     * gens we maybe don't need to include stream-out in the cache key.
@@ -143,7 +143,7 @@ retrieve_variant(struct blob_reader *blob, struct ir3_shader_variant *v)
 }
 
 static void
-store_variant(struct blob *blob, struct ir3_shader_variant *v)
+store_variant(struct blob *blob, const struct ir3_shader_variant *v)
 {
    blob_write_bytes(blob, VARIANT_CACHE_PTR(v), VARIANT_CACHE_SIZE);
 
@@ -199,7 +199,7 @@ ir3_retrieve_variant(struct blob_reader *blob, struct ir3_compiler *compiler,
 }
 
 void
-ir3_store_variant(struct blob *blob, struct ir3_shader_variant *v)
+ir3_store_variant(struct blob *blob, const struct ir3_shader_variant *v)
 {
    blob_write_bytes(blob, &v->key, sizeof(v->key));
    blob_write_uint32(blob, v->type);

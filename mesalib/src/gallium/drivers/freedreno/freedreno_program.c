@@ -36,11 +36,35 @@ static void
 update_bound_stage(struct fd_context *ctx, enum pipe_shader_type shader,
                    bool bound) assert_dt
 {
+   uint32_t bound_shader_stages = ctx->bound_shader_stages;
    if (bound) {
       ctx->bound_shader_stages |= BIT(shader);
    } else {
       ctx->bound_shader_stages &= ~BIT(shader);
    }
+   if (ctx->update_draw && (bound_shader_stages != ctx->bound_shader_stages))
+      ctx->update_draw(ctx);
+}
+
+static void
+fd_set_tess_state(struct pipe_context *pctx,
+                  const float default_outer_level[4],
+                  const float default_inner_level[2])
+   in_dt
+{
+   struct fd_context *ctx = fd_context(pctx);
+
+   /* These turn into driver-params where are emitted on every draw if
+    * needed by the shader (they will only be needed by pass-through
+    * TCS shader)
+    */
+   memcpy(ctx->default_outer_level,
+          default_outer_level,
+          sizeof(ctx->default_outer_level));
+
+   memcpy(ctx->default_inner_level,
+          default_inner_level,
+          sizeof(ctx->default_inner_level));
 }
 
 static void
@@ -48,7 +72,17 @@ fd_set_patch_vertices(struct pipe_context *pctx, uint8_t patch_vertices) in_dt
 {
    struct fd_context *ctx = fd_context(pctx);
 
+   if (ctx->patch_vertices == patch_vertices)
+      return;
+
    ctx->patch_vertices = patch_vertices;
+
+   /* If we have tessellation this dirties the TCS state.  Check for TES
+    * stage as TCS could be NULL (passthrough)
+    */
+   if (ctx->prog.ds || ctx->prog.hs) {
+      fd_context_dirty_shader(ctx, PIPE_SHADER_TESS_CTRL, FD_DIRTY_SHADER_PROG);
+   }
 }
 
 static void
@@ -202,6 +236,7 @@ fd_prog_init(struct pipe_context *pctx)
    pctx->bind_tes_state = fd_tes_state_bind;
    pctx->bind_gs_state = fd_gs_state_bind;
    pctx->bind_fs_state = fd_fs_state_bind;
+   pctx->set_tess_state = fd_set_tess_state;
    pctx->set_patch_vertices = fd_set_patch_vertices;
 
    if (ctx->flags & PIPE_CONTEXT_COMPUTE_ONLY)

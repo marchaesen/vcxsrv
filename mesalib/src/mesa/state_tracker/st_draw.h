@@ -34,10 +34,8 @@
 #ifndef ST_DRAW_H
 #define ST_DRAW_H
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
-struct _mesa_index_buffer;
-struct _mesa_prim;
 struct gl_context;
 struct st_context;
 
@@ -48,18 +46,20 @@ void st_destroy_draw( struct st_context *st );
 
 struct draw_context *st_get_draw_context(struct st_context *st);
 
-extern void
+void
 st_feedback_draw_vbo(struct gl_context *ctx,
-                     const struct _mesa_prim *prims,
-                     unsigned nr_prims,
-                     const struct _mesa_index_buffer *ib,
-		     bool index_bounds_valid,
-                     bool primitive_restart,
-                     unsigned restart_index,
-                     unsigned min_index,
-                     unsigned max_index,
-                     unsigned num_instances,
-                     unsigned base_instance);
+                     struct pipe_draw_info *info,
+                     unsigned drawid_offset,
+                     const struct pipe_draw_indirect_info *indirect,
+                     const struct pipe_draw_start_count_bias *draws,
+                     unsigned num_draws);
+
+void
+st_feedback_draw_vbo_multi_mode(struct gl_context *ctx,
+                                struct pipe_draw_info *info,
+                                const struct pipe_draw_start_count_bias *draws,
+                                const unsigned char *mode,
+                                unsigned num_draws);
 
 /**
  * When drawing with VBOs, the addresses specified with
@@ -74,6 +74,8 @@ pointer_to_offset(const void *ptr)
    return (unsigned) (((GLsizeiptr) ptr) & 0xffffffffUL);
 }
 
+void
+st_prepare_draw(struct gl_context *ctx, uint64_t state_mask);
 
 bool
 st_draw_quad(struct st_context *st,
@@ -83,22 +85,11 @@ st_draw_quad(struct st_context *st,
              unsigned num_instances);
 
 void
-st_draw_transform_feedback(struct gl_context *ctx, GLenum mode,
-                           unsigned num_instances, unsigned stream,
-                           struct gl_transform_feedback_object *tfb_vertcount);
-
-void
 st_indirect_draw_vbo(struct gl_context *ctx,
-                     GLuint mode,
-                     struct gl_buffer_object *indirect_data,
-                     GLsizeiptr indirect_offset,
-                     unsigned draw_count,
-                     unsigned stride,
-                     struct gl_buffer_object *indirect_draw_count,
-                     GLsizeiptr indirect_draw_count_offset,
-                     const struct _mesa_index_buffer *ib,
-                     bool primitive_restart,
-                     unsigned restart_index);
+                     GLenum mode, GLenum index_type,
+                     GLintptr indirect_offset,
+                     GLintptr indirect_draw_count_offset,
+                     GLsizei draw_count, GLsizei stride);
 
 bool
 st_draw_hw_select_prepare_common(struct gl_context *ctx);

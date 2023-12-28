@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "u_math.h"
+#include "util/u_math.h"
 #include "nir.h"
 #include "glsl_types.h"
 #include "nir_types.h"
@@ -31,20 +31,29 @@
 #include "clc_compiler.h"
 #include "../compiler/dxil_nir.h"
 
+static nir_def *
+load_ubo(nir_builder *b, nir_intrinsic_instr *intr, nir_variable *var, unsigned offset)
+{
+   return nir_load_ubo(b,
+                       intr->def.num_components,
+                       intr->def.bit_size,
+                       nir_imm_int(b, var->data.binding),
+                       nir_imm_int(b, offset),
+                       .align_mul = 256,
+                       .align_offset = offset,
+                       .range_base = offset,
+                       .range = intr->def.bit_size * intr->def.num_components / 8);
+}
+
 static bool
 lower_load_base_global_invocation_id(nir_builder *b, nir_intrinsic_instr *intr,
                                     nir_variable *var)
 {
    b->cursor = nir_after_instr(&intr->instr);
 
-   nir_ssa_def *offset =
-      build_load_ubo_dxil(b, nir_imm_int(b, var->data.binding),
-                          nir_imm_int(b,
-                                      offsetof(struct clc_work_properties_data,
-                                               global_offset_x)),
-                          nir_dest_num_components(intr->dest),
-                          nir_dest_bit_size(intr->dest));
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, offset);
+   nir_def *offset = load_ubo(b, intr, var, offsetof(struct clc_work_properties_data,
+                                                         global_offset_x));
+   nir_def_rewrite_uses(&intr->def, offset);
    nir_instr_remove(&intr->instr);
    return true;
 }
@@ -55,14 +64,9 @@ lower_load_work_dim(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_after_instr(&intr->instr);
 
-   nir_ssa_def *dim =
-      build_load_ubo_dxil(b, nir_imm_int(b, var->data.binding),
-                          nir_imm_int(b,
-                                      offsetof(struct clc_work_properties_data,
-                                               work_dim)),
-                          nir_dest_num_components(intr->dest),
-                          nir_dest_bit_size(intr->dest));
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, dim);
+   nir_def *dim = load_ubo(b, intr, var, offsetof(struct clc_work_properties_data,
+                                                      work_dim));
+   nir_def_rewrite_uses(&intr->def, dim);
    nir_instr_remove(&intr->instr);
    return true;
 }
@@ -73,14 +77,10 @@ lower_load_num_workgroups(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_after_instr(&intr->instr);
 
-   nir_ssa_def *count =
-      build_load_ubo_dxil(b, nir_imm_int(b, var->data.binding),
-                         nir_imm_int(b,
-                                     offsetof(struct clc_work_properties_data,
-                                              group_count_total_x)),
-                         nir_dest_num_components(intr->dest),
-                         nir_dest_bit_size(intr->dest));
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, count);
+   nir_def *count =
+      load_ubo(b, intr, var, offsetof(struct clc_work_properties_data,
+                                      group_count_total_x));
+   nir_def_rewrite_uses(&intr->def, count);
    nir_instr_remove(&intr->instr);
    return true;
 }
@@ -91,14 +91,10 @@ lower_load_base_workgroup_id(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_after_instr(&intr->instr);
 
-   nir_ssa_def *offset =
-      build_load_ubo_dxil(b, nir_imm_int(b, var->data.binding),
-                         nir_imm_int(b,
-                                     offsetof(struct clc_work_properties_data,
-                                              group_id_offset_x)),
-                         nir_dest_num_components(intr->dest),
-                         nir_dest_bit_size(intr->dest));
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, offset);
+   nir_def *offset =
+      load_ubo(b, intr, var, offsetof(struct clc_work_properties_data,
+                                      group_id_offset_x));
+   nir_def_rewrite_uses(&intr->def, offset);
    nir_instr_remove(&intr->instr);
    return true;
 }
@@ -113,8 +109,7 @@ clc_nir_lower_system_values(nir_shader *nir, nir_variable *var)
          continue;
       assert(func->impl);
 
-      nir_builder b;
-      nir_builder_init(&b, func->impl);
+      nir_builder b = nir_builder_create(func->impl);
 
       nir_foreach_block(block, func->impl) {
          nir_foreach_instr_safe(instr, block) {
@@ -131,10 +126,10 @@ clc_nir_lower_system_values(nir_shader *nir, nir_variable *var)
                progress |= lower_load_work_dim(&b, intr, var);
                break;
             case nir_intrinsic_load_num_workgroups:
-               lower_load_num_workgroups(&b, intr, var);
+               progress |= lower_load_num_workgroups(&b, intr, var);
                break;
             case nir_intrinsic_load_base_workgroup_id:
-               lower_load_base_workgroup_id(&b, intr, var);
+               progress |= lower_load_base_workgroup_id(&b, intr, var);
                break;
             default: break;
             }
@@ -151,7 +146,7 @@ lower_load_kernel_input(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   unsigned bit_size = nir_dest_bit_size(intr->dest);
+   unsigned bit_size = intr->def.bit_size;
    enum glsl_base_type base_type;
 
    switch (bit_size) {
@@ -161,26 +156,28 @@ lower_load_kernel_input(nir_builder *b, nir_intrinsic_instr *intr,
    case 32:
       base_type = GLSL_TYPE_UINT;
       break;
-    case 16:
+   case 16:
       base_type = GLSL_TYPE_UINT16;
       break;
-    case 8:
+   case 8:
       base_type = GLSL_TYPE_UINT8;
       break;
+   default:
+      unreachable("invalid bit size");
    }
 
    const struct glsl_type *type =
-      glsl_vector_type(base_type, nir_dest_num_components(intr->dest));
-   nir_ssa_def *ptr = nir_vec2(b, nir_imm_int(b, var->data.binding),
-                                  nir_u2u(b, intr->src[0].ssa, 32));
+      glsl_vector_type(base_type, intr->def.num_components);
+   nir_def *ptr = nir_vec2(b, nir_imm_int(b, var->data.binding),
+                                  nir_u2uN(b, intr->src[0].ssa, 32));
    nir_deref_instr *deref = nir_build_deref_cast(b, ptr, nir_var_mem_ubo, type,
                                                     bit_size / 8);
    deref->cast.align_mul = nir_intrinsic_align_mul(intr);
    deref->cast.align_offset = nir_intrinsic_align_offset(intr);
 
-   nir_ssa_def *result =
+   nir_def *result =
       nir_load_deref(b, deref);
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa, result);
+   nir_def_rewrite_uses(&intr->def, result);
    nir_instr_remove(&intr->instr);
    return true;
 }
@@ -195,8 +192,7 @@ clc_nir_lower_kernel_input_loads(nir_shader *nir, nir_variable *var)
          continue;
       assert(func->impl);
 
-      nir_builder b;
-      nir_builder_init(&b, func->impl);
+      nir_builder b = nir_builder_create(func->impl);
 
       nir_foreach_block(block, func->impl) {
          nir_foreach_instr_safe(instr, block) {
@@ -233,14 +229,12 @@ bool
 clc_lower_printf_base(nir_shader *nir, unsigned uav_id)
 {
    nir_variable *printf_var = NULL;
-   nir_ssa_def *printf_deref = NULL;
-   nir_foreach_function(func, nir) {
-      nir_builder b;
-      nir_builder_init(&b, func->impl);
-      b.cursor = nir_before_instr(nir_block_first_instr(nir_start_block(func->impl)));
+   nir_def *printf_deref = NULL;
+   nir_foreach_function_impl(impl, nir) {
+      nir_builder b = nir_builder_at(nir_before_impl(impl));
       bool progress = false;
 
-      nir_foreach_block(block, func->impl) {
+      nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
             if (instr->type != nir_instr_type_intrinsic)
                continue;
@@ -251,19 +245,19 @@ clc_lower_printf_base(nir_shader *nir, unsigned uav_id)
             if (!printf_var) {
                printf_var = add_printf_var(nir, uav_id);
                nir_deref_instr *deref = nir_build_deref_var(&b, printf_var);
-               printf_deref = &deref->dest.ssa;
+               printf_deref = &deref->def;
             }
-            nir_ssa_def_rewrite_uses(&intrin->dest.ssa, printf_deref);
+            nir_def_rewrite_uses(&intrin->def, printf_deref);
             progress = true;
          }
       }
 
       if (progress)
-         nir_metadata_preserve(func->impl, nir_metadata_loop_analysis |
-                                           nir_metadata_block_index |
-                                           nir_metadata_dominance);
+         nir_metadata_preserve(impl, nir_metadata_loop_analysis |
+                                     nir_metadata_block_index |
+                                     nir_metadata_dominance);
       else
-         nir_metadata_preserve(func->impl, nir_metadata_all);
+         nir_metadata_preserve(impl, nir_metadata_all);
    }
 
    return printf_var != NULL;

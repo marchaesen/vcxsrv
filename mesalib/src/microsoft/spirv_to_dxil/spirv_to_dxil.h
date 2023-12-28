@@ -24,6 +24,8 @@
 #ifndef SPIRV_TO_DXIL_H
 #define SPIRV_TO_DXIL_H
 
+#include "dxil_versions.h"
+
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
@@ -88,6 +90,11 @@ struct dxil_spirv_compute_runtime_data {
    uint32_t group_count_x;
    uint32_t group_count_y;
    uint32_t group_count_z;
+   uint32_t padding0;
+   /* Base */
+   uint32_t base_group_x;
+   uint32_t base_group_y;
+   uint32_t base_group_z;
 };
 
 #define DXIL_SPIRV_Y_FLIP_MASK BITFIELD_MASK(DXIL_SPIRV_MAX_VIEWPORT)
@@ -110,6 +117,13 @@ struct dxil_spirv_vertex_runtime_data {
       };
    };
    uint32_t draw_id;
+   float viewport_width;
+   float viewport_height;
+   uint32_t view_index;
+   /* When depth bias is dynamic, the constant value to add to point
+    * primitives when emulating triangle point fill mode. Slope-scaled
+    * depth bias is currently unsupported. */
+   float depth_bias;
 };
 
 enum dxil_spirv_yz_flip_mode {
@@ -141,6 +155,8 @@ struct dxil_spirv_runtime_conf {
    // Set true if vertex and instance ids have already been converted to
    // zero-based. Otherwise, runtime_data will be required to lower them.
    bool zero_based_vertex_instance_id;
+   // Set true if workgroup base is known to be zero
+   bool zero_based_compute_workgroup_id;
 
    struct {
       // mode != DXIL_SPIRV_YZ_FLIP_NONE only valid on vertex/geometry stages.
@@ -153,10 +169,22 @@ struct dxil_spirv_runtime_conf {
 
    // The caller supports read-only images to be turned into SRV accesses,
    // which allows us to run the nir_opt_access() pass
-   bool read_only_images_as_srvs;
+   bool declared_read_only_images_as_srvs;
+
+   // The caller supports read-write images to be turned into SRV accesses,
+   // if they are found not to be written
+   bool inferred_read_only_images_as_srvs;
 
    // Force sample rate shading on a fragment shader
    bool force_sample_rate_shading;
+
+   // View index needs to be lowered to a UBO lookup
+   bool lower_view_index;
+   // View index also needs to be forwarded to RT layer output
+   bool lower_view_index_to_rt_layer;
+
+   // Affects which features can be used by the shader
+   enum dxil_shader_model shader_model_max;
 };
 
 struct dxil_spirv_debug_options {
@@ -187,6 +215,7 @@ spirv_to_dxil(const uint32_t *words, size_t word_count,
               struct dxil_spirv_specialization *specializations,
               unsigned int num_specializations, dxil_spirv_shader_stage stage,
               const char *entry_point_name,
+              enum dxil_validator_version validator_version_max,
               const struct dxil_spirv_debug_options *debug_options,
               const struct dxil_spirv_runtime_conf *conf,
               const struct dxil_spirv_logger *logger,

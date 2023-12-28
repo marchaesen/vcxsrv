@@ -80,7 +80,7 @@ Jan Beich (1):
 
 - meson: disable -Werror=thread-safety on FreeBSD
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 - i965: Emit a NULL surface for buffer textures with no buffer
 - nir/algebraic: Lower fisfinite

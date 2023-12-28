@@ -44,7 +44,8 @@ CSRCS = settings.c \
  null-mac.c \
  null-lp.c \
  bidi.c \
- terminal.c
+ no-lineedit.c \
+ no-term.c
 
 vpath %.c proxy stubs terminal
 

@@ -34,7 +34,7 @@
 #include "freedreno_priv.h"
 
 struct fd_device *msm_device_new(int fd, drmVersionPtr version);
-#if HAVE_FREEDRENO_VIRTIO
+#ifdef HAVE_FREEDRENO_VIRTIO
 struct fd_device *virtio_device_new(int fd, drmVersionPtr version);
 #endif
 
@@ -43,6 +43,7 @@ fd_device_new(int fd)
 {
    struct fd_device *dev = NULL;
    drmVersionPtr version;
+   bool use_heap = false;
 
    /* figure out if we are kgsl or msm drm driver: */
    version = drmGetVersion(fd);
@@ -60,10 +61,14 @@ fd_device_new(int fd)
       }
 
       dev = msm_device_new(fd, version);
-#if HAVE_FREEDRENO_VIRTIO
+#ifdef HAVE_FREEDRENO_VIRTIO
    } else if (!strcmp(version->name, "virtio_gpu")) {
       DEBUG_MSG("virtio_gpu DRM device");
       dev = virtio_device_new(fd, version);
+      /* Only devices that support a hypervisor are a6xx+, so avoid the
+       * extra guest<->host round trips associated with pipe creation:
+       */
+      use_heap = true;
 #endif
 #if HAVE_FREEDRENO_KGSL
    } else if (!strcmp(version->name, "kgsl")) {
@@ -89,12 +94,29 @@ out:
       _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
    dev->name_table =
       _mesa_hash_table_create(NULL, _mesa_hash_u32, _mesa_key_u32_equal);
-   fd_bo_cache_init(&dev->bo_cache, false);
-   fd_bo_cache_init(&dev->ring_cache, true);
+   fd_bo_cache_init(&dev->bo_cache, false, "bo");
+   fd_bo_cache_init(&dev->ring_cache, true, "ring");
 
    list_inithead(&dev->deferred_submits);
    simple_mtx_init(&dev->submit_lock, mtx_plain);
    simple_mtx_init(&dev->suballoc_lock, mtx_plain);
+
+   if (!use_heap) {
+      struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
+
+      /* Userspace fences don't appear to be reliable enough (missing some
+       * cache flushes?) on older gens, so limit sub-alloc heaps to a6xx+
+       * for now:
+       */
+      use_heap = fd_dev_gen(&pipe->dev_id) >= 6;
+
+      fd_pipe_del(pipe);
+   }
+
+   if (use_heap) {
+      dev->ring_heap = fd_bo_heap_new(dev, RING_FLAGS);
+      dev->default_heap = fd_bo_heap_new(dev, 0);
+   }
 
    return dev;
 }
@@ -122,7 +144,7 @@ fd_device_open(void)
    int fd;
 
    fd = drmOpenWithType("msm", NULL, DRM_NODE_RENDER);
-#if HAVE_FREEDRENO_VIRTIO
+#ifdef HAVE_FREEDRENO_VIRTIO
    if (fd < 0)
       fd = drmOpenWithType("virtio_gpu", NULL, DRM_NODE_RENDER);
 #endif
@@ -135,28 +157,34 @@ fd_device_open(void)
 struct fd_device *
 fd_device_ref(struct fd_device *dev)
 {
-   p_atomic_inc(&dev->refcnt);
+   ref(&dev->refcnt);
    return dev;
 }
 
 void
 fd_device_purge(struct fd_device *dev)
 {
-   simple_mtx_lock(&table_lock);
    fd_bo_cache_cleanup(&dev->bo_cache, 0);
    fd_bo_cache_cleanup(&dev->ring_cache, 0);
-   simple_mtx_unlock(&table_lock);
 }
 
-static void
-fd_device_del_impl(struct fd_device *dev)
+void
+fd_device_del(struct fd_device *dev)
 {
-   simple_mtx_assert_locked(&table_lock);
+   if (!unref(&dev->refcnt))
+      return;
 
    assert(list_is_empty(&dev->deferred_submits));
+   assert(!dev->deferred_submits_fence);
 
    if (dev->suballoc_bo)
-      fd_bo_del_locked(dev->suballoc_bo);
+      fd_bo_del(dev->suballoc_bo);
+
+   if (dev->ring_heap)
+      fd_bo_heap_destroy(dev->ring_heap);
+
+   if (dev->default_heap)
+      fd_bo_heap_destroy(dev->default_heap);
 
    fd_bo_cache_cleanup(&dev->bo_cache, 0);
    fd_bo_cache_cleanup(&dev->ring_cache, 0);
@@ -169,31 +197,13 @@ fd_device_del_impl(struct fd_device *dev)
    _mesa_hash_table_destroy(dev->handle_table, NULL);
    _mesa_hash_table_destroy(dev->name_table, NULL);
 
-   if (util_queue_is_initialized(&dev->submit_queue))
+   if (fd_device_threaded_submit(dev))
       util_queue_destroy(&dev->submit_queue);
 
    if (dev->closefd)
       close(dev->fd);
 
    free(dev);
-}
-
-void
-fd_device_del_locked(struct fd_device *dev)
-{
-   if (!p_atomic_dec_zero(&dev->refcnt))
-      return;
-   fd_device_del_impl(dev);
-}
-
-void
-fd_device_del(struct fd_device *dev)
-{
-   if (!p_atomic_dec_zero(&dev->refcnt))
-      return;
-   simple_mtx_lock(&table_lock);
-   fd_device_del_impl(dev);
-   simple_mtx_unlock(&table_lock);
 }
 
 int

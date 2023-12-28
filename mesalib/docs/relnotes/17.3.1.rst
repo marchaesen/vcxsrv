@@ -102,7 +102,7 @@ James Legg (1):
 
 -  nir/opcodes: Fix constant-folding of bitfield_insert
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965: Switch over to fully external-or-not MOCS scheme
 

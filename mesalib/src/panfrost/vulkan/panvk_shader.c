@@ -31,8 +31,7 @@
 #include "vk_util.h"
 
 void
-panvk_shader_destroy(struct panvk_device *dev,
-                     struct panvk_shader *shader,
+panvk_shader_destroy(struct panvk_device *dev, struct panvk_shader *shader,
                      const VkAllocationCallbacks *alloc)
 {
    util_dynarray_fini(&shader->binary);

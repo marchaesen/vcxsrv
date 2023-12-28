@@ -24,7 +24,7 @@
  **********************************************************/
 
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "util/u_debug.h"
 #include "util/format/u_format.h"
 #include "util/u_memory.h"
@@ -1438,7 +1438,10 @@ static const struct format_cap format_cap_table[] = {
 
 static const SVGA3dSurfaceFormat compat_x8r8g8b8[] = {
    SVGA3D_X8R8G8B8, SVGA3D_A8R8G8B8, SVGA3D_B8G8R8X8_UNORM,
-   SVGA3D_B8G8R8A8_UNORM, 0
+   SVGA3D_B8G8R8A8_UNORM, SVGA3D_B8G8R8X8_TYPELESS, SVGA3D_B8G8R8A8_TYPELESS, 0
+};
+static const SVGA3dSurfaceFormat compat_r8g8b8a8[] = {
+   SVGA3D_R8G8B8A8_UNORM, SVGA3D_R8G8B8A8_TYPELESS, 0
 };
 static const SVGA3dSurfaceFormat compat_r8[] = {
    SVGA3D_R8_UNORM, SVGA3D_NV12, SVGA3D_YV12, 0
@@ -1453,6 +1456,7 @@ static const SVGA3dSurfaceFormat compat_r5g6b5[] = {
 static const struct format_compat_entry format_compats[] = {
    {PIPE_FORMAT_B8G8R8X8_UNORM, compat_x8r8g8b8},
    {PIPE_FORMAT_B8G8R8A8_UNORM, compat_x8r8g8b8},
+   {PIPE_FORMAT_R8G8B8A8_UNORM, compat_r8g8b8a8},
    {PIPE_FORMAT_R8_UNORM, compat_r8},
    {PIPE_FORMAT_R8G8_UNORM, compat_g8r8},
    {PIPE_FORMAT_B5G6R5_UNORM, compat_r5g6b5}
@@ -1466,7 +1470,7 @@ static const struct format_compat_entry format_compats[] = {
 static void
 check_format_tables(void)
 {
-   static boolean first_call = TRUE;
+   static bool first_call = true;
 
    if (first_call) {
       unsigned i;
@@ -1476,7 +1480,7 @@ check_format_tables(void)
          assert(format_cap_table[i].format == i);
       }
 
-      first_call = FALSE;
+      first_call = false;
    }
 }
 
@@ -1779,7 +1783,7 @@ svga_format_name(SVGA3dSurfaceFormat format)
 /**
  * Is the given SVGA3dSurfaceFormat a signed or unsigned integer color format?
  */
-boolean
+bool
 svga_format_is_integer(SVGA3dSurfaceFormat format)
 {
    switch (format) {
@@ -1804,13 +1808,13 @@ svga_format_is_integer(SVGA3dSurfaceFormat format)
    case SVGA3D_R8G8_UINT:
    case SVGA3D_R8_UINT:
    case SVGA3D_R10G10B10A2_UINT:
-      return TRUE;
+      return true;
    default:
-      return FALSE;
+      return false;
    }
 }
 
-boolean
+bool
 svga_format_support_gen_mips(enum pipe_format format)
 {
    const struct vgpu10_format_entry *entry = svga_format_entry(format);
@@ -1893,7 +1897,7 @@ svga_get_texture_datatype(enum pipe_format format)
  * Given an svga context, return true iff there are currently any integer color
  * buffers attached to the framebuffer.
  */
-boolean
+bool
 svga_has_any_integer_cbufs(const struct svga_context *svga)
 {
    unsigned i;
@@ -1901,10 +1905,10 @@ svga_has_any_integer_cbufs(const struct svga_context *svga)
       struct pipe_surface *cbuf = svga->curr.framebuffer.cbufs[i];
 
       if (cbuf && util_format_is_pure_integer(cbuf->format)) {
-         return TRUE;
+         return true;
       }
    }
-   return FALSE;
+   return false;
 }
 
 
@@ -2039,7 +2043,7 @@ svga_typeless_format(SVGA3dSurfaceFormat format)
       return format;
    default:
       debug_printf("Unexpected format %s in %s\n",
-                   svga_format_name(format), __FUNCTION__);
+                   svga_format_name(format), __func__);
       return format;
    }
 }

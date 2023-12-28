@@ -36,18 +36,21 @@ class VertexExportStage;
 class TCSShader : public Shader {
 public:
    TCSShader(const r600_shader_key& key);
+
 private:
    bool do_scan_instruction(nir_instr *instr) override;
    int do_allocate_reserved_registers() override;
 
    bool process_stage_intrinsic(nir_intrinsic_instr *intr) override;
    void do_get_shader_info(r600_shader *sh_info) override;
-   bool store_tess_factor(nir_intrinsic_instr* instr);
+   bool store_tess_factor(nir_intrinsic_instr *instr);
 
-   bool load_input(nir_intrinsic_instr *intr) override {
+   bool load_input(UNUSED nir_intrinsic_instr *intr) override
+   {
       unreachable("load_input must be lowered in TCS");
    };
-   bool store_output(nir_intrinsic_instr *intr) override {
+   bool store_output(UNUSED nir_intrinsic_instr *intr) override
+   {
       unreachable("load_output must be lowered in TCS");
    };
 
@@ -64,8 +67,10 @@ private:
 
 class TESShader : public VertexStageShader {
 public:
-   TESShader(const pipe_stream_output_info *so_info, const r600_shader *gs_shader,
+   TESShader(const pipe_stream_output_info *so_info,
+             const r600_shader *gs_shader,
              const r600_shader_key& key);
+
 private:
    bool do_scan_instruction(nir_instr *instr) override;
    int do_allocate_reserved_registers() override;
@@ -73,10 +78,12 @@ private:
    bool process_stage_intrinsic(nir_intrinsic_instr *intr) override;
    void do_get_shader_info(r600_shader *sh_info) override;
 
-   bool load_input(UNUSED nir_intrinsic_instr *intr) override {
+   bool load_input(UNUSED nir_intrinsic_instr *intr) override
+   {
       unreachable("load_input must be lowered in TES");
    };
-   bool store_output(UNUSED nir_intrinsic_instr *intr) override {
+   bool store_output(UNUSED nir_intrinsic_instr *intr) override
+   {
       unreachable("load_output must be lowered in TES");
    };
 
@@ -85,7 +92,7 @@ private:
 
    void do_finalize() override;
 
-   PRegister m_tess_coord[2]= {nullptr, nullptr};
+   PRegister m_tess_coord[2] = {nullptr, nullptr};
    PRegister m_rel_patch_id{nullptr};
    PRegister m_primitive_id{nullptr};
 
@@ -96,7 +103,6 @@ private:
    bool m_tes_as_es{false};
 };
 
-
-}
+} // namespace r600
 
 #endif // TCS_H

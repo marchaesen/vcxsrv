@@ -66,7 +66,7 @@ Eric Engestrom (4):
 - .pick_status.json: Mark d78df70c2a85fd846d40b71b9e213122347bea1b as denominated
 - .pick_status.json: Mark c02e933de4a9a644410384f815c84d1c08107b82 as applied
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 - nir/cf: Better handle intra-block splits
 - intel/fs: NoMask initialize the address register for shuffles

@@ -36,12 +36,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
-#include <unistd.h>
 #include <string.h>
 
 #ifdef _WIN32
 #include "xcb_windefs.h"
 #else
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <sys/un.h>
@@ -60,9 +60,7 @@
 # include <sys/stat.h>
 #endif
 
-#ifdef HAVE_LAUNCHD
 #include <sys/stat.h>
-#endif
 
 #ifdef _MSC_VER
 #ifdef close
@@ -89,7 +87,6 @@ int xcb_sumof(uint8_t *list, int len)
   return s;
 }
 
-#ifdef HAVE_LAUNCHD
 /* Return true and parse if name matches <path to socket>[.<screen>]
  * Upon success:
  *     host = <path to socket>
@@ -102,19 +99,30 @@ static int _xcb_parse_display_path_to_socket(const char *name, char **host, char
 {
     struct stat sbuf;
     char path[PATH_MAX];
-    int _screen = 0;
+    size_t len;
+    int _screen = 0, res;
 
-    strlcpy(path, name, sizeof(path));
-    if (0 != stat(path, &sbuf)) {
-        char *dot = strrchr(path, '.');
-        if (!dot)
+    len = strlen(name);
+    if (len >= sizeof(path))
+        return 0;
+    memcpy(path, name, len + 1);
+    res = stat(path, &sbuf);
+    if (0 != res) {
+        unsigned long lscreen;
+	char *dot, *endptr;
+        if (res != -1 || (errno != ENOENT && errno != ENOTDIR))
+            return 0;
+        dot = strrchr(path, '.');
+        if (!dot || dot[1] < '1' || dot[1] > '9')
             return 0;
         *dot = '\0';
-
+        errno = 0;
+        lscreen = strtoul(dot + 1, &endptr, 10);
+        if (lscreen > INT_MAX || !endptr || *endptr || errno)
+            return 0;
         if (0 != stat(path, &sbuf))
             return 0;
-
-        _screen = atoi(dot + 1);
+        _screen = (int)lscreen;
     }
 
     if (host) {
@@ -140,7 +148,6 @@ static int _xcb_parse_display_path_to_socket(const char *name, char **host, char
 
     return 1;
 }
-#endif
 
 static int _xcb_parse_display(const char *name, char **host, char **protocol,
                       int *displayp, int *screenp)
@@ -153,11 +160,12 @@ static int _xcb_parse_display(const char *name, char **host, char **protocol,
     if(!name)
         return 0;
 
-#ifdef HAVE_LAUNCHD
     /* First check for <path to socket>[.<screen>] */
-    if (_xcb_parse_display_path_to_socket(name, host, protocol, displayp, screenp))
-        return 1;
-#endif
+    if (name[0] == '/')
+        return _xcb_parse_display_path_to_socket(name, host, protocol, displayp, screenp);
+
+    if (strncmp(name, "unix:", 5) == 0)
+        return _xcb_parse_display_path_to_socket(name + 5, host, protocol, displayp, screenp);
 
     slash = strrchr(name, '/');
 
@@ -243,39 +251,46 @@ static int _xcb_open(const char *host, char *protocol, const int display)
     char *file = NULL;
     int actual_filelen;
 
-    /* If protocol or host is "unix", fall through to Unix socket code below */
-    if ((!protocol || (strcmp("unix",protocol) != 0)) &&
-        (*host != '\0') && (strcmp("unix",host) != 0))
-    {
-        /* display specifies TCP */
-        unsigned short port = X_TCP_PORT + display;
-        return _xcb_open_tcp(host, protocol, port);
-    }
+#ifndef _WIN32
+    if (protocol && strcmp("unix", protocol) == 0 && host && host[0] == '/') {
+        /* Full path to socket provided, ignore everything else */
+        filelen = strlen(host) + 1;
+        if (filelen > INT_MAX)
+            return -1;
+        file = malloc(filelen);
+        if (file == NULL)
+            return -1;
+        memcpy(file, host, filelen);
+        actual_filelen = (int)(filelen - 1);
+    } else {
+#endif
+        /* If protocol or host is "unix", fall through to Unix socket code below */
+        if ((!protocol || (strcmp("unix",protocol) != 0)) &&
+            (*host != '\0') && (strcmp("unix",host) != 0))
+        {
+            /* display specifies TCP */
+            unsigned short port = X_TCP_PORT + display;
+            return _xcb_open_tcp(host, protocol, port);
+        }
 
 #ifndef _WIN32
 #if defined(HAVE_TSOL_LABEL_H) && defined(HAVE_IS_SYSTEM_LABELED)
-    /* Check special path for Unix sockets under Solaris Trusted Extensions */
-    if (is_system_labeled())
-    {
-        struct stat sbuf;
-        const char *tsol_base = "/var/tsol/doors/.X11-unix/X";
-        char tsol_socket[PATH_MAX];
+        /* Check special path for Unix sockets under Solaris Trusted Extensions */
+        if (is_system_labeled())
+        {
+            const char *tsol_base = "/var/tsol/doors/.X11-unix/X";
+            char tsol_socket[PATH_MAX];
+            struct stat sbuf;
 
-        snprintf(tsol_socket, sizeof(tsol_socket), "%s%d", tsol_base, display);
+            snprintf(tsol_socket, sizeof(tsol_socket), "%s%d", tsol_base, display);
 
-        if (stat(tsol_socket, &sbuf) == 0)
-            base = tsol_base;
-    }
+            if (stat(tsol_socket, &sbuf) == 0)
+                base = tsol_base;
+            else if (errno != ENOENT)
+                return 0;
+        }
 #endif
 
-#ifdef HAVE_LAUNCHD
-    struct stat sbuf;
-    if (0 == stat(host, &sbuf)) {
-        file = strdup(host);
-        filelen = actual_filelen = strlen(file);
-    } else
-#endif
-    {
         filelen = strlen(base) + 1 + sizeof(display) * 3 + 1;
         file = malloc(filelen);
         if(file == NULL)
@@ -283,24 +298,23 @@ static int _xcb_open(const char *host, char *protocol, const int display)
 
         /* display specifies Unix socket */
         actual_filelen = snprintf(file, filelen, "%s%d", base, display);
-    }
 
-    if(actual_filelen < 0)
-    {
-        free(file);
-        return -1;
-    }
-    /* snprintf may truncate the file */
-    filelen = MIN(actual_filelen, filelen - 1);
+        if(actual_filelen < 0)
+        {
+            free(file);
+            return -1;
+        }
+        /* snprintf may truncate the file */
+        filelen = MIN(actual_filelen, filelen - 1);
 #ifdef HAVE_ABSTRACT_SOCKETS
-    fd = _xcb_open_abstract(protocol, file, filelen);
-    if (fd >= 0 || (errno != ENOENT && errno != ECONNREFUSED))
-    {
-        free(file);
-        return fd;
-    }
-
+        fd = _xcb_open_abstract(protocol, file, filelen);
+        if (fd >= 0 || (errno != ENOENT && errno != ECONNREFUSED))
+        {
+            free(file);
+            return fd;
+        }
 #endif
+    }
     fd = _xcb_open_unix(protocol, file);
     free(file);
 
@@ -416,7 +430,11 @@ static int _xcb_open_tcp(const char *host, char *protocol, const unsigned short 
         fd = _xcb_socket(addr->ai_family, addr->ai_socktype, addr->ai_protocol);
         if (_xcb_do_connect(fd, addr->ai_addr, addr->ai_addrlen) >= 0)
             break;
+#ifdef _WIN32
+        closesocket(fd);
+#else
         close(fd);
+#endif
         fd = -1;
     }
     freeaddrinfo(results);
@@ -442,7 +460,11 @@ static int _xcb_open_tcp(const char *host, char *protocol, const unsigned short 
             if(_xcb_do_connect(fd, (struct sockaddr*)&_s, sizeof(_s)) >= 0)
                 break;
 
+#ifdef _WIN32
+            closesocket(fd);
+#else
             close(fd);
+#endif
             fd = -1;
             ++_c;
         }
@@ -551,10 +573,8 @@ xcb_connection_t *xcb_connect_to_display_with_auth_info(const char *displayname,
 
     if(auth) {
         c = xcb_connect_to_fd(fd, auth);
-        goto out;
     }
-
-    if(_xcb_get_auth_info(fd, &ourauth, display))
+    else if(_xcb_get_auth_info(fd, &ourauth, display))
     {
         c = xcb_connect_to_fd(fd, &ourauth);
         free(ourauth.name);

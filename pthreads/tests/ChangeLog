@@ -1,3 +1,8 @@
+2023-01-29  Ross Johnson <ross dot johnson at homemail dot com dot au>
+
+    * reuse2.c: resolve typecast warnings
+    * Makefile: Add targets to build tests with ../pthread.c as a module (no library).
+
 2021-08-26  Ross Johnson <ross dot johnson at homemail dot com dot au>
 
 	* runorder.mk (threestage): remove reference to this test; VC nmake doesn't

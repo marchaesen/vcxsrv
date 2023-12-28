@@ -85,13 +85,15 @@ MESON_GEN_NINJA := \
 	-Ddri-search-path=/vendor/$(MESA3D_LIB_DIR)/dri                              \
 	-Dplatforms=android                                                          \
 	-Dplatform-sdk-version=$(PLATFORM_SDK_VERSION)                               \
-	-Ddri-drivers=                                                               \
 	-Dgallium-drivers=$(subst $(space),$(comma),$(BOARD_MESA3D_GALLIUM_DRIVERS)) \
 	-Dvulkan-drivers=$(subst $(space),$(comma),$(subst radeon,amd,$(BOARD_MESA3D_VULKAN_DRIVERS)))   \
 	-Dgbm=enabled                                                                \
-	-Degl=enabled                                                                \
+	-Degl=$(if $(BOARD_MESA3D_GALLIUM_DRIVERS),enabled,disabled)                 \
+	-Dllvm=$(if $(MESON_GEN_LLVM_STUB),enabled,disabled)                         \
 	-Dcpp_rtti=false                                                             \
 	-Dlmsensors=disabled                                                         \
+	-Dandroid-libbacktrace=disabled                                              \
+	$(BOARD_MESA3D_MESON_ARGS)                                                   \
 
 MESON_BUILD := PATH=/usr/bin:/bin:/sbin:$$PATH ninja -C $(MESON_OUT_DIR)/build
 
@@ -203,7 +205,9 @@ define m-c-flags
 endef
 
 define filter-c-flags
-  $(filter-out -std=gnu++17 -std=gnu99 -fno-rtti, \
+  $(filter-out -std=gnu++17 -std=gnu++14 -std=gnu99 -fno-rtti \
+    -enable-trivial-auto-var-init-zero-knowing-it-will-be-removed-from-clang \
+    -ftrivial-auto-var-init=zero,
     $(patsubst  -W%,, $1))
 endef
 
@@ -289,7 +293,7 @@ $(MESON_OUT_DIR)/install/.install.timestamp: $(MESON_OUT_DIR)/.build.timestamp
 	rm -rf $(dir $@)
 	mkdir -p $(dir $@)
 	DESTDIR=$(call relative-to-absolute,$(dir $@)) $(MESON_BUILD) install
-	$(MESON_COPY_LIBGALLIUM)
+	$(if $(BOARD_MESA3D_GALLIUM_DRIVERS),$(MESON_COPY_LIBGALLIUM))
 	touch $@
 
 $($(M_TARGET_PREFIX)MESA3D_LIBGBM_BIN) $(MESA3D_GLES_BINS): $(MESON_OUT_DIR)/install/.install.timestamp

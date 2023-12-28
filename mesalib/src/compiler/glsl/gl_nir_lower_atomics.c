@@ -111,11 +111,17 @@ lower_deref_instr(nir_builder *b, nir_intrinsic_instr *instr,
 
    b->cursor = nir_before_instr(&instr->instr);
 
-   nir_ssa_def *offset = nir_imm_int(b, var->data.offset);
+   int offset_value = 0;
+   int range_base = 0;
+   if (!b->shader->options->lower_atomic_offset_to_range_base)
+      offset_value = var->data.offset;
+   else
+      range_base = var->data.offset;
+
+   nir_def *offset = nir_imm_int(b, offset_value);
    for (nir_deref_instr *d = deref; d->deref_type != nir_deref_type_var;
         d = nir_deref_instr_parent(d)) {
       assert(d->deref_type == nir_deref_type_array);
-      assert(d->arr.index.is_ssa);
 
       unsigned array_stride = ATOMIC_COUNTER_SIZE;
       if (glsl_type_is_array(d->type))
@@ -130,8 +136,9 @@ lower_deref_instr(nir_builder *b, nir_intrinsic_instr *instr,
     * opcode.
     */
    instr->intrinsic = op;
-   nir_instr_rewrite_src(&instr->instr, &instr->src[0],
-                         nir_src_for_ssa(offset));
+   nir_intrinsic_set_range_base(instr, range_base);
+
+   nir_src_rewrite(&instr->src[0], offset);
    nir_intrinsic_set_base(instr, idx);
 
    nir_deref_instr_remove_if_unused(deref);
@@ -139,40 +146,40 @@ lower_deref_instr(nir_builder *b, nir_intrinsic_instr *instr,
    return true;
 }
 
+struct lower_atomics_data {
+   bool use_binding_as_idx;
+   nir_shader *shader;
+   const struct gl_shader_program *shader_program;
+};
+
+static bool
+gl_nir_lower_atomics_instr(nir_builder *b, nir_instr *instr, void *cb_data)
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   struct lower_atomics_data *data = cb_data;
+
+   return lower_deref_instr(b,
+                            nir_instr_as_intrinsic(instr),
+                            data->shader_program,
+                            data->shader,
+                            data->use_binding_as_idx);
+}
+
 bool
 gl_nir_lower_atomics(nir_shader *shader,
                      const struct gl_shader_program *shader_program,
                      bool use_binding_as_idx)
 {
-   bool progress = false;
+   struct lower_atomics_data data = {
+         .use_binding_as_idx = use_binding_as_idx,
+         .shader = shader,
+         .shader_program = shader_program,
+   };
 
-   nir_foreach_function(function, shader) {
-      if (!function->impl)
-         continue;
-
-      bool impl_progress = false;
-
-      nir_builder build;
-      nir_builder_init(&build, function->impl);
-
-      nir_foreach_block(block, function->impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic)
-               continue;
-
-            impl_progress |= lower_deref_instr(&build,
-                                               nir_instr_as_intrinsic(instr),
-                                               shader_program, shader,
-                                               use_binding_as_idx);
-         }
-      }
-
-      if (impl_progress) {
-         nir_metadata_preserve(function->impl, nir_metadata_block_index |
-                                               nir_metadata_dominance);
-         progress = true;
-      }
-   }
-
-   return progress;
+   return nir_shader_instructions_pass(shader, gl_nir_lower_atomics_instr,
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance,
+                                       &data);
 }

@@ -1,25 +1,7 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 #
-# Copyright (c) 2013-2016 The Khronos Group Inc.
-#
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and/or associated documentation files (the
-# "Materials"), to deal in the Materials without restriction, including
-# without limitation the rights to use, copy, modify, merge, publish,
-# distribute, sublicense, and/or sell copies of the Materials, and to
-# permit persons to whom the Materials are furnished to do so, subject to
-# the following conditions:
-#
-# The above copyright notice and this permission notice shall be included
-# in all copies or substantial portions of the Materials.
-#
-# THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
-# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
-# MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-# IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-# CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
-# TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
-# MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
+# Copyright 2013-2020 The Khronos Group Inc.
+# SPDX-License-Identifier: Apache-2.0
 
 import sys, time, pdb, string, cProfile
 from reg import *
@@ -44,71 +26,17 @@ errFilename = None
 diagFilename = 'diag.txt'
 regFilename = 'gl.xml'
 
-if __name__ == '__main__':
-    i = 1
-    while (i < len(sys.argv)):
-        arg = sys.argv[i]
-        i = i + 1
-        if (arg == '-debug'):
-            write('Enabling debug (-debug)', file=sys.stderr)
-            debug = True
-        elif (arg == '-dump'):
-            write('Enabling dump (-dump)', file=sys.stderr)
-            dump = True
-        elif (arg == '-noprotect'):
-            write('Disabling inclusion protection in output headers', file=sys.stderr)
-            protect = False
-        elif (arg == '-profile'):
-            write('Enabling profiling (-profile)', file=sys.stderr)
-            profile = True
-        elif (arg == '-registry'):
-            regFilename = sys.argv[i]
-            i = i+1
-            write('Using registry ', regFilename, file=sys.stderr)
-        elif (arg == '-time'):
-            write('Enabling timing (-time)', file=sys.stderr)
-            timeit = True
-        elif (arg == '-validate'):
-            write('Enabling group validation (-validate)', file=sys.stderr)
-            validate = True
-        elif (arg[0:1] == '-'):
-            write('Unrecognized argument:', arg, file=sys.stderr)
-            exit(1)
-        else:
-            target = arg
-            write('Using target', target, file=sys.stderr)
-
 # Simple timer functions
 startTime = None
 def startTimer():
     global startTime
-    startTime = time.clock()
+    startTime = time.process_time()
 def endTimer(msg):
     global startTime
-    endTime = time.clock()
+    endTime = time.process_time()
     if (timeit):
         write(msg, endTime - startTime)
         startTime = None
-
-# Load & parse registry
-reg = Registry()
-
-startTimer()
-tree = etree.parse(regFilename)
-endTimer('Time to make ElementTree =')
-
-startTimer()
-reg.loadElementTree(tree)
-endTimer('Time to parse ElementTree =')
-
-if (validate):
-    reg.validateGroups()
-
-if (dump):
-    write('***************************************')
-    write('Performing Registry dump to regdump.txt')
-    write('***************************************')
-    reg.dumpReg(filehandle = open('regdump.txt','w'))
 
 # Turn a list of strings into a regexp string matching exactly those strings
 def makeREstring(list):
@@ -141,34 +69,13 @@ glx13andLaterPat  = '1\.[3-9]'
 # Copyright text prefixing all headers (list of strings).
 prefixStrings = [
     '/*',
-    '** Copyright (c) 2013-2016 The Khronos Group Inc.',
+    '** Copyright 2013-2020 The Khronos Group Inc.',
+    '** SPDX-' + 'License-Identifier: MIT',
     '**',
-    '** Permission is hereby granted, free of charge, to any person obtaining a',
-    '** copy of this software and/or associated documentation files (the',
-    '** "Materials"), to deal in the Materials without restriction, including',
-    '** without limitation the rights to use, copy, modify, merge, publish,',
-    '** distribute, sublicense, and/or sell copies of the Materials, and to',
-    '** permit persons to whom the Materials are furnished to do so, subject to',
-    '** the following conditions:',
-    '**',
-    '** The above copyright notice and this permission notice shall be included',
-    '** in all copies or substantial portions of the Materials.',
-    '**',
-    '** THE MATERIALS ARE PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,',
-    '** EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF',
-    '** MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.',
-    '** IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY',
-    '** CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,',
-    '** TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE',
-    '** MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.',
-    '*/',
-    '/*',
     '** This header is generated from the Khronos OpenGL / OpenGL ES XML',
     '** API Registry. The current version of the Registry, generator scripts',
     '** used to make the header, and the header can be found at',
-    '**   http://www.opengl.org/registry/',
-    '**',
-    '** Khronos $' + 'Revision$ on $' + 'Date$',
+    '**   https://github.com/KhronosGroup/OpenGL-Registry',
     '*/',
     ''
 ]
@@ -266,6 +173,12 @@ glxextVersionStrings = [
     format('#define GLX_GLXEXT_VERSION %s' % time.strftime('%Y%m%d')),
     ''
 ]
+# This is a bad but functional workaround for a structural problem in the scripts
+# identified in https://github.com/KhronosGroup/OpenGL-Registry/pull/186#issuecomment-416196246
+glextKHRplatformStrings = [
+    '#include <KHR/khrplatform.h>',
+    ''
+]
 # EGL_EGLEXT_VERSION is defined only in eglext.h
 eglextVersionStrings = [
     format('#define EGL_EGLEXT_VERSION %s' % time.strftime('%Y%m%d')),
@@ -280,7 +193,7 @@ protectProto = protect
 buildList = [
     # GL API 1.2+ + extensions - GL/glext.h
     CGeneratorOptions(
-        filename          = 'GL/glext.h',
+        filename          = '../api/GL/glext.h',
         apiname           = 'gl',
         profile           = 'compatibility',
         versions          = allVersions,
@@ -288,7 +201,7 @@ buildList = [
         defaultExtensions = 'gl',                   # Default extensions for GL
         addExtensions     = None,
         removeExtensions  = None,
-        prefixText        = prefixStrings + glExtPlatformStrings + glextVersionStrings,
+        prefixText        = prefixStrings + glExtPlatformStrings + glextVersionStrings + glextKHRplatformStrings,
         genFuncPointers   = True,
         protectFile       = protectFile,
         protectFeature    = protectFeature,
@@ -299,7 +212,7 @@ buildList = [
         apientryp         = 'APIENTRYP '),
     # GL core profile + extensions - GL/glcorearb.h
     CGeneratorOptions(
-        filename          = 'GL/glcorearb.h',
+        filename          = '../api/GL/glcorearb.h',
         apiname           = 'gl',
         profile           = 'core',
         versions          = allVersions,
@@ -318,7 +231,7 @@ buildList = [
         apientryp         = 'APIENTRYP '),
     # GLES 1.x API + mandatory extensions - GLES/gl.h (no function pointers)
     CGeneratorOptions(
-        filename          = 'GLES/gl.h',
+        filename          = '../api/GLES/gl.h',
         apiname           = 'gles1',
         profile           = 'common',
         versions          = allVersions,
@@ -337,7 +250,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 1.x extensions - GLES/glext.h
     CGeneratorOptions(
-        filename          = 'GLES/glext.h',
+        filename          = '../api/GLES/glext.h',
         apiname           = 'gles1',
         profile           = 'common',
         versions          = allVersions,
@@ -356,7 +269,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 2.0 API - GLES2/gl2.h (now with function pointers)
     CGeneratorOptions(
-        filename          = 'GLES2/gl2.h',
+        filename          = '../api/GLES2/gl2.h',
         apiname           = 'gles2',
         profile           = 'common',
         versions          = gles2onlyPat,
@@ -375,7 +288,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 3.1 / 3.0 / 2.0 extensions - GLES2/gl2ext.h
     CGeneratorOptions(
-        filename          = 'GLES2/gl2ext.h',
+        filename          = '../api/GLES2/gl2ext.h',
         apiname           = 'gles2',
         profile           = 'common',
         versions          = gles2onlyPat,
@@ -394,7 +307,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 3.2 API - GLES3/gl32.h (now with function pointers)
     CGeneratorOptions(
-        filename          = 'GLES3/gl32.h',
+        filename          = '../api/GLES3/gl32.h',
         apiname           = 'gles2',
         profile           = 'common',
         versions          = gles2through32Pat,
@@ -413,7 +326,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 3.1 API - GLES3/gl31.h (now with function pointers)
     CGeneratorOptions(
-        filename          = 'GLES3/gl31.h',
+        filename          = '../api/GLES3/gl31.h',
         apiname           = 'gles2',
         profile           = 'common',
         versions          = gles2through31Pat,
@@ -432,7 +345,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLES 3.0 API - GLES3/gl3.h (now with function pointers)
     CGeneratorOptions(
-        filename          = 'GLES3/gl3.h',
+        filename          = '../api/GLES3/gl3.h',
         apiname           = 'gles2',
         profile           = 'common',
         versions          = gles2through30Pat,
@@ -451,7 +364,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLSC 2.0 API - GLSC2/glsc2.h
     CGeneratorOptions(
-        filename          = 'GLSC2/glsc2.h',
+        filename          = '../api/GLSC2/glsc2.h',
         apiname           = 'glsc2',
         profile           = 'common',
         versions          = gles2onlyPat,
@@ -470,7 +383,7 @@ buildList = [
         apientryp         = 'GL_APIENTRYP '),
     # GLSC 2.0 extensions - GLSC2/gl2ext.h
     CGeneratorOptions(
-        filename          = 'GLSC2/glsc2ext.h',
+        filename          = '../api/GLSC2/glsc2ext.h',
         apiname           = 'glsc2',
         profile           = 'common',
         versions          = gles2onlyPat,
@@ -487,47 +400,9 @@ buildList = [
         apicall           = 'GL_APICALL ',
         apientry          = 'GL_APIENTRY ',
         apientryp         = 'GL_APIENTRYP '),
-    # EGL API - EGL/egl.h (no function pointers, yet @@@)
+    # GLX 1.* API - GL/glx.h (experimental)
     CGeneratorOptions(
-        filename          = 'EGL/egl.h',
-        apiname           = 'egl',
-        profile           = None,
-        versions          = allVersions,
-        emitversions      = allVersions,
-        defaultExtensions = None,                   # No default extensions
-        addExtensions     = None,
-        removeExtensions  = None,
-        prefixText        = prefixStrings + eglPlatformStrings + genDateCommentString,
-        genFuncPointers   = False,
-        protectFile       = protectFile,
-        protectFeature    = protectFeature,
-        protectProto      = False,
-        protectProtoStr   = 'EGL_EGLEXT_PROTOTYPES',
-        apicall           = 'EGLAPI ',
-        apientry          = 'EGLAPIENTRY ',
-        apientryp         = 'EGLAPIENTRYP '),
-    # EGL extensions - EGL/eglext.h (no function pointers, yet @@@)
-    CGeneratorOptions(
-        filename          = 'EGL/eglext.h',
-        apiname           = 'egl',
-        profile           = None,
-        versions          = allVersions,
-        emitversions      = None,
-        defaultExtensions = 'egl',                  # Default extensions for EGL
-        addExtensions     = None,
-        removeExtensions  = None,
-        prefixText        = prefixStrings + eglPlatformStrings + eglextVersionStrings,
-        genFuncPointers   = True,
-        protectFile       = protectFile,
-        protectFeature    = protectFeature,
-        protectProto      = protectProto,
-        protectProtoStr   = 'EGL_EGLEXT_PROTOTYPES',
-        apicall           = 'EGLAPI ',
-        apientry          = 'EGLAPIENTRY ',
-        apientryp         = 'EGLAPIENTRYP '),
-    # GLX 1.* API - GL/glx.h
-    CGeneratorOptions(
-        filename          = 'GL/glx.h',
+        filename          = '../api/GL/glx.h',
         apiname           = 'glx',
         profile           = None,
         versions          = allVersions,
@@ -547,7 +422,7 @@ buildList = [
         apientryp         = ' *'),
     # GLX 1.3+ API + extensions - GL/glxext.h (no function pointers, yet @@@)
     CGeneratorOptions(
-        filename          = 'GL/glxext.h',
+        filename          = '../api/GL/glxext.h',
         apiname           = 'glx',
         profile           = None,
         versions          = allVersions,
@@ -565,9 +440,9 @@ buildList = [
         apicall           = '',
         apientry          = '',
         apientryp         = ' *'),
-    # WGL API + extensions - GL/wgl.h (no function pointers, yet @@@)
+    # WGL API + extensions - GL/wgl.h (experimenta; no function pointers, yet @@@)
     CGeneratorOptions(
-        filename          = 'GL/wgl.h',
+        filename          = '../api/GL/wgl.h',
         apiname           = 'wgl',
         profile           = None,
         versions          = allVersions,
@@ -586,7 +461,7 @@ buildList = [
         apientryp         = 'WINAPI * '),
     # WGL extensions - GL/wglext.h (no function pointers, yet @@@)
     CGeneratorOptions(
-        filename          = 'GL/wglext.h',
+        filename          = '../api/GL/wglext.h',
         apiname           = 'wgl',
         profile           = None,
         versions          = allVersions,
@@ -606,13 +481,6 @@ buildList = [
     # End of list
     None
 ]
-
-# create error/warning & diagnostic files
-if (errFilename):
-    errWarn = open(errFilename,'w')
-else:
-    errWarn = sys.stderr
-diag = open(diagFilename, 'w')
 
 def genHeaders():
     # Loop over targets, building each
@@ -636,12 +504,74 @@ def genHeaders():
     if (target and generated == 0):
         write('Failed to generate target:', target)
 
-if (debug):
-    pdb.run('genHeaders()')
-elif (profile):
-    import cProfile, pstats
-    cProfile.run('genHeaders()', 'profile.txt')
-    p = pstats.Stats('profile.txt')
-    p.strip_dirs().sort_stats('time').print_stats(50)
-else:
-    genHeaders()
+
+if __name__ == '__main__':
+    i = 1
+    while (i < len(sys.argv)):
+        arg = sys.argv[i]
+        i = i + 1
+        if (arg == '-debug'):
+            write('Enabling debug (-debug)', file=sys.stderr)
+            debug = True
+        elif (arg == '-dump'):
+            write('Enabling dump (-dump)', file=sys.stderr)
+            dump = True
+        elif (arg == '-noprotect'):
+            write('Disabling inclusion protection in output headers', file=sys.stderr)
+            protect = False
+        elif (arg == '-profile'):
+            write('Enabling profiling (-profile)', file=sys.stderr)
+            profile = True
+        elif (arg == '-registry'):
+            regFilename = sys.argv[i]
+            i = i+1
+            write('Using registry ', regFilename, file=sys.stderr)
+        elif (arg == '-time'):
+            write('Enabling timing (-time)', file=sys.stderr)
+            timeit = True
+        elif (arg == '-validate'):
+            write('Enabling group validation (-validate)', file=sys.stderr)
+            validate = True
+        elif (arg[0:1] == '-'):
+            write('Unrecognized argument:', arg, file=sys.stderr)
+            exit(1)
+        else:
+            target = arg
+            write('Using target', target, file=sys.stderr)
+
+    # Load & parse registry
+    reg = Registry()
+
+    startTimer()
+    tree = etree.parse(regFilename)
+    endTimer('Time to make ElementTree =')
+
+    startTimer()
+    reg.loadElementTree(tree)
+    endTimer('Time to parse ElementTree =')
+
+    if (validate):
+        reg.validateGroups()
+
+    if (dump):
+        write('***************************************')
+        write('Performing Registry dump to regdump.txt')
+        write('***************************************')
+        reg.dumpReg(filehandle = open('regdump.txt','w'))
+
+    # create error/warning & diagnostic files
+    if (errFilename):
+        errWarn = open(errFilename,'w')
+    else:
+        errWarn = sys.stderr
+    diag = open(diagFilename, 'w')
+
+    if (debug):
+        pdb.run('genHeaders()')
+    elif (profile):
+        import cProfile, pstats
+        cProfile.run('genHeaders()', 'profile.txt')
+        p = pstats.Stats('profile.txt')
+        p.strip_dirs().sort_stats('time').print_stats(50)
+    else:
+        genHeaders()

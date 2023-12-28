@@ -30,7 +30,7 @@
  */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/macros.h"
@@ -55,7 +55,7 @@ get_texgen(struct gl_context *ctx, GLuint texunitIndex, GLenum coord, const char
 
    texUnit = _mesa_get_fixedfunc_tex_unit(ctx, texunitIndex);
 
-   if (ctx->API == API_OPENGLES) {
+   if (_mesa_is_gles1(ctx)) {
       return (coord == GL_TEXTURE_GEN_STR_OES)
          ? &texUnit->GenS : NULL;
    }

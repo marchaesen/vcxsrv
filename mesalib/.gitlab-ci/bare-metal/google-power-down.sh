@@ -7,4 +7,4 @@ if [ -z "$relay" ]; then
     exit 1
 fi
 
-$CI_PROJECT_DIR/install/bare-metal/google-power-relay.py off $relay
+"$CI_PROJECT_DIR"/install/bare-metal/google-power-relay.py off "$relay"

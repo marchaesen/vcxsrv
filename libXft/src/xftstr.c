@@ -27,7 +27,7 @@ _XftMatchSymbolic (XftSymbolic *s, int n, const char *name, int def)
 {
     while (n--)
     {
-	if (!FcStrCmpIgnoreCase ((FcChar8 *) s->name, (FcChar8 *) name))
+	if (!FcStrCmpIgnoreCase ((const FcChar8 *) s->name, (const FcChar8 *) name))
 	    return s->value;
 	s++;
     }

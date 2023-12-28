@@ -51,7 +51,7 @@ struct pipe_tessellator_data
 };
 
 /// Allocate and initialize a new tessellation context
-struct pipe_tessellator *p_tess_init(enum pipe_prim_type tes_prim_mode,
+struct pipe_tessellator *p_tess_init(enum mesa_prim tes_prim_mode,
                                      enum pipe_tess_spacing spacing,
                                      bool tes_vertex_order_cw, bool tes_point_mode);
 /// Destroy & de-allocate tessellation context

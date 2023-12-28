@@ -31,9 +31,9 @@
 
 namespace r600 {
 
-bool peephole(Shader& sh);
+bool
+peephole(Shader& sh);
 
 }
-
 
 #endif // PEEPHOLE_H

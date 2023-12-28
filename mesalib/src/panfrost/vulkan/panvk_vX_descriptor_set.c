@@ -36,8 +36,8 @@
 #include <unistd.h>
 
 #include "util/mesa-sha1.h"
-#include "vk_descriptors.h"
 #include "vk_descriptor_update_template.h"
+#include "vk_descriptors.h"
 #include "vk_util.h"
 
 #include "pan_bo.h"
@@ -82,10 +82,9 @@ panvk_fill_image_desc(struct panvk_image_desc *desc,
 }
 
 VkResult
-panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
-                                          const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
-                                          const VkAllocationCallbacks *pAllocator,
-                                          VkDescriptorSetLayout *pSetLayout)
+panvk_per_arch(CreateDescriptorSetLayout)(
+   VkDevice _device, const VkDescriptorSetLayoutCreateInfo *pCreateInfo,
+   const VkAllocationCallbacks *pAllocator, VkDescriptorSetLayout *pSetLayout)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
    struct panvk_descriptor_set_layout *set_layout;
@@ -94,10 +93,8 @@ panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
    VkResult result;
 
    if (pCreateInfo->bindingCount) {
-      result =
-         vk_create_sorted_bindings(pCreateInfo->pBindings,
-                                   pCreateInfo->bindingCount,
-                                   &bindings);
+      result = vk_create_sorted_bindings(pCreateInfo->pBindings,
+                                         pCreateInfo->bindingCount, &bindings);
       if (result != VK_SUCCESS)
          return vk_error(device, result);
 
@@ -110,10 +107,10 @@ panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
          num_immutable_samplers += bindings[i].descriptorCount;
    }
 
-   size_t size = sizeof(*set_layout) +
-                 (sizeof(struct panvk_descriptor_set_binding_layout) *
-                  num_bindings) +
-                 (sizeof(struct panvk_sampler *) * num_immutable_samplers);
+   size_t size =
+      sizeof(*set_layout) +
+      (sizeof(struct panvk_descriptor_set_binding_layout) * num_bindings) +
+      (sizeof(struct panvk_sampler *) * num_immutable_samplers);
    set_layout = vk_descriptor_set_layout_zalloc(&device->vk, size);
    if (!set_layout) {
       result = VK_ERROR_OUT_OF_HOST_MEMORY;
@@ -122,7 +119,8 @@ panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
 
    struct panvk_sampler **immutable_samplers =
       (struct panvk_sampler **)((uint8_t *)set_layout + sizeof(*set_layout) +
-                                (sizeof(struct panvk_descriptor_set_binding_layout) *
+                                (sizeof(
+                                    struct panvk_descriptor_set_binding_layout) *
                                  num_bindings));
 
    set_layout->binding_count = num_bindings;
@@ -144,7 +142,8 @@ panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
          binding_layout->immutable_samplers = immutable_samplers;
          immutable_samplers += binding_layout->array_size;
          for (unsigned j = 0; j < binding_layout->array_size; j++) {
-            VK_FROM_HANDLE(panvk_sampler, sampler, binding->pImmutableSamplers[j]);
+            VK_FROM_HANDLE(panvk_sampler, sampler,
+                           binding->pImmutableSamplers[j]);
             binding_layout->immutable_samplers[j] = sampler;
          }
       }
@@ -203,8 +202,8 @@ panvk_per_arch(CreateDescriptorSetLayout)(VkDevice _device,
 
       desc_ubo_size = ALIGN_POT(desc_ubo_size, PANVK_DESCRIPTOR_ALIGN);
       binding_layout->desc_ubo_offset = desc_ubo_size;
-      desc_ubo_size += binding_layout->desc_ubo_stride *
-                       binding_layout->array_size;
+      desc_ubo_size +=
+         binding_layout->desc_ubo_stride * binding_layout->array_size;
    }
 
    set_layout->desc_ubo_size = desc_ubo_size;
@@ -227,23 +226,22 @@ err_free_bindings:
    return vk_error(device, result);
 }
 
-static void
-panvk_write_sampler_desc_raw(struct panvk_descriptor_set *set,
-                             uint32_t binding, uint32_t elem,
-                             struct panvk_sampler *sampler);
+static void panvk_write_sampler_desc_raw(struct panvk_descriptor_set *set,
+                                         uint32_t binding, uint32_t elem,
+                                         struct panvk_sampler *sampler);
 
 static VkResult
-panvk_per_arch(descriptor_set_create)(struct panvk_device *device,
-                                      struct panvk_descriptor_pool *pool,
-                                      const struct panvk_descriptor_set_layout *layout,
-                                      struct panvk_descriptor_set **out_set)
+panvk_per_arch(descriptor_set_create)(
+   struct panvk_device *device, struct panvk_descriptor_pool *pool,
+   const struct panvk_descriptor_set_layout *layout,
+   struct panvk_descriptor_set **out_set)
 {
    struct panvk_descriptor_set *set;
 
    /* TODO: Allocate from the pool! */
-   set = vk_object_zalloc(&device->vk, NULL,
-                          sizeof(struct panvk_descriptor_set),
-                          VK_OBJECT_TYPE_DESCRIPTOR_SET);
+   set =
+      vk_object_zalloc(&device->vk, NULL, sizeof(struct panvk_descriptor_set),
+                       VK_OBJECT_TYPE_DESCRIPTOR_SET);
    if (!set)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -259,24 +257,24 @@ panvk_per_arch(descriptor_set_create)(struct panvk_device *device,
 
    if (layout->num_dyn_ubos) {
       set->dyn_ubos = vk_zalloc(&device->vk.alloc,
-                            sizeof(*set->dyn_ubos) * layout->num_dyn_ubos, 8,
-                            VK_OBJECT_TYPE_DESCRIPTOR_SET);
+                                sizeof(*set->dyn_ubos) * layout->num_dyn_ubos,
+                                8, VK_OBJECT_TYPE_DESCRIPTOR_SET);
       if (!set->dyn_ubos)
          goto err_free_set;
    }
 
    if (layout->num_dyn_ssbos) {
-      set->dyn_ssbos = vk_zalloc(&device->vk.alloc,
-                            sizeof(*set->dyn_ssbos) * layout->num_dyn_ssbos, 8,
-                            VK_OBJECT_TYPE_DESCRIPTOR_SET);
+      set->dyn_ssbos = vk_zalloc(
+         &device->vk.alloc, sizeof(*set->dyn_ssbos) * layout->num_dyn_ssbos, 8,
+         VK_OBJECT_TYPE_DESCRIPTOR_SET);
       if (!set->dyn_ssbos)
          goto err_free_set;
    }
 
    if (layout->num_samplers) {
-      set->samplers = vk_zalloc(&device->vk.alloc,
-                                pan_size(SAMPLER) * layout->num_samplers, 8,
-                                VK_OBJECT_TYPE_DESCRIPTOR_SET);
+      set->samplers =
+         vk_zalloc(&device->vk.alloc, pan_size(SAMPLER) * layout->num_samplers,
+                   8, VK_OBJECT_TYPE_DESCRIPTOR_SET);
       if (!set->samplers)
          goto err_free_set;
    }
@@ -291,31 +289,28 @@ panvk_per_arch(descriptor_set_create)(struct panvk_device *device,
 
    if (layout->num_imgs) {
       set->img_fmts =
-         vk_zalloc(&device->vk.alloc,
-                   sizeof(*set->img_fmts) * layout->num_imgs,
+         vk_zalloc(&device->vk.alloc, sizeof(*set->img_fmts) * layout->num_imgs,
                    8, VK_OBJECT_TYPE_DESCRIPTOR_SET);
       if (!set->img_fmts)
          goto err_free_set;
 
-      set->img_attrib_bufs =
-         vk_zalloc(&device->vk.alloc,
-                   pan_size(ATTRIBUTE_BUFFER) * 2 * layout->num_imgs,
-                   8, VK_OBJECT_TYPE_DESCRIPTOR_SET);
+      set->img_attrib_bufs = vk_zalloc(
+         &device->vk.alloc, pan_size(ATTRIBUTE_BUFFER) * 2 * layout->num_imgs,
+         8, VK_OBJECT_TYPE_DESCRIPTOR_SET);
       if (!set->img_attrib_bufs)
          goto err_free_set;
    }
 
    if (layout->desc_ubo_size) {
-      set->desc_bo = panfrost_bo_create(&device->physical_device->pdev,
-                                        layout->desc_ubo_size,
-                                        0, "Descriptor set");
+      set->desc_bo =
+         panfrost_bo_create(&device->physical_device->pdev,
+                            layout->desc_ubo_size, 0, "Descriptor set");
       if (!set->desc_bo)
          goto err_free_set;
 
       struct mali_uniform_buffer_packed *ubos = set->ubos;
 
-      panvk_per_arch(emit_ubo)(set->desc_bo->ptr.gpu,
-                               layout->desc_ubo_size,
+      panvk_per_arch(emit_ubo)(set->desc_bo->ptr.gpu, layout->desc_ubo_size,
                                &ubos[layout->desc_ubo_index]);
    }
 
@@ -348,9 +343,9 @@ err_free_set:
 }
 
 VkResult
-panvk_per_arch(AllocateDescriptorSets)(VkDevice _device,
-                                       const VkDescriptorSetAllocateInfo *pAllocateInfo,
-                                       VkDescriptorSet *pDescriptorSets)
+panvk_per_arch(AllocateDescriptorSets)(
+   VkDevice _device, const VkDescriptorSetAllocateInfo *pAllocateInfo,
+   VkDescriptorSet *pDescriptorSets)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
    VK_FROM_HANDLE(panvk_descriptor_pool, pool, pAllocateInfo->descriptorPool);
@@ -362,7 +357,8 @@ panvk_per_arch(AllocateDescriptorSets)(VkDevice _device,
                      pAllocateInfo->pSetLayouts[i]);
       struct panvk_descriptor_set *set = NULL;
 
-      result = panvk_per_arch(descriptor_set_create)(device, pool, layout, &set);
+      result =
+         panvk_per_arch(descriptor_set_create)(device, pool, layout, &set);
       if (result != VK_SUCCESS)
          goto err_free_sets;
 
@@ -372,28 +368,28 @@ panvk_per_arch(AllocateDescriptorSets)(VkDevice _device,
    return VK_SUCCESS;
 
 err_free_sets:
-   panvk_FreeDescriptorSets(_device, pAllocateInfo->descriptorPool, i, pDescriptorSets);
+   panvk_FreeDescriptorSets(_device, pAllocateInfo->descriptorPool, i,
+                            pDescriptorSets);
    for (i = 0; i < pAllocateInfo->descriptorSetCount; i++)
       pDescriptorSets[i] = VK_NULL_HANDLE;
 
-   return result; 
+   return result;
 }
 
 static void *
-panvk_desc_ubo_data(struct panvk_descriptor_set *set,
-                    uint32_t binding, uint32_t elem)
+panvk_desc_ubo_data(struct panvk_descriptor_set *set, uint32_t binding,
+                    uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
 
-   return (char *)set->desc_bo->ptr.cpu +
-          binding_layout->desc_ubo_offset +
+   return (char *)set->desc_bo->ptr.cpu + binding_layout->desc_ubo_offset +
           elem * binding_layout->desc_ubo_stride;
 }
 
 static struct mali_sampler_packed *
-panvk_sampler_desc(struct panvk_descriptor_set *set,
-                   uint32_t binding, uint32_t elem)
+panvk_sampler_desc(struct panvk_descriptor_set *set, uint32_t binding,
+                   uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -404,19 +400,18 @@ panvk_sampler_desc(struct panvk_descriptor_set *set,
 }
 
 static void
-panvk_write_sampler_desc_raw(struct panvk_descriptor_set *set,
-                             uint32_t binding, uint32_t elem,
-                             struct panvk_sampler *sampler)
+panvk_write_sampler_desc_raw(struct panvk_descriptor_set *set, uint32_t binding,
+                             uint32_t elem, struct panvk_sampler *sampler)
 {
-   memcpy(panvk_sampler_desc(set, binding, elem),
-          &sampler->desc, sizeof(sampler->desc));
+   memcpy(panvk_sampler_desc(set, binding, elem), &sampler->desc,
+          sizeof(sampler->desc));
 }
 
 static void
 panvk_write_sampler_desc(UNUSED struct panvk_device *dev,
-                         struct panvk_descriptor_set *set,
-                         uint32_t binding, uint32_t elem,
-                         const VkDescriptorImageInfo * const pImageInfo)
+                         struct panvk_descriptor_set *set, uint32_t binding,
+                         uint32_t elem,
+                         const VkDescriptorImageInfo *const pImageInfo)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -446,8 +441,8 @@ panvk_copy_sampler_desc(struct panvk_descriptor_set *dst_set,
 }
 
 static struct mali_texture_packed *
-panvk_tex_desc(struct panvk_descriptor_set *set,
-               uint32_t binding, uint32_t elem)
+panvk_tex_desc(struct panvk_descriptor_set *set, uint32_t binding,
+               uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -459,22 +454,21 @@ panvk_tex_desc(struct panvk_descriptor_set *set,
 
 static void
 panvk_write_tex_desc(UNUSED struct panvk_device *dev,
-                     struct panvk_descriptor_set *set,
-                     uint32_t binding, uint32_t elem,
-                     const VkDescriptorImageInfo * const pImageInfo)
+                     struct panvk_descriptor_set *set, uint32_t binding,
+                     uint32_t elem,
+                     const VkDescriptorImageInfo *const pImageInfo)
 {
    VK_FROM_HANDLE(panvk_image_view, view, pImageInfo->imageView);
 
-   memcpy(panvk_tex_desc(set, binding, elem),
-          view->descs.tex, pan_size(TEXTURE));
+   memcpy(panvk_tex_desc(set, binding, elem), view->descs.tex,
+          pan_size(TEXTURE));
 
    panvk_fill_image_desc(panvk_desc_ubo_data(set, binding, elem), view);
 }
 
 static void
-panvk_copy_tex_desc(struct panvk_descriptor_set *dst_set,
-                    uint32_t dst_binding, uint32_t dst_elem,
-                    struct panvk_descriptor_set *src_set,
+panvk_copy_tex_desc(struct panvk_descriptor_set *dst_set, uint32_t dst_binding,
+                    uint32_t dst_elem, struct panvk_descriptor_set *src_set,
                     uint32_t src_binding, uint32_t src_elem)
 {
    *panvk_tex_desc(dst_set, dst_binding, dst_elem) =
@@ -485,21 +479,19 @@ panvk_copy_tex_desc(struct panvk_descriptor_set *dst_set,
 
 static void
 panvk_write_tex_buf_desc(UNUSED struct panvk_device *dev,
-                         struct panvk_descriptor_set *set,
-                         uint32_t binding, uint32_t elem,
-                         const VkBufferView bufferView)
+                         struct panvk_descriptor_set *set, uint32_t binding,
+                         uint32_t elem, const VkBufferView bufferView)
 {
    VK_FROM_HANDLE(panvk_buffer_view, view, bufferView);
 
-   memcpy(panvk_tex_desc(set, binding, elem),
-          view->descs.tex, pan_size(TEXTURE));
+   memcpy(panvk_tex_desc(set, binding, elem), view->descs.tex,
+          pan_size(TEXTURE));
 
    panvk_fill_bview_desc(panvk_desc_ubo_data(set, binding, elem), view);
 }
 
 static uint32_t
-panvk_img_idx(struct panvk_descriptor_set *set,
-              uint32_t binding, uint32_t elem)
+panvk_img_idx(struct panvk_descriptor_set *set, uint32_t binding, uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -508,8 +500,7 @@ panvk_img_idx(struct panvk_descriptor_set *set,
 }
 
 static void
-panvk_write_img_desc(struct panvk_device *dev,
-                     struct panvk_descriptor_set *set,
+panvk_write_img_desc(struct panvk_device *dev, struct panvk_descriptor_set *set,
                      uint32_t binding, uint32_t elem,
                      const VkDescriptorImageInfo *pImageInfo)
 {
@@ -521,15 +512,15 @@ panvk_write_img_desc(struct panvk_device *dev,
                       (pan_size(ATTRIBUTE_BUFFER) * 2 * img_idx);
 
    set->img_fmts[img_idx] = pdev->formats[view->pview.format].hw;
-   memcpy(attrib_buf, view->descs.img_attrib_buf, pan_size(ATTRIBUTE_BUFFER) * 2);
+   memcpy(attrib_buf, view->descs.img_attrib_buf,
+          pan_size(ATTRIBUTE_BUFFER) * 2);
 
    panvk_fill_image_desc(panvk_desc_ubo_data(set, binding, elem), view);
 }
 
 static void
-panvk_copy_img_desc(struct panvk_descriptor_set *dst_set,
-                    uint32_t dst_binding, uint32_t dst_elem,
-                    struct panvk_descriptor_set *src_set,
+panvk_copy_img_desc(struct panvk_descriptor_set *dst_set, uint32_t dst_binding,
+                    uint32_t dst_elem, struct panvk_descriptor_set *src_set,
                     uint32_t src_binding, uint32_t src_elem)
 {
    unsigned dst_img_idx = panvk_img_idx(dst_set, dst_binding, dst_elem);
@@ -548,9 +539,8 @@ panvk_copy_img_desc(struct panvk_descriptor_set *dst_set,
 
 static void
 panvk_write_img_buf_desc(struct panvk_device *dev,
-                         struct panvk_descriptor_set *set,
-                         uint32_t binding, uint32_t elem,
-                         const VkBufferView bufferView)
+                         struct panvk_descriptor_set *set, uint32_t binding,
+                         uint32_t elem, const VkBufferView bufferView)
 {
    const struct panfrost_device *pdev = &dev->physical_device->pdev;
    VK_FROM_HANDLE(panvk_buffer_view, view, bufferView);
@@ -560,14 +550,15 @@ panvk_write_img_buf_desc(struct panvk_device *dev,
                       (pan_size(ATTRIBUTE_BUFFER) * 2 * img_idx);
 
    set->img_fmts[img_idx] = pdev->formats[view->fmt].hw;
-   memcpy(attrib_buf, view->descs.img_attrib_buf, pan_size(ATTRIBUTE_BUFFER) * 2);
+   memcpy(attrib_buf, view->descs.img_attrib_buf,
+          pan_size(ATTRIBUTE_BUFFER) * 2);
 
    panvk_fill_bview_desc(panvk_desc_ubo_data(set, binding, elem), view);
 }
 
 static struct mali_uniform_buffer_packed *
-panvk_ubo_desc(struct panvk_descriptor_set *set,
-               uint32_t binding, uint32_t elem)
+panvk_ubo_desc(struct panvk_descriptor_set *set, uint32_t binding,
+               uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -579,23 +570,21 @@ panvk_ubo_desc(struct panvk_descriptor_set *set,
 
 static void
 panvk_write_ubo_desc(UNUSED struct panvk_device *dev,
-                     struct panvk_descriptor_set *set,
-                     uint32_t binding, uint32_t elem,
-                     const VkDescriptorBufferInfo *pBufferInfo)
+                     struct panvk_descriptor_set *set, uint32_t binding,
+                     uint32_t elem, const VkDescriptorBufferInfo *pBufferInfo)
 {
    VK_FROM_HANDLE(panvk_buffer, buffer, pBufferInfo->buffer);
 
    mali_ptr ptr = panvk_buffer_gpu_ptr(buffer, pBufferInfo->offset);
-   size_t size = panvk_buffer_range(buffer, pBufferInfo->offset,
-                                    pBufferInfo->range);
+   size_t size =
+      panvk_buffer_range(buffer, pBufferInfo->offset, pBufferInfo->range);
 
    panvk_per_arch(emit_ubo)(ptr, size, panvk_ubo_desc(set, binding, elem));
 }
 
 static void
-panvk_copy_ubo_desc(struct panvk_descriptor_set *dst_set,
-                    uint32_t dst_binding, uint32_t dst_elem,
-                    struct panvk_descriptor_set *src_set,
+panvk_copy_ubo_desc(struct panvk_descriptor_set *dst_set, uint32_t dst_binding,
+                    uint32_t dst_elem, struct panvk_descriptor_set *src_set,
                     uint32_t src_binding, uint32_t src_elem)
 {
    *panvk_ubo_desc(dst_set, dst_binding, dst_elem) =
@@ -603,8 +592,8 @@ panvk_copy_ubo_desc(struct panvk_descriptor_set *dst_set,
 }
 
 static struct panvk_buffer_desc *
-panvk_dyn_ubo_desc(struct panvk_descriptor_set *set,
-                   uint32_t binding, uint32_t elem)
+panvk_dyn_ubo_desc(struct panvk_descriptor_set *set, uint32_t binding,
+                   uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -614,13 +603,13 @@ panvk_dyn_ubo_desc(struct panvk_descriptor_set *set,
 
 static void
 panvk_write_dyn_ubo_desc(UNUSED struct panvk_device *dev,
-                         struct panvk_descriptor_set *set,
-                         uint32_t binding, uint32_t elem,
+                         struct panvk_descriptor_set *set, uint32_t binding,
+                         uint32_t elem,
                          const VkDescriptorBufferInfo *pBufferInfo)
 {
    VK_FROM_HANDLE(panvk_buffer, buffer, pBufferInfo->buffer);
 
-   *panvk_dyn_ubo_desc(set, binding, elem) = (struct panvk_buffer_desc) {
+   *panvk_dyn_ubo_desc(set, binding, elem) = (struct panvk_buffer_desc){
       .buffer = buffer,
       .offset = pBufferInfo->offset,
       .size = pBufferInfo->range,
@@ -639,32 +628,30 @@ panvk_copy_dyn_ubo_desc(struct panvk_descriptor_set *dst_set,
 
 static void
 panvk_write_ssbo_desc(UNUSED struct panvk_device *dev,
-                      struct panvk_descriptor_set *set,
-                      uint32_t binding, uint32_t elem,
-                      const VkDescriptorBufferInfo *pBufferInfo)
+                      struct panvk_descriptor_set *set, uint32_t binding,
+                      uint32_t elem, const VkDescriptorBufferInfo *pBufferInfo)
 {
    VK_FROM_HANDLE(panvk_buffer, buffer, pBufferInfo->buffer);
 
    struct panvk_ssbo_addr *desc = panvk_desc_ubo_data(set, binding, elem);
-   *desc = (struct panvk_ssbo_addr) {
+   *desc = (struct panvk_ssbo_addr){
       .base_addr = panvk_buffer_gpu_ptr(buffer, pBufferInfo->offset),
-      .size = panvk_buffer_range(buffer, pBufferInfo->offset,
-                                         pBufferInfo->range),
+      .size =
+         panvk_buffer_range(buffer, pBufferInfo->offset, pBufferInfo->range),
    };
 }
 
 static void
-panvk_copy_ssbo_desc(struct panvk_descriptor_set *dst_set,
-                     uint32_t dst_binding, uint32_t dst_elem,
-                     struct panvk_descriptor_set *src_set,
+panvk_copy_ssbo_desc(struct panvk_descriptor_set *dst_set, uint32_t dst_binding,
+                     uint32_t dst_elem, struct panvk_descriptor_set *src_set,
                      uint32_t src_binding, uint32_t src_elem)
 {
    /* Descriptor UBO data gets copied automatically */
 }
 
 static struct panvk_buffer_desc *
-panvk_dyn_ssbo_desc(struct panvk_descriptor_set *set,
-                   uint32_t binding, uint32_t elem)
+panvk_dyn_ssbo_desc(struct panvk_descriptor_set *set, uint32_t binding,
+                    uint32_t elem)
 {
    const struct panvk_descriptor_set_binding_layout *binding_layout =
       &set->layout->bindings[binding];
@@ -674,13 +661,13 @@ panvk_dyn_ssbo_desc(struct panvk_descriptor_set *set,
 
 static void
 panvk_write_dyn_ssbo_desc(UNUSED struct panvk_device *dev,
-                          struct panvk_descriptor_set *set,
-                          uint32_t binding, uint32_t elem,
+                          struct panvk_descriptor_set *set, uint32_t binding,
+                          uint32_t elem,
                           const VkDescriptorBufferInfo *pBufferInfo)
 {
    VK_FROM_HANDLE(panvk_buffer, buffer, pBufferInfo->buffer);
 
-   *panvk_dyn_ssbo_desc(set, binding, elem) = (struct panvk_buffer_desc) {
+   *panvk_dyn_ssbo_desc(set, binding, elem) = (struct panvk_buffer_desc){
       .buffer = buffer,
       .offset = pBufferInfo->offset,
       .size = pBufferInfo->range,
@@ -698,11 +685,10 @@ panvk_copy_dyn_ssbo_desc(struct panvk_descriptor_set *dst_set,
 }
 
 void
-panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
-                                     uint32_t descriptorWriteCount,
-                                     const VkWriteDescriptorSet *pDescriptorWrites,
-                                     uint32_t descriptorCopyCount,
-                                     const VkCopyDescriptorSet *pDescriptorCopies)
+panvk_per_arch(UpdateDescriptorSets)(
+   VkDevice _device, uint32_t descriptorWriteCount,
+   const VkWriteDescriptorSet *pDescriptorWrites, uint32_t descriptorCopyCount,
+   const VkCopyDescriptorSet *pDescriptorCopies)
 {
    VK_FROM_HANDLE(panvk_device, dev, _device);
 
@@ -713,8 +699,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
       switch (write->descriptorType) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_sampler_desc(dev, set,
-                                     write->dstBinding,
+            panvk_write_sampler_desc(dev, set, write->dstBinding,
                                      write->dstArrayElement + j,
                                      &write->pImageInfo[j]);
          }
@@ -722,12 +707,10 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_sampler_desc(dev, set,
-                                     write->dstBinding,
+            panvk_write_sampler_desc(dev, set, write->dstBinding,
                                      write->dstArrayElement + j,
                                      &write->pImageInfo[j]);
-            panvk_write_tex_desc(dev, set,
-                                 write->dstBinding,
+            panvk_write_tex_desc(dev, set, write->dstBinding,
                                  write->dstArrayElement + j,
                                  &write->pImageInfo[j]);
          }
@@ -735,8 +718,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_tex_desc(dev, set,
-                                 write->dstBinding,
+            panvk_write_tex_desc(dev, set, write->dstBinding,
                                  write->dstArrayElement + j,
                                  &write->pImageInfo[j]);
          }
@@ -745,8 +727,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
       case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
       case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_img_desc(dev, set,
-                                 write->dstBinding,
+            panvk_write_img_desc(dev, set, write->dstBinding,
                                  write->dstArrayElement + j,
                                  &write->pImageInfo[j]);
          }
@@ -754,8 +735,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_tex_buf_desc(dev, set,
-                                     write->dstBinding,
+            panvk_write_tex_buf_desc(dev, set, write->dstBinding,
                                      write->dstArrayElement + j,
                                      write->pTexelBufferView[j]);
          }
@@ -763,8 +743,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_img_buf_desc(dev, set,
-                                     write->dstBinding,
+            panvk_write_img_buf_desc(dev, set, write->dstBinding,
                                      write->dstArrayElement + j,
                                      write->pTexelBufferView[j]);
          }
@@ -772,8 +751,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_ubo_desc(dev, set,
-                                 write->dstBinding,
+            panvk_write_ubo_desc(dev, set, write->dstBinding,
                                  write->dstArrayElement + j,
                                  &write->pBufferInfo[j]);
          }
@@ -781,8 +759,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_dyn_ubo_desc(dev, set,
-                                     write->dstBinding,
+            panvk_write_dyn_ubo_desc(dev, set, write->dstBinding,
                                      write->dstArrayElement + j,
                                      &write->pBufferInfo[j]);
          }
@@ -790,8 +767,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_ssbo_desc(dev, set,
-                                  write->dstBinding,
+            panvk_write_ssbo_desc(dev, set, write->dstBinding,
                                   write->dstArrayElement + j,
                                   &write->pBufferInfo[j]);
          }
@@ -799,8 +775,7 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
          for (uint32_t j = 0; j < write->descriptorCount; j++) {
-            panvk_write_dyn_ssbo_desc(dev, set,
-                                      write->dstBinding,
+            panvk_write_dyn_ssbo_desc(dev, set, write->dstBinding,
                                       write->dstArrayElement + j,
                                       &write->pBufferInfo[j]);
          }
@@ -838,23 +813,20 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
       switch (src_binding_layout->type) {
       case VK_DESCRIPTOR_TYPE_SAMPLER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
-            panvk_copy_sampler_desc(dst_set, copy->dstBinding,
-                                    copy->dstArrayElement + j,
-                                    src_set, copy->srcBinding,
-                                    copy->srcArrayElement + j);
+            panvk_copy_sampler_desc(
+               dst_set, copy->dstBinding, copy->dstArrayElement + j, src_set,
+               copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
-            panvk_copy_sampler_desc(dst_set, copy->dstBinding,
-                                    copy->dstArrayElement + j,
-                                    src_set, copy->srcBinding,
-                                    copy->srcArrayElement + j);
+            panvk_copy_sampler_desc(
+               dst_set, copy->dstBinding, copy->dstArrayElement + j, src_set,
+               copy->srcBinding, copy->srcArrayElement + j);
             panvk_copy_tex_desc(dst_set, copy->dstBinding,
-                                copy->dstArrayElement + j,
-                                src_set, copy->srcBinding,
-                                copy->srcArrayElement + j);
+                                copy->dstArrayElement + j, src_set,
+                                copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
@@ -862,9 +834,8 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
       case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
             panvk_copy_tex_desc(dst_set, copy->dstBinding,
-                                copy->dstArrayElement + j,
-                                src_set, copy->srcBinding,
-                                copy->srcArrayElement + j);
+                                copy->dstArrayElement + j, src_set,
+                                copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
@@ -873,45 +844,40 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
             panvk_copy_img_desc(dst_set, copy->dstBinding,
-                                copy->dstArrayElement + j,
-                                src_set, copy->srcBinding,
-                                copy->srcArrayElement + j);
+                                copy->dstArrayElement + j, src_set,
+                                copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
             panvk_copy_ubo_desc(dst_set, copy->dstBinding,
-                                copy->dstArrayElement + j,
-                                src_set, copy->srcBinding,
-                                copy->srcArrayElement + j);
+                                copy->dstArrayElement + j, src_set,
+                                copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
-            panvk_copy_dyn_ubo_desc(dst_set, copy->dstBinding,
-                                    copy->dstArrayElement + j,
-                                    src_set, copy->srcBinding,
-                                    copy->srcArrayElement + j);
+            panvk_copy_dyn_ubo_desc(
+               dst_set, copy->dstBinding, copy->dstArrayElement + j, src_set,
+               copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
             panvk_copy_ssbo_desc(dst_set, copy->dstBinding,
-                                 copy->dstArrayElement + j,
-                                 src_set, copy->srcBinding,
-                                 copy->srcArrayElement + j);
+                                 copy->dstArrayElement + j, src_set,
+                                 copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
          for (uint32_t j = 0; j < copy->descriptorCount; j++) {
-            panvk_copy_dyn_ssbo_desc(dst_set, copy->dstBinding,
-                                     copy->dstArrayElement + j,
-                                     src_set, copy->srcBinding,
-                                     copy->srcArrayElement + j);
+            panvk_copy_dyn_ssbo_desc(
+               dst_set, copy->dstBinding, copy->dstArrayElement + j, src_set,
+               copy->srcBinding, copy->srcArrayElement + j);
          }
          break;
 
@@ -922,10 +888,9 @@ panvk_per_arch(UpdateDescriptorSets)(VkDevice _device,
 }
 
 void
-panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
-                                                VkDescriptorSet descriptorSet,
-                                                VkDescriptorUpdateTemplate descriptorUpdateTemplate,
-                                                const void *data)
+panvk_per_arch(UpdateDescriptorSetWithTemplate)(
+   VkDevice _device, VkDescriptorSet descriptorSet,
+   VkDescriptorUpdateTemplate descriptorUpdateTemplate, const void *data)
 {
    VK_FROM_HANDLE(panvk_device, dev, _device);
    VK_FROM_HANDLE(panvk_descriptor_set, set, descriptorSet);
@@ -935,8 +900,7 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
    const struct panvk_descriptor_set_layout *layout = set->layout;
 
    for (uint32_t i = 0; i < template->entry_count; i++) {
-      const struct vk_descriptor_template_entry *entry =
-         &template->entries[i];
+      const struct vk_descriptor_template_entry *entry = &template->entries[i];
       const struct panvk_descriptor_set_binding_layout *binding_layout =
          &layout->bindings[entry->binding];
 
@@ -952,19 +916,15 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
                  entry->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) &&
                 !binding_layout->immutable_samplers) {
 
-               panvk_write_sampler_desc(dev, set,
-                                        entry->binding,
-                                        entry->array_element + j,
-                                        info);
+               panvk_write_sampler_desc(dev, set, entry->binding,
+                                        entry->array_element + j, info);
             }
 
             if (entry->type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
                 entry->type == VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER) {
 
-               panvk_write_tex_desc(dev, set,
-                                    entry->binding,
-                                    entry->array_element + j,
-                                    info);
+               panvk_write_tex_desc(dev, set, entry->binding,
+                                    entry->array_element + j, info);
             }
          }
          break;
@@ -975,34 +935,26 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
             const VkDescriptorImageInfo *info =
                data + entry->offset + j * entry->stride;
 
-               panvk_write_img_desc(dev, set,
-                                    entry->binding,
-                                    entry->array_element + j,
-                                    info);
+            panvk_write_img_desc(dev, set, entry->binding,
+                                 entry->array_element + j, info);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
          for (unsigned j = 0; j < entry->array_count; j++) {
-            const VkBufferView *view =
-               data + entry->offset + j * entry->stride;
+            const VkBufferView *view = data + entry->offset + j * entry->stride;
 
-            panvk_write_tex_buf_desc(dev, set,
-                                     entry->binding,
-                                     entry->array_element + j,
-                                     *view);
+            panvk_write_tex_buf_desc(dev, set, entry->binding,
+                                     entry->array_element + j, *view);
          }
          break;
 
       case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
          for (unsigned j = 0; j < entry->array_count; j++) {
-            const VkBufferView *view =
-               data + entry->offset + j * entry->stride;
+            const VkBufferView *view = data + entry->offset + j * entry->stride;
 
-            panvk_write_img_buf_desc(dev, set,
-                                     entry->binding,
-                                     entry->array_element + j,
-                                     *view);
+            panvk_write_img_buf_desc(dev, set, entry->binding,
+                                     entry->array_element + j, *view);
          }
          break;
 
@@ -1011,10 +963,8 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
             const VkDescriptorBufferInfo *info =
                data + entry->offset + j * entry->stride;
 
-            panvk_write_ubo_desc(dev, set,
-                                 entry->binding,
-                                 entry->array_element + j,
-                                 info);
+            panvk_write_ubo_desc(dev, set, entry->binding,
+                                 entry->array_element + j, info);
          }
          break;
 
@@ -1023,10 +973,8 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
             const VkDescriptorBufferInfo *info =
                data + entry->offset + j * entry->stride;
 
-            panvk_write_dyn_ubo_desc(dev, set,
-                                 entry->binding,
-                                 entry->array_element + j,
-                                 info);
+            panvk_write_dyn_ubo_desc(dev, set, entry->binding,
+                                     entry->array_element + j, info);
          }
          break;
 
@@ -1035,10 +983,8 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
             const VkDescriptorBufferInfo *info =
                data + entry->offset + j * entry->stride;
 
-            panvk_write_ssbo_desc(dev, set,
-                                  entry->binding,
-                                  entry->array_element + j,
-                                  info);
+            panvk_write_ssbo_desc(dev, set, entry->binding,
+                                  entry->array_element + j, info);
          }
          break;
 
@@ -1047,10 +993,8 @@ panvk_per_arch(UpdateDescriptorSetWithTemplate)(VkDevice _device,
             const VkDescriptorBufferInfo *info =
                data + entry->offset + j * entry->stride;
 
-            panvk_write_dyn_ssbo_desc(dev, set,
-                                      entry->binding,
-                                      entry->array_element + j,
-                                      info);
+            panvk_write_dyn_ssbo_desc(dev, set, entry->binding,
+                                      entry->array_element + j, info);
          }
          break;
       default:

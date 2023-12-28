@@ -105,17 +105,17 @@ iris_syncobj_signal(struct iris_bufmgr *bufmgr, struct iris_syncobj *syncobj)
 /**
  * Add a sync-point to the batch, with the given flags.
  *
- * \p flags   One of I915_EXEC_FENCE_WAIT or I915_EXEC_FENCE_SIGNAL.
+ * \p flags   One of IRIS_BATCH_FENCE_WAIT or IRIS_BATCH_FENCE_SIGNAL.
  */
 void
 iris_batch_add_syncobj(struct iris_batch *batch,
                        struct iris_syncobj *syncobj,
-                       unsigned flags)
+                       uint32_t flags)
 {
-   struct drm_i915_gem_exec_fence *fence =
-      util_dynarray_grow(&batch->exec_fences, struct drm_i915_gem_exec_fence, 1);
+   struct iris_batch_fence *fence =
+      util_dynarray_grow(&batch->exec_fences, struct iris_batch_fence, 1);
 
-   *fence = (struct drm_i915_gem_exec_fence) {
+   *fence = (struct iris_batch_fence) {
       .handle = syncobj->handle,
       .flags = flags,
    };
@@ -128,7 +128,7 @@ iris_batch_add_syncobj(struct iris_batch *batch,
 }
 
 /**
- * Walk through a batch's dependencies (any I915_EXEC_FENCE_WAIT syncobjs)
+ * Walk through a batch's dependencies (any IRIS_BATCH_FENCE_WAIT syncobjs)
  * and unreference any which have already passed.
  *
  * Sometimes the compute batch is seldom used, and accumulates references
@@ -144,16 +144,16 @@ clear_stale_syncobjs(struct iris_batch *batch)
    int n = util_dynarray_num_elements(&batch->syncobjs, struct iris_syncobj *);
 
    assert(n == util_dynarray_num_elements(&batch->exec_fences,
-                                          struct drm_i915_gem_exec_fence));
+                                          struct iris_batch_fence));
 
    /* Skip the first syncobj, as it's the signalling one. */
    for (int i = n - 1; i > 0; i--) {
       struct iris_syncobj **syncobj =
          util_dynarray_element(&batch->syncobjs, struct iris_syncobj *, i);
-      struct drm_i915_gem_exec_fence *fence =
+      struct iris_batch_fence *fence =
          util_dynarray_element(&batch->exec_fences,
-                               struct drm_i915_gem_exec_fence, i);
-      assert(fence->flags & I915_EXEC_FENCE_WAIT);
+                               struct iris_batch_fence, i);
+      assert(fence->flags & IRIS_BATCH_FENCE_WAIT);
 
       if (iris_wait_syncobj(bufmgr, *syncobj, 0))
          continue;
@@ -166,9 +166,8 @@ clear_stale_syncobjs(struct iris_batch *batch)
       /* Remove it from the lists; move the last element here. */
       struct iris_syncobj **nth_syncobj =
          util_dynarray_pop_ptr(&batch->syncobjs, struct iris_syncobj *);
-      struct drm_i915_gem_exec_fence *nth_fence =
-         util_dynarray_pop_ptr(&batch->exec_fences,
-                               struct drm_i915_gem_exec_fence);
+      struct iris_batch_fence *nth_fence =
+         util_dynarray_pop_ptr(&batch->exec_fences, struct iris_batch_fence);
 
       if (syncobj != nth_syncobj) {
          *syncobj = *nth_syncobj;
@@ -271,8 +270,7 @@ iris_fence_flush(struct pipe_context *ctx,
       iris_measure_frame_end(ice);
    }
 
-   u_trace_context_process(&ice->ds.trace_context,
-                           flags & PIPE_FLUSH_END_OF_FRAME);
+   intel_ds_device_process(&ice->ds, flags & PIPE_FLUSH_END_OF_FRAME);
 
    if (!out_fence)
       return;
@@ -290,8 +288,7 @@ iris_fence_flush(struct pipe_context *ctx,
       unsigned b = batch->name;
 
       if (deferred && iris_batch_bytes_used(batch) > 0) {
-         struct iris_fine_fence *fine =
-            iris_fine_fence_new(batch, IRIS_FENCE_BOTTOM_OF_PIPE);
+         struct iris_fine_fence *fine = iris_fine_fence_new(batch);
          iris_fine_fence_reference(screen, &fence->fine[b], fine);
          iris_fine_fence_reference(screen, &fine, NULL);
       } else {
@@ -349,7 +346,7 @@ iris_fence_await(struct pipe_context *ctx,
          /* Before adding a new reference, clean out any stale ones. */
          clear_stale_syncobjs(batch);
 
-         iris_batch_add_syncobj(batch, fine->syncobj, I915_EXEC_FENCE_WAIT);
+         iris_batch_add_syncobj(batch, fine->syncobj, IRIS_BATCH_FENCE_WAIT);
       }
    }
 }
@@ -568,7 +565,6 @@ iris_fence_create_fd(struct pipe_context *ctx,
    fine->seqno = UINT32_MAX;
    fine->map = &zero;
    fine->syncobj = syncobj;
-   fine->flags = IRIS_FENCE_END;
    pipe_reference_init(&fine->reference, 1);
 
    struct pipe_fence_handle *fence = calloc(1, sizeof(*fence));
@@ -602,7 +598,7 @@ iris_fence_signal(struct pipe_context *ctx,
             continue;
 
          batch->contains_fence_signal = true;
-         iris_batch_add_syncobj(batch, fine->syncobj, I915_EXEC_FENCE_SIGNAL);
+         iris_batch_add_syncobj(batch, fine->syncobj, IRIS_BATCH_FENCE_SIGNAL);
       }
       if (batch->contains_fence_signal)
          iris_batch_flush(batch);

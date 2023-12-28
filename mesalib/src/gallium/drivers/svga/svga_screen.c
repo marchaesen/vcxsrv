@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -28,11 +28,10 @@
 #include "util/format/u_format.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
+#include "util/u_process.h"
 #include "util/u_screen.h"
 #include "util/u_string.h"
 #include "util/u_math.h"
-
-#include "os/os_process.h"
 
 #include "svga_winsys.h"
 #include "svga_public.h"
@@ -102,7 +101,7 @@ svga_get_name( struct pipe_screen *pscreen )
 #else
    build = "build: RELEASE;";
 #endif
-#ifdef DRAW_LLVM_AVAILABLE
+#if DRAW_LLVM_AVAILABLE
    llvm = "LLVM;";
 #endif
 
@@ -138,9 +137,9 @@ get_uint_cap(struct svga_winsys_screen *sws, SVGA3dDevCapIndex cap,
 
 
 /** Helper for querying boolean-valued device cap */
-static boolean
+static bool
 get_bool_cap(struct svga_winsys_screen *sws, SVGA3dDevCapIndex cap,
-             boolean defaultVal)
+             bool defaultVal)
 {
    SVGA3dDevCapResult result;
    if (sws->get_cap(sws, cap, &result))
@@ -216,8 +215,6 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return sws->have_vgpu10 ? 1 : 0;
    case PIPE_CAP_ANISOTROPIC_FILTER:
       return 1;
-   case PIPE_CAP_POINT_SPRITE:
-      return 1;
    case PIPE_CAP_MAX_RENDER_TARGETS:
       return svgascreen->max_color_buffers;
    case PIPE_CAP_OCCLUSION_QUERY:
@@ -252,12 +249,7 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return MIN2(util_logbase2(result.u) + 1, SVGA_MAX_TEXTURE_LEVELS);
 
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      /*
-       * No mechanism to query the host, and at least limited to 2048x2048 on
-       * certain hardware.
-       */
-      return MIN2(util_last_bit(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE)),
-                  12 /* 2048x2048 */);
+      return util_last_bit(screen->get_param(screen, PIPE_CAP_MAX_TEXTURE_2D_SIZE));
 
    case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
       return sws->have_sm5 ? SVGA3D_SM5_MAX_SURFACE_ARRAYSIZE :
@@ -277,9 +269,6 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1; /* The color outputs of vertex shaders are not clamped */
    case PIPE_CAP_VERTEX_COLOR_CLAMPED:
       return sws->have_vgpu10;
-
-   case PIPE_CAP_MIXED_COLORBUFFER_FORMATS:
-      return 1; /* expected for GL_ARB_framebuffer_object */
 
    case PIPE_CAP_GLSL_FEATURE_LEVEL:
    case PIPE_CAP_GLSL_FEATURE_LEVEL_COMPATIBILITY:
@@ -416,9 +405,13 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_MIN_MAP_BUFFER_ALIGNMENT:
       return 64;
    case PIPE_CAP_VERTEX_BUFFER_STRIDE_4BYTE_ALIGNED_ONLY:
+      return sws->have_vgpu10 ? 0 : 1;
+   case PIPE_CAP_VERTEX_ATTRIB_ELEMENT_ALIGNED_ONLY:
+      /* This CAP cannot be used with any other alignment-requiring CAPs */
+      return sws->have_vgpu10 ? 1 : 0;
    case PIPE_CAP_VERTEX_BUFFER_OFFSET_4BYTE_ALIGNED_ONLY:
    case PIPE_CAP_VERTEX_ELEMENT_SRC_OFFSET_4BYTE_ALIGNED_ONLY:
-      return 1;  /* need 4-byte alignment for all offsets and strides */
+      return sws->have_vgpu10 ? 0 : 1;
    case PIPE_CAP_MAX_VERTEX_ATTRIB_STRIDE:
       return 2048;
    case PIPE_CAP_MAX_VIEWPORTS:
@@ -443,8 +436,6 @@ svga_get_param(struct pipe_screen *screen, enum pipe_cap param)
       /* XXX: Query the host ? */
       return 1;
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-      return sws->have_vgpu10;
-   case PIPE_CAP_CLEAR_TEXTURE:
       return sws->have_vgpu10;
    case PIPE_CAP_DOUBLES:
       return sws->have_sm5;
@@ -541,13 +532,8 @@ vgpu9_get_shader_param(struct pipe_screen *screen,
       case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
       case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
          return 16;
-      case PIPE_SHADER_CAP_PREFERRED_IR:
-         return svgascreen->debug.nir ? PIPE_SHADER_IR_NIR : PIPE_SHADER_IR_TGSI;
       case PIPE_SHADER_CAP_SUPPORTED_IRS:
-         return (1 << PIPE_SHADER_IR_TGSI) | (svgascreen->debug.nir ? (1 << PIPE_SHADER_IR_NIR) : 0);
-      case PIPE_SHADER_CAP_DROUND_SUPPORTED:
-      case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
-      case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
+         return (1 << PIPE_SHADER_IR_TGSI) | (1 << PIPE_SHADER_IR_NIR);
       case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
       case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
       case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
@@ -607,13 +593,8 @@ vgpu9_get_shader_param(struct pipe_screen *screen,
       case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
       case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
          return 0;
-      case PIPE_SHADER_CAP_PREFERRED_IR:
-         return svgascreen->debug.nir ? PIPE_SHADER_IR_NIR : PIPE_SHADER_IR_TGSI;
       case PIPE_SHADER_CAP_SUPPORTED_IRS:
-         return (1 << PIPE_SHADER_IR_TGSI) | (svgascreen->debug.nir ? (1 << PIPE_SHADER_IR_NIR) : 0);
-      case PIPE_SHADER_CAP_DROUND_SUPPORTED:
-      case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
-      case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
+         return (1 << PIPE_SHADER_IR_TGSI) | (1 << PIPE_SHADER_IR_NIR);
       case PIPE_SHADER_CAP_TGSI_ANY_INOUT_DECL_RANGE:
       case PIPE_SHADER_CAP_MAX_SHADER_BUFFERS:
       case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
@@ -629,6 +610,9 @@ vgpu9_get_shader_param(struct pipe_screen *screen,
    case PIPE_SHADER_TESS_CTRL:
    case PIPE_SHADER_TESS_EVAL:
       /* no support for geometry, tess or compute shaders at this time */
+      return 0;
+   case PIPE_SHADER_MESH:
+   case PIPE_SHADER_TASK:
       return 0;
    default:
       debug_printf("Unexpected shader type (%u) query\n", shader);
@@ -648,6 +632,9 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
 
    assert(sws->have_vgpu10);
    (void) sws;  /* silence unused var warnings in non-debug builds */
+
+   if (shader == PIPE_SHADER_MESH || shader == PIPE_SHADER_TASK)
+      return 0;
 
    if ((!sws->have_sm5) &&
        (shader == PIPE_SHADER_TESS_CTRL || shader == PIPE_SHADER_TESS_EVAL))
@@ -700,35 +687,26 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
    case PIPE_SHADER_CAP_INDIRECT_OUTPUT_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_TEMP_ADDR:
    case PIPE_SHADER_CAP_INDIRECT_CONST_ADDR:
-      return TRUE; /* XXX verify */
+      return true; /* XXX verify */
    case PIPE_SHADER_CAP_CONT_SUPPORTED:
    case PIPE_SHADER_CAP_TGSI_SQRT_SUPPORTED:
    case PIPE_SHADER_CAP_SUBROUTINES:
    case PIPE_SHADER_CAP_INTEGERS:
-      return TRUE;
+      return true;
    case PIPE_SHADER_CAP_FP16:
    case PIPE_SHADER_CAP_FP16_DERIVATIVES:
    case PIPE_SHADER_CAP_FP16_CONST_BUFFERS:
    case PIPE_SHADER_CAP_INT16:
    case PIPE_SHADER_CAP_GLSL_16BIT_CONSTS:
-      return FALSE;
+      return false;
    case PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS:
    case PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS:
       return sws->have_gl43 ? PIPE_MAX_SAMPLERS : SVGA3D_DX_MAX_SAMPLERS;
-   case PIPE_SHADER_CAP_PREFERRED_IR:
-         return svgascreen->debug.nir ? PIPE_SHADER_IR_NIR : PIPE_SHADER_IR_TGSI;
    case PIPE_SHADER_CAP_SUPPORTED_IRS:
       if (sws->have_gl43)
-         return (1 << PIPE_SHADER_IR_TGSI) | (svgascreen->debug.nir ? (1 << PIPE_SHADER_IR_NIR) : 0);
+         return (1 << PIPE_SHADER_IR_TGSI) | (1 << PIPE_SHADER_IR_NIR);
       else
          return 0;
-   case PIPE_SHADER_CAP_DROUND_SUPPORTED:
-   case PIPE_SHADER_CAP_DFRACEXP_DLDEXP_SUPPORTED:
-   case PIPE_SHADER_CAP_LDEXP_SUPPORTED:
-      /* For the above cases, we rely on the GLSL compiler to translate/lower
-       * the TGIS instruction into other instructions we do support.
-       */
-      return 0;
 
    case PIPE_SHADER_CAP_MAX_SHADER_IMAGES:
       return sws->have_gl43 ? SVGA_MAX_IMAGES : 0;
@@ -755,9 +733,10 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
    .lower_extract_word = true,                                                \
    .lower_insert_byte = true,                                                 \
    .lower_insert_word = true,                                                 \
-   .lower_int64_options = nir_lower_imul_2x32_64,                             \
+   .lower_int64_options = nir_lower_imul_2x32_64 | nir_lower_divmod64,        \
    .lower_fdph = true,                                                        \
    .lower_flrp64 = true,                                                      \
+   .lower_ldexp = true,                                                       \
    .lower_rotate = true,                                                      \
    .lower_uniforms_to_ubo = true,                                             \
    .lower_vector_cmp = true,                                                  \
@@ -766,7 +745,7 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
    .use_interpolated_input_intrinsics = true
 
 #define VGPU10_OPTIONS                                                        \
-   .lower_doubles_options = nir_lower_dfloor,                                 \
+   .lower_doubles_options = nir_lower_dfloor | nir_lower_dsign | nir_lower_dceil | nir_lower_dtrunc | nir_lower_dround_even, \
    .lower_fmod = true,                                                        \
    .lower_fpow = true
 
@@ -843,7 +822,6 @@ svga_sm5_get_compute_param(struct pipe_screen *screen,
    uint64_t *iret = (uint64_t *)ret;
 
    assert(sws->have_gl43);
-   assert(ir_type == PIPE_SHADER_IR_TGSI);
 
    switch (param) {
    case PIPE_COMPUTE_CAP_MAX_GRID_SIZE:
@@ -897,7 +875,7 @@ svga_fence_finish(struct pipe_screen *screen,
    }
    else {
       SVGA_DBG(DEBUG_DMA|DEBUG_PERF, "%s fence_ptr %p\n",
-               __FUNCTION__, fence);
+               __func__, fence);
 
       retVal = sws->fence_finish(sws, fence, timeout, 0) == 0;
    }
@@ -914,7 +892,7 @@ svga_fence_get_fd(struct pipe_screen *screen,
 {
    struct svga_winsys_screen *sws = svga_screen(screen)->sws;
 
-   return sws->fence_get_fd(sws, fence, TRUE);
+   return sws->fence_get_fd(sws, fence, true);
 }
 
 
@@ -1019,9 +997,9 @@ init_logging(struct pipe_screen *screen)
    /* If the SVGA_EXTRA_LOGGING env var is set, log the process's command
     * line (program name and arguments).
     */
-   if (debug_get_bool_option("SVGA_EXTRA_LOGGING", FALSE)) {
+   if (debug_get_bool_option("SVGA_EXTRA_LOGGING", false)) {
       char cmdline[1000];
-      if (os_get_command_line(cmdline, sizeof(cmdline))) {
+      if (util_get_command_line(cmdline, sizeof(cmdline))) {
          snprintf(host_log, sizeof(host_log) - strlen(log_prefix),
                   "%s%s\n", log_prefix, cmdline);
          svgascreen->sws->host_log(svgascreen->sws, host_log);
@@ -1056,6 +1034,15 @@ svga_destroy_screen( struct pipe_screen *screen )
 }
 
 
+static int
+svga_screen_get_fd( struct pipe_screen *screen )
+{
+   struct svga_winsys_screen *sws = svga_screen(screen)->sws;
+
+   return sws->get_fd(sws);
+}
+
+
 /**
  * Create a new svga_screen object
  */
@@ -1074,19 +1061,17 @@ svga_screen_create(struct svga_winsys_screen *sws)
       goto error1;
 
    svgascreen->debug.force_level_surface_view =
-      debug_get_bool_option("SVGA_FORCE_LEVEL_SURFACE_VIEW", FALSE);
+      debug_get_bool_option("SVGA_FORCE_LEVEL_SURFACE_VIEW", false);
    svgascreen->debug.force_surface_view =
-      debug_get_bool_option("SVGA_FORCE_SURFACE_VIEW", FALSE);
+      debug_get_bool_option("SVGA_FORCE_SURFACE_VIEW", false);
    svgascreen->debug.force_sampler_view =
-      debug_get_bool_option("SVGA_FORCE_SAMPLER_VIEW", FALSE);
+      debug_get_bool_option("SVGA_FORCE_SAMPLER_VIEW", false);
    svgascreen->debug.no_surface_view =
-      debug_get_bool_option("SVGA_NO_SURFACE_VIEW", FALSE);
+      debug_get_bool_option("SVGA_NO_SURFACE_VIEW", false);
    svgascreen->debug.no_sampler_view =
-      debug_get_bool_option("SVGA_NO_SAMPLER_VIEW", FALSE);
+      debug_get_bool_option("SVGA_NO_SAMPLER_VIEW", false);
    svgascreen->debug.no_cache_index_buffers =
-      debug_get_bool_option("SVGA_NO_CACHE_INDEX_BUFFERS", FALSE);
-   svgascreen->debug.nir =
-      debug_get_bool_option("SVGA_NIR", FALSE);
+      debug_get_bool_option("SVGA_NO_CACHE_INDEX_BUFFERS", false);
 
    screen = &svgascreen->screen;
 
@@ -1094,6 +1079,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
    screen->get_name = svga_get_name;
    screen->get_vendor = svga_get_vendor;
    screen->get_device_vendor = svga_get_vendor; // TODO actual device vendor
+   screen->get_screen_fd = svga_screen_get_fd;
    screen->get_param = svga_get_param;
    screen->get_shader_param = svga_get_shader_param;
    screen->get_compiler_options = svga_get_compiler_options;
@@ -1138,13 +1124,13 @@ svga_screen_create(struct svga_winsys_screen *sws)
          debug_get_bool_option("SVGA_GL43", sws->have_gl43);
 
       svgascreen->debug.sampler_state_mapping =
-         debug_get_bool_option("SVGA_SAMPLER_STATE_MAPPING", FALSE);
+         debug_get_bool_option("SVGA_SAMPLER_STATE_MAPPING", false);
    }
    else {
       /* sampler state mapping code is only enabled with GL43
        * due to the limitation in SW Renderer. (VMware bug 2825014)
        */
-      svgascreen->debug.sampler_state_mapping = FALSE;
+      svgascreen->debug.sampler_state_mapping = false;
    }
 
    debug_printf("%s enabled\n",
@@ -1166,7 +1152,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
     */
 
    {
-      boolean has_df16, has_df24, has_d24s8_int;
+      bool has_df16, has_df24, has_d24s8_int;
       SVGA3dSurfaceFormatCaps caps;
       SVGA3dSurfaceFormatCaps mask;
       mask.value = 0;
@@ -1205,21 +1191,21 @@ svga_screen_create(struct svga_winsys_screen *sws)
     */
    if (sws->have_vgpu10) {
       svgascreen->haveProvokingVertex
-         = get_bool_cap(sws, SVGA3D_DEVCAP_DX_PROVOKING_VERTEX, FALSE);
-      svgascreen->haveLineSmooth = TRUE;
+         = get_bool_cap(sws, SVGA3D_DEVCAP_DX_PROVOKING_VERTEX, false);
+      svgascreen->haveLineSmooth = true;
       svgascreen->maxPointSize = 80.0F;
       svgascreen->max_color_buffers = SVGA3D_DX_MAX_RENDER_TARGETS;
 
       /* Multisample samples per pixel */
-      if (sws->have_sm4_1 && debug_get_bool_option("SVGA_MSAA", TRUE)) {
-         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_2X, FALSE))
+      if (sws->have_sm4_1 && debug_get_bool_option("SVGA_MSAA", true)) {
+         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_2X, false))
             svgascreen->ms_samples |= 1 << 1;
-         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_4X, FALSE))
+         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_4X, false))
             svgascreen->ms_samples |= 1 << 3;
       }
 
-      if (sws->have_sm5 && debug_get_bool_option("SVGA_MSAA", TRUE)) {
-         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_8X, FALSE))
+      if (sws->have_sm5 && debug_get_bool_option("SVGA_MSAA", true)) {
+         if (get_bool_cap(sws, SVGA3D_DEVCAP_MULTISAMPLE_8X, false))
             svgascreen->ms_samples |= 1 << 7;
       }
 
@@ -1235,7 +1221,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
       }
 
       svgascreen->haveBlendLogicops =
-         get_bool_cap(sws, SVGA3D_DEVCAP_LOGIC_BLENDOPS, FALSE);
+         get_bool_cap(sws, SVGA3D_DEVCAP_LOGIC_BLENDOPS, false);
 
       screen->is_format_supported = svga_is_dx_format_supported;
 
@@ -1265,10 +1251,10 @@ svga_screen_create(struct svga_winsys_screen *sws)
          goto error2;
       }
 
-      svgascreen->haveProvokingVertex = FALSE;
+      svgascreen->haveProvokingVertex = false;
 
       svgascreen->haveLineSmooth =
-         get_bool_cap(sws, SVGA3D_DEVCAP_LINE_AA, FALSE);
+         get_bool_cap(sws, SVGA3D_DEVCAP_LINE_AA, false);
 
       svgascreen->maxPointSize =
          get_float_cap(sws, SVGA3D_DEVCAP_MAX_POINT_SIZE, 1.0f);
@@ -1298,7 +1284,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
 
    /* common VGPU9 / VGPU10 caps */
    svgascreen->haveLineStipple =
-      get_bool_cap(sws, SVGA3D_DEVCAP_LINE_STIPPLE, FALSE);
+      get_bool_cap(sws, SVGA3D_DEVCAP_LINE_STIPPLE, false);
 
    svgascreen->maxLineWidth =
       MAX2(1.0, get_float_cap(sws, SVGA3D_DEVCAP_MAX_LINE_WIDTH, 1.0f));
@@ -1322,7 +1308,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
 
    svga_screen_cache_init(svgascreen);
 
-   if (debug_get_bool_option("SVGA_NO_LOGGING", FALSE) == TRUE) {
+   if (debug_get_bool_option("SVGA_NO_LOGGING", false) == true) {
       svgascreen->sws->host_log = nop_host_log;
    } else {
       init_logging(screen);

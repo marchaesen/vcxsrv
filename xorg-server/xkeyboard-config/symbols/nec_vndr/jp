@@ -150,7 +150,7 @@ default xkb_symbols "pc98" {
     key  <KP0> { [ KP_0			]	};
     key <KPSP> { [ KP_Separator		]	};
     key <KPDC> { [ KP_Decimal		]	};
-//    key <KPEN> { [ KP_Enter		]	}; 
+//    key <KPEN> { [ KP_Enter		]	};
     // End "Keypad" section
 
     modifier_map Shift  { Shift_L };

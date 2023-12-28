@@ -88,14 +88,6 @@ rootlessConfig.h:
         the underlying window server. Most operations will be buffered until
         this time has expired.
 
-      o ROOTLESS_RESIZE_GRAVITY: If the underlying window system supports it,
-        some frame resizes can be optimized by relying on the frame contents
-        maintaining a particular gravity during the resize. In this way less
-        of the frame contents need to be preserved by the generic rootless
-        layer. If true, the generic rootless layer will pass gravity hints
-        during resizing and rely on the frame contents being preserved
-        accordingly.
-
         The following runtime options are defined in rootless.h:
 
       o rootlessGlobalOffsetX, rootlessGlobalOffsetY: These specify the global

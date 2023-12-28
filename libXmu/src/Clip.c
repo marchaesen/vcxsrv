@@ -98,7 +98,7 @@ XmuAreaDup(XmuArea *area)
  *	src - source area
  *
  * Description:
- *	Minimizes memory alocation, trying to use already alocated memory
+ *	Minimizes memory allocation, trying to use already allocated memory
  *	in dst, freeing what is not required anymore.
  */
 XmuArea *
@@ -252,7 +252,7 @@ XmuAreaNot(XmuArea *area, int x1, int y1, int x2, int y2)
  *	or  - or operation if true, else xor operation
  *
  * Description:
- *	Executes Or (Union) or Xor (Reverse intesection) of the areas
+ *	Executes Or (Union) or Xor (Reverse intersection) of the areas
  */
 XmuArea *
 XmuAreaOrXor(XmuArea *dst, XmuArea *src, Bool or)
@@ -855,7 +855,7 @@ XmuScanlineNot(XmuScanline *scanline, int minx, int maxx)
  *	XmuScanlineOrSegment
  *
  * Parameters:
- *	dst - destionation scanline
+ *	dst - destination scanline
  *	src - source segment
  *
  * Description:
@@ -1014,10 +1014,10 @@ XmuScanlineAndSegment(XmuScanline *dst, XmuSegment *src)
  *	XmuScanlineXorSegment
  *
  * Parameters:
- *	dst - destionation scanline
+ *	dst - destination scanline
  *	src - source segment
  *
- * Descriptipn:
+ * Description:
  * (input)     +------------+  +----------+    +-----------+
  * (src)           +------------------------+
  * (output)    +---+        +--+          +-+  +-----------+
@@ -1123,7 +1123,7 @@ XmuScanlineXorSegment(XmuScanline *dst, XmuSegment *src)
  *	ScanlineOr
  *
  * Parameters:
- *	dst - destionation scanline
+ *	dst - destination scanline
  *	src - source scanline
  *
  * Description:

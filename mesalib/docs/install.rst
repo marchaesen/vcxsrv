@@ -35,8 +35,8 @@ you're willing to maintain support for other compiler get in touch.
 Third party/extra tools.
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--  `Python <https://www.python.org/>`__ - Python 3.5 or newer is required.
--  `Python Mako module <http://www.makotemplates.org/>`__ - Python Mako
+-  `Python <https://www.python.org/>`__ - Python 3.6 or newer is required.
+-  `Python Mako module <https://www.makotemplates.org/>`__ - Python Mako
    module is required. Version 0.8.0 or later should work.
 -  Lex / Yacc - for building the Mesa IR and GLSL compiler.
 
@@ -49,7 +49,7 @@ Third party/extra tools.
       mingw-get install msys-flex msys-bison
 
    For MSVC on Windows, install `Win
-   flex-bison <http://winflexbison.sourceforge.net/>`__.
+   flex-bison <https://sourceforge.net/projects/winflexbison/>`__.
 
 .. note::
 
@@ -74,10 +74,8 @@ on the packaging tool used by your distro.
      apt-get build-dep mesa # Debian and derivatives
      ... # others
 
-2. Building with meson
+1. Building with meson
 ----------------------
-
-**Meson >= 0.46.0 is required**
 
 Meson is the latest build system in mesa, it is currently able to build
 for \*nix systems like Linux and BSD, macOS, Haiku, and Windows.
@@ -86,37 +84,50 @@ The general approach is:
 
 .. code-block:: console
 
-     meson builddir/
-     ninja -C builddir/
-     sudo ninja -C builddir/ install
+     meson setup builddir/
+     meson compile -C builddir/
+     sudo meson install -C builddir/
 
 On Windows you can also use the Visual Studio backend
 
 .. code-block:: console
 
-     meson builddir --backend=vs
+     meson setup builddir --backend=vs
      cd builddir
      msbuild mesa.sln /m
 
 Please read the :doc:`detailed meson instructions <meson>` for more
 information
 
-3. Running against a local build
---------------------------------
+1. Running against a local build (easy way)
+-------------------------------------------
 
 It's often necessary or useful when debugging driver issues or testing new
 branches to run against a local build of Mesa without doing a system-wide
-install.  To do this, choose a temporary location for the install.  A directory
-called ``installdir`` inside your mesa tree is as good as anything.  All of the
-commands below will assume ``$MESA_INSTALLDIR`` is an absolute path to this
-location.
+install. Meson has built-in support for this with its ``devenv`` subcommand:
+
+.. code-block:: console
+
+     meson devenv -C builddir glxinfo
+
+This will run the given command against the build in ``builddir``. Note that meson
+will ``chdir`` into the directory first, so any relative paths in the command line
+will be relative to ``builddir`` which may not be what you expect.
+
+1. Running against a local build (hard way)
+-------------------------------------------
+
+If you prefer you can configure your test environment manually. To do this,
+choose a temporary location for the install.  A directory called ``installdir``
+inside your mesa tree is as good as anything.  All of the commands below will
+assume ``$MESA_INSTALLDIR`` is an absolute path to this location.
 
 First, configure Mesa and install in the temporary location:
 
 .. code-block:: console
 
-   meson builddir/ -Dprefix="$MESA_INSTALLDIR" OTHER_OPTIONS
-   ninja -C builddir/ install
+   meson setup builddir/ -Dprefix="$MESA_INSTALLDIR" OTHER_OPTIONS
+   meson install -C builddir/
 
 where ``OTHER_OPTIONS`` is replaced by any meson configuration options you may
 want.  For instance, if you want to build the LLVMpipe drivers, it would look
@@ -124,9 +135,9 @@ like this:
 
 .. code-block:: console
 
-   meson builddir/ -Dprefix="$MESA_INSTALLDIR" -Ddri-drivers= \
+   meson setup builddir/ -Dprefix="$MESA_INSTALLDIR" \
       -Dgallium-drivers=swrast -Dvulkan-drivers=swrast
-   ninja -C builddir/ install
+   meson install -C builddir/
 
 Once Mesa has built and installed to ``$MESA_INSTALLDIR``, you can run any app
 against your temporary install by setting the right environment variables.
@@ -151,7 +162,7 @@ Vulkan
    VK_ICD_FILENAMES="$MESA_INSTALLDIR/share/vulkan/icd/my_icd.json" vulkaninfo
 
 where ``my_icd.json`` is replaced with the actual ICD json file name.  This
-will depend on your driver.  For instance, the 64-bit lavapipe driver ICD file
+will depend on your driver.  For instance, the 64-bit Lavapipe driver ICD file
 is named ``lvp_icd.x86_64.json``.
 
 OpenCL
@@ -182,17 +193,17 @@ here are a few things to check:
     32-bit and your Mesa build is probably 64-bit by default.
 
  4. 32 and 64-bit builds in the same local install directory doesn't typically
-    work.  Distros go to great lengths to make this work in your system install
-    and it's hard to get it right for a local install.  If you've recently
-    built 64-bit and are now building 32-bit, throw away the install directory
-    first to prevent conflicts.
+    work.  Distributions go to great lengths to make this work in your system
+    install and it's hard to get it right for a local install.  If you've
+    recently built 64-bit and are now building 32-bit, throw away the install
+    directory first to prevent conflicts.
 
-4. Building with AOSP (Android)
+1. Building with AOSP (Android)
 -------------------------------
 
 <TODO>
 
-5. Library Information
+1. Library Information
 ----------------------
 
 When compilation has finished, look in the top-level ``lib/`` (or
@@ -223,10 +234,10 @@ If you built the DRI hardware drivers, you'll also see the DRI drivers:
 If you built with Gallium support, look in lib/gallium/ for
 Gallium-based versions of libGL and device drivers.
 
-6. Building OpenGL programs with pkg-config
+1. Building OpenGL programs with pkg-config
 -------------------------------------------
 
-Running ``ninja install`` will install package configuration files for
+Running ``meson install`` will install package configuration files for
 the pkg-config utility.
 
 When compiling your OpenGL application you can use pkg-config to

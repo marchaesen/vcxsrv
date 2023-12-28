@@ -149,11 +149,11 @@ emit_property(struct tgsi_transform_context *ctx,
  */
 struct tgsi_token *
 tgsi_transform_shader(const struct tgsi_token *tokens_in,
-                      uint initial_tokens_len,
+                      unsigned initial_tokens_len,
                       struct tgsi_transform_context *ctx)
 {
-   boolean first_instruction = TRUE;
-   boolean epilog_emitted = FALSE;
+   bool first_instruction = true;
+   bool epilog_emitted = false;
    int cond_stack = 0;
    int call_stack = 0;
 
@@ -244,7 +244,7 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
                   assert(cond_stack == 0);
                   /* Emit caller's epilog */
                   ctx->epilog(ctx);
-                  epilog_emitted = TRUE;
+                  epilog_emitted = true;
                }
                /* Emit END (or RET) */
                ctx->emit_instruction(ctx, fullinst);
@@ -281,7 +281,7 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
                   ctx->emit_instruction(ctx, fullinst);
             }
 
-            first_instruction = FALSE;
+            first_instruction = false;
          }
          break;
 
@@ -340,7 +340,7 @@ tgsi_transform_shader(const struct tgsi_token *tokens_in,
 #include "tgsi_text.h"
 
 extern int tgsi_transform_foo( struct tgsi_token *tokens_out,
-                               uint max_tokens_out );
+                               unsigned max_tokens_out );
 
 /* This function exists only so that tgsi_text_translate() doesn't get
  * magic-ed out of the libtgsi.a archive by the build system.  Don't
@@ -349,7 +349,7 @@ extern int tgsi_transform_foo( struct tgsi_token *tokens_out,
  */
 int
 tgsi_transform_foo( struct tgsi_token *tokens_out,
-                    uint max_tokens_out )
+                    unsigned max_tokens_out )
 {
    const char *text = 
       "FRAG\n"

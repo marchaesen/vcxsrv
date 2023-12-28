@@ -105,6 +105,14 @@ has_ss_src(struct ir3_instruction *instr)
 }
 
 static void
+sched_dag_validate_cb(const struct dag_node *node, void *data)
+{
+   struct ir3_postsched_node *n = (struct ir3_postsched_node *)node;
+
+   ir3_print_instr(n->instr);
+}
+
+static void
 schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
 {
    assert(ctx->block == instr->block);
@@ -621,6 +629,8 @@ sched_dag_init(struct ir3_postsched_ctx *ctx)
       }
    }
 
+   dag_validate(ctx->dag, sched_dag_validate_cb, NULL);
+
    // TODO do we want to do this after reverse-dependencies?
    dag_traverse_bottom_up(ctx->dag, sched_dag_max_delay_cb, NULL);
 }
@@ -679,6 +689,10 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
 
    foreach_instr_safe (instr, &ctx->unscheduled_list)
       if (instr->opc == OPC_META_TEX_PREFETCH)
+         schedule(ctx, instr);
+
+   foreach_instr_safe (instr, &ctx->unscheduled_list)
+      if (instr->opc == OPC_PUSH_CONSTS_LOAD_MACRO)
          schedule(ctx, instr);
 
    while (!list_is_empty(&ctx->unscheduled_list)) {

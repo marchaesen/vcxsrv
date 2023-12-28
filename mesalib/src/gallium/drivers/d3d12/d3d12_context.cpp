@@ -40,6 +40,7 @@
 #include "d3d12_video_proc.h"
 #include "d3d12_video_buffer.h"
 #endif
+#include "indices/u_primconvert.h"
 #include "util/u_atomic.h"
 #include "util/u_blitter.h"
 #include "util/u_dual_blend.h"
@@ -49,19 +50,22 @@
 #include "util/u_memory.h"
 #include "util/u_upload_mgr.h"
 #include "util/u_pstipple.h"
+#include "util/u_sample_positions.h"
 #include "util/u_dl.h"
 #include "nir_to_dxil.h"
 
 #include <dxguids/dxguids.h>
 
-extern "C" {
-#include "indices/u_primconvert.h"
-}
-
 #include <string.h>
 
 #ifdef _WIN32
 #include "dxil_validator.h"
+#endif
+
+#ifdef _GAMING_XBOX
+typedef D3D12_DEPTH_STENCILOP_DESC d3d12_depth_stencil_op_desc_type;
+#else
+typedef D3D12_DEPTH_STENCILOP_DESC1 d3d12_depth_stencil_op_desc_type;
 #endif
 
 static void
@@ -72,11 +76,17 @@ d3d12_context_destroy(struct pipe_context *pctx)
    struct d3d12_screen *screen = d3d12_screen(pctx->screen);
    mtx_lock(&screen->submit_mutex);
    list_del(&ctx->context_list_entry);
+   if (ctx->id != D3D12_CONTEXT_NO_ID)
+      screen->context_id_list[screen->context_id_count++] = ctx->id;
    mtx_unlock(&screen->submit_mutex);
 
 #ifdef _WIN32
-   if (ctx->dxil_validator)
-      dxil_destroy_validator(ctx->dxil_validator);
+   dxil_destroy_validator(ctx->dxil_validator);
+#endif
+
+#ifndef _GAMING_XBOX
+   if (ctx->dev_config)
+      ctx->dev_config->Release();
 #endif
 
    if (ctx->timestamp_query)
@@ -88,11 +98,16 @@ d3d12_context_destroy(struct pipe_context *pctx)
    for (unsigned i = 0; i < ARRAY_SIZE(ctx->batches); ++i)
       d3d12_destroy_batch(ctx, &ctx->batches[i]);
    ctx->cmdlist->Release();
+   if (ctx->cmdlist2)
+      ctx->cmdlist2->Release();
+   if (ctx->cmdlist8)
+      ctx->cmdlist8->Release();
    d3d12_descriptor_pool_free(ctx->sampler_pool);
    util_primconvert_destroy(ctx->primconvert);
    slab_destroy_child(&ctx->transfer_pool);
    slab_destroy_child(&ctx->transfer_pool_unsync);
    d3d12_gs_variant_cache_destroy(ctx);
+   d3d12_tcs_variant_cache_destroy(ctx);
    d3d12_gfx_pipeline_state_cache_destroy(ctx);
    d3d12_compute_pipeline_state_cache_destroy(ctx);
    d3d12_root_signature_cache_destroy(ctx);
@@ -123,9 +138,9 @@ d3d12_create_vertex_elements_state(struct pipe_context *pctx,
    if (!cso)
       return NULL;
 
+   unsigned max_vb = 0;
    for (unsigned i = 0; i < num_elements; ++i) {
       cso->elements[i].SemanticName = "TEXCOORD";
-      cso->elements[i].SemanticIndex = i;
 
       enum pipe_format format_helper =
          d3d12_emulated_vtx_format((enum pipe_format)elements[i].src_format);
@@ -146,9 +161,12 @@ d3d12_create_vertex_elements_state(struct pipe_context *pctx,
          cso->elements[i].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
          cso->elements[i].InstanceDataStepRate = 0;
       }
+      max_vb = MAX2(max_vb, elements[i].vertex_buffer_index);
+      cso->strides[elements[i].vertex_buffer_index] = elements[i].src_stride;
    }
 
    cso->num_elements = num_elements;
+   cso->num_buffers = num_elements ? max_vb + 1 : 0;
    return cso;
 }
 
@@ -332,7 +350,7 @@ d3d12_create_blend_state(struct pipe_context *pctx,
       return NULL;
 
    if (blend_state->logicop_enable) {
-      state->desc.RenderTarget[0].LogicOpEnable = TRUE;
+      state->desc.RenderTarget[0].LogicOpEnable = true;
       state->desc.RenderTarget[0].LogicOp = logic_op((pipe_logicop) blend_state->logicop_func);
    }
 
@@ -342,7 +360,7 @@ d3d12_create_blend_state(struct pipe_context *pctx,
 
    int num_targets = 1;
    if (blend_state->independent_blend_enable) {
-      state->desc.IndependentBlendEnable = TRUE;
+      state->desc.IndependentBlendEnable = true;
       num_targets = PIPE_MAX_COLOR_BUFS;
    }
 
@@ -350,7 +368,7 @@ d3d12_create_blend_state(struct pipe_context *pctx,
       const struct pipe_rt_blend_state *rt = blend_state->rt + i;
 
       if (rt->blend_enable) {
-         state->desc.RenderTarget[i].BlendEnable = TRUE;
+         state->desc.RenderTarget[i].BlendEnable = true;
          state->desc.RenderTarget[i].SrcBlend = blend_factor_rgb((pipe_blendfactor) rt->rgb_src_factor);
          state->desc.RenderTarget[i].DestBlend = blend_factor_rgb((pipe_blendfactor) rt->rgb_dst_factor);
          state->desc.RenderTarget[i].BlendOp = blend_op((pipe_blend_func) rt->rgb_func);
@@ -391,6 +409,11 @@ d3d12_bind_blend_state(struct pipe_context *pctx, void *blend_state)
    if (new_state == NULL || old_state == NULL ||
        new_state->blend_factor_flags != old_state->blend_factor_flags)
       ctx->state_dirty |= D3D12_DIRTY_BLEND_COLOR;
+
+   if (new_state == NULL)
+      ctx->missing_dual_src_outputs = false;
+   else if (new_state != NULL && (old_state == NULL || old_state->is_dual_src != new_state->is_dual_src))
+      ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx);
 }
 
 static void
@@ -416,14 +439,18 @@ stencil_op(enum pipe_stencil_op op)
    unreachable("unexpected op");
 }
 
-static D3D12_DEPTH_STENCILOP_DESC
+static d3d12_depth_stencil_op_desc_type
 stencil_op_state(const struct pipe_stencil_state *src)
 {
-   D3D12_DEPTH_STENCILOP_DESC ret;
+   d3d12_depth_stencil_op_desc_type ret;
    ret.StencilFailOp = stencil_op((pipe_stencil_op) src->fail_op);
    ret.StencilPassOp = stencil_op((pipe_stencil_op) src->zpass_op);
    ret.StencilDepthFailOp = stencil_op((pipe_stencil_op) src->zfail_op);
    ret.StencilFunc = compare_op((pipe_compare_func) src->func);
+#ifndef _GAMING_XBOX
+   ret.StencilReadMask = src->valuemask;
+   ret.StencilWriteMask = src->writemask;
+#endif
    return ret;
 }
 
@@ -436,31 +463,41 @@ d3d12_create_depth_stencil_alpha_state(struct pipe_context *pctx,
       return NULL;
 
    if (depth_stencil_alpha->depth_enabled) {
-      dsa->desc.DepthEnable = TRUE;
+      dsa->desc.DepthEnable = true;
       dsa->desc.DepthFunc = compare_op((pipe_compare_func) depth_stencil_alpha->depth_func);
    }
 
    /* TODO Add support for GL_depth_bound_tests */
    #if 0
    if (depth_stencil_alpha->depth.bounds_test) {
-      dsa->desc.DepthBoundsTestEnable = TRUE;
+      dsa->desc.DepthBoundsTestEnable = true;
       dsa->min_depth_bounds = depth_stencil_alpha->depth.bounds_min;
       dsa->max_depth_bounds = depth_stencil_alpha->depth.bounds_max;
    }
    #endif
 
    if (depth_stencil_alpha->stencil[0].enabled) {
-      dsa->desc.StencilEnable = TRUE;
+      dsa->desc.StencilEnable = true;
       dsa->desc.FrontFace = stencil_op_state(depth_stencil_alpha->stencil);
    }
 
-   if (depth_stencil_alpha->stencil[1].enabled)
+   if (depth_stencil_alpha->stencil[1].enabled) {
+      dsa->backface_enabled = true;
       dsa->desc.BackFace = stencil_op_state(depth_stencil_alpha->stencil + 1);
-   else
-      dsa->desc.BackFace = dsa->desc.FrontFace;
 
-   dsa->desc.StencilReadMask = depth_stencil_alpha->stencil[0].valuemask; /* FIXME Back face mask */
-   dsa->desc.StencilWriteMask = depth_stencil_alpha->stencil[0].writemask; /* FIXME Back face mask */
+#ifndef _GAMING_XBOX
+      struct d3d12_screen *screen = d3d12_screen(pctx->screen);
+
+      if (!screen->opts14.IndependentFrontAndBackStencilRefMaskSupported) {
+         dsa->desc.BackFace.StencilReadMask = dsa->desc.FrontFace.StencilReadMask;
+         dsa->desc.BackFace.StencilWriteMask = dsa->desc.FrontFace.StencilWriteMask;
+      }
+#endif
+   }
+   else {
+      dsa->desc.BackFace = dsa->desc.FrontFace;
+   }
+
    dsa->desc.DepthWriteMask = (D3D12_DEPTH_WRITE_MASK) depth_stencil_alpha->depth_writemask;
 
    return dsa;
@@ -707,6 +744,21 @@ d3d12_create_sampler_state(struct pipe_context *pctx,
    return ss;
 }
 
+static inline enum dxil_tex_wrap
+pipe_to_dxil_tex_wrap(enum pipe_tex_wrap wrap)
+{
+   static_assert((uint8_t) PIPE_TEX_WRAP_REPEAT == (uint8_t) DXIL_TEX_WRAP_REPEAT, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_CLAMP == (uint8_t) DXIL_TEX_WRAP_CLAMP, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_CLAMP_TO_EDGE == (uint8_t) DXIL_TEX_WRAP_CLAMP_TO_EDGE, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_CLAMP_TO_BORDER == (uint8_t) DXIL_TEX_WRAP_CLAMP_TO_BORDER, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_MIRROR_REPEAT == (uint8_t) DXIL_TEX_WRAP_MIRROR_REPEAT, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_MIRROR_CLAMP == (uint8_t) DXIL_TEX_WRAP_MIRROR_CLAMP, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_MIRROR_CLAMP_TO_EDGE == (uint8_t) DXIL_TEX_WRAP_MIRROR_CLAMP_TO_EDGE, "");
+   static_assert((uint8_t) PIPE_TEX_WRAP_MIRROR_CLAMP_TO_BORDER == (uint8_t) DXIL_TEX_WRAP_MIRROR_CLAMP_TO_BORDER, "");
+
+   return (enum dxil_tex_wrap) wrap;
+}
+
 static void
 d3d12_bind_sampler_states(struct pipe_context *pctx,
                           enum pipe_shader_type shader,
@@ -734,9 +786,9 @@ d3d12_bind_sampler_states(struct pipe_context *pctx,
       ctx->samplers[shader][start_slot + i] = sampler;
       dxil_wrap_sampler_state &wrap = ctx->tex_wrap_states[shader][start_slot + i];
       if (sampler) {
-         wrap.wrap[0] = sampler->wrap_s;
-         wrap.wrap[1] = sampler->wrap_t;
-         wrap.wrap[2] = sampler->wrap_r;
+         wrap.wrap[0] = pipe_to_dxil_tex_wrap(sampler->wrap_s);
+         wrap.wrap[1] = pipe_to_dxil_tex_wrap(sampler->wrap_t);
+         wrap.wrap[2] = pipe_to_dxil_tex_wrap(sampler->wrap_r);
          wrap.lod_bias = sampler->lod_bias;
          wrap.min_lod = sampler->min_lod;
          wrap.max_lod = sampler->max_lod;
@@ -788,7 +840,7 @@ view_dimension(enum pipe_texture_target target, unsigned samples)
 }
 
 static D3D12_SHADER_COMPONENT_MAPPING
-component_mapping(enum pipe_swizzle swizzle, D3D12_SHADER_COMPONENT_MAPPING id)
+component_mapping(enum pipe_swizzle swizzle)
 {
    switch (swizzle) {
    case PIPE_SWIZZLE_X: return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0;
@@ -797,7 +849,6 @@ component_mapping(enum pipe_swizzle swizzle, D3D12_SHADER_COMPONENT_MAPPING id)
    case PIPE_SWIZZLE_W: return D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3;
    case PIPE_SWIZZLE_0: return D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_0;
    case PIPE_SWIZZLE_1: return D3D12_SHADER_COMPONENT_MAPPING_FORCE_VALUE_1;
-   case PIPE_SWIZZLE_NONE: return id;
    default:
       unreachable("unexpected swizzle");
    }
@@ -826,10 +877,10 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
    }
 
    desc.Shader4ComponentMapping = D3D12_ENCODE_SHADER_4_COMPONENT_MAPPING(
-      component_mapping((pipe_swizzle)sampler_view->swizzle_override_r, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_0),
-      component_mapping((pipe_swizzle)sampler_view->swizzle_override_g, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_1),
-      component_mapping((pipe_swizzle)sampler_view->swizzle_override_b, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_2),
-      component_mapping((pipe_swizzle)sampler_view->swizzle_override_a, D3D12_SHADER_COMPONENT_MAPPING_FROM_MEMORY_COMPONENT_3)
+      component_mapping((pipe_swizzle)sampler_view->swizzle_override_r),
+      component_mapping((pipe_swizzle)sampler_view->swizzle_override_g),
+      component_mapping((pipe_swizzle)sampler_view->swizzle_override_b),
+      component_mapping((pipe_swizzle)sampler_view->swizzle_override_a)
    );
 
    uint64_t offset = 0;
@@ -839,14 +890,15 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
    unsigned array_size = state->u.tex.last_layer - state->u.tex.first_layer + 1;
    switch (desc.ViewDimension) {
    case D3D12_SRV_DIMENSION_TEXTURE1D:
-      if (state->u.tex.first_layer > 0)
-         debug_printf("D3D12: can't create 1D SRV from layer %d\n",
-                      state->u.tex.first_layer);
-
-      desc.Texture1D.MostDetailedMip = state->u.tex.first_level;
-      desc.Texture1D.MipLevels = sampler_view->mip_levels;
-      desc.Texture1D.ResourceMinLODClamp = 0.0f;
-      break;
+      if (state->u.tex.first_layer == 0) {
+         desc.Texture1D.MostDetailedMip = state->u.tex.first_level;
+         desc.Texture1D.MipLevels = sampler_view->mip_levels;
+         desc.Texture1D.ResourceMinLODClamp = 0.0f;
+         break;
+      } else {
+         desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+         FALLTHROUGH;
+      }
    case D3D12_SRV_DIMENSION_TEXTURE1DARRAY:
       desc.Texture1DArray.MostDetailedMip = state->u.tex.first_level;
       desc.Texture1DArray.MipLevels = sampler_view->mip_levels;
@@ -855,20 +907,16 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
       desc.Texture1DArray.ArraySize = array_size;
       break;
    case D3D12_SRV_DIMENSION_TEXTURE2D:
-      if (state->u.tex.first_layer > 0)
-         debug_printf("D3D12: can't create 2D SRV from layer %d\n",
-                      state->u.tex.first_layer);
-
-      desc.Texture2D.MostDetailedMip = state->u.tex.first_level;
-      desc.Texture2D.MipLevels = sampler_view->mip_levels;
-      desc.Texture2D.PlaneSlice = format_info.plane_slice;
-      desc.Texture2D.ResourceMinLODClamp = 0.0f;
-      break;
-   case D3D12_SRV_DIMENSION_TEXTURE2DMS:
-      if (state->u.tex.first_layer > 0)
-         debug_printf("D3D12: can't create 2DMS SRV from layer %d\n",
-                      state->u.tex.first_layer);
-      break;
+      if (state->u.tex.first_layer == 0) {
+         desc.Texture2D.MostDetailedMip = state->u.tex.first_level;
+         desc.Texture2D.MipLevels = sampler_view->mip_levels;
+         desc.Texture2D.PlaneSlice = format_info.plane_slice;
+         desc.Texture2D.ResourceMinLODClamp = 0.0f;
+         break;
+      } else {
+         desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+         FALLTHROUGH;
+      }
    case D3D12_SRV_DIMENSION_TEXTURE2DARRAY:
       desc.Texture2DArray.MostDetailedMip = state->u.tex.first_level;
       desc.Texture2DArray.MipLevels = sampler_view->mip_levels;
@@ -877,6 +925,13 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
       desc.Texture2DArray.PlaneSlice = format_info.plane_slice;
       desc.Texture2DArray.ArraySize = array_size;
       break;
+   case D3D12_SRV_DIMENSION_TEXTURE2DMS:
+      if (state->u.tex.first_layer == 0) {
+         break;
+      } else {
+         desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+         FALLTHROUGH;
+      }
    case D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY:
       desc.Texture2DMSArray.FirstArraySlice = state->u.tex.first_layer;
       desc.Texture2DMSArray.ArraySize = array_size;
@@ -891,14 +946,15 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
       desc.Texture3D.ResourceMinLODClamp = 0.0f;
       break;
    case D3D12_SRV_DIMENSION_TEXTURECUBE:
-      if (state->u.tex.first_layer > 0)
-         debug_printf("D3D12: can't create CUBE SRV from layer %d\n",
-                      state->u.tex.first_layer);
-
-      desc.TextureCube.MostDetailedMip = state->u.tex.first_level;
-      desc.TextureCube.MipLevels = sampler_view->mip_levels;
-      desc.TextureCube.ResourceMinLODClamp = 0.0f;
-      break;
+      if (state->u.tex.first_layer == 0) {
+         desc.TextureCube.MostDetailedMip = state->u.tex.first_level;
+         desc.TextureCube.MipLevels = sampler_view->mip_levels;
+         desc.TextureCube.ResourceMinLODClamp = 0.0f;
+         break;
+      } else {
+         desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+         FALLTHROUGH;
+      }
    case D3D12_SRV_DIMENSION_TEXTURECUBEARRAY:
       assert(array_size % 6 == 0);
       desc.TextureCubeArray.MostDetailedMip = state->u.tex.first_level;
@@ -908,9 +964,11 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view)
       desc.TextureCubeArray.ResourceMinLODClamp = 0.0f;
       break;
    case D3D12_SRV_DIMENSION_BUFFER:
+      offset += state->u.buf.offset;
       desc.Buffer.StructureByteStride = 0;
       desc.Buffer.FirstElement = offset / util_format_get_blocksize(state->format);
-      desc.Buffer.NumElements = texture->width0 / util_format_get_blocksize(state->format);
+      desc.Buffer.NumElements = MIN2(state->u.buf.size / util_format_get_blocksize(state->format),
+                                     1 << D3D12_REQ_BUFFER_RESOURCE_TEXEL_COUNT_2_TO_EXP);
       break;
    default:
       unreachable("Invalid SRV dimension");
@@ -1119,8 +1177,12 @@ static void
 d3d12_bind_fs_state(struct pipe_context *pctx,
                     void *fss)
 {
-   bind_stage(d3d12_context(pctx), PIPE_SHADER_FRAGMENT,
+   struct d3d12_context* ctx = d3d12_context(pctx);
+   bind_stage(ctx, PIPE_SHADER_FRAGMENT,
               (struct d3d12_shader_selector *) fss);
+   ctx->has_flat_varyings = has_flat_varyings(ctx);
+   ctx->missing_dual_src_outputs = missing_dual_src_outputs(ctx);
+   ctx->manual_depth_range = manual_depth_range(ctx);
 }
 
 static void
@@ -1271,7 +1333,6 @@ d3d12_set_polygon_stipple(struct pipe_context *pctx,
 
 static void
 d3d12_set_vertex_buffers(struct pipe_context *pctx,
-                         unsigned start_slot,
                          unsigned num_buffers,
                          unsigned unbind_num_trailing_slots,
                          bool take_ownership,
@@ -1279,7 +1340,7 @@ d3d12_set_vertex_buffers(struct pipe_context *pctx,
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
    util_set_vertex_buffers_count(ctx->vbs, &ctx->num_vbs,
-                                 buffers, start_slot, num_buffers,
+                                 buffers, num_buffers,
                                  unbind_num_trailing_slots,
                                  take_ownership);
 
@@ -1289,7 +1350,6 @@ d3d12_set_vertex_buffers(struct pipe_context *pctx,
          continue;
       struct d3d12_resource *res = d3d12_resource(buf->buffer.resource);
       ctx->vbvs[i].BufferLocation = d3d12_resource_gpu_virtual_address(res) + buf->buffer_offset;
-      ctx->vbvs[i].StrideInBytes = buf->stride;
       ctx->vbvs[i].SizeInBytes = res->base.b.width0 - buf->buffer_offset;
    }
    ctx->state_dirty |= D3D12_DIRTY_VERTEX_BUFFERS;
@@ -1491,7 +1551,10 @@ d3d12_set_stencil_ref(struct pipe_context *pctx,
                       const struct pipe_stencil_ref ref)
 {
    struct d3d12_context *ctx = d3d12_context(pctx);
+   struct d3d12_screen *screen = d3d12_screen(pctx->screen);
    if ((ref.ref_value[0] != ref.ref_value[1]) &&
+       (!screen->opts14.IndependentFrontAndBackStencilRefMaskSupported ||
+        ctx->cmdlist8 == nullptr) &&
        (d3d12_debug & D3D12_DEBUG_VERBOSE))
        debug_printf("D3D12: Different values for front and back stencil reference are not supported\n");
    ctx->stencil_ref = ref;
@@ -1533,9 +1596,11 @@ static void
 d3d12_stream_output_target_destroy(struct pipe_context *ctx,
                                    struct pipe_stream_output_target *state)
 {
-   pipe_resource_reference(&state->buffer, NULL);
+   struct d3d12_stream_output_target *target = (struct d3d12_stream_output_target *)state;
+   pipe_resource_reference(&target->base.buffer, NULL);
+   pipe_resource_reference(&target->fill_buffer, NULL);
 
-   FREE(state);
+   FREE(target);
 }
 
 static void
@@ -1634,6 +1699,8 @@ d3d12_set_shader_buffers(struct pipe_context *pctx,
          pipe_resource_reference(&slot->buffer, buffers[i].buffer);
          slot->buffer_offset = buffers[i].buffer_offset;
          slot->buffer_size = buffers[i].buffer_size;
+         util_range_add(buffers[i].buffer, &d3d12_resource(buffers[i].buffer)->valid_buffer_range,
+                        buffers[i].buffer_offset, buffers[i].buffer_size);
          d3d12_increment_ssbo_bind_count(ctx, shader, d3d12_resource(buffers[i].buffer));
       } else
          memset(slot, 0, sizeof(*slot));
@@ -1731,12 +1798,17 @@ d3d12_set_shader_images(struct pipe_context *pctx,
          d3d12_increment_image_bind_count(ctx, shader, d3d12_resource(images[i].resource));
 
          if (images[i].resource->target != PIPE_BUFFER &&
+             !d3d12_screen(pctx->screen)->opts12.RelaxedFormatCastingSupported &&
              !is_valid_uav_cast(images[i].resource->format, images[i].format) &&
              d3d12_get_typeless_format(images[i].format) !=
              d3d12_get_typeless_format(images[i].resource->format)) {
             /* Can't use D3D casting, have to use shader lowering instead */
             ctx->image_view_emulation_formats[shader][i] =
                get_shader_image_emulation_format(images[i].resource->format);
+         }
+         if (images[i].resource->target == PIPE_BUFFER) {
+            util_range_add(images[i].resource, &d3d12_resource(images[i].resource)->valid_buffer_range,
+                           images[i].u.buf.offset, images[i].u.buf.size);
          }
       } else
          memset(slot, 0, sizeof(*slot));
@@ -1959,9 +2031,9 @@ d3d12_flush_cmdlist_and_wait(struct d3d12_context *ctx)
    struct d3d12_batch *batch = d3d12_current_batch(ctx);
 
    d3d12_foreach_submitted_batch(ctx, old_batch)
-      d3d12_reset_batch(ctx, old_batch, PIPE_TIMEOUT_INFINITE);
+      d3d12_reset_batch(ctx, old_batch, OS_TIMEOUT_INFINITE);
    d3d12_flush_cmdlist(ctx);
-   d3d12_reset_batch(ctx, batch, PIPE_TIMEOUT_INFINITE);
+   d3d12_reset_batch(ctx, batch, OS_TIMEOUT_INFINITE);
 }
 
 static void
@@ -1984,29 +2056,69 @@ d3d12_clear_render_target(struct pipe_context *pctx,
                                    D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
    d3d12_apply_resource_states(ctx, false);
 
-   enum pipe_format format = psurf->texture->format;
+   enum pipe_format format = psurf->format;
    float clear_color[4];
+   bool clear_fallback = false;
 
    if (util_format_is_pure_uint(format)) {
-      for (int c = 0; c < 4; ++c)
+      for (int c = 0; c < 4 && !clear_fallback; ++c) {
          clear_color[c] = color->ui[c];
+         clear_fallback = (uint32_t)clear_color[c] != color->ui[c];
+      }
    } else if (util_format_is_pure_sint(format)) {
-      for (int c = 0; c < 4; ++c)
+      for (int c = 0; c < 4 && !clear_fallback; ++c) {
          clear_color[c] = color->i[c];
+         clear_fallback = (int32_t)clear_color[c] != color->i[c];
+      }
    } else {
       for (int c = 0; c < 4; ++c)
          clear_color[c] = color->f[c];
    }
 
-   if (!(util_format_colormask(util_format_description(psurf->texture->format)) &
-       PIPE_MASK_A))
-      clear_color[3] = 1.0f;
+   if (clear_fallback) {
+      util_blitter_save_blend(ctx->blitter, ctx->gfx_pipeline_state.blend);
+      util_blitter_save_depth_stencil_alpha(ctx->blitter, ctx->gfx_pipeline_state.zsa);
+      util_blitter_save_vertex_elements(ctx->blitter, ctx->gfx_pipeline_state.ves);
+      util_blitter_save_stencil_ref(ctx->blitter, &ctx->stencil_ref);
+      util_blitter_save_rasterizer(ctx->blitter, ctx->gfx_pipeline_state.rast);
+      util_blitter_save_fragment_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_FRAGMENT]);
+      util_blitter_save_vertex_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_VERTEX]);
+      util_blitter_save_geometry_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_GEOMETRY]);
+      util_blitter_save_tessctrl_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_TESS_CTRL]);
+      util_blitter_save_tesseval_shader(ctx->blitter, ctx->gfx_stages[PIPE_SHADER_TESS_EVAL]);
 
-   D3D12_RECT rect = { (int)dstx, (int)dsty,
-                       (int)dstx + (int)width,
-                       (int)dsty + (int)height };
-   ctx->cmdlist->ClearRenderTargetView(surf->desc_handle.cpu_handle,
-                                       clear_color, 1, &rect);
+      util_blitter_save_framebuffer(ctx->blitter, &ctx->fb);
+      util_blitter_save_viewport(ctx->blitter, ctx->viewport_states);
+      util_blitter_save_scissor(ctx->blitter, ctx->scissor_states);
+      util_blitter_save_fragment_sampler_states(ctx->blitter,
+                                                ctx->num_samplers[PIPE_SHADER_FRAGMENT],
+                                                (void **)ctx->samplers[PIPE_SHADER_FRAGMENT]);
+      util_blitter_save_fragment_sampler_views(ctx->blitter,
+                                               ctx->num_sampler_views[PIPE_SHADER_FRAGMENT],
+                                               ctx->sampler_views[PIPE_SHADER_FRAGMENT]);
+      util_blitter_save_fragment_constant_buffer_slot(ctx->blitter, ctx->cbufs[PIPE_SHADER_FRAGMENT]);
+      util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vbs);
+      util_blitter_save_sample_mask(ctx->blitter, ctx->gfx_pipeline_state.sample_mask, 0);
+      util_blitter_save_so_targets(ctx->blitter, ctx->gfx_pipeline_state.num_so_targets, ctx->so_targets);
+
+      union pipe_color_union local_color;
+      memcpy(&local_color, color, sizeof(local_color));
+      if (!(util_format_colormask(util_format_description(psurf->format)) & PIPE_MASK_A)) {
+         assert(!util_format_is_float(psurf->format));
+         local_color.ui[3] = 1;
+      }
+      util_blitter_clear_render_target(ctx->blitter, psurf, &local_color, dstx, dsty, width, height);
+   } else {
+      if (!(util_format_colormask(util_format_description(psurf->format)) &
+            PIPE_MASK_A))
+         clear_color[3] = 1.0f;
+
+      D3D12_RECT rect = { (int)dstx, (int)dsty,
+                          (int)dstx + (int)width,
+                          (int)dsty + (int)height };
+      ctx->cmdlist->ClearRenderTargetView(surf->desc_handle.cpu_handle,
+                                          clear_color, 1, &rect);
+   }
 
    d3d12_batch_reference_surface_texture(d3d12_current_batch(ctx), surf);
 
@@ -2037,7 +2149,7 @@ d3d12_clear_depth_stencil(struct pipe_context *pctx,
    if (clear_flags & PIPE_CLEAR_STENCIL)
       flags |= D3D12_CLEAR_FLAG_STENCIL;
 
-   struct d3d12_resource *res = d3d12_resource(ctx->fb.zsbuf->texture);
+   struct d3d12_resource *res = d3d12_resource(psurf->texture);
    d3d12_transition_resource_state(ctx, res,
                                    D3D12_RESOURCE_STATE_DEPTH_WRITE,
                                    D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS);
@@ -2266,74 +2378,18 @@ d3d12_memory_barrier(struct pipe_context *pctx, unsigned flags)
 }
 
 static void
-d3d12_get_sample_position(struct pipe_context *pctx, unsigned sample_count, unsigned sample_index,
-                          float *positions)
+d3d12_texture_barrier(struct pipe_context *pctx, unsigned flags)
 {
-   /* Sample patterns transcribed from
-    * https://docs.microsoft.com/en-us/windows/win32/api/d3d11/ne-d3d11-d3d11_standard_multisample_quality_levels
-    */
-   static const int sample_pattern_1sample[2] = { 0, 0 };
-   static const int sample_pattern_2samples[2][2] = {
-      {  4,  4 },
-      { -4, -4 },
-   };
-   static const int sample_pattern_4samples[4][2] = {
-      { -2, -6 },
-      {  6, -2 },
-      { -6,  2 },
-      {  2,  6 },
-   };
-   static const int sample_pattern_8samples[8][2] = {
-      {  1, -3 },
-      { -1,  3 },
-      {  5,  1 },
-      { -3, -5 },
-      { -5,  5 },
-      { -7, -1 },
-      {  3,  7 },
-      {  7, -7 },
-   };
-   static const int sample_pattern_16samples[16][2] = {
-      {  1,  1 },
-      { -1, -3 },
-      { -3,  2 },
-      {  4, -1 },
-      { -5, -2 },
-      {  2,  5 },
-      {  5,  3 },
-      {  3, -5 },
-      { -2,  6 },
-      {  0, -7 },
-      { -4, -6 },
-      { -6,  4 },
-      { -8,  0 },
-      {  7, -4 },
-      {  6,  7 },
-      { -7, -8 },
-   };
-   const int *samples;
-   switch (sample_count) {
-   case 1:
-   default:
-      samples = sample_pattern_1sample;
-      break;
-   case 2:
-      samples = sample_pattern_2samples[sample_index];
-      break;
-   case 4:
-      samples = sample_pattern_4samples[sample_index];
-      break;
-   case 8:
-      samples = sample_pattern_8samples[sample_index];
-      break;
-   case 16:
-      samples = sample_pattern_16samples[sample_index];
-      break;
-   }
+   struct d3d12_context *ctx = d3d12_context(pctx);
 
-   /* GL coords go from 0 -> 1, D3D from -0.5 -> 0.5 */
-   for (unsigned i = 0; i < 2; ++i)
-      positions[i] = (float)(samples[i] + 8) / 16.0f;
+   /* D3D doesn't really have an equivalent in the legacy barrier model. When using enhanced barriers,
+    * this could be a more specific global barrier. But for now, just flush the world with an aliasing barrier. */
+   D3D12_RESOURCE_BARRIER aliasingBarrier;
+   aliasingBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_ALIASING;
+   aliasingBarrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+   aliasingBarrier.Aliasing.pResourceBefore = nullptr;
+   aliasingBarrier.Aliasing.pResourceAfter = nullptr;
+   ctx->cmdlist->ResourceBarrier(1, &aliasingBarrier);
 }
 
 static void
@@ -2493,12 +2549,17 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    ctx->base.fence_server_sync = d3d12_wait;
 
    ctx->base.memory_barrier = d3d12_memory_barrier;
+   ctx->base.texture_barrier = d3d12_texture_barrier;
 
-   ctx->base.get_sample_position = d3d12_get_sample_position;
+   ctx->base.get_sample_position = u_default_get_sample_position;
 
    ctx->base.get_device_reset_status = d3d12_get_reset_status;
 
    ctx->gfx_pipeline_state.sample_mask = ~0;
+
+   ctx->has_flat_varyings = false;
+   ctx->missing_dual_src_outputs = false;
+   ctx->manual_depth_range = false;
 
    d3d12_context_surface_init(&ctx->base);
    d3d12_context_resource_init(&ctx->base);
@@ -2521,11 +2582,11 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
                        0, false);
 
    struct primconvert_config cfg = {};
-   cfg.primtypes_mask = 1 << PIPE_PRIM_POINTS |
-                        1 << PIPE_PRIM_LINES |
-                        1 << PIPE_PRIM_LINE_STRIP |
-                        1 << PIPE_PRIM_TRIANGLES |
-                        1 << PIPE_PRIM_TRIANGLE_STRIP;
+   cfg.primtypes_mask = 1 << MESA_PRIM_POINTS |
+                        1 << MESA_PRIM_LINES |
+                        1 << MESA_PRIM_LINE_STRIP |
+                        1 << MESA_PRIM_TRIANGLES |
+                        1 << MESA_PRIM_TRIANGLE_STRIP;
    cfg.restart_primtypes_mask = cfg.primtypes_mask;
    cfg.fixed_prim_restart = true;
    ctx->primconvert = util_primconvert_create_config(&ctx->base, &cfg);
@@ -2543,13 +2604,11 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
    d3d12_compute_transform_cache_init(ctx);
    d3d12_context_state_table_init(ctx);
 
-   util_dl_library *d3d12_mod = util_dl_open(UTIL_DL_PREFIX "d3d12" UTIL_DL_EXT);
-   if (!d3d12_mod) {
-      debug_printf("D3D12: failed to load D3D12.DLL\n");
-      return NULL;
-   }
    ctx->D3D12SerializeVersionedRootSignature =
-      (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)util_dl_get_proc_address(d3d12_mod, "D3D12SerializeVersionedRootSignature");
+      (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)util_dl_get_proc_address(screen->d3d12_mod, "D3D12SerializeVersionedRootSignature");
+#ifndef _GAMING_XBOX
+   (void)screen->dev->QueryInterface(&ctx->dev_config);
+#endif
 
    ctx->submit_id = (uint64_t)p_atomic_add_return(&screen->ctx_count, 1) << 32ull;
 
@@ -2588,7 +2647,16 @@ d3d12_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
 
    mtx_lock(&screen->submit_mutex);
    list_addtail(&ctx->context_list_entry, &screen->context_list);
+   if (screen->context_id_count > 0)
+      ctx->id = screen->context_id_list[--screen->context_id_count];
+   else
+      ctx->id = D3D12_CONTEXT_NO_ID;
    mtx_unlock(&screen->submit_mutex);
+
+   for (unsigned i = 0; i < ARRAY_SIZE(ctx->batches); ++i) {
+      ctx->batches[i].ctx_id = ctx->id;
+      ctx->batches[i].ctx_index = i;
+   }
 
    if (flags & PIPE_CONTEXT_PREFER_THREADED)
       return threaded_context_create(&ctx->base,
@@ -2639,5 +2707,5 @@ d3d12_need_zero_one_depth_range(struct d3d12_context *ctx)
     * end up generating needless code, but the result will be correct.
     */
 
-   return fs->initial->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DEPTH);
+   return fs && fs->initial->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_DEPTH);
 }

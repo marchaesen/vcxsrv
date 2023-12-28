@@ -7799,12 +7799,12 @@ xcb_ungrab_keyboard (xcb_connection_t *c,
  * @brief Grab keyboard key(s)
  *
  * @param c The connection
- * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * @param owner_events If 1, the \a grab_window will still get the key events. If 0, events are not
  * reported to the \a grab_window.
- * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param grab_window Specifies the window on which the key should be grabbed.
  * @param modifiers The modifiers to grab.
  * \n
- * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the key with all
  * possible modifier combinations.
  * @param key The keycode of the key to grab.
  * \n
@@ -7863,12 +7863,12 @@ xcb_grab_key_checked (xcb_connection_t *c,
  * @brief Grab keyboard key(s)
  *
  * @param c The connection
- * @param owner_events If 1, the \a grab_window will still get the pointer events. If 0, events are not
+ * @param owner_events If 1, the \a grab_window will still get the key events. If 0, events are not
  * reported to the \a grab_window.
- * @param grab_window Specifies the window on which the pointer should be grabbed.
+ * @param grab_window Specifies the window on which the key should be grabbed.
  * @param modifiers The modifiers to grab.
  * \n
- * Using the special value `XCB_MOD_MASK_ANY` means grab the pointer with all
+ * Using the special value `XCB_MOD_MASK_ANY` means grab the key with all
  * possible modifier combinations.
  * @param key The keycode of the key to grab.
  * \n

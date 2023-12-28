@@ -19,10 +19,6 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
 #include "nir.h"
@@ -30,7 +26,6 @@
 #include "nir_deref.h"
 #include "nir_phi_builder.h"
 #include "nir_vla.h"
-
 
 struct deref_node {
    struct deref_node *parent;
@@ -178,7 +173,11 @@ get_deref_node_recur(nir_deref_instr *deref,
       return parent->children[deref->strct.index];
 
    case nir_deref_type_array: {
-      if (nir_src_is_const(deref->arr.index)) {
+      if (glsl_type_is_vector_or_scalar(parent->type)) {
+         /* For an array deref of a vector, return the vector */
+         assert(glsl_type_is_vector(parent->type));
+         return parent;
+      } else if (nir_src_is_const(deref->arr.index)) {
          uint32_t index = nir_src_as_uint(deref->arr.index);
          /* This is possible if a loop unrolls and generates an
           * out-of-bounds offset.  We need to handle this at least
@@ -227,6 +226,9 @@ get_deref_node(nir_deref_instr *deref, struct lower_variables_state *state)
    if (!nir_deref_mode_must_be(deref, nir_var_function_temp))
       return NULL;
 
+   if (glsl_type_is_cmat(deref->type))
+      return NULL;
+
    struct deref_node *node = get_deref_node_recur(deref, state);
    if (!node)
       return NULL;
@@ -250,11 +252,12 @@ get_deref_node(nir_deref_instr *deref, struct lower_variables_state *state)
 /* \sa foreach_deref_node_match */
 static void
 foreach_deref_node_worker(struct deref_node *node, nir_deref_instr **path,
-                          void (* cb)(struct deref_node *node,
-                                      struct lower_variables_state *state),
+                          void (*cb)(struct deref_node *node,
+                                     struct lower_variables_state *state),
                           struct lower_variables_state *state)
 {
-   if (*path == NULL) {
+   if (glsl_type_is_vector_or_scalar(node->type)) {
+      assert(*path == NULL || (*path)->deref_type == nir_deref_type_array);
       cb(node, state);
       return;
    }
@@ -268,6 +271,9 @@ foreach_deref_node_worker(struct deref_node *node, nir_deref_instr **path,
       return;
 
    case nir_deref_type_array: {
+      if (glsl_type_is_vector_or_scalar(node->type))
+         return;
+
       uint32_t index = nir_src_as_uint((*path)->arr.index);
 
       if (node->children[index]) {
@@ -301,8 +307,8 @@ foreach_deref_node_worker(struct deref_node *node, nir_deref_instr **path,
  */
 static void
 foreach_deref_node_match(nir_deref_path *path,
-                         void (* cb)(struct deref_node *node,
-                                     struct lower_variables_state *state),
+                         void (*cb)(struct deref_node *node,
+                                    struct lower_variables_state *state),
                          struct lower_variables_state *state)
 {
    assert(path->path[0]->deref_type == nir_deref_type_var);
@@ -332,6 +338,13 @@ path_may_be_aliased_node(struct deref_node *node, nir_deref_instr **path,
       }
 
    case nir_deref_type_array: {
+      /* If the node is a vector, we consider it to not be aliased by any
+       * indirects for the purposes of this pass.  We'll insert a pile of
+       * bcsel if needed to resolve indirects.
+       */
+      if (glsl_type_is_vector_or_scalar(node->type))
+         return false;
+
       if (!nir_src_is_const((*path)->arr.index))
          return true;
 
@@ -359,6 +372,10 @@ path_may_be_aliased_node(struct deref_node *node, nir_deref_instr **path,
 }
 
 /* Returns true if there are no indirects that can ever touch this deref.
+ *
+ * The one exception here is that we allow indirects which select components
+ * of vectors.  These are handled by this pass by inserting the requisite
+ * pile of bcsel().
  *
  * For example, if the given deref is a[6].foo, then any uses of a[i].foo
  * would cause this to return false, but a[i].bar would not affect it
@@ -402,34 +419,65 @@ register_complex_use(nir_deref_instr *deref,
    node->has_complex_use = true;
 }
 
-static void
+static bool
 register_load_instr(nir_intrinsic_instr *load_instr,
                     struct lower_variables_state *state)
 {
    nir_deref_instr *deref = nir_src_as_deref(load_instr->src[0]);
    struct deref_node *node = get_deref_node(deref, state);
-   if (node == NULL || node == UNDEF_NODE)
-      return;
+   if (node == NULL)
+      return false;
+
+   /* Replace out-of-bounds load derefs with an undef, so that they don't get
+    * left around when a driver has lowered all indirects and thus doesn't
+    * expect any array derefs at all after vars_to_ssa.
+    */
+   if (node == UNDEF_NODE) {
+      nir_undef_instr *undef =
+         nir_undef_instr_create(state->shader,
+                                load_instr->num_components,
+                                load_instr->def.bit_size);
+
+      nir_instr_insert_before(&load_instr->instr, &undef->instr);
+      nir_instr_remove(&load_instr->instr);
+
+      nir_def_rewrite_uses(&load_instr->def, &undef->def);
+      return true;
+   }
 
    if (node->loads == NULL)
       node->loads = _mesa_pointer_set_create(state->dead_ctx);
 
    _mesa_set_add(node->loads, load_instr);
+
+   return false;
 }
 
-static void
+static bool
 register_store_instr(nir_intrinsic_instr *store_instr,
                      struct lower_variables_state *state)
 {
    nir_deref_instr *deref = nir_src_as_deref(store_instr->src[0]);
    struct deref_node *node = get_deref_node(deref, state);
-   if (node == NULL || node == UNDEF_NODE)
-      return;
+
+   /* Drop out-of-bounds store derefs, so that they don't get left around when a
+    * driver has lowered all indirects and thus doesn't expect any array derefs
+    * at all after vars_to_ssa.
+    */
+   if (node == UNDEF_NODE) {
+      nir_instr_remove(&store_instr->instr);
+      return true;
+   }
+
+   if (node == NULL)
+      return false;
 
    if (node->stores == NULL)
       node->stores = _mesa_pointer_set_create(state->dead_ctx);
 
    _mesa_set_add(node->stores, store_instr);
+
+   return false;
 }
 
 static void
@@ -449,10 +497,12 @@ register_copy_instr(nir_intrinsic_instr *copy_instr,
    }
 }
 
-static void
+static bool
 register_variable_uses(nir_function_impl *impl,
                        struct lower_variables_state *state)
 {
+   bool progress = false;
+
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
          switch (instr->type) {
@@ -471,11 +521,11 @@ register_variable_uses(nir_function_impl *impl,
 
             switch (intrin->intrinsic) {
             case nir_intrinsic_load_deref:
-               register_load_instr(intrin, state);
+               progress = register_load_instr(intrin, state) || progress;
                break;
 
             case nir_intrinsic_store_deref:
-               register_store_instr(intrin, state);
+               progress = register_store_instr(intrin, state) || progress;
                break;
 
             case nir_intrinsic_copy_deref:
@@ -493,6 +543,7 @@ register_variable_uses(nir_function_impl *impl,
          }
       }
    }
+   return progress;
 }
 
 /* Walks over all of the copy instructions to or from the given deref_node
@@ -505,8 +556,7 @@ lower_copies_to_load_store(struct deref_node *node,
    if (!node->copies)
       return;
 
-   nir_builder b;
-   nir_builder_init(&b, state->impl);
+   nir_builder b = nir_builder_create(state->impl);
 
    set_foreach(node->copies, copy_entry) {
       nir_intrinsic_instr *copy = (void *)copy_entry->key;
@@ -532,6 +582,24 @@ lower_copies_to_load_store(struct deref_node *node,
    node->copies = NULL;
 }
 
+static nir_def *
+deref_vec_component(nir_deref_instr *deref)
+{
+   if (deref->deref_type != nir_deref_type_array) {
+      assert(glsl_type_is_vector_or_scalar(deref->type));
+      return NULL;
+   }
+
+   nir_deref_instr *parent = nir_deref_instr_parent(deref);
+   if (glsl_type_is_vector_or_scalar(parent->type)) {
+      assert(glsl_type_is_scalar(deref->type));
+      return deref->arr.index.ssa;
+   } else {
+      assert(glsl_type_is_vector_or_scalar(deref->type));
+      return NULL;
+   }
+}
+
 /* Performs variable renaming
  *
  * This algorithm is very similar to the one outlined in "Efficiently
@@ -542,8 +610,7 @@ lower_copies_to_load_store(struct deref_node *node,
 static bool
 rename_variables(struct lower_variables_state *state)
 {
-   nir_builder b;
-   nir_builder_init(&b, state->impl);
+   nir_builder b = nir_builder_create(state->impl);
 
    nir_foreach_block(block, state->impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -562,47 +629,47 @@ rename_variables(struct lower_variables_state *state)
             if (node == NULL)
                continue;
 
-            if (node == UNDEF_NODE) {
-               /* If we hit this path then we are referencing an invalid
-                * value.  Most likely, we unrolled something and are
-                * reading past the end of some array.  In any case, this
-                * should result in an undefined value.
-                */
-               nir_ssa_undef_instr *undef =
-                  nir_ssa_undef_instr_create(state->shader,
-                                             intrin->num_components,
-                                             intrin->dest.ssa.bit_size);
-
-               nir_instr_insert_before(&intrin->instr, &undef->instr);
-               nir_instr_remove(&intrin->instr);
-
-               nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                        &undef->def);
-               continue;
-            }
+            /* Should have been removed before rename_variables(). */
+            assert(node != UNDEF_NODE);
 
             if (!node->lower_to_ssa)
                continue;
 
-            nir_alu_instr *mov = nir_alu_instr_create(state->shader,
-                                                      nir_op_mov);
-            mov->src[0].src = nir_src_for_ssa(
-               nir_phi_builder_value_get_block_def(node->pb_value, block));
-            for (unsigned i = intrin->num_components; i < NIR_MAX_VEC_COMPONENTS; i++)
-               mov->src[0].swizzle[i] = 0;
+            nir_def *val =
+               nir_phi_builder_value_get_block_def(node->pb_value, block);
 
-            assert(intrin->dest.is_ssa);
+            /* As tempting as it is to just rewrite the uses of our load
+             * instruction with the value we got out of the phi builder, we
+             * can't do that without risking messing ourselves up.  In
+             * particular, the get_deref_node() function we call during
+             * variable renaming uses nir_src_is_const() to determine which
+             * deref node to fetch.  If we propagate directly, we may end up
+             * propagating a constant into an array index, changing the
+             * behavior of get_deref_node() for that deref and invalidating
+             * our analysis.
+             *
+             * With enough work, we could probably make our analysis and data
+             * structures robust against this but it would make everything
+             * more complicated to reason about.  It's easier to just insert
+             * a mov and let copy-prop clean up after us.  This pass is
+             * complicated enough as-is.
+             */
+            b.cursor = nir_before_instr(&intrin->instr);
+            val = nir_mov(&b, val);
 
-            mov->dest.write_mask = (1 << intrin->num_components) - 1;
-            nir_ssa_dest_init(&mov->instr, &mov->dest.dest,
-                              intrin->num_components,
-                              intrin->dest.ssa.bit_size, NULL);
+            assert(val->bit_size == intrin->def.bit_size);
 
-            nir_instr_insert_before(&intrin->instr, &mov->instr);
+            nir_def *comp = deref_vec_component(deref);
+            if (comp == NULL) {
+               assert(val->num_components == intrin->def.num_components);
+            } else {
+               assert(intrin->def.num_components == 1);
+               b.cursor = nir_before_instr(&intrin->instr);
+               val = nir_vector_extract(&b, val, comp);
+            }
+
+            nir_def_rewrite_uses(&intrin->def, val);
             nir_instr_remove(&intrin->instr);
-
-            nir_ssa_def_rewrite_uses(&intrin->dest.ssa,
-                                     &mov->dest.dest.ssa);
             break;
          }
 
@@ -615,27 +682,28 @@ rename_variables(struct lower_variables_state *state)
             if (node == NULL)
                continue;
 
-            assert(intrin->src[1].is_ssa);
-            nir_ssa_def *value = intrin->src[1].ssa;
+            /* Should have been removed before rename_variables(). */
+            assert(node != UNDEF_NODE);
 
-            if (node == UNDEF_NODE) {
-               /* Probably an out-of-bounds array store.  That should be a
-                * no-op. */
-               nir_instr_remove(&intrin->instr);
-               continue;
-            }
+            nir_def *value = intrin->src[1].ssa;
 
             if (!node->lower_to_ssa)
                continue;
 
             assert(intrin->num_components ==
-                   glsl_get_vector_elements(node->type));
+                   glsl_get_vector_elements(deref->type));
 
-            nir_ssa_def *new_def;
+            nir_def *new_def;
             b.cursor = nir_before_instr(&intrin->instr);
 
+            nir_def *comp = deref_vec_component(deref);
             unsigned wrmask = nir_intrinsic_write_mask(intrin);
-            if (wrmask == (1 << intrin->num_components) - 1) {
+            if (comp != NULL) {
+               assert(wrmask == 1 && intrin->num_components == 1);
+               nir_def *old_def =
+                  nir_phi_builder_value_get_block_def(node->pb_value, block);
+               new_def = nir_vector_insert(&b, old_def, value, comp);
+            } else if (wrmask == (1 << intrin->num_components) - 1) {
                /* Whole variable store - just copy the source.  Note that
                 * intrin->num_components and value->num_components
                 * may differ.
@@ -647,24 +715,22 @@ rename_variables(struct lower_variables_state *state)
                new_def = nir_swizzle(&b, value, swiz,
                                      intrin->num_components);
             } else {
-               nir_ssa_def *old_def =
+               nir_def *old_def =
                   nir_phi_builder_value_get_block_def(node->pb_value, block);
                /* For writemasked store_var intrinsics, we combine the newly
                 * written values with the existing contents of unwritten
                 * channels, creating a new SSA value for the whole vector.
                 */
-               nir_ssa_scalar srcs[NIR_MAX_VEC_COMPONENTS];
+               nir_scalar srcs[NIR_MAX_VEC_COMPONENTS];
                for (unsigned i = 0; i < intrin->num_components; i++) {
                   if (wrmask & (1 << i)) {
-                     srcs[i] = nir_get_ssa_scalar(value, i);
+                     srcs[i] = nir_get_scalar(value, i);
                   } else {
-                     srcs[i] = nir_get_ssa_scalar(old_def, i);
+                     srcs[i] = nir_get_scalar(old_def, i);
                   }
                }
                new_def = nir_vec_scalars(&b, srcs, intrin->num_components);
             }
-
-            assert(new_def->num_components == intrin->num_components);
 
             nir_phi_builder_value_set_block_def(node->pb_value, block, new_def);
             nir_instr_remove(&intrin->instr);
@@ -720,9 +786,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    /* Build the initial deref structures and direct_deref_nodes table */
    state.add_to_direct_deref_nodes = true;
 
-   register_variable_uses(impl, &state);
-
-   bool progress = false;
+   bool progress = register_variable_uses(impl, &state);
 
    nir_metadata_require(impl, nir_metadata_block_index);
 
@@ -800,7 +864,7 @@ nir_lower_vars_to_ssa_impl(nir_function_impl *impl)
    nir_phi_builder_finish(state.phi_builder);
 
    nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
+                                  nir_metadata_dominance);
 
    ralloc_free(state.dead_ctx);
 
@@ -812,9 +876,8 @@ nir_lower_vars_to_ssa(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_lower_vars_to_ssa_impl(function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_lower_vars_to_ssa_impl(impl);
    }
 
    return progress;

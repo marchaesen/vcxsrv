@@ -26,5 +26,6 @@ CSRCS = \
 	Xdbe.c \
         Xge.c \
 	extutil.c \
-	globals.c
+	globals.c \
+	reallocarray.c
 

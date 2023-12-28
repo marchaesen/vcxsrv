@@ -28,8 +28,8 @@
 #include <sys/un.h>
 #include <unistd.h>
 
-#include <os/os_process.h>
 #include <util/format/u_format.h>
+#include <util/u_process.h>
 
 #include "virgl_vtest_winsys.h"
 #include "virgl_vtest_public.h"
@@ -119,11 +119,12 @@ static int virgl_vtest_send_init(struct virgl_vtest_winsys *vws)
 {
    uint32_t buf[VTEST_HDR_SIZE];
    const char *nstr = "virtest";
-   char cmdline[64];
-   int ret;
+   char cmdline[64] = { 0 };
+   const char *proc_name = util_get_process_name();
 
-   ret = os_get_process_name(cmdline, 63);
-   if (ret == FALSE)
+   if (proc_name)
+      strncpy(cmdline, proc_name, 63);
+   else
       strcpy(cmdline, nstr);
 #if defined(HAVE_PROGRAM_INVOCATION_NAME)
    if (!strcmp(cmdline, "shader_runner")) {
@@ -197,6 +198,7 @@ int virgl_vtest_connect(struct virgl_vtest_winsys *vws)
 {
    struct sockaddr_un un;
    int sock, ret;
+   const char* socket_name = os_get_option("VTEST_SOCKET_NAME");
 
    sock = socket(PF_UNIX, SOCK_STREAM, 0);
    if (sock < 0)
@@ -204,7 +206,8 @@ int virgl_vtest_connect(struct virgl_vtest_winsys *vws)
 
    memset(&un, 0, sizeof(un));
    un.sun_family = AF_UNIX;
-   snprintf(un.sun_path, sizeof(un.sun_path), "%s", VTEST_DEFAULT_SOCKET_NAME);
+   snprintf(un.sun_path, sizeof(un.sun_path), "%s", socket_name ?
+      socket_name : VTEST_DEFAULT_SOCKET_NAME);
 
    do {
       ret = 0;

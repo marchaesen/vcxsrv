@@ -55,6 +55,21 @@ std::optional<DrmDevice> create_drm_device(int fd, int32_t gpu_num)
       return std::nullopt;
    }
 
+   const char *dri_prime = getenv("DRI_PRIME");
+   if (dri_prime != NULL) {
+      drmDevicePtr drm_device;
+      uint16_t vendor_id, device_id;
+      bool prime_is_vid_did =
+         sscanf(dri_prime, "%hx:%hx", &vendor_id, &device_id) == 2;
+
+      if (prime_is_vid_did && drmGetDevice2(fd, 0, &drm_device) == 0) {
+         if (drm_device->bustype == DRM_BUS_PCI &&
+             (drm_device->deviceinfo.pci->vendor_id != vendor_id ||
+              drm_device->deviceinfo.pci->device_id != device_id))
+            return std::nullopt;
+      }
+   }
+
    auto ret = DrmDevice();
    ret.fd = fd;
    ret.gpu_num = gpu_num;

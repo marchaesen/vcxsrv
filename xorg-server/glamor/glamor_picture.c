@@ -94,7 +94,7 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_INT_8_8_8_8;
         } else {
-            *tex_format = GL_RGBA;
+            *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_BYTE;
 
             swizzle[0] = GL_GREEN;
@@ -113,11 +113,8 @@ glamor_get_tex_format_type_from_pictformat(ScreenPtr pScreen,
             *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_INT_8_8_8_8_REV;
         } else {
-            *tex_format = GL_RGBA;
+            *tex_format = GL_BGRA;
             *tex_type = GL_UNSIGNED_BYTE;
-
-            swizzle[0] = GL_BLUE;
-            swizzle[2] = GL_RED;
 
             if (!is_little_endian)
                 byte_swap_swizzle(swizzle);

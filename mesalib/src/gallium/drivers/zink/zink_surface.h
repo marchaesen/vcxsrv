@@ -57,6 +57,7 @@ zink_get_surface(struct zink_context *ctx,
             const struct pipe_surface *templ,
             VkImageViewCreateInfo *ivci);
 
+/* cube image types are clamped by gallium rules to 2D or 2D_ARRAY viewtypes if not using all layers */
 static inline VkImageViewType
 zink_surface_clamp_viewtype(VkImageViewType viewType, unsigned first_layer, unsigned last_layer, unsigned array_size)
 {

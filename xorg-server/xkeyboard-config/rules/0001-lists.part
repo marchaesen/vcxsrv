@@ -20,8 +20,8 @@
 // TypeMatrix geometries
 ! $tmgeometries = tm2020 tm2030PS2 tm2030USB tm2030USB-102 tm2030USB-106
 
-// Layouts that provide further specializations for the OLPC
-! $olpclayouts = af am ara br ca es et fr it kh kz in mn np ru th tr us 
+// Country files that provide specializations for the OLPC:
+! $olpclayouts = af am ara br ca es et fr in it kh kz mn ng np pk ru th tr us
 
 ! $macbooks = macbook78 macbook79
 ! $maclaptop = ibook powerbook macbook78 macbook79
@@ -52,4 +52,3 @@
               sun_type7 sun_type7_suncompat suncompat
 
 ! $sun_compat = sun_type6 sun_type6_suncompat sun_type7_suncompat suncompat
-

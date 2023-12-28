@@ -42,16 +42,14 @@ lower_line_smooth_intrinsic(struct lower_line_smooth_state *state,
 {
         b->cursor = nir_before_instr(&intr->instr);
 
-        nir_ssa_def *one = nir_imm_float(b, 1.0f);
+        nir_def *one = nir_imm_float(b, 1.0f);
 
-        nir_ssa_def *coverage = nir_load_var(b, state->coverage);
+        nir_def *coverage = nir_load_var(b, state->coverage);
 
-        nir_ssa_def *new_val = nir_fmul(b, nir_vec4(b, one, one, one, coverage),
+        nir_def *new_val = nir_fmul(b, nir_vec4(b, one, one, one, coverage),
                                         intr->src[0].ssa);
 
-        nir_instr_rewrite_src(&intr->instr,
-                              &intr->src[0],
-                              nir_src_for_ssa(new_val));
+        nir_src_rewrite(&intr->src[0], new_val);
 }
 
 static bool
@@ -60,9 +58,7 @@ lower_line_smooth_func(struct lower_line_smooth_state *state,
 {
         bool progress = false;
 
-        nir_builder b;
-
-        nir_builder_init(&b, impl);
+        nir_builder b = nir_builder_create(impl);
 
         nir_foreach_block(block, impl) {
                 nir_foreach_instr_safe(instr, block) {
@@ -74,8 +70,7 @@ lower_line_smooth_func(struct lower_line_smooth_state *state,
 
                         if (intr->intrinsic != nir_intrinsic_store_output ||
                             nir_intrinsic_base(intr) != 0 ||
-                            intr->num_components != 4 ||
-                            !intr->src[0].is_ssa)
+                            intr->num_components != 4)
                                 continue;
 
                         lower_line_smooth_intrinsic(state, &b, intr);
@@ -90,45 +85,41 @@ static void
 initialise_coverage_var(struct lower_line_smooth_state *state,
                         nir_function_impl *impl)
 {
-        nir_builder b;
+        nir_builder b = nir_builder_at(nir_before_impl(impl));
 
-        nir_builder_init(&b, impl);
+        nir_def *line_width = nir_load_line_width(&b);
 
-        b.cursor = nir_before_block(nir_start_block(impl));
-
-        nir_ssa_def *line_width = nir_load_line_width(&b);
-
-        nir_ssa_def *real_line_width = nir_load_aa_line_width(&b);
+        nir_def *real_line_width = nir_load_aa_line_width(&b);
 
         /* The line coord varies from 0.0 to 1.0 across the width of the line */
-        nir_ssa_def *line_coord = nir_load_line_coord(&b);
+        nir_def *line_coord = nir_load_line_coord(&b);
 
         /* fabs(line_coord - 0.5) * real_line_width */
-        nir_ssa_def *pixels_from_center =
+        nir_def *pixels_from_center =
                 nir_fmul(&b, real_line_width,
                          nir_fabs(&b, nir_fsub(&b, line_coord,
                                                nir_imm_float(&b, 0.5f))));
 
         /* 0.5 - 1/√2 * (pixels_from_center - line_width * 0.5) */
-        nir_ssa_def *coverage =
+        nir_def *coverage =
                 nir_fsub(&b,
                          nir_imm_float(&b, 0.5f),
                          nir_fmul(&b,
                                   nir_imm_float(&b, 1.0f / M_SQRT2),
                                   nir_fsub(&b, pixels_from_center,
-                                           nir_fmul(&b,
-                                                    line_width,
-                                                    nir_imm_float(&b, 0.5f)))));
+                                           nir_fmul_imm(&b,
+                                                        line_width,
+                                                        0.5f))));
 
         /* Discard fragments that aren’t covered at all by the line */
-        nir_ssa_def *outside = nir_fge(&b, nir_imm_float(&b, 0.0f), coverage);
+        nir_def *outside = nir_fle_imm(&b, coverage, 0.0f);
 
         nir_discard_if(&b, outside);
 
         /* Clamp to at most 1.0. If it was less than 0.0 then the fragment will
          * be discarded so we don’t need to handle that.
          */
-        nir_ssa_def *clamped = nir_fmin(&b, coverage, nir_imm_float(&b, 1.0f));
+        nir_def *clamped = nir_fmin(&b, coverage, nir_imm_float(&b, 1.0f));
 
         nir_store_var(&b, state->coverage, clamped, 0x1 /* writemask */);
 }
@@ -157,18 +148,18 @@ v3d_nir_lower_line_smooth(nir_shader *s)
                 .coverage = make_coverage_var(s),
         };
 
-        nir_foreach_function(function, s) {
+        nir_foreach_function_with_impl(function, impl, s) {
                 if (function->is_entrypoint)
-                        initialise_coverage_var(&state, function->impl);
+                        initialise_coverage_var(&state, impl);
 
-                progress |= lower_line_smooth_func(&state, function->impl);
+                progress |= lower_line_smooth_func(&state, impl);
 
                 if (progress) {
-                        nir_metadata_preserve(function->impl,
+                        nir_metadata_preserve(impl,
                                               nir_metadata_block_index |
                                               nir_metadata_dominance);
                 } else {
-                        nir_metadata_preserve(function->impl, nir_metadata_all);
+                        nir_metadata_preserve(impl, nir_metadata_all);
                 }
         }
 

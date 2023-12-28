@@ -19,24 +19,20 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
- *
  */
 
 #ifndef _NIR_SEARCH_
 #define _NIR_SEARCH_
 
+#include "util/u_dynarray.h"
 #include "nir.h"
 #include "nir_worklist.h"
-#include "util/u_dynarray.h"
 
 #define NIR_SEARCH_MAX_VARIABLES 16
 
 struct nir_builder;
 
-typedef enum PACKED {
+typedef enum ENUM_PACKED {
    nir_search_value_expression,
    nir_search_value_variable,
    nir_search_value_constant,
@@ -123,8 +119,6 @@ enum nir_search_op {
    nir_search_op_i2i,
    nir_search_op_b2f,
    nir_search_op_b2i,
-   nir_search_op_i2b,
-   nir_search_op_f2b,
    nir_num_search_ops,
 };
 
@@ -179,7 +173,7 @@ struct per_op_table {
 };
 
 struct transform {
-   uint16_t search; /* Index in table->values[] for the search expression. */
+   uint16_t search;  /* Index in table->values[] for the search expression. */
    uint16_t replace; /* Index in table->values[] for the replace value. */
    unsigned condition_offset;
 };

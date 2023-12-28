@@ -158,7 +158,7 @@ vc4_emit_gl_shader_state(struct vc4_context *vc4,
 
                 /* VC4_DIRTY_PRIM_MODE | VC4_DIRTY_RASTERIZER */
                 rec.point_size_included_in_shaded_vertex_data =
-                         (info->mode == PIPE_PRIM_POINTS &&
+                         (info->mode == MESA_PRIM_POINTS &&
                           vc4->rasterizer->base.point_size_per_vertex);
 
                 /* VC4_DIRTY_COMPILED_FS */
@@ -192,7 +192,7 @@ vc4_emit_gl_shader_state(struct vc4_context *vc4,
                 /* not vc4->dirty tracked: vc4->last_index_bias */
                 uint32_t offset = (vb->buffer_offset +
                                    elem->src_offset +
-                                   vb->stride * (index_bias +
+                                   elem->src_stride * (index_bias +
                                                  extra_index_bias));
                 uint32_t vb_size = rsc->bo->size - offset;
                 uint32_t elem_size =
@@ -201,16 +201,16 @@ vc4_emit_gl_shader_state(struct vc4_context *vc4,
                 cl_emit(&job->shader_rec, ATTRIBUTE_RECORD, attr) {
                         attr.address = cl_address(rsc->bo, offset);
                         attr.number_of_bytes_minus_1 = elem_size - 1;
-                        attr.stride = vb->stride;
+                        attr.stride = elem->src_stride;
                         attr.coordinate_shader_vpm_offset =
                                 vc4->prog.cs->vattr_offsets[i];
                         attr.vertex_shader_vpm_offset =
                                 vc4->prog.vs->vattr_offsets[i];
                 }
 
-                if (vb->stride > 0) {
+                if (elem->src_stride > 0) {
                         max_index = MIN2(max_index,
-                                         (vb_size - elem_size) / vb->stride);
+                                         (vb_size - elem_size) / elem->src_stride);
                 }
         }
 
@@ -294,11 +294,11 @@ vc4_draw_workaround_line_loop_2(struct pipe_context *pctx, const struct pipe_dra
              const struct pipe_draw_indirect_info *indirect,
              const struct pipe_draw_start_count_bias *draw)
 {
-        if (draw->count != 2 || info->mode != PIPE_PRIM_LINE_LOOP)
+        if (draw->count != 2 || info->mode != MESA_PRIM_LINE_LOOP)
                 return false;
 
         struct pipe_draw_info local_info = *info;
-        local_info.mode = PIPE_PRIM_LINES;
+        local_info.mode = MESA_PRIM_LINES;
 
         /* Draw twice.  The vertex order will be wrong on the second prim, but
          * that's probably not worth rewriting an index buffer over.
@@ -646,7 +646,10 @@ vc4_clear_render_target(struct pipe_context *pctx, struct pipe_surface *ps,
                         unsigned x, unsigned y, unsigned w, unsigned h,
 			bool render_condition_enabled)
 {
-        fprintf(stderr, "unimpl: clear RT\n");
+        struct vc4_context *vc4 = vc4_context(pctx);
+
+        vc4_blitter_save(vc4);
+        util_blitter_clear_render_target(vc4->blitter, ps, color, x, y, w, h);
 }
 
 static void
@@ -655,7 +658,11 @@ vc4_clear_depth_stencil(struct pipe_context *pctx, struct pipe_surface *ps,
                         unsigned x, unsigned y, unsigned w, unsigned h,
 			bool render_condition_enabled)
 {
-        fprintf(stderr, "unimpl: clear DS\n");
+        struct vc4_context *vc4 = vc4_context(pctx);
+
+        vc4_blitter_save(vc4);
+        util_blitter_clear_depth_stencil(vc4->blitter, ps, buffers, depth,
+                                         stencil, x, y, w, h);
 }
 
 void

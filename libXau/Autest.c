@@ -35,8 +35,11 @@ int
 main (int argc, char **argv)
 {
     Xauth   test_data;
-    char    *name = "XAU-TEST-1";
-    char    *data = "Do not begin the test until instructed to do so.";
+    char    defname[] = "XAU-TEST-1";
+    char    defdata[] = "Do not begin the test until instructed to do so.";
+    char    empty[] = "";
+    char    *name = defname;
+    char    *data = defdata;
     char    *file = NULL;
     int	    state = 0;
     FILE    *output;
@@ -54,9 +57,9 @@ main (int argc, char **argv)
     }
     test_data.family = 0;
     test_data.address_length = 0;
-    test_data.address = "";
+    test_data.address = empty;
     test_data.number_length = 0;
-    test_data.number = "";
+    test_data.number = empty;
     test_data.name_length = strlen (name);
     test_data.name = name;
     test_data.data_length = strlen (data);

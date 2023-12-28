@@ -83,7 +83,7 @@ Ilia Mirkin (2):
 - gallium,st: add missing viewport swizzles
 - nv50: initialize target for blit source surfaces
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - intel/fs: Handle payload node interference in destinations
 

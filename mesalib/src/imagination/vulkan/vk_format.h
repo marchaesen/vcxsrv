@@ -88,4 +88,45 @@ static inline bool vk_format_is_normalized(VkFormat vk_format)
    return true;
 }
 
+static inline uint32_t
+vk_format_get_common_color_channel_count(VkFormat src_format,
+                                         VkFormat dst_format)
+{
+   const struct util_format_description *dst_desc =
+      vk_format_description(dst_format);
+   const struct util_format_description *src_desc =
+      vk_format_description(src_format);
+   uint32_t count = 0;
+
+   /* Check if destination format is alpha only and source format has alpha
+    * channel.
+    */
+   if (util_format_is_alpha(vk_format_to_pipe_format(dst_format))) {
+      count = 1;
+   } else if (dst_desc->nr_channels <= src_desc->nr_channels) {
+      for (uint32_t i = 0; i < dst_desc->nr_channels; i++) {
+         enum pipe_swizzle swizzle = dst_desc->swizzle[i];
+
+         if (swizzle > PIPE_SWIZZLE_W)
+            continue;
+
+         for (uint32_t j = 0; j < src_desc->nr_channels; j++) {
+            if (src_desc->swizzle[j] == swizzle) {
+               count++;
+               break;
+            }
+         }
+      }
+   } else {
+      count = dst_desc->nr_channels;
+   }
+
+   return count;
+}
+
+static inline bool vk_format_is_alpha(VkFormat format)
+{
+   return util_format_is_alpha(vk_format_to_pipe_format(format));
+}
+
 #endif /* VK_FORMAT_H */

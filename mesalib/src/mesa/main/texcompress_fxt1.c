@@ -30,7 +30,7 @@
 
 
 #include "errors.h"
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "image.h"
 #include "macros.h"

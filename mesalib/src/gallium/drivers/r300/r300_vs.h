@@ -41,9 +41,9 @@ struct r300_vertex_shader_code {
 
     /* Whether the shader was replaced by a dummy one due to a shader
      * compilation failure. */
-    boolean dummy;
+    bool dummy;
 
-    boolean wpos;
+    bool wpos;
 
     /* Numbers of constants for each type. */
     unsigned externals_count;
@@ -80,9 +80,5 @@ void r300_translate_vertex_shader(struct r300_context *r300,
 
 void r300_draw_init_vertex_shader(struct r300_context *r300,
                                   struct r300_vertex_shader *vs);
-
-extern bool r300_transform_vs_trig_input(struct nir_shader *shader);
-
-extern bool r300_transform_fs_trig_input(struct nir_shader *shader);
 
 #endif /* R300_VS_H */

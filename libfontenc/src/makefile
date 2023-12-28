@@ -2,7 +2,8 @@ LIBRARY = libfontenc
 
 CSRCS = \
          encparse.c \
-         fontenc.c
+         fontenc.c \
+				 reallocarray.c
 
 #FONTENCDIR=@ENCODINGSDIR@
 DEFINES += FONT_ENCODINGS_DIRECTORY="\"encodings.dir\"" strcasecmp=_stricmp

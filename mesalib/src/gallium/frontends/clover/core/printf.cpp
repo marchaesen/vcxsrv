@@ -47,7 +47,7 @@ namespace {
       static std::atomic<unsigned> warn_count;
 
       if (buffer.empty() && !warn_count++)
-         std::cerr << "Printf used but no printf occurred - may cause perfomance issue." << std::endl;
+         std::cerr << "Printf used but no printf occurred - may cause performance issue." << std::endl;
 
       std::vector<u_printf_info> infos;
       for (auto &f : formatters) {

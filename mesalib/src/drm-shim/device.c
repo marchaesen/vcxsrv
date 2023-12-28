@@ -147,6 +147,9 @@ static void handle_delete_fxn(struct hash_entry *entry)
 
 void drm_shim_fd_unregister(int fd)
 {
+   if (fd == -1)
+      return;
+
    struct hash_entry *entry =
          _mesa_hash_table_search(shim_device.fd_map, (void *)(uintptr_t)(fd + 1));
    if (!entry)
@@ -281,6 +284,7 @@ ioctl_fn_t core_ioctls[] = {
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_HANDLE_TO_FD)] = drm_shim_ioctl_stub,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_FD_TO_HANDLE)] = drm_shim_ioctl_stub,
    [_IOC_NR(DRM_IOCTL_SYNCOBJ_WAIT)] = drm_shim_ioctl_stub,
+   [_IOC_NR(DRM_IOCTL_SYNCOBJ_TRANSFER)] = drm_shim_ioctl_stub,
 };
 
 /**

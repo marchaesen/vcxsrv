@@ -27,7 +27,7 @@ struct lp_linear_sampler {
    int dtdx;                    /* 16.16 */
    int dtdy;                    /* 16.16 */
    int width;
-   boolean axis_aligned;
+   bool axis_aligned;
 
    alignas(16) uint32_t row[64];
    alignas(16) uint32_t stretched_row[2][64];
@@ -52,7 +52,7 @@ struct lp_linear_sampler {
 struct lp_linear_interp {
    struct lp_linear_elem base;
 
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
    __m128i a0;
    __m128i dadx;
    __m128i dady;
@@ -68,7 +68,7 @@ struct lp_linear_interp {
  * implementation - normalized texcoords, single mipmap with
  * nearest filtering.
  */
-static inline boolean
+static inline bool
 is_nearest_sampler(const struct lp_sampler_static_state *sampler)
 {
    return
@@ -86,7 +86,7 @@ is_nearest_sampler(const struct lp_sampler_static_state *sampler)
  * implementation - normalized texcoords, single mipmap with
  * linear filtering.
  */
-static inline boolean
+static inline bool
 is_linear_sampler(const struct lp_sampler_static_state *sampler)
 {
    return
@@ -103,7 +103,7 @@ is_linear_sampler(const struct lp_sampler_static_state *sampler)
 /* Check for a sampler variant which matches is_nearest_sampler
  * but has the additional constraints of using clamp wrapping
  */
-static inline boolean
+static inline bool
 is_nearest_clamp_sampler(const struct lp_sampler_static_state *sampler)
 {
    return
@@ -116,7 +116,7 @@ is_nearest_clamp_sampler(const struct lp_sampler_static_state *sampler)
 /* Check for a sampler variant which matches is_linear_sampler
  * but has the additional constraints of using clamp wrapping
  */
-static inline boolean
+static inline bool
 is_linear_clamp_sampler(const struct lp_sampler_static_state *sampler)
 {
    return
@@ -126,17 +126,17 @@ is_linear_clamp_sampler(const struct lp_sampler_static_state *sampler)
 }
 
 
-boolean
+bool
 lp_linear_init_interp(struct lp_linear_interp *interp,
                       int x, int y, int width, int height,
                       unsigned usage_mask,
-                      boolean perspective,
+                      bool perspective,
                       float oow,
                       const float *a0,
                       const float *dadx,
                       const float *dady);
 
-boolean
+bool
 lp_linear_init_sampler(struct lp_linear_sampler *samp,
                        const struct lp_tgsi_texture_info *info,
                        const struct lp_sampler_static_state *sampler_state,
@@ -144,13 +144,13 @@ lp_linear_init_sampler(struct lp_linear_sampler *samp,
                        int x0, int y0, int width, int height,
                        const float (*a0)[4],
                        const float (*dadx)[4],
-                       const float (*dady)[4]);
+                       const float (*dady)[4], bool rgba_order);
 
 
-boolean
+bool
 lp_linear_check_fastpath(struct lp_fragment_shader_variant *variant);
 
-boolean
+bool
 lp_linear_check_sampler(const struct lp_sampler_static_state *sampler,
                         const struct lp_tgsi_texture_info *tex);
 
@@ -164,8 +164,8 @@ lp_linear_init_noop_sampler(struct lp_linear_sampler *samp);
 
 #define FAIL(s) do {                                    \
       if (LP_DEBUG & DEBUG_LINEAR)                      \
-         debug_printf("%s: %s\n", __FUNCTION__, s);     \
-      return FALSE;                                     \
+         debug_printf("%s: %s\n", __func__, s);         \
+      return false;                                     \
 } while (0)
 
 #endif

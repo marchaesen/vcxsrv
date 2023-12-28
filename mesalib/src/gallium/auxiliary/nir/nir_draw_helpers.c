@@ -43,22 +43,16 @@ typedef struct {
    nir_shader *shader;
    bool fs_pos_is_sysval;
    nir_variable *stip_tex;
-   nir_ssa_def *fragcoord;
+   nir_def *fragcoord;
+   nir_alu_type bool_type;
 } lower_pstipple;
 
-static nir_ssa_def *
+static nir_def *
 load_frag_coord(nir_builder *b)
 {
-   nir_foreach_shader_in_variable(var, b->shader) {
-      if (var->data.location == VARYING_SLOT_POS)
-         return nir_load_var(b, var);
-   }
-
-   nir_variable *pos = nir_variable_create(b->shader, nir_var_shader_in,
-                                           glsl_vec4_type(), NULL);
-   pos->data.location = VARYING_SLOT_POS;
+   nir_variable *pos = nir_get_variable_with_location(b->shader, nir_var_shader_in,
+                                                      VARYING_SLOT_POS, glsl_vec4_type());
    pos->data.interpolation = INTERP_MODE_NOPERSPECTIVE;
-   pos->data.driver_location = b->shader->num_inputs++;
    return nir_load_var(b, pos);
 }
 
@@ -67,13 +61,13 @@ nir_lower_pstipple_block(nir_block *block,
                          lower_pstipple *state)
 {
    nir_builder *b = &state->b;
-   nir_ssa_def *texcoord;
+   nir_def *texcoord;
 
    b->cursor = nir_before_block(block);
 
-   nir_ssa_def *frag_coord = state->fs_pos_is_sysval ? nir_load_frag_coord(b) : load_frag_coord(b);
+   nir_def *frag_coord = state->fs_pos_is_sysval ? nir_load_frag_coord(b) : load_frag_coord(b);
 
-   texcoord = nir_fmul(b, nir_channels(b, frag_coord, 0x3),
+   texcoord = nir_fmul(b, nir_trim_vector(b, frag_coord, 2),
                        nir_imm_vec2(b, 1.0/32.0, 1.0/32.0));
 
    nir_tex_instr *tex = nir_tex_instr_create(b->shader, 1);
@@ -83,13 +77,25 @@ nir_lower_pstipple_block(nir_block *block,
    tex->dest_type = nir_type_float32;
    tex->texture_index = state->stip_tex->data.binding;
    tex->sampler_index = state->stip_tex->data.binding;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(texcoord);
-   nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, NULL);
+   tex->src[0] = nir_tex_src_for_ssa(nir_tex_src_coord, texcoord);
+   nir_def_init(&tex->instr, &tex->def, 4, 32);
 
    nir_builder_instr_insert(b, &tex->instr);
 
-   nir_ssa_def *condition = nir_f2b32(b, nir_channel(b, &tex->dest.ssa, 3));
+   nir_def *condition;
+
+   switch (state->bool_type) {
+   case nir_type_bool1:
+      condition = nir_fneu_imm(b, nir_channel(b, &tex->def, 3), 0.0);
+      break;
+   case nir_type_bool32:
+      condition = nir_fneu32(b, nir_channel(b, &tex->def, 3),
+                             nir_imm_floatN_t(b, 0.0, tex->def.bit_size));
+      break;
+   default:
+      unreachable("Invalid Boolean type.");
+   }
+
    nir_discard_if(b, condition);
    b->shader->info.fs.uses_discard = true;
 }
@@ -98,9 +104,7 @@ static void
 nir_lower_pstipple_impl(nir_function_impl *impl,
                         lower_pstipple *state)
 {
-   nir_builder *b = &state->b;
-
-   nir_builder_init(b, impl);
+   state->b = nir_builder_create(impl);
 
    nir_block *start = nir_start_block(impl);
    nir_lower_pstipple_block(start, state);
@@ -110,12 +114,18 @@ void
 nir_lower_pstipple_fs(struct nir_shader *shader,
                       unsigned *samplerUnitOut,
                       unsigned fixedUnit,
-                      bool fs_pos_is_sysval)
+                      bool fs_pos_is_sysval,
+                      nir_alu_type bool_type)
 {
    lower_pstipple state = {
       .shader = shader,
       .fs_pos_is_sysval = fs_pos_is_sysval,
+      .bool_type = bool_type,
    };
+
+   assert(bool_type == nir_type_bool1 ||
+          bool_type == nir_type_bool32);
+
    if (shader->info.stage != MESA_SHADER_FRAGMENT)
       return;
 
@@ -138,80 +148,101 @@ nir_lower_pstipple_fs(struct nir_shader *shader,
    BITSET_SET(shader->info.samplers_used, binding);
    state.stip_tex = tex_var;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_lower_pstipple_impl(function->impl, &state);
-      }
+   nir_foreach_function_impl(impl, shader) {
+      nir_lower_pstipple_impl(impl, &state);
    }
    *samplerUnitOut = binding;
 }
 
 typedef struct {
-   nir_builder b;
-   nir_shader *shader;
    nir_variable *line_width_input;
+   nir_variable *stipple_counter;
+   nir_variable *stipple_pattern;
 } lower_aaline;
 
-static void
-nir_lower_aaline_block(nir_block *block,
-                       lower_aaline *state)
+static bool
+lower_aaline_instr(nir_builder *b, nir_instr *instr, void *data)
 {
-  nir_builder *b = &state->b;
-  nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_intrinsic)
-         continue;
+   lower_aaline *state = data;
 
-      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
-      if (intrin->intrinsic != nir_intrinsic_store_deref)
-         continue;
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
 
-      nir_variable *var = nir_intrinsic_get_var(intrin, 0);
-      if (var->data.mode != nir_var_shader_out)
-         continue;
-      if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
-         continue;
+   nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+   if (intrin->intrinsic != nir_intrinsic_store_deref)
+      return false;
 
-      nir_ssa_def *out_input = intrin->src[1].ssa;
-      b->cursor = nir_before_instr(instr);
-      nir_ssa_def *lw = nir_load_var(b, state->line_width_input);
-      nir_ssa_def *tmp = nir_fsat(b, nir_fadd(b, nir_channel(b, lw, 1),
-                                              nir_fneg(b, nir_fabs(b, nir_channel(b, lw, 0)))));
-      nir_ssa_def *tmp1 = nir_fsat(b, nir_fadd(b, nir_channel(b, lw, 3),
-                                               nir_fneg(b, nir_fabs(b, nir_channel(b, lw, 2)))));
+   nir_variable *var = nir_intrinsic_get_var(intrin, 0);
+   if (var->data.mode != nir_var_shader_out)
+      return false;
+   if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
+      return false;
 
-      tmp = nir_fmul(b, tmp, tmp1);
-      tmp = nir_fmul(b, nir_channel(b, out_input, 3), tmp);
+   nir_def *out_input = intrin->src[1].ssa;
+   b->cursor = nir_before_instr(instr);
+   nir_def *lw = nir_load_var(b, state->line_width_input);
+   nir_def *len = nir_channel(b, lw, 3);
+   len = nir_fadd_imm(b, nir_fmul_imm(b, len, 2.0), -1.0);
+   nir_def *tmp = nir_fsat(b, nir_fadd(b, nir_channels(b, lw, 0xa),
+                                             nir_fneg(b, nir_fabs(b, nir_channels(b, lw, 0x5)))));
 
-      nir_ssa_def *out = nir_vec4(b, nir_channel(b, out_input, 0),
-                                  nir_channel(b, out_input, 1),
-                                  nir_channel(b, out_input, 2),
-                                  tmp);
-      nir_instr_rewrite_src(instr, &intrin->src[1], nir_src_for_ssa(out));
+   nir_def *max = len;
+   if (state->stipple_counter) {
+      assert(state->stipple_pattern);
+
+      nir_def *counter = nir_load_var(b, state->stipple_counter);
+      nir_def *pattern = nir_load_var(b, state->stipple_pattern);
+      nir_def *factor = nir_i2f32(b, nir_ishr_imm(b, pattern, 16));
+      pattern = nir_iand_imm(b, pattern, 0xffff);
+
+      nir_def *stipple_pos = nir_vec2(b, nir_fadd_imm(b, counter, -0.5),
+                                             nir_fadd_imm(b, counter, 0.5));
+
+      stipple_pos = nir_frem(b, nir_fdiv(b, stipple_pos, factor),
+                                 nir_imm_float(b, 16.0));
+
+      nir_def *p = nir_f2i32(b, stipple_pos);
+      nir_def *one = nir_imm_float(b, 1.0);
+
+      // float t = 1.0 - min((1.0 - fract(stipple_pos.x)) * factor, 1.0);
+      nir_def *t = nir_ffract(b, nir_channel(b, stipple_pos, 0));
+      t = nir_fsub(b, one,
+                     nir_fmin(b, nir_fmul(b, factor,
+                                          nir_fsub(b, one, t)), one));
+
+      // vec2 a = vec2((uvec2(pattern) >> p) & uvec2(1u));
+      nir_def *a = nir_i2f32(b,
+         nir_iand(b, nir_ishr(b, nir_replicate(b, pattern, 2), p),
+                  nir_imm_ivec2(b, 1, 1)));
+
+      // float cov = mix(a.x, a.y, t);
+      nir_def *cov = nir_flrp(b, nir_channel(b, a, 0), nir_channel(b, a, 1), t);
+
+      max = nir_fmin(b, len, cov);
    }
 
-}
+   tmp = nir_fmul(b, nir_channel(b, tmp, 0),
+                  nir_fmin(b, nir_channel(b, tmp, 1), max));
+   tmp = nir_fmul(b, nir_channel(b, out_input, 3), tmp);
 
-static void
-nir_lower_aaline_impl(nir_function_impl *impl,
-                      lower_aaline *state)
-{
-   nir_builder *b = &state->b;
-
-   nir_builder_init(b, impl);
-
-   nir_foreach_block(block, impl) {
-      nir_lower_aaline_block(block, state);
-   }
+   nir_def *out = nir_vec4(b, nir_channel(b, out_input, 0),
+                                 nir_channel(b, out_input, 1),
+                                 nir_channel(b, out_input, 2),
+                                 tmp);
+   nir_src_rewrite(&intrin->src[1], out);
+   return true;
 }
 
 void
-nir_lower_aaline_fs(struct nir_shader *shader, int *varying)
+nir_lower_aaline_fs(struct nir_shader *shader, int *varying,
+                    nir_variable *stipple_counter,
+                    nir_variable *stipple_pattern)
 {
    lower_aaline state = {
-      .shader = shader,
+      .stipple_counter = stipple_counter,
+      .stipple_pattern = stipple_pattern,
    };
-   if (shader->info.stage != MESA_SHADER_FRAGMENT)
-      return;
+   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    int highest_location = -1, highest_drv_location = -1;
    nir_foreach_shader_in_variable(var, shader) {
@@ -234,11 +265,8 @@ nir_lower_aaline_fs(struct nir_shader *shader, int *varying)
    *varying = tgsi_get_generic_gl_varying_index(line_width->data.location, true);
    state.line_width_input = line_width;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_lower_aaline_impl(function->impl, &state);
-      }
-   }
+   nir_shader_instructions_pass(shader, lower_aaline_instr,
+                                nir_metadata_dominance, &state);
 }
 
 typedef struct {
@@ -249,7 +277,7 @@ typedef struct {
 
 static void
 nir_lower_aapoint_block(nir_block *block,
-                        lower_aapoint *state, nir_ssa_def *sel)
+                        lower_aapoint *state, nir_def *sel)
 {
   nir_builder *b = &state->b;
   nir_foreach_instr(instr, block) {
@@ -266,60 +294,105 @@ nir_lower_aapoint_block(nir_block *block,
       if (var->data.location < FRAG_RESULT_DATA0 && var->data.location != FRAG_RESULT_COLOR)
          continue;
 
-      nir_ssa_def *out_input = intrin->src[1].ssa;
+      nir_def *out_input = intrin->src[1].ssa;
       b->cursor = nir_before_instr(instr);
 
-      nir_ssa_def *tmp = nir_fmul(b, nir_channel(b, out_input, 3), sel);
-      nir_ssa_def *out = nir_vec4(b, nir_channel(b, out_input, 0),
+      nir_def *tmp = nir_fmul(b, nir_channel(b, out_input, 3), sel);
+      nir_def *out = nir_vec4(b, nir_channel(b, out_input, 0),
                                   nir_channel(b, out_input, 1),
                                   nir_channel(b, out_input, 2),
                                   tmp);
-      nir_instr_rewrite_src(instr, &intrin->src[1], nir_src_for_ssa(out));
+      nir_src_rewrite(&intrin->src[1], out);
    }
 
 }
 
 static void
-nir_lower_aapoint_impl(nir_function_impl *impl,
-                      lower_aapoint *state)
+nir_lower_aapoint_impl(nir_function_impl *impl, lower_aapoint *state,
+                       nir_alu_type bool_type)
 {
-   nir_builder *b = &state->b;
-
-   nir_builder_init(b, impl);
-
    nir_block *block = nir_start_block(impl);
-   b->cursor = nir_before_block(block);
+   state->b = nir_builder_at(nir_before_block(block));
 
-   nir_ssa_def *aainput = nir_load_var(b, state->input);
+   nir_builder *b = &state->b;
+   nir_def *aainput = nir_load_var(b, state->input);
 
-   nir_ssa_def *dist = nir_fadd(b, nir_fmul(b, nir_channel(b, aainput, 0), nir_channel(b, aainput, 0)),
+   nir_def *dist = nir_fadd(b, nir_fmul(b, nir_channel(b, aainput, 0), nir_channel(b, aainput, 0)),
                                 nir_fmul(b, nir_channel(b, aainput, 1), nir_channel(b, aainput, 1)));
 
-   nir_ssa_def *k = nir_channel(b, aainput, 2);
-   nir_ssa_def *chan_val_one = nir_channel(b, aainput, 3);
-   nir_ssa_def *comp = nir_flt32(b, chan_val_one, dist);
+   nir_def *k = nir_channel(b, aainput, 2);
+   nir_def *chan_val_one = nir_channel(b, aainput, 3);
+   nir_def *comp;
+
+   switch (bool_type) {
+   case nir_type_bool1:
+      comp = nir_flt(b, chan_val_one, dist);
+      break;
+   case nir_type_bool32:
+      comp = nir_flt32(b, chan_val_one, dist);
+      break;
+   case nir_type_float32:
+      comp = nir_slt(b, chan_val_one, dist);
+      break;
+   default:
+      unreachable("Invalid Boolean type.");
+   }
 
    nir_discard_if(b, comp);
    b->shader->info.fs.uses_discard = true;
 
    /* compute coverage factor = (1-d)/(1-k) */
    /* 1 - k */
-   nir_ssa_def *tmp = nir_fadd(b, chan_val_one, nir_fneg(b, k));
+   nir_def *tmp = nir_fadd(b, chan_val_one, nir_fneg(b, k));
    /* 1.0 / (1 - k) */
    tmp = nir_frcp(b, tmp);
 
    /* 1 - d */
-   nir_ssa_def *tmp2 = nir_fadd(b, chan_val_one, nir_fneg(b, dist));
+   nir_def *tmp2 = nir_fadd(b, chan_val_one, nir_fneg(b, dist));
 
    /* (1 - d) / (1 - k) */
-   nir_ssa_def *coverage = nir_fmul(b, tmp, tmp2);
+   nir_def *coverage = nir_fmul(b, tmp, tmp2);
 
    /* if (k >= distance)
     *    sel = coverage;
     * else
     *    sel = 1.0;
     */
-   nir_ssa_def *sel = nir_b32csel(b, nir_fge32(b, k, dist), coverage, chan_val_one);
+   nir_def *sel;
+
+   switch (bool_type) {
+   case nir_type_bool1:
+      sel = nir_b32csel(b, nir_fge(b, k, dist), coverage, chan_val_one);
+      break;
+   case nir_type_bool32:
+      sel = nir_b32csel(b, nir_fge32(b, k, dist), coverage, chan_val_one);
+      break;
+   case nir_type_float32: {
+      /* On this path, don't assume that any "fancy" instructions are
+       * supported, but also try to emit something decent.
+       *
+       *    sel = (k >= distance) ? coverage : 1.0;
+       *    sel = (k >= distance) * coverage : (1 - (k >= distance)) * 1.0
+       *    sel = (k >= distance) * coverage : (1 - (k >= distance))
+       *
+       * Since (k >= distance) * coverage is zero when (1 - (k >= distance))
+       * is not zero,
+       *
+       *    sel = (k >= distance) * coverage + (1 - (k >= distance))
+       *
+       * If we assume that coverage == fsat(coverage), this could be further
+       * optimized to fsat(coverage + (1 - (k >= distance))), but I don't feel
+       * like verifying that right now.
+       */
+      nir_def *cmp_result = nir_sge(b, k, dist);
+      sel = nir_fadd(b,
+                     nir_fmul(b, coverage, cmp_result),
+                     nir_fadd(b, chan_val_one, nir_fneg(b, cmp_result)));
+      break;
+   }
+   default:
+      unreachable("Invalid Boolean type.");
+   }
 
    nir_foreach_block(block, impl) {
      nir_lower_aapoint_block(block, state, sel);
@@ -327,8 +400,12 @@ nir_lower_aapoint_impl(nir_function_impl *impl,
 }
 
 void
-nir_lower_aapoint_fs(struct nir_shader *shader, int *varying)
+nir_lower_aapoint_fs(struct nir_shader *shader, int *varying, const nir_alu_type bool_type)
 {
+   assert(bool_type == nir_type_bool1 ||
+          bool_type == nir_type_bool32 ||
+          bool_type == nir_type_float32);
+
    lower_aapoint state = {
       .shader = shader,
    };
@@ -356,9 +433,7 @@ nir_lower_aapoint_fs(struct nir_shader *shader, int *varying)
    *varying = tgsi_get_generic_gl_varying_index(aapoint_input->data.location, true);
    state.input = aapoint_input;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl) {
-         nir_lower_aapoint_impl(function->impl, &state);
-      }
+   nir_foreach_function_impl(impl, shader) {
+      nir_lower_aapoint_impl(impl, &state, bool_type);
    }
 }

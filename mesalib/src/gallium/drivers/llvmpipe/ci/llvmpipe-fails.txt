@@ -1,5 +1,4 @@
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.query_status.compute,Fail
-dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.query_status.fragment,Timeout
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.query_status.vertex,Fail
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.query_status.vertex_and_fragment,Fail
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.reset_status.compute,Fail
@@ -8,28 +7,20 @@ dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.reset_status.
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.sync_status.compute,Fail
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.sync_status.vertex,Fail
 dEQP-EGL.functional.robustness.reset_context.shaders.infinite_loop.sync_status.vertex_and_fragment,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_center,Fail
-dEQP-GLES3.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_mag_reverse_src_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_x,Fail
 dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_dst_y,Fail
-dEQP-GLES3.functional.fbo.blit.rect.nearest_consistency_min_reverse_src_x,Fail
 
 spec@glsl-1.20@compiler@invalid-vec4-array-to-vec3-array-conversion.vert,Fail
 spec@oes_shader_io_blocks@compiler@layout-location-aliasing.vert,Fail
 
-glx@glx-copy-sub-buffer,Fail
-glx@glx-copy-sub-buffer samples=2,Fail
-glx@glx-copy-sub-buffer samples=4,Fail
-glx@glx-swap-copy,Fail
+glx@glx-make-current,Fail
+
+glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 
 # X Error of failed request:  BadDrawable (invalid Pixmap or Window parameter)
@@ -68,12 +59,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on bottom ed
 spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on left edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on right edge,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on top edge,Fail
-spec@!opengl 1.1@read-front,Fail
-spec@!opengl 1.1@read-front clear-front-first,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=2,Fail
-spec@!opengl 1.1@read-front clear-front-first samples=4,Fail
-spec@!opengl 1.1@read-front samples=2,Fail
-spec@!opengl 1.1@read-front samples=4,Fail
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 spec@!opengl 3.2@layered-rendering@clear-color-mismatched-layer-count,Fail
 spec@arb_enhanced_layouts@execution@component-layout@vs-fs-array-dvec3,Fail
@@ -83,18 +68,10 @@ spec@arb_post_depth_coverage@arb_post_depth_coverage-multisampling,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 
-# Query result
-#  Expected: 1536
-#  Observed: 768
-spec@arb_shader_image_load_store@early-z,Fail
-spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
-
 spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-load,Crash
 spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-store,Crash
 
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
-
-spec@arb_tessellation_shader@execution@tcs-tes-levels-out-of-bounds-write,Crash
 
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 
@@ -211,13 +188,13 @@ spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec4-vec4,Fail
 spec@glsl-4.50@execution@ssbo-atomiccompswap-int,Fail
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_image,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@r8ui_texture_buffer_size_via_sampler,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_image,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_image,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
-spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail
+# Debian bookworm fails
+spec@arb_viewport_array@display-list,Fail
+spec@intel_shader_atomic_float_minmax@execution@ssbo-atomicmin-float-nan,Fail
+spec@intel_shader_atomic_float_minmax@execution@ssbo-atomicmax-float-nan,Fail
+spec@intel_shader_atomic_float_minmax@execution@ssbo-atomiccompswap-float,Crash
+spec@intel_shader_atomic_float_minmax@execution@ssbo-atomiccompswap-float-nan,Crash
+spec@intel_shader_atomic_float_minmax@execution@ssbo-atomiccompswap-float-negative-zero,Crash
+spec@!opengl 1.1@line-flat-clip-color,Fail
+spec@intel_shader_atomic_float_minmax@execution@shared-atomiccompswap-float,Crash

@@ -61,13 +61,13 @@ static void r300_flush_and_cleanup(struct r300_context *r300, unsigned flags,
             r300_mark_atom_dirty(r300, atom);
         }
     }
-    r300->vertex_arrays_dirty = TRUE;
+    r300->vertex_arrays_dirty = true;
 
     /* Unmark HWTCL state for SWTCL. */
     if (!r300->screen->caps.has_tcl) {
-        r300->vs_state.dirty = FALSE;
-        r300->vs_constants.dirty = FALSE;
-        r300->clip_state.dirty = FALSE;
+        r300->vs_state.dirty = false;
+        r300->vs_constants.dirty = false;
+        r300->clip_state.dirty = false;
     }
 }
 
@@ -101,7 +101,7 @@ void r300_flush(struct pipe_context *pipe,
             r300->num_z_clears = 0;
         } else if (r300->hyperz_time_of_last_flush - os_time_get() > 2000000) {
             /* If there hasn't been a Z clear for 2 seconds, revoke Hyper-Z access. */
-            r300->hiz_in_use = FALSE;
+            r300->hiz_in_use = false;
 
             /* Decompress the Z buffer. */
             if (r300->zmask_in_use) {
@@ -118,8 +118,8 @@ void r300_flush(struct pipe_context *pipe,
 
             /* Revoke Hyper-Z access, so that some other process can take it. */
             r300->rws->cs_request_feature(&r300->cs, RADEON_FID_R300_HYPERZ_ACCESS,
-                                          FALSE);
-            r300->hyperz_enabled = FALSE;
+                                          false);
+            r300->hyperz_enabled = false;
         }
     }
 }

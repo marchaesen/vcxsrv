@@ -161,7 +161,7 @@ James Park (1):
 
 - gallium/tessellator: Fix warning suppression
 
-Jason Ekstrand (4):
+Faith Ekstrand (4):
 
 - nir: Don't optimize bcsel-of-shuffle across blocks
 - intel/fs: Shuffle can't handle source modifiers

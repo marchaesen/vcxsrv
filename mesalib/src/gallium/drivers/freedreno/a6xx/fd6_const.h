@@ -28,20 +28,26 @@
 #include "fd6_emit.h"
 
 struct fd_ringbuffer *fd6_build_tess_consts(struct fd6_emit *emit) assert_dt;
-unsigned fd6_user_consts_cmdstream_size(struct ir3_shader_variant *v);
+unsigned fd6_user_consts_cmdstream_size(const struct ir3_shader_variant *v);
+
+template <fd6_pipeline_type PIPELINE>
 struct fd_ringbuffer *fd6_build_user_consts(struct fd6_emit *emit) assert_dt;
+
+template <fd6_pipeline_type PIPELINE>
 struct fd_ringbuffer *
 fd6_build_driver_params(struct fd6_emit *emit) assert_dt;
 
-void fd6_emit_cs_consts(const struct ir3_shader_variant *v,
-                        struct fd_ringbuffer *ring, struct fd_context *ctx,
-                        const struct pipe_grid_info *info) assert_dt;
-void fd6_emit_immediates(struct fd_screen *screen,
-                         const struct ir3_shader_variant *v,
+void fd6_emit_cs_driver_params(struct fd_context *ctx,
+                               struct fd_ringbuffer *ring,
+                               struct fd6_compute_state *cs,
+                               const struct pipe_grid_info *info) assert_dt;
+void fd6_emit_cs_user_consts(struct fd_context *ctx,
+                             struct fd_ringbuffer *ring,
+                             struct fd6_compute_state *cs) assert_dt;
+void fd6_emit_immediates(const struct ir3_shader_variant *v,
                          struct fd_ringbuffer *ring) assert_dt;
-void fd6_emit_link_map(struct fd_screen *screen,
-                       const struct ir3_shader_variant *producer,
-                       const struct ir3_shader_variant *v,
+void fd6_emit_link_map(const struct ir3_shader_variant *producer,
+                       const struct ir3_shader_variant *consumer,
                        struct fd_ringbuffer *ring) assert_dt;
 
 #endif /* FD6_CONST_H */

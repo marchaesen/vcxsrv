@@ -22,8 +22,8 @@
  * SOFTWARE.
  */
 
-#include "pan_ir.h"
 #include "compiler/nir/nir_builder.h"
+#include "pan_ir.h"
 
 /* Midgard can write all of color, depth and stencil in a single writeout
  * operation, so we merge depth/stencil stores with color stores.
@@ -42,167 +42,148 @@
 static nir_alu_type
 pan_nir_rt_store_type(nir_intrinsic_instr *store)
 {
-        return store ? nir_intrinsic_src_type(store) : nir_type_float32;
+   return store ? nir_intrinsic_src_type(store) : nir_type_float32;
 }
 
 static void
-pan_nir_emit_combined_store(nir_builder *b,
-                            nir_intrinsic_instr *rt0_store,
-                            unsigned writeout,
-                            nir_intrinsic_instr **stores)
+pan_nir_emit_combined_store(nir_builder *b, nir_intrinsic_instr *rt0_store,
+                            unsigned writeout, nir_intrinsic_instr **stores)
 {
-        nir_intrinsic_instr *intr = nir_intrinsic_instr_create(b->shader, nir_intrinsic_store_combined_output_pan);
+   nir_intrinsic_instr *intr = nir_intrinsic_instr_create(
+      b->shader, nir_intrinsic_store_combined_output_pan);
 
-        intr->num_components = rt0_store ? rt0_store->src[0].ssa->num_components : 4;
+   intr->num_components = rt0_store ? rt0_store->src[0].ssa->num_components : 4;
 
-        if (rt0_store)
-                nir_intrinsic_set_base(intr, nir_intrinsic_base(rt0_store));
-        nir_intrinsic_set_src_type(intr, pan_nir_rt_store_type(rt0_store));
-        nir_intrinsic_set_dest_type(intr, pan_nir_rt_store_type(stores[2]));
-        nir_intrinsic_set_component(intr, writeout);
+   if (rt0_store)
+      nir_intrinsic_set_io_semantics(intr,
+                                     nir_intrinsic_io_semantics(rt0_store));
+   nir_intrinsic_set_src_type(intr, pan_nir_rt_store_type(rt0_store));
+   nir_intrinsic_set_dest_type(intr, pan_nir_rt_store_type(stores[2]));
+   nir_intrinsic_set_component(intr, writeout);
 
-        nir_ssa_def *zero = nir_imm_int(b, 0);
-        nir_ssa_def *zero4 = nir_imm_ivec4(b, 0, 0, 0, 0);
+   nir_def *zero = nir_imm_int(b, 0);
+   nir_def *zero4 = nir_imm_ivec4(b, 0, 0, 0, 0);
 
-        nir_ssa_def *src[] = {
-                rt0_store ? rt0_store->src[0].ssa : zero4,
-                rt0_store ? rt0_store->src[1].ssa : zero,
-                stores[0] ? stores[0]->src[0].ssa : zero,
-                stores[1] ? stores[1]->src[0].ssa : zero,
-                stores[2] ? stores[2]->src[0].ssa : zero4,
-        };
+   nir_def *src[] = {
+      rt0_store ? rt0_store->src[0].ssa : zero4,
+      rt0_store ? rt0_store->src[1].ssa : zero,
+      stores[0] ? stores[0]->src[0].ssa : zero,
+      stores[1] ? stores[1]->src[0].ssa : zero,
+      stores[2] ? stores[2]->src[0].ssa : zero4,
+   };
 
-        for (int i = 0; i < ARRAY_SIZE(src); ++i)
-                intr->src[i] = nir_src_for_ssa(src[i]);
+   for (int i = 0; i < ARRAY_SIZE(src); ++i)
+      intr->src[i] = nir_src_for_ssa(src[i]);
 
-        nir_builder_instr_insert(b, &intr->instr);
+   nir_builder_instr_insert(b, &intr->instr);
 }
 bool
 pan_nir_lower_zs_store(nir_shader *nir)
 {
-        if (nir->info.stage != MESA_SHADER_FRAGMENT)
-                return false;
+   bool progress = false;
 
-        nir_variable *vars[3] = { NULL };
+   if (nir->info.stage != MESA_SHADER_FRAGMENT)
+      return false;
 
-        nir_foreach_shader_out_variable(var, nir) {
-                if (var->data.location == FRAG_RESULT_DEPTH)
-                        vars[0] = var;
-                else if (var->data.location == FRAG_RESULT_STENCIL)
-                        vars[1] = var;
-                else if (var->data.index)
-                        vars[2] = var;
-        }
+   nir_foreach_function_impl(impl, nir) {
+      nir_intrinsic_instr *stores[3] = {NULL};
+      unsigned writeout = 0;
 
-        if (!vars[0] && !vars[1] && !vars[2])
-                return false;
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
 
-        bool progress = false;
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic != nir_intrinsic_store_output)
+               continue;
 
-        nir_foreach_function(function, nir) {
-                if (!function->impl) continue;
+            nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
+            if (sem.location == FRAG_RESULT_DEPTH) {
+               stores[0] = intr;
+               writeout |= PAN_WRITEOUT_Z;
+            } else if (sem.location == FRAG_RESULT_STENCIL) {
+               stores[1] = intr;
+               writeout |= PAN_WRITEOUT_S;
+            } else if (sem.dual_source_blend_index) {
+               stores[2] = intr;
+               writeout |= PAN_WRITEOUT_2;
+            }
+         }
+      }
 
-                nir_intrinsic_instr *stores[3] = { NULL };
+      if (!writeout)
+         continue;
 
-                nir_foreach_block(block, function->impl) {
-                        nir_foreach_instr_safe(instr, block) {
-                                if (instr->type != nir_instr_type_intrinsic)
-                                        continue;
+      nir_block *common_block = NULL;
 
-                                nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-                                if (intr->intrinsic != nir_intrinsic_store_output)
-                                        continue;
+      /* Ensure all stores are in the same block */
+      for (unsigned i = 0; i < ARRAY_SIZE(stores); ++i) {
+         if (!stores[i])
+            continue;
 
-                                for (unsigned i = 0; i < ARRAY_SIZE(vars); ++i) {
-                                        if (vars[i] && nir_intrinsic_base(intr) == vars[i]->data.driver_location) {
-                                                assert(!stores[i]);
-                                                stores[i] = intr;
-                                        }
-                                }
-                        }
-                }
+         nir_block *block = stores[i]->instr.block;
 
-                if (!stores[0] && !stores[1] && !stores[2]) continue;
+         if (common_block)
+            assert(common_block == block);
+         else
+            common_block = block;
+      }
 
-                nir_block *common_block = NULL;
+      bool replaced = false;
 
-                /* Ensure all stores are in the same block */
-                for (unsigned i = 0; i < ARRAY_SIZE(stores); ++i) {
-                        if (!stores[i])
-                                continue;
+      nir_foreach_block(block, impl) {
+         nir_foreach_instr_safe(instr, block) {
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
 
-                        nir_block *block = stores[i]->instr.block; 
+            nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
+            if (intr->intrinsic != nir_intrinsic_store_output)
+               continue;
 
-                        if (common_block)
-                                assert(common_block == block);
-                        else
-                                common_block = block;
-                }
+            nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
 
-                unsigned writeout = 0;
-                if (stores[0])
-                        writeout |= PAN_WRITEOUT_Z;
-                if (stores[1])
-                        writeout |= PAN_WRITEOUT_S;
-                if (stores[2])
-                        writeout |= PAN_WRITEOUT_2;
+            if (sem.location < FRAG_RESULT_DATA0)
+               continue;
 
-                bool replaced = false;
+            if (sem.dual_source_blend_index)
+               continue;
 
-                nir_foreach_block(block, function->impl) {
-                        nir_foreach_instr_safe(instr, block) {
-                                if (instr->type != nir_instr_type_intrinsic)
-                                        continue;
+            assert(nir_src_is_const(intr->src[1]) && "no indirect outputs");
 
-                                nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-                                if (intr->intrinsic != nir_intrinsic_store_output)
-                                        continue;
+            nir_builder b =
+               nir_builder_at(nir_after_block_before_jump(instr->block));
 
-                                const nir_variable *var = nir_find_variable_with_driver_location(nir, nir_var_shader_out, nir_intrinsic_base(intr));
-                                assert(var);
+            /* Trying to write depth twice results in the
+             * wrong blend shader being executed on
+             * Midgard */
+            unsigned this_store = PAN_WRITEOUT_C | (replaced ? 0 : writeout);
 
-                                if (var->data.location < FRAG_RESULT_DATA0)
-                                        continue;
+            pan_nir_emit_combined_store(&b, intr, this_store, stores);
 
-                                if (var->data.index)
-                                        continue;
+            nir_instr_remove(instr);
 
-                                assert(nir_src_is_const(intr->src[1]) && "no indirect outputs");
+            replaced = true;
+         }
+      }
 
-                                nir_builder b;
-                                nir_builder_init(&b, function->impl);
-                                b.cursor = nir_after_block_before_jump(instr->block);
+      /* Insert a store to the depth RT (0xff) if needed */
+      if (!replaced) {
+         nir_builder b =
+            nir_builder_at(nir_after_block_before_jump(common_block));
 
-                                /* Trying to write depth twice results in the
-                                 * wrong blend shader being executed on
-                                 * Midgard */
-                                unsigned this_store = PAN_WRITEOUT_C | (replaced ? 0 : writeout);
+         pan_nir_emit_combined_store(&b, NULL, writeout, stores);
+      }
 
-                                pan_nir_emit_combined_store(&b, intr, this_store, stores);
+      for (unsigned i = 0; i < ARRAY_SIZE(stores); ++i) {
+         if (stores[i])
+            nir_instr_remove(&stores[i]->instr);
+      }
 
-                                nir_instr_remove(instr);
+      nir_metadata_preserve(impl,
+                            nir_metadata_block_index | nir_metadata_dominance);
+      progress = true;
+   }
 
-                                replaced = true;
-                        }
-                }
-
-                /* Insert a store to the depth RT (0xff) if needed */
-                if (!replaced) {
-                        nir_builder b;
-                        nir_builder_init(&b, function->impl);
-                        b.cursor = nir_after_block_before_jump(common_block);
-
-                        pan_nir_emit_combined_store(&b, NULL, writeout, stores);
-                }
-
-                for (unsigned i = 0; i < ARRAY_SIZE(stores); ++i) {
-                        if (stores[i])
-                                nir_instr_remove(&stores[i]->instr);
-                }
-
-                nir_metadata_preserve(function->impl, nir_metadata_block_index | nir_metadata_dominance);
-                progress = true;
-        }
-
-        return progress;
+   return progress;
 }

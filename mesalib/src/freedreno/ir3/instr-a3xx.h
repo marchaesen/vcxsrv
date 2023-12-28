@@ -131,6 +131,11 @@ typedef enum {
    /* Macros that expand to a loop */
    OPC_SCAN_MACRO      = _OPC(1, 58),
 
+   /* Macros that expand to an stsc at the start of the preamble.
+    * It loads into const file and should not be optimized in any way.
+    */
+   OPC_PUSH_CONSTS_LOAD_MACRO = _OPC(1, 59),
+
    /* category 2: */
    OPC_ADD_F           = _OPC(2, 0),
    OPC_MIN_F           = _OPC(2, 1),
@@ -263,6 +268,7 @@ typedef enum {
    OPC_QUAD_SHUFFLE_HORIZ  = _OPC(5, 30),
    OPC_QUAD_SHUFFLE_VERT   = _OPC(5, 31),
    OPC_QUAD_SHUFFLE_DIAG   = _OPC(5, 32),
+   OPC_TCINV               = _OPC(5, 33),
    /* cat5 meta instructions, placed above the cat5 opc field's size */
    OPC_DSXPP_MACRO     = _OPC(5, 35),
    OPC_DSYPP_MACRO     = _OPC(5, 36),
@@ -356,14 +362,28 @@ typedef enum {
    OPC_RELOAD_MACRO    = _OPC(6, 80),
 
    OPC_LDC_K           = _OPC(6, 81),
+   OPC_STSC            = _OPC(6, 82),
 
    /* category 7: */
    OPC_BAR             = _OPC(7, 0),
    OPC_FENCE           = _OPC(7, 1),
+   OPC_SLEEP           = _OPC(7, 2),
+   OPC_ICINV           = _OPC(7, 3),
+   OPC_DCCLN           = _OPC(7, 4),
+   OPC_DCINV           = _OPC(7, 5),
+   OPC_DCFLU           = _OPC(7, 6),
 
-   /* meta instructions (category -1): */
+   OPC_LOCK            = _OPC(7, 7),
+   OPC_UNLOCK          = _OPC(7, 8),
+
+   OPC_ALIAS           = _OPC(7, 9),
+
+   OPC_CCINV           = _OPC(7, 10),
+
+   /* meta instructions (category 8): */
+#define OPC_META 8
    /* placeholder instr to mark shader inputs: */
-   OPC_META_INPUT      = _OPC(-1, 0),
+   OPC_META_INPUT      = _OPC(OPC_META, 0),
    /* The "collect" and "split" instructions are used for keeping
     * track of instructions that write to multiple dst registers
     * (split) like texture sample instructions, or read multiple
@@ -372,13 +392,13 @@ typedef enum {
     * A "split" extracts a scalar component from a vecN, and a
     * "collect" gathers multiple scalar components into a vecN
     */
-   OPC_META_SPLIT      = _OPC(-1, 2),
-   OPC_META_COLLECT    = _OPC(-1, 3),
+   OPC_META_SPLIT      = _OPC(OPC_META, 2),
+   OPC_META_COLLECT    = _OPC(OPC_META, 3),
 
    /* placeholder for texture fetches that run before FS invocation
     * starts:
     */
-   OPC_META_TEX_PREFETCH = _OPC(-1, 4),
+   OPC_META_TEX_PREFETCH = _OPC(OPC_META, 4),
 
    /* Parallel copies have multiple destinations, and copy each destination
     * to its corresponding source. This happens "in parallel," meaning that
@@ -386,8 +406,12 @@ typedef enum {
     * is stored. These are produced in RA when register shuffling is
     * required, and then lowered away immediately afterwards.
     */
-   OPC_META_PARALLEL_COPY = _OPC(-1, 5),
-   OPC_META_PHI = _OPC(-1, 6),
+   OPC_META_PARALLEL_COPY = _OPC(OPC_META, 5),
+   OPC_META_PHI = _OPC(OPC_META, 6),
+   /*
+    * A manually encoded opcode
+    */
+   OPC_META_RAW = _OPC(OPC_META, 7),
 } opc_t;
 /* clang-format on */
 
@@ -438,7 +462,7 @@ type_uint_size(unsigned bit_size)
    case 32: return TYPE_U32;
    default:
       ir3_assert(0); /* invalid size */
-      return 0;
+      return (type_t)0;
    }
 }
 
@@ -450,7 +474,7 @@ type_float_size(unsigned bit_size)
    case 32: return TYPE_F32;
    default:
       ir3_assert(0); /* invalid size */
-      return 0;
+      return (type_t)0;
    }
 }
 

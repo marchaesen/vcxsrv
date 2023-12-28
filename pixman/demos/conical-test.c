@@ -1,4 +1,4 @@
-#include "../test/utils.h"
+#include "utils.h"
 #include "gtk-utils.h"
 
 #define SIZE 128

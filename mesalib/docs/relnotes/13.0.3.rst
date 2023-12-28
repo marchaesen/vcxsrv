@@ -79,7 +79,7 @@ Ilia Mirkin (1):
 
 -  mesa: only verify that enabled arrays have backing buffers
 
-Jason Ekstrand (8):
+Faith Ekstrand (8):
 
 -  anv/cmd_buffer: Re-emit MEDIA_CURBE_LOAD when CS push constants are
    dirty

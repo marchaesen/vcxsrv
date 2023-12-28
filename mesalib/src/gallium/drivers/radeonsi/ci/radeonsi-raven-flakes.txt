@@ -1,2 +1,0 @@
-spec@arb_timer_query@timestamp-get
-spec@arb_shader_draw_parameters@drawid-single-draw-display-list

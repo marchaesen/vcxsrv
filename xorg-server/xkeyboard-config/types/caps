@@ -21,8 +21,8 @@ partial xkb_types "internal" {
 	preserve[Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_SEMIALPHABETIC" {
@@ -38,8 +38,8 @@ partial xkb_types "internal" {
 	preserve[Shift+Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 };
 
@@ -61,8 +61,8 @@ partial xkb_types "internal_nocancel" {
 	map[Shift+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_SEMIALPHABETIC" {
@@ -74,8 +74,8 @@ partial xkb_types "internal_nocancel" {
 	map[Shift+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 };
 
@@ -101,8 +101,8 @@ partial xkb_types "shift" {
 	map[Shift+Lock+LevelThree] = Level3;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_SEMIALPHABETIC" {
@@ -118,8 +118,8 @@ partial xkb_types "shift" {
 	preserve[Shift+Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 };
 
@@ -147,8 +147,8 @@ partial xkb_types "shift_nocancel" {
 	map[Shift+Lock+LevelThree] = Level4;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 
     type "FOUR_LEVEL_SEMIALPHABETIC" {
@@ -165,7 +165,7 @@ partial xkb_types "shift_nocancel" {
 	preserve[Shift+Lock+LevelThree] = Lock;
 	level_name[Level1] = "Base";
 	level_name[Level2] = "Shift";
-	level_name[Level3] = "Alt Base";
-	level_name[Level4] = "Shift Alt";
+	level_name[Level3] = "AltGr";
+	level_name[Level4] = "Shift AltGr";
     };
 };

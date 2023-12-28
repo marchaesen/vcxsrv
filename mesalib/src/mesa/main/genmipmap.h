@@ -26,7 +26,7 @@
 #ifndef GENMIPMAP_H
 #define GENMIPMAP_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 bool
 _mesa_is_valid_generate_texture_mipmap_target(struct gl_context *ctx,

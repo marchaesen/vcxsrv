@@ -105,4 +105,10 @@ xlib_ctor(void)
 {
     XInitThreads();
 }
+
+__attribute__((destructor)) static void
+xlib_dtor(void)
+{
+    XFreeThreads();
+}
 #endif

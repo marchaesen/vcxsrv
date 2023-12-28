@@ -26,18 +26,33 @@
 
 #pragma once
 
-#ifndef _WIN32
 #include <wsl/winadapter.h>
-#else
-#include <unknwn.h>
-#endif
 
 #define D3D12_IGNORE_SDK_LAYERS
+#ifndef _GAMING_XBOX
 #include <directx/d3d12.h>
 #include <directx/d3d12video.h>
+#elif defined(__cplusplus)
+#ifdef _GAMING_XBOX_SCARLETT
+#include <d3d12_xs.h>
+#include <d3d12video_xs.h>
+#else
+#include <d3d12_x.h>
+#include <d3d12video_x.h>
+#endif
+#ifdef IID_PPV_ARGS
+#undef IID_PPV_ARGS
+#endif
+#define IID_PPV_ARGS IID_GRAPHICS_PPV_ARGS
+#define D3D12_HEAP_FLAG_CREATE_NOT_RESIDENT (D3D12_HEAP_FLAGS) 0x800
+#endif /* _GAMING_XBOX */
+
+#ifndef D3D12_TEXTURE_DATA_PITCH_ALIGNMENT
+#define D3D12_TEXTURE_DATA_PITCH_ALIGNMENT D3D12XBOX_TEXTURE_DATA_PITCH_ALIGNMENT
+#endif /* D3D12_TEXTURE_DATA_PITCH_ALIGNMENT */
 
 #if defined(__cplusplus)
-#if !defined(_WIN32) || defined(_MSC_VER) || D3D12_SDK_VERSION < 606
+#if !defined(_WIN32) || defined(_MSC_VER)
 inline D3D12_CPU_DESCRIPTOR_HANDLE
 GetCPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
 {

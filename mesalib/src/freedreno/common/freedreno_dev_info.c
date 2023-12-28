@@ -45,7 +45,9 @@ dev_id_compare(const struct fd_dev_id *ref, const struct fd_dev_id *id)
    if (ref->gpu_id && id->gpu_id) {
       return ref->gpu_id == id->gpu_id;
    } else {
-      assert(ref->chip_id && id->chip_id);
+      if (!id->chip_id)
+         return false;
+
       /* Match on either:
        * (a) exact match:
        */
@@ -81,7 +83,7 @@ dev_id_compare(const struct fd_dev_id *ref, const struct fd_dev_id *id)
 }
 
 const struct fd_dev_info *
-fd_dev_info(const struct fd_dev_id *id)
+fd_dev_info_raw(const struct fd_dev_id *id)
 {
    for (int i = 0; i < ARRAY_SIZE(fd_dev_recs); i++) {
       if (dev_id_compare(&fd_dev_recs[i].id, id)) {
@@ -89,6 +91,19 @@ fd_dev_info(const struct fd_dev_id *id)
       }
    }
    return NULL;
+}
+
+const struct fd_dev_info
+fd_dev_info(const struct fd_dev_id *id)
+{
+   struct fd_dev_info modified = {};
+   const struct fd_dev_info *orig = fd_dev_info_raw(id);
+   if (orig) {
+      modified = *orig;
+      fd_dev_info_apply_dbg_options(&modified);
+   }
+
+   return modified;
 }
 
 const char *

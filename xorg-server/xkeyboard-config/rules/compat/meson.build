@@ -1,4 +1,4 @@
-# generated files 
+# generated files
 rules_compat_generated = []
 
 layout_mappings = files('layoutsMapping.lst')

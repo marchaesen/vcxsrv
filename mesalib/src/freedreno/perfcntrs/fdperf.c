@@ -86,7 +86,6 @@ struct counter_group {
 
 static struct {
    void *io;
-   uint32_t chipid;
    uint32_t min_freq;
    uint32_t max_freq;
    /* per-generation table of counters: */
@@ -95,6 +94,7 @@ static struct {
    /* drm device (for writing select regs via ring): */
    struct fd_device *dev;
    struct fd_pipe *pipe;
+   const struct fd_dev_id *dev_id;
    struct fd_submit *submit;
    struct fd_ringbuffer *ring;
 } dev;
@@ -146,22 +146,16 @@ find_device(void)
 
    dev.pipe = fd_pipe_new(dev.dev, FD_PIPE_3D);
 
-   uint64_t val;
-   ret = fd_pipe_get_param(dev.pipe, FD_CHIP_ID, &val);
-   if (ret) {
-      err(1, "could not get gpu-id");
-   }
-   dev.chipid = val;
+   dev.dev_id = fd_pipe_dev_id(dev.pipe);
+   if (!fd_dev_info_raw(dev.dev_id))
+      err(1, "unknown device");
 
-#define CHIP_FMT "d%d%d.%d"
-#define CHIP_ARGS(chipid)                                                      \
-   ((chipid) >> 24) & 0xff, ((chipid) >> 16) & 0xff, ((chipid) >> 8) & 0xff,   \
-      ((chipid) >> 0) & 0xff
-   printf("device: a%" CHIP_FMT "\n", CHIP_ARGS(dev.chipid));
+   printf("device: %s\n", fd_dev_name(dev.dev_id));
 
    /* try MAX_FREQ first as that will work regardless of old dt
     * dt bindings vs upstream bindings:
     */
+   uint64_t val;
    ret = fd_pipe_get_param(dev.pipe, FD_MAX_FREQ, &val);
    if (ret) {
       printf("falling back to parsing DT bindings for freq\n");
@@ -189,19 +183,16 @@ find_device(void)
 static void
 flush_ring(void)
 {
-   int ret;
-
    if (!dev.submit)
       return;
 
-   struct fd_submit_fence fence = {};
-   util_queue_fence_init(&fence.ready);
+   struct fd_fence *fence = fd_submit_flush(dev.submit, -1, false);
 
-   ret = fd_submit_flush(dev.submit, -1, &fence);
+   if (!fence)
+      errx(1, "submit failed");
 
-   if (ret)
-      errx(1, "submit failed: %d", ret);
-   util_queue_fence_wait(&fence.ready);
+   fd_fence_flush(fence);
+   fd_fence_del(fence);
    fd_ringbuffer_del(dev.ring);
    fd_submit_del(dev.submit);
 
@@ -232,7 +223,7 @@ select_counter(struct counter_group *group, int ctr, int n)
     * makes things more complicated for capturing inital sample value
     */
    struct fd_ringbuffer *ring = dev.ring;
-   switch (dev.chipid >> 24) {
+   switch (fd_dev_gen(dev.dev_id)) {
    case 2:
    case 3:
    case 4:
@@ -343,8 +334,8 @@ redraw_footer(WINDOW *win)
    char *footer;
    int n;
 
-   n = asprintf(&footer, " fdperf: a%" CHIP_FMT " (%.2fMHz..%.2fMHz)",
-                CHIP_ARGS(dev.chipid), ((float)dev.min_freq) / 1000000.0,
+   n = asprintf(&footer, " fdperf: %s (%.2fMHz..%.2fMHz)",
+                fd_dev_name(dev.dev_id), ((float)dev.min_freq) / 1000000.0,
                 ((float)dev.max_freq) / 1000000.0);
 
    wmove(win, h - 1, 0);
@@ -576,7 +567,7 @@ counter_dialog(void)
    dialog = newwin(dh, dw, (h - dh) / 2, (w - dw) / 2);
    box(dialog, 0, 0);
    wrefresh(dialog);
-   keypad(dialog, TRUE);
+   keypad(dialog, true);
 
    while (true) {
       int max = MIN2(dh - 2, group->group->num_countables);
@@ -663,7 +654,7 @@ main_ui(void)
    cbreak();
    wtimeout(mainwin, options.refresh_ms);
    noecho();
-   keypad(mainwin, TRUE);
+   keypad(mainwin, true);
    curs_set(0);
    start_color();
    init_pair(COLOR_GROUP_HEADER, COLOR_WHITE, COLOR_GREEN);
@@ -849,11 +840,13 @@ config_restore(void)
    config_setting_t *root = config_root_setting(&cfg);
 
    /* per device settings: */
-   (void)asprintf(&str, "a%dxx", dev.chipid >> 24);
+   (void)asprintf(&str, "%s", fd_dev_name(dev.dev_id));
    setting = config_setting_get_member(root, str);
    if (!setting)
       setting = config_setting_add(root, str, CONFIG_TYPE_GROUP);
    free(str);
+   if (!setting)
+      return;
 
    for (unsigned i = 0; i < dev.ngroups; i++) {
       struct counter_group *group = &dev.groups[i];
@@ -929,10 +922,7 @@ main(int argc, char **argv)
    find_device();
 
    const struct fd_perfcntr_group *groups;
-   struct fd_dev_id dev_id = {
-         .gpu_id = (dev.chipid >> 24) * 100,
-   };
-   groups = fd_perfcntrs(&dev_id, &dev.ngroups);
+   groups = fd_perfcntrs(dev.dev_id, &dev.ngroups);
    if (!groups) {
       errx(1, "no perfcntr support");
    }

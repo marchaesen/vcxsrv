@@ -362,11 +362,11 @@ build_unary_test_func(struct gallivm_state *gallivm,
    LLVMSetFunctionCallConv(func, LLVMCCallConv);
 
    LLVMPositionBuilderAtEnd(builder, block);
-   
-   arg1 = LLVMBuildLoad(builder, arg1, "");
+
+   arg1 = LLVMBuildLoad2(builder, vf32t, arg1, "");
 
    ret = test->builder(&bld, arg1);
-   
+
    LLVMBuildStore(builder, ret, arg0);
 
    LLVMBuildRetVoid(builder);
@@ -398,7 +398,7 @@ flush_denorm_to_zero(float val)
 
    fi_val.f = val;
 
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
    if (util_get_cpu_caps()->has_sse) {
       if ((fi_val.ui & 0x7f800000) == 0) {
          fi_val.ui &= 0xff800000;
@@ -412,7 +412,7 @@ flush_denorm_to_zero(float val)
 /*
  * Test one LLVM unary arithmetic builder function.
  */
-static boolean
+static bool
 test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned length)
 {
    char test_name[128];
@@ -421,7 +421,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
    struct gallivm_state *gallivm;
    LLVMValueRef test_func;
    unary_func_t test_func_jit;
-   boolean success = TRUE;
+   bool success = true;
    int i, j;
    float *in, *out;
 
@@ -434,7 +434,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
    }
 
    context = LLVMContextCreate();
-#if LLVM_VERSION_MAJOR >= 15
+#if LLVM_VERSION_MAJOR == 15
    LLVMContextSetOpaquePointers(context, false);
 #endif
    gallivm = gallivm_create("test_module", context, NULL);
@@ -459,7 +459,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
       for (i = 0; i < num_vals; ++i) {
          float testval, ref;
          double error, precision;
-         boolean expected_pass = TRUE;
+         bool expected_pass = true;
          bool pass;
 
          testval = flush_denorm_to_zero(in[i]);
@@ -485,7 +485,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
             /* FIXME: The generic (non SSE) path in lp_build_iround, which is
              * always taken for length==2 regardless of native round support,
              * does not round to even. */
-            expected_pass = FALSE;
+            expected_pass = false;
          }
 
          if (test->ref == &expf && util_inf_sign(testval) == -1) {
@@ -506,7 +506,7 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
          }
 
          if (pass != expected_pass) {
-            success = FALSE;
+            success = false;
          }
       }
    }
@@ -521,10 +521,10 @@ test_unary(unsigned verbose, FILE *fp, const struct unary_test_t *test, unsigned
 }
 
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp)
 {
-   boolean success = TRUE;
+   bool success = true;
    int i;
 
    for (i = 0; i < ARRAY_SIZE(unary_tests); ++i) {
@@ -532,7 +532,7 @@ test_all(unsigned verbose, FILE *fp)
       unsigned length;
       for (length = 1; length <= max_length; length *= 2) {
          if (!test_unary(verbose, fp, &unary_tests[i], length)) {
-            success = FALSE;
+            success = false;
          }
       }
    }
@@ -541,7 +541,7 @@ test_all(unsigned verbose, FILE *fp)
 }
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n)
 {
@@ -553,8 +553,8 @@ test_some(unsigned verbose, FILE *fp,
 }
 
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp)
 {
-   return TRUE;
+   return true;
 }

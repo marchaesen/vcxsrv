@@ -13,6 +13,12 @@ include:
     file: '/templates/ci-fairy.yml'
 
 
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+    - if: $CI_PIPELINE_SOURCE == 'push'
+
+
 # global variables to be used by most/all jobs.
 variables:
   FDO_UPSTREAM_REPO: 'xkeyboard-config/xkeyboard-config'
@@ -26,10 +32,15 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2022-01-20.0'
+  FDO_DISTRIBUTION_TAG: '2023-12-20.0'
+
+  # xkbcommon: needed to share artifacts between jobs
+  XKBCOMMON_DIR: 'libxkbcommon'
+  XKBCOMMON_INST_DIR: $CI_PROJECT_DIR/$XKBCOMMON_DIR/_inst
 
 
 stages:
+  - sanity
   - prep
   - build
   - dist
@@ -46,7 +57,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros gettext pkg-config gcc grep m4 python meson ninja git diffutils'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon libxslt python-pycountry'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon libxslt python-pycountry ruff'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 
@@ -86,6 +97,35 @@ check-merge-request:
   allow_failure: true
   dependencies: []
 
+#
+# Verify that commit messages are as expected
+#
+
+check-commit:
+  extends:
+    - .fdo.ci-fairy
+  stage: sanity
+  script:
+    - ci-fairy -vv check-commits --junit-xml=results.xml
+  except:
+    - master@$FDO_UPSTREAM_REPO
+  variables:
+    GIT_DEPTH: 100
+  artifacts:
+    reports:
+      junit: results.xml
+
+#
+# Format Python code with python-black
+#
+ruff-format:
+  extends:
+    - .default_setup
+  stage: test
+  script:
+    - ruff format --line-length=88 --check --diff .
+  needs: ['container-prep']
+
 meson_install:
   extends: .meson_build
   stage: build
@@ -105,7 +145,7 @@ meson_test:
   variables:
       NINJA_EXTRA_COMMAND: "test"
 
-meston_dist:
+meson_dist:
   extends: .meson_build
   stage: build
   variables:
@@ -115,6 +155,49 @@ meston_dist:
     expire_in: 2 weeks
     paths:
       - $BUILDDIR/meson-dist/xkeyboard-config-*.tar.xz
+
+
+# Download and build xkbcommon
+xkbcommon build:
+  extends: .default_setup
+  stage: build
+  script:
+    # Ensure there are no leftovers
+    - rm -rf xorgproto libxkbcommon
+    # Get latest xorgproto so we definitely have all keysyms
+    - git clone --depth=1 https://gitlab.freedesktop.org/xorg/proto/xorgproto
+    - export X11_HEADERS_PREFIX="$PWD/xorgproto/"
+    # Get latest xkbcommon
+    - git clone --depth=1 https://github.com/xkbcommon/libxkbcommon "$XKBCOMMON_DIR"
+    - pushd "$XKBCOMMON_DIR" > /dev/null
+    - ./scripts/update-keysyms
+    # Setup meson for minimal xkbcommon build with explicit paths.
+    # NOTE: we set the library directory as it may depend on the host architecture.
+    - >
+      meson setup "$BUILDDIR" \
+        -Denable-wayland=false \
+        -Denable-x11=false \
+        -Denable-docs=false \
+        -Dxkb-config-root="$INSTDIR/share/X11/xkb" \
+        -Dxkb-config-extra-path="$INSTDIR/share/X11/xkb" \
+        -Dprefix="$XKBCOMMON_INST_DIR" \
+        -Dlibdir="lib"
+    - meson compile -C "$BUILDDIR"
+    - meson install -C "$BUILDDIR"
+    # We want also the test script. It requires "xkbcli-compile-keymap".
+    - cp "$BUILDDIR/xkeyboard-config-test" "$XKBCOMMON_INST_DIR/bin"
+  artifacts:
+    when: on_success
+    name: xkbcommon build
+    expire_in: 3 hours
+    paths:
+      # Keep artifact as small as possible.
+      # At the moment only "layout_tests" and "keymap_tests" require our build.
+      # The other jobs use the distro xkbcommon.
+      - $XKBCOMMON_INST_DIR/bin
+      - $XKBCOMMON_INST_DIR/lib/libxkbcommon.so*
+      - $XKBCOMMON_INST_DIR/libexec/xkbcommon/xkbcli-compile-keymap
+
 
 # Checks for new evdev keycodes to be added to keycodes/evdev
 evdev keycode check:
@@ -169,7 +252,7 @@ match group names to registry:
   needs: ['container-prep']
   stage: test
   script:
-    - "./tests/genLists4Comparison.sh"
+    - "./tests/verify-group-names.sh"
 
 
 # libxkbcommon's xkbcli list prints out YAML-like format, if yq cannot parse it, our
@@ -191,34 +274,51 @@ xkbcli list check:
     paths:
       - rmlvo.yaml
 
-# download libxkbcommon and run its layout test program. This will
+
+# Run the libxkbcommon layout test program. This will
 # run a basic keymap compile test against every combination of
 # layout/variant/option. Syntax errors will fail the test, check the
 # archived file for details.
 layout_tests:
   extends: .default_setup
   stage: test
-  needs: ["meson_install"]
+  needs:
+    - job: meson_install
+      artifacts: true
+    - job: xkbcommon build
+      artifacts: true
   script:
     # make sure the custom layout resolves to something
     - ln -s "$INSTDIR/share/X11/xkb/symbols/us" "$INSTDIR/share/X11/xkb/symbols/custom"
-    - rm -rf xorgproto libxkbcommon
-    # Get latest xorgproto so we definitely have all keysyms
-    - git clone --depth=1 https://gitlab.freedesktop.org/xorg/proto/xorgproto
-    - export X11_HEADERS_PREFIX="$PWD/xorgproto/"
-    - git clone --depth=1 https://github.com/xkbcommon/libxkbcommon
-    - pushd libxkbcommon > /dev/null
-    - ./scripts/update-keysyms
-    - meson builddir -Denable-wayland=false -Denable-x11=false -Denable-docs=false -Dxkb-config-root="$INSTDIR/share/X11/xkb"
-    - ninja -C builddir
+    # make sure the custom types resolves to something
+    - ln -s "$INSTDIR/share/X11/xkb/types/basic" "$INSTDIR/share/X11/xkb/types/custom"
+    # run xkbcommon test
     - echo Running test script - this will take several minutes
-    - ./builddir/xkeyboard-config-test --verbose "$INSTDIR/share/X11/xkb/rules/evdev.xml" > $INSTDIR/keymaps-success.yaml 2> $INSTDIR/keymaps-failed.yaml
-    - ./builddir/xkeyboard-config-test --verbose "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" >> $INSTDIR/keymaps-success.yaml 2>> $INSTDIR/keymaps-failed.yaml
-    - popd > /dev/null
+    # Ensure we use our local version of xkbcommon
+    - export LD_LIBRARY_PATH="$XKBCOMMON_INST_DIR/lib:$LD_LIBRARY_PATH"
+    # Ensure xkeyboard-config-test and xkbcli-compile-keymap are in the PATH
+    - export PATH="$XKBCOMMON_INST_DIR/bin:$XKBCOMMON_INST_DIR/libexec/xkbcommon:$PATH"
+    # For debugging: check if executable is working and output its XKB_CONFIG_ROOT
+    - xkbcli-compile-keymap --layout pc --verbose > /dev/null
+    - >
+      xkeyboard-config-test --verbose \
+          "$INSTDIR/share/X11/xkb/rules/evdev.xml" \
+          >  $INSTDIR/keymaps-success.yaml \
+          2> $INSTDIR/keymaps-failed.yaml
+    - >
+      xkeyboard-config-test --verbose \
+          "$INSTDIR/share/X11/xkb/rules/evdev.extras.xml" \
+          >>  $INSTDIR/keymaps-success.yaml \
+          2>> $INSTDIR/keymaps-failed.yaml
   after_script:
     - echo "Failed keymap compilations:"
     - yq -c ".[] | select(.status != 0) | .cmd, .error" $INSTDIR/keymaps-failed.yaml
-    - .gitlab-ci/yaml-to-junit-xml.py $INSTDIR/keymaps-failed.yaml > junit-results.xml
+    - successful_tests=$(yq ". | length" "$INSTDIR/keymaps-success.yaml")
+    - >
+      .gitlab-ci/yaml-to-junit-xml.py \
+        --additional-successful-tests $successful_tests \
+        "$INSTDIR/keymaps-failed.yaml" \
+        > junit-results.xml
     - xz -z "$INSTDIR/keymaps-success.yaml"
     - xz -z "$INSTDIR/keymaps-failed.yaml"
   variables:
@@ -236,13 +336,19 @@ layout_tests:
 keymap_tests:
   extends: .default_setup
   stage: test
+  needs:
+    # use the installed tree from the meson_install job
+    - job: meson_install
+      artifacts: true
+    - job: xkbcommon build
+      artifacts: true
   script:
+    # Configure the environment for our local xkbcommon build & Python bindings.
     - export XKB_CONFIG_ROOT="$INSTDIR/share/X11/xkb"
+    - export XKBCOMMON_LIB_PATH="$XKBCOMMON_INST_DIR/lib/libxkbcommon.so"
+    - export PYTHONPATH="$PWD/tests:$PYTHONPATH"
+    # Run the tests
     - pytest --junitxml=results.xml
   artifacts:
     reports:
       junit: results.xml
-  # use the installed tree from the meson_install job
-  needs:
-    - job: meson_install
-      artifacts: true

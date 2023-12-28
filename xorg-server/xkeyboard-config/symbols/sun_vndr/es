@@ -44,7 +44,7 @@ xkb_symbols "sun_type6" {
     key <AE06> { [               6,       ampersand,       notsign ] };
     key <AE07> { [               7,           slash                ] };
     key <AE08> { [               8,       parenleft                ] };
-    key <AE09> { [               9,      parenright                ] }; 
+    key <AE09> { [               9,      parenright                ] };
     key <AE10> { [               0,           equal                ] };
     key <AE11> { [      apostrophe,        question,         grave ] };
     key <AE12> { [      exclamdown,    questiondown                ] };
@@ -57,7 +57,7 @@ xkb_symbols "sun_type6" {
     key <AB08> { [           comma,       semicolon                ] };
     key <AB09> { [          period,           colon                ] };
     key <AB10> { [           minus,      underscore                ] };
-   
+
         include "level3(ralt_switch)"
 };
 
@@ -94,11 +94,6 @@ partial alphanumeric_keys
 partial alphanumeric_keys
 	xkb_symbols "ast" {
 	include "es(ast)"
-};
-
-partial alphanumeric_keys
-	xkb_symbols "mac" {
-	include "es(mac)"
 };
 
 partial alphanumeric_keys

@@ -315,9 +315,9 @@ GC, GCE (DLL, inlined and small statics)
 MSVS:
 Intel Core i7 (6 Core HT)
 Windows 7 64 bit
-MSVS 2010 Express with SDK 7.1 (using the SDK command shell TARGET_CPU = x64 or x86)
-MSVS 2013 Express Cross Tools for x64 Command Prompt
-MSVS 2013 Express Native Tools for x32 Command Prompt
+MSVS 2013 Express x64 Command Prompt
+MSVS 2013 Express x32 Command Prompt
+MSVS 2019 x64 Command Prompt
 
 GNU:
 Intel Core i7 (6 Core HT)

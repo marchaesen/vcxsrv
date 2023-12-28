@@ -54,6 +54,10 @@ static const struct debug_named_value debug_control[] = {
           "Dump NIR during program compile" },
         { "tgsi",        V3D_DEBUG_TGSI,
           "Dump TGSI during program compile (v3d only)" },
+        /* `shaderdb` is *not* used by shader-db, but is here so that any other
+         * game/app can dump its stats in the shader-db format, allowing them
+         * to be compared using shader-db's report.py tool.
+         */
         { "shaderdb",    V3D_DEBUG_SHADERDB,
           "Dump program compile information for shader-db analysis" },
         { "surface",     V3D_DEBUG_SURFACE,
@@ -98,7 +102,12 @@ static const struct debug_named_value debug_control[] = {
 #endif
         { "no_merge_jobs", V3D_DEBUG_NO_MERGE_JOBS,
           "Don't try to merge subpasses in the same job even if they share framebuffer configuration (v3dv only)" },
-        { NULL }
+        { "opt_compile_time", V3D_DEBUG_OPT_COMPILE_TIME,
+          "Don't try to reduce shader spilling, might improve compile times with expensive shaders." },
+        /* disable_tfu is v3dv only because v3d has some uses of the TFU without alternative codepaths */
+        { "disable_tfu", V3D_DEBUG_DISABLE_TFU,
+          "Disable TFU (v3dv only)" },
+        DEBUG_NAMED_VALUE_END
 };
 
 DEBUG_GET_ONCE_FLAGS_OPTION(v3d_debug, "V3D_DEBUG", debug_control, 0)

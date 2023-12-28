@@ -97,7 +97,7 @@ Iván Briano (1):
 
 - intel/nir: Fix txs for null surfaces
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 - spirv: Create acceleration structure and shader record variables
 

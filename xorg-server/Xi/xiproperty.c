@@ -730,7 +730,7 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
                 XIDestroyDeviceProperty(prop);
             return BadAlloc;
         }
-        new_value.size = len;
+        new_value.size = total_len;
         new_value.type = type;
         new_value.format = format;
 
@@ -747,7 +747,7 @@ XIChangeDeviceProperty(DeviceIntPtr dev, Atom property, Atom type,
         case PropModePrepend:
             new_data = new_value.data;
             old_data = (void *) (((char *) new_value.data) +
-                                  (prop_value->size * size_in_bytes));
+                                  (len * size_in_bytes));
             break;
         }
         if (new_data)
@@ -889,7 +889,7 @@ ProcXChangeDeviceProperty(ClientPtr client)
     REQUEST(xChangeDevicePropertyReq);
     DeviceIntPtr dev;
     unsigned long len;
-    int totalSize;
+    uint64_t totalSize;
     int rc;
 
     REQUEST_AT_LEAST_SIZE(xChangeDevicePropertyReq);
@@ -901,6 +901,8 @@ ProcXChangeDeviceProperty(ClientPtr client)
 
     rc = check_change_property(client, stuff->property, stuff->type,
                                stuff->format, stuff->mode, stuff->nUnits);
+    if (rc != Success)
+        return rc;
 
     len = stuff->nUnits;
     if (len > (bytes_to_int32(0xffffffff - sizeof(xChangeDevicePropertyReq))))
@@ -1125,7 +1127,7 @@ ProcXIChangeProperty(ClientPtr client)
 {
     int rc;
     DeviceIntPtr dev;
-    int totalSize;
+    uint64_t totalSize;
     unsigned long len;
 
     REQUEST(xXIChangePropertyReq);
@@ -1138,6 +1140,9 @@ ProcXIChangeProperty(ClientPtr client)
 
     rc = check_change_property(client, stuff->property, stuff->type,
                                stuff->format, stuff->mode, stuff->num_items);
+    if (rc != Success)
+        return rc;
+
     len = stuff->num_items;
     if (len > bytes_to_int32(0xffffffff - sizeof(xXIChangePropertyReq)))
         return BadLength;

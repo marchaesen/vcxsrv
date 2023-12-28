@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:  Keith Whitwell <keithw@vmware.com>
@@ -42,8 +42,8 @@ struct flat_stage
 {
    struct draw_stage stage;
 
-   uint num_flat_attribs;
-   uint flat_attribs[PIPE_MAX_SHADER_OUTPUTS];  /* flatshaded attribs */
+   unsigned num_flat_attribs;
+   unsigned flat_attribs[PIPE_MAX_SHADER_OUTPUTS];  /* flatshaded attribs */
 };
 
 
@@ -55,30 +55,29 @@ flat_stage(struct draw_stage *stage)
 
 
 /** Copy all the constant attributes from 'src' vertex to 'dst' vertex */
-static inline void copy_flats( struct draw_stage *stage,
-                               struct vertex_header *dst,
-                               const struct vertex_header *src )
+static inline void
+copy_flats(struct draw_stage *stage,
+           struct vertex_header *dst,
+           const struct vertex_header *src)
 {
    const struct flat_stage *flat = flat_stage(stage);
-   uint i;
-
-   for (i = 0; i < flat->num_flat_attribs; i++) {
-      const uint attr = flat->flat_attribs[i];
+   for (unsigned i = 0; i < flat->num_flat_attribs; i++) {
+      const unsigned attr = flat->flat_attribs[i];
       COPY_4FV(dst->data[attr], src->data[attr]);
    }
 }
 
 
 /** Copy all the color attributes from src vertex to dst0 & dst1 vertices */
-static inline void copy_flats2( struct draw_stage *stage,
-                                struct vertex_header *dst0,
-                                struct vertex_header *dst1,
-                                const struct vertex_header *src )
+static inline void
+copy_flats2(struct draw_stage *stage,
+            struct vertex_header *dst0,
+            struct vertex_header *dst1,
+            const struct vertex_header *src)
 {
    const struct flat_stage *flat = flat_stage(stage);
-   uint i;
-   for (i = 0; i < flat->num_flat_attribs; i++) {
-      const uint attr = flat->flat_attribs[i];
+   for (unsigned i = 0; i < flat->num_flat_attribs; i++) {
+      const unsigned attr = flat->flat_attribs[i];
       COPY_4FV(dst0->data[attr], src->data[attr]);
       COPY_4FV(dst1->data[attr], src->data[attr]);
    }
@@ -90,8 +89,9 @@ static inline void copy_flats2( struct draw_stage *stage,
  * but required for unfilled tris and other primitive-changing stages
  * (like widelines). If no such stages are active, handled by hardware.
  */
-static void flatshade_tri_0( struct draw_stage *stage,
-                             struct prim_header *header )
+static void
+flatshade_tri_0(struct draw_stage *stage,
+                struct prim_header *header)
 {
    struct prim_header tmp;
 
@@ -104,12 +104,13 @@ static void flatshade_tri_0( struct draw_stage *stage,
 
    copy_flats2(stage, tmp.v[1], tmp.v[2], tmp.v[0]);
 
-   stage->next->tri( stage->next, &tmp );
+   stage->next->tri(stage->next, &tmp);
 }
 
 
-static void flatshade_tri_2( struct draw_stage *stage,
-                             struct prim_header *header )
+static void
+flatshade_tri_2(struct draw_stage *stage,
+                struct prim_header *header)
 {
    struct prim_header tmp;
 
@@ -122,15 +123,16 @@ static void flatshade_tri_2( struct draw_stage *stage,
 
    copy_flats2(stage, tmp.v[0], tmp.v[1], tmp.v[2]);
 
-   stage->next->tri( stage->next, &tmp );
+   stage->next->tri(stage->next, &tmp);
 }
 
 
 /**
  * Flatshade line.
  */
-static void flatshade_line_0( struct draw_stage *stage,
-                              struct prim_header *header )
+static void
+flatshade_line_0(struct draw_stage *stage,
+                 struct prim_header *header)
 {
    struct prim_header tmp;
 
@@ -142,12 +144,13 @@ static void flatshade_line_0( struct draw_stage *stage,
 
    copy_flats(stage, tmp.v[1], tmp.v[0]);
 
-   stage->next->line( stage->next, &tmp );
+   stage->next->line(stage->next, &tmp);
 }
 
 
-static void flatshade_line_1( struct draw_stage *stage,
-                              struct prim_header *header )
+static void
+flatshade_line_1(struct draw_stage *stage,
+                 struct prim_header *header)
 {
    struct prim_header tmp;
 
@@ -159,13 +162,13 @@ static void flatshade_line_1( struct draw_stage *stage,
 
    copy_flats(stage, tmp.v[0], tmp.v[1]);
 
-   stage->next->line( stage->next, &tmp );
+   stage->next->line(stage->next, &tmp);
 }
 
 
 static int
 find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
-            uint semantic_name, uint semantic_index)
+            enum tgsi_semantic semantic_name, unsigned semantic_index)
 {
    int interp;
    /* If it's gl_{Front,Back}{,Secondary}Color, pick up the mode
@@ -178,10 +181,9 @@ find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
       /* Otherwise, search in the FS inputs, with a decent default
        * if we don't find it.
        */
-      uint j;
       interp = TGSI_INTERPOLATE_PERSPECTIVE;
       if (fs) {
-         for (j = 0; j < fs->info.num_inputs; j++) {
+         for (unsigned j = 0; j < fs->info.num_inputs; j++) {
             if (semantic_name == fs->info.input_semantic_name[j] &&
                 semantic_index == fs->info.input_semantic_index[j]) {
                interp = fs->info.input_interpolate[j];
@@ -194,13 +196,14 @@ find_interp(const struct draw_fragment_shader *fs, int *indexed_interp,
 }
 
 
-static void flatshade_init_state( struct draw_stage *stage )
+static void
+flatshade_init_state(struct draw_stage *stage)
 {
    struct flat_stage *flat = flat_stage(stage);
    const struct draw_context *draw = stage->draw;
    const struct draw_fragment_shader *fs = draw->fs.fragment_shader;
    const struct tgsi_shader_info *info = draw_get_shader_info(draw);
-   uint i, j;
+   unsigned i, j;
 
    /* Find which vertex shader outputs need constant interpolation, make a list */
 
@@ -262,54 +265,61 @@ static void flatshade_init_state( struct draw_stage *stage )
    if (draw->rasterizer->flatshade_first) {
       stage->line = flatshade_line_0;
       stage->tri = flatshade_tri_0;
-   }
-   else {
+   } else {
       stage->line = flatshade_line_1;
       stage->tri = flatshade_tri_2;
    }
 }
 
-static void flatshade_first_tri( struct draw_stage *stage,
-                                 struct prim_header *header )
-{
-   flatshade_init_state( stage );
-   stage->tri( stage, header );
-}
 
-static void flatshade_first_line( struct draw_stage *stage,
-                                  struct prim_header *header )
+static void
+flatshade_first_tri(struct draw_stage *stage,
+                    struct prim_header *header)
 {
-   flatshade_init_state( stage );
-   stage->line( stage, header );
+   flatshade_init_state(stage);
+   stage->tri(stage, header);
 }
 
 
-static void flatshade_flush( struct draw_stage *stage, 
-                             unsigned flags )
+static void
+flatshade_first_line(struct draw_stage *stage,
+                     struct prim_header *header)
+{
+   flatshade_init_state(stage);
+   stage->line(stage, header);
+}
+
+
+static void
+flatshade_flush(struct draw_stage *stage,
+                unsigned flags)
 {
    stage->tri = flatshade_first_tri;
    stage->line = flatshade_first_line;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 }
 
 
-static void flatshade_reset_stipple_counter( struct draw_stage *stage )
+static void
+flatshade_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void flatshade_destroy( struct draw_stage *stage )
+static void
+flatshade_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
 /**
  * Create flatshading drawing stage.
  */
-struct draw_stage *draw_flatshade_stage( struct draw_context *draw )
+struct draw_stage *
+draw_flatshade_stage(struct draw_context *draw)
 {
    struct flat_stage *flatshade = CALLOC_STRUCT(flat_stage);
    if (!flatshade)
@@ -325,14 +335,14 @@ struct draw_stage *draw_flatshade_stage( struct draw_context *draw )
    flatshade->stage.reset_stipple_counter = flatshade_reset_stipple_counter;
    flatshade->stage.destroy = flatshade_destroy;
 
-   if (!draw_alloc_temp_verts( &flatshade->stage, 2 ))
+   if (!draw_alloc_temp_verts(&flatshade->stage, 2))
       goto fail;
 
    return &flatshade->stage;
 
  fail:
    if (flatshade)
-      flatshade->stage.destroy( &flatshade->stage );
+      flatshade->stage.destroy(&flatshade->stage);
 
    return NULL;
 }

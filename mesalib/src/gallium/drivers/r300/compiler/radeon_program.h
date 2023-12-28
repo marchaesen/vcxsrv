@@ -42,7 +42,7 @@ struct rc_src_register {
 	unsigned int File:4;
 
 	/** Negative values may be used for relative addressing. */
-	signed int Index:(RC_REGISTER_INDEX_BITS+1);
+	unsigned int Index:RC_REGISTER_INDEX_BITS;
 	unsigned int RelAddr:1;
 
 	unsigned int Swizzle:12;

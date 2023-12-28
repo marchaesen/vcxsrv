@@ -33,6 +33,7 @@ struct virgl_query {
    struct virgl_resource *buf;
    uint32_t handle;
    uint32_t result_size;
+   uint32_t pipeline_stats;
 
    bool ready;
    uint64_t result;
@@ -74,6 +75,26 @@ static int pipe_to_virgl_query(enum pipe_query_type ptype)
    return pquery_map[ptype];
 }
 
+static const enum virgl_statistics_query_index stats_index_map[] = {
+   [PIPE_STAT_QUERY_IA_VERTICES] = VIRGL_STAT_QUERY_IA_VERTICES,
+   [PIPE_STAT_QUERY_IA_PRIMITIVES] = VIRGL_STAT_QUERY_IA_PRIMITIVES,
+   [PIPE_STAT_QUERY_VS_INVOCATIONS] = VIRGL_STAT_QUERY_VS_INVOCATIONS,
+   [PIPE_STAT_QUERY_GS_INVOCATIONS] = VIRGL_STAT_QUERY_GS_INVOCATIONS,
+   [PIPE_STAT_QUERY_GS_PRIMITIVES] = VIRGL_STAT_QUERY_GS_PRIMITIVES,
+   [PIPE_STAT_QUERY_C_INVOCATIONS] = VIRGL_STAT_QUERY_C_INVOCATIONS,
+   [PIPE_STAT_QUERY_C_PRIMITIVES] = VIRGL_STAT_QUERY_C_PRIMITIVES,
+   [PIPE_STAT_QUERY_PS_INVOCATIONS] = VIRGL_STAT_QUERY_PS_INVOCATIONS,
+   [PIPE_STAT_QUERY_HS_INVOCATIONS] = VIRGL_STAT_QUERY_HS_INVOCATIONS,
+   [PIPE_STAT_QUERY_DS_INVOCATIONS] = VIRGL_STAT_QUERY_DS_INVOCATIONS,
+   [PIPE_STAT_QUERY_CS_INVOCATIONS] = VIRGL_STAT_QUERY_CS_INVOCATIONS,
+};
+
+static enum virgl_statistics_query_index
+pipe_stats_query_to_virgl(enum pipe_statistics_query_index index)
+{
+   return stats_index_map[index];
+}
+
 static inline struct virgl_query *virgl_query(struct pipe_query *q)
 {
    return (struct virgl_query *)q;
@@ -113,6 +134,14 @@ static struct pipe_query *virgl_create_query(struct pipe_context *ctx,
    query->handle = virgl_object_assign_handle();
    query->result_size = (query_type == PIPE_QUERY_TIMESTAMP ||
                          query_type == PIPE_QUERY_TIME_ELAPSED) ? 8 : 4;
+
+   if (query_type == PIPE_QUERY_PIPELINE_STATISTICS) {
+      query->pipeline_stats = index;
+
+      index = pipe_stats_query_to_virgl(index);
+   } else {
+      query->pipeline_stats = ~0;
+   }
 
    util_range_add(&query->buf->b, &query->buf->valid_buffer_range, 0,
                   sizeof(struct virgl_host_query_state));
@@ -224,7 +253,21 @@ static bool virgl_get_query_result(struct pipe_context *ctx,
       query->ready = true;
    }
 
-   result->u64 = query->result;
+   switch (query->pipeline_stats) {
+   case PIPE_STAT_QUERY_IA_VERTICES: result->pipeline_statistics.ia_vertices = query->result; break;
+   case PIPE_STAT_QUERY_IA_PRIMITIVES: result->pipeline_statistics.ia_primitives = query->result; break;
+   case PIPE_STAT_QUERY_VS_INVOCATIONS: result->pipeline_statistics.vs_invocations = query->result; break;
+   case PIPE_STAT_QUERY_GS_INVOCATIONS: result->pipeline_statistics.gs_invocations = query->result; break;
+   case PIPE_STAT_QUERY_GS_PRIMITIVES: result->pipeline_statistics.gs_primitives = query->result; break;
+   case PIPE_STAT_QUERY_PS_INVOCATIONS: result->pipeline_statistics.ps_invocations = query->result; break;
+   case PIPE_STAT_QUERY_HS_INVOCATIONS: result->pipeline_statistics.hs_invocations = query->result; break;
+   case PIPE_STAT_QUERY_CS_INVOCATIONS: result->pipeline_statistics.cs_invocations = query->result; break;
+   case PIPE_STAT_QUERY_C_INVOCATIONS: result->pipeline_statistics.c_invocations = query->result; break;
+   case PIPE_STAT_QUERY_C_PRIMITIVES: result->pipeline_statistics.c_primitives = query->result; break;
+   case PIPE_STAT_QUERY_DS_INVOCATIONS: result->pipeline_statistics.ds_invocations = query->result; break;
+   default:
+      result->u64 = query->result;
+   }
 
    return true;
 }
@@ -247,6 +290,7 @@ virgl_get_query_result_resource(struct pipe_context *ctx,
    struct virgl_query *query = virgl_query(q);
    struct virgl_resource *qbo = (struct virgl_resource *)resource;
 
+   virgl_resource_dirty(qbo, 0);
    virgl_encode_get_query_result_qbo(vctx, query->handle, qbo, (flags & PIPE_QUERY_WAIT), result_type, offset, index);
 }
 

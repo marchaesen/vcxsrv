@@ -1,5 +1,5 @@
 /*
- * Copyright © 2007-2008 Peter Hutterer
+ * Copyright Â© 2007-2008 Peter Hutterer
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -38,6 +38,8 @@
 #include <X11/Xlibint.h>
 #include <X11/extensions/extutil.h>
 #include <X11/extensions/Xge.h>
+
+#include "extutilP.h"
 
 /***********************************************************************/
 /*                    internal data structures                         */
@@ -141,7 +143,7 @@ _xgeCheckExtInit(Display* dpy, XExtDisplayInfo* info)
 
     if (!info->data)
     {
-        XGEData* data = (XGEData*)Xmalloc(sizeof(XGEData));
+        XGEData* data = Xmalloc(sizeof(XGEData));
         if (!data) {
             goto cleanup;
         }
@@ -186,13 +188,14 @@ _xgeGetExtensionVersion(Display* dpy,
 
     if (!_XReply (dpy, (xReply *) &rep, 0, xTrue))
     {
-        Xfree(info);
         return NULL;
     }
 
-    vers = (XGEVersionRec*)Xmalloc(sizeof(XGEVersionRec));
-    vers->major_version = rep.majorVersion;
-    vers->minor_version = rep.minorVersion;
+    vers = Xmalloc(sizeof(XGEVersionRec));
+    if (vers != NULL) {
+        vers->major_version = rep.majorVersion;
+        vers->minor_version = rep.minorVersion;
+    }
     return vers;
 }
 
@@ -205,7 +208,7 @@ _xgeDpyClose(Display* dpy, XExtCodes* codes)
 {
     XExtDisplayInfo *info = _xgeFindDisplay(dpy);
 
-    if (info->data != NULL) {
+    if (info != NULL && info->data != NULL) {
         XGEData* xge_data = (XGEData*)info->data;
 
         if (xge_data->extensions)
@@ -313,7 +316,7 @@ _X_HIDDEN xgeExtRegister(Display* dpy, int offset, XExtensionHooks* callbacks)
 
     xge_data = (XGEData*)info->data;
 
-    newExt = (XGEExtNode*)Xmalloc(sizeof(XGEExtNode));
+    newExt = Xmalloc(sizeof(XGEExtNode));
     if (!newExt)
     {
         fprintf(stderr, "xgeExtRegister: Failed to alloc memory.\n");

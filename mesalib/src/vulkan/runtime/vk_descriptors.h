@@ -29,7 +29,7 @@
 extern "C" {
 #endif
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 
 VkResult
 vk_create_sorted_bindings(const VkDescriptorSetLayoutBinding *bindings, unsigned count,

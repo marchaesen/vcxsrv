@@ -47,24 +47,34 @@ lower_polylinesmooth(nir_builder *b, nir_instr *instr, void *data)
        nir_intrinsic_src_type(intr) != nir_type_float32)
       return false;
 
-   assert(intr->src[0].is_ssa);
    assert(intr->num_components == 4);
 
    b->cursor = nir_before_instr(&intr->instr);
- 
-   nir_ssa_def *coverage = nir_load_sample_mask_in(b);
 
-   /* coverage = (coverage) / SI_NUM_SMOOTH_AA_SAMPLES */
-   coverage = nir_bit_count(b, coverage);
-   coverage = nir_u2f32(b, coverage);
-   coverage = nir_fmul_imm(b, coverage,  1.0 / *num_smooth_aa_sample);
+   nir_def *res1, *res2;
 
-   /* Write out the fragment color*vec4(1, 1, 1, alpha) */
-   nir_ssa_def *one = nir_imm_float(b, 1.0f);
-   nir_ssa_def *new_val = nir_fmul(b, nir_vec4(b, one, one, one, coverage),
-                                   intr->src[0].ssa);
-   nir_instr_rewrite_src(instr, &intr->src[0], nir_src_for_ssa(new_val));
+   nir_if *if_enabled = nir_push_if(b, nir_load_poly_line_smooth_enabled(b));
+   {
+      nir_def *coverage = nir_load_sample_mask_in(b);
 
+      /* coverage = (coverage) / SI_NUM_SMOOTH_AA_SAMPLES */
+      coverage = nir_bit_count(b, coverage);
+      coverage = nir_u2f32(b, coverage);
+      coverage = nir_fmul_imm(b, coverage, 1.0 / *num_smooth_aa_sample);
+
+      /* Write out the fragment color*vec4(1, 1, 1, alpha) */
+      nir_def *one = nir_imm_float(b, 1.0f);
+      res1 = nir_fmul(b, nir_vec4(b, one, one, one, coverage), intr->src[0].ssa);
+   }
+   nir_push_else(b, if_enabled);
+   {
+      res2 = intr->src[0].ssa;
+   }
+   nir_pop_if(b, if_enabled);
+
+   nir_def *new_dest = nir_if_phi(b, res1, res2);
+
+   nir_src_rewrite(&intr->src[0], new_dest);
    return true;
 }
 
@@ -72,8 +82,6 @@ bool
 nir_lower_poly_line_smooth(nir_shader *shader, unsigned num_smooth_aa_sample)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
-   return nir_shader_instructions_pass(shader, lower_polylinesmooth,
-                                       nir_metadata_loop_analysis |
-                                       nir_metadata_block_index |
-                                       nir_metadata_dominance, &num_smooth_aa_sample);
+   return nir_shader_instructions_pass(shader, lower_polylinesmooth, 0,
+                                       &num_smooth_aa_sample);
 }

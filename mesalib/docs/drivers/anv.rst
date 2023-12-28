@@ -5,16 +5,19 @@ Debugging
 ---------
 
 Here are a few environment variable debug environment variables
-specific to Anv:
+specific to ANV:
 
+:envvar:`ANV_ENABLE_GENERATED_INDIRECT_DRAWS`
+   If defined to ``0`` or ``false``, this will disable the generated
+   indirect draw optimization in ANV. This will only affect Gfx11+.
 :envvar:`ANV_ENABLE_PIPELINE_CACHE`
    If defined to ``0`` or ``false``, this will disable pipeline
-   caching, forcing Anv to reparse and recompile any VkShaderModule
+   caching, forcing ANV to reparse and recompile any VkShaderModule
    (SPIRV) it is given.
 :envvar:`ANV_DISABLE_SECONDARY_CMD_BUFFER_CALLS`
    If defined to ``1`` or ``true``, this will prevent usage of self
    modifying command buffers to implement ``vkCmdExecuteCommands``. As
-   a result of this, it will also disable ``VK_KHR_performance_query``.
+   a result of this, it will also disable :ext:`VK_KHR_performance_query`.
 :envvar:`ANV_ALWAYS_BINDLESS`
    If defined to ``1`` or ``true``, this forces all descriptor sets to
    use the internal `Bindless model`_.
@@ -22,13 +25,13 @@ specific to Anv:
    If defined to ``1`` or ``true``, this disables support for timeline
    semaphores.
 :envvar:`ANV_USERSPACE_RELOCS`
-   If defined to ``1`` or ``true``, this forces Anv to always do
+   If defined to ``1`` or ``true``, this forces ANV to always do
    kernel relocations in command buffers. This should only have an
    effect on hardware that doesn't support soft-pinning (Ivybridge,
    Haswell, Cherryview).
 :envvar:`ANV_PRIMITIVE_REPLICATION_MAX_VIEWS`
    Specifies up to how many view shaders can be lowered to handle
-   VK_KHR_multiview. Beyond this number, multiview is implemented
+   :ext:`VK_KHR_multiview`. Beyond this number, multiview is implemented
    using instanced rendering. If unspecified, the value default to
    ``2``.
 
@@ -36,18 +39,12 @@ specific to Anv:
 Experimental features
 ---------------------
 
-:envvar:`ANV_EXPERIMENTAL_NV_MESH_SHADER`
-   If defined to ``1`` or ``true``, this advertise support for
-   VK_NV_mesh_shader extension for platforms that have hardware
-   support for it.
-
-
 .. _`Bindless model`:
 
 Binding Model
 -------------
 
-Here is the Anv bindless binding model that was implemented for the
+Here is the ANV bindless binding model that was implemented for the
 descriptor indexing feature of Vulkan 1.2 :
 
 .. graphviz::
@@ -183,6 +180,54 @@ Each binding type entry gets an associated structure in memory
 This is the information read by the shader.
 
 
+.. _`Binding tables`:
+
+Binding Tables
+--------------
+
+Binding tables are arrays of 32bit offset entries referencing surface
+states. This is how shaders can refer to binding table entry to read
+or write a surface. For example fragment shaders will often refer to
+entry 0 as the first render target.
+
+The way binding tables are managed is fairly awkward.
+
+Each shader stage must have its binding table programmed through
+a corresponding instruction
+``3DSTATE_BINDING_TABLE_POINTERS_*`` (each stage has its own).
+
+.. graphviz::
+
+  digraph structs {
+    node [shape=record];
+    struct3 [label="{ binding tables&#92;n area | { <bt4> BT4 | <bt3> BT3 | ... | <bt0> BT0 } }|{ surface state&#92;n area |{<ss0> ss0|<ss1> ss1|<ss2> ss2|...}}"];
+    struct3:bt0 -> struct3:ss0;
+    struct3:bt0 -> struct3:ss1;
+  }
+
+
+The value programmed in the ``3DSTATE_BINDING_TABLE_POINTERS_*``
+instructions is not a 64bit pointer but an offset from the address
+programmed in ``STATE_BASE_ADDRESS::Surface State Base Address`` or
+``3DSTATE_BINDING_TABLE_POOL_ALLOC::Binding Table Pool Base Address``
+(available on Gfx11+). The offset value in
+``3DSTATE_BINDING_TABLE_POINTERS_*`` is also limited to a few bits
+(not a full 32bit value), meaning that as we use more and more binding
+tables we need to reposition ``STATE_BASE_ADDRESS::Surface State Base
+Address`` to make space for new binding table arrays.
+
+To make things even more awkward, the binding table entries are also
+relative to ``STATE_BASE_ADDRESS::Surface State Base Address`` so as
+we change ``STATE_BASE_ADDRESS::Surface State Base Address`` we need
+add that offsets to the binding table entries.
+
+The way with deal with this is that we allocate 4Gb of address space
+(since the binding table entries can address 4Gb of surface state
+elements). We reserve the first gigabyte exclusively to binding
+tables, so that anywhere we position our binding table in that first
+gigabyte, it can always refer to the surface states in the next 3Gb.
+
+
 .. _`Descriptor Set Memory Layout`:
 
 Descriptor Set Memory Layout
@@ -239,36 +284,110 @@ Vulkan initially started by baking as much state as possible in
 pipelines. But extension after extension, more and more state has
 become potentially dynamic.
 
-Anv tries to limit the amount of time an instruction has to be packed
+ANV tries to limit the amount of time an instruction has to be packed
 to reprogram part of the 3D pipeline state. The packing is happening
 in 2 places :
 
 - ``genX_pipeline.c`` where the non dynamic state is emitted in the
-  pipeline batch. This batch is copied into the command buffer batch
-  when calling ``vkCmdBindPipeline()``
+  pipeline batch. Chunks of the batches are copied into the command
+  buffer as a result of calling ``vkCmdBindPipeline()``, depending on
+  what changes from the previously bound graphics pipeline
 
-- ``genX_cmd_buffer.c`` in the ``cmd_buffer_flush_state`` function
-  which ends up calling into ``gfx8_cmd_buffer.c`` &
-  ``gfx7_cmd_buffer.c``
+- ``genX_gfx_state.c`` where the dynamic state is added to already
+  packed instructions from ``genX_pipeline.c``
 
 The rule to know where to emit an instruction programming the 3D
 pipeline is as follow :
 
 - If any field of the instruction can be made dynamic, it should be
-  emitted in ``genX_cmd_buffer.c``, ``gfx8_cmd_buffer.c`` or
-  ``gfx7_cmd_buffer.c``
+  emitted in ``genX_gfx_state.c``
 
 - Otherwise, the instruction can be emitted in ``genX_pipeline.c``
 
 When a piece of state programming is dynamic, it should have a
-corresponding field in ``anv_dynamic_state`` and the
-``anv_dynamic_state_copy()`` function should be updated to ensure we
-minimize the amount of time an instruction should be emitted. Each
-instruction should have a associated ``ANV_CMD_DIRTY_*`` mask so that
-the dynamic emission code can tell when to re-emit an instruction.
+corresponding field in ``anv_gfx_dynamic_state`` and the
+``genX(cmd_buffer_flush_gfx_runtime_state)`` function should be
+updated to ensure we minimize the amount of time an instruction should
+be emitted. Each instruction should have a associated
+``ANV_GFX_STATE_*`` mask so that the dynamic emission code can tell
+when to re-emit an instruction.
 
-An instruction can also be re-emitted when a pipeline changes by
-checking for ``ANV_CMD_DIRTY_PIPELINE``. It should only do so if it
-requires to know some value that is coming from the
-``anv_graphics_pipeline`` object that is not available from
-``anv_dynamic_state``.
+
+Generated indirect draws optimization
+-------------------------------------
+
+Indirect draws have traditionally been implemented on Intel HW by
+loading the indirect parameters from memory into HW registers using
+the command streamer's ``MI_LOAD_REGISTER_MEM`` instruction before
+dispatching a draw call to the 3D pipeline.
+
+On recent products, it was found that the command streamer is showing
+as performance bottleneck, because it cannot dispatch draw calls fast
+enough to keep the 3D pipeline busy.
+
+The solution to this problem is to change the way we deal with
+indirect draws. Instead of loading HW registers with values using the
+command streamer, we generate entire set of ``3DPRIMITIVE``
+instructions using a shader. The generated instructions contain the
+entire draw call parameters. This way the command streamer executes
+only ``3DPRIMITIVE`` instructions and doesn't do any data loading from
+memory or touch HW registers, feeding the 3D pipeline as fast as it
+can.
+
+In ANV this implemented in 2 different ways :
+
+By generating instructions directly into the command stream using a
+side batch buffer. When ANV encounters the first indirect draws, it
+generates a jump into the side batch, the side batch contains a draw
+call using a generation shader for each indirect draw. We keep adding
+on more generation draws into the batch until we have to stop due to
+command buffer end, secondary command buffer calls or a barrier
+containing the access flag ``VK_ACCESS_INDIRECT_COMMAND_READ_BIT``.
+The side batch buffer jump back right after the instruction where it
+was called. Here is a high level diagram showing how the generation
+batch buffer writes in the main command buffer :
+
+.. graphviz::
+
+  digraph commands_mode {
+    rankdir = "LR"
+    "main-command-buffer" [
+      label = "main command buffer|...|draw indirect0 start|<f0>jump to\ngeneration batch|<f1>|<f2>empty instruction0|<f3>empty instruction1|...|draw indirect0 end|...|draw indirect1 start|<f4>empty instruction0|<f5>empty instruction1|...|<f6>draw indirect1 end|..."
+      shape = "record"
+    ];
+    "generation-command-buffer" [
+      label = "generation command buffer|<f0>|<f1>write draw indirect0|<f2>write draw indirect1|...|<f3>exit jump"
+      shape = "record"
+    ];
+    "main-command-buffer":f0 -> "generation-command-buffer":f0;
+    "generation-command-buffer":f1 -> "main-command-buffer":f2 [color="#0000ff"];
+    "generation-command-buffer":f1 -> "main-command-buffer":f3 [color="#0000ff"];
+    "generation-command-buffer":f2 -> "main-command-buffer":f4 [color="#0000ff"];
+    "generation-command-buffer":f2 -> "main-command-buffer":f5 [color="#0000ff"];
+    "generation-command-buffer":f3 -> "main-command-buffer":f1;
+  }
+
+By generating instructions into a ring buffer of commands, when the
+draw count number is high. This solution allows smaller batches to be
+emitted. Here is a high level diagram showing how things are
+executed :
+
+.. graphviz::
+
+  digraph ring_mode {
+    rankdir=LR;
+    "main-command-buffer" [
+      label = "main command buffer|...| draw indirect |<f1>generation shader|<f2> jump to ring|<f3> increment\ndraw_base|<f4>..."
+      shape = "record"
+    ];
+    "ring-buffer" [
+      label = "ring buffer|<f0>generated draw0|<f1>generated draw1|<f2>generated draw2|...|<f3>exit jump"
+      shape = "record"
+    ];
+    "main-command-buffer":f2 -> "ring-buffer":f0;
+    "ring-buffer":f3 -> "main-command-buffer":f3;
+    "ring-buffer":f3 -> "main-command-buffer":f4;
+    "main-command-buffer":f3 -> "main-command-buffer":f1;
+    "main-command-buffer":f1 -> "ring-buffer":f1 [color="#0000ff"];
+    "main-command-buffer":f1 -> "ring-buffer":f2 [color="#0000ff"];
+  }

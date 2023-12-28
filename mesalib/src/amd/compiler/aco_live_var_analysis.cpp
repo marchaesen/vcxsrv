@@ -50,6 +50,20 @@ get_live_changes(aco_ptr<Instruction>& instr)
    return changes;
 }
 
+void
+handle_def_fixed_to_op(RegisterDemand* demand, RegisterDemand demand_before, Instruction* instr,
+                       int op_idx)
+{
+   /* Usually the register demand before an instruction would be considered part of the previous
+    * instruction, since it's not greater than the register demand for that previous instruction.
+    * Except, it can be greater in the case of an definition fixed to a non-killed operand: the RA
+    * needs to reserve space between the two instructions for the definition (containing a copy of
+    * the operand).
+    */
+   demand_before += instr->definitions[0].getTemp();
+   demand->update(demand_before);
+}
+
 RegisterDemand
 get_temp_registers(aco_ptr<Instruction>& instr)
 {
@@ -65,6 +79,13 @@ get_temp_registers(aco_ptr<Instruction>& instr)
    for (Operand op : instr->operands) {
       if (op.isTemp() && op.isLateKill() && op.isFirstKill())
          temp_registers += op.getTemp();
+   }
+
+   int op_idx = get_op_fixed_to_def(instr.get());
+   if (op_idx != -1 && !instr->operands[op_idx].isKill()) {
+      RegisterDemand before_instr;
+      before_instr -= get_live_changes(instr);
+      handle_def_fixed_to_op(&temp_registers, before_instr, instr.get(), op_idx);
    }
 
    return temp_registers;
@@ -111,7 +132,6 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
    RegisterDemand new_demand;
 
    register_demand.resize(block->instructions.size());
-   RegisterDemand block_register_demand;
    IDSet live = lives.live_out[block->index];
 
    /* initialize register demand */
@@ -183,13 +203,12 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
          }
       }
 
-      block_register_demand.update(register_demand[idx]);
+      int op_idx = get_op_fixed_to_def(insn);
+      if (op_idx != -1 && !insn->operands[op_idx].isKill()) {
+         RegisterDemand before_instr = new_demand;
+         handle_def_fixed_to_op(&register_demand[idx], before_instr, insn, op_idx);
+      }
    }
-
-   /* update block's register demand for a last time */
-   block_register_demand.update(new_demand);
-   if (program->progress < CompilationProgress::after_ra)
-      block->register_demand = block_register_demand;
 
    /* handle phi definitions */
    uint16_t linear_phi_defs = 0;
@@ -292,7 +311,7 @@ process_live_temps_per_block(Program* program, live& lives, Block* block, unsign
       phi_idx--;
    }
 
-   assert(block->index != 0 || (new_demand == RegisterDemand() && live.empty()));
+   assert(!block->linear_preds.empty() || (new_demand == RegisterDemand() && live.empty()));
 }
 
 unsigned
@@ -306,11 +325,18 @@ calc_waves_per_workgroup(Program* program)
 }
 } /* end namespace */
 
+bool
+uses_scratch(Program* program)
+{
+   /* RT uses scratch but we don't yet know how much. */
+   return program->config->scratch_bytes_per_wave || program->stage == raytracing_cs;
+}
+
 uint16_t
 get_extra_sgprs(Program* program)
 {
    /* We don't use this register on GFX6-8 and it's removed on GFX10+. */
-   bool needs_flat_scr = program->config->scratch_bytes_per_wave && program->gfx_level == GFX9;
+   bool needs_flat_scr = uses_scratch(program) && program->gfx_level == GFX9;
 
    if (program->gfx_level >= GFX10) {
       assert(!program->dev.xnack_enabled);
@@ -348,7 +374,7 @@ get_vgpr_alloc(Program* program, uint16_t addressable_vgprs)
 {
    assert(addressable_vgprs <= program->dev.vgpr_limit);
    uint16_t granule = program->dev.vgpr_alloc_granule;
-   return align(std::max(addressable_vgprs, granule), granule);
+   return ALIGN_NPOT(std::max(addressable_vgprs, granule), granule);
 }
 
 unsigned
@@ -370,7 +396,8 @@ get_addr_sgpr_from_waves(Program* program, uint16_t waves)
 uint16_t
 get_addr_vgpr_from_waves(Program* program, uint16_t waves)
 {
-   uint16_t vgprs = program->dev.physical_vgprs / waves & ~(program->dev.vgpr_alloc_granule - 1);
+   uint16_t vgprs = program->dev.physical_vgprs / waves;
+   vgprs = vgprs / program->dev.vgpr_alloc_granule * program->dev.vgpr_alloc_granule;
    vgprs -= program->config->num_shared_vgprs / 2;
    return std::min(vgprs, program->dev.vgpr_limit);
 }
@@ -437,8 +464,7 @@ update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand)
          get_vgpr_alloc(program, new_demand.vgpr) + program->config->num_shared_vgprs / 2;
       program->num_waves =
          std::min<uint16_t>(program->num_waves, program->dev.physical_vgprs / vgpr_demand);
-      uint16_t max_waves = program->dev.max_wave64_per_simd * (64 / program->wave_size);
-      program->num_waves = std::min(program->num_waves, max_waves);
+      program->num_waves = std::min(program->num_waves, program->dev.max_waves_per_simd);
 
       /* Adjust for LDS and workgroup multiples and calculate max_reg_demand */
       program->num_waves = max_suitable_waves(program, program->num_waves);
@@ -465,13 +491,21 @@ live_var_analysis(Program* program)
       unsigned block_idx = --worklist;
       process_live_temps_per_block(program, result, &program->blocks[block_idx], worklist,
                                    phi_info);
-      new_demand.update(program->blocks[block_idx].register_demand);
    }
 
    /* Handle branches: we will insert copies created for linear phis just before the branch. */
    for (Block& block : program->blocks) {
       result.register_demand[block.index].back().sgpr += phi_info[block.index].linear_phi_defs;
       result.register_demand[block.index].back().sgpr -= phi_info[block.index].linear_phi_ops;
+
+      /* update block's register demand */
+      if (program->progress < CompilationProgress::after_ra) {
+         block.register_demand = RegisterDemand();
+         for (RegisterDemand& demand : result.register_demand[block.index])
+            block.register_demand.update(demand);
+      }
+
+      new_demand.update(block.register_demand);
    }
 
    /* calculate the program's register demand and number of waves */

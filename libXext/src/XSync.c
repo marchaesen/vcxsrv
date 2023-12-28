@@ -358,7 +358,7 @@ XSyncListSystemCounters(Display *dpy, int *n_counters_return)
 	int i;
 
 	if (rep.nCounters < (INT_MAX / sizeof(XSyncSystemCounter)))
-	    list = Xmalloc(rep.nCounters * sizeof(XSyncSystemCounter));
+	    list = Xcalloc(rep.nCounters, sizeof(XSyncSystemCounter));
 	if (rep.length < (INT_MAX >> 2)) {
 	    replylen = rep.length << 2;
 	    pWireSysCounter = Xmalloc (replylen + sizeof(XSyncCounter));

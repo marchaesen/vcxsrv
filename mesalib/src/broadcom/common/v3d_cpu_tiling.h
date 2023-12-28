@@ -31,7 +31,7 @@ static inline void
 v3d_load_utile(void *cpu, uint32_t cpu_stride,
                void *gpu, uint32_t gpu_stride)
 {
-#if defined(V3D_BUILD_NEON) && defined(PIPE_ARCH_ARM)
+#if defined(V3D_BUILD_NEON) && DETECT_ARCH_ARM
         if (gpu_stride == 8) {
                 __asm__ volatile (
                         /* Load from the GPU in one shot, no interleave, to
@@ -80,7 +80,7 @@ v3d_load_utile(void *cpu, uint32_t cpu_stride,
                         : "q0", "q1", "q2", "q3");
                 return;
         }
-#elif defined (PIPE_ARCH_AARCH64)
+#elif DETECT_ARCH_AARCH64
         if (gpu_stride == 8) {
                 __asm__ volatile (
                         /* Load from the GPU in one shot, no interleave, to
@@ -141,7 +141,7 @@ static inline void
 v3d_store_utile(void *gpu, uint32_t gpu_stride,
                 void *cpu, uint32_t cpu_stride)
 {
-#if defined(V3D_BUILD_NEON) && defined(PIPE_ARCH_ARM)
+#if defined(V3D_BUILD_NEON) && DETECT_ARCH_ARM
         if (gpu_stride == 8) {
                 __asm__ volatile (
                         /* Load each 8-byte line from cpu-side source,
@@ -188,7 +188,7 @@ v3d_store_utile(void *gpu, uint32_t gpu_stride,
                         : "q0", "q1", "q2", "q3");
                 return;
         }
-#elif defined (PIPE_ARCH_AARCH64)
+#elif DETECT_ARCH_AARCH64
         if (gpu_stride == 8) {
                 __asm__ volatile (
                         /* Load each 8-byte line from cpu-side source,

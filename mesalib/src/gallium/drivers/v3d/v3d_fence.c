@@ -33,6 +33,8 @@
  * the same BOs), so we can just use the seqno of the last rendering we'd
  * fired off as our fence marker.
  */
+#include <fcntl.h>
+#include <libsync.h>
 
 #include "util/u_inlines.h"
 #include "util/os_time.h"
@@ -117,32 +119,74 @@ v3d_fence_finish(struct pipe_screen *pscreen,
 }
 
 struct v3d_fence *
-v3d_fence_create(struct v3d_context *v3d)
+v3d_fence_create(struct v3d_context *v3d, int fd)
 {
         struct v3d_fence *f = calloc(1, sizeof(*f));
         if (!f)
                 return NULL;
 
-        /* Snapshot the last V3D rendering's out fence.  We'd rather have
-         * another syncobj instead of a sync file, but this is all we get.
-         * (HandleToFD/FDToHandle just gives you another syncobj ID for the
-         * same syncobj).
-         */
-        drmSyncobjExportSyncFile(v3d->fd, v3d->out_sync, &f->fd);
-        if (f->fd == -1) {
-                fprintf(stderr, "export failed\n");
-                free(f);
-                return NULL;
-        }
-
+        f->fd = fd;
         pipe_reference_init(&f->reference, 1);
 
         return f;
 }
 
+static void
+v3d_fence_create_fd(struct pipe_context *pctx, struct pipe_fence_handle **pf,
+                    int fd, enum pipe_fd_type type)
+{
+        struct v3d_context *v3d = (struct v3d_context *)pctx;
+        struct v3d_fence **fence = (struct v3d_fence **)pf;
+
+        assert(type == PIPE_FD_TYPE_NATIVE_SYNC);
+        *fence = v3d_fence_create(v3d, fcntl(fd, F_DUPFD_CLOEXEC, 3));
+}
+
+static void
+v3d_fence_server_sync(struct pipe_context *pctx,
+                      struct pipe_fence_handle *pfence)
+{
+        struct v3d_context *v3d = (struct v3d_context*)pctx;
+        struct v3d_fence *fence = (struct v3d_fence *)pfence;
+
+        sync_accumulate("v3d", &v3d->in_fence_fd, fence->fd);
+}
+
+static int
+v3d_fence_get_fd(struct pipe_screen *screen, struct pipe_fence_handle *pfence)
+{
+        struct v3d_fence *fence = (struct v3d_fence *) pfence;
+        return fcntl(fence->fd, F_DUPFD_CLOEXEC, 3);
+}
+
+int
+v3d_fence_context_init(struct v3d_context *v3d)
+{
+        v3d->base.create_fence_fd = v3d_fence_create_fd;
+        v3d->base.fence_server_sync = v3d_fence_server_sync;
+        v3d->in_fence_fd = -1;
+
+        /* Since we initialize the in_fence_fd to -1 (no wait necessary),
+         * we also need to initialize our in_syncobj as signaled.
+         */
+        return drmSyncobjCreate(v3d->fd, DRM_SYNCOBJ_CREATE_SIGNALED,
+                                &v3d->in_syncobj);
+}
+
 void
-v3d_fence_init(struct v3d_screen *screen)
+v3d_fence_context_finish(struct v3d_context *v3d)
+{
+        drmSyncobjDestroy(v3d->fd, v3d->in_syncobj);
+        if (v3d->in_fence_fd >= 0) {
+                close(v3d->in_fence_fd);
+                v3d->in_fence_fd = -1;
+        }
+}
+
+void
+v3d_fence_screen_init(struct v3d_screen *screen)
 {
         screen->base.fence_reference = v3d_fence_reference;
         screen->base.fence_finish = v3d_fence_finish;
+        screen->base.fence_get_fd = v3d_fence_get_fd;
 }

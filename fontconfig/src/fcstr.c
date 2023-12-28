@@ -122,7 +122,7 @@ FcStrCaseWalkerLong (FcCaseWalker *w, FcChar8 r)
 	    int		mid = (min + max) >> 1;
 	    FcChar32    low = fcCaseFold[mid].upper;
 	    FcChar32    high = low + FcCaseFoldUpperCount (&fcCaseFold[mid]);
-	
+
 	    if (high <= ucs4)
 		min = mid + 1;
 	    else if (ucs4 < low)
@@ -131,7 +131,7 @@ FcStrCaseWalkerLong (FcCaseWalker *w, FcChar8 r)
 	    {
 		const FcCaseFold    *fold = &fcCaseFold[mid];
 		int		    dlen;
-		
+
 		switch (fold->method) {
 		case  FC_CASE_FOLD_EVEN_ODD:
 		    if ((ucs4 & 1) != (fold->upper & 1))
@@ -145,10 +145,10 @@ FcStrCaseWalkerLong (FcCaseWalker *w, FcChar8 r)
 		    memcpy (w->utf8, fcCaseFoldChars + fold->offset, dlen);
 		    break;
 		}
-		
+
 		/* consume rest of src utf-8 bytes */
 		w->src += slen - 1;
-		
+
 		/* read from temp buffer */
 		w->utf8[dlen] = '\0';
 		w->read = w->utf8;
@@ -441,7 +441,7 @@ FcStrContainsWord (const FcChar8 *s1, const FcChar8 *s2)
     FcBool  wordStart = FcTrue;
     int	    s1len = strlen ((char *) s1);
     int	    s2len = strlen ((char *) s2);
-	
+
     while (s1len >= s2len)
     {
 	if (wordStart &&
@@ -684,10 +684,10 @@ FcUtf8ToUcs4 (const FcChar8 *src_orig,
     {
 	result <<= 6;
 	s = *src++;
-	
+
 	if ((s & 0xc0) != 0x80)
 	    return -1;
-	
+
 	result |= s & 0x3f;
     }
     *dst = result;
@@ -1467,7 +1467,6 @@ FcStrSetAddFilenamePairWithSalt (FcStrSet *set, const FcChar8 *a, const FcChar8 
 {
     FcChar8 *new_a = NULL;
     FcChar8 *new_b = NULL;
-    FcChar8 *rs = NULL;
     FcBool  ret;
 
     if (a)
@@ -1487,10 +1486,7 @@ FcStrSetAddFilenamePairWithSalt (FcStrSet *set, const FcChar8 *a, const FcChar8 
 	}
     }
     /* Override maps with new one if exists */
-    if (FcStrSetMemberAB (set, new_a, new_b, &rs))
-    {
-	FcStrSetDel (set, rs);
-    }
+    FcStrSetDel (set, new_a);
     ret = FcStrSetAddTriple (set, new_a, new_b, salt);
     if (new_a)
 	FcStrFree (new_a);
@@ -1594,20 +1590,23 @@ FcStrSetReference (FcStrSet *set)
 void
 FcStrSetDestroy (FcStrSet *set)
 {
-    int	i;
+    if (set)
+    {
+	int	i;
 
-    /* We rely on this in FcGetDefaultLangs for caching. */
-    if (FcRefIsConst (&set->ref))
-	return;
+	/* We rely on this in FcGetDefaultLangs for caching. */
+	if (FcRefIsConst (&set->ref))
+	    return;
 
-    if (FcRefDec (&set->ref) != 1)
-	return;
+	if (FcRefDec (&set->ref) != 1)
+	    return;
 
-    for (i = 0; i < set->num; i++)
-	FcStrFree (set->strs[i]);
-    if (set->strs)
-	free (set->strs);
-    free (set);
+	for (i = 0; i < set->num; i++)
+	    FcStrFree (set->strs[i]);
+	if (set->strs)
+	    free (set->strs);
+	free (set);
+    }
 }
 
 FcStrList *

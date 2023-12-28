@@ -50,7 +50,7 @@ static void svga_flush( struct pipe_context *pipe,
    svga_context_flush(svga, fence);
 
    SVGA_DBG(DEBUG_DMA|DEBUG_PERF, "%s fence_ptr %p\n",
-            __FUNCTION__, fence ? *fence : NULL);
+            __func__, fence ? *fence : NULL);
 
    /* Enable to dump BMPs of the color/depth buffers each frame */
    if (0) {

@@ -57,7 +57,7 @@ fd5_setup_slices(struct fd_resource *rsc)
 {
    struct pipe_resource *prsc = &rsc->b.b;
 
-   if (FD_DBG(LRZ) && has_depth(rsc->b.b.format))
+   if (FD_DBG(LRZ) && has_depth(prsc->format) && !is_z32(prsc->format))
       setup_lrz(rsc);
 
    fdl5_layout(&rsc->layout, prsc->format, fd_resource_nr_samples(prsc),

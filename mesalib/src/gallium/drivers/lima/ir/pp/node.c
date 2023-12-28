@@ -371,7 +371,7 @@ void *ppir_node_create(ppir_block *block, ppir_op op, int index, unsigned mask)
       if (mask) {
          /* reg has 4 slots for each component write node */
          while (mask)
-            comp->var_nodes[(index << 2) + comp->reg_base + u_bit_scan(&mask)] = node;
+            comp->var_nodes[(index << 2) + u_bit_scan(&mask)] = node;
          snprintf(node->name, sizeof(node->name), "reg%d", index);
       } else {
          comp->var_nodes[index] = node;

@@ -23,10 +23,10 @@
 #include "xftint.h"
 
 _X_HIDDEN FcFontSet *
-XftListFontsPatternObjects (Display	    *dpy,
-			    int		    screen,
+XftListFontsPatternObjects (Display	    *dpy _X_UNUSED,
+			    int		    screen _X_UNUSED,
 			    FcPattern	    *pattern,
-			    FcObjectSet    *os)
+			    FcObjectSet	    *os)
 {
     return FcFontList (NULL, pattern, os);
 }

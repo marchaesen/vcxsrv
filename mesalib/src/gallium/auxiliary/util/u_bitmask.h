@@ -36,7 +36,7 @@
 #define U_HANDLE_BITMASK_H_
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 
 #ifdef __cplusplus
@@ -82,7 +82,7 @@ void
 util_bitmask_clear(struct util_bitmask *bm,
                    unsigned index);
 
-boolean
+bool
 util_bitmask_get(struct util_bitmask *bm,
                  unsigned index);
 

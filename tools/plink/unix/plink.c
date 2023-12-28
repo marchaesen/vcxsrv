@@ -64,7 +64,7 @@ int platform_default_i(const char *name, int def)
 
 FontSpec *platform_default_fontspec(const char *name)
 {
-    return fontspec_new("");
+    return fontspec_new_default();
 }
 
 Filename *platform_default_filename(const char *name)
@@ -149,7 +149,7 @@ static char *plink_get_ttymode(Seat *seat, const char *mode)
     do { \
         if (strcmp(mode, ourname) == 0) \
             return get_ttychar(&orig_termios, uxname); \
-    } while(0)
+    } while (0)
 #define GET_BOOL(ourname, uxname, uxmemb, transform) \
     do { \
         if (strcmp(mode, ourname) == 0) { \
@@ -735,8 +735,6 @@ int main(int argc, char **argv)
             --argc, ++argv;
         } else if (ret == 1) {
             continue;
-        } else if (!strcmp(p, "-batch")) {
-            console_batch_mode = true;
         } else if (!strcmp(p, "-s")) {
             /* Save status to write to conf later. */
             use_subsystem = true;

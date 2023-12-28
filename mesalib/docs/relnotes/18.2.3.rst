@@ -84,7 +84,7 @@ Ilia Mirkin (4):
 -  nv50,nvc0: guard against zero-size blits
 -  nvc0: fix blitting red to srgb8_alpha
 
-Jason Ekstrand (7):
+Faith Ekstrand (7):
 
 -  nir/cf: Remove phi sources if needed in nir_handle_add_jump
 -  anv: Use separate MOCS settings for external BOs

@@ -8,6 +8,8 @@ option('glamor', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto
        description: 'Enable glamor (default yes for Xorg/Xwayland builds)')
 option('xwayland_eglstream', type: 'combo', choices: ['true', 'false', 'auto'],
        value: 'auto', description: 'Enable EGLStream support for glamor on Xwayland')
+option('xwayland_ei', type: 'combo', choices: ['socket', 'portal', 'false', 'auto'],
+       value: 'auto', description: 'Enable emulated input support on Xwayland')
 option('xnest', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable Xnest nested X server')
 option('xvfb', type: 'boolean', value: true,
@@ -25,6 +27,10 @@ option('log_dir', type: 'string')
 option('module_dir', type: 'string', value: 'xorg/modules',
        description: 'X.Org modules directory (absolute or relative to the directory specified by the libdir option)')
 option('default_font_path', type: 'string')
+option('fontrootdir', type: 'string',
+        description: 'Root directory for legacy fonts. Default: from font-utils.pc or $datadir/fonts/X11')
+option('serverconfigdir', type: 'string',
+        description: 'Miscellaneous server configuration files path. Default: $libdir/xorg')
 
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)

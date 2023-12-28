@@ -322,7 +322,7 @@ etna_emit_texture_desc(struct etna_context *ctx)
                struct etna_sampler_view_desc *sv = etna_sampler_view_desc(ctx->sampler_view[x]);
                etna_sampler_view_update_descriptor(ctx, stream, sv);
                etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x), &sv->DESC_ADDR);
-            } else {
+            } else if ((1 << x) & ctx->prev_active_samplers){
                /* dummy texture descriptors for unused samplers */
                etna_set_state_reloc(stream, VIVS_NTE_DESCRIPTOR_ADDR(x),
                                     &ctx->screen->dummy_desc_reloc);
@@ -342,6 +342,8 @@ etna_emit_texture_desc(struct etna_context *ctx)
          }
       }
    }
+
+   ctx->prev_active_samplers = active_samplers;
 }
 
 static struct etna_sampler_ts*

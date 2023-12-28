@@ -70,7 +70,7 @@ Ilia Mirkin (18):
 -  nv30: falling back to draw path for edgeflag does no good
 -  nv30: avoid doing extra work on clear and hitting unexpected states
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965/fs: Fix implied_mrf_writes for scratch writes
 

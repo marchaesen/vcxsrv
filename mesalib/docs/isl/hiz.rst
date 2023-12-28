@@ -11,7 +11,7 @@ From the Sandy Bridge PRM Vol. 2, Pt. 1, 7.5.3 "Hierarchical Depth Buffer" (p.
 312):
 
    The hierarchical depth buffer does not support the LOD field, it is assumed
-   by hardware to be zero. A separate hierarachical depth buffer is required
+   by hardware to be zero. A separate hierarchical depth buffer is required
    for each LOD used, and the corresponding buffer’s state delivered to
    hardware each time a new depth buffer state with modified LOD is delivered.
 
@@ -26,10 +26,10 @@ rendering, things are pretty straightforward: you need one HiZ surface for each
 main surface slice. With layered rendering, however, we have to be a bit more
 clever because we need a "real" array surface at each LOD.  ISL solves this
 with a special miptree layout for layered rendering
-:cpp:enumerator:`isl_dim_layout::ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` which lays
+:c:enumerator:`isl_dim_layout.ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` which lays
 out the surface as a miptree of layered images instead of an array of miptrees.
 See the docs for
-:cpp:enumerator:`isl_dim_layout::ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` for a nice
+:c:enumerator:`isl_dim_layout.ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` for a nice
 description along with an ASCII art diagram of the layout.
 
 Also, neither ``3DSTATE_STENCIL_BUFFER`` nor ``3DSTATE_HIER_DEPTH_BUFFER`` have
@@ -39,16 +39,16 @@ pulled from ``3DSTATE_DEPTH_BUFFER``.  When you combine this with the lack of
 LOD, this means that, technically, we have a full-sized single-LOD stencil or
 HiZ surface at each miplevel of which only the upper left-hand corner of each
 array slice ever gets used.  The net effect of this is that, in
-:cpp:enumerator:`isl_dim_layout::ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ`, all LODs
+:c:enumerator:`isl_dim_layout.ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ`, all LODs
 share the same QPitch even though it's horribly wasteful.  This is actually
 pretty convenient for ISL because we only have the one
-:cpp:member:`isl_surf::array_pitch_el_rows` field.
+:c:member:`isl_surf.array_pitch_el_rows` field.
 
 Due to difficulties with plumbing relocation deltas through ISL's
 depth/stencil/hiz emit interface, we can't handle this all automatically in
 ISL.  Instead, it's left up to the driver to do this offsetting.  ISL does
 provide helpers for computing the offsets and they work fine with
-:cpp:enumerator:`isl_dim_layout::ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` so all that's
+:c:enumerator:`isl_dim_layout.ISL_DIM_LAYOUT_GFX6_STENCIL_HIZ` so all that's
 really required is to call the ISL helper and add the computed offset to the
 HiZ or stencil buffer address.  The following is an excerpt from BLORP where we
 do this as an example:

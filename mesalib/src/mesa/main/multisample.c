@@ -23,7 +23,7 @@
  */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/macros.h"
 #include "main/multisample.h"
@@ -36,7 +36,7 @@
 
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_format.h"
-#include "state_tracker/st_context.h"
+#include "state_tracker/st_util.h"
 
 /**
  * Called via glSampleCoverageARB
@@ -89,7 +89,7 @@ get_sample_position(struct gl_context *ctx,
 {
    struct st_context *st = st_context(ctx);
 
-   st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
+   st_validate_state(st, ST_PIPELINE_UPDATE_FB_STATE_MASK);
 
    if (ctx->pipe->get_sample_position)
       ctx->pipe->get_sample_position(ctx->pipe,
@@ -242,7 +242,7 @@ _mesa_check_sample_count(struct gl_context *ctx, GLenum target,
     *
     * This restriction is relaxed for OpenGL ES 3.1.
     */
-   if ((ctx->API == API_OPENGLES2 && ctx->Version == 30) &&
+   if ((_mesa_is_gles2(ctx) && ctx->Version == 30) &&
        _mesa_is_enum_format_integer(internalFormat)
        && samples > 0) {
       return GL_INVALID_OPERATION;
@@ -409,7 +409,7 @@ _mesa_GetProgrammableSampleCaps(struct gl_context *ctx, const struct gl_framebuf
    struct st_context *st = st_context(ctx);
    struct pipe_screen *screen = ctx->pipe->screen;
 
-   st_validate_state(st, ST_PIPELINE_UPDATE_FRAMEBUFFER);
+   st_validate_state(st, ST_PIPELINE_UPDATE_FB_STATE_MASK);
 
    *outBits = 4;
    *outWidth = 1;

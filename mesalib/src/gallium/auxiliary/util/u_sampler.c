@@ -46,6 +46,7 @@ default_template(struct pipe_sampler_view *view,
     */
 
    view->target = texture->target;
+   view->is_tex2d_from_buf = false;
    view->format = format;
    view->u.tex.first_level = 0;
    view->u.tex.last_level = texture->last_level;
@@ -92,16 +93,4 @@ u_sampler_view_default_template(struct pipe_sampler_view *view,
                     texture,
                     format,
                     PIPE_SWIZZLE_0);
-}
-
-void
-u_sampler_view_default_dx9_template(struct pipe_sampler_view *view,
-                                    const struct pipe_resource *texture,
-                                    enum pipe_format format)
-{
-   /* Expand to (1, 1, 1, 1) */
-   default_template(view,
-                    texture,
-                    format,
-                    PIPE_SWIZZLE_1);
 }

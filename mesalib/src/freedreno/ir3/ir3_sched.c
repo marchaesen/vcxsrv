@@ -1154,12 +1154,22 @@ sched_dag_max_delay_cb(struct dag_node *node, void *state)
 }
 
 static void
+sched_dag_validate_cb(const struct dag_node *node, void *data)
+{
+   struct ir3_sched_node *n = (struct ir3_sched_node *)node;
+
+   ir3_print_instr(n->instr);
+}
+
+static void
 sched_dag_init(struct ir3_sched_ctx *ctx)
 {
    ctx->dag = dag_create(ctx);
 
    foreach_instr (instr, &ctx->unscheduled_list)
       sched_node_init(ctx, instr);
+
+   dag_validate(ctx->dag, sched_dag_validate_cb, NULL);
 
    foreach_instr (instr, &ctx->unscheduled_list)
       sched_node_add_deps(instr);
@@ -1223,6 +1233,10 @@ sched_block(struct ir3_sched_ctx *ctx, struct ir3_block *block)
 
    foreach_instr_safe (instr, &ctx->unscheduled_list)
       if (instr->opc == OPC_META_TEX_PREFETCH)
+         schedule(ctx, instr);
+
+   foreach_instr_safe (instr, &ctx->unscheduled_list)
+      if (instr->opc == OPC_PUSH_CONSTS_LOAD_MACRO)
          schedule(ctx, instr);
 
    while (!list_is_empty(&ctx->unscheduled_list)) {

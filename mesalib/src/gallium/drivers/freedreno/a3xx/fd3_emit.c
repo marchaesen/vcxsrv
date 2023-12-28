@@ -428,7 +428,7 @@ fd3_emit_vertex_bufs(struct fd_ringbuffer *ring, struct fd3_emit *emit)
 
          OUT_PKT0(ring, REG_A3XX_VFD_FETCH(j), 2);
          OUT_RING(ring, A3XX_VFD_FETCH_INSTR_0_FETCHSIZE(fs - 1) |
-                           A3XX_VFD_FETCH_INSTR_0_BUFSTRIDE(vb->stride) |
+                           A3XX_VFD_FETCH_INSTR_0_BUFSTRIDE(elem->src_stride) |
                            COND(switchnext, A3XX_VFD_FETCH_INSTR_0_SWITCHNEXT) |
                            A3XX_VFD_FETCH_INSTR_0_INDEXCODE(j) |
                            COND(elem->instance_divisor,
@@ -678,18 +678,19 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
        * viewport clip via scissors.
        */
       if (!ctx->rasterizer->depth_clip_near) {
-         struct pipe_viewport_state *vp = &ctx->viewport;
+         struct pipe_viewport_state *vp = &ctx->viewport[0];
+
          minx = MAX2(minx, (int)floorf(vp->translate[0] - fabsf(vp->scale[0])));
          miny = MAX2(miny, (int)floorf(vp->translate[1] - fabsf(vp->scale[1])));
-         maxx = MIN2(maxx, (int)ceilf(vp->translate[0] + fabsf(vp->scale[0])));
-         maxy = MIN2(maxy, (int)ceilf(vp->translate[1] + fabsf(vp->scale[1])));
+         maxx = MIN2(maxx + 1, (int)ceilf(vp->translate[0] + fabsf(vp->scale[0]))) - 1;
+         maxy = MIN2(maxy + 1, (int)ceilf(vp->translate[1] + fabsf(vp->scale[1]))) - 1;
       }
 
       OUT_PKT0(ring, REG_A3XX_GRAS_SC_WINDOW_SCISSOR_TL, 2);
       OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_TL_X(minx) |
                         A3XX_GRAS_SC_WINDOW_SCISSOR_TL_Y(miny));
-      OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(maxx - 1) |
-                        A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(maxy - 1));
+      OUT_RING(ring, A3XX_GRAS_SC_WINDOW_SCISSOR_BR_X(maxx) |
+                        A3XX_GRAS_SC_WINDOW_SCISSOR_BR_Y(maxy));
 
       ctx->batch->max_scissor.minx = MIN2(ctx->batch->max_scissor.minx, minx);
       ctx->batch->max_scissor.miny = MIN2(ctx->batch->max_scissor.miny, miny);
@@ -698,16 +699,19 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
    }
 
    if (dirty & FD_DIRTY_VIEWPORT) {
+      struct pipe_viewport_state *vp = &ctx->viewport[0];
+
       fd_wfi(ctx->batch, ring);
+
       OUT_PKT0(ring, REG_A3XX_GRAS_CL_VPORT_XOFFSET, 6);
       OUT_RING(ring,
-               A3XX_GRAS_CL_VPORT_XOFFSET(ctx->viewport.translate[0] - 0.5f));
-      OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(ctx->viewport.scale[0]));
+               A3XX_GRAS_CL_VPORT_XOFFSET(vp->translate[0] - 0.5f));
+      OUT_RING(ring, A3XX_GRAS_CL_VPORT_XSCALE(vp->scale[0]));
       OUT_RING(ring,
-               A3XX_GRAS_CL_VPORT_YOFFSET(ctx->viewport.translate[1] - 0.5f));
-      OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(ctx->viewport.scale[1]));
-      OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(ctx->viewport.translate[2]));
-      OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(ctx->viewport.scale[2]));
+               A3XX_GRAS_CL_VPORT_YOFFSET(vp->translate[1] - 0.5f));
+      OUT_RING(ring, A3XX_GRAS_CL_VPORT_YSCALE(vp->scale[1]));
+      OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZOFFSET(vp->translate[2]));
+      OUT_RING(ring, A3XX_GRAS_CL_VPORT_ZSCALE(vp->scale[2]));
    }
 
    if (dirty &
@@ -719,13 +723,13 @@ fd3_emit_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
             pipe_surface_format(ctx->batch->framebuffer.zsbuf),
             UTIL_FORMAT_COLORSPACE_ZS, 0);
       }
-      util_viewport_zmin_zmax(&ctx->viewport, ctx->rasterizer->clip_halfz,
+      util_viewport_zmin_zmax(&ctx->viewport[0], ctx->rasterizer->clip_halfz,
                               &zmin, &zmax);
 
       OUT_PKT0(ring, REG_A3XX_RB_Z_CLAMP_MIN, 2);
       if (depth == 32) {
-         OUT_RING(ring, (uint32_t)(zmin * 0xffffffff));
-         OUT_RING(ring, (uint32_t)(zmax * 0xffffffff));
+         OUT_RING(ring, (uint32_t)(zmin * (float)0xffffffff));
+         OUT_RING(ring, (uint32_t)(zmax * (float)0xffffffff));
       } else if (depth == 16) {
          OUT_RING(ring, (uint32_t)(zmin * 0xffff));
          OUT_RING(ring, (uint32_t)(zmax * 0xffff));

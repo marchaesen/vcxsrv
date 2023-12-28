@@ -10,7 +10,7 @@
 // copyright notice(s) and this permission notice appear in all copies of
 // the Software and that both the above copyright notice(s) and this
 // permission notice appear in supporting documentation.
-// 
+//
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
 // OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
 // MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT
@@ -20,7 +20,7 @@
 // FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT,
 // NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION
 // WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-// 
+//
 // Except as contained in this notice, the name of a copyright holder
 // shall not be used in advertising or otherwise to promote the sale, use
 // or other dealings in this Software without prior written authorization
@@ -35,7 +35,7 @@ xkb_symbols "sun_type6" {
 	include "sun_vndr/us(sun_type6)"
 
     key <TLDE> { [     asciicircum,           degree                   ] };
-    key <AE02> { [               2,         quotedbl,     twosuperior  ] }; 
+    key <AE02> { [               2,         quotedbl,     twosuperior  ] };
     key <AE03> { [               3,          section,   threesuperior  ] };
     key <AE04> { [               4,           dollar                   ] };
     key <AE06> { [               6,        ampersand,         section  ] };
@@ -72,7 +72,7 @@ partial alphanumeric_keys
 
 partial alphanumeric_keys
 	xkb_symbols "legacy" {
-	include "de(legacy)"
+	include "de(deadtilde)"
 };
 
 partial alphanumeric_keys

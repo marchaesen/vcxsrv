@@ -14,7 +14,7 @@ data-sources for things like:
 
 As well as various domain specific producers.
 
-The mesa perfetto support adds additional producers, to allow for visualizing
+The mesa Perfetto support adds additional producers, to allow for visualizing
 GPU performance (frequency, utilization, performance counters, etc) on the
 same timeline, to better understand and tune/debug system level performance:
 
@@ -39,7 +39,7 @@ The exact supported features vary per driver:
      - ``gpu.renderstages.msm``
    * - Intel
      - ``gpu.counters.i915``
-     - ``gpu.renderstages.i915``
+     - ``gpu.renderstages.intel``
    * - Panfrost
      - ``gpu.counters.panfrost``
      -
@@ -47,19 +47,19 @@ The exact supported features vary per driver:
 Run
 ---
 
-To capture a trace with perfetto you need to take the following steps:
+To capture a trace with Perfetto you need to take the following steps:
 
-1. Build perfetto from sources available at ``subprojects/perfetto`` following
+1. Build Perfetto from sources available at ``subprojects/perfetto`` following
    `this guide <https://perfetto.dev/docs/quickstart/linux-tracing>`__.
 
-2. Create a `trace config <https://perfetto.dev/#/trace-config.md>`__, which is
+2. Create a `trace config <https://perfetto.dev/docs/concepts/config>`__, which is
    a json formatted text file with extension ``.cfg``, or use one of the config
    files under the ``src/tool/pps/cfg`` directory. More examples of config files
    can be found in ``subprojects/perfetto/test/configs``.
 
 3. Change directory to ``subprojects/perfetto`` and run a
-   `convenience script <https://perfetto.dev/#/running.md>`__ to start the
-   tracing service:
+   `convenience script <https://perfetto.dev/docs/quickstart/linux-tracing#capturing-a-trace>`__
+   to start the tracing service:
 
    .. code-block:: console
 
@@ -88,7 +88,7 @@ the steps above :
    # Configure Mesa with perfetto
    mesa $ meson . build -Dperfetto=true -Dvulkan-drivers=intel,broadcom -Dgallium-drivers=
    # Build mesa
-   mesa $ ninja -C build
+   mesa $ meson compile -C build
 
    # Within the Mesa repo, build perfetto
    mesa $ cd subprojects/perfetto
@@ -110,7 +110,7 @@ CPU Tracing
 Mesa's CPU tracepoints (``MESA_TRACE_*``) use Perfetto track events when
 Perfetto is enabled.  They use ``mesa.default`` and ``mesa.slow`` categories.
 
-Currently, only EGL and freedreno have CPU tracepoints.
+Currently, only EGL and Freedreno have CPU tracepoints.
 
 Vulkan data sources
 ~~~~~~~~~~~~~~~~~~~
@@ -118,15 +118,15 @@ Vulkan data sources
 The Vulkan API gives the application control over recording of command
 buffers as well as when they are submitted to the hardware. As a
 consequence, we need to ensure command buffers are properly
-instrumented for the perfetto driver data sources prior to Perfetto
+instrumented for the Perfetto driver data sources prior to Perfetto
 actually collecting traces.
 
-This can be achieved by setting the ``GPU_TRACE_INSTRUMENT``
+This can be achieved by setting the :envvar:`MESA_GPU_TRACES`
 environment variable before starting a Vulkan application :
 
 .. code-block:: console
 
-   GPU_TRACE_INSTRUMENT=1 ./build/my_vulkan_app
+   MESA_GPU_TRACES=perfetto ./build/my_vulkan_app
 
 Driver Specifics
 ~~~~~~~~~~~~~~~~
@@ -147,7 +147,7 @@ Intel
 ^^^^^
 
 The Intel PPS driver needs root access to read system-wide
-`RenderBasic <https://software.intel.com/content/www/us/en/develop/documentation/vtune-help/top/reference/gpu-metrics-reference.html>`__
+`RenderBasic <https://www.intel.com/content/www/us/en/docs/vtune-profiler/user-guide/2023-0/gpu-metrics-reference.html>`__
 performance counters, so you can simply run it with sudo:
 
 .. code-block:: console

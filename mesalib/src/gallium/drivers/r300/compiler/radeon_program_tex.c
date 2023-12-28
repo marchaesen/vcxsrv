@@ -230,7 +230,7 @@ int radeonTransformTEX(
 			else
 				inst_add->U.I.SrcReg[0].Negate = inst_add->U.I.SrcReg[0].Negate ^ RC_MASK_XYZW;
 
-			/* This negates the whole expresion: */
+			/* This negates the whole expression: */
 			if (comparefunc == RC_COMPARE_FUNC_LESS || comparefunc == RC_COMPARE_FUNC_GREATER ||
 			    comparefunc == RC_COMPARE_FUNC_NOTEQUAL) {
 				pass = 1;

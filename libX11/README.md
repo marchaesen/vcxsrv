@@ -31,6 +31,67 @@ For patch submission instructions, see:
 
   https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
+## Release 1.8.7
+
+ * Security fixes and hardening in XImage and pixmap handling code
+   (CVE-2023-43786, CVE-2023-43787, !234)
+ * Fix buffer allocation in _XkbReadKeySyms() (CVE-2023-43785)
+ * Fail XOpenDisplay() if server-provided default visual is invalid (!233)
+ * Bring XKB docs in line with actual implementation (!231, !228)
+ * Xutil.h: declare XEmptyRegion() and XEqualRegion() as Bool (!225)
+ * Assorted updates to en_US.UTF-8 compose keys (!213, !214, !215, !216,
+   !217, !219, !220, !222, !223, !226, !227, !229)
+
+## Release 1.8.6
+
+ * Add bounds checks in InitExt.c (CVE-2023-3138)
+
+## Release 1.8.5
+
+ * autoconf & libtool updates (!187, !188)
+ * Restore missing text in XSetScreenSaver man page (#187, !203)
+ * Update am_ET.UTF-8 compose keys to use dead-vowel symbols,
+   in coordination with xkeyboard-config 2.39 (!205)
+ * Assorted updates to en_US.UTF-8 compose keys (!189, !195, !196, !198,
+   !199, !200, !201, !207, !208, !209)
+
+## Release 1.8.4
+
+ * Revert AddressSanitizer fix from 1.8.3 that caused regression (#176, !180)
+ * Add two compose sequences for "capital B with stroke", remove others (!179)
+ * Further improved handling of reentering libX11 via X*IfEvent() calls (!176)
+
+
+## Release 1.8.3
+
+ * Improved handling of reentering libX11 via X*IfEvent() calls (!171, !173)
+ * Fix loading of en_US.UTF-8/XLC_LOCALE (#167, !174)
+ * Add XFreeThreads() and automatic call from a destructor function when
+   thread-safety-constructor is enabled (!167).
+ * Address issues found by UBSan and AddressSanitizer
+ * Fix build with older gcc versions (!169)
+
+## Release 1.8.2
+
+ * Allow X*IfEvent() to reenter libX11 to avoid deadlock from unsafe
+   calls when thread-safety-constructor is enabled (!150).
+ * Remove Xlib's pthread function stubs - instead use system provided
+   threads functions, including linking against any needed pthread
+   libraries if thread-safety-constructor is enabled (!155, !156).
+ * Fix off-by-one error in XKeycodeToKeysym for indexes > 3 (!78).
+ * Allow XNSpotLocation with OnTheSpot (!127).
+ * Fix Win32 build when -fno-common is in effect (!140).
+ * Fix memory leak in XRegisterIMInstantiateCallback (!158).
+ * Add compose sequences for the double-struck capitals ℕ ℤ ℚ ℝ ℂ (!144),
+   the Samogitian E with dot above and macron (!147), Unicode minus sign (!163).
+ * Change <Compose> <^> <-> to mean superscript minus instead of macron (!162).
+ * Delete compose sequences that mix top-row digits with numpad digits (!139)
+   or mix upper & lower case letters (!144).
+ * Delete some unuseful compose sequences meant for Bépo layout (!146).
+ * Delete compose sequences using leftcaret & rightcaret keysyms (!163).
+ * Remove KOI8-R character set from en_US.UTF-8/XLC_LOCALE (!148).
+ * Map sr locales to sr_RS compose files (!161).
+
 ## Release 1.8.1
 
  * Fix --enable-thread-safety-constructor configure option

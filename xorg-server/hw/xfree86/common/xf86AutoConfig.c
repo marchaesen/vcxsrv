@@ -302,6 +302,9 @@ listPossibleVideoDrivers(XF86MatchedDrivers *md)
 #if defined(__linux__)
     xf86AddMatchedDriver(md, "fbdev");
 #endif
+#if defined(__FreeBSD__)
+    xf86AddMatchedDriver(md, "scfb");
+#endif
 
     /* Fallback to platform default hardware */
 #if defined(__i386__) || defined(__amd64__) || defined(__hurd__)

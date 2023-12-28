@@ -34,26 +34,68 @@
 #include <unistd.h>
 
 #include "util/macros.h"
+#include "util/log.h"
 #include "afuc.h"
 #include "asm.h"
 #include "parser.h"
 #include "util.h"
 
+struct encode_state {
+	unsigned gen;
+};
+
+static afuc_opc
+__instruction_case(struct encode_state *s, struct afuc_instr *instr)
+{
+   switch (instr->opc) {
+#define ALU(name) \
+   case OPC_##name: \
+      if (instr->has_immed) \
+         return OPC_##name##I; \
+      break;
+
+   ALU(ADD)
+   ALU(ADDHI)
+   ALU(SUB)
+   ALU(SUBHI)
+   ALU(AND)
+   ALU(OR)
+   ALU(XOR)
+   ALU(NOT)
+   ALU(SHL)
+   ALU(USHR)
+   ALU(ISHR)
+   ALU(ROT)
+   ALU(MUL8)
+   ALU(MIN)
+   ALU(MAX)
+   ALU(CMP)
+#undef ALU
+
+   default:
+      break;
+   }
+
+   return instr->opc;
+}
+
+#include "encode.h"
+
 int gpuver;
 
 /* bit lame to hard-code max but fw sizes are small */
-static struct asm_instruction instructions[0x2000];
+static struct afuc_instr instructions[0x2000];
 static unsigned num_instructions;
 
 static struct asm_label labels[0x512];
 static unsigned num_labels;
 
-struct asm_instruction *
-next_instr(int tok)
+struct afuc_instr *
+next_instr(afuc_opc opc)
 {
-   struct asm_instruction *ai = &instructions[num_instructions++];
+   struct afuc_instr *ai = &instructions[num_instructions++];
    assert(num_instructions < ARRAY_SIZE(instructions));
-   ai->tok = tok;
+   ai->opc = opc;
    return ai;
 }
 
@@ -85,54 +127,14 @@ resolve_label(const char *str)
    exit(2);
 }
 
-static afuc_opc
-tok2alu(int tok)
-{
-   switch (tok) {
-   case T_OP_ADD:
-      return OPC_ADD;
-   case T_OP_ADDHI:
-      return OPC_ADDHI;
-   case T_OP_SUB:
-      return OPC_SUB;
-   case T_OP_SUBHI:
-      return OPC_SUBHI;
-   case T_OP_AND:
-      return OPC_AND;
-   case T_OP_OR:
-      return OPC_OR;
-   case T_OP_XOR:
-      return OPC_XOR;
-   case T_OP_NOT:
-      return OPC_NOT;
-   case T_OP_SHL:
-      return OPC_SHL;
-   case T_OP_USHR:
-      return OPC_USHR;
-   case T_OP_ISHR:
-      return OPC_ISHR;
-   case T_OP_ROT:
-      return OPC_ROT;
-   case T_OP_MUL8:
-      return OPC_MUL8;
-   case T_OP_MIN:
-      return OPC_MIN;
-   case T_OP_MAX:
-      return OPC_MAX;
-   case T_OP_CMP:
-      return OPC_CMP;
-   case T_OP_MSB:
-      return OPC_MSB;
-   default:
-      assert(0);
-      return -1;
-   }
-}
-
 static void
 emit_instructions(int outfd)
 {
    int i;
+
+   struct encode_state s = {
+      .gen = gpuver,
+   };
 
    /* there is an extra 0x00000000 which kernel strips off.. we could
     * perhaps use it for versioning.
@@ -140,190 +142,64 @@ emit_instructions(int outfd)
    i = 0;
    write(outfd, &i, 4);
 
+   /* Expand some meta opcodes, and resolve branch targets */
    for (i = 0; i < num_instructions; i++) {
-      struct asm_instruction *ai = &instructions[i];
-      afuc_instr instr = {0};
-      afuc_opc opc;
+      struct afuc_instr *ai = &instructions[i];
+
+      switch (ai->opc) {
+      case OPC_BREQ:
+         ai->offset = resolve_label(ai->label) - i;
+         if (ai->has_bit)
+            ai->opc = OPC_BREQB;
+         else
+            ai->opc = OPC_BREQI;
+         break;
+
+      case OPC_BRNE:
+         ai->offset = resolve_label(ai->label) - i;
+         if (ai->has_bit)
+            ai->opc = OPC_BRNEB;
+         else
+            ai->opc = OPC_BRNEI;
+         break;
+
+      case OPC_JUMP:
+         ai->offset = resolve_label(ai->label) - i;
+         ai->opc = OPC_BRNEB;
+         ai->src1 = 0;
+         ai->bit = 0;
+         break;
+
+      case OPC_CALL:
+      case OPC_PREEMPTLEAVE:
+         ai->literal = resolve_label(ai->label);
+         break;
+
+      case OPC_MOVI:
+         if (ai->label)
+            ai->immed = resolve_label(ai->label);
+         break;
+
+      default:
+         break;
+      }
 
       /* special case, 2nd dword is patched up w/ # of instructions
        * (ie. offset of jmptbl)
        */
       if (i == 1) {
-         assert(ai->is_literal);
+         assert(ai->opc == OPC_RAW_LITERAL);
          ai->literal &= ~0xffff;
          ai->literal |= num_instructions;
       }
 
-      if (ai->is_literal) {
+      if (ai->opc == OPC_RAW_LITERAL) {
          write(outfd, &ai->literal, 4);
          continue;
       }
 
-      switch (ai->tok) {
-      case T_OP_NOP:
-         opc = OPC_NOP;
-         if (gpuver >= 6)
-            instr.pad = 0x1000000;
-         break;
-      case T_OP_ADD:
-      case T_OP_ADDHI:
-      case T_OP_SUB:
-      case T_OP_SUBHI:
-      case T_OP_AND:
-      case T_OP_OR:
-      case T_OP_XOR:
-      case T_OP_NOT:
-      case T_OP_SHL:
-      case T_OP_USHR:
-      case T_OP_ISHR:
-      case T_OP_ROT:
-      case T_OP_MUL8:
-      case T_OP_MIN:
-      case T_OP_MAX:
-      case T_OP_CMP:
-      case T_OP_MSB:
-         if (ai->has_immed) {
-            /* MSB overlaps with STORE */
-            assert(ai->tok != T_OP_MSB);
-            if (ai->xmov) {
-               fprintf(stderr,
-                       "ALU instruction cannot have immediate and xmov\n");
-               exit(1);
-            }
-            opc = tok2alu(ai->tok);
-            instr.alui.dst = ai->dst;
-            instr.alui.src = ai->src1;
-            instr.alui.uimm = ai->immed;
-         } else {
-            opc = OPC_ALU;
-            instr.alu.dst = ai->dst;
-            instr.alu.src1 = ai->src1;
-            instr.alu.src2 = ai->src2;
-            instr.alu.xmov = ai->xmov;
-            instr.alu.alu = tok2alu(ai->tok);
-         }
-         break;
-      case T_OP_MOV:
-         /* move can either be encoded as movi (ie. move w/ immed) or
-          * an alu instruction
-          */
-         if ((ai->has_immed || ai->label) && ai->xmov) {
-            fprintf(stderr, "ALU instruction cannot have immediate and xmov\n");
-            exit(1);
-         }
-         if (ai->has_immed) {
-            opc = OPC_MOVI;
-            instr.movi.dst = ai->dst;
-            instr.movi.uimm = ai->immed;
-            instr.movi.shift = ai->shift;
-         } else if (ai->label) {
-            /* mov w/ a label is just an alias for an immediate, this
-             * is useful to load the address of a constant table into
-             * a register:
-             */
-            opc = OPC_MOVI;
-            instr.movi.dst = ai->dst;
-            instr.movi.uimm = resolve_label(ai->label);
-            instr.movi.shift = ai->shift;
-         } else {
-            /* encode as: or $dst, $00, $src */
-            opc = OPC_ALU;
-            instr.alu.dst = ai->dst;
-            instr.alu.src1 = 0x00; /* $00 reads-back 0 */
-            instr.alu.src2 = ai->src1;
-            instr.alu.xmov = ai->xmov;
-            instr.alu.alu = OPC_OR;
-         }
-         break;
-      case T_OP_CWRITE:
-      case T_OP_CREAD:
-      case T_OP_STORE:
-      case T_OP_LOAD:
-         if (gpuver >= 6) {
-            if (ai->tok == T_OP_CWRITE) {
-               opc = OPC_CWRITE6;
-            } else if (ai->tok == T_OP_CREAD) {
-               opc = OPC_CREAD6;
-            } else if (ai->tok == T_OP_STORE) {
-               opc = OPC_STORE6;
-            } else if (ai->tok == T_OP_LOAD) {
-               opc = OPC_LOAD6;
-            } else {
-               unreachable("");
-            }
-         } else {
-            if (ai->tok == T_OP_CWRITE) {
-               opc = OPC_CWRITE5;
-            } else if (ai->tok == T_OP_CREAD) {
-               opc = OPC_CREAD5;
-            } else if (ai->tok == T_OP_STORE || ai->tok == T_OP_LOAD) {
-               fprintf(stderr, "load and store do not exist on a5xx\n");
-               exit(1);
-            } else {
-               unreachable("");
-            }
-         }
-         instr.control.src1 = ai->src1;
-         instr.control.src2 = ai->src2;
-         instr.control.flags = ai->bit;
-         instr.control.uimm = ai->immed;
-         break;
-      case T_OP_BRNE:
-      case T_OP_BREQ:
-         if (ai->has_immed) {
-            opc = (ai->tok == T_OP_BRNE) ? OPC_BRNEI : OPC_BREQI;
-            instr.br.bit_or_imm = ai->immed;
-         } else {
-            opc = (ai->tok == T_OP_BRNE) ? OPC_BRNEB : OPC_BREQB;
-            instr.br.bit_or_imm = ai->bit;
-         }
-         instr.br.src = ai->src1;
-         instr.br.ioff = resolve_label(ai->label) - i;
-         break;
-      case T_OP_RET:
-         opc = OPC_RET;
-         break;
-      case T_OP_IRET:
-         opc = OPC_RET;
-         instr.ret.interrupt = 1;
-         break;
-      case T_OP_CALL:
-         opc = OPC_CALL;
-         instr.call.uoff = resolve_label(ai->label);
-         break;
-      case T_OP_PREEMPTLEAVE:
-         opc = OPC_PREEMPTLEAVE6;
-         instr.call.uoff = resolve_label(ai->label);
-         break;
-      case T_OP_SETSECURE:
-         opc = OPC_SETSECURE;
-         if (resolve_label(ai->label) != i + 3) {
-            fprintf(stderr, "jump label %s is incorrect for setsecure\n",
-                    ai->label);
-            exit(1);
-         }
-         if (ai->src1 != 0x2) {
-            fprintf(stderr, "source for setsecure must be $02\n");
-            exit(1);
-         }
-         break;
-      case T_OP_JUMP:
-         /* encode jump as: brne $00, b0, #label */
-         opc = OPC_BRNEB;
-         instr.br.bit_or_imm = 0;
-         instr.br.src = 0x00; /* $00 reads-back 0.. compare to 0 */
-         instr.br.ioff = resolve_label(ai->label) - i;
-         break;
-      case T_OP_WAITIN:
-         opc = OPC_WIN;
-         break;
-      default:
-         unreachable("");
-      }
-
-      afuc_set_opc(&instr, opc, ai->rep);
-
-      write(outfd, &instr, 4);
+      uint32_t encoded = bitmask_to_uint64_t(encode__instruction(&s, NULL, ai));
+      write(outfd, &encoded, 4);
    }
 }
 
@@ -332,6 +208,13 @@ parse_control_reg(const char *name)
 {
    /* skip leading "@" */
    return afuc_control_reg(name + 1);
+}
+
+unsigned
+parse_sqe_reg(const char *name)
+{
+   /* skip leading "%" */
+   return afuc_sqe_reg(name + 1);
 }
 
 static void
@@ -413,6 +296,8 @@ main(int argc, char **argv)
          gpuver = 5;
       } else if (strstr(file, "a6")) {
          gpuver = 6;
+      } else if (strstr(file, "a7")) {
+         gpuver = 7;
       }
    }
 

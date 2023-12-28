@@ -42,7 +42,7 @@ fd_submit_new(struct fd_pipe *pipe)
 void
 fd_submit_del(struct fd_submit *submit)
 {
-   if (!p_atomic_dec_zero(&submit->refcnt))
+   if (!unref(&submit->refcnt))
       return;
 
    if (submit->primary)
@@ -56,16 +56,15 @@ fd_submit_del(struct fd_submit *submit)
 struct fd_submit *
 fd_submit_ref(struct fd_submit *submit)
 {
-   p_atomic_inc(&submit->refcnt);
+   ref(&submit->refcnt);
    return submit;
 }
 
-int
-fd_submit_flush(struct fd_submit *submit, int in_fence_fd,
-                struct fd_submit_fence *out_fence)
+struct fd_fence *
+fd_submit_flush(struct fd_submit *submit, int in_fence_fd, bool use_fence_fd)
 {
    submit->fence = fd_pipe_emit_fence(submit->pipe, submit->primary);
-   return submit->funcs->flush(submit, in_fence_fd, out_fence);
+   return submit->funcs->flush(submit, in_fence_fd, use_fence_fd);
 }
 
 struct fd_ringbuffer *

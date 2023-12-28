@@ -1,24 +1,7 @@
 /*
  * Copyright 2019 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "ac_shader_args.h"
@@ -67,4 +50,34 @@ void ac_add_return(struct ac_shader_args *info, enum ac_arg_regfile regfile)
    }
 
    info->return_count++;
+}
+
+void ac_add_preserved(struct ac_shader_args *info, const struct ac_arg *arg)
+{
+   info->args[arg->arg_index].preserved = true;
+}
+
+void ac_compact_ps_vgpr_args(struct ac_shader_args *info, uint32_t spi_ps_input)
+{
+   /* LLVM optimizes away unused FS inputs and computes spi_ps_input_addr itself and then
+    * communicates the results back via the ELF binary. Mirror what LLVM does by re-mapping the
+    * VGPR arguments here.
+    */
+   unsigned vgpr_arg = 0;
+   unsigned vgpr_reg = 0;
+
+   for (unsigned i = 0; i < info->arg_count; i++) {
+      if (info->args[i].file != AC_ARG_VGPR)
+         continue;
+
+      if (!(spi_ps_input & (1 << vgpr_arg))) {
+         info->args[i].skip = true;
+      } else {
+         info->args[i].offset = vgpr_reg;
+         vgpr_reg += info->args[i].size;
+      }
+      vgpr_arg++;
+   }
+
+   info->num_vgprs_used = vgpr_reg;
 }

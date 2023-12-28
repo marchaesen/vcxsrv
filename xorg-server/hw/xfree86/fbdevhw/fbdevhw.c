@@ -304,6 +304,31 @@ fbdev_open_pci(struct pci_device *pPci, char **namep)
     return -1;
 }
 
+/* *
+ * Try to resolve a filename as symbolic link.  If the file is not a link, the
+ * original filename is returned.  NULL is returned if readlink raised an
+ * error.
+ */
+static const char *
+resolve_link(const char *filename, char *resolve_buf, size_t resolve_buf_size)
+{
+    ssize_t len = readlink(filename, resolve_buf, resolve_buf_size - 1);
+    /* if it is a link resolve it */
+    if (len >= 0) {
+        resolve_buf[len] = '\0';
+        return resolve_buf;
+    }
+    else {
+        if (errno == EINVAL) {
+            return filename;
+        }
+        else {
+            // Have caller handle error condition.
+            return NULL;
+        }
+    }
+}
+
 static int
 fbdev_open(int scrnIndex, const char *dev, char **namep)
 {
@@ -331,9 +356,26 @@ fbdev_open(int scrnIndex, const char *dev, char **namep)
 
     /* only touch non-PCI devices on this path */
     {
+        char device_path_buf[PATH_MAX];
         char buf[PATH_MAX] = {0};
         char *sysfs_path = NULL;
-        char *node = strrchr(dev, '/') + 1;
+        char const *real_dev = resolve_link(dev, device_path_buf,
+                                            sizeof(device_path_buf));
+        if (real_dev == NULL) {
+            xf86DrvMsg(scrnIndex, X_ERROR,
+                       "Failed resolving symbolic link for device '%s': %s",
+                       dev, strerror(errno));
+            return -1;
+        }
+
+        const char *node = strrchr(real_dev, '/');
+
+        if (node == NULL) {
+            node = real_dev;
+        }
+        else {
+            node++;
+        }
 
         if (asprintf(&sysfs_path, "/sys/class/graphics/%s", node) < 0 ||
             readlink(sysfs_path, buf, sizeof(buf) - 1) < 0 ||

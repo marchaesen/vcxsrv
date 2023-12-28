@@ -20,17 +20,23 @@
 #
 
 # Initialize Autoconf
-AC_PREREQ([2.60])
-AC_INIT([libfontenc], [1.1.3],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libfontenc])
+AC_PREREQ([2.70])
+AC_INIT([libfontenc], [1.1.7],
+        [https://gitlab.freedesktop.org/xorg/lib/libfontenc/-/issues], [libfontenc])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
+AC_CONFIG_MACRO_DIRS([m4])
+
+# Set common system defines for POSIX extensions, such as _GNU_SOURCE
+# Must be called before any macros that run the compiler (like LT_INIT)
+# to avoid autoconf errors.
+AC_USE_SYSTEM_EXTENSIONS
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Initialize libtool
-AC_PROG_LIBTOOL
+LT_INIT
 
 # Require X.Org macros 1.8 or later
 m4_ifndef([XORG_MACROS_VERSION],
@@ -50,8 +56,14 @@ AC_CHECK_HEADER([zlib.h], [],
 AC_CHECK_LIB(z, gzclose, [],
              AC_MSG_FAILURE([zlib is required to compile libfontenc]))
 
-# Obtain compiler/linker options for depedencies
+# Obtain compiler/linker options for dependencies
 PKG_CHECK_MODULES(FONTENC, xproto)
+
+# Checks for typedefs, structures, and compiler characteristics.
+AC_SYS_LARGEFILE
+
+# Checks for library functions.
+AC_REPLACE_FUNCS([reallocarray])
 
 # Allow checking code with lint, sparse, etc.
 XORG_WITH_LINT

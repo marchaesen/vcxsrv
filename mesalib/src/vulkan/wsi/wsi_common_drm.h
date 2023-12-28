@@ -24,7 +24,15 @@
 #ifndef WSI_COMMON_DRM_H
 #define WSI_COMMON_DRM_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 bool
 wsi_common_drm_devices_equal(int fd_a, int fd_b);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif /* WSI_COMMON_DRM_H */

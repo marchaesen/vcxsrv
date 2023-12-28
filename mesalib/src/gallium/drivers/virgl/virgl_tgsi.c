@@ -368,15 +368,16 @@ virgl_tgsi_transform_instruction(struct tgsi_transform_context *ctx,
          temp_inst.Instruction.NumDstRegs = 1;
          temp_inst.Dst[0].Register.File = TGSI_FILE_TEMPORARY,
          temp_inst.Dst[0].Register.Index = vtctx->src_temp + i;
-         temp_inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XYZ;
+         temp_inst.Dst[0].Register.WriteMask = TGSI_WRITEMASK_XY;
          temp_inst.Instruction.NumSrcRegs = 1;
-         tgsi_transform_src_reg_xyzw(&temp_inst.Src[0], inst->Src[i].Register.File, inst->Src[i].Register.Index);
+         memcpy(&temp_inst.Src[0], &inst->Src[i], sizeof(temp_inst.Src[0]));
          temp_inst.Src[0].Register.SwizzleX = inst->Src[i].Register.SwizzleX;
          temp_inst.Src[0].Register.SwizzleY = inst->Src[i].Register.SwizzleY;
          temp_inst.Src[0].Register.SwizzleZ = inst->Src[i].Register.SwizzleZ;
          temp_inst.Src[0].Register.SwizzleW = inst->Src[i].Register.SwizzleW;
          ctx->emit_instruction(ctx, &temp_inst);
 
+         memset(&inst->Src[i], 0, sizeof(inst->Src[i]));
          inst->Src[i].Register.File = TGSI_FILE_TEMPORARY;
          inst->Src[i].Register.Index = vtctx->src_temp + i;
          inst->Src[i].Register.SwizzleX = TGSI_SWIZZLE_X;
@@ -441,7 +442,7 @@ struct tgsi_token *virgl_tgsi_transform(struct virgl_screen *vscreen, const stru
    transform.cull_enabled = vscreen->caps.caps.v1.bset.has_cull;
    transform.has_precise = vscreen->caps.caps.v2.capability_bits & VIRGL_CAP_TGSI_PRECISE;
    transform.fake_fp64 =
-      vscreen->caps.caps.v2.capability_bits & VIRGL_CAP_FAKE_FP64;
+      vscreen->caps.caps.v2.capability_bits & VIRGL_CAP_HOST_IS_GLES;
    transform.is_separable = is_separable && (vscreen->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_SSO);
 
    for (int i = 0; i < ARRAY_SIZE(transform.input_temp); i++)

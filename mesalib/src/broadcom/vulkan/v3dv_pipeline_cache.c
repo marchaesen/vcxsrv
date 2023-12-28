@@ -243,7 +243,7 @@ v3dv_pipeline_shared_data_write_to_blob(const struct v3dv_pipeline_shared_data *
                                         struct blob *blob);
 
 /**
- * It searchs for pipeline cached data, and returns a v3dv_pipeline_shared_data with
+ * It searches for pipeline cached data, and returns a v3dv_pipeline_shared_data with
  * it, or NULL if doesn't have it cached. On the former, it will increases the
  * ref_count, so caller is responsible to unref it.
  */
@@ -402,15 +402,13 @@ v3dv_pipeline_shared_data_new(struct v3dv_pipeline_cache *cache,
                                       "pipeline shader assembly", true);
    if (!bo) {
       fprintf(stderr, "failed to allocate memory for shaders assembly\n");
-      v3dv_pipeline_shared_data_unref(cache->device, new_entry);
-      return NULL;
+      goto fail;
    }
 
    bool ok = v3dv_bo_map(cache->device, bo, total_assembly_size);
    if (!ok) {
       fprintf(stderr, "failed to map source shader buffer\n");
-      v3dv_pipeline_shared_data_unref(cache->device, new_entry);
-      return NULL;
+      goto fail;
    }
 
    memcpy(bo->map, total_assembly, total_assembly_size);
@@ -418,6 +416,10 @@ v3dv_pipeline_shared_data_new(struct v3dv_pipeline_cache *cache,
    new_entry->assembly_bo = bo;
 
    return new_entry;
+
+fail:
+   v3dv_pipeline_shared_data_unref(cache->device, new_entry);
+   return NULL;
 }
 
 static void
@@ -540,7 +542,7 @@ shader_variant_create_from_blob(struct v3dv_device *device,
    if (blob->overrun)
       return NULL;
 
-   uint ulist_data_size = sizeof(uint32_t) * ulist_count;
+   size_t ulist_data_size = sizeof(uint32_t) * ulist_count;
    const void *ulist_data_data = blob_read_bytes(blob, ulist_data_size);
    if (blob->overrun)
       return NULL;
@@ -576,6 +578,7 @@ v3dv_pipeline_shared_data_create_from_blob(struct v3dv_pipeline_cache *cache,
    const unsigned char *sha1_key = blob_read_bytes(blob, 20);
 
    struct v3dv_descriptor_maps *maps[BROADCOM_SHADER_STAGES] = { 0 };
+   struct v3dv_shader_variant *variants[BROADCOM_SHADER_STAGES] = { 0 };
 
    uint8_t descriptor_maps_count = blob_read_uint8(blob);
    for (uint8_t count = 0; count < descriptor_maps_count; count++) {
@@ -585,14 +588,14 @@ v3dv_pipeline_shared_data_create_from_blob(struct v3dv_pipeline_cache *cache,
          blob_read_bytes(blob, sizeof(struct v3dv_descriptor_maps));
 
       if (blob->overrun)
-         return NULL;
+         goto fail;
 
       maps[stage] = vk_zalloc2(&cache->device->vk.alloc, NULL,
                                sizeof(struct v3dv_descriptor_maps), 8,
                                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
       if (maps[stage] == NULL)
-         return NULL;
+         goto fail;
 
       memcpy(maps[stage], current_maps, sizeof(struct v3dv_descriptor_maps));
       if (broadcom_shader_stage_is_render_with_binning(stage)) {
@@ -603,8 +606,6 @@ v3dv_pipeline_shared_data_create_from_blob(struct v3dv_pipeline_cache *cache,
    }
 
    uint8_t variant_count = blob_read_uint8(blob);
-
-   struct v3dv_shader_variant *variants[BROADCOM_SHADER_STAGES] = { 0 };
 
    for (uint8_t count = 0; count < variant_count; count++) {
       uint8_t stage = blob_read_uint8(blob);
@@ -618,10 +619,25 @@ v3dv_pipeline_shared_data_create_from_blob(struct v3dv_pipeline_cache *cache,
       blob_read_bytes(blob, total_assembly_size);
 
    if (blob->overrun)
-      return NULL;
+      goto fail;
 
-   return v3dv_pipeline_shared_data_new(cache, sha1_key, maps, variants,
-                                        total_assembly, total_assembly_size);
+   struct v3dv_pipeline_shared_data *data =
+      v3dv_pipeline_shared_data_new(cache, sha1_key, maps, variants,
+                                    total_assembly, total_assembly_size);
+
+   if (!data)
+      goto fail;
+
+   return data;
+
+fail:
+   for (int i = 0; i < BROADCOM_SHADER_STAGES; i++) {
+      if (maps[i])
+         vk_free2(&cache->device->vk.alloc, NULL, maps[i]);
+      if (variants[i])
+         v3dv_shader_variant_destroy(cache->device, variants[i]);
+   }
+   return NULL;
 }
 
 static void

@@ -1,7 +1,7 @@
 Dispatch
 =============
 
-This chapter attemtps to document the Vulkan dispatch infrastructure in the
+This chapter attempts to document the Vulkan dispatch infrastructure in the
 Mesa Vulkan runtime.  There are a lot of moving pieces here but the end
 result has proven quite effective for implementing all the various Vulkan
 API requirements.
@@ -41,7 +41,7 @@ to iterate over the table.
 
 These tables are are generated automatically using a bit of python code that
 parses the vk.xml from the `Vulkan-Docs repo
-<https://github.com/KhronosGroup/Vulkan-docs/>`_, enumerates the
+<https://github.com/KhronosGroup/Vulkan-docs/>`__, enumerates the
 extensions, sorts them by instance vs. device and generates the table.
 Generating it from XML means that we never have to manually maintain any of
 these data structures; they get automatically updated when someone imports
@@ -87,7 +87,7 @@ anyone who doesn't can use the table without needing to pull in all the
 platform headers.
 
 Dispatch tables are similar to entrypoint tables except that they're
-de-duplicated so that aliased entrypoints have only one entry in the table.
+deduplicated so that aliased entrypoints have only one entry in the table.
 The device dispatch table looks like this:
 
 .. code-block:: c
@@ -152,6 +152,7 @@ the following in the driver's ``meson.build``, modified as necessary:
       command : [
         prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
         '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'drv',
+        '--beta', with_vulkan_beta.to_string(),
       ],
       depend_files : vk_entrypoints_gen_depend_files,
     )
@@ -165,7 +166,7 @@ times if you want more than one table.  It also generates an entrypoint
 table for each prefix and each dispatch level (instance, physical device,
 and device) which is populated using the driver's functions.  Thanks to our
 use of weak function pointers (or something roughly equivalent for MSVC),
-any entrypoints which are not implented will automatically show up as
+any entrypoints which are not implemented will automatically show up as
 ``NULL`` entries in the table rather than resulting in linking errors.
 
 The above generates entrypoint tables because, thanks to aliasing and the C
@@ -192,7 +193,7 @@ something like this:
 
 The ``vk_*_dispatch_table_from_entrypoints()`` functions are designed so
 that they can be layered like this.  In this case, it starts with the
-instance entrypoints from the Intel vulkan driver and then adds in the WSI
+instance entrypoints from the Intel Vulkan driver and then adds in the WSI
 entrypoints.  If there are any entrypoints duplicated between the two, the
 first one to define the entrypoint wins.
 
@@ -246,7 +247,7 @@ Entrypoint lookup
 
 Implementing ``vkGet*ProcAddr()`` is quite complicated because of the
 Vulkan 1.2 rules around exactly when they have to return ``NULL``.  When a
-client calls `vkGet*ProcAddr()`, we go through a three step process resolve
+client calls ``vkGet*ProcAddr()``, we go through a three step process resolve
 the function pointer:
 
  1. A static (generated at compile time) hash table is used to map the
@@ -256,8 +257,9 @@ the function pointer:
     checks against the enabled core API version and extensions.  We use an
     index into the entrypoint table, not the dispatch table, because the
     rules for when an entrypoint should be exposed are per-entrypoint.  For
-    instance, `vkBindImageMemory2` is available on Vulkan 1.1 and later but
-    `vkBindImageMemory2KHR` is available if VK_KHR_bind_memory2 is enabled.
+    instance, ``vkBindImageMemory2`` is available on Vulkan 1.1 and later but
+    ``vkBindImageMemory2KHR`` is available if :ext:`VK_KHR_bind_memory2` is
+    enabled.
 
  3. A compaction table is used to map from the entrypoint table index to
     the dispatch table index and the function is finally fetched from the
@@ -271,7 +273,7 @@ which wrap these functions because those have to be exposed as actual
 symbols from the ``.so`` or ``.dll`` as part of the loader interface.  It
 also has to provide its own ``drv_GetInstanceProcAddr()`` because it needs
 to pass the supported instance extension table to
-:cpp:func:`vk_instance_get_proc_addr`.  The runtime will provide
+:c:func:`vk_instance_get_proc_addr`.  The runtime will provide
 ``vk_common_GetDeviceProcAddr()`` implementations.
 
 

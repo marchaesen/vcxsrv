@@ -189,7 +189,7 @@ login service as is provided by the negotiated authorization mechanism.
   <listitem>
     <para>
 Because there are no firm standards yet in the area of security,
-XDMCP must be flexible enough to accomodate a variety of security mechanisms.
+XDMCP must be flexible enough to accommodate a variety of security mechanisms.
     </para>
   </listitem>
 </itemizedlist>
@@ -894,7 +894,7 @@ Specifies the authentication method, selected from the list offered in the
 <function>BroadcastQuery ,</function>
 or
 <function>IndirectQuery</function>
-packet that the manger expects the display to use in the subsequent
+packet that the manager expects the display to use in the subsequent
 <function>Request</function>
 packet.
 This choice should remain as constant as feasible so that displays that
@@ -2258,7 +2258,7 @@ Problem:
       <entry></entry>
       <entry spanname="col4_on">
 Display open does not succeed before a second manage packet is received
-because of a timeout occuring in the display.
+because of a timeout occurring in the display.
       </entry>
     </row>
 
@@ -2621,7 +2621,7 @@ packet during the negotiation for the current session.
     <row>
       <entry></entry>
       <entry spanname="col2_on">
-Sematics:
+Semantics:
       </entry>
     </row>
 
@@ -2834,7 +2834,7 @@ If only a single session was active on the display,
 all other connections should be closed by the display
 and the display should be reset.  If multiple sessions
 are active simultaneously and the display can identify which connections
-belong to the terminated sesssion, those connections should be closed.
+belong to the terminated session, those connections should be closed.
 Otherwise, all connections should be closed and the display reset only when
 all sessions have been terminated (that is, all initial connections closed).
 </para>
@@ -3743,7 +3743,7 @@ authentication data.  An associated example X authorization protocol
 as a 64-bit number in network order (big endian).  This means that the first
 octet in the representation will be zero.  When incrementing a 64-bit value,
 the 8 octets of data will be interpreted in network order (big endian).
-That is, the last octet will be incremented, subsequent carries propogate
+That is, the last octet will be incremented, subsequent carries propagate
 towards the first octet.
 </para>
 

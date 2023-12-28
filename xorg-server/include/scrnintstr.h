@@ -608,8 +608,6 @@ typedef struct _Screen {
     SetScreenPixmapProcPtr SetScreenPixmap;
     NameWindowPixmapProcPtr NameWindowPixmap;
 
-    PixmapPtr pScratchPixmap;   /* scratch pixmap "pool" */
-
     unsigned int totalPixmapSize;
 
     MarkWindowProcPtr MarkWindow;

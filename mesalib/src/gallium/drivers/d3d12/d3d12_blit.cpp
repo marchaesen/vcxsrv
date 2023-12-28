@@ -187,6 +187,10 @@ direct_copy_supported(struct d3d12_screen *screen,
    if (!formats_are_copy_compatible(info->src.format, info->dst.format))
       return false;
 
+   if (info->src.format != info->src.resource->format ||
+       info->dst.format != info->dst.resource->format)
+      return false;
+
    if (util_format_is_depth_or_stencil(info->src.format) && !(info->mask & PIPE_MASK_ZS)) {
       return false;
    }
@@ -280,12 +284,6 @@ copy_subregion_no_barriers(struct d3d12_context *ctx,
 
    int src_array_size = src->base.b.array_size;
    int dst_array_size = dst->base.b.array_size;
-
-   if (dst->base.b.target == PIPE_TEXTURE_CUBE)
-      dst_array_size *= 6;
-
-   if (src->base.b.target == PIPE_TEXTURE_CUBE)
-      src_array_size *= 6;
 
    int stencil_src_res_offset = 1;
    int stencil_dst_res_offset = 1;
@@ -487,7 +485,8 @@ create_staging_resource(struct d3d12_context *ctx,
    templ.nr_samples = src->base.b.nr_samples;
    templ.nr_storage_samples = src->base.b.nr_storage_samples;
    templ.usage = PIPE_USAGE_STAGING;
-   templ.bind = util_format_is_depth_or_stencil(templ.format) ? PIPE_BIND_DEPTH_STENCIL : PIPE_BIND_RENDER_TARGET;
+   templ.bind = util_format_is_depth_or_stencil(templ.format) ? PIPE_BIND_DEPTH_STENCIL :
+      util_format_is_compressed(templ.format) ? 0 : PIPE_BIND_RENDER_TARGET;
    templ.target = src->base.b.target;
 
    staging_res = ctx->base.screen->resource_create(ctx->base.screen, &templ);
@@ -667,14 +666,14 @@ get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
    sampler->data.binding = 0;
    sampler->data.explicit_binding = true;
 
-   nir_ssa_def *tex_deref = &nir_build_deref_var(&b, sampler)->dest.ssa;
+   nir_def *tex_deref = &nir_build_deref_var(&b, sampler)->def;
 
    nir_variable *pos_in = nir_variable_create(b.shader, nir_var_shader_in,
                                               glsl_vec4_type(), "pos");
    pos_in->data.location = VARYING_SLOT_POS; // VARYING_SLOT_VAR0?
-   nir_ssa_def *pos = nir_load_var(&b, pos_in);
+   nir_def *pos = nir_load_var(&b, pos_in);
 
-   nir_ssa_def *pos_src;
+   nir_def *pos_src;
 
    if (no_flip)
       pos_src = pos;
@@ -682,12 +681,11 @@ get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
       nir_tex_instr *txs = nir_tex_instr_create(b.shader, 1);
       txs->op = nir_texop_txs;
       txs->sampler_dim = GLSL_SAMPLER_DIM_MS;
-      txs->src[0].src_type = nir_tex_src_texture_deref;
-      txs->src[0].src = nir_src_for_ssa(tex_deref);
+      txs->src[0] = nir_tex_src_for_ssa(nir_tex_src_texture_deref, tex_deref);
       txs->is_array = false;
       txs->dest_type = nir_type_int;
 
-      nir_ssa_dest_init(&txs->instr, &txs->dest, 2, 32, "tex");
+      nir_def_init(&txs->instr, &txs->def, 2, 32);
       nir_builder_instr_insert(&b, &txs->instr);
 
       pos_src = nir_vec4(&b,
@@ -695,7 +693,7 @@ get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
                          /*Height - pos_dest.y - 1*/
                          nir_fsub(&b,
                                   nir_fsub(&b,
-                                           nir_channel(&b, nir_i2f32(&b, &txs->dest.ssa), 1),
+                                           nir_channel(&b, nir_i2f32(&b, &txs->def), 1),
                                            nir_channel(&b, pos, 1)),
                                   nir_imm_float(&b, 1.0)),
                          nir_channel(&b, pos, 2),
@@ -705,20 +703,18 @@ get_stencil_resolve_fs(struct d3d12_context *ctx, bool no_flip)
    nir_tex_instr *tex = nir_tex_instr_create(b.shader, 3);
    tex->sampler_dim = GLSL_SAMPLER_DIM_MS;
    tex->op = nir_texop_txf_ms;
-   tex->src[0].src_type = nir_tex_src_coord;
-   tex->src[0].src = nir_src_for_ssa(nir_channels(&b, nir_f2i32(&b, pos_src), 0x3));
-   tex->src[1].src_type = nir_tex_src_ms_index;
-   tex->src[1].src = nir_src_for_ssa(nir_imm_int(&b, 0)); /* just use first sample */
-   tex->src[2].src_type = nir_tex_src_texture_deref;
-   tex->src[2].src = nir_src_for_ssa(tex_deref);
+   tex->src[0] = nir_tex_src_for_ssa(nir_tex_src_coord,
+                                     nir_trim_vector(&b, nir_f2i32(&b, pos_src), 2));
+   tex->src[1] = nir_tex_src_for_ssa(nir_tex_src_ms_index, nir_imm_int(&b, 0)); /* just use first sample */
+   tex->src[2] = nir_tex_src_for_ssa(nir_tex_src_texture_deref, tex_deref);
    tex->dest_type = nir_type_uint32;
    tex->is_array = false;
    tex->coord_components = 2;
 
-   nir_ssa_dest_init(&tex->instr, &tex->dest, 4, 32, "tex");
+   nir_def_init(&tex->instr, &tex->def, 4, 32);
    nir_builder_instr_insert(&b, &tex->instr);
 
-   nir_store_var(&b, stencil_out, nir_channel(&b, &tex->dest.ssa, 1), 0x1);
+   nir_store_var(&b, stencil_out, nir_channel(&b, &tex->def, 1), 0x1);
 
    struct pipe_shader_state state = {};
    state.type = PIPE_SHADER_IR_NIR;
@@ -746,7 +742,6 @@ get_sampler_state(struct d3d12_context *ctx)
    state.wrap_s = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    state.wrap_t = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    state.wrap_r = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
-   state.normalized_coords = 1;
 
    return ctx->sampler_state = ctx->base.create_sampler_state(&ctx->base, &state);
 }

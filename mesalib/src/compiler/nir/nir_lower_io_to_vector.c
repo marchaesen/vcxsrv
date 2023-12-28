@@ -21,6 +21,7 @@
  * IN THE SOFTWARE.
  */
 
+#include "util/u_dynarray.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_deref.h"
@@ -36,7 +37,7 @@
 
 /* FRAG_RESULT_MAX+1 instead of just FRAG_RESULT_MAX because of how this pass
  * handles dual source blending */
-#define MAX_SLOTS MAX2(VARYING_SLOT_TESS_MAX, FRAG_RESULT_MAX+1)
+#define MAX_SLOTS MAX2(VARYING_SLOT_TESS_MAX, FRAG_RESULT_MAX + 1)
 
 static unsigned
 get_slot(const nir_variable *var)
@@ -159,7 +160,7 @@ get_flat_type(const nir_shader *shader, nir_variable *old_vars[MAX_SLOTS][4],
    unsigned todo = 1;
    unsigned slots = 0;
    unsigned num_vars = 0;
-   enum glsl_base_type base;
+   enum glsl_base_type base = GLSL_TYPE_ERROR;
    *num_vertices = 0;
    *first_var = NULL;
 
@@ -210,9 +211,10 @@ get_flat_type(const nir_shader *shader, nir_variable *old_vars[MAX_SLOTS][4],
 static bool
 create_new_io_vars(nir_shader *shader, nir_variable_mode mode,
                    nir_variable *new_vars[MAX_SLOTS][4],
-                   bool flat_vars[MAX_SLOTS])
+                   bool flat_vars[MAX_SLOTS],
+                   struct util_dynarray *demote_vars)
 {
-   nir_variable *old_vars[MAX_SLOTS][4] = {{0}};
+   nir_variable *old_vars[MAX_SLOTS][4] = { { 0 } };
 
    bool has_io_var = false;
    nir_foreach_variable_with_modes(var, shader, mode) {
@@ -277,7 +279,10 @@ create_new_io_vars(nir_shader *shader, nir_variable_mode mode,
          nir_shader_add_variable(shader, var);
          for (unsigned i = first; i < frac; i++) {
             new_vars[loc][i] = var;
-            old_vars[loc][i] = NULL;
+            if (old_vars[loc][i]) {
+               util_dynarray_append(demote_vars, nir_variable *, old_vars[loc][i]);
+               old_vars[loc][i] = NULL;
+            }
          }
 
          old_vars[loc][first] = var;
@@ -304,7 +309,8 @@ create_new_io_vars(nir_shader *shader, nir_variable_mode mode,
             var->type = flat_type;
 
          nir_shader_add_variable(shader, var);
-         unsigned num_slots = MAX2(glsl_get_length(flat_type), 1);
+         unsigned num_slots =
+            glsl_type_is_array(flat_type) ? glsl_get_length(flat_type) : 1;
          for (unsigned i = 0; i < num_slots; i++) {
             for (unsigned j = 0; j < 4; j++)
                new_vars[loc + i][j] = var;
@@ -330,16 +336,16 @@ build_array_deref_of_new_var(nir_builder *b, nir_variable *new_var,
    return nir_build_deref_follower(b, parent, leader);
 }
 
-static nir_ssa_def *
-build_array_index(nir_builder *b, nir_deref_instr *deref, nir_ssa_def *base,
+static nir_def *
+build_array_index(nir_builder *b, nir_deref_instr *deref, nir_def *base,
                   bool vs_in, bool per_vertex)
 {
    switch (deref->deref_type) {
    case nir_deref_type_var:
       return base;
    case nir_deref_type_array: {
-      nir_ssa_def *index = nir_i2i(b, deref->arr.index.ssa,
-                                   deref->dest.ssa.bit_size);
+      nir_def *index = nir_i2iN(b, deref->arr.index.ssa,
+                                deref->def.bit_size);
 
       if (nir_deref_instr_parent(deref)->deref_type == nir_deref_type_var &&
           per_vertex)
@@ -370,7 +376,7 @@ build_array_deref_of_new_var_flat(nir_shader *shader,
       nir_deref_instr *p = path.path[1];
       nir_deref_path_finish(&path);
 
-      nir_ssa_def *index = p->arr.index.ssa;
+      nir_def *index = p->arr.index.ssa;
       deref = nir_build_deref_array(b, deref, index);
    }
 
@@ -380,7 +386,7 @@ build_array_deref_of_new_var_flat(nir_shader *shader,
    bool vs_in = shader->info.stage == MESA_SHADER_VERTEX &&
                 new_var->data.mode == nir_var_shader_in;
    return nir_build_deref_array(b, deref,
-      build_array_index(b, leader, nir_imm_int(b, base), vs_in, per_vertex));
+                                build_array_index(b, leader, nir_imm_int(b, base), vs_in, per_vertex));
 }
 
 ASSERTED static bool
@@ -406,16 +412,18 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
 {
    assert(!(modes & ~(nir_var_shader_in | nir_var_shader_out)));
 
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_metadata_require(impl, nir_metadata_dominance);
 
+   struct util_dynarray demote_vars;
+   util_dynarray_init(&demote_vars, NULL);
+
    nir_shader *shader = impl->function->shader;
-   nir_variable *new_inputs[MAX_SLOTS][4] = {{0}};
-   nir_variable *new_outputs[MAX_SLOTS][4] = {{0}};
-   bool flat_inputs[MAX_SLOTS] = {0};
-   bool flat_outputs[MAX_SLOTS] = {0};
+   nir_variable *new_inputs[MAX_SLOTS][4] = { { 0 } };
+   nir_variable *new_outputs[MAX_SLOTS][4] = { { 0 } };
+   bool flat_inputs[MAX_SLOTS] = { 0 };
+   bool flat_outputs[MAX_SLOTS] = { 0 };
 
    if (modes & nir_var_shader_in) {
       /* Vertex shaders support overlapping inputs.  We don't do those */
@@ -425,7 +433,7 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
        * so we don't bother doing extra non-work.
        */
       if (!create_new_io_vars(shader, nir_var_shader_in,
-                              new_inputs, flat_inputs))
+                              new_inputs, flat_inputs, &demote_vars))
          modes &= ~nir_var_shader_in;
    }
 
@@ -434,7 +442,7 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
        * so we don't bother doing extra non-work.
        */
       if (!create_new_io_vars(shader, nir_var_shader_out,
-                              new_outputs, flat_outputs))
+                              new_outputs, flat_outputs, &demote_vars))
          modes &= ~nir_var_shader_out;
    }
 
@@ -473,11 +481,8 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
 
             const unsigned loc = get_slot(old_var);
             const unsigned old_frac = old_var->data.location_frac;
-            nir_variable *new_var = old_var->data.mode == nir_var_shader_in ?
-                                    new_inputs[loc][old_frac] :
-                                    new_outputs[loc][old_frac];
-            bool flat = old_var->data.mode == nir_var_shader_in ?
-                        flat_inputs[loc] : flat_outputs[loc];
+            nir_variable *new_var = old_var->data.mode == nir_var_shader_in ? new_inputs[loc][old_frac] : new_outputs[loc][old_frac];
+            bool flat = old_var->data.mode == nir_var_shader_in ? flat_inputs[loc] : flat_outputs[loc];
             if (!new_var)
                break;
 
@@ -500,20 +505,19 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
                new_deref = build_array_deref_of_new_var(&b, new_var, old_deref);
                assert(glsl_type_is_vector(new_deref->type));
             }
-            nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],
-                                  nir_src_for_ssa(&new_deref->dest.ssa));
+            nir_src_rewrite(&intrin->src[0], &new_deref->def);
 
             intrin->num_components =
                glsl_get_components(new_deref->type);
-            intrin->dest.ssa.num_components = intrin->num_components;
+            intrin->def.num_components = intrin->num_components;
 
             b.cursor = nir_after_instr(&intrin->instr);
 
-            nir_ssa_def *new_vec = nir_channels(&b, &intrin->dest.ssa,
-                                                vec4_comp_mask >> new_frac);
-            nir_ssa_def_rewrite_uses_after(&intrin->dest.ssa,
-                                           new_vec,
-                                           new_vec->parent_instr);
+            nir_def *new_vec = nir_channels(&b, &intrin->def,
+                                            vec4_comp_mask >> new_frac);
+            nir_def_rewrite_uses_after(&intrin->def,
+                                       new_vec,
+                                       new_vec->parent_instr);
 
             progress = true;
             break;
@@ -547,30 +551,28 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
                new_deref = build_array_deref_of_new_var(&b, new_var, old_deref);
                assert(glsl_type_is_vector(new_deref->type));
             }
-            nir_instr_rewrite_src(&intrin->instr, &intrin->src[0],
-                                  nir_src_for_ssa(&new_deref->dest.ssa));
+            nir_src_rewrite(&intrin->src[0], &new_deref->def);
 
             intrin->num_components =
                glsl_get_components(new_deref->type);
 
             nir_component_mask_t old_wrmask = nir_intrinsic_write_mask(intrin);
 
-            assert(intrin->src[1].is_ssa);
-            nir_ssa_def *old_value = intrin->src[1].ssa;
-            nir_ssa_scalar comps[4];
+            nir_def *old_value = intrin->src[1].ssa;
+            nir_scalar comps[4];
             for (unsigned c = 0; c < intrin->num_components; c++) {
                if (new_frac + c >= old_frac &&
                    (old_wrmask & 1 << (new_frac + c - old_frac))) {
-                  comps[c] = nir_get_ssa_scalar(old_value,
-                                         new_frac + c - old_frac);
+                  comps[c] = nir_get_scalar(old_value,
+                                                new_frac + c - old_frac);
                } else {
-                  comps[c] = nir_get_ssa_scalar(nir_ssa_undef(&b, old_value->num_components,
-                                                              old_value->bit_size), 0);
+                  comps[c] = nir_get_scalar(nir_undef(&b, old_value->num_components,
+                                                          old_value->bit_size),
+                                                0);
                }
             }
-            nir_ssa_def *new_value = nir_vec_scalars(&b, comps, intrin->num_components);
-            nir_instr_rewrite_src(&intrin->instr, &intrin->src[1],
-                                  nir_src_for_ssa(new_value));
+            nir_def *new_value = nir_vec_scalars(&b, comps, intrin->num_components);
+            nir_src_rewrite(&intrin->src[1], new_value);
 
             nir_intrinsic_set_write_mask(intrin,
                                          old_wrmask << (old_frac - new_frac));
@@ -585,9 +587,18 @@ nir_lower_io_to_vector_impl(nir_function_impl *impl, nir_variable_mode modes)
       }
    }
 
+   /* Demote the old var to a global, so that things like
+    * nir_lower_io_to_temporaries() don't trigger on it.
+    */
+   util_dynarray_foreach(&demote_vars, nir_variable *, varp) {
+      (*varp)->data.mode = nir_var_shader_temp;
+   }
+   nir_fixup_deref_modes(b.shader);
+   util_dynarray_fini(&demote_vars);
+
    if (progress) {
       nir_metadata_preserve(impl, nir_metadata_block_index |
-                                  nir_metadata_dominance);
+                                     nir_metadata_dominance);
    }
 
    return progress;
@@ -598,9 +609,8 @@ nir_lower_io_to_vector(nir_shader *shader, nir_variable_mode modes)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_lower_io_to_vector_impl(function->impl, modes);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_lower_io_to_vector_impl(impl, modes);
    }
 
    return progress;
@@ -610,8 +620,7 @@ static bool
 nir_vectorize_tess_levels_impl(nir_function_impl *impl)
 {
    bool progress = false;
-   nir_builder b;
-   nir_builder_init(&b, impl);
+   nir_builder b = nir_builder_create(impl);
 
    nir_foreach_block(block, impl) {
       nir_foreach_instr_safe(instr, block) {
@@ -638,8 +647,8 @@ nir_vectorize_tess_levels_impl(nir_function_impl *impl)
          unsigned vec_size = glsl_get_vector_elements(var->type);
 
          b.cursor = nir_before_instr(instr);
-         nir_ssa_def *new_deref = &nir_build_deref_var(&b, var)->dest.ssa;
-         nir_instr_rewrite_src(instr, &intrin->src[0], nir_src_for_ssa(new_deref));
+         nir_def *new_deref = &nir_build_deref_var(&b, var)->def;
+         nir_src_rewrite(&intrin->src[0], new_deref);
 
          nir_deref_instr_remove_if_unused(deref);
 
@@ -650,9 +659,9 @@ nir_vectorize_tess_levels_impl(nir_function_impl *impl)
             if (intrin->intrinsic == nir_intrinsic_load_deref) {
                /* Return undef from out of bounds loads. */
                b.cursor = nir_after_instr(instr);
-               nir_ssa_def *val = &intrin->dest.ssa;
-               nir_ssa_def *u = nir_ssa_undef(&b, val->num_components, val->bit_size);
-               nir_ssa_def_rewrite_uses(val, u);
+               nir_def *val = &intrin->def;
+               nir_def *u = nir_undef(&b, val->num_components, val->bit_size);
+               nir_def_rewrite_uses(val, u);
             }
 
             /* Finally, remove the out of bounds access. */
@@ -663,15 +672,15 @@ nir_vectorize_tess_levels_impl(nir_function_impl *impl)
 
          if (intrin->intrinsic == nir_intrinsic_store_deref) {
             nir_intrinsic_set_write_mask(intrin, 1 << index);
-            nir_ssa_def *new_val = nir_ssa_undef(&b, intrin->num_components, 32);
+            nir_def *new_val = nir_undef(&b, intrin->num_components, 32);
             new_val = nir_vector_insert_imm(&b, new_val, intrin->src[1].ssa, index);
-            nir_instr_rewrite_src(instr, &intrin->src[1], nir_src_for_ssa(new_val));
+            nir_src_rewrite(&intrin->src[1], new_val);
          } else {
             b.cursor = nir_after_instr(instr);
-            nir_ssa_def *val = &intrin->dest.ssa;
+            nir_def *val = &intrin->def;
             val->num_components = intrin->num_components;
-            nir_ssa_def *comp = nir_channel(&b, val, index);
-            nir_ssa_def_rewrite_uses_after(val, comp, comp->parent_instr);
+            nir_def *comp = nir_channel(&b, val, index);
+            nir_def_rewrite_uses_after(val, comp, comp->parent_instr);
          }
 
          progress = true;
@@ -703,9 +712,8 @@ nir_vectorize_tess_levels(nir_shader *shader)
       }
    }
 
-   nir_foreach_function(function, shader) {
-      if (function->impl)
-         progress |= nir_vectorize_tess_levels_impl(function->impl);
+   nir_foreach_function_impl(impl, shader) {
+      progress |= nir_vectorize_tess_levels_impl(impl);
    }
 
    return progress;

@@ -1002,7 +1002,7 @@ void vid_dec_h264_Decode(vid_dec_PrivateType *priv, struct vl_vlc *vlc, unsigned
 
    if (nal_unit_type == 7) {
       struct vl_rbsp rbsp;
-      vl_rbsp_init(&rbsp, vlc, ~0);
+      vl_rbsp_init(&rbsp, vlc, ~0, /* emulation_bytes */ true);
       seq_parameter_set(priv, &rbsp);
 #if ENABLE_ST_OMX_TIZONIA
       update_port_parameters(priv);
@@ -1010,7 +1010,7 @@ void vid_dec_h264_Decode(vid_dec_PrivateType *priv, struct vl_vlc *vlc, unsigned
 
    } else if (nal_unit_type == 8) {
       struct vl_rbsp rbsp;
-      vl_rbsp_init(&rbsp, vlc, ~0);
+      vl_rbsp_init(&rbsp, vlc, ~0, /* emulation_bytes */ true);
       picture_parameter_set(priv, &rbsp);
 
    } else if (nal_unit_type == 1 || nal_unit_type == 5) {
@@ -1032,7 +1032,7 @@ void vid_dec_h264_Decode(vid_dec_PrivateType *priv, struct vl_vlc *vlc, unsigned
       priv->bytes_left = (vl_vlc_bits_left(vlc) - bits) / 8;
       priv->slice = vlc->data;
 
-      vl_rbsp_init(&rbsp, vlc, 128);
+      vl_rbsp_init(&rbsp, vlc, 128, /* emulation_bytes */ true);
       slice_header(priv, &rbsp, nal_ref_idc, nal_unit_type);
 
       vid_dec_h264_BeginFrame(priv);

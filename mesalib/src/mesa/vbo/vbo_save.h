@@ -34,7 +34,7 @@ USE OR OTHER DEALINGS IN THE SOFTWARE.
 #ifndef VBO_SAVE_H
 #define VBO_SAVE_H
 
-#include "dlist.h"
+#include "mesa/main/dlist.h"
 #include "vbo.h"
 #include "vbo_attrib.h"
 
@@ -111,8 +111,12 @@ _vbo_save_get_stride(const struct vbo_save_vertex_list *node)
 /* Default size for the buffer holding the vertices and the indices.
  * A bigger buffer helps reducing the number of draw calls but may
  * waste memory.
+ * 1MB was picked because a lower value reduces viewperf snx tests
+ * performance but larger values cause high VRAM usage (because
+ * larger buffers will be shared by more display lists which reduces
+ * the likelyhood of freeing the buffer).
  */
-#define VBO_SAVE_BUFFER_SIZE (20*1024*1024)
+#define VBO_SAVE_BUFFER_SIZE (1024 * 1024)
 #define VBO_SAVE_PRIM_MODE_MASK 0x3f
 
 struct vbo_save_vertex_store {

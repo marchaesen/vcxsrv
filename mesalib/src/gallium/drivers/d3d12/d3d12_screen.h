@@ -30,10 +30,12 @@
 #include "d3d12_descriptor_pool.h"
 
 #include "nir.h"
+#include "dxil_versions.h"
 
 #include "d3d12_common.h"
 
 struct pb_manager;
+struct util_dl_library;
 
 enum resource_dimension
 {
@@ -63,7 +65,9 @@ struct d3d12_screen {
    char driver_uuid[PIPE_UUID_SIZE];
    char device_uuid[PIPE_UUID_SIZE];
 
+   util_dl_library *d3d12_mod;
    ID3D12Device3 *dev;
+   ID3D12Device10 *dev10;
    ID3D12CommandQueue *cmdqueue;
    bool (*init)(struct d3d12_screen *screen);
    void (*deinit)(struct d3d12_screen *screen);
@@ -78,11 +82,18 @@ struct d3d12_screen {
    uint64_t residency_fence_value;
 
    struct list_head context_list;
+   unsigned context_id_list[16];
+   unsigned context_id_count;
+
+   struct set* varying_info_set;
+   mtx_t varying_info_mutex;
 
    struct slab_parent_pool transfer_pool;
    struct pb_manager *bufmgr;
    struct pb_manager *cache_bufmgr;
+   struct pb_manager *slab_cache_bufmgr;
    struct pb_manager *slab_bufmgr;
+   struct pb_manager *readback_slab_cache_bufmgr;
    struct pb_manager *readback_slab_bufmgr;
 
    mtx_t descriptor_pool_mutex;
@@ -99,13 +110,18 @@ struct d3d12_screen {
 
    /* capabilities */
    D3D_FEATURE_LEVEL max_feature_level;
-   D3D_SHADER_MODEL max_shader_model;
+   enum dxil_shader_model max_shader_model;
    D3D12_FEATURE_DATA_ARCHITECTURE architecture;
    D3D12_FEATURE_DATA_D3D12_OPTIONS opts;
    D3D12_FEATURE_DATA_D3D12_OPTIONS1 opts1;
    D3D12_FEATURE_DATA_D3D12_OPTIONS2 opts2;
    D3D12_FEATURE_DATA_D3D12_OPTIONS3 opts3;
    D3D12_FEATURE_DATA_D3D12_OPTIONS4 opts4;
+   D3D12_FEATURE_DATA_D3D12_OPTIONS12 opts12;
+   D3D12_FEATURE_DATA_D3D12_OPTIONS14 opts14;
+#ifndef _GAMING_XBOX
+   D3D12_FEATURE_DATA_D3D12_OPTIONS19 opts19;
+#endif
 
    nir_shader_compiler_options nir_options;
 
@@ -116,10 +132,14 @@ struct d3d12_screen {
    uint32_t revision;
    uint64_t driver_version;
    uint64_t memory_size_megabytes;
-   double timestamp_multiplier;
+   float timestamp_multiplier;
    bool have_load_at_vertex;
    bool support_shader_images;
    bool support_create_not_resident;
+
+#ifdef _GAMING_XBOX
+   UINT64 frame_token;
+#endif
 };
 
 static inline struct d3d12_screen *
@@ -131,8 +151,12 @@ d3d12_screen(struct pipe_screen *pipe)
 struct d3d12_dxgi_screen {
    struct d3d12_screen base;
 
+#ifndef _GAMING_XBOX
    struct IDXGIFactory4 *factory;
    struct IDXGIAdapter3 *adapter;
+#else
+   struct IDXGIAdapter *adapter;
+#endif
    wchar_t description[128];
 };
 
@@ -156,7 +180,7 @@ d3d12_dxcore_screen(struct d3d12_screen *screen)
    return (struct d3d12_dxcore_screen *)screen;
 }
 
-void
+bool
 d3d12_init_screen_base(struct d3d12_screen *screen, struct sw_winsys *winsys, LUID *adapter_luid);
 
 bool

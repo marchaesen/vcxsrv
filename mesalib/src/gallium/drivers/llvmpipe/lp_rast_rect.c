@@ -84,6 +84,7 @@ static unsigned bottom_mask_tab[STAMP_SIZE] = {
    ROW0 | ROW1 | ROW2 | ROW3,
 };
 
+
 static inline void
 full(struct lp_rasterizer_task *task,
      const struct lp_rast_rectangle *rect,
@@ -96,6 +97,7 @@ full(struct lp_rasterizer_task *task,
                            task->y + iy * STAMP_SIZE);
 }
 
+
 static inline void
 partial(struct lp_rasterizer_task *task,
         const struct lp_rast_rectangle *rect,
@@ -105,9 +107,9 @@ partial(struct lp_rasterizer_task *task,
    /* Unfortunately we can end up generating full blocks on this path,
     * need to catch them.
     */
-   if (mask == 0xffff)
+   if (mask == 0xffff) {
       full(task, rect, ix, iy);
-   else {
+   } else {
       assert(mask);
       LP_COUNT(nr_rect_partially_covered_4);
       lp_rast_shade_quads_mask(task,
@@ -150,14 +152,6 @@ lp_rast_rectangle(struct lp_rasterizer_task *task,
 {
    const struct lp_rast_rectangle *rect = arg.rectangle;
 
-   struct u_rect box;
-   unsigned ix0, ix1, iy0, iy1;
-   unsigned left_mask;
-   unsigned right_mask;
-   unsigned top_mask;
-   unsigned bottom_mask;
-   unsigned i,j;
-
    /* Check for "disabled" rectangles generated in out-of-memory
     * conditions.
     */
@@ -168,6 +162,7 @@ lp_rast_rectangle(struct lp_rasterizer_task *task,
 
    /* Intersect the rectangle with this tile.
     */
+   struct u_rect box;
    intersect_rect_and_tile(task, rect, &box);
 
    /* The interior of the rectangle (if there is one) will be
@@ -184,15 +179,15 @@ lp_rast_rectangle(struct lp_rasterizer_task *task,
     * individual stamp may have two or more edges active.  We'll deal
     * with that below by combining these masks as appropriate.
     */
-   left_mask   = left_mask_tab   [box.x0 & (STAMP_SIZE - 1)];
-   right_mask  = right_mask_tab  [box.x1 & (STAMP_SIZE - 1)];
-   top_mask    = top_mask_tab    [box.y0 & (STAMP_SIZE - 1)];
-   bottom_mask = bottom_mask_tab [box.y1 & (STAMP_SIZE - 1)];
+   unsigned left_mask   = left_mask_tab   [box.x0 & (STAMP_SIZE - 1)];
+   unsigned right_mask  = right_mask_tab  [box.x1 & (STAMP_SIZE - 1)];
+   unsigned top_mask    = top_mask_tab    [box.y0 & (STAMP_SIZE - 1)];
+   unsigned bottom_mask = bottom_mask_tab [box.y1 & (STAMP_SIZE - 1)];
 
-   ix0 = box.x0 / STAMP_SIZE;
-   ix1 = box.x1 / STAMP_SIZE;
-   iy0 = box.y0 / STAMP_SIZE;
-   iy1 = box.y1 / STAMP_SIZE;
+   unsigned ix0 = box.x0 / STAMP_SIZE;
+   unsigned ix1 = box.x1 / STAMP_SIZE;
+   unsigned iy0 = box.y0 / STAMP_SIZE;
+   unsigned iy1 = box.y1 / STAMP_SIZE;
 
    /* Various special cases.
     */
@@ -200,28 +195,24 @@ lp_rast_rectangle(struct lp_rasterizer_task *task,
       /* Rectangle is contained within a single 4x4 stamp:
        */
       partial(task, rect, ix0, iy0,
-              (left_mask & right_mask &
-               top_mask & bottom_mask));
-   }
-   else if (ix0 == ix1) {
+              (left_mask & right_mask & top_mask & bottom_mask));
+   } else if (ix0 == ix1) {
       /* Left and right edges fall on the same 4-pixel-wide column:
        */
       unsigned mask = left_mask & right_mask;
       partial(task, rect, ix0, iy0, mask & top_mask);
-      for (i = iy0 + 1; i < iy1; i++)
+      for (unsigned i = iy0 + 1; i < iy1; i++)
          partial(task, rect, ix0, i, mask);
       partial(task, rect, ix0, iy1, mask & bottom_mask);
-   }
-   else if (iy0 == iy1) {
+   } else if (iy0 == iy1) {
       /* Top and bottom edges fall on the same 4-pixel-wide row:
        */
       unsigned mask = top_mask & bottom_mask;
       partial(task, rect, ix0, iy0, mask & left_mask);
-      for (i = ix0 + 1; i < ix1; i++)
+      for (unsigned i = ix0 + 1; i < ix1; i++)
          partial(task, rect, i, iy0, mask);
       partial(task, rect, ix1, iy0, mask & right_mask);
-   }
-   else {
+   } else {
       /* Each pair of edges falls in a separate 4-pixel-wide
        * row/column.
        */
@@ -230,22 +221,22 @@ lp_rast_rectangle(struct lp_rasterizer_task *task,
       partial(task, rect, ix1, iy0, right_mask & top_mask);
       partial(task, rect, ix1, iy1, right_mask & bottom_mask);
 
-      for (i = ix0 + 1; i < ix1; i++)
+      for (unsigned i = ix0 + 1; i < ix1; i++)
          partial(task, rect, i, iy0, top_mask);
 
-      for (i = ix0 + 1; i < ix1; i++)
+      for (unsigned i = ix0 + 1; i < ix1; i++)
          partial(task, rect, i, iy1, bottom_mask);
 
-      for (i = iy0 + 1; i < iy1; i++)
+      for (unsigned i = iy0 + 1; i < iy1; i++)
          partial(task, rect, ix0, i, left_mask);
 
-      for (i = iy0 + 1; i < iy1; i++)
+      for (unsigned i = iy0 + 1; i < iy1; i++)
          partial(task, rect, ix1, i, right_mask);
 
       /* Full interior blocks
        */
-      for (j = iy0 + 1; j < iy1; j++) {
-         for (i = ix0 + 1; i < ix1; i++) {
+      for (unsigned j = iy0 + 1; j < iy1; j++) {
+         for (unsigned i = ix0 + 1; i < ix1; i++) {
             full(task, rect, i, j);
          }
       }

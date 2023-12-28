@@ -12,7 +12,7 @@ static const
 struct debug_named_value st_debug_flags[] = {
    {"oldtexops", ST_DEBUG_OLD_TEX_OPS, "oldtexops"},
    {"tgsi", ST_DEBUG_TGSI, "tgsi"},
-   {NULL, 0, NULL},
+   DEBUG_NAMED_VALUE_END
 };
 void
 st_debug_parse(void)

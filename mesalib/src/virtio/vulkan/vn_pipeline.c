@@ -15,9 +15,192 @@
 #include "venus-protocol/vn_protocol_driver_pipeline_layout.h"
 #include "venus-protocol/vn_protocol_driver_shader_module.h"
 
+#include "vn_descriptor_set.h"
 #include "vn_device.h"
 #include "vn_physical_device.h"
 #include "vn_render_pass.h"
+
+/**
+ * Fields in the VkGraphicsPipelineCreateInfo pNext chain that we must track
+ * to determine which fields are valid and which must be erased.
+ */
+struct vn_graphics_pipeline_create_info_fields {
+   union {
+      /* Bitmask exists for testing if any field is set. */
+      uint32_t mask;
+
+      /* Group the fixes by Vulkan struct. Within each group, sort by struct
+       * order.
+       */
+      struct {
+         /** VkGraphicsPipelineCreateInfo::pStages */
+         bool shader_stages : 1;
+         /** VkGraphicsPipelineCreateInfo::pVertexInputState */
+         bool vertex_input_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pInputAssemblyState */
+         bool input_assembly_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pTessellationState */
+         bool tessellation_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pViewportState */
+         bool viewport_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pRasterizationState */
+         bool rasterization_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pMultisampleState */
+         bool multisample_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pDepthStencilState */
+         bool depth_stencil_state : 1;
+         /** VkGraphicsPipelineCreateInfo::pColorBlendState */
+         bool color_blend_state : 1;
+         /** VkGraphicsPipelineCreateInfo::layout */
+         bool pipeline_layout : 1;
+         /** VkGraphicsPipelineCreateInfo::renderPass */
+         bool render_pass : 1;
+         /** VkGraphicsPipelineCreateInfo::basePipelineHandle */
+         bool base_pipeline_handle : 1;
+
+         /** VkPipelineViewportStateCreateInfo::pViewports */
+         bool viewport_state_viewports : 1;
+         /** VkPipelineViewportStateCreateInfo::pScissors */
+         bool viewport_state_scissors : 1;
+
+         /** VkPipelineMultisampleStateCreateInfo::pSampleMask */
+         bool multisample_state_sample_mask : 1;
+
+         /** VkPipelineRenderingCreateInfo, all format fields */
+         bool rendering_info_formats : 1;
+      };
+   };
+};
+
+static_assert(
+   sizeof(struct vn_graphics_pipeline_create_info_fields) ==
+      sizeof(((struct vn_graphics_pipeline_create_info_fields){}).mask),
+   "vn_graphics_pipeline_create_info_fields::mask is too small");
+
+/**
+ * Typesafe bitmask for VkGraphicsPipelineLibraryFlagsEXT. Named members
+ * reduce long lines.
+ *
+ * From the Vulkan 1.3.215 spec:
+ *
+ *    The state required for a graphics pipeline is divided into vertex input
+ *    state, pre-rasterization shader state, fragment shader state, and
+ *    fragment output state.
+ */
+struct vn_graphics_pipeline_library_state {
+   union {
+      VkGraphicsPipelineLibraryFlagsEXT mask;
+
+      struct {
+         /** VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT */
+         bool vertex_input : 1;
+         /** VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT */
+         bool pre_raster_shaders : 1;
+         /** VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT */
+         bool fragment_shader : 1;
+         /** VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT */
+         bool fragment_output : 1;
+      };
+   };
+};
+
+/**
+ * Compact bitmask for the subset of graphics VkDynamicState that
+ * venus needs to track. Named members reduce long lines.
+ *
+ * We want a *compact* bitmask because enum VkDynamicState has large gaps due
+ * to extensions.
+ */
+struct vn_graphics_dynamic_state {
+   union {
+      uint32_t mask;
+
+      struct {
+         /** VK_DYNAMIC_STATE_VERTEX_INPUT_EXT **/
+         bool vertex_input : 1;
+         /** VK_DYNAMIC_STATE_VIEWPORT */
+         bool viewport : 1;
+         /** VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT */
+         bool viewport_with_count : 1;
+         /** VK_DYNAMIC_STATE_SAMPLE_MASK_EXT */
+         bool sample_mask : 1;
+         /** VK_DYNAMIC_STATE_SCISSOR */
+         bool scissor : 1;
+         /** VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT */
+         bool scissor_with_count : 1;
+         /** VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE */
+         bool rasterizer_discard_enable : 1;
+      };
+   };
+};
+
+/**
+ * Graphics pipeline state that Venus tracks to determine which fixes are
+ * required in the VkGraphicsPipelineCreateInfo pNext chain.
+ *
+ * This is the pipeline's fully linked state. That is, it includes the state
+ * provided directly in VkGraphicsPipelineCreateInfo and the state provided
+ * indirectly in VkPipelineLibraryCreateInfoKHR.
+ */
+struct vn_graphics_pipeline_state {
+   /** The GPL state subsets that the pipeline provides. */
+   struct vn_graphics_pipeline_library_state gpl;
+
+   struct vn_graphics_dynamic_state dynamic;
+   VkShaderStageFlags shader_stages;
+
+   struct vn_render_pass_state {
+      /**
+       * The attachment aspects accessed by the pipeline.
+       *
+       * Valid if and only if VK_IMAGE_ASPECT_METADATA_BIT is unset.
+       *
+       * In a complete pipeline, this must be valid (and may be empty). In
+       * a pipeline library, this may be invalid. We initialize this to be
+       * invalid, and it remains invalid until we read the attachment info in
+       * the VkGraphicsPipelineCreateInfo chain.
+       *
+       * The app provides the attachment info in
+       * VkGraphicsPipelineCreateInfo::renderPass or
+       * VkPipelineRenderingCreateInfo, but the validity of that info depends
+       * on VkGraphicsPipelineLibraryFlagsEXT.
+       */
+      VkImageAspectFlags attachment_aspects;
+   } render_pass;
+
+   /** VkPipelineRasterizationStateCreateInfo::rasterizerDiscardEnable
+    *
+    * Valid if and only if gpl.pre_raster_shaders is set.
+    */
+   bool rasterizer_discard_enable;
+};
+
+struct vn_graphics_pipeline {
+   struct vn_pipeline base;
+   struct vn_graphics_pipeline_state state;
+};
+
+/**
+ * Description of fixes needed for a single VkGraphicsPipelineCreateInfo
+ * pNext chain.
+ */
+struct vn_graphics_pipeline_fix_desc {
+   /** Erase these fields to prevent the Venus encoder from reading invalid
+    * memory.
+    */
+   struct vn_graphics_pipeline_create_info_fields erase;
+};
+
+/**
+ * Temporary storage for fixes in vkCreateGraphicsPipelines.
+ *
+ * Length of each array is vkCreateGraphicsPipelines::createInfoCount.
+ */
+struct vn_graphics_pipeline_fix_tmp {
+   VkGraphicsPipelineCreateInfo *infos;
+   VkPipelineMultisampleStateCreateInfo *multisample_state_infos;
+   VkPipelineViewportStateCreateInfo *viewport_state_infos;
+};
 
 /* shader module commands */
 
@@ -40,7 +223,7 @@ vn_CreateShaderModule(VkDevice device,
    vn_object_base_init(&mod->base, VK_OBJECT_TYPE_SHADER_MODULE, &dev->base);
 
    VkShaderModule mod_handle = vn_shader_module_to_handle(mod);
-   vn_async_vkCreateShaderModule(dev->instance, device, pCreateInfo, NULL,
+   vn_async_vkCreateShaderModule(dev->primary_ring, device, pCreateInfo, NULL,
                                  &mod_handle);
 
    *pShaderModule = mod_handle;
@@ -61,13 +244,47 @@ vn_DestroyShaderModule(VkDevice device,
    if (!mod)
       return;
 
-   vn_async_vkDestroyShaderModule(dev->instance, device, shaderModule, NULL);
+   vn_async_vkDestroyShaderModule(dev->primary_ring, device, shaderModule,
+                                  NULL);
 
    vn_object_base_fini(&mod->base);
    vk_free(alloc, mod);
 }
 
 /* pipeline layout commands */
+
+static void
+vn_pipeline_layout_destroy(struct vn_device *dev,
+                           struct vn_pipeline_layout *pipeline_layout)
+{
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
+   if (pipeline_layout->push_descriptor_set_layout) {
+      vn_descriptor_set_layout_unref(
+         dev, pipeline_layout->push_descriptor_set_layout);
+   }
+   vn_async_vkDestroyPipelineLayout(
+      dev->primary_ring, vn_device_to_handle(dev),
+      vn_pipeline_layout_to_handle(pipeline_layout), NULL);
+
+   vn_object_base_fini(&pipeline_layout->base);
+   vk_free(alloc, pipeline_layout);
+}
+
+static inline struct vn_pipeline_layout *
+vn_pipeline_layout_ref(struct vn_device *dev,
+                       struct vn_pipeline_layout *pipeline_layout)
+{
+   vn_refcount_inc(&pipeline_layout->refcount);
+   return pipeline_layout;
+}
+
+static inline void
+vn_pipeline_layout_unref(struct vn_device *dev,
+                         struct vn_pipeline_layout *pipeline_layout)
+{
+   if (vn_refcount_dec(&pipeline_layout->refcount))
+      vn_pipeline_layout_destroy(dev, pipeline_layout);
+}
 
 VkResult
 vn_CreatePipelineLayout(VkDevice device,
@@ -76,21 +293,45 @@ vn_CreatePipelineLayout(VkDevice device,
                         VkPipelineLayout *pPipelineLayout)
 {
    struct vn_device *dev = vn_device_from_handle(device);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &dev->base.base.alloc;
+   /* ignore pAllocator as the pipeline layout is reference-counted */
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
 
    struct vn_pipeline_layout *layout =
       vk_zalloc(alloc, sizeof(*layout), VN_DEFAULT_ALIGN,
-                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+                VK_SYSTEM_ALLOCATION_SCOPE_DEVICE);
    if (!layout)
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    vn_object_base_init(&layout->base, VK_OBJECT_TYPE_PIPELINE_LAYOUT,
                        &dev->base);
+   layout->refcount = VN_REFCOUNT_INIT(1);
+
+   for (uint32_t i = 0; i < pCreateInfo->setLayoutCount; i++) {
+      struct vn_descriptor_set_layout *descriptor_set_layout =
+         vn_descriptor_set_layout_from_handle(pCreateInfo->pSetLayouts[i]);
+
+      /* Avoid null derefs. pSetLayouts may contain VK_NULL_HANDLE.
+       *
+       * From the Vulkan 1.3.254 spec:
+       *    VUID-VkPipelineLayoutCreateInfo-pSetLayouts-parameter
+       *
+       *    If setLayoutCount is not 0, pSetLayouts must be a valid pointer to
+       *    an array of setLayoutCount valid or VK_NULL_HANDLE
+       *    VkDescriptorSetLayout handles
+       */
+      if (descriptor_set_layout &&
+          descriptor_set_layout->is_push_descriptor) {
+         layout->push_descriptor_set_layout =
+            vn_descriptor_set_layout_ref(dev, descriptor_set_layout);
+         break;
+      }
+   }
+
+   layout->has_push_constant_ranges = pCreateInfo->pPushConstantRanges > 0;
 
    VkPipelineLayout layout_handle = vn_pipeline_layout_to_handle(layout);
-   vn_async_vkCreatePipelineLayout(dev->instance, device, pCreateInfo, NULL,
-                                   &layout_handle);
+   vn_async_vkCreatePipelineLayout(dev->primary_ring, device, pCreateInfo,
+                                   NULL, &layout_handle);
 
    *pPipelineLayout = layout_handle;
 
@@ -105,17 +346,11 @@ vn_DestroyPipelineLayout(VkDevice device,
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_pipeline_layout *layout =
       vn_pipeline_layout_from_handle(pipelineLayout);
-   const VkAllocationCallbacks *alloc =
-      pAllocator ? pAllocator : &dev->base.base.alloc;
 
    if (!layout)
       return;
 
-   vn_async_vkDestroyPipelineLayout(dev->instance, device, pipelineLayout,
-                                    NULL);
-
-   vn_object_base_fini(&layout->base);
-   vk_free(alloc, layout);
+   vn_pipeline_layout_unref(dev, layout);
 }
 
 /* pipeline cache commands */
@@ -152,8 +387,8 @@ vn_CreatePipelineCache(VkDevice device,
    }
 
    VkPipelineCache cache_handle = vn_pipeline_cache_to_handle(cache);
-   vn_async_vkCreatePipelineCache(dev->instance, device, pCreateInfo, NULL,
-                                  &cache_handle);
+   vn_async_vkCreatePipelineCache(dev->primary_ring, device, pCreateInfo,
+                                  NULL, &cache_handle);
 
    *pPipelineCache = cache_handle;
 
@@ -175,11 +410,39 @@ vn_DestroyPipelineCache(VkDevice device,
    if (!cache)
       return;
 
-   vn_async_vkDestroyPipelineCache(dev->instance, device, pipelineCache,
+   vn_async_vkDestroyPipelineCache(dev->primary_ring, device, pipelineCache,
                                    NULL);
 
    vn_object_base_fini(&cache->base);
    vk_free(alloc, cache);
+}
+
+static struct vn_ring *
+vn_get_target_ring(struct vn_device *dev)
+{
+   if (dev->force_primary_ring_submission)
+      return dev->primary_ring;
+
+   if (vn_tls_get_primary_ring_submission())
+      return dev->primary_ring;
+
+   if (!dev->secondary_ring) {
+      if (!vn_device_secondary_ring_init_once(dev)) {
+         /* fallback to primary ring submission */
+         return dev->primary_ring;
+      }
+   }
+
+   /* Ensure pipeline cache and pipeline deps are ready in the renderer.
+    *
+    * TODO:
+    * - For cache retrieval, track ring seqno of cache obj and only wait
+    *   for that seqno once.
+    * - For pipeline creation, track ring seqnos of pipeline layout and
+    *   renderpass objs it depends on, and only wait for those seqnos once.
+    */
+   vn_ring_wait_all(dev->primary_ring);
+   return dev->secondary_ring;
 }
 
 VkResult
@@ -192,10 +455,13 @@ vn_GetPipelineCacheData(VkDevice device,
    struct vn_device *dev = vn_device_from_handle(device);
    struct vn_physical_device *physical_dev = dev->physical_device;
 
+   struct vn_ring *target_ring = vn_get_target_ring(dev);
+   assert(target_ring);
+
    struct vk_pipeline_cache_header *header = pData;
    VkResult result;
    if (!pData) {
-      result = vn_call_vkGetPipelineCacheData(dev->instance, device,
+      result = vn_call_vkGetPipelineCacheData(target_ring, device,
                                               pipelineCache, pDataSize, NULL);
       if (result != VK_SUCCESS)
          return vn_error(dev->instance, result);
@@ -219,7 +485,7 @@ vn_GetPipelineCacheData(VkDevice device,
 
    *pDataSize -= header->header_size;
    result =
-      vn_call_vkGetPipelineCacheData(dev->instance, device, pipelineCache,
+      vn_call_vkGetPipelineCacheData(target_ring, device, pipelineCache,
                                      pDataSize, pData + header->header_size);
    if (result < VK_SUCCESS)
       return vn_error(dev->instance, result);
@@ -238,7 +504,7 @@ vn_MergePipelineCaches(VkDevice device,
    VN_TRACE_FUNC();
    struct vn_device *dev = vn_device_from_handle(device);
 
-   vn_async_vkMergePipelineCaches(dev->instance, device, dstCache,
+   vn_async_vkMergePipelineCaches(dev->primary_ring, device, dstCache,
                                   srcCacheCount, pSrcCaches);
 
    return VK_SUCCESS;
@@ -246,15 +512,35 @@ vn_MergePipelineCaches(VkDevice device,
 
 /* pipeline commands */
 
+static struct vn_graphics_pipeline *
+vn_graphics_pipeline_from_handle(VkPipeline pipeline_h)
+{
+   struct vn_pipeline *p = vn_pipeline_from_handle(pipeline_h);
+   assert(p->type == VN_PIPELINE_TYPE_GRAPHICS);
+   return (struct vn_graphics_pipeline *)p;
+}
+
 static bool
 vn_create_pipeline_handles(struct vn_device *dev,
+                           enum vn_pipeline_type type,
                            uint32_t pipeline_count,
                            VkPipeline *pipeline_handles,
                            const VkAllocationCallbacks *alloc)
 {
+   size_t pipeline_size;
+
+   switch (type) {
+   case VN_PIPELINE_TYPE_GRAPHICS:
+      pipeline_size = sizeof(struct vn_graphics_pipeline);
+      break;
+   case VN_PIPELINE_TYPE_COMPUTE:
+      pipeline_size = sizeof(struct vn_pipeline);
+      break;
+   }
+
    for (uint32_t i = 0; i < pipeline_count; i++) {
       struct vn_pipeline *pipeline =
-         vk_zalloc(alloc, sizeof(*pipeline), VN_DEFAULT_ALIGN,
+         vk_zalloc(alloc, pipeline_size, VN_DEFAULT_ALIGN,
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
 
       if (!pipeline) {
@@ -271,6 +557,7 @@ vn_create_pipeline_handles(struct vn_device *dev,
 
       vn_object_base_init(&pipeline->base, VK_OBJECT_TYPE_PIPELINE,
                           &dev->base);
+      pipeline->type = type;
       pipeline_handles[i] = vn_pipeline_to_handle(pipeline);
    }
 
@@ -288,6 +575,9 @@ vn_destroy_failed_pipelines(struct vn_device *dev,
       struct vn_pipeline *pipeline = vn_pipeline_from_handle(pipelines[i]);
 
       if (pipeline->base.id == 0) {
+         if (pipeline->layout) {
+            vn_pipeline_layout_unref(dev, pipeline->layout);
+         }
          vn_object_base_fini(&pipeline->base);
          vk_free(alloc, pipeline);
          pipelines[i] = VK_NULL_HANDLE;
@@ -299,353 +589,761 @@ vn_destroy_failed_pipelines(struct vn_device *dev,
    (VK_PIPELINE_CREATE_FAIL_ON_PIPELINE_COMPILE_REQUIRED_BIT |               \
     VK_PIPELINE_CREATE_EARLY_RETURN_ON_FAILURE_BIT)
 
-/** Fixes for a single VkGraphicsPipelineCreateInfo. */
-struct vn_graphics_pipeline_create_info_fix {
-   bool ignore_tessellation_state;
-   bool ignore_viewport_state;
-   bool ignore_viewports;
-   bool ignore_scissors;
-   bool ignore_multisample_state;
-   bool ignore_depth_stencil_state;
-   bool ignore_color_blend_state;
-   bool ignore_base_pipeline_handle;
-};
-
-/** Temporary storage for fixes in vkCreateGraphicsPipelines. */
-struct vn_create_graphics_pipelines_fixes {
-   VkGraphicsPipelineCreateInfo *create_infos;
-   VkPipelineViewportStateCreateInfo *viewport_state_create_infos;
-};
-
-static struct vn_create_graphics_pipelines_fixes *
-vn_alloc_create_graphics_pipelines_fixes(const VkAllocationCallbacks *alloc,
-                                         uint32_t info_count)
+static struct vn_graphics_pipeline_fix_tmp *
+vn_graphics_pipeline_fix_tmp_alloc(const VkAllocationCallbacks *alloc,
+                                   uint32_t info_count)
 {
-   struct vn_create_graphics_pipelines_fixes *fixes;
-   VkGraphicsPipelineCreateInfo *create_infos;
-   VkPipelineViewportStateCreateInfo *viewport_state_create_infos;
+   struct vn_graphics_pipeline_fix_tmp *tmp;
+   VkGraphicsPipelineCreateInfo *infos;
+   VkPipelineMultisampleStateCreateInfo *multisample_state_infos;
+   VkPipelineViewportStateCreateInfo *viewport_state_infos;
 
    VK_MULTIALLOC(ma);
-   vk_multialloc_add(&ma, &fixes, __typeof__(*fixes), 1);
-   vk_multialloc_add(&ma, &create_infos, __typeof__(*create_infos),
-                     info_count);
-   vk_multialloc_add(&ma, &viewport_state_create_infos,
-                     __typeof__(*viewport_state_create_infos), info_count);
+   vk_multialloc_add(&ma, &tmp, __typeof__(*tmp), 1);
+   vk_multialloc_add(&ma, &infos, __typeof__(*infos), info_count);
+   vk_multialloc_add(&ma, &multisample_state_infos,
+                     __typeof__(*multisample_state_infos), info_count);
+   vk_multialloc_add(&ma, &viewport_state_infos,
+                     __typeof__(*viewport_state_infos), info_count);
 
    if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND))
       return NULL;
 
-   fixes->create_infos = create_infos;
-   fixes->viewport_state_create_infos = viewport_state_create_infos;
+   tmp->infos = infos;
+   tmp->multisample_state_infos = multisample_state_infos;
+   tmp->viewport_state_infos = viewport_state_infos;
 
-   return fixes;
+   return tmp;
 }
 
-static const VkGraphicsPipelineCreateInfo *
-vn_fix_graphics_pipeline_create_info(
-   struct vn_device *dev,
-   uint32_t info_count,
-   const VkGraphicsPipelineCreateInfo *create_infos,
-   const VkAllocationCallbacks *alloc,
-   struct vn_create_graphics_pipelines_fixes **out_fixes)
+/**
+ * Update \a gpl with the VkGraphicsPipelineLibraryFlagsEXT that the pipeline
+ * provides directly (without linking). The spec says that the pipeline always
+ * provides flags, but may do it implicitly.
+ *
+ * From the Vulkan 1.3.251 spec:
+ *
+ *    If this structure [VkGraphicsPipelineLibraryCreateInfoEXT] is
+ *    omitted, and either VkGraphicsPipelineCreateInfo::flags includes
+ *    VK_PIPELINE_CREATE_LIBRARY_BIT_KHR or the
+ *    VkGraphicsPipelineCreateInfo::pNext chain includes
+ *    a VkPipelineLibraryCreateInfoKHR structure with a libraryCount
+ *    greater than 0, it is as if flags is 0. Otherwise if this
+ *    structure is omitted, it is as if flags includes all possible subsets
+ *    of the graphics pipeline (i.e. a complete graphics pipeline).
+ */
+static void
+vn_graphics_pipeline_library_state_update(
+   const VkGraphicsPipelineCreateInfo *info,
+   struct vn_graphics_pipeline_library_state *restrict gpl)
 {
-   VN_TRACE_FUNC();
+   const VkGraphicsPipelineLibraryCreateInfoEXT *gpl_info =
+      vk_find_struct_const(info->pNext,
+                           GRAPHICS_PIPELINE_LIBRARY_CREATE_INFO_EXT);
+   const VkPipelineLibraryCreateInfoKHR *lib_info =
+      vk_find_struct_const(info->pNext, PIPELINE_LIBRARY_CREATE_INFO_KHR);
+   const uint32_t lib_count = lib_info ? lib_info->libraryCount : 0;
 
-   /* Defer allocation until we need a fix. */
-   struct vn_create_graphics_pipelines_fixes *fixes = NULL;
+   if (gpl_info) {
+      gpl->mask |= gpl_info->flags;
+   } else if ((info->flags & VK_PIPELINE_CREATE_LIBRARY_BIT_KHR) ||
+              lib_count > 0) {
+      gpl->mask |= 0;
+   } else {
+      gpl->mask |=
+         VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT |
+         VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT |
+         VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT |
+         VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT;
+   }
+}
 
-   for (uint32_t i = 0; i < info_count; i++) {
-      struct vn_graphics_pipeline_create_info_fix fix = { 0 };
-      bool any_fix = false;
+/**
+ * Update \a dynamic with the VkDynamicState that the pipeline provides
+ * directly (without linking).
+ *
+ * \a direct_gpl The VkGraphicsPipelineLibraryFlagsEXT that the pipeline sets
+ *    directly (without linking).
+ */
+static void
+vn_graphics_dynamic_state_update(
+   const VkGraphicsPipelineCreateInfo *info,
+   struct vn_graphics_pipeline_library_state direct_gpl,
+   struct vn_graphics_dynamic_state *restrict dynamic)
+{
+   const VkPipelineDynamicStateCreateInfo *dyn_info = info->pDynamicState;
+   if (!dyn_info)
+      return;
 
-      const VkGraphicsPipelineCreateInfo *info = &create_infos[i];
-      const VkPipelineRenderingCreateInfo *rendering_info =
-         vk_find_struct_const(info, PIPELINE_RENDERING_CREATE_INFO);
+   struct vn_graphics_dynamic_state raw = { 0 };
 
-      VkShaderStageFlags stages = 0;
-      for (uint32_t j = 0; j < info->stageCount; j++) {
-         stages |= info->pStages[j].stage;
+   for (uint32_t i = 0; i < dyn_info->dynamicStateCount; i++) {
+      switch (dyn_info->pDynamicStates[i]) {
+      case VK_DYNAMIC_STATE_VERTEX_INPUT_EXT:
+         raw.vertex_input = true;
+         break;
+      case VK_DYNAMIC_STATE_VIEWPORT:
+         raw.viewport = true;
+         break;
+      case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT:
+         raw.viewport_with_count = true;
+         break;
+      case VK_DYNAMIC_STATE_SAMPLE_MASK_EXT:
+         raw.sample_mask = true;
+         break;
+      case VK_DYNAMIC_STATE_SCISSOR:
+         raw.scissor = true;
+         break;
+      case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT:
+         raw.scissor_with_count = true;
+         break;
+      case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE:
+         raw.rasterizer_discard_enable = true;
+         break;
+      default:
+         break;
       }
+   }
 
-      /* VkDynamicState */
-      struct {
-         bool rasterizer_discard_enable;
-         bool viewport;
-         bool viewport_with_count;
-         bool scissor;
-         bool scissor_with_count;
-      } has_dynamic_state = { 0 };
+   /* We must ignore VkDynamicState unrelated to the
+    * VkGraphicsPipelineLibraryFlagsEXT that the pipeline provides directly
+    * (without linking).
+    *
+    *    [Vulkan 1.3.252]
+    *    Dynamic state values set via pDynamicState must be ignored if the
+    *    state they correspond to is not otherwise statically set by one of
+    *    the state subsets used to create the pipeline.
+    *
+    * In general, we must update dynamic state bits with `|=` rather than `=`
+    * because multiple GPL state subsets can enable the same dynamic state.
+    *
+    *    [Vulkan 1.3.252]
+    *    Any linked library that has dynamic state enabled that same dynamic
+    *    state must also be enabled in all the other linked libraries to which
+    *    that dynamic state applies.
+    */
+   if (direct_gpl.vertex_input) {
+      dynamic->vertex_input |= raw.vertex_input;
+   }
+   if (direct_gpl.pre_raster_shaders) {
+      dynamic->viewport |= raw.viewport;
+      dynamic->viewport_with_count |= raw.viewport_with_count;
+      dynamic->scissor |= raw.scissor;
+      dynamic->scissor_with_count |= raw.scissor_with_count;
+      dynamic->rasterizer_discard_enable |= raw.rasterizer_discard_enable;
+   }
+   if (direct_gpl.fragment_shader) {
+      dynamic->sample_mask |= raw.sample_mask;
+   }
+   if (direct_gpl.fragment_output) {
+      dynamic->sample_mask |= raw.sample_mask;
+   }
+}
 
-      if (info->pDynamicState) {
-         for (uint32_t j = 0; j < info->pDynamicState->dynamicStateCount;
-              j++) {
-            switch (info->pDynamicState->pDynamicStates[j]) {
-            case VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE:
-               has_dynamic_state.rasterizer_discard_enable = true;
-               break;
-            case VK_DYNAMIC_STATE_VIEWPORT:
-               has_dynamic_state.viewport = true;
-               break;
-            case VK_DYNAMIC_STATE_VIEWPORT_WITH_COUNT:
-               has_dynamic_state.viewport_with_count = true;
-               break;
-            case VK_DYNAMIC_STATE_SCISSOR:
-               has_dynamic_state.scissor = true;
-               break;
-            case VK_DYNAMIC_STATE_SCISSOR_WITH_COUNT:
-               has_dynamic_state.scissor_with_count = true;
-               break;
-            default:
+/**
+ * Update \a shader_stages with the VkShaderStageFlags that the pipeline
+ * provides directly (without linking).
+ *
+ * \a direct_gpl The VkGraphicsPipelineLibraryFlagsEXT that the pipeline sets
+ *    directly (without linking).
+ */
+static void
+vn_graphics_shader_stages_update(
+   const VkGraphicsPipelineCreateInfo *info,
+   struct vn_graphics_pipeline_library_state direct_gpl,
+   struct vn_graphics_pipeline_create_info_fields *restrict valid,
+   VkShaderStageFlags *restrict shader_stages)
+{
+   /* From the Vulkan 1.3.251 spec:
+    *
+    *    VUID-VkGraphicsPipelineCreateInfo-flags-06640
+    *
+    *    If VkGraphicsPipelineLibraryCreateInfoEXT::flags includes
+    *    VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT or
+    *    VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT, pStages must be
+    *    a valid pointer to an array of stageCount valid
+    *    VkPipelineShaderStageCreateInfo structures
+    */
+   if (!direct_gpl.pre_raster_shaders && !direct_gpl.fragment_shader)
+      return;
+
+   valid->shader_stages = true;
+
+   for (uint32_t i = 0; i < info->stageCount; i++) {
+      /* We do not need to ignore the stages irrelevant to the GPL flags.
+       * The following VUs require the app to provide only relevant stages.
+       *
+       * VUID-VkGraphicsPipelineCreateInfo-pStages-06894
+       * VUID-VkGraphicsPipelineCreateInfo-pStages-06895
+       * VUID-VkGraphicsPipelineCreateInfo-pStages-06896
+       */
+      *shader_stages |= info->pStages[i].stage;
+   }
+}
+
+/**
+ * Update the render pass state with the state that the pipeline provides
+ * directly (without linking).
+ *
+ * \a direct_gpl The VkGraphicsPipelineLibraryFlagsEXT that the pipeline sets
+ *    directly (without linking).
+ */
+static void
+vn_render_pass_state_update(
+   const VkGraphicsPipelineCreateInfo *info,
+   struct vn_graphics_pipeline_library_state direct_gpl,
+   struct vn_graphics_pipeline_create_info_fields *restrict valid,
+   struct vn_render_pass_state *restrict state)
+{
+   /* We must set validity before early returns, to ensure we don't erase
+    * valid info during fixup.  We must not erase valid info because, even if
+    * we don't read it, the host driver may read it.
+    */
+
+   /* XXX: Should this ignore the render pass for some state subsets when
+    * rasterization is statically disabled? The spec suggests "yes" and "no".
+    */
+
+   /* VUID-VkGraphicsPipelineCreateInfo-flags-06643
+    *
+    * If VkGraphicsPipelineLibraryCreateInfoEXT::flags includes
+    * VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT, or
+    * VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT,
+    * VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT, and
+    * renderPass is not VK_NULL_HANDLE, renderPass must be a valid
+    * VkRenderPass handle
+    */
+   valid->render_pass |= direct_gpl.pre_raster_shaders ||
+                         direct_gpl.fragment_shader ||
+                         direct_gpl.fragment_output;
+
+   /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06579
+    *
+    * If the pipeline requires fragment output interface state, and renderPass
+    * is VK_NULL_HANDLE, and
+    * VkPipelineRenderingCreateInfo::colorAttachmentCount is not 0,
+    * VkPipelineRenderingCreateInfo::pColorAttachmentFormats must be a valid
+    * pointer to an array of colorAttachmentCount valid VkFormat values
+    *
+    * VUID-VkGraphicsPipelineCreateInfo-renderPass-06580
+    *
+    * If the pipeline requires fragment output interface state, and renderPass
+    * is VK_NULL_HANDLE, each element of
+    * VkPipelineRenderingCreateInfo::pColorAttachmentFormats must be a valid
+    * VkFormat value
+    */
+   valid->rendering_info_formats |=
+      direct_gpl.fragment_output && !info->renderPass;
+
+   if (state->attachment_aspects != VK_IMAGE_ASPECT_METADATA_BIT) {
+      /* We have previously collected the pipeline's attachment aspects.  We
+       * do not need to inspect the attachment info again because VUs ensure
+       * that all valid render pass info used to create the pipeline and its
+       * linked pipelines are compatible.  Ignored info is not required to be
+       * compatible across linked pipeline libraries. An example of ignored
+       * info is VkPipelineRenderingCreateInfo::pColorAttachmentFormats
+       * without
+       * VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT.
+       *
+       * VUID-VkGraphicsPipelineCreateInfo-renderpass-06625
+       * VUID-VkGraphicsPipelineCreateInfo-pLibraries-06628
+       */
+      return;
+   }
+
+   if (valid->render_pass && info->renderPass) {
+      struct vn_render_pass *pass =
+         vn_render_pass_from_handle(info->renderPass);
+      state->attachment_aspects =
+         pass->subpasses[info->subpass].attachment_aspects;
+      return;
+   }
+
+   if (valid->rendering_info_formats) {
+      state->attachment_aspects = 0;
+
+      /* From the Vulkan 1.3.255 spec:
+       *
+       *    When a pipeline is created without a VkRenderPass, if this
+       *    structure [VkPipelineRenderingCreateInfo] is present in the pNext
+       *    chain of VkGraphicsPipelineCreateInfo, it specifies the view mask
+       *    and format of attachments used for rendering.  If this structure
+       *    is not specified, and the pipeline does not include
+       *    a VkRenderPass, viewMask and colorAttachmentCount are 0, and
+       *    depthAttachmentFormat and stencilAttachmentFormat are
+       *    VK_FORMAT_UNDEFINED. If a graphics pipeline is created with
+       *    a valid VkRenderPass, parameters of this structure are ignored.
+       *
+       * However, other spec text clearly states that the format members of
+       * VkPipelineRenderingCreateInfo are ignored unless the pipeline
+       * provides fragment output interface state directly (without linking).
+       */
+      const VkPipelineRenderingCreateInfo *r_info =
+         vk_find_struct_const(info->pNext, PIPELINE_RENDERING_CREATE_INFO);
+
+      if (r_info) {
+         for (uint32_t i = 0; i < r_info->colorAttachmentCount; i++) {
+            if (r_info->pColorAttachmentFormats[i]) {
+               state->attachment_aspects |= VK_IMAGE_ASPECT_COLOR_BIT;
                break;
             }
          }
+         if (r_info->depthAttachmentFormat)
+            state->attachment_aspects |= VK_IMAGE_ASPECT_DEPTH_BIT;
+         if (r_info->stencilAttachmentFormat)
+            state->attachment_aspects |= VK_IMAGE_ASPECT_STENCIL_BIT;
       }
 
-      const struct vn_render_pass *pass =
-         vn_render_pass_from_handle(info->renderPass);
-
-      const struct vn_subpass *subpass = NULL;
-      if (pass)
-         subpass = &pass->subpasses[info->subpass];
-
-      /* TODO: Ignore VkPipelineRenderingCreateInfo when not using dynamic
-       * rendering. This requires either a deep rewrite of
-       * VkGraphicsPipelineCreateInfo::pNext or a fix in the generated
-       * protocol code.
-       *
-       * The Vulkan spec (1.3.223) says about VkPipelineRenderingCreateInfo:
-       *    If a graphics pipeline is created with a valid VkRenderPass,
-       *    parameters of this structure are ignored.
-       */
-      const bool has_dynamic_rendering = !pass && rendering_info;
-
-      /* For each pipeline state category, we define a bool.
-       *
-       * The Vulkan spec (1.3.223) says:
-       *    The state required for a graphics pipeline is divided into vertex
-       *    input state, pre-rasterization shader state, fragment shader
-       *    state, and fragment output state.
-       *
-       * Without VK_EXT_graphics_pipeline_library, most states are
-       * unconditionally included in the pipeline. Despite that, we still
-       * reference the state bools in the ignore rules because (a) it makes
-       * the ignore condition easier to validate against the text of the
-       * relevant VUs; and (b) it makes it easier to enable
-       * VK_EXT_graphics_pipeline_library because we won't need to carefully
-       * revisit the text of each VU to untangle the missing pipeline state
-       * bools.
-       */
-
-      /* VK_GRAPHICS_PIPELINE_LIBRARY_VERTEX_INPUT_INTERFACE_BIT_EXT
-       *
-       * The Vulkan spec (1.3.223) says:
-       *    If the pre-rasterization shader state includes a vertex shader,
-       * then vertex input state is included in a complete graphics pipeline.
-       *
-       * We support no extension yet that allows the vertex stage to be
-       * omitted, such as VK_EXT_vertex_input_dynamic_state or
-       * VK_EXT_graphics_pipeline_library.
-       */
-      const bool UNUSED has_vertex_input_state = true;
-
-      /* VK_GRAPHICS_PIPELINE_LIBRARY_PRE_RASTERIZATION_SHADERS_BIT_EXT */
-      const bool has_pre_raster_state = true;
-
-      /* The spec does not assign a name to this state. We define it just to
-       * deduplicate code.
-       *
-       * The Vulkan spec (1.3.223) says:
-       *    If the value of [...]rasterizerDiscardEnable in the
-       *    pre-rasterization shader state is VK_FALSE or the
-       *    VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE dynamic state is
-       *    enabled fragment shader state and fragment output interface state
-       *    is included in a complete graphics pipeline.
-       */
-      const bool has_raster_state =
-         has_dynamic_state.rasterizer_discard_enable ||
-         (info->pRasterizationState &&
-          info->pRasterizationState->rasterizerDiscardEnable == VK_FALSE);
-
-      /* VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT */
-      const bool has_fragment_shader_state = has_raster_state;
-
-      /* VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT */
-      const bool has_fragment_output_state = has_raster_state;
-
-      /* Ignore pTessellationState?
-       *    VUID-VkGraphicsPipelineCreateInfo-pStages-00731
-       */
-      if (info->pTessellationState &&
-          (!(stages & VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT) ||
-           !(stages & VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT))) {
-         fix.ignore_tessellation_state = true;
-         any_fix = true;
-      }
-
-      /* Ignore pViewportState?
-       *    VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-00750
-       *    VUID-VkGraphicsPipelineCreateInfo-pViewportState-04892
-       */
-      if (info->pViewportState &&
-          !(has_pre_raster_state && has_raster_state)) {
-         fix.ignore_viewport_state = true;
-         any_fix = true;
-      }
-
-      /* Ignore pViewports?
-       *    VUID-VkGraphicsPipelineCreateInfo-pDynamicStates-04130
-       *
-       * Even if pViewportState is non-null, we must not dereference it if it
-       * is ignored.
-       */
-      if (!fix.ignore_viewport_state && info->pViewportState &&
-          info->pViewportState->pViewports) {
-         const bool has_dynamic_viewport =
-            has_pre_raster_state && (has_dynamic_state.viewport ||
-                                     has_dynamic_state.viewport_with_count);
-
-         if (has_dynamic_viewport) {
-            fix.ignore_viewports = true;
-            any_fix = true;
-         }
-      }
-
-      /* Ignore pScissors?
-       *    VUID-VkGraphicsPipelineCreateInfo-pDynamicStates-04131
-       *
-       * Even if pViewportState is non-null, we must not dereference it if it
-       * is ignored.
-       */
-      if (!fix.ignore_viewport_state && info->pViewportState &&
-          info->pViewportState->pScissors) {
-         const bool has_dynamic_scissor =
-            has_pre_raster_state && (has_dynamic_state.scissor ||
-                                     has_dynamic_state.scissor_with_count);
-         if (has_dynamic_scissor) {
-            fix.ignore_scissors = true;
-            any_fix = true;
-         }
-      }
-
-      /* Ignore pMultisampleState?
-       *    VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-00751
-       */
-      if (info->pMultisampleState && !has_fragment_output_state) {
-         fix.ignore_multisample_state = true;
-         any_fix = true;
-      }
-
-      /* Ignore pDepthStencilState? */
-      if (info->pDepthStencilState) {
-         const bool has_static_attachment =
-            subpass && subpass->has_depth_stencil_attachment;
-
-         /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06043 */
-         bool require_state =
-            has_fragment_shader_state && has_static_attachment;
-
-         if (!require_state) {
-            const bool has_dynamic_attachment =
-               has_dynamic_rendering &&
-               (rendering_info->depthAttachmentFormat !=
-                   VK_FORMAT_UNDEFINED ||
-                rendering_info->stencilAttachmentFormat !=
-                   VK_FORMAT_UNDEFINED);
-
-            /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06053 */
-            require_state = has_fragment_shader_state &&
-                            has_fragment_output_state &&
-                            has_dynamic_attachment;
-         }
-
-         fix.ignore_depth_stencil_state = !require_state;
-         any_fix |= fix.ignore_depth_stencil_state;
-      }
-
-      /* Ignore pColorBlendState? */
-      if (info->pColorBlendState) {
-         const bool has_static_attachment =
-            subpass && subpass->has_color_attachment;
-
-         /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06044 */
-         bool require_state =
-            has_fragment_output_state && has_static_attachment;
-
-         if (!require_state) {
-            const bool has_dynamic_attachment =
-               has_dynamic_rendering && rendering_info->colorAttachmentCount;
-
-            /* VUID-VkGraphicsPipelineCreateInfo-renderPass-06054 */
-            require_state =
-               has_fragment_output_state && has_dynamic_attachment;
-         }
-
-         fix.ignore_color_blend_state = !require_state;
-         any_fix |= fix.ignore_color_blend_state;
-      }
-
-      /* Ignore basePipelineHandle?
-       *    VUID-VkGraphicsPipelineCreateInfo-flags-00722
-       *    VUID-VkGraphicsPipelineCreateInfo-flags-00724
-       *    VUID-VkGraphicsPipelineCreateInfo-flags-00725
-       */
-      if (info->basePipelineHandle != VK_NULL_HANDLE &&
-          !(info->flags & VK_PIPELINE_CREATE_DERIVATIVE_BIT)) {
-         fix.ignore_base_pipeline_handle = true;
-         any_fix = true;
-      }
-
-      if (!any_fix)
-         continue;
-
-      if (!fixes) {
-         fixes = vn_alloc_create_graphics_pipelines_fixes(alloc, info_count);
-
-         if (!fixes)
-            return NULL;
-
-         memcpy(fixes->create_infos, create_infos,
-                info_count * sizeof(create_infos[0]));
-      }
-
-      if (fix.ignore_tessellation_state)
-         fixes->create_infos[i].pTessellationState = NULL;
-
-      if (fix.ignore_viewport_state)
-         fixes->create_infos[i].pViewportState = NULL;
-
-      if (fixes->create_infos[i].pViewportState) {
-         if (fix.ignore_viewports || fix.ignore_scissors) {
-            fixes->viewport_state_create_infos[i] = *info->pViewportState;
-            fixes->create_infos[i].pViewportState =
-               &fixes->viewport_state_create_infos[i];
-         }
-
-         if (fix.ignore_viewports)
-            fixes->viewport_state_create_infos[i].pViewports = NULL;
-
-         if (fix.ignore_scissors)
-            fixes->viewport_state_create_infos[i].pScissors = NULL;
-      }
-
-      if (fix.ignore_multisample_state)
-         fixes->create_infos[i].pMultisampleState = NULL;
-
-      if (fix.ignore_depth_stencil_state)
-         fixes->create_infos[i].pDepthStencilState = NULL;
-
-      if (fix.ignore_color_blend_state)
-         fixes->create_infos[i].pColorBlendState = NULL;
-
-      if (fix.ignore_base_pipeline_handle)
-         fixes->create_infos[i].basePipelineHandle = VK_NULL_HANDLE;
+      return;
    }
 
-   if (!fixes)
-      return create_infos;
+   /* Aspects remain invalid. */
+   assert(state->attachment_aspects == VK_IMAGE_ASPECT_METADATA_BIT);
+}
 
-   *out_fixes = fixes;
-   return fixes->create_infos;
+static void
+vn_graphics_pipeline_state_merge(
+   struct vn_graphics_pipeline_state *restrict dst,
+   const struct vn_graphics_pipeline_state *restrict src)
+{
+   /* The Vulkan 1.3.251 spec says:
+    *    VUID-VkGraphicsPipelineCreateInfo-pLibraries-06611
+    *
+    *    Any pipeline libraries included via
+    *    VkPipelineLibraryCreateInfoKHR::pLibraries must not include any state
+    *    subset already defined by this structure or defined by any other
+    *    pipeline library in VkPipelineLibraryCreateInfoKHR::pLibraries
+    */
+   assert(!(dst->gpl.mask & src->gpl.mask));
+
+   dst->gpl.mask |= src->gpl.mask;
+   dst->dynamic.mask |= src->dynamic.mask;
+   dst->shader_stages |= src->shader_stages;
+
+   VkImageAspectFlags src_aspects = src->render_pass.attachment_aspects;
+   VkImageAspectFlags *dst_aspects = &dst->render_pass.attachment_aspects;
+
+   if (src_aspects != VK_IMAGE_ASPECT_METADATA_BIT) {
+      if (*dst_aspects != VK_IMAGE_ASPECT_METADATA_BIT) {
+         /* All linked pipelines must have compatible render pass info. */
+         assert(*dst_aspects == src_aspects);
+      } else {
+         *dst_aspects = src_aspects;
+      }
+   }
+
+   if (dst->gpl.pre_raster_shaders)
+      dst->rasterizer_discard_enable = src->rasterizer_discard_enable;
+}
+
+/**
+ * Fill \a state by reading the VkGraphicsPipelineCreateInfo pNext chain,
+ * including any linked pipeline libraries. Return in \a out_fix_desc
+ * a description of required fixes to the VkGraphicsPipelineCreateInfo chain.
+ *
+ * \pre state is zero-filled
+ *
+ * The logic for choosing which struct members to ignore, and which members
+ * have valid values, is derived from the Vulkan spec sections for
+ * VkGraphicsPipelineCreateInfo, VkGraphicsPipelineLibraryCreateInfoEXT, and
+ * VkPipelineLibraryCreateInfoKHR. As of Vulkan 1.3.255, the spec text and VUs
+ * still contain inconsistencies regarding the validity of struct members, so
+ * read it carefully. Many of the VUs were written before
+ * VK_EXT_graphics_pipeline_library and never updated. (Lina's advice: Focus
+ * primarily on understanding the non-VU text, and use VUs to verify your
+ * comprehension).
+ */
+static void
+vn_graphics_pipeline_state_fill(
+   const VkGraphicsPipelineCreateInfo *info,
+   struct vn_graphics_pipeline_state *restrict state,
+   struct vn_graphics_pipeline_fix_desc *out_fix_desc)
+{
+   /* Assume that state is already zero-filled.
+    *
+    * Invalidate attachment_aspects.
+    */
+   state->render_pass.attachment_aspects = VK_IMAGE_ASPECT_METADATA_BIT;
+
+   const VkPipelineRenderingCreateInfo *rendering_info =
+      vk_find_struct_const(info->pNext, PIPELINE_RENDERING_CREATE_INFO);
+   const VkPipelineLibraryCreateInfoKHR *lib_info =
+      vk_find_struct_const(info->pNext, PIPELINE_LIBRARY_CREATE_INFO_KHR);
+   const uint32_t lib_count = lib_info ? lib_info->libraryCount : 0;
+
+   /* This tracks which fields have valid values in the
+    * VkGraphicsPipelineCreateInfo pNext chain.
+    *
+    * We initially assume that all fields are invalid. We flip fields from
+    * invalid to valid as we dig through the pNext chain.
+    *
+    * A single field may be updated at multiple locations, therefore we update
+    * with `|=` instead of `=`.
+    *
+    * If `valid.foo` is set, then foo has a valid value if foo exists in the
+    * pNext chain. Even though NULL is not a valid pointer, NULL is considered
+    * a valid *value* for a pointer-typed variable. Same for VK_NULL_HANDLE
+    * and Vulkan handle-typed variables.
+    *
+    * Conversely, if `valid.foo` remains false at the end of this function,
+    * then the Vulkan spec permits foo to have any value. If foo has a pointer
+    * type, it may be an invalid pointer. If foo has a Vulkan handle type, it
+    * may be an invalid handle.
+    */
+   struct vn_graphics_pipeline_create_info_fields valid = { 0 };
+
+   /* Merge the linked pipeline libraries. */
+   for (uint32_t i = 0; i < lib_count; i++) {
+      struct vn_graphics_pipeline *p =
+         vn_graphics_pipeline_from_handle(lib_info->pLibraries[i]);
+      vn_graphics_pipeline_state_merge(state, &p->state);
+   }
+
+   /* The VkGraphicsPipelineLibraryFlagsEXT that this pipeline provides
+    * directly (without linking).
+    */
+   struct vn_graphics_pipeline_library_state direct_gpl = { 0 };
+   vn_graphics_pipeline_library_state_update(info, &direct_gpl);
+
+   /* From the Vulkan 1.3.251 spec:
+    *    VUID-VkGraphicsPipelineCreateInfo-pLibraries-06611
+    *
+    *    Any pipeline libraries included via
+    *    VkPipelineLibraryCreateInfoKHR::pLibraries must not include any state
+    *    subset already defined by this structure or defined by any other
+    *    pipeline library in VkPipelineLibraryCreateInfoKHR::pLibraries
+    */
+   assert(!(direct_gpl.mask & state->gpl.mask));
+
+   /* Collect orthogonal state that is common to multiple GPL state subsets. */
+   vn_graphics_dynamic_state_update(info, direct_gpl, &state->dynamic);
+   vn_graphics_shader_stages_update(info, direct_gpl, &valid,
+                                    &state->shader_stages);
+   vn_render_pass_state_update(info, direct_gpl, &valid, &state->render_pass);
+
+   /* Collect remaining pre-raster shaders state.
+    *
+    * Of the remaining state, we must first collect the pre-raster shaders
+    * state because it influences how the other state is collected.
+    */
+   if (direct_gpl.pre_raster_shaders) {
+      valid.tessellation_state |=
+         (bool)(state->shader_stages &
+                (VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT |
+                 VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT));
+      valid.rasterization_state = true;
+      valid.pipeline_layout = true;
+
+      if (info->pRasterizationState) {
+         state->rasterizer_discard_enable =
+            info->pRasterizationState->rasterizerDiscardEnable;
+      }
+
+      const bool is_raster_statically_disabled =
+         !state->dynamic.rasterizer_discard_enable &&
+         state->rasterizer_discard_enable;
+
+      if (!is_raster_statically_disabled) {
+         valid.viewport_state = true;
+
+         valid.viewport_state_viewports =
+            !state->dynamic.viewport && !state->dynamic.viewport_with_count;
+
+         valid.viewport_state_scissors =
+            !state->dynamic.scissor && !state->dynamic.scissor_with_count;
+      }
+
+      /* Defer setting the flag until all its state is filled. */
+      state->gpl.pre_raster_shaders = true;
+   }
+
+   /* Collect remaining vertex input interface state.
+    *
+    * TODO(VK_EXT_mesh_shader): Update.
+    */
+   if (direct_gpl.vertex_input) {
+      const bool may_have_vertex_shader =
+         !state->gpl.pre_raster_shaders ||
+         (state->shader_stages & VK_SHADER_STAGE_VERTEX_BIT);
+
+      valid.vertex_input_state |=
+         may_have_vertex_shader && !state->dynamic.vertex_input;
+
+      valid.input_assembly_state |= may_have_vertex_shader;
+
+      /* Defer setting the flag until all its state is filled. */
+      state->gpl.vertex_input = true;
+   }
+
+   /* Does this pipeline have rasterization statically disabled? If disabled,
+    * then this pipeline does not directly provide fragment shader state nor
+    * fragment output state.
+    *
+    * About fragment shader state, the Vulkan 1.3.254 spec says:
+    *
+    *    If a pipeline specifies pre-rasterization state either directly or by
+    *    including it as a pipeline library and rasterizerDiscardEnable is set
+    *    to VK_FALSE or VK_DYNAMIC_STATE_RASTERIZER_DISCARD_ENABLE is used,
+    *    this state must be specified to create a complete graphics pipeline.
+    *
+    *    If a pipeline includes
+    *    VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_SHADER_BIT_EXT in
+    *    VkGraphicsPipelineLibraryCreateInfoEXT::flags either explicitly or as
+    *    a default, and either the conditions requiring this state for
+    *    a complete graphics pipeline are met or this pipeline does not
+    *    specify pre-rasterization state in any way, that pipeline must
+    *    specify this state directly.
+    *
+    * About fragment output state, the Vulkan 1.3.254 spec says the same, but
+    * with VK_GRAPHICS_PIPELINE_LIBRARY_FRAGMENT_OUTPUT_INTERFACE_BIT_EXT.
+    */
+   const bool is_raster_statically_disabled =
+      state->gpl.pre_raster_shaders &&
+      !state->dynamic.rasterizer_discard_enable &&
+      state->rasterizer_discard_enable;
+
+   /* Collect remaining fragment shader state. */
+   if (direct_gpl.fragment_shader) {
+      if (!is_raster_statically_disabled) {
+         /* Validity of pMultisampleState is easy here.
+          *
+          *    VUID-VkGraphicsPipelineCreateInfo-pMultisampleState-06629
+          *
+          *    If the pipeline requires fragment shader state
+          *    pMultisampleState must be NULL or a valid pointer to a valid
+          *    VkPipelineMultisampleStateCreateInfo structure
+          */
+         valid.multisample_state = true;
+
+         valid.multisample_state_sample_mask = !state->dynamic.sample_mask;
+
+         if ((state->render_pass.attachment_aspects &
+              (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT))) {
+            valid.depth_stencil_state = true;
+         } else if (state->render_pass.attachment_aspects ==
+                       VK_IMAGE_ASPECT_METADATA_BIT &&
+                    (info->flags & VK_PIPELINE_CREATE_LIBRARY_BIT_KHR)) {
+            /* The app has not yet provided render pass info, neither directly
+             * in this VkGraphicsPipelineCreateInfo nor in any linked pipeline
+             * libraries. Therefore we do not know if the final complete
+             * pipeline will have any depth or stencil attachments. If the
+             * final complete pipeline does have depth or stencil attachments,
+             * then the pipeline will use
+             * VkPipelineDepthStencilStateCreateInfo. Therefore, we must not
+             * ignore it.
+             */
+            valid.depth_stencil_state = true;
+         }
+
+         valid.pipeline_layout = true;
+      }
+
+      /* Defer setting the flag until all its state is filled. */
+      state->gpl.fragment_shader = true;
+   }
+
+   /* Collect remaining fragment output interface state. */
+   if (direct_gpl.fragment_output) {
+      if (!is_raster_statically_disabled) {
+         /* Validity of pMultisampleState is easy here.
+          *
+          *    VUID-VkGraphicsPipelineCreateInfo-rasterizerDiscardEnable-00751
+          *
+          *    If the pipeline requires fragment output interface state,
+          *    pMultisampleState must be a valid pointer to a valid
+          *    VkPipelineMultisampleStateCreateInfo structure
+          */
+         valid.multisample_state = true;
+
+         valid.multisample_state_sample_mask = !state->dynamic.sample_mask;
+
+         valid.color_blend_state |=
+            (bool)(state->render_pass.attachment_aspects &
+                   VK_IMAGE_ASPECT_COLOR_BIT);
+         valid.depth_stencil_state |=
+            (bool)(state->render_pass.attachment_aspects &
+                   (VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT));
+      }
+
+      /* Defer setting the flag until all its state is filled. */
+      state->gpl.fragment_output = true;
+   }
+
+   *out_fix_desc = (struct vn_graphics_pipeline_fix_desc) {
+      .erase = {
+         /* clang-format off
+          *
+          * Format this to resemble a table. (clang-format transforms it into
+          * a difficult-to-read wall of text).
+          */
+         .shader_stages =
+            !valid.shader_stages &&
+            info->pStages,
+         .vertex_input_state =
+            !valid.vertex_input_state &&
+            info->pVertexInputState,
+         .input_assembly_state =
+            !valid.input_assembly_state &&
+            info->pInputAssemblyState,
+         .tessellation_state =
+            !valid.tessellation_state &&
+            info->pTessellationState,
+         .viewport_state =
+            !valid.viewport_state &&
+            info->pViewportState,
+         .viewport_state_viewports =
+            !valid.viewport_state_viewports &&
+            valid.viewport_state &&
+            info->pViewportState &&
+            info->pViewportState->pViewports &&
+            info->pViewportState->viewportCount,
+         .viewport_state_scissors =
+            !valid.viewport_state_scissors &&
+            valid.viewport_state &&
+            info->pViewportState &&
+            info->pViewportState->pScissors &&
+            info->pViewportState->scissorCount,
+         .rasterization_state =
+            !valid.rasterization_state &&
+            info->pRasterizationState,
+         .multisample_state =
+            !valid.multisample_state &&
+            info->pMultisampleState,
+         .multisample_state_sample_mask =
+            valid.multisample_state &&
+            !valid.multisample_state_sample_mask &&
+            info->pMultisampleState &&
+            info->pMultisampleState->pSampleMask,
+         .depth_stencil_state =
+            !valid.depth_stencil_state &&
+            info->pDepthStencilState,
+         .color_blend_state =
+            !valid.color_blend_state &&
+            info->pColorBlendState,
+         .pipeline_layout =
+            !valid.pipeline_layout &&
+            info->layout,
+         .render_pass =
+            !valid.render_pass &&
+            info->renderPass,
+         .base_pipeline_handle =
+            !valid.base_pipeline_handle &&
+            info->basePipelineHandle,
+         .rendering_info_formats =
+            !valid.rendering_info_formats &&
+            rendering_info &&
+            rendering_info->pColorAttachmentFormats &&
+            rendering_info->colorAttachmentCount,
+         /* clang-format on */
+      },
+   };
+}
+
+static const VkGraphicsPipelineCreateInfo *
+vn_fix_graphics_pipeline_create_infos(
+   struct vn_device *dev,
+   uint32_t info_count,
+   const VkGraphicsPipelineCreateInfo *infos,
+   const struct vn_graphics_pipeline_fix_desc fix_descs[info_count],
+   struct vn_graphics_pipeline_fix_tmp **out_fix_tmp,
+   const VkAllocationCallbacks *alloc)
+{
+   VN_TRACE_SCOPE("apply_fixes");
+
+   *out_fix_tmp = NULL;
+
+   uint32_t erase_mask = 0;
+   for (uint32_t i = 0; i < info_count; i++) {
+      erase_mask |= fix_descs[i].erase.mask;
+   }
+
+   if (!erase_mask) {
+      /* No fix is needed. */
+      return infos;
+   }
+
+   struct vn_graphics_pipeline_fix_tmp *fix_tmp =
+      vn_graphics_pipeline_fix_tmp_alloc(alloc, info_count);
+   if (!fix_tmp)
+      return NULL;
+
+   memcpy(fix_tmp->infos, infos, info_count * sizeof(infos[0]));
+
+   for (uint32_t i = 0; i < info_count; i++) {
+      if (!fix_descs[i].erase.mask) {
+         /* No fix is needed for this VkGraphicsPipelineCreateInfo chain. */
+         continue;
+      }
+
+      /* VkGraphicsPipelineCreateInfo */
+      if (fix_descs[i].erase.shader_stages) {
+         fix_tmp->infos[i].stageCount = 0;
+         fix_tmp->infos[i].pStages = NULL;
+      }
+      if (fix_descs[i].erase.vertex_input_state)
+         fix_tmp->infos[i].pVertexInputState = NULL;
+      if (fix_descs[i].erase.input_assembly_state)
+         fix_tmp->infos[i].pInputAssemblyState = NULL;
+      if (fix_descs[i].erase.tessellation_state)
+         fix_tmp->infos[i].pTessellationState = NULL;
+      if (fix_descs[i].erase.viewport_state)
+         fix_tmp->infos[i].pViewportState = NULL;
+      if (fix_descs[i].erase.rasterization_state)
+         fix_tmp->infos[i].pRasterizationState = NULL;
+      if (fix_descs[i].erase.multisample_state)
+         fix_tmp->infos[i].pMultisampleState = NULL;
+      if (fix_descs[i].erase.depth_stencil_state)
+         fix_tmp->infos[i].pDepthStencilState = NULL;
+      if (fix_descs[i].erase.color_blend_state)
+         fix_tmp->infos[i].pColorBlendState = NULL;
+      if (fix_descs[i].erase.pipeline_layout)
+         fix_tmp->infos[i].layout = VK_NULL_HANDLE;
+      if (fix_descs[i].erase.base_pipeline_handle)
+         fix_tmp->infos[i].basePipelineHandle = VK_NULL_HANDLE;
+
+      /* VkPipelineMultisampleStateCreateInfo */
+      if (fix_descs[i].erase.multisample_state_sample_mask) {
+         /* Swap original pMultisampleState with temporary state. */
+         fix_tmp->multisample_state_infos[i] = *infos[i].pMultisampleState;
+         fix_tmp->infos[i].pMultisampleState = &fix_tmp->multisample_state_infos[i];
+
+         fix_tmp->multisample_state_infos[i].pSampleMask = NULL;
+      }
+
+      /* VkPipelineViewportStateCreateInfo */
+      if (fix_descs[i].erase.viewport_state_viewports ||
+          fix_descs[i].erase.viewport_state_scissors) {
+         /* Swap original pViewportState with temporary state. */
+         fix_tmp->viewport_state_infos[i] = *infos[i].pViewportState;
+         fix_tmp->infos[i].pViewportState = &fix_tmp->viewport_state_infos[i];
+
+         if (fix_descs[i].erase.viewport_state_viewports)
+            fix_tmp->viewport_state_infos[i].pViewports = NULL;
+         if (fix_descs[i].erase.viewport_state_scissors)
+            fix_tmp->viewport_state_infos[i].pScissors = NULL;
+      }
+
+      /* VkPipelineRenderingCreateInfo */
+      if (fix_descs[i].erase.rendering_info_formats) {
+         /* All format fields are invalid, but the only field that must be
+          * erased is pColorAttachmentFormats because the other
+          * fields are merely VkFormat values. Encoding invalid pointers is
+          * unsafe; encoding invalid VkFormat values is not unsafe.
+          *
+          * However, the fix is difficult because it requires a deep rewrite
+          * of the pNext chain.
+          *
+          * TODO: Fix invalid
+          * VkPipelineRenderingCreateInfo::pColorAttachmentFormats.
+          */
+         vn_log(dev->instance,
+                "venus may encode array from invalid pointer "
+                "VkPipelineRenderingCreateInfo::pColorAttachmentFormats");
+      }
+   }
+
+   *out_fix_tmp = fix_tmp;
+   return fix_tmp->infos;
 }
 
 /**
@@ -685,23 +1383,51 @@ vn_CreateGraphicsPipelines(VkDevice device,
    struct vn_device *dev = vn_device_from_handle(device);
    const VkAllocationCallbacks *alloc =
       pAllocator ? pAllocator : &dev->base.base.alloc;
-   struct vn_create_graphics_pipelines_fixes *fixes = NULL;
    bool want_sync = false;
    VkResult result;
 
    memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
 
-   pCreateInfos = vn_fix_graphics_pipeline_create_info(
-      dev, createInfoCount, pCreateInfos, alloc, &fixes);
-   if (!pCreateInfos)
+   if (!vn_create_pipeline_handles(dev, VN_PIPELINE_TYPE_GRAPHICS,
+                                   createInfoCount, pPipelines, alloc)) {
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   }
 
-   if (!vn_create_pipeline_handles(dev, createInfoCount, pPipelines, alloc)) {
-      vk_free(alloc, fixes);
+   STACK_ARRAY(struct vn_graphics_pipeline_fix_desc, fix_descs,
+               createInfoCount);
+   struct vn_graphics_pipeline_fix_tmp *fix_tmp = NULL;
+
+   {
+      VN_TRACE_SCOPE("fill_states");
+      for (uint32_t i = 0; i < createInfoCount; i++) {
+         struct vn_graphics_pipeline *pipeline =
+            vn_graphics_pipeline_from_handle(pPipelines[i]);
+         vn_graphics_pipeline_state_fill(&pCreateInfos[i], &pipeline->state,
+                                         &fix_descs[i]);
+      }
+   }
+
+   pCreateInfos = vn_fix_graphics_pipeline_create_infos(
+      dev, createInfoCount, pCreateInfos, fix_descs, &fix_tmp, alloc);
+   if (!pCreateInfos) {
+      vn_destroy_failed_pipelines(dev, createInfoCount, pPipelines, alloc);
+      STACK_ARRAY_FINISH(fix_descs);
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
    for (uint32_t i = 0; i < createInfoCount; i++) {
+      struct vn_pipeline *pipeline = vn_pipeline_from_handle(pPipelines[i]);
+
+      /* Grab a refcount on the pipeline layout when needed. Take care; the
+       * pipeline layout may be omitted or ignored in incomplete pipelines.
+       */
+      struct vn_pipeline_layout *layout =
+         vn_pipeline_layout_from_handle(pCreateInfos[i].layout);
+      if (layout && (layout->push_descriptor_set_layout ||
+                     layout->has_push_constant_ranges)) {
+         pipeline->layout = vn_pipeline_layout_ref(dev, layout);
+      }
+
       if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
          want_sync = true;
 
@@ -709,21 +1435,23 @@ vn_CreateGraphicsPipelines(VkDevice device,
          (const VkBaseInStructure *)pCreateInfos[i].pNext);
    }
 
-   if (want_sync) {
+   struct vn_ring *target_ring = vn_get_target_ring(dev);
+   assert(target_ring);
+   if (want_sync || target_ring == dev->secondary_ring) {
       result = vn_call_vkCreateGraphicsPipelines(
-         dev->instance, device, pipelineCache, createInfoCount, pCreateInfos,
+         target_ring, device, pipelineCache, createInfoCount, pCreateInfos,
          NULL, pPipelines);
       if (result != VK_SUCCESS)
          vn_destroy_failed_pipelines(dev, createInfoCount, pPipelines, alloc);
    } else {
-      vn_async_vkCreateGraphicsPipelines(dev->instance, device, pipelineCache,
+      vn_async_vkCreateGraphicsPipelines(target_ring, device, pipelineCache,
                                          createInfoCount, pCreateInfos, NULL,
                                          pPipelines);
       result = VK_SUCCESS;
    }
 
-   vk_free(alloc, fixes);
-
+   vk_free(alloc, fix_tmp);
+   STACK_ARRAY_FINISH(fix_descs);
    return vn_result(dev->instance, result);
 }
 
@@ -744,10 +1472,18 @@ vn_CreateComputePipelines(VkDevice device,
 
    memset(pPipelines, 0, sizeof(*pPipelines) * createInfoCount);
 
-   if (!vn_create_pipeline_handles(dev, createInfoCount, pPipelines, alloc))
+   if (!vn_create_pipeline_handles(dev, VN_PIPELINE_TYPE_COMPUTE,
+                                   createInfoCount, pPipelines, alloc))
       return vn_error(dev->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
    for (uint32_t i = 0; i < createInfoCount; i++) {
+      struct vn_pipeline *pipeline = vn_pipeline_from_handle(pPipelines[i]);
+      struct vn_pipeline_layout *layout =
+         vn_pipeline_layout_from_handle(pCreateInfos[i].layout);
+      if (layout->push_descriptor_set_layout ||
+          layout->has_push_constant_ranges) {
+         pipeline->layout = vn_pipeline_layout_ref(dev, layout);
+      }
       if ((pCreateInfos[i].flags & VN_PIPELINE_CREATE_SYNC_MASK))
          want_sync = true;
 
@@ -755,16 +1491,18 @@ vn_CreateComputePipelines(VkDevice device,
          (const VkBaseInStructure *)pCreateInfos[i].pNext);
    }
 
-   if (want_sync) {
+   struct vn_ring *target_ring = vn_get_target_ring(dev);
+   assert(target_ring);
+   if (want_sync || target_ring == dev->secondary_ring) {
       result = vn_call_vkCreateComputePipelines(
-         dev->instance, device, pipelineCache, createInfoCount, pCreateInfos,
+         target_ring, device, pipelineCache, createInfoCount, pCreateInfos,
          NULL, pPipelines);
       if (result != VK_SUCCESS)
          vn_destroy_failed_pipelines(dev, createInfoCount, pPipelines, alloc);
    } else {
-      vn_call_vkCreateComputePipelines(dev->instance, device, pipelineCache,
-                                       createInfoCount, pCreateInfos, NULL,
-                                       pPipelines);
+      vn_async_vkCreateComputePipelines(target_ring, device, pipelineCache,
+                                        createInfoCount, pCreateInfos, NULL,
+                                        pPipelines);
       result = VK_SUCCESS;
    }
 
@@ -785,7 +1523,11 @@ vn_DestroyPipeline(VkDevice device,
    if (!pipeline)
       return;
 
-   vn_async_vkDestroyPipeline(dev->instance, device, _pipeline, NULL);
+   if (pipeline->layout) {
+      vn_pipeline_layout_unref(dev, pipeline->layout);
+   }
+
+   vn_async_vkDestroyPipeline(dev->primary_ring, device, _pipeline, NULL);
 
    vn_object_base_fini(&pipeline->base);
    vk_free(alloc, pipeline);

@@ -31,7 +31,7 @@
 #include <vector>
 
 /*
- * Implements an algorithm to lower to Concentional SSA Form (CSSA).
+ * Implements an algorithm to lower to Conventional SSA Form (CSSA).
  * After "Revisiting Out-of-SSA Translation for Correctness, CodeQuality, and Efficiency"
  * by B. Boissinot, A. Darte, F. Rastello, B. Dupont de Dinechin, C. Guillon,
  *

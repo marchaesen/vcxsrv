@@ -80,7 +80,7 @@ Ilia Mirkin (4):
 -  nouveau: when mapping a persistent buffer, synchronize on former
    xfers
 
-Jason Ekstrand (5):
+Faith Ekstrand (5):
 
 -  i965/fs: Always provide a default LOD of 0 for TXS and TXL
 -  anv/pipeline: Properly handle unset gl_Layer and gl_ViewportIndex

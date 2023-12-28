@@ -352,7 +352,8 @@ static void rvce_end_frame(struct pipe_video_codec *encoder,
 }
 
 static void rvce_get_feedback(struct pipe_video_codec *encoder,
-			      void *feedback, unsigned *size)
+			      void *feedback, unsigned *size,
+				  struct pipe_enc_feedback_metadata* metadata)
 {
 	struct rvce_encoder *enc = (struct rvce_encoder*)encoder;
 	struct rvid_buffer *fb = feedback;
@@ -432,7 +433,7 @@ struct pipe_video_codec *rvce_create_encoder(struct pipe_context *context,
 	enc->screen = context->screen;
 	enc->ws = ws;
 
-	if (!ws->cs_create(&enc->cs, rctx->ctx, AMD_IP_VCE, rvce_cs_flush, enc, false)) {
+	if (!ws->cs_create(&enc->cs, rctx->ctx, AMD_IP_VCE, rvce_cs_flush, enc)) {
 		RVID_ERR("Can't get command submission context.\n");
 		goto error;
 	}

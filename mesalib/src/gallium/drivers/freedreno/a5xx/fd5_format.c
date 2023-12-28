@@ -38,7 +38,7 @@ struct fd5_format {
    enum a5xx_tex_fmt tex;
    enum a5xx_color_fmt rb;
    enum a3xx_color_swap swap;
-   boolean present;
+   bool present;
 };
 
 /* vertex + texture */

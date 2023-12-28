@@ -48,61 +48,61 @@ struct u_prim_vertex_count {
  * Decompose a primitive that is a loop, a strip, or a fan.  Return the
  * original primitive if it is already decomposed.
  */
-static inline enum pipe_prim_type
-u_decomposed_prim(enum pipe_prim_type prim)
+static inline enum mesa_prim
+u_decomposed_prim(enum mesa_prim prim)
 {
    switch (prim) {
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
-      return PIPE_PRIM_LINES;
-   case PIPE_PRIM_TRIANGLE_STRIP:
-   case PIPE_PRIM_TRIANGLE_FAN:
-      return PIPE_PRIM_TRIANGLES;
-   case PIPE_PRIM_QUAD_STRIP:
-      return PIPE_PRIM_QUADS;
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      return PIPE_PRIM_LINES_ADJACENCY;
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return PIPE_PRIM_TRIANGLES_ADJACENCY;
+   case MESA_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_STRIP:
+      return MESA_PRIM_LINES;
+   case MESA_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_FAN:
+      return MESA_PRIM_TRIANGLES;
+   case MESA_PRIM_QUAD_STRIP:
+      return MESA_PRIM_QUADS;
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      return MESA_PRIM_LINES_ADJACENCY;
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return MESA_PRIM_TRIANGLES_ADJACENCY;
    default:
       return prim;
    }
 }
 
 /**
- * Reduce a primitive to one of PIPE_PRIM_POINTS, PIPE_PRIM_LINES, and
- * PIPE_PRIM_TRIANGLES.
+ * Reduce a primitive to one of MESA_PRIM_POINTS, MESA_PRIM_LINES, and
+ * MESA_PRIM_TRIANGLES.
  */
-static inline enum pipe_prim_type
-u_reduced_prim(enum pipe_prim_type prim)
+static inline enum mesa_prim
+u_reduced_prim(enum mesa_prim prim)
 {
    switch (prim) {
-   case PIPE_PRIM_POINTS:
-      return PIPE_PRIM_POINTS;
-   case PIPE_PRIM_LINES:
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
-   case PIPE_PRIM_LINES_ADJACENCY:
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      return PIPE_PRIM_LINES;
+   case MESA_PRIM_POINTS:
+      return MESA_PRIM_POINTS;
+   case MESA_PRIM_LINES:
+   case MESA_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_STRIP:
+   case MESA_PRIM_LINES_ADJACENCY:
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      return MESA_PRIM_LINES;
    default:
-      return PIPE_PRIM_TRIANGLES;
+      return MESA_PRIM_TRIANGLES;
    }
 }
 
 /**
  * Re-assemble a primitive to remove its adjacency.
  */
-static inline enum pipe_prim_type
-u_assembled_prim(enum pipe_prim_type prim)
+static inline enum mesa_prim
+u_assembled_prim(enum mesa_prim prim)
 {
    switch (prim) {
-   case PIPE_PRIM_LINES_ADJACENCY:
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      return PIPE_PRIM_LINES;
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return PIPE_PRIM_TRIANGLES;
+   case MESA_PRIM_LINES_ADJACENCY:
+   case MESA_PRIM_LINE_STRIP_ADJACENCY:
+      return MESA_PRIM_LINES;
+   case MESA_PRIM_TRIANGLES_ADJACENCY:
+   case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+      return MESA_PRIM_TRIANGLES;
    default:
       return prim;
    }
@@ -116,26 +116,26 @@ u_assembled_prim(enum pipe_prim_type prim)
  * expected because of the use of a table.
  */
 static inline const struct u_prim_vertex_count *
-u_prim_vertex_count(enum pipe_prim_type prim)
+u_prim_vertex_count(enum mesa_prim prim)
 {
-   static const struct u_prim_vertex_count prim_table[PIPE_PRIM_MAX] = {
-      { 1, 1 }, /* PIPE_PRIM_POINTS */
-      { 2, 2 }, /* PIPE_PRIM_LINES */
-      { 2, 1 }, /* PIPE_PRIM_LINE_LOOP */
-      { 2, 1 }, /* PIPE_PRIM_LINE_STRIP */
-      { 3, 3 }, /* PIPE_PRIM_TRIANGLES */
-      { 3, 1 }, /* PIPE_PRIM_TRIANGLE_STRIP */
-      { 3, 1 }, /* PIPE_PRIM_TRIANGLE_FAN */
-      { 4, 4 }, /* PIPE_PRIM_QUADS */
-      { 4, 2 }, /* PIPE_PRIM_QUAD_STRIP */
-      { 3, 1 }, /* PIPE_PRIM_POLYGON */
-      { 4, 4 }, /* PIPE_PRIM_LINES_ADJACENCY */
-      { 4, 1 }, /* PIPE_PRIM_LINE_STRIP_ADJACENCY */
-      { 6, 6 }, /* PIPE_PRIM_TRIANGLES_ADJACENCY */
-      { 6, 2 }, /* PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY */
+   static const struct u_prim_vertex_count prim_table[MESA_PRIM_COUNT] = {
+      { 1, 1 }, /* MESA_PRIM_POINTS */
+      { 2, 2 }, /* MESA_PRIM_LINES */
+      { 2, 1 }, /* MESA_PRIM_LINE_LOOP */
+      { 2, 1 }, /* MESA_PRIM_LINE_STRIP */
+      { 3, 3 }, /* MESA_PRIM_TRIANGLES */
+      { 3, 1 }, /* MESA_PRIM_TRIANGLE_STRIP */
+      { 3, 1 }, /* MESA_PRIM_TRIANGLE_FAN */
+      { 4, 4 }, /* MESA_PRIM_QUADS */
+      { 4, 2 }, /* MESA_PRIM_QUAD_STRIP */
+      { 3, 1 }, /* MESA_PRIM_POLYGON */
+      { 4, 4 }, /* MESA_PRIM_LINES_ADJACENCY */
+      { 4, 1 }, /* MESA_PRIM_LINE_STRIP_ADJACENCY */
+      { 6, 6 }, /* MESA_PRIM_TRIANGLES_ADJACENCY */
+      { 6, 2 }, /* MESA_PRIM_TRIANGLE_STRIP_ADJACENCY */
    };
 
-   return (likely(prim < PIPE_PRIM_MAX)) ? &prim_table[prim] : NULL;
+   return (likely(prim < MESA_PRIM_COUNT)) ? &prim_table[prim] : NULL;
 }
 
 /**
@@ -143,7 +143,7 @@ u_prim_vertex_count(enum pipe_prim_type prim)
  * For polygons, return the number of triangles.
  */
 static inline unsigned
-u_prims_for_vertices(enum pipe_prim_type prim, unsigned num)
+u_prims_for_vertices(enum mesa_prim prim, unsigned num)
 {
    const struct u_prim_vertex_count *info = u_prim_vertex_count(prim);
 
@@ -156,8 +156,8 @@ u_prims_for_vertices(enum pipe_prim_type prim, unsigned num)
    return 1 + ((num - info->min) / info->incr);
 }
 
-static inline boolean
-u_validate_pipe_prim(enum pipe_prim_type pipe_prim, unsigned nr)
+static inline bool
+u_validate_pipe_prim(enum mesa_prim pipe_prim, unsigned nr)
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
@@ -165,109 +165,22 @@ u_validate_pipe_prim(enum pipe_prim_type pipe_prim, unsigned nr)
 }
 
 
-static inline boolean
-u_trim_pipe_prim(enum pipe_prim_type pipe_prim, unsigned *nr)
+static inline bool
+u_trim_pipe_prim(enum mesa_prim pipe_prim, unsigned *nr)
 {
    const struct u_prim_vertex_count *count = u_prim_vertex_count(pipe_prim);
 
    if (count && *nr >= count->min) {
       if (count->incr > 1)
          *nr -= (*nr % count->incr);
-      return TRUE;
+      return true;
    }
    else {
       *nr = 0;
-      return FALSE;
+      return false;
    }
 }
 
-static inline unsigned
-u_vertices_per_prim(enum pipe_prim_type primitive)
-{
-   switch(primitive) {
-   case PIPE_PRIM_POINTS:
-      return 1;
-   case PIPE_PRIM_LINES:
-   case PIPE_PRIM_LINE_LOOP:
-   case PIPE_PRIM_LINE_STRIP:
-      return 2;
-   case PIPE_PRIM_TRIANGLES:
-   case PIPE_PRIM_TRIANGLE_STRIP:
-   case PIPE_PRIM_TRIANGLE_FAN:
-      return 3;
-   case PIPE_PRIM_LINES_ADJACENCY:
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      return 4;
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return 6;
-
-   case PIPE_PRIM_QUADS:
-   case PIPE_PRIM_QUAD_STRIP:
-      /* these won't be seen from geometry shaders
-         but prim assembly might for prim id. */
-      return 4;
-
-   /* following primitives should never be used
-    * with geometry shaders abd their size is
-    * undefined */
-   case PIPE_PRIM_POLYGON:
-   default:
-      debug_printf("Unrecognized geometry shader primitive");
-      return 3;
-   }
-}
-
-/**
- * Returns the number of decomposed primitives for the given
- * vertex count.
- * Parts of the pipline are invoked once for each triangle in
- * triangle strip, triangle fans and triangles and once
- * for each line in line strip, line loop, lines. Also 
- * statistics depend on knowing the exact number of decomposed
- * primitives for a set of vertices.
- */
-static inline unsigned
-u_decomposed_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
-{
-   switch (primitive) {
-   case PIPE_PRIM_POINTS:
-      return vertices;
-   case PIPE_PRIM_LINES:
-      return vertices / 2;
-   case PIPE_PRIM_LINE_LOOP:
-      return (vertices >= 2) ? vertices : 0;
-   case PIPE_PRIM_LINE_STRIP:
-      return (vertices >= 2) ? vertices - 1 : 0;
-   case PIPE_PRIM_TRIANGLES:
-      return vertices / 3;
-   case PIPE_PRIM_TRIANGLE_STRIP:
-      return (vertices >= 3) ? vertices - 2 : 0;
-   case PIPE_PRIM_TRIANGLE_FAN:
-      return (vertices >= 3) ? vertices - 2 : 0;
-   case PIPE_PRIM_LINES_ADJACENCY:
-      return vertices / 4;
-   case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-      return (vertices >= 4) ? vertices - 3 : 0;
-   case PIPE_PRIM_TRIANGLES_ADJACENCY:
-      return vertices / 6;
-   case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-      return (vertices >= 6) ? 1 + (vertices - 6) / 2 : 0;
-   case PIPE_PRIM_QUADS:
-      return vertices / 4;
-   case PIPE_PRIM_QUAD_STRIP:
-      return (vertices >= 4) ? (vertices - 2) / 2 : 0;
-   /* Polygons can't be decomposed
-    * because the number of their vertices isn't known so
-    * for them and whatever else we don't recognize just
-    * return 1 if the number of vertices is greater than
-    * or equal to 3 and zero otherwise */
-   case PIPE_PRIM_POLYGON:
-   default:
-      debug_printf("Invalid decomposition primitive!\n");
-      return (vertices >= 3) ? 1 : 0;
-   }
-}
 
 /**
  * Returns the number of reduced/tessellated primitives for the given vertex
@@ -275,63 +188,63 @@ u_decomposed_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
  * triangle fans.
  */
 static inline unsigned
-u_reduced_prims_for_vertices(enum pipe_prim_type primitive, int vertices)
+u_reduced_prims_for_vertices(enum mesa_prim primitive, int vertices)
 {
    switch (primitive) {
-   case PIPE_PRIM_QUADS:
-   case PIPE_PRIM_QUAD_STRIP:
+   case MESA_PRIM_QUADS:
+   case MESA_PRIM_QUAD_STRIP:
       return u_decomposed_prims_for_vertices(primitive, vertices) * 2;
-   case PIPE_PRIM_POLYGON:
-      primitive = PIPE_PRIM_TRIANGLE_FAN;
+   case MESA_PRIM_POLYGON:
+      primitive = MESA_PRIM_TRIANGLE_FAN;
       FALLTHROUGH;
    default:
       return u_decomposed_prims_for_vertices(primitive, vertices);
    }
 }
 
-static inline enum pipe_prim_type
-u_base_prim_type(enum pipe_prim_type prim_type)
+static inline enum mesa_prim
+u_base_prim_type(enum mesa_prim prim_type)
 {
    switch(prim_type) {
-      case PIPE_PRIM_POINTS:
-         return PIPE_PRIM_POINTS;
-      case PIPE_PRIM_LINES:
-      case PIPE_PRIM_LINE_LOOP:
-      case PIPE_PRIM_LINE_STRIP:
-      case PIPE_PRIM_LINES_ADJACENCY:
-      case PIPE_PRIM_LINE_STRIP_ADJACENCY:
-         return PIPE_PRIM_LINES;
-      case PIPE_PRIM_TRIANGLES:
-      case PIPE_PRIM_TRIANGLE_STRIP:
-      case PIPE_PRIM_TRIANGLE_FAN:
-      case PIPE_PRIM_TRIANGLES_ADJACENCY:
-      case PIPE_PRIM_TRIANGLE_STRIP_ADJACENCY:
-         return PIPE_PRIM_TRIANGLES;
-      case PIPE_PRIM_QUADS:
-      case PIPE_PRIM_QUAD_STRIP:
-         return PIPE_PRIM_QUADS;
+      case MESA_PRIM_POINTS:
+         return MESA_PRIM_POINTS;
+      case MESA_PRIM_LINES:
+      case MESA_PRIM_LINE_LOOP:
+      case MESA_PRIM_LINE_STRIP:
+      case MESA_PRIM_LINES_ADJACENCY:
+      case MESA_PRIM_LINE_STRIP_ADJACENCY:
+         return MESA_PRIM_LINES;
+      case MESA_PRIM_TRIANGLES:
+      case MESA_PRIM_TRIANGLE_STRIP:
+      case MESA_PRIM_TRIANGLE_FAN:
+      case MESA_PRIM_TRIANGLES_ADJACENCY:
+      case MESA_PRIM_TRIANGLE_STRIP_ADJACENCY:
+         return MESA_PRIM_TRIANGLES;
+      case MESA_PRIM_QUADS:
+      case MESA_PRIM_QUAD_STRIP:
+         return MESA_PRIM_QUADS;
       default:
          return prim_type;
    }
 }
 
-static inline enum pipe_prim_type
+static inline enum mesa_prim
 u_tess_prim_from_shader(enum tess_primitive_mode shader_mode)
 {
    switch (shader_mode) {
    case TESS_PRIMITIVE_TRIANGLES:
-      return PIPE_PRIM_TRIANGLES;
+      return MESA_PRIM_TRIANGLES;
    case TESS_PRIMITIVE_QUADS:
-      return PIPE_PRIM_QUADS;
+      return MESA_PRIM_QUADS;
    case TESS_PRIMITIVE_ISOLINES:
-      return PIPE_PRIM_LINES;
+      return MESA_PRIM_LINES;
    default:
-      return PIPE_PRIM_POINTS;
+      return MESA_PRIM_POINTS;
    }
 }
 
 static inline unsigned
-u_vertices_for_prims(enum pipe_prim_type prim_type, int count)
+u_vertices_for_prims(enum mesa_prim prim_type, int count)
 {
    if (count <= 0)
       return 0;
@@ -340,7 +253,7 @@ u_vertices_for_prims(enum pipe_prim_type prim_type, int count)
     * if we are using basic primitives (so no loops, strips, fans, etc).
     */
    assert(prim_type == u_base_prim_type(prim_type) &&
-          prim_type != PIPE_PRIM_PATCHES && prim_type != PIPE_PRIM_POLYGON);
+          prim_type != MESA_PRIM_PATCHES && prim_type != MESA_PRIM_POLYGON);
 
    const struct u_prim_vertex_count *info = u_prim_vertex_count(prim_type);
    assert(info);
@@ -354,7 +267,7 @@ u_vertices_for_prims(enum pipe_prim_type prim_type, int count)
  */
 
 static inline unsigned
-u_stream_outputs_for_vertices(enum pipe_prim_type primitive, unsigned nr)
+u_stream_outputs_for_vertices(enum mesa_prim primitive, unsigned nr)
 {
    /* Extraneous vertices don't contribute to stream outputs */
    u_trim_pipe_prim(primitive, &nr);
@@ -363,18 +276,33 @@ u_stream_outputs_for_vertices(enum pipe_prim_type primitive, unsigned nr)
     * vertices. In this case, we just have an output for each vertex (after
     * trimming) */
 
-   if (primitive == PIPE_PRIM_POLYGON)
+   if (primitive == MESA_PRIM_POLYGON)
       return nr;
 
    /* Normally, consider how many primitives are actually generated */
    unsigned prims = u_decomposed_prims_for_vertices(primitive, nr);
 
    /* One output per vertex after decomposition */
-   enum pipe_prim_type base = u_base_prim_type(primitive);
+   enum mesa_prim base = u_base_prim_type(primitive);
+
+   /* The GL 4.6 compatibility spec says
+    *
+    *    When quads and polygons are provided to transform feedback with a
+    *    primitive mode of TRIANGLES, they will be tessellated and recorded as
+    *    triangles (the order of tessellation within a primitive is undefined)
+    *
+    * Further, quads and polygons are always provided as TRIANGLES. So
+    * tessellate quads into triangles.
+    */
+   if (base == MESA_PRIM_QUADS) {
+      base = MESA_PRIM_TRIANGLES;
+      prims *= 2;
+   }
+
    return u_vertices_for_prims(base, prims);
 }
 
-const char *u_prim_name(enum pipe_prim_type pipe_prim);
+const char *u_prim_name(enum mesa_prim pipe_prim);
 
 
 #ifdef __cplusplus

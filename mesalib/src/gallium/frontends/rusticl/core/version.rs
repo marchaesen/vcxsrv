@@ -3,15 +3,14 @@ use rusticl_opencl_gen::*;
 use std::convert::TryFrom;
 use std::os::raw::c_char;
 
-pub const CL1_0_VER: u32 = mk_cl_version(1, 0, 0);
-pub const CL1_1_VER: u32 = mk_cl_version(1, 1, 0);
-pub const CL1_2_VER: u32 = mk_cl_version(1, 2, 0);
-pub const CL2_0_VER: u32 = mk_cl_version(2, 0, 0);
-pub const CL2_1_VER: u32 = mk_cl_version(2, 1, 0);
-pub const CL2_2_VER: u32 = mk_cl_version(2, 2, 0);
-pub const CL3_0_VER: u32 = mk_cl_version(3, 0, 0);
+pub const CL1_0_VER: cl_version = mk_cl_version(1, 0, 0);
+pub const CL1_1_VER: cl_version = mk_cl_version(1, 1, 0);
+pub const CL1_2_VER: cl_version = mk_cl_version(1, 2, 0);
+pub const CL2_0_VER: cl_version = mk_cl_version(2, 0, 0);
+pub const CL2_1_VER: cl_version = mk_cl_version(2, 1, 0);
+pub const CL2_2_VER: cl_version = mk_cl_version(2, 2, 0);
+pub const CL3_0_VER: cl_version = mk_cl_version(3, 0, 0);
 
-#[allow(dead_code)]
 #[repr(u32)]
 #[derive(Copy, Clone, Eq, Hash, PartialEq, PartialOrd, Ord)]
 pub enum CLVersion {
@@ -72,10 +71,16 @@ impl CLVersion {
     }
 }
 
-impl TryFrom<u32> for CLVersion {
+impl From<CLVersion> for cl_version {
+    fn from(cl_version: CLVersion) -> Self {
+        cl_version as Self
+    }
+}
+
+impl TryFrom<cl_version> for CLVersion {
     type Error = cl_int;
 
-    fn try_from(value: u32) -> Result<Self, Self::Error> {
+    fn try_from(value: cl_version) -> Result<Self, Self::Error> {
         Ok(match value {
             CL1_0_VER => CLVersion::Cl1_0,
             CL1_1_VER => CLVersion::Cl1_1,

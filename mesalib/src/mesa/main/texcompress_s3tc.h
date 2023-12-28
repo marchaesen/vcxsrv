@@ -25,7 +25,7 @@
 #ifndef TEXCOMPRESS_S3TC_H
 #define TEXCOMPRESS_S3TC_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "texstore.h"
 #include "texcompress.h"
 

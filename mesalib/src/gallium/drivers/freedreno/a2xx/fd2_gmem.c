@@ -88,7 +88,7 @@ static void
 emit_gmem2mem_surf(struct fd_batch *batch, uint32_t base,
                    struct pipe_surface *psurf)
 {
-   struct fd_ringbuffer *ring = batch->tile_fini;
+   struct fd_ringbuffer *ring = batch->tile_store;
    struct fd_resource *rsc = fd_resource(psurf->texture);
    uint32_t offset =
       fd_resource_offset(rsc, psurf->u.tex.level, psurf->u.tex.first_layer);
@@ -141,9 +141,9 @@ prepare_tile_fini_ib(struct fd_batch *batch) assert_dt
    struct pipe_framebuffer_state *pfb = &batch->framebuffer;
    struct fd_ringbuffer *ring;
 
-   batch->tile_fini =
+   batch->tile_store =
       fd_submit_new_ringbuffer(batch->submit, 0x1000, FD_RINGBUFFER_STREAMING);
-   ring = batch->tile_fini;
+   ring = batch->tile_store;
 
    fd2_emit_vertex_bufs(ring, 0x9c,
                         (struct fd2_vertex_buf[]){
@@ -223,7 +223,7 @@ prepare_tile_fini_ib(struct fd_batch *batch) assert_dt
 static void
 fd2_emit_tile_gmem2mem(struct fd_batch *batch, const struct fd_tile *tile)
 {
-   fd2_emit_ib(batch->gmem, batch->tile_fini);
+   fd2_emit_ib(batch->gmem, batch->tile_store);
 }
 
 /* transfer from system memory to gmem */

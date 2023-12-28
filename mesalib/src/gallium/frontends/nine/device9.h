@@ -49,8 +49,8 @@ struct NineStateBlock9;
 struct NineDevice9
 {
     struct NineUnknown base;
-    boolean ex;
-    boolean may_swvp;
+    bool ex;
+    bool may_swvp;
 
     /* G3D context */
     struct pipe_screen *screen;
@@ -88,14 +88,13 @@ struct NineDevice9
     struct list_head managed_buffers;
     struct list_head managed_textures;
 
-    boolean is_recording;
-    boolean in_scene;
+    bool is_recording;
+    bool in_scene;
     unsigned end_scene_since_present;
 
     uint16_t vs_const_size;
     uint16_t ps_const_size;
     uint16_t max_vs_const_f;
-    uint16_t max_ps_const_f;
 
     struct pipe_resource *dummy_texture;
     struct pipe_sampler_view *dummy_sampler_view;
@@ -123,24 +122,29 @@ struct NineDevice9
         POINT hotspot; /* -1, -1 if no cursor image set */
         POINT pos;
         BOOL visible;
-        boolean software;
+        bool software;
         void *hw_upload_temp;
     } cursor;
 
     struct {
-        boolean user_sw_vbufs;
-        boolean window_space_position_support;
-        boolean vs_integer;
-        boolean ps_integer;
-        boolean offset_units_unscaled;
+        bool user_sw_vbufs;
+        bool window_space_position_support;
+        bool disabling_depth_clipping_support;
+        bool vs_integer;
+        bool ps_integer;
+        bool offset_units_unscaled;
+        bool alpha_test_emulation;
+        bool always_output_pointsize;
+        bool emulate_ucp;
+        bool shader_emulate_features;
     } driver_caps;
 
     struct {
-        boolean buggy_barycentrics;
+        bool buggy_barycentrics;
     } driver_bugs;
 
     struct {
-        boolean dynamic_texture_workaround;
+        bool dynamic_texture_workaround;
     } workarounds;
 
     struct u_upload_mgr *vertex_uploader;
@@ -154,15 +158,16 @@ struct NineDevice9
     /* dummy vbo (containing 0 0 0 0) to bind if vertex shader input
      * is not bound to anything by the vertex declaration */
     struct pipe_resource *dummy_vbo;
+    struct pipe_resource *dummy_vbo_sw;
     BOOL device_needs_reset;
     int minor_version_num;
     long long available_texture_mem;
     long long available_texture_limit;
 
     /* software vertex processing */
-    boolean swvp;
+    bool swvp;
     /* pure device */
-    boolean pure;
+    bool pure;
 
     unsigned frame_count; /* It's ok if we overflow */
 
@@ -184,7 +189,7 @@ NineDevice9_new( struct pipe_screen *pScreen,
                  IDirect3D9 *pD3D9,
                  ID3DPresentGroup *pPresentationGroup,
                  struct d3dadapter9_context *pCTX,
-                 boolean ex,
+                 bool ex,
                  D3DDISPLAYMODEEX *pFullscreenDisplayMode,
                  struct NineDevice9 **ppOut,
                  int minorVersionNum );
@@ -199,7 +204,7 @@ NineDevice9_ctor( struct NineDevice9 *This,
                   IDirect3D9 *pD3D9,
                   ID3DPresentGroup *pPresentationGroup,
                   struct d3dadapter9_context *pCTX,
-                  boolean ex,
+                  bool ex,
                   D3DDISPLAYMODEEX *pFullscreenDisplayMode,
                   int minorVersionNum );
 
@@ -213,7 +218,7 @@ nine_resource_create_with_retry( struct NineDevice9 *This,
                                  const struct pipe_resource *templat );
 
 void
-NineDevice9_SetDefaultState( struct NineDevice9 *This, boolean is_reset );
+NineDevice9_SetDefaultState( struct NineDevice9 *This, bool is_reset );
 
 struct pipe_screen *
 NineDevice9_GetScreen( struct NineDevice9 *This );

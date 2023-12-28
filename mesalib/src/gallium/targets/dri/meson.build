@@ -28,13 +28,15 @@ gallium_dri_ld_args = []
 gallium_dri_link_depends = []
 gallium_dri_drivers = []
 
+dri_sym = configure_file(input : 'dri.sym.in', output : 'dri.sym', configuration : sym_config)
+
 if with_ld_version_script
-  gallium_dri_ld_args += ['-Wl,--version-script', join_paths(meson.current_source_dir(), 'dri.sym')]
-  gallium_dri_link_depends += files('dri.sym')
+  gallium_dri_ld_args += ['-Wl,--version-script', join_paths(meson.current_build_dir(), 'dri.sym')]
+  gallium_dri_link_depends += dri_sym
 endif
 if with_ld_dynamic_list
-  gallium_dri_ld_args += ['-Wl,--dynamic-list', join_paths(meson.current_source_dir(), '../dri-vdpau.dyn')]
-  gallium_dri_link_depends += files('../dri-vdpau.dyn')
+  gallium_dri_ld_args += ['-Wl,--dynamic-list', join_paths(meson.current_source_dir(), '../dri.dyn')]
+  gallium_dri_link_depends += files('../dri.dyn')
 endif
 
 libgallium_dri = shared_library(
@@ -49,7 +51,7 @@ libgallium_dri = shared_library(
   link_depends : gallium_dri_link_depends,
   link_with : [
     libdri, libmesa, libgalliumvl,
-    libgallium, libglapi, libpipe_loader_static, libws_null, libwsw, libswdri,
+    libgallium, libglapi, libloader, libpipe_loader_static, libws_null, libwsw, libswdri,
     libswkmsdri,
   ],
   dependencies : [
@@ -69,9 +71,13 @@ libgallium_dri = shared_library(
 foreach d : [[with_gallium_kmsro, [
                'armada-drm_dri.so',
                'exynos_dri.so',
+               'gm12u320_dri.so',
+               'hdlcd_dri.so',
                'hx8357d_dri.so',
+               'ili9163_dri.so',
                'ili9225_dri.so',
                'ili9341_dri.so',
+               'ili9486_dri.so',
                'imx-drm_dri.so',
                'imx-dcss_dri.so',
                'imx-lcdif_dri.so',
@@ -84,14 +90,17 @@ foreach d : [[with_gallium_kmsro, [
                'meson_dri.so',
                'mi0283qt_dri.so',
                'mxsfb-drm_dri.so',
+               'panel-mipi-dbi_dri.so',
                'pl111_dri.so',
                'rcar-du_dri.so',
                'repaper_dri.so',
                'rockchip_dri.so',
                'st7586_dri.so',
                'st7735r_dri.so',
+               'sti_dri.so',
                'stm_dri.so',
-	       'sun4i-drm_dri.so',
+               'sun4i-drm_dri.so',
+               'udl_dri.so',
              ]],
              [with_gallium_radeonsi, 'radeonsi_dri.so'],
              [with_gallium_nouveau, 'nouveau_dri.so'],
@@ -110,7 +119,7 @@ foreach d : [[with_gallium_kmsro, [
              [with_gallium_r600, 'r600_dri.so'],
              [with_gallium_svga, 'vmwgfx_dri.so'],
              [with_gallium_virgl or
-               (with_gallium_freedreno and with_freedreno_virtio),
+               (with_gallium_freedreno and freedreno_kmds.contains('virtio')),
                'virtio_gpu_dri.so'],
              [with_gallium_lima, 'lima_dri.so'],
              [with_gallium_zink, 'zink_dri.so'],
@@ -121,27 +130,26 @@ foreach d : [[with_gallium_kmsro, [
   endif
 endforeach
 
-if meson.version().version_compare('>= 0.58')
-  # This only works on Unix-like oses, which is probably fine for dri
-  prog_ln = find_program('ln', required : false)
-  if prog_ln.found()
-    devenv.set('LIBGL_DRIVERS_PATH', meson.current_build_dir())
+# This only works on Unix-like oses, which is probably fine for dri
+prog_ln = find_program('ln', required : false)
+if prog_ln.found()
+  devenv.set('LIBGL_DRIVERS_PATH', meson.current_build_dir())
 
-    foreach d : gallium_dri_drivers
-      custom_target(
-        'devenv_@0@'.format(d),
-        input : libgallium_dri,
-        output : d,
-        command : [prog_ln, '-f', '@INPUT@', '@OUTPUT@'],
-        build_by_default : true,
-      )
-    endforeach
-  endif
+  foreach d : gallium_dri_drivers
+    custom_target(
+      'devenv_@0@'.format(d),
+      input : libgallium_dri,
+      output : d,
+      command : [prog_ln, '-f', '@INPUT@', '@OUTPUT@'],
+      build_by_default : true,
+    )
+  endforeach
 endif
 
 meson.add_install_script(
-  install_megadrivers_py.path(),
+  install_megadrivers_py.full_path(),
   libgallium_dri.full_path(),
   dri_drivers_path,
   gallium_dri_drivers,
+  install_tag : 'runtime',
 )

@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2009-2015 VMware, Inc.  All rights reserved.
+ * Copyright 2009-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -40,32 +40,25 @@
 void
 vmw_pools_cleanup(struct vmw_winsys_screen *vws)
 {
-   if (vws->pools.mob_shader_slab_fenced)
-      vws->pools.mob_shader_slab_fenced->destroy
-         (vws->pools.mob_shader_slab_fenced);
-   if (vws->pools.mob_shader_slab)
-      vws->pools.mob_shader_slab->destroy(vws->pools.mob_shader_slab);
-   if (vws->pools.mob_fenced)
-      vws->pools.mob_fenced->destroy(vws->pools.mob_fenced);
-   if (vws->pools.mob_cache)
-      vws->pools.mob_cache->destroy(vws->pools.mob_cache);
+   if (vws->pools.dma_slab_fenced)
+      vws->pools.dma_slab_fenced->destroy
+         (vws->pools.dma_slab_fenced);
+   if (vws->pools.dma_slab)
+      vws->pools.dma_slab->destroy(vws->pools.dma_slab);
+   if (vws->pools.dma_fenced)
+      vws->pools.dma_fenced->destroy(vws->pools.dma_fenced);
+   if (vws->pools.dma_cache)
+      vws->pools.dma_cache->destroy(vws->pools.dma_cache);
 
    if (vws->pools.query_fenced)
       vws->pools.query_fenced->destroy(vws->pools.query_fenced);
    if (vws->pools.query_mm)
       vws->pools.query_mm->destroy(vws->pools.query_mm);
 
-   if(vws->pools.gmr_fenced)
-      vws->pools.gmr_fenced->destroy(vws->pools.gmr_fenced);
-   if (vws->pools.gmr_mm)
-      vws->pools.gmr_mm->destroy(vws->pools.gmr_mm);
-   if (vws->pools.gmr_slab_fenced)
-      vws->pools.gmr_slab_fenced->destroy(vws->pools.gmr_slab_fenced);
-   if (vws->pools.gmr_slab)
-      vws->pools.gmr_slab->destroy(vws->pools.gmr_slab);
-
-   if(vws->pools.gmr)
-      vws->pools.gmr->destroy(vws->pools.gmr);
+   if (vws->pools.dma_mm)
+      vws->pools.dma_mm->destroy(vws->pools.dma_mm);
+   if (vws->pools.dma_base)
+      vws->pools.dma_base->destroy(vws->pools.dma_base);
 }
 
 
@@ -82,7 +75,7 @@ vmw_pools_cleanup(struct vmw_winsys_screen *vws)
  * query slabs, it should be easily fixable by allocating them out
  * of a buffer cache.
  */
-boolean
+bool
 vmw_query_pools_init(struct vmw_winsys_screen *vws)
 {
    struct pb_desc desc;
@@ -90,11 +83,11 @@ vmw_query_pools_init(struct vmw_winsys_screen *vws)
    desc.alignment = 16;
    desc.usage = ~(VMW_BUFFER_USAGE_SHARED | VMW_BUFFER_USAGE_SYNC);
 
-   vws->pools.query_mm = pb_slab_range_manager_create(vws->pools.gmr, 16, 128,
+   vws->pools.query_mm = pb_slab_range_manager_create(vws->pools.dma_base, 16, 128,
                                                       VMW_QUERY_POOL_SIZE,
                                                       &desc);
    if (!vws->pools.query_mm)
-      return FALSE;
+      return false;
 
    vws->pools.query_fenced = simple_fenced_bufmgr_create(
       vws->pools.query_mm, vws->fence_ops);
@@ -102,103 +95,50 @@ vmw_query_pools_init(struct vmw_winsys_screen *vws)
    if(!vws->pools.query_fenced)
       goto out_no_query_fenced;
 
-   return TRUE;
+   return true;
 
   out_no_query_fenced:
    vws->pools.query_mm->destroy(vws->pools.query_mm);
-   return FALSE;
+   return false;
 }
 
 /**
- * vmw_mob_pool_init - Create a pool of fenced kernel buffers.
- *
- * @vws: Pointer to a struct vmw_winsys_screen.
- *
- * Typically this pool should be created on demand when we
- * detect that the app will be using MOB buffers.
- */
-boolean
-vmw_mob_pools_init(struct vmw_winsys_screen *vws)
-{
-   struct pb_desc desc;
-
-   vws->pools.mob_cache = 
-      pb_cache_manager_create(vws->pools.gmr, 100000, 2.0f,
-                              VMW_BUFFER_USAGE_SHARED,
-                              64 * 1024 * 1024);
-   if (!vws->pools.mob_cache)
-      return FALSE;
-
-   vws->pools.mob_fenced = 
-      simple_fenced_bufmgr_create(vws->pools.mob_cache,
-                                  vws->fence_ops);
-   if(!vws->pools.mob_fenced)
-      goto out_no_mob_fenced;
-   
-   desc.alignment = 64;
-   desc.usage = ~(SVGA_BUFFER_USAGE_PINNED | VMW_BUFFER_USAGE_SHARED |
-                  VMW_BUFFER_USAGE_SYNC);
-   vws->pools.mob_shader_slab =
-      pb_slab_range_manager_create(vws->pools.mob_cache,
-                                   64,
-                                   8192,
-                                   16384,
-                                   &desc);
-   if(!vws->pools.mob_shader_slab)
-      goto out_no_mob_shader_slab;
-
-   vws->pools.mob_shader_slab_fenced =
-      simple_fenced_bufmgr_create(vws->pools.mob_shader_slab,
-				  vws->fence_ops);
-   if(!vws->pools.mob_shader_slab_fenced)
-      goto out_no_mob_shader_slab_fenced;
-
-   return TRUE;
-
- out_no_mob_shader_slab_fenced:
-   vws->pools.mob_shader_slab->destroy(vws->pools.mob_shader_slab);
- out_no_mob_shader_slab:
-   vws->pools.mob_fenced->destroy(vws->pools.mob_fenced);
- out_no_mob_fenced:
-   vws->pools.mob_cache->destroy(vws->pools.mob_cache);
-   return FALSE;
-}
-
-/**
- * vmw_pools_init - Create a pool of GMR buffers.
+ * vmw_pool_init - Create a pool of buffers.
  *
  * @vws: Pointer to a struct vmw_winsys_screen.
  */
-boolean
+bool
 vmw_pools_init(struct vmw_winsys_screen *vws)
 {
    struct pb_desc desc;
 
-   vws->pools.gmr = vmw_gmr_bufmgr_create(vws);
-   if(!vws->pools.gmr)
+   vws->pools.dma_base = vmw_dma_bufmgr_create(vws);
+   if (!vws->pools.dma_base)
       goto error;
 
-   if ((vws->base.have_gb_objects && vws->base.have_gb_dma) ||
-       !vws->base.have_gb_objects) {
-      /*
-       * A managed pool for DMA buffers.
-       */
-      vws->pools.gmr_mm = mm_bufmgr_create(vws->pools.gmr,
-                                           VMW_GMR_POOL_SIZE,
-                                           12 /* 4096 alignment */);
-      if(!vws->pools.gmr_mm)
-         goto error;
+   /*
+    * A managed pool for DMA buffers.
+    */
+   vws->pools.dma_mm = mm_bufmgr_create(vws->pools.dma_base,
+                                        VMW_GMR_POOL_SIZE,
+                                        12 /* 4096 alignment */);
+   if(!vws->pools.dma_mm)
+      goto error;
 
-      vws->pools.gmr_fenced = simple_fenced_bufmgr_create
-         (vws->pools.gmr_mm, vws->fence_ops);
+   vws->pools.dma_cache =
+      pb_cache_manager_create(vws->pools.dma_base, 100000, 2.0f,
+                              VMW_BUFFER_USAGE_SHARED,
+                              64 * 1024 * 1024);
 
-#ifdef DEBUG
-      vws->pools.gmr_fenced = pb_debug_manager_create(vws->pools.gmr_fenced,
-                                                      4096,
-                                                      4096);
-#endif
-      if(!vws->pools.gmr_fenced)
-         goto error;
+   if (!vws->pools.dma_cache)
+      goto error;
+
+   vws->pools.dma_fenced =
+      simple_fenced_bufmgr_create(vws->pools.dma_cache,
+                                  vws->fence_ops);
+   
+   if(!vws->pools.dma_fenced)
+      goto error;
 
    /*
     * The slab pool allocates buffers directly from the kernel except
@@ -208,35 +148,30 @@ vmw_pools_init(struct vmw_winsys_screen *vws)
     * Here we use it only for emergency in the case our pre-allocated
     * managed buffer pool runs out of memory.
     */
+   desc.alignment = 64;
+   desc.usage = ~(SVGA_BUFFER_USAGE_PINNED | VMW_BUFFER_USAGE_SHARED |
+                  VMW_BUFFER_USAGE_SYNC);
+   vws->pools.dma_slab =
+      pb_slab_range_manager_create(vws->pools.dma_cache,
+                                   64,
+                                   8192,
+                                   16384,
+                                   &desc);
+   if(!vws->pools.dma_slab)
+     goto error;
 
-      desc.alignment = 64;
-      desc.usage = ~(SVGA_BUFFER_USAGE_PINNED | SVGA_BUFFER_USAGE_SHADER |
-                     VMW_BUFFER_USAGE_SHARED | VMW_BUFFER_USAGE_SYNC);
-      vws->pools.gmr_slab = pb_slab_range_manager_create(vws->pools.gmr,
-                                                         64,
-                                                         8192,
-                                                         16384,
-                                                         &desc);
-      if (!vws->pools.gmr_slab)
-         goto error;
-
-      vws->pools.gmr_slab_fenced =
-         simple_fenced_bufmgr_create(vws->pools.gmr_slab, vws->fence_ops);
-
-      if (!vws->pools.gmr_slab_fenced)
-         goto error;
-   }
+   vws->pools.dma_slab_fenced =
+      simple_fenced_bufmgr_create(vws->pools.dma_slab,
+		                  vws->fence_ops);
+   if (!vws->pools.dma_slab_fenced)
+      goto error;
 
    vws->pools.query_fenced = NULL;
    vws->pools.query_mm = NULL;
-   vws->pools.mob_cache = NULL;
 
-   if (vws->base.have_gb_objects && !vmw_mob_pools_init(vws))
-      goto error;
-
-   return TRUE;
+   return true;
 
 error:
    vmw_pools_cleanup(vws);
-   return FALSE;
+   return false;
 }

@@ -29,8 +29,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 #include "util/u_bitmask.h"
-#include "tgsi/tgsi_parse.h"
-#include "tgsi/tgsi_text.h"
 
 #include "svga_context.h"
 #include "svga_hw_reg.h"
@@ -94,6 +92,10 @@ svga_bind_vs_state(struct pipe_context *pipe, void *shader)
 
    svga->curr.vs = vs;
    svga->dirty |= SVGA_NEW_VS;
+
+   /* Check if the shader uses samplers */
+   svga_set_curr_shader_use_samplers_flag(svga, PIPE_SHADER_VERTEX,
+                                          svga_shader_use_samplers(&vs->base));
 }
 
 

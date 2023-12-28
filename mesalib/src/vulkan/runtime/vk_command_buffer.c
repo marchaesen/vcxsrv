@@ -41,8 +41,10 @@ vk_command_buffer_init(struct vk_command_pool *pool,
    command_buffer->level = level;
    command_buffer->ops = ops;
    vk_dynamic_graphics_state_init(&command_buffer->dynamic_graphics_state);
+   command_buffer->state = MESA_VK_COMMAND_BUFFER_STATE_INITIAL;
    command_buffer->record_result = VK_SUCCESS;
    vk_cmd_queue_init(&command_buffer->cmd_queue, &pool->alloc);
+   vk_meta_object_list_init(&command_buffer->meta_objects);
    util_dynarray_init(&command_buffer->labels, NULL);
    command_buffer->region_begin = true;
 
@@ -55,11 +57,38 @@ void
 vk_command_buffer_reset(struct vk_command_buffer *command_buffer)
 {
    vk_dynamic_graphics_state_clear(&command_buffer->dynamic_graphics_state);
+   command_buffer->state = MESA_VK_COMMAND_BUFFER_STATE_INITIAL;
    command_buffer->record_result = VK_SUCCESS;
    vk_command_buffer_reset_render_pass(command_buffer);
    vk_cmd_queue_reset(&command_buffer->cmd_queue);
+   vk_meta_object_list_reset(command_buffer->base.device,
+                             &command_buffer->meta_objects);
    util_dynarray_clear(&command_buffer->labels);
    command_buffer->region_begin = true;
+}
+
+void
+vk_command_buffer_begin(struct vk_command_buffer *command_buffer,
+                        const VkCommandBufferBeginInfo *pBeginInfo)
+{
+   if (command_buffer->state != MESA_VK_COMMAND_BUFFER_STATE_INITIAL &&
+       command_buffer->ops->reset != NULL)
+      command_buffer->ops->reset(command_buffer, 0);
+
+   command_buffer->state = MESA_VK_COMMAND_BUFFER_STATE_RECORDING;
+}
+
+VkResult
+vk_command_buffer_end(struct vk_command_buffer *command_buffer)
+{
+   assert(command_buffer->state == MESA_VK_COMMAND_BUFFER_STATE_RECORDING);
+
+   if (vk_command_buffer_has_error(command_buffer))
+      command_buffer->state = MESA_VK_COMMAND_BUFFER_STATE_INVALID;
+   else
+      command_buffer->state = MESA_VK_COMMAND_BUFFER_STATE_EXECUTABLE;
+
+   return vk_command_buffer_get_record_result(command_buffer);
 }
 
 void
@@ -69,6 +98,8 @@ vk_command_buffer_finish(struct vk_command_buffer *command_buffer)
    vk_command_buffer_reset_render_pass(command_buffer);
    vk_cmd_queue_finish(&command_buffer->cmd_queue);
    util_dynarray_fini(&command_buffer->labels);
+   vk_meta_object_list_finish(command_buffer->base.device,
+                              &command_buffer->meta_objects);
    vk_object_base_finish(&command_buffer->base);
 }
 
@@ -92,7 +123,8 @@ vk_common_ResetCommandBuffer(VkCommandBuffer commandBuffer,
 {
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
 
-   cmd_buffer->ops->reset(cmd_buffer, flags);
+   if (cmd_buffer->state != MESA_VK_COMMAND_BUFFER_STATE_INITIAL)
+      cmd_buffer->ops->reset(cmd_buffer, flags);
 
    return VK_SUCCESS;
 }
@@ -126,4 +158,40 @@ vk_common_CmdBindVertexBuffers(VkCommandBuffer commandBuffer,
 
    disp->CmdBindVertexBuffers2(commandBuffer, firstBinding, bindingCount,
                                pBuffers, pOffsets, NULL, NULL);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdBindIndexBuffer(
+    VkCommandBuffer                             commandBuffer,
+    VkBuffer                                    buffer,
+    VkDeviceSize                                offset,
+    VkIndexType                                 indexType)
+{
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdBindIndexBuffer2KHR(commandBuffer, buffer, offset,
+                                VK_WHOLE_SIZE, indexType);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdDispatch(VkCommandBuffer commandBuffer,
+                      uint32_t groupCountX,
+                      uint32_t groupCountY,
+                      uint32_t groupCountZ)
+{
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdDispatchBase(commandBuffer, 0, 0, 0,
+                         groupCountX, groupCountY, groupCountZ);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdSetDeviceMask(VkCommandBuffer commandBuffer, uint32_t deviceMask)
+{
+   /* Nothing to do here since we only support a single device */
+   assert(deviceMask == 0x1);
 }

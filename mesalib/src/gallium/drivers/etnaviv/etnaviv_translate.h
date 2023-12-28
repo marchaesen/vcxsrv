@@ -25,7 +25,7 @@
 #define H_TRANSLATE
 
 #include "pipe/p_defines.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "pipe/p_state.h"
 
 #include "etnaviv_debug.h"
@@ -35,9 +35,11 @@
 #include "hw/common_3d.xml.h"
 #include "hw/state.xml.h"
 #include "hw/state_3d.xml.h"
+#include "hw/state_blt.xml.h"
 
 #include "util/format/u_format.h"
 #include "util/u_math.h"
+#include "util/u_pack_color.h"
 
 /* Returned when there is no match of pipe value to etna value */
 #define ETNA_NO_MATCH (~0)
@@ -271,6 +273,105 @@ translate_ts_format(enum pipe_format fmt)
    }
 }
 
+/* formats directly supported in the RS engine */
+static inline uint32_t
+translate_rs_format(enum pipe_format fmt)
+{
+   /* Note: Pipe format convention is LSB to MSB, VIVS is MSB to LSB */
+   switch (fmt) {
+   case PIPE_FORMAT_B4G4R4X4_UNORM:
+      return RS_FORMAT_X4R4G4B4;
+   case PIPE_FORMAT_B4G4R4A4_UNORM:
+      return RS_FORMAT_A4R4G4B4;
+   case PIPE_FORMAT_B5G5R5X1_UNORM:
+      return RS_FORMAT_X1R5G5B5;
+   case PIPE_FORMAT_B5G5R5A1_UNORM:
+      return RS_FORMAT_A1R5G5B5;
+   case PIPE_FORMAT_B5G6R5_UNORM:
+      return RS_FORMAT_R5G6B5;
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+   case PIPE_FORMAT_B8G8R8X8_SRGB:
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return RS_FORMAT_X8R8G8B8;
+   case PIPE_FORMAT_B8G8R8A8_UNORM:
+   case PIPE_FORMAT_B8G8R8A8_SRGB:
+   case PIPE_FORMAT_R8G8B8A8_UNORM:
+      return RS_FORMAT_A8R8G8B8;
+   default:
+      return ETNA_NO_MATCH;
+   }
+}
+
+/* formats directly supported in the BLT engine */
+static inline uint32_t
+translate_blt_format(enum pipe_format fmt)
+{
+   /* Note: Pipe format convention is LSB to MSB, VIVS is MSB to LSB */
+   switch (fmt) {
+   case PIPE_FORMAT_B4G4R4X4_UNORM:
+      return BLT_FORMAT_X4R4G4B4;
+   case PIPE_FORMAT_B4G4R4A4_UNORM:
+      return BLT_FORMAT_A4R4G4B4;
+   case PIPE_FORMAT_B5G5R5X1_UNORM:
+      return BLT_FORMAT_X1R5G5B5;
+   case PIPE_FORMAT_B5G5R5A1_UNORM:
+      return BLT_FORMAT_A1R5G5B5;
+   case PIPE_FORMAT_B5G6R5_UNORM:
+      return BLT_FORMAT_R5G6B5;
+   case PIPE_FORMAT_B8G8R8X8_UNORM:
+   case PIPE_FORMAT_B8G8R8X8_SRGB:
+   case PIPE_FORMAT_R8G8B8X8_UNORM:
+      return BLT_FORMAT_X8R8G8B8;
+   case PIPE_FORMAT_B8G8R8A8_UNORM:
+   case PIPE_FORMAT_B8G8R8A8_SRGB:
+   case PIPE_FORMAT_R8G8B8A8_UNORM:
+      return BLT_FORMAT_A8R8G8B8;
+   case PIPE_FORMAT_R10G10B10A2_UNORM:
+   case PIPE_FORMAT_R10G10B10X2_UNORM:
+      return BLT_FORMAT_A2R10G10B10;
+   default:
+      return ETNA_NO_MATCH;
+   }
+}
+
+static inline uint32_t
+drmfourcc_to_ts_format(uint32_t fourcc)
+{
+   switch (fourcc) {
+   case DRM_FORMAT_ARGB8888:
+      return COMPRESSION_FORMAT_A8R8G8B8;
+   case DRM_FORMAT_XRGB8888:
+      return COMPRESSION_FORMAT_X8R8G8B8;
+   case DRM_FORMAT_RGB565:
+      return COMPRESSION_FORMAT_R5G6B5;
+   case DRM_FORMAT_ARGB4444:
+      return COMPRESSION_FORMAT_A4R4G4B4;
+   case DRM_FORMAT_ARGB1555:
+      return COMPRESSION_FORMAT_A1R5G5B5;
+   default:
+      return ~0;
+   }
+}
+
+static inline uint32_t
+ts_format_to_drmfourcc(uint32_t comp_format)
+{
+   switch (comp_format) {
+   case COMPRESSION_FORMAT_A8R8G8B8:
+      return DRM_FORMAT_ARGB8888;
+   case COMPRESSION_FORMAT_X8R8G8B8:
+      return DRM_FORMAT_XRGB8888;
+   case COMPRESSION_FORMAT_R5G6B5:
+      return DRM_FORMAT_RGB565;
+   case COMPRESSION_FORMAT_A4R4G4B4:
+      return DRM_FORMAT_ARGB4444;
+   case COMPRESSION_FORMAT_A1R5G5B5:
+      return DRM_FORMAT_ARGB1555;
+   default:
+      return 0;
+   }
+}
+
 /* Return normalization flag for vertex element format */
 static inline uint32_t
 translate_vertex_format_normalize(enum pipe_format fmt)
@@ -326,21 +427,21 @@ static inline uint32_t
 translate_draw_mode(unsigned mode)
 {
    switch (mode) {
-   case PIPE_PRIM_POINTS:
+   case MESA_PRIM_POINTS:
       return PRIMITIVE_TYPE_POINTS;
-   case PIPE_PRIM_LINES:
+   case MESA_PRIM_LINES:
       return PRIMITIVE_TYPE_LINES;
-   case PIPE_PRIM_LINE_LOOP:
+   case MESA_PRIM_LINE_LOOP:
       return PRIMITIVE_TYPE_LINE_LOOP;
-   case PIPE_PRIM_LINE_STRIP:
+   case MESA_PRIM_LINE_STRIP:
       return PRIMITIVE_TYPE_LINE_STRIP;
-   case PIPE_PRIM_TRIANGLES:
+   case MESA_PRIM_TRIANGLES:
       return PRIMITIVE_TYPE_TRIANGLES;
-   case PIPE_PRIM_TRIANGLE_STRIP:
+   case MESA_PRIM_TRIANGLE_STRIP:
       return PRIMITIVE_TYPE_TRIANGLE_STRIP;
-   case PIPE_PRIM_TRIANGLE_FAN:
+   case MESA_PRIM_TRIANGLE_FAN:
       return PRIMITIVE_TYPE_TRIANGLE_FAN;
-   case PIPE_PRIM_QUADS:
+   case MESA_PRIM_QUADS:
       return PRIMITIVE_TYPE_QUADS;
    default:
       DBG("Unhandled draw mode primitive %i", mode);
@@ -348,72 +449,15 @@ translate_draw_mode(unsigned mode)
    }
 }
 
-/* Get size multiple for size of texture/rendertarget with a certain layout
- * This is affected by many different parameters:
- *   - A horizontal multiple of 16 is used when possible as resolve can be used
- *       at the cost of only a little bit extra memory usage.
- *   - If the surface is to be used with the resolve engine, set rs_align true.
- *       If set, a horizontal multiple of 16 will be used for tiled and linear,
- *       otherwise one of 16.  However, such a surface will be incompatible
- *       with the samplers if the GPU does hot support the HALIGN feature.
- *   - If the surface is supertiled, horizontal and vertical multiple is always 64
- *   - If the surface is multi tiled or supertiled, make sure that the vertical size
- *     is a multiple of the number of pixel pipes as well.
- * */
-static inline void
-etna_layout_multiple(unsigned layout, unsigned pixel_pipes, bool rs_align,
-                     unsigned *paddingX, unsigned *paddingY, unsigned *halign)
-{
-   switch (layout) {
-   case ETNA_LAYOUT_LINEAR:
-      *paddingX = rs_align ? 16 : 4;
-      *paddingY = 1;
-      *halign = rs_align ? TEXTURE_HALIGN_SIXTEEN : TEXTURE_HALIGN_FOUR;
-      break;
-   case ETNA_LAYOUT_TILED:
-      *paddingX = rs_align ? 16 : 4;
-      *paddingY = 4;
-      *halign = rs_align ? TEXTURE_HALIGN_SIXTEEN : TEXTURE_HALIGN_FOUR;
-      break;
-   case ETNA_LAYOUT_SUPER_TILED:
-      *paddingX = 64;
-      *paddingY = 64;
-      *halign = TEXTURE_HALIGN_SUPER_TILED;
-      break;
-   case ETNA_LAYOUT_MULTI_TILED:
-      *paddingX = 16;
-      *paddingY = 4 * pixel_pipes;
-      *halign = TEXTURE_HALIGN_SPLIT_TILED;
-      break;
-   case ETNA_LAYOUT_MULTI_SUPERTILED:
-      *paddingX = 64;
-      *paddingY = 64 * pixel_pipes;
-      *halign = TEXTURE_HALIGN_SPLIT_SUPER_TILED;
-      break;
-   default:
-      DBG("Unhandled layout %i", layout);
-   }
-}
-
 static inline uint32_t
-translate_clear_depth_stencil(enum pipe_format format, float depth,
-                              unsigned stencil)
+translate_clear_depth_stencil(enum pipe_format format, double depth,
+                              uint8_t stencil)
 {
-   uint32_t clear_value = 0;
+   uint32_t clear_value = util_pack_z_stencil(format, depth, stencil);
 
-   // XXX util_pack_color
-   switch (format) {
-   case PIPE_FORMAT_Z16_UNORM:
-      clear_value = etna_cfloat_to_uintN(depth, 16);
+   if (format == PIPE_FORMAT_Z16_UNORM)
       clear_value |= clear_value << 16;
-      break;
-   case PIPE_FORMAT_X8Z24_UNORM:
-   case PIPE_FORMAT_S8_UINT_Z24_UNORM:
-      clear_value = (etna_cfloat_to_uintN(depth, 24) << 8) | (stencil & 0xFF);
-      break;
-   default:
-      DBG("Unhandled pipe format for depth stencil clear: %i", format);
-   }
+
    return clear_value;
 }
 

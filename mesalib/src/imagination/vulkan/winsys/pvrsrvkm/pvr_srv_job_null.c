@@ -35,21 +35,28 @@
 #include "vk_sync.h"
 
 VkResult pvr_srv_winsys_null_job_submit(struct pvr_winsys *ws,
-                                        struct vk_sync **waits,
+                                        struct vk_sync_wait *waits,
                                         uint32_t wait_count,
-                                        struct vk_sync *signal_sync)
+                                        struct vk_sync_signal *signal)
 {
-   struct pvr_srv_sync *srv_signal_sync = to_srv_sync(signal_sync);
    int fd = -1;
 
-   assert(signal_sync);
+   /* Services doesn't support timeline syncs.
+    * Timeline syncs should be emulated by the Vulkan runtime and converted
+    * to binary syncs before this point.
+    */
+   assert((signal->signal_value == 0) &&
+          !(signal->sync->flags & VK_SYNC_IS_TIMELINE));
 
-   for (uint32_t i = 0; i < wait_count; i++) {
-      struct pvr_srv_sync *srv_wait_sync = to_srv_sync(waits[i]);
+   for (uint32_t wait_idx = 0; wait_idx < wait_count; wait_idx++) {
+      struct pvr_srv_sync *srv_wait_sync = to_srv_sync(waits[wait_idx].sync);
       int ret;
 
-      if (!waits[i] || srv_wait_sync->fd < 0)
+      if (srv_wait_sync->fd < 0)
          continue;
+
+      assert((waits[wait_idx].wait_value == 0) &&
+             !(waits[wait_idx].sync->flags & VK_SYNC_IS_TIMELINE));
 
       ret = sync_accumulate("", &fd, srv_wait_sync->fd);
       if (ret) {
@@ -60,7 +67,7 @@ VkResult pvr_srv_winsys_null_job_submit(struct pvr_winsys *ws,
       }
    }
 
-   pvr_srv_set_sync_payload(srv_signal_sync, fd);
+   pvr_srv_set_sync_payload(to_srv_sync(signal->sync), fd);
 
    return VK_SUCCESS;
 }

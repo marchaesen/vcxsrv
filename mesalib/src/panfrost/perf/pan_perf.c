@@ -23,12 +23,12 @@
 
 #include "pan_perf.h"
 
-#include <pan_perf_metrics.h>
-#include <lib/pan_device.h>
 #include <drm-uapi/panfrost_drm.h>
+#include <lib/pan_device.h>
+#include <pan_perf_metrics.h>
 
 #define PAN_COUNTERS_PER_CATEGORY 64
-#define PAN_SHADER_CORE_INDEX 3
+#define PAN_SHADER_CORE_INDEX     3
 
 uint32_t
 panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
@@ -53,12 +53,12 @@ panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
 static const struct panfrost_perf_config *
 panfrost_lookup_counters(const char *name)
 {
-        for (unsigned i = 0; i < ARRAY_SIZE(panfrost_perf_configs); ++i) {
-                if (strcmp(panfrost_perf_configs[i]->name, name) == 0)
-                        return panfrost_perf_configs[i];
-        }
+   for (unsigned i = 0; i < ARRAY_SIZE(panfrost_perf_configs); ++i) {
+      if (strcmp(panfrost_perf_configs[i]->name, name) == 0)
+         return panfrost_perf_configs[i];
+   }
 
-        return NULL;
+   return NULL;
 }
 
 void
@@ -67,12 +67,12 @@ panfrost_perf_init(struct panfrost_perf *perf, struct panfrost_device *dev)
    perf->dev = dev;
 
    if (dev->model == NULL)
-           unreachable("Invalid GPU ID");
+      unreachable("Invalid GPU ID");
 
    perf->cfg = panfrost_lookup_counters(dev->model->performance_counters);
 
    if (perf->cfg == NULL)
-           unreachable("Performance counters missing!");
+      unreachable("Performance counters missing!");
 
    // Generally counter blocks are laid out in the following order:
    // Job manager, tiler, one or more L2 caches, and one or more shader cores.
@@ -92,7 +92,8 @@ static int
 panfrost_perf_query(struct panfrost_perf *perf, uint32_t enable)
 {
    struct drm_panfrost_perfcnt_enable perfcnt_enable = {enable, 0};
-   return drmIoctl(perf->dev->fd, DRM_IOCTL_PANFROST_PERFCNT_ENABLE, &perfcnt_enable);
+   return drmIoctl(panfrost_device_fd(perf->dev),
+                   DRM_IOCTL_PANFROST_PERFCNT_ENABLE, &perfcnt_enable);
 }
 
 int
@@ -110,7 +111,10 @@ panfrost_perf_disable(struct panfrost_perf *perf)
 int
 panfrost_perf_dump(struct panfrost_perf *perf)
 {
-   // Dump performance counter values to the memory buffer pointed to by counter_values
-   struct drm_panfrost_perfcnt_dump perfcnt_dump = {(uint64_t)(uintptr_t)perf->counter_values};
-   return drmIoctl(perf->dev->fd, DRM_IOCTL_PANFROST_PERFCNT_DUMP, &perfcnt_dump);
+   // Dump performance counter values to the memory buffer pointed to by
+   // counter_values
+   struct drm_panfrost_perfcnt_dump perfcnt_dump = {
+      (uint64_t)(uintptr_t)perf->counter_values};
+   return drmIoctl(panfrost_device_fd(perf->dev),
+                   DRM_IOCTL_PANFROST_PERFCNT_DUMP, &perfcnt_dump);
 }

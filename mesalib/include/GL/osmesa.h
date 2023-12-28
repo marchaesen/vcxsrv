@@ -121,7 +121,7 @@ typedef struct osmesa_context *OSMesaContext;
  *                     display lists.  NULL indicates no sharing.
  * Return:  an OSMesaContext or 0 if error
  */
-GLAPI OSMesaContext GLAPIENTRY
+GLAPI OSMesaContext APIENTRY
 OSMesaCreateContext( GLenum format, OSMesaContext sharelist );
 
 
@@ -134,7 +134,7 @@ OSMesaCreateContext( GLenum format, OSMesaContext sharelist );
  *
  * New in Mesa 3.5
  */
-GLAPI OSMesaContext GLAPIENTRY
+GLAPI OSMesaContext APIENTRY
 OSMesaCreateContextExt( GLenum format, GLint depthBits, GLint stencilBits,
                         GLint accumBits, OSMesaContext sharelist);
 
@@ -163,7 +163,7 @@ OSMesaCreateContextExt( GLenum format, GLint depthBits, GLint stencilBits,
  *
  * New in Mesa 11.2
  */
-GLAPI OSMesaContext GLAPIENTRY
+GLAPI OSMesaContext APIENTRY
 OSMesaCreateContextAttribs( const int *attribList, OSMesaContext sharelist );
 
 
@@ -173,7 +173,7 @@ OSMesaCreateContextAttribs( const int *attribList, OSMesaContext sharelist );
  *
  * Input:  ctx - the context to destroy
  */
-GLAPI void GLAPIENTRY
+GLAPI void APIENTRY
 OSMesaDestroyContext( OSMesaContext ctx );
 
 
@@ -205,7 +205,7 @@ OSMesaDestroyContext( OSMesaContext ctx );
  *          invalid buffer address, type!=GL_UNSIGNED_BYTE, width<1, height<1,
  *          width>internal limit or height>internal limit.
  */
-GLAPI GLboolean GLAPIENTRY
+GLAPI GLboolean APIENTRY
 OSMesaMakeCurrent( OSMesaContext ctx, void *buffer, GLenum type,
                    GLsizei width, GLsizei height );
 
@@ -215,7 +215,7 @@ OSMesaMakeCurrent( OSMesaContext ctx, void *buffer, GLenum type,
 /*
  * Return the current Off-Screen Mesa rendering context handle.
  */
-GLAPI OSMesaContext GLAPIENTRY
+GLAPI OSMesaContext APIENTRY
 OSMesaGetCurrentContext( void );
 
 
@@ -233,7 +233,7 @@ OSMesaGetCurrentContext( void );
  *
  * New in version 2.0.
  */
-GLAPI void GLAPIENTRY
+GLAPI void APIENTRY
 OSMesaPixelStore( GLint pname, GLint value );
 
 
@@ -249,7 +249,7 @@ OSMesaPixelStore( GLint pname, GLint value );
  *                 OSMESA_Y_UP returns 1 or 0 to indicate Y axis direction
  *         value - pointer to integer in which to return result.
  */
-GLAPI void GLAPIENTRY
+GLAPI void APIENTRY
 OSMesaGetIntegerv( GLint pname, GLint *value );
 
 
@@ -264,7 +264,7 @@ OSMesaGetIntegerv( GLint pname, GLint *value );
  *
  * New in Mesa 2.4.
  */
-GLAPI GLboolean GLAPIENTRY
+GLAPI GLboolean APIENTRY
 OSMesaGetDepthBuffer( OSMesaContext c, GLint *width, GLint *height,
                       GLint *bytesPerValue, void **buffer );
 
@@ -280,7 +280,7 @@ OSMesaGetDepthBuffer( OSMesaContext c, GLint *width, GLint *height,
  *
  * New in Mesa 3.3.
  */
-GLAPI GLboolean GLAPIENTRY
+GLAPI GLboolean APIENTRY
 OSMesaGetColorBuffer( OSMesaContext c, GLint *width, GLint *height,
                       GLint *format, void **buffer );
 
@@ -297,7 +297,7 @@ typedef void (*OSMESAproc)();
  * New in Mesa 4.1
  * Return OSMESAproc in 6.3.
  */
-GLAPI OSMESAproc GLAPIENTRY
+GLAPI OSMESAproc APIENTRY
 OSMesaGetProcAddress( const char *funcName );
 
 
@@ -306,7 +306,7 @@ OSMesaGetProcAddress( const char *funcName );
  * Enable/disable color clamping, off by default.
  * New in Mesa 6.4.2
  */
-GLAPI void GLAPIENTRY
+GLAPI void APIENTRY
 OSMesaColorClamp(GLboolean enable);
 
 
@@ -319,7 +319,7 @@ OSMesaColorClamp(GLboolean enable);
  * the filter is enabled, and the value may control the filter's quality.
  * New in Mesa 10.0
  */
-GLAPI void GLAPIENTRY
+GLAPI void APIENTRY
 OSMesaPostprocess(OSMesaContext osmesa, const char *filter,
                   unsigned enable_value);
 

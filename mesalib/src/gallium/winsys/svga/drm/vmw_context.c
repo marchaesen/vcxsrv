@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2009-2015 VMware, Inc.  All rights reserved.
+ * Copyright 2009-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -69,7 +69,7 @@
 struct vmw_buffer_relocation
 {
    struct pb_buffer *buffer;
-   boolean is_mob;
+   bool is_mob;
    uint32 offset;
 
    union {
@@ -88,7 +88,7 @@ struct vmw_ctx_validate_item {
       struct vmw_svga_winsys_surface *vsurf;
       struct vmw_svga_winsys_shader *vshader;
    };
-   boolean referenced;
+   bool referenced;
 };
 
 struct vmw_svga_winsys_context
@@ -99,7 +99,7 @@ struct vmw_svga_winsys_context
    struct hash_table *hash;
 
 #ifdef DEBUG
-   boolean must_flush;
+   bool must_flush;
    struct debug_stack_frame must_flush_stack[VMW_MUST_FLUSH_STACK];
    struct debug_flush_ctx *fctx;
 #endif
@@ -150,7 +150,7 @@ struct vmw_svga_winsys_context
     * ran out of command space, but because a substantial ammount of GMR was
     * referred.
     */
-   boolean preemptive_flush;
+   bool preemptive_flush;
 };
 
 
@@ -218,7 +218,7 @@ vmw_swc_flush(struct svga_winsys_context *swc,
          struct vmw_buffer_relocation *reloc = &vswc->region.relocs[i];
          struct SVGAGuestPtr ptr;
 
-         if(!vmw_gmr_bufmgr_region_ptr(reloc->buffer, &ptr))
+         if(!vmw_dma_bufmgr_region_ptr(reloc->buffer, &ptr))
             assert(0);
 
          ptr.offset += reloc->offset;
@@ -279,12 +279,12 @@ vmw_swc_flush(struct svga_winsys_context *swc,
    vswc->region.reserved = 0;
 
 #ifdef DEBUG
-   vswc->must_flush = FALSE;
+   vswc->must_flush = false;
    debug_flush_flush(vswc->fctx);
 #endif
    swc->hints &= ~SVGA_HINT_FLAG_CAN_PRE_FLUSH;
    swc->hints &= ~SVGA_HINT_FLAG_EXPORT_FENCE_FD;
-   vswc->preemptive_flush = FALSE;
+   vswc->preemptive_flush = false;
    vswc->seen_surfaces = 0;
    vswc->seen_regions = 0;
    vswc->seen_mobs = 0;
@@ -329,7 +329,7 @@ vmw_swc_reserve(struct svga_winsys_context *swc,
       vswc->shader.used + nr_relocs > vswc->shader.size ||
       vswc->region.used + nr_relocs > vswc->region.size) {
 #ifdef DEBUG
-      vswc->must_flush = TRUE;
+      vswc->must_flush = true;
       debug_backtrace_capture(vswc->must_flush_stack, 1,
                               VMW_MUST_FLUSH_STACK);
 #endif
@@ -366,14 +366,14 @@ vmw_swc_context_relocation(struct svga_winsys_context *swc,
    *cid = swc->cid;
 }
 
-static boolean
+static bool
 vmw_swc_add_validate_buffer(struct vmw_svga_winsys_context *vswc,
 			    struct pb_buffer *pb_buf,
 			    unsigned flags)
 {
    ASSERTED enum pipe_error ret;
    unsigned translated_flags;
-   boolean already_present;
+   bool already_present;
 
    translated_flags = vmw_translate_to_pb_flags(flags);
    ret = pb_validate_add_buffer(vswc->validate, pb_buf, translated_flags,
@@ -403,14 +403,14 @@ vmw_swc_region_relocation(struct svga_winsys_context *swc,
     */
    reloc->buffer = vmw_pb_buffer(buffer);
    reloc->offset = offset;
-   reloc->is_mob = FALSE;
+   reloc->is_mob = false;
    ++vswc->region.staged;
 
    if (vmw_swc_add_validate_buffer(vswc, reloc->buffer, flags)) {
       vswc->seen_regions += reloc->buffer->size;
       if ((swc->hints & SVGA_HINT_FLAG_CAN_PRE_FLUSH) &&
           vswc->seen_regions >= VMW_GMR_POOL_SIZE/5)
-         vswc->preemptive_flush = TRUE;
+         vswc->preemptive_flush = true;
    }
 
 #ifdef DEBUG
@@ -444,7 +444,7 @@ vmw_swc_mob_relocation(struct svga_winsys_context *swc,
        */
       reloc->buffer = pb_buffer;
       reloc->offset = offset;
-      reloc->is_mob = TRUE;
+      reloc->is_mob = true;
       ++vswc->region.staged;
    }
 
@@ -454,7 +454,7 @@ vmw_swc_mob_relocation(struct svga_winsys_context *swc,
       if ((swc->hints & SVGA_HINT_FLAG_CAN_PRE_FLUSH) &&
           vswc->seen_mobs >=
             vswc->vws->ioctl.max_mob_memory / VMW_MAX_MOB_MEM_FACTOR)
-         vswc->preemptive_flush = TRUE;
+         vswc->preemptive_flush = true;
    }
 
 #ifdef DEBUG
@@ -484,7 +484,7 @@ vmw_swc_surface_clear_reference(struct svga_winsys_context *swc,
       util_hash_table_get(vswc->hash, vsurf);
 
    if (isrf && isrf->referenced) {
-      isrf->referenced = FALSE;
+      isrf->referenced = false;
       p_atomic_dec(&vsurf->validated);
    }
 }
@@ -504,7 +504,7 @@ vmw_swc_surface_only_relocation(struct svga_winsys_context *swc,
    if (isrf == NULL) {
       isrf = &vswc->surface.items[vswc->surface.used + vswc->surface.staged];
       vmw_svga_winsys_surface_reference(&isrf->vsurf, vsurf);
-      isrf->referenced = FALSE;
+      isrf->referenced = false;
 
       _mesa_hash_table_insert(vswc->hash, vsurf, isrf);
       ++vswc->surface.staged;
@@ -513,11 +513,11 @@ vmw_swc_surface_only_relocation(struct svga_winsys_context *swc,
       if ((swc->hints & SVGA_HINT_FLAG_CAN_PRE_FLUSH) &&
           vswc->seen_surfaces >=
             vswc->vws->ioctl.max_surface_memory / VMW_MAX_SURF_MEM_FACTOR)
-         vswc->preemptive_flush = TRUE;
+         vswc->preemptive_flush = true;
    }
 
    if (!(flags & SVGA_RELOC_INTERNAL) && !isrf->referenced) {
-      isrf->referenced = TRUE;
+      isrf->referenced = true;
       p_atomic_inc(&vsurf->validated);
    }
 
@@ -596,14 +596,14 @@ vmw_swc_shader_relocation(struct svga_winsys_context *swc,
       if (ishader == NULL) {
          ishader = &vswc->shader.items[vswc->shader.used + vswc->shader.staged];
          vmw_svga_winsys_shader_reference(&ishader->vshader, vshader);
-         ishader->referenced = FALSE;
+         ishader->referenced = false;
 
          _mesa_hash_table_insert(vswc->hash, vshader, ishader);
          ++vswc->shader.staged;
       }
 
       if (!ishader->referenced) {
-         ishader->referenced = TRUE;
+         ishader->referenced = true;
          p_atomic_inc(&vshader->validated);
       }
    }
@@ -830,7 +830,7 @@ vmw_svga_winsys_context_create(struct svga_winsys_screen *sws)
       goto out_no_hash;
 
 #ifdef DEBUG
-   vswc->fctx = debug_flush_ctx_create(TRUE, VMW_DEBUG_FLUSH_STACK);
+   vswc->fctx = debug_flush_ctx_create(true, VMW_DEBUG_FLUSH_STACK);
 #endif
 
    vswc->base.force_coherent = vws->force_coherent;

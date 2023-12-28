@@ -35,7 +35,7 @@ bool nir_fuse_io_16(nir_shader *shader);
 static bool
 nir_src_is_f2fmp(nir_src *use)
 {
-   nir_instr *parent = use->parent_instr;
+   nir_instr *parent = nir_src_parent_instr(use);
 
    if (parent->type != nir_instr_type_alu)
       return false;
@@ -49,60 +49,47 @@ nir_fuse_io_16(nir_shader *shader)
 {
    bool progress = false;
 
-   nir_foreach_function(function, shader) {
-      if (!function->impl) continue;
-
-      nir_builder b;
-      nir_builder_init(&b, function->impl);
-
-      nir_foreach_block(block, function->impl) {
+   nir_foreach_function_impl(impl, shader) {
+      nir_foreach_block(block, impl) {
          nir_foreach_instr_safe(instr, block) {
-            if (instr->type != nir_instr_type_intrinsic) continue;
+            if (instr->type != nir_instr_type_intrinsic)
+               continue;
 
             nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
 
             if (intr->intrinsic != nir_intrinsic_load_interpolated_input)
-                    continue;
+               continue;
 
-            if (nir_dest_bit_size(intr->dest) != 32)
-                    continue;
+            if (intr->def.bit_size != 32)
+               continue;
 
             /* We swizzle at a 32-bit level so need a multiple of 2. We could
              * do a bit better and handle even components though */
             if (nir_intrinsic_component(intr))
                continue;
 
-            if (!intr->dest.is_ssa)
-               continue;
-
-            if (!list_is_empty(&intr->dest.ssa.if_uses))
-               return false;
-
             bool valid = true;
 
-            nir_foreach_use(src, &intr->dest.ssa)
-               valid &= nir_src_is_f2fmp(src);
+            nir_foreach_use_including_if(src, &intr->def)
+               valid &= !nir_src_is_if(src) && nir_src_is_f2fmp(src);
 
             if (!valid)
                continue;
 
-            intr->dest.ssa.bit_size = 16;
+            intr->def.bit_size = 16;
 
-            nir_builder b;
-            nir_builder_init(&b, function->impl);
-            b.cursor = nir_after_instr(instr);
+            nir_builder b = nir_builder_at(nir_after_instr(instr));
 
             /* The f2f32(f2fmp(x)) will cancel by opt_algebraic */
-            nir_ssa_def *conv = nir_f2f32(&b, &intr->dest.ssa);
-            nir_ssa_def_rewrite_uses_after(&intr->dest.ssa, conv,
-                                           conv->parent_instr);
+            nir_def *conv = nir_f2f32(&b, &intr->def);
+            nir_def_rewrite_uses_after(&intr->def, conv, conv->parent_instr);
 
             progress |= true;
          }
       }
 
-      nir_metadata_preserve(function->impl, nir_metadata_block_index | nir_metadata_dominance);
-
+      nir_metadata_preserve(impl,
+                            nir_metadata_block_index | nir_metadata_dominance);
    }
 
    return progress;

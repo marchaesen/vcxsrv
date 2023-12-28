@@ -27,7 +27,7 @@ authorization from the authors.
 -->
 
 <xcb header="randr" extension-xname="RANDR" extension-name="RandR"
-    major-version="1" minor-version="5">
+    major-version="1" minor-version="6">
 
 	<import>xproto</import>
 	<import>render</import>
@@ -37,6 +37,7 @@ authorization from the authors.
 	<xidtype name="CRTC" />
 	<xidtype name="OUTPUT" />
 	<xidtype name="PROVIDER" />
+	<xidtype name="LEASE" />
 	
 	<!-- Errors -->
 
@@ -124,6 +125,7 @@ authorization from the authors.
 		<item name="ProviderChange">  <bit>4</bit></item>
 		<item name="ProviderProperty"><bit>5</bit></item>
 		<item name="ResourceChange">  <bit>6</bit></item>
+		<item name="Lease">           <bit>7</bit></item>
 	</enum>
 
 	<request name="SelectInput" opcode="4">	
@@ -798,6 +800,7 @@ authorization from the authors.
 		<item name="ProviderChange">  <value>3</value></item>
 		<item name="ProviderProperty"><value>4</value></item>
 		<item name="ResourceChange">  <value>5</value></item>
+		<item name="Lease">           <value>6</value></item>
 	</enum>
 
 	<struct name="CrtcChange">
@@ -858,20 +861,6 @@ authorization from the authors.
 		<pad bytes="20" />
 	</struct>
 
-	<union name="NotifyData">
-		<field type="CrtcChange"       name="cc" />
-		<field type="OutputChange"     name="oc" />
-		<field type="OutputProperty"   name="op" />
-		<field type="ProviderChange"   name="pc" />
-		<field type="ProviderProperty" name="pp" />
-		<field type="ResourceChange"   name="rc" />
-	</union>
-
-	<event name="Notify" number="1">
-		<field type="CARD8" name="subCode" enum="Notify" />
-		<field type="NotifyData" name="u" />
-	</event>
-
 	<!-- New in version 1.5 -->
 
 	<struct name="MonitorInfo">
@@ -914,4 +903,52 @@ authorization from the authors.
 		<field type="WINDOW" name="window" />
 		<field type="ATOM" name="name" />
 	</request>
+
+	<!-- new in 1.6 -->
+
+	<request name="CreateLease" opcode="45">
+	  <field type="WINDOW" name="window" />
+	  <field type="LEASE" name="lid" />
+	  <field type="CARD16" name="num_crtcs" />
+	  <field type="CARD16" name="num_outputs" />
+	  <list type="CRTC" name="crtcs">
+	    <fieldref>num_crtcs</fieldref>
+	  </list>
+	  <list type="OUTPUT" name="outputs">
+	    <fieldref>num_outputs</fieldref>
+	  </list>
+	  <reply>
+	    <field type="CARD8" name="nfd" />
+	    <fd name="master_fd" />
+	    <pad bytes="24" />
+	  </reply>
+	</request>
+
+	<request name="FreeLease" opcode="46">
+	  <field type="LEASE" name="lid" />
+	  <field type="BYTE" name="terminate" />
+	</request>
+
+	<struct name="LeaseNotify">
+		<field type="TIMESTAMP" name="timestamp" />
+		<field type="WINDOW" name="window" />
+		<field type="LEASE" name="lease" />
+		<field type="CARD8" name="created" />
+		<pad bytes="15" />
+	</struct>
+
+	<union name="NotifyData">
+		<field type="CrtcChange"       name="cc" />
+		<field type="OutputChange"     name="oc" />
+		<field type="OutputProperty"   name="op" />
+		<field type="ProviderChange"   name="pc" />
+		<field type="ProviderProperty" name="pp" />
+		<field type="ResourceChange"   name="rc" />
+		<field type="LeaseNotify"      name="lc" />
+	</union>
+
+	<event name="Notify" number="1">
+		<field type="CARD8" name="subCode" enum="Notify" />
+		<field type="NotifyData" name="u" />
+	</event>
 </xcb>

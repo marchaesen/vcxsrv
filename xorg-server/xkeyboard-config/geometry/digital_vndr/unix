@@ -20,13 +20,13 @@
 //OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR
 //THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 //
-//Except as contained in this notice, the name of the Digital Equipment 
+//Except as contained in this notice, the name of the Digital Equipment
 //Corporation shall not be used in advertising or otherwise to promote
 //the sale, use or other dealings in this Software without prior written
 //authorization from Digital Equipment Corporation.
 //
 // HISTORY
-// Log: unix,v 
+// Log: unix,v
 // Revision 1.2  1996/06/18  09:12:53  erik
 // use flags correctly, assorted cleanups and consortium fixes
 //
@@ -37,11 +37,11 @@
 // Revision 1.1.2.2  1995/06/05  19:21:23  William_Walker
 // 	New file.  I love keymaps.
 // 	[1995/06/05  18:05:56  William_Walker]
-// 
+//
 // EndLog
-// 
+//
 // @(#)RCSfile: unix,v  Revision: 1.2  (DEC) Date: 1996/01/24 12:16:
-// 
+//
 xkb_geometry "unix" {
 
     width		= 340;
@@ -68,7 +68,7 @@ xkb_geometry "unix" {
 
     section "Function" { top = 30;
         row { top = 1;
-	    keys {  <FK01>, <FK02>, <FK03>, <FK04>, <FK05>, 
+	    keys {  <FK01>, <FK02>, <FK03>, <FK04>, <FK05>,
 		    { <FK06>, 20 }, <FK07>, <FK08>, <FK09>, <FK10>,
 		    { <LEFT>, 20 }, <DOWN>, <UP>, <RGHT>
 	    };
@@ -77,30 +77,30 @@ xkb_geometry "unix" {
 
     section "Alpha" { top = 50;
         row { top = 1;
-	    keys {  { <AE00>, "AE00" }, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  { <AE00>, "AE00" },
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    { <BKSP>, "BKSP" }
 	    };
         };
         row { top = 21;
 	    keys {  { <TAB>, "TABK" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    <BKSL>, <AB00>
 	    };
 
         };
         row { top = 41; left = -4;
 	    keys {  { <LCTL>, "CTRL" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
-		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
+		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 61; left = -4;
 	    keys {  { <LFSH>, "SHFT" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, <AB06>,
 		    <AB07>, <AB08>, <AB09>, <AB10>,
 		    { <RTSH>, "SHFT" }
 	    };
@@ -116,7 +116,7 @@ xkb_geometry "unix" {
 	    key.shape = "MODK";
 	    keys {  { <LCMP>, "NORM" }, <LALT>,
 		    { <SPCE>, "SPCE" },
-		    <RALT>, <RCMP> 
+		    <RALT>, <RCMP>
 	    };
         };
     };
@@ -166,28 +166,28 @@ xkb_geometry "lk421jj" {
 
     section "Alpha" { top = 65;
         row { top = 1; left = 7;
-	    keys {  { <AE00>, "MED" }, 
-		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>, 
-		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>, 
+	    keys {  { <AE00>, "MED" },
+		    <AE01>, <AE02>, <AE03>, <AE04>, <AE05>, <AE06>,
+		    <AE07>, <AE08>, <AE09>, <AE10>, <AE11>, <AE12>,
 		    <AB00>, { <BKSP>, "MED" }
 	    };
         };
         row { top = 21;	left = 7;
 	    keys {  { <TAB>, "LONG1" },
-		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>, 
-		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>, 
+		    <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, <AD06>,
+		    <AD07>, <AD08>, <AD09>, <AD10>, <AD11>, <AD12>,
 		    { <RTRN>, "RTRN" }
 	    };
         };
         row { top = 41;
 	    keys {  { <LCTL>, "CTRL" },
-		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>, 
+		    <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, <AC06>,
 		    <AC07>, <AC08>, <AC09>, <AC10>, <AC11>, <BKSL>
 	    };
         };
         row { top = 61;
 	    keys {  <CAPS>, { <LFSH>, "LONG1" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>,
 		    <AB11>, { <RTSH>, "LONG1" }
 	    };

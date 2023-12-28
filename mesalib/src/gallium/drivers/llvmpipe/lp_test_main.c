@@ -62,7 +62,7 @@ read_elem(struct lp_type type, const void *src, unsigned index)
    double value;
    assert(index < type.length);
    if (type.floating) {
-      switch(type.width) {
+      switch (type.width) {
       case 32:
          value = *((const float *)src + index);
          break;
@@ -73,10 +73,9 @@ read_elem(struct lp_type type, const void *src, unsigned index)
          assert(0);
          return 0.0;
       }
-   }
-   else {
-      if(type.sign) {
-         switch(type.width) {
+   } else {
+      if (type.sign) {
+         switch (type.width) {
          case 8:
             value = *((const int8_t *)src + index);
             break;
@@ -93,9 +92,8 @@ read_elem(struct lp_type type, const void *src, unsigned index)
             assert(0);
             return 0.0;
          }
-      }
-      else {
-         switch(type.width) {
+      } else {
+         switch (type.width) {
          case 8:
             value = *((const uint8_t *)src + index);
             break;
@@ -122,14 +120,14 @@ void
 write_elem(struct lp_type type, void *dst, unsigned index, double value)
 {
    assert(index < type.length);
-   if(!type.sign && value < 0.0)
+   if (!type.sign && value < 0.0)
       value = 0.0;
-   if(type.norm && value < -1.0)
+   if (type.norm && value < -1.0)
       value = -1.0;
-   if(type.norm && value > 1.0)
+   if (type.norm && value > 1.0)
       value = 1.0;
    if (type.floating) {
-      switch(type.width) {
+      switch (type.width) {
       case 32:
          *((float *)dst + index) = (float)(value);
          break;
@@ -139,15 +137,14 @@ write_elem(struct lp_type type, void *dst, unsigned index, double value)
       default:
          assert(0);
       }
-   }
-   else {
+   } else {
       double scale = lp_const_scale(type);
       value = round(value*scale);
-      if(type.sign) {
+      if (type.sign) {
          long long lvalue = (long long)value;
          lvalue = MIN2(lvalue, ((long long)1 << (type.width - 1)) - 1);
          lvalue = MAX2(lvalue, -((long long)1 << (type.width - 1)));
-         switch(type.width) {
+         switch (type.width) {
          case 8:
             *((int8_t *)dst + index) = (int8_t)lvalue;
             break;
@@ -163,11 +160,10 @@ write_elem(struct lp_type type, void *dst, unsigned index, double value)
          default:
             assert(0);
          }
-      }
-      else {
+      } else {
          unsigned long long lvalue = (long long)value;
          lvalue = MIN2(lvalue, ((unsigned long long)1 << type.width) - 1);
-         switch(type.width) {
+         switch (type.width) {
          case 8:
             *((uint8_t *)dst + index) = (uint8_t)lvalue;
             break;
@@ -194,11 +190,10 @@ random_elem(struct lp_type type, void *dst, unsigned index)
    double value;
    assert(index < type.length);
    value = (double)rand()/(double)RAND_MAX;
-   if(!type.norm) {
+   if (!type.norm) {
       if (type.floating) {
          value *= 2.0;
-      }
-      else {
+      } else {
          unsigned long long mask;
          if (type.fixed)
             mask = ((unsigned long long)1 << (type.width / 2)) - 1;
@@ -212,13 +207,13 @@ random_elem(struct lp_type type, void *dst, unsigned index)
              * rand only returns half the possible range
              * XXX 64bit values...
              */
-            if(rand() & 1)
+            if (rand() & 1)
                value += (double)0x80000000;
          }
       }
    }
-   if(type.sign)
-      if(rand() & 1)
+   if (type.sign)
+      if (rand() & 1)
          value = -value;
    write_elem(type, dst, index, value);
 }
@@ -258,7 +253,7 @@ random_vec(struct lp_type type, void *dst)
 }
 
 
-boolean
+bool
 compare_vec_with_eps(struct lp_type type, const void *res, const void *ref, double eps)
 {
    unsigned i;
@@ -268,19 +263,19 @@ compare_vec_with_eps(struct lp_type type, const void *res, const void *ref, doub
       double ref_elem = read_elem(type, ref, i);
       double delta = res_elem - ref_elem;
       if (ref_elem < -1.0 || ref_elem > 1.0) {
-	 delta /= ref_elem;
+         delta /= ref_elem;
       }
       delta = fabs(delta);
       if (delta >= eps) {
-         return FALSE;
+         return false;
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 
-boolean
+bool
 compare_vec(struct lp_type type, const void *res, const void *ref)
 {
    double eps = lp_const_eps(type);
@@ -293,11 +288,11 @@ dump_vec(FILE *fp, struct lp_type type, const void *src)
 {
    unsigned i;
    for (i = 0; i < type.length; ++i) {
-      if(i)
+      if (i)
          fprintf(fp, " ");
       if (type.floating) {
          double value;
-         switch(type.width) {
+         switch (type.width) {
          case 32:
             value = *((const float *)src + i);
             break;
@@ -309,12 +304,11 @@ dump_vec(FILE *fp, struct lp_type type, const void *src)
             value = 0.0;
          }
          fprintf(fp, "%f", value);
-      }
-      else {
-         if(type.sign && !type.norm) {
+      } else {
+         if (type.sign && !type.norm) {
             long long value;
             const char *format;
-            switch(type.width) {
+            switch (type.width) {
             case 8:
                value = *((const int8_t *)src + i);
                format = "%3lli";
@@ -337,11 +331,10 @@ dump_vec(FILE *fp, struct lp_type type, const void *src)
                format = "?";
             }
             fprintf(fp, format, value);
-         }
-         else {
+         } else {
             unsigned long long value;
             const char *format;
-            switch(type.width) {
+            switch (type.width) {
             case 8:
                value = *((const uint8_t *)src + i);
                format = type.norm ? "%2x" : "%4llu";
@@ -370,14 +363,15 @@ dump_vec(FILE *fp, struct lp_type type, const void *src)
 }
 
 
-int main(int argc, char **argv)
+int
+main(int argc, char **argv)
 {
    unsigned verbose = 0;
    FILE *fp = NULL;
    unsigned long n = 1000;
    unsigned i;
-   boolean success;
-   boolean single = FALSE;
+   bool success;
+   bool single = false;
    unsigned fpstate;
 
    fpstate = util_fpstate_get();
@@ -386,12 +380,12 @@ int main(int argc, char **argv)
    if (!lp_build_init())
       return 1;
 
-   for(i = 1; i < argc; ++i) {
-      if(strcmp(argv[i], "-v") == 0)
+   for (i = 1; i < argc; ++i) {
+      if (strcmp(argv[i], "-v") == 0)
          ++verbose;
-      else if(strcmp(argv[i], "-s") == 0)
-         single = TRUE;
-      else if(strcmp(argv[i], "-o") == 0)
+      else if (strcmp(argv[i], "-s") == 0)
+         single = true;
+      else if (strcmp(argv[i], "-o") == 0)
          fp = fopen(argv[++i], "wt");
       else
          n = atoi(argv[i]);
@@ -410,7 +404,7 @@ int main(int argc, char **argv)
 
       write_tsv_header(fp);
    }
-      
+
    if (single)
       success = test_single(verbose, fp);
    else if (n)

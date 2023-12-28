@@ -74,7 +74,7 @@ NineBaseTexture9_ctor( struct NineBaseTexture9 *This,
     /* Mark the texture as dirty to trigger first upload when we need the texture,
      * even if it wasn't set by the application */
     if (Pool == D3DPOOL_MANAGED)
-        This->managed.dirty = TRUE;
+        This->managed.dirty = true;
     /* When a depth buffer is sampled, it is for shadow mapping, except for
      * D3DFMT_INTZ, D3DFMT_DF16 and D3DFMT_DF24.
      * In addition D3DFMT_INTZ can be used for both texturing and depth buffering
@@ -156,7 +156,7 @@ NineBaseTexture9_SetAutoGenFilterType( struct NineBaseTexture9 *This,
     user_assert(FilterType != D3DTEXF_NONE, D3DERR_INVALIDCALL);
 
     This->mipfilter = FilterType;
-    This->dirty_mip = TRUE;
+    This->dirty_mip = true;
     NineBaseTexture9_GenerateMipSubLevels(This);
 
     return D3D_OK;
@@ -204,7 +204,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
         res = This->base.resource;
 
         if (This->managed.lod_resident == -1) {/* no levels were resident */
-            This->managed.dirty = FALSE; /* We are going to upload everything. */
+            This->managed.dirty = false; /* We are going to upload everything. */
             This->managed.lod_resident = This->level_count;
         }
 
@@ -309,7 +309,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
         } else {
             assert(!"invalid texture type");
         }
-        This->managed.dirty = FALSE;
+        This->managed.dirty = false;
     }
 
     /* Upload the new levels */
@@ -359,7 +359,7 @@ NineBaseTexture9_UploadSelf( struct NineBaseTexture9 *This )
     }
 
     if (This->base.usage & D3DUSAGE_AUTOGENMIPMAP)
-        This->dirty_mip = TRUE;
+        This->dirty_mip = true;
 
     /* Set again the textures currently bound to update the texture data */
     if (This->bind_count) {
@@ -405,7 +405,7 @@ NineBaseTexture9_GenerateMipSubLevels( struct NineBaseTexture9 *This )
                             base_level, last_level,
                             first_layer, last_layer, filter);
 
-    This->dirty_mip = FALSE;
+    This->dirty_mip = false;
 }
 
 HRESULT
@@ -493,6 +493,7 @@ NineBaseTexture9_UpdateSamplerView( struct NineBaseTexture9 *This,
     enum pipe_format srgb_format;
     unsigned i;
     uint8_t swizzle[4];
+    memset(&templ, 0, sizeof(templ));
 
     DBG("This=%p sRGB=%d\n", This, sRGB);
 
@@ -597,7 +598,7 @@ NineBaseTexture9_UnLoad( struct NineBaseTexture9 *This )
     DBG("This=%p, releasing resource\n", This);
     pipe_resource_reference(&This->base.resource, NULL);
     This->managed.lod_resident = -1;
-    This->managed.dirty = TRUE;
+    This->managed.dirty = true;
 
     /* If the texture is bound, we have to re-upload it */
     BASETEX_REGISTER_UPDATE(This);

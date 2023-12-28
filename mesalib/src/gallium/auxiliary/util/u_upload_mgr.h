@@ -32,7 +32,7 @@
 #ifndef U_UPLOAD_MGR_H
 #define U_UPLOAD_MGR_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_defines.h"
 
 struct pipe_context;

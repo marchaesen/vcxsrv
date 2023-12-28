@@ -34,12 +34,14 @@ xkb_symbols "nodeadkeys" {
     key <AD11>	{[     aring,      Aring,    diaeresis,       degree ]};
     key <AD12>	{[ diaeresis, asciicircum,  asciitilde,       macron ]};
 
+    key <AC07>	{[         j,          J,          ezh,          EZH ]};
     key <AC10>	{[        ae,         AE,        acute,  doubleacute ]};
     key <AC11>	{[    oslash,     Oslash,  asciicircum,        caron ]};
     key <BKSL>	{[apostrophe,   asterisk,  doubleacute,     multiply ]};
 
     key <AB08>	{[     comma,  semicolon,      cedilla,       ogonek ]};
     key <AB09>	{[    period,      colon, periodcentered,   abovedot ]};
+    key <AB10>	{[     minus, underscore,       endash,       emdash ]};
 };
 
 partial alphanumeric_keys

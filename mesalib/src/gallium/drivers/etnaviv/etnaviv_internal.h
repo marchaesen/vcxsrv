@@ -219,11 +219,11 @@ struct compiled_vertex_elements_state {
    uint32_t NFE_GENERIC_ATTRIB_CONFIG1[VIVS_NFE_GENERIC_ATTRIB__LEN];
    unsigned num_buffers;
    uint32_t NFE_VERTEX_STREAMS_VERTEX_DIVISOR[VIVS_NFE_VERTEX_STREAMS__LEN];
+   uint32_t FE_VERTEX_STREAM_CONTROL[VIVS_NFE_VERTEX_STREAMS__LEN];
 };
 
 /* Compiled context->set_vertex_buffer result */
 struct compiled_set_vertex_buffer {
-   uint32_t FE_VERTEX_STREAM_CONTROL;
    struct etna_reloc FE_VERTEX_STREAM_BASE_ADDR;
 };
 

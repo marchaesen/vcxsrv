@@ -230,20 +230,27 @@ etna_emit_state(struct etna_context *ctx)
    uint32_t dirty = ctx->dirty;
 
    /* Pre-processing: see what caches we need to flush before making state changes. */
-   uint32_t to_flush = 0;
+   uint32_t to_flush = 0, to_flush_separate = 0;
    if (unlikely(dirty & (ETNA_DIRTY_BLEND)))
       to_flush |= VIVS_GL_FLUSH_CACHE_COLOR;
    if (unlikely(dirty & ETNA_DIRTY_ZSA))
       to_flush |= VIVS_GL_FLUSH_CACHE_DEPTH;
-   if (unlikely(dirty & (ETNA_DIRTY_TEXTURE_CACHES)))
+   if (unlikely(dirty & (ETNA_DIRTY_TEXTURE_CACHES))) {
       to_flush |= VIVS_GL_FLUSH_CACHE_TEXTURE;
+      to_flush_separate |= VIVS_GL_FLUSH_CACHE_TEXTUREVS;
+   }
    if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER))) /* Framebuffer config changed? */
       to_flush |= VIVS_GL_FLUSH_CACHE_COLOR | VIVS_GL_FLUSH_CACHE_DEPTH;
-   if (DBG_ENABLED(ETNA_DBG_CFLUSH_ALL))
-      to_flush |= VIVS_GL_FLUSH_CACHE_TEXTURE | VIVS_GL_FLUSH_CACHE_COLOR | VIVS_GL_FLUSH_CACHE_DEPTH;
+   if (DBG_ENABLED(ETNA_DBG_CFLUSH_ALL)) {
+      to_flush |= VIVS_GL_FLUSH_CACHE_TEXTURE | VIVS_GL_FLUSH_CACHE_COLOR |
+                  VIVS_GL_FLUSH_CACHE_DEPTH;
+      to_flush_separate |= VIVS_GL_FLUSH_CACHE_TEXTUREVS;
+   }
 
    if (to_flush) {
       etna_set_state(stream, VIVS_GL_FLUSH_CACHE, to_flush);
+      if (to_flush_separate)
+         etna_set_state(stream, VIVS_GL_FLUSH_CACHE, to_flush_separate);
       etna_stall(stream, SYNC_RECIPIENT_RA, SYNC_RECIPIENT_PE);
    }
 
@@ -329,29 +336,30 @@ etna_emit_state(struct etna_context *ctx)
          for (int x = 0; x < ctx->vertex_buffer.count; ++x) {
             /*14600*/ EMIT_STATE_RELOC(NFE_VERTEX_STREAMS_BASE_ADDR(x), &ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR);
          }
-         for (int x = 0; x < ctx->vertex_buffer.count; ++x) {
-            if (ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR.bo) {
-               /*14640*/ EMIT_STATE(NFE_VERTEX_STREAMS_CONTROL(x), ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_CONTROL);
-            }
-         }
       } else if(screen->specs.stream_count > 1) { /* hw w/ multiple vertex streams */
          for (int x = 0; x < ctx->vertex_buffer.count; ++x) {
             /*00680*/ EMIT_STATE_RELOC(FE_VERTEX_STREAMS_BASE_ADDR(x), &ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR);
          }
-         for (int x = 0; x < ctx->vertex_buffer.count; ++x) {
-            if (ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR.bo) {
-               /*006A0*/ EMIT_STATE(FE_VERTEX_STREAMS_CONTROL(x), ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_CONTROL);
-            }
-         }
       } else { /* hw w/ single vertex stream */
          /*0064C*/ EMIT_STATE_RELOC(FE_VERTEX_STREAM_BASE_ADDR, &ctx->vertex_buffer.cvb[0].FE_VERTEX_STREAM_BASE_ADDR);
-         /*00650*/ EMIT_STATE(FE_VERTEX_STREAM_CONTROL, ctx->vertex_buffer.cvb[0].FE_VERTEX_STREAM_CONTROL);
       }
    }
    /* gallium has instance divisor as part of elements state */
-   if ((dirty & (ETNA_DIRTY_VERTEX_ELEMENTS)) && screen->specs.halti >= 2) {
+   if (dirty & (ETNA_DIRTY_VERTEX_ELEMENTS)) {
       for (int x = 0; x < ctx->vertex_elements->num_buffers; ++x) {
-         /*14680*/ EMIT_STATE(NFE_VERTEX_STREAMS_VERTEX_DIVISOR(x), ctx->vertex_elements->NFE_VERTEX_STREAMS_VERTEX_DIVISOR[x]);
+         if (ctx->vertex_buffer.cvb[x].FE_VERTEX_STREAM_BASE_ADDR.bo) {
+            if (screen->specs.halti >= 2)
+               /*14640*/ EMIT_STATE(NFE_VERTEX_STREAMS_CONTROL(x), ctx->vertex_elements->FE_VERTEX_STREAM_CONTROL[x]);
+            else if (screen->specs.stream_count > 1)
+               /*006A0*/ EMIT_STATE(FE_VERTEX_STREAMS_CONTROL(x), ctx->vertex_elements->FE_VERTEX_STREAM_CONTROL[x]);
+            else
+               /*00650*/ EMIT_STATE(FE_VERTEX_STREAM_CONTROL, ctx->vertex_elements->FE_VERTEX_STREAM_CONTROL[0]);
+         }
+      }
+      if (screen->specs.halti >= 2) {
+         for (int x = 0; x < ctx->vertex_elements->num_buffers; ++x) {
+            /*14680*/ EMIT_STATE(NFE_VERTEX_STREAMS_VERTEX_DIVISOR(x), ctx->vertex_elements->NFE_VERTEX_STREAMS_VERTEX_DIVISOR[x]);
+         }
       }
    }
 
@@ -429,7 +437,7 @@ etna_emit_state(struct etna_context *ctx)
       /*01010*/ EMIT_STATE(PS_CONTROL, ctx->framebuffer.PS_CONTROL);
       /*01030*/ EMIT_STATE(PS_CONTROL_EXT, ctx->framebuffer.PS_CONTROL_EXT);
    }
-   if (unlikely(dirty & (ETNA_DIRTY_ZSA | ETNA_DIRTY_FRAMEBUFFER | ETNA_DIRTY_SHADER))) {
+   if (unlikely(dirty & (ETNA_DIRTY_ZSA | ETNA_DIRTY_FRAMEBUFFER))) {
       /*01400*/ EMIT_STATE(PE_DEPTH_CONFIG, (etna_zsa_state(ctx->zsa)->PE_DEPTH_CONFIG |
                                              ctx->framebuffer.PE_DEPTH_CONFIG));
    }
@@ -440,7 +448,7 @@ etna_emit_state(struct etna_context *ctx)
    if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER))) {
       /*0140C*/ EMIT_STATE(PE_DEPTH_NORMALIZE, ctx->framebuffer.PE_DEPTH_NORMALIZE);
 
-      if (screen->specs.halti < 0) {
+      if (screen->specs.halti < 0 || screen->model == 0x880) {
          /*01410*/ EMIT_STATE_RELOC(PE_DEPTH_ADDR, &ctx->framebuffer.PE_DEPTH_ADDR);
       }
 
@@ -477,7 +485,7 @@ etna_emit_state(struct etna_context *ctx)
       /*0142C*/ EMIT_STATE(PE_COLOR_FORMAT, val);
    }
    if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER))) {
-      if (screen->specs.halti >= 0) {
+      if (screen->specs.halti >= 0 && screen->model != 0x880) {
          /*01434*/ EMIT_STATE(PE_COLOR_STRIDE, ctx->framebuffer.PE_COLOR_STRIDE);
          /*01454*/ EMIT_STATE(PE_HDEPTH_CONTROL, ctx->framebuffer.PE_HDEPTH_CONTROL);
          /*01460*/ EMIT_STATE_RELOC(PE_PIPE_COLOR_ADDR(0), &ctx->framebuffer.PE_PIPE_COLOR_ADDR[0]);
@@ -492,7 +500,13 @@ etna_emit_state(struct etna_context *ctx)
    }
    if (unlikely(dirty & (ETNA_DIRTY_STENCIL_REF | ETNA_DIRTY_RASTERIZER | ETNA_DIRTY_ZSA))) {
       uint32_t val = etna_zsa_state(ctx->zsa)->PE_STENCIL_CONFIG_EXT;
-      /*014A0*/ EMIT_STATE(PE_STENCIL_CONFIG_EXT, val | ctx->stencil_ref.PE_STENCIL_CONFIG_EXT[ccw]);
+      if (!ctx->zsa->stencil[1].enabled &&
+          ctx->zsa->stencil[0].enabled &&
+          ctx->zsa->stencil[0].valuemask)
+	  val |= ctx->stencil_ref.PE_STENCIL_CONFIG_EXT[!ccw];
+      else
+	  val |= ctx->stencil_ref.PE_STENCIL_CONFIG_EXT[ccw];
+      /*014A0*/ EMIT_STATE(PE_STENCIL_CONFIG_EXT, val);
    }
    if (unlikely(dirty & (ETNA_DIRTY_BLEND | ETNA_DIRTY_FRAMEBUFFER))) {
       struct etna_blend_state *blend = etna_blend_state(ctx->blend);

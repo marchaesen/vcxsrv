@@ -1,53 +1,33 @@
 /*
  * Copyright © 2017 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
- * OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
- * NON-INFRINGEMENT. IN NO EVENT SHALL THE COPYRIGHT HOLDERS, AUTHORS
- * AND/OR ITS SUPPLIERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
- * ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_GPU_INFO_H
 #define AC_GPU_INFO_H
 
-#include "amd_family.h"
-
 #include <stdbool.h>
-#include <stddef.h>
-#include <stdint.h>
-#include <stdio.h>
-
 #include "util/macros.h"
+#include "amd_family.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#define AMD_MAX_SE         8
+#define AMD_MAX_SE         32
 #define AMD_MAX_SA_PER_SE  2
+#define AMD_MAX_WGP        60
 
 struct amdgpu_gpu_info;
 
 struct amd_ip_info {
    uint8_t ver_major;
    uint8_t ver_minor;
+   uint8_t ver_rev;
    uint8_t num_queues;
+   uint32_t ib_alignment;
+   uint32_t ib_pad_dw_mask;
 };
 
 struct radeon_info {
@@ -55,11 +35,16 @@ struct radeon_info {
    const char *name;
    char lowercase_name[32];
    const char *marketing_name;
+   char dev_filename[32];
    uint32_t num_se;           /* only enabled SEs */
    uint32_t num_rb;           /* only enabled RBs */
    uint32_t num_cu;           /* only enabled CUs */
    uint32_t max_gpu_freq_mhz; /* also known as the shader clock */
    uint32_t max_gflops;
+   uint32_t sqc_inst_cache_size;
+   uint32_t sqc_scalar_cache_size;
+   uint32_t num_sqc_per_wgp;
+   uint32_t tcp_cache_size;
    uint32_t l1_cache_size;
    uint32_t l2_cache_size;
    uint32_t l3_cache_size_mb;
@@ -68,15 +53,21 @@ struct radeon_info {
    uint32_t memory_freq_mhz_effective;
    uint32_t memory_bus_width;
    uint32_t memory_bandwidth_gbps;
+   uint32_t pcie_gen;
+   uint32_t pcie_num_lanes;
+   uint32_t pcie_bandwidth_mbps;
    uint32_t clock_crystal_freq;
    struct amd_ip_info ip[AMD_NUM_IP_TYPES];
 
    /* Identification. */
    /* PCI info: domain:bus:dev:func */
-   uint32_t pci_domain;
-   uint32_t pci_bus;
-   uint32_t pci_dev;
-   uint32_t pci_func;
+   struct {
+      uint32_t domain;
+      uint32_t bus;
+      uint32_t dev;
+      uint32_t func;
+      bool valid;
+   } pci;
 
    uint32_t pci_id;
    uint32_t pci_rev_id;
@@ -87,9 +78,9 @@ struct radeon_info {
    uint32_t chip_rev; /* 0 = A0, 1 = A1, etc. */
 
    /* Flags. */
+   bool family_overridden; /* AMD_FORCE_FAMILY was used, skip command submission */
    bool is_pro_graphics;
    bool has_graphics; /* false if the chip is compute-only */
-   uint32_t ib_pad_dw_mask[AMD_NUM_IP_TYPES];
    bool has_clear_state;
    bool has_distributed_tess;
    bool has_dcc_constant_encode;
@@ -102,21 +93,52 @@ struct radeon_info {
    bool cpdma_prefetch_writes_memory;
    bool has_gfx9_scissor_bug;
    bool has_tc_compat_zrange_bug;
-   bool has_msaa_sample_loc_bug;
+   bool has_small_prim_filter_sample_loc_bug;
    bool has_ls_vgpr_init_bug;
+   bool has_pops_missed_overlap_bug;
    bool has_zero_index_buffer_bug;
    bool has_image_load_dcc_bug;
    bool has_two_planes_iterate256_bug;
    bool has_vgt_flush_ngg_legacy_bug;
    bool has_cs_regalloc_hang_bug;
+   bool has_async_compute_threadgroup_bug;
    bool has_32bit_predication;
    bool has_3d_cube_border_color_mipmap;
+   bool has_image_opcodes;
    bool never_stop_sq_perf_counters;
    bool has_sqtt_rb_harvest_bug;
    bool has_sqtt_auto_flush_mode_bug;
    bool never_send_perfcounter_stop;
    bool discardable_allows_big_page;
    bool has_export_conflict_bug;
+   bool has_vrs_ds_export_bug;
+   bool has_taskmesh_indirect0_bug;
+   bool sdma_supports_sparse;      /* Whether SDMA can safely access sparse resources. */
+   bool sdma_supports_compression; /* Whether SDMA supports DCC and HTILE. */
+   bool has_set_context_pairs_packed;
+   bool has_set_sh_pairs_packed;
+
+   /* conformant_trunc_coord is equal to TA_CNTL2.TRUNCATE_COORD_MODE, which exists since gfx11.
+    *
+    * If TA_CNTL2.TRUNCATE_COORD_MODE == 0, coordinate truncation is the same as gfx10 and older.
+    *
+    * If TA_CNTL2.TRUNCATE_COORD_MODE == 1, coordinate truncation is adjusted to be D3D9/GL/Vulkan
+    * conformant if you also set TRUNC_COORD. Coordinate truncation uses D3D10+ behaviour if
+    * TRUNC_COORD is unset.
+    *
+    * Behavior if TA_CNTL2.TRUNCATE_COORD_MODE == 1:
+    *    truncate_coord_xy = TRUNC_COORD && (xy_filter == Point && !gather);
+    *    truncate_coord_z = TRUNC_COORD && (z_filter == Point);
+    *    truncate_coord_layer = false;
+    *
+    * Behavior if TA_CNTL2.TRUNCATE_COORD_MODE == 0:
+    *    truncate_coord_xy = TRUNC_COORD;
+    *    truncate_coord_z = TRUNC_COORD;
+    *    truncate_coord_layer = TRUNC_COORD;
+    *
+    * AnisoPoint is treated as Point.
+    */
+   bool conformant_trunc_coord;
 
    /* Display features. */
    /* There are 2 display DCC codepaths, because display expects unaligned DCC. */
@@ -137,7 +159,6 @@ struct radeon_info {
    uint32_t address32_hi;
    bool has_dedicated_vram;
    bool all_vram_visible;
-   bool smart_access_memory;
    bool has_l2_uncached;
    bool r600_has_virtual_memory;
    uint32_t max_tcc_blocks;
@@ -150,7 +171,6 @@ struct radeon_info {
 
    /* CP info. */
    bool gfx_ib_pad_with_type2;
-   unsigned ib_alignment; /* both start and size alignment */
    uint32_t me_fw_version;
    uint32_t me_fw_feature;
    uint32_t mec_fw_version;
@@ -159,15 +179,11 @@ struct radeon_info {
    uint32_t pfp_fw_feature;
 
    /* Multimedia info. */
-   struct {
-      bool vcn_decode; /* TODO: remove */
-   } has_video_hw;
-
    uint32_t uvd_fw_version;
    uint32_t vce_fw_version;
    uint32_t vce_harvest_config;
    struct video_caps_info {
-      struct {
+      struct video_codec_cap {
          uint32_t valid;
          uint32_t max_width;
          uint32_t max_height;
@@ -177,10 +193,14 @@ struct radeon_info {
       } codec_info[8]; /* the number of available codecs */
    } dec_caps, enc_caps;
 
+   enum vcn_version vcn_ip_version;
+   enum sdma_version sdma_ip_version;
+
    /* Kernel & winsys capabilities. */
    uint32_t drm_major; /* version */
    uint32_t drm_minor;
    uint32_t drm_patchlevel;
+   uint32_t max_submitted_ibs[AMD_NUM_IP_TYPES];
    bool is_amdgpu;
    bool has_userptr;
    bool has_syncobj;
@@ -191,20 +211,39 @@ struct radeon_info {
    bool has_eqaa_surface_allocator;
    bool has_sparse_vm_mappings;
    bool has_scheduled_fence_dependency;
+   bool has_gang_submit;
+   bool has_gpuvm_fault_query;
+   bool has_pcie_bandwidth_info;
    bool has_stable_pstate;
    /* Whether SR-IOV is enabled or amdgpu.mcbp=1 was set on the kernel command line. */
-   bool mid_command_buffer_preemption_enabled;
+   bool register_shadowing_required;
    bool has_tmz_support;
    bool kernel_has_modifiers;
 
+   /* If the kernel driver uses CU reservation for high priority compute on gfx10+, it programs
+    * a global CU mask in the hw that is AND'ed with CU_EN register fields set by userspace.
+    * The packet that does the AND'ing is SET_SH_REG_INDEX(index = 3). If you don't use
+    * SET_SH_REG_INDEX, the global CU mask will not be applied.
+    *
+    * If uses_kernel_cu_mask is true, use SET_SH_REG_INDEX.
+    *
+    * If uses_kernel_cu_mask is false, SET_SH_REG_INDEX shouldn't be used because it only
+    * increases CP overhead and doesn't have any other effect.
+    *
+    * The alternative to this is to set the AMD_CU_MASK environment variable that has the same
+    * effect on radeonsi and RADV and doesn't need SET_SH_REG_INDEX.
+    */
+   bool uses_kernel_cu_mask;
+
    /* Shader cores. */
-   uint32_t cu_mask[AMD_MAX_SE][AMD_MAX_SA_PER_SE];
+   uint16_t cu_mask[AMD_MAX_SE][AMD_MAX_SA_PER_SE];
    uint32_t r600_max_quad_pipes; /* wave size / 16 */
    uint32_t max_good_cu_per_sa;
    uint32_t min_good_cu_per_sa; /* min != max if SAs have different # of CUs */
    uint32_t max_se;             /* number of shader engines incl. disabled ones */
    uint32_t max_sa_per_se;      /* shader arrays per shader engine */
-   uint32_t max_wave64_per_simd;
+   uint32_t num_cu_per_sh;
+   uint32_t max_waves_per_simd;
    uint32_t num_physical_sgprs_per_simd;
    uint32_t num_physical_wave64_vgprs_per_simd;
    uint32_t num_simd_per_compute_unit;
@@ -215,6 +254,7 @@ struct radeon_info {
    uint32_t max_vgpr_alloc;
    uint32_t wave64_vgpr_alloc_granularity;
    uint32_t max_scratch_waves;
+   uint32_t attribute_ring_size_per_se;
 
    /* Render backends (color + depth blocks). */
    uint32_t r300_num_gb_pipes;
@@ -228,7 +268,7 @@ struct radeon_info {
    uint32_t max_render_backends;  /* number of render backends incl. disabled ones */
    uint32_t num_tile_pipes; /* pipe count from PIPE_CONFIG */
    uint32_t pipe_interleave_bytes;
-   uint32_t enabled_rb_mask; /* GCN harvest config */
+   uint64_t enabled_rb_mask; /* bitmask of enabled physical RBs, up to max_render_backends bits */
    uint64_t max_alignment;   /* from addrlib */
    uint32_t pbb_max_alloc_count;
 
@@ -239,18 +279,27 @@ struct radeon_info {
    /* AMD_CU_MASK environment variable or ~0. */
    bool spi_cu_en_has_effect;
    uint32_t spi_cu_en;
+
+   struct {
+      uint32_t shadow_size;
+      uint32_t shadow_alignment;
+      uint32_t csa_size;
+      uint32_t csa_alignment;
+   } fw_based_mcbp;
+   bool has_fw_based_shadowing;
 };
 
-bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info);
+bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
+                       bool require_pci_bus_info);
 
 void ac_compute_driver_uuid(char *uuid, size_t size);
 
-void ac_compute_device_uuid(struct radeon_info *info, char *uuid, size_t size);
-void ac_print_gpu_info(struct radeon_info *info, FILE *f);
+void ac_compute_device_uuid(const struct radeon_info *info, char *uuid, size_t size);
+void ac_print_gpu_info(const struct radeon_info *info, FILE *f);
 int ac_get_gs_table_depth(enum amd_gfx_level gfx_level, enum radeon_family family);
-void ac_get_raster_config(struct radeon_info *info, uint32_t *raster_config_p,
+void ac_get_raster_config(const struct radeon_info *info, uint32_t *raster_config_p,
                           uint32_t *raster_config_1_p, uint32_t *se_tile_repeat_p);
-void ac_get_harvested_configs(struct radeon_info *info, unsigned raster_config,
+void ac_get_harvested_configs(const struct radeon_info *info, unsigned raster_config,
                               unsigned *cik_raster_config_1_p, unsigned *raster_config_se);
 unsigned ac_get_compute_resource_limits(const struct radeon_info *info,
                                         unsigned waves_per_threadgroup, unsigned max_waves_per_sh,
@@ -265,7 +314,7 @@ struct ac_hs_info {
    uint32_t tess_offchip_ring_size;
 };
 
-void ac_get_hs_info(struct radeon_info *info,
+void ac_get_hs_info(const struct radeon_info *info,
                     struct ac_hs_info *hs);
 
 /* Task rings BO layout information.
@@ -274,7 +323,7 @@ void ac_get_hs_info(struct radeon_info *info,
  * store the task payload which is passed to mesh shaders.
  *
  * The driver only needs to create this BO once,
- * and it will always be able to accomodate the maximum needed
+ * and it will always be able to accommodate the maximum needed
  * task payload size.
  *
  * The following memory layout is used:
@@ -309,7 +358,7 @@ struct ac_task_info {
 /* Size of the task control buffer. 9 DWORDs. */
 #define AC_TASK_CTRLBUF_BYTES 36
 
-void ac_get_task_info(struct radeon_info *info,
+void ac_get_task_info(const struct radeon_info *info,
                       struct ac_task_info *task_info);
 
 uint32_t ac_memory_ops_per_clock(uint32_t vram_type);

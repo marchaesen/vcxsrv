@@ -31,12 +31,14 @@ struct panvk_bo_pool {
    struct util_dynarray free_bos;
 };
 
-static inline void panvk_bo_pool_init(struct panvk_bo_pool *bo_pool)
+static inline void
+panvk_bo_pool_init(struct panvk_bo_pool *bo_pool)
 {
    util_dynarray_init(&bo_pool->free_bos, NULL);
 }
 
-static inline void panvk_bo_pool_cleanup(struct panvk_bo_pool *bo_pool)
+static inline void
+panvk_bo_pool_cleanup(struct panvk_bo_pool *bo_pool)
 {
    util_dynarray_foreach(&bo_pool->free_bos, struct panfrost_bo *, bo)
       panfrost_bo_unreference(*bo);
@@ -72,16 +74,13 @@ to_panvk_pool(struct pan_pool *pool)
    return container_of(pool, struct panvk_pool, base);
 }
 
-void
-panvk_pool_init(struct panvk_pool *pool, struct panfrost_device *dev,
-                struct panvk_bo_pool *bo_pool, unsigned create_flags,
-                size_t slab_size, const char *label, bool prealloc);
+void panvk_pool_init(struct panvk_pool *pool, struct panfrost_device *dev,
+                     struct panvk_bo_pool *bo_pool, unsigned create_flags,
+                     size_t slab_size, const char *label, bool prealloc);
 
-void
-panvk_pool_reset(struct panvk_pool *pool);
+void panvk_pool_reset(struct panvk_pool *pool);
 
-void
-panvk_pool_cleanup(struct panvk_pool *pool);
+void panvk_pool_cleanup(struct panvk_pool *pool);
 
 static inline unsigned
 panvk_pool_num_bos(struct panvk_pool *pool)
@@ -89,7 +88,6 @@ panvk_pool_num_bos(struct panvk_pool *pool)
    return util_dynarray_num_elements(&pool->bos, struct panfrost_bo *);
 }
 
-void
-panvk_pool_get_bo_handles(struct panvk_pool *pool, uint32_t *handles);
+void panvk_pool_get_bo_handles(struct panvk_pool *pool, uint32_t *handles);
 
 #endif

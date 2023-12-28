@@ -1,24 +1,6 @@
 template = """/*
- * Copyright (C) 2021 Alyssa Rosenzweig <alyssa@rosenzweig.io>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * Copyright 2021 Alyssa Rosenzweig
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef _AGX_OPCODES_
@@ -26,6 +8,18 @@ template = """/*
 
 #include <stdbool.h>
 #include <stdint.h>
+#include "util/macros.h"
+
+enum agx_schedule_class {
+   AGX_SCHEDULE_CLASS_INVALID,
+   AGX_SCHEDULE_CLASS_NONE,
+   AGX_SCHEDULE_CLASS_LOAD,
+   AGX_SCHEDULE_CLASS_STORE,
+   AGX_SCHEDULE_CLASS_ATOMIC,
+   AGX_SCHEDULE_CLASS_COVERAGE,
+   AGX_SCHEDULE_CLASS_PRELOAD,
+   AGX_SCHEDULE_CLASS_BARRIER,
+};
 
 /* Listing of opcodes */
 
@@ -38,10 +32,22 @@ enum agx_opcode {
 
 % for name in enums:
 enum agx_${name} {
-% for k in enums[name]:
-   AGX_${name.upper()}_${enums[name][k].replace('.', '_').upper()} = ${k},
+% for k, v in enums[name].items():
+   AGX_${name.upper()}_${v.replace('.', '_').upper()} = ${k},
 % endfor
 };
+
+static inline const char *
+agx_${name}_as_str(enum agx_${name} x)
+{
+    switch (x) {
+% for k, v in enums[name].items():
+    case AGX_${name.upper()}_${v.replace('.', '_').upper()}: return "${v}";
+% endfor
+    default: unreachable("Nonexhaustive enum");
+    }
+}
+
 % endfor
 
 /* Runtime accessible info on each defined opcode */
@@ -67,8 +73,10 @@ struct agx_opcode_info {
    enum agx_immediate immediates;
    struct agx_encoding encoding;
    struct agx_encoding encoding_16;
+   enum agx_schedule_class schedule_class;
    bool is_float : 1;
    bool can_eliminate : 1;
+   bool can_reorder : 1;
 };
 
 extern const struct agx_opcode_info agx_opcodes_info[AGX_NUM_OPCODES];

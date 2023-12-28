@@ -75,10 +75,10 @@ xkb_symbols "basic" {
     augment key <AB09> { [],			[ kana_RU, kana_fullstop ] };
     augment key <AB10> { [],			[ kana_ME, kana_conjunctive ] };
 	    key <AB11> { [ underscore	],	[ kana_RO	]	};
-	    key <UNK0> { [ Select	]	}; 
-	    key <UNK1> { [ Massyo	]	}; 
-	    key <UNK2> { [ Touroku	]	}; 
-	    key <UNK3> { [ Zenkaku_Hankaku ]	}; 
+	    key <UNK0> { [ Select	]	};
+	    key <UNK1> { [ Massyo	]	};
+	    key <UNK2> { [ Touroku	]	};
+	    key <UNK3> { [ Zenkaku_Hankaku ]	};
 	    key <UNK4> { [ Eisu_Shift	]	};
 	    key <UNK5> { [ Mode_switch	]	};
 	    key <UNK6> { [ Cancel	]	};

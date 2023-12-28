@@ -102,12 +102,18 @@ ddxUseMsg(void)
     ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
 #endif
     ErrorF("-shm                   use shared memory for passing buffers\n");
+#ifdef XWL_HAS_GLAMOR
+    ErrorF("-glamor [gl|es|off]    use given API for Glamor acceleration. Incompatible with -shm option\n");
+#endif
     ErrorF("-verbose [n]           verbose startup messages\n");
     ErrorF("-version               show the server version and exit\n");
     ErrorF("-noTouchPointerEmulation  disable touch pointer emulation\n");
     ErrorF("-force-xrandr-emulation   force non-native modes to be exposed when viewporter is not exposed by the compositor\n");
 #ifdef XWL_HAS_LIBDECOR
-    ErrorF("-decorate              add decorations to Xwayland when rootful (experimental)\n");
+    ErrorF("-decorate              add decorations to Xwayland when rootful\n");
+#endif
+#ifdef XWL_HAS_EI_PORTAL
+    ErrorF("-enable-ei-portal      use the XDG portal for input emulation\n");
 #endif
 }
 
@@ -204,6 +210,13 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-shm") == 0) {
         return 1;
     }
+#ifdef XWL_HAS_GLAMOR
+    else if (strcmp(argv[i], "-glamor") == 0) {
+        CHECK_FOR_REQUIRED_ARGUMENTS(1);
+        /* Only check here, actual work inside xwayland-screen.c */
+        return 2;
+    }
+#endif
     else if (strcmp(argv[i], "-verbose") == 0) {
         if (++i < argc && argv[i]) {
             char *end;
@@ -244,6 +257,9 @@ ddxProcessArgument(int argc, char *argv[], int i)
         return 1;
     }
     else if (strcmp(argv[i], "-decorate") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv[i], "-enable-ei-portal") == 0) {
         return 1;
     }
 
@@ -289,20 +305,19 @@ wm_selection_callback(CallbackListPtr *p, void *data, void *arg)
     DeleteCallback(&SelectionCallback, wm_selection_callback, xwl_screen);
 }
 
-_X_NORETURN
 static void _X_ATTRIBUTE_PRINTF(1, 0)
 xwl_log_handler(const char *format, va_list args)
 {
     char msg[256];
 
     vsnprintf(msg, sizeof msg, format, args);
-    FatalError("%s", msg);
+    ErrorF("XWAYLAND: %s", msg);
 }
 
 #ifdef XWL_HAS_XWAYLAND_EXTENSION
 #include <X11/extensions/xwaylandproto.h>
 
-Bool noXWaylandExtension = FALSE;
+Bool noXwaylandExtension = FALSE;
 
 static int
 ProcXwlQueryVersion(ClientPtr client)
@@ -356,7 +371,7 @@ SProcXwlQueryVersion(ClientPtr client)
 }
 
 static int
-ProcXWaylandDispatch(ClientPtr client)
+ProcXwaylandDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
@@ -368,7 +383,7 @@ ProcXWaylandDispatch(ClientPtr client)
 }
 
 static int
-SProcXWaylandDispatch(ClientPtr client)
+SProcXwaylandDispatch(ClientPtr client)
 {
     REQUEST(xReq);
 
@@ -384,7 +399,7 @@ xwlExtensionInit(void)
 {
     AddExtension(XWAYLAND_EXTENSION_NAME,
                  XwlNumberEvents, XwlNumberErrors,
-                 ProcXWaylandDispatch, SProcXWaylandDispatch,
+                 ProcXwaylandDispatch, SProcXwaylandDispatch,
                  NULL, StandardMinorOpcode);
 }
 
@@ -395,7 +410,7 @@ static const ExtensionModule xwayland_extensions[] = {
     { xwlVidModeExtensionInit, XF86VIDMODENAME, &noXFree86VidModeExtension },
 #endif
 #ifdef XWL_HAS_XWAYLAND_EXTENSION
-    { xwlExtensionInit, XWAYLAND_EXTENSION_NAME, &noXWaylandExtension },
+    { xwlExtensionInit, XWAYLAND_EXTENSION_NAME, &noXwaylandExtension },
 #endif
 };
 

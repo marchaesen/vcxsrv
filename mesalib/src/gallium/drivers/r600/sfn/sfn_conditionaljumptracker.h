@@ -39,8 +39,7 @@ enum JumpType {
 /**
   Class to link the jump locations
 */
-class ConditionalJumpTracker
-{
+class ConditionalJumpTracker {
 public:
    ConditionalJumpTracker();
    ~ConditionalJumpTracker();
@@ -57,9 +56,9 @@ public:
    bool add_mid(r600_bytecode_cf *source, JumpType type);
 
 private:
-   struct ConditionalJumpTrackerImpl * impl;
+   struct ConditionalJumpTrackerImpl *impl;
 };
 
-}
+} // namespace r600
 
 #endif // SFN_CONDITIONALJUMPTRACKER_H

@@ -2,24 +2,7 @@
 ************************************************************************************************************************
 *
 *  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
-* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE
+*  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
 
@@ -51,7 +34,9 @@ struct Gfx11ChipSettings
 {
     struct
     {
-        UINT_32 reserved1           : 32;
+        UINT_32 isGfx1150           :  1;
+        UINT_32 isGfx1103           :  1;
+        UINT_32 reserved1           : 30;
 
         // Misc configuration bits
         UINT_32 reserved2           : 32;
@@ -286,6 +271,19 @@ protected:
         const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
         ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const;
 
+    virtual ADDR_E_RETURNCODE HwlGetPossibleSwizzleModes(
+        const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,
+        ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) const;
+
+    virtual ADDR_E_RETURNCODE HwlGetAllowedBlockSet(
+        ADDR2_SWMODE_SET allowedSwModeSet,
+        AddrResourceType rsrcType,
+        ADDR2_BLOCK_SET* pAllowedBlockSet) const;
+
+    virtual ADDR_E_RETURNCODE HwlGetAllowedSwSet(
+        ADDR2_SWMODE_SET  allowedSwModeSet,
+        ADDR2_SWTYPE_SET* pAllowedSwSet) const;
+
     virtual ADDR_E_RETURNCODE HwlComputeSurfaceInfoSanityCheck(
         const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
@@ -467,43 +465,6 @@ private:
     BOOL_32 IsValidDisplaySwizzleMode(const ADDR2_COMPUTE_SURFACE_INFO_INPUT* pIn) const;
 
     UINT_32 GetMaxNumMipsInTail(UINT_32 blockSizeLog2, BOOL_32 isThin) const;
-
-    static ADDR2_BLOCK_SET GetAllowedBlockSet(ADDR2_SWMODE_SET allowedSwModeSet, AddrResourceType rsrcType)
-    {
-        ADDR2_BLOCK_SET allowedBlockSet = {};
-
-        allowedBlockSet.micro  = (allowedSwModeSet.value & Gfx11Blk256BSwModeMask) ? TRUE : FALSE;
-        allowedBlockSet.linear = (allowedSwModeSet.value & Gfx11LinearSwModeMask)  ? TRUE : FALSE;
-
-        if (rsrcType == ADDR_RSRC_TEX_3D)
-        {
-            allowedBlockSet.macroThick4KB    = (allowedSwModeSet.value & Gfx11Rsrc3dThick4KBSwModeMask)   ? TRUE : FALSE;
-            allowedBlockSet.macroThin64KB    = (allowedSwModeSet.value & Gfx11Rsrc3dThin64KBSwModeMask)   ? TRUE : FALSE;
-            allowedBlockSet.macroThick64KB   = (allowedSwModeSet.value & Gfx11Rsrc3dThick64KBSwModeMask)  ? TRUE : FALSE;
-            allowedBlockSet.gfx11.thin256KB  = (allowedSwModeSet.value & Gfx11Rsrc3dThin256KBSwModeMask)  ? TRUE : FALSE;
-            allowedBlockSet.gfx11.thick256KB = (allowedSwModeSet.value & Gfx11Rsrc3dThick256KBSwModeMask) ? TRUE : FALSE;
-        }
-        else
-        {
-            allowedBlockSet.macroThin4KB    = (allowedSwModeSet.value & Gfx11Blk4KBSwModeMask)   ? TRUE : FALSE;
-            allowedBlockSet.macroThin64KB   = (allowedSwModeSet.value & Gfx11Blk64KBSwModeMask)  ? TRUE : FALSE;
-            allowedBlockSet.gfx11.thin256KB = (allowedSwModeSet.value & Gfx11Blk256KBSwModeMask) ? TRUE : FALSE;
-        }
-
-        return allowedBlockSet;
-    }
-
-    static ADDR2_SWTYPE_SET GetAllowedSwSet(ADDR2_SWMODE_SET allowedSwModeSet)
-    {
-        ADDR2_SWTYPE_SET allowedSwSet = {};
-
-        allowedSwSet.sw_Z = (allowedSwModeSet.value & Gfx11ZSwModeMask)        ? TRUE : FALSE;
-        allowedSwSet.sw_S = (allowedSwModeSet.value & Gfx11StandardSwModeMask) ? TRUE : FALSE;
-        allowedSwSet.sw_D = (allowedSwModeSet.value & Gfx11DisplaySwModeMask)  ? TRUE : FALSE;
-        allowedSwSet.sw_R = (allowedSwModeSet.value & Gfx11RenderSwModeMask)   ? TRUE : FALSE;
-
-        return allowedSwSet;
-    }
 
     BOOL_32 IsInMipTail(
         Dim3d   mipTailDim,

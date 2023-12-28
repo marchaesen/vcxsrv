@@ -53,9 +53,6 @@ template = """\
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
  * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
  * IN THE SOFTWARE.
- *
- * Authors:
- *    Jason Ekstrand (jason@jlekstrand.net)
  */
 
 #include <math.h>
@@ -65,6 +62,8 @@ template = """\
 #include "util/softfloat.h"
 #include "util/bigmath.h"
 #include "util/format/format_utils.h"
+#include "util/format_r11g11b10f.h"
+#include "util/u_math.h"
 #include "nir_constant_expressions.h"
 
 /**
@@ -252,6 +251,15 @@ pack_half_1x16(float x)
 }
 
 /**
+ * Evaluate one component of packHalf2x16, RTZ mode.
+ */
+static uint16_t
+pack_half_1x16_rtz(float x)
+{
+   return _mesa_float_to_float16_rtz(x);
+}
+
+/**
  * Evaluate one component of unpackHalf2x16.
  */
 static float
@@ -269,6 +277,102 @@ static float
 unpack_half_1x16(uint16_t u)
 {
    return _mesa_half_to_float(u);
+}
+
+/* Broadcom v3d specific instructions */
+/**
+ * Packs 2 2x16 floating split into a r11g11b10f:
+ *
+ * dst[10:0]  = float16_to_float11 (src0[15:0])
+ * dst[21:11] = float16_to_float11 (src0[31:16])
+ * dst[31:22] = float16_to_float10 (src1[15:0])
+ */
+static uint32_t pack_32_to_r11g11b10_v3d(const uint32_t src0,
+                                         const uint32_t src1)
+{
+   float rgb[3] = {
+      unpack_half_1x16((src0 & 0xffff)),
+      unpack_half_1x16((src0 >> 16)),
+      unpack_half_1x16((src1 & 0xffff)),
+   };
+
+   return float3_to_r11g11b10f(rgb);
+}
+
+/**
+  * The three methods below are basically wrappers over pack_s/unorm_1x8/1x16,
+  * as they receives a uint16_t val instead of a float
+  */
+static inline uint8_t _mesa_half_to_snorm8(uint16_t val)
+{
+   return pack_snorm_1x8(_mesa_half_to_float(val));
+}
+
+static uint16_t _mesa_float_to_snorm16(uint32_t val)
+{
+   union fi aux;
+   aux.ui = val;
+   return pack_snorm_1x16(aux.f);
+}
+
+static uint16_t _mesa_float_to_unorm16(uint32_t val)
+{
+   union fi aux;
+   aux.ui = val;
+   return pack_unorm_1x16(aux.f);
+}
+
+static inline uint32_t float_pack16_v3d(uint32_t f32)
+{
+   return _mesa_float_to_half(uif(f32));
+}
+
+static inline uint32_t float_unpack16_v3d(uint32_t f16)
+{
+   return fui(_mesa_half_to_float(f16));
+}
+
+static inline uint32_t vfpack_v3d(uint32_t a, uint32_t b)
+{
+   return float_pack16_v3d(b) << 16 | float_pack16_v3d(a);
+}
+
+static inline uint32_t vfsat_v3d(uint32_t a)
+{
+   const uint32_t low = fui(SATURATE(_mesa_half_to_float(a & 0xffff)));
+   const uint32_t high = fui(SATURATE(_mesa_half_to_float(a >> 16)));
+
+   return vfpack_v3d(low, high);
+}
+
+static inline uint32_t fmul_v3d(uint32_t a, uint32_t b)
+{
+   return fui(uif(a) * uif(b));
+}
+
+static uint32_t vfmul_v3d(uint32_t a, uint32_t b)
+{
+   const uint32_t low = fmul_v3d(float_unpack16_v3d(a & 0xffff),
+                                 float_unpack16_v3d(b & 0xffff));
+   const uint32_t high = fmul_v3d(float_unpack16_v3d(a >> 16),
+                                  float_unpack16_v3d(b >> 16));
+
+   return vfpack_v3d(low, high);
+}
+
+/* Convert 2x16-bit floating point to 2x10-bit unorm */
+static uint32_t pack_2x16_to_unorm_2x10(uint32_t src0)
+{
+   return vfmul_v3d(vfsat_v3d(src0), 0x03ff03ff);
+}
+
+/*
+ * Convert 2x16-bit floating point to one 2-bit and one
+ * 10-bit unorm
+ */
+static uint32_t pack_2x16_to_unorm_10_2(uint32_t src0)
+{
+   return vfmul_v3d(vfsat_v3d(src0), 0x000303ff);
 }
 
 /* Some typed vector structures to make things like src0.y work */

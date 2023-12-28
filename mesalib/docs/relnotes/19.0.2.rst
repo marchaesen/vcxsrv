@@ -62,7 +62,7 @@ Eric Engestrom (1):
 
 -  meson: strip rpath from megadrivers
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  Revert "anv/radv: release memory allocated by glsl types during
    spirv_to_nir"

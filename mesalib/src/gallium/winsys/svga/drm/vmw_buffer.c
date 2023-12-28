@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2009-2015 VMware, Inc.  All rights reserved.
+ * Copyright 2009-2023 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -25,15 +25,14 @@
 
 /**
  * @file
- * SVGA buffer manager for Guest Memory Regions (GMRs).
+ * SVGA buffer manager for DMA buffers.
  * 
- * GMRs are used for pixel and vertex data upload/download to/from the virtual
- * SVGA hardware. There is a limited number of GMRs available, and 
- * creating/destroying them is also a slow operation so we must suballocate 
- * them.
- * 
+ * DMA buffers are used for pixel and vertex data upload/download to/from
+ * the virtual SVGA hardware.
+ *
  * This file implements a pipebuffer library's buffer manager, so that we can
- * use pipepbuffer's suballocation, fencing, and debugging facilities with GMRs. 
+ * use pipepbuffer's suballocation, fencing, and debugging facilities with
+ * DMA buffers.
  * 
  * @author Jose Fonseca <jfonseca@vmware.com>
  */
@@ -51,14 +50,14 @@
 #include "vmw_screen.h"
 #include "vmw_buffer.h"
 
-struct vmw_gmr_bufmgr;
+struct vmw_dma_bufmgr;
 
 
-struct vmw_gmr_buffer
+struct vmw_dma_buffer
 {
    struct pb_buffer base;
    
-   struct vmw_gmr_bufmgr *mgr;
+   struct vmw_dma_bufmgr *mgr;
    
    struct vmw_region *region;
    void *map;
@@ -67,19 +66,19 @@ struct vmw_gmr_buffer
 };
 
 
-extern const struct pb_vtbl vmw_gmr_buffer_vtbl;
+extern const struct pb_vtbl vmw_dma_buffer_vtbl;
 
 
-static inline struct vmw_gmr_buffer *
-vmw_gmr_buffer(struct pb_buffer *buf)
+static inline struct vmw_dma_buffer *
+vmw_pb_to_dma_buffer(struct pb_buffer *buf)
 {
    assert(buf);
-   assert(buf->vtbl == &vmw_gmr_buffer_vtbl);
-   return (struct vmw_gmr_buffer *)buf;
+   assert(buf->vtbl == &vmw_dma_buffer_vtbl);
+   return container_of(buf, struct vmw_dma_buffer, base);
 }
 
 
-struct vmw_gmr_bufmgr
+struct vmw_dma_bufmgr
 {
    struct pb_manager base;
    
@@ -87,8 +86,8 @@ struct vmw_gmr_bufmgr
 };
 
 
-static inline struct vmw_gmr_bufmgr *
-vmw_gmr_bufmgr(struct pb_manager *mgr)
+static inline struct vmw_dma_bufmgr *
+vmw_pb_to_dma_bufmgr(struct pb_manager *mgr)
 {
    assert(mgr);
 
@@ -96,14 +95,14 @@ vmw_gmr_bufmgr(struct pb_manager *mgr)
    STATIC_ASSERT((VMW_BUFFER_USAGE_SHARED & PB_USAGE_ALL) == 0);
    STATIC_ASSERT((VMW_BUFFER_USAGE_SYNC & PB_USAGE_ALL) == 0);
 
-   return (struct vmw_gmr_bufmgr *)mgr;
+   return container_of(mgr, struct vmw_dma_bufmgr, base);
 }
 
 
 static void
-vmw_gmr_buffer_destroy(void *winsys, struct pb_buffer *_buf)
+vmw_dma_buffer_destroy(void *winsys, struct pb_buffer *_buf)
 {
-   struct vmw_gmr_buffer *buf = vmw_gmr_buffer(_buf);
+   struct vmw_dma_buffer *buf = vmw_pb_to_dma_buffer(_buf);
 
    assert(buf->map_count == 0);
    if (buf->map) {
@@ -118,11 +117,11 @@ vmw_gmr_buffer_destroy(void *winsys, struct pb_buffer *_buf)
 
 
 static void *
-vmw_gmr_buffer_map(struct pb_buffer *_buf,
+vmw_dma_buffer_map(struct pb_buffer *_buf,
                    enum pb_usage_flags flags,
                    void *flush_ctx)
 {
-   struct vmw_gmr_buffer *buf = vmw_gmr_buffer(_buf);
+   struct vmw_dma_buffer *buf = vmw_pb_to_dma_buffer(_buf);
    int ret;
 
    if (!buf->map)
@@ -136,7 +135,7 @@ vmw_gmr_buffer_map(struct pb_buffer *_buf,
       ret = vmw_ioctl_syncforcpu(buf->region,
                                  !!(flags & PB_USAGE_DONTBLOCK),
                                  !(flags & PB_USAGE_CPU_WRITE),
-                                 FALSE);
+                                 false);
       if (ret)
          return NULL;
    }
@@ -147,16 +146,16 @@ vmw_gmr_buffer_map(struct pb_buffer *_buf,
 
 
 static void
-vmw_gmr_buffer_unmap(struct pb_buffer *_buf)
+vmw_dma_buffer_unmap(struct pb_buffer *_buf)
 {
-   struct vmw_gmr_buffer *buf = vmw_gmr_buffer(_buf);
+   struct vmw_dma_buffer *buf = vmw_pb_to_dma_buffer(_buf);
    enum pb_usage_flags flags = buf->map_flags;
 
    if ((_buf->usage & VMW_BUFFER_USAGE_SYNC) &&
        !(flags & PB_USAGE_UNSYNCHRONIZED)) {
       vmw_ioctl_releasefromcpu(buf->region,
                                !(flags & PB_USAGE_CPU_WRITE),
-                               FALSE);
+                               false);
    }
 
    assert(buf->map_count > 0);
@@ -168,9 +167,9 @@ vmw_gmr_buffer_unmap(struct pb_buffer *_buf)
 
 
 static void
-vmw_gmr_buffer_get_base_buffer(struct pb_buffer *buf,
-                           struct pb_buffer **base_buf,
-                           pb_size *offset)
+vmw_dma_buffer_get_base_buffer(struct pb_buffer *buf,
+                               struct pb_buffer **base_buf,
+                               pb_size *offset)
 {
    *base_buf = buf;
    *offset = 0;
@@ -178,7 +177,7 @@ vmw_gmr_buffer_get_base_buffer(struct pb_buffer *buf,
 
 
 static enum pipe_error
-vmw_gmr_buffer_validate( struct pb_buffer *_buf, 
+vmw_dma_buffer_validate( struct pb_buffer *_buf,
                          struct pb_validate *vl,
                          enum pb_usage_flags flags )
 {
@@ -188,7 +187,7 @@ vmw_gmr_buffer_validate( struct pb_buffer *_buf,
 
 
 static void
-vmw_gmr_buffer_fence( struct pb_buffer *_buf, 
+vmw_dma_buffer_fence( struct pb_buffer *_buf,
                       struct pipe_fence_handle *fence )
 {
    /* We don't need to do anything, as the pipebuffer library
@@ -196,35 +195,35 @@ vmw_gmr_buffer_fence( struct pb_buffer *_buf,
 }
 
 
-const struct pb_vtbl vmw_gmr_buffer_vtbl = {
-   vmw_gmr_buffer_destroy,
-   vmw_gmr_buffer_map,
-   vmw_gmr_buffer_unmap,
-   vmw_gmr_buffer_validate,
-   vmw_gmr_buffer_fence,
-   vmw_gmr_buffer_get_base_buffer
+const struct pb_vtbl vmw_dma_buffer_vtbl = {
+   .destroy = vmw_dma_buffer_destroy,
+   .map = vmw_dma_buffer_map,
+   .unmap = vmw_dma_buffer_unmap,
+   .validate = vmw_dma_buffer_validate,
+   .fence = vmw_dma_buffer_fence,
+   .get_base_buffer = vmw_dma_buffer_get_base_buffer
 };
 
 
 static struct pb_buffer *
-vmw_gmr_bufmgr_create_buffer(struct pb_manager *_mgr,
-                         pb_size size,
-                         const struct pb_desc *pb_desc) 
+vmw_dma_bufmgr_create_buffer(struct pb_manager *_mgr,
+                             pb_size size,
+                             const struct pb_desc *pb_desc)
 {
-   struct vmw_gmr_bufmgr *mgr = vmw_gmr_bufmgr(_mgr);
+   struct vmw_dma_bufmgr *mgr = vmw_pb_to_dma_bufmgr(_mgr);
    struct vmw_winsys_screen *vws = mgr->vws;
-   struct vmw_gmr_buffer *buf;
+   struct vmw_dma_buffer *buf;
    const struct vmw_buffer_desc *desc =
       (const struct vmw_buffer_desc *) pb_desc;
    
-   buf = CALLOC_STRUCT(vmw_gmr_buffer);
+   buf = CALLOC_STRUCT(vmw_dma_buffer);
    if(!buf)
       goto error1;
 
    pipe_reference_init(&buf->base.reference, 1);
    buf->base.alignment_log2 = util_logbase2(pb_desc->alignment);
    buf->base.usage = pb_desc->usage & ~VMW_BUFFER_USAGE_SHARED;
-   buf->base.vtbl = &vmw_gmr_buffer_vtbl;
+   buf->base.vtbl = &vmw_dma_buffer_vtbl;
    buf->mgr = mgr;
    buf->base.size = size;
    if ((pb_desc->usage & VMW_BUFFER_USAGE_SHARED) && desc->region) {
@@ -244,32 +243,32 @@ error1:
 
 
 static void
-vmw_gmr_bufmgr_flush(struct pb_manager *mgr) 
+vmw_dma_bufmgr_flush(struct pb_manager *mgr)
 {
    /* No-op */
 }
 
 
 static void
-vmw_gmr_bufmgr_destroy(struct pb_manager *_mgr) 
+vmw_dma_bufmgr_destroy(struct pb_manager *_mgr)
 {
-   struct vmw_gmr_bufmgr *mgr = vmw_gmr_bufmgr(_mgr);
+   struct vmw_dma_bufmgr *mgr = vmw_pb_to_dma_bufmgr(_mgr);
    FREE(mgr);
 }
 
 
 struct pb_manager *
-vmw_gmr_bufmgr_create(struct vmw_winsys_screen *vws) 
+vmw_dma_bufmgr_create(struct vmw_winsys_screen *vws)
 {
-   struct vmw_gmr_bufmgr *mgr;
+   struct vmw_dma_bufmgr *mgr;
    
-   mgr = CALLOC_STRUCT(vmw_gmr_bufmgr);
+   mgr = CALLOC_STRUCT(vmw_dma_bufmgr);
    if(!mgr)
       return NULL;
 
-   mgr->base.destroy = vmw_gmr_bufmgr_destroy;
-   mgr->base.create_buffer = vmw_gmr_bufmgr_create_buffer;
-   mgr->base.flush = vmw_gmr_bufmgr_flush;
+   mgr->base.destroy = vmw_dma_bufmgr_destroy;
+   mgr->base.create_buffer = vmw_dma_bufmgr_create_buffer;
+   mgr->base.flush = vmw_dma_bufmgr_flush;
    
    mgr->vws = vws;
    
@@ -277,25 +276,25 @@ vmw_gmr_bufmgr_create(struct vmw_winsys_screen *vws)
 }
 
 
-boolean
-vmw_gmr_bufmgr_region_ptr(struct pb_buffer *buf, 
+bool
+vmw_dma_bufmgr_region_ptr(struct pb_buffer *buf,
                           struct SVGAGuestPtr *ptr)
 {
    struct pb_buffer *base_buf;
    pb_size offset = 0;
-   struct vmw_gmr_buffer *gmr_buf;
+   struct vmw_dma_buffer *dma_buf;
    
    pb_get_base_buffer( buf, &base_buf, &offset );
    
-   gmr_buf = vmw_gmr_buffer(base_buf);
-   if(!gmr_buf)
-      return FALSE;
+   dma_buf = vmw_pb_to_dma_buffer(base_buf);
+   if(!dma_buf)
+      return false;
    
-   *ptr = vmw_ioctl_region_ptr(gmr_buf->region);
+   *ptr = vmw_ioctl_region_ptr(dma_buf->region);
    
    ptr->offset += offset;
    
-   return TRUE;
+   return true;
 }
 
 #ifdef DEBUG
@@ -326,7 +325,7 @@ vmw_svga_winsys_buffer_wrap(struct pb_buffer *buffer)
    }
 
    buf->pb_buf = buffer;
-   buf->fbuf = debug_flush_buf_create(FALSE, VMW_DEBUG_FLUSH_STACK);
+   buf->fbuf = debug_flush_buf_create(false, VMW_DEBUG_FLUSH_STACK);
    return buf;
 }
 

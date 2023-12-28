@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from lava.utils.log_section import LogSectionType
 
 
+# TODO: Add section final status to assist with monitoring
 @dataclass
 class GitlabSection:
     id: str
@@ -37,6 +38,14 @@ class GitlabSection:
     def has_finished(self) -> bool:
         return self.__end_time is not None
 
+    @property
+    def start_time(self) -> datetime:
+        return self.__start_time
+
+    @property
+    def end_time(self) -> Optional[datetime]:
+        return self.__end_time
+
     def get_timestamp(self, time: datetime) -> str:
         unix_ts = datetime.timestamp(time)
         return str(int(unix_ts))
@@ -53,6 +62,16 @@ class GitlabSection:
         header_wrapper = "\r" + f"{self.escape}{colored_header}"
 
         return f"{before_header}{header_wrapper}"
+
+    def __str__(self) -> str:
+        status = "NS" if not self.has_started else "F" if self.has_finished else "IP"
+        delta = self.delta_time()
+        elapsed_time = "N/A" if delta is None else str(delta)
+        return (
+            f"GitlabSection({self.id}, {self.header}, {self.type}, "
+            f"SC={self.start_collapsed}, S={status}, ST={self.start_time}, "
+            f"ET={self.end_time}, ET={elapsed_time})"
+        )
 
     def __enter__(self):
         print(self.start())

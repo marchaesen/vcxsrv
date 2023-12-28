@@ -47,8 +47,7 @@ pan_ioctl_get_param(int fd, unsigned long request, void *arg)
    struct drm_panfrost_get_param *gp = arg;
 
    switch (gp->param) {
-   case DRM_PANFROST_PARAM_GPU_PROD_ID:
-   {
+   case DRM_PANFROST_PARAM_GPU_PROD_ID: {
       char *override_version = getenv("PAN_GPU_ID");
 
       if (override_version)

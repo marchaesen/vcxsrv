@@ -1,3 +1,5 @@
+// Keyboard layouts for Portugal.
+
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -30,11 +32,12 @@ xkb_symbols "nodeadkeys" {
 
     key <AE12> { [ guillemotleft,  guillemotright,        cedilla,           ogonek ] };
     key <AD11> { [          plus,        asterisk,       quotedbl,         quotedbl ] };
-    key <AD12> { [         acute,           grave                                   ] };
-    key <BKSL> { [    asciitilde,     asciicircum                                   ] };
+    key <AD12> { [         acute,           grave,     asciitilde,           macron ] };
+    key <BKSL> { [    asciitilde,     asciicircum,          grave,            breve ] };
+    key <AC07> { [             j,               J,            ezh,              EZH ] };
     key <AC10> { [      ccedilla,        Ccedilla,          acute,      doubleacute ] };
     key <AC11> { [     masculine,     ordfeminine,    asciicircum,            caron ] };
-    key <AB10> { [         minus,      underscore,  dead_belowdot,         abovedot ] };
+    key <AB10> { [         minus,      underscore,       ellipsis,         abovedot ] };
 };
 
 // Layout variant for Mac, by Ricardo Cabral <bfe00991@mail.telepac.pt>.
@@ -82,7 +85,7 @@ xkb_symbols "nativo" {
     key <AE02> { [            2,        quotedbl,                   at,      twosuperior ] };
     key <AE03> { [            3,      numbersign,             sterling,    threesuperior ] };
     key <AE04> { [            4,          dollar,              section,       onequarter ] };
-    key <AE05> { [            5,         percent,                 cent,       0x01002030 ] };
+    key <AE05> { [            5,         percent,                 cent,         permille ] };
     key <AE06> { [            6,       ampersand,              notsign,        diaeresis ] };
     key <AE07> { [            7,           slash,            braceleft,       0x0100032D ] };
     key <AE08> { [            8,       parenleft,          bracketleft,       0x01000331 ] };
@@ -120,10 +123,10 @@ xkb_symbols "nativo" {
     key <LSGT> { [ guillemotleft, guillemotright,           0x01002039,       0x0100203A ] };
     key <AB01> { [            y,               Y,                  yen,              yen ] };
     key <AB02> { [     ccedilla,        Ccedilla                                         ] };
-    key <AB03> { [            j,               J,           0x01000292,       0x010001B7 ] };
+    key <AB03> { [            j,               J,                  ezh,              EZH ] };
     key <AB04> { [            b,               B,           apostrophe,         quotedbl ] };
     key <AB05> { [            k,               K,             currency,        brokenbar ] };
-    key <AB06> { [            q,               Q,           0x01000259,       0x0100018F ] };
+    key <AB06> { [            q,               Q,                schwa,            SCHWA ] };
     key <AB07> { [            v,               V,   doublelowquotemark,   singlelowquotemark ] };
     key <AB08> { [            g,               G,  leftdoublequotemark,  leftsinglequotemark ] };
     key <AB09> { [            f,               F, rightdoublequotemark, rightsinglequotemark ] };

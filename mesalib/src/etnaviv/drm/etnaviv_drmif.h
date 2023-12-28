@@ -206,6 +206,8 @@ void etna_cmd_stream_reloc(struct etna_cmd_stream *stream, const struct etna_rel
 void etna_cmd_stream_ref_bo(struct etna_cmd_stream *stream,
 		struct etna_bo *bo, uint32_t flags);
 
+void etna_cmd_stream_mark_end_of_context_init(struct etna_cmd_stream *stream);
+
 /* performance monitoring functions:
  */
 

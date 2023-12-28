@@ -1,27 +1,8 @@
 /**************************************************************************
  *
  * Copyright 2018 Advanced Micro Devices, Inc.
- * All Rights Reserved.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sub license, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial portions
- * of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
- * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR
- * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
- * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
- * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  *
  **************************************************************************/
 
@@ -470,7 +451,50 @@ static void radeon_uvd_enc_nalu_sps_hevc(struct radeon_uvd_encoder *enc)
    radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.hevc_spec_misc.strong_intra_smoothing_enabled,
                                   1);
 
-   radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);
+   radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.vui_parameters_present_flag), 1);
+   if (enc->enc_pic.vui_info.vui_parameters_present_flag) {
+      /* aspect ratio present flag */
+      radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.flags.aspect_ratio_info_present_flag), 1);
+      if (enc->enc_pic.vui_info.flags.aspect_ratio_info_present_flag) {
+         radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.aspect_ratio_idc), 8);
+         if (enc->enc_pic.vui_info.aspect_ratio_idc == PIPE_H2645_EXTENDED_SAR) {
+            radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.sar_width), 16);
+            radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.sar_height), 16);
+         }
+      }
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* overscan info present flag */
+      /* video signal type present flag  */
+      radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.flags.video_signal_type_present_flag, 1);
+      if (enc->enc_pic.vui_info.flags.video_signal_type_present_flag) {
+         radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.video_format, 3);
+         radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.video_full_range_flag, 1);
+         radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.flags.colour_description_present_flag, 1);
+         if (enc->enc_pic.vui_info.flags.colour_description_present_flag) {
+            radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.colour_primaries, 8);
+            radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.transfer_characteristics, 8);
+            radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.matrix_coefficients, 8);
+         }
+      }
+      /* chroma loc info present flag */
+      radeon_uvd_enc_code_fixed_bits(enc, enc->enc_pic.vui_info.flags.chroma_loc_info_present_flag, 1);
+      if (enc->enc_pic.vui_info.flags.chroma_loc_info_present_flag) {
+         radeon_uvd_enc_code_ue(enc, enc->enc_pic.vui_info.chroma_sample_loc_type_top_field);
+         radeon_uvd_enc_code_ue(enc, enc->enc_pic.vui_info.chroma_sample_loc_type_bottom_field);
+      }
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* neutral chroma indication flag */
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* field seq flag */
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* frame field info present flag */
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* default display windows flag */
+      /* vui timing info present flag */
+      radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.flags.timing_info_present_flag), 1);
+      if (enc->enc_pic.vui_info.flags.timing_info_present_flag) {
+         radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.num_units_in_tick), 32);
+         radeon_uvd_enc_code_fixed_bits(enc, (enc->enc_pic.vui_info.time_scale), 32);
+         radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);
+         radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);
+      }
+      radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);  /* bitstream restriction flag */
+   }
 
    radeon_uvd_enc_code_fixed_bits(enc, 0x0, 1);
 

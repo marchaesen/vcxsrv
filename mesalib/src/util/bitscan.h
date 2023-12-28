@@ -42,6 +42,8 @@
 #include <popcntintrin.h>
 #endif
 
+#include "macros.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -120,15 +122,15 @@ u_bit_scan64(uint64_t *mask)
         ((b) = ffsll(__dword) - 1, __dword);      \
         __dword &= ~(1ull << (b)))
 
-/* Determine if an unsigned value is a power of two.
+/* Determine if an uint32_t value is a power of two.
  *
  * \note
  * Zero is treated as a power of two.
  */
 static inline bool
-util_is_power_of_two_or_zero(unsigned v)
+util_is_power_of_two_or_zero(uint32_t v)
 {
-   return (v & (v - 1)) == 0;
+   return IS_POT(v);
 }
 
 /* Determine if an uint64_t value is a power of two.
@@ -139,16 +141,16 @@ util_is_power_of_two_or_zero(unsigned v)
 static inline bool
 util_is_power_of_two_or_zero64(uint64_t v)
 {
-   return (v & (v - 1)) == 0;
+   return IS_POT(v);
 }
 
-/* Determine if an unsigned value is a power of two.
+/* Determine if an uint32_t value is a power of two.
  *
  * \note
  * Zero is \b not treated as a power of two.
  */
 static inline bool
-util_is_power_of_two_nonzero(unsigned v)
+util_is_power_of_two_nonzero(uint32_t v)
 {
    /* __POPCNT__ is different from HAVE___BUILTIN_POPCOUNT.  The latter
     * indicates the existence of the __builtin_popcount function.  The former
@@ -162,8 +164,19 @@ util_is_power_of_two_nonzero(unsigned v)
 #ifdef __POPCNT__
    return _mm_popcnt_u32(v) == 1;
 #else
-   return v != 0 && (v & (v - 1)) == 0;
+   return v != 0 && IS_POT(v);
 #endif
+}
+
+/* Determine if an uint64_t value is a power of two.
+ *
+ * \note
+ * Zero is \b not treated as a power of two.
+ */
+static inline bool
+util_is_power_of_two_nonzero64(uint64_t v)
+{
+   return v != 0 && IS_POT(v);
 }
 
 /* For looping over a bitmask when you want to loop over consecutive bits

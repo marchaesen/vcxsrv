@@ -27,7 +27,7 @@
 
 static const glamor_facet glamor_facet_poly_segment = {
     .name = "poly_segment",
-    .vs_vars = "attribute vec2 primitive;\n",
+    .vs_vars = "in vec2 primitive;\n",
     .vs_exec = ("       vec2 pos = vec2(0.0,0.0);\n"
                 GLAMOR_POS(gl_Position, primitive.xy)),
 };
@@ -58,7 +58,7 @@ glamor_poly_segment_solid_gl(DrawablePtr drawable, GCPtr gc,
 
     glamor_make_current(glamor_priv);
 
-    prog = glamor_use_program_fill(pixmap, gc,
+    prog = glamor_use_program_fill(drawable, gc,
                                    &glamor_priv->poly_segment_program,
                                    &glamor_facet_poly_segment);
 

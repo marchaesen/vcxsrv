@@ -38,23 +38,23 @@
 
 static void
 replace_intrinsic_with_vec(nir_builder *b, nir_intrinsic_instr *intr,
-                           nir_ssa_def **comps)
+                           nir_def **comps)
 {
 
         /* Batch things back together into a vector.  This will get split by
          * the later ALU scalarization pass.
          */
-        nir_ssa_def *vec = nir_vec(b, comps, intr->num_components);
+        nir_def *vec = nir_vec(b, comps, intr->num_components);
 
         /* Replace the old intrinsic with a reference to our reconstructed
          * vector.
          */
-        nir_ssa_def_rewrite_uses(&intr->dest.ssa, vec);
+        nir_def_rewrite_uses(&intr->def, vec);
         nir_instr_remove(&intr->instr);
 }
 
-static nir_ssa_def *
-vc4_nir_unpack_8i(nir_builder *b, nir_ssa_def *src, unsigned chan)
+static nir_def *
+vc4_nir_unpack_8i(nir_builder *b, nir_def *src, unsigned chan)
 {
         return nir_ubitfield_extract(b,
                                      src,
@@ -63,8 +63,8 @@ vc4_nir_unpack_8i(nir_builder *b, nir_ssa_def *src, unsigned chan)
 }
 
 /** Returns the 16 bit field as a sign-extended 32-bit value. */
-static nir_ssa_def *
-vc4_nir_unpack_16i(nir_builder *b, nir_ssa_def *src, unsigned chan)
+static nir_def *
+vc4_nir_unpack_16i(nir_builder *b, nir_def *src, unsigned chan)
 {
         return nir_ibitfield_extract(b,
                                      src,
@@ -73,32 +73,32 @@ vc4_nir_unpack_16i(nir_builder *b, nir_ssa_def *src, unsigned chan)
 }
 
 /** Returns the 16 bit field as an unsigned 32 bit value. */
-static nir_ssa_def *
-vc4_nir_unpack_16u(nir_builder *b, nir_ssa_def *src, unsigned chan)
+static nir_def *
+vc4_nir_unpack_16u(nir_builder *b, nir_def *src, unsigned chan)
 {
         if (chan == 0) {
-                return nir_iand(b, src, nir_imm_int(b, 0xffff));
+                return nir_iand_imm(b, src, 0xffff);
         } else {
-                return nir_ushr(b, src, nir_imm_int(b, 16));
+                return nir_ushr_imm(b, src, 16);
         }
 }
 
-static nir_ssa_def *
-vc4_nir_unpack_8f(nir_builder *b, nir_ssa_def *src, unsigned chan)
+static nir_def *
+vc4_nir_unpack_8f(nir_builder *b, nir_def *src, unsigned chan)
 {
         return nir_channel(b, nir_unpack_unorm_4x8(b, src), chan);
 }
 
-static nir_ssa_def *
+static nir_def *
 vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                               nir_builder *b,
-                              nir_ssa_def **vpm_reads,
+                              nir_def **vpm_reads,
                               uint8_t swiz,
                               const struct util_format_description *desc)
 {
         const struct util_format_channel_description *chan =
                 &desc->channel[swiz];
-        nir_ssa_def *temp;
+        nir_def *temp;
 
         if (swiz > PIPE_SWIZZLE_W) {
                 return vc4_nir_get_swizzled_channel(b, vpm_reads, swiz);
@@ -106,30 +106,29 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                 return vc4_nir_get_swizzled_channel(b, vpm_reads, swiz);
         } else if (chan->size == 32 && chan->type == UTIL_FORMAT_TYPE_SIGNED) {
                 if (chan->normalized) {
-                        return nir_fmul(b,
-                                        nir_i2f32(b, vpm_reads[swiz]),
-                                        nir_imm_float(b,
-                                                      1.0 / 0x7fffffff));
+                        return nir_fmul_imm(b,
+                                            nir_i2f32(b, vpm_reads[swiz]),
+                                            1.0 / 0x7fffffff);
                 } else {
                         return nir_i2f32(b, vpm_reads[swiz]);
                 }
         } else if (chan->size == 8 &&
                    (chan->type == UTIL_FORMAT_TYPE_UNSIGNED ||
                     chan->type == UTIL_FORMAT_TYPE_SIGNED)) {
-                nir_ssa_def *vpm = vpm_reads[0];
+                nir_def *vpm = vpm_reads[0];
                 if (chan->type == UTIL_FORMAT_TYPE_SIGNED) {
                         temp = nir_ixor(b, vpm, nir_imm_int(b, 0x80808080));
                         if (chan->normalized) {
-                                return nir_fsub(b, nir_fmul(b,
-                                                            vc4_nir_unpack_8f(b, temp, swiz),
-                                                            nir_imm_float(b, 2.0)),
-                                                nir_imm_float(b, 1.0));
+                                return nir_fadd_imm(b, nir_fmul_imm(b,
+                                                                    vc4_nir_unpack_8f(b, temp, swiz),
+                                                                    2.0),
+                                                    -1.0);
                         } else {
-                                return nir_fadd(b,
-                                                nir_i2f32(b,
-                                                          vc4_nir_unpack_8i(b, temp,
-                                                                            swiz)),
-                                                nir_imm_float(b, -128.0));
+                                return nir_fadd_imm(b,
+                                                    nir_i2f32(b,
+                                                              vc4_nir_unpack_8i(b, temp,
+                                                                                swiz)),
+                                                    -128.0);
                         }
                 } else {
                         if (chan->normalized) {
@@ -141,7 +140,7 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
         } else if (chan->size == 16 &&
                    (chan->type == UTIL_FORMAT_TYPE_UNSIGNED ||
                     chan->type == UTIL_FORMAT_TYPE_SIGNED)) {
-                nir_ssa_def *vpm = vpm_reads[swiz / 2];
+                nir_def *vpm = vpm_reads[swiz / 2];
 
                 /* Note that UNPACK_16F eats a half float, not ints, so we use
                  * UNPACK_16_I for all of these.
@@ -149,16 +148,14 @@ vc4_nir_get_vattr_channel_vpm(struct vc4_compile *c,
                 if (chan->type == UTIL_FORMAT_TYPE_SIGNED) {
                         temp = nir_i2f32(b, vc4_nir_unpack_16i(b, vpm, swiz & 1));
                         if (chan->normalized) {
-                                return nir_fmul(b, temp,
-                                                nir_imm_float(b, 1/32768.0f));
+                                return nir_fmul_imm(b, temp, 1 / 32768.0f);
                         } else {
                                 return temp;
                         }
                 } else {
                         temp = nir_i2f32(b, vc4_nir_unpack_16u(b, vpm, swiz & 1));
                         if (chan->normalized) {
-                                return nir_fmul(b, temp,
-                                                nir_imm_float(b, 1 / 65535.0));
+                                return nir_fmul_imm(b, temp, 1 / 65535.0);
                         } else {
                                 return temp;
                         }
@@ -187,7 +184,7 @@ vc4_nir_lower_vertex_attr(struct vc4_compile *c, nir_builder *b,
          * be reordered, the actual reads will be generated at the top of the
          * shader by ntq_setup_inputs().
          */
-        nir_ssa_def *vpm_reads[4];
+        nir_def *vpm_reads[4];
         for (int i = 0; i < align(attr_size, 4) / 4; i++)
                 vpm_reads[i] = nir_load_input(b, 1, 32, nir_imm_int(b, 0),
                                               .base = nir_intrinsic_base(intr),
@@ -197,7 +194,7 @@ vc4_nir_lower_vertex_attr(struct vc4_compile *c, nir_builder *b,
         const struct util_format_description *desc =
                 util_format_description(format);
 
-        nir_ssa_def *dests[4];
+        nir_def *dests[4];
         for (int i = 0; i < intr->num_components; i++) {
                 uint8_t swiz = desc->swizzle[i];
                 dests[i] = vc4_nir_get_vattr_channel_vpm(c, b, vpm_reads, swiz,
@@ -242,7 +239,7 @@ vc4_nir_lower_fs_input(struct vc4_compile *c, nir_builder *b,
                                         c->fs_key->point_sprite_mask)) {
                 assert(intr->num_components == 1);
 
-                nir_ssa_def *result = &intr->dest.ssa;
+                nir_def *result = &intr->def;
 
                 switch (comp) {
                 case 0:
@@ -263,10 +260,10 @@ vc4_nir_lower_fs_input(struct vc4_compile *c, nir_builder *b,
                 }
 
                 if (c->fs_key->point_coord_upper_left && comp == 1)
-                        result = nir_fsub(b, nir_imm_float(b, 1.0), result);
+                        result = nir_fsub_imm(b, 1.0, result);
 
-                if (result != &intr->dest.ssa) {
-                        nir_ssa_def_rewrite_uses_after(&intr->dest.ssa,
+                if (result != &intr->def) {
+                        nir_def_rewrite_uses_after(&intr->def,
                                                        result,
                                                        result->parent_instr);
                 }
@@ -297,13 +294,13 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
         b->cursor = nir_before_instr(&intr->instr);
 
         /* Generate scalar loads equivalent to the original vector. */
-        nir_ssa_def *dests[4];
+        nir_def *dests[4];
         for (unsigned i = 0; i < intr->num_components; i++) {
                 nir_intrinsic_instr *intr_comp =
                         nir_intrinsic_instr_create(c->s, intr->intrinsic);
                 intr_comp->num_components = 1;
-                nir_ssa_dest_init(&intr_comp->instr, &intr_comp->dest, 1,
-                                  intr->dest.ssa.bit_size, NULL);
+                nir_def_init(&intr_comp->instr, &intr_comp->def, 1,
+                             intr->def.bit_size);
 
                 /* Convert the uniform offset to bytes.  If it happens
                  * to be a constant, constant-folding will clean up
@@ -316,10 +313,9 @@ vc4_nir_lower_uniform(struct vc4_compile *c, nir_builder *b,
                                         nir_intrinsic_range(intr) * 16 - i * 4);
 
                 intr_comp->src[0] =
-                        nir_src_for_ssa(nir_ishl(b, intr->src[0].ssa,
-                                                 nir_imm_int(b, 4)));
+                        nir_src_for_ssa(nir_ishl_imm(b, intr->src[0].ssa, 4));
 
-                dests[i] = &intr_comp->dest.ssa;
+                dests[i] = &intr_comp->def;
 
                 nir_builder_instr_insert(b, &intr_comp->instr);
         }
@@ -360,8 +356,7 @@ vc4_nir_lower_io_instr(struct vc4_compile *c, nir_builder *b,
 static bool
 vc4_nir_lower_io_impl(struct vc4_compile *c, nir_function_impl *impl)
 {
-        nir_builder b;
-        nir_builder_init(&b, impl);
+        nir_builder b = nir_builder_create(impl);
 
         nir_foreach_block(block, impl) {
                 nir_foreach_instr_safe(instr, block)
@@ -377,8 +372,7 @@ vc4_nir_lower_io_impl(struct vc4_compile *c, nir_function_impl *impl)
 void
 vc4_nir_lower_io(nir_shader *s, struct vc4_compile *c)
 {
-        nir_foreach_function(function, s) {
-                if (function->impl)
-                        vc4_nir_lower_io_impl(c, function->impl);
+        nir_foreach_function_impl(impl, s) {
+                vc4_nir_lower_io_impl(c, impl);
         }
 }

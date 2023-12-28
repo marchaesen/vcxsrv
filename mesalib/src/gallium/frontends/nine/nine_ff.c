@@ -20,13 +20,14 @@
 #include "pipe/p_context.h"
 #include "tgsi/tgsi_ureg.h"
 #include "tgsi/tgsi_dump.h"
+#include "util/bitscan.h"
 #include "util/u_box.h"
 #include "util/u_hash_table.h"
 #include "util/u_upload_mgr.h"
 
 #define DBG_CHANNEL DBG_FF
 
-#define NINE_FF_NUM_VS_CONST 196
+#define NINE_FF_NUM_VS_CONST 204
 #define NINE_FF_NUM_PS_CONST 24
 
 struct fvec4
@@ -67,7 +68,7 @@ struct nine_ff_vs_key
             uint32_t tc_gen : 24; /* 8 * 3 bits */
             uint32_t pad4 : 8;
             uint32_t tc_idx : 24;
-            uint32_t pad5 : 8;
+            uint32_t clipplane_emulate : 8;
             uint32_t passthrough;
         };
         uint64_t value64[3]; /* don't forget to resize VertexShader9.ff_key */
@@ -113,7 +114,9 @@ struct nine_ff_ps_key
             uint32_t fog_mode : 2;
             uint32_t fog_source : 1; /* 0: Z, 1: W */
             uint32_t specular : 1;
-            uint32_t pad1 : 11; /* 9 32-bit words with this */
+            uint32_t alpha_test_emulation : 3;
+            uint32_t flatshade : 1;
+            uint32_t pad1 : 7; /* 9 32-bit words with this */
             uint8_t colorarg_b4[3];
             uint8_t colorarg_b5[3];
             uint8_t alphaarg_b4[3]; /* 11 32-bit words plus a byte */
@@ -168,9 +171,9 @@ static bool nine_ff_fvf_key_comp(const void *key1, const void *key2)
 static void nine_ff_prune_vs(struct NineDevice9 *);
 static void nine_ff_prune_ps(struct NineDevice9 *);
 
-static void nine_ureg_tgsi_dump(struct ureg_program *ureg, boolean override)
+static void nine_ureg_tgsi_dump(struct ureg_program *ureg, bool override)
 {
-    if (debug_get_bool_option("NINE_FF_DUMP", FALSE) || override) {
+    if (debug_get_bool_option("NINE_FF_DUMP", false) || override) {
         const struct tgsi_token *toks = ureg_get_tokens(ureg, NULL);
         tgsi_dump(toks, 0);
         ureg_free_tokens(toks);
@@ -271,6 +274,9 @@ static void nine_ureg_tgsi_dump(struct ureg_program *ureg, boolean override)
  * CONST[164] D3DTS_WORLDMATRIX[1] * D3DTS_VIEW
  * ...
  * CONST[192] D3DTS_WORLDMATRIX[8] * D3DTS_VIEW
+ * CONST[196] UCP0
+ ...
+ * CONST[203] UCP7
  */
 struct vs_build_ctx
 {
@@ -337,9 +343,9 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
     struct ureg_dst AR;
     unsigned i, c;
     unsigned label[32], l = 0;
-    boolean need_aNrm = key->lighting || key->passthrough & (1 << NINE_DECLUSAGE_NORMAL);
-    boolean has_aNrm;
-    boolean need_aVtx = key->lighting || key->fog_mode || key->pointscale || key->ucp;
+    bool need_aNrm = key->lighting || key->passthrough & (1 << NINE_DECLUSAGE_NORMAL);
+    bool has_aNrm;
+    bool need_aVtx = key->lighting || key->fog_mode || key->pointscale || key->ucp;
     const unsigned texcoord_sn = get_texcoord_sn(device->screen);
 
     vs->ureg = ureg;
@@ -348,16 +354,16 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
     for (i = 0; i < 8 * 3; i += 3) {
         switch ((key->tc_gen >> i) & 0x7) {
         case NINED3DTSS_TCI_CAMERASPACENORMAL:
-            need_aNrm = TRUE;
+            need_aNrm = true;
             break;
         case NINED3DTSS_TCI_CAMERASPACEPOSITION:
-            need_aVtx = TRUE;
+            need_aVtx = true;
             break;
         case NINED3DTSS_TCI_CAMERASPACEREFLECTIONVECTOR:
-            need_aVtx = need_aNrm = TRUE;
+            need_aVtx = need_aNrm = true;
             break;
         case NINED3DTSS_TCI_SPHEREMAP:
-            need_aVtx = need_aNrm = TRUE;
+            need_aVtx = need_aNrm = true;
             break;
         default:
             break;
@@ -426,7 +432,7 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
         oFog = ureg_writemask(oFog, TGSI_WRITEMASK_X);
     }
 
-    if (key->vertexpointsize || key->pointscale) {
+    if (key->vertexpointsize || key->pointscale || device->driver_caps.always_output_pointsize) {
         oPsz = ureg_DECL_output_masked(ureg, TGSI_SEMANTIC_PSIZE, 0,
                                        TGSI_WRITEMASK_X, 0, 1);
         oPsz = ureg_writemask(oPsz, TGSI_WRITEMASK_X);
@@ -587,7 +593,7 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
 
     /* === Process point size:
      */
-    if (key->vertexpointsize || key->pointscale) {
+    if (key->vertexpointsize || key->pointscale || device->driver_caps.always_output_pointsize) {
         struct ureg_dst tmp = ureg_DECL_temporary(ureg);
         struct ureg_dst tmp_x = ureg_writemask(tmp, TGSI_WRITEMASK_X);
         struct ureg_dst tmp_y = ureg_writemask(tmp, TGSI_WRITEMASK_Y);
@@ -1051,20 +1057,40 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
     /* ucp for ff applies on world coordinates.
      * aVtx is in worldview coordinates. */
     if (key->ucp) {
-        struct ureg_dst clipVect = ureg_DECL_output(ureg, TGSI_SEMANTIC_CLIPVERTEX, 0);
         struct ureg_dst tmp = ureg_DECL_temporary(ureg);
         ureg_MUL(ureg, tmp, _XXXX(vs->aVtx), _CONST(12));
         ureg_MAD(ureg, tmp, _YYYY(vs->aVtx), _CONST(13),  ureg_src(tmp));
         ureg_MAD(ureg, tmp, _ZZZZ(vs->aVtx), _CONST(14), ureg_src(tmp));
-        ureg_ADD(ureg, clipVect, _CONST(15), ureg_src(tmp));
+        if (!key->clipplane_emulate) {
+            struct ureg_dst clipVect = ureg_DECL_output(ureg, TGSI_SEMANTIC_CLIPVERTEX, 0);
+            ureg_ADD(ureg, clipVect, _CONST(15), ureg_src(tmp));
+        } else {
+            struct ureg_dst clipdist[2] = {ureg_dst_undef(), ureg_dst_undef()};
+            int num_clipdist = ffs(key->clipplane_emulate);
+            ureg_ADD(ureg, tmp, _CONST(15), ureg_src(tmp));
+            clipdist[0] = ureg_DECL_output_masked(ureg, TGSI_SEMANTIC_CLIPDIST, 0,
+                                                      ((1 << num_clipdist) - 1) & 0xf, 0, 1);
+            if (num_clipdist >= 5)
+                clipdist[1] = ureg_DECL_output_masked(ureg, TGSI_SEMANTIC_CLIPDIST, 1,
+                                                      ((1 << (num_clipdist - 4)) - 1) & 0xf, 0, 1);
+            ureg_property(ureg, TGSI_PROPERTY_NUM_CLIPDIST_ENABLED, num_clipdist);
+            for (i = 0; i < num_clipdist; i++) {
+                assert(!ureg_dst_is_undef(clipdist[i>>2]));
+                if (!(key->clipplane_emulate & (1 << i)))
+                    ureg_MOV(ureg, ureg_writemask(clipdist[i>>2], 1 << (i & 0x2)), ureg_imm1f(ureg, 0.f));
+                else
+                    ureg_DP4(ureg, ureg_writemask(clipdist[i>>2], 1 << (i & 0x2)),
+                             ureg_src(tmp), _CONST(196+i));
+            }
+        }
         ureg_release_temporary(ureg, tmp);
     }
 
     if (key->position_t && device->driver_caps.window_space_position_support)
-        ureg_property(ureg, TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION, TRUE);
+        ureg_property(ureg, TGSI_PROPERTY_VS_WINDOW_SPACE_POSITION, true);
 
     ureg_END(ureg);
-    nine_ureg_tgsi_dump(ureg, FALSE);
+    nine_ureg_tgsi_dump(ureg, false);
     return nine_create_shader_with_so_and_destroy(ureg, device->context.pipe, NULL);
 }
 
@@ -1083,10 +1109,12 @@ nine_ff_build_vs(struct NineDevice9 *device, struct vs_build_ctx *vs)
  * CONST[22].x___ RS.FogEnd
  * CONST[22]._y__ 1.0f / (RS.FogEnd - RS.FogStart)
  * CONST[22].__z_ RS.FogDensity
+ * CONST[22].___w Alpha ref
  */
 struct ps_build_ctx
 {
     struct ureg_program *ureg;
+    unsigned color_interpolate_flag;
 
     struct ureg_src vC[2]; /* DIFFUSE, SPECULAR */
     struct ureg_src vT[8]; /* TEXCOORD[i] */
@@ -1119,10 +1147,10 @@ ps_get_ts_arg(struct ps_build_ctx *ps, unsigned ta)
         reg = (ps->stage.index == ps->stage.index_pre_mod) ? ureg_src(ps->rMod) : ps->rCurSrc;
         break;
     case D3DTA_DIFFUSE:
-        reg = ureg_DECL_fs_input(ps->ureg, TGSI_SEMANTIC_COLOR, 0, TGSI_INTERPOLATE_COLOR);
+        reg = ureg_DECL_fs_input(ps->ureg, TGSI_SEMANTIC_COLOR, 0, ps->color_interpolate_flag);
         break;
     case D3DTA_SPECULAR:
-        reg = ureg_DECL_fs_input(ps->ureg, TGSI_SEMANTIC_COLOR, 1, TGSI_INTERPOLATE_COLOR);
+        reg = ureg_DECL_fs_input(ps->ureg, TGSI_SEMANTIC_COLOR, 1, ps->color_interpolate_flag);
         break;
     case D3DTA_TEMP:
         reg = ps->rTmpSrc;
@@ -1182,7 +1210,7 @@ static uint8_t ps_d3dtop_args_mask(D3DTEXTUREOP top)
     }
 }
 
-static inline boolean
+static inline bool
 is_MOV_no_op(struct ureg_dst dst, struct ureg_src src)
 {
     return !dst.WriteMask ||
@@ -1329,9 +1357,10 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
 
     memset(&ps, 0, sizeof(ps));
     ps.ureg = ureg;
+    ps.color_interpolate_flag = key->flatshade ? TGSI_INTERPOLATE_CONSTANT : TGSI_INTERPOLATE_PERSPECTIVE;
     ps.stage.index_pre_mod = -1;
 
-    ps.vC[0] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 0, TGSI_INTERPOLATE_COLOR);
+    ps.vC[0] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 0, ps.color_interpolate_flag);
 
     ps.rCur = ureg_DECL_temporary(ureg);
     ps.rTmp = ureg_DECL_temporary(ureg);
@@ -1352,7 +1381,7 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
             if (key->ts[s].colorarg0 == D3DTA_SPECULAR ||
                 key->ts[s].colorarg1 == D3DTA_SPECULAR ||
                 key->ts[s].colorarg2 == D3DTA_SPECULAR)
-                ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, TGSI_INTERPOLATE_COLOR);
+                ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, ps.color_interpolate_flag);
 
             if (key->ts[s].colorarg0 == D3DTA_TEXTURE ||
                 key->ts[s].colorarg1 == D3DTA_TEXTURE ||
@@ -1371,7 +1400,7 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
             if (key->ts[s].alphaarg0 == D3DTA_SPECULAR ||
                 key->ts[s].alphaarg1 == D3DTA_SPECULAR ||
                 key->ts[s].alphaarg2 == D3DTA_SPECULAR)
-                ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, TGSI_INTERPOLATE_COLOR);
+                ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, ps.color_interpolate_flag);
 
             if (key->ts[s].alphaarg0 == D3DTA_TEXTURE ||
                 key->ts[s].alphaarg1 == D3DTA_TEXTURE ||
@@ -1384,7 +1413,7 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
         }
     }
     if (key->specular)
-        ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, TGSI_INTERPOLATE_COLOR);
+        ps.vC[1] = ureg_DECL_fs_input(ureg, TGSI_SEMANTIC_COLOR, 1, ps.color_interpolate_flag);
 
     oCol = ureg_DECL_output(ureg, TGSI_SEMANTIC_COLOR, 0);
 
@@ -1507,6 +1536,19 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
     if (key->specular)
         ureg_ADD(ureg, ureg_writemask(ps.rCur, TGSI_WRITEMASK_XYZ), ps.rCurSrc, ps.vC[1]);
 
+    if (key->alpha_test_emulation == PIPE_FUNC_NEVER) {
+        ureg_KILL(ureg);
+    } else if (key->alpha_test_emulation != PIPE_FUNC_ALWAYS) {
+        unsigned cmp_op;
+        struct ureg_src src[2];
+        struct ureg_dst tmp = ps.rTmp;
+        cmp_op = pipe_comp_to_tgsi_opposite(key->alpha_test_emulation);
+        src[0] = ureg_scalar(ps.rCurSrc, TGSI_SWIZZLE_W); /* Read color alpha channel */
+        src[1] = _WWWW(_CONST(22)); /* Read alpha ref */
+        ureg_insn(ureg, cmp_op, &tmp, 1, src, 2, 0);
+        ureg_KILL_IF(ureg, ureg_negate(ureg_scalar(ureg_src(tmp), TGSI_SWIZZLE_X))); /* if opposite test passes, discard */
+    }
+
     /* Fog.
      */
     if (key->fog_mode) {
@@ -1521,14 +1563,8 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
         }
 
         /* Source is either W or Z.
-         * When we use vs ff,
          * Z is when an orthogonal projection matrix is detected,
          * W (WFOG) else.
-         * Z is used for programmable vs.
-         * Note: Tests indicate that the projection matrix coefficients do
-         * actually affect pixel fog (and not vertex fog) when vs ff is used,
-         * which justifies taking the position's w instead of taking the z coordinate
-         * before the projection in the vs shader.
          */
         if (!key->fog_source)
             ureg_MOV(ureg, rFog, _ZZZZ(vPos));
@@ -1563,7 +1599,7 @@ nine_ff_build_ps(struct NineDevice9 *device, struct nine_ff_ps_key *key)
     }
 
     ureg_END(ureg);
-    nine_ureg_tgsi_dump(ureg, FALSE);
+    nine_ureg_tgsi_dump(ureg, false);
     return nine_create_shader_with_so_and_destroy(ureg, device->context.pipe, NULL);
 }
 
@@ -1575,8 +1611,8 @@ nine_ff_get_vs(struct NineDevice9 *device)
     struct vs_build_ctx bld;
     struct nine_ff_vs_key key;
     unsigned s, i;
-    boolean has_indexes = false;
-    boolean has_weights = false;
+    bool has_indexes = false;
+    bool has_weights = false;
     int8_t input_texture_coord[8];
 
     assert(sizeof(key) <= sizeof(key.value32));
@@ -1650,6 +1686,7 @@ nine_ff_get_vs(struct NineDevice9 *device)
     key.localviewer = !!context->rs[D3DRS_LOCALVIEWER];
     key.normalizenormals = !!context->rs[D3DRS_NORMALIZENORMALS];
     key.ucp = !!context->rs[D3DRS_CLIPPLANEENABLE];
+    key.clipplane_emulate = device->driver_caps.emulate_ucp ? (context->rs[D3DRS_CLIPPLANEENABLE] & 0xff) : 0;
 
     if (context->rs[D3DRS_VERTEXBLEND] != D3DVBF_DISABLE) {
         key.vertexblend_indexed = !!context->rs[D3DRS_INDEXEDVERTEXBLENDENABLE] && has_indexes;
@@ -1711,7 +1748,7 @@ nine_ff_get_vs(struct NineDevice9 *device)
             vs->input_map[n].ndecl = bld.input[n];
 
         vs->position_t = key.position_t;
-        vs->point_size = key.vertexpointsize | key.pointscale;
+        vs->point_size = key.vertexpointsize | key.pointscale | device->driver_caps.always_output_pointsize;
     }
     return vs;
 }
@@ -1723,7 +1760,6 @@ static struct NinePixelShader9 *
 nine_ff_get_ps(struct NineDevice9 *device)
 {
     struct nine_context *context = &device->context;
-    D3DMATRIX *projection_matrix = GET_D3DTS(PROJECTION);
     struct NinePixelShader9 *ps;
     struct nine_ff_ps_key key;
     unsigned s;
@@ -1826,21 +1862,16 @@ nine_ff_get_ps(struct NineDevice9 *device)
 
     key.projected = nine_ff_get_projected_key_ff(context);
     key.specular = !!context->rs[D3DRS_SPECULARENABLE];
+    key.flatshade = context->rs[D3DRS_SHADEMODE] == D3DSHADE_FLAT;
 
     for (; s < 8; ++s)
         key.ts[s].colorop = key.ts[s].alphaop = D3DTOP_DISABLE;
     if (context->rs[D3DRS_FOGENABLE])
         key.fog_mode = context->rs[D3DRS_FOGTABLEMODE];
     key.fog = !!context->rs[D3DRS_FOGENABLE];
-    /* Pixel fog (with WFOG advertised): source is either Z or W.
-     * W is the source if vs ff is used, and the
-     * projection matrix is not orthogonal.
-     * Tests on Win 10 seem to indicate _34
-     * and _33 are checked against 0, 1. */
     if (key.fog_mode && key.fog)
-        key.fog_source = !context->programmable_vs &&
-            !(projection_matrix->_34 == 0.0f &&
-              projection_matrix->_44 == 1.0f);
+        key.fog_source = !context->zfog;
+    key.alpha_test_emulation = context->rs[NINED3DRS_EMULATED_ALPHATEST] & 0x7;
 
     DBG("PS ff key hash: %x\n", nine_ff_ps_key_hash(&key));
     ps = util_hash_table_get(device->ff.ht_ps, &key);
@@ -1956,7 +1987,9 @@ nine_ff_load_point_and_fog_params(struct NineDevice9 *device)
         return;
     dst[26].x = asfloat(context->rs[D3DRS_POINTSIZE_MIN]);
     dst[26].y = asfloat(context->rs[D3DRS_POINTSIZE_MAX]);
-    dst[26].z = asfloat(context->rs[D3DRS_POINTSIZE]);
+    dst[26].z = CLAMP(asfloat(context->rs[D3DRS_POINTSIZE]),
+                asfloat(context->rs[D3DRS_POINTSIZE_MIN]),
+                asfloat(context->rs[D3DRS_POINTSIZE_MAX]));
     dst[26].w = asfloat(context->rs[D3DRS_POINTSCALE_A]);
     dst[27].x = asfloat(context->rs[D3DRS_POINTSCALE_B]);
     dst[27].y = asfloat(context->rs[D3DRS_POINTSCALE_C]);
@@ -1965,6 +1998,8 @@ nine_ff_load_point_and_fog_params(struct NineDevice9 *device)
     if (isinf(dst[28].y))
         dst[28].y = 0.0f;
     dst[28].z = asfloat(context->rs[D3DRS_FOGDENSITY]);
+    if (device->driver_caps.emulate_ucp)
+        memcpy(&dst[196], &context->clip.ucp, sizeof(context->clip));
 }
 
 static void
@@ -1978,7 +2013,7 @@ nine_ff_load_tex_matrices(struct NineDevice9 *device)
         return;
     for (s = 0; s < 8; ++s) {
         if (IS_D3DTS_DIRTY(context, TEXTURE0 + s))
-            nine_d3d_matrix_transpose(&M[32 + s], nine_state_access_transform(&context->ff, D3DTS_TEXTURE0 + s, FALSE));
+            nine_d3d_matrix_transpose(&M[32 + s], nine_state_access_transform(&context->ff, D3DTS_TEXTURE0 + s, false));
     }
 }
 
@@ -2014,6 +2049,7 @@ nine_ff_load_ps_params(struct NineDevice9 *device)
     dst[22].x = asfloat(context->rs[D3DRS_FOGEND]);
     dst[22].y = 1.0f / (asfloat(context->rs[D3DRS_FOGEND]) - asfloat(context->rs[D3DRS_FOGSTART]));
     dst[22].z = asfloat(context->rs[D3DRS_FOGDENSITY]);
+    dst[22].w = (float)context->rs[D3DRS_ALPHAREF] / 255.f;
 }
 
 static void
@@ -2089,7 +2125,7 @@ nine_ff_update(struct NineDevice9 *device)
 }
 
 
-boolean
+bool
 nine_ff_init(struct NineDevice9 *device)
 {
     device->ff.ht_vs = _mesa_hash_table_create(NULL, nine_ff_vs_key_hash,

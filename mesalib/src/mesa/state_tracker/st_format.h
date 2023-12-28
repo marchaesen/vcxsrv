@@ -31,9 +31,9 @@
 #define ST_FORMAT_H
 
 #include "main/formats.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 
 #ifdef __cplusplus
 extern "C" {

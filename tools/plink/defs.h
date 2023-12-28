@@ -63,6 +63,10 @@ uintmax_t strtoumax(const char *nptr, char **endptr, int base);
 #endif /* __GNUC__ */
 
 typedef struct conf_tag Conf;
+typedef struct ConfKeyInfo ConfKeyInfo;
+typedef struct ConfSaveEnumValue ConfSaveEnumValue;
+typedef struct ConfSaveEnumType ConfSaveEnumType;
+
 typedef struct terminal_tag Terminal;
 typedef struct term_utf8_decode term_utf8_decode;
 
@@ -80,6 +84,7 @@ typedef struct BinarySink BinarySink;
 typedef struct BinarySource BinarySource;
 typedef struct stdio_sink stdio_sink;
 typedef struct bufchain_sink bufchain_sink;
+typedef struct buffer_sink buffer_sink;
 typedef struct handle_sink handle_sink;
 
 typedef struct IdempotentCallback IdempotentCallback;
@@ -102,6 +107,11 @@ typedef struct Ldisc_tag Ldisc;
 typedef struct LogContext LogContext;
 typedef struct LogPolicy LogPolicy;
 typedef struct LogPolicyVtable LogPolicyVtable;
+
+typedef struct TermLineEditor TermLineEditor;
+typedef struct TermLineEditorCallbackReceiver TermLineEditorCallbackReceiver;
+typedef struct TermLineEditorCallbackReceiverVtable
+    TermLineEditorCallbackReceiverVtable;
 
 typedef struct Seat Seat;
 typedef struct SeatVtable SeatVtable;

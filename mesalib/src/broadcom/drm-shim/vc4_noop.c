@@ -51,6 +51,20 @@ vc4_ioctl_create_bo(int fd, unsigned long request, void *arg)
 }
 
 static int
+vc4_ioctl_create_shader_bo(int fd, unsigned long request, void *arg)
+{
+        struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
+        struct drm_vc4_create_shader_bo *create = arg;
+        struct shim_bo *bo = calloc(1, sizeof(*bo));
+
+        drm_shim_bo_init(bo, create->size);
+        create->handle = drm_shim_bo_get_handle(shim_fd, bo);
+        drm_shim_bo_put(bo);
+
+        return 0;
+}
+
+static int
 vc4_ioctl_mmap_bo(int fd, unsigned long request, void *arg)
 {
         struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
@@ -101,6 +115,7 @@ vc4_ioctl_get_param(int fd, unsigned long request, void *arg)
 
 static ioctl_fn_t driver_ioctls[] = {
         [DRM_VC4_CREATE_BO] = vc4_ioctl_create_bo,
+        [DRM_VC4_CREATE_SHADER_BO] = vc4_ioctl_create_shader_bo,
         [DRM_VC4_MMAP_BO] = vc4_ioctl_mmap_bo,
         [DRM_VC4_GET_PARAM] = vc4_ioctl_get_param,
         [DRM_VC4_GET_TILING] = vc4_ioctl_noop,

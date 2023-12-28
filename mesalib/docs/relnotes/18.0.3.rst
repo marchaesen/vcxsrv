@@ -48,7 +48,7 @@ Eric Anholt (1):
 
 -  gallium/util: Fix incorrect refcounting of separate stencil.
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv/allocator: Don't shrink either end of the block pool
 

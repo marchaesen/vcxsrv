@@ -55,6 +55,7 @@ void rnn_load(struct rnn *rnn, const char *gpuname);
 uint32_t rnn_regbase(struct rnn *rnn, const char *name);
 const char *rnn_regname(struct rnn *rnn, uint32_t regbase, int color);
 struct rnndecaddrinfo *rnn_reginfo(struct rnn *rnn, uint32_t regbase);
+void rnn_reginfo_free(struct rnndecaddrinfo *info);
 const char *rnn_enumname(struct rnn *rnn, const char *name, uint32_t val);
 
 struct rnndelem *rnn_regelem(struct rnn *rnn, const char *name);

@@ -138,9 +138,11 @@ d3d12_video_decoder_prepare_dxva_slices_control_hevc(struct d3d12_video_decoder 
                   picture_hevc->slice_parameter.slice_count);
 
    uint64_t TotalSlicesDXVAArrayByteSize = picture_hevc->slice_parameter.slice_count * sizeof(DXVA_Slice_HEVC_Short);
-   pD3D12Dec->m_SliceControlBuffer.resize(TotalSlicesDXVAArrayByteSize);
+   vecOutSliceControlBuffers.resize(TotalSlicesDXVAArrayByteSize);
 
    uint8_t* pData = vecOutSliceControlBuffers.data();
+   static const uint32_t start_code_size = 3;
+   uint32_t acum_slice_offset = (picture_hevc->slice_parameter.slice_count > 0) ? picture_hevc->slice_parameter.slice_data_offset[0] : 0;
    for (uint32_t sliceIdx = 0; sliceIdx < picture_hevc->slice_parameter.slice_count; sliceIdx++)
    {
       DXVA_Slice_HEVC_Short currentSliceEntry = {};
@@ -175,8 +177,12 @@ d3d12_video_decoder_prepare_dxva_slices_control_hevc(struct d3d12_video_decoder 
          } break;
       }
 
-      currentSliceEntry.SliceBytesInBuffer = picture_hevc->slice_parameter.slice_data_size[sliceIdx];
-      currentSliceEntry.BSNALunitDataLocation = picture_hevc->slice_parameter.slice_data_offset[sliceIdx];
+      /* slice_data_size from pipe/va does not include the NAL unit size, DXVA requires it */
+      currentSliceEntry.SliceBytesInBuffer = picture_hevc->slice_parameter.slice_data_size[sliceIdx] + start_code_size;
+
+      /* slice_data_offset from pipe/va are relative to the current slice, and in DXVA they are absolute within the frame source buffer */
+      currentSliceEntry.BSNALunitDataLocation = acum_slice_offset;
+      acum_slice_offset += (currentSliceEntry.SliceBytesInBuffer + picture_hevc->slice_parameter.slice_data_offset[sliceIdx]);
 
       debug_printf("[d3d12_video_decoder_hevc] Detected slice index %" PRIu32 " with SliceBytesInBuffer %d - BSNALunitDataLocation %d - wBadSliceChopping: %" PRIu16
                   " for frame with "

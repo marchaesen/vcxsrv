@@ -74,7 +74,7 @@ Equipment Corporation.
 ******************************************************************/
 
 /*
- * Copyright (c) 2003-2005, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2003-2005, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -1218,7 +1218,7 @@ EnqueueEvent(InternalEvent *ev, DeviceIntPtr device)
     qe->pScreen = pSprite->hotPhys.pScreen;
     qe->months = currentTime.months;
     qe->event = (InternalEvent *) (qe + 1);
-    memcpy(qe->event, event, eventlen);
+    CopyPartialInternalEvent(qe->event, (InternalEvent *)event);
     xorg_list_append(&qe->next, &syncEvents.pending);
 }
 

@@ -42,6 +42,10 @@
 #include "Cmap.h"
 #include "Cv.h"
 
+#ifdef _MSC_VER
+#undef CreateWindow
+#endif
+
 /*
  *      FORWARD DECLARATIONS
  */

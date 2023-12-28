@@ -45,6 +45,7 @@ void rc_init(struct radeon_compiler * c, const struct rc_regalloc_state *rs)
 	c->Program.Instructions.Next = &c->Program.Instructions;
 	c->Program.Instructions.U.I.Opcode = RC_OPCODE_ILLEGAL_OPCODE;
 	c->regalloc_state = rs;
+	c->max_temp_index = -1;
 }
 
 void rc_destroy(struct radeon_compiler * c)
@@ -356,17 +357,24 @@ void rc_get_stats(struct radeon_compiler *c, struct rc_program_stats *s)
 {
 	struct rc_instruction * tmp;
 	memset(s, 0, sizeof(*s));
+	unsigned ip = 0;
+	int last_begintex = -1;
 
 	for(tmp = c->Program.Instructions.Next; tmp != &c->Program.Instructions;
-							tmp = tmp->Next){
+							tmp = tmp->Next, ip++){
 		const struct rc_opcode_info * info;
 		rc_for_all_reads_mask(tmp, reg_count_callback, s);
 		if (tmp->Type == RC_INSTRUCTION_NORMAL) {
 			info = rc_get_opcode_info(tmp->U.I.Opcode);
-			if (info->Opcode == RC_OPCODE_BEGIN_TEX)
+			if (info->Opcode == RC_OPCODE_BEGIN_TEX) {
+				/* The R5xx docs mention ~30 cycles in section 8.3.1 */
+				s->num_cycles += 30;
+				last_begintex = ip;
 				continue;
-			if (tmp->U.I.PreSub.Opcode != RC_PRESUB_NONE)
-				s->num_presub_ops++;
+			}
+			if (info->Opcode == RC_OPCODE_MAD &&
+				rc_inst_has_three_diff_temp_srcs(tmp))
+				s->num_cycles++;
 		} else {
 			if (tmp->U.P.RGB.Src[RC_PAIR_PRESUB_SRC].Used)
 				s->num_presub_ops++;
@@ -386,6 +394,15 @@ void rc_get_stats(struct radeon_compiler *c, struct rc_program_stats *s)
 				tmp->U.P.Alpha.Omod != RC_OMOD_DISABLE) {
 				s->num_omod_ops++;
 			}
+			if (tmp->U.P.Nop)
+				s->num_cycles++;
+			/* SemWait has effect only on R500, the more instructions we can put
+			 * between the tex block and the first texture semaphore, the better.
+			 */
+			if (tmp->U.P.SemWait && c->is_r500 && last_begintex != -1) {
+				s->num_cycles -= MIN2(30, ip - last_begintex);
+				last_begintex = -1;
+			}
 			info = rc_get_opcode_info(tmp->U.P.RGB.Opcode);
 		}
 		if (info->IsFlowControl) {
@@ -401,6 +418,7 @@ void rc_get_stats(struct radeon_compiler *c, struct rc_program_stats *s)
 		if (info->HasTexture)
 			s->num_tex_insts++;
 		s->num_insts++;
+		s->num_cycles++;
 	}
 	/* Increment here because the reg_count_callback store the max
 	 * temporary reg index in s->nun_temp_regs. */
@@ -414,14 +432,17 @@ static void print_stats(struct radeon_compiler * c)
 	rc_get_stats(c, &s);
 
 	/* Note that we print some dummy values for instruction categories that
-	 * only the FS has, becasue shader-db's report.py wants all shaders to
+	 * only the FS has, because shader-db's report.py wants all shaders to
 	 * have the same set.
 	 */
-	util_debug_message(c->debug, SHADER_INFO, "%s shader: %u inst, %u vinst, %u sinst, %u predicate, %u flowcontrol, %u loops, %u tex, %u presub, %u omod, %u temps, %u consts, %u lits",
+	util_debug_message(c->debug, SHADER_INFO,
+	                   "%s shader: %u inst, %u vinst, %u sinst, %u predicate, %u flowcontrol,"
+	                   "%u loops, %u tex, %u presub, %u omod, %u temps, %u consts, %u lits, %u cycles",
 	                   c->type == RC_VERTEX_PROGRAM ? "VS" : "FS",
 	                   s.num_insts, s.num_rgb_insts, s.num_alpha_insts, s.num_pred_insts,
 	                   s.num_fc_insts, s.num_loops, s.num_tex_insts, s.num_presub_ops,
-	                   s.num_omod_ops, s.num_temp_regs, s.num_consts, s.num_inline_literals);
+	                   s.num_omod_ops, s.num_temp_regs, s.num_consts, s.num_inline_literals,
+	                   s.num_cycles);
 }
 
 static const char *shader_name[RC_NUM_PROGRAM_TYPES] = {

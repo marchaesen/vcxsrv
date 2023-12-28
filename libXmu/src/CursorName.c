@@ -119,7 +119,7 @@ XmuCursorNameToIndex(_Xconst char *name)
     };
 #define NUM_CURSOR_NAMES    (sizeof (cursor_names) / sizeof (cursor_names[0]))
     register _Xconst struct _CursorName *table;
-    register int i;
+    unsigned int i;
     char tmp[40];
 
     if (strlen (name) >= sizeof tmp) return -1;

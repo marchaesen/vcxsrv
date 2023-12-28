@@ -28,7 +28,7 @@
 #ifndef TGSI_PARSE_H
 #define TGSI_PARSE_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_shader_tokens.h"
 
 #if defined __cplusplus
@@ -125,7 +125,7 @@ void
 tgsi_parse_free(
    struct tgsi_parse_context *ctx );
 
-boolean
+bool
 tgsi_parse_end_of_tokens(
    struct tgsi_parse_context *ctx );
 
@@ -140,9 +140,6 @@ tgsi_num_tokens(const struct tgsi_token *tokens)
    memcpy(&header, tokens, sizeof(header));
    return header.HeaderSize + header.BodySize;
 }
-
-void
-tgsi_dump_tokens(const struct tgsi_token *tokens);
 
 struct tgsi_token *
 tgsi_dup_tokens(const struct tgsi_token *tokens);

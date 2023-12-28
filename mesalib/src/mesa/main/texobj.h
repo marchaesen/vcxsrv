@@ -32,8 +32,9 @@
 #define TEXTOBJ_H
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "samplerobj.h"
+#include "teximage.h"
 
 
 #ifdef __cplusplus
@@ -118,7 +119,7 @@ _mesa_is_texture_complete(const struct gl_texture_object *texObj,
                           const struct gl_sampler_object *sampler,
                           bool linear_as_nearest_for_int_tex)
 {
-   struct gl_texture_image *img = texObj->Image[0][texObj->Attrib.BaseLevel];
+   struct gl_texture_image *img = _mesa_base_tex_image(texObj);
    bool isMultisample = img && img->NumSamples >= 2;
 
    /*
@@ -186,7 +187,7 @@ extern void
 _mesa_dirty_texobj(struct gl_context *ctx, struct gl_texture_object *texObj);
 
 extern struct gl_texture_object *
-_mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex);
+_mesa_get_fallback_texture(struct gl_context *ctx, gl_texture_index tex, bool is_depth);
 
 extern GLuint
 _mesa_total_texture_memory(struct gl_context *ctx);

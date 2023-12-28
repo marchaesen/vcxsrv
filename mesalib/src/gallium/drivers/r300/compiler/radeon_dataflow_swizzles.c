@@ -36,6 +36,19 @@
 #include "radeon_compiler_util.h"
 #include "radeon_swizzle.h"
 
+static unsigned int get_swizzle_split(struct radeon_compiler * c,
+		struct rc_swizzle_split * split, struct rc_instruction * inst,
+		unsigned src, unsigned * usemask)
+{
+	*usemask = 0;
+	for(unsigned int chan = 0; chan < 4; ++chan) {
+		if (GET_SWZ(inst->U.I.SrcReg[src].Swizzle, chan) != RC_SWIZZLE_UNUSED)
+			*usemask |= 1 << chan;
+	}
+
+	c->SwizzleCaps->Split(inst->U.I.SrcReg[src], *usemask, split);
+	return split->NumPhases;
+}
 
 static void rewrite_source(struct radeon_compiler * c,
 		struct rc_instruction * inst, unsigned src)
@@ -44,13 +57,7 @@ static void rewrite_source(struct radeon_compiler * c,
 	unsigned int tempreg = rc_find_free_temporary(c);
 	unsigned int usemask;
 
-	usemask = 0;
-	for(unsigned int chan = 0; chan < 4; ++chan) {
-		if (GET_SWZ(inst->U.I.SrcReg[src].Swizzle, chan) != RC_SWIZZLE_UNUSED)
-			usemask |= 1 << chan;
-	}
-
-	c->SwizzleCaps->Split(inst->U.I.SrcReg[src], usemask, &split);
+	get_swizzle_split(c, &split, inst, src, &usemask);
 
 	for(unsigned int phase = 0; phase < split.NumPhases; ++phase) {
 		struct rc_instruction * mov = rc_insert_new_instruction(c, inst->Prev);
@@ -419,6 +426,110 @@ static unsigned try_rewrite_constant(struct radeon_compiler *c,
 	return 1;
 }
 
+/**
+ * Set all channels not specified by writemaks to unused.
+ */
+static void clear_channels(struct rc_instruction * inst, unsigned writemask)
+{
+	inst->U.I.DstReg.WriteMask = writemask;
+	for (unsigned chan = 0; chan < 4; chan++) {
+		if (writemask & (1 << chan))
+			continue;
+
+		const struct rc_opcode_info * opcode =
+					rc_get_opcode_info(inst->U.I.Opcode);
+		for (unsigned src = 0; src < opcode->NumSrcRegs; src++) {
+			SET_SWZ(inst->U.I.SrcReg[src].Swizzle, chan, RC_SWIZZLE_UNUSED);
+		}
+	}
+	/* TODO: We could in theory add constant swizzles back as well,
+	 * they will be all legal when we have just a single channel,
+	 * to save some sources and help the pair scheduling later. */
+}
+
+static bool try_splitting_single_channel(struct radeon_compiler * c,
+						struct rc_instruction * inst)
+{
+	for (unsigned chan = 0; chan < 3; chan++) {
+		struct rc_instruction * new_inst;
+		new_inst = rc_insert_new_instruction(c, inst);
+		memcpy(&new_inst->U.I, &inst->U.I, sizeof(struct rc_sub_instruction));
+		clear_channels(new_inst, inst->U.I.DstReg.WriteMask ^ (1 << chan));
+
+		const struct rc_opcode_info * opcode =
+			rc_get_opcode_info(new_inst->U.I.Opcode);
+		bool valid_swizzles = true;
+
+		for (unsigned src = 0; src < opcode->NumSrcRegs; ++src) {
+			struct rc_src_register *reg = &new_inst->U.I.SrcReg[src];
+
+			if (!c->SwizzleCaps->IsNative(new_inst->U.I.Opcode, *reg))
+				valid_swizzles = false;
+		}
+
+		if (!valid_swizzles) {
+			rc_remove_instruction(new_inst);
+		} else {
+			clear_channels(inst, 1 << chan);
+			return true;
+		}
+	}
+	return false;
+}
+
+static bool try_splitting_instruction(struct radeon_compiler * c,
+					struct rc_instruction * inst)
+{
+	/* Adding more output instructions in FS is bad for performance. */
+	if (inst->U.I.DstReg.File == RC_FILE_OUTPUT)
+		return false;
+
+	/* When only single channel of the swizzle is wrong, like xwzw,
+	 * it is best to just split the single channel out.
+	 */
+	if (inst->U.I.DstReg.WriteMask == RC_MASK_XYZW ||
+		inst->U.I.DstReg.WriteMask == RC_MASK_XYZ) {
+		if (try_splitting_single_channel(c, inst))
+			return true;
+	}
+
+	for (unsigned chan = 0; chan < 3; chan++) {
+		if (!(inst->U.I.DstReg.WriteMask & (1 << chan)))
+			continue;
+
+		unsigned next_chan;
+		for (next_chan = chan + 1; next_chan < 4; next_chan++) {
+			if (!(inst->U.I.DstReg.WriteMask & (1 << next_chan)))
+				continue;
+
+			/* We don't want to split the last used x/y/z channel and the
+			 * w channel. Pair scheduling might be able to put it back
+			 * together, but we don't trust it that much.
+			 *
+			 * Next is W already, rewrite the original inst and we are done.
+			 */
+			if (next_chan == 3) {
+				clear_channels(inst, (1 << chan) | (1 << next_chan));
+				return true;
+			}
+
+			struct rc_instruction * new_inst;
+			new_inst = rc_insert_new_instruction(c, inst->Prev);
+			memcpy(&new_inst->U.I, &inst->U.I, sizeof(struct rc_sub_instruction));
+			clear_channels(new_inst, 1 << chan);
+			break;
+		}
+
+		/* No next chan */
+		if (next_chan == 4) {
+			clear_channels(inst, 1 << chan);
+			return true;
+		}
+	}
+	assert(0 && "Unreachable\n");
+	return false;
+}
+
 void rc_dataflow_swizzles(struct radeon_compiler * c, void *user)
 {
 	struct rc_instruction * inst;
@@ -428,8 +539,40 @@ void rc_dataflow_swizzles(struct radeon_compiler * c, void *user)
 					inst = inst->Next) {
 		const struct rc_opcode_info * opcode =
 					rc_get_opcode_info(inst->U.I.Opcode);
-		unsigned int src;
+		unsigned src, usemask;
+		unsigned total_splits = 0;
+		struct rc_swizzle_split split;
 
+		/* If multiple sources needs splitting or some source needs to split
+		 * too many times, it is actually better to just split the whole ALU
+		 * instruction to separate channels instead of inserting extra movs.
+		 */
+		for (src = 0; src < opcode->NumSrcRegs; ++src) {
+			/* Don't count invalid swizzles from immediates, we can just
+			 * insert new immediates with the correct order later.
+			 */
+			if (rc_src_reg_is_immediate(c, inst->U.I.SrcReg[src].File,
+							inst->U.I.SrcReg[src].Index)
+				&& c->Program.Constants.Count < R300_PFS_NUM_CONST_REGS) {
+				total_splits++;
+			} else {
+				total_splits += get_swizzle_split(c, &split, inst,
+									src, &usemask);
+			}
+		}
+
+		/* Even if there is only a single split, i.e., two extra movs, this still
+		 * accounts to three instructions, the same as when we split
+		 * the original instruction right away.
+		 */
+		if (total_splits > opcode->NumSrcRegs && opcode->IsComponentwise) {
+			if (try_splitting_instruction(c, inst))
+				continue;
+		}
+
+		/* For texturing or non-componentwise opcodes we do the old way
+		 * of adding extra movs.
+		 */
 		for(src = 0; src < opcode->NumSrcRegs; ++src) {
 			struct rc_src_register *reg = &inst->U.I.SrcReg[src];
 			if (c->SwizzleCaps->IsNative(inst->U.I.Opcode, *reg)) {
@@ -437,6 +580,7 @@ void rc_dataflow_swizzles(struct radeon_compiler * c, void *user)
 			}
 			if (!c->is_r500 &&
 			    c->Program.Constants.Count < R300_PFS_NUM_CONST_REGS &&
+			    (!opcode->HasTexture && inst->U.I.Opcode != RC_OPCODE_KIL) &&
 			    try_rewrite_constant(c, reg)) {
 				continue;
 			}

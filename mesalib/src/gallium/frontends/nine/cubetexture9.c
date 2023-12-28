@@ -68,7 +68,7 @@ NineCubeTexture9_ctor( struct NineCubeTexture9 *This,
         Levels = 0;
 
     pf = d3d9_to_pipe_format_checked(screen, Format, PIPE_TEXTURE_CUBE, 0,
-                                     PIPE_BIND_SAMPLER_VIEW, FALSE,
+                                     PIPE_BIND_SAMPLER_VIEW, false,
                                      Pool == D3DPOOL_SCRATCH);
 
     if (pf == PIPE_FORMAT_NONE)
@@ -273,14 +273,14 @@ NineCubeTexture9_AddDirtyRect( struct NineCubeTexture9 *This,
 
     if (This->base.base.pool != D3DPOOL_MANAGED) {
         if (This->base.base.usage & D3DUSAGE_AUTOGENMIPMAP) {
-            This->base.dirty_mip = TRUE;
+            This->base.dirty_mip = true;
             BASETEX_REGISTER_UPDATE(&This->base);
         }
         return D3D_OK;
     }
 
     if (This->base.base.pool == D3DPOOL_MANAGED) {
-        This->base.managed.dirty = TRUE;
+        This->base.managed.dirty = true;
         BASETEX_REGISTER_UPDATE(&This->base);
     }
 

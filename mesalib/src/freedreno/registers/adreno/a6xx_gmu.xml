@@ -3,8 +3,9 @@
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 <import file="freedreno_copyright.xml"/>
+<import file="adreno/adreno_common.xml"/>
 
-<domain name="A6XX" width="32">
+<domain name="A6XX" width="32" prefix="variant" varset="chip">
 
 	<bitset name="A6XX_GMU_GPU_IDLE_STATUS">
 		<bitfield name="BUSY_IGN_AHB" pos="23"/>
@@ -146,8 +147,13 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x519c" name="GMU_HOST2GMU_INTR_INFO_1"/>
 	<reg32 offset="0x519d" name="GMU_HOST2GMU_INTR_INFO_2"/>
 	<reg32 offset="0x519e" name="GMU_HOST2GMU_INTR_INFO_3"/>
+	<reg32 offset="0x51c5" name="GMU_GENERAL_0"/>
 	<reg32 offset="0x51c6" name="GMU_GENERAL_1"/>
+	<reg32 offset="0x51cb" name="GMU_GENERAL_6"/>
 	<reg32 offset="0x51cc" name="GMU_GENERAL_7"/>
+	<reg32 offset="0x51cd" name="GMU_GENERAL_8" variants="A7XX"/>
+	<reg32 offset="0x51ce" name="GMU_GENERAL_9" variants="A7XX"/>
+	<reg32 offset="0x51cf" name="GMU_GENERAL_10" variants="A7XX"/>
 	<reg32 offset="0x515d" name="GMU_ISENSE_CTRL"/>
 	<reg32 offset="0x8920" name="GPU_CS_ENABLE_REG"/>
 	<reg32 offset="0x515d" name="GPU_GMU_CX_GMU_ISENSE_CTRL"/>
@@ -186,6 +192,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x930e" name="GPU_GMU_AO_GPU_CX_BUSY_MASK"/>
 	<reg32 offset="0x9310" name="GMU_AO_AHB_FENCE_CTRL"/>
 	<reg32 offset="0x9313" name="GMU_AHB_FENCE_STATUS"/>
+	<reg32 offset="0x9314" name="GMU_AHB_FENCE_STATUS_CLR"/>
 	<reg32 offset="0x9315" name="GMU_RBBM_INT_UNMASKED_STATUS"/>
 	<reg32 offset="0x9316" name="GMU_AO_SPARE_CNTL"/>
 	<reg32 offset="0x9307" name="GMU_RSCC_CONTROL_REQ"/>
@@ -210,6 +217,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 offset="0x008c" name="RSCC_TIMESTAMP_UNIT1_OUTPUT_DRV0"/>
 	<reg32 offset="0x0100" name="RSCC_OVERRIDE_START_ADDR"/>
 	<reg32 offset="0x0101" name="RSCC_SEQ_BUSY_DRV0"/>
+	<reg32 offset="0x0154" name="RSCC_SEQ_MEM_0_DRV0_A740" variants="A7XX"/>
 	<reg32 offset="0x0180" name="RSCC_SEQ_MEM_0_DRV0"/>
 	<reg32 offset="0x0346" name="RSCC_TCS0_DRV0_STATUS"/>
 	<reg32 offset="0x03ee" name="RSCC_TCS1_DRV0_STATUS"/>

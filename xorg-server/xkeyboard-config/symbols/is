@@ -1,3 +1,5 @@
+// Keyboard layouts for Iceland.
+
 // Icelandic keyboard layout, by Hrafnkell Eiriksson - hkelle@rhi.hi.is
 // Fixes by Olafur Osvaldsson - oli@isnic.is - and Bjarni Ingi Gislason.
 
@@ -38,7 +40,7 @@ xkb_symbols "mac_legacy" {
     key <AE02> { [ 2,          quotedbl,   at,           VoidSymbol ] };
     key <AE03> { [ 3,          numbersign, U2122,        sterling   ] };
     key <AE04> { [ 4,          dollar,     cent,         EuroSign   ] };
-    key <AE05> { [ 5,          percent,    U2030,        infinity   ] };
+    key <AE05> { [ 5,          percent,    permille,     infinity   ] };
     key <AE06> { [ 6,          ampersand,  asciicircum,  U2044      ] };
     key <AE07> { [ 7,          slash,      backslash,    division   ] };
     key <AE08> { [ 8,          parenleft,  bracketleft,  braceleft  ] };
@@ -99,7 +101,7 @@ xkb_symbols "mac" {
     key <AE02> { [ 2,          quotedbl,   at,           VoidSymbol  ] };
     key <AE03> { [ 3,          numbersign, trademark,    sterling    ] };
     key <AE04> { [ 4,          dollar,     cent,         EuroSign    ] };
-    key <AE05> { [ 5,          percent,    U2030,        infinity    ] };
+    key <AE05> { [ 5,          percent,    permille,     infinity    ] };
     key <AE06> { [ 6,          ampersand,  asciicircum,  U2044       ] };
     key <AE07> { [ 7,          slash,      braceleft,    division    ] };
     key <AE08> { [ 8,          parenleft,  bracketleft,  braceleft   ] };

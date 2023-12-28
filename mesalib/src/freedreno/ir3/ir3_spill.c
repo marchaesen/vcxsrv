@@ -1935,7 +1935,7 @@ simplify_phi_nodes(struct ir3 *ir)
             simplify_phi_srcs(instr);
          }
 
-         /* Visit phi nodes in the sucessors to make sure that phi sources are
+         /* Visit phi nodes in the successors to make sure that phi sources are
           * always visited at least once after visiting the definition they
           * point to. See note in simplify_phi_def() for why this is necessary.
           */

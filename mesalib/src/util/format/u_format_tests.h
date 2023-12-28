@@ -30,8 +30,8 @@
 #define U_FORMAT_TESTS_H_
 
 
-#include "pipe/p_compiler.h"
-#include "pipe/p_format.h"
+#include "util/compiler.h"
+#include "util/format/u_formats.h"
 
 
 #define UTIL_FORMAT_MAX_PACKED_BYTES 32  // R64G64B64A64_FLOAT

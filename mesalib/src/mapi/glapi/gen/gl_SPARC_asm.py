@@ -157,7 +157,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
                         text = '\tGL_STUB_ALIAS(gl%s, gl%s)' % (n, f.name)
 
                         if f.has_different_protocol(n):
-                            print('#ifndef GLX_INDIRECT_RENDERING')
+                            print('#if GLAPI_EXPORT_PROTO_ENTRY_POINTS')
                             print(text)
                             print('#endif')
                         else:

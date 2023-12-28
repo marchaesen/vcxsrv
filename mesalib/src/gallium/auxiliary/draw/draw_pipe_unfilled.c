@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /**
@@ -53,28 +53,29 @@ struct unfilled_stage {
 };
 
 
-static inline struct unfilled_stage *unfilled_stage( struct draw_stage *stage )
+static inline struct
+unfilled_stage *unfilled_stage(struct draw_stage *stage)
 {
-   return (struct unfilled_stage *)stage;
+   return (struct unfilled_stage *) stage;
 }
+
 
 static void
 inject_front_face_info(struct draw_stage *stage,
                        struct prim_header *header)
 {
    struct unfilled_stage *unfilled = unfilled_stage(stage);
-   boolean is_front_face = (
+   bool is_front_face = (
       (stage->draw->rasterizer->front_ccw && header->det < 0.0f) ||
       (!stage->draw->rasterizer->front_ccw && header->det > 0.0f));
    int slot = unfilled->face_slot;
-   unsigned i;
 
    /* In case the backend doesn't care about it */
    if (slot < 0) {
       return;
    }
 
-   for (i = 0; i < 3; ++i) {
+   for (unsigned i = 0; i < 3; ++i) {
       struct vertex_header *v = header->v[i];
       v->data[slot][0] = is_front_face;
       v->data[slot][1] = is_front_face;
@@ -84,10 +85,11 @@ inject_front_face_info(struct draw_stage *stage,
    }
 }
 
-   
-static void point(struct draw_stage *stage,
-                  struct prim_header *header,
-                  struct vertex_header *v0)
+
+static void
+point(struct draw_stage *stage,
+      struct prim_header *header,
+      struct vertex_header *v0)
 {
    struct prim_header tmp;
    tmp.det = header->det;
@@ -96,10 +98,12 @@ static void point(struct draw_stage *stage,
    stage->next->point(stage->next, &tmp);
 }
 
-static void line(struct draw_stage *stage,
-                 struct prim_header *header,
-                 struct vertex_header *v0,
-                 struct vertex_header *v1)
+
+static void
+line(struct draw_stage *stage,
+     struct prim_header *header,
+     struct vertex_header *v0,
+     struct vertex_header *v1)
 {
    struct prim_header tmp;
    tmp.det = header->det;
@@ -110,8 +114,9 @@ static void line(struct draw_stage *stage,
 }
 
 
-static void points(struct draw_stage *stage,
-                   struct prim_header *header)
+static void
+points(struct draw_stage *stage,
+       struct prim_header *header)
 {
    struct vertex_header *v0 = header->v[0];
    struct vertex_header *v1 = header->v[1];
@@ -128,8 +133,9 @@ static void points(struct draw_stage *stage,
 }
 
 
-static void lines(struct draw_stage *stage,
-                  struct prim_header *header)
+static void
+lines(struct draw_stage *stage,
+      struct prim_header *header)
 {
    struct vertex_header *v0 = header->v[0];
    struct vertex_header *v1 = header->v[1];
@@ -174,42 +180,44 @@ print_header_flags(unsigned flags)
 }
 
 
-/* Unfilled tri:  
+/* Unfilled tri:
  *
  * Note edgeflags in the vertex struct is not sufficient as we will
- * need to manipulate them when decomposing primitives.  
- * 
+ * need to manipulate them when decomposing primitives.
+ *
  * We currently keep the vertex edgeflag and primitive edgeflag mask
  * separate until the last possible moment.
  */
-static void unfilled_tri( struct draw_stage *stage,
-			  struct prim_header *header )
+static void
+unfilled_tri(struct draw_stage *stage,
+             struct prim_header *header)
 {
    struct unfilled_stage *unfilled = unfilled_stage(stage);
    unsigned cw = header->det >= 0.0;
    unsigned mode = unfilled->mode[cw];
-  
+
    if (0)
       print_header_flags(header->flags);
 
    switch (mode) {
    case PIPE_POLYGON_MODE_FILL:
-      stage->next->tri( stage->next, header );
+      stage->next->tri(stage->next, header);
       break;
    case PIPE_POLYGON_MODE_LINE:
-      lines( stage, header );
+      lines(stage, header);
       break;
    case PIPE_POLYGON_MODE_POINT:
-      points( stage, header );
+      points(stage, header);
       break;
    default:
       assert(0);
-   }   
+   }
 }
 
 
-static void unfilled_first_tri( struct draw_stage *stage, 
-				struct prim_header *header )
+static void
+unfilled_first_tri(struct draw_stage *stage,
+                   struct prim_header *header)
 {
    struct unfilled_stage *unfilled = unfilled_stage(stage);
    const struct pipe_rasterizer_state *rast = stage->draw->rasterizer;
@@ -218,45 +226,48 @@ static void unfilled_first_tri( struct draw_stage *stage,
    unfilled->mode[1] = rast->front_ccw ? rast->fill_back : rast->fill_front;
 
    stage->tri = unfilled_tri;
-   stage->tri( stage, header );
+   stage->tri(stage, header);
 }
 
 
-
-static void unfilled_flush( struct draw_stage *stage,
-			    unsigned flags )
+static void
+unfilled_flush(struct draw_stage *stage,
+               unsigned flags)
 {
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 
    stage->tri = unfilled_first_tri;
 }
 
 
-static void unfilled_reset_stipple_counter( struct draw_stage *stage )
+static void
+unfilled_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void unfilled_destroy( struct draw_stage *stage )
+static void
+unfilled_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
+
 
 /*
  * Try to allocate an output slot which we can use
  * to preserve the front face information.
  */
 void
-draw_unfilled_prepare_outputs( struct draw_context *draw,
-                               struct draw_stage *stage )
+draw_unfilled_prepare_outputs(struct draw_context *draw,
+                               struct draw_stage *stage)
 {
    struct unfilled_stage *unfilled = unfilled_stage(stage);
    const struct pipe_rasterizer_state *rast = draw ? draw->rasterizer : NULL;
-   boolean is_unfilled = (rast &&
-                          (rast->fill_front != PIPE_POLYGON_MODE_FILL ||
-                           rast->fill_back != PIPE_POLYGON_MODE_FILL));
+   bool is_unfilled = (rast &&
+                       (rast->fill_front != PIPE_POLYGON_MODE_FILL ||
+                        rast->fill_back != PIPE_POLYGON_MODE_FILL));
    const struct draw_fragment_shader *fs = draw ? draw->fs.fragment_shader : NULL;
 
    if (is_unfilled && fs && fs->info.uses_frontface)  {
@@ -271,7 +282,8 @@ draw_unfilled_prepare_outputs( struct draw_context *draw,
 /**
  * Create unfilled triangle stage.
  */
-struct draw_stage *draw_unfilled_stage( struct draw_context *draw )
+struct draw_stage *
+draw_unfilled_stage(struct draw_context *draw)
 {
    struct unfilled_stage *unfilled = CALLOC_STRUCT(unfilled_stage);
    if (!unfilled)
@@ -290,14 +302,14 @@ struct draw_stage *draw_unfilled_stage( struct draw_context *draw )
 
    unfilled->face_slot = -1;
 
-   if (!draw_alloc_temp_verts( &unfilled->stage, 0 ))
+   if (!draw_alloc_temp_verts(&unfilled->stage, 0))
       goto fail;
 
    return &unfilled->stage;
 
  fail:
    if (unfilled)
-      unfilled->stage.destroy( &unfilled->stage );
+      unfilled->stage.destroy(&unfilled->stage);
 
    return NULL;
 }

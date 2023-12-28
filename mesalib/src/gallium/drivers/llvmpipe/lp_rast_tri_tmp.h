@@ -343,7 +343,7 @@ TAG(lp_rast_triangle)(struct lp_rasterizer_task *task,
 }
 
 
-#if defined(PIPE_ARCH_SSE) && defined(TRI_16)
+#if DETECT_ARCH_SSE && defined(TRI_16)
 /* XXX: special case this when intersection is not required.
  *      - tile completely within bbox,
  *      - bbox completely within tile.
@@ -427,7 +427,7 @@ TRI_16(struct lp_rasterizer_task *task,
 #endif
 
 
-#if defined(PIPE_ARCH_SSE) && defined(TRI_4)
+#if DETECT_ARCH_SSE && defined(TRI_4)
 void
 TRI_4(struct lp_rasterizer_task *task,
       const union lp_rast_cmd_arg arg)

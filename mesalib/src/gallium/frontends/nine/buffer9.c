@@ -32,7 +32,7 @@
 #include "pipe/p_context.h"
 #include "pipe/p_state.h"
 #include "pipe/p_defines.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 #include "util/u_box.h"
 #include "util/u_inlines.h"
 
@@ -153,7 +153,7 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
     info->nr_samples = 0;
     info->nr_storage_samples = 0;
 
-    hr = NineResource9_ctor(&This->base, pParams, NULL, TRUE,
+    hr = NineResource9_ctor(&This->base, pParams, NULL, true,
                             Type, Pool, Usage);
 
     if (FAILED(hr))
@@ -165,7 +165,7 @@ NineBuffer9_ctor( struct NineBuffer9 *This,
                                              Size, 1, 0), 32);
         if (!This->managed.data)
             return E_OUTOFMEMORY;
-        This->managed.dirty = TRUE;
+        This->managed.dirty = true;
         u_box_1d(0, Size, &This->managed.dirty_box);
         u_box_1d(0, 0, &This->managed.valid_region);
         u_box_1d(0, 0, &This->managed.required_valid_region);
@@ -232,7 +232,7 @@ NineBuffer9_RebindIfRequired( struct NineBuffer9 *This,
             nine_context_set_stream_source_apply(device, i,
                                                  resource,
                                                  device->state.vtxbuf[i].buffer_offset + offset,
-                                                 device->state.vtxbuf[i].stride);
+                                                 device->state.vtxstride[i]);
     }
     if (device->state.idxbuf == (struct NineIndexBuffer9 *)This)
         nine_context_set_indices_apply(device, resource,
@@ -287,7 +287,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             if (!(Flags & D3DLOCK_READONLY)) {
                 if (!This->managed.dirty) {
                     assert(list_is_empty(&This->managed.list));
-                    This->managed.dirty = TRUE;
+                    This->managed.dirty = true;
                     This->managed.dirty_box = box;
                     /* Flush if regions pending to be uploaded would be dirtied */
                     if (p_atomic_read(&This->managed.pending_upload)) {
@@ -449,7 +449,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
 
         pipe = NineDevice9_GetPipe(device);
         pipe->flush(pipe, &fence, 0);
-        (void) screen->fence_finish(screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
+        (void) screen->fence_finish(screen, NULL, fence, OS_TIMEOUT_INFINITE);
         screen->fence_reference(screen, &fence, NULL);
     }
     This->need_sync_if_nooverwrite = !(Flags & (D3DLOCK_DISCARD | D3DLOCK_NOOVERWRITE));
@@ -466,10 +466,10 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
             pipe_resource_reference(&new_res, NULL);
             usage = PIPE_MAP_WRITE | PIPE_MAP_UNSYNCHRONIZED;
             NineBuffer9_RebindIfRequired(This, device, This->base.resource, 0);
-            This->maps[This->nmaps].is_pipe_secondary = TRUE;
+            This->maps[This->nmaps].is_pipe_secondary = true;
         }
     } else if (Flags & D3DLOCK_NOOVERWRITE && device->csmt_active)
-        This->maps[This->nmaps].is_pipe_secondary = TRUE;
+        This->maps[This->nmaps].is_pipe_secondary = true;
 
     if (This->maps[This->nmaps].is_pipe_secondary)
         pipe = device->pipe_secondary;
@@ -537,7 +537,7 @@ NineBuffer9_SetDirty( struct NineBuffer9 *This )
 {
     assert(This->base.pool != D3DPOOL_DEFAULT);
 
-    This->managed.dirty = TRUE;
+    This->managed.dirty = true;
     u_box_1d(0, This->size, &This->managed.dirty_box);
     BASEBUF_REGISTER_UPDATE(This);
 }
@@ -712,5 +712,5 @@ NineBuffer9_Upload( struct NineBuffer9 *This )
                               box_upload.width,
                               upload_flags,
                               (int8_t *)This->managed.data + box_upload.x);
-    This->managed.dirty = FALSE;
+    This->managed.dirty = false;
 }

@@ -8,8 +8,14 @@
 #ifndef VN_PROTOCOL_DRIVER_COMMAND_BUFFER_H
 #define VN_PROTOCOL_DRIVER_COMMAND_BUFFER_H
 
-#include "vn_instance.h"
+#include "vn_ring.h"
 #include "vn_protocol_driver_structs.h"
+
+/*
+ * These structs/unions/commands are not included
+ *
+ *   vkCmdPushDescriptorSetWithTemplateKHR
+ */
 
 /* struct VkCommandBufferAllocateInfo chain */
 
@@ -1349,6 +1355,56 @@ vn_encode_VkSubpassEndInfo(struct vn_cs_encoder *enc, const VkSubpassEndInfo *va
     vn_encode_VkSubpassEndInfo_self(enc, val);
 }
 
+/* struct VkColorBlendEquationEXT */
+
+static inline size_t
+vn_sizeof_VkColorBlendEquationEXT(const VkColorBlendEquationEXT *val)
+{
+    size_t size = 0;
+    size += vn_sizeof_VkBlendFactor(&val->srcColorBlendFactor);
+    size += vn_sizeof_VkBlendFactor(&val->dstColorBlendFactor);
+    size += vn_sizeof_VkBlendOp(&val->colorBlendOp);
+    size += vn_sizeof_VkBlendFactor(&val->srcAlphaBlendFactor);
+    size += vn_sizeof_VkBlendFactor(&val->dstAlphaBlendFactor);
+    size += vn_sizeof_VkBlendOp(&val->alphaBlendOp);
+    return size;
+}
+
+static inline void
+vn_encode_VkColorBlendEquationEXT(struct vn_cs_encoder *enc, const VkColorBlendEquationEXT *val)
+{
+    vn_encode_VkBlendFactor(enc, &val->srcColorBlendFactor);
+    vn_encode_VkBlendFactor(enc, &val->dstColorBlendFactor);
+    vn_encode_VkBlendOp(enc, &val->colorBlendOp);
+    vn_encode_VkBlendFactor(enc, &val->srcAlphaBlendFactor);
+    vn_encode_VkBlendFactor(enc, &val->dstAlphaBlendFactor);
+    vn_encode_VkBlendOp(enc, &val->alphaBlendOp);
+}
+
+/* struct VkColorBlendAdvancedEXT */
+
+static inline size_t
+vn_sizeof_VkColorBlendAdvancedEXT(const VkColorBlendAdvancedEXT *val)
+{
+    size_t size = 0;
+    size += vn_sizeof_VkBlendOp(&val->advancedBlendOp);
+    size += vn_sizeof_VkBool32(&val->srcPremultiplied);
+    size += vn_sizeof_VkBool32(&val->dstPremultiplied);
+    size += vn_sizeof_VkBlendOverlapEXT(&val->blendOverlap);
+    size += vn_sizeof_VkBool32(&val->clampResults);
+    return size;
+}
+
+static inline void
+vn_encode_VkColorBlendAdvancedEXT(struct vn_cs_encoder *enc, const VkColorBlendAdvancedEXT *val)
+{
+    vn_encode_VkBlendOp(enc, &val->advancedBlendOp);
+    vn_encode_VkBool32(enc, &val->srcPremultiplied);
+    vn_encode_VkBool32(enc, &val->dstPremultiplied);
+    vn_encode_VkBlendOverlapEXT(enc, &val->blendOverlap);
+    vn_encode_VkBool32(enc, &val->clampResults);
+}
+
 /* struct VkBufferCopy2 chain */
 
 static inline size_t
@@ -2100,6 +2156,124 @@ vn_encode_VkResolveImageInfo2(struct vn_cs_encoder *enc, const VkResolveImageInf
     vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_RESOLVE_IMAGE_INFO_2 });
     vn_encode_VkResolveImageInfo2_pnext(enc, val->pNext);
     vn_encode_VkResolveImageInfo2_self(enc, val);
+}
+
+/* struct VkVertexInputBindingDescription2EXT chain */
+
+static inline size_t
+vn_sizeof_VkVertexInputBindingDescription2EXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkVertexInputBindingDescription2EXT_self(const VkVertexInputBindingDescription2EXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->binding);
+    size += vn_sizeof_uint32_t(&val->stride);
+    size += vn_sizeof_VkVertexInputRate(&val->inputRate);
+    size += vn_sizeof_uint32_t(&val->divisor);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkVertexInputBindingDescription2EXT(const VkVertexInputBindingDescription2EXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkVertexInputBindingDescription2EXT_pnext(val->pNext);
+    size += vn_sizeof_VkVertexInputBindingDescription2EXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkVertexInputBindingDescription2EXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkVertexInputBindingDescription2EXT_self(struct vn_cs_encoder *enc, const VkVertexInputBindingDescription2EXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->binding);
+    vn_encode_uint32_t(enc, &val->stride);
+    vn_encode_VkVertexInputRate(enc, &val->inputRate);
+    vn_encode_uint32_t(enc, &val->divisor);
+}
+
+static inline void
+vn_encode_VkVertexInputBindingDescription2EXT(struct vn_cs_encoder *enc, const VkVertexInputBindingDescription2EXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_VERTEX_INPUT_BINDING_DESCRIPTION_2_EXT });
+    vn_encode_VkVertexInputBindingDescription2EXT_pnext(enc, val->pNext);
+    vn_encode_VkVertexInputBindingDescription2EXT_self(enc, val);
+}
+
+/* struct VkVertexInputAttributeDescription2EXT chain */
+
+static inline size_t
+vn_sizeof_VkVertexInputAttributeDescription2EXT_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkVertexInputAttributeDescription2EXT_self(const VkVertexInputAttributeDescription2EXT *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_uint32_t(&val->location);
+    size += vn_sizeof_uint32_t(&val->binding);
+    size += vn_sizeof_VkFormat(&val->format);
+    size += vn_sizeof_uint32_t(&val->offset);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkVertexInputAttributeDescription2EXT(const VkVertexInputAttributeDescription2EXT *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkVertexInputAttributeDescription2EXT_pnext(val->pNext);
+    size += vn_sizeof_VkVertexInputAttributeDescription2EXT_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkVertexInputAttributeDescription2EXT_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkVertexInputAttributeDescription2EXT_self(struct vn_cs_encoder *enc, const VkVertexInputAttributeDescription2EXT *val)
+{
+    /* skip val->{sType,pNext} */
+    vn_encode_uint32_t(enc, &val->location);
+    vn_encode_uint32_t(enc, &val->binding);
+    vn_encode_VkFormat(enc, &val->format);
+    vn_encode_uint32_t(enc, &val->offset);
+}
+
+static inline void
+vn_encode_VkVertexInputAttributeDescription2EXT(struct vn_cs_encoder *enc, const VkVertexInputAttributeDescription2EXT *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_VERTEX_INPUT_ATTRIBUTE_DESCRIPTION_2_EXT });
+    vn_encode_VkVertexInputAttributeDescription2EXT_pnext(enc, val->pNext);
+    vn_encode_VkVertexInputAttributeDescription2EXT_self(enc, val);
 }
 
 /* struct VkBufferMemoryBarrier2 chain */
@@ -5790,6 +5964,78 @@ static inline void vn_decode_vkCmdExecuteCommands_reply(struct vn_cs_decoder *de
     /* skip pCommandBuffers */
 }
 
+static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkPipelineBindPoint(&pipelineBindPoint);
+    cmd_size += vn_sizeof_VkPipelineLayout(&layout);
+    cmd_size += vn_sizeof_uint32_t(&set);
+    cmd_size += vn_sizeof_uint32_t(&descriptorWriteCount);
+    if (pDescriptorWrites) {
+        cmd_size += vn_sizeof_array_size(descriptorWriteCount);
+        for (uint32_t i = 0; i < descriptorWriteCount; i++)
+            cmd_size += vn_sizeof_VkWriteDescriptorSet(&pDescriptorWrites[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdPushDescriptorSetKHR(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkPipelineBindPoint(enc, &pipelineBindPoint);
+    vn_encode_VkPipelineLayout(enc, &layout);
+    vn_encode_uint32_t(enc, &set);
+    vn_encode_uint32_t(enc, &descriptorWriteCount);
+    if (pDescriptorWrites) {
+        vn_encode_array_size(enc, descriptorWriteCount);
+        for (uint32_t i = 0; i < descriptorWriteCount; i++)
+            vn_encode_VkWriteDescriptorSet(enc, &pDescriptorWrites[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdPushDescriptorSetKHR_reply(VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip pipelineBindPoint */
+    /* skip layout */
+    /* skip set */
+    /* skip descriptorWriteCount */
+    /* skip pDescriptorWrites */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdPushDescriptorSetKHR_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdPushDescriptorSetKHR_EXT);
+
+    /* skip commandBuffer */
+    /* skip pipelineBindPoint */
+    /* skip layout */
+    /* skip set */
+    /* skip descriptorWriteCount */
+    /* skip pDescriptorWrites */
+}
+
 static inline size_t vn_sizeof_vkCmdSetDeviceMask(VkCommandBuffer commandBuffer, uint32_t deviceMask)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDeviceMask_EXT;
@@ -7507,6 +7753,1022 @@ static inline void vn_decode_vkCmdSetPrimitiveRestartEnable_reply(struct vn_cs_d
     /* skip primitiveRestartEnable */
 }
 
+static inline size_t vn_sizeof_vkCmdSetTessellationDomainOriginEXT(VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetTessellationDomainOriginEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkTessellationDomainOrigin(&domainOrigin);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetTessellationDomainOriginEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetTessellationDomainOriginEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkTessellationDomainOrigin(enc, &domainOrigin);
+}
+
+static inline size_t vn_sizeof_vkCmdSetTessellationDomainOriginEXT_reply(VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetTessellationDomainOriginEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip domainOrigin */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetTessellationDomainOriginEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetTessellationDomainOriginEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip domainOrigin */
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClampEnableEXT(VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClampEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&depthClampEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetDepthClampEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClampEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &depthClampEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClampEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClampEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip depthClampEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetDepthClampEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetDepthClampEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip depthClampEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetPolygonModeEXT(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetPolygonModeEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkPolygonMode(&polygonMode);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetPolygonModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetPolygonModeEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkPolygonMode(enc, &polygonMode);
+}
+
+static inline size_t vn_sizeof_vkCmdSetPolygonModeEXT_reply(VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetPolygonModeEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip polygonMode */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetPolygonModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetPolygonModeEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip polygonMode */
+}
+
+static inline size_t vn_sizeof_vkCmdSetRasterizationSamplesEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationSamplesEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkSampleCountFlagBits(&rasterizationSamples);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetRasterizationSamplesEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationSamplesEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkSampleCountFlagBits(enc, &rasterizationSamples);
+}
+
+static inline size_t vn_sizeof_vkCmdSetRasterizationSamplesEXT_reply(VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationSamplesEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip rasterizationSamples */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetRasterizationSamplesEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetRasterizationSamplesEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip rasterizationSamples */
+}
+
+static inline size_t vn_sizeof_vkCmdSetSampleMaskEXT(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleMaskEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkSampleCountFlagBits(&samples);
+    if (pSampleMask) {
+        cmd_size += vn_sizeof_array_size((samples + 31) / 32);
+        cmd_size += vn_sizeof_VkSampleMask_array(pSampleMask, (samples + 31) / 32);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetSampleMaskEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleMaskEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkSampleCountFlagBits(enc, &samples);
+    if (pSampleMask) {
+        vn_encode_array_size(enc, (samples + 31) / 32);
+        vn_encode_VkSampleMask_array(enc, pSampleMask, (samples + 31) / 32);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetSampleMaskEXT_reply(VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleMaskEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip samples */
+    /* skip pSampleMask */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetSampleMaskEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetSampleMaskEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip samples */
+    /* skip pSampleMask */
+}
+
+static inline size_t vn_sizeof_vkCmdSetAlphaToCoverageEnableEXT(VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToCoverageEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&alphaToCoverageEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetAlphaToCoverageEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToCoverageEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &alphaToCoverageEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetAlphaToCoverageEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToCoverageEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip alphaToCoverageEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetAlphaToCoverageEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetAlphaToCoverageEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip alphaToCoverageEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetAlphaToOneEnableEXT(VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToOneEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&alphaToOneEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetAlphaToOneEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToOneEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &alphaToOneEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetAlphaToOneEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetAlphaToOneEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip alphaToOneEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetAlphaToOneEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetAlphaToOneEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip alphaToOneEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetLogicOpEnableEXT(VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLogicOpEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&logicOpEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetLogicOpEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLogicOpEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &logicOpEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetLogicOpEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLogicOpEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip logicOpEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetLogicOpEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetLogicOpEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip logicOpEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendEnableEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&firstAttachment);
+    cmd_size += vn_sizeof_uint32_t(&attachmentCount);
+    if (pColorBlendEnables) {
+        cmd_size += vn_sizeof_array_size(attachmentCount);
+        cmd_size += vn_sizeof_VkBool32_array(pColorBlendEnables, attachmentCount);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetColorBlendEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &firstAttachment);
+    vn_encode_uint32_t(enc, &attachmentCount);
+    if (pColorBlendEnables) {
+        vn_encode_array_size(enc, attachmentCount);
+        vn_encode_VkBool32_array(enc, pColorBlendEnables, attachmentCount);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendEnableEXT_reply(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendEnables */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetColorBlendEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetColorBlendEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendEnables */
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendEquationEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEquationEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&firstAttachment);
+    cmd_size += vn_sizeof_uint32_t(&attachmentCount);
+    if (pColorBlendEquations) {
+        cmd_size += vn_sizeof_array_size(attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            cmd_size += vn_sizeof_VkColorBlendEquationEXT(&pColorBlendEquations[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetColorBlendEquationEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEquationEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &firstAttachment);
+    vn_encode_uint32_t(enc, &attachmentCount);
+    if (pColorBlendEquations) {
+        vn_encode_array_size(enc, attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            vn_encode_VkColorBlendEquationEXT(enc, &pColorBlendEquations[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendEquationEXT_reply(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendEquationEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendEquations */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetColorBlendEquationEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetColorBlendEquationEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendEquations */
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorWriteMaskEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteMaskEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&firstAttachment);
+    cmd_size += vn_sizeof_uint32_t(&attachmentCount);
+    if (pColorWriteMasks) {
+        cmd_size += vn_sizeof_array_size(attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            cmd_size += vn_sizeof_VkFlags(&pColorWriteMasks[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetColorWriteMaskEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteMaskEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &firstAttachment);
+    vn_encode_uint32_t(enc, &attachmentCount);
+    if (pColorWriteMasks) {
+        vn_encode_array_size(enc, attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            vn_encode_VkFlags(enc, &pColorWriteMasks[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorWriteMaskEXT_reply(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteMaskEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorWriteMasks */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetColorWriteMaskEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetColorWriteMaskEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorWriteMasks */
+}
+
+static inline size_t vn_sizeof_vkCmdSetRasterizationStreamEXT(VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationStreamEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&rasterizationStream);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetRasterizationStreamEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationStreamEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &rasterizationStream);
+}
+
+static inline size_t vn_sizeof_vkCmdSetRasterizationStreamEXT_reply(VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetRasterizationStreamEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip rasterizationStream */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetRasterizationStreamEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetRasterizationStreamEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip rasterizationStream */
+}
+
+static inline size_t vn_sizeof_vkCmdSetConservativeRasterizationModeEXT(VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetConservativeRasterizationModeEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkConservativeRasterizationModeEXT(&conservativeRasterizationMode);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetConservativeRasterizationModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetConservativeRasterizationModeEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkConservativeRasterizationModeEXT(enc, &conservativeRasterizationMode);
+}
+
+static inline size_t vn_sizeof_vkCmdSetConservativeRasterizationModeEXT_reply(VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetConservativeRasterizationModeEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip conservativeRasterizationMode */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetConservativeRasterizationModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetConservativeRasterizationModeEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip conservativeRasterizationMode */
+}
+
+static inline size_t vn_sizeof_vkCmdSetExtraPrimitiveOverestimationSizeEXT(VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetExtraPrimitiveOverestimationSizeEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_float(&extraPrimitiveOverestimationSize);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetExtraPrimitiveOverestimationSizeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetExtraPrimitiveOverestimationSizeEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_float(enc, &extraPrimitiveOverestimationSize);
+}
+
+static inline size_t vn_sizeof_vkCmdSetExtraPrimitiveOverestimationSizeEXT_reply(VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetExtraPrimitiveOverestimationSizeEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip extraPrimitiveOverestimationSize */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetExtraPrimitiveOverestimationSizeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetExtraPrimitiveOverestimationSizeEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip extraPrimitiveOverestimationSize */
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClipEnableEXT(VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&depthClipEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetDepthClipEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &depthClipEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClipEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip depthClipEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetDepthClipEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetDepthClipEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip depthClipEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetSampleLocationsEnableEXT(VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleLocationsEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&sampleLocationsEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetSampleLocationsEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleLocationsEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &sampleLocationsEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetSampleLocationsEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetSampleLocationsEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip sampleLocationsEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetSampleLocationsEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetSampleLocationsEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip sampleLocationsEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendAdvancedEXT(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendAdvancedEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&firstAttachment);
+    cmd_size += vn_sizeof_uint32_t(&attachmentCount);
+    if (pColorBlendAdvanced) {
+        cmd_size += vn_sizeof_array_size(attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            cmd_size += vn_sizeof_VkColorBlendAdvancedEXT(&pColorBlendAdvanced[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetColorBlendAdvancedEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendAdvancedEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &firstAttachment);
+    vn_encode_uint32_t(enc, &attachmentCount);
+    if (pColorBlendAdvanced) {
+        vn_encode_array_size(enc, attachmentCount);
+        for (uint32_t i = 0; i < attachmentCount; i++)
+            vn_encode_VkColorBlendAdvancedEXT(enc, &pColorBlendAdvanced[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorBlendAdvancedEXT_reply(VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorBlendAdvancedEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendAdvanced */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetColorBlendAdvancedEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetColorBlendAdvancedEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip firstAttachment */
+    /* skip attachmentCount */
+    /* skip pColorBlendAdvanced */
+}
+
+static inline size_t vn_sizeof_vkCmdSetProvokingVertexModeEXT(VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetProvokingVertexModeEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkProvokingVertexModeEXT(&provokingVertexMode);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetProvokingVertexModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetProvokingVertexModeEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkProvokingVertexModeEXT(enc, &provokingVertexMode);
+}
+
+static inline size_t vn_sizeof_vkCmdSetProvokingVertexModeEXT_reply(VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetProvokingVertexModeEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip provokingVertexMode */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetProvokingVertexModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetProvokingVertexModeEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip provokingVertexMode */
+}
+
+static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT(VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkLineRasterizationModeEXT(&lineRasterizationMode);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetLineRasterizationModeEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkLineRasterizationModeEXT(enc, &lineRasterizationMode);
+}
+
+static inline size_t vn_sizeof_vkCmdSetLineRasterizationModeEXT_reply(VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip lineRasterizationMode */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetLineRasterizationModeEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetLineRasterizationModeEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip lineRasterizationMode */
+}
+
+static inline size_t vn_sizeof_vkCmdSetLineStippleEnableEXT(VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&stippledLineEnable);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetLineStippleEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &stippledLineEnable);
+}
+
+static inline size_t vn_sizeof_vkCmdSetLineStippleEnableEXT_reply(VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetLineStippleEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip stippledLineEnable */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetLineStippleEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetLineStippleEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip stippledLineEnable */
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClipNegativeOneToOneEXT(VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipNegativeOneToOneEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_VkBool32(&negativeOneToOne);
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetDepthClipNegativeOneToOneEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipNegativeOneToOneEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_VkBool32(enc, &negativeOneToOne);
+}
+
+static inline size_t vn_sizeof_vkCmdSetDepthClipNegativeOneToOneEXT_reply(VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetDepthClipNegativeOneToOneEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip negativeOneToOne */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetDepthClipNegativeOneToOneEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetDepthClipNegativeOneToOneEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip negativeOneToOne */
+}
+
 static inline size_t vn_sizeof_vkCmdCopyBuffer2(VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo)
 {
     const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdCopyBuffer2_EXT;
@@ -7787,6 +9049,144 @@ static inline void vn_decode_vkCmdResolveImage2_reply(struct vn_cs_decoder *dec,
 
     /* skip commandBuffer */
     /* skip pResolveImageInfo */
+}
+
+static inline size_t vn_sizeof_vkCmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetVertexInputEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&vertexBindingDescriptionCount);
+    if (pVertexBindingDescriptions) {
+        cmd_size += vn_sizeof_array_size(vertexBindingDescriptionCount);
+        for (uint32_t i = 0; i < vertexBindingDescriptionCount; i++)
+            cmd_size += vn_sizeof_VkVertexInputBindingDescription2EXT(&pVertexBindingDescriptions[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+    cmd_size += vn_sizeof_uint32_t(&vertexAttributeDescriptionCount);
+    if (pVertexAttributeDescriptions) {
+        cmd_size += vn_sizeof_array_size(vertexAttributeDescriptionCount);
+        for (uint32_t i = 0; i < vertexAttributeDescriptionCount; i++)
+            cmd_size += vn_sizeof_VkVertexInputAttributeDescription2EXT(&pVertexAttributeDescriptions[i]);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetVertexInputEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetVertexInputEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &vertexBindingDescriptionCount);
+    if (pVertexBindingDescriptions) {
+        vn_encode_array_size(enc, vertexBindingDescriptionCount);
+        for (uint32_t i = 0; i < vertexBindingDescriptionCount; i++)
+            vn_encode_VkVertexInputBindingDescription2EXT(enc, &pVertexBindingDescriptions[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+    vn_encode_uint32_t(enc, &vertexAttributeDescriptionCount);
+    if (pVertexAttributeDescriptions) {
+        vn_encode_array_size(enc, vertexAttributeDescriptionCount);
+        for (uint32_t i = 0; i < vertexAttributeDescriptionCount; i++)
+            vn_encode_VkVertexInputAttributeDescription2EXT(enc, &pVertexAttributeDescriptions[i]);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetVertexInputEXT_reply(VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetVertexInputEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip vertexBindingDescriptionCount */
+    /* skip pVertexBindingDescriptions */
+    /* skip vertexAttributeDescriptionCount */
+    /* skip pVertexAttributeDescriptions */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetVertexInputEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetVertexInputEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip vertexBindingDescriptionCount */
+    /* skip pVertexBindingDescriptions */
+    /* skip vertexAttributeDescriptionCount */
+    /* skip pVertexAttributeDescriptions */
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorWriteEnableEXT(VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteEnableEXT_EXT;
+    const VkFlags cmd_flags = 0;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type) + vn_sizeof_VkFlags(&cmd_flags);
+
+    cmd_size += vn_sizeof_VkCommandBuffer(&commandBuffer);
+    cmd_size += vn_sizeof_uint32_t(&attachmentCount);
+    if (pColorWriteEnables) {
+        cmd_size += vn_sizeof_array_size(attachmentCount);
+        cmd_size += vn_sizeof_VkBool32_array(pColorWriteEnables, attachmentCount);
+    } else {
+        cmd_size += vn_sizeof_array_size(0);
+    }
+
+    return cmd_size;
+}
+
+static inline void vn_encode_vkCmdSetColorWriteEnableEXT(struct vn_cs_encoder *enc, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteEnableEXT_EXT;
+
+    vn_encode_VkCommandTypeEXT(enc, &cmd_type);
+    vn_encode_VkFlags(enc, &cmd_flags);
+
+    vn_encode_VkCommandBuffer(enc, &commandBuffer);
+    vn_encode_uint32_t(enc, &attachmentCount);
+    if (pColorWriteEnables) {
+        vn_encode_array_size(enc, attachmentCount);
+        vn_encode_VkBool32_array(enc, pColorWriteEnables, attachmentCount);
+    } else {
+        vn_encode_array_size(enc, 0);
+    }
+}
+
+static inline size_t vn_sizeof_vkCmdSetColorWriteEnableEXT_reply(VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    const VkCommandTypeEXT cmd_type = VK_COMMAND_TYPE_vkCmdSetColorWriteEnableEXT_EXT;
+    size_t cmd_size = vn_sizeof_VkCommandTypeEXT(&cmd_type);
+
+    /* skip commandBuffer */
+    /* skip attachmentCount */
+    /* skip pColorWriteEnables */
+
+    return cmd_size;
+}
+
+static inline void vn_decode_vkCmdSetColorWriteEnableEXT_reply(struct vn_cs_decoder *dec, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    VkCommandTypeEXT command_type;
+    vn_decode_VkCommandTypeEXT(dec, &command_type);
+    assert(command_type == VK_COMMAND_TYPE_vkCmdSetColorWriteEnableEXT_EXT);
+
+    /* skip commandBuffer */
+    /* skip attachmentCount */
+    /* skip pColorWriteEnables */
 }
 
 static inline size_t vn_sizeof_vkCmdSetEvent2(VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo)
@@ -8150,7 +9550,7 @@ static inline void vn_decode_vkCmdEndRendering_reply(struct vn_cs_decoder *dec, 
     /* skip commandBuffer */
 }
 
-static inline void vn_submit_vkAllocateCommandBuffers(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkAllocateCommandBuffers(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8162,16 +9562,16 @@ static inline void vn_submit_vkAllocateCommandBuffers(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkAllocateCommandBuffers_reply(device, pAllocateInfo, pCommandBuffers) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkAllocateCommandBuffers(enc, cmd_flags, device, pAllocateInfo, pCommandBuffers);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkFreeCommandBuffers(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkFreeCommandBuffers(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8183,16 +9583,16 @@ static inline void vn_submit_vkFreeCommandBuffers(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkFreeCommandBuffers_reply(device, commandPool, commandBufferCount, pCommandBuffers) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkFreeCommandBuffers(enc, cmd_flags, device, commandPool, commandBufferCount, pCommandBuffers);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkBeginCommandBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkBeginCommandBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8204,16 +9604,16 @@ static inline void vn_submit_vkBeginCommandBuffer(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkBeginCommandBuffer_reply(commandBuffer, pBeginInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkBeginCommandBuffer(enc, cmd_flags, commandBuffer, pBeginInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkEndCommandBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkEndCommandBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8225,16 +9625,16 @@ static inline void vn_submit_vkEndCommandBuffer(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkEndCommandBuffer_reply(commandBuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkEndCommandBuffer(enc, cmd_flags, commandBuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkResetCommandBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkResetCommandBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8246,16 +9646,16 @@ static inline void vn_submit_vkResetCommandBuffer(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkResetCommandBuffer_reply(commandBuffer, flags) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkResetCommandBuffer(enc, cmd_flags, commandBuffer, flags);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindPipeline(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindPipeline(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8267,16 +9667,16 @@ static inline void vn_submit_vkCmdBindPipeline(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindPipeline_reply(commandBuffer, pipelineBindPoint, pipeline) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindPipeline(enc, cmd_flags, commandBuffer, pipelineBindPoint, pipeline);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetViewport(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetViewport(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8288,16 +9688,16 @@ static inline void vn_submit_vkCmdSetViewport(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetViewport_reply(commandBuffer, firstViewport, viewportCount, pViewports) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetViewport(enc, cmd_flags, commandBuffer, firstViewport, viewportCount, pViewports);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetScissor(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetScissor(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8309,16 +9709,16 @@ static inline void vn_submit_vkCmdSetScissor(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetScissor_reply(commandBuffer, firstScissor, scissorCount, pScissors) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetScissor(enc, cmd_flags, commandBuffer, firstScissor, scissorCount, pScissors);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetLineWidth(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float lineWidth, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetLineWidth(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float lineWidth, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8330,16 +9730,16 @@ static inline void vn_submit_vkCmdSetLineWidth(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineWidth_reply(commandBuffer, lineWidth) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetLineWidth(enc, cmd_flags, commandBuffer, lineWidth);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthBias(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthBias(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8351,16 +9751,16 @@ static inline void vn_submit_vkCmdSetDepthBias(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthBias_reply(commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthBias(enc, cmd_flags, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetBlendConstants(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const float blendConstants[4], struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetBlendConstants(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const float blendConstants[4], struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8372,16 +9772,16 @@ static inline void vn_submit_vkCmdSetBlendConstants(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetBlendConstants_reply(commandBuffer, blendConstants) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetBlendConstants(enc, cmd_flags, commandBuffer, blendConstants);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthBounds(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthBounds(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8393,16 +9793,16 @@ static inline void vn_submit_vkCmdSetDepthBounds(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthBounds_reply(commandBuffer, minDepthBounds, maxDepthBounds) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthBounds(enc, cmd_flags, commandBuffer, minDepthBounds, maxDepthBounds);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetStencilCompareMask(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetStencilCompareMask(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8414,16 +9814,16 @@ static inline void vn_submit_vkCmdSetStencilCompareMask(struct vn_instance *vn_i
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetStencilCompareMask_reply(commandBuffer, faceMask, compareMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetStencilCompareMask(enc, cmd_flags, commandBuffer, faceMask, compareMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetStencilWriteMask(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetStencilWriteMask(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8435,16 +9835,16 @@ static inline void vn_submit_vkCmdSetStencilWriteMask(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetStencilWriteMask_reply(commandBuffer, faceMask, writeMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetStencilWriteMask(enc, cmd_flags, commandBuffer, faceMask, writeMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetStencilReference(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetStencilReference(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8456,16 +9856,16 @@ static inline void vn_submit_vkCmdSetStencilReference(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetStencilReference_reply(commandBuffer, faceMask, reference) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetStencilReference(enc, cmd_flags, commandBuffer, faceMask, reference);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindDescriptorSets(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindDescriptorSets(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8477,16 +9877,16 @@ static inline void vn_submit_vkCmdBindDescriptorSets(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindDescriptorSets_reply(commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindDescriptorSets(enc, cmd_flags, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindIndexBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindIndexBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8498,16 +9898,16 @@ static inline void vn_submit_vkCmdBindIndexBuffer(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindIndexBuffer_reply(commandBuffer, buffer, offset, indexType) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindIndexBuffer(enc, cmd_flags, commandBuffer, buffer, offset, indexType);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindVertexBuffers(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindVertexBuffers(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8519,16 +9919,16 @@ static inline void vn_submit_vkCmdBindVertexBuffers(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindVertexBuffers_reply(commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindVertexBuffers(enc, cmd_flags, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDraw(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDraw(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8540,16 +9940,16 @@ static inline void vn_submit_vkCmdDraw(struct vn_instance *vn_instance, VkComman
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDraw_reply(commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDraw(enc, cmd_flags, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndexed(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndexed(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8561,16 +9961,16 @@ static inline void vn_submit_vkCmdDrawIndexed(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndexed_reply(commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndexed(enc, cmd_flags, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawMultiEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawMultiEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8582,16 +9982,16 @@ static inline void vn_submit_vkCmdDrawMultiEXT(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawMultiEXT_reply(commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawMultiEXT(enc, cmd_flags, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawMultiIndexedEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawMultiIndexedEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8603,16 +10003,16 @@ static inline void vn_submit_vkCmdDrawMultiIndexedEXT(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawMultiIndexedEXT_reply(commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawMultiIndexedEXT(enc, cmd_flags, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndirect(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndirect(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8624,16 +10024,16 @@ static inline void vn_submit_vkCmdDrawIndirect(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndirect_reply(commandBuffer, buffer, offset, drawCount, stride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndirect(enc, cmd_flags, commandBuffer, buffer, offset, drawCount, stride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndexedIndirect(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndexedIndirect(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8645,16 +10045,16 @@ static inline void vn_submit_vkCmdDrawIndexedIndirect(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndexedIndirect_reply(commandBuffer, buffer, offset, drawCount, stride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndexedIndirect(enc, cmd_flags, commandBuffer, buffer, offset, drawCount, stride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDispatch(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDispatch(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8666,16 +10066,16 @@ static inline void vn_submit_vkCmdDispatch(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDispatch_reply(commandBuffer, groupCountX, groupCountY, groupCountZ) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDispatch(enc, cmd_flags, commandBuffer, groupCountX, groupCountY, groupCountZ);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDispatchIndirect(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDispatchIndirect(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8687,16 +10087,16 @@ static inline void vn_submit_vkCmdDispatchIndirect(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDispatchIndirect_reply(commandBuffer, buffer, offset) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDispatchIndirect(enc, cmd_flags, commandBuffer, buffer, offset);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8708,16 +10108,16 @@ static inline void vn_submit_vkCmdCopyBuffer(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyBuffer_reply(commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyBuffer(enc, cmd_flags, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8729,16 +10129,16 @@ static inline void vn_submit_vkCmdCopyImage(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyImage_reply(commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyImage(enc, cmd_flags, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBlitImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBlitImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8750,16 +10150,16 @@ static inline void vn_submit_vkCmdBlitImage(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBlitImage_reply(commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBlitImage(enc, cmd_flags, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyBufferToImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyBufferToImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8771,16 +10171,16 @@ static inline void vn_submit_vkCmdCopyBufferToImage(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyBufferToImage_reply(commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyBufferToImage(enc, cmd_flags, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyImageToBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyImageToBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8792,16 +10192,16 @@ static inline void vn_submit_vkCmdCopyImageToBuffer(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyImageToBuffer_reply(commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyImageToBuffer(enc, cmd_flags, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdUpdateBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdUpdateBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8813,16 +10213,16 @@ static inline void vn_submit_vkCmdUpdateBuffer(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdUpdateBuffer_reply(commandBuffer, dstBuffer, dstOffset, dataSize, pData) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdUpdateBuffer(enc, cmd_flags, commandBuffer, dstBuffer, dstOffset, dataSize, pData);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdFillBuffer(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdFillBuffer(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8834,16 +10234,16 @@ static inline void vn_submit_vkCmdFillBuffer(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdFillBuffer_reply(commandBuffer, dstBuffer, dstOffset, size, data) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdFillBuffer(enc, cmd_flags, commandBuffer, dstBuffer, dstOffset, size, data);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdClearColorImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdClearColorImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8855,16 +10255,16 @@ static inline void vn_submit_vkCmdClearColorImage(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdClearColorImage_reply(commandBuffer, image, imageLayout, pColor, rangeCount, pRanges) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdClearColorImage(enc, cmd_flags, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdClearDepthStencilImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdClearDepthStencilImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8876,16 +10276,16 @@ static inline void vn_submit_vkCmdClearDepthStencilImage(struct vn_instance *vn_
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdClearDepthStencilImage_reply(commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdClearDepthStencilImage(enc, cmd_flags, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdClearAttachments(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdClearAttachments(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8897,16 +10297,16 @@ static inline void vn_submit_vkCmdClearAttachments(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdClearAttachments_reply(commandBuffer, attachmentCount, pAttachments, rectCount, pRects) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdClearAttachments(enc, cmd_flags, commandBuffer, attachmentCount, pAttachments, rectCount, pRects);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdResolveImage(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdResolveImage(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8918,16 +10318,16 @@ static inline void vn_submit_vkCmdResolveImage(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdResolveImage_reply(commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdResolveImage(enc, cmd_flags, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8939,16 +10339,16 @@ static inline void vn_submit_vkCmdSetEvent(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetEvent_reply(commandBuffer, event, stageMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetEvent(enc, cmd_flags, commandBuffer, event, stageMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdResetEvent(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdResetEvent(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8960,16 +10360,16 @@ static inline void vn_submit_vkCmdResetEvent(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdResetEvent_reply(commandBuffer, event, stageMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdResetEvent(enc, cmd_flags, commandBuffer, event, stageMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdWaitEvents(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdWaitEvents(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -8981,16 +10381,16 @@ static inline void vn_submit_vkCmdWaitEvents(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdWaitEvents_reply(commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdWaitEvents(enc, cmd_flags, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdPipelineBarrier(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdPipelineBarrier(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9002,16 +10402,16 @@ static inline void vn_submit_vkCmdPipelineBarrier(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPipelineBarrier_reply(commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdPipelineBarrier(enc, cmd_flags, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginQuery(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginQuery(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9023,16 +10423,16 @@ static inline void vn_submit_vkCmdBeginQuery(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginQuery_reply(commandBuffer, queryPool, query, flags) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginQuery(enc, cmd_flags, commandBuffer, queryPool, query, flags);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndQuery(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndQuery(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9044,16 +10444,16 @@ static inline void vn_submit_vkCmdEndQuery(struct vn_instance *vn_instance, VkCo
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndQuery_reply(commandBuffer, queryPool, query) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndQuery(enc, cmd_flags, commandBuffer, queryPool, query);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9065,16 +10465,16 @@ static inline void vn_submit_vkCmdBeginConditionalRenderingEXT(struct vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginConditionalRenderingEXT_reply(commandBuffer, pConditionalRenderingBegin) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginConditionalRenderingEXT(enc, cmd_flags, commandBuffer, pConditionalRenderingBegin);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9086,16 +10486,16 @@ static inline void vn_submit_vkCmdEndConditionalRenderingEXT(struct vn_instance 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndConditionalRenderingEXT_reply(commandBuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndConditionalRenderingEXT(enc, cmd_flags, commandBuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdResetQueryPool(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdResetQueryPool(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9107,16 +10507,16 @@ static inline void vn_submit_vkCmdResetQueryPool(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdResetQueryPool_reply(commandBuffer, queryPool, firstQuery, queryCount) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdResetQueryPool(enc, cmd_flags, commandBuffer, queryPool, firstQuery, queryCount);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdWriteTimestamp(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdWriteTimestamp(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9128,16 +10528,16 @@ static inline void vn_submit_vkCmdWriteTimestamp(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdWriteTimestamp_reply(commandBuffer, pipelineStage, queryPool, query) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdWriteTimestamp(enc, cmd_flags, commandBuffer, pipelineStage, queryPool, query);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyQueryPoolResults(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyQueryPoolResults(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9149,16 +10549,16 @@ static inline void vn_submit_vkCmdCopyQueryPoolResults(struct vn_instance *vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyQueryPoolResults_reply(commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyQueryPoolResults(enc, cmd_flags, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdPushConstants(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdPushConstants(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9170,16 +10570,16 @@ static inline void vn_submit_vkCmdPushConstants(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushConstants_reply(commandBuffer, layout, stageFlags, offset, size, pValues) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdPushConstants(enc, cmd_flags, commandBuffer, layout, stageFlags, offset, size, pValues);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginRenderPass(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginRenderPass(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9191,16 +10591,16 @@ static inline void vn_submit_vkCmdBeginRenderPass(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginRenderPass_reply(commandBuffer, pRenderPassBegin, contents) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginRenderPass(enc, cmd_flags, commandBuffer, pRenderPassBegin, contents);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdNextSubpass(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSubpassContents contents, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdNextSubpass(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSubpassContents contents, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9212,16 +10612,16 @@ static inline void vn_submit_vkCmdNextSubpass(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdNextSubpass_reply(commandBuffer, contents) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdNextSubpass(enc, cmd_flags, commandBuffer, contents);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndRenderPass(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndRenderPass(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9233,16 +10633,16 @@ static inline void vn_submit_vkCmdEndRenderPass(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndRenderPass_reply(commandBuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndRenderPass(enc, cmd_flags, commandBuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdExecuteCommands(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdExecuteCommands(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9254,16 +10654,37 @@ static inline void vn_submit_vkCmdExecuteCommands(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdExecuteCommands_reply(commandBuffer, commandBufferCount, pCommandBuffers) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdExecuteCommands(enc, cmd_flags, commandBuffer, commandBufferCount, pCommandBuffers);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDeviceMask(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t deviceMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdPushDescriptorSetKHR(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPushDescriptorSetKHR_reply(commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdPushDescriptorSetKHR(enc, cmd_flags, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetDeviceMask(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t deviceMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9275,16 +10696,16 @@ static inline void vn_submit_vkCmdSetDeviceMask(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDeviceMask_reply(commandBuffer, deviceMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDeviceMask(enc, cmd_flags, commandBuffer, deviceMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDispatchBase(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDispatchBase(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9296,16 +10717,16 @@ static inline void vn_submit_vkCmdDispatchBase(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDispatchBase_reply(commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDispatchBase(enc, cmd_flags, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginRenderPass2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginRenderPass2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9317,16 +10738,16 @@ static inline void vn_submit_vkCmdBeginRenderPass2(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginRenderPass2_reply(commandBuffer, pRenderPassBegin, pSubpassBeginInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginRenderPass2(enc, cmd_flags, commandBuffer, pRenderPassBegin, pSubpassBeginInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdNextSubpass2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdNextSubpass2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9338,16 +10759,16 @@ static inline void vn_submit_vkCmdNextSubpass2(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdNextSubpass2_reply(commandBuffer, pSubpassBeginInfo, pSubpassEndInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdNextSubpass2(enc, cmd_flags, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndRenderPass2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndRenderPass2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9359,16 +10780,16 @@ static inline void vn_submit_vkCmdEndRenderPass2(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndRenderPass2_reply(commandBuffer, pSubpassEndInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndRenderPass2(enc, cmd_flags, commandBuffer, pSubpassEndInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndirectCount(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndirectCount(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9380,16 +10801,16 @@ static inline void vn_submit_vkCmdDrawIndirectCount(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndirectCount_reply(commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndirectCount(enc, cmd_flags, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndexedIndirectCount(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndexedIndirectCount(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9401,16 +10822,16 @@ static inline void vn_submit_vkCmdDrawIndexedIndirectCount(struct vn_instance *v
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndexedIndirectCount_reply(commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndexedIndirectCount(enc, cmd_flags, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindTransformFeedbackBuffersEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindTransformFeedbackBuffersEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9422,16 +10843,16 @@ static inline void vn_submit_vkCmdBindTransformFeedbackBuffersEXT(struct vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindTransformFeedbackBuffersEXT_reply(commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindTransformFeedbackBuffersEXT(enc, cmd_flags, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9443,16 +10864,16 @@ static inline void vn_submit_vkCmdBeginTransformFeedbackEXT(struct vn_instance *
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginTransformFeedbackEXT_reply(commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginTransformFeedbackEXT(enc, cmd_flags, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9464,16 +10885,16 @@ static inline void vn_submit_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndTransformFeedbackEXT_reply(commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndTransformFeedbackEXT(enc, cmd_flags, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9485,16 +10906,16 @@ static inline void vn_submit_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginQueryIndexedEXT_reply(commandBuffer, queryPool, query, flags, index) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginQueryIndexedEXT(enc, cmd_flags, commandBuffer, queryPool, query, flags, index);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9506,16 +10927,16 @@ static inline void vn_submit_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndQueryIndexedEXT_reply(commandBuffer, queryPool, query, index) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndQueryIndexedEXT(enc, cmd_flags, commandBuffer, queryPool, query, index);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdDrawIndirectByteCountEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdDrawIndirectByteCountEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9527,16 +10948,16 @@ static inline void vn_submit_vkCmdDrawIndirectByteCountEXT(struct vn_instance *v
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdDrawIndirectByteCountEXT_reply(commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdDrawIndirectByteCountEXT(enc, cmd_flags, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetLineStippleEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9548,16 +10969,16 @@ static inline void vn_submit_vkCmdSetLineStippleEXT(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineStippleEXT_reply(commandBuffer, lineStippleFactor, lineStipplePattern) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetLineStippleEXT(enc, cmd_flags, commandBuffer, lineStippleFactor, lineStipplePattern);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetCullMode(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetCullMode(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9569,16 +10990,16 @@ static inline void vn_submit_vkCmdSetCullMode(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetCullMode_reply(commandBuffer, cullMode) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetCullMode(enc, cmd_flags, commandBuffer, cullMode);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetFrontFace(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkFrontFace frontFace, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetFrontFace(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkFrontFace frontFace, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9590,16 +11011,16 @@ static inline void vn_submit_vkCmdSetFrontFace(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetFrontFace_reply(commandBuffer, frontFace) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetFrontFace(enc, cmd_flags, commandBuffer, frontFace);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetPrimitiveTopology(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetPrimitiveTopology(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9611,16 +11032,16 @@ static inline void vn_submit_vkCmdSetPrimitiveTopology(struct vn_instance *vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetPrimitiveTopology_reply(commandBuffer, primitiveTopology) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetPrimitiveTopology(enc, cmd_flags, commandBuffer, primitiveTopology);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetViewportWithCount(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetViewportWithCount(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9632,16 +11053,16 @@ static inline void vn_submit_vkCmdSetViewportWithCount(struct vn_instance *vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetViewportWithCount_reply(commandBuffer, viewportCount, pViewports) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetViewportWithCount(enc, cmd_flags, commandBuffer, viewportCount, pViewports);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetScissorWithCount(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetScissorWithCount(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9653,16 +11074,16 @@ static inline void vn_submit_vkCmdSetScissorWithCount(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetScissorWithCount_reply(commandBuffer, scissorCount, pScissors) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetScissorWithCount(enc, cmd_flags, commandBuffer, scissorCount, pScissors);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBindVertexBuffers2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBindVertexBuffers2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9674,16 +11095,16 @@ static inline void vn_submit_vkCmdBindVertexBuffers2(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBindVertexBuffers2_reply(commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBindVertexBuffers2(enc, cmd_flags, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthTestEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthTestEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9695,16 +11116,16 @@ static inline void vn_submit_vkCmdSetDepthTestEnable(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthTestEnable_reply(commandBuffer, depthTestEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthTestEnable(enc, cmd_flags, commandBuffer, depthTestEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthWriteEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthWriteEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9716,16 +11137,16 @@ static inline void vn_submit_vkCmdSetDepthWriteEnable(struct vn_instance *vn_ins
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthWriteEnable_reply(commandBuffer, depthWriteEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthWriteEnable(enc, cmd_flags, commandBuffer, depthWriteEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthCompareOp(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthCompareOp(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9737,16 +11158,16 @@ static inline void vn_submit_vkCmdSetDepthCompareOp(struct vn_instance *vn_insta
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthCompareOp_reply(commandBuffer, depthCompareOp) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthCompareOp(enc, cmd_flags, commandBuffer, depthCompareOp);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthBoundsTestEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthBoundsTestEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9758,16 +11179,16 @@ static inline void vn_submit_vkCmdSetDepthBoundsTestEnable(struct vn_instance *v
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthBoundsTestEnable_reply(commandBuffer, depthBoundsTestEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthBoundsTestEnable(enc, cmd_flags, commandBuffer, depthBoundsTestEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetStencilTestEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetStencilTestEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9779,16 +11200,16 @@ static inline void vn_submit_vkCmdSetStencilTestEnable(struct vn_instance *vn_in
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetStencilTestEnable_reply(commandBuffer, stencilTestEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetStencilTestEnable(enc, cmd_flags, commandBuffer, stencilTestEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetStencilOp(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetStencilOp(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9800,16 +11221,16 @@ static inline void vn_submit_vkCmdSetStencilOp(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetStencilOp_reply(commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetStencilOp(enc, cmd_flags, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetPatchControlPointsEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t patchControlPoints, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetPatchControlPointsEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t patchControlPoints, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9821,16 +11242,16 @@ static inline void vn_submit_vkCmdSetPatchControlPointsEXT(struct vn_instance *v
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetPatchControlPointsEXT_reply(commandBuffer, patchControlPoints) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetPatchControlPointsEXT(enc, cmd_flags, commandBuffer, patchControlPoints);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetRasterizerDiscardEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetRasterizerDiscardEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9842,16 +11263,16 @@ static inline void vn_submit_vkCmdSetRasterizerDiscardEnable(struct vn_instance 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetRasterizerDiscardEnable_reply(commandBuffer, rasterizerDiscardEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetRasterizerDiscardEnable(enc, cmd_flags, commandBuffer, rasterizerDiscardEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetDepthBiasEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetDepthBiasEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9863,16 +11284,16 @@ static inline void vn_submit_vkCmdSetDepthBiasEnable(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthBiasEnable_reply(commandBuffer, depthBiasEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetDepthBiasEnable(enc, cmd_flags, commandBuffer, depthBiasEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetLogicOpEXT(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLogicOp logicOp, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetLogicOpEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLogicOp logicOp, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9884,16 +11305,16 @@ static inline void vn_submit_vkCmdSetLogicOpEXT(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLogicOpEXT_reply(commandBuffer, logicOp) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetLogicOpEXT(enc, cmd_flags, commandBuffer, logicOp);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetPrimitiveRestartEnable(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetPrimitiveRestartEnable(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9905,16 +11326,457 @@ static inline void vn_submit_vkCmdSetPrimitiveRestartEnable(struct vn_instance *
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetPrimitiveRestartEnable_reply(commandBuffer, primitiveRestartEnable) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetPrimitiveRestartEnable(enc, cmd_flags, commandBuffer, primitiveRestartEnable);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyBuffer2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetTessellationDomainOriginEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetTessellationDomainOriginEXT(commandBuffer, domainOrigin);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetTessellationDomainOriginEXT_reply(commandBuffer, domainOrigin) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetTessellationDomainOriginEXT(enc, cmd_flags, commandBuffer, domainOrigin);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetDepthClampEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthClampEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetDepthClampEnableEXT(commandBuffer, depthClampEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthClampEnableEXT_reply(commandBuffer, depthClampEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetDepthClampEnableEXT(enc, cmd_flags, commandBuffer, depthClampEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetPolygonModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPolygonMode polygonMode, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetPolygonModeEXT(commandBuffer, polygonMode);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetPolygonModeEXT_reply(commandBuffer, polygonMode) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetPolygonModeEXT(enc, cmd_flags, commandBuffer, polygonMode);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetRasterizationSamplesEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetRasterizationSamplesEXT(commandBuffer, rasterizationSamples);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetRasterizationSamplesEXT_reply(commandBuffer, rasterizationSamples) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetRasterizationSamplesEXT(enc, cmd_flags, commandBuffer, rasterizationSamples);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetSampleMaskEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetSampleMaskEXT(commandBuffer, samples, pSampleMask);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetSampleMaskEXT_reply(commandBuffer, samples, pSampleMask) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetSampleMaskEXT(enc, cmd_flags, commandBuffer, samples, pSampleMask);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetAlphaToCoverageEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetAlphaToCoverageEnableEXT(commandBuffer, alphaToCoverageEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetAlphaToCoverageEnableEXT_reply(commandBuffer, alphaToCoverageEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetAlphaToCoverageEnableEXT(enc, cmd_flags, commandBuffer, alphaToCoverageEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetAlphaToOneEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetAlphaToOneEnableEXT(commandBuffer, alphaToOneEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetAlphaToOneEnableEXT_reply(commandBuffer, alphaToOneEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetAlphaToOneEnableEXT(enc, cmd_flags, commandBuffer, alphaToOneEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetLogicOpEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 logicOpEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetLogicOpEnableEXT(commandBuffer, logicOpEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLogicOpEnableEXT_reply(commandBuffer, logicOpEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetLogicOpEnableEXT(enc, cmd_flags, commandBuffer, logicOpEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetColorBlendEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetColorBlendEnableEXT(commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetColorBlendEnableEXT_reply(commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetColorBlendEnableEXT(enc, cmd_flags, commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetColorBlendEquationEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetColorBlendEquationEXT(commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetColorBlendEquationEXT_reply(commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetColorBlendEquationEXT(enc, cmd_flags, commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetColorWriteMaskEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetColorWriteMaskEXT(commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetColorWriteMaskEXT_reply(commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetColorWriteMaskEXT(enc, cmd_flags, commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetRasterizationStreamEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t rasterizationStream, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetRasterizationStreamEXT(commandBuffer, rasterizationStream);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetRasterizationStreamEXT_reply(commandBuffer, rasterizationStream) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetRasterizationStreamEXT(enc, cmd_flags, commandBuffer, rasterizationStream);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetConservativeRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetConservativeRasterizationModeEXT(commandBuffer, conservativeRasterizationMode);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetConservativeRasterizationModeEXT_reply(commandBuffer, conservativeRasterizationMode) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetConservativeRasterizationModeEXT(enc, cmd_flags, commandBuffer, conservativeRasterizationMode);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetExtraPrimitiveOverestimationSizeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetExtraPrimitiveOverestimationSizeEXT(commandBuffer, extraPrimitiveOverestimationSize);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetExtraPrimitiveOverestimationSizeEXT_reply(commandBuffer, extraPrimitiveOverestimationSize) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetExtraPrimitiveOverestimationSizeEXT(enc, cmd_flags, commandBuffer, extraPrimitiveOverestimationSize);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetDepthClipEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 depthClipEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetDepthClipEnableEXT(commandBuffer, depthClipEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthClipEnableEXT_reply(commandBuffer, depthClipEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetDepthClipEnableEXT(enc, cmd_flags, commandBuffer, depthClipEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetSampleLocationsEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetSampleLocationsEnableEXT(commandBuffer, sampleLocationsEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetSampleLocationsEnableEXT_reply(commandBuffer, sampleLocationsEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetSampleLocationsEnableEXT(enc, cmd_flags, commandBuffer, sampleLocationsEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetColorBlendAdvancedEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetColorBlendAdvancedEXT(commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetColorBlendAdvancedEXT_reply(commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetColorBlendAdvancedEXT(enc, cmd_flags, commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetProvokingVertexModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetProvokingVertexModeEXT(commandBuffer, provokingVertexMode);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetProvokingVertexModeEXT_reply(commandBuffer, provokingVertexMode) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetProvokingVertexModeEXT(enc, cmd_flags, commandBuffer, provokingVertexMode);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetLineRasterizationModeEXT(commandBuffer, lineRasterizationMode);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineRasterizationModeEXT_reply(commandBuffer, lineRasterizationMode) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetLineRasterizationModeEXT(enc, cmd_flags, commandBuffer, lineRasterizationMode);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetLineStippleEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetLineStippleEnableEXT(commandBuffer, stippledLineEnable);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetLineStippleEnableEXT_reply(commandBuffer, stippledLineEnable) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetLineStippleEnableEXT(enc, cmd_flags, commandBuffer, stippledLineEnable);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetDepthClipNegativeOneToOneEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetDepthClipNegativeOneToOneEXT(commandBuffer, negativeOneToOne);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetDepthClipNegativeOneToOneEXT_reply(commandBuffer, negativeOneToOne) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetDepthClipNegativeOneToOneEXT(enc, cmd_flags, commandBuffer, negativeOneToOne);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdCopyBuffer2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9926,16 +11788,16 @@ static inline void vn_submit_vkCmdCopyBuffer2(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyBuffer2_reply(commandBuffer, pCopyBufferInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyBuffer2(enc, cmd_flags, commandBuffer, pCopyBufferInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyImage2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyImage2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9947,16 +11809,16 @@ static inline void vn_submit_vkCmdCopyImage2(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyImage2_reply(commandBuffer, pCopyImageInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyImage2(enc, cmd_flags, commandBuffer, pCopyImageInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBlitImage2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBlitImage2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9968,16 +11830,16 @@ static inline void vn_submit_vkCmdBlitImage2(struct vn_instance *vn_instance, Vk
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBlitImage2_reply(commandBuffer, pBlitImageInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBlitImage2(enc, cmd_flags, commandBuffer, pBlitImageInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyBufferToImage2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyBufferToImage2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -9989,16 +11851,16 @@ static inline void vn_submit_vkCmdCopyBufferToImage2(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyBufferToImage2_reply(commandBuffer, pCopyBufferToImageInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyBufferToImage2(enc, cmd_flags, commandBuffer, pCopyBufferToImageInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdCopyImageToBuffer2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdCopyImageToBuffer2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10010,16 +11872,16 @@ static inline void vn_submit_vkCmdCopyImageToBuffer2(struct vn_instance *vn_inst
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdCopyImageToBuffer2_reply(commandBuffer, pCopyImageToBufferInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdCopyImageToBuffer2(enc, cmd_flags, commandBuffer, pCopyImageToBufferInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdResolveImage2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdResolveImage2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10031,16 +11893,58 @@ static inline void vn_submit_vkCmdResolveImage2(struct vn_instance *vn_instance,
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdResolveImage2_reply(commandBuffer, pResolveImageInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdResolveImage2(enc, cmd_flags, commandBuffer, pResolveImageInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdSetEvent2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdSetVertexInputEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetVertexInputEXT(commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetVertexInputEXT_reply(commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetVertexInputEXT(enc, cmd_flags, commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetColorWriteEnableEXT(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables, struct vn_ring_submit_command *submit)
+{
+    uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
+    void *cmd_data = local_cmd_data;
+    size_t cmd_size = vn_sizeof_vkCmdSetColorWriteEnableEXT(commandBuffer, attachmentCount, pColorWriteEnables);
+    if (cmd_size > sizeof(local_cmd_data)) {
+        cmd_data = malloc(cmd_size);
+        if (!cmd_data)
+            cmd_size = 0;
+    }
+    const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetColorWriteEnableEXT_reply(commandBuffer, attachmentCount, pColorWriteEnables) : 0;
+
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
+    if (cmd_size) {
+        vn_encode_vkCmdSetColorWriteEnableEXT(enc, cmd_flags, commandBuffer, attachmentCount, pColorWriteEnables);
+        vn_ring_submit_command(vn_ring, submit);
+        if (cmd_data != local_cmd_data)
+            free(cmd_data);
+    }
+}
+
+static inline void vn_submit_vkCmdSetEvent2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10052,16 +11956,16 @@ static inline void vn_submit_vkCmdSetEvent2(struct vn_instance *vn_instance, VkC
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdSetEvent2_reply(commandBuffer, event, pDependencyInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdSetEvent2(enc, cmd_flags, commandBuffer, event, pDependencyInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdResetEvent2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdResetEvent2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10073,16 +11977,16 @@ static inline void vn_submit_vkCmdResetEvent2(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdResetEvent2_reply(commandBuffer, event, stageMask) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdResetEvent2(enc, cmd_flags, commandBuffer, event, stageMask);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdWaitEvents2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdWaitEvents2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10094,16 +11998,16 @@ static inline void vn_submit_vkCmdWaitEvents2(struct vn_instance *vn_instance, V
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdWaitEvents2_reply(commandBuffer, eventCount, pEvents, pDependencyInfos) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdWaitEvents2(enc, cmd_flags, commandBuffer, eventCount, pEvents, pDependencyInfos);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdPipelineBarrier2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdPipelineBarrier2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10115,16 +12019,16 @@ static inline void vn_submit_vkCmdPipelineBarrier2(struct vn_instance *vn_instan
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdPipelineBarrier2_reply(commandBuffer, pDependencyInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdPipelineBarrier2(enc, cmd_flags, commandBuffer, pDependencyInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdWriteTimestamp2(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdWriteTimestamp2(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10136,16 +12040,16 @@ static inline void vn_submit_vkCmdWriteTimestamp2(struct vn_instance *vn_instanc
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdWriteTimestamp2_reply(commandBuffer, stage, queryPool, query) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdWriteTimestamp2(enc, cmd_flags, commandBuffer, stage, queryPool, query);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdBeginRendering(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdBeginRendering(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10157,16 +12061,16 @@ static inline void vn_submit_vkCmdBeginRendering(struct vn_instance *vn_instance
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdBeginRendering_reply(commandBuffer, pRenderingInfo) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdBeginRendering(enc, cmd_flags, commandBuffer, pRenderingInfo);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline void vn_submit_vkCmdEndRendering(struct vn_instance *vn_instance, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_instance_submit_command *submit)
+static inline void vn_submit_vkCmdEndRendering(struct vn_ring *vn_ring, VkCommandFlagsEXT cmd_flags, VkCommandBuffer commandBuffer, struct vn_ring_submit_command *submit)
 {
     uint8_t local_cmd_data[VN_SUBMIT_LOCAL_CMD_SIZE];
     void *cmd_data = local_cmd_data;
@@ -10178,1868 +12082,2324 @@ static inline void vn_submit_vkCmdEndRendering(struct vn_instance *vn_instance, 
     }
     const size_t reply_size = cmd_flags & VK_COMMAND_GENERATE_REPLY_BIT_EXT ? vn_sizeof_vkCmdEndRendering_reply(commandBuffer) : 0;
 
-    struct vn_cs_encoder *enc = vn_instance_submit_command_init(vn_instance, submit, cmd_data, cmd_size, reply_size);
+    struct vn_cs_encoder *enc = vn_ring_submit_command_init(vn_ring, submit, cmd_data, cmd_size, reply_size);
     if (cmd_size) {
         vn_encode_vkCmdEndRendering(enc, cmd_flags, commandBuffer);
-        vn_instance_submit_command(vn_instance, submit);
+        vn_ring_submit_command(vn_ring, submit);
         if (cmd_data != local_cmd_data)
             free(cmd_data);
     }
 }
 
-static inline VkResult vn_call_vkAllocateCommandBuffers(struct vn_instance *vn_instance, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
+static inline VkResult vn_call_vkAllocateCommandBuffers(struct vn_ring *vn_ring, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkAllocateCommandBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pAllocateInfo, pCommandBuffers, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkAllocateCommandBuffers(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, pAllocateInfo, pCommandBuffers, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkAllocateCommandBuffers_reply(dec, device, pAllocateInfo, pCommandBuffers);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkAllocateCommandBuffers(struct vn_instance *vn_instance, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
+static inline void vn_async_vkAllocateCommandBuffers(struct vn_ring *vn_ring, VkDevice device, const VkCommandBufferAllocateInfo* pAllocateInfo, VkCommandBuffer* pCommandBuffers)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkAllocateCommandBuffers(vn_instance, 0, device, pAllocateInfo, pCommandBuffers, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkAllocateCommandBuffers(vn_ring, 0, device, pAllocateInfo, pCommandBuffers, &submit);
 }
 
-static inline void vn_call_vkFreeCommandBuffers(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
+static inline void vn_call_vkFreeCommandBuffers(struct vn_ring *vn_ring, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkFreeCommandBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, commandBufferCount, pCommandBuffers, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkFreeCommandBuffers(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, device, commandPool, commandBufferCount, pCommandBuffers, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkFreeCommandBuffers_reply(dec, device, commandPool, commandBufferCount, pCommandBuffers);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkFreeCommandBuffers(struct vn_instance *vn_instance, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
+static inline void vn_async_vkFreeCommandBuffers(struct vn_ring *vn_ring, VkDevice device, VkCommandPool commandPool, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkFreeCommandBuffers(vn_instance, 0, device, commandPool, commandBufferCount, pCommandBuffers, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkFreeCommandBuffers(vn_ring, 0, device, commandPool, commandBufferCount, pCommandBuffers, &submit);
 }
 
-static inline VkResult vn_call_vkBeginCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo)
+static inline VkResult vn_call_vkBeginCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBeginCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBeginInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBeginCommandBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBeginInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkBeginCommandBuffer_reply(dec, commandBuffer, pBeginInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkBeginCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo)
+static inline void vn_async_vkBeginCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCommandBufferBeginInfo* pBeginInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkBeginCommandBuffer(vn_instance, 0, commandBuffer, pBeginInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkBeginCommandBuffer(vn_ring, 0, commandBuffer, pBeginInfo, &submit);
 }
 
-static inline VkResult vn_call_vkEndCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline VkResult vn_call_vkEndCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEndCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEndCommandBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkEndCommandBuffer_reply(dec, commandBuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkEndCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_async_vkEndCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkEndCommandBuffer(vn_instance, 0, commandBuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkEndCommandBuffer(vn_ring, 0, commandBuffer, &submit);
 }
 
-static inline VkResult vn_call_vkResetCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags)
+static inline VkResult vn_call_vkResetCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetCommandBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, flags, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetCommandBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, flags, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         const VkResult ret = vn_decode_vkResetCommandBuffer_reply(dec, commandBuffer, flags);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
         return ret;
     } else {
         return VK_ERROR_OUT_OF_HOST_MEMORY;
     }
 }
 
-static inline void vn_async_vkResetCommandBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags)
+static inline void vn_async_vkResetCommandBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCommandBufferResetFlags flags)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkResetCommandBuffer(vn_instance, 0, commandBuffer, flags, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkResetCommandBuffer(vn_ring, 0, commandBuffer, flags, &submit);
 }
 
-static inline void vn_call_vkCmdBindPipeline(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
+static inline void vn_call_vkCmdBindPipeline(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindPipeline(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, pipeline, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindPipeline(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, pipeline, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindPipeline_reply(dec, commandBuffer, pipelineBindPoint, pipeline);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindPipeline(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
+static inline void vn_async_vkCmdBindPipeline(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipeline pipeline)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindPipeline(vn_instance, 0, commandBuffer, pipelineBindPoint, pipeline, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindPipeline(vn_ring, 0, commandBuffer, pipelineBindPoint, pipeline, &submit);
 }
 
-static inline void vn_call_vkCmdSetViewport(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
+static inline void vn_call_vkCmdSetViewport(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetViewport(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstViewport, viewportCount, pViewports, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetViewport(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstViewport, viewportCount, pViewports, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetViewport_reply(dec, commandBuffer, firstViewport, viewportCount, pViewports);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetViewport(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
+static inline void vn_async_vkCmdSetViewport(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstViewport, uint32_t viewportCount, const VkViewport* pViewports)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetViewport(vn_instance, 0, commandBuffer, firstViewport, viewportCount, pViewports, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetViewport(vn_ring, 0, commandBuffer, firstViewport, viewportCount, pViewports, &submit);
 }
 
-static inline void vn_call_vkCmdSetScissor(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
+static inline void vn_call_vkCmdSetScissor(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetScissor(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstScissor, scissorCount, pScissors, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetScissor(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstScissor, scissorCount, pScissors, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetScissor_reply(dec, commandBuffer, firstScissor, scissorCount, pScissors);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetScissor(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
+static inline void vn_async_vkCmdSetScissor(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstScissor, uint32_t scissorCount, const VkRect2D* pScissors)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetScissor(vn_instance, 0, commandBuffer, firstScissor, scissorCount, pScissors, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetScissor(vn_ring, 0, commandBuffer, firstScissor, scissorCount, pScissors, &submit);
 }
 
-static inline void vn_call_vkCmdSetLineWidth(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float lineWidth)
+static inline void vn_call_vkCmdSetLineWidth(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float lineWidth)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLineWidth(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineWidth, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineWidth(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineWidth, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetLineWidth_reply(dec, commandBuffer, lineWidth);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetLineWidth(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float lineWidth)
+static inline void vn_async_vkCmdSetLineWidth(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float lineWidth)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLineWidth(vn_instance, 0, commandBuffer, lineWidth, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineWidth(vn_ring, 0, commandBuffer, lineWidth, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthBias(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
+static inline void vn_call_vkCmdSetDepthBias(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBias(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBias(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthBias_reply(dec, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthBias(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
+static inline void vn_async_vkCmdSetDepthBias(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float depthBiasConstantFactor, float depthBiasClamp, float depthBiasSlopeFactor)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBias(vn_instance, 0, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBias(vn_ring, 0, commandBuffer, depthBiasConstantFactor, depthBiasClamp, depthBiasSlopeFactor, &submit);
 }
 
-static inline void vn_call_vkCmdSetBlendConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const float blendConstants[4])
+static inline void vn_call_vkCmdSetBlendConstants(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const float blendConstants[4])
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetBlendConstants(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, blendConstants, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetBlendConstants(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, blendConstants, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetBlendConstants_reply(dec, commandBuffer, blendConstants);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetBlendConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const float blendConstants[4])
+static inline void vn_async_vkCmdSetBlendConstants(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const float blendConstants[4])
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetBlendConstants(vn_instance, 0, commandBuffer, blendConstants, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetBlendConstants(vn_ring, 0, commandBuffer, blendConstants, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthBounds(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
+static inline void vn_call_vkCmdSetDepthBounds(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBounds(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, minDepthBounds, maxDepthBounds, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBounds(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, minDepthBounds, maxDepthBounds, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthBounds_reply(dec, commandBuffer, minDepthBounds, maxDepthBounds);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthBounds(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
+static inline void vn_async_vkCmdSetDepthBounds(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float minDepthBounds, float maxDepthBounds)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBounds(vn_instance, 0, commandBuffer, minDepthBounds, maxDepthBounds, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBounds(vn_ring, 0, commandBuffer, minDepthBounds, maxDepthBounds, &submit);
 }
 
-static inline void vn_call_vkCmdSetStencilCompareMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
+static inline void vn_call_vkCmdSetStencilCompareMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilCompareMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, compareMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilCompareMask(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, compareMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetStencilCompareMask_reply(dec, commandBuffer, faceMask, compareMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetStencilCompareMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
+static inline void vn_async_vkCmdSetStencilCompareMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t compareMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilCompareMask(vn_instance, 0, commandBuffer, faceMask, compareMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilCompareMask(vn_ring, 0, commandBuffer, faceMask, compareMask, &submit);
 }
 
-static inline void vn_call_vkCmdSetStencilWriteMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
+static inline void vn_call_vkCmdSetStencilWriteMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilWriteMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, writeMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilWriteMask(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, writeMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetStencilWriteMask_reply(dec, commandBuffer, faceMask, writeMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetStencilWriteMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
+static inline void vn_async_vkCmdSetStencilWriteMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t writeMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilWriteMask(vn_instance, 0, commandBuffer, faceMask, writeMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilWriteMask(vn_ring, 0, commandBuffer, faceMask, writeMask, &submit);
 }
 
-static inline void vn_call_vkCmdSetStencilReference(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
+static inline void vn_call_vkCmdSetStencilReference(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilReference(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, reference, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilReference(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, reference, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetStencilReference_reply(dec, commandBuffer, faceMask, reference);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetStencilReference(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
+static inline void vn_async_vkCmdSetStencilReference(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, uint32_t reference)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilReference(vn_instance, 0, commandBuffer, faceMask, reference, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilReference(vn_ring, 0, commandBuffer, faceMask, reference, &submit);
 }
 
-static inline void vn_call_vkCmdBindDescriptorSets(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+static inline void vn_call_vkCmdBindDescriptorSets(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindDescriptorSets(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindDescriptorSets(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindDescriptorSets_reply(dec, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindDescriptorSets(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
+static inline void vn_async_vkCmdBindDescriptorSets(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t firstSet, uint32_t descriptorSetCount, const VkDescriptorSet* pDescriptorSets, uint32_t dynamicOffsetCount, const uint32_t* pDynamicOffsets)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindDescriptorSets(vn_instance, 0, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindDescriptorSets(vn_ring, 0, commandBuffer, pipelineBindPoint, layout, firstSet, descriptorSetCount, pDescriptorSets, dynamicOffsetCount, pDynamicOffsets, &submit);
 }
 
-static inline void vn_call_vkCmdBindIndexBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
+static inline void vn_call_vkCmdBindIndexBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindIndexBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, indexType, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindIndexBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, indexType, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindIndexBuffer_reply(dec, commandBuffer, buffer, offset, indexType);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindIndexBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
+static inline void vn_async_vkCmdBindIndexBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkIndexType indexType)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindIndexBuffer(vn_instance, 0, commandBuffer, buffer, offset, indexType, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindIndexBuffer(vn_ring, 0, commandBuffer, buffer, offset, indexType, &submit);
 }
 
-static inline void vn_call_vkCmdBindVertexBuffers(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
+static inline void vn_call_vkCmdBindVertexBuffers(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindVertexBuffers(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindVertexBuffers(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindVertexBuffers_reply(dec, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindVertexBuffers(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
+static inline void vn_async_vkCmdBindVertexBuffers(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindVertexBuffers(vn_instance, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindVertexBuffers(vn_ring, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, &submit);
 }
 
-static inline void vn_call_vkCmdDraw(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+static inline void vn_call_vkCmdDraw(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDraw(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDraw(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDraw_reply(dec, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDraw(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
+static inline void vn_async_vkCmdDraw(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t vertexCount, uint32_t instanceCount, uint32_t firstVertex, uint32_t firstInstance)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDraw(vn_instance, 0, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDraw(vn_ring, 0, commandBuffer, vertexCount, instanceCount, firstVertex, firstInstance, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndexed(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+static inline void vn_call_vkCmdDrawIndexed(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexed(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexed(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndexed_reply(dec, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndexed(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
+static inline void vn_async_vkCmdDrawIndexed(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t indexCount, uint32_t instanceCount, uint32_t firstIndex, int32_t vertexOffset, uint32_t firstInstance)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexed(vn_instance, 0, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexed(vn_ring, 0, commandBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance, &submit);
 }
 
-static inline void vn_call_vkCmdDrawMultiEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride)
+static inline void vn_call_vkCmdDrawMultiEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawMultiEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawMultiEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawMultiEXT_reply(dec, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawMultiEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride)
+static inline void vn_async_vkCmdDrawMultiEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawInfoEXT* pVertexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawMultiEXT(vn_instance, 0, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawMultiEXT(vn_ring, 0, commandBuffer, drawCount, pVertexInfo, instanceCount, firstInstance, stride, &submit);
 }
 
-static inline void vn_call_vkCmdDrawMultiIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset)
+static inline void vn_call_vkCmdDrawMultiIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawMultiIndexedEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawMultiIndexedEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawMultiIndexedEXT_reply(dec, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawMultiIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset)
+static inline void vn_async_vkCmdDrawMultiIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t drawCount, const VkMultiDrawIndexedInfoEXT* pIndexInfo, uint32_t instanceCount, uint32_t firstInstance, uint32_t stride, const int32_t* pVertexOffset)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawMultiIndexedEXT(vn_instance, 0, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawMultiIndexedEXT(vn_ring, 0, commandBuffer, drawCount, pIndexInfo, instanceCount, firstInstance, stride, pVertexOffset, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+static inline void vn_call_vkCmdDrawIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirect(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndirect_reply(dec, commandBuffer, buffer, offset, drawCount, stride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+static inline void vn_async_vkCmdDrawIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirect(vn_instance, 0, commandBuffer, buffer, offset, drawCount, stride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirect(vn_ring, 0, commandBuffer, buffer, offset, drawCount, stride, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndexedIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+static inline void vn_call_vkCmdDrawIndexedIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexedIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexedIndirect(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, drawCount, stride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndexedIndirect_reply(dec, commandBuffer, buffer, offset, drawCount, stride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndexedIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
+static inline void vn_async_vkCmdDrawIndexedIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexedIndirect(vn_instance, 0, commandBuffer, buffer, offset, drawCount, stride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexedIndirect(vn_ring, 0, commandBuffer, buffer, offset, drawCount, stride, &submit);
 }
 
-static inline void vn_call_vkCmdDispatch(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+static inline void vn_call_vkCmdDispatch(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatch(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, groupCountX, groupCountY, groupCountZ, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatch(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, groupCountX, groupCountY, groupCountZ, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDispatch_reply(dec, commandBuffer, groupCountX, groupCountY, groupCountZ);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDispatch(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+static inline void vn_async_vkCmdDispatch(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatch(vn_instance, 0, commandBuffer, groupCountX, groupCountY, groupCountZ, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatch(vn_ring, 0, commandBuffer, groupCountX, groupCountY, groupCountZ, &submit);
 }
 
-static inline void vn_call_vkCmdDispatchIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
+static inline void vn_call_vkCmdDispatchIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatchIndirect(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatchIndirect(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDispatchIndirect_reply(dec, commandBuffer, buffer, offset);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDispatchIndirect(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
+static inline void vn_async_vkCmdDispatchIndirect(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatchIndirect(vn_instance, 0, commandBuffer, buffer, offset, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatchIndirect(vn_ring, 0, commandBuffer, buffer, offset, &submit);
 }
 
-static inline void vn_call_vkCmdCopyBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
+static inline void vn_call_vkCmdCopyBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyBuffer_reply(dec, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
+static inline void vn_async_vkCmdCopyBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferCopy* pRegions)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBuffer(vn_instance, 0, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBuffer(vn_ring, 0, commandBuffer, srcBuffer, dstBuffer, regionCount, pRegions, &submit);
 }
 
-static inline void vn_call_vkCmdCopyImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions)
+static inline void vn_call_vkCmdCopyImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyImage_reply(dec, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions)
+static inline void vn_async_vkCmdCopyImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageCopy* pRegions)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImage(vn_instance, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImage(vn_ring, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
 }
 
-static inline void vn_call_vkCmdBlitImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter)
+static inline void vn_call_vkCmdBlitImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBlitImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBlitImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBlitImage_reply(dec, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBlitImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter)
+static inline void vn_async_vkCmdBlitImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageBlit* pRegions, VkFilter filter)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBlitImage(vn_instance, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBlitImage(vn_ring, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, filter, &submit);
 }
 
-static inline void vn_call_vkCmdCopyBufferToImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions)
+static inline void vn_call_vkCmdCopyBufferToImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBufferToImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBufferToImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyBufferToImage_reply(dec, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyBufferToImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions)
+static inline void vn_async_vkCmdCopyBufferToImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer srcBuffer, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBufferToImage(vn_instance, 0, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBufferToImage(vn_ring, 0, commandBuffer, srcBuffer, dstImage, dstImageLayout, regionCount, pRegions, &submit);
 }
 
-static inline void vn_call_vkCmdCopyImageToBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
+static inline void vn_call_vkCmdCopyImageToBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImageToBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImageToBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyImageToBuffer_reply(dec, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyImageToBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
+static inline void vn_async_vkCmdCopyImageToBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkBuffer dstBuffer, uint32_t regionCount, const VkBufferImageCopy* pRegions)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImageToBuffer(vn_instance, 0, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImageToBuffer(vn_ring, 0, commandBuffer, srcImage, srcImageLayout, dstBuffer, regionCount, pRegions, &submit);
 }
 
-static inline void vn_call_vkCmdUpdateBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData)
+static inline void vn_call_vkCmdUpdateBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdUpdateBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, dataSize, pData, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdUpdateBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, dataSize, pData, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdUpdateBuffer_reply(dec, commandBuffer, dstBuffer, dstOffset, dataSize, pData);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdUpdateBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData)
+static inline void vn_async_vkCmdUpdateBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize dataSize, const void* pData)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdUpdateBuffer(vn_instance, 0, commandBuffer, dstBuffer, dstOffset, dataSize, pData, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdUpdateBuffer(vn_ring, 0, commandBuffer, dstBuffer, dstOffset, dataSize, pData, &submit);
 }
 
-static inline void vn_call_vkCmdFillBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
+static inline void vn_call_vkCmdFillBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdFillBuffer(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, size, data, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdFillBuffer(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, dstBuffer, dstOffset, size, data, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdFillBuffer_reply(dec, commandBuffer, dstBuffer, dstOffset, size, data);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdFillBuffer(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
+static inline void vn_async_vkCmdFillBuffer(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize size, uint32_t data)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdFillBuffer(vn_instance, 0, commandBuffer, dstBuffer, dstOffset, size, data, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdFillBuffer(vn_ring, 0, commandBuffer, dstBuffer, dstOffset, size, data, &submit);
 }
 
-static inline void vn_call_vkCmdClearColorImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
+static inline void vn_call_vkCmdClearColorImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearColorImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearColorImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdClearColorImage_reply(dec, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdClearColorImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
+static inline void vn_async_vkCmdClearColorImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearColorValue* pColor, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearColorImage(vn_instance, 0, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearColorImage(vn_ring, 0, commandBuffer, image, imageLayout, pColor, rangeCount, pRanges, &submit);
 }
 
-static inline void vn_call_vkCmdClearDepthStencilImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
+static inline void vn_call_vkCmdClearDepthStencilImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearDepthStencilImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearDepthStencilImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdClearDepthStencilImage_reply(dec, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdClearDepthStencilImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
+static inline void vn_async_vkCmdClearDepthStencilImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage image, VkImageLayout imageLayout, const VkClearDepthStencilValue* pDepthStencil, uint32_t rangeCount, const VkImageSubresourceRange* pRanges)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearDepthStencilImage(vn_instance, 0, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearDepthStencilImage(vn_ring, 0, commandBuffer, image, imageLayout, pDepthStencil, rangeCount, pRanges, &submit);
 }
 
-static inline void vn_call_vkCmdClearAttachments(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects)
+static inline void vn_call_vkCmdClearAttachments(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearAttachments(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, attachmentCount, pAttachments, rectCount, pRects, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearAttachments(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, attachmentCount, pAttachments, rectCount, pRects, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdClearAttachments_reply(dec, commandBuffer, attachmentCount, pAttachments, rectCount, pRects);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdClearAttachments(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects)
+static inline void vn_async_vkCmdClearAttachments(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkClearAttachment* pAttachments, uint32_t rectCount, const VkClearRect* pRects)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdClearAttachments(vn_instance, 0, commandBuffer, attachmentCount, pAttachments, rectCount, pRects, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdClearAttachments(vn_ring, 0, commandBuffer, attachmentCount, pAttachments, rectCount, pRects, &submit);
 }
 
-static inline void vn_call_vkCmdResolveImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions)
+static inline void vn_call_vkCmdResolveImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResolveImage(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResolveImage(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdResolveImage_reply(dec, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdResolveImage(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions)
+static inline void vn_async_vkCmdResolveImage(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkImage srcImage, VkImageLayout srcImageLayout, VkImage dstImage, VkImageLayout dstImageLayout, uint32_t regionCount, const VkImageResolve* pRegions)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResolveImage(vn_instance, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResolveImage(vn_ring, 0, commandBuffer, srcImage, srcImageLayout, dstImage, dstImageLayout, regionCount, pRegions, &submit);
 }
 
-static inline void vn_call_vkCmdSetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+static inline void vn_call_vkCmdSetEvent(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetEvent_reply(dec, commandBuffer, event, stageMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+static inline void vn_async_vkCmdSetEvent(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetEvent(vn_instance, 0, commandBuffer, event, stageMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetEvent(vn_ring, 0, commandBuffer, event, stageMask, &submit);
 }
 
-static inline void vn_call_vkCmdResetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+static inline void vn_call_vkCmdResetEvent(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetEvent(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetEvent(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdResetEvent_reply(dec, commandBuffer, event, stageMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdResetEvent(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
+static inline void vn_async_vkCmdResetEvent(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags stageMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetEvent(vn_instance, 0, commandBuffer, event, stageMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetEvent(vn_ring, 0, commandBuffer, event, stageMask, &submit);
 }
 
-static inline void vn_call_vkCmdWaitEvents(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+static inline void vn_call_vkCmdWaitEvents(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWaitEvents(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWaitEvents(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdWaitEvents_reply(dec, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdWaitEvents(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+static inline void vn_async_vkCmdWaitEvents(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWaitEvents(vn_instance, 0, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWaitEvents(vn_ring, 0, commandBuffer, eventCount, pEvents, srcStageMask, dstStageMask, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
 }
 
-static inline void vn_call_vkCmdPipelineBarrier(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+static inline void vn_call_vkCmdPipelineBarrier(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPipelineBarrier(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPipelineBarrier(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdPipelineBarrier_reply(dec, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdPipelineBarrier(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
+static inline void vn_async_vkCmdPipelineBarrier(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlags srcStageMask, VkPipelineStageFlags dstStageMask, VkDependencyFlags dependencyFlags, uint32_t memoryBarrierCount, const VkMemoryBarrier* pMemoryBarriers, uint32_t bufferMemoryBarrierCount, const VkBufferMemoryBarrier* pBufferMemoryBarriers, uint32_t imageMemoryBarrierCount, const VkImageMemoryBarrier* pImageMemoryBarriers)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPipelineBarrier(vn_instance, 0, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPipelineBarrier(vn_ring, 0, commandBuffer, srcStageMask, dstStageMask, dependencyFlags, memoryBarrierCount, pMemoryBarriers, bufferMemoryBarrierCount, pBufferMemoryBarriers, imageMemoryBarrierCount, pImageMemoryBarriers, &submit);
 }
 
-static inline void vn_call_vkCmdBeginQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
+static inline void vn_call_vkCmdBeginQuery(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginQuery(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginQuery(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginQuery_reply(dec, commandBuffer, queryPool, query, flags);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
+static inline void vn_async_vkCmdBeginQuery(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginQuery(vn_instance, 0, commandBuffer, queryPool, query, flags, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginQuery(vn_ring, 0, commandBuffer, queryPool, query, flags, &submit);
 }
 
-static inline void vn_call_vkCmdEndQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
+static inline void vn_call_vkCmdEndQuery(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndQuery(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndQuery(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndQuery_reply(dec, commandBuffer, queryPool, query);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndQuery(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
+static inline void vn_async_vkCmdEndQuery(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndQuery(vn_instance, 0, commandBuffer, queryPool, query, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndQuery(vn_ring, 0, commandBuffer, queryPool, query, &submit);
 }
 
-static inline void vn_call_vkCmdBeginConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin)
+static inline void vn_call_vkCmdBeginConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginConditionalRenderingEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pConditionalRenderingBegin, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginConditionalRenderingEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pConditionalRenderingBegin, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginConditionalRenderingEXT_reply(dec, commandBuffer, pConditionalRenderingBegin);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin)
+static inline void vn_async_vkCmdBeginConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkConditionalRenderingBeginInfoEXT* pConditionalRenderingBegin)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginConditionalRenderingEXT(vn_instance, 0, commandBuffer, pConditionalRenderingBegin, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginConditionalRenderingEXT(vn_ring, 0, commandBuffer, pConditionalRenderingBegin, &submit);
 }
 
-static inline void vn_call_vkCmdEndConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_call_vkCmdEndConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndConditionalRenderingEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndConditionalRenderingEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndConditionalRenderingEXT_reply(dec, commandBuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndConditionalRenderingEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_async_vkCmdEndConditionalRenderingEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndConditionalRenderingEXT(vn_instance, 0, commandBuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndConditionalRenderingEXT(vn_ring, 0, commandBuffer, &submit);
 }
 
-static inline void vn_call_vkCmdResetQueryPool(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+static inline void vn_call_vkCmdResetQueryPool(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetQueryPool(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetQueryPool(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdResetQueryPool_reply(dec, commandBuffer, queryPool, firstQuery, queryCount);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdResetQueryPool(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
+static inline void vn_async_vkCmdResetQueryPool(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetQueryPool(vn_instance, 0, commandBuffer, queryPool, firstQuery, queryCount, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetQueryPool(vn_ring, 0, commandBuffer, queryPool, firstQuery, queryCount, &submit);
 }
 
-static inline void vn_call_vkCmdWriteTimestamp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
+static inline void vn_call_vkCmdWriteTimestamp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWriteTimestamp(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineStage, queryPool, query, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWriteTimestamp(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineStage, queryPool, query, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdWriteTimestamp_reply(dec, commandBuffer, pipelineStage, queryPool, query);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdWriteTimestamp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
+static inline void vn_async_vkCmdWriteTimestamp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlagBits pipelineStage, VkQueryPool queryPool, uint32_t query)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWriteTimestamp(vn_instance, 0, commandBuffer, pipelineStage, queryPool, query, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWriteTimestamp(vn_ring, 0, commandBuffer, pipelineStage, queryPool, query, &submit);
 }
 
-static inline void vn_call_vkCmdCopyQueryPoolResults(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
+static inline void vn_call_vkCmdCopyQueryPoolResults(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyQueryPoolResults(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyQueryPoolResults(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyQueryPoolResults_reply(dec, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyQueryPoolResults(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
+static inline void vn_async_vkCmdCopyQueryPoolResults(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t firstQuery, uint32_t queryCount, VkBuffer dstBuffer, VkDeviceSize dstOffset, VkDeviceSize stride, VkQueryResultFlags flags)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyQueryPoolResults(vn_instance, 0, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyQueryPoolResults(vn_ring, 0, commandBuffer, queryPool, firstQuery, queryCount, dstBuffer, dstOffset, stride, flags, &submit);
 }
 
-static inline void vn_call_vkCmdPushConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues)
+static inline void vn_call_vkCmdPushConstants(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPushConstants(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, layout, stageFlags, offset, size, pValues, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushConstants(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, layout, stageFlags, offset, size, pValues, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdPushConstants_reply(dec, commandBuffer, layout, stageFlags, offset, size, pValues);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdPushConstants(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues)
+static inline void vn_async_vkCmdPushConstants(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineLayout layout, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, const void* pValues)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPushConstants(vn_instance, 0, commandBuffer, layout, stageFlags, offset, size, pValues, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushConstants(vn_ring, 0, commandBuffer, layout, stageFlags, offset, size, pValues, &submit);
 }
 
-static inline void vn_call_vkCmdBeginRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents)
+static inline void vn_call_vkCmdBeginRenderPass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, contents, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRenderPass(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, contents, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginRenderPass_reply(dec, commandBuffer, pRenderPassBegin, contents);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents)
+static inline void vn_async_vkCmdBeginRenderPass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, VkSubpassContents contents)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRenderPass(vn_instance, 0, commandBuffer, pRenderPassBegin, contents, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRenderPass(vn_ring, 0, commandBuffer, pRenderPassBegin, contents, &submit);
 }
 
-static inline void vn_call_vkCmdNextSubpass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkSubpassContents contents)
+static inline void vn_call_vkCmdNextSubpass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSubpassContents contents)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdNextSubpass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, contents, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdNextSubpass(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, contents, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdNextSubpass_reply(dec, commandBuffer, contents);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdNextSubpass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkSubpassContents contents)
+static inline void vn_async_vkCmdNextSubpass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSubpassContents contents)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdNextSubpass(vn_instance, 0, commandBuffer, contents, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdNextSubpass(vn_ring, 0, commandBuffer, contents, &submit);
 }
 
-static inline void vn_call_vkCmdEndRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_call_vkCmdEndRenderPass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRenderPass(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRenderPass(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndRenderPass_reply(dec, commandBuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndRenderPass(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_async_vkCmdEndRenderPass(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRenderPass(vn_instance, 0, commandBuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRenderPass(vn_ring, 0, commandBuffer, &submit);
 }
 
-static inline void vn_call_vkCmdExecuteCommands(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
+static inline void vn_call_vkCmdExecuteCommands(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdExecuteCommands(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdExecuteCommands(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdExecuteCommands_reply(dec, commandBuffer, commandBufferCount, pCommandBuffers);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdExecuteCommands(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
+static inline void vn_async_vkCmdExecuteCommands(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t commandBufferCount, const VkCommandBuffer* pCommandBuffers)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdExecuteCommands(vn_instance, 0, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdExecuteCommands(vn_ring, 0, commandBuffer, commandBufferCount, pCommandBuffers, &submit);
 }
 
-static inline void vn_call_vkCmdSetDeviceMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t deviceMask)
+static inline void vn_call_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDeviceMask(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, deviceMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushDescriptorSetKHR(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdPushDescriptorSetKHR_reply(dec, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdPushDescriptorSetKHR(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set, uint32_t descriptorWriteCount, const VkWriteDescriptorSet* pDescriptorWrites)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPushDescriptorSetKHR(vn_ring, 0, commandBuffer, pipelineBindPoint, layout, set, descriptorWriteCount, pDescriptorWrites, &submit);
+}
+
+static inline void vn_call_vkCmdSetDeviceMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t deviceMask)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDeviceMask(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, deviceMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDeviceMask_reply(dec, commandBuffer, deviceMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDeviceMask(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t deviceMask)
+static inline void vn_async_vkCmdSetDeviceMask(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t deviceMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDeviceMask(vn_instance, 0, commandBuffer, deviceMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDeviceMask(vn_ring, 0, commandBuffer, deviceMask, &submit);
 }
 
-static inline void vn_call_vkCmdDispatchBase(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+static inline void vn_call_vkCmdDispatchBase(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatchBase(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatchBase(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDispatchBase_reply(dec, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDispatchBase(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
+static inline void vn_async_vkCmdDispatchBase(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t baseGroupX, uint32_t baseGroupY, uint32_t baseGroupZ, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDispatchBase(vn_instance, 0, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDispatchBase(vn_ring, 0, commandBuffer, baseGroupX, baseGroupY, baseGroupZ, groupCountX, groupCountY, groupCountZ, &submit);
 }
 
-static inline void vn_call_vkCmdBeginRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo)
+static inline void vn_call_vkCmdBeginRenderPass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRenderPass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, pSubpassBeginInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRenderPass2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderPassBegin, pSubpassBeginInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginRenderPass2_reply(dec, commandBuffer, pRenderPassBegin, pSubpassBeginInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo)
+static inline void vn_async_vkCmdBeginRenderPass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderPassBeginInfo* pRenderPassBegin, const VkSubpassBeginInfo* pSubpassBeginInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRenderPass2(vn_instance, 0, commandBuffer, pRenderPassBegin, pSubpassBeginInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRenderPass2(vn_ring, 0, commandBuffer, pRenderPassBegin, pSubpassBeginInfo, &submit);
 }
 
-static inline void vn_call_vkCmdNextSubpass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo)
+static inline void vn_call_vkCmdNextSubpass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdNextSubpass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdNextSubpass2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdNextSubpass2_reply(dec, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdNextSubpass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo)
+static inline void vn_async_vkCmdNextSubpass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkSubpassBeginInfo* pSubpassBeginInfo, const VkSubpassEndInfo* pSubpassEndInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdNextSubpass2(vn_instance, 0, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdNextSubpass2(vn_ring, 0, commandBuffer, pSubpassBeginInfo, pSubpassEndInfo, &submit);
 }
 
-static inline void vn_call_vkCmdEndRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo)
+static inline void vn_call_vkCmdEndRenderPass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRenderPass2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassEndInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRenderPass2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pSubpassEndInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndRenderPass2_reply(dec, commandBuffer, pSubpassEndInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndRenderPass2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo)
+static inline void vn_async_vkCmdEndRenderPass2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkSubpassEndInfo* pSubpassEndInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRenderPass2(vn_instance, 0, commandBuffer, pSubpassEndInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRenderPass2(vn_ring, 0, commandBuffer, pSubpassEndInfo, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+static inline void vn_call_vkCmdDrawIndirectCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirectCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirectCount(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndirectCount_reply(dec, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+static inline void vn_async_vkCmdDrawIndirectCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirectCount(vn_instance, 0, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirectCount(vn_ring, 0, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndexedIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+static inline void vn_call_vkCmdDrawIndexedIndirectCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexedIndirectCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexedIndirectCount(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndexedIndirectCount_reply(dec, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndexedIndirectCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
+static inline void vn_async_vkCmdDrawIndexedIndirectCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndexedIndirectCount(vn_instance, 0, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndexedIndirectCount(vn_ring, 0, commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride, &submit);
 }
 
-static inline void vn_call_vkCmdBindTransformFeedbackBuffersEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes)
+static inline void vn_call_vkCmdBindTransformFeedbackBuffersEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindTransformFeedbackBuffersEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindTransformFeedbackBuffersEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindTransformFeedbackBuffersEXT_reply(dec, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindTransformFeedbackBuffersEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes)
+static inline void vn_async_vkCmdBindTransformFeedbackBuffersEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindTransformFeedbackBuffersEXT(vn_instance, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindTransformFeedbackBuffersEXT(vn_ring, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, &submit);
 }
 
-static inline void vn_call_vkCmdBeginTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
+static inline void vn_call_vkCmdBeginTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginTransformFeedbackEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginTransformFeedbackEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginTransformFeedbackEXT_reply(dec, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
+static inline void vn_async_vkCmdBeginTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginTransformFeedbackEXT(vn_instance, 0, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginTransformFeedbackEXT(vn_ring, 0, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
 }
 
-static inline void vn_call_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
+static inline void vn_call_vkCmdEndTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndTransformFeedbackEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndTransformFeedbackEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndTransformFeedbackEXT_reply(dec, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndTransformFeedbackEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
+static inline void vn_async_vkCmdEndTransformFeedbackEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstCounterBuffer, uint32_t counterBufferCount, const VkBuffer* pCounterBuffers, const VkDeviceSize* pCounterBufferOffsets)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndTransformFeedbackEXT(vn_instance, 0, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndTransformFeedbackEXT(vn_ring, 0, commandBuffer, firstCounterBuffer, counterBufferCount, pCounterBuffers, pCounterBufferOffsets, &submit);
 }
 
-static inline void vn_call_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index)
+static inline void vn_call_vkCmdBeginQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginQueryIndexedEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, index, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginQueryIndexedEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, flags, index, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginQueryIndexedEXT_reply(dec, commandBuffer, queryPool, query, flags, index);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index)
+static inline void vn_async_vkCmdBeginQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, VkQueryControlFlags flags, uint32_t index)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginQueryIndexedEXT(vn_instance, 0, commandBuffer, queryPool, query, flags, index, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginQueryIndexedEXT(vn_ring, 0, commandBuffer, queryPool, query, flags, index, &submit);
 }
 
-static inline void vn_call_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index)
+static inline void vn_call_vkCmdEndQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndQueryIndexedEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, index, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndQueryIndexedEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, queryPool, query, index, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndQueryIndexedEXT_reply(dec, commandBuffer, queryPool, query, index);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndQueryIndexedEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index)
+static inline void vn_async_vkCmdEndQueryIndexedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkQueryPool queryPool, uint32_t query, uint32_t index)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndQueryIndexedEXT(vn_instance, 0, commandBuffer, queryPool, query, index, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndQueryIndexedEXT(vn_ring, 0, commandBuffer, queryPool, query, index, &submit);
 }
 
-static inline void vn_call_vkCmdDrawIndirectByteCountEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride)
+static inline void vn_call_vkCmdDrawIndirectByteCountEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirectByteCountEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirectByteCountEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdDrawIndirectByteCountEXT_reply(dec, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdDrawIndirectByteCountEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride)
+static inline void vn_async_vkCmdDrawIndirectByteCountEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t instanceCount, uint32_t firstInstance, VkBuffer counterBuffer, VkDeviceSize counterBufferOffset, uint32_t counterOffset, uint32_t vertexStride)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdDrawIndirectByteCountEXT(vn_instance, 0, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdDrawIndirectByteCountEXT(vn_ring, 0, commandBuffer, instanceCount, firstInstance, counterBuffer, counterBufferOffset, counterOffset, vertexStride, &submit);
 }
 
-static inline void vn_call_vkCmdSetLineStippleEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_call_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLineStippleEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineStippleEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetLineStippleEXT_reply(dec, commandBuffer, lineStippleFactor, lineStipplePattern);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetLineStippleEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
+static inline void vn_async_vkCmdSetLineStippleEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t lineStippleFactor, uint16_t lineStipplePattern)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLineStippleEXT(vn_instance, 0, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineStippleEXT(vn_ring, 0, commandBuffer, lineStippleFactor, lineStipplePattern, &submit);
 }
 
-static inline void vn_call_vkCmdSetCullMode(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
+static inline void vn_call_vkCmdSetCullMode(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetCullMode(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, cullMode, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetCullMode(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, cullMode, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetCullMode_reply(dec, commandBuffer, cullMode);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetCullMode(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
+static inline void vn_async_vkCmdSetCullMode(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCullModeFlags cullMode)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetCullMode(vn_instance, 0, commandBuffer, cullMode, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetCullMode(vn_ring, 0, commandBuffer, cullMode, &submit);
 }
 
-static inline void vn_call_vkCmdSetFrontFace(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkFrontFace frontFace)
+static inline void vn_call_vkCmdSetFrontFace(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkFrontFace frontFace)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetFrontFace(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, frontFace, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetFrontFace(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, frontFace, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetFrontFace_reply(dec, commandBuffer, frontFace);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetFrontFace(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkFrontFace frontFace)
+static inline void vn_async_vkCmdSetFrontFace(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkFrontFace frontFace)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetFrontFace(vn_instance, 0, commandBuffer, frontFace, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetFrontFace(vn_ring, 0, commandBuffer, frontFace, &submit);
 }
 
-static inline void vn_call_vkCmdSetPrimitiveTopology(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology)
+static inline void vn_call_vkCmdSetPrimitiveTopology(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPrimitiveTopology(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, primitiveTopology, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPrimitiveTopology(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, primitiveTopology, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetPrimitiveTopology_reply(dec, commandBuffer, primitiveTopology);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetPrimitiveTopology(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology)
+static inline void vn_async_vkCmdSetPrimitiveTopology(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPrimitiveTopology primitiveTopology)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPrimitiveTopology(vn_instance, 0, commandBuffer, primitiveTopology, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPrimitiveTopology(vn_ring, 0, commandBuffer, primitiveTopology, &submit);
 }
 
-static inline void vn_call_vkCmdSetViewportWithCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports)
+static inline void vn_call_vkCmdSetViewportWithCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetViewportWithCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, viewportCount, pViewports, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetViewportWithCount(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, viewportCount, pViewports, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetViewportWithCount_reply(dec, commandBuffer, viewportCount, pViewports);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetViewportWithCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports)
+static inline void vn_async_vkCmdSetViewportWithCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t viewportCount, const VkViewport* pViewports)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetViewportWithCount(vn_instance, 0, commandBuffer, viewportCount, pViewports, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetViewportWithCount(vn_ring, 0, commandBuffer, viewportCount, pViewports, &submit);
 }
 
-static inline void vn_call_vkCmdSetScissorWithCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors)
+static inline void vn_call_vkCmdSetScissorWithCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetScissorWithCount(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, scissorCount, pScissors, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetScissorWithCount(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, scissorCount, pScissors, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetScissorWithCount_reply(dec, commandBuffer, scissorCount, pScissors);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetScissorWithCount(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors)
+static inline void vn_async_vkCmdSetScissorWithCount(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t scissorCount, const VkRect2D* pScissors)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetScissorWithCount(vn_instance, 0, commandBuffer, scissorCount, pScissors, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetScissorWithCount(vn_ring, 0, commandBuffer, scissorCount, pScissors, &submit);
 }
 
-static inline void vn_call_vkCmdBindVertexBuffers2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides)
+static inline void vn_call_vkCmdBindVertexBuffers2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindVertexBuffers2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindVertexBuffers2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBindVertexBuffers2_reply(dec, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBindVertexBuffers2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides)
+static inline void vn_async_vkCmdBindVertexBuffers2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstBinding, uint32_t bindingCount, const VkBuffer* pBuffers, const VkDeviceSize* pOffsets, const VkDeviceSize* pSizes, const VkDeviceSize* pStrides)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBindVertexBuffers2(vn_instance, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBindVertexBuffers2(vn_ring, 0, commandBuffer, firstBinding, bindingCount, pBuffers, pOffsets, pSizes, pStrides, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
+static inline void vn_call_vkCmdSetDepthTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthTestEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthTestEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthTestEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthTestEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthTestEnable_reply(dec, commandBuffer, depthTestEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
+static inline void vn_async_vkCmdSetDepthTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthTestEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthTestEnable(vn_instance, 0, commandBuffer, depthTestEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthTestEnable(vn_ring, 0, commandBuffer, depthTestEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthWriteEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable)
+static inline void vn_call_vkCmdSetDepthWriteEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthWriteEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthWriteEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthWriteEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthWriteEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthWriteEnable_reply(dec, commandBuffer, depthWriteEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthWriteEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable)
+static inline void vn_async_vkCmdSetDepthWriteEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthWriteEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthWriteEnable(vn_instance, 0, commandBuffer, depthWriteEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthWriteEnable(vn_ring, 0, commandBuffer, depthWriteEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthCompareOp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp)
+static inline void vn_call_vkCmdSetDepthCompareOp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthCompareOp(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthCompareOp, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthCompareOp(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthCompareOp, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthCompareOp_reply(dec, commandBuffer, depthCompareOp);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthCompareOp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp)
+static inline void vn_async_vkCmdSetDepthCompareOp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkCompareOp depthCompareOp)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthCompareOp(vn_instance, 0, commandBuffer, depthCompareOp, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthCompareOp(vn_ring, 0, commandBuffer, depthCompareOp, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthBoundsTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable)
+static inline void vn_call_vkCmdSetDepthBoundsTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBoundsTestEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBoundsTestEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBoundsTestEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBoundsTestEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthBoundsTestEnable_reply(dec, commandBuffer, depthBoundsTestEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthBoundsTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable)
+static inline void vn_async_vkCmdSetDepthBoundsTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthBoundsTestEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBoundsTestEnable(vn_instance, 0, commandBuffer, depthBoundsTestEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBoundsTestEnable(vn_ring, 0, commandBuffer, depthBoundsTestEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetStencilTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable)
+static inline void vn_call_vkCmdSetStencilTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilTestEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, stencilTestEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilTestEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, stencilTestEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetStencilTestEnable_reply(dec, commandBuffer, stencilTestEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetStencilTestEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable)
+static inline void vn_async_vkCmdSetStencilTestEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 stencilTestEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilTestEnable(vn_instance, 0, commandBuffer, stencilTestEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilTestEnable(vn_ring, 0, commandBuffer, stencilTestEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetStencilOp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp)
+static inline void vn_call_vkCmdSetStencilOp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilOp(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilOp(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetStencilOp_reply(dec, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetStencilOp(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp)
+static inline void vn_async_vkCmdSetStencilOp(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkStencilFaceFlags faceMask, VkStencilOp failOp, VkStencilOp passOp, VkStencilOp depthFailOp, VkCompareOp compareOp)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetStencilOp(vn_instance, 0, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetStencilOp(vn_ring, 0, commandBuffer, faceMask, failOp, passOp, depthFailOp, compareOp, &submit);
 }
 
-static inline void vn_call_vkCmdSetPatchControlPointsEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t patchControlPoints)
+static inline void vn_call_vkCmdSetPatchControlPointsEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t patchControlPoints)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPatchControlPointsEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, patchControlPoints, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPatchControlPointsEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, patchControlPoints, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetPatchControlPointsEXT_reply(dec, commandBuffer, patchControlPoints);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetPatchControlPointsEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t patchControlPoints)
+static inline void vn_async_vkCmdSetPatchControlPointsEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t patchControlPoints)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPatchControlPointsEXT(vn_instance, 0, commandBuffer, patchControlPoints, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPatchControlPointsEXT(vn_ring, 0, commandBuffer, patchControlPoints, &submit);
 }
 
-static inline void vn_call_vkCmdSetRasterizerDiscardEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable)
+static inline void vn_call_vkCmdSetRasterizerDiscardEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetRasterizerDiscardEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, rasterizerDiscardEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizerDiscardEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, rasterizerDiscardEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetRasterizerDiscardEnable_reply(dec, commandBuffer, rasterizerDiscardEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetRasterizerDiscardEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable)
+static inline void vn_async_vkCmdSetRasterizerDiscardEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 rasterizerDiscardEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetRasterizerDiscardEnable(vn_instance, 0, commandBuffer, rasterizerDiscardEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizerDiscardEnable(vn_ring, 0, commandBuffer, rasterizerDiscardEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetDepthBiasEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
+static inline void vn_call_vkCmdSetDepthBiasEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBiasEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBiasEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBiasEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthBiasEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetDepthBiasEnable_reply(dec, commandBuffer, depthBiasEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetDepthBiasEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
+static inline void vn_async_vkCmdSetDepthBiasEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthBiasEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetDepthBiasEnable(vn_instance, 0, commandBuffer, depthBiasEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthBiasEnable(vn_ring, 0, commandBuffer, depthBiasEnable, &submit);
 }
 
-static inline void vn_call_vkCmdSetLogicOpEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkLogicOp logicOp)
+static inline void vn_call_vkCmdSetLogicOpEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLogicOp logicOp)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLogicOpEXT(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, logicOp, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLogicOpEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, logicOp, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetLogicOpEXT_reply(dec, commandBuffer, logicOp);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetLogicOpEXT(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkLogicOp logicOp)
+static inline void vn_async_vkCmdSetLogicOpEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLogicOp logicOp)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetLogicOpEXT(vn_instance, 0, commandBuffer, logicOp, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLogicOpEXT(vn_ring, 0, commandBuffer, logicOp, &submit);
 }
 
-static inline void vn_call_vkCmdSetPrimitiveRestartEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable)
+static inline void vn_call_vkCmdSetPrimitiveRestartEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPrimitiveRestartEnable(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, primitiveRestartEnable, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPrimitiveRestartEnable(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, primitiveRestartEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetPrimitiveRestartEnable_reply(dec, commandBuffer, primitiveRestartEnable);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetPrimitiveRestartEnable(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable)
+static inline void vn_async_vkCmdSetPrimitiveRestartEnable(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 primitiveRestartEnable)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetPrimitiveRestartEnable(vn_instance, 0, commandBuffer, primitiveRestartEnable, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPrimitiveRestartEnable(vn_ring, 0, commandBuffer, primitiveRestartEnable, &submit);
 }
 
-static inline void vn_call_vkCmdCopyBuffer2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo)
+static inline void vn_call_vkCmdSetTessellationDomainOriginEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBuffer2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyBufferInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetTessellationDomainOriginEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, domainOrigin, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetTessellationDomainOriginEXT_reply(dec, commandBuffer, domainOrigin);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetTessellationDomainOriginEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkTessellationDomainOrigin domainOrigin)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetTessellationDomainOriginEXT(vn_ring, 0, commandBuffer, domainOrigin, &submit);
+}
+
+static inline void vn_call_vkCmdSetDepthClampEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClampEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthClampEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetDepthClampEnableEXT_reply(dec, commandBuffer, depthClampEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetDepthClampEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthClampEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClampEnableEXT(vn_ring, 0, commandBuffer, depthClampEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetPolygonModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPolygonModeEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, polygonMode, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetPolygonModeEXT_reply(dec, commandBuffer, polygonMode);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetPolygonModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPolygonMode polygonMode)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetPolygonModeEXT(vn_ring, 0, commandBuffer, polygonMode, &submit);
+}
+
+static inline void vn_call_vkCmdSetRasterizationSamplesEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizationSamplesEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, rasterizationSamples, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetRasterizationSamplesEXT_reply(dec, commandBuffer, rasterizationSamples);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetRasterizationSamplesEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSampleCountFlagBits rasterizationSamples)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizationSamplesEXT(vn_ring, 0, commandBuffer, rasterizationSamples, &submit);
+}
+
+static inline void vn_call_vkCmdSetSampleMaskEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetSampleMaskEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, samples, pSampleMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetSampleMaskEXT_reply(dec, commandBuffer, samples, pSampleMask);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetSampleMaskEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkSampleCountFlagBits samples, const VkSampleMask* pSampleMask)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetSampleMaskEXT(vn_ring, 0, commandBuffer, samples, pSampleMask, &submit);
+}
+
+static inline void vn_call_vkCmdSetAlphaToCoverageEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetAlphaToCoverageEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, alphaToCoverageEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetAlphaToCoverageEnableEXT_reply(dec, commandBuffer, alphaToCoverageEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetAlphaToCoverageEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 alphaToCoverageEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetAlphaToCoverageEnableEXT(vn_ring, 0, commandBuffer, alphaToCoverageEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetAlphaToOneEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetAlphaToOneEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, alphaToOneEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetAlphaToOneEnableEXT_reply(dec, commandBuffer, alphaToOneEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetAlphaToOneEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 alphaToOneEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetAlphaToOneEnableEXT(vn_ring, 0, commandBuffer, alphaToOneEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetLogicOpEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLogicOpEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, logicOpEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetLogicOpEnableEXT_reply(dec, commandBuffer, logicOpEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetLogicOpEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 logicOpEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLogicOpEnableEXT(vn_ring, 0, commandBuffer, logicOpEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetColorBlendEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetColorBlendEnableEXT_reply(dec, commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetColorBlendEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkBool32* pColorBlendEnables)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendEnableEXT(vn_ring, 0, commandBuffer, firstAttachment, attachmentCount, pColorBlendEnables, &submit);
+}
+
+static inline void vn_call_vkCmdSetColorBlendEquationEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendEquationEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetColorBlendEquationEXT_reply(dec, commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetColorBlendEquationEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendEquationEXT* pColorBlendEquations)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendEquationEXT(vn_ring, 0, commandBuffer, firstAttachment, attachmentCount, pColorBlendEquations, &submit);
+}
+
+static inline void vn_call_vkCmdSetColorWriteMaskEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorWriteMaskEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetColorWriteMaskEXT_reply(dec, commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetColorWriteMaskEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorComponentFlags* pColorWriteMasks)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorWriteMaskEXT(vn_ring, 0, commandBuffer, firstAttachment, attachmentCount, pColorWriteMasks, &submit);
+}
+
+static inline void vn_call_vkCmdSetRasterizationStreamEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizationStreamEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, rasterizationStream, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetRasterizationStreamEXT_reply(dec, commandBuffer, rasterizationStream);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetRasterizationStreamEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t rasterizationStream)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetRasterizationStreamEXT(vn_ring, 0, commandBuffer, rasterizationStream, &submit);
+}
+
+static inline void vn_call_vkCmdSetConservativeRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetConservativeRasterizationModeEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, conservativeRasterizationMode, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetConservativeRasterizationModeEXT_reply(dec, commandBuffer, conservativeRasterizationMode);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetConservativeRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkConservativeRasterizationModeEXT conservativeRasterizationMode)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetConservativeRasterizationModeEXT(vn_ring, 0, commandBuffer, conservativeRasterizationMode, &submit);
+}
+
+static inline void vn_call_vkCmdSetExtraPrimitiveOverestimationSizeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetExtraPrimitiveOverestimationSizeEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, extraPrimitiveOverestimationSize, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetExtraPrimitiveOverestimationSizeEXT_reply(dec, commandBuffer, extraPrimitiveOverestimationSize);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetExtraPrimitiveOverestimationSizeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, float extraPrimitiveOverestimationSize)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetExtraPrimitiveOverestimationSizeEXT(vn_ring, 0, commandBuffer, extraPrimitiveOverestimationSize, &submit);
+}
+
+static inline void vn_call_vkCmdSetDepthClipEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClipEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, depthClipEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetDepthClipEnableEXT_reply(dec, commandBuffer, depthClipEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetDepthClipEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 depthClipEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClipEnableEXT(vn_ring, 0, commandBuffer, depthClipEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetSampleLocationsEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetSampleLocationsEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, sampleLocationsEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetSampleLocationsEnableEXT_reply(dec, commandBuffer, sampleLocationsEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetSampleLocationsEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 sampleLocationsEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetSampleLocationsEnableEXT(vn_ring, 0, commandBuffer, sampleLocationsEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetColorBlendAdvancedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendAdvancedEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetColorBlendAdvancedEXT_reply(dec, commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetColorBlendAdvancedEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t firstAttachment, uint32_t attachmentCount, const VkColorBlendAdvancedEXT* pColorBlendAdvanced)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorBlendAdvancedEXT(vn_ring, 0, commandBuffer, firstAttachment, attachmentCount, pColorBlendAdvanced, &submit);
+}
+
+static inline void vn_call_vkCmdSetProvokingVertexModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetProvokingVertexModeEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, provokingVertexMode, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetProvokingVertexModeEXT_reply(dec, commandBuffer, provokingVertexMode);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetProvokingVertexModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkProvokingVertexModeEXT provokingVertexMode)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetProvokingVertexModeEXT(vn_ring, 0, commandBuffer, provokingVertexMode, &submit);
+}
+
+static inline void vn_call_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineRasterizationModeEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, lineRasterizationMode, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetLineRasterizationModeEXT_reply(dec, commandBuffer, lineRasterizationMode);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetLineRasterizationModeEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkLineRasterizationModeEXT lineRasterizationMode)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineRasterizationModeEXT(vn_ring, 0, commandBuffer, lineRasterizationMode, &submit);
+}
+
+static inline void vn_call_vkCmdSetLineStippleEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineStippleEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, stippledLineEnable, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetLineStippleEnableEXT_reply(dec, commandBuffer, stippledLineEnable);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetLineStippleEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 stippledLineEnable)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetLineStippleEnableEXT(vn_ring, 0, commandBuffer, stippledLineEnable, &submit);
+}
+
+static inline void vn_call_vkCmdSetDepthClipNegativeOneToOneEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClipNegativeOneToOneEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, negativeOneToOne, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetDepthClipNegativeOneToOneEXT_reply(dec, commandBuffer, negativeOneToOne);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetDepthClipNegativeOneToOneEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkBool32 negativeOneToOne)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetDepthClipNegativeOneToOneEXT(vn_ring, 0, commandBuffer, negativeOneToOne, &submit);
+}
+
+static inline void vn_call_vkCmdCopyBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBuffer2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyBufferInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyBuffer2_reply(dec, commandBuffer, pCopyBufferInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyBuffer2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo)
+static inline void vn_async_vkCmdCopyBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyBufferInfo2* pCopyBufferInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBuffer2(vn_instance, 0, commandBuffer, pCopyBufferInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBuffer2(vn_ring, 0, commandBuffer, pCopyBufferInfo, &submit);
 }
 
-static inline void vn_call_vkCmdCopyImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo)
+static inline void vn_call_vkCmdCopyImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImage2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyImageInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImage2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyImageInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyImage2_reply(dec, commandBuffer, pCopyImageInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo)
+static inline void vn_async_vkCmdCopyImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyImageInfo2* pCopyImageInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImage2(vn_instance, 0, commandBuffer, pCopyImageInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImage2(vn_ring, 0, commandBuffer, pCopyImageInfo, &submit);
 }
 
-static inline void vn_call_vkCmdBlitImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo)
+static inline void vn_call_vkCmdBlitImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBlitImage2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBlitImageInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBlitImage2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pBlitImageInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBlitImage2_reply(dec, commandBuffer, pBlitImageInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBlitImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo)
+static inline void vn_async_vkCmdBlitImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkBlitImageInfo2* pBlitImageInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBlitImage2(vn_instance, 0, commandBuffer, pBlitImageInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBlitImage2(vn_ring, 0, commandBuffer, pBlitImageInfo, &submit);
 }
 
-static inline void vn_call_vkCmdCopyBufferToImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo)
+static inline void vn_call_vkCmdCopyBufferToImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBufferToImage2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyBufferToImageInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBufferToImage2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyBufferToImageInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyBufferToImage2_reply(dec, commandBuffer, pCopyBufferToImageInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyBufferToImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo)
+static inline void vn_async_vkCmdCopyBufferToImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyBufferToImageInfo2* pCopyBufferToImageInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyBufferToImage2(vn_instance, 0, commandBuffer, pCopyBufferToImageInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyBufferToImage2(vn_ring, 0, commandBuffer, pCopyBufferToImageInfo, &submit);
 }
 
-static inline void vn_call_vkCmdCopyImageToBuffer2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo)
+static inline void vn_call_vkCmdCopyImageToBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImageToBuffer2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyImageToBufferInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImageToBuffer2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pCopyImageToBufferInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdCopyImageToBuffer2_reply(dec, commandBuffer, pCopyImageToBufferInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdCopyImageToBuffer2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo)
+static inline void vn_async_vkCmdCopyImageToBuffer2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkCopyImageToBufferInfo2* pCopyImageToBufferInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdCopyImageToBuffer2(vn_instance, 0, commandBuffer, pCopyImageToBufferInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdCopyImageToBuffer2(vn_ring, 0, commandBuffer, pCopyImageToBufferInfo, &submit);
 }
 
-static inline void vn_call_vkCmdResolveImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo)
+static inline void vn_call_vkCmdResolveImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResolveImage2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pResolveImageInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResolveImage2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pResolveImageInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdResolveImage2_reply(dec, commandBuffer, pResolveImageInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdResolveImage2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo)
+static inline void vn_async_vkCmdResolveImage2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkResolveImageInfo2* pResolveImageInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResolveImage2(vn_instance, 0, commandBuffer, pResolveImageInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResolveImage2(vn_ring, 0, commandBuffer, pResolveImageInfo, &submit);
 }
 
-static inline void vn_call_vkCmdSetEvent2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo)
+static inline void vn_call_vkCmdSetVertexInputEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetEvent2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, pDependencyInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetVertexInputEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetVertexInputEXT_reply(dec, commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetVertexInputEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t vertexBindingDescriptionCount, const VkVertexInputBindingDescription2EXT* pVertexBindingDescriptions, uint32_t vertexAttributeDescriptionCount, const VkVertexInputAttributeDescription2EXT* pVertexAttributeDescriptions)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetVertexInputEXT(vn_ring, 0, commandBuffer, vertexBindingDescriptionCount, pVertexBindingDescriptions, vertexAttributeDescriptionCount, pVertexAttributeDescriptions, &submit);
+}
+
+static inline void vn_call_vkCmdSetColorWriteEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorWriteEnableEXT(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, attachmentCount, pColorWriteEnables, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
+    if (dec) {
+        vn_decode_vkCmdSetColorWriteEnableEXT_reply(dec, commandBuffer, attachmentCount, pColorWriteEnables);
+        vn_ring_free_command_reply(vn_ring, &submit);
+    }
+}
+
+static inline void vn_async_vkCmdSetColorWriteEnableEXT(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t attachmentCount, const VkBool32* pColorWriteEnables)
+{
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetColorWriteEnableEXT(vn_ring, 0, commandBuffer, attachmentCount, pColorWriteEnables, &submit);
+}
+
+static inline void vn_call_vkCmdSetEvent2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo)
+{
+    VN_TRACE_FUNC();
+
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetEvent2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, pDependencyInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdSetEvent2_reply(dec, commandBuffer, event, pDependencyInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdSetEvent2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo)
+static inline void vn_async_vkCmdSetEvent2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, const VkDependencyInfo* pDependencyInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdSetEvent2(vn_instance, 0, commandBuffer, event, pDependencyInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdSetEvent2(vn_ring, 0, commandBuffer, event, pDependencyInfo, &submit);
 }
 
-static inline void vn_call_vkCmdResetEvent2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask)
+static inline void vn_call_vkCmdResetEvent2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetEvent2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetEvent2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, event, stageMask, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdResetEvent2_reply(dec, commandBuffer, event, stageMask);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdResetEvent2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask)
+static inline void vn_async_vkCmdResetEvent2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkEvent event, VkPipelineStageFlags2 stageMask)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdResetEvent2(vn_instance, 0, commandBuffer, event, stageMask, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdResetEvent2(vn_ring, 0, commandBuffer, event, stageMask, &submit);
 }
 
-static inline void vn_call_vkCmdWaitEvents2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos)
+static inline void vn_call_vkCmdWaitEvents2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWaitEvents2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, eventCount, pEvents, pDependencyInfos, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWaitEvents2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, eventCount, pEvents, pDependencyInfos, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdWaitEvents2_reply(dec, commandBuffer, eventCount, pEvents, pDependencyInfos);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdWaitEvents2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos)
+static inline void vn_async_vkCmdWaitEvents2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, uint32_t eventCount, const VkEvent* pEvents, const VkDependencyInfo* pDependencyInfos)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWaitEvents2(vn_instance, 0, commandBuffer, eventCount, pEvents, pDependencyInfos, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWaitEvents2(vn_ring, 0, commandBuffer, eventCount, pEvents, pDependencyInfos, &submit);
 }
 
-static inline void vn_call_vkCmdPipelineBarrier2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo)
+static inline void vn_call_vkCmdPipelineBarrier2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPipelineBarrier2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pDependencyInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPipelineBarrier2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pDependencyInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdPipelineBarrier2_reply(dec, commandBuffer, pDependencyInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdPipelineBarrier2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo)
+static inline void vn_async_vkCmdPipelineBarrier2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkDependencyInfo* pDependencyInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdPipelineBarrier2(vn_instance, 0, commandBuffer, pDependencyInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdPipelineBarrier2(vn_ring, 0, commandBuffer, pDependencyInfo, &submit);
 }
 
-static inline void vn_call_vkCmdWriteTimestamp2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query)
+static inline void vn_call_vkCmdWriteTimestamp2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWriteTimestamp2(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, stage, queryPool, query, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWriteTimestamp2(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, stage, queryPool, query, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdWriteTimestamp2_reply(dec, commandBuffer, stage, queryPool, query);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdWriteTimestamp2(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query)
+static inline void vn_async_vkCmdWriteTimestamp2(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, VkPipelineStageFlags2 stage, VkQueryPool queryPool, uint32_t query)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdWriteTimestamp2(vn_instance, 0, commandBuffer, stage, queryPool, query, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdWriteTimestamp2(vn_ring, 0, commandBuffer, stage, queryPool, query, &submit);
 }
 
-static inline void vn_call_vkCmdBeginRendering(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo)
+static inline void vn_call_vkCmdBeginRendering(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRendering(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderingInfo, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRendering(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, pRenderingInfo, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdBeginRendering_reply(dec, commandBuffer, pRenderingInfo);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdBeginRendering(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo)
+static inline void vn_async_vkCmdBeginRendering(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer, const VkRenderingInfo* pRenderingInfo)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdBeginRendering(vn_instance, 0, commandBuffer, pRenderingInfo, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdBeginRendering(vn_ring, 0, commandBuffer, pRenderingInfo, &submit);
 }
 
-static inline void vn_call_vkCmdEndRendering(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_call_vkCmdEndRendering(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
     VN_TRACE_FUNC();
 
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRendering(vn_instance, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
-    struct vn_cs_decoder *dec = vn_instance_get_command_reply(vn_instance, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRendering(vn_ring, VK_COMMAND_GENERATE_REPLY_BIT_EXT, commandBuffer, &submit);
+    struct vn_cs_decoder *dec = vn_ring_get_command_reply(vn_ring, &submit);
     if (dec) {
         vn_decode_vkCmdEndRendering_reply(dec, commandBuffer);
-        vn_instance_free_command_reply(vn_instance, &submit);
+        vn_ring_free_command_reply(vn_ring, &submit);
     }
 }
 
-static inline void vn_async_vkCmdEndRendering(struct vn_instance *vn_instance, VkCommandBuffer commandBuffer)
+static inline void vn_async_vkCmdEndRendering(struct vn_ring *vn_ring, VkCommandBuffer commandBuffer)
 {
-    struct vn_instance_submit_command submit;
-    vn_submit_vkCmdEndRendering(vn_instance, 0, commandBuffer, &submit);
+    struct vn_ring_submit_command submit;
+    vn_submit_vkCmdEndRendering(vn_ring, 0, commandBuffer, &submit);
 }
 
 #endif /* VN_PROTOCOL_DRIVER_COMMAND_BUFFER_H */

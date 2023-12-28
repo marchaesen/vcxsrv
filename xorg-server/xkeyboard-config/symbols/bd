@@ -1,10 +1,10 @@
-// National Bangla/Bengali Standard keyboard layout for Bangladesh,
+// Keyboard layouts for Bangladesh.
+
+// National Bangla/Bengali Standard keyboard layout,
 // developed by the Bangladesh Computer Council (BCC).
-// Ref: http://www.bcc.net.bd/keyboard/bsti_kb_specification.pdf
+// http://www.bcc.net.bd/keyboard/bsti_kb_specification.pdf
 //
-// Author: Jamil Ahmed <jamil at bengalinux.org>
-// Last Updated: 08-01-2006
-// Version: 6.01.3
+// Original author: Jamil Ahmed <jamil at bengalinux.org>, 2006.
 //
 // Issues:
 // <AE06> has U+09B3 even though it is not allocated in Unicode;

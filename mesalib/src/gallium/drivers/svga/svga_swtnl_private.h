@@ -45,7 +45,7 @@ struct svga_vbuf_render {
 
    SVGA3dElementLayoutId layout_id; /**< current element layout id */
 
-   enum pipe_prim_type prim;
+   enum mesa_prim prim;
 
    struct pipe_resource *vbuf;
    struct pipe_resource *ibuf;
@@ -73,8 +73,8 @@ struct svga_vbuf_render {
    unsigned vdecl_offset;
    unsigned vdecl_count;
 
-   ushort min_index;
-   ushort max_index;
+   uint16_t min_index;
+   uint16_t max_index;
 };
 
 /**

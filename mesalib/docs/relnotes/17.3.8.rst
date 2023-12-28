@@ -79,7 +79,7 @@ Ian Romanick (2):
 -  mesa: Don't write to user buffer in glGetTexParameterIuiv on error
 -  i965/vec4: Fix null destination register in 3-source instructions
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965: Emit texture cache invalidates around blorp_copy
 

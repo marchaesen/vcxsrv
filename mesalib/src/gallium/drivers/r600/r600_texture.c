@@ -175,7 +175,7 @@ static unsigned r600_texture_get_offset(struct r600_common_screen *rscreen,
 					struct r600_texture *rtex, unsigned level,
 					const struct pipe_box *box,
 					unsigned *stride,
-					unsigned *layer_stride)
+					uintptr_t *layer_stride)
 {
 	*stride = rtex->surface.u.legacy.level[level].nblk_x *
 		rtex->surface.bpe;
@@ -244,7 +244,7 @@ static int r600_init_surface(struct r600_common_screen *rscreen,
 	if (is_imported)
 		flags |= RADEON_SURF_IMPORTED | RADEON_SURF_SHAREABLE;
 
-	r = rscreen->ws->surface_init(rscreen->ws, ptex,
+	r = rscreen->ws->surface_init(rscreen->ws, &rscreen->info, ptex,
 				      flags, bpe, array_mode, surface);
 	if (r) {
 		return r;
@@ -634,7 +634,7 @@ void r600_texture_get_fmask_info(struct r600_common_screen *rscreen,
 		bpe *= 2;
 	}
 
-	if (rscreen->ws->surface_init(rscreen->ws, &templ,
+	if (rscreen->ws->surface_init(rscreen->ws, &rscreen->info, &templ,
 				      flags, bpe, RADEON_SURF_MODE_2D, &fmask)) {
 		R600_ERR("Got error in surface_init while allocating FMASK.\n");
 		return;
@@ -1366,7 +1366,7 @@ void *r600_texture_transfer_map(struct pipe_context *ctx,
 			 * First downsample the depth buffer to a temporary texture,
 			 * then decompress the temporary one to staging.
 			 *
-			 * Only the region being mapped is transfered.
+			 * Only the region being mapped is transferred.
 			 */
 			struct pipe_resource resource;
 
@@ -1587,63 +1587,6 @@ static void r600_surface_destroy(struct pipe_context *pipe,
 	FREE(surface);
 }
 
-static void r600_clear_texture(struct pipe_context *pipe,
-			       struct pipe_resource *tex,
-			       unsigned level,
-			       const struct pipe_box *box,
-			       const void *data)
-{
-	struct pipe_screen *screen = pipe->screen;
-	struct r600_texture *rtex = (struct r600_texture*)tex;
-	struct pipe_surface tmpl = {{0}};
-	struct pipe_surface *sf;
-
-	tmpl.format = tex->format;
-	tmpl.u.tex.first_layer = box->z;
-	tmpl.u.tex.last_layer = box->z + box->depth - 1;
-	tmpl.u.tex.level = level;
-	sf = pipe->create_surface(pipe, tex, &tmpl);
-	if (!sf)
-		return;
-
-	if (rtex->is_depth) {
-		unsigned clear;
-		float depth;
-		uint8_t stencil = 0;
-
-		/* Depth is always present. */
-		clear = PIPE_CLEAR_DEPTH;
-		util_format_unpack_z_float(tex->format, &depth, data, 1);
-
-		if (rtex->surface.has_stencil) {
-			clear |= PIPE_CLEAR_STENCIL;
-			util_format_unpack_s_8uint(tex->format, &stencil, data, 1);
-		}
-
-		pipe->clear_depth_stencil(pipe, sf, clear, depth, stencil,
-					  box->x, box->y,
-					  box->width, box->height, false);
-	} else {
-		union pipe_color_union color;
-
-		util_format_unpack_rgba(tex->format, color.ui, data, 1);
-
-		if (screen->is_format_supported(screen, tex->format,
-						tex->target, 0, 0,
-						PIPE_BIND_RENDER_TARGET)) {
-			pipe->clear_render_target(pipe, sf, &color,
-						  box->x, box->y,
-						  box->width, box->height, false);
-		} else {
-			/* Software fallback - just for R9G9B9E5_FLOAT */
-			util_clear_render_target(pipe, sf, &color,
-						 box->x, box->y,
-						 box->width, box->height);
-		}
-	}
-	pipe_surface_reference(&sf, NULL);
-}
-
 unsigned r600_translate_colorswap(enum pipe_format format, bool do_endian_swap)
 {
 	const struct util_format_description *desc = util_format_description(format);
@@ -1733,7 +1676,7 @@ static void evergreen_set_clear_color(struct r600_texture *rtex,
 void evergreen_do_fast_color_clear(struct r600_common_context *rctx,
 				   struct pipe_framebuffer_state *fb,
 				   struct r600_atom *fb_state,
-				   unsigned *buffers, ubyte *dirty_cbufs,
+				   unsigned *buffers, uint8_t *dirty_cbufs,
 				   const union pipe_color_union *color)
 {
 	int i;
@@ -1895,7 +1838,7 @@ r600_texture_from_memobj(struct pipe_screen *screen,
 		 * surface pitch isn't correctly aligned by default.
 		 *
 		 * In order to support it correctly we require multi-image
-		 * metadata to be syncrhonized between radv and radeonsi. The
+		 * metadata to be synchronized between radv and radeonsi. The
 		 * semantics of associating multiple image metadata to a memory
 		 * object on the vulkan export side are not concretely defined
 		 * either.
@@ -1949,5 +1892,5 @@ void r600_init_context_texture_functions(struct r600_common_context *rctx)
 {
 	rctx->b.create_surface = r600_create_surface;
 	rctx->b.surface_destroy = r600_surface_destroy;
-	rctx->b.clear_texture = r600_clear_texture;
+	rctx->b.clear_texture = u_default_clear_texture;
 }

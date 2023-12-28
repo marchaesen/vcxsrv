@@ -27,7 +27,7 @@
 
 #include "core/object.hpp"
 #include "pipe/p_defines.h"
-#include "pipe/p_format.h"
+#include "util/format/u_formats.h"
 
 namespace clover {
    pipe_texture_target translate_target(cl_mem_object_type type);

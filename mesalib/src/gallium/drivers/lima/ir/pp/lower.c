@@ -98,7 +98,8 @@ static bool ppir_lower_swap_args(ppir_block *block, ppir_node *node)
 static bool ppir_lower_load(ppir_block *block, ppir_node *node)
 {
    ppir_dest *dest = ppir_node_get_dest(node);
-   if (ppir_node_is_root(node) && dest->type == ppir_target_ssa) {
+   if (ppir_node_is_root(node) && !node->succ_different_block &&
+       dest->type == ppir_target_ssa) {
       ppir_node_delete(node);
       return true;
    }
@@ -107,7 +108,8 @@ static bool ppir_lower_load(ppir_block *block, ppir_node *node)
     * that has load node in source
     */
    if ((ppir_node_has_single_src_succ(node) || ppir_node_is_root(node)) &&
-      dest->type != ppir_target_register) {
+       !node->succ_different_block &&
+       dest->type != ppir_target_register) {
       ppir_node *succ = ppir_node_first_succ(node);
       switch (succ->type) {
       case ppir_node_type_alu:

@@ -35,7 +35,7 @@
 #include "util/u_math.h"
 #include "util/rounding.h"
 #include "util/compiler.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "mesa_private.h"
 
 

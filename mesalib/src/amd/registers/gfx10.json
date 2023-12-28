@@ -547,12 +547,16 @@
   "SX_BLEND_OPT_EPSILON__MRT0_EPSILON": {
    "entries": [
     {"name": "EXACT", "value": 0},
-    {"name": "11BIT_FORMAT", "value": 1},
-    {"name": "10BIT_FORMAT", "value": 3},
-    {"name": "8BIT_FORMAT", "value": 6},
-    {"name": "6BIT_FORMAT", "value": 11},
-    {"name": "5BIT_FORMAT", "value": 13},
-    {"name": "4BIT_FORMAT", "value": 15}
+    {"name": "10BIT_FORMAT_0_5", "value": 2},
+    {"name": "10BIT_FORMAT_0_75", "value": 3},
+    {"name": "8BIT_FORMAT_0_5", "value": 6},
+    {"name": "8BIT_FORMAT_0_75", "value": 7},
+    {"name": "6BIT_FORMAT_0_5", "value": 10},
+    {"name": "6BIT_FORMAT_0_75", "value": 11},
+    {"name": "5BIT_FORMAT_0_5", "value": 12},
+    {"name": "5BIT_FORMAT_0_75", "value": 13},
+    {"name": "4BIT_FORMAT_0_5", "value": 14},
+    {"name": "4BIT_FORMAT_0_75", "value": 15}
    ]
   },
   "SX_DOWNCONVERT_FORMAT": {
@@ -1751,6 +1755,12 @@
    "map": {"at": 39372, "to": "mm"},
    "name": "GB_MACROTILE_MODE15",
    "type_ref": "GB_MACROTILE_MODE0"
+  },
+  {
+   "chips": ["gfx10"],
+   "map": {"at": 41264, "to": "mm"},
+   "name": "GCVM_L2_PROTECTION_FAULT_STATUS",
+   "type_ref": "GCVM_L2_PROTECTION_FAULT_STATUS"
   },
   {
    "chips": ["gfx10"],
@@ -13011,6 +13021,20 @@
     {"bits": [0, 8], "name": "PERF_SEL"},
     {"bits": [24, 27], "name": "PERF_MODE"},
     {"bits": [28, 31], "name": "CNTL_MODE"}
+   ]
+  },
+  "GCVM_L2_PROTECTION_FAULT_STATUS": {
+   "fields": [
+    {"bits": [0, 0], "name": "MORE_FAULTS"},
+    {"bits": [1, 3], "name": "WALKER_ERROR"},
+    {"bits": [4, 7], "name": "PERMISSION_FAULTS"},
+    {"bits": [8, 8], "name": "MAPPING_ERROR"},
+    {"bits": [9, 17], "name": "CID"},
+    {"bits": [18, 18], "name": "RW"},
+    {"bits": [19, 19], "name": "ATOMIC"},
+    {"bits": [20, 23], "name": "VMID"},
+    {"bits": [24, 24], "name": "VF"},
+    {"bits": [25, 29], "name": "VFID"}
    ]
   },
   "GC_ATC_L2_PERFCOUNTER0_CFG": {

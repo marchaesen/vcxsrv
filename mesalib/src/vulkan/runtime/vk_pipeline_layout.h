@@ -61,7 +61,7 @@ struct vk_pipeline_layout {
    uint32_t set_count;
 
    /** Array of pointers to descriptor set layouts, indexed by set index */
-   const struct vk_descriptor_set_layout *set_layouts[VK_MESA_PIPELINE_LAYOUT_MAX_SETS];
+   struct vk_descriptor_set_layout *set_layouts[VK_MESA_PIPELINE_LAYOUT_MAX_SETS];
 
    /** Destroy callback
     *

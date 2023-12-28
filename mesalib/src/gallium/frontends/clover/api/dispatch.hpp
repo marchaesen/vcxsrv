@@ -32,22 +32,22 @@
 namespace clover {
    extern const cl_icd_dispatch _dispatch;
 
-   cl_int
+   cl_int CL_API_CALL
    GetPlatformInfo(cl_platform_id d_platform, cl_platform_info param,
                    size_t size, void *r_buf, size_t *r_size);
 
-   void *
+   void * CL_API_CALL
    GetExtensionFunctionAddress(const char *p_name);
 
-   void *
+   void * CL_API_CALL
    GetExtensionFunctionAddressForPlatform(cl_platform_id d_platform,
                                           const char *p_name);
 
-   cl_int
+   cl_int CL_API_CALL
    IcdGetPlatformIDsKHR(cl_uint num_entries, cl_platform_id *rd_platforms,
                         cl_uint *rnum_platforms);
 
-   cl_int
+   cl_int CL_API_CALL
    EnqueueSVMFree(cl_command_queue command_queue,
                   cl_uint num_svm_pointers,
                   void *svm_pointers[],
@@ -60,7 +60,7 @@ namespace clover {
                   cl_event *event,
                   cl_int cmd);
 
-   cl_int
+   cl_int CL_API_CALL
    EnqueueSVMMemcpy(cl_command_queue command_queue,
                     cl_bool blocking_copy,
                     void *dst_ptr,
@@ -71,7 +71,7 @@ namespace clover {
                     cl_event *event,
                     cl_int cmd);
 
-   cl_int
+   cl_int CL_API_CALL
    EnqueueSVMMap(cl_command_queue command_queue,
                  cl_bool blocking_map,
                  cl_map_flags map_flags,
@@ -82,7 +82,7 @@ namespace clover {
                  cl_event *event,
                  cl_int cmd);
 
-   cl_int
+   cl_int CL_API_CALL
    EnqueueSVMMemFill(cl_command_queue command_queue,
                      void *svm_ptr,
                      const void *pattern,
@@ -93,7 +93,7 @@ namespace clover {
                      cl_event *event,
                      cl_int cmd);
 
-   cl_int
+   cl_int CL_API_CALL
    EnqueueSVMUnmap(cl_command_queue command_queue,
                    void *svm_ptr,
                    cl_uint num_events_in_wait_list,
@@ -101,7 +101,7 @@ namespace clover {
                    cl_event *event,
                    cl_int cmd);
 
-   cl_program
+   cl_program CL_API_CALL
    CreateProgramWithILKHR(cl_context d_ctx, const void *il,
                           size_t length, cl_int *r_errcode);
 }

@@ -1,3 +1,5 @@
+// Keyboard layouts for Poland.
+
 default partial alphanumeric_keys
 xkb_symbols "basic" {
 
@@ -12,7 +14,7 @@ xkb_symbols "basic" {
     key <AE01>	{ [         1,     exclam,     notequal,   exclamdown ]	};
     key <AE02>	{ [         2,         at,  twosuperior, questiondown ]	};
     key <AE04>	{ [         4,     dollar,         cent,   onequarter ]	};
-    key <AE05>	{ [         5,    percent,     EuroSign,        U2030 ]	};
+    key <AE05>	{ [         5,    percent,     EuroSign,     permille ]	};
     key <AE06>	{ [         6, asciicircum,     onehalf,   logicaland ]	};
     key <AE07>	{ [         7,  ampersand,      section,        U2248 ]	};
     key <AE08>	{ [         8,   asterisk, periodcentered, threequarters ] };
@@ -113,6 +115,7 @@ xkb_symbols "qwertz" {
     key <AE11>	{ [      plus,   question, dead_diaeresis, questiondown ] };
     key <AE12>	{ [apostrophe,   asterisk, dead_cedilla,  dead_ogonek ]	};
 
+    key <AD02>	{ [         w,          W,          bar,  Greek_SIGMA ] };
     key <AD03>	{ [         e,          E,     EuroSign,         cent ]	};
     key <AD11>	{ [ zabovedot,     nacute,     division, dead_abovering ] };
     key <AD12>	{ [    sacute,     cacute,     multiply,  dead_macron ]	};
@@ -136,9 +139,9 @@ xkb_symbols "qwertz" {
 // Polish Dvorak keymaps
 // by Rafal Rzepecki <divide@users.sf.net>
 
-// The base keymap "pl" places Polish quotes on quotemark key and 
-// moves the dead symbols from there to "1/!" key. If you are used to common 
-// dead keys placement, you could use "pl_altquotes"; in this layout 
+// The base keymap "pl" places Polish quotes on quotemark key and
+// moves the dead symbols from there to "1/!" key. If you are used to common
+// dead keys placement, you could use "pl_altquotes"; in this layout
 // dead keys remain in the old place, whereas Polish quotes are placed on the
 // "1/!" key. If you do not use Polish quotes at all, you can use "pl_basic" map.
 
@@ -205,6 +208,7 @@ xkb_symbols "dvorak_altquotes" {
 // * English/Polish close quote on AltGr+b (similar location as in
 //   latin(basic) but moved right because AltGr+x is taken for zacute).
 // * Polish open and close quote on AltGr+j.
+// * Ccedilla on AltGr+g
 //
 // Those rules overwrite only the following rules from us(dvp):
 // * ccedilla on AltGr+c
@@ -223,6 +227,7 @@ xkb_symbols "dvp" {
     key <AE01> { [ ampersand,    percent,        doublelowquotemark, rightdoublequotemark ] };
 
     // upper row, right side
+    key <AD07> { [ g,            G,              ccedilla,        Ccedilla   ] };
     key <AD08> { [ c,            C,              cacute,          Cacute     ] };
     key <AD10> { [ l,            L,              lstroke,         Lstroke    ] };
 
@@ -427,7 +432,7 @@ xkb_symbols "ru_phonetic_dvorak" {
 // EXTRAS:
 
 // A Polish keymap with a comprehensive set of quotes, dashes, and dead accents
-// 
+//
 // See http://marcinwolinski.pl/keyboard/ for a description.
 //
 // ┌────┐
@@ -484,7 +489,7 @@ xkb_symbols "colemak" {
     name[Group1]= "Polish (Colemak)";
 
     key <AB01> { [            z,            Z,       zabovedot,        Zabovedot ] };
-    key <AB02> { [            x,            X, 	        zacute,           Zacute ] };
+    key <AB02> { [            x,            X,          zacute,           Zacute ] };
     key <AB03> { [            c,            C,          cacute,           Cacute ] };
     key <AC01> { [            a,            A,         aogonek,          Aogonek ] };
     key <AC03> { [            s,            S,          sacute,           Sacute ] };
@@ -495,8 +500,6 @@ xkb_symbols "colemak" {
     key <AD02> { [            w,            W, dead_circumflex,       asciitilde ] };
     key <AD03> { [            f,            F,          ssharp,        0x1001e9e ] };
     key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
-
-    include "level3(ralt_switch)"
 };
 
 // Colemak-DH (ANSI), Polish variant, https://colemakmods.github.io/mod-dh/
@@ -505,7 +508,7 @@ xkb_symbols "colemak_dh_ansi" {
     include "us(colemak_dh)"
     name[Group1]= "Polish (Colemak-DH)";
 
-    key <AB01> { [            x,            X, 	        zacute,           Zacute ] };
+    key <AB01> { [            x,            X,          zacute,           Zacute ] };
     key <AB02> { [            c,            C,          cacute,           Cacute ] };
     key <AB05> { [            z,            Z,       zabovedot,        Zabovedot ] };
     key <AC01> { [            a,            A,         aogonek,          Aogonek ] };
@@ -517,8 +520,6 @@ xkb_symbols "colemak_dh_ansi" {
     key <AD02> { [            w,            W, dead_circumflex,       asciitilde ] };
     key <AD03> { [            f,            F,          ssharp,        0x1001e9e ] };
     key <AD07> { [            l,            L,         lstroke,          Lstroke ] };
-
-    include "level3(ralt_switch)"
 };
 
 // Colemak-DH (ISO), Polish variant, https://colemakmods.github.io/mod-dh/
@@ -528,9 +529,7 @@ xkb_symbols "colemak_dh" {
     name[Group1]= "Polish (Colemak-DH ISO)";
 
     key <LSGT> { [            z,            Z,       zabovedot,        Zabovedot ] };
-    key <AB05> { [ backslash, bar, asciitilde, brokenbar] };
-
-    include "level3(ralt_switch)"
+    key <AB05> { [    backslash,          bar,      asciitilde,        brokenbar ] };
 };
 
 partial alphanumeric_keys

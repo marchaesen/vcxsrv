@@ -81,7 +81,7 @@ struct pb_manager
    void
    (*flush)( struct pb_manager *mgr );
 
-   boolean
+   bool
    (*is_buffer_busy)( struct pb_manager *mgr,
                       struct pb_buffer *buf );
 };

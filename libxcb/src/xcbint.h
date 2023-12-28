@@ -38,6 +38,16 @@
 #pragma GCC visibility push(hidden)
 #endif
 
+#ifndef __has_attribute
+# define __has_attribute(x) 0  /* Compatibility with older compilers. */
+#endif
+
+#if __has_attribute(fallthrough)
+# define XCB_ALLOW_FALLTHRU __attribute__ ((fallthrough));
+#else
+# define XCB_ALLOW_FALLTHRU /* FALLTHRU */
+#endif
+
 enum workarounds {
     WORKAROUND_NONE,
     WORKAROUND_GLX_GET_FB_CONFIGS_BUG,
@@ -73,8 +83,8 @@ typedef struct _xcb_map _xcb_map;
 
 _xcb_map *_xcb_map_new(void);
 void _xcb_map_delete(_xcb_map *q, xcb_list_free_func_t do_free);
-int _xcb_map_put(_xcb_map *q, unsigned int key, void *data);
-void *_xcb_map_remove(_xcb_map *q, unsigned int key);
+int _xcb_map_put(_xcb_map *q, uint64_t key, void *data);
+void *_xcb_map_remove(_xcb_map *q, uint64_t key);
 
 
 /* xcb_out.c */
@@ -103,6 +113,8 @@ typedef struct _xcb_out {
 
     uint64_t request;
     uint64_t request_written;
+    uint64_t request_expected_written;
+    uint64_t total_written;
 
     pthread_mutex_t reqlenlock;
     enum lazy_reply_tag maximum_request_length_tag;
@@ -135,6 +147,7 @@ typedef struct _xcb_in {
     uint64_t request_expected;
     uint64_t request_read;
     uint64_t request_completed;
+    uint64_t total_read;
     struct reply_list *current_reply;
     struct reply_list **current_reply_tail;
 

@@ -23,13 +23,21 @@
 #ifndef R600_ASM_H
 #define R600_ASM_H
 
-#include "r600_pipe.h"
+#include "util/format/u_format.h"
+#include "util/list.h"
+#include "amd_family.h"
 #include "r600_isa.h"
-#include "tgsi/tgsi_exec.h"
+
+#include <stdbool.h>
+#include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#define R600_ASM_ERR(fmt, args...) \
+	fprintf(stderr, "EE %s:%d %s - " fmt, __FILE__, __LINE__, __func__, ##args)
 
 struct r600_bytecode_alu_src {
 	unsigned			sel;
@@ -216,6 +224,7 @@ struct r600_bytecode_cf {
 	unsigned isa[2];
 	unsigned nlds_read;
 	unsigned nqueue_read;
+	unsigned clause_local_written;
 };
 
 #define FC_NONE				0
@@ -279,18 +288,17 @@ struct r600_bytecode {
 	unsigned        r6xx_nop_after_rel_dst;
 	bool            index_loaded[2];
 	unsigned        index_reg[2]; /* indexing register CF_INDEX_[01] */
-	unsigned        index_reg_chan[2]; /* indexing register chanel CF_INDEX_[01] */
+	unsigned        index_reg_chan[2]; /* indexing register channel CF_INDEX_[01] */
 	unsigned        debug_id;
 	struct r600_isa* isa;
 	struct r600_bytecode_output pending_outputs[5];
 	int n_pending_outputs;
-	boolean			need_wait_ack; /* emit a pending WAIT_ACK prior to control flow */
-	boolean			precise;
+	bool			need_wait_ack; /* emit a pending WAIT_ACK prior to control flow */
+	bool			precise;
 };
 
 /* eg_asm.c */
 int eg_bytecode_cf_build(struct r600_bytecode *bc, struct r600_bytecode_cf *cf);
-int egcm_load_index_reg(struct r600_bytecode *bc, unsigned id, bool inside_alu_clause);
 int eg_bytecode_gds_build(struct r600_bytecode *bc, struct r600_bytecode_gds *gds, unsigned id);
 int eg_bytecode_alu_build(struct r600_bytecode *bc,
 			  struct r600_bytecode_alu *alu, unsigned id);
@@ -332,10 +340,6 @@ void r600_bytecode_alu_read(struct r600_bytecode *bc,
 int r600_load_ar(struct r600_bytecode *bc, bool for_src);
 
 int cm_bytecode_add_cf_end(struct r600_bytecode *bc);
-
-void *r600_create_vertex_fetch_shader(struct pipe_context *ctx,
-				      unsigned count,
-				      const struct pipe_vertex_element *elements);
 
 /* r700_asm.c */
 void r700_bytecode_cf_vtx_build(uint32_t *bytecode,

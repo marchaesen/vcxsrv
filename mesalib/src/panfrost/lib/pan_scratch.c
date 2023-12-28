@@ -24,8 +24,8 @@
  *   Alyssa Rosenzweig <alyssa.rosenzweig@collabora.com>
  */
 
-#include "util/u_math.h"
 #include "util/macros.h"
+#include "util/u_math.h"
 #include "pan_encoder.h"
 
 /* Midgard has a small register file, so shaders with high register pressure
@@ -66,22 +66,21 @@
 unsigned
 panfrost_get_stack_shift(unsigned stack_size)
 {
-        if (stack_size)
-                return util_logbase2_ceil(DIV_ROUND_UP(stack_size, 16));
-        else
-                return 0;
+   if (stack_size)
+      return util_logbase2_ceil(DIV_ROUND_UP(stack_size, 16));
+   else
+      return 0;
 }
 
 /* Computes the aligned stack size given the shift and thread count. */
 
 unsigned
-panfrost_get_total_stack_size(
-                unsigned thread_size,
-                unsigned threads_per_core,
-                unsigned core_id_range)
+panfrost_get_total_stack_size(unsigned thread_size, unsigned threads_per_core,
+                              unsigned core_id_range)
 {
-        unsigned size_per_thread = (thread_size == 0) ? 0 :
-                util_next_power_of_two(ALIGN_POT(thread_size, 16));
+   unsigned size_per_thread =
+      (thread_size == 0) ? 0
+                         : util_next_power_of_two(ALIGN_POT(thread_size, 16));
 
-        return size_per_thread * threads_per_core * core_id_range;
+   return size_per_thread * threads_per_core * core_id_range;
 }

@@ -78,174 +78,6 @@ v3d_factor(enum pipe_blendfactor factor, bool dst_alpha_one)
         }
 }
 
-#if V3D_VERSION < 40
-static inline uint16_t
-swizzled_border_color(const struct v3d_device_info *devinfo,
-                      struct pipe_sampler_state *sampler,
-                      struct v3d_sampler_view *sview,
-                      int chan)
-{
-        const struct util_format_description *desc =
-                util_format_description(sview->base.format);
-        uint8_t swiz = chan;
-
-        /* If we're doing swizzling in the sampler, then only rearrange the
-         * border color for the mismatch between the V3D texture format and
-         * the PIPE_FORMAT, since GL_ARB_texture_swizzle will be handled by
-         * the sampler's swizzle.
-         *
-         * For swizzling in the shader, we don't do any pre-swizzling of the
-         * border color.
-         */
-        if (v3d_get_tex_return_size(devinfo, sview->base.format,
-                                    sampler->compare_mode) != 32)
-                swiz = desc->swizzle[swiz];
-
-        switch (swiz) {
-        case PIPE_SWIZZLE_0:
-                return _mesa_float_to_half(0.0);
-        case PIPE_SWIZZLE_1:
-                return _mesa_float_to_half(1.0);
-        default:
-                return _mesa_float_to_half(sampler->border_color.f[swiz]);
-        }
-}
-
-static void
-emit_one_texture(struct v3d_context *v3d, struct v3d_texture_stateobj *stage_tex,
-                 int i)
-{
-        struct v3d_job *job = v3d->job;
-        struct pipe_sampler_state *psampler = stage_tex->samplers[i];
-        struct v3d_sampler_state *sampler = v3d_sampler_state(psampler);
-        struct pipe_sampler_view *psview = stage_tex->textures[i];
-        struct v3d_sampler_view *sview = v3d_sampler_view(psview);
-        struct pipe_resource *prsc = psview->texture;
-        struct v3d_resource *rsc = v3d_resource(prsc);
-        const struct v3d_device_info *devinfo = &v3d->screen->devinfo;
-
-        stage_tex->texture_state[i].offset =
-                v3d_cl_ensure_space(&job->indirect,
-                                    cl_packet_length(TEXTURE_SHADER_STATE),
-                                    32);
-        v3d_bo_set_reference(&stage_tex->texture_state[i].bo,
-                             job->indirect.bo);
-
-        uint32_t return_size = v3d_get_tex_return_size(devinfo, psview->format,
-                                                       psampler->compare_mode);
-
-        struct V3D33_TEXTURE_SHADER_STATE unpacked = {
-                /* XXX */
-                .border_color_red = swizzled_border_color(devinfo, psampler,
-                                                          sview, 0),
-                .border_color_green = swizzled_border_color(devinfo, psampler,
-                                                            sview, 1),
-                .border_color_blue = swizzled_border_color(devinfo, psampler,
-                                                           sview, 2),
-                .border_color_alpha = swizzled_border_color(devinfo, psampler,
-                                                            sview, 3),
-
-                /* In the normal texturing path, the LOD gets clamped between
-                 * min/max, and the base_level field (set in the sampler view
-                 * from first_level) only decides where the min/mag switch
-                 * happens, so we need to use the LOD clamps to keep us
-                 * between min and max.
-                 *
-                 * For txf, the LOD clamp is still used, despite GL not
-                 * wanting that.  We will need to have a separate
-                 * TEXTURE_SHADER_STATE that ignores psview->min/max_lod to
-                 * support txf properly.
-                 */
-                .min_level_of_detail = MIN2(psview->u.tex.first_level +
-                                            MAX2(psampler->min_lod, 0),
-                                            psview->u.tex.last_level),
-                .max_level_of_detail = MIN2(psview->u.tex.first_level +
-                                            MAX2(psampler->max_lod,
-                                                 psampler->min_lod),
-                                            psview->u.tex.last_level),
-
-                .texture_base_pointer = cl_address(rsc->bo,
-                                                   rsc->slices[0].offset),
-
-                .output_32_bit = return_size == 32,
-        };
-
-        /* Set up the sampler swizzle if we're doing 16-bit sampling.  For
-         * 32-bit, we leave swizzling up to the shader compiler.
-         *
-         * Note: Contrary to the docs, the swizzle still applies even if the
-         * return size is 32.  It's just that you probably want to swizzle in
-         * the shader, because you need the Y/Z/W channels to be defined.
-         */
-        if (return_size == 32) {
-                unpacked.swizzle_r = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_X);
-                unpacked.swizzle_g = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_Y);
-                unpacked.swizzle_b = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_Z);
-                unpacked.swizzle_a = v3d_translate_pipe_swizzle(PIPE_SWIZZLE_W);
-        } else {
-                unpacked.swizzle_r = v3d_translate_pipe_swizzle(sview->swizzle[0]);
-                unpacked.swizzle_g = v3d_translate_pipe_swizzle(sview->swizzle[1]);
-                unpacked.swizzle_b = v3d_translate_pipe_swizzle(sview->swizzle[2]);
-                unpacked.swizzle_a = v3d_translate_pipe_swizzle(sview->swizzle[3]);
-        }
-
-        int min_img_filter = psampler->min_img_filter;
-        int min_mip_filter = psampler->min_mip_filter;
-        int mag_img_filter = psampler->mag_img_filter;
-
-        if (return_size == 32) {
-                min_mip_filter = PIPE_TEX_MIPFILTER_NEAREST;
-                min_img_filter = PIPE_TEX_FILTER_NEAREST;
-                mag_img_filter = PIPE_TEX_FILTER_NEAREST;
-        }
-
-        bool min_nearest = min_img_filter == PIPE_TEX_FILTER_NEAREST;
-        switch (min_mip_filter) {
-        case PIPE_TEX_MIPFILTER_NONE:
-                unpacked.filter += min_nearest ? 2 : 0;
-                break;
-        case PIPE_TEX_MIPFILTER_NEAREST:
-                unpacked.filter += min_nearest ? 4 : 8;
-                break;
-        case PIPE_TEX_MIPFILTER_LINEAR:
-                unpacked.filter += min_nearest ? 4 : 8;
-                unpacked.filter += 2;
-                break;
-        }
-
-        if (mag_img_filter == PIPE_TEX_FILTER_NEAREST)
-                unpacked.filter++;
-
-        if (psampler->max_anisotropy > 8)
-                unpacked.filter = V3D_TMU_FILTER_ANISOTROPIC_16_1;
-        else if (psampler->max_anisotropy > 4)
-                unpacked.filter = V3D_TMU_FILTER_ANISOTROPIC_8_1;
-        else if (psampler->max_anisotropy > 2)
-                unpacked.filter = V3D_TMU_FILTER_ANISOTROPIC_4_1;
-        else if (psampler->max_anisotropy)
-                unpacked.filter = V3D_TMU_FILTER_ANISOTROPIC_2_1;
-
-        uint8_t packed[cl_packet_length(TEXTURE_SHADER_STATE)];
-        cl_packet_pack(TEXTURE_SHADER_STATE)(&job->indirect, packed, &unpacked);
-
-        for (int i = 0; i < ARRAY_SIZE(packed); i++)
-                packed[i] |= sview->texture_shader_state[i] | sampler->texture_shader_state[i];
-
-        /* TMU indirect structs need to be 32b aligned. */
-        v3d_cl_ensure_space(&job->indirect, ARRAY_SIZE(packed), 32);
-        cl_emit_prepacked(&job->indirect, &packed);
-}
-
-static void
-emit_textures(struct v3d_context *v3d, struct v3d_texture_stateobj *stage_tex)
-{
-        for (int i = 0; i < stage_tex->num_textures; i++) {
-                if (stage_tex->textures[i])
-                        emit_one_texture(v3d, stage_tex, i);
-        }
-}
-#endif /* V3D_VERSION < 40 */
-
 static uint32_t
 translate_colormask(struct v3d_context *v3d, uint32_t colormask, int rt)
 {
@@ -265,18 +97,12 @@ emit_rt_blend(struct v3d_context *v3d, struct v3d_job *job,
 {
         struct pipe_rt_blend_state *rtblend = &blend->rt[rt];
 
-#if V3D_VERSION >= 40
         /* We don't need to emit blend state for disabled RTs. */
         if (!rtblend->blend_enable)
                 return;
-#endif
 
         cl_emit(&job->bcl, BLEND_CFG, config) {
-#if V3D_VERSION >= 40
                 config.render_target_mask = rt_mask;
-#else
-                assert(rt == 0);
-#endif
 
                 config.color_blend_mode = rtblend->rgb_func;
                 config.color_blend_dst_factor =
@@ -313,7 +139,6 @@ emit_flat_shade_flags(struct v3d_job *job,
         }
 }
 
-#if V3D_VERSION >= 40
 static void
 emit_noperspective_flags(struct v3d_job *job,
                          int varying_offset,
@@ -347,7 +172,6 @@ emit_centroid_flags(struct v3d_job *job,
                         higher;
         }
 }
-#endif /* V3D_VERSION >= 40 */
 
 static bool
 emit_varying_flags(struct v3d_job *job, uint32_t *flags,
@@ -435,14 +259,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                         if (maxx > minx && maxy > miny) {
                                 clip.clip_window_width_in_pixels = maxx - minx;
                                 clip.clip_window_height_in_pixels = maxy - miny;
-                        } else if (V3D_VERSION < 41) {
-                                /* The HW won't entirely clip out when scissor
-                                 * w/h is 0.  Just treat it the same as
-                                 * rasterizer discard.
-                                 */
-                                rasterizer_discard = true;
-                                clip.clip_window_width_in_pixels = 1;
-                                clip.clip_window_height_in_pixels = 1;
                         }
                 }
 
@@ -514,13 +330,17 @@ v3dX(emit_state)(struct pipe_context *pctx)
                         /* Note: EZ state may update based on the compiled FS,
                          * along with ZSA
                          */
+#if V3D_VERSION == 42
                         config.early_z_updates_enable =
                                 (job->ez_state != V3D_EZ_DISABLED);
+#endif
                         if (v3d->zsa->base.depth_enabled) {
                                 config.z_updates_enable =
                                         v3d->zsa->base.depth_writemask;
+#if V3D_VERSION == 42
                                 config.early_z_enable =
                                         config.early_z_updates_enable;
+#endif
                                 config.depth_test_function =
                                         v3d->zsa->base.depth_func;
                         } else {
@@ -537,13 +357,28 @@ v3dX(emit_state)(struct pipe_context *pctx)
                                 v3d_line_smoothing_enabled(v3d) ?
                                 V3D_LINE_RASTERIZATION_PERP_END_CAPS :
                                 V3D_LINE_RASTERIZATION_DIAMOND_EXIT;
-                }
 
+#if V3D_VERSION >= 71
+                        /* The following follows the logic implemented in v3dv
+                         * plus the definition of depth_clip_near/far and
+                         * depth_clamp.
+                         *
+                         * Note: some extensions are not supported by v3d
+                         * (like ARB_depth_clamp) that would affect this, but
+                         * the values on rasterizer are taking that into
+                         * account.
+                         */
+                        config.z_clipping_mode = v3d->rasterizer->base.depth_clip_near ||
+                           v3d->rasterizer->base.depth_clip_far ?
+                           V3D_Z_CLIP_MODE_MIN_ONE_TO_ONE : V3D_Z_CLIP_MODE_NONE;
+#endif
+                }
         }
 
         if (v3d->dirty & V3D_DIRTY_RASTERIZER &&
             v3d->rasterizer->base.offset_tri) {
-                if (job->zsbuf &&
+                if (v3d->screen->devinfo.ver == 42 &&
+                    job->zsbuf &&
                     job->zsbuf->format == PIPE_FORMAT_Z16_UNORM) {
                         cl_emit_prepacked_sized(&job->bcl,
                                                 v3d->rasterizer->depth_offset_z16,
@@ -566,12 +401,23 @@ v3dX(emit_state)(struct pipe_context *pctx)
         }
 
         if (v3d->dirty & V3D_DIRTY_VIEWPORT) {
+#if V3D_VERSION == 42
                 cl_emit(&job->bcl, CLIPPER_XY_SCALING, clip) {
                         clip.viewport_half_width_in_1_256th_of_pixel =
                                 v3d->viewport.scale[0] * 256.0f;
                         clip.viewport_half_height_in_1_256th_of_pixel =
                                 v3d->viewport.scale[1] * 256.0f;
                 }
+#endif
+#if V3D_VERSION >= 71
+                cl_emit(&job->bcl, CLIPPER_XY_SCALING, clip) {
+                        clip.viewport_half_width_in_1_64th_of_pixel =
+                                v3d->viewport.scale[0] * 64.0f;
+                        clip.viewport_half_height_in_1_64th_of_pixel =
+                                v3d->viewport.scale[1] * 64.0f;
+                }
+#endif
+
 
                 cl_emit(&job->bcl, CLIPPER_Z_SCALE_AND_OFFSET, clip) {
                         clip.viewport_z_offset_zc_to_zs =
@@ -589,10 +435,32 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 }
 
                 cl_emit(&job->bcl, VIEWPORT_OFFSET, vp) {
-                        vp.viewport_centre_x_coordinate =
-                                v3d->viewport.translate[0];
-                        vp.viewport_centre_y_coordinate =
-                                v3d->viewport.translate[1];
+                        float vp_fine_x = v3d->viewport.translate[0];
+                        float vp_fine_y = v3d->viewport.translate[1];
+                        int32_t vp_coarse_x = 0;
+                        int32_t vp_coarse_y = 0;
+
+                        /* The fine coordinates must be unsigned, but coarse
+                         * can be signed.
+                         */
+                        if (unlikely(vp_fine_x < 0)) {
+                                int32_t blocks_64 =
+                                        DIV_ROUND_UP(fabsf(vp_fine_x), 64);
+                                vp_fine_x += 64.0f * blocks_64;
+                                vp_coarse_x -= blocks_64;
+                        }
+
+                        if (unlikely(vp_fine_y < 0)) {
+                                int32_t blocks_64 =
+                                        DIV_ROUND_UP(fabsf(vp_fine_y), 64);
+                                vp_fine_y += 64.0f * blocks_64;
+                                vp_coarse_y -= blocks_64;
+                        }
+
+                        vp.fine_x = vp_fine_x;
+                        vp.fine_y = vp_fine_y;
+                        vp.coarse_x = vp_coarse_x;
+                        vp.coarse_y = vp_coarse_y;
                 }
         }
 
@@ -600,14 +468,14 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 struct v3d_blend_state *blend = v3d->blend;
 
                 if (blend->blend_enables) {
-#if V3D_VERSION >= 40
                         cl_emit(&job->bcl, BLEND_ENABLES, enables) {
                                 enables.mask = blend->blend_enables;
                         }
-#endif
 
+                        const uint32_t max_rts =
+                                V3D_MAX_RENDER_TARGETS(v3d->screen->devinfo.ver);
                         if (blend->base.independent_blend_enable) {
-                                for (int i = 0; i < V3D_MAX_DRAW_BUFFERS; i++)
+                                for (int i = 0; i < max_rts; i++)
                                         emit_rt_blend(v3d, job, &blend->base, i,
                                                       (1 << i),
                                                       v3d->blend_dst_alpha_one & (1 << i));
@@ -623,16 +491,16 @@ v3dX(emit_state)(struct pipe_context *pctx)
                                  * RTs without.
                                  */
                                 emit_rt_blend(v3d, job, &blend->base, 0,
-                                              ((1 << V3D_MAX_DRAW_BUFFERS) - 1) &
+                                              ((1 << max_rts) - 1) &
                                                    v3d->blend_dst_alpha_one,
                                               true);
                                 emit_rt_blend(v3d, job, &blend->base, 0,
-                                              ((1 << V3D_MAX_DRAW_BUFFERS) - 1) &
+                                              ((1 << max_rts) - 1) &
                                                    ~v3d->blend_dst_alpha_one,
                                               false);
                         } else {
                                 emit_rt_blend(v3d, job, &blend->base, 0,
-                                              (1 << V3D_MAX_DRAW_BUFFERS) - 1,
+                                              (1 << max_rts) - 1,
                                               v3d->blend_dst_alpha_one);
                         }
                 }
@@ -641,8 +509,10 @@ v3dX(emit_state)(struct pipe_context *pctx)
         if (v3d->dirty & V3D_DIRTY_BLEND) {
                 struct pipe_blend_state *blend = &v3d->blend->base;
 
+                const uint32_t max_rts =
+                        V3D_MAX_RENDER_TARGETS(v3d->screen->devinfo.ver);
                 cl_emit(&job->bcl, COLOR_WRITE_MASKS, mask) {
-                        for (int i = 0; i < 4; i++) {
+                        for (int i = 0; i < max_rts; i++) {
                                 int rt = blend->independent_blend_enable ? i : 0;
                                 int rt_mask = blend->rt[rt].colormask;
 
@@ -655,8 +525,7 @@ v3dX(emit_state)(struct pipe_context *pctx)
         /* GFXH-1431: On V3D 3.x, writing BLEND_CONFIG resets the constant
          * color.
          */
-        if (v3d->dirty & V3D_DIRTY_BLEND_COLOR ||
-            (V3D_VERSION < 41 && (v3d->dirty & V3D_DIRTY_BLEND))) {
+        if (v3d->dirty & V3D_DIRTY_BLEND_COLOR) {
                 cl_emit(&job->bcl, BLEND_CONSTANT_COLOR, color) {
                         color.red_f16 = (v3d->swap_color_rb ?
                                           v3d->blend_color.hf[2] :
@@ -690,20 +559,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 }
         }
 
-#if V3D_VERSION < 40
-        /* Pre-4.x, we have texture state that depends on both the sampler and
-         * the view, so we merge them together at draw time.
-         */
-        if (v3d->dirty & V3D_DIRTY_FRAGTEX)
-                emit_textures(v3d, &v3d->tex[PIPE_SHADER_FRAGMENT]);
-
-        if (v3d->dirty & V3D_DIRTY_GEOMTEX)
-                emit_textures(v3d, &v3d->tex[PIPE_SHADER_GEOMETRY]);
-
-        if (v3d->dirty & V3D_DIRTY_VERTTEX)
-                emit_textures(v3d, &v3d->tex[PIPE_SHADER_VERTEX]);
-#endif
-
         if (v3d->dirty & V3D_DIRTY_FLAT_SHADE_FLAGS) {
                 if (!emit_varying_flags(job,
                                         v3d->prog.fs->prog_data.fs->flat_shade_flags,
@@ -712,7 +567,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 }
         }
 
-#if V3D_VERSION >= 40
         if (v3d->dirty & V3D_DIRTY_NOPERSPECTIVE_FLAGS) {
                 if (!emit_varying_flags(job,
                                         v3d->prog.fs->prog_data.fs->noperspective_flags,
@@ -728,7 +582,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                         cl_emit(&job->bcl, ZERO_ALL_CENTROID_FLAGS, flags);
                 }
         }
-#endif
 
         /* Set up the transform feedback data specs (which VPM entries to
          * output to which buffers).
@@ -738,7 +591,7 @@ v3dX(emit_state)(struct pipe_context *pctx)
                           V3D_DIRTY_PRIM_MODE)) {
                 struct v3d_streamout_stateobj *so = &v3d->streamout;
                 if (so->num_targets) {
-                        bool psiz_per_vertex = (v3d->prim_mode == PIPE_PRIM_POINTS &&
+                        bool psiz_per_vertex = (v3d->prim_mode == MESA_PRIM_POINTS &&
                                                 v3d->rasterizer->base.point_size_per_vertex);
                         struct v3d_uncompiled_shader *tf_shader =
                                 get_tf_shader(v3d);
@@ -746,7 +599,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                                               tf_shader->tf_specs_psiz :
                                               tf_shader->tf_specs);
 
-#if V3D_VERSION >= 40
                         bool tf_enabled = v3d_transform_feedback_enabled(v3d);
                         job->tf_enabled |= tf_enabled;
 
@@ -755,23 +607,13 @@ v3dX(emit_state)(struct pipe_context *pctx)
                                         tf_shader->num_tf_specs;
                                 tfe.enable = tf_enabled;
                         };
-#else /* V3D_VERSION < 40 */
-                        cl_emit(&job->bcl, TRANSFORM_FEEDBACK_ENABLE, tfe) {
-                                tfe.number_of_32_bit_output_buffer_address_following =
-                                        so->num_targets;
-                                tfe.number_of_16_bit_output_data_specs_following =
-                                        tf_shader->num_tf_specs;
-                        };
-#endif /* V3D_VERSION < 40 */
                         for (int i = 0; i < tf_shader->num_tf_specs; i++) {
                                 cl_emit_prepacked(&job->bcl, &tf_specs[i]);
                         }
                 } else {
-#if V3D_VERSION >= 40
                         cl_emit(&job->bcl, TRANSFORM_FEEDBACK_SPECS, tfe) {
                                 tfe.enable = false;
                         };
-#endif /* V3D_VERSION >= 40 */
                 }
         }
 
@@ -780,16 +622,15 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 struct v3d_uncompiled_shader *tf_shader = get_tf_shader(v3d);
                 struct v3d_streamout_stateobj *so = &v3d->streamout;
                 for (int i = 0; i < so->num_targets; i++) {
-                        const struct pipe_stream_output_target *target =
+                        struct pipe_stream_output_target *target =
                                 so->targets[i];
                         struct v3d_resource *rsc = target ?
                                 v3d_resource(target->buffer) : NULL;
                         struct pipe_shader_state *ss = &tf_shader->base;
                         struct pipe_stream_output_info *info = &ss->stream_output;
-                        uint32_t offset = (v3d->streamout.offsets[i] *
-                                           info->stride[i] * 4);
+                        uint32_t offset = target ?
+                                v3d_stream_output_target(target)->offset * info->stride[i] * 4 : 0;
 
-#if V3D_VERSION >= 40
                         if (!target)
                                 continue;
 
@@ -802,16 +643,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                                         (target->buffer_size - offset) >> 2;
                                 output.buffer_number = i;
                         }
-#else /* V3D_VERSION < 40 */
-                        cl_emit(&job->bcl, TRANSFORM_FEEDBACK_OUTPUT_ADDRESS, output) {
-                                if (target) {
-                                        output.address =
-                                                cl_address(rsc->bo,
-                                                           target->buffer_offset +
-                                                           offset);
-                                }
-                        };
-#endif /* V3D_VERSION < 40 */
                         if (target) {
                                 v3d_job_add_tf_write_resource(v3d->job,
                                                               target->buffer);
@@ -828,7 +659,6 @@ v3dX(emit_state)(struct pipe_context *pctx)
                 }
         }
 
-#if V3D_VERSION >= 40
         if (v3d->dirty & V3D_DIRTY_SAMPLE_STATE) {
                 cl_emit(&job->bcl, SAMPLE_STATE, state) {
                         /* Note: SampleCoverage was handled at the
@@ -838,5 +668,4 @@ v3dX(emit_state)(struct pipe_context *pctx)
                         state.mask = job->msaa ? v3d->sample_mask : 0xf;
                 }
         }
-#endif
 }

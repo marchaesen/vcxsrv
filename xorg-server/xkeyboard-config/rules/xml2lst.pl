@@ -64,7 +64,7 @@ sub with_attribute {
     if (defined $value && $value ne '') {
         $value =~ s/"//g;
         foreach $node (@{$nodelist}) {
-           $attrvalue = node_attribute($node, $attr); 
+           $attrvalue = node_attribute($node, $attr);
            if (defined $attrvalue && $attrvalue eq $value) {
                return $node;
            }

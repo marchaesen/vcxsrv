@@ -27,6 +27,7 @@
 #include "r600_cs.h"
 #include "evergreen_compute.h"
 #include "compute_memory_pool.h"
+#include "util/macros.h"
 #include "util/u_memory.h"
 #include "util/u_upload_mgr.h"
 #include <inttypes.h>
@@ -107,7 +108,7 @@ void r600_init_resource_fields(struct r600_common_screen *rscreen,
 			       struct r600_resource *res,
 			       uint64_t size, unsigned alignment)
 {
-	struct r600_texture *rtex = (struct r600_texture*)res;
+	struct r600_texture *rtex = container_of(res, struct r600_texture, resource);
 
 	res->bo_size = size;
 	res->bo_alignment = alignment;
@@ -270,7 +271,7 @@ void r600_invalidate_resource(struct pipe_context *ctx,
 	struct r600_common_context *rctx = (struct r600_common_context*)ctx;
 	struct r600_resource *rbuffer = r600_resource(resource);
 
-	/* We currently only do anyting here for buffers */
+	/* We currently only do anything here for buffers */
 	if (resource->target == PIPE_BUFFER)
 		(void)r600_invalidate_buffer(rctx, rbuffer);
 }

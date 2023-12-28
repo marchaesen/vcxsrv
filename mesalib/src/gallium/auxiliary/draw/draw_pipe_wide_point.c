@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:  Keith Whitwell <keithw@vmware.com>
@@ -72,8 +72,8 @@ struct widepoint_stage {
    float ybias;
 
    /** for automatic texcoord generation/replacement */
-   uint num_texcoord_gen;
-   uint texcoord_gen_slot[PIPE_MAX_SHADER_OUTPUTS];
+   unsigned num_texcoord_gen;
+   unsigned texcoord_gen_slot[PIPE_MAX_SHADER_OUTPUTS];
 
    /* TGSI_SEMANTIC to which sprite_coord_enable applies */
    enum tgsi_semantic sprite_coord_semantic;
@@ -84,7 +84,7 @@ struct widepoint_stage {
 
 
 static inline struct widepoint_stage *
-widepoint_stage( struct draw_stage *stage )
+widepoint_stage(struct draw_stage *stage)
 {
    return (struct widepoint_stage *)stage;
 }
@@ -95,16 +95,16 @@ widepoint_stage( struct draw_stage *stage )
  * Coords may be left untouched or set to a right-side-up or upside-down
  * orientation.
  */
-static void set_texcoords(const struct widepoint_stage *wide,
-                          struct vertex_header *v, const float tc[4])
+static void
+set_texcoords(const struct widepoint_stage *wide,
+              struct vertex_header *v, const float tc[4])
 {
    const struct draw_context *draw = wide->stage.draw;
    const struct pipe_rasterizer_state *rast = draw->rasterizer;
-   const uint texcoord_mode = rast->sprite_coord_mode;
-   uint i;
+   const unsigned texcoord_mode = rast->sprite_coord_mode;
 
-   for (i = 0; i < wide->num_texcoord_gen; i++) {
-      const uint slot = wide->texcoord_gen_slot[i];
+   for (unsigned i = 0; i < wide->num_texcoord_gen; i++) {
+      const unsigned slot = wide->texcoord_gen_slot[i];
       v->data[slot][0] = tc[0];
       if (texcoord_mode == PIPE_SPRITE_COORD_LOWER_LEFT)
          v->data[slot][1] = 1.0f - tc[1];
@@ -121,12 +121,13 @@ static void set_texcoords(const struct widepoint_stage *wide,
  * optimize this rather than doing the whole thing in software like
  * this.
  */
-static void widepoint_point( struct draw_stage *stage,
-                             struct prim_header *header )
+static void
+widepoint_point(struct draw_stage *stage,
+                struct prim_header *header)
 {
    const struct widepoint_stage *wide = widepoint_stage(stage);
    const unsigned pos = draw_current_shader_position_output(stage->draw);
-   const boolean sprite = (boolean) stage->draw->rasterizer->point_quad_rasterization;
+   const bool sprite = (bool) stage->draw->rasterizer->point_quad_rasterization;
    float half_size;
    float left_adj, right_adj, bot_adj, top_adj;
 
@@ -146,7 +147,7 @@ static void widepoint_point( struct draw_stage *stage,
    /* point size is either per-vertex or fixed size */
    if (wide->psize_slot >= 0) {
       half_size = header->v[0]->data[wide->psize_slot][0];
-      half_size *= 0.5f; 
+      half_size *= 0.5f;
    }
    else {
       half_size = wide->half_point_size;
@@ -174,27 +175,27 @@ static void widepoint_point( struct draw_stage *stage,
       static const float tex01[4] = { 0, 1, 0, 1 };
       static const float tex11[4] = { 1, 1, 0, 1 };
       static const float tex10[4] = { 1, 0, 0, 1 };
-      set_texcoords( wide, v0, tex00 );
-      set_texcoords( wide, v1, tex01 );
-      set_texcoords( wide, v2, tex10 );
-      set_texcoords( wide, v3, tex11 );
+      set_texcoords(wide, v0, tex00);
+      set_texcoords(wide, v1, tex01);
+      set_texcoords(wide, v2, tex10);
+      set_texcoords(wide, v3, tex11);
    }
 
    tri.det = header->det;  /* only the sign matters */
    tri.v[0] = v0;
    tri.v[1] = v2;
    tri.v[2] = v3;
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 
    tri.v[0] = v0;
    tri.v[1] = v3;
    tri.v[2] = v1;
-   stage->next->tri( stage->next, &tri );
+   stage->next->tri(stage->next, &tri);
 }
 
 
 static void
-widepoint_first_point(struct draw_stage *stage, 
+widepoint_first_point(struct draw_stage *stage,
                       struct prim_header *header)
 {
    struct widepoint_stage *wide = widepoint_stage(stage);
@@ -214,9 +215,9 @@ widepoint_first_point(struct draw_stage *stage,
 
    /* Disable triangle culling, stippling, unfilled mode etc. */
    r = draw_get_rasterizer_no_cull(draw, rast);
-   draw->suspend_flushing = TRUE;
+   draw->suspend_flushing = true;
    pipe->bind_rasterizer_state(pipe, r);
-   draw->suspend_flushing = FALSE;
+   draw->suspend_flushing = false;
 
    /* XXX we won't know the real size if it's computed by the vertex shader! */
    if ((rast->point_size > draw->pipeline.wide_point_threshold) ||
@@ -231,7 +232,6 @@ widepoint_first_point(struct draw_stage *stage,
 
    if (rast->point_quad_rasterization) {
       const struct draw_fragment_shader *fs = draw->fs.fragment_shader;
-      uint i;
 
       assert(fs);
 
@@ -240,7 +240,7 @@ widepoint_first_point(struct draw_stage *stage,
       /* Loop over fragment shader inputs looking for the PCOORD input or inputs
        * for which bit 'k' in sprite_coord_enable is set.
        */
-      for (i = 0; i < fs->info.num_inputs; i++) {
+      for (unsigned i = 0; i < fs->info.num_inputs; i++) {
          int slot;
          const enum tgsi_semantic sn = fs->info.input_semantic_name[i];
          const unsigned si = fs->info.input_semantic_index[i];
@@ -268,44 +268,47 @@ widepoint_first_point(struct draw_stage *stage,
       /* find PSIZ vertex output */
       wide->psize_slot = draw_find_shader_output(draw, TGSI_SEMANTIC_PSIZE, 0);
    }
-   
-   stage->point( stage, header );
+
+   stage->point(stage, header);
 }
 
 
-static void widepoint_flush( struct draw_stage *stage, unsigned flags )
+static void
+widepoint_flush(struct draw_stage *stage, unsigned flags)
 {
    struct draw_context *draw = stage->draw;
    struct pipe_context *pipe = draw->pipe;
 
    stage->point = widepoint_first_point;
-   stage->next->flush( stage->next, flags );
+   stage->next->flush(stage->next, flags);
 
    draw_remove_extra_vertex_attribs(draw);
 
    /* restore original rasterizer state */
    if (draw->rast_handle) {
-      draw->suspend_flushing = TRUE;
+      draw->suspend_flushing = true;
       pipe->bind_rasterizer_state(pipe, draw->rast_handle);
-      draw->suspend_flushing = FALSE;
+      draw->suspend_flushing = false;
    }
 }
 
 
-static void widepoint_reset_stipple_counter( struct draw_stage *stage )
+static void
+widepoint_reset_stipple_counter(struct draw_stage *stage)
 {
-   stage->next->reset_stipple_counter( stage->next );
+   stage->next->reset_stipple_counter(stage->next);
 }
 
 
-static void widepoint_destroy( struct draw_stage *stage )
+static void
+widepoint_destroy(struct draw_stage *stage)
 {
-   draw_free_temp_verts( stage );
-   FREE( stage );
+   draw_free_temp_verts(stage);
+   FREE(stage);
 }
 
 
-struct draw_stage *draw_wide_point_stage( struct draw_context *draw )
+struct draw_stage *draw_wide_point_stage(struct draw_context *draw)
 {
    struct widepoint_stage *wide = CALLOC_STRUCT(widepoint_stage);
    if (!wide)
@@ -321,7 +324,7 @@ struct draw_stage *draw_wide_point_stage( struct draw_context *draw )
    wide->stage.reset_stipple_counter = widepoint_reset_stipple_counter;
    wide->stage.destroy = widepoint_destroy;
 
-   if (!draw_alloc_temp_verts( &wide->stage, 4 ))
+   if (!draw_alloc_temp_verts(&wide->stage, 4))
       goto fail;
 
    wide->sprite_coord_semantic =
@@ -333,7 +336,7 @@ struct draw_stage *draw_wide_point_stage( struct draw_context *draw )
 
  fail:
    if (wide)
-      wide->stage.destroy( &wide->stage );
-   
+      wide->stage.destroy(&wide->stage);
+
    return NULL;
 }

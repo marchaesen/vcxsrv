@@ -36,9 +36,12 @@ xkb_symbols "jp106" {
 };
 
 xkb_symbols "alternate106" {
+
+    include "sgi_vndr/jp(jp106)"
+
     key <AE10> {         [               0,          macron ] };
     key <AE12> {         [     asciicircum,      asciitilde ] };
     key <AE13> {         [       backslash,             bar ] };
+
     key <AB11> {         [      underscore,      underscore ] };
-    augment "sgi/jp(jp106)"
 };

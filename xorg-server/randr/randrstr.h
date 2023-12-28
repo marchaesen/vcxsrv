@@ -218,6 +218,10 @@ typedef Bool (*RRCrtcSetProcPtr) (ScreenPtr pScreen,
                                   Rotation rotation,
                                   int numOutputs, RROutputPtr * outputs);
 
+typedef void (*RRCrtcGetProcPtr) (ScreenPtr pScreen,
+                                  RRCrtcPtr crtc,
+                                  xRRGetCrtcInfoReply *rep);
+
 typedef Bool (*RRCrtcSetGammaProcPtr) (ScreenPtr pScreen, RRCrtcPtr crtc);
 
 typedef Bool (*RRCrtcGetGammaProcPtr) (ScreenPtr pScreen, RRCrtcPtr crtc);
@@ -420,6 +424,10 @@ typedef struct _rrScrPriv {
 
     RRRequestLeaseProcPtr rrRequestLease;
     RRGetLeaseProcPtr rrGetLease;
+
+#if RANDR_12_INTERFACE
+    RRCrtcGetProcPtr rrCrtcGet;
+#endif
 } rrScrPrivRec, *rrScrPrivPtr;
 
 extern _X_EXPORT DevPrivateKeyRec rrPrivKeyRec;

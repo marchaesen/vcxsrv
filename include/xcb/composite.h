@@ -198,11 +198,15 @@ typedef struct xcb_composite_release_overlay_window_request_t {
 } xcb_composite_release_overlay_window_request_t;
 
 /**
+ * @brief Negotiate the version of Composite
  *
  * @param c The connection
+ * @param client_major_version The major version supported by the client.
+ * @param client_minor_version The minor version supported by the client.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This negotiates the version of the Composite extension.  It must be precede all
+ * other requests using Composite.  Failure to do so will cause a BadRequest error.
  *
  */
 xcb_composite_query_version_cookie_t
@@ -211,11 +215,15 @@ xcb_composite_query_version (xcb_connection_t *c,
                              uint32_t          client_minor_version);
 
 /**
+ * @brief Negotiate the version of Composite
  *
  * @param c The connection
+ * @param client_major_version The major version supported by the client.
+ * @param client_minor_version The minor version supported by the client.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * This negotiates the version of the Composite extension.  It must be precede all
+ * other requests using Composite.  Failure to do so will cause a BadRequest error.
  *
  * This form can be used only if the request will cause
  * a reply to be generated. Any returned error will be
@@ -246,11 +254,22 @@ xcb_composite_query_version_reply (xcb_connection_t                      *c,
                                    xcb_generic_error_t                  **e);
 
 /**
+ * @brief Redirect the hierarchy starting at "window" to off-screen storage.
  *
  * @param c The connection
+ * @param window The root of the hierarchy to redirect to off-screen storage.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update Whether contents are automatically mirrored to the parent window.  If one client
+ * 	already specifies an update type of Manual, any attempt by another to specify a
+ * 	mode of Manual so will result in an Access error.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * The hierarchy starting at 'window' is directed to off-screen
+ * 	storage.  When all clients enabling redirection terminate,
+ * 	the redirection will automatically be disabled.
+ * 
+ * 	The root window may not be redirected. Doing so results in a Match
+ * 	error.
  *
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -262,11 +281,22 @@ xcb_composite_redirect_window_checked (xcb_connection_t *c,
                                        uint8_t           update);
 
 /**
+ * @brief Redirect the hierarchy starting at "window" to off-screen storage.
  *
  * @param c The connection
+ * @param window The root of the hierarchy to redirect to off-screen storage.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update Whether contents are automatically mirrored to the parent window.  If one client
+ * 	already specifies an update type of Manual, any attempt by another to specify a
+ * 	mode of Manual so will result in an Access error.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * The hierarchy starting at 'window' is directed to off-screen
+ * 	storage.  When all clients enabling redirection terminate,
+ * 	the redirection will automatically be disabled.
+ * 
+ * 	The root window may not be redirected. Doing so results in a Match
+ * 	error.
  *
  */
 xcb_void_cookie_t
@@ -275,11 +305,20 @@ xcb_composite_redirect_window (xcb_connection_t *c,
                                uint8_t           update);
 
 /**
+ * @brief Redirect all current and future children of 'window'
  *
  * @param c The connection
+ * @param window The root of the hierarchy to redirect to off-screen storage.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update Whether contents are automatically mirrored to the parent window.  If one client
+ * 	already specifies an update type of Manual, any attempt by another to specify a
+ * 	mode of Manual so will result in an Access error.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Hierarchies starting at all current and future children of window
+ * 	will be redirected as in RedirectWindow. If update is Manual,
+ * 	then painting of the window background during window manipulation
+ * 	and ClearArea requests is inhibited.
  *
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -291,11 +330,20 @@ xcb_composite_redirect_subwindows_checked (xcb_connection_t *c,
                                            uint8_t           update);
 
 /**
+ * @brief Redirect all current and future children of 'window'
  *
  * @param c The connection
+ * @param window The root of the hierarchy to redirect to off-screen storage.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update Whether contents are automatically mirrored to the parent window.  If one client
+ * 	already specifies an update type of Manual, any attempt by another to specify a
+ * 	mode of Manual so will result in an Access error.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Hierarchies starting at all current and future children of window
+ * 	will be redirected as in RedirectWindow. If update is Manual,
+ * 	then painting of the window background during window manipulation
+ * 	and ClearArea requests is inhibited.
  *
  */
 xcb_void_cookie_t
@@ -304,11 +352,18 @@ xcb_composite_redirect_subwindows (xcb_connection_t *c,
                                    uint8_t           update);
 
 /**
+ * @brief Terminate redirection of the specified window.
  *
  * @param c The connection
+ * @param window The window to terminate redirection of.  Must be redirected by the
+ * 	current client, or a Value error results.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update The update type passed to RedirectWindows.  If this does not match the
+ * 	previously requested update type, a Value error results.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Redirection of the specified window will be terminated.  This cannot be
+ * 	used if the window was redirected with RedirectSubwindows.
  *
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -320,11 +375,18 @@ xcb_composite_unredirect_window_checked (xcb_connection_t *c,
                                          uint8_t           update);
 
 /**
+ * @brief Terminate redirection of the specified window.
  *
  * @param c The connection
+ * @param window The window to terminate redirection of.  Must be redirected by the
+ * 	current client, or a Value error results.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update The update type passed to RedirectWindows.  If this does not match the
+ * 	previously requested update type, a Value error results.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Redirection of the specified window will be terminated.  This cannot be
+ * 	used if the window was redirected with RedirectSubwindows.
  *
  */
 xcb_void_cookie_t
@@ -333,11 +395,18 @@ xcb_composite_unredirect_window (xcb_connection_t *c,
                                  uint8_t           update);
 
 /**
+ * @brief Terminate redirection of the specified window's children
  *
  * @param c The connection
+ * @param window The window to terminate redirection of.  Must have previously been
+ * 	selected for sub-redirection by the current client, or a Value error
+ * 	results.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update The update type passed to RedirectSubWindows.  If this does not match
+ * 	the previously requested update type, a Value error results.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Redirection of all children of window will be terminated.
  *
  * This form can be used only if the request will not cause
  * a reply to be generated. Any returned error will be
@@ -349,11 +418,18 @@ xcb_composite_unredirect_subwindows_checked (xcb_connection_t *c,
                                              uint8_t           update);
 
 /**
+ * @brief Terminate redirection of the specified window's children
  *
  * @param c The connection
+ * @param window The window to terminate redirection of.  Must have previously been
+ * 	selected for sub-redirection by the current client, or a Value error
+ * 	results.
+ * @param update A bitmask of #xcb_composite_redirect_t values.
+ * @param update The update type passed to RedirectSubWindows.  If this does not match
+ * 	the previously requested update type, a Value error results.
  * @return A cookie
  *
- * Delivers a request to the X server.
+ * Redirection of all children of window will be terminated.
  *
  */
 xcb_void_cookie_t

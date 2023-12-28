@@ -38,6 +38,12 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xos_r.h>
 #endif
 
+#ifdef O_CLOEXEC
+#define FOPEN_CLOEXEC "e"
+#else
+#define FOPEN_CLOEXEC ""
+#endif
+
 #define binaryEqual(a, b, len) (memcmp(a, b, len) == 0)
 
 Xauth *
@@ -76,7 +82,7 @@ XauGetBestAuthByAddr (
 	return NULL;
     if (access (auth_name, R_OK) != 0)		/* checks REAL id */
 	return NULL;
-    auth_file = fopen (auth_name, "rb");
+    auth_file = fopen (auth_name, "rb" FOPEN_CLOEXEC);
     if (!auth_file)
 	return NULL;
 

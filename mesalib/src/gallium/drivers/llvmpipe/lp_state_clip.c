@@ -1,5 +1,5 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
  *
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 /* Authors:  Keith Whitwell <keithw@vmware.com>
@@ -76,7 +76,7 @@ llvmpipe_set_scissor_states(struct pipe_context *pipe,
 
    memcpy(llvmpipe->scissors + start_slot, scissors,
           sizeof(struct pipe_scissor_state) * num_scissors);
-   
+
    llvmpipe->dirty |= LP_NEW_SCISSOR;
 }
 
@@ -92,7 +92,6 @@ llvmpipe_set_polygon_stipple(struct pipe_context *pipe,
    llvmpipe->poly_stipple = *stipple; /* struct copy */
    llvmpipe->dirty |= LP_NEW_STIPPLE;
 }
-
 
 
 void

@@ -28,7 +28,7 @@
  * Pixel transfer functions (glPixelZoom, glPixelMap, glPixelTransfer)
  */
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "bufferobj.h"
 #include "context.h"
 #include "macros.h"

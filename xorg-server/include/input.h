@@ -191,6 +191,12 @@ typedef Bool (*PointerAccelSchemeInitProc) (DeviceIntPtr /*dev */ ,
                                             struct _ValuatorAccelerationRec *
                                             /*protoScheme */ );
 
+typedef void (*DeviceSendEventsProc) (DeviceIntPtr /*dev */ ,
+                                      int /* event type */ ,
+                                      int /* detail, buttons or keycode */ ,
+                                      int /* flags */ ,
+                                      const ValuatorMask * /* valuators */ );
+
 typedef struct _DeviceRec {
     void *devicePrivate;
     ProcessInputProc processInputProc;  /* current */
@@ -660,6 +666,7 @@ extern void TouchEmitTouchEnd(DeviceIntPtr dev, TouchPointInfoPtr ti, int flags,
 extern void TouchAcceptAndEnd(DeviceIntPtr dev, int touchid);
 
 extern Bool GestureInitGestureInfo(GestureInfoPtr gesture);
+extern void GestureFreeGestureInfo(GestureInfoPtr gesture);
 extern GestureInfoPtr GestureBeginGesture(DeviceIntPtr dev, InternalEvent *ev);
 extern GestureInfoPtr GestureFindActiveByEventType(DeviceIntPtr dev, int type);
 extern void GestureEndGesture(GestureInfoPtr gi);

@@ -185,7 +185,7 @@ lima_update_tex_desc(struct lima_context *ctx, struct lima_sampler_state *sample
       break;
    }
 
-   if (!sampler->base.normalized_coords)
+   if (sampler->base.unnormalized_coords)
       desc->unnorm_coords = 1;
 
    first_level = texture->base.u.tex.first_level;

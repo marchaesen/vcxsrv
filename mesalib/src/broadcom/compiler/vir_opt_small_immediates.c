@@ -44,7 +44,9 @@ vir_opt_small_immediates(struct v3d_compile *c)
                 /* The small immediate value sits in the raddr B field, so we
                  * can't have 2 small immediates in one instruction (unless
                  * they're the same value, but that should be optimized away
-                 * elsewhere).
+                 * elsewhere). Since 7.x we can encode small immediates in
+                 * any raddr field, but each instruction can still only use
+                 * one.
                  */
                 bool uses_small_imm = false;
                 for (int i = 0; i < vir_get_nsrc(inst); i++) {
@@ -80,7 +82,22 @@ vir_opt_small_immediates(struct v3d_compile *c)
                          */
                         struct v3d_qpu_sig new_sig = inst->qpu.sig;
                         uint32_t sig_packed;
-                        new_sig.small_imm = true;
+                        if (c->devinfo->ver == 42) {
+                                new_sig.small_imm_b = true;
+                        } else {
+                               if (vir_is_add(inst)) {
+                                       if (i == 0)
+                                               new_sig.small_imm_a = true;
+                                       else
+                                               new_sig.small_imm_b = true;
+                               } else {
+                                       if (i == 0)
+                                               new_sig.small_imm_c = true;
+                                       else
+                                               new_sig.small_imm_d = true;
+                               }
+                        }
+
                         if (!v3d_qpu_sig_pack(c->devinfo, &new_sig, &sig_packed))
                                 continue;
 
@@ -89,7 +106,10 @@ vir_opt_small_immediates(struct v3d_compile *c)
                                 vir_dump_inst(c, inst);
                                 fprintf(stderr, "\n");
                         }
-                        inst->qpu.sig.small_imm = true;
+                        inst->qpu.sig.small_imm_a = new_sig.small_imm_a;
+                        inst->qpu.sig.small_imm_b = new_sig.small_imm_b;
+                        inst->qpu.sig.small_imm_c = new_sig.small_imm_c;
+                        inst->qpu.sig.small_imm_d = new_sig.small_imm_d;
                         inst->qpu.raddr_b = packed;
 
                         inst->src[i].file = QFILE_SMALL_IMM;

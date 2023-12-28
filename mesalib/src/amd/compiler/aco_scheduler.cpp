@@ -122,6 +122,7 @@ struct MoveState {
 };
 
 struct sched_ctx {
+   amd_gfx_level gfx_level;
    int16_t num_waves;
    int16_t last_SMEM_stall;
    int last_SMEM_dep_idx;
@@ -420,21 +421,21 @@ MoveState::upwards_skip(UpwardsCursor& cursor)
 }
 
 bool
-is_gs_or_done_sendmsg(const Instruction* instr)
+is_done_sendmsg(amd_gfx_level gfx_level, const Instruction* instr)
 {
-   if (instr->opcode == aco_opcode::s_sendmsg) {
-      uint16_t imm = instr->sopp().imm;
-      return (imm & sendmsg_id_mask) == _sendmsg_gs || (imm & sendmsg_id_mask) == _sendmsg_gs_done;
-   }
+   if (gfx_level <= GFX10_3 && instr->opcode == aco_opcode::s_sendmsg)
+      return (instr->sopp().imm & sendmsg_id_mask) == sendmsg_gs_done;
    return false;
 }
 
 bool
-is_done_sendmsg(const Instruction* instr)
+is_pos_prim_export(amd_gfx_level gfx_level, const Instruction* instr)
 {
-   if (instr->opcode == aco_opcode::s_sendmsg)
-      return (instr->sopp().imm & sendmsg_id_mask) == _sendmsg_gs_done;
-   return false;
+   /* Because of NO_PC_EXPORT=1, a done=1 position or primitive export can launch PS waves before
+    * the NGG/VS wave finishes if there are no parameter exports.
+    */
+   return instr->opcode == aco_opcode::exp && instr->exp().dest >= V_008DFC_SQ_EXP_POS &&
+          instr->exp().dest <= V_008DFC_SQ_EXP_PRIM && gfx_level >= GFX10;
 }
 
 memory_sync_info
@@ -464,29 +465,35 @@ struct memory_event_set {
 };
 
 struct hazard_query {
+   amd_gfx_level gfx_level;
    bool contains_spill;
    bool contains_sendmsg;
    bool uses_exec;
+   bool writes_exec;
    memory_event_set mem_events;
    unsigned aliasing_storage;      /* storage classes which are accessed (non-SMEM) */
    unsigned aliasing_storage_smem; /* storage classes which are accessed (SMEM) */
 };
 
 void
-init_hazard_query(hazard_query* query)
+init_hazard_query(const sched_ctx& ctx, hazard_query* query)
 {
+   query->gfx_level = ctx.gfx_level;
    query->contains_spill = false;
    query->contains_sendmsg = false;
    query->uses_exec = false;
+   query->writes_exec = false;
    memset(&query->mem_events, 0, sizeof(query->mem_events));
    query->aliasing_storage = 0;
    query->aliasing_storage_smem = 0;
 }
 
 void
-add_memory_event(memory_event_set* set, Instruction* instr, memory_sync_info* sync)
+add_memory_event(amd_gfx_level gfx_level, memory_event_set* set, Instruction* instr,
+                 memory_sync_info* sync)
 {
-   set->has_control_barrier |= is_done_sendmsg(instr);
+   set->has_control_barrier |= is_done_sendmsg(gfx_level, instr);
+   set->has_control_barrier |= is_pos_prim_export(gfx_level, instr);
    if (instr->opcode == aco_opcode::p_barrier) {
       Pseudo_barrier_instruction& bar = instr->barrier();
       if (bar.sync.semantics & semantic_acquire)
@@ -521,10 +528,14 @@ add_to_hazard_query(hazard_query* query, Instruction* instr)
       query->contains_spill = true;
    query->contains_sendmsg |= instr->opcode == aco_opcode::s_sendmsg;
    query->uses_exec |= needs_exec_mask(instr);
+   for (const Definition& def : instr->definitions) {
+      if (def.isFixed() && def.physReg() == exec)
+         query->writes_exec = true;
+   }
 
    memory_sync_info sync = get_sync_info_with_hack(instr);
 
-   add_memory_event(&query->mem_events, instr, &sync);
+   add_memory_event(query->gfx_level, &query->mem_events, instr, &sync);
 
    if (!(sync.semantics & semantic_can_reorder)) {
       unsigned storage = sync.storage;
@@ -560,27 +571,56 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
    if (!upwards && instr->opcode == aco_opcode::p_exit_early_if)
       return hazard_fail_unreorderable;
 
-   if (query->uses_exec) {
+   /* In Primitive Ordered Pixel Shading, await overlapped waves as late as possible, and notify
+    * overlapping waves that they can continue execution as early as possible.
+    */
+   if (upwards) {
+      if (instr->opcode == aco_opcode::p_pops_gfx9_add_exiting_wave_id ||
+          (instr->opcode == aco_opcode::s_wait_event &&
+           !(instr->sopp().imm & wait_event_imm_dont_wait_export_ready))) {
+         return hazard_fail_unreorderable;
+      }
+   } else {
+      if (instr->opcode == aco_opcode::p_pops_gfx9_ordered_section_done) {
+         return hazard_fail_unreorderable;
+      }
+   }
+
+   if (query->uses_exec || query->writes_exec) {
       for (const Definition& def : instr->definitions) {
          if (def.isFixed() && def.physReg() == exec)
             return hazard_fail_exec;
       }
    }
+   if (query->writes_exec && needs_exec_mask(instr))
+      return hazard_fail_exec;
 
-   /* don't move exports so that they stay closer together */
-   if (instr->isEXP())
+   /* Don't move exports so that they stay closer together.
+    * Since GFX11, export order matters. MRTZ must come first,
+    * then color exports sorted from first to last.
+    * Also, with Primitive Ordered Pixel Shading on GFX11+, the `done` export must not be moved
+    * above the memory accesses before the queue family scope (more precisely, fragment interlock
+    * scope, but it's not available in ACO) release barrier that is expected to be inserted before
+    * the export, as well as before any `s_wait_event export_ready` which enters the ordered
+    * section, because the `done` export exits the ordered section.
+    */
+   if (instr->isEXP() || instr->opcode == aco_opcode::p_dual_src_export_gfx11)
       return hazard_fail_export;
 
    /* don't move non-reorderable instructions */
    if (instr->opcode == aco_opcode::s_memtime || instr->opcode == aco_opcode::s_memrealtime ||
        instr->opcode == aco_opcode::s_setprio || instr->opcode == aco_opcode::s_getreg_b32 ||
-       instr->opcode == aco_opcode::p_init_scratch || instr->opcode == aco_opcode::p_jump_to_epilog)
+       instr->opcode == aco_opcode::p_init_scratch ||
+       instr->opcode == aco_opcode::p_jump_to_epilog ||
+       instr->opcode == aco_opcode::s_sendmsg_rtn_b32 ||
+       instr->opcode == aco_opcode::s_sendmsg_rtn_b64 ||
+       instr->opcode == aco_opcode::p_end_with_regs)
       return hazard_fail_unreorderable;
 
    memory_event_set instr_set;
    memset(&instr_set, 0, sizeof(instr_set));
    memory_sync_info sync = get_sync_info_with_hack(instr);
-   add_memory_event(&instr_set, instr, &sync);
+   add_memory_event(query->gfx_level, &instr_set, instr, &sync);
 
    memory_event_set* first = &instr_set;
    memory_event_set* second = &query->mem_events;
@@ -614,8 +654,7 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
    /* Don't move memory accesses to before control barriers. I don't think
     * this is necessary for the Vulkan memory model, but it might be for GLSL450. */
    unsigned control_classes =
-      storage_buffer | storage_atomic_counter | storage_image | storage_shared |
-      storage_task_payload;
+      storage_buffer | storage_image | storage_shared | storage_task_payload;
    if (first->has_control_barrier &&
        ((second->access_atomic | second->access_relaxed) & control_classes))
       return hazard_fail_barrier;
@@ -650,12 +689,14 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
    int16_t k = 0;
 
    /* don't move s_memtime/s_memrealtime */
-   if (current->opcode == aco_opcode::s_memtime || current->opcode == aco_opcode::s_memrealtime)
+   if (current->opcode == aco_opcode::s_memtime || current->opcode == aco_opcode::s_memrealtime ||
+       current->opcode == aco_opcode::s_sendmsg_rtn_b32 ||
+       current->opcode == aco_opcode::s_sendmsg_rtn_b64)
       return;
 
    /* first, check if we have instructions before current to move down */
    hazard_query hq;
-   init_hazard_query(&hq);
+   init_hazard_query(ctx, &hq);
    add_to_hazard_query(&hq, current);
 
    DownwardsCursor cursor = ctx.mv.downwards_init(idx, false, false);
@@ -682,7 +723,7 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
            current->operands[0].size() == 4))
          break;
       /* don't move descriptor loads below buffer loads */
-      if (candidate->format == Format::SMEM && current->operands[0].size() == 4 &&
+      if (candidate->isSMEM() && !candidate->operands.empty() && current->operands[0].size() == 4 &&
           candidate->operands[0].size() == 2)
          break;
 
@@ -697,7 +738,7 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
          break;
 
       /* don't use LDS/GDS instructions to hide latency since it can
-       * significanly worsen LDS scheduling */
+       * significantly worsen LDS scheduling */
       if (candidate->isDS() || !can_move_down) {
          add_to_hazard_query(&hq, candidate.get());
          ctx.mv.downwards_skip(cursor);
@@ -751,7 +792,7 @@ schedule_SMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
       if (is_dependency) {
          if (!found_dependency) {
             ctx.mv.upwards_update_insert_idx(up_cursor);
-            init_hazard_query(&hq);
+            init_hazard_query(ctx, &hq);
             found_dependency = true;
          }
       }
@@ -797,8 +838,8 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
    /* first, check if we have instructions before current to move down */
    hazard_query indep_hq;
    hazard_query clause_hq;
-   init_hazard_query(&indep_hq);
-   init_hazard_query(&clause_hq);
+   init_hazard_query(ctx, &indep_hq);
+   init_hazard_query(ctx, &clause_hq);
    add_to_hazard_query(&indep_hq, current);
 
    DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, true);
@@ -923,7 +964,7 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
       if (is_dependency) {
          if (!found_dependency) {
             ctx.mv.upwards_update_insert_idx(up_cursor);
-            init_hazard_query(&indep_hq);
+            init_hazard_query(ctx, &indep_hq);
             found_dependency = true;
          }
       } else if (is_vmem) {
@@ -967,7 +1008,7 @@ schedule_position_export(sched_ctx& ctx, Block* block, std::vector<RegisterDeman
    DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, false);
 
    hazard_query hq;
-   init_hazard_query(&hq);
+   init_hazard_query(ctx, &hq);
    add_to_hazard_query(&hq, current);
 
    for (int candidate_idx = idx - 1; k < max_moves && candidate_idx > (int)idx - window_size;
@@ -1002,6 +1043,37 @@ schedule_position_export(sched_ctx& ctx, Block* block, std::vector<RegisterDeman
    }
 }
 
+unsigned
+schedule_VMEM_store(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
+                    Instruction* current, int idx)
+{
+   hazard_query hq;
+   init_hazard_query(ctx, &hq);
+
+   DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, true);
+   unsigned skip = 0;
+
+   for (int i = 0; i < VMEM_CLAUSE_MAX_GRAB_DIST; i++) {
+      aco_ptr<Instruction>& candidate = block->instructions[cursor.source_idx];
+      if (candidate->opcode == aco_opcode::p_logical_start)
+         break;
+
+      if (!should_form_clause(current, candidate.get())) {
+         add_to_hazard_query(&hq, candidate.get());
+         ctx.mv.downwards_skip(cursor);
+         continue;
+      }
+
+      if (perform_hazard_query(&hq, candidate.get(), false) != hazard_success ||
+          ctx.mv.downwards_move(cursor, true) != move_success)
+         break;
+
+      skip++;
+   }
+
+   return skip;
+}
+
 void
 schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
 {
@@ -1011,6 +1083,7 @@ schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
    ctx.mv.register_demand = live_vars.register_demand[block->index].data();
 
    /* go through all instructions and find memory loads */
+   unsigned num_stores = 0;
    for (unsigned idx = 0; idx < block->instructions.size(); idx++) {
       Instruction* current = block->instructions[idx].get();
 
@@ -1023,8 +1096,10 @@ schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
          }
       }
 
-      if (current->definitions.empty())
+      if (current->definitions.empty()) {
+         num_stores += current->isVMEM() || current->isFlatLike() ? 1 : 0;
          continue;
+      }
 
       if (current->isVMEM() || current->isFlatLike()) {
          ctx.mv.current = current;
@@ -1034,6 +1109,19 @@ schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
       if (current->isSMEM()) {
          ctx.mv.current = current;
          schedule_SMEM(ctx, block, live_vars.register_demand[block->index], current, idx);
+      }
+   }
+
+   /* GFX11 benefits from creating VMEM store clauses. */
+   if (num_stores > 1 && program->gfx_level >= GFX11) {
+      for (int idx = block->instructions.size() - 1; idx >= 0; idx--) {
+         Instruction* current = block->instructions[idx].get();
+         if (!current->definitions.empty() || !(current->isVMEM() || current->isFlatLike()))
+            continue;
+
+         ctx.mv.current = current;
+         idx -=
+            schedule_VMEM_store(ctx, block, live_vars.register_demand[block->index], current, idx);
       }
    }
 
@@ -1054,6 +1142,7 @@ schedule_program(Program* program, live& live_vars)
    demand.vgpr += program->config->num_shared_vgprs / 2;
 
    sched_ctx ctx;
+   ctx.gfx_level = program->gfx_level;
    ctx.mv.depends_on.resize(program->peekAllocationId());
    ctx.mv.RAR_dependencies.resize(program->peekAllocationId());
    ctx.mv.RAR_dependencies_clause.resize(program->peekAllocationId());

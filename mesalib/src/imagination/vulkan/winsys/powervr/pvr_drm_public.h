@@ -28,8 +28,9 @@
 
 #include "pvr_winsys.h"
 
-struct pvr_winsys *pvr_drm_winsys_create(int master_fd,
-                                         int render_fd,
-                                         const VkAllocationCallbacks *alloc);
+VkResult pvr_drm_winsys_create(int render_fd,
+                               int display_fd,
+                               const VkAllocationCallbacks *alloc,
+                               struct pvr_winsys **ws_out);
 
 #endif /* PVR_DRM_PUBLIC_H */

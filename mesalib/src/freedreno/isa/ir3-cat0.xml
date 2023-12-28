@@ -49,6 +49,7 @@ SOFTWARE.
 		<map name="COMP2">src->cat0.comp2</map>
 		<map name="INV1">src->cat0.inv1</map>
 		<map name="INV2">src->cat0.inv2</map>
+		<map name="EQ">!!(src->flags &amp; IR3_INSTR_EQ)</map>
 	</encode>
 </bitset>
 
@@ -57,7 +58,7 @@ SOFTWARE.
 	<display>
 		{SY}{SS}{EQ}{JP}{REPEAT}{NAME}
 	</display>
-	<pattern low="32" high="36">00000</pattern>
+	<pattern low="32" high="36">xxxxx</pattern>
 	<pattern low="37" high="39">000</pattern>  <!-- BRTYPE -->
 	<pattern low="45" high="47">000</pattern>  <!-- src1 -->
 	<pattern low="52" high="54">000</pattern>  <!-- src0 -->

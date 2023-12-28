@@ -3,7 +3,7 @@
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-master.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
-fraction = 39
+fraction = 60
 renderer_check = "Turnip Adreno .* 630"
 
 # force-gmem testing (~1 min)
@@ -60,3 +60,15 @@ prefix = "dynamic-"
 fraction = 10
 [deqp.env]
 TU_DEBUG = "dynamic"
+
+# testing for stale regs usage
+[[deqp]]
+deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
+caselists = ["/deqp/mustpass/vk-master.txt"]
+skips = ["install/freedreno-a630-premerge-skips.txt"]
+prefix = "stale-regs-"
+fraction = 200
+[deqp.env]
+TU_DEBUG = "gmem,forcebin"
+TU_DEBUG_STALE_REGS_RANGE = "0x0c00,0xbe01"
+TU_DEBUG_STALE_REGS_FLAGS = "cmdbuf,renderpass"

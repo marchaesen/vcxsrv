@@ -38,7 +38,6 @@
 #include "pipe/p_defines.h"
 #include "util/u_memory.h"
 #include "tgsi/tgsi_exec.h"
-#include "tgsi/tgsi_parse.h"
 
 
 /**
@@ -124,12 +123,12 @@ exec_run( const struct sp_fragment_shader_variant *var,
    machine->NonHelperMask = quad->inout.mask;
    quad->inout.mask &= tgsi_exec_machine_run( machine, 0 );
    if (quad->inout.mask == 0)
-      return FALSE;
+      return false;
 
    /* store outputs */
    {
-      const ubyte *sem_name = var->info.output_semantic_name;
-      const ubyte *sem_index = var->info.output_semantic_index;
+      const uint8_t *sem_name = var->info.output_semantic_name;
+      const uint8_t *sem_index = var->info.output_semantic_index;
       const uint n = var->info.num_outputs;
       uint i;
       for (i = 0; i < n; i++) {
@@ -170,7 +169,7 @@ exec_run( const struct sp_fragment_shader_variant *var,
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 

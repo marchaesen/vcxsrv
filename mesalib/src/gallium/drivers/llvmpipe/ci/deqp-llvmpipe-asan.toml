@@ -11,4 +11,4 @@ fraction = 10
 version_check = "GL ES 3.2.*git"
 renderer_check = "llvmpipe"
   [deqp.env]
-  LD_PRELOAD = "libasan.so.6"
+  LD_PRELOAD = "libasan.so.8"

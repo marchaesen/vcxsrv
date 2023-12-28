@@ -221,9 +221,9 @@ glamor_text(DrawablePtr drawable, GCPtr gc,
 }
 
 static const char vs_vars_text[] =
-    "attribute vec4 primitive;\n"
-    "attribute vec2 source;\n"
-    "varying vec2 glyph_pos;\n";
+    "in vec4 primitive;\n"
+    "in vec2 source;\n"
+    "out vec2 glyph_pos;\n";
 
 static const char vs_exec_text[] =
     "       vec2 pos = primitive.zw * vec2(gl_VertexID&1, (gl_VertexID&2)>>1);\n"
@@ -231,11 +231,15 @@ static const char vs_exec_text[] =
     "       glyph_pos = source + pos;\n";
 
 static const char fs_vars_text[] =
-    "varying vec2 glyph_pos;\n";
+    "in vec2 glyph_pos;\n";
 
 static const char fs_exec_text[] =
     "       ivec2 itile_texture = ivec2(glyph_pos);\n"
+#if BITMAP_BIT_ORDER == MSBFirst
+    "       uint x = uint(7) - uint(itile_texture.x & 7);\n"
+#else
     "       uint x = uint(itile_texture.x & 7);\n"
+#endif
     "       itile_texture.x >>= 3;\n"
     "       uint texel = texelFetch(font, itile_texture, 0).x;\n"
     "       uint bit = (texel >> x) & uint(1);\n"
@@ -244,14 +248,18 @@ static const char fs_exec_text[] =
 
 static const char fs_exec_te[] =
     "       ivec2 itile_texture = ivec2(glyph_pos);\n"
+#if BITMAP_BIT_ORDER == MSBFirst
+    "       uint x = uint(7) - uint(itile_texture.x & 7);\n"
+#else
     "       uint x = uint(itile_texture.x & 7);\n"
+#endif
     "       itile_texture.x >>= 3;\n"
     "       uint texel = texelFetch(font, itile_texture, 0).x;\n"
     "       uint bit = (texel >> x) & uint(1);\n"
     "       if (bit == uint(0))\n"
-    "               gl_FragColor = bg;\n"
+    "               frag_color = bg;\n"
     "       else\n"
-    "               gl_FragColor = fg;\n";
+    "               frag_color = fg;\n";
 
 static const glamor_facet glamor_facet_poly_text = {
     .name = "poly_text",
@@ -288,7 +296,7 @@ glamor_poly_text(DrawablePtr drawable, GCPtr gc,
 
     glamor_make_current(glamor_priv);
 
-    prog = glamor_use_program_fill(pixmap, gc, &glamor_priv->poly_text_progs, &glamor_facet_poly_text);
+    prog = glamor_use_program_fill(drawable, gc, &glamor_priv->poly_text_progs, &glamor_facet_poly_text);
 
     if (!prog)
         goto bail;
@@ -346,24 +354,24 @@ static const glamor_facet glamor_facet_image_text = {
 };
 
 static Bool
-use_image_solid(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
+use_image_solid(DrawablePtr drawable, GCPtr gc, glamor_program *prog, void *arg)
 {
-    return glamor_set_solid(pixmap, gc, FALSE, prog->fg_uniform);
+    return glamor_set_solid(drawable, gc, FALSE, prog->fg_uniform);
 }
 
 static const glamor_facet glamor_facet_image_fill = {
     .name = "solid",
-    .fs_exec = "       gl_FragColor = fg;\n",
+    .fs_exec = "       frag_color = fg;\n",
     .locations = glamor_program_location_fg,
     .use = use_image_solid,
 };
 
 static Bool
-glamor_te_text_use(PixmapPtr pixmap, GCPtr gc, glamor_program *prog, void *arg)
+glamor_te_text_use(DrawablePtr drawable, GCPtr gc, glamor_program *prog, void *arg)
 {
-    if (!glamor_set_solid(pixmap, gc, FALSE, prog->fg_uniform))
+    if (!glamor_set_solid(drawable, gc, FALSE, prog->fg_uniform))
         return FALSE;
-    glamor_set_color(pixmap, gc->bgPixel, prog->bg_uniform);
+    glamor_set_color(drawable, gc->bgPixel, prog->bg_uniform);
     return TRUE;
 }
 
@@ -432,7 +440,6 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
         int c;
         RegionRec region;
         BoxRec box;
-        int off_x, off_y;
 
         /* Check planemask before drawing background to
          * bail early if it's not OK
@@ -442,8 +449,6 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
         for (c = 0; c < count; c++)
             if (charinfo[c])
                 width += charinfo[c]->metrics.characterWidth;
-
-        glamor_get_drawable_deltas(drawable, pixmap, &off_x, &off_y);
 
         if (width >= 0) {
             box.x1 = drawable->x + x;
@@ -456,12 +461,12 @@ glamor_image_text(DrawablePtr drawable, GCPtr gc,
         box.y2 = drawable->y + y + gc->font->info.fontDescent;
         RegionInit(&region, &box, 1);
         RegionIntersect(&region, &region, gc->pCompositeClip);
-        RegionTranslate(&region, off_x, off_y);
-        glamor_solid_boxes(pixmap, RegionRects(&region), RegionNumRects(&region), gc->bgPixel);
+        RegionTranslate(&region, -drawable->x, -drawable->y);
+        glamor_solid_boxes(drawable, RegionRects(&region), RegionNumRects(&region), gc->bgPixel);
         RegionUninit(&region);
     }
 
-    if (!glamor_use_program(pixmap, gc, prog, NULL))
+    if (!glamor_use_program(drawable, gc, prog, NULL))
         goto bail;
 
     (void) glamor_text(drawable, gc, glamor_font, prog,

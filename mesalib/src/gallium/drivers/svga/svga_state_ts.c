@@ -125,7 +125,7 @@ emit_hw_tcs(struct svga_context *svga, uint64_t dirty)
       if (ret != PIPE_OK)
          goto done;
 
-      svga->rebind.flags.tcs = FALSE;
+      svga->rebind.flags.tcs = false;
       svga->dirty |= SVGA_NEW_TCS_VARIANT;
       svga->state.hw_draw.tcs = variant;
    }
@@ -270,10 +270,10 @@ emit_hw_tes(struct svga_context *svga, uint64_t dirty)
        * passthough TCS in the emit_hw_tes() function.
        */
       get_passthrough_tcs(svga);
-      svga->tcs.passthrough = TRUE;
+      svga->tcs.passthrough = true;
    }
    else {
-      svga->tcs.passthrough = FALSE;
+      svga->tcs.passthrough = false;
    }
 
    make_tes_key(svga, &key);
@@ -293,7 +293,7 @@ emit_hw_tes(struct svga_context *svga, uint64_t dirty)
       if (ret != PIPE_OK)
          goto done;
 
-      svga->rebind.flags.tes = FALSE;
+      svga->rebind.flags.tes = false;
       svga->dirty |= SVGA_NEW_TES_VARIANT;
       svga->state.hw_draw.tes = variant;
    }

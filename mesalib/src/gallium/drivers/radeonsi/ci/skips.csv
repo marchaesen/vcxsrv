@@ -12,3 +12,6 @@ spec@!opengl 1.1@windowoverlap
 wgl@wgl-multi-context-single-window
 wgl@wgl-multi-window-single-context
 wgl@wgl-sanity
+
+# This one gets stuck sometimes
+glx@glx-visuals-stencil

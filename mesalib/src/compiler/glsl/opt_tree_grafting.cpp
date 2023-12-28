@@ -379,7 +379,7 @@ tree_grafting_basic_block(ir_instruction *bb_first,
        * any image layout qualifiers (including the image format) are set,
        * since we must not lose those.
        */
-      if (lhs_var->type->is_sampler() || lhs_var->type->is_image())
+      if (glsl_type_is_sampler(lhs_var->type) || glsl_type_is_image(lhs_var->type))
          continue;
 
       ir_variable_refcount_entry *entry = info->refs->get_variable_entry(lhs_var);

@@ -56,12 +56,12 @@ panvk_CreateRenderPass2(VkDevice _device,
 
    pass->attachment_count = pCreateInfo->attachmentCount;
    pass->subpass_count = pCreateInfo->subpassCount;
-   pass->attachments = (void *) pass + attachments_offset;
+   pass->attachments = (void *)pass + attachments_offset;
 
    vk_foreach_struct_const(ext, pCreateInfo->pNext) {
       switch (ext->sType) {
       case VK_STRUCTURE_TYPE_RENDER_PASS_MULTIVIEW_CREATE_INFO:
-         multiview_info = (VkRenderPassMultiviewCreateInfo *) ext;
+         multiview_info = (VkRenderPassMultiviewCreateInfo *)ext;
          break;
       default:
          break;
@@ -71,7 +71,8 @@ panvk_CreateRenderPass2(VkDevice _device,
    for (uint32_t i = 0; i < pCreateInfo->attachmentCount; i++) {
       struct panvk_render_pass_attachment *att = &pass->attachments[i];
 
-      att->format = vk_format_to_pipe_format(pCreateInfo->pAttachments[i].format);
+      att->format =
+         vk_format_to_pipe_format(pCreateInfo->pAttachments[i].format);
       att->samples = pCreateInfo->pAttachments[i].samples;
       att->load_op = pCreateInfo->pAttachments[i].loadOp;
       att->stencil_load_op = pCreateInfo->pAttachments[i].stencilLoadOp;
@@ -94,11 +95,10 @@ panvk_CreateRenderPass2(VkDevice _device,
    }
 
    if (subpass_attachment_count) {
-      pass->subpass_attachments =
-         vk_alloc2(&device->vk.alloc, pAllocator,
-                   subpass_attachment_count *
-                   sizeof(struct panvk_subpass_attachment),
-                   8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      pass->subpass_attachments = vk_alloc2(
+         &device->vk.alloc, pAllocator,
+         subpass_attachment_count * sizeof(struct panvk_subpass_attachment), 8,
+         VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (pass->subpass_attachments == NULL) {
          vk_object_free(&device->vk, pAllocator, pass);
          return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
@@ -120,7 +120,7 @@ panvk_CreateRenderPass2(VkDevice _device,
          p += desc->inputAttachmentCount;
 
          for (uint32_t j = 0; j < desc->inputAttachmentCount; j++) {
-            subpass->input_attachments[j] = (struct panvk_subpass_attachment) {
+            subpass->input_attachments[j] = (struct panvk_subpass_attachment){
                .idx = desc->pInputAttachments[j].attachment,
                .layout = desc->pInputAttachments[j].layout,
             };
@@ -137,7 +137,7 @@ panvk_CreateRenderPass2(VkDevice _device,
          for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
             uint32_t idx = desc->pColorAttachments[j].attachment;
 
-            subpass->color_attachments[j] = (struct panvk_subpass_attachment) {
+            subpass->color_attachments[j] = (struct panvk_subpass_attachment){
                .idx = idx,
                .layout = desc->pColorAttachments[j].layout,
             };
@@ -146,9 +146,11 @@ panvk_CreateRenderPass2(VkDevice _device,
                pass->attachments[idx].view_mask |= subpass->view_mask;
                if (pass->attachments[idx].first_used_in_subpass == ~0) {
                   pass->attachments[idx].first_used_in_subpass = i;
-                  if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_CLEAR)
+                  if (pass->attachments[idx].load_op ==
+                      VK_ATTACHMENT_LOAD_OP_CLEAR)
                      subpass->color_attachments[j].clear = true;
-                  else if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_LOAD)
+                  else if (pass->attachments[idx].load_op ==
+                           VK_ATTACHMENT_LOAD_OP_LOAD)
                      subpass->color_attachments[j].preload = true;
                } else {
                   subpass->color_attachments[j].preload = true;
@@ -164,7 +166,7 @@ panvk_CreateRenderPass2(VkDevice _device,
          for (uint32_t j = 0; j < desc->colorAttachmentCount; j++) {
             uint32_t idx = desc->pResolveAttachments[j].attachment;
 
-            subpass->resolve_attachments[j] = (struct panvk_subpass_attachment) {
+            subpass->resolve_attachments[j] = (struct panvk_subpass_attachment){
                .idx = idx,
                .layout = desc->pResolveAttachments[j].layout,
             };
@@ -174,9 +176,9 @@ panvk_CreateRenderPass2(VkDevice _device,
          }
       }
 
-      unsigned idx = desc->pDepthStencilAttachment ?
-                     desc->pDepthStencilAttachment->attachment :
-                     VK_ATTACHMENT_UNUSED;
+      unsigned idx = desc->pDepthStencilAttachment
+                        ? desc->pDepthStencilAttachment->attachment
+                        : VK_ATTACHMENT_UNUSED;
       subpass->zs_attachment.idx = idx;
       if (idx != VK_ATTACHMENT_UNUSED) {
          subpass->zs_attachment.layout = desc->pDepthStencilAttachment->layout;
@@ -186,7 +188,8 @@ panvk_CreateRenderPass2(VkDevice _device,
             pass->attachments[idx].first_used_in_subpass = i;
             if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_CLEAR)
                subpass->zs_attachment.clear = true;
-            else if (pass->attachments[idx].load_op == VK_ATTACHMENT_LOAD_OP_LOAD)
+            else if (pass->attachments[idx].load_op ==
+                     VK_ATTACHMENT_LOAD_OP_LOAD)
                subpass->zs_attachment.preload = true;
          } else {
             subpass->zs_attachment.preload = true;
@@ -199,8 +202,7 @@ panvk_CreateRenderPass2(VkDevice _device,
 }
 
 void
-panvk_DestroyRenderPass(VkDevice _device,
-                        VkRenderPass _pass,
+panvk_DestroyRenderPass(VkDevice _device, VkRenderPass _pass,
                         const VkAllocationCallbacks *pAllocator)
 {
    VK_FROM_HANDLE(panvk_device, device, _device);
@@ -214,10 +216,9 @@ panvk_DestroyRenderPass(VkDevice _device,
 }
 
 void
-panvk_GetRenderAreaGranularity(VkDevice _device,
-                               VkRenderPass renderPass,
+panvk_GetRenderAreaGranularity(VkDevice _device, VkRenderPass renderPass,
                                VkExtent2D *pGranularity)
 {
    /* TODO: Return the actual tile size for the render pass? */
-   *pGranularity = (VkExtent2D) { 1, 1 };
+   *pGranularity = (VkExtent2D){1, 1};
 }

@@ -36,10 +36,10 @@ if host_machine.system() == 'linux'
         'linux/lnx_bell.c',
         'linux/lnx_init.c',
         'linux/lnx_kmod.c',
-        'linux/lnx_platform.c',
         'linux/lnx_video.c',
         'misc/SlowBcopy.c',
         'shared/VTsw_usl.c',
+        'shared/drm_platform.c',
     ]
     if build_agp
         srcs_xorg_os_support += 'linux/lnx_agp.c'
@@ -96,6 +96,7 @@ elif host_machine.system().endswith('bsd')
         'bsd/bsd_VTsw.c',
         'bsd/bsd_bell.c',
         'bsd/bsd_init.c',
+        'shared/drm_platform.c',
 	'shared/pm_noop.c'
     ]
 
@@ -111,9 +112,9 @@ elif host_machine.system().endswith('bsd')
         if host_machine.system() == 'netbsd' or host_machine.system() == 'openbsd'
             os_dep += cc.find_library('i386')
         endif
-    elif host_machine.cpu_family() == 'arm'
+    elif host_machine.cpu_family() == 'arm' or host_machine.cpu_family() == 'aarch64'
         srcs_xorg_os_support += 'bsd/arm_video.c'
-    elif host_machine.cpu_family() == 'powerpc'
+    elif host_machine.cpu_family() == 'ppc' or host_machine.cpu_family() == 'ppc64'
         srcs_xorg_os_support += 'bsd/ppc_video.c'
     elif host_machine.cpu_family() == 'sparc64'
         srcs_xorg_os_support += 'bsd/sparc64_video.c'

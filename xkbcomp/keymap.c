@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -74,7 +74,7 @@ CompileKeymap(XkbFile * file, XkbFileInfo * result, unsigned merge)
         legal = XkmKeymapLegal;
         break;
     default:
-        ERROR1("Cannot compile %s alone into an XKM file\n",
+        ERROR("Cannot compile %s alone into an XKM file\n",
                XkbConfigText(mainType, XkbMessage));
         return False;
     }
@@ -85,17 +85,17 @@ CompileKeymap(XkbFile * file, XkbFileInfo * result, unsigned merge)
     while ((file) && (ok))
     {
         file->topName = mainName;
-        if ((have & (1 << file->type)) != 0)
+        if ((have & (1U << file->type)) != 0)
         {
-            ERROR2("More than one %s section in a %s file\n",
+            ERROR("More than one %s section in a %s file\n",
                    XkbConfigText(file->type, XkbMessage),
                    XkbConfigText(mainType, XkbMessage));
             ACTION("All sections after the first ignored\n");
             ok = False;
         }
-        else if ((1 << file->type) & (~legal))
+        else if ((1U << file->type) & (~legal))
         {
-            ERROR2("Cannot define %s in a %s file\n",
+            ERROR("Cannot define %s in a %s file\n",
                    XkbConfigText(file->type, XkbMessage),
                    XkbConfigText(mainType, XkbMessage));
             ok = False;
@@ -106,7 +106,7 @@ CompileKeymap(XkbFile * file, XkbFileInfo * result, unsigned merge)
             case XkmSemanticsFile:
             case XkmLayoutFile:
             case XkmKeymapFile:
-                WSGO2("Illegal %s configuration in a %s file\n",
+                WSGO("Illegal %s configuration in a %s file\n",
                       XkbConfigText(file->type, XkbMessage),
                       XkbConfigText(mainType, XkbMessage));
                 ACTION("Ignored\n");
@@ -130,15 +130,15 @@ CompileKeymap(XkbFile * file, XkbFileInfo * result, unsigned merge)
                 break;
             case XkmVirtualModsIndex:
             case XkmIndicatorsIndex:
-                WSGO1("Found an isolated %s section\n",
+                WSGO("Found an isolated %s section\n",
                       XkbConfigText(file->type, XkbMessage));
                 break;
             default:
-                WSGO1("Unknown file type %d\n", file->type);
+                WSGO("Unknown file type %d\n", file->type);
                 break;
             }
         if (ok)
-            have |= (1 << file->type);
+            have |= (1U << file->type);
         file = (XkbFile *) file->common.next;
     }
     /* compile the sections we have in the file one-by-one, or fail. */
@@ -161,20 +161,20 @@ CompileKeymap(XkbFile * file, XkbFileInfo * result, unsigned merge)
     result->defined = have;
     if (required & (~have))
     {
-        register int i, bit;
+        int i, bit;
         unsigned missing;
         missing = required & (~have);
         for (i = 0, bit = 1; missing != 0; i++, bit <<= 1)
         {
             if (missing & bit)
             {
-                ERROR2("Missing %s section in a %s file\n",
+                ERROR("Missing %s section in a %s file\n",
                        XkbConfigText(i, XkbMessage),
                        XkbConfigText(mainType, XkbMessage));
                 missing &= ~bit;
             }
         }
-        ACTION1("Description of %s not compiled\n",
+        ACTION("Description of %s not compiled\n",
                 XkbConfigText(mainType, XkbMessage));
         ok = False;
     }

@@ -605,27 +605,35 @@ _glamor_gradient_convert_trans_matrix(PictTransform *from, float to[3][3],
      * T_s = | w*t21/h  t22      t23/h|
      *       | w*t31    h*t32    t33  |
      *       --                      --
+     *
+     * Because GLES2 cannot do trasposed mat by spec, we did transposing inside this function
+     * already, and matrix becoming look like this:
+     *       --                      --
+     *       | t11      w*t21/h  t31*w|
+     * T_s = | h*t12/w  t22      t32*h|
+     *       | t13/w    t23/h    t33  |
+     *       --                      --
      */
 
     to[0][0] = (float) pixman_fixed_to_double(from->matrix[0][0]);
-    to[0][1] = (float) pixman_fixed_to_double(from->matrix[0][1])
+    to[1][0] = (float) pixman_fixed_to_double(from->matrix[0][1])
         * (normalize ? (((float) height) / ((float) width)) : 1.0);
-    to[0][2] = (float) pixman_fixed_to_double(from->matrix[0][2])
+    to[2][0] = (float) pixman_fixed_to_double(from->matrix[0][2])
         / (normalize ? ((float) width) : 1.0);
 
-    to[1][0] = (float) pixman_fixed_to_double(from->matrix[1][0])
+    to[0][1] = (float) pixman_fixed_to_double(from->matrix[1][0])
         * (normalize ? (((float) width) / ((float) height)) : 1.0);
     to[1][1] = (float) pixman_fixed_to_double(from->matrix[1][1]);
-    to[1][2] = (float) pixman_fixed_to_double(from->matrix[1][2])
+    to[2][1] = (float) pixman_fixed_to_double(from->matrix[1][2])
         / (normalize ? ((float) height) : 1.0);
 
-    to[2][0] = (float) pixman_fixed_to_double(from->matrix[2][0])
+    to[0][2] = (float) pixman_fixed_to_double(from->matrix[2][0])
         * (normalize ? ((float) width) : 1.0);
-    to[2][1] = (float) pixman_fixed_to_double(from->matrix[2][1])
+    to[1][2] = (float) pixman_fixed_to_double(from->matrix[2][1])
         * (normalize ? ((float) height) : 1.0);
     to[2][2] = (float) pixman_fixed_to_double(from->matrix[2][2]);
 
-    DEBUGF("the transform matrix is:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n",
+    DEBUGF("the transposed transform matrix is:\n%f\t%f\t%f\n%f\t%f\t%f\n%f\t%f\t%f\n",
            to[0][0], to[0][1], to[0][2],
            to[1][0], to[1][1], to[1][2], to[2][0], to[2][1], to[2][2]);
 }
@@ -950,11 +958,12 @@ glamor_generate_radial_gradient_picture(ScreenPtr screen,
         _glamor_gradient_convert_trans_matrix(src_picture->transform,
                                               transform_mat, width, height, 0);
         glUniformMatrix3fv(transform_mat_uniform_location,
-                           1, 1, &transform_mat[0][0]);
+                           1, GL_FALSE, &transform_mat[0][0]);
     }
     else {
+        /* identity matrix dont need to be transposed */
         glUniformMatrix3fv(transform_mat_uniform_location,
-                           1, 1, &identity_mat[0][0]);
+                           1, GL_FALSE, &identity_mat[0][0]);
     }
 
     if (!_glamor_gradient_set_pixmap_destination
@@ -1266,11 +1275,12 @@ glamor_generate_linear_gradient_picture(ScreenPtr screen,
         _glamor_gradient_convert_trans_matrix(src_picture->transform,
                                               transform_mat, width, height, 1);
         glUniformMatrix3fv(transform_mat_uniform_location,
-                           1, 1, &transform_mat[0][0]);
+                           1, GL_FALSE, &transform_mat[0][0]);
     }
     else {
+        /* identity matrix dont need to be transposed */
         glUniformMatrix3fv(transform_mat_uniform_location,
-                           1, 1, &identity_mat[0][0]);
+                           1, GL_FALSE, &identity_mat[0][0]);
     }
 
     if (!_glamor_gradient_set_pixmap_destination

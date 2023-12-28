@@ -33,7 +33,7 @@ pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = xdmcp.pc
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
-EXTRA_DIST = autogen.sh Wraphelp.c Wraphelp.README.crypto
+EXTRA_DIST = autogen.sh Wraphelp.c Wraphelp.README.crypto README.md
 
 if LINT
 ALL_LINT_FLAGS=$(LINT_FLAGS) $(DEFS) $(DEFAULT_INCLUDES) $(INCLUDES) \

@@ -62,8 +62,8 @@ default xkb_geometry "nwp5461" {
 	    top= 1;
 	    left= 37;
 	    key.shape="FKEY";
-	    keys {    <FK01>, <FK02>, <FK03>, <FK04>, <FK05>, 
-		    { <FK06>, 5 }, <FK07>, <FK08>, <FK09>, <FK10>, 
+	    keys {    <FK01>, <FK02>, <FK03>, <FK04>, <FK05>,
+		    { <FK06>, 5 }, <FK07>, <FK08>, <FK09>, <FK10>,
 		    { <FK11>, 5 }, <FK12>
 	    };
 	};
@@ -73,34 +73,34 @@ default xkb_geometry "nwp5461" {
 	top= 80;
 	row {
 	    top= 1;
-	    keys { { <ESC>, color="grey20" } , 
+	    keys { { <ESC>, color="grey20" } ,
 		   <AE01>, <AE02>, <AE03>, <AE04>,
-		   <AE05>, <AE06>, <AE07>, <AE08>, 
-		   <AE09>, <AE10>, <AE11>, <AE12>, 
+		   <AE05>, <AE06>, <AE07>, <AE08>,
+		   <AE09>, <AE10>, <AE11>, <AE12>,
 		   <BKSL>, { <BKSP>, "BKSP", color="grey20" }
 	    };
 	};
 	row {
 	    top= 20;
 	    keys { { <TAB>, "TABK", color="grey20" },
-		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>, 
-		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>, 
-		   <AD11>, <AD12>, { <DELE>, color="grey20" }, 
+		   <AD01>, <AD02>, <AD03>, <AD04>, <AD05>,
+		   <AD06>, <AD07>, <AD08>, <AD09>, <AD10>,
+		   <AD11>, <AD12>, { <DELE>, color="grey20" },
 		   { <RTRN>, "RTRN", -14, color="grey20" }
 	    };
 	};
 	row {
 	    top= 39;
 	    keys { { <LCTL>, "MODK", color="grey20" },
-		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>, 
-		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>, 
+		   <AC01>, <AC02>, <AC03>, <AC04>, <AC05>,
+		   <AC06>, <AC07>, <AC08>, <AC09>, <AC10>,
 		   <AC11>, <TLDE>
 	    };
 	};
 	row {
 	    top= 58;
 	    keys { { <LFSH>, "SHFT", color="grey20" },
-		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>, 
+		    <AB01>, <AB02>, <AB03>, <AB04>, <AB05>,
 		    <AB06>, <AB07>, <AB08>, <AB09>, <AB10>, <AB11>,
 		    { <RTSH>, "SHFT", color="grey20" }
 	    };
@@ -113,7 +113,7 @@ default xkb_geometry "nwp5461" {
 		   { <STOP>, "STOP", color="white" },
 		   { <SPCE>, "SPCE", color="white" },
 		   { <CUT>, "CUT", color="white" },
-		   { <UNK0>, "UNK" }, { <UNK1>, "UNK" }, 
+		   { <UNK0>, "UNK" }, { <UNK1>, "UNK" },
 		   { <EXEC>, "EXEC" }
 	    };
 	};

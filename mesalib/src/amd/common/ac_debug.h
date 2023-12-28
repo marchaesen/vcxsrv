@@ -1,30 +1,14 @@
 /*
  * Copyright 2015 Advanced Micro Devices, Inc.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef AC_DEBUG_H
 #define AC_DEBUG_H
 
 #include "amd_family.h"
+#include "ac_gpu_info.h"
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -39,6 +23,8 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct si_reg;
 
 struct ac_wave_info {
    unsigned se; /* shader engine */
@@ -56,21 +42,34 @@ struct ac_wave_info {
 
 typedef void *(*ac_debug_addr_callback)(void *data, uint64_t addr);
 
-const char *ac_get_register_name(enum amd_gfx_level gfx_level, unsigned offset);
-void ac_dump_reg(FILE *file, enum amd_gfx_level gfx_level, unsigned offset, uint32_t value,
-                 uint32_t field_mask);
+/* ac_debug.c */
+const struct si_reg *ac_find_register(enum amd_gfx_level gfx_level, enum radeon_family family,
+                                      unsigned offset);
+const char *ac_get_register_name(enum amd_gfx_level gfx_level, enum radeon_family family,
+                                 unsigned offset);
+bool ac_register_exists(enum amd_gfx_level gfx_level, enum radeon_family family,
+                        unsigned offset);
+bool ac_vm_fault_occurred(enum amd_gfx_level gfx_level, uint64_t *old_dmesg_timestamp,
+                         uint64_t *out_addr);
+unsigned ac_get_wave_info(enum amd_gfx_level gfx_level, const struct radeon_info *info,
+                          struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP]);
+void ac_print_gpuvm_fault_status(FILE *output, enum amd_gfx_level gfx_level,
+                                 uint32_t status);
+
+/* ac_gather_context_rolls.c */
+void ac_gather_context_rolls(FILE *f, uint32_t **ibs, uint32_t *ib_dw_sizes, unsigned num_ibs,
+                             const struct radeon_info *info);
+
+/* ac_parse_ib.c */
+void ac_dump_reg(FILE *file, enum amd_gfx_level gfx_level, enum radeon_family family,
+                 unsigned offset, uint32_t value, uint32_t field_mask);
 void ac_parse_ib_chunk(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids,
                        unsigned trace_id_count, enum amd_gfx_level gfx_level,
+                       enum radeon_family family, enum amd_ip_type ip_type,
                        ac_debug_addr_callback addr_callback, void *addr_callback_data);
 void ac_parse_ib(FILE *f, uint32_t *ib, int num_dw, const int *trace_ids, unsigned trace_id_count,
-                 const char *name, enum amd_gfx_level gfx_level, ac_debug_addr_callback addr_callback,
-                 void *addr_callback_data);
-
-bool ac_vm_fault_occured(enum amd_gfx_level gfx_level, uint64_t *old_dmesg_timestamp,
-                         uint64_t *out_addr);
-
-unsigned ac_get_wave_info(enum amd_gfx_level gfx_level,
-                          struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP]);
+                 const char *name, enum amd_gfx_level gfx_level, enum radeon_family family,
+                 enum amd_ip_type ip_type, ac_debug_addr_callback addr_callback, void *addr_callback_data);
 
 #ifdef __cplusplus
 }

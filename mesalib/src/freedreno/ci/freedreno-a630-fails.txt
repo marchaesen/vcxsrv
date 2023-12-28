@@ -1,11 +1,7 @@
-# Test bug, using GLSL 4.20 on a 3.3 context.
-# Broken in VK-GL-CTS e5c45899ed7e90fb616ccd1d3c66e6eded120684
-KHR-GL33.cull_distance.coverage,Fail
+KHR-GL46.gpu_shader_fp64.fp64.max_uniform_components,Fail
 
-# Lots of errors like "[279] Check failed. Received: [3,0,0,2] instead of: [5,0,0,2]"
-KHR-GLES31.core.geometry_shader.layered_framebuffer.depth_support,Fail
-
-KHR-GLES31.core.geometry_shader.layered_framebuffer.stencil_support,Fail
+KHR-GL46.shader_image_load_store.basic-allFormats-store,Fail
+KHR-GL46.shading_language_420pack.binding_images,Fail
 
 # "Invalid value returned: expected:[1, 1, 1, 1] retrieved: [0, 0, 0, 0
 #  Invalid rendering result at esextcTessellationShaderBarrier.cpp:504"
@@ -13,23 +9,16 @@ KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guar
 
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/5582
 KHR-GLES31.core.texture_cube_map_array.color_depth_attachments,Fail
+KHR-GL46.texture_cube_map_array.color_depth_attachments,Fail
 
-# rendering errors in ~4x4 blocks around the bottom side of the diagonal for the quad
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.colorburn,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.colordodge,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.darken,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.difference,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.exclusion,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.hardlight,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_color,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_hue,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_luminosity,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_saturation,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.lighten,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.multiply,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.overlay,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.screen,Fail
-bypass-dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail
+#
+# new fails with gl45:
+#
+
+# MESA: warning: sample averaging on fallback z24s8 blit when we shouldn't.
+KHR-GL46.direct_state_access.renderbuffers_storage_multisample,Fail
+
+KHR-GL46.multi_bind.dispatch_bind_image_textures,Fail
 
 # Fails when TU_DEBUG=forcebin is set
 gmem-dEQP-VK.spirv_assembly.instruction.graphics.variable_pointers.graphics.writes_two_buffers_geom,Fail
@@ -47,6 +36,8 @@ glx@glx_ext_import_context@imported context has same context id,Fail
 glx@glx_ext_import_context@make current- multi process,Fail
 glx@glx_ext_import_context@make current- single process,Fail
 glx@glx_ext_import_context@query context info,Fail
+glx@glx-make-current,Fail
+glx@glx-multi-window-single-context,Fail
 glx@glx-swap-pixmap-bad,Fail
 glx@glx-visuals-depth -pixmap,Crash
 glx@glx-visuals-stencil -pixmap,Crash
@@ -63,32 +54,22 @@ shaders@point-vertex-id gl_vertexid,Crash
 shaders@point-vertex-id gl_vertexid divisor,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Crash
+spec@!opengl 2.0@gl-2.0-edgeflag,Crash
+spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Crash
+spec@!opengl 1.0@gl-1.0-edgeflag,Crash
+spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
 
-spec@arb_compute_shader@execution@border-color,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT32F NPOT,Fail
 
-# "0 primitives generated:
-#  Incorrect number of prims generated.
-#  Found 0, expected 4"
-spec@arb_direct_state_access@transformfeedback-bufferbase,Fail
-spec@arb_direct_state_access@transformfeedback-bufferbase@general test,Fail
-spec@arb_direct_state_access@transformfeedback-bufferrange,Fail
-spec@arb_direct_state_access@transformfeedback-bufferrange@general test,Fail
-
 spec@arb_occlusion_query@occlusion_query_order,Fail
 spec@arb_point_sprite@arb_point_sprite-interactions 1.0,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2[1][0]' on GL_PROGRAM_INPUT,Fail
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex@'vs_input2' on GL_PROGRAM_INPUT,Fail
-spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceiv,Fail
-spec@arb_program_interface_query@arb_program_interface_query-resource-query,Fail
-spec@arb_program_interface_query@arb_program_interface_query-resource-query@GL_ATOMIC_COUNTER_BUFFER,Fail
-spec@arb_program_interface_query@arb_program_interface_query-resource-query@GL_BUFFER_VARIABLE,Fail
-spec@arb_program_interface_query@arb_program_interface_query-resource-query@GL_SHADER_STORAGE_BLOCK,Fail
 spec@arb_sample_shading@samplemask 2@0.500000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 2@1.000000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 2 all@0.500000 mask_in_one,Fail
@@ -112,7 +93,12 @@ spec@arb_sample_shading@samplemask 4,Fail
 spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
 spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
 
-spec@arb_shader_image_load_store@execution@image-array-out-of-bounds-access-load,Crash
+# Same results w/ zink-on-tu as with freedreno:
+spec@arb_post_depth_coverage@arb_post_depth_coverage-multisampling,Fail
+spec@arb_sample_shading@samplemask 2 all@noms partition,Fail
+spec@arb_sample_shading@samplemask 2@noms partition,Fail
+spec@arb_sample_shading@samplemask 4 all@noms partition,Fail
+spec@arb_sample_shading@samplemask 4@noms partition,Fail
 
 # These 3 fails started to happen after piglit uprev with commit
 # 0ef03f824d1833a853d1a20b4be121089bb9246c
@@ -120,61 +106,17 @@ spec@arb_shader_image_load_store@qualifiers,Fail
 spec@arb_shader_image_load_store@qualifiers@r8/permissive layout qualifiers/permissive access qualifiers/permissive binding test,Fail
 spec@arb_shader_image_load_store@qualifiers@r8/strict layout qualifiers/permissive access qualifiers/permissive binding test,Fail
 
-spec@arb_shader_storage_buffer_object@array-ssbo-auto-binding,Fail
-spec@arb_shader_storage_buffer_object@linker@instance-matching-shader-storage-blocks-member-array-size-mismatch,Fail
-spec@arb_tessellation_shader@execution@gs-primitiveid-instanced,Fail
-
-# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
-# "Failed to link:
-#  error: Too many tessellation control shader atomic counters"
-spec@arb_tessellation_shader@execution@invocation-counting-even,Fail
-spec@arb_tessellation_shader@execution@invocation-counting-odd,Fail
-
-# "ir3_nir_lower_tess.c:585: lower_tess_ctrl_block: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed."
-spec@arb_tessellation_shader@execution@patch-partial-write,Crash
-
-# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
-# "Failed to link:
-#  error: Too many tessellation control shader atomic counters"
-spec@arb_tessellation_shader@execution@tcs-output-unmatched,Fail
-spec@arb_tessellation_shader@execution@tcs-primitiveid,Fail
-
-spec@arb_tessellation_shader@execution@tes-no-tcs-primitiveid-instanced,Fail
-
-# Test bug: https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/601#note_1154259
-# "Failed to link:
-#  error: Too many tessellation control shader atomic counters"
-spec@arb_tessellation_shader@execution@tes-primitiveid,Fail
-
-spec@arb_tessellation_shader@execution@tes-read-texture,Fail
-spec@arb_tessellation_shader@execution@tess_with_geometry,Fail
-spec@arb_tessellation_shader@execution@trivial-tess-gs,Fail
-spec@arb_tessellation_shader@execution@trivial-tess-gs_no-gs-inputs,Fail
-spec@arb_tessellation_shader@execution@trivial-tess-gs_no-tes-inputs,Fail
-
 # ir3_nir_lower_tess.c:251: lower_block_to_explicit_output: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed.
 spec@arb_tessellation_shader@execution@tcs-input-read-mat,Crash
 
-# "ir3_nir_lower_tess.c:585: lower_tess_ctrl_block: Assertion `util_is_power_of_two_nonzero(nir_intrinsic_write_mask(intr) + 1)' failed."
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-index-wr,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tcs-patch-vec4-swiz-index-wr,Crash
-spec@arb_tessellation_shader@execution@vertex-partial-write,Crash
-
-
-spec@arb_tessellation_shader@execution@vs-tes-max-in-out-components,Fail
-spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-quads,Fail
-spec@arb_tessellation_shader@execution@vs-tes-tessinner-tessouter-inputs-tris,Fail
-spec@arb_tessellation_shader@execution@vs-tes-vertex,Fail
-
 spec@arb_texture_rectangle@1-1-linear-texture,Fail
 
-spec@arb_timer_query@timestamp-get,Fail
-
-# "Expected 1 primitives written, got 0"
-# Note: no FS, rasterizer discard enabled.
-spec@arb_transform_feedback3@arb_transform_feedback3-ext_interleaved_two_bufs_vs,Fail
-
 spec@arb_vertex_type_2_10_10_10_rev@attrib-p-type-size-match,Fail
+
+# fails on gen1 (a618/a630) with both fd and zink, but passes on gen4..
+# maybe gen1 sqe doesn't handle the count==0 case?
+spec@arb_indirect_parameters@tf-count-arrays,Fail
+spec@arb_indirect_parameters@tf-count-elements,Fail
 
 spec@egl 1.4@eglterminate then unbind context,Fail
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
@@ -223,8 +165,6 @@ spec@ext_external_objects@vk-semaphores-2,Fail
 spec@ext_external_objects@vk-stencil-display,Fail
 spec@ext_external_objects@vk-stencil-display@D24S8,Fail
 
-spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 2,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-dual-src-blend 4,Fail
 spec@ext_framebuffer_multisample@alpha-to-coverage-no-draw-buffer-zero 2,Fail
@@ -268,11 +208,6 @@ spec@ext_texture_snorm@fbo-generatemipmap-formats@GL_LUMINANCE16_SNORM NPOT,Fail
 
 spec@ext_texture_snorm@multisample-formats 2 gl_ext_texture_snorm,Fail
 spec@ext_texture_snorm@multisample-formats 4 gl_ext_texture_snorm,Fail
-spec@ext_transform_feedback@geometry-shaders-basic,Fail
-spec@ext_transform_feedback@intervening-read prims_generated,Fail
-spec@ext_transform_feedback@intervening-read prims_generated use_gs,Fail
-spec@ext_transform_feedback@overflow-edge-cases,Fail
-spec@ext_transform_feedback@overflow-edge-cases use_gs,Fail
 spec@ext_transform_feedback@structs struct-array-elem run,Fail
 spec@ext_transform_feedback@structs struct-array-elem run interface,Fail
 spec@ext_transform_feedback@tessellation triangle_fan flat_first,Fail
@@ -283,44 +218,6 @@ spec@glsl-1.30@execution@texelfetch fs sampler3d 98x1x9-98x129x9,Fail
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array-2,Crash
 spec@glsl-1.50@execution@compatibility@vs-gs-texcoord-array,Crash
 
-spec@glsl-1.50@execution@geometry@end-primitive 0,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_loop ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_loop other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_lines_adjacency ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_lines_adjacency other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_lines ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_lines other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_strip_adjacency ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_strip_adjacency other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_strip ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_line_strip other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_points ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_points other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_fan ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_fan other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangles_adjacency ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangles_adjacency other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangles ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangles other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_strip_adjacency ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_strip_adjacency other,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_strip ffs,Fail
-spec@glsl-1.50@execution@geometry@primitive-id-restart gl_triangle_strip other,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_line_loop,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_lines_adjacency,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_lines,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_line_strip_adjacency,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_line_strip,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_points,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_triangle_fan,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_triangles_adjacency,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_triangles,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_triangle_strip_adjacency,Fail
-spec@glsl-1.50@execution@geometry@primitive-types gl_triangle_strip,Fail
-spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs,Fail
-spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency other,Fail
-spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip ffs,Fail
-spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip other,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-quad-strip,Fail
 
@@ -359,16 +256,8 @@ spec@khr_texture_compression_astc@sliced-3d-miptree-gl hdr@HDR Profile,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3@oes_egl_image_external_essl3_imageStore,Fail
 spec@oes_egl_image_external_essl3@oes_egl_image_external_essl3,Fail
 
-# "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
-#  gl-2.0-edgeflag: ../src/freedreno/ir3/ir3_context.c:411: ir3_context_error: Assertion `!""' failed."
-spec@!opengl 1.0@gl-1.0-edgeflag,Crash
-spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
-
 # "Failure with Polygon Stipple set to fail mode."
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
-
-spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
-spec@!opengl 1.0@gl-1.0-spot-light,Fail
 
 # crash in tgsi exec doing st_freedback_draw_vbo().
 spec@!opengl 1.0@rasterpos,Crash
@@ -396,16 +285,10 @@ spec@!opengl 1.1@polygon-mode-offset@config 6: Expected white pixel on top edge,
 spec@!opengl 1.1@polygon-mode-offset,Fail
 spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 
-# "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
-#  gl-2.0-edgeflag: ../src/freedreno/ir3/ir3_context.c:411: ir3_context_error: Assertion `!""' failed."
-spec@!opengl 2.0@gl-2.0-edgeflag,Crash
-spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Crash
 
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
 spec@!opengl 2.1@polygon-stipple-fs,Fail
-spec@!opengl 3.0@clearbuffer-depth-cs-probe,Timeout
-spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-first,Fail
@@ -416,61 +299,330 @@ spec@!opengl 1.0@depth-clear-precision-check,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24_stencil8,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
-spec@arb_texture_buffer_object@texture-buffer-size-clamp,Fail
 
-bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint.compatibility_depth_zero_stencil_zero_testing_depth,Fail
-bypass-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_depth,Fail
+# timestamp/time-elapsed qbo tests fail due to lack of way to convert
+# from ticks to ns on the CP (ie. we'd need to spin up a compute shader
+# or something equally drastic)
+spec@arb_query_buffer_object@qbo,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-ASYNC_CPU_READ_AFTER-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIMESTAMP-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-ASYNC_CPU_READ_AFTER-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TIME_ELAPSED-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT64_ARB,Fail
 
-# https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/3759
-# deqp-vk: ../src/freedreno/vulkan/tu_pipeline.c:3894: tu_pipeline_builder_init_graphics: Assertion `subpass->color_count == 0 || !create_info->pColorBlendState || subpass->color_count == create_info->pColorBlendState->attachmentCount' failed
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-gmem-dEQP-VK.pipeline.monolithic.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-gmem-dEQP-VK.pipeline.pipeline_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more0,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more1,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments4_more3,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more0,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more1,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments5_more3,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more0,Crash
-gmem-dEQP-VK.pipeline.fast_linked_library.color_write_enable_maxa.cwe_after_bind.attachments6_more1,Crash
+# These seem to fail with zink as well (and on various other drivers
+# from what I can tell from expectations files, so maybe test issue?)
+spec@arb_query_buffer_object@coherency,Fail
+spec@arb_query_buffer_object@coherency@index-buffer-GL_TESS_CONTROL_SHADER_PATCHES,Fail
+spec@arb_query_buffer_object@coherency@indirect-dispatch-GL_TESS_CONTROL_SHADER_PATCHES,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-GL_TESS_CONTROL_SHADER_PATCHES,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_COMPUTE_SHADER_INVOCATIONS,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_INVOCATIONS,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_PRIMITIVES_EMITTED,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_CONTROL_SHADER_PATCHES,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_EVALUATION_SHADER_INVOCATIONS,Fail
+spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_AFTER-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-ASYNC_CPU_READ_BEFORE-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC-GL_UNSIGNED_INT64_ARB,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT,Fail
+spec@arb_query_buffer_object@qbo@query-GL_TESS_CONTROL_SHADER_PATCHES-SYNC_CPU_READ_AFTER_CACHE_TEST-GL_UNSIGNED_INT64_ARB,Fail
 
-# https://gitlab.freedesktop.org/mesa/mesa/-/issues/7152
-spec@ext_transform_feedback@builtin-varyings gl_culldistance,Fail
+spec@!opengl 1.1@line-smooth-stipple,Fail
+
+
+spec@arb_vertex_attrib_64bit@execution@unused-sub-dvec4-01,Crash
+spec@arb_vertex_attrib_64bit@execution@unused-sub-dvec4-02,Crash
+
+dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d32_sfloat_s8_uint_separate_layouts.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
+
+dEQP-VK.binding_model.descriptor_buffer.basic.limits,Fail
+gmem-dEQP-VK.binding_model.descriptor_buffer.basic.limits,Fail
+
+# New CTS failures in 1.3.6.3
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdxfine.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdy.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdycoarse.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidth.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec4_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.float_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.float_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec2_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec2_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec3_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec3_mediump,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec4_highp,Crash
+dEQP-VK.glsl.derivate.fwidthfine.dynamic_switch.vec4_mediump,Crash
+dEQP-VK.info.device_mandatory_features,Fail
+gmem-dEQP-VK.glsl.derivate.dfdx.dynamic_if.vec3_highp,Crash
+gmem-dEQP-VK.glsl.derivate.dfdx.dynamic_loop.float_highp,Crash
+gmem-dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec2_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec3_highp,Crash
+gmem-dEQP-VK.glsl.derivate.dfdx.dynamic_switch.vec4_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_if.vec4_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_loop.vec4_highp,Crash
+gmem-dEQP-VK.glsl.derivate.dfdxfine.dynamic_loop.float_highp,Crash
+gmem-dEQP-VK.glsl.derivate.dfdyfine.dynamic_if.float_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec2_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.dfdyfine.dynamic_switch.vec4_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.fwidth.dynamic_if.vec2_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.fwidth.dynamic_loop.vec3_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_if.vec3_highp,Crash
+gmem-dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec3_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.fwidthcoarse.dynamic_switch.vec4_highp,Crash
+gmem-dEQP-VK.glsl.derivate.fwidthfine.dynamic_if.vec2_mediump,Crash
+gmem-dEQP-VK.glsl.derivate.fwidthfine.dynamic_loop.vec2_highp,Crash
+
+# New CTS failures in 1.3.7.0
+dEQP-VK.api.version_check.unavailable_entry_points,Fail
+dEQP-VK.dynamic_rendering.primary_cmd_buff.basic.partial_binding_depth_stencil,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.32bit.point_list.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.32bit.triangle_list_with_adjacency.indirect,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.32bit.triangle_strip_with_adjacency.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_32bit_xfb_64bit.line_list.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_32bit_xfb_64bit.point_list.indirect,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_32bit_xfb_64bit.triangle_list.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_32bit_xfb_64bit.triangle_strip.indirect,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_64bit_xfb_32bit.point_list.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_64bit_xfb_32bit.triangle_list_with_adjacency.indirect,Fail
+dynamic-dEQP-VK.renderpass2.depth_stencil_resolve.image_2d_32_32.samples_2.d24_unorm_s8_uint.compatibility_depth_zero_stencil_zero_testing_stencil,Fail
+gmem-dEQP-VK.glsl.derivate.dfdy.dynamic_loop.vec4_mediump,Crash
+gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.32bit.triangle_fan.draw,Fail
+gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.64bit.line_list_with_adjacency.indirect,Fail
+gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.pgq_64bit_xfb_32bit.triangle_strip_with_adjacency.draw,Fail
+stale-regs-dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec4_highp,Crash
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.64bit.tese.no_xfb.rast.patch_list.pgq_default.two_draws.pqg_first.before_2_queries,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.line_list.pgq_default_xfb_0.two_draws.xfbq_first.none,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list_with_adjacency.pgq_default_xfb_0.two_draws.xfbq_first.before_2_queries,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.point_list.pgq_default_xfb_default.two_draws.pqg_first.none_2_queries,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_32bit_xfb_64bit.tese.xfb.rast.patch_list.pgq_default_xfb_default.single_draw.xfbq_first.after_2_queries_with_availability,Fail
+
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.32bit.triangle_strip.draw,Fail
+dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.64bit.line_strip.draw,Fail
+gmem-dEQP-VK.glsl.derivate.dfdy.dynamic_if.vec4_highp,Crash
+gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.pgq_32bit_xfb_64bit.triangle_strip_with_adjacency.draw,Fail
+stale-regs-dEQP-VK.glsl.derivate.dfdxcoarse.dynamic_switch.vec3_highp,Crash
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list_with_adjacency.pgq_0_xfb_0.single_draw.xfbq_first.none,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.line_list.pgq_default_xfb_default.two_draws.pqg_first.before,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy.queue_reset.pgq_64bit_xfb_32bit.tese.xfb.rast.patch_list.pgq_default_xfb_default.single_draw.pqg_first.after_2_queries,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.32bit.geom.no_xfb.rast.line_list_with_adjacency.pgq_default.single_draw.pqg_first.none,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.32bit.geom.xfb.rast.line_strip_with_adjacency.pgq_default_xfb_1.single_draw.xfbq_first.after,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.32bit.geom.xfb.rast.triangle_strip_with_adjacency.pgq_default_xfb_1.single_draw.xfbq_first.before_2_queries,Fail
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.32bit.tese.xfb.rast.patch_list.pgq_default_xfb_default.two_draws.xfbq_first.none_2_queries,Fail

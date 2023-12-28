@@ -30,7 +30,7 @@
  */
 
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/hash.h"
@@ -492,6 +492,15 @@ validate_texture_wrap_mode(struct gl_context *ctx, GLenum wrap)
 {
    const struct gl_extensions * const e = &ctx->Extensions;
 
+   bool mirror_clamp =
+      _mesa_has_ATI_texture_mirror_once(ctx) ||
+      _mesa_has_EXT_texture_mirror_clamp(ctx);
+
+   bool mirror_clamp_to_edge =
+      _mesa_has_ARB_texture_mirror_clamp_to_edge(ctx) ||
+      _mesa_has_EXT_texture_mirror_clamp_to_edge(ctx) ||
+      mirror_clamp;
+
    switch (wrap) {
    case GL_CLAMP:
       /* From GL 3.0 specification section E.1 "Profiles and Deprecated
@@ -501,16 +510,16 @@ validate_texture_wrap_mode(struct gl_context *ctx, GLenum wrap)
        *   texture parameters TEXTURE_WRAP_S, TEXTURE_WRAP_T, or
        *   TEXTURE_WRAP_R.
        */
-      return ctx->API == API_OPENGL_COMPAT;
+      return _mesa_is_desktop_gl_compat(ctx);
    case GL_CLAMP_TO_EDGE:
    case GL_REPEAT:
    case GL_MIRRORED_REPEAT:
    case GL_CLAMP_TO_BORDER:
       return GL_TRUE;
    case GL_MIRROR_CLAMP_EXT:
-      return e->ATI_texture_mirror_once || e->EXT_texture_mirror_clamp;
+      return mirror_clamp;
    case GL_MIRROR_CLAMP_TO_EDGE_EXT:
-      return e->ATI_texture_mirror_once || e->EXT_texture_mirror_clamp || e->ARB_texture_mirror_clamp_to_edge;
+      return mirror_clamp_to_edge;
    case GL_MIRROR_CLAMP_TO_BORDER_EXT:
       return e->EXT_texture_mirror_clamp;
    default:

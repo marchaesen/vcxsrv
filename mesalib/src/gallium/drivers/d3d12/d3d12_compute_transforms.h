@@ -45,6 +45,8 @@ enum class d3d12_compute_transform_type
    fake_so_buffer_vertex_count,
    /* Append a buffer filled size with (vertex count, 1, 0, 0) */
    draw_auto,
+   /* Accumulate queries together and write a 32-bit or 64-bit result */
+   query_resolve,
    max,
 };
 
@@ -67,6 +69,23 @@ struct d3d12_compute_transform_key
             uint16_t size;
          } ranges[PIPE_MAX_SO_OUTPUTS];
       } fake_so_buffer_copy_back;
+
+      struct {
+         /* true means the accumulation should be done as uint64, else uint32. */
+         uint8_t is_64bit : 1;
+         /* Indicates how many subqueries to accumulate together into a final result. When
+          * set to 1, single_subquery_index determines where the data comes from. */
+         uint8_t num_subqueries : 3;
+         uint8_t pipe_query_type : 4;
+         /* true means output is written where input[0] was, else output is a separate buffer.
+          * true also means all fields are accumulated, else single_result_field_offset determines
+          * which field is resolved. Implies num_subqueries == 1. */
+         uint8_t is_resolve_in_place : 1;
+         uint8_t single_subquery_index : 2;
+         uint8_t single_result_field_offset : 4;
+         uint8_t is_signed : 1;
+         float timestamp_multiplier;
+      } query_resolve;
    };
 };
 
@@ -83,7 +102,8 @@ struct d3d12_compute_transform_save_restore
 {
    struct d3d12_shader_selector *cs;
    struct pipe_constant_buffer cbuf0;
-   struct pipe_shader_buffer ssbos[2];
+   struct pipe_shader_buffer ssbos[5];
+   bool queries_disabled;
 };
 
 void

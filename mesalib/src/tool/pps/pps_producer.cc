@@ -24,6 +24,10 @@ int main(int argc, const char **argv)
       (argc > 1) ? Driver::find_driver_name(argv[1]) : Driver::default_driver_name();
    GpuDataSource::register_data_source(driver_name);
 
+   const auto &driver = Driver::get_supported_drivers().at(driver_name);
+   if (!driver->is_dump_perfcnt_preemptible())
+      make_thread_rt();
+
    while (true) {
       GpuDataSource::wait_started();
       GpuDataSource::Trace(GpuDataSource::trace_callback);

@@ -28,6 +28,8 @@
 #include <pthread.h>
 #include <vulkan/vulkan.h>
 
+#include "pvr_srv_sync.h"
+#include "pvr_srv_sync_prim.h"
 #include "pvr_winsys.h"
 #include "util/macros.h"
 #include "util/vma.h"
@@ -37,7 +39,7 @@
  *******************************************/
 
 /* 64KB is MAX anticipated OS page size */
-#define PVR_SRV_RESERVED_SIZE_GRANULARITY 0x10000
+#define PVR_SRV_CARVEOUT_SIZE_GRANULARITY 0x10000
 
 #define PVR_SRV_DEVMEM_HEAPNAME_MAXLENGTH 160
 
@@ -68,10 +70,8 @@ struct pvr_srv_winsys_heap {
 struct pvr_srv_winsys {
    struct pvr_winsys base;
 
-   int master_fd;
-   int render_fd;
-
-   const VkAllocationCallbacks *alloc;
+   struct pvr_device *presignaled_sync_device;
+   struct pvr_srv_sync *presignaled_sync;
 
    /* Packed bvnc */
    uint64_t bvnc;
@@ -90,22 +90,12 @@ struct pvr_srv_winsys {
    bool rgn_hdr_heap_present;
    struct pvr_srv_winsys_heap rgn_hdr_heap;
 
-   /* vma's for reserved memory regions */
+   /* vma's for carveout memory regions */
    struct pvr_winsys_vma *pds_vma;
    struct pvr_winsys_vma *usc_vma;
    struct pvr_winsys_vma *general_vma;
 
-   /* Sync block used for allocating sync primitives. */
-   void *sync_block_handle;
-   uint32_t sync_block_size;
-   uint32_t sync_block_fw_addr;
-   uint16_t sync_block_offset;
-};
-
-struct pvr_srv_sync_prim {
-   struct pvr_srv_winsys *srv_ws;
-   uint32_t offset;
-   uint32_t value;
+   struct pvr_srv_sync_prim_ctx sync_prim_ctx;
 };
 
 /*******************************************
@@ -120,14 +110,7 @@ struct pvr_srv_sync_prim {
     functions
  *******************************************/
 
-struct pvr_srv_sync_prim *
-pvr_srv_sync_prim_alloc(struct pvr_srv_winsys *srv_ws);
-void pvr_srv_sync_prim_free(struct pvr_srv_sync_prim *sync_prim);
-
-static inline uint32_t
-pvr_srv_sync_prim_get_fw_addr(const struct pvr_srv_sync_prim *const sync_prim)
-{
-   return sync_prim->srv_ws->sync_block_fw_addr + sync_prim->offset;
-}
+VkResult pvr_srv_sync_get_presignaled_sync(struct pvr_device *device,
+                                           struct pvr_srv_sync **out_sync);
 
 #endif /* PVR_SRV_H */

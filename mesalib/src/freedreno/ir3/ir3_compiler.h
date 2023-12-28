@@ -30,13 +30,49 @@
 #include "compiler/nir/nir.h"
 #include "util/disk_cache.h"
 #include "util/log.h"
+#include "util/perf/cpu_trace.h"
 
 #include "freedreno_dev_info.h"
 
 #include "ir3.h"
 
+BEGINC;
+
 struct ir3_ra_reg_set;
 struct ir3_shader;
+
+struct ir3_compiler_options {
+   /* If true, UBO/SSBO accesses are assumed to be bounds-checked as defined by
+    * VK_EXT_robustness2 and optimizations may have to be more conservative.
+    */
+   bool robust_buffer_access2;
+
+   /* If true, promote UBOs (except for constant data) to constants using ldc.k
+    * in the preamble. The driver should ignore everything in ubo_state except
+    * for the constant data UBO, which is excluded because the command pushing
+    * constants for it can be pre-baked when compiling the shader.
+    */
+   bool push_ubo_with_preamble;
+
+   /* If true, disable the shader cache. The driver is then responsible for
+    * caching.
+    */
+   bool disable_cache;
+
+   /* If >= 0, this specifies the bindless descriptor set + descriptor to use
+    * for txf_ms_fb
+    */
+   int bindless_fb_read_descriptor;
+   int bindless_fb_read_slot;
+
+   /* True if 16-bit descriptors are used for both 16-bit and 32-bit access. */
+   bool storage_16bit;
+
+  /* If base_vertex should be lowered in nir */
+  bool lower_base_vertex;
+
+  bool shared_push_consts;
+};
 
 struct ir3_compiler {
    struct fd_device *dev;
@@ -48,12 +84,18 @@ struct ir3_compiler {
 
    struct nir_shader_compiler_options nir_options;
 
-   bool robust_buffer_access2;
+   /*
+    * Configuration options for things handled differently by turnip vs
+    * gallium
+    */
+   struct ir3_compiler_options options;
 
    /*
     * Configuration options for things that are handled differently on
     * different generations:
     */
+
+   bool is_64bit;
 
    /* a4xx (and later) drops SP_FS_FLAT_SHAD_MODE_REG_* for flat-interpolate
     * so we need to use ldlv.u32 to load the varying directly:
@@ -151,11 +193,17 @@ struct ir3_compiler {
    /* The number of total branch stack entries, divided by wave_granularity. */
    uint32_t branchstack_size;
 
+   /* The byte increment of MEMSIZEPERITEM, the private memory per-fiber allocation. */
+   uint32_t pvtmem_per_fiber_align;
+
    /* Whether clip+cull distances are supported */
    bool has_clip_cull;
 
    /* Whether private memory is supported */
    bool has_pvtmem;
+
+   /* Whether SSBOs have descriptors for sampling with ISAM */
+   bool has_isam_ssbo;
 
    /* True if 16-bit descriptors are used for both 16-bit and 32-bit access. */
    bool storage_16bit;
@@ -183,8 +231,6 @@ struct ir3_compiler {
    /* True if preamble instructions (shps, shpe, etc.) are supported */
    bool has_preamble;
 
-   bool push_ubo_with_preamble;
-
    /* Where the shared consts start in constants file, in vec4's. */
    uint16_t shared_consts_base_offset;
 
@@ -199,30 +245,16 @@ struct ir3_compiler {
     * TODO: Keep an eye on this for next gens.
     */
    uint64_t geom_shared_consts_size_quirk;
-};
 
-struct ir3_compiler_options {
-   /* If true, UBO/SSBO accesses are assumed to be bounds-checked as defined by
-    * VK_EXT_robustness2 and optimizations may have to be more conservative.
-    */
-   bool robust_buffer_access2;
+   bool has_fs_tex_prefetch;
 
-   /* If true, promote UBOs (except for constant data) to constants using ldc.k
-    * in the preamble. The driver should ignore everything in ubo_state except
-    * for the constant data UBO, which is excluded because the command pushing
-    * constants for it can be pre-baked when compiling the shader.
-    */
-   bool push_ubo_with_preamble;
-
-   /* If true, disable the shader cache. The driver is then responsible for
-    * caching.
-    */
-   bool disable_cache;
+   bool stsc_duplication_quirk;
 };
 
 void ir3_compiler_destroy(struct ir3_compiler *compiler);
 struct ir3_compiler *ir3_compiler_create(struct fd_device *dev,
                                          const struct fd_dev_id *dev_id,
+                                         const struct fd_dev_info *dev_info,
                                          const struct ir3_compiler_options *options);
 
 void ir3_disk_cache_init(struct ir3_compiler *compiler);
@@ -231,7 +263,7 @@ void ir3_disk_cache_init_shader_key(struct ir3_compiler *compiler,
 struct ir3_shader_variant *ir3_retrieve_variant(struct blob_reader *blob,
                                                 struct ir3_compiler *compiler,
                                                 void *mem_ctx);
-void ir3_store_variant(struct blob *blob, struct ir3_shader_variant *v);
+void ir3_store_variant(struct blob *blob, const struct ir3_shader_variant *v);
 bool ir3_disk_cache_retrieve(struct ir3_shader *shader,
                              struct ir3_shader_variant *v);
 void ir3_disk_cache_store(struct ir3_shader *shader,
@@ -248,7 +280,7 @@ int ir3_compile_shader_nir(struct ir3_compiler *compiler,
 static inline unsigned
 ir3_pointer_size(struct ir3_compiler *compiler)
 {
-   return fd_dev_64b(compiler->dev_id) ? 2 : 1;
+   return compiler->is_64bit ? 2 : 1;
 }
 
 enum ir3_shader_debug {
@@ -316,5 +348,7 @@ ir3_debug_print(struct ir3 *ir, const char *when)
       ir3_print(ir);
    }
 }
+
+ENDC;
 
 #endif /* IR3_COMPILER_H_ */

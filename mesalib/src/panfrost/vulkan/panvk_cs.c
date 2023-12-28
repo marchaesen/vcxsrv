@@ -21,19 +21,19 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "util/macros.h"
 #include "compiler/shader_enums.h"
+#include "util/macros.h"
 
-#include "pan_cs.h"
+#include "pan_desc.h"
 #include "pan_pool.h"
 
 #include "panvk_cs.h"
 #include "panvk_private.h"
 
 /*
- * Upload the viewport scale. Defined as (px/2, py/2, pz) at the start of section
- * 24.5 ("Controlling the Viewport") of the Vulkan spec. At the end of the
- * section, the spec defines:
+ * Upload the viewport scale. Defined as (px/2, py/2, pz) at the start of
+ * section 24.5 ("Controlling the Viewport") of the Vulkan spec. At the end of
+ * the section, the spec defines:
  *
  * px = width
  * py = height

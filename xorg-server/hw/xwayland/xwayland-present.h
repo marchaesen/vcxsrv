@@ -59,8 +59,12 @@ struct xwl_present_event {
     present_vblank_rec vblank;
 
     PixmapPtr pixmap;
+    Bool async_may_tear;
 };
 
+Bool xwl_present_entered_for_each_frame_callback(void);
+void xwl_present_for_each_frame_callback(struct xwl_window *xwl_window,
+                                         void iter_func(struct xwl_present_window *));
 void xwl_present_reset_timer(struct xwl_present_window *xwl_present_window);
 void xwl_present_frame_callback(struct xwl_present_window *xwl_present_window);
 Bool xwl_present_init(ScreenPtr screen);

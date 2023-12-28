@@ -325,7 +325,7 @@ decode_gmu_hfi(void)
 static bool
 valid_header(uint32_t pkt)
 {
-   if (options.gpu_id >= 500) {
+   if (options.info->chip >= 5) {
       return pkt_is_type4(pkt) || pkt_is_type7(pkt);
    } else {
       /* TODO maybe we can check validish looking pkt3 opc or pkt0
@@ -345,9 +345,11 @@ dump_cmdstream(void)
    printf("got rb_base=%" PRIx64 "\n", rb_base);
 
    options.ibs[1].base = regval64("CP_IB1_BASE");
-   options.ibs[1].rem = regval("CP_IB1_REM_SIZE");
+   if (is_a6xx())
+      options.ibs[1].rem = regval("CP_IB1_REM_SIZE");
    options.ibs[2].base = regval64("CP_IB2_BASE");
-   options.ibs[2].rem = regval("CP_IB2_REM_SIZE");
+   if (is_a6xx())
+      options.ibs[2].rem = regval("CP_IB2_REM_SIZE");
 
    /* Adjust remaining size to account for cmdstream slurped into ROQ
     * but not yet consumed by SQE
@@ -359,8 +361,10 @@ dump_cmdstream(void)
     * by name rather than hard-coding this.
     */
    if (is_a6xx()) {
-      options.ibs[1].rem += regval("CP_CSQ_IB1_STAT") >> 16;
-      options.ibs[2].rem += regval("CP_CSQ_IB2_STAT") >> 16;
+      uint32_t ib1_rem = regval("CP_ROQ_AVAIL_IB1") >> 16;
+      uint32_t ib2_rem = regval("CP_ROQ_AVAIL_IB2") >> 16;
+      options.ibs[1].rem += ib1_rem ? ib1_rem - 1 : 0;
+      options.ibs[2].rem += ib2_rem ? ib2_rem - 1 : 0;
    }
 
    printf("IB1: %" PRIx64 ", %u\n", options.ibs[1].base, options.ibs[1].rem);
@@ -386,6 +390,7 @@ dump_cmdstream(void)
       unsigned ringszdw = ringbuffers[id].size >> 2; /* in dwords */
 
       if (verbose) {
+         handle_prefetch(ringbuffers[id].buf, ringszdw);
          dump_commands(ringbuffers[id].buf, ringszdw, 0);
          return;
       }
@@ -418,6 +423,7 @@ dump_cmdstream(void)
          buf[idx] = ringbuffers[id].buf[p];
       }
 
+      handle_prefetch(buf, cmdszdw);
       dump_commands(buf, cmdszdw, 0);
       free(buf);
    }
@@ -458,41 +464,50 @@ decode_bos(void)
  */
 
 void
-dump_register(struct rnn *rnn, uint32_t offset, uint32_t value)
+dump_register(struct regacc *r)
 {
-   struct rnndecaddrinfo *info = rnn_reginfo(rnn, offset);
+   struct rnndecaddrinfo *info = rnn_reginfo(r->rnn, r->regbase);
    if (info && info->typeinfo) {
-      char *decoded = rnndec_decodeval(rnn->vc, info->typeinfo, value);
+      char *decoded = rnndec_decodeval(r->rnn->vc, info->typeinfo, r->value);
       printf("%s: %s\n", info->name, decoded);
    } else if (info) {
-      printf("%s: %08x\n", info->name, value);
+      printf("%s: %08"PRIx64"\n", info->name, r->value);
    } else {
-      printf("<%04x>: %08x\n", offset, value);
+      printf("<%04x>: %08"PRIx64"\n", r->regbase, r->value);
    }
+   rnn_reginfo_free(info);
 }
 
 static void
 decode_gmu_registers(void)
 {
+   struct regacc r = regacc(rnn_gmu);
+
    foreach_line_in_section (line) {
       uint32_t offset, value;
       parseline(line, "  - { offset: %x, value: %x }", &offset, &value);
 
-      printf("\t%08x\t", value);
-      dump_register(rnn_gmu, offset / 4, value);
+      if (regacc_push(&r, offset / 4, value)) {
+         printf("\t%08"PRIx64"\t", r.value);
+         dump_register(&r);
+      }
    }
 }
 
 static void
 decode_registers(void)
 {
+   struct regacc r = regacc(NULL);
+
    foreach_line_in_section (line) {
       uint32_t offset, value;
       parseline(line, "  - { offset: %x, value: %x }", &offset, &value);
 
       reg_set(offset / 4, value);
-      printf("\t%08x", value);
-      dump_register_val(offset / 4, value, 0);
+      if (regacc_push(&r, offset / 4, value)) {
+         printf("\t%08"PRIx64, r.value);
+         dump_register_val(&r, 0);
+      }
    }
 }
 
@@ -500,6 +515,8 @@ decode_registers(void)
 static void
 decode_clusters(void)
 {
+   struct regacc r = regacc(NULL);
+
    foreach_line_in_section (line) {
       if (startswith(line, "  - cluster-name:") ||
           startswith(line, "    - context:")) {
@@ -510,8 +527,10 @@ decode_clusters(void)
       uint32_t offset, value;
       parseline(line, "      - { offset: %x, value: %x }", &offset, &value);
 
-      printf("\t%08x", value);
-      dump_register_val(offset / 4, value, 0);
+      if (regacc_push(&r, offset / 4, value)) {
+         printf("\t%08"PRIx64, r.value);
+         dump_register_val(&r, 0);
+      }
    }
 }
 
@@ -549,14 +568,18 @@ dump_control_regs(uint32_t *regs)
    if (!rnn_control)
       return;
 
+   struct regacc r = regacc(rnn_control);
+
    /* Control regs 0x100-0x17f are a scratch space to be used by the
     * firmware however it wants, unlike lower regs which involve some
     * fixed-function units. Therefore only these registers get dumped
     * directly.
     */
    for (uint32_t i = 0; i < 0x80; i++) {
-      printf("\t%08x\t", regs[i]);
-      dump_register(rnn_control, i + 0x100, regs[i]);
+      if (regacc_push(&r, i + 0x100, regs[i])) {
+         printf("\t%08"PRIx64"\t", r.value);
+         dump_register(&r);
+      }
    }
 }
 
@@ -677,7 +700,7 @@ decode_shader_blocks(void)
              * (or parts of shaders?), so perhaps we should search
              * for ends of shaders and decode each?
              */
-            try_disasm_a3xx(buf, sizedwords, 1, stdout, options.gpu_id);
+            try_disasm_a3xx(buf, sizedwords, 1, stdout, options.info->chip * 100);
          }
 
          if (dump)
@@ -744,14 +767,17 @@ decode(void)
       if (startswith(line, "revision:")) {
          unsigned core, major, minor, patchid;
 
-         parseline(line, "revision: %u (%u.%u.%u.%u)", &options.gpu_id,
+         parseline(line, "revision: %u (%u.%u.%u.%u)", &options.dev_id.gpu_id,
                    &core, &major, &minor, &patchid);
 
-         if (options.gpu_id == 0) {
-            options.gpu_id = (core * 100) + (major * 10) + minor;
+         options.dev_id.chip_id = (core << 24) | (major << 16) | (minor << 8) | patchid;
+         options.info = fd_dev_info_raw(&options.dev_id);
+         if (!options.info) {
+            printf("Unsupported device\n");
+            break;
          }
 
-         printf("Got gpu_id=%u\n", options.gpu_id);
+         printf("Got chip_id=0x%"PRIx64"\n", options.dev_id.chip_id);
 
          cffdec_init(&options);
 

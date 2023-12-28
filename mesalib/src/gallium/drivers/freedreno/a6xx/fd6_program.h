@@ -38,12 +38,12 @@ struct fd6_emit;
 
 struct fd6_program_state {
    struct ir3_program_state base;
-   struct ir3_shader_variant *bs; /* binning pass vs */
-   struct ir3_shader_variant *vs;
-   struct ir3_shader_variant *hs;
-   struct ir3_shader_variant *ds;
-   struct ir3_shader_variant *gs;
-   struct ir3_shader_variant *fs;
+   const struct ir3_shader_variant *bs; /* binning pass vs */
+   const struct ir3_shader_variant *vs;
+   const struct ir3_shader_variant *hs;
+   const struct ir3_shader_variant *ds;
+   const struct ir3_shader_variant *gs;
+   const struct ir3_shader_variant *fs;
    struct fd_ringbuffer *config_stateobj;
    struct fd_ringbuffer *interp_stateobj;
    struct fd_ringbuffer *binning_stateobj;
@@ -51,6 +51,17 @@ struct fd6_program_state {
    struct fd_ringbuffer *stateobj;
 
    const struct ir3_stream_output_info *stream_output;
+
+   /**
+    * Whether multiple viewports are used is determined by whether
+    * the last shader stage writes viewport id
+    */
+   uint16_t num_viewports;
+
+   /**
+    * The # of shader stages that need driver params.
+    */
+   uint8_t num_driver_params;
 
    /**
     * Output components from frag shader.  It is possible to have
@@ -64,6 +75,11 @@ struct fd6_program_state {
     * calculate it up-front.
     */
    uint32_t user_consts_cmdstream_size;
+
+   /**
+    * The FS contribution to LRZ state
+    */
+   struct fd6_lrz_state lrz_mask;
 };
 
 static inline struct fd6_program_state *
@@ -88,6 +104,7 @@ void fd6_emit_shader(struct fd_context *ctx, struct fd_ringbuffer *ring,
 
 struct fd_ringbuffer *fd6_program_interp_state(struct fd6_emit *emit) assert_dt;
 
+template <chip CHIP>
 void fd6_prog_init(struct pipe_context *pctx);
 
 #endif /* FD6_PROGRAM_H_ */

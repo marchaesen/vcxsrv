@@ -24,7 +24,7 @@
 #ifndef ZINK_BATCH_H
 #define ZINK_BATCH_H
 
-#include <vulkan/vulkan.h>
+#include <vulkan/vulkan_core.h>
 #include "zink_types.h"
 
 #include "util/list.h"
@@ -78,35 +78,36 @@ void
 zink_batch_reference_program(struct zink_batch *batch,
                              struct zink_program *pg);
 
-
+void
+zink_batch_bind_db(struct zink_context *ctx);
 void
 debug_describe_zink_batch_state(char *buf, const struct zink_batch_state *ptr);
 
-static inline bool
+static ALWAYS_INLINE bool
 zink_batch_usage_is_unflushed(const struct zink_batch_usage *u)
 {
    return u && u->unflushed;
 }
 
-static inline void
+static ALWAYS_INLINE void
 zink_batch_usage_unset(struct zink_batch_usage **u, struct zink_batch_state *bs)
 {
    (void)p_atomic_cmpxchg((uintptr_t *)u, (uintptr_t)&bs->usage, (uintptr_t)NULL);
 }
 
-static inline void
+static ALWAYS_INLINE void
 zink_batch_usage_set(struct zink_batch_usage **u, struct zink_batch_state *bs)
 {
    *u = &bs->usage;
 }
 
-static inline bool
+static ALWAYS_INLINE bool
 zink_batch_usage_matches(const struct zink_batch_usage *u, const struct zink_batch_state *bs)
 {
    return u == &bs->usage;
 }
 
-static inline bool
+static ALWAYS_INLINE bool
 zink_batch_usage_exists(const struct zink_batch_usage *u)
 {
    return u && (u->usage || u->unflushed);
@@ -114,12 +115,17 @@ zink_batch_usage_exists(const struct zink_batch_usage *u)
 
 bool
 zink_screen_usage_check_completion(struct zink_screen *screen, const struct zink_batch_usage *u);
+bool
+zink_screen_usage_check_completion_fast(struct zink_screen *screen, const struct zink_batch_usage *u);
 
 bool
 zink_batch_usage_check_completion(struct zink_context *ctx, const struct zink_batch_usage *u);
 
 void
 zink_batch_usage_wait(struct zink_context *ctx, struct zink_batch_usage *u);
+
+void
+zink_batch_usage_try_wait(struct zink_context *ctx, struct zink_batch_usage *u);
 
 #ifdef __cplusplus
 }

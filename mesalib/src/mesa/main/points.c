@@ -28,7 +28,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "context.h"
 #include "macros.h"
 #include "points.h"
@@ -168,8 +168,8 @@ _mesa_PointParameterfv( GLenum pname, const GLfloat *params)
 	 /* GL_POINT_SPRITE_COORD_ORIGIN was added to point sprites when the
 	  * extension was merged into OpenGL 2.0.
 	  */
-         if ((ctx->API == API_OPENGL_COMPAT && ctx->Version >= 20)
-             || ctx->API == API_OPENGL_CORE) {
+         if ((_mesa_is_desktop_gl_compat(ctx) && ctx->Version >= 20)
+             || _mesa_is_desktop_gl_core(ctx)) {
             GLenum value = (GLenum) params[0];
             if (value != GL_LOWER_LEFT && value != GL_UPPER_LEFT) {
                _mesa_error(ctx, GL_INVALID_VALUE,
@@ -228,8 +228,8 @@ _mesa_init_point(struct gl_context *ctx)
     * In a core context, the state will default to true, and the setters and
     * getters are disabled.
     */
-   ctx->Point.PointSprite = (ctx->API == API_OPENGL_CORE ||
-                             ctx->API == API_OPENGLES2);
+   ctx->Point.PointSprite = (_mesa_is_desktop_gl_core(ctx) ||
+                             _mesa_is_gles2(ctx));
 
    ctx->Point.SpriteOrigin = GL_UPPER_LEFT; /* GL_ARB_point_sprite */
    ctx->Point.CoordReplace = 0; /* GL_ARB_point_sprite */

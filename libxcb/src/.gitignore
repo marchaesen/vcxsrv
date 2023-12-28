@@ -2,10 +2,12 @@ dri3.c
 dri3.h
 present.c
 present.h
+dbe.*
 bigreq.c
 bigreq.h
 composite.c
 composite.h
+ge.*
 damage.c
 damage.h
 dpms.c

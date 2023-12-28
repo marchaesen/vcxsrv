@@ -1,27 +1,20 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
 #
-# Copyright (C) 2022 Collabora Limited
+# Copyright © 2022 Collabora Limited
 # Author: Guilherme Gallo <guilherme.gallo@collabora.com>
 #
-# Permission is hereby granted, free of charge, to any person obtaining a
-# copy of this software and associated documentation files (the "Software"),
-# to deal in the Software without restriction, including without limitation
-# the rights to use, copy, modify, merge, publish, distribute, sublicense,
-# and/or sell copies of the Software, and to permit persons to whom the
-# Software is furnished to do so, subject to the following conditions:
-#
-# The above copyright notice and this permission notice (including the next
-# paragraph) shall be included in all copies or substantial portions of the
-# Software.
-#
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
-# THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# When changing this file, you need to bump the following
+# .gitlab-ci/image-tags.yml tags:
+# KERNEL_ROOTFS_TAG
 
+SKQP_BRANCH=android-cts-12.1_r5
+
+# hack for skqp see the clang
+pushd /usr/bin/
+ln -s ../lib/llvm-15/bin/clang clang
+ln -s ../lib/llvm-15/bin/clang++ clang++
+popd
 
 create_gn_args() {
     # gn can be configured to cross-compile skia and its tools
@@ -41,7 +34,6 @@ download_skia_source() {
     # Skia cloned from https://android.googlesource.com/platform/external/skqp
     # has all needed assets tracked on git-fs
     SKQP_REPO=https://android.googlesource.com/platform/external/skqp
-    SKQP_BRANCH=android-cts-11.0_r7
 
     git clone --branch "${SKQP_BRANCH}" --depth 1 "${SKQP_REPO}" "${SKIA_DIR}"
 }
@@ -49,7 +41,7 @@ download_skia_source() {
 set -ex
 
 SCRIPT_DIR=$(realpath "$(dirname "$0")")
-SKQP_PATCH_DIR="${SCRIPT_DIR}"
+SKQP_PATCH_DIR="${SCRIPT_DIR}/patches"
 BASE_ARGS_GN_FILE="${SCRIPT_DIR}/build-skqp_base.gn"
 
 SKQP_ARCH=${SKQP_ARCH:-x64}

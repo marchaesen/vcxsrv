@@ -32,7 +32,7 @@
 #define _VBO_H
 
 #include <stdbool.h>
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/dd.h"
 #include "main/draw.h"
 #include "main/macros.h"
@@ -188,10 +188,10 @@ void
 _vbo_DestroyContext(struct gl_context *ctx);
 
 void
-vbo_install_exec_vtxfmt(struct gl_context *ctx);
+vbo_init_dispatch_begin_end(struct gl_context *ctx);
 
 void
-vbo_install_hw_select_begin_end(struct gl_context *ctx);
+vbo_init_dispatch_hw_select_begin_end(struct gl_context *ctx);
 
 void
 vbo_install_exec_vtxfmt_noop(struct gl_context *ctx);
@@ -228,11 +228,11 @@ vbo_get_minmax_index_mapped(unsigned count, unsigned index_size,
                             unsigned *min_index, unsigned *max_index);
 
 void
-vbo_get_minmax_indices(struct gl_context *ctx, const struct _mesa_prim *prim,
-                       const struct _mesa_index_buffer *ib,
-                       GLuint *min_index, GLuint *max_index, GLuint nr_prims,
-                       bool primitive_restart,
-                       unsigned restart_index);
+vbo_get_minmax_index(struct gl_context *ctx, struct gl_buffer_object *obj,
+                     const void *ptr, GLintptr offset, unsigned count,
+                     unsigned index_size, bool primitive_restart,
+                     unsigned restart_index, GLuint *min_index,
+                     GLuint *max_index);
 
 bool
 vbo_get_minmax_indices_gallium(struct gl_context *ctx,

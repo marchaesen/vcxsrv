@@ -30,7 +30,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "macros.h"
 #include "pixeltransfer.h"
 

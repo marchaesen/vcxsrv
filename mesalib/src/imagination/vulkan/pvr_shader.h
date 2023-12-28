@@ -28,21 +28,19 @@
 
 #include "compiler/shader_enums.h"
 #include "nir/nir.h"
+#include "rogue/rogue.h"
+#include "util/u_dynarray.h"
 #include "vulkan/vulkan.h"
 
-struct rogue_build_ctx;
-struct rogue_compiler;
-struct rogue_shader;
-
 nir_shader *
-pvr_spirv_to_nir(struct rogue_build_ctx *ctx,
+pvr_spirv_to_nir(rogue_build_ctx *ctx,
                  gl_shader_stage stage,
                  const VkPipelineShaderStageCreateInfo *create_info);
 
-struct rogue_shader *pvr_nir_to_rogue(struct rogue_build_ctx *ctx,
-                                      nir_shader *nir);
+rogue_shader *pvr_nir_to_rogue(rogue_build_ctx *ctx, nir_shader *nir);
 
-struct rogue_shader_binary *pvr_rogue_to_binary(struct rogue_build_ctx *ctx,
-                                                struct rogue_shader *rogue);
+void pvr_rogue_to_binary(rogue_build_ctx *ctx,
+                         rogue_shader *shader,
+                         struct util_dynarray *binary);
 
 #endif /* PVR_SHADER_H */

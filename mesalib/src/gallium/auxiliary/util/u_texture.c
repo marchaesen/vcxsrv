@@ -43,7 +43,7 @@
 void util_map_texcoords2d_onto_cubemap(unsigned face,
                                        const float *in_st, unsigned in_stride,
                                        float *out_str, unsigned out_stride,
-                                       boolean allow_scale)
+                                       bool allow_scale)
 {
    int i;
    float rx, ry, rz;

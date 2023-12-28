@@ -32,6 +32,7 @@
 #include "util/u_upload_mgr.h"
 #include "util/u_thread.h"
 #include "util/os_time.h"
+#include "util/perf/cpu_trace.h"
 #include <inttypes.h>
 
 /**
@@ -46,16 +47,14 @@
 void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
                                   uint32_t *enabled_buffers,
                                   const struct pipe_vertex_buffer *src,
-                                  unsigned start_slot, unsigned count,
+                                  unsigned count,
                                   unsigned unbind_num_trailing_slots,
                                   bool take_ownership)
 {
    unsigned i;
    uint32_t bitmask = 0;
 
-   dst += start_slot;
-
-   *enabled_buffers &= ~u_bit_consecutive(start_slot, count);
+   *enabled_buffers &= ~BITFIELD_MASK(count);
 
    if (src) {
       for (i = 0; i < count; i++) {
@@ -71,7 +70,7 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
       /* Copy over the other members of pipe_vertex_buffer. */
       memcpy(dst, src, count * sizeof(struct pipe_vertex_buffer));
 
-      *enabled_buffers |= bitmask << start_slot;
+      *enabled_buffers |= bitmask;
    }
    else {
       /* Unreference the buffers. */
@@ -90,7 +89,7 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
 void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    unsigned *dst_count,
                                    const struct pipe_vertex_buffer *src,
-                                   unsigned start_slot, unsigned count,
+                                   unsigned count,
                                    unsigned unbind_num_trailing_slots,
                                    bool take_ownership)
 {
@@ -102,7 +101,7 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
          enabled_buffers |= (1ull << i);
    }
 
-   util_set_vertex_buffers_mask(dst, &enabled_buffers, src, start_slot,
+   util_set_vertex_buffers_mask(dst, &enabled_buffers, src,
                                 count, unbind_num_trailing_slots,
                                 take_ownership);
 
@@ -337,7 +336,7 @@ util_wait_for_idle(struct pipe_context *ctx)
    struct pipe_fence_handle *fence = NULL;
 
    ctx->flush(ctx, &fence, 0);
-   ctx->screen->fence_finish(ctx->screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
+   ctx->screen->fence_finish(ctx->screen, NULL, fence, OS_TIMEOUT_INFINITE);
 }
 
 void
@@ -396,6 +395,8 @@ util_throttle_memory_usage(struct pipe_context *pipe,
    if (!t->max_mem_usage)
       return;
 
+   MESA_TRACE_FUNC();
+
    struct pipe_screen *screen = pipe->screen;
    struct pipe_fence_handle **fence = NULL;
    unsigned ring_size = ARRAY_SIZE(t->ring);
@@ -421,7 +422,7 @@ util_throttle_memory_usage(struct pipe_context *pipe,
 
    /* Wait for the fence to decrease memory usage. */
    if (fence) {
-      screen->fence_finish(screen, pipe, *fence, PIPE_TIMEOUT_INFINITE);
+      screen->fence_finish(screen, pipe, *fence, OS_TIMEOUT_INFINITE);
       screen->fence_reference(screen, fence, NULL);
    }
 
@@ -449,7 +450,7 @@ util_throttle_memory_usage(struct pipe_context *pipe,
          t->wait_index = (t->wait_index + 1) % ring_size;
 
          assert(*fence);
-         screen->fence_finish(screen, pipe, *fence, PIPE_TIMEOUT_INFINITE);
+         screen->fence_finish(screen, pipe, *fence, OS_TIMEOUT_INFINITE);
          screen->fence_reference(screen, fence, NULL);
       }
 
@@ -458,6 +459,21 @@ util_throttle_memory_usage(struct pipe_context *pipe,
    }
 
    t->ring[t->flush_index].mem_usage += memory_size;
+}
+
+void
+util_sw_query_memory_info(struct pipe_screen *pscreen,
+                          struct pipe_memory_info *info)
+{
+   /* Provide query_memory_info from CPU reported memory */
+   uint64_t size;
+
+   if (!os_get_available_system_memory(&size))
+      return;
+   info->avail_staging_memory = size / 1024;
+   if (!os_get_total_physical_memory(&size))
+      return;
+   info->total_staging_memory = size / 1024;
 }
 
 bool
@@ -530,13 +546,16 @@ util_clamp_color(enum pipe_format format,
    union pipe_color_union clamp_color = *color;
    int i;
 
-   for (i = 0; i < util_format_get_nr_components(format); i++) {
+   for (i = 0; i < 4; i++) {
       uint8_t bits = util_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_RGB, i);
 
+      if (!bits)
+         continue;
+
       if (util_format_is_unorm(format))
-         clamp_color.ui[i] = _mesa_unorm_to_unorm(clamp_color.ui[i], bits, bits);
+         clamp_color.f[i] = SATURATE(clamp_color.f[i]);
       else if (util_format_is_snorm(format))
-         clamp_color.i[i] = _mesa_snorm_to_snorm(clamp_color.i[i], bits, bits);
+         clamp_color.f[i] = CLAMP(clamp_color.f[i], -1.0, 1.0);
       else if (util_format_is_pure_uint(format))
          clamp_color.ui[i] = _mesa_unsigned_to_unsigned(clamp_color.ui[i], bits);
       else if (util_format_is_pure_sint(format))
@@ -544,4 +563,76 @@ util_clamp_color(enum pipe_format format,
    }
 
    return clamp_color;
+}
+
+/*
+ * Some hardware does not use a distinct descriptor for images, so it is
+ * convenient for drivers to reuse their texture descriptor packing for shader
+ * images. This helper constructs a synthetic, non-reference counted
+ * pipe_sampler_view corresponding to a given pipe_image_view for drivers'
+ * internal convenience.
+ *
+ * The returned descriptor is "synthetic" in the sense that it is not reference
+ * counted and the context field is ignored. Otherwise it's complete.
+ */
+struct pipe_sampler_view
+util_image_to_sampler_view(struct pipe_image_view *v)
+{
+   struct pipe_sampler_view out = {
+      .format = v->format,
+      .is_tex2d_from_buf = v->access & PIPE_IMAGE_ACCESS_TEX2D_FROM_BUFFER,
+      .target = v->resource->target,
+      .swizzle_r = PIPE_SWIZZLE_X,
+      .swizzle_g = PIPE_SWIZZLE_Y,
+      .swizzle_b = PIPE_SWIZZLE_Z,
+      .swizzle_a = PIPE_SWIZZLE_W,
+      .texture = v->resource,
+   };
+
+   if (out.target == PIPE_BUFFER) {
+      out.u.buf.offset = v->u.buf.offset;
+      out.u.buf.size = v->u.buf.size;
+   } else if (out.is_tex2d_from_buf) {
+      out.u.tex2d_from_buf.offset = v->u.tex2d_from_buf.offset;
+      out.u.tex2d_from_buf.row_stride = v->u.tex2d_from_buf.row_stride;
+      out.u.tex2d_from_buf.width = v->u.tex2d_from_buf.width;
+      out.u.tex2d_from_buf.height = v->u.tex2d_from_buf.height;
+   } else {
+      /* For a single layer view of a multilayer image, we need to swap in the
+       * non-layered texture target to match the texture instruction.
+       */
+      if (v->u.tex.single_layer_view) {
+         switch (out.target) {
+         case PIPE_TEXTURE_1D_ARRAY:
+            /* A single layer is a 1D image */
+            out.target = PIPE_TEXTURE_1D;
+            break;
+
+         case PIPE_TEXTURE_3D:
+         case PIPE_TEXTURE_CUBE:
+         case PIPE_TEXTURE_2D_ARRAY:
+         case PIPE_TEXTURE_CUBE_ARRAY:
+            /* A single layer/face is a 2D image.
+             *
+             * Note that OpenGL does not otherwise support 2D views of 3D.
+             * Drivers that use this helper must support that anyway.
+             */
+            out.target = PIPE_TEXTURE_2D;
+            break;
+
+         default:
+            /* Other texture targets already only have 1 layer, nothing to do */
+            break;
+         }
+      }
+
+      out.u.tex.first_layer = v->u.tex.first_layer;
+      out.u.tex.last_layer = v->u.tex.last_layer;
+
+      /* Single level only */
+      out.u.tex.first_level = v->u.tex.level;
+      out.u.tex.last_level = v->u.tex.level;
+   }
+
+   return out;
 }

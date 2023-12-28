@@ -3,32 +3,14 @@ Asahi
 
 The Asahi driver aims to provide an OpenGL implementation for the Apple M1.
 
-Testing on macOS
------------------
-
-On macOS, the experimental Asahi driver may built with options:
-
-    -Dosmesa=true -Dglx=xlib -Dgallium-drivers=asahi,swrast
-
-To use, set the ``DYLD_LIBRARY_PATH`` environment variable:
-
-   DYLD_LIBRARY_PATH=/Users/nobody/mesa/build/src/gallium/targets/libgl-xlib/ glmark2 --reuse-context
-
-Only X11 apps are supported. XQuartz must be setup separately.
-
 Wrap (macOS only)
 -----------------
 
 Mesa includes a library that wraps the key IOKit entrypoints used in the macOS
 UABI for AGX. The wrapped routines print information about the kernel calls made
-and dump work submitted to the GPU using agxdecode.
-
-This library allows debugging Mesa, particularly around the undocumented macOS
-user-kernel interface. Logs from Mesa may compared to Metal to check that the
-UABI is being used correcrly.
-
-Furthermore, it allows reverse-engineering the hardware, as glue to get at the
-"interesting" GPU memory.
+and dump work submitted to the GPU using agxdecode. This facilitates
+reverse-engineering the hardware, as glue to get at the "interesting" GPU
+memory.
 
 The library is only built if ``-Dtools=asahi`` is passed. It builds a single
 ``wrap.dylib`` file, which should be inserted into a process with the
@@ -36,52 +18,88 @@ The library is only built if ``-Dtools=asahi`` is passed. It builds a single
 
 For example, to trace an app ``./app``, run:
 
-    DYLD_INSERT_LIBRARIES=~/mesa/build/src/asahi/lib/libwrap.dylib ./app
+   DYLD_INSERT_LIBRARIES=~/mesa/build/src/asahi/lib/libwrap.dylib ./app
 
 Hardware varyings
 -----------------
 
 At an API level, vertex shader outputs need to be interpolated to become
 fragment shader inputs. This process is logically pipelined in AGX, with a value
-travelling from a vertex shader to remapping hardware to coefficient register
+traveling from a vertex shader to remapping hardware to coefficient register
 setup to the fragment shader to the iterator hardware. Each stage is described
 below.
 
 Vertex shader
 `````````````
 
-A vertex shader (running on the Unified Shader Cores) outputs varyings with the
+A vertex shader (running on the :term:`Unified Shader Cores`) outputs varyings with the
 ``st_var`` instruction. ``st_var`` takes a *vertex output index* and a 32-bit
 value. The maximum number of *vertex outputs* is specified as the "output count"
 of the shader in the "Bind Vertex Pipeline" packet. The value may be interpreted
 consist of a single 32-bit value or an aligned 16-bit register pair, depending
 on whether interpolation should happen at 32-bit or 16-bit. Vertex outputs are
 indexed starting from 0, with the *vertex position* always coming first, the
-32-bit user varyings coming next, then 16-bit user varyings, and finally *point
-size* at the end if present.
+32-bit user varyings coming next with perspective, flat, and linear interpolated
+varyings grouped in that order, then 16-bit user varyings with the same groupings,
+and finally *point size* and *clip distances* at the end if present. Note that
+*clip distances* are not accessible from the fragment shader; if the fragment
+shader needs to read the interpolated clip distance, the vertex shader must
+*also* write the clip distance values to a user varying for the fragment shader
+to interpolate. Also note there is no clip plane enable mask anywhere; that must
+lowered for APIs that require this (OpenGL but not Vulkan).
 
 .. list-table:: Ordering of vertex outputs with all outputs used
    :widths: 25 75
    :header-rows: 1
 
-   * - Index
+   * - Size (words)
      - Value
-   * - 0
-     - Vertex position
    * - 4
-     - 32-bit varying 0
+     - Vertex position
+   * - 1
+     - 32-bit smooth varying 0
    * -
      - ...
-   * - 4 + m
-     - 32-bit varying m
-   * - 4 + m + 1
-     - Packed pair of 16-bit varyings 0
+   * - 1
+     - 32-bit smooth varying m
+   * - 1
+     - 32-bit flat varying 0
    * -
      - ...
-   * - 4 + m + 1 + n
-     - Packed pair of 16-bit varyings n
-   * - 4 + m + 1 + n + 1
+   * - 1
+     - 32-bit flat varying n
+   * - 1
+     - 32-bit linear varying 0
+   * -
+     - ...
+   * - 1
+     - 32-bit linear varying o
+   * - 1
+     - Packed pair of 16-bit smooth varyings 0
+   * -
+     - ...
+   * - 1
+     - Packed pair of 16-bit smooth varyings p
+   * - 1
+     - Packed pair of 16-bit flat varyings 0
+   * -
+     - ...
+   * - 1
+     - Packed pair of 16-bit flat varyings q
+   * - 1
+     - Packed pair of 16-bit linear varyings 0
+   * -
+     - ...
+   * - 1
+     - Packed pair of 16-bit linear varyings r
+   * - 1
      - Point size
+   * - 1
+     - Clip distance for plane 0
+   * -
+     - ...
+   * - 1
+     - Clip distance for plane 15
 
 Remapping
 `````````
@@ -90,7 +108,7 @@ Vertex outputs are remapped to varying slots to be interpolated.
 The output of remapping consists of the following items: the *W* fragment
 coordinate, the *Z* fragment coordinate, user varyings in the vertex
 output order. *Z* may be omitted, but *W* may not be. This remapping is
-configured by the "Linkage" packet.
+configured by the "Output select" word.
 
 .. list-table:: Ordering of remapped slots
    :widths: 25 75
@@ -124,7 +142,7 @@ register is a register allocated constant for all fragment shader invocations in
 a given polygon. Physically, it contains the values output by the vertex shader
 for each vertex of the polygon. Coefficient registers are preloaded with values
 from varying slots. This preloading appears to occur in fixed function hardware,
-a simplifcation from PowerVR which requires a specialized program for the
+a simplification from PowerVR which requires a specialized program for the
 programmable data sequencer to do the preload.
 
 The "Bind fragment pipeline" packet points to coefficient register bindings,
@@ -150,15 +168,15 @@ within the compiler.
 Fragment shader
 ```````````````
 
-In the fragment shader, coefficient registers, identified by the prefix `cf`
+In the fragment shader, coefficient registers, identified by the prefix ``cf``
 followed by a decimal index, act as opaque handles to varyings. For flat
 shading, coefficient registers may be loaded into general registers with the
-`ldcf` instruction. For smooth shading, the coefficient register corresponding
+``ldcf`` instruction. For smooth shading, the coefficient register corresponding
 to the desired varying is passed as an argument to the "iterate" instruction
-`iter` in order to "iterate" (interpolate) a varying. As perspective correct
+``iter`` in order to "iterate" (interpolate) a varying. As perspective correct
 interpolation also requires the W component of the fragment coordinate, the
 coefficient register for W is passed as a second argument. As an example, if
-there's a single varying to interpolate, an instruction like `iter r0, cf1, cf0`
+there's a single varying to interpolate, an instruction like ``iter r0, cf1, cf0``
 is used.
 
 Iterator
@@ -253,7 +271,7 @@ one cache line (128 bytes), ensure no cache line contains multiple mip levels.
 
 There is a wrinkle: the dimensions of large mip levels in tiles are determined
 by the dimensions of level 0. For power-of-two images, the two calculations are
-equivalent. However, they differ subtlely for non-power-of-two images. To
+equivalent. However, they differ subtly for non-power-of-two images. To
 determine the number of tiles to allocate for level :math:`l`, the number of
 tiles for level 0 should be right-shifted by :math:`2l`. That appears to divide
 by :math:`2^l` in both width and height, matching the definition of mipmapping,
@@ -275,3 +293,72 @@ logically. These extra levels pad out layers of 3D images to the size of the
 first layer, simplifying layout calculations for both software and hardware.
 Although the padding is logically unnecessary, it wastes little space compared
 to the sizes of large mipmapped 3D textures.
+
+drm-shim (Linux only)
+---------------------
+
+Mesa includes a library that mocks out the DRM UABI used by the Asahi driver
+stack, allowing the Mesa driver to run on non-M1 Linux hardware. This can be
+useful for exercising the compiler. To build, use options:
+
+::
+
+   -Dgallium-drivers=asahi -Dtools=drm-shim
+
+Then run an OpenGL workload with environment variable:
+
+.. code-block:: console
+
+   LD_PRELOAD=~/mesa/build/src/asahi/drm-shim/libasahi_noop_drm_shim.so
+
+For example to compile a shader with shaderdb and print some statistics along
+with the IR:
+
+.. code-block:: console
+
+   ~/shader-db$ AGX_MESA_DEBUG=shaders,shaderdb ASAHI_MESA_DEBUG=precompile LIBGL_DRIVERS_PATH=~/lib/dri/ LD_PRELOAD=~/mesa/build/src/asahi/drm-shim/libasahi_noop_drm_shim.so ./run shaders/glmark/1-12.shader_test
+
+The drm-shim implementation for Asahi is located in ``src/asahi/drm-shim``. The
+drm-shim implementation there should be updated as new UABI is added.
+
+Hardware glossary
+-----------------
+
+AGX is a tiled renderer descended from the PowerVR architecture. Some hardware
+concepts used in PowerVR GPUs appear in AGX.
+
+.. glossary:: :sorted:
+
+   VDM
+   Vertex Data Master
+      Dispatches vertex shaders.
+
+   PDM
+   Pixel Data Master
+      Dispatches pixel shaders.
+
+   CDM
+   Compute Data Master
+      Dispatches compute kernels.
+
+   USC
+   Unified Shader Cores
+      A unified shader core is a small cpu that runs shader code. The core is
+      unified because a single ISA is used for vertex, pixel and compute
+      shaders. This differs from older GPUs where the vertex, fragment and
+      compute have separate ISAs for shader stages.
+
+   PPP
+   Primitive Processing Pipeline
+      The Primitive Processing Pipeline is a hardware unit that does primitive
+      assembly. The PPP is between the :term:`VDM` and :term:`ISP`.
+
+   ISP
+   Image Synthesis Processor
+      The Image Synthesis Processor is responsible for the rasterization stage
+      of the rendering pipeline.
+
+   PBE
+   Pixel BackEnd
+      Hardware unit which writes to color attachements and images. Also the
+      name for a descriptor passed to :term:`PBE` instructions.

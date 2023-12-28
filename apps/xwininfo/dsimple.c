@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2010, 2023, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -55,6 +55,9 @@ from The Open Group.
 #ifdef USE_XCB_ICCCM
 # include <xcb/xcb_icccm.h>
 #endif
+#ifdef USE_XCB_ERRORS
+# include <xcb/xcb_errors.h>
+#endif
 #include <X11/cursorfont.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -74,6 +77,9 @@ from The Open Group.
  * Written by Mark Lillibridge.   Last updated 7/1/87
  */
 
+#ifdef USE_XCB_ERRORS
+xcb_errors_context_t *error_context;
+#endif
 
 /* This stuff is defined in the calling program by dsimple.h */
 const char    *program_name = "unknown_program";
@@ -109,7 +115,7 @@ void Setup_Display_And_Screen (
     xcb_connection_t **dpy,	/* MODIFIED */
     xcb_screen_t **screen)	/* MODIFIED */
 {
-    int screen_number, i, err;
+    int screen_number, err;
 
     /* Open Display */
     *dpy = xcb_connect (display_name, &screen_number);
@@ -131,6 +137,13 @@ void Setup_Display_And_Screen (
         }
     }
 
+#ifdef USE_XCB_ERRORS
+    if (xcb_errors_context_new(*dpy, &error_context) != 0) {
+	fprintf (stderr, "%s: unable to load xcb-errors\n\n",
+                 program_name);
+    }
+#endif
+
     if (screen) {
 	/* find our screen */
 	const xcb_setup_t *setup = xcb_get_setup(*dpy);
@@ -142,7 +155,7 @@ void Setup_Display_And_Screen (
 			 screen_number, screen_count-1 );
 	}
 
-	for (i = 0; i < screen_number; i++)
+	for (int i = 0; i < screen_number; i++)
 	    xcb_screen_next(&screen_iter);
 	*screen = screen_iter.data;
     }
@@ -179,7 +192,6 @@ xcb_window_t Select_Window(xcb_connection_t *dpy,
 			   int descend)
 {
     xcb_cursor_t cursor;
-    xcb_generic_event_t *event;
     xcb_window_t target_win = XCB_WINDOW_NONE;
     xcb_window_t root = screen->root;
     int buttons = 0;
@@ -203,6 +215,8 @@ xcb_window_t Select_Window(xcb_connection_t *dpy,
     /* Let the user select a window... */
     while ((target_win == XCB_WINDOW_NONE) || (buttons != 0)) {
 	/* allow one more event */
+	xcb_generic_event_t *event;
+
 	xcb_allow_events (dpy, XCB_ALLOW_SYNC_POINTER, XCB_TIME_CURRENT_TIME);
 	xcb_flush (dpy);
 	event = xcb_wait_for_event (dpy);
@@ -280,7 +294,7 @@ recursive_Window_With_Name  (
 {
     xcb_window_t *children;
     unsigned int nchildren;
-    int i;
+    unsigned int i;
     xcb_window_t w = 0;
     xcb_generic_error_t *err;
     xcb_query_tree_reply_t *tree;
@@ -296,7 +310,7 @@ recursive_Window_With_Name  (
 		int prop_name_len = xcb_get_property_value_length (prop);
 
 		/* can't use strcmp, since prop.name is not null terminated */
-		if ((namelen == prop_name_len) &&
+		if ((namelen == (size_t) prop_name_len) &&
 		    memcmp (prop_name, name, namelen) == 0) {
 		    w = window;
 		}
@@ -318,7 +332,7 @@ recursive_Window_With_Name  (
 	if (xcb_icccm_get_wm_name_reply (dpy, cookies->get_wm_name,
 					 &nameprop, &err)) {
 	    /* can't use strcmp, since nameprop.name is not null terminated */
-	    if ((namelen == nameprop.name_len) &&
+	    if ((namelen == (size_t) nameprop.name_len) &&
 		memcmp (nameprop.name, name, namelen) == 0) {
 		w = window;
 	    }
@@ -334,7 +348,7 @@ recursive_Window_With_Name  (
 		int prop_name_len = xcb_get_property_value_length (prop);
 
 		/* can't use strcmp, since prop.name is not null terminated */
-		if ((namelen == prop_name_len) &&
+		if ((namelen == (size_t) prop_name_len) &&
 		    memcmp (prop_name, name, namelen) == 0) {
 		    w = window;
 		}
@@ -415,6 +429,8 @@ Window_With_Name (
 
     if (atom_net_wm_name && atom_utf8_string)
 	cookies.get_net_wm_name = xcb_get_net_wm_name (dpy, top);
+    else
+	cookies.get_net_wm_name.sequence = 0;
     cookies.get_wm_name = xcb_icccm_get_wm_name (dpy, top);
     cookies.query_tree = xcb_query_tree (dpy, top);
     xcb_flush (dpy);
@@ -439,6 +455,35 @@ void Fatal_Error (const char *msg, ...)
 }
 
 /*
+ * Descriptions for core protocol error codes
+ *
+ * Since 0 is not used for an error code in X, we use it for unknown error.
+ */
+#define UNKNOWN_ERROR 0
+#define LAST_ERROR XCB_IMPLEMENTATION
+
+static const char *error_desc[] = {
+    [UNKNOWN_ERROR] = "Unknown error",
+    [XCB_REQUEST] = "Bad Request",
+    [XCB_VALUE] = "Bad Value",
+    [XCB_WINDOW] = "Bad Window",
+    [XCB_PIXMAP] = "Bad Pixmap",
+    [XCB_ATOM] = "Bad Atom",
+    [XCB_CURSOR] = "Bad Cursor",
+    [XCB_FONT] = "Bad Font",
+    [XCB_MATCH] = "Bad Match",
+    [XCB_DRAWABLE] = "Bad Drawable",
+    [XCB_ACCESS] = "Access Denied",
+    [XCB_ALLOC] = "Server Memory Allocation Failure",
+    [XCB_COLORMAP] = "Bad Color",
+    [XCB_G_CONTEXT] = "Bad GC",
+    [XCB_ID_CHOICE] = "Bad XID",
+    [XCB_NAME] = "Bad Name",
+    [XCB_LENGTH] = "Bad Request Length",
+    [XCB_IMPLEMENTATION] = "Server Implementation Failure",
+};
+
+/*
  * Print X error information like the default Xlib error handler
  */
 void
@@ -447,117 +492,89 @@ Print_X_Error (
     xcb_generic_error_t *err
     )
 {
-    char buffer[256] = "";
+    const char *error = NULL;
+    const char *extension = NULL;
+    const char *value_type = NULL;
+    const char *major_name = NULL;
+    const char *minor_name = NULL;
 
     if ((err == NULL) || (err->response_type != 0)) /* not an error */
 	return;
 
-    /* Todo: find a more user friendly way to show request/extension info */
+#ifdef USE_XCB_ERRORS
+    if (error_context != NULL) {
+	error = xcb_errors_get_name_for_error(error_context, err->error_code,
+					      &extension);
+	major_name = xcb_errors_get_name_for_major_code(error_context,
+							err->major_code);
+	minor_name = xcb_errors_get_name_for_minor_code(error_context,
+							err->major_code,
+							err->minor_code);
+    }
+    /* Fallback to old code if xcb-errors wasn't initialized */
+    else
+#endif
     if (err->error_code >= 128)
     {
-	fprintf (stderr, "X Extension Error:  Error code %d\n",
-		 err->error_code);
+	error = "Unknown extension error";
     }
     else
     {
-	switch (err->error_code)
-	{
-	    case XCB_REQUEST:
-		snprintf (buffer, sizeof(buffer), "Bad Request");
-		break;
-
-	    case XCB_VALUE:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Value: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_WINDOW:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Window: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_PIXMAP:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Pixmap: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_ATOM:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Atom: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_CURSOR:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Cursor: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_FONT:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Font: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_MATCH:
-		snprintf (buffer, sizeof(buffer), "Bad Match");
-		break;
-
-	    case XCB_DRAWABLE:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Drawable: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_ACCESS:
-		snprintf (buffer, sizeof(buffer), "Access Denied");
-		break;
-
-	    case XCB_ALLOC:
-		snprintf (buffer, sizeof(buffer),
-			  "Server Memory Allocation Failure");
-		break;
-
-	    case XCB_COLORMAP:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Color: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_G_CONTEXT:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad GC: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_ID_CHOICE:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad XID: 0x%x", err->resource_id);
-		break;
-
-	    case XCB_NAME:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Name");
-		break;
-
-	    case XCB_LENGTH:
-		snprintf (buffer, sizeof(buffer),
-			  "Bad Request Length");
-		break;
-
-	    case XCB_IMPLEMENTATION:
-		snprintf (buffer, sizeof(buffer),
-			  "Server Implementation Failure");
-		break;
-
-	    default:
-		snprintf (buffer, sizeof(buffer), "Unknown error");
-		break;
+	if (err->error_code > 0 && err->error_code <= LAST_ERROR) {
+	    error = error_desc[err->error_code];
+	} else {
+	    error = error_desc[UNKNOWN_ERROR];
 	}
-	fprintf (stderr, "X Error: %d: %s\n", err->error_code, buffer);
     }
 
-    fprintf (stderr, "  Request Major code: %d\n", err->major_code);
+    fprintf (stderr, "X Error: %d: %s\n", err->error_code, error);
+    if (extension != NULL) {
+	fprintf (stderr, "  Request extension: %s\n", extension);
+    }
+
+    fprintf (stderr, "  Request Major code: %d", err->major_code);
+    if (major_name != NULL) {
+	fprintf (stderr, " (%s)", major_name);
+    }
+    fputs ("\n", stderr);
+
     if (err->major_code >= 128)
     {
-	fprintf (stderr, "  Request Minor code: %d\n", err->minor_code);
+	fprintf (stderr, "  Request Minor code: %d", err->minor_code);
+	if (minor_name != NULL) {
+	    fprintf (stderr, " (%s)", minor_name);
+	}
+	fputs ("\n", stderr);
     }
 
-    fprintf (stderr, "  Request serial number: %d\n", err->full_sequence);
+    switch (err->error_code)
+    {
+    case XCB_VALUE:
+	value_type = "Value";
+	break;
+    case XCB_ATOM:
+	value_type = "AtomID";
+	break;
+    case XCB_WINDOW:
+    case XCB_PIXMAP:
+    case XCB_CURSOR:
+    case XCB_FONT:
+    case XCB_DRAWABLE:
+    case XCB_COLORMAP:
+    case XCB_G_CONTEXT:
+    case XCB_ID_CHOICE:
+	value_type = "ResourceID";
+	break;
+    default:
+	value_type = NULL;
+    }
+    if (value_type != NULL) {
+	fprintf (stderr, "  %s in failed request: 0x%x\n",
+		 value_type, err->resource_id);
+    }
+
+    fprintf (stderr, "  Serial number of failed request: %d\n",
+	     err->full_sequence);
 }
 
 /*
@@ -611,10 +628,10 @@ xcb_atom_t Get_Atom (xcb_connection_t * dpy, const char *name)
 	    a->atom = reply->atom;
 	    free (reply);
 	} else {
-	    a->atom = -1;
+	    a->atom = (xcb_atom_t) -1;
 	}
     }
-    if (a->atom == -1) /* internal error */
+    if (a->atom == (xcb_atom_t) -1) /* internal error */
 	return XCB_ATOM_NONE;
 
     return a->atom;

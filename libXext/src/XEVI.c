@@ -31,6 +31,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/extensions/extutil.h>
 #include <X11/Xutil.h>
 #include <limits.h>
+#include "reallocarray.h"
 
 static XExtensionInfo *xevi_info;/* needs to move to globals.c */
 static const char *xevi_extension_name = EVINAME;
@@ -126,7 +127,7 @@ Status XeviGetVisualInfo(
 	return BadValue;
     }
     if (!n_visual || !visual) {		/* copy the all visual */
-    	temp_visual = (VisualID32 *)Xmalloc(sz_VisualID32 * sz_info);
+	temp_visual = Xcalloc(sz_info, sz_VisualID32);
     	n_visual = 0;
         for (vinfoIndex = 0; vinfoIndex < sz_info; vinfoIndex++)
 	    if (notInList(temp_visual, n_visual, vinfo[vinfoIndex].visualid))
@@ -146,7 +147,7 @@ Status XeviGetVisualInfo(
 	        return BadValue;
 	    }
 	}
-	temp_visual = (VisualID32 *)Xmalloc(sz_VisualID32 * n_visual);
+	temp_visual = Xmallocarray(n_visual, sz_VisualID32);
         for (visualIndex = 0; visualIndex < n_visual; visualIndex++)
 	    temp_visual[visualIndex] = visual[visualIndex];
     }
@@ -170,7 +171,7 @@ Status XeviGetVisualInfo(
 	sz_xInfo = rep.n_info * sz_xExtendedVisualInfo;
 	sz_conflict = rep.n_conflicts * sizeof(VisualID);
 	sz_xConflict = rep.n_conflicts * sz_VisualID32;
-	*evi_return = Xmalloc(sz_info + sz_conflict);
+	*evi_return = Xcalloc(1, sz_info + sz_conflict);
 	temp_xInfo = Xmalloc(sz_xInfo);
 	temp_conflict = Xmalloc(sz_xConflict);
     } else {

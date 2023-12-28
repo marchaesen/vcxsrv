@@ -38,6 +38,6 @@ Emil Velikov (2):
 -  docs: add sha256 checksums for 18.3.0
 -  Update version to 18.3.1
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  anv,radv: Disable VK_EXT_pci_bus_info

@@ -52,17 +52,17 @@ dri2_get_mapping_by_format(int format);
 enum pipe_format
 dri2_get_pipe_format_for_dri_format(int format);
 
-boolean
+bool
 dri2_query_dma_buf_formats(__DRIscreen *_screen, int max, int *formats,
                            int *count);
-boolean
+bool
 dri2_yuv_dma_buf_supported(struct dri_screen *screen,
                            const struct dri2_format_mapping *map);
 
 __DRIimage *
 dri2_lookup_egl_image(struct dri_screen *screen, void *handle);
 
-boolean
+bool
 dri2_validate_egl_image(struct dri_screen *screen, void *handle);
 
 __DRIimage *

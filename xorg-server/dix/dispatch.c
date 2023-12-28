@@ -74,7 +74,7 @@ Equipment Corporation.
 ******************************************************************/
 
 /* XSERVER_DTRACE additions:
- * Copyright (c) 2005-2006, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2005-2006, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -103,11 +103,6 @@ Equipment Corporation.
 
 #ifdef CreateWindow
 #undef CreateWindow
-#endif
-
-#ifdef PANORAMIX_DEBUG
-#include <stdio.h>
-int ProcInitialConnection();
 #endif
 
 #include "windowstr.h"
@@ -517,10 +512,10 @@ void DispatchQueuedEvents(Bool wait)
             }
         }
 
-       /*****************
-	*  Handle events in round robin fashion, doing input between
-	*  each round
-	*****************/
+        /*****************
+         *  Handle events in round robin fashion, doing input between
+         *  each round
+         *****************/
 
         if (!dispatchException && clients_are_ready())
         {
@@ -2273,7 +2268,7 @@ DoGetImage(ClientPtr client, int format, Drawable drawable,
             PixmapPtr pPix = (*pDraw->pScreen->GetWindowPixmap) (pWin);
 
             pBoundingDraw = &pPix->drawable;
-#ifdef COMPOSITE
+#if defined(COMPOSITE) || defined(ROOTLESS)
             relx -= pPix->screen_x;
             rely -= pPix->screen_y;
 #endif
@@ -3737,11 +3732,11 @@ ProcInitialConnection(ClientPtr client)
     prefix = (xConnClientPrefix *) ((char *)stuff + sz_xReq);
     order = prefix->byteOrder;
     if (order != 'l' && order != 'B' && order != 'r' && order != 'R')
-	return client->noClientException = -1;
+        return client->noClientException = -1;
     if (((*(char *) &whichbyte) && (order == 'B' || order == 'R')) ||
-	(!(*(char *) &whichbyte) && (order == 'l' || order == 'r'))) {
-	client->swapped = TRUE;
-	SwapConnClientPrefix(prefix);
+        (!(*(char *) &whichbyte) && (order == 'l' || order == 'r'))) {
+        client->swapped = TRUE;
+        SwapConnClientPrefix(prefix);
     }
     stuff->reqType = 2;
     stuff->length += bytes_to_int32(prefix->nbytesAuthProto) +
@@ -3750,7 +3745,7 @@ ProcInitialConnection(ClientPtr client)
         swaps(&stuff->length);
     }
     if (order == 'r' || order == 'R') {
-	client->local = FALSE;
+        client->local = FALSE;
     }
     ResetCurrentRequest(client);
     return Success;
@@ -3851,28 +3846,30 @@ int
 ProcEstablishConnection(ClientPtr client)
 {
     const char *reason;
-    char *auth_proto, *auth_string;
     xConnClientPrefix *prefix;
 
     REQUEST(xReq);
 
     prefix = (xConnClientPrefix *) ((char *) stuff + sz_xReq);
-    auth_proto = (char *) prefix + sz_xConnClientPrefix;
-    auth_string = auth_proto + pad_to_int32(prefix->nbytesAuthProto);
 
-    if ((client->req_len << 2) != sz_xReq + sz_xConnClientPrefix +
-	pad_to_int32(prefix->nbytesAuthProto) +
-	pad_to_int32(prefix->nbytesAuthString))
+    if (client->swapped && !AllowByteSwappedClients) {
+        reason = "Prohibited client endianess, see the Xserver man page ";
+    } else if ((client->req_len << 2) != sz_xReq + sz_xConnClientPrefix +
+            pad_to_int32(prefix->nbytesAuthProto) +
+            pad_to_int32(prefix->nbytesAuthString))
         reason = "Bad length";
     else if ((prefix->majorVersion != X_PROTOCOL) ||
         (prefix->minorVersion != X_PROTOCOL_REVISION))
         reason = "Protocol version mismatch";
-    else
+    else {
+        char *auth_proto = (char *) prefix + sz_xConnClientPrefix;
+        char *auth_string = auth_proto + pad_to_int32(prefix->nbytesAuthProto);
         reason = ClientAuthorized(client,
                                   (unsigned short) prefix->nbytesAuthProto,
                                   auth_proto,
                                   (unsigned short) prefix->nbytesAuthString,
                                   auth_string);
+    }
 
     return (SendConnSetup(client, reason));
 }

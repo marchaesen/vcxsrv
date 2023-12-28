@@ -331,7 +331,7 @@ xkb_keycodes "basic" {
     <K74> =   219;		// <I5B>
     <K75> =   220;		// <I5C>
     <K76> =   221;		// <I5D>
-   
+
     // Solaris compatibility
 
     alias <LMTA> = <LWIN>;

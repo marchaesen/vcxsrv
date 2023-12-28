@@ -72,7 +72,7 @@ Jan Vesely (8):
 -  winsys/amdgpu: Destroy dev_hash table when the last winsys is
    removed.
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  i965,anv: Set the CS stall bit on the ISP disable PIPE_CONTROL
 

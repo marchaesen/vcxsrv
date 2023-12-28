@@ -86,10 +86,14 @@ endif
 
 ifndef CLEANRULEPOSTFIX
 ifeq ($(OBJDIRPREFIX),)
+ifeq ($(NORELDBG),1)
+CLEANRULEPOSTFIX=noreldbg
+else
 ifeq ($(DEBUG),1)
 CLEANRULEPOSTFIX=debug
 else
 CLEANRULEPOSTFIX=release
+endif
 endif
 else
 CLEANRULEPOSTFIX=$(OBJDIRPREFIX)

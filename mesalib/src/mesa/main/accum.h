@@ -37,7 +37,7 @@
 #ifndef ACCUM_H
 #define ACCUM_H
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

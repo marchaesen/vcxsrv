@@ -1,6 +1,7 @@
+// Keyboard layouts for Kazachstan.
+
 // Based on http://www.sci.kz/~sairan/keyboard/kzkbd.html
 // Baurzhan Ismagulov <ibr@radix50.net>
-//
 
 // TODO:
 // 1. AltGr with TLDE and LSGT.
@@ -271,9 +272,9 @@ key.type[group1] = "ALPHABETIC";
     key <AE05> { [ U01F5,                   U01F4 ] }; // gG with acute
     key <AE08> { [ uacute,                  Uacute ] };
     key <AE09> { [ yacute,                  Yacute ] };
-    key <AE10> { [ oacute,                  Oacute ] }; 
-    key <AE11> { [ sacute,                  Sacute ] }; 
-    key <AE12> { [ cacute,                  Cacute ] }; 
+    key <AE10> { [ oacute,                  Oacute ] };
+    key <AE11> { [ sacute,                  Sacute ] };
+    key <AE12> { [ cacute,                  Cacute ] };
 
     key <AD01> { [ q,                       Q ] };
     key <AD02> { [ w,                       W ] };

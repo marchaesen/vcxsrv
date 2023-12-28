@@ -24,7 +24,7 @@ inc_panfrost_hw = include_directories([
 ])
 
 inc_panfrost = include_directories([
-   '.', 'include', 'shared', 'midgard', 'bifrost', 'lib'
+   '.', 'include', 'shared', 'midgard', 'compiler', 'lib'
 ])
 
 compile_args_panfrost = [
@@ -34,7 +34,7 @@ compile_args_panfrost = [
 subdir('shared')
 subdir('util')
 subdir('midgard')
-subdir('bifrost')
+subdir('compiler')
 
 if with_gallium_panfrost or with_panfrost_vk
    subdir('lib')
@@ -42,7 +42,7 @@ if with_gallium_panfrost or with_panfrost_vk
 endif
 
 files_bifrost = files(
-  'bifrost/cmdline.c',
+  'compiler/cmdline.c',
 )
 
 bifrost_compiler = executable(
@@ -65,7 +65,6 @@ bifrost_compiler = executable(
     dep_libdrm,
   ],
   link_with : [
-    libglsl_standalone,
     libpanfrost_bifrost,
   ],
   build_by_default : with_tools.contains('panfrost')

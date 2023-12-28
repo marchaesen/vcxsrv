@@ -27,7 +27,7 @@
 #ifndef BBOX_H
 #define BBOX_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 struct gl_context;
 

@@ -81,6 +81,11 @@
 #define DETECT_OS_UNIX 1
 #endif
 
+#if defined(__managarm__)
+#define DETECT_OS_MANAGARM 1
+#define DETECT_OS_UNIX 1
+#endif
+
 
 /*
  * Make sure DETECT_OS_* are always defined, so that they can be used with #if
@@ -126,6 +131,9 @@
 #endif
 #ifndef DETECT_OS_WINDOWS
 #define DETECT_OS_WINDOWS 0
+#endif
+#ifndef DETECT_OS_MANAGARM
+#define DETECT_OS_MANAGARM 0
 #endif
 
 #endif /* DETECT_OS_H */

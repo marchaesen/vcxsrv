@@ -48,22 +48,22 @@ const GUID IID_IDirect3DVertexShader9 = { 0xEFC5557E, 0x6265, 0x4613, { 0x8A, 0x
 const GUID IID_IDirect3DVolume9 = { 0x24F416E6, 0x1F67, 0x4AA7, { 0xB8, 0x8E, 0xD3, 0x3F, 0x6F, 0x31, 0x28, 0xA1 } };
 const GUID IID_IDirect3DVolumeTexture9 = { 0x2518526C, 0xE789, 0x4111, { 0xA7, 0xB9, 0x47, 0xEF, 0x32, 0x8D, 0x13, 0xE6 } };
 
-boolean
+bool
 GUID_equal( const GUID *a,
             const GUID *b )
 {
     unsigned i;
 
     if (!a || !b)
-        return FALSE;
+        return false;
 
     if (a->Data1 != b->Data1 ||
         a->Data2 != b->Data2 ||
-        a->Data3 != b->Data3) { return FALSE; }
+        a->Data3 != b->Data3) { return false; }
     for (i = 0; i < 8; i++) {
-        if (a->Data4[i] != b->Data4[i]) { return FALSE; }
+        if (a->Data4[i] != b->Data4[i]) { return false; }
     }
-    return TRUE;
+    return true;
 }
 
 char* GUID_sprintf(char *guid_str, REFGUID id) {

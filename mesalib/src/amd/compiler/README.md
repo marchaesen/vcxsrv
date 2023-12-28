@@ -105,7 +105,7 @@ This means that we need to insert `s_waitcnt` instructions (and its variants) so
 #### Resolve hazards and insert NOPs
 
 Some instructions require wait states or other instructions to resolve hazards which are not handled by the hardware.
-This pass makes sure that no known hazards occour.
+This pass makes sure that no known hazards occur.
 
 #### Emit program - Assembler
 
@@ -118,7 +118,7 @@ Which software stage gets executed on which hardware stage depends on what kind 
 
 An important difference is that VS is always the first stage to run in SW models,
 whereas HW VS refers to the last HW stage before fragment shading in GCN/RDNA terminology.
-That's why, among other things, the HW VS is no longer used to execute the SW VS when tesselation or geometry shading are used.
+That's why, among other things, the HW VS is no longer used to execute the SW VS when tessellation or geometry shading are used.
 
 #### Glossary of software stages
 

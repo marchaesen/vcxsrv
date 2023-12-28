@@ -58,3 +58,7 @@ dEQP-GLES31.functional.copy_image.non_compressed.viewclass_32_bits.srgb8_alpha8_
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_64_bits.rg32i_rgba16i.renderbuffer_to_renderbuffer,Fail
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_64_bits.rg32ui_rgba16i.renderbuffer_to_renderbuffer,Fail
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_64_bits.rgba16ui_rgba16i.renderbuffer_to_renderbuffer,Fail
+
+# Piglit xfb tests
+spec@ext_transform_feedback@tessellation quad_strip wireframe,Fail
+spec@ext_transform_feedback@tessellation quads wireframe,Fail

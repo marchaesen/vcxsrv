@@ -84,7 +84,7 @@ Ilia Mirkin (6):
 -  nv30: always go through translate module on big-endian
 -  nouveau: make sure there's always room to emit a fence
 
-Jason Ekstrand (1):
+Faith Ekstrand (1):
 
 -  mesa: Correctly handle GL_BGRA_EXT in ES3 format_and_type checks
 

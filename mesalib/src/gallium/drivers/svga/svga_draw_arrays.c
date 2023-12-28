@@ -25,9 +25,9 @@
 
 #include "svga_cmd.h"
 
+#include "indices/u_indices.h"
 #include "util/u_inlines.h"
 #include "util/u_prim.h"
-#include "indices/u_indices.h"
 
 #include "svga_hw_reg.h"
 #include "svga_draw.h"
@@ -78,7 +78,7 @@ fail:
 }
 
 
-static boolean
+static bool
 compare(unsigned cached_nr, unsigned nr, unsigned type)
 {
    if (type == U_GENERATE_REUSABLE)
@@ -90,7 +90,7 @@ compare(unsigned cached_nr, unsigned nr, unsigned type)
 
 static enum pipe_error
 retrieve_or_generate_indices(struct svga_hwtnl *hwtnl,
-                             enum pipe_prim_type prim,
+                             enum mesa_prim prim,
                              unsigned gen_type,
                              unsigned gen_nr,
                              unsigned gen_size,
@@ -110,7 +110,7 @@ retrieve_or_generate_indices(struct svga_hwtnl *hwtnl,
                                     hwtnl->index_cache[prim][i].buffer);
 
             if (DBG)
-               debug_printf("%s retrieve %d/%d\n", __FUNCTION__, i, gen_nr);
+               debug_printf("%s retrieve %d/%d\n", __func__, i, gen_nr);
 
             goto done;
          }
@@ -119,7 +119,7 @@ retrieve_or_generate_indices(struct svga_hwtnl *hwtnl,
                                     NULL);
 
             if (DBG)
-               debug_printf("%s discard %d/%d\n", __FUNCTION__,
+               debug_printf("%s discard %d/%d\n", __func__,
                             i, hwtnl->index_cache[prim][i].gen_nr);
 
             break;
@@ -148,7 +148,7 @@ retrieve_or_generate_indices(struct svga_hwtnl *hwtnl,
                               NULL);
 
       if (DBG)
-         debug_printf("%s discard smallest %d/%d\n", __FUNCTION__,
+         debug_printf("%s discard smallest %d/%d\n", __func__,
                       smallest, smallest_size);
 
       i = smallest;
@@ -163,7 +163,7 @@ retrieve_or_generate_indices(struct svga_hwtnl *hwtnl,
    pipe_resource_reference(&hwtnl->index_cache[prim][i].buffer, *out_buf);
 
    if (DBG)
-      debug_printf("%s cache %d/%d\n", __FUNCTION__,
+      debug_printf("%s cache %d/%d\n", __func__,
                    i, hwtnl->index_cache[prim][i].gen_nr);
 
 done:
@@ -174,9 +174,9 @@ done:
 
 static enum pipe_error
 simple_draw_arrays(struct svga_hwtnl *hwtnl,
-                   enum pipe_prim_type prim, unsigned start, unsigned count,
+                   enum mesa_prim prim, unsigned start, unsigned count,
                    unsigned start_instance, unsigned instance_count,
-                   ubyte vertices_per_patch)
+                   uint8_t vertices_per_patch)
 {
    SVGA3dPrimitiveRange range;
    unsigned hw_prim;
@@ -208,11 +208,11 @@ simple_draw_arrays(struct svga_hwtnl *hwtnl,
 
 enum pipe_error
 svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
-                       enum pipe_prim_type prim, unsigned start, unsigned count,
+                       enum mesa_prim prim, unsigned start, unsigned count,
                        unsigned start_instance, unsigned instance_count,
-                       ubyte vertices_per_patch)
+                       uint8_t vertices_per_patch)
 {
-   enum pipe_prim_type gen_prim;
+   enum mesa_prim gen_prim;
    unsigned gen_size, gen_nr;
    enum indices_mode gen_type;
    u_generate_func gen_func;
@@ -242,11 +242,11 @@ svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
           * supported by the svga device.  Also note, we can only do this
           * for flat/constant-colored rendering because of provoking vertex.
           */
-         if (prim == PIPE_PRIM_POLYGON) {
-            prim = PIPE_PRIM_TRIANGLE_FAN;
+         if (prim == MESA_PRIM_POLYGON) {
+            prim = MESA_PRIM_TRIANGLE_FAN;
          }
-         else if (prim == PIPE_PRIM_QUADS && count == 4) {
-            prim = PIPE_PRIM_TRIANGLE_FAN;
+         else if (prim == MESA_PRIM_QUADS && count == 4) {
+            prim = MESA_PRIM_TRIANGLE_FAN;
          }
       }
    }
@@ -261,8 +261,8 @@ svga_hwtnl_draw_arrays(struct svga_hwtnl *hwtnl,
                                       &gen_size, &gen_nr, &gen_func);
    }
    else {
-      /* Convert PIPE_PRIM_LINE_LOOP to PIPE_PRIM_LINESTRIP,
-       * convert PIPE_PRIM_POLYGON to PIPE_PRIM_TRIANGLE_FAN,
+      /* Convert MESA_PRIM_LINE_LOOP to MESA_PRIM_LINESTRIP,
+       * convert MESA_PRIM_POLYGON to MESA_PRIM_TRIANGLE_FAN,
        * etc, if needed (as determined by svga_hw_prims mask).
        */
       gen_type = u_index_generator(svga_hw_prims,

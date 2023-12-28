@@ -324,7 +324,7 @@ vlVdpPresentationQueueBlockUntilSurfaceIdle(VdpPresentationQueue presentation_qu
    mtx_lock(&pq->device->mutex);
    if (surf->fence) {
       screen = pq->device->vscreen->pscreen;
-      screen->fence_finish(screen, NULL, surf->fence, PIPE_TIMEOUT_INFINITE);
+      screen->fence_finish(screen, NULL, surf->fence, OS_TIMEOUT_INFINITE);
       screen->fence_reference(screen, &surf->fence, NULL);
    }
    mtx_unlock(&pq->device->mutex);

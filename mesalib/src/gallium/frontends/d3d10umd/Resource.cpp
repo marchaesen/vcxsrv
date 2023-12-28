@@ -199,7 +199,7 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
         pCreateResource->pPrimaryDesc->DriverFlags & DXGI_DDI_PRIMARY_OPTIONAL)) {
 
       DebugPrintf("%s(%dx%dx%d hResource=%p)\n",
-	       __FUNCTION__,
+	       __func__,
 	       pCreateResource->pMipInfoList[0].TexelWidth,
 	       pCreateResource->pMipInfoList[0].TexelHeight,
 	       pCreateResource->pMipInfoList[0].TexelDepth,
@@ -298,7 +298,7 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
                                        templat.nr_storage_samples,
                                        templat.bind)) {
          debug_printf("%s: unsupported format %s\n",
-                     __FUNCTION__, util_format_name(templat.format));
+                     __func__, util_format_name(templat.format));
          SetError(hDevice, E_OUTOFMEMORY);
          return;
       }
@@ -306,7 +306,7 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
 
    pResource->resource = screen->resource_create(screen, &templat);
    if (!pResource) {
-      DebugPrintf("%s: failed to create resource\n", __FUNCTION__);
+      DebugPrintf("%s: failed to create resource\n", __func__);
       SetError(hDevice, E_OUTOFMEMORY);
       return;
    }
@@ -360,8 +360,8 @@ CreateResource(D3D10DDI_HDEVICE hDevice,                                // IN
             assert(map);
             if (map) {
                for (int z = 0; z < box.depth; ++z) {
-                  ubyte *dst = (ubyte*)map + z*transfer->layer_stride;
-                  const ubyte *src = (const ubyte*)pInitialDataUP->pSysMem + z*pInitialDataUP->SysMemSlicePitch;
+                  uint8_t *dst = (uint8_t*)map + z*transfer->layer_stride;
+                  const uint8_t *src = (const uint8_t*)pInitialDataUP->pSysMem + z*pInitialDataUP->SysMemSlicePitch;
                   util_copy_rect(dst,
                                  templat.format,
                                  transfer->stride,
@@ -539,7 +539,7 @@ ResourceMap(D3D10DDI_HDEVICE hDevice,                                // IN
                               &pResource->transfers[SubResource]);
    }
    if (!map) {
-      DebugPrintf("%s: failed to map resource\n", __FUNCTION__);
+      DebugPrintf("%s: failed to map resource\n", __func__);
       SetError(hDevice, E_FAIL);
       return;
    }
@@ -609,14 +609,14 @@ areResourcesCompatible(const struct pipe_resource *src_resource, // IN
        * Trivial.
        */
 
-      return TRUE;
+      return true;
    } else if (src_resource->target == PIPE_BUFFER &&
               dst_resource->target == PIPE_BUFFER) {
       /*
        * Buffer resources are merely a collection of bytes.
        */
 
-      return TRUE;
+      return true;
    } else {
       /*
        * Check whether the formats are supported by
@@ -821,7 +821,7 @@ ResourceIsStagingBusy(D3D10DDI_HDEVICE hDevice,       // IN
 
    /* ignore */
 
-   return FALSE;
+   return false;
 }
 
 
@@ -917,8 +917,8 @@ ResourceUpdateSubResourceUP(D3D10DDI_HDEVICE hDevice,                // IN
    assert(map);
    if (map) {
       for (int z = 0; z < box.depth; ++z) {
-         ubyte *dst = (ubyte*)map + z*transfer->layer_stride;
-         const ubyte *src = (const ubyte*)pSysMemUP + z*DepthPitch;
+         uint8_t *dst = (uint8_t*)map + z*transfer->layer_stride;
+         const uint8_t *src = (const uint8_t*)pSysMemUP + z*DepthPitch;
          util_copy_rect(dst,
                         dst_resource->format,
                         transfer->stride,

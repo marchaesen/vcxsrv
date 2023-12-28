@@ -34,9 +34,10 @@ foreach f : xml_files
     _name,
     input: [gen_header_py, f],
     output: _name,
-    command: [prog_python, '@INPUT0@', rnn_src_path, '@INPUT1@'],
+    command: [prog_python, '@INPUT0@', '--rnn', rnn_src_path, '--xml', '@INPUT1@', 'c-defines'],
     capture: true,
   )
+
   _gzname = f + '.gz'
   custom_target(
     _gzname,

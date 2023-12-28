@@ -39,18 +39,18 @@ nir_lower_sysvals_to_varyings(nir_shader *shader,
 
    nir_foreach_variable_with_modes(var, shader, nir_var_system_value) {
       switch (var->data.location) {
-#define SYSVAL_TO_VARYING(opt, sysval, varying) \
-        case SYSTEM_VALUE_ ## sysval: \
-           if (options->opt) { \
-              var->data.mode = nir_var_shader_in; \
-              var->data.location = VARYING_SLOT_ ## varying; \
-              progress = true; \
-           } \
-           break
+#define SYSVAL_TO_VARYING(opt, sysval, varying)       \
+   case SYSTEM_VALUE_##sysval:                        \
+      if (options->opt) {                             \
+         var->data.mode = nir_var_shader_in;          \
+         var->data.location = VARYING_SLOT_##varying; \
+         progress = true;                             \
+      }                                               \
+      break
 
-      SYSVAL_TO_VARYING(frag_coord, FRAG_COORD, POS);
-      SYSVAL_TO_VARYING(point_coord, POINT_COORD, PNTC);
-      SYSVAL_TO_VARYING(front_face, FRONT_FACE, FACE);
+         SYSVAL_TO_VARYING(frag_coord, FRAG_COORD, POS);
+         SYSVAL_TO_VARYING(point_coord, POINT_COORD, PNTC);
+         SYSVAL_TO_VARYING(front_face, FRONT_FACE, FACE);
 
 #undef SYSVAL_TO_VARYING
 

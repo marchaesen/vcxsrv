@@ -24,7 +24,7 @@
 #ifndef TEXTUREBINDLESS_H
 #define TEXTUREBINDLESS_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #ifdef __cplusplus
 extern "C" {

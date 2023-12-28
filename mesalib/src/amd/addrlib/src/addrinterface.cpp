@@ -2,24 +2,7 @@
 ************************************************************************************************************************
 *
 *  Copyright (C) 2007-2022 Advanced Micro Devices, Inc.  All rights reserved.
-*
-* Permission is hereby granted, free of charge, to any person obtaining a
-* copy of this software and associated documentation files (the "Software"),
-* to deal in the Software without restriction, including without limitation
-* the rights to use, copy, modify, merge, publish, distribute, sublicense,
-* and/or sell copies of the Software, and to permit persons to whom the
-* Software is furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
-* THE COPYRIGHT HOLDER(S) OR AUTHOR(S) BE LIABLE FOR ANY CLAIM, DAMAGES OR
-* OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE,
-* ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
-* OTHER DEALINGS IN THE SOFTWARE
+*  SPDX-License-Identifier: MIT
 *
 ***********************************************************************************************************************/
 
@@ -1796,4 +1779,175 @@ ADDR_E_RETURNCODE ADDR_API Addr2IsValidDisplaySwizzleMode(
     }
 
     return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr2GetPossibleSwizzleModes
+*
+*   @brief
+*       Returns a list of swizzle modes that are valid from the hardware's perspective for the
+*       client to choose from
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetPossibleSwizzleModes(
+    ADDR_HANDLE                                   hLib, ///< handle of addrlib
+    const ADDR2_GET_PREFERRED_SURF_SETTING_INPUT* pIn,  ///< [in] input
+    ADDR2_GET_PREFERRED_SURF_SETTING_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->GetPossibleSwizzleModes(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+/**
+****************************************************************************************************
+*   Addr2GetAllowedBlockSet
+*
+*   @brief
+*       Returns the set of allowed block sizes given the allowed swizzle modes and resource type
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetAllowedBlockSet(
+    ADDR_HANDLE      hLib,              ///< handle of addrlib
+    ADDR2_SWMODE_SET allowedSwModeSet,  ///< [in] allowed swizzle modes
+    AddrResourceType rsrcType,          ///< [in] resource type
+    ADDR2_BLOCK_SET* pAllowedBlockSet)  ///< [out] allowed block sizes
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->GetAllowedBlockSet(allowedSwModeSet, rsrcType, pAllowedBlockSet);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr2GetAllowedSwSet
+*
+*   @brief
+*       Returns the set of allowed swizzle types given the allowed swizzle modes
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr2GetAllowedSwSet(
+    ADDR_HANDLE       hLib,              ///< handle of addrlib
+    ADDR2_SWMODE_SET  allowedSwModeSet,  ///< [in] allowed swizzle modes
+    ADDR2_SWTYPE_SET* pAllowedSwSet)     ///< [out] allowed swizzle types
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V2::Lib* pLib = V2::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->GetAllowedSwSet(allowedSwModeSet, pAllowedSwSet);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr2IsBlockTypeAvailable
+*
+*   @brief
+*       Determine whether a block type is allowed in a given blockSet
+****************************************************************************************************
+*/
+BOOL_32 Addr2IsBlockTypeAvailable(
+    ADDR2_BLOCK_SET blockSet,
+    AddrBlockType   blockType)
+{
+    BOOL_32 avail;
+
+    if (blockType == AddrBlockLinear)
+    {
+        avail = blockSet.linear ? TRUE : FALSE;
+    }
+    else
+    {
+        avail = blockSet.value & (1 << (static_cast<UINT_32>(blockType) - 1)) ? TRUE : FALSE;
+    }
+
+    return avail;
+}
+
+/**
+****************************************************************************************************
+*   Addr2BlockTypeWithinMemoryBudget
+*
+*   @brief
+*       Determine whether a new block type is acceptable based on memory waste ratio. Will favor
+*       larger block types.
+****************************************************************************************************
+*/
+BOOL_32 Addr2BlockTypeWithinMemoryBudget(
+    UINT_64 minSize,
+    UINT_64 newBlockTypeSize,
+    UINT_32 ratioLow,
+    UINT_32 ratioHi,
+    DOUBLE  memoryBudget,
+    BOOL_32 newBlockTypeBigger)
+{
+    BOOL_32 accept = FALSE;
+
+    if (memoryBudget >= 1.0)
+    {
+        if (newBlockTypeBigger)
+        {
+            if ((static_cast<DOUBLE>(newBlockTypeSize) / minSize) <= memoryBudget)
+            {
+                accept = TRUE;
+            }
+        }
+        else
+        {
+            if ((static_cast<DOUBLE>(minSize) / newBlockTypeSize) > memoryBudget)
+            {
+                accept = TRUE;
+            }
+        }
+    }
+    else
+    {
+        if (newBlockTypeBigger)
+        {
+            if ((newBlockTypeSize * ratioHi) <= (minSize * ratioLow))
+            {
+                accept = TRUE;
+            }
+        }
+        else
+        {
+            if ((newBlockTypeSize * ratioLow) < (minSize * ratioHi))
+            {
+                accept = TRUE;
+            }
+        }
+    }
+
+    return accept;
 }

@@ -58,23 +58,23 @@ void
 write_tsv_header(FILE *fp);
 
 
-boolean
+bool
 test_some(unsigned verbose, FILE *fp,
           unsigned long n);
 
-boolean
+bool
 test_single(unsigned verbose, FILE *fp);
 
-boolean
+bool
 test_all(unsigned verbose, FILE *fp);
 
 
-#if defined(PIPE_CC_MSVC)
+#if DETECT_CC_MSVC
 
 #include <intrin.h>
 #define rdtsc() __rdtsc()
 
-#elif defined(PIPE_CC_GCC) && (defined(PIPE_ARCH_X86) || defined(PIPE_ARCH_X86_64))
+#elif DETECT_CC_GCC && (DETECT_ARCH_X86 || DETECT_ARCH_X86_64)
 
 static inline uint64_t
 rdtsc(void)
@@ -124,11 +124,11 @@ void
 random_vec(struct lp_type type, void *dst);
 
 
-boolean
+bool
 compare_vec_with_eps(struct lp_type type, const void *res, const void *ref, double eps);
 
 
-boolean
+bool
 compare_vec(struct lp_type type, const void *res, const void *ref);
 
 

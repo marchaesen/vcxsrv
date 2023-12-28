@@ -1,5 +1,5 @@
 .\" Copyright \(co 1986-1997   The Open Group    All Rights Reserved
-.\" Copyright (c) 1999, 2005, Oracle and/or its affiliates. All rights reserved.
+.\" Copyright (c) 1999, 2005, Oracle and/or its affiliates.
 .\"
 .\" Permission is hereby granted, free of charge, to any person obtaining a
 .\" copy of this software and associated documentation files (the "Software"),
@@ -69,7 +69,7 @@ PseudoColor, or DirectColor visual.
 Applications which allocate many colors in a screen's default colormap, e.g.
 a color-cube or a gray-ramp, should allocate them with
 .ZN XCupStoreColors .
-By using XCupStoreColors the colors will be allocated sharable (read-only)
+By using XCupStoreColors the colors will be allocated shareable (read-only)
 and any other application which allocates the same color will share that
 color cell.
 .SH "SEE ALSO"

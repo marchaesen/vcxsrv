@@ -26,14 +26,8 @@
 #ifndef _GLAPI_PRIV_H
 #define _GLAPI_PRIV_H
 
-
-#define GL_GLEXT_PROTOTYPES
-#include "GL/gl.h"
-#include "GL/glext.h"
-
-typedef int GLclampx;
-
 #include "glapi/glapi.h"
+#include "util/glheader.h"
 
 
 #ifdef __cplusplus
@@ -44,14 +38,6 @@ extern "C" {
 
 extern void
 init_glapi_relocs_once(void);
-
-
-extern _glapi_proc
-generate_entrypoint(unsigned int functionOffset);
-
-
-extern void
-fill_in_entrypoint_offset(_glapi_proc entrypoint, unsigned int offset);
 
 
 extern _glapi_proc
@@ -68,8 +54,6 @@ get_entrypoint_address(unsigned int functionOffset);
 #if defined(USE_X64_64_ASM)
 #define DISPATCH_FUNCTION_SIZE  16
 #endif
-
-
 
 #ifdef __cplusplus
 }

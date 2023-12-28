@@ -44,6 +44,7 @@
                    marshal_count       CDATA #IMPLIED>
                    marshal_call_before CDATA #IMPLIED>
                    marshal_call_after  CDATA #IMPLIED>
+                   marshal_struct      CDATA #IMPLIED>
 <!ATTLIST size     name                NMTOKEN #REQUIRED
                    count               NMTOKEN #IMPLIED
                    mode                (get | set) "set">
@@ -138,6 +139,10 @@ param:
      marshal_call_before - insert the string at the beginning of the marshal
         function
      marshal_call_after - insert the string at the end of the marshal function
+     marshal_struct - if "public", insert the structure into the generated
+        header file instead of the C file. It's done even with
+        marshal="custom", in which case you don't have to define the structure
+        manually.
 
 glx:
      rop - Opcode value for "render" commands

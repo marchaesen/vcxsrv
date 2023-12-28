@@ -44,12 +44,19 @@
 #include "xwayland-window.h"
 #include "xwayland-screen.h"
 
+#ifdef XWL_HAS_EI
+#include "xwayland-xtest.h"
+#endif
+
 #include "pointer-constraints-unstable-v1-client-protocol.h"
 #include "relative-pointer-unstable-v1-client-protocol.h"
 #include "tablet-unstable-v2-client-protocol.h"
 #include "pointer-gestures-unstable-v1-client-protocol.h"
 #include "xwayland-keyboard-grab-unstable-v1-client-protocol.h"
 #include "keyboard-shortcuts-inhibit-unstable-v1-client-protocol.h"
+
+#define SCROLL_AXIS_HORIZ 2
+#define SCROLL_AXIS_VERT 3
 
 struct sync_pending {
     struct xorg_list l;
@@ -189,8 +196,8 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
 
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_ABS_Y);
-        axes_labels[2] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
-        axes_labels[3] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
+        axes_labels[SCROLL_AXIS_HORIZ] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_HWHEEL);
+        axes_labels[SCROLL_AXIS_VERT] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_WHEEL);
 
         if (!InitValuatorClassDeviceStruct(device, NAXES, axes_labels,
                                            GetMotionHistorySize(), Absolute))
@@ -201,13 +208,13 @@ xwl_pointer_proc(DeviceIntPtr device, int what)
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
         InitValuatorAxisStruct(device, 1, axes_labels[1],
                                0, 0xFFFF, 10000, 0, 10000, Absolute);
-        InitValuatorAxisStruct(device, 2, axes_labels[2],
+        InitValuatorAxisStruct(device, SCROLL_AXIS_HORIZ, axes_labels[2],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
-        InitValuatorAxisStruct(device, 3, axes_labels[3],
+        InitValuatorAxisStruct(device, SCROLL_AXIS_VERT, axes_labels[3],
                                NO_AXIS_LIMITS, NO_AXIS_LIMITS, 0, 0, 0, Relative);
 
-        SetScrollValuator(device, 2, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE);
-        SetScrollValuator(device, 3, SCROLL_TYPE_VERTICAL, 1.0, SCROLL_FLAG_PREFERRED);
+        SetScrollValuator(device, SCROLL_AXIS_HORIZ, SCROLL_TYPE_HORIZONTAL, 1.0, SCROLL_FLAG_NONE);
+        SetScrollValuator(device, SCROLL_AXIS_VERT, SCROLL_TYPE_VERTICAL, 1.0, SCROLL_FLAG_PREFERRED);
 
         if (!InitPtrFeedbackClassDeviceStruct(device, xwl_pointer_control))
             return BadValue;
@@ -305,6 +312,13 @@ xwl_pointer_proc_pointer_gestures(DeviceIntPtr device, int what)
         */
         axes_labels[0] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_X);
         axes_labels[1] = XIGetKnownProperty(AXIS_LABEL_PROP_REL_Y);
+
+        /*
+         * We'll never send buttons, but XGetPointerMapping might in certain
+         * situations make the client think we have no buttons.
+         */
+        if (!init_pointer_buttons(device))
+            return BadValue;
 
         if (!InitValuatorClassDeviceStruct(device, NAXES, axes_labels,
                                            GetMotionHistorySize(), Relative))
@@ -670,23 +684,23 @@ dispatch_scroll_motion(struct xwl_seat *xwl_seat)
     const int divisor = 10;
     wl_fixed_t dy = xwl_seat->pending_pointer_event.scroll_dy;
     wl_fixed_t dx = xwl_seat->pending_pointer_event.scroll_dx;
-    int32_t discrete_dy = xwl_seat->pending_pointer_event.scroll_discrete_dy;
-    int32_t discrete_dx = xwl_seat->pending_pointer_event.scroll_discrete_dx;
+    int32_t dy_v120 = xwl_seat->pending_pointer_event.scroll_dy_v120;
+    int32_t dx_v120 = xwl_seat->pending_pointer_event.scroll_dx_v120;
 
     valuator_mask_zero(&mask);
-    if (xwl_seat->pending_pointer_event.has_vertical_scroll)
+    if (xwl_seat->pending_pointer_event.has_vertical_scroll_v120)
+        valuator_mask_set_double(&mask, SCROLL_AXIS_VERT, dy_v120 / 120.0);
+    else if (xwl_seat->pending_pointer_event.has_vertical_scroll)
         valuator_mask_set_double(&mask,
-                                 3,
+                                 SCROLL_AXIS_VERT,
                                  wl_fixed_to_double(dy) / divisor);
-    else if (xwl_seat->pending_pointer_event.has_vertical_scroll_discrete)
-        valuator_mask_set(&mask, 3, discrete_dy);
 
-    if (xwl_seat->pending_pointer_event.has_horizontal_scroll)
+    if (xwl_seat->pending_pointer_event.has_horizontal_scroll_v120)
+        valuator_mask_set_double(&mask, SCROLL_AXIS_HORIZ, dx_v120 / 120.0);
+    else if (xwl_seat->pending_pointer_event.has_horizontal_scroll)
         valuator_mask_set_double(&mask,
-                                 2,
+                                 SCROLL_AXIS_HORIZ,
                                  wl_fixed_to_double(dx) / divisor);
-    else if (xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete)
-        valuator_mask_set(&mask, 2, discrete_dx);
 
     QueuePointerEvents(get_pointer_device(xwl_seat),
                        MotionNotify, 0, POINTER_RELATIVE, &mask);
@@ -711,16 +725,16 @@ dispatch_pointer_motion_event(struct xwl_seat *xwl_seat)
 
     if (xwl_seat->pending_pointer_event.has_vertical_scroll ||
         xwl_seat->pending_pointer_event.has_horizontal_scroll ||
-        xwl_seat->pending_pointer_event.has_vertical_scroll_discrete ||
-        xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete)
+        xwl_seat->pending_pointer_event.has_vertical_scroll_v120 ||
+        xwl_seat->pending_pointer_event.has_horizontal_scroll_v120)
         dispatch_scroll_motion(xwl_seat);
 
     xwl_seat->pending_pointer_event.has_absolute = FALSE;
     xwl_seat->pending_pointer_event.has_relative = FALSE;
     xwl_seat->pending_pointer_event.has_vertical_scroll = FALSE;
     xwl_seat->pending_pointer_event.has_horizontal_scroll = FALSE;
-    xwl_seat->pending_pointer_event.has_vertical_scroll_discrete = FALSE;
-    xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete = FALSE;
+    xwl_seat->pending_pointer_event.has_vertical_scroll_v120 = FALSE;
+    xwl_seat->pending_pointer_event.has_horizontal_scroll_v120 = FALSE;
 }
 
 static void
@@ -832,12 +846,30 @@ pointer_handle_axis_discrete(void *data, struct wl_pointer *wl_pointer,
 
     switch (axis) {
     case WL_POINTER_AXIS_VERTICAL_SCROLL:
-        xwl_seat->pending_pointer_event.has_vertical_scroll_discrete = TRUE;
-        xwl_seat->pending_pointer_event.scroll_discrete_dy = discrete;
+        xwl_seat->pending_pointer_event.has_vertical_scroll_v120 = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dy_v120 = 120 * discrete;
         break;
     case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
-        xwl_seat->pending_pointer_event.has_horizontal_scroll_discrete = TRUE;
-        xwl_seat->pending_pointer_event.scroll_discrete_dx = discrete;
+        xwl_seat->pending_pointer_event.has_horizontal_scroll_v120 = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dx_v120 = 120 * discrete;
+        break;
+    }
+}
+
+static void
+pointer_handle_axis_v120(void *data, struct wl_pointer *pointer,
+                         uint32_t axis, int32_t v120)
+{
+    struct xwl_seat *xwl_seat = data;
+
+    switch (axis) {
+    case WL_POINTER_AXIS_VERTICAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_vertical_scroll_v120 = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dy_v120 = v120;
+        break;
+    case WL_POINTER_AXIS_HORIZONTAL_SCROLL:
+        xwl_seat->pending_pointer_event.has_horizontal_scroll_v120 = TRUE;
+        xwl_seat->pending_pointer_event.scroll_dx_v120 = v120;
         break;
     }
 }
@@ -852,6 +884,7 @@ static const struct wl_pointer_listener pointer_listener = {
     pointer_handle_axis_source,
     pointer_handle_axis_stop,
     pointer_handle_axis_discrete,
+    pointer_handle_axis_v120,
 };
 
 static void
@@ -1088,7 +1121,7 @@ keyboard_handle_keymap(void *data, struct wl_keyboard *keyboard,
         munmap(xwl_seat->keymap, xwl_seat->keymap_size);
 
     xwl_seat->keymap_size = size;
-    xwl_seat->keymap = mmap(NULL, size, PROT_READ, MAP_SHARED, fd, 0);
+    xwl_seat->keymap = mmap(NULL, size, PROT_READ, MAP_PRIVATE, fd, 0);
     if (xwl_seat->keymap == MAP_FAILED) {
         xwl_seat->keymap_size = 0;
         xwl_seat->keymap = NULL;
@@ -1146,9 +1179,6 @@ keyboard_handle_leave(void *data, struct wl_keyboard *keyboard,
 {
     struct xwl_seat *xwl_seat = data;
     uint32_t *k;
-
-    if (surface != NULL && !is_surface_from_xwl_window(surface))
-        return;
 
     xwl_seat->xwl_screen->serial = serial;
 
@@ -1831,6 +1861,7 @@ static void
 create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version)
 {
     struct xwl_seat *xwl_seat;
+    int seat_version = 8;
 
     xwl_seat = calloc(1, sizeof *xwl_seat);
     if (xwl_seat == NULL) {
@@ -1843,7 +1874,7 @@ create_input_device(struct xwl_screen *xwl_screen, uint32_t id, uint32_t version
 
     xwl_seat->seat =
         wl_registry_bind(xwl_screen->registry, id,
-                         &wl_seat_interface, min(version, 5));
+                         &wl_seat_interface, min(version, seat_version));
     xwl_seat->id = id;
 
     xwl_cursor_init(&xwl_seat->cursor, xwl_seat->xwl_screen,
@@ -3001,22 +3032,22 @@ input_handler(void *data, struct wl_registry *registry, uint32_t id,
 {
     struct xwl_screen *xwl_screen = data;
 
-    if (strcmp(interface, "wl_seat") == 0 && version >= 3) {
+    if (strcmp(interface, wl_seat_interface.name) == 0 && version >= 3) {
         create_input_device(xwl_screen, id, version);
         xwl_screen->expecting_event++;
-    } else if (strcmp(interface, "zwp_relative_pointer_manager_v1") == 0) {
+    } else if (strcmp(interface, zwp_relative_pointer_manager_v1_interface.name) == 0) {
         init_relative_pointer_manager(xwl_screen, id, version);
         maybe_init_relative_pointer_listeners_after_capabilities(xwl_screen);
-    } else if (strcmp(interface, "zwp_pointer_constraints_v1") == 0) {
+    } else if (strcmp(interface, zwp_pointer_constraints_v1_interface.name) == 0) {
         init_pointer_constraints(xwl_screen, id, version);
-    } else if (strcmp(interface, "zwp_pointer_gestures_v1") == 0) {
+    } else if (strcmp(interface, zwp_pointer_gestures_v1_interface.name) == 0) {
         init_pointer_gestures(xwl_screen, id, version);
         maybe_init_pointer_gesture_listeners_after_capabilities(xwl_screen);
-    } else if (strcmp(interface, "zwp_tablet_manager_v2") == 0) {
+    } else if (strcmp(interface, zwp_tablet_manager_v2_interface.name) == 0) {
         init_tablet_manager(xwl_screen, id, version);
-    } else if (strcmp(interface, "zwp_xwayland_keyboard_grab_manager_v1") == 0) {
+    } else if (strcmp(interface, zwp_xwayland_keyboard_grab_manager_v1_interface.name) == 0) {
         init_keyboard_grab(xwl_screen, id, version);
-    } else if (strcmp(interface, "zwp_keyboard_shortcuts_inhibit_manager_v1") == 0) {
+    } else if (strcmp(interface, zwp_keyboard_shortcuts_inhibit_manager_v1_interface.name) == 0) {
         init_keyboard_shortcuts_inhibit(xwl_screen, id, version);
     }
 }
@@ -3472,10 +3503,17 @@ InitInput(int argc, char *argv[])
     pScreen->XYToWindow = xwl_xy_to_window;
 
     xwl_screen_roundtrip(xwl_screen);
+#ifdef XWL_HAS_EI
+    if (xwl_screen->rootless)
+        xwayland_override_xtest();
+#endif
 }
 
 void
 CloseInput(void)
 {
+#ifdef XWL_HAS_EI
+    xwayland_restore_xtest();
+#endif
     mieqFini();
 }

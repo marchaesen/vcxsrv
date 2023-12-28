@@ -29,7 +29,7 @@
 #define LP_MEMORY_H
 
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "pipe/p_state.h"
 #include "lp_limits.h"
 #include "gallivm/lp_bld_type.h"

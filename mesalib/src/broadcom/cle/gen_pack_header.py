@@ -25,9 +25,8 @@
 import xml.parsers.expat
 import re
 import sys
-import copy
 
-license =  """/* Generated code, see v3d_packet_v21.xml, v3d_packet_v33.xml and gen_pack_header.py */
+license =  """/* Generated code, see vc4_packet.xml, v3d_packet.xml and gen_pack_header.py */
 """
 
 pack_header = """%(license)s
@@ -113,7 +112,7 @@ class Field(object):
         self.type = attrs["type"]
 
         if self.type == 'bool' and self.start != self.end:
-            print("#error Field {} has bool type but more than one bit of size".format(self.name));
+            print("#error Field {} has bool type but more than one bit of size".format(self.name))
 
         if "prefix" in attrs:
             self.prefix = safe_name(attrs["prefix"]).upper()
@@ -215,7 +214,7 @@ class Group(object):
             last_byte = field.end // 8
 
             for b in range(first_byte, last_byte + 1):
-                if not b in bytes:
+                if b not in bytes:
                     bytes[b] = self.Byte()
 
                 bytes[b].fields.append(field)
@@ -240,7 +239,7 @@ class Group(object):
 
         for index in range(self.length):
             # Handle MBZ bytes
-            if not index in bytes:
+            if index not in bytes:
                 print("   cl[%2d] = 0;" % index)
                 continue
             byte = bytes[index]
@@ -276,7 +275,6 @@ class Group(object):
 
             byte_start = index * 8
 
-            v = None
             prefix = "   cl[%2d] =" % index
 
             field_index = 0
@@ -335,7 +333,7 @@ class Group(object):
                     print("/* unhandled field %s, type %s */\n" % (name, field.type))
                     s = None
 
-                if not s == None:
+                if s is not None:
                     shift = byte_start - field_byte_start + extra_shift
                     if shift:
                         s = "%s >> %d" % (s, shift)
@@ -383,7 +381,6 @@ class Group(object):
                     convert = "__gen_unpack_sfixed"
                 else:
                     print("/* unhandled field %s, type %s */\n" % (field.name, field.type))
-                    s = None
 
                 plusone = ""
                 if field.minus_one:
@@ -545,9 +542,9 @@ class Parser(object):
     def emit_header(self, name):
         default_fields = []
         for field in self.group.fields:
-            if not type(field) is Field:
+            if type(field) is not Field:
                 continue
-            if field.default == None:
+            if field.default is None:
                 continue
             default_fields.append("   .%-35s = %6d" % (field.name, field.default))
 
@@ -577,7 +574,7 @@ class Parser(object):
             return
 
         name = self.register
-        if not self.reg_num == None:
+        if self.reg_num is not None:
             print('#define %-33s 0x%04x' %
                   (self.gen_prefix(name + "_num"), self.reg_num))
 

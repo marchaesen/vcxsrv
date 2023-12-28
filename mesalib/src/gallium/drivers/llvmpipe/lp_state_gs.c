@@ -1,8 +1,8 @@
 /**************************************************************************
- * 
+ *
  * Copyright 2007 VMware, Inc.
  * All Rights Reserved.
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the
  * "Software"), to deal in the Software without restriction, including
@@ -10,11 +10,11 @@
  * distribute, sub license, and/or sell copies of the Software, and to
  * permit persons to whom the Software is furnished to do so, subject to
  * the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice (including the
  * next paragraph) shall be included in all copies or substantial portions
  * of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS
  * OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
  * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT.
@@ -22,7 +22,7 @@
  * ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT,
  * TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
  * SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- * 
+ *
  **************************************************************************/
 
 #include "lp_context.h"
@@ -34,15 +34,16 @@
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
 #include "draw/draw_context.h"
+#include "draw/draw_gs.h"
 #include "tgsi/tgsi_dump.h"
-#include "tgsi/tgsi_scan.h"
-#include "tgsi/tgsi_parse.h"
 
 
 static void *
 llvmpipe_create_gs_state(struct pipe_context *pipe,
                          const struct pipe_shader_state *templ)
 {
+   llvmpipe_register_shader(pipe, templ, false);
+
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct lp_geometry_shader *state;
 
@@ -60,7 +61,7 @@ llvmpipe_create_gs_state(struct pipe_context *pipe,
    if (templ->type == PIPE_SHADER_IR_TGSI)
       state->no_tokens = !templ->tokens;
    else
-      state->no_tokens = FALSE;
+      state->no_tokens = false;
    memcpy(&state->stream_output, &templ->stream_output, sizeof state->stream_output);
 
    if (templ->tokens || templ->type == PIPE_SHADER_IR_NIR) {
@@ -73,7 +74,7 @@ llvmpipe_create_gs_state(struct pipe_context *pipe,
    return state;
 
 no_dgs:
-   FREE( state );
+   FREE(state);
 no_state:
    return NULL;
 }
@@ -104,6 +105,8 @@ llvmpipe_delete_gs_state(struct pipe_context *pipe, void *gs)
    if (!state) {
       return;
    }
+
+   llvmpipe_register_shader(pipe, &state->dgs->state, true);
 
    draw_delete_geometry_shader(llvmpipe->draw, state->dgs);
    FREE(state);

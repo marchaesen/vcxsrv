@@ -21,10 +21,10 @@
 project(
   'pixman',
   ['c'],
-  version : '0.40.1',
+  version : '0.42.3',
   license : 'MIT',
   meson_version : '>= 0.52.0',
-  default_options : ['buildtype=debugoptimized'],
+  default_options : ['c_std=gnu99', 'buildtype=debugoptimized'],
 )
 
 config = configuration_data()
@@ -243,6 +243,34 @@ if not use_vmx.disabled()
   endif
 endif
 
+if cc.compiles('''
+    __asm__ (
+    ".func meson_test"
+    ".endfunc"
+    );''',
+    name : 'test for ASM .func directive')
+    config.set('ASM_HAVE_FUNC_DIRECTIVE', 1)    
+endif
+
+
+if cc.links('''
+    #include <stdint.h>
+
+    __asm__ (
+        "   .global _testlabel\n"
+        "_testlabel:\n"
+    );
+
+    int testlabel();
+    int main(int argc, char* argv[]) {
+        return testlabel();
+    }''',
+    name : 'test for ASM leading underscore')
+    config.set('ASM_LEADING_UNDERSCORE', 1)    
+endif
+
+
+
 if have_vmx
   config.set10('USE_VMX', true)
 elif use_vmx.enabled()
@@ -412,8 +440,8 @@ else
   dep_openmp = null_dep
 endif
 
-dep_gtk = dependency('gtk+-3.0', required : get_option('gtk'))
-dep_glib = dependency('glib-2.0', required : get_option('gtk'))
+dep_gtk = dependency('gtk+-3.0', required : get_option('gtk').enabled() and get_option('demos').enabled())
+dep_glib = dependency('glib-2.0', required : get_option('gtk').enabled() and get_option('demos').enabled())
 
 dep_png = null_dep
 if not get_option('libpng').disabled()
@@ -457,6 +485,9 @@ if dep_threads.found() and cc.has_header('pthread.h')
   else
     pthreads_found = true
   endif
+else
+  # Avoid linking with -pthread if we don't actually have pthreads
+  dep_threads = null_dep
 endif
 
 if pthreads_found
@@ -492,15 +523,25 @@ foreach h : ['sys/mman.h', 'fenv.h', 'unistd.h']
   endif
 endforeach
 
-# gcc on Windows only warns that __declspec(thread) isn't supported,
-# passing -Werror=attributes makes it fail.
-if (host_machine.system() == 'windows' and
-    cc.compiles('int __declspec(thread) foo;',
-                args : cc.get_supported_arguments(['-Werror=attributes']),
-                name : 'TLS via __declspec(thread)'))
-  config.set('TLS', '__declspec(thread)')
-elif cc.compiles('int __thread foo;', name : 'TLS via __thread')
-  config.set('TLS', '__thread')
+use_tls = get_option('tls')
+have_tls = ''
+if not use_tls.disabled()
+  # gcc on Windows only warns that __declspec(thread) isn't supported,
+  # passing -Werror=attributes makes it fail.
+  if (host_machine.system() == 'windows' and
+      cc.compiles('int __declspec(thread) foo;',
+                  args : cc.get_supported_arguments(['-Werror=attributes']),
+                  name : 'TLS via __declspec(thread)'))
+    have_tls = '__declspec(thread)'
+  elif cc.compiles('int __thread foo;', name : 'TLS via __thread')
+    have_tls = '__thread'
+  endif
+endif
+
+if have_tls != ''
+  config.set('TLS', have_tls)
+elif use_tls.enabled()
+  error('Compiler TLS Support unavailable, but required')
 endif
 
 if cc.links('''
@@ -549,9 +590,16 @@ add_project_arguments('-DHAVE_CONFIG_H', language : ['c'])
 
 subdir('pixman')
 
+if not get_option('tests').disabled() or not get_option('demos').disabled()
+  subdir(join_paths('test', 'utils'))
+endif
+
+if not get_option('demos').disabled()
+  subdir('demos')
+endif
+
 if not get_option('tests').disabled()
   subdir('test')
-  subdir('demos')
 endif
 
 pkg = import('pkgconfig')

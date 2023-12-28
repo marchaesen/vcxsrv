@@ -1,11 +1,9 @@
-// Iraque keyboard layout,
-
-// 3-Level layout
+// Keyboard layouts for Iraq.
 
 default partial alphanumeric_keys
 xkb_symbols "basic" {
     include "ara(basic)"
-    name[Group1]= "Iraqi";
+    name[Group1]= "Arabic (Iraq)";
 };
 
 partial alphanumeric_keys

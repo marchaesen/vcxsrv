@@ -81,6 +81,7 @@ static const PacketProtocolLayerVtable ssh1_login_vtable = {
     .special_cmd = ssh1_login_special_cmd,
     .reconfigure = ssh1_login_reconfigure,
     .queued_data_size = ssh_ppl_default_queued_data_size,
+    .final_output = ssh_ppl_default_final_output,
     .name = NULL, /* no layer names in SSH-1 */
 };
 
@@ -322,9 +323,9 @@ static void ssh1_login_process_queue(PacketProtocolLayer *ppl)
 
         /* Warn about chosen cipher if necessary. */
         if (warn) {
-            s->spr = seat_confirm_weak_crypto_primitive(
+            s->spr = confirm_weak_crypto_primitive(
                 ppl_get_iseat(&s->ppl), "cipher", cipher_string,
-                ssh1_login_dialog_callback, s);
+                ssh1_login_dialog_callback, s, WCR_BELOW_THRESHOLD);
             crMaybeWaitUntilV(s->spr.kind != SPRK_INCOMPLETE);
             if (spr_is_abort(s->spr)) {
                 ssh_spr_close(s->ppl.ssh, s->spr, "cipher warning");

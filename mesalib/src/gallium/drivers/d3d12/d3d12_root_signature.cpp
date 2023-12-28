@@ -21,6 +21,9 @@
  * IN THE SOFTWARE.
  */
 
+#include <wrl/client.h>
+using Microsoft::WRL::ComPtr;
+
 #include "d3d12_root_signature.h"
 #include "d3d12_compiler.h"
 #include "d3d12_screen.h"
@@ -28,9 +31,6 @@
 #include "util/u_memory.h"
 
 #include <dxguids/dxguids.h>
-
-#include <wrl/client.h>
-using Microsoft::WRL::ComPtr;
 
 struct d3d12_root_signature {
    struct d3d12_root_signature_key key;
@@ -83,11 +83,15 @@ init_range(D3D12_DESCRIPTOR_RANGE1 *range,
    range->NumDescriptors = num_descs;
    range->BaseShaderRegister = base_shader_register;
    range->RegisterSpace = register_space;
+#ifdef _GAMING_XBOX
+   range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+#else
    if (type == D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER ||
        type == D3D12_DESCRIPTOR_RANGE_TYPE_UAV)
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
    else
       range->Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_STATIC_KEEPING_BUFFER_BOUNDS_CHECKS;
+#endif
    range->OffsetInDescriptorsFromTableStart = offset_from_start;
 }
 
@@ -208,10 +212,21 @@ create_root_signature(struct d3d12_context *ctx, struct d3d12_root_signature_key
       root_sig_desc.Desc_1_1.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
 
    ComPtr<ID3DBlob> sig, error;
-   if (FAILED(ctx->D3D12SerializeVersionedRootSignature(&root_sig_desc,
-                                                        &sig, &error))) {
-      debug_printf("D3D12SerializeRootSignature failed\n");
-      return NULL;
+#ifndef _GAMING_XBOX
+   if (ctx->dev_config) {
+      if (FAILED(ctx->dev_config->SerializeVersionedRootSignature(&root_sig_desc,
+                                                                  &sig, &error))) {
+         debug_printf("D3D12SerializeRootSignature failed\n");
+         return NULL;
+      }
+   } else
+#endif
+   {
+      if (FAILED(ctx->D3D12SerializeVersionedRootSignature(&root_sig_desc,
+                                                           &sig, &error))) {
+         debug_printf("D3D12SerializeRootSignature failed\n");
+         return NULL;
+      }
    }
 
    ID3D12RootSignature *ret;

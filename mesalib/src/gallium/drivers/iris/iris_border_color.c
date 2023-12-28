@@ -76,7 +76,7 @@ iris_init_border_color_pool(struct iris_bufmgr *bufmgr,
 
    pool->bo = iris_bo_alloc(bufmgr, "border colors",
                             IRIS_BORDER_COLOR_POOL_SIZE, 64,
-                            IRIS_MEMZONE_BORDER_COLOR_POOL, 0);
+                            IRIS_MEMZONE_BORDER_COLOR_POOL, BO_ALLOC_PLAIN);
    pool->map = iris_bo_map(NULL, pool->bo, MAP_WRITE);
 
    /* Don't make 0 a valid offset - tools treat that as a NULL pointer. */

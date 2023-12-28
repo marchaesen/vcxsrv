@@ -222,7 +222,7 @@ class PrintGenericStubs(gl_XML.gl_print_base):
                         text = '\t.globl GL_PREFIX(%s) ; .set GL_PREFIX(%s), GL_PREFIX(%s)' % (n, n, dispatch)
 
                         if f.has_different_protocol(n):
-                            print('#ifndef GLX_INDIRECT_RENDERING')
+                            print('#if GLAPI_EXPORT_PROTO_ENTRY_POINTS')
                             print(text)
                             print('#endif')
                         else:

@@ -26,7 +26,7 @@
 #ifndef SVGA_DUMP_H_
 #define SVGA_DUMP_H_
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 
 void            
 svga_dump_command(uint32_t cmd_id, const void *data, uint32_t size);

@@ -35,6 +35,9 @@
 #include <vulkan/vk_android_native_buffer.h>
 #include <vulkan/vk_icd.h>
 
+#include "vk_android.h"
+#include "vulkan/util/vk_enum_defines.h"
+
 #include "util/libsync.h"
 #include "util/log.h"
 #include "util/os_file.h"
@@ -46,11 +49,7 @@ v3dv_hal_open(const struct hw_module_t *mod,
 static int
 v3dv_hal_close(struct hw_device_t *dev);
 
-static void UNUSED
-static_asserts(void)
-{
-   STATIC_ASSERT(HWVULKAN_DISPATCH_MAGIC == ICD_LOADER_MAGIC);
-}
+static_assert(HWVULKAN_DISPATCH_MAGIC == ICD_LOADER_MAGIC, "");
 
 PUBLIC struct hwvulkan_module_t HAL_MODULE_INFO_SYM = {
    .common =
@@ -116,117 +115,55 @@ v3dv_hal_close(struct hw_device_t *dev)
    return -1;
 }
 
-static int
-get_format_bpp(int native)
+VkResult
+v3dv_gralloc_to_drm_explicit_layout(struct u_gralloc *gralloc,
+                                    struct u_gralloc_buffer_handle *in_hnd,
+                                    VkImageDrmFormatModifierExplicitCreateInfoEXT *out,
+                                    VkSubresourceLayout *out_layouts,
+                                    int max_planes)
 {
-   int bpp;
+   struct u_gralloc_buffer_basic_info info;
 
-   switch (native) {
-   case HAL_PIXEL_FORMAT_RGBA_FP16:
-      bpp = 8;
-      break;
-   case HAL_PIXEL_FORMAT_RGBA_8888:
-   case HAL_PIXEL_FORMAT_IMPLEMENTATION_DEFINED:
-   case HAL_PIXEL_FORMAT_RGBX_8888:
-   case HAL_PIXEL_FORMAT_BGRA_8888:
-   case HAL_PIXEL_FORMAT_RGBA_1010102:
-      bpp = 4;
-      break;
-   case HAL_PIXEL_FORMAT_RGB_565:
-      bpp = 2;
-      break;
-   default:
-      bpp = 0;
-      break;
-   }
-
-   return bpp;
-}
-
-/* get buffer info from VkNativeBufferANDROID */
-static VkResult
-v3dv_gralloc_info_other(struct v3dv_device *device,
-                        const VkNativeBufferANDROID *native_buffer,
-                        int *out_stride,
-                        uint64_t *out_modifier)
-{
-   *out_stride = native_buffer->stride /*in pixels*/ *
-                 get_format_bpp(native_buffer->format);
-   *out_modifier = DRM_FORMAT_MOD_LINEAR;
-   return VK_SUCCESS;
-}
-
-static const char cros_gralloc_module_name[] = "CrOS Gralloc";
-
-#define CROS_GRALLOC_DRM_GET_BUFFER_INFO 4
-
-struct cros_gralloc0_buffer_info
-{
-   uint32_t drm_fourcc;
-   int num_fds;
-   int fds[4];
-   uint64_t modifier;
-   int offset[4];
-   int stride[4];
-};
-
-static VkResult
-v3dv_gralloc_info_cros(struct v3dv_device *device,
-                       const VkNativeBufferANDROID *native_buffer,
-                       int *out_stride,
-                       uint64_t *out_modifier)
-{
-   const gralloc_module_t *gralloc = device->gralloc;
-   struct cros_gralloc0_buffer_info info;
-   int ret;
-
-   ret = gralloc->perform(gralloc, CROS_GRALLOC_DRM_GET_BUFFER_INFO,
-                          native_buffer->handle, &info);
-   if (ret)
+   if (u_gralloc_get_buffer_basic_info(gralloc, in_hnd, &info) != 0)
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 
-   *out_stride = info.stride[0];
-   *out_modifier = info.modifier;
+   if (info.num_planes > max_planes)
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
 
-   return VK_SUCCESS;
-}
-
-VkResult
-v3dv_gralloc_info(struct v3dv_device *device,
-                  const VkNativeBufferANDROID *native_buffer,
-                  int *out_dmabuf,
-                  int *out_stride,
-                  int *out_size,
-                  uint64_t *out_modifier)
-{
-   if (device->gralloc_type == V3DV_GRALLOC_UNKNOWN) {
-      /* get gralloc module for gralloc buffer info query */
-      int err = hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
-                              (const hw_module_t **) &device->gralloc);
-
-      device->gralloc_type = V3DV_GRALLOC_OTHER;
-
-      if (err == 0) {
-         const gralloc_module_t *gralloc = device->gralloc;
-         mesa_logi("opened gralloc module name: %s", gralloc->common.name);
-
-         if (strcmp(gralloc->common.name, cros_gralloc_module_name) == 0 &&
-             gralloc->perform) {
-            device->gralloc_type = V3DV_GRALLOC_CROS;
-         }
+   bool is_disjoint = false;
+   for (int i = 1; i < info.num_planes; i++) {
+      if (info.offsets[i] == 0) {
+         is_disjoint = true;
+         break;
       }
    }
 
-   *out_dmabuf = native_buffer->handle->data[0];
-   *out_size = lseek(*out_dmabuf, 0, SEEK_END);
-
-   if (device->gralloc_type == V3DV_GRALLOC_CROS) {
-      return v3dv_gralloc_info_cros(device, native_buffer, out_stride,
-                                    out_modifier);
-   } else {
-      return v3dv_gralloc_info_other(device, native_buffer, out_stride,
-                                     out_modifier);
+   if (is_disjoint) {
+      /* We don't support disjoint planes yet */
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
    }
+
+   memset(out_layouts, 0, sizeof(*out_layouts) * info.num_planes);
+   memset(out, 0, sizeof(*out));
+
+   out->sType = VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT;
+   out->pPlaneLayouts = out_layouts;
+
+   out->drmFormatModifier = info.modifier;
+   out->drmFormatModifierPlaneCount = info.num_planes;
+   for (int i = 0; i < info.num_planes; i++) {
+      out_layouts[i].offset = info.offsets[i];
+      out_layouts[i].rowPitch = info.strides[i];
+   }
+
+   if (info.drm_fourcc == DRM_FORMAT_YVU420) {
+      /* Swap the U and V planes to match the VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM */
+      VkSubresourceLayout tmp = out_layouts[1];
+      out_layouts[1] = out_layouts[2];
+      out_layouts[2] = tmp;
+   }
+
+   return VK_SUCCESS;
 }
 
 VkResult
@@ -235,10 +172,7 @@ v3dv_import_native_buffer_fd(VkDevice device_h,
                              const VkAllocationCallbacks *alloc,
                              VkImage image_h)
 {
-   struct v3dv_image *image = NULL;
    VkResult result;
-
-   image = v3dv_image_from_handle(image_h);
 
    VkDeviceMemory memory_h;
 
@@ -261,7 +195,7 @@ v3dv_import_native_buffer_fd(VkDevice device_h,
                           &(VkMemoryAllocateInfo) {
                              .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
                              .pNext = &import_info,
-                             .allocationSize = image->size,
+                             .allocationSize = lseek(native_buffer_fd, 0, SEEK_END),
                              .memoryTypeIndex = 0,
                           },
                           alloc, &memory_h);
@@ -276,8 +210,6 @@ v3dv_import_native_buffer_fd(VkDevice device_h,
       .memoryOffset = 0,
    };
    v3dv_BindImageMemory2(device_h, 1, &bind_info);
-
-   image->is_native_buffer_memory = true;
 
    return VK_SUCCESS;
 
@@ -420,6 +352,193 @@ v3dv_GetSwapchainGrallocUsage2ANDROID(
       *grallocConsumerUsage |= GRALLOC1_CONSUMER_USAGE_HWCOMPOSER;
    }
 
+   if (swapchainImageUsage & VK_SWAPCHAIN_IMAGE_USAGE_SHARED_BIT_ANDROID) {
+      uint64_t front_rendering_usage = 0;
+      u_gralloc_get_front_rendering_usage(device->gralloc, &front_rendering_usage);
+      *grallocProducerUsage |= front_rendering_usage;
+   }
+
    return VK_SUCCESS;
 }
 #endif
+
+/* ----------------------------- AHardwareBuffer --------------------------- */
+
+static VkResult
+get_ahb_buffer_format_properties2(VkDevice device_h, const struct AHardwareBuffer *buffer,
+                                  VkAndroidHardwareBufferFormatProperties2ANDROID *pProperties)
+{
+   V3DV_FROM_HANDLE(v3dv_device, device, device_h);
+
+   /* Get a description of buffer contents . */
+   AHardwareBuffer_Desc desc;
+   AHardwareBuffer_describe(buffer, &desc);
+
+   /* Verify description. */
+   const uint64_t gpu_usage = AHARDWAREBUFFER_USAGE_GPU_SAMPLED_IMAGE |
+                              AHARDWAREBUFFER_USAGE_GPU_COLOR_OUTPUT |
+                              AHARDWAREBUFFER_USAGE_GPU_DATA_BUFFER;
+
+   /* "Buffer must be a valid Android hardware buffer object with at least
+    * one of the AHARDWAREBUFFER_USAGE_GPU_* usage flags."
+    */
+   if (!(desc.usage & (gpu_usage)))
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+
+   /* Fill properties fields based on description. */
+   VkAndroidHardwareBufferFormatProperties2ANDROID *p = pProperties;
+
+   p->samplerYcbcrConversionComponents.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+   p->samplerYcbcrConversionComponents.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+   p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
+   p->suggestedYcbcrRange = VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+
+   p->suggestedXChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+   p->suggestedYChromaOffset = VK_CHROMA_LOCATION_MIDPOINT;
+
+   VkFormatProperties2 format_properties = {.sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2};
+
+   p->format = vk_ahb_format_to_image_format(desc.format);
+
+   VkFormat external_format = p->format;
+
+   if (p->format != VK_FORMAT_UNDEFINED)
+      goto finish;
+
+   /* External format only case
+    *
+    * From vkGetAndroidHardwareBufferPropertiesANDROID spec:
+    * "If the Android hardware buffer has one of the formats listed in the Format
+    * Equivalence table (see spec.), then format must have the equivalent Vulkan
+    * format listed in the table. Otherwise, format may be VK_FORMAT_UNDEFINED,
+    * indicating the Android hardware buffer can only be used with an external format."
+    *
+    * From SKIA source code analysis: p->format MUST be VK_FORMAT_UNDEFINED, if the
+    * format is not in the Equivalence table.
+    */
+
+   struct u_gralloc_buffer_handle gr_handle = {
+      .handle = AHardwareBuffer_getNativeHandle(buffer),
+      .pixel_stride = desc.stride,
+      .hal_format = desc.format,
+   };
+
+   struct u_gralloc_buffer_basic_info info;
+
+   if (u_gralloc_get_buffer_basic_info(device->gralloc, &gr_handle, &info) != 0)
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+
+   switch (info.drm_fourcc) {
+   case DRM_FORMAT_YVU420:
+      /* Assuming that U and V planes are swapped earlier */
+      external_format = VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM;
+      break;
+   case DRM_FORMAT_NV12:
+      external_format = VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+      break;
+   default:;
+      mesa_loge("Unsupported external DRM format: %d", info.drm_fourcc);
+      return VK_ERROR_INVALID_EXTERNAL_HANDLE;
+   }
+
+   struct u_gralloc_buffer_color_info color_info;
+   if (u_gralloc_get_buffer_color_info(device->gralloc, &gr_handle, &color_info) == 0) {
+      switch (color_info.yuv_color_space) {
+      case __DRI_YUV_COLOR_SPACE_ITU_REC601:
+         p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_601;
+         break;
+      case __DRI_YUV_COLOR_SPACE_ITU_REC709:
+         p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_709;
+         break;
+      case __DRI_YUV_COLOR_SPACE_ITU_REC2020:
+         p->suggestedYcbcrModel = VK_SAMPLER_YCBCR_MODEL_CONVERSION_YCBCR_2020;
+         break;
+      default:
+         break;
+      }
+
+      p->suggestedYcbcrRange = (color_info.sample_range == __DRI_YUV_NARROW_RANGE) ?
+         VK_SAMPLER_YCBCR_RANGE_ITU_NARROW : VK_SAMPLER_YCBCR_RANGE_ITU_FULL;
+      p->suggestedXChromaOffset = (color_info.horizontal_siting == __DRI_YUV_CHROMA_SITING_0_5) ?
+         VK_CHROMA_LOCATION_MIDPOINT : VK_CHROMA_LOCATION_COSITED_EVEN;
+      p->suggestedYChromaOffset = (color_info.vertical_siting == __DRI_YUV_CHROMA_SITING_0_5) ?
+         VK_CHROMA_LOCATION_MIDPOINT : VK_CHROMA_LOCATION_COSITED_EVEN;
+   }
+
+finish:
+
+   v3dv_GetPhysicalDeviceFormatProperties2(v3dv_physical_device_to_handle(device->pdevice),
+                                           external_format, &format_properties);
+
+   /* v3dv doesn't support direct sampling from linear images but has a logic to copy
+    * from linear to tiled images implicitly before sampling. Therefore expose optimal
+    * features for both linear and optimal tiling.
+    */
+   p->formatFeatures = format_properties.formatProperties.optimalTilingFeatures;
+   p->externalFormat = external_format;
+
+   /* From vkGetAndroidHardwareBufferPropertiesANDROID spec:
+    * "The formatFeatures member *must* include
+    *  VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT and at least one of
+    *  VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT or
+    *  VK_FORMAT_FEATURE_2_COSITED_CHROMA_SAMPLES_BIT"
+    */
+   p->formatFeatures |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT;
+
+   return VK_SUCCESS;
+}
+
+VkResult
+v3dv_GetAndroidHardwareBufferPropertiesANDROID(VkDevice device_h,
+                                               const struct AHardwareBuffer *buffer,
+                                               VkAndroidHardwareBufferPropertiesANDROID *pProperties)
+{
+   V3DV_FROM_HANDLE(v3dv_device, dev, device_h);
+   struct v3dv_physical_device *pdevice = dev->pdevice;
+
+   VkResult result;
+
+   VkAndroidHardwareBufferFormatPropertiesANDROID *format_prop =
+      vk_find_struct(pProperties->pNext, ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_ANDROID);
+
+   /* Fill format properties of an Android hardware buffer. */
+   if (format_prop) {
+      VkAndroidHardwareBufferFormatProperties2ANDROID format_prop2 = {
+         .sType = VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_2_ANDROID,
+      };
+      result = get_ahb_buffer_format_properties2(device_h, buffer, &format_prop2);
+      if (result != VK_SUCCESS)
+         return result;
+
+      format_prop->format                 = format_prop2.format;
+      format_prop->externalFormat         = format_prop2.externalFormat;
+      format_prop->formatFeatures         =
+         vk_format_features2_to_features(format_prop2.formatFeatures);
+      format_prop->samplerYcbcrConversionComponents =
+         format_prop2.samplerYcbcrConversionComponents;
+      format_prop->suggestedYcbcrModel    = format_prop2.suggestedYcbcrModel;
+      format_prop->suggestedYcbcrRange    = format_prop2.suggestedYcbcrRange;
+      format_prop->suggestedXChromaOffset = format_prop2.suggestedXChromaOffset;
+      format_prop->suggestedYChromaOffset = format_prop2.suggestedYChromaOffset;
+   }
+
+   VkAndroidHardwareBufferFormatProperties2ANDROID *format_prop2 =
+      vk_find_struct(pProperties->pNext, ANDROID_HARDWARE_BUFFER_FORMAT_PROPERTIES_2_ANDROID);
+   if (format_prop2) {
+      result = get_ahb_buffer_format_properties2(device_h, buffer, format_prop2);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   const native_handle_t *handle = AHardwareBuffer_getNativeHandle(buffer);
+   assert(handle && handle->numFds > 0);
+   pProperties->allocationSize = lseek(handle->data[0], 0, SEEK_END);
+
+   /* All memory types. */
+   pProperties->memoryTypeBits = (1u << pdevice->memory.memoryTypeCount) - 1;
+
+   return VK_SUCCESS;
+}

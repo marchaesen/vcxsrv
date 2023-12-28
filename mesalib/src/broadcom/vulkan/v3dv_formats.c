@@ -22,15 +22,20 @@
  */
 
 #include "v3dv_private.h"
-#include "vk_util.h"
+#ifdef ANDROID
+#include "vk_android.h"
+#endif
 #include "vk_enum_defines.h"
+#include "vk_util.h"
 
 #include "drm-uapi/drm_fourcc.h"
 #include "util/format/u_format.h"
 #include "vulkan/wsi/wsi_common.h"
 
+#include <vulkan/vulkan_android.h>
+
 const uint8_t *
-v3dv_get_format_swizzle(struct v3dv_device *device, VkFormat f)
+v3dv_get_format_swizzle(struct v3dv_device *device, VkFormat f, uint8_t plane)
 {
    const struct v3dv_format *vf = v3dv_X(device, get_format)(f);
    static const uint8_t fallback[] = {0, 1, 2, 3};
@@ -38,7 +43,7 @@ v3dv_get_format_swizzle(struct v3dv_device *device, VkFormat f)
    if (!vf)
       return fallback;
 
-   return vf->swizzle;
+   return vf->planes[plane].swizzle;
 }
 
 bool
@@ -77,27 +82,14 @@ v3dv_format_swizzle_needs_reverse(const uint8_t *swizzle)
    return false;
 }
 
-uint8_t
-v3dv_get_tex_return_size(const struct v3dv_format *vf,
-                         bool compare_enable)
-{
-   if (V3D_DBG(TMU_16BIT))
-      return 16;
-
-   if (V3D_DBG(TMU_32BIT))
-      return 32;
-
-   if (compare_enable)
-      return 16;
-
-   return vf->return_size;
-}
-
 /* Some cases of transfer operations are raw data copies that don't depend
  * on the semantics of the pixel format (no pixel format conversions are
  * involved). In these cases, it is safe to choose any format supported by
  * the TFU so long as it has the same texel size, which allows us to use the
  * TFU paths with formats that are not TFU supported otherwise.
+ *
+ * Even when copying multi-plane images, we are copying per-plane, so the
+ * compatible TFU format will be single-plane.
  */
 const struct v3dv_format *
 v3dv_get_compatible_tfu_format(struct v3dv_device *device,
@@ -118,20 +110,18 @@ v3dv_get_compatible_tfu_format(struct v3dv_device *device,
       *out_vk_format = vk_format;
 
    const struct v3dv_format *format = v3dv_X(device, get_format)(vk_format);
-   assert(v3dv_X(device, tfu_supports_tex_format)(format->tex_type));
+   assert(format->plane_count == 1);
+   assert(v3dv_X(device, tfu_supports_tex_format)(format->planes[0].tex_type));
 
    return format;
 }
 
 static VkFormatFeatureFlags2
-image_format_features(struct v3dv_physical_device *pdevice,
-                      VkFormat vk_format,
-                      const struct v3dv_format *v3dv_format,
-                      VkImageTiling tiling)
+image_format_plane_features(struct v3dv_physical_device *pdevice,
+                            VkFormat vk_format,
+                            const struct v3dv_format_plane *v3dv_format,
+                            VkImageTiling tiling)
 {
-   if (!v3dv_format || !v3dv_format->supported)
-      return 0;
-
    const VkImageAspectFlags aspects = vk_format_aspects(vk_format);
 
    const VkImageAspectFlags zs_aspects = VK_IMAGE_ASPECT_DEPTH_BIT |
@@ -162,16 +152,12 @@ image_format_features(struct v3dv_physical_device *pdevice,
       flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT |
                VK_FORMAT_FEATURE_2_BLIT_SRC_BIT;
 
-      if (v3dv_format->supports_filtering)
-         flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
    }
 
    if (v3dv_format->rt_type != V3D_OUTPUT_IMAGE_FORMAT_NO) {
       if (aspects & VK_IMAGE_ASPECT_COLOR_BIT) {
          flags |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
                   VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
-         if (v3dv_X(pdevice, format_supports_blending)(v3dv_format))
-            flags |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
       } else if (aspects & zs_aspects) {
          flags |= VK_FORMAT_FEATURE_2_DEPTH_STENCIL_ATTACHMENT_BIT |
                   VK_FORMAT_FEATURE_2_BLIT_DST_BIT;
@@ -183,14 +169,17 @@ image_format_features(struct v3dv_physical_device *pdevice,
 
    if (tiling != VK_IMAGE_TILING_LINEAR) {
       if (desc->layout == UTIL_FORMAT_LAYOUT_PLAIN && desc->is_array) {
-         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT |
+                  VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT;
          if (desc->nr_channels == 1 && vk_format_is_int(vk_format))
             flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_ATOMIC_BIT;
       } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 ||
+                 vk_format == VK_FORMAT_A2R10G10B10_UNORM_PACK32 ||
                  vk_format == VK_FORMAT_A2B10G10R10_UINT_PACK32 ||
                  vk_format == VK_FORMAT_B10G11R11_UFLOAT_PACK32) {
          /* To comply with shaderStorageImageExtendedFormats */
-         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+         flags |= VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT |
+                  VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT;
       }
    }
 
@@ -209,12 +198,78 @@ image_format_features(struct v3dv_physical_device *pdevice,
 }
 
 static VkFormatFeatureFlags2
-buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format)
+image_format_features(struct v3dv_physical_device *pdevice,
+                       VkFormat vk_format,
+                       const struct v3dv_format *v3dv_format,
+                       VkImageTiling tiling)
 {
-   if (!v3dv_format || !v3dv_format->supported)
+   if (!v3dv_format || !v3dv_format->plane_count)
       return 0;
 
-   if (!v3dv_format->supported)
+   VkFormatFeatureFlags2 flags = ~0ull;
+   for (uint8_t plane = 0;
+        flags && plane < v3dv_format->plane_count;
+        plane++) {
+      VkFormat plane_format = vk_format_get_plane_format(vk_format, plane);
+
+      flags &= image_format_plane_features(pdevice,
+                                           plane_format,
+                                           &v3dv_format->planes[plane],
+                                           tiling);
+   }
+
+   const struct vk_format_ycbcr_info *ycbcr_info =
+      vk_format_get_ycbcr_info(vk_format);
+
+   if (ycbcr_info) {
+      assert(v3dv_format->plane_count == ycbcr_info->n_planes);
+
+      flags |= VK_FORMAT_FEATURE_2_DISJOINT_BIT;
+
+      if (flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT) {
+         flags |= VK_FORMAT_FEATURE_2_MIDPOINT_CHROMA_SAMPLES_BIT;
+         for (unsigned p = 0; p < ycbcr_info->n_planes; p++) {
+            if (ycbcr_info->planes[p].denominator_scales[0] > 1 ||
+                ycbcr_info->planes[p].denominator_scales[1] > 1) {
+               flags |= VK_FORMAT_FEATURE_COSITED_CHROMA_SAMPLES_BIT;
+               break;
+            }
+         }
+      }
+
+      /* FIXME: in the future we should be able to support BLIT_SRC via the
+       * blit_shader path
+       */
+      const VkFormatFeatureFlags2 disallowed_ycbcr_image_features =
+         VK_FORMAT_FEATURE_2_BLIT_SRC_BIT |
+         VK_FORMAT_FEATURE_2_BLIT_DST_BIT |
+         VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT |
+         VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT |
+         VK_FORMAT_FEATURE_2_STORAGE_IMAGE_BIT;
+
+      flags &= ~disallowed_ycbcr_image_features;
+   }
+
+   if (flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT &&
+       v3dv_format->supports_filtering) {
+      flags |= VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_FILTER_LINEAR_BIT;
+   }
+
+   if (flags & VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BIT &&
+       v3dv_X(pdevice, format_supports_blending)(v3dv_format)) {
+      flags |= VK_FORMAT_FEATURE_2_COLOR_ATTACHMENT_BLEND_BIT;
+   }
+
+   return flags;
+}
+
+static VkFormatFeatureFlags2
+buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format)
+{
+   if (!v3dv_format)
+      return 0;
+
+   if (v3dv_format->plane_count != 1)
       return 0;
 
    /* We probably only want to support buffer formats that have a
@@ -231,11 +286,19 @@ buffer_format_features(VkFormat vk_format, const struct v3dv_format *v3dv_format
        desc->colorspace == UTIL_FORMAT_COLORSPACE_RGB &&
        desc->is_array) {
       flags |=  VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT;
-      if (v3dv_format->tex_type != TEXTURE_DATA_FORMAT_NO) {
+      if (v3dv_format->planes[0].tex_type != TEXTURE_DATA_FORMAT_NO) {
+         /* STORAGE_READ_WITHOUT_FORMAT can also be applied for buffers. From spec:
+          *   "VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT specifies
+          *    that image views or buffer views created with this format can
+          *    be used as storage images for read operations without
+          *    specifying a format."
+          */
          flags |= VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT |
-                  VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
+                  VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT |
+                  VK_FORMAT_FEATURE_2_STORAGE_READ_WITHOUT_FORMAT_BIT;
       }
-   } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32) {
+   } else if (vk_format == VK_FORMAT_A2B10G10R10_UNORM_PACK32 ||
+              vk_format == VK_FORMAT_A2R10G10B10_UNORM_PACK32) {
       flags |= VK_FORMAT_FEATURE_2_VERTEX_BUFFER_BIT |
                VK_FORMAT_FEATURE_2_UNIFORM_TEXEL_BUFFER_BIT |
                VK_FORMAT_FEATURE_2_STORAGE_TEXEL_BUFFER_BIT;
@@ -266,15 +329,6 @@ v3dv_buffer_format_supports_features(struct v3dv_device *device,
    return (supported & features) == features;
 }
 
-/* FIXME: this helper now on anv, radv, lvp, and v3dv. Perhaps common
- * place?
- */
-static inline VkFormatFeatureFlags
-features2_to_features(VkFormatFeatureFlags2 features2)
-{
-   return features2 & VK_ALL_FORMAT_FEATURE_FLAG_BITS;
-}
-
 VKAPI_ATTR void VKAPI_CALL
 v3dv_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
                                         VkFormat format,
@@ -290,9 +344,9 @@ v3dv_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
                                     VK_IMAGE_TILING_OPTIMAL);
    buffer2 = buffer_format_features(format, v3dv_format);
    pFormatProperties->formatProperties = (VkFormatProperties) {
-      .linearTilingFeatures = features2_to_features(linear2),
-      .optimalTilingFeatures = features2_to_features(optimal2),
-      .bufferFeatures = features2_to_features(buffer2),
+      .linearTilingFeatures = vk_format_features2_to_features(linear2),
+      .optimalTilingFeatures = vk_format_features2_to_features(optimal2),
+      .bufferFeatures = vk_format_features2_to_features(buffer2),
    };
 
    vk_foreach_struct(ext, pFormatProperties->pNext) {
@@ -425,9 +479,8 @@ get_image_format_properties(
 
    if (view_usage & (VK_IMAGE_USAGE_SAMPLED_BIT |
                      VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)) {
-      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT)) {
+      if (!(format_feature_flags & VK_FORMAT_FEATURE_2_SAMPLED_IMAGE_BIT))
          goto unsupported;
-      }
 
       /* Sampling of raster depth/stencil images is not supported. Since 1D
        * images are always raster, even if the user requested optimal tiling,
@@ -470,7 +523,8 @@ get_image_format_properties(
       pImageFormatProperties->maxExtent.width = V3D_MAX_IMAGE_DIMENSION;
       pImageFormatProperties->maxExtent.height = V3D_MAX_IMAGE_DIMENSION;
       pImageFormatProperties->maxExtent.depth = 1;
-      pImageFormatProperties->maxArrayLayers = V3D_MAX_ARRAY_LAYERS;
+      pImageFormatProperties->maxArrayLayers =
+         v3dv_format->plane_count == 1 ? V3D_MAX_ARRAY_LAYERS : 1;
       pImageFormatProperties->maxMipLevels = V3D_MAX_MIP_LEVELS;
       break;
    case VK_IMAGE_TYPE_3D:
@@ -515,7 +569,41 @@ get_image_format_properties(
    if (tiling == VK_IMAGE_TILING_LINEAR)
       pImageFormatProperties->maxMipLevels = 1;
 
+   /* From the Vulkan 1.2 spec, section 12.3. Images, VkImageCreateInfo structure:
+    *
+    *   "Images created with one of the formats that require a sampler Y′CBCR
+    *    conversion, have further restrictions on their limits and
+    *    capabilities compared to images created with other formats. Creation
+    *    of images with a format requiring Y′CBCR conversion may not be
+    *    supported unless other parameters meet all of the constraints:
+    *
+    *    * imageType is VK_IMAGE_TYPE_2D
+    *    * mipLevels is 1
+    *    * arrayLayers is 1, unless the ycbcrImageArrays feature is enabled, or
+    *      otherwise indicated by VkImageFormatProperties::maxArrayLayers, as
+    *      returned by vkGetPhysicalDeviceImageFormatProperties
+    *    * samples is VK_SAMPLE_COUNT_1_BIT
+    *
+    * Implementations may support additional limits and capabilities beyond
+    * those listed above."
+    *
+    * We don't provide such additional limits, so we set those limits, or just
+    * return unsupported.
+    */
+   if (vk_format_get_plane_count(info->format) > 1) {
+      if (info->type != VK_IMAGE_TYPE_2D)
+         goto unsupported;
+      pImageFormatProperties->maxMipLevels = 1;
+      pImageFormatProperties->maxArrayLayers = 1;
+      pImageFormatProperties->sampleCounts = VK_SAMPLE_COUNT_1_BIT;
+   }
+
    pImageFormatProperties->maxResourceSize = 0xffffffff; /* 32-bit allocation */
+
+   if (pYcbcrImageFormatProperties) {
+      pYcbcrImageFormatProperties->combinedImageSamplerDescriptorCount =
+          vk_format_get_plane_count(info->format);
+   }
 
    return VK_SUCCESS;
 
@@ -577,6 +665,8 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
    const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
    const VkPhysicalDeviceImageDrmFormatModifierInfoEXT *drm_format_mod_info = NULL;
    VkExternalImageFormatProperties *external_props = NULL;
+   UNUSED VkAndroidHardwareBufferUsageANDROID *android_usage = NULL;
+   VkSamplerYcbcrConversionImageFormatProperties *ycbcr_props = NULL;
    VkImageTiling tiling = base_info->tiling;
 
    /* Extract input structs */
@@ -616,6 +706,12 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
       case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
          external_props = (void *) s;
          break;
+      case VK_STRUCTURE_TYPE_ANDROID_HARDWARE_BUFFER_USAGE_ANDROID:
+         android_usage = (void *)s;
+         break;
+      case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
+         ycbcr_props = (void *) s;
+         break;
       default:
          v3dv_debug_ignored_stype(s->sType);
          break;
@@ -624,7 +720,8 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
 
    VkResult result =
       get_image_format_properties(physical_device, base_info, tiling,
-                                  &base_props->imageFormatProperties, NULL);
+                                  &base_props->imageFormatProperties,
+                                  ycbcr_props);
    if (result != VK_SUCCESS)
       goto done;
 
@@ -635,10 +732,26 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
          if (external_props)
             external_props->externalMemoryProperties = prime_fd_props;
          break;
+#ifdef ANDROID
+      case VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID:
+         if (external_props) {
+            external_props->externalMemoryProperties.exportFromImportedHandleTypes = 0;
+            external_props->externalMemoryProperties.compatibleHandleTypes = VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
+            external_props->externalMemoryProperties.externalMemoryFeatures = VK_EXTERNAL_MEMORY_FEATURE_DEDICATED_ONLY_BIT | VK_EXTERNAL_MEMORY_FEATURE_EXPORTABLE_BIT | VK_EXTERNAL_MEMORY_FEATURE_IMPORTABLE_BIT;
+         }
+         break;
+#endif
       default:
          result = VK_ERROR_FORMAT_NOT_SUPPORTED;
          break;
       }
+   }
+
+   if (android_usage) {
+#ifdef ANDROID
+      android_usage->androidHardwareBufferUsage =
+         vk_image_usage_to_ahb_usage(base_info->flags, base_info->usage);
+#endif
    }
 
 done:

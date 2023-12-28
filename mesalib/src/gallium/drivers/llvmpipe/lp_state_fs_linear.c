@@ -26,7 +26,7 @@
  **************************************************************************/
 
 
-#include "pipe/p_config.h"
+#include "util/detect.h"
 
 #include "util/u_math.h"
 #include "util/u_cpu_detect.h"
@@ -41,7 +41,7 @@
 #include "lp_linear_priv.h"
 
 
-#if defined(PIPE_ARCH_SSE)
+#if DETECT_ARCH_SSE
 
 #include <emmintrin.h>
 
@@ -69,7 +69,7 @@ struct linear_interp {
    __m128i dadx;
    __m128i dady;
    int width;                   /* rounded up to multiple of 4 */
-   boolean is_constant;
+   bool is_constant;
 };
 
 /* Organize all the information needed for blending in one place.
@@ -252,7 +252,7 @@ fetch_row_xy_clamped(struct nearest_sampler *samp)
 }
 
 
-static boolean
+static bool
 init_nearest_sampler(struct nearest_sampler *samp,
                      const struct lp_jit_texture *texture,
                      int x0, int y0,
@@ -264,7 +264,7 @@ init_nearest_sampler(struct nearest_sampler *samp,
    const float oow = 1.0f / w0;
 
    if (dwdx != 0.0 || dwdy != 0.0)
-      return FALSE;
+      return false;
 
    samp->texture = texture;
    samp->width = width;
@@ -317,7 +317,7 @@ init_nearest_sampler(struct nearest_sampler *samp,
       }
    }
 
-   return TRUE;
+   return true;
 }
 
 
@@ -350,7 +350,7 @@ init_shader(struct shader *shader,
 /* Linear shader which implements the BLIT_RGBA shader with the
  * additional constraints imposed by lp_setup_is_blit().
  */
-static boolean
+static bool
 blit_rgba_blit(const struct lp_rast_state *state,
                unsigned x, unsigned y,
                unsigned width, unsigned height,
@@ -360,20 +360,20 @@ blit_rgba_blit(const struct lp_rast_state *state,
                uint8_t *color,
                unsigned stride)
 {
-   const struct lp_jit_context *context = &state->jit_context;
-   const struct lp_jit_texture *texture = &context->textures[0];
+   const struct lp_jit_resources *resources = &state->jit_resources;
+   const struct lp_jit_texture *texture = &resources->textures[0];
    const uint8_t *src;
    unsigned src_stride;
    int src_x, src_y;
 
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    /* Require w==1.0:
     */
    if (a0[0][3] != 1.0 ||
        dadx[0][3] != 0.0 ||
        dady[0][3] != 0.0)
-      return FALSE;
+      return false;
 
    src_x = x + util_iround(a0[1][0]*texture->width - 0.5f);
    src_y = y + util_iround(a0[1][1]*texture->height - 0.5f);
@@ -387,7 +387,7 @@ blit_rgba_blit(const struct lp_rast_state *state,
        src_y < 0 ||
        src_x + width > texture->width ||
        src_y + height > texture->height)
-      return FALSE;
+      return false;
 
    util_copy_rect(color, PIPE_FORMAT_B8G8R8A8_UNORM, stride,
                   x, y,
@@ -395,14 +395,14 @@ blit_rgba_blit(const struct lp_rast_state *state,
                   src, src_stride,
                   src_x, src_y);
 
-   return TRUE;
+   return true;
 }
 
 
 /* Linear shader which implements the BLIT_RGB1 shader, with the
  * additional constraints imposed by lp_setup_is_blit().
  */
-static boolean
+static bool
 blit_rgb1_blit(const struct lp_rast_state *state,
                unsigned x, unsigned y,
                unsigned width, unsigned height,
@@ -412,20 +412,20 @@ blit_rgb1_blit(const struct lp_rast_state *state,
                uint8_t *color,
                unsigned stride)
 {
-   const struct lp_jit_context *context = &state->jit_context;
-   const struct lp_jit_texture *texture = &context->textures[0];
+   const struct lp_jit_resources *resources = &state->jit_resources;
+   const struct lp_jit_texture *texture = &resources->textures[0];
    const uint8_t *src;
    unsigned src_stride;
    int src_x, src_y;
 
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    /* Require w==1.0:
     */
    if (a0[0][3] != 1.0 ||
        dadx[0][3] != 0.0 ||
        dady[0][3] != 0.0)
-      return FALSE;
+      return false;
 
    color += x * 4 + y * stride;
 
@@ -441,7 +441,7 @@ blit_rgb1_blit(const struct lp_rast_state *state,
        src_y < 0 ||
        src_x + width > texture->width ||
        src_y + height > texture->height)
-      return FALSE;
+      return false;
 
    for (y = 0; y < height; y++) {
       const uint32_t *src_row = (const uint32_t *)src;
@@ -455,14 +455,14 @@ blit_rgb1_blit(const struct lp_rast_state *state,
       src += src_stride;
    }
 
-   return TRUE;
+   return true;
 }
 
 
 /* Linear shader variant implementing the BLIT_RGBA shader without
  * blending.
  */
-static boolean
+static bool
 blit_rgba(const struct lp_rast_state *state,
           unsigned x, unsigned y,
           unsigned width, unsigned height,
@@ -472,19 +472,19 @@ blit_rgba(const struct lp_rast_state *state,
           uint8_t *color,
           unsigned stride)
 {
-   const struct lp_jit_context *context = &state->jit_context;
+   const struct lp_jit_resources *resources = &state->jit_resources;
    struct nearest_sampler samp;
    struct color_blend blend;
 
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    if (!init_nearest_sampler(&samp,
-                             &context->textures[0],
+                             &resources->textures[0],
                              x, y, width, height,
                              a0[1][0], dadx[1][0], dady[1][0],
                              a0[1][1], dadx[1][1], dady[1][1],
                              a0[0][3], dadx[0][3], dady[0][3]))
-      return FALSE;
+      return false;
 
    init_blend(&blend,
               x, y, width, height,
@@ -497,11 +497,11 @@ blit_rgba(const struct lp_rast_state *state,
       blend_noop(&blend);
    }
 
-   return TRUE;
+   return true;
 }
 
 
-static boolean
+static bool
 blit_rgb1(const struct lp_rast_state *state,
           unsigned x, unsigned y,
           unsigned width, unsigned height,
@@ -511,20 +511,20 @@ blit_rgb1(const struct lp_rast_state *state,
           uint8_t *color,
           unsigned stride)
 {
-   const struct lp_jit_context *context = &state->jit_context;
+   const struct lp_jit_resources *resources = &state->jit_resources;
    struct nearest_sampler samp;
    struct color_blend blend;
    struct shader shader;
 
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    if (!init_nearest_sampler(&samp,
-                             &context->textures[0],
+                             &resources->textures[0],
                              x, y, width, height,
                              a0[1][0], dadx[1][0], dady[1][0],
                              a0[1][1], dadx[1][1], dady[1][1],
                              a0[0][3], dadx[0][3], dady[0][3]))
-      return FALSE;
+      return false;
 
    init_blend(&blend, x, y, width, height, color, stride);
 
@@ -538,14 +538,14 @@ blit_rgb1(const struct lp_rast_state *state,
       blend_noop(&blend);
    }
 
-   return TRUE;
+   return true;
 }
 
 
 /* Linear shader variant implementing the BLIT_RGBA shader with
  * one/inv_src_alpha blending.
  */
-static boolean
+static bool
 blit_rgba_blend_premul(const struct lp_rast_state *state,
                        unsigned x, unsigned y,
                        unsigned width, unsigned height,
@@ -555,19 +555,19 @@ blit_rgba_blend_premul(const struct lp_rast_state *state,
                        uint8_t *color,
                        unsigned stride)
 {
-   const struct lp_jit_context *context = &state->jit_context;
+   const struct lp_jit_resources *resources = &state->jit_resources;
    struct nearest_sampler samp;
    struct color_blend blend;
 
-   LP_DBG(DEBUG_RAST, "%s\n", __FUNCTION__);
+   LP_DBG(DEBUG_RAST, "%s\n", __func__);
 
    if (!init_nearest_sampler(&samp,
-                             &context->textures[0],
+                             &resources->textures[0],
                              x, y, width, height,
                              a0[1][0], dadx[1][0], dady[1][0],
                              a0[1][1], dadx[1][1], dady[1][1],
                              a0[0][3], dadx[0][3], dady[0][3]))
-      return FALSE;
+      return false;
 
    init_blend(&blend, x, y, width, height, color, stride);
 
@@ -578,13 +578,13 @@ blit_rgba_blend_premul(const struct lp_rast_state *state,
       blend_premul(&blend);
    }
 
-   return TRUE;
+   return true;
 }
 
 
 /* Linear shader which always emits red.  Used for debugging.
  */
-static boolean
+static bool
 linear_red(const struct lp_rast_state *state,
            unsigned x, unsigned y,
            unsigned width, unsigned height,
@@ -608,13 +608,13 @@ linear_red(const struct lp_rast_state *state,
                   height,
                   &uc);
 
-   return TRUE;
+   return true;
 }
 
 
 /* Noop linear shader variant, for debugging.
  */
-static boolean
+static bool
 linear_no_op(const struct lp_rast_state *state,
              unsigned x, unsigned y,
              unsigned width, unsigned height,
@@ -624,13 +624,13 @@ linear_no_op(const struct lp_rast_state *state,
              uint8_t *color,
              unsigned stride)
 {
-   return TRUE;
+   return true;
 }
 
 
 /* Check for ADD/ONE/INV_SRC_ALPHA, ie premultiplied-alpha blending.
  */
-static boolean
+static bool
 is_one_inv_src_alpha_blend(const struct lp_fragment_shader_variant *variant)
 {
    return

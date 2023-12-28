@@ -47,6 +47,7 @@ typedef enum {
     MODE_ONE_SIZE,              /* only one resolution is supported */
     MODE_NO_REDUCED,            /* monitor doesn't accept reduced blanking */
     MODE_BANDWIDTH,             /* mode requires too much memory bandwidth */
+    MODE_DUPLICATE,             /* mode is duplicated */
     MODE_BAD = -2,              /* unspecified reason */
     MODE_ERROR = -1             /* error condition */
 } ModeStatus;

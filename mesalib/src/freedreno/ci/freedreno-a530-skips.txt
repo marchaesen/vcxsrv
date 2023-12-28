@@ -15,10 +15,6 @@ dEQP-GLES31.functional.shaders.builtin_functions.precision.tanh.lowp_compute.vec
 # Takes more than a few minutes, time is spent in batch_draw_tracking().
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
 
-# Sometimes times out in CI.  I think it's spending time in the compiler, and so
-# then the flake-detect run usually passes once shaders are cached.
-KHR-GLES31.core.arrays_of_arrays.SizedDeclarationsPrimitive
-
 # Intermittent timeouts
 spec@ext_texture_lod_bias@lodbias
 spec@!opengl 1.0@gl-1.0-blend-func
@@ -41,10 +37,9 @@ spec@!opengl 1.2@tex3d-maxsize
 # ~1 minute
 glx@glx-multithread-texture
 spec@!opengl 1.1@draw-sync
-spec@glsl-1.30@execution@texelfetch fs sampler2d 1x281-501x281
-spec@glsl-1.30@execution@texelfetch fs sampler2darray 98x1x9-98x129x9
-spec@glsl-1.30@execution@texelfetch fs sampler2darray 1x129x9-98x129x9
-spec@!opengl 2.0@tex3d-npot
+spec@arb_uniform_buffer_object@execution@shared-struct-array-array-array-struct
+spec@arb_uniform_buffer_object@execution@std140-struct-array-array-array-struct
+spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct
 
 # This one seems to be triggering faults and causing random other fails
 # depending on what else was running at the time:
@@ -61,3 +56,53 @@ arb_texture_buffer_object@max-size
 fbo-maxsize
 max-texture-size
 copypixels-draw-sync
+
+# multiple succ/fail
+KHR-GLES31.core.pixelstoragemodes.teximage2d.*
+KHR-GLES31.core.pixelstoragemodes.teximage3d.*
+
+# Hangchecks (copied from a307-skips, first hang matches)
+tex-miplevel-selection
+spec@arb_direct_state_access@transformfeedback-bufferrange
+spec@arb_direct_state_access@transformfeedback-bufferbase
+spec@arb_uniform_buffer_object@rendering-array
+spec@arb_uniform_buffer_object@rendering-array-offset
+spec@arb_point_sprite@arb_point_sprite-interactions
+gles-3.0-transform-feedback-uniform-buffer-object
+
+# additional hangs
+shaders@glsl-uniform-interstage-limits
+spec@arb_color_buffer_float.*
+spec@arb_texture_gather@texturegather.*
+# offending task: copypixels-sync (/piglit/bin/copypixels-sync -auto -fbo)
+spec@!opengl 1.1@copypixels-sync
+# offending task: teximage-colors (/piglit/bin/teximage-colors GL_SRGB8_ALPHA8 -auto -fbo)
+spec@!opengl 1.1@teximage-colors.*
+# offending task: texsubimage (/piglit/bin/texsubimage array pbo -auto -fbo)
+.*texsubimage.*
+# offending task: texelFetch (/piglit/bin/texelFetch fs sampler1DArray 1x71-501x71 -auto -fbo
+spec@ext_gpu_shader4@execution@texelfetch.*
+
+# offending task: texwrap (/piglit/bin/texwrap GL_EXT_texture_integer bordercolor swizzled -auto -fbo)
+#                 texwrap (/piglit/bin/texwrap GL_ARB_texture_float -auto -fbo)
+.*texwrap.*
+
+# offending task: shader_runner (/piglit/bin/shader_runner generated_tests/spec/arb_uniform_buffer_object/execution/shared-array-struct-array-struct.shader_test -auto -fbo)
+shared-array-struct-array-struct
+
+# msm_mdp 901000.display-controller: [drm:a5xx_irq] *ERROR* gpu fault ring 2 fence 8a28 status C5C801C3 rb 004a/004a ib1 0000000002081000/0000 ib2 0000000002091000/0000
+arb_uniform_buffer_object/execution/std140-array-struct-array-struct
+
+# offending task: fbo-clear-forma (/piglit/bin/fbo-clear-formats GL_ARB_depth_buffer_float -auto -fbo
+spec@arb_depth_buffer_float@fbo-clear-formats.*
+# offending task: attribs (/piglit/bin/attribs GL_ARB_vertex_type_2_10_10_10_rev -auto -fbo)
+spec@arb_vertex_type_2_10_10_10_rev@attribs.*
+# offending task: texelFetch (/piglit/bin/texelFetch fs sampler1D 1-513 -auto -fbo)
+spec@glsl-1.30@execution@texelfetch.*
+
+# offending task: glx-visuals-ste (/piglit/bin/glx-visuals-stencil -auto)
+glx@glx-visuals-stencil.*
+
+# Faults in a way that makes other tests flaky
+# msm_mdp 901000.display-controller: [drm:a5xx_irq] *ERROR* gpu fault ring 2 fence bc846 status 800001C1 rb 004a/004a ib1 000000000634F000/0000 ib2 000000000AA27000/0000
+KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions

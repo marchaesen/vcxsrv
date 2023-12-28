@@ -1,5 +1,5 @@
 /**********************************************************
- * Copyright 2008-2009 VMware, Inc.  All rights reserved.
+ * Copyright 2008-2022 VMware, Inc.  All rights reserved.
  *
  * Permission is hereby granted, free of charge, to any person
  * obtaining a copy of this software and associated documentation
@@ -48,11 +48,11 @@
 
 #define CONST0_UPLOAD_DEFAULT_SIZE 65536
 
-DEBUG_GET_ONCE_BOOL_OPTION(no_swtnl, "SVGA_NO_SWTNL", FALSE)
-DEBUG_GET_ONCE_BOOL_OPTION(force_swtnl, "SVGA_FORCE_SWTNL", FALSE);
-DEBUG_GET_ONCE_BOOL_OPTION(use_min_mipmap, "SVGA_USE_MIN_MIPMAP", FALSE);
-DEBUG_GET_ONCE_BOOL_OPTION(no_line_width, "SVGA_NO_LINE_WIDTH", FALSE);
-DEBUG_GET_ONCE_BOOL_OPTION(force_hw_line_stipple, "SVGA_FORCE_HW_LINE_STIPPLE", FALSE);
+DEBUG_GET_ONCE_BOOL_OPTION(no_swtnl, "SVGA_NO_SWTNL", false)
+DEBUG_GET_ONCE_BOOL_OPTION(force_swtnl, "SVGA_FORCE_SWTNL", false);
+DEBUG_GET_ONCE_BOOL_OPTION(use_min_mipmap, "SVGA_USE_MIN_MIPMAP", false);
+DEBUG_GET_ONCE_BOOL_OPTION(no_line_width, "SVGA_NO_LINE_WIDTH", false);
+DEBUG_GET_ONCE_BOOL_OPTION(force_hw_line_stipple, "SVGA_FORCE_HW_LINE_STIPPLE", false);
 
 
 static void
@@ -291,7 +291,7 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
           sizeof(svga->state.hw_draw.sampler_views));
    svga->state.hw_draw.num_views = 0;
    svga->state.hw_draw.num_backed_views = 0;
-   svga->state.hw_draw.rasterizer_discard = FALSE;
+   svga->state.hw_draw.rasterizer_discard = false;
 
    /* Initialize uavs */
    svga->state.hw_draw.uavSpliceIndex = -1;
@@ -314,6 +314,8 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
           sizeof(svga->state.hw_draw.enabled_constbufs));
    memset(svga->state.hw_draw.enabled_rawbufs, 0,
           sizeof(svga->state.hw_draw.enabled_rawbufs));
+   memset(svga->state.hw_draw.enabled_raw_shaderbufs, 0,
+          sizeof(svga->state.hw_draw.enabled_raw_shaderbufs));
    memset(svga->state.hw_draw.rawbufs, 0,
           sizeof(svga->state.hw_draw.rawbufs));
    svga->state.hw_draw.ib = NULL;
@@ -355,7 +357,7 @@ svga_context_create(struct pipe_screen *screen, void *priv, unsigned flags)
 
    svga->dirty = SVGA_NEW_ALL;
    svga->pred.query_id = SVGA3D_INVALID_ID;
-   svga->disable_rasterizer = FALSE;
+   svga->disable_rasterizer = false;
 
    /**
     * Create stream output statistics queries used in the workaround for auto
@@ -448,35 +450,35 @@ svga_context_flush(struct svga_context *svga,
    /* To force the re-emission of rendertargets and texture sampler bindings on
     * the next command buffer.
     */
-   svga->rebind.flags.rendertargets = TRUE;
-   svga->rebind.flags.texture_samplers = TRUE;
+   svga->rebind.flags.rendertargets = true;
+   svga->rebind.flags.texture_samplers = true;
 
    if (svga_have_gb_objects(svga)) {
 
-      svga->rebind.flags.constbufs = TRUE;
-      svga->rebind.flags.vs = TRUE;
-      svga->rebind.flags.fs = TRUE;
-      svga->rebind.flags.gs = TRUE;
+      svga->rebind.flags.constbufs = true;
+      svga->rebind.flags.vs = true;
+      svga->rebind.flags.fs = true;
+      svga->rebind.flags.gs = true;
 
       if (svga_have_sm5(svga)) {
-         svga->rebind.flags.tcs = TRUE;
-         svga->rebind.flags.tes = TRUE;
+         svga->rebind.flags.tcs = true;
+         svga->rebind.flags.tes = true;
       }
 
       if (svga_need_to_rebind_resources(svga)) {
-         svga->rebind.flags.query = TRUE;
+         svga->rebind.flags.query = true;
       }
 
       if (svga_sws(svga)->have_index_vertex_buffer_offset_cmd) {
-         svga->rebind.flags.vertexbufs = TRUE;
-         svga->rebind.flags.indexbuf = TRUE;
+         svga->rebind.flags.vertexbufs = true;
+         svga->rebind.flags.indexbuf = true;
       }
    }
 
    if (SVGA_DEBUG & DEBUG_SYNC) {
       if (fence)
          svga->pipe.screen->fence_finish(svga->pipe.screen, NULL, fence,
-                                          PIPE_TIMEOUT_INFINITE);
+                                          OS_TIMEOUT_INFINITE);
    }
 
    if (pfence)
@@ -500,7 +502,7 @@ svga_context_finish(struct svga_context *svga)
    SVGA_STATS_TIME_PUSH(svga_sws(svga), SVGA_STATS_TIME_CONTEXTFINISH);
 
    svga_context_flush(svga, &fence);
-   screen->fence_finish(screen, NULL, fence, PIPE_TIMEOUT_INFINITE);
+   screen->fence_finish(screen, NULL, fence, OS_TIMEOUT_INFINITE);
    screen->fence_reference(screen, &fence, NULL);
 
    SVGA_STATS_TIME_POP(svga_sws(svga));

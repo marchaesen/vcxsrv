@@ -34,6 +34,9 @@ extern "C" {
 struct vk_descriptor_set_layout {
    struct vk_object_base base;
 
+   void (*destroy)(struct vk_device *device,
+                   struct vk_descriptor_set_layout *layout);
+
    /** Reference count
     *
     * It's often necessary to store a pointer to the descriptor set layout in
@@ -60,6 +63,9 @@ void *vk_descriptor_set_layout_zalloc(struct vk_device *device, size_t size);
 void *vk_descriptor_set_layout_multizalloc(struct vk_device *device,
                                            struct vk_multialloc *ma);
 
+void vk_descriptor_set_layout_destroy(struct vk_device *device,
+                                      struct vk_descriptor_set_layout *layout);
+
 static inline struct vk_descriptor_set_layout *
 vk_descriptor_set_layout_ref(struct vk_descriptor_set_layout *layout)
 {
@@ -74,7 +80,7 @@ vk_descriptor_set_layout_unref(struct vk_device *device,
 {
    assert(layout && layout->ref_cnt >= 1);
    if (p_atomic_dec_zero(&layout->ref_cnt))
-      vk_object_free(device, NULL, layout);
+      layout->destroy(device, layout);
 }
 
 #ifdef __cplusplus

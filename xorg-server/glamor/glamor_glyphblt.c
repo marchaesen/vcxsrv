@@ -32,8 +32,9 @@
 
 static const glamor_facet glamor_facet_poly_glyph_blt = {
     .name = "poly_glyph_blt",
-    .vs_vars = "attribute vec2 primitive;\n",
+    .vs_vars = "in vec2 primitive;\n",
     .vs_exec = ("       vec2 pos = vec2(0,0);\n"
+                GLAMOR_DEFAULT_POINT_SIZE
                 GLAMOR_POS(gl_Position, primitive)),
 };
 
@@ -57,7 +58,7 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
 
     glamor_make_current(glamor_priv);
 
-    prog = glamor_use_program_fill(pixmap, gc,
+    prog = glamor_use_program_fill(drawable, gc,
                                    &glamor_priv->poly_glyph_blt_progs,
                                    &glamor_facet_poly_glyph_blt);
     if (!prog)
@@ -101,7 +102,11 @@ glamor_poly_glyph_blt_gl(DrawablePtr drawable, GCPtr gc,
                         int pt_x_i = glyph_x + xx;
                         int pt_y_i = glyph_y + yy;
 
+#if BITMAP_BIT_ORDER == MSBFirst
+                        if (!(*glyph & (128 >> (xx & 7))))
+#else
                         if (!(*glyph & (1 << (xx & 7))))
+#endif
                             continue;
 
                         if (!RegionContainsPoint(clip, pt_x_i, pt_y_i, NULL))
@@ -188,7 +193,7 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
 
     glamor_make_current(glamor_priv);
 
-    prog = glamor_use_program_fill(pixmap, gc,
+    prog = glamor_use_program_fill(drawable, gc,
                                    &glamor_priv->poly_glyph_blt_progs,
                                    &glamor_facet_poly_glyph_blt);
     if (!prog)
@@ -208,7 +213,11 @@ glamor_push_pixels_gl(GCPtr gc, PixmapPtr bitmap,
     for (yy = 0; yy < h; yy++) {
         uint8_t *bitmap_row = bitmap_data + yy * bitmap_stride;
         for (xx = 0; xx < w; xx++) {
+#if BITMAP_BIT_ORDER == MSBFirst
+            if (bitmap_row[xx / 8] & (128 >> xx % 8) &&
+#else
             if (bitmap_row[xx / 8] & (1 << xx % 8) &&
+#endif
                 RegionContainsPoint(clip,
                                     x + xx,
                                     y + yy,

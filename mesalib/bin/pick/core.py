@@ -40,16 +40,19 @@ if typing.TYPE_CHECKING:
         sha: str
         description: str
         nominated: bool
-        nomination_type: typing.Optional[int]
+        nomination_type: int
         resolution: typing.Optional[int]
         main_sha: typing.Optional[str]
         because_sha: typing.Optional[str]
+        notes: typing.Optional[str] = attr.ib(None)
 
 IS_FIX = re.compile(r'^\s*fixes:\s*([a-f0-9]{6,40})', flags=re.MULTILINE | re.IGNORECASE)
 # FIXME: I dislike the duplication in this regex, but I couldn't get it to work otherwise
 IS_CC = re.compile(r'^\s*cc:\s*["\']?([0-9]{2}\.[0-9])?["\']?\s*["\']?([0-9]{2}\.[0-9])?["\']?\s*\<?mesa-stable',
                    flags=re.MULTILINE | re.IGNORECASE)
 IS_REVERT = re.compile(r'This reverts commit ([0-9a-f]{40})')
+IS_BACKPORT = re.compile(r'^\s*backport-to:\s*(\d{2}\.\d),?\s*(\d{2}\.\d)?',
+                         flags=re.MULTILINE | re.IGNORECASE)
 
 # XXX: hack
 SEM = asyncio.Semaphore(50)
@@ -71,6 +74,8 @@ class NominationType(enum.Enum):
     CC = 0
     FIXES = 1
     REVERT = 2
+    NONE = 3
+    BACKPORT = 4
 
 
 @enum.unique
@@ -116,24 +121,24 @@ class Commit:
     sha: str = attr.ib()
     description: str = attr.ib()
     nominated: bool = attr.ib(False)
-    nomination_type: typing.Optional[NominationType] = attr.ib(None)
+    nomination_type: NominationType = attr.ib(NominationType.NONE)
     resolution: Resolution = attr.ib(Resolution.UNRESOLVED)
     main_sha: typing.Optional[str] = attr.ib(None)
     because_sha: typing.Optional[str] = attr.ib(None)
+    notes: typing.Optional[str] = attr.ib(None)
 
     def to_json(self) -> 'CommitDict':
         d: typing.Dict[str, typing.Any] = attr.asdict(self)
-        if self.nomination_type is not None:
-            d['nomination_type'] = self.nomination_type.value
+        d['nomination_type'] = self.nomination_type.value
         if self.resolution is not None:
             d['resolution'] = self.resolution.value
         return typing.cast('CommitDict', d)
 
     @classmethod
     def from_json(cls, data: 'CommitDict') -> 'Commit':
-        c = cls(data['sha'], data['description'], data['nominated'], main_sha=data['main_sha'], because_sha=data['because_sha'])
-        if data['nomination_type'] is not None:
-            c.nomination_type = NominationType(data['nomination_type'])
+        c = cls(data['sha'], data['description'], data['nominated'], main_sha=data['main_sha'],
+                because_sha=data['because_sha'], notes=data['notes'])
+        c.nomination_type = NominationType(data['nomination_type'])
         if data['resolution'] is not None:
             c.resolution = Resolution(data['resolution'])
         return c
@@ -202,6 +207,14 @@ class Commit:
         assert v
         await ui.feedback(f'{self.sha} ({self.description}) committed successfully')
 
+    async def update_notes(self, ui: 'UI', notes: typing.Optional[str]) -> None:
+        self.notes = notes
+        async with ui.git_lock:
+            ui.save()
+            v = await commit_state(message=f'Updates notes for {self.sha}')
+        assert v
+        await ui.feedback(f'{self.sha} ({self.description}) notes updated successfully')
+
 
 async def get_new_commits(sha: str) -> typing.List[typing.Tuple[str, str]]:
     # Try to get the authoritative upstream main
@@ -266,13 +279,11 @@ async def resolve_nomination(commit: 'Commit', version: str) -> 'Commit':
     out = _out.decode()
 
     # We give precedence to fixes and cc tags over revert tags.
-    # XXX: not having the walrus operator available makes me sad :=
-    m = IS_FIX.search(out)
-    if m:
+    if fix_for_commit := IS_FIX.search(out):
         # We set the nomination_type and because_sha here so that we can later
         # check to see if this fixes another staged commit.
         try:
-            commit.because_sha = fixed = await full_sha(m.group(1))
+            commit.because_sha = fixed = await full_sha(fix_for_commit.group(1))
         except PickUIException:
             pass
         else:
@@ -281,18 +292,22 @@ async def resolve_nomination(commit: 'Commit', version: str) -> 'Commit':
                 commit.nominated = True
                 return commit
 
-    m = IS_CC.search(out)
-    if m:
-        if m.groups() == (None, None) or version in m.groups():
+    if backport_to := IS_BACKPORT.search(out):
+        if version in backport_to.groups():
+            commit.nominated = True
+            commit.nomination_type = NominationType.BACKPORT
+            return commit
+
+    if cc_to := IS_CC.search(out):
+        if cc_to.groups() == (None, None) or version in cc_to.groups():
             commit.nominated = True
             commit.nomination_type = NominationType.CC
             return commit
 
-    m = IS_REVERT.search(out)
-    if m:
+    if revert_of := IS_REVERT.search(out):
         # See comment for IS_FIX path
         try:
-            commit.because_sha = reverted = await full_sha(m.group(1))
+            commit.because_sha = reverted = await full_sha(revert_of.group(1))
         except PickUIException:
             pass
         else:

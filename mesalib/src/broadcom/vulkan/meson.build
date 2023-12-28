@@ -25,7 +25,9 @@ v3dv_entrypoints = custom_target(
   command : [
     prog_python, '@INPUT0@', '--xml', '@INPUT1@', '--proto', '--weak',
     '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@', '--prefix', 'v3dv',
+    '--beta', with_vulkan_beta.to_string(),
     '--device-prefix', 'ver42',
+    '--device-prefix', 'ver71',
   ],
   depend_files : vk_entrypoints_gen_depend_files,
 )
@@ -38,6 +40,7 @@ libv3dv_files = files(
   'v3dv_debug.h',
   'v3dv_descriptor_set.c',
   'v3dv_device.c',
+  'v3dv_event.c',
   'v3dv_formats.c',
   'v3dv_image.c',
   'v3dv_limits.h',
@@ -62,13 +65,11 @@ files_per_version = files(
   'v3dvx_pipeline.c',
   'v3dvx_meta_common.c',
   'v3dvx_pipeline.c',
+  'v3dvx_query.c',
   'v3dvx_queue.c',
 )
 
-# The vulkan driver only supports version >= 42, which is the version present in
-# Rpi4. We need to explicitly set it as we are reusing pieces from the GL v3d
-# driver.
-v3d_versions = ['42']
+v3d_versions = ['42', '71']
 
 v3dv_flags = []
 
@@ -94,12 +95,12 @@ if with_platform_x11
 endif
 
 if with_platform_wayland
-  v3dv_deps += [dep_wayland_client, dep_wl_protocols]
+  v3dv_deps += dep_wayland_client
   libv3dv_files += [wayland_drm_client_protocol_h, wayland_drm_protocol_c]
 endif
 
 if with_platform_android
-  v3dv_deps += dep_android
+  v3dv_deps += [dep_android, idep_u_gralloc]
   v3dv_flags += '-DVK_USE_PLATFORM_ANDROID_KHR'
   libv3dv_files += files('v3dv_android.c')
 endif
@@ -110,8 +111,8 @@ foreach ver : v3d_versions
     'v3dv-v' + ver,
     [files_per_version, v3d_xml_pack, v3dv_entrypoints[0]],
     include_directories : [
-      inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom,
-      inc_compiler, inc_util,
+      inc_src, inc_include, inc_broadcom,
+      inc_util,
     ],
     c_args : [v3dv_flags, '-DV3D_VERSION=' + ver],
     gnu_symbol_visibility : 'hidden',
@@ -123,7 +124,7 @@ libvulkan_broadcom = shared_library(
   'vulkan_broadcom',
   [libv3dv_files, v3dv_entrypoints, sha1_h],
   include_directories : [
-    inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_broadcom, inc_compiler, inc_util,
+    inc_include, inc_src, inc_broadcom, inc_util,
   ],
   link_with : [
     libbroadcom_cle,
@@ -132,7 +133,8 @@ libvulkan_broadcom = shared_library(
   ],
   dependencies : v3dv_deps,
   c_args : v3dv_flags,
-  link_args : ['-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],
+  link_args : [vulkan_icd_link_args, '-Wl,--build-id=sha1', ld_args_bsymbolic, ld_args_gc_sections],
+  link_depends : vulkan_icd_link_depends,
   gnu_symbol_visibility : 'hidden',
   install : true,
 )
@@ -163,23 +165,22 @@ broadcom_icd = custom_target(
   ],
   build_by_default : true,
   install_dir : with_vulkan_icd_dir,
+  install_tag : 'runtime',
   install : true,
 )
 
-if meson.version().version_compare('>= 0.58')
-  _dev_icdname = 'broadcom_devenv_icd.@0@.json'.format(host_machine.cpu())
-  custom_target(
-    'broadcom_devenv_icd',
-    input : [vk_icd_gen, vk_api_xml],
-    output : _dev_icdname,
-    command : [
-      prog_python, '@INPUT0@',
-      '--api-version', '1.3', '--xml', '@INPUT1@',
-      '--lib-path', meson.current_build_dir() / 'libvulkan_broadcom.so',
-      '--out', '@OUTPUT@',
-    ],
-    build_by_default : true,
-  )
+_dev_icdname = 'broadcom_devenv_icd.@0@.json'.format(host_machine.cpu())
+_dev_icd = custom_target(
+  'broadcom_devenv_icd',
+  input : [vk_icd_gen, vk_api_xml],
+  output : _dev_icdname,
+  command : [
+    prog_python, '@INPUT0@',
+    '--api-version', '1.3', '--xml', '@INPUT1@',
+    '--lib-path', meson.current_build_dir() / 'libvulkan_broadcom.so',
+    '--out', '@OUTPUT@',
+  ],
+  build_by_default : true,
+)
 
-  devenv.append('VK_ICD_FILENAMES', meson.current_build_dir() / _dev_icdname)
-endif
+devenv.append('VK_ICD_FILENAMES', _dev_icd.full_path())

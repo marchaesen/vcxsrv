@@ -7,3 +7,4 @@ KHR-GL46.texture_swizzle.functional
 KHR-GL46.texture_swizzle.smoke
 KHR-GL46.direct_state_access.framebuffers_texture_layer_attachment
 shaders@glsl-max-varyings
+spec@amd_performance_monitor@measure

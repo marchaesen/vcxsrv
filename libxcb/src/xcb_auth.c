@@ -31,9 +31,8 @@
 
 #include <assert.h>
 #include <X11/Xauth.h>
-#include <sys/param.h>
-#include <unistd.h>
 #include <stdlib.h>
+#include <time.h>
 
 #ifdef __INTERIX
 /* _don't_ ask. interix has INADDR_LOOPBACK in here. */
@@ -48,6 +47,8 @@
 #endif
 #include "xcb_windefs.h"
 #else
+#include <sys/param.h>
+#include <unistd.h>
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
@@ -72,7 +73,7 @@ enum auth_protos {
 #define AUTH_PROTO_XDM_AUTHORIZATION "XDM-AUTHORIZATION-1"
 #define AUTH_PROTO_MIT_MAGIC_COOKIE "MIT-MAGIC-COOKIE-1"
 
-static char *authnames[N_AUTH_PROTOS] = {
+static const char *authnames[N_AUTH_PROTOS] = {
 #ifdef HASXDMAUTH
     AUTH_PROTO_XDM_AUTHORIZATION,
 #endif
@@ -133,6 +134,7 @@ static Xauth *get_authptr(struct sockaddr *sockname, int display)
         }
         addr += 12;
         /* if v4-mapped, fall through. */
+        XCB_ALLOW_FALLTHRU
 #endif
     case AF_INET:
         if(!addr)
@@ -163,7 +165,7 @@ static Xauth *get_authptr(struct sockaddr *sockname, int display)
     return XauGetBestAuthByAddr (family,
                                  (unsigned short) addrlen, addr,
                                  (unsigned short) dispbuflen, dispbuf,
-                                 N_AUTH_PROTOS, authnames, authnameslen);
+                                 N_AUTH_PROTOS, (char **)authnames, authnameslen);
 }
 
 #ifdef HASXDMAUTH

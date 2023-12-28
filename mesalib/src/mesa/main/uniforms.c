@@ -36,7 +36,7 @@
  * 2. Insert FLUSH_VERTICES calls in various places
  */
 
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/context.h"
 #include "main/shaderapi.h"
 #include "main/shaderobj.h"
@@ -111,6 +111,7 @@ _mesa_update_shader_textures_used(struct gl_shader_program *shProg,
    assert(shProg->_LinkedShaders[prog_stage]);
 
    memset(prog->TexturesUsed, 0, sizeof(prog->TexturesUsed));
+   prog->ShadowSamplers = prog->shader_program->_LinkedShaders[prog_stage]->shadow_samplers;
 
    while (mask) {
       s = u_bit_scan(&mask);

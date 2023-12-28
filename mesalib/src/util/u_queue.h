@@ -50,7 +50,6 @@ extern "C" {
 #define UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY      (1 << 0)
 #define UTIL_QUEUE_INIT_RESIZE_IF_FULL            (1 << 1)
 #define UTIL_QUEUE_INIT_SET_FULL_THREAD_AFFINITY  (1 << 2)
-#define UTIL_QUEUE_INIT_SCALE_THREADS             (1 << 3)
 
 #if UTIL_FUTEX_SUPPORTED
 #define UTIL_QUEUE_FENCE_FUTEX
@@ -205,8 +204,8 @@ struct util_queue_job {
 /* Put this into your context. */
 struct util_queue {
    char name[14]; /* 13 characters = the thread name without the index */
-   simple_mtx_t finish_lock; /* for util_queue_finish and protects threads/num_threads */
    mtx_t lock;
+   bool create_threads_on_demand;
    cnd_t has_queued_cond;
    cnd_t has_space_cond;
    thrd_t *threads;
@@ -249,7 +248,8 @@ void util_queue_finish(struct util_queue *queue);
  * and it can't be less than 1.
  */
 void
-util_queue_adjust_num_threads(struct util_queue *queue, unsigned num_threads);
+util_queue_adjust_num_threads(struct util_queue *queue, unsigned num_threads,
+                              bool locked);
 
 int64_t util_queue_get_thread_time_nano(struct util_queue *queue,
                                         unsigned thread_index);
@@ -273,6 +273,7 @@ struct util_queue_monitoring
    unsigned num_offloaded_items;
    unsigned num_direct_items;
    unsigned num_syncs;
+   unsigned num_batches;
 };
 
 #ifdef __cplusplus

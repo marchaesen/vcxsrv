@@ -25,9 +25,9 @@
 
 #include <list>
 class radv_llvm_per_thread_info {
- public:
-   radv_llvm_per_thread_info(enum radeon_family arg_family,
-                             enum ac_target_machine_options arg_tm_options, unsigned arg_wave_size)
+public:
+   radv_llvm_per_thread_info(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options,
+                             unsigned arg_wave_size)
        : family(arg_family), tm_options(arg_tm_options), wave_size(arg_wave_size), passes(NULL)
    {
    }
@@ -54,8 +54,7 @@ class radv_llvm_per_thread_info {
       return ac_compile_module_to_elf(passes, module, pelf_buffer, pelf_size);
    }
 
-   bool is_same(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options,
-                unsigned arg_wave_size)
+   bool is_same(enum radeon_family arg_family, enum ac_target_machine_options arg_tm_options, unsigned arg_wave_size)
    {
       if (arg_family == family && arg_tm_options == tm_options && arg_wave_size == wave_size)
          return true;
@@ -63,19 +62,18 @@ class radv_llvm_per_thread_info {
    }
    struct ac_llvm_compiler llvm_info;
 
- private:
+private:
    enum radeon_family family;
    enum ac_target_machine_options tm_options;
    unsigned wave_size;
    struct ac_compiler_passes *passes;
 };
 
-/* we have to store a linked list per thread due to the possiblity of multiple gpus being required */
+/* we have to store a linked list per thread due to the possibility of multiple gpus being required */
 static thread_local std::list<radv_llvm_per_thread_info> radv_llvm_per_thread_list;
 
 bool
-radv_compile_to_elf(struct ac_llvm_compiler *info, LLVMModuleRef module, char **pelf_buffer,
-                    size_t *pelf_size)
+radv_compile_to_elf(struct ac_llvm_compiler *info, LLVMModuleRef module, char **pelf_buffer, size_t *pelf_size)
 {
    radv_llvm_per_thread_info *thread_info = nullptr;
 

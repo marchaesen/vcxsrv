@@ -40,8 +40,7 @@ radv_null_cs(struct radeon_cmdbuf *base)
 }
 
 static VkResult
-radv_null_ctx_create(struct radeon_winsys *_ws, enum radeon_ctx_priority priority,
-                     struct radeon_winsys_ctx **rctx)
+radv_null_ctx_create(struct radeon_winsys *_ws, enum radeon_ctx_priority priority, struct radeon_winsys_ctx **rctx)
 {
    struct radv_null_ctx *ctx = CALLOC_STRUCT(radv_null_ctx);
 
@@ -66,7 +65,7 @@ radv_null_cs_domain(const struct radeon_winsys *_ws)
 }
 
 static struct radeon_cmdbuf *
-radv_null_cs_create(struct radeon_winsys *ws, enum amd_ip_type ip_type)
+radv_null_cs_create(struct radeon_winsys *ws, enum amd_ip_type ip_type, UNUSED bool is_secondary)
 {
    struct radv_null_cs *cs = calloc(1, sizeof(struct radv_null_cs));
    if (!cs)

@@ -16,50 +16,44 @@
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
  * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
- * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
- * SOFTWARE.
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+ * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+ * DEALINGS IN THE SOFTWARE.
  */
+
+#include "u_trace.h"
 
 #include <inttypes.h>
 
 #include "util/list.h"
 #include "util/u_call_once.h"
 #include "util/u_debug.h"
-#include "util/u_inlines.h"
-#include "util/u_fifo.h"
 #include "util/u_vector.h"
-
-#include "u_trace.h"
 
 #define __NEEDS_TRACE_PRIV
 #include "u_trace_priv.h"
 
 #define PAYLOAD_BUFFER_SIZE 0x100
 #define TIMESTAMP_BUF_SIZE 0x1000
-#define TRACES_PER_CHUNK   (TIMESTAMP_BUF_SIZE / sizeof(uint64_t))
-
-int _u_trace_instrument;
+#define TRACES_PER_CHUNK (TIMESTAMP_BUF_SIZE / sizeof(uint64_t))
 
 struct u_trace_state {
    util_once_flag once;
    FILE *trace_file;
-   bool trace_format_json;
+   enum u_trace_type enabled_traces;
 };
-static struct u_trace_state u_trace_state = {
-   .once = UTIL_ONCE_FLAG_INIT
-};
+static struct u_trace_state u_trace_state = { .once = UTIL_ONCE_FLAG_INIT };
 
 #ifdef HAVE_PERFETTO
-int ut_perfetto_enabled;
-
 /**
  * Global list of contexts, so we can defer starting the queue until
  * perfetto tracing is started.
  */
 static struct list_head ctx_list = { &ctx_list, &ctx_list };
 
-static simple_mtx_t ctx_list_mutex = _SIMPLE_MTX_INITIALIZER_NP;
+static simple_mtx_t ctx_list_mutex = SIMPLE_MTX_INITIALIZER;
+/* The amount of Perfetto tracers connected */
+int _u_trace_perfetto_count;
 #endif
 
 struct u_trace_payload_buf {
@@ -106,8 +100,8 @@ struct u_trace_chunk {
 
    struct util_queue_fence fence;
 
-   bool last;          /* this chunk is last in batch */
-   bool eof;           /* this chunk is last in frame */
+   bool last; /* this chunk is last in batch */
+   bool eof;  /* this chunk is last in frame */
 
    void *flush_data; /* assigned by u_trace_flush */
 
@@ -128,13 +122,13 @@ struct u_trace_printer {
    void (*event)(struct u_trace_context *utctx,
                  struct u_trace_chunk *chunk,
                  const struct u_trace_event *evt,
-                 uint64_t ns, int32_t delta);
+                 uint64_t ns,
+                 int32_t delta);
 };
 
 static void
 print_txt_start(struct u_trace_context *utctx)
 {
-
 }
 
 static void
@@ -153,20 +147,23 @@ static void
 print_txt_end_of_batch(struct u_trace_context *utctx)
 {
    uint64_t elapsed = utctx->last_time_ns - utctx->first_time_ns;
-   fprintf(utctx->out, "ELAPSED: %"PRIu64" ns\n", elapsed);
+   fprintf(utctx->out, "ELAPSED: %" PRIu64 " ns\n", elapsed);
 }
 
 static void
 print_txt_event(struct u_trace_context *utctx,
                 struct u_trace_chunk *chunk,
                 const struct u_trace_event *evt,
-                uint64_t ns, int32_t delta)
+                uint64_t ns,
+                int32_t delta)
 {
    if (evt->tp->print) {
-      fprintf(utctx->out, "%016"PRIu64" %+9d: %s: ", ns, delta, evt->tp->name);
+      fprintf(utctx->out, "%016" PRIu64 " %+9d: %s: ", ns, delta,
+              evt->tp->name);
       evt->tp->print(utctx->out, evt->payload);
    } else {
-      fprintf(utctx->out, "%016"PRIu64" %+9d: %s\n", ns, delta, evt->tp->name);
+      fprintf(utctx->out, "%016" PRIu64 " %+9d: %s\n", ns, delta,
+              evt->tp->name);
    }
 }
 
@@ -221,7 +218,7 @@ print_json_end_of_batch(struct u_trace_context *utctx)
 {
    uint64_t elapsed = utctx->last_time_ns - utctx->first_time_ns;
    fprintf(utctx->out, "],\n");
-   fprintf(utctx->out, "\"duration_ns\": %"PRIu64"\n", elapsed);
+   fprintf(utctx->out, "\"duration_ns\": %" PRIu64 "\n", elapsed);
    fprintf(utctx->out, "}\n");
 }
 
@@ -229,12 +226,13 @@ static void
 print_json_event(struct u_trace_context *utctx,
                  struct u_trace_chunk *chunk,
                  const struct u_trace_event *evt,
-                 uint64_t ns, int32_t delta)
+                 uint64_t ns,
+                 int32_t delta)
 {
    if (utctx->event_nr != 0)
       fprintf(utctx->out, ",\n");
    fprintf(utctx->out, "{\n\"event\": \"%s\",\n", evt->tp->name);
-   fprintf(utctx->out, "\"time_ns\": \"%016"PRIu64"\",\n", ns);
+   fprintf(utctx->out, "\"time_ns\": \"%016" PRIu64 "\",\n", ns);
    fprintf(utctx->out, "\"params\": {");
    if (evt->tp->print)
       evt->tp->print_json(utctx->out, evt->payload);
@@ -289,7 +287,7 @@ free_chunk(void *ptr)
 
    /* Unref payloads attached to this chunk. */
    struct u_trace_payload_buf **payload;
-   u_vector_foreach(payload, &chunk->payloads)
+   u_vector_foreach (payload, &chunk->payloads)
       u_trace_payload_buf_unref(*payload);
    u_vector_finish(&chunk->payloads);
 
@@ -301,8 +299,8 @@ static void
 free_chunks(struct list_head *chunks)
 {
    while (!list_is_empty(chunks)) {
-      struct u_trace_chunk *chunk = list_first_entry(chunks,
-            struct u_trace_chunk, node);
+      struct u_trace_chunk *chunk =
+         list_first_entry(chunks, struct u_trace_chunk, node);
       free_chunk(chunk);
    }
 }
@@ -316,39 +314,39 @@ get_chunk(struct u_trace *ut, size_t payload_size)
 
    /* do we currently have a non-full chunk to append msgs to? */
    if (!list_is_empty(&ut->trace_chunks)) {
-           chunk = list_last_entry(&ut->trace_chunks,
-                           struct u_trace_chunk, node);
-           /* Can we store a new trace in the chunk? */
-           if (chunk->num_traces < TRACES_PER_CHUNK) {
-              /* If no payload required, nothing else to check. */
-              if (payload_size <= 0)
-                 return chunk;
+      chunk = list_last_entry(&ut->trace_chunks, struct u_trace_chunk, node);
+      /* Can we store a new trace in the chunk? */
+      if (chunk->num_traces < TRACES_PER_CHUNK) {
+         /* If no payload required, nothing else to check. */
+         if (payload_size <= 0)
+            return chunk;
 
-              /* If the payload buffer has space for the payload, we're good.
-               */
-              if (chunk->payload &&
-                  (chunk->payload->end - chunk->payload->next) >= payload_size)
-                 return chunk;
+         /* If the payload buffer has space for the payload, we're good.
+          */
+         if (chunk->payload &&
+             (chunk->payload->end - chunk->payload->next) >= payload_size)
+            return chunk;
 
-              /* If we don't have enough space in the payload buffer, can we
-               * allocate a new one?
-               */
-              struct u_trace_payload_buf **buf = u_vector_add(&chunk->payloads);
-              *buf = u_trace_payload_buf_create();
-              chunk->payload = *buf;
-              return chunk;
-           }
-           /* we need to expand to add another chunk to the batch, so
-            * the current one is no longer the last one of the batch:
-            */
-           chunk->last = false;
+         /* If we don't have enough space in the payload buffer, can we
+          * allocate a new one?
+          */
+         struct u_trace_payload_buf **buf = u_vector_add(&chunk->payloads);
+         *buf = u_trace_payload_buf_create();
+         chunk->payload = *buf;
+         return chunk;
+      }
+      /* we need to expand to add another chunk to the batch, so
+       * the current one is no longer the last one of the batch:
+       */
+      chunk->last = false;
    }
 
    /* .. if not, then create a new one: */
    chunk = calloc(1, sizeof(*chunk));
 
    chunk->utctx = ut->utctx;
-   chunk->timestamps = ut->utctx->create_timestamp_buffer(ut->utctx, TIMESTAMP_BUF_SIZE);
+   chunk->timestamps =
+      ut->utctx->create_timestamp_buffer(ut->utctx, TIMESTAMP_BUF_SIZE);
    chunk->last = true;
    u_vector_init(&chunk->payloads, 4, sizeof(struct u_trace_payload_buf *));
    if (payload_size > 0) {
@@ -362,10 +360,17 @@ get_chunk(struct u_trace *ut, size_t payload_size)
    return chunk;
 }
 
-DEBUG_GET_ONCE_BOOL_OPTION(trace_instrument, "GPU_TRACE_INSTRUMENT", false)
-DEBUG_GET_ONCE_BOOL_OPTION(trace, "GPU_TRACE", false)
-DEBUG_GET_ONCE_OPTION(trace_file, "GPU_TRACEFILE", NULL)
-DEBUG_GET_ONCE_OPTION(trace_format, "GPU_TRACE_FORMAT", "txt")
+static const struct debug_named_value config_control[] = {
+   { "print", U_TRACE_TYPE_PRINT, "Enable print" },
+   { "print_json", U_TRACE_TYPE_PRINT_JSON, "Enable print in JSON" },
+#ifdef HAVE_PERFETTO
+   { "perfetto", U_TRACE_TYPE_PERFETTO_ENV, "Enable perfetto" },
+#endif
+   { "markers", U_TRACE_TYPE_MARKERS, "Enable marker trace" },
+   DEBUG_NAMED_VALUE_END
+};
+
+DEBUG_GET_ONCE_OPTION(trace_file, "MESA_GPU_TRACEFILE", NULL)
 
 static void
 trace_file_fini(void)
@@ -377,6 +382,8 @@ trace_file_fini(void)
 static void
 u_trace_state_init_once(void)
 {
+   u_trace_state.enabled_traces =
+      debug_get_flags_option("MESA_GPU_TRACES", config_control, 0);
    const char *tracefile_name = debug_get_option_trace_file();
    if (tracefile_name && !__check_suid()) {
       u_trace_state.trace_file = fopen(tracefile_name, "w");
@@ -384,21 +391,27 @@ u_trace_state_init_once(void)
          atexit(trace_file_fini);
       }
    }
-   if (!u_trace_state.trace_file && debug_get_option_trace()) {
+   if (!u_trace_state.trace_file) {
       u_trace_state.trace_file = stdout;
    }
-
-   if (u_trace_state.trace_file || debug_get_option_trace_instrument())
-      p_atomic_inc(&_u_trace_instrument);
-
-   const char *trace_format = debug_get_option_trace_format();
-   u_trace_state.trace_format_json = !strcmp(trace_format, "json");
 }
 
-static void
+void
 u_trace_state_init(void)
 {
    util_call_once(&u_trace_state.once, u_trace_state_init_once);
+}
+
+bool
+u_trace_is_enabled(enum u_trace_type type)
+{
+   /* Active is only tracked in a given u_trace context, so if you're asking
+    * us if U_TRACE_TYPE_PERFETTO (_ENV | _ACTIVE) is enabled, then just check
+    * _ENV ("perfetto tracing is desired, but perfetto might not be running").
+    */
+   type &= ~U_TRACE_TYPE_PERFETTO_ACTIVE;
+
+   return (u_trace_state.enabled_traces & type) == type;
 }
 
 static void
@@ -407,9 +420,10 @@ queue_init(struct u_trace_context *utctx)
    if (utctx->queue.jobs)
       return;
 
-   bool ret = util_queue_init(&utctx->queue, "traceq", 256, 1,
-                              UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY |
-                              UTIL_QUEUE_INIT_RESIZE_IF_FULL, NULL);
+   bool ret = util_queue_init(
+      &utctx->queue, "traceq", 256, 1,
+      UTIL_QUEUE_INIT_USE_MINIMUM_PRIORITY | UTIL_QUEUE_INIT_RESIZE_IF_FULL,
+      NULL);
    assert(ret);
 
    if (!ret)
@@ -418,15 +432,16 @@ queue_init(struct u_trace_context *utctx)
 
 void
 u_trace_context_init(struct u_trace_context *utctx,
-      void *pctx,
-      u_trace_create_ts_buffer  create_timestamp_buffer,
-      u_trace_delete_ts_buffer  delete_timestamp_buffer,
-      u_trace_record_ts         record_timestamp,
-      u_trace_read_ts           read_timestamp,
-      u_trace_delete_flush_data delete_flush_data)
+                     void *pctx,
+                     u_trace_create_ts_buffer create_timestamp_buffer,
+                     u_trace_delete_ts_buffer delete_timestamp_buffer,
+                     u_trace_record_ts record_timestamp,
+                     u_trace_read_ts read_timestamp,
+                     u_trace_delete_flush_data delete_flush_data)
 {
    u_trace_state_init();
 
+   utctx->enabled_traces = u_trace_state.enabled_traces;
    utctx->pctx = pctx;
    utctx->create_timestamp_buffer = create_timestamp_buffer;
    utctx->delete_timestamp_buffer = delete_timestamp_buffer;
@@ -443,30 +458,35 @@ u_trace_context_init(struct u_trace_context *utctx,
 
    list_inithead(&utctx->flushed_trace_chunks);
 
-   utctx->out = u_trace_state.trace_file;
+   if (utctx->enabled_traces & U_TRACE_TYPE_PRINT) {
+      utctx->out = u_trace_state.trace_file;
 
-   if (u_trace_state.trace_format_json) {
-      utctx->out_printer = &json_printer;
+      if (utctx->enabled_traces & U_TRACE_TYPE_JSON) {
+         utctx->out_printer = &json_printer;
+      } else {
+         utctx->out_printer = &txt_printer;
+      }
    } else {
-      utctx->out_printer = &txt_printer;
+      utctx->out = NULL;
+      utctx->out_printer = NULL;
    }
 
 #ifdef HAVE_PERFETTO
    simple_mtx_lock(&ctx_list_mutex);
    list_add(&utctx->node, &ctx_list);
-   simple_mtx_unlock(&ctx_list_mutex);
-#endif
+   if (_u_trace_perfetto_count > 0)
+      utctx->enabled_traces |= U_TRACE_TYPE_PERFETTO_ACTIVE;
 
-   if (!u_trace_context_actively_tracing(utctx))
-      return;
-
-#ifdef HAVE_PERFETTO
-   simple_mtx_lock(&ctx_list_mutex);
-#endif
    queue_init(utctx);
-#ifdef HAVE_PERFETTO
+
    simple_mtx_unlock(&ctx_list_mutex);
+#else
+   queue_init(utctx);
 #endif
+
+   if (!(p_atomic_read_relaxed(&utctx->enabled_traces) &
+         U_TRACE_TYPE_REQUIRE_QUEUING))
+      return;
 
    if (utctx->out) {
       utctx->out_printer->start(utctx);
@@ -499,20 +519,33 @@ void
 u_trace_perfetto_start(void)
 {
    simple_mtx_lock(&ctx_list_mutex);
-   list_for_each_entry (struct u_trace_context, utctx, &ctx_list, node)
-      queue_init(utctx);
-   simple_mtx_unlock(&ctx_list_mutex);
 
-   if (p_atomic_inc_return(&ut_perfetto_enabled) == 1)
-      p_atomic_inc(&_u_trace_instrument);
+   list_for_each_entry (struct u_trace_context, utctx, &ctx_list, node) {
+      queue_init(utctx);
+      p_atomic_set(&utctx->enabled_traces,
+                   utctx->enabled_traces | U_TRACE_TYPE_PERFETTO_ACTIVE);
+   }
+
+   _u_trace_perfetto_count++;
+
+   simple_mtx_unlock(&ctx_list_mutex);
 }
 
 void
 u_trace_perfetto_stop(void)
 {
-   assert(ut_perfetto_enabled > 0);
-   if (p_atomic_dec_return(&ut_perfetto_enabled) == 0)
-      p_atomic_dec(&_u_trace_instrument);
+   simple_mtx_lock(&ctx_list_mutex);
+
+   assert(_u_trace_perfetto_count > 0);
+   _u_trace_perfetto_count--;
+   if (_u_trace_perfetto_count == 0) {
+      list_for_each_entry (struct u_trace_context, utctx, &ctx_list, node) {
+         p_atomic_set(&utctx->enabled_traces,
+                      utctx->enabled_traces & ~U_TRACE_TYPE_PERFETTO_ACTIVE);
+      }
+   }
+
+   simple_mtx_unlock(&ctx_list_mutex);
 }
 #endif
 
@@ -544,7 +577,8 @@ process_chunk(void *job, void *gdata, int thread_index)
       if (!evt->tp)
          continue;
 
-      uint64_t ns = utctx->read_timestamp(utctx, chunk->timestamps, idx, chunk->flush_data);
+      uint64_t ns = utctx->read_timestamp(utctx, chunk->timestamps, idx,
+                                          chunk->flush_data);
       int32_t delta;
 
       if (!utctx->first_time_ns)
@@ -565,8 +599,10 @@ process_chunk(void *job, void *gdata, int thread_index)
          utctx->out_printer->event(utctx, chunk, evt, ns, delta);
       }
 #ifdef HAVE_PERFETTO
-      if (evt->tp->perfetto) {
-         evt->tp->perfetto(utctx->pctx, ns, chunk->flush_data, evt->payload);
+      if (evt->tp->perfetto &&
+          (p_atomic_read_relaxed(&utctx->enabled_traces) &
+           U_TRACE_TYPE_PERFETTO_ACTIVE)) {
+         evt->tp->perfetto(utctx->pctx, ns, evt->tp->tp_idx, chunk->flush_data, evt->payload);
       }
 #endif
 
@@ -610,30 +646,29 @@ u_trace_context_process(struct u_trace_context *utctx, bool eof)
    if (list_is_empty(chunks))
       return;
 
-   struct u_trace_chunk *last_chunk = list_last_entry(chunks,
-            struct u_trace_chunk, node);
+   struct u_trace_chunk *last_chunk =
+      list_last_entry(chunks, struct u_trace_chunk, node);
    last_chunk->eof = eof;
 
    while (!list_is_empty(chunks)) {
-      struct u_trace_chunk *chunk = list_first_entry(chunks,
-            struct u_trace_chunk, node);
+      struct u_trace_chunk *chunk =
+         list_first_entry(chunks, struct u_trace_chunk, node);
 
       /* remove from list before enqueuing, because chunk is freed
        * once it is processed by the queue:
        */
       list_delinit(&chunk->node);
 
-      util_queue_add_job(&utctx->queue, chunk, &chunk->fence,
-            process_chunk, cleanup_chunk,
-            TIMESTAMP_BUF_SIZE);
+      util_queue_add_job(&utctx->queue, chunk, &chunk->fence, process_chunk,
+                         cleanup_chunk, TIMESTAMP_BUF_SIZE);
    }
 }
-
 
 void
 u_trace_init(struct u_trace *ut, struct u_trace_context *utctx)
 {
    ut->utctx = utctx;
+   ut->num_traces = 0;
    list_inithead(&ut->trace_chunks);
 }
 
@@ -644,6 +679,7 @@ u_trace_fini(struct u_trace *ut)
     * have been flushed to the trace-context.
     */
    free_chunks(&ut->trace_chunks);
+   ut->num_traces = 0;
 }
 
 bool
@@ -661,7 +697,7 @@ u_trace_begin_iterator(struct u_trace *ut)
    struct u_trace_chunk *first_chunk =
       list_first_entry(&ut->trace_chunks, struct u_trace_chunk, node);
 
-   return (struct u_trace_iterator) { ut, first_chunk, 0};
+   return (struct u_trace_iterator) { ut, first_chunk, 0 };
 }
 
 struct u_trace_iterator
@@ -673,7 +709,8 @@ u_trace_end_iterator(struct u_trace *ut)
    struct u_trace_chunk *last_chunk =
       list_last_entry(&ut->trace_chunks, struct u_trace_chunk, node);
 
-   return (struct u_trace_iterator) { ut, last_chunk, last_chunk->num_traces};
+   return (struct u_trace_iterator) { ut, last_chunk,
+                                      last_chunk->num_traces };
 }
 
 /* If an iterator was created when there were no chunks and there are now
@@ -683,22 +720,19 @@ static struct u_trace_iterator
 sanitize_iterator(struct u_trace_iterator iter)
 {
    if (iter.ut && !iter.chunk && !list_is_empty(&iter.ut->trace_chunks)) {
-      iter.chunk = list_first_entry(&iter.ut->trace_chunks, struct
-                                    u_trace_chunk, node);
+      iter.chunk =
+         list_first_entry(&iter.ut->trace_chunks, struct u_trace_chunk, node);
    }
 
    return iter;
 }
 
 bool
-u_trace_iterator_equal(struct u_trace_iterator a,
-                       struct u_trace_iterator b)
+u_trace_iterator_equal(struct u_trace_iterator a, struct u_trace_iterator b)
 {
    a = sanitize_iterator(a);
    b = sanitize_iterator(b);
-   return a.ut == b.ut &&
-          a.chunk == b.chunk &&
-          a.event_idx == b.event_idx;
+   return a.ut == b.ut && a.chunk == b.chunk && a.event_idx == b.event_idx;
 }
 
 void
@@ -722,9 +756,8 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
       if (from_chunk == end_it.chunk)
          to_copy = MIN2(to_copy, end_it.event_idx - from_idx);
 
-      copy_ts_buffer(begin_it.ut->utctx, cmdstream,
-                     from_chunk->timestamps, from_idx,
-                     to_chunk->timestamps, to_chunk->num_traces,
+      copy_ts_buffer(begin_it.ut->utctx, cmdstream, from_chunk->timestamps,
+                     from_idx, to_chunk->timestamps, to_chunk->num_traces,
                      to_copy);
 
       memcpy(&to_chunk->traces[to_chunk->num_traces],
@@ -734,7 +767,7 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
       /* Take a refcount on payloads from from_chunk if needed. */
       if (begin_it.ut != into) {
          struct u_trace_payload_buf **in_payload;
-         u_vector_foreach(in_payload, &from_chunk->payloads) {
+         u_vector_foreach (in_payload, &from_chunk->payloads) {
             struct u_trace_payload_buf **out_payload =
                u_vector_add(&to_chunk->payloads);
 
@@ -742,6 +775,7 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
          }
       }
 
+      into->num_traces += to_copy;
       to_chunk->num_traces += to_copy;
       from_idx += to_copy;
 
@@ -751,7 +785,8 @@ u_trace_clone_append(struct u_trace_iterator begin_it,
             break;
 
          from_idx = 0;
-         from_chunk = list_entry(from_chunk->node.next, struct u_trace_chunk, node);
+         from_chunk =
+            list_entry(from_chunk->node.next, struct u_trace_chunk, node);
       }
    }
 }
@@ -766,11 +801,13 @@ u_trace_disable_event_range(struct u_trace_iterator begin_it,
    struct u_trace_chunk *current_chunk = begin_it.chunk;
    uint32_t start_idx = begin_it.event_idx;
 
-   while(current_chunk != end_it.chunk) {
+   while (current_chunk != end_it.chunk) {
       memset(&current_chunk->traces[start_idx], 0,
-             (current_chunk->num_traces - start_idx) * sizeof(struct u_trace_event));
+             (current_chunk->num_traces - start_idx) *
+                sizeof(struct u_trace_event));
       start_idx = 0;
-      current_chunk = list_entry(current_chunk->node.next, struct u_trace_chunk, node);
+      current_chunk =
+         list_entry(current_chunk->node.next, struct u_trace_chunk, node);
    }
 
    memset(&current_chunk->traces[start_idx], 0,
@@ -783,27 +820,33 @@ u_trace_disable_event_range(struct u_trace_iterator begin_it,
  * functions.
  */
 void *
-u_trace_append(struct u_trace *ut, void *cs, const struct u_tracepoint *tp)
+u_trace_appendv(struct u_trace *ut,
+                void *cs,
+                const struct u_tracepoint *tp,
+                unsigned variable_sz)
 {
-   struct u_trace_chunk *chunk = get_chunk(ut, tp->payload_sz);
-   unsigned tp_idx = chunk->num_traces++;
-
    assert(tp->payload_sz == ALIGN_NPOT(tp->payload_sz, 8));
+
+   unsigned payload_sz = ALIGN_NPOT(tp->payload_sz + variable_sz, 8);
+   struct u_trace_chunk *chunk = get_chunk(ut, payload_sz);
+   unsigned tp_idx = chunk->num_traces++;
 
    /* sub-allocate storage for trace payload: */
    void *payload = NULL;
-   if (tp->payload_sz > 0) {
+   if (payload_sz > 0) {
       payload = chunk->payload->next;
-      chunk->payload->next += tp->payload_sz;
+      chunk->payload->next += payload_sz;
    }
 
    /* record a timestamp for the trace: */
-   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, tp_idx, tp->end_of_pipe);
+   ut->utctx->record_timestamp(ut, cs, chunk->timestamps, tp_idx,
+                               tp->end_of_pipe);
 
    chunk->traces[tp_idx] = (struct u_trace_event) {
-         .tp = tp,
-         .payload = payload,
+      .tp = tp,
+      .payload = payload,
    };
+   ut->num_traces++;
 
    return payload;
 }
@@ -811,7 +854,8 @@ u_trace_append(struct u_trace *ut, void *cs, const struct u_tracepoint *tp)
 void
 u_trace_flush(struct u_trace *ut, void *flush_data, bool free_data)
 {
-   list_for_each_entry(struct u_trace_chunk, chunk, &ut->trace_chunks, node) {
+   list_for_each_entry (struct u_trace_chunk, chunk, &ut->trace_chunks,
+                        node) {
       chunk->flush_data = flush_data;
       chunk->free_flush_data = false;
    }
@@ -825,4 +869,5 @@ u_trace_flush(struct u_trace *ut, void *flush_data, bool free_data)
    /* transfer batch's log chunks to context: */
    list_splicetail(&ut->trace_chunks, &ut->utctx->flushed_trace_chunks);
    list_inithead(&ut->trace_chunks);
+   ut->num_traces = 0;
 }

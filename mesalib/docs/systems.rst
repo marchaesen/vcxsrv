@@ -7,24 +7,24 @@ Haiku. We're actively developing and maintaining several hardware and
 software drivers.
 
 The primary API is OpenGL but there's also support for OpenGL ES, Vulkan,
-EGL, OpenMAX, OpenCL, VDPAU, VA-API and XvMC.
+EGL, OpenMAX, OpenCL, VDPAU and VA-API.
 
 Hardware drivers include:
 
 -  Intel GMA, HD Graphics, Iris. See `Intel's
-   Website <https://01.org/linuxgraphics>`__
+   Website <https://www.intel.com/content/www/us/en/developer/topic-technology/open/overview.html>`__
 -  AMD Radeon series. See
    `RadeonFeature <https://www.x.org/wiki/RadeonFeature>`__
 -  NVIDIA GPUs (GeForce 5 / FX and later). See `Nouveau
    Wiki <https://nouveau.freedesktop.org>`__
--  Qualcomm Adreno A2xx-A6xx. See :doc:`Freedreno
+-  Qualcomm Adreno 2xx-6xx. See :doc:`Freedreno
    <drivers/freedreno>`
 -  Broadcom VideoCore 4 and 5. See :doc:`VC4 <drivers/vc4>` and
    :doc:`V3D <drivers/v3d>`
 -  ARM Mali Utgard. See :doc:`Lima <drivers/lima>`
 -  ARM Mali Midgard, Bifrost. See :doc:`Panfrost <drivers/panfrost>`
 -  Vivante GCxxx. See `Etnaviv
-   Wiki <https://github.com/laanwj/etna_viv/wiki>`__
+   Wiki <https://github.com/etnaviv/etna_viv>`__
 -  NVIDIA Tegra (K1 and later).
 
 Layered driver include:
@@ -35,7 +35,7 @@ Layered driver include:
 -  :doc:`VirGL <drivers/virgl>` - project for accelerated graphics for
    QEMU guests
 -  :doc:`Zink <drivers/zink>` - driver providing OpenGL on top of
-   Khoronos' Vulkan API.
+   Khronos' Vulkan API.
 
 Software drivers include:
 
@@ -47,7 +47,7 @@ Additional driver information:
 
 -  `DRI hardware drivers <https://dri.freedesktop.org/>`__ for the X
    Window System
--  :doc:`Xlib / swrast driver <xlibdriver>` for the X Window System
+-  :doc:`Xlib driver <xlibdriver>` for the X Window System
    and Unix-like operating systems
 
 Deprecated Systems and Drivers
@@ -66,7 +66,7 @@ the Git repo. The list includes:
 -  DEC OpenVMS
 -  Intel i810
 -  Intel i830 - i865
--  Linux fbdev
+-  Linux Framebuffer
 -  Matrox
 -  MS-DOS
 -  NVIDIA Riva TNT - GeForce 4

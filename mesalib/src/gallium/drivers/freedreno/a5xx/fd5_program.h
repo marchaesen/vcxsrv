@@ -37,9 +37,9 @@ struct fd5_emit;
 
 struct fd5_program_state {
    struct ir3_program_state base;
-   struct ir3_shader_variant *bs; /* VS for when emit->binning */
-   struct ir3_shader_variant *vs;
-   struct ir3_shader_variant *fs; /* FS for when !emit->binning */
+   const struct ir3_shader_variant *bs; /* VS for when emit->binning */
+   const struct ir3_shader_variant *vs;
+   const struct ir3_shader_variant *fs; /* FS for when !emit->binning */
 };
 
 static inline struct fd5_program_state *
@@ -51,8 +51,12 @@ fd5_program_state(struct ir3_program_state *state)
 void fd5_emit_shader(struct fd_ringbuffer *ring,
                      const struct ir3_shader_variant *so);
 
+void fd5_emit_shader_obj(struct fd_context *ctx, struct fd_ringbuffer *ring,
+                         const struct ir3_shader_variant *so,
+                         uint32_t shader_obj_reg) assert_dt;
+
 void fd5_program_emit(struct fd_context *ctx, struct fd_ringbuffer *ring,
-                      struct fd5_emit *emit) in_dt;
+                      struct fd5_emit *emit) assert_dt;
 
 void fd5_prog_init(struct pipe_context *pctx);
 

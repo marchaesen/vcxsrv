@@ -335,7 +335,7 @@ link_util_calculate_subroutine_compat(struct gl_shader_program *prog)
 
          int count = 0;
          if (p->sh.NumSubroutineFunctions == 0) {
-            linker_error(prog, "subroutine uniform %s defined but no valid functions found\n", uni->type->name);
+            linker_error(prog, "subroutine uniform %s defined but no valid functions found\n", glsl_get_type_name(uni->type));
             continue;
          }
          for (unsigned f = 0; f < p->sh.NumSubroutineFunctions; f++) {
@@ -437,4 +437,18 @@ link_util_mark_array_elements_referenced(const struct array_deref_range *dr,
       return;
 
    _mark_array_elements_referenced(dr, count, 1, 0, bits);
+}
+
+const char *
+interpolation_string(unsigned interpolation)
+{
+   switch (interpolation) {
+   case INTERP_MODE_NONE:          return "no";
+   case INTERP_MODE_SMOOTH:        return "smooth";
+   case INTERP_MODE_FLAT:          return "flat";
+   case INTERP_MODE_NOPERSPECTIVE: return "noperspective";
+   }
+
+   assert(!"Should not get here.");
+   return "";
 }

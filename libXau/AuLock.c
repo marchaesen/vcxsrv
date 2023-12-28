@@ -41,6 +41,10 @@ in this Software without prior written authorization from The Open Group.
 # define link rename
 #endif
 
+#ifndef O_CLOEXEC
+#define O_CLOEXEC	0
+#endif
+
 int
 XauLockAuth (
 _Xconst char *file_name,
@@ -71,7 +75,8 @@ long	dead)
 
     while (retries > 0) {
 	if (creat_fd == -1) {
-	    creat_fd = open (creat_name, O_WRONLY | O_CREAT | O_EXCL, 0600);
+	    creat_fd = open (creat_name, O_WRONLY | O_CREAT | O_EXCL | O_CLOEXEC,
+			     0600);
 	    if (creat_fd == -1) {
 		if (errno != EACCES && errno != EEXIST)
 		    return LOCK_ERROR;

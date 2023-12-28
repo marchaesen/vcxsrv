@@ -1,101 +1,33 @@
-skqp
+SkQP
 ====
 
-`skqp <https://skia.org/docs/dev/testing/skqp/>`_ stands for SKIA Quality
+`SkQP <https://skia.org/docs/dev/testing/skqp/>`__ stands for SKIA Quality
 Program conformance tests.  Basically, it has sets of rendering tests and unit
-tests to ensure that `SKIA <https://skia.org/>`_ is meeting its design specifications on a specific
+tests to ensure that `SKIA <https://skia.org/>`__ is meeting its design specifications on a specific
 device.
 
 The rendering tests have support for GL, GLES and Vulkan backends and test some
 rendering scenarios.
-And the unit tests check the GPU behavior without rendering images.
+And the unit tests check the GPU behavior without rendering images, using any of the GL/GLES or Vulkan drivers.
 
-Tests
------
-
-Render tests design
-^^^^^^^^^^^^^^^^^^^
-
-It is worth noting that `rendertests.txt` can bring some detail about each test
-expectation, so each test can have a max pixel error count, to tell skqp that it
-is OK to have at most that number of errors for that test. See also:
-https://github.com/google/skia/blob/c29454d1c9ebed4758a54a69798869fa2e7a36e0/tools/skqp/README_ALGORITHM.md
-
-.. _test-location:
-
-Location
-^^^^^^^^
-
-Each `rendertests.txt` and `unittest.txt` file must be located inside a specific
-subdirectory inside skqp assets directory.
-
-+--------------+--------------------------------------------+
-| Test type    | Location                                   |
-+==============+============================================+
-| Render tests |  `${SKQP_ASSETS_DIR}/skqp/rendertests.txt` |
-+--------------+--------------------------------------------+
-| Unit tests   |  `${SKQP_ASSETS_DIR}/skqp/unittests.txt`   |
-+--------------+--------------------------------------------+
-
-The `skqp-runner.sh` script will make the necessary modifications to separate
-`rendertests.txt` for each backend-driver combination. As long as the test files are located in the expected place:
-
-+--------------+----------------------------------------------------------------------------------------------+
-| Test type    | Location                                                                                     |
-+==============+==============================================================================================+
-| Render tests | `${MESA_REPOSITORY_DIR}/src/${GPU_DRIVER}/ci/${GPU_VERSION}-${SKQP_BACKEND}_rendertests.txt` |
-+--------------+----------------------------------------------------------------------------------------------+
-| Unit tests   | `${MESA_REPOSITORY_DIR}/src/${GPU_DRIVER}/ci/${GPU_VERSION}_unittests.txt`                   |
-+--------------+----------------------------------------------------------------------------------------------+
-
-Where `SKQP_BACKEND` can be:
-
-- gl: for GL backend
-- gles: for GLES backend
-- vk: for Vulkan backend
-
-Example file
-""""""""""""
-
-.. code-block:: console
-
-  src/freedreno/ci/freedreno-a630-skqp-gl_rendertests.txt
-
-- GPU_DRIVER: `freedreno`
-- GPU_VERSION: `freedreno-a630`
-- SKQP_BACKEND: `gl`
-
-.. _rendertests-design:
-
-skqp reports
+SkQP reports
 ------------
 
-skqp generates reports after finishing its execution, they are located at the job
-artifacts results directory and are divided in subdirectories by rendering tests
-backends and unit
-tests. The job log has links to every generated report in order to facilitate
-the skqp debugging.
+SkQP generates reports after finishing its execution, and deqp-runner collects
+them in the job artifacts results directory under the test name.  Click the
+'Browse' button from a failing job to get to them.
 
-Maintaining skqp on Mesa CI
----------------------------
+SkQP failing tests
+------------------
 
-skqp is built alongside with another binary, namely `list_gpu_unit_tests`, it is
-located in the same folder where `skqp` binary is.
+SkQP rendering tests will have a range of pixel values allowed for the driver's
+rendering for a given test.  This can make the "expected" image in the result
+output look rather strange, but you should be able to make sense of it knowing
+that.
 
-This binary will generate the expected `unittests.txt` for the target GPU, so
-ideally it should be executed on every skqp update and when a new device
-receives skqp CI jobs.
-
-1. Generate target unit tests for the current GPU with :code:`./list_gpu_unit_tests > unittests.txt`
-
-2. Run skqp job
-
-3. If there is a failing or crashing unit test, remove it from the corresponding `unittests.txt`
-
-4. If there is a crashing render test, remove it from the corresponding `rendertests.txt`
-
-5. If there is a failing render test, visually inspect the result from the HTML report
-    - If the render result is OK, update the max error count for that test
-    - Otherwise, or put `-1` in the same threshold, as seen in :ref:`rendertests-design`
-
-6. Remember to put the new tests files to the locations cited in :ref:`test-location`
+In SkQP itself, testcases can have increased failing pixel thresholds added to
+them to keep CI green when the rendering is "correct" but out of normal range.
+However, we don't support changing the thresholds in our testing.  Because any
+driver rendering not meeting the normal thresholds will trigger Android CTS
+failures, we treat them as failures and track them as expected failures the
+```*-fails.txt`` file.`

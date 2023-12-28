@@ -81,7 +81,6 @@ xa_yuv_bind_samplers(struct xa_context *r, struct xa_surface *yuv[])
     sampler.min_img_filter = PIPE_TEX_FILTER_LINEAR;
     sampler.mag_img_filter = PIPE_TEX_FILTER_LINEAR;
     sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NEAREST;
-    sampler.normalized_coords = 1;
 
     for (i = 0; i < 3; ++i) {
 	samplers[i] = &sampler;

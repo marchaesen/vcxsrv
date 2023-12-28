@@ -27,7 +27,7 @@
 #ifndef SHADERIMAGE_H
 #define SHADERIMAGE_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "formats.h"
 
 #ifdef __cplusplus

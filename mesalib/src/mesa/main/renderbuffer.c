@@ -23,7 +23,7 @@
  */
 
 
-#include "glheader.h"
+#include "util/glheader.h"
 
 #include "context.h"
 #include "bufferobj.h"
@@ -287,7 +287,7 @@ renderbuffer_alloc_storage(struct gl_context * ctx,
    rb->texture = screen->resource_create(screen, &templ);
 
    if (!rb->texture)
-      return FALSE;
+      return false;
 
    _mesa_update_renderbuffer_surface(ctx, rb);
    return rb->surface != NULL;
@@ -301,7 +301,6 @@ _mesa_init_renderbuffer(struct gl_renderbuffer *rb, GLuint name)
 {
    GET_CURRENT_CONTEXT(ctx);
 
-   rb->ClassID = 0;
    rb->Name = name;
    rb->RefCount = 1;
    rb->Delete = delete_renderbuffer;
@@ -576,7 +575,7 @@ _mesa_update_renderbuffer_surface(struct gl_context *ctx,
     * the format).  Check rb->Format instead of rb->texture->format
     * to determine if the rb is sRGB-capable.
     */
-   boolean enable_srgb = ctx->Color.sRGBEnabled &&
+   bool enable_srgb = ctx->Color.sRGBEnabled &&
       _mesa_is_format_srgb(rb->Format);
    enum pipe_format format = resource->format;
 

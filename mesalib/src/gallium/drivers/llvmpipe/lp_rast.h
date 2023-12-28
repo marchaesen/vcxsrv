@@ -37,7 +37,7 @@
 #ifndef LP_RAST_H
 #define LP_RAST_H
 
-#include "pipe/p_compiler.h"
+#include "util/compiler.h"
 #include "util/u_pack_color.h"
 #include "util/u_rect.h"
 #include "lp_jit.h"
@@ -75,6 +75,7 @@ struct lp_rasterizer_task;
 
 extern const float lp_sample_pos_4x[4][2];
 
+
 /**
  * Rasterization state.
  * Objects of this type are put into the shared data bin and pointed
@@ -85,6 +86,7 @@ struct lp_rast_state {
     * the fragment shader, such as blend color and alpha ref value.
     */
    struct lp_jit_context jit_context;
+   struct lp_jit_resources jit_resources;
 
    /* The shader itself.  Probably we also need to pass a pointer to
     * the tile color/z/stencil data somehow
@@ -229,17 +231,17 @@ GET_PLANES(const struct lp_rast_triangle *tri)
 
 
 struct lp_rasterizer *
-lp_rast_create( unsigned num_threads );
+lp_rast_create(unsigned num_threads);
 
 void
-lp_rast_destroy( struct lp_rasterizer * );
+lp_rast_destroy(struct lp_rasterizer *);
 
 void
-lp_rast_queue_scene( struct lp_rasterizer *rast,
-                     struct lp_scene *scene );
+lp_rast_queue_scene(struct lp_rasterizer *rast,
+                     struct lp_scene *scene);
 
 void
-lp_rast_finish( struct lp_rasterizer *rast );
+lp_rast_finish(struct lp_rasterizer *rast);
 
 
 union lp_rast_cmd_arg {
@@ -263,7 +265,7 @@ union lp_rast_cmd_arg {
 /* Cast wrappers.  Hopefully these compile to noops!
  */
 static inline union lp_rast_cmd_arg
-lp_rast_arg_inputs( const struct lp_rast_shader_inputs *shade_tile )
+lp_rast_arg_inputs(const struct lp_rast_shader_inputs *shade_tile)
 {
    union lp_rast_cmd_arg arg;
    arg.shade_tile = shade_tile;
@@ -272,7 +274,7 @@ lp_rast_arg_inputs( const struct lp_rast_shader_inputs *shade_tile )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_triangle( const struct lp_rast_triangle *triangle,
+lp_rast_arg_triangle(const struct lp_rast_triangle *triangle,
                       unsigned plane_mask)
 {
    union lp_rast_cmd_arg arg;
@@ -289,7 +291,7 @@ lp_rast_arg_triangle( const struct lp_rast_triangle *triangle,
  * left coordinates of the a block that fully encloses the triangle.
  */
 static inline union lp_rast_cmd_arg
-lp_rast_arg_triangle_contained( const struct lp_rast_triangle *triangle,
+lp_rast_arg_triangle_contained(const struct lp_rast_triangle *triangle,
                                 unsigned x, unsigned y)
 {
    union lp_rast_cmd_arg arg;
@@ -300,7 +302,7 @@ lp_rast_arg_triangle_contained( const struct lp_rast_triangle *triangle,
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_rectangle( const struct lp_rast_rectangle *rectangle )
+lp_rast_arg_rectangle(const struct lp_rast_rectangle *rectangle)
 {
    union lp_rast_cmd_arg arg;
    arg.rectangle = rectangle;
@@ -309,7 +311,7 @@ lp_rast_arg_rectangle( const struct lp_rast_rectangle *rectangle )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_state( const struct lp_rast_state *state )
+lp_rast_arg_state(const struct lp_rast_state *state)
 {
    union lp_rast_cmd_arg arg;
    arg.set_state = state;
@@ -318,7 +320,7 @@ lp_rast_arg_state( const struct lp_rast_state *state )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_fence( struct lp_fence *fence )
+lp_rast_arg_fence(struct lp_fence *fence)
 {
    union lp_rast_cmd_arg arg;
    arg.fence = fence;
@@ -327,7 +329,7 @@ lp_rast_arg_fence( struct lp_fence *fence )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_clearzs( uint64_t value, uint64_t mask )
+lp_rast_arg_clearzs(uint64_t value, uint64_t mask)
 {
    union lp_rast_cmd_arg arg;
    arg.clear_zstencil.value = value;
@@ -337,7 +339,7 @@ lp_rast_arg_clearzs( uint64_t value, uint64_t mask )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_query( struct llvmpipe_query *pq )
+lp_rast_arg_query(struct llvmpipe_query *pq)
 {
    union lp_rast_cmd_arg arg;
    arg.query_obj = pq;
@@ -346,7 +348,7 @@ lp_rast_arg_query( struct llvmpipe_query *pq )
 
 
 static inline union lp_rast_cmd_arg
-lp_rast_arg_null( void )
+lp_rast_arg_null(void)
 {
    union lp_rast_cmd_arg arg;
    arg.set_state = NULL;
@@ -423,14 +425,16 @@ struct lp_bin_info
 lp_characterize_bin(const struct cmd_bin *bin);
 
 void
-lp_debug_bins( struct lp_scene *scene );
+lp_debug_bins(struct lp_scene *scene);
 
 void
-lp_debug_draw_bins_by_cmd_length( struct lp_scene *scene );
+lp_debug_draw_bins_by_cmd_length(struct lp_scene *scene);
 
 void
-lp_debug_draw_bins_by_coverage( struct lp_scene *scene );
+lp_debug_draw_bins_by_coverage(struct lp_scene *scene);
 
-void lp_rast_fence(struct lp_rasterizer *rast,
-                   struct lp_fence **fence);
+void
+lp_rast_fence(struct lp_rasterizer *rast,
+              struct lp_fence **fence);
+
 #endif

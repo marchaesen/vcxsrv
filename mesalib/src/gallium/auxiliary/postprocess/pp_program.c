@@ -41,7 +41,8 @@
 /** Initialize the internal details */
 struct pp_program *
 pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
-             struct cso_context *cso, struct st_context_iface *st)
+             struct cso_context *cso, struct st_context *st,
+             pp_st_invalidate_state_func st_invalidate_state)
 {
    struct pp_program *p;
 
@@ -57,6 +58,7 @@ pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
    p->pipe = pipe;
    p->cso = cso;
    p->st = st;
+   p->st_invalidate_state = st_invalidate_state;
 
    {
       static const float verts[4][2][4] = {
@@ -101,24 +103,24 @@ pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
    p->sampler.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
    p->sampler.min_img_filter = p->sampler.mag_img_filter =
       PIPE_TEX_FILTER_LINEAR;
-   p->sampler.normalized_coords = 1;
 
    p->sampler_point.wrap_s = p->sampler_point.wrap_t =
       p->sampler_point.wrap_r = PIPE_TEX_WRAP_CLAMP_TO_EDGE;
    p->sampler_point.min_mip_filter = PIPE_TEX_MIPFILTER_NONE;
    p->sampler_point.min_img_filter = p->sampler_point.mag_img_filter =
       PIPE_TEX_FILTER_NEAREST;
-   p->sampler_point.normalized_coords = 1;
 
    p->velem.count = 2;
    p->velem.velems[0].src_offset = 0;
    p->velem.velems[0].instance_divisor = 0;
    p->velem.velems[0].vertex_buffer_index = 0;
    p->velem.velems[0].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
+   p->velem.velems[0].src_stride = 2 * 4 * sizeof(float);
    p->velem.velems[1].src_offset = 1 * 4 * sizeof(float);
    p->velem.velems[1].instance_divisor = 0;
    p->velem.velems[1].vertex_buffer_index = 0;
    p->velem.velems[1].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
+   p->velem.velems[1].src_stride = 2 * 4 * sizeof(float);
 
    if (!p->screen->is_format_supported(p->screen,
                                        PIPE_FORMAT_R32G32B32A32_FLOAT,
@@ -131,10 +133,10 @@ pp_init_prog(struct pp_queue_t *ppq, struct pipe_context *pipe,
       const enum tgsi_semantic semantic_names[] = { TGSI_SEMANTIC_POSITION,
          TGSI_SEMANTIC_GENERIC
       };
-      const uint semantic_indexes[] = { 0, 0 };
+      const unsigned semantic_indexes[] = { 0, 0 };
       p->passvs = util_make_vertex_passthrough_shader(p->pipe, 2,
                                                       semantic_names,
-                                                      semantic_indexes, FALSE);
+                                                      semantic_indexes, false);
    }
 
    p->framebuffer.nr_cbufs = 1;

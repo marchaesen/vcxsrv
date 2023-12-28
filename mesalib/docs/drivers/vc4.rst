@@ -1,14 +1,14 @@
 VC4
 ===
 
-Mesa's ``vc4`` graphics driver supports multiple implementations of
+Mesa's VC4 graphics driver supports multiple implementations of
 Broadcom's VideoCore IV GPU. It is notably used in the Raspberry Pi 0
 through Raspberry Pi 3 hardware, and the driver is included as an
-option as of the 2016-02-09 Rasbpian release using ``raspi-config``.
+option as of the 2016-02-09 Raspbian release using ``raspi-config``.
 On most other distributions such as Debian or Fedora, you need no
 configuration to enable the driver.
 
-This Mesa driver talks directly to the `vc4
+This Mesa driver talks directly to the `VC4
 <https://www.kernel.org/doc/html/latest/gpu/vc4.html>`__ kernel DRM
 driver for scheduling graphics commands, and that module also provides
 KMS display support.  The driver makes no use of the closed source VPU
@@ -18,7 +18,7 @@ GPU block from Linux.
 GLES2 support
 -------------
 
-The vc4 driver is a nearly conformant GLES2 driver, and the hardware
+The VC4 driver is a nearly conformant GLES2 driver, and the hardware
 has achieved GLES2 conformance with other driver stacks.
 
 OpenGL support
@@ -29,8 +29,8 @@ mostly correct but with a few caveats.
 
 * 4-byte index buffers.
 
-GLES2.0, and vc4, don't have ``GL_UNSIGNED_INT`` index buffers. To support
-them in vc4, we create a shadow copy of your index buffer with the
+GLES2.0, and VC4, don't have ``GL_UNSIGNED_INT`` index buffers. To support
+them in VC4, we create a shadow copy of your index buffer with the
 indices truncated to 2 bytes. This is incorrect (and will assertion
 fail in debug builds of Mesa) if any of the indices were >65535. To
 fix that, we would need to detect this case and rewrite the index
@@ -64,7 +64,7 @@ order.
 Bug Reporting
 -------------
 
-VC4 rendering bugs should go to Mesa's gitlab `issues
+VC4 rendering bugs should go to Mesa's GitLab `issues
 <https://gitlab.freedesktop.org/mesa/mesa/-/issues>`__ page.
 
 By far the easiest way to communicate bug reports for rendering
@@ -76,9 +76,9 @@ the problem.  Traces attached to bug reports should ideally be small.
 For GPU hangs, if you can get a short apitrace that produces the
 problem, that's still the best.  If the problem takes a long time to
 reproduce or you can't capture it in a trace, describing how to
-reproduce and including a gpu hang dump would be the most
+reproduce and including a GPU hang dump would be the most
 useful. Install `vc4-gpu-tools
-<https://github.com/anholt/vc4-gpu-tools/>` and use
+<https://github.com/anholt/vc4-gpu-tools/>`__ and use
 ``vc4_dump_hang_state my-app.hang``. Sometimes the hang file will
 provide useful information.
 
@@ -154,7 +154,7 @@ can unroll, that can actually count as constant indexing.
 
 * Increasing GPU memory Increase CMA pool size
 
-The memory for the VC4 driver is allocated from the standard Linux cma
+The memory for the VC4 driver is allocated from the standard Linux CMA
 pool. The size of this pool defaults to 64 MB.  To increase this, pass
 an additional parameter on the kernel command line.  Edit the boot
 partition's ``cmdline.txt`` to add::
@@ -271,7 +271,7 @@ shader-db
 ---------
 
 shader-db is often used as a proxy for real-world app performance when
-working on the compiler in Mesa.  On vc4, there is a lot of
+working on the compiler in Mesa.  On VC4, there is a lot of
 state-dependent code in the shaders (like blending or vertex attribute
 format handling), so the typical `shader-db
 <https://gitlab.freedesktop.org/mesa/shader-db>`__ will miss important
@@ -291,7 +291,7 @@ Hardware Documentation
 
 For driver developers, Broadcom publicly released a `specification
 <https://docs.broadcom.com/doc/12358545>`__ PDF for the 21553, which
-is closely related to the vc4 GPU present in the Raspberry Pi.  They
+is closely related to the VC4 GPU present in the Raspberry Pi.  They
 also released a `snapshot <https://docs.broadcom.com/docs/12358546>`__
 of a corresponding Android graphics driver.  That graphics driver was
 ported to Raspbian for a demo, but was not expected to have ongoing
@@ -299,7 +299,7 @@ development.
 
 Developers with NDA access with Broadcom or Raspberry Pi can
 potentially get access to "simpenrose", the C software simulator of
-the GPU.  The Mesa driver includes a backend (`vc4_simulator.c`) to
+the GPU.  The Mesa driver includes a backend (``vc4_simulator.c``) to
 use simpenrose from an x86 system with the i915 graphics driver with
-all of the vc4 rendering commands emulated on simpenrose and memcpyed
+all of the VC4 rendering commands emulated on simpenrose and memcpyed
 to the real GPU.

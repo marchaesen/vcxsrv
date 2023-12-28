@@ -57,7 +57,7 @@ Dylan Baker (6):
 
 -  docs/relnotes: Add sha256 sums for mesa 18.1.1
 -  cherry-ignore: add commits not to pull
--  cherry-ignore: Add patches from Jason that he rebased on 18.1
+-  cherry-ignore: Add patches from Faith that he rebased on 18.1
 -  meson: work around gentoo applying -m32 to host compiler in cross
    builds
 -  cherry-ignore: Add another patch
@@ -69,7 +69,7 @@ Eric Engestrom (3):
 -  configure: radv depends on mako
 -  i965: fix resource leak
 
-Jason Ekstrand (10):
+Faith Ekstrand (10):
 
 -  intel/eu: Add some brw_get_default\_ helpers
 -  intel/eu: Copy fields manually in brw_next_insn

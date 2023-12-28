@@ -2,8 +2,8 @@ LIBCOMPILER_FILES = \
 	builtin_type_macros.h \
 	glsl_types.cpp \
 	glsl_types.h \
-	nir_types.cpp \
 	nir_types.h \
+	builtin_ctypes.c \
 	shader_enums.c \
 	shader_enums.h \
 	shader_info.h
@@ -22,7 +22,6 @@ LIBGLSL_FILES = \
 	glsl/builtin_int64.h \
 	glsl/builtin_types.cpp \
 	glsl/builtin_variables.cpp \
-	glsl/generate_ir.cpp \
 	glsl/gl_nir_lower_atomics.c \
 	glsl/gl_nir_lower_images.c \
 	glsl/gl_nir_lower_buffers.c \
@@ -32,6 +31,13 @@ LIBGLSL_FILES = \
 	glsl/gl_nir_link_uniform_blocks.c \
 	glsl/gl_nir_link_uniform_initializers.c \
 	glsl/gl_nir_link_uniforms.c \
+	glsl/gl_nir_link_varyings.c \
+	glsl/gl_nir_link_varyings.h \
+	glsl/gl_nir_lower_xfb_varying.c \
+	glsl/gl_nir_opt_dead_builtin_varyings.c \
+	glsl/gl_nir_lower_packed_varyings.c \
+	glsl/gl_nir_lower_blend_equation_advanced.c \
+	glsl/gl_nir_lower_named_interface_blocks.c \
 	glsl/gl_nir_link_xfb.c \
 	glsl/gl_nir_linker.c \
 	glsl/gl_nir_linker.h \
@@ -70,7 +76,6 @@ LIBGLSL_FILES = \
 	glsl/ir_reader.h \
 	glsl/ir_rvalue_visitor.cpp \
 	glsl/ir_rvalue_visitor.h \
-	glsl/ir_set_program_inouts.cpp \
 	glsl/ir_uniform.h \
 	glsl/ir_validate.cpp \
 	glsl/ir_variable_refcount.cpp \
@@ -82,38 +87,20 @@ LIBGLSL_FILES = \
 	glsl/linker_util.cpp \
 	glsl/link_functions.cpp \
 	glsl/link_interface_blocks.cpp \
-	glsl/link_uniforms.cpp \
-	glsl/link_uniform_block_active_visitor.cpp \
 	glsl/link_uniform_block_active_visitor.h \
-	glsl/link_uniform_blocks.cpp \
-	glsl/link_varyings.cpp \
 	glsl/link_varyings.h \
 	glsl/list.h \
-	glsl/lower_blend_equation_advanced.cpp \
 	glsl/lower_builtins.cpp \
-	glsl/lower_discard.cpp \
 	glsl/lower_discard_flow.cpp \
-	glsl/lower_distance.cpp \
 	glsl/lower_instructions.cpp \
-	glsl/lower_int64.cpp \
 	glsl/lower_jumps.cpp \
 	glsl/lower_mat_op_to_vec.cpp \
-	glsl/lower_named_interface_blocks.cpp \
 	glsl/lower_packing_builtins.cpp \
 	glsl/lower_precision.cpp \
 	glsl/lower_subroutine.cpp \
-	glsl/lower_tess_level.cpp \
 	glsl/lower_vec_index_to_cond_assign.cpp \
-	glsl/lower_vec_index_to_swizzle.cpp \
 	glsl/lower_vector_derefs.cpp \
-	glsl/lower_vector_insert.cpp \
-	glsl/lower_output_reads.cpp \
 	glsl/opt_algebraic.cpp \
-	glsl/opt_array_splitting.cpp \
-	glsl/opt_constant_folding.cpp \
-	glsl/opt_constant_propagation.cpp \
-	glsl/opt_constant_variable.cpp \
-	glsl/opt_copy_propagation_elements.cpp \
 	glsl/opt_dead_builtin_variables.cpp \
 	glsl/opt_dead_code.cpp \
 	glsl/opt_dead_code_local.cpp \
@@ -124,20 +111,15 @@ LIBGLSL_FILES = \
 	glsl/opt_if_simplification.cpp \
 	glsl/opt_minmax.cpp \
 	glsl/opt_rebalance_tree.cpp \
-	glsl/opt_structure_splitting.cpp \
 	glsl/opt_tree_grafting.cpp \
 	glsl/program.h \
 	glsl/propagate_invariance.cpp \
 	glsl/s_expression.cpp \
 	glsl/s_expression.h \
+        flsl/string_to_uint_map.cpp \
+        flsl/string_to_uint_map.h \
 	glsl/serialize.cpp \
-	glsl/serialize.h \
-	glsl/string_to_uint_map.cpp \
-	glsl/string_to_uint_map.h \
-	glsl/gl_nir_link_varyings.c \
-	glsl/gl_nir_lower_xfb_varying.c \
-	glsl/gl_nir_opt_dead_builtin_varyings.c \
-	glsl/gl_nir_lower_packed_varyings.c
+	glsl/serialize.h
 
 LIBGLSL_SHADER_CACHE_FILES = \
 	glsl/shader_cache.cpp \
@@ -197,7 +179,6 @@ NIR_FILES = \
 	nir/nir_control_flow.c \
 	nir/nir_control_flow.h \
 	nir/nir_control_flow_private.h \
-	nir/nir_convert_ycbcr.c \
 	nir/nir_deref.c \
 	nir/nir_deref.h \
 	nir/nir_divergence_analysis.c \
@@ -205,10 +186,8 @@ NIR_FILES = \
 	nir/nir_format_convert.h \
 	nir/nir_from_ssa.c \
 	nir/nir_gather_info.c \
-	nir/nir_gather_ssa_types.c \
 	nir/nir_gather_xfb_info.c \
 	nir/nir_gs_count_vertices.c \
-	nir/nir_inline_functions.c \
         nir/nir_inline_uniforms.c \
 	nir/nir_instr_set.c \
 	nir/nir_instr_set.h \
@@ -216,16 +195,17 @@ NIR_FILES = \
 	nir/nir_liveness.c \
 	nir/nir_loop_analyze.c \
 	nir/nir_loop_analyze.h \
-	nir/nir_lower_alpha_test.c \
 	nir/nir_lower_alu.c \
+        nir/nir_lower_alpha_test.c \
 	nir/nir_lower_amul.c \
 	nir/nir_lower_array_deref_of_vec.c \
 	nir/nir_lower_atomics_to_ssbo.c \
 	nir/nir_lower_bitmap.c \
-	nir/nir_lower_bit_size.c \
+	nir/nir_lower_blend.c \
 	nir/nir_lower_bool_to_bitsize.c \
 	nir/nir_lower_bool_to_float.c \
 	nir/nir_lower_bool_to_int32.c \
+	nir/nir_lower_cl_images.c \
 	nir/nir_lower_clamp_color_outputs.c \
 	nir/nir_lower_clip.c \
 	nir/nir_lower_clip_cull_distance_arrays.c \
@@ -233,13 +213,17 @@ NIR_FILES = \
 	nir/nir_lower_clip_halfz.c \
 	nir/nir_lower_convert_alu_types.c \
 	nir/nir_lower_variable_initializers.c \
+	nir/nir_lower_discard_if.c \
 	nir/nir_lower_discard_or_demote.c \
 	nir/nir_lower_double_ops.c \
 	nir/nir_lower_drawpixels.c \
 	nir/nir_lower_fb_read.c \
 	nir/nir_lower_flatshade.c \
 	nir/nir_lower_flrp.c \
+	nir/nir_lower_fp16_conv.c \
 	nir/nir_lower_fragcoord_wtrans.c \
+        nir/nir_lower_frag_coord_to_pixel_coord.c \
+        nir/nir_lower_fragcolor.c \
 	nir/nir_lower_frexp.c \
 	nir/nir_lower_global_vars_to_local.c \
 	nir/nir_lower_goto_ifs.c \
@@ -247,6 +231,7 @@ NIR_FILES = \
 	nir/nir_lower_load_const_to_scalar.c \
 	nir/nir_lower_locals_to_regs.c \
 	nir/nir_lower_idiv.c \
+	nir/nir_lower_image.c \
 	nir/nir_lower_indirect_derefs.c \
 	nir/nir_lower_input_attachments.c \
 	nir/nir_lower_int64.c \
@@ -271,8 +256,15 @@ NIR_FILES = \
 	nir/nir_lower_point_size.c \
 	nir/nir_lower_point_size_mov.c \
 	nir/nir_lower_printf.c \
-	nir/nir_lower_regs_to_ssa.c \
 	nir/nir_lower_readonly_images_to_tex.c \
+	nir/nir_lower_reg_intrinsics_to_ssa.c \
+	nir/nir_remove_tex_shadow.c \
+	nir/nir_legacy.c \
+	nir/nir_functions.c \
+	nir/nir_opt_constant_folding.c \
+	nir/nir_trivialize_registers.c \
+	nir/nir_lower_continue_constructs.c \
+	nir/nir_lower_vec_to_regs.c \
 	nir/nir_lower_returns.c \
 	nir/nir_lower_samplers.c \
 	nir/nir_lower_scratch.c \
@@ -281,14 +273,12 @@ NIR_FILES = \
 	nir/nir_lower_system_values.c \
 	nir/nir_lower_tex.c \
 	nir/nir_lower_texcoord_replace.c \
-	nir/nir_lower_to_source_mods.c \
 	nir/nir_lower_two_sided_color.c \
 	nir/nir_lower_ubo_vec4.c \
 	nir/nir_lower_uniforms_to_ubo.c \
 	nir/nir_lower_undef_to_zero.c \
 	nir/nir_lower_vars_to_ssa.c \
 	nir/nir_lower_var_copies.c \
-	nir/nir_lower_vec_to_movs.c \
 	nir/nir_lower_vec3_to_vec4.c \
 	nir/nir_lower_viewport_transform.c \
 	nir/nir_lower_wpos_center.c \
@@ -304,7 +294,6 @@ NIR_FILES = \
 	nir/nir_opt_comparison_pre.c \
 	nir/nir_split_64bit_vec3_and_vec4.c \
 	nir/nir_opt_conditional_discard.c \
-	nir/nir_opt_constant_folding.c \
 	nir/nir_opt_copy_prop_vars.c \
 	nir/nir_opt_copy_propagate.c \
 	nir/nir_opt_cse.c \
@@ -324,7 +313,6 @@ NIR_FILES = \
 	nir/nir_opt_offsets.c \
 	nir/nir_opt_peephole_select.c \
 	nir/nir_opt_rematerialize_compares.c \
-	nir/nir_lower_discard_if.c \
 	nir/nir_opt_remove_phis.c \
 	nir/nir_opt_shrink_vectors.c \
 	nir/nir_opt_sink.c \
@@ -362,7 +350,8 @@ NIR_FILES = \
 	nir/nir_opt_phi_precision.c \
 	nir/nir_opt_shrink_stores.c \
 	nir_lower_sysvals_to_varyings.c \
-        nir/nir_opt_fragdepth.c
+        nir/nir_opt_fragdepth.c \
+	nir/nir_gather_types.c
 
 SPIRV_GENERATED_FILES = \
 	spirv/spirv_info.c \
@@ -373,8 +362,6 @@ SPIRV_FILES = \
 	spirv/GLSL.ext.AMD.h \
 	spirv/GLSL.std.450.h \
 	spirv/gl_spirv.c \
-	spirv/nir_load_libclc.c \
-	spirv/nir_lower_libclc.c \
 	spirv/nir_spirv.h \
 	spirv/OpenCL.std.h \
 	spirv/spirv.h \
@@ -383,8 +370,10 @@ SPIRV_FILES = \
 	spirv/vtn_alu.c \
 	spirv/vtn_amd.c \
 	spirv/vtn_cfg.c \
+	spirv/vtn_cmat.c \
 	spirv/vtn_glsl450.c \
 	spirv/vtn_opencl.c \
 	spirv/vtn_private.h \
+	spirv/vtn_structured_cfg.c \
 	spirv/vtn_subgroup.c \
 	spirv/vtn_variables.c

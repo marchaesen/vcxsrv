@@ -310,16 +310,16 @@ is_result_nonzero(struct pipe_query *q,
  * Called by rendering function to check rendering is conditional.
  * \return TRUE if we should render, FALSE if we should skip rendering
  */
-boolean
+bool
 softpipe_check_render_cond(struct softpipe_context *sp)
 {
    struct pipe_context *pipe = &sp->pipe;
-   boolean b, wait;
+   bool b, wait;
    union pipe_query_result result;
    memset(&result, 0, sizeof(union pipe_query_result));
 
    if (!sp->render_cond_query) {
-      return TRUE;  /* no query predicate, draw normally */
+      return true;  /* no query predicate, draw normally */
    }
 
    wait = (sp->render_cond_mode == PIPE_RENDER_COND_WAIT ||
@@ -330,7 +330,7 @@ softpipe_check_render_cond(struct softpipe_context *sp)
    if (b)
       return !is_result_nonzero(sp->render_cond_query, &result) == sp->render_cond_cond;
    else
-      return TRUE;
+      return true;
 }
 
 

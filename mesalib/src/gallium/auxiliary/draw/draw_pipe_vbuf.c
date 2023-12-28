@@ -63,13 +63,13 @@ struct vbuf_stage {
    /* FIXME: we have no guarantee that 'unsigned' is 32bit */
 
    /** Vertices in hardware format */
-   unsigned *vertices;
-   unsigned *vertex_ptr;
+   uint8_t *vertices;
+   uint8_t *vertex_ptr;
    unsigned max_vertices;
    unsigned nr_vertices;
 
    /** Indices */
-   ushort *indices;
+   uint16_t *indices;
    unsigned max_indices;
    unsigned nr_indices;
 
@@ -115,7 +115,7 @@ check_space(struct vbuf_stage *vbuf, unsigned nr)
  * have a couple of slots at the beginning (1-dword header, 4-dword
  * clip pos) that we ignore here.  We only use the vertex->data[] fields.
  */
-static inline ushort
+static inline uint16_t
 emit_vertex(struct vbuf_stage *vbuf, struct vertex_header *vertex)
 {
    if (vertex->vertex_id == UNDEFINED_VERTEX_ID && vbuf->vertex_ptr) {
@@ -130,11 +130,11 @@ emit_vertex(struct vbuf_stage *vbuf, struct vertex_header *vertex)
 
       if (0) draw_dump_emitted_vertex(vbuf->vinfo, (uint8_t *)vbuf->vertex_ptr);
 
-      vbuf->vertex_ptr += vbuf->vertex_size/4;
+      vbuf->vertex_ptr += vbuf->vertex_size;
       vertex->vertex_id = vbuf->nr_vertices++;
    }
 
-   return (ushort)vertex->vertex_id;
+   return (uint16_t)vertex->vertex_id;
 }
 
 
@@ -183,7 +183,7 @@ vbuf_point(struct draw_stage *stage, struct prim_header *prim)
  * will be flushed if needed and a new one allocated.
  */
 static void
-vbuf_start_prim(struct vbuf_stage *vbuf, uint prim)
+vbuf_start_prim(struct vbuf_stage *vbuf, enum mesa_prim prim)
 {
    struct translate_key hw_key;
    unsigned dst_offset;
@@ -270,7 +270,7 @@ vbuf_first_tri(struct draw_stage *stage, struct prim_header *prim)
    struct vbuf_stage *vbuf = vbuf_stage(stage);
 
    vbuf_flush_vertices(vbuf);
-   vbuf_start_prim(vbuf, PIPE_PRIM_TRIANGLES);
+   vbuf_start_prim(vbuf, MESA_PRIM_TRIANGLES);
    stage->tri = vbuf_tri;
    stage->tri(stage, prim);
 }
@@ -282,7 +282,7 @@ vbuf_first_line(struct draw_stage *stage, struct prim_header *prim)
    struct vbuf_stage *vbuf = vbuf_stage(stage);
 
    vbuf_flush_vertices(vbuf);
-   vbuf_start_prim(vbuf, PIPE_PRIM_LINES);
+   vbuf_start_prim(vbuf, MESA_PRIM_LINES);
    stage->line = vbuf_line;
    stage->line(stage, prim);
 }
@@ -294,7 +294,7 @@ vbuf_first_point(struct draw_stage *stage, struct prim_header *prim)
    struct vbuf_stage *vbuf = vbuf_stage(stage);
 
    vbuf_flush_vertices(vbuf);
-   vbuf_start_prim(vbuf, PIPE_PRIM_POINTS);
+   vbuf_start_prim(vbuf, MESA_PRIM_POINTS);
    stage->point = vbuf_point;
    stage->point(stage, prim);
 }
@@ -362,12 +362,11 @@ vbuf_alloc_vertices(struct vbuf_stage *vbuf)
     * fail, we are basically without usable hardware.
     */
    vbuf->render->allocate_vertices(vbuf->render,
-                                   (ushort) vbuf->vertex_size,
-                                   (ushort) vbuf->max_vertices);
+                                   (uint16_t) vbuf->vertex_size,
+                                   (uint16_t) vbuf->max_vertices);
 
-   vbuf->vertices = (uint *) vbuf->render->map_vertices(vbuf->render);
-
-   vbuf->vertex_ptr = vbuf->vertices;
+   vbuf->vertex_ptr = vbuf->vertices =
+      vbuf->render->map_vertices(vbuf->render);
 }
 
 
@@ -429,7 +428,7 @@ draw_vbuf_stage(struct draw_context *draw, struct vbuf_render *render)
    vbuf->render = render;
    vbuf->max_indices = MIN2(render->max_indices, UNDEFINED_VERTEX_ID-1);
 
-   vbuf->indices = (ushort *) align_malloc(vbuf->max_indices *
+   vbuf->indices = (uint16_t *) align_malloc(vbuf->max_indices *
                     sizeof(vbuf->indices[0]),
                     16);
    if (!vbuf->indices)
@@ -439,8 +438,7 @@ draw_vbuf_stage(struct draw_context *draw, struct vbuf_render *render)
    if (!vbuf->cache)
       goto fail;
 
-   vbuf->vertices = NULL;
-   vbuf->vertex_ptr = vbuf->vertices;
+   vbuf->vertex_ptr = vbuf->vertices = NULL;
 
    vbuf->zero4[0] = vbuf->zero4[1] = vbuf->zero4[2] = vbuf->zero4[3] = 0.0f;
 

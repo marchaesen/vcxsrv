@@ -5,7 +5,7 @@
 default partial modifier_keys
 xkb_symbols "extended" {
 
-    key <KPEQ> { [ KP_Equal ] }; 
+    key <KPEQ> { [ KP_Equal ] };
 
 // The key in the PC's Insert position is sometimes engraved Help (at least
 // in Switzerland and Great Britain), with Insert sometimes above. But in the
@@ -41,7 +41,7 @@ xkb_symbols "laptop" {
     // the fn-keypad, so use the Enter key (right of <SPC>) for Mode_switch,
     // and use fn+Enter (Apple's code for Menu) for KP_Enter.
     replace key <KPEN> { [ ISO_Level3_Shift ] };
-    modifier_map Mod5  { ISO_Level3_Shift };	
+    modifier_map Mod5  { ISO_Level3_Shift };
     // Linux kernel bug with Menu on macs means this does not work yet
 //    replace key <MENU> { [ KP_Enter ] }; // should be keycode 117
 };
@@ -138,4 +138,14 @@ xkb_symbols "alupckeys" {
       symbols[Group1]= [ Pause, Break ]
     };
     override key <NMLK> { [ Num_Lock, Pointer_EnableKeys ] };
+};
+
+partial
+xkb_symbols "jp_oadg109a" {
+    replace key <AB11> { [ backslash, underscore ] };
+};
+
+partial
+xkb_symbols "jp_pc106" {
+    replace key <AB11> { [ backslash, bar ] };
 };

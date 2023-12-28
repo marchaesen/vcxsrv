@@ -177,7 +177,7 @@ static Status event_to_wire (Display *dpy, XEvent *libevent, xEvent *netevent)
  * read_buffer_info - read Buffer Info descriptors from the net; if unable
  * to allocate memory, read junk to make sure that stream is clear.
  */
-#define TALLOC(type,count) ((type *) Xmalloc ((unsigned) count * sizeof(type)))
+#define TALLOC(type,count) Xcalloc ((unsigned) count, sizeof(type))
 
 static XmbufBufferInfo *read_buffer_info (Display *dpy, int nbufs)
 {
@@ -201,7 +201,7 @@ static XmbufBufferInfo *read_buffer_info (Display *dpy, int nbufs)
 		c->depth = net->depth;
 	    }
 	}
-	Xfree ((char *) netbuf);
+	Xfree (netbuf);
     } else {				/* eat the data */
 	while (netbytes > 0) {
 	    char dummy[256];		/* stack size vs loops tradeoff */
@@ -405,7 +405,7 @@ Status XmbufGetWindowAttributes (
     attr->buffers = (Multibuffer *) NULL;
     if ((attr->nbuffers = rep.length)) {
 	int nbytes = rep.length * sizeof(Multibuffer);
-	attr->buffers = (Multibuffer *) Xmalloc((unsigned) nbytes);
+	attr->buffers = Xmalloc((unsigned) nbytes);
 	nbytes = rep.length << 2;
 	if (! attr->buffers) {
 	    _XEatDataWords(dpy, rep.length);
@@ -543,7 +543,7 @@ void XmbufChangeBufferAttributes (
  * 	mono_info_return is set to NULL.  Similarly, stereo_info_return is
  * 	set according to nstereo_return.  The storage returned in
  * 	mono_info_return and stereo_info_return may be released by XFree.
- * 	If no errors are encounted, non-zero will be returned.
+ * 	If no errors are encountered, non-zero will be returned.
  */
 Status XmbufGetScreenInfo (
     Display *dpy,
@@ -576,8 +576,8 @@ Status XmbufGetScreenInfo (
 
     /* check for bad reads indicating we need to return an error */
     if ((nmono > 0 && !minfo) || (nstereo > 0 && !sinfo)) {
-	if (minfo) Xfree ((char *) minfo);
-	if (sinfo) Xfree ((char *) sinfo);
+	if (minfo) Xfree (minfo);
+	if (sinfo) Xfree (sinfo);
 	UnlockDisplay (dpy);
 	SyncHandle();
 	return 0;

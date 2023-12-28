@@ -28,12 +28,13 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include "main/arrayobj.h"
-#include "main/glheader.h"
+#include "util/glheader.h"
 #include "main/bufferobj.h"
 #include "main/context.h"
 #include "main/enums.h"
 #include "main/state.h"
 #include "main/varray.h"
+#include "state_tracker/st_draw.h"
 
 #include "vbo_private.h"
 
@@ -83,7 +84,9 @@ vbo_exec_copy_vertices(struct vbo_exec_context *exec)
 /* TODO: populate these as the vertex is defined:
  */
 static void
-vbo_exec_bind_arrays(struct gl_context *ctx)
+vbo_exec_bind_arrays(struct gl_context *ctx,
+                     struct gl_vertex_array_object **old_vao,
+                     GLbitfield *old_vp_input_filter)
 {
    struct vbo_context *vbo = vbo_context(ctx);
    struct gl_vertex_array_object *vao = vbo->VAO;
@@ -111,7 +114,7 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    }
 
    /* At first disable arrays no longer needed */
-   _mesa_disable_vertex_array_attribs(ctx, vao, VERT_BIT_ALL & ~vao_enabled);
+   _mesa_disable_vertex_array_attribs(ctx, vao, ~vao_enabled);
    assert((~vao_enabled & vao->Enabled) == 0);
 
    /* Bind the buffer object */
@@ -147,7 +150,10 @@ vbo_exec_bind_arrays(struct gl_context *ctx)
    assert(!exec->vtx.bufferobj ||
           (vao_enabled & ~vao->VertexAttribBufferMask) == 0);
 
-   _mesa_set_draw_vao(ctx, vao, vao_filter);
+   _mesa_save_and_set_draw_vao(ctx, vao, vao_filter,
+                               old_vao, old_vp_input_filter);
+   _mesa_set_varying_vp_inputs(ctx, vao_filter &
+                               ctx->Array._DrawVAO->_EnabledWithMapMode);
 }
 
 
@@ -280,12 +286,12 @@ vbo_exec_vtx_map(struct vbo_exec_context *exec)
       vbo_install_exec_vtxfmt_noop(ctx);
    }
    else {
-      if (_mesa_using_noop_vtxfmt(ctx->Exec)) {
+      if (_mesa_using_noop_vtxfmt(ctx->Dispatch.Exec)) {
          /* The no-op functions are installed so switch back to regular
           * functions.  We do this test just to avoid frequent and needless
           * calls to vbo_install_exec_vtxfmt().
           */
-         vbo_install_exec_vtxfmt(ctx);
+         vbo_init_dispatch_begin_end(ctx);
       }
    }
 
@@ -317,8 +323,11 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
       exec->vtx.copied.nr = vbo_exec_copy_vertices(exec);
 
       if (exec->vtx.copied.nr != exec->vtx.vert_count) {
-         /* Prepare and set the exec draws internal VAO for drawing. */
-         vbo_exec_bind_arrays(ctx);
+         struct gl_vertex_array_object *old_vao;
+         GLbitfield old_vp_input_filter;
+
+         /* Prepare and set the Begin/End internal VAO for drawing. */
+         vbo_exec_bind_arrays(ctx, &old_vao, &old_vp_input_filter);
 
          if (ctx->NewState)
             _mesa_update_state(ctx);
@@ -332,6 +341,8 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
             printf("%s %d %d\n", __func__, exec->vtx.prim_count,
                    exec->vtx.vert_count);
 
+         st_prepare_draw(ctx, ST_PIPELINE_RENDER_STATE_MASK);
+
          ctx->Driver.DrawGalliumMultiMode(ctx, &exec->vtx.info,
                                           exec->vtx.draw,
                                           exec->vtx.mode,
@@ -340,6 +351,8 @@ vbo_exec_vtx_flush(struct vbo_exec_context *exec)
          /* Get new storage -- unless asked not to. */
          if (!persistent_mapping)
             vbo_exec_vtx_map(exec);
+
+         _mesa_restore_draw_vao(ctx, old_vao, old_vp_input_filter);
       }
    }
 

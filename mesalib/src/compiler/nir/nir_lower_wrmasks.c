@@ -98,20 +98,19 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
 
    b->cursor = nir_before_instr(&intr->instr);
 
-   assert(!info->has_dest);  /* expecting only store intrinsics */
+   assert(!info->has_dest); /* expecting only store intrinsics */
 
-   unsigned num_srcs   = info->num_srcs;
-   unsigned value_idx  = value_src(intr->intrinsic);
+   unsigned num_srcs = info->num_srcs;
+   unsigned value_idx = value_src(intr->intrinsic);
    unsigned offset_idx = offset_src(intr->intrinsic);
-   unsigned num_comp   = nir_intrinsic_src_components(intr, value_idx);
 
    unsigned wrmask = nir_intrinsic_write_mask(intr);
    while (wrmask) {
       unsigned first_component = ffs(wrmask) - 1;
       unsigned length = ffs(~(wrmask >> first_component)) - 1;
 
-      nir_ssa_def *value  = nir_ssa_for_src(b, intr->src[value_idx], num_comp);
-      nir_ssa_def *offset = nir_ssa_for_src(b, intr->src[offset_idx], 1);
+      nir_def *value = intr->src[value_idx].ssa;
+      nir_def *offset = intr->src[offset_idx].ssa;
 
       /* swizzle out the consecutive components that we'll store
        * in this iteration:
@@ -121,7 +120,7 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
 
       /* and create the replacement intrinsic: */
       nir_intrinsic_instr *new_intr =
-            nir_intrinsic_instr_create(b->shader, intr->intrinsic);
+         nir_intrinsic_instr_create(b->shader, intr->intrinsic);
 
       nir_intrinsic_copy_const_indices(new_intr, intr);
       nir_intrinsic_set_write_mask(new_intr, BITFIELD_MASK(length));
@@ -146,10 +145,10 @@ split_wrmask(nir_builder *b, nir_intrinsic_instr *intr)
       unsigned offset_adj = offset_units * first_component;
       if (nir_intrinsic_has_base(intr)) {
          nir_intrinsic_set_base(new_intr,
-               nir_intrinsic_base(intr) + offset_adj);
+                                nir_intrinsic_base(intr) + offset_adj);
       } else {
          offset = nir_iadd(b, offset,
-               nir_imm_intN_t(b, offset_adj, offset->bit_size));
+                           nir_imm_intN_t(b, offset_adj, offset->bit_size));
       }
 
       new_intr->num_components = length;
@@ -228,6 +227,6 @@ nir_lower_wrmasks(nir_shader *shader, nir_instr_filter_cb cb, const void *data)
    return nir_shader_instructions_pass(shader,
                                        nir_lower_wrmasks_instr,
                                        nir_metadata_block_index |
-                                       nir_metadata_dominance,
+                                          nir_metadata_dominance,
                                        &state);
 }

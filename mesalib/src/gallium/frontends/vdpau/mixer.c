@@ -70,7 +70,7 @@ vlVdpVideoMixerCreate(VdpDevice device,
    }
 
    vl_csc_get_matrix(VL_CSC_COLOR_STANDARD_BT_601, NULL, true, &vmixer->csc);
-   if (!debug_get_bool_option("G3DVL_NO_CSC", FALSE)) {
+   if (!debug_get_bool_option("G3DVL_NO_CSC", false)) {
       if (!vl_compositor_set_csc_matrix(&vmixer->cstate, (const vl_csc_matrix *)&vmixer->csc, 1.0f, 0.0f)) {
          ret = VDP_STATUS_ERROR;
          goto err_csc_matrix;
@@ -478,7 +478,7 @@ vlVdpVideoMixerUpdateDeinterlaceFilter(vlVdpVideoMixer *vmixer)
       vmixer->deint.filter = MALLOC(sizeof(struct vl_deint_filter));
       vmixer->deint.enabled = vl_deint_filter_init(vmixer->deint.filter, pipe,
             vmixer->video_width, vmixer->video_height,
-            vmixer->skip_chroma_deint, vmixer->deint.spatial);
+            vmixer->skip_chroma_deint, vmixer->deint.spatial, false);
       if (!vmixer->deint.enabled) {
          FREE(vmixer->deint.filter);
       }
@@ -692,7 +692,7 @@ vlVdpVideoMixerSetFeatureEnables(VdpVideoMixer mixer,
 
       case VDP_VIDEO_MIXER_FEATURE_LUMA_KEY:
          vmixer->luma_key.enabled = feature_enables[i];
-         if (!debug_get_bool_option("G3DVL_NO_CSC", FALSE))
+         if (!debug_get_bool_option("G3DVL_NO_CSC", false))
             if (!vl_compositor_set_csc_matrix(&vmixer->cstate, (const vl_csc_matrix *)&vmixer->csc,
                         vmixer->luma_key.luma_min, vmixer->luma_key.luma_max)) {
                mtx_unlock(&vmixer->device->mutex);
@@ -815,7 +815,7 @@ vlVdpVideoMixerSetAttributeValues(VdpVideoMixer mixer,
             vl_csc_get_matrix(VL_CSC_COLOR_STANDARD_BT_601, NULL, 1, &vmixer->csc);
          else
             memcpy(vmixer->csc, vdp_csc, sizeof(vl_csc_matrix));
-         if (!debug_get_bool_option("G3DVL_NO_CSC", FALSE))
+         if (!debug_get_bool_option("G3DVL_NO_CSC", false))
             if (!vl_compositor_set_csc_matrix(&vmixer->cstate, (const vl_csc_matrix *)&vmixer->csc,
                                          vmixer->luma_key.luma_min, vmixer->luma_key.luma_max)) {
                ret = VDP_STATUS_ERROR;
@@ -842,7 +842,7 @@ vlVdpVideoMixerSetAttributeValues(VdpVideoMixer mixer,
             goto fail;
          }
          vmixer->luma_key.luma_min = val;
-         if (!debug_get_bool_option("G3DVL_NO_CSC", FALSE))
+         if (!debug_get_bool_option("G3DVL_NO_CSC", false))
             if (!vl_compositor_set_csc_matrix(&vmixer->cstate, (const vl_csc_matrix *)&vmixer->csc,
                         vmixer->luma_key.luma_min, vmixer->luma_key.luma_max)) {
                ret = VDP_STATUS_ERROR;
@@ -857,7 +857,7 @@ vlVdpVideoMixerSetAttributeValues(VdpVideoMixer mixer,
             goto fail;
          }
          vmixer->luma_key.luma_max = val;
-         if (!debug_get_bool_option("G3DVL_NO_CSC", FALSE))
+         if (!debug_get_bool_option("G3DVL_NO_CSC", false))
             if (!vl_compositor_set_csc_matrix(&vmixer->cstate, (const vl_csc_matrix *)&vmixer->csc,
                         vmixer->luma_key.luma_min, vmixer->luma_key.luma_max)) {
                ret = VDP_STATUS_ERROR;

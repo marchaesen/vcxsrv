@@ -25,7 +25,7 @@
 #ifndef TEXCOMPRESS_FXT1_H
 #define TEXCOMPRESS_FXT1_H
 
-#include "glheader.h"
+#include "util/glheader.h"
 #include "texstore.h"
 
 

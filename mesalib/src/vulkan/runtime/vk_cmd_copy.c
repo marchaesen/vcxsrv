@@ -56,7 +56,7 @@ vk_common_CmdCopyBuffer(VkCommandBuffer commandBuffer,
       .pRegions      = region2s,
    };
 
-   disp->device->dispatch_table.CmdCopyBuffer2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdCopyBuffer2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }
@@ -98,7 +98,7 @@ vk_common_CmdCopyImage(VkCommandBuffer commandBuffer,
       .pRegions         = region2s,
    };
 
-   disp->device->dispatch_table.CmdCopyImage2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdCopyImage2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }
@@ -139,7 +139,7 @@ vk_common_CmdCopyBufferToImage(VkCommandBuffer commandBuffer,
       .pRegions         = region2s,
    };
 
-   disp->device->dispatch_table.CmdCopyBufferToImage2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdCopyBufferToImage2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }
@@ -180,7 +180,7 @@ vk_common_CmdCopyImageToBuffer(VkCommandBuffer commandBuffer,
       .pRegions         = region2s,
    };
 
-   disp->device->dispatch_table.CmdCopyImageToBuffer2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdCopyImageToBuffer2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }
@@ -229,7 +229,7 @@ vk_common_CmdBlitImage(VkCommandBuffer commandBuffer,
       .filter           = filter,
    };
 
-   disp->device->dispatch_table.CmdBlitImage2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdBlitImage2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }
@@ -271,7 +271,7 @@ vk_common_CmdResolveImage(VkCommandBuffer commandBuffer,
       .pRegions         = region2s,
    };
 
-   disp->device->dispatch_table.CmdResolveImage2KHR(commandBuffer, &info);
+   disp->device->dispatch_table.CmdResolveImage2(commandBuffer, &info);
 
    STACK_ARRAY_FINISH(region2s);
 }

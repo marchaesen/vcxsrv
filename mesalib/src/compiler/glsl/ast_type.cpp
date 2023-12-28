@@ -692,7 +692,7 @@ ast_type_qualifier::merge_into_in_qualifier(YYLTYPE *loc,
                                             ast_node* &node)
 {
    bool r = true;
-   void *lin_ctx = state->linalloc;
+   linear_ctx *lin_ctx = state->linalloc;
 
    /* We create the gs_input_layout node before merging so, in the future, no
     * more repeated nodes will be created as we will have the flag set.
@@ -944,7 +944,7 @@ ast_layout_expression::process_qualifier_constant(struct _mesa_glsl_parse_state 
       ir_constant *const const_int =
          ir->constant_expression_value(ralloc_parent(ir));
 
-      if (const_int == NULL || !const_int->type->is_integer_32()) {
+      if (const_int == NULL || !glsl_type_is_integer_32(const_int->type)) {
          YYLTYPE loc = const_expression->get_location();
          _mesa_glsl_error(&loc, state, "%s must be an integral constant "
                           "expression", qual_indentifier);
@@ -1000,7 +1000,7 @@ process_qualifier_constant(struct _mesa_glsl_parse_state *state,
 
    ir_constant *const const_int =
       ir->constant_expression_value(ralloc_parent(ir));
-   if (const_int == NULL || !const_int->type->is_integer_32()) {
+   if (const_int == NULL || !glsl_type_is_integer_32(const_int->type)) {
       _mesa_glsl_error(loc, state, "%s must be an integral constant "
                        "expression", qual_indentifier);
       return false;

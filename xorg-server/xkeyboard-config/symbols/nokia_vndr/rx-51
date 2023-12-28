@@ -4,7 +4,7 @@ xkb_symbols "common" {
     include "nokia_vndr/rx-51(modifiers)"
 
 	key <BKSP>	{ [	BackSpace,	Delete,		BackSpace,	Delete		] };
-	
+
     // This section should not be included by any other section.
     // It's referenced only once by rule file to allow multiple layout configurations.
 
@@ -468,6 +468,7 @@ xkb_symbols "modifiers" {
 
     // Fn key (right alt) switches to 3rd level
     include "level3(ralt_switch)"
+    modifier_map Mod5 { ISO_Level3_Shift };
 };
 
 partial hidden alphanumeric_keys
@@ -1074,7 +1075,7 @@ xkb_symbols "lv" {
     key <AD08>  { symbols[Group2] = [   imacron,                Imacron,                8,                      8                       ] };
     key <AD09>  { symbols[Group2] = [   omacron,                Omacron,                9,                      9                       ] };
     key <AD10>  { symbols[Group2] = [   p,                      P,                      0,                      0                       ] };
-    key <AB08>  { symbols[Group1] = [   ISO_Group_Latch,        semicolon,              equal,                  equal], 
+    key <AB08>  { symbols[Group1] = [   ISO_Group_Latch,        semicolon,              equal,                  equal],
                   symbols[Group2] = [   comma,                  semicolon,              equal,                  equal                   ] };
 
     // 2. row

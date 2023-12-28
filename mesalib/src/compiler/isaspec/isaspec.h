@@ -28,6 +28,7 @@
 #include <stdint.h>
 
 #include <stdio.h>
+#include "util/bitset.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -44,6 +45,22 @@ struct isa_decode_hook {
 	const char *fieldname;
 	void (*cb)(void *data, struct isa_decode_value *val);
 };
+
+struct isa_entrypoint {
+	const char *name;
+	uint32_t offset;
+};
+
+struct isa_print_state {
+	FILE *out;
+
+	/**
+	 * Column number of current line
+	 */
+	unsigned line_column;
+};
+
+void isa_print(struct isa_print_state *state, const char *fmt, ...) PRINTFLIKE(2, 3);
 
 struct isa_decode_options {
 	uint32_t gpu_id;
@@ -78,12 +95,35 @@ struct isa_decode_options {
 	void (*field_cb)(void *data, const char *field_name, struct isa_decode_value *val);
 
 	/**
+	 * Callback for fields that need custom code to print their value.
+	 */
+	void (*field_print_cb)(struct isa_print_state *print, const char *field_name, uint64_t val);
+
+	/**
 	 * Callback prior to instruction decode
 	 */
-	void (*instr_cb)(void *data, unsigned n, void *instr);
+	void (*pre_instr_cb)(void *data, unsigned n, void *instr);
+
+	/**
+	 * Callback after instruction decode
+	 */
+	void (*post_instr_cb)(void *data, unsigned n, void *instr);
+
+	/**
+	 * callback for undefined instructions
+	 */
+	void (*no_match_cb)(FILE *out, const BITSET_WORD *bitset, size_t size);
+
+	/**
+	 * List of known entrypoints to treat like call targets
+	 */
+	unsigned entrypoint_count;
+	const struct isa_entrypoint *entrypoints;
 };
 
-void isa_decode(void *bin, int sz, FILE *out, const struct isa_decode_options *options);
+void isa_disasm(void *bin, int sz, FILE *out, const struct isa_decode_options *options);
+
+bool isa_decode(void *out, void *bin, const struct isa_decode_options *options);
 
 #ifdef __cplusplus
 }

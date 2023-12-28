@@ -31,6 +31,7 @@
 #include "freedreno_query.h"
 #include "freedreno_query_hw.h"
 #include "freedreno_query_sw.h"
+#include "freedreno_resource.h"
 #include "freedreno_util.h"
 
 /*
@@ -93,6 +94,20 @@ fd_get_query_result(struct pipe_context *pctx, struct pipe_query *pq, bool wait,
    util_query_clear_result(result, q->type);
 
    return q->funcs->get_query_result(fd_context(pctx), q, wait, result);
+}
+
+static void
+fd_get_query_result_resource(struct pipe_context *pctx, struct pipe_query *pq,
+                             enum pipe_query_flags flags,
+                             enum pipe_query_value_type result_type,
+                             int index, struct pipe_resource *prsc,
+                             unsigned offset)
+   in_dt
+{
+   struct fd_query *q = fd_query(pq);
+
+   q->funcs->get_query_result_resource(fd_context(pctx), q, flags, result_type,
+                                       index, fd_resource(prsc), offset);
 }
 
 static void
@@ -179,7 +194,7 @@ fd_set_active_query_state(struct pipe_context *pctx, bool enable) assert_dt
 {
    struct fd_context *ctx = fd_context(pctx);
    ctx->active_queries = enable;
-   ctx->update_active_queries = true;
+   fd_context_dirty(ctx, FD_DIRTY_QUERY);
 }
 
 static enum pipe_driver_query_type
@@ -266,6 +281,7 @@ fd_query_context_init(struct pipe_context *pctx)
    pctx->begin_query = fd_begin_query;
    pctx->end_query = fd_end_query;
    pctx->get_query_result = fd_get_query_result;
+   pctx->get_query_result_resource  = fd_get_query_result_resource;
    pctx->set_active_query_state = fd_set_active_query_state;
    pctx->render_condition = fd_render_condition;
 }

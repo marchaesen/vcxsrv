@@ -85,7 +85,7 @@ Ivan Kalvachev (1):
 -  r600g: Fix special negative immediate constants when using ABS
    modifier.
 
-Jason Ekstrand (2):
+Faith Ekstrand (2):
 
 -  nir/lower_vec_to_movs: Pass the shader around directly
 -  nir: Report progress from lower_vec_to_movs().

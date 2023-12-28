@@ -57,5 +57,3 @@ tests_per_group = 1
 piglit_folder = "/piglit"
 profile = "quick"
 process_isolation = true
-  [piglit.env]
-  PIGLIT_PLATFORM = "x11_egl"

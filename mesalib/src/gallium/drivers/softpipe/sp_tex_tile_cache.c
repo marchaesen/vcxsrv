@@ -102,12 +102,12 @@ sp_tex_tile_cache_validate_texture(struct softpipe_tex_tile_cache *tc)
    }
 }
 
-static boolean
+static bool
 sp_tex_tile_is_compat_view(struct softpipe_tex_tile_cache *tc,
                            struct pipe_sampler_view *view)
 {
    if (!view)
-      return FALSE;
+      return false;
    return (tc->texture == view->texture &&
            tc->format == view->format &&
            tc->swizzle_r == view->swizzle_r &&

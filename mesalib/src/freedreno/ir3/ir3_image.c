@@ -116,7 +116,7 @@ type_t
 ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr)
 {
    const nir_intrinsic_info *info = &nir_intrinsic_infos[instr->intrinsic];
-   int bit_size = info->has_dest ? nir_dest_bit_size(instr->dest) : nir_src_bit_size(instr->src[3]);
+   int bit_size = info->has_dest ? instr->def.bit_size : nir_src_bit_size(instr->src[3]);
 
    nir_alu_type type = nir_type_uint;
    switch (instr->intrinsic) {
@@ -136,32 +136,11 @@ ir3_get_type_for_image_intrinsic(const nir_intrinsic_instr *instr)
          type = nir_type_uint;
       break;
 
-   case nir_intrinsic_image_atomic_add:
-   case nir_intrinsic_bindless_image_atomic_add:
-   case nir_intrinsic_image_atomic_umin:
-   case nir_intrinsic_bindless_image_atomic_umin:
-   case nir_intrinsic_image_atomic_umax:
-   case nir_intrinsic_bindless_image_atomic_umax:
-   case nir_intrinsic_image_atomic_and:
-   case nir_intrinsic_bindless_image_atomic_and:
-   case nir_intrinsic_image_atomic_or:
-   case nir_intrinsic_bindless_image_atomic_or:
-   case nir_intrinsic_image_atomic_xor:
-   case nir_intrinsic_bindless_image_atomic_xor:
-   case nir_intrinsic_image_atomic_exchange:
-   case nir_intrinsic_bindless_image_atomic_exchange:
-   case nir_intrinsic_image_atomic_comp_swap:
-   case nir_intrinsic_bindless_image_atomic_comp_swap:
-   case nir_intrinsic_image_atomic_inc_wrap:
-   case nir_intrinsic_bindless_image_atomic_inc_wrap:
-      type = nir_type_uint;
-      break;
-
-   case nir_intrinsic_image_atomic_imin:
-   case nir_intrinsic_bindless_image_atomic_imin:
-   case nir_intrinsic_image_atomic_imax:
-   case nir_intrinsic_bindless_image_atomic_imax:
-      type = nir_type_int;
+   case nir_intrinsic_image_atomic:
+   case nir_intrinsic_bindless_image_atomic:
+   case nir_intrinsic_image_atomic_swap:
+   case nir_intrinsic_bindless_image_atomic_swap:
+      type = nir_atomic_op_type(nir_intrinsic_atomic_op(instr));
       break;
 
    default:

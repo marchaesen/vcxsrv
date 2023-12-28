@@ -28,11 +28,16 @@
 #define ZINK_KOPPER_H
 
 #include "kopper_interface.h"
-#include "u_queue.h"
+#include "util/u_queue.h"
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+struct zink_batch_usage;
+
+/* number of times a swapchain can be read without forcing readback mode */
+#define ZINK_READBACK_THRESHOLD 3
 
 struct kopper_swapchain_image {
    bool init;
@@ -40,7 +45,9 @@ struct kopper_swapchain_image {
    bool dt_has_data;
    int age;
    VkImage image;
+   struct pipe_resource *readback;
    VkSemaphore acquire;
+   VkImageLayout layout;
 };
 
 struct kopper_swapchain {
@@ -55,6 +62,8 @@ struct kopper_swapchain {
    unsigned num_acquires;
    unsigned max_acquires;
    unsigned async_presents;
+   struct util_queue_fence present_fence;
+   struct zink_batch_usage *batch_uses;
    struct kopper_swapchain_image *images;
 };
 
@@ -79,13 +88,13 @@ struct kopper_displaytarget
    struct kopper_swapchain *old_swapchain;
 
    struct kopper_loader_info info;
-   struct util_queue_fence present_fence;
 
    VkSurfaceCapabilitiesKHR caps;
    VkImageFormatListCreateInfo format_list;
    enum kopper_type type;
    bool is_kill;
    VkPresentModeKHR present_mode;
+   unsigned readback_counter;
 };
 
 struct zink_context;
@@ -128,9 +137,11 @@ zink_kopper_present(struct zink_screen *screen, struct zink_resource *res);
 void
 zink_kopper_present_queue(struct zink_screen *screen, struct zink_resource *res);
 bool
-zink_kopper_acquire_readback(struct zink_context *ctx, struct zink_resource *res);
+zink_kopper_acquire_readback(struct zink_context *ctx, struct zink_resource *res, struct zink_resource **readback);
 bool
 zink_kopper_present_readback(struct zink_context *ctx, struct zink_resource *res);
+void
+zink_kopper_readback_update(struct zink_context *ctx, struct zink_resource *res);
 void
 zink_kopper_deinit_displaytarget(struct zink_screen *screen, struct kopper_displaytarget *cdt);
 bool
@@ -145,6 +156,8 @@ void
 zink_kopper_set_swap_interval(struct pipe_screen *pscreen, struct pipe_resource *pres, int interval);
 int
 zink_kopper_query_buffer_age(struct pipe_context *pctx, struct pipe_resource *pres);
+void
+zink_kopper_prune_batch_usage(struct kopper_displaytarget *cdt, const struct zink_batch_usage *u);
 
 #ifdef __cplusplus
 }

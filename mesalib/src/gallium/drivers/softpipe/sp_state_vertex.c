@@ -80,7 +80,7 @@ softpipe_delete_vertex_elements_state(struct pipe_context *pipe, void *velems)
 
 static void
 softpipe_set_vertex_buffers(struct pipe_context *pipe,
-                            unsigned start_slot, unsigned count,
+                            unsigned count,
                             unsigned unbind_num_trailing_slots,
                             bool take_ownership,
                             const struct pipe_vertex_buffer *buffers)
@@ -91,14 +91,13 @@ softpipe_set_vertex_buffers(struct pipe_context *pipe,
 
    util_set_vertex_buffers_count(softpipe->vertex_buffer,
                                  &softpipe->num_vertex_buffers,
-                                 buffers, start_slot, count,
+                                 buffers, count,
                                  unbind_num_trailing_slots,
                                  take_ownership);
 
    softpipe->dirty |= SP_NEW_VERTEX;
 
-   draw_set_vertex_buffers(softpipe->draw, start_slot, count,
-                           unbind_num_trailing_slots, buffers);
+   draw_set_vertex_buffers(softpipe->draw, count, unbind_num_trailing_slots, buffers);
 }
 
 

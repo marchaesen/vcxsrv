@@ -41,6 +41,13 @@ string_to_uint_map_ctor();
 void
 string_to_uint_map_dtor(struct string_to_uint_map *);
 
+void
+string_to_uint_map_put(struct string_to_uint_map *map,
+                       unsigned value, const char *key);
+
+bool
+string_to_uint_map_get(struct string_to_uint_map *map,
+                       unsigned *value, const char *key);
 
 #ifdef __cplusplus
 }

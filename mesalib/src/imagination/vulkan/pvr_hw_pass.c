@@ -115,7 +115,8 @@ struct pvr_render_int_attachment {
    struct usc_mrt_resource resource;
 
    /* Index of the subpass in the current render where the attachment is first
-    * used. -1 if the attachment isn't used in the current render.
+    * used. VK_ATTACHMENT_UNUSED if the attachment isn't used in the current
+    * render.
     */
    int32_t first_use;
 
@@ -248,7 +249,7 @@ struct pvr_render_int_subpass_dsts {
 struct pvr_render_subpass_depth_params {
    bool existing_ds_is_input;
    bool incoming_ds_is_input;
-   int32_t existing_ds_attach;
+   uint32_t existing_ds_attach;
 };
 
 struct pvr_renderpass_storage_firstuse_buffer {
@@ -341,7 +342,7 @@ pvr_get_tile_buffer_size_per_core(const struct pvr_device *device)
 /**
  * Gets the amount of memory to allocate for a tile buffer on the current BVNC.
  */
-static uint32_t pvr_get_tile_buffer_size(const struct pvr_device *device)
+uint32_t pvr_get_tile_buffer_size(const struct pvr_device *device)
 {
    /* On a multicore system duplicate the buffer for each core. */
    return pvr_get_tile_buffer_size_per_core(device) *
@@ -475,7 +476,7 @@ pvr_surface_setup_render_init(struct pvr_renderpass_context *ctx,
                                   sizeof(hw_render->color_init[0U]) *
                                      (hw_render->color_init_count + 1U),
                                   8U,
-                                  VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+                                  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (!new_color_init)
          return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -493,7 +494,7 @@ pvr_surface_setup_render_init(struct pvr_renderpass_context *ctx,
                            sizeof(hw_render->init_setup.mrt_resources[0U]) *
                               (hw_render->init_setup.num_render_targets + 1U),
                            8U,
-                           VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       if (!new_mrt)
          return vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
 
@@ -540,15 +541,15 @@ pvr_subpass_setup_render_init(struct pvr_renderpass_context *ctx)
            hw_subpass->stencil_clear)) {
          struct pvr_render_int_attachment *int_ds_attach;
 
-         assert(*input_subpass->depth_stencil_attachment >= 0U);
-         assert(*input_subpass->depth_stencil_attachment <
-                (int32_t)ctx->pass->attachment_count);
+         assert(input_subpass->depth_stencil_attachment !=
+                VK_ATTACHMENT_UNUSED);
+         assert(input_subpass->depth_stencil_attachment <
+                ctx->pass->attachment_count);
          int_ds_attach =
-            &ctx->int_attach[*input_subpass->depth_stencil_attachment];
+            &ctx->int_attach[input_subpass->depth_stencil_attachment];
 
-         assert(hw_render->ds_attach_idx == -1 ||
-                hw_render->ds_attach_idx ==
-                   (int32_t)int_ds_attach->attachment->index);
+         assert(hw_render->ds_attach_idx == VK_ATTACHMENT_UNUSED ||
+                hw_render->ds_attach_idx == int_ds_attach->attachment->index);
          hw_render->ds_attach_idx = int_ds_attach->attachment->index;
 
          if (hw_subpass->depth_initop == VK_ATTACHMENT_LOAD_OP_CLEAR)
@@ -560,15 +561,15 @@ pvr_subpass_setup_render_init(struct pvr_renderpass_context *ctx)
          }
       }
 
-      if (*input_subpass->depth_stencil_attachment != -1)
+      if (input_subpass->depth_stencil_attachment != VK_ATTACHMENT_UNUSED)
          first_ds = false;
 
       for (uint32_t j = 0U; j < input_subpass->color_count; j++) {
          struct usc_mrt_resource *mrt = &hw_subpass->setup.mrt_resources[j];
-         const int32_t attach_idx = input_subpass->color_attachments[j];
+         const uint32_t attach_idx = input_subpass->color_attachments[j];
          struct pvr_render_int_attachment *int_attach;
 
-         if (attach_idx == -1)
+         if (attach_idx == VK_ATTACHMENT_UNUSED)
             continue;
 
          int_attach = &ctx->int_attach[attach_idx];
@@ -820,6 +821,9 @@ pvr_copy_storage_details(struct pvr_renderpass_context *ctx,
       input_subpass->color_count + input_subpass->input_count;
    VkResult result;
 
+   if (max_rts == 0)
+      return VK_SUCCESS;
+
    hw_subpass->setup.mrt_resources =
       vk_zalloc(ctx->allocator,
                 sizeof(hw_subpass->setup.mrt_resources[0U]) * max_rts,
@@ -831,10 +835,10 @@ pvr_copy_storage_details(struct pvr_renderpass_context *ctx,
    }
 
    for (uint32_t i = 0U; i < input_subpass->color_count; i++) {
-      const int32_t attach_idx = input_subpass->color_attachments[i];
+      const uint32_t attach_idx = input_subpass->color_attachments[i];
       struct pvr_render_int_attachment *int_attach;
 
-      if (attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -845,6 +849,9 @@ pvr_copy_storage_details(struct pvr_renderpass_context *ctx,
    }
 
    hw_subpass->setup.num_render_targets = input_subpass->color_count;
+
+   if (input_subpass->input_count == 0)
+      return VK_SUCCESS;
 
    /* For this subpass's input attachments. */
    hw_subpass->input_access = vk_alloc(ctx->allocator,
@@ -861,7 +868,7 @@ pvr_copy_storage_details(struct pvr_renderpass_context *ctx,
       const uint32_t attach_idx = input_subpass->input_attachments[i];
       struct pvr_render_int_attachment *int_attach;
 
-      if ((int32_t)attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -936,11 +943,11 @@ pvr_copy_z_replicate_details(struct pvr_renderpass_context *ctx,
    uint32_t z_replicate;
    bool found = false;
 
-   assert(*input_subpass->depth_stencil_attachment >= 0U &&
-          *input_subpass->depth_stencil_attachment <
+   assert(input_subpass->depth_stencil_attachment >= 0U &&
+          input_subpass->depth_stencil_attachment <
              (int32_t)ctx->pass->attachment_count);
 
-   int_ds_attach = &ctx->int_attach[*input_subpass->depth_stencil_attachment];
+   int_ds_attach = &ctx->int_attach[input_subpass->depth_stencil_attachment];
 
    assert(hw_subpass->z_replicate == -1);
 
@@ -949,7 +956,7 @@ pvr_copy_z_replicate_details(struct pvr_renderpass_context *ctx,
       const uint32_t attach_idx = input_subpass->input_attachments[i];
       struct pvr_render_int_attachment *int_attach;
 
-      if ((int32_t)attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -1008,7 +1015,7 @@ static void pvr_dereference_surface(struct pvr_renderpass_context *ctx,
          pvr_free_surface_storage(ctx, int_attach);
    }
 
-   if (int_attach->attachment->has_stencil) {
+   if (int_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
       assert(int_attach->stencil_remaining_count > 0U);
       int_attach->stencil_remaining_count--;
    }
@@ -1097,9 +1104,9 @@ static VkResult pvr_close_render(const struct pvr_device *device,
          hw_render->stencil_store = true;
 
       if (hw_render->depth_store || hw_render->stencil_store) {
-         assert(hw_render->ds_attach_idx == -1 ||
+         assert(hw_render->ds_attach_idx == VK_ATTACHMENT_UNUSED ||
                 hw_render->ds_attach_idx ==
-                   (int32_t)ctx->int_ds_attach->attachment->index);
+                   ctx->int_ds_attach->attachment->index);
          hw_render->ds_attach_idx = ctx->int_ds_attach->attachment->index;
 
          /* Allocate memory for the attachment. */
@@ -1148,7 +1155,7 @@ static VkResult pvr_close_render(const struct pvr_device *device,
                              link) {
       assert(int_attach->resource.type != USC_MRT_RESOURCE_TYPE_INVALID);
       assert(int_attach->remaining_count > 0U);
-      if (int_attach->attachment->has_stencil)
+      if (int_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
          assert(int_attach->stencil_remaining_count > 0U);
 
       /* Copy the location of the source data for this attachment. */
@@ -1170,19 +1177,20 @@ static VkResult pvr_close_render(const struct pvr_device *device,
       struct pvr_render_subpass *input_subpass = subpass->input_subpass;
 
       for (uint32_t j = 0U; j < input_subpass->color_count; j++) {
-         const int32_t resolve_output =
+         const uint32_t resolve_output =
             input_subpass->resolve_attachments
                ? input_subpass->resolve_attachments[j]
-               : -1;
+               : VK_ATTACHMENT_UNUSED;
          struct pvr_render_int_attachment *color_attach;
 
-         if (input_subpass->color_attachments[j] == -1)
+         if (input_subpass->color_attachments[j] == VK_ATTACHMENT_UNUSED)
             continue;
 
          color_attach = &ctx->int_attach[input_subpass->color_attachments[j]];
 
          if (list_is_linked(&color_attach->link)) {
-            uint32_t rem_count = resolve_output == -1 ? 0U : 1U;
+            uint32_t rem_count = resolve_output == VK_ATTACHMENT_UNUSED ? 0U
+                                                                        : 1U;
 
             /* If a color attachment is resolved it will have an extra
              * remaining usage.
@@ -1194,7 +1202,7 @@ static VkResult pvr_close_render(const struct pvr_device *device,
             }
          }
 
-         if (resolve_output != -1) {
+         if (resolve_output != VK_ATTACHMENT_UNUSED) {
             struct pvr_render_int_attachment *int_resolve_attach =
                &ctx->int_attach[resolve_output];
 
@@ -1223,18 +1231,18 @@ static VkResult pvr_close_render(const struct pvr_device *device,
       struct pvr_render_subpass *input_subpass = subpass->input_subpass;
 
       for (uint32_t j = 0U; j < input_subpass->color_count; j++) {
-         const int32_t resolve_output =
+         const uint32_t resolve_output =
             input_subpass->resolve_attachments
                ? input_subpass->resolve_attachments[j]
-               : -1;
+               : VK_ATTACHMENT_UNUSED;
          struct pvr_render_int_attachment *color_attach;
 
-         if (input_subpass->color_attachments[j] == -1)
+         if (input_subpass->color_attachments[j] == VK_ATTACHMENT_UNUSED)
             continue;
 
          color_attach = &ctx->int_attach[input_subpass->color_attachments[j]];
 
-         if (resolve_output != -1) {
+         if (resolve_output != VK_ATTACHMENT_UNUSED) {
             struct pvr_render_int_attachment *resolve_src =
                &ctx->int_attach[input_subpass->color_attachments[j]];
             struct pvr_render_int_attachment *resolve_dst =
@@ -1281,7 +1289,7 @@ static VkResult pvr_close_render(const struct pvr_device *device,
 
             pvr_mark_surface_alloc(ctx, color_attach);
 
-            assert(color_attach->mrt_idx >= 0U);
+            assert(color_attach->mrt_idx >= 0);
             assert(color_attach->mrt_idx <
                    (int32_t)hw_render->eot_setup.num_render_targets);
 
@@ -1337,13 +1345,14 @@ static VkResult pvr_close_render(const struct pvr_device *device,
    return VK_SUCCESS;
 }
 
-static bool pvr_is_input(struct pvr_render_subpass *subpass, int32_t attach_idx)
+static bool pvr_is_input(struct pvr_render_subpass *subpass,
+                         uint32_t attach_idx)
 {
-   if (attach_idx == -1)
+   if (attach_idx == VK_ATTACHMENT_UNUSED)
       return false;
 
    for (uint32_t i = 0U; i < subpass->input_count; i++) {
-      if (subpass->input_attachments[i] == (uint32_t)attach_idx)
+      if (subpass->input_attachments[i] == attach_idx)
          return true;
    }
 
@@ -1382,7 +1391,7 @@ pvr_depth_zls_conflict(struct pvr_renderpass_context *ctx,
       return true;
    }
 
-   if (ctx->int_ds_attach->attachment->has_stencil &&
+   if (ctx->int_ds_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT &&
        ctx->int_ds_attach->stencil_remaining_count > 0U) {
       return true;
    }
@@ -1393,7 +1402,7 @@ pvr_depth_zls_conflict(struct pvr_renderpass_context *ctx,
    if (int_ds_attach->load_op == VK_ATTACHMENT_LOAD_OP_LOAD)
       return true;
 
-   if (int_ds_attach->attachment->has_stencil &&
+   if (int_ds_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT &&
        int_ds_attach->stencil_load_op == VK_ATTACHMENT_LOAD_OP_LOAD) {
       return true;
    }
@@ -1472,12 +1481,12 @@ pvr_enable_z_replicate(struct pvr_renderpass_context *ctx,
       struct pvr_renderpass_subpass *subpass = &ctx->subpasses[i];
       struct pvr_render_subpass *input_subpass = subpass->input_subpass;
 
-      if (*input_subpass->depth_stencil_attachment == replicate_attach_idx) {
+      if (input_subpass->depth_stencil_attachment == replicate_attach_idx) {
          first_use = i;
          break;
       }
    }
-   assert(first_use >= 0U);
+   assert(first_use >= 0);
 
    /* For all subpasses from the first write. */
    for (uint32_t i = first_use; i < hw_render->subpass_count; i++) {
@@ -1485,7 +1494,7 @@ pvr_enable_z_replicate(struct pvr_renderpass_context *ctx,
       struct pvr_render_subpass *input_subpass = subpass->input_subpass;
 
       /* If the subpass writes to the attachment then enable z replication. */
-      if (*input_subpass->depth_stencil_attachment == replicate_attach_idx &&
+      if (input_subpass->depth_stencil_attachment == replicate_attach_idx &&
           !subpass->z_replicate) {
          subpass->z_replicate = true;
 
@@ -1526,7 +1535,7 @@ pvr_enable_z_replicate(struct pvr_renderpass_context *ctx,
 }
 
 static bool pvr_is_pending_resolve_dest(struct pvr_renderpass_context *ctx,
-                                        int32_t attach_idx)
+                                        uint32_t attach_idx)
 {
    struct pvr_render_int_attachment *int_attach = &ctx->int_attach[attach_idx];
 
@@ -1536,7 +1545,7 @@ static bool pvr_is_pending_resolve_dest(struct pvr_renderpass_context *ctx,
 }
 
 static bool pvr_is_pending_resolve_src(struct pvr_renderpass_context *ctx,
-                                       int32_t attach_idx)
+                                       uint32_t attach_idx)
 {
    struct pvr_render_int_attachment *int_attach = &ctx->int_attach[attach_idx];
 
@@ -1557,12 +1566,12 @@ static bool pvr_exceeds_pbe_registers(struct pvr_renderpass_context *ctx,
          ctx->subpasses[i].input_subpass;
 
       for (uint32_t j = 0U; j < input_subpass->color_count; j++) {
-         const int32_t global_color_attach =
+         const uint32_t global_color_attach =
             input_subpass->color_attachments[j];
          struct pvr_render_int_attachment *int_attach;
          bool found = false;
 
-         if (global_color_attach == -1)
+         if (global_color_attach == VK_ATTACHMENT_UNUSED)
             continue;
 
          int_attach = &ctx->int_attach[global_color_attach];
@@ -1588,11 +1597,11 @@ static bool pvr_exceeds_pbe_registers(struct pvr_renderpass_context *ctx,
     * would exceed the limit.
     */
    for (uint32_t i = 0U; i < subpass->color_count; i++) {
-      const int32_t global_color_attach = subpass->color_attachments[i];
+      const uint32_t global_color_attach = subpass->color_attachments[i];
       struct pvr_render_int_attachment *int_attach;
       bool found = false;
 
-      if (global_color_attach == -1)
+      if (global_color_attach == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[global_color_attach];
@@ -1689,7 +1698,7 @@ pvr_is_z_replicate_space_available(const struct pvr_device_info *dev_info,
          struct pvr_renderpass_subpass *subpass = &ctx->subpasses[i];
          struct pvr_render_subpass *input_subpass = subpass->input_subpass;
 
-         if (*input_subpass->depth_stencil_attachment == (int32_t)attach_idx) {
+         if (input_subpass->depth_stencil_attachment == (int32_t)attach_idx) {
             first_use = i;
             break;
          }
@@ -1770,10 +1779,10 @@ pvr_is_subpass_space_available(const struct pvr_device_info *dev_info,
    sp_dsts->incoming_zrep.type = USC_MRT_RESOURCE_TYPE_INVALID;
 
    for (uint32_t i = 0U; i < subpass->color_count; i++) {
-      const int32_t attach_idx = subpass->color_attachments[i];
+      const uint32_t attach_idx = subpass->color_attachments[i];
       struct pvr_render_int_attachment *int_attach;
 
-      if (attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -1816,12 +1825,12 @@ pvr_is_subpass_space_available(const struct pvr_device_info *dev_info,
    }
 
    if (sp_depth->incoming_ds_is_input) {
-      if (sp_depth->existing_ds_attach != *subpass->depth_stencil_attachment) {
+      if (sp_depth->existing_ds_attach != subpass->depth_stencil_attachment) {
          result = pvr_is_z_replicate_space_available(
             dev_info,
             ctx,
             alloc,
-            *subpass->depth_stencil_attachment,
+            subpass->depth_stencil_attachment,
             &sp_dsts->incoming_zrep);
          if (result != VK_SUCCESS)
             goto err_free_alloc;
@@ -1863,12 +1872,13 @@ pvr_can_combine_with_render(const struct pvr_device_info *dev_info,
     * attachment.
     */
    if (sp_depth->existing_ds_is_input &&
-       ctx->int_ds_attach->attachment->has_stencil) {
+       ctx->int_ds_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
       return false;
    }
 
    if (sp_depth->incoming_ds_is_input && int_ds_attach &&
-       int_ds_attach->attachment->has_stencil && ctx->hw_render) {
+       int_ds_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT &&
+       ctx->hw_render) {
       return false;
    }
 
@@ -1904,21 +1914,21 @@ pvr_can_combine_with_render(const struct pvr_device_info *dev_info,
     */
    for (uint32_t i = 0U; i < subpass->input_count; i++) {
       const uint32_t attach_idx = subpass->input_attachments[i];
-      if ((int32_t)attach_idx != -1 &&
+      if (attach_idx != VK_ATTACHMENT_UNUSED &&
           pvr_is_pending_resolve_dest(ctx, attach_idx)) {
          return false;
       }
    }
 
    for (uint32_t i = 0U; i < subpass->color_count; i++) {
-      if (subpass->color_attachments[i] != -1 &&
+      if (subpass->color_attachments[i] != VK_ATTACHMENT_UNUSED &&
           (pvr_is_pending_resolve_dest(ctx, subpass->color_attachments[i]) ||
            pvr_is_pending_resolve_src(ctx, subpass->color_attachments[i]))) {
          return false;
       }
 
       if (subpass->resolve_attachments &&
-          subpass->resolve_attachments[i] != -1 &&
+          subpass->resolve_attachments[i] != VK_ATTACHMENT_UNUSED &&
           pvr_is_pending_resolve_dest(ctx, subpass->resolve_attachments[i])) {
          return false;
       }
@@ -1965,23 +1975,21 @@ pvr_merge_subpass(const struct pvr_device *device,
    bool ret;
 
    /* Depth attachment for the incoming subpass. */
-   if (*input_subpass->depth_stencil_attachment != -1) {
-      int_ds_attach =
-         &ctx->int_attach[*input_subpass->depth_stencil_attachment];
-   } else {
+   if (input_subpass->depth_stencil_attachment != VK_ATTACHMENT_UNUSED)
+      int_ds_attach = &ctx->int_attach[input_subpass->depth_stencil_attachment];
+   else
       int_ds_attach = NULL;
-   }
 
    /* Attachment ID for the existing depth attachment. */
    if (ctx->int_ds_attach)
       sp_depth.existing_ds_attach = ctx->int_ds_attach - ctx->int_attach;
    else
-      sp_depth.existing_ds_attach = -1;
+      sp_depth.existing_ds_attach = VK_ATTACHMENT_UNUSED;
 
    /* Is the incoming depth attachment used as an input to the incoming subpass?
     */
    sp_depth.incoming_ds_is_input =
-      pvr_is_input(input_subpass, *input_subpass->depth_stencil_attachment);
+      pvr_is_input(input_subpass, input_subpass->depth_stencil_attachment);
 
    /* Is the current depth attachment used as an input to the incoming subpass?
     */
@@ -2005,7 +2013,7 @@ pvr_merge_subpass(const struct pvr_device *device,
          goto end_merge_subpass;
 
       sp_depth.existing_ds_is_input = false;
-      sp_depth.existing_ds_attach = -1;
+      sp_depth.existing_ds_attach = VK_ATTACHMENT_UNUSED;
 
       /* Allocate again in a new render. */
       result = pvr_is_subpass_space_available(&device->pdevice->dev_info,
@@ -2037,7 +2045,7 @@ pvr_merge_subpass(const struct pvr_device *device,
 
       ctx->hw_render = &hw_setup->renders[hw_setup->render_count];
       memset(ctx->hw_render, 0U, sizeof(*hw_render));
-      ctx->hw_render->ds_attach_idx = -1;
+      ctx->hw_render->ds_attach_idx = VK_ATTACHMENT_UNUSED;
       hw_setup->render_count++;
       ctx->hw_render->depth_init = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
       ctx->hw_render->stencil_init = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
@@ -2107,7 +2115,7 @@ pvr_merge_subpass(const struct pvr_device *device,
          hw_subpass->depth_initop = VK_ATTACHMENT_LOAD_OP_CLEAR;
       }
 
-      if (int_ds_attach->attachment->has_stencil) {
+      if (int_ds_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
          if (int_ds_attach->stencil_load_op == VK_ATTACHMENT_LOAD_OP_LOAD) {
             stencil_load = true;
             setup_render_ds = true;
@@ -2125,7 +2133,7 @@ pvr_merge_subpass(const struct pvr_device *device,
          pvr_mark_surface_alloc(ctx, int_ds_attach);
 
       if (setup_render_ds) {
-         assert(hw_render->ds_attach_idx == -1);
+         assert(hw_render->ds_attach_idx == VK_ATTACHMENT_UNUSED);
          hw_render->ds_attach_idx = int_ds_attach->attachment->index;
       }
 
@@ -2137,17 +2145,17 @@ pvr_merge_subpass(const struct pvr_device *device,
                                         sizeof(hw_subpass->color_initops[0U]) *
                                            input_subpass->color_count,
                                         8,
-                                        VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+                                        VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
    if (!hw_subpass->color_initops) {
       result = vk_error(NULL, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto end_merge_subpass;
    }
 
    for (uint32_t i = 0U; i < input_subpass->color_count; i++) {
-      const int32_t attach_idx = input_subpass->color_attachments[i];
+      const uint32_t attach_idx = input_subpass->color_attachments[i];
       struct pvr_render_int_attachment *int_attach;
 
-      if (attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -2172,11 +2180,11 @@ pvr_merge_subpass(const struct pvr_device *device,
 
    /* Copy the destinations allocated for the color attachments. */
    for (uint32_t i = 0U; i < input_subpass->color_count; i++) {
-      const int32_t attach_idx = input_subpass->color_attachments[i];
+      const uint32_t attach_idx = input_subpass->color_attachments[i];
       struct pvr_render_int_attachment *int_attach;
       struct pvr_renderpass_resource *attach_dst;
 
-      if (attach_idx == -1)
+      if (attach_idx == VK_ATTACHMENT_UNUSED)
          continue;
 
       int_attach = &ctx->int_attach[attach_idx];
@@ -2211,12 +2219,12 @@ pvr_merge_subpass(const struct pvr_device *device,
    }
 
    if (sp_depth.incoming_ds_is_input) {
-      if (*input_subpass->depth_stencil_attachment !=
+      if (input_subpass->depth_stencil_attachment !=
           sp_depth.existing_ds_attach) {
          result =
             pvr_enable_z_replicate(ctx,
                                    hw_render,
-                                   *input_subpass->depth_stencil_attachment,
+                                   input_subpass->depth_stencil_attachment,
                                    &sp_dsts.incoming_zrep);
          if (result != VK_SUCCESS)
             goto end_merge_subpass;
@@ -2269,9 +2277,9 @@ pvr_dereference_color_output_list(struct pvr_renderpass_context *ctx,
                                   struct pvr_render_subpass *subpass)
 {
    for (uint32_t i = 0U; i < subpass->color_count; i++) {
-      const int32_t attach_idx = subpass->color_attachments[i];
+      const uint32_t attach_idx = subpass->color_attachments[i];
 
-      if (attach_idx != -1)
+      if (attach_idx != VK_ATTACHMENT_UNUSED)
          pvr_dereference_surface(ctx, attach_idx, subpass_num);
    }
 }
@@ -2282,7 +2290,7 @@ static void pvr_dereference_surface_list(struct pvr_renderpass_context *ctx,
                                          uint32_t count)
 {
    for (uint32_t i = 0U; i < count; i++) {
-      if ((int32_t)attachments[i] != -1)
+      if (attachments[i] != VK_ATTACHMENT_UNUSED)
          pvr_dereference_surface(ctx, attachments[i], subpass_num);
    }
 }
@@ -2319,9 +2327,9 @@ static VkResult pvr_schedule_subpass(const struct pvr_device *device,
                                 subpass_num,
                                 subpass->input_attachments,
                                 subpass->input_count);
-   if (*subpass->depth_stencil_attachment != -1) {
+   if (subpass->depth_stencil_attachment != VK_ATTACHMENT_UNUSED) {
       struct pvr_render_int_attachment *int_depth_attach =
-         &ctx->int_attach[*subpass->depth_stencil_attachment];
+         &ctx->int_attach[subpass->depth_stencil_attachment];
 
       assert(int_depth_attach->remaining_count > 0U);
       int_depth_attach->remaining_count--;
@@ -2334,7 +2342,7 @@ static VkResult pvr_schedule_subpass(const struct pvr_device *device,
             pvr_free_surface_storage(ctx, int_depth_attach);
       }
 
-      if (int_depth_attach->attachment->has_stencil) {
+      if (int_depth_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
          assert(int_depth_attach->stencil_remaining_count > 0U);
          int_depth_attach->stencil_remaining_count--;
       }
@@ -2356,7 +2364,7 @@ static VkResult pvr_schedule_subpass(const struct pvr_device *device,
       if (!subpass->resolve_attachments)
          break;
 
-      if (subpass->resolve_attachments[i] == -1)
+      if (subpass->resolve_attachments[i] == VK_ATTACHMENT_UNUSED)
          continue;
 
       assert(subpass->color_attachments[i] <
@@ -2422,11 +2430,11 @@ pvr_count_uses_in_color_output_list(struct pvr_render_subpass *subpass,
    uint32_t count = 0U;
 
    for (uint32_t i = 0U; i < subpass->color_count; i++) {
-      if (subpass->color_attachments[i] == (int32_t)attach_idx) {
+      if (subpass->color_attachments[i] == attach_idx) {
          count++;
 
          if (subpass->resolve_attachments &&
-             subpass->resolve_attachments[i] != -1)
+             subpass->resolve_attachments[i] != VK_ATTACHMENT_UNUSED)
             count++;
       }
    }
@@ -2487,9 +2495,8 @@ VkResult pvr_create_renderpass_hwsetup(
                      __typeof__(*subpass_map),
                      pass->subpass_count);
 
-   if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT)) {
+   if (!vk_multialloc_zalloc(&ma, alloc, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT))
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
-   }
 
    hw_setup->surface_allocate = surface_allocate;
    hw_setup->subpass_map = subpass_map;
@@ -2508,6 +2515,7 @@ VkResult pvr_create_renderpass_hwsetup(
    if (!vk_multialloc_zalloc(&ma_ctx,
                              alloc,
                              VK_SYSTEM_ALLOCATION_SCOPE_COMMAND)) {
+      vk_free(alloc, hw_setup);
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
    }
 
@@ -2568,11 +2576,11 @@ VkResult pvr_create_renderpass_hwsetup(
          int_attach->remaining_count +=
             color_output_uses + input_attachment_uses;
 
-         if ((uint32_t)*subpass->depth_stencil_attachment == i)
+         if ((uint32_t)subpass->depth_stencil_attachment == i)
             int_attach->remaining_count++;
       }
 
-      if (int_attach->attachment->has_stencil) {
+      if (int_attach->attachment->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
          int_attach->stencil_remaining_count = int_attach->remaining_count;
          if (pass->attachments[i].stencil_store_op ==
              VK_ATTACHMENT_STORE_OP_STORE) {

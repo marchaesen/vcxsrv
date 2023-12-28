@@ -45,32 +45,38 @@ lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   assert(intr->dest.is_ssa);
-
-   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
+   nir_def *loads[NIR_MAX_VEC_COMPONENTS];
 
    for (unsigned i = 0; i < intr->num_components; i++) {
+      bool is_64bit = (nir_intrinsic_instr_dest_type(intr) & NIR_ALU_TYPE_SIZE_MASK) == 64;
+      unsigned newi = is_64bit ? i * 2 : i;
+      unsigned newc = nir_intrinsic_component(intr);
       nir_intrinsic_instr *chan_intr =
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
-      nir_ssa_dest_init(&chan_intr->instr, &chan_intr->dest,
-                        1, intr->dest.ssa.bit_size, NULL);
+      nir_def_init(&chan_intr->instr, &chan_intr->def, 1,
+                   intr->def.bit_size);
       chan_intr->num_components = 1;
 
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
-      nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
+      nir_intrinsic_set_component(chan_intr, (newc + newi) % 4);
       nir_intrinsic_set_dest_type(chan_intr, nir_intrinsic_dest_type(intr));
       set_io_semantics(chan_intr, intr, i);
       /* offset and vertex (if needed) */
       for (unsigned j = 0; j < nir_intrinsic_infos[intr->intrinsic].num_srcs; ++j)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
+         chan_intr->src[j] = nir_src_for_ssa(intr->src[j].ssa);
+      if (newc + newi > 3) {
+         nir_src *src = nir_get_io_offset_src(chan_intr);
+         nir_def *offset = nir_iadd_imm(b, src->ssa, (newc + newi) / 4);
+         *src = nir_src_for_ssa(offset);
+      }
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
-      loads[i] = &chan_intr->dest.ssa;
+      loads[i] = &chan_intr->def;
    }
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                            nir_vec(b, loads, intr->num_components));
+   nir_def_rewrite_uses(&intr->def,
+                        nir_vec(b, loads, intr->num_components));
    nir_instr_remove(&intr->instr);
 }
 
@@ -79,22 +85,20 @@ lower_load_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   assert(intr->dest.is_ssa);
-
-   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
-   unsigned offset_idx = intr->intrinsic == nir_intrinsic_load_shared ? 0 : 1;
-   nir_ssa_def *base_offset = intr->src[offset_idx].ssa;
+   nir_def *loads[NIR_MAX_VEC_COMPONENTS];
+   nir_def *base_offset = nir_get_io_offset_src(intr)->ssa;
 
    for (unsigned i = 0; i < intr->num_components; i++) {
       nir_intrinsic_instr *chan_intr =
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
-      nir_ssa_dest_init(&chan_intr->instr, &chan_intr->dest,
-                        1, intr->dest.ssa.bit_size, NULL);
+      nir_def_init(&chan_intr->instr, &chan_intr->def, 1,
+                   intr->def.bit_size);
       chan_intr->num_components = 1;
 
       nir_intrinsic_set_align_offset(chan_intr,
                                      (nir_intrinsic_align_offset(intr) +
-                                      i * (intr->dest.ssa.bit_size / 8)) % nir_intrinsic_align_mul(intr));
+                                      i * (intr->def.bit_size / 8)) %
+                                        nir_intrinsic_align_mul(intr));
       nir_intrinsic_set_align_mul(chan_intr, nir_intrinsic_align_mul(intr));
       if (nir_intrinsic_has_access(intr))
          nir_intrinsic_set_access(chan_intr, nir_intrinsic_access(intr));
@@ -105,19 +109,19 @@ lower_load_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       if (nir_intrinsic_has_base(intr))
          nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       for (unsigned j = 0; j < nir_intrinsic_infos[intr->intrinsic].num_srcs - 1; j++)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
+         chan_intr->src[j] = nir_src_for_ssa(intr->src[j].ssa);
 
       /* increment offset per component */
-      nir_ssa_def *offset = nir_iadd_imm(b, base_offset, i * (intr->dest.ssa.bit_size / 8));
-      chan_intr->src[offset_idx] = nir_src_for_ssa(offset);
+      nir_def *offset = nir_iadd_imm(b, base_offset, i * (intr->def.bit_size / 8));
+      *nir_get_io_offset_src(chan_intr) = nir_src_for_ssa(offset);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
-      loads[i] = &chan_intr->dest.ssa;
+      loads[i] = &chan_intr->def;
    }
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                            nir_vec(b, loads, intr->num_components));
+   nir_def_rewrite_uses(&intr->def,
+                        nir_vec(b, loads, intr->num_components));
    nir_instr_remove(&intr->instr);
 }
 
@@ -126,19 +130,22 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *value = nir_ssa_for_src(b, intr->src[0], intr->num_components);
+   nir_def *value = intr->src[0].ssa;
 
    for (unsigned i = 0; i < intr->num_components; i++) {
       if (!(nir_intrinsic_write_mask(intr) & (1 << i)))
          continue;
 
+      bool is_64bit = (nir_intrinsic_instr_src_type(intr, 0) & NIR_ALU_TYPE_SIZE_MASK) == 64;
+      unsigned newi = is_64bit ? i * 2 : i;
+      unsigned newc = nir_intrinsic_component(intr);
       nir_intrinsic_instr *chan_intr =
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
       chan_intr->num_components = 1;
 
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
-      nir_intrinsic_set_component(chan_intr, nir_intrinsic_component(intr) + i);
+      nir_intrinsic_set_component(chan_intr, (newc + newi) % 4);
       nir_intrinsic_set_src_type(chan_intr, nir_intrinsic_src_type(intr));
       set_io_semantics(chan_intr, intr, i);
 
@@ -147,14 +154,13 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
          unsigned component = nir_intrinsic_component(chan_intr);
 
          for (unsigned c = 0; c <= component; c++) {
-            nir_io_xfb xfb = c < 2 ? nir_intrinsic_io_xfb(intr) :
-                                     nir_intrinsic_io_xfb2(intr);
+            nir_io_xfb xfb = c < 2 ? nir_intrinsic_io_xfb(intr) : nir_intrinsic_io_xfb2(intr);
 
             if (component < c + xfb.out[c % 2].num_components) {
                nir_io_xfb scalar_xfb;
 
                memset(&scalar_xfb, 0, sizeof(scalar_xfb));
-               scalar_xfb.out[component % 2].num_components = 1;
+               scalar_xfb.out[component % 2].num_components = is_64bit ? 2 : 1;
                scalar_xfb.out[component % 2].buffer = xfb.out[c % 2].buffer;
                scalar_xfb.out[component % 2].offset = xfb.out[c % 2].offset +
                                                       component - c;
@@ -171,7 +177,12 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
       /* offset and vertex (if needed) */
       for (unsigned j = 1; j < nir_intrinsic_infos[intr->intrinsic].num_srcs; ++j)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
+         chan_intr->src[j] = nir_src_for_ssa(intr->src[j].ssa);
+      if (newc + newi > 3) {
+         nir_src *src = nir_get_io_offset_src(chan_intr);
+         nir_def *offset = nir_iadd_imm(b, src->ssa, (newc + newi) / 4);
+         *src = nir_src_for_ssa(offset);
+      }
 
       nir_builder_instr_insert(b, &chan_intr->instr);
    }
@@ -184,9 +195,8 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *value = nir_ssa_for_src(b, intr->src[0], intr->num_components);
-   unsigned offset_idx = intr->intrinsic == nir_intrinsic_store_shared ? 1 : 2;
-   nir_ssa_def *base_offset = intr->src[offset_idx].ssa;
+   nir_def *value = intr->src[0].ssa;
+   nir_def *base_offset = nir_get_io_offset_src(intr)->ssa;
 
    /* iterate wrmask instead of num_components to handle split components */
    u_foreach_bit(i, nir_intrinsic_write_mask(intr)) {
@@ -197,7 +207,8 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
       nir_intrinsic_set_align_offset(chan_intr,
                                      (nir_intrinsic_align_offset(intr) +
-                                      i * (value->bit_size / 8)) % nir_intrinsic_align_mul(intr));
+                                      i * (value->bit_size / 8)) %
+                                        nir_intrinsic_align_mul(intr));
       nir_intrinsic_set_align_mul(chan_intr, nir_intrinsic_align_mul(intr));
       if (nir_intrinsic_has_access(intr))
          nir_intrinsic_set_access(chan_intr, nir_intrinsic_access(intr));
@@ -207,11 +218,11 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
       /* value */
       chan_intr->src[0] = nir_src_for_ssa(nir_channel(b, value, i));
       for (unsigned j = 1; j < nir_intrinsic_infos[intr->intrinsic].num_srcs - 1; j++)
-         nir_src_copy(&chan_intr->src[j], &intr->src[j], &chan_intr->instr);
+         chan_intr->src[j] = nir_src_for_ssa(intr->src[j].ssa);
 
       /* increment offset per component */
-      nir_ssa_def *offset = nir_iadd_imm(b, base_offset, i * (value->bit_size / 8));
-      chan_intr->src[offset_idx] = nir_src_for_ssa(offset);
+      nir_def *offset = nir_iadd_imm(b, base_offset, i * (value->bit_size / 8));
+      *nir_get_io_offset_src(chan_intr) = nir_src_for_ssa(offset);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
    }
@@ -219,10 +230,16 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
    nir_instr_remove(&intr->instr);
 }
 
+struct scalarize_state {
+   nir_variable_mode mask;
+   nir_instr_filter_cb filter;
+   void *filter_data;
+};
+
 static bool
 nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
 {
-   nir_variable_mode mask = *(nir_variable_mode *)data;
+   struct scalarize_state *state = data;
 
    if (instr->type != nir_instr_type_intrinsic)
       return false;
@@ -233,34 +250,43 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
       return false;
 
    if ((intr->intrinsic == nir_intrinsic_load_input ||
-        intr->intrinsic == nir_intrinsic_load_per_vertex_input) &&
-       (mask & nir_var_shader_in)) {
+        intr->intrinsic == nir_intrinsic_load_per_vertex_input ||
+        intr->intrinsic == nir_intrinsic_load_interpolated_input) &&
+       (state->mask & nir_var_shader_in) &&
+       (!state->filter || state->filter(instr, state->filter_data))) {
       lower_load_input_to_scalar(b, intr);
       return true;
    }
 
-   if (intr->intrinsic == nir_intrinsic_load_per_vertex_output &&
-      (mask & nir_var_shader_out)) {
+   if ((intr->intrinsic == nir_intrinsic_load_output ||
+        intr->intrinsic == nir_intrinsic_load_per_vertex_output) &&
+       (state->mask & nir_var_shader_out) &&
+       (!state->filter || state->filter(instr, state->filter_data))) {
       lower_load_input_to_scalar(b, intr);
       return true;
    }
 
-   if ((intr->intrinsic == nir_intrinsic_load_ubo && (mask & nir_var_mem_ubo)) ||
-       (intr->intrinsic == nir_intrinsic_load_ssbo && (mask & nir_var_mem_ssbo)) ||
-       (intr->intrinsic == nir_intrinsic_load_shared && (mask & nir_var_mem_shared))) {
+   if (((intr->intrinsic == nir_intrinsic_load_ubo && (state->mask & nir_var_mem_ubo)) ||
+        (intr->intrinsic == nir_intrinsic_load_ssbo && (state->mask & nir_var_mem_ssbo)) ||
+        (intr->intrinsic == nir_intrinsic_load_global && (state->mask & nir_var_mem_global)) ||
+        (intr->intrinsic == nir_intrinsic_load_shared && (state->mask & nir_var_mem_shared))) &&
+       (!state->filter || state->filter(instr, state->filter_data))) {
       lower_load_to_scalar(b, intr);
       return true;
    }
 
    if ((intr->intrinsic == nir_intrinsic_store_output ||
         intr->intrinsic == nir_intrinsic_store_per_vertex_output) &&
-       mask & nir_var_shader_out) {
+       state->mask & nir_var_shader_out &&
+       (!state->filter || state->filter(instr, state->filter_data))) {
       lower_store_output_to_scalar(b, intr);
       return true;
    }
 
-   if ((intr->intrinsic == nir_intrinsic_store_ssbo && (mask & nir_var_mem_ssbo)) ||
-       (intr->intrinsic == nir_intrinsic_store_shared && (mask & nir_var_mem_shared))) {
+   if (((intr->intrinsic == nir_intrinsic_store_ssbo && (state->mask & nir_var_mem_ssbo)) ||
+        (intr->intrinsic == nir_intrinsic_store_global && (state->mask & nir_var_mem_global)) ||
+        (intr->intrinsic == nir_intrinsic_store_shared && (state->mask & nir_var_mem_shared))) &&
+       (!state->filter || state->filter(instr, state->filter_data))) {
       lower_store_to_scalar(b, intr);
       return true;
    }
@@ -268,14 +294,19 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
    return false;
 }
 
-void
-nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask)
+bool
+nir_lower_io_to_scalar(nir_shader *shader, nir_variable_mode mask, nir_instr_filter_cb filter, void *filter_data)
 {
-   nir_shader_instructions_pass(shader,
-                                nir_lower_io_to_scalar_instr,
-                                nir_metadata_block_index |
-                                nir_metadata_dominance,
-                                &mask);
+   struct scalarize_state state = {
+      mask,
+      filter,
+      filter_data
+   };
+   return nir_shader_instructions_pass(shader,
+                                       nir_lower_io_to_scalar_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       &state);
 }
 
 static nir_variable **
@@ -284,10 +315,10 @@ get_channel_variables(struct hash_table *ht, nir_variable *var)
    nir_variable **chan_vars;
    struct hash_entry *entry = _mesa_hash_table_search(ht, var);
    if (!entry) {
-      chan_vars = (nir_variable **) calloc(4, sizeof(nir_variable *));
+      chan_vars = (nir_variable **)calloc(4, sizeof(nir_variable *));
       _mesa_hash_table_insert(ht, var, chan_vars);
    } else {
-      chan_vars = (nir_variable **) entry->data;
+      chan_vars = (nir_variable **)entry->data;
    }
 
    return chan_vars;
@@ -314,7 +345,7 @@ clone_deref_array(nir_builder *b, nir_deref_instr *dst_tail,
    dst_tail = clone_deref_array(b, dst_tail, parent);
 
    return nir_build_deref_array(b, dst_tail,
-                                nir_ssa_for_src(b, src_head->arr.index, 1));
+                                src_head->arr.index.ssa);
 }
 
 static void
@@ -324,9 +355,7 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   assert(intr->dest.is_ssa);
-
-   nir_ssa_def *loads[NIR_MAX_VEC_COMPONENTS];
+   nir_def *loads[NIR_MAX_VEC_COMPONENTS];
 
    nir_variable **chan_vars;
    if (var->data.mode == nir_var_shader_in) {
@@ -339,7 +368,7 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
       nir_variable *chan_var = chan_vars[var->data.location_frac + i];
       if (!chan_vars[var->data.location_frac + i]) {
          chan_var = nir_variable_clone(var, b->shader);
-         chan_var->data.location_frac =  var->data.location_frac + i;
+         chan_var->data.location_frac = var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
 
          chan_vars[var->data.location_frac + i] = chan_var;
@@ -349,28 +378,28 @@ lower_load_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 
       nir_intrinsic_instr *chan_intr =
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
-      nir_ssa_dest_init(&chan_intr->instr, &chan_intr->dest,
-                        1, intr->dest.ssa.bit_size, NULL);
+      nir_def_init(&chan_intr->instr, &chan_intr->def, 1,
+                   intr->def.bit_size);
       chan_intr->num_components = 1;
 
       nir_deref_instr *deref = nir_build_deref_var(b, chan_var);
 
       deref = clone_deref_array(b, deref, nir_src_as_deref(intr->src[0]));
 
-      chan_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
+      chan_intr->src[0] = nir_src_for_ssa(&deref->def);
 
       if (intr->intrinsic == nir_intrinsic_interp_deref_at_offset ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_sample ||
           intr->intrinsic == nir_intrinsic_interp_deref_at_vertex)
-         nir_src_copy(&chan_intr->src[1], &intr->src[1], &chan_intr->instr);
+         chan_intr->src[1] = nir_src_for_ssa(intr->src[1].ssa);
 
       nir_builder_instr_insert(b, &chan_intr->instr);
 
-      loads[i] = &chan_intr->dest.ssa;
+      loads[i] = &chan_intr->def;
    }
 
-   nir_ssa_def_rewrite_uses(&intr->dest.ssa,
-                            nir_vec(b, loads, intr->num_components));
+   nir_def_rewrite_uses(&intr->def,
+                        nir_vec(b, loads, intr->num_components));
 
    /* Remove the old load intrinsic */
    nir_instr_remove(&intr->instr);
@@ -383,7 +412,7 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 {
    b->cursor = nir_before_instr(&intr->instr);
 
-   nir_ssa_def *value = nir_ssa_for_src(b, intr->src[1], intr->num_components);
+   nir_def *value = intr->src[1].ssa;
 
    nir_variable **chan_vars = get_channel_variables(split_outputs, var);
    for (unsigned i = 0; i < intr->num_components; i++) {
@@ -393,7 +422,7 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
       nir_variable *chan_var = chan_vars[var->data.location_frac + i];
       if (!chan_vars[var->data.location_frac + i]) {
          chan_var = nir_variable_clone(var, b->shader);
-         chan_var->data.location_frac =  var->data.location_frac + i;
+         chan_var->data.location_frac = var->data.location_frac + i;
          chan_var->type = glsl_channel_type(chan_var->type);
 
          chan_vars[var->data.location_frac + i] = chan_var;
@@ -411,7 +440,7 @@ lower_store_output_to_scalar_early(nir_builder *b, nir_intrinsic_instr *intr,
 
       deref = clone_deref_array(b, deref, nir_src_as_deref(intr->src[0]));
 
-      chan_intr->src[0] = nir_src_for_ssa(&deref->dest.ssa);
+      chan_intr->src[0] = nir_src_for_ssa(&deref->def);
       chan_intr->src[1] = nir_src_for_ssa(nir_channel(b, value, i));
 
       nir_builder_instr_insert(b, &chan_intr->instr);
@@ -525,12 +554,12 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
    bool progress = nir_shader_instructions_pass(shader,
                                                 nir_lower_io_to_scalar_early_instr,
                                                 nir_metadata_block_index |
-                                                nir_metadata_dominance,
+                                                   nir_metadata_dominance,
                                                 &state);
 
    /* Remove old input from the shaders inputs list */
    hash_table_foreach(state.split_inputs, entry) {
-      nir_variable *var = (nir_variable *) entry->key;
+      nir_variable *var = (nir_variable *)entry->key;
       exec_node_remove(&var->node);
 
       free(entry->data);
@@ -538,7 +567,7 @@ nir_lower_io_to_scalar_early(nir_shader *shader, nir_variable_mode mask)
 
    /* Remove old output from the shaders outputs list */
    hash_table_foreach(state.split_outputs, entry) {
-      nir_variable *var = (nir_variable *) entry->key;
+      nir_variable *var = (nir_variable *)entry->key;
       exec_node_remove(&var->node);
 
       free(entry->data);
