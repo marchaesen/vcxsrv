@@ -1,0 +1,128 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH XpmCreateBuffer __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmCreateBuffer  \- create an XPM Buffer
+
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmCreateBufferFromImage(Display *" display " , char **" buffer_return ,
+.BI "XImage *" image ", XImage *" shapeimage ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateBufferFromPixmap(Display *" display ", char **" buffer_return ,
+.BI "Pixmap " pixmap ", Pixmap " shapemask ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateBufferFromXpmImage(char **" buffer_return ", XpmImage *" image ,
+.BI "XpmInfo *" info );
+.fi
+
+.SH ARGUMENTS
+
+.IP \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP \fIbuffer_return\fP li
+Returns the buffer which is created.
+.IP \fIimage\fP li
+Specifies the image.
+.IP \fIshapeimage\fP li
+Specifies the shape mask image.
+.IP \fIattributes\fP li
+Specifies the location of a structure containing information (or NULL).
+.IP \fIinfo\fP li
+Specifies the location of a structure to get possible information (or NULL).
+
+.SH DESCRIPTION
+
+.SS XpmCreateBufferFromPixmap
+.PP
+.BR XpmCreateBufferFromPixmap ()
+creates an XPM buffer from a Pixmap.
+The
+.BR XpmCreateBufferFromPixmap ()
+function works as
+.BR XpmWriteFileFromPixmap (__libmansuffix__),
+it just calls
+.BR XpmCreateBufferFromImage ()
+instead of
+.BR XpmWriteFileFromImage (__libmansuffix__).
+Once again, the caller should free the buffer using
+.BR XpmFree (__libmansuffix__)
+when finished.
+.PP
+As a convenience, the
+.BR XpmReadFileToBuffer (__libmansuffix__)
+and
+.BR XpmWriteFileFromBuffer (__libmansuffix__)
+functions are provided to copy a file to a buffer
+and to write a file from a buffer. Thus for instance one may decide to use
+.BR XpmCreateBufferFromPixmap (),
+.BR XpmWriteFileFromBuffer (__libmansuffix__),
+and
+.BR XpmFree (__libmansuffix__)
+instead of
+.BR XpmWriteFileFromPixmap (__libmansuffix__).
+On some systems this may lead to a performance improvement, since the
+processing will be performed in memory, but it uses more memory.
+
+.SS XpmCreateBufferFromImage
+.PP
+The
+.BR XpmCreateBufferFromImage ()
+function works as
+.BR XpmWriteFileFromImage (__libmansuffix__),
+it just writes to a malloc’ed buffer instead of to a file.
+The caller should free the buffer using
+.BR XpmFree (__libmansuffix__)
+when finished.
+
+.SS XpmCreateBufferFromXpmImage.
+.PP
+To create an XPM buffer from an XpmImage, use
+.BR XpmCreateBufferFromXpmImage ().
+The
+.BR XpmCreateBufferFromXpmImage ()
+function writes out the given image to a single block malloc’ed buffer
+in XPM format.
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory,
+and returns
+.B XpmSuccess
+on success.
+If the passed XpmInfo structure pointer is not NULL,
+.BR XpmCreateBufferFromXpmImage ()
+looks for the following attributes: XpmComments, XpmExtensions, and XpmHotspot,
+and writes the related information out as well.
+The caller should free the buffer using
+.BR XpmFree (__libmansuffix__)
+when finished.
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmFree (__libmansuffix__),
+.BR XpmWriteFileFromBuffer (__libmansuffix__),
+.BR XpmWriteFileFromImage (__libmansuffix__),
+.BR XpmWriteFileFromPixmap (__libmansuffix__)

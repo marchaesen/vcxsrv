@@ -33,45 +33,19 @@
 .ds Vn 2.2
 .hw XtSet-Selection-Parameters XtGet-Selection-Parameters wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetSelectionParameters __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetSelectionParameters \- specify target parameters for a selection request with a single target
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetSelectionParameters(Widget \fIrequestor\fP, Atom \fIselection\fP,
 Atom \fItype\fP, XtPointer \fIvalue\fP, unsigned long \fIlength\fP, int
 \fIformat\fP);
 .SH ARGUMENTS
 .IP \fIrequestor\fP 1i
-Specifies the widget making the request. Must be of class Core or any
+Specifies the widget making the request.
+Must be of class Core or any
 subclass thereof.
 .IP \fIselection\fP 1i
 Specifies the atom that names the selection.
@@ -86,37 +60,40 @@ element of a sized indicated by \fIformat\fP.
 Specifies the size in bits of the data in the elements of \fIvalue\fP.
 .SH DESCRIPTION
 The specified parameters will be copied and stored in a new property of
-the specified type and format on the requestor's window. To initiate a
+the specified type and format on the requestor's window.
+To initiate a
 selection request with a target and these parameters, a subsequent call to
-.ZN XtGetSelectionValue
+.B XtGetSelectionValue
 or to
-.ZN XtGetSelectionValueIncremental
+.B XtGetSelectionValueIncremental
 specifying the same requestor widget and selection atom will generate a
-.ZN ConvertSelection
-request referring referring to the property containing the parameters. If
-.ZN XtSetSelectionParameters
+.B ConvertSelection
+request referring referring to the property containing the parameters.
+If
+.B XtSetSelectionParameters
 is called more than once with the same widget and selection without a
 call to specify a request, the most recently specified parameters are
 used in the subsequent request.
 .LP
-The possible values of \fIformat\fP may be 8, 16, or 32. If the \fIformat\fP
+The possible values of \fIformat\fP may be 8, 16, or 32.
+If the \fIformat\fP
 is 8, the elements of \fIvalue\fP are assumed to be sizeof(char); if 16,
 sizeof(short); if 32, sizeof(long).
 .LP
 To generate a MULTIPLE target request with parameters for any of the
 multiple targets of the selection request, precede individual calls to
-.ZN XtGetSelectionValue
+.B XtGetSelectionValue
 and
-.ZN XtGetSelectionValueIncremental
+.B XtGetSelectionValueIncremental
 with corresponding individual calls to
-.ZN XtSetSelectionParameters ,
+.BR XtSetSelectionParameters ,
 and enclose these all within
-.ZN XtCreateSelectionRequest
+.B XtCreateSelectionRequest
 and
-.ZN XtSendSelectionRequest .
-.ZN XtGetSelectionValues
+.BR XtSendSelectionRequest .
+.B XtGetSelectionValues
 and
-.ZN XtGetSelectionValuesIncremental
+.B XtGetSelectionValuesIncremental
 cannot be used  to make selection requests with parameterized targets.
 .SH "SEE ALSO"
 XtGetSelectionParameters(__libmansuffix__)

@@ -69,7 +69,7 @@ typedef struct {
     XawImPart	im;
     XawIcPart	ic;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } XawVendorShellExtPart;
 

@@ -112,7 +112,7 @@ typedef struct _AsciiSrcPart {
     int ascii_length;		/* length field for ascii string emulation */
 
 #ifdef ASCII_DISK
-    String filename;		/* name of file for Compatability */
+    String filename;		/* name of file for Compatibility */
 #endif /* ASCII_DISK */
 
     /* private */
@@ -125,7 +125,7 @@ typedef struct _AsciiSrcPart {
     XawTextPosition length;	/* length of file */
     Piece *first_piece;		/* first piece of the text */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } AsciiSrcPart;
 

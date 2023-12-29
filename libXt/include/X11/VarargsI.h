@@ -24,11 +24,11 @@ in this Software without prior written authorization from The Open Group.
 
 */
 
-#ifndef _VarargsI_h_ 
-#define _VarargsI_h_ 
+#ifndef _VarargsI_h_
+#define _VarargsI_h_
 
 #include <stdarg.h>
- 
+
 /* private routines */
 
 _XFUNCPROTOBEGIN

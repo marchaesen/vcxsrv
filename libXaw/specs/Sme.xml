@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Sme Object -->
 <!-- .XE -->
-<!-- .IN "Sme object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Sme object</primary></indexterm>
 <!-- .sp -->
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/Sme.h&gt;
-<!-- .IN "Sme.h" "" -->
+<indexterm><primary>Sme.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/SmeP.h&gt;
-<!-- .IN "SmeP.h" "" -->
+<indexterm><primary>SmeP.h</primary></indexterm>
 Class		smeObjectClass
-<!-- .IN "smeObjectClass" "" -->
+<indexterm><primary>smeObjectClass</primary></indexterm>
 Class Name	Sme
-<!-- .IN "Sme object" "class name" -->
+<indexterm><primary>Sme object</primary><secondary>class name</secondary></indexterm>
 Superclass	RectObj
 </literallayout>
 <!-- .sp -->
@@ -30,7 +30,7 @@ add blank space between menu entries.
 </para>
 <sect2 id='Sme::Resources'>
 <title>Resources</title>
-<!-- .IN "SmeLine object" "resources" -->
+<indexterm><primary>SmeLine object</primary><secondary>resources</secondary></indexterm>
 <para>
 <!-- .LP -->
 The resources associated with the SmeLine object are defined in this
@@ -120,7 +120,7 @@ be the width of the widest entry.
 </sect2>
 <sect2 id="Subclassing_the_Sme_Object">
 <title>Subclassing the Sme Object</title>
-<!-- .IN "Sme object" "subclassing" "@DEF" -->
+<indexterm significance="preferred"><primary>Sme object</primary><secondary>subclassing</secondary></indexterm>
 <para>
 <!-- .LP -->
 <!-- .sp -->
@@ -135,33 +135,33 @@ semantics are not very interesting.
 <variablelist>
   <varlistentry>
     <term>
-      <function>Highlight</function>(\|)
+      <function>Highlight</function>(&#x2006;)
     </term>
     <listitem>
       <para>
-<!-- .IN "Sme object" "Highlight method" -->
+<indexterm><primary>Sme object</primary><secondary>Highlight method</secondary></indexterm>
 Called to put the menu entry into the highlighted state.
       </para>
     </listitem>
   </varlistentry>
   <varlistentry>
     <term>
-      <function>Unhighlight</function>(\|)
+      <function>Unhighlight</function>(&#x2006;)
     </term>
     <listitem>
       <para>
-<!-- .IN "Sme object" "Unhighlight method" -->
+<indexterm><primary>Sme object</primary><secondary>Unhighlight method</secondary></indexterm>
 Called to return the widget to its normal (unhighlighted) state.
       </para>
     </listitem>
   </varlistentry>
   <varlistentry>
     <term>
-      <function>Notify</function>(\|)
+      <function>Notify</function>(&#x2006;)
     </term>
     <listitem>
       <para>
-<!-- .IN "Sme object" "Notify method" -->
+<indexterm><primary>Sme object</primary><secondary>Notify method</secondary></indexterm>
 Called when the user selects this menu entry.
       </para>
     </listitem>

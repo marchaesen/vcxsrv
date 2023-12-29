@@ -3,19 +3,19 @@
 <!-- .XS -->
 <!-- 	Simple Widget -->
 <!-- .XE -->
-<!-- .IN "Simple widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Simple widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;Xaw/Simple.h&gt;
-<!-- .IN "Simple.h" "" -->
+<indexterm><primary>Simple.h</primary></indexterm>
 Class Header file	&lt;Xaw/SimpleP.h&gt;
-<!-- .IN "SimpleP.h" "" -->
+<indexterm><primary>SimpleP.h</primary></indexterm>
 Class		simpleWidgetClass
-<!-- .IN "simpleWidgetClass" -->
+<indexterm><primary>simpleWidgetClass</primary></indexterm>
 Class Name	Simple
-<!-- .IN "Simple widget" "class name" -->
+<indexterm><primary>Simple widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Core
 <!-- .sp -->
 </literallayout>
@@ -35,7 +35,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Simple widget" "resources" -->
+<indexterm><primary>Simple widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>

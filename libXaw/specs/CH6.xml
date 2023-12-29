@@ -88,21 +88,23 @@ application programmer.
 <!-- .LP -->
 If the application wishes to change the size or location of
 any widget it should make a call to <xref linkend='XtSetValues' xrefstyle='select: title'/>.  This will
-<!-- .IN "XtSetValues" "" -->
+<indexterm><primary>XtSetValues</primary></indexterm>
 allow the widget to ask its parent for the new size or location.
 As noted above the parent is allowed to refuse this request,
 and the child must live with the result.  If the
 application is unable to achieve the desired semantics, then perhaps it
 should use a different composite widget.  Under no circumstances
 should an application programmer resort to <function>XtMoveWidget</function> or
-<!-- .IN "XtMoveWidget" "" -->
+<indexterm><primary>XtMoveWidget</primary></indexterm>
 <function>XtResizeWidget</function>; these functions are exclusively for the use of
-<!-- .IN "XtResizeWidget" "" -->
+<indexterm><primary>XtResizeWidget</primary></indexterm>
 Composite widget implementors.
 </para>
 <para>
 <!-- .LP -->
-For more information on geometry management consult the <emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>.
+For more information on geometry management consult the
+<olink targetdoc='intrinsics' targetptr='Geometry_Management'
+><citetitle>X Toolkit Intrinsics - C Language Interface</citetitle></olink>.
 </para>
 </note>
 

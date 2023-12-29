@@ -213,7 +213,7 @@ typedef struct {
     Pixel cursor_color;
     XawTextPropertyList *properties;
     XawTextPaintList *paint;
-    XtPointer pad[2];	/* for future use and keep binary compatability */
+    XtPointer pad[2];	/* for future use and keep binary compatibility */
 #endif
 } TextSinkPart;
 

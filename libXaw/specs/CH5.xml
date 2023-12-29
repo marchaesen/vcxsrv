@@ -13,8 +13,9 @@ ease customization.  The AsciiText widget class (actually not limited to
 ASCII but so named for compatibility) is be general enough to most
 needs.  If more flexibility, special features, or extra functionality is
 needed, they can be added by implementing a new TextSource or TextSink, or
-by subclassing the Text Widget (See Section 5.8 for customization
-details.) <!-- xref -->
+by subclassing the Text Widget
+(<link linkend='Customizing_the_Text_Widget'>See Section 5.8</link>
+for customization details.)
 </para>
 <para>
 The words <emphasis remap='I'>insertion point</emphasis> are used in this chapter to refer to the text
@@ -45,7 +46,7 @@ append-only mode.
 </para>
 <sect1 id="Text_Widget_for_Users">
 <title>Text Widget for Users</title>
-<!-- .IN "Text widget" "User's Guide to the Text widget" -->
+<indexterm><primary>Text widget</primary><secondary>User's Guide to the Text widget</secondary></indexterm>
 <!-- .XS -->
 <!-- 	Text Widget for Users -->
 <!-- .XE -->
@@ -58,7 +59,7 @@ read-only text widget), the X server will beep.
 </para>
 <sect2 id="Default_Key_Bindings">
 <title>Default Key Bindings</title>
-<!-- .IN "Text widget" "default key bindings" -->
+<indexterm><primary>Text widget</primary><secondary>default key bindings</secondary></indexterm>
 <para>
 <!-- .LP -->
 The default key bindings are patterned after those in the EMACS text editor:
@@ -125,8 +126,8 @@ programmer can modify them by changing the Text widget's
 </sect2>
 <sect2 id="Search_and_Replace">
 <title>Search and Replace</title>
-<!-- .IN "Text widget" "search" -->
-<!-- .IN "Text widget" "query replace" -->
+<indexterm><primary>Text widget</primary><secondary>search</secondary></indexterm>
+<indexterm><primary>Text widget</primary><secondary>query replace</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Text widget provides a search popup that can be used to search for a
@@ -259,7 +260,7 @@ Text  &lt;name of Text widget&gt;
 <title>File Insertion</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Text widget" "file insertion" -->
+<indexterm><primary>Text widget</primary><secondary>file insertion</secondary></indexterm>
 To insert a file into a text widget, type the key sequence <emphasis remap='I'>Meta-i</emphasis>,
 which will activate the file insert popup.  This popup will appear under
 the pointer, and any text typed while the focus is in this popup will be
@@ -295,7 +296,7 @@ Text  &lt;name of Text widget&gt;
 <title>Text Selections for Users</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Text widget" "Text Selections for Users" -->
+<indexterm><primary>Text widget</primary><secondary>Text Selections for Users</secondary></indexterm>
 The text widgets have a text selection mechanism that allows
 the user to copy pieces of the text into the <function>PRIMARY</function> selection,
 and paste
@@ -387,11 +388,12 @@ To unset the text selection, click pointer button 1 without moving it.
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextActions_text_widget_actions.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextActions_default_translation_bindings.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextFuncs.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiText.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiSource.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiSink.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextCustom.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="Text.xml"/>
-<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextSink.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextSource.xml"/>
-<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiSink.xml"/>
-<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiSource.xml"/>
-<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="AsciiText.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TextSink.xml"/>
+
 </chapter>

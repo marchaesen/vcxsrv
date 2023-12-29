@@ -1,0 +1,152 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH XpmMisc __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmMisc \- xpm misc functions to free used memory and handle errors
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmFreeXpmImage(XpmImage *" image );
+.HP
+.BI "int XpmFreeXpmInfo(XpmInfo *" info );
+.HP
+.BI "int XpmFreeAttributes(XpmAttributes *" attributes );
+.HP
+.B "int XpmAttributesSize(void);"
+.HP
+.BI "int XpmFreeExtensions(XpmExtension *" extensions ",  int " nextensions );
+.HP
+.BI "int XpmFree(char *" ptr );
+.HP
+.BI "char *XpmGetErrorString(int " errorcode );
+.HP
+.B "int XpmLibraryVersion(void);"
+.fi
+.SH ARGUMENTS
+
+.IP \fIimage\fP li
+Specifies the structure to free
+.IP \fIinfo\fP li
+Specifies the structure to free
+.IP \fIptr\fP li
+Specifies the data to free
+.IP \fIerrorcode\fP li
+Specifies the XPM error
+.IP \fIextensions\fP li
+Specifies the array to free
+.IP \fInextensions\fP li
+Specifies the number of extensions
+.IP \fIattributes\fP li
+Specifies the structure to free
+
+.SH DESCRIPTION
+.PP
+To free possible data stored into an XpmImage structure use
+.BR XpmFreeXpmImage ().
+The
+.BR XpmFreeXpmImage ()
+function frees the structure members which are not NULL,
+but not the structure itself.
+.PP
+To free possible data stored into an XpmInfo structure use
+.BR XpmFreeXpmInfo().
+.PP
+To free data possibly stored into an array of XpmExtension use
+.BR XpmFreeExtensions ().
+.PP
+To free any data allocated by an XPM function use the
+.BR XpmFree ()
+function.
+The current distribution of the XPM library uses the standard memory allocation
+functions and thus
+.BR XpmFree ()
+is nothing else than a define to the standard
+.BR free (__libmansuffix__).
+However since these functions may be redefined in specific environments
+it is wise to use
+.BR XpmFree ()
+.PP
+To free possible data stored into an XpmAttributes structure use
+.BR XpmFreeAttributes ().
+The
+.BR XpmFreeAttributes ()
+function frees the structure members which have been malloc’ed
+such as the pixels list.
+.PP
+To dynamically allocate an XpmAttributes structure use the
+.BR XpmAttributesSize ()
+function.
+The
+.BR XpmAttributesSize ()
+function provides applications using dynamic libraries with a safe way to
+allocate and then refer to an XpmAttributes structure, disregarding whether
+the XpmAttributes structure size has changed or not since compiled.
+.PP
+To get data when building an error message, one can use
+.BR XpmGetErrorString ().
+.BR XpmGetErrorString ()
+returns a string related to the given XPM error code.
+.PP
+The
+.BR XpmLibraryVersion ()
+function can be used when one needs to figure out which version of the library
+is in use.
+The value returned by
+.BR XpmLibraryVersion ()
+can be compared to the value of
+.B XpmIncludeVersion
+which is defined in the header file "xpm.h".
+These numbers are computed with the following formula:
+
+.nf
+ (XpmFormat * 100 + XpmVersion) * 100 + XpmRevision
+.fi
+
+where
+.B XpmFormat
+is the version number of the format,
+.B XpmVersion
+is the library version number (which changes only if the API changes), and
+.B XpmRevision
+is the library minor version number.
+.PP
+The
+.BR XpmFreeExtensions ()
+function frees all data stored in every extension and the array itself.
+Note that
+.BR XpmFreeAttributes ()
+calls this function and thus most of the time it should not need to be
+explicitly called.
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmCreateBuffer (__libmansuffix__),
+.BR XpmCreateData (__libmansuffix__),
+.BR XpmCreateImage (__libmansuffix__),
+.BR XpmCreatePixmap (__libmansuffix__),
+.BR XpmCreateXpmImage (__libmansuffix__),
+.BR XpmRead (__libmansuffix__),
+.BR XpmWrite (__libmansuffix__)

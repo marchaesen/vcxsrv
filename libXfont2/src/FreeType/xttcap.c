@@ -393,7 +393,7 @@ get_one_line(FILE *is, char *buf)
             /* End of Line */
             break;
         if (isspace(c)) {
-            /* convine multiple spaces */
+            /* combine multiple spaces */
             if (!flHead)
                 /* except space at the head of line */
                 flSpace = True;

@@ -34,52 +34,26 @@
 .ds Vn 2.2
 .hw XtGet-Error-Database XtGet-Error-Database-Text wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetErrorDatabase __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtGetErrorDatabase, XtGetErrorDatabaseText \- obtain error database
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XrmDatabase *XtGetErrorDatabase(void);
 .HP
-void XtGetErrorDatabaseText(char *\fIname\fP, char *\fItype\fP, char
-*\fIclass\fP, char *\fIdefault\fP, char *\fIbuffer_return\fP, int
-\fInbytes\fP);
+void XtGetErrorDatabaseText(const char *\fIname\fP,
+const char *\fItype\fP,
+const char *\fIclass\fP,
+const char *\fIdefaultMsg\fP,
+char *\fIbuffer_return\fP, int \fInbytes\fP);
 .SH ARGUMENTS
 .IP \fIbuffer_return\fP 1i
 Specifies the buffer into which the error message is to be returned.
-.ds Cl \ of the error message
 .IP \fIclass\fP 1i
-Specifies the resource class\*(Cl.
+Specifies the resource class of the error message.
 .IP \fIdefault\fP 1i
-Specifies the default message to use\*(Dm.
+Specifies the default message to use.
 .IP \fIname\fP 1i
 .br
 .ns
@@ -90,14 +64,14 @@ of the error message.
 Specifies the size of the buffer in bytes.
 .SH DESCRIPTION
 The
-.ZN XtGetErrorDatabase
-function has been superceded by
-.ZN XtAppGetErrorDatabase .
+.B XtGetErrorDatabase
+function has been superseded by
+.BR XtAppGetErrorDatabase .
 .LP
 The
-.ZN XtGetErrorDatabaseText
-function has been superceded by
-.ZN XtAppGetErrorDatabaseText .
+.B XtGetErrorDatabaseText
+function has been superseded by
+.BR XtAppGetErrorDatabaseText .
 .SH "SEE ALSO"
 .BR XtAppGetErrorDatabase (__libmansuffix__)
 .BR XtAppGetErrorDatabaseText (__libmansuffix__)

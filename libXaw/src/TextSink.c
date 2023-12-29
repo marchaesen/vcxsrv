@@ -100,7 +100,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     offset(foreground),
     XtRString,
-    XtDefaultForeground
+    (XtPointer)XtDefaultForeground
   },
   {
     XtNbackground,
@@ -109,7 +109,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     offset(background),
     XtRString,
-    XtDefaultBackground
+    (XtPointer)XtDefaultBackground
   },
 #ifndef OLDXAW
   {
@@ -119,7 +119,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     offset(cursor_color),
     XtRString,
-    XtDefaultForeground
+    (XtPointer)XtDefaultForeground
   },
   {
     XawNtextProperties,
@@ -293,8 +293,8 @@ XawTextSinkClassPartInitialize(WidgetClass wc)
  */
 /*ARGSUSED*/
 static void
-XawTextSinkInitialize(Widget request, Widget cnew,
-		      ArgList args, Cardinal *num_args)
+XawTextSinkInitialize(Widget request _X_UNUSED, Widget cnew,
+		      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TextSinkObject sink = (TextSinkObject)cnew;
 
@@ -342,8 +342,8 @@ XawTextSinkDestroy(Widget w)
  */
 /*ARGSUSED*/
 static Boolean
-XawTextSinkSetValues(Widget current, Widget request, Widget cnew,
-		     ArgList args, Cardinal *num_args)
+XawTextSinkSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+		     ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TextSinkObject w = (TextSinkObject)cnew;
     TextSinkObject old_w = (TextSinkObject)current;
@@ -364,15 +364,15 @@ XawTextSinkSetValues(Widget current, Widget request, Widget cnew,
  *	y	  - ""
  *	pos1	  - location of starting and ending points in the text buffer
  *	pos2	  - ""
- *		 highlight - hightlight this text?
+ *		 highlight - highlight this text?
  *
  * Description:
  *	Stub function that in subclasses will display text.
  */
 /*ARGSUSED*/
 static void
-DisplayText(Widget w, int x, int y,
-	    XawTextPosition pos1, XawTextPosition pos2, Bool highlight)
+DisplayText(Widget w _X_UNUSED, int x _X_UNUSED, int y _X_UNUSED,
+	    XawTextPosition pos1 _X_UNUSED, XawTextPosition pos2 _X_UNUSED, Bool highlight _X_UNUSED)
 {
     return;
 }
@@ -392,7 +392,7 @@ DisplayText(Widget w, int x, int y,
  */
 /*ARGSUSED*/
 static void
-InsertCursor(Widget w, int x, int y, XawTextInsertState state)
+InsertCursor(Widget w _X_UNUSED, int x _X_UNUSED, int y _X_UNUSED, XawTextInsertState state _X_UNUSED)
 {
     return;
 }
@@ -423,15 +423,15 @@ ClearToBackground(Widget w, int x, int y,
     TextWidget xaw = (TextWidget)XtParent(w);
     Position x1, y1, x2, y2;
 
-    x1 = XawMax(x, xaw->text.r_margin.left);
-    y1 = XawMax(y, xaw->text.r_margin.top);
-    x2 = XawMin(x + (int)width, (int)XtWidth(xaw) - xaw->text.r_margin.right);
-    y2 = XawMin(y + (int)height, (int)XtHeight(xaw) - xaw->text.r_margin.bottom);
+    x1 = (XawMax(x, xaw->text.r_margin.left));
+    y1 = (XawMax(y, xaw->text.r_margin.top));
+    x2 = (XawMin(x + (int)width, (int)XtWidth(xaw) - xaw->text.r_margin.right));
+    y2 = (XawMin(y + (int)height, (int)XtHeight(xaw) - xaw->text.r_margin.bottom));
 
-    x = x1;
-    y = y1;
-    width = XawMax(0, x2 - x1);
-    height = XawMax(0, y2 - y1);
+    x = (int)x1;
+    y = (int)y1;
+    width = (unsigned)(XawMax(0, x2 - x1));
+    height = (unsigned)(XawMax(0, y2 - y1));
 
     if (height != 0 && width != 0)
 	XClearArea(XtDisplayOfObject(w), XtWindowOfObject(w),
@@ -457,8 +457,8 @@ ClearToBackground(Widget w, int x, int y,
  */
 /*ARGSUSED*/
 static void
-FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
-	     Bool stopAtWordBreak, XawTextPosition *resPos,
+FindPosition(Widget w _X_UNUSED, XawTextPosition fromPos _X_UNUSED, int fromx _X_UNUSED, int width _X_UNUSED,
+	     Bool stopAtWordBreak _X_UNUSED, XawTextPosition *resPos,
 	     int *resWidth, int *resHeight)
 {
     *resPos = fromPos;
@@ -475,7 +475,7 @@ FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
  *	fromX	  - x location of starting Position
  *	toPos	  - end Position
  *	resWidth  - Distance between fromPos and toPos
- *	resPos	  - Acutal toPos used
+ *	resPos	  - Actual toPos used
  *	resHeight - Height required by this text
  *
  * Description:
@@ -483,8 +483,8 @@ FindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
  */
 /*ARGSUSED*/
 static void
-FindDistance(Widget w, XawTextPosition fromPos, int fromx,
-	     XawTextPosition toPos, int *resWidth,
+FindDistance(Widget w _X_UNUSED, XawTextPosition fromPos, int fromx _X_UNUSED,
+	     XawTextPosition toPos _X_UNUSED, int *resWidth,
 	     XawTextPosition *resPos, int *resHeight)
 {
     *resWidth = *resHeight = 0;
@@ -503,11 +503,11 @@ FindDistance(Widget w, XawTextPosition fromPos, int fromx,
  *	resPos - resulting position
  *
  * Description:
- *	Resloves a location to a position.
+ *	Resolves a location to a position.
  */
 /*ARGSUSED*/
 static void
-Resolve(Widget w, XawTextPosition pos, int fromx, int width,
+Resolve(Widget w _X_UNUSED, XawTextPosition pos _X_UNUSED, int fromx _X_UNUSED, int width _X_UNUSED,
 	XawTextPosition *resPos)
 {
     *resPos = pos;
@@ -529,7 +529,7 @@ Resolve(Widget w, XawTextPosition pos, int fromx, int width,
  */
 /*ARGSUSED*/
 static int
-MaxLines(Widget w, unsigned int height)
+MaxLines(Widget w _X_UNUSED, unsigned int height _X_UNUSED)
 {
     /*
      * The fontset has gone down to descent Sink Widget, so
@@ -549,14 +549,14 @@ MaxLines(Widget w, unsigned int height)
  *	lines - number of lines
  *
  * Description:
- *	Finds the Minium height that will contain a given number lines.
+ *	Finds the Minimum height that will contain a given number lines.
  *
  * Returns:
  *	the height
  */
 /*ARGSUSED*/
 static int
-MaxHeight(Widget w, int lines)
+MaxHeight(Widget w _X_UNUSED, int lines _X_UNUSED)
 {
     return (0);
 }
@@ -574,7 +574,7 @@ MaxHeight(Widget w, int lines)
  */
 /*ARGSUSED*/
 static void
-SetTabs(Widget w, int tab_count, short *tabs)
+SetTabs(Widget w _X_UNUSED, int tab_count _X_UNUSED, short *tabs _X_UNUSED)
 {
     return;
 }
@@ -592,9 +592,9 @@ SetTabs(Widget w, int tab_count, short *tabs)
  */
 /*ARGSUSED*/
 static void
-GetCursorBounds(Widget w, XRectangle *rect)
+GetCursorBounds(Widget w _X_UNUSED, XRectangle *rect)
 {
-    rect->x = rect->y = rect->width = rect->height = 0;
+    rect->x = rect->y = (short)(rect->width = rect->height = 0);
 }
 
 /*
@@ -610,7 +610,7 @@ GetCursorBounds(Widget w, XRectangle *rect)
  *	y	  - ""
  *	pos1	  - location of starting and ending points in the text buffer
  *	pos2	  - ""
- *	highlight - hightlight this text?
+ *	highlight - highlight this text?
  */
 /*ARGSUSED*/
 void
@@ -750,7 +750,7 @@ XawTextSinkFindPosition(Widget w, XawTextPosition fromPos, int fromx, int width,
  *	fromX	  - x location of starting Position
  *	toPos	  - end Position
  *	resWidth  - Distance between fromPos and toPos
- *	resPos	  - Acutal toPos used
+ *	resPos	  - Actual toPos used
  *	resHeight - Height required by this text
  *
  * Description:
@@ -780,7 +780,7 @@ XawTextSinkFindDistance(Widget w, XawTextPosition fromPos, int fromx,
  *	resPos - resulting position
  *
  * Description:
- *	Resloves a location to a position.
+ *	Resolves a location to a position.
  */
 /*ARGSUSED*/
 void
@@ -828,7 +828,7 @@ XawTextSinkMaxLines(Widget w, Dimension height)
  *	lines - number of lines
  *
  * Description:
- *	Finds the Minium height that will contain a given number lines.
+ *	Finds the Minimum height that will contain a given number lines.
  *
  * Returns:
  *	the height
@@ -858,7 +858,7 @@ XawTextSinkSetTabs(Widget w, int tab_count, int *tabs)
 {
     if (tab_count > 0) {
 	TextSinkObjectClass cclass = (TextSinkObjectClass)w->core.widget_class;
-	short *char_tabs = (short*)XtMalloc((unsigned)tab_count * sizeof(short));
+	short *char_tabs = (short*)XtMalloc((Cardinal)((unsigned)tab_count * sizeof(short)));
 	short *tab, len = 0;
 	int i;
 
@@ -1015,7 +1015,7 @@ static Cardinal num_prop_lists;
 static int
 bcmp_qident(_Xconst void *left, _Xconst void *right)
 {
-    return ((long)left - (*(XawTextProperty**)right)->identifier);
+    return (int)((long)left - (*(XawTextProperty**)right)->identifier);
 }
 
 static int
@@ -1102,7 +1102,7 @@ SetXlfdDefaults(Display *display, XawTextProperty *property)
     atom = XInternAtom(display, "UNDERLINE_THICKNESS", True);
     if (XGetFontProperty(property->font, atom, &value) &&
 	(str = XGetAtomName(display, value)) != NULL) {
-	property->underline_thickness = atoi(str);
+	property->underline_thickness = (short)(atoi(str));
 	XFree(str);
     }
     else {
@@ -1115,9 +1115,9 @@ SetXlfdDefaults(Display *display, XawTextProperty *property)
 	 */
 	if (property->pixel_size != NULLQUARK) {
 	    property->underline_thickness =
-		atoi(XrmQuarkToString(property->pixel_size)) / 10;
+		(short)(atoi(XrmQuarkToString(property->pixel_size)) / 10);
 	    property->underline_thickness =
-		XawMax(1, property->underline_thickness);
+		(XawMax(1, property->underline_thickness));
 	}
 	else
 	    property->underline_thickness = 1;
@@ -1126,7 +1126,7 @@ SetXlfdDefaults(Display *display, XawTextProperty *property)
     atom = XInternAtom(display, "UNDERLINE_POSITION", True);
     if (XGetFontProperty(property->font, atom, &value) &&
 	(str = XGetAtomName(display, value)) != NULL) {
-	property->underline_position = atoi(str);
+	property->underline_position = (short)(atoi(str));
 	XFree(str);
     }
     else
@@ -1139,8 +1139,8 @@ SetXlfdDefaults(Display *display, XawTextProperty *property)
 
     /* I am assuming xlfd does not consider that lines are
      * centered in the path */
-    property->underline_position += property->underline_thickness >> 1;
-
+    property->underline_position = (short)(property->underline_position
+					   + (property->underline_thickness >> 1));
 }
 
 static void
@@ -1148,7 +1148,7 @@ DestroyTextPropertyList(XawTextPropertyList *list)
 {
     int i;
 
-    for (i = 0; i < list->num_properties; i++) {
+    for (i = 0; (Cardinal)i < list->num_properties; i++) {
 	if (list->properties[i]->font)
 	    XFreeFont(DisplayOfScreen(list->screen), list->properties[i]->font);
 	XtFree((char*)list->properties[i]);
@@ -1194,7 +1194,7 @@ XawTextSinkCopyProperty(Widget w, XrmQuark property)
     if (cur)
 	memcpy(ret, cur, sizeof(XawTextProperty));
     ret->identifier = NULLQUARK;
-    ret->mask &= ~XAW_TPROP_FONT;
+    ret->mask &= (unsigned long)(~XAW_TPROP_FONT);
 
     return (ret);
 }
@@ -1208,10 +1208,11 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
     char identifier[1024];
     char foreground[16];
     char background[16];
-    char *foundry, *family, *weight, *slant, *setwidth, *addstyle, *pixel_size,
+    const char *foundry, *family, *weight, *slant, *setwidth, *addstyle, *pixel_size,
 	 *point_size, *res_x, *res_y, *spacing, *avgwidth, *registry, *encoding;
-    char *xlfd;
-    static char *asterisk = "*", *null = "";
+    const char *xlfd;
+    static const char *asterisk = "*";
+    static const char *null = "";
     XrmQuark quark;
 
     if (list == NULL || property == NULL)
@@ -1250,7 +1251,7 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
 	weight = asterisk;
     if (property->slant != NULLQUARK) {
 	slant = XrmQuarkToString(property->slant);
-	if (toupper(*slant) != 'R')
+	if (toupper((unsigned char)*slant) != 'R')
 	    slant = asterisk;	/* X defaults to italics, so, don't
 				   care in resolving between `I' and `O' */
     }
@@ -1324,7 +1325,7 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
 	    SetXlfdDefaults(DisplayOfScreen(list->screen), result);
 	}
 	else
-	    result->mask &= ~XAW_TPROP_FONT;
+	    result->mask &= (unsigned long)(~XAW_TPROP_FONT);
     }
 
     if (result->font)
@@ -1356,8 +1357,9 @@ _XawTextSinkAddProperty(XawTextPropertyList *list, XawTextProperty *property,
     }
 
     list->properties = (XawTextProperty**)
-	XtRealloc((XtPointer)list->properties, sizeof(XawTextProperty*) *
-		  (list->num_properties + 1));
+	XtRealloc((XtPointer)list->properties,
+		  (Cardinal)(sizeof(XawTextProperty*) *
+			     (list->num_properties + 1)));
     list->properties[list->num_properties++] = result;
     qsort((void*)list->properties, list->num_properties,
 	      sizeof(XawTextProperty*), qcmp_qident);
@@ -1375,7 +1377,7 @@ XawTextSinkAddProperty(Widget w, XawTextProperty *property)
 }
 
 XawTextProperty *
-XawTextSinkCombineProperty(Widget w,
+XawTextSinkCombineProperty(Widget w _X_UNUSED,
 			   XawTextProperty *property, XawTextProperty *combine,
 			   Bool override)
 {
@@ -1498,7 +1500,9 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
     XawTextPropertyList **ptr = NULL;
     XawTextPropertyList *propl, *prev = NULL;
     XawTextProperty *def_prop = NULL;
-    String str, tok, tmp;
+    char * str;
+    String tok;
+    char *tmp;
     char buffer[BUFSIZ];
 
     if (prop_lists) ptr = (XawTextPropertyList**)
@@ -1579,6 +1583,7 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 		if (prev)
 		    prev->next = NULL;
 		XawFreeParamsStruct(params);
+		XtFree((char *)prop);
 		return (NULL);
 	    }
 	    prop->mask |= XAW_TPROP_FONT;
@@ -1598,6 +1603,7 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 		if (prev)
 		    prev->next = NULL;
 		XawFreeParamsStruct(params);
+		XtFree((char *)prop);
 		return (NULL);
 	    }
 	    prop->foreground = color.pixel;
@@ -1615,6 +1621,7 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 		if (prev)
 		    prev->next = NULL;
 		XawFreeParamsStruct(params);
+		XtFree((char *)prop);
 		return (NULL);
 	    }
 	    prop->background = color.pixel;
@@ -1712,8 +1719,9 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
     }
 
     prop_lists = (XawTextPropertyList**)
-    XtRealloc((XtPointer)prop_lists, sizeof(XawTextPropertyList*) *
-	      (num_prop_lists + 1));
+    XtRealloc((XtPointer)prop_lists,
+	      (Cardinal)(sizeof(XawTextPropertyList*) *
+			 (num_prop_lists + 1)));
     prop_lists[num_prop_lists++] = propl;
     qsort((void*)prop_lists, num_prop_lists, sizeof(XawTextPropertyList*),
 	  qcmp_qident);
@@ -1727,7 +1735,7 @@ XawTextSinkConvertPropertyList(String name, String spec, Screen *screen,
 static Boolean
 CvtStringToPropertyList(Display *dpy, XrmValue *args, Cardinal *num_args,
 			XrmValue *fromVal, XrmValue *toVal,
-			XtPointer *converter_data)
+			XtPointer *converter_data _X_UNUSED)
 {
     XawTextPropertyList *propl = NULL;
     String name;
@@ -1758,7 +1766,7 @@ CvtStringToPropertyList(Display *dpy, XrmValue *args, Cardinal *num_args,
 	if (ptr) {
 	    Screen *screen = w->core.screen;
 	    Colormap colormap = w->core.colormap;
-	    int depth = w->core.depth;
+	    int depth = (int)w->core.depth;
 
 	    propl = *ptr;
 	    while (propl) {
@@ -1799,18 +1807,26 @@ CvtStringToPropertyList(Display *dpy, XrmValue *args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static Boolean
-CvtPropertyListToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+CvtPropertyListToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 			XrmValue *fromVal, XrmValue *toVal,
-			XtPointer *converter_data)
+			XtPointer *converter_data _X_UNUSED)
 {
     static char *buffer;
     Cardinal size;
     XawTextPropertyList *propl;
 
     propl = *(XawTextPropertyList**)fromVal[0].addr;
+    if (propl == NULL) {
+        XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+		      "wrongParameters", "cvtPropertyListToString",
+		      "ToolkitError",
+		      "textProperties to String conversion needs property list argument",
+		      NULL, NULL);
+	return (False);
+    }
 
     buffer = XrmQuarkToString(propl->identifier);
-    size = strlen(buffer) + 1;
+    size = (Cardinal)(strlen(buffer) + 1);
 
     if (toVal->addr != NULL) {
 	if (toVal->size < size) {

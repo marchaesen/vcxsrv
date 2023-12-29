@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtSet-Arg XtMerge-Arg-Lists wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetArg __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetArg, XtMergeArgLists \- set and merge ArgLists
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 int XtSetArg(Arg \fIarg\fP, String \fIname\fP, XtArgVal \fIvalue\fP);
 .HP
@@ -76,10 +49,10 @@ ArgList XtMergeArgLists(ArgList \fIargs1\fP, Cardinal \fInum_args1\fP, ArgList
 Specifies the name-value pair to set.
 .IP \fIargs1\fP 1i
 Specifies the first
-.ZN ArgList .
+.BR ArgList .
 .IP \fIargs2\fP 1i
 Specifies the second
-.ZN ArgList .
+.BR ArgList .
 .IP \fInum_args1\fP 1i
 Specifies the number of arguments in the first argument list.
 .IP \fInum_args2\fP 1i
@@ -88,15 +61,17 @@ Specifies the number of arguments in the second argument list.
 Specifies the name of the resource.
 .IP \fIvalue\fP 1i
 Specifies the value of the resource if it will fit in an
-.ZN XtArgVal
+.B XtArgVal
 or the address.
 .SH DESCRIPTION
 The
-.ZN XtSetArg
+.B XtSetArg
 function is usually used in a highly stylized manner to
 minimize the probability of making a mistake; for example:
 .LP
-.Ds
+.RS
+.nf
+.ft CW
 Arg args[20];
 int n;
 
@@ -104,35 +79,41 @@ n = 0;
 XtSetArg(args[n], XtNheight, 100);      n++;
 XtSetArg(args[n], XtNwidth, 200);       n++;
 XtSetValues(widget, args, n);
-.De
+.ft R
+.fi
+.RE
 .LP
 Alternatively, an application can statically declare the argument list
 and use
-.ZN XtNumber :
+.BR XtNumber :
 .LP
-.Ds
+.RS
+.nf
+.ft CW
 static Args args[] = {
         {XtNheight, (XtArgVal) 100},
         {XtNwidth, (XtArgVal) 200},
 };
 XtSetValues(Widget, args, XtNumber(args));
-.De
+.ft R
+.fi
+.RE
 .LP
 Note that you should not use auto-increment or auto-decrement
 within the first argument to
-.ZN XtSetArg .
-.ZN XtSetArg
+.BR XtSetArg .
+.B XtSetArg
 can be implemented as a macro that dereferences the first argument twice.
 .LP
 The
-.ZN XtMergeArgLists
+.B XtMergeArgLists
 function allocates enough storage to hold the combined
-.ZN ArgList
+.B ArgList
 structures and copies them into it.
 Note that it does not check for duplicate entries.
 When it is no longer needed,
 free the returned storage by using
-.ZN XtFree .
+.BR XtFree .
 .SH "SEE ALSO"
 XtOffset(__libmansuffix__)
 .br

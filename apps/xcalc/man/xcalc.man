@@ -43,8 +43,11 @@
 .SH NAME
 xcalc \- scientific calculator for X
 .SH SYNOPSIS
-.B xcalc
-[-stipple] [-rpn] [-\fItoolkitoption...\fP]
+.nf
+\fBxcalc\fP [\fB-stipple\fP] [\fB-rpn\fP] [-\fItoolkitoption...\fP]
+\fBxcalc -version\fP
+\fBxcalc -help\fP
+.fi
 .SH DESCRIPTION
 .I xcalc
 is a scientific calculator desktop accessory that can emulate a TI-30
@@ -52,7 +55,7 @@ or an HP-10C.
 .SH OPTIONS
 .PP
 \fIxcalc\fP accepts all of the standard toolkit command line options along
-with two additional options:
+with these additional options:
 .PP
 .TP 8
 .B \-stipple
@@ -65,6 +68,12 @@ displays improves the appearance.
 This option indicates that Reverse Polish Notation should be used.  In this
 mode the calculator will look and behave like an HP-10C.  Without this flag,
 it will emulate a TI-30.
+.TP 8
+.B \-help
+This option indicates that \fIxcalc\fP should print its usage message and exit.
+.TP 8
+.B \-version
+This option indicates that \fIxcalc\fP should print its version and exit.
 .SH OPERATION
 .PP
 .I Pointer Usage:
@@ -470,10 +479,6 @@ X(__miscmansuffix__), xrdb(__appmansuffix__), the Athena Widget Set
 .PP
 HP mode is not completely debugged.  In particular, the stack is
 not handled properly after errors.
-.SH COPYRIGHT
-Copyright 1994 X Consortium
-.br
-See \fIX(__miscmansuffix__)\fP for a full statement of rights and permissions.
 .SH AUTHORS
 John Bradley, University of Pennsylvania
 .br

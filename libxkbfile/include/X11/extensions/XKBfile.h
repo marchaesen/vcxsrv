@@ -233,14 +233,12 @@ extern	Bool	XkbLookupGroupAndLevel(
 
 /***====================================================================***/
 
-#ifndef XKB_IN_SERVER
 
 extern Bool	XkbLookupCanonicalRGBColor(
     char *	/* def */,
     XColor *	/* color */
 );
 
-#endif
 
 /***====================================================================***/
 
@@ -251,7 +249,7 @@ extern	char *	XkbAtomGetString(
 
 extern	Atom	XkbInternAtom(
     Display *	/* dpy */,
-    char *	/* name */,
+    const char */* name */,
     Bool	/* onlyIfExists */
 );
 

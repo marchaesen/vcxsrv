@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtSet-Sensitive XtIs-Sensitive wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetSensitive __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetSensitive, XtIsSensitive \- set and check a widget's sensitivity state
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetSensitive(Widget \fIw\fP, Boolean \fIsensitive\fP);
 .HP
@@ -78,47 +51,47 @@ keyboard and pointer events.
 Specifies the widget.
 .SH DESCRIPTION
 The
-.ZN XtSetSensitive
+.B XtSetSensitive
 function first calls
-.ZN XtSetValues
+.B XtSetValues
 on the current widget with an argument list specifying that the
 sensitive field should change to the new value.
 It then recursively propagates the new value
 down the managed children tree by calling
-.ZN XtSetValues
+.B XtSetValues
 on each child to set the ancestor_sensitive to the new value if the new
 values for sensitive and the child's ancestor_sensitive are not the same.
 .LP
-.ZN XtSetSensitive
+.B XtSetSensitive
 calls
-.ZN XtSetValues
+.B XtSetValues
 to change sensitive and ancestor_sensitive.
 Therefore, when one of these changes,
 the widget's set_values procedure should
 take whatever display actions are needed
 (for example, greying out or stippling the widget).
 .LP
-.ZN XtSetSensitive
+.B XtSetSensitive
 maintains the invariant that if parent has either sensitive
 or ancestor_sensitive
-.ZN False ,
+.BR False ,
 then all children have ancestor_sensitive
-.ZN False .
+.BR False .
 .LP
 The
-.ZN XtIsSensitive
+.B XtIsSensitive
 function returns
-.ZN True
+.B True
 or
-.ZN False
+.B False
 to indicate whether or not user input events are being dispatched.
 If both core.sensitive and core.ancestor_sensitive are
-.ZN True ,
-.ZN XtIsSensitive
+.BR True ,
+.B XtIsSensitive
 returns
-.ZN True ;
+.BR True ;
 otherwise, it returns
-.ZN False .
+.BR False .
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

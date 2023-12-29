@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtBuild-Event-Mask wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtBuildEventMask __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtBuildEventMask \- retrieve a widget's event mask
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 EventMask XtBuildEventMask(Widget \fIw\fP);
 .SH ARGUMENTS
@@ -73,16 +46,16 @@ EventMask XtBuildEventMask(Widget \fIw\fP);
 Specifies the widget.
 .SH DESCRIPTION
 The
-.ZN XtBuildEventMask
+.B XtBuildEventMask
 function returns the event mask representing the logical OR
 of all event masks for event handlers registered on the widget with
-.ZN XtAddEventHandler
+.B XtAddEventHandler
 and all event translations, including accelerators,
 installed on the widget.
 This is the same event mask stored into the
-.ZN XSetWindowAttributes
+.B XSetWindowAttributes
 structure by
-.ZN XtRealizeWidget
+.B XtRealizeWidget
 and sent to the server when event handlers and translations are installed or
 removed on the realized widget.
 .SH "SEE ALSO"

@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Box Widget -->
 <!-- .XE -->
-<!-- .IN "Box widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Box widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Box.h&gt;
-<!-- .IN "Box.h" "" -->
+<indexterm><primary>Box.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/BoxP.h&gt;
-<!-- .IN "BoxP.h" "" -->
+<indexterm><primary>BoxP.h</primary></indexterm>
 Class		boxWidgetClass
-<!-- .IN "boxWidgetClass" "" -->
+<indexterm><primary>boxWidgetClass</primary></indexterm>
 Class Name	Box
-<!-- .IN "Box widget" "class name" -->
+<indexterm><primary>Box widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Composite
 <!-- .sp -->
 </literallayout>
@@ -47,7 +47,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Box widget" "resources" -->
+<indexterm><primary>Box widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -279,9 +279,9 @@ children and the edge of the box.
 Specifies whether the preferred shape of the box (i.e. the result
 returned by the query_geometry class method) is tall and narrow
 <function>XtorientVertical</function> or short and wide <function>XtorientHorizontal</function>.
-<!-- .IN "XtorientVertical" "" -->
-<!-- .IN "XtorientHorizontal" "" -->
-<!-- .IN "conversions" "Orientation" -->
+<indexterm><primary>XtorientVertical</primary></indexterm>
+<indexterm><primary>XtorientHorizontal</primary></indexterm>
+<indexterm><primary>conversions</primary><secondary>Orientation</secondary></indexterm>
 When the Box is a child of a parent which enforces width constraints, it
 is usually better to specify <function>XtorientVertical</function> (the default).
 When the parent enforces height constraints, it is usually better to
@@ -299,7 +299,7 @@ specify <function>XtorientHorizontal</function>.
 </sect2>
 <sect2 id="Layout_Semantics">
 <title>Layout Semantics</title>
-<!-- .IN "Box widget" "layout semantics" -->
+<indexterm><primary>Box widget</primary><secondary>layout semantics</secondary></indexterm>
 <para>
 <!-- .LP -->
 Each time a child is managed or unmanaged, the Box widget will attempt
@@ -313,7 +313,7 @@ algorithm used depends on the <function>orientation</function> of the Box.
     </term>
     <listitem>
       <para>
-<!-- .IN "XtorientVertical" "" @DEF@ -->
+<indexterm significance="preferred"><primary>XtorientVertical</primary></indexterm>
 When the next child does not fit on the current row, a new row is
 started.  If a child is wider than the width of the box, the box will
 request a larger width from its parent and will begin the layout
@@ -327,7 +327,7 @@ process from the beginning if a new width is granted.
     </term>
     <listitem>
       <para>
-<!-- .IN "XtorientHorizontal" "" @DEF@ -->
+<indexterm significance="preferred"><primary>XtorientHorizontal</primary></indexterm>
 When the next child does not fit on the current row, the Box widens if
 possible (so as to keep children on a single row); otherwise a new row is
 started.

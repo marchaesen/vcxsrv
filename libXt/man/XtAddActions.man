@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtApp-Add-Actions wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAddActions __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtAddActions \- register an action table
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtAddActions(XtActionList \fIactions\fP, Cardinal \fInum_actions\fP);
 .SH ARGUMENTS
@@ -74,9 +47,9 @@ Specifies the action table to register.
 .IP \fInum_args\fP 1i
 Specifies the number of entries in this action table.
 .SH DESCRIPTION
-.ZN XtAddActions
+.B XtAddActions
 has been replaced by
-.ZN XtAppAddActions .
+.BR XtAppAddActions .
 .SH "SEE ALSO"
 XtAppAddActions(__libmansuffix__)
 .br

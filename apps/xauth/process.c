@@ -37,6 +37,7 @@ from The Open Group.
 #include "xauth.h"
 #include <ctype.h>
 #include <errno.h>
+#include <stdint.h>
 #include <sys/stat.h>
 #ifndef WIN32
 #include <sys/socket.h>
@@ -251,6 +252,18 @@ skip_nonspace(register char *s)
     return s;
 }
 
+#ifndef HAVE_REALLOCARRAY
+static inline void *
+reallocarray(void *optr, size_t nmemb, size_t size)
+{
+    if ((nmemb > 0) && (SIZE_MAX / nmemb < size)) {
+        errno = ENOMEM;
+        return NULL;
+    }
+    return realloc(optr, size * nmemb);
+}
+#endif
+
 static const char **
 split_into_words(char *src, int *argcp)  /* argvify string */
 {
@@ -278,9 +291,15 @@ split_into_words(char *src, int *argcp)  /* argvify string */
 	savec = *src;
 	*src = '\0';
 	if (cur == total) {
+	    const char **new_argv;
 	    total += WORDSTOALLOC;
-	    argv = realloc (argv, total * sizeof (char *));
-	    if (!argv) return NULL;
+	    new_argv = reallocarray (argv, total, sizeof (char *));
+	    if (new_argv != NULL) {
+		argv = new_argv;
+	    } else {
+		free(argv);
+		return NULL;
+	    }
 	}
 	argv[cur++] = jword;
 	if (savec) src++;		/* if not last on line advance */
@@ -633,7 +652,7 @@ static Bool xauth_modified = False;	/* if added, removed, or merged */
 static Bool xauth_allowed = True;	/* if allowed to write auth file */
 static Bool xauth_locked = False;     /* if has been locked */
 static const char *xauth_filename = NULL;
-static volatile Bool dieing = False;
+static volatile Bool dying = False;
 
 
 /* poor man's puts(), for under signal handlers, 
@@ -645,7 +664,7 @@ _X_NORETURN
 static void
 die(int sig)
 {
-    dieing = True;
+    dying = True;
     _exit (auth_finalize ());
     /* NOTREACHED */
 }
@@ -697,6 +716,10 @@ auth_initialize(const char *authfilename)
     FILE *authfp;
     Bool exists;
 
+    if (strlen(authfilename) > 1022) {
+	fprintf (stderr, "%s: authority file name \"%s\" too long\n",
+		 ProgramName, authfilename);
+    }
     xauth_filename = authfilename;    /* used in cleanup, prevent race with
                                          signals */
     register_signals ();
@@ -854,10 +877,10 @@ write_auth_file(char *tmp_nam)
 int
 auth_finalize(void)
 {
-    char temp_name[1024];	/* large filename size */
+    char temp_name[1025];	/* large filename size */
 
     if (xauth_modified) {
-	if (dieing) {
+	if (dying) {
 	    if (verbose) {
 		/*
 		 * called from a signal handler -- printf is *not* reentrant; also
@@ -1614,13 +1637,22 @@ do_add(const char *inputfilename, int lineno, int argc, const char **argv)
     hexkey = argv[3];
 
     len = strlen(hexkey);
-    if (hexkey[0] == '"' && hexkey[len-1] == '"') {
+    if (len > 1 && hexkey[0] == '"' && hexkey[len-1] == '"') {
 	key = malloc(len-1);
+	if (!key) {
+	    fprintf(stderr, "unable to allocate memory\n");
+	    return 1;
+	}
 	strncpy(key, hexkey+1, len-2);
+	key[len-2] = '\0';
 	len -= 2;
     } else if (!strcmp(protoname, SECURERPC) ||
 	       !strcmp(protoname, K5AUTH)) {
 	key = malloc(len+1);
+	if (!key) {
+	    fprintf(stderr, "unable to allocate memory\n");
+	    return 1;
+	}
 	strcpy(key, hexkey);
     } else {
 	len = cvthexkey (hexkey, &key);
@@ -1859,10 +1891,10 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
     const char *displayname;
     int major_version, minor_version;
     XSecurityAuthorization id_return;
-    Xauth *auth_in, *auth_return;
+    Xauth *auth_in = NULL, *auth_return = NULL;
     XSecurityAuthorizationAttributes attributes;
     unsigned long attrmask = 0;
-    Display *dpy;
+    Display *dpy = NULL;
     int status;
     const char *args[4];
     const char *protoname = ".";
@@ -1870,7 +1902,7 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
     int authdatalen = 0;
     const char *hexdata;
     char *authdata = NULL;
-    char *hex;
+    char *hex = NULL;
 
     if (argc < 2 || !argv[1]) {
 	prefix (inputfilename, lineno);
@@ -1889,7 +1921,8 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 	    if (++i == argc) {
 		prefix (inputfilename, lineno);
 		badcommandline (argv[i-1]);
-		return 1;
+		status = 1;
+		goto exit_generate;
 	    }
 	    attributes.timeout = atoi(argv[i]);
 	    attrmask |= XSecurityTimeout;
@@ -1906,7 +1939,8 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 	    if (++i == argc) {
 		prefix (inputfilename, lineno);
 		badcommandline (argv[i-1]);
-		return 1;
+		status = 1;
+		goto exit_generate;
 	    }
 	    attributes.group = atoi(argv[i]);
 	    attrmask |= XSecurityGroup;
@@ -1915,13 +1949,20 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 	    if (++i == argc) {
 		prefix (inputfilename, lineno);
 		badcommandline (argv[i-1]);
-		return 1;
+		status = 1;
+		goto exit_generate;
 	    }
 	    hexdata = argv[i];
 	    authdatalen = strlen(hexdata);
 	    if (hexdata[0] == '"' && hexdata[authdatalen-1] == '"') {
 		authdata = malloc(authdatalen-1);
+		if (!authdata) {
+		    fprintf(stderr, "unable to allocate memory\n");
+		    status = 1;
+		    goto exit_generate;
+		}
 		strncpy(authdata, hexdata+1, authdatalen-2);
+		authdata[authdatalen-2] = '\0';
 		authdatalen -= 2;
 	    } else {
 		authdatalen = cvthexkey (hexdata, &authdata);
@@ -1929,13 +1970,15 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 		    prefix (inputfilename, lineno);
 		    fprintf (stderr,
 			     "data contains odd number of or non-hex characters\n");
-		    return 1;
+		    status = 1;
+		    goto exit_generate;
 		}
 	    }
 	} else {
 	    prefix (inputfilename, lineno);
 	    badcommandline (argv[i]);
-	    return 1;
+	    status = 1;
+	    goto exit_generate;
 	}
     }
 
@@ -1945,7 +1988,8 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
     if (!dpy) {
 	prefix (inputfilename, lineno);
 	fprintf (stderr, "unable to open display \"%s\".\n", displayname);
-	return 1;
+	status = 1;
+	goto exit_generate;
     }
 
     status = XSecurityQueryExtension(dpy, &major_version, &minor_version);
@@ -1954,7 +1998,8 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 	prefix (inputfilename, lineno);
 	fprintf (stderr, "couldn't query Security extension on display \"%s\"\n",
 		 displayname);
-        return 1;
+	status = 1;
+	goto exit_generate;
     }
 
     /* fill in input Xauth struct */
@@ -1979,7 +2024,8 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
     {
 	prefix (inputfilename, lineno);
 	fprintf (stderr, "couldn't generate authorization\n");
-	return 1;
+	status = 1;
+	goto exit_generate;
     }
 
     if (verbose)
@@ -1994,10 +2040,12 @@ do_generate(const char *inputfilename, int lineno, int argc, const char **argv)
 
     status = do_add(inputfilename, lineno, 4, args);
 
-    if (authdata) free(authdata);
+  exit_generate:
+    free(authdata);
     XSecurityFreeXauth(auth_in);
     XSecurityFreeXauth(auth_return);
     free(hex);
-    XCloseDisplay(dpy);
+    if (dpy != NULL)
+	XCloseDisplay(dpy);
     return status;
 }

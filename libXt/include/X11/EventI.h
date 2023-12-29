@@ -45,9 +45,9 @@ SOFTWARE.
 
 ******************************************************************/
 
-/* 
+/*
  * Event.h - exported types and functions for toolkit event handler
- * 
+ *
  * Author:	Charles Haynes
  * 		Digital Equipment Corporation
  * 		Western Software Laboratory

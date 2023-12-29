@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	SmeLine Object -->
 <!-- .XE -->
-<!-- .IN "SmeLine object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>SmeLine object</primary></indexterm>
 <!-- .sp -->
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/SmeLine.h&gt;
-<!-- .IN "SmeLine.h" "" -->
+<indexterm><primary>SmeLine.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/SmeLineP.h&gt;
-<!-- .IN "SmeLineP.h" "" -->
+<indexterm><primary>SmeLineP.h</primary></indexterm>
 Class		smeLineObjectClass
-<!-- .IN "smeLineObjectClass" "" -->
+<indexterm><primary>smeLineObjectClass</primary></indexterm>
 Class Name	SmeLine
-<!-- .IN "SmeLine object" "class name" -->
+<indexterm><primary>SmeLine object</primary><secondary>class name</secondary></indexterm>
 Superclass	Sme
 </literallayout>
 <!-- .sp -->
@@ -32,7 +32,7 @@ will not highlight when the pointer cursor is over it.
 </para>
 <sect2 id='SmeLine::Resources'>
 <title>Resources</title>
-<!-- .IN "SmeLine object" "resources" -->
+<indexterm><primary>SmeLine object</primary><secondary>resources</secondary></indexterm>
 <para>
 <!-- .LP -->
 The resources associated with the SmeLine object are defined in this section,

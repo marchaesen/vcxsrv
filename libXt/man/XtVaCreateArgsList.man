@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtVa-Create-Args-List wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtVaCreateArgsList __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtVaCreateArgsList \- dynamically allocate a varargs list
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtVarArgsList XtVaCreateArgsList(XtPointer \fIunused\fP, ...\^);
 .SH ARGUMENTS
@@ -75,19 +48,21 @@ Must be specified as NULL.
 Specifies a variable parameter list of resource name and value pairs.
 .SH DESCRIPTION
 The
-.ZN XtVaCreateArgsList
+.B XtVaCreateArgsList
 function allocates memory and copies its arguments into a single list
 pointer, which may be used with
-.ZN XtVaNestedList .
+.BR XtVaNestedList .
 The end of both lists is identified by a \fIname\fP entry containing
 NULL. Any entries of type
-.ZN XtVaTypedArg
-are copied as specified without applying conversions. Data passed by
+.B XtVaTypedArg
+are copied as specified without applying conversions.
+Data passed by
 reference (including Strings) are not copied, only the pointers
 themselves; the caller must ensure that the data remain valid for
-the lifetime of the created varargs list. The list should be freed
+the lifetime of the created varargs list.
+The list should be freed
 using
-.ZN XtFree
+.B XtFree
 when no longer needed.
 .SH "SEE ALSO"
 .br

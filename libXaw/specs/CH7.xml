@@ -64,7 +64,7 @@ writing the new widget if an existing widget class Expose, Resize and/or
 GeometryManager method can be used by the subclass.
 </para>
 <para>
-Note that some trivial uses of a ``bare-bones'' widget may be achieved by
+Note that some trivial uses of a <quote>bare-bones</quote> widget may be achieved by
 simply creating an instance of the Core
 widget.  The class variable to use when creating a Core widget is
 <function>widgetClass</function>.
@@ -112,9 +112,12 @@ un-necessarily waste many resources.
 In this section, an outline will be given of the procedure to follow to
 construct a special-purpose widget to address the items listed above.
 The reader should refer to the appropriate sections of the
-<emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>
-for complete details of the material outlined here.  Section 1.4 of
-the <emphasis remap='I'>Intrinsics</emphasis> should be read in
+<olink targetdoc='intrinsics' targetptr='intrinsics'
+><citetitle>X Toolkit Intrinsics - C Language Interface</citetitle></olink>
+for complete details of the material outlined here.
+<olink targetdoc='intrinsics' targetptr='Widgets'
+>Section 1.4 of the <citetitle>Intrinsics</citetitle></olink>
+should be read in
 conjunction with this section.
 </para>
 <para>
@@ -150,11 +153,11 @@ widget implementation can be merged into other application code.
 
 <para>
 In the following example, the public header file
-<function>&lt; X11/Xaw/Template.h &gt;</function>,
+<filename class="headerfile">&lt;X11/Xaw/Template.h&gt;</filename>,
 the private header file
-<function>&lt; X11/Xaw/TemplateP.h &gt;</function>
+<filename class="headerfile">&lt;X11/Xaw/TemplateP.h&gt;</filename>
 and the source code file
-<function>&lt; X11/Xaw/Template.c &gt;</function>
+<filename class="headerfile">&lt;X11/Xaw/Template.c&gt;</filename>
 will be modified to produce the "WindowWidget" described above.
 In each case, the files have been designed so that a global string
 replacement of "Template" and "template"

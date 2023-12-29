@@ -1,8 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <appendix id='Defined_Strings'>
 <title>Defined Strings</title>
 
 <para>
-The <function>StringDefs.h</function>
+The <filename class="headerfile">StringDefs.h</filename>
 header file contains definitions for the following resource name,
 class, and representation type symbolic constants.
 </para>
@@ -307,10 +310,6 @@ class, and representation type symbolic constants.
     <row>
       <entry>XtNsensitive</entry>
       <entry>"sensitive"</entry>
-    </row>
-    <row>
-      <entry>XtNsession</entry>
-      <entry>"session"</entry>
     </row>
     <row>
       <entry>XtNshells</entry>
@@ -624,10 +623,6 @@ class, and representation type symbolic constants.
     <row>
       <entry>XtCSensitive</entry>
       <entry>"Sensitive"</entry>
-    </row>
-    <row>
-      <entry>XtCSession</entry>
-      <entry>"Session"</entry>
     </row>
     <row>
       <entry>XtCSpace</entry>
@@ -1076,7 +1071,7 @@ class, and representation type symbolic constants.
     </row>
     <row>
       <entry>XtHsetValues</entry>
-      <entry>"Xtsetvalues"</entry>
+      <entry>"XtsetValues"</entry>
     </row>
     <row>
       <entry>XtHmanageChildren</entry>
@@ -1184,7 +1179,7 @@ class, and representation type symbolic constants.
 
 <para>
 The
-<function>Shell.h</function>
+<filename class="headerfile">Shell.h</filename>
 header file contains definitions for the following resource name,
 class, and representation type symbolic constants.
 </para>

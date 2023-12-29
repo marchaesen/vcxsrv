@@ -34,6 +34,7 @@ in this Software without prior written authorization from The Open Group.
 #include "libxfontint.h"
 #include    <X11/fonts/fntfilst.h>
 #include    <X11/keysym.h>
+#include "src/util/replace.h"
 
 #if HAVE_STDINT_H
 #include <stdint.h>
@@ -48,7 +49,7 @@ FontFileInitTable (FontTablePtr table, int size)
 	return FALSE;
     if (size)
     {
-	table->entries = malloc(sizeof(FontEntryRec) * size);
+	table->entries = mallocarray(size, sizeof(FontEntryRec));
 	if (!table->entries)
 	    return FALSE;
     }
@@ -111,11 +112,12 @@ FontFileMakeDir(const char *dirName, int size)
     const char		*attrib;
     int			attriblen;
 
-#if !defined(WIN32)
     attrib = strchr(dirName, ':');
-#else
-    /* OS/2 uses the colon in the drive letter descriptor, skip this */
-    attrib = strchr(dirName+2, ':');
+#if defined(WIN32)
+    if (attrib && attrib - dirName == 1) {
+	/* WIN32 uses the colon in the drive letter descriptor, skip this */
+	attrib = strchr(dirName + 2, ':');
+    }
 #endif
     if (attrib) {
 	dirlen = attrib - dirName;
@@ -124,10 +126,7 @@ FontFileMakeDir(const char *dirName, int size)
 	dirlen = strlen(dirName);
 	attriblen = 0;
     }
-    if (dirName[dirlen - 1] != '/')
-#ifdef NCD
-    if (dirlen)     /* leave out slash for builtins */
-#endif
+    if (dirlen && dirName[dirlen - 1] != '/')
 	needslash = 1;
     dir = malloc(sizeof *dir + dirlen + needslash + 1 +
 		 (attriblen ? attriblen + 1 : 0));
@@ -152,11 +151,11 @@ FontFileMakeDir(const char *dirName, int size)
     else
 	dir->attributes = NULL;
     strncpy(dir->directory, dirName, dirlen);
-    dir->directory[dirlen] = '\0';
-    if (dir->attributes)
-	strcpy(dir->attributes, attrib);
     if (needslash)
-	strcat(dir->directory, "/");
+	dir->directory[dirlen] = '/';
+    dir->directory[dirlen + needslash] = '\0';
+    if (dir->attributes)
+	strlcpy(dir->attributes, attrib, attriblen + 1);
     return dir;
 }
 
@@ -184,7 +183,7 @@ FontFileAddEntry(FontTablePtr table, FontEntryPtr prototype)
 	       directory that we should just give up before we overflow. */
 	    return NULL;
 	newsize = table->size + 100;
-	entry = realloc(table->entries, newsize * sizeof(FontEntryRec));
+	entry = reallocarray(table->entries, newsize, sizeof(FontEntryRec));
 	if (!entry)
 	    return (FontEntryPtr)0;
 	table->size = newsize;

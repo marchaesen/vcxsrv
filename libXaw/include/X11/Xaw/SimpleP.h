@@ -84,7 +84,7 @@ typedef struct {
 #ifndef OLDXAW
     XawDisplayList *display_list;
     String tip;
-    XtPointer pad[3];	/* for future use and keep binary compatability */
+    XtPointer pad[3];	/* for future use and keep binary compatibility */
 #endif
 } SimplePart;
 

@@ -1,3 +1,268 @@
+commit c5783216c07fa9870da1b5cce023e24d649254c3
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Tue Apr 19 19:04:26 2022 -0700
+
+    xauth 1.1.2
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit ce87ae39d5ab28733b4125a09d0a643d1581b1c8
+Author: Larry Doolittle <larry@doolittle.boa.org>
+Date:   Sat Apr 16 15:28:31 2022 -0700
+
+    Expand checks of socket file with S_ISSOCK
+    
+    Extend work done in commit 18a3c3a to earlier in the socket detection process
+    Fixes issue #6.
+
+commit 83e97b2bf683f341da177bd5df5b1297cbdc16a4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Apr 16 13:11:36 2022 -0700
+
+    gitlab CI: stop requiring Signed-off-by in commits
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a5c70489f99c8259d4770aeb96524a91395b8ab9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 10 10:46:51 2022 -0700
+
+    Fix off-by-one in quote-stripping routines
+    
+    Reported by Oracle Parfait:
+    
+    Error: Buffer overrun
+       Buffer overflow [buffer-overflow] (CWE 120):
+          In pointer dereference of key[(len - 1)] with index (len - 1)
+          Array size >= 1 bytes, index >= 1
+            at line 1647 of process.c in function 'do_add'.
+    
+    Error: Buffer overrun
+       Buffer overflow [buffer-overflow] (CWE 120):
+          In pointer dereference of authdata[(authdatalen - 1)] with index (authdatalen - 1)
+          Array size is ??? bytes, index is ???
+            at line 1965 of process.c in function 'do_generate'.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 999691ffaef492d4bebea69605d274fa2023dfee
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 4 10:29:07 2021 -0800
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cb0ef91ea63105b0629324837a4dc752e32d6d67
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Nov 30 17:07:42 2021 -0800
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 25f94d50523f8967f6f22a631d462355dbd680a3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Nov 30 17:05:46 2021 -0800
+
+    configure.ac: fail build if xtrans is not found
+    
+    Copied from libX11/configure.ac
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f17b241220fef63a32d1b7329edfbcf6f435fabe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Nov 30 17:29:59 2021 -0800
+
+    tests: report failure if stderr has unexpected output
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6ad2fc509b55003a10fe9d973e2f8672946d4180
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Nov 30 17:23:07 2021 -0800
+
+    tests: Fix failure to make distcheck
+    
+    Add test_xauth to EXTRA_DIST
+    Add test output files to CLEANFILES
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5598b8612b095d9f5f513ada2a4bbacaca1bfea8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Nov 30 15:11:43 2021 -0800
+
+    tests: make tests work in out-of-tree builds
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3d6519f11867183b9698cbf8cc9515bc767b98af
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Mon Nov 29 15:05:39 2021 +0100
+
+    Fix warning -Wstringop-truncation for strncpy by using memcpy instead
+
+commit 5da9a32e638f4bce66ec92dff64ed68a1bbd6b6b
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Mon Nov 29 12:30:17 2021 +0100
+
+    Removed build requirement "cmdtest".
+    Replaced by a shell script with the needed functionality.
+
+commit d6d1423fabdaec25d4a677e794f91a91f7c09c70
+Author: Baptiste Daroussin <bapt@FreeBSD.org>
+Date:   Mon Feb 6 22:28:44 2017 +0100
+
+    Improve portability
+    
+    there is no need to hard depend on bash given almost all the code is
+    /bin/sh compliant
+    
+    Remove the function keyword from setup-source to make it /bin/sh
+    compliant
+    
+    pipe wc -l output to xargs to make the command output compatible with
+    both GNU wc and BSD wc (which prefix the output with a tab)
+
+commit 477307d00c1220f8594622e1af982fb0e4e215bf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 28 15:32:37 2021 -0800
+
+    xauth 1.1.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1bfa5bff47654213f1d40af64bae0e9e23b4bed4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 28 15:03:37 2021 -0800
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c2811c953620cf946269db2b74b29e0dc707e26a
+Author: Alex Gendin <ukkeefy@gmail.com>
+Date:   Sat Sep 26 23:26:07 2020 -0400
+
+    Fix segfault when X starts
+    
+    This patch potentially fixes bug https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=884934
+    
+    System log entries when this bug occurs:
+        kernel: xauth[16729]: segfault at 1 ip 00007f51f517f5a5 sp 00007ffdec846568 error 4
+                              in libc-2.31.so[7f51f5102000+144000]
+        kernel: Code: bc d1 f3 0f 7f 27 f3 0f 7f 6f 10 f3 0f 7f 77 20 f3 0f 7f 7f 30 49 83 c0
+                      0f 49 29 d0 48 8d 7c 17 31 e9 8f 0b 00 00 66 0f ef c0 <f3> 0f 6f 0e f3
+                      0f 6f 56 10 66 0f 74 c1 66 0f d7 d0 49 83 f8 11 0f
+    
+    This bug happens when function get_address_info() in gethost.c is called
+    with a display name without forward slash, for example 'myhost.mydomain:0'
+
+commit d7e5021416444e3cc545ffa4f8d1e613cabec633
+Author: Karol Herbst <kherbst@redhat.com>
+Date:   Thu Apr 22 13:26:50 2021 +0200
+
+    Check malloc calls in process.c
+    
+    Fixes warnings like
+    
+    warning[-Wanalyzer-possible-null-argument]: use of possibly-NULL 'authdata' where non-null expected
+    
+    Found-by: gcc static analysis
+    Signed-off-by: Karol Herbst <kherbst@redhat.com>
+
+commit 18a3c3a7672ff5d65bf0b79b89464eac7540b95b
+Author: Dr. Tilmann Bubeck <tilmann@bubecks.de>
+Date:   Thu Aug 20 20:28:52 2020 +0200
+
+    Additionally check socket file with S_ISSOCK
+    This fixes bug https://bugzilla.redhat.com/show_bug.cgi?id=1870201
+
+commit aaf037ec5c576e46318935feaf6e2b7407ff11a0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun May 10 13:21:50 2020 -0700
+
+    Avoid memory leaks in error paths in do_generate
+    
+    Reported by Oracle Parfait:
+    Error: Memory leak
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer authdata allocated with malloc((authdatalen - 1))
+            at line 1955 of process.c in function 'do_generate'.
+              authdata allocated at line 1946 with malloc((authdatalen - 1))
+          Memory leak of pointer authdata allocated with malloc((authdatalen - 1))
+            at line 1971 of process.c in function 'do_generate'.
+              authdata allocated at line 1946 with malloc((authdatalen - 1))
+              authdata leaks when (i + 1) >= argc at line 1910.
+            at line 1980 of process.c in function 'do_generate'.
+              authdata allocated at line 1946 with malloc((authdatalen - 1))
+              authdata leaks when (i + 1) >= argc at line 1910.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4faf0f63f0563513252967a2da1c51de6f5f7b0c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun May 10 11:46:16 2020 -0700
+
+    Use reallocarray() when adding members to array in split_into_words()
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit af7a74e28b33c18c4cb90f0d25bdfd5dff2e29d3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun May 10 11:27:25 2020 -0700
+
+    Avoid memory leak when realloc() fails in split_into_words()
+    
+    Reported by Oracle Parfait:
+    Error: Memory leak
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer argv allocated with malloc(32)
+            at line 283 of process.c in function 'split_into_words'.
+              argv allocated at line 264 with malloc(32)
+              argv leaks when cur == total at line 280.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f5af3b21bc94cb020f3530c3cc70f8a9fd6c6452
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Sun May 3 12:29:53 2020 +0200
+
+    Prevent OOB write with long file names.
+    
+    If an -f argument is exactly 1022 characters in size, an off-by-one
+    stack overflow happens in auth_finalize. The overflow could be even
+    larger if locks are ignored for authentication files.
+    
+    Make sure that a given authentication file name fits into temporary
+    buffer and that this buffer matches buffer sizes of libXau which is
+    used by xauth.
+
+commit cb98d3b3c5e0f8a7585ab6e2c909fad68c52fd55
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Sun May 3 12:25:21 2020 +0200
+
+    Fix segmentation fault on invalid add argument.
+    
+    The hex key supplied with an add command can be quoted, in which
+    case the quotation marks are removed.
+    
+    The check itself makes sure that a given string starts with a
+    double quotation mark and ends with a double quotation mark.
+    
+    Buf if only " is supplied, the code crashes because it subtracts
+    2 from the length (which is 1) and therefore copies too much
+    memory into a 0 allocated memory area.
+    
+    Proof of concept:
+    
+    $ xauth add :0 0 \"
+
 commit e97992671b3870878709a1c01991488965b61b94
 Author: Adam Jackson <ajax@redhat.com>
 Date:   Thu Jul 11 13:49:26 2019 -0400

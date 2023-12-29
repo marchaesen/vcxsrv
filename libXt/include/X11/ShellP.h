@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -45,9 +45,9 @@ SOFTWARE.
 
 ******************************************************************/
 
-/* 
+/*
  * ShellP.h - Private definitions for Shell widget
- * 
+ *
  * Author:	Paul Asente
  * 		Digital Equipment Corporation
  * 		Western Software Laboratory
@@ -255,7 +255,7 @@ typedef  struct {
 	ShellPart 	shell;
 	WMShellPart	wm;
 	VendorShellPart	vendor;
-	TransientShellPart transient;	
+	TransientShellPart transient;
 } TransientShellRec, *TransientShellWidget;
 
 /***********************************************************************
@@ -332,7 +332,7 @@ typedef struct {
 #endif
     XrmClass xrm_class;
     int argc;
-    char **argv;
+    _XtString *argv;
 } ApplicationShellPart;
 
 typedef  struct {
@@ -376,14 +376,14 @@ typedef struct _XtSaveYourselfRec *XtSaveYourself; /* implementation-private */
 
 typedef struct {
     SmcConn         connection;
-    String          session_id;
-    String*         restart_command;
-    String*         clone_command;
-    String*         discard_command;
-    String*         resign_command;
-    String*         shutdown_command;
-    String*         environment;
-    String          current_dir;
+    _XtString       session_id;
+    _XtString*      restart_command;
+    _XtString*      clone_command;
+    _XtString*      discard_command;
+    _XtString*      resign_command;
+    _XtString*      shutdown_command;
+    _XtString*      environment;
+    _XtString       current_dir;
     String          program_path;
     unsigned char   restart_style;
     unsigned char   checkpoint_state;

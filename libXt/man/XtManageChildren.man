@@ -32,40 +32,15 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtManage-Children XtManage-Child XtUnmanage-Children XtUnmanage-Child XtChange-ManagedSet XtIs-Managed wid-get
+.hw XtManage-Children XtManage-Child XtUnmanage-Children XtUnmanage-Child
+.hw XtChange-ManagedSet XtIs-Managed wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtManageChildren __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtManageChildren, XtManageChild, XtUnmanageChildren, XtUnmanageChild, XtChangeManagedSet, XtIsManaged \- manage and unmanage children
 .SH SYNTAX
+#include <X11/Intrinsic.h>
+.HP
 typedef Widget *WidgetList;
 .HP
 void XtManageChildren(WidgetList \fIchildren\fP, Cardinal \fInum_children\fP);
@@ -106,16 +81,16 @@ Specifies the post unmanage, pre manage hook procedure to invoke.
 Specifies the client data to be passed to the hook procedure.
 .SH DESCRIPTION
 The
-.ZN XtManageChildren
+.B XtManageChildren
 function performs the following:
 .IP \(bu 5
 Issues an error if the children do not all have the same parent or
 if the parent is not a subclass of
-.ZN compositeWidgetClass .
+.BR compositeWidgetClass .
 .IP \(bu 5
 Returns immediately if the common parent is being destroyed;
 otherwise, for each unique child on the list,
-.ZN XtManageChildren
+.B XtManageChildren
 ignores the child if it already is managed or is being destroyed
 and marks it if not.
 .IP \(bu 5
@@ -126,21 +101,21 @@ it makes some of the newly managed children viewable:
 Calls the change_managed routine of the widgets' parent.
 .IP \- 5
 Calls
-.ZN XtRealizeWidget
+.B XtRealizeWidget
 on each previously unmanaged child that is unrealized.
 .IP \- 5
 Maps each previously unmanaged child that has map_when_managed
-.ZN True .
+.BR True .
 .RE
 .LP
 Managing children is independent of the ordering of children and
 independent of creating and deleting children.
 The layout routine of the parent
 should consider children whose managed field is
-.ZN True
+.B True
 and should ignore all other children.
 Note that some composite widgets, especially fixed boxes, call
-.ZN XtManageChild
+.B XtManageChild
 from their insert_child procedure.
 .LP
 If the parent widget is realized,
@@ -148,29 +123,29 @@ its change_managed procedure is called to notify it
 that its set of managed children has changed.
 The parent can reposition and resize any of its children.
 It moves each child as needed by calling
-.ZN XtMoveWidget ,
+.BR XtMoveWidget ,
 which first updates the x and y fields and then calls
-.ZN XMoveWindow
+.B XMoveWindow
 if the widget is realized.
 .LP
 The
-.ZN XtManageChild
+.B XtManageChild
 function constructs a
-.ZN WidgetList
+.B WidgetList
 of length one and calls
-.ZN XtManageChildren .
+.BR XtManageChildren .
 .LP
 The
-.ZN XtUnmanageChildren
+.B XtUnmanageChildren
 function performs the following:
 .IP \(bu 5
 Issues an error if the children do not all have the same parent
 or if the parent is not a subclass of
-.ZN compositeWidgetClass .
+.BR compositeWidgetClass .
 .IP \(bu 5
 Returns immediately if the common parent is being destroyed;
 otherwise, for each unique child on the list,
-.ZN XtUnmanageChildren
+.B XtUnmanageChildren
 performs the following:
 .RS
 .IP \- 5
@@ -185,19 +160,19 @@ Calls the change_managed routine of the widgets' parent
 after all children have been marked
 if the parent is realized.
 .LP
-.ZN XtUnmanageChildren
+.B XtUnmanageChildren
 does not destroy the children widgets.
 Removing widgets from a parent's managed set is often a temporary banishment,
 and, some time later, you may manage the children again.
 .LP
 The
-.ZN XtUnmanageChild
+.B XtUnmanageChild
 function constructs a widget list
 of length one and calls
-.ZN XtUnmanageChildren .
+.BR XtUnmanageChildren .
 .LP
 The
-.ZN XtChangeManagedSet
+.B XtChangeManagedSet
 function performs the following:
 .IP \(bu 5
 Issues an error if the widgets specified in the \fImanage_children\fP
@@ -207,41 +182,41 @@ if that parent is not a subclass of compositeWidgetClass.
 Returns immediately if the common parent is being destroyed.
 .IP \(bu 5
 If no
-.ZN CompositeClassExtension
+.B CompositeClassExtension
 is defined, or a
-.ZN CompositeClassExtension
+.B CompositeClassExtension
 is defined but with an \fIallows_change_managed_set\fP field with a
 value of
-.ZN False ,
+.BR False ,
 and
-.ZN XtChangeManagedSet
+.B XtChangeManagedSet
 was invoked with a non-NULL \fIdo_change_proc\fP procedure
 then
-.ZN XtChangeManagedSet
+.B XtChangeManagedSet
 performs the following:
 .RS
 .IP \- 5
 Calls
-.ZN XtUnmanageChildren
+.B XtUnmanageChildren
 (\fIunmanage_children\fP, \fInum_unmanage_children\fP).
 .IP \- 5
 Calls the \fIdo_change_proc\fP specified.
 .IP \- 5
 Calls
-.ZN XtManageChildren
+.B XtManageChildren
 (\fImanage_children\fP, \fInum_manage_children\fP) and then returns
 immediately.
 .RE
 .IP \(bu 5
 Otherwise, if a
-.ZN CompositeClassExtension
+.B CompositeClassExtension
 is defined with an \fIallows_change_managed_set\fP field with a value of
-.ZN True ,
+.BR True ,
 or if no
-.ZN CompositeClassExtension
+.B CompositeClassExtension
 is defined, and
-.ZN XtChangeManagedSet was invoked with a NULL
-\fIdo_change_proc\fP procedure, then the following is
+.B XtChangeManagedSet 
+was invoked with a NULL \fIdo_change_proc\fP procedure, then the following is
 performed:
 .RS
 .IP \- 5
@@ -264,20 +239,20 @@ of the newly managed children are made viewable by:
 .RS
 .IP \- 5
 Calling
-.ZN XtRealizeWidget
+.B XtRealizeWidget
 on each of the previously unmanaged child that is unrealized.
 .IP \- 5
 Mapping each previously unmanaged child that has \fImap_when_managed\fP
-.ZN True .
+.BR True .
 .RE
 .LP
 The
-.ZN XtIsManaged
+.B XtIsManaged
 function returns
-.ZN True
+.B True
 if the specified widget is of class RectObj or any subclass thereof and
 is managed, or
-.ZN False
+.B False
 otherwise.
 .SH "SEE ALSO"
 XtMapWidget(__libmansuffix__),

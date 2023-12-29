@@ -27,6 +27,7 @@ endif
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 EXTRA_DIST = 		   \
+	README.md	   \
         autogen.sh	   \
 	old-doc/Changelog  \
 	old-doc/CHANGES

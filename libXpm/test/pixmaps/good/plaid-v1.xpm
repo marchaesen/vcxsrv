@@ -1,0 +1,37 @@
+#define PLAID_format 1
+#define PLAID_width 22
+#define PLAID_height 22
+#define PLAID_ncolors 4
+#define PLAID_chars_per_pixel 2
+
+static char *PLAID_colors[] = {
+"  ", "red",
+"Y ", "green",
+"+ ", "yellow",
+"x ", "black"
+};
+
+static char *PLAID_pixels[] = {
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"Y Y Y Y Y x Y Y Y Y Y + x + x + x + x + x + ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"x x x x x x x x x x x x x x x x x x x x x x ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x "
+};

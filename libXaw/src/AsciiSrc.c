@@ -94,7 +94,7 @@ static FILE *InitStringOrFile(AsciiSrcObject, Bool);
 static void LoadPieces(AsciiSrcObject, FILE*, char*);
 static void RemoveOldStringOrFile(AsciiSrcObject, Bool);
 static void RemovePiece(AsciiSrcObject, Piece*);
-static String StorePiecesInString(AsciiSrcObject);
+static char * StorePiecesInString(AsciiSrcObject);
 static Bool WriteToFile(String, String, unsigned);
 static Bool WritePiecesToFile(AsciiSrcObject, String);
 static void GetDefaultPieceSize(Widget, int, XrmValue*);
@@ -288,8 +288,8 @@ XawAsciiSrcClassInitialize(void)
  */
 /*ARGSUSED*/
 static void
-XawAsciiSrcInitialize(Widget request, Widget cnew,
-		      ArgList args, Cardinal *num_args)
+XawAsciiSrcInitialize(Widget request _X_UNUSED, Widget cnew,
+		      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     AsciiSrcObject src = (AsciiSrcObject)cnew;
     FILE *file;
@@ -297,7 +297,7 @@ XawAsciiSrcInitialize(Widget request, Widget cnew,
     /*
      * Set correct flags (override resources) depending upon widget class
      */
-    src->text_src.text_format = XawFmt8Bit;
+    src->text_src.text_format = (XrmQuark)XawFmt8Bit;
 
 #ifdef ASCII_DISK
     if (XtIsSubclass(XtParent(cnew), asciiDiskWidgetClass)) {
@@ -336,7 +336,7 @@ XawAsciiSrcInitialize(Widget request, Widget cnew,
  *
  * Parameters:
  *	w	- AsciiSource widget
- *	pos	- position of the text to retreive.
+ *	pos	- position of the text to retrieve.
  *	text	- text block that will contain returned text
  *	length	- maximum number of characters to read
  *
@@ -383,16 +383,16 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
 
 	offset = anchor->position + entity->offset;
 	end = XawMin(end, offset + block->length);
-	if ((length = end - pos) < 0)
+	if ((length = (int)(end - pos)) < 0)
 	    length = 0;
 	text->length = length;
 	text->format = XawFmt8Bit;
 	if (length == 0) {
-	    text->firstPos = end = offset + entity->length;
+	    text->firstPos = (int)(end = (offset + entity->length));
 	    text->ptr = "";
 	}
 	else {
-	    text->firstPos = pos;
+	    text->firstPos = (int)pos;
 	    text->ptr = block->ptr + (pos - offset);
 	    if (pos + length < offset + block->length)
 		end = pos + length;	/* there is data left to be read */
@@ -403,15 +403,15 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
 	return (end);
     }
 
-    if ((length = end - pos) < 0)
+    if ((length = (int)(end - pos)) < 0)
 	length = 0;
 #endif
 
     piece = FindPiece(src, pos, &start);
-    text->firstPos = pos;
+    text->firstPos = (int)pos;
     text->ptr = piece->text + (pos - start);
     count = piece->used - (pos - start);
-    text->length = Max(0, (length > count) ? count : length);
+    text->length = (Max(0, (length > count) ? count : length));
     text->format = XawFmt8Bit;
 
     return (pos + text->length);
@@ -493,7 +493,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 			c = ' ';
 		    else if ((c & 0177) < XawSP || c == 0177) {
 			if (sink->ascii_sink.display_nonprinting)
-			    c = c > 0177 ? '\\' : c + '^';
+			    c = (unsigned char)(c > 0177 ? '\\' : c + '^');
 			else
 			    c = ' ';
 		    }
@@ -618,7 +618,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
  *	position - position to start scanning
  *	type	 - type of thing to scan for
  *	dir	 - direction to scan
- *		   count - which occurance if this thing to search for.
+ *		   count - which occurrence if this thing to search for.
  *		   include - whether or not to include the character found in
  *		   the position that is returned
  *
@@ -678,7 +678,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
 			    lim = piece->text + piece->used;
 			}
 
-			c = *ptr++;
+			c = (unsigned char)*ptr++;
 			++position;
 
 			if (type == XawstEOL) {
@@ -746,13 +746,13 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
 		    while (True) {
 			if (ptr < lim) {
 			    piece = piece->prev;
-			    if (piece == NULL)	/* Begining of text */
+			    if (piece == NULL)	/* Beginning of text */
 				return (0);
 			    ptr = piece->text + piece->used - 1;
 			    lim = piece->text;
 			}
 
-			c = *ptr--;
+			c = (unsigned char)*ptr--;
 			--position;
 
 			if (type == XawstEOL) {
@@ -821,7 +821,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
  *	text	 - text block to search for
  *
  * Description:
- *	Searchs the text source for the text block passed.
+ *	Searches the text source for the text block passed.
  *
  * Returns:
  *	The position of the item found
@@ -845,7 +845,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	position--;
     }
 
-    buf = XtMalloc((unsigned)sizeof(unsigned char) * text->length);
+    buf = XtMalloc((unsigned)sizeof(unsigned char) * (unsigned)text->length);
     memcpy(buf, text->ptr, (unsigned)text->length);
     piece = FindPiece(src, position, &first);
     ptr = (position - first) + piece->text;
@@ -857,8 +857,8 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	/*CONSTCOND*/
 	while (1) {
 	    if (*ptr++ == c
-		|| (case_sensitive && isalpha(c) && isalpha(ptr[-1])
-		    && toupper(c) == toupper(ptr[-1]))) {
+		|| (case_sensitive && isalpha((unsigned char)c) && isalpha((unsigned char)ptr[-1])
+		    && toupper((unsigned char)c) == toupper((unsigned char)ptr[-1]))) {
 		if (++count == text->length)
 		    break;
 		c = *++str;
@@ -872,7 +872,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 
 		if (ptr < piece->text) {
 		    do {
-			cnt = piece->text - ptr;
+			cnt = (int)(piece->text - ptr);
 			piece = piece->prev;
 			if (piece == NULL) {
 			    XtFree(buf);
@@ -885,7 +885,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	    position++;
 	    if (ptr >= (piece->text + piece->used)) {
 		do {
-		    cnt = ptr - (piece->text + piece->used);
+		    cnt = (int)(ptr - (piece->text + piece->used));
 		    piece = piece->next;
 		    if (piece == NULL) {
 			XtFree(buf);
@@ -904,8 +904,8 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	/*CONSTCOND*/
 	while (1) {
 	    if (*ptr-- == c
-		|| (case_sensitive && isalpha(c) && isalpha(ptr[1])
-		    && toupper(c) == toupper(ptr[1]))) {
+		|| (case_sensitive && isalpha((unsigned char)c) && isalpha((unsigned char)ptr[1])
+		    && toupper((unsigned char)c) == toupper((unsigned char)ptr[1]))) {
 		if (++count == text->length)
 		    break;
 		c = *--str;
@@ -919,7 +919,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 
 		if (ptr >= (piece->text + piece->used)) {
 		    do {
-			cnt = ptr - (piece->text + piece->used);
+			cnt = (int)(ptr - (piece->text + piece->used));
 			piece = piece->next;
 			if (piece == NULL) {
 			    XtFree(buf);
@@ -932,7 +932,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	    position--;
 	    if (ptr < piece->text) {
 		do {
-		    cnt = piece->text - ptr;
+		    cnt = (int)(piece->text - ptr);
 		    piece = piece->prev;
 		    if (piece == NULL) {
 			XtFree(buf);
@@ -967,7 +967,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
  *	True if redisplay is needed
  */
 static Boolean
-XawAsciiSrcSetValues(Widget current, Widget request, Widget cnew,
+XawAsciiSrcSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
 		     ArgList args, Cardinal *num_args)
 {
     AsciiSrcObject src = (AsciiSrcObject)cnew;
@@ -1012,7 +1012,7 @@ XawAsciiSrcSetValues(Widget current, Widget request, Widget cnew,
 
     if (!total_reset &&
 	old_src->ascii_src.piece_size != src->ascii_src.piece_size) {
-	String string = StorePiecesInString(old_src);
+	char * string = StorePiecesInString(old_src);
 
 	FreeAllPieces(old_src);
 	LoadPieces(src, NULL, string);
@@ -1046,7 +1046,7 @@ XawAsciiSrcGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 	    if (streq(args[i].name, XtNstring)) {
 		if (src->ascii_src.use_string_in_place)
 		    *((char **)args[i].value) = src->ascii_src.first_piece->text;
-		else if (XawAsciiSave(w))   /* If save sucessful */
+		else if (XawAsciiSave(w))   /* If save successful */
 		    *((char **)args[i].value) = src->ascii_src.string;
 		break;
 	    }
@@ -1181,7 +1181,7 @@ XawAsciiSave(Widget w)
  *	Save the current buffer as a file.
  *
  * Returns:
- *	True if the save was sucessful
+ *	True if the save was successful
  */
 Bool
 XawAsciiSaveAsFile(Widget w, _Xconst char *name)
@@ -1203,9 +1203,9 @@ XawAsciiSaveAsFile(Widget w, _Xconst char *name)
     if (src->ascii_src.type == XawAsciiFile)
 	ret = WritePiecesToFile(src, (String)name);
     else {
-	String string = StorePiecesInString(src);
+	char * string = StorePiecesInString(src);
 
-	ret = WriteToFile(string, (String)name, src->ascii_src.length);
+	ret = WriteToFile(string, (String)name, (unsigned)src->ascii_src.length);
 	XtFree(string);
     }
 
@@ -1270,10 +1270,10 @@ RemoveOldStringOrFile(AsciiSrcObject src, Bool checkString)
  *	name   - the name of the file
  *
  * Description:
- *	Write the string specified to the begining of the file specified.
+ *	Write the string specified to the beginning of the file specified.
  *
  * Returns:
- *	returns True if sucessful, False otherwise
+ *	returns True if successful, False otherwise
  */
 static Bool
 WriteToFile(String string, String name, unsigned length)
@@ -1308,7 +1308,7 @@ WriteToFile(String string, String name, unsigned length)
  *	what can be useful when editing very large files.
  *
  * Returns:
- *	returns True if sucessful, False otherwise
+ *	returns True if successful, False otherwise
  */
 static Bool
 WritePiecesToFile(AsciiSrcObject src, String name)
@@ -1321,12 +1321,12 @@ WritePiecesToFile(AsciiSrcObject src, String name)
 
 	piece = src->ascii_src.first_piece;
 	while (piece) {
-	    int bytes = src->ascii_src.piece_size - piece->used;
+	    int bytes = (int)(src->ascii_src.piece_size - piece->used);
 
 	    if (bytes > 0 && (tmp = piece->next) != NULL) {
-		bytes = XawMin(bytes, tmp->used);
-		memcpy(piece->text + piece->used, tmp->text, bytes);
-		memmove(tmp->text, tmp->text + bytes, tmp->used - bytes);
+		bytes = (XawMin(bytes, tmp->used));
+		memcpy(piece->text + piece->used, tmp->text, (size_t)bytes);
+		memmove(tmp->text, tmp->text + bytes, (size_t)(tmp->used - bytes));
 		piece->used += bytes;
 		if ((tmp->used -= bytes) == 0) {
 		    RemovePiece(src, tmp);
@@ -1341,7 +1341,7 @@ WritePiecesToFile(AsciiSrcObject src, String name)
 	return (False);
 
     for (piece = src->ascii_src.first_piece; piece; piece = piece->next)
-	if (write(fd, piece->text, piece->used) == -1) {
+	if (write(fd, piece->text, (size_t)piece->used) == -1) {
 	    close(fd);
 	    return (False);
 	}
@@ -1362,10 +1362,10 @@ WritePiecesToFile(AsciiSrcObject src, String name)
  * Description:
  *	Store the pieces in memory into a standard ascii string.
  */
-static String
+static char *
 StorePiecesInString(AsciiSrcObject src)
 {
-    String string;
+    char * string;
     XawTextPosition first;
     Piece *piece;
 
@@ -1413,15 +1413,15 @@ InitStringOrFile(AsciiSrcObject src, Bool newString)
 	else if (!src->ascii_src.use_string_in_place) {
 	    src->ascii_src.string = XtNewString(src->ascii_src.string);
 	    src->ascii_src.allocated_string = True;
-	    src->ascii_src.length = strlen(src->ascii_src.string);
+	    src->ascii_src.length = (XawTextPosition)strlen(src->ascii_src.string);
 	}
 
 	if (src->ascii_src.use_string_in_place) {
 	    if (src->ascii_src.string != NULL)
-	    src->ascii_src.length = strlen(src->ascii_src.string);
+	    src->ascii_src.length = (XawTextPosition)strlen(src->ascii_src.string);
 	    /* In case the length resource is incorrectly set */
 	    if (src->ascii_src.length > src->ascii_src.ascii_length)
-		src->ascii_src.ascii_length = src->ascii_src.length;
+		src->ascii_src.ascii_length = (int)src->ascii_src.length;
 
 	    if (src->ascii_src.ascii_length == MAGIC_VALUE)
 		src->ascii_src.piece_size = src->ascii_src.length;
@@ -1477,7 +1477,7 @@ InitStringOrFile(AsciiSrcObject src, Bool newString)
     }
 
     if (!src->ascii_src.is_tempfile) {
-	if ((fd = open(src->ascii_src.string, open_mode, 0666)) != -1) {
+	if ((fd = open(src->ascii_src.string, (int)open_mode, 0666)) != -1) {
 	    if ((file = fdopen(fd, fdopen_mode))) {
 		(void)fseek(file, 0, SEEK_END);
 		src->ascii_src.length = (XawTextPosition)ftell(file);
@@ -1517,7 +1517,7 @@ LoadPieces(AsciiSrcObject src, FILE *file, char *string)
 		fseek(file, 0, SEEK_SET);
 		while (left < src->ascii_src.length) {
 		    ptr = XtMalloc((unsigned)src->ascii_src.piece_size);
-		    if ((len = fread(ptr, sizeof(unsigned char),
+		    if ((len = (int)fread(ptr, sizeof(unsigned char),
 				     (size_t)src->ascii_src.piece_size, file)) < 0)
 			XtErrorMsg("readError", "asciiSourceCreate", "XawError",
 				   "fread returned error.", NULL, NULL);
@@ -1707,7 +1707,7 @@ BreakPiece(AsciiSrcObject src, Piece *piece)
 
 /*ARGSUSED*/
 static void
-CvtStringToAsciiType(XrmValuePtr args, Cardinal *num_args,
+CvtStringToAsciiType(XrmValuePtr args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 		     XrmValuePtr fromVal, XrmValuePtr toVal)
 {
     static XawAsciiType type;
@@ -1733,9 +1733,9 @@ CvtStringToAsciiType(XrmValuePtr args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static Boolean
-CvtAsciiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
+CvtAsciiTypeToString(Display *dpy, XrmValuePtr args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 		     XrmValuePtr fromVal, XrmValuePtr toVal,
-		     XtPointer *data)
+		     XtPointer *data _X_UNUSED)
 {
     static String buffer;
     Cardinal size;
@@ -1754,7 +1754,7 @@ CvtAsciiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 	    return (False);
     }
 
-    size = strlen(buffer) + 1;
+    size = (Cardinal)(strlen(buffer) + 1);
     if (toVal->addr != NULL) {
 	if (toVal->size < size) {
 	    toVal->size = size;
@@ -1771,7 +1771,7 @@ CvtAsciiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static void
-GetDefaultPieceSize(Widget w, int offset, XrmValue *value)
+GetDefaultPieceSize(Widget w _X_UNUSED, int offset _X_UNUSED, XrmValue *value)
 {
     static XPointer pagesize;
 
@@ -1790,7 +1790,7 @@ GetDefaultPieceSize(Widget w, int offset, XrmValue *value)
 
 #ifdef ASCII_STRING
 /*
- * Compatability functions.
+ * Compatibility functions.
  */
 /*
  * Function:

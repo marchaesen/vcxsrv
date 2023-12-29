@@ -97,7 +97,7 @@ typedef struct _FormPart {
     Boolean	resize_is_no_op;    /* Causes resize to take not action  */
 #ifndef OLDXAW
     XawDisplayList *display_list;
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } FormPart;
 

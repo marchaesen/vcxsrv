@@ -31,42 +31,19 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
+.ie \n(.g .ds `` \(lq
+.el       .ds `` ``
+.ie \n(.g .ds '' \(rq
+.el       .ds '' ''
 .hw XtFind-File wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtFindFile __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtFindFile \- search for a file using substitutions in the path list
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-String XtFindFile(String \fIpath\fP, Substitution \fIsubstitutions\fP,
+char * XtFindFile(const char *\fIpath\fP, Substitution \fIsubstitutions\fP,
 Cardinal \fInum_substitutions\fP, XtFilePredicate \fIpredicate\fP);
 .SH ARGUMENTS
 .IP \fIpath\fP 1i
@@ -79,45 +56,53 @@ Specifies the number of substitutions passed in.
 Specifies a procedure to call to judge a potential file name, or NULL.
 .SH DESCRIPTION
 The \fIpath\fP parameter specifies a string that consists of a series of
-potential file names delimited by colons.  Within each name, the
+potential file names delimited by colons.
+Within each name, the
 percent character specifies a string substitution selected by the
-following character.  The character sequence ``%:'' specifies an
+following character.
+The character sequence \*(``%:\*('' specifies an
 embedded colon that is not a delimiter; the sequence is replaced by a
-single colon.  The character sequence ``%%'' specifies a percent
+single colon.
+The character sequence \*(``%%\*('' specifies a percent
 character that does not introduce a substitution; the sequence is
-replaced by a single percent character.  If a percent character is
+replaced by a single percent character.
+If a percent character is
 followed by any other character,
-.ZN XtFindFile
+.B XtFindFile
 looks through the
 specified \fIsubstitutions\fP for that character in the \fImatch\fP field and if
 found replaces the percent and match characters with the string in the
-corresponding \fIsubstitution\fP field.  A \fIsubstitution\fP field entry of NULL
-is equivalent to a pointer to an empty string.  If the operating
+corresponding \fIsubstitution\fP field.
+A \fIsubstitution\fP field entry of NULL
+is equivalent to a pointer to an empty string.
+If the operating
 system does not interpret multiple embedded name separators in the
-path (i.e., ``/'' in POSIX) the same way as a single separator,
-.ZN XtFindFile
+path (i.e., \*(``/\*('' in POSIX) the same way as a single separator,
+.B XtFindFile
 will collapse multiple separators into a single one after performing
-all string substitutions.  Except for collapsing embedded separators,
+all string substitutions.
+Except for collapsing embedded separators,
 the contents of the string substitutions are not interpreted by
-.ZN XtFindFile
+.B XtFindFile
 and may therefore contain any operating-system-dependent
-characters, including additional name separators.  Each resulting
+characters, including additional name separators.
+Each resulting
 string is passed to the predicate procedure until a string is found for
 which the procedure returns
-.ZN True ;
+.BR True ;
 this string is the return value for
-.ZN XtFindFile .
+.BR XtFindFile .
 If no string yields a
-.ZN True
+.B True
 return from the predicate,
-.ZN XtFindFile
+.B XtFindFile
 returns NULL.
 .LP
 If the \fIpredicate\fP parameter is NULL, an internal procedure that checks
 if the file exists, is readable, and is not a directory will be used.
 .LP
 It is the responsibility of the caller to free the returned string using
-.ZN XtFree
+.B XtFree
 when it is no longer needed.
 .SH "SEE ALSO"
 .br

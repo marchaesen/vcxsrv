@@ -11,14 +11,14 @@ export XAUTHORITY=${DATADIR:-/tmp}/.Xauthority
 # Start a new authority file
 rm -f $XAUTHORITY ; touch $XAUTHORITY
 
-function xauth()
+xauth()
 {
   echo "> xauth" "$@"
   ../xauth "$@"
   echo "  exits with $?"
 }
 
-function xauth_silent()
+xauth_silent()
 {
   echo "> xauth" "some silent commands which should not be logged..."
   ../xauth "$@"

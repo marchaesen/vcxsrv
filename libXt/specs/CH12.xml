@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Nonwidget_Objects'>
 <title>Nonwidget Objects</title>
 
@@ -65,42 +68,42 @@ but exist to pad the data structure so that it matches Core's class
 record.  The class record initialization must fill all
 obj<emphasis remap='I'>n</emphasis> fields with NULL or zero as appropriate to the type.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectClassPart {
-	WidgetClass superclass;
-	String class_name;
-	Cardinal widget_size;
-	XtProc class_initialize;
-	XtWidgetClassProc class_part_initialize;
-	XtEnum class_inited;
-	XtInitProc initialize;
-	XtArgsProc initialize_hook;
-	XtProc obj1;
-	XtPointer obj2;
-	Cardinal obj3;
-	XtResourceList resources;
-	Cardinal num_resources;
-	XrmClass xrm_class;
-	Boolean obj4;
-	XtEnum obj5;
-	Boolean obj6;
-	Boolean obj7;
-	XtWidgetProc destroy;
-	XtProc obj8;
-	XtProc obj9;
-	XtSetValuesFunc set_values;
-	XtArgsFunc set_values_hook;
-	XtProc obj10;
-	XtArgsProc get_values_hook;
-	XtProc obj11;
-	XtVersionType version;
-	XtPointer callback_private;
-	String obj12;
-	XtProc obj13;
-	XtProc obj14;
-	XtPointer extension;
+        WidgetClass     superclass;
+        String          class_name;
+        Cardinal        widget_size;
+        XtProc          class_initialize;
+        XtWidgetClassProc class_part_initialize;
+        XtEnum          class_inited;
+        XtInitProc      initialize;
+        XtArgsProc      initialize_hook;
+        XtProc          obj1;
+        XtPointer       obj2;
+        Cardinal        obj3;
+        XtResourceList  resources;
+        Cardinal        num_resources;
+        XrmClass        xrm_class;
+        Boolean         obj4;
+        XtEnum          obj5;
+        Boolean         obj6;
+        Boolean         obj7;
+        XtWidgetProc    destroy;
+        XtProc          obj8;
+        XtProc          obj9;
+        XtSetValuesFunc set_values;
+        XtArgsFunc      set_values_hook;
+        XtProc          obj10;
+        XtArgsProc      get_values_hook;
+        XtProc          obj11;
+        XtVersionType   version;
+        XtPointer       callback_private;
+        String          obj12;
+        XtProc          obj13;
+        XtProc          obj14;
+        XtPointer       extension;
 } ObjectClassPart;
-</literallayout>
+</programlisting>
 <para>
 The extension record defined for
 <function>ObjectClassPart</function>
@@ -109,27 +112,27 @@ with a <emphasis remap='I'>record_type</emphasis> equal to
 is
 <function>ObjectClassExtensionRec</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	XtPointer next_extension;    See <xref linkend='Class_Extension_Records' />
-	XrmQuark record_type;        See <xref linkend='Class_Extension_Records' />
-	long version;                See <xref linkend='Class_Extension_Records' />
-	Cardinal record_size;        See <xref linkend='Class_Extension_Records' />
-	XtAllocateProc allocate;     See <xref linkend='Widget_Instance_Allocation_The_allocate_Procedure' />.
-	XtDeallocateProc deallocate; See <xref linkend='Widget_Instance_Deallocation_The_deallocate_Procedure' />.
+        XtPointer next_extension;        <lineannotation>See <xref linkend='Class_Extension_Records' /></lineannotation>
+        XrmQuark record_type;            <lineannotation>See <xref linkend='Class_Extension_Records' /></lineannotation>
+        long version;                    <lineannotation>See <xref linkend='Class_Extension_Records' /></lineannotation>
+        Cardinal record_size;            <lineannotation>See <xref linkend='Class_Extension_Records' /></lineannotation>
+        XtAllocateProc allocate;         <lineannotation>See <xref linkend='Widget_Instance_Allocation_The_allocate_Procedure' /></lineannotation>
+        XtDeallocateProc deallocate;     <lineannotation>See <xref linkend='Widget_Instance_Deallocation_The_deallocate_Procedure' /></lineannotation>
 } ObjectClassExtensionRec, *ObjectClassExtension;
-</literallayout>
+</programlisting>
 <para>
 The prototypical
 <function>ObjectClass</function>
 consists of just the
 <function>ObjectClassPart</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectClassRec {
-	ObjectClassPart object_class;
+        ObjectClassPart object_class;
 } ObjectClassRec, *ObjectClass;
-</literallayout>
+</programlisting>
 <para>
 The predefined class record and pointer for
 <function>ObjectClassRec</function>
@@ -138,18 +141,18 @@ are
 
 <para>
 In
-<function>IntrinsicP.h</function>:
+<filename class="headerfile">IntrinsicP.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 extern ObjectClassRec objectClassRec;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 extern WidgetClass objectClass;
-</literallayout>
+</programlisting>
 <para>
 The opaque types
 <function>Object</function>
@@ -163,13 +166,13 @@ The symbolic constant for the
 version identifier is
 <function>XtObjectExtensionVersion</function>
 (see <xref linkend='Class_Extension_Records' />).
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure definition to ensure that the
 compiler catches attempts to access private data:
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectClassRec* ObjectClass;
-</literallayout>
+</programlisting>
 
 </sect2>
 
@@ -182,16 +185,16 @@ structure.  All fields have the same meaning as the
 corresponding fields in
 <function>CorePart</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectPart {
-	Widget self;
-	WidgetClass widget_class;
-	Widget parent;
-	Boolean being_destroyed;
-	XtCallbackList destroy_callbacks;
-	XtPointer constraints;
+        Widget          self;
+        WidgetClass     widget_class;
+        Widget          parent;
+        Boolean         being_destroyed;
+        XtCallbackList  destroy_callbacks;
+        XtPointer       constraints;
 } ObjectPart;
-</literallayout>
+</programlisting>
 <para>
 All object instances have the
 Object
@@ -204,20 +207,20 @@ object types.
 
 <para>
 In
-<function>IntrinsicP.h</function>:
+<filename class="headerfile">IntrinsicP.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectRec {
-	ObjectPart object;
+        ObjectPart object;
 } ObjectRec, *Object;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 typedef struct _ObjectRec *Object;
-</literallayout>
+</programlisting>
 
 </sect2>
 
@@ -271,15 +274,27 @@ The WidgetClass arguments to the following procedures may be
 or any subclass:
 </para>
 
+<itemizedlist spacing='compact'>
+<listitem>
 <para>
-<emphasis role='strong'>XtInitializeWidgetClass</emphasis>,
-<emphasis role='strong'>XtCreateWidget</emphasis>,
-<emphasis role='strong'>XtVaCreateWidget</emphasis>
-<emphasis role='strong'>XtIsSubclass</emphasis>,
-<emphasis role='strong'>XtCheckSubclass</emphasis>
-<emphasis role='strong'>XtGetResourceList</emphasis>,
-<emphasis role='strong'>XtGetConstraintResourceList</emphasis>
+<xref linkend='XtInitializeWidgetClass' xrefstyle='select: title'/>,
+<xref linkend='XtCreateWidget' xrefstyle='select: title'/>,
+<xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>
 </para>
+</listitem>
+<listitem>
+<para>
+<xref linkend='XtIsSubclass' xrefstyle='select: title'/>,
+<xref linkend='XtCheckSubclass' xrefstyle='select: title'/>
+</para>
+</listitem>
+<listitem>
+<para>
+<xref linkend='XtGetResourceList' xrefstyle='select: title'/>,
+<xref linkend='XtGetConstraintResourceList' xrefstyle='select: title'/>
+</para>
+</listitem>
+</itemizedlist>
 
 <para>
 The Widget arguments to the following procedures may be of class
@@ -321,7 +336,7 @@ or any subclass:
 <function>XtIsWMShell</function>,
 <function>XtIsVendorShell</function>,
 <function>XtIsTransientShell</function>,
-<function>XtIsToplevelShell</function>,
+<function>XtIsTopLevelShell</function>,
 <function>XtIsApplicationShell</function>,
 <function>XtIsSessionShell</function>
     </para>
@@ -513,53 +528,53 @@ Core's
 class record.  The class record initialization must fill all
 rect<emphasis remap='I'>n</emphasis> fields with NULL or zero as appropriate to the type.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjClassPart {
-	WidgetClass superclass;
-	String class_name;
-	Cardinal widget_size;
-	XtProc class_initialize;
-	XtWidgetClassProc class_part_initialize;
-	XtEnum class_inited;
-	XtInitProc initialize;
-	XtArgsProc initialize_hook;
-	XtProc rect1;
-	XtPointer rect2;
-	Cardinal rect3;
-	XtResourceList resources;
-	Cardinal num_resources;
-	XrmClass xrm_class;
-	Boolean rect4;
-	XtEnum rect5;
-	Boolean rect6;
-	Boolean rect7;
-	XtWidgetProc destroy;
-	XtWidgetProc resize;
-	XtExposeProc expose;
-	XtSetValuesFunc set_values;
-	XtArgsFunc set_values_hook;
-	XtAlmostProc set_values_almost;
-	XtArgsProc get_values_hook;
-	XtProc rect9;
-	XtVersionType version;
-	XtPointer callback_private;
-	String rect10;
-	XtGeometryHandler query_geometry;
-	XtProc rect11;
-	XtPointer extension ;
+        WidgetClass     superclass;
+        String          class_name;
+        Cardinal        widget_size;
+        XtProc          class_initialize;
+        XtWidgetClassProc class_part_initialize;
+        XtEnum          class_inited;
+        XtInitProc      initialize;
+        XtArgsProc      initialize_hook;
+        XtProc          rect1;
+        XtPointer       rect2;
+        Cardinal        rect3;
+        XtResourceList  resources;
+        Cardinal        num_resources;
+        XrmClass        xrm_class;
+        Boolean         rect4;
+        XtEnum          rect5;
+        Boolean         rect6;
+        Boolean         rect7;
+        XtWidgetProc    destroy;
+        XtWidgetProc    resize;
+        XtExposeProc    expose;
+        XtSetValuesFunc set_values;
+        XtArgsFunc      set_values_hook;
+        XtAlmostProc    set_values_almost;
+        XtArgsProc      get_values_hook;
+        XtProc          rect9;
+        XtVersionType   version;
+        XtPointer       callback_private;
+        String          rect10;
+        XtGeometryHandler query_geometry;
+        XtProc          rect11;
+        XtPointer       extension;
 } RectObjClassPart;
-</literallayout>
+</programlisting>
 <para>
 The
 RectObj
 class record consists of just the
 <function>RectObjClassPart</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjClassRec {
-	RectObjClassPart rect_class;
+        RectObjClassPart rect_class;
 } RectObjClassRec, *RectObjClass;
-</literallayout>
+</programlisting>
 <para>
 The predefined class record and pointer for
 <function>RectObjClassRec</function>
@@ -568,18 +583,18 @@ are
 
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 extern RectObjClassRec rectObjClassRec;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 extern WidgetClass rectObjClass;
-</literallayout>
+</programlisting>
 <para>
 The opaque types
 <function>RectObj</function>
@@ -590,13 +605,13 @@ and the opaque variable
 are defined for generic actions on objects
 whose class is RectObj or a subclass of
 RectObj.
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure definition to ensure that the compiler
 catches attempts to access private data:
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjClassRec* RectObjClass;
-</literallayout>
+</programlisting>
 
 </sect2>
 
@@ -612,33 +627,33 @@ objects have the following fields defined in the
 structure.  All fields have the same meaning as the corresponding field in
 <function>CorePart</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjPart {
-	Position x, y;
-	Dimension width, height;
-	Dimension border_width;
-	Boolean managed;
-	Boolean sensitive;
-	Boolean ancestor_sensitive;
+        Position        x, y;
+        Dimension       width, height;
+        Dimension       border_width;
+        Boolean         managed;
+        Boolean         sensitive;
+        Boolean         ancestor_sensitive;
 } RectObjPart;
-</literallayout>
+</programlisting>
 <para>
 RectObj
 objects have the RectObj fields immediately following the Object fields.
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjRec {
-	ObjectPart object;
-	RectObjPart rectangle;
+        ObjectPart object;
+        RectObjPart rectangle;
 } RectObjRec, *RectObj;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout >
+<programlisting>
 typedef struct _RectObjRec* RectObj;
-</literallayout>
+</programlisting>
 
 </sect2>
 

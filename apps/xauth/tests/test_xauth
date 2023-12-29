@@ -1,0 +1,44 @@
+#!/bin/sh
+
+# This script is modelled after cmdtest:
+#   it takes all *.scripts and executes them and saves the stdout/err
+#   This output is compared against *.stdout/stderr.
+#   If no difference is found, the test is assumed as PASS (otherwise FAIL)
+#
+total_ret=0
+testsrc="${srcdir:-.}"
+for script in `ls -1 ${testsrc}/*.script | sort` ; do
+	base=`basename $script .script`
+	echo "Testing $base"
+        $script > out.stdout 2> out.stderr
+
+	# check stdout for correctness
+	if [ -f ${testsrc}/$base.stdout ]; then
+		diff out.stdout ${testsrc}/$base.stdout
+		ret_stdout=$?
+	else
+		ret_stdout=0
+	fi
+
+	# check stderr for correctness
+	if [ -f ${testsrc}/$base.stderr ]; then
+		diff out.stderr ${testsrc}/$base.stderr
+		ret_stderr=$?
+	else
+		if [ -s out.stderr ] ; then
+			diff out.stderr /dev/null
+			ret_stderr=1
+		else
+			ret_stderr=0
+		fi
+	fi
+
+	if [ $ret_stdout -eq 0 -a $ret_stderr -eq 0 ]; then
+		echo "OK"
+	else
+		echo "FAIL"
+		total_ret=1
+	fi
+done
+
+exit $total_ret

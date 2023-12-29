@@ -53,7 +53,7 @@
 		fixed creation of the mask in SetColor()
 		- patch from Jan Wielemaker <jan@swi.psy.uva.nl>
 	- makefiles are provided for VMS
-		- given by Martin P.J. Zinser m.zinser@gsi.de  
+		- given by Martin P.J. Zinser m.zinser@gsi.de
 	- Imakefiles reworked to get smoother builds and fixes from:
 		- Paul DuBois dubois@primate.wisc.edu
 		- Larry Schwimmer schwim@cyclone.stanford.edu
@@ -443,7 +443,7 @@
 		 -cp <color> <pixel> to override a color value with a given
 		 pixel, i.e. sxpm plaid.xpm -cp red 4
 
-	  also the '-s' adn '-p' options have been renamed to '-sc' and '-sp'.
+	  also the '-s' and '-p' options have been renamed to '-sc' and '-sp'.
 
 	- xpm.h defines XpmFormat, XpmVersion, and XpmRevision numbers.
 
@@ -513,7 +513,7 @@
 	  increasing this became a requisite).
 
     BUGS CORRECTED:
-	- Many warnings have been fixed - patch from Daniel Dardailler 
+	- Many warnings have been fixed - patch from Daniel Dardailler
 	  daniel@osf.org
 
 3.2e		(93/02/05)
@@ -544,7 +544,7 @@
 
     ENHANCEMENTS:
     	- parsing optimized for single and double characters color
-		- patch originally from Martin Brunecky 
+		- patch originally from Martin Brunecky
 				       marbru@build1.auto-trol.com
 
     BUGS CORRECTED:
@@ -578,7 +578,7 @@
     BUGS CORRECTED:
 	- SVR4 defines for including <string.h> instead of <strings.h>
 		- Jason Patterson <jasonp@fitmail.qut.edu.au>
-	- attributes->extensions and attributes->nextensions fields were not 
+	- attributes->extensions and attributes->nextensions fields were not
 	  set correctly when no extensions present in file.
 		- Simon_Scott Cornish <cornish@ecr.mu.oz.au>
 
@@ -640,7 +640,7 @@
 3.1		(92/02/03)
 
     ENHANCEMENTS:
-    	- sxpm now have more standard options (mainly suggested by 
+    	- sxpm now have more standard options (mainly suggested by
 	Rainer Sinkwitz <sinkwitz@ifi.unizh.ch>):
 
 	Usage:  sxpm [options...]
@@ -743,7 +743,7 @@
 
 	- xpmtoppm.c has is own strstr function which is used if NEED_STRSTR
 	is defined when compiling - Hugues.Leroy@irisa.fr (Hugues Leroy).
-	
+
     BUGS CORRECTED:
 	- many bugs have been fixed, especially for ansi compilers -
 	       Doyle C. Davidson (doyle@doyled.b23b.ingr.com) and
@@ -802,7 +802,7 @@
 	word colorname. Lionel Mallet (mallet@ipvpel.unipv.it).
 	- parser was triggered by the "/" character inside string.
 	Doyle C. Davidson (doyle@doyled.b23b.ingr.com). This is corrected.
-	- sxpm maps the window only if the option "-nod" is not selected. 
+	- sxpm maps the window only if the option "-nod" is not selected.
 
     CHANGES TO THE DOC:
 	- the documentation presents the new API and features.
@@ -868,7 +868,7 @@
 	to override default colors by giving a pixel value (in such a case
 	symbol value must be set to NULL),
 	- the XpmInfo struct contains the new member 'rgb_fname' in which one
-	can specify an rgb text file name while writing a pixmap with the 
+	can specify an rgb text file name while writing a pixmap with the
 	XWritePixmapFile function (otherwise this member should be set to
 	NULL). This way colorname will be searched and written out if found
 	instead of the RGB value,

@@ -35,7 +35,7 @@ in this Software without prior written authorization from The Open Group.
 #include <stdio.h>			/* for NULL */
 #include <ctype.h>			/* for isascii() and isdigit() */
 #include <X11/Xos.h>			/* for strchr() and string routines */
-#include <X11/Xlib.h>			/* for Family contants */
+#include <X11/Xlib.h>			/* for Family constants */
 #ifdef hpux
 #include <sys/utsname.h>		/* for struct utsname */
 #endif
@@ -65,7 +65,7 @@ copystring (const char *src, int len)
     if (!src && len != 0) return NULL;
     cp = malloc (len + 1);
     if (cp) {
-	if (src) strncpy (cp, src, len);
+	if (src) memcpy (cp, src, len);
 	cp[len] = '\0';
     }
     return cp;
@@ -172,17 +172,17 @@ parse_displayname (const char *displayname,
 #ifdef HAVE_STRLCPY
         strlcpy(path, displayname, sizeof(path));
 #else
-        strncpy(path, displayname, sizeof(path));
+        strncpy(path, displayname, sizeof(path) - 1);
         path[sizeof(path) - 1] = '\0';
 #endif
-        if (0 == stat(path, &sbuf)) {
+        if (0 == stat(path, &sbuf) && S_ISSOCK(sbuf.st_mode)) {
             family = FamilyLocal;
         } else {
             char *dot = strrchr(path, '.');
             if (dot) {
                 *dot = '\0';
                 /* screen = atoi(dot + 1); */
-                if (0 == stat(path, &sbuf)) {
+                if (0 == stat(path, &sbuf) && S_ISSOCK(sbuf.st_mode)) {
                     family = FamilyLocal;
                 }
             }

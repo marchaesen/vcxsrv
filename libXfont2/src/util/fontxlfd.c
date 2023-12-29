@@ -38,6 +38,7 @@ from The Open Group.
 #include	<X11/fonts/fontstruct.h>
 #include	<X11/fonts/fontxlfd.h>
 #include	<X11/fonts/fontutil.h>
+#include	<X11/fonts/fntfilst.h> /* for MAXFONTNAMELEN */
 #include	<X11/Xos.h>
 #include	<math.h>
 #include	<stdlib.h>
@@ -49,6 +50,7 @@ from The Open Group.
 #endif
 #include	<ctype.h>
 #include	<stdio.h>	/* for sprintf() */
+#include	"src/util/replace.h"
 
 static char *
 GetInt(char *ptr, int *val)
@@ -114,11 +116,14 @@ readreal(char *ptr, double *result)
     return (p1 == buffer) ? (char *)0 : (ptr + (p1 - buffer));
 }
 
+#define XLFD_DOUBLE_TO_TEXT_BUF_SIZE 80
+
 static char *
 xlfd_double_to_text(double value, char *buffer, int space_required)
 {
     register char *p1;
     int ndigits, exponent;
+    const size_t buflen = XLFD_DOUBLE_TO_TEXT_BUF_SIZE;
 
 #ifndef NO_LOCALE
     if (!locale)
@@ -137,7 +142,7 @@ xlfd_double_to_text(double value, char *buffer, int space_required)
 	*buffer++ = ' ';
 
     /* Render the number using printf's idea of formatting */
-    sprintf(buffer, "%.*le", XLFD_NDIGITS, value);
+    snprintf(buffer, buflen, "%.*le", XLFD_NDIGITS, value);
 
     /* Find and read the exponent value */
     for (p1 = buffer + strlen(buffer);
@@ -154,14 +159,14 @@ xlfd_double_to_text(double value, char *buffer, int space_required)
     if (exponent >= XLFD_NDIGITS || ndigits - exponent > XLFD_NDIGITS + 1)
     {
 	/* Scientific */
-	sprintf(buffer, "%.*le", ndigits - 1, value);
+	snprintf(buffer, buflen, "%.*le", ndigits - 1, value);
     }
     else
     {
 	/* Fixed */
 	ndigits -= exponent + 1;
 	if (ndigits < 0) ndigits = 0;
-	sprintf(buffer, "%.*lf", ndigits, value);
+	snprintf(buffer, buflen, "%.*lf", ndigits, value);
 	if (exponent < 0)
 	{
 	    p1 = buffer;
@@ -263,7 +268,7 @@ xlfd_round_double(double x)
 
 	char buffer[40];
 
-	sprintf(buffer, "%.*lg", XLFD_NDIGITS, x);
+	snprintf(buffer, sizeof(buffer), "%.*lg", XLFD_NDIGITS, x);
 	return atof(buffer);
     }
 }
@@ -347,26 +352,28 @@ GetMatrix(char *ptr, FontScalablePtr vals, int which)
 
 
 static void
-append_ranges(char *fname, int nranges, fsRange *ranges)
+append_ranges(char *fname, size_t fnamelen, int nranges, fsRange *ranges)
 {
     if (nranges)
     {
         int i;
 
-        strcat(fname, "[");
+        strlcat(fname, "[", fnamelen);
         for (i = 0; i < nranges && strlen(fname) < 1010; i++)
         {
-	    if (i) strcat(fname, " ");
-	    sprintf(fname + strlen(fname), "%d",
-		    minchar(ranges[i]));
+	    size_t curlen;
+	    if (i) strlcat(fname, " ", fnamelen);
+	    curlen = strlen(fname);
+	    snprintf(fname + curlen, fnamelen - curlen, "%d",
+		     minchar(ranges[i]));
 	    if (ranges[i].min_char_low ==
 		ranges[i].max_char_low &&
 		ranges[i].min_char_high ==
 		ranges[i].max_char_high) continue;
-	    sprintf(fname + strlen(fname), "_%d",
-		    maxchar(ranges[i]));
+	    snprintf(fname + curlen, fnamelen - curlen, "_%d",
+		     maxchar(ranges[i]));
         }
-        strcat(fname, "]");
+        strlcat(fname, "]", fnamelen);
     }
 }
 
@@ -382,6 +389,8 @@ FontParseXLFDName(char *fname, FontScalablePtr vals, int subst)
     FontScalableRec tmpvals;
     char        replaceChar = '0';
     char        tmpBuf[1024];
+    size_t      tlen;
+    size_t      fnamelen = MAXFONTNAMELEN; /* assumed for now */
     int         spacingLen;
     int		l;
     char	*p;
@@ -439,8 +448,9 @@ FontParseXLFDName(char *fname, FontScalablePtr vals, int subst)
 	break;
     case FONT_XLFD_REPLACE_STAR:
 	replaceChar = '*';
+	/* FALLTHROUGH */
     case FONT_XLFD_REPLACE_ZERO:
-	strcpy(tmpBuf, ptr2);
+	strlcpy(tmpBuf, ptr2, sizeof(tmpBuf));
 	ptr5 = tmpBuf + (ptr5 - ptr2);
 	ptr3 = tmpBuf + (ptr3 - ptr2);
 	ptr2 = tmpBuf;
@@ -472,7 +482,7 @@ FontParseXLFDName(char *fname, FontScalablePtr vals, int subst)
 	    *ptr++ = '-';
 	}
 	*ptr++ = replaceChar;
-	strcpy(ptr, ptr5);
+	strlcpy(ptr, ptr5, fnamelen - (ptr - fname));
 	*vals = tmpvals;
 	break;
     case FONT_XLFD_REPLACE_VALUE:
@@ -508,68 +518,82 @@ FontParseXLFDName(char *fname, FontScalablePtr vals, int subst)
 
 	p = ptr1 + 1;				/* weight field */
 	l = strchr(p, '-') - p;
-	sprintf(tmpBuf, "%*.*s", l, l, p);
+	snprintf(tmpBuf, sizeof(tmpBuf), "%*.*s", l, l, p);
 
 	p += l + 1;				/* slant field */
 	l = strchr(p, '-') - p;
-	sprintf(tmpBuf + strlen(tmpBuf), "-%*.*s", l, l, p);
+	tlen = strlen(tmpBuf);
+	snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "-%*.*s", l, l, p);
 
 	p += l + 1;				/* setwidth_name */
 	l = strchr(p, '-') - p;
-	sprintf(tmpBuf + strlen(tmpBuf), "-%*.*s", l, l, p);
+	tlen = strlen(tmpBuf);
+	snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "-%*.*s", l, l, p);
 
 	p += l + 1;				/* add_style_name field */
 	l = strchr(p, '-') - p;
-	sprintf(tmpBuf + strlen(tmpBuf), "-%*.*s", l, l, p);
+	tlen = strlen(tmpBuf);
+	snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "-%*.*s", l, l, p);
 
-	strcat(tmpBuf, "-");
+	strlcat(tmpBuf, "-", sizeof(tmpBuf));
 	if ((tmpvals.values_supplied & PIXELSIZE_MASK) == PIXELSIZE_ARRAY)
 	{
-	    char buffer[80];
-	    strcat(tmpBuf, "[");
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.pixel_matrix[0],
-		   buffer, 0));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.pixel_matrix[1],
-		   buffer, 1));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.pixel_matrix[2],
-		   buffer, 1));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.pixel_matrix[3],
-		   buffer, 1));
-	    strcat(tmpBuf, "]");
+	    char buffer[XLFD_DOUBLE_TO_TEXT_BUF_SIZE];
+	    strlcat(tmpBuf, "[", sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.pixel_matrix[0], buffer, 0),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.pixel_matrix[1], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.pixel_matrix[2], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.pixel_matrix[3], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf, "]", sizeof(tmpBuf));
 	}
 	else
 	{
-	    sprintf(tmpBuf + strlen(tmpBuf), "%d",
-		    (int)(tmpvals.pixel_matrix[3] + .5));
+	    tlen = strlen(tmpBuf);
+	    snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "%d",
+		     (int)(tmpvals.pixel_matrix[3] + .5));
 	}
-	strcat(tmpBuf, "-");
+	strlcat(tmpBuf, "-", sizeof(tmpBuf));
 	if ((tmpvals.values_supplied & POINTSIZE_MASK) == POINTSIZE_ARRAY)
 	{
-	    char buffer[80];
-	    strcat(tmpBuf, "[");
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.point_matrix[0],
-		   buffer, 0));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.point_matrix[1],
-		   buffer, 1));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.point_matrix[2],
-		   buffer, 1));
-	    strcat(tmpBuf, xlfd_double_to_text(tmpvals.point_matrix[3],
-		   buffer, 1));
-	    strcat(tmpBuf, "]");
+	    char buffer[XLFD_DOUBLE_TO_TEXT_BUF_SIZE];
+	    strlcat(tmpBuf, "[", sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.point_matrix[0], buffer, 0),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.point_matrix[1], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.point_matrix[2], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf,
+		    xlfd_double_to_text(tmpvals.point_matrix[3], buffer, 1),
+		    sizeof(tmpBuf));
+	    strlcat(tmpBuf, "]", sizeof(tmpBuf));
 	}
 	else
 	{
-	    sprintf(tmpBuf + strlen(tmpBuf), "%d",
-		    (int)(tmpvals.point_matrix[3] * 10.0 + .5));
+	    tlen = strlen(tmpBuf);
+	    snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "%d",
+		     (int)(tmpvals.point_matrix[3] * 10.0 + .5));
 	}
-	sprintf(tmpBuf + strlen(tmpBuf), "-%d-%d%*.*s%d%s",
-		tmpvals.x, tmpvals.y,
-		spacingLen, spacingLen, ptr3, tmpvals.width, ptr5);
-	strcpy(ptr1 + 1, tmpBuf);
+	tlen = strlen(tmpBuf);
+	snprintf(tmpBuf + tlen, sizeof(tmpBuf) - tlen, "-%d-%d%*.*s%d%s",
+		 tmpvals.x, tmpvals.y,
+		 spacingLen, spacingLen, ptr3, tmpvals.width, ptr5);
+	strlcpy(ptr1 + 1, tmpBuf, fnamelen - (ptr1 - fname));
 	if ((vals->values_supplied & CHARSUBSET_SPECIFIED) && !vals->nranges)
-	    strcat(fname, "[]");
+	    strlcat(fname, "[]", fnamelen);
 	else
-	    append_ranges(fname, vals->nranges, vals->ranges);
+	    append_ranges(fname, fnamelen, vals->nranges, vals->ranges);
 	break;
     }
     return TRUE;

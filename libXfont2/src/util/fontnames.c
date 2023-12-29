@@ -35,6 +35,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include	<X11/fonts/fontmisc.h>
 #include	<X11/fonts/fontstruct.h>
 
@@ -64,8 +65,8 @@ xfont2_make_font_names_record(unsigned size)
 	pFN->size = size;
 	if (size)
 	{
-	    pFN->length = malloc(size * sizeof(int));
-	    pFN->names = malloc(size * sizeof(char *));
+	    pFN->length = mallocarray(size, sizeof(int));
+	    pFN->names = mallocarray(size, sizeof(char *));
 	    if (!pFN->length || !pFN->names) {
 	    	free(pFN->length);
 	    	free(pFN->names);
@@ -100,8 +101,8 @@ xfont2_add_font_names_name(FontNamesPtr names,
 
 	if (size == 0)
 	    size = 8;
-	nlength = realloc(names->length, size * sizeof(int));
-	nnames = realloc(names->names, size * sizeof(char *));
+	nlength = reallocarray(names->length, size, sizeof(int));
+	nnames = reallocarray(names->names, size, sizeof(char *));
 	if (nlength && nnames) {
 	    names->size = size;
 	    names->length = nlength;

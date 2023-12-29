@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtGet-Resource-List XtGet-Constraint-Resource-List wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetResourceList __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetResourceList, XtGetConstraintResourceList \- obtain resource list
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtGetResourceList(WidgetClass \fIclass\fP, XtResourceList
 *\fIresources_return\fP, Cardinal *\fInum_resources_return\fP);
@@ -79,43 +52,46 @@ resource list.
 .IP \fIresources_return\fP 1i
 Specifies a pointer to where to store the returned resource list.
 The caller must free this storage using
-.ZN XtFree
+.B XtFree
 when done with it.
-.ds Cl \ for which you want the list
 .IP \fIwidget_class\fP 1i
-Specifies the widget class\*(Wc.
+Specifies the widget class for which you want the list.
 .SH DESCRIPTION
 If
-.ZN XtGetResourceList
+.B XtGetResourceList
 is called before the widget class is initialized (that is,
 before the first widget of that class has been created),
-.ZN XtGetResourceList
+.B XtGetResourceList
 returns the resource list as specified in the widget class record.
 If it is called after the widget class has been initialized,
-.ZN XtGetResourceList
+.B XtGetResourceList
 returns a merged resource list that contains the resources
-for all superclasses. The list returned by
-.ZN XtGetResourceList
+for all superclasses.
+The list returned by
+.B XtGetResourceList
 should be freed using
-.ZN XtFree
+.B XtFree
 when it is no longer needed.
 .LP
 If
-.ZN XtGetConstraintResourceList
+.B XtGetConstraintResourceList
 is called before the widget class is initialized (that is,
 before the first widget of that class has been created),
-.ZN XtGetConstraintResourceList
+.B XtGetConstraintResourceList
 returns the resource list as specified in the widget class Constraint
-part record. If it is called after the widget class has been initialized,
-.ZN XtGetConstraintResourceList
+part record.
+If it is called after the widget class has been initialized,
+.B XtGetConstraintResourceList
 returns a merged resource list that contains the Constraint resources
-for all superclasses. If the specified class is not a subclass of
-.ZN constraintWidgetClass ,
+for all superclasses.
+If the specified class is not a subclass of
+.BR constraintWidgetClass ,
 \fI*resources_return\fP is set to NULL and \fI*num_resources_return\fP
-is set to zero. The list returned by
-.ZN XtGetConstraintResourceList
+is set to zero.
+The list returned by
+.B XtGetConstraintResourceList
 should be freed using
-.ZN XtFree
+.B XtFree
 when it is no longer needed.
 .SH "SEE ALSO"
 XtGetSubresources(__libmansuffix__),

@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Pop_Up_Widgets'>
 <title>Pop-Up Widgets</title>
 <para>
@@ -131,7 +134,7 @@ To create a pop-up shell, use
 <funcsynopsis id='XtCreatePopupShell'>
 <funcprototype>
 <funcdef>Widget <function>XtCreatePopupShell</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
    <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
    <paramdef>Widget <parameter>parent</parameter></paramdef>
    <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -240,7 +243,7 @@ To create a pop-up shell using varargs lists, use
 <funcsynopsis id='XtVaCreatePopupShell'>
 <funcprototype>
 <funcdef>Widget <function>XtVaCreatePopupShell</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
    <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
    <paramdef>Widget <parameter>parent</parameter></paramdef>
    <paramdef><parameter>...</parameter></paramdef>
@@ -391,9 +394,9 @@ Some of these routines take an argument of type
 <function>XtGrabKind</function>,
 which is defined as
 </para>
-<literallayout >
+<programlisting>
 typedef enum {XtGrabNone, XtGrabNonexclusive, XtGrabExclusive} XtGrabKind;
-</literallayout>
+</programlisting>
 
 <para>
 The create_popup_child_proc procedure pointer
@@ -403,7 +406,7 @@ in the shell widget instance record is of type
 
 <funcsynopsis id='XtCreatePopupChildProc'>
 <funcprototype>
-<funcdef>void <function>*XtCreatePopupChildProc</function></funcdef>
+<funcdef>typedef void *<function>XtCreatePopupChildProc</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -509,9 +512,9 @@ or
 <function>XtGrabExclusive</function>,
 it calls
     </para>
-<literallayout >
+<programlisting>
 XtAddGrab(<emphasis remap='I'>popup_shell</emphasis>, (<emphasis remap='I'>grab_kind</emphasis> == XtGrabExclusive), False)
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
@@ -985,12 +988,12 @@ The
 function casts the <emphasis remap='I'>client_data</emphasis> parameter to a pointer of type
 <function>XtPopdownID</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	Widget shell_widget;
-	Widget enable_widget;
+        Widget shell_widget;
+        Widget enable_widget;
 } XtPopdownIDRec, *XtPopdownID;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>shell_widget</emphasis> is the pop-up shell to pop down,
 and the <emphasis remap='I'>enable_widget</emphasis> is usually the widget that was used to pop it up

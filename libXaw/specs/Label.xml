@@ -3,19 +3,19 @@
 <!-- .XS -->
 <!-- 	Label Widget -->
 <!-- .XE -->
-<!-- .IN "Label widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Label widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application header file	&lt;X11/Xaw/Label.h&gt;
-<!-- .IN "Label.h" "" -->
+<indexterm><primary>Label.h</primary></indexterm>
 Class header file	&lt;X11/Xaw/LabelP.h&gt;
-<!-- .IN "LabelP.h" "" -->
+<indexterm><primary>LabelP.h</primary></indexterm>
 Class	labelWidgetClass
-<!-- .IN "labelWidgetClass" "" -->
+<indexterm><primary>labelWidgetClass</primary></indexterm>
 Class Name	Label
-<!-- .IN "Label widget" "class name" -->
+<indexterm><primary>Label widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Simple
 <!-- .sp -->
 </literallayout>
@@ -41,7 +41,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Label widget" "resources" -->
+<indexterm><primary>Label widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>

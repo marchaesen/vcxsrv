@@ -7,19 +7,21 @@ echo
 	echo "Any variables not explicitly set are reset to their defaults"
 elif test "$1" = "--version" ; then
 cat << EOT
-micro configure 0.2, Copyright (C) 2005 Dimitar Toshkov Zhekov
+micro configure 0.21, Copyright (C) 2015 Dimitar Toshkov Zhekov
 
-This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License as
-published by the Free Software Foundation; either version 2 of
-the License, or (at your option) any later version.
+This program is free software; you can redistribute it and/or modify it
+under the terms of the GNU General Public License as published by the Free
+Software Foundation; either version 2 of the License, or (at your option)
+any later version.
 
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
+This program is distributed in the hope that it will be useful, but
+WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY
+or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License
+for more details.
 
-Report bugs to jimmy@is-vn.bg
+You should have received a copy of the GNU General Public License along
+with this program; if not, write to the Free Software Foundation, Inc.,
+51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 EOT
 elif test -z `printf "\r"` ; then
 	echo "$0: printf failure"
@@ -39,12 +41,12 @@ elif test -f Makefile ; then
 		elif echo "$i" | grep "$r" > /dev/null ; then
 			echo "$0: `echo "$i" | sed -e "s/$r.*//"`^M...: contains carriage return" 1>&2
 		elif test -n "$i" ; then
-			if echo "$i" | grep "^--$l=\|^[A-Z][A-Z0-9_]*[^_]=" > /dev/null ; then
+			if echo "$i" | grep -E "^--$l=|^[A-Z][A-Z0-9_]*[^_]=" > /dev/null ; then
 				n=`echo "$i" | sed -e "s$r^-*$r$r" -e "s$r=.*$r$r" | sed -e "s/-/_/g"`
-				if grep "^$n$w:\?=" Makefile > /dev/null ; then
+				if grep -E "^$n$w:?=" Makefile > /dev/null ; then
 					cp -f Makefile Makefile.$$
 					sed -e "s$r^\($n$w:*=$w\).*$r\1`echo "$i" | sed -e "s$r^[^=]*=$r$r"`$r" Makefile.$$ > Makefile
-					grep "^$n$w:\?=" Makefile /dev/null
+					grep -E "^$n$w:?=" Makefile /dev/null
 				else
 					echo "$0: $n: not found in Makefile" 1>&2
 				fi

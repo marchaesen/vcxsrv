@@ -1,0 +1,149 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH  XpmCreateXpmImage __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmCreateXpmImage \- create an Xpm image
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmCreateXpmImageFromData(char **" data ", XpmImage *" image ,
+.BI "XpmInfo *" info );
+.HP
+.BI "int XpmCreateXpmImageFromBuffer(char *" buffer ", XpmImage *" image ,
+.BI "XpmInfo *" info );
+.HP
+.BI "int XpmCreateXpmImageFromImage(Display *" display ,
+.BI "XImage *" image ", XImage *" shapeimage ,
+.BI "XpmImage *" xpmimage ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateXpmImageFromPixmap(Display *" display ,
+.BI "Pixmap *" pixmap ", Pixmap *" shapemask ,
+.BI "XpmImage *" xpmimage ", XpmAttributes *" attributes );
+.fi
+
+.SH ARGUMENTS
+
+.IP \fIdata\fP  li
+Specifies the location of the data.
+.IP \fIimage\fP li
+Specifies the image structure location.
+.IP \fIinfo\fP li
+Specifies the location of an XpmInfo structure to get and store information (or NULL).
+.IP \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP \fIimage\fP li
+Specifies the X image used as the source.
+.IP \fIshapeimage\fP li
+Specifies the shape mask image, if any.
+.IP \fIxpmimage\fP li
+Specifies the XPM image which is created.
+.IP \fIattributes\fP li
+Specifies the location of a structure containing information (or NULL).
+
+.SH DESCRIPTION
+.SS XpmCreateXpmImageFromBuffer
+.PP
+To create an XpmImage from an XPM buffer, use
+.BR XpmCreateXpmImageFromBuffer ().
+The
+.BR XpmCreateXpmImageFromBuffer ()
+function reads the given buffer to fill in the given XpmImage structure.
+If the buffer does not contain valid XPM data, it returns
+.BR XpmFileInvalid .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+On success it returns
+.BR XpmSuccess .
+If the passed XpmInfo structure pointer is not NULL,
+.BR XpmCreateXpmImageFromBuffer ()
+looks for the following attributes: XpmReturnComments and XpmReturnExtensions,
+and sets possibly the XpmHotspot attribute when returning.
+As specified in the table (page 28), if the data related to the attributes XpmReturnComments and
+XpmReturnExtensions cannot be returned as requested because of insufficient memory storage,
+.BR XpmCreateXpmImageFromBuffer ()
+will change the valuemask to mention this and will try to continue.
+So the caller should check on this before accessing requested data.
+.PP
+Note: The valuemask of the passed XpmInfo structure must be set to some valid
+value, at least zero, otherwise unpredictable errors can occur.
+
+.SS XpmCreateXpmImageFromData
+.PP
+To create an XpmImage from an XPM data, use
+.BR XpmCreateXpmImageFromData ().
+.BR XpmCreateXpmImageFromData ()
+fills in the given XpmImage structure from the given data. If the data does not
+contain valid XPM data, it returns
+.BR XpmFileInvalid .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+On success it returns
+.BR XpmSuccess.
+If the passed XpmInfo structure pointer is not NULL,
+.BR XpmCreateXpmImageFromData ()
+looks for the following attributes:
+XpmReturnExtensions, and sets possibly the XpmHotspot attribute when returning.
+As specified in the table (page 28), if the data related to the attribute
+XpmReturnExtensions cannot be returned as requested because of
+insufficient memory storage,
+.BR XpmCreateXpmImageFromData ()
+will change the valuemask to mention this and will try to continue.
+So the caller should check on this before accessing requested data.
+.PP
+Note: The valuemask of the passed XpmInfo structure must be set to some valid
+value, at least zero, otherwise unpredictable errors can occur.
+
+.SS XpmCreateXpmImageFromImage
+.PP
+To create an XpmImage from an XImage, use
+.BR XpmCreateXpmImageFromImage ().
+From the given X images and XpmAttributes if not NULL,
+.BR XpmCreateXpmImageFromImage ()
+creates an XpmImage following the same mechanism as
+.BR XpmWriteFileFromImage (__libmansuffix__).
+
+.SS XpmCreateXpmImageFromPixmap
+.PP
+To create an XpmImage from a Pixmap, use
+.BR XpmCreateXpmImageFromPixmap ().
+From the given pixmaps and XpmAttributes if not NULL,
+.BR XpmCreateXpmImageFromPixmap ()
+gets the related XImages by calling XGetImage, then it gives them to
+.BR XpmCreateXpmImageFromImage ()
+to create an XpmImage which is returned to
+.IR xpmimage .
+Finally it destroys the created X images using
+.BR XDestroyImage (__libmansuffix__).
+
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmFreeXpmImage (__libmansuffix__),
+.BR XpmReadFileToBuffer (__libmansuffix__),
+.BR XpmReadFileToData (__libmansuffix__),
+.BR XpmReadFileToImage (__libmansuffix__),
+.BR XpmReadFileToPixmap (__libmansuffix__),
+.BR XpmWriteFileFromImage (__libmansuffix__)

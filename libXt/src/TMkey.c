@@ -1,7 +1,5 @@
-/*LINTLIBRARY*/
-
 /***********************************************************
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -86,7 +84,7 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #define FLUSHKEYCACHE(ctx) \
-	bzero((char *)&ctx->keycache, sizeof(TMKeyCache))
+        memset((void *)&ctx->keycache, 0, sizeof(TMKeyCache))
 
 /*
  * The following array reorders the modifier bits so that the most common ones
@@ -96,6 +94,8 @@ in this Software without prior written authorization from The Open Group.
  */
 
 #define FM(i) i >> (8 - TMKEYCACHELOG2)
+
+/* *INDENT-OFF* */
 static const unsigned char modmix[256] = {
 FM(0x0f), FM(0x8f), FM(0x4f), FM(0xcf), FM(0x2f), FM(0xaf), FM(0x6f), FM(0xef),
 FM(0x1f), FM(0x9f), FM(0x5f), FM(0xdf), FM(0x3f), FM(0xbf), FM(0x7f), FM(0xff),
@@ -130,82 +130,84 @@ FM(0x16), FM(0x96), FM(0x56), FM(0xd6), FM(0x36), FM(0xb6), FM(0x76), FM(0xf6),
 FM(0x0e), FM(0x8e), FM(0x4e), FM(0xce), FM(0x2e), FM(0xae), FM(0x6e), FM(0xee),
 FM(0x1e), FM(0x9e), FM(0x5e), FM(0xde), FM(0x3e), FM(0xbe), FM(0x7e), FM(0xfe)
 };
+/* *INDENT-ON* */
 #undef FM
 
 #define MOD_RETURN(ctx, key) (ctx)->keycache.modifiers_return[key]
 
 #define TRANSLATE(ctx,pd,dpy,key,mod,mod_ret,sym_ret) \
 { \
-    int _i_ = (((key) - (pd)->min_keycode + modmix[(mod) & 0xff]) & \
-	       (TMKEYCACHESIZE-1)); \
+    int _i_ = (((key) - (TMLongCard) (pd)->min_keycode + modmix[(mod) & 0xff]) & \
+               (TMKEYCACHESIZE-1)); \
     if ((key) == 0) { /* Xlib XIM composed input */ \
-	mod_ret = 0; \
-	sym_ret = 0; \
+        mod_ret = 0; \
+        sym_ret = 0; \
     } else if (   /* not Xlib XIM composed input */ \
-	(ctx)->keycache.keycode[_i_] == (key) && \
-	(ctx)->keycache.modifiers[_i_] == (mod)) { \
-	mod_ret = MOD_RETURN(ctx, key); \
-	sym_ret = (ctx)->keycache.keysym[_i_]; \
+        (ctx)->keycache.keycode[_i_] == (key) && \
+        (ctx)->keycache.modifiers[_i_] == (mod)) { \
+        mod_ret = MOD_RETURN(ctx, key); \
+        sym_ret = (ctx)->keycache.keysym[_i_]; \
     } else { \
-	XtTranslateKeycode(dpy, key, mod, &mod_ret, &sym_ret); \
-	(ctx)->keycache.keycode[_i_] = key; \
-	(ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
-	(ctx)->keycache.keysym[_i_] = sym_ret; \
-	MOD_RETURN(ctx, key) = (unsigned char)mod_ret; \
+        XtTranslateKeycode(dpy, (KeyCode) key, mod, &mod_ret, &sym_ret); \
+        (ctx)->keycache.keycode[_i_] = (KeyCode) (key); \
+        (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
+        (ctx)->keycache.keysym[_i_] = sym_ret; \
+        MOD_RETURN(ctx, key) = (unsigned char)mod_ret; \
     } \
 }
 
 #define UPDATE_CACHE(ctx, pd, key, mod, mod_ret, sym_ret) \
 { \
-    int _i_ = (((key) - (pd)->min_keycode + modmix[(mod) & 0xff]) & \
-	       (TMKEYCACHESIZE-1)); \
-    (ctx)->keycache.keycode[_i_] = key; \
+    int _i_ = (((key) - (TMLongCard) (pd)->min_keycode + modmix[(mod) & 0xff]) & \
+               (TMKEYCACHESIZE-1)); \
+    (ctx)->keycache.keycode[_i_] = (KeyCode) (key); \
     (ctx)->keycache.modifiers[_i_] = (unsigned char)(mod); \
     (ctx)->keycache.keysym[_i_] = sym_ret; \
-    MOD_RETURN(ctx, key) = (unsigned char)mod_ret; \
+    MOD_RETURN(ctx, key) = (unsigned char)(mod_ret); \
 }
 
 /* usual number of expected keycodes in XtKeysymToKeycodeList */
 #define KEYCODE_ARRAY_SIZE 10
 
-Boolean _XtComputeLateBindings(
-    Display *dpy,
-    LateBindingsPtr lateModifiers,
-    Modifiers *computed,
-    Modifiers *computedMask)
+Boolean
+_XtComputeLateBindings(Display *dpy,
+                       LateBindingsPtr lateModifiers,
+                       Modifiers *computed,
+                       Modifiers *computedMask)
 {
-    int i,j,ref;
-    ModToKeysymTable* temp;
+    int i, j, ref;
+    ModToKeysymTable *temp;
     XtPerDisplay perDisplay;
-    Boolean found;
     KeySym tempKeysym = NoSymbol;
 
     perDisplay = _XtGetPerDisplay(dpy);
     if (perDisplay == NULL) {
         XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-		"displayError","invalidDisplay",XtCXtToolkitError,
-            "Can't find display structure",
-            (String *)NULL, (Cardinal *)NULL);
-         return FALSE;
+                        "displayError", "invalidDisplay", XtCXtToolkitError,
+                        "Can't find display structure", NULL, NULL);
+        return FALSE;
     }
     _InitializeKeysymTables(dpy, perDisplay);
-    for (ref=0; lateModifiers[ref].keysym; ref++) {
-        found = FALSE;
-        for (i=0;i<8;i++) {
+    for (ref = 0; lateModifiers[ref].keysym; ref++) {
+        Boolean found = FALSE;
+
+        for (i = 0; i < 8; i++) {
             temp = &(perDisplay->modsToKeysyms[i]);
-            for (j=0;j<temp->count;j++){
-                if (perDisplay->modKeysyms[temp->idx+j] ==
-		    lateModifiers[ref].keysym) {
+            for (j = 0; j < temp->count; j++) {
+                if (perDisplay->modKeysyms[temp->idx + j] ==
+                    lateModifiers[ref].keysym) {
                     *computedMask = *computedMask | temp->mask;
                     if (!lateModifiers[ref].knot)
-		      *computed |= temp->mask;
+                        *computed |= temp->mask;
                     tempKeysym = lateModifiers[ref].keysym;
-                    found = TRUE; break;
+                    found = TRUE;
+                    break;
                 }
             }
-            if (found) break;
+            if (found)
+                break;
         }
-        if (!found  && !lateModifiers[ref].knot)
+        if (!found && !lateModifiers[ref].knot)
             if (!lateModifiers[ref].pair && (tempKeysym == NoSymbol))
                 return FALSE;
         /* if you didn't find the modifier and the modifier must be
@@ -214,17 +216,18 @@ Boolean _XtComputeLateBindings(
            return FALSE if this is the first member of a pair or if
            it is the second member of a pair when the first member
            was bound to a modifier */
-    if (!lateModifiers[ref].pair) tempKeysym = NoSymbol;
+        if (!lateModifiers[ref].pair)
+            tempKeysym = NoSymbol;
     }
     return TRUE;
 }
 
-void _XtAllocTMContext(
-    XtPerDisplay pd)
+void
+_XtAllocTMContext(XtPerDisplay pd)
 {
     TMKeyContext ctx;
-    ctx = (TMKeyContext)_XtHeapAlloc(&pd->heap,
-				     sizeof(TMKeyContextRec));
+
+    ctx = (TMKeyContext) _XtHeapAlloc(&pd->heap, sizeof(TMKeyContextRec));
     ctx->event = NULL;
     ctx->serial = 0;
     ctx->keysym = NoSymbol;
@@ -233,148 +236,154 @@ void _XtAllocTMContext(
     pd->tm_context = ctx;
 }
 
-static unsigned int num_bits(unsigned long mask)
+static unsigned int
+num_bits(unsigned long mask)
 {
     register unsigned long y;
 
-    y = (mask >> 1) &033333333333;
-    y = mask - y - ((y >>1) & 033333333333);
+    y = (mask >> 1) & 033333333333;
+    y = mask - y - ((y >> 1) & 033333333333);
     return ((unsigned int) (((y + (y >> 3)) & 030707070707) % 077));
 }
 
-Boolean _XtMatchUsingDontCareMods(
-    TMTypeMatch 	typeMatch,
-    TMModifierMatch 	modMatch,
-    TMEventPtr 		eventSeq)
+Boolean
+_XtMatchUsingDontCareMods(TMTypeMatch typeMatch,
+                          TMModifierMatch modMatch,
+                          TMEventPtr eventSeq)
 {
     Modifiers modifiers_return;
     KeySym keysym_return;
     Modifiers useful_mods;
-    int i, num_modbits;
     Modifiers computed = 0;
     Modifiers computedMask = 0;
     Boolean resolved = TRUE;
     Display *dpy = eventSeq->xev->xany.display;
     XtPerDisplay pd;
-    TMKeyContext tm_context;
 
     if (modMatch->lateModifiers != NULL)
-	resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
-					  &computed, &computedMask);
-    if (!resolved) return FALSE;
-    computed |= modMatch->modifiers;
-    computedMask |= modMatch->modifierMask; /* gives do-care mask */
+        resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
+                                          &computed, &computedMask);
+    if (!resolved)
+        return FALSE;
+    computed = (Modifiers) (computed | modMatch->modifiers);
+    computedMask = (Modifiers) (computedMask | modMatch->modifierMask); /* gives do-care mask */
 
-    if ( (computed & computedMask) ==
-        (eventSeq->event.modifiers & computedMask) ) {
+    if ((computed & computedMask) == (eventSeq->event.modifiers & computedMask)) {
+        TMKeyContext tm_context;
+        int num_modbits;
+        int i;
 
-	pd = _XtGetPerDisplay(dpy);
-	tm_context = pd->tm_context;
-	TRANSLATE(tm_context, pd, dpy, (KeyCode)eventSeq->event.eventCode,
-			    (unsigned)0, modifiers_return, keysym_return);
+        pd = _XtGetPerDisplay(dpy);
+        tm_context = pd->tm_context;
+        TRANSLATE(tm_context, pd, dpy, (KeyCode) eventSeq->event.eventCode,
+                  (unsigned) 0, modifiers_return, keysym_return);
 
-        if ((keysym_return & typeMatch->eventCodeMask)  == typeMatch->eventCode ) {
-	    tm_context->event = eventSeq->xev;
-	    tm_context->serial = eventSeq->xev->xany.serial;
-	    tm_context->keysym = keysym_return;
-	    tm_context->modifiers = (Modifiers)0;
-	    return TRUE;
-	}
+        if ((keysym_return & typeMatch->eventCodeMask) == typeMatch->eventCode) {
+            tm_context->event = eventSeq->xev;
+            tm_context->serial = eventSeq->xev->xany.serial;
+            tm_context->keysym = keysym_return;
+            tm_context->modifiers = (Modifiers) 0;
+            return TRUE;
+        }
         useful_mods = ~computedMask & modifiers_return;
-        if (useful_mods == 0) return FALSE;
+        if (useful_mods == 0)
+            return FALSE;
 
-	switch (num_modbits = num_bits(useful_mods)) {
-	case 1:
-	case 8:
-	    /*
-	     * one modbit should never happen, in fact the implementation
-	     * of XtTranslateKey and XmTranslateKey guarantee that it
-	     * won't, so don't care if the loop is set up for the case
-	     * when one modbit is set.
-	     * The performance implications of all eight modbits being
-	     * set is horrendous. This isn't a problem with Xt/Xaw based
-	     * applications. We can only hope that Motif's virtual
-	     * modifiers won't result in all eight modbits being set.
-	     */
-	    for (i = useful_mods; i > 0; i--) {
-		TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
-			  (Modifiers)i, modifiers_return, keysym_return);
-		if (keysym_return ==
-		    (typeMatch->eventCode & typeMatch->eventCodeMask)) {
-		    tm_context->event = eventSeq->xev;
-		    tm_context->serial = eventSeq->xev->xany.serial;
-		    tm_context->keysym = keysym_return;
-		    tm_context->modifiers = (Modifiers)i;
-		    return TRUE;
-		}
-	    }
-	    break;
-	default: /* (2..7) */
-	    {
-	    /*
-	     * Only translate using combinations of the useful modifiers.
-	     * to minimize the chance of invalidating the cache.
-	     */
-		static char pows[] = { 0, 1, 3, 7, 15, 31, 63, 127 };
-		Modifiers tmod, mod_masks[8];
-		int j;
-		for (tmod = 1, i = 0; tmod <= (Mod5Mask<<1); tmod <<= 1)
-		    if (tmod & useful_mods) mod_masks[i++] = tmod;
-		for (j = (int) pows[num_modbits]; j > 0; j--) {
-		    tmod = 0;
-		    for (i = 0; i < num_modbits; i++)
-			if (j & (1<<i)) tmod |= mod_masks[i];
-		    TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
-			      tmod, modifiers_return, keysym_return);
-		    if (keysym_return ==
-			(typeMatch->eventCode & typeMatch->eventCodeMask)) {
-			tm_context->event = eventSeq->xev;
-			tm_context->serial = eventSeq->xev->xany.serial;
-			tm_context->keysym = keysym_return;
-			tm_context->modifiers = (Modifiers)i;
-			return TRUE;
-		    }
-		}
-	    }
-	    break;
-	} /* switch (num_modbits) */
+        switch (num_modbits = (int) num_bits(useful_mods)) {
+        case 1:
+        case 8:
+            /*
+             * one modbit should never happen, in fact the implementation
+             * of XtTranslateKey and XmTranslateKey guarantee that it
+             * won't, so don't care if the loop is set up for the case
+             * when one modbit is set.
+             * The performance implications of all eight modbits being
+             * set is horrendous. This isn't a problem with Xt/Xaw based
+             * applications. We can only hope that Motif's virtual
+             * modifiers won't result in all eight modbits being set.
+             */
+            for (i = (int) useful_mods; i > 0; i--) {
+                TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
+                          (Modifiers) i, modifiers_return, keysym_return);
+                if (keysym_return ==
+                    (typeMatch->eventCode & typeMatch->eventCodeMask)) {
+                    tm_context->event = eventSeq->xev;
+                    tm_context->serial = eventSeq->xev->xany.serial;
+                    tm_context->keysym = keysym_return;
+                    tm_context->modifiers = (Modifiers) i;
+                    return TRUE;
+                }
+            }
+            break;
+        default:               /* (2..7) */
+        {
+            /*
+             * Only translate using combinations of the useful modifiers.
+             * to minimize the chance of invalidating the cache.
+             */
+            static char pows[] = { 0, 1, 3, 7, 15, 31, 63, 127 };
+            Modifiers tmod, mod_masks[8];
+            int j;
+
+            for (tmod = 1, i = 0; tmod <= (Mod5Mask << 1); tmod <<= 1)
+                if (tmod & useful_mods)
+                    mod_masks[i++] = tmod;
+            for (j = (int) pows[num_modbits]; j > 0; j--) {
+                tmod = 0;
+                for (i = 0; i < num_modbits; i++)
+                    if (j & (1 << i))
+                        tmod |= mod_masks[i];
+                TRANSLATE(tm_context, pd, dpy, eventSeq->event.eventCode,
+                          tmod, modifiers_return, keysym_return);
+                if (keysym_return ==
+                    (typeMatch->eventCode & typeMatch->eventCodeMask)) {
+                    tm_context->event = eventSeq->xev;
+                    tm_context->serial = eventSeq->xev->xany.serial;
+                    tm_context->keysym = keysym_return;
+                    tm_context->modifiers = (Modifiers) i;
+                    return TRUE;
+                }
+            }
+        }
+            break;
+        }                       /* switch (num_modbits) */
     }
     return FALSE;
 }
 
-void XtConvertCase(
-    Display *dpy,
-    KeySym keysym,
-    KeySym *lower_return,
-    KeySym *upper_return)
+void
+XtConvertCase(Display *dpy,
+              KeySym keysym,
+              KeySym *lower_return,
+              KeySym *upper_return)
 {
     XtPerDisplay pd;
     CaseConverterPtr ptr;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _XtGetPerDisplay(dpy);
 
     *lower_return = *upper_return = keysym;
-    for (ptr=pd->case_cvt;  ptr; ptr = ptr->next)
-	if (ptr->start <= keysym && keysym <= ptr->stop) {
-	    (*ptr->proc)(dpy, keysym, lower_return, upper_return);
-	    return;
-	}
+    for (ptr = pd->case_cvt; ptr; ptr = ptr->next)
+        if (ptr->start <= keysym && keysym <= ptr->stop) {
+            (*ptr->proc) (dpy, keysym, lower_return, upper_return);
+            return;
+        }
     XConvertCase(keysym, lower_return, upper_return);
     UNLOCK_APP(app);
 }
 
-Boolean _XtMatchUsingStandardMods (
-    TMTypeMatch typeMatch,
-    TMModifierMatch modMatch,
-    TMEventPtr eventSeq)
+Boolean
+_XtMatchUsingStandardMods(TMTypeMatch typeMatch,
+                          TMModifierMatch modMatch,
+                          TMEventPtr eventSeq)
 {
     Modifiers modifiers_return;
     KeySym keysym_return;
-    Modifiers computed= 0;
+    Modifiers computed = 0;
     Modifiers computedMask = 0;
-    Boolean resolved = TRUE;
     Display *dpy = eventSeq->xev->xany.display;
     XtPerDisplay pd = _XtGetPerDisplay(dpy);
     TMKeyContext tm_context = pd->tm_context;
@@ -388,67 +397,71 @@ Boolean _XtMatchUsingStandardMods (
 
     modifiers_return = MOD_RETURN(tm_context, eventSeq->event.eventCode);
     if (!modifiers_return) {
-	XtTranslateKeycode(dpy, (KeyCode)eventSeq->event.eventCode,
-			   eventSeq->event.modifiers, &modifiers_return,
-			   &keysym_return);
-	translateModifiers = eventSeq->event.modifiers & modifiers_return;
-	UPDATE_CACHE(tm_context, pd, eventSeq->event.eventCode,
-		     translateModifiers, modifiers_return, keysym_return);
-    } else {
-	translateModifiers = eventSeq->event.modifiers & modifiers_return;
-	TRANSLATE(tm_context, pd, dpy, (KeyCode)eventSeq->event.eventCode,
-		  translateModifiers, modifiers_return, keysym_return);
+        XtTranslateKeycode(dpy, (KeyCode) eventSeq->event.eventCode,
+                           (Modifiers) eventSeq->event.modifiers,
+                           &modifiers_return, &keysym_return);
+        translateModifiers =
+            (Modifiers) (eventSeq->event.modifiers & modifiers_return);
+        UPDATE_CACHE(tm_context, pd, eventSeq->event.eventCode,
+                     translateModifiers, modifiers_return, keysym_return);
+    }
+    else {
+        translateModifiers =
+            (Modifiers) (eventSeq->event.modifiers & modifiers_return);
+        TRANSLATE(tm_context, pd, dpy, (KeyCode) eventSeq->event.eventCode,
+                  translateModifiers, modifiers_return, keysym_return);
     }
 
     if ((typeMatch->eventCode & typeMatch->eventCodeMask) ==
-             (keysym_return & typeMatch->eventCodeMask)) {
+        (keysym_return & typeMatch->eventCodeMask)) {
+        Boolean resolved = TRUE;
+
         if (modMatch->lateModifiers != NULL)
             resolved = _XtComputeLateBindings(dpy, modMatch->lateModifiers,
-					      &computed, &computedMask);
-        if (!resolved) return FALSE;
-        computed |= modMatch->modifiers;
-        computedMask |= modMatch->modifierMask;
+                                              &computed, &computedMask);
+        if (!resolved)
+            return FALSE;
+        computed = (Modifiers) (computed | modMatch->modifiers);
+        computedMask = (Modifiers) (computedMask | modMatch->modifierMask);
 
         if ((computed & computedMask) ==
-	    (eventSeq->event.modifiers & ~modifiers_return & computedMask)) {
-	    tm_context->event = eventSeq->xev;
-	    tm_context->serial = eventSeq->xev->xany.serial;
-	    tm_context->keysym = keysym_return;
-	    tm_context->modifiers = translateModifiers;
-	    return TRUE;
-	}
+            (eventSeq->event.modifiers & ~modifiers_return & computedMask)) {
+            tm_context->event = eventSeq->xev;
+            tm_context->serial = eventSeq->xev->xany.serial;
+            tm_context->keysym = keysym_return;
+            tm_context->modifiers = translateModifiers;
+            return TRUE;
+        }
     }
     return FALSE;
 }
 
-
-void _XtBuildKeysymTables(
-    Display *dpy,
-    register XtPerDisplay pd)
+void
+_XtBuildKeysymTables(Display *dpy, register XtPerDisplay pd)
 {
     ModToKeysymTable *table;
-    int maxCount,i,j,k,tempCount,idx;
-    KeySym keysym,tempKeysym;
-    XModifierKeymap* modKeymap;
+    int maxCount, i, j, k, tempCount, idx;
+    KeySym keysym, tempKeysym;
+    XModifierKeymap *modKeymap;
     KeyCode keycode;
+
 #define KeysymTableSize 16
 
     FLUSHKEYCACHE(pd->tm_context);
-    if (pd->keysyms)
-	XFree( (char *)pd->keysyms );
+
+    XFree((char *) pd->keysyms);
     pd->keysyms_serial = NextRequest(dpy);
-    pd->keysyms = XGetKeyboardMapping(dpy, pd->min_keycode,
-				      pd->max_keycode-pd->min_keycode+1,
-				      &pd->keysyms_per_keycode);
-    if (pd->modKeysyms)
-	XtFree((char *)pd->modKeysyms);
-    if (pd->modsToKeysyms)
-	XtFree((char *)pd->modsToKeysyms);
-    pd->modKeysyms = (KeySym*)__XtMalloc((Cardinal)KeysymTableSize*sizeof(KeySym));
+    pd->keysyms = XGetKeyboardMapping(dpy, (KeyCode) pd->min_keycode,
+                                      pd->max_keycode - pd->min_keycode + 1,
+                                      &pd->keysyms_per_keycode);
+    XtFree((char *) pd->modKeysyms);
+
+    pd->modKeysyms = XtMallocArray(KeysymTableSize, (Cardinal) sizeof(KeySym));
     maxCount = KeysymTableSize;
     tempCount = 0;
 
-    table = (ModToKeysymTable*)__XtMalloc((Cardinal)8*sizeof(ModToKeysymTable));
+    XtFree((char *) pd->modsToKeysyms);
+    table = XtMallocArray(8, (Cardinal) sizeof(ModToKeysymTable));
     pd->modsToKeysyms = table;
 
     table[0].mask = ShiftMask;
@@ -462,31 +475,34 @@ void _XtBuildKeysymTables(
     tempKeysym = 0;
 
     modKeymap = XGetModifierMapping(dpy);
-    for (i=0;i<32;i++)
-	pd->isModifier[i] = 0;
+    for (i = 0; i < 32; i++)
+        pd->isModifier[i] = 0;
     pd->mode_switch = 0;
     pd->num_lock = 0;
-    for (i=0;i<8;i++) {
+    for (i = 0; i < 8; i++) {
         table[i].idx = tempCount;
         table[i].count = 0;
-        for (j=0;j<modKeymap->max_keypermod;j++) {
-            keycode = modKeymap->modifiermap[i*modKeymap->max_keypermod+j];
+        for (j = 0; j < modKeymap->max_keypermod; j++) {
+            keycode = modKeymap->modifiermap[i * modKeymap->max_keypermod + j];
             if (keycode != 0) {
-		pd->isModifier[keycode>>3] |= 1 << (keycode & 7);
-                for (k=0; k<pd->keysyms_per_keycode;k++) {
-                    idx = ((keycode-pd->min_keycode)*
-                             pd->keysyms_per_keycode)+k;
+                pd->isModifier[keycode >> 3] |=
+                    (unsigned char) (1 << (keycode & 7));
+                for (k = 0; k < pd->keysyms_per_keycode; k++) {
+                    idx = ((keycode - pd->min_keycode) *
+                           pd->keysyms_per_keycode) + k;
                     keysym = pd->keysyms[idx];
-		    if ((keysym == XK_Mode_switch) && (i > 2))
-			pd->mode_switch |= 1 << i;
-		    if ((keysym == XK_Num_Lock) && (i > 2))
-			pd->num_lock |= 1 << i;
-                    if (keysym != 0 && keysym != tempKeysym ){
-                        if (tempCount==maxCount) {
+                    if ((keysym == XK_Mode_switch) && (i > 2))
+                        pd->mode_switch =
+                            (pd->mode_switch | (Modifiers) (1 << i));
+                    if ((keysym == XK_Num_Lock) && (i > 2))
+                        pd->num_lock = (pd->num_lock | (Modifiers) (1 << i));
+                    if (keysym != 0 && keysym != tempKeysym) {
+                        if (tempCount == maxCount) {
                             maxCount += KeysymTableSize;
-                            pd->modKeysyms = (KeySym*)XtRealloc(
-                                (char*)pd->modKeysyms,
-                                (unsigned) (maxCount*sizeof(KeySym)) );
+                            pd->modKeysyms =
+                                XtReallocArray(pd->modKeysyms,
+                                               (Cardinal) maxCount,
+                                               (Cardinal) sizeof(KeySym));
                         }
                         pd->modKeysyms[tempCount++] = keysym;
                         table[i].count++;
@@ -498,107 +514,113 @@ void _XtBuildKeysymTables(
     }
     pd->lock_meaning = NoSymbol;
     for (i = 0; i < table[1].count; i++) {
-	keysym = pd->modKeysyms[table[1].idx + i];
-	if (keysym == XK_Caps_Lock) {
-	    pd->lock_meaning = XK_Caps_Lock;
-	    break;
-	} else if (keysym == XK_Shift_Lock) {
-	    pd->lock_meaning = XK_Shift_Lock;
-	}
+        keysym = pd->modKeysyms[table[1].idx + i];
+        if (keysym == XK_Caps_Lock) {
+            pd->lock_meaning = XK_Caps_Lock;
+            break;
+        }
+        else if (keysym == XK_Shift_Lock) {
+            pd->lock_meaning = XK_Shift_Lock;
+        }
     }
     XFreeModifiermap(modKeymap);
 }
 
-void XtTranslateKeycode (
-    Display *dpy,
-    _XtKeyCode keycode,
-    Modifiers modifiers,
-    Modifiers *modifiers_return,
-    KeySym *keysym_return)
+void
+XtTranslateKeycode(Display *dpy,
+                   _XtKeyCode keycode,
+                   Modifiers modifiers,
+                   Modifiers *modifiers_return,
+                   KeySym *keysym_return)
 {
     XtPerDisplay pd;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _XtGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
-    (*pd->defaultKeycodeTranslator)(
-            dpy,keycode,modifiers,modifiers_return,keysym_return);
+    (*pd->defaultKeycodeTranslator) (dpy, keycode, modifiers, modifiers_return,
+                                     keysym_return);
     UNLOCK_APP(app);
 }
 
 /* This code should match XTranslateKey (internal, sigh) in Xlib */
-void XtTranslateKey(
-    register Display *dpy,
-    _XtKeyCode keycode,
-    Modifiers modifiers,
-    Modifiers *modifiers_return,
-    KeySym *keysym_return)
+void
+XtTranslateKey(register Display *dpy,
+               _XtKeyCode keycode,
+               Modifiers modifiers,
+               Modifiers *modifiers_return,
+               KeySym *keysym_return)
 {
 #ifndef XKB
     XtPerDisplay pd;
     int per;
     register KeySym *syms;
     KeySym sym, lsym, usym;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _XtGetPerDisplay(dpy);
-    *modifiers_return = (ShiftMask|LockMask) | pd->mode_switch | pd->num_lock;
-    if (((int)keycode < pd->min_keycode) || ((int)keycode > pd->max_keycode)) {
-	*keysym_return = NoSymbol;
-	UNLOCK_APP(app);
-	return;
+    *modifiers_return = (ShiftMask | LockMask) | pd->mode_switch | pd->num_lock;
+    if (((int) keycode < pd->min_keycode) || ((int) keycode > pd->max_keycode)) {
+        *keysym_return = NoSymbol;
+        UNLOCK_APP(app);
+        return;
     }
     per = pd->keysyms_per_keycode;
     syms = &pd->keysyms[(keycode - pd->min_keycode) * per];
     while ((per > 2) && (syms[per - 1] == NoSymbol))
-	per--;
+        per--;
     if ((per > 2) && (modifiers & pd->mode_switch)) {
-	syms += 2;
-	per -= 2;
+        syms += 2;
+        per -= 2;
     }
     if ((modifiers & pd->num_lock) &&
-	(per > 1 && (IsKeypadKey(syms[1]) || IsPrivateKeypadKey(syms[1])))) {
-	if ((modifiers & ShiftMask) ||
-	    ((modifiers & LockMask) && (pd->lock_meaning == XK_Shift_Lock)))
-	    *keysym_return = syms[0];
-	else
-	    *keysym_return = syms[1];
-    } else if (!(modifiers & ShiftMask) &&
-	(!(modifiers & LockMask) || (pd->lock_meaning == NoSymbol))) {
-	if ((per == 1) || (syms[1] == NoSymbol))
-	    XtConvertCase(dpy, syms[0], keysym_return, &usym);
-	else
-	    *keysym_return = syms[0];
-    } else if (!(modifiers & LockMask) ||
-	       (pd->lock_meaning != XK_Caps_Lock)) {
-	if ((per == 1) || ((usym = syms[1]) == NoSymbol))
-	    XtConvertCase(dpy, syms[0], &lsym, &usym);
-	*keysym_return = usym;
-    } else {
-	if ((per == 1) || ((sym = syms[1]) == NoSymbol))
-	    sym = syms[0];
-	XtConvertCase(dpy, sym, &lsym, &usym);
-	if (!(modifiers & ShiftMask) && (sym != syms[0]) &&
-	    ((sym != usym) || (lsym == usym)))
-	    XtConvertCase(dpy, syms[0], &lsym, &usym);
-	*keysym_return = usym;
+        (per > 1 && (IsKeypadKey(syms[1]) || IsPrivateKeypadKey(syms[1])))) {
+        if ((modifiers & ShiftMask) ||
+            ((modifiers & LockMask) && (pd->lock_meaning == XK_Shift_Lock)))
+            *keysym_return = syms[0];
+        else
+            *keysym_return = syms[1];
+    }
+    else if (!(modifiers & ShiftMask) &&
+             (!(modifiers & LockMask) || (pd->lock_meaning == NoSymbol))) {
+        if ((per == 1) || (syms[1] == NoSymbol))
+            XtConvertCase(dpy, syms[0], keysym_return, &usym);
+        else
+            *keysym_return = syms[0];
+    }
+    else if (!(modifiers & LockMask) || (pd->lock_meaning != XK_Caps_Lock)) {
+        if ((per == 1) || ((usym = syms[1]) == NoSymbol))
+            XtConvertCase(dpy, syms[0], &lsym, &usym);
+        *keysym_return = usym;
+    }
+    else {
+        if ((per == 1) || ((sym = syms[1]) == NoSymbol))
+            sym = syms[0];
+        XtConvertCase(dpy, sym, &lsym, &usym);
+        if (!(modifiers & ShiftMask) && (sym != syms[0]) &&
+            ((sym != usym) || (lsym == usym)))
+            XtConvertCase(dpy, syms[0], &lsym, &usym);
+        *keysym_return = usym;
     }
 
     if (*keysym_return == XK_VoidSymbol)
-	*keysym_return = NoSymbol;
+        *keysym_return = NoSymbol;
     UNLOCK_APP(app);
 #else
-    XkbLookupKeySym(dpy, keycode, modifiers, modifiers_return, keysym_return);
+    XkbLookupKeySym(dpy, (KeyCode) keycode, modifiers, modifiers_return,
+                    keysym_return);
 #endif
 }
 
-void XtSetKeyTranslator(
-    Display *dpy,
-    XtKeyProc translator)
+void
+XtSetKeyTranslator(Display *dpy, XtKeyProc translator)
 {
     XtPerDisplay pd;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
@@ -610,14 +632,15 @@ void XtSetKeyTranslator(
     UNLOCK_APP(app);
 }
 
-void XtRegisterCaseConverter(
-    Display *dpy,
-    XtCaseProc proc,
-    KeySym start,
-    KeySym stop)
+void
+XtRegisterCaseConverter(Display *dpy,
+                        XtCaseProc proc,
+                        KeySym start,
+                        KeySym stop)
 {
     XtPerDisplay pd;
     CaseConverterPtr ptr, prev;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
@@ -632,52 +655,55 @@ void XtRegisterCaseConverter(
 
     /* Remove obsolete case converters from the list */
     prev = ptr;
-    for (ptr=ptr->next; ptr; ptr=prev->next) {
-	if (start <= ptr->start && stop >= ptr->stop) {
-	    prev->next = ptr->next;
-	    XtFree((char *)ptr);
-	}
-	else prev = ptr;
+    for (ptr = ptr->next; ptr; ptr = prev->next) {
+        if (start <= ptr->start && stop >= ptr->stop) {
+            prev->next = ptr->next;
+            XtFree((char *) ptr);
+        }
+        else
+            prev = ptr;
     }
     FLUSHKEYCACHE(pd->tm_context);
     /* XXX should now redo grabs */
     UNLOCK_APP(app);
 }
 
-KeySym *XtGetKeysymTable(
-    Display *dpy,
-    KeyCode *min_keycode_return,
-    int *keysyms_per_keycode_return)
+KeySym *
+XtGetKeysymTable(Display *dpy,
+                 KeyCode *min_keycode_return,
+                 int *keysyms_per_keycode_return)
 {
     XtPerDisplay pd;
-    KeySym* retval;
+    KeySym *retval;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
     pd = _XtGetPerDisplay(dpy);
     _InitializeKeysymTables(dpy, pd);
-    *min_keycode_return = pd->min_keycode; /* %%% */
+    *min_keycode_return = (KeyCode) pd->min_keycode;    /* %%% */
     *keysyms_per_keycode_return = pd->keysyms_per_keycode;
     retval = pd->keysyms;
     UNLOCK_APP(app);
     return retval;
 }
 
-void XtKeysymToKeycodeList(
-    Display *dpy,
-    KeySym keysym,
-    KeyCode **keycodes_return,
-    Cardinal *keycount_return)
+void
+XtKeysymToKeycodeList(Display *dpy,
+                      KeySym keysym,
+                      KeyCode **keycodes_return,
+                      Cardinal *keycount_return)
 {
     XtPerDisplay pd;
     unsigned keycode;
-    int per, match;
+    int per;
     register KeySym *syms;
     register int i, j;
     KeySym lsym, usym;
     unsigned maxcodes = 0;
     unsigned ncodes = 0;
     KeyCode *keycodes, *codeP = NULL;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);
@@ -686,40 +712,40 @@ void XtKeysymToKeycodeList(
     keycodes = NULL;
     per = pd->keysyms_per_keycode;
     for (syms = pd->keysyms, keycode = (unsigned) pd->min_keycode;
-	 (int)keycode <= pd->max_keycode;
-	 syms += per, keycode++) {
-	match = 0;
-	for (j = 0; j < per; j++) {
-	    if (syms[j] == keysym) {
-		match = 1;
-		break;
-	    }
-	}
-	if (!match)
-	    for (i = 1; i < 5; i += 2) {
-		if ((per == i) || ((per > i) && (syms[i] == NoSymbol))) {
-		    XtConvertCase(dpy, syms[i-1], &lsym, &usym);
-		    if ((lsym == keysym) || (usym == keysym)) {
-			match = 1;
-			break;
-		    }
-		}
-	    }
-	if (match) {
-	    if (ncodes == maxcodes) {
-		KeyCode *old = keycodes;
-		maxcodes += KEYCODE_ARRAY_SIZE;
-		keycodes = (KeyCode*)__XtMalloc(maxcodes*sizeof(KeyCode));
-		if (ncodes) {
-		    (void) memmove((char *)keycodes, (char *)old,
-				   ncodes*sizeof(KeyCode) );
-		    XtFree((char *)old);
-		}
-		codeP = &keycodes[ncodes];
-	    }
-	    *codeP++ = (KeyCode) keycode;
-	    ncodes++;
-	}
+         (int) keycode <= pd->max_keycode; syms += per, keycode++) {
+        int match = 0;
+
+        for (j = 0; j < per; j++) {
+            if (syms[j] == keysym) {
+                match = 1;
+                break;
+            }
+        }
+        if (!match)
+            for (i = 1; i < 5; i += 2) {
+                if ((per == i) || ((per > i) && (syms[i] == NoSymbol))) {
+                    XtConvertCase(dpy, syms[i - 1], &lsym, &usym);
+                    if ((lsym == keysym) || (usym == keysym)) {
+                        match = 1;
+                        break;
+                    }
+                }
+            }
+        if (match) {
+            if (ncodes == maxcodes) {
+                KeyCode *old = keycodes;
+
+                maxcodes += KEYCODE_ARRAY_SIZE;
+                keycodes = XtMallocArray(maxcodes, (Cardinal) sizeof(KeyCode));
+                if (ncodes) {
+                    (void) memcpy(keycodes, old, ncodes * sizeof(KeyCode));
+                    XtFree((char *) old);
+                }
+                codeP = &keycodes[ncodes];
+            }
+            *codeP++ = (KeyCode) keycode;
+            ncodes++;
+        }
     }
     *keycodes_return = keycodes;
     *keycount_return = ncodes;

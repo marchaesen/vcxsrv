@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-Times-Medium-I-Normal--11-80-100-100-P-52-ISO10646-1
 SIZE 8 100 100
 FONTBOUNDINGBOX 13 18 -2 -5
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

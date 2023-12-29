@@ -213,7 +213,7 @@ XawParseParamsString(String name)
 	      ++xaw_params->num_args;
 	      xaw_params->args = (XawArgVal **)
 		XtRealloc((char *)xaw_params->args,
-			  sizeof(XawArgVal*) * xaw_params->num_args);
+			  (Cardinal)(sizeof(XawArgVal*) * (size_t)xaw_params->num_args));
 	    }
 	  xaw_params->args[xaw_params->num_args - 1] = xaw_arg;
 	}
@@ -238,9 +238,9 @@ XawFreeParamsStruct(XawParams *params)
 
   for (i = 0; i < params->num_args; i++)
     {
-      XtFree(params->args[i]->name);
+      XtFree((char *)params->args[i]->name);
       if (params->args[i]->value)
-	XtFree(params->args[i]->value);
+	XtFree((char *)params->args[i]->value);
       XtFree((char *)params->args[i]);
     }
 
@@ -332,9 +332,9 @@ XawAddPixmapLoader(String type, String ext, XawPixmapLoader loader)
     {
       loader_info[i]->loader = loader;
       if (loader_info[i]->type)
-	XtFree(loader_info[i]->type);
+	XtFree((char *)loader_info[i]->type);
       if (loader_info[i]->ext)
-	XtFree(loader_info[i]->ext);
+	XtFree((char *)loader_info[i]->ext);
       loader_info[i]->type = type ? XtNewString(type) : NULL;
       loader_info[i]->ext = ext ? XtNewString(ext) : NULL;
       return (True);
@@ -359,7 +359,7 @@ XawAddPixmapLoader(String type, String ext, XawPixmapLoader loader)
       ++num_loader_info;
       loader_info = (XawPixmapLoaderInfo**)
 	XtRealloc((char *)loader_info,
-		  sizeof(XawPixmapLoaderInfo) * num_loader_info);
+		  (Cardinal)(sizeof(XawPixmapLoaderInfo) * (size_t)num_loader_info));
     }
   loader_info[num_loader_info - 1] = info;
 
@@ -401,8 +401,8 @@ bcmp_x_cache(register _Xconst void *pixmap, register _Xconst void *xaw)
 static int
 qcmp_long(register _Xconst void *left, register _Xconst void *right)
 {
-  return ((long)((*(XawCache **)left)->value) -
-	  (long)((*(XawCache **)right)->value));
+  return (int)((long)((*(XawCache **)left)->value) -
+	       (long)((*(XawCache **)right)->value));
 }
 
 static int
@@ -415,7 +415,7 @@ qcmp_string(register _Xconst void *left, register _Xconst void *right)
 static int
 bcmp_long(register _Xconst void *value, register _Xconst void *cache)
 {
-  return ((long)value - (long)((*(XawCache **)cache)->value));
+  return (int)((long)value - (long)((*(XawCache **)cache)->value));
 }
 
 static int
@@ -490,7 +490,7 @@ _XawGetCache(XawCache *xaw, Screen *screen, Colormap colormap, int depth)
 	      ++xaw->num_elems;
 	      xaw->elems = (XtPointer*)
 		XtRealloc((char *)xaw->elems,
-			  sizeof(XtPointer) * xaw->num_elems);
+			  (Cardinal)(sizeof(XtPointer) * (size_t)xaw->num_elems));
 	    }
 	  pcache->value = (long)screen;
 	  pcache->elems = NULL;
@@ -516,7 +516,7 @@ _XawGetCache(XawCache *xaw, Screen *screen, Colormap colormap, int depth)
 	      ++s_cache->num_elems;
 	      s_cache->elems = (XtPointer*)
 		XtRealloc((char *)s_cache->elems,
-			  sizeof(XtPointer) * s_cache->num_elems);
+			  (Cardinal)(sizeof(XtPointer) * s_cache->num_elems));
 	    }
 	  pcache->value = (long)colormap;
 	  pcache->elems = NULL;
@@ -543,7 +543,7 @@ _XawGetCache(XawCache *xaw, Screen *screen, Colormap colormap, int depth)
 	      ++c_cache->num_elems;
 	      c_cache->elems = (XtPointer*)
 		XtRealloc((char *)c_cache->elems,
-			  sizeof(XtPointer) * c_cache->num_elems);
+			  (Cardinal)(sizeof(XtPointer) * c_cache->num_elems));
 	    }
 	  pcache->value = (long)depth;
 	  pcache->elems = NULL;
@@ -622,8 +622,8 @@ _XawCachePixmap(XawPixmap *pixmap,
     {
       ++xaw_cache->num_elems;
       xaw_cache->elems = (XtPointer*)XtRealloc((char *)xaw_cache->elems,
-					       sizeof(XtPointer) *
-					       xaw_cache->num_elems);
+					       (Cardinal)(sizeof(XtPointer) *
+							  xaw_cache->num_elems));
     }
 
   xaw_cache->elems[xaw_cache->num_elems - 1] = (XtPointer)pixmap;
@@ -641,8 +641,8 @@ _XawCachePixmap(XawPixmap *pixmap,
     {
       ++x_cache->num_elems;
       x_cache->elems = (XtPointer*)XtRealloc((char *)x_cache->elems,
-					     sizeof(XtPointer) *
-					     x_cache->num_elems);
+					     (Cardinal)(sizeof(XtPointer) *
+							x_cache->num_elems));
     }
 
   x_cache->elems[x_cache->num_elems - 1] = (XtPointer)pixmap;
@@ -679,18 +679,19 @@ GetResourcePixmapPath(Display *display)
 	char *tok, *buffer = XtNewString(value.addr);
 
 	for (tok = strtok(buffer, ":"); tok; tok = strtok(NULL, ":")) {
-	    int toklen = strlen(tok);
+	    int toklen = (int)strlen(tok);
 
 	    if (toklen) {
-		pixmap_path = XtRealloc(pixmap_path, length + toklen + 5);
+		pixmap_path = XtRealloc(pixmap_path, (Cardinal)(length + toklen + 5));
 		strcpy(pixmap_path + length, tok);
 		if (length)
 		    pixmap_path[length++] = ':';
 		sprintf(pixmap_path + length, "%s/%%N", tok);
-		length += strlen(tok) + 3;
+		length = (length + (int)strlen(tok) + 3);
 	    }
 	}
-	pixmap_path = XtRealloc(pixmap_path, length + strlen(default_path) + 2);
+	XtFree(buffer);
+	pixmap_path = XtRealloc(pixmap_path, (Cardinal)((size_t)length + strlen(default_path) + 2));
 	if (length)
 	    pixmap_path[length++] = ':';
 	strcpy(pixmap_path + length, default_path);
@@ -762,13 +763,13 @@ BitmapLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
       pixmap = XCreatePixmapFromBitmapData(DisplayOfScreen(screen),
 					   RootWindowOfScreen(screen),
 					   (char *)data,
-					   width, height, fg, bg, depth);
+					   width, height, fg, bg, (unsigned)depth);
       if (data)
 	XFree(data);
       *pixmap_return = pixmap;
       *mask_return = None;
-      *width_return = width;
-      *height_return = height;
+      *width_return = (Dimension)width;
+      *height_return = (Dimension)height;
 
       retval = True;
     }
@@ -850,8 +851,8 @@ GradientLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
 
   if ((pixmap = XCreatePixmap(DisplayOfScreen(screen),
 			      RootWindowOfScreen(screen),
-			      orientation == VERTICAL ? 1 : dimension,
-			      orientation == VERTICAL ? dimension : 1, depth))
+			      (unsigned)(orientation == VERTICAL ? 1 : dimension),
+			      (unsigned)(orientation == VERTICAL ? dimension : 1), (unsigned)depth))
       == 0)
     return (False);
 
@@ -916,8 +917,8 @@ GradientLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
 
   *pixmap_return = pixmap;
   *mask_return = None;
-  *width_return = orientation == VERTICAL ? 1 : dimension;
-  *height_return = orientation == VERTICAL ? dimension : 1;
+  *width_return = (Dimension)(orientation == VERTICAL ? 1 : dimension);
+  *height_return = (Dimension)(orientation == VERTICAL ? dimension : 1);
 
   XFreeGC(DisplayOfScreen(screen), gc);
 
@@ -925,7 +926,7 @@ GradientLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
 }
 
 static Bool
-XPixmapLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
+XPixmapLoader(XawParams *params, Screen *screen, Colormap colormap, int depth _X_UNUSED,
 	      Pixmap *pixmap_return, Pixmap *mask_return,
 	      Dimension *width_return, Dimension *height_return)
 {
@@ -938,11 +939,11 @@ XPixmapLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
     {'T',   "pixmaps"},
     {'P',   PROJECT_ROOT},
   };
-  char *filename;
+  const char *filename;
 
   if ((argval = XawFindArgVal(params, "closeness")) != NULL
       && argval->value)
-    closeness = atoi(argval->value);
+    closeness = (unsigned)atoi(argval->value);
 
   if (params->name[0] != '/' && params->name[0] != '.')
     {
@@ -965,8 +966,8 @@ XPixmapLoader(XawParams *params, Screen *screen, Colormap colormap, int depth,
 			  RootWindowOfScreen(screen), filename, pixmap_return,
 			  mask_return, &xpm_attributes) == XpmSuccess)
     {
-      *width_return = xpm_attributes.width;
-      *height_return = xpm_attributes.height;
+      *width_return = (Dimension)xpm_attributes.width;
+      *height_return = (Dimension)xpm_attributes.height;
 
       return (True);
     }

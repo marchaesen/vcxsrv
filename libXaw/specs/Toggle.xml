@@ -34,7 +34,7 @@ the user to cancel the operation.
 </para>
 
 <para>
-Toggle widgets may also be part of a ``radio group.''  A radio group is a
+Toggle widgets may also be part of a <quote>radio group.</quote>  A radio group is a
 list of at least two Toggle widgets in which no more than one Toggle may
 be set at
 any time.  A radio group is identified by the widget ID of any one of
@@ -566,7 +566,7 @@ multi-plane pixmap.
 <para>
 There are typically two types of radio groups desired by applications.
 The default translations for the Toggle widget implement a "zero or one
-<!-- .IN "Radio groups" "zero or one of many" -->
+<indexterm><primary>Radio groups</primary><secondary>zero or one of many</secondary></indexterm>
 of many" radio group.  This means that there may be no more than one
 Toggle widget active, but there need not be any Toggle widgets active.
 </para>

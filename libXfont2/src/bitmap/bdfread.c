@@ -53,6 +53,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #include <ctype.h>
 #include <X11/fonts/fntfilst.h>
@@ -107,7 +108,7 @@ bdfReadBitmap(CharInfoPtr pCI, FontFilePtr file, int bit, int byte,
 
     widthBytes = BYTES_PER_ROW(widthBits, glyph);
     if (widthBytes * height > 0) {
-	picture = malloc(widthBytes * height);
+	picture = mallocarray(widthBytes, height);
 	if (!picture) {
           bdfError("Couldn't allocate picture (%d*%d)\n", widthBytes, height);
 	    goto BAILOUT;
@@ -313,7 +314,7 @@ bdfReadCharacters(FontFilePtr file, FontPtr pFont, bdfFileState *pState,
     bitmapFont->metrics = ci;
 
     if (bitmapExtra) {
-	bitmapExtra->glyphNames = malloc(nchars * sizeof(Atom));
+	bitmapExtra->glyphNames = mallocarray(nchars, sizeof(Atom));
 	if (!bitmapExtra->glyphNames) {
 	    bdfError("Couldn't allocate glyphNames (%d*%d)\n",
 		     nchars, (int) sizeof(Atom));
@@ -321,7 +322,7 @@ bdfReadCharacters(FontFilePtr file, FontPtr pFont, bdfFileState *pState,
 	}
     }
     if (bitmapExtra) {
-	bitmapExtra->sWidths = malloc(nchars * sizeof(int));
+	bitmapExtra->sWidths = mallocarray(nchars, sizeof(int));
 	if (!bitmapExtra->sWidths) {
 	    bdfError("Couldn't allocate sWidth (%d *%d)\n",
 		     nchars, (int) sizeof(int));
@@ -640,7 +641,7 @@ bdfReadProperties(FontFilePtr file, FontPtr pFont, bdfFileState *pState)
     pFont->info.props = NULL;
     pFont->info.nprops = 0;
 
-    stringProps = malloc((nProps + BDF_GENPROPS) * sizeof(char));
+    stringProps = mallocarray((nProps + BDF_GENPROPS), sizeof(char));
     pFont->info.isStringProp = stringProps;
     if (stringProps == NULL) {
 	bdfError("Couldn't allocate stringProps (%d*%d)\n",
@@ -676,7 +677,7 @@ bdfReadProperties(FontFilePtr file, FontPtr pFont, bdfFileState *pState)
 
 	case 2:
 	    /*
-	     * Possibilites include: valid quoted string with no white space
+	     * Possibilities include: valid quoted string with no white space
 	     * valid integer value invalid value
 	     */
 	    if (secondbuf[0] == '"') {
@@ -697,7 +698,7 @@ bdfReadProperties(FontFilePtr file, FontPtr pFont, bdfFileState *pState)
 
 	case 3:
 	    /*
-	     * Possibilites include: valid quoted string with some white space
+	     * Possibilities include: valid quoted string with some white space
 	     * invalid value (reject even if second string is integer)
 	     */
 	    if (secondbuf[0] == '"') {

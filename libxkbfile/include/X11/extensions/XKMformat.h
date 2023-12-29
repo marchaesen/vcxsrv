@@ -6,19 +6,19 @@
  fee is hereby granted, provided that the above copyright
  notice appear in all copies and that both that copyright
  notice and this permission notice appear in supporting
- documentation, and that the name of Silicon Graphics not be 
- used in advertising or publicity pertaining to distribution 
+ documentation, and that the name of Silicon Graphics not be
+ used in advertising or publicity pertaining to distribution
  of the software without specific prior written permission.
- Silicon Graphics makes no representation about the suitability 
+ Silicon Graphics makes no representation about the suitability
  of this software for any purpose. It is provided "as is"
  without any express or implied warranty.
- 
- SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS 
- SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY 
+
+ SILICON GRAPHICS DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS
+ SOFTWARE, INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY
  AND FITNESS FOR A PARTICULAR PURPOSE. IN NO EVENT SHALL SILICON
- GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL 
- DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE, 
- DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE 
+ GRAPHICS BE LIABLE FOR ANY SPECIAL, INDIRECT OR CONSEQUENTIAL
+ DAMAGES OR ANY DAMAGES WHATSOEVER RESULTING FROM LOSS OF USE,
+ DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION  WITH
  THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
@@ -36,23 +36,23 @@ typedef	struct _xkmFileInfo {
 	CARD8		min_kc;
 	CARD8		max_kc;
 	CARD8		num_toc;
-	CARD16		present B16;
-	CARD16		pad B16;
+	CARD16		present;
+	CARD16		pad;
 } xkmFileInfo;
 #define	sz_xkmFileInfo	8
 
 typedef	struct _xkmSectionInfo {
-	CARD16		type B16;
-	CARD16		format B16;
-	CARD16		size B16;
-	CARD16		offset B16;
+	CARD16		type;
+	CARD16		format;
+	CARD16		size;
+	CARD16		offset;
 } xkmSectionInfo;
 #define	sz_xkmSectionInfo	8
 
 typedef struct _xkmKeyTypeDesc {
 	CARD8		realMods;
 	CARD8		numLevels;
-	CARD16		virtualMods B16;
+	CARD16		virtualMods;
 	CARD8		nMapEntries;
 	CARD8		nLevelNames;
 	CARD8		preserve;
@@ -63,26 +63,26 @@ typedef struct _xkmKeyTypeDesc {
 typedef struct _xkmKTMapEntryDesc {
 	CARD8		level;
 	CARD8		realMods;
-	CARD16		virtualMods B16;
+	CARD16		virtualMods;
 } xkmKTMapEntryDesc;
 #define	sz_xkmKTMapEntryDesc	4
 
 typedef struct _xkmModsDesc {
 	CARD8		realMods;
 	CARD8		pad;
-	CARD16		virtualMods B16;
+	CARD16		virtualMods;
 } xkmModsDesc;
 #define	sz_xkmModsDesc	4
 
 typedef struct _xkmVModMapDesc {
 	CARD8		key;
 	CARD8		pad;
-	CARD16		vmods B16;
+	CARD16		vmods;
 } xkmVModMapDesc;
 #define	sz_xkmVModMapDesc	4
 
 typedef struct _xkmSymInterpretDesc {
-	CARD32		sym B32;
+	CARD32		sym;
 	CARD8		mods;
 	CARD8		match;
 	CARD8		virtualMod;
@@ -95,7 +95,7 @@ typedef struct _xkmSymInterpretDesc {
 typedef struct _xkmBehaviorDesc {
 	CARD8		type;
 	CARD8		data;
-	CARD16		pad B16;
+	CARD16		pad;
 } xkmBehaviorDesc;
 #define	sz_xkmBehaviorDesc	4
 
@@ -128,38 +128,38 @@ typedef struct _xkmIndicatorMapDesc {
 	CARD8		flags;
 	CARD8		which_mods;
 	CARD8		real_mods;
-	CARD16		vmods B16;
+	CARD16		vmods;
 	CARD8		which_groups;
 	CARD8		groups;
-	CARD32		ctrls B32;
+	CARD32		ctrls;
 } xkmIndicatorMapDesc;
 #define sz_xkmIndicatorMapDesc	12
 
 typedef struct _xkmGeometryDesc {
-	CARD16		width_mm B16;
-	CARD16		height_mm B16;
+	CARD16		width_mm;
+	CARD16		height_mm;
 	CARD8		base_color_ndx;
 	CARD8		label_color_ndx;
-	CARD16		num_properties B16;
-	CARD16		num_colors B16;
-	CARD16		num_shapes B16;
-	CARD16		num_sections B16;
-	CARD16		num_doodads B16;
-	CARD16		num_key_aliases B16;
-	CARD16		pad1 B16;
+	CARD16		num_properties;
+	CARD16		num_colors;
+	CARD16		num_shapes;
+	CARD16		num_sections;
+	CARD16		num_doodads;
+	CARD16		num_key_aliases;
+	CARD16		pad1;
 } xkmGeometryDesc;
 #define	sz_xkmGeometryDesc	20
 
 typedef struct _xkmPointDesc {
-	INT16		x B16;
-	INT16		y B16;
+	INT16		x;
+	INT16		y;
 } xkmPointDesc;
 #define	sz_xkmPointDesc		4
 
 typedef	struct _xkmOutlineDesc {
 	CARD8		num_points;
 	CARD8		corner_radius;
-	CARD16		pad B16;
+	CARD16		pad;
 } xkmOutlineDesc;
 #define	sz_xkmOutlineDesc	4
 
@@ -168,35 +168,35 @@ typedef struct _xkmShapeDesc {
 	CARD8		primary_ndx;
 	CARD8		approx_ndx;
 	CARD8		pad;
-} xkmShapeDesc;	
+} xkmShapeDesc;
 #define	sz_xkmShapeDesc	4
 
 typedef struct _xkmSectionDesc {
-	INT16		top B16;
-	INT16		left B16;
-	CARD16		width B16;
-	CARD16		height B16;
-	INT16		angle B16;
+	INT16		top;
+	INT16		left;
+	CARD16		width;
+	CARD16		height;
+	INT16		angle;
 	CARD8		priority;
 	CARD8		num_rows;
 	CARD8		num_doodads;
 	CARD8		num_overlays;
-	CARD16		pad2 B16;
+	CARD16		pad2;
 } xkmSectionDesc;
 #define	sz_xkmSectionDesc	16
 
 typedef struct _xkmRowDesc {
-	INT16		top B16;
-	INT16		left B16;
+	INT16		top;
+	INT16		left;
 	CARD8		num_keys;
 	BOOL		vertical;
-	CARD16		pad B16;
+	CARD16		pad;
 } xkmRowDesc;
 #define	sz_xkmRowDesc		8
 
 typedef struct _xkmKeyDesc {
 	CARD8		name[XkbKeyNameLength];
-	INT16		gap B16;
+	INT16		gap;
 	CARD8		shape_ndx;
 	CARD8		color_ndx;
 } xkmKeyDesc;
@@ -205,14 +205,14 @@ typedef struct _xkmKeyDesc {
 typedef struct _xkmOverlayDesc {
 	CARD8		num_rows;
 	CARD8		pad1;
-	CARD16		pad2 B16;
+	CARD16		pad2;
 } xkmOverlayDesc;
 #define	sz_xkmOverlayDesc	4
 
 typedef struct _xkmOverlayRowDesc {
 	CARD8		row_under;
 	CARD8		num_keys;
-	CARD16		pad B16;
+	CARD16		pad;
 } xkmOverlayRowDesc;
 #define	sz_xkmOverlayRowDesc	4
 
@@ -225,65 +225,65 @@ typedef struct _xkmOverlayKeyDesc {
 typedef struct _xkmShapeDoodadDesc {
 	CARD8		type;
 	CARD8		priority;
-	INT16		top B16;
-	INT16		left B16;
-	INT16		angle B16;
+	INT16		top;
+	INT16		left;
+	INT16		angle;
 	CARD8		color_ndx;
 	CARD8		shape_ndx;
-	CARD16		pad B16;
-	CARD32		pad1 B32;
+	CARD16		pad;
+	CARD32		pad1;
 } xkmShapeDoodadDesc;
 #define	sz_xkmShapeDoodadDesc	16
 
 typedef struct _xkmTextDoodadDesc {
 	CARD8	 	type;
 	CARD8	 	priority;
-	INT16	 	top B16;
-	INT16	 	left B16;
-	INT16	 	angle B16;
-	CARD16		width B16;
-	CARD16		height B16;
+	INT16	 	top;
+	INT16	 	left;
+	INT16	 	angle;
+	CARD16		width;
+	CARD16		height;
 	CARD8	 	color_ndx;
 	CARD8		pad1;
-	CARD16		pad2 B16;
+	CARD16		pad2;
 } xkmTextDoodadDesc;
 #define	sz_xkmTextDoodadDesc	16
 
 typedef struct _xkmIndicatorDoodadDesc {
 	CARD8		type;
 	CARD8		priority;
-	INT16		top B16;
-	INT16		left B16;
+	INT16		top;
+	INT16		left;
 	CARD8		shape_ndx;
 	CARD8		on_color_ndx;
 	CARD8		off_color_ndx;
 	CARD8		pad1;
-	CARD16		pad2 B16;
-	CARD32		pad3 B32;
+	CARD16		pad2;
+	CARD32		pad3;
 } xkmIndicatorDoodadDesc;
 #define	sz_xkmIndicatorDoodadDesc	16
 
 typedef struct _xkmLogoDoodadDesc {
 	CARD8		type;
 	CARD8		priority;
-	INT16		top B16;
-	INT16		left B16;
-	INT16		angle B16;
+	INT16		top;
+	INT16		left;
+	INT16		angle;
 	CARD8		color_ndx;
 	CARD8		shape_ndx;
-	CARD16		pad B16;
-	CARD32		pad1 B32;
+	CARD16		pad;
+	CARD32		pad1;
 } xkmLogoDoodadDesc;
 #define	sz_xkmLogoDoodadDesc	16
 
 typedef struct _xkmAnyDoodadDesc {
 	CARD8		type;
 	CARD8		priority;
-	INT16		top B16;
-	INT16		left B16;
-	CARD16		pad1 B16;
-	CARD32		pad2 B32;
-	CARD32		pad3 B32;
+	INT16		top;
+	INT16		left;
+	CARD16		pad1;
+	CARD32		pad2;
+	CARD32		pad3;
 } xkmAnyDoodadDesc;
 #define	sz_xkmAnyDoodadDesc		16
 

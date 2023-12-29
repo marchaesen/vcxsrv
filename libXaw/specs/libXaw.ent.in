@@ -1,0 +1,2 @@
+<!-- define version entity for libXaw documentation via configure.ac -->
+<!ENTITY xawvers "@PACKAGE_VERSION@">

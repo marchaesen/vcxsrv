@@ -188,8 +188,8 @@ WidgetClass dialogWidgetClass = (WidgetClass)&dialogClassRec;
  */
 /*ARGSUSED*/
 static void
-XawDialogInitialize(Widget request, Widget cnew,
-		    ArgList args, Cardinal *num_args)
+XawDialogInitialize(Widget request _X_UNUSED, Widget cnew,
+		    ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     DialogWidget dw = (DialogWidget)cnew;
     Arg arglist[9];
@@ -228,8 +228,8 @@ XawDialogInitialize(Widget request, Widget cnew,
 
 /*ARGSUSED*/
 static void
-XawDialogConstraintInitialize(Widget request, Widget cnew,
-			      ArgList args, Cardinal *num_args)
+XawDialogConstraintInitialize(Widget request _X_UNUSED, Widget cnew,
+			      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     DialogWidget dw = (DialogWidget)cnew->core.parent;
     DialogConstraints constraint = (DialogConstraints)cnew->core.constraints;
@@ -265,7 +265,7 @@ XawDialogConstraintInitialize(Widget request, Widget cnew,
 #define NUM_CHECKS 2
 /*ARGSUSED*/
 static Boolean
-XawDialogSetValues(Widget current, Widget request, Widget cnew,
+XawDialogSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
 		   ArgList in_args, Cardinal *in_num_args)
 {
     DialogWidget w = (DialogWidget)cnew;
@@ -357,7 +357,7 @@ static void
 XawDialogGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 {
     Arg a[1];
-    String s;
+    char * s;
     DialogWidget src = (DialogWidget)w;
     unsigned int i;
 

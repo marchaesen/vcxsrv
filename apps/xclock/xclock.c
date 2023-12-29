@@ -130,7 +130,7 @@ quit(Widget w, XEvent *event, String *params, Cardinal *num_params)
     Arg arg;
 
     if (event->type == ClientMessage &&
-	event->xclient.data.l[0] != wm_delete_window) {
+	(Atom)event->xclient.data.l[0] != wm_delete_window) {
 #ifdef XKB
 	XkbStdBell(XtDisplay(w), XtWindow(w), 0, XkbBI_MinorError);
 #else

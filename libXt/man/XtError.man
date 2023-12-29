@@ -33,76 +33,47 @@
 .ds Vn 2.2
 .hw XtError XtSet-Error-Handler XtSet-Warning-Handler XtWarning wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtError __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtError, XtSetErrorHandler, XtSetWarningHandler, XtWarning \- low-level error handlers
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtError(String \fImessage\fP);
+_X_NORETURN void XtError(const char *\fImessage\fP);
 .HP
-void XtSetErrorHandler(XtErrorHandler \fIhandler\fP):
+void XtSetErrorHandler(_X_NORETURN XtErrorHandler \fIhandler\fP);
 .HP
 void XtSetWarningHandler(XtErrorHandler \fIhandler\fP);
 .HP
-void XtWarning(String \fImessage\fP);
+void XtWarning(const char *\fImessage\fP);
 .SH ARGUMENTS
 .IP \fImessage\fP 1i
 Specifies the nonfatal error message that is to be reported.
-.ds Ha fatal error procedure, which should not return, \
-or the nonfatal error procedure, which usually returns
 .IP \fIhandler\fP 1i
-Specifies the new \*(Ha.
-.ds Me reported
+Specifies the new fatal error procedure, which should not return, 
+or the nonfatal error procedure, which usually returns.
 .IP \fImessage\fP 1i
-Specifies the message that is to be \*(Me.
+Specifies the message that is to be reported.
 .SH DESCRIPTION
 The
-.ZN XtError
-function has been superceded by
-.ZN XtAppError .
+.B XtError
+function has been superseded by
+.BR XtAppError .
 .LP
 The
-.ZN XtSetErrorHandler
-function has been superceded by
-.ZN XtAppSetErrorHandler .
+.B XtSetErrorHandler
+function has been superseded by
+.BR XtAppSetErrorHandler .
 .LP
 The
-.ZN XtSetWarningHandler
-function has been superceded by
-.ZN XtAppSetWarningHandler .
+.B XtSetWarningHandler
+function has been superseded by
+.BR XtAppSetWarningHandler .
 .LP
 The
-.ZN XtWarning
-function has been superceded by
-.ZN XtAppWarning .
+.B XtWarning
+function has been superseded by
+.BR XtAppWarning .
 .SH "SEE ALSO"
 .BR XtAppError (__libmansuffix__)
 .br

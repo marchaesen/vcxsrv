@@ -37,33 +37,34 @@ XRenderCompositeTriangles (Display		*dpy,
 			   _Xconst XTriangle	*triangles,
 			   int			ntriangle)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
-    xRenderTrianglesReq	    *req;
-    int			    n;
-    long    		    len;
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     while (ntriangle)
     {
+	xRenderTrianglesReq	*req;
+	int			n;
+	long			len;
+
 	GetReq(RenderTriangles, req);
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->renderReqType = X_RenderTriangles;
 	req->op = (CARD8) op;
-	req->src = src;
-	req->dst = dst;
-	req->maskFormat = maskFormat ? maskFormat->id : 0;
-	req->xSrc = xSrc;
-	req->ySrc = ySrc;
+	req->src = (CARD32) src;
+	req->dst = (CARD32) dst;
+	req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : 0);
+	req->xSrc = (INT16) xSrc;
+	req->ySrc = (INT16) ySrc;
 	n = ntriangle;
 	len = ((long) n) * (SIZEOF (xTriangle) >> 2);
 	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length)) {
-	    n = (dpy->max_request_size - req->length) / (SIZEOF (xTriangle) >> 2);
+	    n = (int) ((dpy->max_request_size - req->length) / (SIZEOF (xTriangle) >> 2));
 	    len = ((long)n) * (SIZEOF (xTriangle) >> 2);
 	}
 	SetReqLen (req, len, len);
 	len <<= 2;
-	DataInt32 (dpy, (int *) triangles, len);
+	DataInt32 (dpy, (_Xconst int *) triangles, len);
 	ntriangle -= n;
 	triangles += n;
     }
@@ -82,33 +83,34 @@ XRenderCompositeTriStrip (Display		*dpy,
 			  _Xconst XPointFixed	*points,
 			  int			npoint)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
-    xRenderTriStripReq	    *req;
-    int			    n;
-    long    		    len;
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     while (npoint > 2)
     {
+	xRenderTriStripReq	*req;
+	int			n;
+	long			len;
+
 	GetReq(RenderTriStrip, req);
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->renderReqType = X_RenderTriStrip;
 	req->op = (CARD8) op;
-	req->src = src;
-	req->dst = dst;
-	req->maskFormat = maskFormat ? maskFormat->id : 0;
-	req->xSrc = xSrc;
-	req->ySrc = ySrc;
+	req->src = (CARD32) src;
+	req->dst = (CARD32) dst;
+	req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : 0);
+	req->xSrc = (INT16) xSrc;
+	req->ySrc = (INT16) ySrc;
 	n = npoint;
 	len = ((long) n) * (SIZEOF (xPointFixed) >> 2);
 	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length)) {
-	    n = (dpy->max_request_size - req->length) / (SIZEOF (xPointFixed) >> 2);
+	    n = (int) ((dpy->max_request_size - req->length) / (SIZEOF (xPointFixed) >> 2));
 	    len = ((long)n) * (SIZEOF (xPointFixed) >> 2);
 	}
 	SetReqLen (req, len, len);
 	len <<= 2;
-	DataInt32 (dpy, (int *) points, len);
+	DataInt32 (dpy, (_Xconst int *) points, len);
 	npoint -= (n - 2);
 	points += (n - 2);
     }
@@ -127,12 +129,8 @@ XRenderCompositeTriFan (Display			*dpy,
 			_Xconst XPointFixed	*points,
 			int			npoint)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo   *info = XRenderFindDisplay (dpy);
     _Xconst XPointFixed	    *first = points;
-    xPointFixed		    *p;
-    xRenderTriFanReq	    *req;
-    int			    n;
-    long    		    len;
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
@@ -140,27 +138,32 @@ XRenderCompositeTriFan (Display			*dpy,
     npoint--;
     while (npoint > 1)
     {
+	xRenderTriFanReq	*req;
+	xPointFixed		*p;
+	int			n;
+	long			len;
+
 	GetReqExtra(RenderTriFan, SIZEOF (xPointFixed), req);
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->renderReqType = X_RenderTriFan;
 	req->op = (CARD8) op;
-	req->src = src;
-	req->dst = dst;
-	req->maskFormat = maskFormat ? maskFormat->id : 0;
-	req->xSrc = xSrc;
-	req->ySrc = ySrc;
+	req->src = (CARD32) src;
+	req->dst = (CARD32) dst;
+	req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : 0);
+	req->xSrc = (INT16) xSrc;
+	req->ySrc = (INT16) ySrc;
 	p = (xPointFixed *) (req + 1);
 	p->x = first->x;
 	p->y = first->y;
 	n = npoint;
 	len = ((long) n) * (SIZEOF (xPointFixed) >> 2);
 	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length)) {
-	    n = (dpy->max_request_size - req->length) / (SIZEOF (xPointFixed) >> 2);
+	    n = (int) ((dpy->max_request_size - req->length) / (SIZEOF (xPointFixed) >> 2));
 	    len = ((long)n) * (SIZEOF (xPointFixed) >> 2);
 	}
 	SetReqLen (req, len, len);
 	len <<= 2;
-	DataInt32 (dpy, (int *) points, len);
+	DataInt32 (dpy, (_Xconst int *) points, len);
 	npoint -= (n - 1);
 	points += (n - 1);
     }

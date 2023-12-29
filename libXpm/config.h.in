@@ -1,16 +1,25 @@
 /* config.h.in.  Generated from configure.ac by autoheader.  */
 
+/* Define to 1 if you have the `closefrom' function. */
+#undef HAVE_CLOSEFROM
+
+/* Define to 1 if you have the `close_range' function. */
+#undef HAVE_CLOSE_RANGE
+
 /* Define to 1 if you have the <dlfcn.h> header file. */
 #undef HAVE_DLFCN_H
+
+/* Define to 1 if you have the `g_pattern_spec_match_string' function. */
+#undef HAVE_G_PATTERN_SPEC_MATCH_STRING
 
 /* Define to 1 if you have the <inttypes.h> header file. */
 #undef HAVE_INTTYPES_H
 
-/* Define to 1 if you have the <memory.h> header file. */
-#undef HAVE_MEMORY_H
-
 /* Define to 1 if you have the <stdint.h> header file. */
 #undef HAVE_STDINT_H
+
+/* Define to 1 if you have the <stdio.h> header file. */
+#undef HAVE_STDIO_H
 
 /* Define to 1 if you have the <stdlib.h> header file. */
 #undef HAVE_STDLIB_H
@@ -36,8 +45,7 @@
 /* Location of translated messages */
 #undef LOCALEDIR
 
-/* Define to the sub-directory in which libtool stores uninstalled libraries.
-   */
+/* Define to the sub-directory where libtool stores uninstalled libraries. */
 #undef LT_OBJDIR
 
 /* Define to 1 to disable decompression via pipes */
@@ -76,7 +84,9 @@
 /* Define to 1 to automatically look for files with .Z & .gz extensions */
 #undef STAT_ZFILE
 
-/* Define to 1 if you have the ANSI C header files. */
+/* Define to 1 if all of the C90 standard headers exist (not just the ones
+   required in a freestanding environment). This macro is provided for
+   backward compatibility; new code need not use it. */
 #undef STDC_HEADERS
 
 /* Define to 1 if you want to use the gettext() function. */
@@ -84,3 +94,12 @@
 
 /* Version number of package */
 #undef VERSION
+
+/* Path to compress */
+#undef XPM_PATH_COMPRESS
+
+/* Path to gzip */
+#undef XPM_PATH_GZIP
+
+/* Path to uncompress */
+#undef XPM_PATH_UNCOMPRESS

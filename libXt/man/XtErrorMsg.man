@@ -31,88 +31,66 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtError-Msg XtSet-Error-Msg-Handler XtSet-Warning-Msg-Handler XtWarning-Msg wid-get
+.hw XtError-Msg XtSet-Error-Msg-Handler XtSet-Warning-Msg-Handler
+.hw XtWarning-Msg wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtErrorMsg __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtErrorMsg, XtSetErrorMsgHandler, XtWarningMsg, XtSetWarningMsgHandler \- high-level error handlers
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtErrorMsg(String \fIname\fP, String \fItype\fP, String \fIclass\fP,
-String \fIdefault\fP, String *\fIparams\fP, Cardinal *\fInum_params\fP);
+_X_NORETURN void XtErrorMsg(const char *\fIname\fP,
+const char *\fItype\fP,
+const char *\fIclass\fP,
+const char *\fIdefaultMsg\fP,
+String *\fIparams\fP, Cardinal *\fInum_params\fP);
 .HP
-void XtSetErrorMsgHandler(XtErrorMsgHandler \fImsg_handler\fP);
+void XtSetErrorMsgHandler(_X_NORETURN XtErrorMsgHandler \fImsg_handler\fP);
 .HP
 void XtSetWarningMsgHandler(XtErrorMsgHandler \fImsg_handler\fP);
 .HP
-void XtWarningMsg(String \fIname\fP, String \fItype\fP, String \fIclass\fP,
-String \fIdefault\fP, String *\fIparams\fP, Cardinal *\fInum_params\fP);
+void XtWarningMsg(const char *\fIname\fP,
+const char *\fItype\fP,
+const char *\fIclass\fP,
+const char *\fIdefaultMsg\fP,
+String *\fIparams\fP, Cardinal *\fInum_params\fP);
 .SH ARGUMENTS
-.ds Cl
 .IP \fIclass\fP 1i
-Specifies the resource class\*(Cl.
+Specifies the resource class of the error message.
 .IP \fIdefault\fP 1i
-Specifies the default message to use\*(Dm.
+Specifies the default message to use.
 .IP \fIname\fP 1i
 Specifies the general kind of error.
 .IP \fItype\fP 1i
 Specifies the detailed name of the error.
-.ds Mh fatal error procedure, which should not return \
-or the nonfatal error procedure, which usually returns
 .IP \fImsg_handler\fP 1i
-Specifies the new \*(Mh.
+Specifies the new fatal error procedure, which should not return 
+or the nonfatal error procedure, which usually returns.
 .IP \fInum_params\fP 1i
 Specifies the number of values in the parameter list.
 .IP \fIparams\fP 1i
 Specifies a pointer to a list of values to be stored in the message.
 .SH DESCRIPTION
 The
-.ZN XtErrorMsg
-function has been superceded by
-.ZN XtAppErrorMsg .
+.B XtErrorMsg
+function has been superseded by
+.BR XtAppErrorMsg .
 .LP
 The
-.ZN XtSetErrorMsgHandler
-function has been superceded by
-.ZN XtAppSetErrorMsgHandler .
+.B XtSetErrorMsgHandler
+function has been superseded by
+.BR XtAppSetErrorMsgHandler .
 .LP
 The
-.ZN XtSetWarningMsgHandler
-function has been superceded by
-.ZN XtAppSetWarningMsgHandler .
+.B XtSetWarningMsgHandler
+function has been superseded by
+.BR XtAppSetWarningMsgHandler .
 .LP
 The
-.ZN XtWarningMsg
-function has been superceded by
-.ZN XtAppWarningMsg
+.B XtWarningMsg
+function has been superseded by
+.B XtAppWarningMsg
 .SH "SEE ALSO"
 .BR XtAppErrorMsg (__libmansuffix__)
 .br

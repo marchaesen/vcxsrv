@@ -34,67 +34,38 @@
 .ds Vn 2.2
 .hw XtApp-Add-Time-Out XtRemove-Time-Out wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddTimeOut __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddTimeOut, XtRemoveTimeOut \- register and remove timeouts
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtIntervalId XtAppAddTimeOut(XtAppContext \fIapp_context\fP, unsigned long
 \fIinterval\fP, XtTimerCallbackProc \fIproc\fP, XtPointer \fIclient_data\fP);
 .HP
 void XtRemoveTimeOut(XtIntervalId \fItimer\fP);
 .SH ARGUMENTS
-.ds Co for which the timer is to be set
 .IP \fIapp_context\fP 1i
-Specifies the application context \*(Co.
+Specifies the application context for which the timer is to be set.
 .IP \fIclient_data\fP 1i
 Specifies the argument that is to be passed to the specified procedure
-when \*(Cd.
+when handling the callback.
 .IP \fIinterval\fP 1i
 Specifies the time interval in milliseconds.
-.ds Pr \ to be called when time expires
 .IP \fIproc\fP 1i
-Specifies the procedure that is\*(Pr.
+Specifies the procedure that is to be called when time expires.
 .IP \fItimer\fP 1i
 Specifies the ID for the timeout request to be destroyed.
 .SH DESCRIPTION
 The
-.ZN XtAppAddTimeOut
+.B XtAppAddTimeOut
 function creates a timeout and returns an identifier for it.
 The timeout value is set to interval.
 The callback procedure is called when the time interval elapses,
 and then the timeout is removed.
 .LP
 The
-.ZN XtRemoveTimeOut
+.B XtRemoveTimeOut
 function removes the timeout.
 Note that timeouts are automatically removed once they trigger.
 .SH "SEE ALSO"

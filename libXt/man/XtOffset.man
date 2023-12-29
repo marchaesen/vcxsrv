@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtOffset __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtOffset, XtOffsetOf, XtNumber \- determine the byte offset or number of array elements
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 Cardinal XtOffset(Type \fIpointer_type\fP, Field \fIfield_name\fP);
 .HP
@@ -82,22 +55,22 @@ Specifies a type that is declared as a pointer to the structure.
 Specifies a type that is declared as a structure.
 .SH DESCRIPTION
 The
-.ZN XtOffset
+.B XtOffset
 macro is usually used to determine the offset of various resource fields
 from the beginning of a widget and can be used at compile time in static
 initializations.
 .LP
 The
-.ZN XtOffsetOf
+.B XtOffsetOf
 macro expands to a constant expression that gives the offset in bytes
 to the specified structure member from the beginning of the structure.
 It is normally used to statically initialize resource lists and is more
 portable than
-.ZN XtOffset ,
+.BR XtOffset ,
 which serves the same function.
 .LP
 The
-.ZN XtNumber
+.B XtNumber
 macro returns the number of elements in the specified argument lists,
 resources lists, and other counted arrays.
 .SH "SEE ALSO"

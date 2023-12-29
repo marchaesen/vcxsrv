@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Form Widget -->
 <!-- .XE -->
-<!-- .IN "Form widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Form widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Form.h&gt;
-<!-- .IN "Form.h" "" -->
+<indexterm><primary>Form.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/FormP.h&gt;
-<!-- .IN "FormP.h" "" -->
+<indexterm><primary>FormP.h</primary></indexterm>
 Class		formWidgetClass
-<!-- .IN "formWidgetClass" "" -->
+<indexterm><primary>formWidgetClass</primary></indexterm>
 Class Name	Form
-<!-- .IN "Form widget" "class name" -->
+<indexterm><primary>Form widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Constraint
 <!-- .sp -->
 </literallayout>
@@ -51,7 +51,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Form widget" "resources" -->
+<indexterm><primary>Form widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -247,7 +247,7 @@ retrieved from the argument list or from the resource database:
 <title>Constraint Resources</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Form widget" "constraint resources" -->
+<indexterm><primary>Form widget</primary><secondary>constraint resources</secondary></indexterm>
 Each child of the Form widget may request special layout resources
 be applied to it.  These <emphasis remap='I'>constraint</emphasis> resources allow the Form
 widget's children to specify individual layout requirements.
@@ -486,8 +486,8 @@ Form, and never to resize.
 <!-- .LP -->
 To force or defer a re-layout of the Form, use
 <!-- .PN XawFormDoLayout . -->
-<!-- .IN "Form widget" "re-layout" -->
-<!-- .IN "XawFormDoLayout" "" "@DEF@" -->
+<indexterm><primary>Form widget</primary><secondary>re-layout</secondary></indexterm>
+<indexterm significance="preferred"><primary>XawFormDoLayout</primary></indexterm>
 <funcsynopsis id='XawFormDoLayout'>
 <funcprototype>
   <funcdef>void<function> XawFormDoLayout</function></funcdef>

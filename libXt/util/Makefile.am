@@ -11,7 +11,6 @@ EXTRA_DIST = \
 	StrDefs.ht \
 	string.list
 
-AM_CFLAGS = $(XT_CFLAGS)
 makestrs_SOURCES = makestrs.c
 
 

@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-Courier-Bold-O-Normal--18-180-75-75-M-110-ISO10646-1
 SIZE 18 75 75
 FONTBOUNDINGBOX 21 26 -5 -7
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

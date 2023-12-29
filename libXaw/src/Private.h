@@ -35,7 +35,7 @@
 #define XawStackAlloc(size, stk_buffer)		\
 ((size) <= sizeof(stk_buffer)			\
  ? (XtPointer)(stk_buffer)			\
- : XtMalloc((unsigned)(size)))
+ : XtMalloc((Cardinal)(size)))
 
 #define XawStackFree(pointer, stk_buffer)	\
 do {						\

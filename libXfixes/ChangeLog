@@ -1,3 +1,255 @@
+commit c1cab28e27dd1c5a81394965248b57e490ccf2ca
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 9 13:27:07 2023 -0700
+
+    libXfixes 6.0.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1f908b1f27723a9a8f532ab4cc58429c2f174224
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 25 09:24:30 2023 -0800
+
+    Remove "All rights reserved" from Oracle copyright notices
+    
+    Oracle no longer includes this term in our copyright & license notices.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ad22c5ade8789cdb606b244336106a713473318c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 13 15:12:32 2023 -0800
+
+    Require LT_INIT from libtool 2 instead of deprecated AC_PROG_LIBTOOL
+    
+    AC_PROG_LIBTOOL was replaced by LT_INIT in libtool 2 in 2008,
+    so it's time to rely on it.
+    
+    Clears autoconf warnings:
+    
+    configure.ac:44: warning: The macro `AC_PROG_LIBTOOL' is obsolete.
+    configure.ac:44: You should run autoupdate.
+    aclocal.m4:3465: AC_PROG_LIBTOOL is expanded from...
+    configure.ac:44: the top level
+    
+    libtoolize: Consider adding 'AC_CONFIG_MACRO_DIRS([m4])' to configure.ac,
+    libtoolize: and rerunning libtoolize and aclocal.
+    libtoolize: Consider adding '-I m4' to ACLOCAL_AMFLAGS in Makefile.am.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 332394278b7110a774b5277bb3cfc58c42cd888c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 12:09:43 2022 -0800
+
+    XFixesCloseDisplay: Mark codes as unused
+    
+    Quiets clang warning:
+    Xfixes.c:206:46: warning: unused parameter 'codes' [-Wunused-parameter]
+    XFixesCloseDisplay (Display *dpy, XExtCodes *codes)
+                                                 ^
+    
+    Raises minimum required version of xproto to 7.0.22 (released June 2011)
+    for the definition of _X_UNUSED
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 64fc7592fd27bbee300085773247dd1737a5af1b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 12:05:59 2022 -0800
+
+    Handle 6 of 9 -Wsign-conversion warnings from clang
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 80ea445ff6865f9a04c4522c6d8b6cf940b10397
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 11:28:19 2022 -0800
+
+    Handle 60 of 60 -Wimplicit-int-conversion warnings from clang
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 26cd44cc3d2b5db5caa42d9203a866f12c039980
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 11:18:11 2022 -0800
+
+    Handle 63 of 63 -Wshorten-64-to-32 warnings from clang
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2047abb224051d578a6a320b776a7e8a969a980c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 10:52:50 2022 -0800
+
+    Resolve 36 of 40 -Wextra-semi-stmt warnings from clang
+    
+    Wrap XFixesCheckExtension() & XFixesSimpleCheckExtension() macro
+    bodies in do { ... } while(0) so that they use the semicolon
+    provided by callers instead of letting it dangle as another statement.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5129fc91b8483ec3a11e18280eac00857311edfa
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 10:47:24 2022 -0800
+
+    Quiet -Wconditional-uninitialized warnings from clang
+    
+    I believe these were false positives, as the variables were initialized
+    unless the image = NULL -> if (!image) return NULL code path was followed,
+    but this makes clang stop warning.
+    
+    Cursor.c:144:8: warning: variable 'nbytes' may be uninitialized when used here
+    [-Wconditional-uninitialized]
+        if(nbytes > nread)
+           ^~~~~~
+    Cursor.c:80:21: note: initialize the variable 'nbytes' to silence this warning
+        size_t                              nbytes , nread ;
+                                                  ^
+                                                   = 0
+    Cursor.c:144:17: warning: variable 'nread' may be uninitialized when used here
+    [-Wconditional-uninitialized]
+        if(nbytes > nread)
+                    ^~~~~
+    Cursor.c:80:29: note: initialize the variable 'nread' to silence this warning
+        size_t                              nbytes , nread ;
+                                                          ^
+                                                           = 0
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit aba73d85ce4a2fc1a5fb0ec27b15415eed21ebae
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 10:40:43 2022 -0800
+
+    Mark two dpy parameters const as suggested by cppcheck
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 82662a3129c59d5950b52ff4daf2e47c7a87327b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 10:36:54 2022 -0800
+
+    Variable scope reduction as recommended by cppcheck
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e56e1003ab225d383cda67eb61737bc14e92332c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 19 10:29:07 2022 -0800
+
+    Remove unnecessary casts from malloc & free calls
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d10ec36c81a6b488d1f700a28c5bff4714287b78
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 13:11:17 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a38941111da1fe9661fc3b9b505e0ba326d82d72
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 13:10:06 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c454dac2c64dbf87551e957f4b0558b116621889
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 13:09:32 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6fe3bd64dd82f704ed91478acb4c99ab5c00be16
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Wed May 12 09:34:39 2021 +1000
+
+    libXfixes 6.0.0
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 883f89dd39dcdae9a38e46f74a43b316180c8a19
+Author: Olivier Fourdan <ofourdan@redhat.com>
+Date:   Thu Mar 11 09:27:06 2021 +0100
+
+    xfixes: Add ClientDisconnectMode
+    
+    The Xserver itself is capable of terminating itself once all X11 clients
+    are gone, yet in a typical full session, there are a number of X11
+    clients running continuously (e.g. the Xsettings daemon, IBus, etc.).
+    
+    Those always-running clients will prevent the Xserver from terminating,
+    because the actual number of X11 clients will never drop to 0.
+    
+    To solve this issue directly at the Xserver level, this add new entries
+    to the XFixes extension to let the X11 clients themselves specify the
+    disconnect mode they expect.
+    
+    Typically, those X11 daemon clients would specify the disconnect mode
+    XFixesClientDisconnectFlagTerminate to let the Xserver know that they
+    should not be accounted for when checking the remaining clients prior
+    to terminate.
+    
+    Signed-off-by: Olivier Fourdan <ofourdan@redhat.com>
+
+commit 174a94975af710247719310cfc53bd13e1f3b44d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 16 12:39:31 2019 -0700
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1e238b40bbef0664d281432c19634df39a19b1ee
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 19 21:58:32 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b9b75d74c3e78c5df70c512786d1ee6db45975aa
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:49 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 6f950642597f2f1f509c339861d9f40baf28c39b
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 65845c5fc7098f9232cd356248aebc7db9a38095
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
 commit 84df9cb81cc31bbed27ba241a23ae04f61da57db
 Author: Matthieu Herrb <matthieu.herrb@laas.fr>
 Date:   Tue Oct 4 21:11:55 2016 +0200
@@ -638,32 +890,32 @@ Date:   Thu May 19 00:10:08 2005 +0000
     Require automake 1.7 in AM_INIT_AUTOMAKE
 
 commit 1406e1cbe2cf76e6e056377af831f9fdf710e487
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue May 17 17:02:24 2005 +0000
 
     Conditionally include config.h in xc/lib/Xdamage and xc/lib/Xfixes
 
 commit 03d31637787906378bc2809758b6dbfe79ea55ad
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue May 17 16:11:26 2005 +0000
 
     Remove rest of half-removed if statement
     remove irrelevant entries
 
 commit 7d85687a6d8319ac1a48e0294228632ffbefdc8a
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue May 17 15:22:23 2005 +0000
 
     And here
 
 commit 8424a78dff9a51f7f6ccbfe111a78242867ccdf4
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue May 17 15:21:58 2005 +0000
 
     Check in Makefile.am here
 
 commit 23a209b91fd011539c6d9a9447860dac4e12eae9
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue May 17 15:21:14 2005 +0000
 
     Really check in the build system for Xfixes

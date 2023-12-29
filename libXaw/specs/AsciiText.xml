@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!-- 	AsciiText Widget -->
 <!-- .XE -->
-<!-- .IN "AsciiText widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>AsciiText widget</primary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -13,13 +13,13 @@
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/AsciiText.h&gt;
-<!-- .IN "AsciiText.h" "" -->
+<indexterm><primary>AsciiText.h</primary></indexterm>
 ClassHeader file	&lt;X11/Xaw/AsciiTextP.h&gt;
-<!-- .IN "AsciiTextP.h" "" -->
+<indexterm><primary>AsciiTextP.h</primary></indexterm>
 Class		asciiTextWidgetClass
-<!-- .IN "asciiTextWidgetClass" "" -->
+<indexterm><primary>asciiTextWidgetClass</primary></indexterm>
 Class Name	Text
-<!-- .IN "AsciiText widget" "class name" -->
+<indexterm><primary>AsciiText widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Text
 Sink Name	textSink
 Source Name	textSource
@@ -31,13 +31,13 @@ Source Name	textSource
 For the ease of internationalization, the AsciiText widget class name has not
 been changed, although it is actually able to support non-ASCII locales.
 The AsciiText widget is really a collection of smaller parts.  It
-includes the Text widget itself, a ``Source'' (which supports memory management),
-and a ``Sink'' (which handles the display).  There are currently two supported
+includes the Text widget itself, a <quote>Source</quote> (which supports memory management),
+and a <quote>Sink</quote> (which handles the display).  There are currently two supported
 sources, the AsciiSrc and MultiSrc, and two supported sinks, the AsciiSink and
-<!-- .IN "AsciiSrc object" "" -->
-<!-- .IN "AsciiSink object" "" -->
-<!-- .IN "MultiSrc object" "" -->
-<!-- .IN "MultiSink object" "" -->
+<indexterm><primary>AsciiSrc object</primary></indexterm>
+<indexterm><primary>AsciiSink object</primary></indexterm>
+<indexterm><primary>MultiSrc object</primary></indexterm>
+<indexterm><primary>MultiSink object</primary></indexterm>
 MultiSink.  Some of
 the resources listed below are not actually resources of the
 AsciiText, but belong to the associated source or sink.  This is
@@ -58,7 +58,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "AsciiText widget" "resources" -->
+<indexterm><primary>AsciiText widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>

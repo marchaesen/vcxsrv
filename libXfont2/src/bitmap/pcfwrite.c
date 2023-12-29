@@ -34,6 +34,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #include <X11/fonts/fntfilst.h>
 #include <X11/fonts/bitmap.h>
@@ -235,7 +236,7 @@ pcfWriteFont(FontPtr pFont, FontFilePtr file)
 	ink_minbounds = &pFont->info.ink_minbounds;
 	ink_maxbounds = &pFont->info.ink_maxbounds;
     }
-    offsetProps = malloc(pFont->info.nprops * sizeof(FontPropRec));
+    offsetProps = mallocarray(pFont->info.nprops, sizeof(FontPropRec));
     if (!offsetProps) {
 	pcfError("pcfWriteFont(): Couldn't allocate offsetProps (%d*%d)",
 		 pFont->info.nprops, (int) sizeof(FontPropRec));

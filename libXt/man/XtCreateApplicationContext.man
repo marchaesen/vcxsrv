@@ -32,40 +32,14 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtCreate-Application-Context XtDestroy-Application-Context XtWidget-To-Application-Context XtToolkit-Initialize wid-get
+.hw XtCreate-Application-Context XtDestroy-Application-Context
+.hw XtWidget-To-Application-Context XtToolkit-Initialize wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtCreateApplicationContext __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtCreateApplicationContext, XtDestroyApplicationContext, XtWidgetToApplicationContext, XtToolkitInitialize \- create, destroy, and obtain an application context
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtAppContext XtCreateApplicationContext(void);
 .HP
@@ -77,33 +51,32 @@ void XtToolkitInitialize(void);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
-.ds wi that you want the application context for
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget that you want the application context for.
 .SH DESCRIPTION
 The
-.ZN XtCreateApplicationContext
+.B XtCreateApplicationContext
 function returns an application context,
 which is an opaque type.
 Every application must have at least one application context.
 .LP
 The
-.ZN XtDestroyApplicationContext
+.B XtDestroyApplicationContext
 function destroys the specified application context as soon as it is safe
 to do so.
 If called from with an event dispatch (for example, a callback procedure),
-.ZN XtDestroyApplicationContext
+.B XtDestroyApplicationContext
 does not destroy the application context until the dispatch is complete.
 .LP
 The
-.ZN XtWidgetToApplicationContext
+.B XtWidgetToApplicationContext
 function returns the application context for the specified widget.
 .LP
 The
-.ZN XtToolkitInitialize
+.B XtToolkitInitialize
 function initializes the Intrinsics internals.
 If
-.ZN XtToolkitInitialize
+.B XtToolkitInitialize
 was previously called it returns immediately.
 .LP
 .SH "SEE ALSO"

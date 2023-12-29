@@ -33,40 +33,13 @@
 .ds Vn 2.2
 .hw XtReserve-Property-Atom XtRelease-Property-Atom wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtReservePropertyAtom __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtReservePropertyAtom, XtReleasePropertyAtom \- maintain a cache of property atoms
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtReservePropertyAtom(Widget \fIw\fP);
+Atom XtReservePropertyAtom(Widget \fIw\fP);
 .HP
 void XtReleasePropertyAtom(Widget \fIw\fP, Atom \fIatom\fP);
 .SH ARGUMENTS
@@ -75,7 +48,7 @@ Specifies the widget used to reserve the atom.
 .IP \fIatom\fP 1i
 Specifies the atom whose reservation is to be released.
 .SH DESCRIPTION
-.ZN XtReservePropertyAtom
+.B XtReservePropertyAtom
 returns an atom that may be used for properties in conjunction with
 conversion requests from widget \fIw\fP. The atom returned will be
 unique for the display of the widget specified.

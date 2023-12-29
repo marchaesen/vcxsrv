@@ -30,15 +30,15 @@
 XFilters *
 XRenderQueryFilters (Display *dpy, Drawable drawable)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     XRenderInfo			*xri;
     xRenderQueryFiltersReq	*req;
     xRenderQueryFiltersReply	rep;
     XFilters			*filters;
     char			*name;
     char			len;
-    int				i;
-    unsigned long		nbytes, nbytesAlias, nbytesName, reply_left;
+    unsigned int		i;
+    unsigned long		nbytesName, reply_left;
 
     if (!RenderHasExtension (info))
 	return NULL;
@@ -52,9 +52,9 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
 
     LockDisplay (dpy);
     GetReq (RenderQueryFilters, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderQueryFilters;
-    req->drawable = drawable;
+    req->drawable = (CARD32) drawable;
     if (!_XReply (dpy, (xReply *) &rep, 0, xFalse))
     {
 	UnlockDisplay (dpy);
@@ -69,6 +69,8 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
     if ((rep.length < (INT_MAX >> 2)) &&
 	(rep.numFilters < ((INT_MAX / 4) / sizeof (char *))) &&
 	(rep.numAliases < ((INT_MAX / 4) / sizeof (short)))) {
+	unsigned long		nbytes, nbytesAlias;
+
 	/*
 	 * Compute total number of bytes for filter names
 	 */
@@ -104,8 +106,8 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
      *	nbytesName  char strings
      */
 
-    filters->nfilter = rep.numFilters;
-    filters->nalias = rep.numAliases;
+    filters->nfilter = (int) rep.numFilters;
+    filters->nalias = (int) rep.numAliases;
     filters->filter = (char **) (filters + 1);
     filters->alias = (short *) (filters->filter + rep.numFilters);
     name = (char *) (filters->alias + rep.numAliases);
@@ -132,14 +134,14 @@ XRenderQueryFilters (Display *dpy, Drawable drawable)
 	    SyncHandle ();
 	    return NULL;
 	}
-	nbytesName -= l + 1;
+	nbytesName -= (unsigned long) (l + 1);
 	filters->filter[i] = name;
 	_XRead (dpy, name, l);
-        reply_left -= l;
+        reply_left -= (unsigned long) l;
 	name[l] = '\0';
 	name += l + 1;
     }
-    i = name - (char *) (filters->alias + rep.numAliases);
+    i = (unsigned) (name - (char *) (filters->alias + rep.numAliases));
 
     if (i & 3)
 	_XEatData (dpy, 4 - (i & 3));
@@ -156,20 +158,20 @@ XRenderSetPictureFilter  (Display   *dpy,
 			  XFixed    *params,
 			  int	    nparams)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderSetPictureFilterReq	*req;
-    int				nbytes = strlen (filter);
+    int				nbytes = (int) strlen (filter);
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderSetPictureFilter, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderSetPictureFilter;
-    req->picture = picture;
-    req->nbytes = nbytes;
-    req->length += ((nbytes + 3) >> 2) + nparams;
+    req->picture = (CARD32) picture;
+    req->nbytes = (CARD16) nbytes;
+    req->length = (CARD16) (req->length + (((nbytes + 3) >> 2) + nparams));
     Data (dpy, filter, nbytes);
-    Data (dpy, (_Xconst char *)params, nparams << 2);
+    Data (dpy, (_Xconst char *)params, (nparams << 2));
     UnlockDisplay(dpy);
     SyncHandle();
 }

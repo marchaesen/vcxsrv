@@ -1,21 +1,21 @@
-<sect2 id="MenuButton_Widget">
+<sect1 id="MenuButton_Widget">
 <title>MenuButton Widget</title>
 <!-- .XS -->
 <!-- 	MenuButton Widget -->
 <!-- .XE -->
-<!-- .IN "MenuButton widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>MenuButton widget</primary></indexterm>
 <!-- .sp -->
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/MenuButton.h&gt;
-<!-- .IN "MenuButton.h" "" -->
+<indexterm><primary>MenuButton.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/MenuButtonP.h&gt;
-<!-- .IN "MenuButtonP.h" "" -->
+<indexterm><primary>MenuButtonP.h</primary></indexterm>
 Class		menuButtonWidgetClass
-<!-- .IN "menuButtonWidgetClass" "" -->
+<indexterm><primary>menuButtonWidgetClass</primary></indexterm>
 Class Name	MenuButton
-<!-- .IN "MenuButton widget" "class name" -->
+<indexterm><primary>MenuButton widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Command
 </literallayout>
 <para>
@@ -38,7 +38,7 @@ that the MenuButton is ready for selection.  When a
 pointer button is pressed, the MenuButton widget will
 pop up the menu named in the <function>menuName</function> resource.
 </para>
-<sect3 id="Resources">
+<sect2 id="MenuButton::Resources">
 <title>Resources</title>
 <para>
 <!-- .LP -->
@@ -48,7 +48,7 @@ or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "MenuButton widget" "resources" -->
+<indexterm><primary>MenuButton widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -410,10 +410,10 @@ nonvolatile memory.
   </varlistentry>
 </variablelist>
 </para>
-</sect3>
-<sect3 id="MenuButton_Actions">
+</sect2>
+<sect2 id="MenuButton_Actions">
 <title>MenuButton Actions</title>
-<!-- .IN "MenuButton widget" "actions" -->
+<indexterm><primary>MenuButton widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The MenuButton widget supports the following actions:
@@ -453,13 +453,13 @@ MenuButton widget:
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-	&lt;EnterWindow&gt;:	highlight(\|)
-	&lt;LeaveWindow&gt;:	reset(\|)
-	&lt;BtnDown&gt;:	reset(\|) PopupMenu(\)
+	&lt;EnterWindow&gt;:	highlight(&#x2006;)
+	&lt;LeaveWindow&gt;:	reset(&#x2006;)
+	&lt;BtnDown&gt;:	reset(&#x2006;) PopupMenu(\)
 </literallayout>
 </para>
-</sect3>
-<sect3 id='MenuButton_Actions_b'>
+</sect2>
+<sect2 id='MenuButton_Actions_b'>
 <title>MenuButton Actions</title>
 <para>
 <!-- .LP -->
@@ -481,7 +481,7 @@ understood by this action procedure.  If no argument is passed,
   </varlistentry>
   <varlistentry>
     <term>
-      <function>unhighlight</function>(\|)
+      <function>unhighlight</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -493,7 +493,7 @@ MenuButton widget.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>set</function>(\|)
+      <function>set</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -506,7 +506,7 @@ action causes the button to display its interior in the
   </varlistentry>
   <varlistentry>
     <term>
-      <function>unset</function>(\|)
+      <function>unset</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -518,7 +518,7 @@ Cancels the <emphasis remap='I'>set</emphasis> state and displays the interior o
   </varlistentry>
   <varlistentry>
     <term>
-      <function>reset</function>(\|)
+      <function>reset</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -530,7 +530,7 @@ button in the <function>background</function> color, with the label displayed in
   </varlistentry>
   <varlistentry>
     <term>
-      <function>notify</function>(\|)
+      <function>notify</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -542,7 +542,7 @@ the call_data argument in these callback functions is undefined.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>PopupMenu</function>(\|)
+      <function>PopupMenu</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -563,5 +563,5 @@ in the application initialization routine, or use a different translation.
 <!-- .bp -->
 
 </para>
-</sect3>
 </sect2>
+</sect1>

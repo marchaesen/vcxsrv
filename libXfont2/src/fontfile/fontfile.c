@@ -37,6 +37,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef WIN32
 #include <ctype.h>
 #endif
+#include "src/util/replace.h"
 
 static unsigned char
 ISOLatin1ToLower(unsigned char source)
@@ -74,8 +75,8 @@ FontFileNameCheck (const char *name)
 {
 #ifndef NCD
 #if defined(WIN32)
-    /* OS/2 uses D:/... as a path name for fonts, so accept this as a valid
-     * path if it starts with a letter and a colon. Same applies for WIN32
+    /* WIN32 uses D:/... as a path name for fonts, so accept this as a valid
+     * path if it starts with a letter and a colon.
      */
     if (isalpha(*name) && name[1]==':')
         return TRUE;
@@ -354,7 +355,7 @@ FontFileOpenFont (pointer client, FontPathElementPtr fpe, Mask flags,
 	entry = FontFileFindNameInScalableDir (&dir->scalable, &tmpName, &vals);
 	if (entry)
 	{
-	    strcpy(lowerName, entry->name.name);
+	    strlcpy(lowerName, entry->name.name, sizeof(lowerName));
 	    tmpName.name = lowerName;
 	    tmpName.length = entry->name.length;
 	    tmpName.ndashes = entry->name.ndashes;
@@ -442,8 +443,8 @@ FontFileOpenFont (pointer client, FontPathElementPtr fpe, Mask flags,
 			sizeof(fileName)) {
 			ret = BadFontName;
 		    } else {
-			strcpy (fileName, dir->directory);
-			strcat (fileName, scalable->fileName);
+			strlcpy (fileName, dir->directory, sizeof(fileName));
+			strlcat (fileName, scalable->fileName, sizeof(fileName));
                         if (scalable->renderer->OpenScalable) {
 			    ret = (*scalable->renderer->OpenScalable) (fpe, pFont,
 			       flags, entry, fileName, &vals, format, fmask,
@@ -527,8 +528,8 @@ FontFileOpenBitmapNCF (FontPathElementPtr fpe, FontPtr *pFont,
         return BadFontName;
     if (strlen(dir->directory) + strlen(bitmap->fileName) >= sizeof(fileName))
 	return BadFontName;
-    strcpy (fileName, dir->directory);
-    strcat (fileName, bitmap->fileName);
+    strlcpy (fileName, dir->directory, sizeof(fileName));
+    strlcat (fileName, bitmap->fileName, sizeof(fileName));
     ret = (*bitmap->renderer->OpenBitmap)
 			(fpe, pFont, flags, entry, fileName, format, fmask,
 			 non_cachable_font);
@@ -564,8 +565,8 @@ FontFileGetInfoBitmap (FontPathElementPtr fpe, FontInfoPtr pFontInfo,
 	return BadFontName;
     if (strlen(dir->directory) + strlen(bitmap->fileName) >= sizeof(fileName))
 	return BadFontName;
-    strcpy (fileName, dir->directory);
-    strcat (fileName, bitmap->fileName);
+    strlcpy (fileName, dir->directory, sizeof(fileName));
+    strlcat (fileName, bitmap->fileName, sizeof(fileName));
     ret = (*bitmap->renderer->GetInfoBitmap) (fpe, pFontInfo, entry, fileName);
     return ret;
 }
@@ -590,7 +591,7 @@ _FontFileAddScalableNames(FontNamesPtr names, FontNamesPtr scaleNames,
 	{
 	    --*max;
 
-	    strcpy (nameChars, scaleNames->names[i]);
+	    strlcpy (nameChars, scaleNames->names[i], sizeof(nameChars));
 	    if ((vals->values_supplied & PIXELSIZE_MASK) ||
 		!(vals->values_supplied & PIXELSIZE_WILDCARD) ||
 		vals->y == 0)
@@ -713,7 +714,7 @@ _FontFileListFonts (pointer client, FontPathElementPtr fpe,
 
     /* Match XLFD patterns */
 
-    strcpy (zeroChars, lowerChars);
+    strlcpy (zeroChars, lowerChars, sizeof(zeroChars));
     if (lowerName.ndashes == 14 &&
 	FontParseXLFDName (zeroChars, &vals, FONT_XLFD_REPLACE_ZERO))
     {
@@ -940,7 +941,7 @@ FontFileListOneFontWithInfo (pointer client, FontPathElementPtr fpe,
 	entry = FontFileFindNameInScalableDir (&dir->scalable, &tmpName, &vals);
 	if (entry)
 	{
-	    strcpy(lowerName, entry->name.name);
+	    strlcpy(lowerName, entry->name.name, sizeof(lowerName));
 	    tmpName.name = lowerName;
 	    tmpName.length = entry->name.length;
 	    tmpName.ndashes = entry->name.ndashes;
@@ -1008,8 +1009,8 @@ FontFileListOneFontWithInfo (pointer client, FontPathElementPtr fpe,
 			sizeof(fileName)) {
 			ret = BadFontName;
 		    } else {
-			strcpy (fileName, dir->directory);
-			strcat (fileName, scalable->fileName);
+			strlcpy (fileName, dir->directory, sizeof(fileName));
+			strlcat (fileName, scalable->fileName, sizeof(fileName));
                         if (scalable->renderer->GetInfoScalable)
 			    ret = (*scalable->renderer->GetInfoScalable)
 			        (fpe, *pFontInfo, entry, &tmpName, fileName,

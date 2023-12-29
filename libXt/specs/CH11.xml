@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Utility_Functions'>
 <title>Utility Functions</title>
 <para>
@@ -116,7 +119,7 @@ To translate a widget name to a widget instance, use
 <funcprototype>
 <funcdef>Widget <function>XtNameToWidget</function></funcdef>
    <paramdef>Widget <parameter>reference</parameter></paramdef>
-   <paramdef>String <parameter>names</parameter></paramdef>
+   <paramdef>const char * <parameter>names</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -463,9 +466,9 @@ is a convenience macro that calls
 <xref linkend='XtMalloc' xrefstyle='select: title'/>
 with the following arguments specified:
 </para>
-<literallayout >
+<programlisting>
 ((type *) XtMalloc((unsigned) sizeof(type)))
-</literallayout>
+</programlisting>
 <para>
 The storage allocated by
 <xref linkend='XtNew' xrefstyle='select: title'/>
@@ -510,9 +513,9 @@ is a convenience macro that calls
 <xref linkend='XtMalloc' xrefstyle='select: title'/>
 with the following arguments specified:
 </para>
-<literallayout >
+<programlisting>
 (strcpy(XtMalloc((unsigned)strlen(str) + 1), str))
-</literallayout>
+</programlisting>
 <para>
 The storage allocated by
 <xref linkend='XtNewString' xrefstyle='select: title'/>
@@ -779,7 +782,7 @@ server when the last user of a given GC releases it.
 <para>
 Arbitrary widgets in multiple applications can communicate
 with each other by means of the Intrinsics global selection mechanism,
-which conforms to the specifications in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+which conforms to the specifications in the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
 The Intrinsics supply functions for providing and receiving selection data in
 one logical piece (atomic transfers)
 or in smaller logical segments (incremental transfers).
@@ -1043,7 +1046,7 @@ byte-swap the data if necessary.
 This procedure does not need to worry about responding to the
 MULTIPLE or the TIMESTAMP target values (see
 <xref linkend='Window_Creation_Convenience_Routine' />
-in the <olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>).
+in the <olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>).
 A selection request with
 the MULTIPLE target type is transparently transformed into a
 series of calls to this procedure, one for each target type, and a
@@ -1242,7 +1245,7 @@ selection data from the Intrinsics is of type
 
 <funcsynopsis id='XtSelectionCallbackProc'>
 <funcprototype>
-<funcdef>typedef void <function>(*XtSelectionCallbackPro)</function></funcdef>
+<funcdef>typedef void <function>(*XtSelectionCallbackProc)</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
    <paramdef>Atom *<parameter>selection</parameter></paramdef>
@@ -1462,7 +1465,7 @@ For more information about <emphasis remap='I'>selection</emphasis>,
 <emphasis remap='I'>target</emphasis>, and
 <emphasis remap='I'>time</emphasis>, see
 <olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
-<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>.
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
 </para>
 
 <funcsynopsis id='XtGetSelectionValues'>
@@ -1572,7 +1575,7 @@ target value with the corresponding client data.
 For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
 <emphasis remap='I'>time</emphasis>, see
 <olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>section 2.6</olink>
-in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+in the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
 </para>
 </sect3>
 <sect3 id="Setting_the_Selection_Owner">
@@ -1831,9 +1834,9 @@ The procedure pointer specified by the incremental owner to supply the
 selection data to the Intrinsics is of type
 <xref linkend='XtConvertSelectionIncrProc' xrefstyle='select: title'/>.
 </para>
-<literallayout >
+<programlisting>
 typedef XtPointer XtRequestId;
-</literallayout>
+</programlisting>
 
 <funcsynopsis id='XtConvertSelectionIncrProc'>
 <funcprototype>
@@ -2324,9 +2327,9 @@ the requesting client must determine
 for itself whether or not a partially completed data transfer is meaningful.
 For more information about <emphasis remap='I'>selection</emphasis>,
 <emphasis remap='I'>target</emphasis>, and
-<emphasis remap='I'>time</emphasis>, see 
-<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms' /> in the
-<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+<emphasis remap='I'>time</emphasis>, see
+<olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Use of Selection Atoms</olink> in the
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
 </para>
 
 <funcsynopsis id='XtGetSelectionValuesIncremental'>
@@ -2443,7 +2446,7 @@ repeatedly.
 For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
 <emphasis remap='I'>time</emphasis>, see
 <olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
-<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
 </para>
 </sect3>
 <sect3 id="Setting_the_Selection_Owner_for_Incremental_Transfers">
@@ -2575,7 +2578,7 @@ otherwise.
 For more information about <emphasis remap='I'>selection</emphasis>, <emphasis remap='I'>target</emphasis>, and
 <emphasis remap='I'>time</emphasis>, see
 <olink targetdoc='icccm' targetptr='Use_of_Selection_Atoms'>Section 2.6</olink> in the
-<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual.</olink>
+<olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
 </para>
 
 <para>
@@ -3230,9 +3233,9 @@ and
 events into a region for clients to process at once
 rather than processing individual rectangles.
 For further information about regions,
-see <olink targetdoc='libX11' targetptr='Manipulating_Regions' />
+see <olink targetdoc='libX11' targetptr='Manipulating_Regions'>Manipulating Regions</olink>
 in <olink targetdoc='libX11' targetptr='libX11'>
-Xlib — C Language X Interface.</olink>.
+Xlib &mdash; C Language X Interface</olink>.
 </para>
 
 <para>
@@ -3274,7 +3277,7 @@ event.
     <listitem>
       <para>
 Specifies the region object (as defined in
-<function>&lt;X11/Xutil.h&gt;</function>).
+<filename class="headerfile">&lt;X11/Xutil.h&gt;</filename>).
     </para>
   </listitem>
   </varlistentry>
@@ -3314,7 +3317,9 @@ window absolute coordinates, use
 <funcdef>void <function>XtTranslateCoords</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>Position <parameter>x</parameter></paramdef>
+   <paramdef>Position <parameter>y</parameter></paramdef>
    <paramdef>Position *<parameter>rootx_return</parameter></paramdef>
+   <paramdef>Position *<parameter>rooty_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3459,7 +3464,7 @@ The high-level functions construct a string to pass to the lower-level
 interface.
 The strings may be specified in application code and are
 overridden by the contents of an external systemwide file,
-the "error database file".  The location and name of this file are
+the &ldquo;error database file&rdquo;.  The location and name of this file are
 implementation-dependent.
 </para>
 <note>
@@ -3597,7 +3602,7 @@ Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
 
 <para>
 The specified name can be a general kind of error,
-like "invalidParameters" or "invalidWindow",
+like &ldquo;invalidParameters&rdquo; or &ldquo;invalidWindow&rdquo;,
 and the specified type gives extra information
 such as the name of the routine in which the error was detected.
 Standard
@@ -3615,9 +3620,11 @@ error or a warning by calling
 <funcprototype>
 <funcdef>void <function>XtAppGetErrorDatabaseText</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
-   <paramdef>String <parameter>buffer_return</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
+   <paramdef>char * <parameter>buffer_return</parameter></paramdef>
    <paramdef>int <parameter>nbytes</parameter></paramdef>
    <paramdef>XrmDatabase <parameter>database</parameter></paramdef>
 </funcprototype>
@@ -3708,9 +3715,9 @@ returns the appropriate message from the error database
 or returns the specified default message if one is not found in the
 error database.
 To form the full resource name and class when querying the database,
-the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single "."
+the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single &ldquo;.&rdquo;
 between them and the <emphasis remap='I'>class</emphasis> is concatenated with itself with a
-single "." if it does not already contain a ".".
+single &ldquo;.&rdquo; if it does not already contain a &ldquo;.&rdquo;.
 </para>
 
 <para>
@@ -3831,12 +3838,12 @@ To call the high-level error handler, use
 <funcprototype>
 <funcdef>void <function>XtAppErrorMsg</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>type</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
-   <paramdef>String *<parameter>params</parameter></paramdef>
-   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
+   <paramdef>String * <parameter>params</parameter></paramdef>
+   <paramdef>Cardinal * <parameter>num_params</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3915,7 +3922,7 @@ Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
 
 <para>
 The Intrinsics internal errors all have class
-"XtToolkitError".
+&ldquo;XtToolkitError&rdquo;.
 </para>
 
 <para>
@@ -3974,12 +3981,12 @@ To call the installed high-level warning handler, use
 <funcprototype>
 <funcdef>void <function>XtAppWarningMsg</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>type</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
-   <paramdef>String *<parameter>params</parameter></paramdef>
-   <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
+   <paramdef>String * <parameter>params</parameter></paramdef>
+   <paramdef>Cardinal * <parameter>num_params</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4058,7 +4065,7 @@ Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
 
 <para>
 The Intrinsics internal warnings all have class
-"XtToolkitError".
+&ldquo;XtToolkitError&rdquo;.
 </para>
 
 <para>
@@ -4148,7 +4155,7 @@ To call the installed fatal error procedure, use
 <funcprototype>
 <funcdef>void <function>XtAppError</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>message</parameter></paramdef>
+   <paramdef>const char * <parameter>message</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4238,7 +4245,7 @@ To call the installed nonfatal error procedure, use
 <funcprototype>
 <funcdef>void <function>XtAppWarning</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>message</parameter></paramdef>
+   <paramdef>const char * <parameter>message</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4344,7 +4351,7 @@ Finally,
 <xref linkend='XtSetWMColormapWindows' xrefstyle='select: title'/>
 stores the resulting window list in the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis>
 property on the specified widget's window.
-Refer to Section 4.1.8 in the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> for details of
+Refer to Section 4.1.8 in the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis> for details of
 the semantics of the <emphasis role='strong'>WM_COLORMAP_WINDOWS</emphasis> property.
 </para>
 </sect1>
@@ -4372,12 +4379,12 @@ A string substitution is defined by a list of
 <function>Substitution</function>
 entries.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	char match;
-	String substitution;
+        char    match;
+        String  substitution;
 } SubstitutionRec, *Substitution;
-</literallayout>
+</programlisting>
 <para>
 File name evaluation is handled in an operating-system-dependent
 fashion by an
@@ -4421,8 +4428,8 @@ To search for a file using substitutions in a path list, use
 
 <funcsynopsis id='XtFindFile'>
 <funcprototype>
-<funcdef>String <function>XtFindFile</function></funcdef>
-   <paramdef>String <parameter>path</parameter></paramdef>
+<funcdef>char * <function>XtFindFile</function></funcdef>
+   <paramdef>const char * <parameter>path</parameter></paramdef>
    <paramdef>Substitution <parameter>substitutions</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_substitutions</parameter></paramdef>
    <paramdef>XtFilePredicate <parameter>predicate</parameter></paramdef>
@@ -4476,9 +4483,9 @@ Specifies a procedure called to judge each potential file name, or NULL.
 The <emphasis remap='I'>path</emphasis> parameter specifies a string that consists of a series of
 potential file names delimited by colons.  Within each name, the
 percent character specifies a string substitution selected by the
-following character.  The character sequence "%:" specifies an
+following character.  The character sequence &ldquo;%:&rdquo; specifies an
 embedded colon that is not a delimiter; the sequence is replaced by a
-single colon.  The character sequence "%%" specifies a percent
+single colon.  The character sequence &ldquo;%%&rdquo; specifies a percent
 character that does not introduce a substitution; the sequence is
 replaced by a single percent character.  If a percent character is
 followed by any other character,
@@ -4490,7 +4497,7 @@ replaces the percent and match characters with the string in the
 corresponding <emphasis remap='I'>substitution</emphasis> field.  A <emphasis remap='I'>substitution</emphasis> field entry of NULL
 is equivalent to a pointer to an empty string.  If the operating
 system does not interpret multiple embedded name separators in the
-path (i.e., "/" in POSIX) the same way as a single separator,
+path (i.e., &ldquo;/&rdquo; in POSIX) the same way as a single separator,
 <xref linkend='XtFindFile' xrefstyle='select: title'/>
 will collapse multiple separators into a single one after performing
 all string substitutions.  Except for collapsing embedded separators,
@@ -4528,9 +4535,12 @@ To search for a file using standard substitutions in a path list, use
 
 <funcsynopsis id='XtResolvePathname'>
 <funcprototype>
-<funcdef>String <function>XtResolvePathname</function></funcdef>
+<funcdef>char * <function>XtResolvePathname</function></funcdef>
    <paramdef>Display *<parameter>display</parameter></paramdef>
-   <paramdef>String <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>filename</parameter></paramdef>
+   <paramdef>const char * <parameter>suffix</parameter></paramdef>
+   <paramdef>const char * <parameter>path</parameter></paramdef>
    <paramdef>Substitution <parameter>substitutions</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_substitutions</parameter></paramdef>
    <paramdef>XtFilePredicate <parameter>predicate</parameter></paramdef>
@@ -4554,7 +4564,7 @@ Specifies the display to use to find the language for language substitutions.
     </term>
     <listitem>
       <para></para>
-      
+
     </listitem>
   </varlistentry>
   <varlistentry>
@@ -4624,12 +4634,12 @@ are determined from the value of the language string retrieved by
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
 for the specified display.
 To set the
-language for all applications specify "*xnlLanguage: <emphasis remap='I'>lang</emphasis>" in the
+language for all applications specify &ldquo;*xnlLanguage: <emphasis remap='I'>lang</emphasis>&rdquo; in the
 resource database.
 The format and content of the language string are
 implementation-defined.   One suggested syntax is to compose
-the language string of three parts;  a  "language  part",  a
-"territory  part" and a "codeset part".  The manner in which
+the language string of three parts;  a  &ldquo;language  part&rdquo;,  a
+&ldquo;territory  part&rdquo; and a &ldquo;codeset part&rdquo;.  The manner in which
 this composition is accomplished is implementation-defined,
 and the Intrinsics make no interpretation of the parts other
 than to use them in substitutions as described below.
@@ -4762,14 +4772,14 @@ must contain the following substitutions:
 
 <!-- OK PAST HERE -->
 
-<literallayout>
+<programlisting>
 1.     %C, %N, %S, %T, %L   or   %C, %N, %S, %T, %l, %t, %c
 2.     %C, %N, %S, %T, %l
 3.     %C, %N, %S, %T
 4.     %N, %S, %T, %L       or   %N, %S, %T, %l, %t, %c
 5.     %N, %S, %T, %l
 6.     %N, %S, %T
-</literallayout>
+</programlisting>
 
 <para>
 The order of these six entries within the path must be as given above.
@@ -4783,22 +4793,22 @@ adjacent colons, <function>%N%S</function> is inserted between them.
 <para>
 The <emphasis remap='I'>type</emphasis> parameter is intended to be a category of files, usually
 being translated into a directory in the pathname.  Possible values
-might include "app-defaults", "help", and "bitmap".
+might include &ldquo;app-defaults&rdquo;, &ldquo;help&rdquo;, and &ldquo;bitmap&rdquo;.
 </para>
 
 <para>
 The <emphasis remap='I'>suffix</emphasis> parameter is intended to be appended to the file name.
-Possible values might include ".txt", ".dat", and ".bm".
+Possible values might include &ldquo;.txt&rdquo;, &ldquo;.dat&rdquo;, and &ldquo;.bm&rdquo;.
 </para>
 
 <para>
 A suggested value for the default path on POSIX-based systems is
 </para>
-<literallayout>
+<programlisting>
    /usr/lib/X11/%L/%T/%N%C%S:/usr/lib/X11/%l/%T/%N%C%S:\
    /usr/lib/X11/%T/%N%C%S:/usr/lib/X11/%L/%T/%N%S:\
    /usr/lib/X11/%l/%T/%N%S:/usr/lib/X11/%T/%N%S
-</literallayout>
+</programlisting>
 
 
 <para>
@@ -4816,14 +4826,14 @@ The %D substitution allows the addition of path
 elements to the implementation-specific default path, typically to
 allow additional directories to be searched without preventing
 resources in the system directories from being found.  For example, a
-user installing resource files under a directory called "ourdir"
+user installing resource files under a directory called &ldquo;ourdir&rdquo;
 might set
 <emphasis role='strong'>XFILESEARCHPATH</emphasis>
 to
 </para>
-<literallayout>
+<programlisting>
    %D:ourdir/%T/%N%C:ourdir/%T/%N
-</literallayout>
+</programlisting>
 
 <para>
 The customization string is obtained by querying the resource database
@@ -4851,11 +4861,11 @@ when it is no longer needed.
 Applications may register
 functions that are called at a particular control points in the Intrinsics.
 These functions are intended to be used to provide notification
-of an "X Toolkit event", such as widget creation, to an external agent,
+of an &ldquo;X Toolkit event&rdquo;, such as widget creation, to an external agent,
 such as an interactive resource editor, drag-and-drop server, or
 an aid for physically challenged users.
 The control points containing such registration hooks are identified
-in a "hook registration" object.
+in a &ldquo;hook registration&rdquo; object.
 </para>
 
 <para>
@@ -4927,7 +4937,7 @@ as an argument:
 <function>XtIsWMShell</function>,
 <function>XtIsVendorShell</function>,
 <function>XtIsTransientShell</function>,
-<function>XtIsToplevelShell</function>,
+<function>XtIsTopLevelShell</function>,
 <function>XtIsApplicationShell</function>,
 <function>XtIsSessionShell</function>
     </para>
@@ -5032,14 +5042,14 @@ The <emphasis remap='I'>call_data</emphasis> parameter in a createHook callback 
 cast to type
 <function>XtCreateHookData</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	String   type;
-	Widget   widget;
-	ArgList  args;
-	Cardinal num_args;
+        String   type;
+        Widget   widget;
+        ArgList  args;
+        Cardinal num_args;
 } XtCreateHookDataRec, *XtCreateHookData;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>type</emphasis> is set to
 <function>XtHcreate</function>,
@@ -5115,14 +5125,14 @@ The <emphasis remap='I'>call_data</emphasis> parameter in a changeHook callback 
 be cast to type
 <function>XtChangeHookData</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	String  type;
-	Widget  widget;
-	XtPointer event_data;
-	Cardinal num_event_data;
+        String          type;
+        Widget          widget;
+        XtPointer       event_data;
+        Cardinal        num_event_data;
 } XtChangeHookDataRec, *XtChangeHookData;
-</literallayout>
+</programlisting>
 <para>
 When the changeHook callbacks are called as a result of a call to
 <xref linkend='XtSetValues' xrefstyle='select: title'/>
@@ -5134,13 +5144,13 @@ or
 <emphasis remap='I'>event_data</emphasis> may be cast to type
 <function>XtChangeHookSetValuesData</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	Widget   old, req;
-	ArgList  args;
-	Cardinal num_args;
+        Widget          old, req;
+        ArgList         args;
+        Cardinal        num_args;
 } XtChangeHookSetValuesDataRec, *XtChangeHookSetValuesData;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>old</emphasis>, <emphasis remap='I'>req</emphasis>, <emphasis remap='I'>args</emphasis>, and <emphasis remap='I'>num_args</emphasis> are the
 parameters passed to the set_values procedure.  The callbacks are called
@@ -5378,9 +5388,9 @@ without employing the Intrinsics library should invoke the change hook
 itself.  This is done by:
 </para>
 
-<literallayout >
+<programlisting>
         XtCallCallbacks(XtHooksOfDisplay(dpy), XtNchangeHook, call_data);
-</literallayout>
+</programlisting>
 <para>
 The XtNconfigureHook callback list is called any time the Intrinsics
 move, resize, or configure a widget and when
@@ -5392,14 +5402,14 @@ is called.
 The <emphasis remap='I'>call_data</emphasis> parameter may be cast to type
 <function>XtConfigureHookData.</function>
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	String type;
-	Widget widget;
-	XtGeometryMask changeMask;
-	XWindowChanges changes;
+        String          type;
+        Widget          widget;
+        XtGeometryMask  changeMask;
+        XWindowChanges  changes;
 } XtConfigureHookDataRec, *XtConfigureHookData;
-</literallayout>
+</programlisting>
 <para>
 When the configureHook callbacks are called, the <emphasis remap='I'>type</emphasis> is
 <function>XtHconfigure</function>,
@@ -5421,15 +5431,15 @@ The <emphasis remap='I'>call_data</emphasis> parameter may be cast to type
 <function>XtGeometryHookData</function>.
 </para>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	String type;
-	Widget widget;
-	XtWidgetGeometry* request;
-	XtWidgetGeometry* reply;
-	XtGeometryResult result;
+        String          type;
+        Widget          widget;
+        XtWidgetGeometry* request;
+        XtWidgetGeometry* reply;
+        XtGeometryResult result;
 } XtGeometryHookDataRec, *XtGeometryHookData;
-</literallayout>
+</programlisting>
 <para>
 When the geometryHook callbacks are called prior to geometry negotiation,
 the <emphasis remap='I'>type</emphasis> is
@@ -5449,12 +5459,12 @@ The XtNdestroyHook callback list is called when a widget is destroyed.
 The <emphasis remap='I'>call_data parameter</emphasis> may be cast to type
 <function>XtDestroyHookData</function>.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	String type;
-	Widget widget;
+        String type;
+        Widget widget;
 } XtDestroyHookDataRec, *XtDestroyHookData;
-</literallayout>
+</programlisting>
 <para>
 When the destroyHook callbacks are called as a result of a call to
 <xref linkend='XtDestroyWidget' xrefstyle='select: title'/>,
@@ -5465,7 +5475,7 @@ called upon completion of phase one destroy for a widget.
 </para>
 
 <para>
-The XtNshells and XtnumShells are read-only resources that report a
+The XtNshells and XtNnumShells are read-only resources that report a
 list of all parentless shell widgets associated with a display.
 </para>
 

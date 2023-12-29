@@ -33,41 +33,14 @@
 .ds Vn 2.2
 .hw XtCall-Callbacks XtHas-Callbacks XtCall-Callbacks-List wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtCallCallbacks __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtCallCallbacks, XtCallCallbackList, XtHasCallbacks \- process callbacks
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtCallCallbacks(Widget \fIw\fP, String \fIcallback_name\fP, XtPointer
-\fIcall_data\fP);
+void XtCallCallbacks(Widget \fIw\fP, const char *\fIcallback_name\fP,
+XtPointer \fIcall_data\fP);
 .HP
 void XtCallCallbackList(Widget \fIw\fP, XtCallbackList \fIcallbacks\fP,
 XtPointer \fIcall_data\fP);
@@ -75,11 +48,10 @@ XtPointer \fIcall_data\fP);
 typedef enum {XtCallbackNoList, XtCallbackHasNone, XtCallbackHasSome}
 XtCallbackStatus;
 .HP
-XtCallbackStatus XtHasCallbacks(Widget \fIw\fP, String \fIcallback_name\fP);
+XtCallbackStatus XtHasCallbacks(Widget \fIw\fP, const char *\fIcallback_name\fP);
 .SH ARGUMENTS
-.ds Cn \ to be executed or checked
 .IP \fIcallback_name\fP 1i
-Specifies the callback list\*(Cn.
+Specifies the callback list to be executed or checked.
 .IP \fIcall_data\fP 1i
 Specifies a callback-list specific data value to pass to each of the callback
 procedure in the list.
@@ -89,32 +61,32 @@ Specifies the callback list to be executed.
 Specifies the widget.
 .SH DESCRIPTION
 The
-.ZN XtCallCallbacks
+.B XtCallCallbacks
 function calls each procedure that is registered in the specified widget's
 callback list.
 .LP
 If \fIcallbacks\fP is not NULL,
-.ZN XtCallCallbackList
+.B XtCallCallbackList
 calls each of the callback procedures in the list, passing client data
 and \fIcall_data\fP. The \fIcallbacks\fP parameter must specify the
 contents of a widget or object resource declared with representation
 type
-.ZN XtRCallback .
+.BR XtRCallback .
 .LP
 The
-.ZN XtHasCallbacks
+.B XtHasCallbacks
 function first checks to see if the widget has a callback list identified
 by callback_name.
 If the callback list does not exist,
-.ZN XtHasCallbacks
+.B XtHasCallbacks
 returns
-.ZN XtCallbackNoList .
+.BR XtCallbackNoList .
 If the callback list exists but is empty,
 it returns
-.ZN XtCallbackHasNone .
+.BR XtCallbackHasNone .
 If the callback list exists and has at least one callback registered,
 it returns
-.ZN XtCallbackHasSome .
+.BR XtCallbackHasSome .
 .SH "SEE ALSO"
 XtAddCallback(__libmansuffix__)
 .br

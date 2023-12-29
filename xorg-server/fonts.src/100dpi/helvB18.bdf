@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-Helvetica-Bold-R-Normal--25-180-100-100-P-138-ISO10646-1
 SIZE 18 100 100
 FONTBOUNDINGBOX 28 37 -2 -8
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

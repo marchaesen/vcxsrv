@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -62,7 +62,11 @@ typedef struct internalCallbackRec {
     unsigned short count;
     char	   is_padded;	/* contains NULL padding for external form */
     char	   call_state;  /* combination of _XtCB{FreeAfter}Calling */
-#ifdef LONG64
+#if __STDC_VERSION__ >= 199901L
+    /* When compiling with C99 or newer, use a flexible member to ensure
+     * padding and alignment for sizeof(). */
+    XtCallbackRec callbacks[];
+#elif defined(LONG64)
     unsigned int   align_pad;	/* padding to align callback list */
 #endif
     /* XtCallbackList */

@@ -101,6 +101,14 @@ SOFTWARE.
 
 /****************************************************************
  *
+ * Bit utilities
+ *
+ ****************************************************************/
+#define XtSetBits(dst,src,len)  dst = (((1U << (len)) - 1) & (unsigned)(src))
+#define XtSetBit(dst,src)  XtSetBits(dst,src,1)
+
+/****************************************************************
+ *
  * Byte utilities
  *
  ****************************************************************/
@@ -109,15 +117,15 @@ SOFTWARE.
 #include <X11/Xfuncs.h>
 
 #define XtMemmove(dst, src, size)	\
-    if ((char *)(dst) != (char *)(src)) {		    \
-	(void) memcpy((char *) (dst), (char *) (src), (int) (size)); \
+    if ((const void *)(dst) != (const void *)(src)) {		    \
+	(void) memcpy((void *) (dst), (const void *) (src), (size_t) (size)); \
     }
 
 #define XtBZero(dst, size) 	\
-	bzero((char *) (dst), (int) (size))
+	memset((void *) (dst), 0, (size_t) (size))
 
 #define XtMemcmp(b1, b2, size) 		\
-	memcmp((char *) (b1), (char *) (b2), (int) (size))
+	memcmp((const void *) (b1), (const void *) (b2), (size_t) (size))
 
 
 /****************************************************************
@@ -129,7 +137,7 @@ SOFTWARE.
 #define XtStackAlloc(size, stack_cache_array)     \
     ((size) <= sizeof(stack_cache_array)	  \
     ?  (XtPointer)(stack_cache_array)		  \
-    :  XtMalloc((unsigned)(size)))
+    :  XtMalloc((Cardinal)(size)))
 
 #define XtStackFree(pointer, stack_cache_array) \
     { if ((pointer) != ((XtPointer)(stack_cache_array))) XtFree(pointer); }
@@ -164,7 +172,7 @@ extern String XtCXtToolkitError;
 
 extern void _XtAllocError(
     String	/* alloc_type */
-);
+) _X_NORETURN;
 
 extern void _XtCompileResourceList(
     XtResourceList 	/* resources */,
@@ -196,6 +204,7 @@ extern void _XtGClistFree(Display *dpy, XtPerDisplay pd);
 extern void _XtGeoTab (int);
 extern void _XtGeoTrace (
 			    Widget widget,
+			    const char *,
 			    ...
 ) _X_ATTRIBUTE_PRINTF(2,3);
 

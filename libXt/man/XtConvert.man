@@ -34,49 +34,21 @@
 .ds Vn 2.2
 .hw XtDirect-Convert wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtConvert __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtConvert, XtDirectConvert \- invoke resource converters
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtConvert(Widget \fIw\fP, String \fIfrom_type\fP, XrmValuePtr \fIfrom\fP,
-String \fIto_type\fP, XrmValuePtr \fIto_return\fP);
+void XtConvert(Widget \fIw\fP,
+const char *\fIfrom_type\fP, XrmValuePtr \fIfrom\fP,
+const char *\fIto_type\fP, XrmValuePtr \fIto_return\fP);
 .HP
 void XtDirectConvert(XtConverter \fIconverter\fP, XrmValuePtr \fIargs\fP,
 Cardinal \fInum_args\fP, XrmValuePtr \fIfrom\fP, XrmValuePtr \fIto_return\fP);
 .SH ARGUMENTS
-.ds Al that contains the additional arguments needed to perform \
-the conversion (often NULL)
 .IP \fIargs\fP 1i
-Specifies the argument list \*(Al.
+Specifies the argument list that contains the additional arguments needed to perform the conversion (often NULL).
 .IP \fIconverter\fP 1i
 Specifies the conversion procedure that is to be called.
 .IP \fIfrom\fP 1i
@@ -89,34 +61,33 @@ Specifies the number of additional arguments (often zero).
 Specifies the destination type.
 .IP \fIto_return\fP 1i
 Returns the converted value.
-.ds Wi to use for additional arguments (if any are needed)
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget to use for additional arguments (if any are needed).
 .SH DESCRIPTION
 The
-.ZN XtConvert
+.B XtConvert
 function looks up the type converter registered to convert from_type
 to to_type, computes any additional arguments needed, and then calls
-.ZN XtDirectConvert .
-.ZN XtConvert
+.BR XtDirectConvert .
+.B XtConvert
 has been replaced by
-.ZN XtConvertAndStore .
+.BR XtConvertAndStore .
 .LP
 The
-.ZN XtDirectConvert
+.B XtDirectConvert
 function looks in the converter cache to see if this conversion procedure
 has been called with the specified arguments.
 If so, it returns a descriptor for information stored in the cache;
 otherwise, it calls the converter and enters the result in the cache.
 .LP
 Before calling the specified converter,
-.ZN XtDirectConvert
+.B XtDirectConvert
 sets the return value size to zero and the return value address to NULL.
 To determine if the conversion was successful,
 the client should check to_return.address for non-NULL.
-.ZN XtDirectConvert
+.B XtDirectConvert
 has been replaced by
-.ZN XtCallConverter .
+.BR XtCallConverter .
 .SH "SEE ALSO"
 XtAppAddConverter(__libmansuffix__),
 XtStringConversionWarning(__libmansuffix__),

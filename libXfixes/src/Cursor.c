@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2006, Oracle and/or its affiliates.
  * Copyright 2011 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
@@ -61,10 +61,10 @@ XFixesSelectCursorInput (Display	*dpy,
 
     LockDisplay (dpy);
     GetReq (XFixesSelectCursorInput, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesSelectCursorInput;
-    req->window = win;
-    req->eventMask = eventMask;
+    req->window = (CARD32) win;
+    req->eventMask = (CARD32) eventMask;
     UnlockDisplay (dpy);
     SyncHandle ();
 }
@@ -77,14 +77,14 @@ XFixesGetCursorImage (Display *dpy)
     xXFixesGetCursorImageAndNameReply	rep;
     size_t				npixels;
     size_t				nbytes_name;
-    size_t				nbytes, nread, rlength;
+    size_t				nbytes = 0, nread = 0;
     XFixesCursorImage			*image;
     char				*name;
 
     XFixesCheckExtension (dpy, info, NULL);
     LockDisplay (dpy);
     GetReq (XFixesGetCursorImageAndName, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     if (info->major_version >= 2)
 	req->xfixesReqType = X_XFixesGetCursorImageAndName;
     else
@@ -105,6 +105,8 @@ XFixesGetCursorImage (Display *dpy)
     if ((rep.length < (INT_MAX >> 2)) &&
 	npixels < (((INT_MAX >> 3) - sizeof (XFixesCursorImage) - 1)
 		   - nbytes_name)) {
+	size_t	rlength;
+
 	/* reply data length */
 	nbytes = (size_t) rep.length << 2;
 	/* bytes of actual data in the reply */
@@ -153,16 +155,16 @@ XFixesSetCursorName (Display *dpy, Cursor cursor, const char *name)
 {
     XFixesExtDisplayInfo	*info = XFixesFindDisplay (dpy);
     xXFixesSetCursorNameReq	*req;
-    int				nbytes = strlen (name);
+    CARD16			nbytes = (CARD16) strlen (name);
 
     XFixesSimpleCheckExtension (dpy, info);
     if (info->major_version < 2)
 	return;
     LockDisplay (dpy);
     GetReq (XFixesSetCursorName, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesSetCursorName;
-    req->cursor = cursor;
+    req->cursor = (CARD32) cursor;
     req->nbytes = nbytes;
     req->length += (nbytes + 3) >> 2;
     Data (dpy, name, nbytes);
@@ -183,9 +185,9 @@ XFixesGetCursorName (Display *dpy, Cursor cursor, Atom *atom)
 	return NULL;
     LockDisplay (dpy);
     GetReq (XFixesGetCursorName, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesGetCursorName;
-    req->cursor = cursor;
+    req->cursor = (CARD32) cursor;
     if (!_XReply (dpy, (xReply *) &rep, 0, xFalse))
     {
 	UnlockDisplay (dpy);
@@ -193,7 +195,7 @@ XFixesGetCursorName (Display *dpy, Cursor cursor, Atom *atom)
 	return NULL;
     }
     *atom = rep.atom;
-    if ((name = (char *) Xmalloc(rep.nbytes+1))) {
+    if ((name = Xmalloc(rep.nbytes+1)) != NULL) {
 	_XReadPad(dpy, name, (long)rep.nbytes);
 	name[rep.nbytes] = '\0';
     } else {
@@ -216,10 +218,10 @@ XFixesChangeCursor (Display *dpy, Cursor source, Cursor destination)
 	return;
     LockDisplay (dpy);
     GetReq (XFixesChangeCursor, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesChangeCursor;
-    req->source = source;
-    req->destination = destination;
+    req->source = (CARD32) source;
+    req->destination = (CARD32) destination;
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -229,16 +231,16 @@ XFixesChangeCursorByName (Display *dpy, Cursor source, const char *name)
 {
     XFixesExtDisplayInfo	    *info = XFixesFindDisplay (dpy);
     xXFixesChangeCursorByNameReq    *req;
-    int				    nbytes = strlen (name);
+    CARD16			    nbytes = (CARD16) strlen (name);
 
     XFixesSimpleCheckExtension (dpy, info);
     if (info->major_version < 2)
 	return;
     LockDisplay (dpy);
     GetReq (XFixesChangeCursorByName, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesChangeCursorByName;
-    req->source = source;
+    req->source = (CARD32) source;
     req->nbytes = nbytes;
     req->length += (nbytes + 3) >> 2;
     Data (dpy, name, nbytes);
@@ -257,9 +259,9 @@ XFixesHideCursor (Display *dpy, Window win)
 	return;
     LockDisplay (dpy);
     GetReq (XFixesHideCursor, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesHideCursor;
-    req->window = win;
+    req->window = (CARD32) win;
     UnlockDisplay (dpy);
     SyncHandle ();
 }
@@ -275,9 +277,9 @@ XFixesShowCursor (Display *dpy, Window win)
 	return;
     LockDisplay (dpy);
     GetReq (XFixesShowCursor, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesShowCursor;
-    req->window = win;
+    req->window = (CARD32) win;
     UnlockDisplay (dpy);
     SyncHandle ();
 }
@@ -301,16 +303,17 @@ XFixesCreatePointerBarrier(Display *dpy, Window w, int x1, int y1,
 
     LockDisplay (dpy);
     GetReqExtra (XFixesCreatePointerBarrier, extra, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesCreatePointerBarrier;
-    barrier = req->barrier = XAllocID (dpy);
-    req->window = w;
-    req->x1 = x1;
-    req->y1 = y1;
-    req->x2 = x2;
-    req->y2 = y2;
-    req->directions = directions;
-    if ((req->num_devices = num_devices)) {
+    barrier = XAllocID (dpy);
+    req->barrier = (CARD32) barrier;
+    req->window = (CARD32) w;
+    req->x1 = (INT16) x1;
+    req->y1 = (INT16) y1;
+    req->x2 = (INT16) x2;
+    req->y2 = (INT16) y2;
+    req->directions = (CARD32) directions;
+    if ((req->num_devices = (CARD16) num_devices)) {
 	int i;
 	CARD16 *devs = (CARD16 *)(req + 1);
 	for (i = 0; i < num_devices; i++)
@@ -334,9 +337,9 @@ XFixesDestroyPointerBarrier(Display *dpy, PointerBarrier b)
 
     LockDisplay (dpy);
     GetReq (XFixesDestroyPointerBarrier, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->xfixesReqType = X_XFixesDestroyPointerBarrier;
-    req->barrier = b;
+    req->barrier = (CARD32) b;
     UnlockDisplay (dpy);
     SyncHandle();
 }

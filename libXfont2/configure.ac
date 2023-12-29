@@ -21,13 +21,13 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([libXfont2], [2.0.3],
-	[https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [libXfont2])
+AC_INIT([libXfont2], [2.0.6],
+	[https://gitlab.freedesktop.org/xorg/lib/libxfont/-/issues], [libXfont2])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2 subdir-objects])
+AM_INIT_AUTOMAKE([foreign dist-xz subdir-objects])
 
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE
 # Must be called before any macros that run the compiler (like
@@ -52,6 +52,15 @@ AC_CHECK_HEADERS([endian.h poll.h sys/poll.h])
 
 # Checks for library functions.
 AC_CHECK_FUNCS([poll readlink])
+AC_SEARCH_LIBS([strlcat], [bsd])
+if test "$ac_cv_search_strlcat" = "-lbsd"; then
+  AC_DEFINE(HAVE_LIBBSD,1,[Has libbsd])
+fi
+AC_CONFIG_LIBOBJ_DIR([src/util])
+AC_REPLACE_FUNCS([reallocarray realpath strlcat strlcpy])
+
+# Check for BSDish err.h
+AC_CHECK_HEADERS([err.h])
 
 # If the first PKG_CHECK_MODULES appears inside a conditional, pkg-config
 # must first be located explicitly.
@@ -119,7 +128,12 @@ AC_SUBST(FREETYPE_REQUIRES)
 AC_DEFINE(X_GZIP_FONT_COMPRESSION,1,[Support gzip for bitmap fonts])
 X_GZIP_FONT_COMPRESSION=1
 AC_SUBST(X_GZIP_FONT_COMPRESSION)
-AC_CHECK_LIB(z, gzopen, [Z_LIBS=-lz], AC_MSG_ERROR([*** zlib is required]))
+PKG_CHECK_MODULES(ZLIB, [zlib], [Z_REQUIRES=zlib], [Z_REQUIRES=""])
+if test "x$Z_REQUIRES" = "x"; then
+	AC_CHECK_LIB(z, gzopen, [Z_LIBS=-lz],
+		AC_MSG_ERROR([*** zlib is required]))
+fi
+AC_SUBST(Z_REQUIRES)
 
 AC_ARG_WITH(bzip2,
 	AS_HELP_STRING([--with-bzip2],

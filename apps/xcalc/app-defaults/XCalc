@@ -68,6 +68,16 @@ XCalc*ti.bevel.screen.LCD.translations:	#replace\n\
 	None<Key>7:digit(7)\n\
 	None<Key>8:digit(8)\n\
 	None<Key>9:digit(9)\n\
+	Mod2<Key>0:digit(0)\n\
+	Mod2<Key>1:digit(1)\n\
+	Mod2<Key>2:digit(2)\n\
+	Mod2<Key>3:digit(3)\n\
+	Mod2<Key>4:digit(4)\n\
+	Mod2<Key>5:digit(5)\n\
+	Mod2<Key>6:digit(6)\n\
+	Mod2<Key>7:digit(7)\n\
+	Mod2<Key>8:digit(8)\n\
+	Mod2<Key>9:digit(9)\n\
 	Shift<Key>a:digit(A)\n\
 	Shift<Key>b:digit(B)\n\
 	Shift<Key>c:digit(C)\n\

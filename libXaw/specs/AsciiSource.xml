@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!-- 	AsciiSrc Object -->
 <!-- .XE -->
-<!-- .IN "AsciiSrc object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>AsciiSrc object</primary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -13,13 +13,13 @@
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/AsciiSrc.h&gt; or &lt;X11/Xaw/MultiSrc.h&gt;
-<!-- .IN "AsciiSrc.h" "" -->
+<indexterm><primary>AsciiSrc.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/AsciiSrcP.h&gt; or  &lt;X11/Xaw/MultiSrcP.h&gt;
-<!-- .IN "AsciiSrcP.h" "" -->
+<indexterm><primary>AsciiSrcP.h</primary></indexterm>
 Class		asciiSrcObjectClass or multiSrcObjectClass
-<!-- .IN "asciiSrcObjectClass" "" -->
+<indexterm><primary>asciiSrcObjectClass</primary></indexterm>
 Class Name	AsciiSrc or MultiSrc
-<!-- .IN "AsciiSrc object" "class name" -->
+<indexterm><primary>AsciiSrc object</primary><secondary>class name</secondary></indexterm>
 Superclass	TextSource
 </literallayout>
 </para>
@@ -33,9 +33,9 @@ applies to both, with MultiSrc differences noted only as they occur.
 </para>
 <para>
 <!-- .LP -->
-The AsciiSrc understands all Latin1 characters plus Tab
-and Carriage Return.  \fIThe MultiSrc understands any set of character sets that
-the underlying X implementation's internationalization handles.\fP
+The AsciiSrc understands all Latin1 characters plus Tab and Carriage Return.
+<emphasis remap='I'>The MultiSrc understands any set of character sets that
+the underlying X implementation's internationalization handles.</emphasis>
 </para>
 <para>
 <!-- .LP -->
@@ -57,8 +57,8 @@ source is in this mode the <function>useStringInPlace</function> resource is ign
 <!-- .LP -->
 AsciiSrc objects of type <function>XawAsciiString</function> have the text buffer
 implemented as a string.
-\fIMultiSrc objects of type <function>XawAsciiString</function> have the text buffer
-implemented as a wide character string.\fP
+<emphasis remap='I'>MultiSrc objects of type <function>XawAsciiString</function>
+have the text buffer implemented as a wide character string.</emphasis>
 The string owner is responsible for allocating and managing storage for the
 string.
 </para>
@@ -108,7 +108,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "AsciiSrc object" "resources" -->
+<indexterm><primary>AsciiSrc object</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -333,7 +333,7 @@ This function returns <function>True</function> if the save was successful.
 <!-- .LP -->
 To find out if the text buffer in an AsciiSrc object has changed
 since the last time it was saved with <xref linkend='XawAsciiSave' xrefstyle='select: title'/> or queried
-<!-- .IN "XawAsciiSave" "" -->
+<indexterm><primary>XawAsciiSave</primary></indexterm>
 use <xref linkend='XawAsciiSourceChanged' xrefstyle='select: title'/>.
 <funcsynopsis id='XawAsciiSourceChanged'>
 <funcprototype>

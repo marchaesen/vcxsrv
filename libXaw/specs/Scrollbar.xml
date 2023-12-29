@@ -10,12 +10,12 @@ Superclass                  Simple
 </literallayout>
 
 <para>
-A Scrollbar widget is a rectangle, called the ``canvas,'' on
-which another rectangle, the ``thumb,'' moves in one
+A Scrollbar widget is a rectangle, called the <quote>canvas,</quote> on
+which another rectangle, the <quote>thumb,</quote> moves in one
 dimension, either vertically or horizontally.  A Scrollbar
 can be used alone, as a value generator, or it can be used
 within a composite widget (for example, a Viewport).  When a
-Scrollbar is used to move, or ``scroll,'' the contents of
+Scrollbar is used to move, or <quote>scroll,</quote> the contents of
 another widget, the size and the position of the thumb usually give
 feedback as to what portion of the other widget's contents
 are visible.
@@ -389,8 +389,8 @@ used to draw the thumb.
     <listitem>
       <para>
 All functions on this callback list are called when the
-<function>NotifyThumb</function> action is invoked.  See the <function>Scrollbar
-Actions</function> section for details.
+<function>NotifyThumb</function> action is invoked.  See
+<xref linkend="Scrollbar_Actions" /> for details.
       </para>
     </listitem>
   </varlistentry>
@@ -463,8 +463,8 @@ This cursor is used when scrolling forward in a horizontal scrollbar.
     <listitem>
       <para>
 All functions on this callback list may be called when the
-<function>NotifyScroll</function> action is invoked.  See the \fBScrollbar
-Actions\fP section for details.
+<function>NotifyScroll</function> action is invoked.  See
+<xref linkend="Scrollbar_Actions" /> for details.
       </para>
     </listitem>
   </varlistentry>
@@ -590,7 +590,7 @@ callbacks.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>EndScroll</function>(\^)
+      <function>EndScroll</function>(&#x200A;)
     </term>
     <listitem>
       <para>
@@ -600,7 +600,7 @@ This must be the last action after a movement is complete.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>MoveThumb</function>(\^)
+      <function>MoveThumb</function>(&#x200A;)
     </term>
     <listitem>
       <para>
@@ -610,7 +610,7 @@ Repositions the Scrollbar's thumb to the current pointer location.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>NotifyThumb</function>(\^)\
+      <function>NotifyThumb</function>(&#x200A;)\
     </term>
     <listitem>
       <para>
@@ -624,15 +624,15 @@ pointer as a percentage of the scroll bar length.
 </variablelist>
 <para>
 The default bindings for Scrollbar are:
-<!-- .IN "Scrollbar widget" "default translation table" -->
+<indexterm><primary>Scrollbar widget</primary><secondary>default translation table</secondary></indexterm>
 </para>
 
 <literallayout class="monospaced">
      &lt;Btn1Down&gt;:     StartScroll(Forward)
-     &lt;Btn2Down&gt;:     StartScroll(Continuous) MoveThumb(\|) NotifyThumb(\|)
+     &lt;Btn2Down&gt;:     StartScroll(Continuous) MoveThumb(&#x2006;) NotifyThumb(&#x2006;)
      &lt;Btn3Down&gt;:     StartScroll(Backward)
-     &lt;Btn2Motion&gt;:     MoveThumb(\|) NotifyThumb(\|)
-     &lt;BtnUp&gt;:     NotifyScroll(Proportional) EndScroll(\|)
+     &lt;Btn2Motion&gt;:     MoveThumb(&#x2006;) NotifyThumb(&#x2006;)
+     &lt;BtnUp&gt;:     NotifyScroll(Proportional) EndScroll(&#x2006;)
 </literallayout>
 
 <para>
@@ -644,14 +644,14 @@ resource file are:
 *Scrollbar.Translations: \\
      ~Meta&lt;Key&gt;space:     StartScroll(Forward) NotifyScroll(FullLength) \\n\\
       Meta&lt;Key&gt;space:     StartScroll(Backward) NotifyScroll(FullLength) \\n\\
-          EndScroll(\|)
+          EndScroll(&#x2006;)
 </literallayout>
 
 </sect2>
 
 <sect2 id="Scrollbar_Callbacks">
 <title>Scrollbar Callbacks</title>
-<!-- .IN "Scrollbar widget" "callbacks" -->
+<indexterm><primary>Scrollbar widget</primary><secondary>callbacks</secondary></indexterm>
 <para>
 <!-- .LP -->
 There are two callback lists provided by the Scrollbar widget.
@@ -661,7 +661,7 @@ The procedural interface for these functions is described here.
 <para>
 <!-- .LP -->
 The calling interface to the <function>scrollProc</function> callback procedure is:
-<!-- .IN "ScrollProc" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>ScrollProc</primary></indexterm>
 </para>
 <funcsynopsis id='ScrollProc'>
 <funcprototype>
@@ -719,7 +719,7 @@ be greater than the length of the Scrollbar.
 <para>
 The calling interface to the <function>jumpProc</function> callback procedure is:
 </para>
-<!-- .IN "jumpProc" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>jumpProc</primary></indexterm>
 <funcsynopsis id='JumpProc'>
 <funcprototype>
   <funcdef>void<function> JumpProc</function></funcdef>
@@ -757,7 +757,7 @@ Specifies the client data.
     </term>
     <listitem>
       <para>
-Specifies the floating point position of the thumb (0.0 \- 1.0).
+Specifies the floating point position of the thumb (0.0 &#x2013; 1.0).
     </para>
   </listitem>
   </varlistentry>
@@ -787,10 +787,10 @@ Scrollbar.
 <sect2 id="Convenience_Routines">
 <title>Convenience Routines</title>
 <para>
-<!-- .IN "Scrollbar widget" "setting thumb values" -->
+<indexterm><primary>Scrollbar widget</primary><secondary>setting thumb values</secondary></indexterm>
 To set the position and length of a Scrollbar thumb, use
 <!-- .PN XawScrollbarSetThumb . -->
-<!-- .IN "XawScrollbarSetThumb" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawScrollbarSetThumb</primary></indexterm>
 </para>
 <funcsynopsis id='XawScrollbarSetThumb'>
 <funcprototype>
@@ -838,8 +838,8 @@ of the Scrollbar.
 
 <para>
 <function>XawScrollbarThumb</function>
-moves the visible thumb to a new position (0.0 \- 1.0) and length (0.0 \- 1.0).
-Either the top or shown arguments can be specified as \-1.0,
+moves the visible thumb to a new position (0.0 &#x2013; 1.0) and length (0.0 &#x2013; 1.0).
+Either the top or shown arguments can be specified as -1.0,
 in which case the current value is left unchanged.
 Values greater than 1.0 are truncated to 1.0.
 </para>
@@ -852,7 +852,7 @@ If called from <function>jumpProc</function>, <xref linkend='XawScrollbarSetThum
 
 <sect2 id="Setting_Float_Resources">
 <title>Setting Float Resources</title>
-<!-- .IN "float resources" "setting" -->
+<indexterm><primary>float resources</primary><secondary>setting</secondary></indexterm>
 <para>
 The <function>shown</function> and <function>topOfThumb</function> resources are of type
 <emphasis remap='I'>float</emphasis>.  These resources can be difficult to get into an
@@ -865,16 +865,16 @@ getting a float into an argument list.
      top = 0.5;
      if (sizeof(float) &gt; sizeof(XtArgVal)) {
      /*
-     \ * If a float is larger than an XtArgVal then pass this
-     \ * resource value by reference.
-     \ */
+      * If a float is larger than an XtArgVal then pass this
+      * resource value by reference.
+      */
           XtSetArg(args[0], XtNshown, &amp;top);
      }
      else {
      /*
-     \ * Convince C not to perform an automatic conversion, which
-     \ * would truncate 0.5 to 0.
-     \ */
+      * Convince C not to perform an automatic conversion, which
+      * would truncate 0.5 to 0.
+      */
           XtArgVal * l_top = (XtArgVal *) &amp;top;
           XtSetArg(args[0], XtNshown, *l_top);
      }

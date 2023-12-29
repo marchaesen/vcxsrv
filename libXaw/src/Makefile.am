@@ -55,10 +55,10 @@ COMMON_SOURCES = \
 	XawI18n.c \
 	XawI18n.h
 
-COMMON_CFLAGS = \
+AM_CFLAGS = \
 	$(CWARNFLAGS)
 
-COMMON_CPPFLAGS = \
+AM_CPPFLAGS = \
 	-I${top_srcdir}/include \
 	-DPROJECT_ROOT=\"$(prefix)\"
 
@@ -67,10 +67,10 @@ if BUILD_XAW6
 lib_LTLIBRARIES += libXaw6.la
 
 libXaw6_la_CPPFLAGS =			\
-	$(COMMON_CPPFLAGS)
+	$(AM_CPPFLAGS)
 
 libXaw6_la_CFLAGS =			\
-	$(COMMON_CFLAGS)		\
+	$(AM_CFLAGS)			\
 	-DOLDXAW			\
 	$(XAW6_CFLAGS)
 
@@ -105,15 +105,15 @@ if BUILD_XAW7
 lib_LTLIBRARIES += libXaw7.la
 
 libXaw7_la_CPPFLAGS =			\
-	$(COMMON_CPPFLAGS)
+	$(AM_CPPFLAGS)
 
 libXaw7_la_CFLAGS =			\
-	$(COMMON_CFLAGS)		\
+	$(AM_CFLAGS)			\
 	-DXAW7				\
 	$(XAW7_CFLAGS)
 
-libXaw7_la_SOURCES = \
-	$(COMMON_SOURCES) \
+libXaw7_la_SOURCES =			\
+	$(COMMON_SOURCES)		\
 	Tip.c
 
 libXaw7_la_LDFLAGS = -version-info 7:0:0 -no-undefined

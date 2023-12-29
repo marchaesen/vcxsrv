@@ -7,7 +7,7 @@ Name: Xfont2
 Description: X font Library version 2
 Version: @VERSION@
 Requires: xproto fontsproto
-Requires.private: fontenc @FREETYPE_REQUIRES@
+Requires.private: fontenc @FREETYPE_REQUIRES@ @Z_REQUIRES@
 Cflags: -I${includedir}
 Libs: -L${libdir} -lXfont2
 Libs.private: @Z_LIBS@ -lm

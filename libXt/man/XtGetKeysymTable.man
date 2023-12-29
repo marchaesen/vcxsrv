@@ -34,40 +34,13 @@
 .ds Vn 2.2
 .hw XtGet-Keysym-Table XtKeysym-To-Keycode-List wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetKeysymTable __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetKeysymTable, XtKeysymToKeycodeList \- query keysyms and keycodes
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Keysym* XtGetKeysymTable(Display* \fIdisplay\fP, KeyCode*
+KeySym* XtGetKeysymTable(Display* \fIdisplay\fP, KeyCode*
 \fImin_keycode_return\fP, int *\fIkeysyms_per_keycode_return\fP);
 .HP
 void XtKeysymToKeycodeList(Display* \fIdisplay\fP, KeySym \fIkeysym\fP,
@@ -92,17 +65,18 @@ or NULL if \fIkeycount_return\fP is 0.
 .IP \fIkeycount_return\fP 1i
 Returns the number of KeyCodes in the keycode list.
 .SH DESCRIPTION
-.ZN XtGetKeysymTable
+.B XtGetKeysymTable
 returns a pointer to the Intrinsics' copy of the server's KeyCode-to-KeySym
-table. This table must not be modified.
+table.
+This table must not be modified.
 .LP
 The
-.ZN XtKeysymToKeycodeList
+.B XtKeysymToKeycodeList
 procedure returns all the KeyCodes that have \fIkeysym\fP in their
 entry for the keyboard mapping table associated with \fIdisplay\fP.
 The caller should free the storage pointed to by \fIkeycodes_return\fP
 using
-.ZN XtFree
+.B XtFree
 when it is no longer useful.
 .SH "SEE ALSO"
 .br

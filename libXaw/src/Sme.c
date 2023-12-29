@@ -134,7 +134,7 @@ WidgetClass smeObjectClass = (WidgetClass)&smeClassRec;
  *	XawSmeClassPartInitialize
  *
  * Parameters:
- *	cclass - widget classs of this widget
+ *	cclass - widget class of this widget
  *
  * Description:
  *	Handles inheritance of class functions.
@@ -170,8 +170,8 @@ XawSmeClassPartInitialize(WidgetClass cclass)
  */
 /*ARGSUSED*/
 static void
-XawSmeInitialize(Widget request, Widget cnew,
-		 ArgList args, Cardinal *num_args)
+XawSmeInitialize(Widget request _X_UNUSED, Widget cnew,
+		 ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     SmeObject entry = (SmeObject)cnew;
 
@@ -186,11 +186,11 @@ XawSmeInitialize(Widget request, Widget cnew,
  *	w - menu entry
  *
  * Description:
- *	Default highlight proceedure for menu entries.
+ *	Default highlight procedure for menu entries.
  */
 /*ARGSUSED*/
 static void
-Highlight(Widget w)
+Highlight(Widget w _X_UNUSED)
 {
 }
 
@@ -202,11 +202,11 @@ Highlight(Widget w)
  *	w - menu entry
  *
  * Description:
- *	Default unhighlight proceedure for menu entries.
+ *	Default unhighlight procedure for menu entries.
  */
 /*ARGSUSED*/
 static void
-Unhighlight(Widget w)
+Unhighlight(Widget w _X_UNUSED)
 {
 }
 
@@ -218,7 +218,7 @@ Unhighlight(Widget w)
  *	w - menu entry
  *
  * Description:
- *	Calls the callback proceedures for this entry.
+ *	Calls the callback procedures for this entry.
  */
 static void
 Notify(Widget w)

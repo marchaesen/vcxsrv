@@ -92,7 +92,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     XtOffsetOf(GripRec, core.background_pixel),
     XtRString,
-    XtDefaultForeground
+    (XtPointer)XtDefaultForeground
   },
   {
     XtNborderWidth,

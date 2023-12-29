@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtCreate-Window wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtCreateWindow __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtCreateWindow \- window creation convenience function
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtCreateWindow(Widget \fIw\fP, unsigned int \fIwindow_class\fP, Visual
 *\fIvisual\fP, XtValueMask \fIvalue_mask\fP, XSetWindowAttributes
@@ -73,34 +46,32 @@ void XtCreateWindow(Widget \fIw\fP, unsigned int \fIwindow_class\fP, Visual
 .SH ARGUMENTS
 .IP \fIattributes\fP 1i
 Specifies the window attributes to use in the
-.ZN XCreateWindow
+.B XCreateWindow
 call.
-.ds Vm attribute fields to use
 .IP \fIvalue_mask\fP 1i
-Specifies which \*(Vm.
+Specifies which attribute fields to use.
 .IP \fIvisual\fP 1i
 Specifies the visual type (usually
-.ZN CopyFromParent ).
-.ds Wi that is used to set the x,y coordinates and so on
+.BR CopyFromParent ).
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget that is used to set the x,y coordinates and so on.
 .IP \fIwindow_class\fP 1i
 Specifies the Xlib window class (for example,
-.ZN InputOutput ,
-.ZN InputOnly ,
+.BR InputOutput ,
+.BR InputOnly ,
 or
-.ZN CopyFromParent ).
+.BR CopyFromParent ).
 .SH DESCRIPTION
 The
-.ZN XtCreateWindow
+.B XtCreateWindow
 function calls the Xlib
-.ZN XCreateWindow
+.B XCreateWindow
 function with values from the widget structure and the passed parameters.
 Then, it assigns the created window to the widget's window field.
 .LP
-.ZN XtCreateWindow
+.B XtCreateWindow
 evaluates the following fields of the
-.ZN Core
+.B Core
 widget structure:
 .IP \(bu 5
 depth

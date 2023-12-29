@@ -1,0 +1,2 @@
+<!-- define version entity for libXt documentation via configure.ac -->
+<!ENTITY package_version "@PACKAGE_VERSION@">

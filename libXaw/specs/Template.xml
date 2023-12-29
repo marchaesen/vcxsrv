@@ -10,7 +10,7 @@ operation, or to call a public routine implemented by the widget class.
 <para>
 <!-- .LP -->
 The contents of the Template public header file,
-<function>&lt; X11/Xaw/Template.h &gt;, </function>
+<filename class="headerfile">&lt;X11/Xaw/Template.h&gt;</filename>,
 are:
 </para>
 <literallayout class="monospaced">
@@ -96,9 +96,9 @@ convenience procedures, so we need to add
 #define XtNdrawingColor2 "drawingColor2"
 #define XtNexposeCallback "exposeCallback"
 
-extern Pixel WindowColor1(\|/* Widget */\|);
-extern Pixel WindowColor2(\|/* Widget */\|);
-extern Font\ \ WindowFont(\|/* Widget */\|);
+extern Pixel WindowColor1(&#x2006;/* Widget */&#x2006;);
+extern Pixel WindowColor2(&#x2006;/* Widget */&#x2006;);
+extern Font  WindowFont(&#x2006;/* Widget */&#x2006;);
 <!-- .CE -->
 </literallayout>
 <para>
@@ -120,12 +120,12 @@ that will be required by anticipated subclasses of the widget.
 Information in the private header file is normally hidden from the
 application and is designed to be accessed only through other public
 procedures; e.g.
-<function>XtSetValues .</function>
+<function>XtSetValues</function>.
 </para>
 <para>
 <!-- .LP -->
 The contents of the Template private header file,
-<function>&lt; X11/Xaw/TemplateP.h &gt;, </function>
+<filename class="headerfile">&lt;X11/Xaw/TemplateP.h&gt;</filename>,
 are:
 </para>
 <!-- .CB -->
@@ -209,7 +209,7 @@ action routines added by the widget class.
 <para>
 <!-- .LP -->
 The contents of the Template implementation file,
-<function>&lt; X11/Xaw/Template.c &gt;,</function>
+<filename class="headerfile">&lt;X11/Xaw/Template.c&gt;</filename>,
 are:
 </para>
 <!-- .CB -->
@@ -239,46 +239,46 @@ static XtActionsRec actions[] =
 };
 
 static char translations[] =
-"	&lt;Key&gt;:	template(\|) \\n\\
+"	&lt;Key&gt;:	template(&#x2006;) \\n\\
 ";
 
 TemplateClassRec templateClassRec = {
   { /* core fields */
-	/* superclass	*/	(WidgetClass) &amp;widgetClassRec,
-	/* class_name	*/	"Template",
-	/* widget_size	*/	sizeof(TemplateRec),
-	/* class_initialize	*/	NULL,
-	/* class_part_initialize	*/	NULL,
-	/* class_inited	*/	FALSE,
-	/* initialize	*/	NULL,
-	/* initialize_hook	*/	NULL,
-	/* realize	*/	XtInheritRealize,
-	/* actions	*/	actions,
-	/* num_actions	*/	XtNumber(actions),
-	/* resources	*/	resources,
-	/* num_resources	*/	XtNumber(resources),
-	/* xrm_class	*/	NULLQUARK,
-	/* compress_motion	*/	TRUE,
-	/* compress_exposure	*/	TRUE,
-	/* compress_enterleave */	TRUE,
-	/* visible_interest	*/	FALSE,
-	/* destroy	*/	NULL,
-	/* resize	*/	NULL,
-	/* expose	*/	NULL,
-	/* set_values	*/	NULL,
-	/* set_values_hook	*/	NULL,
-	/* set_values_almost	*/	XtInheritSetValuesAlmost,
-	/* get_values_hook	*/	NULL,
-	/* accept_focus	*/	NULL,
-	/* version	*/	XtVersion,
-	/* callback_private	*/	NULL,
-	/* tm_table	*/	translations,
-	/* query_geometry	*/	XtInheritQueryGeometry,
-	/* display_accelerator	*/	XtInheritDisplayAccelerator,
-	/* extension	*/	NULL
+        /* superclass           */      (WidgetClass) &amp;widgetClassRec,
+        /* class_name           */      "Template",
+        /* widget_size          */      sizeof(TemplateRec),
+        /* class_initialize     */      NULL,
+        /* class_part_initialize */     NULL,
+        /* class_inited         */      FALSE,
+        /* initialize           */      NULL,
+        /* initialize_hook      */      NULL,
+        /* realize              */      XtInheritRealize,
+        /* actions              */      actions,
+        /* num_actions          */      XtNumber(actions),
+        /* resources            */      resources,
+        /* num_resources        */      XtNumber(resources),
+        /* xrm_class            */      NULLQUARK,
+        /* compress_motion      */      TRUE,
+        /* compress_exposure    */      TRUE,
+        /* compress_enterleave  */      TRUE,
+        /* visible_interest     */      FALSE,
+        /* destroy              */      NULL,
+        /* resize               */      NULL,
+        /* expose               */      NULL,
+        /* set_values           */      NULL,
+        /* set_values_hook      */      NULL,
+        /* set_values_almost    */      XtInheritSetValuesAlmost,
+        /* get_values_hook      */      NULL,
+        /* accept_focus         */      NULL,
+        /* version              */      XtVersion,
+        /* callback_private     */      NULL,
+        /* tm_table             */      translations,
+        /* query_geometry       */      XtInheritQueryGeometry,
+        /* display_accelerator  */      XtInheritDisplayAccelerator,
+        /* extension            */      NULL
   },
   { /* template fields */
-	/* empty	*/	0
+        /* empty                */      0
   }
 };
 
@@ -339,8 +339,8 @@ and the default input binding will be to execute the input callbacks on
 </para>
 <literallayout class="monospaced">
 static char translations[] =
-"	&lt;Key&gt;:	input(\|) \\n\\
- 	&lt;BtnDown&gt;:	input(\|) \\
+"	&lt;Key&gt;:	input(&#x2006;) \\n\\
+ 	&lt;BtnDown&gt;:	input(&#x2006;) \\
 ";
 </literallayout>
 <!-- .CE -->
@@ -399,7 +399,7 @@ Font WindowFont(w)
 <para>
 The "WindowWidget" is now complete.  The application can retrieve the two
 drawing colors from the widget instance by calling either
-<function>XtGetValues ,</function>
+<function>XtGetValues</function>,
 or the <function>WindowColor</function> functions.  The actual window created for the
 "WindowWidget" is available by calling the
 <function>XtWindow</function> function.

@@ -109,7 +109,7 @@ static XtResource resources[] = {
 	XtOffsetOf(TreeRec, tree.vpad), XtRImmediate, (XtPointer) 0 },
     { XtNforeground, XtCForeground, XtRPixel, sizeof (Pixel),
 	XtOffsetOf(TreeRec, tree.foreground), XtRString,
-	XtDefaultForeground},
+	(XtPointer) XtDefaultForeground},
     { XtNlineWidth, XtCLineWidth, XtRDimension, sizeof (Dimension),
 	XtOffsetOf(TreeRec, tree.line_width), XtRImmediate, (XtPointer) 0 },
     { XtNgravity, XtCGravity, XtRGravity, sizeof (XtGravity),
@@ -217,7 +217,7 @@ initialize_dimensions(Dimension **listp, int *sizep, int n)
     }
     if (n > *sizep) {
 	*listp = (Dimension *) XtRealloc((char *) *listp,
-					 (unsigned int) (n*sizeof(Dimension)));
+					 (Cardinal) ((size_t)n*sizeof(Dimension)));
 	if (!*listp) {
 	    *sizep = 0;
 	    return;
@@ -265,8 +265,8 @@ insert_node(Widget parent, Widget node)
     if (pc->tree.n_children == pc->tree.max_children) {
 	pc->tree.max_children += (pc->tree.max_children / 2) + 2;
 	pc->tree.children = (WidgetList) XtRealloc ((char *)pc->tree.children,
-						    (unsigned int)
-						    ((pc->tree.max_children) *
+						    (Cardinal)
+						    ((size_t)pc->tree.max_children *
 						    sizeof(Widget)));
     }
 
@@ -346,7 +346,7 @@ XawTreeClassInitialize(void)
 /*ARGSUSED*/
 static void
 XawTreeInitialize(Widget grequest, Widget gnew,
-		  ArgList args, Cardinal *num_args)
+		  ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TreeWidget request = (TreeWidget) grequest, cnew = (TreeWidget) gnew;
     Arg arglist[2];
@@ -402,8 +402,8 @@ XawTreeInitialize(Widget grequest, Widget gnew,
 
 /* ARGSUSED */
 static void
-XawTreeConstraintInitialize(Widget request, Widget cnew,
-			    ArgList args, Cardinal *num_args)
+XawTreeConstraintInitialize(Widget request _X_UNUSED, Widget cnew,
+			    ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TreeConstraints tc = TREE_CONSTRAINT(cnew);
     TreeWidget tw = (TreeWidget) cnew->core.parent;
@@ -433,8 +433,8 @@ XawTreeConstraintInitialize(Widget request, Widget cnew,
 
 /* ARGSUSED */
 static Boolean
-XawTreeSetValues(Widget gcurrent, Widget grequest, Widget gnew,
-		 ArgList args, Cardinal *num_args)
+XawTreeSetValues(Widget gcurrent, Widget grequest _X_UNUSED, Widget gnew,
+		 ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TreeWidget current = (TreeWidget) gcurrent, cnew = (TreeWidget) gnew;
     Boolean redraw = FALSE;
@@ -480,8 +480,8 @@ XawTreeSetValues(Widget gcurrent, Widget grequest, Widget gnew,
 
 /* ARGSUSED */
 static Boolean
-XawTreeConstraintSetValues(Widget current, Widget request, Widget cnew,
-			   ArgList args, Cardinal *num_args)
+XawTreeConstraintSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+			   ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TreeConstraints newc = TREE_CONSTRAINT(cnew);
     TreeConstraints curc = TREE_CONSTRAINT(current);
@@ -538,7 +538,7 @@ XawTreeConstraintDestroy(Widget w)
 /* ARGSUSED */
 static XtGeometryResult
 XawTreeGeometryManager(Widget w, XtWidgetGeometry *request,
-		       XtWidgetGeometry *reply)
+		       XtWidgetGeometry *reply _X_UNUSED)
 {
 
     TreeWidget tw = (TreeWidget) w->core.parent;
@@ -584,7 +584,7 @@ XawTreeDestroy(Widget gw)
 
 /* ARGSUSED */
 static void
-XawTreeRedisplay(Widget gw, XEvent *event, Region region)
+XawTreeRedisplay(Widget gw, XEvent *event _X_UNUSED, Region region _X_UNUSED)
 {
     TreeWidget tw = (TreeWidget) gw;
 
@@ -725,7 +725,7 @@ compute_bounding_box_subtree(TreeWidget tree, Widget w, int depth)
     int i;
     Bool horiz = IsHorizontal (tree);
     Dimension newwidth, newheight;
-    Dimension bw2 = w->core.border_width * 2;
+    Dimension bw2 = (Dimension)(w->core.border_width * 2);
 
     /*
      * Set the max-size per level.
@@ -734,7 +734,7 @@ compute_bounding_box_subtree(TreeWidget tree, Widget w, int depth)
 	initialize_dimensions (&tree->tree.largest,
 			       &tree->tree.n_largest, depth + 1);
     }
-    newwidth = ((horiz ? w->core.width : w->core.height) + bw2);
+    newwidth = (Dimension)((horiz ? w->core.width : w->core.height) + bw2);
     if (tree->tree.largest[depth] < newwidth)
       tree->tree.largest[depth] = newwidth;
 
@@ -742,8 +742,8 @@ compute_bounding_box_subtree(TreeWidget tree, Widget w, int depth)
     /*
      * initialize
      */
-    tc->tree.bbwidth = w->core.width + bw2;
-    tc->tree.bbheight = w->core.height + bw2;
+    tc->tree.bbwidth = (Dimension)(w->core.width + bw2);
+    tc->tree.bbheight = (Dimension)(w->core.height + bw2);
 
     if (tc->tree.n_children == 0) return;
 
@@ -762,10 +762,10 @@ compute_bounding_box_subtree(TreeWidget tree, Widget w, int depth)
 
 	if (horiz) {
 	    if (newwidth < cc->tree.bbwidth) newwidth = cc->tree.bbwidth;
-	    newheight += tree->tree.vpad + cc->tree.bbheight;
+	    newheight = (Dimension)(newheight + (tree->tree.vpad + cc->tree.bbheight));
 	} else {
 	    if (newheight < cc->tree.bbheight) newheight = cc->tree.bbheight;
-	    newwidth += tree->tree.hpad + cc->tree.bbwidth;
+	    newwidth = (Dimension)(newwidth + (tree->tree.hpad + cc->tree.bbwidth));
 	}
     }
 
@@ -778,12 +778,12 @@ compute_bounding_box_subtree(TreeWidget tree, Widget w, int depth)
      * extra padding.  Be careful of unsigned arithmetic.
      */
     if (horiz) {
-	tc->tree.bbwidth += tree->tree.hpad + newwidth;
-	newheight -= tree->tree.vpad;
+	tc->tree.bbwidth = (Dimension)(tc->tree.bbwidth + (tree->tree.hpad + newwidth));
+	newheight = (Dimension)(newheight - tree->tree.vpad);
 	if (newheight > tc->tree.bbheight) tc->tree.bbheight = newheight;
     } else {
-	tc->tree.bbheight += tree->tree.vpad + newheight;
-	newwidth -= tree->tree.hpad;
+	tc->tree.bbheight = (Dimension)(tc->tree.bbheight + (tree->tree.vpad + newheight));
+	newwidth = (Dimension)(newwidth - tree->tree.hpad);
 	if (newwidth > tc->tree.bbwidth) tc->tree.bbwidth = newwidth;
     }
 }
@@ -803,13 +803,13 @@ set_positions(TreeWidget tw, Widget w, int level)
 	     */
 	    switch (tw->tree.gravity) {
 	      case EastGravity:
-		tc->tree.x = (((Position) tw->tree.maxwidth) -
-			      ((Position) w->core.width) - tc->tree.x);
+		tc->tree.x = (Position) (tw->tree.maxwidth -
+			      w->core.width - tc->tree.x);
 		break;
 
 	      case SouthGravity:
-		tc->tree.y = (((Position) tw->tree.maxheight) -
-			      ((Position) w->core.height) - tc->tree.y);
+		tc->tree.y = (Position) (tw->tree.maxheight -
+			      w->core.height - tc->tree.y);
 		break;
 	    }
 
@@ -838,15 +838,15 @@ arrange_subtree(TreeWidget tree, Widget w, int depth, int x, int y)
     Bool horiz = IsHorizontal (tree);
     Widget child = NULL;
     Dimension tmp;
-    Dimension bw2 = w->core.border_width * 2;
+    Dimension bw2 = (Dimension)(w->core.border_width * 2);
     Bool relayout = True;
 
 
     /*
      * If no children, then just lay out where requested.
      */
-    tc->tree.x = x;
-    tc->tree.y = y;
+    tc->tree.x = (Position)x;
+    tc->tree.y = (Position)y;
 
     if (horiz) {
 	int myh = (w->core.height + bw2);
@@ -864,9 +864,9 @@ arrange_subtree(TreeWidget tree, Widget w, int depth, int x, int y)
 	}
     }
 
-    if ((tmp = ((Dimension) x) + tc->tree.bbwidth) > tree->tree.maxwidth)
+    if ((tmp = (Dimension)(x + tc->tree.bbwidth)) > tree->tree.maxwidth)
       tree->tree.maxwidth = tmp;
-    if ((tmp = ((Dimension) y) + tc->tree.bbheight) > tree->tree.maxheight)
+    if ((tmp = (Dimension)(y + tc->tree.bbheight)) > tree->tree.maxheight)
       tree->tree.maxheight = tmp;
 
     if (tc->tree.n_children == 0) return;
@@ -913,21 +913,21 @@ arrange_subtree(TreeWidget tree, Widget w, int depth, int x, int y)
 	 * this could collide with the position of the previous sibling.
 	 */
 	if (horiz) {
-	    tc->tree.x = x;
-	    adjusted = firstcc->tree.y +
+	    tc->tree.x = (Position)x;
+	    adjusted = (Position)(firstcc->tree.y +
 	      ((lastcc->tree.y + (Position) child->core.height +
 		(Position) child->core.border_width * 2 -
 		firstcc->tree.y - (Position) w->core.height -
-		(Position) w->core.border_width * 2 + 1) / 2);
+		(Position) w->core.border_width * 2 + 1) / 2));
 	    if (adjusted > tc->tree.y) tc->tree.y = adjusted;
 	} else {
-	    adjusted = firstcc->tree.x +
+	    adjusted = (Position)(firstcc->tree.x +
 	      ((lastcc->tree.x + (Position) child->core.width +
 		(Position) child->core.border_width * 2 -
 		firstcc->tree.x - (Position) w->core.width -
-		(Position) w->core.border_width * 2 + 1) / 2);
+		(Position) w->core.border_width * 2 + 1) / 2));
 	    if (adjusted > tc->tree.x) tc->tree.x = adjusted;
-	    tc->tree.y = y;
+	    tc->tree.y = (Position)y;
 	}
     }
 }
@@ -937,12 +937,13 @@ set_tree_size(TreeWidget tw, Bool insetvalues,
 	      unsigned int width, unsigned int height)
 {
     if (insetvalues) {
-	tw->core.width = width;
-	tw->core.height = height;
+	tw->core.width = (Dimension)width;
+	tw->core.height = (Dimension)height;
     } else {
 	Dimension replyWidth = 0, replyHeight = 0;
 	XtGeometryResult result = XtMakeResizeRequest ((Widget) tw,
-						       width, height,
+						       (Dimension)width,
+						       (Dimension)height,
 						       &replyWidth,
 						       &replyHeight);
 	/*

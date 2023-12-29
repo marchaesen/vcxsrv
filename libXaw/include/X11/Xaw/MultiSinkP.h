@@ -108,7 +108,7 @@ typedef struct {
     short cursor_x, cursor_y;		/* Cursor Location */
     XFontSet fontset;			/* font set to draw */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } MultiSinkPart;
 

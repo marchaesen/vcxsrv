@@ -2,7 +2,7 @@ dnl @configure_input@
 dnl
 dnl This file comes from X.Org's @PACKAGE_STRING@
 dnl
-dnl Copyright (c) 2009, Oracle and/or its affiliates. All rights reserved.
+dnl Copyright (c) 2009, 2023, Oracle and/or its affiliates.
 dnl
 dnl Permission is hereby granted, free of charge, to any person obtaining a
 dnl copy of this software and associated documentation files (the "Software"),
@@ -248,6 +248,10 @@ AC_DEFUN([XORG_FONT_BDF_UTILS],[
 # Offer a --with-compression flag to control what compression method is
 # used for pcf font files.   Offers all the methods currently supported
 # by libXfont, including no compression.
+#
+# If COMPRESS_FLAGS is not set, and the compression method has flags needed
+# for reproducible builds, such as gzip -n to not record timestamp, will
+# set COMPRESS_FLAGS to those options.
 
 AC_DEFUN([XORG_FONT_CHECK_COMPRESSION],[
 	AC_MSG_CHECKING([font compression method])
@@ -261,7 +265,8 @@ AC_DEFUN([XORG_FONT_CHECK_COMPRESSION],[
 	AC_MSG_RESULT([${compression}])
 	case ${compression} in
 	 *compress)	COMPRESS_SUFFIX=".Z" ;;
-	 *gzip)		COMPRESS_SUFFIX=".gz" ;;
+	 *gzip)		COMPRESS_SUFFIX=".gz" ;
+			COMPRESS_FLAGS="${COMPRESS_FLAGS--n}" ;;
 	 *bzip2)	COMPRESS_SUFFIX=".bz2" ;;
 	 no|none)	COMPRESS_SUFFIX="" ; COMPRESS="cat" ;;
 	 *) AC_MSG_ERROR([${compression} is not a supported compression method]) ;;
@@ -269,6 +274,9 @@ AC_DEFUN([XORG_FONT_CHECK_COMPRESSION],[
 	if test x"$COMPRESS_SUFFIX" != "x" ; then
 	   XORG_FONT_REQUIRED_PROG(COMPRESS, ${compression})
 	fi
+	AC_MSG_CHECKING([options to font compression command])
+	AC_MSG_RESULT([${COMPRESS_FLAGS:-none}])
+	AC_SUBST([COMPRESS_FLAGS])
 	AC_SUBST([COMPRESS_SUFFIX])
 ])
 

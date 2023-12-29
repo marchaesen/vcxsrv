@@ -31,40 +31,14 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtGrab-Key XtUngrab-Key XtGrab-Keyboard XtUngrab-Keyboard XtGrab-Button XtUngrab-Button XtGrab-Pointer XtUngrab-Pointer wid-get
+.hw XtGrab-Key XtUngrab-Key XtGrab-Keyboard XtUngrab-Keyboard
+.hw XtGrab-Button XtUngrab-Button XtGrab-Pointer XtUngrab-Pointer wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGrabKey __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGrabKey, XtUngrabKey, XtGrabKeyboard, XtUngrabKeyboard, XtGrabButton, XtUngrabButton, XtGrabPointer, XtUngrabPointer \- manage grabs
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtGrabKey(Widget \fIwidget\fP, KeyCode \fIkeycode\fP, Modifiers
 \fImodifiers\fP, Boolean \fIowner_events\fP, int \fIpointer_mode\fP, int
@@ -83,7 +57,7 @@ void XtGrabButton(Widget \fIwidget\fP, int \fIbutton\fP, Modifiers
 int \fIpointer_mode\fP, int \fIkeyboard_mode\fP, Window \fIconfine_to\fP,
 Cursor \fIcursor\fP);
 .HP
-void XtUngrabButton(Widget \fIwidget\fP, KeyCode \fIbutton\fP, Modifiers
+void XtUngrabButton(Widget \fIwidget\fP, unsigned \fIbutton\fP, Modifiers
 \fImodifiers\fP);
 .HP
 int XtGrabPointer(Widget \fIwidget\fP, Boolean \fIowner_events\fP, unsigned
@@ -93,7 +67,8 @@ int \fIevent_mask\fP, int \fIpointer_mode\fP, int \fIkeyboard_mode\fP, Window
 void XtUngrabPointer(Widget \fIwidget\fP, Time \fItime\fP);
 .SH ARGUMENTS
 .IP \fIwidget\fP 1i
-Specifies the widget in whose window the grab will occur. Must be of
+Specifies the widget in whose window the grab will occur.
+Must be of
 class Core or a subclass thereof.
 .sp 6p
 .IP \fIkeycode\fP
@@ -123,125 +98,133 @@ class Core or a subclass thereof.
 .IP \fIcursor\fP 1i
 Specifies arguments to the associated Xlib function call.
 .SH DESCRIPTION
-.ZN XtGrabKey
+.B XtGrabKey
 calls
-.ZN XGrabKey
+.B XGrabKey
 specifying the widget's window as the grab window if the widget is
-realized. The remaining arguments are exactly as for
-.ZN XGrabKey .
+realized.
+The remaining arguments are exactly as for
+.BR XGrabKey .
 If the widget is not realized, or is later unrealized, the call to
-.ZN XGrabKey
+.B XGrabKey
 will be performed (again) when the widget is realized and its window
-becomes mapped. In the future, if
-.ZN XtDispatchEvent
+becomes mapped.
+In the future, if
+.B XtDispatchEvent
 is called with a
-.ZN KeyPress
+.B KeyPress
 event matching the specified keycode and modifiers (which may be
-.ZN AnyKey
+.B AnyKey
 or
-.ZN AnyModifier ,
+.BR AnyModifier ,
 respectively) for the widget's window, the Intrinsics will call
-.ZN XtUngrabKeyboard
+.B XtUngrabKeyboard
 with the timestamp from the
-.ZN KeyPress
+.B KeyPress
 event if either of the following conditions is true:
 .IP \(bu 3
 There is a modal cascade and the widget is not in the active subset
 of the cascade and the keyboard was not previously grabbed, or
 .IP \(bu 3
-.ZN XFilterEvent
+.B XFilterEvent
 returns
-.ZN True .
+.BR True .
 .LP
-.ZN XtUngrabKey
+.B XtUngrabKey
 calls
-.ZN XUngrabKey
+.B XUngrabKey
 specifying the widget's window as the ungrab window if the widget is
-realized. The remaining arguments are exactly as for
-.ZN XUngrabKey .
+realized.
+The remaining arguments are exactly as for
+.BR XUngrabKey .
 If the widget is not realized,
-.ZN XtUngrabKey
+.B XtUngrabKey
 removes a deferred
-.ZN XtGrabKey
+.B XtGrabKey
 request, if any, for the specified widget, keycode, and modifiers.
 .LP
 If the specified widget is realized
-.ZN XtGrabKeyboard
+.B XtGrabKeyboard
 calls
-.ZN XGrabKeyboard
-specifying the widget's window as the grab window. The remaining
+.B XGrabKeyboard
+specifying the widget's window as the grab window.
+The remaining
 arguments and return value are exactly as for
-.ZN XGrabKeyboard .
+.BR XGrabKeyboard .
 If the widget is not realized,
-.ZN XtGrabKeyboard
+.B XtGrabKeyboard
 immediately returns
-.ZN GrabNotViewable .
+.BR GrabNotViewable .
 No future ungrab is implied by
-.ZN XtGrabKeyboard .
+.BR XtGrabKeyboard .
 .LP
-.ZN XtUngrabKeyboard
+.B XtUngrabKeyboard
 calls
-.ZN XUngrabKeyboard
+.B XUngrabKeyboard
 with the specified time.
 .LP
-.ZN XtGrabButton
+.B XtGrabButton
 calls
-.ZN XGrabButton
+.B XGrabButton
 specifying the widget's window as the grab window if the widget is
-realized. The remaining arguments are exactly as for
-.ZN XGrabButton .
+realized.
+The remaining arguments are exactly as for
+.BR XGrabButton .
 If the widget is not realized, or is later unrealized, the call to
-.ZN XGrabButton
+.B XGrabButton
 will be performed (again) when the widget is realized and its window
-becomes mapped. In the future, if
-.ZN XtDispatchEvent
+becomes mapped.
+In the future, if
+.B XtDispatchEvent
 is called with a
-.ZN ButtonPress
+.B ButtonPress
 event matching the specified button and modifiers (which may be
-.ZN AnyButton
+.B AnyButton
 or
-.ZN AnyModifier ,
+.BR AnyModifier ,
 respectively) for the widget's window, the Intrinsics will call
-.ZN XtUngrabPointer
+.B XtUngrabPointer
 with the timestamp from the
-.ZN ButtonPress
+.B ButtonPress
 event if either of the following conditions is true:
 .IP \(bu 3
 There is a modal cascade and the widget is not in the active subset
 of the cascade and the pointer was not previously grabbed, or
 .IP \(bu 3
-.ZN XFilterEvent
+.B XFilterEvent
 returns
-.ZN True .
+.BR True .
 .LP
-.ZN XtUngrabButton
+.B XtUngrabButton
 calls
-.ZN XUngrabButton
+.B XUngrabButton
 specifying the widget's window as the ungrab window if the widget is
-realized. The remaining arguments are exactly as for
-.ZN XUngrabButton .
+realized.
+The remaining arguments are exactly as for
+.BR XUngrabButton .
 If the widget is not realized,
-.ZN XtUngrabButton
+.B XtUngrabButton
 removes a deferred
-.ZN XtGrabButton
+.B XtGrabButton
 request, if any, for the specified widget, button, and modifiers.
 .LP
-.ZN XtGrabPointer
+.B XtGrabPointer
 calls
-.ZN XGrabPointer
-specifying the widget's window as the grab window. The remaining
+.B XGrabPointer
+specifying the widget's window as the grab window.
+The remaining
 arguments and return value are exactly as for
-.ZN XGrabPointer .
+.BR XGrabPointer .
 If the widget is not realized,
-.ZN XtGrabPointer
+.B XtGrabPointer
 immediately returns
-.ZN GrabNotViewable .
+.BR GrabNotViewable .
 No future ungrab is implied by
-.ZN XtGrabPointer .
+.BR XtGrabPointer .
 .LP
-.ZN XtUngrabPointer
+.B XtUngrabPointer
 calls
-.ZN XUngrabPointer
+.B XUngrabPointer
 with the specified time.
 .SH "SEE ALSO"
 .br

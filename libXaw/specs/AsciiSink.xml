@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!-- 	AsciiSink Object -->
 <!-- .XE -->
-<!-- .IN "AsciiSink object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>AsciiSink object</primary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -13,13 +13,13 @@
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/AsciiSink.h&gt;
-<!-- .IN "AsciiSink.h" "" -->
+<indexterm><primary>AsciiSink.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/AsciiSinkP.h&gt;
-<!-- .IN "AsciiSinkP.h" "" -->
+<indexterm><primary>AsciiSinkP.h</primary></indexterm>
 Class		asciiSinkObjectClass
-<!-- .IN "asciiSinkObjectClass" "" -->
+<indexterm><primary>asciiSinkObjectClass</primary></indexterm>
 Class Name	AsciiSink
-<!-- .IN "AsciiSink object" "class name" -->
+<indexterm><primary>AsciiSink object</primary><secondary>class name</secondary></indexterm>
 Superclass	TextSink
 </literallayout>
 </para>
@@ -32,10 +32,10 @@ itself is created.  Both types are nearly identical; the following discussion
 applies to both, with MultiSink differences noted only as they occur.
 The AsciiSink
 will display all printing characters in an 8 bit font, along with handling Tab
-and Carriage Return.  The name has been left as ``AsciiSink'' for compatibility.
-\fIThe MultiSink will display all printing characters in a font set, along with
-handling Tab and Carriage
-Return.\fP    The source object also reports the text window metrics to the
+and Carriage Return.  The name has been left as <quote>AsciiSink</quote> for compatibility.
+<emphasis remap='I'>The MultiSink will display all printing characters in a
+font set, along with handling Tab and Carriage Return.</emphasis>
+The source object also reports the text window metrics to the
 text widgets.
 </para>
 <sect2 id='AsciiSink::Resources'>
@@ -47,7 +47,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "AsciiSink object" "resources" -->
+<indexterm><primary>AsciiSink object</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>

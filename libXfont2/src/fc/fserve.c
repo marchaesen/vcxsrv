@@ -54,6 +54,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #ifdef WIN32
 #define _WILLWINSOCK_
@@ -123,14 +124,14 @@ static CARD32	fs_blockState;
 static int _fs_restart_connection ( FSFpePtr conn );
 static void fs_send_query_bitmaps ( FontPathElementPtr fpe,
 				   FSBlockDataPtr blockrec );
-static int fs_send_close_font ( FontPathElementPtr fpe, Font id );
+static int fs_send_close_font (FSFpePtr conn, Font id);
 static void fs_client_died ( pointer client, FontPathElementPtr fpe );
 static void _fs_client_access ( FSFpePtr conn, pointer client, Bool sync );
 static void _fs_client_resolution ( FSFpePtr conn );
 static fsGenericReply *fs_get_reply (FSFpePtr conn, int *error);
 static int fs_await_reply (FSFpePtr conn);
 static void _fs_do_blocked (FSFpePtr conn);
-static void fs_cleanup_bfont (FSBlockedFontPtr bfont);
+static void fs_cleanup_bfont (FSFpePtr conn, FSBlockedFontPtr bfont);
 
 char _fs_glyph_undefined;
 char _fs_glyph_requested;
@@ -178,7 +179,7 @@ fs_fd_handler(int fd, void *data);
  * the font server, and a block record to be stored in the fpe's list
  * of outstanding requests.  the FS block handler also sticks the
  * proper set of fd's into the select mask.  when data is ready to be
- * read in, the FS wakup handler will be hit.  this will read the
+ * read in, the FS wakeup handler will be hit.  this will read the
  * data off the wire into the proper block record, and then signal the
  * client that caused the block so that it can restart.  it will then
  * call the access function again, which will realize that the data has
@@ -223,8 +224,8 @@ _fs_add_rep_log (FSFpePtr conn, fsGenericReply *rep)
             fprintf (stderr, "Error: %d Request: %s\n",                 \
                      ((fsError *)rep)->request, #name);                 \
         else                                                            \
-            fprintf (stderr, "Bad Length for %s Reply: %d %s %d\n",     \
-                     #name, rep->length, op, LENGTHOF(name));           \
+            fprintf (stderr, "Bad Length for %s Reply: %u %s %d\n",     \
+                     #name, (unsigned) rep->length, op, LENGTHOF(name));\
     }                                                                   \
 } while (0)
 
@@ -535,7 +536,7 @@ conn_stop_listening(FSFpePtr conn)
 
 /*
  * When a request is aborted due to a font server failure,
- * signal any depending clients to restart their dependant
+ * signal any depending clients to restart their dependent
  * requests
  */
 static void
@@ -545,7 +546,7 @@ _fs_clean_aborted_blockrec(FSFpePtr conn, FSBlockDataPtr blockrec)
     case FS_OPEN_FONT: {
 	FSBlockedFontPtr bfont = (FSBlockedFontPtr)blockrec->data;
 
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 	_fs_signal_clients_depending(&bfont->clients_depending);
 	break;
     }
@@ -584,16 +585,12 @@ fs_abort_blockrec(FSFpePtr conn, FSBlockDataPtr blockrec)
  * then unload the partially created font
  */
 static void
-fs_cleanup_bfont (FSBlockedFontPtr bfont)
+fs_cleanup_bfont (FSFpePtr conn, FSBlockedFontPtr bfont)
 {
-    FSFontDataRec *fsd;
-
     if (bfont->pfont)
     {
-	fsd = (FSFontDataRec *) bfont->pfont->fpePrivate;
-
 	/* make sure the FS knows we choked on it */
-	fs_send_close_font(bfont->pfont->fpe, bfont->fontid);
+	fs_send_close_font(conn, bfont->fontid);
 
 	/*
 	 * Either unload the font if it's being opened for
@@ -611,7 +608,10 @@ fs_cleanup_bfont (FSBlockedFontPtr bfont)
 	    bfont->pfont = 0;
 	}
 	else
+	{
+	    FSFontDataRec *fsd = (FSFontDataRec *)bfont->pfont->fpePrivate;
 	    fsd->generation = -1;
+	}
     }
 }
 
@@ -745,7 +745,7 @@ fs_read_open_font(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	    return StillWorking;
 	if (rep)
 	    _fs_done_read (conn, rep->length << 2);
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 	_fs_reply_failed (rep, fsOpenBitmapFontReply, "!=");
 	return BadFontName;
     }
@@ -761,7 +761,7 @@ fs_read_open_font(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 
     if (rep->otherid && !(bfont->flags & FontReopen))
     {
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 
 	/* Find old font if we're completely done getting it from server. */
 	bfont->pfont = find_old_font(rep->otherid);
@@ -890,7 +890,7 @@ fs_read_query_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	    return StillWorking;
 	if (rep)
 	    _fs_done_read (conn, rep->length << 2);
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 	_fs_reply_failed (rep, fsQueryXInfoReply, "<");
 	return BadFontName;
     }
@@ -933,8 +933,8 @@ fs_read_query_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	ret = -1;
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsQueryXInfo: bufleft (%ld) / SIZEOF(fsPropOffset) < %d\n",
-		bufleft, pi->num_offsets);
+		"fsQueryXInfo: bufleft (%ld) / SIZEOF(fsPropOffset) < %u\n",
+		bufleft, (unsigned) pi->num_offsets);
 #endif
 	goto bail;
     }
@@ -947,8 +947,8 @@ fs_read_query_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	ret = -1;
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsQueryXInfo: bufleft (%ld) < data_len (%d)\n",
-		bufleft, pi->data_len);
+		"fsQueryXInfo: bufleft (%ld) < data_len (%u)\n",
+		bufleft, (unsigned) pi->data_len);
 #endif
 	goto bail;
     }
@@ -963,7 +963,7 @@ fs_read_query_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 
     if (ret == -1)
     {
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 	return AllocError;
     }
 
@@ -982,7 +982,7 @@ fs_read_query_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	}
 	else
 	{
-	    fs_cleanup_bfont (bfont);
+	    fs_cleanup_bfont (conn, bfont);
 	    err = BadFontName;
 	}
 	_fs_free_props (pInfo);
@@ -1055,7 +1055,7 @@ fs_read_extent_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 	    return StillWorking;
 	if (rep)
 	    _fs_done_read (conn, rep->length << 2);
-	fs_cleanup_bfont (bfont);
+	fs_cleanup_bfont (conn, bfont);
 	_fs_reply_failed (rep, fsQueryXExtents16Reply, "<");
 	return BadFontName;
     }
@@ -1081,19 +1081,19 @@ fs_read_extent_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
 			    / LENGTHOF(fsXCharInfo))) {
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsQueryXExtents16: numExtents (%d) > (%d - %d) / %d\n",
-		numExtents, rep->length,
+		"fsQueryXExtents16: numExtents (%d) > (%u - %d) / %d\n",
+		numExtents, (unsigned) rep->length,
 		LENGTHOF(fsQueryXExtents16Reply), LENGTHOF(fsXCharInfo));
 #endif
 	pCI = NULL;
     }
     else
-	pCI = malloc(sizeof(CharInfoRec) * numInfos);
+	pCI = mallocarray(numInfos, sizeof(CharInfoRec));
 
     if (!pCI)
     {
 	_fs_done_read (conn, rep->length << 2);
-	fs_cleanup_bfont(bfont);
+	fs_cleanup_bfont(conn, bfont);
 	return AllocError;
     }
     fsfont->encoding = pCI;
@@ -1696,16 +1696,6 @@ fs_send_open_font(pointer client, FontPathElementPtr fpe, Mask flags,
 	return AllocError;
     }
 
-    /*
-     * Must check this before generating any protocol, otherwise we'll
-     * mess up a reconnect in progress
-     */
-    if (conn->blockState & (FS_BROKEN_CONNECTION | FS_RECONNECTING))
-    {
-	_fs_pending_reply (conn);
-	return Suspended;
-    }
-
     fsd->generation = conn->generation;
 
     bfont = (FSBlockedFontPtr) blockrec->data;
@@ -1716,6 +1706,16 @@ fs_send_open_font(pointer client, FontPathElementPtr fpe, Mask flags,
     bfont->format = fsd->format;
     bfont->clients_depending = (FSClientsDependingPtr)0;
     bfont->freeFont = (flags & FontReopen) == 0;
+
+    /*
+     * Must check this before generating any protocol, otherwise we'll
+     * mess up a reconnect in progress
+     */
+    if (conn->blockState & (FS_BROKEN_CONNECTION | FS_RECONNECTING))
+    {
+	_fs_pending_reply (conn);
+	return Suspended;
+    }
 
     _fs_client_access (conn, client, (flags & FontOpenSync) != 0);
     _fs_client_resolution(conn);
@@ -1787,7 +1787,7 @@ fs_send_open_font(pointer client, FontPathElementPtr fpe, Mask flags,
 	if (err == Successful)
 	    *ppfont = bfont->pfont;
 	else
-	    fs_cleanup_bfont (bfont);
+	    fs_cleanup_bfont (conn, bfont);
 	bfont->freeFont = FALSE;
 	_fs_remove_block_rec (conn, blockrec);
     }
@@ -1844,7 +1844,7 @@ fs_open_font(pointer client, FontPathElementPtr fpe, Mask flags,
 	    if (err == Successful)
 		*ppfont = bfont->pfont;
 	    else
-		fs_cleanup_bfont (bfont);
+		fs_cleanup_bfont (conn, bfont);
 	    _fs_remove_block_rec (conn, blockrec);
 	    return err;
 	}
@@ -1855,9 +1855,8 @@ fs_open_font(pointer client, FontPathElementPtr fpe, Mask flags,
 
 /* ARGSUSED */
 static int
-fs_send_close_font(FontPathElementPtr fpe, Font id)
+fs_send_close_font(FSFpePtr conn, Font id)
 {
-    FSFpePtr    conn = (FSFpePtr) fpe->private;
     fsCloseReq  req;
 
     if (conn->blockState & FS_GIVE_UP)
@@ -1881,7 +1880,7 @@ fs_close_font(FontPathElementPtr fpe, FontPtr pfont)
     FSFpePtr	    conn = (FSFpePtr) fpe->private;
 
     if (conn->generation == fsd->generation)
-	fs_send_close_font(fpe, fsd->fontid);
+	fs_send_close_font(conn, fsd->fontid);
 
 #ifdef DEBUG
     {
@@ -1957,8 +1956,8 @@ fs_read_glyphs(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
     {
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsQueryXBitmaps16: num_chars (%d) > bufleft (%ld) / %d\n",
-		rep->num_chars, bufleft, SIZEOF (fsOffset32));
+		"fsQueryXBitmaps16: num_chars (%u) > bufleft (%ld) / %d\n",
+		(unsigned) rep->num_chars, bufleft, SIZEOF (fsOffset32));
 #endif
 	err = AllocError;
 	goto bail;
@@ -1971,8 +1970,8 @@ fs_read_glyphs(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
     {
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsQueryXBitmaps16: nbytes (%d) > bufleft (%ld)\n",
-		rep->nbytes, bufleft);
+		"fsQueryXBitmaps16: nbytes (%u) > bufleft (%ld)\n",
+		(unsigned) rep->nbytes, bufleft);
 #endif
 	err = AllocError;
 	goto bail;
@@ -2078,7 +2077,8 @@ fs_read_glyphs(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
     err = Successful;
 
 bail:
-    _fs_done_read (conn, rep->length << 2);
+    if (rep)
+	_fs_done_read (conn, rep->length << 2);
     return err;
 }
 
@@ -2573,8 +2573,8 @@ fs_read_list_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
     if (pi->num_offsets > (bufleft / SIZEOF (fsPropOffset))) {
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsListFontsWithXInfo: offset length (%d * %d) > bufleft (%ld)\n",
-		pi->num_offsets, (int) SIZEOF (fsPropOffset), bufleft);
+		"fsListFontsWithXInfo: offset length (%u * %d) > bufleft (%ld)\n",
+		(unsigned) pi->num_offsets, (int) SIZEOF (fsPropOffset), bufleft);
 #endif
 	err = AllocError;
 	goto done;
@@ -2585,8 +2585,8 @@ fs_read_list_info(FontPathElementPtr fpe, FSBlockDataPtr blockrec)
     if (pi->data_len > bufleft) {
 #ifdef DEBUG
 	fprintf(stderr,
-		"fsListFontsWithXInfo: data length (%d) > bufleft (%ld)\n",
-		pi->data_len, bufleft);
+		"fsListFontsWithXInfo: data length (%u) > bufleft (%ld)\n",
+		(unsigned) pi->data_len, bufleft);
 #endif
 	err = AllocError;
 	goto done;
@@ -2857,7 +2857,7 @@ _fs_client_access (FSFpePtr conn, pointer client, Bool sync)
 	    authorizations = padding;
 	    authlen = 4;
 	}
-	crac.length = (sizeof (fsCreateACReq) + authlen) >> 2;
+	crac.length = (sizeof (fsCreateACReq) + authlen + 3) >> 2;
 	crac.acid = cur->acid;
 	_fs_add_req_log(conn, FS_CreateAC);
 	_fs_write(conn, (char *) &crac, sizeof (fsCreateACReq));
@@ -3369,8 +3369,9 @@ static FSFpePtr
 _fs_init_conn (const char *servername, FontPathElementPtr fpe)
 {
     FSFpePtr	conn;
+    size_t	snlen = strlen (servername) + 1;
 
-    conn = calloc (1, sizeof (FSFpeRec) + strlen (servername) + 1);
+    conn = calloc (1, sizeof (FSFpeRec) + snlen);
     if (!conn)
 	return 0;
     if (!_fs_io_init (conn))
@@ -3382,7 +3383,7 @@ _fs_init_conn (const char *servername, FontPathElementPtr fpe)
     conn->fs_conn_state = FS_CONN_UNCONNECTED;
     conn->fs_fd = -1;
     conn->fpe = fpe;
-    strcpy (conn->servername, servername);
+    strlcpy (conn->servername, servername, snlen);
     return conn;
 }
 

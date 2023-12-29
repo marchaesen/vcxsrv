@@ -238,10 +238,10 @@ Xserver(__appmansuffix__), xdm(__appmansuffix__), startx(__appmansuffix__),
 Xau(__libmansuffix__).
 .SH BUGS
 .PP
-Users that have unsecure networks should take care to use encrypted
+Users that have insecure networks should take care to use encrypted
 file transfer mechanisms to copy authorization entries between machines.
 Similarly, the \fIMIT-MAGIC-COOKIE-1\fP protocol is not very useful in
-unsecure environments.  Sites that are interested in additional security
+insecure environments.  Sites that are interested in additional security
 may need to use encrypted authorization mechanisms such as Kerberos.
 .PP
 Spaces are currently not allowed in the protocol name.  Quoting could be

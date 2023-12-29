@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <appendix id='Compability_Functions'>
 <title>Compatibility Functions
 <footnote>
@@ -43,10 +46,10 @@ you could define the macro
 as:
 </para>
 
-<literallayout>
+<programlisting>
 #define XtLabelCreate(name, parent, args, num_args) \
    ((LabelWidget) XtCreateWidget(name, labelWidgetClass, parent, args, num_args))
-</literallayout>
+</programlisting>
 
 <para>
 Pop-up shells in some of the prototypes automatically performed an
@@ -80,12 +83,12 @@ or
 <funcprototype>
 <funcdef>Widget <function>XtAppInitialize</function></funcdef>
    <paramdef>XtAppContext *<parameter>app_context_return</parameter></paramdef>
-   <paramdef>String <parameter>application_class</parameter></paramdef>
+   <paramdef>const char * <parameter>application_class</parameter></paramdef>
    <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
    <paramdef>int *<parameter>argc_in_out</parameter></paramdef>
-   <paramdef>String *<parameter>argv_in_out</parameter></paramdef>
-   <paramdef>String *<parameter>fallback_resources</parameter></paramdef>
+   <paramdef>char ** <parameter>argv_in_out</parameter></paramdef>
+   <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
    <paramdef>ArgList <parameter>args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
 </funcprototype>
@@ -199,7 +202,7 @@ with <emphasis remap='I'>display_string</emphasis> NULL and
 <emphasis remap='I'>application_name</emphasis> NULL, and finally calls
 <xref linkend='XtAppCreateShell' xrefstyle='select: title'/>
 with <emphasis remap='I'>application_name</emphasis> NULL, <emphasis remap='I'>widget_class</emphasis>
-<function>application\%Shell\%Widget\%Class</function>,
+<function>applicationShellWidgetClass</function>,
 and the specified <emphasis remap='I'>args</emphasis> and <emphasis remap='I'>num_args</emphasis>
 and returns the created shell.  The modified <emphasis remap='I'>argc</emphasis> and <emphasis remap='I'>argv</emphasis> returned by
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
@@ -218,12 +221,13 @@ is called with the value prior to calling
 <funcprototype>
 <funcdef>Widget <function>XtVaAppInitialize</function></funcdef>
    <paramdef>XtAppContext *<parameter>app_context_return</parameter></paramdef>
-   <paramdef>String <parameter>application_class</parameter></paramdef>
+   <paramdef>const char * <parameter>application_class</parameter></paramdef>
    <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
    <paramdef>int *<parameter>argc_in_out</parameter></paramdef>
-   <paramdef>String *<parameter>argv_in_out</parameter></paramdef>
-   <paramdef>String *<parameter>fallback_resources</parameter></paramdef>
+   <paramdef>char ** <parameter>argv_in_out</parameter></paramdef>
+   <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
+   <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -344,12 +348,12 @@ and
 <funcsynopsis id='XtInitialize'>
 <funcprototype>
 <funcdef>Widget <function>XtInitialize</function></funcdef>
-   <paramdef>String <parameter>shell_name</parameter></paramdef>
-   <paramdef>String <parameter>application_class</parameter></paramdef>
-   <paramdef>XrmOptionDescRec <parameter>options</parameter></paramdef>
+   <paramdef>const char * <parameter>shell_name</parameter></paramdef>
+   <paramdef>const char * <parameter>application_class</parameter></paramdef>
+   <paramdef>XrmOptionDescRec * <parameter>options</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
-   <paramdef>int *<parameter>argc</parameter></paramdef>
-   <paramdef>String <parameter>argv</parameter></paramdef>
+   <paramdef>int * <parameter>argc</parameter></paramdef>
+   <paramdef>char ** <parameter>argv</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -560,7 +564,7 @@ must be called before using this routine.
 <funcsynopsis id='XtPending'>
 <funcprototype>
 <funcdef>Boolean <function>XtPending</function></funcdef>
-  <paramdef><parameter></parameter></paramdef>
+  <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -748,7 +752,7 @@ must be called before using this routine.
 <funcsynopsis id='XtCreateApplicationShell'>
 <funcprototype>
 <funcdef>Widget <function>XtCreateApplicationShell</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
    <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
    <paramdef>ArgList <parameter>args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
@@ -932,7 +936,8 @@ that convert from strings.
 <funcsynopsis id='XtStringConversionWarning'>
 <funcprototype>
 <funcdef>void <function>XtStringConversionWarning</function></funcdef>
-   <paramdef>String <parameter>src</parameter></paramdef>
+   <paramdef>const char * <parameter>src</parameter></paramdef>
+   <paramdef>const char * <parameter>dst_type</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -962,9 +967,9 @@ Specifies the name of the type to which the string could not be converted.
 <para>
 The
 <xref linkend='XtStringConversionWarning' xrefstyle='select: title'/>
-function issues a warning message with name "conversionError",
-type "string", class "XtToolkitError, and the default message string
-"Cannot convert "<emphasis remap='I'>src</emphasis>" to type <emphasis remap='I'>dst_type</emphasis>".  This routine
+function issues a warning message with name &ldquo;conversionError&rdquo;,
+type &ldquo;string&rdquo;, class &ldquo;XtToolkitError&rdquo;, and the default message string
+&ldquo;Cannot convert "<emphasis remap='I'>src</emphasis>" to type <emphasis remap='I'>dst_type</emphasis>&rdquo;.  This routine
 has been superseded by
 <xref linkend='XtDisplayStringConversionWarning' xrefstyle='select: title'/>.
 </para>
@@ -979,8 +984,8 @@ or
 <funcsynopsis id='XtAddConverter'>
 <funcprototype>
 <funcdef>void <function>XtAddConverter</function></funcdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XtConverter <parameter>converter</parameter></paramdef>
    <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
@@ -1054,8 +1059,8 @@ for old-format type converters.  It has been superseded by
 <funcprototype>
 <funcdef>void <function>XtAppAddConverter</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XtConverter <parameter>converter</parameter></paramdef>
    <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
@@ -1146,9 +1151,9 @@ or, for old-format converters only,
 <funcprototype>
 <funcdef>void <function>XtConvert</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
    <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XrmValuePtr <parameter>to_return</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1349,7 +1354,7 @@ Specifies the shared GC to be deallocated.
 </variablelist>
 
 <para>
-References to sharable GCs are counted and a free request is generated to the
+References to shareable GCs are counted and a free request is generated to the
 server when the last user of a given GC destroys it.
 Note that some earlier versions of
 <xref linkend='XtDestroyGC' xrefstyle='select: title'/>
@@ -1453,7 +1458,7 @@ context, use
 <funcsynopsis id='XtGetSelectionTimeout'>
 <funcprototype>
 <funcdef>unsigned long <function>XtGetSelectionTimeout</function></funcdef>
-      <paramdef><parameter></parameter></paramdef>
+      <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1479,18 +1484,18 @@ an application- or widget-specific database), use
 
 <funcsynopsis id='XtGetErrorDatabase'>
 <funcprototype>
-<funcdef>XrmDatabase <function>*XtGetErrorDatabase</function></funcdef>
-      <paramdef><parameter></parameter></paramdef>
+<funcdef>XrmDatabase *<function>XtGetErrorDatabase</function></funcdef>
+      <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
-  
+
 <para>
 The
 <xref linkend='XtGetErrorDatabase' xrefstyle='select: title'/>
 function returns the address of the error database.
 The Intrinsics do a lazy binding of the error database and do not merge in the
 database file until the first call to
-<function>XtGetErrorDatbaseText</function>.
+<function>XtGetErrorDatabaseText</function>.
 This routine has been replaced by
 <xref linkend='XtAppGetErrorDatabase' xrefstyle='select: title'/>.
 </para>
@@ -1504,9 +1509,11 @@ error or a warning by calling
 <funcsynopsis id='XtGetErrorDatabaseText'>
 <funcprototype>
 <funcdef>void <function>XtGetErrorDatabaseText</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
-   <paramdef>String <parameter>buffer_return</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
+   <paramdef>char * <parameter>buffer_return</parameter></paramdef>
    <paramdef>int <parameter>nbytes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1581,9 +1588,9 @@ associated with the default application context
 or returns the specified default message if one is not found in the
 error database.
 To form the full resource name and class when querying the database,
-the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single "."
+the <emphasis remap='I'>name</emphasis> and <emphasis remap='I'>type</emphasis> are concatenated with a single &ldquo;.&rdquo;
 between them and the <emphasis remap='I'>class</emphasis> is concatenated with itself with a
-single "." if it does not already contain a ".".
+single &ldquo;.&rdquo; if it does not already contain a &ldquo;.&rdquo;.
 This routine has been superseded by
 <xref linkend='XtAppGetErrorDatabaseText' xrefstyle='select: title'/>.
 </para>
@@ -1632,10 +1639,10 @@ To call the high-level error handler, use
 <funcsynopsis id='XtErrorMsg'>
 <funcprototype>
 <funcdef>void <function>XtErrorMsg</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>type</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
    <paramdef>String *<parameter>params</parameter></paramdef>
    <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
 </funcprototype>
@@ -1750,10 +1757,10 @@ To call the installed high-level warning handler, use
 <funcsynopsis id='XtWarningMsg'>
 <funcprototype>
 <funcdef>void <function>XtWarningMsg</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>type</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
-   <paramdef>String <parameter>default</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>type</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>default</parameter></paramdef>
    <paramdef>String *<parameter>params</parameter></paramdef>
    <paramdef>Cardinal *<parameter>num_params</parameter></paramdef>
 </funcprototype>
@@ -1872,7 +1879,7 @@ To call the installed fatal error procedure, use
 <funcsynopsis id='XtError'>
 <funcprototype>
 <funcdef>void <function>XtError</function></funcdef>
-   <paramdef>String <parameter>message</parameter></paramdef>
+   <paramdef>const char * <parameter>message</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1941,7 +1948,7 @@ To call the installed nonfatal error procedure, use
 <funcsynopsis id='XtWarning'>
 <funcprototype>
 <funcdef>void <function>XtWarning</function></funcdef>
-   <paramdef>String <parameter>message</parameter></paramdef>
+   <paramdef>const char * <parameter>message</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 

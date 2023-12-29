@@ -46,7 +46,7 @@ Dialog:
 
 Form:
 	The geometry handler now will now disallow geometry management
-	reqests that will force the child outside the Form's window.
+	requests that will force the child outside the Form's window.
 
 	Fixed missing parens typo in PreferredGeometry.
 

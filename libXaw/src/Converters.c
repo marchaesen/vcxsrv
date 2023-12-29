@@ -154,7 +154,7 @@ XawInitializeDefaultConverters(void)
 
   first_time = False;
 
-  /* Replace with more apropriate converters */
+  /* Replace with more appropriate converters */
   XtSetTypeConverter(XtRCallback, XtRString, _XawCvtCARD32ToString,
 		     NULL, 0, XtCacheNone, NULL);
   XtSetTypeConverter(XtRColormap, XtRString, _XawCvtCARD32ToString,
@@ -247,9 +247,9 @@ TypeToStringNoArgsWarning(Display *dpy, String type)
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtBooleanToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtBooleanToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		       XrmValue *fromVal, XrmValue *toVal,
-		       XtPointer *converter_data)
+		       XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[6];
   Cardinal size;
@@ -259,16 +259,16 @@ _XawCvtBooleanToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 
   snprintf(buffer, sizeof(buffer), "%s",
 	   *(Boolean *)fromVal->addr ? XtEtrue : XtEfalse);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtBoolToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtBoolToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		    XrmValue *fromVal, XrmValue *toVal,
-		    XtPointer *converter_data)
+		    XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[6];
   Cardinal size;
@@ -278,16 +278,16 @@ _XawCvtBoolToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 
   snprintf(buffer, sizeof(buffer), "%s",
 	   *(Bool *)fromVal->addr ? XtEtrue : XtEfalse);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtPositionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtPositionToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			XrmValue *fromVal, XrmValue *toVal,
-			XtPointer *converter_data)
+			XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[7];
   Cardinal size;
@@ -296,16 +296,16 @@ _XawCvtPositionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XtRPosition);
 
   snprintf(buffer, sizeof(buffer), "%d", *(Position *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtShortToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtShortToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		     XrmValue *fromVal, XrmValue *toVal,
-		     XtPointer *converter_data)
+		     XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[7];
   Cardinal size;
@@ -314,16 +314,16 @@ _XawCvtShortToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XtRShort);
 
   snprintf(buffer, sizeof(buffer), "%d", *(short *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtDimensionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtDimensionToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			 XrmValue *fromVal, XrmValue *toVal,
-			 XtPointer *converter_data)
+			 XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[6];
   Cardinal size;
@@ -332,16 +332,16 @@ _XawCvtDimensionToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XtRDimension);
 
   snprintf(buffer, sizeof(buffer), "%u", *(Dimension *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtCARD32ToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtCARD32ToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		      XrmValue *fromVal, XrmValue *toVal,
-		      XtPointer *converter_data)
+		      XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[11];
   Cardinal size;
@@ -350,16 +350,16 @@ _XawCvtCARD32ToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, "CARD32");
 
   snprintf(buffer, sizeof(buffer), "0x%08hx", *(int *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtIntToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtIntToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		   XrmValue *fromVal, XrmValue *toVal,
-		   XtPointer *converter_data)
+		   XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[12];
   Cardinal size;
@@ -368,16 +368,16 @@ _XawCvtIntToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XtRInt);
 
   snprintf(buffer, sizeof(buffer), "%d", *(int *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtCardinalToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtCardinalToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			XrmValue *fromVal, XrmValue *toVal,
-			XtPointer *converter_data)
+			XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[11];
   Cardinal size;
@@ -386,19 +386,19 @@ _XawCvtCardinalToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XtRCardinal);
 
   snprintf(buffer, sizeof(buffer), "%u", *(Cardinal *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtAtomToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtAtomToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 		    XrmValue *fromVal, XrmValue *toVal,
-		    XtPointer *converter_data)
+		    XtPointer *converter_data _X_UNUSED)
 {
   static char *buffer = NULL;
-  static char *nullatom = "NULL";
+  static char *nullatom = (char *)"NULL";
   Cardinal size;
   Atom atom;
 
@@ -419,7 +419,7 @@ _XawCvtAtomToString(Display *dpy, XrmValue *args, Cardinal *num_args,
       return (False);
     }
 
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
@@ -428,7 +428,7 @@ _XawCvtAtomToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 static Boolean
 _XawCvtPixelToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 		     XrmValue *fromVal, XrmValue *toVal,
-		     XtPointer *converter_data)
+		     XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[19];
   Cardinal size;
@@ -455,16 +455,16 @@ _XawCvtPixelToString(Display *dpy, XrmValue *args, Cardinal *num_args,
   XQueryColor(dpy, colormap, &color);
   snprintf(buffer, sizeof(buffer), "rgb:%04hx/%04hx/%04hx",
 	   color.red, color.green, color.blue);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtFontStructToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtFontStructToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			  XrmValue *fromVal, XrmValue *toVal,
-			  XtPointer *converter_data)
+			  XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[128];
   Cardinal size;
@@ -486,7 +486,7 @@ _XawCvtFontStructToString(Display *dpy, XrmValue *args, Cardinal *num_args,
       if (tmp)
 	{
 	  snprintf(buffer, sizeof(buffer), "%s", tmp);
-	  size = strlen(tmp);
+	  size = (Cardinal)strlen(tmp);
 	  XFree(tmp);
 	}
     }
@@ -504,9 +504,9 @@ _XawCvtFontStructToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtUnsignedCharToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtUnsignedCharToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			    XrmValue *fromVal, XrmValue *toVal,
-			    XtPointer *converter_data)
+			    XtPointer *converter_data _X_UNUSED)
 {
   static char buffer[4];
   Cardinal size;
@@ -516,7 +516,7 @@ _XawCvtUnsignedCharToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 
   snprintf(buffer, sizeof(buffer), "%u",
 	   *(unsigned char *)fromVal->addr);
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
@@ -525,7 +525,7 @@ _XawCvtUnsignedCharToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 static Boolean
 _XawCvtStringToDisplayList(Display *dpy, XrmValue *args, Cardinal *num_args,
 			   XrmValue *fromVal, XrmValue *toVal,
-			   XtPointer *converter_data)
+			   XtPointer *converter_data _X_UNUSED)
 {
   XawDisplayList *dlist;
   Screen *screen;
@@ -566,9 +566,9 @@ _XawCvtStringToDisplayList(Display *dpy, XrmValue *args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static Boolean
-_XawCvtDisplayListToString(Display *dpy, XrmValue *args, Cardinal *num_args,
+_XawCvtDisplayListToString(Display *dpy, XrmValue *args _X_UNUSED, Cardinal *num_args,
 			   XrmValue *fromVal, XrmValue *toVal,
-			   XtPointer *converter_data)
+			   XtPointer *converter_data _X_UNUSED)
 {
   String buffer;
   Cardinal size;
@@ -577,7 +577,7 @@ _XawCvtDisplayListToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     TypeToStringNoArgsWarning(dpy, XawRDisplayList);
 
   buffer = XawDisplayListString(*(XawDisplayList **)(fromVal[0].addr));
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }
@@ -586,7 +586,7 @@ _XawCvtDisplayListToString(Display *dpy, XrmValue *args, Cardinal *num_args,
 static Boolean
 _XawCvtStringToPixmap(Display *dpy, XrmValue *args, Cardinal *num_args,
 		      XrmValue *fromVal, XrmValue *toVal,
-		      XtPointer *converter_data)
+		      XtPointer *converter_data _X_UNUSED)
 {
   XawPixmap *xaw_pixmap;
   Pixmap pixmap;
@@ -690,7 +690,7 @@ _XawCvtPixmapToString(Display *dpy, XrmValue *args, Cardinal *num_args,
     return (_XawCvtCARD32ToString(dpy, args, num_args, fromVal, toVal,
 				  converter_data));
 
-  size = strlen(buffer) + 1;
+  size = (Cardinal)(strlen(buffer) + 1);
 
   string_done(buffer);
 }

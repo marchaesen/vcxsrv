@@ -101,7 +101,7 @@ typedef struct _MultiSrcRec      *MultiSrcObject;
  *
  * the AsciiSrc API which currently forwards requests here.
  *
- * future versions (like theres going to be an R7 Xaw!) may
+ * future versions (like there's going to be an R7 Xaw!) may
  *
  * eliminate this file or at least these functions entirely.
  *

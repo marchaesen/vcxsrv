@@ -73,6 +73,7 @@
 # ifdef AMIGA
 #  include "amigax.h"
 # else /* not AMIGA */
+#  include <X11/Xfuncproto.h>
 #  include <X11/Xlib.h>
 #  include <X11/Xutil.h>
 # endif /* not AMIGA */
@@ -275,7 +276,12 @@ typedef struct {
 
 
 /* macros for forward declarations of functions with prototypes */
-#define FUNC(f, t, p) extern t f p
+#ifndef _X_EXPORT
+# define _X_EXPORT
+# define _X_HIDDEN
+#endif
+#define FUNC(f, t, p) extern _X_EXPORT t f p
+#define HFUNC(f, t, p) extern _X_HIDDEN t f p
 #define LFUNC(f, t, p) static t f p
 
 

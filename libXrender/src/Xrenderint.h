@@ -25,11 +25,17 @@
 #ifndef _XRENDERINT_H_
 #define _XRENDERINT_H_
 
-#include "config.h"
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <X11/Xlibint.h>
 #include <X11/Xutil.h>
 #include <X11/extensions/renderproto.h>
 #include "Xrender.h"
+
+#ifndef _X_UNUSED
+#define _X_UNUSED /* nothing */
+#endif
 
 typedef struct {
     Visual		*visual;
@@ -104,9 +110,9 @@ XRenderFindDisplay (Display *dpy);
  */
 
 #ifdef WORD64
-#define DataInt32(dpy,d,len)	Data32(dpy,(long *) (d),len)
+#define DataInt32(dpy,d,len)	Data32(dpy,(_Xconst long *) (d),len)
 #else
-#define DataInt32(dpy,d,len)	Data(dpy,(char *) (d),len)
+#define DataInt32(dpy,d,len)	Data(dpy,(_Xconst char *) (d),len)
 #endif
 
 #endif /* _XRENDERINT_H_ */

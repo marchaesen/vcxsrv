@@ -1,0 +1,115 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH XpmCreateData __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmCreateData \- create an Data structure
+
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmCreateDataFromImage(Display *" display ", char ***" data_return ,
+.BI "XImage *" image ", XImage *" shapeimage ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateDataFromPixmap(Display *" display ", char ***" data_return ,
+.BI "Pixmap " pixmap ", Pixmap " shapemask ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateDataFromXpmImage(char ***" data_return ", XpmImage *" image ,
+.BI "XpmInfo *" info );
+.fi
+
+.SH ARGUMENTS
+
+.IP \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP \fIdata_return\fP li
+Returns the data which is created.
+.IP \fIpixmap\fP li
+Specifies the pixmap.
+.IP \fIshapemask\fP li
+Specifies the shape mask pixmap.
+.IP \fIattributes\fP li
+Specifies the location of a structure containing information (or NULL).
+.IP \fIinfo\fP li
+Specifies the location of a structure to get information.
+.IP \fIimage\fP li
+Specifies the image
+
+.SH DESCRIPTION
+.SS XpmCreateDataFromImage
+.PP
+In some cases, one may want to create an XPM data from an XImage, to do so use
+.BR XpmCreateDataFromImage ().
+The
+.BR XpmCreateDataFromImage ()
+function exactly works as
+.BR XpmWriteFileFromImage (__libmansuffix__)
+does and returns the same way.
+It just writes to a single block malloc’ed data instead of to a file.
+It is the caller’s responsibility to free the data, using
+.BR XpmFree (__libmansuffix__)
+when finished.
+
+.SS XpmCreateDataFromPixmap
+.PP
+.BR XpmCreateDataFromPixmap ()
+creates an XPM data from a Pixmap.
+The
+.BR XpmCreateDataFromPixmap ()
+function uses
+.BR XGetImage (__libmansuffix__)
+to get from the given pixmaps
+the related X images which are passed to
+.BR XpmCreateDataFromImage ().
+Then it destroys the created images using
+.BR XDestroyImage (__libmansuffix__).
+.BR XpmCreateDataFromPixmap ()
+returns the same errors as
+.BR XpmCreateDataFromImage ().
+
+.SS XpmCreateDataFromXpmImage
+.PP
+.BR XpmCreateDataFromXpmImage ()
+creates an XPM data from an XpmImage.
+The
+.BR XpmCreateDataFromXpmImage ()
+function writes out the given image to a single block malloc’ed data in XPM format.
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory ,
+and returns
+.B XpmSuccess
+on success.
+If the passed XpmInfo structure pointer is not NULL,
+.BR XpmCreateDataFromXpmImage ()
+looks for the following attributes:
+XpmExtensions, and XpmHotspot, and writes the related information out as well.
+It is the caller’s responsibility to free the data, using
+.BR XpmFree (__libmansuffix__)
+when finished.
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmFree (__libmansuffix__),
+.BR XpmWriteFileFromImage (__libmansuffix__)

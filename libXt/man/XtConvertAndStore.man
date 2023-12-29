@@ -33,43 +33,17 @@
 .ds Vn 2.2
 .hw XtConvert-And-Store XtCall-Converter wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtConvertAndStore __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtConvertAndStore, XtCallConverter \- invoke resource converters
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Boolean XtConvertAndStore(Widget \fIwidget\fP, String \fIfrom_type\fP,
-XrmValuePtr \fIfrom\fP, String \fIto_type\fP, XrmValuePtr \fIto_in_out\fP);
+Boolean XtConvertAndStore(Widget \fIwidget\fP,
+const char *\fIfrom_type\fP, XrmValuePtr \fIfrom\fP,
+const char *\fIto_type\fP, XrmValuePtr \fIto_in_out\fP);
 .HP
-Boolean XtCallConverter(Display* \fIdpy\fP, XtConverter \fIconverter\fP,
+Boolean XtCallConverter(Display* \fIdpy\fP, XtTypeConverter \fIconverter\fP,
 XrmValuePtr \fIargs\fP, Cardinal \fInum_args\fP, XrmValuePtr \fIfrom\fP,
 XrmValuePtr \fIto_in_out\fP, XtCacheRef* \fIcache_ref_return\fP);
 .SH ARGUMENTS
@@ -95,62 +69,65 @@ and the destroy callback list.
 Specifies the display with which the conversion is to be associated.
 .SH DESCRIPTION
 The
-.ZN XtConvertAndStore
+.B XtConvertAndStore
 function looks up the type converter registered to convert from_type
 to to_type, computes any additional arguments needed, and then calls
-.ZN XtCallConverter .
+.BR XtCallConverter .
 (or
-.ZN XtDirectConvert
+.B XtDirectConvert
 if an old-style converter was registered with
-.ZN XtAddConverter
+.B XtAddConverter
 or
-.ZN XtAppAddConverter .
+.BR XtAppAddConverter .
 ) with the from and to_in_out arguments.
 .LP
 The
-.ZN XtCallConverter
+.B XtCallConverter
 function looks up the specified type converter in the application
 context associated with the display and, if the converter was not
 registered or was registered with cache type
-.ZN XtCacheAll
+.B XtCacheAll
 or
-.ZN XtCacheByDisplay
+.B XtCacheByDisplay
 looks in the conversion cache to see if this conversion procedure
-has been called with the specified conversion arguments. If so, it
+has been called with the specified conversion arguments.
+If so, it
 checks the success status of the prior call, and if the conversion
 failed,
-.ZN XtCallConverter
+.B XtCallConverter
 returns
-.ZN False
+.B False
 immediately; otherwise it checks the size specified in the \fIto\fP
 argument and, if it is greater than or equal to the size stored in the
 cache, copies the information stored in the cache into the location
 specified by \fIto->addr\fP, stores the cache size into \fIto->size\fP,
 and returns
-.ZN True .
+.BR True .
 If the size specified in the \fIto\fP argument is smaller than the size
 stored in the cache,
-.ZN XtCallConverter
+.B XtCallConverter
 copies the cache size into the \fIto->size\fP and returns
-.ZN False .
+.BR False .
 If the converter was registered with cache type
-.ZN XtCacheNone
+.B XtCacheNone
 or no value was found in the conversion cache,
-.ZN XtCallConverter
+.B XtCallConverter
 calls the converter and, if it was not registered with cache type
-.ZN XtCacheNone ,
+.BR XtCacheNone ,
 enters the result into the cache.
-.ZN XtCallConverter
+.B XtCallConverter
 then returns what the converter returned.
 .LP
 The \fIcache_ref_return\fP field specifies storage allocated by the
-caller in which an opaque value will be stored. If the type converter
+caller in which an opaque value will be stored.
+If the type converter
 has been registered with the
-.ZN XtCacheRefCount
+.B XtCacheRefCount
 modifier and if the value returned in in \fIcache_ref_return\fP is
 non-NULL, then the call should store the \fIcache_ref_return\fP value
 in order to decrement the reference count when the converted value
-is no longer required. The \fIcache_ref_return\fP argument should be
+is no longer required.
+The \fIcache_ref_return\fP argument should be
 NULL if the caller is unwilling or unable to store the value.
 .SH "SEE ALSO"
 XtAppReleaseCacheRefs(__libmansuffix__)

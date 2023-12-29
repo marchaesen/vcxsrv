@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtRealize-Widget XtIs-Realized XtUnrealize-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtRealizeWidget __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtRealizeWidget, XtIsRealized, XtUnrealizeWidget \- realize and unrealize widgets
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtRealizeWidget(Widget \fIw\fP);
 .HP
@@ -77,7 +50,7 @@ void XtUnrealizeWidget(Widget \fIw\fP);
 Specifies the widget.
 .SH DESCRIPTION
 If the widget is already realized,
-.ZN XtRealizeWidget
+.B XtRealizeWidget
 simply returns.
 Otherwise, it performs the following:
 .IP \(bu 5
@@ -89,16 +62,16 @@ at the specified widget and calls the change_managed procedure
 of each composite widget that has one or more managed children.
 .IP \(bu 5
 Constructs an
-.ZN XSetWindowAttributes
+.B XSetWindowAttributes
 structure filled in with information derived from the
-.ZN Core
+.B Core
 widget fields and calls the realize procedure for the widget,
 which adds any widget-specific attributes and creates the X window.
 .IP \(bu 5
 If the widget is
 not a subclass of
-.ZN compositeWidgetClass ,
-.ZN XtRealizeWidget
+.BR compositeWidgetClass ,
+.B XtRealizeWidget
 returns; otherwise, it continues and performs the following:
 .RS
 .IP \- 5
@@ -108,23 +81,23 @@ Primitive widgets that instantiate children are responsible for realizing
 those children themselves.
 .IP \- 5
 Maps all of the managed children windows that have mapped_when_managed
-.ZN True .
+.BR True .
 (If a widget is managed but mapped_when_managed is
-.ZN False ,
+.BR False ,
 the widget is allocated visual space but is not displayed.
 Some people seem to like this to indicate certain states.)
 .RE
 .LP
 If the widget is a top-level shell widget (that is, it has no parent), and
 mapped_when_managed is
-.ZN True ,
-.ZN XtRealizeWidget
+.BR True ,
+.B XtRealizeWidget
 maps the widget window.
 .LP
 The
-.ZN XtIsRealized
+.B XtIsRealized
 function returns
-.ZN True
+.B True
 if the widget has been realized,
 that is, if the widget has a nonzero X window ID.
 .LP
@@ -133,12 +106,12 @@ operate differently
 after the widget has been realized.
 .LP
 The
-.ZN XtUnrealizeWidget
+.B XtUnrealizeWidget
 function destroys the windows of an existing widget and all of its
 children (recursively down the widget tree).
 To recreate the windows at a later time,
 call
-.ZN XtRealizeWidget
+.B XtRealizeWidget
 again.
 If the widget was managed,
 it will be unmanaged automatically before its window is freed.

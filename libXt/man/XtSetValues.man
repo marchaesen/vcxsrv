@@ -31,40 +31,15 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtSet-Values XtVa-Set-Values XtSet-Subvalues XtVa-Set-Subvalues XtGet-Values XtVa-Get-Values XtGet-Subvalues XtVa-Get-Subvalues constraint-Widget-Class wid-get
+.hw XtSet-Values XtVa-Set-Values XtSet-Subvalues XtVa-Set-Subvalues
+.hw XtGet-Values XtVa-Get-Values XtGet-Subvalues XtVa-Get-Subvalues
+.hw constraint-Widget-Class wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetValues __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetValues, XtVaSetValues, XtSetSubvalues, XtVaSetSubvalues, XtGetValues, XtVaGetValues, XtGetSubvalues, XtVaGetSubvalues \- obtain and set widget resources
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetValues(Widget \fIw\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 .HP
@@ -86,15 +61,14 @@ Cardinal \fInum_resources\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 void XtVaGetSubvalues(XtPointer \fIbase\fP, XtResourceList \fIresources\fP,
 Cardinal \fInum_resources\fP, ...\^);
 .SH ARGUMENTS
-.ds Al of name/address pairs that contain the resource name \
-and either the address into which the resource value is to be stored \
-or their new values
 .IP \fIargs\fP 1i
-Specifies the argument list \*(Al.
-.ds Ba retrieved or written
+Specifies the argument list of name/address pairs that contain the resource
+name 
+and either the address into which the resource value is to be stored 
+or their new values.
 .IP \fIbase\fP 1i
 Specifies the base address of the subpart data structure where the resources
-should be \*(Ba.
+should be retrieved or written.
 .IP \fInum_args\fP 1i
 Specifies the number of arguments in the argument list.
 .IP \fIresources\fP 1i
@@ -104,83 +78,84 @@ Specifies the number of resources in the resource list.
 .IP \fIw\fP 1i
 Specifies the widget.
 .IP \fI...\fP 1i
-Specifies the variable argument list \*(Al.
+Specifies the variable argument list of name/address pairs that contain the resource name 
+and either the address into which the resource value is to be stored 
+or their new values.
 .SH DESCRIPTION
 The
-.ZN XtSetValues
+.B XtSetValues
 function starts with the resources specified for the
-.ZN Core
+.B Core
 widget fields and proceeds down the subclass chain to the widget.
 At each stage,
 it writes the new value (if specified by one of the arguments) or the existing
 value (if no new value is specified) to a new widget data record.
-.ZN XtSetValues
+.B XtSetValues
 then calls the set_values procedures for the widget in superclass-to-subclass
 order.
-.IN "hook"
 If the widget has any non-NULL set_values_hook fields,
 these are called immediately after the
 corresponding set_values procedure.
 This procedure permits subclasses to set nonwidget data for
-.ZN XtSetValues .
+.BR XtSetValues .
 .LP
 If the widget's parent is a subclass of
-.ZN constraintWidgetClass ,
-.ZN XtSetValues
+.BR constraintWidgetClass ,
+.B XtSetValues
 also updates the widget's constraints.
 It starts with the constraint resources specified for
-.ZN constraintWidgetClass
+.B constraintWidgetClass
 and proceeds down the subclass chain to the parent's class.
 At each stage,
 it writes the new value or the existing value to a new constraint record.
 It then calls the constraint set_values procedures from
-.ZN constraintWidgetClass
+.B constraintWidgetClass
 down to the parent's class.
 The constraint set_values procedures are called with widget arguments,
 as for all set_values procedures, not just the constraint record arguments,
 so that they can make adjustments to the desired values based
 on full information about the widget.
 .LP
-.ZN XtSetValues
+.B XtSetValues
 determines if a geometry request is needed by comparing the current widget to
 the new widget.
 If any geometry changes are required,
 it makes the request, and the geometry manager returns
-.ZN XtGeometryYes ,
-.ZN XtGeometryAlmost ,
+.BR XtGeometryYes ,
+.BR XtGeometryAlmost ,
 or
-.ZN XtGeometryNo .
+.BR XtGeometryNo .
 If
-.ZN XtGeometryYes ,
-.ZN XtSetValues
+.BR XtGeometryYes ,
+.B XtSetValues
 calls the widget's resize procedure.
 If
-.ZN XtGeometryNo ,
-.ZN XtSetValues
+.BR XtGeometryNo ,
+.B XtSetValues
 resets the geometry fields to their original values.
 If
-.ZN XtGeometryAlmost ,
-.ZN XtSetValues
+.BR XtGeometryAlmost ,
+.B XtSetValues
 calls the set_values_almost procedure,
 which determines what should be done and writes new values for the
 geometry fields into the new widget.
-.ZN XtSetValues
+.B XtSetValues
 then repeats this process,
 deciding once more whether the geometry manager should be called.
 .LP
 Finally, if any of the set_values procedures returned
-.ZN True ,
-.ZN XtSetValues
+.BR True ,
+.B XtSetValues
 causes the widget's expose procedure to be invoked by calling the Xlib
-.ZN XClearArea
+.B XClearArea
 function on the widget's window.
 .LP
 The
-.ZN XtSetSubvalues
+.B XtSetSubvalues
 function stores resources into the structure identified by base.
 .LP
 The
-.ZN XtGetValues
+.B XtGetValues
 function starts with the resources specified for the core widget fields
 and proceeds down the subclass chain to the widget.
 The value field of a passed argument list should contain the
@@ -190,25 +165,24 @@ to allocate and deallocate this storage according to the size of the
 resource representation type used within the widget.
 .LP
 If the widget's parent is a subclass of
-.ZN constraintWidgetClass ,
-.ZN XtGetValues
+.BR constraintWidgetClass ,
+.B XtGetValues
 then fetches the values for any constraint resources requested.
 It starts with the constraint resources specified for
-.ZN constraintWidgetClass
+.B constraintWidgetClass
 and proceeds down to the subclass chain to the parent's constraint resources.
 If the argument list contains a resource name that is not found in any of the
 resource lists searched,
 the value at the corresponding address is not modified.
-.IN "hook"
 Finally, if the get_values_hook procedures are non-NULL,
 they are called in superclass-to-subclass order after
 all the resource values have been fetched by
-.ZN XtGetValues .
+.BR XtGetValues .
 This permits a subclass to provide nonwidget resource data to
-.ZN XtGetValues .
+.BR XtGetValues .
 .LP
 The
-.ZN XtGetSubvalues
+.B XtGetSubvalues
 function obtains resource values from the structure identified by base.
 .SH "SEE ALSO"
 .br

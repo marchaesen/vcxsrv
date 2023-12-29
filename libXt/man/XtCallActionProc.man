@@ -33,44 +33,18 @@
 .ds Vn 2.2
 .hw XtCall-Action-Proc wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtCallActionProc __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtCallActionProc \- invoke an action procedure directly
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtCallActionProc(Widget \fIwidget\fP, String \fIaction\fP, XEvent*
-\fIevent\fP, String* \fIparams\fP, Cardinal \fInum_params\fP);
+void XtCallActionProc(Widget \fIwidget\fP, const char *\fIaction\fP,
+XEvent *\fIevent\fP, String *\fIparams\fP, Cardinal \fInum_params\fP);
 .SH ARGUMENTS
 .IP \fIwidget\fP 1i
-Specifies the widget in which the action is to be invoked. Must be
+Specifies the widget in which the action is to be invoked.
+Must be
 of class core of any subclass thereof.
 .IP \fIaction\fP 1i
 Specifies the name of the action routine.
@@ -81,15 +55,18 @@ Specifies the contents of the \fIparams\fP passed to the action routine.
 .IP \fInum_params\fP 1i
 Specifies the num of entries in \fIparams\fP.
 .SH DESCRIPTION
-.ZN XtCallActionProc
+.B XtCallActionProc
 searches for the named action routine in the same manner and order as
-translation tables are bound. If found, the action routine is invoked
-with the specified widget, event pointer, and parameters. It is the
+translation tables are bound.
+If found, the action routine is invoked
+with the specified widget, event pointer, and parameters.
+It is the
 responsibility of the caller to ensure that the contents of \fIevent\fP,
 \fIparams\fP, and \fInum_params\fP arguments are appropriate for the
 specified routine, and if necessary, that the specified widget is
-realized or sensitive. If the named action routine cannot be found,
-.ZN XtCallActionProc
+realized or sensitive.
+If the named action routine cannot be found,
+.B XtCallActionProc
 generates a warning message and returns.
 .SH "SEE ALSO"
 .br

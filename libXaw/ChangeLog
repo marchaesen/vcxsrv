@@ -1,3 +1,951 @@
+commit 78eb3c75688a1e92ec435e5bc3ded063cd339a73
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Mar 15 16:29:53 2023 -0700
+
+    libXaw 1.0.15
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ebf701e9752a2c85f2fcfcce32b97f47d2546f47
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 4 10:44:45 2023 -0800
+
+    configure: Use LT_INIT from libtool 2 instead of deprecated AC_PROG_LIBTOOL
+    
+    AC_PROG_LIBTOOL was replaced by LT_INIT in libtool 2 in 2008,
+    so it's time to rely on it.
+    
+    Clears autoconf warnings:
+    
+    configure.ac:13: warning: The macro `AC_PROG_LIBTOOL' is obsolete.
+    configure.ac:13: You should run autoupdate.
+    aclocal.m4:3465: AC_PROG_LIBTOOL is expanded from...
+    configure.ac:13: the top level
+    
+    libtoolize: Consider adding 'AC_CONFIG_MACRO_DIRS([m4])' to configure.ac,
+    libtoolize: and rerunning libtoolize and aclocal.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f7246b984c287b64eb73ee0c303f1b61ee51caf2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Feb 28 14:12:09 2023 -0800
+
+    Replace calls to index() with strchr()
+    
+    Use C standard API instead of old BSD equivalent
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 02d6fcb26ee1c77c26d98372898d0e48542da5cb
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Feb 28 11:50:15 2023 -0800
+
+    Add .git-blame-ignore-revs to hide whitespace commits from git blame
+    
+    To use this in your local repo clone, you will need to either run
+    `git blame --ignore-revs-file .git-blame-ignore-revs`
+    or set it permanently with
+    `git config blame.ignoreRevsFile .git-blame-ignore-revs`
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c37efe7e63ce7be18238590b25042a8d7184f86c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 25 09:21:46 2023 -0800
+
+    Remove "All rights reserved" from Oracle copyright notices
+    
+    Oracle no longer includes this term in our copyright & license notices.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9129b6dbca53afe7e1876ce11bb0386d91bcd589
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Mon Jul 4 08:46:04 2022 -0400
+
+    issue #6: fix typo in XawMax parameter in GetBlockBoundaries
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 49cec54165b46116c73e7db78c46b624948b01c8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 7 10:20:30 2022 -0700
+
+    Stop memory leak in error paths in XawTextSinkConvertPropertyList()
+    
+    Fixes issues reported by Oracle Parfait static analyzer:
+    
+    Error: Memory leak
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer pointer allocated with XtCalloc(1, 144)
+            at line 1586 of lib/libXaw/src/TextSink.c in function 'XawTextSinkConvertPropertyList'.
+              pointer allocated at line 1570 with XtCalloc(1, 144)
+              pointer leaks when XawFindArgVal(params, "font") != NULL at line 1573
+                  and argval->value != NULL at line 1574
+                  and XLoadQueryFont(screen->display, argval->value) == NULL at line 1577.
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer pointer allocated with XtCalloc(1, 144)
+            at line 1605 of lib/libXaw/src/TextSink.c in function 'XawTextSinkConvertPropertyList'.
+              pointer allocated at line 1570 with XtCalloc(1, 144)
+              pointer leaks when argval->value == NULL at line 1574
+                  and XawFindArgVal(params, "foreground") != NULL at line 1593
+                  and argval->value != NULL at line 1594
+                  and XAllocNamedColor(...) == 0 at line 1595.
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer pointer allocated with XtCalloc(1, 144)
+            at line 1622 of lib/libXaw/src/TextSink.c in function 'XawTextSinkConvertPropertyList'.
+              pointer allocated at line 1570 with XtCalloc(1, 144)
+              pointer leaks when argval->value == NULL at line 1574
+                  and XawFindArgVal(params, "background") != NULL at line 1610
+                  and argval->value != NULL at line 1611
+                  and XAllocNamedColor(...) == 0 at line 1612.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 11384211b9407eeab475e54e4806e47825fb1790
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 7 10:11:18 2022 -0700
+
+    Stop memory leak in GetResourcePixmapPath()
+    
+    Fixes issue reported by Oracle Parfait static analyzer:
+    
+    Error: Memory leak
+       Memory leak [memory-leak] (CWE 401):
+          Memory leak of pointer pointer allocated with XtMalloc((strlen(value.addr) + 1))
+            at line 700 of lib/libXaw/src/Pixmap.c in function 'GetResourcePixmapPath'.
+              pointer allocated at line 679 with XtMalloc((strlen(value.addr) + 1))
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 01c0b0365a50a08e69dffe3c63ac62343560b26c
+Author: Taylor R Campbell <riastradh@netbsd.org>
+Date:   Mon Apr 4 14:53:48 2022 +0200
+
+    Fix ctype(3) users.
+    
+    The API requires "unsigned char" arguments.
+    
+    Signed-off-by: Thomas Klausner <tk@giga.or.at>
+
+commit 794367d1ac396842c0213064ebcfe1f4e2219657
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 7 10:56:22 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f704f8cf083140a592a79705a3b104063d9b67c4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 7 10:36:59 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8d6e75133738d0311d7737faab841b44cbb86e6b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 7 10:31:31 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9cfeba9db7f3ac4e0b351969c9ff5ab8f58ec7ef
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Sat Mar 27 13:38:39 2021 -0400
+
+    libXaw 1.0.14
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit 197e9d055f3cd351ae73551955ff463294b965bf
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Tue Nov 26 19:05:01 2019 -0500
+
+    compiler-warning fixes for const-mismatches, no object-change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 9f5025729992607eaac987f7f82208018af84fb6
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Mon Nov 25 20:49:28 2019 -0500
+
+    reduce compiler warnings using casts, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 4ea048a88a378d05bfef1633bcafae17a757e024
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Mon Nov 25 19:15:33 2019 -0500
+
+    fix compiler warning by updating parameter type for call to XtDisplayInitialize
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 78f66e92c66ad637da33df454a7aae149476e765
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Mon Nov 25 17:57:14 2019 -0500
+
+    change COMMON_CFLAGS and COMMON_CPPFLAGS to AM_CFLAGS and AM_CPPFLAGS
+    respectively so the default .c.o rule works (needed for the "Regress"
+    script).
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 15860a8e2804243777c1e3d1fc997b9d6a500cb5
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Sat Jul 6 06:33:35 2019 -0400
+
+    use _X_UNUSED to quiet unused-parameter warnings
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 70fb870ca41cd2a5f9c46ad0244004bd7f808202
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 21:04:03 2019 -0400
+
+    fix some compiler warnings in MenuButton.c by changing the menu name from String to char*
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit a68226ab5e620a49cfedbe01b437d1ebac2adf9b
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:37:07 2019 -0400
+
+    fix some type/conversion warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 7a6b35790865bd40009eef58d0a4d504b2fce0c8
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:33:22 2019 -0400
+
+    fix some type/conversion warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 9b4f070bfb7cbaad22b03d2d38b338e82cbf80c0
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:30:02 2019 -0400
+
+    fix misleading indentation, which gave a compiler warning
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 29144b39e9b7e5bad43b5e6013ecb4cfac049bd5
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:25:01 2019 -0400
+
+    fix some type/conversion compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit ccca832690f7ee56469786d7926e79f219259cea
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:21:18 2019 -0400
+
+    fix some type/conversion compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 666ecd9890cef9726cd29da7acb3e397ca90442b
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:18:45 2019 -0400
+
+    fix some type/conversion compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit e1fc6483141c483c1b5e1bfb67fc443faaa314e3
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:06:00 2019 -0400
+
+    fix some type/comparison compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 5ea7395991b55b0b7ce8cc1dcaafc37e2b8b9d46
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 20:00:26 2019 -0400
+
+    change a couple of variable-types to reduce compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 30a9013124591c253254255dbda16bdd516c2e9a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 19:54:00 2019 -0400
+
+    fix a missing struct-initializer, and quiet unused-parameter warnings
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 9836ef1ff74744dc8316b762baf9f9f5f70bbd8f
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 19:50:15 2019 -0400
+
+    change variables to/from char* vs String to reduce compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit d7a86b4b9017c67fbdabd4e6006fba6689c63ed1
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 19:47:45 2019 -0400
+
+    quiet some more type-conversion warnings, as well as unused-parameters
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit c22df47605e3e5230addea2fc9a531fb0b84339d
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 19:35:02 2019 -0400
+
+    trim some stray backslashes leftover from nroff, and fix some whitespace in code samples
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit dc53edf2132fa7a25a75e2f8f12ed4623c4cbb2a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Jul 4 14:46:44 2019 -0400
+
+    add --disable-const option, from libXt
+
+commit 89d3815e07e883f7f399b69c709518667af179a0
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:55:07 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit bca947bda79e992b1bd0537ad68fedc9740188e3
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:55:56 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 88dabfee7a5a45ef747f4e3367c1705cddfd871a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:08 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit bc737a82007a880c6d17d2334bf85346640409e7
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:16 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit cc3f0b591987c8edd0c573479c9df34fda253c06
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:28 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 2a14a606cb23843ca6c4ba5b8546cc54bccbb29a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:38 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 40af785c9cbe82c0caf3d143980f4e92d1ac3f67
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:46 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 5abff2885ddcb9fc1732bf00ebad9bf09e08c2cc
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:56:55 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit eeea8a6b2b84ef2a3f50387d1ae99037b692a3f4
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:57:05 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 729e6f0b05664952f04865f2c0143524d4ac01d3
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:57:16 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 58d4568a6b685a7f0bce2e2af238b5a54edbbde7
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:57:26 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit d01732e7cddfb08fe16e6c2e673ee1bb78bd18bc
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:57:34 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 7b3ba952e590c975c6e6bf2d64fb04dab0959272
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:57:51 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 0dd86d04aa36dd592c6720c7653a0246345ddbc1
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:00 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit b3ce7ce658b4336bca487aa1c9e7689622db4211
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:08 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 3afd76ce8640b1bff299ada10af6faa7ae41e21c
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:17 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 32fdbc4cf763dbf7307414f7e3b0e0ea744bc3d5
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:25 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 380dfc6ea9ea7f2ca2a0378f4bdeb1c52ad341b4
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:33 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit d4db24bbb20434bee94d7c7df95bbd43c8d5ea7c
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:40 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 9adace08e31dbebe6733c173e5c47157e1ce13bf
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:48 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 56aaaca5ab452ff2a06ebcd27c1b69e603ee9807
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:58:57 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit e088c92de5014446409da027a6314ea3d2b0491a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:59:12 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 0561f5dbd9504e1d16041272e71914faa0a5f21c
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:59:21 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit e53025f667a3c85eb2e2ea97047d9ee8839afac4
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:59:28 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 834371d9f5ab3aed734bb10dbba224f780f080e4
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 09:59:36 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 58106a04c8ac4b13b50c420fe8f0e9451253ff0f
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:49:53 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit fe2e19befb423cd8d709dcac494734c2496744f1
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:04 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 88edd1c49afc62da1a7cd8a3c80f9bd85ef25a44
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:12 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 2bf5b17770af9e79a6370e992dc3fb43d4c5a5f0
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:22 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit fa416f3488e248616186bccfcfdce3e0c8992a32
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:30 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit b5a234bcd12f1c1e235fd882b913ec63f9c69cb2
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:39 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 4739c329307ec58adfe10d76236354fa36b74b7a
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:50:55 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit c35e10f93b4f93de81fed3b128dabb7db2a490c9
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:51:03 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 9b9d0ee75990fcba5643c13611a56d25627846d2
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:51:10 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 6859e8208de83cb6ad280aea5255f1b505ba8c38
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:51:21 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 2823d6c1ccc4b8311c6f611171067a2df78b7b46
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:51:28 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 11bc3a8d8a93cd3cf49f2a1736a4db4dd7d4d8fc
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Wed Jul 3 15:51:40 2019 -0400
+
+    add casts to quiet gcc conversion-warnings, no object change
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 7daff9f7e522d2ba5f303847df8ec20e93f27583
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Mon Jul 1 19:11:17 2019 -0400
+
+    build-fixes when _CONST_X_STRING is defined
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 894617e0220c3018d73081191699d135dcb19dc1
+Author: Jon Turney <jon.turney@dronecode.org.uk>
+Date:   Mon Jun 3 21:26:25 2019 +0100
+
+    Avoid warning about missing getpagesize() prototype on Windows
+    
+    Work-around AC_CHECK_FUNCS([getpagesize]) reporting a false positive
+    when using MinGW gcc, due to it being present in libgcc.a, which results
+    in trying to use it without a prototype.
+    
+    Future work: This value control the default memory allocation size for
+    text widgets.  If there's some reason why a fallback to using BUFSIZ is
+    bad, we could use the actual pagesize instead.
+
+commit c01d47c4c0e0a66e0989d40f73827d0a55f693cc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 9 16:20:48 2019 -0800
+
+    Pass correct number of atoms from SelectSave to _XawTextSaltAwaySelection
+    
+    When filling in the array, we correctly limited to the 256 slots allocated
+    but then we reset the value to an unlimited number when passing it on to
+    the function that walks the array, which could lead to it walking too far.
+    
+    Fixes https://gitlab.freedesktop.org/xorg/lib/libxaw/issues/2
+    
+    Reported-by: Praveen Kumar <praveen.pk@samsung.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c9d6b0fa101238063b36182f170f4e1b0a233e15
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 15:10:17 2019 -0800
+
+    specs: app-defaults & rgb.txt are in /usr/share now, not /usr/lib
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 759b58d33aa3b4040ba39d722988149b1daa165f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 15:00:55 2019 -0800
+
+    specs: remove excess spaces between < > and header names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9206b0ff74b9a37bc961f9ab09cd46d0e6fce215
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 14:52:17 2019 -0800
+
+    specs: move trailing punctuation to behind </function> tag
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c134bc0d72387399d73640a72842b0a1121c32ff
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 15:15:11 2019 -0800
+
+    specs: replace nroff hair space (\^) with Unicode entity (&#x200A;)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7e982604b4afaf1208dfc5e57e37740bf515e487
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 14:49:14 2019 -0800
+
+    specs: replace nroff 1/6th-em space (\|) with Unicode entity (&#x2006;)
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e395fd92c8f74c04dc33e6fc9568ef5d80221ca6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 14:32:41 2019 -0800
+
+    specs: misc. manual fixes
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 27dc1e9e6d014f21fbec1d6f4a2220598884f389
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 13:55:34 2019 -0800
+
+    specs: Convert ``quotes'' to <quote>
+    
+    perl -i -p -e 's{\`\`(.*?)\x27\x27}{<quote>\1</quote>}' *.xml
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1ba0cad53d1805476d146576153e52af981c8478
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 13:46:05 2019 -0800
+
+    specs: fixup remaining troff \fI & \fP escapes
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f5c7109d2697c441f5c845efeb55b4b60f9bdd1c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 13:33:26 2019 -0800
+
+    specs: fixup some more xrefs & links
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8ef58ff4b99d986e3223e0138287eb0dd7b0105f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 12:44:53 2019 -0800
+
+    specs: restore missing list terms in "Underlying Model"
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 32b3bb8a7aeefa7d1f35b55c2b1010cf483d3928
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 12:28:08 2019 -0800
+
+    specs: use glossary list markup for Terminology section
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 492d5d25ebd1545e422ec5319655ef335b1bd32c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 12:08:52 2019 -0800
+
+    specs: show libXaw version instead of X11R7.7
+    
+    Since we stopped doing katamaris, the library version is needed to tell
+    what release the docs are from.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2d78b52c8a798957e0fd8f739fcda07cd64a0bec
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Feb 18 11:50:37 2019 -0800
+
+    specs: update credits for DocBook conversion
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fc4f97769996c1086848e3fd7bbe8c093c8f0276
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 20:33:36 2019 -0800
+
+    specs: Reorder subsections of CH5 to match X11R6.6 spec
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5b9f06194bfcb6e6e09b57dd54f2480e2fa3f089
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 20:25:59 2019 -0800
+
+    specs: Add missing subsections of CH4 and reorder to match X11R6.6 spec
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 80fc6c7cf49ce2820b18dbdb35601f81b54e20be
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 20:18:23 2019 -0800
+
+    specs: Add olinks to ICCCM spec
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fc0859cda710485e7312a3c3759601b251af7d8d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 20:10:26 2019 -0800
+
+    specs: Add olinks to libX11 spec
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f4c93256a82ba9bde938101acb9b361c0a2b2f43
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 20:00:24 2019 -0800
+
+    specs: Add olinks to libXt spec
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 543d26d206fe5393de6bd6ae3d52d6d8e1f0abea
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 19:08:36 2019 -0800
+
+    specs: Convert troff .IN macros to docbook <indexterm> tags
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2b9a7f2c89ebaf411e23af40dd18ad84d48019e8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 17 18:33:24 2019 -0800
+
+    specs: suggest XtOpenApplication instead of XtAppInitialize
+    
+    Fixes https://bugs.freedesktop.org/show_bug.cgi?id=37552
+    "libXaw.html promotes obsolete XtAppInitialize"
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c03defced6a8dfb1c3c6d20f64b6efd0b60aa16c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 7 19:39:24 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ae6ed2c1cb024b2dcb0c62e7fc2a393cc7cb7252
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 19 21:37:41 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2f298ec305c072c68906dd90d6a9f10f5cbdaa71
+Author: Roberto Branciforti <rbbrnc@gmail.com>
+Date:   Wed Jan 19 21:20:59 2011 +0100
+
+    Scrollbar.c: Add Btn4 & Btn5 to default translations
+    
+    Add default translations to handle mouse wheel events for moving the
+    scrollbar.
+    
+    Signed-off-by: Roberto Branciforti <rbbrnc@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5a392266daf26d1959af9cc55ae53a905af159cf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 5 12:07:27 2018 -0700
+
+    Fix misleading indentation in TextAction.c
+    
+    TextAction.c:838:6: warning: this ‘if’ clause does not guard... [-Wmisleading-indentation]
+          if (ctx->text.lt.top != 0)
+          ^~
+    TextAction.c:840:3: note: ...this statement, but the latter is misleadingly indented as if it were guarded by the ‘if’
+       break;
+       ^~~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f5699b698d512bb1060ef53704595d6accf7eb19
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 24 22:42:40 2018 -0700
+
+    Fix xload crashes if the window is wider than 2048 pixels
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=96670
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+    Tested-by: Keith Packard <keithp@keithp.com>
+
+commit ba7321b6a52726cdb9964b82c5111518dc1f437d
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Mon Mar 13 20:01:27 2017 +0100
+
+    NULL pointer dereference in XawAsciiSinkInitialize
+    
+    The function XawAsciiSinkInitialize is prone to a NULL pointer
+    dereference if no font is available.
+    
+    Even though a specific check for a NULL font exists, it is called
+    after GetGC(), which in turn would trigger the NPE in such a case.
+    
+    Spotted by calling xmessage on a system with an incomplete x font setup:
+    
+    $ xmessage -b text
+    Warning: Unable to load any usable ISO8859 font
+    Segmentation fault
+    $ _
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit a77be15825c0e450dac84619bda966d9fa9af6ec
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:49 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit b461c11e0e9e9ebafa9a34c89c9598f162d54091
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit a45aee9f79ce9613bab22d9d658bbc0992ff759f
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit b3049d9b13333c0e67f1f23959227020741f486b
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Wed Jan 6 22:21:01 2016 -0800
+
+    darwin: Remove incorrect export of vendorShellClassRec and vendorShellWidgetClass
+    
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 4a7626b5127c0eb597cd2b8d0ae3de0286b74d7c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 1 11:23:09 2016 -0800
+
+    editres can trigger sigsegv in inspected application (Debian bug 790325)
+    
+    https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=790325
+    
+    Reported-by: Yuriy M. Kaminskiy <yumkam@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 8c82c47a770274c50944f002b97369c4e30872d8
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Apr 30 22:06:03 2015 -0700
@@ -961,7 +1909,7 @@ Date:   Sun Jan 31 17:43:29 2010 -0500
     Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
 
 commit ceaf6f7f0e516b1479744df421de404b1decc556
-Author: Rémi Cardona <remi@gentoo.org>
+Author: Rémi Cardona  <remi@gentoo.org>
 Date:   Thu Dec 17 08:28:30 2009 +0100
 
     require autoconf 2.60 because of $(docdir) use
@@ -1619,7 +2567,7 @@ Date:   Sat Jul 9 06:11:58 2005 +0000
         libraries not yet installed will work properly.
 
 commit 5fc8851308321a65a6987aedea6618d056ff7879
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Wed Jul 6 19:26:27 2005 +0000
 
     - Xaw/xaw.m4: Change help string to say "enable xprint" instead of "disable
@@ -1630,7 +2578,7 @@ Date:   Wed Jul 6 19:26:27 2005 +0000
     - remove font/arabic-misc/README and font/mutt-misc/README
 
 commit d4f214b6255184a2cbf571c02409a0e3f4405fb0
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue Jul 5 22:51:11 2005 +0000
 
     Add build systems for xlogo, xlsatoms, xlsclients, xmag, xman, xmessage,
@@ -1651,7 +2599,7 @@ Date:   Sun Jul 3 07:00:56 2005 +0000
         <X11/fonts/foo.h>.
 
 commit f8e7a4ec6117006123dfdc7c970f9f1392bf7d84
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue Jun 28 13:30:15 2005 +0000
 
     lib/Xaw/Makefile.am: install the libXaw.so symlink in $(DESTDIR)$(libdir) -
@@ -1659,7 +2607,7 @@ Date:   Tue Jun 28 13:30:15 2005 +0000
     lib/Xaw/man/Makefile.am: add Xaw.man to EXTRA_DIST to make it distcheck.
 
 commit c35ec1561bfc9bf8d79b68a071619f4904764002
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Mon Jun 27 21:35:04 2005 +0000
 
     - Fix string test in lib/Xaw/xaw.m4
@@ -1667,26 +2615,26 @@ Date:   Mon Jun 27 21:35:04 2005 +0000
     - add build system for editres
 
 commit f6c298f70e13ecf37b4824f6ac01007b876dd3cb
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Fri Jun 24 22:54:24 2005 +0000
 
     Add m4 macro to check for versions of the Xaw library
 
 commit e3e78cd7815716d8af729c19833bec51d7e3f19c
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Fri Jun 24 21:20:32 2005 +0000
 
     Change the so names to libXaw{6,7,8}.so and install a symlink from
         libXaw.so to the newest version installed
 
 commit cc658b573a13f36868c5a2263e0b3ff8d0230b86
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Mon May 23 21:47:37 2005 +0000
 
     Conditionally include config.h in xc/lib/Xaw/*.c
 
 commit 62b680d868fbe4bfdf1af6e6067d0ef27f773559
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Mon May 23 20:01:46 2005 +0000
 
     Check in build system for Xaw
@@ -1727,7 +2675,7 @@ Date:   Thu Sep 2 01:10:29 2004 +0000
     Bump major version number of libXaw (Bug #1273).
 
 commit 93df4ff66635ea936d57723d317d0a0cdaa55e62
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Mon Aug 16 16:36:14 2004 +0000
 
     As discussed and agreed on on the release-wranglers meeting of August 16,

@@ -34,44 +34,17 @@
 .ds Vn 2.2
 .hw XtMap-Widget XtSet-Mapped-When-Managed XtUnmap-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtMapWidget __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtMapWidget, XtSetMappedWhenManaged, XtUnmapWidget \- map and unmap widgets
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-int XtMapWidget(Widget \fIw\fP\^);
+void XtMapWidget(Widget \fIw\fP\^);
 .HP
 void XtSetMappedWhenManaged(Widget \fIw\fP, Boolean \fImap_when_managed\fP);
 .HP
-int XtUnmapWidget(Widget \fIw\fP\^);
+void XtUnmapWidget(Widget \fIw\fP\^);
 .SH ARGUMENTS
 .IP \fImap_when_managed\fP 1i
 Specifies a Boolean value that indicates the new value of the map_when_managed
@@ -81,27 +54,27 @@ Specifies the widget.
 .SH DESCRIPTION
 If the widget is realized and managed
 and if the new value of map_when_managed is
-.ZN True ,
-.ZN XtSetMappedWhenManaged
+.BR True ,
+.B XtSetMappedWhenManaged
 maps the window.
 If the widget is realized and managed
 and if the new value of map_when_managed is
-.ZN False ,
+.BR False ,
 it unmaps the window.
-.ZN XtSetMappedWhenManaged
+.B XtSetMappedWhenManaged
 is a convenience function that is equivalent to (but slightly faster than)
 calling
-.ZN XtSetValues
+.B XtSetValues
 and setting the new value for the mappedWhenManaged resource.
 As an alternative to using
-.ZN XtSetMappedWhenManaged
+.B XtSetMappedWhenManaged
 to control mapping,
 a client may set mapped_when_managed to
-.ZN False
+.B False
 and use
-.ZN XtMapWidget
+.B XtMapWidget
 and
-.ZN XtUnmapWidget
+.B XtUnmapWidget
 explicitly.
 .SH "SEE ALSO"
 XtManageChildren(__libmansuffix__)

@@ -32,92 +32,64 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtApp-Error-Msg XtApp-Set-Error-Msg-Handler XtApp-Set-Warning-Msg-Handler XtApp-Warning-Msg wid-get
+.hw XtApp-Error-Msg XtApp-Set-Error-Msg-Handler
+.hw XtApp-Set-Warning-Msg-Handler XtApp-Warning-Msg wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppErrorMsg __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppErrorMsg, XtAppSetErrorMsgHandler, XtAppSetWarningMsgHandler, XtAppWarningMsg \- high-level error handlers
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtAppErrorMsg(XtAppContext \fIapp_context\fP, String \fIname\fP, String
-\fItype\fP, String \fIclass\fP, String \fIdefault\fP, String *\fIparams\fP,
-Cardinal *\fInum_params\fP);
+_X_NORETURN void XtAppErrorMsg(XtAppContext \fIapp_context\fP, const char *\fIname\fP,
+const char *\fItype\fP, const char *\fIclass\fP, const char *\fIdefaultMsg\fP,
+String *\fIparams\fP, Cardinal *\fInum_params\fP);
 .HP
-void XtAppSetErrorMsgHandler(XtAppContext \fIapp_context\fP, XtErrorMsgHandler
+XtErrorMsgHandler XtAppSetErrorMsgHandler(XtAppContext \fIapp_context\fP, _X_NORETURN XtErrorMsgHandler
 \fImsg_handler\fP);
 .HP
-void XtAppSetWarningMsgHandler(XtAppContext \fIapp_context\fP,
+XtErrorMsgHandler XtAppSetWarningMsgHandler(XtAppContext \fIapp_context\fP,
 XtErrorMsgHandler \fImsg_handler\fP);
 .HP
-void XtAppWarningMsg(XtAppContext \fIapp_context\fP, String \fIname\fP, String
-\fItype\fP, String \fIclass\fP, String \fIdefault\fP, String *\fIparams\fP,
-Cardinal *\fInum_params\fP);
+void XtAppWarningMsg(XtAppContext \fIapp_context\fP, const char *\fIname\fP,
+const char *\fItype\fP, const char *\fIclass\fP, const char *\fIdefaultMsg\fP,
+String *\fIparams\fP, Cardinal *\fInum_params\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
-.ds Cl
 .IP \fIclass\fP 1i
-Specifies the resource class\*(Cl.
-.IP \fIdefault\fP 1i
-Specifies the default message to use\*(Dm.
+Specifies the resource class of the error message.
+.IP \fIdefaultMsg\fP 1i
+Specifies the default message to use.
 .IP \fIname\fP 1i
 Specifies the general kind of error.
 .IP \fItype\fP 1i
 Specifies the detailed name of the error.
-.ds Mh fatal error procedure, which should not return \
-or the nonfatal error procedure, which usually returns
 .IP \fImsg_handler\fP 1i
-Specifies the new \*(Mh.
+Specifies the new fatal error procedure, which should not return \
+or the nonfatal error procedure, which usually returns.
 .IP \fInum_params\fP 1i
 Specifies the number of values in the parameter list.
 .IP \fIparams\fP 1i
 Specifies a pointer to a list of values to be stored in the message.
 .SH DESCRIPTION
 The
-.ZN XtAppErrorMsg
+.B XtAppErrorMsg
 function calls the high-level error handler and passes the specified
 information.
 .LP
 The
-.ZN XtAppSetErrorMsgHandler
+.B XtAppSetErrorMsgHandler
 function registers the specified  procedure,
 which is called when a fatal error occurs.
 .LP
 The
-.ZN XtAppSetWarningMsgHandler
+.B XtAppSetWarningMsgHandler
 function registers the specified procedure,
 which is called when a nonfatal error condition occurs.
 .LP
 The
-.ZN XtAppWarningMsg
+.B XtAppWarningMsg
 function calls the high-level error handler and passes the specified
 information.
 .SH "SEE ALSO"

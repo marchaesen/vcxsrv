@@ -32,42 +32,19 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
+.ie \n(.g .ds `` \(lq
+.el       .ds `` ``
+.ie \n(.g .ds '' \(rq
+.el       .ds '' ''
 .hw XtSet-Language-Proc wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetLanguageProc __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetLanguageProc \- set the language procedure
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtSetLanguageProc(XtAppContext \fIapp_context\fP, XtLanguageProc
+XtLanguageProc XtSetLanguageProc(XtAppContext \fIapp_context\fP, XtLanguageProc
 \fIproc\fP, XtPointer \fIclient_data\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
@@ -81,52 +58,59 @@ Specifies the language procedure, or NULL.
 Specifies additional client data to be passed to the language procedure
 when it is called.
 .SH DESCRIPTION
-.ZN XtSetLanguageProc
+.B XtSetLanguageProc
 sets the language procedure that will be called from
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 for all subsequent Displays initialized in the specified application
-context. If \fIapp_context\fP is NULL, the specified language procedure
+context.
+If \fIapp_context\fP is NULL, the specified language procedure
 is registered in all application contexts created by the calling process,
-including any future application contexts that may be created. If
+including any future application contexts that may be created.
+If
 \fIproc\fP is NULL a default language procedure is registered.
-.ZN XtSetLanguageProc
-returns the previously registered language procedure. If a language
+.B XtSetLanguageProc
+returns the previously registered language procedure.
+If a language
 procedure has not yet been registered, the return value is unspecified
 but if this return value is used in a subsequent call to
-.ZN XtSetLanguageProc ,
+.BR XtSetLanguageProc ,
 it will cause the default language procedure to be registered.
 .LP
 The default language procedure does the following:
 .IP \(bu 5
-Sets the locale according to the environment. On ANSI C-based systems
+Sets the locale according to the environment.
+On ANSI C-based systems
 this is done by calling
-.ZN setlocale (
-.ZN LC_ALL ,
-language ). If an error is encountered a warning message is issued with
-.ZN XtWarning .
+.BR setlocale (
+.BR LC_ALL ,
+language ).
+If an error is encountered a warning message is issued with
+.BR XtWarning .
 .IP \(bu 5
 Calls
-.ZN XSupportsLocale
-to verify that the current locale is supported. If the locale is not
+.B XSupportsLocale
+to verify that the current locale is supported.
+If the locale is not
 supported, a warning message is issued with
-.ZN XtWarning
-and the locale is set to ``C''.
+.B XtWarning
+and the locale is set to \*(``C\*(''.
 .IP \(bu 5
 Calls
-.ZN XSetLocaleModifiers
+.B XSetLocaleModifiers
 specifying the empty string.
 .IP \(bu 5
-Returns the value of the current locale. On ANSI C-based systems this
+Returns the value of the current locale.
+On ANSI C-based systems this
 is the return value from a final call to
-.ZN setlocale (
-.ZN LC_ALL ,
+.BR setlocale (
+.BR LC_ALL ,
 NULL ).
 .LP
 A client wishing to use this mechanism to establish locale can do so
 by calling
-.ZN XtSetLanguageProc
+.B XtSetLanguageProc
 prior to
-.ZN XtDisplayInitialize.
+.B XtDisplayInitialize.
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

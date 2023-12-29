@@ -61,7 +61,7 @@ sGetc(xpmData *data, FILE *file)
     if (c == '\n') {
         data->lineNum++;
         data->charNum = 0;
-    } else {
+    } else if (c != EOF) {
         data->charNum++;
     }
     return c;
@@ -74,7 +74,7 @@ sUngetc(xpmData *data, int c, FILE *file)
     if (c == '\n') {
         data->lineNum--;
         data->charNum = 0;
-    } else {
+    } else if (c != EOF) {
         data->charNum--;
     }
 }
@@ -100,7 +100,7 @@ ErrorMessage(
     case XpmSuccess:
 	return;
     case XpmOpenFailed:
-	/* L10N_Comments : Error produced when filename does not exist 
+	/* L10N_Comments : Error produced when filename does not exist
 	   or insufficient permissions to open (i.e. cxpm /no/such/file ) */
 	error = gettext("Cannot open file");
 	break;
@@ -111,7 +111,7 @@ ErrorMessage(
 	break;
     case XpmNoMemory:
 	/* L10N_Comments : Error produced when filename can be read, but
-	   is too big for memory 
+	   is too big for memory
 	   (i.e. limit datasize 32 ; cxpm /usr/dt/backdrops/Crochet.pm ) */
 	error = gettext("Not enough memory");
 	break;

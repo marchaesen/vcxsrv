@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Event_Management'>
 <title>Event Management</title>
 <para>
@@ -239,7 +242,7 @@ type
     <listitem>
       <para>
 Passes the client data argument that was registered for this procedure in
-<function>XtApp\%AddInput</function>.
+<function>XtAppAddInput</function>.
       </para>
     </listitem>
   </varlistentry>
@@ -388,7 +391,7 @@ are of type
 
 <funcsynopsis id='XtBlockHookProc'>
 <funcprototype>
-<funcdef>void <function>*XtBlockHookProc</function></funcdef>
+<funcdef>typedef void *<function>XtBlockHookProc</function></funcdef>
    <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -401,7 +404,7 @@ are of type
     <listitem>
       <para>
 Passes the client data argument that was registered for this procedure in
-<function>XtApp\%AddBlockHook</function>.
+<function>XtAppAddBlockHook</function>.
     </para>
   </listitem>
   </varlistentry>
@@ -529,7 +532,7 @@ type
 
 <funcsynopsis id='XtTimerCallbackProc'>
 <funcprototype>
-<funcdef>void <function>*XtTimerCallbackProc</function></funcdef>
+<funcdef>typedef void *<function>XtTimerCallbackProc</function></funcdef>
    <paramdef>XtPointer <parameter>client_data</parameter></paramdef>
    <paramdef>XtIntervalId *<parameter>timer</parameter></paramdef>
 </funcprototype>
@@ -543,7 +546,7 @@ type
     <listitem>
       <para>
 Passes the client data argument that was registered for this procedure in
-<function>XtApp\%AddTimeOut</function>.
+<function>XtAppAddTimeOut</function>.
       </para>
     </listitem>
   </varlistentry>
@@ -623,7 +626,7 @@ call
 and store the resulting identifier in a place accessible to the signal
 handler.  When a signal arrives, the signal handler should call
 <xref linkend='XtNoticeSignal' xrefstyle='select: title'/>
-to notify the Intrinsics that a signal has occured.  To register a signal
+to notify the Intrinsics that a signal has occurred.  To register a signal
 callback use
 <xref linkend='XtAppAddSignal' xrefstyle='select: title'/>.
 </para>
@@ -710,7 +713,7 @@ call.
 </variablelist>
 
 <para>
-To notify the Intrinsics that a signal has occured, use
+To notify the Intrinsics that a signal has occurred, use
 <xref linkend='XtNoticeSignal' xrefstyle='select: title'/>.
 </para>
 
@@ -744,7 +747,7 @@ If
 <xref linkend='XtNoticeSignal' xrefstyle='select: title'/>
 is invoked multiple times before the Intrinsics are able to invoke the
 registered callback, the callback is only called once.
-Logically, the Intrinsics maintain ``pending'' flag for each registered callback.
+Logically, the Intrinsics maintain &ldquo;pending&rdquo; flag for each registered callback.
 This flag is initially
 <function>False</function>
 and is set to
@@ -757,7 +760,7 @@ or
 <xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
 (with a mask including
 <function>XtIMSignal</function>)
-is called, all registered callbacks with ``pending''
+is called, all registered callbacks with &ldquo;pending&rdquo;
 <function>True</function>
 are invoked and the flags are reset to
 <function>False</function>.
@@ -1046,6 +1049,7 @@ To passively grab a single key of the keyboard, use
    <paramdef>Modifiers <parameter>modifiers</parameter></paramdef>
    <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
    <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1081,7 +1085,7 @@ Specifies the widget in whose window the key is to be grabbed.  Must be of class
 Specify arguments to
 <function>XGrabKey</function>;
 see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
 
     </para>
   </listitem>
@@ -1168,7 +1172,7 @@ Specifies the widget in whose window the key was grabbed.
 Specify arguments to
 <function>XUngrabKey</function>;
 see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1201,6 +1205,7 @@ To actively grab the keyboard, use
    <paramdef>Widget <parameter>widget</parameter></paramdef>
    <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
    <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
    <paramdef>Time <parameter>time</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1235,7 +1240,7 @@ Must be of class Core or any subclass thereof.
 Specify arguments to
 <function>XGrabKeyboard</function>;
 see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1290,7 +1295,7 @@ Specifies the widget that has the active keyboard grab.
 Specifies the additional argument to
 <function>XUngrabKeyboard</function>;
 see <olink targetdoc='libX11' targetptr='Keyboard_Grabbing'>Section 12.2</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1317,6 +1322,7 @@ To passively grab a single pointer button, use
    <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
    <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
    <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
    <paramdef>Window <parameter>confine_to</parameter></paramdef>
    <paramdef>Cursor <parameter>cursor</parameter></paramdef>
 </funcprototype>
@@ -1363,7 +1369,7 @@ Specifies the widget in whose window the button is to be grabbed.  Must be of cl
 Specify arguments to
 <function>XGrabButton</function>;
 see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1449,7 +1455,7 @@ Specifies the widget in whose window the button was grabbed.
 Specify arguments to
 <function>XUngrabButton</function>;
 see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1483,6 +1489,7 @@ To actively grab the pointer, use
    <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
    <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
    <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
    <paramdef>Window <parameter>confine_to</parameter></paramdef>
    <paramdef>Cursor <parameter>cursor</parameter></paramdef>
    <paramdef>Time <parameter>time</parameter></paramdef>
@@ -1527,7 +1534,7 @@ Specifies the widget for whose window the pointer is to be grabbed.  Must be of 
 Specify arguments to
 <function>XGrabPointer</function>;
 see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1582,7 +1589,7 @@ Specifies the widget that has the active pointer grab.
 Specifies the time argument to
 <function>XUngrabPointer</function>;
 see <olink targetdoc='libX11' targetptr='Pointer_Grabbing'>Section 12.1</olink>
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
     </para>
   </listitem>
   </varlistentry>
@@ -1611,6 +1618,7 @@ use
 <funcprototype>
 <funcdef>void <function>XtSetKeyboardFocus</function></funcdef>
    <paramdef>Widget <parameter>subtree</parameter></paramdef>
+   <paramdef>Widget <parameter>descendent</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1707,8 +1715,6 @@ is called.
         <para>
 If E is an ancestor of F, and the event is a key press, and either
         </para>
-      </listitem>
-      <listitem>
         <itemizedlist spacing='compact'>
           <listitem>
             <para>
@@ -1736,8 +1742,6 @@ then the event is dispatched to E.
         <para>
 Otherwise, define A as the closest common ancestor of E and F:
         </para>
-      </listitem>
-      <listitem>
         <itemizedlist spacing='compact'>
           <listitem>
             <para>
@@ -1801,7 +1805,7 @@ The accept_focus procedure pointer is of type
 
 <funcsynopsis id='XtAcceptFocusProc'>
 <funcprototype>
-<funcdef>Boolean <function>*XtAcceptFocusProc</function></funcdef>
+<funcdef>typedef Boolean *<function>XtAcceptFocusProc</function></funcdef>
 
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>Time *<parameter>time</parameter></paramdef>
@@ -1834,7 +1838,7 @@ Specifies the X time of the event causing the accept focus.
 <para>
 Widgets that need the input focus can call
 <function>XSetInputFocus</function>
-explicitly, pursuant to the restrictions of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+explicitly, pursuant to the restrictions of the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
 To allow outside agents, such as the parent,
 to cause a widget to take the input focus,
 every widget exports an accept_focus procedure.
@@ -2255,7 +2259,7 @@ The mask is the bitwise inclusive OR of any combination of
 and
 <function>XtIMSignal</function>.
 As a convenience,
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 defines the symbolic name
 <function>XtIMAll</function>
 to be the bitwise inclusive OR of these four event types.
@@ -2373,7 +2377,7 @@ if it found no handler to which to dispatch the event.
 <xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
 records the last timestamp in any event that
 contains a timestamp (see
-<function>XtLastTimestampProcessed ),</function>
+<function>XtLastTimestampProcessed</function>),
 regardless of whether it was filtered or dispatched.
 If a modal cascade is active with <emphasis remap='I'>spring_loaded</emphasis>
 <function>True</function>,
@@ -2422,21 +2426,17 @@ Specifies the application context that identifies the application.
 </variablelist>
 
 <para>
-The
-<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>
-function first reads the next incoming X event by calling
-<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
-and then dispatches the event to the appropriate registered procedure
-by calling
-<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>.
+The <xref linkend='XtAppMainLoop' xrefstyle='select: title'/>
+function processes events using
+<xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>,
+varying the <emphasis remap='I'>mask parameter</emphasis>
+and using <xref linkend='XtAppPending' xrefstyle='select: title'/>
+to ensure that it has a chance to handle events of all types,
+i.e., X events, timer events, input events and signal sources.
 This constitutes the main loop of X Toolkit applications.
 There is nothing special about
 <xref linkend='XtAppMainLoop' xrefstyle='select: title'/>;
-it simply calls
-<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>
-and then
-<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>
-in a conditional loop.
+it simply processes events in a conditional loop.
 At the bottom of the loop, it checks to see if the specified
 application context's destroy flag is set.
 If the flag is set, the loop breaks.
@@ -2449,8 +2449,21 @@ and
 <para>
 Applications can provide their own version of this loop,
 which tests some global termination flag or tests that the number
-of top-level widgets is larger than zero before circling back to the call to
-<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>.
+of top-level widgets is larger than zero before
+circling back for the next event.
+</para>
+
+<para>
+The design of 
+<xref linkend='XtAppMainLoop' xrefstyle='select: title'/>
+has changed since Release 6.
+Originally it looped over calls to
+<xref linkend='XtAppNextEvent' xrefstyle='select: title'/>,
+and
+<xref linkend='XtDispatchEvent' xrefstyle='select: title'/>,
+but because the latter returns only after an X event
+(not for timers, signals, inputs),
+it was modified to allow any type of event to break out of the loop.
 </para>
 </sect1>
 
@@ -2500,7 +2513,7 @@ was created.  Since
 on the parent will not
 modify the resource of the pop-up child, clients are advised to include
 a resource specification of the form
-``*TransientShell.ancestorSensitive: True''
+&ldquo;*TransientShell.ancestorSensitive: True&rdquo;
 in the application defaults resource file or to
 otherwise ensure that the parent is
 sensitive when creating pop-up shells.
@@ -2846,12 +2859,12 @@ dispatched to the widget's expose procedure.  This field must be
 initialized to one of the following values:
 </para>
 
-<literallayout >
-#define XtExposeNoCompress	((XtEnum)False)
-#define XtExposeCompressSeries	((XtEnum)True)
-#define XtExposeCompressMultiple	&lt;implementation-defined&gt;
-#define XtExposeCompressMaximal	&lt;implementation-defined&gt;
-</literallayout>
+<programlisting>
+#define XtExposeNoCompress              ((XtEnum)False)
+#define XtExposeCompressSeries          ((XtEnum)True)
+#define XtExposeCompressMultiple        &lt;implementation-defined&gt;
+#define XtExposeCompressMaximal         &lt;implementation-defined&gt;
+</programlisting>
 
 <para>
 optionally ORed with any combination of the following flags (all with
@@ -2883,7 +2896,7 @@ passing the modified exposure event and (unless
 is specified) the region.
 For more information on regions, see
 <olink targetdoc='libX11' targetptr='Manipulating_Regions'>Section 16.5</olink> in
-<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>.)
+<olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
 </para>
 
 <para>
@@ -3136,11 +3149,11 @@ the widgets Label, Pushbutton, and Toggle,
 you could write a single display routine in Label that uses display state
 fields like
 </para>
-<literallayout >
-Boolean invert;
-Boolean highlight;
-Dimension highlight_width;
-</literallayout>
+<programlisting>
+Boolean         invert;
+Boolean         highlight;
+Dimension       highlight_width;
+</programlisting>
 <para>
 Label would have <emphasis remap='I'>invert</emphasis> and <emphasis remap='I'>highlight</emphasis> always
 <function>False</function>
@@ -3517,9 +3530,9 @@ To register an event handler procedure that receives events before or
 after all previously registered event handlers, use
 <xref linkend='XtInsertEventHandler' xrefstyle='select: title'/>.
 </para>
-<literallayout >
+<programlisting>
 typedef enum {XtListHead, XtListTail} XtListPosition;
-</literallayout>
+</programlisting>
 
 <funcsynopsis id='XtInsertEventHandler'>
 <funcprototype>
@@ -4251,7 +4264,7 @@ To register a procedure to select extension events for a widget, use
 <funcsynopsis id='XtRegisterExtensionSelector'>
 <funcprototype>
 <funcdef>void <function>XtRegisterExtensionSelector</function></funcdef>
-   <paramdef>Display <parameter>*display</parameter></paramdef>
+   <paramdef>Display *<parameter>display</parameter></paramdef>
    <paramdef>int <parameter>min_event_type</parameter></paramdef>
    <paramdef>int <parameter>max_event_type</parameter></paramdef>
    <paramdef>XtExtensionSelectProc <parameter>proc</parameter></paramdef>
@@ -4686,7 +4699,7 @@ access, call
 <funcsynopsis id='XtToolkitThreadInitialize'>
 <funcprototype>
 <funcdef>Boolean <function>XtToolkitThreadInitialize</function></funcdef>
-   <paramdef><parameter></parameter></paramdef>
+   <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4730,13 +4743,13 @@ Resource converters are an exception.
 They require the application context or process to be locked
 before the application can safely call them directly, for example:
 </para>
-<literallayout >
-	...
-	XtAppLock(app_context);
-	XtCvtStringToPixel(dpy, args, num_args, fromVal, toVal, closure_ret);
-	XtAppUnlock(app_context);
-	...
-</literallayout>
+<programlisting>
+        ...
+        XtAppLock(app_context);
+        XtCvtStringToPixel(dpy, args, num_args, fromVal, toVal, closure_ret);
+        XtAppUnlock(app_context);
+        ...
+</programlisting>
 <para>
 When the application relies upon
 <xref linkend='XtConvertAndStore' xrefstyle='select: title'/>
@@ -4751,30 +4764,29 @@ utility functions, such as one which retrieves the being_destroyed field from
 a widget instance, must lock the application context before accessing
 widget internal data.  For example:
 </para>
-<literallayout >
+<programlisting>
 #include &lt;X11/CoreP.h&gt;
-Boolean BeingDestroyed (widget)
-	Widget widget;
+Boolean BeingDestroyed (Widget widget)
 {
-	Boolean ret;
-	XtAppLock(XtWidgetToApplicationContext(widget));
-	ret = widget-&gt;core.being_destroyed;
-	XtAppUnlock(XtWidgetToApplicationContext(widget));
-	return ret;
+        Boolean ret;
+        XtAppLock(XtWidgetToApplicationContext(widget));
+        ret = widget-&gt;core.being_destroyed;
+        XtAppUnlock(XtWidgetToApplicationContext(widget));
+        return ret;
 }
-</literallayout>
+</programlisting>
 <para>
 A client that wishes to atomically call two or more Intrinsics functions
 must lock the application context.  For example:
 </para>
-<literallayout >
-	...
-	XtAppLock(XtWidgetToApplicationContext(widget));
-	XtUnmanageChild (widget1);
-	XtManageChild (widget2);
-	XtAppUnlock(XtWidgetToApplicationContext(widget));
-	...
-</literallayout>
+<programlisting>
+        ...
+        XtAppLock(XtWidgetToApplicationContext(widget));
+        XtUnmanageChild (widget1);
+        XtManageChild (widget2);
+        XtAppUnlock(XtWidgetToApplicationContext(widget));
+        ...
+</programlisting>
 <sect3 id="Locking_the_Application_Context">
 <title>Locking the Application Context</title>
 <para>
@@ -4849,7 +4861,7 @@ widget writer must use
 <funcsynopsis id='XtProcessLock'>
 <funcprototype>
 <funcdef>void <function>XtProcessLock</function></funcdef>
-   <paramdef><parameter></parameter></paramdef>
+   <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4867,7 +4879,7 @@ To unlock a locked process, use
 <funcsynopsis id='XtProcessUnlock'>
 <funcprototype>
 <funcdef>void <function>XtProcessUnlock</function></funcdef>
-   <paramdef><parameter></parameter></paramdef>
+   <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -4970,8 +4982,8 @@ or
 <xref linkend='XtAppProcessEvent' xrefstyle='select: title'/>
 and another thread in the same application context opens a new display,
 adds an alternate input, or a timeout, any new source(s) will not
-normally be "noticed" by the blocked thread.  Any new sources are
-"noticed" the next time one of these functions is called.
+normally be &ldquo;noticed&rdquo; by the blocked thread.  Any new sources are
+&ldquo;noticed&rdquo; the next time one of these functions is called.
 </para>
 
 <para>

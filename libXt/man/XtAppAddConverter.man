@@ -34,46 +34,19 @@
 .ds Vn 2.2
 .hw XtApp-Add-Converter XtAdd-Converter wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddConverter __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtAppAddConverter, XtAddConverter \- register resource converter
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtAppAddConverter(XtAppContext \fIapp_context\fP, String \fIfrom_type\fP,
-String \fIto_type\fP, XtConverter \fIconverter\fP, XtConvertArgList
-\fIconvert_args\fP, Cardinal \fInum_args\fP);
+void XtAppAddConverter(XtAppContext \fIapp_context\fP, const char *\fIfrom_type\fP,
+const char *\fIto_type\fP, XtConverter \fIconverter\fP,
+XtConvertArgList \fIconvert_args\fP, Cardinal \fInum_args\fP);
 .HP
-void XtAddConverter(String \fIfrom_type\fP, String \fIto_type\fP, XtConverter
-\fIconverter\fP, XtConvertArgList \fIconvert_args\fP, Cardinal
-\fInum_args\fP);
+void XtAddConverter(const char *\fIfrom_type\fP, const char *\fIto_type\fP,
+XtConverter \fIconverter\fP, XtConvertArgList \fIconvert_args\fP,
+Cardinal \fInum_args\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
@@ -88,21 +61,23 @@ Specifies the number of additional arguments to the converter or zero.
 .IP \fIto_type\fP 1i
 Specifies the destination type.
 .SH DESCRIPTION
-.ZN XtAppAddConverter
+.B XtAppAddConverter
 is equivalent in function to
-.ZN XtAppSetTypeConverter
+.B XtAppSetTypeConverter
 with \fIcache_type\fP equal to
-.ZN XtCacheAll
-for old-format type converters. It has been superseded by
-.ZN XtAppSetTypeConverter .
+.B XtCacheAll
+for old-format type converters.
+It has been superseded by
+.BR XtAppSetTypeConverter .
 .LP
-.ZN XtAddConverter
+.B XtAddConverter
 is equivalent in function to
-.ZN XtSetTypeConverter
+.B XtSetTypeConverter
 with \fIcache_type\fP equal to
-.ZN XtCacheAll
-for old-format type converters. It has been superseded by
-.ZN XtSetTypeConverter .
+.B XtCacheAll
+for old-format type converters.
+It has been superseded by
+.BR XtSetTypeConverter .
 .SH "SEE ALSO"
 XtConvert(__libmansuffix__),
 XtStringConversionWarning(__libmansuffix__)

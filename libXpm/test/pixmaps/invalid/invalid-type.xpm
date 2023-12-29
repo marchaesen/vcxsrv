@@ -1,0 +1,34 @@
+/* XPM2 invalid type name */
+static char * plaid[] = {
+/* plaid pixmap
+ * width height ncolors chars_per_pixel */
+"22 22 4 2 0 0",
+/* colors */
+"   c red 	m white  s light_color ",
+"Y  c green	m black  s lines_in_mix ",
+"+  c yellow	m white  s lines_in_dark ",
+"x 		m black  s dark_color ",
+/* pixels */
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"Y Y Y Y Y x Y Y Y Y Y + x + x + x + x + x + ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"  x   x   x   x   x   x x x x x x x x x x x ",
+"x   x   x x x   x   x x x x x x + x x x x x ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"x x x x x x x x x x x x x x x x x x x x x x ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x ",
+"          x             x   x   Y   x   x   ",
+"          x           x   x   x Y x   x   x "
+};

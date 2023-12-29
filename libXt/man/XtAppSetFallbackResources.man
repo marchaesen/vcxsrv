@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtApp-Set-Fallback-Resources wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppSetFallbackResources __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppSetFallbackResources \- set fallback resources
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtAppSetFallbackResources(XtAppContext \fIapp_context\fP, String*
 \fIspecification_list\fP);
@@ -76,21 +49,22 @@ Specifies a NULL-terminated list of resource specifications to pre-load
 the database, or NULL.
 .SH DESCRIPTION
 Each entry in \fIspecification_list\fP points to a string in the format
-.ZN XrmPutLineResource .
+.BR XrmPutLineResource .
 following a call to
-.ZN XtAppSetFallbackResources ,
+.BR XtAppSetFallbackResources ,
 when a resource database is being created for a particular screen and
 the Intrinsics are not able to find or read an application-specific
 class resource file and if \fIspecification_list\fP is not NULL the
 resource specification in \fIspecification_list\fP will be merged
 into the screen resource database in place of the application-specific
 class resource file.
-.ZN XtAppSetFallbackResources
+.B XtAppSetFallbackResources
 is not required to copy \fIspecification_list\fP; the caller must
 ensure that the contents of the list and the strings addressed by the
 list remain valid until all displays are initialized or until
-.ZN XtAppSetFallbackResources
-is called again. The value NULL for \fIspecification_list\fP removes
+.B XtAppSetFallbackResources
+is called again.
+The value NULL for \fIspecification_list\fP removes
 any previous fallback resource specification for the application context.
 The intended use for fallback resources is to provide a minimal number
 of resources that will make the application usable (or at least terminate

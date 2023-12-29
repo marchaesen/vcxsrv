@@ -32,66 +32,38 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtParse-Accelerator-Table XtInstall-Accelerators XtInstall-All-Accelerators wid-get
+.hw XtParse-Accelerator-Table XtInstall-Accelerators
+.hw XtInstall-All-Accelerators wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtParseAcceleratorTable __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtParseAcceleratorTable, XtInstallAccelerators, XtInstallAllAccelerators \- managing accelerator tables
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-XtAccelerators XtParseAcceleratorTable(String \fIsource\fP);
+XtAccelerators XtParseAcceleratorTable(const char * \fIsource\fP);
 .HP
 void XtInstallAccelerators(Widget \fIdestination\fP, Widget \fIsource\fP);
 .HP
 void XtInstallAllAccelerators(Widget \fIdestination\fP, Widget \fIsource\fP);
 .SH ARGUMENTS
-.ds So to compile
 .IP \fIsource\fP 1i
-Specifies the accelerator table \*(So.
+Specifies the accelerator table to compile.
 .IP \fIdestination\fP 1i
 Specifies the widget on which the accelerators are to be installed.
-.ds Sr widget or the root widget of the widget tree
 .IP \fIsource\fP 1i
-Specifies the \*(Sr from which the accelerators are to come.
+Specifies the widget or the root widget of the widget tree from which the accelerators are to come.
 .SH DESCRIPTION
 The
-.ZN XtParseAcceleratorTable
+.B XtParseAcceleratorTable
 function compiles the accelerator table into the opaque internal representation.
 .LP
 The
-.ZN XtInstallAccelerators
+.B XtInstallAccelerators
 function installs the accelerators from source onto destination
 by augmenting the destination translations with the source accelerators.
 If the source display_accelerator method is non-NULL,
-.ZN XtInstallAccelerators
+.B XtInstallAccelerators
 calls it with the source widget and a string representation
 of the accelerator table,
 which indicates that its accelerators have been installed
@@ -100,11 +72,11 @@ The string representation of the accelerator table is its
 canonical translation table representation.
 .LP
 The
-.ZN XtInstallAllAccelerators
+.B XtInstallAllAccelerators
 function recursively descends the widget tree rooted at source
 and installs the accelerators of each widget encountered onto destination.
 A common use os to call
-.ZN XtInstallAllAccelerators
+.B XtInstallAllAccelerators
 and pass the application main window as the source.
 .SH "SEE ALSO"
 XtParseTranslationTable(1)

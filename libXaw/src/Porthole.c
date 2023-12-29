@@ -156,8 +156,8 @@ SendReport(PortholeWidget pw, unsigned int changed)
 	XawPannerReport prep;
 
 	prep.changed = changed;
-	prep.slider_x = -XtX(child);	/* porthole is "inner" */
-	prep.slider_y = -XtY(child);	/* child is outer since it is larger */
+	prep.slider_x = (Position)(-XtX(child));	/* porthole is "inner" */
+	prep.slider_y = (Position)(-XtY(child));	/* child is outer since it is larger */
 	prep.slider_width = XtWidth(pw);
 	prep.slider_height = XtHeight(pw);
 	prep.canvas_width = XtWidth(child);
@@ -199,8 +199,8 @@ layout_child(PortholeWidget pw, Widget child, XtWidgetGeometry *geomp,
      * Make sure that the child is still on the screen.  Note that this must
      * be done *after* the size computation so that we know where to put it
      */
-    minx = (Position)XtWidth(pw) - (Position)*widthp;
-    miny = (Position)XtHeight(pw) - (Position)*heightp;
+    minx = (Position)(XtWidth(pw) - *widthp);
+    miny = (Position)(XtHeight(pw) - *heightp);
 
     if (*xp < minx)
 	*xp = minx;

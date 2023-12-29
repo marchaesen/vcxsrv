@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtSet-Multi-Click-Time Xt-Get-Multi-Click-Time wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetMultiClickTime __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetMultiClickTime, XtGetMultiClickTime \- set and get multi-click times
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetMultiClickTime(Display* \fIdisplay\fP, int \fItime\fP);
 .HP
@@ -75,11 +48,11 @@ Specifies the display connection.
 .IP \fItime\fP 1i
 Specifies the multi-click time in milliseconds.
 .SH DESCRIPTION
-.ZN XtSetMultiClickTime
+.B XtSetMultiClickTime
 sets the time interval used by the translation manager to determine
 when multiple events are interpreted as a repeated event.
 .LP
-.ZN XtGetMultiClickTime
+.B XtGetMultiClickTime
 returns the time in milliseconds that the translation manager uses to
 determine if multiple events are to be interpreted as a repeated event
 for purposes of matching a translation entry containing a repeat count.

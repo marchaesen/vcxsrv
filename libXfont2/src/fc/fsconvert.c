@@ -29,6 +29,7 @@
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include        <X11/X.h>
 #include 	<X11/Xtrans/Xtrans.h>
 #include	<X11/Xpoll.h>
@@ -107,7 +108,7 @@ _fs_convert_props(fsPropInfo *pi, fsPropOffset *po, pointer pd,
 	|| nprops > SIZE_MAX/(sizeof(FontPropRec) + sizeof(char)))
 	return -1;
 
-    dprop = malloc(sizeof(FontPropRec) * nprops + sizeof (char) * nprops);
+    dprop = mallocarray(nprops, sizeof(FontPropRec) + sizeof (char));
     if (!dprop)
 	return -1;
 

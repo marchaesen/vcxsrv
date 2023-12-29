@@ -32,6 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include <X11/fonts/fntfilst.h>
 
 static FontRenderersRec	renderers;
@@ -80,7 +81,7 @@ FontFilePriorityRegisterRenderer (FontRendererPtr renderer, int priority)
     }
 
     if(i >= renderers.number) {
-        new = realloc (renderers.renderers, sizeof(*new) * (i + 1));
+        new = reallocarray (renderers.renderers, i + 1, sizeof(*new));
         if (!new)
             return FALSE;
         renderers.renderers = new;

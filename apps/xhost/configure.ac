@@ -2,13 +2,13 @@ dnl Process this file with autoconf to create configure.
 
 # Initialize Autoconf
 AC_PREREQ([2.60])
-AC_INIT([xhost], [1.0.7],
-        [https://bugs.freedesktop.org/enter_bug.cgi?product=xorg], [xhost])
+AC_INIT([xhost], [1.0.9],
+        [https://gitlab.freedesktop.org/xorg/app/xhost/-/issues], [xhost])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
 
 # Initialize Automake
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 # Set common system defines for POSIX extensions, such as _GNU_SOURCE
 # Must be called before any macros that run the compiler (like
@@ -41,6 +41,30 @@ case $host_os in
  *)
   ;;
 esac
+
+# Checks for library functions.
+AC_CHECK_FUNCS([inet_aton])
+
+# Internationalization & localization support
+AC_SEARCH_LIBS([gettext], [intl], [USE_GETTEXT="yes"], [USE_GETTEXT="no"])
+AC_MSG_CHECKING([where to install localized messages])
+AC_ARG_WITH([localedir], AS_HELP_STRING([--with-localedir=<path>],
+	[Path to install message files in (default: datadir/locale)]),
+	[LOCALEDIR=${withval}], [LOCALEDIR=${datadir}/locale])
+if test "x$LOCALEDIR" = "xno" -o "x$USE_GETTEXT" = "xno" ; then
+	AC_MSG_RESULT([nowhere])
+	USE_GETTEXT="no"
+else
+	AC_SUBST([LOCALEDIR])
+	AC_MSG_RESULT([$LOCALEDIR])
+fi
+
+if test "x$USE_GETTEXT" = "xyes" ; then
+	AC_DEFINE([USE_GETTEXT], 1,
+		  [Define to 1 if you want to use the gettext() function.])
+fi
+AM_CONDITIONAL(USE_GETTEXT, test "x$USE_GETTEXT" = "xyes")
+
 
 AC_CONFIG_FILES([
 	Makefile

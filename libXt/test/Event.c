@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2022, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -57,6 +57,9 @@ static void test_XtAppMainLoop_34715(void)
     XtAppContext app;
     struct sigaction sa;
 
+    g_test_bug_base("https://bugzilla.freedesktop.org/show_bug.cgi?id=");
+    g_test_bug("34715");
+
     XtToolkitInitialize();
     app = XtCreateApplicationContext();
     XtAppAddTimeOut(app, 1000, _Tick, app);
@@ -72,18 +75,19 @@ static void test_XtAppMainLoop_34715(void)
 	alarm(10);
 
 	XtAppMainLoop(app);
+	alarm(0); /* cancel alarm */
     } else {
-	g_assert(XtAppGetExitFlag(app) == TRUE);
-	g_assert(0 /* timed out */);
+	g_assertion_message(G_LOG_DOMAIN, __FILE__, __LINE__, G_STRFUNC,
+			    "test timed out");
     }
-    g_assert(XtAppGetExitFlag(app) == TRUE);
+    g_assert_cmpint(XtAppGetExitFlag(app), ==, TRUE);
     XtDestroyApplicationContext(app);
 }
 
 int main(int argc, char** argv)
 {
     g_test_init(&argc, &argv, NULL);
-    g_test_bug_base("https://bugzilla.freedesktop.org/show_bug.cgi?id=");
+    g_test_bug_base("https://gitlab.freedesktop.org/xorg/lib/libxt/-/issues/");
 
     g_test_add_func("/Event/XtAppMainLoop/34715", test_XtAppMainLoop_34715);
 

@@ -34,63 +34,34 @@
 .ds Vn 2.2
 .hw XtApp-AddWork-Proc, XtRemove-Work-Proc wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddWorkProc __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddWorkProc, XtRemoveWorkProc \- Add and remove background processing procedures
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtWorkProcId XtAppAddWorkProc(XtAppContext \fIapp_context\fP, XtWorkProc
 \fIproc\fP, XtPointer \fIclient_data\fP);
 .HP
 void XtRemoveWorkProc(XtWorkProcId \fIid\fP);
 .SH ARGUMENTS
-.ds Co that identifies the application
 .IP \fIapp_context\fP 1i
-Specifies the application context \*(Co.
-.ds Cd it is called
+Specifies the application context that identifies the application.
 .IP \fIclient_data\fP 1i
 Specifies the argument that is to be passed to the specified procedure
-when \*(Cd.
+when it is called.
 .IP \fIproc\fP 1i
-Specifies the procedure that is\*(Pr.
+Specifies the procedure that is to be called.
 .IP \fIid\fP 1i
 Specifies which work procedure to remove.
 .SH DESCRIPTION
 The
-.ZN XtAppAddWorkProc
+.B XtAppAddWorkProc
 function adds the specified work procedure for the application identified
 by app_context.
 .LP
 The
-.ZN XtRemoveWorkProc
+.B XtRemoveWorkProc
 function explicitly removes the specified background work procedure.
 .SH "SEE ALSO"
 XtAppNextEvent(__libmansuffix__)

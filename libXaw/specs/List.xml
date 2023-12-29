@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	List Widget -->
 <!-- .XE -->
-<!-- .IN "List widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>List widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application header file	&lt;X11/Xaw/List.h&gt;
-<!-- .IN "List.h" "" -->
+<indexterm><primary>List.h</primary></indexterm>
 Class header file	&lt;X11/Xaw/ListP.h&gt;
-<!-- .IN "ListP.h" "" -->
+<indexterm><primary>ListP.h</primary></indexterm>
 Class	listWidgetClass
-<!-- .IN "listWidgetClass" "" -->
+<indexterm><primary>listWidgetClass</primary></indexterm>
 Class Name	List
-<!-- .IN "List widget" "class name" -->
+<indexterm><primary>List widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Simple
 <!-- .sp -->
 </literallayout>
@@ -39,7 +39,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "List widget" "resources" -->
+<indexterm><primary>List widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -443,7 +443,7 @@ used to paint the text of the list elements.
   </varlistentry>
   <varlistentry>
     <term>
-      \fPinternalHeight\fP
+      <function>internalHeight</function>
     </term>
     <listitem>
       <para>
@@ -454,7 +454,7 @@ used to paint the text of the list elements.
   </varlistentry>
   <varlistentry>
     <term>
-      \fPinternalWidth\fP
+      <function>internalWidth</function>
     </term>
     <listitem>
       <para>
@@ -541,7 +541,7 @@ presented in column major order.
 </sect2>
 <sect2 id="List_Actions">
 <title>List Actions</title>
-<!-- .IN "List widget" "actions" -->
+<indexterm><primary>List widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The List widget supports the following actions:
@@ -562,14 +562,14 @@ Processing application callbacks with <function>Notify</function>
 <para>
 <!-- .LP -->
 The following is the default translation table used by the List Widget:
-<!-- .IN "List widget" "default translation table" -->
+<indexterm><primary>List widget</primary><secondary>default translation table</secondary></indexterm>
 </para>
 <para>
 <!-- .LP -->
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-&lt;Btn1Down&gt;,&lt;Btn1Up&gt;:	Set(\|) Notify(\|)
+&lt;Btn1Down&gt;,&lt;Btn1Up&gt;:	Set(&#x2006;) Notify(&#x2006;)
 <!-- .sp -->
 </literallayout>
 </para>
@@ -579,7 +579,7 @@ The full list of actions supported by List widget is:
 <variablelist>
   <varlistentry>
     <term>
-      <function>Set</function>(\|)
+      <function>Set</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -593,7 +593,7 @@ element will be <emphasis remap='I'>unset</emphasis>.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>Unset</function>(\|)
+      <function>Unset</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -604,7 +604,7 @@ and redraws it with normal foreground and background colors.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>Notify</function>(\|)
+      <function>Notify</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -619,7 +619,7 @@ about the currently selected list element is passed in the
 </sect2>
 <sect2 id="List_Callbacks">
 <title>List Callbacks</title>
-<!-- .IN "List widget" "callbacks" -->
+<indexterm><primary>List widget</primary><secondary>callbacks</secondary></indexterm>
 <para>
 <!-- .LP -->
 All procedures on the List widget's callback list will have a
@@ -630,12 +630,12 @@ structure is defined in the List widget's application header file.
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-<!-- .IN "XawListReturnStruct" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawListReturnStruct</primary></indexterm>
 typedef struct _XawListReturnStruct {
 	String string;	/* string shown in the list. */
 	int list_index;	/* index of the item selected. */
 } XawListReturnStruct;
-<!-- .IN "XawListReturnStruct" "" -->
+<indexterm><primary>XawListReturnStruct</primary></indexterm>
 <!-- .NT -->
 </literallayout>
 <note><para>
@@ -650,8 +650,8 @@ operating systems, and had to be changed.
 <para>
 <!-- .LP -->
 To change the list that is displayed, use
-<function>XawListChange .</function>
-<!-- .IN "XawListChange" "" "@DEF@" -->
+<function>XawListChange</function>.
+<indexterm significance="preferred"><primary>XawListChange</primary></indexterm>
 <funcsynopsis id='XawListChange'>
 <funcprototype>
   <funcdef>void<function> XawListChange</function></funcdef>
@@ -736,8 +736,8 @@ has been changed again with this function or with <xref linkend='XtSetValues' xr
 <para>
 <!-- .LP -->
 To highlight an item in the list, use
-<function>XawListHighlight .</function>
-<!-- .IN "XawListHighlight" "" "@DEF@" -->
+<function>XawListHighlight</function>.
+<indexterm significance="preferred"><primary>XawListHighlight</primary></indexterm>
 <funcsynopsis id='XawListHighlight'>
 <funcprototype>
   <funcdef>void<function> XawListHighlight</function></funcdef>
@@ -784,8 +784,8 @@ the highlighted item is unhighlighted before the new item is highlighted.
 <para>
 <!-- .LP -->
 To unhighlight the currently highlighted item in the list, use
-<function>XawListUnhighlight .</function>
-<!-- .IN "XawListUnhighlight" "" "@DEF@" -->
+<function>XawListUnhighlight</function>.
+<indexterm significance="preferred"><primary>XawListUnhighlight</primary></indexterm>
 <funcsynopsis id='XawListUnhighlight'>
 <funcprototype>
   <funcdef>void<function> XawListUnhighlight</function></funcdef>
@@ -812,8 +812,8 @@ Specifies the List widget.
 <para>
 <!-- .LP -->
 To retrieve the list element that is currently <emphasis remap='I'>set</emphasis>, use
-<function>XawListShowCurrent .</function>
-<!-- .IN "XawListShowCurrent" "" "@DEF@" -->
+<function>XawListShowCurrent</function>.
+<indexterm significance="preferred"><primary>XawListShowCurrent</primary></indexterm>
 <funcsynopsis id='XawListShowCurrent'>
 <funcprototype>
   <funcdef>XawListReturnStruct<function> *XawListShowCurrent</function></funcdef>
@@ -842,7 +842,7 @@ returns a pointer to an
 structure,
 containing the currently highlighted item.
 If the value of the index member is XAW_LIST_NONE,
-<!-- .IN "XAW_LIST_NONE" -->
+<indexterm><primary>XAW_LIST_NONE</primary></indexterm>
 the string member is undefined, and no item is currently selected.
 </para>
 </sect2>
@@ -850,11 +850,11 @@ the string member is undefined, and no item is currently selected.
 <title>Restrictions</title>
 <para>
 <!-- .LP -->
-Many programmers create a ``scrolled list'' by putting a List
+Many programmers create a <quote>scrolled list</quote> by putting a List
 widget with many entries as a child of a Viewport widget.  The
 List continues to create a window as big as its contents, but
 that big window is only visible where it intersects the parent
-Viewport's window.  (I.e., it is ``clipped.'')
+Viewport's window.  (I.e., it is <quote>clipped.</quote>)
 </para>
 <para>
 <!-- .LP -->

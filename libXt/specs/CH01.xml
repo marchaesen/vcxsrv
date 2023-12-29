@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Intrinsics_and_Widgets'>
 <title>Intrinsics and Widgets</title>
 <para>
@@ -45,7 +48,7 @@ for each Intrinsics procedure and <xref linkend='Nonwidget_Objects' />
 describe which operations
 are defined for the nonwidget superclasses of Core.  The reader may
 determine by context whether a specific reference to <emphasis remap='I'>widget</emphasis>
-actually means ``widget'' or ``object.''
+actually means &ldquo;widget&rdquo; or &ldquo;object.&rdquo;
 </para>
 </sect1>
 
@@ -74,30 +77,30 @@ any module, widget, or application that calls an Intrinsics procedure.
 <para>
 Applications that use the Intrinsics mechanisms
 must include the header files
-<function>&lt;X11/Intrinsic.h&gt;</function>
+<filename class="headerfile">&lt;X11/Intrinsic.h&gt;</filename>
 and
-<function>&lt;X11/StringDefs.h&gt;</function>,
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>,
 or their equivalent,
 and they may also include
-<function>&lt;X11/Xatoms.h&gt;</function>
+<filename class="headerfile">&lt;X11/Xatoms.h&gt;</filename>
 and
-<function>&lt;X11/Shell.h&gt;</function>.
+<filename class="headerfile">&lt;X11/Shell.h&gt;</filename>.
 In addition, widget implementations should include
-<function>&lt;X11/IntrinsicP.h&gt;</function>
+<filename class="headerfile">&lt;X11/IntrinsicP.h&gt;</filename>
 instead of
-<function>&lt;X11/Intrinsic.h&gt;</function>.
+<filename class="headerfile">&lt;X11/Intrinsic.h&gt;</filename>.
 </para>
 
 <para>
 The applications must also include the additional header files for
 each widget class that they are to use (for example,
-<function>&lt;X11/Xaw/Label.h&gt;</function>
+<filename class="headerfile">&lt;X11/Xaw/Label.h&gt;</filename>
 or
-<function>&lt;X11/Xaw/Scrollbar.h&gt;).</function>
+<filename class="headerfile">&lt;X11/Xaw/Scrollbar.h&gt;).</filename>
 On a POSIX-based system,
 the Intrinsics object library file is named
-<function>libXt.a</function>
-and is usually referenced as \-lXt when linking the application.
+<filename class="libraryfile">libXt.a</filename>
+and is usually referenced as -lXt when linking the application.
 </para>
 </sect1>
 
@@ -106,7 +109,7 @@ and is usually referenced as \-lXt when linking the application.
 <para>
 All functions defined in this specification except those specified below
 may be implemented as C macros with arguments.  C applications may use
-``#undef'' to remove a macro definition and ensure that the actual function
+&ldquo;#undef&rdquo; to remove a macro definition and ensure that the actual function
 is referenced.  Any such macro will expand to a single expression that
 has the same precedence as a function call and that evaluates each
 of its arguments exactly once, fully protected by parentheses, so that
@@ -152,7 +155,7 @@ subclasses.
 Physically, a widget class is a pointer to a structure.
 The contents of this structure are constant for all widgets of the widget
 class but will vary from class to class.
-(Here, ``constant'' means the class structure is initialized at compile time
+(Here, &ldquo;constant&rdquo; means the class structure is initialized at compile time
 and never changed, except for a one-time class initialization
 and in-place compilation of resource lists,
 which takes place when the first widget of the class or subclass is created.)
@@ -215,42 +218,42 @@ All widget classes contain the fields defined in the
 <function>CoreClassPart</function>
 structure.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     WidgetClass superclass;    See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     String class_name;         See <xref linkend="Resource_Management" xrefstyle='select: label' />
-     Cardinal widget_size;      See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     XtProc class_initialize;   See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     XtWidgetClassProc class_part_initialize;  See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     XtEnum class_inited;       See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     XtInitProc initialize;     See <xref linkend='Creating_Widgets' xrefstyle='select: label' />
-     XtArgsProc initialize_hook;  See <xref linkend='Creating_Widgets' xrefstyle='select: label' />
-     XtRealizeProc realize;     See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     XtActionList actions;      See <xref linkend='Translation_Management' xrefstyle='select: label' />
-     Cardinal num_actions;      See <xref linkend='Translation_Management' xrefstyle='select: label' />
-     XtResourceList resources;  See <xref linkend="Resource_Management" xrefstyle='select: label' />
-     Cardinal num_resources;    See <xref linkend="Resource_Management" xrefstyle='select: label' />
-     XrmClass xrm_class;     Private to resource manager
-     Boolean compress_motion;      See <xref linkend='X_Event_Filters' xrefstyle='select: label' />
-     XtEnum compress_exposure;     See <xref linkend='X_Event_Filters' xrefstyle='select: label' />
-     Boolean compress_enterleave;  See <xref linkend='X_Event_Filters' xrefstyle='select: label' />
-     Boolean visible_interest;     See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: label' />
-     XtWidgetProc destroy;         See <xref linkend='Destroying_Widgets' xrefstyle='select: label' />
-     XtWidgetProc resize;          See <xref linkend='Geometry_Management' xrefstyle='select: label' /> 
-     XtExposeProc expose;          See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: label' />
-     XtSetValuesFunc set_values;   See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: label' />
-     XtArgsFunc set_values_hook;   See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: label' />
-     XtAlmostProc set_values_almost;  See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: label' />
-     XtArgsProc get_values_hook;   See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: label' />
-     XtAcceptFocusProc accept_focus;  See <xref linkend='Focusing_Events_on_a_Child' xrefstyle='select: label' />
-     XtVersionType version;        See <xref linkend="Widget_Classing" xrefstyle='select: label' />
-     XtPointer callback_private;  Private to callbacks
-     String tm_table;              See <xref linkend='Translation_Management' xrefstyle='select: label' />
-     XtGeometryHandler query_geometry;  See <xref linkend ='Geometry_Management' xrefstyle='select: label' />
-     XtStringProc display_accelerator;  See <xref linkend='Translation_Management' xrefstyle='select: label' />
-     XtPointer extension;          See <xref linkend="Widget_Classing" xrefstyle='select: label' />
+     WidgetClass superclass;      <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     String class_name;           <lineannotation>See <xref linkend="Resource_Management" xrefstyle='select: title' /></lineannotation>
+     Cardinal widget_size;        <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     XtProc class_initialize;     <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     XtWidgetClassProc class_part_initialize; <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     XtEnum class_inited;         <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     XtInitProc initialize;       <lineannotation>See <xref linkend='Creating_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtArgsProc initialize_hook;  <lineannotation>See <xref linkend='Creating_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtRealizeProc realize;       <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtActionList actions;        <lineannotation>See <xref linkend='Translation_Management' xrefstyle='select: title' /></lineannotation>
+     Cardinal num_actions;        <lineannotation>See <xref linkend='Translation_Management' xrefstyle='select: title' /></lineannotation>
+     XtResourceList resources;    <lineannotation>See <xref linkend="Resource_Management" xrefstyle='select: title' /></lineannotation>
+     Cardinal num_resources;      <lineannotation>See <xref linkend="Resource_Management" xrefstyle='select: title' /></lineannotation>
+     XrmClass xrm_class;          <lineannotation>Private to resource manager</lineannotation>
+     Boolean compress_motion;     <lineannotation>See <xref linkend='X_Event_Filters' xrefstyle='select: title' /></lineannotation>
+     XtEnum compress_exposure;    <lineannotation>See <xref linkend='X_Event_Filters' xrefstyle='select: title' /></lineannotation>
+     Boolean compress_enterleave; <lineannotation>See <xref linkend='X_Event_Filters' xrefstyle='select: title' /></lineannotation>
+     Boolean visible_interest;    <lineannotation>See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc destroy;        <lineannotation>See <xref linkend='Destroying_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc resize;         <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     XtExposeProc expose;         <lineannotation>See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: title' /></lineannotation>
+     XtSetValuesFunc set_values;  <lineannotation>See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: title' /></lineannotation>
+     XtArgsFunc set_values_hook;  <lineannotation>See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: title' /></lineannotation>
+     XtAlmostProc set_values_almost; <lineannotation>See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: title' /></lineannotation>
+     XtArgsProc get_values_hook;  <lineannotation>See <xref linkend='Reading_and_Writing_Widget_State' xrefstyle='select: title' /></lineannotation>
+     XtAcceptFocusProc accept_focus; <lineannotation>See <xref linkend='Focusing_Events_on_a_Child' xrefstyle='select: title' /></lineannotation>
+     XtVersionType version;       <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
+     XtPointer callback_private;  <lineannotation>Private to callbacks</lineannotation>
+     String tm_table;             <lineannotation>See <xref linkend='Translation_Management' xrefstyle='select: title' /></lineannotation>
+     XtGeometryHandler query_geometry; <lineannotation>See <xref linkend ='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     XtStringProc display_accelerator; <lineannotation>See <xref linkend='Translation_Management' xrefstyle='select: title' /></lineannotation>
+     XtPointer extension;         <lineannotation>See <xref linkend="Widget_Classing" xrefstyle='select: title' /></lineannotation>
 } CoreClassPart;
-</literallayout>
+</programlisting>
 <para>
 All widget classes have the Core class fields as their first component.
 The prototypical
@@ -259,11 +262,11 @@ and
 <function>CoreWidgetClass</function>
 are defined with only this set of fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
      CoreClassPart core_class;
 } WidgetClassRec, *WidgetClass, CoreClassRec, *CoreWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 Various routines can cast widget class pointers, as needed,
 to specific widget class types.
@@ -276,19 +279,19 @@ creating instances of Core are
 
 <para>
 In
-<function>IntrinsicP.h</function>:
+<filename class="headerfile">IntrinsicP.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern WidgetClassRec widgetClassRec;
 #define coreClassRec widgetClassRec
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern WidgetClass widgetClass, coreWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 The opaque types
 <function>Widget</function>
@@ -300,11 +303,11 @@ are defined for generic actions on widgets.
 In order to make these types opaque and ensure that the compiler
 does not allow applications to access private data, the Intrinsics use
 incomplete structure definitions in
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 typedef struct _WidgetClassRec *WidgetClass, *CoreWidgetClass;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="CorePart_Structure">
 <title>CorePart Structure</title>
@@ -313,49 +316,49 @@ All widget instances contain the fields defined in the
 <function>CorePart</function>
 structure.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _CorePart {
-     Widget self;     Described below
-     WidgetClass widget_class;  See <xref linkend='Widget_Classing' xrefstyle='select: label' />
-     Widget parent;             See <xref linkend='Creating_Widgets' xrefstyle='select: label' />
-     Boolean being_destroyed;   See <xref linkend='Destroying_Widgets' xrefstyle='select: label' />
-     XtCallbackList destroy_callbacks;  <xref linkend='Destroying_Widgets' xrefstyle='select: label' />
-     XtPointer constraints;     See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: label' />
-     Position x;                See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     Position y;                See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     Dimension width;           See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     Dimension height;          See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     Dimension border_width;    See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     Boolean managed;           See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     Boolean sensitive;         See <xref linkend='Setting_and_Checking_the_Sensitivity_State_of_a_Widget' xrefstyle='select: label' />
-     Boolean ancestor_sensitive;  See <xref linkend='Setting_and_Checking_the_Sensitivity_State_of_a_Widget' xrefstyle='select: label' />
-     XtTranslations accelerators; See <xref linkend='Translation_Management' xrefstyle='select: label' />
-     Pixel border_pixel;        See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Pixmap border_pixmap;      See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     WidgetList popup_list;     See <xref linkend='Pop_Up_Widgets' xrefstyle='select: label' />
-     Cardinal num_popups;       See <xref linkend='Pop_Up_Widgets' xrefstyle='select: label' />
-     String name;               See <xref linkend='Resource_Management' xrefstyle='select: label' />
-     Screen *screen;            See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Colormap colormap;         See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Window window;             See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Cardinal depth;            See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Pixel background_pixel;    See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Pixmap background_pixmap;  See <xref linkend='Realizing_Widgets' xrefstyle='select: label' />
-     Boolean visible;           See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: label' />
-     Boolean mapped_when_managed;  See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
+     Widget self;                 <lineannotation>Described below</lineannotation>
+     WidgetClass widget_class;    <lineannotation>See <xref linkend='Widget_Classing' xrefstyle='select: title' /></lineannotation>
+     Widget parent;               <lineannotation>See <xref linkend='Creating_Widgets' xrefstyle='select: title' /></lineannotation>
+     Boolean being_destroyed;     <lineannotation>See <xref linkend='Destroying_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtCallbackList destroy_callbacks; <lineannotation>See <xref linkend='Destroying_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtPointer constraints;       <lineannotation>See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: title' /></lineannotation>
+     Position x;                  <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     Position y;                  <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     Dimension width;             <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     Dimension height;            <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     Dimension border_width;      <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     Boolean managed;             <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     Boolean sensitive;           <lineannotation>See <xref linkend='Setting_and_Checking_the_Sensitivity_State_of_a_Widget' xrefstyle='select: title' /></lineannotation>
+     Boolean ancestor_sensitive;  <lineannotation>See <xref linkend='Setting_and_Checking_the_Sensitivity_State_of_a_Widget' xrefstyle='select: title' /></lineannotation>
+     XtTranslations accelerators; <lineannotation>See <xref linkend='Translation_Management' xrefstyle='select: title' /></lineannotation>
+     Pixel border_pixel;          <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Pixmap border_pixmap;        <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     WidgetList popup_list;       <lineannotation>See <xref linkend='Pop_Up_Widgets' xrefstyle='select: title' /></lineannotation>
+     Cardinal num_popups;         <lineannotation>See <xref linkend='Pop_Up_Widgets' xrefstyle='select: title' /></lineannotation>
+     String name;                 <lineannotation>See <xref linkend='Resource_Management' xrefstyle='select: title' /></lineannotation>
+     Screen *screen;              <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Colormap colormap;           <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Window window;               <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Cardinal depth;              <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Pixel background_pixel;      <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Pixmap background_pixmap;    <lineannotation>See <xref linkend='Realizing_Widgets' xrefstyle='select: title' /></lineannotation>
+     Boolean visible;             <lineannotation>See <xref linkend='Widget_Exposure_and_Visibility' xrefstyle='select: title' /></lineannotation>
+     Boolean mapped_when_managed; <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
 } CorePart;
-</literallayout>
+</programlisting>
 <para>
 All widget instances have the Core fields as their first component.
 The prototypical type
 <function>Widget</function>
 is defined with only this set of fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
      CorePart core;
 } WidgetRec, *Widget, CoreRec, *CoreWidget;
-</literallayout>
+</programlisting>
 <para>
 Various routines can cast widget pointers, as needed,
 to specific widget types.
@@ -365,11 +368,11 @@ to specific widget types.
 In order to make these types opaque and ensure that the compiler
 does not allow applications to access private data, the Intrinsics use
 incomplete structure definitions in
-<function>Intrinsic.h</function>.
+<filename class="headerfile">Intrinsic.h</filename>.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _WidgetRec *Widget, *CoreWidget;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="Core_Resources">
 <title>Core Resources</title>
@@ -628,15 +631,15 @@ Core
 class fields,
 widgets of the Composite class have the following class fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     XtGeometryHandler geometry_manager;  See <xref linkend='Geometry_Management' xrefstyle='select: label' />
-     XtWidgetProc change_managed;   See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     XtWidgetProc insert_child;     See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     XtWidgetProc delete_child;     See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     XtPointer extension;           See <xref linkend='Widget_Classing' xrefstyle='select: label' />
+     XtGeometryHandler geometry_manager; <lineannotation>See <xref linkend='Geometry_Management' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc change_managed; <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc insert_child;   <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc delete_child;   <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     XtPointer extension;         <lineannotation>See <xref linkend='Widget_Classing' xrefstyle='select: title' /></lineannotation>
 } CompositeClassPart;
-</literallayout>
+</programlisting>
 <para>
 The extension record defined for
 <function>CompositeClassPart</function>
@@ -646,27 +649,27 @@ equal to
 is
 <function>CompositeClassExtensionRec</function>.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     XtPointer next_extension;  See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     XrmQuark record_type;      See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     long version;              See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     Cardinal record_size;      See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     Boolean accepts_objects;   See <xref linkend='Creating_a_Widget_Instance' xrefstyle='select: label' />
-     Boolean allows_change_managed_set;  See <xref linkend='Bundling_Changes_to_the_Managed_Set' xrefstyle='select: label' />
+     XtPointer next_extension;    <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     XrmQuark record_type;        <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     long version;                <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     Cardinal record_size;        <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     Boolean accepts_objects;     <lineannotation>See <xref linkend='Creating_a_Widget_Instance' xrefstyle='select: title' /></lineannotation>
+     Boolean allows_change_managed_set; <lineannotation>See <xref linkend='Bundling_Changes_to_the_Managed_Set' xrefstyle='select: title' /></lineannotation>
 } CompositeClassExtensionRec, *CompositeClassExtension;
-</literallayout>
+</programlisting>
 <para>
 Composite
 classes have the Composite class fields immediately following the
 Core class fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
      CoreClassPart core_class;
      CompositeClassPart composite_class;
 } CompositeClassRec, *CompositeWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 The single occurrences of the class record and pointer for creating
 instances of Composite are
@@ -674,18 +677,18 @@ instances of Composite are
 
 <para>
 In
-<function>IntrinsicP.h</function>:
+<filename class="headerfile">IntrinsicP.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern CompositeClassRec compositeClassRec;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern WidgetClass compositeWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 The opaque types
 <function>CompositeWidget</function>
@@ -700,14 +703,14 @@ The symbolic constant for the
 version identifier is
 <function>XtCompositeExtensionVersion</function>
 (see <xref linkend='Class_Extension_Records' />).
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure
 definition to ensure that the compiler catches attempts to access
 private data.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _CompositeClassRec *CompositeWidgetClass;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="CompositePart_Structure">
 <title>CompositePart Structure</title>
@@ -720,33 +723,33 @@ instance fields defined in the
 <function>CompositePart</function>
 structure.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     WidgetList children;   See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     Cardinal num_children; See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     Cardinal num_slots;    See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: label' />
-     XtOrderProc insert_position;  See <xref linkend='Insertion_Order_of_Children_The_insert_position_Procedure' xrefstyle='select: label' />
+     WidgetList children;         <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     Cardinal num_children;       <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     Cardinal num_slots;          <lineannotation>See <xref linkend='Composite_Widgets_and_Their_Children' xrefstyle='select: title' /></lineannotation>
+     XtOrderProc insert_position; <lineannotation>See <xref linkend='Insertion_Order_of_Children_The_insert_position_Procedure' xrefstyle='select: title' /></lineannotation>
 } CompositePart;
-</literallayout>
+</programlisting>
 <para>
 Composite
 widgets have the Composite instance fields immediately following the Core
 instance fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
      CorePart core;
      CompositePart composite;
 } CompositeRec, *CompositeWidget;
-</literallayout>
+</programlisting>
 <para>
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure definition to ensure that the
 compiler catches attempts to access private data.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _CompositeRec *CompositeWidget;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="Composite_Resources">
 <title>Composite Resources</title>
@@ -874,17 +877,17 @@ class fields,
 widgets of the Constraint class
 have the following class fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     XtResourceList resources;   See <xref linkend='Resource_Management' xrefstyle='select: label' />
-     Cardinal num_resources;     See <xref linkend='Resource_Management' xrefstyle='select: label' />
-     Cardinal constraint_size;   See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: label' />
-     XtInitProc initialize;      See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: label' />
-     XtWidgetProc destroy;       See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: label' />
-     XtSetValuesFunc set_values; See <xref linkend='Setting_Widget_State' xrefstyle='select: label' />
-     XtPointer extension;        See <xref linkend='Widget_Classing' xrefstyle='select: label' />
+     XtResourceList resources;    <lineannotation>See <xref linkend='Resource_Management' xrefstyle='select: title' /></lineannotation>
+     Cardinal num_resources;      <lineannotation>See <xref linkend='Resource_Management' xrefstyle='select: title' /></lineannotation>
+     Cardinal constraint_size;    <lineannotation>See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtInitProc initialize;       <lineannotation>See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtWidgetProc destroy;        <lineannotation>See <xref linkend='Constrained_Composite_Widgets' xrefstyle='select: title' /></lineannotation>
+     XtSetValuesFunc set_values;  <lineannotation>See <xref linkend='Setting_Widget_State' xrefstyle='select: title' /></lineannotation>
+     XtPointer extension;         <lineannotation>See <xref linkend='Widget_Classing' xrefstyle='select: title' /></lineannotation>
 } ConstraintClassPart;
-</literallayout>
+</programlisting>
 <para>
 The extension record defined for
 <function>ConstraintClassPart</function>
@@ -893,27 +896,27 @@ with <emphasis remap='I'>record_type</emphasis> equal to
 is
 <function>ConstraintClassExtensionRec</function>.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
-     XtPointer next_extension;  See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     XrmQuark record_type;      See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     long version;              See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     Cardinal record_size;      See <xref linkend='Class_Extension_Records' xrefstyle='select: label' />
-     XtArgsProc get_values_hook;  See <xref linkend='Obtaining_Widget_State' xrefstyle='select: label' />
+     XtPointer next_extension;    <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     XrmQuark record_type;        <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     long version;                <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     Cardinal record_size;        <lineannotation>See <xref linkend='Class_Extension_Records' xrefstyle='select: title' /></lineannotation>
+     XtArgsProc get_values_hook;  <lineannotation>See <xref linkend='Obtaining_Widget_State' xrefstyle='select: title' /></lineannotation>
 } ConstraintClassExtensionRec, *ConstraintClassExtension;
-</literallayout>
+</programlisting>
 <para>
 Constraint
 classes have the Constraint class fields immediately following the
 Composite class fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _ConstraintClassRec {
      CoreClassPart core_class;
      CompositeClassPart composite_class;
      ConstraintClassPart constraint_class;
 } ConstraintClassRec, *ConstraintWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 The single occurrences of the class record and pointer for creating
 instances of Constraint are
@@ -921,18 +924,18 @@ instances of Constraint are
 
 <para>
 In
-<function>IntrinsicP.h</function>:
+<filename class="headerfile">IntrinsicP.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern ConstraintClassRec constraintClassRec;
-</literallayout>
+</programlisting>
 <para>
 In
-<function>Intrinsic.h</function>:
+<filename class="headerfile">Intrinsic.h</filename>:
 </para>
-<literallayout>
+<programlisting>
 extern WidgetClass constraintWidgetClass;
-</literallayout>
+</programlisting>
 <para>
 The opaque types
 <function>ConstraintWidget</function>
@@ -948,13 +951,13 @@ The symbolic constant for the
 version identifier is
 <function>XtConstraintExtensionVersion</function>
 (see <xref linkend='Class_Extension_Records' />).
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure definition to ensure that the
 compiler catches attempts to access private data.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _ConstraintClassRec *ConstraintWidgetClass;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="ConstraintPart_Structure">
 <title>ConstraintPart Structure</title>
@@ -969,31 +972,31 @@ instance fields defined in the
 <function>ConstraintPart</function>
 structure
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
         int empty;
 } ConstraintPart;
-</literallayout>
+</programlisting>
 <para>
 Constraint
 widgets have the Constraint instance fields immediately following the
 Composite instance fields.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
      CorePart core;
      CompositePart composite;
      ConstraintPart constraint;
 } ConstraintRec, *ConstraintWidget;
-</literallayout>
+</programlisting>
 <para>
-<function>Intrinsic.h</function>
+<filename class="headerfile">Intrinsic.h</filename>
 uses an incomplete structure definition to ensure that the
 compiler catches attempts to access private data.
 </para>
-<literallayout>
+<programlisting>
 typedef struct _ConstraintRec *ConstraintWidget;
-</literallayout>
+</programlisting>
 </sect3>
 <sect3 id="Constraint_Resources">
 <title>Constraint Resources</title>
@@ -1045,7 +1048,7 @@ value
     </term>
     <listitem>
       <para>
-An unsigned integer datum with a minimum range of [0..2^16-1].
+An unsigned integer datum with a minimum range of [0..2<superscript>16</superscript>-1].
       </para>
     </listitem>
   </varlistentry>
@@ -1056,7 +1059,7 @@ An unsigned integer datum with a minimum range of [0..2^16-1].
     </term>
     <listitem>
       <para>
-An unsigned integer datum with a minimum range of [0..2^16-1].
+An unsigned integer datum with a minimum range of [0..2<superscript>16</superscript>-1].
       </para>
     </listitem>
   </varlistentry>
@@ -1067,7 +1070,7 @@ An unsigned integer datum with a minimum range of [0..2^16-1].
     </term>
     <listitem>
       <para>
-A signed integer datum with a minimum range of [-2^15..2^15-1].
+A signed integer datum with a minimum range of [-2<superscript>15</superscript>..2<superscript>15</superscript>-1].
       </para>
     </listitem>
   </varlistentry>
@@ -1258,13 +1261,13 @@ A resource name is spelled identically to the field name
 except that compound names use capitalization rather than underscore.
 To let the compiler catch spelling errors,
 each resource name should have a symbolic identifier prefixed with
-``XtN''.
+&ldquo;XtN&rdquo;.
 For example,
 the <emphasis remap='I'>background_pixmap</emphasis> field has the corresponding identifier
 XtNbackgroundPixmap,
-which is defined as the string ``backgroundPixmap''.
+which is defined as the string &ldquo;backgroundPixmap&rdquo;.
 Many predefined names are listed in
-<function>&lt;X11/StringDefs.h&gt;</function>.
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>.
 Before you invent a new name,
 you should make sure there is not already a name that you can use.
     </para>
@@ -1272,23 +1275,23 @@ you should make sure there is not already a name that you can use.
   <listitem>
     <para>
 A resource class string starts with a capital letter
-and uses capitalization for compound names (for example,``BorderWidth'').
+and uses capitalization for compound names (for example,&ldquo;BorderWidth&rdquo;).
 Each resource class string should have a symbolic identifier prefixed with
-``XtC''
+&ldquo;XtC&rdquo;
 (for example, XtCBorderWidth).
 Many predefined classes are listed in
-<function>&lt;X11/StringDefs.h&gt;</function>.
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>.
     </para>
   </listitem>
   <listitem>
     <para>
 A resource representation string is spelled identically to the type name
-(for example, ``TranslationTable'').
+(for example, &ldquo;TranslationTable&rdquo;).
 Each representation string should have a symbolic identifier prefixed with
-``XtR''
+&ldquo;XtR&rdquo;
 (for example, XtRTranslationTable).
 Many predefined representation types are listed in
-<function>&lt;X11/StringDefs.h&gt;</function>.
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>.
     </para>
   </listitem>
   <listitem>
@@ -1297,8 +1300,6 @@ New widget classes start with a capital and use uppercase for compound
 words.
 Given a new class name AbcXyz, you should derive several names:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -1348,7 +1349,7 @@ Action procedures available to translation specifications should follow the
 same naming conventions as procedures.
 That is,
 they start with a capital letter, and compound names use uppercase
-(for example, ``Highlight'' and ``NotifyClient'').
+(for example, &ldquo;Highlight&rdquo; and &ldquo;NotifyClient&rdquo;).
     </para>
   </listitem>
 </itemizedlist>
@@ -1417,28 +1418,30 @@ Entry points for new class methods.
 For example, the following is the public .h file for a possible
 implementation of a Label widget:
 </para>
-<literallayout>
+<programlisting>
 #ifndef LABEL_H
 #define LABEL_H
+
 /* New resources */
-#define XtNjustify "justify"
-#define XtNforeground "foreground"
-#define XtNlabel "label"
-#define XtNfont "font"
-#define XtNinternalWidth "internalWidth"
-#define XtNinternalHeight "internalHeight"
+#define XtNjustify              "justify"
+#define XtNforeground           "foreground"
+#define XtNlabel                "label"
+#define XtNfont                 "font"
+#define XtNinternalWidth        "internalWidth"
+#define XtNinternalHeight       "internalHeight"
+
 /* Class record pointer */
 extern WidgetClass labelWidgetClass;
+
 /* C Widget type definition */
-typedef struct _LabelRec      *LabelWidget;
+typedef struct _LabelRec        *LabelWidget;
+
 /* New class method entry points */
-extern void LabelSetText();
-     /* Widget w */
-     /* String text */
-extern String LabelGetText();
-     /* Widget w */
+extern void LabelSetText(Widget w, String text);
+extern String LabelGetText(Widget w);
+
 #endif LABEL_H
-</literallayout>
+</programlisting>
 <para>
 The conditional inclusion of the text allows the application
 to include header files for different widgets without being concerned
@@ -1453,7 +1456,7 @@ For example,
 the public .h file for the
 Constraint
 widget class is
-<function>Constraint.h</function>.
+<filename class="headerfile">Constraint.h</filename>.
 </para>
 </sect2>
 
@@ -1554,62 +1557,67 @@ An inherit constant for each new procedure in the widget class part structure.
 <para>
 For example, the following is the private .h file for a possible Label widget:
 </para>
-<literallayout>
+<programlisting>
 #ifndef LABELP_H
 #define LABELP_H
+
 #include &lt;X11/Label.h&gt;
+
 /* New representation types used by the Label widget */
 #define XtRJustify "Justify"
+
 /* New fields for the Label widget record */
 typedef struct {
 /* Settable resources */
-     Pixel foreground;
+     Pixel      foreground;
      XFontStruct *font;
-     String label;     /* text to display */
-     XtJustify justify;
-     Dimension internal_width;     /* # pixels horizontal border */
-     Dimension internal_height;     /* # pixels vertical border */
+     String     label; /* text to display */
+     XtJustify  justify;
+     Dimension  internal_width;         /* # pixels horizontal border */
+     Dimension  internal_height;        /* # pixels vertical border */
 /* Data derived from resources */
-     GC normal_GC;
-     GC gray_GC;
-     Pixmap gray_pixmap;
-     Position label_x;
-     Position label_y;
-     Dimension label_width;
-     Dimension label_height;
-     Cardinal label_len;
-     Boolean display_sensitive;
+     GC         normal_GC;
+     GC         gray_GC;
+     Pixmap     gray_pixmap;
+     Position   label_x;
+     Position   label_y;
+     Dimension  label_width;
+     Dimension  label_height;
+     Cardinal   label_len;
+     Boolean    display_sensitive;
 } LabelPart;
-</literallayout>
-<literallayout>
+
 /* Full instance record declaration */
 typedef struct _LabelRec {
-     CorePart core;
-     LabelPart label;
+     CorePart   core;
+     LabelPart  label;
 } LabelRec;
+
 /* Types for Label class methods */
-typedef void (*LabelSetTextProc)();
-     /* Widget w */
-     /* String text */
-typedef String (*LabelGetTextProc)();
-     /* Widget w */
+typedef void (*LabelSetTextProc)(Widget w, String text);
+typedef String (*LabelGetTextProc)(Widget w);
+
 /* New fields for the Label widget class record */
 typedef struct {
      LabelSetTextProc set_text;
      LabelGetTextProc get_text;
      XtPointer extension;
 } LabelClassPart;
+
 /* Full class record declaration */
 typedef struct _LabelClassRec {
      CoreClassPart core_class;
      LabelClassPart label_class;
 } LabelClassRec;
+
 /* Class record variable */
 extern LabelClassRec labelClassRec;
+
 #define LabelInheritSetText((LabelSetTextProc)_XtInherit)
 #define LabelInheritGetText((LabelGetTextProc)_XtInherit)
+
 #endif LABELP_H
-</literallayout>
+</programlisting>
 <para>
 To accommodate operating systems with file name length restrictions,
 the name of the private .h file is the first nine characters of the
@@ -1618,7 +1626,7 @@ For example,
 the private .h file for the
 Constraint
 widget class is
-<function>ConstrainP.h</function>.
+<filename class="headerfile">ConstrainP.h</filename>.
 </para>
 </sect2>
 
@@ -1665,7 +1673,7 @@ structure.
 The superclass is used for class chaining operations and for
 inheriting or enveloping a superclass's operations
 (see <xref linkend='Superclass_Chaining' />,
-<xref linkend='Initializing_a_Widget_Class' />, and 
+<xref linkend='Initializing_a_Widget_Class' />, and
 <xref linkend='Inheritance_of_Superclass_Operations' />.
 </para>
 
@@ -1673,7 +1681,7 @@ inheriting or enveloping a superclass's operations
 The <emphasis remap='I'>class_name</emphasis> field contains the text name for this class,
 which is used by
 the resource manager.
-For example, the Label widget has the string ``Label''.
+For example, the Label widget has the string &ldquo;Label&rdquo;.
 More than one widget class can share the same text class name.
 This string must be permanently allocated prior to or during the
 execution of the class initialization procedure and must not be
@@ -1729,7 +1737,7 @@ The following is an abbreviated version of the .c file
 for a Label widget.
 The resources table is described in <xref linkend='Resource_Management' />.
 </para>
-<literallayout>
+<programlisting>
 /* Resources specific to Label */
 static XtResource resources[] = {
      {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
@@ -1744,77 +1752,79 @@ static XtResource resources[] = {
           .
           .
 }
+
 /* Forward declarations of procedures */
-static void ClassInitialize();
-static void Initialize();
-static void Realize();
-static void SetText();
-static void GetText();
+static void ClassInitialize(void);
+static void Initialize(Widget, Widget, ArgList, Cardinal*);
+static void Realize(Widget, XtValueMask*, XSetWindowAttributes*);
+static void SetText(Widget, String);
+static void GetText(Widget);
      .
      .
      .
-</literallayout>
-<literallayout>
+</programlisting>
+<programlisting>
 /* Class record constant */
 LabelClassRec labelClassRec = {
   {
     /* core_class fields */
-     /* superclass     */     (WidgetClass)&amp;coreClassRec,
-     /* class_name     */     "Label",
-     /* widget_size     */     sizeof(LabelRec),
-     /* class_initialize     */     ClassInitialize,
-     /* class_part_initialize     */     NULL,
-     /* class_inited     */     False,
-     /* initialize     */     Initialize,
-     /* initialize_hook     */     NULL,
-     /* realize     */     Realize,
-     /* actions     */     NULL,
-     /* num_actions     */     0,
-     /* resources     */     resources,
-     /* num_resources     */     XtNumber(resources),
-     /* xrm_class     */     NULLQUARK,
-     /* compress_motion     */     True,
-     /* compress_exposure     */     True,
-     /* compress_enterleave     */     True,
-     /* visible_interest     */     False,
-     /* destroy     */     NULL,
-     /* resize     */     Resize,
-     /* expose     */     Redisplay,
-     /* set_values     */     SetValues,
-     /* set_values_hook     */     NULL,
-     /* set_values_almost     */     XtInheritSetValuesAlmost,
-     /* get_values_hook     */     NULL,
-     /* accept_focus     */     NULL,
-     /* version     */     XtVersion,
-     /* callback_offsets     */     NULL,
-     /* tm_table     */     NULL,
-     /* query_geometry     */     XtInheritQueryGeometry,
-     /* display_accelerator     */     NULL,
-     /* extension     */     NULL
+     /* superclass                */    (WidgetClass)&amp;coreClassRec,
+     /* class_name                */    "Label",
+     /* widget_size               */    sizeof(LabelRec),
+     /* class_initialize          */    ClassInitialize,
+     /* class_part_initialize     */    NULL,
+     /* class_inited              */    False,
+     /* initialize                */    Initialize,
+     /* initialize_hook           */    NULL,
+     /* realize                   */    Realize,
+     /* actions                   */    NULL,
+     /* num_actions               */    0,
+     /* resources                 */    resources,
+     /* num_resources             */    XtNumber(resources),
+     /* xrm_class                 */    NULLQUARK,
+     /* compress_motion           */    True,
+     /* compress_exposure         */    True,
+     /* compress_enterleave       */    True,
+     /* visible_interest          */    False,
+     /* destroy                   */    NULL,
+     /* resize                    */    Resize,
+     /* expose                    */    Redisplay,
+     /* set_values                */    SetValues,
+     /* set_values_hook           */    NULL,
+     /* set_values_almost         */    XtInheritSetValuesAlmost,
+     /* get_values_hook           */    NULL,
+     /* accept_focus              */    NULL,
+     /* version                   */    XtVersion,
+     /* callback_offsets          */    NULL,
+     /* tm_table                  */    NULL,
+     /* query_geometry            */    XtInheritQueryGeometry,
+     /* display_accelerator       */    NULL,
+     /* extension                 */    NULL
   },
   {
-    /* Label_class fields     */
-     /* get_text     */     GetText,
-     /* set_text     */     SetText,
-     /* extension     */     NULL
+    /* Label_class fields         */
+     /* get_text                  */    GetText,
+     /* set_text                  */    SetText,
+     /* extension                 */    NULL
   }
 };
+
 /* Class record pointer */
 WidgetClass labelWidgetClass = (WidgetClass) &amp;labelClassRec;
+
 /* New method access routines */
-void LabelSetText(w, text)
-     Widget w;
-     String text;
+void LabelSetText(Widget w, String text)
 {
      LabelWidgetClass lwc = (Label WidgetClass)XtClass(w);
      XtCheckSubclass(w, labelWidgetClass, NULL);
      *(lwc-&gt;label_class.set_text)(w, text)
 }
+
 /* Private procedures */
      .
      .
      .
-</literallayout>
+</programlisting>
 </sect2>
 
 <sect2 id="Widget_Class_and_Superclass_Look_Up">
@@ -1970,7 +1980,7 @@ All these macros and functions have the same argument description.
 
 <funcsynopsis id='XtIs'>
 <funcprototype>
-  <funcdef>Boolean <function>XtIs</function></funcdef>
+  <funcdef>Boolean <function>XtIs<subscript>&lt;class&gt;</subscript></function></funcdef>
   <paramdef>Widget<parameter> w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1999,7 +2009,7 @@ To check a widget's class
 and to generate a debugging error message, use
 <xref linkend='XtCheckSubclass' xrefstyle='select: title'/>,
 defined in
-<function>&lt;X11/IntrinsicP.h&gt;</function>:
+<filename class="headerfile">&lt;X11/IntrinsicP.h&gt;</filename>:
 </para>
 
 <funcsynopsis id='XtCheckSubclass'>
@@ -2080,35 +2090,35 @@ the Intrinsics access the field's value only after accessing its corresponding
 superclass value (called downward superclass chaining) or
 before accessing its corresponding superclass value (called upward superclass
 chaining).  The self-contained fields are</para>
-<literallayout>
-In all widget classes:           <emphasis remap='I'>class_name</emphasis>
-                                 <emphasis remap='I'>class_initialize</emphasis>
-                                 <emphasis remap='I'>widget_size</emphasis>
-                                 <emphasis remap='I'>realize</emphasis>
-                                 <emphasis remap='I'>visible_interest</emphasis>
-                                 <emphasis remap='I'>resize</emphasis>
-                                 <emphasis remap='I'>expose</emphasis>
-                                 <emphasis remap='I'>accept_focus</emphasis>
-                                 <emphasis remap='I'>compress_motion</emphasis>
-                                 <emphasis remap='I'>compress_exposure</emphasis>
-                                 <emphasis remap='I'>compress_enterleave</emphasis>
-                                 <emphasis remap='I'>set_values_almost</emphasis>
-                                 <emphasis remap='I'>tm_table</emphasis>
-                                 <emphasis remap='I'>version</emphasis>
-                                 <emphasis remap='I'>allocate</emphasis>
-                                 <emphasis remap='I'>deallocate</emphasis>
+<programlisting>
+In all widget classes:                   <emphasis remap='I'>class_name</emphasis>
+                                         <emphasis remap='I'>class_initialize</emphasis>
+                                         <emphasis remap='I'>widget_size</emphasis>
+                                         <emphasis remap='I'>realize</emphasis>
+                                         <emphasis remap='I'>visible_interest</emphasis>
+                                         <emphasis remap='I'>resize</emphasis>
+                                         <emphasis remap='I'>expose</emphasis>
+                                         <emphasis remap='I'>accept_focus</emphasis>
+                                         <emphasis remap='I'>compress_motion</emphasis>
+                                         <emphasis remap='I'>compress_exposure</emphasis>
+                                         <emphasis remap='I'>compress_enterleave</emphasis>
+                                         <emphasis remap='I'>set_values_almost</emphasis>
+                                         <emphasis remap='I'>tm_table</emphasis>
+                                         <emphasis remap='I'>version</emphasis>
+                                         <emphasis remap='I'>allocate</emphasis>
+                                         <emphasis remap='I'>deallocate</emphasis>
 
-In Composite widget classes:     <emphasis remap='I'>geometry_manager</emphasis>
-                                 <emphasis remap='I'>change_managed</emphasis>
-                                 <emphasis remap='I'>insert_child</emphasis>
-                                 <emphasis remap='I'>delete_child</emphasis>
-                                 <emphasis remap='I'>accepts_objects</emphasis>
-                                 <emphasis remap='I'>allows_change_managed_set</emphasis>
+In Composite widget classes:             <emphasis remap='I'>geometry_manager</emphasis>
+                                         <emphasis remap='I'>change_managed</emphasis>
+                                         <emphasis remap='I'>insert_child</emphasis>
+                                         <emphasis remap='I'>delete_child</emphasis>
+                                         <emphasis remap='I'>accepts_objects</emphasis>
+                                         <emphasis remap='I'>allows_change_managed_set</emphasis>
 
-In Constraint widget classes:    <emphasis remap='I'>constraint_size</emphasis>
+In Constraint widget classes:            <emphasis remap='I'>constraint_size</emphasis>
 
-In Shell widget classes:         <emphasis remap='I'>root_geometry_manager</emphasis>
-</literallayout>
+In Shell widget classes:                 <emphasis remap='I'>root_geometry_manager</emphasis>
+</programlisting>
 
 <para>
 With downward superclass chaining,
@@ -2120,15 +2130,15 @@ Core
 class structures, then from the subclass structure, and so on down the class chain to
 that widget's class structure.  These superclass-to-subclass fields are
 </para>
-<literallayout>
-         <emphasis remap='I'>class_part_initialize</emphasis>
-         <emphasis remap='I'>get_values_hook</emphasis>
-         <emphasis remap='I'>initialize</emphasis>
-         <emphasis remap='I'>initialize_hook</emphasis>
-         <emphasis remap='I'>set_values</emphasis>
-         <emphasis remap='I'>set_values_hook</emphasis>
-         <emphasis remap='I'>resources</emphasis>
-</literallayout>
+<programlisting>
+                                         <emphasis remap='I'>class_part_initialize</emphasis>
+                                         <emphasis remap='I'>get_values_hook</emphasis>
+                                         <emphasis remap='I'>initialize</emphasis>
+                                         <emphasis remap='I'>initialize_hook</emphasis>
+                                         <emphasis remap='I'>set_values</emphasis>
+                                         <emphasis remap='I'>set_values_hook</emphasis>
+                                         <emphasis remap='I'>resources</emphasis>
+</programlisting>
 
 <para>
 In addition, for subclasses of
@@ -2141,12 +2151,12 @@ structures are chained from the
 Constraint
 class down to the subclass:
 </para>
-<literallayout>
-     <emphasis remap='I'>resources</emphasis>
-     <emphasis remap='I'>initialize</emphasis>
-     <emphasis remap='I'>set_values</emphasis>
-     <emphasis remap='I'>get_values_hook</emphasis>
-</literallayout>
+<programlisting>
+                                         <emphasis remap='I'>resources</emphasis>
+                                         <emphasis remap='I'>initialize</emphasis>
+                                         <emphasis remap='I'>set_values</emphasis>
+                                         <emphasis remap='I'>get_values_hook</emphasis>
+</programlisting>
 
 <para>
 With upward superclass chaining,
@@ -2160,10 +2170,10 @@ Object
 class structures.
 The subclass-to-superclass fields are
 </para>
-<literallayout>
-     <emphasis remap='I'>destroy</emphasis>
-     <emphasis remap='I'>actions</emphasis>
-</literallayout>
+<programlisting>
+                                         <emphasis remap='I'>destroy</emphasis>
+                                         <emphasis remap='I'>actions</emphasis>
+</programlisting>
 
 <para>
 For subclasses of
@@ -2172,8 +2182,10 @@ the following field of
 <function>ConstraintClassPart</function>
 is chained from the subclass up to the
 Constraint class:
-     <emphasis remap='I'>destroy</emphasis>
 </para>
+<programlisting>
+                                         <emphasis remap='I'>destroy</emphasis>
+</programlisting>
 </sect2>
 
 <sect2 id="Class_Initialization_class_initialize_and_class_part_initialize_Procedures">
@@ -2216,7 +2228,7 @@ The class_part_initialize procedure pointer is of type
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>void <function>(*XtWidgetClassProc)(WidgetClass)</function></funcdef>
+  <funcdef>typedef void <function>(*XtWidgetClassProc)(WidgetClass)</function></funcdef>
   <paramdef>WidgetClass<parameter> widget_class</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -2286,13 +2298,13 @@ a class structure is constant.
 <para>
 The following example provides the class initialization procedure for a Label class.
 </para>
-<literallayout>
-static void ClassInitialize()
+<programlisting>
+static void ClassInitialize(void)
 {
      XtSetTypeConverter(XtRString, XtRJustify, CvtStringToJustify,
           NULL, 0, XtCacheNone, NULL);
 }
-</literallayout>
+</programlisting>
 </sect2>
 
 <sect2 id="Initializing_a_Widget_Class">
@@ -2415,21 +2427,20 @@ is a procedure that issues an error message if it is actually called.
 
 <para>
 For example,
-<function>CompositeP.h</function>
+<filename class="headerfile">CompositeP.h</filename>
 contains these definitions:
 </para>
-<literallayout>
+<programlisting>
 #define XtInheritGeometryManager ((XtGeometryHandler) _XtInherit)
-#define XtInheritChangeManaged ((XtWidgetProc) _XtInherit)
-#define XtInheritInsertChild ((XtArgsProc) _XtInherit)
-#define XtInheritDeleteChild ((XtWidgetProc) _XtInherit)
-</literallayout>
+#define XtInheritChangeManaged   ((XtWidgetProc)      _XtInherit)
+#define XtInheritInsertChild     ((XtArgsProc)        _XtInherit)
+#define XtInheritDeleteChild     ((XtWidgetProc)      _XtInherit)
+</programlisting>
 <para>
 Composite's class_part_initialize procedure begins as follows:
 </para>
-<literallayout>
-static void CompositeClassPartInitialize(widgetClass)
-     WidgetClass widgetClass;
+<programlisting>
+static void CompositeClassPartInitialize(WidgetClass widgetClass)
 {
      CompositeWidgetClass wc = (CompositeWidgetClass)widgetClass;
      CompositeWidgetClass super = (CompositeWidgetClass)wc-&gt;core_class.superclass;
@@ -2442,7 +2453,8 @@ static void CompositeClassPartInitialize(widgetClass)
      .
      .
      .
-</literallayout>
+}
+</programlisting>
 <para>
 Nonprocedure fields may be inherited in the same manner as procedure
 fields.  The class may declare any reserved value it wishes for
@@ -2613,14 +2625,14 @@ declared as a linked list, and each extension record definition should
 contain the following four fields at the beginning of the structure
 declaration:
 </para>
-<literallayout>
+<programlisting>
 struct {
      XtPointer next_extension;
-     XrmQuark record_type;
-     long version;
-     Cardinal record_size;
+     XrmQuark  record_type;
+     long      version;
+     Cardinal  record_size;
 };
-</literallayout>
+</programlisting>
 
 <variablelist>
   <varlistentry>
@@ -2677,7 +2689,7 @@ result of
 <function>XrmStringToQuark</function>
 for a registered string constant.  The
 Intrinsics reserve all record type strings beginning with the two
-characters ``XT'' for future standard uses.  The value
+characters &ldquo;XT&rdquo; for future standard uses.  The value
 <emphasis role='strong'>NULLQUARK</emphasis>
 may also be used
 by the class part owner in extension records attached to its own class
@@ -2693,7 +2705,7 @@ header file for a widget class should provide a symbolic constant for
 subclasses to use to initialize this field.
 The <emphasis remap='I'>record_size</emphasis> field value includes the four common header fields and
 should normally be initialized with
-<function>sizeof ().</function>
+<function>sizeof().</function>
 </para>
 
 <para>

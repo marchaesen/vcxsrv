@@ -1,5 +1,5 @@
 /***********************************************************
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -74,155 +74,157 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
-#include "VarargsI.h"        /* for geoTattler */
+#include "VarargsI.h"           /* for geoTattler */
 #ifndef NO_IDENTIFY_WINDOWS
 #include <X11/Xatom.h>
 #endif
 #ifndef VMS
 #include <sys/stat.h>
-#endif /* VMS */
+#endif                          /* VMS */
 #ifdef WIN32
-#include <direct.h>            /* for _getdrives() */
+#include <direct.h>             /* for _getdrives() */
 #endif
 
+#include <stdio.h>
 #include <stdlib.h>
 
 String XtCXtToolkitError = "XtToolkitError";
 
-Boolean XtIsSubclass(
-    Widget    widget,
-    WidgetClass widgetClass)
+Boolean
+XtIsSubclass(Widget widget, WidgetClass myWidgetClass)
 {
     register WidgetClass w;
     Boolean retval = FALSE;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     LOCK_PROCESS;
     for (w = widget->core.widget_class; w != NULL; w = w->core_class.superclass)
-	if (w == widgetClass) {
-	    retval = TRUE;
-	    break;
-	}
+        if (w == myWidgetClass) {
+            retval = TRUE;
+            break;
+        }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return retval;
-} /* XtIsSubclass */
+}                               /* XtIsSubclass */
 
-
-Boolean _XtCheckSubclassFlag(
-    Widget object,
-    _XtXtEnum flag)
+Boolean
+_XtCheckSubclassFlag(Widget object, _XtXtEnum flag)
 {
     Boolean retval;
 
     LOCK_PROCESS;
     if (object->core.widget_class->core_class.class_inited & flag)
-	retval = TRUE;
+        retval = TRUE;
     else
-	retval = FALSE;
+        retval = FALSE;
     UNLOCK_PROCESS;
     return retval;
 } /*_XtVerifySubclass */
 
-
-Boolean _XtIsSubclassOf(
-    Widget object,
-    WidgetClass widgetClass,
-    WidgetClass superClass,
-    _XtXtEnum flag)
+Boolean
+_XtIsSubclassOf(Widget object,
+                WidgetClass myWidgetClass,
+                WidgetClass superClass,
+                _XtXtEnum flag)
 {
     LOCK_PROCESS;
     if (!(object->core.widget_class->core_class.class_inited & flag)) {
-	UNLOCK_PROCESS;
-	return False;
-    } else {
-	register WidgetClass c = object->core.widget_class;
-	while (c != superClass) {
-	    if (c == widgetClass) {
-		UNLOCK_PROCESS;
-		return True;
-	    }
-	    c = c->core_class.superclass;
-	}
-	UNLOCK_PROCESS;
-	return False;
+        UNLOCK_PROCESS;
+        return False;
+    }
+    else {
+        register WidgetClass c = object->core.widget_class;
+
+        while (c != superClass) {
+            if (c == myWidgetClass) {
+                UNLOCK_PROCESS;
+                return True;
+            }
+            c = c->core_class.superclass;
+        }
+        UNLOCK_PROCESS;
+        return False;
     }
 } /*_XtIsSubclassOf */
 
-
-XtPointer XtGetClassExtension(
-    WidgetClass	object_class,
-    Cardinal	byte_offset,
-    XrmQuark	type,
-    long	version,
-    Cardinal	record_size)
+XtPointer
+XtGetClassExtension(WidgetClass object_class,
+                    Cardinal byte_offset,
+                    XrmQuark type, long version, Cardinal record_size)
 {
     ObjectClassExtension ext;
+
     LOCK_PROCESS;
 
-    ext = *(ObjectClassExtension *)((char *)object_class + byte_offset);
+    ext = *(ObjectClassExtension *) ((char *) object_class + byte_offset);
     while (ext && (ext->record_type != type || ext->version < version
-		   || ext->record_size < record_size)) {
-	ext = (ObjectClassExtension) ext->next_extension;
+                   || ext->record_size < record_size)) {
+        ext = (ObjectClassExtension) ext->next_extension;
     }
 
     UNLOCK_PROCESS;
     return (XtPointer) ext;
 }
 
-
-static void ComputeWindowAttributes(
-    Widget		 widget,
-    XtValueMask		 *value_mask,
-    XSetWindowAttributes *values)
+static void
+ComputeWindowAttributes(Widget widget,
+                        XtValueMask *value_mask,
+                        XSetWindowAttributes *values)
 {
     XtExposeProc expose;
 
     *value_mask = CWEventMask | CWColormap;
-    (*values).event_mask = XtBuildEventMask(widget);
+    (*values).event_mask = (long) XtBuildEventMask(widget);
     (*values).colormap = widget->core.colormap;
     if (widget->core.background_pixmap != XtUnspecifiedPixmap) {
-	*value_mask |= CWBackPixmap;
-	(*values).background_pixmap = widget->core.background_pixmap;
-    } else {
-	*value_mask |= CWBackPixel;
-	(*values).background_pixel = widget->core.background_pixel;
+        *value_mask |= CWBackPixmap;
+        (*values).background_pixmap = widget->core.background_pixmap;
+    }
+    else {
+        *value_mask |= CWBackPixel;
+        (*values).background_pixel = widget->core.background_pixel;
     }
     if (widget->core.border_pixmap != XtUnspecifiedPixmap) {
-	*value_mask |= CWBorderPixmap;
-	(*values).border_pixmap = widget->core.border_pixmap;
-    } else {
-	*value_mask |= CWBorderPixel;
-	(*values).border_pixel = widget->core.border_pixel;
+        *value_mask |= CWBorderPixmap;
+        (*values).border_pixmap = widget->core.border_pixmap;
+    }
+    else {
+        *value_mask |= CWBorderPixel;
+        (*values).border_pixel = widget->core.border_pixel;
     }
     LOCK_PROCESS;
     expose = widget->core.widget_class->core_class.expose;
     UNLOCK_PROCESS;
     if (expose == (XtExposeProc) NULL) {
-	/* Try to avoid redisplay upon resize by making bit_gravity the same
-	   as the default win_gravity */
-	*value_mask |= CWBitGravity;
-	(*values).bit_gravity = NorthWestGravity;
+        /* Try to avoid redisplay upon resize by making bit_gravity the same
+           as the default win_gravity */
+        *value_mask |= CWBitGravity;
+        (*values).bit_gravity = NorthWestGravity;
     }
-} /* ComputeWindowAttributes */
+}                               /* ComputeWindowAttributes */
 
-static void CallChangeManaged(
-    register Widget		widget)
+static void
+CallChangeManaged(register Widget widget)
 {
-    register Cardinal		i;
-    XtWidgetProc		change_managed;
-    register WidgetList		children;
-    int    			managed_children = 0;
+    register Cardinal i;
+    XtWidgetProc change_managed;
+    register WidgetList children;
+    int managed_children = 0;
 
     register CompositePtr cpPtr;
     register CompositePartPtr clPtr;
 
-    if (XtIsComposite (widget)) {
-	cpPtr = (CompositePtr)&((CompositeWidget) widget)->composite;
-        clPtr = (CompositePartPtr)&((CompositeWidgetClass)
-                   widget->core.widget_class)->composite_class;
-    } else return;
+    if (XtIsComposite(widget)) {
+        cpPtr = (CompositePtr) &((CompositeWidget) widget)->composite;
+        clPtr = (CompositePartPtr) &((CompositeWidgetClass)
+                                      widget->core.
+                                      widget_class)->composite_class;
+    }
+    else
+        return;
 
     children = cpPtr->children;
     LOCK_PROCESS;
@@ -231,120 +233,120 @@ static void CallChangeManaged(
 
     /* CallChangeManaged for all children */
     for (i = cpPtr->num_children; i != 0; --i) {
-	CallChangeManaged (children[i-1]);
-	if (XtIsManaged(children[i-1])) managed_children++;
+        CallChangeManaged(children[i - 1]);
+        if (XtIsManaged(children[i - 1]))
+            managed_children++;
     }
 
     if (change_managed != NULL && managed_children != 0) {
-	CALLGEOTAT(_XtGeoTrace(widget,"Call \"%s\"[%d,%d]'s changemanaged\n",
-		       XtName(widget),
-		       widget->core.width, widget->core.height));
-	(*change_managed) (widget);
+        CALLGEOTAT(_XtGeoTrace(widget, "Call \"%s\"[%d,%d]'s changemanaged\n",
+                               XtName(widget),
+                               widget->core.width, widget->core.height));
+        (*change_managed) (widget);
     }
-} /* CallChangeManaged */
+}                               /* CallChangeManaged */
 
-
-static void MapChildren(
-    CompositePart *cwp)
+static void
+MapChildren(CompositePart *cwp)
 {
     Cardinal i;
     WidgetList children;
-    register Widget child;
-
-    children = cwp->children;
-    for (i = 0; i <  cwp->num_children; i++) {
-	child = children[i];
-	if (XtIsWidget (child)){
-	    if (child->core.managed && child->core.mapped_when_managed) {
-		XtMapWidget (children[i]);
-	    }
-	}
-    }
-} /* MapChildren */
-
-
-static Boolean ShouldMapAllChildren(
-    CompositePart *cwp)
-{
-    Cardinal i;
-    WidgetList children;
-    register Widget child;
 
     children = cwp->children;
     for (i = 0; i < cwp->num_children; i++) {
-	child = children[i];
-	if (XtIsWidget(child)) {
-	    if (XtIsRealized(child) && (! (child->core.managed
-					  && child->core.mapped_when_managed))){
-		    return False;
-	    }
-	}
+        Widget child = children[i];
+
+        if (XtIsWidget(child)) {
+            if (child->core.managed && child->core.mapped_when_managed) {
+                XtMapWidget(children[i]);
+            }
+        }
+    }
+}                               /* MapChildren */
+
+static Boolean
+ShouldMapAllChildren(CompositePart *cwp)
+{
+    Cardinal i;
+    WidgetList children;
+
+    children = cwp->children;
+    for (i = 0; i < cwp->num_children; i++) {
+        Widget child = children[i];
+
+        if (XtIsWidget(child)) {
+            if (XtIsRealized(child) && (!(child->core.managed
+                                          && child->core.
+                                          mapped_when_managed))) {
+                return False;
+            }
+        }
     }
 
     return True;
-} /* ShouldMapAllChildren */
+}                               /* ShouldMapAllChildren */
 
-
-static void RealizeWidget(
-    Widget			widget)
+static void
+RealizeWidget(Widget widget)
 {
-    XtValueMask			value_mask;
-    XSetWindowAttributes	values;
-    XtRealizeProc		realize;
-    Window			window;
-    Display*			display;
-    String			class_name;
-    Widget			hookobj;
+    XtValueMask value_mask;
+    XSetWindowAttributes values;
+    XtRealizeProc realize;
+    Window window;
+    Display *display;
+    String class_name;
+    Widget hookobj;
 
-    if (!XtIsWidget(widget) || XtIsRealized(widget)) return;
+    if (!XtIsWidget(widget) || XtIsRealized(widget))
+        return;
     display = XtDisplay(widget);
+
     _XtInstallTranslations(widget);
 
-    ComputeWindowAttributes (widget, &value_mask, &values);
+    ComputeWindowAttributes(widget, &value_mask, &values);
     LOCK_PROCESS;
     realize = widget->core.widget_class->core_class.realize;
     class_name = widget->core.widget_class->core_class.class_name;
     UNLOCK_PROCESS;
     if (realize == NULL)
-	XtAppErrorMsg(XtWidgetToApplicationContext(widget),
-		      "invalidProcedure","realizeProc",XtCXtToolkitError,
-		      "No realize class procedure defined",
-		      (String *)NULL, (Cardinal *)NULL);
+        XtAppErrorMsg(XtWidgetToApplicationContext(widget),
+                      "invalidProcedure", "realizeProc", XtCXtToolkitError,
+                      "No realize class procedure defined", NULL, NULL);
     else {
-	CALLGEOTAT(_XtGeoTrace(widget,"Call \"%s\"[%d,%d]'s realize proc\n",
-		       XtName(widget),
-		       widget->core.width, widget->core.height));
-	(*realize) (widget, &value_mask, &values);
+        CALLGEOTAT(_XtGeoTrace(widget, "Call \"%s\"[%d,%d]'s realize proc\n",
+                               XtName(widget),
+                               widget->core.width, widget->core.height));
+        (*realize) (widget, &value_mask, &values);
     }
     window = XtWindow(widget);
     hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
-    if (XtHasCallbacks(hookobj,XtNchangeHook) == XtCallbackHasSome) {
-	XtChangeHookDataRec call_data;
+    if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
+        XtChangeHookDataRec call_data;
 
-	call_data.type = XtHrealizeWidget;
-	call_data.widget = widget;
-	XtCallCallbackList(hookobj,
-		((HookObject)hookobj)->hooks.changehook_callbacks,
-		(XtPointer)&call_data);
+        call_data.type = XtHrealizeWidget;
+        call_data.widget = widget;
+        XtCallCallbackList(hookobj,
+                           ((HookObject) hookobj)->hooks.changehook_callbacks,
+                           (XtPointer) &call_data);
     }
 #ifndef NO_IDENTIFY_WINDOWS
     if (_XtGetPerDisplay(display)->appContext->identify_windows) {
-	int len_nm, len_cl;
-	char *s;
+        int len_nm, len_cl;
+        char *s;
 
-	len_nm = widget->core.name ? strlen(widget->core.name) : 0;
-	len_cl = strlen(class_name);
-	s = __XtMalloc((unsigned) (len_nm + len_cl + 2));
-	s[0] = '\0';
-	if (len_nm)
-	    strcpy(s, widget->core.name);
-	strcpy(s + len_nm + 1, class_name);
-	XChangeProperty(display, window,
-			XInternAtom(display, "_MIT_OBJ_CLASS",
-				    False),
-			XA_STRING, 8, PropModeReplace, (unsigned char *) s,
-			len_nm + len_cl + 2);
-	XtFree(s);
+        len_nm = widget->core.name ? (int) strlen(widget->core.name) : 0;
+        len_cl = (int) strlen(class_name);
+        s = __XtMalloc((unsigned) (len_nm + len_cl + 2));
+        s[0] = '\0';
+        if (len_nm)
+            strcpy(s, widget->core.name);
+        strcpy(s + len_nm + 1, class_name);
+        XChangeProperty(display, window,
+                        XInternAtom(display, "_MIT_OBJ_CLASS",
+                                    False),
+                        XA_STRING, 8, PropModeReplace, (unsigned char *) s,
+                        len_nm + len_cl + 2);
+        XtFree(s);
     }
 #endif
 #ifdef notdef
@@ -354,78 +356,82 @@ static void RealizeWidget(
     _XtRegisterGrabs(widget);
     /* reregister any grabs added with XtGrab{Button,Key} */
     _XtRegisterPassiveGrabs(widget);
-    XtRegisterDrawable (display, window, widget);
+    XtRegisterDrawable(display, window, widget);
+
     _XtExtensionSelect(widget);
 
-    if (XtIsComposite (widget)) {
-	Cardinal		i;
-	CompositePart *cwp = &(((CompositeWidget)widget)->composite);
-	WidgetList children = cwp->children;
-	/* Realize all children */
-	for (i = cwp->num_children; i != 0; --i) {
-	    RealizeWidget (children[i-1]);
-	}
-	/* Map children that are managed and mapped_when_managed */
+    if (XtIsComposite(widget)) {
+        Cardinal i;
+        CompositePart *cwp = &(((CompositeWidget) widget)->composite);
+        WidgetList children = cwp->children;
 
-	if (cwp->num_children != 0) {
-	    if (ShouldMapAllChildren(cwp)) {
-		XMapSubwindows (display, window);
-	    } else {
-		MapChildren(cwp);
-	    }
-	}
+        /* Realize all children */
+        for (i = cwp->num_children; i != 0; --i) {
+            RealizeWidget(children[i - 1]);
+        }
+        /* Map children that are managed and mapped_when_managed */
+
+        if (cwp->num_children != 0) {
+            if (ShouldMapAllChildren(cwp)) {
+                XMapSubwindows(display, window);
+            }
+            else {
+                MapChildren(cwp);
+            }
+        }
     }
 
     /* If this is the application's popup shell, map it */
     if (widget->core.parent == NULL && widget->core.mapped_when_managed) {
-	XtMapWidget (widget);
+        XtMapWidget(widget);
     }
-} /* RealizeWidget */
+}                               /* RealizeWidget */
 
-void XtRealizeWidget (
-    Widget		widget)
+void
+XtRealizeWidget(Widget widget)
 {
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    if (XtIsRealized (widget)) {
-	UNLOCK_APP(app);
-	return;
+    if (XtIsRealized(widget)) {
+        UNLOCK_APP(app);
+        return;
     }
     CallChangeManaged(widget);
     RealizeWidget(widget);
     UNLOCK_APP(app);
-} /* XtRealizeWidget */
+}                               /* XtRealizeWidget */
 
-
-static void UnrealizeWidget(
-    Widget		widget)
+static void
+UnrealizeWidget(Widget widget)
 {
-    CompositeWidget	cw;
-    Cardinal		i;
-    WidgetList		children;
+    CompositeWidget cw;
 
-    if (!XtIsWidget(widget) || !XtIsRealized(widget)) return;
+    if (!XtIsWidget(widget) || !XtIsRealized(widget))
+        return;
 
     /* If this is the application's popup shell, unmap it? */
     /* no, the window is being destroyed */
 
     /* Recurse on children */
-    if (XtIsComposite (widget)) {
-	cw = (CompositeWidget) widget;
-	children = cw->composite.children;
-	/* Unrealize all children */
-	for (i = cw->composite.num_children; i != 0; --i) {
-	    UnrealizeWidget (children[i-1]);
-	}
-	/* Unmap children that are managed and mapped_when_managed? */
-	/* No, it's ok to be managed and unrealized as long as your parent */
-	/* is unrealized. XtUnrealize widget makes sure the "top" widget */
-	/* is unmanaged, we can ignore all descendents */
+    if (XtIsComposite(widget)) {
+        Cardinal i;
+        WidgetList children;
+
+        cw = (CompositeWidget) widget;
+        children = cw->composite.children;
+        /* Unrealize all children */
+        for (i = cw->composite.num_children; i != 0; --i) {
+            UnrealizeWidget(children[i - 1]);
+        }
+        /* Unmap children that are managed and mapped_when_managed? */
+        /* No, it's ok to be managed and unrealized as long as your parent */
+        /* is unrealized. XtUnrealize widget makes sure the "top" widget */
+        /* is unmanaged, we can ignore all descendents */
     }
 
     if (XtHasCallbacks(widget, XtNunrealizeCallback) == XtCallbackHasSome)
-	XtCallCallbacks(widget, XtNunrealizeCallback, NULL);
+        XtCallCallbacks(widget, XtNunrealizeCallback, NULL);
 
     /* Unregister window */
     XtUnregisterDrawable(XtDisplay(widget), XtWindow(widget));
@@ -440,214 +446,234 @@ static void UnrealizeWidget(
      * the translation table is changed while the widget is unrealized.
      */
     _XtRemoveTranslations(widget);
-} /* UnrealizeWidget */
+}                               /* UnrealizeWidget */
 
-
-void XtUnrealizeWidget (
-    Widget		widget)
+void
+XtUnrealizeWidget(Widget widget)
 {
     Window window;
     Widget hookobj;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     window = XtWindow(widget);
-    if (! XtIsRealized (widget)) {
-	UNLOCK_APP(app);
-	return;
+    if (!XtIsRealized(widget)) {
+        UNLOCK_APP(app);
+        return;
     }
     if (widget->core.managed && widget->core.parent != NULL)
-	XtUnmanageChild(widget);
+        XtUnmanageChild(widget);
     UnrealizeWidget(widget);
     if (window != None)
-	XDestroyWindow(XtDisplay(widget), window);
+        XDestroyWindow(XtDisplay(widget), window);
     hookobj = XtHooksOfDisplay(XtDisplayOfObject(widget));
     if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-	XtChangeHookDataRec call_data;
+        XtChangeHookDataRec call_data;
 
-	call_data.type = XtHunrealizeWidget;
-	call_data.widget = widget;
-	XtCallCallbackList(hookobj,
-		((HookObject)hookobj)->hooks.changehook_callbacks,
-		(XtPointer)&call_data);
+        call_data.type = XtHunrealizeWidget;
+        call_data.widget = widget;
+        XtCallCallbackList(hookobj,
+                           ((HookObject) hookobj)->hooks.changehook_callbacks,
+                           (XtPointer) &call_data);
     }
     UNLOCK_APP(app);
-} /* XtUnrealizeWidget */
+}                               /* XtUnrealizeWidget */
 
-
-void XtCreateWindow(
-    Widget		 widget,
-    unsigned int	 window_class,
-    Visual		 *visual,
-    XtValueMask		 value_mask,
-    XSetWindowAttributes *attributes)
+void
+XtCreateWindow(Widget widget,
+               unsigned int window_class,
+               Visual *visual,
+               XtValueMask value_mask,
+               XSetWindowAttributes *attributes)
 {
     XtAppContext app = XtWidgetToApplicationContext(widget);
 
     LOCK_APP(app);
     if (widget->core.window == None) {
-	if (widget->core.width == 0 || widget->core.height == 0) {
-	    Cardinal count = 1;
-	    XtAppErrorMsg(app,
-		       "invalidDimension", "xtCreateWindow", XtCXtToolkitError,
-		       "Widget %s has zero width and/or height",
-		       &widget->core.name, &count);
-	}
-	widget->core.window =
-	    XCreateWindow (
-		XtDisplay (widget),
-		(widget->core.parent ?
-		    widget->core.parent->core.window :
-		    widget->core.screen->root),
-		(int)widget->core.x, (int)widget->core.y,
-		(unsigned)widget->core.width, (unsigned)widget->core.height,
-		(unsigned)widget->core.border_width, (int) widget->core.depth,
-		window_class, visual, value_mask, attributes);
+        if (widget->core.width == 0 || widget->core.height == 0) {
+            Cardinal count = 1;
+
+            XtAppErrorMsg(app,
+                          "invalidDimension", "xtCreateWindow",
+                          XtCXtToolkitError,
+                          "Widget %s has zero width and/or height",
+                          &widget->core.name, &count);
+        }
+        widget->core.window =
+            XCreateWindow(XtDisplay(widget),
+                          (widget->core.parent ?
+                           widget->core.parent->core.window :
+                           widget->core.screen->root),
+                          (int) widget->core.x, (int) widget->core.y,
+                          (unsigned) widget->core.width,
+                          (unsigned) widget->core.height,
+                          (unsigned) widget->core.border_width,
+                          (int) widget->core.depth, window_class, visual,
+                          value_mask, attributes);
     }
     UNLOCK_APP(app);
-} /* XtCreateWindow */
-
+}                               /* XtCreateWindow */
 
 /* ---------------- XtNameToWidget ----------------- */
 
-static Widget NameListToWidget(
-    Widget root,
-    XrmNameList     names,
-    XrmBindingList  bindings,
-    int in_depth, int *out_depth, int *found_depth);
+static Widget NameListToWidget(Widget root,
+                               XrmNameList names,
+                               XrmBindingList bindings,
+                               int in_depth, int *out_depth, int *found_depth);
 
-typedef Widget (*NameMatchProc)(XrmNameList,
-    XrmBindingList,
-    WidgetList, Cardinal, int, int *, int *);
+typedef Widget(*NameMatchProc) (XrmNameList,
+                                XrmBindingList,
+                                WidgetList, Cardinal, int, int *, int *);
 
-static Widget MatchExactChildren(
-    XrmNameList     names,
-    XrmBindingList  bindings,
-    register WidgetList children,
-    register Cardinal num,
-    int in_depth, int *out_depth, int *found_depth)
+static Widget
+MatchExactChildren(XrmNameList names,
+                   XrmBindingList bindings,
+                   register WidgetList children,
+                   register Cardinal num,
+                   int in_depth,
+                   int *out_depth,
+                   int *found_depth)
 {
-    register Cardinal   i;
-    register XrmName    name = *names;
+    register Cardinal i;
+    register XrmName name = *names;
     Widget w, result = NULL;
     int d, min = 10000;
 
     for (i = 0; i < num; i++) {
-	if (name == children[i]->core.xrm_name) {
-	    w = NameListToWidget(children[i], &names[1], &bindings[1],
-		    in_depth+1, &d, found_depth);
-	    if (w != NULL && d < min) {result = w; min = d;}
-	}
+        if (name == children[i]->core.xrm_name) {
+            w = NameListToWidget(children[i], &names[1], &bindings[1],
+                                 in_depth + 1, &d, found_depth);
+            if (w != NULL && d < min) {
+                result = w;
+                min = d;
+            }
+        }
     }
     *out_depth = min;
     return result;
 }
 
-static Widget MatchWildChildren(
-    XrmNameList     names,
-    XrmBindingList  bindings,
-    register WidgetList children,
-    register Cardinal num,
-    int in_depth, int *out_depth, int *found_depth)
+static Widget
+MatchWildChildren(XrmNameList names,
+                  XrmBindingList bindings,
+                  register WidgetList children,
+                  register Cardinal num,
+                  int in_depth,
+                  int *out_depth,
+                  int *found_depth)
 {
-    register Cardinal   i;
+    register Cardinal i;
     Widget w, result = NULL;
     int d, min = 10000;
 
     for (i = 0; i < num; i++) {
-	w = NameListToWidget(children[i], names, bindings,
-		in_depth+1, &d, found_depth);
-	if (w != NULL && d < min) {result = w; min = d;}
+        w = NameListToWidget(children[i], names, bindings,
+                             in_depth + 1, &d, found_depth);
+        if (w != NULL && d < min) {
+            result = w;
+            min = d;
+        }
     }
     *out_depth = min;
     return result;
 }
 
-static Widget SearchChildren(
-    Widget root,
-    XrmNameList     names,
-    XrmBindingList  bindings,
-    NameMatchProc matchproc,
-    int in_depth, int *out_depth, int *found_depth)
+static Widget
+SearchChildren(Widget root,
+               XrmNameList names,
+               XrmBindingList bindings,
+               NameMatchProc matchproc,
+               int in_depth,
+               int *out_depth,
+               int *found_depth)
 {
     Widget w1 = NULL, w2;
     int d1, d2;
 
     if (XtIsComposite(root)) {
-	w1 = (*matchproc)(names, bindings,
-		((CompositeWidget) root)->composite.children,
-		((CompositeWidget) root)->composite.num_children,
-		in_depth, &d1, found_depth);
-    } else d1 = 10000;
-    w2 = (*matchproc)(names, bindings, root->core.popup_list,
-	    root->core.num_popups, in_depth, &d2, found_depth);
+        w1 = (*matchproc) (names, bindings,
+                           ((CompositeWidget) root)->composite.children,
+                           ((CompositeWidget) root)->composite.num_children,
+                           in_depth, &d1, found_depth);
+    }
+    else
+        d1 = 10000;
+    w2 = (*matchproc) (names, bindings, root->core.popup_list,
+                       root->core.num_popups, in_depth, &d2, found_depth);
     *out_depth = (d1 < d2 ? d1 : d2);
     return (d1 < d2 ? w1 : w2);
 }
 
-static Widget NameListToWidget(
-    register Widget root,
-    XrmNameList     names,
-    XrmBindingList  bindings,
-    int in_depth, int *out_depth, int *found_depth)
+static Widget
+NameListToWidget(register Widget root,
+                 XrmNameList names,
+                 XrmBindingList bindings,
+                 int in_depth,
+                 int *out_depth,
+                 int *found_depth)
 {
-    Widget w1, w2;
     int d1, d2;
 
     if (in_depth >= *found_depth) {
-	*out_depth = 10000;
-	return NULL;
+        *out_depth = 10000;
+        return NULL;
     }
 
     if (names[0] == NULLQUARK) {
-	*out_depth = *found_depth = in_depth;
-	return root;
+        *out_depth = *found_depth = in_depth;
+        return root;
     }
 
-    if (! XtIsWidget(root)) {
-	*out_depth = 10000;
-	return NULL;
+    if (!XtIsWidget(root)) {
+        *out_depth = 10000;
+        return NULL;
     }
 
     if (*bindings == XrmBindTightly) {
-	return SearchChildren(root, names, bindings, MatchExactChildren,
-		in_depth, out_depth, found_depth);
+        return SearchChildren(root, names, bindings, MatchExactChildren,
+                              in_depth, out_depth, found_depth);
 
-    } else {	/* XrmBindLoosely */
-	w1 = SearchChildren(root, names, bindings, MatchExactChildren,
-		in_depth, &d1, found_depth);
-	w2 = SearchChildren(root, names, bindings, MatchWildChildren,
-		in_depth, &d2, found_depth);
-	*out_depth = (d1 < d2 ? d1 : d2);
-	return (d1 < d2 ? w1 : w2);
     }
-} /* NameListToWidget */
+    else {                      /* XrmBindLoosely */
+        Widget w1, w2;
 
-Widget XtNameToWidget(
-    Widget root,
-    _Xconst char* name)
+        w1 = SearchChildren(root, names, bindings, MatchExactChildren,
+                            in_depth, &d1, found_depth);
+        w2 = SearchChildren(root, names, bindings, MatchWildChildren,
+                            in_depth, &d2, found_depth);
+        *out_depth = (d1 < d2 ? d1 : d2);
+        return (d1 < d2 ? w1 : w2);
+    }
+}                               /* NameListToWidget */
+
+Widget
+XtNameToWidget(Widget root, _Xconst char *name)
 {
     XrmName *names;
     XrmBinding *bindings;
     int len, depth, found = 10000;
     Widget result;
+
     WIDGET_TO_APPCON(root);
 
-    len = strlen(name);
-    if (len == 0) return NULL;
+    len = (int) strlen(name);
+    if (len == 0)
+        return NULL;
 
     LOCK_APP(app);
-    names = (XrmName *) ALLOCATE_LOCAL((unsigned) (len+1) * sizeof(XrmName));
+    names = (XrmName *) ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(XrmName));
     bindings = (XrmBinding *)
-	ALLOCATE_LOCAL((unsigned) (len+1) * sizeof(XrmBinding));
-    if (names == NULL || bindings == NULL) _XtAllocError(NULL);
+        ALLOCATE_LOCAL((unsigned) (len + 1) * sizeof(XrmBinding));
+    if (names == NULL || bindings == NULL)
+        _XtAllocError(NULL);
 
     XrmStringToBindingQuarkList(name, bindings, names);
     if (names[0] == NULLQUARK) {
-	DEALLOCATE_LOCAL((char *) bindings);
-	DEALLOCATE_LOCAL((char *) names);
-	UNLOCK_APP(app);
-	return NULL;
+        DEALLOCATE_LOCAL((char *) bindings);
+        DEALLOCATE_LOCAL((char *) names);
+        UNLOCK_APP(app);
+        return NULL;
     }
 
     result = NameListToWidget(root, names, bindings, 0, &depth, &found);
@@ -656,64 +682,63 @@ Widget XtNameToWidget(
     DEALLOCATE_LOCAL((char *) names);
     UNLOCK_APP(app);
     return result;
-} /* XtNameToWidget */
+}                               /* XtNameToWidget */
 
 /* Define user versions of intrinsics macros */
 
 #undef XtDisplayOfObject
-Display *XtDisplayOfObject(
-     Widget object)
+Display *
+XtDisplayOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (XtIsSubclass(object, hookObjectClass))
-	return DisplayOfScreen(((HookObject)object)->hooks.screen);
+        return DisplayOfScreen(((HookObject) object)->hooks.screen);
     return XtDisplay(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
 }
 
 #undef XtDisplay
-Display *XtDisplay(
-	Widget widget)
+Display *
+XtDisplay(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return DisplayOfScreen(widget->core.screen);
 }
 
 #undef XtScreenOfObject
-Screen *XtScreenOfObject(
-     Widget object)
+Screen *
+XtScreenOfObject(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     if (XtIsSubclass(object, hookObjectClass))
-	return ((HookObject)object)->hooks.screen;
+        return ((HookObject) object)->hooks.screen;
     return XtScreen(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
 }
 
 #undef XtScreen
-Screen *XtScreen(
-	Widget widget)
+Screen *
+XtScreen(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.screen;
 }
 
 #undef XtWindowOfObject
-Window XtWindowOfObject(
-     Widget object)
+Window
+XtWindowOfObject(Widget object)
 {
     return XtWindow(XtIsWidget(object) ? object : _XtWindowedAncestor(object));
 }
 
-
 #undef XtWindow
-Window XtWindow(
-	Widget widget)
+Window
+XtWindow(Widget widget)
 {
     return widget->core.window;
 }
 
 #undef XtSuperclass
-WidgetClass XtSuperclass(
-    Widget widget)
+WidgetClass
+XtSuperclass(Widget widget)
 {
     WidgetClass retval;
 
@@ -724,8 +749,8 @@ WidgetClass XtSuperclass(
 }
 
 #undef XtClass
-WidgetClass XtClass(
-    Widget widget)
+WidgetClass
+XtClass(Widget widget)
 {
     WidgetClass retval;
 
@@ -736,46 +761,49 @@ WidgetClass XtClass(
 }
 
 #undef XtIsManaged
-Boolean XtIsManaged(
-	Widget object)
+Boolean
+XtIsManaged(Widget object)
 {
     Boolean retval;
+
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
     if (XtIsRectObj(object))
-	retval = object->core.managed;
+        retval = object->core.managed;
     else
-	retval = False;
+        retval = False;
     UNLOCK_APP(app);
     return retval;
 }
 
 #undef XtIsRealized
-Boolean XtIsRealized (
-    Widget   object)
+Boolean
+XtIsRealized(Widget object)
 {
     Boolean retval;
+
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
     retval = XtWindowOfObject(object) != None;
     UNLOCK_APP(app);
     return retval;
-} /* XtIsRealized */
+}                               /* XtIsRealized */
 
 #undef XtIsSensitive
-Boolean XtIsSensitive(
-	Widget	object)
+Boolean
+XtIsSensitive(Widget object)
 {
     Boolean retval;
+
     WIDGET_TO_APPCON(object);
 
     LOCK_APP(app);
     if (XtIsRectObj(object))
-	retval = object->core.sensitive && object->core.ancestor_sensitive;
+        retval = object->core.sensitive && object->core.ancestor_sensitive;
     else
-	retval = False;
+        retval = False;
     UNLOCK_APP(app);
     return retval;
 }
@@ -783,106 +811,101 @@ Boolean XtIsSensitive(
 /*
  * Internal routine; must be called only after XtIsWidget returns false
  */
-Widget _XtWindowedAncestor(
-    register Widget object)
+Widget
+_XtWindowedAncestor(register Widget object)
 {
     Widget obj = object;
+
     for (object = XtParent(object); object && !XtIsWidget(object);)
-	object = XtParent(object);
+        object = XtParent(object);
 
     if (object == NULL) {
-	String params = XtName(obj);
-	Cardinal num_params = 1;
-	XtErrorMsg("noWidgetAncestor", "windowedAncestor", XtCXtToolkitError,
-		   "Object \"%s\" does not have windowed ancestor",
-		   &params, &num_params);
+        String params = XtName(obj);
+        Cardinal num_params = 1;
+
+        XtErrorMsg("noWidgetAncestor", "windowedAncestor", XtCXtToolkitError,
+                   "Object \"%s\" does not have windowed ancestor",
+                   &params, &num_params);
     }
 
     return object;
 }
 
 #undef XtParent
-Widget XtParent(
-    Widget widget)
+Widget
+XtParent(Widget widget)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return widget->core.parent;
 }
 
 #undef XtName
-String XtName(
-     Widget object)
+String
+XtName(Widget object)
 {
     /* Attempts to LockApp() here will generate endless recursive loops */
     return XrmQuarkToString(object->core.xrm_name);
 }
 
-
-Boolean XtIsObject(
-    Widget object)
+Boolean
+XtIsObject(Widget object)
 {
     WidgetClass wc;
     String class_name;
 
     /* perform basic sanity checks */
     if (object->core.self != object || object->core.xrm_name == NULLQUARK)
-	return False;
+        return False;
 
     LOCK_PROCESS;
     wc = object->core.widget_class;
     if (wc->core_class.class_name == NULL ||
-	wc->core_class.xrm_class == NULLQUARK ||
-	(class_name = XrmClassToString(wc->core_class.xrm_class)) == NULL ||
-	strcmp(wc->core_class.class_name, class_name) != 0) {
-	    UNLOCK_PROCESS;
-	    return False;
-	}
+        wc->core_class.xrm_class == NULLQUARK ||
+        (class_name = XrmClassToString(wc->core_class.xrm_class)) == NULL ||
+        strcmp(wc->core_class.class_name, class_name) != 0) {
+        UNLOCK_PROCESS;
+        return False;
+    }
     UNLOCK_PROCESS;
 
     if (XtIsWidget(object)) {
-	if (object->core.name == NULL ||
-	    (class_name = XrmNameToString(object->core.xrm_name)) == NULL ||
-	    strcmp(object->core.name, class_name) != 0)
-	    return False;
+        if (object->core.name == NULL ||
+            (class_name = XrmNameToString(object->core.xrm_name)) == NULL ||
+            strcmp(object->core.name, class_name) != 0)
+            return False;
     }
     return True;
 }
 
 #if defined(WIN32)
-static int access_file (
-    char* path,
-    char* pathbuf,
-    int len_pathbuf,
-    char** pathret)
+static int
+access_file(char *path, char *pathbuf, int len_pathbuf, char **pathret)
 {
-    if (access (path, F_OK) == 0) {
-	if (strlen (path) < len_pathbuf)
-	    *pathret = pathbuf;
-	else
-	    *pathret = XtMalloc (strlen (path));
-	if (*pathret) {
-	    strcpy (*pathret, path);
-	    return 1;
-	}
+    if (access(path, F_OK) == 0) {
+        if (strlen(path) < len_pathbuf)
+            *pathret = pathbuf;
+        else
+            *pathret = XtMalloc(strlen(path));
+        if (*pathret) {
+            strcpy(*pathret, path);
+            return 1;
+        }
     }
     return 0;
 }
 
-static int AccessFile (
-    char* path,
-    char* pathbuf,
-    int len_pathbuf,
-    char** pathret)
+static int
+AccessFile(char *path, char *pathbuf, int len_pathbuf, char **pathret)
 {
     unsigned long drives;
     int i, len;
-    char* drive;
+    char *drive;
     char buf[MAX_PATH];
-    char* bufp;
+    char *bufp;
 
     /* just try the "raw" name first and see if it works */
-    if (access_file (path, pathbuf, len_pathbuf, pathret))
-	return 1;
+    if (access_file(path, pathbuf, len_pathbuf, pathret))
+        return 1;
 
 #if defined(WIN32) && defined(__MINGW32__)
     /* don't try others */
@@ -890,166 +913,171 @@ static int AccessFile (
 #endif
 
     /* try the places set in the environment */
-    drive = getenv ("_XBASEDRIVE");
+    drive = getenv("_XBASEDRIVE");
     if (!drive)
-	drive = "C:";
-    len = strlen (drive) + strlen (path);
-    bufp = XtStackAlloc (len + 1, buf);
-    strcpy (bufp, drive);
-    strcat (bufp, path);
-    if (access_file (bufp, pathbuf, len_pathbuf, pathret)) {
-	XtStackFree (bufp, buf);
-	return 1;
+        drive = "C:";
+    len = strlen(drive) + strlen(path);
+    bufp = XtStackAlloc(len + 1, buf);
+    strcpy(bufp, drive);
+    strcat(bufp, path);
+    if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
+        XtStackFree(bufp, buf);
+        return 1;
     }
 
     /* one last place to look */
-    drive = getenv ("HOMEDRIVE");
+    drive = getenv("HOMEDRIVE");
     if (drive) {
-	len = strlen (drive) + strlen (path);
-	bufp = XtStackAlloc (len + 1, buf);
-	strcpy (bufp, drive);
-	strcat (bufp, path);
-	if (access_file (bufp, pathbuf, len_pathbuf, pathret)) {
-	    XtStackFree (bufp, buf);
-	    return 1;
-	}
+        len = strlen(drive) + strlen(path);
+        bufp = XtStackAlloc(len + 1, buf);
+        strcpy(bufp, drive);
+        strcat(bufp, path);
+        if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
+            XtStackFree(bufp, buf);
+            return 1;
+        }
     }
 
     /* does OS/2 (with or with gcc-emx) have getdrives()? */
     /* tried everywhere else, go fishing */
-    drives = _getdrives ();
+    drives = _getdrives();
 #define C_DRIVE ('C' - 'A')
 #define Z_DRIVE ('Z' - 'A')
-    for (i = C_DRIVE; i <= Z_DRIVE; i++) { /* don't check on A: or B: */
-	if ((1 << i) & drives) {
-	    len = 2 + strlen (path);
-	    bufp = XtStackAlloc (len + 1, buf);
-	    *bufp = 'A' + i;
-	    *(bufp + 1) = ':';
-	    *(bufp + 2) = '\0';
-	    strcat (bufp, path);
-	    if (access_file (bufp, pathbuf, len_pathbuf, pathret)) {
-		XtStackFree (bufp, buf);
-		return 1;
-	    }
-	}
+    for (i = C_DRIVE; i <= Z_DRIVE; i++) {      /* don't check on A: or B: */
+        if ((1 << i) & drives) {
+            len = 2 + strlen(path);
+            bufp = XtStackAlloc(len + 1, buf);
+            *bufp = 'A' + i;
+            *(bufp + 1) = ':';
+            *(bufp + 2) = '\0';
+            strcat(bufp, path);
+            if (access_file(bufp, pathbuf, len_pathbuf, pathret)) {
+                XtStackFree(bufp, buf);
+                return 1;
+            }
+        }
     }
     return 0;
 }
 #endif
 
-static Boolean TestFile(
-    String path)
+static Boolean
+TestFile(String path)
 {
 #ifndef VMS
     int ret = 0;
     struct stat status;
+
 #if defined(WIN32)
     char buf[MAX_PATH];
-    char* bufp;
+    char *bufp;
     int len;
-    UINT olderror = SetErrorMode (SEM_FAILCRITICALERRORS);
+    UINT olderror = SetErrorMode(SEM_FAILCRITICALERRORS);
 
-    if (AccessFile (path, buf, MAX_PATH, &bufp))
-	path = bufp;
+    if (AccessFile(path, buf, MAX_PATH, &bufp))
+        path = bufp;
 
-    (void) SetErrorMode (olderror);
+    (void) SetErrorMode(olderror);
 #endif
-    ret = (access(path, R_OK) == 0 &&		/* exists and is readable */
-	    stat(path, &status) == 0 &&		/* get the status */
+    ret = (access(path, R_OK) == 0 &&   /* exists and is readable */
+           stat(path, &status) == 0 &&  /* get the status */
 #ifndef X_NOT_POSIX
-	    S_ISDIR(status.st_mode) == 0);	/* not a directory */
+           S_ISDIR(status.st_mode) == 0);       /* not a directory */
 #else
-	    (status.st_mode & S_IFMT) != S_IFDIR);	/* not a directory */
-#endif /* X_NOT_POSIX else */
-    return ret;
-#else /* VMS */
-    return TRUE;	/* Who knows what to do here? */
-#endif /* VMS */
+           (status.st_mode & S_IFMT) != S_IFDIR);       /* not a directory */
+#endif                          /* X_NOT_POSIX else */
+    return (Boolean) ret;
+#else                           /* VMS */
+    return TRUE;                /* Who knows what to do here? */
+#endif                          /* VMS */
 }
 
 /* return of TRUE = resolved string fit, FALSE = didn't fit.  Not
    null-terminated and not collapsed if it didn't fit */
 
-static Boolean Resolve(
-    register _Xconst char *source,	/* The source string */
-    register int len,		/* The length in bytes of *source */
-    Substitution sub,	/* Array of string values to substitute */
-    Cardinal num,	/* Number of substitution entries */
-    char *buf,		/* Where to put the resolved string; */
-    char collapse)	/* Character to collapse */
-{
+static Boolean Resolve(register _Xconst char *source,   /* The source string */
+                       register int len,        /* The length in bytes of *source */
+                       Substitution sub,        /* Array of string values to substitute */
+                       Cardinal num,    /* Number of substitution entries */
+                       char *buf,       /* Where to put the resolved string; */
+                       char collapse) { /* Character to collapse */
     register int bytesLeft = PATH_MAX;
-    register char* bp = buf;
+    register char *bp = buf;
+
 #ifndef DONT_COLLAPSE
     Boolean atBeginning = TRUE;
     Boolean prevIsCollapse = FALSE;
 
 #define PUT(ch) \
     { \
-	if (--bytesLeft == 0) return FALSE; \
+        if (--bytesLeft == 0) return FALSE; \
         if (prevIsCollapse) \
-	    if ((*bp = ch) != collapse) { \
-		prevIsCollapse = FALSE; \
-		bp++; \
-	    } \
-	    else bytesLeft++; \
+            if ((*bp = ch) != collapse) { \
+                prevIsCollapse = FALSE; \
+                bp++; \
+            } \
+            else bytesLeft++; \
         else if ((*bp++ = ch) == collapse && !atBeginning) \
-	    prevIsCollapse = TRUE; \
+            prevIsCollapse = TRUE; \
     }
-#else /* DONT_COLLAPSE */
+#else                           /* DONT_COLLAPSE */
 
 #define PUT(ch) \
     { \
-	if (--bytesLeft == 0) return FALSE; \
-	*bp++ = ch; \
+        if (--bytesLeft == 0) return FALSE; \
+        *bp++ = ch; \
     }
-#endif /* DONT_COLLAPSE */
+#endif                          /* DONT_COLLAPSE */
 #define escape '%'
 
     while (len--) {
 #ifndef DONT_COLLAPSE
-	if (*source == collapse) {
-	    PUT(*source);
-	    source++;
-	    continue;
-	}
-	else
-#endif /* DONT_COLLAPSE */
-	    if (*source != escape) {
-		PUT(*source);
-	}
-	else {
-	    source++;
-	    if (len-- == 0) {
-		PUT(escape);
-		break;
-	    }
+        if (*source == collapse) {
+            PUT(*source);
+            source++;
+            continue;
+        }
+        else
+#endif                          /* DONT_COLLAPSE */
+        if (*source != escape) {
+            PUT(*source);
+        }
+        else {
+            source++;
+            if (len-- == 0) {
+                PUT(escape);
+                break;
+            }
 
-	    if (*source == ':' || *source == escape)
-		PUT(*source)
-	    else {
-		/* Match the character against the match array */
-		register Cardinal j;
+            if (*source == ':' || *source == escape) {
+                PUT(*source);
+            }
+            else {
+                /* Match the character against the match array */
+                register Cardinal j;
 
-		for (j = 0; j < num && sub[j].match != *source; j++) {}
+                for (j = 0; j < num && sub[j].match != *source; j++) {
+                }
 
-		/* Substitute the substitution string */
+                /* Substitute the substitution string */
 
-		if (j >= num) PUT(*source)
-		else if (sub[j].substitution != NULL) {
-		    char *sp = sub[j].substitution;
-		    while (*sp) {
-			PUT(*sp);
-			sp++;
-		    }
-		}
-	    }
-	}
-	source++;
+                if (j >= num) {
+                    PUT(*source);
+                }
+                else if (sub[j].substitution != NULL) {
+                    char *sp = sub[j].substitution;
+
+                    while (*sp) {
+                        PUT(*sp);
+                        sp++;
+                    }
+                }
+            }
+        }
+        source++;
 #ifndef DONT_COLLAPSE
-	atBeginning = FALSE;
-#endif /* DONT_COLLAPSE */
+        atBeginning = FALSE;
+#endif                          /* DONT_COLLAPSE */
     }
     PUT('\0');
 
@@ -1058,68 +1086,74 @@ static Boolean Resolve(
 #undef escape
 }
 
-
-String XtFindFile(
-    _Xconst char* path,
-    Substitution substitutions,
-    Cardinal num_substitutions,
-    XtFilePredicate predicate)
+_XtString
+XtFindFile(_Xconst _XtString path,
+           Substitution substitutions,
+           Cardinal num_substitutions,
+           XtFilePredicate predicate)
 {
-    char *buf, *buf1, *buf2, *colon;
+    char *buf, *buf1, *buf2;
+    _Xconst _XtString colon;
     int len;
     Boolean firstTime = TRUE;
 
-    buf = buf1 = __XtMalloc((unsigned)PATH_MAX);
-    buf2 = __XtMalloc((unsigned)PATH_MAX);
+    buf1 = __XtMalloc((unsigned) PATH_MAX);
+    buf2 = __XtMalloc((unsigned) PATH_MAX);
+    buf = buf1;
 
-    if (predicate == NULL) predicate = TestFile;
+    if (predicate == NULL)
+        predicate = TestFile;
 
     while (1) {
-	colon = (String)path;
-	/* skip leading colons */
-	while (*colon) {
-	    if (*colon != ':') break;
-	    colon++;
-	    path++;
-	}
-	/* now look for an un-escaped colon */
-	for ( ; *colon ; colon++) {
-	    if (*colon == '%' && *(path+1)) {
-		colon++;	/* bump it an extra time to skip %. */
-		continue;
-	    }
-	    if (*colon == ':')
-		break;
-	}
-	len = colon - path;
-	if (Resolve(path, len, substitutions, num_substitutions,
-		    buf, '/')) {
-	    if (firstTime || strcmp(buf1,buf2) != 0) {
+        colon = path;
+        /* skip leading colons */
+        while (*colon) {
+            if (*colon != ':')
+                break;
+            colon++;
+            path++;
+        }
+        /* now look for an un-escaped colon */
+        for (; *colon; colon++) {
+            if (*colon == '%' && *(path + 1)) {
+                colon++;        /* bump it an extra time to skip %. */
+                continue;
+            }
+            if (*colon == ':')
+                break;
+        }
+        len = (int) (colon - path);
+        if (Resolve(path, len, substitutions, num_substitutions, buf, '/')) {
+            if (firstTime || strcmp(buf1, buf2) != 0) {
 #ifdef XNL_DEBUG
-		printf("Testing file %s\n", buf);
-#endif /* XNL_DEBUG */
-		/* Check out the file */
-		if ((*predicate) (buf)) {
-		    /* We've found it, return it */
+                printf("Testing file %s\n", buf);
+#endif                          /* XNL_DEBUG */
+                /* Check out the file */
+                if ((*predicate) (buf)) {
+                    /* We've found it, return it */
 #ifdef XNL_DEBUG
-		    printf("File found.\n");
-#endif /* XNL_DEBUG */
-		    if (buf == buf1) XtFree(buf2);
-		    else XtFree(buf1);
-		    return buf;
-		}
-		if (buf == buf1)
-		    buf = buf2;
-		else
-		    buf = buf1;
-		firstTime = FALSE;
-	    }
-	}
+                    printf("File found.\n");
+#endif                          /* XNL_DEBUG */
+                    if (buf == buf1) {
+                        XtFree(buf2);
+                        return buf1;
+                    }
+                    XtFree(buf1);
+                    return buf2;
+                }
+                if (buf == buf1)
+                    buf = buf2;
+                else
+                    buf = buf1;
+                firstTime = FALSE;
+            }
+        }
 
-	/* Nope...any more paths? */
+        /* Nope...any more paths? */
 
-	if (*colon == '\0') break;
-	path = colon+1;
+        if (*colon == '\0')
+            break;
+        path = colon + 1;
     }
 
     /* No file found */
@@ -1129,151 +1163,153 @@ String XtFindFile(
     return NULL;
 }
 
-
 /* The implementation of this routine is operating system dependent */
 /* Should match the code in Xlib _XlcMapOSLocaleName */
 
-static char *ExtractLocaleName(
-    String	lang)
+static String
+ExtractLocaleName(String lang)
 {
 
 #if defined(hpux) || defined(CSRG_BASED) || defined(sun) || defined(SVR4) || defined(sgi) || defined(__osf__) || defined(AIXV3) || defined(ultrix) || defined(WIN32) || defined (linux)
-# ifdef hpux
+#ifdef hpux
 /*
  * We need to discriminated between HPUX 9 and HPUX 10. The equivalent
  * code in Xlib in SetLocale.c does include locale.h via X11/Xlocale.h.
  */
-#  include <locale.h>
-#  ifndef _LastCategory
-   /* HPUX 9 and earlier */
-#   define SKIPCOUNT 2
-#   define STARTCHAR ':'
-#   define ENDCHAR ';'
-#  else
+#include <locale.h>
+#ifndef _LastCategory
+    /* HPUX 9 and earlier */
+#define SKIPCOUNT 2
+#define STARTCHAR ':'
+#define ENDCHAR ';'
+#else
     /* HPUX 10 */
-#   define ENDCHAR ' '
-#  endif
-# else
-#  ifdef ultrix
-#   define SKIPCOUNT 2
-#   define STARTCHAR '\001'
-#   define ENDCHAR '\001'
-#  else
-#   ifdef WIN32
-#    define SKIPCOUNT 1
-#    define STARTCHAR '='
-#    define ENDCHAR ';'
-#    define WHITEFILL
-#   else
-#    if defined(__osf__) || (defined(AIXV3) && !defined(AIXV4))
-#     define STARTCHAR ' '
-#     define ENDCHAR ' '
-#    else
-#     if defined(linux)
-#      define STARTSTR "LC_CTYPE="
-#      define ENDCHAR ';'
-#     else
-#      if !defined(sun) || defined(SVR4)
-#       define STARTCHAR '/'
-#       define ENDCHAR '/'
-#      endif
-#     endif
-#    endif
-#   endif
-#  endif
-# endif
+#define ENDCHAR ' '
+#endif
+#else
+#ifdef ultrix
+#define SKIPCOUNT 2
+#define STARTCHAR '\001'
+#define ENDCHAR '\001'
+#else
+#ifdef WIN32
+#define SKIPCOUNT 1
+#define STARTCHAR '='
+#define ENDCHAR ';'
+#define WHITEFILL
+#else
+#if defined(__osf__) || (defined(AIXV3) && !defined(AIXV4))
+#define STARTCHAR ' '
+#define ENDCHAR ' '
+#else
+#if defined(linux)
+#define STARTSTR "LC_CTYPE="
+#define ENDCHAR ';'
+#else
+#if !defined(sun) || defined(SVR4)
+#define STARTCHAR '/'
+#define ENDCHAR '/'
+#endif
+#endif
+#endif
+#endif
+#endif
+#endif
 
-    char           *start;
-    char           *end;
-    int             len;
-# ifdef SKIPCOUNT
-    int		    n;
-# endif
-    static char*    buf = NULL;
+    String start;
+    String end;
+    int len;
+
+#ifdef SKIPCOUNT
+    int n;
+#endif
+    static char *buf = NULL;
+
+#ifdef WHITEFILL
+    char *temp;
+#endif
 
     start = lang;
-# ifdef SKIPCOUNT
+#ifdef SKIPCOUNT
     for (n = SKIPCOUNT;
-	 --n >= 0 && start && (start = strchr (start, STARTCHAR));
-	 start++)
-	;
+         --n >= 0 && start && (start = strchr(start, STARTCHAR)); start++);
     if (!start)
-	start = lang;
-# endif
-# ifdef STARTCHAR
-    if (start && (start = strchr (start, STARTCHAR)))
-# elif  defined (STARTSTR)
-    if (start && (start = strstr (start,STARTSTR)))
-# endif
+        start = lang;
+#endif
+#ifdef STARTCHAR
+    if (start && (start = strchr(start, STARTCHAR)))
+#elif  defined (STARTSTR)
+    if (start && (start = strstr(start, STARTSTR)))
+#endif
     {
-# ifdef STARTCHAR
-	start++;
-# elif defined (STARTSTR)
-	start += strlen(STARTSTR);
-# endif
+#ifdef STARTCHAR
+        start++;
+#elif defined (STARTSTR)
+        start += strlen(STARTSTR);
+#endif
 
-	if ((end = strchr (start, ENDCHAR))) {
-	    len = end - start;
-	    if (buf != NULL) XtFree (buf);
-	    buf = XtMalloc (len + 1);
-	    if (buf == NULL) return NULL;
-	    strncpy(buf, start, len);
-	    *(buf + len) = '\0';
-# ifdef WHITEFILL
-	    for (start = buf; start = strchr(start, ' '); )
-		*start++ = '-';
-# endif
-	    return buf;
-	} else  /* if no ENDCHAR is found we are at the end of the line */
-	    return start;
+        if ((end = strchr(start, ENDCHAR))) {
+            len = (int) (end - start);
+            XtFree(buf);
+            buf = XtMalloc((Cardinal) (len + 1));
+            if (buf == NULL)
+                return NULL;
+            strncpy(buf, start, (size_t) len);
+            *(buf + len) = '\0';
+#ifdef WHITEFILL
+            for (temp = buf; (temp = strchr(temp, ' ')) != NULL;)
+                *temp++ = '-';
+#endif
+            return buf;
+        }
+        else                    /* if no ENDCHAR is found we are at the end of the line */
+            return start;
     }
-# ifdef WHITEFILL
+#ifdef WHITEFILL
     if (strchr(lang, ' ')) {
-	if (buf != NULL) XtFree (buf);
-	else buf = XtMalloc (strlen (lang) + 1);
-	if (buf == NULL) return NULL;
-	strcpy(buf, lang);
-	for (start = buf; start = strchr(start, ' '); )
-	    *start++ = '-';
-	return buf;
+        XtFree(buf);
+        buf = strdup(lang);
+        if (buf == NULL)
+            return NULL;
+        for (temp = buf; (temp = strchr(temp, ' ')) != NULL;)
+            *temp++ = '-';
+        return buf;
     }
-# endif
-# undef STARTCHAR
-# undef ENDCHAR
-# undef WHITEFILL
+#endif
+#undef STARTCHAR
+#undef ENDCHAR
+#undef WHITEFILL
 #endif
 
     return lang;
 }
 
-static void FillInLangSubs(
-    Substitution subs,
-    XtPerDisplay pd)
+static void
+FillInLangSubs(Substitution subs, XtPerDisplay pd)
 {
     int len;
-    char *string, *p1, *p2, *p3;
+    String string;
+    char *p1, *p2, *p3;
     char **rest;
     char *ch;
 
-    if (pd->language == NULL ||
-	(pd->language != NULL && pd->language[0] == '\0')) {
-	subs[0].substitution = subs[1].substitution =
-		subs[2].substitution = subs[3].substitution = NULL;
-	return;
+    if (pd->language == NULL || pd->language[0] == '\0') {
+        subs[0].substitution = subs[1].substitution =
+            subs[2].substitution = subs[3].substitution = NULL;
+        return;
     }
 
     string = ExtractLocaleName(pd->language);
 
-    if (string == NULL ||
-	(string != NULL && string[0] == '\0')) {
-	subs[0].substitution = subs[1].substitution =
-		subs[2].substitution = subs[3].substitution = NULL;
-	return;
+    if (string == NULL || string[0] == '\0') {
+        subs[0].substitution = subs[1].substitution =
+            subs[2].substitution = subs[3].substitution = NULL;
+        return;
     }
 
-    len = strlen(string) + 1;
-    subs[0].substitution = string;
-    p1 = subs[1].substitution = __XtMalloc((Cardinal) 3*len);
+    len = (int) strlen(string) + 1;
+    subs[0].substitution = (_XtString) string;
+    p1 = subs[1].substitution = XtMallocArray(3, (Cardinal) len);
     p2 = subs[2].substitution = subs[1].substitution + len;
     p3 = subs[3].substitution = subs[2].substitution + len;
 
@@ -1285,31 +1321,36 @@ static void FillInLangSubs(
 
     ch = strchr(string, '_');
     if (ch != NULL) {
-	len = ch - string;
-	(void) strncpy(p1, string, len);
-	p1[len] = '\0';
-	string = ch + 1;
-	rest = &p2;
-    } else rest = &p1;
+        len = (int) (ch - string);
+        (void) strncpy(p1, string, (size_t) len);
+        p1[len] = '\0';
+        string = ch + 1;
+        rest = &p2;
+    }
+    else
+        rest = &p1;
 
     /* Rest points to where we put the first part */
 
     ch = strchr(string, '.');
     if (ch != NULL) {
-	len = ch - string;
-	strncpy(*rest, string, len);
-	(*rest)[len] = '\0';
-	(void) strcpy(p3, ch+1);
-    } else (void) strcpy(*rest, string);
+        len = (int) (ch - string);
+        strncpy(*rest, string, (size_t) len);
+        (*rest)[len] = '\0';
+        (void) strcpy(p3, ch + 1);
+    }
+    else
+        (void) strcpy(*rest, string);
 }
 
 /*
  * default path used if environment variable XFILESEARCHPATH
- * is not defined.  Also substitued for %D.
+ * is not defined.  Also substituted for %D.
  * The exact value should be documented in the implementation
  * notes for any Xt implementation.
  */
-static const char *implementation_default_path(void)
+static const char *
+implementation_default_path(void)
 {
 #if defined(WIN32)
     static char xfilesearchpath[] = "";
@@ -1321,6 +1362,7 @@ static const char *implementation_default_path(void)
 }
 
 
+/* *INDENT-OFF* */
 static SubstitutionRec defaultSubs[] = {
     {'N', NULL},
     {'T', NULL},
@@ -1331,22 +1373,22 @@ static SubstitutionRec defaultSubs[] = {
     {'t', NULL},
     {'c', NULL}
 };
+/* *INDENT-ON* */
 
-
-String XtResolvePathname(
-    Display *dpy,
-    _Xconst char* type,
-    _Xconst char* filename,
-    _Xconst char* suffix,
-    _Xconst char* path,
-    Substitution substitutions,
-    Cardinal num_substitutions,
-    XtFilePredicate predicate)
+_XtString
+XtResolvePathname(Display *dpy,
+                  _Xconst char *type,
+                  _Xconst char *filename,
+                  _Xconst char *suffix,
+                  _Xconst char *path,
+                  Substitution substitutions,
+                  Cardinal num_substitutions,
+                  XtFilePredicate predicate)
 {
     XtPerDisplay pd;
     static const char *defaultPath = NULL;
     const char *impl_default = implementation_default_path();
-    int idef_len = strlen(impl_default);
+    int idef_len = (int) strlen(impl_default);
     char *massagedPath;
     int bytesAllocd, bytesLeft;
     char *ch, *result;
@@ -1361,31 +1403,34 @@ String XtResolvePathname(
     pd = _XtGetPerDisplay(dpy);
     if (path == NULL) {
 #ifndef VMS
-	if (defaultPath == NULL) {
-	    defaultPath = getenv("XFILESEARCHPATH");
-	    if (defaultPath == NULL)
-		defaultPath = impl_default;
-	}
-	path = defaultPath;
-#endif /* VMS */
+        if (defaultPath == NULL) {
+            defaultPath = getenv("XFILESEARCHPATH");
+            if (defaultPath == NULL)
+                defaultPath = impl_default;
+        }
+        path = defaultPath;
+#endif                          /* VMS */
     }
 
     if (path == NULL)
-	path = "";	/* NULL would kill us later */
+        path = "";              /* NULL would kill us later */
 
     if (filename == NULL) {
-	filename = XrmClassToString(pd->class);
+        filename = XrmClassToString(pd->class);
     }
 
     bytesAllocd = bytesLeft = 1000;
-    massagedPath = ALLOCATE_LOCAL(bytesAllocd);
-    if (massagedPath == NULL) _XtAllocError(NULL);
+    massagedPath = ALLOCATE_LOCAL((size_t) bytesAllocd);
+    if (massagedPath == NULL)
+        _XtAllocError(NULL);
 
     if (path[0] == ':') {
-	strcpy(massagedPath, "%N%S");
-	ch = &massagedPath[4];
-	bytesLeft -= 4;
-    } else ch = massagedPath;
+        strcpy(massagedPath, "%N%S");
+        ch = &massagedPath[4];
+        bytesLeft -= 4;
+    }
+    else
+        ch = massagedPath;
 
     /* Insert %N%S between adjacent colons
      * and default path for %D.
@@ -1393,64 +1438,71 @@ String XtResolvePathname(
      */
 
     while (*path != '\0') {
-	if (bytesLeft < idef_len) {
-	    int bytesUsed = bytesAllocd - bytesLeft;
-	    char *new;
-	    bytesAllocd +=1000;
-	    new = __XtMalloc((Cardinal) bytesAllocd);
-	    strncpy( new, massagedPath, bytesUsed );
-	    ch = new + bytesUsed;
-	    if (pathMallocd)
-		XtFree(massagedPath);
-	    else
-		DEALLOCATE_LOCAL(massagedPath);
-	    pathMallocd = True;
-	    massagedPath = new;
-	    bytesLeft = bytesAllocd - bytesUsed;
-	}
-	if (*path == '%' && *(path+1) == ':') {
-	    *ch++ = '%';
-	    *ch++ = ':';
-	    path += 2;
-	    bytesLeft -= 2;
-	    continue;
-	}
-	if (*path == ':' && *(path+1) == ':') {
-	    strcpy(ch, ":%N%S:");
-	    ch += 6;
-	    bytesLeft -= 6;
-	    while (*path == ':') path++;
-	    continue;
-	}
-	if (*path == '%' && *(path+1) == 'D') {
-	    strcpy(ch, impl_default);
-	    ch += idef_len;
-	    bytesLeft -= idef_len;
-	    path += 2;
-	    continue;
-	}
-	*ch++ = *path++;
-	bytesLeft--;
+        if (bytesLeft < idef_len) {
+            int bytesUsed = bytesAllocd - bytesLeft;
+            char *new;
+
+            bytesAllocd += 1000;
+            new = __XtMalloc((Cardinal) bytesAllocd);
+            strncpy(new, massagedPath, (size_t) bytesUsed);
+            ch = new + bytesUsed;
+            if (pathMallocd)
+                XtFree(massagedPath);
+            else
+                DEALLOCATE_LOCAL(massagedPath);
+            pathMallocd = True;
+            massagedPath = new;
+            bytesLeft = bytesAllocd - bytesUsed;
+        }
+        if (*path == '%' && *(path + 1) == ':') {
+            *ch++ = '%';
+            *ch++ = ':';
+            path += 2;
+            bytesLeft -= 2;
+            continue;
+        }
+        if (*path == ':' && *(path + 1) == ':') {
+            strcpy(ch, ":%N%S:");
+            ch += 6;
+            bytesLeft -= 6;
+            while (*path == ':')
+                path++;
+            continue;
+        }
+        if (*path == '%' && *(path + 1) == 'D') {
+            strcpy(ch, impl_default);
+            ch += idef_len;
+            bytesLeft -= idef_len;
+            path += 2;
+            continue;
+        }
+        *ch++ = *path++;
+        bytesLeft--;
     }
     *ch = '\0';
 #ifdef XNL_DEBUG
     printf("Massaged path: %s\n", massagedPath);
-#endif /* XNL_DEBUG */
+#endif                          /* XNL_DEBUG */
 
     if (num_substitutions == 0)
-	merged_substitutions = defaultSubs;
+        merged_substitutions = defaultSubs;
     else {
-	int i = XtNumber(defaultSubs);
-	Substitution sub, def;
-	merged_substitutions = sub = (Substitution)
-	    ALLOCATE_LOCAL((unsigned)(num_substitutions+i)*sizeof(SubstitutionRec));
-	if (sub == NULL) _XtAllocError(NULL);
-	for (def = defaultSubs; i--; sub++, def++) sub->match = def->match;
-	for (i = num_substitutions; i--; ) *sub++ = *substitutions++;
+        int i = XtNumber(defaultSubs);
+        Substitution sub, def;
+
+        merged_substitutions = sub = (Substitution)
+            ALLOCATE_LOCAL((unsigned) (num_substitutions + (Cardinal) i) *
+                           sizeof(SubstitutionRec));
+        if (sub == NULL)
+            _XtAllocError(NULL);
+        for (def = defaultSubs; i--; sub++, def++)
+            sub->match = def->match;
+        for (i = (int) num_substitutions; i--;)
+            *sub++ = *substitutions++;
     }
-    merged_substitutions[0].substitution = (String)filename;
-    merged_substitutions[1].substitution = (String)type;
-    merged_substitutions[2].substitution = (String)suffix;
+    merged_substitutions[0].substitution = (_XtString) filename;
+    merged_substitutions[1].substitution = (_XtString) type;
+    merged_substitutions[2].substitution = (_XtString) suffix;
     name_list[0] = pd->name;
     name_list[1] = XrmPermStringToQuark("customization");
     name_list[2] = NULLQUARK;
@@ -1458,39 +1510,36 @@ String XtResolvePathname(
     class_list[1] = XrmPermStringToQuark("Customization");
     class_list[2] = NULLQUARK;
     if (XrmQGetResource(XrmGetDatabase(dpy), name_list, class_list,
-			&db_type, &value) &&
-	db_type == _XtQString)
-	merged_substitutions[3].substitution = (char *)value.addr;
+                        &db_type, &value) && db_type == _XtQString)
+        merged_substitutions[3].substitution = (char *) value.addr;
     else
-	merged_substitutions[3].substitution = NULL;
+        merged_substitutions[3].substitution = NULL;
     FillInLangSubs(&merged_substitutions[4], pd);
 
     result = XtFindFile(massagedPath, merged_substitutions,
-			num_substitutions + XtNumber(defaultSubs),
-			predicate);
+                        num_substitutions + XtNumber(defaultSubs), predicate);
 
     if (merged_substitutions[5].substitution != NULL)
-	XtFree( (XtPointer)merged_substitutions[5].substitution );
+        XtFree((XtPointer) merged_substitutions[5].substitution);
 
     if (merged_substitutions != defaultSubs)
-	DEALLOCATE_LOCAL(merged_substitutions);
+        DEALLOCATE_LOCAL(merged_substitutions);
 
     if (pathMallocd)
-	XtFree(massagedPath);
+        XtFree(massagedPath);
     else
-	DEALLOCATE_LOCAL(massagedPath);
+        DEALLOCATE_LOCAL(massagedPath);
 
     UNLOCK_PROCESS;
     return result;
 }
 
-
-Boolean XtCallAcceptFocus(
-    Widget widget,
-    Time *time)
+Boolean
+XtCallAcceptFocus(Widget widget, Time *time)
 {
     XtAcceptFocusProc ac;
     Boolean retval;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
@@ -1499,9 +1548,9 @@ Boolean XtCallAcceptFocus(
     UNLOCK_PROCESS;
 
     if (ac != NULL)
-	retval = (*ac) (widget, time);
+        retval = (*ac) (widget, time);
     else
-	retval = FALSE;
+        retval = FALSE;
     UNLOCK_APP(app);
     return retval;
 }
@@ -1532,53 +1581,55 @@ Boolean XtCallAcceptFocus(
 #define XtNgeoTattler "geoTattler"
 #define XtCGeoTattler "GeoTattler"
 
-typedef struct { Boolean   geo_tattler ;} GeoDataRec ;
+typedef struct {
+    Boolean geo_tattler;
+} GeoDataRec;
 
+/* *INDENT-OFF* */
 static XtResource geo_resources[] = {
     { XtNgeoTattler, XtCGeoTattler, XtRBoolean, sizeof(Boolean),
       XtOffsetOf(GeoDataRec, geo_tattler),
       XtRImmediate, (XtPointer) False }
 };
+/* *INDENT-ON* */
 
 /************************************************************************
   This function uses XtGetSubresources to find out if a widget
   needs to be geo-spied by the caller. */
-static Boolean IsTattled (Widget widget)
+static Boolean
+IsTattled(Widget widget)
 {
-    GeoDataRec geo_data ;
+    GeoDataRec geo_data;
 
-    XtGetSubresources(widget, (XtPointer)&geo_data,
-                      (String)NULL, (String)NULL,
-		      geo_resources, XtNumber(geo_resources),
-		      NULL, 0);
+    XtGetSubresources(widget, (XtPointer) &geo_data,
+                      (String) NULL, (String) NULL,
+                      geo_resources, XtNumber(geo_resources), NULL, 0);
 
     return geo_data.geo_tattler;
 
-}  /* IsTattled */
+}                               /* IsTattled */
 
-static int n_tab = 0 ;  /* not MT for now */
+static int n_tab = 0;           /* not MT for now */
 
 void
-_XtGeoTab (int direction)  /* +1 or -1 */
-{
-    n_tab += direction ;
+_XtGeoTab(int direction)
+{                               /* +1 or -1 */
+    n_tab += direction;
 }
 
-
 void
-_XtGeoTrace (Widget widget, ...)
+_XtGeoTrace(Widget widget, const char *fmt, ...)
 {
-    va_list args;
-    char *fmt;
-    int i ;
     if (IsTattled(widget)) {
-	va_start(args, widget);
-	fmt = va_arg(args, char *);
-	for (i=0; i<n_tab; i++) printf("     ");
-	(void) vprintf(fmt, args);
-	va_end(args);
+        va_list args;
+        int i;
+
+        va_start(args, fmt);
+        for (i = 0; i < n_tab; i++)
+            printf("     ");
+        (void) vprintf(fmt, args);
+        va_end(args);
     }
 }
 
-#endif /* XT_GEO_TATTLER */
-
+#endif                          /* XT_GEO_TATTLER */

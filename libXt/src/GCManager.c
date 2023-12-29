@@ -1,5 +1,5 @@
 /***********************************************************
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -73,51 +73,50 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 
-
 typedef struct _GCrec {
-    unsigned char screen;	/* Screen for GC */
-    unsigned char depth;	/* Depth for GC */
-    char	  dashes;	/* Dashes value */
-    Pixmap	  clip_mask;	/* Clip_mask value */
-    Cardinal	  ref_count;    /* # of shareholders */
-    GC		  gc;		/* The GC itself. */
-    XtGCMask	  dynamic_mask;	/* Writable values */
-    XtGCMask	  unused_mask;	/* Unused values */
-    struct _GCrec *next;	/* Next GC for this widgetkind. */
+    unsigned char screen;       /* Screen for GC */
+    unsigned char depth;        /* Depth for GC */
+    char dashes;                /* Dashes value */
+    Pixmap clip_mask;           /* Clip_mask value */
+    Cardinal ref_count;         /* # of shareholders */
+    GC gc;                      /* The GC itself. */
+    XtGCMask dynamic_mask;      /* Writable values */
+    XtGCMask unused_mask;       /* Unused values */
+    struct _GCrec *next;        /* Next GC for this widgetkind. */
 } GCrec, *GCptr;
 
 #define GCVAL(bit,mask,val,default) ((bit&mask) ? val : default)
 
 #define CHECK(bit,comp,default) \
     if ((checkMask & bit) && \
-	(GCVAL(bit,valueMask,v->comp,default) != gcv.comp)) return False
+        (GCVAL(bit,valueMask,v->comp,default) != gcv.comp)) return False
 
 #define ALLGCVALS (GCFunction | GCPlaneMask | GCForeground | \
-		   GCBackground | GCLineWidth | GCLineStyle | \
-		   GCCapStyle | GCJoinStyle | GCFillStyle | \
-		   GCFillRule | GCTile | GCStipple | \
-		   GCTileStipXOrigin | GCTileStipYOrigin | \
-		   GCFont | GCSubwindowMode | GCGraphicsExposures | \
-		   GCClipXOrigin | GCClipYOrigin | GCDashOffset | \
-		   GCArcMode)
+                   GCBackground | GCLineWidth | GCLineStyle | \
+                   GCCapStyle | GCJoinStyle | GCFillStyle | \
+                   GCFillRule | GCTile | GCStipple | \
+                   GCTileStipXOrigin | GCTileStipYOrigin | \
+                   GCFont | GCSubwindowMode | GCGraphicsExposures | \
+                   GCClipXOrigin | GCClipYOrigin | GCDashOffset | \
+                   GCArcMode)
 
-static Bool Matches(
-    Display *dpy,
-    GCptr ptr,
-    register XtGCMask valueMask,
-    register XGCValues *v,
-    XtGCMask readOnlyMask,
-    XtGCMask dynamicMask)
+static Bool
+Matches(Display *dpy,
+        GCptr ptr,
+        register XtGCMask valueMask,
+        register XGCValues *v,
+        XtGCMask readOnlyMask,
+        XtGCMask dynamicMask)
 {
     XGCValues gcv;
     register XtGCMask checkMask;
 
     if (readOnlyMask & ptr->dynamic_mask)
-	return False;
-    if (((ptr->dynamic_mask|ptr->unused_mask) & dynamicMask) != dynamicMask)
-	return False;
+        return False;
+    if (((ptr->dynamic_mask | ptr->unused_mask) & dynamicMask) != dynamicMask)
+        return False;
     if (!XGetGCValues(dpy, ptr->gc, ALLGCVALS, &gcv))
-	return False;
+        return False;
     checkMask = readOnlyMask & ~ptr->unused_mask;
     CHECK(GCForeground, foreground, 0);
     CHECK(GCBackground, background, 1);
@@ -146,52 +145,51 @@ static Bool Matches(
     CHECK(GCDashList, dashes, 4);
     valueMask &= ptr->unused_mask | dynamicMask;
     if (valueMask) {
-	XChangeGC(dpy, ptr->gc, valueMask, v);
-	if (valueMask & GCDashList)
-	    ptr->dashes = v->dashes;
-	if (valueMask & GCClipMask)
-	    ptr->clip_mask = v->clip_mask;
+        XChangeGC(dpy, ptr->gc, valueMask, v);
+        if (valueMask & GCDashList)
+            ptr->dashes = v->dashes;
+        if (valueMask & GCClipMask)
+            ptr->clip_mask = v->clip_mask;
     }
     ptr->unused_mask &= ~(dynamicMask | readOnlyMask);
     ptr->dynamic_mask |= dynamicMask;
     return True;
-} /* Matches */
+}                               /* Matches */
 
 /* Called by CloseDisplay to free the per-display GC list */
-void _XtGClistFree(
-    Display *dpy,
-    register XtPerDisplay pd)
+void
+_XtGClistFree(Display *dpy, register XtPerDisplay pd)
 {
-    register GCptr GClist, next;
-    register int i;
+    GCptr GClist, next;
 
     GClist = pd->GClist;
     while (GClist) {
-	next = GClist->next;
-	XtFree((char*)GClist);
-	GClist = next;
+        next = GClist->next;
+        XtFree((char *) GClist);
+        GClist = next;
     }
     if (pd->pixmap_tab) {
-	for (i = ScreenCount(dpy); --i >= 0; ) {
-	    if (pd->pixmap_tab[i])
-		XtFree((char *)pd->pixmap_tab[i]);
-	}
-	XtFree((char *)pd->pixmap_tab);
+        int i;
+
+        for (i = ScreenCount(dpy); --i >= 0;) {
+            if (pd->pixmap_tab[i])
+                XtFree((char *) pd->pixmap_tab[i]);
+        }
+        XtFree((char *) pd->pixmap_tab);
     }
 }
-
 
 /*
  * Return a GC with the given values and characteristics.
  */
 
-GC XtAllocateGC(
-    register Widget widget,
-    Cardinal	    depth,
-    XtGCMask        valueMask,
-    XGCValues       *values,
-    XtGCMask        dynamicMask,
-    XtGCMask        unusedMask)
+GC
+XtAllocateGC(register Widget widget,
+             Cardinal depth,
+             XtGCMask valueMask,
+             XGCValues *values,
+             XtGCMask dynamicMask,
+             XtGCMask unusedMask)
 {
     register GCptr *prev;
     register GCptr cur;
@@ -202,14 +200,15 @@ GC XtAllocateGC(
     Drawable *pixmaps;
     XtGCMask readOnlyMask;
     GC retval;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
     LOCK_PROCESS;
     if (!XtIsWidget(widget))
-	widget = _XtWindowedAncestor(widget);
+        widget = _XtWindowedAncestor(widget);
     if (!depth)
-	depth = widget->core.depth;
+        depth = widget->core.depth;
     screen = XtScreen(widget);
     dpy = DisplayOfScreen(screen);
     pd = _XtGetPerDisplay(dpy);
@@ -218,25 +217,25 @@ GC XtAllocateGC(
 
     /* Search for existing GC that matches exactly */
     for (prev = &pd->GClist; (cur = *prev); prev = &cur->next) {
-	if (cur->depth == depth &&
-	    ScreenOfDisplay(dpy, cur->screen) == screen &&
-	    Matches(dpy, cur, valueMask, values, readOnlyMask, dynamicMask)) {
+        if (cur->depth == depth &&
+            ScreenOfDisplay(dpy, cur->screen) == screen &&
+            Matches(dpy, cur, valueMask, values, readOnlyMask, dynamicMask)) {
             cur->ref_count++;
-	    /* Move this GC to front of list */
-	    *prev = cur->next;
-	    cur->next = pd->GClist;
-	    pd->GClist = cur;
-	    retval = cur->gc;
-	    UNLOCK_PROCESS;
-	    UNLOCK_APP(app);
-	    return retval;
-	}
+            /* Move this GC to front of list */
+            *prev = cur->next;
+            cur->next = pd->GClist;
+            pd->GClist = cur;
+            retval = cur->gc;
+            UNLOCK_PROCESS;
+            UNLOCK_APP(app);
+            return retval;
+        }
     }
 
     /* No matches, have to create a new one */
     cur = XtNew(GCrec);
-    cur->screen = XScreenNumberOfScreen(screen);
-    cur->depth = depth;
+    cur->screen = (unsigned char) XScreenNumberOfScreen(screen);
+    cur->depth = (unsigned char) depth;
     cur->ref_count = 1;
     cur->dynamic_mask = dynamicMask;
     cur->unused_mask = (unusedMask & ~dynamicMask);
@@ -244,37 +243,39 @@ GC XtAllocateGC(
     cur->clip_mask = GCVAL(GCClipMask, valueMask, values->clip_mask, None);
     drawable = 0;
     if (depth == widget->core.depth)
-	drawable = XtWindow(widget);
+        drawable = XtWindow(widget);
     if (!drawable && depth == (Cardinal) DefaultDepthOfScreen(screen))
-	drawable = RootWindowOfScreen(screen);
+        drawable = RootWindowOfScreen(screen);
     if (!drawable) {
-	if (!pd->pixmap_tab) {
-	    int n;
-	    pd->pixmap_tab = (Drawable **)__XtMalloc((unsigned)ScreenCount(dpy) *
-						   sizeof(Drawable *));
-	    for (n = 0; n < ScreenCount(dpy); n++)
-		pd->pixmap_tab[n] = NULL;
-	}
-	pixmaps = pd->pixmap_tab[cur->screen];
-	if (!pixmaps) {
-	    int max, n, *depths;
-	    depths = XListDepths(dpy, cur->screen, &n);
-	    n--;
-	    max = depths[n];
-	    while (n--) {
-		if (depths[n] > max)
-		    max = depths[n];
-	    }
-	    XFree((char *)depths);
-	    pixmaps = (Drawable *)__XtCalloc((unsigned)max, sizeof(Drawable));
-	    pd->pixmap_tab[cur->screen] = pixmaps;
-	}
-	drawable = pixmaps[cur->depth - 1];
-	if (!drawable) {
-	    drawable = XCreatePixmap(dpy, RootWindowOfScreen(screen), 1, 1,
-				     cur->depth);
-	    pixmaps[cur->depth - 1] = drawable;
-	}
+        if (!pd->pixmap_tab) {
+            int n;
+
+            pd->pixmap_tab = XtMallocArray((Cardinal) ScreenCount(dpy),
+                                           (Cardinal) sizeof(Drawable *));
+            for (n = 0; n < ScreenCount(dpy); n++)
+                pd->pixmap_tab[n] = NULL;
+        }
+        pixmaps = pd->pixmap_tab[cur->screen];
+        if (!pixmaps) {
+            int max, n, *depths;
+
+            depths = XListDepths(dpy, cur->screen, &n);
+            n--;
+            max = depths[n];
+            while (n--) {
+                if (depths[n] > max)
+                    max = depths[n];
+            }
+            XFree((char *) depths);
+            pixmaps = (Drawable *) __XtCalloc((unsigned) max, sizeof(Drawable));
+            pd->pixmap_tab[cur->screen] = pixmaps;
+        }
+        drawable = pixmaps[cur->depth - 1];
+        if (!drawable) {
+            drawable = XCreatePixmap(dpy, RootWindowOfScreen(screen), 1, 1,
+                                     cur->depth);
+            pixmaps[cur->depth - 1] = drawable;
+        }
     }
     cur->gc = XCreateGC(dpy, drawable, valueMask, values);
     cur->next = pd->GClist;
@@ -283,27 +284,25 @@ GC XtAllocateGC(
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
     return retval;
-} /* XtAllocateGC */
+}                               /* XtAllocateGC */
 
 /*
  * Return a read-only GC with the given values.
  */
 
-GC XtGetGC(
-    register Widget widget,
-    XtGCMask        valueMask,
-    XGCValues       *values)
+GC
+XtGetGC(register Widget widget, XtGCMask valueMask, XGCValues *values)
 {
     return XtAllocateGC(widget, 0, valueMask, values, 0, 0);
-} /* XtGetGC */
+}                               /* XtGetGC */
 
-void  XtReleaseGC(
-    Widget      widget,
-    register GC gc)
+void
+XtReleaseGC(Widget widget, register GC gc)
 {
     register GCptr cur, *prev;
-    Display* dpy;
+    Display *dpy;
     XtPerDisplay pd;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
@@ -312,25 +311,26 @@ void  XtReleaseGC(
     pd = _XtGetPerDisplay(dpy);
 
     for (prev = &pd->GClist; (cur = *prev); prev = &cur->next) {
-	if (cur->gc == gc) {
-	    if (--(cur->ref_count) == 0) {
-		*prev = cur->next;
-		XFreeGC(dpy, gc);
-		XtFree((char *) cur);
-	    }
-	    break;
-	}
+        if (cur->gc == gc) {
+            if (--(cur->ref_count) == 0) {
+                *prev = cur->next;
+                XFreeGC(dpy, gc);
+                XtFree((char *) cur);
+            }
+            break;
+        }
     }
     UNLOCK_PROCESS;
     UNLOCK_APP(app);
-} /* XtReleaseGC */
+}                               /* XtReleaseGC */
 
 /*  The following interface is broken and supplied only for backwards
  *  compatibility.  It will work properly in all cases only if there
  *  is exactly 1 Display created by the application.
  */
 
-void XtDestroyGC(register GC gc)
+void
+XtDestroyGC(register GC gc)
 {
     GCptr cur, *prev;
     XtAppContext app;
@@ -340,22 +340,24 @@ void XtDestroyGC(register GC gc)
     /* This is awful; we have to search through all the lists
        to find the GC. */
     for (; app; app = app->next) {
-	int i;
-	for (i = app->count; i ;) {
-	    Display *dpy = app->list[--i];
-	    XtPerDisplay pd = _XtGetPerDisplay(dpy);
-	    for (prev = &pd->GClist; (cur = *prev); prev = &cur->next) {
-		if (cur->gc == gc) {
-		    if (--(cur->ref_count) == 0) {
-			*prev = cur->next;
-			XFreeGC(dpy, gc);
-			XtFree((char *) cur);
-		    }
-		    UNLOCK_PROCESS;
-		    return;
-		}
-	    }
-	}
+        int i;
+
+        for (i = app->count; i;) {
+            Display *dpy = app->list[--i];
+            XtPerDisplay pd = _XtGetPerDisplay(dpy);
+
+            for (prev = &pd->GClist; (cur = *prev); prev = &cur->next) {
+                if (cur->gc == gc) {
+                    if (--(cur->ref_count) == 0) {
+                        *prev = cur->next;
+                        XFreeGC(dpy, gc);
+                        XtFree((char *) cur);
+                    }
+                    UNLOCK_PROCESS;
+                    return;
+                }
+            }
+        }
     }
     UNLOCK_PROCESS;
-} /* XtDestroyGC */
+}                               /* XtDestroyGC */

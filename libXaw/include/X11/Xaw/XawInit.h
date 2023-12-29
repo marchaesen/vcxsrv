@@ -54,7 +54,7 @@ extern Widget XawOpenApplication(
     String        application_class,
     WidgetClass   widget_class,
     int          *argc,
-    String       *argv
+    _XtString    *argv
 );
 
 _XFUNCPROTOEND

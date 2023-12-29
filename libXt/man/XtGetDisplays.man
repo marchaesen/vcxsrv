@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtGet-Displays wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetDisplays __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetDisplays \- retrieve a list of displays associated with an application context
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtGetDisplays(XtAppContext \fIapp_context\fP, Display
 ***\fIdpy_return\fP, Cardinal* \fInum_dpy_return\fP);
@@ -78,7 +51,7 @@ context.
 Returns the count of open X display connections in \fIdpy_return\fP.
 .SH DESCRIPTION
 To free the list of displays, use
-.ZN XtFree .
+.BR XtFree .
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

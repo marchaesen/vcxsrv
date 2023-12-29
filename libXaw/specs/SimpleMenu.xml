@@ -1,21 +1,21 @@
-<sect2 id="SimpleMenu_Widget">
+<sect1 id="SimpleMenu_Widget">
 <title>SimpleMenu Widget</title>
 <!-- .XS -->
 <!-- 	SimpleMenu Widget -->
 <!-- .XE -->
-<!-- .IN "SimpleMenu widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>SimpleMenu widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/SimpleMenu.h&gt;
-<!-- .IN "SimpleMenu.h" "" -->
+<indexterm><primary>SimpleMenu.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/SimpleMenP.h&gt;
-<!-- .IN "SimpleMenP.h" "" -->
+<indexterm><primary>SimpleMenP.h</primary></indexterm>
 Class		simpleMenuWidgetClass
-<!-- .IN "simpleMenuWidgetClass" "" -->
+<indexterm><primary>simpleMenuWidgetClass</primary></indexterm>
 Class Name	SimpleMenu
-<!-- .IN "SimpleMenu widget" "class name" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>class name</secondary></indexterm>
 Superclass	OverrideShell
 <!-- .sp -->
 </literallayout>
@@ -28,11 +28,11 @@ only part of the menu that
 actually is associated with a window.  The SimpleMenu serves as the glue to bind
 the individual menu entries together into a menu.
 </para>
-<sect3 id="Resources">
+<sect2 id="SimpleMenu::Resources">
 <title>Resources</title>
 <para>
 <!-- .LP -->
-<!-- .IN "SimpleMenu widget" "resources" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>resources</secondary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -326,7 +326,7 @@ that will affect the entire menu.
     </term>
     <listitem>
       <para>
-<!-- .IN "conversions" "BackingStore" -->
+<indexterm><primary>conversions</primary><secondary>BackingStore</secondary></indexterm>
 Determines what type of backing store will be used for the menu.  Legal
 values for this resource are <function>NotUseful</function>, <function>WhenMapped</function>, and
 <function>Always</function>.  These values are the backing-store integers defined in
@@ -440,7 +440,8 @@ Determines the value of the override_redirect attribute of the
 SimpleMenu's window.  The override_redirect attribute of a window
 determines whether or not a window manager may interpose itself between
 this window and the root window of the display.  For more information
-see the <emphasis remap='I'>Interclient Communications Conventions Manual</emphasis>.
+see the <olink targetdoc='icccm' targetptr='icccm'
+><citetitle>Interclient Communications Conventions Manual</citetitle></olink>.
       </para>
     </listitem>
   </varlistentry>
@@ -510,10 +511,10 @@ If this is <function>True</function> then save unders will be active on the menu
   </varlistentry>
 </variablelist>
 </para>
-</sect3>
-<sect3 id="SimpleMenu_Actions">
+</sect2>
+<sect2 id="SimpleMenu_Actions">
 <title>SimpleMenu Actions</title>
-<!-- .IN "SimpleMenu widget" "actions" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The SimpleMenu widget supports the following actions:
@@ -535,7 +536,7 @@ Processing menu entry callbacks with <function>notify</function>
 </itemizedlist>
 <para>
 <!-- .LP -->
-<!-- .IN "SimpleMenu widget" "default translations" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>default translations</secondary></indexterm>
 The following are the default translation bindings used
 by the SimpleMenu widget:
 </para>
@@ -545,16 +546,16 @@ by the SimpleMenu widget:
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-	&lt;EnterWindow&gt;:	highlight(\|)
-	&lt;LeaveWindow&gt;:	unhighlight(\|)
-	&lt;BtnMotion&gt;:	highlight(\|)
-	&lt;BtnUp&gt;:	MenuPopdown(\|) notify(\|) unhighlight(\|)
+	&lt;EnterWindow&gt;:	highlight(&#x2006;)
+	&lt;LeaveWindow&gt;:	unhighlight(&#x2006;)
+	&lt;BtnMotion&gt;:	highlight(&#x2006;)
+	&lt;BtnUp&gt;:	MenuPopdown(&#x2006;) notify(&#x2006;) unhighlight(&#x2006;)
 </literallayout>
 <!-- .sp -->
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "SimpleMenu widget" "MenuPopdown routine" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>MenuPopdown routine</secondary></indexterm>
 The user can pop down the menu without activating any of the callback
 functions by releasing the pointer button when no menu item is
 highlighted.
@@ -579,7 +580,7 @@ the menu entry.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>unhighlight</function>(\|)
+      <function>unhighlight</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -590,7 +591,7 @@ its normal look.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>notify</function>(\|)
+      <function>notify</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -607,17 +608,17 @@ appropriate action.
     <listitem>
       <para>
 This action is defined in <emphasis remap='I'>(xT</emphasis>.
-<!-- .IN "SimpleMenu widget" "MenuPopdown routine" -->
+<indexterm><primary>SimpleMenu widget</primary><secondary>MenuPopdown routine</secondary></indexterm>
     </para>
   </listitem>
   </varlistentry>
 </variablelist>
 </para>
-</sect3>
-<sect3 id="Positioning_the_SimpleMenu">
+</sect2>
+<sect2 id="Positioning_the_SimpleMenu">
 <title>Positioning the SimpleMenu</title>
-<!-- .IN "XawPositionSimpleMenu" "" "@DEF@" -->
-<!-- .IN "SimpleMenu widget" "positioning" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPositionSimpleMenu</primary></indexterm>
+<indexterm significance="preferred"><primary>SimpleMenu widget</primary><secondary>positioning</secondary></indexterm>
 <para>
 <!-- .LP -->
 If the SimpleMenu widget is to be used as a pulldown menu then the
@@ -637,7 +638,7 @@ routine <xref linkend='XawSimpleMenuAddGlobalActions' xrefstyle='select: title'/
 <para>
 <!-- .LP -->
 Translation writers should be aware that Xt does not register grabs on
-``don't care'' modifiers, and therefore the left hand side of the
+<quote>don't care</quote> modifiers, and therefore the left hand side of the
 production should be written to exclude unspecified modifiers.
 For example these are the translations needed to popup some of
 <function>xterm's</function> menus:
@@ -677,20 +678,20 @@ placed so that the pointer cursor is centered on the entry named by the
   </varlistentry>
 </variablelist>
 </para>
-</sect3>
-<sect3 id="Convenience_Routines">
+</sect2>
+<sect2 id="SimpleMenu::Convenience_Routines">
 <title>Convenience Routines</title>
-<sect4 id="Registering_the_Global_Action_Routines">
+<sect3 id="Registering_the_Global_Action_Routines">
 <title>Registering the Global Action Routines</title>
 <para>
 <!-- .LP -->
-<!-- .IN "XawPositionSimpleMenu" "" -->
+<indexterm><primary>XawPositionSimpleMenu</primary></indexterm>
 The <function>XawPositionSimpleMenu</function> action routine may often be invoked
 before any menus have been created.  This can occur when an
 application uses dynamic menu creation.  In these cases an application will
 need to register this global action routine by calling
 <xref linkend='XawSimpleMenuAddGlobalActions' xrefstyle='select: title'/>:
-<!-- .IN "XawSimpleMenuAddGlobalActions" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawSimpleMenuAddGlobalActions</primary></indexterm>
 <funcsynopsis id='XawSimpleMenuAddGlobalActions'>
 <funcprototype>
   <funcdef>void<function> XawSimpleMenuAddGlobalActions</function></funcdef>
@@ -717,14 +718,14 @@ This function need only be called once per application and must be
 called before any widget that uses <function>XawPositionSimpleMenu</function> action
 is realized.
 </para>
-</sect4>
-<sect4 id="Getting_and_Clearing_the_Current_Menu_Entry">
+</sect3>
+<sect3 id="Getting_and_Clearing_the_Current_Menu_Entry">
 <title>Getting and Clearing the Current Menu Entry</title>
 <para>
 <!-- .LP -->
 To get the currently highlighted menu entry use
 <xref linkend='XawSimpleMenuGetActiveEntry' xrefstyle='select: title'/>:
-<!-- .IN "XawSimpleMenuGetActiveEntry" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawSimpleMenuGetActiveEntry</primary></indexterm>
 <funcsynopsis id='XawSimpleMenuGetActiveEntry'>
 <funcprototype>
   <funcdef>Widget<function> XawSimpleMenuGetActiveEntry</function></funcdef>
@@ -756,7 +757,7 @@ currently highlighted, or NULL if no entry is highlighted.
 To clear the SimpleMenu widget's internal information about the
 currently highlighted menu entry use
 <xref linkend='XawSimpleMenuClearActiveEntry' xrefstyle='select: title'/>:
-<!-- .IN "XawSimpleMenuClearActiveEntry" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawSimpleMenuClearActiveEntry</primary></indexterm>
 <funcsynopsis id='XawSimpleMenuClearActiveEntry'>
 <funcprototype>
   <funcdef>Widget<function> XawSimpleMenuClearActiveEntry</function></funcdef>
@@ -785,6 +786,6 @@ alter the appearance of the active entry.  This function is primarily
 for use by implementors of menu entries.
 
 </para>
-</sect4>
 </sect3>
 </sect2>
+</sect1>

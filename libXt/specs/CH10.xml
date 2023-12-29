@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Translation_Management'>
 <title>Translation Management</title>
 <para>
@@ -111,12 +114,12 @@ Specifies the number of entries in <emphasis remap='I'>params</emphasis>.
   </varlistentry>
 </variablelist>
 
-<literallayout >
+<programlisting>
 typedef struct _XtActionsRec {
-	String string;
-	XtActionProc proc;
+        String          string;
+        XtActionProc    proc;
 } XtActionsRec, *XtActionList;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>string</emphasis> field is the name used in translation tables to access
 the procedure.
@@ -178,18 +181,18 @@ The string entry is the name used in translation tables.
 The procedure entry (usually spelled identically to the string)
 is the name of the C procedure that implements that function:
 </para>
-<literallayout >
+<programlisting>
 XtActionsRec actionTable[] = {
-	{"Set",	Set},
-	{"Unset",	Unset},
-	{"Highlight",	Highlight},
-	{"Unhighlight",	Unhighlight}
-	{"Notify",	Notify},
+        {"Set",         Set},
+        {"Unset",       Unset},
+        {"Highlight",   Highlight},
+        {"Unhighlight", Unhighlight}
+        {"Notify",      Notify},
 };
-</literallayout>
+</programlisting>
 <para>
 The Intrinsics reserve all action names and parameters starting with
-the characters ``Xt'' for future standard enhancements.  Users,
+the characters &ldquo;Xt&rdquo; for future standard enhancements.  Users,
 applications, and widgets should not declare action names or pass
 parameters starting with these characters except to invoke specified
 built-in Intrinsics functions.
@@ -547,13 +550,13 @@ Call callbacks and reinvert on left button up.
 <para>
 The following illustrates Pushbutton's default translation table:
 </para>
-<literallayout >
+<programlisting>
 static String defaultTranslations =
-	"&lt;EnterWindow&gt;:	Highlight()\\n\\
-	&lt;LeaveWindow&gt;:	Unhighlight()\\n\\
-	&lt;Btn1Down&gt;:	Set()\\n\\
-	&lt;Btn1Up&gt;:	Notify() Unset()";
-</literallayout>
+        "&lt;EnterWindow&gt;:   Highlight()\n\
+        &lt;LeaveWindow&gt;:    Unhighlight()\n\
+        &lt;Btn1Down&gt;:       Set()\n\
+        &lt;Btn1Up&gt;: Notify() Unset()";
+</programlisting>
 <para>
 The <emphasis remap='I'>tm_table</emphasis> field of the
 <function>CoreClassPart</function>
@@ -625,8 +628,8 @@ action sequence.
 Translation table entries may specify actions that are taken when two
 or more identical events occur consecutively within a short time
 interval, called the multi-click time.  The multi-click time value may
-be specified as an application resource with name ``multiClickTime'' and
-class ``MultiClickTime'' and may also be modified dynamically by the
+be specified as an application resource with name &ldquo;multiClickTime&rdquo; and
+class &ldquo;MultiClickTime&rdquo; and may also be modified dynamically by the
 application.  The multi-click time is unique for each Display value and
 is retrieved from the resource database by
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
@@ -784,7 +787,7 @@ To compile a translation table, use
 <funcsynopsis id='XtParseTranslationTable'>
 <funcprototype>
 <funcdef>XtTranslations <function>XtParseTranslationTable</function></funcdef>
-   <paramdef>String <parameter>table</parameter></paramdef>
+   <paramdef>const char * <parameter>table</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -946,8 +949,8 @@ augment, or override any
 existing translation table in the widget.
 To specify this,
 a pound sign (#) is given as the first character of the table
-followed by one of the keywords ``replace'', ``augment'', or
-``override'' to indicate
+followed by one of the keywords &ldquo;replace&rdquo;, &ldquo;augment&rdquo;, or
+&ldquo;override&rdquo; to indicate
 whether to replace, augment, or override the existing table.
 The replace or merge
 operation is performed during the
@@ -956,20 +959,20 @@ instance initialization.
 Each merge operation produces a new
 translation resource value; if the original tables were shared by
 other widgets, they are unaffected.  If no directive is
-specified, ``#replace'' is assumed.
+specified, &ldquo;#replace&rdquo; is assumed.
 </para>
 
 <para>
 At instance initialization
 the XtNtranslations resource is first fetched.  Then, if it was
-not specified or did not contain ``#replace'', the
+not specified or did not contain &ldquo;#replace&rdquo;, the
 resource database is searched for the resource XtNbaseTranslations.
 If XtNbaseTranslations is found, it is merged into the widget class
 translation table.  Then the widget <emphasis remap='I'>translations</emphasis> field is
 merged into the result or into the class translation table if
 XtNbaseTranslations was not found.  This final table is then
 stored into the widget <emphasis remap='I'>translations</emphasis> field.  If the XtNtranslations
-resource specified ``#replace'', no merge is done.
+resource specified &ldquo;#replace&rdquo;, no merge is done.
 If neither XtNbaseTranslations or XtNtranslations are specified,
 the class translation table is copied into the widget instance.
 </para>
@@ -1101,7 +1104,7 @@ To parse an accelerator table, use
 <funcsynopsis id='XtParseAcceleratorTable'>
 <funcprototype>
 <funcdef>XtAccelerators <function>XtParseAcceleratorTable</function></funcdef>
-   <paramdef>String <parameter>source</parameter></paramdef>
+   <paramdef>const char * <parameter>source</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1385,9 +1388,9 @@ server's KeyCode-to-KeySym table.  This table must not be modified.
 There are <emphasis remap='I'>keysyms_per_keycode_return</emphasis> KeySyms associated with each
 KeyCode, located in the table with indices starting at index
 </para>
-<literallayout>
+<programlisting>
     (test_keycode - min_keycode_return) * keysyms_per_keycode_return
-</literallayout>
+</programlisting>
 <para>
 for KeyCode <emphasis remap='I'>test_keycode</emphasis>.  Any entries that have no KeySyms associated
 with them contain the value
@@ -1401,7 +1404,7 @@ needed, as the table may change prior to dispatching each event.
 <para>
 For more information on this table, see
 <olink targetdoc='libX11' targetptr='Manipulating_the_Keyboard_Encoding'>Section 12.7</olink> in
-<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>.
+<olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
 </para>
 
 <para>
@@ -1931,6 +1934,7 @@ event bindings in the widget's translation table, use
    <paramdef>Boolean <parameter>owner_events</parameter></paramdef>
    <paramdef>unsigned int <parameter>event_mask</parameter></paramdef>
    <paramdef>int <parameter>pointer_mode</parameter></paramdef>
+   <paramdef>int <parameter>keyboard_mode</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1951,7 +1955,7 @@ Specifies the action procedure to search for in translation tables.
     </term>
     <listitem>
       <para></para>
-      
+
     </listitem>
   </varlistentry>
   <varlistentry>
@@ -1960,7 +1964,7 @@ Specifies the action procedure to search for in translation tables.
     </term>
     <listitem>
       <para></para>
-      
+
     </listitem>
   </varlistentry>
   <varlistentry>
@@ -2026,7 +2030,7 @@ translation table entry only.  For both
 and
 <function>KeyPress</function>
 events, don't-care modifiers are ignored unless the translation entry
-explicitly specifies ``Any'' in the <emphasis remap='I'>modifiers</emphasis> field.
+explicitly specifies &ldquo;Any&rdquo; in the <emphasis remap='I'>modifiers</emphasis> field.
 </para>
 
 <para>
@@ -2061,9 +2065,9 @@ invoke an action procedure directly, without generating
 <funcprototype>
 <funcdef>void <function>XtCallActionProc</function></funcdef>
    <paramdef>Widget <parameter>widget</parameter></paramdef>
-   <paramdef>String <parameter>action</parameter></paramdef>
-   <paramdef>XEvent *<parameter>event</parameter></paramdef>
-   <paramdef>String *<parameter>params</parameter></paramdef>
+   <paramdef>const char * <parameter>action</parameter></paramdef>
+   <paramdef>XEvent * <parameter>event</parameter></paramdef>
+   <paramdef>String * <parameter>params</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_params</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>

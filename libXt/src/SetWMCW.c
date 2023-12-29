@@ -5,7 +5,7 @@
 
 /************************************************************
 
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -60,42 +60,39 @@ in this Software without prior written authorization from The Open Group.
 #include "IntrinsicI.h"
 #include <X11/Xatom.h>
 
-/*	Function Name: XtSetWMColormapWindows
+/*      Function Name: XtSetWMColormapWindows
  *
- *	Description: Sets the value of the WM_COLORMAP_WINDOWS
+ *      Description: Sets the value of the WM_COLORMAP_WINDOWS
  *                   property on a widget's window.
  *
- *	Arguments:  widget - specifies the widget on whose window the
- *   		           - WM_COLORMAP_WINDOWS property will be stored.
+ *      Arguments:  widget - specifies the widget on whose window the
+ *                         - WM_COLORMAP_WINDOWS property will be stored.
  *
  *                  list - Specifies a list of widgets whose windows are to be
- *		           listed in the WM_COLORMAP_WINDOWS property.
+ *                         listed in the WM_COLORMAP_WINDOWS property.
  *                  count - Specifies the number of widgets in list.
  *
- *	Returns: none.
+ *      Returns: none.
  */
 
 void
-XtSetWMColormapWindows(
-    Widget widget,
-    Widget *list,
-    Cardinal count)
+XtSetWMColormapWindows(Widget widget, Widget *list, Cardinal count)
 {
     Window *data;
     Widget *checked, *top, *temp, hookobj;
     Cardinal i, j, checked_count;
     Boolean match;
     Atom xa_wm_colormap_windows;
+
     WIDGET_TO_APPCON(widget);
 
     LOCK_APP(app);
-    if ( !XtIsRealized(widget) || (count == 0) ) {
-	UNLOCK_APP(app);
-	return;
+    if (!XtIsRealized(widget) || (count == 0)) {
+        UNLOCK_APP(app);
+        return;
     }
 
-    top = checked = (Widget *) __XtMalloc( (Cardinal) sizeof(Widget) * count);
-
+    top = checked = XtMallocArray(count, (Cardinal) sizeof(Widget));
 
 /*
  * The specification calls for only adding the windows that have unique
@@ -106,31 +103,32 @@ XtSetWMColormapWindows(
  */
 
     for (checked_count = 0, i = 0; i < count; i++) {
-	if (!XtIsRealized(list[i])) continue;
+        if (!XtIsRealized(list[i]))
+            continue;
 
-	*checked = list[i];
-	match = FALSE;
+        *checked = list[i];
+        match = FALSE;
 
 /*
  * Don't check first element for matching colormap since there is nothing
  * to check it against.
  */
 
-	if (checked != top)
-	    for (j = 0, temp = top; j < checked_count ; j++, temp++)
-		if ( (*temp)->core.colormap == (*checked)->core.colormap) {
-		    match = TRUE;
-		    break;
-		}
+        if (checked != top)
+            for (j = 0, temp = top; j < checked_count; j++, temp++)
+                if ((*temp)->core.colormap == (*checked)->core.colormap) {
+                    match = TRUE;
+                    break;
+                }
 
 /*
  * If no colormap was found to match then add this widget to the linked list.
  */
 
-	if (!match) {
-	    checked++;
-	    checked_count++;
-	}
+        if (!match) {
+            checked++;
+            checked_count++;
+        }
     }
 
 /*
@@ -138,32 +136,32 @@ XtSetWMColormapWindows(
  * windows and set the property.
  */
 
-    data = (Window *) __XtMalloc( (Cardinal) sizeof(Window) * checked_count);
+    data = XtMallocArray(checked_count, (Cardinal) sizeof(Window));
 
-    for ( i = 0 ; i < checked_count ; i++)
-	data[i] = XtWindow(top[i]);
+    for (i = 0; i < checked_count; i++)
+        data[i] = XtWindow(top[i]);
 
     xa_wm_colormap_windows = XInternAtom(XtDisplay(widget),
-					 "WM_COLORMAP_WINDOWS", FALSE);
+                                         "WM_COLORMAP_WINDOWS", FALSE);
 
     XChangeProperty(XtDisplay(widget), XtWindow(widget),
-		    xa_wm_colormap_windows, XA_WINDOW, 32,
-		    PropModeReplace, (unsigned char *) data, (int) i);
+                    xa_wm_colormap_windows, XA_WINDOW, 32,
+                    PropModeReplace, (unsigned char *) data, (int) i);
 
     hookobj = XtHooksOfDisplay(XtDisplay(widget));
     if (XtHasCallbacks(hookobj, XtNchangeHook) == XtCallbackHasSome) {
-	XtChangeHookDataRec call_data;
+        XtChangeHookDataRec call_data;
 
-	call_data.type = XtHsetWMColormapWindows;
-	call_data.widget = widget;
-	call_data.event_data = (XtPointer) list;
-	call_data.num_event_data = count;
-	XtCallCallbackList(hookobj,
-		((HookObject)hookobj)->hooks.changehook_callbacks,
-		(XtPointer)&call_data);
+        call_data.type = XtHsetWMColormapWindows;
+        call_data.widget = widget;
+        call_data.event_data = (XtPointer) list;
+        call_data.num_event_data = count;
+        XtCallCallbackList(hookobj,
+                           ((HookObject) hookobj)->hooks.changehook_callbacks,
+                           (XtPointer) &call_data);
     }
 
-    XtFree( (char *) data);
-    XtFree( (char *) top);
+    XtFree((char *) data);
+    XtFree((char *) top);
     UNLOCK_APP(app);
 }

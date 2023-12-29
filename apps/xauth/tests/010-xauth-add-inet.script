@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 
-# setup the test ennvironment inside this shell
-. setup-sourced
+# setup the test environment inside this shell
+. ${srcdir:-.}/setup-sourced
 
 xauth add examplehost1/unix:0 MIT-MAGIC-COOKIE-1 b90b0fd1cf6a0e7a2c74c00000000001
 xauth add examplehost2/unix:0 . b90b0fd1cf6a0e7a2c74c00000000002

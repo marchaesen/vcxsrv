@@ -53,7 +53,11 @@ SOFTWARE.
 #include <X11/Xalloca.h>
 
 
-#if defined (_LP64) || \
+#if defined(__SIZEOF_LONG__)
+# if __SIZEOF_LONG__ == 8
+#  define LONG64
+# endif
+# elif defined (_LP64) || \
     defined(__alpha) || defined(__alpha__) || \
     defined(__ia64__) || defined(ia64) || \
     defined(__sparc64__) || \

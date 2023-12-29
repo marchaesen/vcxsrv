@@ -1,5 +1,5 @@
 /***********************************************************
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -77,9 +77,8 @@ in this Software without prior written authorization from The Open Group.
 #endif
 #include "IntrinsicI.h"
 
-void XtSetMultiClickTime(
-    Display *dpy,
-    int time)
+void
+XtSetMultiClickTime(Display *dpy, int time)
 {
     DPY_TO_APPCON(dpy);
 
@@ -88,11 +87,11 @@ void XtSetMultiClickTime(
     UNLOCK_APP(app);
 }
 
-
-int XtGetMultiClickTime(
-    Display *dpy)
+int
+XtGetMultiClickTime(Display *dpy)
 {
     int retval;
+
     DPY_TO_APPCON(dpy);
 
     LOCK_APP(app);

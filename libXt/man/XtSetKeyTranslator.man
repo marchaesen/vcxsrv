@@ -32,40 +32,14 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtSet-Key-Translator XtTranslate-Keycode XtRegister-Case-Converter XtConvert-Case wid-get
+.hw XtSet-Key-Translator XtTranslate-Keycode XtRegister-Case-Converter
+.hw XtConvert-Case wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetKeyTranslator __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetKeyTranslator, XtTranslateKeycode, XtRegisterCaseConverter, XtConvertCase \- convert KeySym to KeyCodes
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetKeyTranslator(Display *\fIdisplay\fP, XtKeyProc \fIproc\fP);
 .HP
@@ -79,9 +53,8 @@ KeySym \fIstart\fP, KeySym \fIstop\fP);
 void XtConvertCase(Display *\fIdisplay\fP, KeySym \fIkeysym\fP, KeySym
 *\fIlower_return\fP, KeySym *\fIupper_return\fP);
 .SH ARGUMENTS
-.ds Di
 .IP \fIdisplay\fP 1i
-Specifies the display\*(Di.
+Specifies the display.
 .IP \fIkeycode\fP 1i
 Specifies the KeyCode to translate.
 .IP \fIkeysym\fP 1i
@@ -97,21 +70,20 @@ Specifies the modifiers to the KeyCode.
 .IP \fImodifiers_return\fP 1i
 Returns a mask that indicates the modifiers actually used
 to generate the KeySym.
-.ds Pr \ to perform key translations or conversions
 .IP \fIproc\fP 1i
-Specifies the procedure that is\*(Pr.
+Specifies the procedure that is to perform key translations or conversions.
 .IP \fIstart\fP 1i
 Specifies the first KeySym for which this converter is valid.
 .IP \fIstop\fP 1i
 Specifies the last KeySym for which this converter is valid.
 .SH DESCRIPTION
 The
-.ZN XtSetKeyTranslator
+.B XtSetKeyTranslator
 function sets the specified procedure as the current key translator.
 The default translator is
-.ZN XtTranslateKey ,
+.BR XtTranslateKey ,
 an
-.ZN XtKeyProc
+.B XtKeyProc
 that uses Shift and Lock modifiers with the interpretations defined
 by the core protocol.
 It is provided so that new translators can call it to get default
@@ -119,12 +91,12 @@ KeyCode-to-KeySym translations and so that the default translator
 can be reinstalled.
 .LP
 The
-.ZN XtTranslateKeycode
+.B XtTranslateKeycode
 function passes the specified arguments
 directly to the currently registered KeyCode to KeySym translator.
 .LP
 The
-.ZN XtRegisterCaseConverter
+.B XtRegisterCaseConverter
 registers the specified case converter.
 The start and stop arguments provide the inclusive range of KeySyms
 for which this converter is to be called.
@@ -132,15 +104,15 @@ The new converter overrides any previous converters for KeySyms in that range.
 No interface exists to remove converters;
 you need to register an identity converter.
 When a new converter is registered,
-the \*(xI  refreshes the keyboard state if necessary.
+the \*(xI refreshes the keyboard state if necessary.
 The default converter understands case conversion for all
 KeySyms defined in the core protocol.
 .LP
 The
-.ZN XtConvertCase
+.B XtConvertCase
 function calls the appropriate converter and returns the results.
 A user-supplied
-.ZN XtKeyProc
+.B XtKeyProc
 may need to use this function.
 .SH "SEE ALSO"
 .br

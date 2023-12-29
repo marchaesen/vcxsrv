@@ -100,7 +100,7 @@ typedef struct {
     Boolean show_current;
     char pad1[(sizeof(XtPointer) - sizeof(Boolean)) +
 		 (sizeof(XtPointer) - sizeof(int))];
-    XtPointer pad2[2];	/* for future use and keep binary compatability */
+    XtPointer pad2[2];	/* for future use and keep binary compatibility */
 #endif
 } ListPart;
 

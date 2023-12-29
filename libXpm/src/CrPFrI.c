@@ -36,8 +36,9 @@
 #include <config.h>
 #endif
 #include "XpmI.h"
+#include <stdint.h>
 
-void
+int
 xpmCreatePixmapFromImage(
     Display	*display,
     Drawable	 d,
@@ -46,6 +47,11 @@ xpmCreatePixmapFromImage(
 {
     GC gc;
     XGCValues values;
+
+    /* X Pixmaps are limited to unsigned 16-bit height/width */
+    if ((ximage->width > UINT16_MAX) || (ximage->height > UINT16_MAX)) {
+	return XpmNoMemory;
+    }
 
     *pixmap_return = XCreatePixmap(display, d, ximage->width,
 				   ximage->height, ximage->depth);
@@ -59,4 +65,6 @@ xpmCreatePixmapFromImage(
 	      ximage->width, ximage->height);
 
     XFreeGC(display, gc);
+
+    return XpmSuccess;
 }

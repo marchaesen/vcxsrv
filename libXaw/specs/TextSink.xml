@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!-- 	TextSink Object -->
 <!-- .XE -->
-<!-- .IN "TextSink object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -13,13 +13,13 @@
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 Application Header file	&lt;X11/Xaw/TextSink.h&gt;
-<!-- .IN "TextSink.h" "" -->
+<indexterm><primary>TextSink.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/TextSinkP.h&gt;
-<!-- .IN "TextSinkP.h" "" -->
+<indexterm><primary>TextSinkP.h</primary></indexterm>
 Class		textSinkObjectClass
-<!-- .IN "textSinkObjectClass" "" -->
+<indexterm><primary>textSinkObjectClass</primary></indexterm>
 Class Name	TextSink
-<!-- .IN "TextSink object" "class name" -->
+<indexterm><primary>TextSink object</primary><secondary>class name</secondary></indexterm>
 Superclass	Object
 </literallayout>
 </para>
@@ -44,7 +44,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "AsciiSink object" "resources" -->
+<indexterm><primary>AsciiSink object</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -96,7 +96,7 @@ retrieved from the argument list or from the resource database:
 </sect2>
 <sect2 id="Subclassing_the_TextSink">
 <title>Subclassing the TextSink</title>
-<!-- .IN "TextSink object" "subclassing" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>subclassing</secondary></indexterm>
 <para>
 <!-- .LP -->
 The only purpose of the TextSink Object is to be subclassed.  It
@@ -191,7 +191,7 @@ to be used as a sink by itself.
 <!-- .LP -->
 To display a section of the text buffer contained in the text source
 use the function <xref linkend='DisplayText' xrefstyle='select: title'/>:
-<!-- .IN "TextSink object" "DisplayText" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>DisplayText</secondary></indexterm>
 <funcsynopsis id='DisplayText'>
 <funcprototype>
   <funcdef>void<function> DisplayText</function></funcdef>
@@ -352,8 +352,8 @@ defines this function as calling
 on the region passed.
 This behavior will be used if you specify
 <function>XtInheritClearToBackground</function> for this method.
-<!-- .IN "XtInheritClearToBackground" "" -->
-<!-- .IN "TextSink object" "ClearToBackground" "@DEF@" -->
+<indexterm><primary>XtInheritClearToBackground</primary></indexterm>
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>ClearToBackground</secondary></indexterm>
 <funcsynopsis id='ClearToBackground'>
 <funcprototype>
   <funcdef>void<function> ClearToBackground</function></funcdef>
@@ -427,7 +427,7 @@ Specifies the height, in pixels, of the Region to clear.
 <!-- .LP -->
 To find the text character position that will be rendered at a given x
 location the Text widget uses the function <xref linkend='FindPosition' xrefstyle='select: title'/>:
-<!-- .IN "TextSink object" "FindPosition" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>FindPosition</secondary></indexterm>
 <funcsynopsis id='FindPosition'>
 <funcprototype>
   <funcdef>void<function> FindPosition</function></funcdef>
@@ -541,7 +541,7 @@ widget will only call it one line at a time.
 <!-- .sp -->
 Another means of finding a text position is provided by the <xref linkend='Resolve' xrefstyle='select: title'/>
 function:
-<!-- .IN "TextSink object" "Resolve" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>Resolve</secondary></indexterm>
 <funcsynopsis id='Resolve'>
 <funcprototype>
   <funcdef>void<function> Resolve</function></funcdef>
@@ -617,7 +617,7 @@ This function need make no attempt to deal with line feeds.  The text
 widget will only call it one line at a time.  This is a more convenient
 interface to the <xref linkend='FindPosition' xrefstyle='select: title'/> function, and provides a subset of its
 functionality.
-<!-- .IN "FindPosition" "" -->
+<indexterm><primary>FindPosition</primary></indexterm>
 </para>
 </sect3>
 <sect3 id="Finding_the_Distance_Between_two_Text_Positions">
@@ -626,7 +626,7 @@ functionality.
 <!-- .LP -->
 To find the distance in pixels between two text positions on the same
 line use the function <xref linkend='FindDistance' xrefstyle='select: title'/>.
-<!-- .IN "TextSink object" "FindDistance" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>FindDistance</secondary></indexterm>
 <funcsynopsis id='FindDistance'>
 <funcprototype>
   <funcdef>void<function> FindDistance</function></funcdef>
@@ -732,7 +732,7 @@ To find the maximum number of lines that will fit into the current Text
 widget, use the function <xref linkend='MaxLines' xrefstyle='select: title'/>.  The TextSink already defines
 this function to compute the maximum number of lines by using the height
 of <function>font</function>.
-<!-- .IN "TextSink object" "MaxLines" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>MaxLines</secondary></indexterm>
 <funcsynopsis id='MaxLines'>
 <funcprototype>
   <funcdef>int<function> MaxLines</function></funcdef>
@@ -775,7 +775,7 @@ To find the height required for a given number of text lines, use
 the function <xref linkend='MaxHeight' xrefstyle='select: title'/>.  The TextSink already defines this
 function to compute the maximum height of the window by using the
 height of <function>font</function>.
-<!-- .IN "TextSink object" "MaxHeight" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>MaxHeight</secondary></indexterm>
 <funcsynopsis id='MaxHeight'>
 <funcprototype>
   <funcdef>int<function> MaxHeight</function></funcdef>
@@ -820,7 +820,7 @@ To set the tab stops for a text sink use the <xref linkend='SetTabs' xrefstyle='
 The TextSink already defines this function to set the tab x location in
 pixels to be the number of characters times the figure width of
 <function>font</function>.
-<!-- .IN "TextSink object" "SetTabs" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>SetTabs</secondary></indexterm>
 <funcsynopsis id='SetTabs'>
 <funcprototype>
   <funcdef>void<function> SetTabs</function></funcdef>
@@ -874,7 +874,7 @@ to it into whatever internal positions the TextSink uses for tab placement.
 <!-- .LP -->
 To get the size and location of the insert point use the
 <xref linkend='GetCursorBounds' xrefstyle='select: title'/> function.
-<!-- .IN "TextSink object" "GetCursorBounds" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSink object</primary><secondary>GetCursorBounds</secondary></indexterm>
 <funcsynopsis id='GetCursorBounds'>
 <funcprototype>
   <funcdef>void<function> GetCursorBounds</function></funcdef>

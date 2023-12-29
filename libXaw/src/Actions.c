@@ -110,8 +110,8 @@ static Bool prim(XawEvalInfo*);
 /* resources */
 static String XawConvertActionRes(XawActionResList*, Widget w, String);
 
-static String _XawEscapeActionVarValue(String);
-static String _XawUnescapeActionVarValue(String);
+static char * _XawEscapeActionVarValue(String);
+static char * _XawUnescapeActionVarValue(String);
 static XawActionResList *_XawCreateActionResList(WidgetClass);
 static XawActionResList *_XawFindActionResList(WidgetClass);
 static void _XawBindActionResList(XawActionResList*);
@@ -149,9 +149,9 @@ static Cardinal num_variable_list;
  * Start of Boolean Expression Evaluation Implementation Code
  */
 Bool
-XawParseBoolean(Widget w, String param, XEvent *event, Bool *succed)
+XawParseBoolean(Widget w, String param, XEvent *event, Bool *succeed)
 {
-  char *tmp = param;
+  char *tmp = (char *)param;
   int value;
 
   if (!param)
@@ -179,7 +179,7 @@ XawParseBoolean(Widget w, String param, XEvent *event, Bool *succed)
   else if (XmuCompareISOLatin1(param, "faked") == 0)
     return (event->xany.send_event != 0);
   else
-    *succed = False;
+    *succeed = False;
 
   return (False);
 }
@@ -206,7 +206,7 @@ XawBooleanExpression(Widget w, String param, XEvent *event)
   info.parse_proc = XawParseBoolean;
 
   info.event = event;
-  info.cp = info.lp = param;
+  info.cp = info.lp = (char *)param;
 
 #ifdef DIAGNOSTIC
   fprintf(stderr, "(*) Parsing expression \"%s\"\n", param);
@@ -246,7 +246,7 @@ get_token(XawEvalInfo *info)
   /* It's a symbol name, resolve it. */
   if (ch == XAW_PRIV_VAR_PREFIX || isalnum(ch) || ch == '_' || ch == '\\')
     {
-      Bool succed = True;
+      Bool succeed = True;
 
       p = info->cp - 1;
 
@@ -262,13 +262,13 @@ get_token(XawEvalInfo *info)
 	  String value = XawConvertActionVar(info->vlist, name);
 
 	  info->value = info->parse_proc(info->widget, value, info->event,
-					 &succed) & 1;
+					 &succeed) & 1;
 	}
       else
 	{
 	  info->value = info->parse_proc(info->widget, name, info->event,
-					 &succed) & 1;
-	  if (!succed)
+					 &succeed) & 1;
+	  if (!succeed)
 	    {
 	      String value =
 		XawConvertActionRes(info->rlist, info->widget,
@@ -276,18 +276,18 @@ get_token(XawEvalInfo *info)
 	      /* '\\' may have been used to escape a resource name.
 	       */
 
-	      succed = True;
+	      succeed = True;
 	      info->value = info->parse_proc(info->widget, value, info->event,
-					     &succed) & 1;
-	      if (!succed)
+					     &succeed) & 1;
+	      if (!succeed)
 		{
 		  /* not a numeric value or boolean string */
 		  info->value = True;
-		  succed = True;
+		  succeed = True;
 		}
 	    }
 	}
-      if (succed)
+      if (succeed)
 	return (info->token = BOOLEAN);
     }
   else if (ch == '\0')
@@ -423,7 +423,7 @@ XawSetValuesAction(Widget w, XEvent *event,
   vlist = XawGetActionVarList(w);
 
   num_args = 0;
-  arglist = (Arg *)XtMalloc(sizeof(Arg) * ((*num_params) >> 1));
+  arglist = (Arg *)XtMalloc((Cardinal)sizeof(Arg) * ((*num_params) >> 1));
 
   for (count = 1; count < *num_params; count += 2)
     {
@@ -437,8 +437,8 @@ XawSetValuesAction(Widget w, XEvent *event,
           continue;
 	}
       value = XawConvertActionVar(vlist, params[count + 1]);
-      from.size = strlen(value) + 1;
-      from.addr = value;
+      from.size = (Cardinal) strlen(value) + 1;
+      from.addr = (char *)value;
       to.size = resource->size;
       switch (to.size)
 	{
@@ -646,13 +646,15 @@ XawPrintActionErrorMsg(String action_name, Widget w,
   char msg[1024];
   unsigned int size, idx;
 
-  size = snprintf(msg, sizeof(msg), "%s(): bad number of parameters.\n\t(",
-		  action_name);
+  size = (unsigned)snprintf(msg,
+			    sizeof(msg),
+			    "%s(): bad number of parameters.\n\t(",
+			    action_name);
 
   idx = 0;
   while (idx < *num_params - 1 && size < sizeof(msg))
-    size += snprintf(&msg[size], sizeof(msg) - size, "%s, ",
-		     params[idx++]);
+    size += (unsigned)snprintf(&msg[size], sizeof(msg) - size, "%s, ",
+			       params[idx++]);
   if (*num_params)
     snprintf(&msg[size], sizeof(msg) - size, "%s)", params[idx]);
   else
@@ -677,8 +679,8 @@ static int
 qcmp_action_resource_list(register _Xconst void *left,
 			  register _Xconst void *right)
 {
-  return ((char *)((*(XawActionResList **)left)->widget_class) -
-          (char *)((*(XawActionResList **)right)->widget_class));
+  return (int)((char *)((*(XawActionResList **)left)->widget_class) -
+	       (char *)((*(XawActionResList **)right)->widget_class));
 }
 
 static XawActionResList *
@@ -686,7 +688,7 @@ _XawCreateActionResList(WidgetClass wc)
 {
   XawActionResList *list;
 
-  list = (XawActionResList *)XtMalloc(sizeof(XawActionResList));
+  list = (XawActionResList *)XtMalloc((Cardinal)sizeof(XawActionResList));
   list->widget_class = wc;
   list->num_common_resources = list->num_constraint_resources = 0;
   list->resources = NULL;
@@ -694,14 +696,14 @@ _XawCreateActionResList(WidgetClass wc)
   if (!resource_list)
     {
       num_resource_list = 1;
-      resource_list = (XawActionResList **)XtMalloc(sizeof(XawActionResList*));
+      resource_list = (XawActionResList **)XtMalloc((Cardinal)sizeof(XawActionResList*));
       resource_list[0] = list;
     }
   else
     {
       ++num_resource_list;
       resource_list = (XawActionResList **)XtRealloc((char *)resource_list,
-						     sizeof(XawActionResList*)
+						     (Cardinal) sizeof(XawActionResList*)
 						     * num_resource_list);
       resource_list[num_resource_list - 1] = list;
       qsort(resource_list, num_resource_list, sizeof(XawActionResList*),
@@ -717,7 +719,8 @@ static int
 bcmp_action_resource_list(register _Xconst void *wc,
 			  register _Xconst void *list)
 {
-  return ((char *)wc - (char *)((*(XawActionResList **)list)->widget_class));
+  return (int)((char *)wc
+             - (char *)((*(XawActionResList **)list)->widget_class));
 }
 
 static XawActionResList *
@@ -761,7 +764,7 @@ _XawBindActionResList(XawActionResList *list)
   list->num_constraint_resources = num_cons;
 
   list->resources = (XawActionRes **)
-    XtMalloc(sizeof(XawActionRes*) * (num_xt + num_cons));
+    XtMalloc((Cardinal)sizeof(XawActionRes*) * (num_xt + num_cons));
 
 #ifdef DIAGNOSTIC
   fprintf(stderr, "Common resources\n---\n");
@@ -769,7 +772,7 @@ _XawBindActionResList(XawActionResList *list)
 
   for (i = 0; i < num_xt; i++)
     {
-      list->resources[i] = (XawActionRes *)XtMalloc(sizeof(XawActionRes));
+      list->resources[i] = (XawActionRes *)XtMalloc((Cardinal)sizeof(XawActionRes));
       list->resources[i]->qname =
 	XrmPermStringToQuark(xt_list[i].resource_name);
       list->resources[i]->qtype =
@@ -790,7 +793,7 @@ _XawBindActionResList(XawActionResList *list)
 
   for (; i < num_xt + num_cons; i++)
     {
-      list->resources[i] = (XawActionRes *)XtMalloc(sizeof(XawActionRes));
+      list->resources[i] = (XawActionRes *)XtMalloc((Cardinal)sizeof(XawActionRes));
       list->resources[i]->qname =
 	XrmPermStringToQuark(cons_list[i - num_xt].resource_name);
       list->resources[i]->qtype =
@@ -859,14 +862,14 @@ _XawFindActionRes(XawActionResList *list, Widget detail, String name)
  * Start of Variables Implementation Code
  */
 /* For speed, only does memory allocation when really required */
-static String
+static char *
 _XawEscapeActionVarValue(String value)
 {
-  String escape;
+  char * escape;
 
   if (value[0] == '$' || value[0] == '\\')
     {
-      escape = XtMalloc(strlen(value) + 2);
+      escape = XtMalloc((Cardinal)strlen(value) + 2);
       escape[0] = '\\';
       strcpy(escape + 1, value);
       return (escape);
@@ -875,14 +878,14 @@ _XawEscapeActionVarValue(String value)
 }
 
 /* For speed, only does memory allocation when really required */
-static String
+static char *
 _XawUnescapeActionVarValue(String value)
 {
-  String unescape;
+  char * unescape;
 
   if (value[0] == '\\')
     {
-      unescape = XtMalloc(strlen(value));
+      unescape = XtMalloc((Cardinal)strlen(value));
       strcpy(unescape, value + 1);
       return (unescape);
     }
@@ -893,7 +896,7 @@ static void
 XawDeclareActionVar(XawActionVarList *list, String name, String value)
 {
   XawActionVar *variable;
-  String escape = NULL;
+  char * escape = NULL;
 
   if (name[0] != XAW_PRIV_VAR_PREFIX)
     {
@@ -932,7 +935,7 @@ static String
 XawConvertActionVar(XawActionVarList *list, String name)
 {
   XawActionVar *variable;
-  String unescape;
+  char * unescape;
   XrmQuark quark;
 
   if (name[0] != XAW_PRIV_VAR_PREFIX)
@@ -969,8 +972,8 @@ static int
 qcmp_action_variable_list(register _Xconst void *left,
 			  register _Xconst void *right)
 {
-  return ((char *)((*(XawActionVarList **)left)->widget) -
-	  (char *)((*(XawActionVarList **)right)->widget));
+  return (int)((char *)((*(XawActionVarList **)left)->widget) -
+	       (char *)((*(XawActionVarList **)right)->widget));
 }
 
 static XawActionVarList *
@@ -983,7 +986,7 @@ _XawCreateActionVarList(Widget w)
 	  XtName(w), w);
 #endif
 
-  list = (XawActionVarList *)XtMalloc(sizeof(XawActionVarList));
+  list = (XawActionVarList *)XtMalloc((Cardinal)sizeof(XawActionVarList));
   list->widget = w;
   list->num_variables = 0;
   list->variables = NULL;
@@ -991,7 +994,7 @@ _XawCreateActionVarList(Widget w)
   if (!variable_list)
     {
       num_variable_list = 1;
-      variable_list = (XawActionVarList **)XtMalloc(sizeof(XawActionVarList*));
+      variable_list = (XawActionVarList **)XtMalloc((Cardinal)sizeof(XawActionVarList*));
       variable_list[0] = list;
     }
   else
@@ -999,7 +1002,7 @@ _XawCreateActionVarList(Widget w)
       ++num_variable_list;
       variable_list = (XawActionVarList **)
 	XtRealloc((char *)variable_list,
-		  sizeof(XawActionVarList *) * num_variable_list);
+		  (Cardinal)sizeof(XawActionVarList *) * num_variable_list);
       variable_list[num_variable_list - 1] = list;
       qsort(variable_list, num_variable_list, sizeof(XawActionVarList*),
 	    qcmp_action_variable_list);
@@ -1015,7 +1018,8 @@ static int
 bcmp_action_variable_list(register _Xconst void *widget,
 			  register _Xconst void *list)
 {
-  return ((char *)widget - (char *)((*(XawActionVarList **)list)->widget));
+  return (int)((char *)widget
+             - (char *)((*(XawActionVarList **)list)->widget));
 }
 
 static XawActionVarList *
@@ -1051,21 +1055,21 @@ _XawCreateActionVar(XawActionVarList *list, String name)
 	  name, XtName(list->widget), list->widget);
 #endif
 
-  variable = (XawActionVar *)XtMalloc(sizeof(XawActionVar));
+  variable = (XawActionVar *)XtMalloc((Cardinal)sizeof(XawActionVar));
   variable->qname = XrmStringToQuark(name);
   variable->qvalue = NULLQUARK;
 
   if (!list->variables)
     {
       list->num_variables = 1;
-      list->variables = (XawActionVar **)XtMalloc(sizeof(XawActionVar*));
+      list->variables = (XawActionVar **)XtMalloc((Cardinal)sizeof(XawActionVar*));
       list->variables[0] = variable;
     }
   else
     {
       ++list->num_variables;
       list->variables = (XawActionVar **)XtRealloc((char *)list->variables,
-						   sizeof(XawActionVar *) *
+						   (Cardinal) sizeof(XawActionVar *) *
 						   list->num_variables);
       list->variables[list->num_variables - 1] = variable;
       qsort(list->variables, list->num_variables, sizeof(XawActionVar*),
@@ -1098,7 +1102,7 @@ _XawFindActionVar(XawActionVarList *list, String name)
 
 /*ARGSUSED*/
 static void
-_XawDestroyActionVarList(Widget w, XtPointer client_data, XtPointer call_data)
+_XawDestroyActionVarList(Widget w, XtPointer client_data, XtPointer call_data _X_UNUSED)
 {
   XawActionVarList *list = (XawActionVarList *)client_data;
   Cardinal i;
@@ -1117,7 +1121,7 @@ _XawDestroyActionVarList(Widget w, XtPointer client_data, XtPointer call_data)
       memmove(&variable_list[i], &variable_list[i + 1],
 	    (num_variable_list - i) * sizeof(XawActionVarList *));
       variable_list = (XawActionVarList **)
-	XtRealloc((char *)variable_list, sizeof(XawActionVarList *) *
+	XtRealloc((char *)variable_list, (Cardinal) sizeof(XawActionVarList *) *
 		  num_variable_list);
     }
   else

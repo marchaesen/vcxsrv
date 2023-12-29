@@ -66,7 +66,7 @@ Widget XawOpenApplication(XtAppContext *app_context_return,
                           String        application_class,
                           WidgetClass   widget_class,
                           int          *argc,
-                          String       *argv)
+                          _XtString    *argv)
 {
     Widget   toplevel;
     Cardinal n;

@@ -152,7 +152,7 @@ typedef struct {
     XtCallbackList property_callback;
     XawTextAnchor **anchors;
     int num_anchors;
-    XtPointer pad[1];	/* for future use and keep binary compatability */
+    XtPointer pad[1];	/* for future use and keep binary compatibility */
 #endif
 } TextSrcPart;
 

@@ -31,6 +31,7 @@ THE SOFTWARE.
 #endif
 #include "libxfontint.h"
 #include <X11/fonts/fontmisc.h>
+#include "src/util/replace.h"
 
 #include <string.h>
 #include <math.h>
@@ -93,7 +94,7 @@ static CharInfoRec noSuchChar = { /* metrics */{0,0,0,0,0,0},
 				  /* bits */   NULL };
 #endif
 
-/* The propery names for all the XLFD properties. */
+/* The property names for all the XLFD properties. */
 
 static const char *xlfd_props[] = {
     "FOUNDRY",
@@ -636,7 +637,7 @@ FreeTypeInstanceFindGlyph(unsigned idx_in, int flags, FTInstancePtr instance,
     }
 
     if((*glyphs)[segment] == NULL) {
-        (*glyphs)[segment] = malloc(sizeof(CharInfoRec) * FONTSEGMENTSIZE);
+        (*glyphs)[segment] = mallocarray(sizeof(CharInfoRec), FONTSEGMENTSIZE);
         if((*glyphs)[segment] == NULL)
             return AllocError;
     }
@@ -1561,7 +1562,7 @@ FreeTypeUnloadXFont(FontPtr pFont)
 /* Add the font properties, including the Font name, the XLFD
    properties, some strings from the font, and various typographical
    data.  We only provide data readily available in the tables in the
-   font for now, altough FIGURE_WIDTH would be a good idea as it is
+   font for now, although FIGURE_WIDTH would be a good idea as it is
    used by Xaw. */
 
 static int
@@ -1604,7 +1605,7 @@ FreeTypeAddProperties(FTFontPtr font, FontScalablePtr vals, FontInfoPtr info,
 
     info->nprops = 0;           /* in case we abort */
 
-    strcpy(val, fontname);
+    strlcpy(val, fontname, sizeof(val));
     if(FontParseXLFDName(val, vals, FONT_XLFD_REPLACE_VALUE)) {
         xlfdProps = 1;
     } else {
@@ -1622,7 +1623,7 @@ FreeTypeAddProperties(FTFontPtr font, FontScalablePtr vals, FontInfoPtr info,
         ( (font_properties && (post || t1info)) ? 3 : 0 ) +
         2;                      /* type */
 
-    info->props = malloc(maxprops * sizeof(FontPropRec));
+    info->props = mallocarray(maxprops, sizeof(FontPropRec));
     if(info->props == NULL)
         return AllocError;
 
@@ -2123,7 +2124,7 @@ restrict_code_range_by_str(int count,unsigned short *refFirstCol,
 #endif
         nRanges++;
         oldRanges = ranges;
-        ranges = realloc(ranges, nRanges*sizeof(*ranges));
+        ranges = reallocarray(ranges, nRanges, sizeof(*ranges));
         if (NULL == ranges) {
             free(oldRanges);
             break;
@@ -2199,15 +2200,16 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 		/* colon exist in the right side of slash. */
 		int dirLen = p1-fileName;
 		int baseLen = fileName+len - p2 -1;
+		int fullLen = dirLen+baseLen+1;
 
-		*dynStrRealFileName = malloc(dirLen+baseLen+1);
+		*dynStrRealFileName = malloc(fullLen);
 		if( *dynStrRealFileName == NULL ) {
 		    result = AllocError;
 		    goto quit;
 		}
 		if ( 0 < dirLen )
 		    memcpy(*dynStrRealFileName, fileName, dirLen);
-		strcpy(*dynStrRealFileName+dirLen, p2+1);
+		strlcpy(*dynStrRealFileName+dirLen, p2+1, fullLen - dirLen);
 		capHead = p1;
 	    } else {
 		*dynStrRealFileName = strdup(fileName);
@@ -2269,8 +2271,9 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 	}
 	if( beginptr && 0 < *face_number ) {
 	    char *slash;
-	    *dynStrFTFileName = 	/* add ->  ':'+strlen0+':'+strlen1+'\0' */
-		malloc(1+strlen(beginptr)+1+strlen(*dynStrRealFileName)+1);
+	    size_t dsftlen = 	/* add ->  ':'+strlen0+':'+strlen1+'\0' */
+		1 + strlen(beginptr) + 1 + strlen(*dynStrRealFileName) + 1;
+	    *dynStrFTFileName =	malloc(dsftlen);
 	    if( *dynStrFTFileName == NULL ){
 		result = AllocError;
 		goto quit;
@@ -2279,19 +2282,19 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 	    slash = strrchr(*dynStrRealFileName,'/');
 	    if( slash ) {
 		char *p;
-		strcat(*dynStrFTFileName,*dynStrRealFileName);
+		strlcat(*dynStrFTFileName, *dynStrRealFileName, dsftlen);
 		p = strrchr(*dynStrFTFileName,'/');
 		p[1] = '\0';
-		strcat(*dynStrFTFileName,":");
-		strcat(*dynStrFTFileName,beginptr);
-		strcat(*dynStrFTFileName,":");
-		strcat(*dynStrFTFileName,slash+1);
+		strlcat(*dynStrFTFileName, ":", dsftlen);
+		strlcat(*dynStrFTFileName, beginptr, dsftlen);
+		strlcat(*dynStrFTFileName, ":", dsftlen);
+		strlcat(*dynStrFTFileName, slash+1, dsftlen);
 	    }
 	    else{
-		strcat(*dynStrFTFileName,":");
-		strcat(*dynStrFTFileName,beginptr);
-		strcat(*dynStrFTFileName,":");
-		strcat(*dynStrFTFileName,*dynStrRealFileName);
+		strlcat(*dynStrFTFileName, ":", dsftlen);
+		strlcat(*dynStrFTFileName, beginptr, dsftlen);
+		strlcat(*dynStrFTFileName, ":", dsftlen);
+		strlcat(*dynStrFTFileName, *dynStrRealFileName, dsftlen);
 	    }
 	}
 	else{
@@ -2410,7 +2413,7 @@ FreeTypeSetUpTTCap( char *fileName, FontScalablePtr vals,
 	    goto quit;
 	}
     }
-    /* doube striking */
+    /* double striking */
     if (SPropRecValList_search_record(&listPropRecVal,
                                       &contRecValue,
                                       "DoubleStrike")) {
@@ -2813,7 +2816,7 @@ FreeTypeLoadFont(FTFontPtr font, FontInfoPtr info, FTFacePtr face,
     font->nranges = vals->nranges;
     font->ranges = 0;
     if(font->nranges) {
-        font->ranges = malloc(vals->nranges*sizeof(fsRange));
+        font->ranges = mallocarray(vals->nranges, sizeof(fsRange));
         if(font->ranges == NULL)
             return AllocError;
         memcpy((char*)font->ranges, (char*)vals->ranges,

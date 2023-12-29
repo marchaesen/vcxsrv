@@ -32,40 +32,16 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtCheck-Subclass XtIs-Object XtIs-RectObj XtIs-Widget XtIs-Composite XtIs-Constraint XtIs-Shell XtIs-Override-Shell XtIs-WM-Shell XtIs-Vendor-Shell XtIs-Transient-Shell XtIs-Top-Level-Shell XtIs-Application-Shell wid-get
+.hw XtCheck-Subclass XtIs-Object XtIs-RectObj XtIs-Widget XtIs-Composite
+.hw XtIs-Constraint XtIs-Shell XtIs-Override-Shell XtIs-WM-Shell
+.hw XtIs-Vendor-Shell XtIs-Transient-Shell XtIs-Top-Level-Shell
+.hw XtIs-Application-Shell wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtClass __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtClass, XtSuperclass, XtIsSubclass, XtCheckSubclass, XtIsObject, XtIsRectObj, XtIsWidget, XtIsComposite, XtIsConstraint, XtIsShell, XtIsOverrideShell, XtIsWMShell, XtIsVendorShell, XtIsTransientShell, XtIsTopLevelShell, XtIsApplicationShell, XtIsSessionShell \- obtain and verify a widget's class
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 WidgetClass XtClass(Widget \fIw\fP);
 .HP
@@ -84,7 +60,7 @@ Boolean XtIsWidget(Widget \fIw\fP);
 .HP
 Boolean XtIsComposite(Widget \fIw\fP);
 .HP
-Boolean XtIsConstraint(Widget \fIw\fP,
+Boolean XtIsConstraint(Widget \fIw\fP);
 .HP
 Boolean XtIsShell(Widget \fIw\fP);
 .HP
@@ -105,69 +81,71 @@ Boolean XtIsSessionShell(Widget \fIw\fP);
 .IP \fIw\fP 1i
 Specifies the widget.
 .IP \fIwidget_class\fP 1i
-Specifies the widget class\*(Wc.
-.ds Me used
+Specifies the widget class.
 .IP \fImessage\fP 1i
-Specifies the message that is to be \*(Me.
+Specifies the message that is to be used.
 .SH DESCRIPTION
 The
-.ZN XtClass
+.B XtClass
 function returns a pointer to the widget's class structure.
 .LP
 The
-.ZN XtSuperclass
+.B XtSuperclass
 function returns a pointer to the widget's superclass class structure.
 .LP
 The
-.ZN XtIsSubclass
+.B XtIsSubclass
 function returns
-.ZN True
+.B True
 if the class of the specified widget is equal to or is a subclass of
-the specified class. The widget's class can be any number of subclasses
+the specified class.
+The widget's class can be any number of subclasses
 down the chain and need not be an immediate subclass of the specified
-class. Composite widgets that need to restrict the class of the items
+class.
+Composite widgets that need to restrict the class of the items
 they contain can use
-.ZN XtIsSubclass
+.B XtIsSubclass
 to find out if a widget belongs to the desired class of objects.
 .LP
 The
-.ZN XtCheckSubclass
+.B XtCheckSubclass
 macro determines if the class of the specified widget is equal to
 or is a subclass of the specified widget class.
 The widget can be any number of subclasses down the chain
 and need not be an immediate subclass of the specified widget class.
 If the specified widget is not a subclass,
-.ZN XtCheckSubclass
+.B XtCheckSubclass
 constructs an error message from the supplied message,
 the widget's actual class, and the expected class and calls
-.ZN XtErrorMsg .
-.ZN XtCheckSubclass
+.BR XtErrorMsg .
+.B XtCheckSubclass
 should be used at the entry point of exported routines to ensure
 that the client has passed in a valid widget class for the exported operation.
 .LP
-.ZN XtCheckSubclass
+.B XtCheckSubclass
 is only executed when the widget has been compiled with the compiler symbol
 DEBUG defined; otherwise, it is defined as the empty string
 and generates no code.
 .LP
 To test if a given widget belongs to a subclass of an Intrinsics-defined
 class, the Intrinsics defines macros or functions equivalent to
-.ZN XtIsSubclass
-for each of the built-in classes. These procedures are
-.ZN XtIsObject ,
-.ZN XtIsRectObj ,
-.ZN XtIsWidget ,
-.ZN XtIsComposite ,
-.ZN XtIsConstraint ,
-.ZN XtIsShell ,
-.ZN XtIsOverrideShell ,
-.ZN XtIsWMShell ,
-.ZN XtIsVendorShell ,
-.ZN XtIsTransientShell ,
-.ZN XtIsTopLevelShell ,
-.ZN XtIsApplicationShell ,
+.B XtIsSubclass
+for each of the built-in classes.
+These procedures are
+.BR XtIsObject ,
+.BR XtIsRectObj ,
+.BR XtIsWidget ,
+.BR XtIsComposite ,
+.BR XtIsConstraint ,
+.BR XtIsShell ,
+.BR XtIsOverrideShell ,
+.BR XtIsWMShell ,
+.BR XtIsVendorShell ,
+.BR XtIsTransientShell ,
+.BR XtIsTopLevelShell ,
+.BR XtIsApplicationShell ,
 and
-.ZN XtIsSessionShell .
+.BR XtIsSessionShell .
 .LP
 The
 .SH "SEE ALSO"

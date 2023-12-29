@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-Courier-Medium-O-Normal--17-120-100-100-M-100-ISO10646-1
 SIZE 12 100 100
 FONTBOUNDINGBOX 20 24 -4 -6
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

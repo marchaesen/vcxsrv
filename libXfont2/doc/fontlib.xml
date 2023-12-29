@@ -176,7 +176,7 @@
 	bitmap-font specific interfaces which those applications use,
 	instead of the more general interfaces used by the X and font
 	servers, which are unaware of the source of the font data.
-	These routines will be refered to as the bitmap font access
+	These routines will be referred to as the bitmap font access
 	methods.
       </para>
 

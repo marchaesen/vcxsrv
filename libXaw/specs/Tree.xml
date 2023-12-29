@@ -152,7 +152,7 @@ retrieved from the argument list or from the resource database:
       <entry>Height</entry>
       <entry>Dimension</entry>
       <entry>A</entry>
-      <entry>see <function>Layout Semantics</function></entry> <!-- xref -->
+      <entry>see <xref linkend='Tree::Layout_Semantics'/></entry>
     </row>
     <row>
       <entry>hSpace</entry>
@@ -215,7 +215,7 @@ retrieved from the argument list or from the resource database:
       <entry>Width</entry>
       <entry>Dimension</entry>
       <entry>A</entry>
-      <entry>see <function>Layout Semantics</function></entry> <!-- xref -->
+      <entry>see <xref linkend='Tree::Layout_Semantics'/></entry>
     </row>
     <row>
       <entry>x</entry>

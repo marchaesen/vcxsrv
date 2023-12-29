@@ -3,19 +3,19 @@
 <!-- .XS -->
 <!-- 	Command Widget -->
 <!-- .XE -->
-<!-- .IN "Command widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Command widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application header file	&lt;X11/Xaw/Command.h&gt;
-<!-- .IN "Command.h" "" -->
+<indexterm><primary>Command.h</primary></indexterm>
 Class header file	&lt;X11/Xaw/CommandP.h&gt;
-<!-- .IN "CommandP.h" "" -->
+<indexterm><primary>CommandP.h</primary></indexterm>
 Class	commandWidgetClass
-<!-- .IN "commandWidgetClass" "" -->
+<indexterm><primary>commandWidgetClass</primary></indexterm>
 Class Name	Command
-<!-- .IN "Command widget" "class name" -->
+<indexterm><primary>Command widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Label
 <!-- .sp -->
 </literallayout>
@@ -23,7 +23,7 @@ Superclass	Label
 <!-- .LP -->
 The Command widget is an area, often rectangular, that contains text
 or a graphical image. Command widgets are often referred to as
-``push buttons.''  When the pointer is over a Command widget, the
+<quote>push buttons.</quote>  When the pointer is over a Command widget, the
 widget becomes highlighted by drawing a rectangle around its perimeter.
 This highlighting indicates that the widget is ready for selection.
 When mouse button 1 is pressed, the Command widget indicates that
@@ -44,7 +44,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Command widget" "resources" -->
+<indexterm><primary>Command widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -334,7 +334,7 @@ retrieved from the argument list or from the resource database:
   </tbody>
   </tgroup>
 </informaltable>
-\" Resource Descriptions
+<!-- \" Resource Descriptions -->
 <!-- .Ac -->
 <!-- .As -->
 <!-- .Bg -->
@@ -375,7 +375,7 @@ retrieved from the argument list or from the resource database:
 </sect2>
 <sect2 id="Command_Actions">
 <title>Command Actions</title>
-<!-- .IN "Command widget" "actions" -->
+<indexterm><primary>Command widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Command widget supports the following actions:
@@ -401,7 +401,7 @@ and unhighlighted states with <function>highlight</function> and <function>unhig
 </itemizedlist>
 <para>
 <!-- .LP -->
-<!-- .IN "Command widget" "translation bindings" -->
+<indexterm><primary>Command widget</primary><secondary>translation bindings</secondary></indexterm>
 The following are the default translation bindings used by the
 Command widget:
 </para>
@@ -410,10 +410,10 @@ Command widget:
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-	&lt;EnterWindow&gt;:	highlight(\|)
-	&lt;LeaveWindow&gt;:	reset(\|)
-	&lt;Btn1Down&gt;:	set(\|)
-	&lt;Btn1Up&gt;:	notify(\|) unset(\|)
+	&lt;EnterWindow&gt;:	highlight(&#x2006;)
+	&lt;LeaveWindow&gt;:	reset(&#x2006;)
+	&lt;Btn1Down&gt;:	set(&#x2006;)
+	&lt;Btn1Up&gt;:	notify(&#x2006;) unset(&#x2006;)
 </literallayout>
 </para>
 <para>
@@ -436,7 +436,7 @@ understood by this action procedure.  If no argument is passed,
   </varlistentry>
   <varlistentry>
     <term>
-      <function>unhighlight</function>(\|)
+      <function>unhighlight</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -448,7 +448,7 @@ Command widget.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>set</function>(\|)
+      <function>set</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -461,7 +461,7 @@ action causes the button to display its interior in the
   </varlistentry>
   <varlistentry>
     <term>
-      <function>unset</function>(\|)
+      <function>unset</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -473,7 +473,7 @@ Cancels the <emphasis remap='I'>set</emphasis> state and displays the interior o
   </varlistentry>
   <varlistentry>
     <term>
-      <function>reset</function>(\|)
+      <function>reset</function>(&#x2006;)
     </term>
     <listitem>
       <para>
@@ -485,7 +485,7 @@ in the <function>foreground</function> color.
   </varlistentry>
   <varlistentry>
     <term>
-      <function>notify</function>(\|)
+      <function>notify</function>(&#x2006;)
     </term>
     <listitem>
       <para>

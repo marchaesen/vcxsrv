@@ -56,14 +56,19 @@ SOFTWARE.
  * are not the same size on all systems.
  */
 typedef struct {
-    long	xrm_name;	  /* Resource name quark		*/
-    long	xrm_class;	  /* Resource class quark		*/
-    long	xrm_type;	  /* Resource representation type quark */
+    XtIntPtr	xrm_name;	  /* Resource name quark		*/
+    XtIntPtr	xrm_class;	  /* Resource class quark		*/
+    XtIntPtr	xrm_type;	  /* Resource representation type quark */
     Cardinal	xrm_size;	  /* Size in bytes of representation	*/
     int		xrm_offset;	  /* -offset-1				*/
-    long	xrm_default_type; /* Default representation type quark	*/
+    XtIntPtr	xrm_default_type; /* Default representation type quark	*/
     XtPointer	xrm_default_addr; /* Default resource address		*/
 } XrmResource, *XrmResourceList;
+#if __STDC_VERSION__ >= 201112L
+_Static_assert(XtOffsetOf(XrmResource, xrm_default_addr) ==
+                   XtOffsetOf(XtResource, default_addr),
+               "Field offset mismatch");
+#endif
 
 typedef unsigned long XtVersionType;
 
@@ -246,15 +251,15 @@ extern Boolean XtIsTopLevelShell(Widget);
 #ifdef DEBUG
 #define XtCheckSubclass(w, widget_class_ptr, message)	\
 	if (!XtIsSubclass(((Widget)(w)), (widget_class_ptr))) {	\
-	    String params[3];				\
-	    Cardinal num_params = 3;			\
-	    params[0] = ((Widget)(w))->core.widget_class->core_class.class_name;\
-	    params[1] = (widget_class_ptr)->core_class.class_name;	     \
-	    params[2] = (message);					     \
+	    String dbgArgV[3];				\
+	    Cardinal dbgArgC = 3;			\
+	    dbgArgV[0] = ((Widget)(w))->core.widget_class->core_class.class_name;\
+	    dbgArgV[1] = (widget_class_ptr)->core_class.class_name;	     \
+	    dbgArgV[2] = (message);					     \
 	    XtAppErrorMsg(XtWidgetToApplicationContext((Widget)(w)),	     \
 		    "subclassMismatch", "xtCheckSubclass", "XtToolkitError", \
 		    "Widget class %s found when subclass of %s expected: %s",\
-		    params, &num_params);		\
+		    dbgArgV, &dbgArgC);			\
 	}
 #else
 #define XtCheckSubclass(w, widget_class, message)	/* nothing */

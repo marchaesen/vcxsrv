@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtAdd-Grab wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAddGrab __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAddGrab, XtRemoveGrab \- redirect user input to a modal widget
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtAddGrab(Widget \fIw\fP, Boolean \fIexclusive\fP, Boolean
 \fIspring_loaded\fP);
@@ -78,31 +51,30 @@ or also to previous widgets in the cascade.
 .IP \fIspring_loaded\fP 1i
 Specifies whether this widget was popped up because the user pressed
 a pointer button.
-.ds Wi to add to or remove from the modal cascade
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget to add to or remove from the modal cascade.
 .SH DESCRIPTION
 The
-.ZN XtAddGrab
+.B XtAddGrab
 function appends the widget (and associated parameters) to the modal cascade
 and checks that exclusive is
-.ZN True
+.B True
 if spring_loaded is
-.ZN True .
+.BR True .
 If these are not
-.ZN True ,
-.ZN XtAddGrab
+.BR True ,
+.B XtAddGrab
 generates an error.
 .LP
 The modal cascade is used by
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 when it tries to dispatch a user event.
 When at least one modal widget is in the widget cascade,
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 first determines if the event should be delivered.
 It starts at the most recent cascade entry and follows the cascade up to and
 including the most recent cascade entry added with the exclusive parameter
-.ZN True .
+.BR True .
 .LP
 This subset of the modal cascade along with all descendants of these widgets
 comprise the active subset.
@@ -110,10 +82,10 @@ User events that occur outside the widgets in this subset are ignored
 or remapped.
 Modal menus with submenus generally add a submenu widget to the cascade
 with exclusive
-.ZN False .
+.BR False .
 Modal dialog boxes that need to restrict user input to the most deeply nested
 dialog box add a subdialog widget to the cascade with exclusive
-.ZN True .
+.BR True .
 User events that occur within the active subset are delivered to the
 appropriate widget, which is usually a child or further descendant of the modal
 widget.
@@ -121,11 +93,11 @@ widget.
 Regardless of where on the screen they occur,
 remap events are always delivered to the most recent widget in the active
 subset of the cascade that has spring_loaded
-.ZN True ,
+.BR True ,
 if any such widget exists.
 .LP
 The
-.ZN XtRemoveGrab
+.B XtRemoveGrab
 function removes widgets from the modal cascade starting
 at the most recent widget up to and including the specified widget.
 It issues an error if the specified widget is not on the modal cascade.

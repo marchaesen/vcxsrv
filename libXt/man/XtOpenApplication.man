@@ -33,59 +33,35 @@
 .ds Vn 2.2
 .hw XtOpen-Application XtVa-Open-Application
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtOpenApplication __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtOpenApplication, XtVaOpenApplication \- initialize, open, or close a display
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtOpenApplication(XtAppContext *\fIapp_context_return\fP, String
-\fIapplication_class\fP, XrmOptionDescRec *\fIoptions\fP, Cardinal
-\fInum_options\fP, int *\fIargc_in_out\fP, String *\fIargv_in_out\fP, String
-*\fIfallback_resources\fP, WidgetClass \fIwidget_class\fP, ArgList \fIargs\fP,
-Cardinal \fInum_args\fP);
+Widget XtOpenApplication(XtAppContext *\fIapp_context_return\fP,
+const char *\fIapplication_class\fP,
+XrmOptionDescRec *\fIoptions\fP, Cardinal \fInum_options\fP,
+int *\fIargc_in_out\fP, char **\fIargv_in_out\fP,
+String *\fIfallback_resources\fP,
+WidgetClass \fIwidget_class\fP,
+ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 .HP
-Widget XtVaOpenApplication(XtAppContext *\fIapp_context_return\fP, String
-\fIapplication_class\fP, XrmOptionDescRec *\fIoptions\fP, Cardinal
-\fInum_options\fP, int *\fIargc_in_out\fP, String *\fIargv_in_out\fP, String
-*\fIfallback_resources\fP, WidgetClass \fIwidget_class\fP, ...\^);
+Widget XtVaOpenApplication(XtAppContext *\fIapp_context_return\fP,
+const char *\fIapplication_class\fP,
+XrmOptionDescRec *\fIoptions\fP, Cardinal \fInum_options\fP,
+int *\fIargc_in_out\fP, char **\fIargv_in_out\fP,
+String *\fIfallback_resources\fP,
+WidgetClass \fIwidget_class\fP, ...\^);
 .SH ARGUMENTS
 .IP \fIapp_context_return\fP 1i
 Specifies the application context.
-.ds Ac , which usually is the generic name for all instances of this application
 .IP \fIapplication_class\fP 1i
-Specifies the class name of this application\*(Ac.
+Specifies the class name of this application, which usually is the generic name for all instances of this application.
 .IP \fIoptions\fP 1i
 Specifies how to parse the command line for any application-specific resources.
 The options argument is passed as a parameter to
-.ZN XrmParseCommand .
+.BR XrmParseCommand .
 For further information,
 see \fI\*(xL\fP.
 .IP \fInum_options\fP 1i
@@ -109,34 +85,37 @@ Specifies the variable argument list to override any other resource
 specification for the created shell widget.
 .SH DESCRIPTION
 The
-.ZN XtOpenApplication
+.B XtOpenApplication
 function calls
-.ZN XtToolkitInitialize
+.B XtToolkitInitialize
 followed by
-.ZN XtCreateApplicationContext ,
+.BR XtCreateApplicationContext ,
 then calls
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 with \fIdisplay_string\fP NULL and \fIapplication_name\fP NULL, and
 finally calls
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 with \fIapplication_name\fP NULL, the specified \fIwidget_class\fP,
 and the specified \fIargs\fP and \fInum_args\fP and returns the
-created shell. The modified \fIargc\fP and \fIargv\fP returned by
-.ZN XtDisplayInitialize
+created shell.
+The modified \fIargc\fP and \fIargv\fP returned by
+.B XtDisplayInitialize
 are returned in \fIargc_in_out\fP and \fIargv_in_out\fP. If
 \fIapp_context_return\fP is not NULL, the created application context
-is also returned. If the display specified by the command line cannot
+is also returned.
+If the display specified by the command line cannot
 be opened, an error message is issued and
-.ZN XtOpenApplication
-terminates the application. If \fIfallback_resources\fP is non-NULL,
-.ZN XtAppSetFallbackResources
+.B XtOpenApplication
+terminates the application.
+If \fIfallback_resources\fP is non-NULL,
+.B XtAppSetFallbackResources
 is called with the value prior to calling
-.ZN XtOpenDisplay .
+.BR XtOpenDisplay .
 .LP
-XtAppInitialize and XtVaAppInitialize have been superceded by
-.ZN XtOpenApplication
+XtAppInitialize and XtVaAppInitialize have been superseded by
+.B XtOpenApplication
 and
-.ZN XtVaOpenApplication
+.B XtVaOpenApplication
 respectively.
 .SH "SEE ALSO"
 XtAppInitialize(__libmansuffix__), XtVaAppInitialize(__libmansuffix__)

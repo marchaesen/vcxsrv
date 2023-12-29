@@ -1,0 +1,275 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH XpmRead __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmRead \- read an XPM file
+
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmReadFileToImage(Display *" display ", char *" filename ,
+.BI "XImage **" image_return ", XImage **" shapeimage_return ,
+.BI "XpmAttributes *" attributes );
+.HP
+.BI "int XpmReadFileToPixmap(Display *" display ", Drawable " d ", char *" filename ,
+.BI "Pixmap *" pixmap_return ", Pixmap *" shapemask_return ,
+.BI "XpmAttributes *" attributes );
+.HP
+.BI "int XpmReadFileToXpmImage(char *" filename ", XpmImage *" image ,
+.BI "XpmInfo *" info );
+.HP
+.BI "int XpmReadFileToBuffer(char *" filename ", char **" buffer_return );
+.HP
+.BI "int XpmReadFileToData(char *" filename ", char ***" data_return );
+.fi
+
+.SH ARGUMENTS
+.IP   \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP   \fIfilename\fP li
+Specifies the file name to use.
+.IP   \fIimage_return\fP li
+Returns the image which is created.
+.IP   \fIshapeimage_return\fP li
+Returns the shape mask image which is created if the color None is used.
+.IP   \fIattributes\fP li
+Specifies the location of a structure to get and store information (or NULL).
+.IP   \fIbuffer_return\fP li
+Returns the buffer created.
+.IP   \fIdata_return\fP li
+Returns the data array created.
+.IP   \fIimage\fP li
+Specifies the image structure location.
+.IP   \fIinfo\fP li
+Specifies the location of a structure to store possible information (or NULL).
+
+.SH DESCRIPTION
+.SS XpmReadFileToImage
+.PP
+The
+.BR XpmReadFileToImage ()
+function reads in a file in the XPM format.
+If the file cannot be opened it returns
+.BR XpmOpenFailed .
+If the file can be opened but does not contain valid XPM data, it returns
+.BR XpmFileInvalid .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+If the passed XpmAttributes structure pointer is not NULL,
+.BR XpmReadFileToImage ()
+looks for the following attributes:
+XpmVisual, XpmColormap, XpmDepth, XpmColorSymbols, XpmExactColors, XpmCloseness,
+XpmRGBCloseness, XpmAllocCloseColors, XpmReturnPixels, XpmReturnAllocPixels, XpmAllocColor,
+XpmFreeColors, XpmColorClosure, XpmReturnExtensions, XpmReturnColorTable, XpmBitmapFormat,
+sets the XpmSize, the XpmCharsPerPixel, and possibly the XpmHotspot attributes when returning.
+As a backward compatibility feature,
+.BR XpmReadFileToImage ()
+also looks for the XpmReturnInfos attributes.
+As specified in the table (page 12), if the data related to the attributes
+XpmReturnExtensions, XpmReturnColorTable, and XpmReturnInfos
+cannot be returned as requested because of insufficient memory storage,
+.BR XpmReadFileToImage ()
+will change the valuemask to mention this and will try to continue.
+So the caller should check on this before accessing this data.
+.PP
+Note: The valuemask of the passed XpmAttributes must be set to some valid value,
+at least zero, otherwise unpredictable errors can occur.
+.PP
+.BR XpmReadFileToImage ()
+allocates colors, as read from the file or possibly overridden as specified in
+the XpmColorSymbols attributes.
+The colors are allocated using the color settings for the visual specified by
+the XpmColorKey
+attribute, which has the value XPM_MONO, XPM_GRAY4, XPM_GRAY, or XPM_COLOR.
+If the XpmColorKey attribute is not set it is determined by examining the type
+of visual.
+If no default value exists for the specified visual, it first looks for
+other defaults nearer to the monochrome visual type
+and secondly nearer to the color visual type.
+If the color which is found is not valid (cannot be parsed), it looks for
+another default one according to the same algorithm.
+If allocating a color fails, and the closeness attribute is set, it tries to
+find a color already in the colormap that is closest
+to the desired color, and uses that.
+If the alloc_close_colors attribute is set to False, the found close color is
+not allocated but it is used anyway.
+This is especially useful for applications which use a private colormap
+containing read/write cells and have complete control over the colormap.
+On the other hand, since in such a case there is no guarantee that the color
+pixel will not change any time,
+this should be avoided when using the default colormap.
+If no color can be found that is within closeness of the Red, Green, and Blue
+components of the desired color,
+it reverts to trying other default values as explained above.
+For finer control over the closeness requirements of a particular icon,
+the red_closeness, green_closeness, and blue_closeness attributes may be
+used instead of the more general closeness attribute.
+.PP
+The RGB components are integers within the range 0 (black) to 65535 (white).
+A closeness of less than 10000, for example, will cause only quite close colors
+to be matched, while a closeness of more than 50000 will
+allow quite dissimilar colors to match.
+Specifying a closeness of more than 65535 will allow any color to match,
+thus forcing the icon to be drawn in color no matter how bad the colormap is.
+The value 40000 seems to be about right for many situations
+requiring reasonable but not perfect matches.
+With this setting the color must only be within the same general area of
+the RGB cube as the desired color.
+If the exactColors attribute is set it then returns
+.BR XpmColorError ,
+otherwise it creates the images and returns
+.BR XpmSuccess .
+If no color is found, and no close color exists or is wanted,
+and all visuals have been exhausted,
+.B XpmColorFailed
+is returned.
+.PP
+.BR XpmReadFileToImage ()
+returns the created image to
+.I image_return
+if not NULL and possibly the created shapemask to
+.I shapeimage_return
+if not NULL and the color None is used.
+If required it stores into the XpmAttributes structure the list of the
+used pixels.
+When the image depth is one, the image format is either as specified by
+the bitmap_format attribute if set or ZPixmap.
+When the depth is different from one the image format is always ZPixmap.
+When finished the caller must free the images using
+.BR XDestroyImage (__libmansuffix__),
+the allocated colors using
+.BR XFreeColors (__libmansuffix__)
+or the application equivalent function
+when the standard Xlib functions are not used,
+and possibly the data returned into the XpmAttributes using
+.BR XpmFreeAttributes (__libmansuffix__).
+In addition, on systems which support such features
+.BR XpmReadFileToImage ()
+deals with compressed files by forking an uncompress or gzip process and
+reading from the piped result. It assumes that the specified file is
+compressed if the given file name ends by ’.Z’ or ’.gz’.
+In case the file name does not end so,
+.BR XpmReadFileToImage ()
+looks for the given file name assuming it is not a compressed file.
+And if instead of a file name NULL is passed to
+.BR XpmReadFileToImage (),
+it reads from the standard input.
+
+.SS XpmReadFileToPixmap
+The
+.BR XpmReadFileToPixmap ()
+function creates X images using
+.BR XpmReadFileToImage ()
+and thus returns the same errors.
+In addition on success it then creates the related pixmaps, using
+.BR XPutImage (__libmansuffix__),
+which are returned to
+.I pixmap_return
+and
+.I shapemask_return
+if not NULL, and finally destroys the created images using
+.BR XDestroyImage (__libmansuffix__).
+When finished the caller must free the pixmaps using
+.BR XFreePixmap (__libmansuffix__),
+the allocated colors using
+.BR XFreeColors (__libmansuffix__)
+or the application equivalent function when the standard Xlib functions
+are not used, and possibly the data returned into the XpmAttributes using
+.BR XpmFreeAttributes (__libmansuffix__).
+
+.SS XpmReadFileToBuffer
+.PP
+.BR XpmReadFileToBuffer ()
+allocates and fills a buffer from a file.
+.BR XpmReadFileToBuffer ()
+returns
+.B XpmOpenFailed
+if it cannot open the file, returns
+.B XpmNoMemory
+if insufficient working storage is allocated, and
+.B XpmSuccess
+otherwise. The allocated buffer returned by
+.BR XpmReadFileToBuffer ()
+should be freed with
+.BR XpmFree (__libmansuffix__)
+when done.
+.PP
+As a convenience, the
+.BR XpmReadFileToBuffer ()
+and
+.BR XpmWriteFileFromBuffer (__libmansuffix__)
+are provided to copy a file to a buffer and to write a file from a buffer.
+Thus for instance one may decide to use
+.BR XpmReadFileToBuffer (),
+.BR XpmCreatePixmapFromBuffer (__libmansuffix__),
+and
+.BR XpmFree (__libmansuffix__)
+instead of
+.BR XpmReadFileToPixmap ().
+On some systems this may lead to a performance improvement,
+since the parsing will be performed in memory, but it uses more memory.
+
+.SS XpmReadFileToData
+.PP
+.BR XpmReadFileToData ()
+returns
+.B XpmOpenFailed
+if it cannot open the file,
+.B XpmNoMemory
+if insufficient working storage is allocated,
+.B XpmFileInvalid
+if this is not a valid XPM file, and
+.B XpmSuccess
+otherwise.
+The allocated data returned by
+.BR XpmReadFileToData ()
+should be freed with
+.BR XpmFree (__libmansuffix__)
+when done.
+
+.SS XpmReadFileToXpmImage
+.PP
+The
+.BR XpmReadFileToXpmImage ()
+function reads in a file in the XPM format.
+If the file cannot be opened it returns
+.BR XpmOpenFailed .
+If the file can be opened but does not contain valid XPM data, it returns
+.BR XpmFileInvalid .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+On success it fills in the given XpmImage structure and returns
+.BR XpmSuccess .
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmCreateBuffer (__libmansuffix__),
+.BR XpmCreateData (__libmansuffix__),
+.BR XpmCreateImage (__libmansuffix__),
+.BR XpmCreatePixmap (__libmansuffix__),
+.BR XpmCreateXpmImage (__libmansuffix__),
+.BR XpmFreeAttributes (__libmansuffix__),
+.BR XpmWrite (__libmansuffix__)

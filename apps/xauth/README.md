@@ -11,8 +11,7 @@ II. BUILDING
 
 Use "./autogen.sh" to configure the package and "make" to compile it.
 A black box check for the correctness of the package can be initiated
-by "make check" (make sure to install "cmdtest" from
-http://liw.fi/cmdtest/). The installation is done by "make install".
+by "make check". The installation is done by "make install".
 
 III. COMMUNICATION
 ------------------
@@ -22,7 +21,7 @@ Xorg mailing list:
 
   https://lists.x.org/mailman/listinfo/xorg
 
-The master development code repository can be found at:
+The primary development code repository can be found at:
 
   https://gitlab.freedesktop.org/xorg/app/xauth
 

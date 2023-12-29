@@ -145,7 +145,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     offset(foreground),
     XtRString,
-    XtDefaultForeground
+    (XtPointer)XtDefaultForeground
   },
   {
     XtNfont,
@@ -154,7 +154,7 @@ static XtResource resources[] = {
     sizeof(XFontStruct*),
     offset(font),
     XtRString,
-    XtDefaultFont
+    (XtPointer)XtDefaultFont
   },
   {
     XtNfontSet,
@@ -163,7 +163,7 @@ static XtResource resources[] = {
     sizeof(XFontSet),
     offset(fontset),
     XtRString,
-    XtDefaultFontSet
+    (XtPointer)XtDefaultFontSet
   },
 #ifndef OLDXAW
   {
@@ -259,8 +259,8 @@ XawSmeBSBClassInitialize(void)
  */
 /*ARGSUSED*/
 static void
-XawSmeBSBInitialize(Widget request, Widget cnew,
-		    ArgList args, Cardinal *num_args)
+XawSmeBSBInitialize(Widget request _X_UNUSED, Widget cnew,
+		    ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     SmeBSBObject entry = (SmeBSBObject)cnew;
 
@@ -295,7 +295,7 @@ XawSmeBSBDestroy(Widget w)
 
     DestroyGCs(w);
     if (entry->sme_bsb.label != XtName(w))
-	XtFree(entry->sme_bsb.label);
+	XtFree((char *)entry->sme_bsb.label);
 }
 
 /*
@@ -312,7 +312,7 @@ XawSmeBSBDestroy(Widget w)
  */
 /* ARGSUSED */
 static void
-XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
+XawSmeBSBRedisplay(Widget w, XEvent *event _X_UNUSED, Region region _X_UNUSED)
 {
     GC gc;
     SmeBSBObject entry = (SmeBSBObject)w;
@@ -348,8 +348,8 @@ XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
 
     if (entry->sme_bsb.label != NULL) {
 	int x_loc = entry->sme_bsb.left_margin;
-	int len = strlen(entry->sme_bsb.label);
-	char *label = entry->sme_bsb.label;
+	int len = (int)strlen(entry->sme_bsb.label);
+	_Xconst char *label = entry->sme_bsb.label;
 	 int width, t_width;
 
 	switch(entry->sme_bsb.justify) {
@@ -424,8 +424,8 @@ XawSmeBSBRedisplay(Widget w, XEvent *event, Region region)
 
 /*ARGSUSED*/
 static Boolean
-XawSmeBSBSetValues(Widget current, Widget request, Widget cnew,
-		   ArgList args, Cardinal *num_args)
+XawSmeBSBSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+		   ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     SmeBSBObject entry = (SmeBSBObject)cnew;
     SmeBSBObject old_entry = (SmeBSBObject)current;
@@ -573,28 +573,28 @@ GetDefaultSize(Widget w, Dimension *width, Dimension *height)
 	if (entry->sme_bsb.label == NULL)
 	    *width = 0;
 	else
-	    *width = XmbTextEscapement(entry->sme_bsb.fontset,
+	    *width = (Dimension)XmbTextEscapement(entry->sme_bsb.fontset,
 				       entry->sme_bsb.label,
-				       strlen(entry->sme_bsb.label));
-	*width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
+				       (int)strlen(entry->sme_bsb.label));
+	*width = (Dimension)(*width + (entry->sme_bsb.left_margin + entry->sme_bsb.right_margin));
 	*height = ext->max_ink_extent.height;
-	*height = ((int)*height * (ONE_HUNDRED +
-				   entry->sme_bsb.vert_space)) / ONE_HUNDRED;
+	*height = (Dimension)(((int)*height * (ONE_HUNDRED +
+				   entry->sme_bsb.vert_space)) / ONE_HUNDRED);
     }
     else {
 	if (entry->sme_bsb.label == NULL)
 	    *width = 0;
 	else
-	    *width = XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
-			    strlen(entry->sme_bsb.label));
+	    *width = (Dimension)XTextWidth(entry->sme_bsb.font, entry->sme_bsb.label,
+			    (int)strlen(entry->sme_bsb.label));
 
-	*width += entry->sme_bsb.left_margin + entry->sme_bsb.right_margin;
+	*width = (Dimension)(*width + (entry->sme_bsb.left_margin + entry->sme_bsb.right_margin));
 
-	*height = entry->sme_bsb.font->max_bounds.ascent +
-		  entry->sme_bsb.font->max_bounds.descent;
+	*height = (Dimension)(entry->sme_bsb.font->max_bounds.ascent +
+		  entry->sme_bsb.font->max_bounds.descent);
 
-	*height = ((int)*height * (ONE_HUNDRED +
-				   entry->sme_bsb.vert_space)) / ONE_HUNDRED;
+	*height = (Dimension)(((int)*height * (ONE_HUNDRED +
+				   entry->sme_bsb.vert_space)) / ONE_HUNDRED);
     }
 }
 
@@ -678,16 +678,16 @@ GetBitmapInfo(Widget w, Bool is_left)
 	    XGetGeometry(XtDisplayOfObject(w),
 			 entry->sme_bsb.left_bitmap, &root,
 			 &x, &y, &width, &height, &bw, &depth))	{
-	    entry->sme_bsb.left_bitmap_width = width;
-	    entry->sme_bsb.left_bitmap_height = height;
+	    entry->sme_bsb.left_bitmap_width = (Dimension)width;
+	    entry->sme_bsb.left_bitmap_height = (Dimension)height;
 	}
     }
     else if (entry->sme_bsb.right_bitmap != None &&
 	     XGetGeometry(XtDisplayOfObject(w),
 			  entry->sme_bsb.right_bitmap, &root,
 			  &x, &y, &width, &height, &bw, &depth)) {
-	entry->sme_bsb.right_bitmap_width = width;
-	entry->sme_bsb.right_bitmap_height = height;
+	entry->sme_bsb.right_bitmap_width = (Dimension)width;
+	entry->sme_bsb.right_bitmap_height = (Dimension)height;
     }
 }
 

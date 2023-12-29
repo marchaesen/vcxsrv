@@ -85,11 +85,6 @@ typedef struct _FontAliasEntry {
     char	*resolved;
 } FontAliasEntryRec;
 
-typedef struct _FontBCEntry {
-    FontScalableRec	    vals;
-    FontEntryPtr	    entry;
-} FontBCEntryRec;
-
 typedef struct _FontEntry {
     FontNameRec	name;
     int		type;
@@ -97,7 +92,6 @@ typedef struct _FontEntry {
 	FontScalableEntryRec	scalable;
 	FontBitmapEntryRec	bitmap;
 	FontAliasEntryRec	alias;
-	FontBCEntryRec		bc;
     } u;
 } FontEntryRec;
 

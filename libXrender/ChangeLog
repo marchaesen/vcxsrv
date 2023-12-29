@@ -1,3 +1,225 @@
+commit e5e23272394c90731debd7e18dd167e8c25b5c15
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Oct 21 18:12:50 2022 -0700
+
+    libXrender 0.9.11
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f6504f02ade1d27950ad0486a2032e1d665d72b8
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Sun Sep 11 13:24:22 2022 -0400
+
+    fix regression
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit a7d99992bff95237a1e51ce5c6cbf9429516b9eb
+Author: Oliver Hattshire <hattshire@gmail.com>
+Date:   Sun Sep 11 16:41:36 2022 +0000
+
+    WIP: Documentation
+
+commit 869d2b7ae8deda46f8ea6fba226455533683b0e4
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Sun Sep 11 10:52:25 2022 -0400
+
+    whitespace fix
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit df5f1f04a7d123a521f0d4bfc88c3b65253491bc
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Sat Sep 10 06:17:40 2022 -0400
+
+    use _X_UNUSED for compiler-warnings
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit f43df87188375440dbad33d7c0beed2a607b8d1d
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Sat Sep 10 05:48:07 2022 -0400
+
+    use _Xconst with DataInt32/DataInt16/memcpy to reduce strict compiler warnings
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit ea28ca1a2cce8e0d8e5a1f620a809384ed276c37
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Fri Sep 9 16:51:01 2022 -0400
+
+    use casts to reduce compiler warnings (no object change)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit afc7f259668bbb25d5b06929d529add93fb39ebf
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Sep 8 19:20:53 2022 -0400
+
+    cppcheck (removing unused assignment lets variable scope reduction)
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit b62e3f39768cd6fc5db9e4be65b47c53719598c9
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Sep 8 19:06:29 2022 -0400
+
+    additional cppcheck-scope warning
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit ded8aa8c97fc90f0c02f26084d118e683163e4ca
+Author: Thomas E. Dickey <dickey@invisible-island.net>
+Date:   Thu Sep 8 19:05:07 2022 -0400
+
+    amend cppcheck-scope change, fixing c89 build
+    
+    Signed-off-by: Thomas E. Dickey <dickey@invisible-island.net>
+
+commit 5a69e234cd4e02186b5b2627360f91cb1fa58edf
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 28 12:01:13 2022 -0700
+
+    Rename xDepth to xPDepth to quiet -Wshadow warnings
+    
+    Xrender.c: In function ‘XRenderQueryFormats’:
+    Xrender.c:406:19: warning: declaration of ‘xDepth’ shadows a global declaration [-Wshadow]
+         xPictDepth   *xDepth;
+                       ^~~~~~
+    In file included from /net/also.us.oracle.com/export/alanc/X.Org/amd64-gcc/install/usr/X11R7/include/X11/Xlibint.h:43:0,
+                     from Xrenderint.h:31,
+                     from Xrender.c:28:
+    /net/also.us.oracle.com/export/alanc/X.Org/amd64-gcc/install/usr/X11R7/include/X11/Xproto.h:329:7: note: shadowed declaration is here
+         } xDepth;
+           ^~~~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2b927f88ad3d97e5fd1abd13b67724a86dd10404
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 28 11:52:49 2022 -0700
+
+    Resolve -Wsign-compare warnings
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 229c65d2dd6de511a005127245dc28d426ad6860
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 28 11:41:27 2022 -0700
+
+    Reduce variable scopes as recommended by cppcheck
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit cc4ad7a3990826ca44470dbca3a5b03c35548cab
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 28 10:26:00 2022 -0700
+
+    Remove unnecessary casts from malloc & free calls
+    
+    These are not needed in C89 and later
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3b888fdf89b4d8f4712c28b340c28604c8ff0b7e
+Author: Dmitry Karasik <dmitry.karasik@teliacompany.com>
+Date:   Sat Aug 7 09:36:03 2021 +0200
+
+    fix coredumps in XRenderComputeTrapezoids (issue #1)
+    
+    Rationale: I don't have enough expertise to judge on how the tessellation
+    algorithm is broken in XRenderComputeTrapezoids but I do trust Keith Packard
+    that it is. However using cairo for proper tessellation, as he suggests, is
+    too heavyweight, and here I propose to alter the code to at least do not cause
+    coredumps.
+    
+    Even if/when the function will be marked as obsolete, I believe it is pretty
+    much capable of rendering relatively simple shapes, and still retains some
+    value.
+
+commit e314946813bcb96e8baedc1a290c48a2aa6ef162
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 17:38:47 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a5e4c91b04f542b27b811b78aa32b88ec6111c91
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 17:38:01 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b96298906cf99c3b32ad10bc27a85344d2f0e126
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 17:37:15 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit bd87a8863c7647790de577296a77953bda6877e3
+Author: Robin Linden <dev@robinlinden.eu>
+Date:   Fri Jan 7 03:53:35 2022 +0100
+
+    Add missing HAVE_CONFIG_H guard to Xrenderint.h
+    
+    Signed-off-by: Robin Linden <dev@robinlinden.eu>
+
+commit bce0618839fc33f44edd8b5498b8e33d167806ff
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 7 19:49:06 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e731a0e04c31bdb6b6b513bfd884e91ad907e05f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 19 22:37:07 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f4f32f13635907940a0bffcfd1748be392db4b98
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:49 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit a89bc0e850cd2b081ad3a823c40677eb87522d1b
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit a20d2f9f5d6320b3dc20958228111964e36e696a
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
 commit 845716f8f14963d338e5a8d5d2424baafc90fb30
 Author: Matthieu Herrb <matthieu.herrb@laas.fr>
 Date:   Tue Oct 4 21:24:55 2016 +0200
@@ -310,7 +532,7 @@ Date:   Thu Jan 14 09:43:56 2010 -0500
     Signed-off-by: Gaetan Nadon <memsize@videotron.ca>
 
 commit fc8b02894452ad93101b35fec41cb1baf72e746a
-Author: Rémi Cardona <remi@gentoo.org>
+Author: Rémi Cardona  <remi@gentoo.org>
 Date:   Thu Dec 17 08:30:04 2009 +0100
 
     require autoconf 2.60 because of $(docdir) use
@@ -370,7 +592,7 @@ Date:   Thu Oct 22 12:34:19 2009 -0400
     when the structure of the component changes. Do not edit defaults.
 
 commit 1da8c1bfbb17750e5ba51321961aaf39b8cf98f7
-Author: Tomáš Chvátal <scarabeus@gentoo.org>
+Author: Tomáš Chvátal <s <scarabeus@gentoo.org>
 Date:   Sun Nov 29 13:38:42 2009 +0100
 
     Make libXrender use docdir for documentation placement.
@@ -619,19 +841,19 @@ Date:   Thu Jun 9 13:49:06 2005 +0000
         $(top_srcdir) to INCLUDES
 
 commit 8f765c413911d355dd95a312e31deaf1166206f9
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Thu May 19 20:33:55 2005 +0000
 
     Add forgotten region.h
 
 commit 65cb00ad3da0cdaad1429ac5cb01e12d7f4a6d0d
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Thu May 19 19:58:24 2005 +0000
 
     - Add Xrender build system
 
 commit 99a8286d49152c45ebead33df9f32bf6b7799bee
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Thu May 19 19:26:35 2005 +0000
 
     - Conditionally include config.h in xc/lib/Xrender/*.c

@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <appendix id='Resource_File_Format'>
 <title>Resource File Format</title>
 <para>
@@ -7,7 +10,7 @@ application or set of applications.
 
 <para>
 The format of resource files is defined by
-<emphasis remap='I'>Xlib — C Language X Interface.</emphasis> and is reproduced here
+<emphasis remap='I'>Xlib &mdash; C Language X Interface.</emphasis> and is reproduced here
 for convenience only.
 </para>
 
@@ -24,11 +27,11 @@ for convenience only.
     </row>
     <row>
       <entry>Comment</entry>
-      <entry>="!" {&lt;any character except null or newline&gt;}</entry>
+      <entry>=&ldquo;!&rdquo; {&lt;any character except null or newline&gt;}</entry>
     </row>
     <row>
       <entry>IncludeFile</entry>
-      <entry>= "#" WhiteSpace "include" WhiteSpace FileName WhiteSpace</entry>
+      <entry>= &ldquo;#&rdquo; WhiteSpace &ldquo;include&rdquo; WhiteSpace FileName WhiteSpace</entry>
     </row>
     <row>
       <entry>FileName</entry>
@@ -36,7 +39,7 @@ for convenience only.
     </row>
     <row>
       <entry>ResourceSpec</entry>
-      <entry>= WhiteSpace ResourceName WhiteSpace ":" WhiteSpace Value</entry>
+      <entry>= WhiteSpace ResourceName WhiteSpace &ldquo;:&rdquo; WhiteSpace Value</entry>
     </row>
     <row>
       <entry>ResourceName</entry>
@@ -44,7 +47,7 @@ for convenience only.
     </row>
     <row>
       <entry>Binding</entry>
-      <entry>="." | "*"</entry>
+      <entry>=&ldquo;.&rdquo; | &ldquo;*&rdquo;</entry>
     </row>
     <row>
       <entry>WhiteSpace</entry>
@@ -52,7 +55,7 @@ for convenience only.
     </row>
     <row>
       <entry>Component</entry>
-      <entry>= "?" | ComponentName</entry>
+      <entry>= &ldquo;?&rdquo; | ComponentName</entry>
     </row>
     <row>
       <entry>ComponentName</entry>
@@ -60,7 +63,7 @@ for convenience only.
     </row>
     <row>
       <entry>NameChar</entry>
-      <entry>= "a"-"z" | "A"-"Z" | "0"-"9" | "_" | "-"</entry>
+      <entry>= &ldquo;a&rdquo;&ndash;&ldquo;z&rdquo; | &ldquo;A&rdquo;&ndash;&ldquo;Z&rdquo; | &ldquo;0&rdquo;&ndash;&ldquo;9&rdquo; | &ldquo;_&rdquo; | &ldquo;-&rdquo;</entry>
     </row>
     <row>
       <entry>Value</entry>
@@ -75,7 +78,7 @@ Elements separated by vertical bar (|) are alternatives.
 Curly braces ({...}) indicate zero or more repetitions
 of the enclosed elements.
 Square brackets ([...]) indicate that the enclosed element is optional.
-Quotes ("...") are used around literal characters.
+Quotes (&ldquo;...&rdquo;) are used around literal characters.
 </para>
 
 <para>
@@ -85,28 +88,28 @@ that line is assumed to continue on the next line.
 
 <para>
 To allow a Value to begin with whitespace,
-the two-character sequence "\<emphasis remap='I'>space</emphasis>" (backslash followed by space)
+the two-character sequence &ldquo;\<emphasis remap='I'>space</emphasis>&rdquo; (backslash followed by space)
 is recognized and replaced by a space character,
-and the two-character sequence "\<emphasis remap='I'>tab</emphasis>"
+and the two-character sequence &ldquo;\<emphasis remap='I'>tab</emphasis>&rdquo;
 (backslash followed by horizontal tab)
 is recognized and replaced by a horizontal tab character.
 </para>
 <para>
 To allow a Value to contain embedded newline characters,
-the two-character sequence "\n" is recognized and replaced by a
+the two-character sequence &ldquo;\n&rdquo; is recognized and replaced by a
 newline character.
 To allow a Value to be broken across multiple lines in a text file,
-the two-character sequence "\<emphasis remap='I'>newline</emphasis>"
+the two-character sequence &ldquo;\<emphasis remap='I'>newline</emphasis>&rdquo;
 (backslash followed by newline) is
 recognized and removed from the value.
 </para>
 <para>
 To allow a Value to contain arbitrary character codes,
-the four-character sequence "\<emphasis remap='I'>nnn</emphasis>",
-where each <emphasis remap='I'>n</emphasis> is a digit character in the range of "0"-"7",
+the four-character sequence &ldquo;\<emphasis remap='I'>nnn</emphasis>&rdquo;,
+where each <emphasis remap='I'>n</emphasis> is a digit character in the range of &ldquo;0&rdquo;&ndash;&ldquo;7&rdquo;,
 is recognized and replaced with a single byte that contains
 the octal value specified by the sequence.
-Finally, the two-character sequence "\\" is recognized
+Finally, the two-character sequence &ldquo;\\&rdquo; is recognized
 and replaced with a single backslash.
 </para>
 </appendix>

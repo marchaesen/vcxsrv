@@ -31,45 +31,25 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
+.ie \n(.g .ds `` \(lq
+.el       .ds `` ``
+.ie \n(.g .ds '' \(rq
+.el       .ds '' ''
 .hw XtResolve-Pathname wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtResolvePathname __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtResolvePathname \- search for a file using standard substitution
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-String XtResolvePathname(Display *\fIdisplay\fP, String \fItype\fP, String
-\fIfilename\fP, String \fIsuffix\fP, String \fIpath\fP, Substitution
-\fIsubstitutions\fP, Cardinal \fInum_substitutions\fP, XtFilePredicate
-\fIpredicate\fP);
+char * XtResolvePathname(Display *\fIdisplay\fP,
+const char *\fItype\fP,
+const char *\fIfilename\fP,
+const char *\fIsuffix\fP,
+const char *\fIpath\fP,
+Substitution \fIsubstitutions\fP, Cardinal \fInum_substitutions\fP,
+XtFilePredicate \fIpredicate\fP);
 .SH ARGUMENTS
 .IP \fIdisplay\fP 1.2i
 Specifies the display to use to find the language for language substitutions.
@@ -91,28 +71,30 @@ Specifies the number of entries in \fIsubstitutions\fP.
 Specifies a procedure called to judge each potential file name, or NULL.
 .SH DESCRIPTION
 The substitutions specified by
-.ZN XtResolvePathname
+.B XtResolvePathname
 are determined from the value of the language string retrieved by
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 for the specified display.
 To set the
-language for all applications specify ``*xnlLanguage: \fIlang\fP'' in the
+language for all applications specify \*(``*xnlLanguage: \fIlang\fP\*('' in the
 resource database.
-.IN "xnlLanguage"
 The format and content of the language string are
-implementation-defined.   One suggested syntax is to compose
-the language string of three parts;  a  ``language  part'',  a
-``territory  part'' and a ``codeset part''.  The manner in which
+implementation-defined.
+One suggested syntax is to compose
+the language string of three parts:
+a  \*(``language  part\*('',  a
+\*(``territory  part\*('' and a \*(``codeset part\*(''.
+The manner in which
 this composition is accomplished is implementation-defined
 and the \*(xI make no interpretation of the parts other
 than to use them in substitutions as described below.
 .LP
-.ZN XtResolvePathname
+.B XtResolvePathname
 calls
-.ZN XtFindFile
+.B XtFindFile
 with the following substitutions
 in addition to any passed by the caller and returns the value returned by
-.ZN XtFindFile :
+.BR XtFindFile :
 .IP %N 5
 The value of the \fIfilename\fP parameter, or the application's
 class name if \fIfilename\fP is NULL.
@@ -135,18 +117,18 @@ database associated with \fIdisplay\fP.
 The value of the implementation-specific default path.
 .LP
 If a path is passed to
-.ZN XtResolvePathname ,
+.BR XtResolvePathname ,
 it will be passed along to
-.ZN XtFindFile .
+.BR XtFindFile .
 If the \fIpath\fP argument is NULL, the value of the
-.ZN \s-1XFILESEARCHPATH\s+1
-.IN "XFILESEARCHPATH" "" "@DEF@"
+.B \s-1XFILESEARCHPATH\s+1
 environment variable will be passed to
-.ZN XtFindFile .
+.BR XtFindFile .
 If
-.ZN \s-1XFILESEARCHPATH\s+1
+.B \s-1XFILESEARCHPATH\s+1
 is not defined, an implementation-specific default path will be used
-which contains at least 6 entries.  These entries
+which contains at least 6 entries.
+These entries
 must contain the following substitutions:
 
 .nf
@@ -167,11 +149,12 @@ with a colon, it will be preceded by %N%S.  If the path includes two
 adjacent colons, \fB%N%S\fP will be inserted between them.
 .LP
 The \fItype\fP parameter is intended to be a category of files, usually
-being translated into a directory in the pathname.  Possible values
-might include ``app-defaults'', ``help'', and ``bitmap''.
+being translated into a directory in the pathname.
+Possible values
+might include \*(``app-defaults\*('', \*(``help\*('', and \*(``bitmap\*(''.
 .LP
 The \fIsuffix\fP parameter is intended to be appended to the file name.
-Possible values might include ``.txt'', ``.dat'', and ``.bm''.
+Possible values might include \*(``.txt\*('', \*(``.dat\*('', and \*(``.bm\*(''.
 .LP
 A suggested value for the default path on POSIX-based systems is
 .IP
@@ -183,35 +166,38 @@ __projectroot__/lib/X11/%l/%T/%N%S:__projectroot__/lib/X11/%T/%N%S
 .LP
 Using this example, if the user has specified a language, it will be
 used as a subdirectory of __projectroot__/lib/X11 that will be searched
-for other files.  If the desired file is not found there, the lookup
+for other files.
+If the desired file is not found there, the lookup
 will be tried again using just the language part of the specification.
 If the file is not there, it will be looked for in
-__projectroot__/lib/X11.  The \fItype\fP parameter is used as a
+__projectroot__/lib/X11.
+The \fItype\fP parameter is used as a
 subdirectory of the language directory or of __projectroot__/lib/X11,
 and \fIsuffix\fP is appended to the file name.
 .LP
 The %D substitution allows the addition of path
 elements to the implementation-specific default path, typically to
 allow additional directories to be searched without preventing
-resources in the system directories from being found.  For example, a
-user installing resource files under a directory called ``ourdir''
+resources in the system directories from being found.
+For example, a
+user installing resource files under a directory called \*(``ourdir\*(''
 might set
-.ZN \s-1XFILESEARCHPATH\s+1
+.B \s-1XFILESEARCHPATH\s+1
 to
 .IP
 %D:ourdir/%T/%N%C:ourdir/%T/%N
 .LP
 The customization string is obtained by querying the resource database
 currently associated with the display (the database returned by
-.ZN XrmGetDatabase )
+.BR XrmGetDatabase )
 for the resource \fIapplication_name\fP.customization, class
 \fIapplication_class\fP.Customization where \fIapplication_name\fP
 and \fIapplication_class\fP are the values returned by
-.ZN XtGetApplicationNameAndClass .
+.BR XtGetApplicationNameAndClass .
 If no value is specified in the database, the empty string is used.
 .LP
 It is the responsibility of the caller to free the returned string using
-.ZN XtFree
+.B XtFree
 when it is no longer needed.
 .SH "SEE ALSO"
 .br

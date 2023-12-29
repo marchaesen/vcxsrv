@@ -3,19 +3,19 @@
 <!-- .XS -->
 <!-- 	Grip Widget -->
 <!-- .XE -->
-<!-- .IN "Grip widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Grip widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application header file	&lt;X11/Xaw/Grip.h&gt;
-<!-- .IN "Grip.h" "" -->
+<indexterm><primary>Grip.h</primary></indexterm>
 Class header file	&lt;X11/Xaw/GripP.h&gt;
-<!-- .IN "GripP.h" "" -->
+<indexterm><primary>GripP.h</primary></indexterm>
 Class	gripWidgetClass
-<!-- .IN "gripWidgetClass" "" -->
+<indexterm><primary>gripWidgetClass</primary></indexterm>
 Class Name	Grip
-<!-- .IN "Grip widget" "class name" -->
+<indexterm><primary>Grip widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Simple
 <!-- .sp -->
 </literallayout>
@@ -35,7 +35,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Grip widget" "resources" -->
+<indexterm><primary>Grip widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -290,12 +290,12 @@ used to flood fill the entire Grip widget.
 </sect2>
 <sect2 id="Grip_Actions">
 <title>Grip Actions</title>
-<!-- .IN "Grip widget" "actions" -->
+<indexterm><primary>Grip widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Grip widget does not declare any default event translation bindings,
 but it does declare a single action routine named <function>GripAction</function>.  The
-<!-- .IN "Grip widget" "GripAction routine" -->
+<indexterm><primary>Grip widget</primary><secondary>GripAction routine</secondary></indexterm>
 client specifies an arbitrary event translation table, optionally giving
 parameters to the <function>GripAction</function> routine.
 </para>
@@ -311,8 +311,8 @@ header file.
 <literallayout class="monospaced">
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
-<!-- .IN "XawGripCallData" "" "@DEF@" -->
-<!-- .IN "XawGripCallDataRec" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawGripCallData</primary></indexterm>
+<indexterm significance="preferred"><primary>XawGripCallDataRec</primary></indexterm>
 <!-- .sp -->
 typedef struct _XawGripCallData {
 	XEvent *event;
@@ -320,9 +320,9 @@ typedef struct _XawGripCallData {
 	Cardinal num_params;
 } XawGripCallDataRec, *XawGripCallData,
   GripCallDataRec, *GripCallData; /* supported for R4 compatibility */
-<!-- .IN "XawGripCallDataRec" "" -->
-<!-- .IN "XawGripCallData" "" -->
-<!-- .IN "GripCallData" "" -->
+<indexterm><primary>XawGripCallDataRec</primary></indexterm>
+<indexterm><primary>XawGripCallData</primary></indexterm>
+<indexterm><primary>GripCallData</primary></indexterm>
 <!-- .sp -->
 </literallayout>
 </para>
@@ -332,7 +332,7 @@ In this structure, the <emphasis remap='I'>event</emphasis> is a pointer to the 
 triggered the action.  <emphasis remap='I'>params</emphasis> and <emphasis remap='I'>num_params</emphasis> give the string
 parameters specified in the translation table for the particular event
 binding.
-<!-- .IN "Grip widget" "GripAction table" -->
+<indexterm><primary>Grip widget</primary><secondary>GripAction table</secondary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -350,7 +350,8 @@ The following is an example of a translation table that uses the GripAction:
 <!-- .sp -->
 </literallayout>
 For a complete description of the format of translation tables, see the
-<emphasis remap='I'>X Toolkit Intrinsics - C Language Interface</emphasis>.
+<olink targetdoc='intrinsics' targetptr='Translation_Management'
+><citetitle>X Toolkit Intrinsics - C Language Interface</citetitle></olink>.
 
 </para>
 </sect2>

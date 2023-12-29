@@ -1,6 +1,6 @@
 /* XPM */
 static char * plaid[] = {
-/* plaid pixmap 
+/* plaid pixmap
  * width height ncolors chars_per_pixel */
 "22 22 5 2",
 /* colors */
@@ -10,26 +10,26 @@ static char * plaid[] = {
 "x  		m black  s dark_color ",
 "   c none		 s mask ",
 /* pixels */
-"                      x x x x x + x x x x x ", 
-"                    . x x x x x x x x x x x ", 
-"                  . x x x x x x + x x x x x ", 
-"                . x . x x x x x x x x x x x ", 
-"              . x . x x x x x x + x x x x x ", 
-"            Y Y Y Y Y + x + x + x + x + x + ", 
-"          x x . x . x x x x x x + x x x x x ", 
-"        . x . x . x . x x x x x x x x x x x ", 
-"      . x x x . x . x x x x x x + x x x x x ", 
-"    . x . x . x . x . x x x x x x x x x x x ", 
-"  . x . x x x . x . x x x x x x + x x x x x ", 
-". . . . . x . . . . . x . x . x Y x . x . x ", 
+"                      x x x x x + x x x x x ",
+"                    . x x x x x x x x x x x ",
+"                  . x x x x x x + x x x x x ",
+"                . x . x x x x x x x x x x x ",
+"              . x . x x x x x x + x x x x x ",
+"            Y Y Y Y Y + x + x + x + x + x + ",
+"          x x . x . x x x x x x + x x x x x ",
+"        . x . x . x . x x x x x x x x x x x ",
+"      . x x x . x . x x x x x x + x x x x x ",
+"    . x . x . x . x . x x x x x x x x x x x ",
+"  . x . x x x . x . x x x x x x + x x x x x ",
+". . . . . x . . . . . x . x . x Y x . x . x ",
 ". . . . . x . . . . . . x . x . Y . x . x . ",
-". . . . . x . . . . . x . x . x Y x . x . x ", 
-". . . . . x . . . . . . x . x . Y . x . x . ", 
-". . . . . x . . . . . x . x . x Y x . x . x ", 
-"x x x x x x x x x x x x x x x x x x x x x x ", 
-". . . . . x . . . . . x . x . x Y x . x . x ", 
-". . . . . x . . . . . . x . x . Y . x . x . ", 
-". . . . . x . . . . . x . x . x Y x . x . x ", 
-". . . . . x . . . . . . x . x . Y . x . x . ", 
+". . . . . x . . . . . x . x . x Y x . x . x ",
+". . . . . x . . . . . . x . x . Y . x . x . ",
+". . . . . x . . . . . x . x . x Y x . x . x ",
+"x x x x x x x x x x x x x x x x x x x x x x ",
+". . . . . x . . . . . x . x . x Y x . x . x ",
+". . . . . x . . . . . . x . x . Y . x . x . ",
+". . . . . x . . . . . x . x . x Y x . x . x ",
+". . . . . x . . . . . . x . x . Y . x . x . ",
 ". . . . . x . . . . . x . x . x Y x . x . x "
 } ;

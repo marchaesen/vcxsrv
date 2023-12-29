@@ -112,7 +112,7 @@ static FILE *InitStringOrFile(MultiSrcObject, Bool);
 static void LoadPieces(MultiSrcObject, FILE*, char*);
 static void RemovePiece(MultiSrcObject, MultiPiece*);
 static void RemoveOldStringOrFile(MultiSrcObject, Bool);
-static String StorePiecesInString(MultiSrcObject);
+static char * StorePiecesInString(MultiSrcObject);
 static Bool WriteToFile(String, String);
 static void GetDefaultPieceSize(Widget, int, XrmValue*);
 
@@ -234,6 +234,9 @@ MultiSrcClassRec multiSrcClassRec = {
     Search,				/* Search */
     XtInheritSetSelection,		/* SetSelection */
     XtInheritConvertSelection,		/* ConvertSelection */
+#ifndef OLDXAW
+    NULL
+#endif
   },
   /* multi_src */
   {
@@ -274,8 +277,8 @@ XawMultiSrcClassInitialize(void)
  */
 /*ARGSUSED*/
 static void
-XawMultiSrcInitialize(Widget request, Widget cnew,
-		      ArgList args, Cardinal *num_args)
+XawMultiSrcInitialize(Widget request _X_UNUSED, Widget cnew,
+		      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     MultiSrcObject src = (MultiSrcObject)cnew;
     FILE *file;
@@ -298,7 +301,7 @@ XawMultiSrcInitialize(Widget request, Widget cnew,
 
     if (file != NULL)
 	fclose(file);
-    src->text_src.text_format = XawFmtWide;
+    src->text_src.text_format = (XrmQuark)XawFmtWide;
 }
 
 /*
@@ -325,10 +328,10 @@ ReadText(Widget w, XawTextPosition pos, XawTextBlock *text, int length)
     MultiPiece *piece = FindPiece(src, pos, &start);
 
     text->format = XawFmtWide;
-    text->firstPos = pos;
+    text->firstPos = (int)pos;
     text->ptr = (char *)(piece->text + (pos - start));
     count = piece->used - (pos - start);
-    text->length = Max(0, (length > count) ? count : length);
+    text->length = (Max(0, (length > count) ? count : length));
 
     return (pos + text->length);
 }
@@ -420,7 +423,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	end_piece->used -= endPos - end_first;
 	if (end_piece->used != 0)
 	    memmove(end_piece->text, end_piece->text + endPos - end_first,
-		    end_piece->used * sizeof(wchar_t));
+		    (size_t)end_piece->used * sizeof(wchar_t));
     }
     else {		    /* We are fully in one piece */
 	if ((start_piece->used -= endPos - startPos) == 0) {
@@ -430,7 +433,7 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	else {
 	    memmove(start_piece->text + (startPos - start_first),
 		    start_piece->text + (endPos - start_first),
-		    (start_piece->used - (startPos - start_first)) *
+		    (size_t)(start_piece->used - (startPos - start_first)) *
 		    sizeof(wchar_t));
 	    if (src->multi_src.use_string_in_place &&
 		((src->multi_src.length - (endPos - startPos))
@@ -475,10 +478,10 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
 	    fill = Min((int)(src->multi_src.piece_size - start_piece->used), length);
 
 	    ptr = start_piece->text + (startPos - start_first);
-	    memmove(ptr + fill, ptr, (start_piece->used -
+	    memmove(ptr + fill, ptr, (size_t)(start_piece->used -
 		    (startPos - start_first)) * sizeof(wchar_t));
 	    wptr =(wchar_t *)text.ptr;
-	    (void)wcsncpy(ptr, wptr + firstPos, fill);
+	    (void)wcsncpy(ptr, wptr + firstPos, (size_t)fill);
 
 	    startPos += fill;
 	    firstPos += fill;
@@ -512,8 +515,8 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
  *	position - position to start scanning
  *	type	 - type of thing to scan for
  *	dir	 - direction to scan
- *	count	 - which occurance if this thing to search for
- *		   include - whether or not to include the character found in
+ *	count	 - which occurrence of this thing to search for
+ *	include  - whether or not to include the character found in
  *		   the position that is returned
  *
  * Description:
@@ -523,8 +526,8 @@ ReplaceText(Widget w, XawTextPosition startPos, XawTextPosition endPos,
  *	The position of the item found
  *
  * Note:
- *	  While there are only 'n' characters in the file there are n+1
- *	 possible cursor positions (one before the first character and
+ *	While there are only 'n' characters in the file there are n+1
+ *	possible cursor positions (one before the first character and
  *	one after the last character
  */
 static XawTextPosition
@@ -581,7 +584,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
 
 		    if (ptr < piece->text) {
 			piece = piece->prev;
-			if (piece == NULL)	/* Begining of text */
+			if (piece == NULL)	/* Beginning of text */
 			    return (0);
 			ptr = piece->text + piece->used - 1;
 			c = *ptr;
@@ -598,7 +601,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
 		    position += inc;
 
 		    if (type == XawstAlphaNumeric) {
-			if (!iswalnum(c)) {
+			if (!iswalnum((wint_t)c)) {
 			    if (non_space)
 				break;
 			}
@@ -668,7 +671,7 @@ Scan(Widget w, register XawTextPosition position, XawTextScanType type,
  *	text	 - text block to search for
  *
  * Description:
- *	Searchs the text source for the text block passed.
+ *	Searches the text source for the text block passed.
  *
  * Returns:
  *	The position of the item found
@@ -705,7 +708,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
        I'm being passed a string claiming to be 8bit chars (ie, MB text.)
        If that is the case, naturally I convert to 32bit format */
 
-    /*if the block was FMT8BIT, length will convert to REAL wchar count bellow */
+    /*if the block was FMT8BIT, length will convert to REAL wchar count below */
     wtarget_len = text->length;
 
     if (text->format == XawFmtWide)
@@ -720,8 +723,8 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
        effectively factored out of the following computations */
 
     /* STEP 3: SEARCH! */
-    buf = (wchar_t *)XtMalloc(sizeof(wchar_t) * wtarget_len);
-    (void)wcsncpy(buf, wtarget, wtarget_len);
+    buf = (wchar_t *)XtMalloc((Cardinal)(sizeof(wchar_t) * (size_t)wtarget_len));
+    (void)wcsncpy(buf, wtarget, (size_t)wtarget_len);
     piece = FindPiece(src, position, &first);
     ptr = (position - first) + piece->text;
 
@@ -746,10 +749,10 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	position += inc;
 
 	while (ptr < piece->text) {
-	    cnt = piece->text - ptr;
+	    cnt = (int)(piece->text - ptr);
 
 	    piece = piece->prev;
-	    if (piece == NULL) {	/* Begining of text */
+	    if (piece == NULL) {	/* Beginning of text */
 		XtFree((char *)buf);
 		return (XawTextSearchError);
 	    }
@@ -757,7 +760,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
 	}
 
 	while (ptr >= piece->text + piece->used) {
-	    cnt = ptr - (piece->text + piece->used);
+	    cnt = (int)(ptr - (piece->text + piece->used));
 
 	    piece = piece->next;
 	    if (piece == NULL) {	/* End of text */
@@ -793,7 +796,7 @@ Search(Widget w, register XawTextPosition position, XawTextScanDirection dir,
  *	True if redisplay is needed
  */
 static Boolean
-XawMultiSrcSetValues(Widget current, Widget request, Widget cnew,
+XawMultiSrcSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
 		     ArgList args, Cardinal *num_args)
 {
     MultiSrcObject src = (MultiSrcObject)cnew;
@@ -841,7 +844,7 @@ XawMultiSrcSetValues(Widget current, Widget request, Widget cnew,
 
     if ( !total_reset && old_src->multi_src.piece_size
 	 != src->multi_src.piece_size) {
-	String mb_string = StorePiecesInString(old_src);
+	char * mb_string = StorePiecesInString(old_src);
 
 	if (mb_string != 0) {
 	    FreeAllPieces(old_src);
@@ -874,7 +877,7 @@ XawMultiSrcGetValuesHook(Widget w, ArgList args, Cardinal *num_args)
 		if (src->multi_src.use_string_in_place)
 		    *((char **)args[i].value) = (char *)
 			src->multi_src.first_piece->text;
-		else if (_XawMultiSave(w))	/* If save sucessful */
+		else if (_XawMultiSave(w))	/* If save successful */
 		    *((char **)args[i].value) = (char *)src->multi_src.string;
 		break;
 	    }
@@ -1022,7 +1025,7 @@ _XawMultiSave(Widget w)
  *	Save the current buffer as a file.
  *
  * Returns:
- *	True if the save was sucessful
+ *	True if the save was successful
  *
  * Note:
  * The public interface is XawAsciiSaveAsFile!
@@ -1031,13 +1034,13 @@ Bool
 _XawMultiSaveAsFile(Widget w, _Xconst char* name)
 {
     MultiSrcObject src = (MultiSrcObject)w;
-    String mb_string;
+    char * mb_string;
     Bool ret;
 
     mb_string = StorePiecesInString(src);
 
     if (mb_string != 0) {
-	ret = WriteToFile(mb_string, (char *)name);
+	ret = WriteToFile(mb_string, (String)name);
 	XtFree(mb_string);
 
 	return (ret);
@@ -1075,10 +1078,10 @@ RemoveOldStringOrFile(MultiSrcObject src, Bool checkString)
  *	name   - name of the file
  *
  * Description:
- *	Write the string specified to the begining of the file  specified.
+ *	Write the string specified to the beginning of the file  specified.
  *
  * Returns:
- *	Returns True if sucessful, False otherwise
+ *	Returns True if successful, False otherwise
  */
 static Bool
 WriteToFile(String string, String name)
@@ -1114,21 +1117,21 @@ WriteToFile(String string, String name)
  *	(or)
  *	NULL:		conversion error
  */
-static String
+static char *
 StorePiecesInString(MultiSrcObject src)
 {
     wchar_t *wc_string;
     char *mb_string;
-    int char_count = src->multi_src.length;
+    int char_count = (int)src->multi_src.length;
     XawTextPosition first;
     MultiPiece *piece;
 
     /* I believe the char_count + 1 and the NULL termination are unneeded! FS */
-    wc_string = (wchar_t*)XtMalloc((char_count + 1) * sizeof(wchar_t));
+    wc_string = (wchar_t*)XtMalloc((Cardinal)((size_t)(char_count + 1) * sizeof(wchar_t)));
 
     for (first = 0, piece = src->multi_src.first_piece ; piece != NULL;
 	 first += piece->used, piece = piece->next)
-	(void)wcsncpy(wc_string + first, piece->text, piece->used);
+	(void)wcsncpy(wc_string + first, piece->text, (size_t)piece->used);
 
     wc_string[char_count] = 0;
 
@@ -1173,24 +1176,24 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 
 	else if (!src->multi_src.use_string_in_place) {
 	    int length;
-	    String temp = XtNewString((char *)src->multi_src.string);
+	    char * temp = XtNewString((char *)src->multi_src.string);
 
 	    if (src->multi_src.allocated_string)
 		XtFree((char *)src->multi_src.string);
 	    src->multi_src.allocated_string = True;
 	    src->multi_src.string = temp;
 
-	    length = strlen((char *)src->multi_src.string);
+	    length = (int)strlen((char *)src->multi_src.string);
 
 	    /* Wasteful, throwing away the WC string, but need side effect! */
 	    (void)_XawTextMBToWC(d, (char *)src->multi_src.string, &length);
 	    src->multi_src.length = (XawTextPosition)length;
 	}
 	else {
-	    src->multi_src.length = strlen((char *)src->multi_src.string);
+	    src->multi_src.length = (XawTextPosition)strlen((char *)src->multi_src.string);
 	    /* In case the length resource is incorrectly set */
 	    if (src->multi_src.length > src->multi_src.multi_length)
-		src->multi_src.multi_length = src->multi_src.length;
+		src->multi_src.multi_length = (int)src->multi_src.length;
 
 	    if (src->multi_src.multi_length == MAGIC_VALUE)
 		src->multi_src.piece_size = src->multi_src.length;
@@ -1218,7 +1221,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
 	case XawtextAppend:
 	case XawtextEdit:
 	    if (src->multi_src.string == NULL) {
-		src->multi_src.string = "*multi-src*";
+		src->multi_src.string = (char *)"*multi-src*";
 		src->multi_src.is_tempfile = True;
 	    }
 	    else {
@@ -1240,7 +1243,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
     /* If is_tempfile, allocate a private copy of the text
      * Unlikely to be changed, just to set allocated_string */
     if (newString || src->multi_src.is_tempfile) {
-	String temp = XtNewString((char *)src->multi_src.string);
+	char * temp = XtNewString((char *)src->multi_src.string);
 
 	if (src->multi_src.allocated_string)
 	    XtFree((char *)src->multi_src.string);
@@ -1249,7 +1252,7 @@ InitStringOrFile(MultiSrcObject src, Bool newString)
     }
 
     if (!src->multi_src.is_tempfile) {
-	if ((fd = open((char *)src->multi_src.string, open_mode, 0666)) != -1) {
+	if ((fd = open((char *)src->multi_src.string, (int)open_mode, 0666)) != -1) {
 	    if ((file = fdopen(fd, fdopen_mode)) != NULL) {
 		(void)fseek(file, 0, SEEK_END);
 		src->multi_src.length = (XawTextPosition)ftell(file);
@@ -1296,7 +1299,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
      * in as MB length, out as WC length.  We want local_length to be
      * WC count.
      */
-    int local_length = src->multi_src.length;
+    int local_length = (int)src->multi_src.length;
 
     if (string != NULL) {
 	/*
@@ -1312,24 +1315,24 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 	 * here, we are not changing the contents, just reloading,
 	 * so don't change len...
 	 */
-	local_length = src->multi_src.string ?
-	    strlen((char *)src->multi_src.string) : 0;
+	local_length = (int)(src->multi_src.string ?
+	    strlen((char *)src->multi_src.string) : 0);
 	local_str = _XawTextMBToWC(d, (char *)src->multi_src.string,
 				   &local_length);
     }
     else {
 	if (src->multi_src.length != 0) {
 	    temp_mb_holder =
-		XtMalloc((src->multi_src.length + 1) * sizeof(unsigned char));
+		XtMalloc(((size_t)(src->multi_src.length + 1) * sizeof(unsigned char)));
 	    fseek(file, 0, SEEK_SET);
-	    src->multi_src.length = fread(temp_mb_holder,
+	    src->multi_src.length = (XawTextPosition)fread(temp_mb_holder,
 					  sizeof(unsigned char),
 					  (size_t)src->multi_src.length, file);
 	    if (src->multi_src.length <= 0)
 		XtAppErrorMsg(XtWidgetToApplicationContext ((Widget) src),
 			      "readError", "multiSource", "XawError",
 			      "fread returned error.", NULL, NULL);
-	    local_length = src->multi_src.length;
+	    local_length = (int)src->multi_src.length;
 	    local_str = _XawTextMBToWC(d, temp_mb_holder, &local_length);
 	    src->multi_src.length = local_length;
 
@@ -1349,7 +1352,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 				"not representable in this locale.",
 				params, &num_params);
 		src->multi_src.length = sizeof err_text;
-		local_length = src->multi_src.length;
+		local_length = (int)src->multi_src.length;
 		local_str = _XawTextMBToWC(d, err_text, &local_length);
 		src->multi_src.length = local_length;
 	    }
@@ -1378,7 +1381,7 @@ LoadPieces(MultiSrcObject src, FILE *file, char *string)
 						    * bytes));
 	piece->used = Min(left, src->multi_src.piece_size);
 	if (piece->used != 0)
-	(void)wcsncpy(piece->text, ptr, piece->used);
+	(void)wcsncpy(piece->text, ptr, (size_t)piece->used);
 
 	left -= piece->used;
 	ptr += piece->used;
@@ -1527,16 +1530,16 @@ BreakPiece(MultiSrcObject src, MultiPiece *piece)
     MultiPiece *cnew = AllocNewPiece(src, piece);
 
     cnew->text = (wchar_t *)
-	XtMalloc(src->multi_src.piece_size * sizeof(wchar_t));
+	XtMalloc((Cardinal)((size_t)src->multi_src.piece_size * sizeof(wchar_t)));
     (void)wcsncpy(cnew->text, piece->text + HALF_PIECE,
-		  src->multi_src.piece_size - HALF_PIECE);
+		  (size_t)(src->multi_src.piece_size - HALF_PIECE));
     piece->used = HALF_PIECE;
     cnew->used = src->multi_src.piece_size - HALF_PIECE;
 }
 
 /*ARGSUSED*/
 static void
-CvtStringToMultiType(XrmValuePtr args, Cardinal *num_args,
+CvtStringToMultiType(XrmValuePtr args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 		     XrmValuePtr fromVal, XrmValuePtr toVal)
 {
     static XawAsciiType type = XawAsciiString;
@@ -1562,9 +1565,9 @@ CvtStringToMultiType(XrmValuePtr args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static Boolean
-CvtMultiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
+CvtMultiTypeToString(Display *dpy, XrmValuePtr args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 		     XrmValuePtr fromVal, XrmValuePtr toVal,
-		     XtPointer *data)
+		     XtPointer *data _X_UNUSED)
 {
     static String buffer;
     Cardinal size;
@@ -1583,7 +1586,7 @@ CvtMultiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 	    return (False);
     }
 
-    size = strlen(buffer) + 1;
+    size = (Cardinal)strlen(buffer) + 1;
     if (toVal->addr != NULL) {
 	if (toVal->size < size) {
 	    toVal->size = size;
@@ -1600,7 +1603,7 @@ CvtMultiTypeToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 
 /*ARGSUSED*/
 static void
-GetDefaultPieceSize(Widget w, int offset, XrmValue *value)
+GetDefaultPieceSize(Widget w _X_UNUSED, int offset _X_UNUSED, XrmValue *value)
 {
     static XPointer pagesize;
 

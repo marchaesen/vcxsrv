@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtGet-Application-Resources, XtVa-Get-Application-Resources wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetApplicationResources __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetApplicationResources, XtVaGetApplicationResources \- obtain application resources
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtGetApplicationResources(Widget \fIw\fP, XtPointer \fIbase\fP,
 XtResourceList \fIresources\fP, Cardinal \fInum_resources\fP, ArgList
@@ -73,36 +46,33 @@ XtResourceList \fIresources\fP, Cardinal \fInum_resources\fP, ArgList
 .HP
 void XtVaGetApplicationResources(Widget \fIw\fP, XtPointer \fIbase\fP,
 XtResourceList \fIresources\fP, Cardinal \fInum_resources\fP, ...\^);
-.SH ARGUMENTS
-.ds Al to override resources obtained from the resource database
+.SH ARGUMENTS 
 .IP \fIargs\fP 1i
-Specifies the argument list \*(Al.
-.ds Ba written
+Specifies the argument list to override resources obtained from the resource database.
 .IP \fIbase\fP 1i
 Specifies the base address of the subpart data structure where the resources
-should be \*(Ba.
+should be written.
 .IP \fInum_args\fP 1i
 Specifies the number of arguments in the argument list.
 .IP \fInum_resources\fP 1i
 Specifies the number of resources in the resource list.
 .IP \fIresources\fP 1i
 Specifies the resource list for the subpart.
-.ds Wi that wants resources for a subpart \
-or that identifies the resource database to search
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget that wants resources for a subpart 
+or that identifies the resource database to search.
 .IP \fI...\fP 1i
-Specifies the variable arguments \*(Al.
+Specifies the variable arguments to override resources obtained from the resource database.
 .SH DESCRIPTION
 The
-.ZN XtGetApplicationResources
+.B XtGetApplicationResources
 function first uses the passed widget,
 which is usually an application shell,
 to construct a resource name and class list,
 Then, it retrieves the resources from the argument list,
 the resource database, or the resource list default values.
 After adding base to each address,
-.ZN XtGetApplicationResources
+.B XtGetApplicationResources
 copies the resources into the address given in the resource list.
 If args is NULL,
 num_args must be zero.

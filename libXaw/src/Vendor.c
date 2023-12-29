@@ -111,12 +111,20 @@ static XtResource resources[] = {
  *
  ***************************************************************************/
 
-#if defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__CYGWIN__) || defined(__MINGW32__) || defined(__APPLE__)
 /* to fix the EditRes problem because of wrong linker semantics */
 extern WidgetClass vendorShellWidgetClass; /* from Xt/Vendor.c */
 extern VendorShellClassRec _XawVendorShellClassRec;
 extern void _XawFixupVendorShell();
 
+#if defined(__APPLE__)
+__attribute__((constructor))
+static void __VendorShellHack(void)
+{
+    vendorShellWidgetClass = (WidgetClass)(&_XawVendorShellClassRec);
+    _XawFixupVendorShell();
+}
+#else
 int __stdcall
 DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
 {
@@ -131,6 +139,7 @@ DllMain(unsigned long mod_handle, unsigned long flag, void *routine)
     }
   return 1;
 }
+#endif
 
 #define vendorShellClassRec _XawVendorShellClassRec
 
@@ -195,7 +204,7 @@ externaldef(vendorshellclassrec) VendorShellClassRec vendorShellClassRec = {
   }
 };
 
-#ifndef __UNIXOS2__
+#if !defined(__UNIXOS2__) && !defined(__APPLE__)
 externaldef(vendorshellwidgetclass) WidgetClass vendorShellWidgetClass =
 	(WidgetClass) (&vendorShellClassRec);
 #endif
@@ -267,9 +276,9 @@ externaldef(xawvendorshellwidgetclass) WidgetClass
 
 /*ARGSUSED*/
 static Boolean
-XawCvtCompoundTextToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
+XawCvtCompoundTextToString(Display *dpy, XrmValuePtr args _X_UNUSED, Cardinal *num_args _X_UNUSED,
 			   XrmValue *fromVal, XrmValue *toVal,
-			   XtPointer *cvt_data)
+			   XtPointer *cvt_data _X_UNUSED)
 {
     XTextProperty prop;
     char **list;
@@ -288,9 +297,9 @@ XawCvtCompoundTextToString(Display *dpy, XrmValuePtr args, Cardinal *num_args,
 	"conversion from CT to MB failed.", NULL, NULL);
 	return False;
     }
-    len = strlen(*list);
-    toVal->size = len;
-    mbs = XtRealloc(mbs, len + 1); /* keep buffer because no one call free :( */
+    len = (int)strlen(*list);
+    toVal->size = (unsigned)len;
+    mbs = XtRealloc(mbs, (Cardinal)(len + 1)); /* keep buffer because no one call free :( */
     strcpy(mbs, *list);
     XFreeStringList(list);
     toVal->addr = (XtPointer)mbs;
@@ -339,7 +348,7 @@ XawVendorShellClassPartInit(WidgetClass cclass)
     }
 }
 
-#if defined(__osf__) || defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__)
+#if defined(__osf__) || defined(__UNIXOS2__) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__APPLE__)
 /* stupid OSF/1 shared libraries have the wrong semantics */
 /* symbols do not get resolved external to the shared library */
 void _XawFixupVendorShell()
@@ -353,7 +362,7 @@ void _XawFixupVendorShell()
 
 /* ARGSUSED */
 static void
-XawVendorShellInitialize(Widget req, Widget cnew,
+XawVendorShellInitialize(Widget req _X_UNUSED, Widget cnew,
 			 ArgList args, Cardinal *num_args)
 {
     XtAddEventHandler(cnew, (EventMask) 0, TRUE, _XEditResCheckMessages, NULL);
@@ -364,8 +373,8 @@ XawVendorShellInitialize(Widget req, Widget cnew,
 
 /* ARGSUSED */
 static Boolean
-XawVendorShellSetValues(Widget old, Widget ref, Widget cnew,
-			ArgList args, Cardinal *num_args)
+XawVendorShellSetValues(Widget old _X_UNUSED, Widget ref _X_UNUSED, Widget cnew _X_UNUSED,
+			ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
 	return FALSE;
 }
@@ -389,8 +398,8 @@ XawVendorShellExtClassInitialize(void)
 
 /* ARGSUSED */
 static void
-XawVendorShellExtInitialize(Widget req, Widget cnew,
-			    ArgList args, Cardinal *num_args)
+XawVendorShellExtInitialize(Widget req _X_UNUSED, Widget cnew,
+			    ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     _XawImInitialize(cnew->core.parent, cnew);
 }
@@ -404,8 +413,8 @@ XawVendorShellExtDestroy(Widget w)
 
 /* ARGSUSED */
 static Boolean
-XawVendorShellExtSetValues(Widget old, Widget ref, Widget cnew,
-			   ArgList args, Cardinal *num_args)
+XawVendorShellExtSetValues(Widget old _X_UNUSED, Widget ref _X_UNUSED, Widget cnew _X_UNUSED,
+			   ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
 	return FALSE;
 }
@@ -423,7 +432,9 @@ XawVendorShellExtResize(Widget w)
 	for( i = 0; i < sw->composite.num_children; i++ ) {
 	    if( XtIsManaged( sw->composite.children[ i ] ) ) {
 		childwid = sw->composite.children[ i ];
-		XtResizeWidget( childwid, sw->core.width, core_height,
+		XtResizeWidget( childwid,
+			       (Dimension)sw->core.width,
+			       (Dimension)core_height,
 			       childwid->core.border_width );
 	    }
 	}
@@ -431,8 +442,8 @@ XawVendorShellExtResize(Widget w)
 
 /*ARGSUSED*/
 void
-XawVendorStructureNotifyHandler(Widget w, XtPointer closure, XEvent *event,
-				Boolean *continue_to_dispatch)
+XawVendorStructureNotifyHandler(Widget w, XtPointer closure _X_UNUSED, XEvent *event _X_UNUSED,
+				Boolean *continue_to_dispatch _X_UNUSED)
 {
   XawVendorShellExtResize(w);
 }
@@ -440,7 +451,7 @@ XawVendorStructureNotifyHandler(Widget w, XtPointer closure, XEvent *event,
 /*ARGSUSED*/
 static XtGeometryResult
 XawVendorShellGeometryManager(Widget wid, XtWidgetGeometry *request,
-			      XtWidgetGeometry *reply)
+			      XtWidgetGeometry *reply _X_UNUSED)
 {
 	ShellWidget shell = (ShellWidget)(wid->core.parent);
 	XtWidgetGeometry my_request;
@@ -458,8 +469,8 @@ XawVendorShellGeometryManager(Widget wid, XtWidgetGeometry *request,
 	    my_request.request_mode |= CWWidth;
 	}
 	if (request->request_mode & CWHeight) {
-	    my_request.height = request->height
-			      + _XawImGetImAreaHeight( wid );
+	    my_request.height = (Dimension)(request->height
+			      + _XawImGetImAreaHeight( wid ));
 	    my_request.request_mode |= CWHeight;
 	}
 	if (request->request_mode & CWBorderWidth) {
@@ -480,7 +491,7 @@ XawVendorShellGeometryManager(Widget wid, XtWidgetGeometry *request,
 	    wid->core.width = shell->core.width;
 	    wid->core.height = shell->core.height;
 	    if (request->request_mode & CWBorderWidth) {
-		wid->core.x = wid->core.y = -request->border_width;
+		wid->core.x = wid->core.y = (Position)(-request->border_width);
 	    }
 	    _XawImCallVendorShellExtResize(wid);
 	    return XtGeometryYes;
@@ -495,7 +506,7 @@ XawVendorShellChangeManaged(Widget wid)
 	int i;
 
 	(*SuperClass->composite_class.change_managed)(wid);
-	for (i = w->composite.num_children, childP = w->composite.children;
+	for (i = (int)w->composite.num_children, childP = w->composite.children;
 	     i; i--, childP++) {
 	    if (XtIsManaged(*childP)) {
 		XtSetKeyboardFocus(wid, *childP);

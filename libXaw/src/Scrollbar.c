@@ -102,6 +102,8 @@ static char defaultTranslations[] =
 "<Btn1Down>:"	"StartScroll(Forward)\n"
 "<Btn2Down>:"	"StartScroll(Continuous) MoveThumb() NotifyThumb()\n"
 "<Btn3Down>:"	"StartScroll(Backward)\n"
+"<Btn4Down>:"	"StartScroll(Backward)\n"
+"<Btn5Down>:"	"StartScroll(Forward)\n"
 "<Btn2Motion>:"	"MoveThumb() NotifyThumb()\n"
 "<BtnUp>:"	"NotifyScroll(Proportional) EndScroll()\n";
 
@@ -180,7 +182,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     Offset(scrollbar.foreground),
     XtRString,
-    XtDefaultForeground
+    (XtPointer)XtDefaultForeground
   },
   {
     XtNshown,
@@ -207,7 +209,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.verCursor),
     XtRString,
-    "sb_v_double_arrow"
+    (XtPointer)"sb_v_double_arrow"
   },
   {
     XtNscrollHCursor,
@@ -216,7 +218,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.horCursor),
     XtRString,
-    "sb_h_double_arrow"
+    (XtPointer)"sb_h_double_arrow"
   },
   {
     XtNscrollUCursor,
@@ -225,7 +227,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.upCursor),
     XtRString,
-    "sb_up_arrow"
+    (XtPointer)"sb_up_arrow"
   },
   {
     XtNscrollDCursor,
@@ -234,7 +236,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.downCursor),
     XtRString,
-    "sb_down_arrow"
+    (XtPointer)"sb_down_arrow"
   },
   {
     XtNscrollLCursor,
@@ -243,7 +245,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.leftCursor),
     XtRString,
-    "sb_left_arrow"
+    (XtPointer)"sb_left_arrow"
   },
   {
     XtNscrollRCursor,
@@ -252,7 +254,7 @@ static XtResource resources[] = {
     sizeof(Cursor),
     Offset(scrollbar.rightCursor),
     XtRString,
-    "sb_right_arrow"
+    (XtPointer)"sb_right_arrow"
   },
   {
     XtNminimumThumb,
@@ -361,7 +363,7 @@ FractionLoc(ScrollbarWidget w, int x, int y)
 {
     float   result;
 
-    result = PICKLENGTH(w, x / (float)XtWidth(w), y / (float)XtHeight(w));
+    result = PICKLENGTH(w, (float)x / (float)XtWidth(w), (float)y / (float)XtHeight(w));
 
     return (FloatInRange(result, 0.0, 1.0));
 }
@@ -380,26 +382,26 @@ FillArea(ScrollbarWidget w, int top, int bottom, int thumb)
     if (bottom <= top)
 	return;
 
-    length = bottom - top;
+    length = (Dimension)(bottom - top);
 
     switch(thumb) {
 	/* Fill the new Thumb location */
 	case 1:
 	    if (w->scrollbar.orientation == XtorientHorizontal)
 		XFillRectangle(XtDisplay(w), XtWindow(w), w->scrollbar.gc,
-			       top, 1, length, XtHeight(w) - 2);
+			       top, 1, length, (unsigned)(XtHeight(w) - 2));
 	    else
 		XFillRectangle(XtDisplay(w), XtWindow(w), w->scrollbar.gc,
-			       1, top, XtWidth(w) - 2, length);
+			       1, top, (unsigned)(XtWidth(w) - 2), length);
 	    break;
 	/* Clear the old Thumb location */
 	case 0:
 	    if (w->scrollbar.orientation == XtorientHorizontal)
 		XClearArea(XtDisplay(w), XtWindow(w),
-			   top, 1, length, XtHeight(w) - 2, False);
+			   top, 1, length, (unsigned)(XtHeight(w) - 2), False);
 	    else
 		XClearArea(XtDisplay(w), XtWindow(w),
-			   1, top, XtWidth(w) - 2, length, False);
+			   1, top, (unsigned)(XtWidth(w) - 2), length, False);
 	    break;
     }
 }
@@ -414,13 +416,13 @@ PaintThumb(ScrollbarWidget w)
     Position oldtop, oldbot, newtop, newbot;
 
     oldtop = w->scrollbar.topLoc;
-    oldbot = oldtop + w->scrollbar.shownLength;
-    newtop = w->scrollbar.length * w->scrollbar.top;
-    newbot = newtop + (int)(w->scrollbar.length * w->scrollbar.shown);
+    oldbot = (Position)(oldtop + w->scrollbar.shownLength);
+    newtop = (Position)(w->scrollbar.length * w->scrollbar.top);
+    newbot = (Position)(newtop + (int)(w->scrollbar.length * w->scrollbar.shown));
     if (newbot < newtop + (int)w->scrollbar.min_thumb)
-	newbot = newtop + w->scrollbar.min_thumb;
+	newbot = (Position)(newtop + w->scrollbar.min_thumb);
     w->scrollbar.topLoc = newtop;
-    w->scrollbar.shownLength = newbot - newtop;
+    w->scrollbar.shownLength = (Dimension)(newbot - newtop);
 
     if (XtIsRealized((Widget)w)) {
 	if (newtop < oldtop)
@@ -497,8 +499,8 @@ CreateGC(Widget w)
 
 /* ARGSUSED */
 static void
-XawScrollbarInitialize(Widget request, Widget cnew,
-		       ArgList args, Cardinal *num_args)
+XawScrollbarInitialize(Widget request _X_UNUSED, Widget cnew,
+		       ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     ScrollbarWidget w = (ScrollbarWidget)cnew;
 
@@ -538,8 +540,8 @@ XawScrollbarRealize(Widget gw, Mask *valueMask,
 
 /*ARGSUSED*/
 static Boolean
-XawScrollbarSetValues(Widget current, Widget request, Widget desired,
-		      ArgList args, Cardinal *num_args)
+XawScrollbarSetValues(Widget current, Widget request _X_UNUSED, Widget desired,
+		      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     ScrollbarWidget w = (ScrollbarWidget)current;
     ScrollbarWidget dw = (ScrollbarWidget)desired;
@@ -593,27 +595,27 @@ XawScrollbarRedisplay(Widget gw, XEvent *event, Region region)
     if (w->scrollbar.orientation == XtorientHorizontal) {
 	x = w->scrollbar.topLoc;
 	y = 1;
-	width = w->scrollbar.shownLength;
-	height = XtHeight(w) - 2;
+	width = (unsigned)(w->scrollbar.shownLength);
+	height = (unsigned)(XtHeight(w) - 2);
     }
     else {
 	x = 1;
 	y = w->scrollbar.topLoc;
-	width = XtWidth(w) - 2;
-	height = w->scrollbar.shownLength;
+	width = (unsigned)(XtWidth(w) - 2);
+	height = (unsigned)(w->scrollbar.shownLength);
     }
 
     if (region == NULL ||
 	XRectInRegion(region, x, y, width, height) != RectangleOut) {
 	/* Forces entire thumb to be painted */
-	w->scrollbar.topLoc = -(w->scrollbar.length + 1);
+	w->scrollbar.topLoc = (Position)(-(w->scrollbar.length + 1));
 	PaintThumb(w);
     }
 }
 
 /*ARGSUSED*/
 static void
-StartScroll(Widget gw, XEvent *event, String *params, Cardinal *num_params)
+StartScroll(Widget gw, XEvent *event _X_UNUSED, String *params, Cardinal *num_params)
 {
     ScrollbarWidget w = (ScrollbarWidget)gw;
     Cursor cursor;
@@ -727,23 +729,23 @@ ExtractPosition(XEvent *event, Position *x, Position *y)
 {
     switch(event->type) {
 	case MotionNotify:
-	    *x = event->xmotion.x;
-	    *y = event->xmotion.y;
+	    *x = (Position)event->xmotion.x;
+	    *y = (Position)event->xmotion.y;
 	    break;
 	case ButtonPress:
 	case ButtonRelease:
-	    *x = event->xbutton.x;
-	    *y = event->xbutton.y;
+	    *x = (Position)event->xbutton.x;
+	    *y = (Position)event->xbutton.y;
 	    break;
 	case KeyPress:
 	case KeyRelease:
-	    *x = event->xkey.x;
-	    *y = event->xkey.y;
+	    *x = (Position)event->xkey.x;
+	    *y = (Position)event->xkey.y;
 	    break;
 	case EnterNotify:
 	case LeaveNotify:
-	    *x = event->xcrossing.x;
-	    *y = event->xcrossing.y;
+	    *x = (Position)event->xcrossing.x;
+	    *y = (Position)event->xcrossing.y;
 	    break;
 	default:
 	    *x = 0;
@@ -800,19 +802,19 @@ NotifyScroll(Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /*ARGSUSED*/
 static void
-EndScroll(Widget gw, XEvent *event, String *params, Cardinal *num_params)
+EndScroll(Widget gw, XEvent *event _X_UNUSED, String *params _X_UNUSED, Cardinal *num_params _X_UNUSED)
 {
     ScrollbarWidget w = (ScrollbarWidget)gw;
 
     XtVaSetValues(gw, XtNcursor, w->scrollbar.inactiveCursor, NULL);
-    XFlush(XtDisplay(w));		/* make sure it get propogated */
+    XFlush(XtDisplay(w));		/* make sure it get propagated */
 
     w->scrollbar.direction = 0;
 }
 
 /*ARGSUSED*/
 static void
-MoveThumb(Widget gw, XEvent *event, String *params, Cardinal *num_params)
+MoveThumb(Widget gw, XEvent *event, String *params _X_UNUSED, Cardinal *num_params _X_UNUSED)
 {
     ScrollbarWidget w = (ScrollbarWidget)gw;
     Position x, y;
@@ -832,7 +834,7 @@ MoveThumb(Widget gw, XEvent *event, String *params, Cardinal *num_params)
 
 /*ARGSUSED*/
 static void
-NotifyThumb(Widget gw, XEvent *event, String *params, Cardinal *num_params)
+NotifyThumb(Widget gw, XEvent *event, String *params _X_UNUSED, Cardinal *num_params _X_UNUSED)
 {
     ScrollbarWidget w = (ScrollbarWidget)gw;
     union {
@@ -874,9 +876,16 @@ XawScrollbarSetThumb(Widget gw,
     if (w->scrollbar.direction == 'c')	/* if still thumbing */
 	return;
 
-    w->scrollbar.top = top > 1.0 ? 1.0 : top >= 0.0 ? top : w->scrollbar.top;
+    w->scrollbar.top = (float)((top > 1.0)
+			       ? 1.0
+			       : ((top >= 0.0)
+			          ? top
+			          : w->scrollbar.top));
 
-    w->scrollbar.shown = shown > 1.0 ? 1.0 : shown >= 0.0 ?
-				shown : w->scrollbar.shown;
+    w->scrollbar.shown = (float)((shown > 1.0)
+				  ? 1.0
+				  : (shown >= 0.0
+				     ? shown
+				     : w->scrollbar.shown));
     PaintThumb(w);
 }
