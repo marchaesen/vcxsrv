@@ -4,12 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\macintosh_vndr
 
-dist_symbols_DATA = \
-apple ch de dk \
-fi fr \
-gb is it jp \
-latam nl no pt \
-se us
+dist_symbols_DATA = apple ch de dk fi fr gb is it jp latam nl no pt se us
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

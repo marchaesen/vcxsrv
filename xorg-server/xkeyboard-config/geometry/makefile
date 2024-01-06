@@ -9,12 +9,8 @@ THISDIR=geometry
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\$(THISDIR)
 
 geom_DATA = \
-amiga ataritt chicony \
-dell everex fujitsu \
-hhk hp keytronic kinesis \
-macintosh microsoft nec nokia \
-northgate pc sanwa sony thinkpad \
-sun teck steelseries typematrix winbook README
+ ataritt dell fujitsu hp kinesis nec northgate README sony sun thinkpad winbook\
+ amiga chicony everex hhk keytronic macintosh microsoft nokia pc sanwa steelseries teck typematrix
 
 DATA_FILES=$(geom_DATA:%=$(DESTDIR)\%)
 

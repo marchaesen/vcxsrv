@@ -4,8 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\sgi_vndr
 
-dist_symbols_DATA = \
-jp
+dist_symbols_DATA = jp
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

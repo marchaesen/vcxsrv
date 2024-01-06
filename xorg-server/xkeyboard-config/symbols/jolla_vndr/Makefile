@@ -4,8 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\jolla_vndr
 
-dist_symbols_DATA = \
-sbj
+dist_symbols_DATA = sbj
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

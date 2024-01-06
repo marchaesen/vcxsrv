@@ -7,13 +7,8 @@ THISDIR=compat
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\$(THISDIR)
 
 dist_xkbdata_compat_DATA = \
-accessx basic caps complete \
-iso9995 \
-japan ledcaps ledcompose \
-lednum ledscroll level5 \
-misc mousekeys \
-olpc pc pc98 xfree86 \
-xtest README
+ basic complete japan ledcompose ledscroll Makefile mousekeys pc README xtest\
+ accessx caps iso9995 ledcaps lednum level5 misc olpc pc98 xfree86
 
 DATA_FILES=$(dist_xkbdata_compat_DATA:%=$(DESTDIR)\%)
 

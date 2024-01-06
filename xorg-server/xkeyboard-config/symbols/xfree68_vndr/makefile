@@ -4,8 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\xfree68_vndr
 
-dist_symbols_DATA = \
-amiga ataritt
+dist_symbols_DATA = amiga ataritt
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

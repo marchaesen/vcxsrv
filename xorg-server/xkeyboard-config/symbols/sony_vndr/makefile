@@ -4,8 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\sony_vndr
 
-dist_symbols_DATA = \
-us
+dist_symbols_DATA = us
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

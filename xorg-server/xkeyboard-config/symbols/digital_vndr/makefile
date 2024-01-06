@@ -4,9 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\symbols\digital_vndr
 
-dist_symbols_DATA = \
-lk pc us \
-vt
+dist_symbols_DATA = lk pc us vt
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

@@ -9,40 +9,14 @@ THISDIR=symbols
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\$(THISDIR)
 
 dist_symbols_DATA = \
-af al am apl \
-ara at au az \
-ba bd be \
-bg br brai \
-bt bw by \
-ca cd ch \
-cm cn cz \
-de dk dz \
-ee es et epo eu \
-fi fo fr \
-gb ge gh gn \
-gr hr hu \
-id ie il \
-in iq \
-ir is it \
-jp \
-ke kg kh \
-kr kz \
-la latam latin \
-lk lt lv \
-ma mao md me \
-mk ml mm \
-mn mt mv my \
-ng nl no np \
-parens pc ph pk pl pt \
-ro rs ru \
-se si sk sn \
-sy th \
-terminate tg \
-tj tm tr trans tw tz \
-ua us uz vn \
-za \
-altwin capslock compose ctrl empty eurosign rupeesign group inet \
-keypad kpdl level3 level5 nbsp olpc shift srvr_ctrl typo
+ am bd by ctrl epo gb id it kz lt mm no pl si tj us\
+ ancient be ca cz es ge ie jp la lv mn np pt sk tm uz\
+ apl bg capslock de et gh il ke latam ma mt nz ro sn tr vn\
+ ara bqn cd.in dk eu gn in keypad latin mv olpc rs srvr_ctrl trans za\
+ at br ch dz eurosign gr inet kg level2 md my parens ru sy tw\
+ af au brai cm ee fi group iq kh level3 me nbsp pc rupeesign terminate typo\
+ al az bt cn eg fo hr ir kpdl level5 mk ng ph se tg tz\
+ altwin ba bw compose empty fr hu is kr lk ml nl pk shift th ua
 
 DATA_FILES=$(dist_symbols_DATA:%=$(DESTDIR)\%)
 

@@ -4,8 +4,7 @@ endif
 
 DESTDIR=$(MHMAKECONF)\xorg-server\xkbdata\keycodes\digital_vndr
 
-dist_keycodes_DATA = \
-lk pc
+dist_keycodes_DATA = lk pc
 
 DATA_FILES=$(dist_keycodes_DATA:%=$(DESTDIR)\%)
 
