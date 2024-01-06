@@ -304,14 +304,14 @@ structured_post_order_traversal(struct vtn_builder *b, struct vtn_block *block)
    switch (branch[0] & SpvOpCodeMask) {
    case SpvOpBranch:
       block->successors_count = 1;
-      block->successors = rzalloc(b, struct vtn_successor);
+      block->successors = vtn_zalloc(b, struct vtn_successor);
       block->successors[0].block = vtn_block(b, branch[1]);
       structured_post_order_traversal(b, block->successors[0].block);
       break;
 
    case SpvOpBranchConditional:
       block->successors_count = 2;
-      block->successors = rzalloc_array(b, struct vtn_successor, 2);
+      block->successors = vtn_zalloc_array(b, struct vtn_successor, 2);
       block->successors[0].block = vtn_block(b, branch[2]);
       block->successors[1].block = vtn_block(b, branch[3]);
 
@@ -343,7 +343,7 @@ structured_post_order_traversal(struct vtn_builder *b, struct vtn_block *block)
       vtn_parse_switch(b, block->branch, &cases);
 
       block->successors_count = list_length(&cases);
-      block->successors = rzalloc_array(b, struct vtn_successor, block->successors_count);
+      block->successors = vtn_zalloc_array(b, struct vtn_successor, block->successors_count);
 
       /* The 'Rules for Structured Control-flow constructs' already guarantee
        * that the labels of the targets are ordered in a way that if
@@ -389,7 +389,7 @@ structured_post_order_traversal(struct vtn_builder *b, struct vtn_block *block)
    case SpvOpEmitMeshTasksEXT:
    case SpvOpUnreachable:
       block->successors_count = 1;
-      block->successors = rzalloc(b, struct vtn_successor);
+      block->successors = vtn_zalloc(b, struct vtn_successor);
       break;
 
    default:
@@ -403,7 +403,7 @@ static void
 sort_blocks(struct vtn_builder *b)
 {
    struct vtn_block **ordered_blocks =
-      rzalloc_array(b, struct vtn_block *, b->func->block_count);
+      vtn_zalloc_array(b, struct vtn_block *, b->func->block_count);
 
    b->func->ordered_blocks = ordered_blocks;
 
@@ -524,7 +524,7 @@ cmp_succ_block_pos(const void *pa, const void *pb)
 static void
 create_constructs(struct vtn_builder *b)
 {
-   struct vtn_construct *func_construct = rzalloc(b, struct vtn_construct);
+   struct vtn_construct *func_construct = vtn_zalloc(b, struct vtn_construct);
    func_construct->type = vtn_construct_type_function;
    func_construct->start_pos = 0;
    func_construct->end_pos = b->func->ordered_blocks_count;
@@ -539,7 +539,7 @@ create_constructs(struct vtn_builder *b)
          const unsigned end_pos = vtn_block(b, block->merge[1])->pos;
 
          if (merge_op == SpvOpLoopMerge) {
-            struct vtn_construct *loop = rzalloc(b, struct vtn_construct);
+            struct vtn_construct *loop = vtn_zalloc(b, struct vtn_construct);
             loop->type = vtn_construct_type_loop;
             loop->start_pos = block->pos;
             loop->end_pos = end_pos;
@@ -551,7 +551,7 @@ create_constructs(struct vtn_builder *b)
             loop->continue_pos = continue_block->pos;
 
             if (!vtn_is_single_block_loop(loop)) {
-               struct vtn_construct *cont = rzalloc(b, struct vtn_construct);
+               struct vtn_construct *cont = vtn_zalloc(b, struct vtn_construct);
                cont->type = vtn_construct_type_continue;
                cont->parent = loop;
                cont->start_pos = loop->continue_pos;
@@ -579,7 +579,7 @@ create_constructs(struct vtn_builder *b)
                            "an OpBranchConditional instruction that has different "
                            "True Label and False Label operands where neither are "
                            "declared merge blocks or Continue Targets.");
-                  struct vtn_construct *sel = rzalloc(b, struct vtn_construct);
+                  struct vtn_construct *sel = vtn_zalloc(b, struct vtn_construct);
                   sel->type = vtn_construct_type_selection;
                   sel->start_pos = loop->start_pos;
                   sel->end_pos = loop->continue_pos;
@@ -593,7 +593,7 @@ create_constructs(struct vtn_builder *b)
          } else if (branch_op == SpvOpSwitch) {
             vtn_assert(merge_op == SpvOpSelectionMerge);
 
-            struct vtn_construct *swtch = rzalloc(b, struct vtn_construct);
+            struct vtn_construct *swtch = vtn_zalloc(b, struct vtn_construct);
             swtch->type = vtn_construct_type_switch;
             swtch->start_pos = block->pos;
             swtch->end_pos = end_pos;
@@ -608,7 +608,7 @@ create_constructs(struct vtn_builder *b)
             vtn_foreach_case_safe(cse, &cases) {
                if (cse->block->pos < end_pos) {
                   struct vtn_block *case_block = cse->block;
-                  struct vtn_construct *c = rzalloc(b, struct vtn_construct);
+                  struct vtn_construct *c = vtn_zalloc(b, struct vtn_construct);
                   c->type = vtn_construct_type_case;
                   c->parent = swtch;
                   c->start_pos = case_block->pos;
@@ -651,7 +651,7 @@ create_constructs(struct vtn_builder *b)
             vtn_assert(merge_op == SpvOpSelectionMerge);
             vtn_assert(branch_op == SpvOpBranchConditional);
 
-            struct vtn_construct *sel = rzalloc(b, struct vtn_construct);
+            struct vtn_construct *sel = vtn_zalloc(b, struct vtn_construct);
             sel->type = vtn_construct_type_selection;
             sel->start_pos = block->pos;
             sel->end_pos = end_pos;

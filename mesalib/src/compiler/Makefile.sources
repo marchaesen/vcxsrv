@@ -320,6 +320,7 @@ NIR_FILES = \
 	nir/nir_opt_undef.c \
 	nir/nir_opt_uniform_atomics.c \
 	nir/nir_opt_vectorize.c \
+	nir/nir_opt_loop.c \
 	nir/nir_phi_builder.c \
 	nir/nir_phi_builder.h \
 	nir/nir_print.c \

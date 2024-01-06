@@ -85,7 +85,7 @@ grow_to_fit(struct blob *blob, size_t additional)
 bool
 blob_align(struct blob *blob, size_t alignment)
 {
-   const size_t new_size = ALIGN(blob->size, alignment);
+   const size_t new_size = align_uintptr(blob->size, alignment);
 
    if (blob->size < new_size) {
       if (!grow_to_fit(blob, new_size - blob->size))
@@ -102,7 +102,7 @@ blob_align(struct blob *blob, size_t alignment)
 void
 blob_reader_align(struct blob_reader *blob, size_t alignment)
 {
-   blob->current = blob->data + ALIGN(blob->current - blob->data, alignment);
+   blob->current = blob->data + align_uintptr(blob->current - blob->data, alignment);
 }
 
 void
@@ -212,7 +212,7 @@ BLOB_WRITE_TYPE(blob_write_uint64, uint64_t)
 BLOB_WRITE_TYPE(blob_write_intptr, intptr_t)
 
 #define ASSERT_ALIGNED(_offset, _align) \
-   assert(ALIGN((_offset), (_align)) == (_offset))
+   assert(align_uintptr((_offset), (_align)) == (_offset))
 
 bool
 blob_overwrite_uint8 (struct blob *blob,

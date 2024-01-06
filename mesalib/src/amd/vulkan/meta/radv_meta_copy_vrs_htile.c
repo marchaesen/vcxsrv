@@ -26,6 +26,7 @@
 
 #include "radv_meta.h"
 #include "radv_private.h"
+#include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
 void
@@ -263,8 +264,8 @@ radv_copy_vrs_htile(struct radv_cmd_buffer *cmd_buffer, struct radv_image *vrs_i
       read_htile_value,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), state->copy_vrs_htile_p_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), state->copy_vrs_htile_p_layout,
+                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, constants);
 
    uint32_t width = DIV_ROUND_UP(rect->extent.width, 8);
    uint32_t height = DIV_ROUND_UP(rect->extent.height, 8);

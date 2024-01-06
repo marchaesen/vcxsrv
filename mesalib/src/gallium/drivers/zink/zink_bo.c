@@ -261,7 +261,7 @@ bo_create_internal(struct zink_screen *screen,
    VkMemoryAllocateFlagsInfo ai;
    ai.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO;
    ai.pNext = pNext;
-   ai.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR;
+   ai.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT;
    ai.deviceMask = 0;
    if (screen->info.have_KHR_buffer_device_address)
       pNext = &ai;

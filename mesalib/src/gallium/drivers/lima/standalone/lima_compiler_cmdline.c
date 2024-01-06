@@ -28,10 +28,10 @@
 
 #include "main/mtypes.h"
 
+#include "compiler/glsl_types.h"
 #include "compiler/glsl/standalone.h"
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/glsl/gl_nir.h"
-#include "compiler/nir_types.h"
 
 #include "lima_context.h"
 #include "lima_program.h"

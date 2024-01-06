@@ -16,10 +16,10 @@ Compiling and Installing
 Build system
 ^^^^^^^^^^^^
 
--  `Meson <https://mesonbuild.com>`__ is required when building on \*nix
-   platforms and on Windows.
--  Android Build system when building as native Android component. Meson
-   is used when building ARC.
+- `Meson <https://mesonbuild.com>`__ is required when building on \*nix
+  platforms and on Windows.
+- Android Build system when building as native Android component. Meson
+  is used when building ARC.
 
 Compiler
 ^^^^^^^^
@@ -27,18 +27,20 @@ Compiler
 The following compilers are known to work, if you know of others or
 you're willing to maintain support for other compiler get in touch.
 
--  GCC 8.0.0 or later (some parts of Mesa may require later versions)
--  Clang 5.0 or later (some parts of Mesa may require later versions)
--  Microsoft Visual Studio 2019 Version 16.11 or later and
-   Windows SDK of at least 20348 is required, for building on Windows.
+- GCC 8.0.0 or later (some parts of Mesa may require later versions)
+- Clang 5.0 or later (some parts of Mesa may require later versions)
+- Microsoft Visual Studio 2019 Version 16.11 or later and
+  Windows SDK of at least 20348 is required, for building on Windows.
 
 Third party/extra tools.
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
--  `Python <https://www.python.org/>`__ - Python 3.6 or newer is required.
--  `Python Mako module <https://www.makotemplates.org/>`__ - Python Mako
-   module is required. Version 0.8.0 or later should work.
--  Lex / Yacc - for building the Mesa IR and GLSL compiler.
+- `Python <https://www.python.org/>`__ - Python 3.6 or newer is required.
+- Python package ``packaging`` is required on Python 3.12+:
+  ``pip install packaging``
+- `Python Mako module <https://www.makotemplates.org/>`__ - Python Mako
+  module is required. Version 0.8.0 or later should work.
+- Lex / Yacc - for building the Mesa IR and GLSL compiler.
 
    On Linux systems, Flex and Bison versions 2.5.35 and 2.4.1,
    respectively, (or later) should work. On Windows with MinGW, install

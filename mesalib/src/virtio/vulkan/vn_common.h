@@ -49,11 +49,11 @@
 
 #include "vn_entrypoints.h"
 
-#define VN_DEFAULT_ALIGN 8
+#define VN_DEFAULT_ALIGN             8
 #define VN_WATCHDOG_REPORT_PERIOD_US 3000000
 
 #define VN_DEBUG(category) (unlikely(vn_env.debug & VN_DEBUG_##category))
-#define VN_PERF(category) (unlikely(vn_env.perf & VN_PERF_##category))
+#define VN_PERF(category)  (unlikely(vn_env.perf & VN_PERF_##category))
 
 #define vn_error(instance, error)                                            \
    (VN_DEBUG(RESULT) ? vn_log_result((instance), (error), __func__) : (error))
@@ -61,7 +61,7 @@
    ((result) >= VK_SUCCESS ? (result) : vn_error((instance), (result)))
 
 #define VN_TRACE_SCOPE(name) MESA_TRACE_SCOPE(name)
-#define VN_TRACE_FUNC() MESA_TRACE_SCOPE(__func__)
+#define VN_TRACE_FUNC()      MESA_TRACE_SCOPE(__func__)
 
 struct vn_instance;
 struct vn_physical_device;
@@ -235,7 +235,10 @@ vn_log_result(struct vn_instance *instance,
               const char *where);
 
 #define VN_REFCOUNT_INIT(val)                                                \
-   (struct vn_refcount) { .count = (val), }
+   (struct vn_refcount)                                                      \
+   {                                                                         \
+      .count = (val),                                                        \
+   }
 
 static inline int
 vn_refcount_load_relaxed(const struct vn_refcount *ref)
@@ -354,9 +357,9 @@ vn_physical_device_base_init(
    const struct vk_device_extension_table *supported_extensions,
    const struct vk_physical_device_dispatch_table *dispatch_table)
 {
-   VkResult result =
-      vk_physical_device_init(&physical_dev->base, &instance->base,
-                              supported_extensions, NULL, NULL, dispatch_table);
+   VkResult result = vk_physical_device_init(
+      &physical_dev->base, &instance->base, supported_extensions, NULL, NULL,
+      dispatch_table);
    physical_dev->id = (uintptr_t)physical_dev;
    return result;
 }

@@ -1915,8 +1915,9 @@ radv_prepare_dgc(struct radv_cmd_buffer *cmd_buffer, const VkGeneratedCommandsIn
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
                         cmd_buffer->device->meta_state.dgc_prepare.pipeline);
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), cmd_buffer->device->meta_state.dgc_prepare.p_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(params), &params);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                              cmd_buffer->device->meta_state.dgc_prepare.p_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                              sizeof(params), &params);
 
    radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
                                  cmd_buffer->device->meta_state.dgc_prepare.p_layout, 0, ds_cnt, ds_writes);

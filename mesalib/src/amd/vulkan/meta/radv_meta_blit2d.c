@@ -26,6 +26,7 @@
 
 #include "nir/nir_builder.h"
 #include "radv_meta.h"
+#include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
 enum blit2d_src_type {
@@ -117,16 +118,16 @@ blit2d_bind_src(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
                                    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
                                    .pTexelBufferView = (VkBufferView[]){radv_buffer_view_to_handle(&tmp->bview)}}});
 
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
-                            device->meta_state.blit2d[log2_samples].p_layouts[src_type], VK_SHADER_STAGE_FRAGMENT_BIT,
-                            16, 4, &src_buf->pitch);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                                 device->meta_state.blit2d[log2_samples].p_layouts[src_type],
+                                 VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4, &src_buf->pitch);
    } else {
       create_iview(cmd_buffer, src_img, &tmp->iview, depth_format, aspects);
 
       if (src_type == BLIT2D_SRC_TYPE_IMAGE_3D)
-         radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
-                               device->meta_state.blit2d[log2_samples].p_layouts[src_type],
-                               VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4, &src_img->layer);
+         vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                                    device->meta_state.blit2d[log2_samples].p_layouts[src_type],
+                                    VK_SHADER_STAGE_FRAGMENT_BIT, 16, 4, &src_img->layer);
 
       radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     device->meta_state.blit2d[log2_samples].p_layouts[src_type], 0, /* set */
@@ -224,9 +225,9 @@ radv_meta_blit2d_normal_dst(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
             rects[r].src_y + rects[r].height,
          };
 
-         radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
-                               device->meta_state.blit2d[log2_samples].p_layouts[src_type], VK_SHADER_STAGE_VERTEX_BIT,
-                               0, 16, vertex_push_constants);
+         vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                                    device->meta_state.blit2d[log2_samples].p_layouts[src_type],
+                                    VK_SHADER_STAGE_VERTEX_BIT, 0, 16, vertex_push_constants);
 
          if (aspect_mask == VK_IMAGE_ASPECT_COLOR_BIT || aspect_mask == VK_IMAGE_ASPECT_PLANE_0_BIT ||
              aspect_mask == VK_IMAGE_ASPECT_PLANE_1_BIT || aspect_mask == VK_IMAGE_ASPECT_PLANE_2_BIT) {

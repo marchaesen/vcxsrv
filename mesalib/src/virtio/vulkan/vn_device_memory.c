@@ -486,7 +486,7 @@ vn_device_memory_alloc(struct vn_device *dev,
 {
    struct vk_device_memory *mem_vk = &mem->base.base;
    const VkMemoryType *mem_type = &dev->physical_device->memory_properties
-                                    .memoryTypes[mem_vk->memory_type_index];
+                                      .memoryTypes[mem_vk->memory_type_index];
 
    const bool has_guest_vram = dev->renderer->info.has_guest_vram;
    const bool host_visible =

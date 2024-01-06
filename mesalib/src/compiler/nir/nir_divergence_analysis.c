@@ -615,6 +615,7 @@ visit_intrinsic(nir_shader *shader, nir_intrinsic_instr *instr)
    case nir_intrinsic_load_ray_triangle_vertex_positions:
    case nir_intrinsic_cmat_extract:
    case nir_intrinsic_cmat_muladd_amd:
+   case nir_intrinsic_dpas_intel:
    case nir_intrinsic_isberd_nv:
    case nir_intrinsic_al2p_nv:
    case nir_intrinsic_ald_nv:

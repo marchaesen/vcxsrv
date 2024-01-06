@@ -25,6 +25,6 @@ Fontconfig does not:
 * [Fontconfig User Documentation](https://www.freedesktop.org/software/fontconfig/fontconfig-user.html)
 * [Fontconfig Developer Documentation](https://www.freedesktop.org/software/fontconfig/fontconfig-devel/)
 
-## Bug report
+## Bug reports
 
-If you have cncountered any issues regarding to Fontconfig, please file an issue at [GitLab issue tracker](https://gitlab.freedesktop.org/fontconfig/fontconfig/issues)
+If you have encountered any issues relating to Fontconfig, please file an issue in the [GitLab issue tracker](https://gitlab.freedesktop.org/fontconfig/fontconfig/issues).

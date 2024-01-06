@@ -32,22 +32,14 @@
 
 #include "radv_private.h"
 
-void nir_sort_hit_pair(nir_builder *b, nir_variable *var_distances, nir_variable *var_indices, uint32_t chan_1,
-                       uint32_t chan_2);
-
-nir_def *intersect_ray_amd_software_box(struct radv_device *device, nir_builder *b, nir_def *bvh_node,
-                                        nir_def *ray_tmax, nir_def *origin, nir_def *dir, nir_def *inv_dir);
-
-nir_def *intersect_ray_amd_software_tri(struct radv_device *device, nir_builder *b, nir_def *bvh_node,
-                                        nir_def *ray_tmax, nir_def *origin, nir_def *dir, nir_def *inv_dir);
-
 nir_def *build_addr_to_node(nir_builder *b, nir_def *addr);
 
 nir_def *nir_build_vec3_mat_mult(nir_builder *b, nir_def *vec, nir_def *matrix[], bool translation);
 
 void nir_build_wto_matrix_load(nir_builder *b, nir_def *instance_addr, nir_def **out);
 
-nir_def *create_bvh_descriptor(nir_builder *b);
+nir_def *radv_load_vertex_position(struct radv_device *device, nir_builder *b, nir_def *instance_addr,
+                                   nir_def *primitive_id, uint32_t index);
 
 struct radv_ray_traversal_args;
 

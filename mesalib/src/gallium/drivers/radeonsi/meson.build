@@ -74,7 +74,6 @@ files_libradeonsi = files(
   'si_shader_internal.h',
   'si_shader_nir.c',
   'si_shaderlib_nir.c',
-  'si_shaderlib_tgsi.c',
   'si_sqtt.c',
   'si_state.c',
   'si_state.h',

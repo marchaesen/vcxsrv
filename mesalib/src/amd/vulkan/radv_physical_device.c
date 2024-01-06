@@ -90,6 +90,24 @@ radv_calibrated_timestamps_enabled(const struct radv_physical_device *pdevice)
           !(pdevice->rad_info.family == CHIP_RAVEN || pdevice->rad_info.family == CHIP_RAVEN2);
 }
 
+bool
+radv_enable_rt(const struct radv_physical_device *pdevice, bool rt_pipelines)
+{
+   if (pdevice->rad_info.gfx_level < GFX10_3 && !radv_emulate_rt(pdevice))
+      return false;
+
+   if (rt_pipelines && pdevice->use_llvm)
+      return false;
+
+   return true;
+}
+
+bool
+radv_emulate_rt(const struct radv_physical_device *pdevice)
+{
+   return pdevice->instance->perftest_flags & RADV_PERFTEST_EMULATE_RT;
+}
+
 static bool
 radv_is_conformant(const struct radv_physical_device *pdevice)
 {
@@ -436,6 +454,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .KHR_maintenance3 = true,
       .KHR_maintenance4 = true,
       .KHR_maintenance5 = true,
+      .KHR_maintenance6 = true,
       .KHR_map_memory2 = true,
       .KHR_multiview = true,
       .KHR_performance_query = radv_perf_query_supported(device),
@@ -454,6 +473,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .KHR_ray_query = radv_enable_rt(device, false),
       .KHR_ray_tracing_maintenance1 = radv_enable_rt(device, false),
       .KHR_ray_tracing_pipeline = radv_enable_rt(device, true),
+      .KHR_ray_tracing_position_fetch = radv_enable_rt(device, false),
       .KHR_relaxed_block_layout = true,
       .KHR_sampler_mirror_clamp_to_edge = true,
       .KHR_sampler_ycbcr_conversion = true,
@@ -927,6 +947,9 @@ radv_physical_device_get_features(const struct radv_physical_device *pdevice, st
       .rayTracingMaintenance1 = true,
       .rayTracingPipelineTraceRaysIndirect2 = radv_enable_rt(pdevice, true),
 
+      /* VK_KHR_ray_tracing_position_fetch */
+      .rayTracingPositionFetch = true,
+
       /* VK_EXT_vertex_input_dynamic_state */
       .vertexInputDynamicState = true,
 
@@ -1075,6 +1098,9 @@ radv_physical_device_get_features(const struct radv_physical_device *pdevice, st
 
       /* VK_EXT_depth_clamp_zero_one */
       .depthClampZeroOne = true,
+
+      /* VK_KHR_maintenance6 */
+      .maintenance6 = true,
    };
 }
 
@@ -1751,6 +1777,11 @@ radv_get_physical_device_properties(struct radv_physical_device *pdevice)
 
    /* VK_KHR_cooperative_matrix */
    p->cooperativeMatrixSupportedStages = VK_SHADER_STAGE_COMPUTE_BIT;
+
+   /* VK_KHR_maintenance6 */
+   p->blockTexelViewCompatibleMultipleLayers = true;
+   p->maxCombinedImageSamplerDescriptorCount = 1;
+   p->fragmentShadingRateClampCombinerInputs = true;
 }
 
 static VkResult

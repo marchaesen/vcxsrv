@@ -100,8 +100,10 @@ fbSetupScreen(ScreenPtr pScreen, void *pbits, /* pointer to screen bitmap */
     if (!fbAllocatePrivates(pScreen))
         return FALSE;
     pScreen->defColormap = FakeClientID(0);
-    /* let CreateDefColormap do whatever it wants for pixels */
-    pScreen->blackPixel = pScreen->whitePixel = (Pixel) 0;
+    if (bpp > 1) {
+	/* let CreateDefColormap do whatever it wants for pixels */
+	pScreen->blackPixel = pScreen->whitePixel = (Pixel) 0;
+    }
     pScreen->QueryBestSize = fbQueryBestSize;
     /* SaveScreen */
     pScreen->GetImage = fbGetImage;
@@ -118,7 +120,11 @@ fbSetupScreen(ScreenPtr pScreen, void *pbits, /* pointer to screen bitmap */
     pScreen->RealizeFont = fbRealizeFont;
     pScreen->UnrealizeFont = fbUnrealizeFont;
     pScreen->CreateGC = fbCreateGC;
-    pScreen->CreateColormap = fbInitializeColormap;
+    if (bpp == 1) {
+	pScreen->CreateColormap = mfbCreateColormap;
+    } else {
+	pScreen->CreateColormap = fbInitializeColormap;
+    }
     pScreen->DestroyColormap = (void (*)(ColormapPtr)) NoopDDA;
     pScreen->InstallColormap = fbInstallColormap;
     pScreen->UninstallColormap = fbUninstallColormap;

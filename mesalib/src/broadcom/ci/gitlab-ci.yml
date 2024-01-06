@@ -85,3 +85,25 @@ v3dv-rpi4-vk-full:arm64:
   variables:
     TEST_PHASE_TIMEOUT: 80
     DEQP_FRACTION: 1
+
+
+.v3dv-rpi5-vk:arm64:
+  extends:
+    - .igalia-bcm2712-rpi-5:arm64
+    - .broadcom-test:arm64
+    - .v3dv-rules
+  variables:
+    HWCI_TEST_SCRIPT: "/install/deqp-runner.sh"
+    DEQP_EXPECTED_RENDERER: "V3D.7.1"
+    DEQP_FRACTION: 15
+    DEQP_VER: vk
+    FLAKES_CHANNEL: "#videocore-ci"
+
+v3dv-rpi5-vk-full:arm64:
+  extends:
+    - .v3dv-rpi5-vk:arm64
+    - .v3dv-manual-rules
+  timeout: 2h 30m
+  variables:
+    TEST_PHASE_TIMEOUT: 180
+    DEQP_FRACTION: 1

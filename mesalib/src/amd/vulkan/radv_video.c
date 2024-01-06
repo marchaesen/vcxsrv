@@ -114,7 +114,7 @@ radv_vcn_sq_tail(struct radeon_cmdbuf *cs, struct rvcn_sq_var *sq)
 
 /* generate an stream handle */
 static unsigned
-si_vid_alloc_stream_handle(struct radv_physical_device *pdevice)
+radv_vid_alloc_stream_handle(struct radv_physical_device *pdevice)
 {
    unsigned stream_handle = pdevice->stream_handle_base;
 
@@ -313,7 +313,7 @@ radv_CreateVideoSessionKHR(VkDevice _device, const VkVideoSessionCreateInfoKHR *
       return VK_ERROR_FEATURE_NOT_PRESENT;
    }
 
-   vid->stream_handle = si_vid_alloc_stream_handle(device->physical_device);
+   vid->stream_handle = radv_vid_alloc_stream_handle(device->physical_device);
    vid->dbg_frame_cnt = 0;
    vid->db_alignment = radv_video_get_db_alignment(
       device->physical_device, vid->vk.max_coded.width,

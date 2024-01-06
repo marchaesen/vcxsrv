@@ -686,6 +686,20 @@ align64(uint64_t value, uint64_t alignment)
 }
 
 /**
+ * Align a value(uintptr_t, intptr_t, ptrdiff_t), only works pot alignemnts.
+ */
+static inline uintptr_t
+align_uintptr(uintptr_t value, uintptr_t alignment)
+{
+#if UINTPTR_MAX == UINT64_MAX
+   assert(util_is_power_of_two_nonzero64(alignment));
+#else
+   assert(util_is_power_of_two_nonzero(alignment));
+#endif
+   return ALIGN_POT(value, alignment);
+}
+
+/**
  * Works like align but on npot alignments.
  */
 static inline size_t

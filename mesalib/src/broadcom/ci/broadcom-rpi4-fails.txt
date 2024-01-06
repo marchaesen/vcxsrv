@@ -532,9 +532,3 @@ dEQP-VK.pipeline.shader_object_linked_binary.framebuffer_attachment.unused_attac
 dEQP-VK.pipeline.shader_object_linked_spirv.framebuffer_attachment.unused_attachment,Crash
 dEQP-VK.pipeline.shader_object_unlinked_binary.framebuffer_attachment.unused_attachment,Crash
 dEQP-VK.pipeline.shader_object_unlinked_spirv.framebuffer_attachment.unused_attachment,Crash
-
-# Bisected to eb5bb5c784e ("vk/util: ignore unsupported feature structs")
-dEQP-VK.api.device_init.create_device_unsupported_features.inline_uniform_block_features,Fail
-dEQP-VK.api.device_init.create_device_unsupported_features.vertex_attribute_divisor_features_ext,Fail
-dEQP-VK.api.device_init.create_device_unsupported_features.vulkan11_features,Fail
-dEQP-VK.api.device_init.create_device_unsupported_features.vulkan12_features,Fail

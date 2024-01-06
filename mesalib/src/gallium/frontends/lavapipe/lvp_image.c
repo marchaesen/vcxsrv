@@ -424,11 +424,11 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetImageSubresourceLayout(
    pLayout->size = plane->size;
 }
 
-VKAPI_ATTR void VKAPI_CALL lvp_GetImageSubresourceLayout2EXT(
+VKAPI_ATTR void VKAPI_CALL lvp_GetImageSubresourceLayout2KHR(
     VkDevice                       _device,
     VkImage                        _image,
-    const VkImageSubresource2EXT*  pSubresource,
-    VkSubresourceLayout2EXT*       pLayout)
+    const VkImageSubresource2KHR*  pSubresource,
+    VkSubresourceLayout2KHR*       pLayout)
 {
    lvp_GetImageSubresourceLayout(_device, _image, &pSubresource->imageSubresource, &pLayout->subresourceLayout);
    VkSubresourceHostMemcpySizeEXT *size = vk_find_struct(pLayout, SUBRESOURCE_HOST_MEMCPY_SIZE_EXT);
@@ -445,7 +445,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDeviceImageSubresourceLayoutKHR(
    /* technically supposed to be able to do this without creating an image, but that's harder */
    if (lvp_image_create(_device, pInfo->pCreateInfo, NULL, &image) != VK_SUCCESS)
       return;
-   lvp_GetImageSubresourceLayout2EXT(_device, image, pInfo->pSubresource, pLayout);
+   lvp_GetImageSubresourceLayout2KHR(_device, image, pInfo->pSubresource, pLayout);
    lvp_DestroyImage(_device, image, NULL);
 }
 

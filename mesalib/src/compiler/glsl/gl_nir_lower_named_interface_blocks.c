@@ -62,8 +62,8 @@
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_deref.h"
-#include "nir_types.h"
 #include "gl_nir.h"
+#include "glsl_types.h"
 
 #include "main/shader_types.h"
 

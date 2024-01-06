@@ -3305,7 +3305,7 @@ zink_shader_spirv_compile(struct zink_screen *screen, struct zink_shader *zs, st
       ret = VKSCR(CreateShaderModule)(screen->dev, &smci, NULL, &obj.mod);
    else
       ret = VKSCR(CreateShadersEXT)(screen->dev, 1, &sci, NULL, &obj.obj);
-   bool success = zink_screen_handle_vkresult(screen, ret);
+   ASSERTED bool success = zink_screen_handle_vkresult(screen, ret);
    assert(success);
    return obj;
 }

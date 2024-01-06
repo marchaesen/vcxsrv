@@ -2095,7 +2095,7 @@ v3d_optimize_nir(struct v3d_compile *c, struct nir_shader *s)
                 NIR_PASS(progress, s, nir_opt_idiv_const, 32);
                 NIR_PASS(progress, s, nir_lower_alu);
 
-                if (nir_opt_trivial_continues(s)) {
+                if (nir_opt_loop(s)) {
                    progress = true;
                    NIR_PASS(progress, s, nir_copy_prop);
                    NIR_PASS(progress, s, nir_opt_dce);

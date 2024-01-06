@@ -404,7 +404,7 @@ bo_alloc_internal(struct crocus_bufmgr *bufmgr,
     * at this size, a multiple of the page size.
     */
    uint64_t bo_size =
-      bucket ? bucket->size : MAX2(ALIGN(size, page_size), page_size);
+      bucket ? bucket->size : MAX2(align64(size, page_size), page_size);
 
    simple_mtx_lock(&bufmgr->lock);
 

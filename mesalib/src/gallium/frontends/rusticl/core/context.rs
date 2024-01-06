@@ -9,7 +9,7 @@ use crate::impl_cl_type_trait;
 
 use mesa_rust::pipe::resource::*;
 use mesa_rust::pipe::screen::ResourceType;
-use mesa_rust_gen::pipe_format;
+use mesa_rust_gen::*;
 use mesa_rust_util::properties::Properties;
 use rusticl_opencl_gen::*;
 
@@ -62,13 +62,17 @@ impl Context {
             let mut resource = None;
 
             if !user_ptr.is_null() && !copy {
-                resource = dev
-                    .screen()
-                    .resource_create_buffer_from_user(adj_size, user_ptr)
+                resource = dev.screen().resource_create_buffer_from_user(
+                    adj_size,
+                    user_ptr,
+                    PIPE_BIND_GLOBAL,
+                )
             }
 
             if resource.is_none() {
-                resource = dev.screen().resource_create_buffer(adj_size, res_type)
+                resource = dev
+                    .screen()
+                    .resource_create_buffer(adj_size, res_type, PIPE_BIND_GLOBAL)
             }
 
             let resource = resource.ok_or(CL_OUT_OF_RESOURCES);

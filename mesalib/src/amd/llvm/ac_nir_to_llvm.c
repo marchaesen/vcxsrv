@@ -1253,9 +1253,9 @@ static bool visit_alu(struct ac_nir_context *ctx, const nir_alu_instr *instr)
       break;
    }
 
-   case nir_op_sad_u8x4:
-      result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.sad.u8", ctx->ac.i32,
-                                  (LLVMValueRef[]){src[0], src[1], src[2]}, 3, 0);
+   case nir_op_msad_4x8:
+      result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.msad.u8", ctx->ac.i32,
+                                  (LLVMValueRef[]){src[1], src[0], src[2]}, 3, 0);
       break;
 
    default:

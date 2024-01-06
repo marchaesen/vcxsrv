@@ -453,16 +453,17 @@ xkb_symbols "def_common" {
 // 2020 - Added ZWNJ key to "Old Hungarian (for ligatures)", changed its ohu_lig id to oldhunlig.
 // Added "oldhun_magic_numpad" for both "Old Hungarian" layouts, as a specialised numpad.
 // 2023, Added decimal comma
+// 2023 basic "Old Hungarian" layout deprecated
 
 // Old Hungarian layout
-partial alphanumeric_keys
-xkb_symbols "oldhun" {
-name[Group1]="Old Hungarian";
-include "hu(oldhun_base)"
-include "hu(oldhun_origin)"
-include "hu(oldhun_magic_numpad)"
-include "level3(ralt_switch)"
-};
+//partial alphanumeric_keys
+//xkb_symbols "oldhun" {
+//name[Group1]="Old Hungarian";
+//include "hu(oldhun_base)"
+//include "hu(oldhun_origin)"
+//include "hu(oldhun_magic_numpad)"
+//include "level3(ralt_switch)"
+//};
 
 // Old Hungarian layout for ligatures
 partial alphanumeric_keys

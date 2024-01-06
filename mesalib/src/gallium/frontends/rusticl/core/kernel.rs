@@ -356,8 +356,7 @@ fn opt_nir(nir: &mut NirShader, dev: &Device) {
         progress |= nir_pass!(
             nir,
             nir_opt_if,
-            nir_opt_if_options::nir_opt_if_aggressive_last_continue
-                | nir_opt_if_options::nir_opt_if_optimize_phi_true_false,
+            nir_opt_if_options::nir_opt_if_optimize_phi_true_false,
         );
         progress |= nir_pass!(nir, nir_opt_dead_cf);
         progress |= nir_pass!(nir, nir_opt_remove_phis);
@@ -1012,7 +1011,11 @@ impl Kernel {
                     let buf = Arc::new(
                         q.device
                             .screen
-                            .resource_create_buffer(printf_size, ResourceType::Staging)
+                            .resource_create_buffer(
+                                printf_size,
+                                ResourceType::Staging,
+                                PIPE_BIND_GLOBAL,
+                            )
                             .unwrap(),
                     );
 
@@ -1082,7 +1085,7 @@ impl Kernel {
             ctx.set_sampler_views(&mut sviews);
             ctx.set_shader_images(&iviews);
             ctx.set_global_binding(resources.as_slice(), &mut globals);
-            ctx.set_constant_buffer(0, &input);
+            ctx.update_cb0(&input);
 
             ctx.launch_grid(work_dim, block, grid, variable_local_size as u32);
 

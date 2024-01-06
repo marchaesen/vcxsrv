@@ -393,27 +393,30 @@ lp_jit_texture_from_pipe(struct lp_jit_texture *jit, const struct pipe_sampler_v
          jit->first_level = 0;
          jit->last_level = 0;
          jit->mip_offsets[0] = 0;
+         jit->mip_offsets[LP_JIT_TEXTURE_SAMPLE_STRIDE] = 0;
          jit->row_stride[0] = 0;
          jit->img_stride[0] = 0;
-         jit->num_samples = 0;
-         jit->sample_stride = 0;
       } else {
          jit->width = res->width0;
          jit->height = res->height0;
          jit->depth = res->depth0;
          jit->first_level = first_level;
          jit->last_level = last_level;
-         jit->num_samples = res->nr_samples;
-         jit->sample_stride = 0;
+         jit->mip_offsets[0] = 0;
 
          if (llvmpipe_resource_is_texture(res)) {
-            for (unsigned j = first_level; j <= last_level; j++) {
-               jit->mip_offsets[j] = lp_tex->mip_offsets[j];
-               jit->row_stride[j] = lp_tex->row_stride[j];
-               jit->img_stride[j] = lp_tex->img_stride[j];
+            if (res->nr_samples > 1) {
+               jit->last_level = res->nr_samples;
+               jit->mip_offsets[LP_JIT_TEXTURE_SAMPLE_STRIDE] = lp_tex->sample_stride;
+               jit->row_stride[0] = lp_tex->row_stride[0];
+               jit->img_stride[0] = lp_tex->img_stride[0];
+            } else {
+               for (unsigned j = first_level; j <= last_level; j++) {
+                  jit->mip_offsets[j] = lp_tex->mip_offsets[j];
+                  jit->row_stride[j] = lp_tex->row_stride[j];
+                  jit->img_stride[j] = lp_tex->img_stride[j];
+               }
             }
-
-            jit->sample_stride = lp_tex->sample_stride;
 
             if (res->target == PIPE_TEXTURE_1D_ARRAY ||
                 res->target == PIPE_TEXTURE_2D_ARRAY ||
@@ -484,8 +487,8 @@ lp_jit_texture_from_pipe(struct lp_jit_texture *jit, const struct pipe_sampler_v
       jit->height = res->height0;
       jit->depth = res->depth0;
       jit->first_level = jit->last_level = 0;
-      jit->num_samples = res->nr_samples;
-      jit->sample_stride = 0;
+      if (res->nr_samples > 1)
+         jit->last_level = res->nr_samples;
       assert(jit->base);
    }
 }
@@ -506,15 +509,11 @@ lp_jit_texture_buffer_from_bda(struct lp_jit_texture *jit, void *mem, size_t siz
       jit->mip_offsets[0] = 0;
       jit->row_stride[0] = 0;
       jit->img_stride[0] = 0;
-      jit->num_samples = 0;
-      jit->sample_stride = 0;
    } else {
       jit->height = 1;
       jit->depth = 1;
       jit->first_level = 0;
       jit->last_level = 0;
-      jit->num_samples = 1;
-      jit->sample_stride = 0;
 
       /*
        * For buffers, we don't have "offset", instead adjust

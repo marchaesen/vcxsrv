@@ -155,7 +155,7 @@ struct msm_ccmd_gem_cpu_prep_req {
 DEFINE_CAST(vdrm_ccmd_req, msm_ccmd_gem_cpu_prep_req)
 
 struct msm_ccmd_gem_cpu_prep_rsp {
-   struct vdrm_ccmd_req hdr;
+   struct vdrm_ccmd_rsp hdr;
 
    int32_t ret;
 };

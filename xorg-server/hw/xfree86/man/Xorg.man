@@ -171,6 +171,9 @@ bpp framebuffer rather than the (possibly default) 32 bpp framebuffer
 (or vice versa).  Legal values are 1, 8, 16, 24, 32.  Not all drivers
 support all values.
 .TP 8
+.B \-flipPixels
+Swap the default values for the black and white pixels.
+.TP 8
 .BI \-gamma " value"
 Set the gamma correction.
 .I value

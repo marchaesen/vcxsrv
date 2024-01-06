@@ -57,6 +57,7 @@ enum {
    DEBUG_LIVE_INFO = 0x100,
    DEBUG_FORCE_WAITDEPS = 0x200,
    DEBUG_NO_VALIDATE_IR = 0x400,
+   DEBUG_NO_SCHED_ILP = 0x800,
 };
 
 enum storage_class : uint8_t {
@@ -1287,6 +1288,7 @@ struct Instruction {
 
    constexpr bool isVMEM() const noexcept { return isMTBUF() || isMUBUF() || isMIMG(); }
 
+   bool accessesLDS() const noexcept;
    bool isTrans() const noexcept;
 };
 static_assert(sizeof(Instruction) == 16, "Unexpected padding");
@@ -1673,6 +1675,12 @@ struct Pseudo_reduction_instruction : public Instruction {
 };
 static_assert(sizeof(Pseudo_reduction_instruction) == sizeof(Instruction) + 4,
               "Unexpected padding");
+
+inline bool
+Instruction::accessesLDS() const noexcept
+{
+   return (isDS() && !ds().gds) || isLDSDIR() || isVINTRP();
+}
 
 inline void
 VALU_instruction::swapOperands(unsigned idx0, unsigned idx1)
@@ -2200,6 +2208,7 @@ void register_allocation(Program* program, std::vector<IDSet>& live_out_per_bloc
 void ssa_elimination(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program, live& live_vars);
+void schedule_ilp(Program* program);
 void spill(Program* program, live& live_vars);
 void insert_wait_states(Program* program);
 bool dealloc_vgprs(Program* program);

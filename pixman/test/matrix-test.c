@@ -201,8 +201,8 @@ test_matrix (int testnum, int verbose)
             {
                 for (j = 0; j < 3; j++)
                 {
-                    double diff = fabs (result_f.v[j] -
-                                        pixman_fixed_to_float128 (result_i.v[j]));
+                    double diff = fabsl (result_f.v[j] -
+                                         pixman_fixed_to_float128 (result_i.v[j]));
 
                     if (is_affine && diff > (0.51 / 65536.0))
                     {

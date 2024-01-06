@@ -45,6 +45,14 @@ cs_get_cur_iova(struct cmdstream *cs)
    return cs->iova + cs->cur * sizeof(uint32_t);
 }
 
+struct wrbuf {
+   struct list_head link;
+
+   uint64_t iova;
+   uint64_t size;
+   const char *name;
+};
+
 struct replay_context {
    void *mem_ctx;
 
@@ -58,6 +66,8 @@ struct replay_context {
    struct cmdstream *cp_log;
 
    struct list_head cs_list;
+
+   struct list_head wrbuf_list;
 
    struct ir3_compiler *compiler;
 
@@ -166,6 +176,18 @@ rd_write_cs_submit(FILE *out, struct cmdstream *cs)
 }
 
 static void
+rd_write_wrbuffer(FILE *out, struct wrbuf *wrbuf)
+{
+   uint32_t name_len = strlen(wrbuf->name) + 1;
+   struct rd_section section = {.type = RD_WRBUFFER,
+                                .size = (uint32_t)(sizeof(uint32_t) * 2) + name_len};
+   fwrite(&section, sizeof(section), 1, out);
+   fwrite(&wrbuf->iova, sizeof(uint64_t), 1, out);
+   fwrite(&wrbuf->size, sizeof(uint64_t), 1, out);
+   fwrite(wrbuf->name, sizeof(char), name_len, out);
+}
+
+static void
 print_usage(const char *name)
 {
    /* clang-format off */
@@ -225,6 +247,7 @@ replay_context_init(struct replay_context *ctx, struct fd_dev_id *dev_id,
 
    ctx->mem_ctx = ralloc_context(NULL);
    list_inithead(&ctx->cs_list);
+   list_inithead(&ctx->wrbuf_list);
 
    util_vma_heap_init(&ctx->vma, va_start, ROUND_DOWN_TO(va_size, 4096));
 
@@ -269,6 +292,10 @@ replay_context_finish(struct replay_context *ctx)
       rd_write_cs_buffer(out, cs);
    }
    rd_write_cs_submit(out, ctx->submit_cs);
+
+   list_for_each_entry (struct wrbuf, wrbuf, &ctx->wrbuf_list, link) {
+      rd_write_wrbuffer(out, wrbuf);
+   }
 
    fclose(out);
 }
@@ -378,4 +405,18 @@ gpu_print(struct replay_context *ctx, struct cmdstream *_cs, uint64_t iova,
    }
 
    end_ib();
+}
+
+static void
+gpu_read_into_file(struct replay_context *ctx, struct cmdstream *_cs,
+                    uint64_t iova, uint64_t size, const char *name)
+{
+   struct wrbuf *wrbuf = (struct wrbuf *) calloc(1, sizeof(struct wrbuf));
+   wrbuf->iova = iova;
+   wrbuf->size = size;
+   wrbuf->name = strdup(name);
+
+   assert(wrbuf->iova != 0);
+
+   list_addtail(&wrbuf->link, &ctx->wrbuf_list);
 }

@@ -263,7 +263,7 @@ void _vtn_fail_value_not_pointer(struct vtn_builder *b,
 static struct vtn_ssa_value *
 vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
 {
-   struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
+   struct vtn_ssa_value *val = vtn_zalloc(b, struct vtn_ssa_value);
    val->type = glsl_get_bare_type(type);
 
    if (glsl_type_is_cmat(type)) {
@@ -275,7 +275,7 @@ vtn_undef_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
       val->def = nir_undef(&b->nb, num_components, bit_size);
    } else {
       unsigned elems = glsl_get_length(val->type);
-      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+      val->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
       if (glsl_type_is_array_or_matrix(type)) {
          const struct glsl_type *elem_type = glsl_get_array_element(type);
          for (unsigned i = 0; i < elems; i++)
@@ -296,7 +296,7 @@ struct vtn_ssa_value *
 vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
                     const struct glsl_type *type)
 {
-   struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
+   struct vtn_ssa_value *val = vtn_zalloc(b, struct vtn_ssa_value);
    val->type = glsl_get_bare_type(type);
 
    if (glsl_type_is_cmat(type)) {
@@ -313,7 +313,7 @@ vtn_const_ssa_value(struct vtn_builder *b, nir_constant *constant,
                                constant->values);
    } else {
       unsigned elems = glsl_get_length(val->type);
-      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+      val->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
       if (glsl_type_is_array_or_matrix(type)) {
          const struct glsl_type *elem_type = glsl_get_array_element(type);
          for (unsigned i = 0; i < elems; i++) {
@@ -535,7 +535,7 @@ vtn_string_literal(struct vtn_builder *b, const uint32_t *words,
     */
 #if UTIL_ARCH_BIG_ENDIAN
    {
-      uint32_t *copy = ralloc_array(b, uint32_t, word_count);
+      uint32_t *copy = vtn_alloc_array(b, uint32_t, word_count);
       for (unsigned i = 0; i < word_count; i++)
          copy[i] = util_bswap32(words[i]);
       words = copy;
@@ -744,7 +744,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
    case SpvOpExecutionModeId: {
       struct vtn_value *val = vtn_untyped_value(b, target);
 
-      struct vtn_decoration *dec = rzalloc(b, struct vtn_decoration);
+      struct vtn_decoration *dec = vtn_zalloc(b, struct vtn_decoration);
       switch (opcode) {
       case SpvOpDecorate:
       case SpvOpDecorateId:
@@ -776,7 +776,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpMemberName: {
       struct vtn_value *val = vtn_untyped_value(b, target);
-      struct vtn_decoration *dec = rzalloc(b, struct vtn_decoration);
+      struct vtn_decoration *dec = vtn_zalloc(b, struct vtn_decoration);
 
       dec->scope = VTN_DEC_STRUCT_MEMBER_NAME0 - *(w++);
 
@@ -794,7 +794,7 @@ vtn_handle_decoration(struct vtn_builder *b, SpvOp opcode,
 
       for (; w < w_end; w++) {
          struct vtn_value *val = vtn_untyped_value(b, *w);
-         struct vtn_decoration *dec = rzalloc(b, struct vtn_decoration);
+         struct vtn_decoration *dec = vtn_zalloc(b, struct vtn_decoration);
 
          dec->group = group;
          if (opcode == SpvOpGroupDecorate) {
@@ -917,7 +917,7 @@ vtn_type_without_array(struct vtn_type *type)
 static struct vtn_type *
 vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
 {
-   struct vtn_type *dest = ralloc(b, struct vtn_type);
+   struct vtn_type *dest = vtn_alloc(b, struct vtn_type);
    *dest = *src;
 
    switch (src->base_type) {
@@ -938,17 +938,17 @@ vtn_type_copy(struct vtn_builder *b, struct vtn_type *src)
       break;
 
    case vtn_base_type_struct:
-      dest->members = ralloc_array(b, struct vtn_type *, src->length);
+      dest->members = vtn_alloc_array(b, struct vtn_type *, src->length);
       memcpy(dest->members, src->members,
              src->length * sizeof(src->members[0]));
 
-      dest->offsets = ralloc_array(b, unsigned, src->length);
+      dest->offsets = vtn_alloc_array(b, unsigned, src->length);
       memcpy(dest->offsets, src->offsets,
              src->length * sizeof(src->offsets[0]));
       break;
 
    case vtn_base_type_function:
-      dest->params = ralloc_array(b, struct vtn_type *, src->length);
+      dest->params = vtn_alloc_array(b, struct vtn_type *, src->length);
       memcpy(dest->params, src->params, src->length * sizeof(src->params[0]));
       break;
    }
@@ -1541,7 +1541,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       val = vtn_push_value(b, w[1], vtn_value_type_type);
       vtn_fail_if(val->type != NULL,
                   "Only pointers can have forward declarations");
-      val->type = rzalloc(b, struct vtn_type);
+      val->type = vtn_zalloc(b, struct vtn_type);
       val->type->id = w[1];
    }
 
@@ -1643,8 +1643,8 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       unsigned num_fields = count - 2;
       val->type->base_type = vtn_base_type_struct;
       val->type->length = num_fields;
-      val->type->members = ralloc_array(b, struct vtn_type *, num_fields);
-      val->type->offsets = ralloc_array(b, unsigned, num_fields);
+      val->type->members = vtn_alloc_array(b, struct vtn_type *, num_fields);
+      val->type->offsets = vtn_alloc_array(b, unsigned, num_fields);
       val->type->packed = false;
 
       NIR_VLA(struct glsl_struct_field, fields, count);
@@ -1714,7 +1714,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
 
       const unsigned num_params = count - 3;
       val->type->length = num_params;
-      val->type->params = ralloc_array(b, struct vtn_type *, num_params);
+      val->type->params = vtn_alloc_array(b, struct vtn_type *, num_params);
       for (unsigned i = 0; i < count - 3; i++) {
          val->type->params[i] = vtn_get_type(b, w[i + 3]);
       }
@@ -1743,7 +1743,7 @@ vtn_handle_type(struct vtn_builder *b, SpvOp opcode,
       bool has_forward_pointer = false;
       if (val->value_type == vtn_value_type_invalid) {
          val->value_type = vtn_value_type_type;
-         val->type = rzalloc(b, struct vtn_type);
+         val->type = vtn_zalloc(b, struct vtn_type);
          val->type->id = w[1];
          val->type->base_type = vtn_base_type_pointer;
          val->type->storage_class = storage_class;
@@ -2701,13 +2701,13 @@ vtn_create_ssa_value(struct vtn_builder *b, const struct glsl_type *type)
     *     to a SPIR-V value has the right type.  Using bare types everywhere
     *     ensures that we can pointer-compare.
     */
-   struct vtn_ssa_value *val = rzalloc(b, struct vtn_ssa_value);
+   struct vtn_ssa_value *val = vtn_zalloc(b, struct vtn_ssa_value);
    val->type = glsl_get_bare_type(type);
 
 
    if (!glsl_type_is_vector_or_scalar(type)) {
       unsigned elems = glsl_get_length(val->type);
-      val->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+      val->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
       if (glsl_type_is_array_or_matrix(type) || glsl_type_is_cmat(type)) {
          const struct glsl_type *elem_type = glsl_get_array_element(type);
          for (unsigned i = 0; i < elems; i++)
@@ -3484,7 +3484,7 @@ vtn_handle_image(struct vtn_builder *b, SpvOp opcode,
    if (opcode == SpvOpImageTexelPointer) {
       struct vtn_value *val =
          vtn_push_value(b, w[2], vtn_value_type_image_pointer);
-      val->image = ralloc(b, struct vtn_image_pointer);
+      val->image = vtn_alloc(b, struct vtn_image_pointer);
 
       val->image->image = vtn_nir_deref(b, w[3]);
       val->image->coord = get_image_coord(b, w[4]);
@@ -4218,11 +4218,11 @@ vtn_vector_construct(struct vtn_builder *b, unsigned num_components,
 }
 
 static struct vtn_ssa_value *
-vtn_composite_copy(void *mem_ctx, struct vtn_ssa_value *src)
+vtn_composite_copy(struct vtn_builder *b, struct vtn_ssa_value *src)
 {
    assert(!src->is_variable);
 
-   struct vtn_ssa_value *dest = rzalloc(mem_ctx, struct vtn_ssa_value);
+   struct vtn_ssa_value *dest = vtn_zalloc(b, struct vtn_ssa_value);
    dest->type = src->type;
 
    if (glsl_type_is_vector_or_scalar(src->type)) {
@@ -4230,9 +4230,9 @@ vtn_composite_copy(void *mem_ctx, struct vtn_ssa_value *src)
    } else {
       unsigned elems = glsl_get_length(src->type);
 
-      dest->elems = ralloc_array(mem_ctx, struct vtn_ssa_value *, elems);
+      dest->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
       for (unsigned i = 0; i < elems; i++)
-         dest->elems[i] = vtn_composite_copy(mem_ctx, src->elems[i]);
+         dest->elems[i] = vtn_composite_copy(b, src->elems[i]);
    }
 
    return dest;
@@ -4358,7 +4358,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
             vtn_vector_construct(b, glsl_get_vector_elements(type->type),
                                  elems, srcs);
       } else {
-         ssa->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+         ssa->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
          for (unsigned i = 0; i < elems; i++)
             ssa->elems[i] = vtn_ssa_value(b, w[3 + i]);
       }
@@ -4601,7 +4601,7 @@ vtn_handle_entry_point(struct vtn_builder *b, const uint32_t *w,
    unsigned name_words;
    entry_point->name = vtn_string_literal(b, &w[3], count - 3, &name_words);
 
-   gl_shader_stage stage = vtn_stage_for_execution_model(w[1]);  
+   gl_shader_stage stage = vtn_stage_for_execution_model(w[1]);
    vtn_fail_if(stage == MESA_SHADER_NONE,
                "Unsupported execution model: %s (%u)",
                spirv_executionmodel_to_string(w[1]), w[1]);
@@ -4615,7 +4615,7 @@ vtn_handle_entry_point(struct vtn_builder *b, const uint32_t *w,
    /* Entry points enumerate which global variables are used. */
    size_t start = 3 + name_words;
    b->interface_ids_count = count - start;
-   b->interface_ids = ralloc_array(b, uint32_t, b->interface_ids_count);
+   b->interface_ids = vtn_alloc_array(b, uint32_t, b->interface_ids_count);
    memcpy(b->interface_ids, &w[start], b->interface_ids_count * 4);
    qsort(b->interface_ids, b->interface_ids_count, 4, cmp_uint32_t);
 }
@@ -5058,7 +5058,7 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
       case SpvCapabilityFragmentBarycentricKHR:
          spv_check_supported(fragment_barycentric, cap);
          break;
-      
+
       case SpvCapabilityShaderEnqueueAMDX:
          spv_check_supported(shader_enqueue, cap);
          break;
@@ -5743,7 +5743,7 @@ static struct vtn_ssa_value *
 vtn_nir_select(struct vtn_builder *b, struct vtn_ssa_value *src0,
                struct vtn_ssa_value *src1, struct vtn_ssa_value *src2)
 {
-   struct vtn_ssa_value *dest = rzalloc(b, struct vtn_ssa_value);
+   struct vtn_ssa_value *dest = vtn_zalloc(b, struct vtn_ssa_value);
    dest->type = src1->type;
 
    if (src1->is_variable || src2->is_variable) {
@@ -5771,7 +5771,7 @@ vtn_nir_select(struct vtn_builder *b, struct vtn_ssa_value *src0,
    } else {
       unsigned elems = glsl_get_length(src1->type);
 
-      dest->elems = ralloc_array(b, struct vtn_ssa_value *, elems);
+      dest->elems = vtn_alloc_array(b, struct vtn_ssa_value *, elems);
       for (unsigned i = 0; i < elems; i++) {
          dest->elems[i] = vtn_nir_select(b, src0,
                                          src1->elems[i], src2->elems[i]);
@@ -6696,9 +6696,6 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
 {
    /* Initialize the vtn_builder object */
    struct vtn_builder *b = rzalloc(NULL, struct vtn_builder);
-   struct spirv_to_nir_options *dup_options =
-      ralloc(b, struct spirv_to_nir_options);
-   *dup_options = *options;
 
    b->spirv = words;
    b->spirv_word_count = word_count;
@@ -6708,7 +6705,6 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
    list_inithead(&b->functions);
    b->entry_point_stage = stage;
    b->entry_point_name = entry_point_name;
-   b->options = dup_options;
 
    /*
     * Handle the SPIR-V header (first 5 dwords).
@@ -6730,6 +6726,33 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
 
    b->generator_id = words[2] >> 16;
    uint16_t generator_version = words[2];
+
+   unsigned value_id_bound = words[3];
+   if (words[4] != 0) {
+      vtn_err("words[4] was %u, want 0", words[4]);
+      goto fail;
+   }
+
+   b->value_id_bound = value_id_bound;
+
+   /* Allocate all the data that can be dropped after parsing using
+    * a cheaper allocation strategy.  Use the value_id_bound and the
+    * size of the common internal structs to approximate a good
+    * buffer_size.
+    */
+   const linear_opts lin_opts = {
+      .min_buffer_size = 2 * value_id_bound * (sizeof(struct vtn_value) +
+                                               sizeof(struct vtn_ssa_value)),
+   };
+   b->lin_ctx = linear_context_with_opts(b, &lin_opts);
+
+   struct spirv_to_nir_options *dup_options =
+      vtn_alloc(b, struct spirv_to_nir_options);
+   *dup_options = *options;
+
+   b->options = dup_options;
+   b->values = vtn_zalloc_array(b, struct vtn_value, value_id_bound);
+
 
    /* In GLSLang commit 8297936dd6eb3, their handling of barrier() was fixed
     * to provide correct memory semantics on compute shader barrier()
@@ -6773,16 +6796,6 @@ vtn_create_builder(const uint32_t *words, size_t word_count,
       (is_glslang(b) && generator_version < 11) ||
       (b->generator_id == vtn_generator_clay_shader_compiler &&
        generator_version < 18);
-
-   /* words[2] == generator magic */
-   unsigned value_id_bound = words[3];
-   if (words[4] != 0) {
-      vtn_err("words[4] was %u, want 0", words[4]);
-      goto fail;
-   }
-
-   b->value_id_bound = value_id_bound;
-   b->values = rzalloc_array(b, struct vtn_value, value_id_bound);
 
    if (b->options->environment == NIR_SPIRV_VULKAN && b->version < 0x10400)
       b->vars_used_indirectly = _mesa_pointer_set_create(b);

@@ -5,8 +5,8 @@
 #include "compiler/clc/clc.h"
 #include "compiler/clc/clc_helpers.h"
 #include "compiler/shader_enums.h"
+#include "glsl_types.h"
 #include "nir_serialize.h"
-#include "nir_types.h"
 #include "spirv/nir_spirv.h"
 
 #include "pipe/p_context.h"

@@ -446,6 +446,18 @@ get_batch_state(struct zink_context *ctx, struct zink_batch *batch)
       if (bs == ctx->last_free_batch_state)
          ctx->last_free_batch_state = NULL;
    }
+   /* try from the ones that are given back to the screen next */
+   if (!bs) {
+      simple_mtx_lock(&screen->free_batch_states_lock);
+      if (screen->free_batch_states) {
+         bs = screen->free_batch_states;
+         bs->ctx = ctx;
+         screen->free_batch_states = bs->next;
+         if (bs == screen->last_free_batch_state)
+            screen->last_free_batch_state = NULL;
+      }
+      simple_mtx_unlock(&screen->free_batch_states_lock);
+   }
    if (!bs && ctx->batch_states) {
       /* states are stored sequentially, so if the first one doesn't work, none of them will */
       if (zink_screen_check_last_finished(screen, ctx->batch_states->fence.batch_id) ||

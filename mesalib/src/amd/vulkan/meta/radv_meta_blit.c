@@ -23,6 +23,7 @@
 
 #include "nir/nir_builder.h"
 #include "radv_meta.h"
+#include "vk_common_entrypoints.h"
 
 struct blit_region {
    VkOffset3D src_offset;
@@ -207,8 +208,8 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image,
       src_offset_1[1] / (float)src_height, src_offset_0[2] / (float)src_depth,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.blit.pipeline_layout,
-                         VK_SHADER_STAGE_VERTEX_BIT, 0, 20, vertex_push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.blit.pipeline_layout,
+                              VK_SHADER_STAGE_VERTEX_BIT, 0, 20, vertex_push_constants);
 
    VkPipeline *pipeline = NULL;
    unsigned fs_key = 0;

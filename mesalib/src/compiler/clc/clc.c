@@ -24,7 +24,6 @@
 #include "nir/nir.h"
 #include "nir/nir_serialize.h"
 #include "glsl_types.h"
-#include "nir_types.h"
 #include "clc.h"
 #include "clc_helpers.h"
 #include "nir_clc_helpers.h"

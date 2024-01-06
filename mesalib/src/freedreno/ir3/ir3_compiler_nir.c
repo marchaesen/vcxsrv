@@ -294,10 +294,12 @@ static struct ir3_instruction *
 resize_shift_amount(struct ir3_context *ctx, struct ir3_instruction *src,
                     unsigned bs)
 {
-   if (bs != 16)
+   if (bs == 16)
+      return ir3_COV(ctx->block, src, TYPE_U32, TYPE_U16);
+   else if (bs == 8)
+      return ir3_COV(ctx->block, src, TYPE_U32, TYPE_U8);
+   else
       return src;
-
-   return ir3_COV(ctx->block, src, TYPE_U32, TYPE_U16);
 }
 
 static void

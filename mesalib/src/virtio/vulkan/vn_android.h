@@ -53,7 +53,7 @@ vn_android_drm_format_to_vk_format(uint32_t format);
 uint32_t
 vn_android_get_ahb_buffer_memory_type_bits(struct vn_device *dev);
 
-uint32_t
+uint64_t
 vn_android_gralloc_get_shared_present_usage(void);
 
 #else
@@ -111,7 +111,7 @@ vn_android_get_ahb_buffer_memory_type_bits(UNUSED struct vn_device *dev)
    return 0;
 }
 
-static inline uint32_t
+static inline uint64_t
 vn_android_gralloc_get_shared_present_usage(void)
 {
    return 0;

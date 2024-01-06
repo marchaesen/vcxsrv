@@ -3746,6 +3746,8 @@ to upconvert to 32b float internally?
 
 	<reg32 offset="0xaa01" name="SP_UNKNOWN_AA01" type="uint" variants="A7XX-" usage="cmd"/>
 
+	<reg32 offset="0xaaf2" name="SP_UNKNOWN_AAF2" type="uint" usage="cmd"/>
+
 	<!--
                 This enum is probably similar in purpose to SNORMMODE on a3xx,
                 minus the snorm stuff, i.e. it controls what happens with an

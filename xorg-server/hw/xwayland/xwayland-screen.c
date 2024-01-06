@@ -687,9 +687,9 @@ xwl_screen_roundtrip(struct xwl_screen *xwl_screen)
 {
     int ret;
 
-    ret = wl_display_roundtrip(xwl_screen->display);
-    while (ret >= 0 && xwl_screen->expecting_event)
+    do {
         ret = wl_display_roundtrip(xwl_screen->display);
+    } while (ret >= 0 && xwl_screen->expecting_event);
 
     if (ret < 0)
         xwl_give_up("could not connect to wayland server\n");

@@ -5,7 +5,6 @@
 
 #include "glsl_types.h"
 #include "nir.h"
-#include "nir_types.h"
 #include "vtn_private.h"
 
 static enum glsl_cmat_use

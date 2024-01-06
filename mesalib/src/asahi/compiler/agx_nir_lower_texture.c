@@ -150,7 +150,7 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
    nir_tex_instr *tex = nir_instr_as_tex(instr);
    b->cursor = nir_before_instr(instr);
 
-   if (nir_tex_instr_is_query(tex))
+   if (nir_tex_instr_is_query(tex) && tex->op != nir_texop_lod)
       return false;
 
    if (tex->sampler_dim == GLSL_SAMPLER_DIM_BUF)
@@ -303,6 +303,11 @@ lower_sampler_bias(nir_builder *b, nir_instr *instr, UNUSED void *data)
          nir_tex_instr_add_src(tex, src[s], scaled);
       }
 
+      return true;
+   }
+
+   case nir_texop_lod: {
+      nir_tex_instr_add_src(tex, nir_tex_src_bias, bias_for_tex(b, tex));
       return true;
    }
 

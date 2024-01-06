@@ -1114,7 +1114,7 @@ dxil_spirv_nir_passes(nir_shader *nir,
          NIR_PASS(progress, nir, nir_opt_undef);
          NIR_PASS(progress, nir, nir_opt_constant_folding);
          NIR_PASS(progress, nir, nir_opt_cse);
-         if (nir_opt_trivial_continues(nir)) {
+         if (nir_opt_loop(nir)) {
             progress = true;
             NIR_PASS(progress, nir, nir_copy_prop);
             NIR_PASS(progress, nir, nir_opt_dce);

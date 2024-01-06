@@ -36,8 +36,8 @@
 #include "util/u_dynarray.h"
 #include "util/u_math.h"
 
+#include "compiler/glsl_types.h"
 #include "compiler/nir/nir.h"
-#include "compiler/nir_types.h"
 #include "panfrost/util/lcra.h"
 #include "panfrost/util/pan_ir.h"
 

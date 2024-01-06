@@ -28,6 +28,7 @@
 #include "radv_meta.h"
 #include "radv_private.h"
 #include "sid.h"
+#include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
 static nir_shader *
@@ -613,8 +614,8 @@ emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_ivi
       src_offset->x - dst_offset->x,
       src_offset->y - dst_offset->y,
    };
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.resolve_fragment.p_layout,
-                         VK_SHADER_STAGE_FRAGMENT_BIT, 0, 8, push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.resolve_fragment.p_layout,
+                              VK_SHADER_STAGE_FRAGMENT_BIT, 0, 8, push_constants);
 
    pipeline = radv_get_resolve_pipeline(cmd_buffer, src_iview, dst_iview);
 

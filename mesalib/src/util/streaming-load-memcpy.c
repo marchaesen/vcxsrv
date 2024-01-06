@@ -58,8 +58,8 @@ util_streaming_load_memcpy(void *restrict dst, void *restrict src, size_t len)
 
       memcpy(d, s, MIN2(bytes_before_alignment_boundary, len));
 
-      d = (char *)ALIGN((uintptr_t)d, 16);
-      s = (char *)ALIGN((uintptr_t)s, 16);
+      d = (char *)align_uintptr((uintptr_t)d, 16);
+      s = (char *)align_uintptr((uintptr_t)s, 16);
       len -= MIN2(bytes_before_alignment_boundary, len);
    }
 

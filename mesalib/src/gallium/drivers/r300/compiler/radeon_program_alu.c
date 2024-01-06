@@ -212,57 +212,6 @@ static void transform_DP2(struct radeon_compiler* c,
 	rc_remove_instruction(inst);
 }
 
-static void transform_TRUNC(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	/* Definition of trunc:
-	 *   trunc(x) = (abs(x) - fract(abs(x))) * sgn(x)
-	 *
-	 * The multiplication by sgn(x) can be simplified using CMP:
-	 *   y * sgn(x) = (x < 0 ? -y : y)
-	 */
-	 
-	struct rc_src_register abs;
-	
-	if (c->is_r500 || c->type == RC_FRAGMENT_PROGRAM) {
-		abs = absolute(inst->U.I.SrcReg[0]);
-	} else {
-		/* abs isn't free on r300's and r400's vertex shader,
-		 *  so we want to avoid doing it twice
-		 */
-		int tmp = rc_find_free_temporary(c);
-
-		emit2(c, inst->Prev, RC_OPCODE_MAX, NULL, dstregtmpmask(tmp, RC_MASK_XYZW),
-			  srcregswz(inst->U.I.SrcReg[0].File, inst->U.I.SrcReg[0].Index, RC_SWIZZLE_XYZW),
-		      negate(srcregswz(inst->U.I.SrcReg[0].File, inst->U.I.SrcReg[0].Index, RC_SWIZZLE_XYZW)));
-		abs = srcregswz(RC_FILE_TEMPORARY, tmp, inst->U.I.SrcReg[0].Swizzle);
-
-	}
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-	emit1(c, inst->Prev, RC_OPCODE_FRC, NULL, dst, abs);
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, abs,
-	      negate(srcreg(RC_FILE_TEMPORARY, dst.Index)));
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg, inst->U.I.SrcReg[0],
-	      negate(srcreg(RC_FILE_TEMPORARY, dst.Index)), srcreg(RC_FILE_TEMPORARY, dst.Index));
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_LRP(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit3(c, inst->Prev, RC_OPCODE_MAD, NULL,
-		dst,
-		negate(inst->U.I.SrcReg[0]), inst->U.I.SrcReg[2], inst->U.I.SrcReg[2]);
-	emit3(c, inst->Prev, RC_OPCODE_MAD, &inst->U.I,
-		inst->U.I.DstReg,
-		inst->U.I.SrcReg[0], inst->U.I.SrcReg[1], srcreg(RC_FILE_TEMPORARY, dst.Index));
-
-	rc_remove_instruction(inst);
-}
-
 static void transform_RSQ(struct radeon_compiler* c,
 	struct rc_instruction* inst)
 {
@@ -377,7 +326,6 @@ int radeonTransformALU(
 	switch(inst->U.I.Opcode) {
 	case RC_OPCODE_DP2: transform_DP2(c, inst); return 1;
 	case RC_OPCODE_KILP: transform_KILP(c, inst); return 1;
-	case RC_OPCODE_LRP: transform_LRP(c, inst); return 1;
 	case RC_OPCODE_RSQ: transform_RSQ(c, inst); return 1;
 	case RC_OPCODE_SEQ: transform_SEQ(c, inst); return 1;
 	case RC_OPCODE_SGE: transform_SGE(c, inst); return 1;
@@ -386,7 +334,6 @@ int radeonTransformALU(
 	case RC_OPCODE_SLT: transform_SLT(c, inst); return 1;
 	case RC_OPCODE_SNE: transform_SNE(c, inst); return 1;
 	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
-	case RC_OPCODE_TRUNC: transform_TRUNC(c, inst); return 1;
 	default:
 		return 0;
 	}
@@ -400,30 +347,7 @@ static void transform_r300_vertex_CMP(struct radeon_compiler* c,
 	if (c->is_r500 && !rc_inst_has_three_diff_temp_srcs(inst))
 		return;
 
-	/* There is no decent CMP available on r300, so let's rig one up.
-	 * CMP is defined as dst = src0 < 0.0 ? src1 : src2
-	 * The following sequence consumes zero to two temps and two extra slots
-	 * (the second temp and the second slot is consumed by transform_LRP),
-	 * but should be equivalent:
-	 *
-	 * SLT tmp0, src0, 0.0
-	 * LRP dst, tmp0, src1, src2
-	 *
-	 * Yes, I know, I'm a mad scientist. ~ C. & M. */
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	/* SLT tmp0, src0, 0.0 */
-	emit2(c, inst->Prev, RC_OPCODE_SLT, NULL,
-		dst,
-		inst->U.I.SrcReg[0], builtin_zero);
-
-	/* LRP dst, tmp0, src1, src2 */
-	transform_LRP(c,
-		emit3(c, inst->Prev, RC_OPCODE_LRP, NULL,
-		      inst->U.I.DstReg,
-		      srcreg(RC_FILE_TEMPORARY, dst.Index), inst->U.I.SrcReg[1],  inst->U.I.SrcReg[2]));
-
-	rc_remove_instruction(inst);
+	unreachable();
 }
 
 static void transform_r300_vertex_DP2(struct radeon_compiler* c,
@@ -545,17 +469,6 @@ static void transform_r300_vertex_SLE(struct radeon_compiler* c,
 	inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
 }
 
-static void transform_vertex_TRUNC(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_instruction *next = inst->Next;
-
-	/* next->Prev is removed after each transformation and replaced
-	 * by a new instruction. */
-	transform_TRUNC(c, next->Prev);
-	transform_r300_vertex_CMP(c, next->Prev);
-}
-
 /**
  * For use with rc_local_transform, this transforms non-native ALU
  * instructions of the r300 up to r500 vertex engine.
@@ -570,7 +483,6 @@ int r300_transform_vertex_alu(
 	case RC_OPCODE_DP2: transform_r300_vertex_DP2(c, inst); return 1;
 	case RC_OPCODE_DP3: transform_r300_vertex_DP3(c, inst); return 1;
 	case RC_OPCODE_LIT: transform_r300_vertex_fix_LIT(c, inst); return 1;
-	case RC_OPCODE_LRP: transform_LRP(c, inst); return 1;
 	case RC_OPCODE_SEQ:
 		if (!c->is_r500) {
 			transform_r300_vertex_SEQ(c, inst);
@@ -586,7 +498,6 @@ int r300_transform_vertex_alu(
 		}
 		return 0;
 	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
-	case RC_OPCODE_TRUNC: transform_vertex_TRUNC(c, inst); return 1;
 	default:
 		return 0;
 	}

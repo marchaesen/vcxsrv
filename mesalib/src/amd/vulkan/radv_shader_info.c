@@ -346,12 +346,10 @@ radv_get_wave_size(struct radv_device *device, gl_shader_stage stage, const stru
 
    if (stage == MESA_SHADER_GEOMETRY && !info->is_ngg)
       return 64;
-   else if (stage == MESA_SHADER_COMPUTE)
-      return info->cs.subgroup_size;
+   else if (stage == MESA_SHADER_COMPUTE || stage == MESA_SHADER_TASK)
+      return info->wave_size;
    else if (stage == MESA_SHADER_FRAGMENT)
       return device->physical_device->ps_wave_size;
-   else if (stage == MESA_SHADER_TASK)
-      return device->physical_device->cs_wave_size;
    else if (gl_shader_stage_is_rt(stage))
       return device->physical_device->rt_wave_size;
    else
@@ -933,20 +931,20 @@ gather_shader_info_cs(struct radv_device *device, const nir_shader *nir, const s
     * the subgroup size.
     */
    const bool require_full_subgroups =
-      pipeline_key->stage_info[MESA_SHADER_COMPUTE].subgroup_require_full || nir->info.cs.has_cooperative_matrix ||
+      pipeline_key->stage_info[nir->info.stage].subgroup_require_full || nir->info.cs.has_cooperative_matrix ||
       (default_wave_size == 32 && nir->info.uses_wide_subgroup_intrinsics && local_size % RADV_SUBGROUP_SIZE == 0);
 
-   const unsigned required_subgroup_size = pipeline_key->stage_info[MESA_SHADER_COMPUTE].subgroup_required_size * 32;
+   const unsigned required_subgroup_size = pipeline_key->stage_info[nir->info.stage].subgroup_required_size * 32;
 
    if (required_subgroup_size) {
-      info->cs.subgroup_size = required_subgroup_size;
+      info->wave_size = required_subgroup_size;
    } else if (require_full_subgroups) {
-      info->cs.subgroup_size = RADV_SUBGROUP_SIZE;
+      info->wave_size = RADV_SUBGROUP_SIZE;
    } else if (device->physical_device->rad_info.gfx_level >= GFX10 && local_size <= 32) {
       /* Use wave32 for small workgroups. */
-      info->cs.subgroup_size = 32;
+      info->wave_size = 32;
    } else {
-      info->cs.subgroup_size = default_wave_size;
+      info->wave_size = default_wave_size;
    }
 
    if (device->physical_device->rad_info.has_cs_regalloc_hang_bug) {
@@ -955,9 +953,11 @@ gather_shader_info_cs(struct radv_device *device, const nir_shader *nir, const s
 }
 
 static void
-gather_shader_info_task(const nir_shader *nir, const struct radv_pipeline_key *pipeline_key,
+gather_shader_info_task(struct radv_device *device, const nir_shader *nir, const struct radv_pipeline_key *pipeline_key,
                         struct radv_shader_info *info)
 {
+   gather_shader_info_cs(device, nir, pipeline_key, info);
+
    /* Task shaders always need these for the I/O lowering even if the API shader doesn't actually
     * use them.
     */
@@ -1196,7 +1196,7 @@ radv_nir_shader_info_pass(struct radv_device *device, const struct nir_shader *n
       gather_shader_info_cs(device, nir, pipeline_key, info);
       break;
    case MESA_SHADER_TASK:
-      gather_shader_info_task(nir, pipeline_key, info);
+      gather_shader_info_task(device, nir, pipeline_key, info);
       break;
    case MESA_SHADER_FRAGMENT:
       gather_shader_info_fs(device, nir, pipeline_key, info);

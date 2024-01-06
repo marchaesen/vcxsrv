@@ -202,6 +202,7 @@ llvmpipe_sampler_matrix_destroy(struct llvmpipe_context *ctx)
 
 static void *
 compile_function(struct llvmpipe_context *ctx, struct gallivm_state *gallivm, LLVMValueRef function,
+                 bool needs_caching,
                  uint8_t cache_key[SHA1_DIGEST_LENGTH])
 {
    gallivm_verify_function(gallivm, function);
@@ -209,7 +210,7 @@ compile_function(struct llvmpipe_context *ctx, struct gallivm_state *gallivm, LL
 
    void *function_ptr = func_to_pointer(gallivm_jit_function(gallivm, function));
 
-   if (!gallivm->cache->data_size)
+   if (needs_caching)
       lp_disk_cache_insert_shader(llvmpipe_screen(ctx->pipe.screen), gallivm->cache, cache_key);
 
    gallivm_free_ir(gallivm);
@@ -251,10 +252,12 @@ compile_image_function(struct llvmpipe_context *ctx, struct lp_static_texture_st
    _mesa_sha1_update(&hash_ctx, image_function_base_hash, strlen(image_function_base_hash));
    _mesa_sha1_update(&hash_ctx, texture, sizeof(*texture));
    _mesa_sha1_update(&hash_ctx, &op, sizeof(op));
+   _mesa_sha1_update(&hash_ctx, &ms, sizeof(ms));
    _mesa_sha1_final(&hash_ctx, cache_key);
 
    struct lp_cached_code cached = { 0 };
    lp_disk_cache_find_shader(llvmpipe_screen(ctx->pipe.screen), &cached, cache_key);
+   bool needs_caching = !cached.data_size;
 
    struct gallivm_state *gallivm = gallivm_create("sample_function", ctx->context, &cached);
 
@@ -333,7 +336,7 @@ compile_image_function(struct llvmpipe_context *ctx, struct lp_static_texture_st
 
    free(image_soa);
 
-   return compile_function(ctx, gallivm, function, cache_key);
+   return compile_function(ctx, gallivm, function, needs_caching, cache_key);
 }
 
 static void *
@@ -407,6 +410,7 @@ compile_sample_function(struct llvmpipe_context *ctx, struct lp_static_texture_s
 
    struct lp_cached_code cached = { 0 };
    lp_disk_cache_find_shader(llvmpipe_screen(ctx->pipe.screen), &cached, cache_key);
+   bool needs_caching = !cached.data_size;
 
    struct gallivm_state *gallivm = gallivm_create("sample_function", ctx->context, &cached);
 
@@ -480,7 +484,7 @@ compile_sample_function(struct llvmpipe_context *ctx, struct lp_static_texture_s
 
    free(sampler_soa);
 
-   return compile_function(ctx, gallivm, function, cache_key);
+   return compile_function(ctx, gallivm, function, needs_caching, cache_key);
 }
 
 static void *
@@ -496,6 +500,7 @@ compile_size_function(struct llvmpipe_context *ctx, struct lp_static_texture_sta
 
    struct lp_cached_code cached = { 0 };
    lp_disk_cache_find_shader(llvmpipe_screen(ctx->pipe.screen), &cached, cache_key);
+   bool needs_caching = !cached.data_size;
 
    struct gallivm_state *gallivm = gallivm_create("sample_function", ctx->context, &cached);
 
@@ -521,6 +526,7 @@ compile_size_function(struct llvmpipe_context *ctx, struct lp_static_texture_sta
       .resources_type = cs.jit_resources_type,
       .is_sviewinfo = true,
       .samples_only = samples,
+      .ms = samples,
    };
 
    if (params.target == PIPE_TEXTURE_1D)
@@ -560,7 +566,7 @@ compile_size_function(struct llvmpipe_context *ctx, struct lp_static_texture_sta
 
    free(sampler_soa);
 
-   return compile_function(ctx, gallivm, function, cache_key);
+   return compile_function(ctx, gallivm, function, needs_caching, cache_key);
 }
 
 static void

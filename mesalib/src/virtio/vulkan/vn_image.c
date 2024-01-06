@@ -519,9 +519,9 @@ vn_GetImageSparseMemoryRequirements2(
    }
 
    /* TODO local or per-device cache */
-   vn_call_vkGetImageSparseMemoryRequirements2(dev->primary_ring, device, pInfo,
-                                               pSparseMemoryRequirementCount,
-                                               pSparseMemoryRequirements);
+   vn_call_vkGetImageSparseMemoryRequirements2(
+      dev->primary_ring, device, pInfo, pSparseMemoryRequirementCount,
+      pSparseMemoryRequirements);
 }
 
 static void

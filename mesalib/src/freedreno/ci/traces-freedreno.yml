@@ -344,7 +344,7 @@ traces:
       text: missing 3/4 of rendered image
       checksum: e7f01e62180b60aef8c67fc4977c90d1
     freedreno-a530:
-      checksum: 777ecb806510d9a038a0d06d44deeb6f
+      checksum: c0db49f777798ec7da518bb9eff099c8
     freedreno-a618:
       label: [skip]
     freedreno-a630:
@@ -353,7 +353,7 @@ traces:
         One of the material textures appears brighter on freedreno than
         i965 in a way that is probably wrong.
     zink-a618:
-      checksum: ba79e6d4a64b4391d3e9e20d3d630f0a
+      checksum: d4ac6b6dd39f5a63a7b6e0b39f81daa3
     zink-a630:
       checksum: e64bcc59d61d1c75ce5eeb109343d9bd
 

@@ -1736,6 +1736,7 @@ agx_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 7;
    case PIPE_CAP_DRAW_INDIRECT:
    case PIPE_CAP_TEXTURE_QUERY_SAMPLES:
+   case PIPE_CAP_TEXTURE_QUERY_LOD:
       return true;
 
    case PIPE_CAP_MAX_VIEWPORTS:

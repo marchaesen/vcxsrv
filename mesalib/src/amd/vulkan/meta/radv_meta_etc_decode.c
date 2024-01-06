@@ -28,6 +28,7 @@
 #include "radv_meta.h"
 #include "radv_private.h"
 #include "sid.h"
+#include "vk_common_entrypoints.h"
 #include "vk_format.h"
 
 VkResult
@@ -112,8 +113,8 @@ decode_etc(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_iview
       offset->x, offset->y, offset->z, src_iview->image->vk.format, src_iview->image->vk.image_type,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.etc_decode.pipeline_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.etc_decode.pipeline_layout,
+                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, push_constants);
    radv_unaligned_dispatch(cmd_buffer, extent->width, extent->height, extent->depth);
 }
 

@@ -806,12 +806,7 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
    clang_opts.insert(clang_opts.end(), args->args, args->args + args->num_args);
 
    if (!clang::CompilerInvocation::CreateFromArgs(c->getInvocation(),
-#if LLVM_VERSION_MAJOR >= 10
                                                   clang_opts,
-#else
-                                                  clang_opts.data(),
-                                                  clang_opts.data() + clang_opts.size(),
-#endif
                                                   diag)) {
       clc_error(logger, "Couldn't create Clang invocation.\n");
       return {};

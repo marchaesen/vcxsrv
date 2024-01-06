@@ -121,6 +121,17 @@ _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
          vtn_fail("%s", #expr); \
    } while (0)
 
+/* These are used to allocate data that can be dropped at the end of
+ * the parsing.  Any NIR data structure should keep using the ralloc,
+ * since they will outlive the parsing.
+ */
+#define vtn_alloc(B, TYPE)               linear_alloc(B->lin_ctx, TYPE)
+#define vtn_zalloc(B, TYPE)              linear_zalloc(B->lin_ctx, TYPE)
+#define vtn_alloc_array(B, TYPE, ELEMS)  linear_alloc_array(B->lin_ctx, TYPE, ELEMS)
+#define vtn_zalloc_array(B, TYPE, ELEMS) linear_zalloc_array(B->lin_ctx, TYPE, ELEMS)
+#define vtn_alloc_size(B, SIZE)          linear_alloc_child(B->lin_ctx, SIZE)
+#define vtn_zalloc_size(B, SIZE)         linear_zalloc_child(B->lin_ctx, SIZE)
+
 enum vtn_value_type {
    vtn_value_type_invalid = 0,
    vtn_value_type_undef,
@@ -616,6 +627,8 @@ struct vtn_decoration {
 
 struct vtn_builder {
    nir_builder nb;
+
+   linear_ctx *lin_ctx;
 
    /* Used by vtn_fail to jump back to the beginning of SPIR-V compilation */
    jmp_buf fail_jump;

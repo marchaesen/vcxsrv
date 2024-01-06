@@ -170,6 +170,12 @@ struct cmdstream {
    uint64_t size;
 };
 
+struct wrbuf {
+   uint64_t iova;
+   uint64_t size;
+   char* name;
+};
+
 struct device {
    int fd;
 
@@ -190,6 +196,8 @@ struct device {
 #ifdef FD_REPLAY_KGSL
    uint32_t context_id;
 #endif
+
+   struct u_vector wrbufs;
 };
 
 void buffer_mem_free(struct device *dev, struct buffer *buf);
@@ -325,6 +333,40 @@ device_print_cp_log(struct device *dev)
    }
 }
 
+static void
+device_dump_wrbuf(struct device *dev)
+{
+   if (!u_vector_length(&dev->wrbufs))
+      return;
+
+   char buffer_dir[256];
+   snprintf(buffer_dir, sizeof(buffer_dir), "%s/buffers", exename);
+   rmdir(buffer_dir);
+   mkdir(buffer_dir, 0777);
+
+   struct wrbuf *wrbuf;
+   u_vector_foreach(wrbuf, &dev->wrbufs) {
+      char buffer_path[256];
+      snprintf(buffer_path, sizeof(buffer_path), "%s/%s", buffer_dir, wrbuf->name);
+      FILE *f = fopen(buffer_path, "wb");
+      if (!f) {
+         fprintf(stderr, "Error opening %s\n", buffer_path);
+         goto end_it;
+      }
+
+      struct buffer *buf = device_get_buffer(dev, wrbuf->iova);
+      if (!buf) {
+         fprintf(stderr, "Error getting buffer for %s\n", buffer_path);
+         goto end_it;
+      }
+      const void *buffer = buf->map + (wrbuf->iova - buf->iova);
+      fwrite(buffer, wrbuf->size, 1, f);
+
+      end_it:
+      fclose(f);
+   }
+}
+
 #if !FD_REPLAY_KGSL
 static inline void
 get_abs_timeout(struct drm_msm_timespec *tv, uint64_t ns)
@@ -401,6 +443,7 @@ device_create()
    rb_tree_init(&dev->buffers);
    util_vma_heap_init(&dev->vma, va_start, ROUND_DOWN_TO(va_size, 4096));
    u_vector_init(&dev->cmdstreams, 8, sizeof(struct cmdstream));
+   u_vector_init(&dev->wrbufs, 8, sizeof(struct wrbuf));
 
    return dev;
 }
@@ -521,6 +564,8 @@ device_submit_cmdstreams(struct device *dev)
 
    device_print_shader_log(dev);
    device_print_cp_log(dev);
+
+   device_dump_wrbuf(dev);
 }
 
 static void
@@ -714,6 +759,8 @@ device_submit_cmdstreams(struct device *dev)
 
    device_print_shader_log(dev);
    device_print_cp_log(dev);
+
+   device_dump_wrbuf(dev);
 }
 
 static void
@@ -832,6 +879,15 @@ override_cmdstream(struct device *dev, struct cmdstream *cs,
       case RD_CP_LOG_BUFFER: {
          unsigned int sizedwords;
          parse_addr(ps.buf, ps.sz, &sizedwords, &dev->cp_log_iova);
+         break;
+      }
+      case RD_WRBUFFER: {
+         struct wrbuf *wrbuf = u_vector_add(&dev->wrbufs);
+         uint64_t *p = (uint64_t *)ps.buf;
+         wrbuf->iova = p[0];
+         wrbuf->size = p[1];
+         wrbuf->name = calloc(1, p[2]);
+         memcpy(wrbuf->name, (char *)ps.buf + 3 * sizeof(uint64_t), p[2]);
          break;
       }
       default:

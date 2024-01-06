@@ -30,7 +30,7 @@ traces:
       checksum: 433b69bea68cfe81914b857bbdc60ea5
   gputest/pixmark-piano-v2.trace:
     gl-zink-anv-tgl:
-      checksum: efa7853c9fb984a6e69108d668a61b1e
+      checksum: 4c7afcce5d87ec2bced65e92a1c9a41c
   gputest/triangle-v2.trace:
     gl-zink-anv-tgl:
       checksum: 5f694874b15bcd7a3689b387c143590b

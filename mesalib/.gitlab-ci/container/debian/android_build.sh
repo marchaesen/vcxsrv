@@ -30,33 +30,13 @@ sh .gitlab-ci/container/create-android-cross-file.sh /$ndk i686-linux-android x8
 sh .gitlab-ci/container/create-android-cross-file.sh /$ndk aarch64-linux-android aarch64 armv8 $ANDROID_SDK_VERSION
 sh .gitlab-ci/container/create-android-cross-file.sh /$ndk arm-linux-androideabi arm armv7hl $ANDROID_SDK_VERSION armv7a-linux-androideabi
 
-# Not using build-libdrm.sh because we don't want its cleanup after building
-# each arch.  Fetch and extract now.
-export LIBDRM_VERSION=libdrm-2.4.114
-curl -L --retry 4 -f --retry-all-errors --retry-delay 60 \
-  -O https://dri.freedesktop.org/libdrm/$LIBDRM_VERSION.tar.xz
-tar -xf $LIBDRM_VERSION.tar.xz && rm $LIBDRM_VERSION.tar.xz
-
 for arch in \
         x86_64-linux-android \
         i686-linux-android \
         aarch64-linux-android \
         arm-linux-androideabi ; do
-
-    cd $LIBDRM_VERSION
-    rm -rf build-$arch
-    meson setup build-$arch \
-          --cross-file=/cross_file-$arch.txt \
-          --libdir=lib/$arch \
-          -Dnouveau=disabled \
-          -Dvc4=disabled \
-          -Detnaviv=disabled \
-          -Dfreedreno=disabled \
-          -Dintel=disabled \
-          -Dcairo-tests=disabled \
-          -Dvalgrind=disabled
-    meson install -C build-$arch
-    cd ..
+    EXTRA_MESON_ARGS="--cross-file=/cross_file-$arch.txt --libdir=lib/$arch -Dnouveau=disabled -Dintel=disabled" \
+    . .gitlab-ci/container/build-libdrm.sh
 done
 
 rm -rf $LIBDRM_VERSION

@@ -66,7 +66,7 @@ Then install Meson using pip
 
 .. code-block:: console
 
-   py -3 -m pip install meson mako
+   py -3 -m pip install meson packaging mako
 
 You may need to add the Python 3 scripts directory to your path for
 Meson.

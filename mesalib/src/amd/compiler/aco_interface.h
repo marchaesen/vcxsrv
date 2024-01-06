@@ -34,6 +34,9 @@
 extern "C" {
 #endif
 
+/* Special launch size to indicate this dispatch is a 1D dispatch converted into a 2D one */
+#define ACO_RT_CONVERTED_2D_LAUNCH_SIZE -1u
+
 struct ac_shader_config;
 struct aco_shader_info;
 struct aco_vs_prolog_info;

@@ -103,7 +103,7 @@ _mm_mulhi_pu16 (__m64 __A, __m64 __B)
 # endif
 #endif
 
-#ifndef _MSC_VER
+#ifndef _MM_SHUFFLE
 #define _MM_SHUFFLE(fp3,fp2,fp1,fp0) \
  (((fp3) << 6) | ((fp2) << 4) | ((fp1) << 2) | (fp0))
 #endif

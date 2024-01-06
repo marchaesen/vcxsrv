@@ -24,7 +24,7 @@
 #ifndef MESA_CLC_HELPERS_H
 #define MESA_CLC_HELPERS_H
 
-#include "nir_types.h"
+#include "glsl_types.h"
 
 #include "clc.h"
 #include "util/u_string.h"

@@ -467,7 +467,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
 
                for (unsigned k = 0; k < bind_layout->stride; k++) {
                   desc[didx + k].sampler = sampler->desc.sampler;
-                  desc[didx + k].sampler_index = sampler->desc.sampler_index;
+                  desc[didx + k].texture.sampler_index = sampler->desc.texture.sampler_index;
                }
             }
          }
@@ -492,13 +492,13 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
 
                   for (unsigned p = 0; p < plane_count; p++) {
                      desc[didx + p].sampler = sampler->desc.sampler;
-                     desc[didx + p].sampler_index = sampler->desc.sampler_index;
+                     desc[didx + p].texture.sampler_index = sampler->desc.texture.sampler_index;
                   }
                }
             } else {
                for (unsigned k = 0; k < bind_layout->stride; k++) {
                   desc[didx + k].functions = device->null_texture_handle->functions;
-                  desc[didx + k].sampler_index = 0;
+                  desc[didx + k].texture.sampler_index = 0;
                }
             }
          }
@@ -519,7 +519,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
             } else {
                for (unsigned k = 0; k < bind_layout->stride; k++) {
                   desc[didx + k].functions = device->null_texture_handle->functions;
-                  desc[didx + k].sampler_index = 0;
+                  desc[didx + k].texture.sampler_index = 0;
                }
             }
          }
@@ -554,7 +554,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
                desc[j].functions = bview->texture_handle->functions;
             } else {
                desc[j].functions = device->null_texture_handle->functions;
-               desc[j].sampler_index = 0;
+               desc[j].texture.sampler_index = 0;
             }
          }
          break;
@@ -851,7 +851,7 @@ lvp_descriptor_set_update_with_template(VkDevice _device, VkDescriptorSet descri
 
             for (unsigned k = 0; k < bind_layout->stride; k++) {
                desc[idx + k].sampler = sampler->desc.sampler;
-               desc[idx + k].sampler_index = sampler->desc.sampler_index;
+               desc[idx + k].texture.sampler_index = sampler->desc.texture.sampler_index;
             }
             break;
          }
@@ -870,13 +870,13 @@ lvp_descriptor_set_update_with_template(VkDevice _device, VkDescriptorSet descri
 
                   for (unsigned p = 0; p < iview->plane_count; p++) {
                      desc[idx + p].sampler = sampler->desc.sampler;
-                     desc[idx + p].sampler_index = sampler->desc.sampler_index;
+                     desc[idx + p].texture.sampler_index = sampler->desc.texture.sampler_index;
                   }
                }
             } else {
                for (unsigned k = 0; k < bind_layout->stride; k++) {
                   desc[idx + k].functions = device->null_texture_handle->functions;
-                  desc[idx + k].sampler_index = 0;
+                  desc[idx + k].texture.sampler_index = 0;
                }
             }
             break;
@@ -893,7 +893,7 @@ lvp_descriptor_set_update_with_template(VkDevice _device, VkDescriptorSet descri
             } else {
                for (unsigned k = 0; k < bind_layout->stride; k++) {
                   desc[idx + k].functions = device->null_texture_handle->functions;
-                  desc[idx + k].sampler_index = 0;
+                  desc[idx + k].texture.sampler_index = 0;
                }
             }
             break;
@@ -923,7 +923,7 @@ lvp_descriptor_set_update_with_template(VkDevice _device, VkDescriptorSet descri
                desc[idx].functions = bview->texture_handle->functions;
             } else {
                desc[j].functions = device->null_texture_handle->functions;
-               desc[j].sampler_index = 0;
+               desc[j].texture.sampler_index = 0;
             }
             break;
          }
@@ -1057,10 +1057,10 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
       if (pCreateInfo->data.pSampler) {
          LVP_FROM_HANDLE(lvp_sampler, sampler, pCreateInfo->data.pSampler[0]);
          desc->sampler = sampler->desc.sampler;
-         desc->sampler_index = sampler->desc.sampler_index;
+         desc->texture.sampler_index = sampler->desc.texture.sampler_index;
       } else {
          lp_jit_sampler_from_pipe(&desc->sampler, &sampler);
-         desc->sampler_index = 0;
+         desc->texture.sampler_index = 0;
       }
       break;
    }
@@ -1076,14 +1076,14 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
          if (info->sampler) {
             LVP_FROM_HANDLE(lvp_sampler, sampler, info->sampler);
             desc->sampler = sampler->desc.sampler;
-            desc->sampler_index = sampler->desc.sampler_index;
+            desc->texture.sampler_index = sampler->desc.texture.sampler_index;
          } else {
             lp_jit_sampler_from_pipe(&desc->sampler, &sampler);
-            desc->sampler_index = 0;
+            desc->texture.sampler_index = 0;
          }
       } else {
          desc->functions = device->null_texture_handle->functions;
-         desc->sampler_index = 0;
+         desc->texture.sampler_index = 0;
       }
 
       break;
@@ -1096,7 +1096,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
          desc->functions = iview->planes[0].texture_handle->functions;
       } else {
          desc->functions = device->null_texture_handle->functions;
-         desc->sampler_index = 0;
+         desc->texture.sampler_index = 0;
       }
       break;
    }
@@ -1121,7 +1121,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
          desc->functions = get_texture_handle_bda(device, bda, pformat).functions;
       } else {
          desc->functions = device->null_texture_handle->functions;
-         desc->sampler_index = 0;
+         desc->texture.sampler_index = 0;
       }
       break;
    }

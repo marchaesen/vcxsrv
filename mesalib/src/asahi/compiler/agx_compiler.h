@@ -311,6 +311,7 @@ typedef struct {
    enum agx_dim dim       : 4;
    bool offset            : 1;
    bool shadow            : 1;
+   bool query_lod         : 1;
    enum agx_gather gather : 3;
 
    /* TODO: Handle iter ops more efficient */
@@ -330,7 +331,7 @@ typedef struct {
    bool saturate : 1;
    unsigned mask : 4;
 
-   unsigned padding : 9;
+   unsigned padding : 8;
 } agx_instr;
 
 static inline void

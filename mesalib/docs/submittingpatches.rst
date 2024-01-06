@@ -393,7 +393,7 @@ For patches that either need to be nominated after they've landed in
 main, or that are known ahead of time to not not apply cleanly to a
 stable branch (such as due to a rename), using a GitLab MR is most
 appropriate. The MR should be based on and target the
-``staging/**year.quarter**`` branch, not on the ``year.quarter`` branch,
+``staging/year.quarter`` branch, not on the ``year.quarter`` branch,
 per the stable branch policy. Assigning the MR to release maintainer for
 said branch or mentioning them is helpful, but not required.
 

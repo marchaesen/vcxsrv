@@ -348,6 +348,11 @@ radv_image_use_dcc_predication(const struct radv_device *device, const struct ra
 static inline bool
 radv_use_fmask_for_image(const struct radv_device *device, const struct radv_image *image)
 {
+   if (device->physical_device->rad_info.gfx_level == GFX9 && image->vk.array_layers > 1) {
+      /* On GFX9, FMASK can be interleaved with layers and this isn't properly supported. */
+      return false;
+   }
+
    return device->physical_device->use_fmask && image->vk.samples > 1 &&
           ((image->vk.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) ||
            (device->instance->debug_flags & RADV_DEBUG_FORCE_COMPRESS));
@@ -421,7 +426,7 @@ radv_use_tc_compat_cmask_for_image(struct radv_device *device, struct radv_image
 }
 
 static uint32_t
-si_get_bo_metadata_word1(const struct radv_device *device)
+radv_get_bo_metadata_word1(const struct radv_device *device)
 {
    return (ATI_VENDOR_ID << 16) | device->physical_device->rad_info.pci_id;
 }
@@ -429,7 +434,7 @@ si_get_bo_metadata_word1(const struct radv_device *device)
 static bool
 radv_is_valid_opaque_metadata(const struct radv_device *device, const struct radeon_bo_metadata *md)
 {
-   if (md->metadata[0] != 1 || md->metadata[1] != si_get_bo_metadata_word1(device))
+   if (md->metadata[0] != 1 || md->metadata[1] != radv_get_bo_metadata_word1(device))
       return false;
 
    if (md->size_metadata < 40)
@@ -744,8 +749,8 @@ radv_query_opaque_metadata(struct radv_device *device, struct radv_image *image,
                                 &fixedmapping, 0, image->vk.mip_levels - 1, 0, image->vk.array_layers - 1, plane_width,
                                 plane_height, image->vk.extent.depth, 0.0f, desc, NULL, 0, NULL, NULL);
 
-   si_set_mutable_tex_desc_fields(device, image, base_level_info, plane_id, 0, 0, surface->blk_w, false, false, false,
-                                  false, desc, NULL);
+   radv_set_mutable_tex_desc_fields(device, image, base_level_info, plane_id, 0, 0, surface->blk_w, false, false, false,
+                                    false, desc, NULL);
 
    ac_surface_compute_umd_metadata(&device->physical_device->rad_info, surface, image->vk.mip_levels, desc,
                                    &md->size_metadata, md->metadata,
@@ -1541,6 +1546,15 @@ radv_image_is_renderable(const struct radv_device *device, const struct radv_ima
    return true;
 }
 
+unsigned
+radv_tile_mode_index(const struct radv_image_plane *plane, unsigned level, bool stencil)
+{
+   if (stencil)
+      return plane->surface.u.legacy.zs.stencil_tiling_index[level];
+   else
+      return plane->surface.u.legacy.tiling_index[level];
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 radv_CreateImage(VkDevice _device, const VkImageCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator,
                  VkImage *pImage)
@@ -1588,6 +1602,81 @@ radv_DestroyImage(VkDevice _device, VkImage _image, const VkAllocationCallbacks 
       return;
 
    radv_destroy_image(device, pAllocator, image);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+radv_BindImageMemory2(VkDevice _device, uint32_t bindInfoCount, const VkBindImageMemoryInfo *pBindInfos)
+{
+   RADV_FROM_HANDLE(radv_device, device, _device);
+
+   for (uint32_t i = 0; i < bindInfoCount; ++i) {
+      RADV_FROM_HANDLE(radv_device_memory, mem, pBindInfos[i].memory);
+      RADV_FROM_HANDLE(radv_image, image, pBindInfos[i].image);
+      VkBindMemoryStatusKHR *status = (void *)vk_find_struct_const(&pBindInfos[i], BIND_MEMORY_STATUS_KHR);
+
+      if (status)
+         *status->pResult = VK_SUCCESS;
+
+         /* Ignore this struct on Android, we cannot access swapchain structures there. */
+#ifdef RADV_USE_WSI_PLATFORM
+      const VkBindImageMemorySwapchainInfoKHR *swapchain_info =
+         vk_find_struct_const(pBindInfos[i].pNext, BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR);
+
+      if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE) {
+         struct radv_image *swapchain_img =
+            radv_image_from_handle(wsi_common_get_image(swapchain_info->swapchain, swapchain_info->imageIndex));
+
+         image->bindings[0].bo = swapchain_img->bindings[0].bo;
+         image->bindings[0].offset = swapchain_img->bindings[0].offset;
+         continue;
+      }
+#endif
+
+      if (mem->alloc_size) {
+         VkImageMemoryRequirementsInfo2 info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_REQUIREMENTS_INFO_2,
+            .image = pBindInfos[i].image,
+         };
+         VkMemoryRequirements2 reqs = {
+            .sType = VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2,
+         };
+
+         radv_GetImageMemoryRequirements2(_device, &info, &reqs);
+
+         if (pBindInfos[i].memoryOffset + reqs.memoryRequirements.size > mem->alloc_size) {
+            if (status)
+               *status->pResult = VK_ERROR_UNKNOWN;
+            return vk_errorf(device, VK_ERROR_UNKNOWN, "Device memory object too small for the image.\n");
+         }
+      }
+
+      if (image->disjoint) {
+         const VkBindImagePlaneMemoryInfo *plane_info =
+            vk_find_struct_const(pBindInfos[i].pNext, BIND_IMAGE_PLANE_MEMORY_INFO);
+
+         switch (plane_info->planeAspect) {
+         case VK_IMAGE_ASPECT_PLANE_0_BIT:
+            image->bindings[0].bo = mem->bo;
+            image->bindings[0].offset = pBindInfos[i].memoryOffset;
+            break;
+         case VK_IMAGE_ASPECT_PLANE_1_BIT:
+            image->bindings[1].bo = mem->bo;
+            image->bindings[1].offset = pBindInfos[i].memoryOffset;
+            break;
+         case VK_IMAGE_ASPECT_PLANE_2_BIT:
+            image->bindings[2].bo = mem->bo;
+            image->bindings[2].offset = pBindInfos[i].memoryOffset;
+            break;
+         default:
+            break;
+         }
+      } else {
+         image->bindings[0].bo = mem->bo;
+         image->bindings[0].offset = pBindInfos[i].memoryOffset;
+      }
+      radv_rmv_log_image_bind(device, pBindInfos[i].image);
+   }
+   return VK_SUCCESS;
 }
 
 VKAPI_ATTR void VKAPI_CALL

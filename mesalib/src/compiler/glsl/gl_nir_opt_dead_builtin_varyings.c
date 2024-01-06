@@ -45,11 +45,10 @@
 
 #include "gl_nir_link_varyings.h"
 #include "gl_nir_linker.h"
+#include "glsl_types.h"
 #include "linker_util.h"
 #include "nir_builder.h"
-#include "nir_types.h"
 
-#include "compiler/glsl_types.h"
 #include "main/consts_exts.h"
 #include "main/shader_types.h"
 #include "util/u_string.h"

@@ -104,6 +104,7 @@ GATHER = enum("gather", {
 
 OFFSET = immediate("offset", "bool")
 SHADOW = immediate("shadow", "bool")
+QUERY_LOD = immediate("query_lod", "bool")
 SCOREBOARD = immediate("scoreboard")
 ICOND = immediate("icond", "enum agx_icond")
 FCOND = immediate("fcond", "enum agx_fcond")
@@ -276,7 +277,7 @@ op("fcmp", _, srcs = 2, imms = [FCOND, INVERT_COND])
 op("texture_sample",
       encoding_32 = (0x31, 0x7F, 8, 10), # XXX WRONG SIZE
       srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET, SHADOW,
-								GATHER])
+                        QUERY_LOD, GATHER])
 for memory, can_reorder in [("texture", True), ("image", False)]:
     op(f"{memory}_load", encoding_32 = (0x71, 0x7F, 8, 10), # XXX WRONG SIZE
        srcs = 6, imms = [DIM, LOD_MODE, MASK, SCOREBOARD, OFFSET],

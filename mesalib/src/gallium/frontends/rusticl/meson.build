@@ -108,6 +108,7 @@ endif
 rusticl_gen_args = [
   # can't do anything about it anyway
   '-Aclippy::all',
+  '-Aimproper_ctypes',
   # Some bindgen versions assume `unsafe_op_in_unsafe_fn`
   '-Aunused_unsafe',
   '-Anon_camel_case_types',
@@ -204,6 +205,41 @@ rusticl_opencl_bindings_rs = rust.bindgen(
 rusticl_opencl_gen = static_library(
   'rusticl_opencl_gen',
   rusticl_opencl_bindings_rs,
+  gnu_symbol_visibility : 'hidden',
+  rust_crate_type : 'rlib',
+  rust_args : [
+    rusticl_gen_args,
+  ],
+)
+
+rusticl_llvm_bindings_rs = rust.bindgen(
+  input : 'rusticl_llvm_bindings.hpp',
+  output : 'rusticl_llvm_bindings.rs',
+  c_args : [
+    rusticl_bindgen_c_args,
+    pre_args,
+  ],
+  dependencies : [
+    dep_clang,
+    dep_llvm,
+    dep_llvmspirvlib,
+  ],
+  args : [
+    # we want to limit what to generate bindings for
+    '--generate', 'constructors,functions,types',
+    # and all types will be opaque
+    '--opaque-type', '.*',
+    # LLVM/Clang/Translator stuff, only used for build-id
+    # also only use functions from very basic header files, otherwise bindgen might crash :')
+    '--allowlist-function', 'clang::getClangFullVersion',
+    '--allowlist-function', 'llvm::LLVMContext::LLVMContext',
+    '--allowlist-function', 'llvm::writeSpirv',
+  ],
+)
+
+rusticl_llvm_gen = static_library(
+  'rusticl_llvm_gen',
+  rusticl_llvm_bindings_rs,
   gnu_symbol_visibility : 'hidden',
   rust_crate_type : 'rlib',
   rust_args : [
@@ -432,6 +468,7 @@ librusticl = static_library(
     libmesa_rust,
     libmesa_rust_gen,
     libmesa_rust_util,
+    rusticl_llvm_gen,
     rusticl_opencl_gen,
     rusticl_proc_macros,
   ],
