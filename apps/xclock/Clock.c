@@ -579,6 +579,7 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal * num_args)
     if (!w->clock.analog) {
         char *str;
         struct tm tm;
+        Time_t time_value;
         struct timeval tv;
         int len;
 
@@ -607,8 +608,8 @@ Initialize(Widget request, Widget new, ArgList args, Cardinal * num_args)
         }
 #endif                          /* NO_I18N */
 
-        X_GETTIMEOFDAY(&tv);
-        tm = *localtime(&tv.tv_sec);
+        (void) time(&time_value);
+        tm = *localtime(&time_value);
         str = TimeString(w, &tm);
         len = strlen(str);
         if (len && str[len - 1] == '\n')
@@ -1317,7 +1318,9 @@ round_time(float _update, struct tm *tm, struct timeval *tv)
      */
 
     t = tv->tv_sec - old_secs + new_millis / 1000;
-    *tm = *localtime(&t);
+    Time_t time_value;
+    (void) time(&time_value);
+    *tm = *localtime(&time_value);
     tv->tv_usec = (new_millis % 1000) * 1000;
 }
 
@@ -1426,12 +1429,13 @@ clock_tic(XtPointer client_data, XtIntervalId * id)
     ClockWidget w = (ClockWidget) client_data;
     struct tm tm;
     struct timeval tv;
+    Time_t time_value;
     char *time_ptr;
     register Display *dpy = XtDisplay(w);
     register Window win = XtWindow(w);
 
-    X_GETTIMEOFDAY(&tv);
-    tm = *localtime(&tv.tv_sec);
+    (void) time(&time_value);
+    tm = *localtime(&time_value);
     if (w->clock.update && (id || !w->clock.interval_id))
         w->clock.interval_id =
             XtAppAddTimeOut(XtWidgetToApplicationContext((Widget) w),

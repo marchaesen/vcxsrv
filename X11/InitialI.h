@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -117,7 +117,7 @@ typedef struct _WorkProcRec {
 } WorkProcRec;
 
 
-typedef struct 
+typedef struct
 {
 #ifndef USE_POLL
   	fd_set rmask;
@@ -185,7 +185,7 @@ typedef struct _XtAppStruct {
     Widget in_phase2_destroy;
     LangProcRec langProcRec;
     struct _TMBindCacheRec * free_bindings;
-    String display_name_tried;
+    _XtString display_name_tried;
     Display **dpy_destroy_list;
     int dpy_destroy_count;
     Boolean exit_flag;
@@ -209,7 +209,7 @@ extern void _XtHeapFree(Heap* heap);
 extern char *_XtHeapMalloc(
     Heap*	/* heap */,
     Cardinal	/* size */,
-    char *	/* file */,
+    const char */* file */,
     int		/* line */
 );
 
@@ -250,7 +250,7 @@ _XtAppInit(
     XrmOptionDescRec*	/* options */,
     Cardinal		/* num_options */,
     int*		/* argc_in_out */,
-    String**		/* argv_in_out */,
+    _XtString**		/* argv_in_out */,
     String*		/* fallback_resources */
 );
 
@@ -384,7 +384,7 @@ extern void _XtDisplayInitialize(
     XrmOptionDescRec*	/* urlist */,
     Cardinal 		/* num_urs */,
     int*		/* argc */,
-    char** 		/* argv */
+    _XtString* 		/* argv */
 );
 
 extern void _XtCacheFlushTag(
@@ -419,9 +419,9 @@ extern void _XtFreeWWTable(
     XtPerDisplay pd
 );
 
-extern String _XtGetUserName(String dest, int len);
+extern String _XtGetUserName(_XtString dest, int len);
 extern XrmDatabase _XtPreparseCommandLine(XrmOptionDescRec *urlist,
-			Cardinal num_urs, int argc, String *argv,
+			Cardinal num_urs, int argc, _XtString *argv,
 			String *applName, String *displayName,
 			String *language);
 

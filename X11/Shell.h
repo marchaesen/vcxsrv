@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -190,349 +190,349 @@ SOFTWARE.
 #else
 extern _XtShell_h_Const char XtShellStrings[];
 #ifndef XtNiconName
-#define XtNiconName ((char*)&XtShellStrings[0])
+#define XtNiconName ((String)&XtShellStrings[0])
 #endif
 #ifndef XtCIconName
-#define XtCIconName ((char*)&XtShellStrings[9])
+#define XtCIconName ((String)&XtShellStrings[9])
 #endif
 #ifndef XtNiconPixmap
-#define XtNiconPixmap ((char*)&XtShellStrings[18])
+#define XtNiconPixmap ((String)&XtShellStrings[18])
 #endif
 #ifndef XtCIconPixmap
-#define XtCIconPixmap ((char*)&XtShellStrings[29])
+#define XtCIconPixmap ((String)&XtShellStrings[29])
 #endif
 #ifndef XtNiconWindow
-#define XtNiconWindow ((char*)&XtShellStrings[40])
+#define XtNiconWindow ((String)&XtShellStrings[40])
 #endif
 #ifndef XtCIconWindow
-#define XtCIconWindow ((char*)&XtShellStrings[51])
+#define XtCIconWindow ((String)&XtShellStrings[51])
 #endif
 #ifndef XtNiconMask
-#define XtNiconMask ((char*)&XtShellStrings[62])
+#define XtNiconMask ((String)&XtShellStrings[62])
 #endif
 #ifndef XtCIconMask
-#define XtCIconMask ((char*)&XtShellStrings[71])
+#define XtCIconMask ((String)&XtShellStrings[71])
 #endif
 #ifndef XtNwindowGroup
-#define XtNwindowGroup ((char*)&XtShellStrings[80])
+#define XtNwindowGroup ((String)&XtShellStrings[80])
 #endif
 #ifndef XtCWindowGroup
-#define XtCWindowGroup ((char*)&XtShellStrings[92])
+#define XtCWindowGroup ((String)&XtShellStrings[92])
 #endif
 #ifndef XtNvisual
-#define XtNvisual ((char*)&XtShellStrings[104])
+#define XtNvisual ((String)&XtShellStrings[104])
 #endif
 #ifndef XtCVisual
-#define XtCVisual ((char*)&XtShellStrings[111])
+#define XtCVisual ((String)&XtShellStrings[111])
 #endif
 #ifndef XtNtitleEncoding
-#define XtNtitleEncoding ((char*)&XtShellStrings[118])
+#define XtNtitleEncoding ((String)&XtShellStrings[118])
 #endif
 #ifndef XtCTitleEncoding
-#define XtCTitleEncoding ((char*)&XtShellStrings[132])
+#define XtCTitleEncoding ((String)&XtShellStrings[132])
 #endif
 #ifndef XtNsaveUnder
-#define XtNsaveUnder ((char*)&XtShellStrings[146])
+#define XtNsaveUnder ((String)&XtShellStrings[146])
 #endif
 #ifndef XtCSaveUnder
-#define XtCSaveUnder ((char*)&XtShellStrings[156])
+#define XtCSaveUnder ((String)&XtShellStrings[156])
 #endif
 #ifndef XtNtransient
-#define XtNtransient ((char*)&XtShellStrings[166])
+#define XtNtransient ((String)&XtShellStrings[166])
 #endif
 #ifndef XtCTransient
-#define XtCTransient ((char*)&XtShellStrings[176])
+#define XtCTransient ((String)&XtShellStrings[176])
 #endif
 #ifndef XtNoverrideRedirect
-#define XtNoverrideRedirect ((char*)&XtShellStrings[186])
+#define XtNoverrideRedirect ((String)&XtShellStrings[186])
 #endif
 #ifndef XtCOverrideRedirect
-#define XtCOverrideRedirect ((char*)&XtShellStrings[203])
+#define XtCOverrideRedirect ((String)&XtShellStrings[203])
 #endif
 #ifndef XtNtransientFor
-#define XtNtransientFor ((char*)&XtShellStrings[220])
+#define XtNtransientFor ((String)&XtShellStrings[220])
 #endif
 #ifndef XtCTransientFor
-#define XtCTransientFor ((char*)&XtShellStrings[233])
+#define XtCTransientFor ((String)&XtShellStrings[233])
 #endif
 #ifndef XtNiconNameEncoding
-#define XtNiconNameEncoding ((char*)&XtShellStrings[246])
+#define XtNiconNameEncoding ((String)&XtShellStrings[246])
 #endif
 #ifndef XtCIconNameEncoding
-#define XtCIconNameEncoding ((char*)&XtShellStrings[263])
+#define XtCIconNameEncoding ((String)&XtShellStrings[263])
 #endif
 #ifndef XtNallowShellResize
-#define XtNallowShellResize ((char*)&XtShellStrings[280])
+#define XtNallowShellResize ((String)&XtShellStrings[280])
 #endif
 #ifndef XtCAllowShellResize
-#define XtCAllowShellResize ((char*)&XtShellStrings[297])
+#define XtCAllowShellResize ((String)&XtShellStrings[297])
 #endif
 #ifndef XtNcreatePopupChildProc
-#define XtNcreatePopupChildProc ((char*)&XtShellStrings[314])
+#define XtNcreatePopupChildProc ((String)&XtShellStrings[314])
 #endif
 #ifndef XtCCreatePopupChildProc
-#define XtCCreatePopupChildProc ((char*)&XtShellStrings[335])
+#define XtCCreatePopupChildProc ((String)&XtShellStrings[335])
 #endif
 #ifndef XtNtitle
-#define XtNtitle ((char*)&XtShellStrings[356])
+#define XtNtitle ((String)&XtShellStrings[356])
 #endif
 #ifndef XtCTitle
-#define XtCTitle ((char*)&XtShellStrings[362])
+#define XtCTitle ((String)&XtShellStrings[362])
 #endif
 #ifndef XtRAtom
-#define XtRAtom ((char*)&XtShellStrings[368])
+#define XtRAtom ((String)&XtShellStrings[368])
 #endif
 #ifndef XtNargc
-#define XtNargc ((char*)&XtShellStrings[373])
+#define XtNargc ((String)&XtShellStrings[373])
 #endif
 #ifndef XtCArgc
-#define XtCArgc ((char*)&XtShellStrings[378])
+#define XtCArgc ((String)&XtShellStrings[378])
 #endif
 #ifndef XtNargv
-#define XtNargv ((char*)&XtShellStrings[383])
+#define XtNargv ((String)&XtShellStrings[383])
 #endif
 #ifndef XtCArgv
-#define XtCArgv ((char*)&XtShellStrings[388])
+#define XtCArgv ((String)&XtShellStrings[388])
 #endif
 #ifndef XtNiconX
-#define XtNiconX ((char*)&XtShellStrings[393])
+#define XtNiconX ((String)&XtShellStrings[393])
 #endif
 #ifndef XtCIconX
-#define XtCIconX ((char*)&XtShellStrings[399])
+#define XtCIconX ((String)&XtShellStrings[399])
 #endif
 #ifndef XtNiconY
-#define XtNiconY ((char*)&XtShellStrings[405])
+#define XtNiconY ((String)&XtShellStrings[405])
 #endif
 #ifndef XtCIconY
-#define XtCIconY ((char*)&XtShellStrings[411])
+#define XtCIconY ((String)&XtShellStrings[411])
 #endif
 #ifndef XtNinput
-#define XtNinput ((char*)&XtShellStrings[417])
+#define XtNinput ((String)&XtShellStrings[417])
 #endif
 #ifndef XtCInput
-#define XtCInput ((char*)&XtShellStrings[423])
+#define XtCInput ((String)&XtShellStrings[423])
 #endif
 #ifndef XtNiconic
-#define XtNiconic ((char*)&XtShellStrings[429])
+#define XtNiconic ((String)&XtShellStrings[429])
 #endif
 #ifndef XtCIconic
-#define XtCIconic ((char*)&XtShellStrings[436])
+#define XtCIconic ((String)&XtShellStrings[436])
 #endif
 #ifndef XtNinitialState
-#define XtNinitialState ((char*)&XtShellStrings[443])
+#define XtNinitialState ((String)&XtShellStrings[443])
 #endif
 #ifndef XtCInitialState
-#define XtCInitialState ((char*)&XtShellStrings[456])
+#define XtCInitialState ((String)&XtShellStrings[456])
 #endif
 #ifndef XtNgeometry
-#define XtNgeometry ((char*)&XtShellStrings[469])
+#define XtNgeometry ((String)&XtShellStrings[469])
 #endif
 #ifndef XtCGeometry
-#define XtCGeometry ((char*)&XtShellStrings[478])
+#define XtCGeometry ((String)&XtShellStrings[478])
 #endif
 #ifndef XtNbaseWidth
-#define XtNbaseWidth ((char*)&XtShellStrings[487])
+#define XtNbaseWidth ((String)&XtShellStrings[487])
 #endif
 #ifndef XtCBaseWidth
-#define XtCBaseWidth ((char*)&XtShellStrings[497])
+#define XtCBaseWidth ((String)&XtShellStrings[497])
 #endif
 #ifndef XtNbaseHeight
-#define XtNbaseHeight ((char*)&XtShellStrings[507])
+#define XtNbaseHeight ((String)&XtShellStrings[507])
 #endif
 #ifndef XtCBaseHeight
-#define XtCBaseHeight ((char*)&XtShellStrings[518])
+#define XtCBaseHeight ((String)&XtShellStrings[518])
 #endif
 #ifndef XtNwinGravity
-#define XtNwinGravity ((char*)&XtShellStrings[529])
+#define XtNwinGravity ((String)&XtShellStrings[529])
 #endif
 #ifndef XtCWinGravity
-#define XtCWinGravity ((char*)&XtShellStrings[540])
+#define XtCWinGravity ((String)&XtShellStrings[540])
 #endif
 #ifndef XtNminWidth
-#define XtNminWidth ((char*)&XtShellStrings[551])
+#define XtNminWidth ((String)&XtShellStrings[551])
 #endif
 #ifndef XtCMinWidth
-#define XtCMinWidth ((char*)&XtShellStrings[560])
+#define XtCMinWidth ((String)&XtShellStrings[560])
 #endif
 #ifndef XtNminHeight
-#define XtNminHeight ((char*)&XtShellStrings[569])
+#define XtNminHeight ((String)&XtShellStrings[569])
 #endif
 #ifndef XtCMinHeight
-#define XtCMinHeight ((char*)&XtShellStrings[579])
+#define XtCMinHeight ((String)&XtShellStrings[579])
 #endif
 #ifndef XtNmaxWidth
-#define XtNmaxWidth ((char*)&XtShellStrings[589])
+#define XtNmaxWidth ((String)&XtShellStrings[589])
 #endif
 #ifndef XtCMaxWidth
-#define XtCMaxWidth ((char*)&XtShellStrings[598])
+#define XtCMaxWidth ((String)&XtShellStrings[598])
 #endif
 #ifndef XtNmaxHeight
-#define XtNmaxHeight ((char*)&XtShellStrings[607])
+#define XtNmaxHeight ((String)&XtShellStrings[607])
 #endif
 #ifndef XtCMaxHeight
-#define XtCMaxHeight ((char*)&XtShellStrings[617])
+#define XtCMaxHeight ((String)&XtShellStrings[617])
 #endif
 #ifndef XtNwidthInc
-#define XtNwidthInc ((char*)&XtShellStrings[627])
+#define XtNwidthInc ((String)&XtShellStrings[627])
 #endif
 #ifndef XtCWidthInc
-#define XtCWidthInc ((char*)&XtShellStrings[636])
+#define XtCWidthInc ((String)&XtShellStrings[636])
 #endif
 #ifndef XtNheightInc
-#define XtNheightInc ((char*)&XtShellStrings[645])
+#define XtNheightInc ((String)&XtShellStrings[645])
 #endif
 #ifndef XtCHeightInc
-#define XtCHeightInc ((char*)&XtShellStrings[655])
+#define XtCHeightInc ((String)&XtShellStrings[655])
 #endif
 #ifndef XtNminAspectY
-#define XtNminAspectY ((char*)&XtShellStrings[665])
+#define XtNminAspectY ((String)&XtShellStrings[665])
 #endif
 #ifndef XtCMinAspectY
-#define XtCMinAspectY ((char*)&XtShellStrings[676])
+#define XtCMinAspectY ((String)&XtShellStrings[676])
 #endif
 #ifndef XtNmaxAspectY
-#define XtNmaxAspectY ((char*)&XtShellStrings[687])
+#define XtNmaxAspectY ((String)&XtShellStrings[687])
 #endif
 #ifndef XtCMaxAspectY
-#define XtCMaxAspectY ((char*)&XtShellStrings[698])
+#define XtCMaxAspectY ((String)&XtShellStrings[698])
 #endif
 #ifndef XtNminAspectX
-#define XtNminAspectX ((char*)&XtShellStrings[709])
+#define XtNminAspectX ((String)&XtShellStrings[709])
 #endif
 #ifndef XtCMinAspectX
-#define XtCMinAspectX ((char*)&XtShellStrings[720])
+#define XtCMinAspectX ((String)&XtShellStrings[720])
 #endif
 #ifndef XtNmaxAspectX
-#define XtNmaxAspectX ((char*)&XtShellStrings[731])
+#define XtNmaxAspectX ((String)&XtShellStrings[731])
 #endif
 #ifndef XtCMaxAspectX
-#define XtCMaxAspectX ((char*)&XtShellStrings[742])
+#define XtCMaxAspectX ((String)&XtShellStrings[742])
 #endif
 #ifndef XtNwmTimeout
-#define XtNwmTimeout ((char*)&XtShellStrings[753])
+#define XtNwmTimeout ((String)&XtShellStrings[753])
 #endif
 #ifndef XtCWmTimeout
-#define XtCWmTimeout ((char*)&XtShellStrings[763])
+#define XtCWmTimeout ((String)&XtShellStrings[763])
 #endif
 #ifndef XtNwaitForWm
-#define XtNwaitForWm ((char*)&XtShellStrings[773])
+#define XtNwaitForWm ((String)&XtShellStrings[773])
 #endif
 #ifndef XtCWaitForWm
-#define XtCWaitForWm ((char*)&XtShellStrings[783])
+#define XtCWaitForWm ((String)&XtShellStrings[783])
 #endif
 #ifndef XtNwaitforwm
-#define XtNwaitforwm ((char*)&XtShellStrings[793])
+#define XtNwaitforwm ((String)&XtShellStrings[793])
 #endif
 #ifndef XtCWaitforwm
-#define XtCWaitforwm ((char*)&XtShellStrings[803])
+#define XtCWaitforwm ((String)&XtShellStrings[803])
 #endif
 #ifndef XtNclientLeader
-#define XtNclientLeader ((char*)&XtShellStrings[813])
+#define XtNclientLeader ((String)&XtShellStrings[813])
 #endif
 #ifndef XtCClientLeader
-#define XtCClientLeader ((char*)&XtShellStrings[826])
+#define XtCClientLeader ((String)&XtShellStrings[826])
 #endif
 #ifndef XtNwindowRole
-#define XtNwindowRole ((char*)&XtShellStrings[839])
+#define XtNwindowRole ((String)&XtShellStrings[839])
 #endif
 #ifndef XtCWindowRole
-#define XtCWindowRole ((char*)&XtShellStrings[850])
+#define XtCWindowRole ((String)&XtShellStrings[850])
 #endif
 #ifndef XtNurgency
-#define XtNurgency ((char*)&XtShellStrings[861])
+#define XtNurgency ((String)&XtShellStrings[861])
 #endif
 #ifndef XtCUrgency
-#define XtCUrgency ((char*)&XtShellStrings[869])
+#define XtCUrgency ((String)&XtShellStrings[869])
 #endif
 #ifndef XtNcancelCallback
-#define XtNcancelCallback ((char*)&XtShellStrings[877])
+#define XtNcancelCallback ((String)&XtShellStrings[877])
 #endif
 #ifndef XtNcloneCommand
-#define XtNcloneCommand ((char*)&XtShellStrings[892])
+#define XtNcloneCommand ((String)&XtShellStrings[892])
 #endif
 #ifndef XtCCloneCommand
-#define XtCCloneCommand ((char*)&XtShellStrings[905])
+#define XtCCloneCommand ((String)&XtShellStrings[905])
 #endif
 #ifndef XtNconnection
-#define XtNconnection ((char*)&XtShellStrings[918])
+#define XtNconnection ((String)&XtShellStrings[918])
 #endif
 #ifndef XtCConnection
-#define XtCConnection ((char*)&XtShellStrings[929])
+#define XtCConnection ((String)&XtShellStrings[929])
 #endif
 #ifndef XtNcurrentDirectory
-#define XtNcurrentDirectory ((char*)&XtShellStrings[940])
+#define XtNcurrentDirectory ((String)&XtShellStrings[940])
 #endif
 #ifndef XtCCurrentDirectory
-#define XtCCurrentDirectory ((char*)&XtShellStrings[957])
+#define XtCCurrentDirectory ((String)&XtShellStrings[957])
 #endif
 #ifndef XtNdieCallback
-#define XtNdieCallback ((char*)&XtShellStrings[974])
+#define XtNdieCallback ((String)&XtShellStrings[974])
 #endif
 #ifndef XtNdiscardCommand
-#define XtNdiscardCommand ((char*)&XtShellStrings[986])
+#define XtNdiscardCommand ((String)&XtShellStrings[986])
 #endif
 #ifndef XtCDiscardCommand
-#define XtCDiscardCommand ((char*)&XtShellStrings[1001])
+#define XtCDiscardCommand ((String)&XtShellStrings[1001])
 #endif
 #ifndef XtNenvironment
-#define XtNenvironment ((char*)&XtShellStrings[1016])
+#define XtNenvironment ((String)&XtShellStrings[1016])
 #endif
 #ifndef XtCEnvironment
-#define XtCEnvironment ((char*)&XtShellStrings[1028])
+#define XtCEnvironment ((String)&XtShellStrings[1028])
 #endif
 #ifndef XtNinteractCallback
-#define XtNinteractCallback ((char*)&XtShellStrings[1040])
+#define XtNinteractCallback ((String)&XtShellStrings[1040])
 #endif
 #ifndef XtNjoinSession
-#define XtNjoinSession ((char*)&XtShellStrings[1057])
+#define XtNjoinSession ((String)&XtShellStrings[1057])
 #endif
 #ifndef XtCJoinSession
-#define XtCJoinSession ((char*)&XtShellStrings[1069])
+#define XtCJoinSession ((String)&XtShellStrings[1069])
 #endif
 #ifndef XtNprogramPath
-#define XtNprogramPath ((char*)&XtShellStrings[1081])
+#define XtNprogramPath ((String)&XtShellStrings[1081])
 #endif
 #ifndef XtCProgramPath
-#define XtCProgramPath ((char*)&XtShellStrings[1093])
+#define XtCProgramPath ((String)&XtShellStrings[1093])
 #endif
 #ifndef XtNresignCommand
-#define XtNresignCommand ((char*)&XtShellStrings[1105])
+#define XtNresignCommand ((String)&XtShellStrings[1105])
 #endif
 #ifndef XtCResignCommand
-#define XtCResignCommand ((char*)&XtShellStrings[1119])
+#define XtCResignCommand ((String)&XtShellStrings[1119])
 #endif
 #ifndef XtNrestartCommand
-#define XtNrestartCommand ((char*)&XtShellStrings[1133])
+#define XtNrestartCommand ((String)&XtShellStrings[1133])
 #endif
 #ifndef XtCRestartCommand
-#define XtCRestartCommand ((char*)&XtShellStrings[1148])
+#define XtCRestartCommand ((String)&XtShellStrings[1148])
 #endif
 #ifndef XtNrestartStyle
-#define XtNrestartStyle ((char*)&XtShellStrings[1163])
+#define XtNrestartStyle ((String)&XtShellStrings[1163])
 #endif
 #ifndef XtCRestartStyle
-#define XtCRestartStyle ((char*)&XtShellStrings[1176])
+#define XtCRestartStyle ((String)&XtShellStrings[1176])
 #endif
 #ifndef XtNsaveCallback
-#define XtNsaveCallback ((char*)&XtShellStrings[1189])
+#define XtNsaveCallback ((String)&XtShellStrings[1189])
 #endif
 #ifndef XtNsaveCompleteCallback
-#define XtNsaveCompleteCallback ((char*)&XtShellStrings[1202])
+#define XtNsaveCompleteCallback ((String)&XtShellStrings[1202])
 #endif
 #ifndef XtNsessionID
-#define XtNsessionID ((char*)&XtShellStrings[1223])
+#define XtNsessionID ((String)&XtShellStrings[1223])
 #endif
 #ifndef XtCSessionID
-#define XtCSessionID ((char*)&XtShellStrings[1233])
+#define XtCSessionID ((String)&XtShellStrings[1233])
 #endif
 #ifndef XtNshutdownCommand
-#define XtNshutdownCommand ((char*)&XtShellStrings[1243])
+#define XtNshutdownCommand ((String)&XtShellStrings[1243])
 #endif
 #ifndef XtCShutdownCommand
-#define XtCShutdownCommand ((char*)&XtShellStrings[1259])
+#define XtCShutdownCommand ((String)&XtShellStrings[1259])
 #endif
 #ifndef XtNerrorCallback
-#define XtNerrorCallback ((char*)&XtShellStrings[1275])
+#define XtNerrorCallback ((String)&XtShellStrings[1275])
 #endif
 #endif /* XTSTRINGDEFINES */
 
@@ -550,7 +550,7 @@ typedef struct _TopLevelShellClassRec *TopLevelShellWidgetClass;
 typedef struct _ApplicationShellClassRec *ApplicationShellWidgetClass;
 typedef struct _SessionShellClassRec *SessionShellWidgetClass;
 
-#ifndef SHELL 
+#ifndef SHELL
 externalref WidgetClass shellWidgetClass;
 externalref WidgetClass overrideShellWidgetClass;
 externalref WidgetClass wmShellWidgetClass;

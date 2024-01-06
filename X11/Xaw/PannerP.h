@@ -82,7 +82,7 @@ typedef struct {
     XRectangle shadow_rects[2];		/* location of shadows */
     Position last_x, last_y;		/* previous location of knob */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } PannerPart;
 

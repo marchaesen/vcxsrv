@@ -111,14 +111,9 @@ typedef char *String;
 #define TRUE 1
 #endif
 
-#if __STDC_VERSION__ >= 199901L
 #include <stdint.h>
 typedef intptr_t	XtIntPtr;
 typedef uintptr_t	XtUIntPtr;
-#else
-typedef long		XtIntPtr;
-typedef unsigned long	XtUIntPtr;
-#endif
 
 #define XtNumber(arr)		((Cardinal) (sizeof(arr) / sizeof(arr[0])))
 

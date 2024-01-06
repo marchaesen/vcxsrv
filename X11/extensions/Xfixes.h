@@ -1,6 +1,6 @@
 /*
- * Copyright (c) 2006, Oracle and/or its affiliates. All rights reserved.
- * Copyright 2011 Red Hat, Inc.
+ * Copyright (c) 2006, Oracle and/or its affiliates.
+ * Copyright 2011, 2021 Red Hat, Inc.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -263,6 +263,16 @@ void
 XFixesDestroyPointerBarrier(Display *dpy, PointerBarrier b);
 
 #endif /* XFIXES_MAJOR >= 5 */
+
+#if XFIXES_MAJOR >= 6
+
+void
+XFixesSetClientDisconnectMode(Display *dpy, int disconnect_mode);
+
+int
+XFixesGetClientDisconnectMode(Display *dpy);
+
+#endif /* XFIXES_MAJOR >= 6 */
 
 _XFUNCPROTOEND
 

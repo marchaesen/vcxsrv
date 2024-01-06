@@ -76,7 +76,7 @@ typedef struct _DialogPart {
     Widget	labelW;		/* widget to display description */
     Widget	valueW;		/* user response TextWidget	 */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } DialogPart;
 

@@ -84,7 +84,7 @@ typedef struct _SimpleMenuPart {
     XawDisplayList *display_list;
     Widget	sub_menu;
     unsigned	char state;
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } SimpleMenuPart;
 

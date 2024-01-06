@@ -63,7 +63,7 @@ typedef struct {
 
     /* private */
     Boolean set_values_area_cleared;	/* do we need to unhighlight? */
-    GC norm_gc;				/* noral color gc */
+    GC norm_gc;				/* normal color gc */
     GC rev_gc;				/* reverse color gc */
     GC norm_gray_gc;			/* Normal color (grayed out) gc */
     GC invert_gc;			/* gc for flipping colors */
@@ -74,8 +74,8 @@ typedef struct {
 
 #ifndef OLDXAW
     /* new resources */
-    String menu_name;			/* name of nested sub menu or NULL */
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    char * menu_name;			/* name of nested sub menu or NULL */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } SmeBSBPart;
 

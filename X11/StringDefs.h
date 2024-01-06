@@ -27,13 +27,13 @@ Copyright 1987, 1988 by Digital Equipment Corporation, Maynard, Massachusetts.
 
                         All Rights Reserved
 
-Permission to use, copy, modify, and distribute this software and its 
-documentation for any purpose and without fee is hereby granted, 
+Permission to use, copy, modify, and distribute this software and its
+documentation for any purpose and without fee is hereby granted,
 provided that the above copyright notice appear in all copies and that
-both that copyright notice and this permission notice appear in 
+both that copyright notice and this permission notice appear in
 supporting documentation, and that the name of Digital not be
 used in advertising or publicity pertaining to distribution of the
-software without specific, written prior permission.  
+software without specific, written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
 ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL
@@ -315,766 +315,766 @@ SOFTWARE.
 #else
 extern _XtStringDefs_h_Const char XtStrings[];
 #ifndef XtNaccelerators
-#define XtNaccelerators ((char*)&XtStrings[0])
+#define XtNaccelerators ((String)&XtStrings[0])
 #endif
 #ifndef XtNallowHoriz
-#define XtNallowHoriz ((char*)&XtStrings[13])
+#define XtNallowHoriz ((String)&XtStrings[13])
 #endif
 #ifndef XtNallowVert
-#define XtNallowVert ((char*)&XtStrings[24])
+#define XtNallowVert ((String)&XtStrings[24])
 #endif
 #ifndef XtNancestorSensitive
-#define XtNancestorSensitive ((char*)&XtStrings[34])
+#define XtNancestorSensitive ((String)&XtStrings[34])
 #endif
 #ifndef XtNbackground
-#define XtNbackground ((char*)&XtStrings[52])
+#define XtNbackground ((String)&XtStrings[52])
 #endif
 #ifndef XtNbackgroundPixmap
-#define XtNbackgroundPixmap ((char*)&XtStrings[63])
+#define XtNbackgroundPixmap ((String)&XtStrings[63])
 #endif
 #ifndef XtNbitmap
-#define XtNbitmap ((char*)&XtStrings[80])
+#define XtNbitmap ((String)&XtStrings[80])
 #endif
 #ifndef XtNborderColor
-#define XtNborderColor ((char*)&XtStrings[87])
+#define XtNborderColor ((String)&XtStrings[87])
 #endif
 #ifndef XtNborder
-#define XtNborder ((char*)&XtStrings[99])
+#define XtNborder ((String)&XtStrings[99])
 #endif
 #ifndef XtNborderPixmap
-#define XtNborderPixmap ((char*)&XtStrings[111])
+#define XtNborderPixmap ((String)&XtStrings[111])
 #endif
 #ifndef XtNborderWidth
-#define XtNborderWidth ((char*)&XtStrings[124])
+#define XtNborderWidth ((String)&XtStrings[124])
 #endif
 #ifndef XtNcallback
-#define XtNcallback ((char*)&XtStrings[136])
+#define XtNcallback ((String)&XtStrings[136])
 #endif
 #ifndef XtNchildren
-#define XtNchildren ((char*)&XtStrings[145])
+#define XtNchildren ((String)&XtStrings[145])
 #endif
 #ifndef XtNcolormap
-#define XtNcolormap ((char*)&XtStrings[154])
+#define XtNcolormap ((String)&XtStrings[154])
 #endif
 #ifndef XtNdepth
-#define XtNdepth ((char*)&XtStrings[163])
+#define XtNdepth ((String)&XtStrings[163])
 #endif
 #ifndef XtNdestroyCallback
-#define XtNdestroyCallback ((char*)&XtStrings[169])
+#define XtNdestroyCallback ((String)&XtStrings[169])
 #endif
 #ifndef XtNeditType
-#define XtNeditType ((char*)&XtStrings[185])
+#define XtNeditType ((String)&XtStrings[185])
 #endif
 #ifndef XtNfile
-#define XtNfile ((char*)&XtStrings[194])
+#define XtNfile ((String)&XtStrings[194])
 #endif
 #ifndef XtNfont
-#define XtNfont ((char*)&XtStrings[199])
+#define XtNfont ((String)&XtStrings[199])
 #endif
 #ifndef XtNforceBars
-#define XtNforceBars ((char*)&XtStrings[204])
+#define XtNforceBars ((String)&XtStrings[204])
 #endif
 #ifndef XtNforeground
-#define XtNforeground ((char*)&XtStrings[214])
+#define XtNforeground ((String)&XtStrings[214])
 #endif
 #ifndef XtNfunction
-#define XtNfunction ((char*)&XtStrings[225])
+#define XtNfunction ((String)&XtStrings[225])
 #endif
 #ifndef XtNheight
-#define XtNheight ((char*)&XtStrings[234])
+#define XtNheight ((String)&XtStrings[234])
 #endif
 #ifndef XtNhighlight
-#define XtNhighlight ((char*)&XtStrings[241])
+#define XtNhighlight ((String)&XtStrings[241])
 #endif
 #ifndef XtNhSpace
-#define XtNhSpace ((char*)&XtStrings[251])
+#define XtNhSpace ((String)&XtStrings[251])
 #endif
 #ifndef XtNindex
-#define XtNindex ((char*)&XtStrings[258])
+#define XtNindex ((String)&XtStrings[258])
 #endif
 #ifndef XtNinitialResourcesPersistent
-#define XtNinitialResourcesPersistent ((char*)&XtStrings[264])
+#define XtNinitialResourcesPersistent ((String)&XtStrings[264])
 #endif
 #ifndef XtNinnerHeight
-#define XtNinnerHeight ((char*)&XtStrings[291])
+#define XtNinnerHeight ((String)&XtStrings[291])
 #endif
 #ifndef XtNinnerWidth
-#define XtNinnerWidth ((char*)&XtStrings[303])
+#define XtNinnerWidth ((String)&XtStrings[303])
 #endif
 #ifndef XtNinnerWindow
-#define XtNinnerWindow ((char*)&XtStrings[314])
+#define XtNinnerWindow ((String)&XtStrings[314])
 #endif
 #ifndef XtNinsertPosition
-#define XtNinsertPosition ((char*)&XtStrings[326])
+#define XtNinsertPosition ((String)&XtStrings[326])
 #endif
 #ifndef XtNinternalHeight
-#define XtNinternalHeight ((char*)&XtStrings[341])
+#define XtNinternalHeight ((String)&XtStrings[341])
 #endif
 #ifndef XtNinternalWidth
-#define XtNinternalWidth ((char*)&XtStrings[356])
+#define XtNinternalWidth ((String)&XtStrings[356])
 #endif
 #ifndef XtNjumpProc
-#define XtNjumpProc ((char*)&XtStrings[370])
+#define XtNjumpProc ((String)&XtStrings[370])
 #endif
 #ifndef XtNjustify
-#define XtNjustify ((char*)&XtStrings[379])
+#define XtNjustify ((String)&XtStrings[379])
 #endif
 #ifndef XtNknobHeight
-#define XtNknobHeight ((char*)&XtStrings[387])
+#define XtNknobHeight ((String)&XtStrings[387])
 #endif
 #ifndef XtNknobIndent
-#define XtNknobIndent ((char*)&XtStrings[398])
+#define XtNknobIndent ((String)&XtStrings[398])
 #endif
 #ifndef XtNknobPixel
-#define XtNknobPixel ((char*)&XtStrings[409])
+#define XtNknobPixel ((String)&XtStrings[409])
 #endif
 #ifndef XtNknobWidth
-#define XtNknobWidth ((char*)&XtStrings[419])
+#define XtNknobWidth ((String)&XtStrings[419])
 #endif
 #ifndef XtNlabel
-#define XtNlabel ((char*)&XtStrings[429])
+#define XtNlabel ((String)&XtStrings[429])
 #endif
 #ifndef XtNlength
-#define XtNlength ((char*)&XtStrings[435])
+#define XtNlength ((String)&XtStrings[435])
 #endif
 #ifndef XtNlowerRight
-#define XtNlowerRight ((char*)&XtStrings[442])
+#define XtNlowerRight ((String)&XtStrings[442])
 #endif
 #ifndef XtNmappedWhenManaged
-#define XtNmappedWhenManaged ((char*)&XtStrings[453])
+#define XtNmappedWhenManaged ((String)&XtStrings[453])
 #endif
 #ifndef XtNmenuEntry
-#define XtNmenuEntry ((char*)&XtStrings[471])
+#define XtNmenuEntry ((String)&XtStrings[471])
 #endif
 #ifndef XtNname
-#define XtNname ((char*)&XtStrings[481])
+#define XtNname ((String)&XtStrings[481])
 #endif
 #ifndef XtNnotify
-#define XtNnotify ((char*)&XtStrings[486])
+#define XtNnotify ((String)&XtStrings[486])
 #endif
 #ifndef XtNnumChildren
-#define XtNnumChildren ((char*)&XtStrings[493])
+#define XtNnumChildren ((String)&XtStrings[493])
 #endif
 #ifndef XtNorientation
-#define XtNorientation ((char*)&XtStrings[505])
+#define XtNorientation ((String)&XtStrings[505])
 #endif
 #ifndef XtNparameter
-#define XtNparameter ((char*)&XtStrings[517])
+#define XtNparameter ((String)&XtStrings[517])
 #endif
 #ifndef XtNpixmap
-#define XtNpixmap ((char*)&XtStrings[527])
+#define XtNpixmap ((String)&XtStrings[527])
 #endif
 #ifndef XtNpopupCallback
-#define XtNpopupCallback ((char*)&XtStrings[534])
+#define XtNpopupCallback ((String)&XtStrings[534])
 #endif
 #ifndef XtNpopdownCallback
-#define XtNpopdownCallback ((char*)&XtStrings[548])
+#define XtNpopdownCallback ((String)&XtStrings[548])
 #endif
 #ifndef XtNresize
-#define XtNresize ((char*)&XtStrings[564])
+#define XtNresize ((String)&XtStrings[564])
 #endif
 #ifndef XtNreverseVideo
-#define XtNreverseVideo ((char*)&XtStrings[571])
+#define XtNreverseVideo ((String)&XtStrings[571])
 #endif
 #ifndef XtNscreen
-#define XtNscreen ((char*)&XtStrings[584])
+#define XtNscreen ((String)&XtStrings[584])
 #endif
 #ifndef XtNscrollProc
-#define XtNscrollProc ((char*)&XtStrings[591])
+#define XtNscrollProc ((String)&XtStrings[591])
 #endif
 #ifndef XtNscrollDCursor
-#define XtNscrollDCursor ((char*)&XtStrings[602])
+#define XtNscrollDCursor ((String)&XtStrings[602])
 #endif
 #ifndef XtNscrollHCursor
-#define XtNscrollHCursor ((char*)&XtStrings[616])
+#define XtNscrollHCursor ((String)&XtStrings[616])
 #endif
 #ifndef XtNscrollLCursor
-#define XtNscrollLCursor ((char*)&XtStrings[630])
+#define XtNscrollLCursor ((String)&XtStrings[630])
 #endif
 #ifndef XtNscrollRCursor
-#define XtNscrollRCursor ((char*)&XtStrings[644])
+#define XtNscrollRCursor ((String)&XtStrings[644])
 #endif
 #ifndef XtNscrollUCursor
-#define XtNscrollUCursor ((char*)&XtStrings[658])
+#define XtNscrollUCursor ((String)&XtStrings[658])
 #endif
 #ifndef XtNscrollVCursor
-#define XtNscrollVCursor ((char*)&XtStrings[672])
+#define XtNscrollVCursor ((String)&XtStrings[672])
 #endif
 #ifndef XtNselection
-#define XtNselection ((char*)&XtStrings[686])
+#define XtNselection ((String)&XtStrings[686])
 #endif
 #ifndef XtNselectionArray
-#define XtNselectionArray ((char*)&XtStrings[696])
+#define XtNselectionArray ((String)&XtStrings[696])
 #endif
 #ifndef XtNsensitive
-#define XtNsensitive ((char*)&XtStrings[711])
+#define XtNsensitive ((String)&XtStrings[711])
 #endif
 #ifndef XtNshown
-#define XtNshown ((char*)&XtStrings[721])
+#define XtNshown ((String)&XtStrings[721])
 #endif
 #ifndef XtNspace
-#define XtNspace ((char*)&XtStrings[727])
+#define XtNspace ((String)&XtStrings[727])
 #endif
 #ifndef XtNstring
-#define XtNstring ((char*)&XtStrings[733])
+#define XtNstring ((String)&XtStrings[733])
 #endif
 #ifndef XtNtextOptions
-#define XtNtextOptions ((char*)&XtStrings[740])
+#define XtNtextOptions ((String)&XtStrings[740])
 #endif
 #ifndef XtNtextSink
-#define XtNtextSink ((char*)&XtStrings[752])
+#define XtNtextSink ((String)&XtStrings[752])
 #endif
 #ifndef XtNtextSource
-#define XtNtextSource ((char*)&XtStrings[761])
+#define XtNtextSource ((String)&XtStrings[761])
 #endif
 #ifndef XtNthickness
-#define XtNthickness ((char*)&XtStrings[772])
+#define XtNthickness ((String)&XtStrings[772])
 #endif
 #ifndef XtNthumb
-#define XtNthumb ((char*)&XtStrings[782])
+#define XtNthumb ((String)&XtStrings[782])
 #endif
 #ifndef XtNthumbProc
-#define XtNthumbProc ((char*)&XtStrings[788])
+#define XtNthumbProc ((String)&XtStrings[788])
 #endif
 #ifndef XtNtop
-#define XtNtop ((char*)&XtStrings[798])
+#define XtNtop ((String)&XtStrings[798])
 #endif
 #ifndef XtNtranslations
-#define XtNtranslations ((char*)&XtStrings[802])
+#define XtNtranslations ((String)&XtStrings[802])
 #endif
 #ifndef XtNunrealizeCallback
-#define XtNunrealizeCallback ((char*)&XtStrings[815])
+#define XtNunrealizeCallback ((String)&XtStrings[815])
 #endif
 #ifndef XtNupdate
-#define XtNupdate ((char*)&XtStrings[833])
+#define XtNupdate ((String)&XtStrings[833])
 #endif
 #ifndef XtNuseBottom
-#define XtNuseBottom ((char*)&XtStrings[840])
+#define XtNuseBottom ((String)&XtStrings[840])
 #endif
 #ifndef XtNuseRight
-#define XtNuseRight ((char*)&XtStrings[850])
+#define XtNuseRight ((String)&XtStrings[850])
 #endif
 #ifndef XtNvalue
-#define XtNvalue ((char*)&XtStrings[859])
+#define XtNvalue ((String)&XtStrings[859])
 #endif
 #ifndef XtNvSpace
-#define XtNvSpace ((char*)&XtStrings[865])
+#define XtNvSpace ((String)&XtStrings[865])
 #endif
 #ifndef XtNwidth
-#define XtNwidth ((char*)&XtStrings[872])
+#define XtNwidth ((String)&XtStrings[872])
 #endif
 #ifndef XtNwindow
-#define XtNwindow ((char*)&XtStrings[878])
+#define XtNwindow ((String)&XtStrings[878])
 #endif
 #ifndef XtNx
-#define XtNx ((char*)&XtStrings[885])
+#define XtNx ((String)&XtStrings[885])
 #endif
 #ifndef XtNy
-#define XtNy ((char*)&XtStrings[887])
+#define XtNy ((String)&XtStrings[887])
 #endif
 #ifndef XtCAccelerators
-#define XtCAccelerators ((char*)&XtStrings[889])
+#define XtCAccelerators ((String)&XtStrings[889])
 #endif
 #ifndef XtCBackground
-#define XtCBackground ((char*)&XtStrings[902])
+#define XtCBackground ((String)&XtStrings[902])
 #endif
 #ifndef XtCBitmap
-#define XtCBitmap ((char*)&XtStrings[913])
+#define XtCBitmap ((String)&XtStrings[913])
 #endif
 #ifndef XtCBoolean
-#define XtCBoolean ((char*)&XtStrings[920])
+#define XtCBoolean ((String)&XtStrings[920])
 #endif
 #ifndef XtCBorderColor
-#define XtCBorderColor ((char*)&XtStrings[928])
+#define XtCBorderColor ((String)&XtStrings[928])
 #endif
 #ifndef XtCBorderWidth
-#define XtCBorderWidth ((char*)&XtStrings[940])
+#define XtCBorderWidth ((String)&XtStrings[940])
 #endif
 #ifndef XtCCallback
-#define XtCCallback ((char*)&XtStrings[952])
+#define XtCCallback ((String)&XtStrings[952])
 #endif
 #ifndef XtCColormap
-#define XtCColormap ((char*)&XtStrings[961])
+#define XtCColormap ((String)&XtStrings[961])
 #endif
 #ifndef XtCColor
-#define XtCColor ((char*)&XtStrings[970])
+#define XtCColor ((String)&XtStrings[970])
 #endif
 #ifndef XtCCursor
-#define XtCCursor ((char*)&XtStrings[976])
+#define XtCCursor ((String)&XtStrings[976])
 #endif
 #ifndef XtCDepth
-#define XtCDepth ((char*)&XtStrings[983])
+#define XtCDepth ((String)&XtStrings[983])
 #endif
 #ifndef XtCEditType
-#define XtCEditType ((char*)&XtStrings[989])
+#define XtCEditType ((String)&XtStrings[989])
 #endif
 #ifndef XtCEventBindings
-#define XtCEventBindings ((char*)&XtStrings[998])
+#define XtCEventBindings ((String)&XtStrings[998])
 #endif
 #ifndef XtCFile
-#define XtCFile ((char*)&XtStrings[1012])
+#define XtCFile ((String)&XtStrings[1012])
 #endif
 #ifndef XtCFont
-#define XtCFont ((char*)&XtStrings[1017])
+#define XtCFont ((String)&XtStrings[1017])
 #endif
 #ifndef XtCForeground
-#define XtCForeground ((char*)&XtStrings[1022])
+#define XtCForeground ((String)&XtStrings[1022])
 #endif
 #ifndef XtCFraction
-#define XtCFraction ((char*)&XtStrings[1033])
+#define XtCFraction ((String)&XtStrings[1033])
 #endif
 #ifndef XtCFunction
-#define XtCFunction ((char*)&XtStrings[1042])
+#define XtCFunction ((String)&XtStrings[1042])
 #endif
 #ifndef XtCHeight
-#define XtCHeight ((char*)&XtStrings[1051])
+#define XtCHeight ((String)&XtStrings[1051])
 #endif
 #ifndef XtCHSpace
-#define XtCHSpace ((char*)&XtStrings[1058])
+#define XtCHSpace ((String)&XtStrings[1058])
 #endif
 #ifndef XtCIndex
-#define XtCIndex ((char*)&XtStrings[1065])
+#define XtCIndex ((String)&XtStrings[1065])
 #endif
 #ifndef XtCInitialResourcesPersistent
-#define XtCInitialResourcesPersistent ((char*)&XtStrings[1071])
+#define XtCInitialResourcesPersistent ((String)&XtStrings[1071])
 #endif
 #ifndef XtCInsertPosition
-#define XtCInsertPosition ((char*)&XtStrings[1098])
+#define XtCInsertPosition ((String)&XtStrings[1098])
 #endif
 #ifndef XtCInterval
-#define XtCInterval ((char*)&XtStrings[1113])
+#define XtCInterval ((String)&XtStrings[1113])
 #endif
 #ifndef XtCJustify
-#define XtCJustify ((char*)&XtStrings[1122])
+#define XtCJustify ((String)&XtStrings[1122])
 #endif
 #ifndef XtCKnobIndent
-#define XtCKnobIndent ((char*)&XtStrings[1130])
+#define XtCKnobIndent ((String)&XtStrings[1130])
 #endif
 #ifndef XtCKnobPixel
-#define XtCKnobPixel ((char*)&XtStrings[1141])
+#define XtCKnobPixel ((String)&XtStrings[1141])
 #endif
 #ifndef XtCLabel
-#define XtCLabel ((char*)&XtStrings[1151])
+#define XtCLabel ((String)&XtStrings[1151])
 #endif
 #ifndef XtCLength
-#define XtCLength ((char*)&XtStrings[1157])
+#define XtCLength ((String)&XtStrings[1157])
 #endif
 #ifndef XtCMappedWhenManaged
-#define XtCMappedWhenManaged ((char*)&XtStrings[1164])
+#define XtCMappedWhenManaged ((String)&XtStrings[1164])
 #endif
 #ifndef XtCMargin
-#define XtCMargin ((char*)&XtStrings[1182])
+#define XtCMargin ((String)&XtStrings[1182])
 #endif
 #ifndef XtCMenuEntry
-#define XtCMenuEntry ((char*)&XtStrings[1189])
+#define XtCMenuEntry ((String)&XtStrings[1189])
 #endif
 #ifndef XtCNotify
-#define XtCNotify ((char*)&XtStrings[1199])
+#define XtCNotify ((String)&XtStrings[1199])
 #endif
 #ifndef XtCOrientation
-#define XtCOrientation ((char*)&XtStrings[1206])
+#define XtCOrientation ((String)&XtStrings[1206])
 #endif
 #ifndef XtCParameter
-#define XtCParameter ((char*)&XtStrings[1218])
+#define XtCParameter ((String)&XtStrings[1218])
 #endif
 #ifndef XtCPixmap
-#define XtCPixmap ((char*)&XtStrings[1228])
+#define XtCPixmap ((String)&XtStrings[1228])
 #endif
 #ifndef XtCPosition
-#define XtCPosition ((char*)&XtStrings[1235])
+#define XtCPosition ((String)&XtStrings[1235])
 #endif
 #ifndef XtCReadOnly
-#define XtCReadOnly ((char*)&XtStrings[1244])
+#define XtCReadOnly ((String)&XtStrings[1244])
 #endif
 #ifndef XtCResize
-#define XtCResize ((char*)&XtStrings[1253])
+#define XtCResize ((String)&XtStrings[1253])
 #endif
 #ifndef XtCReverseVideo
-#define XtCReverseVideo ((char*)&XtStrings[1260])
+#define XtCReverseVideo ((String)&XtStrings[1260])
 #endif
 #ifndef XtCScreen
-#define XtCScreen ((char*)&XtStrings[1273])
+#define XtCScreen ((String)&XtStrings[1273])
 #endif
 #ifndef XtCScrollProc
-#define XtCScrollProc ((char*)&XtStrings[1280])
+#define XtCScrollProc ((String)&XtStrings[1280])
 #endif
 #ifndef XtCScrollDCursor
-#define XtCScrollDCursor ((char*)&XtStrings[1291])
+#define XtCScrollDCursor ((String)&XtStrings[1291])
 #endif
 #ifndef XtCScrollHCursor
-#define XtCScrollHCursor ((char*)&XtStrings[1305])
+#define XtCScrollHCursor ((String)&XtStrings[1305])
 #endif
 #ifndef XtCScrollLCursor
-#define XtCScrollLCursor ((char*)&XtStrings[1319])
+#define XtCScrollLCursor ((String)&XtStrings[1319])
 #endif
 #ifndef XtCScrollRCursor
-#define XtCScrollRCursor ((char*)&XtStrings[1333])
+#define XtCScrollRCursor ((String)&XtStrings[1333])
 #endif
 #ifndef XtCScrollUCursor
-#define XtCScrollUCursor ((char*)&XtStrings[1347])
+#define XtCScrollUCursor ((String)&XtStrings[1347])
 #endif
 #ifndef XtCScrollVCursor
-#define XtCScrollVCursor ((char*)&XtStrings[1361])
+#define XtCScrollVCursor ((String)&XtStrings[1361])
 #endif
 #ifndef XtCSelection
-#define XtCSelection ((char*)&XtStrings[1375])
+#define XtCSelection ((String)&XtStrings[1375])
 #endif
 #ifndef XtCSensitive
-#define XtCSensitive ((char*)&XtStrings[1385])
+#define XtCSensitive ((String)&XtStrings[1385])
 #endif
 #ifndef XtCSelectionArray
-#define XtCSelectionArray ((char*)&XtStrings[1395])
+#define XtCSelectionArray ((String)&XtStrings[1395])
 #endif
 #ifndef XtCSpace
-#define XtCSpace ((char*)&XtStrings[1410])
+#define XtCSpace ((String)&XtStrings[1410])
 #endif
 #ifndef XtCString
-#define XtCString ((char*)&XtStrings[1416])
+#define XtCString ((String)&XtStrings[1416])
 #endif
 #ifndef XtCTextOptions
-#define XtCTextOptions ((char*)&XtStrings[1423])
+#define XtCTextOptions ((String)&XtStrings[1423])
 #endif
 #ifndef XtCTextPosition
-#define XtCTextPosition ((char*)&XtStrings[1435])
+#define XtCTextPosition ((String)&XtStrings[1435])
 #endif
 #ifndef XtCTextSink
-#define XtCTextSink ((char*)&XtStrings[1448])
+#define XtCTextSink ((String)&XtStrings[1448])
 #endif
 #ifndef XtCTextSource
-#define XtCTextSource ((char*)&XtStrings[1457])
+#define XtCTextSource ((String)&XtStrings[1457])
 #endif
 #ifndef XtCThickness
-#define XtCThickness ((char*)&XtStrings[1468])
+#define XtCThickness ((String)&XtStrings[1468])
 #endif
 #ifndef XtCThumb
-#define XtCThumb ((char*)&XtStrings[1478])
+#define XtCThumb ((String)&XtStrings[1478])
 #endif
 #ifndef XtCTranslations
-#define XtCTranslations ((char*)&XtStrings[1484])
+#define XtCTranslations ((String)&XtStrings[1484])
 #endif
 #ifndef XtCValue
-#define XtCValue ((char*)&XtStrings[1497])
+#define XtCValue ((String)&XtStrings[1497])
 #endif
 #ifndef XtCVSpace
-#define XtCVSpace ((char*)&XtStrings[1503])
+#define XtCVSpace ((String)&XtStrings[1503])
 #endif
 #ifndef XtCWidth
-#define XtCWidth ((char*)&XtStrings[1510])
+#define XtCWidth ((String)&XtStrings[1510])
 #endif
 #ifndef XtCWindow
-#define XtCWindow ((char*)&XtStrings[1516])
+#define XtCWindow ((String)&XtStrings[1516])
 #endif
 #ifndef XtCX
-#define XtCX ((char*)&XtStrings[1523])
+#define XtCX ((String)&XtStrings[1523])
 #endif
 #ifndef XtCY
-#define XtCY ((char*)&XtStrings[1525])
+#define XtCY ((String)&XtStrings[1525])
 #endif
 #ifndef XtRAcceleratorTable
-#define XtRAcceleratorTable ((char*)&XtStrings[1527])
+#define XtRAcceleratorTable ((String)&XtStrings[1527])
 #endif
 #ifndef XtRAtom
-#define XtRAtom ((char*)&XtStrings[1544])
+#define XtRAtom ((String)&XtStrings[1544])
 #endif
 #ifndef XtRBitmap
-#define XtRBitmap ((char*)&XtStrings[1549])
+#define XtRBitmap ((String)&XtStrings[1549])
 #endif
 #ifndef XtRBool
-#define XtRBool ((char*)&XtStrings[1556])
+#define XtRBool ((String)&XtStrings[1556])
 #endif
 #ifndef XtRBoolean
-#define XtRBoolean ((char*)&XtStrings[1561])
+#define XtRBoolean ((String)&XtStrings[1561])
 #endif
 #ifndef XtRCallback
-#define XtRCallback ((char*)&XtStrings[1569])
+#define XtRCallback ((String)&XtStrings[1569])
 #endif
 #ifndef XtRCallProc
-#define XtRCallProc ((char*)&XtStrings[1578])
+#define XtRCallProc ((String)&XtStrings[1578])
 #endif
 #ifndef XtRCardinal
-#define XtRCardinal ((char*)&XtStrings[1587])
+#define XtRCardinal ((String)&XtStrings[1587])
 #endif
 #ifndef XtRColor
-#define XtRColor ((char*)&XtStrings[1596])
+#define XtRColor ((String)&XtStrings[1596])
 #endif
 #ifndef XtRColormap
-#define XtRColormap ((char*)&XtStrings[1602])
+#define XtRColormap ((String)&XtStrings[1602])
 #endif
 #ifndef XtRCursor
-#define XtRCursor ((char*)&XtStrings[1611])
+#define XtRCursor ((String)&XtStrings[1611])
 #endif
 #ifndef XtRDimension
-#define XtRDimension ((char*)&XtStrings[1618])
+#define XtRDimension ((String)&XtStrings[1618])
 #endif
 #ifndef XtRDisplay
-#define XtRDisplay ((char*)&XtStrings[1628])
+#define XtRDisplay ((String)&XtStrings[1628])
 #endif
 #ifndef XtREditMode
-#define XtREditMode ((char*)&XtStrings[1636])
+#define XtREditMode ((String)&XtStrings[1636])
 #endif
 #ifndef XtREnum
-#define XtREnum ((char*)&XtStrings[1645])
+#define XtREnum ((String)&XtStrings[1645])
 #endif
 #ifndef XtRFile
-#define XtRFile ((char*)&XtStrings[1650])
+#define XtRFile ((String)&XtStrings[1650])
 #endif
 #ifndef XtRFloat
-#define XtRFloat ((char*)&XtStrings[1655])
+#define XtRFloat ((String)&XtStrings[1655])
 #endif
 #ifndef XtRFont
-#define XtRFont ((char*)&XtStrings[1661])
+#define XtRFont ((String)&XtStrings[1661])
 #endif
 #ifndef XtRFontStruct
-#define XtRFontStruct ((char*)&XtStrings[1666])
+#define XtRFontStruct ((String)&XtStrings[1666])
 #endif
 #ifndef XtRFunction
-#define XtRFunction ((char*)&XtStrings[1677])
+#define XtRFunction ((String)&XtStrings[1677])
 #endif
 #ifndef XtRGeometry
-#define XtRGeometry ((char*)&XtStrings[1686])
+#define XtRGeometry ((String)&XtStrings[1686])
 #endif
 #ifndef XtRImmediate
-#define XtRImmediate ((char*)&XtStrings[1695])
+#define XtRImmediate ((String)&XtStrings[1695])
 #endif
 #ifndef XtRInitialState
-#define XtRInitialState ((char*)&XtStrings[1705])
+#define XtRInitialState ((String)&XtStrings[1705])
 #endif
 #ifndef XtRInt
-#define XtRInt ((char*)&XtStrings[1718])
+#define XtRInt ((String)&XtStrings[1718])
 #endif
 #ifndef XtRJustify
-#define XtRJustify ((char*)&XtStrings[1722])
+#define XtRJustify ((String)&XtStrings[1722])
 #endif
 #ifndef XtRLongBoolean
-#define XtRLongBoolean ((char*)&XtStrings[1730])
+#define XtRLongBoolean ((String)&XtStrings[1730])
 #endif
 #ifndef XtRObject
-#define XtRObject ((char*)&XtStrings[1735])
+#define XtRObject ((String)&XtStrings[1735])
 #endif
 #ifndef XtROrientation
-#define XtROrientation ((char*)&XtStrings[1742])
+#define XtROrientation ((String)&XtStrings[1742])
 #endif
 #ifndef XtRPixel
-#define XtRPixel ((char*)&XtStrings[1754])
+#define XtRPixel ((String)&XtStrings[1754])
 #endif
 #ifndef XtRPixmap
-#define XtRPixmap ((char*)&XtStrings[1760])
+#define XtRPixmap ((String)&XtStrings[1760])
 #endif
 #ifndef XtRPointer
-#define XtRPointer ((char*)&XtStrings[1767])
+#define XtRPointer ((String)&XtStrings[1767])
 #endif
 #ifndef XtRPosition
-#define XtRPosition ((char*)&XtStrings[1775])
+#define XtRPosition ((String)&XtStrings[1775])
 #endif
 #ifndef XtRScreen
-#define XtRScreen ((char*)&XtStrings[1784])
+#define XtRScreen ((String)&XtStrings[1784])
 #endif
 #ifndef XtRShort
-#define XtRShort ((char*)&XtStrings[1791])
+#define XtRShort ((String)&XtStrings[1791])
 #endif
 #ifndef XtRString
-#define XtRString ((char*)&XtStrings[1797])
+#define XtRString ((String)&XtStrings[1797])
 #endif
 #ifndef XtRStringArray
-#define XtRStringArray ((char*)&XtStrings[1804])
+#define XtRStringArray ((String)&XtStrings[1804])
 #endif
 #ifndef XtRStringTable
-#define XtRStringTable ((char*)&XtStrings[1816])
+#define XtRStringTable ((String)&XtStrings[1816])
 #endif
 #ifndef XtRUnsignedChar
-#define XtRUnsignedChar ((char*)&XtStrings[1828])
+#define XtRUnsignedChar ((String)&XtStrings[1828])
 #endif
 #ifndef XtRTranslationTable
-#define XtRTranslationTable ((char*)&XtStrings[1841])
+#define XtRTranslationTable ((String)&XtStrings[1841])
 #endif
 #ifndef XtRVisual
-#define XtRVisual ((char*)&XtStrings[1858])
+#define XtRVisual ((String)&XtStrings[1858])
 #endif
 #ifndef XtRWidget
-#define XtRWidget ((char*)&XtStrings[1865])
+#define XtRWidget ((String)&XtStrings[1865])
 #endif
 #ifndef XtRWidgetClass
-#define XtRWidgetClass ((char*)&XtStrings[1872])
+#define XtRWidgetClass ((String)&XtStrings[1872])
 #endif
 #ifndef XtRWidgetList
-#define XtRWidgetList ((char*)&XtStrings[1884])
+#define XtRWidgetList ((String)&XtStrings[1884])
 #endif
 #ifndef XtRWindow
-#define XtRWindow ((char*)&XtStrings[1895])
+#define XtRWindow ((String)&XtStrings[1895])
 #endif
 #ifndef XtEoff
-#define XtEoff ((char*)&XtStrings[1902])
+#define XtEoff ((String)&XtStrings[1902])
 #endif
 #ifndef XtEfalse
-#define XtEfalse ((char*)&XtStrings[1906])
+#define XtEfalse ((String)&XtStrings[1906])
 #endif
 #ifndef XtEno
-#define XtEno ((char*)&XtStrings[1912])
+#define XtEno ((String)&XtStrings[1912])
 #endif
 #ifndef XtEon
-#define XtEon ((char*)&XtStrings[1915])
+#define XtEon ((String)&XtStrings[1915])
 #endif
 #ifndef XtEtrue
-#define XtEtrue ((char*)&XtStrings[1918])
+#define XtEtrue ((String)&XtStrings[1918])
 #endif
 #ifndef XtEyes
-#define XtEyes ((char*)&XtStrings[1923])
+#define XtEyes ((String)&XtStrings[1923])
 #endif
 #ifndef XtEvertical
-#define XtEvertical ((char*)&XtStrings[1927])
+#define XtEvertical ((String)&XtStrings[1927])
 #endif
 #ifndef XtEhorizontal
-#define XtEhorizontal ((char*)&XtStrings[1936])
+#define XtEhorizontal ((String)&XtStrings[1936])
 #endif
 #ifndef XtEtextRead
-#define XtEtextRead ((char*)&XtStrings[1947])
+#define XtEtextRead ((String)&XtStrings[1947])
 #endif
 #ifndef XtEtextAppend
-#define XtEtextAppend ((char*)&XtStrings[1952])
+#define XtEtextAppend ((String)&XtStrings[1952])
 #endif
 #ifndef XtEtextEdit
-#define XtEtextEdit ((char*)&XtStrings[1959])
+#define XtEtextEdit ((String)&XtStrings[1959])
 #endif
 #ifndef XtExtdefaultbackground
-#define XtExtdefaultbackground ((char*)&XtStrings[1964])
+#define XtExtdefaultbackground ((String)&XtStrings[1964])
 #endif
 #ifndef XtExtdefaultforeground
-#define XtExtdefaultforeground ((char*)&XtStrings[1984])
+#define XtExtdefaultforeground ((String)&XtStrings[1984])
 #endif
 #ifndef XtExtdefaultfont
-#define XtExtdefaultfont ((char*)&XtStrings[2004])
+#define XtExtdefaultfont ((String)&XtStrings[2004])
 #endif
 #ifndef XtNfontSet
-#define XtNfontSet ((char*)&XtStrings[2018])
+#define XtNfontSet ((String)&XtStrings[2018])
 #endif
 #ifndef XtRFontSet
-#define XtRFontSet ((char*)&XtStrings[2026])
+#define XtRFontSet ((String)&XtStrings[2026])
 #endif
 #ifndef XtCFontSet
-#define XtCFontSet ((char*)&XtStrings[2034])
+#define XtCFontSet ((String)&XtStrings[2034])
 #endif
 #ifndef XtRGravity
-#define XtRGravity ((char*)&XtStrings[2042])
+#define XtRGravity ((String)&XtStrings[2042])
 #endif
 #ifndef XtNcreateHook
-#define XtNcreateHook ((char*)&XtStrings[2050])
+#define XtNcreateHook ((String)&XtStrings[2050])
 #endif
 #ifndef XtNchangeHook
-#define XtNchangeHook ((char*)&XtStrings[2061])
+#define XtNchangeHook ((String)&XtStrings[2061])
 #endif
 #ifndef XtNconfigureHook
-#define XtNconfigureHook ((char*)&XtStrings[2072])
+#define XtNconfigureHook ((String)&XtStrings[2072])
 #endif
 #ifndef XtNgeometryHook
-#define XtNgeometryHook ((char*)&XtStrings[2086])
+#define XtNgeometryHook ((String)&XtStrings[2086])
 #endif
 #ifndef XtNdestroyHook
-#define XtNdestroyHook ((char*)&XtStrings[2099])
+#define XtNdestroyHook ((String)&XtStrings[2099])
 #endif
 #ifndef XtNshells
-#define XtNshells ((char*)&XtStrings[2111])
+#define XtNshells ((String)&XtStrings[2111])
 #endif
 #ifndef XtNnumShells
-#define XtNnumShells ((char*)&XtStrings[2118])
+#define XtNnumShells ((String)&XtStrings[2118])
 #endif
 #ifndef XtRCommandArgArray
-#define XtRCommandArgArray ((char*)&XtStrings[2128])
+#define XtRCommandArgArray ((String)&XtStrings[2128])
 #endif
 #ifndef XtRDirectoryString
-#define XtRDirectoryString ((char*)&XtStrings[2144])
+#define XtRDirectoryString ((String)&XtStrings[2144])
 #endif
 #ifndef XtREnvironmentArray
-#define XtREnvironmentArray ((char*)&XtStrings[2160])
+#define XtREnvironmentArray ((String)&XtStrings[2160])
 #endif
 #ifndef XtRRestartStyle
-#define XtRRestartStyle ((char*)&XtStrings[2177])
+#define XtRRestartStyle ((String)&XtStrings[2177])
 #endif
 #ifndef XtRSmcConn
-#define XtRSmcConn ((char*)&XtStrings[2190])
+#define XtRSmcConn ((String)&XtStrings[2190])
 #endif
 #ifndef XtHcreate
-#define XtHcreate ((char*)&XtStrings[2198])
+#define XtHcreate ((String)&XtStrings[2198])
 #endif
 #ifndef XtHsetValues
-#define XtHsetValues ((char*)&XtStrings[2207])
+#define XtHsetValues ((String)&XtStrings[2207])
 #endif
 #ifndef XtHmanageChildren
-#define XtHmanageChildren ((char*)&XtStrings[2219])
+#define XtHmanageChildren ((String)&XtStrings[2219])
 #endif
 #ifndef XtHunmanageChildren
-#define XtHunmanageChildren ((char*)&XtStrings[2236])
+#define XtHunmanageChildren ((String)&XtStrings[2236])
 #endif
 #ifndef XtHmanageSet
-#define XtHmanageSet ((char*)&XtStrings[2255])
+#define XtHmanageSet ((String)&XtStrings[2255])
 #endif
 #ifndef XtHunmanageSet
-#define XtHunmanageSet ((char*)&XtStrings[2267])
+#define XtHunmanageSet ((String)&XtStrings[2267])
 #endif
 #ifndef XtHrealizeWidget
-#define XtHrealizeWidget ((char*)&XtStrings[2281])
+#define XtHrealizeWidget ((String)&XtStrings[2281])
 #endif
 #ifndef XtHunrealizeWidget
-#define XtHunrealizeWidget ((char*)&XtStrings[2297])
+#define XtHunrealizeWidget ((String)&XtStrings[2297])
 #endif
 #ifndef XtHaddCallback
-#define XtHaddCallback ((char*)&XtStrings[2315])
+#define XtHaddCallback ((String)&XtStrings[2315])
 #endif
 #ifndef XtHaddCallbacks
-#define XtHaddCallbacks ((char*)&XtStrings[2329])
+#define XtHaddCallbacks ((String)&XtStrings[2329])
 #endif
 #ifndef XtHremoveCallback
-#define XtHremoveCallback ((char*)&XtStrings[2344])
+#define XtHremoveCallback ((String)&XtStrings[2344])
 #endif
 #ifndef XtHremoveCallbacks
-#define XtHremoveCallbacks ((char*)&XtStrings[2361])
+#define XtHremoveCallbacks ((String)&XtStrings[2361])
 #endif
 #ifndef XtHremoveAllCallbacks
-#define XtHremoveAllCallbacks ((char*)&XtStrings[2379])
+#define XtHremoveAllCallbacks ((String)&XtStrings[2379])
 #endif
 #ifndef XtHaugmentTranslations
-#define XtHaugmentTranslations ((char*)&XtStrings[2400])
+#define XtHaugmentTranslations ((String)&XtStrings[2400])
 #endif
 #ifndef XtHoverrideTranslations
-#define XtHoverrideTranslations ((char*)&XtStrings[2422])
+#define XtHoverrideTranslations ((String)&XtStrings[2422])
 #endif
 #ifndef XtHuninstallTranslations
-#define XtHuninstallTranslations ((char*)&XtStrings[2445])
+#define XtHuninstallTranslations ((String)&XtStrings[2445])
 #endif
 #ifndef XtHsetKeyboardFocus
-#define XtHsetKeyboardFocus ((char*)&XtStrings[2469])
+#define XtHsetKeyboardFocus ((String)&XtStrings[2469])
 #endif
 #ifndef XtHsetWMColormapWindows
-#define XtHsetWMColormapWindows ((char*)&XtStrings[2488])
+#define XtHsetWMColormapWindows ((String)&XtStrings[2488])
 #endif
 #ifndef XtHsetMappedWhenManaged
-#define XtHsetMappedWhenManaged ((char*)&XtStrings[2511])
+#define XtHsetMappedWhenManaged ((String)&XtStrings[2511])
 #endif
 #ifndef XtHmapWidget
-#define XtHmapWidget ((char*)&XtStrings[2534])
+#define XtHmapWidget ((String)&XtStrings[2534])
 #endif
 #ifndef XtHunmapWidget
-#define XtHunmapWidget ((char*)&XtStrings[2546])
+#define XtHunmapWidget ((String)&XtStrings[2546])
 #endif
 #ifndef XtHpopup
-#define XtHpopup ((char*)&XtStrings[2560])
+#define XtHpopup ((String)&XtStrings[2560])
 #endif
 #ifndef XtHpopupSpringLoaded
-#define XtHpopupSpringLoaded ((char*)&XtStrings[2568])
+#define XtHpopupSpringLoaded ((String)&XtStrings[2568])
 #endif
 #ifndef XtHpopdown
-#define XtHpopdown ((char*)&XtStrings[2588])
+#define XtHpopdown ((String)&XtStrings[2588])
 #endif
 #ifndef XtHconfigure
-#define XtHconfigure ((char*)&XtStrings[2598])
+#define XtHconfigure ((String)&XtStrings[2598])
 #endif
 #ifndef XtHpreGeometry
-#define XtHpreGeometry ((char*)&XtStrings[2610])
+#define XtHpreGeometry ((String)&XtStrings[2610])
 #endif
 #ifndef XtHpostGeometry
-#define XtHpostGeometry ((char*)&XtStrings[2624])
+#define XtHpostGeometry ((String)&XtStrings[2624])
 #endif
 #ifndef XtHdestroy
-#define XtHdestroy ((char*)&XtStrings[2639])
+#define XtHdestroy ((String)&XtStrings[2639])
 #endif
 #endif /* XTSTRINGDEFINES */
 

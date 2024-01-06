@@ -3,13 +3,13 @@
 Copyright 1988 by Hewlett-Packard Company
 Copyright 1987, 1988, 1989 by Digital Equipment Corporation, Maynard
 
-Permission to use, copy, modify, and distribute this software 
-and its documentation for any purpose and without fee is hereby 
-granted, provided that the above copyright notice appear in all 
-copies and that both that copyright notice and this permission 
-notice appear in supporting documentation, and that the names of 
-Hewlett-Packard or Digital not be used in advertising or 
-publicity pertaining to distribution of the software without specific, 
+Permission to use, copy, modify, and distribute this software
+and its documentation for any purpose and without fee is hereby
+granted, provided that the above copyright notice appear in all
+copies and that both that copyright notice and this permission
+notice appear in supporting documentation, and that the names of
+Hewlett-Packard or Digital not be used in advertising or
+publicity pertaining to distribution of the software without specific,
 written prior permission.
 
 DIGITAL DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING
@@ -58,7 +58,7 @@ in this Software without prior written authorization from The Open Group.
 _XFUNCPROTOBEGIN
 
 typedef enum {
-    XtNoServerGrab, 
+    XtNoServerGrab,
     XtPassiveServerGrab,
     XtActiveServerGrab,
     XtPseudoPassiveServerGrab,

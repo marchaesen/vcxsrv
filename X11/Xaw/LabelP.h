@@ -95,7 +95,7 @@ typedef struct {
     int		lbm_y;			/* where in label */
     unsigned int lbm_width, lbm_height;	 /* size of pixmap */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } LabelPart;
 

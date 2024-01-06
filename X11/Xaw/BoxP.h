@@ -81,7 +81,7 @@ typedef struct {
     XtGeometryMask last_query_mode;
 #ifndef OLDXAW
     XawDisplayList *display_list;
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } BoxPart;
 

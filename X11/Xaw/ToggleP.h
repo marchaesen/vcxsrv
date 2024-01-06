@@ -76,7 +76,7 @@ typedef struct {
     /* private */
     RadioGroup *radio_group;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } TogglePart;
 

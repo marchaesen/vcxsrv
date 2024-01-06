@@ -45,9 +45,9 @@ SOFTWARE.
 
 ******************************************************************/
 
-/* 
+/*
  * TranslateI.h - Header file private to translation management
- * 
+ *
  * Author:	Gabe Beged-Dov, HP
  *
  * Former Author:	Charles Haynes
@@ -380,7 +380,7 @@ extern void _XtPopup(
     _XtBoolean	/* spring_loaded */
 );
 
-extern String _XtPrintXlations(
+extern _XtString _XtPrintXlations(
     Widget		/* w */,
     XtTranslations 	/* xlations */,
     Widget		/* accelWidget */,

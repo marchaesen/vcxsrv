@@ -362,7 +362,7 @@ void XawTextDisplayCaret
 _XFUNCPROTOEND
 
 /*
- * For R3 compatability only
+ * For R3 compatibility only
  */
 #include <X11/Xaw/AsciiSrc.h>
 #include <X11/Xaw/AsciiSink.h>
