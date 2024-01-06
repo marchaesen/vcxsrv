@@ -271,7 +271,6 @@ winClipboardProc(char *szDisplay, xcb_auth_info_t *auth_info)
 
     data.incr = NULL;
     data.incrsize = 0;
-    data.incrsize = 0;
     winDebug ("winClipboardProc - Started\n");
     /* Signal that the clipboard client has started */
     g_fClipboardStarted = TRUE;
