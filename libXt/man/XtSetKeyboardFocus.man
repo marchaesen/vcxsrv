@@ -34,60 +34,32 @@
 .ds Vn 2.2
 .hw XtSet-Keyboard-Focus wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetKeyboardFocus __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetKeyboardFocus \- focus events on a child widget
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-XtSetKeyboardFocus(Widget \fIsubtree\fP, Widget \fIdescendant\fP);
+void XtSetKeyboardFocus(Widget \fIsubtree\fP, Widget \fIdescendant\fP);
 .SH ARGUMENTS
 .IP \fIsubtree\fP 1i
 Specifies either the widget in the subtree structure which is to receive the
 keyboard event, or
-.ZN None .
+.BR None .
 Note that it is not an error to specify
-.ZN None
+.B None
 when no input focus was previously set.
-.ds Wi for which the keyboard focus is to be set
 .IP \fIdescendant\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget for which the keyboard focus is to be set.
 .SH DESCRIPTION
 If a future
-.ZN KeyPress
+.B KeyPress
 or
-.ZN KeyRelease
+.B KeyRelease
 event occurs within the specified subtree,
-.ZN XtSetKeyboardFocus
+.B XtSetKeyboardFocus
 causes
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 to remap and send the event to the specified descendant widget.
 .LP
 When there is no modal cascade,
@@ -104,20 +76,20 @@ and the pointer is within W.
 When there is a modal cascade,
 a widget W receives keyboard events if an ancestor of W is in the active
 subset of the modal cascade and one or more of the previous conditions is
-.ZN True .
+.BR True .
 .LP
 When subtree or one of its descendants acquires the X input focus
 or the pointer moves into the subtree such that keyboard events would
 now be delivered to subtree, a
-.ZN FocusIn
+.B FocusIn
 event is generated for the descendant if
-.ZN FocusNotify
+.B FocusNotify
 events have been selected by the descendant.
 Similarly, when W loses the X input focus
 or the keyboard focus for one of its ancestors, a
-.ZN FocusOut
+.B FocusOut
 event is generated for descendant if
-.ZN FocusNotify
+.B FocusNotify
 events have been selected by the descendant.
 .SH "SEE ALSO"
 XtCallAcceptFocus(__libmansuffix__)

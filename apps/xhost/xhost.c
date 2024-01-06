@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2000, 2004, 2022, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -123,6 +123,13 @@ extern int getdomainname(char *name, size_t len);
 #endif
 #endif
 
+#ifdef USE_GETTEXT
+# include <locale.h>	/* setlocale()  */
+# include <libintl.h>	/* gettext(), textdomain(), etc. */
+#else
+# define gettext(a) (a)
+#endif
+
 static int change_host(Display *dpy, char *name, Bool add);
 static const char *get_hostname(XHostAddress *ha);
 static int local_xerror(Display *dpy, XErrorEvent *rep);
@@ -185,15 +192,29 @@ main(int argc, char *argv[])
     Bool enabled = False;
     Display *dpy;
  
+#ifdef USE_GETTEXT
+    const char *domaindir;
+
+    setlocale(LC_ALL, "");
+    textdomain("xhost");
+
+    /* mainly for debugging */
+    if ((domaindir = getenv("TEXTDOMAINDIR")) == NULL) {
+	domaindir = LOCALEDIR;
+    }
+    bindtextdomain("xhost", domaindir);
+#endif
+
     ProgramName = argv[0];
 
     if (argc == 2 && !strcmp(argv[1], "-help")) {
-	fprintf(stderr, "usage: %s [[+-]hostname ...]\n", argv[0]);
+	fprintf(stderr, gettext("usage: %s [[+-]hostname ...]\n"), argv[0]);
 	exit(1);
     }
 
     if ((dpy = XOpenDisplay(NULL)) == NULL) {
-	fprintf(stderr, "%s:  unable to open display \"%s\"\n",
+	fprintf(stderr,
+		gettext("%s:  unable to open display \"%s\"\n"),
 		ProgramName, XDisplayName (NULL));
 	exit(1);
     }
@@ -205,9 +226,9 @@ main(int argc, char *argv[])
 	sethostent(1);		/* don't close the data base each time */
 	list = XListHosts(dpy, &nhosts, &enabled);
 	if (enabled)
-	    printf ("access control enabled, only authorized clients can connect\n");
+	    printf (gettext("access control enabled, only authorized clients can connect\n"));
 	else
-	    printf ("access control disabled, clients can connect from any host\n");
+	    printf (gettext("access control disabled, clients can connect from any host\n"));
 
 	if (nhosts != 0) {
 	    for (i = 0; i < nhosts; i++ )  {
@@ -236,16 +257,16 @@ main(int argc, char *argv[])
 			printf("SI:");
 			break;
 		    default:
-			printf("<unknown family type %d>:", list[i].family);
+			printf(gettext("<unknown family type %d>:"), list[i].family);
 			break;
 		    }
 		    printf ("%s", hostname);
 		} else {
-		    printf ("<unknown address in family %d>",
+		    printf (gettext("<unknown address in family %d>"),
 			    list[i].family);
 		}
 		if (nameserver_timedout) {
-		    printf("\t(no nameserver response within %d seconds)\n",
+		    printf(gettext("\t(no nameserver response within %d seconds)\n"),
 			   NAMESERVER_TIMEOUT);
 		    nameserver_timedout = 0;
 		} else
@@ -262,26 +283,26 @@ main(int argc, char *argv[])
 	if (*arg == '-') {
 	    
 	    if (!argv[i][1] && ((i+1) == argc)) {
-		printf ("access control enabled, only authorized clients can connect\n");
+		printf (gettext("access control enabled, only authorized clients can connect\n"));
 		XEnableAccessControl(dpy);
 	    } else {
 		arg = argv[i][1]? &argv[i][1] : argv[++i];
 		if (!change_host (dpy, arg, False)) {
-		    fprintf (stderr, "%s:  bad hostname \"%s\"\n",
+		    fprintf (stderr, gettext("%s:  bad hostname \"%s\"\n"),
 			     ProgramName, arg);
 		    nfailed++;
 		}
 	    }
 	} else {
 	    if (*arg == '+' && !argv[i][1] && ((i+1) == argc)) {
-		printf ("access control disabled, clients can connect from any host\n");
+		printf (gettext("access control disabled, clients can connect from any host\n"));
 		XDisableAccessControl(dpy);
 	    } else {
 		if (*arg == '+') {
 		    arg = argv[i][1]? &argv[i][1] : argv[++i];
 		}
 		if (!change_host (dpy, arg, True)) {
-		    fprintf (stderr, "%s:  bad hostname \"%s\"\n",
+		    fprintf (stderr, gettext("%s:  bad hostname \"%s\"\n"),
 			     ProgramName, arg);
 		    nfailed++;
 		}
@@ -322,12 +343,13 @@ change_host(Display *dpy, char *name, Bool add)
 #endif
 #endif
     char *cp;
-    static const char *add_msg = "being added to access control list";
-    static const char *remove_msg = "being removed from access control list";
+    const char *add_msg = gettext("being added to access control list");
+    const char *remove_msg = gettext("being removed from access control list");
 
     namelen = strlen(name);
     if ((lname = (char *)malloc(namelen+1)) == NULL) {
-	fprintf (stderr, "%s: malloc bombed in change_host\n", ProgramName);
+	fprintf (stderr, gettext("%s: malloc bombed in change_host\n"),
+		 ProgramName);
 	exit (1);
     }
     for (i = 0; i < namelen; i++) {
@@ -339,7 +361,7 @@ change_host(Display *dpy, char *name, Bool add)
 	family = FamilyInternet;
 	name += 5;
 #else
-	fprintf (stderr, "%s: not compiled for TCP/IP\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for TCP/IP\n"), ProgramName);
 	free(lname);
 	return 0;
 #endif
@@ -349,7 +371,7 @@ change_host(Display *dpy, char *name, Bool add)
 	family = FamilyInternet6;
 	name += 6;
 #else
-	fprintf (stderr, "%s: not compiled for IPv6\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for IPv6\n"), ProgramName);
 	free(lname);
 	return 0;
 #endif
@@ -361,14 +383,14 @@ change_host(Display *dpy, char *name, Bool add)
 	family = FamilyInternet6;
 	name += 7;
 #else
-	fprintf (stderr, "%s: not compiled for IPv6\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for IPv6\n"), ProgramName);
 	free(lname);
 	return 0;
 #endif
     }
 #endif /* ACCEPT_INETV6 */
     else if (!strncmp("dnet:", lname, 5)) {
-	fprintf (stderr, "%s: not compiled for DECnet\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for DECnet\n"), ProgramName);
 	free(lname);
 	return 0;
     }
@@ -377,7 +399,7 @@ change_host(Display *dpy, char *name, Bool add)
 	family = FamilyNetname;
 	name += 4;
 #else
-	fprintf (stderr, "%s: not compiled for Secure RPC\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for Secure RPC\n"), ProgramName);
 	free(lname);
 	return 0;
 #endif
@@ -387,7 +409,7 @@ change_host(Display *dpy, char *name, Bool add)
 	family = FamilyKrb5Principal;
 	name +=4;
 #else
-	fprintf (stderr, "%s: not compiled for Kerberos 5\n", ProgramName);
+	fprintf (stderr, gettext("%s: not compiled for Kerberos 5\n"), ProgramName);
 	free(lname);
 	return 0;
 #endif
@@ -400,11 +422,21 @@ change_host(Display *dpy, char *name, Bool add)
 	name += 3;
     }
     if (family == FamilyWild && (cp = strchr(lname, ':'))) {
-	*cp = '\0';
-	fprintf (stderr, "%s: unknown address family \"%s\"\n",
-		 ProgramName, lname);
-	free(lname);
-	return 0;
+#ifdef IPv6
+	/*
+	 * Check to see if inet_pton() can grok it as an IPv6 address
+	 */
+	if (inet_pton(AF_INET6, lname, &addr6.s6_addr) == 1) {
+	    family = FamilyInternet6;
+	} else
+#endif
+	{
+	    *cp = '\0';
+	    fprintf (stderr, gettext("%s: unknown address family \"%s\"\n"),
+		     ProgramName, lname);
+	    free(lname);
+	    return 0;
+	}
     }
     free(lname);
 
@@ -414,8 +446,8 @@ change_host(Display *dpy, char *name, Bool add)
 
 	cp = strchr(name, ':');
 	if (cp == NULL || cp == name) {
-	    fprintf(stderr, 
-	   "%s: type must be specified for server interpreted family \"%s\"\n",
+	    fprintf(stderr, gettext(
+	  "%s: type must be specified for server interpreted family \"%s\"\n"),
 	      ProgramName, name);
 	    return 0;
 	}
@@ -443,7 +475,7 @@ change_host(Display *dpy, char *name, Bool add)
 	retval = krb5_parse_name(name, &princ);
 	if (retval) {
 	    krb5_init_ets();	/* init krb errs for error_message() */
-	    fprintf(stderr, "%s: cannot parse Kerberos name: %s\n",
+	    fprintf(stderr, gettext("%s: cannot parse Kerberos name: %s\n"),
 		    ProgramName, error_message(retval));
 	    return 0;
 	}
@@ -470,7 +502,7 @@ change_host(Display *dpy, char *name, Bool add)
 	    XAddHost(dpy, &ha);
 	else
 	    XRemoveHost(dpy, &ha);
-	printf( "non-network local connections %s\n", add ? add_msg : remove_msg);
+	printf( gettext("non-network local connections %s\n"), add ? add_msg : remove_msg);
 	return 1;
     }
     /*
@@ -489,12 +521,12 @@ change_host(Display *dpy, char *name, Bool add)
 	    *cp = '\0';
 	    pwd = getpwnam(name);
 	    if (!pwd) {
-		fprintf(stderr, "no such user \"%s\"\n", name);
+		fprintf(stderr, gettext("no such user \"%s\"\n"), name);
 		return 0;
 	    }
 	    getdomainname(domainname, sizeof(domainname));
 	    if (!user2netname(username, pwd->pw_uid, domainname)) {
-		fprintf(stderr, "failed to get netname for \"%s\"\n", name);
+		fprintf(stderr, gettext("failed to get netname for \"%s\"\n"), name);
 		return 0;
 	    }
 	    netname = username;
@@ -515,13 +547,18 @@ change_host(Display *dpy, char *name, Bool add)
     }
 #ifdef NEEDSOCKETS
     /*
-     * First see if inet_addr() can grok the name; if so, then use it.
+     * First see if inet_aton/inet_addr can grok the name; if so, then use it.
      */
     if (((family == FamilyWild) || (family == FamilyInternet)) &&
-	((addr.s_addr = inet_addr(name)) != -1)) {
+#ifdef HAVE_INET_ATON
+	(inet_aton (name, &addr) != 0)
+#else
+	((addr.s_addr = inet_addr(name)) != -1)
+#endif
+        ) {
 	ha.family = FamilyInternet;
-	ha.length = 4;		/* but for Cray would be sizeof(addr.s_addr) */
-	ha.address = (char *)&addr; /* but for Cray would be &addr.s_addr */
+	ha.length = sizeof(addr.s_addr);
+	ha.address = (char *) &addr.s_addr;
 	if (add) {
 	    XAddHost (dpy, &ha);
 	    printf ("%s %s\n", name, add_msg);
@@ -601,7 +638,7 @@ change_host(Display *dpy, char *name, Bool add)
 		familyMsg = "inet ";
 	    }
 
-	    fprintf(stderr, "%s: unable to get %saddress for \"%s\"\n",
+	    fprintf(stderr, gettext("%s: unable to get %saddress for \"%s\"\n"),
 		ProgramName, familyMsg, name);
 	}
 	freeaddrinfo(addresses);
@@ -688,6 +725,8 @@ get_hostname(XHostAddress *ha)
 #endif
 	    sin->sin_family = AF_INET;
 	    sin->sin_port = 0;
+	    if (sizeof(sin->sin_addr) > ha->length)
+		return "";
 	    memcpy(&sin->sin_addr, ha->address, sizeof(sin->sin_addr));
 	    saddrlen = sizeof(struct sockaddr_in);
 	} else {
@@ -697,6 +736,8 @@ get_hostname(XHostAddress *ha)
 #endif
 	    sin6->sin6_family = AF_INET6;
 	    sin6->sin6_port = 0;
+	    if (sizeof(sin6->sin6_addr) > ha->length)
+		return "";
 	    memcpy(&sin6->sin6_addr, ha->address, sizeof(sin6->sin6_addr));
 	    saddrlen = sizeof(struct sockaddr_in6);
 	}
@@ -839,13 +880,13 @@ local_xerror(Display *dpy, XErrorEvent *rep)
 {
     if ((rep->error_code == BadAccess) && (rep->request_code == X_ChangeHosts)) {
 	fprintf (stderr, 
-		 "%s:  must be on local machine to add or remove hosts.\n",
+		 gettext("%s:  must be on local machine to add or remove hosts.\n"),
 		 ProgramName);
 	return 1;
     } else if ((rep->error_code == BadAccess) && 
 	       (rep->request_code == X_SetAccessControl)) {
 	fprintf (stderr, 
-	"%s:  must be on local machine to enable or disable access control.\n",
+		 gettext("%s:  must be on local machine to enable or disable access control.\n"),
 		 ProgramName);
 	return 1;
     } else if ((rep->error_code == BadValue) && 

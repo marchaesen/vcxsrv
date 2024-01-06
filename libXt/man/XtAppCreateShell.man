@@ -33,72 +33,43 @@
 .ds Vn 2.2
 .hw XtApp-Create-Shell XtVa-App-Create-Shell wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppCreateShell __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppCreateShell, XtVaAppCreateShell \- create top-level widget instance
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtAppCreateShell(String \fIapplication_name\fP, String
-\fIapplication_class\fP, WidgetClass \fIwidget_class\fP, Display
-*\fIdisplay\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
+Widget XtAppCreateShell(const char *\fIapplication_name\fP,
+const char *\fIapplication_class\fP, WidgetClass \fIwidget_class\fP,
+Display *\fIdisplay\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 .HP
-Widget XtVaAppCreateShell(String \fIapplication_name\fP, String
+Widget XtVaAppCreateShell(const char * \fIapplication_name\fP, const char *
 \fIapplication_class\fP, WidgetClass \fIwidget_class\fP, Display
 *\fIdisplay\fP, ...\^);
 .SH ARGUMENTS
 .IP \fIapplication_name\fP 1i
 Specifies the name of the application instance.
-.ds Ac , which usually is the generic name for all instances of this application
 .IP \fIapplication_class\fP 1i
-Specifies the class name of this application\*(Ac.
-.ds Wc \ that the application top-level widget should be
+Specifies the class name of this application, which 
+usually is the generic name for all instances of this application.
 .IP \fIwidget_class\fP 1i
-Specifies the widget class\*(Wc.
-.ds Di \ from which to get the resources
+Specifies the widget class that the application top-level widget should be.
 .IP \fIdisplay\fP 1i
-Specifies the display\*(Di.
+Specifies the display from which to get the resources.
 .IP \fIargs\fP 1i
-Specifies the argument list\*(Di.
+Specifies the argument list from which to get the resources.
 .IP \fInum_args\fP 1i
 Specifies the number of arguments in the argument list.
 .IP \fI...\fP 1i
-Specifies the variable argument list\*(Di.
+Specifies the variable argument list from which to get the resources.
 .SH DESCRIPTION
 The
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 function saves the specified application name and application class
 for qualifying all widget resource specifiers.
 The application name and application class are used as the left-most components
 in all widget resource names for this application.
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 should be used to create a new logical application within a program
 or to create a shell on another display.
 In the first case,
@@ -107,7 +78,7 @@ In the second case,
 it uses the resource database associated with the other display.
 .LP
 Note that the widget returned by
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 has the \s-1WM_COMMAND\s+1
 property set for session managers (see Chapter 4).
 .SH "SEE ALSO"

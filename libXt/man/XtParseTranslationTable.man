@@ -32,42 +32,16 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtParse-Translation-Table XtAugment-Translations XtOverride-Translations XtUninstall-Translations wid-get
+.hw XtParse-Translation-Table XtAugment-Translations XtOverride-Translations
+.hw XtUninstall-Translations wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtParseTranslationTable __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtParseTranslationTable, XtAugmentTranslations, XtOverrideTranslations, XtUninstallTranslations \- manage translation tables
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-XtTranslations XtParseTranslationTable(String \fItable\fP);
+XtTranslations XtParseTranslationTable(const char *\fItable\fP);
 .HP
 void XtAugmentTranslations(Widget \fIw\fP, XtTranslations \fItranslations\fP);
 .HP
@@ -80,22 +54,21 @@ void XtUninstallTranslations(Widget \fIw\fP);
 Specifies the translation table to compile.
 .IP \fItranslations\fP 1i
 Specifies the compiled translation table to merge in (must not be NULL).
-.ds Wi into which the new translations are to be merged or removed
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget into which the new translations are to be merged or removed.
 .SH DESCRIPTION
 The
-.ZN XtParseTranslationTable
+.B XtParseTranslationTable
 function compiles the translation table into the opaque internal representation
 of type
-.ZN XtTranslations .
+.BR XtTranslations .
 Note that if an empty translation table is required for any purpose,
 one can be obtained by calling
-.ZN XtParseTranslationTable
+.B XtParseTranslationTable
 and passing an empty string.
 .LP
 The
-.ZN XtAugmentTranslations
+.B XtAugmentTranslations
 function nondestructively merges the new translations into the existing widget
 translations.
 If the new translations contain an event or event sequence that
@@ -103,7 +76,7 @@ already exists in the widget's translations,
 the new translation is ignored.
 .LP
 The
-.ZN XtOverrideTranslations
+.B XtOverrideTranslations
 function destructively merges the new translations into the existing widget
 translations.
 If the new translations contain an event or event sequence that
@@ -111,12 +84,12 @@ already exists in the widget's translations,
 the new translation is merged in and override the widget's translation.
 .LP
 To replace a widget's translations completely, use
-.ZN XtSetValues
+.B XtSetValues
 on the XtNtranslations resource and specify a compiled translation table
 as the value.
 .LP
 The
-.ZN XtUninstallTranslations
+.B XtUninstallTranslations
 function causes the entire translation table for widget to be removed.
 .SH "SEE ALSO"
 XtAppAddActions(__libmansuffix__),

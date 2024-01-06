@@ -156,7 +156,7 @@ typedef struct _MultiSrcPart {
     XawTextPosition length;	/* length of file - IN CHARACTERS, NOT BYTES */
     MultiPiece *first_piece;	/* first piece of the text */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } MultiSrcPart;
 

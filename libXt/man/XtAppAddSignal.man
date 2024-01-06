@@ -31,40 +31,17 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
+.ie \n(.g .ds `` \(lq
+.el       .ds `` ``
+.ie \n(.g .ds '' \(rq
+.el       .ds '' ''
 .hw XtApp-Add-Signal wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddSignal __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddSignal, XtRemoveSignal, XtNoticeSignal \- register and remove a signal source
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtSignalId XtAppAddSignal(XtAppContext \fIapp_context\fP, XtSignalCallbackProc
 \fIproc\fP, XtPointer \fIclient_data\fP);
@@ -80,51 +57,54 @@ Specifies the argument that is to be passed to the specified procedure
 when a signal has been raised.
 .IP \fIid\fP 1i
 Specifies the ID returned from the corresponding
-.ZN XtAppAddSignal
+.B XtAppAddSignal
 call.
 .IP \fIproc\fP 1i
 Specifies the procedure that is to be called when the signal has been
 raised.
 .SH DESCRIPTION
 The
-.ZN XtAppAddSignal
+.B XtAppAddSignal
 function initiates a mechanism for handling signals within the context
-of the Intrinsics. Prior to establishing an operating system dependent
+of the Intrinsics.
+Prior to establishing an operating system dependent
 signal handler the application may call
-.ZN XtAppAddSignal
+.B XtAppAddSignal
 and store the returned \fIid\fP in a place accessible to the signal
 handler.
 .LP
 Upon receipt of a signal from the operating system, the application may
 call
-.ZN XtNoticeSignal
+.B XtNoticeSignal
 passing the \fIid\fP returned by the call to
-.ZN XtAppAddSignal .
+.BR XtAppAddSignal .
 .LP
-.ZN XtNoticeSignal
+.B XtNoticeSignal
 is the only Intrinsics function that can safely be called from a signal
-handler. If
-.ZN XtNoticeSignal
+handler.
+If
+.B XtNoticeSignal
 is called multiple times before the Intrinsics are able to invoke the
-registered callback, the callback is only called once. Logically the
-Intrinsics maintain ``pending'' for each registered callback. This
-flag is initially
-.ZN False
+registered callback, the callback is only called once.
+Logically the
+Intrinsics maintain \*(``pending\*('' for each registered callback.
+This flag is initially
+.B False
 and is set to
-.ZN True
+.B True
 by
-.ZN XtNoticeSignal ;
+.BR XtNoticeSignal ;
 the Intrinsics invoke the callback whenever the flag is
-.ZN True ,
+.BR True ,
 and the flag is set to
-.ZN False
+.B False
 just before the callback is invoked.
 .LP
 The
-.ZN XtRemoveSignal
-function is called to remove the specified Intrinsics signal handler. The
-client should disable the source of the signal before calling
-.ZN XtRemoveSignal .
+.B XtRemoveSignal
+function is called to remove the specified Intrinsics signal handler.
+The client should disable the source of the signal before calling
+.BR XtRemoveSignal .
 .SH "SEE ALSO"
 XtAppAddTimeOut(__libmansuffix__),XtAppAddInput(__libmansuffix__),XtAppAddWorkProc(__libmansuffix__)
 .br

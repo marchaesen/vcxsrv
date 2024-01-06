@@ -1,3 +1,374 @@
+commit 3c0bca45d61982295ae0051fb874d57dc3d6f327
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Thu Dec 8 10:39:07 2022 -0500
+
+    libxkbfile 1.1.2
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit b7c76402831a91a4f0867c03e2f403c9c4c7dca1
+Author: Matt Turner <mattst88@gmail.com>
+Date:   Tue Nov 29 12:07:53 2022 -0500
+
+    configure: Use AC_SYS_LARGEFILE to enable large file support
+    
+    Signed-off-by: Matt Turner <mattst88@gmail.com>
+
+commit f855ea9cf3aecc74c3b07da924ff2e36944e4be1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Oct 17 19:00:30 2022 -0700
+
+    libxkbfile 1.1.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 04336c9260b2d130f57fcf3dedc3ba73bb45889d
+Author: Ran Benita <ran234@gmail.com>
+Date:   Wed Aug 29 12:33:33 2012 +0300
+
+    Fix check for appending '|' character when applying rules
+    
+    There are two ways to separate multiple files in XKB include statements:
+    '+' will cause the later file to override the first in case of conflict,
+    while '|' will cause it augment it (this is done by xkbcomp). '!' is
+    unrelated here.
+    Currently, if someone tries to use '|' in a rule instead of '+', it
+    won't have any effect. Since '|' is practically never used, this wasn't
+    noticed.
+    
+    Signed-off-by: Ran Benita <ran234@gmail.com>
+
+commit 6fa239504743475d566f53c278dae0f651ea199c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 15:41:39 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4939a3e9d584ab46f1d082f6a61b3cd307614150
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 15:40:34 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 849d0b22ec46bee1f72170722bde8d493ce163ba
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 17 15:39:10 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e51e5c704c5bd7a91233b37f0cf4beaef6f06a5d
+Author: Benno Schulenberg <bensberg@telfort.nl>
+Date:   Sun Jun 5 09:15:05 2022 +0200
+
+    fix an off-by-one error in copying the name of a virtual modifier
+    
+    This fixes issue #9.
+    
+    Bug existed since commit 816a8db326 from sixteen years ago.
+    
+    Signed-off-by: Benno Schulenberg <bensberg@telfort.nl>
+
+commit 8e45c7f55dcb35ae710a223a28fb6d6443c711c6
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Wed Sep 2 14:19:44 2020 +1000
+
+    unifdef NOTYET
+    
+    This has been ifdef'd out since at least 2003, time to accept that it won't be
+    handled. One part was unreachable code anyway, the second part affects
+    GeomDoodads which are unnecessary and barely used anyway.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 81e8b72daf3ad0a3f36e4ae0ef6b38e427e251b5
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Fri Jun 19 14:34:51 2020 +1000
+
+    Escape non-printable characters correctly
+    
+    This is the equivalent patch to xserver commit
+    eaf1f72ed8994b708d94ec2de7b1a99f5c4a39b8:
+    
+     XkbStringText escapes non-printable characters using octal numbers. Such escape
+     sequence would be at most 5 characters long ("\0123"), so it reserves 5 bytes
+     in the buffer. Due to char->unsigned int conversion, it would print much longer
+     string for negative numbers.
+    
+    Fixes https://gitlab.freedesktop.org/xorg/lib/libxkbfile/-/issues/8
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 6c4de3386ee102040fc567708958a60a9d254b02
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 29 19:07:43 2019 -0700
+
+    Convert check for strcasecmp to normal autoconf style
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2d017a68e12acf2463edc9cfbdae0aea3ce477b1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Mar 29 19:02:51 2019 -0700
+
+    Use strndup if available to avoid -Wstringop-overflow warning from gcc 9
+    
+    Reported in https://gitlab.freedesktop.org/xorg/lib/libxkbfile/issues/5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 261992d42905f209cd5bf6afcf8a7ae3aa30b3ff
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 16 11:30:41 2019 -0700
+
+    libxkbfile 1.1.0
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 306087b60496d6493323433573ee9b9fb392dd7b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 16 11:22:06 2019 -0700
+
+    Add description of libxkbfile to README.md
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 28822317438b6800435145a0312dbce59a03eaa3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 7 19:44:24 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 340581e83d57414b5f33fd2f9f22fdfebf0d4b8d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 19 23:07:00 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b660c757e308b7c561dba16d45d18863bfa2973e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 10 13:21:42 2018 -0800
+
+    Remove obsolete B16 & B32 tags in struct definitions
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d2ec504fec2550f4fd046e801b34317ef4a4bab9
+Author: Martin Burggraf <TSO@gmx.net>
+Date:   Thu Aug 13 21:16:40 2015 +0200
+
+    correcting mathematical nonsense
+    
+    V2: Fixing the issue with numbers between 0 -1
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1c070d1153e293169909b0fc8e9ff65be9121fa0
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:49 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 9e39e36316f3dd28b1fd6f71562ec93bce2da35a
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit cfea939bb7d61d51b74493d77294010ddef490f0
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit 56fa447282c47bf23d05e18a42bbd0184dbd8302
+Author: Andreas Wettstein <wettstein509@solnet.ch>
+Date:   Sat Feb 15 17:35:50 2014 +0100
+
+    Fix mistyped argument of sizeof
+    
+    A pointer rather than the buffer was given to sizeof.  As the data to be
+    written is only one or two bytes, a pointer size is at least four bytes, and
+    the buffer has 32 bytes, this error did not have negative effects.
+    
+    Signed-off-by: Andreas Wettstein <wettstein509@solnet.ch>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a594dde52b7903feab839f5cfe08755753aca20e
+Author: Andreas Wettstein <wettstein509@solnet.ch>
+Date:   Sat Feb 15 17:35:29 2014 +0100
+
+    Add support for genKeyEvent flag
+    
+    ActionMessage has an optional flag genKeyEvent.  This change makes sure this
+    flag is printed when it is set.
+    
+    Signed-off-by: Andreas Wettstein <wettstein509@solnet.ch>
+    Reviewed-By: Ran Benita <ran234@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 6223ec08213cb8cc546418690c27e0fdd4f0addd
+Author: Andreas Wettstein <wettstein509@solnet.ch>
+Date:   Sat Feb 15 17:35:09 2014 +0100
+
+    Add missing support for NoLock and NoUnlock flags
+    
+    The LockMods, ISOLock and LockControls support an "affect" flag to selectively
+    enable and disable locking and unlocking for these actions.  This change adds
+    output of these flags.
+    
+    Signed-off-by: Andreas Wettstein <wettstein509@solnet.ch>
+    Reviewed-By: Ran Benita <ran234@gmail.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit de4f2307448583988a55a587cb6a3f43e4868378
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 30 22:24:39 2015 -0700
+
+    libxkbfile 1.0.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 9fa04388dcbb5bf205319569f540a62c03754688
+Author: Jörg Sonnenberger <joerg@NetBSD.org>
+Date:   Wed Nov 26 14:33:38 2014 +0100
+
+    Remove unnecessary check.
+    
+    The vmods member of XkbNamesPtr is an array and thus never NULL.
+    
+    Signed-off-by: Thomas Klausner <wiz@NetBSD.org>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 8a2381c13aecfdb42d85967e060c8818b86119d2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Nov 8 09:33:35 2014 -0800
+
+    Remove check to see if SEEK_SET is defined before using it
+    
+    Other references to SEEK_SET in this file are made without checking,
+    since they assume everyone has either reached C89 by now or will use
+    the fallback #define at the top of the file, so we can stop checking
+    here as well.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3b460259d0d21f9876cacd7e1f305d77b76724f7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 20 12:05:15 2013 -0700
+
+    Constify atom name argument to XkbInternAtom
+    
+    Matches XInternAtom, which it wraps, and quiets a bunch of const warnings
+    in xkbcomp.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Ran Benita <ran234@gmail.com>
+
+commit 390acfe5bb88cdab509b5eaae4041f265e969d2b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 20 12:04:58 2013 -0700
+
+    Convert sprintf calls to snprintf
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Ran Benita <ran234@gmail.com>
+
+commit 455c2f3715456fd88c2741bd2028a9f0a702bb28
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 20 01:11:21 2013 -0700
+
+    Don't dereference xkb pointer until after checking it for NULL
+    
+    Some compilers can perform mind-twistingly evil optimizations
+    if you check for NULL after using it, others just let you segv.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Ran Benita <ran234@gmail.com>
+
+commit 7544a9eb35d5850ae2e68d8cdab50f25ce7cd5d9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 20 01:01:37 2013 -0700
+
+    unifdef -UXKB_IN_SERVER
+    
+    Xserver has its own copy of this code now, so we don't need to keep
+    an unused copy in libxkbfile too.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: Ran Benita <ran234@gmail.com>
+
+commit a945540e6eea9b9303c8f611412ecb58129180e7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Oct 20 00:56:20 2013 -0700
+
+    Convert to X.Org standard indentation style
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7381c2f9013ef7784c78091fa671e652a62ca706
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Jan 18 23:08:24 2013 -0800
+
+    Replace deprecated Automake INCLUDES variable with AM_CPPFLAGS
+    
+    Excerpt https://lists.gnu.org/archive/html/automake/2012-12/msg00038.html
+    
+      - Support for the long-deprecated INCLUDES variable will be removed
+        altogether in Automake 1.14.  The AM_CPPFLAGS variable should be
+        used instead.
+    
+    This variable was deprecated in Automake releases prior to 1.10, which is
+    the current minimum level required to build X.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 875d8f2504b62e4a536269e54f685eb8ff96df3a
+Author: Colin Walters <walters@verbum.org>
+Date:   Wed Jan 4 17:37:06 2012 -0500
+
+    autogen.sh: Implement GNOME Build API
+    
+    http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit c66aabd6b95f8e1fd3428f048c9847912eefe450
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Tue Jan 15 14:28:48 2013 -0500
+
+    configure: Remove AM_MAINTAINER_MODE
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
 commit 5e3da29093ff5d5b6b8805467a523d5cb7663965
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Wed Mar 7 20:37:20 2012 -0800

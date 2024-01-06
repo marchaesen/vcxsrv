@@ -31,50 +31,28 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtDisplay-Initialize XtOpen-Display XtClose-Display XtDatabase XtScreen-Database wid-get
+.hw XtDisplay-Initialize XtOpen-Display XtClose-Display XtDatabase
+.hw XtScreen-Database wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtDisplayInitialize __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtDisplayInitialize, XtOpenDisplay, XtDatabase, XtScreenDatabase, XtCloseDisplay \- initialize, open, or close a display
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtDisplayInitialize(XtAppContext \fIapp_context\fP, Display
-*\fIdisplay\fP, String \fIapplication_name\fP, String \fIapplication_class\fP,
-XrmOptionDescRec *\fIoptions\fP, Cardinal \fInum_options\fP, int *\fIargc\fP,
-String *\fIargv\fP);
+void XtDisplayInitialize(XtAppContext \fIapp_context\fP,
+Display *\fIdisplay\fP,
+const char *\fIapplication_name\fP,
+const char *\fIapplication_class\fP,
+XrmOptionDescRec *\fIoptions\fP, Cardinal \fInum_options\fP,
+int *\fIargc\fP, char **\fIargv\fP);
 .HP
-Display *XtOpenDisplay(XtAppContext \fIapp_context\fP, String
-\fIdisplay_string\fP, String \fIapplication_name\fP, String
-\fIapplication_class\fP, XrmOptionDescRec *\fIoptions\fP, Cardinal
-\fInum_options\fP, int *\fIargc\fP, String *\fIargv\fP);
+Display *XtOpenDisplay(XtAppContext \fIapp_context\fP,
+const char *\fIdisplay_string\fP,
+const char *\fIapplication_name\fP,
+const char *\fIapplication_class\fP,
+XrmOptionDescRec *\fIoptions\fP, Cardinal \fInum_options\fP,
+int *\fIargc\fP, char **\fIargv\fP);
 .HP
 void XtCloseDisplay(Display *\fIdisplay\fP);
 .HP
@@ -88,33 +66,32 @@ Specifies a pointer to the number of command line parameters.
 Specifies the command line parameters.
 .IP \fIapp_context\fP 1i
 Specifies the application context.
-.ds Ac , which usually is the generic name for all instances of this application
 .IP \fIapplication_class\fP 1i
-Specifies the class name of this application\*(Ac.
+Specifies the class name of this application, which usually is the generic name for all instances of this application.
 .IP \fIapplication_name\fP 1i
 Specifies the name of the application instance.
 .IP \fIdisplay\fP 1i
-Specifies the display\*(Di.
+Specifies the display.
 Note that a display can be in at most one application context.
 .IP \fInum_options\fP 1i
 Specifies the number of entries in the options list.
 .IP \fIoptions\fP 1i
 Specifies how to parse the command line for any application-specific resources.
 The options argument is passed as a parameter to
-.ZN XrmParseCommand .
+.BR XrmParseCommand .
 For further information,
 see \fI\*(xL\fP.
 .IP \fIscreen\fP 1i
 Specifies the screen whose resource database is to be returned.
 .SH DESCRIPTION
 The
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 function builds the resource database, calls the Xlib
-.ZN XrmParseCommand
+.B XrmParseCommand
 function to parse the command line,
 and performs other per display initialization.
 After
-.ZN XrmParseCommand
+.B XrmParseCommand
 has been called,
 argc and argv contain only those parameters that
 were not in the standard option table or in the table specified by the
@@ -125,77 +102,78 @@ listing the allowable options.
 On UNIX-based systems,
 the application name is usually the final component of argv[0].
 If the synchronize resource is
-.ZN True
+.B True
 for the specified application,
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 calls the Xlib
-.ZN XSynchronize
+.B XSynchronize
 function to put Xlib into synchronous mode for this display connection.
 If the reverseVideo resource is
-.ZN True ,
+.BR True ,
 the \*(xI exchange
-.ZN XtDefaultForeground
+.B XtDefaultForeground
 and
-.ZN XtDefaultBackground
+.B XtDefaultBackground
 for widgets created on this display.
 (See Section 9.6.1).
 .LP
 The
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 function calls
-.ZN XOpenDisplay
+.B XOpenDisplay
 the specified display name.
 If display_string is NULL,
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 uses the current value of the \-display option specified in argv
 and if no display is specified in argv,
 uses the user's default display (on UNIX-based systems,
 this is the value of the DISPLAY environment variable).
 .LP
 If this succeeds, it then calls
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 and pass it the opened display and
 the value of the \-name option specified in argv as the application name.
 If no name option is specified,
 it uses the application name passed to
-.ZN XtOpenDisplay .
+.BR XtOpenDisplay .
 If the application name is NULL,
 it uses the last component of argv[0].
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 returns the newly opened display or NULL if it failed.
 .LP
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 is provided as a convenience to the application programmer.
 .LP
 The
-.ZN XtCloseDisplay
+.B XtCloseDisplay
 function closes the specified display as soon as it is safe to do so.
 If called from within an event dispatch (for example, a callback procedure),
-.ZN XtCloseDisplay
+.B XtCloseDisplay
 does not close the display until the dispatch is complete.
 Note that applications need only call
-.ZN XtCloseDisplay
+.B XtCloseDisplay
 if they are to continue executing after closing the display;
 otherwise, they should call
-.ZN XtDestroyApplicationContext
+.B XtDestroyApplicationContext
 or just exit.
 .LP
 The
-.ZN XtDatabase
+.B XtDatabase
 function returns the fully merged resource database that was built by
-.ZN XtDisplayInitialize
+.B XtDisplayInitialize
 associated with the display that was passed in.
 If this display has not been initialized by
-.ZN XtDisplayInitialize ,
+.BR XtDisplayInitialize ,
 the results are not defined.
 .LP
 The
-.ZN XtScreenDatabase
+.B XtScreenDatabase
 function returns the fully merged resource database associated with the
-specified screen. If the \fIscreen\fP does not belong to a
-.ZN Display
+specified screen.
+If the \fIscreen\fP does not belong to a
+.B Display
 initialized by
-.ZN XtDisplayInitialize ,
+.BR XtDisplayInitialize ,
 the results are undefined.
 .SH "SEE ALSO"
 XtAppCreateShell(__libmansuffix__),

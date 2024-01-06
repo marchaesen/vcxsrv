@@ -32,6 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include    <X11/fonts/fontmisc.h>
 #include    <X11/fonts/fontstruct.h>
 
@@ -84,12 +85,12 @@ xfont2_font_set_private(FontPtr pFont, int n, pointer ptr)
 
     if (n > pFont->maxPrivate) {
 	if (pFont->devPrivates && pFont->devPrivates != (pointer)(&pFont[1])) {
-	    new = realloc (pFont->devPrivates, (n + 1) * sizeof (pointer));
+	    new = reallocarray (pFont->devPrivates, (n + 1), sizeof (pointer));
 	    if (!new)
 		return FALSE;
 	} else {
 	    /* omg realloc */
-	    new = malloc ((n + 1) * sizeof (pointer));
+	    new = reallocarray (NULL, (n + 1), sizeof (pointer));
 	    if (!new)
 		return FALSE;
 	    if (pFont->devPrivates)

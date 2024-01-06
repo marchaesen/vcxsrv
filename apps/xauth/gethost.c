@@ -201,7 +201,7 @@ struct addrlist *get_address_info (
 #ifdef HAVE_STRLCPY
 	    strlcpy(path, fulldpyname, sizeof(path));
 #else
-	    strncpy(path, fulldpyname, sizeof(path));
+	    strncpy(path, fulldpyname, sizeof(path) - 1);
 	    path[sizeof(path) - 1] = '\0';
 #endif
 	    if (0 == stat(path, &sbuf)) {
@@ -220,10 +220,11 @@ struct addrlist *get_address_info (
 	    if (is_path_to_socket) {
 		/* Use the bundle id (part preceding : in the basename) as our src id */
 		char *c;
+		c = strrchr(fulldpyname, '/');
 #ifdef HAVE_STRLCPY
-		strlcpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
+		strlcpy(buf, (NULL != c) ? c + 1 : fulldpyname, sizeof(buf));
 #else
-		strncpy(buf, strrchr(fulldpyname, '/') + 1, sizeof(buf));
+		strncpy(buf, (NULL != c) ? c + 1 : fulldpyname, sizeof(buf) - 1);
 		buf[sizeof(buf) - 1] = '\0';
 #endif
 

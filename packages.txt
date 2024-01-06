@@ -1,76 +1,76 @@
 bdftopcf-1.1
-encodings-1.0.4
-evieext-1.0.2
-expat-2.1.0
-font-adobe-100dpi-1.0.3
-font-adobe-75dpi-1.0.3
-font-adobe-utopia-100dpi-1.0.4
-font-adobe-utopia-75dpi-1.0.4
-font-adobe-utopia-type1-1.0.4
-font-alias-1.0.3
-font-arabic-misc-1.0.3
-font-bh-100dpi-1.0.3
-font-bh-75dpi-1.0.3
-font-bh-lucidatypewriter-100dpi-1.0.3
-font-bh-lucidatypewriter-75dpi-1.0.3f
-font-bh-ttf-1.0.3
-font-bh-type1-1.0.3
-font-bitstream-100dpi-1.0.3
-font-bitstream-75dpi-1.0.3
+encodings-1.0.7
+evieext-1.1.1
+expat-2.5.0
+font-adobe-100dpi-1.0.4
+font-adobe-75dpi-1.0.4
+font-adobe-utopia-100dpi-1.0.5
+font-adobe-utopia-75dpi-1.0.5
+font-adobe-utopia-type1-1.0.5
+font-alias-1.0.5
+font-arabic-misc-1.0.4
+font-bh-100dpi-1.0.4
+font-bh-75dpi-1.0.4
+font-bh-lucidatypewriter-100dpi-1.0.4
+font-bh-lucidatypewriter-75dpi-1.0.4
+font-bh-ttf-1.0.4
+font-bh-type1-1.0.4
+font-bitstream-100dpi-1.0.4
+font-bitstream-75dpi-1.0.4
 font-bitstream-speedo-1.0.2
-font-bitstream-type1-1.0.3
-font-cronyx-cyrillic-1.0.3
-font-cursor-misc-1.0.3
-font-daewoo-misc-1.0.3
-font-dec-misc-1.0.3
-font-ibm-type1-1.0.3
-font-isas-misc-1.0.3
-font-jis-misc-1.0.3
-font-micro-misc-1.0.3
-font-misc-cyrillic-1.0.3
-font-misc-ethiopic-1.0.3
-font-misc-meltho-1.0.3
-font-misc-misc-1.1.2
-font-mutt-misc-1.0.3
-font-schumacher-misc-1.1.2
-font-screen-cyrillic-1.0.4
-font-sony-misc-1.0.3
-font-sun-misc-1.0.3
-font-util-1.3.1
-font-winitzki-cyrillic-1.0.3
-font-xfree86-type1-1.0.4
+font-bitstream-type1-1.0.4
+font-cronyx-cyrillic-1.0.4
+font-cursor-misc-1.0.4
+font-daewoo-misc-1.0.4
+font-dec-misc-1.0.4
+font-ibm-type1-1.0.4
+font-isas-misc-1.0.4
+font-jis-misc-1.0.4
+font-micro-misc-1.0.4
+font-misc-cyrillic-1.0.4
+font-misc-ethiopic-1.0.5
+font-misc-meltho-1.0.4
+font-misc-misc-1.1.3
+font-mutt-misc-1.0.4
+font-schumacher-misc-1.1.3
+font-screen-cyrillic-1.0.5
+font-sony-misc-1.0.4
+font-sun-misc-1.0.4
+font-util-1.4.1
+font-winitzki-cyrillic-1.0.4
+font-xfree86-type1-1.0.5
 fontconfig git version
-freetype-2.9.1
+freetype-2.13.2
 libX11 git version
 libXau git version
-libXaw-1.0.13
+libXaw-1.0.15
 libXdmcp git version
 libXext git version
-libXfixes-5.0.3
-libXfont2-2.0.3
+libXfixes-6.0.1
+libXfont2-2.0.6
 libXft git version
 libXinerama git version
 libXmu git version
-libXpm-3.5.11
-libXrender-0.9.10
-libXt-1.1.5
+libXpm-3.5.17
+libXrender-0.9.11
+libXt-1.3.0
 libfontenc git version
 libxcb git version
-libxkbfile-1.0.8
+libxkbfile-1.1.2
 mesa git version
 mkfontscale git version
-openssl-3.3.0
+openssl-3.2.0
 pixman git version
 pthreads-w32 git version
-terminus-font-4.30
+terminus-font-4.49.1
 ttf-bitstream-vera-1.10
-xauth-1.1
+xauth-1.1.2
 xbitmaps-1.1.1
-xcalc-1.1
-xcb-util-errors-1.0
+xcalc-1.1.2
+xcb-util-errors-1.0.1
 xcb-proto git version
-xclock-1.0.7
-xhost-1.0.7
+xclock-1.1.1
+xhost-1.0.9
 xkbcomp git version
 xkeyboard-config git version
 xorgproto git version
@@ -78,4 +78,4 @@ xrdb git version
 xserver git version
 xtrans git version
 xwininfo git version
-zlib-1.2.11
+zlib-1.3

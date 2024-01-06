@@ -108,7 +108,7 @@ ParseComment(xpmData *data)
 		n++;
 		s2++;
 	    } while (c == *s2 && *s2 != '\0' && c);
-	    if (*s2 == '\0') {
+	    if (*s2 == '\0' || c == '\0') {
 		/* this is the end of the comment */
 		notend = 0;
 		data->cptr--;
@@ -174,6 +174,10 @@ ParseComment(xpmData *data)
 		notend = 0;
 		Ungetc(data, *s, file);
 	    }
+	    else if (c == EOF) {
+		/* hit end of file before the end of the comment */
+		return XpmFileInvalid;
+	    }
 	}
 	return 0;
     }
@@ -191,19 +195,23 @@ xpmNextString(xpmData *data)
 	register char c;
 
 	/* get to the end of the current string */
-	if (data->Eos)
-	    while ((c = *data->cptr++) && c != data->Eos);
+	if (data->Eos) {
+	    while ((c = *data->cptr++) && c != data->Eos && c != '\0');
+
+	    if (c == '\0')
+		return XpmFileInvalid;
+	}
 
 	/*
 	 * then get to the beginning of the next string looking for possible
 	 * comment
 	 */
 	if (data->Bos) {
-	    while ((c = *data->cptr++) && c != data->Bos)
+	    while ((c = *data->cptr++) && c != data->Bos && c != '\0')
 		if (data->Bcmt && c == data->Bcmt[0])
 		    ParseComment(data);
 	} else if (data->Bcmt) {	/* XPM2 natural */
-	    while ((c = *data->cptr++) == data->Bcmt[0])
+	    while (((c = *data->cptr++) == data->Bcmt[0]) && c != '\0')
 		ParseComment(data);
 	    data->cptr--;
 	}
@@ -212,8 +220,12 @@ xpmNextString(xpmData *data)
 	FILE *file = data->stream.file;
 
 	/* get to the end of the current string */
-	if (data->Eos)
+	if (data->Eos) {
 	    while ((c = Getc(data, file)) != data->Eos && c != EOF);
+
+	    if (c == EOF)
+		return XpmFileInvalid;
+	}
 
 	/*
 	 * then get to the beginning of the next string looking for possible
@@ -230,7 +242,7 @@ xpmNextString(xpmData *data)
 	    Ungetc(data, c, file);
 	}
     }
-    return 0;
+    return XpmSuccess;
 }
 
 
@@ -247,13 +259,13 @@ xpmNextWord(
     int c;
 
     if (!data->type || data->type == XPMBUFFER) {
-	while (isspace(c = *data->cptr) && c != data->Eos)
+	while ((c = *data->cptr) && isspace(c) && (c != data->Eos))
 	    data->cptr++;
 	do {
 	    c = *data->cptr++;
 	    *buf++ = c;
 	    n++;
-	} while (!isspace(c) && c != data->Eos && n < buflen);
+	} while (c && !isspace(c) && (c != data->Eos) && (n < buflen));
 	n--;
 	data->cptr--;
     } else {

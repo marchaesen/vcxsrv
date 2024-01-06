@@ -62,7 +62,7 @@ and
 .SH FUTURE DIRECTIONS
 Hopefully a future release will have a facility similar to
 .B ucs2any
-built into the server, and reencode ISO 10646-1 on the fly, because
+built into the server, and re-encode ISO 10646-1 on the fly, because
 storing the same fonts in many different encodings is clearly a waste of
 storage capacity.
 .SH "SEE ALSO"

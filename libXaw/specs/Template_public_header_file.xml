@@ -10,7 +10,7 @@ operation, or to call a public routine implemented by the widget class.
 <para>
 <!-- .LP -->
 The contents of the Template public header file,
-<function>&lt; X11/Xaw/Template.h &gt;, </function>
+<filename class="headerfile">&lt;X11/Xaw/Template.h&gt;</filename>,
 are:
 </para>
 <literallayout class="monospaced">
@@ -30,18 +30,18 @@ are:
 
 /* Resources:
 
- Name	Class		RepType	Default Value
- ----		-----		-------	-------------
- background	Background		Pixel	XtDefaultBackground
- border	BorderColor		Pixel	XtDefaultForeground
- borderWidth	BorderWidth		Dimension	1
- destroyCallback	Callback		Pointer	NULL
- height	Height		Dimension	0
- mappedWhenManaged	MappedWhenManaged	Boolean	True
- sensitive	Sensitive		Boolean	True
- width	Width		Dimension	0
- x		Position		Position	0
- y		Position		Position	0
+ Name                Class               RepType     Default Value
+ ----                -----               -------     -------------
+ background          Background          Pixel       XtDefaultBackground
+ border              BorderColor         Pixel       XtDefaultForeground
+ borderWidth         BorderWidth         Dimension   1
+ destroyCallback     Callback            Pointer     NULL
+ height              Height              Dimension   0
+ mappedWhenManaged   MappedWhenManaged   Boolean     True
+ sensitive           Sensitive           Boolean     True
+ width               Width               Dimension   0
+ x                   Position            Position    0
+ y                   Position            Position    0
 
 */
 
@@ -84,11 +84,11 @@ convenience procedures, so we need to add
 <!-- .CB -->
 /* Resources:
 	...
- callback	Callback	Callback	NULL
- drawingColor1	Color	Pixel		XtDefaultForeground
- drawingColor2	Color	Pixel		XtDefaultForeground
- exposeCallback	Callback	Callback	NULL
- font		Font	XFontStruct*	XtDefaultFont
+ callback       Callback        Callback        NULL
+ drawingColor1  Color           Pixel           XtDefaultForeground
+ drawingColor2  Color           Pixel           XtDefaultForeground
+ exposeCallback Callback        Callback        NULL
+ font           Font            XFontStruct*    XtDefaultFont
 	...
  */
 
@@ -96,9 +96,9 @@ convenience procedures, so we need to add
 #define XtNdrawingColor2 "drawingColor2"
 #define XtNexposeCallback "exposeCallback"
 
-extern Pixel WindowColor1(\|/* Widget */\|);
-extern Pixel WindowColor2(\|/* Widget */\|);
-extern Font\ \ WindowFont(\|/* Widget */\|);
+extern Pixel WindowColor1(&#x2006;/* Widget */&#x2006;);
+extern Pixel WindowColor2(&#x2006;/* Widget */&#x2006;);
+extern Font  WindowFont(&#x2006;/* Widget */&#x2006;);
 <!-- .CE -->
 </literallayout>
 <para>

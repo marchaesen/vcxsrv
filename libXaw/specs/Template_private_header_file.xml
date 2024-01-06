@@ -8,12 +8,12 @@ that will be required by anticipated subclasses of the widget.
 Information in the private header file is normally hidden from the
 application and is designed to be accessed only through other public
 procedures; e.g.
-<function>XtSetValues .</function>
+<function>XtSetValues</function>.
 </para>
 <para>
 <!-- .LP -->
 The contents of the Template private header file,
-<function>&lt; X11/Xaw/TemplateP.h &gt;, </function>
+<filename class="headerfile">&lt;X11/Xaw/TemplateP.h&gt;</filename>,
 are:
 </para>
 <!-- .CB -->

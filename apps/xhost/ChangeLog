@@ -1,3 +1,159 @@
+commit f9a30c707c14fc1ab75f7cc90c9c1eb6fcec3b6d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Dec 12 15:41:52 2022 -0800
+
+    xhost 1.0.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 728ba52d5dc966e423d9416647c2e903c95d2217
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 3 10:10:05 2022 -0800
+
+    Simplify i18n of 'unable to get ... address for ...' error message
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 167ad7fa3a339da96798da49d05c3125045a87c2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 7 16:03:47 2022 -0800
+
+    Use gettext() to localize messages if available
+    
+    Originally fixed for Solaris in May 2000 by Steve Swales under
+    Sun bug 4256527 "xhost messages not internationalized"
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4b54c211e5e86d6ed62386ad9b7d676808b55766
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 7 14:21:28 2022 -0800
+
+    Recognize raw IPv6 numeric address
+    
+    Originally fixed for Solaris in Oct. 2002 under Sun bug 4759889
+    "xhost does not accept raw IPv6 numeric address"
+    
+    Before this fix:
+    % xhost +2001:DB8::11
+    xhost: unknown address family "2001"
+    xhost:  bad hostname "2001:DB8::11"
+    
+    After this fix:
+    % xhost +2001:DB8::11
+    2001:DB8::11 being added to access control list
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1d7015ba70362b09ac6a001d77e693a03fa0375e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Dec 6 14:31:13 2021 -0800
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8de485ec2760ba7de2391c3864d4fe62ceeb23d6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Dec 6 14:31:10 2021 -0800
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 997135c6e37faa50f8b42a5f95c0cc8461ed6be9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Feb 19 14:50:20 2019 -0800
+
+    xhost 1.0.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0ef87307f77e7e3df04b227046904cecbe6dd3f6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 21 17:06:21 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 136e3be46cbd93a490483126b837f67c391129a1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 16 22:15:54 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 317312bd23cf5c524932c6f12319ed3eed68d981
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 12 14:05:52 2018 -0800
+
+    Drop ancient workarounds for Cray that are no longer needed
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 62bfa9d421138ec538682eb0323fa9f438d6b2c7
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 12 13:27:55 2018 -0800
+
+    Prefer inet_aton, if available, over inet_addr
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0c3627bc7dac395c6af8bd1fb747ef3556e95fb4
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Wed Jul 4 16:20:06 2018 +0200
+
+    Prevent OOB access on illegal server response.
+    
+    While parsing Xorg responses it is possible to trigger an out of
+    boundary read if the response does not contain enough bytes.
+    
+    In case of IPv4, the padding normally prevents this, but IPv6
+    addresses can trigger an out of boundary read.
+    
+    It takes a hostile xorg-server to reproduce this issue. If
+    os/access.c is adjusted to always use a length of 1, it is possible
+    to reproduce it and make it visible with an ASAN-compiled xhost.
+    
+    Reading past the memory boundary could reveal sensitive information
+    to external DNS servers, because a lookup will be performed.
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Reviewed-by: Matthieu Herrb <matthieu@herrb.eu>
+
+commit 28015d91e284ee4b797a6e99ec16d53147c0ddb6
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 14:00:21 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 3ee80cd398579c0f182ff7131ebfe7b65efed72b
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 991e4a8a26e9c03faa291b522067443a8d05af7a
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Sun Sep 14 18:13:28 2014 +0100
+
+    Move sethostent()/gethostent() stubs used in Windows builds to avoid implicit-function-declaration warnings
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: David Macek <david.macek.0@gmail.com>
+
 commit 06d71376aa43f9177ec1e37ed1e4d0faca655cff
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Thu Apr 16 23:28:02 2015 -0700
@@ -714,7 +870,7 @@ Date:   Wed Jul 20 19:31:57 2005 +0000
         configure cache, you cache it, and the cached value is probably wrong.
 
 commit 8b783444a5341f4698027d3a66650c179bc8fa2e
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue Jul 5 21:12:45 2005 +0000
 
     Add autogen.sh for xhost

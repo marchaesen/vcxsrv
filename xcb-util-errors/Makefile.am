@@ -20,8 +20,9 @@ xcbinclude_HEADERS = src/xcb_errors.h
 
 AM_CFLAGS = $(CWARNFLAGS)
 
-libxcb_errors_la_SOURCES = src/xcb_errors.c src/extensions.c
-libxcb_errors_la_CPPFLAGS = $(XCB_CFLAGS) $(XPROTO_CFLAGS)
+libxcb_errors_la_SOURCES = src/xcb_errors.c
+nodist_libxcb_errors_la_SOURCES = src/extensions.c
+libxcb_errors_la_CPPFLAGS = $(XCB_CFLAGS) $(XPROTO_CFLAGS) -I$(srcdir)/src
 libxcb_errors_la_LIBADD = $(XCB_LIBS) $(XPROTO_LIBS)
 libxcb_errors_la_LDFLAGS = -version-info 0:0:0 -no-undefined -export-symbols-regex '^xcb_errors_'
 
@@ -36,5 +37,5 @@ tests_test_LDADD = libxcb-errors.la $(XCB_LIBS)
 CLEANFILES = src/extensions.c
 
 src/extensions.c: src/extensions.py
-	$(AM_V_GEN)src/extensions.py $@.tmp ${XCBPROTO_XCBINCLUDEDIR}/*.xml && \
+	$(AM_V_GEN)$(PYTHON) $(srcdir)/src/extensions.py $@.tmp ${XCBPROTO_XCBINCLUDEDIR}/*.xml && \
 	mv $@.tmp $@

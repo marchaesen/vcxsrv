@@ -34,58 +34,29 @@
 .ds Vn 2.2
 .hw XtSession-Get-Token XtSession-Return-Token wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSessionGetToken __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSessionGetToken, XtSessionReturnToken \- token management for checkpointing
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-XtCheckpointToken XtSessionGetToken(Widget \fIw\fP, int \fItype\fP);
+XtCheckpointToken XtSessionGetToken(Widget \fIw\fP);
 .HP
 void XtSessionReturnToken(XtCheckpointToken \fItoken\fP);
 .SH ARGUMENTS
 .IP \fIw\fP 1i
 Specifies the session widget.
-.IP \fItype\fP 1i
-Specifies the value in the type field of the token.
 .IP \fItoken\fP 1i
 Specifies the token to be returned.
 .SH DESCRIPTION
 The
-.ZN XtSessionGetToken
+.B XtSessionGetToken
 function will return NULL if the checkpoint operation instigated by
 the session manager is not currently under way.
 .LP
 To indicate the completion of a deferred save operation and to return
 the checkpoint token use
-.ZN XtSessionReturnToken .
+.BR XtSessionReturnToken .
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

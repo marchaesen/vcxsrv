@@ -42,26 +42,26 @@ XRenderComposite (Display   *dpy,
 		  unsigned int	width,
 		  unsigned int	height)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo   *info = XRenderFindDisplay (dpy);
     xRenderCompositeReq	    *req;
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderComposite, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderComposite;
-    req->op = (CARD8) op;
-    req->src = src;
-    req->mask = mask;
-    req->dst = dst;
-    req->xSrc = src_x;
-    req->ySrc = src_y;
-    req->xMask = mask_x;
-    req->yMask = mask_y;
-    req->xDst = dst_x;
-    req->yDst = dst_y;
-    req->width = width;
-    req->height = height;
+    req->op     = (CARD8) op;
+    req->src    = (CARD32) src;
+    req->mask   = (CARD32) mask;
+    req->dst    = (CARD32) dst;
+    req->xSrc   = (INT16) src_x;
+    req->ySrc   = (INT16) src_y;
+    req->xMask  = (INT16) mask_x;
+    req->yMask  = (INT16) mask_y;
+    req->xDst   = (INT16) dst_x;
+    req->yDst   = (INT16) dst_y;
+    req->width  = (CARD16) width;
+    req->height = (CARD16) height;
     UnlockDisplay(dpy);
     SyncHandle();
 }

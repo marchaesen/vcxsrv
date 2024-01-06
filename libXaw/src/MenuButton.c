@@ -160,8 +160,8 @@ XawMenuButtonClassInitialize(void)
 
 /*ARGSUSED*/
 static void
-XawMenuButtonInitialize(Widget request, Widget cnew,
-			ArgList args, Cardinal *num_args)
+XawMenuButtonInitialize(Widget request _X_UNUSED, Widget cnew,
+			ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     MenuButtonWidget mbw = (MenuButtonWidget)cnew;
 
@@ -180,8 +180,8 @@ XawMenuButtonDestroy(Widget w)
 
 /*ARGSUSED*/
 static Boolean
-XawMenuButtonSetValues(Widget current, Widget request, Widget cnew,
-		       ArgList args, Cardinal *num_args)
+XawMenuButtonSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+		       ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     MenuButtonWidget mbw_old = (MenuButtonWidget)current;
     MenuButtonWidget mbw_new = (MenuButtonWidget)cnew;
@@ -199,7 +199,7 @@ XawMenuButtonSetValues(Widget current, Widget request, Widget cnew,
 
 /*ARGSUSED*/
 static void
-PopupMenu(Widget w, XEvent *event, String *params, Cardinal *num_params)
+PopupMenu(Widget w, XEvent *event _X_UNUSED, String *params _X_UNUSED, Cardinal *num_params _X_UNUSED)
 {
     MenuButtonWidget mbw = (MenuButtonWidget)w;
     Widget menu = NULL, temp;

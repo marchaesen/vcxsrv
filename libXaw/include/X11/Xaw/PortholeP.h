@@ -47,7 +47,7 @@ typedef struct {
     /* resources */
     XtCallbackList report_callbacks;	/* callback/Callback */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } PortholePart;
 

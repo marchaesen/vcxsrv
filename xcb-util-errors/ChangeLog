@@ -1,3 +1,124 @@
+commit 517dd82c079de762a7426f20166a44f11e8d38c5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Oct 18 18:10:25 2022 -0700
+
+    xcb-util-errors 1.0.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8a2812f60373e961d34eb1222d1a2bc50d1c7403
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:49 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f968311042d6c52edee0d994170ae305c5b2b0bf
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0fb1c07367b41d077321fb9c8e694168771c6a01
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 50574404bd1fcdb61a68f30a0dd0d15b38ee36a3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 31 21:39:32 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3de8874f5db31a9fe107f99c46c8548a05efaef1
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat May 31 21:38:41 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b33178bb4acf6481513aebade309be1f3196173a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Jul 20 15:00:51 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e2bfc8115d0f1f6307c64e8e45d23d4180d399e5
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Jul 20 14:58:19 2022 -0700
+
+    Update m4 to xorg/util/xcb-util-m4@c617eee22ae5c285e79e81
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 4440550bafd3801d7fe6139382051addc4dcefb2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 18 10:20:08 2022 -0700
+
+    Use AC_CONFIG_FILES to replace the deprecated AC_OUTPUT with parameters
+    
+    configure.ac:33: warning: AC_OUTPUT should be used without arguments.
+    configure.ac:33: You should run autoupdate.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a40b2df701657a6e7c927f49cd151a2f04781dba
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jun 18 10:19:06 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5d660ebe872cadcdc85de9d6f9afe05de629c030
+Author: Uli Schlachter <psychon@znc.in>
+Date:   Wed May 6 08:10:53 2015 +0200
+
+    Do not distribute extensions.c and fix out-of-tree builds
+    
+    It all started with src/extensions.c being distributed. Thanks to this, tarballs
+    shipped with this generated file and actually building this file was skipped.
+    Fix this by using the nodist_ variant of the SOURCES variable.
+    
+    Due to this oversight (sorry!), the out-of-tree build wasn't actually tested.
+    The rule that generates src/extensions.c was missing $(srcdir) in front of the
+    path to extensions.py. This rule is now fixed and, as suggested by Daphne
+    Pfister, also changed to explicitly call the python interpreter. Configure is
+    changed to look for it.
+    
+    Finally, extensions.c couldn't include errors.h. This worked before, because the
+    C compiler automatically looks for headers in the same directory as the source
+    file. However, for out-of-tree builds, the source directory and build directory
+    are different. Paper over this problem by explicitly making it look in the right
+    directory.
+    
+    Fixes: https://bugs.freedesktop.org/show_bug.cgi?id=90328
+    Signed-off-by: Uli Schlachter <psychon@znc.in>
+
 commit 332f357aa662ad61625ee804f93c5503b2a0c3ec
 Author: Uli Schlachter <psychon@znc.in>
 Date:   Sun Apr 26 16:07:45 2015 +0200

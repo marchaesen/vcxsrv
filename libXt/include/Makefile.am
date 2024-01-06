@@ -32,7 +32,7 @@ xtinclude_HEADERS = \
 	X11/ThreadsI.h \
 	X11/TranslateI.h \
 	X11/VarargsI.h	\
-	X11/Xtos.h	
+	X11/Xtos.h
 
 
 nodist_xtinclude_HEADERS = \

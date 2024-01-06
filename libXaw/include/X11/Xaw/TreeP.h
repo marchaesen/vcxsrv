@@ -81,7 +81,7 @@ typedef struct {
     Dimension maxwidth, maxheight;	/* for shrink wrapping */
 #ifndef OLDXAW
     XawDisplayList *display_list;
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } TreePart;
 
@@ -110,7 +110,7 @@ typedef struct _TreeConstraintsPart {
     Position x, y;
 #ifndef OLDXAW
     XtPointer pad[2];	/* leave some space for future optimizations, and
-			 * keep binary compatability
+			 * keep binary compatibility
 			 */
 #endif
 } TreeConstraintsPart;

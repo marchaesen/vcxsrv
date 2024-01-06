@@ -30,7 +30,7 @@ resource-name:
 	background
 
 constant-name:
-	Especial values. They aren't normally contants, but a special state
+	Special values. They aren't normally constants, but a special state
 	not triggered with resources or variables (They have the highest
 	precedence, so, to allow these strings as resource names I'll need
 	to allow some sort of escape sequences). Examples:
@@ -189,7 +189,7 @@ Patch 6 (#1701) 24 May 1998
  + Allows setting the resources label_x and label_y inherited from labelWidget.
    This is useful for moving the contents of a button when it is pressed
    ( I included a simple test for it )
- + Added OS/2 patchs
+ + Added OS/2 patches
  + The buffer overflow problems were resolved in a different way. I added
    a function XmuSnprintf, that is used by Xaw and Xmu.
  + Correction of a problem in SimpleMenu, when it tries to optimize the
@@ -199,7 +199,7 @@ Patch 6 (#1701) 24 May 1998
  -----
  + Function XmuNCopyISOLatin1Lowered, defined in <X11/Xmu/CharSet.h>
  + Function XmuSnprintf, defined in <X11/Xmu/SysUtil.h>
- + All ocurrences of sprintf were replaced by XmuSnprintf and all ocurrences
+ + All occurrences of sprintf were replaced by XmuSnprintf and all occurrences
    of XmuCopyISOLatin1Lowered were replaced by XmuNCopyISOLation1Lowered.
 
 
@@ -216,7 +216,7 @@ Patch 7 (#1738) 21 June 1998
     MultiSrc.c:Scan() functions.
   + I added clipping code to the {Ascii,Multi}Sink widgets, to allow use of
     displayList's as decoration. The best solution I found to avoid too much
-    server requests, and keep full binary compatability was to use the resize
+    server requests, and keep full binary compatibility was to use the resize
     method of these widgets, to tell them to the parent widget have changed
     it's size.
   + Now the TextWidget has a xterm/emacs like cursor. And it is possible to
@@ -224,14 +224,14 @@ Patch 7 (#1738) 21 June 1998
   + Fixed several problems caused by code assuming a line of text will be
     shown as one line in the TextWidget. This is not always true when
     it uses XawtextWrapLine or XawTextWrapWord, the most common problem was
-    the cursor becomming invisible, after calling the function
+    the cursor becoming invisible, after calling the function
     Text.c:_XawTextShowPosition() that is called to make sure it is visible ;)
   + Added code that it will not forget the cursor distance from the left of
     the window while moving the cursor one line up or down.
   + Ansification of the text code (not yet complete). Private routines now
     uses prototypes and wide parameters. External routines were kept
     as before (but with prototypes not masked by NeedFunctionPrototypes),
-    to avoid binary compatability problems. The bigger problem I found in the
+    to avoid binary compatibility problems. The bigger problem I found in the
     ansification was a function with 6 parameters being called with only 5.
   + Several routines were rewritten, sometimes from scratch.
   + The cursor navigation of the TextWidget was completely reviewed. It
@@ -239,7 +239,7 @@ Patch 7 (#1738) 21 June 1998
     when the cursor in move one line up or down and becomes invisible; the
     text will be scrolled so that the line with the cursor will be centered
     in the screen. Also, when doing page up, the cursor will be positioned
-    in the bottom-left, instead of allways in the top-left.
+    in the bottom-left, instead of always in the top-left.
 
 Patch 8 (#1752) 27 June 1998
 
@@ -276,11 +276,11 @@ Corrected problem when moving the cursor over a non-printing character,
 Does not allow anymore scrolling of the text width Ctrl+Z if the text has
   only one line, or only one line of text.
 Several changes in the TextWidget. I did not gratuitously break binary
-  compatability. Source compatability is only granted to programs that
+  compatibility. Source compatibility is only granted to programs that
   do not access private structures. This is required because there are
   several changes in the behaviour of the TextWidget, and if a program
   becomes non compilable, it is because it will not work properly with
-  the changes in the text widget (please read bellow for a explanation)
+  the changes in the text widget (please read below for a explanation)
 Better cursor navigation when moving line-up or line-down over a tab:
                 cursor
                 |
@@ -293,10 +293,10 @@ Better cursor navigation when moving line-up or line-down over a tab:
         now:
     tab      |         |#ext
 There were several problems in the Text.c:_XawTextReplace(), when deleting
-  a character and the cursor (shoud be) moved to the previous line. This
+  a character and the cursor (should be) moved to the previous line. This
   problem was corrected.
-The text code was doing too much redrawing! When typping text, it would
-  redraw all the current line at each character typped, and also redraw the
+The text code was doing too much redrawing! When typing text, it would
+  redraw all the current line at each character typed, and also redraw the
   entire window till the bottom. Now it only redraws the minimum necessary
   (and makes a minimum of requests for the Xserver, when clearing areas),
   most of these problems were related to Text.c:_XawTextReplace() (rewritten
@@ -308,16 +308,16 @@ Now, when selecting text, with: button1-down, button1-move, the window will
 Added a set-keyboard-focus translation to the text code, and in the
   default translation, it is called when pressing the left mouse button over
   a text widget (so that the mouse does not need to be over the text window
-  when typping)
+  when typing)
 
-These are the changes to Xaw that made it not fully source compatable (I'm
-open to comments, to make it source compatable, but as I said above, if
+These are the changes to Xaw that made it not fully source compatible (I'm
+open to comments, to make it source compatible, but as I said above, if
 a program does not compile anymore, it is because it is not granted it will
 work properly):
 scrollMode set to WhenNeeded is not supported anymore. I spent several
   hours fighting side-effects caused when a scrollbar is created or destroyed
-  'on demand', and have (after tired of long debug sessions) choosed that
-  it is not required (it saves a lot of potencial unespected conditions
+  'on demand', and have (after tired of long debug sessions) chosen that
+  it is not required (it saves a lot of potential unexpected conditions
   being found by a user). I changed the 'type' of the scroll mode to Boolean,
   so, to have a scrollbar, is enough to say: *Text.scrollVertical: True.
   Since the type now is Boolean, Xt will print warning messages when the
@@ -332,7 +332,7 @@ wrap-mode set to line may not work properly
 wrap-mode set to word does not work properly always (never did)
 the multiply should be setable to a variable value; the default value
   is 4, i.e. Ctrl+U <text+action>
-I will work on the itens listed above, and I'm also planning:
+I will work on the items listed above, and I'm also planning:
 one level undo, for text actions
 C style indentation and 'jumping' the cursor to show matching '(', '['
   and '{'
@@ -345,7 +345,7 @@ Moved the code clipping code I have put in Text.c in my previous patch to
   I get by cutting and pasting code under a #if 0 :(), but it was corrected.
   The code in the new file 'Clip.c' is very useful for creating clipiing lists
   and thus, avoiding too much server requests, or code for the same
-  functionality (poorly) repeteated in several places around the libary. This
+  functionality (poorly) repeteated in several places around the library. This
   code is now heavily used by the TextWidget.
 
 
@@ -363,7 +363,7 @@ Updated the Scrollbar configurations in Xedit.ad
 #1788 12 July 1998
 
 -- TextWidget --
- + Corrected problem whem moving the cursor over a non-printing character
+ + Corrected problem when moving the cursor over a non-printing character
  + Now, does not allow scroll with ^Z when there is only one line of text
  + Automatic resize was removed, it is not required with automatic horizontal
    scroll, but I will look for programs that rely on it; the only program
@@ -372,13 +372,13 @@ Updated the Scrollbar configurations in Xedit.ad
    request.
  + Scroll mode set to "WhenNeeded" was removed. It generates several unespected
    conditions when editing text, and the new feature of automatic scrolling
-   the text widget while typping is more useful.
+   the text widget while typing is more useful.
  + Removed a leak in TextAction.c:AutoFill(), generated by the code
         text.ptr =  (char *)XtMalloc(sizeof(wchar_t) * 2);
    that memory was never released, but the fix was simple, since the amount
    of memory requested is fixed.
  + Several optimizations in the redisplay of the text.
- + Now, wrap mode set to word or line is expected to work, while typping text.
+ + Now, wrap mode set to word or line is expected to work, while typing text.
  + AutoFill will only break lines in word boundaries now.
  + Added a set-keyboard-focus action to TextAction.c, so that when pressing
    the left button over a text widget, it will receive the keyboard focus.
@@ -395,7 +395,7 @@ Updated the Scrollbar configurations in Xedit.ad
 
 -- XAW --
  + I had added a XawStackAlloc definition to "Private.h", to avoid a XtMalloc
-   request for every character typped in TextAction.c:InsertChar(), but
+   request for every character typed in TextAction.c:InsertChar(), but
    when syncing with 3.9Aj, saw that the file "XawAlloc.h" is no longer
    required. Please, remove XawAlloc.h from 3.9Aj.
 
@@ -406,7 +406,7 @@ Updated the Scrollbar configurations in Xedit.ad
 
 -- xedit --
  + Removed a XDefineCursor from xedit.c:main()
- + I have added a XtSetKeyboardFocus in xedit.c:main(), but comented it
+ + I have added a XtSetKeyboardFocus in xedit.c:main(), but commented it
    because it would make xedit unusable with previous versions of Xaw,
    or with the Xaw replacements (Xaw3d, Xaw95 ...)
 
@@ -415,13 +415,13 @@ Comments:
 that code made the cursor do not erase portions of the text while moving the
 it, but it was failing at some places that would need that the TextWidget,
 and not only the {Ascii,Multi}SinkObject had access to the fonts, so I
-choosed to left it to the future (and keep the sources simple, by now).
-The text widget is useable with italic fonts, but fonts with:
+chose to left it to the future (and keep the sources simple, by now).
+The text widget is usable with italic fonts, but fonts with:
         f->per_char[<char> - f->min_char_or_byte2].rbearing
           > f->per_char[<char> - f->min_char_or_byte2].width
 or
         f->per_char[<char> - f->min_char_or_byte2].lbearing < 0
-will not allways be displayed correctly.
+will not always be displayed correctly.
 
   I haved also added a xedit configuration file to this mail.
 
@@ -453,11 +453,11 @@ Corrected problem with the 'virtual' function Layout of the Form widget. That
   calling that function with only 3 parameters; the ansification flagred that
   error.
 TextTr.c was modified to have only one string. I believe that that weird
-  thing was due to the inheritance of compatability with some very old and
+  thing was due to the inheritance of compatibility with some very old and
   probably buggy ld.
-Xaw is expected to be binary compatable with R6.3; there are some
-  preprocessor macros that keeps binary compatability, and unless the gains
-  of breaking binary compatability show worth enough (and people think) it
+Xaw is expected to be binary compatible with R6.3; there are some
+  preprocessor macros that keeps binary compatibility, and unless the gains
+  of breaking binary compatibility show worth enough (and people think) it
   is good that code would be made default, otherwise it will be forgotten.
 I have also added a XFree86 copyright notice to Text.c, since there is
   a very large amount of work in that file (and it is not yet ready).
@@ -526,7 +526,7 @@ also fixed a possible buffer overflow while searching the source of the
    instead of a const if the given atom is 0.
  + Corrected a typo in Xmu.h
  + Several 'ansification' patches, to get function definitions and avoid
-   unecessary definitions.
+   unnecessary definitions.
 
 
 #2028, 2033, 7 Oct 1998
@@ -541,7 +541,7 @@ Added a ^Q<any-char> translation to the text widget, to be able to insert
 Changed TextAction.c:Move() to set ctx->text.showposition, so that even
   if the cursor did not change the position, it will become visible.
 Corrected problem with the 'form-paragraph' translation, so that the
-  text will be always correclty shown.
+  text will be always correctly shown.
 Modified the automatic scrolling of the text to one line at a time, to
   make it easier to see what is being selected.
 Added a 'hack' to be able to type ^U<any-numeric-sequence> to be able
@@ -572,9 +572,9 @@ Added file completion in the filename prompt. This is a very nice
 -- XAW --
 Changed the functions {Ascii,Multi}Sink.c:CharWidth and PaintText, to
   improve speed, and avoid too much recalculations. On normal files, it
-  becames about 5:1 faster, but can go up to 20:1 when editting files with
+  became about 5:1 faster, but can go up to 20:1 when editing files with
   very large lines. Besides this speed improvement, I believe it can
-  surely be made faster (based on comparition with some popular X editors).
+  surely be made faster (based on comparison with some popular X editors).
 Changed the way the AsciiSink prints characters with value bigger than
   126 decimal. Now it prints DEL as ^?, and the other characters as \XXX
   where 'X' is an octal digit. The MultiSink widget was unchanged in this
@@ -582,7 +582,7 @@ Changed the way the AsciiSink prints characters with value bigger than
   xedit -xrm '*international: true'
 Converted all calls to strncpy, in AsciiSrc.c to memcpy, so that the (ascii)
   text widget will work properly with data containing nulls.
-Added a experimental 'Xaw Scan Type' XawstAlphaNumeric, that shoud make
+Added a experimental 'Xaw Scan Type' XawstAlphaNumeric, that should make
   edition of C (or any other language) easier in xedit (i.e. the text widget).
   It can be tested with Ctrl-Left and Ctrl-Right, by now.
 Changed the TextWidget to handle text lines that would result in more than
@@ -591,7 +591,7 @@ Changed the TextWidget to handle text lines that would result in more than
 Changed Text.c:TextScroll() to be smarter when calculating the offset of
   the line table on scroll up.
 Added a nice feature, to show the matching '(', '[' or '{', when a ')',
-  ']' or '}' is typped.
+  ']' or '}' is typed.
 Changed TextAction.c:FormParagraph() to generate only one undo/redo step.
 
 -- xedit --
@@ -619,7 +619,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
    problem, but could left the text window with incorrect data.
  + Moved the undo/redo code to TextSrc.c, and some code/data from
    {Ascii,Multi}Src.c to TextSrc.c. The callback now is called when the
-   source is changed, or becames unchanged due to an undo/redo. Also
+   source is changed, or becomes unchanged due to an undo/redo. Also
    changed the Scan procedure to be a bit faster.
  + The asciiTextWidget will now accept a source or sink object being set at
    creation time.
@@ -703,7 +703,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
    TextWidget's sharing the same source.
  + Added a kill ring list to the text code. This works like the emacs feature,
    but, unlike emacs, it is not required to press C-Y before M-Y, to start
-   looping through the kill ring list. To use it, just press M-Y repeteadly,
+   looping through the kill ring list. To use it, just press M-Y repeatedly,
    and all the text that was killed will be inserted, one at a time, so that
    you can choose one. Note that the text inserted from the kill ring list
    will also enter in the undo list.
@@ -718,7 +718,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
 --- xedit ---
  + Added a few more resource settings to the Xedit-sample file.
  + Added some sanity checkings when trying to save a file. This avoids the
-   case of saving a file with the name of a directory (but moving the directoy
+   case of saving a file with the name of a directory (but moving the directory
    to other name before). A possible case is: have a directory named 'dir',
    saves a file as 'dir', but before saving, renames the directory as 'dir~'.
  + Allows saving a file that xedit thinks is not changed (the file may have
@@ -737,7 +737,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
    text.
 
 -- xedit --
- + Added code to keep the file mode, after saving. This is useful when editting
+ + Added code to keep the file mode, after saving. This is useful when editing
    scripts, so that the executable flag will not be lost after edition.
 
 
@@ -748,7 +748,7 @@ Added a 'hints' feature to xedit. Instead of a 'dead'
   using the international resource.
 Actions.c:
  + Corrected some bugs in the boolean expression parser. The old version would
-   not parse correclty parenthized expressions, and was giving equal precedence
+   not parse correctly parenthized expressions, and was giving equal precedence
    to AND, OR and XOR (what is incorrect).
 AsciiSink.c:
  + Changed to display characters in the range 0x32-0x7e and 0xa0-0xff literally.
@@ -758,7 +758,7 @@ AsciiText.c:
  + Changed the code, so that even if the *international resource is not set,
    _XawImRegister and _XawImUnregister are called for the text widget. This is
    useful for latin-* locales, that use one byte wide characters, and makes Xaw
-   more compatable with modern toolkits, like qt and gtk.
+   more compatible with modern toolkits, like qt and gtk.
 List.c:
  + Added code to work correctly with a background pixmap.
  + Added a smarter code for list window size calculation, that is used if the
@@ -771,7 +771,7 @@ Text.c:
    funcionality was not finished, and by now, it is not required.
 TextAction.c:
  + Does not call XLookpupString in InsertChar any more, but the new function
-   _XawLookupString (in XawIm.c) to work correclty with composed characters.
+   _XawLookupString (in XawIm.c) to work correctly with composed characters.
 XawIm.c:
  + Added the private function _XawLookupString, that just calls XmbLookupString,
    or in case of any initialization error, XLookupString.
@@ -821,8 +821,8 @@ xedit.c:
 
 #2662 10 Apr 1999
 -- Xaw --
- + Corrected the problems gererated in my last patch. I was compiling with
-   -DUSE_XPM defined, and did'nt realize that the patch would not compile
+ + Corrected the problems generated in my last patch. I was compiling with
+   -DUSE_XPM defined, and didn't realize that the patch would not compile
    without it. Just ifdef'ed again the code to avoid warnings or dead code.
 
 -- xedit --
@@ -834,7 +834,7 @@ xedit.c:
     Undo:	When this button is sensitive, allow undoing the last replace,
 		this is useful when doing a incorrect "Replace All" action.
     Ignore:	Ignore this word, and continues spell checking.
-    All (right side of Ignore button): Ignore any further ocurrences of the
+    All (right side of Ignore button): Ignore any further occurrences of the
 				       selected word.
     Add:	Add's the selected word to the user's private dictionary.
     Suspend:	Go back to text edition, but does not kill the ispell process,
@@ -844,7 +844,7 @@ xedit.c:
 		add to your private dictionary.
     Close:	Kill the ispell process, and go back to text edition.
 		Automatically saves the user's private dictionary.
-   When pressing the Add button, the word in the "Mispelled word:" field is
+   When pressing the Add button, the word in the "Misspelled word:" field is
    added to the user private dictionary (normally ~/.ispell_*). When pressing
    the Replace button, the text in the "Replace with:" field is used.
    If no word is selected in the "Suggestions:" field, this mean that the
@@ -855,10 +855,10 @@ xedit.c:
 -- Xaw --
  + Minor changes to AsciiSrc.c to try to get more speed in the FindPiece
    function. Xedit may become very slow when editing files bigger than 1M,
-   and I'm studing ways to get more speed in the Scan and FindPiece functions.
+   and I'm studying ways to get more speed in the Scan and FindPiece functions.
    The FindPosition function in *Sink.c also can consume a lot of cpu time,
    and may need some rework.
- + Added submenus support to the SimpleMenuWidget. This is something essencial
+ + Added submenus support to the SimpleMenuWidget. This is something essential
    to a widget toolkit. Just plugged in the code of a menu widget I wrote some
    time ago. Xedit uses submenus now. To use it, set the resource menuName
    of a SmeBSBObject to the name of the submenu.
@@ -876,7 +876,7 @@ xedit.c:
    Functions to tabify, untabify, get block boundaries, verify if a line
    is completely blank, and strip excess of spaces.
  + Added a indent action to the TextWidget. The default translation, only
-   used by xedit, is C-X Tab, did this way, to make it fully compatable with
+   used by xedit, is C-X Tab, did this way, to make it fully compatible with
    emacs, but other translations can be used. The multiply value is used to
    calculate the amount of spaces to move to the left or right.
  + Corrected a very hard to find (and reproduce) bug in the undo code, that
@@ -909,12 +909,12 @@ xedit.c:
  + Rewrite of the functions *Sink.c:FindPosition() and FindDistance() to
    try to get more speed.
  + Reworked the function Text.c:_BuildLineTable, to correct some strange
-   code, and to avoid unecessary recalculations.
+   code, and to avoid unnecessary recalculations.
  + Made negative values of the multiply work for all the actions, not only
    for negative indentations. This makes the TextWidget behaviour more
-   compatable with emacs.
+   compatible with emacs.
  + Optimization of the new code for text justification, to avoid a call to
-   malloc on every char typped, when undo is enabled.
+   malloc on every char typed, when undo is enabled.
  + Reorganized the offsets of the fields of the TextWidget, trying to make
    xxgdb work again with the new Xaw code, but, unfortunately, the SimpleWidget
    (a subclass of the TextWidget) have growed by 4 bytes (a XawDisplayList*)
@@ -971,7 +971,7 @@ xedit.c:
    problems. Most of them were changed to address more directly the resource,
    and avoid confusion. Also, added some new resource settings to configure
    the code I added to widgets.c.
- + Changed widgets.c to make sure the resource setting dialog is allways
+ + Changed widgets.c to make sure the resource setting dialog is always
    entirely in the screen, and if it does not fit, scrollbars will be created.
 
 
@@ -996,7 +996,7 @@ xedit.c:
    had set to the tab stops.
  + Fixed a very bad bug in the form-paragraph function. It was very hard
    to find because I was looking at the wrong places. If the text was
-   allready formatted, or did not need formatting, the code was not
+   already formatted, or did not need formatting, the code was not
    reenabling undo, making the undo/redo behaviour imprevisible.
 
 -- xedit --
@@ -1013,7 +1013,7 @@ xedit.c:
    the code keeps information about words already ignored or correct
    in the xedit side, instead of asking ispell every time. Added also
    a terseMode resource, and made the interface ask for user interaction
-   allways ispell does not say the word is completely correct; the
+   always ispell does not say the word is completely correct; the
    terseMode resource makes ispell itself decide what words are correct
    or not.
 
@@ -1029,7 +1029,7 @@ xedit.c:
  + Changed the code to always create the horizontal scrollbar, if requested.
  + Small changes to TextPop.c, to automatically scroll horizontally the
    text window when the text found in a search/replace action is not visible.
- + Added a optimization when editting large files, to rebuild the line table
+ + Added a optimization when editing large files, to rebuild the line table
    if the region containing the text being added/replaced overlaps the lt.top
    field of the text widget.
  + Changed the undo code to also merge text typed when overwrite mode is
@@ -1041,7 +1041,7 @@ xedit.c:
    some new features to xedit, like auto indentation of program files. The
    first feature added is the 'autoReplace' resource, described in the xedit
    man page.
- + Corrected a bug in ispell.c, that would make the code alocate lots of
+ + Corrected a bug in ispell.c, that would make the code allocate lots of
    memory unnecessarily, due to an uninitialized variable. Thanks to David
    Dawes that found the bug. The bug was not in 3.9Pn, but the solution in
    the later release was not completely correct.
@@ -1078,7 +1078,7 @@ xedit.c:
    checking the word in the text field. This feature was borrowed from the spell
    checking interface of the Netscape html editor.
  + The ispell checking interface now also asks for user interaction if there are
-   two identical words togheter.
+   two identical words together.
  + Added a status bar to the ispell interface, to give feedback to the user
    about what is happening.
  + Added some new resources, to let easier customization of the ispell status
@@ -1094,13 +1094,13 @@ xedit.c:
  + Add a XawVersion define. The value for the new xaw is 7000L, and for the
    compatible one is 6700L (same comments as for the XawVendor define).
  + Bug fixes to the undo/redo code, and code to merge erases generated by
-   ^H and ^D. Also, if the cursor is moved, it stops merging the text typped
+   ^H and ^D. Also, if the cursor is moved, it stops merging the text typed
    in the undo buffer.
  + Bug fixes to the Form widget geometry management code, to work correctly
    when child widgets are removed or added at run time.
  + Xaw now links with XPM by default, and the config files where changed to
    enable newly compiled programs to do so.
- + Added 16 pad bytes to every widget, to try to avoid binary compatability
+ + Added 16 pad bytes to every widget, to try to avoid binary compatibility
    problems in the future.
  + Added a displayList resource to the Tree Widget.
  + Added the functions XawTextGetSink and XawTextLastPosition, to enable a
@@ -1263,7 +1263,7 @@ xedit.c:
 
 #2964 3 Jul 1999
 -- Xaw --
- + Fix for problem found in the search/replace dialog when using splitted
+ + Fix for problem found in the search/replace dialog when using split
    windows in xedit.
  + Added initialization for the display_list field of the Tree widget.
 
@@ -1275,7 +1275,7 @@ xedit.c:
 -- Xaw --
  + Added code to check the return value of XAllocColor and XAllocNamedColor in
    Pixmap.c.
- + Reverted back some code, and did a carefull review of the code in TextPop.c
+ + Reverted back some code, and did a careful review of the code in TextPop.c
    to avoid the possibility of calling XawTextDisableRedisplay, and not calling
    XawTextEnableRedisplay later (due to errors or end of file reached).
  + Added code to TextSrc.c, to use two static variables, that represent a new

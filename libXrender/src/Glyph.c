@@ -30,17 +30,17 @@
 GlyphSet
 XRenderCreateGlyphSet (Display *dpy, _Xconst XRenderPictFormat *format)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     GlyphSet			gsid;
     xRenderCreateGlyphSetReq	*req;
 
     RenderCheckExtension (dpy, info, 0);
     LockDisplay(dpy);
     GetReq(RenderCreateGlyphSet, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCreateGlyphSet;
-    req->gsid = gsid = XAllocID(dpy);
-    req->format = format->id;
+    req->gsid = (CARD32) (gsid = XAllocID(dpy));
+    req->format = (CARD32) format->id;
     UnlockDisplay(dpy);
     SyncHandle();
     return gsid;
@@ -49,17 +49,17 @@ XRenderCreateGlyphSet (Display *dpy, _Xconst XRenderPictFormat *format)
 GlyphSet
 XRenderReferenceGlyphSet (Display *dpy, GlyphSet existing)
 {
-    XRenderExtDisplayInfo             *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo       *info = XRenderFindDisplay (dpy);
     GlyphSet                    gsid;
     xRenderReferenceGlyphSetReq	*req;
 
     RenderCheckExtension (dpy, info, 0);
     LockDisplay(dpy);
     GetReq(RenderReferenceGlyphSet, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderReferenceGlyphSet;
-    req->gsid = gsid = XAllocID(dpy);
-    req->existing = existing;
+    req->gsid = (CARD32) (gsid = XAllocID(dpy));
+    req->existing = (CARD32) existing;
     UnlockDisplay(dpy);
     SyncHandle();
     return gsid;
@@ -68,15 +68,15 @@ XRenderReferenceGlyphSet (Display *dpy, GlyphSet existing)
 void
 XRenderFreeGlyphSet (Display *dpy, GlyphSet glyphset)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo   *info = XRenderFindDisplay (dpy);
     xRenderFreeGlyphSetReq  *req;
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderFreeGlyphSet, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderFreeGlyphSet;
-    req->glyphset = glyphset;
+    req->glyphset = (CARD32) glyphset;
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -90,7 +90,7 @@ XRenderAddGlyphs (Display	*dpy,
 		  _Xconst char		*images,
 		  int		nbyte_images)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo   *info = XRenderFindDisplay (dpy);
     xRenderAddGlyphsReq	    *req;
     long		    len;
 
@@ -99,14 +99,14 @@ XRenderAddGlyphs (Display	*dpy,
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderAddGlyphs, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderAddGlyphs;
-    req->glyphset = glyphset;
-    req->nglyphs = nglyphs;
+    req->glyphset = (CARD32) glyphset;
+    req->nglyphs = (CARD32) nglyphs;
     len = (nglyphs * (SIZEOF (xGlyphInfo) + 4) + nbyte_images) >> 2;
     SetReqLen(req, len, len);
-    Data32 (dpy, (long *) gids, nglyphs * 4);
-    Data16 (dpy, (short *) glyphs, nglyphs * SIZEOF (xGlyphInfo));
+    Data32 (dpy, (_Xconst long *) gids, nglyphs * 4);
+    Data16 (dpy, (_Xconst short *) glyphs, nglyphs * SIZEOF (xGlyphInfo));
     Data (dpy, images, nbyte_images);
     UnlockDisplay(dpy);
     SyncHandle();
@@ -118,20 +118,20 @@ XRenderFreeGlyphs (Display   *dpy,
 		   _Xconst Glyph     *gids,
 		   int       nglyphs)
 {
-    XRenderExtDisplayInfo         *info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo   *info = XRenderFindDisplay (dpy);
     xRenderFreeGlyphsReq    *req;
     long                    len;
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
     GetReq(RenderFreeGlyphs, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderFreeGlyphs;
-    req->glyphset = glyphset;
+    req->glyphset = (CARD32) glyphset;
     len = nglyphs;
     SetReqLen(req, len, len);
     len <<= 2;
-    Data32 (dpy, (long *) gids, len);
+    Data32 (dpy, (_Xconst long *) gids, len);
     UnlockDisplay(dpy);
     SyncHandle();
 }
@@ -150,7 +150,7 @@ XRenderCompositeString8 (Display	    *dpy,
 			 _Xconst char	    *string,
 			 int		    nchar)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs8Req	*req;
     long			len;
     xGlyphElt			*elt;
@@ -163,15 +163,15 @@ XRenderCompositeString8 (Display	    *dpy,
     LockDisplay(dpy);
 
     GetReq(RenderCompositeGlyphs8, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs8;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
     /*
      * xGlyphElt must be aligned on a 32-bit boundary; this is
@@ -183,7 +183,7 @@ XRenderCompositeString8 (Display	    *dpy,
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_8-1) / MAX_8) + nchar;
 
-    req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
+    req->length = (CARD16) (req->length + ((len + 3)>>2));  /* convert to number of 32-bit words */
 
     /*
      * If the entire request does not fit into the remaining space in the
@@ -198,8 +198,8 @@ XRenderCompositeString8 (Display	    *dpy,
 	nbytes = MAX_8 + SIZEOF(xGlyphElt);
 	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = MAX_8;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
 	xDst = 0;
 	yDst = 0;
 	memcpy ((char *) (elt + 1), string, MAX_8);
@@ -211,10 +211,10 @@ XRenderCompositeString8 (Display	    *dpy,
     {
 	nbytes = (nchar + SIZEOF(xGlyphElt) + 3) & ~3;
 	BufAlloc (xGlyphElt *, elt, nbytes);
-	elt->len = nchar;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
-	memcpy ((char *) (elt + 1), string, nchar);
+	elt->len = (CARD8) nchar;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
+	memcpy ((char *) (elt + 1), string, (size_t) nchar);
     }
 #undef MAX_8
 
@@ -235,7 +235,7 @@ XRenderCompositeString16 (Display	    *dpy,
 			  _Xconst unsigned short    *string,
 			  int		    nchar)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs8Req	*req;
     long			len;
     xGlyphElt			*elt;
@@ -248,21 +248,21 @@ XRenderCompositeString16 (Display	    *dpy,
     LockDisplay(dpy);
 
     GetReq(RenderCompositeGlyphs16, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs16;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
 #define MAX_16	254
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_16-1) / MAX_16) + nchar * 2;
 
-    req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
+    req->length = (CARD16) (req->length + ((len + 3)>>2));  /* convert to number of 32-bit words */
 
     /*
      * If the entire request does not fit into the remaining space in the
@@ -277,11 +277,11 @@ XRenderCompositeString16 (Display	    *dpy,
 	nbytes = MAX_16 * 2 + SIZEOF(xGlyphElt);
 	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = MAX_16;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
 	xDst = 0;
 	yDst = 0;
-	memcpy ((char *) (elt + 1), (char *) string, MAX_16 * 2);
+	memcpy ((char *) (elt + 1), (_Xconst char *) string, MAX_16 * 2);
 	nchar = nchar - MAX_16;
 	string += MAX_16;
     }
@@ -290,10 +290,10 @@ XRenderCompositeString16 (Display	    *dpy,
     {
 	nbytes = (nchar * 2 + SIZEOF(xGlyphElt) + 3) & ~3;
 	BufAlloc (xGlyphElt *, elt, nbytes);
-	elt->len = nchar;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
-	memcpy ((char *) (elt + 1), (char *) string, nchar * 2);
+	elt->len = (CARD8) nchar;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
+	memcpy ((char *) (elt + 1), (_Xconst char *) string, (size_t) (nchar * 2));
     }
 #undef MAX_16
 
@@ -315,7 +315,7 @@ XRenderCompositeString32 (Display	    *dpy,
 			  _Xconst unsigned int	    *string,
 			  int		    nchar)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs8Req	*req;
     long			len;
     xGlyphElt			*elt;
@@ -328,21 +328,21 @@ XRenderCompositeString32 (Display	    *dpy,
     LockDisplay(dpy);
 
     GetReq(RenderCompositeGlyphs32, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs32;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
 #define MAX_32	254
 
     len = SIZEOF(xGlyphElt) * ((nchar + MAX_32-1) / MAX_32) + nchar * 4;
 
-    req->length += (len + 3)>>2;  /* convert to number of 32-bit words */
+    req->length = (CARD16) (req->length + ((len + 3)>>2));  /* convert to number of 32-bit words */
 
     /*
      * If the entire request does not fit into the remaining space in the
@@ -357,11 +357,11 @@ XRenderCompositeString32 (Display	    *dpy,
 	nbytes = MAX_32 * 4 + SIZEOF(xGlyphElt);
 	BufAlloc (xGlyphElt *, elt, nbytes);
 	elt->len = MAX_32;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
 	xDst = 0;
 	yDst = 0;
-	memcpy ((char *) (elt + 1), (char *) string, MAX_32 * 4);
+	memcpy ((char *) (elt + 1), (_Xconst char *) string, MAX_32 * 4);
 	nchar = nchar - MAX_32;
 	string += MAX_32;
     }
@@ -370,10 +370,10 @@ XRenderCompositeString32 (Display	    *dpy,
     {
 	nbytes = nchar * 4 + SIZEOF(xGlyphElt);
 	BufAlloc (xGlyphElt *, elt, nbytes);
-	elt->len = nchar;
-	elt->deltax = xDst;
-	elt->deltay = yDst;
-	memcpy ((char *) (elt + 1), (char *) string, nchar * 4);
+	elt->len = (CARD8) nchar;
+	elt->deltax = (INT16) xDst;
+	elt->deltay = (INT16) yDst;
+	memcpy ((char *) (elt + 1), (_Xconst char *) string, (size_t) (nchar * 4));
     }
 #undef MAX_32
 
@@ -394,15 +394,11 @@ XRenderCompositeText8 (Display			    *dpy,
 		       _Xconst XGlyphElt8	    *elts,
 		       int			    nelt)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs8Req	*req;
     GlyphSet			glyphset;
     long			len;
-    long			elen;
-    xGlyphElt			*elt;
     int				i;
-    _Xconst char		*chars;
-    int				nchars;
 
     if (!nelt)
 	return;
@@ -411,15 +407,15 @@ XRenderCompositeText8 (Display			    *dpy,
     LockDisplay(dpy);
 
     GetReq(RenderCompositeGlyphs8, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs8;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = elts[0].glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) elts[0].glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
     /*
      * Compute the space necessary
@@ -431,6 +427,9 @@ XRenderCompositeText8 (Display			    *dpy,
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	long	elen;
+	int	nchars;
+
 	/*
 	 * Check for glyphset change
 	 */
@@ -449,7 +448,7 @@ XRenderCompositeText8 (Display			    *dpy,
 	len += (elen + 3) >> 2;
     }
 
-    req->length += len;
+    req->length = (CARD16) (req->length + len);
 
     /*
      * Send the glyphs
@@ -457,6 +456,10 @@ XRenderCompositeText8 (Display			    *dpy,
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	xGlyphElt	*elt;
+	_Xconst char	*chars;
+	int		nchars;
+
 	/*
 	 * Switch glyphsets
 	 */
@@ -478,9 +481,9 @@ XRenderCompositeText8 (Display			    *dpy,
 	    int this_chars = nchars > MAX_8 ? MAX_8 : nchars;
 
 	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
-	    elt->len = this_chars;
-	    elt->deltax = xDst;
-	    elt->deltay = yDst;
+	    elt->len = (CARD8) this_chars;
+	    elt->deltax = (INT16) xDst;
+	    elt->deltay = (INT16) yDst;
 	    xDst = 0;
 	    yDst = 0;
 	    Data (dpy, chars, this_chars);
@@ -507,15 +510,11 @@ XRenderCompositeText16 (Display			    *dpy,
 			_Xconst XGlyphElt16	    *elts,
 			int			    nelt)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs16Req	*req;
     GlyphSet			glyphset;
     long			len;
-    long			elen;
-    xGlyphElt			*elt;
     int				i;
-    _Xconst unsigned short    	*chars;
-    int				nchars;
 
     if (!nelt)
 	return;
@@ -524,15 +523,15 @@ XRenderCompositeText16 (Display			    *dpy,
     LockDisplay(dpy);
 
     GetReq(RenderCompositeGlyphs16, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs16;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = elts[0].glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) elts[0].glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
     /*
      * Compute the space necessary
@@ -544,6 +543,9 @@ XRenderCompositeText16 (Display			    *dpy,
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	int	nchars;
+	long	elen;
+
 	/*
 	 * Check for glyphset change
 	 */
@@ -562,11 +564,15 @@ XRenderCompositeText16 (Display			    *dpy,
 	len += (elen + 3) >> 2;
     }
 
-    req->length += len;
+    req->length = (CARD16) (req->length + len);
 
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	xGlyphElt		*elt;
+	_Xconst unsigned short	*chars;
+	int			nchars;
+
 	/*
 	 * Switch glyphsets
 	 */
@@ -589,9 +595,9 @@ XRenderCompositeText16 (Display			    *dpy,
 	    int this_bytes = this_chars * 2;
 
 	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
-	    elt->len = this_chars;
-	    elt->deltax = xDst;
-	    elt->deltay = yDst;
+	    elt->len = (CARD8) this_chars;
+	    elt->deltax = (INT16) xDst;
+	    elt->deltay = (INT16) yDst;
 	    xDst = 0;
 	    yDst = 0;
 	    Data16 (dpy, chars, this_bytes);
@@ -618,15 +624,11 @@ XRenderCompositeText32 (Display			    *dpy,
 			_Xconst XGlyphElt32	    *elts,
 			int			    nelt)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderCompositeGlyphs32Req	*req;
     GlyphSet			glyphset;
     long			len;
-    long			elen;
-    xGlyphElt			*elt;
     int				i;
-    _Xconst unsigned int    	*chars;
-    int				nchars;
 
     if (!nelt)
 	return;
@@ -636,15 +638,15 @@ XRenderCompositeText32 (Display			    *dpy,
 
 
     GetReq(RenderCompositeGlyphs32, req);
-    req->reqType = info->codes->major_opcode;
+    req->reqType = (CARD8) info->codes->major_opcode;
     req->renderReqType = X_RenderCompositeGlyphs32;
-    req->op = op;
-    req->src = src;
-    req->dst = dst;
-    req->maskFormat = maskFormat ? maskFormat->id : None;
-    req->glyphset = elts[0].glyphset;
-    req->xSrc = xSrc;
-    req->ySrc = ySrc;
+    req->op = (CARD8) op;
+    req->src = (CARD32) src;
+    req->dst = (CARD32) dst;
+    req->maskFormat = (CARD32) (maskFormat ? maskFormat->id : None);
+    req->glyphset = (CARD32) elts[0].glyphset;
+    req->xSrc = (INT16) xSrc;
+    req->ySrc = (INT16) ySrc;
 
     /*
      * Compute the space necessary
@@ -656,6 +658,9 @@ XRenderCompositeText32 (Display			    *dpy,
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	int	nchars;
+	long	elen;
+
 	/*
 	 * Check for glyphset change
 	 */
@@ -669,11 +674,15 @@ XRenderCompositeText32 (Display			    *dpy,
 	len += (elen + 3) >> 2;
     }
 
-    req->length += len;
+    req->length = (CARD16) (req->length + len);
 
     glyphset = elts[0].glyphset;
     for (i = 0; i < nelt; i++)
     {
+	xGlyphElt		*elt;
+	_Xconst unsigned int	*chars;
+	int			nchars;
+
 	/*
 	 * Switch glyphsets
 	 */
@@ -695,9 +704,9 @@ XRenderCompositeText32 (Display			    *dpy,
 	    int this_chars = nchars > MAX_32 ? MAX_32 : nchars;
 	    int this_bytes = this_chars * 4;
 	    BufAlloc (xGlyphElt *, elt, SIZEOF(xGlyphElt))
-	    elt->len = this_chars;
-	    elt->deltax = xDst;
-	    elt->deltay = yDst;
+	    elt->len = (CARD8) this_chars;
+	    elt->deltax = (INT16) xDst;
+	    elt->deltay = (INT16) yDst;
 	    xDst = 0;
 	    yDst = 0;
 	    DataInt32 (dpy, chars, this_bytes);

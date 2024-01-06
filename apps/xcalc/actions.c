@@ -136,7 +136,7 @@ XtActionsRec	Actions[] = {
 {"reciprocal",  reciprocal},	/* reciprocal function */
 {"rightParen",	rightParen},	/* TI-specific left parenthesis */
 {"roll",	roll},		/* HP-specific roll stack */
-{"scientific",	scientific},	/* scientfic notation (EE) */
+{"scientific",	scientific},	/* scientific notation (EE) */
 {"selection",	selection},	/* copy selection */
 {"shl",		shl},		/* arithmetic shift left */
 {"shr",		shr},		/* arithmetic shift right */

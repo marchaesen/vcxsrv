@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtConfigure-Widget XtMove-Widget XtResize-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtConfigureWidget __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtConfigureWidget, XtMoveWidget, XtResizeWidget \- move and resize widgets
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtConfigureWidget(Widget \fIw\fP, Position \fIx\fP, Position \fIy\fP,
 Dimension \fIwidth\fP, Dimension \fIheight\fP, Dimension \fIborder_width\fP);
@@ -87,59 +60,58 @@ void XtResizeWindow(Widget \fIw\fP);
 Specify the new widget size.
 .IP \fIw\fP 1i
 Specifies the widget.
-.ds Nu new widget
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the \*(Nu x and y coordinates.
+Specify the new widget x and y coordinates.
 .SH DESCRIPTION
 The
-.ZN XtConfigureWidget
+.B XtConfigureWidget
 function returns immediately if the specified geometry fields
 are the same as the old values.
 Otherwise,
-.ZN XtConfigureWidget
+.B XtConfigureWidget
 writes the new x, y, width, height, and border_width values
 into the widget and, if the widget is realized, makes an Xlib
-.ZN XConfigureWindow
+.B XConfigureWindow
 call on the widget's window.
 .LP
 If either the new width or height is different from its old value,
-.ZN XtConfigureWidget
+.B XtConfigureWidget
 calls the widget's resize procedure to notify it of the size change;
 otherwise, it simply returns.
 .LP
 The
-.ZN XtMoveWidget
+.B XtMoveWidget
 function returns immediately if the specified geometry fields
 are the same as the old values.
 Otherwise,
-.ZN XtMoveWidget
+.B XtMoveWidget
 writes the new x and y values into the widget
 and, if the widget is realized, issues an Xlib
-.ZN XMoveWindow
+.B XMoveWindow
 call on the widget's window.
 .LP
 The
-.ZN XtResizeWidget
+.B XtResizeWidget
 function returns immediately if the specified geometry fields
 are the same as the old values.
 Otherwise,
-.ZN XtResizeWidget
+.B XtResizeWidget
 writes the new width, height, and border_width values into
 the widget and, if the widget is realized, issues an
-.ZN XConfigureWindow
+.B XConfigureWindow
 call on the widget's window.
 .LP
 If the new width or height are different from the old values,
-.ZN XtResizeWidget
+.B XtResizeWidget
 calls the widget's resize procedure to notify it of the size change.
 .LP
 The
-.ZN XtResizeWindow
+.B XtResizeWindow
 function calls the
-.ZN XConfigureWindow
+.B XConfigureWindow
 Xlib function to make the window of the specified widget match its width,
 height, and border width.
 This request is done unconditionally because there is no way to tell if these
@@ -147,9 +119,9 @@ values match the current values.
 Note that the widget's resize procedure is not called.
 .LP
 There are very few times to use
-.ZN XtResizeWindow ;
+.BR XtResizeWindow ;
 instead, you should use
-.ZN XtResizeWidget .
+.BR XtResizeWidget .
 .SH "SEE ALSO"
 XtMakeGeometryRequest(__libmansuffix__),
 XtQueryGeometry(__libmansuffix__)

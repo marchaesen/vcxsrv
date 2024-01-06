@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtApp-Add-Block-Hook XtRemove-Block-Hook wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddBlockHook __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddBlockHook, XtRemoveBlockHook \- register a block hook procedure
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtBlockHookId XtAppAddBlockHook(XtAppContext \fIapp_context\fP,
 XtBlockHookProc \fIproc\fP, XtPointer \fIclient_data\fP);
@@ -78,17 +51,17 @@ Specifies the block hook procedure.
 .IP \fInum_args\fP 1i
 Specifies the application-specific data to be passed to the block hook.
 .SH DESCRIPTION
-.ZN XtAppAddBlockHook
+.B XtAppAddBlockHook
 registers the specified procedure and returns an identifier for it.
 The hook is called at any time in the future when the Intrinsics are
 about to block pending some input.
 .LP
 Block hook procedures are removed automatically and the
-.ZN XtBlockHookId
+.B XtBlockHookId
 is destroyed when the application context in which they were added is
 destroyed.
 .LP
-.ZN XtRemoveBlockHook
+.B XtRemoveBlockHook
 removes the specified block hook procedure from the list in which it
 was registered.
 .SH "SEE ALSO"

@@ -57,7 +57,7 @@ CreateOldColorTable(
     XpmColor **colorTable, **color;
     unsigned int a;
 
-    if (ncolors >= UINT_MAX / sizeof(XpmColor *)) 
+    if (ncolors >= UINT_MAX / sizeof(XpmColor *))
 	return XpmNoMemory;
 
     colorTable = (XpmColor **) XpmMalloc(ncolors * sizeof(XpmColor *));

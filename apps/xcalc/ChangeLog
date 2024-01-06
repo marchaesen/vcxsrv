@@ -1,3 +1,139 @@
+commit 62bfb33c545c6afd0cd5ee050168ce1fd461a956
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu May 4 16:54:24 2023 -0700
+
+    xcalc 1.1.2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b81cfc8c61991a8f997340f5c67704d695c1fc21
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 18 13:45:45 2023 -0800
+
+    Accept number keys on main keyboard when NumLock is on
+    
+    Adds translations with NumLock modifier active, since removing "None"
+    from the existing translations would make shifted keys enter numbers
+    instead of doing the operations corresponding to the shifted character.
+    
+    Fixes: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=173314
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d8e95b8b949970dbeeeeba73b1bc71d7f662e5cc
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 5 11:13:41 2023 -0800
+
+    Add -help option
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit fc6543c0f9292880180531d656e80c903e8e7dfd
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 5 10:22:09 2023 -0800
+
+    Stop casting function returns to void
+    
+    This was used with old versions of lint to stop warnings about
+    unused return values.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 28429cd68dfdc9850d3ebc7f712dc752a1c9244c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Feb 5 10:17:01 2023 -0800
+
+    Fix -version handling to not require opening a display first
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d624c05dc44dcb69ae48d0c0665e326fcdc972ba
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Jan 28 11:25:46 2023 -0800
+
+    Add -version option
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 846249c8bb9f113573c7c6504ea45ae673f4652b
+Author: Michael Bäuerle  <michael.baeuerle@stz-e.de>
+Date:   Wed Jan 25 16:00:51 2023 +0100
+
+    Key color highlighting still incorrect
+    
+    Update red keys on right and make the hexadecimal digit keys white too
+    
+    Fixes: 19eb8ce ("TI mode: correct key color highlighting")
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 478c9725430c0087e08547fad5f93072f459da94
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Jul 13 15:46:06 2022 -0700
+
+    gitlab CI: stop requiring Signed-off-by in commits
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit dfbeedae7eefa1605ed2f912beb0de31810ec63f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 3 10:33:30 2022 -0700
+
+    xcalc 1.1.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d484e053d54801f1afdcc67ef7651d048df97295
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Apr 2 13:01:49 2022 -0700
+
+    man page: remove out-of-date COPYRIGHT section
+    
+    The information previously listed here didn't match what is present in
+    the source code or the COPYING file, and the X(7) man page doesn't list
+    any license information as this had claimed.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7889111d9809af38a2cfb8c1ead1931c1f593be8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 4 10:42:03 2021 -0800
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 242bcecfbb662a1c57f3d8d505492be2b6db89a2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 4 10:42:00 2021 -0800
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b7886c8da2a3d8a92dea43828202d1762898041b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 28 11:42:06 2021 -0800
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 19eb8cefe1c3f7b5018e51d3dd5cc4bf691a553d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Sep 17 17:02:35 2021 -0700
+
+    TI mode: correct key color highlighting
+    
+    Decimal number key mapping in XCalc-color was offset after adding
+    the bitwise ops & base conversion keys in commit c4f1bdb1
+    
+    Fixes: #2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit df1721c44e0b357f4d8ae80247861b4a6f7a7bbb
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sun Jun 9 13:44:24 2019 -0700
@@ -90,7 +226,7 @@ Date:   Sun Feb 17 13:50:58 2019 -0800
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
 commit 85c9feb6e10cea1ef017d702151b14717c40b9d5
-Author: Stéphane Aulery <lkppo@free.fr>
+Author: Stéphane Aulery  <lkppo@free.fr>
 Date:   Sun Jul 7 22:50:30 2013 +0200
 
     Reduce scope of i (cppcheck --verbose --enable=all)
@@ -100,7 +236,7 @@ Date:   Sun Jul 7 22:50:30 2013 +0200
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
 commit aa3d39389bfc752486a83933574d0365c74d4e29
-Author: Stéphane Aulery <lkppo@free.fr>
+Author: Stéphane Aulery  <lkppo@free.fr>
 Date:   Sun Jul 7 22:50:29 2013 +0200
 
     Reduce scope of cell (cppcheck --verbose --enable=all)
@@ -315,7 +451,7 @@ Date:   Sat Jul 6 20:45:40 2013 -0700
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
 commit 3e6d23bb9d57ae3d19e9eb47ced654669fca4d7c
-Author: Stéphane Aulery <lkppo@free.fr>
+Author: Stéphane Aulery  <lkppo@free.fr>
 Date:   Sun Jul 7 02:02:46 2013 +0200
 
     Use the new M_E symbol from math.h
@@ -328,7 +464,7 @@ Date:   Sun Jul 7 02:02:46 2013 +0200
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
 commit f3b065f03a7b68310b489d5d97b11985ef36e977
-Author: Stéphane Aulery <lkppo@free.fr>
+Author: Stéphane Aulery  <lkppo@free.fr>
 Date:   Sun Jul 7 02:02:38 2013 +0200
 
     Use the new M_PI symbol from math.h
@@ -341,7 +477,7 @@ Date:   Sun Jul 7 02:02:38 2013 +0200
     Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
 
 commit b9a89876666a42ad8692e8384a5a826456e6ae56
-Author: Stéphane Aulery <lkppo@free.fr>
+Author: Stéphane Aulery  <lkppo@free.fr>
 Date:   Sat Jul 6 15:39:07 2013 +0200
 
     Drop CRAY support
@@ -830,7 +966,7 @@ Date:   Sun Jul 17 20:11:02 2005 +0000
     fix rules to work with non-GNU make and outside of $srcdir
 
 commit 392f5dd1907a5110c89b308ef51122b39b23dde5
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Wed Jun 29 23:12:07 2005 +0000
 
     Build system for Xcalc

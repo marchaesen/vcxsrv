@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011, Oracle and/or its affiliates. All rights reserved.
+ * Copyright (c) 2011, 2022, Oracle and/or its affiliates.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"),
@@ -54,7 +54,8 @@ static void test_XtCvtIntToPixmap(void)
     status = XtCvtIntToPixmap(display, &args[0], &num_args,
 			      &fromVal, &toVal, closure_ret);
 
-    g_assert(res == num[0]);
+    g_assert_cmpint(status, ==, True);
+    g_assert_cmpint(res, ==, num[0]);
 
 
     num[0] = -1;
@@ -69,13 +70,14 @@ static void test_XtCvtIntToPixmap(void)
     status = XtCvtIntToPixmap(display, &args[0], &num_args,
 			      &fromVal, &toVal, closure_ret);
 
-    g_assert(res == num[1]);
+    g_assert_cmpint(status, ==, True);
+    g_assert_cmpint(res, ==, num[1]);
 }
 
 int main(int argc, char** argv)
 {
     g_test_init(&argc, &argv, NULL);
-    g_test_bug_base("https://bugzilla.freedesktop.org/show_bug.cgi?id=");
+    g_test_bug_base("https://gitlab.freedesktop.org/xorg/lib/libxt/-/issues/");
 
     g_test_add_func("/Converters/XtCvtIntToPixmap", test_XtCvtIntToPixmap);
 

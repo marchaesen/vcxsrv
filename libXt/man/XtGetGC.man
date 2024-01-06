@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtGet-GC XtRelease-GC wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetGC __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
-XtGetGC, XtReleaseGC \- obtain and destroy a sharable GC
+XtGetGC, XtReleaseGC \- obtain and destroy a shareable GC
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 GC XtGetGC(Widget \fIw\fP, XtGCMask \fIvalue_mask\fP, XGCValues
 *\fIvalues\fP);
@@ -76,21 +49,20 @@ void XtReleaseGC(Widget \fIw\fP, GC \fIgc\fP);
 Specifies the GC to be deallocated.
 .IP \fIvalues\fP 1i
 Specifies the actual values for this GC.
-.ds Vm fields of the values are specified
 .IP \fIvalue_mask\fP 1i
-Specifies which \*(Vm.
+Specifies which fields of the values are specified.
 .IP \fIw\fP 1i
 Specifies the widget.
 .SH DESCRIPTION
 The
-.ZN XtGetGC
-function returns a sharable, read-only GC.
+.B XtGetGC
+function returns a shareable, read-only GC.
 The parameters to this function are the same as those for
-.ZN XCreateGC
+.B XCreateGC
 except that a widget is passed instead of a display.
-.ZN XtGetGC
+.B XtGetGC
 shares only GCs in which all values in the GC returned by
-.ZN XCreateGC
+.B XCreateGC
 are the same.
 In particular, it does not use the value_mask provided to
 determine which fields of the GC a widget considers relevant.
@@ -98,11 +70,11 @@ The value_mask is used only to tell the server which fields should be
 filled in with widget data and which it should fill in with default values.
 For further information about value_mask and values,
 see
-.ZN XCreateGC
+.B XCreateGC
 in the \fI\*(xL\fP.
 .LP
 The
-.ZN XtReleaseGC
+.B XtReleaseGC
 function deallocate the specified shared GC.
 .SH "SEE ALSO"
 .br

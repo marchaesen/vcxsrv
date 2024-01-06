@@ -39,7 +39,6 @@
 	{ _XkbErrCode= (c); _XkbErrLocation= (l); _XkbErrData= (d); }
 #endif
 
-#ifndef XKB_IN_SERVER
 
 #define	_XkbAlloc(s)		malloc((s))
 #define	_XkbCalloc(n,s)		calloc((n),(s))
@@ -59,7 +58,6 @@
 #endif
 #endif
 
-#endif
 
 #include <unistd.h>
 #ifdef _MSC_VER
@@ -68,15 +66,15 @@
 
 _XFUNCPROTOBEGIN
 
-static inline
-char *_XkbDupString(const char *s)
+static inline char *
+_XkbDupString(const char *s)
 {
     return s ? strdup(s) : NULL;
 }
 
 #define _XkbStrCaseEqual(s1,s2)	(_XkbStrCaseCmp(s1,s2)==0)
 
-#ifdef NEED_STRCASECMP
+#ifndef HAVE_STRCASECMP
 extern int _XkbStrCaseCmp(char *s1, char *s2);
 #else
 #define _XkbStrCaseCmp strcasecmp
@@ -84,5 +82,4 @@ extern int _XkbStrCaseCmp(char *s1, char *s2);
 #endif
 
 _XFUNCPROTOEND
-
-#endif /* _XKBFILEINT_H_ */
+#endif                          /* _XKBFILEINT_H_ */

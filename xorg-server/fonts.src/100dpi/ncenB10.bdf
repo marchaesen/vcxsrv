@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-New Century Schoolbook-Bold-R-Normal--14-100-100-100-P-87-ISO10646-1
 SIZE 10 100 100
 FONTBOUNDINGBOX 20 25 -2 -6
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

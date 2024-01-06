@@ -31,42 +31,16 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtInsert-Event-Type-Handler XtRemove-Event-Type-Handler XtSet-Event-Dispatcher XtDispatch-Event-To-Widget wid-get
+.hw XtInsert-Event-Type-Handler XtRemove-Event-Type-Handler
+.hw XtSet-Event-Dispatcher XtDispatch-Event-To-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtInsertEventTypeHandler __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtInsertEventTypeHandler, XtRemoveEventTypeHandler,
 XtRegisterExtensionSelector, XtSetEventDispatcher, XtDispatchEventToWidget
 \- extension event handling
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtInsertEventTypeHandler(Widget \fIwidget\fP, int \fIevent_type\fP,
 XtPointer \fIselect_data\fP, XtEventHandler \fIproc\fP, XtPointer
@@ -80,7 +54,7 @@ void XtRegisterExtensionSelector(Display* \fIdisplay\fP, int
 \fImin_event_type\fP, int \fImax_event_type\fP, XtExtensionSelectProc
 \fIproc\fP, XtPointer \fIclient_data\fP);
 .HP
-XtEventDispatchProc XtSetEventDispatcher(Widget \fIwidget\fP, int
+XtEventDispatchProc XtSetEventDispatcher(Display* \fIdisplay\fP, int
 \fIevent_type\fP, XtEventDispatchProc \fIproc\fP);
 .HP
 Boolean XtDispatchEventToWidget(Widget \fIwidget\fP, XEvent* \fIevent\fP);
@@ -107,24 +81,26 @@ Specifies the range of event types for this extension.
 Specifies a pointer to the event to be dispatched.
 .SH DESCRIPTION
 The
-.ZN XtInsertEventTypeHandler
+.B XtInsertEventTypeHandler
 function registers a procedure with the dispatch mechanism that is to
 be called when an event that matches the specified \fIevent_type\fP is
 dispatched to the specified \fIwidget\fP.
 .LP
 If \fIevent_type\fP is one of the core X protocol events then
 \fIselect_data\fP must be a pointer to a value of type
-.ZN EventMask ,
+.BR EventMask ,
 indicating the event mask to be used to select for the desired event.
 This event mask will be included in the value returned by
-.ZN XtBuildEventMask .
+.BR XtBuildEventMask .
 If the widget is realized
-.ZN XtInsertEventTypeHandler
+.B XtInsertEventTypeHandler
 calls
-.ZN XSelectInput
-if necessary. Specifying NULL for \fIselect_data\fP is equivalent to
-specifying a pointer to an event mask containing 0. This is similar to the
-.ZN XtInsertRawEventHandler
+.B XSelectInput
+if necessary.
+Specifying NULL for \fIselect_data\fP is equivalent to
+specifying a pointer to an event mask containing 0.
+This is similar to the
+.B XtInsertRawEventHandler
 function.
 .LP
 If \fIevent_type\fP specifies an extension event type then the semantics
@@ -137,30 +113,34 @@ as long as the event handler remains registered with this value of
 \fIselect_data\fP.
 .LP
 The \fIposition\fP argument allows the client to control the order of the
-invocation of event handlers registered for the same event type. If the
+invocation of event handlers registered for the same event type.
+If the
 client does not care about the order, it should normally specify
-.ZN XtListTail ,
+.BR XtListTail ,
 which registers this event handler after any previously registered
 handlers for this event type.
 .LP
 The
-.ZN XtRemoveEventTypeHandler
+.B XtRemoveEventTypeHandler
 function unregisters an even handler registered with
-.ZN XtInsertEventTypeHandler
-for the specified event type. The request is ignored if \fIclient_data\fP
+.B XtInsertEventTypeHandler
+for the specified event type.
+The request is ignored if \fIclient_data\fP
 does not match the value given with the handler was registered.
 .LP
 If \fIevent_type\fP specifies on of the core X protocol events,
 \fIselect_data\fP must be a pointer to a value of type
-.ZN EventMask ,
+.BR EventMask ,
 indicating the mask to be used to deselect for the appropriate event.
 If the widget is realized,
-.ZN XtRemoveEventTypeHandler
+.B XtRemoveEventTypeHandler
 calls
-.ZN XSelectInput
-if necessary. Specifying NULL for \fIselect_data\fP is equivalent to
-specifying a pointer to an event mask containing 0. This is similar to the
-.ZN XtRemoveRawEventHandler
+.B XSelectInput
+if necessary.
+Specifying NULL for \fIselect_data\fP is equivalent to
+specifying a pointer to an event mask containing 0.
+This is similar to the
+.B XtRemoveRawEventHandler
 function.
 .LP
 If \fIevent_type\fP specifies an extension event type then the semantics
@@ -168,56 +148,59 @@ of the data pointed to by \fIselect_data\fP are defined by the extension
 selector registered for the specified event type.
 .LP
 The
-.ZN XtRegisterExtensionSelector
+.B XtRegisterExtensionSelector
 function registers a procedure to arrange for the delivery of extension
 events to widgets.
 .LP
 If \fImin_event_type\fP and \fImax_event_type\fP match the parameters to
 a previous call to
-.ZN XtRegisterExtensionSelector
+.B XtRegisterExtensionSelector
 for the same display, the \fIproc\fP and \fIclient_data\fP replace the
-previously registered values. If the range specified by \fImin_event_type\fP
+previously registered values.
+If the range specified by \fImin_event_type\fP
 and \fImax_event_type\fP overlaps the range of the parameters to a
 previous call for the same display in any other way, an error results.
 .LP
 The
-.ZN XtSetEventDispatcher
+.B XtSetEventDispatcher
 function registers the event dispatcher procedure specified by \fIproc\fP
 for events with the type \fIevent_type\fP. The previously registered
 dispatcher (or the default dispatcher if there was no previously registered
-dispatcher) is returned. If \fIproc\fP is NULL, the default procedure is
+dispatcher) is returned.
+If \fIproc\fP is NULL, the default procedure is
 restored for the specified type.
 .LP
 In the future, when
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 is called with an event of \fIevent_type\fP, the specified \fIproc\fP (or
-the default dispatcher) will be invoked to determine a widget ot which
+the default dispatcher) will be invoked to determine a widget at which
 to dispatch the event.
 .LP
 The
-.ZN XtDispatchEventToWidget
+.B XtDispatchEventToWidget
 function scans the list of registered event handlers for the specified
 widget and calls each handler that has been registered for the specified
 event type, subject to the \fIcontinue_to_dispatch\fP value returned by
-each handler. The Intrinsics behave as if event handlers were registered
+each handler.
+The Intrinsics behave as if event handlers were registered
 at the head of the list for
-.ZN Expose ,
-.ZN NoExpose ,
-.ZN GraphicsExpose ,
+.BR Expose ,
+.BR NoExpose ,
+.BR GraphicsExpose ,
 and
-.ZN VisibilityNotify
+.B VisibilityNotify
 events to invoke the widget's expose procedure according to the exposure
 compression rules and to update the widget's \fIvisible\fP field if
 \fIvisible_interest\fP is
-.ZN True .
+.BR True .
 These internal event handlers never set \fIcontinue_to_dispatch\fP to
-.ZN False .
+.BR False .
 .LP
-.ZN XtDispatchEventToWidget
+.B XtDispatchEventToWidget
 returns
-.ZN True
+.B True
 if any event handler was called and
-.ZN False
+.B False
 otherwise.
 .LP
 .SH "SEE ALSO"

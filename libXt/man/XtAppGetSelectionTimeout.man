@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtApp-Get-Selection-Timeout XtApp-Set-Selection-Timeout wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppGetSelectionTimeout __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppGetSelectionTimeout, XtAppSetSelectionTimeout \- set and obtain selection timeout values
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 unsigned long XtAppGetSelectionTimeout(XtAppContext \fIapp_context\fP);
 .HP
@@ -78,19 +51,19 @@ Specifies the application context.
 Specifies the selection timeout in milliseconds.
 .SH DESCRIPTION
 The
-.ZN XtAppGetSelectionTimeout
+.B XtAppGetSelectionTimeout
 function returns the current selection timeout value, in milliseconds.
 The selection timeout is the time within which the two communicating
 applications must respond to one another.
 The initial timeout value is set by the
-.ZN selectionTimeout
+.B selectionTimeout
 application resource, or, if
-.ZN selectionTimeout
+.B selectionTimeout
 is not specified,
 it defaults to five seconds.
 .LP
 The
-.ZN XtAppSetSelectionTimeout
+.B XtAppSetSelectionTimeout
 function sets the \*(xI's selection timeout mechanism.
 Note that most applications should not set the selection timeout.
 .SH "SEE ALSO"

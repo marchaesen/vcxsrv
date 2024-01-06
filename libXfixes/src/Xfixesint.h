@@ -55,9 +55,9 @@ XFixesFindDisplay (Display *dpy);
 #define XFixesHasExtension(i) ((i) && ((i)->codes))
 
 #define XFixesCheckExtension(dpy,i,val) \
-  if (!XFixesHasExtension(i)) { return val; }
+    do { if (!XFixesHasExtension(i)) { return val; } } while(0)
 
 #define XFixesSimpleCheckExtension(dpy,i) \
-  if (!XFixesHasExtension(i)) { return; }
+    do { if (!XFixesHasExtension(i)) { return; } } while(0)
 
 #endif /* _XFIXESINT_H_ */

@@ -34,57 +34,30 @@
 .ds Vn 2.2
 .hw XtApp-Get-Error-Database XtApp-Get-Error-Database-Text wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppGetErrorDatabase __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppGetErrorDatabase, XtAppGetErrorDatabaseText \- obtain error database
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XrmDatabase *XtAppGetErrorDatabase(\^XtAppContext \fIapp_context\fP);
 .HP
-void XtAppGetErrorDatabaseText(XtAppContext \fIapp_context\fP, char
-*\fIname\fP, char *\fItype\fP, char *\fIclass\fP, char *\fIdefault\fP, char
-*\fIbuffer_return\fP, int \fInbytes\fP, XrmDatabase \fIdatabase\fP);
+void XtAppGetErrorDatabaseText(XtAppContext \fIapp_context\fP,
+const char *\fIname\fP, const char *\fItype\fP, const char *\fIclass\fP,
+const char *\fIdefaultMsg\fP, char *\fIbuffer_return\fP, int \fInbytes\fP,
+XrmDatabase \fIdatabase\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
 .IP \fIbuffer_return\fP 1i
 Specifies the buffer into which the error message is to be returned.
-.ds Cl \ of the error message
 .IP \fIclass\fP 1i
-Specifies the resource class\*(Cl.
+Specifies the resource class of the error message.
 .IP \fIdatabase\fP 1i
 Specifies the name of the alternative database that is to be used
 or NULL if the application's database is to be used.
-.IP \fIdefault\fP 1i
-Specifies the default message to use\*(Dm.
+.IP \fIdefaultMsg\fP 1i
+Specifies the default message to use.
 .IP \fIname\fP 1i
 .br
 .ns
@@ -95,14 +68,14 @@ of the error message.
 Specifies the size of the buffer in bytes.
 .SH DESCRIPTION
 The
-.ZN XtAppGetErrorDatabase
+.B XtAppGetErrorDatabase
 function returns the address of the error database.
 The \*(xI do a lazy binding of the error database and do not merge in the
 database file until the first call to
-.ZN XtAppGetErrorDatbaseText .
+.BR XtAppGetErrorDatbaseText .
 .LP
 The
-.ZN XtAppGetErrorDatabaseText
+.B XtAppGetErrorDatabaseText
 returns the appropriate message from the error database
 or returns the specified default message if one is not found in the
 error database.

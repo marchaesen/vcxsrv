@@ -159,7 +159,7 @@ typedef struct {
     int		num_panes;                 /* count of managed panes */
     PaneStack	*stack;			   /* The pane stack for this widget */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } PanedPart;
 

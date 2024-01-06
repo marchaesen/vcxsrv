@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Viewport Widget -->
 <!-- .XE -->
-<!-- .IN "Viewport widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Viewport widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Viewport.h&gt;
-<!-- .IN "Viewport.h" "" -->
+<indexterm><primary>Viewport.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/ViewportP.h&gt;
-<!-- .IN "ViewportP.h" "" -->
+<indexterm><primary>ViewportP.h</primary></indexterm>
 Class		viewportWidgetClass
-<!-- .IN "viewportWidgetClass" "" -->
+<indexterm><primary>viewportWidgetClass</primary></indexterm>
 Class Name	Viewport
-<!-- .IN "Viewport widget" "class name" -->
+<indexterm><primary>Viewport widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Form
 <!-- .sp -->
 </literallayout>
@@ -48,7 +48,7 @@ retrieved from the argument list or the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Viewport widget" "resources" -->
+<indexterm><primary>Viewport widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -351,7 +351,7 @@ the Viewport.
 <title>Layout Semantics</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Viewport widget" "layout semantics" -->
+<indexterm><primary>Viewport widget</primary><secondary>layout semantics</secondary></indexterm>
 The Viewport widget manages a single child widget.  When the size of the
 child is larger than the size of the Viewport, the user can interactively
 move the child within the Viewport by repositioning the scrollbars.
@@ -377,7 +377,7 @@ The scrollbar children of the Viewport are named <function>horizontal</function>
 for the individual scrollbars.  <xref linkend='XtSetValues' xrefstyle='select: title'/> can be used to modify
 the resources dynamically once the widget ID has been obtained with
 <function>XtNameToWidget</function>.
-<!-- .IN "XtNameToWidget" "" -->
+<indexterm><primary>XtNameToWidget</primary></indexterm>
 <!-- .NT -->
 </para>
 <note><para>

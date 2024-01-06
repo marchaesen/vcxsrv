@@ -34,7 +34,7 @@ endif
 SUFFIXES = .enc .enc.gz
 
 .enc.enc.gz:
-	$(AM_V_GEN)$(GZIP) -c < $< > $@
+	$(AM_V_GEN)$(GZIP) $(COMPRESS_FLAGS) -c < $< > $@
 
 encodings.dir: $(DATA_FILES)
 	$(AM_V_GEN)$(MKFONTSCALE) -b -s -l -n -r -p $(encodingsdir) -e . .

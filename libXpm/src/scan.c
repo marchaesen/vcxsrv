@@ -182,7 +182,7 @@ do { \
 } while(0)
 
 /*
- * This function scans the given image and stores the found informations in
+ * This function scans the given image and stores the found information in
  * the given XpmImage structure.
  */
 int
@@ -336,7 +336,7 @@ XpmCreateXpmImageFromImage(
 	RETURN(ErrorStatus);
 
     /*
-     * store found informations in the XpmImage structure
+     * store found information in the XpmImage structure
      */
     xpmimage->width = width;
     xpmimage->height = height;
@@ -380,7 +380,7 @@ ScanTransparentColor(
 	*s = printable[c = ((a - c) / MAXPRINTABLE) % MAXPRINTABLE];
     *s = '\0';
 
-    /* then retreive related info from the attributes if any */
+    /* then retrieve related info from the attributes if any */
     if (attributes && (attributes->valuemask & XpmColorTable
 /* 3.2 backward compatibility code */
 		       || attributes->valuemask & XpmInfos)

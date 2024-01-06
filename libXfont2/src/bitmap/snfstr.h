@@ -67,7 +67,7 @@ from The Open Group.
  *	1)  The XFONTINFO structure
  *		hand-padded to a two-short boundary.
  *		maxbounds.byteoffset is the total number of bytes in the
- *			glpyh array
+ *			glyph array
  *		maxbounds.bitOffset is thetotal width of the unpadded font
  *
  *	2)  The XCHARINFO array

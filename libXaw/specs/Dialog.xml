@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Dialog Widget -->
 <!-- .XE -->
-<!-- .IN "Dialog widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Dialog widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Dialog.h&gt;
-<!-- .IN "Dialog.h" "" -->
+<indexterm><primary>Dialog.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/DialogP.h&gt;
-<!-- .IN "DialogP.h" "" -->
+<indexterm><primary>DialogP.h</primary></indexterm>
 Class		dialogWidgetClass
-<!-- .IN "dialogWidgetClass" "" -->
+<indexterm><primary>dialogWidgetClass</primary></indexterm>
 Class Name	Dialog
-<!-- .IN "Dialog widget" "class name" -->
+<indexterm><primary>Dialog widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Form
 <!-- .sp -->
 </literallayout>
@@ -46,7 +46,7 @@ areas may be omitted by the application.
 <!-- .LP -->
 When creating a Dialog widget instance, the following resources are
 retrieved from the argument list or the resource database:
-<!-- .IN "Dialog widget" "resources" -->
+<indexterm><primary>Dialog widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -300,7 +300,7 @@ specified then set this resource to "" (empty string).
 <title>Constraint Resources</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Dialog widget" "constraint resources" -->
+<indexterm><primary>Dialog widget</primary><secondary>constraint resources</secondary></indexterm>
 Each child of the Dialog widget may request special layout resources
 be applied to it.  These <emphasis remap='I'>constraint</emphasis> resources allow the Dialog
 widget's children to specify individual layout requirements.
@@ -424,7 +424,7 @@ resizable      If this resource is False then the parent
 </sect2>
 <sect2 id='Dialog::Layout_Semantics'>
 <title>Layout Semantics</title>
-<!-- .IN "Dialog widget" "layout semantics" -->
+<indexterm><primary>Dialog widget</primary><secondary>layout semantics</secondary></indexterm>
 <para>
 The Dialog widget uses two different sets of layout seman-
 tics.  One is used when initially laying out the children.
@@ -435,10 +435,11 @@ The first layout method uses the <function>fromVert</function> mand <function>fr
 resources to place the children of the Dialog.  A single
 pass is made through the Dialog widget's children in the
 order that they were created.  Each child is then placed in
-the Dialog widget below or to the right of the widget speci-
-fied by the <function>fromVert</function> mand <function>fromHoriz</function> mresources.  The distance
-the new child is placed from its left or upper neighbor is
-determined by the <function>horizDistance</function> mand <function>vertDistance</function> mresources.
+the Dialog widget below or to the right of the widget specified by the
+<function>fromVert</function> and <function>fromHoriz</function> resources.
+The distance the new child is placed from its left or upper neighbor is
+determined by the <function>horizDistance</function> and
+<function>vertDistance</function> resources.
 This implies some things about how the order of creation
 affects the possible placement of the children.  The Form
 widget registers a string to widget converter which does not
@@ -530,7 +531,7 @@ edges of the Dialog, and to never resize.
 </sect3>
 <sect3 id="Special_Considerations">
 <title>Special Considerations</title>
-<!-- .IN "Dialog widget" "special considerations" -->
+<indexterm><primary>Dialog widget</primary><secondary>special considerations</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Dialog widget automatically sets the <function>top</function> and <function>bottom</function>
@@ -544,7 +545,7 @@ Command button without having to specify its constraints.
 <para>
 <!-- .LP -->
 The Dialog will also set <function>fromLeft</function> to the last button in the
-<!-- .IN "fromLeft" "" -->
+<indexterm><primary>fromLeft</primary></indexterm>
 Dialog for each new button added to the Dialog widget.
 </para>
 <para>
@@ -558,14 +559,14 @@ own Dialog policy.
 </sect2>
 <sect2 id='Automatically_Created_Children'>
 <title>Automatically Created Children.</title>
-<!-- .IN "Dialog widget" "automatically created children" -->
+<indexterm><primary>Dialog widget</primary><secondary>automatically created children</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Dialog uses Label widgets to contain the <function>label</function> and <function>icon</function>.
 These widgets are named <emphasis remap='I'>label</emphasis> and <emphasis remap='I'>icon</emphasis> respectively.  The
 Dialog <function>value</function> is contained in an AsciiText widget whose name is
 <function>value</function>.  Using <function>XtNameToWidget</function> the application can change
-<!-- .IN "XtNameToWidget" "" -->
+<indexterm><primary>XtNameToWidget</primary></indexterm>
 those resources associated with each of these widgets that are not
 available through the Dialog widget itself.
 </para>
@@ -579,7 +580,7 @@ available through the Dialog widget itself.
 <!-- .LP -->
 To return the character string in the text field, use
 <!-- .PN XawDialogGetValueString . -->
-<!-- .IN "XawDialogGetValueString" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawDialogGetValueString</primary></indexterm>
 <funcsynopsis id='XawDialogGetValueString'>
 <funcprototype>
   <funcdef>String<function> XawDialogGetValueString</function></funcdef>
@@ -609,14 +610,14 @@ remain valid and unchanged until another call to
 <function>value</function> widget, when the string will be automatically freed, and
 a new string is returned.  This string may be freed earlier by calling
 the function <xref linkend='XawAsciiSourceFreeString' xrefstyle='select: title'/>.
-<!-- .IN "XawAsciiSourceFreeString" "" -->
+<indexterm><primary>XawAsciiSourceFreeString</primary></indexterm>
 </para>
 <para>
 <!-- .LP -->
 <!-- .sp -->
 To add a new button to the Dialog widget use
 <xref linkend='XawDialogAddButton' xrefstyle='select: title'/>.
-<!-- .IN "XawDialogAddButton" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawDialogAddButton</primary></indexterm>
 <funcsynopsis id='XawDialogAddButton'>
 <funcprototype>
   <funcdef>void<function> XawDialogAddButton</function></funcdef>

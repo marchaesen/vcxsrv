@@ -66,8 +66,8 @@ _XFUNCPROTOBEGIN
 #define RCM_INIT "Custom Init"
 
 extern void _XtResourceConfigurationEH(
-	Widget 		/* w */, 
-	XtPointer 	/* client_data */, 
+	Widget 		/* w */,
+	XtPointer 	/* client_data */,
 	XEvent * 	/* event */
 );
 

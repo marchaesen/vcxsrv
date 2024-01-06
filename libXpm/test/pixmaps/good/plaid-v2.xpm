@@ -1,0 +1,30 @@
+! XPM2
+22 22 4 1
+! colors
+.  c red 	m white  s light_color
+Y  c green	m black  s lines_in_mix
++  c yellow	m white  s lines_in_dark
+x 		m black  s dark_color
+! pixels
+x.x.xxx.x.xxxxxx+xxxxx
+.x.x.x.x.x.xxxxxxxxxxx
+x.x.xxx.x.xxxxxx+xxxxx
+.x.x.x.x.x.xxxxxxxxxxx
+x.x.xxx.x.xxxxxx+xxxxx
+YYYYYxYYYYY+x+x+x+x+x+
+x.x.xxx.x.xxxxxx+xxxxx
+.x.x.x.x.x.xxxxxxxxxxx
+x.x.xxx.x.xxxxxx+xxxxx
+.x.x.x.x.x.xxxxxxxxxxx
+x.x.xxx.x.xxxxxx+xxxxx
+.....x.....x.x.xYx.x.x
+.....x......x.x.Y.x.x.
+.....x.....x.x.xYx.x.x
+.....x......x.x.Y.x.x.
+.....x.....x.x.xYx.x.x
+xxxxxxxxxxxxxxxxxxxxxx
+.....x.....x.x.xYx.x.x
+.....x......x.x.Y.x.x.
+.....x.....x.x.xYx.x.x
+.....x......x.x.Y.x.x.
+.....x.....x.x.xYx.x.x

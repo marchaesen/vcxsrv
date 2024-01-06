@@ -34,6 +34,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include    <X11/fonts/fontmisc.h>
 #include    <X11/fonts/fontstruct.h>
 #include    <X11/fonts/FSproto.h>
@@ -136,7 +137,7 @@ xfont2_query_text_extents(FontPtr pFont,
     unsigned char   defc[2];
     int             firstReal;
 
-    charinfo = malloc(count * sizeof(xCharInfo *));
+    charinfo = mallocarray(count, sizeof(xCharInfo *));
     if (!charinfo)
 	return FALSE;
     encoding = TwoD16Bit;
@@ -302,13 +303,13 @@ add_range(fsRange *newrange,
 	/* Grow the list if necessary */
 	if (*nranges == 0 || *range == (fsRange *)0)
 	{
-	    *range = malloc(range_alloc_granularity * SIZEOF(fsRange));
+	    *range = mallocarray(range_alloc_granularity, SIZEOF(fsRange));
 	    *nranges = 0;
 	}
 	else if (!(*nranges % range_alloc_granularity))
 	{
-	    *range = realloc(*range, (*nranges + range_alloc_granularity) *
-				      SIZEOF(fsRange));
+	    *range = reallocarray(*range, (*nranges + range_alloc_granularity),
+				  SIZEOF(fsRange));
 	}
 
 	/* If alloc failed, just return a null list */

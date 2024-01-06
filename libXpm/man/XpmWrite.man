@@ -1,0 +1,196 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH XpmWrite __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmWrite \- write an XPM file
+
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmWriteFileFromPixmap(Display *" display ", char *" filename ,
+.BI "Pixmap " pixmap ", Pixmap " shapemask ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmWriteFileFromImage(Display *" display " , char *" filename ,
+.BI "XImage *"image ", XImage *" shapeimage ", XpmAttributes *" attributes );
+.HP
+.BI "int XpmWriteFileFromData(char *" filename ", char **" data );
+.HP
+.BI "int XpmWriteFileFromXpmImage(char *" filename ", XpmImage *" image ,
+.BI "XImage *" shapeimage ", XpmInfo *" info );
+.HP
+.BI "int XpmWriteFileFromBuffer(char *" filename ", char *" buffer );
+.fi
+
+.SH ARGUMENTS
+.IP \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP \fIfilename\fP li
+Specifies the file name to use.
+.IP \fIpixmap\fP li
+Specifies the pixmap.
+.IP \fIshapemask\fP li
+Specifies the shape mask pixmap.
+.IP \fIattributes\fP li
+Specifies the location of a structure containing information (or NULL).
+.IP \fIdata\fP li
+Specifies the data array to read.
+.IP \fIimage\fP li
+Specifies the image.
+.IP \fIinfo\fP li
+Specifies the location of a structure to get information from (or NULL).
+.IP \fIbuffer\fP li
+Specifies the buffer to read.
+
+.SH DESCRIPTION
+.SS XpmWriteFileFromImage
+.PP
+The
+.BR XpmWriteFileFromImage ()
+function writes an
+.I image and its possible
+.I shapeimage
+out to a file in the XPM format.
+If the file cannot be opened, it returns
+.BR XpmOpenFailed .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+If no error occurs then it returns
+.BR XpmSuccess .
+If the passed XpmAttributes structure pointer is not NULL,
+.BR XpmWriteFileFromImage ()
+looks for the following attributes:
+XpmColormap, XpmHotspot, XpmCharsPerPixel, XpmRgbFilename, and XpmExtensions.
+As a backward compatibility feature,
+.BR XpmWriteFileFromImage ()
+also looks for the XpmInfos attributes.
+If the filename contains an extension such as “.xpm”, in order to get a valid C
+variable name, the dot character is
+replaced by an underscore ’_’ when writing out.
+As a backward compatibility feature, if the XpmInfos attributes are defined it writes out possible stored
+information such as comments, color defaults and symbol.
+Finally, if the XpmRgbFilenameattribute is defined,
+.BR XpmWriteFileFromImage ()
+searches for color names in
+this file and if found writes them out instead of the rgb values.
+.PP
+In addition on systems which support such features if the given file name ends
+by ’.Z’ or ’.gz’ it is assumed to be a compressed file. Then,
+.BR XpmWriteFileFromImage ()
+writes to a piped compress or gzip process.
+And if instead of a file name, NULL is passed to
+.BR XpmWriteFileFromImage (),
+it writes to the standard output.
+
+.SS XpmWriteFileFromPixmap
+.PP
+To write out a Pixmap to an XPM file, use
+.BR XpmWriteFileFromPixmap ().
+.PP
+If the passed XpmAttributes structure pointer is not NULL,
+.BR XpmWriteFileFromPixmap ()
+looks for the following attributes: XpmSize.
+If they are not defined it performs an XGetGeometry operation.
+Then it uses XGetImage to get from the given pixmaps the related X images which are passed to
+.BR XpmWriteFileFromImage ().
+Finally
+.BR XpmWriteFileFromPixmap ()
+destroys the created images using XDestroyImage.
+The
+.BR XpmWriteFileFromPixmap ()
+function returns the same errors as
+.BR XpmWriteFileFromImage ().
+
+.SS XpmWriteFileFromData
+.PP
+.BR XpmWriteFileFromData ()
+writes an XPM data array to an XPM file.
+.PP
+.BR XpmWriteFileToData ()
+returns
+.B XpmOpenFailed
+if it cannot open the file,
+.B XpmFileInvalid
+if this is not a valid XPM data, and
+.B XpmSuccess
+otherwise.
+
+.SS XpmWriteFileFromXpmImage
+.PP
+To write out an XpmImage to an XPM file, use
+.BR XpmWriteFileFromXpmImage ().
+The
+.BR XpmWriteFileFromXpmImage ()
+function writes an image out to a file in the XPM format.
+If the file cannot be opened, it returns
+.BR XpmOpenFailed .
+If insufficient working storage is allocated, it returns
+.BR XpmNoMemory .
+If no error occurs then it returns
+.BR XpmSuccess .
+If the passed XpmInfo structure pointer is not NULL,
+.BR XpmWriteFileFromXpmImage()
+looks for the following attributes:
+XpmComments, XpmExtensions, and XpmHotspot,
+and writes the related information out as well.
+In addition on systems which support such features if the given file name ends
+by ’.Z’ or ’.gz’ it is assumed to be a compressed file. Then,
+.BR XpmWriteFileFromXpmImage ()
+writes to a piped compress or gzip process.
+And if instead of a file name, NULL is passed to
+.BR XpmWriteFileFromXpmImage (),
+it writes to the standard output.
+
+.SS XpmWriteFileFromBuffer
+.PP
+.BR XpmWriteFileFromBuffer ()
+writes a XPM buffer to a file.
+.BR XpmWriteFileFromBuffer ()
+returns
+.B XpmOpenFailed
+if it cannot open the file, and
+.B XpmSuccess
+otherwise.
+.PP
+As a convenience, the
+.BR XpmReadFileToBuffer ()
+and
+.BR XpmWriteFileFromBuffer ()
+functions
+are provided to copy a file to a buffer and to write a file from a buffer.
+Thus for instance one may decide to use
+.BR XpmCreateBufferFromPixmap (),
+.BR XpmWriteFileFromBuffer (),
+and
+.BR XpmFree ()
+instead of
+.BR XpmWriteFileFromPixmap ().
+On some systems this may lead to a performance improvement,
+since the parsing will be performed in memory, but it uses more memory.
+
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmRead (__libmansuffix__)

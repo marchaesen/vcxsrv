@@ -83,7 +83,7 @@ typedef struct _ViewportPart {
     Widget clip, child;		/* The clipping and (scrolled) child widgets */
     Widget horiz_bar, vert_bar;	/* What scrollbars we currently have */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } ViewportPart;
 

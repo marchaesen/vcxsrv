@@ -5,7 +5,10 @@ EXPORTS
     uncompress2
     gzfread
     gzfwrite
+    crc32_combine_gen64
     adler32_z
     crc32_z
+    crc32_combine_gen
+    crc32_combine_op
     inflateValidate
     inflateCodesUsed

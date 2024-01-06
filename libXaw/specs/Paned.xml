@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Paned Widget -->
 <!-- .XE -->
-<!-- .IN "Paned widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Paned widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Paned.h&gt;
-<!-- .IN "Paned.h" "" -->
+<indexterm><primary>Paned.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/PanedP.h&gt;
-<!-- .IN "PanedP.h" "" -->
+<indexterm><primary>PanedP.h</primary></indexterm>
 Class		panedWidgetClass
-<!-- .IN "panedWidgetClass" "" -->
+<indexterm><primary>panedWidgetClass</primary></indexterm>
 Class Name	Paned
-<!-- .IN "Paned widget" "class name" -->
+<indexterm><primary>Paned widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Constraint
 <!-- .sp -->
 </literallayout>
@@ -37,7 +37,7 @@ adding a Grip as its own pane will confuse the Paned widget.
 </para>
 <sect2 id="Using_the_Paned_Widget">
 <title>Using the Paned Widget</title>
-<!-- .IN "Paned widget" "using" -->
+<indexterm><primary>Paned widget</primary><secondary>using</secondary></indexterm>
 <para>
 <!-- .LP -->
 The grips allow the panes to be resized by the user.  The semantics of
@@ -104,7 +104,7 @@ retrieved from the argument list or the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Paned widget" "resources" -->
+<indexterm><primary>Paned widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -578,9 +578,9 @@ number of panes.
       <para>
 The orientation to stack the panes.  This value can be either
 <function>XtorientVertical</function> or <function>XtorientHorizontal</function>.
-<!-- .IN "XtorientVertical" "" -->
-<!-- .IN "XtorientHorizontal" "" -->
-<!-- .IN "conversions" "Orientation" -->
+<indexterm><primary>XtorientVertical</primary></indexterm>
+<indexterm><primary>XtorientHorizontal</primary></indexterm>
+<indexterm><primary>conversions</primary><secondary>Orientation</secondary></indexterm>
 <!-- .Rs "vertical \fPand\fB horizontal" -->
       </para>
     </listitem>
@@ -609,7 +609,7 @@ widget.
 <title>Constraint Resources</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Paned widget" "constraint resources" -->
+<indexterm><primary>Paned widget</primary><secondary>constraint resources</secondary></indexterm>
 Each child of the Paned widget may request special layout resources
 be applied to it.  These <emphasis remap='I'>constraint</emphasis> resources allow the Paned
 widget's children to specify individual layout requirements.
@@ -779,7 +779,7 @@ forced to be resized.  See <function>Layout Semantics</function> for details.
 <title>Layout Semantics</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Paned widget" "layout semantics" -->
+<indexterm><primary>Paned widget</primary><secondary>layout semantics</secondary></indexterm>
 In order to make effective use of the Paned widget it is helpful to know
 the rules it uses to determine which child will be resized in any given
 situation.  There are three rules used to determine which child is
@@ -913,7 +913,7 @@ Translation table.
 <!-- .TA .5i 2.25i -->
 <!-- .ta .5i 2.25i -->
 	&lt;Btn1Down&gt;:	GripAction(Start, UpLeftPane)
-<!-- .IN "GripAction" "" -->
+<indexterm><primary>GripAction</primary></indexterm>
 	&lt;Btn2Down&gt;:	GripAction(Start, ThisBorderOnly)
 	&lt;Btn3Down&gt;:	GripAction(Start, LowRightPane)
 	&lt;Btn1Motion&gt;:	GripAction(Move, UpLeftPane)
@@ -926,7 +926,7 @@ Translation table.
 <para>
 <!-- .LP -->
 The Paned widget interprets the <function>GripAction</function> as taking two arguments.
-<!-- .IN "GripAction" "" -->
+<indexterm><primary>GripAction</primary></indexterm>
 The first argument may be any of the following:
 <variablelist>
   <varlistentry>
@@ -974,12 +974,12 @@ grip's inactive cursor.  No second argument is needed in this case.
 <title>Convenience Routines</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Paned widget" "enable pane resizing" -->
-<!-- .IN "Paned widget" "disable pane resizing" -->
+<indexterm><primary>Paned widget</primary><secondary>enable pane resizing</secondary></indexterm>
+<indexterm><primary>Paned widget</primary><secondary>disable pane resizing</secondary></indexterm>
 To enable or disable a child's request for pane resizing,
 use
 <function>XawPanedAllowResize :</function>
-<!-- .IN "XawPanedAllowResize" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPanedAllowResize</primary></indexterm>
 <funcsynopsis id='XawPanedAllowResize'>
 <funcprototype>
   <funcdef>void<function> XawPanedAllowResize</function></funcdef>
@@ -1025,10 +1025,10 @@ constraint resource for the child.
 <para>
 <!-- .LP -->
 <!-- .sp -->
-<!-- .IN "Paned widget" "change height settings" -->
+<indexterm><primary>Paned widget</primary><secondary>change height settings</secondary></indexterm>
 To change the minimum and maximum height settings for a pane, use
 <function>XawPanedSetMinMax :</function>
-<!-- .IN "XawPanedSetMinMax" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPanedSetMinMax</primary></indexterm>
 <funcsynopsis id='XawPanedSetMinMax'>
 <funcprototype>
   <funcdef>void<function> XawPanedSetMinMax</function></funcdef>
@@ -1078,10 +1078,10 @@ constraint resources for the child.
 <para>
 <!-- .LP -->
 <!-- .sp -->
-<!-- .IN "Paned widget" "get height settings" -->
+<indexterm><primary>Paned widget</primary><secondary>get height settings</secondary></indexterm>
 To retrieve the minimum and maximum height settings for a pane, use
 <function>XawPanedGetMinMax :</function>
-<!-- .IN "XawPanedGetMinMax" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPanedGetMinMax</primary></indexterm>
 <funcsynopsis id='XawPanedGetMinMax'>
 <funcprototype>
   <funcdef>void<function> XawPanedGetMinMax</function></funcdef>
@@ -1131,12 +1131,12 @@ resources for this child child.
 <para>
 <!-- .LP -->
 <!-- .sp -->
-<!-- .IN "Paned widget" "enable auto-reconfiguring" -->
-<!-- .IN "Paned widget" "disable auto-reconfiguring" -->
+<indexterm><primary>Paned widget</primary><secondary>enable auto-reconfiguring</secondary></indexterm>
+<indexterm><primary>Paned widget</primary><secondary>disable auto-reconfiguring</secondary></indexterm>
 To enable or disable automatic recalculation of pane sizes and positions,
 use
 <function>XawPanedSetRefigureMode :</function>
-<!-- .IN "XawPanedSetRefigureMode" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPanedSetRefigureMode</primary></indexterm>
 <funcsynopsis id='XawPanedSetRefigureMode'>
 <funcprototype>
   <funcdef>void<function> XawPanedSetRefigureMode</function></funcdef>
@@ -1178,10 +1178,10 @@ relayout until after all changes have been made.
 <para>
 <!-- .LP -->
 <!-- .sp -->
-<!-- .IN "Paned widget" "getting the number of children" -->
+<indexterm><primary>Paned widget</primary><secondary>getting the number of children</secondary></indexterm>
 To retrieve the number of panes in a paned widget use
 <xref linkend='XawPanedGetNumSub' xrefstyle='select: title'/>:
-<!-- .IN "XawPanedGetNumSub" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>XawPanedGetNumSub</primary></indexterm>
 <funcsynopsis id='XawPanedGetNumSub'>
 <funcprototype>
   <funcdef>int<function> XawPanedGetNumSub</function></funcdef>

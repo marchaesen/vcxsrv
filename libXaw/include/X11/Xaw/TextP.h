@@ -155,7 +155,7 @@ typedef struct _XmuScanline XmuTextUpdate;
 struct SearchAndReplace {
     Boolean selection_changed;	/* flag so that the selection cannot be
 				   changed out from underneath query-replace.*/
-    Widget search_popup;	/* The poppup widget that allows searches.*/
+    Widget search_popup;	/* The popup widget that allows searches.*/
     Widget label1;		/* The label widgets for the search window. */
     Widget label2;
     Widget left_toggle;		/* The left search toggle radioGroup. */
@@ -256,7 +256,7 @@ typedef struct _TextPart {
      */
     short left_column, right_column;
     XawTextJustifyMode justify;
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } TextPart;
 

@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Panner Widget -->
 <!-- .XE -->
-<!-- .IN "Panner widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Panner widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application header file	&lt;X11/Xaw/Panner.h&gt;
-<!-- .IN "Panner.h" "" -->
+<indexterm><primary>Panner.h</primary></indexterm>
 Class header file	&lt;X11/Xaw/PannerP.h&gt;
-<!-- .IN "PannerP.h" "" -->
+<indexterm><primary>PannerP.h</primary></indexterm>
 Class		pannerWidgetClass
-<!-- .IN "pannerWidgetClass" "" -->
+<indexterm><primary>pannerWidgetClass</primary></indexterm>
 Class Name	Panner
-<!-- .IN "Panner widget" "class name" -->
+<indexterm><primary>Panner widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Simple
 <!-- .sp -->
 </literallayout>
@@ -25,9 +25,9 @@ Superclass	Simple
 <para>
 <!-- .LP -->
 A Panner widget is a rectangle, called the
-``canvas,'' on which another rectangle, the ``slider,'' moves in two
+<quote>canvas,</quote> on which another rectangle, the <quote>slider,</quote> moves in two
 dimensions.  It is often used with a Porthole widget to move, or
-``scroll,'' a third widget in two dimensions, in which case the
+<quote>scroll,</quote> a third widget in two dimensions, in which case the
 slider's size and position gives feedback as to what portion of
 the third widget is visible.
 </para>
@@ -50,7 +50,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Panner widget" "resources" -->
+<indexterm><primary>Panner widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -563,7 +563,7 @@ The size of the slider.
 </sect2>
 <sect2 id="Panner_Actions">
 <title>Panner Actions</title>
-<!-- .IN "Panner widget" "actions" -->
+<indexterm><primary>Panner widget</primary><secondary>actions</secondary></indexterm>
 <para>
 <!-- .LP -->
 The actions supported by the Panner widget are:
@@ -620,7 +620,7 @@ action procedure).
       <para>
 This action moves the slider by the specified amounts.  The format
 for the amounts is a signed or unsigned floating-point number (e.g., +1.0
-or \-.5) followed
+or -.5) followed
 by either <function>p</function> indicating pages (slider sizes), or <function>c</function> indicating
 canvas sizes.  Thus, <emphasis remap='I'>page(+0,+.5p)</emphasis> represents vertical movement down
 one-half the height of the slider and <emphasis remap='I'>page(0,0)</emphasis> represents moving to
@@ -658,23 +658,23 @@ may have one of the values <function>on</function>, <function>off</function>, or
 <!-- .LP -->
 <!-- .sp -->
 The default bindings for Panner are:
-<!-- .IN "Panner widget" "default translation table" -->
+<indexterm><primary>Panner widget</primary><secondary>default translation table</secondary></indexterm>
 </para>
 <!-- .LP -->
 <literallayout class="monospaced">
 <!-- .TA .5i 1.75i -->
 <!-- .ta .5i 1.75i -->
-	&lt;Btn1Down&gt;:	start(\|)
-	&lt;Btn1Motion&gt;:	move(\|)
-	&lt;Btn1Up&gt;:	notify(\|) stop(\|)
-	&lt;Btn2Down&gt;:	abort(\|)
+	&lt;Btn1Down&gt;:	start(&#x2006;)
+	&lt;Btn1Motion&gt;:	move(&#x2006;)
+	&lt;Btn1Up&gt;:	notify(&#x2006;) stop(&#x2006;)
+	&lt;Btn2Down&gt;:	abort(&#x2006;)
 	&lt;Key&gt;KP_Enter:	set(rubberband,toggle)
 	&lt;Key&gt;space:	page(+1p,+1p)
-	&lt;Key&gt;Delete:	page(\-1p,\-1p)
-	&lt;Key&gt;BackSpace:	page(\-1p,\-1p)
-	&lt;Key&gt;Left:	page(\-.5p,+0)
+	&lt;Key&gt;Delete:	page(-1p,-1p)
+	&lt;Key&gt;BackSpace:	page(-1p,-1p)
+	&lt;Key&gt;Left:	page(-.5p,+0)
 	&lt;Key&gt;Right:	page(+.5p,+0)
-	&lt;Key&gt;Up:	page(+0,\-.5p)
+	&lt;Key&gt;Up:	page(+0,-.5p)
 	&lt;Key&gt;Down:	page(+0,+.5p)
 	&lt;Key&gt;Home:	page(0,0)
 </literallayout>
@@ -682,12 +682,12 @@ The default bindings for Panner are:
 
 <sect2 id="Panner_Callbacks">
 <title>Panner Callbacks</title>
-<!-- .IN "Panner widget" "callbacks" -->
+<indexterm><primary>Panner widget</primary><secondary>callbacks</secondary></indexterm>
 <para>
 <!-- .LP -->
 The functions registered on the <function>reportCallback</function> list are invoked by
 the <function>notify</function> action as follows:
-<!-- .IN "ReportProc" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>ReportProc</primary></indexterm>
 <funcsynopsis id='Panner::ReportProc'>
 <funcprototype>
   <funcdef>void<function> ReportProc</function></funcdef>

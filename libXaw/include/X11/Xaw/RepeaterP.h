@@ -59,7 +59,7 @@ typedef struct {
     int next_delay;			/* next amount for timer */
     XtIntervalId timer;			/* timer that will fire */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } RepeaterPart;
 

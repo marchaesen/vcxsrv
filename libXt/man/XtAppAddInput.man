@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtApp-Add-Input wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddInput __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddInput, XtRemoveInput \- register and remove an input source
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtInputId XtAppAddInput(XtAppContext \fIapp_context\fP, int \fIsource\fP,
 XtPointer \fIcondition\fP, XtInputCallbackProc \fIproc\fP, XtPointer
@@ -73,34 +46,31 @@ XtPointer \fIcondition\fP, XtInputCallbackProc \fIproc\fP, XtPointer
 .HP
 void XtRemoveInput(XtInputId \fIid\fP);
 .SH ARGUMENTS
-.ds Co that identifies the application
 .IP \fIapp_context\fP 1i
-Specifies the application context \*(Co.
-.ds Cd input is available
+Specifies the application context that identifies the application.
 .IP \fIclient_data\fP 1i
 Specifies the argument that is to be passed to the specified procedure
-when \*(Cd.
+when input is available.
 .IP \fIcondition\fP 1i
 Specifies the mask that indicates a read, write, or exception condition
 or some operating system dependent condition.
 .IP \fIid\fP 1i
 Specifies the ID returned from the corresponding
-.ZN XtAppAddInput
+.B XtAppAddInput
 call.
-.ds Pr \ to be called when input is available
 .IP \fIproc\fP 1i
-Specifies the procedure that is\*(Pr.
+Specifies the procedure that is to be called when input is available.
 .IP \fIsource\fP 1i
 Specifies the source file descriptor on a UNIX-based system
 or other operating system dependent device specification.
 .SH DESCRIPTION
 The
-.ZN XtAppAddInput
+.B XtAppAddInput
 function registers with the \*(xI read routine a new source of events,
 which is usually file input but can also be file output.
 Note that file should be loosely interpreted to mean any sink
 or source of data.
-.ZN XtAppAddInput
+.B XtAppAddInput
 also specifies the conditions under which the source can generate events.
 When input is pending on this source,
 the callback procedure is called.
@@ -108,12 +78,12 @@ the callback procedure is called.
 The legal values for the condition argument are operating-system dependent.
 On a UNIX-based system,
 the condition is some union of
-.ZN XtInputReadMask ,
-.ZN XtInputWriteMask ,
+.BR XtInputReadMask ,
+.BR XtInputWriteMask ,
 and
-.ZN XtInputExceptMask .
+.BR XtInputExceptMask .
 The
-.ZN XtRemoveInput
+.B XtRemoveInput
 function causes the \*(xI read routine to stop watching for input
 from the input source.
 .SH "SEE ALSO"
@@ -126,16 +96,16 @@ XtAppAddTimeOut(__libmansuffix__),XtAppAddSignal(__libmansuffix__)
 .SH "BUGS"
 In ANSI C it is necessary to cast the condition to an XtPointer, e.g.:
 .RS 4
-.br
+.ft CW
 XtAppAddInput(app_context,
 .RS 4
 .br
 source,
 .br
-.B (XtPointer)
-(XtInputReadMask | XtInputWriteMask),
+\fB(XtPointer)\fP (XtInputReadMask | XtInputWriteMask),
 .br
 proc,
 .br
 client_data);
+.ft R
 .RE

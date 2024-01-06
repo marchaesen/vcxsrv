@@ -10,7 +10,8 @@ libXfont2_la_SOURCES =			\
 	src/util/miscutil.c		\
 	src/util/patcache.c		\
 	src/util/private.c		\
-	src/util/utilbitmap.c
+	src/util/utilbitmap.c \
+	src/util/reallocarray.c
 
 libXfont2_la_SOURCES +=			\
 	src/fontfile/bitsource.c	\

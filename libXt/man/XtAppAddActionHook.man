@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtApp-Add-Action-Hook XtRemove-Action-Hook wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppAddActionHook __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppAddActionHook, XtRemoveActionHook \- register an action hook procedure
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtActionHookId XtAppAddActionHook(XtAppContext \fIapp_context\fP,
 XtActionHookProc \fIproc\fP, XtPointer \fIclient_data\fP);
@@ -78,21 +51,22 @@ Specifies the action hook procedure.
 .IP \fInum_args\fP 1i
 Specifies the application-specific data to be passed to the action hook.
 .SH DESCRIPTION
-.ZN XtAppAddActionHook
+.B XtAppAddActionHook
 adds the specified procedure to the front of a list maintained in the
-application context. In the future, when an action routine is about to
+application context.
+In the future, when an action routine is about to
 be invoked for any widget in this application context, either through
 the translation manager or via
-.ZN XtCallActionProc ,
+.BR XtCallActionProc ,
 the action hohok procedures will be called in reverse order of registration
 jut prior to invoking the action routine.
 .LP
 Action hook procedures are removed automatically and the
-.ZN XtActionHookId
+.B XtActionHookId
 s destroyed when the application context in which they were added is
 destroyed.
 .LP
-.ZN XtRemoveActionHook
+.B XtRemoveActionHook
 removes the specified action hook procedure from the list in which it
 was registered.
 .SH "SEE ALSO"

@@ -16,12 +16,10 @@ libxkbfile_la_SOURCES = \
          xkmout.c \
          xkmread.c
 
-INCLUDES = -I$(top_srcdir)/include/ -I$(top_srcdir)/include/X11/extensions/
-
-
-libxkbfile_la_LIBADD = @XKBFILE_LIBS@
+AM_CPPFLAGS = -I$(top_srcdir)/include/ -I$(top_srcdir)/include/X11/extensions/
 AM_CFLAGS = $(CWARNFLAGS) @XKBFILE_CFLAGS@
 
+libxkbfile_la_LIBADD = @XKBFILE_LIBS@
 libxkbfile_la_LDFLAGS = -version-number 1:0:2 -no-undefined
 
 libxkbfileincludedir = $(includedir)/X11/extensions

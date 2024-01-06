@@ -1,0 +1,8 @@
+# Test data for rgb.c - changes here likely require changes to that code
+255 255 255	white
+  0   0   0	black
+255   0   0	red
+  0 255   0	green
+  0   0 255	blue
+  0  50  98	BerkeleyBlue
+253 181  21	CaliforniaGold

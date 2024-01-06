@@ -24,6 +24,7 @@
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
+#include <X11/Xfuncproto.h>
 #include "Xfixesint.h"
 
 XFixesExtInfo XFixesExtensionInfo;
@@ -48,9 +49,8 @@ XFixesExtAddDisplay (XFixesExtInfo *extinfo,
                       char           *ext_name)
 {
     XFixesExtDisplayInfo    *info;
-    int			    ev;
 
-    info = (XFixesExtDisplayInfo *) Xmalloc (sizeof (XFixesExtDisplayInfo));
+    info = Xmalloc (sizeof (XFixesExtDisplayInfo));
     if (!info) return NULL;
     info->display = dpy;
 
@@ -65,7 +65,7 @@ XFixesExtAddDisplay (XFixesExtInfo *extinfo,
 	xXFixesQueryVersionReq	*req;
         XESetCloseDisplay (dpy, info->codes->extension,
                            XFixesCloseDisplay);
-	for (ev = info->codes->first_event;
+	for (int ev = info->codes->first_event;
 	     ev < info->codes->first_event + XFixesNumberEvents;
 	     ev++)
 	{
@@ -77,7 +77,7 @@ XFixesExtAddDisplay (XFixesExtInfo *extinfo,
 	 */
 	LockDisplay (dpy);
 	GetReq (XFixesQueryVersion, req);
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->xfixesReqType = X_XFixesQueryVersion;
 	req->majorVersion = XFIXES_MAJOR;
 	req->minorVersion = XFIXES_MINOR;
@@ -88,8 +88,8 @@ XFixesExtAddDisplay (XFixesExtInfo *extinfo,
 	    Xfree(info);
 	    return NULL;
 	}
-	info->major_version = rep.majorVersion;
-	info->minor_version = rep.minorVersion;
+	info->major_version = (int) rep.majorVersion;
+	info->minor_version = (int) rep.minorVersion;
 	UnlockDisplay (dpy);
 	SyncHandle ();
     } else {
@@ -124,7 +124,7 @@ XFixesExtAddDisplay (XFixesExtInfo *extinfo,
  * extension object. (Replaces XextRemoveDisplay.)
  */
 static int
-XFixesExtRemoveDisplay (XFixesExtInfo *extinfo, Display *dpy)
+XFixesExtRemoveDisplay (XFixesExtInfo *extinfo, const Display *dpy)
 {
     XFixesExtDisplayInfo *info, *prev;
 
@@ -154,7 +154,7 @@ XFixesExtRemoveDisplay (XFixesExtInfo *extinfo, Display *dpy)
     if (info == extinfo->cur) extinfo->cur = NULL;  /* flush cache */
     _XUnlockMutex(_Xglobal_lock);
 
-    Xfree ((char *) info);
+    Xfree (info);
     return 1;
 }
 
@@ -165,7 +165,7 @@ XFixesExtRemoveDisplay (XFixesExtInfo *extinfo, Display *dpy)
  */
 static XFixesExtDisplayInfo *
 XFixesExtFindDisplay (XFixesExtInfo *extinfo,
-		      Display	    *dpy)
+		      const Display *dpy)
 {
     XFixesExtDisplayInfo *info;
 
@@ -204,7 +204,7 @@ XFixesFindDisplay (Display *dpy)
 }
 
 static int
-XFixesCloseDisplay (Display *dpy, XExtCodes *codes)
+XFixesCloseDisplay (Display *dpy, _X_UNUSED XExtCodes *codes)
 {
     return XFixesExtRemoveDisplay (&XFixesExtensionInfo, dpy);
 }
@@ -271,13 +271,13 @@ XFixesEventToWire(Display *dpy, XEvent *event, xEvent *wire)
 	xXFixesSelectionNotifyEvent *awire;
 	awire = (xXFixesSelectionNotifyEvent *) wire;
 	aevent = (XFixesSelectionNotifyEvent *) event;
-	awire->type = aevent->type | (aevent->send_event ? 0x80 : 0);
-	awire->subtype = aevent->subtype;
-	awire->window = aevent->window;
-	awire->owner = aevent->owner;
-	awire->selection = aevent->selection;
-	awire->timestamp = aevent->timestamp;
-	awire->selectionTimestamp = aevent->selection_timestamp;
+	awire->type = (CARD8) (aevent->type | (aevent->send_event ? 0x80 : 0));
+	awire->subtype = (CARD8) aevent->subtype;
+	awire->window = (CARD32) aevent->window;
+	awire->owner = (CARD32) aevent->owner;
+	awire->selection = (CARD32) aevent->selection;
+	awire->timestamp = (CARD32) aevent->timestamp;
+	awire->selectionTimestamp = (CARD32) aevent->selection_timestamp;
 	return True;
     }
     case XFixesCursorNotify: {
@@ -285,12 +285,12 @@ XFixesEventToWire(Display *dpy, XEvent *event, xEvent *wire)
 	xXFixesCursorNotifyEvent *awire;
 	awire = (xXFixesCursorNotifyEvent *) wire;
 	aevent = (XFixesCursorNotifyEvent *) event;
-	awire->type = aevent->type | (aevent->send_event ? 0x80 : 0);
-	awire->subtype = aevent->subtype;
-	awire->window = aevent->window;
-	awire->timestamp = aevent->timestamp;
-	awire->cursorSerial = aevent->cursor_serial;
-	awire->name = aevent->cursor_name;
+	awire->type = (CARD8) (aevent->type | (aevent->send_event ? 0x80 : 0));
+	awire->subtype = (CARD8) aevent->subtype;
+	awire->window = (CARD32) aevent->window;
+	awire->timestamp = (CARD32) aevent->timestamp;
+	awire->cursorSerial = (CARD32) aevent->cursor_serial;
+	awire->name = (CARD32) aevent->cursor_name;
     }
     }
     return False;

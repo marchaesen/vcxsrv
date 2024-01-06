@@ -92,7 +92,7 @@ static XtResource resources[] = {
     sizeof(Pixel),
     offset(foreground),
     XtRString,
-    XtDefaultForeground,
+    (XtPointer)XtDefaultForeground,
   },
   {
     XtNfont,
@@ -101,7 +101,7 @@ static XtResource resources[] = {
     sizeof(XFontStruct*),
     offset(font),
     XtRString,
-    XtDefaultFont
+    (XtPointer)XtDefaultFont
   },
   {
     XtNfontSet,
@@ -110,7 +110,7 @@ static XtResource resources[] = {
     sizeof(XFontSet),
     offset(fontset),
     XtRString,
-    XtDefaultFontSet
+    (XtPointer)XtDefaultFontSet
   },
   {
     XtNtopMargin,
@@ -239,7 +239,7 @@ XawTipClassInitialize(void)
 
 /*ARGSUSED*/
 static void
-XawTipInitialize(Widget req, Widget w, ArgList args, Cardinal *num_args)
+XawTipInitialize(Widget req _X_UNUSED, Widget w _X_UNUSED, ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TipWidget tip = (TipWidget)w;
     XGCValues values;
@@ -297,7 +297,7 @@ XawTipRealize(Widget w, Mask *mask, XSetWindowAttributes *attr)
 	attr->backing_store = tip->tip.backing_store;
     }
     else
-	*mask &= ~CWBackingStore;
+	*mask &= (Mask)(~CWBackingStore);
     *mask |= CWOverrideRedirect;
     attr->override_redirect = True;
 
@@ -318,49 +318,50 @@ XawTipExpose(Widget w, XEvent *event, Region region)
 {
     TipWidget tip = (TipWidget)w;
     GC gc = tip->tip.gc;
-    char *nl, *label = tip->tip.label;
-    Position y = tip->tip.top_margin + tip->tip.font->max_bounds.ascent;
+    char *nl;
+    _Xconst char * label = tip->tip.label;
+    Position y = (Position)(tip->tip.top_margin + tip->tip.font->max_bounds.ascent);
     int len;
 
     if (tip->tip.display_list)
 	XawRunDisplayList(w, tip->tip.display_list, event, region);
 
     if (tip->tip.international == True) {
-	Position ksy = tip->tip.top_margin;
+	Position ksy = (Position)tip->tip.top_margin;
 	XFontSetExtents *ext = XExtentsOfFontSet(tip->tip.fontset);
 
-	ksy += XawAbs(ext->max_ink_extent.y);
+	ksy = (ksy + XawAbs(ext->max_ink_extent.y));
 
-	while ((nl = index(label, '\n')) != NULL) {
+	while ((nl = strchr(label, '\n')) != NULL) {
 	    XmbDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset,
 			  gc, tip->tip.left_margin, ksy, label,
 			  (int)(nl - label));
-	    ksy += ext->max_ink_extent.height;
+	    ksy = (ksy + ext->max_ink_extent.height);
 	    label = nl + 1;
 	}
-	len = strlen(label);
+	len = (int)strlen(label);
 	if (len)
 	    XmbDrawString(XtDisplay(w), XtWindow(w), tip->tip.fontset, gc,
 			  tip->tip.left_margin, ksy, label, len);
     }
     else {
-	while ((nl = index(label, '\n')) != NULL) {
+	while ((nl = strchr(label, '\n')) != NULL) {
 	    if (tip->tip.encoding)
 		XDrawString16(XtDisplay(w), XtWindow(w), gc,
 			      tip->tip.left_margin, y,
-			      (XChar2b*)label, (int)(nl - label) >> 1);
+			      (_Xconst XChar2b*)label, (int)(nl - label) >> 1);
 	    else
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.left_margin, y, label, (int)(nl - label));
-	    y += tip->tip.font->max_bounds.ascent +
-		 tip->tip.font->max_bounds.descent;
+	    y = (Position)(y + (tip->tip.font->max_bounds.ascent +
+		  tip->tip.font->max_bounds.descent));
 	    label = nl + 1;
 	}
-	len = strlen(label);
+	len = (int)strlen(label);
 	if (len) {
 	    if (tip->tip.encoding)
 		XDrawString16(XtDisplay(w), XtWindow(w), gc,
-			      tip->tip.left_margin, y, (XChar2b*)label, len >> 1);
+			      tip->tip.left_margin, y, (_Xconst XChar2b*)label, len >> 1);
 	    else
 		XDrawString(XtDisplay(w), XtWindow(w), gc,
 			    tip->tip.left_margin, y, label, len);
@@ -370,8 +371,8 @@ XawTipExpose(Widget w, XEvent *event, Region region)
 
 /*ARGSUSED*/
 static Boolean
-XawTipSetValues(Widget current, Widget request, Widget cnew,
-		ArgList args, Cardinal *num_args)
+XawTipSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+		ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     TipWidget curtip = (TipWidget)current;
     TipWidget newtip = (TipWidget)cnew;
@@ -402,14 +403,15 @@ TipLayout(XawTipInfo *info)
 {
     XFontStruct	*fs = info->tip->tip.font;
     int width = 0, height;
-    char *nl, *label = info->tip->tip.label;
+    char *nl;
+    _Xconst char *label = info->tip->tip.label;
 
     if (info->tip->tip.international == True) {
 	XFontSet fset = info->tip->tip.fontset;
 	XFontSetExtents *ext = XExtentsOfFontSet(fset);
 
 	height = ext->max_ink_extent.height;
-	if ((nl = index(label, '\n')) != NULL) {
+	if ((nl = strchr(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
 		int w = XmbTextEscapement(fset, label, (int)(nl - label));
@@ -421,20 +423,20 @@ TipLayout(XawTipInfo *info)
 		label = nl + 1;
 		if (*label)
 		    height += ext->max_ink_extent.height;
-		if ((nl = index(label, '\n')) == NULL)
-		    nl = index(label, '\0');
+		if ((nl = strchr(label, '\n')) == NULL)
+		    nl = strchr(label, '\0');
 	    }
 	}
 	else
-	    width = XmbTextEscapement(fset, label, strlen(label));
+	    width = XmbTextEscapement(fset, label, (int)strlen(label));
     }
     else {
 	height = fs->max_bounds.ascent + fs->max_bounds.descent;
-	if ((nl = index(label, '\n')) != NULL) {
+	if ((nl = strchr(label, '\n')) != NULL) {
 	    /*CONSTCOND*/
 	    while (True) {
 		int w = info->tip->tip.encoding ?
-		    XTextWidth16(fs, (XChar2b*)label, (int)(nl - label) >> 1) :
+		    XTextWidth16(fs, (_Xconst XChar2b*)label, (int)(nl - label) >> 1) :
 		    XTextWidth(fs, label, (int)(nl - label));
 		if (w > width)
 		    width = w;
@@ -443,19 +445,19 @@ TipLayout(XawTipInfo *info)
 		label = nl + 1;
 		if (*label)
 		    height += fs->max_bounds.ascent + fs->max_bounds.descent;
-		if ((nl = index(label, '\n')) == NULL)
-		    nl = index(label, '\0');
+		if ((nl = strchr(label, '\n')) == NULL)
+		    nl = strchr(label, '\0');
 	    }
 	}
 	else
 	    width = info->tip->tip.encoding ?
-		XTextWidth16(fs, (XChar2b*)label, strlen(label) >> 1) :
-		XTextWidth(fs, label, strlen(label));
+		XTextWidth16(fs, (_Xconst XChar2b*)label, (int)(strlen(label) >> 1)) :
+		XTextWidth(fs, label, (int)strlen(label));
     }
-    XtWidth(info->tip) = width + info->tip->tip.left_margin +
-			 info->tip->tip.right_margin;
-    XtHeight(info->tip) = height + info->tip->tip.top_margin +
-			  info->tip->tip.bottom_margin;
+    XtWidth(info->tip) = (width + info->tip->tip.left_margin +
+				  info->tip->tip.right_margin);
+    XtHeight(info->tip) = (height + info->tip->tip.top_margin +
+				    info->tip->tip.bottom_margin);
 }
 
 #define	DEFAULT_TIP_Y_OFFSET	12
@@ -469,14 +471,14 @@ TipPosition(XawTipInfo *info)
 
     XQueryPointer(XtDisplay((Widget)info->tip), XtWindow((Widget)info->tip),
 		  &r, &c, &rx, &ry, &wx, &wy, &mask);
-    x = rx - (XtWidth(info->tip) >> 1);
-    y = ry + DEFAULT_TIP_Y_OFFSET;
+    x = (Position)(rx - (XtWidth(info->tip) >> 1));
+    y = (Position)(ry + DEFAULT_TIP_Y_OFFSET);
 
     if (x >= 0) {
 	int scr_width = WidthOfScreen(XtScreen(info->tip));
 
 	if (x + XtWidth(info->tip) + XtBorderWidth(info->tip) > scr_width)
-	    x = scr_width - XtWidth(info->tip) - XtBorderWidth(info->tip);
+	    x = (Position)(scr_width - XtWidth(info->tip) - XtBorderWidth(info->tip));
     }
     if (x < 0)
 	x = 0;
@@ -484,8 +486,8 @@ TipPosition(XawTipInfo *info)
 	int scr_height = HeightOfScreen(XtScreen(info->tip));
 
 	if (y + XtHeight(info->tip) + XtBorderWidth(info->tip) > scr_height)
-	    y -= XtHeight(info->tip) + XtBorderWidth(info->tip) +
-		 (DEFAULT_TIP_Y_OFFSET << 1);
+	    y = (Position)(y - (XtHeight(info->tip) + XtBorderWidth(info->tip) +
+		 (DEFAULT_TIP_Y_OFFSET << 1)));
     }
     if (y < 0)
 	y = 0;
@@ -548,13 +550,14 @@ ResetTip(XawTipInfo *info, Bool add_timeout)
     if (add_timeout) {
 	info->tip->tip.timer =
 	    XtAppAddTimeOut(XtWidgetToApplicationContext((Widget)info->tip),
-			    info->tip->tip.timeout, TipTimeoutCallback,
+			    (unsigned long)info->tip->tip.timeout,
+			    TipTimeoutCallback,
 			    (XtPointer)info);
     }
 }
 
 static void
-TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
+TipTimeoutCallback(XtPointer closure, XtIntervalId *id _X_UNUSED)
 {
     XawTipInfo *info = (XawTipInfo*)closure;
     Arg args[3];
@@ -579,16 +582,16 @@ TipTimeoutCallback(XtPointer closure, XtIntervalId *id)
 
 /*ARGSUSED*/
 static void
-TipShellEventHandler(Widget w, XtPointer client_data, XEvent *event,
-		     Boolean *continue_to_dispatch)
+TipShellEventHandler(Widget w, XtPointer client_data _X_UNUSED, XEvent *event _X_UNUSED,
+		     Boolean *continue_to_dispatch _X_UNUSED)
 {
     ResetTip(FindTipInfo(w), False);
 }
 
 /*ARGSUSED*/
 static void
-TipEventHandler(Widget w, XtPointer client_data, XEvent *event,
-		Boolean *continue_to_dispatch)
+TipEventHandler(Widget w, XtPointer client_data _X_UNUSED, XEvent *event,
+		Boolean *continue_to_dispatch _X_UNUSED)
 {
     XawTipInfo *info = FindTipInfo(w);
     Boolean add_timeout;

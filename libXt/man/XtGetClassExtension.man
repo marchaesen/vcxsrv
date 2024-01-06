@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtGet-Class-Extension wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetClassExtension __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetClassExtension \- locate a class extension record
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XtPointer XtGetClassExtension(WidgetClass \fIobject_class\fP, Cardinal
 \fIbyte_offset\fP, XrmQuark \fItype\fP, long \fIversion\fP, Cardinal
@@ -89,9 +62,10 @@ The list of extension records at the specified offset in the specified
 \fItype\fP, a version greater than or equal to the specified \fIversion\fP,
 and a record size greater than or equal the specified \fIrecord_size\fP
 if it is nonzero.
-.ZN XtGetClassExtension
+.B XtGetClassExtension
 returns a pointer to a matching extension record or NULL if no match
-is found. The returned extension record is owned by the widget class
+is found.
+The returned extension record is owned by the widget class
 and must not be modified or freed by the caller, except possibly to
 be modified by the widget class owner.
 .SH "SEE ALSO"

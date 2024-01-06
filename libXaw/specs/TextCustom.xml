@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!-- 	Customizing the Text Widget -->
 <!-- .XE -->
-<!-- .IN "Text widget" "customizing" "@DEF@" -->
+<indexterm significance="preferred"><primary>Text widget</primary><secondary>customizing</secondary></indexterm>
 </para>
 <para>
 <!-- .LP -->
@@ -29,7 +29,7 @@ a Text widget.
 <!-- .LP -->
 Each of the following pieces of the Text widget has a specific purpose,
 and will be, or has been, discussed in detail in this chapter:
-<!-- .IN "Text widget" "" -->
+<indexterm><primary>Text widget</primary></indexterm>
 </para>
 <para>
 <variablelist>
@@ -43,11 +43,11 @@ All translations and actions are handled in the Text widget itself.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "TextSink object" "" -->
   <varlistentry>
     <term><function>TextSink</function></term>
     <listitem>
       <para>
+<indexterm><primary>TextSink object</primary></indexterm>
 This object is responsible for displaying and clearing the drawing area.
 It also reports the configuration of the window that contains the
 drawing area.  The TextSink does not have its own window; instead it does
@@ -55,62 +55,62 @@ its drawing on the Text widget's window.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "TextSrc object" "" -->
   <varlistentry>
     <term><function>TextSrc</function></term>
     <listitem>
       <para>
+<indexterm><primary>TextSrc object</primary></indexterm>
 This object is responsible for reading, editing and searching through the
 text buffer.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "AsciiSink object" "" -->
   <varlistentry>
     <term><function>AsciiSink</function></term>
     <listitem>
       <para>
+<indexterm><primary>AsciiSink object</primary></indexterm>
 This object is a subclass of the TextSink and knows how to display
 ASCII text.  Support has been added to display any 8-bit character set, given
 the font.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "MultiSink object" "" -->
   <varlistentry>
     <term><function>MultiSink</function></term>
     <listitem>
       <para>
+<indexterm><primary>MultiSink object</primary></indexterm>
 This object is a subclass of the TextSink and knows how to display
 font sets.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "AsciiSrc object" "" -->
   <varlistentry>
     <term><function>AsciiSrc</function></term>
     <listitem>
       <para>
+<indexterm><primary>AsciiSrc object</primary></indexterm>
 This object is a subclass of the TextSrc and knows how to read strings
 and files.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "MultiSrc object" "" -->
   <varlistentry>
     <term><function>MultiSrc</function></term>
     <listitem>
       <para>
+<indexterm><primary>MultiSrc object</primary></indexterm>
 This object is a subclass of the TextSrc and knows how to read strings
 and multibyte files, converting them to wide characters based on locale.
       </para>
     </listitem>
   </varlistentry>
-<!-- .IN "AsciiText widget" "" -->
   <varlistentry>
     <term><function>AsciiText</function></term>
     <listitem>
       <para>
+<indexterm><primary>AsciiText widget</primary></indexterm>
 This widget is a subclass of the Text widget.  When created, the AsciiText
 automatically creates and attaches either an AsciiSrc and AsciiSink, or a
 MultiSrc and MultiSink, to itself.  The AsciiText provides the simplest

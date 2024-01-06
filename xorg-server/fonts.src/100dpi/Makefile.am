@@ -188,7 +188,7 @@ SUFFIXES = .bdf .pcf$(COMPRESS_SUFFIX) \
 
 .bdf.pcf$(COMPRESS_SUFFIX):
 	@rm -f $@
-	$(AM_V_GEN)$(BDFTOPCF) -t $< | $(COMPRESS) > $@
+	$(AM_V_GEN)$(BDFTOPCF) -t $< | $(COMPRESS) $(COMPRESS_FLAGS) > $@
 
 .bdf-ISO8859-1.bdf:
 	@rm -f $@
@@ -250,24 +250,27 @@ BUILT_BDF_FILES = \
 	$(ISO8859_15_BDF_FILES)
 CLEANFILES = $(font_DATA) $(BUILT_BDF_FILES)
 
-EXTRA_DIST = $(BDF_FILES)
+EXTRA_DIST = $(BDF_FILES) README.md
+
+MAINTAINERCLEANFILES = ChangeLog INSTALL
 
 all-local: $(BUILT_BDF_FILES) $(font_DATA)
 
 install-data-hook:
-	@rm -f $(DESTDIR)$(fontdir)/font.dir
+	@rm -f $(DESTDIR)$(fontdir)/fonts.dir
 	$(MKFONTDIR) $(DESTDIR)$(fontdir)
 	@RUN_FCCACHE@
 
 distuninstallcheck:
 	@:
 
-EXTRA_DIST += ChangeLog
-MAINTAINERCLEANFILES = ChangeLog
 
-.PHONY: ChangeLog
+.PHONY: ChangeLog INSTALL
+
+INSTALL:
+	$(INSTALL_CMD)
 
 ChangeLog:
 	$(CHANGELOG_CMD)
 
-dist-hook: ChangeLog
+dist-hook: ChangeLog INSTALL

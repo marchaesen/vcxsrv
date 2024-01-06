@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	SmeBSB Object -->
 <!-- .XE -->
-<!-- .IN "SmeBSB object" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>SmeBSB object</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/SmeBSB.h&gt;
-<!-- .IN "SmeBSB.h" "" -->
+<indexterm><primary>SmeBSB.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/SmeBSBP.h&gt;
-<!-- .IN "SmeBSBP.h" "" -->
+<indexterm><primary>SmeBSBP.h</primary></indexterm>
 Class		smeBSBObjectClass
-<!-- .IN "smeBSBObjectClass" "" -->
+<indexterm><primary>smeBSBObjectClass</primary></indexterm>
 Class Name	SmeBSB
-<!-- .IN "SmeBSB object" "class name" -->
+<indexterm><primary>SmeBSB object</primary><secondary>class name</secondary></indexterm>
 Superclass	Sme
 <!-- .sp -->
 </literallayout>
@@ -34,7 +34,7 @@ of the 8 bit <function>font</function> utilized, or in a multi-byte encoding for
 </para>
 <sect2 id='SmeBSB::Resources'>
 <title>Resources</title>
-<!-- .IN "SmeBSB object" "resources" -->
+<indexterm><primary>SmeBSB object</primary><secondary>resources</secondary></indexterm>
 <para>
 <!-- .LP -->
 The resources associated with the SmeBSB object are defined in this section,

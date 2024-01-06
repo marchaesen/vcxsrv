@@ -123,7 +123,7 @@ Currently the only existing class is \fIxlib\fP, which provides access to
 the Xlib drawing primitives.
 .PP
 \fBFunction-name\fP is the drawing or configuration function to be called,
-described bellow.
+described below.
 .PP
 \fBArguments\fP may be anything suitable to the displayList function being
 called. When the function requires a coordinate, the syntax is

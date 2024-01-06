@@ -32,40 +32,14 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtApp-Next-Event XtApp-Pending XtApp-Peek-Event XtApp-Process-Event Xt-Dispatch-Event XtApp-Main-Loop wid-get
+.hw XtApp-Next-Event XtApp-Pending XtApp-Peek-Event XtApp-Process-Event
+.hw Xt-Dispatch-Event XtApp-Main-Loop wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppNextEvent __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppNextEvent, XtAppPending, XtAppPeekEvent, XtAppProcessEvent, XtDispatchEvent, XtAppMainLoop \- query and process events and input
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtAppNextEvent(XtAppContext \fIapp_context\fP, XEvent
 *\fIevent_return\fP);
@@ -82,9 +56,8 @@ Boolean XtDispatchEvent(XEvent *\fIevent\fP);
 .HP
 void XtAppMainLoop(XtAppContext \fIapp_context\fP);
 .SH ARGUMENTS
-.ds Co that identifies the application
 .IP \fIapp_context\fP 1i
-Specifies the application context \*(Co.
+Specifies the application context that identifies the application.
 .IP \fIevent\fP 1i
 Specifies a pointer to the event structure that is to be dispatched
 to the appropriate event handler.
@@ -93,72 +66,74 @@ Returns the event information to the specified event structure.
 .IP \fImask\fP 1i
 Specifies what types of events to process.
 The mask is the bitwise inclusive OR of any combination of
-.ZN XtIMXEvent ,
-.ZN XtIMTimer ,
-.ZN XtIMAlternateInput ,
+.BR XtIMXEvent ,
+.BR XtIMTimer ,
+.BR XtIMAlternateInput ,
 and
-.ZN XtIMSignal .
+.BR XtIMSignal .
 As a convenience, the \*(tk defines the symbolic name
-.ZN XtIMAll
+.B XtIMAll
 to be the bitwise inclusive OR of all event types.
 .SH DESCRIPTION
 If the X event queue is empty,
-.ZN XtAppNextEvent
+.B XtAppNextEvent
 flushes the X output buffers of each Display in the application context
 and waits for an event while looking at the other input sources, timeout
 timeout values, and signal handlers and calling any callback procedures
-triggered by them.  This wait time can be used for background processing
+triggered by them.
+This wait time can be used for background processing
 (see Section 7.8).
 .LP
 If there is an event in the queue,
-.ZN XtAppPeekEvent
-fills in the event and returns a nonzero value. If no X input is on the
-queue,
-.ZN XtAppPeekEvent
+.B XtAppPeekEvent
+fills in the event and returns a nonzero value.
+If no X input is on the queue,
+.B XtAppPeekEvent
 flushes the output buffer and blocks until input is available
 (possibly calling some timeout callbacks in the process).
 If the input is an event,
-.ZN XtAppPeekEvent
+.B XtAppPeekEvent
 fills in the event and returns a nonzero value.
 Otherwise, the input is for an alternate input source, and
-.ZN XtAppPeekEvent
+.B XtAppPeekEvent
 returns zero.
 .LP
 The
-.ZN XtAppPending
+.B XtAppPending
 function returns a nonzero value if there are events pending from the
-X server, timer pending, or other input sources pending. The value
-returned is a bit mask that is the OR of
-.ZN XtIMXEvent ,
-.ZN XtIMTimer ,
-.ZN XtIMAlternateInput ,
+X server, timer pending, or other input sources pending.
+The value returned is a bit mask that is the OR of
+.BR XtIMXEvent ,
+.BR XtIMTimer ,
+.BR XtIMAlternateInput ,
 and
-.ZN XtIMSignal
+.B XtIMSignal
 (see
-.ZN XtAppProcessEvent ).
+.BR XtAppProcessEvent ).
 If there are no events pending,
-.ZN XtAppPending
+.B XtAppPending
 flushes the output buffer and returns zero.
 .LP
 The
-.ZN XtAppProcessEvent
+.B XtAppProcessEvent
 function processes one timer, alternate input, signal source, or X
-event.  If there is nothing of the appropriate type to process,
-.ZN XtAppProcessEvent
+event.
+If there is nothing of the appropriate type to process,
+.B XtAppProcessEvent
 blocks until there is.
 If there is more than one type of thing available to process,
 it is undefined which will get processed.
 Usually, this procedure is not called by client applications (see
-.ZN XtAppMainLoop ).
-.ZN XtAppProcessEvent
+.BR XtAppMainLoop ).
+.B XtAppProcessEvent
 processes timer events by calling any appropriate timer callbacks,
 alternate input by calling any appropriate alternate input callbacks,
 signal source by calling any appropriate signal callbacks, and X events
 by calling
-.ZN XtDispatchEvent .
+.BR XtDispatchEvent .
 .LP
 When an X event is received, it is passed to
-.ZN XtDispatchEvent ,
+.BR XtDispatchEvent ,
 which calls the appropriate event handlers
 and passes them the widget, the event, and client-specific data
 registered with each procedure.
@@ -167,51 +142,48 @@ the event is ignored and the dispatcher simply returns.
 The order in which the handlers are called is undefined.
 .LP
 The
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 function sends those events to the event handler functions that
 have been previously registered with the dispatch routine.
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 returns
-.ZN True
+.B True
 if it dispatched the event to some handler and
-.ZN False
+.B False
 if it found no handler to dispatch the event to.
 The most common use of
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 is to dispatch events acquired with the
-.ZN XtAppNextEvent
+.B XtAppNextEvent
 procedure.
 However, it also can be used to dispatch user-constructed events.
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 also is responsible for implementing the grab semantics for
-.ZN XtAddGrab .
+.BR XtAddGrab .
 .LP
 The
-.ZN XtAppMainLoop
-function first reads the next incoming X event by calling
-.ZN XtAppNextEvent
-and then it dispatches the event to the appropriate registered procedure
-by calling
-.ZN XtDispatchEvent .
+.B XtAppMainLoop
+function processes events using
+.BR XtAppProcessEvent ,
+varying the \fImask\fP parameter and using
+.B XtAppPending
+to ensure that it has a chance to handle events of all types,
+i.e., X events, timer events, input events and signal sources.
 This constitutes the main loop of \*(tk applications,
 and, as such, it does not return unless
-.ZN XtAppSetExitFlag
+.B XtAppSetExitFlag
 is called.
 Applications are expected to exit in response to some user action.
 There is nothing special about
-.ZN XtAppMainLoop ;
-it is simply an loop that calls
-.ZN XtAppNextEvent
-and then
-.ZN XtDispatchEvent ,
-until
-.ZN XtAppGetExitFlag ()
+.BR XtAppMainLoop ;
+it is simply an loop that processes events until
+.BR XtAppGetExitFlag ()
 returns true.
 .LP
 Applications can provide their own version of this loop,
 which tests some global termination flag or tests that the number
-of top-level widgets is larger than zero before circling back to the call to
-.ZN XtAppNextEvent .
+of top-level widgets is larger than zero before circling back
+for the next event.
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

@@ -32,92 +32,65 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtAdd-Callback XtAdd-Callbacks XtRemove-Callback XtRemove-Callbacks XtRemove-All-Callbacks wid-get
+.hw XtAdd-Callback XtAdd-Callbacks XtRemove-Callback
+.hw XtRemove-Callbacks XtRemove-All-Callbacks wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAddCallback __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAddCallback, XtAddCallbacks, XtRemoveCallback, XtRemoveCallbacks, XtRemoveAllCallbacks \- add and remove callback procedures
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtAddCallback(Widget \fIw\fP, String \fIcallback_name\fP, XtCallbackProc
+void XtAddCallback(Widget \fIw\fP, const char *\fIcallback_name\fP, XtCallbackProc
 \fIcallback\fP, XtPointer \fIclient_data\fP);
 .HP
-void XtAddCallbacks(Widget \fIw\fP, String \fIcallback_name\fP, XtCallbackList
+void XtAddCallbacks(Widget \fIw\fP, const char *\fIcallback_name\fP, XtCallbackList
 \fIcallbacks\fP);
 .HP
-void XtRemoveCallback(Widget \fIw\fP, String \fIcallback_name\fP,
+void XtRemoveCallback(Widget \fIw\fP, const char *\fIcallback_name\fP,
 XtCallbackProc \fIcallback\fP, XtPointer \fIclient_data\fP);
 .HP
-void XtRemoveCallbacks(Widget \fIw\fP, String \fIcallback_name\fP,
+void XtRemoveCallbacks(Widget \fIw\fP, const char *\fIcallback_name\fP,
 XtCallbackList \fIcallbacks\fP);
 .HP
-void XtRemoveAllCallbacks(Widget \fIw\fP, String \fIcallback_name\fP,
+void XtRemoveAllCallbacks(Widget \fIw\fP, const char *\fIcallback_name\fP);
 .SH ARGUMENTS
 .IP \fIcallback\fP 1i
-Specifies the callback procedure\*(Cb.
+Specifies the callback procedure.
 .IP \fIcallbacks\fP 1i
 Specifies the null-terminated list of callback procedures and corresponding
 client data.
-.ds Cn \ to which the procedure is to be appended or deleted
 .IP \fIcallback_name\fP 1i
-Specifies the callback list\*(Cn.
-.ds Cd it is invoked by XtCallbacks or NULL, \
-or the client data to match on the registered callback procedures
+Specifies the callback list to which the procedure is to be appended or
+deleted.
 .IP \fIclient_data\fP 1i
 Specifies the argument that is to be passed to the specified procedure
-when \*(Cd.
+when it is invoked by XtCallbacks or NULL,
+or the client data to match on the registered callback procedures.
 .IP \fIw\fP 1i
 Specifies the widget.
 .SH DESCRIPTION
 The
-.ZN XtAddCallback
+.B XtAddCallback
 function adds the specified callback procedure to the specified widget's
 callback list.
 .LP
 The
-.ZN XtAddCallbacks
+.B XtAddCallbacks
 add the specified list of callbacks to the specified widget's callback list.
 .LP
 The
-.ZN XtRemoveCallback
+.B XtRemoveCallback
 function removes a callback only if both the procedure and the client
 data match.
 .LP
 The
-.ZN XtRemoveCallbacks
+.B XtRemoveCallbacks
 function removes the specified callback procedures from the specified
 widget's callback list.
 .LP
 The
-.ZN XtRemoveAllCallbacks
+.B XtRemoveAllCallbacks
 function removes all the callback procedures from the specified
 widget's callback list.
 .SH "SEE ALSO"

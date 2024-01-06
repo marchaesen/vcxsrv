@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtRegister-Drawable XtUnregister-Drawable XtWindow-To-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtRegisterDrawable __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtRegisterDrawable \- register a drawable with the Intrinsics event dispatcher
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtRegisterDrawable(Display* \fIdisplay\fP, Drawable \fIdrawable\fP,
 Widget \fIwidget\fP);
@@ -78,11 +51,12 @@ Specifies the drawable to register.
 .IP \fIwidget\fP 1i
 Specifies the widget to register the drawable for.
 .SH DESCRIPTION
-.ZN XtRegisterDrawable
+.B XtRegisterDrawable
 associates the specified drawable with the specified widget so that
 future calls to
-.ZN XtWindowToWidget
-with the drawable will return the widget. The default event dispatcher
+.B XtWindowToWidget
+with the drawable will return the widget.
+The default event dispatcher
 will dispatch future core events that arrive with the drawable to the
 widget as though the event contained the widget's window, but the event
 itself will not be changed in any way when being passed to even handler
@@ -91,15 +65,15 @@ or action procedures.
 If the drawable is already registered with another widget, or if the
 drawable is the window of a widget in the client's widget tree, the
 results of calling
-.ZN XtRegisterDrawable
+.B XtRegisterDrawable
 are undefined.
 .LP
-.ZN XtUnregisterDrawable
+.B XtUnregisterDrawable
 removes an association created with
-.ZN XtRegisterDrawable .
+.BR XtRegisterDrawable .
 If the drawable is the window of a widget in the client's widget tree
 the results of calling
-.ZN XtUnregisterDrawable
+.B XtUnregisterDrawable
 are undefined.
 .SH "SEE ALSO"
 .br

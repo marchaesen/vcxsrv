@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtNext-Event XtPeek-Event XtProcess-Event XtMain-Loop wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtNextEvent __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtNextEvent, XtPending, XtPeekEvent, XtProcessEvent, XtMainLoop \- query and process events and input
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtNextEvent(XEvent *\fIevent_return\fP);
 .HP
@@ -85,34 +58,34 @@ Returns the event information to the specified event structure.
 .IP \fImask\fP 1i
 Specifies what types of events to process.
 The mask is the bitwise inclusive OR of any combination of
-.ZN XtIMXEvent ,
-.ZN XtIMTimer ,
-.ZN XtIMAlternateInput ,
+.BR XtIMXEvent ,
+.BR XtIMTimer ,
+.BR XtIMAlternateInput ,
 and
-.ZN XtIMSignal .
+.BR XtIMSignal .
 As a convenience, the \*(tk defines the symbolic name
-.ZN XtIMAll
+.B XtIMAll
 to be the bitwise inclusive OR of all event types.
 .SH DESCRIPTION
-.ZN XtNextEvent
+.B XtNextEvent
 has been replaced by
-.ZN XtAppNextEvent .
+.BR XtAppNextEvent .
 .LP
-.ZN XtPeekEvent
+.B XtPeekEvent
 has been replaced by
-.ZN XtAppPeekEvent .
+.BR XtAppPeekEvent .
 .LP
-.ZN XtPending
+.B XtPending
 has been replaced by
-.ZN XtAppPending .
+.BR XtAppPending .
 .LP
-.ZN XtProcessEvent
+.B XtProcessEvent
 has been replaced by
-.ZN XtAppProcessEvent .
+.BR XtAppProcessEvent .
 .LP
-.ZN XtMainLoop
+.B XtMainLoop
 has been replaced by
-.ZN XtAppMainLoop .
+.BR XtAppMainLoop .
 .SH "SEE ALSO"
 XtAppNextEvent(3xt), XtAppPending(__libmansuffix__), XtAppPeekEvent(__libmansuffix__),
 XtAppProcessEvent(__libmansuffix__), XtAppMainLoop(__libmansuffix__)

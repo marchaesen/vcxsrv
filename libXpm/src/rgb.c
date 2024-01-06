@@ -57,7 +57,7 @@
  */
 int
 xpmReadRgbNames(
-    char	*rgb_fname,
+    const char	*rgb_fname,
     xpmRgbName	 rgbn[])
 {
     FILE *rgbf;
@@ -66,12 +66,12 @@ xpmReadRgbNames(
     xpmRgbName *rgb;
 
     /* Open the rgb text file.  Abort if error. */
-    if ((rgbf = fopen(rgb_fname, "r")) == NULL)
+    if ((rgbf = fopen(rgb_fname, "r" FOPEN_CLOEXEC)) == NULL)
 	return 0;
 
     /* Loop reading each line in the file. */
     n = 0;
-    rgb = rgbn; 
+    rgb = rgbn;
     /* Quit if rgb text file has too many entries. */
     while (fgets(line, sizeof(line), rgbf) && n < MAX_RGBNAMES) {
 
@@ -162,7 +162,7 @@ xpmFreeRgbNames(
 
 int
 xpmReadRgbNames(
-    char	*rgb_fname,
+    const char	*rgb_fname,
     xpmRgbName	 rgbn[])
 {
     /*

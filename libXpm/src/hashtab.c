@@ -29,7 +29,7 @@
 *  XPM library                                                                *
 *                                                                             *
 *  Developed by Arnaud Le Hors                                                *
-*  this originaly comes from Colas Nahaboo as a part of Wool                  *
+*  this originally comes from Colas Nahaboo as a part of Wool                  *
 *                                                                             *
 \*****************************************************************************/
 
@@ -146,7 +146,7 @@ HashTableGrows(xpmHashTable *table)
     HASH_TABLE_GROWS
 	table->size = size;
     table->limit = size / 3;
-    if (size >= UINT_MAX / sizeof(*atomTable)) 
+    if (size >= UINT_MAX / sizeof(*atomTable))
 	return (XpmNoMemory);
     atomTable = (xpmHashAtom *) XpmMalloc(size * sizeof(*atomTable));
     if (!atomTable)

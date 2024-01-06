@@ -34,7 +34,7 @@ in this Software without prior written authorization from The Open Group.
 #include "libxfontint.h"
 #include <X11/fonts/fontmisc.h>
 
-/* Utility functions for reformating font bitmaps */
+/* Utility functions for reformatting font bitmaps */
 
 static const unsigned char _reverse_byte[0x100] = {
 	0x00, 0x80, 0x40, 0xc0, 0x20, 0xa0, 0x60, 0xe0,

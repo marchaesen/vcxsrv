@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtAllocate-GC wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAllocateGC __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
-XtAllocateGC \- obtain a sharable GC with modifiable fields
+XtAllocateGC \- obtain a shareable GC with modifiable fields
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 GC XtAllocateGC(Widget \fIw\fP, Cardinal \fIdepth\fP, XtGCMask
 \fIvalue_mask\fP, XGCValues *\fIvalues\fP, XtGCMask \fIdynamic_mask\fP,
@@ -72,9 +45,8 @@ XtGCMask \fIunused_mask\fP);
 .SH ARGUMENTS
 .IP \fIvalues\fP 1i
 Specifies the actual values for this GC.
-.ds Vm fields of the values are specified
 .IP \fIvalue_mask\fP 1i
-Specifies which \*(Vm.
+Specifies which fields of the values are specified.
 .IP \fIw\fP 1i
 Specifies the widget.
 .IP \fIdepth\fP 1i
@@ -85,22 +57,25 @@ Specifies the fields of the GC that will be modified by the caller.
 Specifies the fields of the GC that will not be needed by the caller.
 .SH DESCRIPTION
 The
-.ZN XtAllocateGC
-function returns a sharable GC that may be modified by the client.
+.B XtAllocateGC
+function returns a shareable GC that may be modified by the client.
 The \fIscreen\fP field of the specified widget or of the nearest
 widget ancestor of the specified object and the specified \fIdepth\fP
 argument supply the root and drawable depths for which the GC is to
-be valid. If \fIdepth\fP is zero the depth is taken from the \fIdepth\fP
+be valid.
+If \fIdepth\fP is zero the depth is taken from the \fIdepth\fP
 field of the specified widget or of the nearest widget ancestor of the
 specified object.
 .LP
 The \fIvalue_mask\fP argument specifies the fields of the GC that will
 be initialized with the respective members of the \fIvalues\fP structure.
 The \fIdynamic_mask\fP argument specifies fields that the caller intends
-to modify during program execution. The caller must ensure that the
+to modify during program execution.
+The caller must ensure that the
 corresponding GC field is set prior to each use of the GC. The
 \fIunused_mask\fP argument specifies fields of the GC that are of no
-interest to the caller. The caller may make no assumptions about the
+interest to the caller.
+The caller may make no assumptions about the
 contents of any fields specified in \fIunused_mask\fP. The caller may
 assume that at all times all fields not specified in either
 \fIdynamic_mask\fP or \fIunused_mask\fP have their default value if
@@ -111,15 +86,15 @@ then immediately set to the value in \fIvalues\fP. If a field is set
 in \fIunused_mask\fP and also in either \fIvalue_mask\fP or
 \fIdynamic_mask\fP, the specification in \fIunused_mask\fP is ignored.
 .LP
-.ZN XtAllocateGC
+.B XtAllocateGC
 tries to minimize the number of unique GCs created by comparing the
 arguments with those of previous calls and returning an existing GC
 when there are no conflicts.
-.ZN XtAllocateGC
+.B XtAllocateGC
 may modify and return an existing GC if it was allocated with a nonzero
 \fIunused_mask\fP.
 .SH "SEE ALSO"
-.ZN XtGetGC
+.B XtGetGC
 .br
 \fI\*(xT\fP
 .br

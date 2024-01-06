@@ -18,11 +18,11 @@ STARTMAPPING unicode
 0x6C    0x250c          # box drawings light down and right
 0x6D    0x2514          # box drawings light up and right
 0x6E    0x253c          # box drawings light vertical and horizontal
-0x6F    0x23BA          # box drawings scan 1
-0x70    0x23BB          # box drawings scan 3
+0x6F    0x23BA          # horizontal scan line-1
+0x70    0x23BB          # horizontal scan line-3
 0x71    0x2500          # box drawings light horizontal
-0x72    0x23BC          # box drawings scan 7
-0x73    0x23BD          # box drawings scan 9
+0x72    0x23BC          # horizontal scan line-7
+0x73    0x23BD          # horizontal scan line-9
 0x74    0x251c          # box drawings light vertical and right
 0x75    0x2524          # box drawings light vertical and left
 0x76    0x2534          # box drawings light up and horizontal

@@ -3,19 +3,19 @@
 <!-- .XS -->
 <!-- 	StripChart Widget -->
 <!-- .XE -->
-<!-- .IN "StripChart widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>StripChart widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;Xaw/StripChart.h&gt;
-<!-- .IN "StripChart.h" "" -->
+<indexterm><primary>StripChart.h</primary></indexterm>
 Class Header file	&lt;Xaw/StripCharP.h&gt;
-<!-- .IN "StripCharP.h" "" -->
+<indexterm><primary>StripCharP.h</primary></indexterm>
 Class		stripChartWidgetClass
-<!-- .IN "stripChartWidgetClass" "" -->
+<indexterm><primary>stripChartWidgetClass</primary></indexterm>
 Class Name	StripChart
-<!-- .IN "StripChart widget" "class name" -->
+<indexterm><primary>StripChart widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Simple
 <!-- .sp -->
 </literallayout>
@@ -37,7 +37,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "StripChart widget" "resources" -->
+<indexterm><primary>StripChart widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -369,7 +369,7 @@ and this point will be added to the right end of the StripChart.
 </sect2>
 <sect2 id="Getting_the_StripChart_Value">
 <title>Getting the StripChart Value</title>
-<!-- .IN "StripChart widget" "getting the value" -->
+<indexterm><primary>StripChart widget</primary><secondary>getting the value</secondary></indexterm>
 <para>
 <!-- .LP -->
 The StripChart widget will call the application routine passed to it
@@ -379,7 +379,7 @@ obtain another point for the StripChart graph.
 <para>
 <!-- .LP -->
 The calling interface for the <function>getValue</function> callback is:
-<!-- .IN "StripChart widget" "getValue callback" "@DEF@" -->
+<indexterm significance="preferred"><primary>StripChart widget</primary><secondary>getValue callback</secondary></indexterm>
 <funcsynopsis>
 <funcprototype>
   <funcdef><function> void</function>(*getValueProc)</funcdef>

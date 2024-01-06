@@ -82,7 +82,7 @@ extern AsciiTextClassRec asciiTextClassRec;
 typedef struct {
     int resource;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } AsciiPart;
 
@@ -114,7 +114,7 @@ extern AsciiStringClassRec asciiStringClassRec;
 typedef struct {
     int resource;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } AsciiStringPart;
 
@@ -148,7 +148,7 @@ extern AsciiDiskClassRec asciiDiskClassRec;
 typedef struct {
     char resource;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } AsciiDiskPart;
 

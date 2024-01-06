@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Geometry_Management'>
 <title>Geometry Management</title>
 
@@ -29,7 +32,7 @@ their children will never make a geometry request.
 Parents, children, and clients each initiate geometry changes differently.
 Because a parent has absolute control of its children's geometry,
 it changes the geometry directly by calling
-<function>XtMove\%Widget</function>,
+<function>XtMoveWidget</function>,
 <xref linkend='XtResizeWidget' xrefstyle='select: title'/>,
 or
 <xref linkend='XtConfigureWidget' xrefstyle='select: title'/>.
@@ -121,17 +124,17 @@ When making a geometry request, the child specifies an
 structure.
 </para>
 
-<literallayout >
+<programlisting>
 typedef unsigned long XtGeometryMask;
 typedef struct {
-	XtGeometryMask request_mode;
-	Position x, y;
-	Dimension width, height;
-	Dimension border_width;
-	Widget sibling;
-	int stack_mode;
+        XtGeometryMask  request_mode;
+        Position        x, y;
+        Dimension       width, height;
+        Dimension       border_width;
+        Widget          sibling;
+        int             stack_mode;
 } XtWidgetGeometry;
-</literallayout>
+</programlisting>
 
 <para>
 To make a general geometry manager request from a widget, use
@@ -275,18 +278,18 @@ when called by a child of a primitive widget.
 The return codes from geometry managers are
 </para>
 
-<literallayout >
+<programlisting>
 typedef enum {
-	XtGeometryYes,
-	XtGeometryNo,
-	XtGeometryAlmost,
-	XtGeometryDone
+        XtGeometryYes,
+        XtGeometryNo,
+        XtGeometryAlmost,
+        XtGeometryDone
 } XtGeometryResult;
-</literallayout>
+</programlisting>
 
 <para>
 The <emphasis remap='I'>request_mode</emphasis> definitions are from
-<function>&lt;X11/X.h&gt;</function>.
+<filename class="headerfile">&lt;X11/X.h&gt;</filename>.
 </para>
 
 <informaltable frame='none'>
@@ -373,7 +376,7 @@ structure the caller wants to specify.
 
 <para>
 The <emphasis remap='I'>stack_mode</emphasis> definitions are from
-<function>&lt;X11/X.h&gt;</function>:
+<filename class="headerfile">&lt;X11/X.h&gt;</filename>:
 </para>
 
 <informaltable frame='none'>
@@ -441,7 +444,7 @@ For definition and behavior of
 and
 <function>Opposite</function>,
 <olink targetdoc='libX11' targetptr='Configuring_Windows' >BLAH</olink>
-in <olink targetptr='libX11' targetdoc='libX11'>Xlib — C Language X Interface.</olink>.
+in <olink targetptr='libX11' targetdoc='libX11'>Xlib &mdash; C Language X Interface</olink>.
 <function>XtSMDontChange</function>
 indicates that the widget wants its current stacking order preserved.
 </para>
@@ -610,7 +613,7 @@ The geometry_manager procedure pointer in a composite widget class is of type
 
 <funcsynopsis id='XtGeometryHandler'>
 <funcprototype>
-<funcdef>XtGeometryResult <function>*XtGeometryHandler</function></funcdef>
+<funcdef>typedef XtGeometryResult *<function>XtGeometryHandler</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>XtWidgetGeometry *<parameter>request</parameter></paramdef>
    <paramdef>XtWidgetGeometry *<parameter>geometry_return</parameter></paramdef>
@@ -722,7 +725,7 @@ Although
 resizes the widget's window
 (if the geometry
 manager returns
-<function>XtGeometryYes ),</function>
+<function>XtGeometryYes</function>),
 it does not call the widget class's resize procedure.
 The requesting widget must perform whatever
 resizing calculations are needed explicitly.

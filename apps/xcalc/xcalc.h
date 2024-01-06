@@ -40,6 +40,7 @@ from the X Consortium.
 #ifdef HAVE_CONFIG_H
 # include "config.h"
 #endif
+#define PACKAGE_STRING "xcalc 1.1.2"
 
 #include <X11/Intrinsic.h>
 #include <X11/StringDefs.h>

@@ -310,7 +310,7 @@ XawAsciiInitialize(Widget request, Widget cnew,
     }
 
     if (XtHeight(w) == DEFAULT_TEXT_HEIGHT)
-	XtHeight(w) = VMargins(w) + XawTextSinkMaxHeight(w->text.sink, 1);
+	XtHeight(w) = (Dimension)(VMargins(w) + XawTextSinkMaxHeight(w->text.sink, 1));
 
     for (i = 0, tab = 0; i < TAB_COUNT; i++)
 	tabs[i] = (tab += 8);

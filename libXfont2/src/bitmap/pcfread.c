@@ -34,6 +34,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #include <X11/fonts/fntfilst.h>
 #include <X11/fonts/bitmap.h>
@@ -138,7 +139,7 @@ pcfReadTOC(FontFilePtr file, int *countp)
 	pcfError("pcfReadTOC(): invalid file format\n");
 	return NULL;
     }
-    tables = malloc(count * sizeof(PCFTableRec));
+    tables = mallocarray(count, sizeof(PCFTableRec));
     if (!tables) {
 	pcfError("pcfReadTOC(): Couldn't allocate tables (%d*%d)\n",
 		 count, (int) sizeof(PCFTableRec));
@@ -196,7 +197,7 @@ pcfGetCompressedMetric(FontFilePtr file, CARD32 format, xCharInfo *metric)
 }
 
 /*
- * Position the file to the begining of the specified table
+ * Position the file to the beginning of the specified table
  * in the font file
  */
 static Bool
@@ -263,13 +264,13 @@ pcfGetProperties(FontInfoPtr pFontInfo, FontFilePtr file,
 	goto Bail;
     }
     if (IS_EOF(file)) goto Bail;
-    props = malloc(nprops * sizeof(FontPropRec));
+    props = mallocarray(nprops, sizeof(FontPropRec));
     if (!props) {
 	pcfError("pcfGetProperties(): Couldn't allocate props (%d*%d)\n",
 	       nprops, (int) sizeof(FontPropRec));
 	goto Bail;
     }
-    isStringProp = malloc(nprops * sizeof(char));
+    isStringProp = mallocarray(nprops, sizeof(char));
     if (!isStringProp) {
 	pcfError("pcfGetProperties(): Couldn't allocate isStringProp (%d*%d)\n",
 	       nprops, (int) sizeof(char));
@@ -456,7 +457,7 @@ pcfReadFont(FontPtr pFont, FontFilePtr file,
 	pcfError("pcfReadFont(): invalid file format\n");
 	goto Bail;
     }
-    metrics = malloc(nmetrics * sizeof(CharInfoRec));
+    metrics = mallocarray(nmetrics, sizeof(CharInfoRec));
     if (!metrics) {
 	pcfError("pcfReadFont(): Couldn't allocate metrics (%d*%d)\n",
 		 nmetrics, (int) sizeof(CharInfoRec));
@@ -483,7 +484,7 @@ pcfReadFont(FontPtr pFont, FontFilePtr file,
     if (nbitmaps != nmetrics || IS_EOF(file))
 	goto Bail;
     /* nmetrics is already ok, so nbitmap also is */
-    offsets = malloc(nbitmaps * sizeof(CARD32));
+    offsets = mallocarray(nbitmaps, sizeof(CARD32));
     if (!offsets) {
 	pcfError("pcfReadFont(): Couldn't allocate offsets (%d*%d)\n",
 		 nbitmaps, (int) sizeof(CARD32));
@@ -573,7 +574,7 @@ pcfReadFont(FontPtr pFont, FontFilePtr file,
 	if (nink_metrics != nmetrics)
 	    goto Bail;
 	/* nmetrics already checked */
-	ink_metrics = malloc(nink_metrics * sizeof(xCharInfo));
+	ink_metrics = mallocarray(nink_metrics, sizeof(xCharInfo));
 	if (!ink_metrics) {
             pcfError("pcfReadFont(): Couldn't allocate ink_metrics (%d*%d)\n",
 		     nink_metrics, (int) sizeof(xCharInfo));

@@ -96,7 +96,7 @@ SOFTWARE.
 
 ** These resources now are set to the vertical or horizontal cursor
    depending upon orientation, by default.  If a value is specified here
-   then that cursor will be used reguardless of orientation.
+   then that cursor will be used regardless of orientation.
 
 
 CONSTRAINT RESOURCES:

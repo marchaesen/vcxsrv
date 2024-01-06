@@ -39,6 +39,10 @@
 #endif
 #include "XpmI.h"
 
+#ifdef FOR_MSW
+#define snprintf _snprintf
+#endif
+
 LFUNC(CreateColors, int, (char **dataptr, unsigned int *data_size,
 			  XpmColor *colors, unsigned int ncolors,
 			  unsigned int cpp));
@@ -48,7 +52,7 @@ LFUNC(CreatePixels, void, (char **dataptr, unsigned int data_size,
 			   unsigned int height, unsigned int cpp,
 			   unsigned int *pixels, XpmColor *colors));
 
-LFUNC(CountExtensions, void, (XpmExtension *ext, unsigned int num,
+LFUNC(CountExtensions, int, (XpmExtension *ext, unsigned int num,
 			      unsigned int *ext_size,
 			      unsigned int *ext_nlines));
 
@@ -122,8 +126,9 @@ XpmCreateDataFromXpmImage(
 
     /* compute the number of extensions lines and size */
     if (extensions)
-	CountExtensions(info->extensions, info->nextensions,
-			&ext_size, &ext_nlines);
+	if (CountExtensions(info->extensions, info->nextensions,
+			&ext_size, &ext_nlines))
+	    return(XpmNoMemory);
 
     /*
      * alloc a temporary array of char pointer for the header section which
@@ -187,7 +192,8 @@ XpmCreateDataFromXpmImage(
     if(offset <= image->width || offset <= image->cpp)
 	RETURN(XpmNoMemory);
 
-    if( (image->height + ext_nlines) >= UINT_MAX / sizeof(char *))
+    if (image->height > UINT_MAX - ext_nlines ||
+	image->height + ext_nlines >= UINT_MAX / sizeof(char *))
 	RETURN(XpmNoMemory);
     data_size = (image->height + ext_nlines) * sizeof(char *);
 
@@ -196,7 +202,8 @@ XpmCreateDataFromXpmImage(
 	RETURN(XpmNoMemory);
     data_size += image->height * offset;
 
-    if( (header_size + ext_size) >= (UINT_MAX - data_size) )
+    if (header_size > UINT_MAX - ext_size ||
+	header_size + ext_size >= (UINT_MAX - data_size) )
 	RETURN(XpmNoMemory);
     data_size += header_size + ext_size;
 
@@ -234,10 +241,11 @@ XpmCreateDataFromXpmImage(
 /* exit point, free only locally allocated variables */
 exit:
     if (header) {
-	for (l = 0; l < header_nlines; l++)
+	for (l = 0; l < header_nlines; l++) {
 	    if (header[l])
 		XpmFree(header[l]);
-		XpmFree(header);
+	}
+	XpmFree(header);
     }
     return(ErrorStatus);
 }
@@ -343,13 +351,14 @@ CreatePixels(
     *s = '\0';
 }
 
-static void
+static int
 CountExtensions(
     XpmExtension	*ext,
     unsigned int	 num,
     unsigned int	*ext_size,
     unsigned int	*ext_nlines)
 {
+    size_t len;
     unsigned int x, y, a, size, nlines;
     char **line;
 
@@ -357,16 +366,28 @@ CountExtensions(
     nlines = 0;
     for (x = 0; x < num; x++, ext++) {
 	/* 1 for the name */
+	if (ext->nlines == UINT_MAX || nlines > UINT_MAX - ext->nlines - 1)
+	    return (1);
 	nlines += ext->nlines + 1;
 	/* 8 = 7 (for "XPMEXT ") + 1 (for 0) */
-	size += strlen(ext->name) + 8;
+	len = strlen(ext->name) + 8;
+	if (len > UINT_MAX - size)
+	    return (1);
+	size += len;
 	a = ext->nlines;
-	for (y = 0, line = ext->lines; y < a; y++, line++)
-	    size += strlen(*line) + 1;
+	for (y = 0, line = ext->lines; y < a; y++, line++) {
+	    len = strlen(*line) + 1;
+	    if (len > UINT_MAX - size)
+		return (1);
+	    size += len;
+	}
     }
+    if (size > UINT_MAX - 10 || nlines > UINT_MAX - 1)
+	return (1);
     /* 10 and 1 are for the ending "XPMENDEXT" */
     *ext_size = size + 10;
     *ext_nlines = nlines + 1;
+    return (0);
 }
 
 static void

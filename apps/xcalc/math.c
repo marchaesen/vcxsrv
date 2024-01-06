@@ -103,15 +103,15 @@ parse_double(double *dp)
 
     switch (numbase) {
     case 8:
-        (void)sscanf(dispstr, "%lo", &n);
+        sscanf(dispstr, "%lo", &n);
         *dp = (double)n;
     break;
     case 16:
-        (void)sscanf(dispstr, "%lX", &n);
+        sscanf(dispstr, "%lX", &n);
         *dp = (double)n;
     break;
     default:
-        (void)sscanf(dispstr, "%lf", dp);
+        sscanf(dispstr, "%lf", dp);
     }
 
     errno = olderrno;
@@ -491,7 +491,7 @@ twoop(int keynum)
 
   if (!entered) {		/* something like "5+*" */
     if (!isopempty())
-      (void) PopOp();			/* replace the prev op */
+      PopOp();			/* replace the prev op */
     PushOp(keynum);		/* with the new one */
     return;
   }
@@ -735,7 +735,7 @@ rparf(void)
     dnum=acc;
     PushNum(dnum);
   }
-  (void) PopNum();
+  PopNum();
   flagPAREN--;
   entered=2;
   format_double(dnum);

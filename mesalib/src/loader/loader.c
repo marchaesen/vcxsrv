@@ -54,8 +54,6 @@
 #include "util/u_debug.h"
 #include "git_sha1.h"
 
-#if 0
-
 #define MAX_DRM_DEVICES 64
 
 #ifdef USE_DRICONF
@@ -84,6 +82,8 @@ static void default_logger(int level, const char *fmt, ...)
 }
 
 static loader_logger *log_ = default_logger;
+
+#if 0
 
 int
 loader_open_device(const char *device_name)
@@ -123,18 +123,24 @@ loader_get_kernel_driver_name(int fd)
    drmFreeVersion(version);
    return driver;
 }
+#endif
 
 bool
 iris_predicate(int fd)
 {
+#if 0
    char *kernel_driver = loader_get_kernel_driver_name(fd);
    bool ret = kernel_driver && (strcmp(kernel_driver, "i915") == 0 ||
                                 strcmp(kernel_driver, "xe") == 0);
 
    free(kernel_driver);
    return ret;
+#else
+   return -1;
+#endif
 }
 
+#if 0
 /**
  * Goes through all the platform devices whose driver is on the given list and
  * try to open their render node. It returns the fd of the first device that
@@ -725,7 +731,6 @@ loader_bind_extensions(void *data,
                        const struct dri_extension_match *matches, size_t num_matches,
                        const __DRIextension **extensions)
 {
-#if 0
    bool ret = true;
 
    for (size_t j = 0; j < num_matches; j++) {
@@ -761,9 +766,6 @@ loader_bind_extensions(void *data,
    }
 
    return ret;
-#else
-   return false;
-#endif
 }
 #if 0
 /**

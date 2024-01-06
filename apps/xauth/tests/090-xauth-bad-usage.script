@@ -1,7 +1,7 @@
-#!/bin/bash
+#!/bin/sh
 
-# setup the test ennvironment inside this shell
-. setup-sourced
+# setup the test environment inside this shell
+. ${srcdir:-.}/setup-sourced
 
 # Execute the test
 

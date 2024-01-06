@@ -1,5 +1,4 @@
 STARTENCODING cns11643-2
-ALIAS cns11643-2
 # calculated FIRSTINDEX 0x20 0x22
 # calculated matrix SIZE 0x73 0x80
 SIZE 0x73 0x80

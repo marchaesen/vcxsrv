@@ -1,6 +1,60 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <!-- <acknowledgements> -->
 <dedication>
 <title>Acknowledgments</title>
+
+
+<note>
+<title>Acknowledgments for X11R7</title>
+<para>
+This update to the X11 Intrinsics drops support for K&amp;R C,
+as well as improving its use of Standard C features,
+notably <type>const</type>.
+</para>
+<itemizedlist>
+<listitem>
+<para>
+Matt Dew did the initial conversion of this specification from nroff to DocBook.
+</para>
+<para>
+Later, I expanded on that, improving the formatting, as
+well as updating the function prototypes in the specification
+as well as the related manual pages.
+</para>
+</listitem>
+<listitem>
+<para>
+Matthieu Herrb modified the Intrinsics header files to drop support
+for K&amp;R C, leaving the Standard C prototypes.
+</para>
+<para>
+Later, he applied my changes to complete the conversion of the
+library source from a mixture of K&amp;R C and Standard C to
+just use the standard language features.
+</para>
+</listitem>
+<listitem>
+<para>
+Others (including
+Alan Coopersmith,
+Gaetan Nadon,
+Walter Harms,
+and Kevin E. Martin) have worked to
+maintain the library's build-scripts and documentation.
+</para>
+</listitem>
+</itemizedlist>
+<literallayout>
+Thomas E. Dickey
+invisible-island.net
+April 2019
+</literallayout>
+</note>
+
+<note>
+<title>Acknowledgments for X11R6</title>
 
 <para>
 The design of the X11 Intrinsics was done primarily by Joel McCormack
@@ -86,7 +140,7 @@ The design and implementation of the X10 Intrinsics were done by:
 <!-- </sidebar> -->
 
 <para>
-The design and implementation of the X10 toolkit’s sample widgets were by
+The design and implementation of the X10 toolkit&rsquo;s sample widgets were by
 the above, as well as by:
 </para>
 
@@ -119,7 +173,7 @@ the above, as well as by:
 These widgets provided a checklist of requirements that we had to address in the X11 Intrinsics.
 </para>
 <para>
-Thanks go to Al Mento of Digital’s UEG Documentation Group for formatting and generally
+Thanks go to Al Mento of Digital&rsquo;s UEG Documentation Group for formatting and generally
 improving this document and to John Ousterhout of Berkeley for extensively reviewing early
 drafts of it.
 </para>
@@ -154,7 +208,7 @@ to the Intrinsics:
   <tbody>
   <row>
     <entry>Steve Pitschke (Stellar)</entry>
-    <entry>C.Doug Blewett (AT&amp;T)</entry>
+    <entry>C. Doug Blewett (AT&amp;T)</entry>
   </row>
   <row>
     <entry>Bob Miller (HP)</entry>
@@ -166,7 +220,7 @@ to the Intrinsics:
   </row>
   <row>
     <entry>Marcel Meth (AT&amp;T)</entry>
-    <entry>JimFulton (MIT)</entry>
+    <entry>Jim Fulton (MIT)</entry>
   </row>
   <row>
     <entry>Mike Collins (Digital)</entry>
@@ -182,7 +236,7 @@ to the Intrinsics:
   </row>
   <row>
     <entry>Gabriel Beged-Dov (HP)</entry>
-    <entry>GlennWidener (Tektronix)</entry>
+    <entry>Glenn Widener (Tektronix)</entry>
   </row>
   </tbody>
   </tgroup>
@@ -219,7 +273,7 @@ code contributed by each of the following:
   <tbody>
   <row>
     <entry>Don Alecci (AT&amp;T)</entry>
-    <entry>EllisCohen (OSF)</entry>
+    <entry>Ellis Cohen (OSF)</entry>
   </row>
   <row>
     <entry>Donna Converse (MIT)</entry>
@@ -246,7 +300,7 @@ code contributed by each of the following:
 <para>
 In Release 5, the effort to define the internationalization additions was headed by Bill McMahon
 of Hewlett Packard and Frank Rojas of IBM. This has been an educational process for many of
-us, and Bill and Frank’s tutelage has carried us through. Vania Joloboff of the OSF also contributed
+us, and Bill and Frank&rsquo;s tutelage has carried us through. Vania Joloboff of the OSF also contributed
 to the internationalization additions. The implementation efforts of Bill, Gabe Beged-Dov,
 and especially Donna Converse for this release are also gratefully acknowledged.
 </para>
@@ -259,7 +313,7 @@ July 1991
 </literallayout>
 
 <para>
-The Release 6 Intrinsics is a result of the collaborative efforts of participants in the X Consortium’s
+The Release 6 Intrinsics is a result of the collaborative efforts of participants in the X Consortium&rsquo;s
 intrinsics working group. A few individuals contributed substantial design proposals, participated
 in lengthy discussions, reviewed final specifications, and in most cases, were also
 responsible for sections of the implementation. They deserve recognition and thanks for their
@@ -284,7 +338,7 @@ major contributions:
   </row>
   <row>
     <entry>Vania Joloboff (OSF)</entry>
-    <entry>KalebKeithley (X Consortium)</entry>
+    <entry>Kaleb Keithley (X Consortium)</entry>
   </row>
   <row>
     <entry>Courtney Loomis (HP)</entry>
@@ -319,5 +373,6 @@ Donna Converse
 X Consortium
 April 1994
 </literallayout>
+</note>
 </dedication>
 <!-- </acknowledgements> -->

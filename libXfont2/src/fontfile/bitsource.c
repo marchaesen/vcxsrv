@@ -32,6 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include <X11/fonts/fntfilst.h>
 
 BitmapSourcesRec	FontFileBitmapSources;
@@ -49,7 +50,7 @@ FontFileRegisterBitmapSource (FontPathElementPtr fpe)
     if (FontFileBitmapSources.count == FontFileBitmapSources.size)
     {
 	newsize = FontFileBitmapSources.size + 4;
-	new = realloc (FontFileBitmapSources.fpe, newsize * sizeof *new);
+	new = reallocarray (FontFileBitmapSources.fpe, newsize, sizeof *new);
 	if (!new)
 	    return FALSE;
 	FontFileBitmapSources.size = newsize;

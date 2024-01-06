@@ -1,8 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <preface id='About_This_Manual'>
 <title>About This Manual</title>
 
 <para>
-X Toolkit Intrinsics — C Language Interface is intended to be read by both application programmers
+X Toolkit Intrinsics &mdash; C Language Interface is intended to be read by both application programmers
 who will use one or more of the many widget sets built with the Intrinsics and by widget
 programmers who will use the Intrinsics to build widgets for one of the widget sets. Not all the
 information in this manual, however, applies to both audiences. That is, because the application

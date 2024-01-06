@@ -34,44 +34,19 @@
 .ds Vn 2.2
 .hw XtNew-String wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtMalloc __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
-XtMalloc, XtCalloc, XtRealloc, XtFree, XtNew, XtNewString \- memory management functions
+XtMalloc, XtCalloc, XtRealloc, XtReallocArray, XtFree, XtNew, XtNewString \- memory management functions
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 char *XtMalloc(Cardinal \fIsize\fP);
 .HP
 char *XtCalloc(Cardinal \fInum\fP, Cardinal \fIsize\fP);
 .HP
-char *XtRealloc(char *\fIptr\fP, Cardinal \fInum\fP);
+char *XtRealloc(char *\fIptr\fP, Cardinal \fIsize\fP);
+.HP
+void *XtReallocArray(void *\fIptr\fP, Cardinal \fInum\fP, Cardinal \fIsize\fP);
 .HP
 void XtFree(char *\fIptr\fP);
 .HP
@@ -79,13 +54,12 @@ void XtFree(char *\fIptr\fP);
 .HP
 String XtNewString(String \fIstring\fP);
 .HP
-Cardinal XtAsprintf(String *\fInew_string\fP, const char *\fIformat\fP, ...);
+Cardinal XtAsprintf(char **\fInew_string\fP, const char *\fIformat\fP, ...);
 .SH ARGUMENTS
 .IP \fInum\fP 1i
-Specifies the number of bytes or array elements.
-.ds Po to the old storage or to the block of storage that is to be freed
+Specifies the number of array elements.
 .IP \fIptr\fP 1i
-Specifies a pointer \*(Po.
+Specifies a pointer to the old storage or to the block of storage that is to be freed.
 .IP \fIsize\fP 1i
 Specifies the size of an array element (in bytes) or the number of bytes
 desired.
@@ -99,90 +73,82 @@ Specifies a pointer to write a newly allocated string to.
 Specifies a formatting string as defined by sprintf(3c)
 .SH DESCRIPTION
 The
-.ZN XtMalloc
+.B XtMalloc
 functions returns a pointer to a block of storage of at least
 the specified size bytes.
 If there is insufficient memory to allocate the new block,
-.ZN XtMalloc
+.B XtMalloc
 calls
-.ZN XtErrorMsg .
+.BR XtErrorMsg .
 .LP
 The
-.ZN XtCalloc
+.B XtCalloc
 function allocates space for the specified number of array elements
 of the specified size and initializes the space to zero.
 If there is insufficient memory to allocate the new block,
-.ZN XtCalloc
+.B XtCalloc
 calls
-.ZN XtErrorMsg .
+.BR XtErrorMsg .
 .LP
 The
-.ZN XtRealloc
-function changes the size of a block of storage (possibly moving it).
-Then, it copies the old contents (or as much as will fit) into the new block
-and frees the old block.
+.B XtRealloc
+and
+.B XtReallocArray
+functions change the size of a block of storage (possibly moving it).
+Then, they copy the old contents (or as much as will fit) into the new block
+and free the old block.
 If there is insufficient memory to allocate the new block,
-.ZN XtRealloc
-calls
-.ZN XtErrorMsg .
+or the calculations for the size of the new block would cause an
+integer overflow, these functions call
+.BR XtErrorMsg .
 If ptr is NULL,
-.ZN XtRealloc
-allocates the new storage without copying the old contents;
-that is, it simply calls
-.ZN XtMalloc .
+these functions allocate the new storage without copying the old contents;
+that is, they simply call
+.BR XtMalloc .
 .LP
 The
-.ZN XtFree
+.B XtFree
 function returns storage and allows it to be reused.
 If ptr is NULL,
-.ZN XtFree
+.B XtFree
 returns immediately.
 .LP
-.ZN XtNew
+.B XtNew
 returns a pointer to the allocated storage.
 If there is insufficient memory to allocate the new block,
-.ZN XtNew
+.B XtNew
 calls
-.ZN XtErrorMsg .
-.ZN XtNew
+.BR XtErrorMsg .
+.B XtNew
 is a convenience macro that calls
-.ZN XtMalloc
+.B XtMalloc
 with the following arguments specified:
 .LP
-.Ds
-.TA .5i
-.ta .5i
+.RS .5i
+.ft CW
 ((type *) XtMalloc((unsigned) sizeof(type))
-.De
+.ft R
+.RE
 .LP
-.ZN XtNewString
-returns a pointer to the allocated storage.
-If there is insufficient memory to allocate the new block,
-.ZN XtNewString
-calls
-.ZN XtErrorMsg .
-.ZN XtNewString
-is a convenience macro that calls
-.ZN XtMalloc
-with the following arguments specified:
-.LP
-.Ds
-.TA .5i
-.ta .5i
-(strcpy(XtMalloc((unsigned) strlen(str) + 1), str))
-.De
+.B XtNewString
+returns a pointer to a new string which is a duplicate of 
+.IR string .
+If there is insufficient memory to allocate the new block, or the argument is NULL
+.B XtNewString
+returns NULL. The memory can be freed with 
+.BR XtFree .
 .LP
 The
-.ZN XtAsprintf
+.B XtAsprintf
 function allocates space for a string large enough to hold the string
 specified by the sprintf(3c) format pattern when used with the remaining
 arguments, and fills it with the formatted results.
 The address of the allocated string is placed into the pointer passed as ret.
 The length of the string (not including the terminating null byte) is returned.
 If there is insufficient memory to allocate the new block,
-.ZN XtAsprintf
+.B XtAsprintf
 calls
-.ZN XtErrorMsg .
+.BR XtErrorMsg .
 .SH "SEE ALSO"
 .br
 \fI\*(xT\fP

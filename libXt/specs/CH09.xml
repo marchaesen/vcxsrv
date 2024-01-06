@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Resource_Management'>
 <title>Resource Management</title>
 <para>
@@ -43,17 +46,17 @@ The declaration for the
 <function>XtResource</function>
 structure is
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-        String resource_name;
-        String resource_class;
-        String resource_type;
-        Cardinal resource_size;
-        Cardinal resource_offset;
-        String default_type;
-        XtPointer default_addr;
+        String          resource_name;
+        String          resource_class;
+        String          resource_type;
+        Cardinal        resource_size;
+        Cardinal        resource_offset;
+        String          default_type;
+        XtPointer       default_addr;
 } XtResource, *XtResourceList;
-</literallayout>
+</programlisting>
 <para>
 When the resource list is specified as the
 <function>CoreClassPart</function>,
@@ -76,14 +79,14 @@ except all underscores (_) are deleted and the next letter is replaced by its
 uppercase counterpart.
 For example, the resource name for background_pixel becomes backgroundPixel.
 Resource names beginning with the two-character
-sequence ``xt'', and resource classes beginning with the two-character
-sequence ``Xt'' are reserved to the Intrinsics for future standard and
+sequence &ldquo;xt&rdquo;, and resource classes beginning with the two-character
+sequence &ldquo;Xt&rdquo; are reserved to the Intrinsics for future standard and
 implementation-dependent uses.
 Widget header files typically contain a symbolic name for each resource name.
 All resource names, classes, and types used by the Intrinsics are named in
-<function>&lt;X11/StringDefs.h&gt;</function>.
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>.
 The Intrinsics's symbolic resource names begin with
-``XtN''
+&ldquo;XtN&rdquo;
 and are followed by the string name (for example, XtNbackgroundPixel
 for backgroundPixel).
 </para>
@@ -121,31 +124,31 @@ and everything else darkblue.
 
 <para>
 In this case, the background pixel should have a resource class of
-``Background''
+&ldquo;Background&rdquo;
 and all the other pixel entries a resource class of
-``Foreground''.
+&ldquo;Foreground&rdquo;.
 Then, the resource file needs only two lines to
 change all pixels to ivory or darkblue:
 </para>
-<literallayout >
-*Background:	ivory
-*Foreground:	darkblue
-</literallayout>
+<programlisting>
+*Background:    ivory
+*Foreground:    darkblue
+</programlisting>
 <para>
 Similarly, a widget may have several font resources (such as normal and bold),
 but all fonts should have the class Font.
 Thus, changing all fonts simply requires only a single line in the
 default resource file:
 </para>
-<literallayout >
-*Font:	6x13
-</literallayout>
+<programlisting>
+*Font:  6x13
+</programlisting>
 <para>
 By convention,
 resource classes are always spelled starting with a capital letter
 to distinguish them from resource names.
 Their symbolic names are preceded with
-``XtC''
+&ldquo;XtC&rdquo;
 (for example, XtCBackground).
 </para>
 
@@ -263,7 +266,7 @@ The Intrinsics define the following resource types:
     </row>
     <row>
       <entry><function>XtRFunction</function></entry>
-      <entry>(*)()</entry>
+      <entry>(*)(Widget)</entry>
     </row>
     <row>
       <entry><function>XtRGeometry</function></entry>
@@ -367,7 +370,7 @@ The Intrinsics define the following resource types:
 </informaltable>
 
 <para>
-<function>&lt;X11/StringDefs.h&gt;</function>
+<filename class="headerfile">&lt;X11/StringDefs.h&gt;</filename>
 also defines the following resource types as a
 convenience for widgets, although they do not have any corresponding
 data type assigned:
@@ -638,7 +641,7 @@ see <xref linkend='Obtaining_Widget_State' /> and
 <para>
 Here is an abbreviated version of a possible resource list for a Label widget:
 </para>
-<literallayout >
+<programlisting>
 /* Resources specific to Label */
 static XtResource resources[] = {
 {XtNforeground, XtCForeground, XtRPixel, sizeof(Pixel),
@@ -647,15 +650,15 @@ static XtResource resources[] = {
    XtOffsetOf(LabelRec, label.font), XtRString, XtDefaultFont},
 {XtNlabel, XtCLabel, XtRString, sizeof(String),
    XtOffsetOf(LabelRec, label.label), XtRString, NULL},
-	.
-	.
-	.
+        .
+        .
+        .
 }
-</literallayout>
+</programlisting>
 <para>
 The complete resource name for a field of a widget instance is the
 concatenation of the application shell name (from
-<function>XtAppCreateShell ),</function>
+<function>XtAppCreateShell</function>),
 the instance names of all the widget's parents up to the
 top of the widget tree,
 the instance name of the widget itself,
@@ -663,7 +666,7 @@ and the resource name of the specified field of the widget.
 Similarly,
 the full resource class of a field of a widget instance is the
 concatenation of the application class (from
-<function>XtAppCreateShell ),</function>
+<function>XtAppCreateShell</function>),
 the widget class names of all the widget's parents up to the
 top of the widget tree,
 the widget class name of the widget itself,
@@ -844,8 +847,8 @@ to accomplish this.
 <funcdef>void <function>XtGetSubresources</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>XtPointer <parameter>base</parameter></paramdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
    <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
    <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -978,10 +981,11 @@ To fetch resources for widget subparts using varargs lists, use
 <funcdef>void <function>XtVaGetSubresources</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
    <paramdef>XtPointer <parameter>base</parameter></paramdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
-   <paramdef>String <parameter>class</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>class</parameter></paramdef>
    <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1203,6 +1207,7 @@ To retrieve resources for the overall application using varargs lists, use
    <paramdef>XtPointer <parameter>base</parameter></paramdef>
    <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -1462,7 +1467,7 @@ and evaluate this in the following manner:
   <listitem>
     <para>
 Query the resource database for the resource whose full name
-is ``xtDefaultFont'', class ``XtDefaultFont'' (that is, no widget
+is &ldquo;xtDefaultFont&rdquo;, class &ldquo;XtDefaultFont&rdquo; (that is, no widget
 name/class prefixes), and use a type
 <function>XtRString</function>
 value returned as the font name or a type
@@ -1482,8 +1487,8 @@ perform an
 <function>XListFonts</function>
 using a wildcard font name and use the first
 font in the list.  This wildcard font name should be as broad as
-possible to maximize the probability of locating a useable font;
-for example, "-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-1".)
+possible to maximize the probability of locating a usable font;
+for example, &ldquo;<code>-*-*-*-R-*-*-*-120-*-*-*-*-ISO8859-1</code>&rdquo;.)
     </para>
   </listitem>
   <listitem>
@@ -1503,7 +1508,7 @@ and evaluate this in the following manner:
   <listitem>
     <para>
 Query the resource database for the resource whose full name
-is ``xtDefaultFontSet'', class ``XtDefaultFontSet'' (that is, no widget
+is &ldquo;xtDefaultFontSet&rdquo;, class &ldquo;XtDefaultFontSet&rdquo; (that is, no widget
 name/class prefixes), and use a type
 <function>XtRString</function>
 value returned as the base font name list or a type
@@ -1522,8 +1527,8 @@ perform an
 <function>XCreateFontSet</function>
 using a wildcard base font name.
 This wildcard base font name should be as broad as
-possible to maximize the probability of locating a useable font;
-for example, "-*-*-*-R-*-*-*-120-*-*-*-*".)
+possible to maximize the probability of locating a usable font;
+for example, &ldquo;<code>-*-*-*-R-*-*-*-120-*-*-*-*</code>&rdquo;.)
     </para>
   </listitem>
   <listitem>
@@ -1547,7 +1552,7 @@ is required in a different locale.
 <para>
 The String-to-Gravity conversion accepts string values that are the
 names of window and bit gravities and their numerical equivalents,
-as defined in <emphasis remap='I'>Xlib — C Language X Interface.</emphasis>:
+as defined in <emphasis remap='I'>Xlib &mdash; C Language X Interface</emphasis>:
 <function>ForgetGravity</function>,
 <function>UnmapGravity</function>,
 <function>NorthWestGravity</function>,
@@ -1568,14 +1573,14 @@ Alphabetic case is not significant in the conversion.
 The String-to-CommandArgArray conversion parses a String into an
 array of strings.
 White space characters separate elements of the command line.
-The converter recognizes the backslash character ``\\'' as an escape
+The converter recognizes the backslash character &ldquo;\&rdquo; as an escape
 character to allow the following white space character to be part of the
 array element.
 </para>
 
 <para>
 The String-to-DirectoryString conversion recognizes the
-string ``XtCurrentDirectory'' and returns the result of a call
+string &ldquo;XtCurrentDirectory&rdquo; and returns the result of a call
 to the operating system to get the current directory.
 </para>
 
@@ -1594,7 +1599,7 @@ The String-to-InitialState conversion accepts the values
 <function>NormalState</function>
 or
 <function>IconicState</function>
-as defined by the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+as defined by the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
 </para>
 
 <para>
@@ -1749,17 +1754,17 @@ an input value of representation type
 Type converters use pointers to
 <function>XrmValue</function>
 structures (defined in
-<function>&lt;X11/Xresource.h&gt;;</function>
+<filename class="headerfile">&lt;X11/Xresource.h&gt;;</filename>
 see <olink targetdoc='libX11' targetptr='Creating_and_Storing_Databases'>Section 15.4</olink> in
-<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface.</olink>)
+<olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>)
 for input and output values.
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
        unsigned int size;
        XPointer addr;
 } XrmValue, *XrmValuePtr;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>addr</emphasis> field specifies the address of the data, and the <emphasis remap='I'>size</emphasis>
 field gives the total number of significant bytes in the data.
@@ -1937,70 +1942,75 @@ still required to inform the Intrinsics that the converted value is
 a function of the particular display (and colormap).
 </para>
 
-<literallayout >
-#define done(type, value) \\
-	{						\\
-		if (toVal-&gt;addr != NULL) {		\\
-			if (toVal-&gt;size &lt; sizeof(type)) {	\\
-				toVal-&gt;size = sizeof(type);	\\
-				return False;	\\
-			}				\\
-			*(type*)(toVal-&gt;addr) = (value);	\\
-		}					\\
-		else {				\\
-			static type static_val;	\\
-			static_val = (value);	\\
-			toVal-&gt;addr = (XPointer)&amp;static_val;	\\
-		}					\\
-		toVal-&gt;size = sizeof(type);	\\
-		return True;			\\
-	}
-static Boolean CvtStringToPixel(dpy, args, num_args, fromVal, toVal, converter_data)
-	Display	*dpy;
-	XrmValue	*args;
-	Cardinal	*num_args;
-	XrmValue	*fromVal;
-	XrmValue	*toVal;
-	XtPointer	*converter_data;
+<programlisting>
+#define done(type, value) \
+     {                                                 \
+          if (toVal-&gt;addr != NULL) {                   \
+               if (toVal-&gt;size &lt; sizeof(type)) {       \
+                    toVal-&gt;size = sizeof(type);        \
+                    return False;                      \
+               }                                       \
+               *(type*)(toVal-&gt;addr) = (value);        \
+          }                                            \
+          else {                                       \
+               static type static_val;                 \
+               static_val = (value);                   \
+               toVal-&gt;addr = (XPointer)&amp;static_val;    \
+          }                                            \
+          toVal-&gt;size = sizeof(type);                  \
+          return True;                                 \
+     }
+
+static Boolean CvtStringToPixel(
+     Display   *dpy,
+     XrmValue  *args,
+     Cardinal  *num_args,
+     XrmValue  *fromVal,
+     XrmValue  *toVal,
+     XtPointer *converter_data)
 {
-	static XColor	screenColor;
-	XColor		exactColor;
-	Screen		*screen;
-	Colormap		colormap;
-	Status			status;
-	if (*num_args != 2)
-		XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-			"wrongParameters", "cvtStringToPixel", "XtToolkitError",
-			"String to pixel conversion needs screen and colormap arguments",
-			(String *)NULL, (Cardinal *)NULL);
-	screen = *((Screen**) args[0].addr);
-	colormap = *((Colormap *) args[1].addr);
-	if (CompareISOLatin1(str, XtDefaultBackground) == 0) {
-		*closure_ret = False;
-		done(Pixel, WhitePixelOfScreen(screen));
-	}
-	if (CompareISOLatin1(str, XtDefaultForeground) == 0) {
-		*closure_ret = False;
-		done(Pixel, BlackPixelOfScreen(screen));
-	}
-	status = XAllocNamedColor(DisplayOfScreen(screen), colormap, (char*)fromVal-&gt;addr,
-				               &amp;screenColor, &amp;exactColor);
-	if (status == 0) {
-		String params[1];
-		Cardinal num_params = 1;
-		params[0] = (String)fromVal-&gt;addr;
-		XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
-			"noColormap", "cvtStringToPixel", "XtToolkitError",
-			"Cannot allocate colormap entry for \\"%s\\"", params,\
- &amp;num_params);
-	        *converter_data = (char *) False;
-                return False;
-	} else {
-                *converter_data = (char *) True;
-		done(Pixel, &amp;screenColor.pixel);
-	}
+     static XColor  screenColor;
+     XColor         exactColor;
+     Screen         *screen;
+     Colormap       colormap;
+     Status         status;
+
+     if (*num_args != 2)
+          XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+               "wrongParameters", "cvtStringToPixel", "XtToolkitError",
+               "String to pixel conversion needs screen and colormap arguments",
+               (String *)NULL, (Cardinal *)NULL);
+     screen = *((Screen**) args[0].addr);
+     colormap = *((Colormap *) args[1].addr);
+     if (CompareISOLatin1(str, XtDefaultBackground) == 0) {
+          *closure_ret = False;
+          done(Pixel, WhitePixelOfScreen(screen));
+     }
+     if (CompareISOLatin1(str, XtDefaultForeground) == 0) {
+          *closure_ret = False;
+          done(Pixel, BlackPixelOfScreen(screen));
+     }
+     status = XAllocNamedColor(DisplayOfScreen(screen),
+                               colormap, (char*)fromVal-&gt;addr,
+                               &amp;screenColor, &amp;exactColor);
+     if (status == 0) {
+          String params[1];
+          Cardinal num_params = 1;
+          params[0] = (String)fromVal-&gt;addr;
+          XtAppWarningMsg(XtDisplayToApplicationContext(dpy),
+                          "noColormap",
+                          "cvtStringToPixel",
+                          "XtToolkitError",
+                          "Cannot allocate colormap entry for \"%s\"",
+                          params, &amp;num_params);
+          *converter_data = (char *) False;
+          return False;
+     } else {
+          *converter_data = (char *) True;
+          done(Pixel, &amp;screenColor.pixel);
+     }
 }
-</literallayout>
+</programlisting>
 
 <para>
 All type converters should define some set of conversion values for which they
@@ -2114,7 +2124,8 @@ that convert from string values.
 <funcprototype>
 <funcdef>void <function>XtDisplayStringConversionWarning</function></funcdef>
    <paramdef>Display *<parameter>display</parameter></paramdef>
-   <paramdef>String <parameter>from_value</parameter></paramdef>
+   <paramdef>const char * <parameter>from_value</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -2156,9 +2167,9 @@ The
 <xref linkend='XtDisplayStringConversionWarning' xrefstyle='select: title'/>
 procedure issues a warning message using
 <xref linkend='XtAppWarningMsg' xrefstyle='select: title'/>
-with <emphasis remap='I'>name</emphasis> ``conversionError'',
-<emphasis remap='I'>type</emphasis> ``string'', <emphasis remap='I'>class</emphasis> ``XtToolkitError'', and the default message
-``Cannot convert "<emphasis remap='I'>from_value</emphasis>" to type <emphasis remap='I'>to_type</emphasis>''.
+with <emphasis remap='I'>name</emphasis> &ldquo;conversionError&rdquo;,
+<emphasis remap='I'>type</emphasis> &ldquo;string&rdquo;, <emphasis remap='I'>class</emphasis> &ldquo;XtToolkitError&rdquo;, and the default message
+&ldquo;Cannot convert "<emphasis remap='I'>from_value</emphasis>" to type <emphasis remap='I'>to_type</emphasis>&rdquo;.
 </para>
 
 <para>
@@ -2213,9 +2224,9 @@ calls to the converter.  Conversion cache control is specified
 via an <function>XtCacheType</function>
 argument.  </para>
 
-<literallayout >
+<programlisting>
 typedef int XtCacheType;
-</literallayout>
+</programlisting>
 
 <para>
 An <function>XtCacheType</function>
@@ -2292,8 +2303,8 @@ and to register a type converter in a single application context, use
 <funcsynopsis id='XtSetTypeConverter'>
 <funcprototype>
 <funcdef>void <function>XtSetTypeConverter</function></funcdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XtTypeConverter <parameter>converter</parameter></paramdef>
    <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
@@ -2360,7 +2371,7 @@ Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
     <listitem>
       <para>
 Specifies whether or not resources produced by this
-converter are sharable or display-specific and when
+converter are shareable or display-specific and when
 they should be freed.
       </para>
     </listitem>
@@ -2382,10 +2393,10 @@ required to deallocate resources produced by the converter.
 
 <funcsynopsis id='XtAppSetTypeConverter'>
 <funcprototype>
-<funcdef> <function>XtAppSetTypeConverter</function></funcdef>
+<funcdef>void <function>XtAppSetTypeConverter</function></funcdef>
    <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XtTypeConverter <parameter>converter</parameter></paramdef>
    <paramdef>XtConvertArgList <parameter>convert_args</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_args</parameter></paramdef>
@@ -2462,7 +2473,7 @@ Specifies the number of entries in <emphasis remap='I'>convert_args</emphasis>.
     <listitem>
       <para>
 Specifies whether or not resources produced by this
-converter are sharable or display-specific and when
+converter are shareable or display-specific and when
 they should be freed.
       </para>
     </listitem>
@@ -2503,26 +2514,26 @@ and the structure
 <function>XtConvertArgRec</function>
 specify how each argument is derived.
 These are defined in
-<function>&lt;X11/Intrinsic.h&gt;</function>.
+<filename class="headerfile">&lt;X11/Intrinsic.h&gt;</filename>.
 </para>
-<literallayout >
+<programlisting>
 typedef enum {
-	/* address mode	parameter representation */
-	   XtAddress,	/* address */
-	   XtBaseOffset,	/* offset */
-	   XtImmediate,	/* constant */
-	   XtResourceString,	/* resource name string */
-	   XtResourceQuark,	/* resource name quark */
-	   XtWidgetBaseOffset,	/* offset */
-	   XtProcedureArg	/* procedure to call */
+        /* address mode parameter representation */
+           XtAddress,           /* address */
+           XtBaseOffset,        /* offset */
+           XtImmediate,         /* constant */
+           XtResourceString,    /* resource name string */
+           XtResourceQuark,     /* resource name quark */
+           XtWidgetBaseOffset,  /* offset */
+           XtProcedureArg       /* procedure to call */
 } XtAddressMode;
 
 typedef struct {
-	XtAddressMode address_mode;
-	XtPointer address_id;
-	Cardinal size;
+        XtAddressMode   address_mode;
+        XtPointer       address_id;
+        Cardinal        size;
 } XtConvertArgRec, *XtConvertArgList;
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>size</emphasis> field specifies the length of the data in bytes.
 The <emphasis remap='I'>address_mode</emphasis> field specifies how the <emphasis remap='I'>address_id</emphasis> field should be
@@ -2561,74 +2572,133 @@ the address of a function of type
 <funcsynopsis id='XtConvertArgProc'>
 <funcprototype>
 <funcdef>typedef void <function>(*XtConvertArgProc)</function></funcdef>
-   <paramdef>XtAppContext <parameter>app</parameter></paramdef>
-   <paramdef>XrmValue *<parameter>to</parameter></paramdef>
-   <paramdef>XtPointer <parameter>converter_data</parameter></paramdef>
-   <paramdef>XrmValue *<parameter>args</parameter></paramdef>
-   <paramdef>Cardinal *<parameter>num_args</parameter></paramdef>
+   <paramdef>Widget <parameter>object</parameter></paramdef>
+   <paramdef>Cardinal *<parameter>size</parameter></paramdef>
+   <paramdef>XrmValue *<parameter>value</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
 <variablelist>
   <varlistentry>
     <term>
-      <emphasis remap='I'>app</emphasis>
+      <emphasis remap='I'>object</emphasis>
     </term>
     <listitem>
       <para>
-Specifies an application context in which the resource is being freed.
+Passes the object for which the resource is being
+converted, or NULL if the converter was invoked by
+<xref linkend='XtCallConverter' xrefstyle='select: title'/> or
+<xref linkend='XtDirectConvert' xrefstyle='select: title'/>.
       </para>
     </listitem>
   </varlistentry>
   <varlistentry>
     <term>
-      <emphasis remap='I'>to</emphasis>
+      <emphasis remap='I'>size</emphasis>
     </term>
     <listitem>
       <para>
-Specifies a descriptor for the resource produced by the type converter.
+Passes a pointer to the size field from the XtConvertArgRec.
       </para>
     </listitem>
   </varlistentry>
   <varlistentry>
     <term>
-      <emphasis remap='I'>converter_data</emphasis>
+      <emphasis remap='I'>value</emphasis>
     </term>
     <listitem>
       <para>
-Specifies the converter-specific data returned by the type converter.
+Passes a pointer to a descriptor into which the procedure must store the
+conversion argument.
       </para>
     </listitem>
-  </varlistentry>
-  <varlistentry>
-    <term>
-      <emphasis remap='I'>args</emphasis>
-    </term>
-    <listitem>
-      <para>
-Specifies the additional converter arguments as passed
-to the type converter when the conversion was performed.
-      </para>
-    </listitem>
-  </varlistentry>
-  <varlistentry>
-    <term>
-      <emphasis remap='I'>num_args</emphasis>
-    </term>
-    <listitem>
-      <para>
-Specifies the number of entries in <emphasis remap='I'>args</emphasis>.
-    </para>
-  </listitem>
   </varlistentry>
 </variablelist>
-
 <para>
-The destructor procedure is responsible for freeing the resource
-specified by the <emphasis remap='I'>to</emphasis> argument, including any auxiliary storage
-associated with that resource, but not the memory directly addressed
-by the size and location in the <emphasis remap='I'>to</emphasis> argument or the memory specified
-by <emphasis remap='I'>args</emphasis>.
+When invoked, the <function>XtConvertArgProc</function> procedure must derive a
+conversion argument and store the address and size of the
+argument in the location pointed to by value.
+</para>
+<para>
+In order to permit reentrancy, the <function>XtConvertArgProc</function> should
+return the address of storage whose lifetime is no shorter
+than the lifetime of object.
+If object is NULL,
+the lifetime of the conversion argument must be no shorter than the
+lifetime of the resource with which the conversion argument
+is associated.	The Intrinsics do not guarantee to copy this
+storage but do guarantee not to reference it if the resource
+is removed from the conversion cache.
+</para>
+<para>
+The following example illustrates how to register the
+<function>CvtStringToPixel</function>
+routine given earlier:
+</para>
+<programlisting>
+static XtConvertArgRec colorConvertArgs[] = {
+  {XtWidgetBaseOffset,
+   (XtPointer)XtOffset(Widget, core.screen),
+   sizeof(Screen*)},
+  {XtWidgetBaseOffset,
+   (XtPointer)XtOffset(Widget, core.colormap),
+   sizeof(Colormap)}
+};
+
+XtSetTypeConverter(XtRString,
+                   XtRPixel,
+                   CvtStringToPixel,
+                   colorConvertArgs,
+                   XtNumber(colorConvertArgs),
+                   XtCacheByDisplay, NULL);
+</programlisting>
+<para>
+The conversion argument descriptors colorConvertArgs and
+screenConvertArg are predefined by the Intrinsics.  Both
+take the values from the closest windowed ancestor if the
+object is not of a subclass of Core.  The screenConvertArg
+descriptor puts the widget’s screen field into args[0].  The
+colorConvertArgs descriptor puts the widget’s screen field
+into args[0], and the widget’s colormap field into args[1].
+</para>
+<para>
+Conversion routines should not just put a descriptor for the
+address of the base of the widget into args[0], and use that
+in the routine.  They should pass in the actual values on
+which the conversion depends.  By keeping the dependencies
+of the conversion procedure specific, it is more likely that
+subsequent conversions will find what they need in the conversion cache.
+This way the cache is smaller and has fewer
+and more widely applicable entries.
+</para>
+<para>
+If any conversion arguments of type
+<type>XtBaseOffset</type>,
+<type>XtResourceString</type>,
+<type>XtResourceQuark</type>,
+and
+<type>XtWidgetBaseOffset</type>
+are
+specified for conversions performed by
+<type>XtGetApplicationResources</type>,
+<type>XtGetSubresources</type>,
+<type>XtVaGetApplicationResources</type>,
+or
+<type>XtVaGetSubresources</type>,
+the arguments are computed with respect
+to the specified widget, not the base address or resource
+list specified in the call.
+</para>
+<para>
+If the <function>XtConvertArgProc</function> modifies the resource database, the
+changes affect any in-progress widget creation,
+<xref linkend='XtGetApplicationResources' xrefstyle='select: title'/>,
+or
+<xref linkend='XtGetSubresources' xrefstyle='select: title'/>
+in an implementation-defined manner;
+however, insertion of new entries or changes
+to existing entries are allowed and will not directly cause
+an error.
 </para>
 </sect2>
 
@@ -2651,9 +2721,9 @@ To invoke explicit resource conversions, use
 or
 <xref linkend='XtCallConverter' xrefstyle='select: title'/>.
 </para>
-<literallayout >
+<programlisting>
 typedef XtPointer XtCacheRef;
-</literallayout>
+</programlisting>
 
 <funcsynopsis id='XtCallConverter'>
 <funcprototype>
@@ -2971,9 +3041,9 @@ and free a cached resource when a widget is destroyed, use
 <funcprototype>
 <funcdef>Boolean <function>XtConvertAndStore</function></funcdef>
    <paramdef>Widget <parameter>object</parameter></paramdef>
-   <paramdef>String <parameter>from_type</parameter></paramdef>
+   <paramdef>const char * <parameter>from_type</parameter></paramdef>
    <paramdef>XrmValuePtr <parameter>from</parameter></paramdef>
-   <paramdef>String <parameter>to_type</parameter></paramdef>
+   <paramdef>const char * <parameter>to_type</parameter></paramdef>
    <paramdef>XrmValuePtr <parameter>to_in_out</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3202,8 +3272,6 @@ Intrinsics-defined resources, the following lifetimes apply:
     <para>
 Not valid following any operation that modifies the resource:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -3221,8 +3289,6 @@ All resources of representation type XtRCallback.
     <para>
 Remain valid at least until the widget is destroyed:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -3235,8 +3301,6 @@ XtNaccelerators, XtNtranslations.
     <para>
 Remain valid until the Display is closed:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -4188,6 +4252,7 @@ a widget instance using varargs lists, use
    <paramdef>XtPointer <parameter>base</parameter></paramdef>
    <paramdef>XtResourceList <parameter>resources</parameter></paramdef>
    <paramdef>Cardinal <parameter>num_resources</parameter></paramdef>
+   <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 

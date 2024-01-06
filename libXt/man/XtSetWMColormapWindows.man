@@ -33,55 +33,30 @@
 .ds Vn 2.2
 .hw XtSet-WMColormap-Windows wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtSetWMColormapWindows __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtSetWMColormapWindows \- Set the value of the WM_COLORMAP_WINDOWS property
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtSetWMColormapWindows(Widget \fIwidget\fP, Widget* \fIlist\fP, Cardinal
 \fIcount\fP);
 .SH ARGUMENTS
 .IP \fIwidget\fP 1i
 Specifies the widget on whose window the WM_COLORMAP_WINDOWS property
-will be stored. Must be of class Core or any subclass thereof.
+will be stored.
+Must be of class Core or any subclass thereof.
 .IP \fIlist\fP 1i
 Specifies a list of widgets whose windows are are potentially to be
 listed in the WM_COLORMAP_WINDOWS property.
 .IP \fIcount\fP 1i
 Specifies the number of widgets in \fIlist\fP.
 .SH DESCRIPTION
-.ZN XtSetWMColormapWindows
+.B XtSetWMColormapWindows
 returns immediately if \fIwidget\fP is not realized or if \fIcount\fP
-is zero. Otherwise,
-.ZN XtSetWMColormapWindows
+is zero.
+Otherwise,
+.B XtSetWMColormapWindows
 constructs an ordered list of windows by examining each widget in
 \fIlist\fP in turn and ignoring the widget if it is not realized,
 or adding the widget's window to the window list if the widget is
@@ -90,7 +65,7 @@ resources of all widgets whose windows are already on the window
 list.
 .LP
 Finally,
-.ZN XtSetWMColormapWindows
+.B XtSetWMColormapWindows
 stores the resulting window list in the WM_COLORMAP_WINDOWS property
 on the specified widget's window.
 .SH "SEE ALSO"

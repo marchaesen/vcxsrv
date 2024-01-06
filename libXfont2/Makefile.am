@@ -40,7 +40,8 @@ noinst_HEADERS = \
 	include/X11/fonts/pcf.h      \
 	include/libxfontint.h        \
 	src/FreeType/ft.h	     \
-	src/FreeType/ftfuncs.h
+	src/FreeType/ftfuncs.h       \
+	src/util/replace.h
 
 pkgconfigdir = $(libdir)/pkgconfig
 pkgconfig_DATA = xfont2.pc
@@ -65,7 +66,7 @@ libXfont2_la_SOURCES =			\
 
 libXfont2_la_LDFLAGS = -version-number 2:0:0 -no-undefined
 
-libXfont2_la_LIBADD = $(Z_LIBS) $(MATH_LIBS) $(XFONT_LIBS)
+libXfont2_la_LIBADD = $(ZLIB_LIBS) $(Z_LIBS) $(MATH_LIBS) $(XFONT_LIBS) $(LTLIBOBJS)
 
 if XFONT_FONTFILE
 libXfont2_la_SOURCES +=			\
@@ -155,7 +156,18 @@ libXfont2_la_SOURCES +=			\
 	src/fc/fstrans.c
 endif
 
-EXTRA_DIST = src/builtins/buildfont
+EXTRA_DIST = src/builtins/buildfont README.md
+
+# Test utilities
+EXTRA_DIST += test/utils/README
+
+TEST_UTIL_SRCS = test/utils/font-test-utils.c test/utils/font-test-utils.h
+
+noinst_PROGRAMS = lsfontdir
+
+lsfontdir_SOURCES = test/utils/lsfontdir.c $(TEST_UTIL_SRCS)
+lsfontdir_LDADD = libXfont2.la $(LTLIBOBJS)
+
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 

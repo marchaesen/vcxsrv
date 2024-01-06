@@ -21,3 +21,11 @@ CSRCS = constlist.c \
 
 LINKLIBS += $(FREETYPELIB)
 
+all: $(OBJDIR)/freetype.dll $(OBJDIR)/zlib1.dll
+
+$(OBJDIR)/freetype.dll: $(FREETYPELIB:lib=dll)
+	cp $< $@
+
+$(OBJDIR)/zlib1.dll: $(MHMAKECONF)\zlib\$(OBJDIR)\zlib1.dll
+	cp $< $@
+

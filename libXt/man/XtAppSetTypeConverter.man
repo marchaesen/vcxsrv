@@ -33,47 +33,22 @@
 .ds Vn 2.2
 .hw XtApp-Set-Type-Converter XtSet-Type-Converter wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppSetTypeConverter __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppSetTypeConverter, XtSetTypeConverter \- register resource converter
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtAppSetTypeConverter(XtAppContext \fIapp_context\fP, String
-\fIfrom_type\fP, String \fIto_type\fP, XtConverter \fIconverter\fP,
-XtConvertArgList \fIconvert_args\fP, Cardinal \fInum_args\fP, XtCacheType
-\fIcache_type\fP, XtDestructor \fIdestructor\fP);
+void XtAppSetTypeConverter(XtAppContext \fIapp_context\fP,
+const char *\fIfrom_type\fP, const char * \fIto_type\fP,
+XtTypeConverter \fIconverter\fP, XtConvertArgList \fIconvert_args\fP,
+Cardinal \fInum_args\fP, XtCacheType \fIcache_type\fP,
+XtDestructor \fIdestructor\fP);
 .HP
-void XtSetTypeConverter(String \fIfrom_type\fP, String \fIto_type\fP,
-XtConverter \fIconverter\fP, XtConvertArgList \fIconvert_args\fP, Cardinal
-\fInum_args\fP, XtCacheType \fIcache_type\fP, XtDestructor \fIdestructor\fP);
+void XtSetTypeConverter(const char *\fIfrom_type\fP, const char *\fIto_type\fP,
+XtTypeConverter \fIconverter\fP, XtConvertArgList \fIconvert_args\fP,
+Cardinal \fInum_args\fP, XtCacheType \fIcache_type\fP,
+XtDestructor \fIdestructor\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
@@ -89,19 +64,20 @@ Specifies the number of additional arguments to the converter or zero.
 Specifies the destination type.
 .IP \fIcache_type\fP 1i
 Specifies whether or not resources produced by this converter are
-sharable or display-specific and when they should be freed.
+shareable or display-specific and when they should be freed.
 .IP \fIdestructor\fP 1i
 Specifies a destroy procedure for resources produced by this conversion,
 or NULL if no additional action is required to deallocate resources
 produced by the converter.
 .SH DESCRIPTION
-.ZN XtSetTypeConverter
+.B XtSetTypeConverter
 registers the specified type converter and destructor in all application
 contexts created by the calling process, including any future application
 contexts that may be created.
-.ZN XtAppSetTypeConverter
+.B XtAppSetTypeConverter
 registers the specified type converter in the single application context
-specified. If the same \fIfrom_type\fP and \fIto_type\fP are specified
+specified.
+If the same \fIfrom_type\fP and \fIto_type\fP are specified
 in multiple calls to either function, the most recent overrides the
 previous ones.
 .SH "SEE ALSO"

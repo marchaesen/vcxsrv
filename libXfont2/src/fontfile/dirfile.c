@@ -45,6 +45,7 @@ in this Software without prior written authorization from The Open Group.
 #include <fcntl.h>
 #include <errno.h>
 #include <limits.h>
+#include "src/util/replace.h"
 
 static Bool AddFileNameAliases ( FontDirectoryPtr dir );
 static int ReadFontAlias ( char *directory, Bool isFile,
@@ -82,18 +83,18 @@ FontFileReadDirectory (const char *directory, FontDirectoryPtr *pdir)
 #if !defined(WIN32)
     if ((ptr = strchr(directory, ':'))) {
 #else
-    /* OS/2 and WIN32 path might start with a drive letter, don't clip this */
+    /* WIN32 path might start with a drive letter, don't clip this */
     if ((ptr = strchr(directory+2, ':'))) {
 #endif
 	strncpy(dir_path, directory, ptr - directory);
 	dir_path[ptr - directory] = '\0';
     } else {
-	strcpy(dir_path, directory);
+	strlcpy(dir_path, directory, sizeof(dir_path));
     }
-    strcpy(dir_file, dir_path);
+    strlcpy(dir_file, dir_path, sizeof(dir_file));
     if (dir_file[strlen(dir_file) - 1] != '/')
-	strcat(dir_file, "/");
-    strcat(dir_file, FontDirFile);
+	strlcat(dir_file, "/", sizeof(dir_file));
+    strlcat(dir_file, FontDirFile, sizeof(dir_file));
 #ifndef WIN32
     file_fd = open(dir_file, O_RDONLY | O_NOFOLLOW);
     if (file_fd >= 0) {
@@ -124,8 +125,8 @@ FontFileReadDirectory (const char *directory, FontDirectoryPtr *pdir)
 	}
 	dir->dir_mtime = statb.st_mtime;
 	if (format[0] == '\0')
-	    sprintf(format, "%%%ds %%%d[^\n]\n",
-		MAXFONTFILENAMELEN-1, MAXFONTNAMELEN-1);
+	    snprintf(format, sizeof(format), "%%%ds %%%d[^\n]\n",
+		     MAXFONTFILENAMELEN-1, MAXFONTNAMELEN-1);
 
 	while ((count = fscanf(file, format, file_name, font_name)) != EOF) {
 #if defined(WIN32)
@@ -176,8 +177,8 @@ FontFileDirectoryChanged(FontDirectoryPtr dir)
     if (strlen(dir->directory) + sizeof(FontDirFile) > sizeof(dir_file))
 	return FALSE;
 
-    strcpy (dir_file, dir->directory);
-    strcat (dir_file, FontDirFile);
+    strlcpy (dir_file, dir->directory, sizeof(dir_file));
+    strlcat (dir_file, FontDirFile, sizeof(dir_file));
     if (stat (dir_file, &statb) == -1)
     {
 	if (errno != ENOENT || dir->dir_mtime != 0)
@@ -189,8 +190,8 @@ FontFileDirectoryChanged(FontDirectoryPtr dir)
 
     if ((strlen(dir->directory) + sizeof(FontAliasFile)) > sizeof(dir_file))
 	return FALSE;
-    strcpy (dir_file, dir->directory);
-    strcat (dir_file, FontAliasFile);
+    strlcpy (dir_file, dir->directory, sizeof(dir_file));
+    strlcat (dir_file, FontAliasFile, sizeof(dir_file));
     if (stat (dir_file, &statb) == -1)
     {
 	if (errno != ENOENT || dir->alias_mtime != 0)
@@ -248,7 +249,7 @@ AddFileNameAliases(FontDirectoryPtr dir)
  *
  * alias font-name
  *
- * To imbed white-space in an alias name, enclose it like "font name"
+ * To embed white-space in an alias name, enclose it like "font name"
  * in double quotes.  \ escapes and character, so
  * "font name \"With Double Quotes\" \\ and \\ back-slashes"
  * works just fine.
@@ -282,13 +283,13 @@ ReadFontAlias(char *directory, Bool isFile, FontDirectoryPtr *pdir)
     if (strlen(directory) >= sizeof(alias_file))
 	return BadFontPath;
     dir = *pdir;
-    strcpy(alias_file, directory);
+    strlcpy(alias_file, directory, sizeof(alias_file));
     if (!isFile) {
 	if (strlen(directory) + 1 + sizeof(FontAliasFile) > sizeof(alias_file))
 	    return BadFontPath;
 	if (directory[strlen(directory) - 1] != '/')
-	    strcat(alias_file, "/");
-	strcat(alias_file, FontAliasFile);
+	    strlcat(alias_file, "/", sizeof(alias_file));
+	strlcat(alias_file, FontAliasFile, sizeof(alias_file));
     }
 
 #ifndef WIN32
@@ -335,7 +336,7 @@ ReadFontAlias(char *directory, Bool isFile, FontDirectoryPtr *pdir)
 		status = BadFontPath;
 		break;
 	    }
-	    strcpy(alias, lexToken);
+	    strlcpy(alias, lexToken, sizeof(alias));
 	    token = lexAlias(file, &lexToken);
 	    switch (token) {
 	    case NEWLINE:

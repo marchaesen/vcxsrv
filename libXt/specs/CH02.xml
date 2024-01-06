@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Widget_Instantiation'>
 <title>Widget Instantiation</title>
 <para>
@@ -171,7 +174,7 @@ To initialize the Intrinsics internals, use
 <funcsynopsis id='XtToolkitInitialize'>
 <funcprototype>
   <funcdef>void <function>XtToolkitInitialize</function></funcdef>
-  <paramdef> <parameter></parameter></paramdef>
+  <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -195,7 +198,7 @@ To create an application context, use
 <funcsynopsis id='XtCreateApplicationContext'>
 <funcprototype>
   <funcdef>XtAppContext <function>XtCreateApplicationContext</function></funcdef>
-  <paramdef> <parameter></parameter></paramdef>
+  <paramdef><parameter>void</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -284,12 +287,12 @@ To initialize a display and add it to an application context, use
   <funcdef>void  <function>XtDisplayInitialize</function></funcdef>
       <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
       <paramdef>Display * <parameter>display</parameter></paramdef>
-      <paramdef>String <parameter>application_name</parameter></paramdef>
-      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>const char * <parameter>application_name</parameter></paramdef>
+      <paramdef>const char * <parameter>application_class</parameter></paramdef>
       <paramdef>XrmOptionDescRec * <parameter>options</parameter></paramdef>
       <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
       <paramdef>int * <parameter>argc</parameter></paramdef>
-      <paramdef>String * <parameter>argv</parameter></paramdef>
+      <paramdef>char ** <parameter>argv</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -346,7 +349,7 @@ Specifies how to parse the command line for any application-specific resources.
 The <emphasis remap='I'>options</emphasis> argument is passed as a parameter to
 <function>XrmParseCommand</function>.
 For further information,
-see <olink targetdoc='libX11' targetptr='Parsing_Command_Line_Options'>Parsing Command Line Options</olink> in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink> and <xref linkend='Parsing_the_Command_Line' /> of this specification.
+see <olink targetdoc='libX11' targetptr='Parsing_Command_Line_Options'>Parsing Command Line Options</olink> in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink> and <xref linkend='Parsing_the_Command_Line' /> of this specification.
       </para>
     </listitem>
   </varlistentry>
@@ -432,15 +435,15 @@ add it to an application context, use
 
 <funcsynopsis id='XtOpenDisplay'>
 <funcprototype>
-  <funcdef>Display <function>*XtOpenDisplay</function></funcdef>
+  <funcdef>Display *<function>XtOpenDisplay</function></funcdef>
        <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
-       <paramdef>String <parameter>display_string</parameter></paramdef>
-       <paramdef>String <parameter>application_name</parameter></paramdef>
-       <paramdef>String <parameter>application_class</parameter></paramdef>
+       <paramdef>const char * <parameter>display_string</parameter></paramdef>
+       <paramdef>const char * <parameter>application_name</parameter></paramdef>
+       <paramdef>const char * <parameter>application_class</parameter></paramdef>
        <paramdef>XrmOptionDescRec * <parameter>options</parameter></paramdef>
        <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
        <paramdef>int * <parameter>argc</parameter></paramdef>
-       <paramdef>String * <parameter>argv</parameter></paramdef>
+       <paramdef>char ** <parameter>argv</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -541,7 +544,7 @@ function calls
 with the specified <emphasis remap='I'>display_string</emphasis>.
 If <emphasis remap='I'>display_string</emphasis> is NULL,
 <xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
-uses the current value of the \-display option specified in <emphasis remap='I'>argv</emphasis>.
+uses the current value of the -display option specified in <emphasis remap='I'>argv</emphasis>.
 If no display is specified in <emphasis remap='I'>argv</emphasis>,
 the user's default display is retrieved from the environment.
 On POSIX-based systems,
@@ -556,8 +559,8 @@ If this succeeds,
 then calls
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
 and passes it the opened display and
-the value of the \-name option specified in <emphasis remap='I'>argv</emphasis> as the application name.
-If no \-name option is specified
+the value of the -name option specified in <emphasis remap='I'>argv</emphasis> as the application name.
+If no -name option is specified
 and <emphasis remap='I'>application_name</emphasis> is
 non-NULL, <emphasis remap='I'>application_name</emphasis> is passed to
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>.
@@ -570,7 +573,7 @@ name is the name used to invoke the program.  On implementations that
 conform to ANSI C Hosted Environment support, the application name will
 be <emphasis remap='I'>argv</emphasis>[0] less any directory and file type components, that is, the
 final component of <emphasis remap='I'>argv</emphasis>[0], if specified.  If <emphasis remap='I'>argv</emphasis>[0] does not exist or
-is the empty string, the application name is ``main''.
+is the empty string, the application name is &ldquo;main&rdquo;.
 <xref linkend='XtOpenDisplay' xrefstyle='select: title'/>
 returns the newly opened display or NULL if it failed.
 </para>
@@ -792,7 +795,7 @@ Calls
 to verify that the current locale is supported.
 If the locale is not supported, a warning message is issued with
 <xref linkend='XtWarning' xrefstyle='select: title'/>
-and the locale is set to ``C''.
+and the locale is set to &ldquo;C&rdquo;.
     </para>
   </listitem>
   <listitem>
@@ -820,12 +823,12 @@ prior to
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>,
 as in the following example.
 </para>
-<literallayout>
+<programlisting>
 	Widget top;
 	XtSetLanguageProc(NULL, NULL, NULL);
 	top = XtOpenApplication(...);
 	...
-</literallayout>
+</programlisting>
 </sect1>
 
 <sect1 id="Loading_the_Resource_Database">
@@ -883,7 +886,7 @@ above in the same order:
 <itemizedlist spacing='compact'>
   <listitem>
     <para>
-A temporary database, the ``server resource database'', is
+A temporary database, the &ldquo;server resource database&rdquo;, is
 created from the string returned by
 <function>XResourceManagerString</function>
 or, if
@@ -897,7 +900,7 @@ preference resource file is $HOME/<function>.Xdefaults</function>.
     <para>
 If a language procedure has been set,
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
-first searches the command line for the option ``-xnlLanguage'', or
+first searches the command line for the option &ldquo;-xnlLanguage&rdquo;, or
 for a -xrm option that specifies the xnlLanguage/XnlLanguage resource,
 as specified by Section 2.4.
 If such a resource is found, the value is assumed to be
@@ -999,8 +1002,6 @@ if this is defined.  If
 is not defined, an implementation-dependent default value is used.
 This default value is constrained in the following manner:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -1011,14 +1012,14 @@ is not defined, the default
 must contain at least six entries.  These entries must contain
 $HOME as the directory prefix, plus the following substitutions:
         </para>
-<literallayout>
-      1.	%C, %N, %L	or	%C, %N, %l, %t, %c
-      2.	%C, %N, %l
-      3.	%C, %N
-      4.	%N, %L	or	%N, %l, %t, %c
-      5.	%N, %l
-      6.	%N
-</literallayout>
+<programlisting>
+1.  %C, %N, %L     or      %C, %N, %l, %t, %c
+2.  %C, %N, %l
+3.  %C, %N
+4.  %N, %L         or      %N, %l, %t, %c
+5.  %N, %l
+6.  %N
+</programlisting>
         <para>
 The order of these six entries within the path must be as given above.
 The order and use of substitutions within a given entry are
@@ -1033,15 +1034,15 @@ is defined, the default
 must contain at least seven entries.  These entries must contain the
 following directory prefixes and substitutions:
         </para>
-<literallayout>
-      1.	$XAPPLRESDIR	with	%C, %N, %L	or	%C, %N, %l, %t, %c
-      2.	$XAPPLRESDIR	with	%C, %N, %l
-      3.	$XAPPLRESDIR	with	%C, %N
-      4.	$XAPPLRESDIR	with	%N, %L	or	%N, %l, %t, %c
-      5.	$XAPPLRESDIR	with	%N, %l
-      6.	$XAPPLRESDIR	with	%N
-      7.	$HOME	with	%N
-</literallayout>
+<programlisting>
+1. $XAPPLRESDIR    with   %C, %N, %L   or   %C, %N, %l, %t, %c
+2. $XAPPLRESDIR    with   %C, %N, %l
+3. $XAPPLRESDIR    with   %C, %N
+4. $XAPPLRESDIR    with   %N, %L       or   %N, %l, %t, %c
+5. $XAPPLRESDIR    with   %N, %l
+6. $XAPPLRESDIR    with   %N
+7. $HOME           with   %N
+</programlisting>
         <para>
 The order of these seven entries within the path must be as given above.
 The order and use of substitutions within a given entry are
@@ -1060,7 +1061,7 @@ It may contain sitewide customizations specified by the system manager.
 The name of the application class resource file is found by calling
 <xref linkend='XtResolvePathname' xrefstyle='select: title'/>
 with the parameters
-(<emphasis remap='I'>display</emphasis>, ``app-defaults'', NULL, NULL, NULL, NULL, 0, NULL).
+(<emphasis remap='I'>display</emphasis>, &ldquo;app-defaults&rdquo;, NULL, NULL, NULL, NULL, 0, NULL).
 This file is expected to be provided by the developer of the application
 and may be required for the application to function properly.
 A simple application that wants to be assured of having a minimal
@@ -1165,7 +1166,7 @@ use
 <funcsynopsis id='XtAppSetFallbackResources'>
 <funcprototype>
   <funcdef>void <function>XtAppSetFallbackResources</function></funcdef>
-      <paramdef>XtAppContext * <parameter>app_context</parameter></paramdef>
+      <paramdef>XtAppContext <parameter>app_context</parameter></paramdef>
       <paramdef>String * <parameter>specification_list</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1269,27 +1270,28 @@ has a table of standard command line options that are passed to
 for adding resources to the resource database,
 and it takes as a parameter additional
 application-specific resource abbreviations.
-The format of this table is described in Section 15.9 in <emphasis remap='I'>Xlib — C Language X Interface</emphasis>.
+The format of this table is described in Section 15.9 in <emphasis remap='I'>Xlib &mdash; C Language X Interface</emphasis>.
 </para>
-<literallayout>
+<programlisting>
 typedef enum {
-        XrmoptionNoArg,	/* Value is specified in OptionDescRec.value */
-        XrmoptionIsArg,	/* Value is the option string itself */
-        XrmoptionStickyArg,	/* Value is characters immediately following option */
-        XrmoptionSepArg,	/* Value is next argument in argv */
-        XrmoptionResArg,	/* Use the next argument as input to XrmPutLineResource*/
-        XrmoptionSkipArg,	/* Ignore this option and the next argument in argv */
-        XrmoptionSkipNArgs,	/* Ignore this option and the next */
-                                /* OptionDescRec.value arguments in argv */
-        XrmoptionSkipLine	/* Ignore this option and the rest of argv */
+     XrmoptionNoArg,     /* Value is specified in OptionDescRec.value */
+     XrmoptionIsArg,     /* Value is the option string itself */
+     XrmoptionStickyArg, /* Value is characters immediately following option */
+     XrmoptionSepArg,    /* Value is next argument in argv */
+     XrmoptionResArg,    /* Use the next argument as input to XrmPutLineResource*/
+     XrmoptionSkipArg,   /* Ignore this option and the next argument in argv */
+     XrmoptionSkipNArgs, /* Ignore this option and the next */
+                         /* OptionDescRec.value arguments in argv */
+     XrmoptionSkipLine   /* Ignore this option and the rest of argv */
 } XrmOptionKind;
+
 typedef struct {
-        char *option;	/* Option name in argv */
-        char *specifier;	/* Resource name (without application name) */
-        XrmOptionKind argKind;	/* Location of the resource value */
-        XPointer value;	/* Value to provide if XrmoptionNoArg */
+     char *option;       /* Option name in argv */
+     char *specifier;    /* Resource name (without application name) */
+     XrmOptionKind argKind; /* Location of the resource value */
+     XPointer value;     /* Value to provide if XrmoptionNoArg */
 } XrmOptionDescRec, *XrmOptionDescList;
-</literallayout>
+</programlisting>
 <para>The standard table contains the following entries:</para>
 
 <informaltable frame='topbot'>
@@ -1309,97 +1311,97 @@ typedef struct {
   </thead>
   <tbody>
     <row>
-      <entry>−background</entry>
+      <entry>-background</entry>
       <entry>*background</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−bd</entry>
+      <entry>-bd</entry>
       <entry>*borderColor</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−bg</entry>
+      <entry>-bg</entry>
       <entry>*background</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−borderwidth</entry>
+      <entry>-borderwidth</entry>
       <entry>.borderWidth</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−bordercolor</entry>
+      <entry>-bordercolor</entry>
       <entry>*borderColor</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−bw</entry>
+      <entry>-bw</entry>
       <entry>.borderWidth</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−display</entry>
+      <entry>-display</entry>
       <entry>.display</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−fg</entry>
+      <entry>-fg</entry>
       <entry>*foreground</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−fn</entry>
+      <entry>-fn</entry>
       <entry>*font</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−font</entry>
+      <entry>-font</entry>
       <entry>*font</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−foreground</entry>
+      <entry>-foreground</entry>
       <entry>*foreground</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−geometry</entry>
+      <entry>-geometry</entry>
       <entry>.geometry</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−iconic</entry>
+      <entry>-iconic</entry>
       <entry>.iconic</entry>
       <entry>NoArg</entry>
       <entry>"true"</entry>
     </row>
     <row>
-      <entry>−name</entry>
+      <entry>-name</entry>
       <entry>.name</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−reverse</entry>
+      <entry>-reverse</entry>
       <entry>.reverseVideo</entry>
       <entry>NoArg</entry>
       <entry>"on"</entry>
     </row>
     <row>
-      <entry>−rv</entry>
+      <entry>-rv</entry>
       <entry>.reverseVideo</entry>
       <entry>NoArg</entry>
       <entry>"on"</entry>
@@ -1411,13 +1413,13 @@ typedef struct {
       <entry>"off"</entry>
     </row>
     <row>
-      <entry>−selectionTimeout</entry>
+      <entry>-selectionTimeout</entry>
       <entry>.selectionTimeout</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−synchronous</entry>
+      <entry>-synchronous</entry>
       <entry>.synchronous</entry>
       <entry>NoArg</entry>
       <entry>"on"</entry>
@@ -1429,25 +1431,25 @@ typedef struct {
       <entry>"off"</entry>
     </row>
     <row>
-      <entry>−title</entry>
+      <entry>-title</entry>
       <entry>.title</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−xnllanguage</entry>
+      <entry>-xnllanguage</entry>
       <entry>.xnlLanguage</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−xrm</entry>
+      <entry>-xrm</entry>
       <entry>next argument</entry>
       <entry>ResArg</entry>
       <entry>next argument</entry>
     </row>
     <row>
-      <entry>−xtsessionID</entry>
+      <entry>-xtsessionID</entry>
       <entry>.sessionID</entry>
       <entry>SepArg</entry>
       <entry>next argument</entry>
@@ -1501,9 +1503,9 @@ to give a red background to all command buttons in an application named
 <function>xmh</function>,
 you can start it up as
 </para>
-<literallayout>
+<programlisting>
 xmh -xrm 'xmh*Command.background: red'
-</literallayout>
+</programlisting>
 <para>
 When it parses the command line,
 <xref linkend='XtDisplayInitialize' xrefstyle='select: title'/>
@@ -1516,7 +1518,7 @@ in the standard table overrides the standard table entry.
 If an option name is a prefix of another option name,
 both names are kept in the merged table.
 The Intrinsics reserve all option names
-beginning with the characters ``-xt'' for future standard uses.
+beginning with the characters &ldquo;-xt&rdquo; for future standard uses.
 </para>
 </sect1>
 
@@ -1609,12 +1611,12 @@ These are passed as an arglist, a pointer to an array of
 <function>Arg</function>
 structures, which contains
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
 	String name;
 	XtArgVal value;
 } Arg, *ArgList;
-</literallayout>
+</programlisting>
 <para>
 where
 <function>XtArgVal</function>
@@ -1686,26 +1688,26 @@ The
 function is usually used in a highly stylized manner to
 minimize the probability of making a mistake; for example:
 </para>
-<literallayout>
+<programlisting>
 Arg args[20];
 int n;
 n = 0;
-XtSetArg(args[n], XtNheight, 100);	n++;
-XtSetArg(args[n], XtNwidth, 200);	n++;
+XtSetArg(args[n], XtNheight, 100);      n++;
+XtSetArg(args[n], XtNwidth, 200);       n++;
 XtSetValues(widget, args, n);
-</literallayout>
+</programlisting>
 <para>
 Alternatively, an application can statically declare the argument list
 and use
 <xref linkend='XtNumber' xrefstyle='select: title'/>:
 </para>
-<literallayout>
+<programlisting>
 static Args args[] = {
 	{XtNheight, (XtArgVal) 100},
 	{XtNwidth, (XtArgVal) 200},
 };
 XtSetValues(Widget, args, XtNumber(args));
-</literallayout>
+</programlisting>
 <para>
 Note that you should not use expressions with side effects such as
 auto-increment or auto-decrement
@@ -1793,9 +1795,9 @@ All Intrinsics interfaces that require
 <function>ArgList</function>
 arguments have analogs
 conforming to the ANSI C variable argument list
-(traditionally called ``varargs'')
+(traditionally called &ldquo;varargs&rdquo;)
 calling convention.  The name of the analog is formed by prefixing
-``Va'' to the name of the corresponding
+&ldquo;Va&rdquo; to the name of the corresponding
 <function>ArgList</function>
 procedure; e.g.,
 <xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>.
@@ -1821,9 +1823,9 @@ Two special names are defined for use only in varargs lists:
 and
 <function>XtVaNestedList</function>.
 </para>
-<literallayout>
+<programlisting>
 #define XtVaTypedArg "XtVaTypedArg"
-</literallayout>
+</programlisting>
 <para>
 If the name
 <function>XtVaTypedArg</function>
@@ -1850,9 +1852,9 @@ otherwise <emphasis remap='I'>value</emphasis> is a pointer to the data.  If the
 conversion fails for any reason, a warning message is issued and the
 list entry is skipped.
 </para>
-<literallayout>
+<programlisting>
 #define XtVaNestedList  "XtVaNestedList"
-</literallayout>
+</programlisting>
 <para>
 If the name
 <function>XtVaNestedList</function>
@@ -1871,9 +1873,9 @@ To dynamically allocate a varargs list for use with
 in multiple calls, use
 <xref linkend='XtVaCreateArgsList' xrefstyle='select: title'/>.
 </para>
-<literallayout>
+<programlisting>
 typedef XtPointer XtVarArgsList;
-</literallayout>
+</programlisting>
 
 <funcsynopsis id='XtVaCreateArgsList'>
 <funcprototype>
@@ -1943,7 +1945,7 @@ To create an instance of a widget, use
 <funcsynopsis id='XtCreateWidget'>
 <funcprototype>
   <funcdef>Widget <function>XtCreateWidget</function></funcdef>
-      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>const char * <parameter>name</parameter></paramdef>
       <paramdef>WidgetClass <parameter>object_class</parameter></paramdef>
       <paramdef>Widget <parameter>parent</parameter></paramdef>
       <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -2124,7 +2126,7 @@ To create an instance of a widget using varargs lists, use
 <funcsynopsis id='XtVaCreateWidget'>
 <funcprototype>
   <funcdef>Widget <function>XtVaCreateWidget</function></funcdef>
-      <paramdef>String <parameter>name</parameter></paramdef>
+      <paramdef>const char * <parameter>name</parameter></paramdef>
       <paramdef>WidgetClass <parameter>object_class</parameter></paramdef>
       <paramdef>Widget <parameter>parent</parameter></paramdef>
       <paramdef> <parameter>...</parameter></paramdef>
@@ -2201,8 +2203,8 @@ to create independent widget trees.
 <funcsynopsis id='XtAppCreateShell'>
 <funcprototype>
   <funcdef>Widget <function>XtAppCreateShell</function></funcdef>
-      <paramdef>String <parameter>name</parameter></paramdef>
-      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>const char * <parameter>name</parameter></paramdef>
+      <paramdef>const char * <parameter>application_class</parameter></paramdef>
       <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
       <paramdef>Display * <parameter>display</parameter></paramdef>
       <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -2298,7 +2300,7 @@ class <emphasis remap='I'>Class</emphasis>.Screen where <emphasis remap='I'>Clas
 <emphasis remap='I'>application_class</emphasis> if <emphasis remap='I'>widget_class</emphasis> is
 <function>applicationShellWidgetClass</function>
 or a subclass thereof.  If <emphasis remap='I'>widget_class</emphasis> is not
-<function>application\%Shell\%Widget\%Class</function>
+<function>applicationShellWidgetClass</function>
 or a subclass, <emphasis remap='I'>Class</emphasis> is the <emphasis remap='I'>class_name</emphasis>
 field from the
 <function>CoreClassPart</function>
@@ -2349,21 +2351,21 @@ The first method,
 which is best used when there is a clear choice for what is the main window,
 leads to resource specifications like the following:
 </para>
-<literallayout>
-xmail.geometry:...	(the main window)
-xmail.read.geometry:...	(the read window)
-xmail.compose.geometry:...	(the compose window)
-</literallayout>
+<programlisting>
+xmail.geometry:...              (the main window)
+xmail.read.geometry:...         (the read window)
+xmail.compose.geometry:...      (the compose window)
+</programlisting>
 <para>
 The second method,
 which is best if there is no main window,
 leads to resource specifications like the following:
 </para>
-<literallayout>
-xmail.headers.geometry:...	(the headers window)
-xmail.read.geometry:...	(the read window)
-xmail.compose.geometry:...	(the compose window)
-</literallayout>
+<programlisting>
+xmail.headers.geometry:...      (the headers window)
+xmail.read.geometry:...         (the read window)
+xmail.compose.geometry:...      (the compose window)
+</programlisting>
 <para>
 To create a top-level widget that is the root of a widget tree using
 varargs lists, use
@@ -2373,10 +2375,11 @@ varargs lists, use
 <funcsynopsis id='XtVaAppCreateShell'>
 <funcprototype>
   <funcdef>Widget <function>XtVaAppCreateShell</function></funcdef>
-      <paramdef>String <parameter>name</parameter></paramdef>
-      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>const char * <parameter>name</parameter></paramdef>
+      <paramdef>const char * <parameter>application_class</parameter></paramdef>
       <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
       <paramdef>Display * <parameter>display</parameter></paramdef>
+      <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -2469,11 +2472,11 @@ or
 <funcprototype>
   <funcdef>Widget <function>XtOpenApplication</function></funcdef>
       <paramdef>XtAppContext * <parameter>app_context_return</parameter></paramdef>
-      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>const char * <parameter>application_class</parameter></paramdef>
       <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
       <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
       <paramdef>int * <parameter>argc_in_out</parameter></paramdef>
-      <paramdef>String * <parameter>argv_in_out</parameter></paramdef>
+      <paramdef>char ** <parameter>argv_in_out</parameter></paramdef>
       <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
       <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
       <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -2624,13 +2627,14 @@ is called with the value prior to calling
 <funcprototype>
   <funcdef>Widget <function>XtVaOpenApplication</function></funcdef>
       <paramdef>XtAppContext * <parameter>app_context_return</parameter></paramdef>
-      <paramdef>String <parameter>application_class</parameter></paramdef>
+      <paramdef>const char * <parameter>application_class</parameter></paramdef>
       <paramdef>XrmOptionDescList <parameter>options</parameter></paramdef>
       <paramdef>Cardinal <parameter>num_options</parameter></paramdef>
       <paramdef>int * <parameter>argc_in_out</parameter></paramdef>
-      <paramdef>String * <parameter>argv_in_out</parameter></paramdef>
+      <paramdef>char ** <parameter>argv_in_out</parameter></paramdef>
       <paramdef>String * <parameter>fallback_resources</parameter></paramdef>
       <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
+      <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -2756,14 +2760,14 @@ When the call to create a widget includes a varargs list containing
 these arguments will be passed to the allocation procedure in an
 <function>XtTypedArgList</function>.
 </para>
-<literallayout>
+<programlisting>
 typedef struct {
 	String name;
 	String type;
 	XtArgVal value;
 	int size;
 } XtTypedArg, *XtTypedArgList;
-</literallayout>
+</programlisting>
 <para>
 The allocate procedure pointer in the
 <function>ObjectClassExtension</function>
@@ -2773,7 +2777,7 @@ record is of type
 
 <funcsynopsis id='XtAllocateProc'>
 <funcprototype>
-  <funcdef>typedef void <function>(*AllocateProc)</function></funcdef>
+  <funcdef>typedef void <function>(*XtAllocateProc)</function></funcdef>
       <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
       <paramdef>Cardinal* <parameter>constraint_size</parameter></paramdef>
       <paramdef>Cardinal* <parameter>more_bytes</parameter></paramdef>
@@ -3185,7 +3189,7 @@ The initialize_hook procedure pointer is of type
 
 <funcsynopsis id='XtArgsProc'>
 <funcprototype>
-  <funcdef>typedef void<function>(*XtArgsProc)</function></funcdef>
+  <funcdef>typedef void <function>(*XtArgsProc)</function></funcdef>
   <paramdef>Widget <parameter>w</parameter></paramdef>
   <paramdef>ArgList <parameter>args</parameter></paramdef>
   <paramdef>Cardinal * <parameter>num_args</parameter></paramdef>
@@ -3311,8 +3315,6 @@ not a subclass of
 <xref linkend='XtRealizeWidget' xrefstyle='select: title'/>
 returns; otherwise it continues and performs the following:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -3347,11 +3349,11 @@ maps the widget window.
 <xref linkend='XtVaCreateWidget' xrefstyle='select: title'/>,
 <xref linkend='XtRealizeWidget' xrefstyle='select: title'/>,
 <xref linkend='XtManageChildren' xrefstyle='select: title'/>,
-<function>XtUnmanage\%Children</function>,
+<function>XtUnmanageChildren</function>,
 <xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>,
 <xref linkend='XtSetMappedWhenManaged' xrefstyle='select: title'/>,
 and
-<function>XtDestroy\%Widget</function>
+<function>XtDestroyWidget</function>
 maintain the following invariants:
 </para>
 <itemizedlist spacing='compact'>
@@ -3616,7 +3618,7 @@ which simplifies the creation of windows for widgets.
   <paramdef>unsigned int <parameter>window_class</parameter></paramdef>
   <paramdef>Visual * <parameter>visual</parameter></paramdef>
   <paramdef>XtValueMask <parameter>value_mask</parameter></paramdef>
-  <paramdef>XSetWindowAttributes <parameter>attributes</parameter></paramdef>
+  <paramdef>XSetWindowAttributes * <parameter>attributes</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -3717,7 +3719,7 @@ and to the application writer by means of functions.
 
 <funcsynopsis>
 <funcprototype>
-  <funcdef>Display <function>XtDisplay</function></funcdef>
+  <funcdef>Display * <function>XtDisplay</function></funcdef>
   <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3768,7 +3770,7 @@ will be of class Object or a subclass.
 
 <funcsynopsis id='XtScreen'>
 <funcprototype>
-  <funcdef>Screen <function>*XtScreen</function></funcdef>
+  <funcdef>Screen *<function>XtScreen</function></funcdef>
   <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3828,7 +3830,7 @@ and
 
 <funcsynopsis id='XtDisplayOfObject'>
 <funcprototype>
-  <funcdef>Display <function>*XtDisplayOfObject</function></funcdef>
+  <funcdef>Display *<function>XtDisplayOfObject</function></funcdef>
   <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -3859,7 +3861,7 @@ Widget or a subclass thereof.
 
 <funcsynopsis id='XtScreenOfObject'>
 <funcprototype>
-  <funcdef>Screen <function>*XtScreenOfObject</function></funcdef>
+  <funcdef>Screen *<function>XtScreenOfObject</function></funcdef>
   <paramdef>Widget <parameter>object</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -4029,7 +4031,7 @@ Unmanages the widget if the widget is managed.
     <para>
 Makes a postorder (child-to-parent) traversal of the widget tree
 rooted at the specified widget and, for each widget that has
-declared a callback list resource named ``unrealizeCallback'', executes the
+declared a callback list resource named &ldquo;unrealizeCallback&rdquo;, executes the
 procedures on the
 XtNunrealizeCallback
 list.
@@ -4179,7 +4181,7 @@ specified:
   <listitem>
     <para>
 If the widget is not a pop-up child and the widget's parent is a subclass of
-<function>composite\%WidgetClass</function>,
+<function>compositeWidgetClass</function>,
 and if the parent is not being destroyed,
 it calls
 <xref linkend='XtUnmanageChild' xrefstyle='select: title'/>
@@ -4206,7 +4208,7 @@ widget in postorder:
   <listitem>
     <para>
 If the widget is not a pop-up child and the widget's parent is a subclass of
-<function>constraint\%WidgetClass</function>,
+<function>constraintWidgetClass</function>,
 it calls the
 <function>ConstraintClassPart</function>
 destroy procedure for the parent,
@@ -4268,9 +4270,9 @@ procedure <emphasis remap='I'>ClientDestroy</emphasis> with client data to a wid
 <xref linkend='XtAddCallback' xrefstyle='select: title'/>.
 </para>
 
-<literallayout>
+<programlisting>
 XtAddCallback(<emphasis remap='I'>w</emphasis>, XtNdestroyCallback, <emphasis remap='I'>ClientDestroy</emphasis>, <emphasis remap='I'>client_data</emphasis>)
-</literallayout>
+</programlisting>
 
 <para>
 Similarly, the following removes the application-supplied destroy callback
@@ -4278,9 +4280,9 @@ procedure <emphasis remap='I'>ClientDestroy</emphasis> by calling
 <xref linkend='XtRemoveCallback' xrefstyle='select: title'/>.
 </para>
 
-<literallayout>
+<programlisting>
 XtRemoveCallback(<emphasis remap='I'>w</emphasis>, XtNdestroyCallback, <emphasis remap='I'>ClientDestroy</emphasis>, <emphasis remap='I'>client_data</emphasis>)
-</literallayout>
+</programlisting>
 <para>
 The <emphasis remap='I'>ClientDestroy</emphasis> argument is of type
 <xref linkend='XtCallbackProc' xrefstyle='select: title'/>;
@@ -4414,7 +4416,7 @@ This constraint destroy procedure pointer is of type
 <xref linkend='XtWidgetProc' xrefstyle='select: title'/>.
 The constraint destroy procedures are called in subclass-to-superclass order,
 starting at the class of the widget's parent and ending at
-<function>constraint\%WidgetClass</function>.
+<function>constraintWidgetClass</function>.
 Therefore, a parent's constraint destroy procedure should deallocate only
 storage that is specific to the constraint subclass
 and not storage allocated by any of its superclasses.

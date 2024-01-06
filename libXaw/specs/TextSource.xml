@@ -138,7 +138,7 @@ used as a source by itself and bad things will probably happen.
 <para>
 <!-- .LP -->
 To read the text in a text source use the <xref linkend='Read' xrefstyle='select: title'/> function:
-<!-- .IN "TextSrc object" "Read" "@DEF@" -->
+<indexterm significance="preferred"><primary>TextSrc object</primary><secondary>Read</secondary></indexterm>
 </para>
 <funcsynopsis id='Read'>
 <funcprototype>
@@ -273,7 +273,7 @@ The text replacement was successful.
     <term><function>XawPositionError</function></term>
     <listitem>
       <para>
-<!-- .IN "XawPositionError" "" -->
+<indexterm><primary>XawPositionError</primary></indexterm>
 The edit mode is <function>XawtextAppend</function> and <function>start</function> is not the last
 character of the source.
       </para>
@@ -283,7 +283,7 @@ character of the source.
     <term><function>XawEditError</function></term>
     <listitem>
       <para>
-<!-- .IN "XawEditError" "" -->
+<indexterm><primary>XawEditError</primary></indexterm>
 Either the Source was read-only or the range to be deleted is larger
 than the length of the Source.
       </para>
@@ -356,9 +356,9 @@ boundaries is left up to the individual text source.
     <listitem>
       <para>
 Specifies the direction to scan, may be either <function>XawsdLeft</function> to search
-<!-- .IN "XawsdLeft" "" -->
+<indexterm><primary>XawsdLeft</primary></indexterm>
 backward, or <function>XawsdRight</function> to search forward.
-<!-- .IN "XawsdRight" "" -->
+<indexterm><primary>XawsdRight</primary></indexterm>
       </para>
     </listitem>
   </varlistentry>
@@ -428,9 +428,9 @@ Specifies the position to begin the search.
     <listitem>
       <para>
 Specifies the direction to search, may be either <function>XawsdLeft</function> to search
-<!-- .IN "XawsdLeft" "" -->
+<indexterm><primary>XawsdLeft</primary></indexterm>
 backward, or <function>XawsdRight</function> to search forward.
-<!-- .IN "XawsdRight" "" -->
+<indexterm><primary>XawsdRight</primary></indexterm>
       </para>
     </listitem>
   </varlistentry>

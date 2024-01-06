@@ -2,11 +2,11 @@
 <title>Text Widget Actions</title>
 <para>
 <!-- .LP -->
-<!-- .IN "Text widget" "actions" -->
+<indexterm><primary>Text widget</primary><secondary>actions</secondary></indexterm>
 <!-- .XS -->
 <!--      Actions Supported by all Text Widgets -->
 <!-- .XE -->
-<!-- .IN "Text widget" "actions" "@DEF@" -->
+<indexterm significance="preferred"><primary>Text widget</primary><secondary>actions</secondary></indexterm>
 
 All editing functions are performed by translation manager actions that may
 be specified through the <function>translations</function> resource in the Text widget.
@@ -64,7 +64,7 @@ may assume this to be the case.
 <!-- .LP -->
 </para>
 <sect2 id='Cursor_Movement_Actions'>
-<title>Cursor Movement Actions\fP</title>
+<title>Cursor Movement Actions</title>
 <para>
 <!-- .LP -->
 <!-- .sp -->
@@ -363,8 +363,9 @@ triggered by a button event) or text cursor location (if triggered by
 a key event).  It
 will then begin a selection at this location.  If many of these
 selection actions occur quickly in succession then the selection count
-mechanism will be invoked (see the section titled \fBText Selections for
-Application Programmers\fP for details).  <!-- xref -->
+mechanism will be invoked (see
+<xref linkend="Text_Selections_for_Application_Programmers"/>
+for details).
       </para>
     </listitem>
   </varlistentry>
@@ -711,10 +712,11 @@ The multiply action allows the user to multiply the effects of many of
 the text actions.  Thus the following action sequence
 <emphasis remap='I'>multiply(10) delete-next-word()</emphasis> will delete 10 words.  It does not
 matter whether these actions take place in one event or many events.
-Using the default translations the key sequence \fIControl-u,
-Control-d\fP will delete 4 characters.
-Multiply actions can be chained, thus \fImultiply(5)
-multiply(5)\fP is the same as <emphasis remap='I'>multiply(25)</emphasis>.  If the string
+Using the default translations the key sequence
+<emphasis remap='I'>Control-u, Control-d</emphasis> will delete 4 characters.
+Multiply actions can be chained, thus
+<emphasis remap='I'>multiply(5) multiply(5)</emphasis> is the same as
+<emphasis remap='I'>multiply(25)</emphasis>.  If the string
 <function>reset</function> is passed to the multiply action the effects of all previous
 multiplies are removed and a beep is sent to the display.
       </para>
@@ -764,7 +766,7 @@ this argument is <emphasis remap='I'>RingBell</emphasis> then a beep is sent to 
     </term>
     <listitem>
       <para>
-<!-- .IN "XawWMProtocols" -->
+<indexterm><primary>XawWMProtocols</primary></indexterm>
 <!-- .sp -->
 This action is written specifically for the file insertion and the search
 and replace
@@ -775,7 +777,7 @@ popups, and may support other window manager protocols if necessary in
 the future.  The popup will be dismissed if the window manager sends
 a WM_DELETE_WINDOW request and there are no parameters in the action
 call, which is the default.  The popup will also be dismissed if the
-parameters include the string ``wm_delete_window,'' and the event is a
+parameters include the string <quote>wm_delete_window,</quote> and the event is a
 ClientMessage event requesting dismissal or is not a ClientMessage event.
 This action is not sensitive to the case of the strings passed as parameters.
       </para>
@@ -787,7 +789,7 @@ This action is not sensitive to the case of the strings passed as parameters.
     </term>
     <listitem>
       <para>
-<!-- .IN "Input Method" -->
+<indexterm><primary>Input Method</primary></indexterm>
 When the <function>international</function> resource is <function>true</function>,
 input is usually passed to an input method, a separate
 process, for composing.  Sometimes the connection to
@@ -805,7 +807,7 @@ started before the input method.
 </sect2>
 <sect2 id="Text_Selections_for_Application_Programmers">
 <title>Text Selections for Application Programmers</title>
-<!-- .IN "Text widget" "Text Selections for Application Programmers" -->
+<indexterm><primary>Text widget</primary><secondary>Text Selections for Application Programmers</secondary></indexterm>
 <para>
 <!-- .LP -->
 The default behavior of the text selection array is described in the
@@ -814,7 +816,7 @@ a programmer must construct a <function>XawTextSelectType</function> array (call
 selection array), containing the selections desired, and pass this as
 the new value for the <function>selectionTypes</function> resource.  The selection
 array may also be modified using the <xref linkend='XawTextSetSelectionArray' xrefstyle='select: title'/>
-<!-- .IN "XawTextSetSelectionArray" "" -->
+<indexterm><primary>XawTextSetSelectionArray</primary></indexterm>
 function.  All selection arrays must end with the value
 <function>XawselectNull</function>.  The <function>selectionTypes</function> resource has no converter
 registered and cannot be modified through the resource manager.

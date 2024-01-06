@@ -1,102 +1,102 @@
 STARTENCODING armscii-8
+# Armenian character set
 STARTMAPPING unicode
-0xA0	0x00A0  # NO-BREAK SPACE
-# <armeternity> doesn't exist in unicode.
-0xA1	0xFFA1  # Armenian Eternity Sign
+0xA0	0x00A0	# NO-BREAK SPACE
+0xA1	0x058E	# LEFT-FACING ARMENIAN ETERNITY SIGN
 # <armew> doesn't exist in ArmSCII-8
-0xFF    0x0587  # Armenian Ligature "ew"
-0xA2	0x00A7  # Armenian Section Sign
-0xA3	0x0589  # Armenian Full Stop (Verjaket)
-0xA4	0x0029  # Armenian Right Parenthesis
-0xA5	0x002A  # Armenian Left Parenthesis
-0xA6	0x00BB  # Armenian Right Quotation Mark
-0xA7	0x00AB  # Armenian Left Quotation Mark
-0xA8	0x2014  # Armenian EM Dash
-0xA9	0x002E  # Armenian Dot (Mijaket)
-0xAA	0x055D  # Armenian Separation Mark (But)
-0xAB	0x002C  # Armenian Comma
-0xAC	0x2013  # Armenian EN Dash
-0xAD	0x058A  # Armenian Hyphen (Yentamna)
-0xAE	0x2026  # Armenian Ellipsis
-0xFE	0x02BC  # Armenian Apostrophe
-0xAF	0x055C  # Armenian Exclamation Mark (Amanak)
-0xB0	0x055B  # Armenian Accent (Shesht)
-0xB1	0x055E  # Armenian Question Mark (Paruyk)
-0xB2	0x0531  # Armenian Capital Letter [ayb]
-0xB3	0x0561  # Armenian Small Letter [ayb]
-0xB4	0x0532  # Armenian Capital Letter [ben]
-0xB5	0x0562  # Armenian Small Letter [ben]
-0xB6	0x0533  # Armenian Capital Letter [gim]
-0xB7	0x0563  # Armenian Small Letter [gim]
-0xB8	0x0534  # Armenian Capital Letter [da]
-0xB9	0x0564  # Armenian Small Letter [da]
-0xBA	0x0535  # Armenian Capital Letter [yech]
-0xBB	0x0565  # Armenian Small Letter [yech]
-0xBC	0x0536  # Armenian Capital Letter [za]
-0xBD	0x0566  # Armenian Small Letter [za]
-0xBE	0x0537  # Armenian Capital Letter [e]
-0xBF	0x0567  # Armenian Small Letter [e]
-0xC0	0x0538  # Armenian Capital Letter [at]
-0xC1	0x0568  # Armenian Small Letter [at]
-0xC2	0x0539  # Armenian Capital Letter [to]
-0xC3	0x0569  # Armenian Small Letter [to]
-0xC4	0x053A  # Armenian Capital Letter [zhe]
-0xC5	0x056A  # Armenian Small Letter [zhe]
-0xC6	0x053B  # Armenian Capital Letter [ini]
-0xC7	0x056B  # Armenian Small Letter [ini]
-0xC8	0x053C  # Armenian Capital Letter [lyun]
-0xC9	0x056C  # Armenian Small Letter [lyun]
-0xCA	0x053D  # Armenian Capital Letter [khe]
-0xCB	0x056D  # Armenian Small Letter [khe]
-0xCC	0x053E  # Armenian Capital Letter [tsa]
-0xCD	0x056E  # Armenian Small Letter [tsa]
-0xCE	0x053F  # Armenian Capital Letter [ken]
-0xCF	0x056F  # Armenian Small Letter [ken]
-0xD0	0x0540  # Armenian Capital Letter [ho]
-0xD1	0x0570  # Armenian Small Letter [ho]
-0xD2	0x0541  # Armenian Capital Letter [dza]
-0xD3	0x0571  # Armenian Small Letter [dza]
-0xD4	0x0542  # Armenian Capital Letter [ghat]
-0xD5	0x0572  # Armenian Small Letter [ghat]
-0xD6	0x0543  # Armenian Capital Letter [tche]
-0xD7	0x0573  # Armenian Small Letter [tche]
-0xD8	0x0544  # Armenian Capital Letter [men]
-0xD9	0x0574  # Armenian Small Letter [men]
-0xDA	0x0545  # Armenian Capital Letter [hi]
-0xDB	0x0575  # Armenian Small Letter [hi]
-0xDC	0x0546  # Armenian Capital Letter [nu]
-0xDD	0x0576  # Armenian Small Letter [nu]
-0xDE	0x0547  # Armenian Capital Letter [sha]
-0xDF	0x0577  # Armenian Small Letter [sha]
-0xE0	0x0548  # Armenian Capital Letter [vo]
-0xE1	0x0578  # Armenian Small Letter [vo]
-0xE2	0x0549  # Armenian Capital Letter [cha]
-0xE3	0x0579  # Armenian Small Letter [cha]
-0xE4	0x054A  # Armenian Capital Letter [pe]
-0xE5	0x057A  # Armenian Small Letter [pe]
-0xE6	0x054B  # Armenian Capital Letter [je]
-0xE7	0x057B  # Armenian Small Letter [je]
-0xE8	0x054C  # Armenian Capital Letter [ra]
-0xE9	0x057C  # Armenian Small Letter [ra]
-0xEA	0x054D  # Armenian Capital Letter [se]
-0xEB	0x057D  # Armenian Small Letter [se]
-0xEC	0x054E  # Armenian Capital Letter [vev]
-0xED	0x057E  # Armenian Small Letter [vev]
-0xEE	0x054F  # Armenian Capital Letter [tyun]
-0xEF	0x057F  # Armenian Small Letter [tyun]
-0xF0	0x0550  # Armenian Capital Letter [re]
-0xF1	0x0580  # Armenian Small Letter [re]
-0xF2	0x0551  # Armenian Capital Letter [tso]
-0xF3	0x0581  # Armenian Small Letter [tso]
-0xF4	0x0552  # Armenian Capital Letter [vyun]
-0xF5	0x0582  # Armenian Small Letter [vyun]
-0xF6	0x0553  # Armenian Capital Letter [pyur]
-0xF7	0x0583  # Armenian Small Letter [pyur]
-0xF8	0x0554  # Armenian Capital Letter [ke]
-0xF9	0x0584  # Armenian Small Letter [ke]
-0xFA	0x0555  # Armenian Capital Letter [o]
-0xFB	0x0585  # Armenian Small Letter [o]
-0xFC	0x0556  # Armenian Capital Letter [fe]
-0xFD	0x0586  # Armenian Small Letter [fe]
+0xFF	0x0587	# ARMENIAN SMALL LIGATURE ECH YIWN
+0xA2	0x00A7	# SECTION SIGN
+0xA3	0x0589	# ARMENIAN FULL STOP
+0xA4	0x0029	# RIGHT PARENTHESIS
+0xA5	0x0028	# LEFT PARENTHESIS
+0xA6	0x00BB	# RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK
+0xA7	0x00AB	# LEFT-POINTING DOUBLE ANGLE QUOTATION MARK
+0xA8	0x2014	# EM DASH
+0xA9	0x002E	# FULL STOP
+0xAA	0x055D	# ARMENIAN COMMA
+0xAB	0x002C	# COMMA
+0xAC	0x2013	# EN DASH
+0xAD	0x058A	# ARMENIAN HYPHEN
+0xAE	0x2026	# HORIZONTAL ELLIPSIS
+0xFE	0x02BC	# MODIFIER LETTER APOSTROPHE
+0xAF	0x055C	# ARMENIAN EXCLAMATION MARK
+0xB0	0x055B	# ARMENIAN EMPHASIS MARK
+0xB1	0x055E	# ARMENIAN QUESTION MARK
+0xB2	0x0531	# ARMENIAN CAPITAL LETTER AYB
+0xB3	0x0561	# ARMENIAN SMALL LETTER AYB
+0xB4	0x0532	# ARMENIAN CAPITAL LETTER BEN
+0xB5	0x0562	# ARMENIAN SMALL LETTER BEN
+0xB6	0x0533	# ARMENIAN CAPITAL LETTER GIM
+0xB7	0x0563	# ARMENIAN SMALL LETTER GIM
+0xB8	0x0534	# ARMENIAN CAPITAL LETTER DA
+0xB9	0x0564	# ARMENIAN SMALL LETTER DA
+0xBA	0x0535	# ARMENIAN CAPITAL LETTER ECH
+0xBB	0x0565	# ARMENIAN SMALL LETTER ECH
+0xBC	0x0536	# ARMENIAN CAPITAL LETTER ZA
+0xBD	0x0566	# ARMENIAN SMALL LETTER ZA
+0xBE	0x0537	# ARMENIAN CAPITAL LETTER EH
+0xBF	0x0567	# ARMENIAN SMALL LETTER EH
+0xC0	0x0538	# ARMENIAN CAPITAL LETTER ET
+0xC1	0x0568	# ARMENIAN SMALL LETTER ET
+0xC2	0x0539	# ARMENIAN CAPITAL LETTER TO
+0xC3	0x0569	# ARMENIAN SMALL LETTER TO
+0xC4	0x053A	# ARMENIAN CAPITAL LETTER ZHE
+0xC5	0x056A	# ARMENIAN SMALL LETTER ZHE
+0xC6	0x053B	# ARMENIAN CAPITAL LETTER INI
+0xC7	0x056B	# ARMENIAN SMALL LETTER INI
+0xC8	0x053C	# ARMENIAN CAPITAL LETTER LIWN
+0xC9	0x056C	# ARMENIAN SMALL LETTER LIWN
+0xCA	0x053D	# ARMENIAN CAPITAL LETTER XEH
+0xCB	0x056D	# ARMENIAN SMALL LETTER XEH
+0xCC	0x053E	# ARMENIAN CAPITAL LETTER CA
+0xCD	0x056E	# ARMENIAN SMALL LETTER CA
+0xCE	0x053F	# ARMENIAN CAPITAL LETTER KEN
+0xCF	0x056F	# ARMENIAN SMALL LETTER KEN
+0xD0	0x0540	# ARMENIAN CAPITAL LETTER HO
+0xD1	0x0570	# ARMENIAN SMALL LETTER HO
+0xD2	0x0541	# ARMENIAN CAPITAL LETTER JA
+0xD3	0x0571	# ARMENIAN SMALL LETTER JA
+0xD4	0x0542	# ARMENIAN CAPITAL LETTER GHAD
+0xD5	0x0572	# ARMENIAN SMALL LETTER GHAD
+0xD6	0x0543	# ARMENIAN CAPITAL LETTER CHEH
+0xD7	0x0573	# ARMENIAN SMALL LETTER CHEH
+0xD8	0x0544	# ARMENIAN CAPITAL LETTER MEN
+0xD9	0x0574	# ARMENIAN SMALL LETTER MEN
+0xDA	0x0545	# ARMENIAN CAPITAL LETTER YI
+0xDB	0x0575	# ARMENIAN SMALL LETTER YI
+0xDC	0x0546	# ARMENIAN CAPITAL LETTER NOW
+0xDD	0x0576	# ARMENIAN SMALL LETTER NOW
+0xDE	0x0547	# ARMENIAN CAPITAL LETTER SHA
+0xDF	0x0577	# ARMENIAN SMALL LETTER SHA
+0xE0	0x0548	# ARMENIAN CAPITAL LETTER VO
+0xE1	0x0578	# ARMENIAN SMALL LETTER VO
+0xE2	0x0549	# ARMENIAN CAPITAL LETTER CHA
+0xE3	0x0579	# ARMENIAN SMALL LETTER CHA
+0xE4	0x054A	# ARMENIAN CAPITAL LETTER PEH
+0xE5	0x057A	# ARMENIAN SMALL LETTER PEH
+0xE6	0x054B	# ARMENIAN CAPITAL LETTER JHEH
+0xE7	0x057B	# ARMENIAN SMALL LETTER JHEH
+0xE8	0x054C	# ARMENIAN CAPITAL LETTER RA
+0xE9	0x057C	# ARMENIAN SMALL LETTER RA
+0xEA	0x054D	# ARMENIAN CAPITAL LETTER SEH
+0xEB	0x057D	# ARMENIAN SMALL LETTER SEH
+0xEC	0x054E	# ARMENIAN CAPITAL LETTER VEW
+0xED	0x057E	# ARMENIAN SMALL LETTER VEW
+0xEE	0x054F	# ARMENIAN CAPITAL LETTER TIWN
+0xEF	0x057F	# ARMENIAN SMALL LETTER TIWN
+0xF0	0x0550	# ARMENIAN CAPITAL LETTER REH
+0xF1	0x0580	# ARMENIAN SMALL LETTER REH
+0xF2	0x0551	# ARMENIAN CAPITAL LETTER CO
+0xF3	0x0581	# ARMENIAN SMALL LETTER CO
+0xF4	0x0552	# ARMENIAN CAPITAL LETTER YIWN
+0xF5	0x0582	# ARMENIAN SMALL LETTER YIWN
+0xF6	0x0553	# ARMENIAN CAPITAL LETTER PIWR
+0xF7	0x0583	# ARMENIAN SMALL LETTER PIWR
+0xF8	0x0554	# ARMENIAN CAPITAL LETTER KEH
+0xF9	0x0584	# ARMENIAN SMALL LETTER KEH
+0xFA	0x0555	# ARMENIAN CAPITAL LETTER OH
+0xFB	0x0585	# ARMENIAN SMALL LETTER OH
+0xFC	0x0556	# ARMENIAN CAPITAL LETTER FEH
+0xFD	0x0586	# ARMENIAN SMALL LETTER FEH
 ENDMAPPING
 ENDENCODING

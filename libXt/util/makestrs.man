@@ -1,24 +1,24 @@
 .\" Copyright (c) 1993, 1994, 1998 The Open Group
-.\" 
+.\"
 .\" Permission to use, copy, modify, distribute, and sell this software and its
 .\" documentation for any purpose is hereby granted without fee, provided that
 .\" the above copyright notice appear in all copies and that both that
 .\" copyright notice and this permission notice appear in supporting
 .\" documentation.
-.\" 
+.\"
 .\" The above copyright notice and this permission notice shall be included in
 .\" all copies or substantial portions of the Software.
-.\" 
+.\"
 .\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 .\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL 
-.\" THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, 
-.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF 
-.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE 
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+.\" THE OPEN GROUP BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+.\" WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF
+.\" OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 .\" SOFTWARE.
-.\" 
-.\" Except as contained in this notice, the name of The Open Group shall not 
-.\" be used in advertising or otherwise to promote the sale, use or other 
+.\"
+.\" Except as contained in this notice, the name of The Open Group shall not
+.\" be used in advertising or otherwise to promote the sale, use or other
 .\" dealing in this Software without prior written authorization from The
 .\" Open Group.
 .\"
@@ -50,40 +50,40 @@ The following options may be specified:
 and
 .I -defaultabi.
 .LP
-.I -sparcabi 
-is used on SPARC platforms conforming to the SPARC 
+.I -sparcabi
+is used on SPARC platforms conforming to the SPARC
 Compliance Definition, i.e. SVR4/Solaris.
 .LP
-.I -intelabi 
-is used on Intel platforms conforming to the System 
+.I -intelabi
+is used on Intel platforms conforming to the System
 V Application Binary Interface, i.e. SVR4.
 .LP
-.I -earlyR6abi 
-may be used in addition to 
-.I -intelabi 
-for situations 
-where the vendor wishes to maintain binary compatibility between 
+.I -earlyR6abi
+may be used in addition to
+.I -intelabi
+for situations
+where the vendor wishes to maintain binary compatibility between
 X11R6 public-patch 11 (and earlier) and X11R6 public-patch 12 (and later).
 .LP
-.I -functionabi 
-generates a functional abi to the string table. This 
-mechanism imposes a severe performance penalty and it's recommended 
+.I -functionabi
+generates a functional abi to the string table. This
+mechanism imposes a severe performance penalty and it's recommended
 that you not use it.
 .LP
-.I -arrayperabi 
-results in a separate array for each string. This is 
-the default behavior if makestrs was compiled with -DARRAYPERSTR 
+.I -arrayperabi
+results in a separate array for each string. This is
+the default behavior if makestrs was compiled with -DARRAYPERSTR
 (it almost never is).
 .LP
-.I -defaultabi 
-forces the generation of the "normal" string table even 
-if makestrs was compiled with -DARRAYPERSTR. Since makestrs is almost 
-never compiled with -DARRAYPERSTR this is the default behavior if 
+.I -defaultabi
+forces the generation of the "normal" string table even
+if makestrs was compiled with -DARRAYPERSTR. Since makestrs is almost
+never compiled with -DARRAYPERSTR this is the default behavior if
 no abioptions are specified.
 .LP
 .I -i includedir
-forces the reading of templates from the includedir instead of the local 
-directory. This is useful to have separate source and build directories. 
+forces the reading of templates from the includedir instead of the local
+directory. This is useful to have separate source and build directories.
 .SH SYNTAX
 The syntax for string-list file is (items in square brackets are optional):
 .RS 4
@@ -169,7 +169,7 @@ and Motif will use "externaldef(_xmstrings).
 The #ctmpl directive determines the name of the file used as a template
 for the C source file that is generated
 .LP
-Each #file <filename> directive will result in a corresponding header 
+Each #file <filename> directive will result in a corresponding header
 file by that name containing the appropriate definitions as specified
 by command line options. A single C source file containing the
 declarations for the definitions in all the headers will be printed
@@ -198,19 +198,19 @@ up. No warning messages are emitted.
 SPARC Compliance Definition 2.2., SPARC International Inc.,
 535 Middlefield Road, Suite 210, Menlo Park, CA  94025
 .LP
-System V Application Binary Interface, Third Edition, 
+System V Application Binary Interface, Third Edition,
 ISBN 0-13-100439-5
-UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs, 
+UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs,
 NJ  07632
 .LP
 System V Application Binary Interface, Third Edition, Intel386
 Architecture Processor Supplement
 ISBN 0-13-104670-5
-UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs, 
+UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs,
 NJ  07632
 .LP
 System V Application Binary Interface, Third Edition, SPARC
 Architecture Processor Supplement
 ISBN 0-13-104696-9
-UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs, 
+UNIX Press, PTR Prentice Hall, 113 Sylvan Avenue, Englewood Cliffs,
 NJ  07632

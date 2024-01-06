@@ -1173,7 +1173,7 @@ enum tess_primitive_mode
 /**
  * Mesa primitive types for both GL and Vulkan:
  */
-enum ENUM_PACKED mesa_prim
+enum mesa_prim
 {
    MESA_PRIM_POINTS,
    MESA_PRIM_LINES,
@@ -1442,7 +1442,7 @@ enum cl_sampler_filter_mode {
 #define MAT_BIT_BACK_INDEXES          (1<<MAT_ATTRIB_BACK_INDEXES)
 
 /** An enum representing what kind of input gl_SubgroupSize is. */
-enum ENUM_PACKED gl_subgroup_size
+enum gl_subgroup_size
 {
    /** Actual subgroup size, whatever that happens to be */
    SUBGROUP_SIZE_VARYING = 0,

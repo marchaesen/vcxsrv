@@ -61,9 +61,9 @@ extern MenuButtonClassRec menuButtonClassRec;
 /* New fields for the MenuButton widget */
 typedef struct {
     /* resources */
-    String menu_name;
+    char * menu_name;
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } MenuButtonPart;
 

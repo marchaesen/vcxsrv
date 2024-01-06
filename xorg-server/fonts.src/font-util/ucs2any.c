@@ -32,7 +32,7 @@
  * derive from a single ISO10646-1 master font a whole set of 8-bit
  * fonts in all ISO 8859 and various other encodings. (Hopefully
  * a future XFree86 release will have a similar facility built into
- * the server, which can reencode ISO10646-1 on the fly, because
+ * the server, which can re-encode ISO10646-1 on the fly, because
  * storing the same fonts in many different encodings is clearly
  * a waste of storage capacity).
 */
@@ -45,6 +45,7 @@
 #endif
 #include <limits.h>
 #include <stdarg.h>
+#include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -220,6 +221,11 @@ da_add(da_t *da, int key, void *value)
 {
 	int i = da->size;
 	if (key >= 0) {
+		if ((size_t)key >= SIZE_MAX / sizeof(void *)) {
+			fprintf(stderr, "%s: Illegal key '%d' encountered!\n",
+				my_name, key);
+			exit(1);
+		}
 		if (key >= da->size) {
 			da->size = key + 1;
 			da->values = zrealloc(da->values,
@@ -580,6 +586,12 @@ main(int argc, char *argv[])
 				char * term;
 				/* slightly simplistic check ... */
 				zquotedcpy(&fontname, nextc);
+				if (fontname == NULL) {
+					fprintf(stderr,
+						"%s: FONT name in '%s' is invalid string '%s'!\n",
+						my_name, fsource, nextc);
+					exit(1);
+				}
 				if ((term = strstr(fontname, "-ISO10646-1")) == NULL) {
 					fprintf(stderr,
 						"%s: FONT name in '%s' is '%s' and not '*-ISO10646-1'!\n",
@@ -615,11 +627,23 @@ main(int argc, char *argv[])
 			} else if ((nextc = startswith(l, "SLANT")) != NULL)
 			{
 				zquotedcpy(&slant, nextc);
+				if (slant == NULL) {
+					fprintf(stderr,
+						"%s: SLANT property in '%s' is invalid string '%s'!\n",
+						my_name, fsource, nextc);
+					exit(1);
+				}
 				slant_index = ++nextheader;
 				da_add_str(headers, slant_index, NULL);
 			} else if ((nextc = startswith(l, "SPACING")) != NULL)
 			{
 				zquotedcpy(&spacing, nextc);
+				if (spacing == NULL) {
+					fprintf(stderr,
+						"%s: SPACING property in '%s' is invalid string '%s'!\n",
+						my_name, fsource, nextc);
+					exit(1);
+				}
 				zstrtoupper(spacing);
 				spacing_index = ++nextheader;
 				da_add_str(headers, spacing_index, NULL);
@@ -701,7 +725,7 @@ main(int argc, char *argv[])
 			free(temp);
 		} else {
 			fprintf(stderr, "map file argument \"%s\" needs a "
-			    "coresponding registry-encoding argument\n", fmap);
+			    "corresponding registry-encoding argument\n", fmap);
 			exit(0);
 		}
 
@@ -746,9 +770,11 @@ main(int argc, char *argv[])
 					da_add_int(map, target, ucs);
 				} else {
 					if (!((is_blockgraphics(ucs) &&
+						slant != NULL &&
 						strcmp(slant, "R") != 0) ||
 						(ucs >= 0x200e &&
-						ucs <= 0x200f)))							{
+						ucs <= 0x200f)))
+					{
 						fprintf(stderr,
 							"No glyph for character U+%04X (0x%02x) available.\n",
 							ucs, target);
@@ -774,8 +800,9 @@ main(int argc, char *argv[])
 		}
 
 		if (dec_chars == 1 ||
-			(dec_chars == -1 && strcmp(slant, "R") == 0 &&
-			strcmp(spacing, "C") == 0))
+			(dec_chars == -1 &&
+			 (slant != NULL && strcmp(slant, "R") == 0) &&
+			 (spacing != NULL && strcmp(spacing, "C") == 0)))
 		{
 			/* add DEC VT100 graphics characters in the range 1-31
 			   (as expected by some old xterm versions) */

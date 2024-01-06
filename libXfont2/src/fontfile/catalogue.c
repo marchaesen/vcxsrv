@@ -35,6 +35,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <unistd.h>
+#include "src/util/replace.h"
 
 static const char CataloguePrefix[] = "catalogue:";
 
@@ -64,7 +65,8 @@ CatalogueAddFPE (CataloguePtr cat, FontPathElementPtr fpe)
 	else
 	    cat->fpeAlloc *= 2;
 
-	new = realloc(cat->fpeList, cat->fpeAlloc * sizeof(FontPathElementPtr));
+	new = reallocarray(cat->fpeList, cat->fpeAlloc,
+			   sizeof(FontPathElementPtr));
 	if (new == NULL)
 	    return AllocError;
 
@@ -149,14 +151,12 @@ CatalogueRescan (FontPathElementPtr fpe, Bool forceScan)
     if ((forceScan == FALSE) && (statbuf.st_mtime <= cat->mtime))
 	return Successful;
 
+    CatalogueUnrefFPEs (fpe);
+
     dir = opendir(path);
     if (dir == NULL)
-    {
-	free(cat);
 	return BadFontPath;
-    }
 
-    CatalogueUnrefFPEs (fpe);
     while (entry = readdir(dir), entry != NULL)
     {
         char *name;

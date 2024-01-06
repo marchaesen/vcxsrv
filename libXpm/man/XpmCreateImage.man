@@ -1,0 +1,114 @@
+.\" Copyright (C) 1989-95 GROUPE BULL
+.\"
+.\" Permission is hereby granted, free of charge, to any person obtaining a copy
+.\" of this software and associated documentation files (the "Software"), to
+.\" deal in the Software without restriction, including without limitation the
+.\" rights to use, copy, modify, merge, publish, distribute, sublicense, and/or
+.\" sell copies of the Software, and to permit persons to whom the Software is
+.\" furnished to do so, subject to the following conditions:
+.\"
+.\" The above copyright notice and this permission notice shall be included in
+.\" all copies or substantial portions of the Software.
+.\"
+.\" THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+.\" IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+.\" FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL
+.\" GROUPE BULL BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN
+.\" AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+.\" CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+.\"
+.\" Except as contained in this notice, the name of GROUPE BULL shall not be
+.\" used in advertising or otherwise to promote the sale, use or other dealings
+.\" in this Software without prior written authorization from GROUPE BULL.
+.\"
+.hw XImage
+.TH  XpmCreateImage __libmansuffix__ __xorgversion__ "libXpm functions"
+.SH NAME
+XpmCreateImage \- create an XImage from an XPM
+.SH SYNOPSIS
+.nf
+.HP
+.BI "int XpmCreateImageFromData(Display *" display ", char **" data ,
+.BI "XImage **" image_return ", XImage **" shapeimage_return ,
+.BI "XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateImageFromBuffer(Display *" display ", char *" buffer ,
+.BI "XImage **" image_return ", XImage **" shapeimage_return ,
+.BI "XpmAttributes *" attributes );
+.HP
+.BI "int XpmCreateImageFromXpmImage(Display *" display ",  XpmImage *" image ,
+.BI "XImage *" image_return ", XImage *" shapeimage_return ,
+.BI "XpmAttributes *" attributes );
+.fi
+
+.SH ARGUMENTS
+
+.IP \fIdisplay\fP li
+Specifies the connection to the X server.
+.IP \fIdata\fP li
+Specifies the location of the data.
+.IP \fIimage_return\fP li
+Returns the image which is created.
+.IP \fIshapeimage_return\fP li
+Returns the shape mask image which is created if the color None is used.
+.IP \fIattributes\fP li
+Specifies the location of a structure to get and store information (or NULL).
+.IP \fIshapeimage\fP li
+Specifies the shape mask image which is created if any.
+
+.SH DESCRIPTION
+
+.SS XpmCreateImageFromData
+.PP
+To create an XImage from an XPM data, use
+.BR XpmCreateImageFromData ().
+.PP
+The
+.BR XpmCreateImageFromData ()
+function allows you to include in your C program an XPM file which was
+written out by functions such as
+.BR XpmWriteFileFromImage (__libmansuffix__)
+or
+.BR XpmWriteFileFromPixmap (__libmansuffix__)
+without reading in the file.
+.BR XpmCreateImageFromData ()
+exactly works as
+.BR XpmReadFileToImage (__libmansuffix__)
+does and returns the same way.
+It just reads data instead of a file.
+Here again, it is the caller’s responsibility to free the returned images,
+the colors and possibly the data returned into the XpmAttributes structure.
+
+.SS XpmCreateImageFromBuffer
+.PP
+To create an XImage from an XPM buffer, use
+.BR XpmCreateImageFromBuffer ().
+The
+.BR XpmCreateImageFromBuffer()
+function works the same way as
+.BR XpmReadFileToImage (__libmansuffix__),
+it just parses the buffer instead of the file.
+Be aware that the feature provided on some systems by
+.BR XpmReadFileToImage (__libmansuffix__)
+to deal with compressed files is not available here.
+
+.SS XpmCreateImageFromXpmImage
+.PP
+To create an XImage from an XpmImage, use
+.BR XpmCreateImageFromXpmImage ().
+From the given XpmImage and XpmAttributes if not NULL,
+.BR XpmCreateImageFromXpmImage ()
+allocates colors and creates X images following the same mechanism as
+.BR XpmReadFileToImage (__libmansuffix__).
+When finished the caller must free the images using
+.BR XDestroyImage (__libmansuffix__),
+the colors using
+.BR XFreeColors (__libmansuffix__),
+and possibly the data returned into the XpmAttributes using
+.BR XpmFreeAttributes (__libmansuffix__).
+
+.SH "SEE ALSO"
+.ad l
+.nh
+.BR XpmFreeAttributes (__libmansuffix__),
+.BR XpmReadFileToImage (__libmansuffix__)

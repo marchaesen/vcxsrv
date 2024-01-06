@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtLast-Event-Processed XtLast-Timestamp-Processed wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtLastEventProcessed __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtLastEventProcessed, XtLastTimestampProcessed \- last event, last timestamp processed
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XEvent* XtLastEventProcessed(Display* \fIdisplay\fP);
 .HP
@@ -73,26 +46,27 @@ Time XtLastTimestampProcessed(Display* \fIdisplay\fP);
 .IP \fIdisplay\fP 1i
 Specifies the open display connection.
 .SH DESCRIPTION
-.ZN XtLastEventProcessed
+.B XtLastEventProcessed
 returns the last event passed to
-.ZN XtDispatchEvent
-for the specified display and NULL if there has been no event. The
+.B XtDispatchEvent
+for the specified display and NULL if there has been no event.
+The
 client must not modify the contents of the returned event.
 .LP
-.ZN XtLastTimestampProcessed
+.B XtLastTimestampProcessed
 returns the timestamp of the last
-.ZN KeyPress ,
-.ZN KeyRelease ,
-.ZN ButtonPress ,
-.ZN ButtonRelease ,
-.ZN MotionNotify ,
-.ZN EnterNotify ,
-.ZN LeaveNotify ,
-.ZN PropertyNotify ,
+.BR KeyPress ,
+.BR KeyRelease ,
+.BR ButtonPress ,
+.BR ButtonRelease ,
+.BR MotionNotify ,
+.BR EnterNotify ,
+.BR LeaveNotify ,
+.BR PropertyNotify ,
 or
-.ZN SelectionClear
+.B SelectionClear
 event that has been passed to
-.ZN XtDispatchEvent
+.B XtDispatchEvent
 for the specified display and zero if there has been no such event.
 .SH "SEE ALSO"
 .br

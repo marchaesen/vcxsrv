@@ -31,40 +31,15 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtAdd-Event-Handler XtAdd-Raw-Event-Handler XtRemove-Event-Handler XtRemove-Raw-Event-Handler XtInsert-Event-Handler XtInsert-Raw-Event-Handler wid-get
+.hw XtAdd-Event-Handler XtAdd-Raw-Event-Handler
+.hw XtRemove-Event-Handler XtRemove-Raw-Event-Handler
+.hw XtInsert-Event-Handler XtInsert-Raw-Event-Handler wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAddEventHandler __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAddEventHandler, XtAddRawEventHandler, XtRemoveEventHandler, XtRemoveRawEventHandler, XtInsertEventHandler, XtInsertRawEventHandler \- add and remove event handlers
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtAddEventHandler(Widget \fIw\fP, EventMask \fIevent_mask\fP, Boolean
 \fInonmaskable\fP, XtEventHandler \fIproc\fP, XtPointer \fIclient_data\fP);
@@ -91,81 +66,80 @@ typedef enum { XtListHead, XtListTail } XtListPosition;
 .SH ARGUMENTS
 .IP \fIclient_data\fP 1i
 Specifies additional data to be passed to the client's event handler.
-.ds Em to call or unregister this procedure
 .IP \fIevent_mask\fP 1i
-Specifies the event mask for which \*(Em.
-.ds Nm called or removed
+Specifies the event mask for which to call or unregister this procedure.
 .IP \fInonmaskable\fP 1i
 Specifies a Boolean value that indicates whether this procedure should be
-\*(Nm on the nonmaskable events
-.Pn ( GraphicsExpose ,
-.ZN NoExpose ,
-.ZN SelectionClear ,
-.ZN SelectionRequest ,
-.ZN SelectionNotify ,
-.ZN ClientMessage ,
+called or removed on the nonmaskable events (
+.BR GraphicsExpose ,
+.BR NoExpose ,
+.BR SelectionClear ,
+.BR SelectionRequest ,
+.BR SelectionNotify ,
+.BR ClientMessage ,
 and
-.ZN MappingNotify ).
-.ds Pr \ to be added or removed
+.BR MappingNotify ).
 .IP \fIproc\fP 1i
-Specifies the procedure that is\*(Pr.
-.ds Wi for which this event handler is being registered
+Specifies the procedure that is to be added or removed.
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget for which this event handler is being registered.
 .IP \fIposition\fP 1i
 Specifies when the event handler is to be called relative to other
 previously registered handlers.
 .SH DESCRIPTION
 The
-.ZN XtAddEventHandler
+.B XtAddEventHandler
 function registers a procedure with the dispatch mechanism that is
 to be called when an event that matches the mask occurs on the specified
 widget.
 If the procedure is already registered with the same client_data,
 the specified mask is ORed into the existing mask.
 If the widget is realized,
-.ZN XtAddEventHandler
+.B XtAddEventHandler
 calls
-.ZN XSelectInput ,
+.BR XSelectInput ,
 if necessary.
 .LP
 The
-.ZN XtAddRawEventHandler
+.B XtAddRawEventHandler
 function is similar to
-.ZN XtAddEventHandler
+.B XtAddEventHandler
 except that it does not affect the widget's mask and never causes an
-.ZN XSelectInput
+.B XSelectInput
 for its events.
 Note that the widget might already have those mask bits set
 because of other nonraw event handlers registered on it.
 .LP
 The
-.ZN XtRemoveRawEventHandler
+.B XtRemoveRawEventHandler
 function stops the specified procedure from receiving the specified events.
 Because the procedure is a raw event handler,
 this does not affect the widget's mask and never causes a call on
-.ZN XSelectInput .
+.BR XSelectInput .
 .LP
-.ZN XtInsertEventHandler
+.B XtInsertEventHandler
 is identical to
-.ZN XtAddEventHandler
-with the additional \fIposition\fP argument. if \fIposition\fP is
-.ZN XtListHead ,
+.B XtAddEventHandler
+with the additional \fIposition\fP argument.
+If \fIposition\fP is
+.BR XtListHead ,
 the event handler is registered to that it will be called before
 any event handlers that were previously registered for the same widget.
 If \fIposition\fP is
-.ZN XtListTail ,
+.BR XtListTail ,
 the event handler is registered to be called after any previously
-registered event handlers. If the procedure is already registered with
+registered event handlers.
+If the procedure is already registered with
 the same \fIclient_data\fP value, the specified mask augments the
 existing mask and the procedure is repositioned in the list.
 .LP
-.ZN XtInsertRawEventHandler
+.B XtInsertRawEventHandler
 is similar to
-.ZN XtInsertEventHandler
+.B XtInsertEventHandler
 except that it does not modify the widget's event mask and never causes an
-.ZN XSelectInput
-for the specified events. If the procedure is already registered with the
+.B XSelectInput
+for the specified events.
+If the procedure is already registered with the
 same \fIclient_data\fP value, the specified mask augments the existing
 mask and the procedure is repositioned in the list.
 .SH "SEE ALSO"

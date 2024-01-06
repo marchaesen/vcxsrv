@@ -34,46 +34,18 @@
 .ds Vn 2.2
 .hw XtName-To-Widget XtWindow-To-Widget wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtNameToWidget __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtNameToWidget, XtWindowToWidget \- translating strings to widgets or widgets to windows
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtNameToWidget(Widget \fIreference\fP, String \fInames\fP);
+Widget XtNameToWidget(Widget \fIreference\fP, const char *\fInames\fP);
 .HP
 Widget XtWindowToWidget(Display *\fIdisplay\fP, Window \fIwindow\fP);
 .SH ARGUMENTS
-.ds Di \ on which the window is defined
 .IP \fIdisplay\fP 1i
-Specifies the display\*(Di.
+Specifies the display on which the window is defined.
 .IP \fInames\fP 1i
 Specifies the fully qualified name of the desired widget.
 .IP \fIreference\fP 1i
@@ -82,15 +54,15 @@ Specifies the widget from which the search is to start.
 Specify the window for which you want the widget.
 .SH DESCRIPTION
 The
-.ZN XtNameToWidget
+.B XtNameToWidget
 function looks for a widget whose name is the first component in the specified
 names and that is a pop-up child of reference (or a normal child if reference
 is a subclass of
-.ZN compositeWidgetClass ).
+.BR compositeWidgetClass ).
 It then uses that widget as the new reference and repeats the search
 after deleting the first component from the specified names.
 If it cannot find the specified widget,
-.ZN XtNameToWidget
+.B XtNameToWidget
 returns NULL.
 .LP
 Note that the names argument contains the name of a widget with respect to the
@@ -99,20 +71,20 @@ specified reference widget and can contain more than one widget name
 of the specified reference widget.
 .LP
 If more than one child of the reference widget matches the name,
-.ZN XtNameToWidget
+.B XtNameToWidget
 can return any of the children.
 The \*(xI do not require that all children of a widget have unique names.
 If the specified names contain more than one component
 and if more than one child matches the first component,
-.ZN XtNameToWidget
+.B XtNameToWidget
 can return NULL if the single branch that it follows does not
 contain the named widget.
 That is,
-.ZN XtNameToWidget
+.B XtNameToWidget
 does not back up and follow other matching branches of the widget tree.
 .LP
 The
-.ZN XtWindowToWidget
+.B XtWindowToWidget
 function translates the specified window and display pointer into the
 appropriate widget instance.
 .SH "SEE ALSO"

@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtGet-Selection-Value-Incremental XtGet-Selection-Values-Incremental wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetSelectionValueIncremental __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetSelectionValueIncremental, XtGetSelectionValuesIncremental \- obtain selection values
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 void XtGetSelectionValueIncremental(Widget \fIw\fP, Atom \fIselection\fP, Atom
 \fItarget\fP, XtSelectionCallbackProc \fIcallback\fP, XtPointer
@@ -72,15 +45,13 @@ void XtGetSelectionValueIncremental(Widget \fIw\fP, Atom \fIselection\fP, Atom
 .HP
 void XtGetSelectionValuesIncremental(Widget \fIw\fP, Atom \fIselection\fP,
 Atom *\fItargets\fP, int \fIcount\fP, XtSelectionCallbackProc \fIcallback\fP,
-XtPointer \fIclient_data\fP, Time \fItime\fP);
+XtPointer *\fIclient_data\fP, Time \fItime\fP);
 .SH ARGUMENTS
-.ds Cb \ that is to be called when the selection value has been obtained
 .IP \fIcallback\fP 1i
-Specifies the callback procedure\*(Cb.
-.ds Cd it is called
+Specifies the callback procedure that is to be called when the selection value has been obtained.
 .IP \fIclient_data\fP 1i
 Specifies the argument that is to be passed to the specified procedure
-when \*(Cd.
+when it is called.
 .IP \fIclient_data\fP 1i
 Specifies the client data (one for each target type)
 that is passed to the callback procedure when it is called for that target.
@@ -92,46 +63,46 @@ Specifies the particular selection desired (that is, primary or secondary).
 Specifies the type of the information that is needed about the selection.
 .IP \fItargets\fP 1i
 Specifies the types of information that is needed about the selection.
-.ds Ti value is desired
 .IP \fItime\fP 1i
-Specifies the timestamp that indicates when the selection \*(Ti.
-.ds Wi that is making the request
+Specifies the timestamp that indicates when the selection value is desired.
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget that is making the request.
 .SH DESCRIPTION
 The
-.ZN XtGetSelectionValueIncremental
+.B XtGetSelectionValueIncremental
 function is similar to
-.ZN XtGetSelectionValue
+.B XtGetSelectionValue
 except that the \fIselection_callback\fP procedure will be called
 repeatedly upon delivery of multiple segments of the selection value.
 The end of the selection value is indicated when \fIselection_callback\fP
 is called with a non-NULL value of length zero, which must still be
-freed by the client. If the transfer of the selection is aborted in the
+freed by the client.
+If the transfer of the selection is aborted in the
 middle of a transfer (for example, because to timeout), the
 \fIselection_callback\fP procedure is called with a type value equal
 to the symbolic constant
-.ZN XT_CONVERT_FAIL
+.B XT_CONVERT_FAIL
 so that the requestor can dispose of the partial selection value it has
-collected up until that point. Upon receiving
-.ZN XT_CONVERT_FAIL ,
+collected up until that point.
+Upon receiving
+.BR XT_CONVERT_FAIL ,
 the requesting client must determine for itself whether or not a
 partially completed transfer is meaningful.
 .LP
 The
-.ZN XtGetSelectionValuesIncremental
+.B XtGetSelectionValuesIncremental
 function is similar to
-.ZN XtGetSelectionValueIncremental
+.B XtGetSelectionValueIncremental
 except that it takes a list of target types and a list of client data
 and obtains the current value of the selection converted to each of the targets.
 The effect is as if each target were specified in a separate call to
-.ZN XtGetSelectionValueIncremental .
+.BR XtGetSelectionValueIncremental .
 The callback is called once with the corresponding client data for each target.
-.ZN XtGetSelectionValuesIncremental
+.B XtGetSelectionValuesIncremental
 does guarantee that all the conversions will use the same selection value
 because the ownership of the selection cannot change in the middle of the list,
 as would be when calling
-.ZN XtGetSelectionValueIncremental
+.B XtGetSelectionValueIncremental
 repeatedly.
 .SH "SEE ALSO"
 .br

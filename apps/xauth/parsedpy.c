@@ -36,7 +36,7 @@ in this Software without prior written authorization from The Open Group.
 #include <ctype.h>			/* for isascii() and isdigit() */
 #include <X11/Xwindows.h>
 #include <X11/Xos.h>			/* for strchr() and string routines */
-#include <X11/Xlib.h>			/* for Family contants */
+#include <X11/Xlib.h>			/* for Family constants */
 #ifdef hpux
 #include <sys/utsname.h>		/* for struct utsname */
 #endif
@@ -66,7 +66,7 @@ copystring (const char *src, int len)
     if (!src && len != 0) return NULL;
     cp = malloc (len + 1);
     if (cp) {
-	if (src) strncpy (cp, src, len);
+	if (src) memcpy (cp, src, len);
 	cp[len] = '\0';
     }
     return cp;
@@ -173,7 +173,7 @@ parse_displayname (const char *displayname,
 #ifdef HAVE_STRLCPY
         strlcpy(path, displayname, sizeof(path));
 #else
-        strncpy(path, displayname, sizeof(path));
+        strncpy(path, displayname, sizeof(path) - 1);
         path[sizeof(path) - 1] = '\0';
 #endif
         if (0 == stat(path, &sbuf)) {

@@ -48,8 +48,6 @@ MAIN_FILES = \
 	main/context.h \
 	main/copyimage.c \
 	main/copyimage.h \
-	main/cpuinfo.c \
-	main/cpuinfo.h \
 	main/dd.h \
 	main/debug.c \
 	main/debug.h \
@@ -276,9 +274,7 @@ MATH_FILES = \
 	math/m_eval.h \
 	math/m_matrix.c \
 	math/m_matrix.h \
-	math/m_trans_tmp.h \
-	math/m_vector.c \
-	math/m_vector.h
+	math/m_trans_tmp.h
 
 MATH_XFORM_FILES = \
 	math/m_clip_tmp.h \
@@ -314,7 +310,6 @@ STATETRACKER_FILES = \
 	state_tracker/st_atom_array.c \
 	state_tracker/st_atom_atomicbuf.c \
 	state_tracker/st_atom_blend.c \
-	state_tracker/st_atom.c \
 	state_tracker/st_atom_clip.c \
 	state_tracker/st_atom_constbuf.c \
 	state_tracker/st_atom_constbuf.h \
@@ -417,8 +412,6 @@ PROGRAM_FILES = \
 	program/prog_print.h \
 	program/program.c \
 	program/program.h \
-	program/programopt.c \
-	program/programopt.h \
 	program/program_parse_extra.c \
 	program/program_parse.tab.c \
 	program/program_parse.tab.h \
@@ -426,8 +419,7 @@ PROGRAM_FILES = \
 	program/prog_statevars.c \
 	program/prog_statevars.h \
 	program/symbol_table.c \
-	program/symbol_table.h \
-	program/link_program.cpp
+	program/symbol_table.h
 
 PROGRAM_NIR_FILES_REMOVED = \
 	program/prog_to_nir.c \

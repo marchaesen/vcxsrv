@@ -76,7 +76,7 @@ typedef struct {
     XtCallbackList get_value;	/* proc to call to fetch load pt */
     int jump_val;		/* Amount to jump on each scroll */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } StripChartPart;
 

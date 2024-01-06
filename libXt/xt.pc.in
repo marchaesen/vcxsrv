@@ -5,6 +5,7 @@ includedir=@includedir@
 appdefaultdir=@appdefaultdir@
 datarootdir=@datarootdir@
 errordbdir=@ERRORDBDIR@
+xfilesearchpath=@XFILESEARCHPATHDEFAULT@
 
 Name: Xt
 Description: X Toolkit Library

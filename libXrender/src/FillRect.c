@@ -41,7 +41,7 @@ XRenderFillRectangle (Display	    *dpy,
 		      unsigned int  width,
 		      unsigned int  height)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRectangle			*rect;
     xRenderFillRectanglesReq	*req;
 #ifdef MUSTCOPY
@@ -67,7 +67,7 @@ XRenderFillRectangle (Display	    *dpy,
 	dpy->bufptr + SIZEOF(xRectangle) <= dpy->bufmax &&
 	(char *)dpy->bufptr - (char *)req < size)
     {
-	req->length += SIZEOF(xRectangle) >> 2;
+	req->length = (CARD16) (req->length + (SIZEOF(xRectangle) >> 2));
 #ifndef MUSTCOPY
 	rect = (xRectangle *) dpy->bufptr;
 	dpy->bufptr += SIZEOF(xRectangle);
@@ -77,10 +77,10 @@ XRenderFillRectangle (Display	    *dpy,
     {
 	GetReqExtra(RenderFillRectangles, SIZEOF(xRectangle), req);
 
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->renderReqType = X_RenderFillRectangles;
-	req->op = op;
-	req->dst = dst;
+	req->op = (CARD8) op;
+	req->dst = (CARD32) dst;
 	req->color.red = color->red;
 	req->color.green = color->green;
 	req->color.blue = color->blue;
@@ -92,10 +92,10 @@ XRenderFillRectangle (Display	    *dpy,
 	rect = (xRectangle *) NEXTPTR(req,xRenderFillRectanglesReq);
 #endif /* MUSTCOPY */
     }
-    rect->x = x;
-    rect->y = y;
-    rect->width = width;
-    rect->height = height;
+    rect->x = (INT16) x;
+    rect->y = (INT16) y;
+    rect->width = (CARD16) width;
+    rect->height = (CARD16) height;
 
 #ifdef MUSTCOPY
     Data (dpy, (char *) rect, len);

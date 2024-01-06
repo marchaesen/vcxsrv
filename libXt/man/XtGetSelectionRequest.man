@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtGet-Selection-Request wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetSelectionRequest __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetSelectionRequest \- retrieve the event that triggered the XtConvertSelectionProc
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 XSelectionRequestEvent* XtGetSelectionRequest(Widget \fIw\fP, Atom
 \fIselection\fP, XtRequestId \fIrequest_id\fP);
@@ -77,19 +50,21 @@ Specifies the selection being processed.
 Specifies the requestor id in the case of incremental selections, or
 NULL in the case of atomic transfers.
 .SH DESCRIPTION
-.ZN XtGetSelectionRequest
+.B XtGetSelectionRequest
 may only be called from within an
-.ZN XtConvertSelectionProc
+.B XtConvertSelectionProc
 procedure and returns a pointer to the
-.ZN SelectionRequest
-event that caused the conversion procedure to be invoked. \fIRequest_id\fP
+.B SelectionRequest
+event that caused the conversion procedure to be invoked.
+\fIRequest_id\fP
 specifies a unique id for the individual request in the case that
-multiple incremental transfers are outstanding. For atomic transfers,
+multiple incremental transfers are outstanding.
+For atomic transfers,
 \fIrequest_id\fP must be specified as NULL. If no
-.ZN SelectionRequest
+.B SelectionRequest
 event is being processed for the specified \fIwidget\fP, \fIselection\fP,
 and \fIrequest_id\fP,
-.ZN XtGetSelectionRequest
+.B XtGetSelectionRequest
 returns NULL.
 .SH "SEE ALSO"
 .br

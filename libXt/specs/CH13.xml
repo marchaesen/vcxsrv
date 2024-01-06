@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Evolution_of_the_Intrinsics'>
 <title>Evolution of the Intrinsics</title>
 
@@ -34,9 +37,9 @@ advantage of newer features added in later revisions may use the
 symbolic macro
 <function>XtSpecificationRelease</function>.
 </para>
-<literallayout >
-#define XtSpecificationRelease 6
-</literallayout>
+<programlisting>
+#define XtSpecificationRelease 7
+</programlisting>
 <para>
 As the symbol
 <function>XtSpecificationRelease</function>
@@ -126,8 +129,8 @@ specification change is small.
 A composite widget layout routine that calls
 <xref linkend='XtQueryGeometry' xrefstyle='select: title'/>
 is now expected to store the complete new geometry in the intended structure;
-previously the specification said ``store the changes it intends to
-make''.  Only by storing the complete geometry does the child have
+previously the specification said &ldquo;store the changes it intends to
+make&rdquo;.  Only by storing the complete geometry does the child have
 any way to know what other parts of the geometry may still be
 flexible.  Existing widgets should not be affected by this, except
 to take advantage of the new information.
@@ -141,7 +144,7 @@ In order to provide a mechanism for widgets to be notified when they
 become unrealized through a call to
 <xref linkend='XtUnrealizeWidget' xrefstyle='select: title'/>,
 the callback
-list name ``unrealizeCallback'' has been defined by the Intrinsics.  A
+list name &ldquo;unrealizeCallback&rdquo; has been defined by the Intrinsics.  A
 widget class that requires notification on unrealize may declare a
 callback list resource by this name.  No class is required to declare
 this resource, but any class that did so in a prior revision may find
@@ -153,7 +156,7 @@ semantics.
 <sect2 id="Subclasses_of_WMShell">
 <title>Subclasses of WMShell</title>
 <para>
-The formal adoption of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> as
+The formal adoption of the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis> as
 an X Consortium standard has meant the addition of four fields to
 <function>WMShellPart</function>
 and one field to
@@ -290,22 +293,22 @@ defaults files while still giving end users the ability to augment
 or override individual event sequences.  This change will affect
 only those applications that wish to take advantage of the new
 functionality or those widgets that may have previously defined
-a resource named ``baseTranslations''.
+a resource named &ldquo;baseTranslations&rdquo;.
 </para>
 
 <para>
 Applications wishing to take advantage of the new functionality
 would change their application defaults file, e.g., from
-<literallayout >
-        app.widget.translations: <emphasis remap='I'>value</emphasis>
+<programlisting>
+        app.widget.translations:         <emphasis remap='I'>value</emphasis>
 to
-        app.widget.baseTranslations: <emphasis remap='I'>value</emphasis>
-</literallayout>
+        app.widget.baseTranslations:     <emphasis remap='I'>value</emphasis>
+</programlisting>
 If it is important to the application to preserve complete
 compatibility of the defaults file between different versions
 of the application running under Release 4 and Release 5,
-the full translations can be replicated in both the ``translations''
-and the ``baseTranslations'' resource.
+the full translations can be replicated in both the &ldquo;translations&rdquo;
+and the &ldquo;baseTranslations&rdquo; resource.
 </para>
 </sect2>
 
@@ -339,8 +342,8 @@ application class resource files according to arbitrary user-specified
 categories.  The primary motivation for this addition was separate
 monochrome and color application class defaults files.  The
 substitution value is obtained by querying the current resource
-database for the application resource name ``customization'', class
-``Customization''.  Any application that previously used this
+database for the application resource name &ldquo;customization&rdquo;, class
+&ldquo;Customization&rdquo;.  Any application that previously used this
 resource name and class will need to be aware of the possibly
 conflicting semantics.
 </para>
@@ -553,7 +556,7 @@ has been added.
 <sect2 id="Communication_with_Window_and_Session_Managers">
 <title>Communication with Window and Session Managers</title>
 <para>
-The revision of the <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis> as an X Consortium standard has resulted
+The revision of the <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis> as an X Consortium standard has resulted
 in the addition of three fields to the specification of
 <function>WMShellPart</function>.
 These are <emphasis remap='I'>urgency</emphasis>, <emphasis remap='I'>client_leader</emphasis>, and <emphasis remap='I'>window_role</emphasis>.
@@ -588,7 +591,7 @@ the session manager in restarting applications based on the Intrinsics.
 <para>
 The resource name and class strings defined by the Intrinsics shell
 widgets in
-<function>&lt;X11/Shell.h&gt;</function>
+<filename class="headerfile">&lt;X11/Shell.h&gt;</filename>
 are now listed in Appendix E.  The addition of a new symbol
 for the
 <function>WMShell</function>
@@ -714,7 +717,7 @@ database construction, by using the new substitution string, %D.
 <para>
 The default key translator now recognizes the NumLock modifier.
 If NumLock is on and the second keysym is a keypad keysym
-(a standard keysym named with a ``KP'' prefix or a
+(a standard keysym named with a &ldquo;KP&rdquo; prefix or a
 vendor-specific keysym in the hexadecimal range 0x11000000 to 0x1100FFFF),
 then the default key translator will
 use the first keysym if Shift and/or ShiftLock is on and will
@@ -727,7 +730,7 @@ ignore NumLock and apply the normal protocol semantics.
 <title>Selections</title>
 <para>
 The targets of selection requests may be parameterized, as described
-by the revised <emphasis remap='I'>Inter-Client Communication Conventions Manual.</emphasis>.
+by the revised <emphasis remap='I'>Inter-Client Communication Conventions Manual</emphasis>.
 When such requests are made,
 <xref linkend='XtSetSelectionParameters' xrefstyle='select: title'/>
 is used by the requestor to specify the target parameters and
@@ -765,6 +768,415 @@ which returns the hook registration widget, and
 <xref linkend='XtGetDisplays' xrefstyle='select: title'/>,
 which returns a list of the X displays associated with an application context.
 </para>
+</sect2>
+</sect1>
+
+<sect1 id="Release_to_Release_Compatibility_4">
+<title>Release 6 to Release 7 Compatibility</title>
+
+<sect2 id="Changes_During_X11R6">
+<title>Changes During X11R6</title>
+<para>
+The Toolkit was proposed in X10R4, released at the end of 1986.
+The X11R6 documentation was completed in mid&ndash;1994.
+Over most of the eleven years through X11R6.9,
+only minor changes were made to the specification.
+Some changes are documented only in the release notes:
+</para>
+
+<itemizedlist>
+<listitem>
+<para>
+The X11R6.3 release notes (1997) mention one new feature (section 3.15)
+<emphasis remap='I'>Xt Geometry Management Debugger</emphasis>, saying
+</para>
+<blockquote>
+<para>
+Daniel Dardailler's &ldquo;GeoTattler&rdquo; code has been merged into the Xt
+Intrinsics library implementation.
+This is not a standard.
+If libXt is compiled with the <code>XT_GEO_TATTLER</code> symbol defined
+(currently there is no build configuration support to do this)
+then a &ldquo;geoTattler&rdquo; resource
+may be specified for any widget in an application.
+If the <code>geoTattler</code>
+resource for a widget instance is <code>True</code>
+then libXt will generate debugging information to
+<emphasis remap='I'>stdout</emphasis> when the widget makes geometry change requests.
+</para>
+<para>
+For example, if the resources specify:
+</para>
+<programlisting>
+myapp*draw.XmScale.geoTattler: ON
+*XmScrollBar.geoTattler:ON
+*XmRowColumn.exit_button.geoTattler:ON
+</programlisting>
+<para>
+then geometry management debugging information will be generated for all
+the <code>XmScale</code> children
+of the widget named <emphasis remap='I'>draw</emphasis>,
+all the XmScrollBars,
+and the widget named <emphasis remap='I'>exit_button</emphasis>
+in any <code>XmRowColumn</code>.
+</para>
+</blockquote>
+</listitem>
+<listitem>
+<para>
+X11R6.4 (1998) added
+<xref linkend='Resource_Configuration_Management' />.
+The release notes explain that by saying
+<blockquote>
+<para>
+The X Toolkit Intrinsics library (libXt) now has IBM's Easy Resource
+Configuration support included.
+</para>
+</blockquote>
+</para>
+<para>
+but goes on to say (section 14) that
+<blockquote>
+<para>
+Easy Resource Configuration
+is not a standard part of the X Toolkit Intrinsics (libXt).
+It is neither an X Consortium standard nor an X Project Team specification.
+</para>
+</blockquote>
+</para>
+</listitem>
+<listitem>
+<para>
+X11R6.5 (2000) documented a bug-fix for XtAppPeekEvent in the release notes,
+stating that it now worked as described in the specification.
+It also modified the description of XtAppPeekEvent in the specification.
+Previously the specification stated that no known implementations behaved
+as specified.
+</para>
+</listitem>
+<listitem>
+<para>
+Subsequent releases X11R6.6 (2001) through X11R6.9 (2005)
+did not document any new or improved features.
+</para>
+</listitem>
+</itemizedlist>
+<para>
+Throughout this interval,
+there were undocumented fixes and improvements made to the X Toolkit Intrinsics library.
+The documentation was modified to fix minor errors,
+improve the formatting, and
+update version numbers.
+</para>
+</sect2>
+<sect2 id="Changes_During_X11R7">
+<title>Changes During X11R7</title>
+<para>
+X11R7 releases starting in 2005 continued this trend,
+converting the documentation from nroff to sgml.
+X11R7.7 (2012) provides the same Intrinsics specification
+(aside from details of formatting and version numbers) as X11R6 (1995).
+</para>
+<para>
+The updates for this specification are a continuation of X11R7.7,
+because (as of April 2019) there are no plans for an X11R7.8 release.
+</para>
+</sect2>
+<sect2 id="Converting_to_Standard_C">
+<title>Converting to Standard C</title>
+<para>
+The Intrinsics specification was first released with X11R3 in 1989.
+That was too early to take Standard C (i.e., ANSI C) into account.
+Because vendors generally did not provide a no-cost Standard C compiler,
+the X Toolkit Intrinsics library initially supported both K&amp;R and ANSI C.
+The X11R5 release notes mention using gcc, with some caveats.
+As a result, the specification and implementation gave equal attention
+to both K&amp;R and ANSI C.
+</para>
+<para>
+This example shows how a function prototype was used in the C header files:
+</para>
+<programlisting>
+extern Display *XtOpenDisplay(
+#if NeedFunctionPrototypes
+    XtAppContext        /* app_context */,
+    _Xconst _XtString   /* display_string */,
+    _Xconst _XtString   /* application_name */,
+    _Xconst _XtString   /* application_class */,
+    XrmOptionDescRec*   /* options */,
+    Cardinal            /* num_options */,
+    int*                /* argc */,
+    char**              /* argv */
+#endif
+);
+</programlisting>
+<para>
+The parameters for the ANSI C prototype were conditionally compiled.
+Used with a K&amp;R compiler, those parameters were ignored.
+</para>
+<itemizedlist>
+<listitem>
+<para>
+The X Toolkit Intrinsics library used <type>const</type> in just a few cases.
+The specification did not mention it at all.
+</para>
+<para>
+Over time, that was seen as a problem,
+partly because of gcc's warning options
+such as <emphasis remap='I'>write-strings</emphasis>,
+introduced in early 1988 (released with gcc 1.27 in late 1988).
+Quoting from gcc 2.58's documentation (late 1993):
+<programlisting>
+`-Wwrite-strings'
+     Give string constants the type `const char[LENGTH]' so that
+     copying the address of one into a non-`const' `char *' pointer
+     will get a warning.  These warnings will help you find at compile
+     time code that can try to write into a string constant, but only
+     if you have been very careful about using `const' in declarations
+     and prototypes.  <emphasis remap='I'>Otherwise, it will just be a nuisance; this is
+     why we did not make `-Wall' request these warnings.</emphasis>
+</programlisting>
+</para>
+<para>
+Others did not agree that it was a nuisance. Besides the obvious advantage
+of improving program correctness, making a symbol &ldquo;const&rdquo;
+gave the compiler and linker a hint that the symbol could be put into
+the text (read-only) section, eliminating some steps needed by the linker
+to adjust addresses and thereby reducing the time it took to load a
+program into memory.
+</para>
+<para>
+Other gcc warning options (such as
+such as <emphasis remap='I'>cast-qual</emphasis>)
+are useful for improving programs.
+They give similar information, because unless told otherwise,
+gcc would treat string values as nonwritable.
+Quoting from gcc 1.27:
+<programlisting>
+   * GNU CC normally makes string constants read-only.  If several
+     identical-looking string constants are used, GNU CC stores only
+     one copy of the string.
+     ...
+     The best solution to these problems is to change the program to
+     use `char'-array variables with initialization strings for these
+     purposes instead of string constants.  But if this is not
+     possible, you can use the `-fwritable-strings' flag, which
+     directs GNU CC to handle string constants the same way most C
+     compilers do.
+</programlisting>
+and
+<programlisting>
+    `-fwritable-strings'
+          Store string constants in the writable data segment and
+          don't uniquize them.  This is for compatibility with old
+          programs which assume they can write into string constants.
+          Writing into string constants is a very bad idea;
+          ``constants'' should be constant.
+</programlisting>
+</para>
+</listitem>
+<listitem>
+<para>
+Several prototypes in the implementation
+use the private type <type>_XtString</type>.
+The specification and implementation also used a <type>String</type>
+type without explaining when it is appropriate.
+<programlisting>
+typedef char *String;
+
+/* We do this in order to get "const" declarations to work right.  We
+ * use _XtString instead of String so that C++ applications can
+ * #define String to something else if they choose, to avoid conflicts
+ * with other C++ libraries.
+ */
+#define _XtString char*
+</programlisting>
+That is, the developers were providing for some workaround to allow
+C++ applications to use the stricter compiler checking
+associated with <type>const</type>.
+</para>
+</listitem>
+<listitem>
+<para>
+The <type>String</type> type is not the only type used in the
+prototypes for the X Toolkit Intrinsics library.
+Its developers were also concerned with porting the library
+to platforms with different size-constraints.
+They defined different types (used in the function prototypes)
+depending on whether a &ldquo;wide&rdquo; parameter type was appropriate: 
+<programlisting>
+/* _Xt names are private to Xt implementation, do not use in client code */
+#if NeedWidePrototypes
+#define _XtBoolean	int
+#define _XtDimension	unsigned int
+#define _XtKeyCode	unsigned int
+#define _XtPosition	int
+#define _XtXtEnum	unsigned int
+#else
+#define _XtBoolean	Boolean
+#define _XtDimension	Dimension
+#define _XtKeyCode	KeyCode
+#define _XtPosition	Position
+#define _XtXtEnum	XtEnum
+#endif /* NeedWidePrototypes */
+</programlisting>
+and
+<programlisting>
+#ifdef CRAY
+typedef long		Boolean;
+typedef char*		XtArgVal;
+typedef long		XtEnum;
+#else
+typedef char		Boolean;
+typedef long		XtArgVal;
+typedef unsigned char	XtEnum;
+#endif
+</programlisting>
+In practice, wide-prototypes are rarely used, not well supported.
+The specification did not clarify the distinction
+between <type>Bool</type> (mentioned as a resource type)
+and <type>Boolean</type> (used in all of the data structures).
+The implementation used both, predominantly the latter.
+</para>
+</listitem>
+</itemizedlist>
+<para>
+Other features of Standard C were neglected in the specification because
+it was accommodating K&amp;R C:
+</para>
+<itemizedlist>
+<listitem>
+<para>
+K&amp;R C has no <type>void</type> keyword.
+The specification used it for return-types,
+but not to indicate an empty parameter list.
+The specification also stated that
+<type>void*</type> would be used for the <type>XtPointer</type> type.
+</para>
+<para>
+The conversion to sgml lost the <type>void</type> return-type.
+</para>
+</listitem>
+<listitem>
+<para>
+Standard C uses an ellipsis for variable-length argument lists, e.g., for
+<xref linkend='XtVaAppCreateShell' />.
+Again, there was a conditional-compilation symbol
+(<code>NeedVarargsPrototypes</code>)
+to handle the different forms used.
+Here is an example:
+<programlisting>
+#if NeedVarargsPrototypes
+void
+XtVaGetApplicationResources(Widget widget, XtPointer base, XtResourceList resources, Cardinal num_resources, ...)
+#else
+/*VARARGS4*/
+void XtVaGetApplicationResources(widget, base, resources, num_resources, va_alist)
+    Widget widget;
+    XtPointer base;
+    XtResourceList resources;
+    Cardinal num_resources;
+    va_dcl
+#endif
+</programlisting>
+</para>
+<para>
+One problem with the conditional-compilation was
+that it was easy to make a mistake with the order
+of parameters between the two forms.
+Developers would frequently group together parameters
+which used the same type, whether or not they were adjacent in
+the Standard C prototype.
+</para>
+<para>
+A comment in the X11R4 header file said that this was temporary,
+until function prototypes worked everywhere.
+That was finally removed in X11R6.7 (fourteen years later).
+However, the subsequent conversion to sgml
+lost the ellipsis from the prototypes shown in the specification.
+</para>
+</listitem>
+</itemizedlist>
+<para>
+Support for K&amp;R C was removed from the header files in 2003
+(released in X11R6.7),
+and from the library source in 2004
+(released in X11R6.9).
+The wide-prototype feature is still present in 2019, but generally unused.
+</para>
+<para>
+Removing support for K&amp;R C did not address the issues of <type>const</type>.
+That was done in 2019:
+</para>
+<itemizedlist>
+<listitem>
+<para>
+The <type>String</type> is conditionally defined,
+to provide compatibility with existing applications.
+</para>
+</listitem>
+<listitem>
+<para>
+If the symbol <symbol>_CONST_X_STRING</symbol> is defined,
+<type>String</type> is read-only as shown here.
+<programlisting>
+/*
+ * As used in its function interface, the String type of libXt can be readonly.
+ * But compiling libXt with this feature may require some internal changes,
+ * e.g., casts and occasionally using a plain "char*".
+ */
+#ifdef _CONST_X_STRING
+typedef const char *String;
+#else
+typedef char *String;
+#endif
+</programlisting>
+</para>
+</listitem>
+<listitem>
+<para>
+Applications which use the newer <type>const</type> feature must define
+<symbol>_CONST_X_STRING</symbol> to enable this feature.
+</para>
+</listitem>
+<listitem>
+<para>
+By default, the X Toolkit Intrinsics library
+uses the <type>const</type> feature.
+It has been updated to make use of the <type>const</type> feature
+for improved type-checking.
+</para>
+</listitem>
+<listitem>
+<para>
+Because the X Toolkit Intrinsics library uses <type>const</type>,
+some prototypes have been modified.
+For example:
+<itemizedlist>
+<listitem>
+<para>
+Most of the parameters which used <type>String</type> are unmodified; 
+a few (such as the <emphasis remap='I'>argv</emphasis>&ndash;parameters)
+are actually read/write.
+They are now <type>char*</type> parameters.
+</para>
+<para>
+Many of the strings passed to the library are stored in widgets
+without reallocating a copy.
+Those are treated as read-only, and use the <type>String</type> type.
+</para>
+</listitem>
+<listitem>
+<para>
+Each change to the documentation was verified using scripts that
+extracted the function prototypes and used the C compiler to check
+for compatibility.
+</para>
+</listitem>
+</itemizedlist>
+</para>
+</listitem>
+</itemizedlist>
 </sect2>
 </sect1>
 </chapter>

@@ -7,7 +7,7 @@
 #prefix Xt
 #feature XTSTRINGDEFINES
 #externref extern
-#externdef 
+#externdef
 ! note that the trailing space is required in the #externdef line.
 #ctmpl util/StrDefs.ct
 

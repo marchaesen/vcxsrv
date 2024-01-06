@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Shell_Widgets'>
 <title>Shell Widgets</title>
 
@@ -180,132 +183,132 @@ class has additional class fields, which are all contained in the
 None of the other Shell classes have any additional class fields:
 </para>
 
-<literallayout >
+<programlisting>
 typedef struct {
         XtPointer extension;
 } ShellClassPart, OverrideShellClassPart,
 WMShellClassPart, VendorShellClassPart, TransientShellClassPart,
 TopLevelShellClassPart, ApplicationShellClassPart, SessionShellClassPart;
-</literallayout>
+</programlisting>
 
 <para>The full Shell class record definitions are:</para>
 
-<literallayout >
+<programlisting>
 typedef struct _ShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
 } ShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
-typedef struct {
-	XtPointer	next_extension;	See <xref linkend='Class_Extension_Records' />
-	XrmQuark	record_type;	See <xref linkend='Class_Extension_Records' />
-	long	version;	See <xref linkend='Class_Extension_Records' />
-	Cardinal	record_size;	See <xref linkend='Class_Extension_Records' />
-	XtGeometryHandler	root_geometry_manager;	See below
+<programlisting>
+typedef struct {    <lineannotation>See <xref linkend='Class_Extension_Records' /></lineannotation>
+        XtPointer               next_extension;
+        XrmQuark                record_type;
+        long                    version;
+        Cardinal                record_size;
+        XtGeometryHandler root_geometry_manager; See below
 } ShellClassExtensionRec, *ShellClassExtension;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _OverrideShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	OverrideShellClassPart	override_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        OverrideShellClassPart  override_shell_class;
 } OverrideShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _WMShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
 } WMShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _VendorShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
-	VendorShellClassPart	vendor_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
+        VendorShellClassPart    vendor_shell_class;
 } VendorShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _TransientShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
-	VendorShellClassPart	vendor_shell_class;
-	TransientShellClassPart	transient_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
+        VendorShellClassPart    vendor_shell_class;
+        TransientShellClassPart transient_shell_class;
 } TransientShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _TopLevelShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
-	VendorShellClassPart	vendor_shell_class;
-	TopLevelShellClassPart	top_level_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
+        VendorShellClassPart    vendor_shell_class;
+        TopLevelShellClassPart  top_level_shell_class;
 } TopLevelShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _ApplicationShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
-	VendorShellClassPart	vendor_shell_class;
-	TopLevelShellClassPart	top_level_shell_class;
-	ApplicationShellClassPart	application_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
+        VendorShellClassPart    vendor_shell_class;
+        TopLevelShellClassPart  top_level_shell_class;
+        ApplicationShellClassPart application_shell_class;
 } ApplicationShellClassRec;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct _SessionShellClassRec {
-	CoreClassPart	core_class;
-	CompositeClassPart	composite_class;
-	ShellClassPart	shell_class;
-	WMShellClassPart	wm_shell_class;
-	VendorShellClassPart	vendor_shell_class;
-	TopLevelShellClassPart	top_level_shell_class;
-	ApplicationShellClassPart	application_shell_class;
-	SessionShellClassPart	session_shell_class;
+        CoreClassPart           core_class;
+        CompositeClassPart      composite_class;
+        ShellClassPart          shell_class;
+        WMShellClassPart        wm_shell_class;
+        VendorShellClassPart    vendor_shell_class;
+        TopLevelShellClassPart  top_level_shell_class;
+        ApplicationShellClassPart application_shell_class;
+        SessionShellClassPart   session_shell_class;
 } SessionShellClassRec;
-</literallayout>
+</programlisting>
 
 <para>
 The single occurrences of the class records and pointers for creating
 instances of shells are:
 </para>
 
-<literallayout >
-extern ShellClassRec shellClassRec;
-extern OverrideShellClassRec overrideShellClassRec;
-extern WMShellClassRec wmShellClassRec;
-extern VendorShellClassRec vendorShellClassRec;
-extern TransientShellClassRec transientShellClassRec;
-extern TopLevelShellClassRec topLevelShellClassRec;
+<programlisting>
+extern ShellClassRec            shellClassRec;
+extern OverrideShellClassRec    overrideShellClassRec;
+extern WMShellClassRec          wmShellClassRec;
+extern VendorShellClassRec      vendorShellClassRec;
+extern TransientShellClassRec   transientShellClassRec;
+extern TopLevelShellClassRec    topLevelShellClassRec;
 extern ApplicationShellClassRec applicationShellClassRec;
-extern SessionShellClassRec sessionShellClassRec;
-extern WidgetClass shellWidgetClass;
-extern WidgetClass overrideShellWidgetClass;
-extern WidgetClass wmShellWidgetClass;
-extern WidgetClass vendorShellWidgetClass;
-extern WidgetClass transientShellWidgetClass;
-extern WidgetClass topLevelShellWidgetClass;
-extern WidgetClass applicationShellWidgetClass;
-extern WidgetClass sessionShellWidgetClass;
-</literallayout>
+extern SessionShellClassRec     sessionShellClassRec;
+extern WidgetClass              shellWidgetClass;
+extern WidgetClass              overrideShellWidgetClass;
+extern WidgetClass              wmShellWidgetClass;
+extern WidgetClass              vendorShellWidgetClass;
+extern WidgetClass              transientShellWidgetClass;
+extern WidgetClass              topLevelShellWidgetClass;
+extern WidgetClass              applicationShellWidgetClass;
+extern WidgetClass              sessionShellWidgetClass;
+</programlisting>
 
 <para>
 The following opaque types and opaque variables are defined
@@ -396,17 +399,17 @@ Shell.
 <para>
 The declarations for all Intrinsics-defined shells except
 VendorShell appear in
-<function>Shell.h</function>
+<filename class="headerfile">Shell.h</filename>
 and
-<function>ShellP.h</function>.
+<filename class="headerfile">ShellP.h</filename>.
 VendorShell has separate public and private .h files which are included by
-<function>Shell.h</function>
+<filename class="headerfile">Shell.h</filename>
 and
-<function>ShellP.h</function>.
+<filename class="headerfile">ShellP.h</filename>.
 </para>
 
 <para>
-<function>Shell.h</function>
+<filename class="headerfile">Shell.h</filename>
 uses incomplete structure definitions to ensure that the
 compiler catches attempts to access private data in any of the Shell
 instance or class data structures.
@@ -473,191 +476,191 @@ fields defined in
 their widget records:
 </para>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	String	geometry;
-	XtCreatePopupChildProc	create_popup_child_proc;
-	XtGrabKind	grab_kind;
-	Boolean	spring_loaded;
-	Boolean	popped_up;
-	Boolean	allow_shell_resize;
-	Boolean	client_specified;
-	Boolean	save_under;
-	Boolean	override_redirect;
-	XtCallbackList	popup_callback;
-	XtCallbackList	popdown_callback;
-	Visual *	visual;
+        String                  geometry;
+        XtCreatePopupChildProc  create_popup_child_proc;
+        XtGrabKind              grab_kind;
+        Boolean                 spring_loaded;
+        Boolean                 popped_up;
+        Boolean                 allow_shell_resize;
+        Boolean                 client_specified;
+        Boolean                 save_under;
+        Boolean                 override_redirect;
+        XtCallbackList          popup_callback;
+        XtCallbackList          popdown_callback;
+        Visual *                visual;
 } ShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	int	empty;
+        int     empty;
 } OverrideShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	String			title;
-	int			wm_timeout;
-	Boolean			wait_for_wm;
-	Boolean			transient;
-	Boolean			urgency;
-	Widget			client_leader;
-	String			window_role;
-	struct _OldXSizeHints {
-		long		flags;
-		int		 x, y;
-		int		width, height;
-		int		min_width, min_height;
-		int		max_width, max_height;
-		int		width_inc, height_inc;
-		struct {
-			int	x;
-			int	y;
-		} min_aspect, max_aspect;
-	} size_hints;
-	XWMHints			wm_hints;
-	int			base_width, base_height, win_gravity;
-	Atom			title_encoding;
+        String                  title;
+        int                     wm_timeout;
+        Boolean                 wait_for_wm;
+        Boolean                 transient;
+        Boolean                 urgency;
+        Widget                  client_leader;
+        String                  window_role;
+        struct _OldXSizeHints {
+                long            flags;
+                int             x, y;
+                int             width, height;
+                int             min_width, min_height;
+                int             max_width, max_height;
+                int             width_inc, height_inc;
+                struct {
+                        int     x;
+                        int     y;
+                } min_aspect, max_aspect;
+        } size_hints;
+        XWMHints                wm_hints;
+        int                     base_width, base_height, win_gravity;
+        Atom                    title_encoding;
 } WMShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	int	vendor_specific;
+        int     vendor_specific;
 } VendorShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	Widget	transient_for;
+        Widget  transient_for;
 } TransientShellPart;
 typedef struct {
-	String	icon_name;
-	Boolean	iconic;
-	Atom	icon_name_encoding;
+        String  icon_name;
+        Boolean iconic;
+        Atom    icon_name_encoding;
 } TopLevelShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	char *	class;
-	XrmClass	xrm_class;
-	int	argc;
-	char **	argv;
+        char *  class;
+        XrmClass        xrm_class;
+        int     argc;
+        char ** argv;
 } ApplicationShellPart;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	SmcConn	connection;
-	String	session_id;
-	String *	restart_command;
-	String *	clone_command;
-	String *	discard_command;
-	String *	resign_command;
-	String *	shutdown_command;
-	String *	environment;
-	String	current_dir;
-	String	program_path;
-	unsigned char	restart_style;
-	Boolean	join_session;
-	XtCallbackList	save_callbacks;
-	XtCallbackList	interact_callbacks;
-	XtCallbackList	cancel_callbacks;
-	XtCallbackList	save_complete_callbacks;
-	XtCallbackList	die_callbacks;
-	XtCallbackList	error_callbacks;
+        SmcConn         connection;
+        String          session_id;
+        String *        restart_command;
+        String *        clone_command;
+        String *        discard_command;
+        String *        resign_command;
+        String *        shutdown_command;
+        String *        environment;
+        String          current_dir;
+        String          program_path;
+        unsigned char   restart_style;
+        Boolean         join_session;
+        XtCallbackList  save_callbacks;
+        XtCallbackList  interact_callbacks;
+        XtCallbackList  cancel_callbacks;
+        XtCallbackList  save_complete_callbacks;
+        XtCallbackList  die_callbacks;
+        XtCallbackList  error_callbacks;
 } SessionShellPart;
-</literallayout>
+</programlisting>
 
 <para>
 The full shell widget instance record definitions are:
 </para>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
+        CorePart        core;
+        CompositePart   composite;
+        ShellPart       shell;
 } ShellRec, *ShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	OverrideShellPart	override;
+        CorePart        core;
+        CompositePart   composite;
+        ShellPart       shell;
+        OverrideShellPart override;
 } OverrideShellRec, *OverrideShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
+        CorePart        core;
+        CompositePart   composite;
+        ShellPart       shell;
+        WMShellPart     wm;
 } WMShellRec, *WMShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
-	VendorShellPart	vendor;
+        CorePart        core;
+        CompositePart   composite;
+        ShellPart       shell;
+        WMShellPart     wm;
+        VendorShellPart vendor;
 } VendorShellRec, *VendorShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
-	VendorShellPart	vendor;
-	TransientShellPart	transient;
+        CorePart        core;
+        CompositePart   composite;
+        ShellPart       shell;
+        WMShellPart     wm;
+        VendorShellPart vendor;
+        TransientShellPart transient;
 } TransientShellRec, *TransientShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
-	VendorShellPart	vendor;
-	TopLevelShellPart	topLevel;
+        CorePart                core;
+        CompositePart           composite;
+        ShellPart               shell;
+        WMShellPart             wm;
+        VendorShellPart         vendor;
+        TopLevelShellPart       topLevel;
 } TopLevelShellRec, *TopLevelShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef  struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
-	VendorShellPart	vendor;
-	TopLevelShellPart	topLevel;
-	ApplicationShellPart	application;
+        CorePart                core;
+        CompositePart           composite;
+        ShellPart               shell;
+        WMShellPart             wm;
+        VendorShellPart         vendor;
+        TopLevelShellPart       topLevel;
+        ApplicationShellPart    application;
 } ApplicationShellRec, *ApplicationShellWidget;
-</literallayout>
+</programlisting>
 
-<literallayout >
+<programlisting>
 typedef  struct {
-	CorePart	core;
-	CompositePart	composite;
-	ShellPart	shell;
-	WMShellPart	wm;
-	VendorShellPart	vendor;
-	TopLevelShellPart	topLevel;
-	ApplicationShellPart	application;
-	SessionShellPart	session;
+        CorePart                core;
+        CompositePart           composite;
+        ShellPart               shell;
+        WMShellPart             wm;
+        VendorShellPart         vendor;
+        TopLevelShellPart       topLevel;
+        ApplicationShellPart    application;
+        SessionShellPart        session;
 } SessionShellRec, *SessionShellWidget;
-</literallayout>
+</programlisting>
 
 </sect2>
 
@@ -900,9 +903,6 @@ resource list are:
       <entry>XtCUrgency</entry>
       <entry>XtRBoolean</entry>
     </row>
-    <row>
-      <entry>_</entry>
-    </row>
   </tbody>
   </tgroup>
 </informaltable>
@@ -915,7 +915,7 @@ is implementation-defined.
 
 <para>
 The resource names, classes, and representation types that are specified in the
-<function>transient\%ShellClassRec</function>
+<function>transientShellClassRec</function>
 resource list are:
 </para>
 
@@ -983,7 +983,7 @@ resource list are:
 
 <para>
 The resource names, classes, and representation types that are specified in the
-<function>application\%ShellClassRec</function>
+<function>applicationShellClassRec</function>
 resource list are:
 </para>
 
@@ -1243,8 +1243,8 @@ Shell classes; a client specifying the string in an arglist
 or varargs list must ensure
 that the value remains valid until the shell widget is realized.
 For further information on the geometry string, see
-<olink targetdoc='libX11' targetptr='Parsing_the_Window_Geometry' />
-in <olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>.
+<olink targetdoc='libX11' targetptr='Parsing_the_Window_Geometry' >Parsing the Window Geometry</olink>
+in <olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>.
 </para>
 
 <para>
@@ -1278,11 +1278,11 @@ determines
 whether the window manager can intercede when the shell window
 is mapped.
 For further information on override_redirect,
-see <olink targetdoc='libX11' targetptr='Window_Attributes' /> in
-<olink targetdoc='libX11' targetptr='libX11'>Xlib — C Language X Interface</olink>
+see <olink targetdoc='libX11' targetptr='Window_Attributes' >Window Attributes</olink> in
+<olink targetdoc='libX11' targetptr='libX11'>Xlib &mdash; C Language X Interface</olink>
 and
-<olink targetdoc='icccm' targetptr='Pop_up_Windows' /> and
-<olink targetdoc='icccm' targetptr='Redirection_of_Operations' /> in the
+<olink targetdoc='icccm' targetptr='Pop_up_Windows'>Pop-up Windows</olink> and
+<olink targetdoc='icccm' targetptr='Redirection_of_Operations'>Redirection of Operations</olink> in the
 <olink targetdoc='icccm' targetptr='icccm'>Inter-Client Communication Conventions Manual</olink>.
 The pop-up and pop-down callbacks are called during
 <xref linkend='XtPopup' xrefstyle='select: title'/>
@@ -1883,10 +1883,10 @@ and <emphasis remap='I'>program_path</emphasis>
 resources.  At that time, if <emphasis remap='I'>restart_command</emphasis> is NULL, the value
 of the <emphasis remap='I'>argv</emphasis> resource will be copied to <emphasis remap='I'>restart_command</emphasis>.
 Whether or not <emphasis remap='I'>restart_command</emphasis> was NULL,
-if "<emphasis>-xtsessionID</emphasis>" "<emphasis>&lt;session id&gt;</emphasis>" does not
+if &ldquo;<emphasis>-xtsessionID</emphasis>&rdquo; &ldquo;<emphasis>&lt;session id&gt;</emphasis>&rdquo; does not
 already appear in the <emphasis remap='I'>restart_command</emphasis>, it will be added by the
 initialize and set_values methods at the beginning of the command arguments;
-if the "<emphasis>-xtsessionID</emphasis>" argument already appears with an incorrect
+if the &ldquo;<emphasis>-xtsessionID</emphasis>&rdquo; argument already appears with an incorrect
 <emphasis>session id</emphasis> in the following argument, that argument
 will be replaced with the current <emphasis>session id</emphasis>.
 </para>
@@ -1895,7 +1895,7 @@ will be replaced with the current <emphasis>session id</emphasis>.
 After this, the shell initialize and set_values procedures check the
 <emphasis remap='I'>clone_command</emphasis>.  If <emphasis remap='I'>clone_command</emphasis> is NULL,
 <emphasis remap='I'>restart_command</emphasis> will be copied to <emphasis remap='I'>clone_command</emphasis>,
-except the "<emphasis>-xtsessionID</emphasis>" and following argument will not be copied.
+except the &ldquo;<emphasis>-xtsessionID</emphasis>&rdquo; and following argument will not be copied.
 </para>
 
 <para>
@@ -1919,7 +1919,7 @@ see <xref linkend='Predefined_Resource_Converters' />.
 <para>
 The resource type EnvironmentArray is a NULL-terminated array of
 pointers to strings;
-each string has the format "name=value".
+each string has the format &ldquo;name=value&rdquo;.
 The `=' character may not appear in the name,
 and the string is terminated by a null character.
 </para>
@@ -2062,20 +2062,20 @@ The checkpoint token in the <emphasis remap='I'>call_data</emphasis> parameter i
 <function>XtCheckpointToken</function>.
 </para>
 
-<literallayout >
+<programlisting>
 typedef struct {
-	int	save_type;
-	int	interact_style;
-	Boolean	shutdown;
-	Boolean	fast;
-	Boolean	cancel_shutdown
-	int	phase;
-	int	interact_dialog_type;	/* return */
-	Boolean	request_cancel;	/* return */
-	Boolean	request_next_phase;	/* return */
-	Boolean	save_success;	/* return */
+        int     save_type;
+        int     interact_style;
+        Boolean shutdown;
+        Boolean fast;
+        Boolean cancel_shutdown
+        int     phase;
+        int     interact_dialog_type;   /* return */
+        Boolean request_cancel;         /* return */
+        Boolean request_next_phase;     /* return */
+        Boolean save_success;           /* return */
 } XtCheckpointTokenRec, *XtCheckpointToken;
-</literallayout>
+</programlisting>
 
 <para>
 The <emphasis remap='I'>save_type</emphasis>, <emphasis remap='I'>interact_style</emphasis>, <emphasis remap='I'>shutdown</emphasis>, and <emphasis remap='I'>fast</emphasis>
@@ -2105,7 +2105,7 @@ If <emphasis remap='I'>cancel_shutdown</emphasis> is
 <function>True</function>,
 a
 <function>ShutdownCancelled</function>
-message has been received for the current save operation. 
+message has been received for the current save operation.
 (See <xref linkend='Resigning_from_a_Session' />.)
 The <emphasis remap='I'>phase</emphasis> is used by manager clients, such as a window manager,
 to distinguish between the first and second phase of a save operation.
@@ -2208,7 +2208,7 @@ function will return NULL if no checkpoint operation is currently under way.
 To indicate the completion of checkpoint processing including user
 interaction, the application must signal the Session shell
 by returning all tokens.
-(See <xref linkend='Interacting_with_the_User_during_a_Checkpoint' /> and 
+(See <xref linkend='Interacting_with_the_User_during_a_Checkpoint' /> and
 <xref linkend='Completing_a_Save' />).
 To return a token, use
 <xref linkend='XtSessionReturnToken' xrefstyle='select: title'/>.

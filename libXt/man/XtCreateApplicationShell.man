@@ -34,41 +34,14 @@
 .ds Vn 2.2
 .hw XtApp-Create-Application-Shell wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtCreateApplicationShell __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtCreateApplicationShell \- create top-level widget instance
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtCreateApplicationShell(String \fIname\fP, WidgetClass
-\fIwidget_class\fP, ArgList \fIargs\fP, Cardinal \fInum_args\fP);
+Widget XtCreateApplicationShell(const char *\fIname\fP, WidgetClass \fIwidget_class\fP,
+ArgList \fIargs\fP, Cardinal \fInum_args\fP);
 .SH ARGUMENTS
 .IP \fIname\fP 1i
 Specifies the name of the shell.
@@ -78,15 +51,15 @@ Specifies the argument list to override any other resource specifications.
 Specifies the number of arguments in the argument list.
 .SH DESCRIPTION
 The procedure
-.ZN XtCreateApplicationShell
+.B XtCreateApplicationShell
 calls
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 with the \fIapplication\fP NULL, the application class passed to
-.ZN XtInitialize ,
+.BR XtInitialize ,
 and the default application context created by
-.ZN XtInitialize .
+.BR XtInitialize .
 This routine has been replaced by
-.ZN XtAppCreateShell .
+.BR XtAppCreateShell .
 .SH "SEE ALSO"
 XtAppCreateShell(__libmansuffix__)
 .br

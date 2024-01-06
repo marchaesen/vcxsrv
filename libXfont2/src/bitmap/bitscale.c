@@ -34,6 +34,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #include <X11/fonts/fntfilst.h>
 #include <X11/fonts/bitmap.h>
@@ -585,7 +586,7 @@ ComputeScaledProperties(FontInfoPtr sourceFontInfo, /* the font to be scaled */
     }
     nProps = NPROPS + 1 + sizeof(fontPropTable) / sizeof(fontProp) +
 			  sizeof(rawFontPropTable) / sizeof(fontProp);
-    fp = malloc(sizeof(FontPropRec) * nProps);
+    fp = mallocarray(sizeof(FontPropRec), nProps);
     *pProps = fp;
     if (!fp) {
 	fprintf(stderr, "Error: Couldn't allocate font properties (%ld*%d)\n",
@@ -596,7 +597,7 @@ ComputeScaledProperties(FontInfoPtr sourceFontInfo, /* the font to be scaled */
     *pIsStringProp = isStringProp;
     if (!isStringProp)
     {
- fprintf(stderr, "Error: Couldn't allocate isStringProp (%d)\n", nProps);
+	fprintf(stderr, "Error: Couldn't allocate isStringProp (%d)\n", nProps);
 	free (fp);
 	return 1;
     }
@@ -615,8 +616,10 @@ ComputeScaledProperties(FontInfoPtr sourceFontInfo, /* the font to be scaled */
 	*isStringProp = 0;
 	switch (fpt->type) {
 	case atom:
-	    fp->value = MakeAtom(ptr1, ptr2 - ptr1, TRUE);
-	    *isStringProp = 1;
+	    if ((ptr1 != NULL) && (ptr2 != NULL)) {
+		fp->value = MakeAtom(ptr1, ptr2 - ptr1, TRUE);
+		*isStringProp = 1;
+	    }
 	    break;
 	case truncate_atom:
 	    for (ptr3 = ptr1; *ptr3; ptr3++)
@@ -859,7 +862,7 @@ ScaleFont(FontPtr opf,            /* originating font */
     bitmapFont->encoding = 0;
     bitmapFont->bitmapExtra = 0;
     bitmapFont->pDefault = 0;
-    bitmapFont->metrics = malloc(nchars * sizeof(CharInfoRec));
+    bitmapFont->metrics = mallocarray(nchars, sizeof(CharInfoRec));
     if (!bitmapFont->metrics) {
 	fprintf(stderr, "Error: Couldn't allocate metrics (%d*%ld)\n",
 		nchars, (unsigned long)sizeof(CharInfoRec));
@@ -1174,7 +1177,7 @@ ScaleBitmap(FontPtr pFont, CharInfoPtr opci, CharInfoPtr pci,
 	    /* Looks like we need to anti-alias.  Create a workspace to
 	       contain the grayscale character plus an additional row and
 	       column for scratch */
-	    char_grayscale = malloc((width + 1) * (height + 1));
+	    char_grayscale = mallocarray((width + 1), (height + 1));
 	    if (char_grayscale)
 	    {
 		diffusion_workspace = calloc((newWidth + 2) * 2, sizeof(int));
@@ -1596,7 +1599,7 @@ BitmapOpenScalable (FontPathElementPtr fpe,
 
     /* Prepare font properties for the new font */
 
-    strcpy (fontName, scaleFrom->name.name);
+    strlcpy (fontName, scaleFrom->name.name, sizeof(fontName));
     FontParseXLFDName (fontName, vals, FONT_XLFD_REPLACE_VALUE);
 
     propCount = ComputeScaledProperties(&sourceFont->info, fontName, vals,

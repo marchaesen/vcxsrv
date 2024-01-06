@@ -1,3 +1,243 @@
+commit b5ca142f81a6f14eddb23be050291d1c25514777
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Fri Sep 8 14:03:50 2023 +1000
+
+    font-util 1.4.1
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 5a9e7c7d3c3da68e5b421e7d038bc0a7a5f66b22
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Wed Sep 6 12:11:31 2023 +1000
+
+    Replace unicode files with ones that provide better terms of use
+    
+    Identical files but these have the unicode terms-of-use (SPDX:
+    Unicode-TOU) instead of some old license format.
+    
+    https://www.unicode.org/Public/MAPPINGS/ISO8859/8859-1.TXT
+    https://www.unicode.org/Public/MAPPINGS/OBSOLETE/EASTASIA/JIS/JIS0201.TXT
+    https://www.unicode.org/Public/MAPPINGS/VENDORS/MISC/KOI8-R.TXT
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit c28d8ca618f24855e735313c2b8f6effa7b7f1e4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Feb 25 09:15:09 2023 -0800
+
+    Remove "All rights reserved" from Oracle copyright notices
+    
+    Oracle no longer includes this term in our copyright & license notices.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit eee69c3f26f8e5d7f97599185d8d009f7fd76a7c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Feb 22 10:41:20 2023 -0800
+
+    font-util 1.4.0
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit da8ac70de2bb45092574084d89272e07c75796e2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Feb 16 10:06:41 2023 -0800
+
+    Add COMPRESS_FLAGS to pass options to compression command
+    
+    By default, set to -n for gzip to stop recording timestamps and
+    enable reproducible builds, and to empty for all other methods.
+    
+    Will require adding COMPRESS_FLAGS to Makefile.am in each font
+    module to become effective.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 46aa5c0bf95c60361f9ec3d354b033785df8cd5f
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Jul 28 17:30:21 2022 -0700
+
+    gitlab CI: stop requiring Signed-off-by in commits
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2ef6b22ad908c024b6c2fbde5c1de62123f82dc2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 12 11:28:17 2022 -0700
+
+    font-util 1.3.3
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 88bd16463e59455cda7e45e563867988c7e70d8d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jul 12 11:26:05 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit aaddab088412777ffea435e83847f8aac9b9ce81
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 8 14:11:58 2021 -0800
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e1a2c79b4edea2af1a82db24b2dc993a6e530d5a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Dec 8 14:11:54 2021 -0800
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 564adb96f10a0bf43d67401b05ba0fcafe7c0a83
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 16 18:22:23 2020 -0800
+
+    ucs2any: handle NULL returns from zquotedcpy()
+    
+    bdf file for testing:
+    
+    STARTFONT 2.1
+    FONT "Bad quotes test font-ISO10646-1
+    SIZE 7 75 75
+    FONTBOUNDINGBOX 5 7 0 -1
+    STARTPROPERTIES 3
+    SPACING "C
+    SLANT "R
+    ENDPROPERTIES
+    CHARS 0
+    ENDFONT
+    
+    Before this fix, the above segfaults when the NULL return from
+    zquotedcpy() is passed to other functions expecting a string.
+    
+    Fixes: 21063_61 & 21063_86 from https://cyber-itl.org/2020/10/28/citl-7000-defects.html
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f78cd55ccd913855cc5569dfe2a9213e217bc469
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 15 17:06:26 2020 -0800
+
+    ucs2any: avoid segfaults if SLANT property is missing
+    
+    Test case:
+     grep -v SLANT ../../misc-misc/5x7.bdf > 5x7-noslant.bdf
+     ucs2any 5x7-noslant.bdf ../map-ISO8859-1 -d
+    
+    Before this fix, the above segfaults in strcmp with a NULL slant pointer.
+    
+    Fixes: 21063_131 from https://cyber-itl.org/2020/10/28/citl-7000-defects.html
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d45011b8324fecebb4fc79e57491d341dd96e325
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 25 15:23:33 2019 -0700
+
+    font-util 1.3.2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c5d12b729b61576069f479a0b5141aedea04676b
+Author: Tobias Stoeckmann <tobias@stoeckmann.org>
+Date:   Wed Nov 8 21:36:32 2017 +0100
+
+    ucs2any: Fix parser crash on 32 bit
+    
+    It is possible to crash ucs2any or provoke successful return value even
+    though the processing was not successful.
+    
+    The problem lies within a possible integer overflow when adding elements
+    with a key which is too large.
+    
+    You can trigger the issue this way on a 32 bit system:
+    
+    $ cat > source.bdf << "EOF"
+    STARTFONT source
+    CHARS 1
+    ENCODING 1073741823
+    EOF
+    $ ucs2any source.bdf
+    Segmentation fault
+    $ _
+    
+    Another possibility would be to add "ENCODING 1" right after the CHARS
+    line. In that case, realloc will allocate 0 bytes afterwards which is a
+    success but might return NULL, e.g. on Linux/glibc systems. Such a
+    result value is handled as an error and errno is evaluated and returned,
+    even though there was no error:
+    
+    $ cat > source.bdf << "EOF"
+    STARTFONT source
+    CHARS 1
+    ENCODING 1
+    ENCODING 1073741823
+    EOF
+    $ ucs2any source.bdf
+    ucs2any: Success
+    $ echo $?
+    0
+    $ _
+    
+    Signed-off-by: Tobias Stoeckmann <tobias@stoeckmann.org>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1d70c9accf93b9fae1b9adb48e47b7d96a5ae64e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Dec 7 19:27:32 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 202d167db645cfb6bd9218641b08833a6134ea04
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 18 21:41:33 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b98fe13193464042d2733308cdc2343adbc6163a
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 13:52:48 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit cf962e480dc73315a4f2288f4d4e007cf3fb9905
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 0abff92dc2370c57e79d028c17e6d7aeb50048f1
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
 commit cfe0b4fb8f87b03060a3d3c9538df144856b5e9f
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sat Mar 14 09:00:06 2015 -0700

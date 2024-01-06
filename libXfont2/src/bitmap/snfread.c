@@ -53,6 +53,7 @@ from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 
 #include <ctype.h>
 #include <X11/fonts/fntfilst.h>
@@ -453,13 +454,13 @@ snfReadFontInfo(FontInfoPtr pFontInfo, FontFilePtr file)
 	return ret;
     snfCopyInfo(&fi, pFontInfo);
 
-    pFontInfo->props = malloc(fi.nProps * sizeof(FontPropRec));
+    pFontInfo->props = mallocarray(fi.nProps, sizeof(FontPropRec));
     if (!pFontInfo->props) {
 	snfError("snfReadFontInfo(): Couldn't allocate props (%d*%d)\n",
 		 fi.nProps, (int) sizeof(FontPropRec));
 	return AllocError;
     }
-    pFontInfo->isStringProp = malloc(fi.nProps * sizeof(char));
+    pFontInfo->isStringProp = mallocarray(fi.nProps, sizeof(char));
     if (!pFontInfo->isStringProp) {
 	snfError("snfReadFontInfo(): Couldn't allocate isStringProp (%d*%d)\n",
 		 fi.nProps, (int) sizeof(char));

@@ -23,6 +23,7 @@ SUBDIRS = man
 bin_PROGRAMS = xclock
 
 AM_CFLAGS = $(CWARNFLAGS) $(XCLOCK_CFLAGS)
+AM_CPPFLAGS = -D_CONST_X_STRING
 xclock_LDADD = $(XCLOCK_LIBS)
 
 xclock_SOURCES =	\
@@ -42,6 +43,7 @@ dist_appdefault_DATA = \
         app-defaults/XClock
 
 EXTRA_DIST = \
+	README.md \
 	clmask.bit \
 	clock.bit
 

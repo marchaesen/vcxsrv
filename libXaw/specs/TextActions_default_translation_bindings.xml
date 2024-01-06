@@ -5,7 +5,7 @@
 <!-- .XS -->
 <!--      Default Translation Bindings -->
 <!-- .XE -->
-<!-- .IN "Text widget" "default translations" -->
+<indexterm><primary>Text widget</primary><secondary>default translations</secondary></indexterm>
 The following translations are defaults built into every Text widget.
 They can be overridden, or replaced by specifying a new value for the
 Text widget's <function>translations</function> resource.
@@ -56,9 +56,9 @@ Text widget's <function>translations</function> resource.
      :Meta&lt;Key&gt;]:     forward-paragraph() \\n\\
      :Meta&lt;Key&gt;[:     backward-paragraph() \\n\\
      ~Shift Meta&lt;Key&gt;Delete:          delete-previous-word() \\n\\
-     \ Shift Meta&lt;Key&gt;Delete:          backward-kill-word() \\n\\
+      Shift Meta&lt;Key&gt;Delete:          backward-kill-word() \\n\\
      ~Shift Meta&lt;Key&gt;Backspace:     delete-previous-word() \\n\\
-     \ Shift Meta&lt;Key&gt;Backspace:     backward-kill-word() \\n\\
+      Shift Meta&lt;Key&gt;Backspace:     backward-kill-word() \\n\\
      &lt;Key&gt;Right:     forward-character() \\n\\
      &lt;Key&gt;Left:     backward-character() \\n\\
      &lt;Key&gt;Down:     next-line() \\n\\

@@ -2,7 +2,6 @@ STARTFONT 2.1
 FONT -Adobe-Times-Bold-R-Normal--18-180-75-75-P-99-ISO10646-1
 SIZE 18 75 75
 FONTBOUNDINGBOX 23 28 -3 -7
-COMMENT $Xorg: $
 COMMENT ISO10646-1 extension by Markus Kuhn <mkuhn@acm.org>, 2001-03-20
 COMMENT 
 COMMENT +

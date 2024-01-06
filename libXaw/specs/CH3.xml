@@ -4,7 +4,8 @@
 <!-- <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="CH3.intro.xml"/> -->
 <para>
 Each of these widgets performs a specific user interface function.  They
-are <emphasis remap='I'>simple</emphasis> because they cannot have widget children\(emthey may only
+are <emphasis remap='I'>simple</emphasis> because they cannot have widget
+children&#x2014;they may only
 be used as leaves of the widget tree.  These widgets display information or
 take user input.
 </para>

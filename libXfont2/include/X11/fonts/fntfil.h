@@ -42,7 +42,6 @@ typedef struct _FontScalableEntry   *FontScalableEntryPtr;
 typedef struct _FontScaleAliasEntry *FontScaleAliasEntryPtr;
 typedef struct _FontBitmapEntry	    *FontBitmapEntryPtr;
 typedef struct _FontAliasEntry	    *FontAliasEntryPtr;
-typedef struct _FontBCEntry	    *FontBCEntryPtr;
 typedef struct _FontDirectory	    *FontDirectoryPtr;
 typedef struct _FontRenderer	    *FontRendererPtr;
 
@@ -55,7 +54,6 @@ typedef struct _FontRenderer	    *FontRendererPtr;
 #define NullFontScaleAliasEntry	    ((FontScaleAliasEntry) 0)
 #define NullFontBitmapEntry	    ((FontBitmapEntry) 0)
 #define NullFontAliasEntry	    ((FontAliasEntry) 0)
-#define NullFontBCEntry		    ((FontBCEntry) 0)
 #define NullFontDirectory	    ((FontDirectoryPtr) 0)
 #define NullFontRenderer	    ((FontRendererPtr) 0)
 
@@ -63,7 +61,6 @@ typedef struct _FontRenderer	    *FontRendererPtr;
 #define FONT_ENTRY_SCALE_ALIAS	1
 #define FONT_ENTRY_BITMAP	2
 #define FONT_ENTRY_ALIAS	3
-#define FONT_ENTRY_BC		4
 
 #define MAXFONTNAMELEN	    1024
 #define MAXFONTFILENAMELEN  1024

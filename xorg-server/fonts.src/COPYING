@@ -1,12 +1,9 @@
-This is a stub file.  This package has not yet had its complete licensing
-information compiled.  Please see the individual source files for details on
-your rights to use and modify this software.
+Copyright (C) 1994-95 Cronyx Ltd.
+Author: Serge Vakulenko, <vak@cronyx.ru>
 
-Please submit updated COPYING files to the Xorg bugzilla:
+This software may be used, modified, copied, distributed, and sold,
+in both source and binary form provided that the above copyright
+and these terms are retained. Under no circumstances is the author
+responsible for the proper functioning of this software, nor does
+the author assume any responsibility for damages incurred with its use.
 
-https://bugs.freedesktop.org/enter_bug.cgi?product=xorg
-
-All licensing questions regarding this software should be directed at the
-Xorg mailing list:
-
-http://lists.freedesktop.org/mailman/listinfo/xorg

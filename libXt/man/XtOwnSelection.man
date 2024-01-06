@@ -34,38 +34,11 @@
 .ds Vn 2.2
 .hw XtOwn-Selection XtOwn-Selection-Incremental XtDisown-Selection wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtOwnSelection __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtOwnSelection, XtOwnSelectionIncremental, XtDisownSelection \- set selection owner
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 Boolean XtOwnSelection(Widget \fIw\fP, Atom \fIselection\fP, Time \fItime\fP,
 XtConvertSelectionProc \fIconvert_proc\fP, XtLoseSelectionProc
@@ -92,25 +65,24 @@ lost selection ownership or NULL if the owner is not interested in being
 called back.
 .IP \fIselection\fP 1i
 Specifies an atom that describes the type of the selection (for example,
-.ZN XA_PRIMARY ,
-.ZN XA_SECONDARY ,
+.BR XA_PRIMARY ,
+.BR XA_SECONDARY ,
 or
-.ZN XA_CLIPBOARD ).
-.ds Ti ownership should commence or is to be relinquished
+.BR XA_CLIPBOARD ).
 .IP \fItime\fP 1i
-Specifies the timestamp that indicates when the selection \*(Ti.
-.ds Wi that wishes to become the owner or to relinquish ownership
+Specifies the timestamp that indicates when the selection 
+ownership should commence or is to be relinquished.
 .IP \fIw\fP 1i
-Specifies the widget \*(Wi.
+Specifies the widget that wishes to become the owner or to relinquish ownership.
 .SH DESCRIPTION
 The
-.ZN XtOwnSelection
+.B XtOwnSelection
 function informs the \*(xI selection mechanism that a
 widget believes it owns a selection.
 It returns
-.ZN True
+.B True
 if the widget has successfully become the owner and
-.ZN False
+.B False
 otherwise.
 The widget may fail to become the owner if some other widget
 has asserted ownership at a time later than this widget.
@@ -121,41 +93,43 @@ Also note that the lose_selection procedure is not called
 if the widget fails to obtain selection ownership in the first place.
 .LP
 The
-.ZN XtOwnSelectionIncremental
+.B XtOwnSelectionIncremental
 procedure informs the Intrinsics incremental selection mechanism that
-the specified widget wishes to own the selection. It returns
-.ZN True
+the specified widget wishes to own the selection.
+It returns
+.B True
 if the specified widget successfully becomes the selection owner or
-.ZN False
-otherwise. For more information about \fIselection\fP, \fItarget\fP,
+.B False
+otherwise.
+For more information about \fIselection\fP, \fItarget\fP,
 and \fItime\fP, see Section 2.6 of the \fIInter-Client Communication
 Conventions Manual\fP.
 .LP
 A widget that becomes the selection owner using
-.ZN XtOwnSelectionIncremental
+.B XtOwnSelectionIncremental
 may use
-.ZN XtDisownSelection
+.B XtDisownSelection
 to relinquish selection ownership.
 .LP
 The
-.ZN XtDisownSelection
+.B XtDisownSelection
 function informs the \*(xI selection mechanism that
 the specified widget is to lose ownership of the selection.
 If the widget does not currently own the selection either
 because it lost the selection
 or because it never had the selection to begin with,
-.ZN XtDisownSelection
+.B XtDisownSelection
 does nothing.
 .LP
 After a widget has called
-.ZN XtDisownSelection ,
+.BR XtDisownSelection ,
 its convert procedure is not called even if a request arrives later
 with a timestamp during the period that this widget owned the selection.
 However, its done procedure will be called if a conversion that started
 before the call to
-.ZN XtDisownSelection
+.B XtDisownSelection
 finishes after the call to
-.ZN XtDisownSelection .
+.BR XtDisownSelection .
 .SH "SEE ALSO"
 XtAppGetSelectionTimeout(__libmansuffix__),
 XtGetSelectionValue(__libmansuffix__)

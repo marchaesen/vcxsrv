@@ -39,22 +39,23 @@ XRenderFillRectangles (Display		    *dpy,
 		       _Xconst XRectangle   *rectangles,
 		       int		    n_rects)
 {
-    XRenderExtDisplayInfo		*info = XRenderFindDisplay (dpy);
+    XRenderExtDisplayInfo	*info = XRenderFindDisplay (dpy);
     xRenderFillRectanglesReq	*req;
-    long			len;
-    int				n;
 
     RenderSimpleCheckExtension (dpy, info);
     LockDisplay(dpy);
 
     while (n_rects)
     {
+	long	len;
+	int	n;
+
 	GetReq(RenderFillRectangles, req);
 
-	req->reqType = info->codes->major_opcode;
+	req->reqType = (CARD8) info->codes->major_opcode;
 	req->renderReqType = X_RenderFillRectangles;
-	req->op = op;
-	req->dst = dst;
+	req->op = (CARD8) op;
+	req->dst = (CARD32) dst;
 	req->color.red = color->red;
 	req->color.green = color->green;
 	req->color.blue = color->blue;
@@ -64,12 +65,12 @@ XRenderFillRectangles (Display		    *dpy,
 	len = ((long)n) << 1;
 	if (!dpy->bigreq_size && len > (dpy->max_request_size - req->length))
 	{
-	    n = (dpy->max_request_size - req->length) >> 1;
+	    n = (int) ((dpy->max_request_size - req->length) >> 1);
 	    len = ((long)n) << 1;
 	}
 	SetReqLen(req, len, len);
 	len <<= 2; /* watch out for macros... */
-	Data16 (dpy, (short *) rectangles, len);
+	Data16 (dpy, (_Xconst short *) rectangles, len);
 	n_rects -= n;
 	rectangles += n;
     }

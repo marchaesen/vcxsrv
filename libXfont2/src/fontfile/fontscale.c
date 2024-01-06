@@ -32,6 +32,7 @@ in this Software without prior written authorization from The Open Group.
 #include <config.h>
 #endif
 #include "libxfontint.h"
+#include "src/util/replace.h"
 #include    <X11/fonts/fntfilst.h>
 #include <math.h>
 
@@ -49,7 +50,7 @@ FontFileAddScaledInstance (FontEntryPtr entry, FontScalablePtr vals,
     if (extra->numScaled == extra->sizeScaled)
     {
 	newsize = extra->sizeScaled + 4;
-	new = realloc (extra->scaled, newsize * sizeof (FontScaledRec));
+	new = reallocarray (extra->scaled, newsize, sizeof (FontScaledRec));
 	if (!new)
 	    return FALSE;
 	extra->sizeScaled = newsize;

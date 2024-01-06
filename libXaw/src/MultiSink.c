@@ -140,7 +140,7 @@ static XtResource resources[] = {
     sizeof(XFontSet),
     offset(fontset),
     XtRString,
-    XtDefaultFontSet
+    (XtPointer)XtDefaultFontSet
   },
   {
     XtNecho,
@@ -308,7 +308,7 @@ PaintText(Widget w, GC gc, int x, int y, wchar_t *buf, int len, Bool clear_bg)
     MultiSinkObject sink = (MultiSinkObject)w;
     TextWidget ctx = (TextWidget)XtParent(w);
     XFontSet fontset = sink->multi_sink.fontset;
-    unsigned int width = XwcTextEscapement(fontset, buf, len);
+    unsigned int width = (unsigned)XwcTextEscapement(fontset, buf, len);
 
     if (((int)width) <= -x)		/* Don't draw if we can't see it */
 	return (width);
@@ -363,11 +363,11 @@ DisplayText(Widget w, int x, int y,
 
     y += abs(ext->max_logical_extent.y);
     for (j = 0; pos1 < pos2;) {
-	pos1 = XawTextSourceRead(source, pos1, &blk, (int) pos2 - pos1);
+	pos1 = XawTextSourceRead(source, pos1, &blk, (int) (pos2 - pos1));
 	for (k = 0; k < blk.length; k++) {
 	    if ((unsigned) j >= (sizeof(buf) / sizeof(wchar_t)) - 1) {
 		/* buffer full, dump the text */
-		if ((x += PaintText(w, gc, x, y, buf, j, clear_bg)) >= max_x)
+		if ((x = (int)((unsigned)x + PaintText(w, gc, x, y, buf, j, clear_bg))) >= max_x)
 		    return;
 		j = 0;
 	    }
@@ -379,10 +379,10 @@ DisplayText(Widget w, int x, int y,
 		unsigned int width;
 
 		if (j != 0 &&
-		    (x += PaintText(w, gc, x, y, buf, j, clear_bg)) >= max_x)
+		    (x = (int)((unsigned)x + PaintText(w, gc, x, y, buf, j, clear_bg))) >= max_x)
 		    return;
 
-		width = CharWidth(sink, fontset, x, _Xaw_atowc(XawTAB));
+		width = (unsigned)CharWidth(sink, fontset, x, _Xaw_atowc(XawTAB));
 		if (clear_bg)
 		    _XawTextSinkClearToBackground(w,
 					x, y - abs(ext->max_logical_extent.y),
@@ -393,7 +393,7 @@ DisplayText(Widget w, int x, int y,
 				   y - abs(ext->max_logical_extent.y),
 				   width,
 				   ext->max_logical_extent.height);
-		x += width;
+		x = (int)((unsigned)x + width);
 		j = -1;
 	    }
 	    else if (XwcTextEscapement(sink->multi_sink.fontset, &buf[j], 1)
@@ -427,11 +427,11 @@ GetCursorBounds(Widget w, XRectangle *rect)
 {
     MultiSinkObject sink = (MultiSinkObject)w;
 
-    rect->width = CharWidth(sink, sink->multi_sink.fontset, 0, _Xaw_atowc(XawSP));
+    rect->width = (unsigned short)CharWidth(sink, sink->multi_sink.fontset, 0, _Xaw_atowc(XawSP));
     rect->height = (XExtentsOfFontSet(sink->multi_sink.fontset)
 		    ->max_logical_extent.height);
     rect->x = sink->multi_sink.cursor_x;
-    rect->y = sink->multi_sink.cursor_y - (short)rect->height;
+    rect->y = (short)(sink->multi_sink.cursor_y - (short)rect->height);
 }
 
 /*
@@ -481,9 +481,9 @@ InsertCursor(Widget w, int x, int y, XawTextInsertState state)
 	    if (!ochar)
 		_XawTextSinkClearToBackground(w, sink->multi_sink.cursor_x,
 					      (sink->multi_sink.cursor_y - 1 -
-					      fheight), CharWidth(sink, fontset,
-								  0, wspace[0]),
-					      fheight);
+					      fheight),
+					      (unsigned)CharWidth(sink, fontset, 0, wspace[0]),
+					      (unsigned)fheight);
 	    else {
 		if (XwcTextEscapement(sink->multi_sink.fontset, ochar, 1) != 0)
 		    DisplayText(w, sink->multi_sink.cursor_x,
@@ -527,13 +527,13 @@ InsertCursor(Widget w, int x, int y, XawTextInsertState state)
 			       sink->multi_sink.xorgc ?
 			       sink->multi_sink.xorgc : sink->multi_sink.normgc,
 			       x, y - 1 - fheight,
-			       CharWidth(sink, fontset, 0, *nchar) - 1,
-			       fheight - 1);
+			       (unsigned)(CharWidth(sink, fontset, 0, *nchar) - 1),
+			       (unsigned)(fheight - 1));
 	  }
       }
 
-    sink->multi_sink.cursor_x = x;
-    sink->multi_sink.cursor_y = y;
+    sink->multi_sink.cursor_x = (short)x;
+    sink->multi_sink.cursor_y = (short)y;
     sink->multi_sink.laststate = state;
     sink->multi_sink.cursor_position = position;
 }
@@ -556,12 +556,12 @@ FindDistance(Widget w, XawTextPosition fromPos, int fromx,
     XawTextBlock blk;
     int i, rWidth;
 
-    pos = XawTextSourceRead(source, fromPos, &blk, toPos - fromPos);
+    pos = XawTextSourceRead(source, fromPos, &blk, (int)(toPos - fromPos));
     rWidth = 0;
     for (i = 0, idx = fromPos; idx < toPos; i++, idx++) {
 	if (i >= blk.length) {
 	    i = 0;
-	    XawTextSourceRead(source, pos, &blk, toPos - pos);
+	    XawTextSourceRead(source, pos, &blk, (int)(toPos - pos));
 	    if (blk.length == 0)
 		break;
 	}
@@ -659,7 +659,7 @@ GetGC(MultiSinkObject sink)
     XGCValues values;
 
     /* XXX We dont want do share a gc that will change the clip-mask */
-    values.clip_x_origin = (long)(uintptr_t)sink;
+    values.clip_x_origin = (int)(uintptr_t)sink;
     values.clip_mask = None;
     values.graphics_exposures = False;
 
@@ -711,8 +711,8 @@ XawMultiSinkClassInitialize(void)
  */
 /* ARGSUSED */
 static void
-XawMultiSinkInitialize(Widget request, Widget cnew,
-		       ArgList args, Cardinal *num_args)
+XawMultiSinkInitialize(Widget request _X_UNUSED, Widget cnew,
+		       ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     MultiSinkObject sink = (MultiSinkObject)cnew;
 
@@ -766,8 +766,8 @@ XawMultiSinkResize(Widget w)
       (int)ctx->text.r_margin.right - (int)ctx->text.r_margin.left;
     height = (int)XtHeight(ctx) -
       (int)ctx->text.r_margin.top - (int)ctx->text.r_margin.bottom;
-    rect.width = width;
-    rect.height = height;
+    rect.width = (unsigned short)width;
+    rect.height = (unsigned short)height;
 
     if (sink->multi_sink.normgc) {
 	if (width >= 0 && height >= 0)
@@ -809,8 +809,8 @@ XawMultiSinkResize(Widget w)
  */
 /*ARGSUSED*/
 static Boolean
-XawMultiSinkSetValues(Widget current, Widget request, Widget cnew,
-		      ArgList args, Cardinal *num_args)
+XawMultiSinkSetValues(Widget current, Widget request _X_UNUSED, Widget cnew,
+		      ArgList args _X_UNUSED, Cardinal *num_args _X_UNUSED)
 {
     MultiSinkObject w = (MultiSinkObject)cnew;
     MultiSinkObject old_w = (MultiSinkObject)current;
@@ -868,7 +868,7 @@ MaxLines(Widget w, unsigned int height)
     XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
 
     font_height = ext->max_logical_extent.height;
-    return (height / font_height);
+    return (int)(height / (unsigned)font_height);
 }
 
 /*
@@ -880,7 +880,7 @@ MaxLines(Widget w, unsigned int height)
  *	lines - number of lines
  *
  * Description:
- *	Finds the Minium height that will contain a given number lines.
+ *	Finds the Minimum height that will contain a given number lines.
  * Returns:
  *	The height
  */
@@ -938,22 +938,22 @@ SetTabs(Widget w, int tab_count, short* tabs)
 	    || figure_width == 0)) {
 	if (font->per_char && font->min_char_or_byte2 <= '$'
 	    && font->max_char_or_byte2 >= '$')
-	    figure_width = font->per_char['$' - font->min_char_or_byte2].width;
+	    figure_width = (unsigned long)font->per_char['$' - font->min_char_or_byte2].width;
 	else
-	    figure_width = font->max_bounds.width;
+	    figure_width = (unsigned long)font->max_bounds.width;
     }
 
     if (tab_count > sink->text_sink.tab_count) {
 	sink->text_sink.tabs = (Position *)
 	    XtRealloc((char *)sink->text_sink.tabs,
-		      (Cardinal)(tab_count * sizeof(Position)));
+		      (Cardinal)((unsigned long)tab_count * sizeof(Position)));
 	sink->text_sink.char_tabs = (short *)
 	    XtRealloc((char *)sink->text_sink.char_tabs,
-		      (Cardinal)(tab_count * sizeof(short)));
+		      (Cardinal)((unsigned long)tab_count * sizeof(short)));
       }
 
     for (i = 0 ; i < tab_count ; i++) {
-	sink->text_sink.tabs[i] = tabs[i] * figure_width;
+	sink->text_sink.tabs[i] = (Position)((unsigned long)tabs[i] * figure_width);
 	sink->text_sink.char_tabs[i] = tabs[i];
     }
 
@@ -971,5 +971,5 @@ _XawMultiSinkPosToXY(Widget w, XawTextPosition pos, Position *x, Position *y)
     XFontSetExtents *ext = XExtentsOfFontSet(sink->multi_sink.fontset);
 
     _XawTextPosToXY(w, pos, x, y);
-    *y += abs(ext->max_logical_extent.y);
+    *y = (Position)(*y + abs(ext->max_logical_extent.y));
 }

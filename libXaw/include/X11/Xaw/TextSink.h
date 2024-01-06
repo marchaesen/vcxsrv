@@ -100,7 +100,7 @@ _XFUNCPROTOBEGIN
  *	y	  - ""
  *	pos1	  - location of starting and ending points in the text buffer
  *	pos2	  - ""
- *	highlight - hightlight this text?
+ *	highlight - highlight this text?
  *
  * Description:
  *	Stub function that in subclasses will display text.
@@ -236,7 +236,7 @@ void XawTextSinkFindPosition
  *	fromX		- x location of starting Position
  *	toPos		- end Position
  *	resWidth	- Distance between fromPos and toPos
- *	resPos		- Acutal toPos used
+ *	resPos		- Actual toPos used
  *	resHeight	- Height required by this text
  *
  * Description:
@@ -265,7 +265,7 @@ void XawTextSinkFindDistance
  *	resPos	- resulting position
  *
  * Description:
- *	Resloves a location to a position.
+ *	Resolves a location to a position.
  */
 void XawTextSinkResolve
 (
@@ -312,7 +312,7 @@ int XawTextSinkMaxLines
  *	Height
  *
  * Description:
- *	Finds the Minium height that will contain a given number lines.
+ *	Finds the Minimum height that will contain a given number lines.
  */
 int XawTextSinkMaxHeight
 (

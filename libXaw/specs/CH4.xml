@@ -68,7 +68,7 @@ also provided as part of the Athena widget set.
 <!-- .XS -->
 <!-- 	Using the Menus -->
 <!-- .XE -->
-<!-- .IN "Menus" "using" -->
+<indexterm><primary>Menus</primary><secondary>using</secondary></indexterm>
 <para>
 <!-- .LP -->
 The default configuration for the menus is press-drag-release.
@@ -76,10 +76,10 @@ The menus will typically be
 activated by clicking a pointer button while the pointer is over a
 MenuButton, causing the menu to appear in a fixed location relative to
 that button; this is a <function>pulldown</function> menu.  Menus may also be activated
-<!-- .IN "Menus" "pulldown" -->
+<indexterm><primary>Menus</primary><secondary>pulldown</secondary></indexterm>
 when a specific pointer and/or key sequence is used anywhere in the
 application; this is a <function>popup</function> menu (e.g. clicking Ctrl-&lt;pointer
-<!-- .IN "Menus" "popup" -->
+<indexterm><primary>Menus</primary><secondary>popup</secondary></indexterm>
 button 1&gt; in the common application <function>xterm</function>).  In this
 case the menu should be positioned under
 the cursor. Typically menus will be placed so the pointer cursor is on
@@ -96,7 +96,9 @@ and causes any mechanism associated with this entry to be invoked.
 
 </para>
 </sect1>
-<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="Sme.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="SimpleMenu.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="SmeBSB.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="SmeLine.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="Sme.xml"/>
+<xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="MenuButton.xml"/>
 </chapter>

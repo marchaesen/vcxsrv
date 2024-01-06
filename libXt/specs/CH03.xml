@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <chapter id='Composite_Widgets_and_Their_Children'>
 <title>Composite Widgets and Their Children</title>
 <para>
@@ -402,8 +405,6 @@ and marks it if not.
 If the parent is realized and after all children have been marked,
 it makes some of the newly managed children viewable:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -506,7 +507,7 @@ or
 <funcsynopsis id='XtCreateManagedWidget'>
 <funcprototype>
 <funcdef>Widget <function>XtCreateManagedWidget</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
    <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
    <paramdef>Widget <parameter>parent</parameter></paramdef>
    <paramdef>ArgList <parameter>args</parameter></paramdef>
@@ -580,9 +581,10 @@ and
 <funcsynopsis id='XtVaCreateManagedWidget'>
 <funcprototype>
 <funcdef>Widget <function>XtVaCreateManagedWidget</function></funcdef>
-   <paramdef>String <parameter>name</parameter></paramdef>
+   <paramdef>const char * <parameter>name</parameter></paramdef>
    <paramdef>WidgetClass <parameter>widget_class</parameter></paramdef>
    <paramdef>Widget <parameter>parent</parameter></paramdef>
+   <paramdef>...</paramdef>
 </funcprototype>
 </funcsynopsis>
 
@@ -703,8 +705,6 @@ For each unique child on the list,
 <xref linkend='XtUnmanageChildren' xrefstyle='select: title'/>
 ignores the child if it is unmanaged; otherwise it performs the following:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -909,8 +909,6 @@ then
 <xref linkend='XtChangeManagedSet' xrefstyle='select: title'/>
 performs the following:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -937,8 +935,6 @@ Calls
     <para>
 Otherwise, the following is performed:
     </para>
-  </listitem>
-  <listitem>
     <itemizedlist spacing='compact'>
       <listitem>
         <para>
@@ -1005,7 +1001,7 @@ The <emphasis remap='I'>do_change_proc</emphasis> is of type
 
 <funcsynopsis id='XtDoChangeProc'>
 <funcprototype>
-<funcdef>typedef void <function>*XtDoChangeProc</function></funcdef>
+<funcdef>typedef void *<function>XtDoChangeProc</function></funcdef>
 
    <paramdef>Widget <parameter>composite_parent</parameter></paramdef>
    <paramdef>WidgetList <parameter>unmange_children</parameter></paramdef>
@@ -1221,7 +1217,7 @@ To map a widget explicitly, use
 
 <funcsynopsis id='XtMapWidget'>
 <funcprototype>
-<funcdef> <function>XtMapWidget</function></funcdef>
+<funcdef>void <function>XtMapWidget</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1246,7 +1242,7 @@ To unmap a widget explicitly, use
 
 <funcsynopsis id='XtUnmapWidget'>
 <funcprototype>
-<funcdef> <function>XtUnmapWidget</function></funcdef>
+<funcdef>void <function>XtUnmapWidget</function></funcdef>
    <paramdef>Widget <parameter>w</parameter></paramdef>
 </funcprototype>
 </funcsynopsis>
@@ -1320,27 +1316,27 @@ For example, a widget class that needs to maintain a maximum
 width and height for each child might define its constraint record as
 follows:
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	Dimension max_width, max_height;
+        Dimension max_width, max_height;
 } MaxConstraintPart;
 typedef struct {
-	MaxConstraintPart max;
+        MaxConstraintPart max;
 } MaxConstraintRecord, *MaxConstraint;
-</literallayout>
+</programlisting>
 <para>
 A subclass of this widget class that also needs to maintain a minimum size would
 define its constraint record as follows:
 </para>
-<literallayout >
+<programlisting>
 typedef struct {
-	Dimension min_width, min_height;
+        Dimension min_width, min_height;
 } MinConstraintPart;
 typedef struct {
-	MaxConstraintPart max;
-	MinConstraintPart min;
+        MaxConstraintPart max;
+        MinConstraintPart min;
 } MaxMinConstraintRecord, *MaxMinConstraint;
-</literallayout>
+</programlisting>
 <para>
 Constraints are allocated, initialized, deallocated, and otherwise maintained
 insofar as possible by the Intrinsics.

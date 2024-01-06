@@ -1,7 +1,5 @@
-/*LINTLIBRARY*/
-
 /***********************************************************
-Copyright (c) 1993, Oracle and/or its affiliates. All rights reserved.
+Copyright (c) 1993, Oracle and/or its affiliates.
 
 Permission is hereby granted, free of charge, to any person obtaining a
 copy of this software and associated documentation files (the "Software"),
@@ -43,7 +41,6 @@ ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS
 SOFTWARE.
 
 ******************************************************************/
-
 /*
 
 Copyright 1987, 1988, 1998  The Open Group
@@ -69,75 +66,69 @@ used in advertising or otherwise to promote the sale, use or other dealings
 in this Software without prior written authorization from The Open Group.
 
 */
-
-/* 
+/*
  * Contains XtAppAddActionHook, XtRemoveActionHook
  */
-
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
 #include "IntrinsicI.h"
 
-
-/*ARGSUSED*/
-static void FreeActionHookList(
-    Widget widget,		/* unused (and invalid) */
-    XtPointer closure,		/* ActionHook* */
-    XtPointer call_data)	/* unused */
+static void
+FreeActionHookList(Widget widget _X_UNUSED,
+		   XtPointer closure,  /* ActionHook* */
+                   XtPointer call_data _X_UNUSED)
 {
-    ActionHook list = *(ActionHook*)closure;
+    ActionHook list = *(ActionHook *) closure;
+
     while (list != NULL) {
-	ActionHook next = list->next;
-	XtFree( (XtPointer)list );
-	list = next;
+        ActionHook next = list->next;
+
+        XtFree((XtPointer) list);
+        list = next;
     }
 }
 
-
-XtActionHookId XtAppAddActionHook(
-    XtAppContext app,
-    XtActionHookProc proc,
-    XtPointer closure)
+XtActionHookId
+XtAppAddActionHook(XtAppContext app, XtActionHookProc proc, XtPointer closure)
 {
     ActionHook hook = XtNew(ActionHookRec);
+
     LOCK_APP(app);
     hook->next = app->action_hook_list;
     hook->app = app;
     hook->proc = proc;
     hook->closure = closure;
     if (app->action_hook_list == NULL) {
-	_XtAddCallback( &app->destroy_callbacks,
-		        FreeActionHookList,
-		        (XtPointer)&app->action_hook_list
-		      );
+        _XtAddCallback(&app->destroy_callbacks,
+                       FreeActionHookList, (XtPointer) &app->action_hook_list);
     }
     app->action_hook_list = hook;
     UNLOCK_APP(app);
-    return (XtActionHookId)hook;
+    return (XtActionHookId) hook;
 }
 
-
-void XtRemoveActionHook(
-    XtActionHookId id)
+void
+XtRemoveActionHook(XtActionHookId id)
 {
-    ActionHook *p, hook = (ActionHook)id;
+    ActionHook *p, hook = (ActionHook) id;
     XtAppContext app = hook->app;
+
     LOCK_APP(app);
     for (p = &app->action_hook_list; p != NULL && *p != hook; p = &(*p)->next);
     if (p) {
-	*p = hook->next;
-	XtFree( (XtPointer)hook );
-	if (app->action_hook_list == NULL)
-	    _XtRemoveCallback(&app->destroy_callbacks, FreeActionHookList,
-			      (XtPointer) &app->action_hook_list);
+        *p = hook->next;
+        XtFree((XtPointer) hook);
+        if (app->action_hook_list == NULL)
+            _XtRemoveCallback(&app->destroy_callbacks, FreeActionHookList,
+                              (XtPointer) &app->action_hook_list);
     }
 #ifdef DEBUG
     else {
-	XtAppWarningMsg(app, "badId", "xtRemoveActionHook", XtCXtToolkitError,
-			"XtRemoveActionHook called with bad or old hook id",
-			(String*)NULL, (Cardinal*)NULL);
+        XtAppWarningMsg(app, "badId", "xtRemoveActionHook", XtCXtToolkitError,
+                        "XtRemoveActionHook called with bad or old hook id",
+                        NULL, NULL);
     }
 #endif /*DEBUG*/
-    UNLOCK_APP(app);
+        UNLOCK_APP(app);
 }

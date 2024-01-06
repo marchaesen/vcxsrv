@@ -9,7 +9,7 @@ AC_DEFUN([XCB_UTIL_COMMON], [
 m4_ifndef([AX_COMPARE_VERSION],
           [m4_fatal([could not find AX_COMPARE_VERSION in macros search path])])
 
-AC_REQUIRE([AC_PROG_LIBTOOL])
+AC_REQUIRE([LT_INIT])
 
 # Define header files and pkgconfig paths
 xcbincludedir='${includedir}/xcb'

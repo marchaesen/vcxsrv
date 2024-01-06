@@ -1,3 +1,301 @@
+commit a1202e71763cfc6aad4ade6e0dda4ac78b857e27
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Thu Apr 7 13:36:13 2022 -0700
+
+    xclock 1.1.1
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f2acb1dbd75605d64f07740df2d83e73fe1b2ec3
+Author: Thomas Kuehne <thomas@kuehne.cn>
+Date:   Sat Dec 11 18:00:11 2021 +0100
+
+    fix -Wabsolute-value compiler warning
+    
+    fixes:
+    Clock.c:2011:14: warning: using integer absolute value function ‘abs’ when argument is of floating-point type ‘float’ [-Wabsolute-value]
+     2011 |             (abs(new->clock.update) <= SECOND_HAND_TIME);
+          |              ^~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit e075308dccafb6f813ba0a8646b73860a7447a01
+Author: Thomas Kuehne <thomas@kuehne.cn>
+Date:   Sat Dec 11 17:56:39 2021 +0100
+
+    fix -Wmissing-field-initializers warning
+    
+    fixes:
+    Clock.c:269:6: warning: missing initializer for field ‘extension’ of ‘SimpleClassPart’ [-Wmissing-field-initializers]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 96934f4472f10a1e5fcf53f6cbb9c88d743fa520
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Apr 4 16:51:04 2022 -0700
+
+    Fall back to sin() and cos() calls on systems without sincos()
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7126b722a055545d25291cd10076f4c3fe52f039
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Apr 3 14:21:37 2022 -0700
+
+    xclock 1.1.0
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 65f9bee07f98d384068339bff025cf50d3cecead
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 4 10:50:42 2021 -0800
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3b719d3587d3f8547eff584d949385c3f1926ed0
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Dec 4 10:50:39 2021 -0800
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8078de47f573fe60ee171647d23b9a097e818cc9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Nov 28 11:28:07 2021 -0800
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 866881cde2f973b50dc2a9279f2a85611ec23974
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 1 16:28:13 2021 -0700
+
+    Fix build on Solaris
+    
+    Solaris 11 has sqrt() in libc but needs to link with libm for sincos()
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 30be448a408bf8543047008ef823321016b73132
+Author: Keith Packard <keithp@keithp.com>
+Date:   Thu Jul 15 23:24:30 2021 -0700
+
+    Update hands smoothly in Render mode
+    
+    Draw hour and minute hand every time the clock repaints, placing them
+    at the correct position for the current time.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+
+commit ff94d3f086479724261b764b11a0012f5e6cdc63
+Author: rees4905 <jim@rees.org>
+Date:   Fri Jun 12 22:27:10 2020 -0500
+
+    man: Indicate that -twelve & -twentyfour only affect brief display
+    
+    Signed-off-by: rees4905 <jim@rees.org>
+
+commit 03dba28ffd633839e57af748edae07a2c8b06398
+Author: rees4905 <jim@rees.org>
+Date:   Sun Jun 7 21:47:45 2020 -0500
+
+    re-indent Clock.c
+    
+    Signed-off-by: rees4905 <jim@rees.org>
+
+commit 755004c87b50e6334c07b0f4b9458a32b8c92566
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jul 14 11:34:07 2019 -0700
+
+    xclock 1.0.9
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0172a3b11f777692ea06c1f3718390ce06b3dcd4
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 9 15:06:32 2019 -0700
+
+    Clear -Wsign-compare warning from gcc 7.3
+    
+    xclock.c: In function ‘quit’:
+    xclock.c:133:27: warning: comparison between signed and unsigned integer expressions [-Wsign-compare]
+      event->xclient.data.l[0] != wm_delete_window) {
+                               ^~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8ef7efe5863ecf6d578900e8ca7398fc10cd566a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jun 9 15:04:53 2019 -0700
+
+    Use _CONST_X_STRING to make libXt declare String as const char *
+    
+    Clears up 31 of 95 gcc -Wdiscarded-qualifiers warnings from gcc 7.3
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 683d3c0cf8c86fb6626e9e85fc0bb99a27833280
+Author: Jon Turney <jon.turney@dronecode.org.uk>
+Date:   Sat May 4 01:25:22 2019 +0100
+
+    Consistently use X_GETTIMEOFDAY
+    
+    After 7ad730d8, use X_GETTIMEOFDAY() in Initialize() as well as
+    clock_tic(), to fix compilation on non-POSIX systems where the
+    gymnastics that X_GETTIMEOFDAY does are necessary (i.e. Win32)
+
+commit d528eca772620bc06c182e03265fc5f70a4d35f7
+Author: Niclas Zeising <zeising@daemonic.se>
+Date:   Wed Feb 27 15:25:28 2019 +0100
+
+    Use fabsf when dealing with floating point numbers
+
+commit a212539500a17f265815e77b9a6047279824315f
+Author: Niclas Zeising <zeising@daemonic.se>
+Date:   Wed Feb 27 15:22:41 2019 +0100
+
+    Fix logic sourrouning && and ||
+    
+    Fix the logic sorrounding && and ||.  && has higher precedence than ||,
+    and as such, the if statement probably was incorrect.  Fix this by
+    adding parenthesises around the || statement.
+
+commit 9af0790d71fc321d97486aa40b055656d99050c2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Feb 19 14:12:54 2019 -0800
+
+    xclock 1.0.8
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a646aa84a8892b091bc7b7b24cfa89f8e628ec0e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Jan 6 15:05:13 2019 -0800
+
+    Replace remaining sprintf calls with snprintf
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 62a8e169e13c218dd43e245eea959562769d9ffa
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Nov 21 16:59:51 2018 -0800
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 1297c089414cb17e684803739f47d9dd9ff5dbe6
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Nov 16 21:14:58 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 7ad730d892c899df3bb0b51a757ff2c55b6dc6d1
+Author: Keith Packard <keithp@keithp.com>
+Date:   Sat May 13 23:48:55 2017 -0700
+
+    Allow sub-second updates.
+    
+    Lets you run the clock at whatever tick rate you like.
+    
+    Note that this changes the behaviour of the clock when the update
+    isn't a divisor of the number of seconds in a day. In the old code,
+    the time to display was an integer number of intervals from the start
+    of the year, in the new code, it is an integer number of intervals
+    from the start of the day.
+    
+    I like that better as it makes the seconds consistent from day to day,
+    even if it means an uneven tick at local midnight. Given that I
+    suspect no-one has ever done this in practice, I doubt it really
+    matters.
+    
+    At least the code is simpler now, while supporting updates at the
+    level of the Xt timers, which are milliseconds.
+    
+    Signed-off-by: Keith Packard <keithp@keithp.com>
+
+commit 9fa28e7fe8dc5e883211b29031446b42cbffe31f
+Author: Mihail Konev <k.mvc@ya.ru>
+Date:   Thu Jan 26 14:00:20 2017 +1000
+
+    autogen: add default patch prefix
+    
+    Signed-off-by: Mihail Konev <k.mvc@ya.ru>
+
+commit 436544737f6a2e4f9669517207db62578cf2917c
+Author: Emil Velikov <emil.l.velikov@gmail.com>
+Date:   Mon Mar 9 12:00:52 2015 +0000
+
+    autogen.sh: use quoted string variables
+    
+    Place quotes around the $srcdir, $ORIGDIR and $0 variables to prevent
+    fall-outs, when they contain space.
+    
+    Signed-off-by: Emil Velikov <emil.l.velikov@gmail.com>
+    Reviewed-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+
+commit 6773417208468060d57c90225009f6f3fab4e244
+Author: Peter Hutterer <peter.hutterer@who-t.net>
+Date:   Tue Jan 24 10:32:07 2017 +1000
+
+    autogen.sh: use exec instead of waiting for configure to finish
+    
+    Syncs the invocation of configure with the one from the server.
+    
+    Signed-off-by: Peter Hutterer <peter.hutterer@who-t.net>
+    Reviewed-by: Emil Velikov <emil.velikov@collabora.com>
+
+commit 4697248c5a3e2aa505eceadd45f17554d4424aff
+Author: Jon TURNEY <jon.turney@dronecode.org.uk>
+Date:   Sun Sep 14 18:08:55 2014 +0100
+
+    No point in trying to use iconv if we don't have nl_langinfo
+    
+    This fixes the build for MinGW
+    
+    Signed-off-by: Jon TURNEY <jon.turney@dronecode.org.uk>
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Reviewed-by: David Macek <david.macek.0@gmail.com>
+
+commit 67382af06d38fdfd7f08c2bae30a7d5f1bb3fe89
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 2 22:12:53 2014 -0700
+
+    autogen.sh: Honor NOCONFIGURE=1
+    
+    See http://people.gnome.org/~walters/docs/build-api.txt
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a135ec20812ae83c8afc0d7ce6d8f3f15c4aeafe
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 2 22:12:53 2014 -0700
+
+    configure: Drop AM_MAINTAINER_MODE
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 0574c56ea9107eab2597b830bc95e3d62e876060
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 2 22:12:48 2014 -0700
+
+    config: Add missing AC_CONFIG_SRCDIR
+    
+    Regroup AC statements under the Autoconf initialization section.
+    Regroup AM statements under the Automake initialization section.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit 66a2f29e7c649d1eb4079910b0211ffdf7dbbd4d
 Author: Alan Coopersmith <alan.coopersmith@oracle.com>
 Date:   Sat Sep 7 23:33:09 2013 -0700
@@ -681,7 +979,7 @@ Date:   Sat Jul 16 17:16:05 2005 +0000
         Xft2/Render (enabled by default)
 
 commit 80d8b6affb2ee823cf18a368ab33535cb1cf1721
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Fri Jul 1 17:55:48 2005 +0000
 
     Build system for xclock

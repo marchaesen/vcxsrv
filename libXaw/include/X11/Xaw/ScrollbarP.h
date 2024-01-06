@@ -69,7 +69,7 @@ typedef struct {
     float	   shown;
     Dimension	   length;	/* either height or width */
     Dimension	   thickness;	/* either width or height */
-    Dimension	   min_thumb;	/* minium size for the thumb */
+    Dimension	   min_thumb;	/* minimum size for the thumb */
 
      /* private */
     Cursor	   inactiveCursor; /* The normal cursor for scrollbar */
@@ -78,7 +78,7 @@ typedef struct {
     Position	   topLoc;	/* Pixel that corresponds to top */
     Dimension	   shownLength;	/* Num pixels corresponding to shown */
 #ifndef OLDXAW
-    XtPointer pad[4];	/* for future use and keep binary compatability */
+    XtPointer pad[4];	/* for future use and keep binary compatibility */
 #endif
 } ScrollbarPart;
 

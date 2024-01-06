@@ -2,6 +2,7 @@ lib_LTLIBRARIES = libXfixes.la
 
 libXfixes_la_SOURCES = 	\
 	Cursor.c	\
+	Disconnect.c	\
 	Region.c	\
 	SaveSet.c	\
 	Selection.c	\

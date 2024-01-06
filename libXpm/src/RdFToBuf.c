@@ -72,7 +72,7 @@ XpmReadFileToBuffer(
     *buffer_return = NULL;
 
 #ifndef VAX11C
-    fd = open(filename, O_RDONLY);
+    fd = open(filename, O_RDONLY | O_CLOEXEC);
 #else
     fd = open(filename, O_RDONLY, NULL);
 #endif
@@ -89,6 +89,10 @@ XpmReadFileToBuffer(
 	return XpmOpenFailed;
     }
     len = stats.st_size;
+    if (len < 0 || len >= SIZE_MAX) {
+	fclose(fp);
+	return XpmOpenFailed;
+    }
     ptr = (char *) XpmMalloc(len + 1);
     if (!ptr) {
 	fclose(fp);

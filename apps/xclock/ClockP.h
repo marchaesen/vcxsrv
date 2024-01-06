@@ -85,7 +85,7 @@ typedef struct {
 	 GC	HandGC;		/* Hand GC */
 	 GC	HighGC;		/* Highlighting GC */
 /* start of graph stuff */
-	 int	update;		/* update period in second */
+	 float	update;		/* update period in second */
 	 Dimension radius;		/* radius factor */
 	 int	backing_store;	/* backing store type */
 	 Boolean chime;
@@ -109,6 +109,7 @@ typedef struct {
 	 XPoint	*segbuffptr;
 	 XPoint	*hour, *sec;
 	 struct tm  otm ;
+	 struct timeval otv ;
 	 XtIntervalId interval_id;
 	 char prev_time_string[STRFTIME_BUFF_SIZE];
 #ifndef NO_I18N

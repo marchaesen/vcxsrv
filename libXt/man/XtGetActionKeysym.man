@@ -33,38 +33,11 @@
 .ds Vn 2.2
 .hw XtGet-Action-Keysym wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtGetActionKeysym __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtGetActionKeysym \- obtain corresponding keysym
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 KeySym XtGetActionKeysym(XEvent* \fIevent\fP, Modifiers*
 \fImodifiers_return\fP);
@@ -76,29 +49,29 @@ Intrinsics.
 Returns the modifiers that caused the match, if non-NULL.
 .SH DESCRIPTION
 If
-.ZN XtGetActionKeysym
+.B XtGetActionKeysym
 is called after an action procedure has been invoked by the Intrinsics
 and before that action procedure returns, and if the event pointer has
 the same value as the event pointer passed to that action routine, and
 if the event is a
-.ZN KeyPress
+.B KeyPress
 or
-.ZN KeyRelease
+.B KeyRelease
 event, then
-.ZN XtGetActionKeysym
+.B XtGetActionKeysym
 returns the KeySym that matched the final event specification in the
 translation table and, if \fImodifiers_return\fP is non-NULL, the
 modifier state actually used to generate this KeySym; otherwise, if
 the event is a
-.ZN KeyPress
+.B KeyPress
 or
-.ZN KeyRelease
+.B KeyRelease
 event, then
-.ZN XtGetActionKeysym
+.B XtGetActionKeysym
 calls
-.ZN XtTranslateKeycode
+.B XtTranslateKeycode
 and returns the results; else it returns
-.ZN NoSymbol
+.B NoSymbol
 and does not examine \fImodifiers_return\fP.
 .SH "SEE ALSO"
 .br

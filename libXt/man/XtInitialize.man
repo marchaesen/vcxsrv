@@ -33,52 +33,25 @@
 .ds Vn 2.2
 .hw Xt-Initialize
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtInitialize __libmansuffix__ __xorgversion__ "XT COMPATIBILITY FUNCTIONS"
 .SH NAME
 XtInitialize \- initialize
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-Widget XtInitialize(String \fIshell_name\fP, String \fIapplication_class\fP,
-XrmOptionDescRec* \fIoptions\fP, Cardinal \fInum_options\fP, int* \fIargc\fP,
-char** \fIargv\fP);
+Widget XtInitialize(const char *\fIshell_name\fP,
+const char *\fIapplication_class\fP,
+XrmOptionDescRec* \fIoptions\fP, Cardinal \fInum_options\fP,
+int* \fIargc\fP, char** \fIargv\fP);
 .SH ARGUMENTS
 .IP \fIshell_name\fP 1i
 Specifies the name of the created shell widget.
-.ds Ac , which usually is the generic name for all instances of this application
 .IP \fIapplication_class\fP 1i
-Specifies the class name of this application\*(Ac.
+Specifies the class name of this application, which usually is the generic name for all instances of this application.
 .IP \fIoptions\fP 1i
 Specifies how to parse the command line for any application-specific resources.
 The options argument is passed as a parameter to
-.ZN XrmParseCommand .
+.BR XrmParseCommand .
 For further information,
 see \fI\*(xL\fP.
 .IP \fInum_options\fP 1i
@@ -88,21 +61,23 @@ Specifies a pointer to the number of command line parameters.
 .IP \fIargv\fP 1i
 Specifies the command line parameters.
 .SH DESCRIPTION
-.ZN XtInitialize
+.B XtInitialize
 calls
-.ZN XtToolkitInitialize
+.B XtToolkitInitialize
 followed by
-.ZN XtOpenDisplay
+.B XtOpenDisplay
 with \fIdisplay_string\fP NULL and \fIapplication_name\fP NULL, and
 finally calls
-.ZN XtAppCreateShell
+.B XtAppCreateShell
 with \fIapplication_name\fP NULL, \fIwidget_class\fP
-.ZN applicationShellWidgetClass ,
+.BR applicationShellWidgetClass ,
 and the specified \fIargs\fP and \fInum_args\fP and returns the
-created shell. The semantics of calling
-.ZN XtInitialize
-more than once are undefined. This routine has been replaced by
-.ZN XtAppInitialize .
+created shell.
+The semantics of calling
+.B XtInitialize
+more than once are undefined.
+This routine has been replaced by
+.BR XtAppInitialize .
 .SH "SEE ALSO"
 .BR XtAppInitialize (__libmansuffix__)
 .br

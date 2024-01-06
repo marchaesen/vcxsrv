@@ -15,4 +15,4 @@ CSRCS =  cout.c \
          xkmread.c
 
 INCLUDES := . $(MHMAKECONF)\X11\extensions $(MHMAKECONF) $(MHMAKECONF)\include
-
+DEFINES := HAVE_DIX_CONFIG_H

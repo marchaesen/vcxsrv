@@ -76,10 +76,13 @@ for the digital clock's display.
 .B \-twelve
 This option indicates that a digital clock should display the time in
 twelve hour format.
+This is only effective for the brief display.
 .TP 8
 .B \-twentyfour
 This option indicates that a digital clock should display the time in
-twenty-four hour format.  This is the default when a digital clock is used.
+twenty-four hour format.
+This is only effective for the brief display.
+This is the default when a digital clock is used.
 .TP 8
 .B \-chime
 This option indicates that the clock should chime

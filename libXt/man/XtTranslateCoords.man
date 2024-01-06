@@ -34,60 +34,35 @@
 .ds Vn 2.2
 .hw XtTranslate-Coords wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtTranslateCoords __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtTranslateCoords \- translate widget coordinates
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtTranslateCoords(Widget \fIw\fP, Position \fIx\fP, \fIy\fP, Position
-*\fIrootx_return\fP, *\fIrooty_return\fP);
+void XtTranslateCoords(Widget \fIw\fP,
+Position \fIx\fP,
+Position \fIy\fP,
+Position *\fIrootx_return\fP,
+Position *\fIrooty_return\fP);
 .SH ARGUMENTS
 .IP \fIrootx_return\fP 1i
 .br
 .ns
 .IP \fIrooty_return\fP 1i
 Returns the root-relative x and y coordinates.
-.ds Nu widget-relative
 .IP \fIx\fP 1i
 .br
 .ns
 .IP \fIy\fP 1i
-Specify the \*(Nu x and y coordinates.
+Specify the widget-relative x and y coordinates.
 .IP \fIw\fP 1i
 Specifies the widget.
 .SH DESCRIPTION
 While
-.ZN XtTranslateCoords
+.B XtTranslateCoords
 is similar to the Xlib
-.ZN XTranslateCoordinates
+.B XTranslateCoordinates
 function, it does not generate a server request because all the required
 information already is in the widget's data structures.
 .SH "SEE ALSO"

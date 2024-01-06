@@ -1,3 +1,351 @@
+commit d54aaf2483df6a1f98fadc09004157e657b7f73e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Fri Aug 26 16:22:15 2022 -0700
+
+    libXfont2 2.0.6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit efb287223612e9225e5089bed76e348c236b15f0
+Author: Peter Harris <pharris@opentext.com>
+Date:   Thu Mar 25 15:56:31 2021 -0400
+
+    Fix buffer overrun in FontFileMakeDir on WIN32
+    
+    When dirName is "" (eg. when called by BuiltinReadDirectory),
+    FontFileMakeDir would read after the string when WIN32 is defined.
+    
+    Fix the overrun issue by checking the location of the found :
+    before adding two.
+    
+    Signed-off-by: Peter Harris <pharris@opentext.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3c8fdf6e35bed077a5614b4094770e668c96b9e9
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Tue Jun 21 17:37:32 2022 -0700
+
+    Fix comments to reflect removal of OS/2 support
+    
+    Commit 6c29007756301 removed OS/2 support from the code,
+    but missed updating the comments to match.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 8e3d94c867741319bf75b47266176cf677218641
+Author: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+Date:   Mon Jun 20 23:32:52 2022 -0700
+
+    Correct fsCreateACReq length
+    
+    Regressed-in: 6972ea08ee5b2ef1cfbdc2fcaf14f06bbd391561
+    Fixes: https://gitlab.freedesktop.org/xorg/lib/libxfont/-/issues/13
+    Signed-off-by: Jeremy Huddleston Sequoia <jeremyhu@apple.com>
+
+commit 5cb3b8809b9f141a2cf8a4e00a8387c75dc6bc10
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Jun 20 12:30:41 2022 -0700
+
+    configure: Use pkg-config to handle zlib dependency if possible
+    
+    Preserves fallback for systems like darwin without zlib.pc
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 12bed78985af1da2d1f4954a3491ee497a878b23
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Apr 6 14:37:42 2022 -0700
+
+    Fix spelling/wording issues
+    
+    Found by using:
+        codespell --builtin clear,rare,usage,informal,code,names
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f83ea5e953c6904578a458e2c2bc2e1d5ae3cb47
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Apr 6 14:14:21 2022 -0700
+
+    Build xz tarballs instead of bzip2
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit a6aee4c9a41a95a0509f654beca27009671731b3
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Wed Apr 6 14:10:16 2022 -0700
+
+    gitlab CI: add a basic build test
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3a4f68284c5aeea77789af1fe395cac35efc8562
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 1 17:36:43 2021 -0700
+
+    libXfont2 2.0.5
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit daff8876379c64c7bee126319af804896f83b5da
+Author: Alex Richardson <Alexander.Richardson@cl.cam.ac.uk>
+Date:   Wed Jul 14 17:23:48 2021 +0100
+
+    Fix out-of-bounds read in FontFileMakeDir()
+    
+    BuiltinReadDirectory() calls FontFileMakeDir ("", builtin_dir_count); and
+    this causes the `dirName[dirlen - 1]` access to read before the start of
+    the string. I found this while porting Xvnc to CHERI-RISC-V (which has
+    bounds and permissions on all pointers).
+
+commit ce7a3265019e4d66198c1581d9e8c859c34e8ef1
+Author: Bernd Kuhls <bernd.kuhls@t-online.de>
+Date:   Sat Oct 19 09:32:41 2019 +0200
+
+    configure: define HAVE_LIBBSD when libbsd was found
+
+commit 9529d2351fe52ffaaf9342343865073d5c5b6802
+Author: Peter Harris <pharris@opentext.com>
+Date:   Tue Mar 2 14:39:45 2021 -0500
+
+    Fix use after free when font server connection lost
+    
+    If there are multiple blocks waiting for the same font, only one of them
+    will have ->freeFont set. The rest will be in a state of FS_DEPENDING.
+    
+    If the font server dies before the font finishes opening, the block with
+    ->freeFont set will call ->unload_font, invalidating the pfont pointers
+    in the remaining FS_DEPENDING blocks.
+    
+    Avoid a use after free (and potential crash) by passing conn to
+    fs_cleanup_font instead of dereferencing pfont to find the conn.
+    
+    Signed-off-by: Peter Harris <pharris@opentext.com>
+
+commit e7b2cae1ad9f07c188bcad27767a2f4fa6e0c2a4
+Author: Peter Harris <pharris@opentext.com>
+Date:   Fri Mar 6 10:42:03 2020 -0500
+
+    Fix crash when font server connection lost
+    
+    Always initialize the return value of fs_new_block_rec. Even if the
+    conn->blockState is FS_BROKEN_CONNECTION | FS_RECONNECTING, we must not
+    return with an uninitialized blockrec on the block list. When the
+    blockrec times out, _fs_clean_aborted_blockrec calls fs_cleanup_bfont,
+    which will try to follow pointers in the blockrec (which has not been
+    initialized).
+    
+    Signed-off-by: Peter Harris <pharris@opentext.com>
+
+commit 608640b87dc47233940664632e3ab8f13972be2b
+Author: Jon Turney <jon.turney@dronecode.org.uk>
+Date:   Thu Oct 17 19:11:52 2019 +0100
+
+    Fix Win32 build since c4ed2e06 "Add some unit testing utilities"
+    
+    Provide Win32 replacements for realpath() and err.h
+
+commit 13ebb8f32f767c596b1b8bd16b90703a8135f20b
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Mon Sep 16 10:47:27 2019 -0400
+
+    README: Remove mention of libXfont 1.5
+    
+    xfs was ported to libXfont2 in release 1.2, and bdftopcf 1.1 includes a
+    copy of enough of the old libXfont1 code to not need an external
+    libXfont at all.
+
+commit ed8b8e9fe544ec51ab1b1dfaea6fced35470ad6c
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 14 11:34:03 2019 -0700
+
+    libXfont2 2.0.4
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit b46cd2fef2bfe192579930f29a830051670d4d00
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Sep 14 11:32:02 2019 -0700
+
+    Add src/util/replace.h to noinst_HEADERS so it gets included in tarballs
+    
+    Found when "make distcheck" failed.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 5561a9dc835a249e58cfdb3c384547f6f401a15d
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 17 14:31:24 2019 -0700
+
+    fs_read_glyphs: check if rep is null before dereferencing
+    
+    Resolves coverity warning def16 from the list in
+    https://gitlab.freedesktop.org/xorg/lib/libxfont/issues/6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c84ce6be6a7e2e70c9ab20b60bc7198699690d50
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 17 14:19:04 2019 -0700
+
+    CatalogueRescan: if opendir() fails, unref fpes, but don't free the cat
+    
+    None of the callers of CatalogueRescan check for failure before accessing
+    the cat pointer so don't free it (especially without clearing the pointer
+    to it in fpe->private), just unref the contents.
+    
+    Can only be triggered if somehow stat() succeeds on the directory, but
+    opendir fails anyway (removed between the calls?  permission problem?).
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c1c5c9aa4cacb9138d6a2e5d37619f7960b54536
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 17 13:56:03 2019 -0700
+
+    ComputeScaledProperties: check for valid pointers before making atoms
+    
+    Resolves coverity warning def23 from the list in
+    https://gitlab.freedesktop.org/xorg/lib/libxfont/issues/6
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 78085e6b683b4e5a13b38508597a0c93ac2ed9ea
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 17 13:41:02 2019 -0700
+
+    stubs/atom.c: check for ResizeHashTable failure
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 3e0e36e4a9fee32105aa7c5cb6e089c495b92b10
+Author: Maya Rashish <maya@NetBSD.org>
+Date:   Fri Aug 9 12:53:48 2019 +0300
+
+    Fix whitespace
+
+commit 194cb45ceb510c3e580460919cd7e5dd31a285c8
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sun Aug 4 11:14:39 2019 -0700
+
+    fontxlfd.c: tell gcc that switch fallthrough is intentional
+    
+    Quiets:
+    src/util/fontxlfd.c: In function ‘FontParseXLFDName’:
+    src/util/fontxlfd.c:450:14: warning: this statement may fall through [-Wimplicit-fallthrough=]
+      replaceChar = '*';
+      ~~~~~~~~~~~~^~~~~
+    src/util/fontxlfd.c:451:5: note: here
+         case FONT_XLFD_REPLACE_ZERO:
+         ^~~~
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit ddbee30d3525cdd66b84056affc407601680cc29
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 19:29:05 2019 -0700
+
+    Convert multiplying malloc calls to use mallocarray instead
+    
+    Introduces mallocarray as a macro calling reallocarray with a NULL
+    pointer for the old allocation.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit f54470dab5b392380df61a22b4b4bef685b6cee2
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 19:09:19 2019 -0700
+
+    Convert multiplying realloc calls to use reallocarray instead
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 27207d35d4b4bbd5d2b2c5f7e13a61ea43d04a4a
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 16:13:21 2019 -0700
+
+    Add reallocarray fallback if not provided by libc nor libbsd
+    
+    Implementation copied from the Xserver
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 2178c7445a3464bd69637ad91a2dd0320a60e0df
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 18:19:11 2019 -0700
+
+    Use bounds checking string functions everywhere
+    
+    Replace strcpy, strcat, sprintf with strlcpy, strlcat, snprintf
+    everywhere, even where there were already bounds checks in place,
+    to reduce time spent checking static analysis results.
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit d4c941ea8b1dc07a14efce656bff58d31a14c985
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 16:05:21 2019 -0700
+
+    Add strlcat & strlcpy fallbacks if not provided by libc nor libbsd
+    
+    Implementations copied from the Xserver
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit c4ed2e069dc8aa5b8b7ef2fc926ae8584ff2a67b
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Aug 3 13:45:54 2019 -0700
+
+    Add some unit testing utilities
+    
+    The test/utils directory contains some standalone test programs for testing
+    libXfont funtionality without needing a full X server session.  They could
+    be used to generate automated unit testing in the future, but that work has
+    not yet been done.
+    
+    [v2: updated original work from libXfont 1.5 to 2.0 API & makefiles]
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 77ae4048564eff2e96b80cedfac013877e46d506
+Author: Adam Jackson <ajax@redhat.com>
+Date:   Wed Jan 4 12:13:04 2017 -0500
+
+    fontfile: Remove unused 'bc' slot from _FontEntry
+    
+    Whatever this is, we're not using it. On my machine we allocate about
+    1100 of these structs, and this change reduces the struct from 152 to 48
+    bytes, so this saves about 100k of memory.
+    
+    Signed-off-by: Adam Jackson <ajax@redhat.com>
+
+commit 6624b5e705da8333a3bc63d1ddeea6b11e831e24
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Sat Mar 16 12:40:03 2019 -0700
+
+    Update configure.ac bug URL for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 66a26687b2b86b53c315544483b740deb6f01c1e
+Author: Alan Coopersmith <alan.coopersmith@oracle.com>
+Date:   Mon Nov 19 22:05:10 2018 -0800
+
+    Update README for gitlab migration
+    
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
+commit 099ed6fa9f293d283163b138830d43bbd47c5df1
+Author: Rin Okuyama <rin@NetBSD.org>
+Date:   Tue Feb 21 06:18:37 2017 +0000
+
+    avoid -Wformat errors from clang when building with -DDEBUG
+    
+    https://bugs.freedesktop.org/show_bug.cgi?id=99882
+    
+    Reviewed-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+    Signed-off-by: Alan Coopersmith <alan.coopersmith@oracle.com>
+
 commit cdb2f990348c3bd1407022f7e0e5fcba552d539f
 Author: Matthieu Herrb <matthieu@herrb.eu>
 Date:   Sat Nov 25 12:01:16 2017 +0100
@@ -118,9 +466,9 @@ Date:   Wed May 18 11:52:27 2016 -0400
 
     configure: Use -fvisibility=hidden if available
     
-    text	   data	    bss	    dec	    hex	filename
-     233732	   8168	   1616	 243516	  3b73c	.libs/libXfont2.so.2.before
-     217113	   6816	   1616	 225545	  37109	.libs/libXfont2.so.2.after
+    text       data     bss     dec     hex filename
+     233732    8168    1616  243516   3b73c .libs/libXfont2.so.2.before
+     217113    6816    1616  225545   37109 .libs/libXfont2.so.2.after
     
     Signed-off-by: Adam Jackson <ajax@redhat.com>
     Reviewed-by: Emil Velikov <emil.l.velikov@gmail.com>
@@ -135,21 +483,21 @@ Date:   Mon May 30 00:46:21 2016 -0700
     
     Found by clang's Address Sanitizer
     
-    	crac.num_auths = set_font_authorizations(&authorizations, &authlen,
-    						 client);
-    	/* Work around bug in xfs versions up through modular release 1.0.8
-    	   which rejects CreateAC packets with num_auths = 0 & authlen < 4 */
-    	if (crac.num_auths == 0) {
-    	    authorizations = padding;
-    	    authlen = 4;
-    	} else {
-    	    authlen = (authlen + 3) & ~0x3;
-    	}
-    	crac.length = (sizeof (fsCreateACReq) + authlen) >> 2;
-    	crac.acid = cur->acid;
-    	_fs_add_req_log(conn, FS_CreateAC);
-    	_fs_write(conn, (char *) &crac, sizeof (fsCreateACReq));
-    	_fs_write(conn, authorizations, authlen);
+            crac.num_auths = set_font_authorizations(&authorizations, &authlen,
+                                                     client);
+            /* Work around bug in xfs versions up through modular release 1.0.8
+               which rejects CreateAC packets with num_auths = 0 & authlen < 4 */
+            if (crac.num_auths == 0) {
+                authorizations = padding;
+                authlen = 4;
+            } else {
+                authlen = (authlen + 3) & ~0x3;
+            }
+            crac.length = (sizeof (fsCreateACReq) + authlen) >> 2;
+            crac.acid = cur->acid;
+            _fs_add_req_log(conn, FS_CreateAC);
+            _fs_write(conn, (char *) &crac, sizeof (fsCreateACReq));
+            _fs_write(conn, authorizations, authlen);
     
     In the case in the report, set_font_authorizations setup authorizations as a
     34 byte buffer (and authlen set to 34 as one would expect). The following
@@ -1584,7 +1932,7 @@ Date:   Wed Apr 14 05:58:28 2010 -0500
     
     Conflicts:
     
-    	ChangeLog
+            ChangeLog
     
     Signed-off-by: Yaakov Selkowitz <yselkowitz@users.sourceforge.net>
 
@@ -2371,25 +2719,25 @@ Date:   Mon Jul 16 12:24:34 2007 +0200
     by the first call disappears.
 
 commit e3642d9b2c0819a607d4cce413b9f0541285545b
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Mon Jul 2 15:01:05 2007 -0400
 
     Bump version to 1.3.0.
 
 commit f33f9361086db3cf1d09cec067f38fe751ed22eb
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Mon Jul 2 14:59:11 2007 -0400
 
     Fix crash when no attributes are present for symlink.
 
 commit 8d47483711be6076e7bfefab14aa890c5f37e1aa
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Thu Jun 21 21:44:02 2007 -0400
 
     Bump version to 1.2.9.
 
 commit c5ab59762c4ad5def68436d55937a2bd558d5c99
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Tue Jun 19 10:38:02 2007 -0400
 
     Add a new 'catalogue' FPE, which takes font paths from symlinks in a dir.
@@ -2397,7 +2745,7 @@ Date:   Tue Jun 19 10:38:02 2007 -0400
     This patch adds a new FPE type, which will match font path elements of the
     form
     
-    	catalogue:<dir>
+            catalogue:<dir>
     
     The dir specified after the catalogue: prefix will be scanned for symlinks
     and each symlink destination will be added as a local fontfile FPE.
@@ -2407,22 +2755,22 @@ Date:   Tue Jun 19 10:38:02 2007 -0400
     
     An example configuration:
     
-    	75dpi:unscaled:pri=20 -> /usr/share/X11/fonts/75dpi
-    	ghostscript:pri=60 -> /usr/share/fonts/default/ghostscript
-    	misc:unscaled:pri=10 -> /usr/share/X11/fonts/misc
-    	type1:pri=40 -> /usr/share/X11/fonts/Type1
-    	type1:pri=50 -> /usr/share/fonts/default/Type1
+            75dpi:unscaled:pri=20 -> /usr/share/X11/fonts/75dpi
+            ghostscript:pri=60 -> /usr/share/fonts/default/ghostscript
+            misc:unscaled:pri=10 -> /usr/share/X11/fonts/misc
+            type1:pri=40 -> /usr/share/X11/fonts/Type1
+            type1:pri=50 -> /usr/share/fonts/default/Type1
     
     will add /usr/share/X11/fonts/misc as the first FPE with the attribute
     'unscaled', second FPE will be /usr/share/X11/fonts/75dpi, also with
     the attribute unscaled etc.  This is functionally equivalent to setting
     the following font path:
     
-    	/usr/share/X11/fonts/misc:unscaled,
-    	/usr/share/X11/fonts/75dpi:unscaled,
-    	/usr/share/X11/fonts/Type1,
-    	/usr/share/fonts/default/Type1,
-    	/usr/share/fonts/default/ghostscript
+            /usr/share/X11/fonts/misc:unscaled,
+            /usr/share/X11/fonts/75dpi:unscaled,
+            /usr/share/X11/fonts/Type1,
+            /usr/share/fonts/default/Type1,
+            /usr/share/fonts/default/ghostscript
     
     The motivation is to let font packages add a symlink to the new font
     directory they provide instead of rewriting either the Xorg config file
@@ -2529,7 +2877,7 @@ Date:   Tue Feb 20 00:20:23 2007 -0800
     added -flat_namespace to CFLAGS for Darwin
 
 commit 9509d5c7ee5d5e78c6eef54e8faceede5ca5f24e
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Mon Jan 22 18:24:19 2007 -0500
 
     Bump to 1.2.7.
@@ -2544,7 +2892,7 @@ Date:   Fri Jan 19 08:50:39 2007 +1100
     loaded), load it as a valid font path anyway.
 
 commit 931b777108526dd0761f948dcd9f1603ac02efc8
-Author: Kristian Høgsberg <krh@redhat.com>
+Author: Kristian Høgsberg  <krh@redhat.com>
 Date:   Wed Jan 17 17:19:53 2007 -0500
 
     Add stubs for the scalable renderer callbacks.
@@ -3039,7 +3387,7 @@ Date:   Fri Jul 1 21:24:31 2005 +0000
     Default --enable-fc to yes; minor formatting changes.
 
 commit 4534fa0c8adb77b7db47101318e0e863edb186ce
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Mon Jun 27 16:09:14 2005 +0000
 
     - Remove fontenc from Xfont
@@ -3051,26 +3399,26 @@ Date:   Mon Jun 27 16:09:14 2005 +0000
     - Fix xp.pc.in to add XPRINT_LIBS/CFLAGS instead of X_LIBS/CFLAGS
 
 commit fda7215c0783ad170eb14f7dda078fac3f134470
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Tue Jun 21 21:29:40 2005 +0000
 
     Add fontenc directory, update buildsystem
 
 commit db8fd7e670cbd901116344212217bee8001ab460
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Fri Jun 17 20:33:33 2005 +0000
 
     Add lbxutil to symlink.sh Add back accidentally removed include in Type1
         directory Disable Speedo by default
 
 commit e5525d268c6165318894f326be445b22a2523558
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Thu Jun 16 21:35:26 2005 +0000
 
     Add Speedo directory to Xfont
 
 commit b96f539005da57273dc7e2bee13651de4eedf087
-Author: Søren Sandmann Pedersen <sandmann@daimi.au.dk>
+Author: Søren Sandmann Pedersen  <sandmann@daimi.au.dk>
 Date:   Thu Jun 16 20:50:12 2005 +0000
 
     Add Type1 subdirectory to lib/Xfonts, update build system accordingly.

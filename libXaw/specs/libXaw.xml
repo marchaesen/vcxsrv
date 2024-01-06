@@ -3,6 +3,7 @@
                    "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd"
 [
 <!ENTITY % defs SYSTEM "defs.ent"> %defs;
+<!ENTITY % xawdefs SYSTEM "libXaw.ent"> %xawdefs;
 ]>
 
 <book id="libXaw">
@@ -10,7 +11,7 @@
 <bookinfo>
    <title>Athena Widget Set - C Language Interface</title>
    <subtitle>X Consortium Standard</subtitle>
-   <releaseinfo>X Version 11, Release &fullrelvers;</releaseinfo>
+   <releaseinfo>libXaw Version &xawvers;</releaseinfo>
    <authorgroup>
       <author>
          <firstname>Chris</firstname><othername>D.</othername><surname>Peterson</surname>
@@ -85,5 +86,6 @@ It is provided &ldquo;as is&rdquo; without express or implied warranty.
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="CH6.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="CH7.xml"/>
 <xi:include xmlns:xi="http://www.w3.org/2001/XInclude"  href="TPage_Credits.xml"/>
+<index />
 </book>
 

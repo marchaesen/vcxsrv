@@ -33,50 +33,24 @@
 .ds Vn 2.2
 .hw XtToolkit-Thread-Initialize wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtToolkitThreadInitialize __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtToolkitThreadInitialize \- initialize the toolkit for multiple threads
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
 Boolean XtToolkitThreadInitialize(void);
 .SH DESCRIPTION
 If
-.ZN XtToolkitThreadInitialize
-was previously called, it returns. The application programmer must ensure
+.B XtToolkitThreadInitialize
+was previously called, it returns.
+The application programmer must ensure
 that two or more threads do not simultaneously attempt to call
-.ZN XtToolkitThreadInitialize ;
+.BR XtToolkitThreadInitialize ;
 the effect of this is undefined.
-.ZN XtToolkitThreadInitialize
+.B XtToolkitThreadInitialize
 returns
-.ZN True
+.B True
 if the host operating system has threads and the Intrinsics are thread
 safe.
 .SH "SEE ALSO"

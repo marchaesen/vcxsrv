@@ -5,19 +5,19 @@
 <!-- .XS -->
 <!-- 	Porthole Widget -->
 <!-- .XE -->
-<!-- .IN "Porthole widget" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>Porthole widget</primary></indexterm>
 <literallayout class="monospaced">
 <!-- .TA 2.0i -->
 <!-- .ta 2.0i -->
 <!-- .sp -->
 Application Header file	&lt;X11/Xaw/Porthole.h&gt;
-<!-- .IN "Porthole.h" "" -->
+<indexterm><primary>Porthole.h</primary></indexterm>
 Class Header file	&lt;X11/Xaw/PortholeP.h&gt;
-<!-- .IN "PortholeP.h" "" -->
+<indexterm><primary>PortholeP.h</primary></indexterm>
 Class		portholeWidgetClass
-<!-- .IN "portholeWidgetClass" "" -->
+<indexterm><primary>portholeWidgetClass</primary></indexterm>
 Class Name	Porthole
-<!-- .IN "Porthole widget" "class name" -->
+<indexterm><primary>Porthole widget</primary><secondary>class name</secondary></indexterm>
 Superclass	Composite
 <!-- .sp -->
 </literallayout>
@@ -38,7 +38,7 @@ retrieved from the argument list or from the resource database:
 </para>
 <para>
 <!-- .LP -->
-<!-- .IN "Porthole widget" "resources" -->
+<indexterm><primary>Porthole widget</primary><secondary>resources</secondary></indexterm>
 <informaltable>
   <tgroup cols='5' align='center'>
   <colspec colname='c1'/>
@@ -244,7 +244,7 @@ size or position.
 </sect2>
 <sect2 id='Porthole::Layout_Semantics'>
 <title>Layout Semantics</title>
-<!-- .IN "Porthole widget" "layout semantics" -->
+<indexterm><primary>Porthole widget</primary><secondary>layout semantics</secondary></indexterm>
 <para>
 <!-- .LP -->
 The Porthole widget allows its managed child to request any size
@@ -256,12 +256,12 @@ Panner widget.
 </sect2>
 <sect2 id="Porthole_Callbacks">
 <title>Porthole Callbacks</title>
-<!-- .IN "Porthole widget" "callbacks" -->
+<indexterm><primary>Porthole widget</primary><secondary>callbacks</secondary></indexterm>
 <para>
 <!-- .LP -->
 The functions registered on the <function>reportCallback</function> list are invoked whenever
 the managed child changes size or position:
-<!-- .IN "ReportProc" "" "@DEF@" -->
+<indexterm significance="preferred"><primary>ReportProc</primary></indexterm>
 <funcsynopsis id='Porthole::ReportProc'>
 <funcprototype>
   <funcdef>void<function> ReportProc</function></funcdef>

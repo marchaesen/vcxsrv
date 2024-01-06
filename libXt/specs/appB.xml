@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE book PUBLIC "-//OASIS//DTD DocBook XML V4.3//EN" "http://www.oasis-open.org/docbook/xml/4.3/docbookx.dtd">
+
 <appendix id='Translation_Table_Syntax'>
 <title>Translation Table Syntax</title>
 <para><emphasis role='strong'>Notation</emphasis></para>
@@ -14,15 +17,15 @@ Syntax is specified in EBNF notation with the following conventions:
   <tbody>
     <row>
       <entry>[ a ]</entry>
-      <entry>Means either nothing or "a"</entry>
+      <entry>Means either nothing or &ldquo;a&rdquo;</entry>
     </row>
     <row>
       <entry>{ a }</entry>
-      <entry>Means zero or more occurrences of "a"</entry>
+      <entry>Means zero or more occurrences of &ldquo;a&rdquo;</entry>
     </row>
     <row>
       <entry>( a | b )</entry>
-      <entry>Means either "a" or "b"</entry>
+      <entry>Means either &ldquo;a&rdquo; or &ldquo;b&rdquo;</entry>
     </row>
     <row>
       <entry>\\n</entry>
@@ -33,7 +36,7 @@ Syntax is specified in EBNF notation with the following conventions:
 </informaltable>
 
 <para>
-All terminals are enclosed in double quotation marks (" ").
+All terminals are enclosed in double quotation marks ("&nbsp;").
 Informal descriptions are enclosed in angle brackets (&lt; &gt;).
 Syntax
 </para>
@@ -51,43 +54,43 @@ Syntax
     </row>
     <row>
       <entry>directive</entry>
-      <entry>= ( "#replace" | "#override" | "#augment" ) "\\\\n"</entry>
+      <entry>= ( &ldquo;#replace&rdquo; | &ldquo;#override&rdquo; | &ldquo;#augment&rdquo; ) &ldquo;\\n&rdquo;</entry>
     </row>
     <row>
       <entry>production</entry>
-      <entry>= lhs ":" rhs "\\\\n"</entry>
+      <entry>= lhs &ldquo;:&rdquo; rhs &ldquo;\\n&rdquo;</entry>
     </row>
     <row>
       <entry>lhs</entry>
-      <entry>= ( event | keyseq ) { "," (event | keyseq) }</entry>
+      <entry>= ( event | keyseq ) { &ldquo;,&rdquo; (event | keyseq) }</entry>
     </row>
     <row>
       <entry>keyseq</entry>
-      <entry>= """ keychar {keychar} """</entry>
+      <entry>= &ldquo;"&rdquo; keychar {keychar} &ldquo;"&rdquo;</entry>
     </row>
     <row>
       <entry>keychar</entry>
-      <entry>= [ "^" | "$" | "\\\\" ] &lt;ISO Latin 1 character&gt;</entry>
+      <entry>= [ &ldquo;^&rdquo; | &ldquo;$&rdquo; | &ldquo;\\&rdquo; ] &lt;ISO Latin 1 character&gt;</entry>
     </row>
     <row>
       <entry>event</entry>
-      <entry>= [modifier_list] "&lt;"event_type"&gt;" [ "(" count["+"] ")" ] {detail}</entry>
+      <entry>= [modifier_list] &ldquo;&lt;&rdquo;event_type&ldquo;&gt;&rdquo; [ &ldquo;(&rdquo; count[&ldquo;+&rdquo;] &ldquo;)&rdquo; ] {detail}</entry>
     </row>
     <row>
       <entry>modifier_list</entry>
-      <entry>= ( ["!"] [":"] {modifier} ) | "None"</entry>
+      <entry>= ( [&ldquo;!&rdquo;] [&ldquo;:&rdquo;] {modifier} ) | &ldquo;None&rdquo;</entry>
     </row>
     <row>
       <entry>modifier</entry>
-      <entry>= ["~"] modifier_name</entry>
+      <entry>= [&ldquo;~&rdquo;] modifier_name</entry>
     </row>
     <row>
       <entry>count</entry>
-      <entry>= ("1" | "2" | "3" | "4" | ...)</entry>
+      <entry>= (&ldquo;1&rdquo; | &ldquo;2&rdquo; | &ldquo;3&rdquo; | &ldquo;4&rdquo; | ...)</entry>
     </row>
     <row>
       <entry>modifier_name</entry>
-      <entry>= "@" &lt;keysym&gt; | &lt;see ModifierNames table below&gt;</entry>
+      <entry>= &ldquo;@&rdquo; &lt;keysym&gt; | &lt;see ModifierNames table below&gt;</entry>
     </row>
     <row>
       <entry>event_type</entry>
@@ -99,7 +102,7 @@ Syntax
     </row>
     <row>
       <entry>rhs</entry>
-      <entry>= { name "(" [params] ")" }</entry>
+      <entry>= { name &ldquo;(&rdquo; [params] &ldquo;)&rdquo; }</entry>
     </row>
     <row>
       <entry>name</entry>
@@ -107,11 +110,11 @@ Syntax
     </row>
     <row>
       <entry>namechar</entry>
-      <entry>= { "a"-"z" | "A"-"Z" | "0"-"9" | "_" | "-" }</entry>
+      <entry>= { &ldquo;a&rdquo;&ndash;&ldquo;z&rdquo; | &ldquo;A&rdquo;&ndash;&ldquo;Z&rdquo; | &ldquo;0&rdquo;&ndash;&ldquo;9&rdquo; | &ldquo;_&rdquo; | &ldquo;&ndash;&rdquo; }</entry>
     </row>
     <row>
       <entry>params</entry>
-      <entry>= string {"," string}</entry>
+      <entry>= string {&ldquo;,&rdquo; string}</entry>
     </row>
     <row>
       <entry>string</entry>
@@ -119,15 +122,15 @@ Syntax
     </row>
     <row>
       <entry>quoted_string</entry>
-      <entry>= <quote>"</quote> {&lt;Latin 1 character&gt; | escape_char} ["\\\\" ] <quote>"</quote></entry>
+      <entry>= <quote>"</quote> {&lt;Latin 1 character&gt; | escape_char} [&ldquo;\\"&rdquo; ] <quote>"</quote></entry>
     </row>
     <row>
       <entry>escape_char</entry>
-      <entry>= "\\""</entry>
+      <entry>= &ldquo;\\"&rdquo;</entry>
     </row>
     <row>
       <entry>unquoted_string</entry>
-      <entry>= {&lt;Latin 1 character except space, tab, ",", "\\n", ")"&gt;}</entry>
+      <entry>= {&lt;Latin 1 character except space, tab, &ldquo;,&rdquo;, &ldquo;\\n&rdquo;, &ldquo;)&rdquo;&gt;}</entry>
     </row>
   </tbody>
   </tgroup>
@@ -139,8 +142,8 @@ The <emphasis remap='I'>params</emphasis> field is parsed into a list of
 values that will be passed to the named action procedure.  A
 <emphasis remap='I'>quoted string</emphasis> may contain an embedded quotation mark if the
 quotation mark is preceded by a single backslash (\).  The
-three-character sequence "\\\"" is interpreted as "single backslash
-followed by end-of-string".
+three-character sequence &ldquo;\\"&rdquo; is interpreted as &ldquo;single backslash
+followed by end-of-string&rdquo;.
 </para>
 <para><emphasis role='strong'>Modifier Names</emphasis></para>
 
@@ -163,8 +166,8 @@ that contains modifiers for any other events is parsed.
 <itemizedlist spacing='compact'>
   <listitem>
     <para>
-If the modifier list has no entries and is not "None",
-it means "don't care" on all modifiers.
+If the modifier list has no entries and is not &ldquo;None&rdquo;,
+it means &ldquo;don't care&rdquo; on all modifiers.
     </para>
   </listitem>
   <listitem>
@@ -180,7 +183,7 @@ and no other modifiers can be asserted.
 If any modifiers are specified
 and an exclamation point (!) is not specified,
 it means that the listed modifiers must be in the
-correct state and "don't care" about any other modifiers.
+correct state and &ldquo;don't care&rdquo; about any other modifiers.
     </para>
   </listitem>
   <listitem>
@@ -191,7 +194,7 @@ it means that that modifier must not be asserted.
   </listitem>
   <listitem>
     <para>
-If "None" is specified, it means no modifiers can be asserted.
+If &ldquo;None&rdquo; is specified, it means no modifiers can be asserted.
     </para>
   </listitem>
   <listitem>
@@ -205,8 +208,8 @@ System Protocol</emphasis>, Section 5.
 The resulting KeySym must exactly match the specified
 KeySym, and the nonstandard modifiers in the event must match the
 modifier list.
-For example, ":&lt;Key&gt;a" is distinct from ":&lt;Key&gt;A",
-and ":Shift&lt;Key&gt;A" is distinct from ":&lt;Key&gt;A".
+For example, &ldquo;:&lt;Key&gt;a&rdquo; is distinct from &ldquo;:&lt;Key&gt;A&rdquo;,
+and &ldquo;:Shift&lt;Key&gt;A&rdquo; is distinct from &ldquo;:&lt;Key&gt;A&rdquo;.
     </para>
   </listitem>
   <listitem>
@@ -222,7 +225,7 @@ modifiers in the event are applied as for colon (:) above.
     <para>
 If a colon (:) is not specified,
 no standard modifiers are applied.
-Then, for example, "&lt;Key&gt;A" and "&lt;Key&gt;a" are equivalent.
+Then, for example, &ldquo;&lt;Key&gt;A&rdquo; and &ldquo;&lt;Key&gt;a&rdquo; are equivalent.
     </para>
   </listitem>
 </itemizedlist>
@@ -237,16 +240,16 @@ a dollar sign ($), and another backslash (\).
 Briefly:
 </para>
 
-<literallayout >
-No modifiers:	                None &lt;event&gt; detail
-Any modifiers:	                &lt;event&gt; detail
-Only these modifiers:	        ! mod1 mod2 &lt;event&gt; detail
-These modifiers and any others:	mod1 mod2 &lt;event&gt; detail
-</literallayout>
+<programlisting>
+No modifiers:                   None &lt;event&gt; detail
+Any modifiers:                  &lt;event&gt; detail
+Only these modifiers:           ! mod1 mod2 &lt;event&gt; detail
+These modifiers and any others: mod1 mod2 &lt;event&gt; detail
+</programlisting>
 
 <para>
-The use of "None" for a modifier list is identical to the use
-of an exclamation point with no modifers.
+The use of &ldquo;None&rdquo; for a modifier list is identical to the use
+of an exclamation point with no modifiers.
 </para>
 
 <informaltable frame='topbot'>
@@ -366,7 +369,7 @@ of an exclamation point with no modifers.
 A key modifier is any modifier bit one of whose corresponding KeyCodes
 contains the corresponding left or right KeySym.
 For example,
-"m" or "Meta" means any modifier bit mapping to a KeyCode
+&ldquo;m&rdquo; or &ldquo;Meta&rdquo; means any modifier bit mapping to a KeyCode
 whose KeySym list contains XK_Meta_L or XK_Meta_R.
 Note that this interpretation is for each display,
 not global or even for each application context.
@@ -377,7 +380,7 @@ there is no additional interpretation of KeySyms for these modifiers.
 
 <para>
 Because it is possible to associate arbitrary KeySyms with modifiers, the set of
-key modifiers is extensible.  The "@" &lt;keysym&gt; syntax means any
+key modifiers is extensible.  The &ldquo;@&rdquo; &lt;keysym&gt; syntax means any
 modifier bit whose corresponding KeyCode contains the specified KeySym name.
 </para>
 
@@ -726,11 +729,11 @@ The detail field is supported for the following event types:
     </row>
     <row>
       <entry>ButtonPress</entry>
-      <entry>button from event <emphasis>detail</emphasis></entry>
+      <entry>&ldquo;Button&rdquo; followed by button from event <emphasis>detail</emphasis> (e.g. <function>Button1</function>)</entry>
     </row>
     <row>
       <entry>ButtonRelease</entry>
-      <entry>button from event <emphasis>detail</emphasis></entry>
+      <entry>&ldquo;Button&rdquo; followed by button from event <emphasis>detail</emphasis> (e.g. <function>Button42</function>)</entry>
     </row>
     <row>
       <entry>MotionNotify</entry>
@@ -820,15 +823,15 @@ accepted as a match.
 
 <para>
 A KeySym can be specified as any of the standard KeySym names,
-a hexadecimal number prefixed with "0x" or "0X",
-an octal number prefixed with "0", or a decimal number.
+a hexadecimal number prefixed with &ldquo;0x&rdquo; or &ldquo;0X&rdquo;,
+an octal number prefixed with &ldquo;0&rdquo;, or a decimal number.
 A KeySym expressed as a single digit is interpreted as the
-corresponding Latin 1 KeySym, for example, "0" is the KeySym XK_0.
+corresponding Latin 1 KeySym, for example, &ldquo;0&rdquo; is the KeySym XK_0.
 Other single character KeySyms are treated as literal constants from Latin 1,
-for example, "!" is treated as 0x21.
+for example, &ldquo;!&rdquo; is treated as 0x21.
 Standard KeySym names are as defined in
-<function>&lt;X11/keysymdef.h&gt;</function>
-with the "XK_" prefix removed.
+<filename>&lt;X11/keysymdef.h&gt;</filename>
+with the &ldquo;XK_&rdquo; prefix removed.
 </para>
 
 <para><emphasis role='strong'>Canonical Representation</emphasis></para>
@@ -839,7 +842,7 @@ representation is passed to a widget's
 <function>display_accelerator</function>
 procedure to describe the accelerators installed on that widget.
 The canonical representation of a translation table is (see also
-"Syntax")
+&ldquo;Syntax&rdquo;)
 </para>
 
 <informaltable frame='none'>
@@ -855,37 +858,37 @@ The canonical representation of a translation table is (see also
     </row>
     <row>
       <entry>production</entry>
-      <entry>= lhs ":" rhs "\\n"
+      <entry>= lhs &ldquo;:&rdquo; rhs &ldquo;\\n&rdquo;
       </entry>
     </row>
     <row>
       <entry>lhs</entry>
-      <entry>=event { "," event }
+      <entry>=event { &ldquo;,&rdquo; event }
       </entry>
     </row>
     <row>
       <entry>event</entry>
-      <entry>=[modifier_list] "&lt;"event_type"&gt;" [ "(" count["+"] ")" ] {detail}
+      <entry>=[modifier_list] &ldquo;&lt;&rdquo;event_type&ldquo;&gt;&rdquo; [ &ldquo;(&rdquo; count[&ldquo;+&rdquo;] &ldquo;)&rdquo; ] {detail}
       </entry>
     </row>
     <row>
       <entry>modifier_list</entry>
-      <entry>= ["!"] [":"] {modifier}
+      <entry>= [&ldquo;!&rdquo;] [&ldquo;:&rdquo;] {modifier}
       </entry>
     </row>
     <row>
       <entry>modifier</entry>
-      <entry>= ["˜"] modifier_name
+      <entry>= [&ldquo;~&rdquo;] modifier_name
       </entry>
     </row>
     <row>
       <entry>count</entry>
-      <entry>=("1" | "2" | "3" | "4" | ...)
+      <entry>=(&ldquo;1&rdquo; | &ldquo;2&rdquo; | &ldquo;3&rdquo; | &ldquo;4&rdquo; | ...)
       </entry>
     </row>
     <row>
       <entry>modifier_name</entry>
-      <entry>= "@" &lt;keysym&gt; | &lt;see canonical modifier names below&gt;
+      <entry>= &ldquo;@&rdquo; &lt;keysym&gt; | &lt;see canonical modifier names below&gt;
       </entry>
     </row>
     <row>
@@ -900,7 +903,7 @@ The canonical representation of a translation table is (see also
     </row>
     <row>
       <entry>rhs</entry>
-      <entry>={ name "(" [params] ")" }
+      <entry>={ name &ldquo;(&rdquo; [params] &ldquo;)&rdquo; }
       </entry>
     </row>
     <row>
@@ -910,12 +913,12 @@ The canonical representation of a translation table is (see also
     </row>
     <row>
       <entry>namechar</entry>
-      <entry>= { "a"-"z" | "A"-"Z" | "0"-"9" | "_" | "-" }
+      <entry>= { &ldquo;a&rdquo;&ndash;&ldquo;z&rdquo; | &ldquo;A&rdquo;&ndash;&ldquo;Z&rdquo; | &ldquo;0&rdquo;&ndash;&ldquo;9&rdquo; | &ldquo;_&rdquo; | &ldquo;-&rdquo; }
       </entry>
     </row>
     <row>
       <entry>params</entry>
-      <entry>=string {"," string}
+      <entry>=string {&ldquo;,&rdquo; string}
       </entry>
     </row>
     <row>
@@ -925,12 +928,12 @@ The canonical representation of a translation table is (see also
     </row>
     <row>
       <entry>quoted_string</entry>
-      <entry>= <quote>"</quote> {&lt;Latin 1 character&gt; | escape_char} ["\\\\" ] <quote>"</quote>
+      <entry>= <quote>"</quote> {&lt;Latin 1 character&gt; | escape_char} [&ldquo;\\"&rdquo; ] <quote>"</quote>
       </entry>
     </row>
     <row>
       <entry>escape_char</entry>
-      <entry>= "\\""
+      <entry>= &ldquo;\\"&rdquo;
       </entry>
     </row>
   </tbody>
@@ -939,13 +942,13 @@ The canonical representation of a translation table is (see also
 
 <para>The canonical modifier names are</para>
 
-<literallayout >
+<programlisting>
      Ctrl     Mod1         Button1
      Shift    Mod2         Button2
      Lock     Mod3         Button3
      Mod4     Button4
      Mod5     Button5
-</literallayout>
+</programlisting>
 
 <para>The canonical event types are</para>
 
@@ -1030,53 +1033,53 @@ The canonical representation of a translation table is (see also
     <para>
 Always put more specific events in the table before more general ones:
     </para>
-<literallayout >
+<programlisting>
     Shift &lt;Btn1Down&gt; : twas()\n\
     &lt;Btn1Down&gt; : brillig()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 For double-click on Button1 Up with Shift, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 Shift&lt;Btn1Up&gt;(2) : and()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 This is equivalent to the following line with appropriate timers set
 between events:
     </para>
-    <literallayout >
+<programlisting>
 Shift&lt;Btn1Down&gt;,Shift&lt;Btn1Up&gt;,Shift&lt;Btn1Down&gt;,Shift&lt;Btn1Up&gt; : and()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 For double-click on Button1 Down with Shift, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 Shift&lt;Btn1Down&gt;(2) : the()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 This is equivalent to the following line with appropriate timers set
 between events:
     </para>
-    <literallayout >
+<programlisting>
 Shift&lt;Btn1Down&gt;,Shift&lt;Btn1Up&gt;,Shift&lt;Btn1Down&gt; : the()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 Mouse motion is always discarded when it occurs between events in a table
 where no motion event is specified:
     </para>
-    <literallayout >
+<programlisting>
 &lt;Btn1Down&gt;,&lt;Btn1Up&gt; : slithy()
-</literallayout>
+</programlisting>
     <para>
 This is taken, even if the pointer moves a bit between the down and
 up events.
@@ -1093,10 +1096,10 @@ noninitial subsequence of another translation,
 it is not taken if it occurs in the context of the longer sequence.
 This occurs mostly in sequences like the following:
     </para>
-    <literallayout >
+<programlisting>
 &lt;Btn1Down&gt;,&lt;Btn1Up&gt; : toves()\n\
 &lt;Btn1Up&gt; :  did()
-</literallayout>
+</programlisting>
     <para>
 The second translation is taken only if the button release is not
 preceded by a button press or if there are intervening events between the
@@ -1117,9 +1120,9 @@ For single click on Button1 Up with Shift and Meta, use this specification:
     </para>
   </listitem>
   <listitem>
-    <literallayout >
+<programlisting>
 Shift Meta &lt;Btn1Down&gt;, Shift Meta&lt;Btn1Up&gt;: gyre()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
@@ -1129,9 +1132,9 @@ count in an event sequence.  The actions will be invoked
 on the <emphasis remap='I'>count</emphasis>-th click and each subsequent one arriving
 within the multi-click time interval.  For example:
     </para>
-    <literallayout >
+<programlisting>
 Shift &lt;Btn1Up&gt;(2+) : and()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
@@ -1139,9 +1142,9 @@ To indicate
 <function>EnterNotify</function>
 with any modifiers, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 &lt;Enter&gt; : gimble()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
@@ -1149,20 +1152,20 @@ To indicate
 <function>EnterNotify</function>
 with no modifiers, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 None &lt;Enter&gt; : in()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
 To indicate
 <function>EnterNotify</function>
-with Button1 Down and Button2 Up and "don't care" about
+with Button1 Down and Button2 Up and &ldquo;don't care&rdquo; about
 the other modifiers, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 Button1 ~Button2 &lt;Enter&gt; : the()
-</literallayout>
+</programlisting>
   </listitem>
   <listitem>
     <para>
@@ -1170,9 +1173,9 @@ To indicate
 <function>EnterNotify</function>
 with Button1 down and Button2 down exclusively, use this specification:
     </para>
-    <literallayout >
+<programlisting>
 ! Button1 Button2 &lt;Enter&gt; : wabe()
-</literallayout>
+</programlisting>
     <para>
 You do not need to use a tilde (~) with an exclamation point (!).
     </para>

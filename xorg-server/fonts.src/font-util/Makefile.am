@@ -55,7 +55,7 @@ pkgconfig_DATA = fontutil.pc
 
 CLEANFILES = bdftruncate
 
-EXTRA_DIST = $(mapfiles_DATA)
+EXTRA_DIST = $(mapfiles_DATA) README.md
 
 MAINTAINERCLEANFILES = ChangeLog INSTALL
 

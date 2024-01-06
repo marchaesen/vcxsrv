@@ -28,13 +28,13 @@ _XFUNCPROTOBEGIN
 extern Widget _XtVaOpenApplication(XtAppContext *app_context_return,
 			_Xconst char* application_class,
 			XrmOptionDescList options, Cardinal num_options,
-			int *argc_in_out, String *argv_in_out,
+			int *argc_in_out, _XtString *argv_in_out,
 			String *fallback_resources, WidgetClass widget_class,
 			va_list var_args);
 extern Widget _XtVaAppInitialize(XtAppContext *app_context_return,
 			_Xconst char* application_class,
 			XrmOptionDescList options, Cardinal num_options,
-			int *argc_in_out, String *argv_in_out,
+			int *argc_in_out, _XtString *argv_in_out,
 			String *fallback_resources, va_list var_args);
 
 _XFUNCPROTOEND

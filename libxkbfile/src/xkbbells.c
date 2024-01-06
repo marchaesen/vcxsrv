@@ -32,71 +32,73 @@
 #include "XKBbells.h"
 
 static const char *_xkbStdBellNames[XkbBI_NumBells] = {
-	"Info",
-	"Warning",
-	"MinorError",
-	"MajorError",
-	"BadValue",
-	"InvalidLocation",
-	"Question",
-	"Start",
-	"End",
-	"Success",
-	"Failure",
-	"Wait",
-	"Proceed",
-	"Ignore",
-	"Iconify",
-	"Deconify",
-	"Open",
-	"Close",
-	"TerminalBell",
-	"MarginBell",
-	"CursorStuck",
-	"NewMail",
-	"LaunchApp",
-	"AppDeath",
-	"ImAlive",
-	"ClockChimeHour",
-	"ClockChimeHalf",
-	"ClockChimeQuarter",
-	"RepeatingLastBell",
-	"ComposeFail",
-	"AX_FeatureOn",
-	"AX_FeatureOff",
-	"AX_FeatureChange",
-	"AX_IndicatorOn",
-	"AX_IndicatorOff",
-	"AX_IndicatorChange",
-	"AX_SlowKeysWarning",
-	"AX_SlowKeyPress",
-	"AX_SlowKeyAccept",
-	"AX_SlowKeyReject",
-	"AX_SlowKeyRelease",
-	"AX_BounceKeyReject",
-	"AX_StickyLatch",
-	"AX_StickyLock",
-	"AX_StickyUnlock"
+    "Info",
+    "Warning",
+    "MinorError",
+    "MajorError",
+    "BadValue",
+    "InvalidLocation",
+    "Question",
+    "Start",
+    "End",
+    "Success",
+    "Failure",
+    "Wait",
+    "Proceed",
+    "Ignore",
+    "Iconify",
+    "Deconify",
+    "Open",
+    "Close",
+    "TerminalBell",
+    "MarginBell",
+    "CursorStuck",
+    "NewMail",
+    "LaunchApp",
+    "AppDeath",
+    "ImAlive",
+    "ClockChimeHour",
+    "ClockChimeHalf",
+    "ClockChimeQuarter",
+    "RepeatingLastBell",
+    "ComposeFail",
+    "AX_FeatureOn",
+    "AX_FeatureOff",
+    "AX_FeatureChange",
+    "AX_IndicatorOn",
+    "AX_IndicatorOff",
+    "AX_IndicatorChange",
+    "AX_SlowKeysWarning",
+    "AX_SlowKeyPress",
+    "AX_SlowKeyAccept",
+    "AX_SlowKeyReject",
+    "AX_SlowKeyRelease",
+    "AX_BounceKeyReject",
+    "AX_StickyLatch",
+    "AX_StickyLock",
+    "AX_StickyUnlock"
 };
 
 static Atom _xkbStdBellAtoms[XkbBI_NumBells];
 
 Bool
-XkbStdBell(Display *dpy,Window win,int percent,int bellDef)
+XkbStdBell(Display *dpy, Window win, int percent, int bellDef)
 {
-    if ((bellDef<0)||(bellDef>=XkbBI_NumBells))
-	bellDef= XkbBI_Info;
-    if (_xkbStdBellAtoms[bellDef]==None)
-	_xkbStdBellAtoms[bellDef]= XInternAtom(dpy,_xkbStdBellNames[bellDef],0);
-    return XkbBell(dpy,win,percent,_xkbStdBellAtoms[bellDef]);
+    if ((bellDef < 0) || (bellDef >= XkbBI_NumBells))
+        bellDef = XkbBI_Info;
+    if (_xkbStdBellAtoms[bellDef] == None)
+        _xkbStdBellAtoms[bellDef] =
+            XInternAtom(dpy, _xkbStdBellNames[bellDef], 0);
+    return XkbBell(dpy, win, percent, _xkbStdBellAtoms[bellDef]);
 }
 
 Bool
-XkbStdBellEvent(Display *dpy,Window win,int percent,int bellDef)
+XkbStdBellEvent(Display *dpy, Window win, int percent, int bellDef)
 {
-    if ((bellDef<0)||(bellDef>=XkbBI_NumBells))
-	bellDef= XkbBI_Info;
-    if (_xkbStdBellAtoms[bellDef]==None)
-	_xkbStdBellAtoms[bellDef]= XInternAtom(dpy,_xkbStdBellNames[bellDef],0);
-    return XkbBellEvent(dpy,win,percent,_xkbStdBellAtoms[bellDef]);
+    if ((bellDef < 0) || (bellDef >= XkbBI_NumBells))
+        bellDef = XkbBI_Info;
+    if (_xkbStdBellAtoms[bellDef] == None)
+        _xkbStdBellAtoms[bellDef] =
+            XInternAtom(dpy, _xkbStdBellNames[bellDef], 0);
+    return XkbBellEvent(dpy, win, percent, _xkbStdBellAtoms[bellDef]);
 }

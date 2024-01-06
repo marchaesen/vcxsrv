@@ -32,79 +32,51 @@
 .ds xC Inter-Client Communication Conventions Manual
 .ds Rn 3
 .ds Vn 2.2
-.hw XtApp-Error XtApp-Set-Error-Handler XtApp-Set-Warning-Handler XtApp-Warning wid-get
+.hw XtApp-Error XtApp-Set-Error-Handler XtApp-Set-Warning-Handler
+.hw XtApp-Warning wid-get
 .na
-.de Ds
-.nf
-.\\$1D \\$2 \\$1
-.ft CW
-.ps \\n(PS
-.\".if \\n(VS>=40 .vs \\n(VSu
-.\".if \\n(VS<=39 .vs \\n(VSp
-..
-.de De
-.ce 0
-.if \\n(BD .DF
-.nr BD 0
-.in \\n(OIu
-.if \\n(TM .ls 2
-.sp \\n(DDu
-.fi
-..
-.de IN		\" send an index entry to the stderr
-..
-.de Pn
-.ie t \\$1\fB\^\\$2\^\fR\\$3
-.el \\$1\fI\^\\$2\^\fP\\$3
-..
-.de ZN
-.ie t \fB\^\\$1\^\fR\\$2
-.el \fI\^\\$1\^\fP\\$2
-..
-.ny0
 .TH XtAppError __libmansuffix__ __xorgversion__ "XT FUNCTIONS"
 .SH NAME
 XtAppError, XtAppSetErrorHandler, XtAppSetWarningHandler, XtAppWarning \- low-level error handlers
 .SH SYNTAX
+#include <X11/Intrinsic.h>
 .HP
-void XtAppError(XtAppContext \fIapp_context\fP, String \fImessage\fP);
+_X_NORETURN void XtAppError(XtAppContext \fIapp_context\fP, const char *\fImessage\fP);
 .HP
-void XtAppSetErrorHandler(XtAppContext \fIapp_context\fP, XtErrorHandler
+XtErrorHandler XtAppSetErrorHandler(XtAppContext \fIapp_context\fP, _X_NORETURN XtErrorHandler
 \fIhandler\fP);
 .HP
-void XtAppSetWarningHandler(XtAppContext \fIapp_context\fP, XtErrorHandler
+XtErrorHandler XtAppSetWarningHandler(XtAppContext \fIapp_context\fP, XtErrorHandler
 \fIhandler\fP);
 .HP
-void XtAppWarning(XtAppContext \fIapp_context\fP, String \fImessage\fP);
+void XtAppWarning(XtAppContext \fIapp_context\fP, const char *\fImessage\fP);
 .SH ARGUMENTS
 .IP \fIapp_context\fP 1i
 Specifies the application context.
 .IP \fImessage\fP 1i
 Specifies the nonfatal error message that is to be reported.
-.ds Ha fatal error procedure, which should not return, \
-or the nonfatal error procedure, which usually returns
 .IP \fIhandler\fP 1i
-Specifies the new \*(Ha.
-.ds Me reported
+Specifies the new fatal error procedure, which should not return, 
+or the nonfatal error procedure, which usually returns.
 .IP \fImessage\fP 1i
-Specifies the message that is to be \*(Me.
+Specifies the message that is to be reported.
 .SH DESCRIPTION
 The
-.ZN XtAppError
+.B XtAppError
 function calls the installed error procedure and passes the specified message.
 .LP
 The
-.ZN XtAppSetErrorHandler
+.B XtAppSetErrorHandler
 function registers the specified procedure,
 which is called when a fatal error condition occurs.
 .LP
 The
-.ZN XtAppSetWarningHandler
+.B XtAppSetWarningHandler
 registers the specified procedure,
 which is called when a nonfatal error condition occurs.
 .LP
 The
-.ZN XtAppWarning
+.B XtAppWarning
 function calls the installed nonfatal error procedure and passes the
 specified message.
 .SH "SEE ALSO"

@@ -22,10 +22,10 @@ dnl Process this file with autoconf to create configure.
 
 AC_PREREQ([2.60])
 AC_INIT([xauth],
-	[1.1],
+	[1.1.2],
 	[https://gitlab.freedesktop.org/xorg/app/xauth/issues],
 	[xauth])
-AM_INIT_AUTOMAKE([foreign dist-bzip2])
+AM_INIT_AUTOMAKE([foreign dist-xz])
 
 AC_CONFIG_HEADERS([config.h])
 
@@ -42,10 +42,19 @@ XORG_DEFAULT_OPTIONS
 
 AC_CHECK_HEADERS([net/errno.h])
 
-AC_CHECK_FUNCS([strlcpy])
+AC_CHECK_FUNCS([reallocarray strlcpy])
 
 # Checks for pkg-config packages
 PKG_CHECK_MODULES(XAUTH, x11 xau xext xmuu xproto >= 7.0.17)
+
+# Issue an error if xtrans.m4 was not found and XTRANS_CONNECTION_FLAGS macro
+# was not expanded, since xauth with no address support is rather broken.
+#
+# If you're seeing an error here, be sure you installed the lib/xtrans module
+# first and if it's not in the default location, that you set the ACLOCAL
+# environment variable to find it, such as:
+#       ACLOCAL="aclocal -I ${PREFIX}/share/aclocal"
+m4_pattern_forbid([^XTRANS_CONNECTION_FLAGS$])
 
 # Transport selection macro from xtrans.m4
 # Needed to set *CONN defines for gethost.c & parsedpy.c
