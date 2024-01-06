@@ -121,6 +121,17 @@
   tags:
     - igalia-rpi4
 
+# 1 device (2024-01-02)
+.igalia-bcm2712-rpi-5:arm64:
+  variables:
+    DEVICE_TYPE: rpi5
+    GPU_VERSION: broadcom-rpi5
+    VK_DRIVER: broadcom
+  script:
+    - ./install/bare-metal/poe-powered.sh
+  tags:
+    - igalia-rpi5
+
 .broadcom-test:
   script:
     - ./install/bare-metal/poe-powered.sh

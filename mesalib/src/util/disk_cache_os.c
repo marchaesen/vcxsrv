@@ -27,6 +27,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -132,6 +133,45 @@ mkdir_if_needed(const char *path)
            path, strerror(errno));
 
    return -1;
+}
+
+/* Create a directory named 'path' if it does not already exist,
+ * including parent directories if required.
+ *
+ * Returns: 0 if path already exists as a directory or if created.
+ *         -1 in all other cases.
+ */
+static int
+mkdir_with_parents_if_needed(const char *path)
+{
+   char *p;
+   const char *end;
+
+   if (path[0] == '\0')
+      return -1;
+
+   p = strdup(path);
+   end = p + strlen(p) + 1; /* end points to the \0 terminator */
+   for (char *q = p; q != end; q++) {
+      if (*q == '/' || q == end - 1) {
+         if (q == p) {
+            /* Skip the first / of an absolute path. */
+            continue;
+         }
+
+         *q = '\0';
+
+         if (mkdir_if_needed(p) == -1) {
+            free(p);
+            return -1;
+         }
+
+         *q = '/';
+      }
+   }
+   free(p);
+
+   return 0;
 }
 
 /* Concatenate an existing path and a new name to form a new path.  If the new
@@ -861,7 +901,7 @@ disk_cache_generate_cache_dir(void *mem_ctx, const char *gpu_name,
    }
 
    if (path) {
-      if (mkdir_if_needed(path) == -1)
+      if (mkdir_with_parents_if_needed(path) == -1)
          return NULL;
 
       path = concatenate_and_mkdir(mem_ctx, path, cache_dir_name);

@@ -529,6 +529,7 @@ Khronos extensions that are not part of any Vulkan version:
   VK_KHR_ray_query                                      DONE (anv/gfx12.5+, radv/gfx10.3+)
   VK_KHR_ray_tracing_maintenance1                       DONE (anv/gfx12.5+, radv/gfx10.3+)
   VK_KHR_ray_tracing_pipeline                           DONE (anv/gfx12.5+, radv/gfx10.3+)
+  VK_KHR_ray_tracing_position_fetch                     DONE (radv/gfx10.3+)
   VK_KHR_shader_clock                                   DONE (anv, hasvk, lvp, nvk, radv, vn)
   VK_KHR_shader_subgroup_uniform_control_flow           DONE (anv, hasvk, radv)
   VK_KHR_shared_presentable_image                       not started

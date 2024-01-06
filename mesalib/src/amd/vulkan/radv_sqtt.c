@@ -88,7 +88,7 @@ radv_emit_wait_for_idle(const struct radv_device *device, struct radeon_cmdbuf *
 {
    const enum radv_queue_family qf = radv_ip_to_queue_family(family);
    enum rgp_flush_bits sqtt_flush_bits = 0;
-   si_cs_emit_cache_flush(
+   radv_cs_emit_cache_flush(
       device->ws, cs, device->physical_device->rad_info.gfx_level, NULL, 0, qf,
       (family == RADV_QUEUE_COMPUTE ? RADV_CMD_FLAG_CS_PARTIAL_FLUSH
                                     : (RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_PS_PARTIAL_FLUSH)) |

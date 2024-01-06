@@ -199,6 +199,10 @@ aco_postprocess_shader(const struct aco_compiler_options* options,
    aco::lower_to_hw_instr(program.get());
    validate(program.get());
 
+   /* Schedule hardware instructions for ILP */
+   if (!options->optimisations_disabled && !(aco::debug_flags & aco::DEBUG_NO_SCHED_ILP))
+      aco::schedule_ilp(program.get());
+
    /* Insert Waitcnt */
    aco::insert_wait_states(program.get());
    aco::insert_NOPs(program.get());

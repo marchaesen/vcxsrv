@@ -1159,11 +1159,11 @@ panvk_GetBufferMemoryRequirements2(VkDevice device,
 {
    VK_FROM_HANDLE(panvk_buffer, buffer, pInfo->buffer);
 
-   const uint64_t align = 64;
-   const uint64_t size = align64(buffer->vk.size, align);
+   const uint64_t alignment = 64;
+   const uint64_t size = align64(buffer->vk.size, alignment);
 
    pMemoryRequirements->memoryRequirements.memoryTypeBits = 1;
-   pMemoryRequirements->memoryRequirements.alignment = align;
+   pMemoryRequirements->memoryRequirements.alignment = alignment;
    pMemoryRequirements->memoryRequirements.size = size;
 }
 
@@ -1174,11 +1174,11 @@ panvk_GetImageMemoryRequirements2(VkDevice device,
 {
    VK_FROM_HANDLE(panvk_image, image, pInfo->image);
 
-   const uint64_t align = 4096;
+   const uint64_t alignment = 4096;
    const uint64_t size = panvk_image_get_total_size(image);
 
    pMemoryRequirements->memoryRequirements.memoryTypeBits = 1;
-   pMemoryRequirements->memoryRequirements.alignment = align;
+   pMemoryRequirements->memoryRequirements.alignment = alignment;
    pMemoryRequirements->memoryRequirements.size = size;
 }
 

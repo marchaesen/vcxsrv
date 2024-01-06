@@ -318,7 +318,9 @@ kopper_CreateSwapchain(struct zink_screen *screen, struct kopper_displaytarget *
    if (error == VK_ERROR_NATIVE_WINDOW_IN_USE_KHR) {
       if (util_queue_is_initialized(&screen->flush_queue))
          util_queue_finish(&screen->flush_queue);
+      simple_mtx_lock(&screen->queue_lock);
       VkResult result = VKSCR(QueueWaitIdle)(screen->queue);
+      simple_mtx_unlock(&screen->queue_lock);
       if (result != VK_SUCCESS)
          mesa_loge("ZINK: vkQueueWaitIdle failed (%s)", vk_Result_to_str(result));
       error = VKSCR(CreateSwapchainKHR)(screen->dev, &cswap->scci, NULL,

@@ -79,6 +79,14 @@ extern _X_EXPORT Bool xf86DRI2Enabled(void);
 
 #define XF86SCRNINFO(p) xf86ScreenToScrn(p)
 
+#define XF86FLIP_PIXELS() \
+	do { \
+	    if (xf86GetFlipPixels()) { \
+		pScreen->whitePixel = (pScreen->whitePixel) ? 0 : 1; \
+		pScreen->blackPixel = (pScreen->blackPixel) ? 0 : 1; \
+	   } \
+	while (0)
+
 #define BOOLTOSTRING(b) ((b) ? "TRUE" : "FALSE")
 
 /* Compatibility functions for pre-input-thread drivers */
@@ -277,6 +285,8 @@ extern _X_EXPORT rgb
 xf86GetWeight(void);
 extern _X_EXPORT Gamma
 xf86GetGamma(void);
+extern _X_EXPORT Bool
+xf86GetFlipPixels(void);
 extern _X_EXPORT Bool
 xf86ServerIsExiting(void);
 extern _X_EXPORT Bool

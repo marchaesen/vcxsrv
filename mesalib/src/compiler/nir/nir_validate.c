@@ -786,7 +786,8 @@ validate_tex_instr(nir_tex_instr *instr, validate_state *state)
 
       case nir_tex_src_bias:
          validate_assert(state, instr->op == nir_texop_txb ||
-                                   instr->op == nir_texop_tg4);
+                                   instr->op == nir_texop_tg4 ||
+                                   instr->op == nir_texop_lod);
          break;
 
       case nir_tex_src_lod:

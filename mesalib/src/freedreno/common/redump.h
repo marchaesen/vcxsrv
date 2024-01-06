@@ -44,6 +44,7 @@ enum rd_sect_type {
    RD_CHIP_ID,
    RD_SHADER_LOG_BUFFER, /* Specifies buffer which has logs from shaders */
    RD_CP_LOG_BUFFER, /* Specifies buffer which has logs from CP */
+   RD_WRBUFFER,     /* Specifies buffer which has data that needs to be written out to a file */
 };
 
 /* RD_PARAM types: */

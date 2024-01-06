@@ -584,7 +584,7 @@ impl Mem {
         } else {
             let shadow = dev
                 .screen()
-                .resource_create_buffer(size as u32, ResourceType::Staging)
+                .resource_create_buffer(size as u32, ResourceType::Staging, 0)
                 .ok_or(CL_OUT_OF_RESOURCES)?;
             let tx = ctx
                 .buffer_map_coherent(&shadow, 0, size, rw)

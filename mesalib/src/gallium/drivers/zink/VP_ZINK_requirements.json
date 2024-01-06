@@ -1,5 +1,5 @@
 {
-    "$schema": "https://schema.khronos.org/vulkan/profiles-0.8.1-251.json",
+    "$schema": "https://schema.khronos.org/vulkan/profiles-0.8.2-271.json",
     "capabilities": {
         "vulkan10requirements": {
             "features": {
@@ -43,13 +43,13 @@
                 "VK_EXT_scalar_block_layout": 1
             },
             "features": {
-                "VkPhysicalDeviceScalarBlockLayoutFeaturesEXT": {
+                "VkPhysicalDeviceScalarBlockLayoutFeatures": {
                     "scalarBlockLayout": true
                 },
-                "VkPhysicalDeviceTimelineSemaphoreFeaturesKHR": {
+                "VkPhysicalDeviceTimelineSemaphoreFeatures": {
                     "timelineSemaphore": true
                 },
-                "VkPhysicalDeviceImagelessFramebufferFeaturesKHR": {
+                "VkPhysicalDeviceImagelessFramebufferFeatures": {
                     "imagelessFramebuffer": true
                 }
             }
@@ -164,7 +164,7 @@
                 "VkPhysicalDeviceMaintenance4Features": {
                     "maintenance4": true
                 },
-                "VkPhysicalDeviceMaintenance5Features": {
+                "VkPhysicalDeviceMaintenance5FeaturesKHR": {
                     "maintenance5": true
                 }
             },
@@ -266,7 +266,7 @@
                 "VK_EXT_image_robustness": 1
             },
             "features": {
-                "VkPhysicalDeviceImageRobustnessFeaturesEXT": {
+                "VkPhysicalDeviceImageRobustnessFeatures": {
                     "robustImageAccess": true
                 }
             }
@@ -449,7 +449,7 @@
                 "VK_EXT_dynamic_rendering_unused_attachments": 1
             },
             "features": {
-                "VkPhysicalDeviceDynamicRenderingFeaturesKHR": {
+                "VkPhysicalDeviceDynamicRenderingFeatures": {
                     "dynamicRendering": true
                 },
                 "VkPhysicalDeviceDynamicRenderingUnusedAttachmentsFeaturesEXT": {
@@ -497,7 +497,7 @@
                 "VK_EXT_pipeline_creation_cache_control": 1
             },
             "features": {
-                "VkPhysicalDevicePipelineCreationCacheControlFeaturesEXT": {
+                "VkPhysicalDevicePipelineCreationCacheControlFeatures": {
                     "pipelineCreationCacheControl": true
                 }
             }
@@ -514,7 +514,7 @@
                 "VK_EXT_descriptor_indexing": 1
             },
             "properties": {
-                "VkPhysicalDeviceDescriptorIndexingPropertiesEXT": {
+                "VkPhysicalDeviceDescriptorIndexingProperties": {
                     "robustBufferAccessUpdateAfterBind": true
                 }
             }
@@ -634,7 +634,7 @@
                 "VK_EXT_sampler_filter_minmax": 1
             },
             "properties": {
-                "VkPhysicalDeviceSamplerFilterMinmaxPropertiesEXT": {
+                "VkPhysicalDeviceSamplerFilterMinmaxProperties": {
                     "filterMinmaxSingleComponentFormats": true,
                     "filterMinmaxImageComponentMapping": true
                 }

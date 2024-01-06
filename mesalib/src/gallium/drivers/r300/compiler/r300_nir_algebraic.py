@@ -94,6 +94,28 @@ r300_nir_clean_double_fneg = [
         (('fneg', ('fneg', a)), a)
 ]
 
+# This is very late flrp lowering to clean up after bcsel->fcsel->flrp.
+r300_nir_lower_flrp = [
+        (('flrp', a, b, c), ('ffma', b, c, ('ffma', ('fneg', a), c, a)))
+]
+
+# Lower fcsel_ge from ftrunc on r300
+r300_nir_lower_fcsel_r300 = [
+        (('fcsel_ge', a, b, c), ('flrp', c, b, ('sge', a, 0.0)))
+]
+
+r300_nir_post_integer_lowering = [
+        # If ffloor result is used only for indirect constant load, we can get rid of it
+        # completelly as ntt emits ARL by default which already does the flooring.
+        # This actually checks for the lowered ffloor(a) = a - ffract(a) patterns.
+        (('fadd(is_only_used_by_load_ubo_vec4)', a, ('fneg', ('ffract', a))), a),
+        # This is a D3D9 pattern from Wine when shader wants ffloor instead of fround on register load.
+        (('fround_even(is_only_used_by_load_ubo_vec4)', ('fadd', a, ('fneg', ('ffract', a)))), a),
+        # Lower ftrunc
+        (('ftrunc', 'a@32'), ('fcsel_ge', a, ('fadd', ('fabs', a), ('fneg', ('ffract', ('fabs', a)))),
+                                     ('fneg', ('fadd', ('fabs', a), ('fneg', ('ffract', ('fabs', a)))))))
+]
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--import-path', required=True)
@@ -117,6 +139,14 @@ def main():
         (('bcsel@32(is_only_used_as_float)', ignore_exact('fge', 'a@32', 'b@32'), c, d),
              ('fadd', ('fmul', c, ('sge', a, b)), ('fsub', d, ('fmul', d, ('sge', a, b)))),
           "!options->has_fused_comp_and_csel"),
+        (('bcsel@32(is_only_used_as_float)', ('feq', 'a@32', 'b@32'), c, d),
+             ('fcsel', ('seq', a, b), c, d), "options->has_fused_comp_and_csel"),
+        (('bcsel@32(is_only_used_as_float)', ('fneu', 'a@32', 'b@32'), c, d),
+             ('fcsel', ('sne', a, b), c, d), "options->has_fused_comp_and_csel"),
+        (('bcsel@32(is_only_used_as_float)', ('flt', 'a@32', 'b@32'), c, d),
+             ('fcsel', ('slt', a, b), c, d), "options->has_fused_comp_and_csel"),
+        (('bcsel@32(is_only_used_as_float)', ('fge', 'a@32', 'b@32'), c, d),
+             ('fcsel', ('sge', a, b), c, d), "options->has_fused_comp_and_csel"),
 ]
 
     with open(args.output, 'w') as f:
@@ -139,6 +169,15 @@ def main():
 
         f.write(nir_algebraic.AlgebraicPass("r300_nir_clean_double_fneg",
                                             r300_nir_clean_double_fneg).render())
+
+        f.write(nir_algebraic.AlgebraicPass("r300_nir_post_integer_lowering",
+                                            r300_nir_post_integer_lowering).render())
+
+        f.write(nir_algebraic.AlgebraicPass("r300_nir_lower_flrp",
+                                            r300_nir_lower_flrp).render())
+
+        f.write(nir_algebraic.AlgebraicPass("r300_nir_lower_fcsel_r300",
+                                            r300_nir_lower_fcsel_r300).render())
 
 if __name__ == '__main__':
     main()

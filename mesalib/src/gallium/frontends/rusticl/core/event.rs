@@ -4,7 +4,6 @@ use crate::core::context::*;
 use crate::core::queue::*;
 use crate::impl_cl_type_trait;
 
-use mesa_rust::pipe::context::*;
 use mesa_rust::pipe::query::*;
 use mesa_rust_gen::*;
 use mesa_rust_util::static_assert;
@@ -24,7 +23,7 @@ static_assert!(CL_RUNNING == 1);
 static_assert!(CL_SUBMITTED == 2);
 static_assert!(CL_QUEUED == 3);
 
-pub type EventSig = Box<dyn FnOnce(&Arc<Queue>, &PipeContext) -> CLResult<()>>;
+pub type EventSig = Box<dyn FnOnce(&Arc<Queue>, &QueueContext) -> CLResult<()>>;
 
 pub enum EventTimes {
     Queued = CL_PROFILING_COMMAND_QUEUED as isize,
@@ -194,7 +193,7 @@ impl Event {
     // We always assume that work here simply submits stuff to the hardware even if it's just doing
     // sw emulation or nothing at all.
     // If anything requets waiting, we will update the status through fencing later.
-    pub fn call(&self, ctx: &PipeContext) {
+    pub fn call(&self, ctx: &QueueContext) {
         let mut lock = self.state();
         let status = lock.status;
         let queue = self.queue.as_ref().unwrap();

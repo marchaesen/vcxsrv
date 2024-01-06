@@ -1864,8 +1864,8 @@ get_alu_uub(struct analysis_state *state, struct uub_query q, uint32_t *result, 
    case nir_op_b2i32:
       *result = 1;
       break;
-   case nir_op_sad_u8x4:
-      *result = src[2] + 4 * 255;
+   case nir_op_msad_4x8:
+      *result = MIN2((uint64_t)src[2] + 4 * 255, UINT32_MAX);
       break;
    case nir_op_extract_u8:
       *result = MIN2(src[0], UINT8_MAX);

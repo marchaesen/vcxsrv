@@ -1126,27 +1126,16 @@ if (bits == 0) {
 }
 """)
 
-# Sum of absolute differences with accumulation.
-# (Equivalent to AMD's v_sad_u8 instruction.)
-# The first two sources contain packed 8-bit unsigned integers, the instruction
-# will calculate the absolute difference of these, and then add them together.
-# There is also a third source which is a 32-bit unsigned integer and added to the result.
-triop_horiz("sad_u8x4", 1, 1, 1, 1, """
-uint8_t s0_b0 = (src0.x & 0x000000ff) >> 0;
-uint8_t s0_b1 = (src0.x & 0x0000ff00) >> 8;
-uint8_t s0_b2 = (src0.x & 0x00ff0000) >> 16;
-uint8_t s0_b3 = (src0.x & 0xff000000) >> 24;
+triop("msad_4x8", tuint32, "", """
+dst = msad(src0, src1, src2);
+""", description = """
+Masked sum of absolute differences with accumulation. Equivalent to AMD's v_msad_u8
+instruction and DXIL's MSAD.
 
-uint8_t s1_b0 = (src1.x & 0x000000ff) >> 0;
-uint8_t s1_b1 = (src1.x & 0x0000ff00) >> 8;
-uint8_t s1_b2 = (src1.x & 0x00ff0000) >> 16;
-uint8_t s1_b3 = (src1.x & 0xff000000) >> 24;
-
-dst.x = src2.x +
-        (s0_b0 > s1_b0 ? (s0_b0 - s1_b0) : (s1_b0 - s0_b0)) +
-        (s0_b1 > s1_b1 ? (s0_b1 - s1_b1) : (s1_b1 - s0_b1)) +
-        (s0_b2 > s1_b2 ? (s0_b2 - s1_b2) : (s1_b2 - s0_b2)) +
-        (s0_b3 > s1_b3 ? (s0_b3 - s1_b3) : (s1_b3 - s0_b3));
+The first two sources contain packed 8-bit unsigned integers, the instruction
+will calculate the absolute difference of integers when src0's is non-zero, and
+then add them together. There is also a third source which is a 32-bit unsigned
+integer and added to the result.
 """)
 
 # Combines the first component of each input to make a 3-component vector.

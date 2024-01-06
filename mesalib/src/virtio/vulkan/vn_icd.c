@@ -21,5 +21,6 @@ vk_icdGetInstanceProcAddr(VkInstance instance, const char *pName)
 bool
 vn_icd_supports_api_version(uint32_t api_version)
 {
-   return vk_get_negotiated_icd_version() >= 5 || api_version < VK_API_VERSION_1_1;
+   return vk_get_negotiated_icd_version() >= 5 ||
+          api_version < VK_API_VERSION_1_1;
 }

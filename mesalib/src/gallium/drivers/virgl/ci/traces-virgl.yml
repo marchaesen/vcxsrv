@@ -12,7 +12,7 @@ traces:
       checksum: 57ddd36b117adc9216c65c10d914a37e
   gputest/pixmark-piano-v2.trace:
     gl-virgl:
-      checksum: 0d875bda7edc01698342b157c6f51500
+      checksum: cbe50265c2d1a114fd75bf12407fbad9
   gputest/triangle-v2.trace:
     gl-virgl:
       checksum: 7812de00011a3a059892e36cea19c696

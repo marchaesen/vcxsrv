@@ -28,8 +28,8 @@
 #ifndef NIR_H
 #define NIR_H
 
+#include "compiler/glsl_types.h"
 #include "compiler/glsl/list.h"
-#include "compiler/nir_types.h"
 #include "compiler/shader_enums.h"
 #include "compiler/shader_info.h"
 #include "util/bitscan.h"
@@ -3932,6 +3932,9 @@ typedef struct nir_shader_compiler_options {
    /** Backend supports uclz. */
    bool has_uclz;
 
+   /** Backend support msad_u4x8. */
+   bool has_msad;
+
    /**
     * Is this the Intel vec4 backend?
     *
@@ -6301,9 +6304,8 @@ bool nir_opt_gcm(nir_shader *shader, bool value_number);
 bool nir_opt_idiv_const(nir_shader *shader, unsigned min_bit_size);
 
 typedef enum {
-   nir_opt_if_aggressive_last_continue = (1 << 0),
-   nir_opt_if_optimize_phi_true_false = (1 << 1),
-   nir_opt_if_avoid_64bit_phis = (1 << 2),
+   nir_opt_if_optimize_phi_true_false = (1 << 0),
+   nir_opt_if_avoid_64bit_phis = (1 << 1),
 } nir_opt_if_options;
 
 bool nir_opt_if(nir_shader *shader, nir_opt_if_options options);
@@ -6313,6 +6315,8 @@ bool nir_opt_intrinsics(nir_shader *shader);
 bool nir_opt_large_constants(nir_shader *shader,
                              glsl_type_size_align_func size_align,
                              unsigned threshold);
+
+bool nir_opt_loop(nir_shader *shader);
 
 bool nir_opt_loop_unroll(nir_shader *shader);
 
@@ -6364,8 +6368,6 @@ bool nir_opt_phi_precision(nir_shader *shader);
 bool nir_opt_shrink_stores(nir_shader *shader, bool shrink_image_store);
 
 bool nir_opt_shrink_vectors(nir_shader *shader);
-
-bool nir_opt_trivial_continues(nir_shader *shader);
 
 bool nir_opt_undef(nir_shader *shader);
 

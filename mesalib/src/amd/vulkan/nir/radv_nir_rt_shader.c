@@ -27,9 +27,9 @@
 #include "bvh/bvh.h"
 #include "meta/radv_meta.h"
 #include "nir/radv_nir.h"
+#include "nir/radv_nir_rt_common.h"
 #include "ac_nir.h"
 #include "radv_private.h"
-#include "radv_rt_common.h"
 #include "radv_shader.h"
 
 #include "vk_pipeline.h"
@@ -185,6 +185,7 @@ lower_rt_derefs(nir_shader *shader)
  * Global variables for an RT pipeline
  */
 struct rt_variables {
+   struct radv_device *device;
    const VkPipelineCreateFlags2KHR flags;
 
    /* idx of the next shader to run in the next iteration of the main loop.
@@ -229,9 +230,10 @@ struct rt_variables {
 };
 
 static struct rt_variables
-create_rt_variables(nir_shader *shader, const VkPipelineCreateFlags2KHR flags)
+create_rt_variables(nir_shader *shader, struct radv_device *device, const VkPipelineCreateFlags2KHR flags)
 {
    struct rt_variables vars = {
+      .device = device,
       .flags = flags,
    };
    vars.idx = nir_variable_create(shader, nir_var_shader_temp, glsl_uint_type(), "idx");
@@ -660,6 +662,12 @@ radv_lower_rt_instruction(nir_builder *b, nir_instr *instr, void *_data)
 
       break;
    }
+   case nir_intrinsic_load_ray_triangle_vertex_positions: {
+      nir_def *instance_node_addr = nir_load_var(b, vars->instance_addr);
+      nir_def *primitive_id = nir_load_var(b, vars->primitive_id);
+      ret = radv_load_vertex_position(vars->device, b, instance_node_addr, primitive_id, nir_intrinsic_column(intr));
+      break;
+   }
    default:
       return false;
    }
@@ -782,7 +790,7 @@ insert_rt_case(nir_builder *b, nir_shader *shader, struct rt_variables *vars, ni
 
    nir_opt_dead_cf(shader);
 
-   struct rt_variables src_vars = create_rt_variables(shader, vars->flags);
+   struct rt_variables src_vars = create_rt_variables(shader, vars->device, vars->flags);
    map_rt_variables(var_remap, &src_vars, vars);
 
    NIR_PASS_V(shader, lower_rt_instructions, &src_vars, false);
@@ -1506,7 +1514,7 @@ radv_build_traversal_shader(struct radv_device *device, struct radv_ray_tracing_
    b.shader->info.workgroup_size[0] = 8;
    b.shader->info.workgroup_size[1] = device->physical_device->rt_wave_size == 64 ? 8 : 4;
    b.shader->info.shared_size = device->physical_device->rt_wave_size * MAX_STACK_ENTRY_COUNT * sizeof(uint32_t);
-   struct rt_variables vars = create_rt_variables(b.shader, create_flags);
+   struct rt_variables vars = create_rt_variables(b.shader, device, create_flags);
 
    /* initialize trace_ray arguments */
    nir_store_var(&b, vars.accel_struct, nir_load_accel_struct_amd(&b), 1);
@@ -1674,7 +1682,7 @@ radv_nir_lower_rt_abi(nir_shader *shader, const VkRayTracingPipelineCreateInfoKH
 
    const VkPipelineCreateFlagBits2KHR create_flags = vk_rt_pipeline_create_flags(pCreateInfo);
 
-   struct rt_variables vars = create_rt_variables(shader, create_flags);
+   struct rt_variables vars = create_rt_variables(shader, device, create_flags);
 
    if (monolithic)
       lower_rt_instructions_monolithic(shader, device, pipeline, pCreateInfo, &vars);

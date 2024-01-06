@@ -55,7 +55,12 @@
 #include <xf86drm.h>
 #include <fcntl.h>
 #include <sys/stat.h>
+#ifdef MAJOR_IN_MKDEV
+#include <sys/mkdev.h>
+#endif
+#ifdef MAJOR_IN_SYSMACROS
 #include <sys/sysmacros.h>
+#endif
 #endif
 
 static int num_screens = 0;
@@ -381,7 +386,7 @@ cache_get_job(void *data, void *gdata, int thread_index)
    VkPipelineCacheCreateInfo pcci;
    pcci.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO;
    pcci.pNext = NULL;
-   pcci.flags = screen->info.have_EXT_pipeline_creation_cache_control ? VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT_EXT : 0;
+   pcci.flags = screen->info.have_EXT_pipeline_creation_cache_control ? VK_PIPELINE_CACHE_CREATE_EXTERNALLY_SYNCHRONIZED_BIT : 0;
    pcci.initialDataSize = 0;
    pcci.pInitialData = NULL;
 
@@ -1146,7 +1151,9 @@ zink_get_shader_param(struct pipe_screen *pscreen,
           * with what we need for GL, so we can still force a conformant value here
           */
          if (screen->info.driver_props.driverID == VK_DRIVER_ID_INTEL_OPEN_SOURCE_MESA ||
-             screen->info.driver_props.driverID == VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS)
+             screen->info.driver_props.driverID == VK_DRIVER_ID_INTEL_PROPRIETARY_WINDOWS ||
+             (screen->info.driver_props.driverID == VK_DRIVER_ID_MESA_VENUS
+              && screen->info.props.vendorID == 0x8086))
             return 32;
          max = screen->info.props.limits.maxFragmentInputComponents / 4;
          break;
@@ -1456,6 +1463,12 @@ static void
 zink_destroy_screen(struct pipe_screen *pscreen)
 {
    struct zink_screen *screen = zink_screen(pscreen);
+   struct zink_batch_state *bs = screen->free_batch_states;
+   while (bs) {
+      struct zink_batch_state *bs_next = bs->next;
+      zink_batch_state_destroy(screen, bs);
+      bs = bs_next;
+   }
 
 #ifdef HAVE_RENDERDOC_APP_H
    if (screen->renderdoc_capture_all && p_atomic_dec_zero(&num_screens))
@@ -2444,8 +2457,12 @@ zink_query_dmabuf_modifiers(struct pipe_screen *pscreen, enum pipe_format format
 {
    struct zink_screen *screen = zink_screen(pscreen);
    *count = screen->modifier_props[format].drmFormatModifierCount;
-   for (int i = 0; i < MIN2(max, *count); i++)
+   for (int i = 0; i < MIN2(max, *count); i++) {
+      if (external_only)
+         external_only[i] = 0;
+
       modifiers[i] = screen->modifier_props[format].pDrmFormatModifierProperties[i].drmFormatModifier;
+   }
 }
 
 static bool
@@ -3491,6 +3508,7 @@ zink_internal_create_screen(const struct pipe_screen_config *config, int64_t dev
       screen->base_descriptor_size = MAX4(screen->db_size[0], screen->db_size[1], screen->db_size[2], screen->db_size[3]);
    }
 
+   simple_mtx_init(&screen->free_batch_states_lock, mtx_plain);
    simple_mtx_init(&screen->dt_lock, mtx_plain);
 
    util_idalloc_mt_init_tc(&screen->buffer_ids);

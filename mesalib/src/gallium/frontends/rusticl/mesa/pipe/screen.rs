@@ -73,15 +73,20 @@ impl ComputeParam<Vec<u64>> for PipeScreen {
 pub enum ResourceType {
     Normal,
     Staging,
+    Cb0,
 }
 
 impl ResourceType {
-    fn apply(&self, tmpl: &mut pipe_resource) {
+    fn apply(&self, tmpl: &mut pipe_resource, screen: &PipeScreen) {
         match self {
             Self::Staging => {
                 tmpl.set_usage(pipe_resource_usage::PIPE_USAGE_STAGING.0);
                 tmpl.flags |= PIPE_RESOURCE_FLAG_MAP_PERSISTENT | PIPE_RESOURCE_FLAG_MAP_COHERENT;
                 tmpl.bind |= PIPE_BIND_LINEAR;
+            }
+            Self::Cb0 => {
+                tmpl.flags |= screen.param(pipe_cap::PIPE_CAP_CONSTBUF0_FLAGS) as u32;
+                tmpl.bind |= PIPE_BIND_CONSTANT_BUFFER;
             }
             Self::Normal => {}
         }
@@ -135,6 +140,7 @@ impl PipeScreen {
         &self,
         size: u32,
         res_type: ResourceType,
+        pipe_bind: u32,
     ) -> Option<PipeResource> {
         let mut tmpl = pipe_resource::default();
 
@@ -143,9 +149,9 @@ impl PipeScreen {
         tmpl.height0 = 1;
         tmpl.depth0 = 1;
         tmpl.array_size = 1;
-        tmpl.bind = PIPE_BIND_GLOBAL;
+        tmpl.bind = pipe_bind;
 
-        res_type.apply(&mut tmpl);
+        res_type.apply(&mut tmpl, self);
 
         self.resource_create(&tmpl)
     }
@@ -154,6 +160,7 @@ impl PipeScreen {
         &self,
         size: u32,
         mem: *mut c_void,
+        pipe_bind: u32,
     ) -> Option<PipeResource> {
         let mut tmpl = pipe_resource::default();
 
@@ -162,7 +169,7 @@ impl PipeScreen {
         tmpl.height0 = 1;
         tmpl.depth0 = 1;
         tmpl.array_size = 1;
-        tmpl.bind = PIPE_BIND_GLOBAL;
+        tmpl.bind = pipe_bind;
 
         self.resource_create_from_user(&tmpl, mem)
     }
@@ -192,7 +199,7 @@ impl PipeScreen {
             tmpl.bind |= PIPE_BIND_SHADER_IMAGE;
         }
 
-        res_type.apply(&mut tmpl);
+        res_type.apply(&mut tmpl, self);
 
         self.resource_create(&tmpl)
     }

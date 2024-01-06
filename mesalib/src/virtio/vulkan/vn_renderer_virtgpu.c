@@ -37,8 +37,8 @@
 
 /* XXX comment these out to really use kernel uapi */
 #define SIMULATE_BO_SIZE_FIX 1
-#define SIMULATE_SYNCOBJ 1
-#define SIMULATE_SUBMIT 1
+#define SIMULATE_SYNCOBJ     1
+#define SIMULATE_SUBMIT      1
 
 #define VIRTGPU_PCI_VENDOR_ID 0x1af4
 #define VIRTGPU_PCI_DEVICE_ID 0x1050

@@ -359,6 +359,7 @@ check_ici(struct zink_screen *screen, VkImageCreateInfo *ici, uint64_t modifier)
          mod_info.drmFormatModifier = modifier;
          mod_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
          mod_info.queueFamilyIndexCount = 0;
+         mod_info.pQueueFamilyIndices = NULL;
          info.pNext = &mod_info;
       }
 
@@ -697,6 +698,7 @@ init_ici(struct zink_screen *screen, VkImageCreateInfo *ici, const struct pipe_r
       ici->flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
    ici->usage = 0;
    ici->queueFamilyIndexCount = 0;
+   ici->pQueueFamilyIndices = NULL;
 
    /* assume we're going to be doing some CompressedTexSubImage */
    if (util_format_is_compressed(templ->format) && (ici->flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) &&

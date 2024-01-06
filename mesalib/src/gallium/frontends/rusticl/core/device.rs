@@ -1006,6 +1006,12 @@ impl Device {
         id as u32
     }
 
+    pub fn prefers_real_buffer_in_cb0(&self) -> bool {
+        self.screen
+            .param(pipe_cap::PIPE_CAP_PREFER_REAL_BUFFER_IN_CONSTBUF0)
+            == 1
+    }
+
     pub fn shareable_shaders(&self) -> bool {
         self.screen.param(pipe_cap::PIPE_CAP_SHAREABLE_SHADERS) == 1
     }

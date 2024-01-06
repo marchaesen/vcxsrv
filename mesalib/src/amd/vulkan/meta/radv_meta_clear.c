@@ -338,8 +338,8 @@ emit_color_clear(struct radv_cmd_buffer *cmd_buffer, const VkClearAttachment *cl
    assert(samples_log2 < ARRAY_SIZE(device->meta_state.color_clear));
    assert(pipeline);
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_color_p_layout,
-                         VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16, &clear_value);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_color_p_layout,
+                              VK_SHADER_STAGE_FRAGMENT_BIT, 0, 16, &clear_value);
 
    radv_CmdBindPipeline(cmd_buffer_h, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
 
@@ -548,11 +548,12 @@ emit_depthstencil_clear(struct radv_cmd_buffer *cmd_buffer, VkClearDepthStencilV
       clear_value.depth = 1.0f;
 
    if (cmd_buffer->device->vk.enabled_extensions.EXT_depth_range_unrestricted) {
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_depth_unrestricted_p_layout,
-                            VK_SHADER_STAGE_FRAGMENT_BIT, 0, 4, &clear_value.depth);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                                 device->meta_state.clear_depth_unrestricted_p_layout, VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                                 4, &clear_value.depth);
    } else {
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_depth_p_layout,
-                            VK_SHADER_STAGE_VERTEX_BIT, 0, 4, &clear_value.depth);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_depth_p_layout,
+                                 VK_SHADER_STAGE_VERTEX_BIT, 0, 4, &clear_value.depth);
    }
 
    uint32_t prev_reference = cmd_buffer->state.dynamic.vk.ds.stencil.front.reference;
@@ -626,8 +627,8 @@ clear_htile_mask(struct radv_cmd_buffer *cmd_buffer, const struct radv_image *im
       ~htile_mask,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), state->clear_htile_mask_p_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), state->clear_htile_mask_p_layout,
+                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, constants);
 
    vk_common_CmdDispatch(radv_cmd_buffer_to_handle(cmd_buffer), block_count, 1, 1);
 
@@ -1312,8 +1313,9 @@ radv_clear_dcc_comp_to_single(struct radv_cmd_buffer *cmd_buffer, struct radv_im
          color_values[3],
       };
 
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.clear_dcc_comp_to_single_p_layout,
-                            VK_SHADER_STAGE_COMPUTE_BIT, 0, 24, constants);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer),
+                                 device->meta_state.clear_dcc_comp_to_single_p_layout, VK_SHADER_STAGE_COMPUTE_BIT, 0,
+                                 24, constants);
 
       radv_unaligned_dispatch(cmd_buffer, dcc_width, dcc_height, layer_count);
 

@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "radv_rt_common.h"
+#include "nir/radv_nir_rt_common.h"
 #include "bvh/bvh.h"
 #include "radv_debug.h"
 
@@ -31,25 +31,7 @@
 
 static nir_def *build_node_to_addr(struct radv_device *device, nir_builder *b, nir_def *node, bool skip_type_and);
 
-bool
-radv_enable_rt(const struct radv_physical_device *pdevice, bool rt_pipelines)
-{
-   if (pdevice->rad_info.gfx_level < GFX10_3 && !radv_emulate_rt(pdevice))
-      return false;
-
-   if (rt_pipelines && pdevice->use_llvm)
-      return false;
-
-   return true;
-}
-
-bool
-radv_emulate_rt(const struct radv_physical_device *pdevice)
-{
-   return pdevice->instance->perftest_flags & RADV_PERFTEST_EMULATE_RT;
-}
-
-void
+static void
 nir_sort_hit_pair(nir_builder *b, nir_variable *var_distances, nir_variable *var_indices, uint32_t chan_1,
                   uint32_t chan_2)
 {
@@ -72,7 +54,7 @@ nir_sort_hit_pair(nir_builder *b, nir_variable *var_distances, nir_variable *var
    nir_pop_if(b, NULL);
 }
 
-nir_def *
+static nir_def *
 intersect_ray_amd_software_box(struct radv_device *device, nir_builder *b, nir_def *bvh_node, nir_def *ray_tmax,
                                nir_def *origin, nir_def *dir, nir_def *inv_dir)
 {
@@ -169,7 +151,7 @@ intersect_ray_amd_software_box(struct radv_device *device, nir_builder *b, nir_d
    return nir_load_var(b, child_indices);
 }
 
-nir_def *
+static nir_def *
 intersect_ray_amd_software_tri(struct radv_device *device, nir_builder *b, nir_def *bvh_node, nir_def *ray_tmax,
                                nir_def *origin, nir_def *dir, nir_def *inv_dir)
 {
@@ -330,6 +312,20 @@ nir_build_wto_matrix_load(nir_builder *b, nir_def *instance_addr, nir_def **out)
    }
 }
 
+nir_def *
+radv_load_vertex_position(struct radv_device *device, nir_builder *b, nir_def *instance_addr, nir_def *primitive_id,
+                          uint32_t index)
+{
+   nir_def *bvh_addr_id =
+      nir_build_load_global(b, 1, 64, nir_iadd_imm(b, instance_addr, offsetof(struct radv_bvh_instance_node, bvh_ptr)));
+   nir_def *bvh_addr = build_node_to_addr(device, b, bvh_addr_id, true);
+
+   nir_def *offset = nir_imul_imm(b, primitive_id, sizeof(struct radv_bvh_triangle_node));
+   offset = nir_iadd_imm(b, offset, sizeof(struct radv_bvh_box32_node) + index * 3 * sizeof(float));
+
+   return nir_build_load_global(b, 3, 32, nir_iadd(b, bvh_addr, nir_u2u64(b, offset)));
+}
+
 /* When a hit is opaque the any_hit shader is skipped for this hit and the hit
  * is assumed to be an actual hit. */
 static nir_def *
@@ -343,7 +339,7 @@ hit_is_opaque(nir_builder *b, nir_def *sbt_offset_and_flags, const struct radv_r
    return opaque;
 }
 
-nir_def *
+static nir_def *
 create_bvh_descriptor(nir_builder *b)
 {
    /* We create a BVH descriptor that covers the entire memory range. That way we can always

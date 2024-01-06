@@ -771,10 +771,6 @@ d3d12_deinit_screen(struct d3d12_screen *screen)
 void
 d3d12_destroy_screen(struct d3d12_screen *screen)
 {
-   if (screen->winsys) {
-      screen->winsys->destroy(screen->winsys);
-      screen->winsys = nullptr;
-   }
    slab_destroy_parent(&screen->transfer_pool);
    mtx_destroy(&screen->submit_mutex);
    mtx_destroy(&screen->descriptor_pool_mutex);

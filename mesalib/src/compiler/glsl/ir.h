@@ -38,6 +38,18 @@
 #include "util/glheader.h"
 
 #ifdef __cplusplus
+extern "C" {
+#endif
+
+struct _mesa_glsl_parse_state;
+struct gl_shader_program;
+struct gl_builtin_uniform_desc;
+
+#ifdef __cplusplus
+}
+#endif
+
+#ifdef __cplusplus
 
 /**
  * \defgroup IR Intermediate representation nodes
@@ -2418,9 +2430,6 @@ visit_exec_list(exec_list *list, ir_visitor *visitor);
  */
 void validate_ir_tree(exec_list *instructions);
 
-struct _mesa_glsl_parse_state;
-struct gl_shader_program;
-
 /**
  * Detect whether an unlinked shader contains static recursion
  *
@@ -2454,10 +2463,6 @@ void
 clone_ir_list(void *mem_ctx, exec_list *out, const exec_list *in);
 
 extern void
-_mesa_glsl_initialize_variables(exec_list *instructions,
-				struct _mesa_glsl_parse_state *state);
-
-extern void
 reparent_ir(exec_list *list, void *mem_ctx);
 
 extern char *
@@ -2469,6 +2474,13 @@ mode_string(const ir_variable *var);
 
 extern "C" {
 #endif /* __cplusplus */
+
+extern void
+_mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
+
+extern void
+_mesa_glsl_initialize_variables(struct exec_list *instructions,
+                                struct _mesa_glsl_parse_state *state);
 
 extern void _mesa_print_ir(FILE *f, struct exec_list *instructions,
                            struct _mesa_glsl_parse_state *state);

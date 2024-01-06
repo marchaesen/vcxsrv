@@ -23,6 +23,7 @@
  */
 #include "nir/nir_builder.h"
 #include "radv_meta.h"
+#include "vk_common_entrypoints.h"
 
 /*
  * GFX queue: Compute shader implementation of image->buffer copy
@@ -1304,8 +1305,8 @@ radv_meta_image_to_buffer(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_b
 
    for (unsigned r = 0; r < num_rects; ++r) {
       unsigned push_constants[4] = {rects[r].src_x, rects[r].src_y, src->layer, dst->pitch};
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itob.img_p_layout,
-                            VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itob.img_p_layout,
+                                 VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
 
       radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
       fixup_gfx9_cs_copy(cmd_buffer, dst, src, &rects[r], false);
@@ -1376,8 +1377,8 @@ radv_meta_buffer_to_image_cs_r32g32b32(struct radv_cmd_buffer *cmd_buffer, struc
          src->pitch,
       };
 
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.btoi_r32g32b32.img_p_layout,
-                            VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.btoi_r32g32b32.img_p_layout,
+                                 VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
 
       radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
    }
@@ -1447,8 +1448,8 @@ radv_meta_buffer_to_image_cs(struct radv_cmd_buffer *cmd_buffer, struct radv_met
          dst->layer,
          src->pitch,
       };
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.btoi.img_p_layout,
-                            VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.btoi.img_p_layout,
+                                 VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
 
       radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
       fixup_gfx9_cs_copy(cmd_buffer, src, dst, &rects[r], true);
@@ -1521,8 +1522,8 @@ radv_meta_image_to_image_cs_r32g32b32(struct radv_cmd_buffer *cmd_buffer, struct
       unsigned push_constants[6] = {
          rects[r].src_x, rects[r].src_y, src_stride, rects[r].dst_x, rects[r].dst_y, dst_stride,
       };
-      radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itoi_r32g32b32.img_p_layout,
-                            VK_SHADER_STAGE_COMPUTE_BIT, 0, 24, push_constants);
+      vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itoi_r32g32b32.img_p_layout,
+                                 VK_SHADER_STAGE_COMPUTE_BIT, 0, 24, push_constants);
 
       radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
    }
@@ -1605,8 +1606,8 @@ radv_meta_image_to_image_cs(struct radv_cmd_buffer *cmd_buffer, struct radv_meta
          unsigned push_constants[6] = {
             rects[r].src_x, rects[r].src_y, src->layer, rects[r].dst_x, rects[r].dst_y, dst->layer,
          };
-         radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itoi.img_p_layout,
-                               VK_SHADER_STAGE_COMPUTE_BIT, 0, 24, push_constants);
+         vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.itoi.img_p_layout,
+                                    VK_SHADER_STAGE_COMPUTE_BIT, 0, 24, push_constants);
 
          radv_unaligned_dispatch(cmd_buffer, rects[r].width, rects[r].height, 1);
       }
@@ -1664,8 +1665,8 @@ radv_meta_clear_image_cs_r32g32b32(struct radv_cmd_buffer *cmd_buffer, struct ra
       stride,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.cleari_r32g32b32.img_p_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.cleari_r32g32b32.img_p_layout,
+                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 16, push_constants);
 
    radv_unaligned_dispatch(cmd_buffer, dst->image->vk.extent.width, dst->image->vk.extent.height, 1);
 
@@ -1726,8 +1727,8 @@ radv_meta_clear_image_cs(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_bl
       clear_color->uint32[0], clear_color->uint32[1], clear_color->uint32[2], clear_color->uint32[3], dst->layer,
    };
 
-   radv_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.cleari.img_p_layout,
-                         VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, push_constants);
+   vk_common_CmdPushConstants(radv_cmd_buffer_to_handle(cmd_buffer), device->meta_state.cleari.img_p_layout,
+                              VK_SHADER_STAGE_COMPUTE_BIT, 0, 20, push_constants);
 
    radv_unaligned_dispatch(cmd_buffer, dst->image->vk.extent.width, dst->image->vk.extent.height, 1);
 

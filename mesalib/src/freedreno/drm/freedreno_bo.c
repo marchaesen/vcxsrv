@@ -105,7 +105,8 @@ fd_bo_init_common(struct fd_bo *bo, struct fd_device *dev)
    bo->max_fences = 1;
    bo->fences = &bo->_inline_fence;
 
-   VG_BO_ALLOC(bo);
+   if (!bo->map)
+      VG_BO_ALLOC(bo);
 }
 
 /* allocate a new buffer object, call w/ table_lock held */
@@ -659,6 +660,16 @@ fd_bo_map(struct fd_bo *bo)
    return __fd_bo_map(bo);
 }
 
+static void *
+fd_bo_map_for_upload(struct fd_bo *bo)
+{
+   void *addr = __fd_bo_map(bo);
+   if (bo->alloc_flags & FD_BO_NOMAP)
+      VG_BO_MAPPED(bo);
+
+   return addr;
+}
+
 void
 fd_bo_upload(struct fd_bo *bo, void *src, unsigned off, unsigned len)
 {
@@ -667,7 +678,7 @@ fd_bo_upload(struct fd_bo *bo, void *src, unsigned off, unsigned len)
       return;
    }
 
-   memcpy((uint8_t *)__fd_bo_map(bo) + off, src, len);
+   memcpy((uint8_t *)fd_bo_map_for_upload(bo) + off, src, len);
 }
 
 bool

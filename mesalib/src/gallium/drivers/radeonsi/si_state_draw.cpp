@@ -313,7 +313,7 @@ static bool si_update_shaders(struct si_context *sctx)
                shader->binary.code_size,
                pipeline_code_hash);
 
-            total_size += ALIGN(shader->binary.uploaded_code_size, 256);
+            total_size += (uint32_t)align_uintptr(shader->binary.uploaded_code_size, 256);
          }
       }
 

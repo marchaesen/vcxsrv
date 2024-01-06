@@ -24,7 +24,6 @@
 #include "util/u_math.h"
 #include "nir.h"
 #include "glsl_types.h"
-#include "nir_types.h"
 #include "nir_builder.h"
 
 #include "clc_nir.h"

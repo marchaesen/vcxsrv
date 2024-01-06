@@ -23,8 +23,8 @@
 
 #include "dxil_enums.h"
 
+#include "glsl_types.h"
 #include "nir.h"
-#include "nir_types.h"
 
 #include "util/u_debug.h"
 

@@ -195,3 +195,174 @@ vk_common_CmdSetDeviceMask(VkCommandBuffer commandBuffer, uint32_t deviceMask)
    /* Nothing to do here since we only support a single device */
    assert(deviceMask == 0x1);
 }
+
+VkShaderStageFlags
+vk_shader_stages_from_bind_point(VkPipelineBindPoint pipelineBindPoint)
+{
+   switch (pipelineBindPoint) {
+   case VK_PIPELINE_BIND_POINT_COMPUTE:
+      return VK_SHADER_STAGE_COMPUTE_BIT;
+   case VK_PIPELINE_BIND_POINT_GRAPHICS:
+      return VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_TASK_BIT_EXT | VK_SHADER_STAGE_MESH_BIT_EXT;
+   case VK_PIPELINE_BIND_POINT_RAY_TRACING_KHR:
+      return VK_SHADER_STAGE_RAYGEN_BIT_KHR |
+             VK_SHADER_STAGE_ANY_HIT_BIT_KHR |
+             VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
+             VK_SHADER_STAGE_MISS_BIT_KHR |
+             VK_SHADER_STAGE_INTERSECTION_BIT_KHR |
+             VK_SHADER_STAGE_CALLABLE_BIT_KHR;
+   default:
+      unreachable("unknown bind point!");
+   }
+   return 0;
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdBindDescriptorSets(
+    VkCommandBuffer                             commandBuffer,
+    VkPipelineBindPoint                         pipelineBindPoint,
+    VkPipelineLayout                            layout,
+    uint32_t                                    firstSet,
+    uint32_t                                    descriptorSetCount,
+    const VkDescriptorSet*                      pDescriptorSets,
+    uint32_t                                    dynamicOffsetCount,
+    const uint32_t*                             pDynamicOffsets)
+{
+   const VkBindDescriptorSetsInfoKHR two = {
+      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_SETS_INFO_KHR,
+      .stageFlags = vk_shader_stages_from_bind_point(pipelineBindPoint),
+      .layout = layout,
+      .firstSet = firstSet,
+      .descriptorSetCount = descriptorSetCount,
+      .pDescriptorSets = pDescriptorSets,
+      .dynamicOffsetCount = dynamicOffsetCount,
+      .pDynamicOffsets = pDynamicOffsets
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdBindDescriptorSets2KHR(commandBuffer, &two);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdPushConstants(
+    VkCommandBuffer                             commandBuffer,
+    VkPipelineLayout                            layout,
+    VkShaderStageFlags                          stageFlags,
+    uint32_t                                    offset,
+    uint32_t                                    size,
+    const void*                                 pValues)
+{
+   const VkPushConstantsInfoKHR two = {
+      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+      .layout = layout,
+      .stageFlags = stageFlags,
+      .offset = offset,
+      .size = size,
+      .pValues = pValues,
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdPushConstants2KHR(commandBuffer, &two);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdPushDescriptorSetKHR(
+    VkCommandBuffer                             commandBuffer,
+    VkPipelineBindPoint                         pipelineBindPoint,
+    VkPipelineLayout                            layout,
+    uint32_t                                    set,
+    uint32_t                                    descriptorWriteCount,
+    const VkWriteDescriptorSet*                 pDescriptorWrites)
+{
+   const VkPushDescriptorSetInfoKHR two = {
+      .sType = VK_STRUCTURE_TYPE_PUSH_CONSTANTS_INFO_KHR,
+      .stageFlags = vk_shader_stages_from_bind_point(pipelineBindPoint),
+      .layout = layout,
+      .set = set,
+      .descriptorWriteCount = descriptorWriteCount,
+      .pDescriptorWrites = pDescriptorWrites,
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdPushDescriptorSet2KHR(commandBuffer, &two);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdPushDescriptorSetWithTemplateKHR(
+    VkCommandBuffer                             commandBuffer,
+    VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
+    VkPipelineLayout                            layout,
+    uint32_t                                    set,
+    const void*                                 pData)
+{
+   const VkPushDescriptorSetWithTemplateInfoKHR two = {
+      .sType = VK_STRUCTURE_TYPE_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE_INFO_KHR,
+      .descriptorUpdateTemplate = descriptorUpdateTemplate,
+      .layout = layout,
+      .set = set,
+      .pData = pData,
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdPushDescriptorSetWithTemplate2KHR(commandBuffer, &two);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdSetDescriptorBufferOffsetsEXT(
+    VkCommandBuffer                             commandBuffer,
+    VkPipelineBindPoint                         pipelineBindPoint,
+    VkPipelineLayout                            layout,
+    uint32_t                                    firstSet,
+    uint32_t                                    setCount,
+    const uint32_t*                             pBufferIndices,
+    const VkDeviceSize*                         pOffsets)
+{
+   const VkSetDescriptorBufferOffsetsInfoEXT two = {
+      .sType = VK_STRUCTURE_TYPE_SET_DESCRIPTOR_BUFFER_OFFSETS_INFO_EXT,
+      .stageFlags = vk_shader_stages_from_bind_point(pipelineBindPoint),
+      .layout = layout,
+      .firstSet = firstSet,
+      .setCount = setCount,
+      .pBufferIndices = pBufferIndices,
+      .pOffsets = pOffsets
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdSetDescriptorBufferOffsets2EXT(commandBuffer, &two);
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_common_CmdBindDescriptorBufferEmbeddedSamplersEXT(
+    VkCommandBuffer                             commandBuffer,
+    VkPipelineBindPoint                         pipelineBindPoint,
+    VkPipelineLayout                            layout,
+    uint32_t                                    set)
+{
+   const VkBindDescriptorBufferEmbeddedSamplersInfoEXT two = {
+      .sType = VK_STRUCTURE_TYPE_BIND_DESCRIPTOR_BUFFER_EMBEDDED_SAMPLERS_INFO_EXT,
+      .stageFlags = vk_shader_stages_from_bind_point(pipelineBindPoint),
+      .layout = layout,
+      .set = set
+   };
+
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+   const struct vk_device_dispatch_table *disp =
+      &cmd_buffer->base.device->dispatch_table;
+
+   disp->CmdBindDescriptorBufferEmbeddedSamplers2EXT(commandBuffer, &two);
+}

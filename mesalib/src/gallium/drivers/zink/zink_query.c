@@ -403,7 +403,7 @@ unref_vk_query(struct zink_context *ctx, struct zink_vk_query *vkq)
 static void
 destroy_query(struct zink_context *ctx, struct zink_query *query)
 {
-   struct zink_screen *screen = zink_screen(ctx->base.screen);
+   ASSERTED struct zink_screen *screen = zink_screen(ctx->base.screen);
    assert(zink_screen_usage_check_completion(screen, query->batch_uses));
    struct zink_query_buffer *qbo, *next;
 

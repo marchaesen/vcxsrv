@@ -666,6 +666,9 @@ iris_rewrite_compute_walker_pc(struct iris_batch *batch,
 static void
 emit_pipeline_select(struct iris_batch *batch, uint32_t pipeline)
 {
+   /* Bspec 55860: Xe2+ no longer requires PIPELINE_SELECT */
+#if GFX_VER < 20
+
 #if GFX_VER >= 8 && GFX_VER < 10
    /* From the Broadwell PRM, Volume 2a: Instructions, PIPELINE_SELECT:
     *
@@ -751,6 +754,7 @@ emit_pipeline_select(struct iris_batch *batch, uint32_t pipeline)
 #endif /* if GFX_VER >= 9 */
       sel.PipelineSelection = pipeline;
    }
+#endif /* if GFX_VER < 20 */
 }
 
 UNUSED static void
@@ -8114,7 +8118,7 @@ genX(emit_3dprimitive_was)(struct iris_batch *batch,
    UNUSED const struct intel_device_info *devinfo = batch->screen->devinfo;
    UNUSED const struct iris_context *ice = batch->ice;
 
-#if INTEL_NEEDS_WA_22014412737 || INTEL_NEEDS_WA_16014538804
+#if INTEL_WA_22014412737_GFX_VER || INTEL_WA_16014538804_GFX_VER
    if (intel_needs_workaround(devinfo, 22014412737) &&
        (point_or_line_list(primitive_type) || indirect ||
         (vertex_count == 1 || vertex_count == 2))) {

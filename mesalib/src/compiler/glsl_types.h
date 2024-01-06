@@ -41,17 +41,12 @@ extern "C" {
 
 typedef struct glsl_type glsl_type;
 typedef struct glsl_struct_field glsl_struct_field;
-struct _mesa_glsl_parse_state;
-struct glsl_symbol_table;
 
 extern void
 glsl_type_singleton_init_or_ref(void);
 
 extern void
 glsl_type_singleton_decref(void);
-
-extern void
-_mesa_glsl_initialize_types(struct _mesa_glsl_parse_state *state);
 
 void encode_type_to_blob(struct blob *blob, const glsl_type *type);
 
@@ -1070,7 +1065,7 @@ const glsl_type *glsl_get_column_type(const glsl_type *t);
  * The size/align func is only called for scalar and vector types and the
  * returned type is otherwise laid out in the natural way as follows:
  *
- *  - Arrays and matrices have a stride of ALIGN(elem_size, elem_align).
+ *  - Arrays and matrices have a stride of align(elem_size, elem_align).
  *
  *  - Structure types have their elements in-order and as tightly packed as
  *    possible following the alignment required by the size/align func.
@@ -1084,7 +1079,7 @@ const glsl_type *glsl_get_column_type(const glsl_type *t);
  */
 const glsl_type *glsl_get_explicit_type_for_size_align(const glsl_type *type,
                                                               glsl_type_size_align_func type_info,
-                                                              unsigned *size, unsigned *align);
+                                                              unsigned *size, unsigned *alignment);
 
 const glsl_type *glsl_type_replace_vec3_with_vec4(const glsl_type *type);
 

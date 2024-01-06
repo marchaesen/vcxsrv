@@ -282,13 +282,6 @@
       <variantList>
         <variant>
           <configItem popularity="exotic">
-            <name>oldhun</name>
-            <shortDescription>oldhun</shortDescription>
-            <description>Old Hungarian</description>
-          </configItem>
-        </variant>
-        <variant>
-          <configItem popularity="exotic">
             <name>oldhunlig</name>
             <shortDescription>oldhun(lig)</shortDescription>
             <description>Old Hungarian (for ligatures)</description>

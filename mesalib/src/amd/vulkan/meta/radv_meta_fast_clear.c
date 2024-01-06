@@ -452,7 +452,7 @@ radv_emit_set_predication_state_from_image(struct radv_cmd_buffer *cmd_buffer, s
       va += pred_offset;
    }
 
-   si_emit_set_predication_state(cmd_buffer, true, PREDICATION_OP_BOOL64, va);
+   radv_emit_set_predication_state(cmd_buffer, true, PREDICATION_OP_BOOL64, va);
 }
 
 static void
@@ -617,8 +617,8 @@ radv_process_color_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *
 
       if (cmd_buffer->state.predication_type != -1) {
          /* Restore previous conditional rendering user state. */
-         si_emit_set_predication_state(cmd_buffer, cmd_buffer->state.predication_type, cmd_buffer->state.predication_op,
-                                       cmd_buffer->state.predication_va);
+         radv_emit_set_predication_state(cmd_buffer, cmd_buffer->state.predication_type,
+                                         cmd_buffer->state.predication_op, cmd_buffer->state.predication_va);
       }
    }
 

@@ -16,16 +16,12 @@ spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4
 
 # https://gitlab.freedesktop.org/mesa/mesa/-/issues/7186
 spec@!opengl 1.0@rasterpos
-spec@!opengl 1.0@rasterpos@glsl_vs_uniforms
 
 # Sometimes fail when run along with other tests, never when run by themselves
 spec@!opengl 1.1@copypixels-sync
 spec@!opengl 1.1@copypixels-draw-sync
 spec@!opengl 1.1@draw-copypixels-sync
 spec@!opengl 1.1@draw-sync
-
-# 2022-12-29
-x11-dEQP-EGL.functional.color_clears.multi_context.gles2.rgba8888_pbuffer
 
 # flaky on wayland, was stable on x11
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import

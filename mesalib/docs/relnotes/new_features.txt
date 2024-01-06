@@ -18,3 +18,5 @@ GL_ARB_fragment_layer_viewport on Asahi
 GL_ARB_cull_distance on Asahi
 VK_KHR_calibrated_timestamps on RADV
 VK_KHR_vertex_attribute_divisor on RADV
+VK_KHR_maintenance6 on RADV
+VK_KHR_ray_tracing_position_fetch on RADV

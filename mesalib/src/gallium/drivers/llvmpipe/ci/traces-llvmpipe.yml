@@ -111,7 +111,7 @@ traces:
       checksum: 58a6a276abc0e28fcb2a8acea3342712
   gputest/pixmark-piano-v2.trace:
     gl-vmware-llvmpipe:
-      checksum: 11e2a97c14c74e771483ca0d90f9bde3
+      checksum: edc09da55fea262e76686d99548f2cfd
   gputest/triangle-v2.trace:
     gl-vmware-llvmpipe:
       checksum: 7812de00011a3a059892e36cea19c696

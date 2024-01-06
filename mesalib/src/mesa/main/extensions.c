@@ -390,7 +390,7 @@ _mesa_make_extension_string(struct gl_context *ctx)
       if (unrecognized_extensions.names[k])
          length += 1 + strlen(unrecognized_extensions.names[k]); /* +1 for space */
 
-   exts = calloc(ALIGN(length + 1, 4), sizeof(char));
+   exts = calloc(align_uintptr(length + 1, 4), sizeof(char));
    if (exts == NULL) {
       return NULL;
    }

@@ -28,6 +28,7 @@
 #include <stdlib.h>
 
 #include "util/hash_table.h"
+#include "util/u_math.h"
 
 #include "etnaviv_drmif.h"
 #include "etnaviv_priv.h"
@@ -59,7 +60,7 @@ void etna_cmd_stream_realloc(struct etna_cmd_stream *stream, size_t n)
 	 * Increase the command buffer size by 4 kiB. Here we pick 4 kiB
 	 * increment to prevent it from growing too much too quickly.
 	 */
-	size = ALIGN(stream->size + n, 1024);
+	size = align_uintptr(stream->size + n, 1024);
 
 	/* Command buffer is too big for older kernel versions */
 	if (size > 0x4000)

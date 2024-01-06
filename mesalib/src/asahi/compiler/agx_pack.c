@@ -794,7 +794,7 @@ agx_pack_instr(struct util_dynarray *emission, struct util_dynarray *fixups,
       unsigned D = agx_pack_lod(I->src[1], &lod_mode);
 
       unsigned q1 = I->shadow;
-      unsigned q2 = 0;   // XXX
+      unsigned q2 = I->query_lod ? 2 : 0;
       unsigned q3 = 12;  // XXX
       unsigned kill = 0; // helper invocation kill bit
 

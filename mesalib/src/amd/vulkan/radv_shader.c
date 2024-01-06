@@ -114,6 +114,7 @@ get_nir_options_for_stage(struct radv_physical_device *device, gl_shader_stage s
       .has_pack_half_2x16_rtz = true,
       .has_bit_test = !device->use_llvm,
       .has_fmulz = true,
+      .has_msad = true,
       .max_unroll_iterations = 32,
       .max_unroll_iterations_aggressive = 128,
       .use_interpolated_input_intrinsics = true,
@@ -202,16 +203,15 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively)
       NIR_LOOP_PASS(progress, skip, shader, nir_copy_prop);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_remove_phis);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_dce);
-      bool trivial_continues_progress = false;
-      NIR_LOOP_PASS(trivial_continues_progress, skip, shader, nir_opt_trivial_continues);
-      if (trivial_continues_progress) {
+      bool opt_loop_progress = false;
+      NIR_LOOP_PASS(opt_loop_progress, skip, shader, nir_opt_loop);
+      if (opt_loop_progress) {
          progress = true;
          NIR_LOOP_PASS(progress, skip, shader, nir_copy_prop);
          NIR_LOOP_PASS(progress, skip, shader, nir_opt_remove_phis);
          NIR_LOOP_PASS(progress, skip, shader, nir_opt_dce);
       }
-      NIR_LOOP_PASS_NOT_IDEMPOTENT(progress, skip, shader, nir_opt_if,
-                                   nir_opt_if_aggressive_last_continue | nir_opt_if_optimize_phi_true_false);
+      NIR_LOOP_PASS_NOT_IDEMPOTENT(progress, skip, shader, nir_opt_if, nir_opt_if_optimize_phi_true_false);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_dead_cf);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_cse);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_peephole_select, 8, true, true);
@@ -435,6 +435,7 @@ radv_shader_spirv_to_nir(struct radv_device *device, const struct radv_shader_st
                .ray_cull_mask = true,
                .ray_query = true,
                .ray_tracing = true,
+               .ray_tracing_position_fetch = true,
                .ray_traversal_primitive_culling = true,
                .runtime_descriptor_array = true,
                .shader_clock = true,

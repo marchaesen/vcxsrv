@@ -465,7 +465,7 @@ convert_and_store_pixel (bits_image_t *		image,
 	    image, bits, offset, PIXMAN_ ## format);			\
     }									\
 									\
-    static const void *const __dummy__ ## format
+    static const void *const __dummy__ ## format MAYBE_UNUSED
 
 MAKE_ACCESSORS(a8r8g8b8);
 MAKE_ACCESSORS(x8r8g8b8);

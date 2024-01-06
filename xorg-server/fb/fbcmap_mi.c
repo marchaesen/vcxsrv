@@ -66,6 +66,41 @@ fbInitializeColormap(ColormapPtr pmap)
     return miInitializeColormap(pmap);
 }
 
+Bool
+mfbCreateColormap(ColormapPtr pmap)
+{
+    ScreenPtr	pScreen;
+    unsigned short  red0, green0, blue0;
+    unsigned short  red1, green1, blue1;
+    Pixel pix;
+
+    pScreen = pmap->pScreen;
+    if (pScreen->whitePixel == 0)
+    {
+	red0 = green0 = blue0 = ~0;
+	red1 = green1 = blue1 = 0;
+    }
+    else
+    {
+	red0 = green0 = blue0 = 0;
+	red1 = green1 = blue1 = ~0;
+    }
+
+    /* this is a monochrome colormap, it only has two entries, just fill
+     * them in by hand.  If it were a more complex static map, it would be
+     * worth writing a for loop or three to initialize it */
+
+    /* this will be pixel 0 */
+    pix = 0;
+    if (AllocColor(pmap, &red0, &green0, &blue0, &pix, 0) != Success)
+	return FALSE;
+
+    /* this will be pixel 1 */
+    if (AllocColor(pmap, &red1, &green1, &blue1, &pix, 0) != Success)
+	return FALSE;
+    return TRUE;
+}
+
 int
 fbExpandDirectColors(ColormapPtr pmap,
                      int ndef, xColorItem * indefs, xColorItem * outdefs)

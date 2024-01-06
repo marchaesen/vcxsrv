@@ -674,6 +674,12 @@ struct pipe_h264_enc_picture_desc
    bool renew_headers_on_idr;
 };
 
+struct pipe_h265_st_ref_pic_set
+{
+   uint32_t num_neg_pics;
+   uint32_t num_pos_pics;
+};
+
 struct pipe_h265_enc_sublayer_hrd_params
 {
     uint32_t bit_rate_value_minus1[32];

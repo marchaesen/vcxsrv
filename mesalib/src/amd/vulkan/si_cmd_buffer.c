@@ -33,8 +33,8 @@
 #include "sid.h"
 
 static void
-si_write_harvested_raster_configs(struct radv_physical_device *physical_device, struct radeon_cmdbuf *cs,
-                                  unsigned raster_config, unsigned raster_config_1)
+radv_write_harvested_raster_configs(struct radv_physical_device *physical_device, struct radeon_cmdbuf *cs,
+                                    unsigned raster_config, unsigned raster_config_1)
 {
    unsigned num_se = MAX2(physical_device->rad_info.max_se, 1);
    unsigned raster_config_se[4];
@@ -70,7 +70,7 @@ si_write_harvested_raster_configs(struct radv_physical_device *physical_device, 
 }
 
 void
-si_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
+radv_emit_compute(struct radv_device *device, struct radeon_cmdbuf *cs)
 {
    const struct radeon_info *info = &device->physical_device->rad_info;
 
@@ -170,7 +170,7 @@ radv_pack_float_12p4(float x)
 }
 
 static void
-si_set_raster_config(struct radv_physical_device *physical_device, struct radeon_cmdbuf *cs)
+radv_set_raster_config(struct radv_physical_device *physical_device, struct radeon_cmdbuf *cs)
 {
    unsigned num_rb = MIN2(physical_device->rad_info.max_render_backends, 16);
    uint64_t rb_mask = physical_device->rad_info.enabled_rb_mask;
@@ -186,12 +186,12 @@ si_set_raster_config(struct radv_physical_device *physical_device, struct radeon
       if (physical_device->rad_info.gfx_level >= GFX7)
          radeon_set_context_reg(cs, R_028354_PA_SC_RASTER_CONFIG_1, raster_config_1);
    } else {
-      si_write_harvested_raster_configs(physical_device, cs, raster_config, raster_config_1);
+      radv_write_harvested_raster_configs(physical_device, cs, raster_config, raster_config_1);
    }
 }
 
 void
-si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
+radv_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
 {
    struct radv_physical_device *physical_device = device->physical_device;
 
@@ -210,7 +210,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
    }
 
    if (physical_device->rad_info.gfx_level <= GFX8)
-      si_set_raster_config(physical_device, cs);
+      radv_set_raster_config(physical_device, cs);
 
    /* Emulated in shader code on GFX9+. */
    if (physical_device->rad_info.gfx_level >= GFX9)
@@ -627,7 +627,7 @@ si_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
       radeon_set_uconfig_reg(cs, R_03092C_GE_MULTI_PRIM_IB_RESET_EN, S_03092C_DISABLE_FOR_AUTO_INDEX(1));
    }
 
-   si_emit_compute(device, cs);
+   radv_emit_compute(device, cs);
 }
 
 void
@@ -639,7 +639,7 @@ radv_create_gfx_config(struct radv_device *device)
 
    radeon_check_space(device->ws, cs, 512);
 
-   si_emit_graphics(device, cs);
+   radv_emit_graphics(device, cs);
 
    while (cs->cdw & 7) {
       if (device->physical_device->rad_info.gfx_ib_pad_with_type2)
@@ -689,7 +689,7 @@ radv_get_viewport_xform(const VkViewport *viewport, float scale[3], float transl
 }
 
 static VkRect2D
-si_scissor_from_viewport(const VkViewport *viewport)
+radv_scissor_from_viewport(const VkViewport *viewport)
 {
    float scale[3], translate[3];
    VkRect2D rect;
@@ -705,7 +705,7 @@ si_scissor_from_viewport(const VkViewport *viewport)
 }
 
 static VkRect2D
-si_intersect_scissor(const VkRect2D *a, const VkRect2D *b)
+radv_intersect_scissor(const VkRect2D *a, const VkRect2D *b)
 {
    VkRect2D ret;
    ret.offset.x = MAX2(a->offset.x, b->offset.x);
@@ -716,7 +716,7 @@ si_intersect_scissor(const VkRect2D *a, const VkRect2D *b)
 }
 
 void
-si_write_scissors(struct radeon_cmdbuf *cs, int count, const VkRect2D *scissors, const VkViewport *viewports)
+radv_write_scissors(struct radeon_cmdbuf *cs, int count, const VkRect2D *scissors, const VkViewport *viewports)
 {
    int i;
 
@@ -725,8 +725,8 @@ si_write_scissors(struct radeon_cmdbuf *cs, int count, const VkRect2D *scissors,
 
    radeon_set_context_reg_seq(cs, R_028250_PA_SC_VPORT_SCISSOR_0_TL, count * 2);
    for (i = 0; i < count; i++) {
-      VkRect2D viewport_scissor = si_scissor_from_viewport(viewports + i);
-      VkRect2D scissor = si_intersect_scissor(&scissors[i], &viewport_scissor);
+      VkRect2D viewport_scissor = radv_scissor_from_viewport(viewports + i);
+      VkRect2D scissor = radv_intersect_scissor(&scissors[i], &viewport_scissor);
 
       radeon_emit(
          cs, S_028250_TL_X(scissor.offset.x) | S_028250_TL_Y(scissor.offset.y) | S_028250_WINDOW_OFFSET_DISABLE(1));
@@ -736,8 +736,8 @@ si_write_scissors(struct radeon_cmdbuf *cs, int count, const VkRect2D *scissors,
 }
 
 void
-si_write_guardband(struct radeon_cmdbuf *cs, int count, const VkViewport *viewports, unsigned rast_prim,
-                   unsigned polygon_mode, float line_width)
+radv_write_guardband(struct radeon_cmdbuf *cs, int count, const VkViewport *viewports, unsigned rast_prim,
+                     unsigned polygon_mode, float line_width)
 {
    const bool draw_points = radv_rast_prim_is_point(rast_prim) || radv_polygon_mode_is_point(polygon_mode);
    const bool draw_lines = radv_rast_prim_is_line(rast_prim) || radv_polygon_mode_is_line(polygon_mode);
@@ -816,9 +816,9 @@ static const struct radv_prim_vertex_count prim_size_table[] = {
 };
 
 uint32_t
-si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_draw, bool indirect_draw,
-                          bool count_from_stream_output, uint32_t draw_vertex_count, unsigned topology,
-                          bool prim_restart_enable, unsigned patch_control_points, unsigned num_tess_patches)
+radv_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_draw, bool indirect_draw,
+                            bool count_from_stream_output, uint32_t draw_vertex_count, unsigned topology,
+                            bool prim_restart_enable, unsigned patch_control_points, unsigned num_tess_patches)
 {
    const struct radeon_info *info = &cmd_buffer->device->physical_device->rad_info;
    const unsigned max_primgroup_in_wave = 2;
@@ -949,9 +949,9 @@ si_get_ia_multi_vgt_param(struct radv_cmd_buffer *cmd_buffer, bool instanced_dra
 }
 
 void
-si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level, enum radv_queue_family qf,
-                           unsigned event, unsigned event_flags, unsigned dst_sel, unsigned data_sel, uint64_t va,
-                           uint32_t new_fence, uint64_t gfx9_eop_bug_va)
+radv_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level, enum radv_queue_family qf,
+                             unsigned event, unsigned event_flags, unsigned dst_sel, unsigned data_sel, uint64_t va,
+                             uint32_t new_fence, uint64_t gfx9_eop_bug_va)
 {
    if (qf == RADV_QUEUE_TRANSFER) {
       radeon_emit(cs, SDMA_PACKET(SDMA_OPCODE_FENCE, 0, SDMA_FENCE_MTYPE_UC));
@@ -1042,7 +1042,7 @@ si_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_leve
 }
 
 static void
-si_emit_acquire_mem(struct radeon_cmdbuf *cs, bool is_mec, bool is_gfx9, unsigned cp_coher_cntl)
+radv_emit_acquire_mem(struct radeon_cmdbuf *cs, bool is_mec, bool is_gfx9, unsigned cp_coher_cntl)
 {
    if (is_mec || is_gfx9) {
       uint32_t hi_val = is_gfx9 ? 0xffffff : 0xff;
@@ -1238,11 +1238,11 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level
          assert(flush_cnt);
          (*flush_cnt)++;
 
-         si_cs_emit_write_event_eop(cs, gfx_level, qf, cb_db_event,
-                                    S_490_GLM_WB(glm_wb) | S_490_GLM_INV(glm_inv) | S_490_GLV_INV(glv_inv) |
-                                       S_490_GL1_INV(gl1_inv) | S_490_GL2_INV(gl2_inv) | S_490_GL2_WB(gl2_wb) |
-                                       S_490_SEQ(gcr_seq),
-                                    EOP_DST_SEL_MEM, EOP_DATA_SEL_VALUE_32BIT, flush_va, *flush_cnt, gfx9_eop_bug_va);
+         radv_cs_emit_write_event_eop(cs, gfx_level, qf, cb_db_event,
+                                      S_490_GLM_WB(glm_wb) | S_490_GLM_INV(glm_inv) | S_490_GLV_INV(glv_inv) |
+                                         S_490_GL1_INV(gl1_inv) | S_490_GL2_INV(gl2_inv) | S_490_GL2_WB(gl2_wb) |
+                                         S_490_SEQ(gcr_seq),
+                                      EOP_DST_SEL_MEM, EOP_DATA_SEL_VALUE_32BIT, flush_va, *flush_cnt, gfx9_eop_bug_va);
 
          radv_cp_wait_mem(cs, qf, WAIT_REG_MEM_EQUAL, flush_va, *flush_cnt, 0xffffffff);
       }
@@ -1296,10 +1296,10 @@ gfx10_cs_emit_cache_flush(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level
 }
 
 void
-si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level,
-                       uint32_t *flush_cnt, uint64_t flush_va, enum radv_queue_family qf,
-                       enum radv_cmd_flush_bits flush_bits, enum rgp_flush_bits *sqtt_flush_bits,
-                       uint64_t gfx9_eop_bug_va)
+radv_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level,
+                         uint32_t *flush_cnt, uint64_t flush_va, enum radv_queue_family qf,
+                         enum radv_cmd_flush_bits flush_bits, enum rgp_flush_bits *sqtt_flush_bits,
+                         uint64_t gfx9_eop_bug_va)
 {
    unsigned cp_coher_cntl = 0;
    uint32_t flush_cb_db = flush_bits & (RADV_CMD_FLAG_FLUSH_AND_INV_CB | RADV_CMD_FLAG_FLUSH_AND_INV_DB);
@@ -1332,8 +1332,8 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
 
          /* Necessary for DCC */
          if (gfx_level >= GFX8) {
-            si_cs_emit_write_event_eop(cs, gfx_level, is_mec, V_028A90_FLUSH_AND_INV_CB_DATA_TS, 0, EOP_DST_SEL_MEM,
-                                       EOP_DATA_SEL_DISCARD, 0, 0, gfx9_eop_bug_va);
+            radv_cs_emit_write_event_eop(cs, gfx_level, is_mec, V_028A90_FLUSH_AND_INV_CB_DATA_TS, 0, EOP_DST_SEL_MEM,
+                                         EOP_DATA_SEL_DISCARD, 0, 0, gfx9_eop_bug_va);
          }
 
          *sqtt_flush_bits |= RGP_FLUSH_FLUSH_CB | RGP_FLUSH_INVAL_CB;
@@ -1414,8 +1414,8 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
       assert(flush_cnt);
       (*flush_cnt)++;
 
-      si_cs_emit_write_event_eop(cs, gfx_level, false, cb_db_event, tc_flags, EOP_DST_SEL_MEM, EOP_DATA_SEL_VALUE_32BIT,
-                                 flush_va, *flush_cnt, gfx9_eop_bug_va);
+      radv_cs_emit_write_event_eop(cs, gfx_level, false, cb_db_event, tc_flags, EOP_DST_SEL_MEM,
+                                   EOP_DATA_SEL_VALUE_32BIT, flush_va, *flush_cnt, gfx9_eop_bug_va);
       radv_cp_wait_mem(cs, qf, WAIT_REG_MEM_EQUAL, flush_va, *flush_cnt, 0xffffffff);
    }
 
@@ -1444,9 +1444,9 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
    }
 
    if ((flush_bits & RADV_CMD_FLAG_INV_L2) || (gfx_level <= GFX7 && (flush_bits & RADV_CMD_FLAG_WB_L2))) {
-      si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
-                          cp_coher_cntl | S_0085F0_TC_ACTION_ENA(1) | S_0085F0_TCL1_ACTION_ENA(1) |
-                             S_0301F0_TC_WB_ACTION_ENA(gfx_level >= GFX8));
+      radv_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
+                            cp_coher_cntl | S_0085F0_TC_ACTION_ENA(1) | S_0085F0_TCL1_ACTION_ENA(1) |
+                               S_0301F0_TC_WB_ACTION_ENA(gfx_level >= GFX8));
       cp_coher_cntl = 0;
 
       *sqtt_flush_bits |= RGP_FLUSH_INVAL_L2 | RGP_FLUSH_INVAL_VMEM_L0;
@@ -1458,14 +1458,14 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
           *
           * WB doesn't work without NC.
           */
-         si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
-                             cp_coher_cntl | S_0301F0_TC_WB_ACTION_ENA(1) | S_0301F0_TC_NC_ACTION_ENA(1));
+         radv_emit_acquire_mem(cs, is_mec, gfx_level == GFX9,
+                               cp_coher_cntl | S_0301F0_TC_WB_ACTION_ENA(1) | S_0301F0_TC_NC_ACTION_ENA(1));
          cp_coher_cntl = 0;
 
          *sqtt_flush_bits |= RGP_FLUSH_FLUSH_L2 | RGP_FLUSH_INVAL_VMEM_L0;
       }
       if (flush_bits & RADV_CMD_FLAG_INV_VCACHE) {
-         si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9, cp_coher_cntl | S_0085F0_TCL1_ACTION_ENA(1));
+         radv_emit_acquire_mem(cs, is_mec, gfx_level == GFX9, cp_coher_cntl | S_0085F0_TCL1_ACTION_ENA(1));
          cp_coher_cntl = 0;
 
          *sqtt_flush_bits |= RGP_FLUSH_INVAL_VMEM_L0;
@@ -1476,7 +1476,7 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
     * Therefore, it should be last. Done in PFP.
     */
    if (cp_coher_cntl)
-      si_emit_acquire_mem(cs, is_mec, gfx_level == GFX9, cp_coher_cntl);
+      radv_emit_acquire_mem(cs, is_mec, gfx_level == GFX9, cp_coher_cntl);
 
    if (flush_bits & RADV_CMD_FLAG_START_PIPELINE_STATS) {
       if (qf == RADV_QUEUE_GENERAL) {
@@ -1496,7 +1496,7 @@ si_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum 
 }
 
 void
-si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
+radv_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 {
    bool is_compute = cmd_buffer->qf == RADV_QUEUE_COMPUTE;
 
@@ -1512,10 +1512,10 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
       return;
    }
 
-   si_cs_emit_cache_flush(cmd_buffer->device->ws, cmd_buffer->cs,
-                          cmd_buffer->device->physical_device->rad_info.gfx_level, &cmd_buffer->gfx9_fence_idx,
-                          cmd_buffer->gfx9_fence_va, radv_cmd_buffer_uses_mec(cmd_buffer), cmd_buffer->state.flush_bits,
-                          &cmd_buffer->state.sqtt_flush_bits, cmd_buffer->gfx9_eop_bug_va);
+   radv_cs_emit_cache_flush(
+      cmd_buffer->device->ws, cmd_buffer->cs, cmd_buffer->device->physical_device->rad_info.gfx_level,
+      &cmd_buffer->gfx9_fence_idx, cmd_buffer->gfx9_fence_va, radv_cmd_buffer_uses_mec(cmd_buffer),
+      cmd_buffer->state.flush_bits, &cmd_buffer->state.sqtt_flush_bits, cmd_buffer->gfx9_eop_bug_va);
 
    if (unlikely(cmd_buffer->device->trace_bo))
       radv_cmd_buffer_trace_emit(cmd_buffer);
@@ -1540,7 +1540,7 @@ si_emit_cache_flush(struct radv_cmd_buffer *cmd_buffer)
 
 /* sets the CP predication state using a boolean stored at va */
 void
-si_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, bool draw_visible, unsigned pred_op, uint64_t va)
+radv_emit_set_predication_state(struct radv_cmd_buffer *cmd_buffer, bool draw_visible, unsigned pred_op, uint64_t va)
 {
    uint32_t op = 0;
 
@@ -1600,8 +1600,8 @@ cp_dma_max_byte_count(enum amd_gfx_level gfx_level)
  * clear value.
  */
 static void
-si_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool predicating, uint64_t dst_va,
-                  uint64_t src_va, unsigned size, unsigned flags)
+radv_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool predicating, uint64_t dst_va,
+                    uint64_t src_va, unsigned size, unsigned flags)
 {
    uint32_t header = 0, command = 0;
 
@@ -1658,13 +1658,13 @@ si_cs_emit_cp_dma(struct radv_device *device, struct radeon_cmdbuf *cs, bool pre
 }
 
 static void
-si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src_va, unsigned size, unsigned flags)
+radv_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src_va, unsigned size, unsigned flags)
 {
    struct radeon_cmdbuf *cs = cmd_buffer->cs;
    struct radv_device *device = cmd_buffer->device;
    bool predicating = cmd_buffer->state.predicating;
 
-   si_cs_emit_cp_dma(device, cs, predicating, dst_va, src_va, size, flags);
+   radv_cs_emit_cp_dma(device, cs, predicating, dst_va, src_va, size, flags);
 
    /* CP DMA is executed in ME, but index buffers are read by PFP.
     * This ensures that ME (CP DMA) is idle before PFP starts fetching
@@ -1686,8 +1686,8 @@ si_emit_cp_dma(struct radv_cmd_buffer *cmd_buffer, uint64_t dst_va, uint64_t src
 }
 
 void
-si_cs_cp_dma_prefetch(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t va, unsigned size,
-                      bool predicating)
+radv_cs_cp_dma_prefetch(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t va, unsigned size,
+                        bool predicating)
 {
    struct radeon_winsys *ws = device->ws;
    enum amd_gfx_level gfx_level = device->physical_device->rad_info.gfx_level;
@@ -1723,23 +1723,23 @@ si_cs_cp_dma_prefetch(const struct radv_device *device, struct radeon_cmdbuf *cs
 }
 
 void
-si_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va, unsigned size)
+radv_cp_dma_prefetch(struct radv_cmd_buffer *cmd_buffer, uint64_t va, unsigned size)
 {
-   si_cs_cp_dma_prefetch(cmd_buffer->device, cmd_buffer->cs, va, size, cmd_buffer->state.predicating);
+   radv_cs_cp_dma_prefetch(cmd_buffer->device, cmd_buffer->cs, va, size, cmd_buffer->state.predicating);
 
    if (unlikely(cmd_buffer->device->trace_bo))
       radv_cmd_buffer_trace_emit(cmd_buffer);
 }
 
 static void
-si_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count, uint64_t remaining_size, unsigned *flags)
+radv_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count, uint64_t remaining_size, unsigned *flags)
 {
 
    /* Flush the caches for the first copy only.
     * Also wait for the previous CP DMA operations.
     */
    if (cmd_buffer->state.flush_bits) {
-      si_emit_cache_flush(cmd_buffer);
+      radv_emit_cache_flush(cmd_buffer);
       *flags |= CP_DMA_RAW_WAIT;
    }
 
@@ -1751,7 +1751,7 @@ si_cp_dma_prepare(struct radv_cmd_buffer *cmd_buffer, uint64_t byte_count, uint6
 }
 
 static void
-si_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigned size)
+radv_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigned size)
 {
    uint64_t va;
    uint32_t offset;
@@ -1766,13 +1766,13 @@ si_cp_dma_realign_engine(struct radv_cmd_buffer *cmd_buffer, unsigned size)
    va = radv_buffer_get_va(cmd_buffer->upload.upload_bo);
    va += offset;
 
-   si_cp_dma_prepare(cmd_buffer, size, size, &dma_flags);
+   radv_cp_dma_prepare(cmd_buffer, size, size, &dma_flags);
 
-   si_emit_cp_dma(cmd_buffer, va, va + SI_CPDMA_ALIGNMENT, size, dma_flags);
+   radv_emit_cp_dma(cmd_buffer, va, va + SI_CPDMA_ALIGNMENT, size, dma_flags);
 }
 
 void
-si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dest_va, uint64_t size)
+radv_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint64_t dest_va, uint64_t size)
 {
    enum amd_gfx_level gfx_level = cmd_buffer->device->physical_device->rad_info.gfx_level;
    uint64_t main_src_va, main_dest_va;
@@ -1823,11 +1823,11 @@ si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint6
          dma_flags |= CP_DMA_USE_L2;
       }
 
-      si_cp_dma_prepare(cmd_buffer, byte_count, size + skipped_size + realign_size, &dma_flags);
+      radv_cp_dma_prepare(cmd_buffer, byte_count, size + skipped_size + realign_size, &dma_flags);
 
       dma_flags &= ~CP_DMA_SYNC;
 
-      si_emit_cp_dma(cmd_buffer, main_dest_va, main_src_va, byte_count, dma_flags);
+      radv_emit_cp_dma(cmd_buffer, main_dest_va, main_src_va, byte_count, dma_flags);
 
       size -= byte_count;
       main_src_va += byte_count;
@@ -1837,16 +1837,16 @@ si_cp_dma_buffer_copy(struct radv_cmd_buffer *cmd_buffer, uint64_t src_va, uint6
    if (skipped_size) {
       unsigned dma_flags = 0;
 
-      si_cp_dma_prepare(cmd_buffer, skipped_size, size + skipped_size + realign_size, &dma_flags);
+      radv_cp_dma_prepare(cmd_buffer, skipped_size, size + skipped_size + realign_size, &dma_flags);
 
-      si_emit_cp_dma(cmd_buffer, dest_va, src_va, skipped_size, dma_flags);
+      radv_emit_cp_dma(cmd_buffer, dest_va, src_va, skipped_size, dma_flags);
    }
    if (realign_size)
-      si_cp_dma_realign_engine(cmd_buffer, realign_size);
+      radv_cp_dma_realign_engine(cmd_buffer, realign_size);
 }
 
 void
-si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t size, unsigned value)
+radv_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t size, unsigned value)
 {
    if (!size)
       return;
@@ -1872,10 +1872,10 @@ si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t
          dma_flags |= CP_DMA_USE_L2;
       }
 
-      si_cp_dma_prepare(cmd_buffer, byte_count, size, &dma_flags);
+      radv_cp_dma_prepare(cmd_buffer, byte_count, size, &dma_flags);
 
       /* Emit the clear packet. */
-      si_emit_cp_dma(cmd_buffer, va, value, byte_count, dma_flags);
+      radv_emit_cp_dma(cmd_buffer, va, value, byte_count, dma_flags);
 
       size -= byte_count;
       va += byte_count;
@@ -1883,7 +1883,7 @@ si_cp_dma_clear_buffer(struct radv_cmd_buffer *cmd_buffer, uint64_t va, uint64_t
 }
 
 void
-si_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer)
+radv_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer)
 {
    if (cmd_buffer->device->physical_device->rad_info.gfx_level < GFX7)
       return;
@@ -1897,7 +1897,7 @@ si_cp_dma_wait_for_idle(struct radv_cmd_buffer *cmd_buffer)
     * DMA request, however, the CP will see the sync flag and still wait
     * for all DMAs to complete.
     */
-   si_emit_cp_dma(cmd_buffer, 0, 0, 0, CP_DMA_SYNC);
+   radv_emit_cp_dma(cmd_buffer, 0, 0, 0, CP_DMA_SYNC);
 
    cmd_buffer->state.dma_is_busy = false;
 }

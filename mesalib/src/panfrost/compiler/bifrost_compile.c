@@ -25,9 +25,9 @@
  *      Alyssa Rosenzweig <alyssa.rosenzweig@collabora.com>
  */
 
+#include "compiler/glsl_types.h"
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/nir/nir_builder.h"
-#include "compiler/nir_types.h"
 #include "util/u_debug.h"
 
 #include "bifrost/disassemble.h"

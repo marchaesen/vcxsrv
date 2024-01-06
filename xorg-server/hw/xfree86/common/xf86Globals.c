@@ -188,6 +188,7 @@ int xf86FbBpp = -1;
 int xf86Depth = -1;
 rgb xf86Weight = { 0, 0, 0 };
 
+Bool xf86FlipPixels = FALSE;
 Gamma xf86Gamma = { 0.0, 0.0, 0.0 };
 
 Bool xf86AllowMouseOpenFail = FALSE;

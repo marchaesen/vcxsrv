@@ -52,6 +52,8 @@ struct radv_shader_args;
 struct radv_serialized_shader_arena_block;
 
 enum {
+   RADV_GRAPHICS_STAGE_BITS =
+      (VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT),
    RADV_RT_STAGE_BITS =
       (VK_SHADER_STAGE_RAYGEN_BIT_KHR | VK_SHADER_STAGE_ANY_HIT_BIT_KHR | VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR |
        VK_SHADER_STAGE_MISS_BIT_KHR | VK_SHADER_STAGE_INTERSECTION_BIT_KHR | VK_SHADER_STAGE_CALLABLE_BIT_KHR)
@@ -458,8 +460,6 @@ struct radv_shader_info {
       bool uses_thread_id[3];
       bool uses_local_invocation_idx;
       unsigned block_size[3];
-
-      uint8_t subgroup_size;
 
       bool is_rt_shader;
       bool uses_ray_launch_size;

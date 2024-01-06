@@ -11,12 +11,12 @@
 #include "vn_android.h"
 
 #include <dlfcn.h>
-#include <hardware/gralloc.h>
 #include <hardware/hwvulkan.h>
 #include <vndk/hardware_buffer.h>
 #include <vulkan/vk_icd.h>
 
 #include "util/os_file.h"
+#include "util/u_gralloc/u_gralloc.h"
 #include "vk_android.h"
 
 #include "vn_buffer.h"
@@ -27,14 +27,9 @@
 #include "vn_physical_device.h"
 #include "vn_queue.h"
 
-/* perform options supported by CrOS Gralloc */
-#define CROS_GRALLOC_DRM_GET_BUFFER_INFO 4
-#define CROS_GRALLOC_DRM_GET_USAGE 5
-#define CROS_GRALLOC_DRM_GET_USAGE_FRONT_RENDERING_BIT 0x1
-
 struct vn_android_gralloc {
-   const gralloc_module_t *module;
-   uint32_t front_rendering_usage;
+   struct u_gralloc *gralloc;
+   uint64_t front_rendering_usage;
 };
 
 static struct vn_android_gralloc _vn_android_gralloc;
@@ -42,37 +37,24 @@ static struct vn_android_gralloc _vn_android_gralloc;
 static int
 vn_android_gralloc_init()
 {
-   /* We preload same-process gralloc hw module along with venus icd. When
-    * venus gets preloaded in Zygote, the unspecialized Zygote process
-    * defaults to no access to dri nodes. So we MUST NOT invoke any gralloc
-    * helpers here to avoid initializing cros gralloc driver.
-    */
-   static const char CROS_GRALLOC_MODULE_NAME[] = "CrOS Gralloc";
-   const gralloc_module_t *gralloc = NULL;
-   int ret;
+   assert(!_vn_android_gralloc.gralloc);
 
-   /* get gralloc module for gralloc buffer info query */
-   ret = hw_get_module(GRALLOC_HARDWARE_MODULE_ID,
-                       (const hw_module_t **)&gralloc);
-   if (ret) {
-      vn_log(NULL, "failed to open gralloc module(ret=%d)", ret);
-      return ret;
-   }
-
-   if (strcmp(gralloc->common.name, CROS_GRALLOC_MODULE_NAME) != 0) {
-      dlclose(gralloc->common.dso);
-      vn_log(NULL, "unexpected gralloc (name: %s)", gralloc->common.name);
+   struct u_gralloc *gralloc = u_gralloc_create(U_GRALLOC_TYPE_AUTO);
+   if (!gralloc) {
+      vn_log(NULL, "u_gralloc failed to create a gralloc module instance");
       return -1;
    }
 
-   /* check the helper without using it here as mentioned above */
-   if (!gralloc->perform) {
-      dlclose(gralloc->common.dso);
-      vn_log(NULL, "missing required gralloc helper: perform");
+   const int gralloc_type = u_gralloc_get_type(gralloc);
+   if (gralloc_type != U_GRALLOC_TYPE_CROS &&
+       gralloc_type != U_GRALLOC_TYPE_GRALLOC4) {
+      u_gralloc_destroy(&gralloc);
+      vn_log(NULL, "only CrOS and IMapper v4 grallocs are supported for "
+                   "Venus Vulkan HAL");
       return -1;
    }
 
-   _vn_android_gralloc.module = gralloc;
+   _vn_android_gralloc.gralloc = gralloc;
 
    return 0;
 }
@@ -80,38 +62,29 @@ vn_android_gralloc_init()
 static inline void
 vn_android_gralloc_fini()
 {
-   dlclose(_vn_android_gralloc.module->common.dso);
+   u_gralloc_destroy(&_vn_android_gralloc.gralloc);
 }
 
 static void
 vn_android_gralloc_shared_present_usage_init_once()
 {
-   const gralloc_module_t *gralloc = _vn_android_gralloc.module;
-   uint32_t front_rendering_usage = 0;
-   if (gralloc->perform(gralloc, CROS_GRALLOC_DRM_GET_USAGE,
-                        CROS_GRALLOC_DRM_GET_USAGE_FRONT_RENDERING_BIT,
-                        &front_rendering_usage) == 0) {
-      assert(front_rendering_usage);
-      _vn_android_gralloc.front_rendering_usage = front_rendering_usage;
-   }
+   assert(_vn_android_gralloc.gralloc);
+
+   int ret = u_gralloc_get_front_rendering_usage(
+      _vn_android_gralloc.gralloc,
+      &_vn_android_gralloc.front_rendering_usage);
+
+   if (ret == 0)
+      assert(_vn_android_gralloc.front_rendering_usage);
 }
 
-uint32_t
+uint64_t
 vn_android_gralloc_get_shared_present_usage()
 {
    static once_flag once = ONCE_FLAG_INIT;
    call_once(&once, vn_android_gralloc_shared_present_usage_init_once);
    return _vn_android_gralloc.front_rendering_usage;
 }
-
-struct cros_gralloc0_buffer_info {
-   uint32_t drm_fourcc;
-   int num_fds; /* ignored */
-   int fds[4];  /* ignored */
-   uint64_t modifier;
-   uint32_t offset[4];
-   uint32_t stride[4];
-};
 
 struct vn_android_gralloc_buffer_properties {
    uint32_t drm_fourcc;
@@ -128,11 +101,23 @@ vn_android_gralloc_get_buffer_properties(
    buffer_handle_t handle,
    struct vn_android_gralloc_buffer_properties *out_props)
 {
-   const gralloc_module_t *gralloc = _vn_android_gralloc.module;
-   struct cros_gralloc0_buffer_info info;
-   if (gralloc->perform(gralloc, CROS_GRALLOC_DRM_GET_BUFFER_INFO, handle,
-                        &info) != 0) {
-      vn_log(NULL, "CROS_GRALLOC_DRM_GET_BUFFER_INFO failed");
+   struct u_gralloc *gralloc = _vn_android_gralloc.gralloc;
+   struct u_gralloc_buffer_basic_info info;
+
+   /*
+    * We only support (and care of) CrOS and IMapper v4 gralloc modules
+    * at this point. They don't need the pixel stride and HAL format
+    * to be provided externally to them. It allows integrating u_gralloc
+    * with minimal modifications at this point.
+    */
+   struct u_gralloc_buffer_handle ugb_handle = {
+      .handle = handle,
+      .pixel_stride = 0,
+      .hal_format = 0,
+   };
+
+   if (u_gralloc_get_buffer_basic_info(gralloc, &ugb_handle, &info) != 0) {
+      vn_log(NULL, "u_gralloc_get_buffer_basic_info failed");
       return false;
    }
 
@@ -141,15 +126,17 @@ vn_android_gralloc_get_buffer_properties(
       return false;
    }
 
+   assert(info.num_planes <= 4);
+
    out_props->drm_fourcc = info.drm_fourcc;
-   out_props->num_planes = 4;
-   for (uint32_t i = 0; i < 4; i++) {
-      if (!info.stride[i]) {
+   out_props->num_planes = info.num_planes;
+   for (uint32_t i = 0; i < info.num_planes; i++) {
+      if (!info.strides[i]) {
          out_props->num_planes = i;
          break;
       }
-      out_props->stride[i] = info.stride[i];
-      out_props->offset[i] = info.offset[i];
+      out_props->stride[i] = info.strides[i];
+      out_props->offset[i] = info.offsets[i];
    }
 
    /* YVU420 has a chroma order of CrCb. So we must swap the planes for CrCb
@@ -157,10 +144,10 @@ vn_android_gralloc_get_buffer_properties(
     * VkImageDrmFormatModifierExplicitCreateInfoEXT explicit plane layouts.
     */
    if (info.drm_fourcc == DRM_FORMAT_YVU420) {
-      out_props->stride[1] = info.stride[2];
-      out_props->offset[1] = info.offset[2];
-      out_props->stride[2] = info.stride[1];
-      out_props->offset[2] = info.offset[1];
+      out_props->stride[1] = info.strides[2];
+      out_props->offset[1] = info.offsets[2];
+      out_props->stride[2] = info.strides[1];
+      out_props->offset[2] = info.offsets[1];
    }
 
    out_props->modifier = info.modifier;

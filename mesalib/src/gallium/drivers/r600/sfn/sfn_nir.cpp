@@ -647,7 +647,7 @@ optimize_once(nir_shader *shader)
    NIR_PASS(progress, shader, nir_opt_copy_prop_vars);
    NIR_PASS(progress, shader, nir_opt_remove_phis);
 
-   if (nir_opt_trivial_continues(shader)) {
+   if (nir_opt_loop(shader)) {
       progress = true;
       NIR_PASS(progress, shader, nir_copy_prop);
       NIR_PASS(progress, shader, nir_opt_dce);

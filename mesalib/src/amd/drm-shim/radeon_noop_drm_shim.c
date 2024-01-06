@@ -93,7 +93,7 @@ radeon_ioctl_gem_create(int fd, unsigned long request, void *arg)
 
    struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
    struct shim_bo *bo = calloc(1, sizeof(*bo));
-   size_t size = ALIGN(create->size, 4096);
+   size_t size = (size_t)align64(create->size, 4096);
 
    drm_shim_bo_init(bo, size);
 

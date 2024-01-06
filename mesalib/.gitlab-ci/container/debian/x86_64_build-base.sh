@@ -85,8 +85,8 @@ apt-get install -y --no-remove "${DEPS[@]}" "${EPHEMERAL[@]}" \
 # Needed for ci-fairy, this revision is able to upload files to S3
 pip3 install --break-system-packages git+http://gitlab.freedesktop.org/freedesktop/ci-templates@ffe4d1b10aab7534489f0c4bbc4c5899df17d3f2
 
-# We need at least 1.3 for stable Rust support
-pip3 install --break-system-packages 'meson==1.3.0'
+# We need at least 1.3.1 for rusticl
+pip3 install --break-system-packages 'meson==1.3.1'
 
 . .gitlab-ci/container/build-rust.sh
 

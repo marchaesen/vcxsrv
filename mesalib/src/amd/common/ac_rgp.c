@@ -79,9 +79,9 @@ struct sqtt_file_chunk_header {
 struct sqtt_file_header_flags {
    union {
       struct {
-         int32_t is_semaphore_queue_timing_etw : 1;
-         int32_t no_queue_semaphore_timestamps : 1;
-         int32_t reserved : 30;
+         uint32_t is_semaphore_queue_timing_etw : 1;
+         uint32_t no_queue_semaphore_timestamps : 1;
+         uint32_t reserved : 30;
       };
 
       uint32_t value;

@@ -53,7 +53,7 @@ vtn_align_pointer(struct vtn_builder *b, struct vtn_pointer *ptr,
    if (addr_format == nir_address_format_logical)
       return ptr;
 
-   struct vtn_pointer *copy = ralloc(b, struct vtn_pointer);
+   struct vtn_pointer *copy = vtn_alloc(b, struct vtn_pointer);
    *copy = *ptr;
    copy->deref = nir_alignment_deref_cast(&b->nb, ptr->deref, alignment, 0);
 
@@ -115,7 +115,7 @@ vtn_decorate_pointer(struct vtn_builder *b, struct vtn_value *val,
     * leaking them any further than actually specified in the SPIR-V.
     */
    if (aa.access & ~ptr->access) {
-      struct vtn_pointer *copy = ralloc(b, struct vtn_pointer);
+      struct vtn_pointer *copy = vtn_alloc(b, struct vtn_pointer);
       *copy = *ptr;
       copy->access |= aa.access;
       return copy;
@@ -177,7 +177,7 @@ vtn_access_chain_create(struct vtn_builder *b, unsigned length)
    /* Subtract 1 from the length since there's already one built in */
    size_t size = sizeof(*chain) +
                  (MAX2(length, 1) - 1) * sizeof(chain->link[0]);
-   chain = rzalloc_size(b, size);
+   chain = vtn_zalloc_size(b, size);
    chain->length = length;
 
    return chain;
@@ -404,7 +404,7 @@ vtn_pointer_dereference(struct vtn_builder *b,
           * a pointer which just has a block index and a later access chain
           * will dereference deeper.
           */
-         struct vtn_pointer *ptr = rzalloc(b, struct vtn_pointer);
+         struct vtn_pointer *ptr = vtn_zalloc(b, struct vtn_pointer);
          ptr->mode = base->mode;
          ptr->type = type;
          ptr->block_index = block_index;
@@ -489,7 +489,7 @@ vtn_pointer_dereference(struct vtn_builder *b,
       access |= type->access;
    }
 
-   struct vtn_pointer *ptr = rzalloc(b, struct vtn_pointer);
+   struct vtn_pointer *ptr = vtn_zalloc(b, struct vtn_pointer);
    ptr->mode = base->mode;
    ptr->type = type;
    ptr->var = base->var;
@@ -1922,7 +1922,7 @@ vtn_pointer_from_ssa(struct vtn_builder *b, nir_def *ssa,
 {
    vtn_assert(ptr_type->base_type == vtn_base_type_pointer);
 
-   struct vtn_pointer *ptr = rzalloc(b, struct vtn_pointer);
+   struct vtn_pointer *ptr = vtn_zalloc(b, struct vtn_pointer);
    struct vtn_type *without_array =
       vtn_type_without_array(ptr_type->deref);
 
@@ -2106,12 +2106,12 @@ vtn_create_variable(struct vtn_builder *b, struct vtn_value *val,
       break;
    }
 
-   struct vtn_variable *var = rzalloc(b, struct vtn_variable);
+   struct vtn_variable *var = vtn_zalloc(b, struct vtn_variable);
    var->type = type;
    var->mode = mode;
    var->base_location = -1;
 
-   val->pointer = rzalloc(b, struct vtn_pointer);
+   val->pointer = vtn_zalloc(b, struct vtn_pointer);
    val->pointer->mode = var->mode;
    val->pointer->type = var->type;
    val->pointer->ptr_type = ptr_type;
@@ -2632,7 +2632,7 @@ vtn_handle_variables(struct vtn_builder *b, SpvOp opcode,
       struct vtn_type *sampler_type = vtn_value(b, w[1], vtn_value_type_type)->type;
       struct vtn_value *val = vtn_push_value(b, w[2], vtn_value_type_pointer);
 
-      struct vtn_type *ptr_type = rzalloc(b, struct vtn_type);
+      struct vtn_type *ptr_type = vtn_zalloc(b, struct vtn_type);
       ptr_type->base_type = vtn_base_type_pointer;
       ptr_type->deref = sampler_type;
       ptr_type->storage_class = SpvStorageClassUniform;

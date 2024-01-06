@@ -375,6 +375,18 @@ static uint32_t pack_2x16_to_unorm_10_2(uint32_t src0)
    return vfmul_v3d(vfsat_v3d(src0), 0x000303ff);
 }
 
+static uint32_t
+msad(uint32_t src0, uint32_t src1, uint32_t src2) {
+   uint32_t res = src2;
+   for (unsigned i = 0; i < 4; i++) {
+      const uint8_t ref = src0 >> (i * 8);
+      const uint8_t src = src1 >> (i * 8);
+      if (ref != 0)
+         res += MAX2(ref, src) - MIN2(ref, src);
+   }
+   return res;
+}
+
 /* Some typed vector structures to make things like src0.y work */
 typedef int8_t int1_t;
 typedef uint8_t uint1_t;

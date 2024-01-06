@@ -172,7 +172,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
    switch (opcode) {
    case SpvOpFunction: {
       vtn_assert(b->func == NULL);
-      b->func = rzalloc(b, struct vtn_function);
+      b->func = vtn_zalloc(b, struct vtn_function);
 
       list_inithead(&b->func->body);
       b->func->linkage = SpvLinkageTypeMax;
@@ -271,7 +271,7 @@ vtn_cfg_handle_prepass_instruction(struct vtn_builder *b, SpvOp opcode,
 
    case SpvOpLabel: {
       vtn_assert(b->block == NULL);
-      b->block = rzalloc(b, struct vtn_block);
+      b->block = vtn_zalloc(b, struct vtn_block);
       b->block->label = w;
       vtn_push_value(b, w[1], vtn_value_type_block)->block = b->block;
 
@@ -367,7 +367,7 @@ vtn_parse_switch(struct vtn_builder *b,
       if (case_entry) {
          cse = case_entry->data;
       } else {
-         cse = rzalloc(b, struct vtn_case);
+         cse = vtn_zalloc(b, struct vtn_case);
          cse->block = case_block;
          cse->block->switch_case = cse;
          util_dynarray_init(&cse->values, b);

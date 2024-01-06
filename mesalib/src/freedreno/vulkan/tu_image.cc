@@ -349,6 +349,15 @@ ubwc_possible(struct tu_device *device,
       return false;
    }
 
+   /* A690 seem to have broken UBWC for depth/stencil, it requires
+    * depth flushing where we cannot realistically place it, like between
+    * ordinary draw calls writing read/depth. WSL blob seem to use ubwc
+    * sometimes for depth/stencil.
+    */
+   if (info->a6xx.broken_ds_ubwc_quirk &&
+       vk_format_is_depth_or_stencil(format))
+      return false;
+
    /* Disable UBWC for D24S8 on A630 in some cases
     *
     * VK_IMAGE_ASPECT_STENCIL_BIT image view requires to be able to sample

@@ -2370,7 +2370,6 @@ loader_dri3_close_screen(__DRIscreen *dri_screen)
  * Find a potentially new back buffer, and if it's not been allocated yet and
  * in addition needs initializing, then try to allocate and initialize it.
  */
-#include <stdio.h>
 static struct loader_dri3_buffer *
 dri3_find_back_alloc(struct loader_dri3_drawable *draw)
 {

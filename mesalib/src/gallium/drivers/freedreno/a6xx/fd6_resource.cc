@@ -68,6 +68,15 @@ ok_ubwc_format(struct pipe_screen *pscreen, enum pipe_format pfmt)
       break;
    }
 
+   /* A690 seem to have broken UBWC for depth/stencil, it requires
+    * depth flushing where we cannot realistically place it, like between
+    * ordinary draw calls writing read/depth. WSL blob seem to use ubwc
+    * sometimes for depth/stencil.
+    */
+   if (info->a6xx.broken_ds_ubwc_quirk &&
+       util_format_is_depth_or_stencil(pfmt))
+      return false;
+
    switch (fd6_color_format(pfmt, TILE6_LINEAR)) {
    case FMT6_10_10_10_2_UINT:
    case FMT6_10_10_10_2_UNORM_DEST:

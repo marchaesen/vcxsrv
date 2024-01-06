@@ -123,7 +123,10 @@ sa_release(struct fd_bo *bo)
 
    simple_mtx_assert_locked(&s->heap->lock);
 
-   VG_BO_FREE(bo);
+   /*
+    * We don't track heap allocs in valgrind
+    * VG_BO_FREE(bo);
+    */
 
    fd_bo_fini_fences(bo);
 
@@ -258,12 +261,12 @@ fd_bo_heap_alloc(struct fd_bo_heap *heap, uint32_t size)
    bo->handle = 1; /* dummy handle to make fd_bo_init_common() happy */
    bo->alloc_flags = heap->flags;
 
+   /* Pre-initialize mmap ptr, to avoid trying to os_mmap() */
+   bo->map = ((uint8_t *)fd_bo_map(heap->blocks[idx])) + block_offset(s);
+
    fd_bo_init_common(bo, heap->dev);
 
    bo->handle = FD_BO_SUBALLOC_HANDLE;
-
-   /* Pre-initialize mmap ptr, to avoid trying to os_mmap() */
-   bo->map = ((uint8_t *)fd_bo_map(heap->blocks[idx])) + block_offset(s);
 
    return bo;
 }

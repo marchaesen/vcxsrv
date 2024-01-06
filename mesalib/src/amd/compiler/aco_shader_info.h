@@ -180,7 +180,6 @@ struct aco_shader_info {
       struct ac_arg alpha_reference;
    } ps;
    struct {
-      uint8_t subgroup_size;
       bool uses_full_subgroups;
    } cs;
 

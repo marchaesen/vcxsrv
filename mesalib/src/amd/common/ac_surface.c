@@ -1889,14 +1889,8 @@ static int gfx9_compute_miptree(struct ac_addrlib *addrlib, const struct radeon_
                                       linear_alignment);
       surf->u.gfx9.epitch =
          MAX2(surf->u.gfx9.epitch, surf->u.gfx9.surf_pitch * surf->blk_w - 1);
-      /* The surface is really a surf->bpe bytes per pixel surface even if we
-       * use it as a surf->bpe bytes per element one.
-       * Adjust surf_slice_size and surf_size to reflect the change
-       * made to surf_pitch.
-       */
-      surf->u.gfx9.surf_slice_size =
-         MAX2(surf->u.gfx9.surf_slice_size,
-              (uint64_t)surf->u.gfx9.surf_pitch * out.height * surf->bpe * surf->blk_w);
+       /* Adjust surf_slice_size and surf_size to reflect the change made to surf_pitch. */
+      surf->u.gfx9.surf_slice_size = (uint64_t)surf->u.gfx9.surf_pitch * out.height * surf->bpe;
       surf->surf_size = surf->u.gfx9.surf_slice_size * in->numSlices;
 
       for (unsigned i = 0; i < in->numMipLevels; i++) {

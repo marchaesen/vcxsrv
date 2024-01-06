@@ -27,10 +27,10 @@
 #include "util/hash_table.h"
 
 #include "bvh/bvh.h"
+#include "nir/radv_nir_rt_common.h"
 #include "radv_debug.h"
 #include "radv_nir.h"
 #include "radv_private.h"
-#include "radv_rt_common.h"
 #include "radv_shader.h"
 
 /* Traversal stack size. Traversal supports backtracking so we can go deeper than this size if
@@ -394,7 +394,8 @@ lower_rq_initialize(nir_builder *b, nir_def *index, nir_intrinsic_instr *instr, 
 }
 
 static nir_def *
-lower_rq_load(nir_builder *b, nir_def *index, nir_intrinsic_instr *instr, struct ray_query_vars *vars)
+lower_rq_load(struct radv_device *device, nir_builder *b, nir_def *index, nir_intrinsic_instr *instr,
+              struct ray_query_vars *vars)
 {
    bool committed = nir_intrinsic_committed(instr);
    struct ray_query_intersection_vars *intersection = committed ? &vars->closest : &vars->candidate;
@@ -482,6 +483,11 @@ lower_rq_load(nir_builder *b, nir_def *index, nir_intrinsic_instr *instr, struct
       return rq_load_var(b, index, vars->direction);
    case nir_ray_query_value_world_ray_origin:
       return rq_load_var(b, index, vars->origin);
+   case nir_ray_query_value_intersection_triangle_vertex_positions: {
+      nir_def *instance_node_addr = rq_load_var(b, index, intersection->instance_addr);
+      nir_def *primitive_id = rq_load_var(b, index, intersection->primitive_id);
+      return radv_load_vertex_position(device, b, instance_node_addr, primitive_id, nir_intrinsic_column(instr));
+   }
    default:
       unreachable("Invalid nir_ray_query_value!");
    }
@@ -707,7 +713,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
                lower_rq_initialize(&builder, index, intrinsic, vars, device->instance);
                break;
             case nir_intrinsic_rq_load:
-               new_dest = lower_rq_load(&builder, index, intrinsic, vars);
+               new_dest = lower_rq_load(device, &builder, index, intrinsic, vars);
                break;
             case nir_intrinsic_rq_proceed:
                new_dest = lower_rq_proceed(&builder, index, intrinsic, vars, device);

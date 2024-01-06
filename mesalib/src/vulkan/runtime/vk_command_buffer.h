@@ -98,6 +98,8 @@ enum mesa_vk_command_buffer_state {
    MESA_VK_COMMAND_BUFFER_STATE_PENDING,
 };
 
+VkShaderStageFlags vk_shader_stages_from_bind_point(VkPipelineBindPoint pipelineBindPoint);
+
 struct vk_command_buffer {
    struct vk_object_base base;
 

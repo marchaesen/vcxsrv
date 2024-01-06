@@ -36,18 +36,20 @@ thread_local aco::monotonic_buffer_resource* instruction_buffer = nullptr;
 
 uint64_t debug_flags = 0;
 
-static const struct debug_control aco_debug_options[] = {{"validateir", DEBUG_VALIDATE_IR},
-                                                         {"validatera", DEBUG_VALIDATE_RA},
-                                                         {"novalidateir", DEBUG_NO_VALIDATE_IR},
-                                                         {"perfwarn", DEBUG_PERFWARN},
-                                                         {"force-waitcnt", DEBUG_FORCE_WAITCNT},
-                                                         {"force-waitdeps", DEBUG_FORCE_WAITDEPS},
-                                                         {"novn", DEBUG_NO_VN},
-                                                         {"noopt", DEBUG_NO_OPT},
-                                                         {"nosched", DEBUG_NO_SCHED},
-                                                         {"perfinfo", DEBUG_PERF_INFO},
-                                                         {"liveinfo", DEBUG_LIVE_INFO},
-                                                         {NULL, 0}};
+static const struct debug_control aco_debug_options[] = {
+   {"validateir", DEBUG_VALIDATE_IR},
+   {"validatera", DEBUG_VALIDATE_RA},
+   {"novalidateir", DEBUG_NO_VALIDATE_IR},
+   {"perfwarn", DEBUG_PERFWARN},
+   {"force-waitcnt", DEBUG_FORCE_WAITCNT},
+   {"force-waitdeps", DEBUG_FORCE_WAITDEPS},
+   {"novn", DEBUG_NO_VN},
+   {"noopt", DEBUG_NO_OPT},
+   {"nosched", DEBUG_NO_SCHED | DEBUG_NO_SCHED_ILP},
+   {"nosched-ilp", DEBUG_NO_SCHED_ILP},
+   {"perfinfo", DEBUG_PERF_INFO},
+   {"liveinfo", DEBUG_LIVE_INFO},
+   {NULL, 0}};
 
 static once_flag init_once_flag = ONCE_FLAG_INIT;
 
@@ -1308,8 +1310,11 @@ should_form_clause(const Instruction* a, const Instruction* b)
    if (a->format != b->format)
       return false;
 
+   if (a->operands.empty() || b->operands.empty())
+      return false;
+
    /* Assume loads which don't use descriptors might load from similar addresses. */
-   if (a->isFlatLike())
+   if (a->isFlatLike() || a->accessesLDS())
       return true;
    if (a->isSMEM() && a->operands[0].bytes() == 8 && b->operands[0].bytes() == 8)
       return true;

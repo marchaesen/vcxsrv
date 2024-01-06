@@ -7,7 +7,6 @@
 
 #include "agx_compile.h"
 #include "compiler/nir/nir_builder.h"
-#include "compiler/nir_types.h"
 #include "util/glheader.h"
 #include "util/macros.h"
 #include "util/u_debug.h"
@@ -16,6 +15,7 @@
 #include "agx_debug.h"
 #include "agx_internal_formats.h"
 #include "agx_nir.h"
+#include "glsl_types.h"
 #include "nir.h"
 #include "nir_intrinsics.h"
 #include "nir_intrinsics_indices.h"
@@ -1713,7 +1713,7 @@ agx_emit_alu(agx_builder *b, nir_alu_instr *instr)
 }
 
 static enum agx_lod_mode
-agx_lod_mode_for_nir(nir_texop op)
+agx_lod_mode_for_nir(nir_texop op, bool biased)
 {
    switch (op) {
    case nir_texop_tex:
@@ -1721,6 +1721,8 @@ agx_lod_mode_for_nir(nir_texop op)
       return AGX_LOD_MODE_AUTO_LOD;
    case nir_texop_txb:
       return AGX_LOD_MODE_AUTO_LOD_BIAS;
+   case nir_texop_lod:
+      return biased ? AGX_LOD_MODE_AUTO_LOD_BIAS : AGX_LOD_MODE_AUTO_LOD;
    case nir_texop_txd:
       return AGX_LOD_MODE_LOD_GRAD;
    case nir_texop_txl:
@@ -1847,8 +1849,10 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
    agx_instr *I = agx_texture_sample_to(
       b, tmp, coords, lod, bindless, texture, sampler, compare_offset,
       agx_tex_dim(instr->sampler_dim, instr->is_array),
-      agx_lod_mode_for_nir(instr->op), 0, 0, !agx_is_null(packed_offset),
-      !agx_is_null(compare), agx_gather_for_nir(instr));
+      agx_lod_mode_for_nir(
+         instr->op, nir_tex_instr_src_index(instr, nir_tex_src_bias) >= 0),
+      0, 0, !agx_is_null(packed_offset), !agx_is_null(compare),
+      instr->op == nir_texop_lod, agx_gather_for_nir(instr));
 
    if (txf)
       I->op = AGX_OPCODE_TEXTURE_LOAD;

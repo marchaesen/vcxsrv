@@ -4097,7 +4097,7 @@ bind_db_samplers(struct rendering_state *state, enum lvp_pipeline_type pipeline_
          if (bind_layout->immutable_samplers[sampler_index]) {
             struct lp_descriptor *immutable_desc = &bind_layout->immutable_samplers[sampler_index]->desc;
             desc[sampler_index].sampler = immutable_desc->sampler;
-            desc[sampler_index].sampler_index = immutable_desc->sampler_index;
+            desc[sampler_index].texture.sampler_index = immutable_desc->texture.sampler_index;
             u_foreach_bit(stage, set_layout->shader_stages)
                did_update |= BITFIELD_BIT(vk_to_mesa_shader_stage(1<<stage));
          }

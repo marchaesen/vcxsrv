@@ -21,7 +21,7 @@
  * IN THE SOFTWARE.
  */
 
-#include "compiler/nir_types.h"
+#include "compiler/glsl_types.h"
 #include "nir.h"
 #include "nir_builder.h"
 #include "nir_deref.h"

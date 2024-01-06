@@ -123,8 +123,8 @@ radv_pipeline_has_gs_copy_shader(const struct radv_pipeline *pipeline)
  *    func(src * DST, dst * 0) ---> func(src * 0, dst * SRC)
  */
 void
-si_blend_remove_dst(VkBlendOp *func, VkBlendFactor *src_factor, VkBlendFactor *dst_factor, VkBlendFactor expected_dst,
-                    VkBlendFactor replacement_src)
+radv_blend_remove_dst(VkBlendOp *func, VkBlendFactor *src_factor, VkBlendFactor *dst_factor, VkBlendFactor expected_dst,
+                      VkBlendFactor replacement_src)
 {
    if (*src_factor == expected_dst && *dst_factor == VK_BLEND_FACTOR_ZERO) {
       *src_factor = VK_BLEND_FACTOR_ZERO;
@@ -339,7 +339,7 @@ radv_pipeline_init_multisample_state(const struct radv_device *device, struct ra
 }
 
 static uint32_t
-si_conv_tess_prim_to_gs_out(enum tess_primitive_mode prim)
+radv_conv_tess_prim_to_gs_out(enum tess_primitive_mode prim)
 {
    switch (prim) {
    case TESS_PRIMITIVE_TRIANGLES:
@@ -354,7 +354,7 @@ si_conv_tess_prim_to_gs_out(enum tess_primitive_mode prim)
 }
 
 static uint32_t
-si_conv_gl_prim_to_gs_out(unsigned gl_prim)
+radv_conv_gl_prim_to_gs_out(unsigned gl_prim)
 {
    switch (gl_prim) {
    case MESA_PRIM_POINTS:
@@ -849,7 +849,7 @@ radv_pipeline_init_dynamic_state(const struct radv_device *device, struct radv_g
 
    /* Input assembly. */
    if (states & RADV_DYNAMIC_PRIMITIVE_TOPOLOGY) {
-      dynamic->vk.ia.primitive_topology = si_translate_prim(state->ia->primitive_topology);
+      dynamic->vk.ia.primitive_topology = radv_translate_prim(state->ia->primitive_topology);
    }
 
    if (states & RADV_DYNAMIC_PRIMITIVE_RESTART_ENABLE) {
@@ -929,7 +929,7 @@ radv_pipeline_init_dynamic_state(const struct radv_device *device, struct radv_g
    }
 
    if (states & RADV_DYNAMIC_POLYGON_MODE) {
-      dynamic->vk.rs.polygon_mode = si_translate_fill(state->rs->polygon_mode);
+      dynamic->vk.rs.polygon_mode = radv_translate_fill(state->rs->polygon_mode);
    }
 
    if (states & RADV_DYNAMIC_LINE_STIPPLE_ENABLE) {
@@ -1069,7 +1069,7 @@ radv_pipeline_init_dynamic_state(const struct radv_device *device, struct radv_g
    if (radv_pipeline_has_color_attachments(state->rp)) {
       if (states & RADV_DYNAMIC_LOGIC_OP) {
          if ((pipeline->dynamic_states & RADV_DYNAMIC_LOGIC_OP_ENABLE) || state->cb->logic_op_enable) {
-            dynamic->vk.cb.logic_op = si_translate_blend_logic_op(state->cb->logic_op);
+            dynamic->vk.cb.logic_op = radv_translate_blend_logic_op(state->cb->logic_op);
          }
       }
 
@@ -1879,7 +1879,7 @@ radv_generate_graphics_pipeline_key(const struct radv_device *device, const stru
    }
 
    if (state->ia) {
-      key.vs.topology = si_translate_prim(state->ia->primitive_topology);
+      key.vs.topology = radv_translate_prim(state->ia->primitive_topology);
    }
 
    if (pipeline->base.type == RADV_PIPELINE_GRAPHICS_LIB &&
@@ -2381,17 +2381,17 @@ radv_get_rasterization_prim(const struct radv_shader_stage *stages, const struct
       return -1;
 
    if (stages[MESA_SHADER_GEOMETRY].nir) {
-      rast_prim = si_conv_gl_prim_to_gs_out(stages[MESA_SHADER_GEOMETRY].nir->info.gs.output_primitive);
+      rast_prim = radv_conv_gl_prim_to_gs_out(stages[MESA_SHADER_GEOMETRY].nir->info.gs.output_primitive);
    } else if (stages[MESA_SHADER_TESS_EVAL].nir) {
       if (stages[MESA_SHADER_TESS_EVAL].nir->info.tess.point_mode) {
          rast_prim = V_028A6C_POINTLIST;
       } else {
-         rast_prim = si_conv_tess_prim_to_gs_out(stages[MESA_SHADER_TESS_EVAL].nir->info.tess._primitive_mode);
+         rast_prim = radv_conv_tess_prim_to_gs_out(stages[MESA_SHADER_TESS_EVAL].nir->info.tess._primitive_mode);
       }
    } else if (stages[MESA_SHADER_MESH].nir) {
-      rast_prim = si_conv_gl_prim_to_gs_out(stages[MESA_SHADER_MESH].nir->info.mesh.primitive_type);
+      rast_prim = radv_conv_gl_prim_to_gs_out(stages[MESA_SHADER_MESH].nir->info.mesh.primitive_type);
    } else {
-      rast_prim = si_conv_prim_to_gs_out(pipeline_key->vs.topology, false);
+      rast_prim = radv_conv_prim_to_gs_out(pipeline_key->vs.topology, false);
    }
 
    return rast_prim;
@@ -3768,17 +3768,18 @@ radv_pipeline_init_vgt_gs_out(struct radv_graphics_pipeline *pipeline, const str
    uint32_t gs_out;
 
    if (radv_pipeline_has_stage(pipeline, MESA_SHADER_GEOMETRY)) {
-      gs_out = si_conv_gl_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_GEOMETRY]->info.gs.output_prim);
+      gs_out = radv_conv_gl_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_GEOMETRY]->info.gs.output_prim);
    } else if (radv_pipeline_has_stage(pipeline, MESA_SHADER_TESS_CTRL)) {
       if (pipeline->base.shaders[MESA_SHADER_TESS_EVAL]->info.tes.point_mode) {
          gs_out = V_028A6C_POINTLIST;
       } else {
-         gs_out = si_conv_tess_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_TESS_EVAL]->info.tes._primitive_mode);
+         gs_out =
+            radv_conv_tess_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_TESS_EVAL]->info.tes._primitive_mode);
       }
    } else if (radv_pipeline_has_stage(pipeline, MESA_SHADER_MESH)) {
-      gs_out = si_conv_gl_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_MESH]->info.ms.output_prim);
+      gs_out = radv_conv_gl_prim_to_gs_out(pipeline->base.shaders[MESA_SHADER_MESH]->info.ms.output_prim);
    } else {
-      gs_out = si_conv_prim_to_gs_out(si_translate_prim(state->ia->primitive_topology), false);
+      gs_out = radv_conv_prim_to_gs_out(radv_translate_prim(state->ia->primitive_topology), false);
    }
 
    return gs_out;
@@ -3807,7 +3808,7 @@ radv_pipeline_init_extra(struct radv_graphics_pipeline *pipeline,
       dynamic->vk.ia.primitive_topology = V_008958_DI_PT_RECTLIST;
 
       *vgt_gs_out_prim_type =
-         si_conv_prim_to_gs_out(dynamic->vk.ia.primitive_topology, radv_pipeline_has_ngg(pipeline));
+         radv_conv_prim_to_gs_out(dynamic->vk.ia.primitive_topology, radv_pipeline_has_ngg(pipeline));
 
       pipeline->rast_prim = *vgt_gs_out_prim_type;
    }

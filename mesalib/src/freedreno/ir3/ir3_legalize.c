@@ -998,6 +998,7 @@ helper_sched(struct ir3_legalize_ctx *ctx, struct ir3 *ir,
       if (block->brtype == IR3_BRANCH_ALL ||
           block->brtype == IR3_BRANCH_ANY ||
           block->brtype == IR3_BRANCH_GETONE) {
+         bd->uses_helpers_beginning = true;
          bd->uses_helpers_end = true;
       }
 

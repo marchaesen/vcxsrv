@@ -532,7 +532,7 @@ ac_rgp_file_write_elf_object(FILE *output, size_t file_elf_start,
    sec_hdr[3].sh_name = (uintptr_t)((struct ac_rgp_elf_string_table*)0)->symtab;
    sec_hdr[3].sh_type = SHT_SYMTAB;
    sec_hdr[3].sh_offset = sec_hdr[2].sh_offset +
-                          ALIGN(sec_hdr[2].sh_size, 256);
+                          align64(sec_hdr[2].sh_size, 256);
    sec_hdr[3].sh_size = symbol_table_size;
    sec_hdr[3].sh_link = RGP_ELF_STRING_TBL_SEC_HEADER_INDEX;
    sec_hdr[3].sh_addralign = 8;

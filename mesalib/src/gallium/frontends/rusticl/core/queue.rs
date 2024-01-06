@@ -6,16 +6,79 @@ use crate::core::platform::*;
 use crate::impl_cl_type_trait;
 
 use mesa_rust::pipe::context::PipeContext;
+use mesa_rust::pipe::resource::PipeResource;
+use mesa_rust::pipe::screen::ResourceType;
 use mesa_rust_util::properties::*;
 use rusticl_opencl_gen::*;
 
 use std::mem;
+use std::ops::Deref;
 use std::sync::mpsc;
 use std::sync::Arc;
 use std::sync::Mutex;
 use std::sync::Weak;
 use std::thread;
 use std::thread::JoinHandle;
+
+/// State tracking wrapper for [PipeContext]
+///
+/// Used for tracking bound GPU state to lower CPU overhead and centralize state tracking
+pub struct QueueContext {
+    ctx: PipeContext,
+    cb0: Option<PipeResource>,
+}
+
+impl QueueContext {
+    fn new_for(device: &Device) -> CLResult<Self> {
+        let ctx = device
+            .screen()
+            .create_context()
+            .ok_or(CL_OUT_OF_HOST_MEMORY)?;
+        let size = device.param_max_size() as u32;
+        let cb0 = if device.prefers_real_buffer_in_cb0() {
+            device
+                .screen()
+                .resource_create_buffer(size, ResourceType::Cb0, 0)
+        } else {
+            None
+        };
+
+        if let Some(cb0) = &cb0 {
+            ctx.bind_constant_buffer(0, cb0);
+        }
+
+        Ok(Self { ctx: ctx, cb0: cb0 })
+    }
+
+    pub fn update_cb0(&self, data: &[u8]) {
+        // only update if we actually bind data
+        if !data.is_empty() {
+            // if we have a real buffer, update that, otherwise just set the data directly
+            if let Some(cb) = &self.cb0 {
+                debug_assert!(data.len() <= cb.width() as usize);
+                self.ctx
+                    .buffer_subdata(cb, 0, data.as_ptr().cast(), data.len() as u32);
+            } else {
+                self.ctx.set_constant_buffer(0, data);
+            }
+        }
+    }
+}
+
+// This should go once we moved all state tracking into QueueContext
+impl Deref for QueueContext {
+    type Target = PipeContext;
+
+    fn deref(&self) -> &Self::Target {
+        &self.ctx
+    }
+}
+
+impl Drop for QueueContext {
+    fn drop(&mut self) {
+        self.ctx.set_constant_buffer(0, &[])
+    }
+}
 
 struct QueueState {
     pending: Vec<Arc<Event>>,
@@ -53,7 +116,7 @@ impl Queue {
     ) -> CLResult<Arc<Queue>> {
         // we assume that memory allocation is the only possible failure. Any other failure reason
         // should be detected earlier (e.g.: checking for CAPs).
-        let pipe = device.screen().create_context().unwrap();
+        let ctx = QueueContext::new_for(device)?;
         let (tx_q, rx_t) = mpsc::channel::<Vec<Arc<Event>>>();
         Ok(Arc::new(Self {
             base: CLObjectBase::new(),
@@ -81,7 +144,7 @@ impl Queue {
                         // If we hit any deps from another queue, flush so we don't risk a dead
                         // lock.
                         if e.deps.iter().any(|ev| ev.queue != e.queue) {
-                            flush_events(&mut flushed, &pipe);
+                            flush_events(&mut flushed, &ctx);
                         }
 
                         // We have to wait on user events or events from other queues.
@@ -98,25 +161,25 @@ impl Queue {
                             continue;
                         }
 
-                        e.call(&pipe);
+                        e.call(&ctx);
 
                         if e.is_user() {
                             // On each user event we flush our events as application might
                             // wait on them before signaling user events.
-                            flush_events(&mut flushed, &pipe);
+                            flush_events(&mut flushed, &ctx);
 
                             // Wait on user events as they are synchronization points in the
                             // application's control.
                             e.wait();
                         } else if Platform::dbg().sync_every_event {
                             flushed.push(e);
-                            flush_events(&mut flushed, &pipe);
+                            flush_events(&mut flushed, &ctx);
                         } else {
                             flushed.push(e);
                         }
                     }
 
-                    flush_events(&mut flushed, &pipe);
+                    flush_events(&mut flushed, &ctx);
                 })
                 .unwrap(),
         }))

@@ -516,41 +516,64 @@ GetRec(ScrnInfoPtr pScrn)
     return TRUE;
 }
 
-static void
-rotate_clip(PixmapPtr pixmap, BoxPtr rect, drmModeClip *clip, Rotation rotation)
+static int
+rotate_clip(PixmapPtr pixmap, xf86CrtcPtr crtc, BoxPtr rect, drmModeClip *clip,
+            Rotation rotation, int x, int y)
 {
-    int w = pixmap->drawable.width;
-    int h = pixmap->drawable.height;
+    int w, h;
+    int x1, y1, x2, y2;
 
-    if (rotation == RR_Rotate_90) {
-	/* Rotate 90 degrees counter clockwise */
-        clip->x1 = rect->y1;
-	clip->x2 = rect->y2;
-	clip->y1 = w - rect->x2;
-	clip->y2 = w - rect->x1;
-    } else if (rotation == RR_Rotate_180) {
-	/* Rotate 180 degrees */
-        clip->x1 = w - rect->x2;
-	clip->x2 = w - rect->x1;
-	clip->y1 = h - rect->y2;
-	clip->y2 = h - rect->y1;
-    } else if (rotation == RR_Rotate_270) {
-	/* Rotate 90 degrees clockwise */
-        clip->x1 = h - rect->y2;
-	clip->x2 = h - rect->y1;
-	clip->y1 = rect->x1;
-	clip->y2 = rect->x2;
+    if (rotation == RR_Rotate_90 || rotation == RR_Rotate_270) {
+	/* width and height are swapped if rotated 90 or 270 degrees */
+        w = pixmap->drawable.height;
+        h = pixmap->drawable.width;
     } else {
-	clip->x1 = rect->x1;
-	clip->x2 = rect->x2;
-	clip->y1 = rect->y1;
-	clip->y2 = rect->y2;
+        w = pixmap->drawable.width;
+        h = pixmap->drawable.height;
     }
+
+    /* check if the given rect covers any area in FB of the crtc */
+    if (rect->x2 > crtc->x && rect->x1 < crtc->x + w &&
+        rect->y2 > crtc->y && rect->y1 < crtc->y + h) {
+        /* new coordinate of the partial rect on the crtc area
+         * + x/y offsets in the framebuffer */
+        x1 = max(rect->x1 - crtc->x, 0) + x;
+        y1 = max(rect->y1 - crtc->y, 0) + y;
+        x2 = min(rect->x2 - crtc->x, w) + x;
+        y2 = min(rect->y2 - crtc->y, h) + y;
+
+        /* coordinate transposing/inversion and offset adjustment */
+        if (rotation == RR_Rotate_90) {
+            clip->x1 = y1;
+            clip->y1 = w - x2;
+            clip->x2 = y2;
+            clip->y2 = w - x1;
+        } else if (rotation == RR_Rotate_180) {
+            clip->x1 = w - x2;
+            clip->y1 = h - y2;
+            clip->x2 = w - x1;
+            clip->y2 = h - y1;
+        } else if (rotation == RR_Rotate_270) {
+            clip->x1 = h - y2;
+            clip->y1 = x1;
+            clip->x2 = h - y1;;
+            clip->y2 = x2;
+        } else {
+            clip->x1 = x1;
+            clip->y1 = y1;
+            clip->x2 = x2;
+            clip->y2 = y2;
+        }
+    } else {
+        return -1;
+    }
+
+    return 0;
 }
 
 static int
 dispatch_damages(ScrnInfoPtr scrn, xf86CrtcPtr crtc, RegionPtr dirty,
-                 PixmapPtr pixmap, DamagePtr damage, int fb_id)
+                 PixmapPtr pixmap, DamagePtr damage, int fb_id, int x, int y)
 {
     modesettingPtr ms = modesettingPTR(scrn);
     unsigned num_cliprects = REGION_NUM_RECTS(dirty);
@@ -563,20 +586,30 @@ dispatch_damages(ScrnInfoPtr scrn, xf86CrtcPtr crtc, RegionPtr dirty,
         drmModeClip *clip = xallocarray(num_cliprects, sizeof(drmModeClip));
         BoxPtr rect = REGION_RECTS(dirty);
         int i;
+        int c = 0;
 
         if (!clip)
             return -ENOMEM;
 
-        /* Rotate and copy rects into clips */
-        for (i = 0; i < num_cliprects; i++, rect++)
-	    rotate_clip(pixmap, rect, &clip[i], crtc->rotation);
+        /* Create clips for the given rects in case the rect covers any
+         * area in the FB.
+         */
+        for (i = 0; i < num_cliprects; i++, rect++) {
+            if (rotate_clip(pixmap, crtc, rect, &clip[c], crtc->rotation, x, y) < 0)
+                continue;
+
+            c++;
+        }
+
+        if (!c)
+            return 0;
 
         /* TODO query connector property to see if this is needed */
-        ret = drmModeDirtyFB(ms->fd, fb_id, clip, num_cliprects);
+        ret = drmModeDirtyFB(ms->fd, fb_id, clip, c);
 
         /* if we're swamping it with work, try one at a time */
         if (ret == -EINVAL) {
-            for (i = 0; i < num_cliprects; i++) {
+            for (i = 0; i < c; i++) {
                 if ((ret = drmModeDirtyFB(ms->fd, fb_id, &clip[i], 1)) < 0)
                     break;
             }
@@ -589,18 +622,17 @@ dispatch_damages(ScrnInfoPtr scrn, xf86CrtcPtr crtc, RegionPtr dirty,
         }
 
         free(clip);
-        if (damage)
-            DamageEmpty(damage);
     }
     return ret;
 }
 
 static int
 dispatch_dirty_region(ScrnInfoPtr scrn, xf86CrtcPtr crtc,
-                      PixmapPtr pixmap, DamagePtr damage, int fb_id)
+                      PixmapPtr pixmap, DamagePtr damage,
+                      int fb_id, int x, int y)
 {
     return dispatch_damages(scrn, crtc, DamageRegion(damage),
-                            pixmap, damage, fb_id);
+                            pixmap, damage, fb_id, x, y);
 }
 
 static void
@@ -632,7 +664,7 @@ ms_tearfree_update_damages(ScreenPtr pScreen)
             /* Just notify the kernel of the damages if TearFree isn't used */
             dispatch_damages(scrn, crtc, &region,
                              pScreen->GetScreenPixmap(pScreen),
-                             NULL, ms->drmmode.fb_id);
+                             NULL, ms->drmmode.fb_id, 0, 0);
         }
     }
     DamageEmpty(ms->damage);
@@ -673,7 +705,7 @@ ms_tearfree_do_flips(ScreenPtr pScreen)
         if (ms_do_tearfree_flip(pScreen, crtc)) {
             dispatch_damages(scrn, crtc, &trf->buf[trf->back_idx ^ 1].dmg,
                              trf->buf[trf->back_idx ^ 1].px, NULL,
-                             trf->buf[trf->back_idx ^ 1].fb_id);
+                             trf->buf[trf->back_idx ^ 1].fb_id, 0, 0);
             RegionEmpty(&trf->buf[trf->back_idx ^ 1].dmg);
         }
     }
@@ -692,6 +724,8 @@ dispatch_dirty(ScreenPtr pScreen)
 
     for (c = 0; c < xf86_config->num_crtc; c++) {
         xf86CrtcPtr crtc = xf86_config->crtc[c];
+        PixmapPtr pmap;
+
         drmmode_crtc_private_ptr drmmode_crtc = crtc->driver_private;
 
         if (!drmmode_crtc)
@@ -699,7 +733,12 @@ dispatch_dirty(ScreenPtr pScreen)
 
 	drmmode_crtc_get_fb_id(crtc, &fb_id, &x, &y);
 
-        ret = dispatch_dirty_region(scrn, crtc, pixmap, ms->damage, fb_id);
+        if (crtc->rotatedPixmap)
+            pmap = crtc->rotatedPixmap;
+        else
+            pmap = pixmap;
+
+        ret = dispatch_dirty_region(scrn, crtc, pmap, ms->damage, fb_id, x, y);
         if (ret == -EINVAL || ret == -ENOSYS) {
             DamageUnregister(ms->damage);
             DamageDestroy(ms->damage);
@@ -717,7 +756,7 @@ dispatch_dirty_pixmap(ScrnInfoPtr scrn, xf86CrtcPtr crtc, PixmapPtr ppix)
     DamagePtr damage = ppriv->secondary_damage;
     int fb_id = ppriv->fb_id;
 
-    dispatch_dirty_region(scrn, crtc, ppix, damage, fb_id);
+    dispatch_dirty_region(scrn, crtc, ppix, damage, fb_id, 0, 0);
 }
 
 static void

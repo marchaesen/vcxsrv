@@ -259,7 +259,7 @@ struct radv_shader_inst {
 /* Split a disassembly string into lines and add them to the array pointed
  * to by "instructions". */
 static void
-si_add_split_disasm(const char *disasm, uint64_t start_addr, unsigned *num, struct radv_shader_inst *instructions)
+radv_add_split_disasm(const char *disasm, uint64_t start_addr, unsigned *num, struct radv_shader_inst *instructions)
 {
    struct radv_shader_inst *last_inst = *num ? &instructions[*num - 1] : NULL;
    char *next;
@@ -325,7 +325,7 @@ radv_dump_annotated_shader(const struct radv_shader *shader, gl_shader_stage sta
    unsigned num_inst = 0;
    struct radv_shader_inst *instructions = calloc(shader->code_size / 4, sizeof(struct radv_shader_inst));
 
-   si_add_split_disasm(shader->disasm_string, start_addr, &num_inst, instructions);
+   radv_add_split_disasm(shader->disasm_string, start_addr, &num_inst, instructions);
 
    fprintf(f, COLOR_YELLOW "%s - annotated disassembly:" COLOR_RESET "\n", radv_get_shader_name(&shader->info, stage));
 
@@ -970,7 +970,7 @@ radv_dump_faulty_shader(struct radv_device *device, uint64_t faulty_pc)
    struct radv_shader_inst *instructions = calloc(shader->code_size / 4, sizeof(struct radv_shader_inst));
 
    /* Split the disassembly string into instructions. */
-   si_add_split_disasm(shader->disasm_string, start_addr, &num_inst, instructions);
+   radv_add_split_disasm(shader->disasm_string, start_addr, &num_inst, instructions);
 
    /* Print instructions with annotations. */
    for (unsigned i = 0; i < num_inst; i++) {

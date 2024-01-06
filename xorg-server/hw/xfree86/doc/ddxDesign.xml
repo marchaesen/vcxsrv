@@ -1833,6 +1833,7 @@ Some of them are:
     xf86Depth                 -depth from the command line
     xf86Weight                -weight from the command line
     xf86Gamma                 -{r,g,b,}gamma from the command line
+    xf86FlipPixels            -flippixels from the command line
     xf86ProbeOnly             -probeonly from the command line
     defaultColorVisualClass   -cc from the command line
 	</literallayout>
@@ -1889,6 +1890,17 @@ functions:
       <option>-ggamma</option>, <option>-bgamma</option> command line settings.
       If not set on the command line, <literal remap="tt">{0.0, 0.0, 0.0}</literal>
       is returned.
+	    </para></blockquote>
+
+	</para></blockquote>
+
+      <blockquote><para>
+	  <programlisting>
+    Bool xf86GetFlipPixels();
+	  </programlisting>
+	  <blockquote><para>
+      Returns <constant>TRUE</constant> if <option>-flippixels</option> is
+      present on the command line, and <constant>FALSE</constant> otherwise.
 	    </para></blockquote>
 
 	</para></blockquote>
@@ -5998,6 +6010,19 @@ strongly encouraged to improve the consistency of driver behaviour.
       config file section, it is used together with the virtual size to
       calculate the dpi values.  This function should be called after
       all the mode resolution has been done.
+	    </para>
+
+	  </blockquote></para></blockquote>
+
+      <blockquote><para>
+	  <programlisting>
+    void xf86SetBlackWhitePixels(ScrnInfoPtr pScrn);
+	  </programlisting>
+	  <blockquote><para>
+      This functions sets the <structfield>blackPixel</structfield> and
+      <structfield>whitePixel</structfield> fields of the <structname>ScrnInfoRec</structname>
+      according to whether or not the <option>-flipPixels</option> command
+      line options is present.
 	    </para>
 
 	  </blockquote></para></blockquote>

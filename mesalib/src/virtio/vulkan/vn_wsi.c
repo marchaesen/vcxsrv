@@ -80,7 +80,10 @@ vn_wsi_init(struct vn_physical_device *physical_dev)
    VkResult result = wsi_device_init(
       &physical_dev->wsi_device, vn_physical_device_to_handle(physical_dev),
       vn_wsi_proc_addr, alloc, -1, &physical_dev->instance->dri_options,
-      &(struct wsi_device_options){.sw_device = false, .extra_xwayland_image = true});
+      &(struct wsi_device_options){
+         .sw_device = false,
+         .extra_xwayland_image = true,
+      });
    if (result != VK_SUCCESS)
       return result;
 

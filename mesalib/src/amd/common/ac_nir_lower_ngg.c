@@ -284,7 +284,7 @@ summarize_repack(nir_builder *b, nir_def *packed_counts, unsigned num_lds_dwords
     *
     * If the v_dot instruction can't be used, we left-shift the packed bytes.
     * This will shift out the unneeded bytes and shift in zeroes instead,
-    * then we sum them using v_sad_u8.
+    * then we sum them using v_msad_u8.
     */
 
    nir_def *lane_id = nir_load_subgroup_invocation(b);
@@ -302,7 +302,7 @@ summarize_repack(nir_builder *b, nir_def *packed_counts, unsigned num_lds_dwords
          return nir_udot_4x8_uadd(b, packed, dot_op, nir_imm_int(b, 0));
       } else {
          nir_def *sad_op = nir_ishl(b, nir_ishl(b, packed, shift), shift);
-         return nir_sad_u8x4(b, sad_op, nir_imm_int(b, 0), nir_imm_int(b, 0));
+         return nir_msad_4x8(b, sad_op, nir_imm_int(b, 0), nir_imm_int(b, 0));
       }
    } else if (num_lds_dwords == 2) {
       nir_def *dot_op = !use_dot ? NULL : nir_ushr(b, nir_ushr(b, nir_imm_int64(b, 0x0101010101010101), shift), shift);
@@ -317,8 +317,8 @@ summarize_repack(nir_builder *b, nir_def *packed_counts, unsigned num_lds_dwords
          return nir_udot_4x8_uadd(b, packed_dw1, nir_unpack_64_2x32_split_y(b, dot_op), sum);
       } else {
          nir_def *sad_op = nir_ishl(b, nir_ishl(b, nir_pack_64_2x32_split(b, packed_dw0, packed_dw1), shift), shift);
-         nir_def *sum = nir_sad_u8x4(b, nir_unpack_64_2x32_split_x(b, sad_op), nir_imm_int(b, 0), nir_imm_int(b, 0));
-         return nir_sad_u8x4(b, nir_unpack_64_2x32_split_y(b, sad_op), nir_imm_int(b, 0), sum);
+         nir_def *sum = nir_msad_4x8(b, nir_unpack_64_2x32_split_x(b, sad_op), nir_imm_int(b, 0), nir_imm_int(b, 0));
+         return nir_msad_4x8(b, nir_unpack_64_2x32_split_y(b, sad_op), nir_imm_int(b, 0), sum);
       }
    } else {
       unreachable("Unimplemented NGG wave count");

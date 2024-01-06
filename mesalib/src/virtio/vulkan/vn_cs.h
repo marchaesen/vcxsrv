@@ -11,7 +11,10 @@
 #include "venus-protocol/vn_protocol_driver_info.h"
 
 #define VN_CS_ENCODER_BUFFER_INITIALIZER(storage)                            \
-   (struct vn_cs_encoder_buffer) { .base = storage, }
+   (struct vn_cs_encoder_buffer)                                             \
+   {                                                                         \
+      .base = storage,                                                       \
+   }
 
 /* note that buffers points to an unamed local variable */
 #define VN_CS_ENCODER_INITIALIZER_LOCAL(storage, size)                       \

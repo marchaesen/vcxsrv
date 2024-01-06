@@ -1156,14 +1156,14 @@ iris_resource_create_for_image(struct pipe_screen *pscreen,
 
    /* Allocate space for the aux buffer. */
    if (res->aux.surf.size_B > 0) {
-      res->aux.offset = ALIGN(bo_size, res->aux.surf.alignment_B);
+      res->aux.offset = (uint32_t)align64(bo_size, res->aux.surf.alignment_B);
       bo_size = res->aux.offset + res->aux.surf.size_B;
    }
 
    /* Allocate space for the extra aux buffer. */
    if (res->aux.extra_aux.surf.size_B > 0) {
       res->aux.extra_aux.offset =
-         ALIGN(bo_size, res->aux.extra_aux.surf.alignment_B);
+         (uint32_t)align64(bo_size, res->aux.extra_aux.surf.alignment_B);
       bo_size = res->aux.extra_aux.offset + res->aux.extra_aux.surf.size_B;
    }
 
@@ -1174,7 +1174,7 @@ iris_resource_create_for_image(struct pipe_screen *pscreen,
     * to lack of testing we will leave this as 4K for now.
     */
    if (iris_get_aux_clear_color_state_size(screen, res) > 0) {
-      res->aux.clear_color_offset = ALIGN(bo_size, 4096);
+      res->aux.clear_color_offset = align64(bo_size, 4096);
       bo_size = res->aux.clear_color_offset +
                 iris_get_aux_clear_color_state_size(screen, res);
    }
@@ -1315,8 +1315,19 @@ static unsigned
 get_main_plane_for_plane(enum pipe_format format,
                          unsigned plane)
 {
-   unsigned int n_planes = util_format_get_num_planes(format);
-   return plane % n_planes;
+   if (format == PIPE_FORMAT_NONE) {
+      /* Created dmabuf resources have this format. */
+      return 0;
+   } else if (isl_format_for_pipe_format(format) == ISL_FORMAT_UNSUPPORTED) {
+      /* This format has been lowered to more planes than are native to it.
+       * So, compression modifiers are not enabled and the plane index is used
+       * as-is.
+       */
+      return plane;
+   } else {
+      unsigned int n_planes = util_format_get_num_planes(format);
+      return plane % n_planes;
+   }
 }
 
 static struct pipe_resource *
@@ -1378,6 +1389,7 @@ iris_resource_from_handle(struct pipe_screen *pscreen,
             main_res->aux.clear_color_unknown = true;
          } else if (plane > main_plane) {
             /* Fill out some aux surface fields. */
+            assert(isl_drm_modifier_has_aux(whandle->modifier));
             assert(!devinfo->has_flat_ccs);
             assert(plane_res->bo->size >= plane_res->offset +
                    main_res->aux.surf.size_B);
@@ -1505,7 +1517,7 @@ iris_resource_from_memobj_wrapper(struct pipe_screen *pscreen,
 
    /* Stencil offset in the buffer without aux. */
    uint64_t s_offset = offset +
-      ALIGN(res->surf.size_B, res->surf.alignment_B);
+      align64(res->surf.size_B, res->surf.alignment_B);
 
    prsc->format = format; /* frob the format back to the "external" format */
 
