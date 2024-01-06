@@ -67,7 +67,7 @@
 #define STR_CLIPBOARDPRIMARY        "Primary Selection"
 #define STR_CLIPBOARDPRIMARY_DESC   "Also map the PRIMARY selection to the windows clipboard."
 #define STR_WGL                     "Native opengl"
-#define STR_WGL_DESC                "Use the native windows opengl library (wgl). Make sure to export the LIBGL_ALWAYS_INDIRECT environment variable."
+#define STR_WGL_DESC                "Use the native windows opengl library (wgl). Make sure to export the LIBGL_ALWAYS_INDIRECT environment variable. In WSL also export export LIBGL_ALWAYS_SOFTWARE=true"
 #define STR_EXTRA_PARAMS_DESC       "Additional parameters for VcXsrv"
 
 #define STR_DISABLEAC               "Disable access control"
