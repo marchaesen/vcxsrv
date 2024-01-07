@@ -21,7 +21,7 @@ CSRCS = constlist.c \
 
 LINKLIBS += $(FREETYPELIB)
 
-all: $(OBJDIR)/freetype.dll $(OBJDIR)/zlib1.dll
+$(OBJDIR)/$(TTYAPP).exe: $(OBJDIR)/freetype.dll $(OBJDIR)/zlib1.dll
 
 $(OBJDIR)/freetype.dll: $(FREETYPELIB:lib=dll)
 	cp $< $@
