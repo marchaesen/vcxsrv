@@ -3993,12 +3993,6 @@ _mesa_is_es3_color_renderable(const struct gl_context *ctx,
    case GL_RGB10_A2:
    case GL_RGB10_A2UI:
    case GL_SRGB8_ALPHA8:
-   case GL_R16F:
-   case GL_RG16F:
-   case GL_RGBA16F:
-   case GL_R32F:
-   case GL_RG32F:
-   case GL_RGBA32F:
    case GL_R11F_G11F_B10F:
    case GL_R8I:
    case GL_R8UI:
@@ -4019,6 +4013,15 @@ _mesa_is_es3_color_renderable(const struct gl_context *ctx,
    case GL_RGBA32I:
    case GL_RGBA32UI:
       return true;
+   case GL_R16F:
+   case GL_RG16F:
+   case GL_RGB16F:
+   case GL_RGBA16F:
+      return _mesa_has_EXT_color_buffer_half_float(ctx);
+   case GL_R32F:
+   case GL_RG32F:
+   case GL_RGBA32F:
+      return _mesa_has_EXT_color_buffer_float(ctx);
    case GL_R16:
    case GL_RG16:
    case GL_RGBA16:

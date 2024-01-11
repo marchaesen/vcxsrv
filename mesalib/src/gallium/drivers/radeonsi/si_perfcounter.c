@@ -899,7 +899,7 @@ si_spm_init(struct si_context *sctx)
 void
 si_spm_finish(struct si_context *sctx)
 {
-   struct pb_buffer *bo = sctx->spm.bo;
+   struct pb_buffer_lean *bo = sctx->spm.bo;
    radeon_bo_reference(sctx->screen->ws, &bo, NULL);
 
    ac_destroy_spm(&sctx->spm);

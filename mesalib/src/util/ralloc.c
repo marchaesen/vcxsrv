@@ -806,7 +806,7 @@ void *
 gc_alloc_size(gc_ctx *ctx, size_t size, size_t alignment)
 {
    assert(ctx);
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero_uintptr(alignment));
 
    alignment = MAX2(alignment, alignof(gc_block_header));
 

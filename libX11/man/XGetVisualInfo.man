@@ -115,7 +115,7 @@ structure contains:
 .LP
 /\&* Visual information mask bits */
 .TS
-lw(.5i) lw(2.5i) lw(.8i).
+lw(10) lw(2.5i) lw(.8i).
 T{
 \&#define
 T}	T{

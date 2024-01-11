@@ -25,7 +25,12 @@
 static void
 do_copy(agx_builder *b, const struct agx_copy *copy)
 {
-   agx_mov_to(b, agx_register(copy->dest, copy->src.size), copy->src);
+   agx_index dst = agx_register(copy->dest, copy->src.size);
+
+   if (copy->src.type == AGX_INDEX_IMMEDIATE)
+      agx_mov_imm_to(b, dst, copy->src.value);
+   else
+      agx_mov_to(b, dst, copy->src);
 }
 
 static void
@@ -129,7 +134,16 @@ agx_emit_parallel_copies(agx_builder *b, struct agx_copy *copies,
          copy.src.size = AGX_SIZE_32;
          copies2[num_copies2++] = copy;
 
-         copy.src.value += 2;
+         if (copy.src.type == AGX_INDEX_IMMEDIATE) {
+            static_assert(sizeof(copy.src.value) * 8 == 32, "known size");
+            copy.src.value = 0;
+         } else {
+            assert(copy.src.type == AGX_INDEX_REGISTER ||
+                   copy.src.type == AGX_INDEX_UNIFORM);
+
+            copy.src.value += 2;
+         }
+
          copy.dest += 2;
          copies2[num_copies2++] = copy;
       } else {

@@ -128,7 +128,7 @@ calculate_pressure_delta(agx_instr *I, BITSET_WORD *live)
    /* Destinations must be unique */
    agx_foreach_ssa_dest(I, d) {
       if (BITSET_TEST(live, I->dest[d].value))
-         delta -= agx_write_registers(I, d);
+         delta -= agx_index_size_16(I->dest[d]);
    }
 
    agx_foreach_ssa_src(I, src) {
@@ -143,7 +143,7 @@ calculate_pressure_delta(agx_instr *I, BITSET_WORD *live)
       }
 
       if (!dupe && !BITSET_TEST(live, I->src[src].value))
-         delta += agx_read_registers(I, src);
+         delta += agx_index_size_16(I->src[src]);
    }
 
    return delta;

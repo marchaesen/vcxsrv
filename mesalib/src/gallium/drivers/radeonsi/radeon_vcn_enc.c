@@ -1229,7 +1229,7 @@ static void radeon_enc_destroy_fence(struct pipe_video_codec *encoder,
 {
    struct radeon_encoder *enc = (struct radeon_encoder *)encoder;
 
-   enc->ws->fence_reference(&fence, NULL);
+   enc->ws->fence_reference(enc->ws, &fence, NULL);
 }
 
 struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
@@ -1291,7 +1291,7 @@ error:
    return NULL;
 }
 
-void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer *buf,
+void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *buf,
                            unsigned usage, enum radeon_bo_domain domain, signed offset)
 {
    enc->ws->cs_add_buffer(&enc->cs, buf, usage | RADEON_USAGE_SYNCHRONIZED, domain);

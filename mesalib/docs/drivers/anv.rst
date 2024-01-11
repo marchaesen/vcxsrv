@@ -7,9 +7,6 @@ Debugging
 Here are a few environment variable debug environment variables
 specific to ANV:
 
-:envvar:`ANV_ENABLE_GENERATED_INDIRECT_DRAWS`
-   If defined to ``0`` or ``false``, this will disable the generated
-   indirect draw optimization in ANV. This will only affect Gfx11+.
 :envvar:`ANV_ENABLE_PIPELINE_CACHE`
    If defined to ``0`` or ``false``, this will disable pipeline
    caching, forcing ANV to reparse and recompile any VkShaderModule

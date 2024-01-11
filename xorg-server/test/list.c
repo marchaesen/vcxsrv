@@ -266,6 +266,8 @@ test_nt_list_append(void)
         i++;
     }
     assert(i == 11);
+
+    free(foo);
 }
 
 static void
@@ -300,6 +302,8 @@ test_nt_list_insert(void)
         i++;
     }
     assert(i == 11);
+
+    free(foo);
 }
 
 static void

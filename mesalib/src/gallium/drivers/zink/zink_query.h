@@ -62,6 +62,15 @@ void
 zink_context_destroy_query_pools(struct zink_context *ctx);
 uint64_t
 zink_get_timestamp(struct pipe_screen *pscreen);
+
+int
+zink_get_driver_query_group_info(struct pipe_screen *pscreen, unsigned index,
+                                 struct pipe_driver_query_group_info *info);
+
+int
+zink_get_driver_query_info(struct pipe_screen *pscreen, unsigned index,
+                           struct pipe_driver_query_info *info);
+
 #ifdef __cplusplus
 }
 #endif

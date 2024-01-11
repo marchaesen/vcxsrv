@@ -251,6 +251,20 @@ with_microsoft_vk = _vulkan_drivers.contains('microsoft-experimental')
 with_nouveau_vk = _vulkan_drivers.contains('nouveau-experimental')
 with_any_vk = _vulkan_drivers.length() != 0
 
+with_vk_compiler = [
+  with_intel_vk,
+  with_intel_hasvk,
+  with_amd_vk,
+  with_freedreno_vk,
+  with_panfrost_vk,
+  with_swrast_vk,
+  with_broadcom_vk,
+  with_imagination_vk,
+  with_microsoft_vk,
+  with_nouveau_vk,
+].contains(true)
+pre_args += '-DUSE_VK_COMPILER=@0@'.format(with_vk_compiler ? '1' : '0')
+
 freedreno_kmds = get_option('freedreno-kmds')
 if freedreno_kmds.length() != 0 and freedreno_kmds != [ 'msm' ] and with_freedreno_vk
   if freedreno_kmds.contains('msm')
@@ -1455,8 +1469,8 @@ if cc.links('''
       locale_t loc = newlocale(LC_CTYPE_MASK, "C", NULL);
       const char *s = "1.0";
       char *end;
-      double d = strtod_l(s, end, loc);
-      float f = strtof_l(s, end, loc);
+      double d = strtod_l(s, &end, loc);
+      float f = strtof_l(s, &end, loc);
       freelocale(loc);
       return 0;
     }''',
@@ -1625,7 +1639,7 @@ dep_libdrm_radeon = null_dep
 dep_libdrm_nouveau = null_dep
 dep_libdrm_intel = null_dep
 
-_drm_amdgpu_ver = '2.4.110'
+_drm_amdgpu_ver = '2.4.119'
 _drm_radeon_ver = '2.4.71'
 _drm_nouveau_ver = '2.4.102'
 _drm_intel_ver = '2.4.75'

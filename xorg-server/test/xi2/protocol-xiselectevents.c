@@ -172,7 +172,7 @@ request_XISelectEvents_masks(xXISelectEventsReq * req)
     req->win = ROOT_WINDOW_ID;
 
     /* if a clients submits more than 100 masks, consider it insane and untested */
-    for (i = 1; i <= 1000; i++) {
+    for (i = 1; i <= 1000; i += 33) {
         req->num_masks = i;
         mask->deviceid = XIAllDevices;
 

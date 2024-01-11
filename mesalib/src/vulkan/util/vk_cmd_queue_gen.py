@@ -52,13 +52,10 @@ MANUAL_COMMANDS = [
 
 NO_ENQUEUE_COMMANDS = [
     # pData's size cannot be calculated from the xml
-    'CmdBindDescriptorBufferEmbeddedSamplers2EXT',
-    'CmdBindDescriptorSets2KHR',
     'CmdPushConstants2KHR',
     'CmdPushDescriptorSet2KHR',
     'CmdPushDescriptorSetWithTemplate2KHR',
     'CmdPushDescriptorSetWithTemplateKHR',
-    'CmdSetDescriptorBufferOffsets2EXT',
 
     # These don't return void
     'CmdSetPerformanceMarkerINTEL',
@@ -466,8 +463,7 @@ def get_array_copy(command, param):
     else:
         field_size = "sizeof(*%s)" % field_name
     allocation = "%s = vk_zalloc(queue->alloc, %s * (%s), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);\n   if (%s == NULL) goto err;\n" % (field_name, field_size, param.len, field_name)
-    const_cast = remove_suffix(param.decl.replace("const", ""), param.name)
-    copy = "memcpy((%s)%s, %s, %s * (%s));" % (const_cast, field_name, param.name, field_size, param.len)
+    copy = "memcpy((void*)%s, %s, %s * (%s));" % (field_name, param.name, field_size, param.len)
     return "%s\n   %s" % (allocation, copy)
 
 def get_array_member_copy(struct, src_name, member):
@@ -477,8 +473,7 @@ def get_array_member_copy(struct, src_name, member):
     else:
         field_size = "sizeof(*%s) * %s->%s" % (field_name, struct, member.len)
     allocation = "%s = vk_zalloc(queue->alloc, %s, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);\n   if (%s == NULL) goto err;\n" % (field_name, field_size, field_name)
-    const_cast = remove_suffix(member.decl.replace("const", ""), member.name)
-    copy = "memcpy((%s)%s, %s->%s, %s);" % (const_cast, field_name, src_name, member.name, field_size)
+    copy = "memcpy((void*)%s, %s->%s, %s);" % (field_name, src_name, member.name, field_size)
     return "if (%s->%s) {\n   %s\n   %s\n}\n" % (src_name, member.name, allocation, copy)
 
 def get_pnext_member_copy(struct, src_type, member, types, level):
@@ -495,8 +490,8 @@ def get_pnext_member_copy(struct, src_type, member, types, level):
             guard_post_stmt = "#endif"
         case_stmts += """
 %s
-      case %s:
-         %s
+         case %s:
+            %s
          break;
 %s
       """ % (guard_pre_stmt, type.enum, get_struct_copy(field_name, "pnext", type.name, "sizeof(%s)" % type.name, types, level), guard_post_stmt)
@@ -530,7 +525,8 @@ def get_struct_copy(dst, src_name, src_type, size, types, level=0):
 
     null_assignment = "%s = NULL;" % dst
     if_stmt = "if (%s) {" % src_name
-    return "%s\n      %s\n      %s\n   %s\n   %s   \n   %s   } else {\n      %s\n   }" % (if_stmt, allocation, copy, tmp_dst, tmp_src, member_copies, null_assignment)
+    indent = "   " * level
+    return "%s\n      %s\n      %s\n      %s\n      %s\n      %s\n%s} else {\n      %s\n%s}" % (if_stmt, allocation, copy, tmp_dst, tmp_src, member_copies, indent, null_assignment, indent)
 
 def get_struct_free(command, param, types):
     field_name = "cmd->u.%s.%s" % (to_struct_field_name(command.name), to_field_name(param.name))

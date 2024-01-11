@@ -110,6 +110,8 @@ struct agx_geometry_params {
    /* Address of the primitives generated counters */
    GLOBAL(uint) prims_generated_counter[MAX_VERTEX_STREAMS];
    GLOBAL(uint) xfb_prims_generated_counter[MAX_VERTEX_STREAMS];
+   GLOBAL(uint) xfb_overflow[MAX_VERTEX_STREAMS];
+   GLOBAL(uint) xfb_any_overflow;
 
    /* Pointers to transform feedback buffer offsets in bytes */
    GLOBAL(uint) xfb_offs_ptrs[MAX_SO_BUFFERS];

@@ -154,6 +154,9 @@ dix_init_valuators(void)
     assert(axis->scroll.type == SCROLL_TYPE_VERTICAL);
     assert(axis->scroll.increment == 3.0);
     assert(axis->scroll.flags == SCROLL_FLAG_NONE);
+
+    FreeDeviceClass(ValuatorClass, (void**)&val);
+    free(dev.last.scroll); /* sigh, allocated but not freed by the valuator functions */
 }
 
 /* just check the known success cases, and that error cases set the client's
@@ -282,6 +285,7 @@ dix_event_to_core(int type)
     ev.detail.key = 0;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     x = 1;
     y = 2;
@@ -289,6 +293,7 @@ dix_event_to_core(int type)
     ev.root_y = y;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     x = 0x7FFF;
     y = 0x7FFF;
@@ -296,6 +301,7 @@ dix_event_to_core(int type)
     ev.root_y = y;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     x = 0x8000;                 /* too high */
     y = 0x8000;                 /* too high */
@@ -307,6 +313,7 @@ dix_event_to_core(int type)
     assert(count == 1);
     assert(core->u.keyButtonPointer.rootX != x);
     assert(core->u.keyButtonPointer.rootY != y);
+    free(core);
 
     x = 0x7FFF;
     y = 0x7FFF;
@@ -316,16 +323,19 @@ dix_event_to_core(int type)
     ev.time = time;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     detail = 1;
     ev.detail.key = detail;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     detail = 0xFF;              /* highest value */
     ev.detail.key = detail;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     detail = 0xFFF;             /* too big */
     ev.detail.key = detail;
@@ -338,6 +348,7 @@ dix_event_to_core(int type)
     ev.corestate = state;
     rc = EventToCore((InternalEvent *) &ev, &core, &count);
     test_event();
+    free(core);
 
     state = 0x10000;            /* too big */
     ev.corestate = state;
@@ -347,6 +358,7 @@ dix_event_to_core(int type)
     assert(count == 1);
     assert(core->u.keyButtonPointer.state != state);
     assert(core->u.keyButtonPointer.state == (state & 0xFFFF));
+    free(core);
 
 #undef test_event
 }
@@ -1197,6 +1209,7 @@ dix_input_attributes(void)
 
     new = DuplicateInputAttributes(orig);
     assert(memcmp(orig, new, sizeof(InputAttributes)) == 0);
+    FreeInputAttributes(new);
 
     orig->product = xnfstrdup("product name");
     new = DuplicateInputAttributes(orig);
@@ -1330,6 +1343,7 @@ dix_input_valuator_masks(void)
     }
 
     valuator_mask_free(&mask);
+    valuator_mask_free(&copy);
     assert(mask == NULL);
 }
 
@@ -1361,6 +1375,9 @@ dix_valuator_mode(void)
     valuator_set_mode(&dev, VALUATOR_MODE_ALL_AXES, Relative);
     for (i = 0; i < num_axes; i++)
         assert(valuator_get_mode(&dev, i) == Relative);
+
+    FreeDeviceClass(ValuatorClass, (void**)&dev.valuator);
+    free(dev.last.scroll); /* sigh, allocated but not freed by the valuator functions */
 }
 
 static void

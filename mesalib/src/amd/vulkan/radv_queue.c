@@ -1728,7 +1728,7 @@ radv_queue_submit(struct vk_queue *vqueue, struct vk_queue_submit *submission)
    struct radv_queue *queue = (struct radv_queue *)vqueue;
    VkResult result;
 
-   if (queue->device->instance->legacy_sparse_binding) {
+   if (queue->device->instance->drirc.legacy_sparse_binding) {
       result = radv_queue_submit_bind_sparse_memory(queue->device, submission);
       if (result != VK_SUCCESS)
          goto fail;

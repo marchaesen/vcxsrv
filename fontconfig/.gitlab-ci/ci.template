@@ -267,6 +267,8 @@ check-ci-script:
     when: always
     expire_in: 5 days
     paths:
+      - build*/doc/fontconfig-user.html
+      - build*/doc/fontconfig-devel/*
       - build*/fc-build.log
       - build*/fontconfig-*.tar.*
       - build*/test/*log
@@ -329,3 +331,18 @@ check-merge-request:
       junit: results.xml
   allow_failure: true
 
+pages:
+  stage: deploy
+  script:
+    - |
+      mkdir public || :
+      cp -a build*/doc/fontconfig-user.html build*/doc/fontconfig-devel public/
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - t_fedora:rawhide:autotools shared libxml2
+  needs:
+    - t_fedora:rawhide:autotools shared libxml2
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "merge_request_event"

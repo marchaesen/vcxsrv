@@ -5,12 +5,12 @@ simple_xinit = executable(
 )
 
 piglit_env = environment()
-piglit_env.set('XSERVER_DIR', meson.source_root())
-piglit_env.set('XSERVER_BUILDDIR', meson.build_root())
+piglit_env.set('XSERVER_DIR', meson.project_source_root())
+piglit_env.set('XSERVER_BUILDDIR', meson.project_build_root())
 
 gles20_env = environment()
-gles20_env.set('XSERVER_DIR', meson.source_root())
-gles20_env.set('XSERVER_BUILDDIR', meson.build_root())
+gles20_env.set('XSERVER_DIR', meson.project_source_root())
+gles20_env.set('XSERVER_BUILDDIR', meson.project_build_root())
 gles20_env.set('MESA_GLES_VERSION_OVERRIDE', '2.0')
 
 some_ops = ' -o clear,src,dst,over,xor,disjointover'
@@ -115,9 +115,9 @@ if get_option('xvfb')
             )
         endforeach
         test_parameters = [
-                [rendercheck_tests, '', piglit_env, '', false], 
-                [rendercheck_tests_gles2_success, '_gles2', gles20_env, '-gles2', false], 
-                [rendercheck_a8, '_gles2', gles20_env, '-gles2', true], 
+                [rendercheck_tests, '', piglit_env, '', false],
+                [rendercheck_tests_gles2_success, '_gles2', gles20_env, '-gles2', false],
+                [rendercheck_a8, '_gles2', gles20_env, '-gles2', true],
                 [rendercheck_tests_gles3, '_gles2', piglit_env, '-gles3', false]
             ]
 
@@ -187,15 +187,14 @@ if build_xorg
      'xfree86.c',
      'xtest.c',
     ]
-    unit_defines = ['-DXORG_TESTS']
+    unit_c_args = ['-DXORG_TESTS']
     unit_includes = [inc, xorg_inc]
 
     if build_res
         unit_sources += ['hashtabletest.c']
-        unit_defines += ['-DRES_TESTS']
+        unit_c_args += ['-DRES_TESTS']
     endif
 
-    unit_c_args = unit_defines
     if meson.get_compiler('c').has_link_argument('-Wl,-wrap')
        # LTO breaks with -Wl,-wrap on certain configurations
        unit_c_args += ['-fno-lto']
@@ -214,7 +213,7 @@ if build_xorg
         'xi2/protocol-eventconvert.c',
         'xi2/xi2.c',
        ]
-       unit_defines += ['-DLDWRAP_TESTS']
+       unit_c_args += ['-DLDWRAP_TESTS']
        unit_includes += [include_directories('xi1', 'xi2')]
        ldwraps = [
         '-Wl,-wrap,dixLookupWindow',

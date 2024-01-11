@@ -53,17 +53,18 @@ void r300_upload_index_buffer(struct r300_context *r300,
 void r300_resource_destroy(struct pipe_screen *screen,
                            struct pipe_resource *buf)
 {
+   struct r300_screen *rscreen = r300_screen(screen);
+
    if (buf->target == PIPE_BUFFER) {
       struct r300_resource *rbuf = r300_resource(buf);
 
       align_free(rbuf->malloced_buffer);
 
       if (rbuf->buf)
-         pb_reference(&rbuf->buf, NULL);
+         radeon_bo_reference(rscreen->rws, &rbuf->buf, NULL);
 
       FREE(rbuf);
    } else {
-      struct r300_screen *rscreen = r300_screen(screen);
       struct r300_resource* tex = (struct r300_resource*)buf;
 
       if (tex->tex.cmask_dwords) {
@@ -73,7 +74,7 @@ void r300_resource_destroy(struct pipe_screen *screen,
           }
           mtx_unlock(&rscreen->cmask_mutex);
       }
-      pb_reference(&tex->buf, NULL);
+      radeon_bo_reference(rscreen->rws, &tex->buf, NULL);
       FREE(tex);
    }
 }
@@ -113,7 +114,7 @@ r300_buffer_transfer_map( struct pipe_context *context,
         if (r300->rws->cs_is_buffer_referenced(&r300->cs, rbuf->buf, RADEON_USAGE_READWRITE) ||
             !r300->rws->buffer_wait(r300->rws, rbuf->buf, 0, RADEON_USAGE_READWRITE)) {
             unsigned i;
-            struct pb_buffer *new_buf;
+            struct pb_buffer_lean *new_buf;
 
             /* Create a new one in the same pipe_resource. */
             new_buf = r300->rws->buffer_create(r300->rws, rbuf->b.width0,
@@ -122,7 +123,7 @@ r300_buffer_transfer_map( struct pipe_context *context,
                                                RADEON_FLAG_NO_INTERPROCESS_SHARING);
             if (new_buf) {
                 /* Discard the old buffer. */
-                pb_reference(&rbuf->buf, NULL);
+                radeon_bo_reference(r300->rws, &rbuf->buf, NULL);
                 rbuf->buf = new_buf;
 
                 /* We changed the buffer, now we need to bind it where the old one was bound. */

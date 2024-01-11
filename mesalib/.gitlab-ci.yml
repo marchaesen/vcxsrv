@@ -167,6 +167,7 @@ include:
   - local: 'src/gallium/drivers/crocus/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/d3d12/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/i915/ci/gitlab-ci.yml'
+  - local: 'src/gallium/drivers/r300/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/lima/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/llvmpipe/ci/gitlab-ci.yml'
   - local: 'src/gallium/drivers/nouveau/ci/gitlab-ci.yml'

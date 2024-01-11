@@ -185,6 +185,21 @@ TEST_F(LowerParallelCopy, Cycle3)
    });
 }
 
+TEST_F(LowerParallelCopy, Immediate64)
+{
+   agx_index imm = agx_immediate(10);
+   imm.size = AGX_SIZE_64;
+
+   struct agx_copy test_1[] = {
+      {.dest = 4, .src = imm},
+   };
+
+   CASE(test_1, {
+      agx_mov_imm_to(b, agx_register(4, AGX_SIZE_32), 10);
+      agx_mov_imm_to(b, agx_register(6, AGX_SIZE_32), 0);
+   });
+}
+
 /* Test case from Hack et al */
 TEST_F(LowerParallelCopy, TwoSwaps)
 {

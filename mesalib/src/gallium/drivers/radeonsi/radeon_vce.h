@@ -33,7 +33,7 @@
 struct si_screen;
 
 /* driver dependent callback */
-typedef void (*rvce_get_buffer)(struct pipe_resource *resource, struct pb_buffer **handle,
+typedef void (*rvce_get_buffer)(struct pipe_resource *resource, struct pb_buffer_lean **handle,
                                 struct radeon_surf **surface);
 
 /* Coded picture buffer slot */
@@ -374,11 +374,11 @@ struct rvce_encoder {
 
    rvce_get_buffer get_buffer;
 
-   struct pb_buffer *handle;
+   struct pb_buffer_lean *handle;
    struct radeon_surf *luma;
    struct radeon_surf *chroma;
 
-   struct pb_buffer *bs_handle;
+   struct pb_buffer_lean *bs_handle;
    unsigned bs_size;
 
    struct rvce_cpb_slot *cpb_array;
@@ -413,7 +413,7 @@ struct pipe_video_codec *si_vce_create_encoder(struct pipe_context *context,
 
 bool si_vce_is_fw_version_supported(struct si_screen *sscreen);
 
-void si_vce_add_buffer(struct rvce_encoder *enc, struct pb_buffer *buf, unsigned usage,
+void si_vce_add_buffer(struct rvce_encoder *enc, struct pb_buffer_lean *buf, unsigned usage,
                        enum radeon_bo_domain domain, signed offset);
 
 /* init vce fw 40.2.2 specific callbacks */

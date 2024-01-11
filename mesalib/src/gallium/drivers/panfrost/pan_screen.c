@@ -180,10 +180,8 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
    case PIPE_CAP_INT64:
       return 1;
 
-   /* We need this for OES_copy_image, but currently there are some awful
-    * interactions with AFBC that need to be worked out. */
    case PIPE_CAP_COPY_BETWEEN_COMPRESSED_AND_PLAIN_FORMATS:
-      return 0;
+      return 1;
 
    case PIPE_CAP_MAX_STREAM_OUTPUT_BUFFERS:
       return PIPE_MAX_SO_BUFFERS;

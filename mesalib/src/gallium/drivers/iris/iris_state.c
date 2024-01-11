@@ -6677,11 +6677,7 @@ iris_upload_dirty_render_state(struct iris_context *ice,
       iris_bufmgr_get_border_color_pool(screen->bufmgr);
 
    /* Re-emit 3DSTATE_DS before any 3DPRIMITIVE when tessellation is on */
-   /* FIXME: WA framework doesn't know about 14019750404 yet.
-    * if (intel_needs_workaround(batch->screen->devinfo, 14019750404) &&
-    *     ice->shaders.prog[MESA_SHADER_TESS_EVAL])
-    */
-   if (batch->screen->devinfo->has_mesh_shading &&
+   if (intel_needs_workaround(batch->screen->devinfo, 22018402687) &&
        ice->shaders.prog[MESA_SHADER_TESS_EVAL])
       ice->state.stage_dirty |= IRIS_STAGE_DIRTY_TES;
 

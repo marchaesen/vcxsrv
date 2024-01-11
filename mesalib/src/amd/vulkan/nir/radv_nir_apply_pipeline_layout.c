@@ -505,7 +505,7 @@ radv_nir_apply_pipeline_layout(nir_shader *shader, struct radv_device *device, c
    apply_layout_state state = {
       .gfx_level = device->physical_device->rad_info.gfx_level,
       .address32_hi = device->physical_device->rad_info.address32_hi,
-      .disable_aniso_single_level = device->instance->disable_aniso_single_level,
+      .disable_aniso_single_level = device->instance->drirc.disable_aniso_single_level,
       .has_image_load_dcc_bug = device->physical_device->rad_info.has_image_load_dcc_bug,
       .disable_tg4_trunc_coord =
          !device->physical_device->rad_info.conformant_trunc_coord && !device->disable_trunc_coord,

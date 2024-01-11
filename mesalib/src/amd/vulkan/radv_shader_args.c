@@ -835,9 +835,9 @@ radv_declare_ps_epilog_args(const struct radv_device *device, const struct radv_
 
    /* Declare VGPR arguments for color exports. */
    for (unsigned i = 0; i < MAX_RTS; i++) {
-      unsigned col_format = (key->spi_shader_col_format >> (i * 4)) & 0xf;
+      const uint8_t color = (key->colors_written >> (i * 4) & 0xf);
 
-      if (col_format == V_028714_SPI_SHADER_ZERO) {
+      if (!color) {
          ac_add_arg(&args->ac, AC_ARG_VGPR, 4, AC_ARG_FLOAT, NULL);
          continue;
       }

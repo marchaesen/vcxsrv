@@ -559,7 +559,7 @@ xwl_glamor_eglstream_post_damage(struct xwl_window *xwl_window,
      * won't actually draw to it
      */
     xwl_glamor_egl_make_current(xwl_screen);
-    glamor_set_alu(xwl_screen->screen, GXcopy);
+    glamor_set_alu(&pixmap->drawable, GXcopy);
 
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 

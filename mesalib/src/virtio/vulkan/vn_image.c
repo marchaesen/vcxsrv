@@ -14,6 +14,7 @@
 #include "venus-protocol/vn_protocol_driver_image_view.h"
 #include "venus-protocol/vn_protocol_driver_sampler.h"
 #include "venus-protocol/vn_protocol_driver_sampler_ycbcr_conversion.h"
+#include "vk_format.h"
 
 #include "vn_android.h"
 #include "vn_device.h"
@@ -21,51 +22,254 @@
 #include "vn_physical_device.h"
 #include "vn_wsi.h"
 
+#define IMAGE_REQS_CACHE_MAX_ENTRIES 500
+
 /* image commands */
+
+static inline uint32_t
+vn_image_get_plane_count(const VkImageCreateInfo *create_info)
+{
+   if (!(create_info->flags & VK_IMAGE_CREATE_DISJOINT_BIT))
+      return 1;
+
+   /* TODO VkDrmFormatModifierPropertiesEXT::drmFormatModifierPlaneCount */
+   assert(create_info->tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT);
+   return vk_format_get_plane_count(create_info->format);
+}
+
+static void
+vn_image_cache_debug_dump(struct vn_image_reqs_cache *cache)
+{
+   vn_log(NULL, "dumping image reqs cache statistics");
+   vn_log(NULL, "  hit %u\n", cache->debug.cache_hit_count);
+   vn_log(NULL, "  miss %u\n", cache->debug.cache_miss_count);
+   vn_log(NULL, "  skip %u\n", cache->debug.cache_skip_count);
+}
+
+static uint32_t
+vn_image_cache_key_hash_function(const void *key)
+{
+   return _mesa_hash_data(key, SHA1_DIGEST_LENGTH);
+}
+
+static bool
+vn_image_cache_key_equal_function(const void *void_a, const void *void_b)
+{
+   const struct vn_image_reqs_cache_entry *a = void_a, *b = void_b;
+   return memcmp(a, b, SHA1_DIGEST_LENGTH) == 0;
+}
+
+static bool
+vn_image_get_image_reqs_key(struct vn_device *dev,
+                            const VkImageCreateInfo *create_info,
+                            uint8_t *key)
+{
+   struct mesa_sha1 sha1_ctx;
+
+   if (!dev->image_reqs_cache.ht)
+      return false;
+
+   _mesa_sha1_init(&sha1_ctx);
+
+   /* Hash relevant fields in the pNext chain */
+   vk_foreach_struct_const(src, create_info->pNext) {
+      switch (src->sType) {
+      case VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO: {
+         struct VkExternalMemoryImageCreateInfo *ext_mem =
+            (struct VkExternalMemoryImageCreateInfo *)src;
+         _mesa_sha1_update(&sha1_ctx, &ext_mem->handleTypes,
+                           sizeof(VkExternalMemoryHandleTypeFlags));
+         break;
+      }
+      case VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO: {
+         struct VkImageFormatListCreateInfo *format_list =
+            (struct VkImageFormatListCreateInfo *)src;
+         _mesa_sha1_update(&sha1_ctx, format_list->pViewFormats,
+                           sizeof(VkFormat) * format_list->viewFormatCount);
+         break;
+      }
+      case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_LIST_CREATE_INFO_EXT: {
+         struct VkImageDrmFormatModifierListCreateInfoEXT *format_mod_list =
+            (struct VkImageDrmFormatModifierListCreateInfoEXT *)src;
+         _mesa_sha1_update(
+            &sha1_ctx, format_mod_list->pDrmFormatModifiers,
+            sizeof(uint64_t) * format_mod_list->drmFormatModifierCount);
+         break;
+      }
+      case VK_STRUCTURE_TYPE_IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT: {
+         struct VkImageDrmFormatModifierExplicitCreateInfoEXT
+            *format_mod_explicit =
+               (struct VkImageDrmFormatModifierExplicitCreateInfoEXT *)src;
+         _mesa_sha1_update(&sha1_ctx, &format_mod_explicit->drmFormatModifier,
+                           sizeof(uint64_t));
+         _mesa_sha1_update(
+            &sha1_ctx, format_mod_explicit->pPlaneLayouts,
+            sizeof(VkSubresourceLayout) *
+               format_mod_explicit->drmFormatModifierPlaneCount);
+         break;
+      }
+      case VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO: {
+         struct VkImageStencilUsageCreateInfo *stencil_usage =
+            (struct VkImageStencilUsageCreateInfo *)src;
+         _mesa_sha1_update(&sha1_ctx, &stencil_usage->stencilUsage,
+                           sizeof(VkImageUsageFlags));
+         break;
+      }
+      default:
+         /* Skip cache for unsupported pNext */
+         dev->image_reqs_cache.debug.cache_skip_count++;
+         return false;
+      }
+   }
+
+   /* Hash contingous block of VkImageCreateInfo starting with
+    * VkImageCreateInfo->flags and ending with VkImageCreateInfo->sharingMode
+    *
+    * There's no padding in involved in this hash block so no concern for C
+    * enum sizes or alignment.
+    */
+   static const size_t create_image_hash_block_size =
+      offsetof(VkImageCreateInfo, queueFamilyIndexCount) -
+      offsetof(VkImageCreateInfo, flags);
+
+   _mesa_sha1_update(&sha1_ctx, &create_info->flags,
+                     create_image_hash_block_size);
+
+   /* Follow pointer and hash pQueueFamilyIndices separately.
+    * pQueueFamilyIndices is ignored if sharingMode is not
+    * VK_SHARING_MODE_CONCURRENT
+    */
+   if (create_info->sharingMode == VK_SHARING_MODE_CONCURRENT) {
+      _mesa_sha1_update(
+         &sha1_ctx, create_info->pQueueFamilyIndices,
+         sizeof(uint32_t) * create_info->queueFamilyIndexCount);
+   }
+
+   _mesa_sha1_update(&sha1_ctx, &create_info->initialLayout,
+                     sizeof(create_info->initialLayout));
+   _mesa_sha1_final(&sha1_ctx, key);
+
+   return true;
+}
+
+void
+vn_image_reqs_cache_init(struct vn_device *dev)
+{
+   struct vn_image_reqs_cache *cache = &dev->image_reqs_cache;
+
+   if (VN_PERF(NO_ASYNC_IMAGE_CREATE))
+      return;
+
+   cache->ht = _mesa_hash_table_create(NULL, vn_image_cache_key_hash_function,
+                                       vn_image_cache_key_equal_function);
+   if (!cache->ht)
+      return;
+
+   simple_mtx_init(&cache->mutex, mtx_plain);
+   list_inithead(&dev->image_reqs_cache.lru);
+}
+
+void
+vn_image_reqs_cache_fini(struct vn_device *dev)
+{
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
+   struct vn_image_reqs_cache *cache = &dev->image_reqs_cache;
+
+   if (!cache->ht)
+      return;
+
+   hash_table_foreach(cache->ht, hash_entry) {
+      struct vn_image_reqs_cache_entry *cache_entry = hash_entry->data;
+      list_del(&cache_entry->head);
+      vk_free(alloc, cache_entry);
+   }
+   assert(list_is_empty(&dev->image_reqs_cache.lru));
+
+   _mesa_hash_table_destroy(cache->ht, NULL);
+
+   simple_mtx_destroy(&cache->mutex);
+
+   if (VN_DEBUG(CACHE))
+      vn_image_cache_debug_dump(cache);
+}
+
+static bool
+vn_image_init_reqs_from_cache(struct vn_device *dev,
+                              struct vn_image *img,
+                              uint8_t *key)
+{
+   struct vn_image_reqs_cache *cache = &dev->image_reqs_cache;
+
+   assert(cache->ht);
+
+   simple_mtx_lock(&cache->mutex);
+   struct hash_entry *hash_entry = _mesa_hash_table_search(cache->ht, key);
+   if (hash_entry) {
+      struct vn_image_reqs_cache_entry *cache_entry = hash_entry->data;
+      for (uint32_t i = 0; i < cache_entry->plane_count; i++)
+         img->requirements[i] = cache_entry->requirements[i];
+      list_move_to(&cache_entry->head, &dev->image_reqs_cache.lru);
+      p_atomic_inc(&cache->debug.cache_hit_count);
+   } else {
+      p_atomic_inc(&cache->debug.cache_miss_count);
+   }
+   simple_mtx_unlock(&cache->mutex);
+
+   return !!hash_entry;
+}
+
+static void
+vn_image_store_reqs_in_cache(struct vn_device *dev,
+                             uint8_t *key,
+                             uint32_t plane_count,
+                             struct vn_image_memory_requirements *requirements)
+{
+   const VkAllocationCallbacks *alloc = &dev->base.base.alloc;
+   struct vn_image_reqs_cache *cache = &dev->image_reqs_cache;
+   struct vn_image_reqs_cache_entry *cache_entry;
+
+   assert(cache->ht);
+
+   simple_mtx_lock(&cache->mutex);
+   uint32_t cache_entry_count = _mesa_hash_table_num_entries(cache->ht);
+   if (cache_entry_count == IMAGE_REQS_CACHE_MAX_ENTRIES) {
+      /* Evict/use the last entry in the lru list for this new entry */
+      cache_entry =
+         list_last_entry(&cache->lru, struct vn_image_reqs_cache_entry, head);
+
+      _mesa_hash_table_remove_key(cache->ht, cache_entry->key);
+      list_del(&cache_entry->head);
+   } else {
+      cache_entry = vk_zalloc(alloc, sizeof(*cache_entry), VN_DEFAULT_ALIGN,
+                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   }
+   simple_mtx_unlock(&cache->mutex);
+
+   if (!cache_entry)
+      return;
+
+   for (uint32_t i = 0; i < plane_count; i++)
+      cache_entry->requirements[i] = requirements[i];
+
+   memcpy(cache_entry->key, key, SHA1_DIGEST_LENGTH);
+   cache_entry->plane_count = plane_count;
+
+   simple_mtx_lock(&cache->mutex);
+   if (!_mesa_hash_table_search(cache->ht, cache_entry->key)) {
+      _mesa_hash_table_insert(dev->image_reqs_cache.ht, cache_entry->key,
+                              cache_entry);
+      list_add(&cache_entry->head, &cache->lru);
+   }
+   simple_mtx_unlock(&cache->mutex);
+}
 
 static void
 vn_image_init_memory_requirements(struct vn_image *img,
                                   struct vn_device *dev,
-                                  const VkImageCreateInfo *create_info)
+                                  uint32_t plane_count)
 {
-   uint32_t plane_count = 1;
-   if (create_info->flags & VK_IMAGE_CREATE_DISJOINT_BIT) {
-      /* TODO VkDrmFormatModifierPropertiesEXT::drmFormatModifierPlaneCount */
-      assert(create_info->tiling != VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT);
-
-      switch (create_info->format) {
-      case VK_FORMAT_G8_B8R8_2PLANE_420_UNORM:
-      case VK_FORMAT_G8_B8R8_2PLANE_422_UNORM:
-      case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_420_UNORM_3PACK16:
-      case VK_FORMAT_G10X6_B10X6R10X6_2PLANE_422_UNORM_3PACK16:
-      case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_420_UNORM_3PACK16:
-      case VK_FORMAT_G12X4_B12X4R12X4_2PLANE_422_UNORM_3PACK16:
-      case VK_FORMAT_G16_B16R16_2PLANE_420_UNORM:
-      case VK_FORMAT_G16_B16R16_2PLANE_422_UNORM:
-         plane_count = 2;
-         break;
-      case VK_FORMAT_G8_B8_R8_3PLANE_420_UNORM:
-      case VK_FORMAT_G8_B8_R8_3PLANE_422_UNORM:
-      case VK_FORMAT_G8_B8_R8_3PLANE_444_UNORM:
-      case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_420_UNORM_3PACK16:
-      case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_422_UNORM_3PACK16:
-      case VK_FORMAT_G10X6_B10X6_R10X6_3PLANE_444_UNORM_3PACK16:
-      case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_420_UNORM_3PACK16:
-      case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_422_UNORM_3PACK16:
-      case VK_FORMAT_G12X4_B12X4_R12X4_3PLANE_444_UNORM_3PACK16:
-      case VK_FORMAT_G16_B16_R16_3PLANE_420_UNORM:
-      case VK_FORMAT_G16_B16_R16_3PLANE_422_UNORM:
-      case VK_FORMAT_G16_B16_R16_3PLANE_444_UNORM:
-         plane_count = 3;
-         break;
-      default:
-         plane_count = 1;
-         break;
-      }
-   }
    assert(plane_count <= ARRAY_SIZE(img->requirements));
 
-   /* TODO add a per-device cache for the requirements */
    for (uint32_t i = 0; i < plane_count; i++) {
       img->requirements[i].memory.sType =
          VK_STRUCTURE_TYPE_MEMORY_REQUIREMENTS_2;
@@ -209,13 +413,26 @@ vn_image_init(struct vn_device *dev,
 
    img->sharing_mode = create_info->sharingMode;
 
-   /* TODO async */
+   /* Check if mem reqs in cache. If found, make async call */
+   uint8_t key[SHA1_DIGEST_LENGTH] = { 0 };
+   const bool cacheable = vn_image_get_image_reqs_key(dev, create_info, key);
+
+   if (cacheable && vn_image_init_reqs_from_cache(dev, img, key)) {
+      vn_async_vkCreateImage(dev->primary_ring, device, create_info, NULL,
+                             &image);
+      return VK_SUCCESS;
+   }
+
    result = vn_call_vkCreateImage(dev->primary_ring, device, create_info,
                                   NULL, &image);
    if (result != VK_SUCCESS)
       return result;
 
-   vn_image_init_memory_requirements(img, dev, create_info);
+   const uint32_t plane_count = vn_image_get_plane_count(create_info);
+   vn_image_init_memory_requirements(img, dev, plane_count);
+
+   if (cacheable)
+      vn_image_store_reqs_in_cache(dev, key, plane_count, img->requirements);
 
    return VK_SUCCESS;
 }
@@ -850,7 +1067,7 @@ vn_GetDeviceImageMemoryRequirements(
 {
    struct vn_device *dev = vn_device_from_handle(device);
 
-   /* TODO per-device cache */
+   /* TODO integrate image memory requirements cache */
    vn_call_vkGetDeviceImageMemoryRequirements(dev->primary_ring, device,
                                               pInfo, pMemoryRequirements);
 }

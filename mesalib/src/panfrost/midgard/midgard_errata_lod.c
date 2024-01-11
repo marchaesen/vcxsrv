@@ -45,17 +45,11 @@ nir_lod_errata_instr(nir_builder *b, nir_instr *instr, void *data)
    if (tex->op != nir_texop_txl)
       return false;
 
-   /* Let's grab the sampler parameters */
-   nir_intrinsic_instr *l = nir_intrinsic_instr_create(
-      b->shader, nir_intrinsic_load_sampler_lod_parameters_pan);
-   l->num_components = 3;
-   nir_def_init(&l->instr, &l->def, 3, 32);
-
    /* TODO: Indirect samplers, separate sampler objects XXX */
-   l->src[0] = nir_src_for_ssa(nir_imm_int(b, tex->texture_index));
+   nir_def *sampler = nir_imm_int(b, tex->texture_index);
 
-   nir_builder_instr_insert(b, &l->instr);
-   nir_def *params = &l->def;
+   /* Let's grab the sampler parameters */
+   nir_def *params = nir_load_sampler_lod_parameters_pan(b, 3, 32, sampler);
 
    /* Extract the individual components */
    nir_def *min_lod = nir_channel(b, params, 0);

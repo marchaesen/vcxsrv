@@ -301,7 +301,7 @@ python-test:
   # like FDO_DISTRIBUTION_TAG for *the* image, there is no way to
   # depend on more than one image per job. So, the job container is
   # built as part of the CI in the boot2container project.
-  image: registry.freedesktop.org/gfx-ci/ci-tron/mesa-trigger:2023-06-02.1
+  image: registry.freedesktop.org/gfx-ci/ci-tron/mesa-trigger:2024-01-05.1
   timeout: 1h 40m
   rules:
     - if: $FORCE_KERNEL_TAG != null

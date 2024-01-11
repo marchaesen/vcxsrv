@@ -112,7 +112,7 @@ void r300_flush(struct pipe_context *pipe,
                 }
 
                 if (fence && *fence)
-                    r300->rws->fence_reference(fence, NULL);
+                    r300->rws->fence_reference(r300->rws, fence, NULL);
                 r300_flush_and_cleanup(r300, flags, fence);
             }
 

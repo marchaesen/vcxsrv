@@ -77,6 +77,14 @@ pointer_to_offset(const void *ptr)
 void
 st_prepare_draw(struct gl_context *ctx, uint64_t state_mask);
 
+void
+st_draw_gallium(struct gl_context *ctx,
+                struct pipe_draw_info *info,
+                unsigned drawid_offset,
+                const struct pipe_draw_indirect_info *indirect,
+                const struct pipe_draw_start_count_bias *draws,
+                unsigned num_draws);
+
 bool
 st_draw_quad(struct st_context *st,
              float x0, float y0, float x1, float y1, float z,

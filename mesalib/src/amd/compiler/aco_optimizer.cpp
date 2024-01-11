@@ -1419,36 +1419,47 @@ label_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
 
          /* for instructions other than v_cndmask_b32, the size of the instruction should match the
           * operand size */
-         unsigned can_use_mod =
+         bool can_use_mod =
             instr->opcode != aco_opcode::v_cndmask_b32 || instr->operands[i].getTemp().bytes() == 4;
-         can_use_mod =
-            can_use_mod && can_use_input_modifiers(ctx.program->gfx_level, instr->opcode, i);
+         can_use_mod &= can_use_input_modifiers(ctx.program->gfx_level, instr->opcode, i);
+
+         bool packed_math = instr->isVOP3P() && instr->opcode != aco_opcode::v_fma_mix_f32 &&
+                            instr->opcode != aco_opcode::v_fma_mixlo_f16 &&
+                            instr->opcode != aco_opcode::v_fma_mixhi_f16;
 
          if (instr->isSDWA())
-            can_use_mod = can_use_mod && instr->sdwa().sel[i].size() == 4;
+            can_use_mod &= instr->sdwa().sel[i].size() == 4;
+         else if (instr->isVOP3P())
+            can_use_mod &= !packed_math || !info.is_abs();
          else
-            can_use_mod = can_use_mod && (instr->isDPP16() || can_use_VOP3(ctx, instr));
+            can_use_mod &= instr->isDPP16() || can_use_VOP3(ctx, instr);
 
          unsigned bits = get_operand_size(instr, i);
-         bool mod_bitsize_compat = instr->operands[i].bytes() * 8 == bits;
+         can_use_mod &= instr->operands[i].bytes() * 8 == bits;
 
-         if (info.is_neg() && instr->opcode == aco_opcode::v_add_f32 && mod_bitsize_compat) {
-            instr->opcode = i ? aco_opcode::v_sub_f32 : aco_opcode::v_subrev_f32;
-            instr->operands[i].setTemp(info.temp);
-         } else if (info.is_neg() && instr->opcode == aco_opcode::v_add_f16 && mod_bitsize_compat) {
-            instr->opcode = i ? aco_opcode::v_sub_f16 : aco_opcode::v_subrev_f16;
-            instr->operands[i].setTemp(info.temp);
-         } else if (info.is_neg() && can_use_mod && mod_bitsize_compat &&
-                    can_eliminate_fcanonicalize(ctx, instr, info.temp, i)) {
-            if (!instr->isDPP() && !instr->isSDWA())
-               instr->format = asVOP3(instr->format);
-            instr->operands[i].setTemp(info.temp);
-            if (!instr->valu().abs[i])
-               instr->valu().neg[i] = true;
-         }
-         if (info.is_abs() && can_use_mod && mod_bitsize_compat &&
+         if (info.is_neg() && can_use_mod &&
              can_eliminate_fcanonicalize(ctx, instr, info.temp, i)) {
-            if (!instr->isDPP() && !instr->isSDWA())
+            instr->operands[i].setTemp(info.temp);
+            if (!packed_math && instr->valu().abs[i]) {
+               /* fabs(fneg(a)) -> fabs(a) */
+            } else if (instr->opcode == aco_opcode::v_add_f32) {
+               instr->opcode = i ? aco_opcode::v_sub_f32 : aco_opcode::v_subrev_f32;
+            } else if (instr->opcode == aco_opcode::v_add_f16) {
+               instr->opcode = i ? aco_opcode::v_sub_f16 : aco_opcode::v_subrev_f16;
+            } else if (packed_math) {
+               /* Bit size compat should ensure this. */
+               assert(!instr->valu().opsel_lo[i] && !instr->valu().opsel_hi[i]);
+               instr->valu().neg_lo[i] ^= true;
+               instr->valu().neg_hi[i] ^= true;
+            } else {
+               if (!instr->isDPP16() && can_use_VOP3(ctx, instr))
+                  instr->format = asVOP3(instr->format);
+               instr->valu().neg[i] ^= true;
+            }
+         }
+         if (info.is_abs() && can_use_mod &&
+             can_eliminate_fcanonicalize(ctx, instr, info.temp, i)) {
+            if (!instr->isDPP16() && can_use_VOP3(ctx, instr))
                instr->format = asVOP3(instr->format);
             instr->operands[i] = Operand(info.temp);
             instr->valu().abs[i] = true;
@@ -3796,23 +3807,26 @@ combine_vop3p(opt_ctx& ctx, aco_ptr<Instruction>& instr)
 
       ssa_info& info = ctx.info[op.tempId()];
       if (info.is_vop3p() && info.instr->opcode == aco_opcode::v_pk_mul_f16 &&
-          info.instr->operands[1].constantEquals(0x3C00)) {
+          (info.instr->operands[0].constantEquals(0x3C00) ||
+           info.instr->operands[1].constantEquals(0x3C00))) {
 
          VALU_instruction* fneg = &info.instr->valu();
 
-         if (fneg->opsel_lo[1] || fneg->opsel_hi[1])
+         unsigned fneg_src = fneg->operands[0].constantEquals(0x3C00);
+
+         if (fneg->opsel_lo[1 - fneg_src] || fneg->opsel_hi[1 - fneg_src])
             continue;
 
          Operand ops[3];
          for (unsigned j = 0; j < instr->operands.size(); j++)
             ops[j] = instr->operands[j];
-         ops[i] = info.instr->operands[0];
+         ops[i] = fneg->operands[fneg_src];
          if (!check_vop3_operands(ctx, instr->operands.size(), ops))
             continue;
 
          if (fneg->clamp)
             continue;
-         instr->operands[i] = fneg->operands[0];
+         instr->operands[i] = fneg->operands[fneg_src];
 
          /* opsel_lo/hi is either 0 or 1:
           * if 0 - pick selection from fneg->lo
@@ -3824,11 +3838,11 @@ combine_vop3p(opt_ctx& ctx, aco_ptr<Instruction>& instr)
          bool neg_hi = fneg->neg_hi[0] ^ fneg->neg_hi[1];
          vop3p->neg_lo[i] ^= opsel_lo ? neg_hi : neg_lo;
          vop3p->neg_hi[i] ^= opsel_hi ? neg_hi : neg_lo;
-         vop3p->opsel_lo[i] ^= opsel_lo ? !fneg->opsel_hi[0] : fneg->opsel_lo[0];
-         vop3p->opsel_hi[i] ^= opsel_hi ? !fneg->opsel_hi[0] : fneg->opsel_lo[0];
+         vop3p->opsel_lo[i] ^= opsel_lo ? !fneg->opsel_hi[fneg_src] : fneg->opsel_lo[fneg_src];
+         vop3p->opsel_hi[i] ^= opsel_hi ? !fneg->opsel_hi[fneg_src] : fneg->opsel_lo[fneg_src];
 
          if (--ctx.uses[fneg->definitions[0].tempId()])
-            ctx.uses[fneg->operands[0].tempId()]++;
+            ctx.uses[fneg->operands[fneg_src].tempId()]++;
       }
    }
 

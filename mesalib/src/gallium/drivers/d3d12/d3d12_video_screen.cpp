@@ -84,6 +84,7 @@ get_level_resolution_video_decode_support(D3D12_VIDEO_DECODE_CONFIGURATION decod
    }
 
    d3d12_video_resolution_to_level_mapping_entry resolutionsLevelList[] = {
+      { { 8192, 4352 }, 61 },   // 8k
       { { 8192, 4320 }, 61 },   // 8k
       { { 7680, 4800 }, 61 },   // 8k - alternative
       { { 7680, 4320 }, 61 },   // 8k - alternative
@@ -98,6 +99,7 @@ get_level_resolution_video_decode_support(D3D12_VIDEO_DECODE_CONFIGURATION decod
       { { 352, 240 }, 2 },
       { { 176, 144 }, 11 },
       { { 128, 96 }, 11 },
+      { { 64, 64 }, 11 },
    };
 
    D3D12_FEATURE_DATA_VIDEO_DECODE_SUPPORT decodeSupport = {};

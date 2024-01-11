@@ -42,6 +42,9 @@
 struct agx_streamout_target {
    struct pipe_stream_output_target base;
    struct pipe_resource *offset;
+
+   /* Current stride (bytes per vertex) */
+   uint32_t stride;
 };
 
 static inline struct agx_streamout_target *
@@ -120,6 +123,9 @@ struct PACKED agx_draw_uniforms {
    /* gl_DrawID for a direct multidraw */
    uint32_t draw_id;
 
+   /* Sprite coord replacement mask */
+   uint16_t sprite_mask;
+
    /* glSampleMask */
    uint16_t sample_mask;
 
@@ -139,6 +145,7 @@ struct PACKED agx_stage_uniforms {
 
    /* Uniform buffer objects */
    uint64_t ubo_base[PIPE_MAX_CONSTANT_BUFFERS];
+   uint32_t ubo_size[PIPE_MAX_CONSTANT_BUFFERS];
 
    /* Shader storage buffer objects */
    uint64_t ssbo_base[PIPE_MAX_SHADER_BUFFERS];
@@ -203,6 +210,8 @@ struct agx_uncompiled_shader {
    struct agx_uncompiled_shader_info info;
    struct hash_table *variants;
    struct agx_uncompiled_shader *passthrough_progs[MESA_PRIM_COUNT][3][2];
+
+   uint32_t xfb_strides[4];
    bool has_xfb_info;
 
    /* Whether the shader accesses indexed samplers via the bindless heap */
@@ -359,31 +368,29 @@ struct agx_zsa {
    uint32_t load, store;
 };
 
-struct agx_blend {
-   bool logicop_enable, blend_enable;
+struct agx_blend_key {
    nir_lower_blend_rt rt[8];
    unsigned logicop_func;
-
-   /* PIPE_CLEAR_* bitmask corresponding to this blend state */
-   uint32_t store;
-
    bool alpha_to_coverage, alpha_to_one;
 };
 
+struct agx_blend {
+   struct agx_blend_key key;
+
+   /* PIPE_CLEAR_* bitmask corresponding to this blend state */
+   uint32_t store;
+};
+
 struct asahi_vs_shader_key {
-   struct agx_vbufs vbuf;
+   struct agx_attribute attribs[AGX_MAX_VBUFS];
    bool clip_halfz;
-   bool program_point_size;
+   bool fixed_point_size;
    uint64_t outputs_flat_shaded;
    uint64_t outputs_linear_shaded;
 };
 
 struct asahi_fs_shader_key {
-   struct agx_blend blend;
-   unsigned nr_cbufs;
-
-   /* From rasterizer state, to lower point sprites */
-   uint16_t sprite_coord_enable;
+   struct agx_blend_key blend;
 
    /* Set if glSampleMask() is used with a mask other than all-1s. If not, we
     * don't want to emit lowering code for it, since it would disable early-Z.
@@ -393,8 +400,6 @@ struct asahi_fs_shader_key {
    uint8_t cull_distance_size;
    uint8_t clip_plane_enable;
    uint8_t nr_samples;
-   bool multisample;
-   bool layered;
    enum pipe_format rt_formats[PIPE_MAX_COLOR_BUFS];
 };
 
@@ -403,7 +408,7 @@ struct asahi_gs_shader_key {
    struct agx_ia_key ia;
 
    /* Vertex shader key */
-   struct agx_vbufs vbuf;
+   struct agx_attribute attribs[AGX_MAX_VBUFS];
 
    /* If true, this GS is run only for its side effects (including XFB) */
    bool rasterizer_discard;
@@ -451,6 +456,40 @@ enum agx_dirty {
  * glGenerateMipmap on every frame, otherwise we end up losing performance.
  */
 #define AGX_MAX_BATCHES (128)
+
+static_assert(PIPE_TEX_FILTER_NEAREST < 2, "known order");
+static_assert(PIPE_TEX_FILTER_LINEAR < 2, "known order");
+
+enum asahi_blit_clamp {
+   ASAHI_BLIT_CLAMP_NONE,
+   ASAHI_BLIT_CLAMP_UINT_TO_SINT,
+   ASAHI_BLIT_CLAMP_SINT_TO_UINT,
+
+   /* keep last */
+   ASAHI_BLIT_CLAMP_COUNT,
+};
+
+struct asahi_blitter {
+   bool active;
+
+   /* [clamp_type][is_array] */
+   void *blit_cs[ASAHI_BLIT_CLAMP_COUNT][2];
+
+   /* [filter] */
+   void *sampler[2];
+
+   struct pipe_constant_buffer saved_cb;
+
+   bool has_saved_image;
+   struct pipe_image_view saved_image;
+
+   unsigned saved_num_sampler_states;
+   void *saved_sampler_states[PIPE_MAX_SAMPLERS];
+
+   struct pipe_sampler_view *saved_sampler_view;
+
+   void *saved_cs;
+};
 
 struct agx_context {
    struct pipe_context base;
@@ -503,6 +542,8 @@ struct agx_context {
    struct agx_query *occlusion_query;
    struct agx_query *prims_generated[4];
    struct agx_query *tf_prims_generated[4];
+   struct agx_query *tf_overflow[4];
+   struct agx_query *tf_any_overflow;
    struct agx_query *time_elapsed;
    bool active_queries;
 
@@ -510,6 +551,7 @@ struct agx_context {
    bool is_noop;
 
    struct blitter_context *blitter;
+   struct asahi_blitter compute_blitter;
 
    /* Map of GEM handle to (batch index + 1) that (conservatively) writes that
     * BO, or 0 if no writer.
@@ -690,6 +732,8 @@ struct agx_screen {
    struct pipe_screen pscreen;
    struct agx_device dev;
    struct disk_cache *disk_cache;
+   /* Queue handle */
+   uint32_t queue_id;
 };
 
 static inline struct agx_screen *
@@ -807,7 +851,7 @@ void agx_upload_uniforms(struct agx_batch *batch);
 uint64_t agx_upload_stage_uniforms(struct agx_batch *batch, uint64_t textures,
                                    enum pipe_shader_type stage);
 
-void agx_nir_lower_point_size(nir_shader *nir, bool program_point_size);
+void agx_nir_lower_point_size(nir_shader *nir, bool fixed_point_size);
 
 bool agx_nir_lower_sysvals(nir_shader *shader, bool lower_draw_params);
 
@@ -896,7 +940,8 @@ void agx_sync_batch_for_reason(struct agx_context *ctx, struct agx_batch *batch,
 
 /* Use these instead of batch_add_bo for proper resource tracking */
 void agx_batch_reads(struct agx_batch *batch, struct agx_resource *rsrc);
-void agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc);
+void agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc,
+                      unsigned level);
 void agx_batch_track_image(struct agx_batch *batch,
                            struct pipe_image_view *image);
 
@@ -909,6 +954,12 @@ bool agx_any_batch_uses_resource(struct agx_context *ctx,
  * works.
  */
 #define AGX_COMPUTE_BATCH_WIDTH 0xFFFF
+
+static inline bool
+agx_batch_is_compute(struct agx_batch *batch)
+{
+   return batch->key.width == AGX_COMPUTE_BATCH_WIDTH;
+}
 
 struct agx_batch *agx_get_batch(struct agx_context *ctx);
 struct agx_batch *agx_get_compute_batch(struct agx_context *ctx);
@@ -924,6 +975,12 @@ void agx_blitter_save(struct agx_context *ctx, struct blitter_context *blitter,
                       bool render_cond);
 
 void agx_blit(struct pipe_context *pipe, const struct pipe_blit_info *info);
+
+void agx_resource_copy_region(struct pipe_context *pctx,
+                              struct pipe_resource *dst, unsigned dst_level,
+                              unsigned dstx, unsigned dsty, unsigned dstz,
+                              struct pipe_resource *src, unsigned src_level,
+                              const struct pipe_box *src_box);
 
 /* Batch logic */
 

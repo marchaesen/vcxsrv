@@ -178,7 +178,7 @@ VkResult pvr_drm_winsys_buffer_create(struct pvr_winsys *ws,
    uint32_t handle = 0;
    VkResult result;
 
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero64(alignment));
    size = ALIGN_POT(size, alignment);
    size = ALIGN_POT(size, ws->page_size);
 
@@ -347,7 +347,7 @@ VkResult pvr_drm_heap_alloc_carveout(struct pvr_winsys_heap *const heap,
    struct pvr_drm_winsys_vma *drm_vma;
    VkResult result;
 
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero64(alignment));
 
    drm_vma = vk_zalloc(drm_ws->base.alloc,
                        sizeof(*drm_vma),

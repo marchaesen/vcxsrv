@@ -31,12 +31,7 @@ struct agx_attribute {
    uint8_t format;
 };
 
-struct agx_vbufs {
-   unsigned count;
-   struct agx_attribute attributes[AGX_MAX_ATTRIBS];
-};
-
-bool agx_nir_lower_vbo(nir_shader *shader, struct agx_vbufs *vbufs);
+bool agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs);
 bool agx_vbo_supports_format(enum pipe_format format);
 
 #ifdef __cplusplus

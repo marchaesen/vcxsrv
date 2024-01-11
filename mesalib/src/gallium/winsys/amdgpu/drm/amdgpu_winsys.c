@@ -72,14 +72,19 @@ static void do_winsys_deinit(struct amdgpu_winsys *ws)
    if (ws->reserve_vmid)
       amdgpu_vm_unreserve_vmid(ws->dev, 0);
 
+   for (unsigned i = 0; i < ARRAY_SIZE(ws->queues); i++) {
+      for (unsigned j = 0; j < ARRAY_SIZE(ws->queues[i].fences); j++)
+         amdgpu_fence_reference(&ws->queues[i].fences[j], NULL);
+
+      amdgpu_ctx_reference(&ws->queues[i].last_ctx, NULL);
+   }
+
    if (util_queue_is_initialized(&ws->cs_queue))
       util_queue_destroy(&ws->cs_queue);
 
    simple_mtx_destroy(&ws->bo_fence_lock);
-   for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
-      if (ws->bo_slabs[i].groups)
-         pb_slabs_deinit(&ws->bo_slabs[i]);
-   }
+   if (ws->bo_slabs.groups)
+      pb_slabs_deinit(&ws->bo_slabs);
    pb_cache_deinit(&ws->bo_cache);
    _mesa_hash_table_destroy(ws->bo_export_table, NULL);
    simple_mtx_destroy(&ws->sws_list_lock);
@@ -438,48 +443,39 @@ amdgpu_winsys_create(int fd, const struct pipe_screen_config *config,
       }
       aws->info.drm_major = drm_major;
       aws->info.drm_minor = drm_minor;
-      aws->dummy_ws.aws = aws; /* only the pointer is used */
+
+      /* Only aws and buffer functions are used. */
+      aws->dummy_ws.aws = aws;
+      amdgpu_bo_init_functions(&aws->dummy_ws);
 
       if (!do_winsys_init(aws, config, fd))
          goto fail_alloc;
 
       /* Create managers. */
       pb_cache_init(&aws->bo_cache, RADEON_NUM_HEAPS,
-                    500000, aws->check_vm ? 1.0f : 2.0f, 0,
-                    ((uint64_t)aws->info.vram_size_kb + aws->info.gart_size_kb) * 1024 / 8, aws,
+                    500000, aws->check_vm ? 1.0f : 1.5f, 0,
+                    ((uint64_t)aws->info.vram_size_kb + aws->info.gart_size_kb) * 1024 / 8,
+                    offsetof(struct amdgpu_bo_real_reusable, cache_entry), aws,
                     /* Cast to void* because one of the function parameters
                      * is a struct pointer instead of void*. */
                     (void*)amdgpu_bo_destroy, (void*)amdgpu_bo_can_reclaim);
 
-      unsigned min_slab_order = 8;  /* 256 bytes */
-      unsigned max_slab_order = 20; /* 1 MB (slab size = 2 MB) */
-      unsigned num_slab_orders_per_allocator = (max_slab_order - min_slab_order) /
-                                               NUM_SLAB_ALLOCATORS;
-
-      /* Divide the size order range among slab managers. */
-      for (unsigned i = 0; i < NUM_SLAB_ALLOCATORS; i++) {
-         unsigned min_order = min_slab_order;
-         unsigned max_order = MIN2(min_order + num_slab_orders_per_allocator,
-                                   max_slab_order);
-
-         if (!pb_slabs_init(&aws->bo_slabs[i],
-                            min_order, max_order,
-                            RADEON_NUM_HEAPS, true,
-                            aws,
-                            amdgpu_bo_can_reclaim_slab,
-                            amdgpu_bo_slab_alloc,
-                            /* Cast to void* because one of the function parameters
-                             * is a struct pointer instead of void*. */
-                            (void*)amdgpu_bo_slab_free)) {
-            amdgpu_winsys_destroy(&ws->base);
-            simple_mtx_unlock(&dev_tab_mutex);
-            return NULL;
-         }
-
-         min_slab_order = max_order + 1;
+      if (!pb_slabs_init(&aws->bo_slabs,
+                         8,  /* min slab entry size: 256 bytes */
+                         20, /* max slab entry size: 1 MB (slab size = 2 MB) */
+                         RADEON_NUM_HEAPS, true,
+                         aws,
+                         amdgpu_bo_can_reclaim_slab,
+                         amdgpu_bo_slab_alloc,
+                         /* Cast to void* because one of the function parameters
+                          * is a struct pointer instead of void*. */
+                         (void*)amdgpu_bo_slab_free)) {
+         amdgpu_winsys_destroy(&ws->base);
+         simple_mtx_unlock(&dev_tab_mutex);
+         return NULL;
       }
 
-      aws->info.min_alloc_size = 1 << aws->bo_slabs[0].min_order;
+      aws->info.min_alloc_size = 1 << aws->bo_slabs.min_order;
 
       /* init reference */
       pipe_reference_init(&aws->reference, 1);

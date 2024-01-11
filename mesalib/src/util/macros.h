@@ -384,6 +384,9 @@ do {                       \
 /** Checks is a value is a power of two. Does not handle zero. */
 #define IS_POT(v) (((v) & ((v) - 1)) == 0)
 
+/** Checks is a value is a power of two. Zero handled. */
+#define IS_POT_NONZERO(v) ((v) != 0 && IS_POT(v))
+
 /** Set a single bit */
 #define BITFIELD_BIT(b)      (1u << (b))
 /** Set all bits up to excluding bit b */

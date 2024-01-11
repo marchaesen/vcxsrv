@@ -1682,7 +1682,7 @@ radv_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer, VkQueryPool queryPoo
    /* Workaround engines that forget to properly specify WAIT_BIT because some driver implicitly
     * synchronizes before query copy.
     */
-   if (cmd_buffer->device->instance->flush_before_query_copy)
+   if (cmd_buffer->device->instance->drirc.flush_before_query_copy)
       cmd_buffer->state.flush_bits |= cmd_buffer->active_query_flush_bits;
 
    /* From the Vulkan spec 1.1.108:
@@ -2452,7 +2452,7 @@ radv_CmdWriteTimestamp2(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 sta
    radv_cs_add_buffer(cmd_buffer->device->ws, cs, pool->bo);
 
    if (cmd_buffer->qf == RADV_QUEUE_TRANSFER) {
-      if (cmd_buffer->device->instance->flush_before_timestamp_write) {
+      if (cmd_buffer->device->instance->drirc.flush_before_timestamp_write) {
          radeon_check_space(cmd_buffer->device->ws, cmd_buffer->cs, 1);
          radeon_emit(cmd_buffer->cs, SDMA_PACKET(SDMA_OPCODE_NOP, 0, 0));
       }
@@ -2466,7 +2466,7 @@ radv_CmdWriteTimestamp2(VkCommandBuffer commandBuffer, VkPipelineStageFlags2 sta
       return;
    }
 
-   if (cmd_buffer->device->instance->flush_before_timestamp_write) {
+   if (cmd_buffer->device->instance->drirc.flush_before_timestamp_write) {
       /* Make sure previously launched waves have finished */
       cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_PS_PARTIAL_FLUSH | RADV_CMD_FLAG_CS_PARTIAL_FLUSH;
    }

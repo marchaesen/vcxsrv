@@ -317,6 +317,282 @@ aabb_surface_area(radv_aabb aabb)
    return 2 * diagonal.x * diagonal.y + 2 * diagonal.y * diagonal.z + 2 * diagonal.x * diagonal.z;
 }
 
+/* Just a wrapper for 3 uints. */
+struct triangle_indices {
+   uint32_t index[3];
+};
+
+triangle_indices
+load_indices(VOID_REF indices, uint32_t index_format, uint32_t global_id)
+{
+   triangle_indices result;
+
+   uint32_t index_base = global_id * 3;
+
+   switch (index_format) {
+   case VK_INDEX_TYPE_UINT16: {
+      result.index[0] = DEREF(INDEX(uint16_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint16_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint16_t, indices, index_base + 2));
+      break;
+   }
+   case VK_INDEX_TYPE_UINT32: {
+      result.index[0] = DEREF(INDEX(uint32_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint32_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint32_t, indices, index_base + 2));
+      break;
+   }
+   case VK_INDEX_TYPE_NONE_KHR: {
+      result.index[0] = index_base + 0;
+      result.index[1] = index_base + 1;
+      result.index[2] = index_base + 2;
+      break;
+   }
+   case VK_INDEX_TYPE_UINT8_EXT: {
+      result.index[0] = DEREF(INDEX(uint8_t, indices, index_base + 0));
+      result.index[1] = DEREF(INDEX(uint8_t, indices, index_base + 1));
+      result.index[2] = DEREF(INDEX(uint8_t, indices, index_base + 2));
+      break;
+   }
+   }
+
+   return result;
+}
+
+/* Just a wrapper for 3 vec4s. */
+struct triangle_vertices {
+   vec4 vertex[3];
+};
+
+TYPE(float16_t, 2);
+
+triangle_vertices
+load_vertices(VOID_REF vertices, triangle_indices indices, uint32_t vertex_format, uint32_t stride)
+{
+   triangle_vertices result;
+
+   for (uint32_t i = 0; i < 3; i++) {
+      VOID_REF vertex_ptr = OFFSET(vertices, indices.index[i] * stride);
+      vec4 vertex = vec4(0.0, 0.0, 0.0, 1.0);
+
+      switch (vertex_format) {
+      case VK_FORMAT_R32G32_SFLOAT:
+         vertex.x = DEREF(INDEX(float, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float, vertex_ptr, 1));
+         break;
+      case VK_FORMAT_R32G32B32_SFLOAT:
+      case VK_FORMAT_R32G32B32A32_SFLOAT:
+         vertex.x = DEREF(INDEX(float, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float, vertex_ptr, 1));
+         vertex.z = DEREF(INDEX(float, vertex_ptr, 2));
+         break;
+      case VK_FORMAT_R16G16_SFLOAT:
+         vertex.x = DEREF(INDEX(float16_t, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float16_t, vertex_ptr, 1));
+         break;
+      case VK_FORMAT_R16G16B16_SFLOAT:
+      case VK_FORMAT_R16G16B16A16_SFLOAT:
+         vertex.x = DEREF(INDEX(float16_t, vertex_ptr, 0));
+         vertex.y = DEREF(INDEX(float16_t, vertex_ptr, 1));
+         vertex.z = DEREF(INDEX(float16_t, vertex_ptr, 2));
+         break;
+      case VK_FORMAT_R16G16_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 0)) / float(0x7FFF));
+         vertex.y = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 1)) / float(0x7FFF));
+         break;
+      case VK_FORMAT_R16G16B16A16_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 0)) / float(0x7FFF));
+         vertex.y = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 1)) / float(0x7FFF));
+         vertex.z = max(-1.0, DEREF(INDEX(int16_t, vertex_ptr, 2)) / float(0x7FFF));
+         break;
+      case VK_FORMAT_R8G8_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 0)) / float(0x7F));
+         vertex.y = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 1)) / float(0x7F));
+         break;
+      case VK_FORMAT_R8G8B8A8_SNORM:
+         vertex.x = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 0)) / float(0x7F));
+         vertex.y = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 1)) / float(0x7F));
+         vertex.z = max(-1.0, DEREF(INDEX(int8_t, vertex_ptr, 2)) / float(0x7F));
+         break;
+      case VK_FORMAT_R16G16_UNORM:
+         vertex.x = DEREF(INDEX(uint16_t, vertex_ptr, 0)) / float(0xFFFF);
+         vertex.y = DEREF(INDEX(uint16_t, vertex_ptr, 1)) / float(0xFFFF);
+         break;
+      case VK_FORMAT_R16G16B16A16_UNORM:
+         vertex.x = DEREF(INDEX(uint16_t, vertex_ptr, 0)) / float(0xFFFF);
+         vertex.y = DEREF(INDEX(uint16_t, vertex_ptr, 1)) / float(0xFFFF);
+         vertex.z = DEREF(INDEX(uint16_t, vertex_ptr, 2)) / float(0xFFFF);
+         break;
+      case VK_FORMAT_R8G8_UNORM:
+         vertex.x = DEREF(INDEX(uint8_t, vertex_ptr, 0)) / float(0xFF);
+         vertex.y = DEREF(INDEX(uint8_t, vertex_ptr, 1)) / float(0xFF);
+         break;
+      case VK_FORMAT_R8G8B8A8_UNORM:
+         vertex.x = DEREF(INDEX(uint8_t, vertex_ptr, 0)) / float(0xFF);
+         vertex.y = DEREF(INDEX(uint8_t, vertex_ptr, 1)) / float(0xFF);
+         vertex.z = DEREF(INDEX(uint8_t, vertex_ptr, 2)) / float(0xFF);
+         break;
+      case VK_FORMAT_A2B10G10R10_UNORM_PACK32: {
+         uint32_t data = DEREF(REF(uint32_t)(vertex_ptr));
+         vertex.x = float(data & 0x3FF) / 0x3FF;
+         vertex.y = float((data >> 10) & 0x3FF) / 0x3FF;
+         vertex.z = float((data >> 20) & 0x3FF) / 0x3FF;
+         break;
+      }
+      }
+
+      result.vertex[i] = vertex;
+   }
+
+   return result;
+}
+
+/* A GLSL-adapted copy of VkAccelerationStructureInstanceKHR. */
+struct AccelerationStructureInstance {
+   mat3x4 transform;
+   uint32_t custom_instance_and_mask;
+   uint32_t sbt_offset_and_flags;
+   uint64_t accelerationStructureReference;
+};
+TYPE(AccelerationStructureInstance, 8);
+
+bool
+build_triangle(inout radv_aabb bounds, VOID_REF dst_ptr, radv_bvh_geometry_data geom_data, uint32_t global_id)
+{
+   triangle_indices indices = load_indices(geom_data.indices, geom_data.index_format, global_id);
+
+   triangle_vertices vertices = load_vertices(geom_data.data, indices, geom_data.vertex_format, geom_data.stride);
+
+   /* An inactive triangle is one for which the first (X) component of any vertex is NaN. If any
+    * other vertex component is NaN, and the first is not, the behavior is undefined. If the vertex
+    * format does not have a NaN representation, then all triangles are considered active.
+    */
+   if (isnan(vertices.vertex[0].x) || isnan(vertices.vertex[1].x) || isnan(vertices.vertex[2].x))
+      return false;
+
+   if (geom_data.transform != NULL) {
+      mat4 transform = mat4(1.0);
+
+      for (uint32_t col = 0; col < 4; col++)
+         for (uint32_t row = 0; row < 3; row++)
+            transform[col][row] = DEREF(INDEX(float, geom_data.transform, col + row * 4));
+
+      for (uint32_t i = 0; i < 3; i++)
+         vertices.vertex[i] = transform * vertices.vertex[i];
+   }
+
+   REF(radv_bvh_triangle_node) node = REF(radv_bvh_triangle_node)(dst_ptr);
+
+   bounds.min = vec3(INFINITY);
+   bounds.max = vec3(-INFINITY);
+
+   for (uint32_t coord = 0; coord < 3; coord++)
+      for (uint32_t comp = 0; comp < 3; comp++) {
+         DEREF(node).coords[coord][comp] = vertices.vertex[coord][comp];
+         bounds.min[comp] = min(bounds.min[comp], vertices.vertex[coord][comp]);
+         bounds.max[comp] = max(bounds.max[comp], vertices.vertex[coord][comp]);
+      }
+
+   DEREF(node).triangle_id = global_id;
+   DEREF(node).geometry_id_and_flags = geom_data.geometry_id;
+   DEREF(node).id = 9;
+
+   return true;
+}
+
+bool
+build_aabb(inout radv_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t geometry_id, uint32_t global_id)
+{
+   REF(radv_bvh_aabb_node) node = REF(radv_bvh_aabb_node)(dst_ptr);
+
+   for (uint32_t vec = 0; vec < 2; vec++)
+      for (uint32_t comp = 0; comp < 3; comp++) {
+         float coord = DEREF(INDEX(float, src_ptr, comp + vec * 3));
+
+         if (vec == 0)
+            bounds.min[comp] = coord;
+         else
+            bounds.max[comp] = coord;
+      }
+
+   /* An inactive AABB is one for which the minimum X coordinate is NaN. If any other component is
+    * NaN, and the first is not, the behavior is undefined.
+    */
+   if (isnan(bounds.min.x))
+      return false;
+
+   DEREF(node).primitive_id = global_id;
+   DEREF(node).geometry_id_and_flags = geometry_id;
+
+   return true;
+}
+
+radv_aabb
+calculate_instance_node_bounds(radv_accel_struct_header header, mat3x4 otw_matrix)
+{
+   radv_aabb aabb;
+   for (uint32_t comp = 0; comp < 3; ++comp) {
+      aabb.min[comp] = otw_matrix[comp][3];
+      aabb.max[comp] = otw_matrix[comp][3];
+      for (uint32_t col = 0; col < 3; ++col) {
+         aabb.min[comp] +=
+            min(otw_matrix[comp][col] * header.aabb.min[col], otw_matrix[comp][col] * header.aabb.max[col]);
+         aabb.max[comp] +=
+            max(otw_matrix[comp][col] * header.aabb.min[col], otw_matrix[comp][col] * header.aabb.max[col]);
+      }
+   }
+   return aabb;
+}
+
+uint32_t
+encode_sbt_offset_and_flags(uint32_t src)
+{
+   uint32_t flags = src >> 24;
+   uint32_t ret = src & 0xffffffu;
+   if ((flags & VK_GEOMETRY_INSTANCE_FORCE_OPAQUE_BIT_KHR) != 0)
+      ret |= RADV_INSTANCE_FORCE_OPAQUE;
+   if ((flags & VK_GEOMETRY_INSTANCE_FORCE_NO_OPAQUE_BIT_KHR) == 0)
+      ret |= RADV_INSTANCE_NO_FORCE_NOT_OPAQUE;
+   if ((flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR) != 0)
+      ret |= RADV_INSTANCE_TRIANGLE_FACING_CULL_DISABLE;
+   if ((flags & VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR) != 0)
+      ret |= RADV_INSTANCE_TRIANGLE_FLIP_FACING;
+   return ret;
+}
+
+bool
+build_instance(inout radv_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t global_id)
+{
+   REF(radv_bvh_instance_node) node = REF(radv_bvh_instance_node)(dst_ptr);
+
+   AccelerationStructureInstance instance = DEREF(REF(AccelerationStructureInstance)(src_ptr));
+
+   /* An inactive instance is one whose acceleration structure handle is VK_NULL_HANDLE. Since the active terminology is
+    * only relevant for BVH updates, which we do not implement, we can also skip instances with mask == 0.
+    */
+   if (instance.accelerationStructureReference == 0 || instance.custom_instance_and_mask < (1u << 24u))
+      return false;
+
+   radv_accel_struct_header instance_header =
+      DEREF(REF(radv_accel_struct_header)(instance.accelerationStructureReference));
+
+   DEREF(node).bvh_ptr = addr_to_node(instance.accelerationStructureReference + instance_header.bvh_offset);
+   DEREF(node).bvh_offset = instance_header.bvh_offset;
+
+   mat4 transform = mat4(instance.transform);
+   mat4 inv_transform = transpose(inverse(transpose(transform)));
+   DEREF(node).wto_matrix = mat3x4(inv_transform);
+   DEREF(node).otw_matrix = mat3x4(transform);
+
+   bounds = calculate_instance_node_bounds(instance_header, mat3x4(transform));
+
+   DEREF(node).custom_instance_and_mask = instance.custom_instance_and_mask;
+   DEREF(node).sbt_offset_and_flags = encode_sbt_offset_and_flags(instance.sbt_offset_and_flags);
+   DEREF(node).instance_id = global_id;
+
+   return true;
+}
+
 /** Compute ceiling of integer quotient of A divided by B.
     From macros.h */
 #define DIV_ROUND_UP(A, B) (((A) + (B)-1) / (B))

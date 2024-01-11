@@ -100,6 +100,7 @@ static const struct debug_control radv_perftest_options[] = {{"localbos", RADV_P
                                                              {"video_decode", RADV_PERFTEST_VIDEO_DECODE},
                                                              {"dmashaders", RADV_PERFTEST_DMA_SHADERS},
                                                              {"gsfastlaunch2", RADV_PERFTEST_GS_FAST_LAUNCH_2},
+                                                             {"transfer_queue", RADV_PERFTEST_TRANSFER_QUEUE},
                                                              {NULL, 0}};
 
 const char *
@@ -167,69 +168,89 @@ static const driOptionDescription radv_dri_options[] = {
 static void
 radv_init_dri_options(struct radv_instance *instance)
 {
-   driParseOptionInfo(&instance->available_dri_options, radv_dri_options, ARRAY_SIZE(radv_dri_options));
-   driParseConfigFiles(&instance->dri_options, &instance->available_dri_options, 0, "radv", NULL, NULL,
+   driParseOptionInfo(&instance->drirc.available_options, radv_dri_options, ARRAY_SIZE(radv_dri_options));
+   driParseConfigFiles(&instance->drirc.options, &instance->drirc.available_options, 0, "radv", NULL, NULL,
                        instance->vk.app_info.app_name, instance->vk.app_info.app_version,
                        instance->vk.app_info.engine_name, instance->vk.app_info.engine_version);
 
-   instance->enable_mrt_output_nan_fixup = driQueryOptionb(&instance->dri_options, "radv_enable_mrt_output_nan_fixup");
+   instance->drirc.enable_mrt_output_nan_fixup =
+      driQueryOptionb(&instance->drirc.options, "radv_enable_mrt_output_nan_fixup");
 
-   instance->disable_shrink_image_store = driQueryOptionb(&instance->dri_options, "radv_disable_shrink_image_store");
+   instance->drirc.disable_shrink_image_store =
+      driQueryOptionb(&instance->drirc.options, "radv_disable_shrink_image_store");
 
-   instance->disable_tc_compat_htile_in_general =
-      driQueryOptionb(&instance->dri_options, "radv_disable_tc_compat_htile_general");
+   instance->drirc.disable_tc_compat_htile_in_general =
+      driQueryOptionb(&instance->drirc.options, "radv_disable_tc_compat_htile_general");
 
-   if (driQueryOptionb(&instance->dri_options, "radv_no_dynamic_bounds"))
+   if (driQueryOptionb(&instance->drirc.options, "radv_no_dynamic_bounds"))
       instance->debug_flags |= RADV_DEBUG_NO_DYNAMIC_BOUNDS;
 
-   if (driQueryOptionb(&instance->dri_options, "radv_lower_discard_to_demote"))
+   if (driQueryOptionb(&instance->drirc.options, "radv_lower_discard_to_demote"))
       instance->debug_flags |= RADV_DEBUG_DISCARD_TO_DEMOTE;
 
-   if (driQueryOptionb(&instance->dri_options, "radv_invariant_geom"))
+   if (driQueryOptionb(&instance->drirc.options, "radv_invariant_geom"))
       instance->debug_flags |= RADV_DEBUG_INVARIANT_GEOM;
 
-   if (driQueryOptionb(&instance->dri_options, "radv_split_fma"))
+   if (driQueryOptionb(&instance->drirc.options, "radv_split_fma"))
       instance->debug_flags |= RADV_DEBUG_SPLIT_FMA;
 
-   if (driQueryOptionb(&instance->dri_options, "radv_disable_dcc"))
+   if (driQueryOptionb(&instance->drirc.options, "radv_disable_dcc"))
       instance->debug_flags |= RADV_DEBUG_NO_DCC;
 
-   instance->clear_lds = driQueryOptionb(&instance->dri_options, "radv_clear_lds");
+   instance->drirc.clear_lds = driQueryOptionb(&instance->drirc.options, "radv_clear_lds");
 
-   instance->zero_vram = driQueryOptionb(&instance->dri_options, "radv_zero_vram");
+   instance->drirc.zero_vram = driQueryOptionb(&instance->drirc.options, "radv_zero_vram");
 
-   instance->disable_aniso_single_level = driQueryOptionb(&instance->dri_options, "radv_disable_aniso_single_level");
+   instance->drirc.disable_aniso_single_level =
+      driQueryOptionb(&instance->drirc.options, "radv_disable_aniso_single_level");
 
-   instance->disable_trunc_coord = driQueryOptionb(&instance->dri_options, "radv_disable_trunc_coord");
+   instance->drirc.disable_trunc_coord = driQueryOptionb(&instance->drirc.options, "radv_disable_trunc_coord");
 
-   instance->disable_sinking_load_input_fs =
-      driQueryOptionb(&instance->dri_options, "radv_disable_sinking_load_input_fs");
+   instance->drirc.disable_sinking_load_input_fs =
+      driQueryOptionb(&instance->drirc.options, "radv_disable_sinking_load_input_fs");
 
-   instance->flush_before_query_copy = driQueryOptionb(&instance->dri_options, "radv_flush_before_query_copy");
+   instance->drirc.flush_before_query_copy = driQueryOptionb(&instance->drirc.options, "radv_flush_before_query_copy");
 
-   instance->enable_unified_heap_on_apu = driQueryOptionb(&instance->dri_options, "radv_enable_unified_heap_on_apu");
+   instance->drirc.enable_unified_heap_on_apu =
+      driQueryOptionb(&instance->drirc.options, "radv_enable_unified_heap_on_apu");
 
-   instance->tex_non_uniform = driQueryOptionb(&instance->dri_options, "radv_tex_non_uniform");
+   instance->drirc.tex_non_uniform = driQueryOptionb(&instance->drirc.options, "radv_tex_non_uniform");
 
-   instance->ssbo_non_uniform = driQueryOptionb(&instance->dri_options, "radv_ssbo_non_uniform");
+   instance->drirc.ssbo_non_uniform = driQueryOptionb(&instance->drirc.options, "radv_ssbo_non_uniform");
 
-   instance->app_layer = driQueryOptionstr(&instance->dri_options, "radv_app_layer");
+   instance->drirc.app_layer = driQueryOptionstr(&instance->drirc.options, "radv_app_layer");
 
-   instance->flush_before_timestamp_write =
-      driQueryOptionb(&instance->dri_options, "radv_flush_before_timestamp_write");
+   instance->drirc.flush_before_timestamp_write =
+      driQueryOptionb(&instance->drirc.options, "radv_flush_before_timestamp_write");
 
-   instance->force_rt_wave64 = driQueryOptionb(&instance->dri_options, "radv_rt_wave64");
+   instance->drirc.force_rt_wave64 = driQueryOptionb(&instance->drirc.options, "radv_rt_wave64");
 
-   instance->dual_color_blend_by_location = driQueryOptionb(&instance->dri_options, "dual_color_blend_by_location");
+   instance->drirc.dual_color_blend_by_location =
+      driQueryOptionb(&instance->drirc.options, "dual_color_blend_by_location");
 
-   instance->legacy_sparse_binding = driQueryOptionb(&instance->dri_options, "radv_legacy_sparse_binding");
+   instance->drirc.legacy_sparse_binding = driQueryOptionb(&instance->drirc.options, "radv_legacy_sparse_binding");
 
-   instance->override_graphics_shader_version =
-      driQueryOptioni(&instance->dri_options, "radv_override_graphics_shader_version");
-   instance->override_compute_shader_version =
-      driQueryOptioni(&instance->dri_options, "radv_override_compute_shader_version");
-   instance->override_ray_tracing_shader_version =
-      driQueryOptioni(&instance->dri_options, "radv_override_ray_tracing_shader_version");
+   instance->drirc.override_graphics_shader_version =
+      driQueryOptioni(&instance->drirc.options, "radv_override_graphics_shader_version");
+   instance->drirc.override_compute_shader_version =
+      driQueryOptioni(&instance->drirc.options, "radv_override_compute_shader_version");
+   instance->drirc.override_ray_tracing_shader_version =
+      driQueryOptioni(&instance->drirc.options, "radv_override_ray_tracing_shader_version");
+
+   instance->drirc.enable_dgc = driQueryOptionb(&instance->drirc.options, "radv_dgc");
+
+   instance->drirc.override_vram_size = driQueryOptioni(&instance->drirc.options, "override_vram_size");
+
+   instance->drirc.enable_khr_present_wait = driQueryOptionb(&instance->drirc.options, "vk_khr_present_wait");
+
+   instance->drirc.override_uniform_offset_alignment =
+      driQueryOptioni(&instance->drirc.options, "radv_override_uniform_offset_alignment");
+
+   instance->drirc.report_llvm9_version_string =
+      driQueryOptionb(&instance->drirc.options, "radv_report_llvm9_version_string");
+
+   instance->drirc.vk_require_etc2 = driQueryOptionb(&instance->drirc.options, "vk_require_etc2");
+   instance->drirc.vk_require_astc = driQueryOptionb(&instance->drirc.options, "vk_require_astc");
 }
 
 static const struct vk_instance_extension_table radv_instance_extensions_supported = {
@@ -344,8 +365,8 @@ radv_DestroyInstance(VkInstance _instance, const VkAllocationCallbacks *pAllocat
 
    VG(VALGRIND_DESTROY_MEMPOOL(instance));
 
-   driDestroyOptionCache(&instance->dri_options);
-   driDestroyOptionInfo(&instance->available_dri_options);
+   driDestroyOptionCache(&instance->drirc.options);
+   driDestroyOptionInfo(&instance->drirc.available_options);
 
    vk_instance_finish(&instance->vk);
    vk_free(&instance->vk.alloc, instance);

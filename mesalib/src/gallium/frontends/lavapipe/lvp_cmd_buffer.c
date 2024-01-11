@@ -94,39 +94,34 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_EndCommandBuffer(
 }
 
 static void
-lvp_free_CmdPushDescriptorSetWithTemplateKHR(struct vk_cmd_queue *queue, struct vk_cmd_queue_entry *cmd)
+lvp_free_CmdPushDescriptorSetWithTemplate2KHR(struct vk_cmd_queue *queue, struct vk_cmd_queue_entry *cmd)
 {
    struct lvp_device *device = cmd->driver_data;
-   LVP_FROM_HANDLE(lvp_descriptor_update_template, templ, cmd->u.push_descriptor_set_with_template_khr.descriptor_update_template);
+   LVP_FROM_HANDLE(lvp_descriptor_update_template, templ, cmd->u.push_descriptor_set_with_template2_khr.push_descriptor_set_with_template_info->descriptorUpdateTemplate);
    lvp_descriptor_template_templ_unref(device, templ);
 }
 
-VKAPI_ATTR void VKAPI_CALL lvp_CmdPushDescriptorSetWithTemplateKHR(
+VKAPI_ATTR void VKAPI_CALL lvp_CmdPushDescriptorSetWithTemplate2KHR(
    VkCommandBuffer                             commandBuffer,
-   VkDescriptorUpdateTemplate                  descriptorUpdateTemplate,
-   VkPipelineLayout                            layout,
-   uint32_t                                    set,
-   const void*                                 pData)
+   const VkPushDescriptorSetWithTemplateInfoKHR* pPushDescriptorSetWithTemplateInfo)
 {
    LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
-   LVP_FROM_HANDLE(lvp_descriptor_update_template, templ, descriptorUpdateTemplate);
+   LVP_FROM_HANDLE(lvp_descriptor_update_template, templ, pPushDescriptorSetWithTemplateInfo->descriptorUpdateTemplate);
    size_t info_size = 0;
    struct vk_cmd_queue_entry *cmd = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc,
-                                              vk_cmd_queue_type_sizes[VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE_KHR], 8,
+                                              vk_cmd_queue_type_sizes[VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE2_KHR], 8,
                                               VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
    if (!cmd)
       return;
 
-   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE_KHR;
+   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET_WITH_TEMPLATE2_KHR;
 
    list_addtail(&cmd->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
-   cmd->driver_free_cb = lvp_free_CmdPushDescriptorSetWithTemplateKHR;
+   cmd->driver_free_cb = lvp_free_CmdPushDescriptorSetWithTemplate2KHR;
    cmd->driver_data = cmd_buffer->device;
-
-   cmd->u.push_descriptor_set_with_template_khr.descriptor_update_template = descriptorUpdateTemplate;
    lvp_descriptor_template_templ_ref(templ);
-   cmd->u.push_descriptor_set_with_template_khr.layout = layout;
-   cmd->u.push_descriptor_set_with_template_khr.set = set;
+   cmd->u.push_descriptor_set_with_template2_khr.push_descriptor_set_with_template_info = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(VkPushDescriptorSetWithTemplateInfoKHR), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   memcpy(cmd->u.push_descriptor_set_with_template2_khr.push_descriptor_set_with_template_info, pPushDescriptorSetWithTemplateInfo, sizeof(VkPushDescriptorSetWithTemplateInfoKHR));
 
    for (unsigned i = 0; i < templ->entry_count; i++) {
       VkDescriptorUpdateTemplateEntry *entry = &templ->entry[i];
@@ -153,7 +148,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_CmdPushDescriptorSetWithTemplateKHR(
       }
    }
 
-   cmd->u.push_descriptor_set_with_template_khr.data = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, info_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
+   cmd->u.push_descriptor_set_with_template2_khr.push_descriptor_set_with_template_info->pData = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, info_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
 
    uint64_t offset = 0;
    for (unsigned i = 0; i < templ->entry_count; i++) {
@@ -162,8 +157,159 @@ VKAPI_ATTR void VKAPI_CALL lvp_CmdPushDescriptorSetWithTemplateKHR(
       unsigned size = lvp_descriptor_update_template_entry_size(entry->descriptorType);
 
       for (unsigned i = 0; i < entry->descriptorCount; i++) {
-         memcpy((uint8_t*)cmd->u.push_descriptor_set_with_template_khr.data + offset, (const uint8_t*)pData + entry->offset + i * entry->stride, size);
+         memcpy((uint8_t*)cmd->u.push_descriptor_set_with_template2_khr.push_descriptor_set_with_template_info->pData + offset, (const uint8_t*)pPushDescriptorSetWithTemplateInfo->pData + entry->offset + i * entry->stride, size);
          offset += size;
       }
    }
+}
+
+
+static void
+vk_free_cmd_push_constants2_khr(struct vk_cmd_queue *queue,
+                                struct vk_cmd_queue_entry *cmd)
+{
+   vk_free(queue->alloc, (void*)cmd->u.push_constants2_khr.push_constants_info->pValues);
+   vk_free(queue->alloc, (VkPushConstantsInfoKHR*)cmd->u.push_constants2_khr.push_constants_info);
+   vk_free(queue->alloc, cmd);
+}
+
+VKAPI_ATTR void VKAPI_CALL lvp_CmdPushConstants2KHR(
+   VkCommandBuffer                             commandBuffer,
+   const VkPushConstantsInfoKHR* pPushConstantsInfo)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct vk_cmd_queue_entry *cmd = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_CONSTANTS2_KHR], 8,
+                                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!cmd)
+      return;
+
+   cmd->type = VK_CMD_PUSH_CONSTANTS2_KHR;
+      
+   cmd->u.push_constants2_khr.push_constants_info = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(VkPushConstantsInfoKHR), 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   memcpy((void*)cmd->u.push_constants2_khr.push_constants_info, pPushConstantsInfo, sizeof(VkPushConstantsInfoKHR));
+
+   cmd->u.push_constants2_khr.push_constants_info->pValues = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, pPushConstantsInfo->size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   memcpy((void*)cmd->u.push_constants2_khr.push_constants_info->pValues, pPushConstantsInfo->pValues, pPushConstantsInfo->size);
+
+   list_addtail(&cmd->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
+}
+
+
+static void
+lvp_free_cmd_push_descriptor_set2_khr(struct vk_cmd_queue *queue,
+                                     struct vk_cmd_queue_entry *cmd)
+{
+   ralloc_free(cmd->driver_data);
+}
+
+VKAPI_ATTR void VKAPI_CALL lvp_CmdPushDescriptorSet2KHR(
+    VkCommandBuffer                             commandBuffer,
+    const VkPushDescriptorSetInfoKHR*           pPushDescriptorSetInfo)
+{
+   LVP_FROM_HANDLE(lvp_cmd_buffer, cmd_buffer, commandBuffer);
+   struct vk_cmd_queue_entry *cmd = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, vk_cmd_queue_type_sizes[VK_CMD_PUSH_DESCRIPTOR_SET2_KHR], 8,
+                                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+   cmd->type = VK_CMD_PUSH_DESCRIPTOR_SET2_KHR;
+   cmd->driver_free_cb = lvp_free_cmd_push_descriptor_set2_khr;
+
+   void *ctx = cmd->driver_data = ralloc_context(NULL);
+   if (pPushDescriptorSetInfo) {
+      cmd->u.push_descriptor_set2_khr.push_descriptor_set_info = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(VkPushDescriptorSetInfoKHR), 8,
+                                                                           VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+      memcpy((void*)cmd->u.push_descriptor_set2_khr.push_descriptor_set_info, pPushDescriptorSetInfo, sizeof(VkPushDescriptorSetInfoKHR));
+      VkPushDescriptorSetInfoKHR *tmp_dst1 = (void *) cmd->u.push_descriptor_set2_khr.push_descriptor_set_info; (void) tmp_dst1;
+      VkPushDescriptorSetInfoKHR *tmp_src1 = (void *) pPushDescriptorSetInfo; (void) tmp_src1;
+
+      const VkBaseInStructure *pnext = tmp_dst1->pNext;
+      if (pnext) {
+         switch ((int32_t)pnext->sType) {
+         case VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO:
+            if (pnext) {
+               tmp_dst1->pNext = rzalloc(ctx, VkPipelineLayoutCreateInfo);
+
+               memcpy((void*)tmp_dst1->pNext, pnext, sizeof(VkPipelineLayoutCreateInfo));
+               VkPipelineLayoutCreateInfo *tmp_dst2 = (void *) tmp_dst1->pNext; (void) tmp_dst2;
+               VkPipelineLayoutCreateInfo *tmp_src2 = (void *) pnext; (void) tmp_src2;
+               if (tmp_src2->pSetLayouts) {
+                  tmp_dst2->pSetLayouts = rzalloc_array_size(ctx, sizeof(*tmp_dst2->pSetLayouts), tmp_dst2->setLayoutCount);
+
+                  memcpy((void*)tmp_dst2->pSetLayouts, tmp_src2->pSetLayouts, sizeof(*tmp_dst2->pSetLayouts) * tmp_dst2->setLayoutCount);
+               }
+               if (tmp_src2->pPushConstantRanges) {
+                  tmp_dst2->pPushConstantRanges = rzalloc_array_size(ctx, sizeof(*tmp_dst2->pPushConstantRanges), tmp_dst2->pushConstantRangeCount);
+
+                  memcpy((void*)tmp_dst2->pPushConstantRanges, tmp_src2->pPushConstantRanges, sizeof(*tmp_dst2->pPushConstantRanges) * tmp_dst2->pushConstantRangeCount);
+               }
+
+            } else {
+               tmp_dst1->pNext = NULL;
+            }
+            break;
+         }
+      }
+      if (tmp_src1->pDescriptorWrites) {
+         tmp_dst1->pDescriptorWrites = vk_zalloc(cmd_buffer->vk.cmd_queue.alloc, sizeof(*tmp_dst1->pDescriptorWrites) * tmp_dst1->descriptorWriteCount, 8,
+                                                 VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+
+         memcpy((void*)tmp_dst1->pDescriptorWrites, tmp_src1->pDescriptorWrites, sizeof(*tmp_dst1->pDescriptorWrites) * tmp_dst1->descriptorWriteCount);
+         for (unsigned i = 0; i < tmp_src1->descriptorWriteCount; i++) {
+            VkWriteDescriptorSet *dstwrite = (void*)&tmp_dst1->pDescriptorWrites[i];
+            const VkWriteDescriptorSet *write = &tmp_src1->pDescriptorWrites[i];
+            switch (write->descriptorType) {
+            case VK_DESCRIPTOR_TYPE_INLINE_UNIFORM_BLOCK: {
+               const VkWriteDescriptorSetInlineUniformBlock *uniform_data = vk_find_struct_const(write->pNext, WRITE_DESCRIPTOR_SET_INLINE_UNIFORM_BLOCK);
+               assert(uniform_data);
+               VkWriteDescriptorSetInlineUniformBlock *dst = rzalloc(ctx, VkWriteDescriptorSetInlineUniformBlock);
+               memcpy((void*)dst, uniform_data, sizeof(*uniform_data));
+               dst->pData = ralloc_size(ctx, uniform_data->dataSize);
+               memcpy((void*)dst->pData, uniform_data->pData, uniform_data->dataSize);
+               dstwrite->pNext = dst;
+               break;
+            }
+
+            case VK_DESCRIPTOR_TYPE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+            case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+            case VK_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+            case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+               dstwrite->pImageInfo = rzalloc_array(ctx, VkDescriptorImageInfo, write->descriptorCount);
+               {
+                  VkDescriptorImageInfo *arr = (void*)dstwrite->pImageInfo;
+                  typed_memcpy(arr, write->pImageInfo, write->descriptorCount);
+               }
+               break;
+
+            case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+               dstwrite->pTexelBufferView = rzalloc_array(ctx, VkBufferView, write->descriptorCount);
+               {
+                  VkBufferView *arr = (void*)dstwrite->pTexelBufferView;
+                  typed_memcpy(arr, write->pTexelBufferView, write->descriptorCount);
+               }
+               break;
+
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+            case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+            case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+               dstwrite->pBufferInfo = rzalloc_array(ctx, VkDescriptorBufferInfo, write->descriptorCount);
+               {
+                  VkDescriptorBufferInfo *arr = (void*)dstwrite->pBufferInfo;
+                  typed_memcpy(arr, write->pBufferInfo, write->descriptorCount);
+               }
+               break;
+
+            default:
+               break;
+            }
+         }
+      }
+
+   } else {
+      cmd->u.push_descriptor_set2_khr.push_descriptor_set_info = NULL;
+   }
+
+   list_addtail(&cmd->cmd_link, &cmd_buffer->vk.cmd_queue.cmds);
 }

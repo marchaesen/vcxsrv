@@ -126,7 +126,6 @@ IaSetVertexBuffers(D3D10DDI_HDEVICE hDevice,                                    
    LOG_ENTRYPOINT();
 
    Device *pDevice = CastDevice(hDevice);
-   struct pipe_context *pipe = pDevice->pipe;
    unsigned i;
 
    for (i = 0; i < NumBuffers; i++) {
@@ -169,7 +168,7 @@ IaSetVertexBuffers(D3D10DDI_HDEVICE hDevice,                                    
 
       /* XXX this is odd... */
       if (!vb->is_user_buffer && !vb->buffer.resource) {
-         pDevice->vertex_strides[i]->stride = 0;
+         pDevice->vertex_strides[i] = 0;
          vb->buffer_offset = 0;
          vb->is_user_buffer = true;
          vb->buffer.user = dummy;
@@ -271,9 +270,7 @@ CreateElementLayout(
    LOG_ENTRYPOINT();
 
    ElementLayout *pElementLayout = CastElementLayout(hElementLayout);
-
-   struct cso_velems_state elements;
-   memset(elements, 0, sizeof elements);
+   memset(pElementLayout, 0, sizeof *pElementLayout);
 
    unsigned num_elements = pCreateElementLayout->NumElements;
    unsigned max_elements = 0;
@@ -281,7 +278,7 @@ CreateElementLayout(
       const D3D10DDIARG_INPUT_ELEMENT_DESC* pVertexElement =
             &pCreateElementLayout->pVertexElements[i];
       struct pipe_vertex_element *ve =
-            &elements.velems[pVertexElement->InputRegister];
+            &pElementLayout->state.velems[pVertexElement->InputRegister];
 
       ve->src_offset          = pVertexElement->AlignedByteOffset;
       ve->vertex_buffer_index = pVertexElement->InputSlot;
@@ -312,8 +309,7 @@ CreateElementLayout(
       DebugPrintf("%s: gap\n", __func__);
    }
 
-   elements.count = max_elements;
-   pElementLayout->velems = mem_dup(elements, sizeof(elements));
+   pElementLayout->state.count = max_elements;
 }
 
 
@@ -335,10 +331,6 @@ DestroyElementLayout(D3D10DDI_HDEVICE hDevice,                 // IN
 {
    LOG_ENTRYPOINT();
 
-   struct pipe_context *pipe = CastPipeContext(hDevice);
-   ElementLayout *pElementLayout = CastElementLayout(hElementLayout);
-
-   free(pElementLayout->velems);
 }
 
 

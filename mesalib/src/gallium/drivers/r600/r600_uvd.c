@@ -61,7 +61,7 @@ struct pipe_video_buffer *r600_video_buffer_create(struct pipe_context *pipe,
 	struct r600_context *ctx = (struct r600_context *)pipe;
 	struct r600_texture *resources[VL_NUM_COMPONENTS] = {};
 	struct radeon_surf* surfaces[VL_NUM_COMPONENTS] = {};
-	struct pb_buffer **pbs[VL_NUM_COMPONENTS] = {};
+	struct pb_buffer_lean **pbs[VL_NUM_COMPONENTS] = {};
 	enum pipe_format resource_formats[3];
 	struct pipe_video_buffer template;
 	struct pipe_resource templ;
@@ -156,7 +156,7 @@ static uint32_t eg_num_banks(uint32_t nbanks)
 }
 
 /* set the decoding target buffer offsets */
-static struct pb_buffer* r600_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_buffer *buf)
+static struct pb_buffer_lean* r600_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_buffer *buf)
 {
 	struct r600_screen *rscreen = (struct r600_screen*)buf->base.context->screen;
 	struct r600_texture *luma = (struct r600_texture *)buf->resources[0];
@@ -172,7 +172,7 @@ static struct pb_buffer* r600_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_
 
 /* get the radeon resources for VCE */
 static void r600_vce_get_buffer(struct pipe_resource *resource,
-				struct pb_buffer **handle,
+				struct pb_buffer_lean **handle,
 				struct radeon_surf **surface)
 {
 	struct r600_texture *res = (struct r600_texture *)resource;

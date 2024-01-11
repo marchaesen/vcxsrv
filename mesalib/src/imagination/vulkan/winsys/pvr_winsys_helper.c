@@ -90,7 +90,7 @@ VkResult pvr_winsys_helper_heap_alloc(struct pvr_winsys_heap *const heap,
       .heap = heap,
    };
 
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero64(alignment));
 
    /* pvr_srv_winsys_buffer_create() page aligns the size. We must do the same
     * here to ensure enough heap space is allocated to be able to map the

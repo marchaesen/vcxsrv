@@ -154,16 +154,6 @@ radv_generate_pipeline_key(const struct radv_device *device, const VkPipelineSha
    if (flags & VK_PIPELINE_CREATE_2_DISABLE_OPTIMIZATION_BIT_KHR)
       key.optimisations_disabled = 1;
 
-   key.disable_aniso_single_level =
-      device->instance->disable_aniso_single_level && device->physical_device->rad_info.gfx_level < GFX8;
-
-   key.disable_trunc_coord = device->disable_trunc_coord;
-
-   key.image_2d_view_of_3d = device->image_2d_view_of_3d && device->physical_device->rad_info.gfx_level == GFX9;
-
-   key.tex_non_uniform = device->instance->tex_non_uniform;
-   key.ssbo_non_uniform = device->instance->ssbo_non_uniform;
-
    for (unsigned i = 0; i < num_stages; ++i) {
       const VkPipelineShaderStageCreateInfo *const stage = &stages[i];
       const VkPipelineShaderStageRequiredSubgroupSizeCreateInfo *const subgroup_size =
@@ -222,55 +212,9 @@ radv_generate_pipeline_key(const struct radv_device *device, const VkPipelineSha
          key.mesh_fast_launch_2 = 1u;
    }
 
+   key.keep_statistic_info = radv_pipeline_capture_shader_stats(device, flags);
+
    return key;
-}
-
-#define RADV_HASH_SHADER_CS_WAVE32       (1 << 1)
-#define RADV_HASH_SHADER_PS_WAVE32       (1 << 2)
-#define RADV_HASH_SHADER_GE_WAVE32       (1 << 3)
-#define RADV_HASH_SHADER_LLVM            (1 << 4)
-#define RADV_HASH_SHADER_CLEAR_LDS       (1 << 5)
-#define RADV_HASH_SHADER_KEEP_STATISTICS (1 << 8)
-#define RADV_HASH_SHADER_USE_NGG_CULLING (1 << 13)
-#define RADV_HASH_SHADER_EMULATE_RT      (1 << 16)
-#define RADV_HASH_SHADER_SPLIT_FMA       (1 << 17)
-#define RADV_HASH_SHADER_RT_WAVE64       (1 << 18)
-#define RADV_HASH_SHADER_NO_FMASK        (1 << 19)
-#define RADV_HASH_SHADER_NO_RT           (1 << 20)
-#define RADV_HASH_SHADER_DUAL_BLEND_MRT1 (1 << 21)
-
-uint32_t
-radv_get_hash_flags(const struct radv_device *device, bool stats)
-{
-   uint32_t hash_flags = 0;
-
-   if (device->physical_device->use_ngg_culling)
-      hash_flags |= RADV_HASH_SHADER_USE_NGG_CULLING;
-   if (device->instance->perftest_flags & RADV_PERFTEST_EMULATE_RT)
-      hash_flags |= RADV_HASH_SHADER_EMULATE_RT;
-   if (device->physical_device->rt_wave_size == 64)
-      hash_flags |= RADV_HASH_SHADER_RT_WAVE64;
-   if (device->physical_device->cs_wave_size == 32)
-      hash_flags |= RADV_HASH_SHADER_CS_WAVE32;
-   if (device->physical_device->ps_wave_size == 32)
-      hash_flags |= RADV_HASH_SHADER_PS_WAVE32;
-   if (device->physical_device->ge_wave_size == 32)
-      hash_flags |= RADV_HASH_SHADER_GE_WAVE32;
-   if (device->physical_device->use_llvm)
-      hash_flags |= RADV_HASH_SHADER_LLVM;
-   if (stats)
-      hash_flags |= RADV_HASH_SHADER_KEEP_STATISTICS;
-   if (device->instance->debug_flags & RADV_DEBUG_SPLIT_FMA)
-      hash_flags |= RADV_HASH_SHADER_SPLIT_FMA;
-   if (device->instance->debug_flags & RADV_DEBUG_NO_FMASK)
-      hash_flags |= RADV_HASH_SHADER_NO_FMASK;
-   if (device->instance->debug_flags & RADV_DEBUG_NO_RT)
-      hash_flags |= RADV_HASH_SHADER_NO_RT;
-   if (device->instance->dual_color_blend_by_location)
-      hash_flags |= RADV_HASH_SHADER_DUAL_BLEND_MRT1;
-   if (device->instance->clear_lds)
-      hash_flags |= RADV_HASH_SHADER_CLEAR_LDS;
-   return hash_flags;
 }
 
 void
@@ -582,7 +526,7 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_pipeline_key 
       NIR_PASS(progress, stage->nir, nir_opt_load_store_vectorize, &vectorize_opts);
       if (progress) {
          NIR_PASS(_, stage->nir, nir_copy_prop);
-         NIR_PASS(_, stage->nir, nir_opt_shrink_stores, !device->instance->disable_shrink_image_store);
+         NIR_PASS(_, stage->nir, nir_opt_shrink_stores, !device->instance->drirc.disable_shrink_image_store);
 
          /* Gather info again, to update whether 8/16-bit are used. */
          nir_shader_gather_info(stage->nir, nir_shader_get_entrypoint(stage->nir));
@@ -630,7 +574,7 @@ radv_postprocess_nir(struct radv_device *device, const struct radv_pipeline_key 
    nir_move_options sink_opts = nir_move_const_undef | nir_move_copies;
 
    if (!pipeline_key->optimisations_disabled) {
-      if (stage->stage != MESA_SHADER_FRAGMENT || !pipeline_key->disable_sinking_load_input_fs)
+      if (stage->stage != MESA_SHADER_FRAGMENT || !device->cache_key.disable_sinking_load_input_fs)
          sink_opts |= nir_move_load_input;
 
       NIR_PASS(_, stage->nir, nir_opt_sink, sink_opts);
@@ -796,7 +740,7 @@ radv_shader_should_clear_lds(const struct radv_device *device, const nir_shader 
 {
    return (shader->info.stage == MESA_SHADER_COMPUTE || shader->info.stage == MESA_SHADER_MESH ||
            shader->info.stage == MESA_SHADER_TASK) &&
-          shader->info.shared_size > 0 && device->instance->clear_lds;
+          shader->info.shared_size > 0 && device->instance->drirc.clear_lds;
 }
 
 static uint32_t
@@ -807,7 +751,7 @@ radv_get_executable_count(struct radv_pipeline *pipeline)
    if (pipeline->type == RADV_PIPELINE_RAY_TRACING) {
       struct radv_ray_tracing_pipeline *rt_pipeline = radv_pipeline_to_ray_tracing(pipeline);
       for (uint32_t i = 0; i < rt_pipeline->stage_count; i++)
-         ret += radv_ray_tracing_stage_is_compiled(&rt_pipeline->stages[i]) ? 1 : 0;
+         ret += rt_pipeline->stages[i].shader ? 1 : 0;
    }
 
    for (int i = 0; i < MESA_VULKAN_SHADER_STAGES; ++i) {
@@ -830,12 +774,12 @@ radv_get_shader_from_executable_index(struct radv_pipeline *pipeline, int index,
       struct radv_ray_tracing_pipeline *rt_pipeline = radv_pipeline_to_ray_tracing(pipeline);
       for (uint32_t i = 0; i < rt_pipeline->stage_count; i++) {
          struct radv_ray_tracing_stage *rt_stage = &rt_pipeline->stages[i];
-         if (!radv_ray_tracing_stage_is_compiled(rt_stage))
+         if (!rt_stage->shader)
             continue;
 
          if (!index) {
             *stage = rt_stage->stage;
-            return container_of(rt_stage->shader, struct radv_shader, base);
+            return rt_stage->shader;
          }
 
          index--;

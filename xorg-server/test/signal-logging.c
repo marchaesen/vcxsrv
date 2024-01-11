@@ -176,13 +176,16 @@ static void logging_format(void)
     char read_buf[2048];
     char *logmsg;
     uintptr_t ptr;
+    char *fname = NULL;
 
     /* set up buf to contain ".....end" */
     memset(buf, '.', sizeof(buf));
     strcpy(&buf[sizeof(buf) - 4], "end");
 
-    LogInit(log_file_path, NULL);
+    fname = (char*)LogInit(log_file_path, NULL);
+    assert(fname != NULL);
     assert((f = fopen(log_file_path, "r")));
+    free(fname);
 
 #define read_log_msg(msg) do {                                  \
         msg = fgets(read_buf, sizeof(read_buf), f);             \

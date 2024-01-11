@@ -68,6 +68,39 @@ libagx_texture_samples(constant struct agx_texture_packed *ptr)
    return (d.samples == AGX_SAMPLE_COUNT_2) ? 2 : 4;
 }
 
+uint
+libagx_texture_levels(constant struct agx_texture_packed *ptr)
+{
+   agx_unpack(NULL, ptr, TEXTURE, d);
+
+   /* As above */
+   if (d.null)
+      return 0;
+   else
+      return (d.last_level - d.first_level) + 1;
+}
+
+/*
+ * Fix robustness behaviour of txf with out-of-bounds LOD. The hardware
+ * returns the correct out-of-bounds colour for out-of-bounds coordinates,
+ * just not LODs. So translate out-of-bounds LOD into an out-of-bounds
+ * coordinate to get correct behaviour in 1 instruction.
+ *
+ * Returns the fixed X-coordinate.
+ *
+ * TODO: This looks like it might be an erratum workaround on G13 (Apple does
+ * it), maybe check if G15 is affected.
+ */
+uint
+libagx_lower_txf_robustness(constant struct agx_texture_packed *ptr, ushort lod,
+                            uint x)
+{
+   agx_unpack(NULL, ptr, TEXTURE, d);
+
+   bool oob = (lod > (d.last_level - d.first_level));
+   return oob ? 0xFFFF : x;
+}
+
 static uint32_t
 calculate_twiddled_coordinates(ushort2 coord, uint16_t tile_w_px,
                                uint16_t tile_h_px, uint32_t width_tl)

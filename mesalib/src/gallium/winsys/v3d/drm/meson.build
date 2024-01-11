@@ -21,10 +21,6 @@
 dep_v3dv3 = dependency('v3dv3', required: false)
 
 v3d_winsys_c_args = []
-if with_gallium_kmsro
-  v3d_winsys_c_args += '-DGALLIUM_KMSRO'
-endif
-
 if (dep_v3dv3.found())
   v3d_winsys_c_args += '-DUSE_V3D_SIMULATOR'
 endif
@@ -34,7 +30,7 @@ libv3dwinsys = static_library(
   files('v3d_drm_winsys.c'),
   include_directories : [
     inc_src, inc_include,
-    inc_gallium, inc_gallium_aux, inc_gallium_drivers, inc_gallium_winsys,
+    inc_gallium, inc_gallium_aux, inc_gallium_drivers,
   ],
   c_args: [v3d_winsys_c_args],
   gnu_symbol_visibility : 'hidden',

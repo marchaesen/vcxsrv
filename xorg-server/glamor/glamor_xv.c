@@ -447,7 +447,7 @@ glamor_xv_render(glamor_port_private *port_priv, int id)
     off[2] = Loff * yco + Coff * (uco[2] + vco[2]) + bright;
     gamma = 1.0;
 
-    glamor_set_alu(screen, GXcopy);
+    glamor_set_alu(&pixmap->drawable, GXcopy);
 
     for (i = 0; i < 3; i++) {
         if (port_priv->src_pix[i]) {

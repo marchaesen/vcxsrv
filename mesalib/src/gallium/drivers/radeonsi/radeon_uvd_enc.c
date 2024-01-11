@@ -282,7 +282,7 @@ static void radeon_uvd_enc_destroy_fence(struct pipe_video_codec *encoder,
 {
    struct radeon_uvd_encoder *enc = (struct radeon_uvd_encoder *)encoder;
 
-   enc->ws->fence_reference(&fence, NULL);
+   enc->ws->fence_reference(enc->ws, &fence, NULL);
 }
 
 struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,

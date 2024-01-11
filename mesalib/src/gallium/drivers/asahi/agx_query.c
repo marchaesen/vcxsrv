@@ -6,6 +6,8 @@
 
 #include <stdint.h>
 #include "pipe/p_defines.h"
+#include "util/macros.h"
+#include "util/u_inlines.h"
 #include "util/u_prim.h"
 #include "agx_device.h"
 #include "agx_state.h"
@@ -106,6 +108,14 @@ agx_begin_query(struct pipe_context *pctx, struct pipe_query *pquery)
       ctx->tf_prims_generated[query->index] = query;
       break;
 
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+      ctx->tf_overflow[query->index] = query;
+      break;
+
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      ctx->tf_any_overflow = query;
+      break;
+
    case PIPE_QUERY_TIME_ELAPSED:
       ctx->time_elapsed = query;
       query->timestamp_begin = UINT64_MAX;
@@ -154,6 +164,12 @@ agx_end_query(struct pipe_context *pctx, struct pipe_query *pquery)
       return true;
    case PIPE_QUERY_PRIMITIVES_EMITTED:
       ctx->tf_prims_generated[query->index] = NULL;
+      return true;
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+      ctx->tf_overflow[query->index] = NULL;
+      return true;
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      ctx->tf_any_overflow = NULL;
       return true;
    case PIPE_QUERY_TIME_ELAPSED:
       ctx->time_elapsed = NULL;
@@ -211,6 +227,11 @@ agx_get_query_result(struct pipe_context *pctx, struct pipe_query *pquery,
       vresult->b = query->value;
       return true;
 
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      vresult->b = query->value > 0;
+      return true;
+
    case PIPE_QUERY_OCCLUSION_COUNTER:
    case PIPE_QUERY_PRIMITIVES_GENERATED:
    case PIPE_QUERY_PRIMITIVES_EMITTED:
@@ -229,6 +250,55 @@ agx_get_query_result(struct pipe_context *pctx, struct pipe_query *pquery,
    default:
       unreachable("Other queries not yet supported");
    }
+}
+
+static void
+agx_get_query_result_resource(struct pipe_context *pipe, struct pipe_query *q,
+                              enum pipe_query_flags flags,
+                              enum pipe_query_value_type result_type, int index,
+                              struct pipe_resource *resource, unsigned offset)
+{
+   struct agx_query *query = (struct agx_query *)q;
+
+   /* TODO: Don't cheat XXX */
+   struct agx_context *ctx = agx_context(pipe);
+   agx_sync_all(ctx, "Stubbed QBOs");
+
+   union pipe_query_result result;
+   if (index < 0) {
+      /* availability */
+      result.u64 = 1;
+   } else {
+      bool ready = agx_get_query_result(pipe, q, true, &result);
+      assert(ready);
+   }
+
+   switch (query->type) {
+   case PIPE_QUERY_OCCLUSION_PREDICATE:
+   case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
+      result.u32 = result.b;
+      break;
+   case PIPE_QUERY_SO_OVERFLOW_PREDICATE:
+   case PIPE_QUERY_SO_OVERFLOW_ANY_PREDICATE:
+      result.u32 = (bool)(result.u32 > 0);
+      break;
+   default:
+      break;
+   }
+
+   /* Clamp to type, arb_query_buffer_object-qbo tests */
+   if (result_type == PIPE_QUERY_TYPE_U32) {
+      result.u32 = MIN2(result.u64, u_uintN_max(32));
+   } else if (result_type == PIPE_QUERY_TYPE_I32) {
+      int64_t x = result.u64;
+      x = MAX2(MIN2(x, u_intN_max(32)), u_intN_min(32));
+      result.u32 = x;
+   }
+
+   if (result_type <= PIPE_QUERY_TYPE_U32)
+      pipe_buffer_write(pipe, resource, offset, 4, &result.u32);
+   else
+      pipe_buffer_write(pipe, resource, offset, 8, &result.u64);
 }
 
 static void
@@ -394,6 +464,7 @@ agx_init_query_functions(struct pipe_context *pctx)
    pctx->begin_query = agx_begin_query;
    pctx->end_query = agx_end_query;
    pctx->get_query_result = agx_get_query_result;
+   pctx->get_query_result_resource = agx_get_query_result_resource;
    pctx->set_active_query_state = agx_set_active_query_state;
    pctx->render_condition = agx_render_condition;
 

@@ -114,7 +114,7 @@ static void set_reg(struct ruvd_decoder *dec, unsigned reg, uint32_t val)
 
 /* send a command to the VCPU through the GPCOM registers */
 static void send_cmd(struct ruvd_decoder *dec, unsigned cmd,
-		     struct pb_buffer* buf, uint32_t off,
+		     struct pb_buffer_lean* buf, uint32_t off,
 		     unsigned usage, enum radeon_bo_domain domain)
 {
 	int reloc_idx;
@@ -257,38 +257,38 @@ static unsigned calc_dpb_size(struct ruvd_decoder *dec)
 	case PIPE_VIDEO_FORMAT_MPEG4_AVC: {
 		if (!dec->use_legacy) {
 			unsigned fs_in_mb = width_in_mb * height_in_mb;
-			unsigned alignment = 64, num_dpb_buffer;
+			unsigned alignment = 64, num_dpb_buffer_lean;
 
 			if (dec->stream_type == RUVD_CODEC_H264_PERF)
 				alignment = 256;
 			switch(dec->base.level) {
 			case 30:
-				num_dpb_buffer = 8100 / fs_in_mb;
+				num_dpb_buffer_lean = 8100 / fs_in_mb;
 				break;
 			case 31:
-				num_dpb_buffer = 18000 / fs_in_mb;
+				num_dpb_buffer_lean = 18000 / fs_in_mb;
 				break;
 			case 32:
-				num_dpb_buffer = 20480 / fs_in_mb;
+				num_dpb_buffer_lean = 20480 / fs_in_mb;
 				break;
 			case 41:
-				num_dpb_buffer = 32768 / fs_in_mb;
+				num_dpb_buffer_lean = 32768 / fs_in_mb;
 				break;
 			case 42:
-				num_dpb_buffer = 34816 / fs_in_mb;
+				num_dpb_buffer_lean = 34816 / fs_in_mb;
 				break;
 			case 50:
-				num_dpb_buffer = 110400 / fs_in_mb;
+				num_dpb_buffer_lean = 110400 / fs_in_mb;
 				break;
 			case 51:
-				num_dpb_buffer = 184320 / fs_in_mb;
+				num_dpb_buffer_lean = 184320 / fs_in_mb;
 				break;
 			default:
-				num_dpb_buffer = 184320 / fs_in_mb;
+				num_dpb_buffer_lean = 184320 / fs_in_mb;
 				break;
 			}
-			num_dpb_buffer++;
-			max_references = MAX2(MIN2(NUM_H264_REFS, num_dpb_buffer), max_references);
+			num_dpb_buffer_lean++;
+			max_references = MAX2(MIN2(NUM_H264_REFS, num_dpb_buffer_lean), max_references);
 			dpb_size = image_size * max_references;
 			if ((dec->stream_type != RUVD_CODEC_H264_PERF)) {
 				dpb_size += max_references * align(width_in_mb * height_in_mb  * 192, alignment);
@@ -925,7 +925,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder,
 			   struct pipe_picture_desc *picture)
 {
 	struct ruvd_decoder *dec = (struct ruvd_decoder*)decoder;
-	struct pb_buffer *dt;
+	struct pb_buffer_lean *dt;
 	struct rvid_buffer *msg_fb_it_buf, *bs_buf;
 	unsigned bs_size;
 

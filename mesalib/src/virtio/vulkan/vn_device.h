@@ -16,6 +16,7 @@
 #include "vn_buffer.h"
 #include "vn_device_memory.h"
 #include "vn_feedback.h"
+#include "vn_image.h"
 
 struct vn_device_memory_report {
    PFN_vkDeviceMemoryReportCallbackEXT callback;
@@ -29,10 +30,6 @@ struct vn_device {
    struct vn_physical_device *physical_device;
    struct vn_renderer *renderer;
    struct vn_ring *primary_ring;
-   bool force_primary_ring_submission;
-
-   mtx_t ring_mutex;
-   struct vn_ring *secondary_ring;
 
    struct vn_device_memory_report *memory_reports;
    uint32_t memory_report_count;
@@ -54,7 +51,8 @@ struct vn_device {
    struct vn_queue *queues;
    uint32_t queue_count;
 
-   struct vn_buffer_cache buffer_cache;
+   struct vn_buffer_reqs_cache buffer_reqs_cache;
+   struct vn_image_reqs_cache image_reqs_cache;
 };
 VK_DEFINE_HANDLE_CASTS(vn_device,
                        base.base.base,
@@ -83,8 +81,5 @@ vn_device_emit_device_memory_report(struct vn_device *dev,
    for (uint32_t i = 0; i < dev->memory_report_count; i++)
       dev->memory_reports[i].callback(&report, dev->memory_reports[i].data);
 }
-
-bool
-vn_device_secondary_ring_init_once(struct vn_device *dev);
 
 #endif /* VN_DEVICE_H */

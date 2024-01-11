@@ -197,4 +197,7 @@ void pan_legalize_afbc_format(struct panfrost_context *ctx,
 void pan_dump_resource(struct panfrost_context *ctx,
                        struct panfrost_resource *rsc);
 
+void panfrost_blit_no_afbc_legalization(struct pipe_context *pipe,
+                                        const struct pipe_blit_info *info);
+
 #endif /* PAN_RESOURCE_H */

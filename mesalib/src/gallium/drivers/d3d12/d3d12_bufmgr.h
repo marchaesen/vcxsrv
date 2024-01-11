@@ -106,7 +106,7 @@ static inline uint64_t
 d3d12_bo_get_size(struct d3d12_bo *bo)
 {
    if (bo->buffer)
-      return bo->buffer->size;
+      return bo->buffer->base.size;
    else
       return GetDesc(bo->res).Width;
 }

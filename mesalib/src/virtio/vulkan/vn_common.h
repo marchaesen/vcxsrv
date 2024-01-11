@@ -125,6 +125,7 @@ enum vn_perf {
    VN_PERF_NO_ASYNC_MEM_ALLOC = 1ull << 9,
    VN_PERF_NO_TILED_WSI_IMAGE = 1ull << 10,
    VN_PERF_NO_MULTI_RING = 1ull << 11,
+   VN_PERF_NO_ASYNC_IMAGE_CREATE = 1ull << 12,
 };
 
 typedef uint64_t vn_object_id;
@@ -209,14 +210,29 @@ struct vn_relax_state {
    const char *reason;
 };
 
+/* TLS ring
+ * - co-owned by TLS and VkInstance
+ * - initialized in TLS upon requested
+ * - teardown happens upon thread exit or instance destroy
+ * - teardown is split into 2 stages:
+ *   1. one owner locks and destroys the ring and mark destroyed
+ *   2. the other owner locks and frees up the tls ring storage
+ */
+struct vn_tls_ring {
+   mtx_t mutex;
+   struct vn_ring *ring;
+   struct vn_instance *instance;
+   struct list_head tls_head;
+   struct list_head vk_head;
+};
+
 struct vn_tls {
-   /* Track swapchain and command pool creations on threads so dispatch of the
-    * following on non-tracked threads can be routed as synchronous on the
-    * secondary ring:
-    * - pipeline creations
-    * - pipeline cache retrievals
+   /* Track the threads on which swapchain and command pool creations occur.
+    * Pipeline create on those threads are forced async via the primary ring.
     */
-   bool primary_ring_submission;
+   bool async_pipeline_create;
+   /* Track TLS rings owned across instances. */
+   struct list_head tls_rings;
 };
 
 void
@@ -487,20 +503,26 @@ struct vn_tls *
 vn_tls_get(void);
 
 static inline void
-vn_tls_set_primary_ring_submission(void)
+vn_tls_set_async_pipeline_create(void)
 {
    struct vn_tls *tls = vn_tls_get();
    if (likely(tls))
-      tls->primary_ring_submission = true;
+      tls->async_pipeline_create = true;
 }
 
 static inline bool
-vn_tls_get_primary_ring_submission(void)
+vn_tls_get_async_pipeline_create(void)
 {
    const struct vn_tls *tls = vn_tls_get();
    if (likely(tls))
-      return tls->primary_ring_submission;
+      return tls->async_pipeline_create;
    return true;
 }
+
+struct vn_ring *
+vn_tls_get_ring(struct vn_instance *instance);
+
+void
+vn_tls_destroy_ring(struct vn_tls_ring *tls_ring);
 
 #endif /* VN_COMMON_H */

@@ -23,40 +23,23 @@
 
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/ioctl.h>
 
 #include "util/os_file.h"
 #include "util/u_screen.h"
 
-#include "kmsro/drm/kmsro_drm_public.h"
 #include "v3d_drm_public.h"
 
 #include "v3d/v3d_screen.h"
-#include "drm-uapi/v3d_drm.h"
 
 struct pipe_screen *
 v3d_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
-   bool v3d_present = false;
-
 #ifndef USE_V3D_SIMULATOR
-   struct drm_v3d_get_param ident0 = {
-      .param = DRM_V3D_PARAM_V3D_CORE0_IDENT0,
-   };
-
-   int ret = ioctl(fd, DRM_IOCTL_V3D_GET_PARAM, &ident0);
-   v3d_present = (ret != 0);
+   fprintf (stderr, "Do not manually force v3d driver; hardware uses vc4 to create display\n");
 #endif
 
-   if (!v3d_present)
-      return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), config,
-                                            NULL, v3d_screen_create);
-
-#ifdef GALLIUM_KMSRO
-   return kmsro_drm_screen_create(fd, config);
-#endif
-
-   return NULL;
+   return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), config,
+                                         NULL, v3d_screen_create);
 }
 
 struct pipe_screen *

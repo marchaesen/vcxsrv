@@ -316,6 +316,12 @@ struct vk_pipeline_cache_header {
    memcpy((dest), (src), (count) * sizeof(*(src))); \
 } while (0)
 
+void
+vk_compiler_cache_init(void);
+
+void
+vk_compiler_cache_finish(void);
+
 static inline gl_shader_stage
 vk_to_mesa_shader_stage(VkShaderStageFlagBits vk_stage)
 {

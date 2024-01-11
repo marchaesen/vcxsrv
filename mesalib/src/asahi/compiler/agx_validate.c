@@ -26,9 +26,6 @@
  *       Control flow instructions (except else)
  *
  * Validate that this form is satisfied.
- *
- * XXX: This only applies before we delete the logical end instructions, maybe
- * that should be deferred though?
  */
 enum agx_block_state {
    AGX_BLOCK_STATE_CF_ELSE = 0,
@@ -123,45 +120,200 @@ agx_validate_defs(agx_instr *I, BITSET_WORD *defs)
    return true;
 }
 
+/** Returns number of registers written by an instruction */
+static unsigned
+agx_write_registers(const agx_instr *I, unsigned d)
+{
+   unsigned size = agx_size_align_16(I->dest[d].size);
+
+   switch (I->op) {
+   case AGX_OPCODE_ITER:
+   case AGX_OPCODE_ITERPROJ:
+      assert(1 <= I->channels && I->channels <= 4);
+      return I->channels * size;
+
+   case AGX_OPCODE_IMAGE_LOAD:
+   case AGX_OPCODE_TEXTURE_LOAD:
+   case AGX_OPCODE_TEXTURE_SAMPLE:
+      /* Even when masked out, these clobber 4 registers */
+      return 4 * size;
+
+   case AGX_OPCODE_DEVICE_LOAD:
+   case AGX_OPCODE_LOCAL_LOAD:
+   case AGX_OPCODE_STACK_LOAD:
+   case AGX_OPCODE_LD_TILE:
+      /* Can write 16-bit or 32-bit. Anything logically 64-bit is already
+       * expanded to 32-bit in the mask.
+       */
+      return util_bitcount(I->mask) * MIN2(size, 2);
+
+   case AGX_OPCODE_LDCF:
+      return 6;
+   case AGX_OPCODE_COLLECT:
+      return I->nr_srcs * agx_size_align_16(I->src[0].size);
+   default:
+      return size;
+   }
+}
+
 /*
- * Type check the dimensionality of sources and destinations. This occurs in two
- * passes, first to gather all destination sizes, second to validate all source
- * sizes. Depends on SSA form.
+ * Return number of registers required for coordinates for a
+ * texture/image instruction. We handle layer + sample index as 32-bit even when
+ * only the lower 16-bits are present.
  */
+static unsigned
+agx_coordinate_registers(const agx_instr *I)
+{
+   switch (I->dim) {
+   case AGX_DIM_1D:
+      return 2 * 1;
+   case AGX_DIM_1D_ARRAY:
+      return 2 * 2;
+   case AGX_DIM_2D:
+      return 2 * 2;
+   case AGX_DIM_2D_ARRAY:
+      return 2 * 3;
+   case AGX_DIM_2D_MS:
+      return 2 * 3;
+   case AGX_DIM_3D:
+      return 2 * 3;
+   case AGX_DIM_CUBE:
+      return 2 * 3;
+   case AGX_DIM_CUBE_ARRAY:
+      return 2 * 4;
+   case AGX_DIM_2D_MS_ARRAY:
+      return 2 * 3;
+   }
+
+   unreachable("Invalid texture dimension");
+}
+
+static unsigned
+agx_read_registers(const agx_instr *I, unsigned s)
+{
+   unsigned size = agx_size_align_16(I->src[s].size);
+
+   switch (I->op) {
+   case AGX_OPCODE_SPLIT:
+      return I->nr_dests * agx_size_align_16(agx_split_width(I));
+
+   case AGX_OPCODE_DEVICE_STORE:
+   case AGX_OPCODE_LOCAL_STORE:
+   case AGX_OPCODE_STACK_STORE:
+   case AGX_OPCODE_ST_TILE:
+      /* See agx_write_registers */
+      if (s == 0)
+         return util_bitcount(I->mask) * MIN2(size, 2);
+      else
+         return size;
+
+   case AGX_OPCODE_ZS_EMIT:
+      if (s == 1) {
+         /* Depth (bit 0) is fp32, stencil (bit 1) is u16 in the hw but we pad
+          * up to u32 for simplicity
+          */
+         bool z = !!(I->zs & 1);
+         bool s = !!(I->zs & 2);
+         assert(z || s);
+
+         return (z && s) ? 4 : z ? 2 : 1;
+      } else {
+         return 1;
+      }
+
+   case AGX_OPCODE_IMAGE_WRITE:
+      if (s == 0)
+         return 4 * size /* data */;
+      else if (s == 1)
+         return agx_coordinate_registers(I);
+      else
+         return size;
+
+   case AGX_OPCODE_IMAGE_LOAD:
+   case AGX_OPCODE_TEXTURE_LOAD:
+   case AGX_OPCODE_TEXTURE_SAMPLE:
+      if (s == 0) {
+         return agx_coordinate_registers(I);
+      } else if (s == 1) {
+         /* LOD */
+         if (I->lod_mode == AGX_LOD_MODE_LOD_GRAD) {
+            switch (I->dim) {
+            case AGX_DIM_1D:
+            case AGX_DIM_1D_ARRAY:
+               return 2 * 2 * 1;
+            case AGX_DIM_2D:
+            case AGX_DIM_2D_ARRAY:
+            case AGX_DIM_2D_MS_ARRAY:
+            case AGX_DIM_2D_MS:
+               return 2 * 2 * 2;
+            case AGX_DIM_CUBE:
+            case AGX_DIM_CUBE_ARRAY:
+            case AGX_DIM_3D:
+               return 2 * 2 * 3;
+            }
+
+            unreachable("Invalid texture dimension");
+         } else {
+            return 1;
+         }
+      } else if (s == 5) {
+         /* Compare/offset */
+         return 2 * ((!!I->shadow) + (!!I->offset));
+      } else {
+         return size;
+      }
+
+   case AGX_OPCODE_ATOMIC:
+   case AGX_OPCODE_LOCAL_ATOMIC:
+      if (s == 0 && I->atomic_opc == AGX_ATOMIC_OPC_CMPXCHG)
+         return size * 2;
+      else
+         return size;
+
+   default:
+      return size;
+   }
+}
+
+/* Type check the dimensionality of sources and destinations. */
 static bool
 agx_validate_width(agx_context *ctx)
 {
    bool succ = true;
-   uint8_t *width = calloc(ctx->alloc, sizeof(uint8_t));
 
    agx_foreach_instr_global(ctx, I) {
       agx_foreach_dest(I, d) {
-         if (I->dest[d].type != AGX_INDEX_NORMAL)
+         unsigned exp = agx_write_registers(I, d);
+         unsigned act =
+            agx_channels(I->dest[d]) * agx_size_align_16(I->dest[d].size);
+
+         if (exp != act) {
+            succ = false;
+            fprintf(stderr, "destination %u, expected width %u, got width %u\n",
+                    d, exp, act);
+            agx_print_instr(I, stderr);
+            fprintf(stderr, "\n");
+         }
+      }
+
+      agx_foreach_src(I, s) {
+         if (I->src[s].type == AGX_INDEX_NULL)
             continue;
 
-         unsigned v = I->dest[d].value;
-         assert(width[v] == 0 && "broken SSA");
+         unsigned exp = agx_read_registers(I, s);
+         unsigned act =
+            agx_channels(I->src[s]) * agx_size_align_16(I->src[s].size);
 
-         width[v] = agx_write_registers(I, d);
-      }
-   }
-
-   agx_foreach_instr_global(ctx, I) {
-      agx_foreach_ssa_src(I, s) {
-         unsigned v = I->src[s].value;
-         unsigned n = agx_read_registers(I, s);
-
-         if (width[v] != n) {
+         if (exp != act) {
             succ = false;
             fprintf(stderr, "source %u, expected width %u, got width %u\n", s,
-                    n, width[v]);
+                    exp, act);
             agx_print_instr(I, stderr);
             fprintf(stderr, "\n");
          }
       }
    }
 
-   free(width);
    return succ;
 }
 
@@ -288,8 +440,6 @@ agx_validate(agx_context *ctx, const char *after)
       fprintf(stderr, "Invalid vectors after %s\n", after);
       fail = true;
    }
-
-   /* TODO: Validate more invariants */
 
    if (fail) {
       agx_print_shader(ctx, stderr);

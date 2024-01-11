@@ -668,7 +668,7 @@ void glamor_set_destination_pixmap_fbo(glamor_screen_private *glamor_priv, glamo
  * */
 void glamor_set_destination_pixmap_priv_nc(glamor_screen_private *glamor_priv, PixmapPtr pixmap, glamor_pixmap_private *pixmap_priv);
 
-Bool glamor_set_alu(ScreenPtr screen, unsigned char alu);
+Bool glamor_set_alu(DrawablePtr drawable, unsigned char alu);
 Bool glamor_set_planemask(int depth, unsigned long planemask);
 RegionPtr glamor_bitmap_to_region(PixmapPtr pixmap);
 

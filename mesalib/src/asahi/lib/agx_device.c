@@ -76,7 +76,8 @@ agx_bo_bind(struct agx_device *dev, struct agx_bo *bo, uint64_t addr,
 }
 
 struct agx_bo *
-agx_bo_alloc(struct agx_device *dev, size_t size, enum agx_bo_flags flags)
+agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
+             enum agx_bo_flags flags)
 {
    struct agx_bo *bo;
    unsigned handle = 0;
@@ -98,6 +99,7 @@ agx_bo_alloc(struct agx_device *dev, size_t size, enum agx_bo_flags flags)
 
    bo->type = AGX_ALLOC_REGULAR;
    bo->size = size; /* TODO: gem_create.size */
+   bo->align = MAX2(dev->params.vm_page_size, align);
    bo->flags = flags;
    bo->dev = dev;
    bo->handle = handle;
@@ -112,8 +114,7 @@ agx_bo_alloc(struct agx_device *dev, size_t size, enum agx_bo_flags flags)
       heap = &dev->main_heap;
 
    simple_mtx_lock(&dev->vma_lock);
-   bo->ptr.gpu = util_vma_heap_alloc(heap, size + dev->guard_size,
-                                     dev->params.vm_page_size);
+   bo->ptr.gpu = util_vma_heap_alloc(heap, size + dev->guard_size, bo->align);
    simple_mtx_unlock(&dev->vma_lock);
    if (!bo->ptr.gpu) {
       fprintf(stderr, "Failed to allocate BO VMA\n");
@@ -339,7 +340,6 @@ agx_open_device(void *memctx, struct agx_device *dev)
       &dev->usc_heap, dev->params.vm_shader_start,
       dev->params.vm_shader_end - dev->params.vm_shader_start + 1);
 
-   dev->queue_id = agx_create_command_queue(dev, 0 /* TODO: CAPS */);
    agx_get_global_ids(dev);
 
    glsl_type_singleton_init_or_ref();
@@ -365,16 +365,6 @@ agx_close_device(struct agx_device *dev)
 
 uint32_t
 agx_create_command_queue(struct agx_device *dev, uint32_t caps)
-{
-   unreachable("Linux UAPI not yet upstream");
-}
-
-int
-agx_submit_single(struct agx_device *dev, enum drm_asahi_cmd_type cmd_type,
-                  uint32_t barriers, struct drm_asahi_sync *in_syncs,
-                  unsigned in_sync_count, struct drm_asahi_sync *out_syncs,
-                  unsigned out_sync_count, void *cmdbuf, uint32_t result_handle,
-                  uint32_t result_off, uint32_t result_size)
 {
    unreachable("Linux UAPI not yet upstream");
 }

@@ -328,7 +328,7 @@ typedef struct ruvd_enc_vui_info_s
    uint32_t max_num_reorder_frames;
 } ruvd_enc_vui_info;
 
-typedef void (*radeon_uvd_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer **handle,
+typedef void (*radeon_uvd_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer_lean **handle,
                                           struct radeon_surf **surface);
 
 struct pipe_video_codec *radeon_uvd_create_encoder(struct pipe_context *context,
@@ -406,11 +406,11 @@ struct radeon_uvd_encoder {
 
    radeon_uvd_enc_get_buffer get_buffer;
 
-   struct pb_buffer *handle;
+   struct pb_buffer_lean *handle;
    struct radeon_surf *luma;
    struct radeon_surf *chroma;
 
-   struct pb_buffer *bs_handle;
+   struct pb_buffer_lean *bs_handle;
    unsigned bs_size;
 
    unsigned cpb_num;

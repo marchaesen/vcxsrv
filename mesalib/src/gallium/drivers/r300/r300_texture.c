@@ -1033,7 +1033,7 @@ r300_texture_create_object(struct r300_screen *rscreen,
                            enum radeon_bo_layout microtile,
                            enum radeon_bo_layout macrotile,
                            unsigned stride_in_bytes_override,
-                           struct pb_buffer *buffer)
+                           struct pb_buffer_lean *buffer)
 {
     struct radeon_winsys *rws = rscreen->rws;
     struct r300_resource *tex = NULL;
@@ -1109,7 +1109,7 @@ r300_texture_create_object(struct r300_screen *rscreen,
 fail:
     FREE(tex);
     if (buffer)
-        pb_reference(&buffer, NULL);
+        radeon_bo_reference(rscreen->rws, &buffer, NULL);
     return NULL;
 }
 
@@ -1142,7 +1142,7 @@ struct pipe_resource *r300_texture_from_handle(struct pipe_screen *screen,
 {
     struct r300_screen *rscreen = r300_screen(screen);
     struct radeon_winsys *rws = rscreen->rws;
-    struct pb_buffer *buffer;
+    struct pb_buffer_lean *buffer;
     struct radeon_bo_metadata tiling = {};
 
     /* Support only 2D textures without mipmaps */

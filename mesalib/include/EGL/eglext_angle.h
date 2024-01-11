@@ -134,6 +134,7 @@
 #define EGL_ANGLE_platform_angle_device_id
 #define EGL_PLATFORM_ANGLE_DEVICE_ID_HIGH_ANGLE 0x34D6
 #define EGL_PLATFORM_ANGLE_DEVICE_ID_LOW_ANGLE 0x34D7
+#define EGL_PLATFORM_ANGLE_DISPLAY_KEY_ANGLE 0x34DC
 #endif /* EGL_ANGLE_platform_angle_device_id */
 
 #ifndef EGL_ANGLE_x11_visual
@@ -291,6 +292,14 @@ EGLAPI void EGLAPIENTRY eglForceGPUSwitchANGLE(EGLDisplay dpy, EGLint gpuIDHigh,
 #endif
 #endif /* EGL_ANGLE_power_preference */
 
+#ifndef EGL_ANGLE_wait_until_work_scheduled
+#define EGL_ANGLE_wait_until_work_scheduled 1
+typedef void(EGLAPIENTRYP PFNEGLWAITUNTILWORKSCHEDULEDANGLEPROC) (EGLDisplay dpy);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI void EGLAPIENTRY eglWaitUntilWorkScheduledANGLE(EGLDisplay dpy);
+#endif
+#endif /* EGL_ANGLE_wait_until_work_scheduled */
+
 #ifndef EGL_ANGLE_feature_control
 #define EGL_ANGLE_feature_control 1
 #define EGL_FEATURE_NAME_ANGLE 0x3460
@@ -368,7 +377,12 @@ EGLAPI EGLBoolean EGLAPIENTRY eglPrepareSwapBuffersANGLE(EGLDisplay dpy, EGLSurf
 #define EGL_ANGLE_external_context_and_surface 1
 #define EGL_EXTERNAL_CONTEXT_ANGLE 0x348E
 #define EGL_EXTERNAL_SURFACE_ANGLE 0x348F
-#define EGL_EXTERNAL_CONTEXT_SAVE_STATE_ANGLE 0x3490
+typedef void (EGLAPIENTRYP PFNEGLACQUIREEXTERNALCONTEXTANGLEPROC) (EGLDisplay dpy, EGLSurface readAndDraw);
+typedef void (EGLAPIENTRYP PFNEGLRELEASEEXTERNALCONTEXTANGLEPROC) (EGLDisplay dpy);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI void EGLAPIENTRY eglAcquireExternalContextANGLE(EGLDisplay dpy, EGLSurface drawAndRead);
+EGLAPI void EGLAPIENTRY eglReleaseExternalContextANGLE(EGLDisplay dpy);
+#endif
 #endif /* EGL_ANGLE_external_context_and_surface */
 
 #ifndef EGL_ANGLE_create_surface_swap_interval
@@ -396,6 +410,9 @@ EGLAPI EGLBoolean EGLAPIENTRY eglPrepareSwapBuffersANGLE(EGLDisplay dpy, EGLSurf
 #define EGL_VULKAN_IMAGE_CREATE_INFO_HI_ANGLE 0x34D4
 #define EGL_VULKAN_IMAGE_CREATE_INFO_LO_ANGLE 0x34D5
 typedef EGLBoolean (EGLAPIENTRYP PFNEGLEXPORTVKIMAGEANGLEPROC)(EGLDisplay dpy, EGLImage image, void* vk_image, void* vk_image_create_info);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI EGLBoolean EGLAPIENTRY eglExportVkImageANGLE(EGLDisplay dpy, EGLImage image, void* vk_image, void* vk_image_create_info);
+#endif
 #endif /* EGL_ANGLE_vulkan_image */
 
 #ifndef EGL_ANGLE_metal_shared_event_sync
@@ -404,7 +421,11 @@ typedef EGLBoolean (EGLAPIENTRYP PFNEGLEXPORTVKIMAGEANGLEPROC)(EGLDisplay dpy, E
 #define EGL_SYNC_METAL_SHARED_EVENT_OBJECT_ANGLE 0x34D9
 #define EGL_SYNC_METAL_SHARED_EVENT_SIGNAL_VALUE_LO_ANGLE 0x34DA
 #define EGL_SYNC_METAL_SHARED_EVENT_SIGNAL_VALUE_HI_ANGLE 0x34DB
-typedef void* (EGLAPIENTRYP PFNEGLCOPYMETALSHAREDEVENTANGLEPROC)(EGLDisplay dpy, EGLSyncKHR sync);
+#define EGL_SYNC_METAL_SHARED_EVENT_SIGNALED_ANGLE 0x34DC
+typedef void* (EGLAPIENTRYP PFNEGLCOPYMETALSHAREDEVENTANGLEPROC)(EGLDisplay dpy, EGLSync sync);
+#ifdef EGL_EGLEXT_PROTOTYPES
+EGLAPI void *EGLAPIENTRY eglCopyMetalSharedEventANGLE(EGLDisplay dpy, EGLSync sync);
+#endif
 #endif /* EGL_ANGLE_metal_shared_event_sync */
 
 // clang-format on

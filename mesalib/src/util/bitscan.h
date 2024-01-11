@@ -164,7 +164,7 @@ util_is_power_of_two_nonzero(uint32_t v)
 #ifdef __POPCNT__
    return _mm_popcnt_u32(v) == 1;
 #else
-   return v != 0 && IS_POT(v);
+   return IS_POT_NONZERO(v);
 #endif
 }
 
@@ -176,7 +176,18 @@ util_is_power_of_two_nonzero(uint32_t v)
 static inline bool
 util_is_power_of_two_nonzero64(uint64_t v)
 {
-   return v != 0 && IS_POT(v);
+   return IS_POT_NONZERO(v);
+}
+
+/* Determine if an size_t/uintptr_t/intptr_t value is a power of two.
+ *
+ * \note
+ * Zero is \b not treated as a power of two.
+ */
+static inline bool
+util_is_power_of_two_nonzero_uintptr(uintptr_t v)
+{
+   return IS_POT_NONZERO(v);
 }
 
 /* For looping over a bitmask when you want to loop over consecutive bits

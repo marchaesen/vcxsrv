@@ -681,7 +681,7 @@ gather_shader_info_gs(struct radv_device *device, const nir_shader *nir, struct 
 }
 
 static void
-gather_shader_info_mesh(const nir_shader *nir, const struct radv_pipeline_key *pipeline_key,
+gather_shader_info_mesh(struct radv_device *device, const nir_shader *nir, const struct radv_pipeline_key *pipeline_key,
                         struct radv_shader_info *info)
 {
    struct gfx10_ngg_info *ngg_info = &info->ngg_info;
@@ -722,7 +722,7 @@ gather_shader_info_mesh(const nir_shader *nir, const struct radv_pipeline_key *p
    ngg_info->prim_amp_factor = nir->info.mesh.max_primitives_out;
    ngg_info->vgt_esgs_ring_itemsize = 1;
 
-   info->ms.has_query = pipeline_key->mesh_shader_queries;
+   info->ms.has_query = device->cache_key.mesh_shader_queries;
 }
 
 static void
@@ -977,7 +977,7 @@ gather_shader_info_task(struct radv_device *device, const nir_shader *nir, const
    info->cs.linear_taskmesh_dispatch =
       nir->info.mesh.ts_mesh_dispatch_dimensions[1] == 1 && nir->info.mesh.ts_mesh_dispatch_dimensions[2] == 1;
 
-   info->cs.has_query = pipeline_key->mesh_shader_queries;
+   info->cs.has_query = device->cache_key.mesh_shader_queries;
 }
 
 static uint32_t
@@ -1214,7 +1214,7 @@ radv_nir_shader_info_pass(struct radv_device *device, const struct nir_shader *n
       gather_shader_info_vs(device, nir, pipeline_key, info);
       break;
    case MESA_SHADER_MESH:
-      gather_shader_info_mesh(nir, pipeline_key, info);
+      gather_shader_info_mesh(device, nir, pipeline_key, info);
       break;
    default:
       if (gl_shader_stage_is_rt(nir->info.stage))
@@ -1525,7 +1525,7 @@ gfx10_get_ngg_query_info(const struct radv_device *device, struct radv_shader_st
 
    info->gs.has_pipeline_stat_query = device->physical_device->emulate_ngg_gs_query_pipeline_stat && !!gs_stage;
    info->has_xfb_query = gs_stage ? !!gs_stage->nir->xfb_info : !!es_stage->nir->xfb_info;
-   info->has_prim_query = pipeline_key->primitives_generated_query || info->has_xfb_query;
+   info->has_prim_query = device->cache_key.primitives_generated_query || info->has_xfb_query;
 }
 
 static void

@@ -85,8 +85,8 @@ class Layout:
     def __init__(self, rulesfile, layout, variant=None):
         self.rulesfile = rulesfile
         self.layout = ConfigItem.from_elem(layout)
-        self.variant = ConfigItem.from_elem(variant) if variant else None
-        if variant:
+        self.variant = ConfigItem.from_elem(variant) if variant is not None else None
+        if variant is not None:
             self.name = f"{self.layout.name}({self.variant.name})"
         else:
             self.name = f"{self.layout.name}"
@@ -166,11 +166,11 @@ class ConfigItem:
             ci.popularity = ci_element.attrib.get("popularity")
 
             langlist = cls._fetch_subelement(ci_element, "languageList")
-            if langlist:
+            if langlist is not None:
                 ci.iso639 = cls._fetch_subelement_text(langlist, "iso639Id")
 
             countrylist = cls._fetch_subelement(ci_element, "countryList")
-            if countrylist:
+            if countrylist is not None:
                 ci.iso3166 = cls._fetch_subelement_text(countrylist, "iso3166Id")
 
             return ci
@@ -266,9 +266,16 @@ def test_iso639(layout):
     expected_without_language = ["brai", "custom", "trans"]
 
     for code in layout.iso639:
-        assert (
-            code in language_codes
-        ), f'{layout.rulesfile}: unknown language code "{code}" in {layout.name}'
+        try:
+            assert (
+                code in language_codes
+            ), f'{layout.rulesfile}: unknown language code "{code}" in {layout.name}'
+        except AssertionError as e:
+            # needs pycountry 23.12.7, this code can be removed when our CI has pycountry new enough
+            if code in ["pzh", "szy", "uon"]:
+                pytest.skip("pycountry too old, skipping")
+            else:
+                raise e
 
     assert (
         layout.iso639 or layout.layout.name in expected_without_language

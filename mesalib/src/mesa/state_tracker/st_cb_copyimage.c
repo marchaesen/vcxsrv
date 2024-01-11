@@ -509,8 +509,14 @@ copy_image(struct pipe_context *pipe,
    if (src->format == dst->format ||
        util_format_is_compressed(src->format) ||
        util_format_is_compressed(dst->format)) {
-      pipe->resource_copy_region(pipe, dst, dst_level, dstx, dsty, dstz,
-                                 src, src_level, src_box);
+
+      if (src->nr_samples <= 1 && dst->nr_samples <= 1) {
+         pipe->resource_copy_region(pipe, dst, dst_level, dstx, dsty, dstz,
+                                    src, src_level, src_box);
+      } else {
+         blit(pipe, dst, dst->format, dst_level, dstx, dsty, dstz,
+              src, src->format, src_level, src_box);
+      }
       return;
    }
 

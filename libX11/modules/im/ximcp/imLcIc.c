@@ -61,10 +61,16 @@ _XimLocalDestroyIC(
     if (ic->core.focus_window)
 	_XUnregisterFilter(ic->core.im->core.display,
 			ic->core.focus_window, _XimLocalFilter, (XPointer)ic);
-    if(ic->private.local.ic_resources) {
-	Xfree(ic->private.local.ic_resources);
-	ic->private.local.ic_resources = NULL;
-    }
+
+    Xfree(ic->private.local.ic_resources);
+    ic->private.local.ic_resources = NULL;
+
+    Xfree(ic->core.res_name);
+    ic->core.res_name=NULL;
+
+    Xfree(ic->core.res_class);
+    ic->core.res_class = NULL;
+
     return;
 }
 
@@ -138,12 +144,13 @@ _XimLocalCreateIC(
     XIMArg		*values)
 {
     Xic			 ic;
-    XimDefICValues	 ic_values;
+    XimDefICValues	 ic_values={ 0 };
     XIMResourceList	 res;
     unsigned int	 num;
     int			 len;
 
-    if((ic = Xcalloc(1, sizeof(XicRec))) == (Xic)NULL) {
+    ic = Xcalloc(1, sizeof(XicRec));
+    if( ic  == (Xic)NULL) {
 	return ((XIC)NULL);
     }
 
@@ -158,15 +165,15 @@ _XimLocalCreateIC(
 
     num = im->core.ic_num_resources;
     len = sizeof(XIMResource) * num;
-    if((res = Xmalloc(len)) == (XIMResourceList)NULL) {
+    res = Xmalloc(len);
+    if( res  == (XIMResourceList)NULL) {
 	goto Set_Error;
     }
     (void)memcpy((char *)res, (char *)im->core.ic_resources, len);
     ic->private.local.ic_resources     = res;
     ic->private.local.ic_num_resources = num;
 
-    bzero((char *)&ic_values, sizeof(XimDefICValues));
-    if(_XimCheckLocalInputStyle(ic, (XPointer)&ic_values, values,
+     if(_XimCheckLocalInputStyle(ic, (XPointer)&ic_values, values,
 				 im->core.styles, res, num) == False) {
 	goto Set_Error;
     }
@@ -190,10 +197,10 @@ _XimLocalCreateIC(
     return((XIC)ic);
 
 Set_Error :
-    if (ic->private.local.ic_resources) {
-	Xfree(ic->private.local.ic_resources);
-	ic->private.local.ic_resources = NULL;
-    }
+
+    Xfree(ic->private.local.ic_resources);
+     ic->private.local.ic_resources = NULL;
+     
     Xfree(ic);
     return((XIC)NULL);
 }

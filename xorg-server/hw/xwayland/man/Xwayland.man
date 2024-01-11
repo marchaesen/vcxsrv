@@ -124,6 +124,16 @@ support touch input.
 Force additional non-native modes to be exposed when viewporter is not
 supported by the Wayland compositor.
 .TP 8
+.B \-output \fIname\fP
+Specifies on which output \fIXwayland\fP fullscreen rootful should be placed.
+The name must match the name of an existing Wayland output (output names can
+be found using wayland-info).
+
+If no matching output can be found, the Wayland compositor will decide on which
+output the fullscreen rootful \fIXwayland\fP window will be placed.
+
+This option has no effect if \fIXwayland\fP is not running fullscreen rootful.
+.TP 8
 .B \-rootless
 Run \fIXwayland\fP rootless, so that X clients integrate seamlessly with
 Wayland clients in a Wayland desktop. That requires the Wayland server
@@ -159,4 +169,4 @@ the name of the display of the Wayland server.
 .B XWAYLAND_NO_GLAMOR
 disable glamor and DRI3 support in \fIXwayland\fP, for testing purposes.
 .SH "SEE ALSO"
-General information: \fIX\fP(@miscmansuffix@)
+General information: \fIX\fP(@miscmansuffix@), \fIwayland-info\fP(@miscmansuffix@)

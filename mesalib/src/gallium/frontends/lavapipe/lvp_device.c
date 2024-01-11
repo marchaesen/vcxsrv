@@ -123,6 +123,7 @@ static const struct vk_device_extension_table lvp_device_extensions_supported = 
    .KHR_maintenance3                      = true,
    .KHR_maintenance4                      = true,
    .KHR_maintenance5                      = true,
+   .KHR_maintenance6                      = true,
    .KHR_map_memory2                       = true,
    .KHR_multiview                         = true,
    .KHR_push_descriptor                   = true,
@@ -603,6 +604,9 @@ lvp_get_features(const struct lvp_physical_device *pdevice,
       /* VK_EXT_ycbcr_image_arrays */
       .ycbcrImageArrays = true,
 
+      /* maintenance6 */
+      .maintenance6 = true,
+
       /* VK_AMDX_shader_enqueue */
 #ifdef VK_ENABLE_BETA_EXTENSIONS
       .shaderEnqueue = true,
@@ -910,6 +914,9 @@ lvp_get_properties(const struct lvp_physical_device *device, struct vk_propertie
       .nonStrictSinglePixelWideLinesUseParallelogram = false,
       .nonStrictWideLinesUseParallelogram = false,
 
+      /* maintenance6 */
+      .maxCombinedImageSamplerDescriptorCount = 3,
+
       /* VK_EXT_extended_dynamic_state3 */
       .dynamicPrimitiveTopologyUnrestricted = VK_TRUE,
 
@@ -1060,6 +1067,9 @@ lvp_get_properties(const struct lvp_physical_device *device, struct vk_propertie
       p->maxVertexAttribDivisor = UINT32_MAX;
    else
       p->maxVertexAttribDivisor = 1;
+
+   /* maintenance6 */
+   p->blockTexelViewCompatibleMultipleLayers = true,
 
    /* VK_EXT_shader_object */
    /* this is basically unsupported */
@@ -2001,6 +2011,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_BindBufferMemory2(VkDevice _device,
    for (uint32_t i = 0; i < bindInfoCount; ++i) {
       LVP_FROM_HANDLE(lvp_device_memory, mem, pBindInfos[i].memory);
       LVP_FROM_HANDLE(lvp_buffer, buffer, pBindInfos[i].buffer);
+      VkBindMemoryStatusKHR *status = (void*)vk_find_struct_const(&pBindInfos[i], BIND_MEMORY_STATUS_KHR);
 
       buffer->pmem = mem->pmem;
       buffer->offset = pBindInfos[i].memoryOffset;
@@ -2008,6 +2019,8 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_BindBufferMemory2(VkDevice _device,
                                              buffer->bo,
                                              mem->pmem,
                                              pBindInfos[i].memoryOffset);
+      if (status)
+         *status->pResult = VK_SUCCESS;
    }
    return VK_SUCCESS;
 }
@@ -2042,10 +2055,12 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_BindImageMemory2(VkDevice _device,
                               const VkBindImageMemoryInfo *pBindInfos)
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
+   VkResult res = VK_SUCCESS;
    for (uint32_t i = 0; i < bindInfoCount; ++i) {
       const VkBindImageMemoryInfo *bind_info = &pBindInfos[i];
       LVP_FROM_HANDLE(lvp_device_memory, mem, bind_info->memory);
       LVP_FROM_HANDLE(lvp_image, image, bind_info->image);
+      VkBindMemoryStatusKHR *status = (void*)vk_find_struct_const(&pBindInfos[i], BIND_MEMORY_STATUS_KHR);
       bool did_bind = false;
 
       vk_foreach_struct_const(s, bind_info->pNext) {
@@ -2064,6 +2079,8 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_BindImageMemory2(VkDevice _device,
                                                    image->planes[0].pmem,
                                                    image->planes[0].memory_offset);
             did_bind = true;
+            if (status)
+               *status->pResult = VK_SUCCESS;
             break;
          }
          default:
@@ -2080,19 +2097,26 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_BindImageMemory2(VkDevice _device,
             uint8_t plane = lvp_image_aspects_to_plane(image, plane_info->planeAspect);
             result = lvp_image_plane_bind(device, &image->planes[plane],
                                           mem, bind_info->memoryOffset, &offset_B);
+            if (status)
+               *status->pResult = result;
             if (result != VK_SUCCESS)
                return result;
          } else {
+            VkResult fail = VK_SUCCESS;
             for (unsigned plane = 0; plane < image->plane_count; plane++) {
                result = lvp_image_plane_bind(device, &image->planes[plane],
                                              mem, bind_info->memoryOffset, &offset_B);
+               if (status)
+                  *status->pResult = res;
                if (result != VK_SUCCESS)
-                  return result;
+                  fail = result;
             }
+            if (fail != VK_SUCCESS)
+               return fail;
          }
       }
    }
-   return VK_SUCCESS;
+   return res;
 }
 
 #ifdef PIPE_MEMORY_FD
@@ -2380,7 +2404,7 @@ lvp_nv_dgc_token_to_cmd_type(const VkIndirectCommandsLayoutTokenNV *token)
          assert(!"unknown token type!");
          break;
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_NV:
-         return VK_CMD_PUSH_CONSTANTS;
+         return VK_CMD_PUSH_CONSTANTS2_KHR;
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_NV:
          return VK_CMD_BIND_INDEX_BUFFER;
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_VERTEX_BUFFER_NV:
@@ -2423,7 +2447,7 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetGeneratedCommandsMemoryRequirementsNV(
          size += sizeof(*cmd->u.bind_vertex_buffers2.sizes) + sizeof(*cmd->u.bind_vertex_buffers2.strides);
          break;
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_PUSH_CONSTANT_NV:
-         size += token->pushconstantSize;
+         size += token->pushconstantSize + sizeof(VkPushConstantsInfoKHR);
          break;
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_SHADER_GROUP_NV:
       case VK_INDIRECT_COMMANDS_TOKEN_TYPE_INDEX_BUFFER_NV:

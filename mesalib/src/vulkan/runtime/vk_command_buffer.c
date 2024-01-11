@@ -200,6 +200,10 @@ VkShaderStageFlags
 vk_shader_stages_from_bind_point(VkPipelineBindPoint pipelineBindPoint)
 {
    switch (pipelineBindPoint) {
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+    case VK_PIPELINE_BIND_POINT_EXECUTION_GRAPH_AMDX:
+      return VK_SHADER_STAGE_COMPUTE_BIT | MESA_VK_SHADER_STAGE_WORKGRAPH_HACK_BIT_FIXME;
+#endif
    case VK_PIPELINE_BIND_POINT_COMPUTE:
       return VK_SHADER_STAGE_COMPUTE_BIT;
    case VK_PIPELINE_BIND_POINT_GRAPHICS:

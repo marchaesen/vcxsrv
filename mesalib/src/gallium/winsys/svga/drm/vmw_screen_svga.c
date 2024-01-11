@@ -127,8 +127,6 @@ static_assert(alignof(struct MKSGuestStatInfoEntry) == 32, "");
 
 static thread_local struct svga_winsys_stats_timeframe *mksstat_tls_global = NULL;
 
-#define ALIGN(x, power_of_two) (((x) + (power_of_two) - 1) & ~((power_of_two) - 1))
-
 static const size_t mksstat_area_size_info = sizeof(MKSGuestStatInfoEntry) * (SVGA_STATS_COUNT_MAX + SVGA_STATS_TIME_MAX);
 static const size_t mksstat_area_size_stat = sizeof(MKSGuestStatCounter) * SVGA_STATS_COUNT_MAX +
                                              sizeof(MKSGuestStatCounterTime) * SVGA_STATS_TIME_MAX;

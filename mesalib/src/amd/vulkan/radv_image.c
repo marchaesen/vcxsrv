@@ -179,7 +179,8 @@ radv_are_formats_dcc_compatible(const struct radv_physical_device *pdev, const v
    if (sign_reinterpret != NULL)
       *sign_reinterpret = false;
 
-   if (flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) {
+   /* All formats are compatible on GFX11. */
+   if ((flags & VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT) && pdev->rad_info.gfx_level < GFX11) {
       const struct VkImageFormatListCreateInfo *format_list =
          (const struct VkImageFormatListCreateInfo *)vk_find_struct_const(pNext, IMAGE_FORMAT_LIST_CREATE_INFO);
 
@@ -1399,7 +1400,7 @@ radv_layout_is_htile_compressed(const struct radv_device *device, const struct r
        * the number of decompressions from/to GENERAL.
        */
       if (radv_image_is_tc_compat_htile(image) && queue_mask & (1u << RADV_QUEUE_GENERAL) &&
-          !device->instance->disable_tc_compat_htile_in_general) {
+          !device->instance->drirc.disable_tc_compat_htile_in_general) {
          return true;
       } else {
          return false;

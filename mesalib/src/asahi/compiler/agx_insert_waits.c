@@ -63,7 +63,7 @@ agx_insert_waits_local(agx_context *ctx, agx_block *block)
          if (I->src[s].type != AGX_INDEX_REGISTER)
             continue;
 
-         unsigned nr_read = agx_read_registers(I, s);
+         unsigned nr_read = agx_index_size_16(I->src[s]);
          for (unsigned slot = 0; slot < ARRAY_SIZE(slots); ++slot) {
             if (BITSET_TEST_RANGE(slots[slot].writes, I->src[s].value,
                                   I->src[s].value + nr_read - 1))
@@ -76,7 +76,7 @@ agx_insert_waits_local(agx_context *ctx, agx_block *block)
          if (I->dest[d].type != AGX_INDEX_REGISTER)
             continue;
 
-         unsigned nr_writes = agx_write_registers(I, d);
+         unsigned nr_writes = agx_index_size_16(I->dest[d]);
          for (unsigned slot = 0; slot < ARRAY_SIZE(slots); ++slot) {
             if (BITSET_TEST_RANGE(slots[slot].writes, I->dest[d].value,
                                   I->dest[d].value + nr_writes - 1))
@@ -125,8 +125,9 @@ agx_insert_waits_local(agx_context *ctx, agx_block *block)
                continue;
 
             assert(I->dest[d].type == AGX_INDEX_REGISTER);
-            BITSET_SET_RANGE(slots[I->scoreboard].writes, I->dest[d].value,
-                             I->dest[d].value + agx_write_registers(I, d) - 1);
+            BITSET_SET_RANGE(
+               slots[I->scoreboard].writes, I->dest[d].value,
+               I->dest[d].value + agx_index_size_16(I->dest[d]) - 1);
          }
 
          slots[I->scoreboard].nr_pending++;

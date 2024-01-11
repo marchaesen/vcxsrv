@@ -103,6 +103,7 @@ struct radv_ps_epilog_key {
    uint8_t color_is_int10;
    uint8_t enable_mrt_output_nan_fixup;
 
+   uint32_t colors_written;
    bool mrt0_is_dual_src;
    bool export_depth;
    bool export_stencil;
@@ -115,26 +116,18 @@ struct radv_pipeline_key {
 
    uint32_t has_multiview_view_index : 1;
    uint32_t optimisations_disabled : 1;
-   uint32_t invariant_geom : 1;
-   uint32_t use_ngg : 1;
    uint32_t adjust_frag_coord_z : 1;
-   uint32_t disable_aniso_single_level : 1;
-   uint32_t disable_trunc_coord : 1;
-   uint32_t disable_sinking_load_input_fs : 1;
-   uint32_t image_2d_view_of_3d : 1;
-   uint32_t primitives_generated_query : 1;
    uint32_t dynamic_patch_control_points : 1;
    uint32_t dynamic_rasterization_samples : 1;
    uint32_t dynamic_provoking_vtx_mode : 1;
    uint32_t dynamic_line_rast_mode : 1;
-   uint32_t tex_non_uniform : 1;
-   uint32_t ssbo_non_uniform : 1;
    uint32_t enable_remove_point_size : 1;
    uint32_t unknown_rast_prim : 1;
-   uint32_t mesh_shader_queries : 1;
 
    uint32_t vertex_robustness1 : 1;
    uint32_t mesh_fast_launch_2 : 1;
+
+   uint32_t keep_statistic_info : 1;
 
    /* Pipeline shader version (up to 8) to force re-compilation when RADV_BUILD_ID_OVERRIDE is enabled. */
    uint32_t shader_version : 3;
@@ -164,7 +157,6 @@ struct radv_pipeline_key {
       uint8_t num_samples;
       bool sample_shading_enable;
 
-      bool lower_discard_to_demote;
       bool force_vrs_enabled;
 
       /* Used to export alpha through MRTZ for alpha-to-coverage (GFX11+). */

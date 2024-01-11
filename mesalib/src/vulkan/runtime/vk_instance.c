@@ -34,8 +34,6 @@
 #include "vk_debug_utils.h"
 #include "vk_physical_device.h"
 
-#include "compiler/glsl_types.h"
-
 #define VERSION_IS_1_0(version) \
    (VK_API_VERSION_MAJOR(version) == 1 && VK_API_VERSION_MINOR(version) == 0)
 
@@ -201,7 +199,7 @@ vk_instance_init(struct vk_instance *instance,
    instance->trace_frame = (uint32_t)debug_get_num_option("MESA_VK_TRACE_FRAME", 0xFFFFFFFF);
    instance->trace_trigger_file = getenv("MESA_VK_TRACE_TRIGGER");
 
-   glsl_type_singleton_init_or_ref();
+   vk_compiler_cache_init();
 
    return VK_SUCCESS;
 }
@@ -221,7 +219,7 @@ vk_instance_finish(struct vk_instance *instance)
 {
    destroy_physical_devices(instance);
 
-   glsl_type_singleton_decref();
+   vk_compiler_cache_finish();
    if (unlikely(!list_is_empty(&instance->debug_utils.callbacks))) {
       list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
                                &instance->debug_utils.callbacks, link) {

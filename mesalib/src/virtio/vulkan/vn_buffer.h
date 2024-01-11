@@ -18,12 +18,12 @@ struct vn_buffer_memory_requirements {
    VkMemoryDedicatedRequirements dedicated;
 };
 
-struct vn_buffer_cache_entry {
+struct vn_buffer_reqs_cache_entry {
    struct vn_buffer_memory_requirements requirements;
    atomic_bool valid;
 };
 
-struct vn_buffer_cache {
+struct vn_buffer_reqs_cache {
    uint64_t max_buffer_size;
    uint32_t queue_family_count;
 
@@ -69,9 +69,9 @@ vn_buffer_create(struct vn_device *dev,
                  struct vn_buffer **out_buf);
 
 void
-vn_buffer_cache_init(struct vn_device *dev);
+vn_buffer_reqs_cache_init(struct vn_device *dev);
 
 void
-vn_buffer_cache_fini(struct vn_device *dev);
+vn_buffer_reqs_cache_fini(struct vn_device *dev);
 
 #endif /* VN_BUFFER_H */

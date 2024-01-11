@@ -34,7 +34,7 @@
 
 static const unsigned index_to_shifts[4] = {24, 16, 8, 0};
 
-static void radeon_uvd_enc_add_buffer(struct radeon_uvd_encoder *enc, struct pb_buffer *buf,
+static void radeon_uvd_enc_add_buffer(struct radeon_uvd_encoder *enc, struct pb_buffer_lean *buf,
                                       unsigned usage, enum radeon_bo_domain domain,
                                       signed offset)
 {

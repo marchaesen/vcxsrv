@@ -463,7 +463,7 @@ class Group(object):
             elif field.modifier[0] == "minus":
                 print("   assert(values->{} >= {});".format(field.name, field.modifier[1]))
             elif field.modifier[0] == "log2":
-                print("   assert(util_is_power_of_two_nonzero(values->{}));".format(field.name))
+                print("   assert(IS_POT_NONZERO(values->{}));".format(field.name))
 
         for index in range(self.length // 4):
             # Handle MBZ words

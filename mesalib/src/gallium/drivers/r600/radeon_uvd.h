@@ -428,7 +428,7 @@ struct ruvd_msg {
 };
 
 /* driver dependent callback */
-typedef struct pb_buffer* (*ruvd_set_dtb)
+typedef struct pb_buffer_lean* (*ruvd_set_dtb)
 (struct ruvd_msg* msg, struct vl_video_buffer *vb);
 
 /* create an UVD decode */

@@ -864,7 +864,7 @@ pan_blit_from_staging(struct pipe_context *pctx,
    blit.mask = util_format_get_mask(blit.src.format);
    blit.filter = PIPE_TEX_FILTER_NEAREST;
 
-   panfrost_blit(pctx, &blit);
+   panfrost_blit_no_afbc_legalization(pctx, &blit);
 }
 
 static void
@@ -884,7 +884,7 @@ pan_blit_to_staging(struct pipe_context *pctx, struct panfrost_transfer *trans)
    blit.mask = util_format_get_mask(blit.dst.format);
    blit.filter = PIPE_TEX_FILTER_NEAREST;
 
-   panfrost_blit(pctx, &blit);
+   panfrost_blit_no_afbc_legalization(pctx, &blit);
 }
 
 static void
@@ -1328,6 +1328,9 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
       .filter = PIPE_TEX_FILTER_NEAREST,
    };
 
+   /* data_valid is not valid until flushed */
+   panfrost_flush_writer(ctx, rsrc, "AFBC decompressing blit");
+
    for (int i = 0; i <= rsrc->base.last_level; i++) {
       if (BITSET_TEST(rsrc->valid.data, i)) {
          blit.dst.level = blit.src.level = i;
@@ -1339,9 +1342,14 @@ pan_resource_modifier_convert(struct panfrost_context *ctx,
                   &blit.dst.box);
          blit.src.box = blit.dst.box;
 
-         panfrost_blit(&ctx->base, &blit);
+         panfrost_blit_no_afbc_legalization(&ctx->base, &blit);
       }
    }
+
+   /* we lose track of tmp_rsrc after this point, and the BO migration
+    * (from tmp_rsrc to rsrc) doesn't transfer the last_writer to rsrc
+    */
+   panfrost_flush_writer(ctx, tmp_rsrc, "AFBC decompressing blit");
 
    panfrost_bo_unreference(rsrc->image.data.bo);
 

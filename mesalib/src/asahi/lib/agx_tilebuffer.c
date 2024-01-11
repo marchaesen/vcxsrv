@@ -91,9 +91,9 @@ agx_build_tilebuffer_layout(enum pipe_format *formats, uint8_t nr_cbufs,
        * TODO: Suboptimal, we might be able to reorder render targets to
        * avoid fragmentation causing spilling.
        */
-      bool fits =
-         (new_offset_B <= MAX_BYTES_PER_SAMPLE) &&
-         (new_offset_B * MIN_TILE_SIZE_PX * nr_samples) <= MAX_BYTES_PER_TILE;
+      bool fits = (new_offset_B <= MAX_BYTES_PER_SAMPLE) &&
+                  (ALIGN_POT(new_offset_B, 8) * MIN_TILE_SIZE_PX *
+                   nr_samples) <= MAX_BYTES_PER_TILE;
 
       if (fits) {
          tib._offset_B[rt] = offset_B;

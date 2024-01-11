@@ -307,6 +307,14 @@ get_relative_dist(int a, int b, int OrderHintBits, uint8_t enable_order_hint)
    return diff;
 }
 
+static uint32_t
+tile_log2(uint32_t blkSize, uint32_t target)
+{
+   uint32_t k = 0;
+   for (k = 0; (blkSize << k) < target; k++);
+   return k;
+}
+
 void
 d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream *pBit,
                                                   const av1_seq_header_t *pSeqHdr,
@@ -438,13 +446,13 @@ d3d12_video_bitstream_builder_av1::write_pic_data(d3d12_video_encoder_bitstream 
          unsigned maxTileWidthSb = pPicHdr->tile_info.tile_support_caps.MaxTileWidth;
          unsigned maxTileAreaSb = pPicHdr->tile_info.tile_support_caps.MaxTileArea;
 
-         unsigned minLog2TileCols = log2(pPicHdr->tile_info.tile_support_caps.MinTileCols);
-         unsigned maxLog2TileCols = log2(pPicHdr->tile_info.tile_support_caps.MaxTileCols);
-         unsigned log2TileCols = log2(pPicHdr->tile_info.tile_partition.ColCount);
+         unsigned minLog2TileCols = tile_log2(maxTileWidthSb, pPicHdr->tile_info.tile_support_caps.MinTileCols);
+         unsigned maxLog2TileCols = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileCols);
+         unsigned log2TileCols = tile_log2(1, pPicHdr->tile_info.tile_partition.ColCount);
 
-         unsigned minLog2TileRows = log2(pPicHdr->tile_info.tile_support_caps.MinTileRows);
-         unsigned maxLog2TileRows = log2(pPicHdr->tile_info.tile_support_caps.MaxTileRows);
-         unsigned log2TileRows = log2(pPicHdr->tile_info.tile_partition.RowCount);
+         unsigned minLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MinTileRows);
+         unsigned maxLog2TileRows = tile_log2(1, pPicHdr->tile_info.tile_support_caps.MaxTileRows);
+         unsigned log2TileRows = tile_log2(1, pPicHdr->tile_info.tile_partition.RowCount);
 
          pBit->put_bits(1, pPicHdr->tile_info.uniform_tile_spacing_flag);   // uniform_tile_spacing_flag
 
@@ -862,7 +870,7 @@ d3d12_video_bitstream_builder_av1::calculate_tile_group_obu_size(
 
    bool tile_start_and_end_present_flag = !(tileGroup.tg_start == 0 && (tileGroup.tg_end == (NumTiles - 1)));
    if (!(NumTiles == 1 || !tile_start_and_end_present_flag)) {
-      uint8_t tileBits = log2(TilesPartition.ColCount) + log2(TilesPartition.RowCount);
+      uint8_t tileBits = tile_log2(1, TilesPartition.ColCount) + tile_log2(1, TilesPartition.RowCount);
       tile_group_obu_size_bits += tileBits;   // tg_start	f(tileBits)
       tile_group_obu_size_bits += tileBits;   // tg_end	   f(tileBits)
    }

@@ -116,8 +116,6 @@ push_node(uint32_t children[2], radv_aabb bounds[2])
    total_bounds.min = vec3(INFINITY);
    total_bounds.max = vec3(-INFINITY);
 
-   float cost = 0.0;
-
    for (uint i = 0; i < 2; ++i) {
       VOID_REF node = OFFSET(args.bvh, ir_id_to_offset(children[i]));
       REF(radv_ir_node) child = REF(radv_ir_node)(node);
@@ -125,15 +123,10 @@ push_node(uint32_t children[2], radv_aabb bounds[2])
       total_bounds.min = min(total_bounds.min, bounds[i].min);
       total_bounds.max = max(total_bounds.max, bounds[i].max);
 
-      cost += DEREF(child).cost;
-
       DEREF(dst_node).children[i] = children[i];
    }
 
    DEREF(dst_node).base.aabb = total_bounds;
-#if EXTENDED_SAH
-   DEREF(dst_node).base.cost = cost * 0.5 + BVH_LEVEL_COST;
-#endif
    DEREF(dst_node).bvh_offset = RADV_UNKNOWN_BVH_OFFSET;
    return dst_id;
 }
@@ -159,9 +152,6 @@ decode_neighbour_offset(uint32_t encoded_offset)
 #define NUM_PLOC_LDS_ITEMS PLOC_WORKGROUP_SIZE + 4 * PLOC_NEIGHBOURHOOD
 
 shared radv_aabb shared_bounds[NUM_PLOC_LDS_ITEMS];
-#if EXTENDED_SAH
-shared float shared_costs[NUM_PLOC_LDS_ITEMS];
-#endif
 shared uint32_t nearest_neighbour_indices[NUM_PLOC_LDS_ITEMS];
 
 uint32_t
@@ -187,9 +177,6 @@ load_bounds(VOID_REF ids, uint32_t iter, uint32_t task_index, uint32_t lds_base,
       REF(radv_ir_node) node = REF(radv_ir_node)(addr);
 
       shared_bounds[i - lds_base] = DEREF(node).aabb;
-#if EXTENDED_SAH
-      shared_costs[i - lds_base] = DEREF(node).cost;
-#endif
    }
 }
 
@@ -199,34 +186,7 @@ combined_node_cost(uint32_t lds_base, uint32_t i, uint32_t j)
    radv_aabb combined_bounds;
    combined_bounds.min = min(shared_bounds[i - lds_base].min, shared_bounds[j - lds_base].min);
    combined_bounds.max = max(shared_bounds[i - lds_base].max, shared_bounds[j - lds_base].max);
-   float area = aabb_surface_area(combined_bounds);
-
-#if EXTENDED_SAH
-   if (area == 0.0)
-      return 0.0;
-
-   /* p_a and p_b are the probabilities that i or j are hit by a ray:
-    *    Assuming that the current node is hit (p = 1) and the probability of hitting a node
-    *    is proportional to its surface area, p = area * c with p = 1 for the current node.
-    *    -> c = 1 / area
-    *
-    * We can use those probabilities to limit the impact of child cost to be proportional to
-    * its hit probability. (Child cost is the cost of not merging a node which increases with
-    * tree depth for internal nodes)
-    *
-    * Dividing area by both relative costs will make it more likely that we merge nodes with
-    * a high child cost.
-    */
-   float p_i = aabb_surface_area(shared_bounds[i - lds_base]) / area;
-   float p_j = aabb_surface_area(shared_bounds[j - lds_base]) / area;
-
-   float combined_cost =
-      (1.0 + shared_costs[i - lds_base] * p_i) * (1.0 + shared_costs[j - lds_base] * p_j);
-
-   return area / combined_cost;
-#else
-   return area;
-#endif
+   return aabb_surface_area(combined_bounds);
 }
 
 shared uint32_t shared_aggregate_sum;

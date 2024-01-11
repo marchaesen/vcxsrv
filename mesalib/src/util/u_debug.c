@@ -423,7 +423,7 @@ parse_debug_string(const char *debug,
 
    if (debug != NULL) {
       for (; control->string != NULL; control++) {
-         if (!strcmp(debug, "all")) {
+         if (!strncmp(debug, "all", strlen("all"))) {
             flag |= control->flag;
 
          } else {

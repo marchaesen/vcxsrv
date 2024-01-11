@@ -4,7 +4,7 @@ project('xserver', 'c',
             'c_std=gnu99',
         ],
         version: '21.1.99.1',
-        meson_version: '>= 0.52.0',
+        meson_version: '>= 0.56.0',
 )
 release_date = '2021-07-05'
 
@@ -107,6 +107,7 @@ xfont2_dep = dependency('xfont2', version: '>= 2.0')
 dbus_required = get_option('systemd_logind') == 'true'
 dbus_dep = dependency('dbus-1', version: '>= 1.0', required: dbus_required)
 
+build_systemd = get_option('systemd_notify') == 'true'
 # libsystemd-daemon was moved into libsystemd in version 209
 libsystemd_daemon_dep = dependency('libsystemd', version: '>= 209', required: false)
 if not libsystemd_daemon_dep.found()
@@ -119,7 +120,7 @@ build_hashtable = false
 xkb_dir = get_option('xkb_dir')
 if xkb_dir == ''
     if xkbcomp_dep.found() and xkbcomp_dep.type_name() == 'pkgconfig'
-        xkb_dir = xkbcomp_dep.get_pkgconfig_variable('xkbconfigdir')
+        xkb_dir = xkbcomp_dep.get_variable(pkgconfig : 'xkbconfigdir')
     endif
     if xkb_dir == ''
         xkb_dir = join_paths(get_option('prefix'), 'share/X11/xkb')
@@ -134,7 +135,7 @@ endif
 xkb_bin_dir = get_option('xkb_bin_dir')
 if xkb_bin_dir == ''
     if xkbcomp_dep.found() and xkbcomp_dep.type_name() == 'pkgconfig'
-        xkb_bin_dir = xkbcomp_dep.get_pkgconfig_variable('bindir')
+        xkb_bin_dir = xkbcomp_dep.get_variable(pkgconfig : 'bindir')
     endif
     if xkb_bin_dir == ''
         xkb_bin_dir = join_paths(get_option('prefix'), get_option('bindir'))
@@ -147,7 +148,7 @@ if dfp == ''
     if fontrootdir == ''
         fontutil_dep = dependency('fontutil', required: false)
         if fontutil_dep.found()
-            fontrootdir = fontutil_dep.get_pkgconfig_variable('fontrootdir')
+            fontrootdir = fontutil_dep.get_variable(pkgconfig : 'fontrootdir')
         else
             fontrootdir = join_paths(get_option('prefix'), get_option('datadir'), 'fonts', 'X11')
         endif
@@ -752,11 +753,8 @@ build_docs_pdf = (get_option('docs-pdf') != 'false' and
     fop.found())
 
 if build_docs or build_docs_devel
-    doc_sgml_path = sgml_doctools_dep.get_pkgconfig_variable('sgmlrootdir')
+    doc_sgml_path = sgml_doctools_dep.get_variable(pkgconfig : 'sgmlrootdir')
     doc_stylesheet_srcdir = join_paths(doc_sgml_path, 'X11')
-
-    # once we bump meson dependency to 0.56.0 we can use
-    # meson.project_build_root() instead of meson.build_root()
 
     # Meson does not and will not support functions so we are copy-pasting
     # documentation build code around which is unfortunate
@@ -764,12 +762,12 @@ if build_docs or build_docs_devel
 
     docs_xmlto_search_flags = [
         '--searchpath', doc_stylesheet_srcdir,
-        '--searchpath', meson.build_root(),
+        '--searchpath', meson.project_build_root(),
     ]
 
     docs_xslt_search_flags = [
         '--path', doc_stylesheet_srcdir,
-        '--path', meson.build_root(),
+        '--path', meson.project_build_root(),
     ]
 endif
 
@@ -866,25 +864,29 @@ if build_xorg
     sdkconfig.set('abi_ansic',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_ANSIC.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h')
+                    files('hw/xfree86/common/xf86Module.h'),
+                    check: false
         ).stdout()
     )
     sdkconfig.set('abi_videodrv',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_VIDEODRV.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h')
+                    files('hw/xfree86/common/xf86Module.h'),
+                    check: false
         ).stdout()
     )
     sdkconfig.set('abi_xinput',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_XINPUT.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h')
+                    files('hw/xfree86/common/xf86Module.h'),
+                    check: false
         ).stdout()
     )
     sdkconfig.set('abi_extension',
         run_command(awk, '-F', '[(,)]',
                     '/^#define ABI_EXTENSION.*SET/ { printf "%d.%d", $2, $3 }',
-                    files('hw/xfree86/common/xf86Module.h')
+                    files('hw/xfree86/common/xf86Module.h'),
+                    check: false
         ).stdout()
     )
 

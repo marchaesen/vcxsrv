@@ -69,7 +69,7 @@ struct pipe_video_buffer *si_video_buffer_create_with_modifiers(struct pipe_cont
 }
 
 /* set the decoding target buffer offsets */
-static struct pb_buffer *si_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_buffer *buf)
+static struct pb_buffer_lean *si_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_buffer *buf)
 {
    struct si_screen *sscreen = (struct si_screen *)buf->base.context->screen;
    struct si_texture *luma = (struct si_texture *)buf->resources[0];
@@ -85,7 +85,7 @@ static struct pb_buffer *si_uvd_set_dtb(struct ruvd_msg *msg, struct vl_video_bu
 }
 
 /* get the radeon resources for VCE */
-static void si_vce_get_buffer(struct pipe_resource *resource, struct pb_buffer **handle,
+static void si_vce_get_buffer(struct pipe_resource *resource, struct pb_buffer_lean **handle,
                               struct radeon_surf **surface)
 {
    struct si_texture *res = (struct si_texture *)resource;

@@ -48,11 +48,7 @@ static void
 wait_for_glLinkProgram(struct gl_context *ctx)
 {
    /* Wait for the last glLinkProgram call. */
-   int batch = p_atomic_read(&ctx->GLThread.LastProgramChangeBatch);
-   if (batch != -1) {
-      util_queue_fence_wait(&ctx->GLThread.batches[batch].fence);
-      assert(p_atomic_read(&ctx->GLThread.LastProgramChangeBatch) == -1);
-   }
+   _mesa_glthread_wait_for_call(ctx, &ctx->GLThread.LastProgramChangeBatch);
 }
 
 void GLAPIENTRY

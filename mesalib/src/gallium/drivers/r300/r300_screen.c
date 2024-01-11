@@ -796,7 +796,7 @@ static void r300_fence_reference(struct pipe_screen *screen,
 {
     struct radeon_winsys *rws = r300_screen(screen)->rws;
 
-    rws->fence_reference(ptr, fence);
+    rws->fence_reference(rws, ptr, fence);
 }
 
 static bool r300_fence_finish(struct pipe_screen *screen,

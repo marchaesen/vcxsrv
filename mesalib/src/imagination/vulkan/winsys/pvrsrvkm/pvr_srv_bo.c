@@ -156,7 +156,7 @@ VkResult pvr_srv_winsys_buffer_create(struct pvr_winsys *ws,
    struct pvr_srv_winsys_bo *srv_bo;
    VkResult result;
 
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero64(alignment));
 
    /* Kernel will page align the size, we do the same here so we have access to
     * all the allocated memory.
@@ -359,7 +359,7 @@ VkResult pvr_srv_heap_alloc_carveout(struct pvr_winsys_heap *heap,
    struct pvr_srv_winsys_vma *srv_vma;
    VkResult result;
 
-   assert(util_is_power_of_two_nonzero(alignment));
+   assert(util_is_power_of_two_nonzero64(alignment));
 
    /* pvr_srv_winsys_buffer_create() page aligns the size. We must do the same
     * here to ensure enough heap space is allocated to be able to map the

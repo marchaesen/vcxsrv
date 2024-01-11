@@ -205,7 +205,9 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .EXT_private_data                     = true,
       .EXT_provoking_vertex                 = true,
       .EXT_separate_stencil_usage           = true,
+      .EXT_shader_demote_to_helper_invocation = true,
       .EXT_shader_module_identifier         = true,
+      .EXT_subgroup_size_control            = true,
       .EXT_texel_buffer_alignment           = true,
       .EXT_tooling_info                     = true,
       .EXT_vertex_attribute_divisor         = true,
@@ -444,6 +446,13 @@ get_features(const struct v3dv_physical_device *physical_device,
 
       /* VK_KHR_shader_terminate_invocation */
       .shaderTerminateInvocation = true,
+
+      /* VK_EXT_shader_demote_to_helper_invocation */
+      .shaderDemoteToHelperInvocation = true,
+
+      /* VK_EXT_subgroup_size_control */
+      .subgroupSizeControl = true,
+      .computeFullSubgroups = true,
    };
 }
 
@@ -1297,6 +1306,11 @@ v3dv_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       .integerDotProductAccumulatingSaturating64BitUnsignedAccelerated = false,
       .integerDotProductAccumulatingSaturating64BitSignedAccelerated = false,
       .integerDotProductAccumulatingSaturating64BitMixedSignednessAccelerated = false,
+      /* VK_EXT_subgroup_size_control */
+      .minSubgroupSize = V3D_CHANNELS,
+      .maxSubgroupSize = V3D_CHANNELS,
+      .maxComputeWorkgroupSubgroups = 16, /* 256 / 16 */
+      .requiredSubgroupSizeStages = VK_SHADER_STAGE_COMPUTE_BIT,
    };
 
    VkPhysicalDeviceVulkan12Properties vk12 = {

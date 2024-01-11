@@ -27,6 +27,17 @@ texture_descriptor_ptr(nir_builder *b, nir_tex_instr *tex)
 }
 
 static bool
+has_nonzero_lod(nir_tex_instr *tex)
+{
+   int idx = nir_tex_instr_src_index(tex, nir_tex_src_lod);
+   if (idx < 0)
+      return false;
+
+   nir_src src = tex->src[idx].src;
+   return !(nir_src_is_const(src) && nir_src_as_uint(src) == 0);
+}
+
+static bool
 lower_tex_crawl(nir_builder *b, nir_instr *instr, UNUSED void *data)
 {
    if (instr->type != nir_instr_type_tex)
@@ -35,7 +46,8 @@ lower_tex_crawl(nir_builder *b, nir_instr *instr, UNUSED void *data)
    nir_tex_instr *tex = nir_instr_as_tex(instr);
    b->cursor = nir_before_instr(instr);
 
-   if (tex->op != nir_texop_txs && tex->op != nir_texop_texture_samples)
+   if (tex->op != nir_texop_txs && tex->op != nir_texop_texture_samples &&
+       tex->op != nir_texop_query_levels)
       return false;
 
    nir_def *ptr = texture_descriptor_ptr(b, tex);
@@ -55,6 +67,8 @@ lower_tex_crawl(nir_builder *b, nir_instr *instr, UNUSED void *data)
                     nir_imm_bool(b, tex->sampler_dim == GLSL_SAMPLER_DIM_2D),
                     nir_imm_bool(b, tex->sampler_dim == GLSL_SAMPLER_DIM_CUBE),
                     nir_imm_bool(b, tex->is_array));
+   } else if (tex->op == nir_texop_query_levels) {
+      res = libagx_texture_levels(b, ptr);
    } else {
       res = libagx_texture_samples(b, ptr);
    }
@@ -164,6 +178,21 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
    nir_def *coord = nir_steal_tex_src(tex, nir_tex_src_coord);
    nir_def *ms_idx = nir_steal_tex_src(tex, nir_tex_src_ms_index);
 
+   /* Apply txf workaround, see libagx_lower_txf_robustness */
+   bool is_txf = ((tex->op == nir_texop_txf) || (tex->op == nir_texop_txf_ms));
+
+   if (is_txf && has_nonzero_lod(tex) &&
+       !(tex->backend_flags & AGX_TEXTURE_FLAG_NO_CLAMP)) {
+
+      int lod_idx = nir_tex_instr_src_index(tex, nir_tex_src_lod);
+
+      nir_def *replaced = libagx_lower_txf_robustness(
+         b, texture_descriptor_ptr(b, tex), tex->src[lod_idx].src.ssa,
+         nir_channel(b, coord, 0));
+
+      coord = nir_vector_insert_imm(b, coord, replaced, 0);
+   }
+
    /* The layer is always the last component of the NIR coordinate, split it off
     * because we'll need to swizzle.
     */
@@ -175,7 +204,7 @@ lower_regular_texture(nir_builder *b, nir_instr *instr, UNUSED void *data)
       coord = nir_trim_vector(b, coord, lidx);
 
       /* Round layer to nearest even */
-      if (tex->op != nir_texop_txf && tex->op != nir_texop_txf_ms)
+      if (!is_txf)
          unclamped_layer = nir_f2u32(b, nir_fround_even(b, unclamped_layer));
 
       /* For a cube array, the layer is zero-indexed component 3 of the
@@ -317,6 +346,7 @@ lower_sampler_bias(nir_builder *b, nir_instr *instr, UNUSED void *data)
    case nir_texop_tg4:
    case nir_texop_texture_samples:
    case nir_texop_samples_identical:
+   case nir_texop_query_levels:
       /* These operations do not use a sampler */
       return false;
 
@@ -568,6 +598,11 @@ agx_nir_lower_texture(nir_shader *s)
             nir_metadata_block_index | nir_metadata_dominance, NULL);
    NIR_PASS(progress, s, nir_legalize_16bit_sampler_srcs, tex_constraints);
 
+   /* Fold constants after nir_legalize_16bit_sampler_srcs so we can detect 0 in
+    * lower_regular_texture. This is required for correctness.
+    */
+   NIR_PASS(progress, s, nir_opt_constant_folding);
+
    /* Lower texture sources after legalizing types (as the lowering depends on
     * 16-bit multisample indices) but before lowering queries (as the lowering
     * generates txs for array textures).
@@ -647,18 +682,26 @@ agx_nir_needs_texture_crawl(nir_instr *instr)
       nir_tex_instr *tex = nir_instr_as_tex(instr);
 
       /* Array textures get clamped to their size via txs */
-      if (tex->is_array)
+      if (tex->is_array && !(tex->backend_flags & AGX_TEXTURE_FLAG_NO_CLAMP))
          return true;
 
       switch (tex->op) {
       /* Queries always become a crawl */
       case nir_texop_txs:
       case nir_texop_texture_samples:
+      case nir_texop_query_levels:
          return true;
 
-      /* Buffer textures need their format read */
+      /* Buffer textures need their format read and txf needs its LOD clamped.
+       * Buffer textures are only read through txf.
+       */
+      case nir_texop_txf:
+      case nir_texop_txf_ms:
+         return has_nonzero_lod(tex) ||
+                tex->sampler_dim == GLSL_SAMPLER_DIM_BUF;
+
       default:
-         return tex->sampler_dim == GLSL_SAMPLER_DIM_BUF;
+         return false;
       }
    }
 

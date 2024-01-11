@@ -649,7 +649,10 @@ ntq_emit_tmu_general(struct v3d_compile *c, nir_intrinsic_instr *instr,
                                 V3D_TMU_OP_TYPE_ATOMIC;
 
                         /* Only load per-quad if we can be certain that all
-                         * lines in the quad are active.
+                         * lines in the quad are active. Notice that demoted
+                         * invocations, unlike terminated ones, are still
+                         * active: we want to skip memory writes for them but
+                         * loads should still work.
                          */
                         uint32_t perquad =
                                 is_load && !vir_in_nonuniform_control_flow(c) &&
@@ -1908,6 +1911,7 @@ emit_frag_end(struct v3d_compile *c)
         if (c->output_position_index == -1 &&
             !(c->s->info.num_images || c->s->info.num_ssbos) &&
             !c->s->info.fs.uses_discard &&
+            !c->s->info.fs.uses_demote &&
             !c->fs_key->sample_alpha_to_coverage &&
             c->output_sample_mask_index == -1 &&
             has_any_tlb_color_write) {
@@ -2105,7 +2109,6 @@ v3d_optimize_nir(struct v3d_compile *c, struct nir_shader *s)
 
                 NIR_PASS(progress, s, nir_opt_remove_phis);
                 NIR_PASS(progress, s, nir_opt_if, false);
-                NIR_PASS(progress, s, nir_opt_undef);
                 if (c && !c->disable_gcm) {
                         bool local_progress = false;
                         NIR_PASS(local_progress, s, nir_opt_gcm, false);
@@ -3427,8 +3430,19 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                 ntq_emit_image_size(c, instr);
                 break;
 
+        /* FIXME: the Vulkan and SPIR-V specs specify that OpTerminate (which
+         * is intended to match the semantics of GLSL's discard) should
+         * terminate the invocation immediately. Our implementation doesn't
+         * do that. What we do is actually a demote by removing the invocations
+         * from the sample mask. Maybe we could be more strict and force an
+         * early termination by emitting a (maybe conditional) jump to the
+         * end section of the fragment shader for affected invocations.
+         */
         case nir_intrinsic_discard:
         case nir_intrinsic_terminate:
+                c->emitted_discard = true;
+                FALLTHROUGH;
+        case nir_intrinsic_demote:
                 ntq_flush_tmu(c);
 
                 if (vir_in_nonuniform_control_flow(c)) {
@@ -3441,11 +3455,13 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
                         vir_SETMSF_dest(c, vir_nop_reg(),
                                         vir_uniform_ui(c, 0));
                 }
-                c->emitted_discard = true;
                 break;
 
         case nir_intrinsic_discard_if:
-        case nir_intrinsic_terminate_if: {
+        case nir_intrinsic_terminate_if:
+                c->emitted_discard = true;
+                FALLTHROUGH;
+        case nir_intrinsic_demote_if: {
                 ntq_flush_tmu(c);
 
                 enum v3d_qpu_cond cond = ntq_emit_bool_to_cond(c, instr->src[0]);
@@ -3463,7 +3479,6 @@ ntq_emit_intrinsic(struct v3d_compile *c, nir_intrinsic_instr *instr)
 
                 vir_set_cond(vir_SETMSF_dest(c, vir_nop_reg(),
                                              vir_uniform_ui(c, 0)), cond);
-                c->emitted_discard = true;
                 break;
         }
 

@@ -595,10 +595,12 @@ init_dispatch_tables(struct radv_device *device, struct radv_physical_device *ph
    b.tables[RADV_RRA_DISPATCH_TABLE] = &device->layer_dispatch.rra;
    b.tables[RADV_RMV_DISPATCH_TABLE] = &device->layer_dispatch.rmv;
 
-   if (!strcmp(physical_device->instance->app_layer, "metroexodus")) {
+   if (!strcmp(physical_device->instance->drirc.app_layer, "metroexodus")) {
       add_entrypoints(&b, &metro_exodus_device_entrypoints, RADV_APP_DISPATCH_TABLE);
-   } else if (!strcmp(physical_device->instance->app_layer, "rage2")) {
+   } else if (!strcmp(physical_device->instance->drirc.app_layer, "rage2")) {
       add_entrypoints(&b, &rage2_device_entrypoints, RADV_APP_DISPATCH_TABLE);
+   } else if (!strcmp(physical_device->instance->drirc.app_layer, "quanticdream")) {
+      add_entrypoints(&b, &quantic_dream_device_entrypoints, RADV_APP_DISPATCH_TABLE);
    }
 
    if (physical_device->instance->vk.trace_mode & RADV_TRACE_MODE_RGP)
@@ -701,6 +703,40 @@ capture_trace(VkQueue _queue)
       queue->device->sqtt_triggered = true;
 
    return result;
+}
+
+static void
+radv_device_init_cache_key(struct radv_device *device)
+{
+   struct radv_device_cache_key *key = &device->cache_key;
+
+   key->clear_lds = device->instance->drirc.clear_lds;
+   key->cs_wave32 = device->physical_device->cs_wave_size == 32;
+   key->disable_aniso_single_level =
+      device->instance->drirc.disable_aniso_single_level && device->physical_device->rad_info.gfx_level < GFX8;
+   key->disable_shrink_image_store = device->instance->drirc.disable_shrink_image_store;
+   key->disable_sinking_load_input_fs = device->instance->drirc.disable_sinking_load_input_fs;
+   key->disable_trunc_coord = device->disable_trunc_coord;
+   key->dual_color_blend_by_location = device->instance->drirc.dual_color_blend_by_location;
+   key->emulate_rt = !!(device->instance->perftest_flags & RADV_PERFTEST_EMULATE_RT);
+   key->ge_wave32 = device->physical_device->ge_wave_size == 32;
+   key->image_2d_view_of_3d = device->image_2d_view_of_3d && device->physical_device->rad_info.gfx_level == GFX9;
+   key->invariant_geom = !!(device->instance->debug_flags & RADV_DEBUG_INVARIANT_GEOM);
+   key->lower_discard_to_demote = !!(device->instance->debug_flags & RADV_DEBUG_DISCARD_TO_DEMOTE);
+   key->mesh_shader_queries = device->mesh_shader_queries;
+   key->no_fmask = !!(device->instance->debug_flags & RADV_DEBUG_NO_FMASK);
+   key->no_rt = !!(device->instance->debug_flags & RADV_DEBUG_NO_RT);
+   key->primitives_generated_query = device->primitives_generated_query;
+   key->ps_wave32 = device->physical_device->ps_wave_size == 32;
+   key->rt_wave64 = device->physical_device->rt_wave_size == 64;
+   key->split_fma = !!(device->instance->debug_flags & RADV_DEBUG_SPLIT_FMA);
+   key->ssbo_non_uniform = device->instance->drirc.ssbo_non_uniform;
+   key->tex_non_uniform = device->instance->drirc.tex_non_uniform;
+   key->use_llvm = device->physical_device->use_llvm;
+   key->use_ngg = device->physical_device->use_ngg;
+   key->use_ngg_culling = device->physical_device->use_ngg_culling;
+
+   _mesa_blake3_compute(key, sizeof(*key), device->cache_hash);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
@@ -968,6 +1004,17 @@ radv_CreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCr
    device->mesh_fast_launch_2 = (device->instance->perftest_flags & RADV_PERFTEST_GS_FAST_LAUNCH_2) &&
                                 device->physical_device->rad_info.gfx_level >= GFX11;
 
+   device->disable_trunc_coord = device->instance->drirc.disable_trunc_coord;
+
+   if (device->instance->vk.app_info.engine_name && !strcmp(device->instance->vk.app_info.engine_name, "DXVK")) {
+      /* For DXVK 2.3.0 and older, use dualSrcBlend to determine if this is D3D9. */
+      bool is_d3d9 = !dual_src_blend;
+      if (device->instance->vk.app_info.engine_version > VK_MAKE_VERSION(2, 3, 0))
+         is_d3d9 = device->instance->vk.app_info.app_version & 0x1;
+
+      device->disable_trunc_coord &= !is_d3d9;
+   }
+
    /* The maximum number of scratch waves. Scratch space isn't divided
     * evenly between CUs. The number is only a function of the number of CUs.
     * We can decrease the constant to decrease the scratch buffer size.
@@ -1112,6 +1159,10 @@ radv_CreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCr
    device->load_grid_size_from_user_sgpr = device->physical_device->rad_info.gfx_level >= GFX10_3;
 
    device->keep_shader_info = keep_shader_info;
+
+   /* Initialize the per-device cache key before compiling meta shaders. */
+   radv_device_init_cache_key(device);
+
    result = radv_device_init_meta(device);
    if (result != VK_SUCCESS)
       goto fail;
@@ -1158,17 +1209,6 @@ radv_CreateDevice(VkPhysicalDevice physicalDevice, const VkDeviceCreateInfo *pCr
    device->force_aniso = MIN2(16, (int)debug_get_num_option("RADV_TEX_ANISO", -1));
    if (device->force_aniso >= 0) {
       fprintf(stderr, "radv: Forcing anisotropy filter to %ix\n", 1 << util_logbase2(device->force_aniso));
-   }
-
-   device->disable_trunc_coord = device->instance->disable_trunc_coord;
-
-   if (device->instance->vk.app_info.engine_name && !strcmp(device->instance->vk.app_info.engine_name, "DXVK")) {
-      /* For DXVK 2.3.0 and older, use dualSrcBlend to determine if this is D3D9. */
-      bool is_d3d9 = !dual_src_blend;
-      if (device->instance->vk.app_info.engine_version > VK_MAKE_VERSION(2, 3, 0))
-         is_d3d9 = device->instance->vk.app_info.app_version & 0x1;
-
-      device->disable_trunc_coord &= !is_d3d9;
    }
 
    if (use_perf_counters) {

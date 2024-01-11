@@ -170,7 +170,7 @@ static void si_add_fence_dependency(struct si_context *sctx, struct pipe_fence_h
 {
    struct radeon_winsys *ws = sctx->ws;
 
-   ws->cs_add_fence_dependency(&sctx->gfx_cs, fence, 0);
+   ws->cs_add_fence_dependency(&sctx->gfx_cs, fence);
 }
 
 static void si_add_syncobj_signal(struct si_context *sctx, struct pipe_fence_handle *fence)
@@ -186,7 +186,7 @@ static void si_fence_reference(struct pipe_screen *screen, struct pipe_fence_han
    struct si_fence *ssrc = (struct si_fence *)src;
 
    if (pipe_reference(&(*sdst)->reference, &ssrc->reference)) {
-      ws->fence_reference(&(*sdst)->gfx, NULL);
+      ws->fence_reference(ws, &(*sdst)->gfx, NULL);
       tc_unflushed_batch_token_reference(&(*sdst)->tc_token, NULL);
       si_resource_reference(&(*sdst)->fine.buf, NULL);
       FREE(*sdst);
@@ -304,7 +304,7 @@ static bool si_fence_finish(struct pipe_screen *screen, struct pipe_context *ctx
       return true;
 
    if (sfence->fine.buf && si_fine_fence_signaled(rws, &sfence->fine)) {
-      rws->fence_reference(&sfence->gfx, NULL);
+      rws->fence_reference(rws, &sfence->gfx, NULL);
       si_resource_reference(&sfence->fine.buf, NULL);
       return true;
    }
@@ -464,7 +464,7 @@ static void si_flush_all_queues(struct pipe_context *ctx,
 
    if (!radeon_emitted(&sctx->gfx_cs, sctx->initial_gfx_cs_size)) {
       if (fence)
-         ws->fence_reference(&gfx_fence, sctx->last_gfx_fence);
+         ws->fence_reference(ws, &gfx_fence, sctx->last_gfx_fence);
       if (!(flags & PIPE_FLUSH_DEFERRED))
          ws->cs_sync_flush(&sctx->gfx_cs);
 
@@ -502,7 +502,7 @@ static void si_flush_all_queues(struct pipe_context *ctx,
       } else {
          new_fence = si_alloc_fence();
          if (!new_fence) {
-            ws->fence_reference(&gfx_fence, NULL);
+            ws->fence_reference(ws, &gfx_fence, NULL);
             goto finish;
          }
 

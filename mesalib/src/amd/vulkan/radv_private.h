@@ -361,32 +361,38 @@ struct radv_instance {
    uint64_t debug_flags;
    uint64_t perftest_flags;
 
-   struct driOptionCache dri_options;
-   struct driOptionCache available_dri_options;
+   struct {
+      struct driOptionCache options;
+      struct driOptionCache available_options;
 
-   /**
-    * Workarounds for game bugs.
-    */
-   bool enable_mrt_output_nan_fixup;
-   bool disable_tc_compat_htile_in_general;
-   bool disable_shrink_image_store;
-   bool disable_aniso_single_level;
-   bool disable_trunc_coord;
-   bool zero_vram;
-   bool disable_sinking_load_input_fs;
-   bool flush_before_query_copy;
-   bool enable_unified_heap_on_apu;
-   bool tex_non_uniform;
-   bool ssbo_non_uniform;
-   bool flush_before_timestamp_write;
-   bool force_rt_wave64;
-   bool dual_color_blend_by_location;
-   bool legacy_sparse_binding;
-   bool clear_lds;
-   char *app_layer;
-   uint8_t override_graphics_shader_version;
-   uint8_t override_compute_shader_version;
-   uint8_t override_ray_tracing_shader_version;
+      bool enable_mrt_output_nan_fixup;
+      bool disable_tc_compat_htile_in_general;
+      bool disable_shrink_image_store;
+      bool disable_aniso_single_level;
+      bool disable_trunc_coord;
+      bool zero_vram;
+      bool disable_sinking_load_input_fs;
+      bool flush_before_query_copy;
+      bool enable_unified_heap_on_apu;
+      bool tex_non_uniform;
+      bool ssbo_non_uniform;
+      bool flush_before_timestamp_write;
+      bool force_rt_wave64;
+      bool dual_color_blend_by_location;
+      bool legacy_sparse_binding;
+      bool clear_lds;
+      bool enable_dgc;
+      bool enable_khr_present_wait;
+      bool report_llvm9_version_string;
+      bool vk_require_etc2;
+      bool vk_require_astc;
+      char *app_layer;
+      uint8_t override_graphics_shader_version;
+      uint8_t override_compute_shader_version;
+      uint8_t override_ray_tracing_shader_version;
+      int override_vram_size;
+      int override_uniform_offset_alignment;
+   } drirc;
 };
 
 VkResult radv_init_wsi(struct radv_physical_device *physical_device);
@@ -657,12 +663,13 @@ struct radv_meta_state {
       VkPipeline lbvh_generate_ir_pipeline;
       VkPipelineLayout ploc_p_layout;
       VkPipeline ploc_pipeline;
-      VkPipeline ploc_extended_pipeline;
       VkPipelineLayout encode_p_layout;
       VkPipeline encode_pipeline;
       VkPipeline encode_compact_pipeline;
       VkPipelineLayout header_p_layout;
       VkPipeline header_pipeline;
+      VkPipelineLayout update_p_layout;
+      VkPipeline update_pipeline;
       VkPipelineLayout copy_p_layout;
       VkPipeline copy_pipeline;
 
@@ -870,6 +877,33 @@ struct radv_sqtt_timestamp {
    struct list_head list;
 };
 
+struct radv_device_cache_key {
+   uint32_t clear_lds : 1;
+   uint32_t cs_wave32 : 1;
+   uint32_t disable_aniso_single_level : 1;
+   uint32_t disable_shrink_image_store : 1;
+   uint32_t disable_sinking_load_input_fs : 1;
+   uint32_t disable_trunc_coord : 1;
+   uint32_t dual_color_blend_by_location : 1;
+   uint32_t emulate_rt : 1;
+   uint32_t ge_wave32 : 1;
+   uint32_t image_2d_view_of_3d : 1;
+   uint32_t invariant_geom : 1;
+   uint32_t lower_discard_to_demote : 1;
+   uint32_t mesh_shader_queries : 1;
+   uint32_t no_fmask : 1;
+   uint32_t no_rt : 1;
+   uint32_t primitives_generated_query : 1;
+   uint32_t ps_wave32 : 1;
+   uint32_t rt_wave64 : 1;
+   uint32_t split_fma : 1;
+   uint32_t ssbo_non_uniform : 1;
+   uint32_t tex_non_uniform : 1;
+   uint32_t use_llvm : 1;
+   uint32_t use_ngg : 1;
+   uint32_t use_ngg_culling : 1;
+};
+
 struct radv_device {
    struct vk_device vk;
 
@@ -1055,6 +1089,9 @@ struct radv_device {
 
    struct hash_table *rt_handles;
    simple_mtx_t rt_handles_mtx;
+
+   struct radv_device_cache_key cache_key;
+   blake3_hash cache_hash;
 };
 
 bool radv_device_set_pstate(struct radv_device *device, bool enable);
@@ -1825,6 +1862,7 @@ struct radv_ps_epilog_state {
    uint32_t color_write_mask;
    uint32_t color_blend_enable;
 
+   uint32_t colors_written;
    bool mrt0_is_dual_src;
    bool export_depth;
    bool export_stencil;
@@ -1973,16 +2011,15 @@ struct radv_ray_tracing_group;
 void radv_pipeline_stage_init(const VkPipelineShaderStageCreateInfo *sinfo, const struct radv_pipeline_layout *layout,
                               struct radv_shader_stage *out_stage);
 
-void radv_hash_shaders(unsigned char *hash, const struct radv_shader_stage *stages, uint32_t stage_count,
-                       const struct radv_pipeline_layout *layout, const struct radv_pipeline_key *key, uint32_t flags);
+void radv_hash_shaders(const struct radv_device *device, unsigned char *hash, const struct radv_shader_stage *stages,
+                       uint32_t stage_count, const struct radv_pipeline_layout *layout,
+                       const struct radv_pipeline_key *key);
 
 void radv_hash_rt_stages(struct mesa_sha1 *ctx, const VkPipelineShaderStageCreateInfo *stages, unsigned stage_count);
 
-void radv_hash_rt_shaders(unsigned char *hash, const VkRayTracingPipelineCreateInfoKHR *pCreateInfo,
-                          const struct radv_pipeline_key *key, const struct radv_ray_tracing_group *groups,
-                          uint32_t flags);
-
-uint32_t radv_get_hash_flags(const struct radv_device *device, bool stats);
+void radv_hash_rt_shaders(const struct radv_device *device, unsigned char *hash,
+                          const VkRayTracingPipelineCreateInfoKHR *pCreateInfo, const struct radv_pipeline_key *key,
+                          const struct radv_ray_tracing_group *groups);
 
 bool radv_enable_rt(const struct radv_physical_device *pdevice, bool rt_pipelines);
 
@@ -2132,7 +2169,7 @@ struct radv_ray_tracing_group {
 
 struct radv_ray_tracing_stage {
    struct vk_pipeline_cache_object *nir;
-   struct vk_pipeline_cache_object *shader;
+   struct radv_shader *shader;
    gl_shader_stage stage;
    uint32_t stack_size;
 
@@ -2140,13 +2177,6 @@ struct radv_ray_tracing_stage {
 
    uint8_t sha1[SHA1_DIGEST_LENGTH];
 };
-
-static inline bool
-radv_ray_tracing_stage_is_compiled(struct radv_ray_tracing_stage *stage)
-{
-   return stage->stage == MESA_SHADER_RAYGEN || stage->stage == MESA_SHADER_CALLABLE ||
-          stage->stage == MESA_SHADER_CLOSEST_HIT || stage->stage == MESA_SHADER_MISS;
-}
 
 struct radv_ray_tracing_pipeline {
    struct radv_compute_pipeline base;
@@ -2156,6 +2186,7 @@ struct radv_ray_tracing_pipeline {
    struct radv_ray_tracing_stage *stages;
    struct radv_ray_tracing_group *groups;
    unsigned stage_count;
+   unsigned non_imported_stage_count;
    unsigned group_count;
 
    uint8_t sha1[SHA1_DIGEST_LENGTH];
@@ -2908,6 +2939,7 @@ void radv_rmv_log_descriptor_pool_create(struct radv_device *device, const VkDes
 void radv_rmv_log_graphics_pipeline_create(struct radv_device *device, struct radv_pipeline *pipeline,
                                            bool is_internal);
 void radv_rmv_log_compute_pipeline_create(struct radv_device *device, struct radv_pipeline *pipeline, bool is_internal);
+void radv_rmv_log_rt_pipeline_create(struct radv_device *device, struct radv_ray_tracing_pipeline *pipeline);
 void radv_rmv_log_event_create(struct radv_device *device, VkEvent event, VkEventCreateFlags flags, bool is_internal);
 void radv_rmv_log_resource_destroy(struct radv_device *device, uint64_t handle);
 void radv_rmv_log_submit(struct radv_device *device, enum amd_ip_type type);

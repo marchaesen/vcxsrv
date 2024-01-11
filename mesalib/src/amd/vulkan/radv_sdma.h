@@ -31,13 +31,16 @@ extern "C" {
 #endif
 
 struct radv_sdma_surf {
-   VkExtent3D extent; /* Image extent. */
-   VkOffset3D offset; /* Image offset. */
-   uint64_t va;       /* Virtual address of image data. */
-   unsigned bpp;      /* Bytes per pixel. */
-   unsigned blk_w;    /* Image format block width in pixels. */
-   unsigned blk_h;    /* Image format block height in pixels. */
-   bool is_linear;    /* Whether the image is linear. */
+   VkExtent3D extent;       /* Image extent. */
+   VkOffset3D offset;       /* Image offset. */
+   uint64_t va;             /* Virtual address of image data. */
+   unsigned bpp;            /* Bytes per pixel. */
+   unsigned blk_w;          /* Image format block width in pixels. */
+   unsigned blk_h;          /* Image format block height in pixels. */
+   unsigned mip_levels;     /* Mip levels in the image. */
+   uint8_t micro_tile_mode; /* Micro tile mode of the image. */
+   bool is_linear;          /* Whether the image is linear. */
+   bool is_3d;              /* Whether the image is 3-dimensional. */
 
    union {
       /* linear images only */
@@ -81,6 +84,13 @@ void radv_sdma_copy_buffer_image_unaligned(const struct radv_device *device, str
                                            const struct radv_sdma_surf *buf, const struct radv_sdma_surf *img_in,
                                            const VkExtent3D copy_extent, struct radeon_winsys_bo *temp_bo,
                                            bool to_image);
+void radv_sdma_copy_image(const struct radv_device *device, struct radeon_cmdbuf *cs, const struct radv_sdma_surf *src,
+                          const struct radv_sdma_surf *dst, const VkExtent3D extent);
+bool radv_sdma_use_t2t_scanline_copy(const struct radv_device *device, const struct radv_sdma_surf *src,
+                                     const struct radv_sdma_surf *dst, const VkExtent3D extent);
+void radv_sdma_copy_image_t2t_scanline(const struct radv_device *device, struct radeon_cmdbuf *cs,
+                                       const struct radv_sdma_surf *src, const struct radv_sdma_surf *dst,
+                                       const VkExtent3D extent, struct radeon_winsys_bo *temp_bo);
 void radv_sdma_copy_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t src_va, uint64_t dst_va,
                            uint64_t size);
 void radv_sdma_fill_buffer(const struct radv_device *device, struct radeon_cmdbuf *cs, const uint64_t va,

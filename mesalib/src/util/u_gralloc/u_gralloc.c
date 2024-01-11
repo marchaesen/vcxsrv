@@ -28,6 +28,8 @@ static const struct u_grallocs {
 #ifdef USE_IMAPPER4_METADATA_API
    {.type = U_GRALLOC_TYPE_GRALLOC4, .create = u_gralloc_imapper_api_create},
 #endif /* USE_IMAPPER4_METADATA_API */
+   {.type = U_GRALLOC_TYPE_LIBDRM, .create = u_gralloc_libdrm_create},
+   {.type = U_GRALLOC_TYPE_QCOM, .create = u_gralloc_qcom_create},
    {.type = U_GRALLOC_TYPE_FALLBACK, .create = u_gralloc_fallback_create},
 };
 

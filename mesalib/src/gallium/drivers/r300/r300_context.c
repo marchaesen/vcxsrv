@@ -64,7 +64,7 @@ static void r300_release_referenced_objects(struct r300_context *r300)
 
     /* Manually-created vertex buffers. */
     pipe_vertex_buffer_unreference(&r300->dummy_vb);
-    pb_reference(&r300->vbo, NULL);
+    radeon_bo_reference(r300->rws, &r300->vbo, NULL);
 
     r300->context.delete_depth_stencil_alpha_state(&r300->context,
                                                    r300->dsa_decompress_zmask);

@@ -44,6 +44,7 @@
 #include "api_exec_decl.h"
 #include "glthread_marshal.h"
 
+#include "cso_cache/cso_context.h"
 #include "state_tracker/st_context.h"
 #include "state_tracker/st_draw.h"
 #include "util/u_draw.h"
@@ -1619,8 +1620,6 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
       assert(end == ~0u);
    }
 
-   struct pipe_draw_info info;
-   struct pipe_draw_start_count_bias draw;
    unsigned index_size_shift = get_index_size_shift(type);
 
    if (index_bo) {
@@ -1638,6 +1637,60 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
          return;
       }
    }
+
+   st_prepare_draw(ctx, ST_PIPELINE_RENDER_STATE_MASK);
+
+   /* Fast path for a very common DrawElements case:
+    * - there are no user indices here (always true with glthread)
+    * - DrawGallium is st_draw_gallium (regular render mode, almost always
+    *   true), which only calls cso_context::draw_vbo
+    * - the threaded context is enabled while u_vbuf is bypassed (cso_context
+    *   always calls tc_draw_vbo, which is always true with glthread if all
+    *   vertex formats are also supported by the driver)
+    * - DrawID is 0 (true if glthread isn't unrolling an indirect multi draw,
+    *   which is almost always true)
+    */
+   struct st_context *st = st_context(ctx);
+   if (index_bo && ctx->Driver.DrawGallium == st_draw_gallium &&
+       st->cso_context->draw_vbo == tc_draw_vbo && ctx->DrawID == 0) {
+      assert(!st->draw_needs_minmax_index);
+      struct pipe_resource *index_buffer =
+         _mesa_get_bufferobj_reference(ctx, index_bo);
+      struct tc_draw_single *draw =
+         tc_add_draw_single_call(st->pipe, index_buffer);
+      bool primitive_restart = ctx->Array._PrimitiveRestart[index_size_shift];
+
+      /* This must be set exactly like u_threaded_context sets it, not like
+       * it would be set for draw_vbo.
+       */
+      draw->info.mode = mode;
+      draw->info.index_size = 1 << index_size_shift;
+      draw->info.view_mask = 0;
+      /* Packed section begin. */
+      draw->info.primitive_restart = primitive_restart;
+      draw->info.has_user_indices = false;
+      draw->info.index_bounds_valid = false;
+      draw->info.increment_draw_id = false;
+      draw->info.take_index_buffer_ownership = false;
+      draw->info.index_bias_varies = false;
+      draw->info.was_line_loop = false;
+      draw->info._pad = 0;
+      /* Packed section end. */
+      draw->info.start_instance = baseInstance;
+      draw->info.instance_count = numInstances;
+      draw->info.restart_index =
+         primitive_restart ? ctx->Array._RestartIndex[index_size_shift] : 0;
+      draw->info.index.resource = index_buffer;
+
+      /* u_threaded_context stores start/count in min/max_index for single draws. */
+      draw->info.min_index = (uintptr_t)indices >> index_size_shift;
+      draw->info.max_index = count;
+      draw->index_bias = basevertex;
+      return;
+   }
+
+   struct pipe_draw_info info;
+   struct pipe_draw_start_count_bias draw;
 
    info.mode = mode;
    info.index_size = 1 << index_size_shift;
@@ -1675,7 +1728,6 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
    info.max_index = end;
    draw.count = count;
 
-   st_prepare_draw(ctx, ST_PIPELINE_RENDER_STATE_MASK);
    if (!validate_index_bounds(ctx, &info, &draw, 1))
       return;
 
