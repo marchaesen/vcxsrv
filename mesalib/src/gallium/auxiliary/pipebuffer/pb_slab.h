@@ -62,8 +62,6 @@ struct pb_slab_entry
 {
    struct list_head head;
    struct pb_slab *slab; /* the slab that contains this buffer */
-   unsigned group_index; /* index into pb_slabs::groups */
-   unsigned entry_size;
 };
 
 /* Descriptor of a slab from which many entries are carved out.
@@ -78,6 +76,8 @@ struct pb_slab
    struct list_head free; /* list of free pb_slab_entry structures */
    unsigned num_free; /* number of entries in free list */
    unsigned num_entries; /* total number of entries */
+   unsigned group_index; /* index into pb_slabs::groups */
+   unsigned entry_size;
 };
 
 /* Callback function that is called when a new slab needs to be allocated

@@ -191,7 +191,7 @@ static ALWAYS_INLINE void
 vk_multialloc_add_size_align(struct vk_multialloc *ma,
                              void **ptr, size_t size, size_t align)
 {
-   assert(util_is_power_of_two_nonzero(align));
+   assert(util_is_power_of_two_nonzero_uintptr(align));
    if (size == 0) {
       *ptr = NULL;
       return;

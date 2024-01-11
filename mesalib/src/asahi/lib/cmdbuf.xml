@@ -1057,6 +1057,9 @@
   </struct>
 
   <struct name="CDM Barrier" size="4">
+    <field name="Unk 0" size="1" start="0" type="bool" default="false"/>
+    <field name="Unk 1" size="1" start="1" type="bool" default="false"/>
+    <field name="Unk 2" size="1" start="2" type="bool" default="false"/>
     <field name="USC cache inval" size="1" start="3" type="bool" default="false"/>
     <field name="Unk 4" size="1" start="4" type="bool" default="false"/>
     <field name="Unk 5" size="1" start="5" type="bool" default="false"/>

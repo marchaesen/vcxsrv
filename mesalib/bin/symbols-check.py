@@ -7,6 +7,7 @@ import subprocess
 
 # This list contains symbols that _might_ be exported for some platforms
 PLATFORM_SYMBOLS = [
+    '_GLOBAL_OFFSET_TABLE_',
     '__bss_end__',
     '__bss_start__',
     '__bss_start',

@@ -306,13 +306,23 @@ files_libnir = files(
   'nir_xfb_info.h',
 )
 
+# When a file is too large, -Wmisleading-indentation will give a note about
+# not being able to process it, however that is not suppressable by a #pragma
+# in GCC.  This happens with the generated code in nir_opt_algebraic.c.
+#
+# As a workaround, drop the warning for GCC.  Clang builds should cover this.
+no_misleading_indentation = []
+if cc.get_id() == 'gcc'
+  no_misleading_indentation += cc.get_supported_arguments('-Wno-misleading-indentation')
+endif
+
 _libnir = static_library(
   'nir',
   [files_libnir, nir_opt_algebraic_c, nir_opcodes_c,
    nir_opcodes_h, nir_constant_expressions_c, nir_builder_opcodes_h,
    nir_intrinsics_c, nir_intrinsics_h, nir_intrinsics_indices_h],
   include_directories : [inc_include, inc_src],
-  c_args : [c_msvc_compat_args, no_override_init_args],
+  c_args : [c_msvc_compat_args, no_override_init_args, no_misleading_indentation],
   gnu_symbol_visibility : 'hidden',
   dependencies : [idep_compiler, dep_valgrind],
   build_by_default : false,

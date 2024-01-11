@@ -913,7 +913,7 @@ radv_create_descriptor_pool(struct radv_device *device, const VkDescriptorPoolCr
       if (!(pCreateInfo->flags & VK_DESCRIPTOR_POOL_CREATE_HOST_ONLY_BIT_EXT)) {
          enum radeon_bo_flag flags = RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_READ_ONLY | RADEON_FLAG_32BIT;
 
-         if (device->instance->zero_vram)
+         if (device->instance->drirc.zero_vram)
             flags |= RADEON_FLAG_ZERO_VRAM;
 
          VkResult result = device->ws->buffer_create(device->ws, bo_size, 32, RADEON_DOMAIN_VRAM, flags,

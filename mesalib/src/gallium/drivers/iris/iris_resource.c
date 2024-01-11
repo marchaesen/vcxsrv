@@ -1280,7 +1280,7 @@ iris_resource_from_user_memory(struct pipe_screen *pscreen,
     * pointer.
     */
    size_t page_size = getpagesize();
-   assert(util_is_power_of_two_nonzero(page_size));
+   assert(util_is_power_of_two_nonzero_uintptr(page_size));
    size_t offset = (uintptr_t)user_memory & (page_size - 1);
    void *mem_start = (char *)user_memory - offset;
    size_t mem_size = offset + res_size;

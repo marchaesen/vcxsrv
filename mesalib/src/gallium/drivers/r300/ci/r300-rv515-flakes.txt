@@ -1,1 +1,0 @@
-dEQP-GLES2.functional.fragment_ops.depth_stencil.*

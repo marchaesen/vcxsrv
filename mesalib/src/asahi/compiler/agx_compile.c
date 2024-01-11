@@ -100,12 +100,13 @@ agx_get_cf(agx_context *ctx, bool smooth, bool perspective,
     * Y alone.
     */
    bool is_pntc = (slot == VARYING_SLOT_PNTC);
+   bool is_tex = slot >= VARYING_SLOT_TEX0 && slot <= VARYING_SLOT_TEX7;
    unsigned cf_offset = 0;
 
-   if (is_pntc) {
+   if (is_pntc || is_tex) {
       cf_offset = offset;
       offset = 0;
-      count = MAX2(2, count + offset);
+      count = is_tex ? 4 : MAX2(2, count + offset);
    }
 
    /* First, search for an appropriate binding. This is O(n) to the number of
@@ -215,7 +216,7 @@ agx_emit_collect_to(agx_builder *b, agx_index dst, unsigned nr_srcs,
 static agx_index
 agx_emit_collect(agx_builder *b, unsigned nr_srcs, agx_index *srcs)
 {
-   agx_index dst = agx_temp(b->shader, srcs[0].size);
+   agx_index dst = agx_vec_temp(b->shader, srcs[0].size, nr_srcs);
    agx_emit_collect_to(b, dst, nr_srcs, srcs);
    return dst;
 }
@@ -567,7 +568,7 @@ agx_emit_load(agx_builder *b, agx_index dest, nir_intrinsic_instr *instr)
       offset = agx_abs(offset);
 
    agx_device_load_to(b, dest, addr, offset, fmt,
-                      BITFIELD_MASK(instr->def.num_components), shift, 0);
+                      BITFIELD_MASK(instr->def.num_components), shift);
    agx_emit_cached_split(b, dest, instr->def.num_components);
 }
 
@@ -585,7 +586,7 @@ agx_emit_store(agx_builder *b, nir_intrinsic_instr *instr)
 
    agx_device_store(b, agx_recollect_vector(b, instr->src[0]), addr, offset,
                     fmt, BITFIELD_MASK(nir_src_num_components(instr->src[0])),
-                    shift, 0);
+                    shift);
 }
 
 /* Preambles write directly to uniform registers, so move from uniform to GPR */
@@ -667,6 +668,7 @@ agx_emit_block_image_store(agx_builder *b, nir_intrinsic_instr *instr)
     * logically to ensure alignment.
     */
    offset = agx_vec2(b, offset, agx_undef(AGX_SIZE_16));
+   offset.channels_m1--;
    offset.size = AGX_SIZE_32;
 
    /* Modified coordinate descriptor */
@@ -764,7 +766,7 @@ agx_emit_atomic(agx_builder *b, agx_index dst, nir_intrinsic_instr *instr,
       agx_local_atomic_to(b, dst, value, base, index, op);
    } else {
       assert(base.size == AGX_SIZE_64);
-      agx_atomic_to(b, dst, value, base, index, op, 0);
+      agx_atomic_to(b, dst, value, base, index, op);
    }
 }
 
@@ -944,6 +946,7 @@ agx_emit_image_load(agx_builder *b, agx_index dst, nir_intrinsic_instr *intr)
       assert(ms_index.size == AGX_SIZE_16);
       agx_index vec = agx_vec2(b, ms_index, layer);
       vec.size = AGX_SIZE_32;
+      vec.channels_m1 = 1 - 1;
       coord[coord_comps++] = vec;
    } else if (is_ms) {
       agx_index tmp = agx_temp(b->shader, AGX_SIZE_32);
@@ -960,11 +963,11 @@ agx_emit_image_load(agx_builder *b, agx_index dst, nir_intrinsic_instr *intr)
    }
 
    agx_index coords = agx_emit_collect(b, coord_comps, coord);
-   agx_index tmp = agx_temp(b->shader, dst.size);
+   agx_index tmp = agx_vec_temp(b->shader, dst.size, 4);
 
    agx_instr *I = agx_image_load_to(
       b, tmp, coords, lod, bindless, texture, agx_txf_sampler(b->shader),
-      agx_null(), agx_tex_dim(dim, is_array), lod_mode, 0, 0, false);
+      agx_null(), agx_tex_dim(dim, is_array), lod_mode, 0, false);
    I->mask = agx_expand_tex_to(b, &intr->def, tmp, true);
    return NULL;
 }
@@ -1229,11 +1232,9 @@ agx_emit_intrinsic(agx_builder *b, nir_intrinsic_instr *instr)
    }
 
    case nir_intrinsic_fence_mem_to_tex_agx: {
-      /* Flush out the atomic to main memory */
+      /* Flush out the atomic to main memory... Found experimentally... */
       agx_memory_barrier(b);
-      /* Found experimentally... */
-      if (b->shader->key->needs_g13x_coherency)
-         agx_memory_barrier_2(b);
+      agx_memory_barrier_2(b);
 
       /* TODO: Which ones do we actually need? */
       agx_image_barrier_1(b);
@@ -1281,6 +1282,11 @@ agx_emit_intrinsic(agx_builder *b, nir_intrinsic_instr *instr)
       /* Lane ID guaranteed to be uniform */
       return agx_simd_shuffle_to(b, dst, agx_src_index(&instr->src[0]),
                                  agx_src_index(&instr->src[1]));
+   }
+
+   case nir_intrinsic_ballot: {
+      return agx_icmp_ballot_to(b, dst, agx_src_index(&instr->src[0]),
+                                agx_zero(), AGX_ICOND_UEQ, true /* invert */);
    }
 
    case nir_intrinsic_doorbell_agx: {
@@ -1813,7 +1819,7 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
          agx_index index2 = agx_src_index(&instr->src[y_idx].src);
 
          /* We explicitly don't cache about the split cache for this */
-         lod = agx_temp(b->shader, AGX_SIZE_32);
+         lod = agx_vec_temp(b->shader, AGX_SIZE_32, 2 * n);
          agx_instr *I = agx_collect_to(b, lod, 2 * n);
 
          for (unsigned i = 0; i < n; ++i) {
@@ -1845,13 +1851,13 @@ agx_emit_tex(agx_builder *b, nir_tex_instr *instr)
    else if (!agx_is_null(compare))
       compare_offset = compare;
 
-   agx_index tmp = agx_temp(b->shader, dst.size);
+   agx_index tmp = agx_vec_temp(b->shader, dst.size, 4);
    agx_instr *I = agx_texture_sample_to(
       b, tmp, coords, lod, bindless, texture, sampler, compare_offset,
       agx_tex_dim(instr->sampler_dim, instr->is_array),
       agx_lod_mode_for_nir(
          instr->op, nir_tex_instr_src_index(instr, nir_tex_src_bias) >= 0),
-      0, 0, !agx_is_null(packed_offset), !agx_is_null(compare),
+      0, !agx_is_null(packed_offset), !agx_is_null(compare),
       instr->op == nir_texop_lod, agx_gather_for_nir(instr));
 
    if (txf)
@@ -2385,6 +2391,11 @@ mem_vectorize_cb(unsigned align_mul, unsigned align_offset, unsigned bit_size,
                  unsigned num_components, nir_intrinsic_instr *low,
                  nir_intrinsic_instr *high, void *data)
 {
+   /* Must be aligned to the size of the load */
+   unsigned align = nir_combined_align(align_mul, align_offset);
+   if ((bit_size / 8) > align)
+      return false;
+
    if (num_components > 4)
       return false;
 
@@ -2829,6 +2840,7 @@ agx_compile_function_nir(nir_shader *nir, nir_function_impl *impl,
       agx_print_shader(ctx, stdout);
 
    agx_ra(ctx);
+   agx_validate(ctx, "RA");
    agx_lower_64bit_postra(ctx);
 
    if (ctx->stage == MESA_SHADER_VERTEX && !impl->function->is_preamble)
@@ -2985,6 +2997,7 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
    NIR_PASS_V(nir, nir_shader_intrinsics_pass, agx_lower_front_face,
               nir_metadata_block_index | nir_metadata_dominance, NULL);
    NIR_PASS_V(nir, nir_lower_frag_coord_to_pixel_coord);
+   NIR_PASS_V(nir, agx_nir_lower_subgroups);
 
    /* After lowering, run through the standard suite of NIR optimizations. We
     * will run through the loop later, once we have the shader key, but if we
@@ -3039,6 +3052,20 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    /* Late tilebuffer lowering creates multisampled image stores */
    NIR_PASS(needs_libagx, nir, agx_nir_lower_multisampled_image_store);
 
+   if (nir->info.stage == MESA_SHADER_FRAGMENT)
+      NIR_PASS(needs_libagx, nir, agx_nir_lower_interpolation);
+
+   if (needs_libagx) {
+      link_libagx(nir, key->libagx);
+
+      NIR_PASS_V(nir, nir_opt_deref);
+      NIR_PASS_V(nir, nir_lower_vars_to_ssa);
+      NIR_PASS_V(nir, nir_lower_explicit_io,
+                 nir_var_shader_temp | nir_var_function_temp |
+                    nir_var_mem_shared | nir_var_mem_global,
+                 nir_address_format_62bit_generic);
+   }
+
    /* Late sysval lowering creates large loads. Load lowering creates unpacks */
    nir_lower_mem_access_bit_sizes_options lower_mem_access_options = {
       .modes = nir_var_mem_ssbo | nir_var_mem_constant |
@@ -3063,20 +3090,6 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    /* Late blend lowering creates vectors */
    NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
    NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
-
-   if (nir->info.stage == MESA_SHADER_FRAGMENT)
-      NIR_PASS(needs_libagx, nir, agx_nir_lower_interpolation);
-
-   if (needs_libagx) {
-      link_libagx(nir, key->libagx);
-
-      NIR_PASS_V(nir, nir_opt_deref);
-      NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-      NIR_PASS_V(nir, nir_lower_explicit_io,
-                 nir_var_shader_temp | nir_var_function_temp |
-                    nir_var_mem_shared | nir_var_mem_global,
-                 nir_address_format_62bit_generic);
-   }
 
    /* Late VBO lowering creates constant udiv instructions */
    NIR_PASS_V(nir, nir_opt_idiv_const, 16);
@@ -3105,14 +3118,13 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    if (nir->info.stage == MESA_SHADER_FRAGMENT && key->fs.nr_samples) {
       if (agx_nir_lower_sample_mask(nir, key->fs.nr_samples)) {
          /* Clean up ixor(bcsel) patterns created from sample mask lowering.
-          * If this succeeds, we'll have expressions to constant fold to get the
-          * benefit. We need to rescalarize after folding constants.
+          * Also constant fold to get the benefit. We need to rescalarize after
+          * folding constants.
           */
-         if (agx_nir_opt_ixor_bcsel(nir)) {
-            NIR_PASS_V(nir, nir_opt_constant_folding);
-            NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
-            NIR_PASS_V(nir, nir_opt_dce);
-         }
+         NIR_PASS_V(nir, agx_nir_opt_ixor_bcsel);
+         NIR_PASS_V(nir, nir_opt_constant_folding);
+         NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
+         NIR_PASS_V(nir, nir_opt_dce);
       }
    }
 

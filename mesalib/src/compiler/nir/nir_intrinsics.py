@@ -1210,10 +1210,10 @@ load("mesh_view_indices", [1], [BASE, RANGE], [CAN_ELIMINATE, CAN_REORDER])
 load("preamble", [], indices=[BASE], flags=[CAN_ELIMINATE, CAN_REORDER])
 store("preamble", [], indices=[BASE])
 
-# A 32 bits bitfield storing 1 in bits corresponding to varyings
-# that have the flat interpolation specifier in the fragment shader
-# and 0 otherwise
-system_value("flat_mask", 1)
+# A 64-bit bitfield indexed by I/O location storing 1 in bits corresponding to
+# varyings that have the flat interpolation specifier in the fragment shader and
+# 0 otherwise
+system_value("flat_mask", 1, bit_sizes=[64])
 
 # Whether provoking vertex mode is last
 system_value("provoking_last", 1)
@@ -1848,6 +1848,9 @@ system_value("sample_positions_agx", 1, bit_sizes=[32])
 
 # Loads the fixed-function glPointSize() value
 system_value("fixed_point_size_agx", 1, bit_sizes=[32])
+
+# Bit mask of TEX locations that are replaced with point sprites
+system_value("tex_sprite_mask_agx", 1, bit_sizes=[16])
 
 # Image loads go through the texture cache, which is not coherent with the PBE
 # or memory access, so fencing is necessary for writes to become visible.

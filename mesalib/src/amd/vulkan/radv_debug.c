@@ -487,10 +487,9 @@ radv_dump_queue_state(struct radv_queue *queue, const char *dump_dir, FILE *f)
       } else if (pipeline->type == RADV_PIPELINE_RAY_TRACING) {
          struct radv_ray_tracing_pipeline *rt_pipeline = radv_pipeline_to_ray_tracing(pipeline);
          for (unsigned i = 0; i < rt_pipeline->stage_count; i++) {
-            if (radv_ray_tracing_stage_is_compiled(&rt_pipeline->stages[i])) {
-               struct radv_shader *shader = container_of(rt_pipeline->stages[i].shader, struct radv_shader, base);
+            struct radv_shader *shader = rt_pipeline->stages[i].shader;
+            if (shader)
                radv_dump_shader(device, pipeline, shader, shader->info.stage, dump_dir, f);
-            }
          }
          radv_dump_shader(device, pipeline, pipeline->shaders[MESA_SHADER_INTERSECTION], MESA_SHADER_INTERSECTION,
                           dump_dir, f);
@@ -521,10 +520,9 @@ radv_dump_queue_state(struct radv_queue *queue, const char *dump_dir, FILE *f)
          } else if (pipeline->type == RADV_PIPELINE_RAY_TRACING) {
             struct radv_ray_tracing_pipeline *rt_pipeline = radv_pipeline_to_ray_tracing(pipeline);
             for (unsigned i = 0; i < rt_pipeline->stage_count; i++) {
-               if (radv_ray_tracing_stage_is_compiled(&rt_pipeline->stages[i])) {
-                  struct radv_shader *shader = container_of(rt_pipeline->stages[i].shader, struct radv_shader, base);
+               struct radv_shader *shader = rt_pipeline->stages[i].shader;
+               if (shader)
                   radv_dump_annotated_shader(shader, shader->info.stage, waves, num_waves, f);
-               }
             }
             radv_dump_annotated_shader(pipeline->shaders[MESA_SHADER_INTERSECTION], MESA_SHADER_INTERSECTION, waves,
                                        num_waves, f);

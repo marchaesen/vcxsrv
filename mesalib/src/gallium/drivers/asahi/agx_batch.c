@@ -6,6 +6,7 @@
 
 #include <xf86drm.h>
 #include "asahi/lib/decode.h"
+#include "util/bitset.h"
 #include "util/u_dynarray.h"
 #include "agx_state.h"
 
@@ -114,7 +115,7 @@ agx_batch_init(struct agx_context *ctx,
              batch->bo_list.word_count * sizeof(BITSET_WORD));
    }
 
-   if (batch->key.width == AGX_COMPUTE_BATCH_WIDTH) {
+   if (agx_batch_is_compute(batch)) {
       batch->cdm = agx_encoder_allocate(batch, dev);
       memset(&batch->vdm, 0, sizeof(batch->vdm));
    } else {
@@ -310,7 +311,7 @@ agx_get_batch_for_framebuffer(struct agx_context *ctx,
 struct agx_batch *
 agx_get_batch(struct agx_context *ctx)
 {
-   if (!ctx->batch) {
+   if (!ctx->batch || agx_batch_is_compute(ctx->batch)) {
       ctx->batch = agx_get_batch_for_framebuffer(ctx, &ctx->framebuffer);
       agx_dirty_all(ctx);
    }
@@ -476,7 +477,8 @@ agx_batch_reads(struct agx_batch *batch, struct agx_resource *rsrc)
 }
 
 void
-agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc)
+agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc,
+                 unsigned level)
 {
    struct agx_context *ctx = batch->ctx;
    struct agx_batch *writer = agx_writer_get(ctx, rsrc->bo->handle);
@@ -484,6 +486,8 @@ agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc)
    assert(batch->initialized);
 
    agx_flush_readers_except(ctx, rsrc, batch, "Write from other batch", false);
+
+   BITSET_SET(rsrc->data_valid, level);
 
    /* Nothing to do if we're already writing */
    if (writer == batch)
@@ -549,6 +553,7 @@ agx_batch_submit(struct agx_context *ctx, struct agx_batch *batch,
                  void *cmdbuf)
 {
    struct agx_device *dev = agx_device(ctx->base.screen);
+   struct agx_screen *screen = agx_screen(ctx->base.screen);
 
    bool feedback = dev->debug & (AGX_DBG_TRACE | AGX_DBG_SYNC | AGX_DBG_STATS);
 
@@ -609,10 +614,9 @@ agx_batch_submit(struct agx_context *ctx, struct agx_batch *batch,
    agx_add_sync(in_syncs, &in_sync_count, agx_get_in_sync(ctx));
 
    /* Submit! */
-   agx_submit_single(
-      dev, cmd_type, barriers, in_syncs, in_sync_count, &out_sync, 1, cmdbuf,
-      feedback ? ctx->result_buf->handle : 0, feedback ? batch->result_off : 0,
-      feedback ? sizeof(union agx_batch_result) : 0);
+   /* TODO: UAPI */
+   (void)screen;
+   (void)out_sync;
 
    /* Now stash our batch fence into any shared BOs. */
    if (shared_bo_count) {

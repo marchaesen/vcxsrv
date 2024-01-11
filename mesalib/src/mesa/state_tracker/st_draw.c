@@ -111,7 +111,7 @@ st_prepare_draw(struct gl_context *ctx, uint64_t state_mask)
    }
 }
 
-static void
+void
 st_draw_gallium(struct gl_context *ctx,
                 struct pipe_draw_info *info,
                 unsigned drawid_offset,

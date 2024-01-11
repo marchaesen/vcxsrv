@@ -730,6 +730,7 @@ v3d_lower_nir(struct v3d_compile *c)
                  nir_var_function_temp,
                  0,
                  glsl_get_natural_size_align_bytes);
+        NIR_PASS(_, c->s, nir_lower_is_helper_invocation);
         NIR_PASS(_, c->s, v3d_nir_lower_scratch);
         NIR_PASS(_, c->s, v3d_nir_lower_null_pointers);
 }

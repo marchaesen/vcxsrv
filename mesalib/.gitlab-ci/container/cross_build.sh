@@ -40,6 +40,9 @@ DEPS=(
 )
 
 dpkg --add-architecture $arch
+
+echo "deb [trusted=yes] https://gitlab.freedesktop.org/gfx-ci/ci-deb-repo/-/raw/${PKG_REPO_REV}/ ${FDO_DISTRIBUTION_VERSION%-*} main" | tee /etc/apt/sources.list.d/gfx-ci_.list
+
 apt-get update
 
 apt-get install -y --no-remove "${DEPS[@]}" "${EPHEMERAL[@]}" \
@@ -72,8 +75,6 @@ fi
 # dependencies where we want a specific version
 MULTIARCH_PATH=$(dpkg-architecture -A $arch -qDEB_TARGET_MULTIARCH)
 export EXTRA_MESON_ARGS="--cross-file=/cross_file-${arch}.txt -D libdir=lib/${MULTIARCH_PATH}"
-. .gitlab-ci/container/build-libdrm.sh
-
 . .gitlab-ci/container/build-wayland.sh
 
 . .gitlab-ci/container/build-directx-headers.sh

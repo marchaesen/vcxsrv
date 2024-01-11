@@ -149,6 +149,9 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr,
    case nir_intrinsic_load_ssbo_address:
       return load_sysval_indirect(b, 1, 64, stage_table(b), &s->ssbo_base,
                                   intr->src[0].ssa);
+   case nir_intrinsic_get_ubo_size:
+      return load_sysval_indirect(b, 1, 32, stage_table(b), &s->ubo_size,
+                                  intr->src[0].ssa);
    case nir_intrinsic_get_ssbo_size:
       return load_sysval_indirect(b, 1, 32, stage_table(b), &s->ssbo_size,
                                   intr->src[0].ssa);
@@ -160,6 +163,8 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr,
       return load_sysval_root(b, 1, 64, &u->geometry_params);
    case nir_intrinsic_load_fixed_point_size_agx:
       return load_sysval_root(b, 1, 32, &u->fixed_point_size);
+   case nir_intrinsic_load_tex_sprite_mask_agx:
+      return load_sysval_root(b, 1, 16, &u->sprite_mask);
    default:
       break;
    }

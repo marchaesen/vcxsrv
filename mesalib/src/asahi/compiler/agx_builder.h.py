@@ -30,7 +30,7 @@ agx_alloc_instr(agx_builder *b, enum agx_opcode op, uint8_t nr_dests, uint8_t nr
    op = opcodes[opcode]
    dests = op.dests
    srcs = op.srcs
-   imms = op.imms
+   imms = [x for x in op.imms if (x.name != 'scoreboard' or opcode == 'wait')]
    suffix = "_to" if dests > 0 else ""
    nr_dests = "nr_dests" if op.variable_dests else str(dests)
    nr_srcs = "nr_srcs" if op.variable_srcs else str(srcs)

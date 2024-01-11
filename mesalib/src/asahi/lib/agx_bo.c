@@ -51,8 +51,8 @@ agx_bo_cache_remove_locked(struct agx_device *dev, struct agx_bo *bo)
  * BO. */
 
 struct agx_bo *
-agx_bo_cache_fetch(struct agx_device *dev, size_t size, uint32_t flags,
-                   const bool dontwait)
+agx_bo_cache_fetch(struct agx_device *dev, size_t size, size_t align,
+                   uint32_t flags, const bool dontwait)
 {
    simple_mtx_lock(&dev->bo_cache.lock);
    struct list_head *bucket = agx_bucket(dev, size);
@@ -65,6 +65,9 @@ agx_bo_cache_fetch(struct agx_device *dev, size_t size, uint32_t flags,
 
       /* Do not return more than 2x oversized BOs. */
       if (entry->size > 2 * size)
+         continue;
+
+      if (align > entry->align)
          continue;
 
       /* If the oldest BO in the cache is busy, likely so is
@@ -211,8 +214,8 @@ agx_bo_unreference(struct agx_bo *bo)
 }
 
 struct agx_bo *
-agx_bo_create(struct agx_device *dev, unsigned size, enum agx_bo_flags flags,
-              const char *label)
+agx_bo_create_aligned(struct agx_device *dev, unsigned size, unsigned align,
+                      enum agx_bo_flags flags, const char *label)
 {
    struct agx_bo *bo;
    assert(size > 0);
@@ -221,7 +224,7 @@ agx_bo_create(struct agx_device *dev, unsigned size, enum agx_bo_flags flags,
    size = ALIGN_POT(size, 16384);
 
    /* See if we have a BO already in the cache */
-   bo = agx_bo_cache_fetch(dev, size, flags, true);
+   bo = agx_bo_cache_fetch(dev, size, align, flags, true);
 
    /* Update stats based on the first attempt to fetch */
    if (bo != NULL)
@@ -234,12 +237,12 @@ agx_bo_create(struct agx_device *dev, unsigned size, enum agx_bo_flags flags,
     * flush the cache to make space for the new allocation.
     */
    if (!bo)
-      bo = agx_bo_alloc(dev, size, flags);
+      bo = agx_bo_alloc(dev, size, align, flags);
    if (!bo)
-      bo = agx_bo_cache_fetch(dev, size, flags, false);
+      bo = agx_bo_cache_fetch(dev, size, align, flags, false);
    if (!bo) {
       agx_bo_cache_evict_all(dev);
-      bo = agx_bo_alloc(dev, size, flags);
+      bo = agx_bo_alloc(dev, size, align, flags);
    }
 
    if (!bo) {

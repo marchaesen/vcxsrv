@@ -1725,7 +1725,8 @@ radv_generate_ps_epilog_key(const struct radv_device *device, const struct radv_
    key.spi_shader_col_format = col_format;
    key.color_is_int8 = device->physical_device->rad_info.gfx_level < GFX8 ? is_int8 : 0;
    key.color_is_int10 = device->physical_device->rad_info.gfx_level < GFX8 ? is_int10 : 0;
-   key.enable_mrt_output_nan_fixup = device->instance->enable_mrt_output_nan_fixup ? is_float32 : 0;
+   key.enable_mrt_output_nan_fixup = device->instance->drirc.enable_mrt_output_nan_fixup ? is_float32 : 0;
+   key.colors_written = state->colors_written;
    key.mrt0_is_dual_src = state->mrt0_is_dual_src;
    key.export_depth = state->export_depth;
    key.export_stencil = state->export_stencil;
@@ -1803,7 +1804,7 @@ radv_generate_graphics_pipeline_key(const struct radv_device *device, const stru
    struct radv_pipeline_key key = radv_generate_pipeline_key(device, pCreateInfo->pStages, pCreateInfo->stageCount,
                                                              pipeline->base.create_flags, pCreateInfo->pNext);
 
-   key.shader_version = device->instance->override_graphics_shader_version;
+   key.shader_version = device->instance->drirc.override_graphics_shader_version;
 
    key.lib_flags = lib_flags;
    key.has_multiview_view_index = state->rp ? !!state->rp->view_mask : 0;
@@ -1892,27 +1893,13 @@ radv_generate_graphics_pipeline_key(const struct radv_device *device, const stru
       key.vs.provoking_vtx_last = state->rs->provoking_vertex == VK_PROVOKING_VERTEX_MODE_LAST_VERTEX_EXT;
    }
 
-   if (device->instance->debug_flags & RADV_DEBUG_DISCARD_TO_DEMOTE)
-      key.ps.lower_discard_to_demote = true;
-
    key.ps.force_vrs_enabled = device->force_vrs_enabled && !radv_is_static_vrs_enabled(pipeline, state);
-
-   if (device->instance->debug_flags & RADV_DEBUG_INVARIANT_GEOM)
-      key.invariant_geom = true;
-
-   key.use_ngg = device->physical_device->use_ngg;
 
    if ((radv_is_vrs_enabled(pipeline, state) || key.ps.force_vrs_enabled) &&
        (device->physical_device->rad_info.family == CHIP_NAVI21 ||
         device->physical_device->rad_info.family == CHIP_NAVI22 ||
         device->physical_device->rad_info.family == CHIP_VANGOGH))
       key.adjust_frag_coord_z = true;
-
-   if (device->instance->disable_sinking_load_input_fs)
-      key.disable_sinking_load_input_fs = true;
-
-   if (device->primitives_generated_query)
-      key.primitives_generated_query = true;
 
    if (radv_pipeline_needs_ps_epilog(pipeline, lib_flags))
       key.ps.has_epilog = true;
@@ -1972,8 +1959,6 @@ radv_generate_graphics_pipeline_key(const struct radv_device *device, const stru
       }
    }
 
-   key.mesh_shader_queries = device->mesh_shader_queries;
-
    return key;
 }
 
@@ -1981,7 +1966,7 @@ static void
 radv_fill_shader_info_ngg(struct radv_device *device, const struct radv_pipeline_key *pipeline_key,
                           struct radv_shader_stage *stages, VkShaderStageFlagBits active_nir_stages)
 {
-   if (pipeline_key->use_ngg) {
+   if (device->cache_key.use_ngg) {
       if (stages[MESA_SHADER_TESS_CTRL].nir) {
          stages[MESA_SHADER_TESS_EVAL].info.is_ngg = true;
       } else if (stages[MESA_SHADER_VERTEX].nir) {
@@ -2645,8 +2630,7 @@ radv_graphics_pipeline_compile(struct radv_graphics_pipeline *pipeline, const Vk
    radv_pipeline_load_retained_shaders(device, pipeline, pCreateInfo, stages);
 
    if (radv_should_compute_pipeline_hash(device, pipeline, fast_linking_enabled)) {
-      radv_hash_shaders(hash, stages, MESA_VULKAN_SHADER_STAGES, pipeline_layout, pipeline_key,
-                        radv_get_hash_flags(device, keep_statistic_info));
+      radv_hash_shaders(device, hash, stages, MESA_VULKAN_SHADER_STAGES, pipeline_layout, pipeline_key);
 
       pipeline->base.pipeline_hash = *(uint64_t *)hash;
    }

@@ -141,7 +141,7 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
 
    tc_driver_internal_flush_notify(ctx->tc);
    if (fence)
-      ws->fence_reference(fence, ctx->last_gfx_fence);
+      ws->fence_reference(ws, fence, ctx->last_gfx_fence);
 
    ctx->num_gfx_cs_flushes++;
 

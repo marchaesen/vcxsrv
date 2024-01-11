@@ -165,10 +165,49 @@ opt_move_discards_to_top_impl(nir_function_impl *impl)
                instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
                goto break_all;
             }
-
-            if ((intrin->intrinsic == nir_intrinsic_discard_if && consider_discards) ||
-                intrin->intrinsic == nir_intrinsic_demote_if)
+            switch (intrin->intrinsic) {
+            case nir_intrinsic_quad_broadcast:
+            case nir_intrinsic_quad_swap_horizontal:
+            case nir_intrinsic_quad_swap_vertical:
+            case nir_intrinsic_quad_swap_diagonal:
+            case nir_intrinsic_quad_vote_all:
+            case nir_intrinsic_quad_vote_any:
+            case nir_intrinsic_quad_swizzle_amd:
+               consider_discards = false;
+               break;
+            case nir_intrinsic_vote_any:
+            case nir_intrinsic_vote_all:
+            case nir_intrinsic_vote_feq:
+            case nir_intrinsic_vote_ieq:
+            case nir_intrinsic_ballot:
+            case nir_intrinsic_first_invocation:
+            case nir_intrinsic_read_invocation:
+            case nir_intrinsic_read_first_invocation:
+            case nir_intrinsic_elect:
+            case nir_intrinsic_reduce:
+            case nir_intrinsic_inclusive_scan:
+            case nir_intrinsic_exclusive_scan:
+            case nir_intrinsic_shuffle:
+            case nir_intrinsic_shuffle_xor:
+            case nir_intrinsic_shuffle_up:
+            case nir_intrinsic_shuffle_down:
+            case nir_intrinsic_rotate:
+            case nir_intrinsic_masked_swizzle_amd:
+               instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
+               goto break_all;
+            case nir_intrinsic_discard_if:
+               if (!consider_discards) {
+                  /* assume that a shader either uses discard or demote, but not both */
+                  instr->pass_flags = STOP_PROCESSING_INSTR_FLAG;
+                  goto break_all;
+               }
+            FALLTHROUGH;
+            case nir_intrinsic_demote_if:
                moved = moved || try_move_discard(intrin);
+               break;
+            default:
+               break;
+            }
             continue;
          }
 

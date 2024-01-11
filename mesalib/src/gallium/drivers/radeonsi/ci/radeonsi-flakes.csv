@@ -27,3 +27,9 @@ KHR-GL46.pipeline_statistics_query_tests_ARB.functional_primitives_vertices_subm
 
 # escts
 KHR-GLES31.core.shader_image_load_store.basic-allFormats-store-fs
+
+# gfx11 fails these randomly, probably because of streamout
+KHR-GL46.geometry_shader.primitive_counter.lines_to_line_strip
+KHR-GL46.geometry_shader.primitive_counter.lines_to_line_strip_rp
+KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip
+KHR-GL46.geometry_shader.primitive_counter.triangles_to_line_strip_rp

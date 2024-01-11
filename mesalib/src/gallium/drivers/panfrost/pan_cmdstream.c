@@ -50,6 +50,7 @@
 #include "pan_jm.h"
 #include "pan_job.h"
 #include "pan_pool.h"
+#include "pan_resource.h"
 #include "pan_shader.h"
 #include "pan_texture.h"
 #include "pan_util.h"

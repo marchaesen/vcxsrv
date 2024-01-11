@@ -69,7 +69,6 @@ struct zink_sparse_commitment {
 
 struct zink_slab {
    struct pb_slab base;
-   unsigned entry_size;
    struct zink_bo *buffer;
    struct zink_bo *entries;
 };
@@ -172,9 +171,9 @@ static void
 bo_slab_free(struct zink_screen *screen, struct pb_slab *pslab)
 {
    struct zink_slab *slab = zink_slab(pslab);
-   ASSERTED unsigned slab_size = slab->buffer->base.size;
+   ASSERTED unsigned slab_size = slab->buffer->base.base.size;
 
-   assert(slab->base.num_entries * slab->entry_size <= slab_size);
+   assert(slab->base.num_entries * slab->base.entry_size <= slab_size);
    FREE(slab->entries);
    zink_bo_unref(screen, slab->buffer);
    FREE(slab);
@@ -190,7 +189,7 @@ bo_slab_destroy(struct zink_screen *screen, struct pb_buffer *pbuf)
    //if (bo->base.usage & RADEON_FLAG_ENCRYPTED)
       //pb_slab_free(get_slabs(screen, bo->base.size, RADEON_FLAG_ENCRYPTED), &bo->u.slab.entry);
    //else
-      pb_slab_free(get_slabs(screen, bo->base.size, 0), &bo->u.slab.entry);
+      pb_slab_free(get_slabs(screen, bo->base.base.size, 0), &bo->u.slab.entry);
 }
 
 static bool
@@ -233,7 +232,7 @@ bo_destroy_or_cache(struct zink_screen *screen, struct pb_buffer *pbuf)
    bo->writes.u = NULL;
 
    if (bo->u.real.use_reusable_pool)
-      pb_cache_add_buffer(bo->cache_entry);
+      pb_cache_add_buffer(&screen->pb.bo_cache, bo->cache_entry);
    else
       bo_destroy(screen, pbuf);
 }
@@ -311,7 +310,7 @@ bo_create_internal(struct zink_screen *screen,
 
    if (init_pb_cache) {
       bo->u.real.use_reusable_pool = true;
-      pb_cache_init_entry(&screen->pb.bo_cache, bo->cache_entry, &bo->base, mem_type_idx);
+      pb_cache_init_entry(&screen->pb.bo_cache, bo->cache_entry, &bo->base.base, mem_type_idx);
    } else {
 #ifdef ZINK_USE_DMABUF
       list_inithead(&bo->u.real.exports);
@@ -321,12 +320,12 @@ bo_create_internal(struct zink_screen *screen,
 
 
    simple_mtx_init(&bo->lock, mtx_plain);
-   pipe_reference_init(&bo->base.reference, 1);
-   bo->base.alignment_log2 = util_logbase2(alignment);
-   bo->base.size = mai.allocationSize;
+   pipe_reference_init(&bo->base.base.reference, 1);
+   bo->base.base.alignment_log2 = util_logbase2(alignment);
+   bo->base.base.size = mai.allocationSize;
    bo->base.vtbl = &bo_vtbl;
-   bo->base.placement = mem_type_idx;
-   bo->base.usage = flags;
+   bo->base.base.placement = mem_type_idx;
+   bo->base.base.usage = flags;
    bo->unique_id = p_atomic_inc_return(&screen->pb.next_bo_unique_id);
 
    return bo;
@@ -384,11 +383,11 @@ sparse_backing_alloc(struct zink_screen *screen, struct zink_bo *bo,
          return NULL;
       }
 
-      assert(bo->u.sparse.num_backing_pages < DIV_ROUND_UP(bo->base.size, ZINK_SPARSE_BUFFER_PAGE_SIZE));
+      assert(bo->u.sparse.num_backing_pages < DIV_ROUND_UP(bo->base.base.size, ZINK_SPARSE_BUFFER_PAGE_SIZE));
 
-      size = MIN3(bo->base.size / 16,
+      size = MIN3(bo->base.base.size / 16,
                   8 * 1024 * 1024,
-                  bo->base.size - (uint64_t)bo->u.sparse.num_backing_pages * ZINK_SPARSE_BUFFER_PAGE_SIZE);
+                  bo->base.base.size - (uint64_t)bo->u.sparse.num_backing_pages * ZINK_SPARSE_BUFFER_PAGE_SIZE);
       size = MAX2(size, ZINK_SPARSE_BUFFER_PAGE_SIZE);
 
       buf = zink_bo_create(screen, size, ZINK_SPARSE_BUFFER_PAGE_SIZE,
@@ -400,7 +399,7 @@ sparse_backing_alloc(struct zink_screen *screen, struct zink_bo *bo,
       }
 
       /* We might have gotten a bigger buffer than requested via caching. */
-      pages = buf->size / ZINK_SPARSE_BUFFER_PAGE_SIZE;
+      pages = buf->base.size / ZINK_SPARSE_BUFFER_PAGE_SIZE;
 
       best_backing->bo = zink_bo(buf);
       best_backing->num_chunks = 1;
@@ -431,7 +430,7 @@ static void
 sparse_free_backing_buffer(struct zink_screen *screen, struct zink_bo *bo,
                            struct zink_sparse_backing *backing)
 {
-   bo->u.sparse.num_backing_pages -= backing->bo->base.size / ZINK_SPARSE_BUFFER_PAGE_SIZE;
+   bo->u.sparse.num_backing_pages -= backing->bo->base.base.size / ZINK_SPARSE_BUFFER_PAGE_SIZE;
 
    list_del(&backing->list);
    zink_bo_unref(screen, backing->bo);
@@ -498,7 +497,7 @@ sparse_backing_free(struct zink_screen *screen, struct zink_bo *bo,
    }
 
    if (backing->num_chunks == 1 && backing->chunks[0].begin == 0 &&
-       backing->chunks[0].end == backing->bo->base.size / ZINK_SPARSE_BUFFER_PAGE_SIZE)
+       backing->chunks[0].end == backing->bo->base.base.size / ZINK_SPARSE_BUFFER_PAGE_SIZE)
       sparse_free_backing_buffer(screen, bo, backing);
 
    return true;
@@ -509,7 +508,7 @@ bo_sparse_destroy(struct zink_screen *screen, struct pb_buffer *pbuf)
 {
    struct zink_bo *bo = zink_bo(pbuf);
 
-   assert(!bo->mem && bo->base.usage & ZINK_ALLOC_SPARSE);
+   assert(!bo->mem && bo->base.base.usage & ZINK_ALLOC_SPARSE);
 
    while (!list_is_empty(&bo->u.sparse.backing)) {
       sparse_free_backing_buffer(screen, bo,
@@ -545,15 +544,15 @@ bo_sparse_create(struct zink_screen *screen, uint64_t size)
       return NULL;
 
    simple_mtx_init(&bo->lock, mtx_plain);
-   pipe_reference_init(&bo->base.reference, 1);
-   bo->base.alignment_log2 = util_logbase2(ZINK_SPARSE_BUFFER_PAGE_SIZE);
-   bo->base.size = size;
+   pipe_reference_init(&bo->base.base.reference, 1);
+   bo->base.base.alignment_log2 = util_logbase2(ZINK_SPARSE_BUFFER_PAGE_SIZE);
+   bo->base.base.size = size;
    bo->base.vtbl = &bo_sparse_vtbl;
    unsigned placement = zink_mem_type_idx_from_bits(screen, ZINK_HEAP_DEVICE_LOCAL_SPARSE, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
    assert(placement != UINT32_MAX);
-   bo->base.placement = placement;
+   bo->base.base.placement = placement;
    bo->unique_id = p_atomic_inc_return(&screen->pb.next_bo_unique_id);
-   bo->base.usage = ZINK_ALLOC_SPARSE;
+   bo->base.base.usage = ZINK_ALLOC_SPARSE;
 
    bo->u.sparse.num_va_pages = DIV_ROUND_UP(size, ZINK_SPARSE_BUFFER_PAGE_SIZE);
    bo->u.sparse.commitments = CALLOC(bo->u.sparse.num_va_pages,
@@ -634,10 +633,10 @@ zink_bo_create(struct zink_screen *screen, uint64_t size, unsigned alignment, en
          return NULL;
 
       bo = container_of(entry, struct zink_bo, u.slab.entry);
-      assert(bo->base.placement == mem_type_idx);
-      pipe_reference_init(&bo->base.reference, 1);
-      bo->base.size = size;
-      assert(alignment <= 1 << bo->base.alignment_log2);
+      assert(bo->base.base.placement == mem_type_idx);
+      pipe_reference_init(&bo->base.base.reference, 1);
+      bo->base.base.size = size;
+      assert(alignment <= 1 << bo->base.base.alignment_log2);
 
       return &bo->base;
    }
@@ -664,7 +663,7 @@ no_slab:
        /* Get a buffer from the cache. */
        bo = (struct zink_bo*)
             pb_cache_reclaim_buffer(&screen->pb.bo_cache, size, alignment, 0, mem_type_idx);
-       assert(!bo || bo->base.placement == mem_type_idx);
+       assert(!bo || bo->base.base.placement == mem_type_idx);
        if (bo)
           return &bo->base;
    }
@@ -678,7 +677,7 @@ no_slab:
       if (!bo)
          return NULL;
    }
-   assert(bo->base.placement == mem_type_idx);
+   assert(bo->base.base.placement == mem_type_idx);
 
    return &bo->base;
 }
@@ -704,15 +703,15 @@ zink_bo_map(struct zink_screen *screen, struct zink_bo *bo)
        * be atomic thanks to the lock. */
       cpu = real->u.real.cpu_ptr;
       if (!cpu) {
-         VkResult result = VKSCR(MapMemory)(screen->dev, real->mem, 0, real->base.size, 0, &cpu);
+         VkResult result = VKSCR(MapMemory)(screen->dev, real->mem, 0, real->base.base.size, 0, &cpu);
          if (result != VK_SUCCESS) {
             mesa_loge("ZINK: vkMapMemory failed (%s)", vk_Result_to_str(result));
             simple_mtx_unlock(&real->lock);
             return NULL;
          }
          if (unlikely(zink_debug & ZINK_DEBUG_MAP)) {
-            p_atomic_add(&screen->mapped_vram, real->base.size);
-            mesa_loge("NEW MAP(%"PRIu64") TOTAL(%"PRIu64")", real->base.size, screen->mapped_vram);
+            p_atomic_add(&screen->mapped_vram, real->base.base.size);
+            mesa_loge("NEW MAP(%"PRIu64") TOTAL(%"PRIu64")", real->base.base.size, screen->mapped_vram);
          }
          p_atomic_set(&real->u.real.cpu_ptr, cpu);
       }
@@ -733,8 +732,8 @@ zink_bo_unmap(struct zink_screen *screen, struct zink_bo *bo)
    if (p_atomic_dec_zero(&real->u.real.map_count)) {
       p_atomic_set(&real->u.real.cpu_ptr, NULL);
       if (unlikely(zink_debug & ZINK_DEBUG_MAP)) {
-         p_atomic_add(&screen->mapped_vram, -real->base.size);
-         mesa_loge("UNMAP(%"PRIu64") TOTAL(%"PRIu64")", real->base.size, screen->mapped_vram);
+         p_atomic_add(&screen->mapped_vram, -real->base.base.size);
+         mesa_loge("UNMAP(%"PRIu64") TOTAL(%"PRIu64")", real->base.base.size, screen->mapped_vram);
       }
       VKSCR(UnmapMemory)(screen->dev, real->mem);
    }
@@ -744,7 +743,7 @@ zink_bo_unmap(struct zink_screen *screen, struct zink_bo *bo)
 static void
 track_freed_sparse_bo(struct zink_context *ctx, struct zink_sparse_backing *backing)
 {
-   pipe_reference(NULL, &backing->bo->base.reference);
+   pipe_reference(NULL, &backing->bo->base.base.reference);
    util_dynarray_append(&ctx->batch.state->freed_sparse_backing_bos, struct zink_bo*, backing->bo);
 }
 
@@ -790,9 +789,9 @@ buffer_bo_commit(struct zink_context *ctx, struct zink_resource *res, uint32_t o
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    struct zink_bo *bo = res->obj->bo;
    assert(offset % ZINK_SPARSE_BUFFER_PAGE_SIZE == 0);
-   assert(offset <= bo->base.size);
-   assert(size <= bo->base.size - offset);
-   assert(size % ZINK_SPARSE_BUFFER_PAGE_SIZE == 0 || offset + size == bo->base.size);
+   assert(offset <= bo->base.base.size);
+   assert(size <= bo->base.base.size - offset);
+   assert(size % ZINK_SPARSE_BUFFER_PAGE_SIZE == 0 || offset + size == bo->base.base.size);
 
    struct zink_sparse_commitment *comm = bo->u.sparse.commitments;
 
@@ -1238,11 +1237,12 @@ bo_slab_alloc(void *priv, unsigned mem_type_idx, unsigned entry_size, unsigned g
    if (!slab->buffer)
       goto fail;
 
-   slab_size = slab->buffer->base.size;
+   slab_size = slab->buffer->base.base.size;
 
    slab->base.num_entries = slab_size / entry_size;
    slab->base.num_free = slab->base.num_entries;
-   slab->entry_size = entry_size;
+   slab->base.group_index = group_index;
+   slab->base.entry_size = entry_size;
    slab->entries = CALLOC(slab->base.num_entries, sizeof(*slab->entries));
    if (!slab->entries)
       goto fail_buffer;
@@ -1254,14 +1254,12 @@ bo_slab_alloc(void *priv, unsigned mem_type_idx, unsigned entry_size, unsigned g
       struct zink_bo *bo = &slab->entries[i];
 
       simple_mtx_init(&bo->lock, mtx_plain);
-      bo->base.alignment_log2 = util_logbase2(get_slab_entry_alignment(screen, entry_size));
-      bo->base.size = entry_size;
+      bo->base.base.alignment_log2 = util_logbase2(get_slab_entry_alignment(screen, entry_size));
+      bo->base.base.size = entry_size;
       bo->base.vtbl = &bo_slab_vtbl;
       bo->offset = slab->buffer->offset + i * entry_size;
       bo->unique_id = base_id + i;
       bo->u.slab.entry.slab = &slab->base;
-      bo->u.slab.entry.group_index = group_index;
-      bo->u.slab.entry.entry_size = entry_size;
 
       if (slab->buffer->mem) {
          /* The slab is not suballocated. */
@@ -1271,7 +1269,7 @@ bo_slab_alloc(void *priv, unsigned mem_type_idx, unsigned entry_size, unsigned g
          bo->u.slab.real = slab->buffer->u.slab.real;
          assert(bo->u.slab.real->mem);
       }
-      bo->base.placement = bo->u.slab.real->base.placement;
+      bo->base.base.placement = bo->u.slab.real->base.base.placement;
 
       list_addtail(&bo->u.slab.entry.head, &slab->base.free);
    }
@@ -1303,7 +1301,7 @@ zink_bo_init(struct zink_screen *screen)
    /* Create managers. */
    pb_cache_init(&screen->pb.bo_cache, screen->info.mem_props.memoryTypeCount,
                  500000, 2.0f, 0,
-                 total_mem / 8, screen,
+                 total_mem / 8, offsetof(struct zink_bo, cache_entry), screen,
                  (void*)bo_destroy, (void*)bo_can_reclaim);
 
    unsigned min_slab_order = MIN_SLAB_ORDER;  /* 256 bytes */

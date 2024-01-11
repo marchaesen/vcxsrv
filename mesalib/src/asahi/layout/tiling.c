@@ -144,7 +144,8 @@ ail_detile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
    unsigned blocksize_B = util_format_get_blocksize(tiled_layout->format);
 
    assert(level < tiled_layout->levels && "Mip level out of bounds");
-   assert(tiled_layout->tiling == AIL_TILING_TWIDDLED && "Invalid usage");
+   assert(ail_is_level_twiddled_uncompressed(tiled_layout, level) &&
+          "Invalid usage");
    assert((sx_px + swidth_px) <= width_px && "Invalid usage");
    assert((sy_px + sheight_px) <= height_px && "Invalid usage");
 
@@ -161,7 +162,8 @@ ail_tile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
    unsigned blocksize_B = util_format_get_blocksize(tiled_layout->format);
 
    assert(level < tiled_layout->levels && "Mip level out of bounds");
-   assert(tiled_layout->tiling == AIL_TILING_TWIDDLED && "Invalid usage");
+   assert(ail_is_level_twiddled_uncompressed(tiled_layout, level) &&
+          "Invalid usage");
    assert((sx_px + swidth_px) <= width_px && "Invalid usage");
    assert((sy_px + sheight_px) <= height_px && "Invalid usage");
 

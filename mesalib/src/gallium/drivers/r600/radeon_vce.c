@@ -513,7 +513,7 @@ bool rvce_is_fw_version_supported(struct r600_common_screen *rscreen)
 /**
  * Add the buffer as relocation to the current command submission
  */
-void rvce_add_buffer(struct rvce_encoder *enc, struct pb_buffer *buf,
+void rvce_add_buffer(struct rvce_encoder *enc, struct pb_buffer_lean *buf,
                      unsigned usage, enum radeon_bo_domain domain,
                      signed offset)
 {

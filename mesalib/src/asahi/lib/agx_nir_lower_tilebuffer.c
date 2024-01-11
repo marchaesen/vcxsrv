@@ -193,11 +193,11 @@ store_memory(nir_builder *b, unsigned bindless_base, unsigned nr_samples,
 
    if (bindless) {
       nir_bindless_image_store(b, image, coords, sample, value, lod,
-                               .image_dim = dim, .image_array = !!layer_id,
+                               .image_dim = dim, .image_array = true,
                                .format = format);
    } else {
       nir_image_store(b, image, coords, sample, value, lod, .image_dim = dim,
-                      .image_array = !!layer_id, .format = format);
+                      .image_array = true, .format = format);
    }
 
    if (nr_samples > 1)
@@ -224,12 +224,12 @@ load_memory(nir_builder *b, unsigned bindless_base, unsigned nr_samples,
    nir_begin_invocation_interlock(b);
 
    if (bindless) {
-      return nir_bindless_image_load(
-         b, comps, bit_size, image, coords, sample, lod, .image_dim = dim,
-         .image_array = !!layer_id, .format = format);
+      return nir_bindless_image_load(b, comps, bit_size, image, coords, sample,
+                                     lod, .image_dim = dim, .image_array = true,
+                                     .format = format);
    } else {
       return nir_image_load(b, comps, bit_size, image, coords, sample, lod,
-                            .image_dim = dim, .image_array = !!layer_id,
+                            .image_dim = dim, .image_array = true,
                             .format = format);
    }
 }
@@ -246,10 +246,7 @@ agx_internal_layer_id(nir_builder *b)
 static nir_def *
 tib_layer_id(nir_builder *b, struct ctx *ctx)
 {
-   if (!ctx->tib->layered) {
-      /* If we're not layered, there's no explicit layer ID */
-      return NULL;
-   } else if (ctx->layer_id_sr) {
+   if (ctx->layer_id_sr) {
       return agx_internal_layer_id(b);
    } else {
       /* Otherwise, the layer ID is loaded as a flat varying. */

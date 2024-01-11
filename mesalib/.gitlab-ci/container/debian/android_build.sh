@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2086 # we want word splitting
 
+# When changing this file, you need to bump the following
+# .gitlab-ci/image-tags.yml tags:
+# DEBIAN_BUILD_TAG
+
 set -ex
 
 EPHEMERAL=(
@@ -21,7 +25,7 @@ rm $ndk.zip
 # duplicate files.  Turn them into hardlinks to save on container space.
 rdfind -makehardlinks true -makeresultsfile false /${ndk}/
 # Drop some large tools we won't use in this build.
-find /${ndk}/ -type f | grep -E -i "clang-check|clang-tidy|lldb" | xargs rm -f
+find /${ndk}/ -type f \( -iname '*clang-check*' -o -iname '*clang-tidy*' -o -iname '*lldb*' \) -exec rm -f {} \;
 
 sh .gitlab-ci/container/create-android-ndk-pc.sh /$ndk zlib.pc "" "-lz" "1.2.3" $ANDROID_SDK_VERSION
 

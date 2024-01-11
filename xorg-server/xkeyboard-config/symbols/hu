@@ -450,36 +450,26 @@ xkb_symbols "def_common" {
 // 2017 - Added Old Hungarian layout
 // 2018 - Resolved several easy-of-use issues, added extra punctuation and quotation marks.
 // 2020 - Added ligature-capable layout (with zero-width-joiner), added copyright, copyleft symbols.
-// 2020 - Added ZWNJ key to "Old Hungarian (for ligatures)", changed its ohu_lig id to oldhunlig.
-// Added "oldhun_magic_numpad" for both "Old Hungarian" layouts, as a specialised numpad.
-// 2023, Added decimal comma
-// 2023 basic "Old Hungarian" layout deprecated
-
-// Old Hungarian layout
-//partial alphanumeric_keys
-//xkb_symbols "oldhun" {
-//name[Group1]="Old Hungarian";
-//include "hu(oldhun_base)"
-//include "hu(oldhun_origin)"
-//include "hu(oldhun_magic_numpad)"
-//include "level3(ralt_switch)"
-//};
+// 2020 - Added ZWNJ key to “Old Hungarian (for ligatures)”, changed its ohu_lig id to oldhunlig.
+//      - Added “oldhun_magic_numpad” for both "Old Hungarian" layouts, as a specialised numpad.
+// 2023 - Added decimal comma
+// 2023 - Removed basic “Old Hungarian” layout (oldhun) in favor of its variant with ligatures (oldhunlig).
 
 // Old Hungarian layout for ligatures
 partial alphanumeric_keys
 xkb_symbols "oldhunlig" {
-name[Group1]="Old Hungarian (for ligatures)";
-include "hu(oldhun_base)"
-include "hu(oldhun_lig)"
-include "hu(oldhun_magic_numpad)"
-include "level3(ralt_switch)"
+    name[Group1]="Old Hungarian (for ligatures)";
+    include "hu(oldhun_base)"
+    include "hu(oldhun_lig)"
+    include "hu(oldhun_magic_numpad)"
+    include "level3(ralt_switch)"
 };
 
 // The base Old Hungarian keys
 // In the remarks you can read characters displayed only Unicode point
 hidden partial alphanumeric_keys
 xkb_symbols "oldhun_base" {
-key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
+    key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
     key <AD01> {[ U10CCE, U10C8E, backslash ]};
 //Old-Hungarian gy, Gy
     key <AD02> {[ U10CF0, U10CB0 ]};
@@ -554,7 +544,7 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 // In the remarks you can read characters displayed only Unicode point
 hidden partial alphanumeric_keys
 xkb_symbols "oldhun_origin" {
-key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
+    key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 	key <TLDE> {[ section, U200F, U200E, 0 ]};
 //Right to left mark, left to right mark
     key <AE01> {[ U10CFA, apostrophe, U2E42, 1 ]};
@@ -587,7 +577,7 @@ key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 // In the remarks you can read characters displayed only Unicode point
 hidden partial alphanumeric_keys
 xkb_symbols "oldhun_lig" {
-key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
+    key.type[Group1]="FOUR_LEVEL_ALPHABETIC";
 	key <TLDE> {[ U200D, U200F, U200C, 0 ]};
 //Zero-width-joiner,Right to left mark, Zero-width-non-joiner
 //Zero-width-joiner and Zero-width-non-joiner are reqired for ligatures

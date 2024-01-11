@@ -350,7 +350,7 @@ static void rvce_destroy_fence(struct pipe_video_codec *encoder,
 {
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
 
-   enc->ws->fence_reference(&fence, NULL);
+   enc->ws->fence_reference(enc->ws, &fence, NULL);
 }
 
 /**
@@ -528,7 +528,7 @@ bool si_vce_is_fw_version_supported(struct si_screen *sscreen)
 /**
  * Add the buffer as relocation to the current command submission
  */
-void si_vce_add_buffer(struct rvce_encoder *enc, struct pb_buffer *buf, unsigned usage,
+void si_vce_add_buffer(struct rvce_encoder *enc, struct pb_buffer_lean *buf, unsigned usage,
                        enum radeon_bo_domain domain, signed offset)
 {
    int reloc_idx;

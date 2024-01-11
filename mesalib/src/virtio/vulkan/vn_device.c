@@ -436,41 +436,6 @@ vn_device_update_shader_cache_id(struct vn_device *dev)
 #endif
 }
 
-bool
-vn_device_secondary_ring_init_once(struct vn_device *dev)
-{
-   VN_TRACE_FUNC();
-
-   assert(!dev->force_primary_ring_submission);
-
-   static bool ok = true;
-   if (!ok)
-      return ok;
-
-   mtx_lock(&dev->ring_mutex);
-   /* allows caller to check secondary ring without holding a lock */
-   if (dev->secondary_ring)
-      goto out_unlock;
-
-   /* keep the extra for potential roundtrip sync on secondary ring */
-   static const size_t extra_size = sizeof(uint32_t);
-
-   /* only need a small ring for synchronous cmds on secondary ring */
-   static const size_t buf_size = 16 * 1024;
-
-   struct vn_ring_layout layout;
-   vn_ring_get_layout(buf_size, extra_size, &layout);
-
-   dev->secondary_ring = vn_ring_create(dev->instance, &layout);
-   if (!dev->secondary_ring) {
-      ok = false;
-      vn_log(dev->instance, "WARNING: failed to create secondary ring");
-   }
-out_unlock:
-   mtx_unlock(&dev->ring_mutex);
-   return ok;
-}
-
 static VkResult
 vn_device_init(struct vn_device *dev,
                struct vn_physical_device *physical_dev,
@@ -489,9 +454,6 @@ vn_device_init(struct vn_device *dev,
    dev->renderer = instance->renderer;
    dev->primary_ring = instance->ring.ring;
 
-   /* can be extended for app compat purpose */
-   dev->force_primary_ring_submission = VN_PERF(NO_MULTI_RING);
-
    create_info =
       vn_device_fix_create_info(dev, create_info, alloc, &local_create_info);
    if (!create_info)
@@ -506,8 +468,6 @@ vn_device_init(struct vn_device *dev,
 
    if (result != VK_SUCCESS)
       return result;
-
-   mtx_init(&dev->ring_mutex, mtx_plain);
 
    result = vn_device_memory_report_init(dev, create_info);
    if (result != VK_SUCCESS)
@@ -535,7 +495,8 @@ vn_device_init(struct vn_device *dev,
    if (result != VK_SUCCESS)
       goto out_cmd_pools_fini;
 
-   vn_buffer_cache_init(dev);
+   vn_buffer_reqs_cache_init(dev);
+   vn_image_reqs_cache_init(dev);
 
    /* This is a WA to allow fossilize replay to detect if the host side shader
     * cache is no longer up to date.
@@ -560,7 +521,6 @@ out_memory_report_fini:
    vn_device_memory_report_fini(dev);
 
 out_destroy_device:
-   mtx_destroy(&dev->ring_mutex);
    vn_call_vkDestroyDevice(dev->primary_ring, dev_handle, NULL);
 
    return result;
@@ -626,7 +586,8 @@ vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
    if (!dev)
       return;
 
-   vn_buffer_cache_fini(dev);
+   vn_image_reqs_cache_fini(dev);
+   vn_buffer_reqs_cache_fini(dev);
 
    for (uint32_t i = 0; i < dev->queue_count; i++)
       vn_queue_fini(&dev->queues[i]);
@@ -657,11 +618,6 @@ vn_DestroyDevice(VkDevice device, const VkAllocationCallbacks *pAllocator)
          vn_instance_release_ring_idx(dev->instance, dev->queues[i].ring_idx);
       }
    }
-
-   if (dev->secondary_ring)
-      vn_ring_destroy(dev->secondary_ring);
-
-   mtx_destroy(&dev->ring_mutex);
 
    vk_free(alloc, dev->queues);
 

@@ -37,6 +37,22 @@ struct radv_sdma_chunked_copy_info {
    unsigned num_rows_per_copy;
 };
 
+static const VkExtent3D radv_sdma_t2t_alignment_2d_and_planar[] = {
+   {16, 16, 1}, /* 1 bpp */
+   {16, 8, 1},  /* 2 bpp */
+   {8, 8, 1},   /* 4 bpp */
+   {8, 4, 1},   /* 8 bpp */
+   {4, 4, 1},   /* 16 bpp */
+};
+
+static const VkExtent3D radv_sdma_t2t_alignment_3d[] = {
+   {8, 4, 8}, /* 1 bpp */
+   {4, 4, 8}, /* 2 bpp */
+   {4, 4, 4}, /* 4 bpp */
+   {4, 2, 4}, /* 8 bpp */
+   {2, 2, 4}, /* 16 bpp */
+};
+
 ALWAYS_INLINE static unsigned
 radv_sdma_pitch_alignment(const struct radv_device *device, const unsigned bpp)
 {
@@ -265,7 +281,10 @@ radv_sdma_get_surf(const struct radv_device *const device, const struct radv_ima
       .bpp = surf->bpe,
       .blk_w = surf->blk_w,
       .blk_h = surf->blk_h,
+      .mip_levels = image->vk.mip_levels,
+      .micro_tile_mode = surf->micro_tile_mode,
       .is_linear = surf->is_linear,
+      .is_3d = surf->u.gfx9.resource_type == RADEON_RESOURCE_3D,
    };
 
    if (surf->is_linear) {
@@ -474,6 +493,74 @@ radv_sdma_emit_copy_tiled_sub_window(const struct radv_device *device, struct ra
    assert(cs->cdw == cdw_end);
 }
 
+static void
+radv_sdma_emit_copy_t2t_sub_window(const struct radv_device *device, struct radeon_cmdbuf *cs,
+                                   const struct radv_sdma_surf *const src, const struct radv_sdma_surf *const dst,
+                                   const VkExtent3D px_extent)
+{
+   /* We currently only support the SDMA v4+ versions of this packet. */
+   assert(device->physical_device->rad_info.sdma_ip_version >= SDMA_4_0);
+
+   /* On GFX10+ this supports DCC, but cannot copy a compressed surface to another compressed surface. */
+   assert(!src->meta_va || !dst->meta_va);
+
+   if (device->physical_device->rad_info.sdma_ip_version >= SDMA_4_0 &&
+       device->physical_device->rad_info.sdma_ip_version < SDMA_5_0) {
+      /* SDMA v4 doesn't support mip_id selection in the T2T copy packet. */
+      assert(src->header_dword >> 24 == 0);
+      assert(dst->header_dword >> 24 == 0);
+      /* SDMA v4 doesn't support any image metadata. */
+      assert(!src->meta_va);
+      assert(!dst->meta_va);
+   }
+
+   /* Despite the name, this can indicate DCC or HTILE metadata. */
+   const uint32_t dcc = src->meta_va || dst->meta_va;
+   /* 0 = compress (src is uncompressed), 1 = decompress (src is compressed). */
+   const uint32_t dcc_dir = src->meta_va && !dst->meta_va;
+
+   const VkOffset3D src_off = radv_sdma_pixel_offset_to_blocks(src->offset, src->blk_w, src->blk_h);
+   const VkOffset3D dst_off = radv_sdma_pixel_offset_to_blocks(dst->offset, dst->blk_w, dst->blk_h);
+   const VkExtent3D src_ext = radv_sdma_pixel_extent_to_blocks(src->extent, src->blk_w, src->blk_h);
+   const VkExtent3D dst_ext = radv_sdma_pixel_extent_to_blocks(dst->extent, dst->blk_w, dst->blk_h);
+   const VkExtent3D ext = radv_sdma_pixel_extent_to_blocks(px_extent, src->blk_w, src->blk_h);
+
+   assert(util_is_power_of_two_nonzero(src->bpp));
+   assert(util_is_power_of_two_nonzero(dst->bpp));
+
+   ASSERTED unsigned cdw_end = radeon_check_space(device->ws, cs, 15 + (dcc ? 3 : 0));
+
+   radeon_emit(cs, SDMA_PACKET(SDMA_OPCODE_COPY, SDMA_COPY_SUB_OPCODE_T2T_SUB_WINDOW, 0) | dcc << 19 | dcc_dir << 31 |
+                      src->header_dword);
+   radeon_emit(cs, src->va);
+   radeon_emit(cs, src->va >> 32);
+   radeon_emit(cs, src_off.x | src_off.y << 16);
+   radeon_emit(cs, src_off.z | (src_ext.width - 1) << 16);
+   radeon_emit(cs, (src_ext.height - 1) | (src_ext.depth - 1) << 16);
+   radeon_emit(cs, src->info_dword);
+   radeon_emit(cs, dst->va);
+   radeon_emit(cs, dst->va >> 32);
+   radeon_emit(cs, dst_off.x | dst_off.y << 16);
+   radeon_emit(cs, dst_off.z | (dst_ext.width - 1) << 16);
+   radeon_emit(cs, (dst_ext.height - 1) | (dst_ext.depth - 1) << 16);
+   radeon_emit(cs, dst->info_dword);
+   radeon_emit(cs, (ext.width - 1) | (ext.height - 1) << 16);
+   radeon_emit(cs, (ext.depth - 1));
+
+   if (dst->meta_va) {
+      const uint32_t write_compress_enable = 1;
+      radeon_emit(cs, dst->meta_va);
+      radeon_emit(cs, dst->meta_va >> 32);
+      radeon_emit(cs, dst->meta_config | write_compress_enable << 28);
+   } else if (src->meta_va) {
+      radeon_emit(cs, src->meta_va);
+      radeon_emit(cs, src->meta_va >> 32);
+      radeon_emit(cs, src->meta_config);
+   }
+
+   assert(cs->cdw == cdw_end);
+}
+
 void
 radv_sdma_copy_buffer_image(const struct radv_device *device, struct radeon_cmdbuf *cs,
                             const struct radv_sdma_surf *buf, const struct radv_sdma_surf *img, const VkExtent3D extent,
@@ -574,6 +661,138 @@ radv_sdma_copy_buffer_image_unaligned(const struct radv_device *device, struct r
             /* Wait for the copy to finish. */
             radv_sdma_emit_nop(device, cs);
          }
+      }
+   }
+}
+
+void
+radv_sdma_copy_image(const struct radv_device *device, struct radeon_cmdbuf *cs, const struct radv_sdma_surf *src,
+                     const struct radv_sdma_surf *dst, const VkExtent3D extent)
+{
+   if (src->is_linear) {
+      if (dst->is_linear) {
+         radv_sdma_emit_copy_linear_sub_window(device, cs, src, dst, extent);
+      } else {
+         radv_sdma_emit_copy_tiled_sub_window(device, cs, dst, src, extent, false);
+      }
+   } else {
+      if (dst->is_linear) {
+         radv_sdma_emit_copy_tiled_sub_window(device, cs, src, dst, extent, true);
+      } else {
+         radv_sdma_emit_copy_t2t_sub_window(device, cs, src, dst, extent);
+      }
+   }
+}
+
+bool
+radv_sdma_use_t2t_scanline_copy(const struct radv_device *device, const struct radv_sdma_surf *src,
+                                const struct radv_sdma_surf *dst, const VkExtent3D extent)
+{
+   /* These need a linear-to-linear / linear-to-tiled copy. */
+   if (src->is_linear || dst->is_linear)
+      return false;
+
+   /* SDMA can't do format conversion. */
+   assert(src->bpp == dst->bpp);
+
+   const enum sdma_version ver = device->physical_device->rad_info.sdma_ip_version;
+   if (ver < SDMA_5_0) {
+      /* SDMA v4.x and older doesn't support proper mip level selection. */
+      if (src->mip_levels > 1 || dst->mip_levels > 1)
+         return true;
+   }
+
+   /* The two images can have a different block size,
+    * but must have the same swizzle mode.
+    */
+   if (src->micro_tile_mode != dst->micro_tile_mode)
+      return true;
+
+   /* The T2T subwindow copy packet only has fields for one metadata configuration.
+    * It can either compress or decompress, or copy uncompressed images, but it
+    * can't copy from a compressed image to another.
+    */
+   if (src->meta_va && dst->meta_va)
+      return true;
+
+   const bool needs_3d_alignment = src->is_3d && (src->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
+                                                  src->micro_tile_mode == RADEON_MICRO_MODE_STANDARD);
+   const unsigned log2bpp = util_logbase2(src->bpp);
+   const VkExtent3D *const alignment =
+      needs_3d_alignment ? &radv_sdma_t2t_alignment_3d[log2bpp] : &radv_sdma_t2t_alignment_2d_and_planar[log2bpp];
+
+   const VkExtent3D copy_extent_blk = radv_sdma_pixel_extent_to_blocks(extent, src->blk_w, src->blk_h);
+   const VkOffset3D src_offset_blk = radv_sdma_pixel_offset_to_blocks(src->offset, src->blk_w, src->blk_h);
+   const VkOffset3D dst_offset_blk = radv_sdma_pixel_offset_to_blocks(dst->offset, dst->blk_w, dst->blk_h);
+
+   if (!radv_is_aligned(copy_extent_blk.width, alignment->width) ||
+       !radv_is_aligned(copy_extent_blk.height, alignment->height) ||
+       !radv_is_aligned(copy_extent_blk.depth, alignment->depth))
+      return true;
+
+   if (!radv_is_aligned(src_offset_blk.x, alignment->width) || !radv_is_aligned(src_offset_blk.y, alignment->height) ||
+       !radv_is_aligned(src_offset_blk.z, alignment->depth))
+      return true;
+
+   if (!radv_is_aligned(dst_offset_blk.x, alignment->width) || !radv_is_aligned(dst_offset_blk.y, alignment->height) ||
+       !radv_is_aligned(dst_offset_blk.z, alignment->depth))
+      return true;
+
+   return false;
+}
+
+void
+radv_sdma_copy_image_t2t_scanline(const struct radv_device *device, struct radeon_cmdbuf *cs,
+                                  const struct radv_sdma_surf *src, const struct radv_sdma_surf *dst,
+                                  const VkExtent3D extent, struct radeon_winsys_bo *temp_bo)
+{
+   const struct radv_sdma_chunked_copy_info info = radv_sdma_get_chunked_copy_info(device, src, extent);
+   struct radv_sdma_surf t2l_src = *src;
+   struct radv_sdma_surf t2l_dst = {
+      .va = temp_bo->va,
+      .bpp = src->bpp,
+      .blk_w = src->blk_w,
+      .blk_h = src->blk_h,
+      .pitch = info.aligned_row_pitch * src->blk_w,
+   };
+   struct radv_sdma_surf l2t_dst = *dst;
+   struct radv_sdma_surf l2t_src = {
+      .va = temp_bo->va,
+      .bpp = dst->bpp,
+      .blk_w = dst->blk_w,
+      .blk_h = dst->blk_h,
+      .pitch = info.aligned_row_pitch * dst->blk_w,
+   };
+
+   for (unsigned slice = 0; slice < extent.depth; ++slice) {
+      for (unsigned row = 0; row < info.extent_vertical_blocks; row += info.num_rows_per_copy) {
+         const unsigned rows = MIN2(info.extent_vertical_blocks - row, info.num_rows_per_copy);
+
+         const VkExtent3D t2l_extent = {
+            .width = info.extent_horizontal_blocks * src->blk_w,
+            .height = rows * src->blk_h,
+            .depth = 1,
+         };
+
+         t2l_src.offset.y = src->offset.y + row * src->blk_h;
+         t2l_src.offset.z = src->offset.z + slice;
+         t2l_dst.slice_pitch = t2l_dst.pitch * t2l_extent.height;
+
+         radv_sdma_emit_copy_tiled_sub_window(device, cs, &t2l_src, &t2l_dst, t2l_extent, true);
+         radv_sdma_emit_nop(device, cs);
+
+         const VkExtent3D l2t_extent = {
+            .width = info.extent_horizontal_blocks * dst->blk_w,
+            .height = rows * dst->blk_h,
+            .depth = 1,
+         };
+
+         l2t_dst.offset.y = dst->offset.y + row * dst->blk_h;
+         l2t_dst.offset.z = dst->offset.z + slice;
+         l2t_src.slice_pitch = l2t_src.pitch * l2t_extent.height;
+
+         radv_sdma_emit_copy_tiled_sub_window(device, cs, &l2t_dst, &l2t_src, l2t_extent, false);
+         radv_sdma_emit_nop(device, cs);
       }
    }
 }

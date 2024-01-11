@@ -92,7 +92,7 @@ build_background_op(nir_builder *b, enum agx_meta_op op, unsigned rt,
       }
 
       tex->coord_components = layered ? 3 : 2;
-      tex->texture_index = rt;
+      tex->texture_index = rt * 2;
       nir_def_init(&tex->instr, &tex->def, 4, 32);
       nir_builder_instr_insert(b, &tex->instr);
 

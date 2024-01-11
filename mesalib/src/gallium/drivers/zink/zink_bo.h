@@ -131,7 +131,7 @@ zink_bo_get_mem(const struct zink_bo *bo)
 static ALWAYS_INLINE VkDeviceSize
 zink_bo_get_size(const struct zink_bo *bo)
 {
-   return bo->mem ? bo->base.size : bo->u.slab.real->base.size;
+   return bo->mem ? bo->base.base.size : bo->u.slab.real->base.base.size;
 }
 
 void *

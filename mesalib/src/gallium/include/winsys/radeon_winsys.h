@@ -63,6 +63,7 @@ enum radeon_bo_flag
     * This guarantees that this buffer will never be moved to GTT.
     */
   RADEON_FLAG_DISCARDABLE = (1 << 10),
+  RADEON_FLAG_WINSYS_SLAB_BACKING = (1 << 11), /* only used by the winsys */
 };
 
 static inline void
@@ -333,8 +334,14 @@ struct radeon_winsys {
     * \param domain    A bitmask of the RADEON_DOMAIN_* flags.
     * \return          The created buffer object.
     */
-   struct pb_buffer *(*buffer_create)(struct radeon_winsys *ws, uint64_t size, unsigned alignment,
-                                      enum radeon_bo_domain domain, enum radeon_bo_flag flags);
+   struct pb_buffer_lean *(*buffer_create)(struct radeon_winsys *ws, uint64_t size,
+                                           unsigned alignment, enum radeon_bo_domain domain,
+                                           enum radeon_bo_flag flags);
+
+   /**
+    * Don't use directly. Use radeon_bo_reference.
+    */
+   void (*buffer_destroy)(struct radeon_winsys *ws, struct pb_buffer_lean *buf);
 
    /**
     * Map the entire data store of a buffer object into the client's address
@@ -348,7 +355,7 @@ struct radeon_winsys {
     * \param usage     A bitmask of the PIPE_MAP_* and RADEON_MAP_* flags.
     * \return          The pointer at the beginning of the buffer.
     */
-   void *(*buffer_map)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   void *(*buffer_map)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                        struct radeon_cmdbuf *cs, enum pipe_map_flags usage);
 
    /**
@@ -356,7 +363,7 @@ struct radeon_winsys {
     *
     * \param buf       A winsys buffer object to unmap.
     */
-   void (*buffer_unmap)(struct radeon_winsys *ws, struct pb_buffer *buf);
+   void (*buffer_unmap)(struct radeon_winsys *ws, struct pb_buffer_lean *buf);
 
    /**
     * Wait for the buffer and return true if the buffer is not used
@@ -366,7 +373,7 @@ struct radeon_winsys {
     * The timeout of OS_TIMEOUT_INFINITE will always wait until the buffer
     * is idle.
     */
-   bool (*buffer_wait)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   bool (*buffer_wait)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                        uint64_t timeout, unsigned usage);
 
    /**
@@ -376,7 +383,7 @@ struct radeon_winsys {
     * \param buf       A winsys buffer object to get the flags from.
     * \param md        Metadata
     */
-   void (*buffer_get_metadata)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   void (*buffer_get_metadata)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                                struct radeon_bo_metadata *md, struct radeon_surf *surf);
 
    /**
@@ -386,7 +393,7 @@ struct radeon_winsys {
     * \param buf       A winsys buffer object to set the flags for.
     * \param md        Metadata
     */
-   void (*buffer_set_metadata)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   void (*buffer_set_metadata)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                                struct radeon_bo_metadata *md, struct radeon_surf *surf);
 
    /**
@@ -397,8 +404,10 @@ struct radeon_winsys {
     * \param whandle   A winsys handle pointer as was received from a state
     *                  tracker.
     */
-   struct pb_buffer *(*buffer_from_handle)(struct radeon_winsys *ws, struct winsys_handle *whandle,
-                                           unsigned vm_alignment, bool is_prime_linear_buffer);
+   struct pb_buffer_lean *(*buffer_from_handle)(struct radeon_winsys *ws,
+                                                struct winsys_handle *whandle,
+                                                unsigned vm_alignment,
+                                                bool is_prime_linear_buffer);
 
    /**
     * Get a winsys buffer from a user pointer. The resulting buffer can't
@@ -408,7 +417,8 @@ struct radeon_winsys {
     * \param pointer   User pointer to turn into a buffer object.
     * \param Size      Size in bytes for the new buffer.
     */
-   struct pb_buffer *(*buffer_from_ptr)(struct radeon_winsys *ws, void *pointer, uint64_t size, enum radeon_bo_flag flags);
+   struct pb_buffer_lean *(*buffer_from_ptr)(struct radeon_winsys *ws, void *pointer,
+                                             uint64_t size, enum radeon_bo_flag flags);
 
    /**
     * Whether the buffer was created from a user pointer.
@@ -416,10 +426,10 @@ struct radeon_winsys {
     * \param buf       A winsys buffer object
     * \return          whether \p buf was created via buffer_from_ptr
     */
-   bool (*buffer_is_user_ptr)(struct pb_buffer *buf);
+   bool (*buffer_is_user_ptr)(struct pb_buffer_lean *buf);
 
    /** Whether the buffer was suballocated. */
-   bool (*buffer_is_suballocated)(struct pb_buffer *buf);
+   bool (*buffer_is_suballocated)(struct pb_buffer_lean *buf);
 
    /**
     * Get a winsys handle from a winsys buffer. The internal structure
@@ -430,7 +440,7 @@ struct radeon_winsys {
     * \param whandle   A winsys handle pointer.
     * \return          true on success.
     */
-   bool (*buffer_get_handle)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   bool (*buffer_get_handle)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                              struct winsys_handle *whandle);
 
    /**
@@ -443,7 +453,7 @@ struct radeon_winsys {
     *
     * \return false on out of memory or other failure, true on success.
     */
-   bool (*buffer_commit)(struct radeon_winsys *ws, struct pb_buffer *buf,
+   bool (*buffer_commit)(struct radeon_winsys *ws, struct pb_buffer_lean *buf,
                          uint64_t offset, uint64_t size, bool commit);
 
    /**
@@ -451,7 +461,7 @@ struct radeon_winsys {
     * \note Only implemented by the amdgpu winsys.
     * \return the skipped count if the range_offset fall into a hole.
     */
-   unsigned (*buffer_find_next_committed_memory)(struct pb_buffer *buf,
+   unsigned (*buffer_find_next_committed_memory)(struct pb_buffer_lean *buf,
                         uint64_t range_offset, unsigned *range_size);
    /**
     * Return the virtual address of a buffer.
@@ -462,7 +472,7 @@ struct radeon_winsys {
     * \param buf       A winsys buffer object
     * \return          virtual address
     */
-   uint64_t (*buffer_get_virtual_address)(struct pb_buffer *buf);
+   uint64_t (*buffer_get_virtual_address)(struct pb_buffer_lean *buf);
 
    /**
     * Return the offset of this buffer relative to the relocation base.
@@ -474,12 +484,12 @@ struct radeon_winsys {
     * \param buf      A winsys buffer object
     * \return         the offset for relocations
     */
-   unsigned (*buffer_get_reloc_offset)(struct pb_buffer *buf);
+   unsigned (*buffer_get_reloc_offset)(struct pb_buffer_lean *buf);
 
    /**
     * Query the initial placement of the buffer from the kernel driver.
     */
-   enum radeon_bo_domain (*buffer_get_initial_domain)(struct pb_buffer *buf);
+   enum radeon_bo_domain (*buffer_get_initial_domain)(struct pb_buffer_lean *buf);
 
    /**
     * Query the flags used for creation of this buffer.
@@ -487,7 +497,7 @@ struct radeon_winsys {
     * Note that for imported buffer this may be lossy since not all flags
     * are passed 1:1.
     */
-   enum radeon_bo_flag (*buffer_get_flags)(struct pb_buffer *buf);
+   enum radeon_bo_flag (*buffer_get_flags)(struct pb_buffer_lean *buf);
 
    /**************************************************************************
     * Command submission.
@@ -570,7 +580,7 @@ struct radeon_winsys {
     * \param domain  Bitmask of the RADEON_DOMAIN_* flags.
     * \return Buffer index.
     */
-   unsigned (*cs_add_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer *buf,
+   unsigned (*cs_add_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf,
                              unsigned usage, enum radeon_bo_domain domain);
 
    /**
@@ -583,7 +593,7 @@ struct radeon_winsys {
     * \param buf       Buffer
     * \return          The buffer index, or -1 if the buffer has not been added.
     */
-   int (*cs_lookup_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer *buf);
+   int (*cs_lookup_buffer)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf);
 
    /**
     * Return true if there is enough memory in VRAM and GTT for the buffers
@@ -644,7 +654,7 @@ struct radeon_winsys {
     * \param cs        A command stream.
     * \param buf       A winsys buffer.
     */
-   bool (*cs_is_buffer_referenced)(struct radeon_cmdbuf *cs, struct pb_buffer *buf,
+   bool (*cs_is_buffer_referenced)(struct radeon_cmdbuf *cs, struct pb_buffer_lean *buf,
                                    unsigned usage);
 
    /**
@@ -665,11 +675,8 @@ struct radeon_winsys {
    /**
     * Add a fence dependency to the CS, so that the CS will wait for
     * the fence before execution.
-    *
-    * \param dependency_flags  Bitmask of RADEON_DEPENDENCY_*
     */
-   void (*cs_add_fence_dependency)(struct radeon_cmdbuf *cs, struct pipe_fence_handle *fence,
-                                   unsigned dependency_flags);
+   void (*cs_add_fence_dependency)(struct radeon_cmdbuf *cs, struct pipe_fence_handle *fence);
 
    /**
     * Signal a syncobj when the CS finishes execution.
@@ -692,7 +699,8 @@ struct radeon_winsys {
    /**
     * Reference counting for fences.
     */
-   void (*fence_reference)(struct pipe_fence_handle **dst, struct pipe_fence_handle *src);
+   void (*fence_reference)(struct radeon_winsys *ws, struct pipe_fence_handle **dst,
+                           struct pipe_fence_handle *src);
 
    /**
     * Create a new fence object corresponding to the given syncobj fd.
@@ -774,9 +782,14 @@ static inline bool radeon_uses_secure_bos(struct radeon_winsys* ws)
 }
 
 static inline void
-radeon_bo_reference(struct radeon_winsys *rws, struct pb_buffer **dst, struct pb_buffer *src)
+radeon_bo_reference(struct radeon_winsys *rws, struct pb_buffer_lean **dst,
+                    struct pb_buffer_lean *src)
 {
-   pb_reference_with_winsys(rws, dst, src);
+   struct pb_buffer_lean *old = *dst;
+
+   if (pipe_reference(&(*dst)->reference, &src->reference))
+      rws->buffer_destroy(rws, old);
+   *dst = src;
 }
 
 /* The following bits describe the heaps managed by slab allocators (pb_slab) and

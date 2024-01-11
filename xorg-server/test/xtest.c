@@ -62,34 +62,6 @@ device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr screen)
 static void
 xtest_init_devices(void)
 {
-    ScreenRec screen = {0};
-    ClientRec server_client = {0};
-    WindowRec root = {{0}};
-    WindowOptRec optional = {0};
-
-    /* random stuff that needs initialization */
-    root.drawable.id = 0xab;
-    root.optional = &optional;
-    screen.root = &root;
-    screenInfo.numScreens = 1;
-    screenInfo.screens[0] = &screen;
-    screen.myNum = 0;
-    screen.id = 100;
-    screen.width = 640;
-    screen.height = 480;
-    screen.DeviceCursorInitialize = device_cursor_init;
-    screen.DeviceCursorCleanup = device_cursor_cleanup;
-    dixResetPrivates();
-    serverClient = &server_client;
-    InitClient(serverClient, 0, (void *) NULL);
-    if (!InitClientResources(serverClient)) /* for root resources */
-        FatalError("couldn't init server resources");
-    InitAtoms();
-    SyncExtensionInit();
-
-    /* this also inits the xtest devices */
-    InitCoreDevices();
-
     assert(xtestpointer);
     assert(xtestkeyboard);
     assert(IsXTestDevice(xtestpointer, NULL));
@@ -135,8 +107,38 @@ xtest_properties(void)
 int
 xtest_test(void)
 {
+    ScreenRec screen = {0};
+    ClientRec server_client = {0};
+    WindowRec root = {{0}};
+    WindowOptRec optional = {0};
+
+    /* random stuff that needs initialization */
+    root.drawable.id = 0xab;
+    root.optional = &optional;
+    screen.root = &root;
+    screenInfo.numScreens = 1;
+    screenInfo.screens[0] = &screen;
+    screen.myNum = 0;
+    screen.id = 100;
+    screen.width = 640;
+    screen.height = 480;
+    screen.DeviceCursorInitialize = device_cursor_init;
+    screen.DeviceCursorCleanup = device_cursor_cleanup;
+    dixResetPrivates();
+    serverClient = &server_client;
+    InitClient(serverClient, 0, (void *) NULL);
+    if (!InitClientResources(serverClient)) /* for root resources */
+        FatalError("couldn't init server resources");
+    InitAtoms();
+    SyncExtensionInit();
+
+    /* this also inits the xtest devices */
+    InitCoreDevices();
+
     xtest_init_devices();
     xtest_properties();
+
+    CloseDownDevices();
 
     return 0;
 }

@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2023-12-05.1"
+.default_tag: &default_tag "2024-01-11.1"
 
 distributions:
   - name: fedora

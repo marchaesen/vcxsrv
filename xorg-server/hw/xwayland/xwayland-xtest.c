@@ -647,6 +647,9 @@ xwayland_xtest_send_events(DeviceIntPtr dev,
     struct xwl_ei_client *xwl_ei_client;
     bool accept = false;
 
+    if (!IsXTestDevice(dev, NULL))
+        return;
+
     client = GetCurrentClient();
     xwl_ei_client = get_xwl_ei_client(client);
     if (!xwl_ei_client) {
@@ -915,9 +918,7 @@ xwayland_override_xtest(void)
     DeviceIntPtr d;
 
     nt_list_for_each_entry(d, inputInfo.devices, next) {
-        if (IsXTestDevice(d, NULL)) {
-            xwayland_override_events_proc(d);
-        }
+        xwayland_override_events_proc(d);
     }
 }
 
@@ -927,8 +928,6 @@ xwayland_restore_xtest(void)
     DeviceIntPtr d;
 
     nt_list_for_each_entry(d, inputInfo.devices, next) {
-        if (IsXTestDevice(d, NULL)) {
-            xwayland_restore_events_proc(d);
-        }
+        xwayland_restore_events_proc(d);
     }
 }

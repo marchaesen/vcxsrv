@@ -192,44 +192,51 @@ run_tests_after_last_discard(nir_builder *b)
    }
 }
 
+static void
+run_tests_at_start(nir_shader *shader)
+{
+   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+   nir_builder b = nir_builder_at(nir_before_impl(impl));
+
+   nir_sample_mask_agx(&b, nir_imm_intN_t(&b, ALL_SAMPLES, 16),
+                       nir_imm_intN_t(&b, ALL_SAMPLES, 16));
+}
+
 bool
 agx_nir_lower_sample_mask(nir_shader *shader, unsigned nr_samples)
 {
-   if (!shader->info.fs.uses_discard)
-      return false;
-
-   /* sample_mask can't be used with zs_emit, so lower sample_mask to zs_emit.
-    * We ignore depth/stencil writes with early fragment testing though.
-    */
-   if (shader->info.outputs_written & (BITFIELD64_BIT(FRAG_RESULT_DEPTH) |
-                                       BITFIELD64_BIT(FRAG_RESULT_STENCIL)) &&
-       !shader->info.fs.early_fragment_tests) {
-      bool progress = nir_shader_intrinsics_pass(
-         shader, lower_sample_mask_to_zs,
-         nir_metadata_block_index | nir_metadata_dominance, NULL);
-
-      /* The lowering requires an unconditional depth write. We mark this after
-       * lowering so the lowering knows whether there was already a depth write
-       */
-      assert(progress && "must have lowered something,given the outputs");
-      shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DEPTH);
-
-      return true;
-   }
-
-   nir_function_impl *impl = nir_shader_get_entrypoint(shader);
-   nir_builder b = nir_builder_create(impl);
-
-   /* If we force early fragment testing forced, run tests at the beginning of
-    * the shader. Otherwise, run after last discard.
-    */
    if (shader->info.fs.early_fragment_tests) {
-      b.cursor = nir_before_impl(impl);
+      /* run tests early */
+      run_tests_at_start(shader);
+   } else if (shader->info.fs.uses_discard) {
+      /* sample_mask can't be used with zs_emit, so lower sample_mask to zs_emit.
+       * We ignore depth/stencil writes with early fragment testing though.
+       */
+      if (shader->info.outputs_written &
+          (BITFIELD64_BIT(FRAG_RESULT_DEPTH) |
+           BITFIELD64_BIT(FRAG_RESULT_STENCIL))) {
+         bool progress = nir_shader_intrinsics_pass(
+            shader, lower_sample_mask_to_zs,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
 
-      nir_def *all_samples = nir_imm_intN_t(&b, ALL_SAMPLES, 16);
-      nir_sample_mask_agx(&b, all_samples, all_samples);
-   } else {
+         /* The lowering requires an unconditional depth write. We mark this
+          * after lowering so the lowering knows whether there was already a
+          * depth write
+          */
+         assert(progress && "must have lowered something,given the outputs");
+         shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DEPTH);
+
+         return true;
+      }
+
+      nir_function_impl *impl = nir_shader_get_entrypoint(shader);
+      nir_builder b = nir_builder_create(impl);
+
+      /* run tests late */
       run_tests_after_last_discard(&b);
+   } else {
+      /* regular shaders that don't use discard have nothing to lower */
+      return false;
    }
 
    nir_shader_intrinsics_pass(shader, lower_discard_to_sample_mask_0,

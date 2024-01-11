@@ -64,7 +64,7 @@ describe_suballoc_bo(char *buf, struct d3d12_bo *ptr)
    d3d12_bo *base = d3d12_bo_get_base(ptr, &offset);
    describe_direct_bo(res, base);
    sprintf(buf, "d3d12_bo<suballoc<%s>,0x%x,0x%x>", res,
-           (unsigned)ptr->buffer->size, (unsigned)offset);
+           (unsigned)ptr->buffer->base.size, (unsigned)offset);
 }
 
 void
@@ -332,11 +332,11 @@ d3d12_bufmgr_create_buffer(struct pb_manager *pmgr,
    if (!buf)
       return NULL;
 
-   pipe_reference_init(&buf->base.reference, 1);
-   buf->base.alignment_log2 = util_logbase2(pb_desc->alignment);
-   buf->base.usage = pb_desc->usage;
+   pipe_reference_init(&buf->base.base.reference, 1);
+   buf->base.base.alignment_log2 = util_logbase2(pb_desc->alignment);
+   buf->base.base.usage = pb_desc->usage;
    buf->base.vtbl = &d3d12_buffer_vtbl;
-   buf->base.size = size;
+   buf->base.base.size = size;
    buf->range.Begin = 0;
    buf->range.End = size;
 

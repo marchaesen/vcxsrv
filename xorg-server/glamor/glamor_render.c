@@ -839,6 +839,20 @@ glamor_render_format_is_supported(PicturePtr picture)
 }
 
 static Bool
+render_op_uses_src_alpha(CARD8 op)
+{
+    struct blendinfo *info = &composite_op_info[op];
+
+    switch (info->dest_blend) {
+    case GL_ONE_MINUS_SRC_ALPHA:
+    case GL_SRC_ALPHA:
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+static Bool
 glamor_composite_choose_shader(CARD8 op,
                                PicturePtr source,
                                PicturePtr mask,
@@ -951,7 +965,8 @@ glamor_composite_choose_shader(CARD8 op,
         key.dest_swizzle = SHADER_DEST_SWIZZLE_ALPHA_TO_RED;
     } else {
         if (dest_pixmap->drawable.depth == 32 &&
-            glamor_drawable_effective_depth(dest->pDrawable) == 24)
+            glamor_drawable_effective_depth(dest->pDrawable) == 24 &&
+            !render_op_uses_src_alpha(op))
             key.dest_swizzle = SHADER_DEST_SWIZZLE_IGNORE_ALPHA;
         else
             key.dest_swizzle = SHADER_DEST_SWIZZLE_DEFAULT;
@@ -1185,6 +1200,7 @@ glamor_composite_with_shader(CARD8 op,
     Bool ret = FALSE;
     glamor_composite_shader *shader = NULL, *shader_ca = NULL;
     struct blendinfo op_info, op_info_ca;
+    Bool restore_colormask = FALSE;
 
     if (!glamor_composite_choose_shader(op, source, mask, dest,
                                         source_pixmap, mask_pixmap, dest_pixmap,
@@ -1209,9 +1225,17 @@ glamor_composite_with_shader(CARD8 op,
 
     glamor_make_current(glamor_priv);
 
+    if (ca_state != CA_TWO_PASS &&
+        key.dest_swizzle == SHADER_DEST_SWIZZLE_DEFAULT &&
+        dest_pixmap->drawable.depth == 32 &&
+        glamor_drawable_effective_depth(dest->pDrawable) == 24) {
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_FALSE);
+        restore_colormask = TRUE;
+    }
+
     glamor_set_destination_pixmap_priv_nc(glamor_priv, dest_pixmap, dest_pixmap_priv);
     glamor_composite_set_shader_blend(glamor_priv, dest_pixmap_priv, &key, shader, &op_info);
-    glamor_set_alu(screen, GXcopy);
+    glamor_set_alu(dest->pDrawable, GXcopy);
 
     glamor_priv->has_source_coords = key.source != SHADER_SOURCE_SOLID;
     glamor_priv->has_mask_coords = (key.mask != SHADER_MASK_NONE &&
@@ -1351,6 +1375,8 @@ glamor_composite_with_shader(CARD8 op,
 
     glDisable(GL_SCISSOR_TEST);
 disable_va:
+    if (restore_colormask)
+        glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_POS);
     glDisableVertexAttribArray(GLAMOR_VERTEX_SOURCE);
     glDisableVertexAttribArray(GLAMOR_VERTEX_MASK);

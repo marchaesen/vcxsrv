@@ -827,6 +827,7 @@ get_iteration(nir_op cond_op, nir_const_value initial, nir_const_value step,
               unsigned execution_mode)
 {
    nir_const_value span, iter;
+   unsigned iter_bit_size = bit_size;
 
    switch (invert_comparison_if_needed(cond_op, invert_cond)) {
    case nir_op_ine:
@@ -880,13 +881,14 @@ get_iteration(nir_op cond_op, nir_const_value initial, nir_const_value step,
       iter = eval_const_binop(nir_op_fdiv, bit_size, span,
                               step, execution_mode);
       iter = eval_const_unop(nir_op_f2i64, bit_size, iter, execution_mode);
+      iter_bit_size = 64;
       break;
 
    default:
       return -1;
    }
 
-   uint64_t iter_u64 = nir_const_value_as_uint(iter, bit_size);
+   uint64_t iter_u64 = nir_const_value_as_uint(iter, iter_bit_size);
    return iter_u64 > INT_MAX ? -1 : (int)iter_u64;
 }
 

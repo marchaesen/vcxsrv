@@ -32,7 +32,7 @@ variables:
 
   # Changing the tag will rebuild the container images. The value is just a
   # string, but we use the date for human benefits.
-  FDO_DISTRIBUTION_TAG: '2023-12-20.0'
+  FDO_DISTRIBUTION_TAG: '2024-01-10.0'
 
   # xkbcommon: needed to share artifacts between jobs
   XKBCOMMON_DIR: 'libxkbcommon'
@@ -57,7 +57,7 @@ container-prep:
     # minimal set of packages required to build xkeyboard-config.
     BASE_PACKAGES: 'xorg-util-macros gettext pkg-config gcc grep m4 python meson ninja git diffutils'
     # extra packages we need for various tests
-    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml yq libxkbcommon libxslt python-pycountry ruff'
+    EXTRA_PACKAGES: 'tree libxml2 bison xorg-xkbcomp python-pytest python-libevdev python-yaml python-pycountry python-jinja yq libxkbcommon libxslt ruff'
     FDO_DISTRIBUTION_PACKAGES: $BASE_PACKAGES $EXTRA_PACKAGES
 
 

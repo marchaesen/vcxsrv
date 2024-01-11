@@ -238,6 +238,27 @@
     - !reference [.freedreno-farm-rules, rules]
 
 
+.ondracka-farm-rules:
+  rules:
+    - exists: [ .ci-farms-disabled/ondracka ]
+      when: never
+    - changes: [ .ci-farms-disabled/ondracka ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: on_success
+    - changes: [ .ci-farms-disabled/* ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: never
+
+.ondracka-farm-manual-rules:
+  rules:
+    - exists: [ .ci-farms-disabled/ondracka ]
+      when: never
+    - changes: [ .ci-farms-disabled/ondracka ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: never
+    - !reference [.ondracka-farm-rules, rules]
+
+
 # Skip container & build jobs when disabling any farm, and run them if any
 # farm gets re-enabled.
 # Only apply these rules in MR context, because otherwise we get a false
@@ -285,6 +306,10 @@
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes: [ .ci-farms-disabled/freedreno ]
       exists: [ .ci-farms-disabled/freedreno ]
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [ .ci-farms-disabled/ondracka ]
+      exists: [ .ci-farms-disabled/ondracka ]
       when: never
     # Any other change to ci-farms/* means some farm is getting re-enabled.
     # Run jobs in Marge pipelines (and let it fallback to manual otherwise)

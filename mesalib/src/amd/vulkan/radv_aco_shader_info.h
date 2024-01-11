@@ -41,7 +41,7 @@ static inline void radv_aco_convert_ps_epilog_key(struct aco_ps_epilog_info *aco
 
 static inline void
 radv_aco_convert_shader_info(struct aco_shader_info *aco_info, const struct radv_shader_info *radv,
-                             const struct radv_shader_args *radv_args, const struct radv_pipeline_key *radv_key,
+                             const struct radv_shader_args *radv_args, const struct radv_device_cache_key *radv_key,
                              const enum amd_gfx_level gfx_level)
 {
    ASSIGN_FIELD(wave_size);

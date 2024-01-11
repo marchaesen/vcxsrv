@@ -120,8 +120,9 @@ glamor_set_planemask(int depth, unsigned long planemask)
 }
 
 Bool
-glamor_set_alu(ScreenPtr screen, unsigned char alu)
+glamor_set_alu(DrawablePtr drawable, unsigned char alu)
 {
+    ScreenPtr screen = drawable->pScreen;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
     if (glamor_priv->is_gles) {
@@ -135,6 +136,21 @@ glamor_set_alu(ScreenPtr screen, unsigned char alu)
         glDisable(GL_COLOR_LOGIC_OP);
         return TRUE;
     }
+
+    switch (alu) {
+    case GXnoop:
+    case GXor:
+    case GXset:
+        /* These leave the alpha channel at 1.0 */
+        break;
+    default:
+        if (glamor_drawable_effective_depth(drawable) == 24 &&
+            glamor_get_drawable_pixmap(drawable)->drawable.depth == 32) {
+            glamor_fallback("ALU %x not supported with mixed depth\n", alu);
+            return FALSE;
+        }
+    }
+
     glEnable(GL_COLOR_LOGIC_OP);
     switch (alu) {
     case GXclear:

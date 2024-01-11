@@ -273,7 +273,7 @@ vn_CreateSwapchainKHR(VkDevice device,
              VN_WSI_PTR(pCreateInfo->oldSwapchain));
    }
 
-   vn_tls_set_primary_ring_submission();
+   vn_tls_set_async_pipeline_create();
 
    return vn_result(dev->instance, result);
 }

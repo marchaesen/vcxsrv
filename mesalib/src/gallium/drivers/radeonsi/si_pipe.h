@@ -322,7 +322,7 @@ struct si_resource {
    uint32_t _pad;
 
    /* Winsys objects. */
-   struct pb_buffer *buf;
+   struct pb_buffer_lean *buf;
    uint64_t gpu_address;
 
    /* Resource properties. */
@@ -438,7 +438,7 @@ struct si_texture {
  */
 struct si_auxiliary_texture {
    struct threaded_resource b;
-   struct pb_buffer *buffer;
+   struct pb_buffer_lean *buffer;
    uint32_t offset;
    uint32_t stride;
 };
@@ -529,7 +529,7 @@ union si_mmio_counters {
 
 struct si_memory_object {
    struct pipe_memory_object b;
-   struct pb_buffer *buf;
+   struct pb_buffer_lean *buf;
    uint32_t stride;
 };
 
@@ -715,7 +715,7 @@ struct si_screen {
 
    /* NGG streamout. */
    simple_mtx_t gds_mutex;
-   struct pb_buffer *gds_oa;
+   struct pb_buffer_lean *gds_oa;
 };
 
 struct si_compute {
@@ -1420,7 +1420,7 @@ void si_gfx_blit(struct pipe_context *ctx, const struct pipe_blit_info *info);
 bool si_nir_is_output_const_if_tex_is_const(struct nir_shader *shader, float *in, float *out, int *texunit);
 
 /* si_buffer.c */
-bool si_cs_is_buffer_referenced(struct si_context *sctx, struct pb_buffer *buf,
+bool si_cs_is_buffer_referenced(struct si_context *sctx, struct pb_buffer_lean *buf,
                                 unsigned usage);
 void *si_buffer_map(struct si_context *sctx, struct si_resource *resource,
                     unsigned usage);
@@ -1433,7 +1433,7 @@ struct si_resource *si_aligned_buffer_create(struct pipe_screen *screen, unsigne
                                              unsigned usage, unsigned size, unsigned alignment);
 struct pipe_resource *si_buffer_from_winsys_buffer(struct pipe_screen *screen,
                                                    const struct pipe_resource *templ,
-                                                   struct pb_buffer *imported_buf,
+                                                   struct pb_buffer_lean *imported_buf,
                                                    uint64_t offset);
 void si_replace_buffer_storage(struct pipe_context *ctx, struct pipe_resource *dst,
                                struct pipe_resource *src, unsigned num_rebinds,

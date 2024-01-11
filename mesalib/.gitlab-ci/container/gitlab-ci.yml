@@ -40,13 +40,16 @@
 # repository's container registry, so that the image from the main
 # repository's registry will be used there as well.
 
+.debian-container:
+  variables:
+    FDO_DISTRIBUTION_VERSION: bookworm-slim
+
 .container:
   stage: container
   extends:
     - .container+build-rules
     - .incorporate-templates-commit
   variables:
-    FDO_DISTRIBUTION_VERSION: bookworm-slim
     FDO_REPO_SUFFIX: $CI_JOB_NAME
     FDO_DISTRIBUTION_EXEC: 'bash .gitlab-ci/container/${CI_JOB_NAME}.sh'
     # no need to pull the whole repo to build the container image
@@ -62,12 +65,14 @@ debian/x86_64_build-base:
   extends:
     - .fdo.container-build@debian
     - .container
+    - .debian-container
   variables:
-    MESA_IMAGE_TAG: &debian-x86_64_build-base ${DEBIAN_BASE_TAG}
+    MESA_IMAGE_TAG: &debian-x86_64_build-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
 .use-debian/x86_64_build-base:
   extends:
     - .fdo.container-build@debian
+    - .debian-container
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: ${DEBIAN_X86_64_BUILD_BASE_IMAGE}
@@ -82,6 +87,10 @@ debian/x86_64_build:
     - .use-debian/x86_64_build-base
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build ${DEBIAN_BUILD_TAG}
+  rules:
+    - !reference [.use-debian/x86_64_build-base, rules]
+    # python-test requires this job
+    - !reference [python-test, rules]
 
 .use-debian/x86_64_build:
   extends:
@@ -167,11 +176,12 @@ debian/android_build:
 debian/x86_64_test-base:
   extends: debian/x86_64_build-base
   variables:
-    MESA_IMAGE_TAG: &debian-x86_64_test-base "${DEBIAN_BASE_TAG}--${KERNEL_TAG}"
+    MESA_IMAGE_TAG: &debian-x86_64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}--${KERNEL_TAG}"
 
 .use-debian/x86_64_test-base:
   extends:
     - .fdo.container-build@debian
+    - .debian-container
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: ${DEBIAN_X86_64_TEST_BASE_IMAGE}
@@ -233,10 +243,11 @@ debian/arm64_build:
   extends:
     - .fdo.container-build@debian
     - .container
+    - .debian-container
   tags:
     - aarch64
   variables:
-    MESA_IMAGE_TAG: &debian-arm64_build ${DEBIAN_BASE_TAG}
+    MESA_IMAGE_TAG: &debian-arm64_build "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
 .use-debian/arm64_build:
   extends:
@@ -255,7 +266,8 @@ debian/arm64_build:
     - .fdo.container-build@alpine
     - .container
   variables:
-    FDO_DISTRIBUTION_VERSION: "3.18"
+    FDO_DISTRIBUTION_VERSION: "edge"  # switch to 3.20 when gets released
+    FDO_BASE_IMAGE: alpine:$FDO_DISTRIBUTION_VERSION  # since cbuild ignores it
 
 # Alpine based x86_64 build image
 alpine/x86_64_build:
@@ -302,6 +314,7 @@ fedora/x86_64_build:
 .kernel+rootfs:
   extends:
     - .container+build-rules
+    - .debian-container
   stage: container
   variables:
     GIT_STRATEGY: fetch
@@ -350,6 +363,7 @@ kernel+rootfs_arm32:
   extends:
     - .fdo.container-build@debian
     - .container
+    - .debian-container
     # Don't want the .container rules
     - .container+build-rules
   variables:
@@ -365,7 +379,7 @@ debian/arm32_test:
   needs:
     - kernel+rootfs_arm32
   variables:
-    MESA_IMAGE_TAG: &debian-arm32_test ${DEBIAN_BASE_TAG}
+    MESA_IMAGE_TAG: &debian-arm32_test "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
 debian/arm64_test:
   extends:
@@ -373,7 +387,7 @@ debian/arm64_test:
   needs:
     - kernel+rootfs_arm64
   variables:
-    MESA_IMAGE_TAG: &debian-arm64_test ${DEBIAN_BASE_TAG}
+    MESA_IMAGE_TAG: &debian-arm64_test "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
 
 .use-debian/arm_test:
   variables:

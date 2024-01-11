@@ -4,11 +4,11 @@
  */
 
 #include "util/u_dynarray.h"
+#include "util/u_qsort.h"
 #include "agx_builder.h"
 #include "agx_compiler.h"
 #include "agx_debug.h"
 #include "agx_opcodes.h"
-#include "util/u_qsort.h"
 
 /* SSA-based register allocator */
 
@@ -38,43 +38,7 @@ struct ra_ctx {
    unsigned bound;
 };
 
-/** Returns number of registers written by an instruction */
-unsigned
-agx_write_registers(const agx_instr *I, unsigned d)
-{
-   unsigned size = agx_size_align_16(I->dest[d].size);
-
-   switch (I->op) {
-   case AGX_OPCODE_ITER:
-   case AGX_OPCODE_ITERPROJ:
-      assert(1 <= I->channels && I->channels <= 4);
-      return I->channels * size;
-
-   case AGX_OPCODE_IMAGE_LOAD:
-   case AGX_OPCODE_TEXTURE_LOAD:
-   case AGX_OPCODE_TEXTURE_SAMPLE:
-      /* Even when masked out, these clobber 4 registers */
-      return 4 * size;
-
-   case AGX_OPCODE_DEVICE_LOAD:
-   case AGX_OPCODE_LOCAL_LOAD:
-   case AGX_OPCODE_STACK_LOAD:
-   case AGX_OPCODE_LD_TILE:
-      /* Can write 16-bit or 32-bit. Anything logically 64-bit is already
-       * expanded to 32-bit in the mask.
-       */
-      return util_bitcount(I->mask) * MIN2(size, 2);
-
-   case AGX_OPCODE_LDCF:
-      return 6;
-   case AGX_OPCODE_COLLECT:
-      return I->nr_srcs * agx_size_align_16(I->src[0].size);
-   default:
-      return size;
-   }
-}
-
-static inline enum agx_size
+enum agx_size
 agx_split_width(const agx_instr *I)
 {
    enum agx_size width = ~0;
@@ -90,38 +54,6 @@ agx_split_width(const agx_instr *I)
 
    assert(width != ~0 && "should have been DCE'd");
    return width;
-}
-
-/*
- * Return number of registers required for coordinates for a
- * texture/image instruction. We handle layer + sample index as 32-bit even when
- * only the lower 16-bits are present.
- */
-static unsigned
-agx_coordinate_registers(const agx_instr *I)
-{
-   switch (I->dim) {
-   case AGX_DIM_1D:
-      return 2 * 1;
-   case AGX_DIM_1D_ARRAY:
-      return 2 * 2;
-   case AGX_DIM_2D:
-      return 2 * 2;
-   case AGX_DIM_2D_ARRAY:
-      return 2 * 3;
-   case AGX_DIM_2D_MS:
-      return 2 * 3;
-   case AGX_DIM_3D:
-      return 2 * 3;
-   case AGX_DIM_CUBE:
-      return 2 * 3;
-   case AGX_DIM_CUBE_ARRAY:
-      return 2 * 4;
-   case AGX_DIM_2D_MS_ARRAY:
-      return 2 * 3;
-   }
-
-   unreachable("Invalid texture dimension");
 }
 
 /*
@@ -214,93 +146,6 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
    }
 
    return max_demand;
-}
-
-unsigned
-agx_read_registers(const agx_instr *I, unsigned s)
-{
-   unsigned size = agx_size_align_16(I->src[s].size);
-
-   switch (I->op) {
-   case AGX_OPCODE_SPLIT:
-      return I->nr_dests * agx_size_align_16(agx_split_width(I));
-
-   case AGX_OPCODE_DEVICE_STORE:
-   case AGX_OPCODE_LOCAL_STORE:
-   case AGX_OPCODE_STACK_STORE:
-   case AGX_OPCODE_ST_TILE:
-      /* See agx_write_registers */
-      if (s == 0)
-         return util_bitcount(I->mask) * MIN2(size, 2);
-      else
-         return size;
-
-   case AGX_OPCODE_ZS_EMIT:
-      if (s == 1) {
-         /* Depth (bit 0) is fp32, stencil (bit 1) is u16 in the hw but we pad
-          * up to u32 for simplicity
-          */
-         bool z = !!(I->zs & 1);
-         bool s = !!(I->zs & 2);
-         assert(z || s);
-
-         return (z && s) ? 4 : z ? 2 : 1;
-      } else {
-         return 1;
-      }
-
-   case AGX_OPCODE_IMAGE_WRITE:
-      if (s == 0)
-         return 4 * size /* data */;
-      else if (s == 1)
-         return agx_coordinate_registers(I);
-      else
-         return size;
-
-   case AGX_OPCODE_IMAGE_LOAD:
-   case AGX_OPCODE_TEXTURE_LOAD:
-   case AGX_OPCODE_TEXTURE_SAMPLE:
-      if (s == 0) {
-         return agx_coordinate_registers(I);
-      } else if (s == 1) {
-         /* LOD */
-         if (I->lod_mode == AGX_LOD_MODE_LOD_GRAD) {
-            switch (I->dim) {
-            case AGX_DIM_1D:
-            case AGX_DIM_1D_ARRAY:
-               return 2 * 2 * 1;
-            case AGX_DIM_2D:
-            case AGX_DIM_2D_ARRAY:
-            case AGX_DIM_2D_MS_ARRAY:
-            case AGX_DIM_2D_MS:
-               return 2 * 2 * 2;
-            case AGX_DIM_CUBE:
-            case AGX_DIM_CUBE_ARRAY:
-            case AGX_DIM_3D:
-               return 2 * 2 * 3;
-            }
-
-            unreachable("Invalid texture dimension");
-         } else {
-            return 1;
-         }
-      } else if (s == 5) {
-         /* Compare/offset */
-         return 2 * ((!!I->shadow) + (!!I->offset));
-      } else {
-         return size;
-      }
-
-   case AGX_OPCODE_ATOMIC:
-   case AGX_OPCODE_LOCAL_ATOMIC:
-      if (s == 0 && I->atomic_opc == AGX_ATOMIC_OPC_CMPXCHG)
-         return size * 2;
-      else
-         return size;
-
-   default:
-      return size;
-   }
 }
 
 static bool
@@ -758,7 +603,7 @@ agx_set_sources(struct ra_ctx *rctx, agx_instr *I)
       assert(BITSET_TEST(rctx->visited, I->src[s].value) && "no phis");
 
       unsigned v = rctx->ssa_to_reg[I->src[s].value];
-      agx_replace_src(I, s, agx_register(v, I->src[s].size));
+      agx_replace_src(I, s, agx_register_like(v, I->src[s]));
    }
 }
 
@@ -768,7 +613,7 @@ agx_set_dests(struct ra_ctx *rctx, agx_instr *I)
    agx_foreach_ssa_dest(I, s) {
       unsigned v = rctx->ssa_to_reg[I->dest[s].value];
       I->dest[s] =
-         agx_replace_index(I->dest[s], agx_register(v, I->dest[s].size));
+         agx_replace_index(I->dest[s], agx_register_like(v, I->dest[s]));
    }
 }
 
@@ -1090,6 +935,9 @@ agx_insert_parallel_copies(agx_context *ctx, agx_block *block)
          agx_index dest = phi->dest[0];
          agx_index src = phi->src[pred_index];
 
+         if (src.type == AGX_INDEX_IMMEDIATE)
+            src.size = dest.size;
+
          assert(dest.type == AGX_INDEX_REGISTER);
          assert(dest.size == src.size);
 
@@ -1127,7 +975,7 @@ agx_ra(agx_context *ctx)
          unsigned v = I->dest[d].value;
          assert(ncomps[v] == 0 && "broken SSA");
          /* Round up vectors for easier live range splitting */
-         ncomps[v] = util_next_power_of_two(agx_write_registers(I, d));
+         ncomps[v] = util_next_power_of_two(agx_index_size_16(I->dest[d]));
          sizes[v] = I->dest[d].size;
 
          max_ncomps = MAX2(max_ncomps, ncomps[v]);
@@ -1243,6 +1091,7 @@ agx_ra(agx_context *ctx)
 
             agx_index src = ins->src[0];
             src.size = ins->dest[i].size;
+            src.channels_m1 = 0;
             src.value += (i * width);
 
             copies[n++] = (struct agx_copy){

@@ -136,7 +136,7 @@ static void pvr_image_setup_mip_levels(struct pvr_image *image)
     * requirement comes from.
     */
    if (image->vk.array_layers > 1)
-      image->layer_size = ALIGN(image->layer_size, image->alignment);
+      image->layer_size = align64(image->layer_size, image->alignment);
 
    image->size = image->layer_size * image->vk.array_layers;
 }

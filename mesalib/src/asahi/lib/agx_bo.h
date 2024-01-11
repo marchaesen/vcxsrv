@@ -70,6 +70,7 @@ struct agx_bo {
    /* Creation attributes */
    enum agx_bo_flags flags;
    size_t size;
+   size_t align;
 
    /* Mapping */
    struct agx_ptr ptr;
@@ -108,8 +109,15 @@ struct agx_bo {
    const char *label;
 };
 
-struct agx_bo *agx_bo_create(struct agx_device *dev, unsigned size,
-                             enum agx_bo_flags flags, const char *label);
+struct agx_bo *agx_bo_create_aligned(struct agx_device *dev, unsigned size,
+                                     unsigned align, enum agx_bo_flags flags,
+                                     const char *label);
+static inline struct agx_bo *
+agx_bo_create(struct agx_device *dev, unsigned size, enum agx_bo_flags flags,
+              const char *label)
+{
+   return agx_bo_create_aligned(dev, size, 0, flags, label);
+}
 
 void agx_bo_reference(struct agx_bo *bo);
 void agx_bo_unreference(struct agx_bo *bo);
@@ -117,10 +125,11 @@ struct agx_bo *agx_bo_import(struct agx_device *dev, int fd);
 int agx_bo_export(struct agx_bo *bo);
 
 void agx_bo_free(struct agx_device *dev, struct agx_bo *bo);
-struct agx_bo *agx_bo_alloc(struct agx_device *dev, size_t size,
+struct agx_bo *agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
                             enum agx_bo_flags flags);
 struct agx_bo *agx_bo_cache_fetch(struct agx_device *dev, size_t size,
-                                  uint32_t flags, const bool dontwait);
+                                  size_t align, uint32_t flags,
+                                  const bool dontwait);
 void agx_bo_cache_evict_all(struct agx_device *dev);
 
 #endif

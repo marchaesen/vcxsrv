@@ -669,7 +669,7 @@ bool si_init_sqtt(struct si_context *sctx)
 void si_destroy_sqtt(struct si_context *sctx)
 {
    struct si_screen *sscreen = sctx->screen;
-   struct pb_buffer *bo = sctx->sqtt->bo;
+   struct pb_buffer_lean *bo = sctx->sqtt->bo;
    radeon_bo_reference(sctx->screen->ws, &bo, NULL);
 
    if (sctx->sqtt->trigger_file)

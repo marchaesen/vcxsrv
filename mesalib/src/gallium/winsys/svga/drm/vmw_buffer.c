@@ -130,7 +130,7 @@ vmw_dma_buffer_map(struct pb_buffer *_buf,
    if (!buf->map)
       return NULL;
 
-   if ((_buf->usage & VMW_BUFFER_USAGE_SYNC) &&
+   if ((_buf->base.usage & VMW_BUFFER_USAGE_SYNC) &&
        !(flags & PB_USAGE_UNSYNCHRONIZED)) {
       ret = vmw_ioctl_syncforcpu(buf->region,
                                  !!(flags & PB_USAGE_DONTBLOCK),
@@ -151,7 +151,7 @@ vmw_dma_buffer_unmap(struct pb_buffer *_buf)
    struct vmw_dma_buffer *buf = vmw_pb_to_dma_buffer(_buf);
    enum pb_usage_flags flags = buf->map_flags;
 
-   if ((_buf->usage & VMW_BUFFER_USAGE_SYNC) &&
+   if ((_buf->base.usage & VMW_BUFFER_USAGE_SYNC) &&
        !(flags & PB_USAGE_UNSYNCHRONIZED)) {
       vmw_ioctl_releasefromcpu(buf->region,
                                !(flags & PB_USAGE_CPU_WRITE),
@@ -220,12 +220,12 @@ vmw_dma_bufmgr_create_buffer(struct pb_manager *_mgr,
    if(!buf)
       goto error1;
 
-   pipe_reference_init(&buf->base.reference, 1);
-   buf->base.alignment_log2 = util_logbase2(pb_desc->alignment);
-   buf->base.usage = pb_desc->usage & ~VMW_BUFFER_USAGE_SHARED;
+   pipe_reference_init(&buf->base.base.reference, 1);
+   buf->base.base.alignment_log2 = util_logbase2(pb_desc->alignment);
+   buf->base.base.usage = pb_desc->usage & ~VMW_BUFFER_USAGE_SHARED;
    buf->base.vtbl = &vmw_dma_buffer_vtbl;
    buf->mgr = mgr;
-   buf->base.size = size;
+   buf->base.base.size = size;
    if ((pb_desc->usage & VMW_BUFFER_USAGE_SHARED) && desc->region) {
       buf->region = desc->region;
    } else {

@@ -49,7 +49,7 @@
       }                                                                                          \
    } while(0)
 
-typedef void (*radeon_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer **handle,
+typedef void (*radeon_enc_get_buffer)(struct pipe_resource *resource, struct pb_buffer_lean **handle,
                                       struct radeon_surf **surface);
 
 struct pipe_video_codec *radeon_create_encoder(struct pipe_context *context,
@@ -233,11 +233,11 @@ struct radeon_encoder {
 
    radeon_enc_get_buffer get_buffer;
 
-   struct pb_buffer *handle;
+   struct pb_buffer_lean *handle;
    struct radeon_surf *luma;
    struct radeon_surf *chroma;
 
-   struct pb_buffer *bs_handle;
+   struct pb_buffer_lean *bs_handle;
    unsigned bs_size;
 
    struct rvid_buffer *si;
@@ -246,7 +246,7 @@ struct radeon_encoder {
    struct rvid_buffer *cdf;
    struct rvid_buffer *roi;
    struct radeon_enc_pic enc_pic;
-   struct pb_buffer *stats;
+   struct pb_buffer_lean *stats;
    rvcn_enc_cmd_t cmd;
 
    unsigned alignment;
@@ -270,7 +270,7 @@ struct radeon_encoder {
    struct pipe_context *ectx;
 };
 
-void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer *buf,
+void radeon_enc_add_buffer(struct radeon_encoder *enc, struct pb_buffer_lean *buf,
                            unsigned usage, enum radeon_bo_domain domain, signed offset);
 
 void radeon_enc_dummy(struct radeon_encoder *enc);

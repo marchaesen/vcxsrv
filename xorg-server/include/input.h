@@ -331,6 +331,8 @@ extern _X_EXPORT Bool InitButtonClassDeviceStruct(DeviceIntPtr /*device */ ,
 
 extern _X_INTERNAL ValuatorClassPtr AllocValuatorClass(ValuatorClassPtr src,
                                                        int numAxes);
+extern _X_INTERNAL void FreeDeviceClass(int type, void **class);
+
 
 extern _X_EXPORT Bool InitValuatorClassDeviceStruct(DeviceIntPtr /*device */ ,
                                                     int /*numAxes */ ,

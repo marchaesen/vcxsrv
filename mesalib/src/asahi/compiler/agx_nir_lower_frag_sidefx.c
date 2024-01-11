@@ -64,18 +64,14 @@ agx_nir_lower_frag_sidefx(nir_shader *s)
       s->info.outputs_written &
       (BITFIELD64_BIT(FRAG_RESULT_STENCIL) | BITFIELD64_BIT(FRAG_RESULT_DEPTH));
 
-   /* If the shader wants early fragment tests, trigger an early test at the
-    * beginning of the shader. This lets us use a Passthrough punch type,
-    * instead of Opaque which may result in the shader getting skipped
-    * incorrectly and then the side effects not kicking in.
+   /* If the shader wants early fragment tests, the sample mask lowering pass
+    * will trigger an early test at the beginning of the shader. This lets us
+    * use a Passthrough punch type, instead of Opaque which may result in the
+    * shader getting skipped incorrectly and then the side effects not kicking
+    * in. But this happens there to avoid it happening twice with a discard.
     */
-   if (s->info.fs.early_fragment_tests) {
-      nir_function_impl *impl = nir_shader_get_entrypoint(s);
-      nir_builder b = nir_builder_at(nir_before_impl(impl));
-      nir_sample_mask_agx(&b, nir_imm_intN_t(&b, ALL_SAMPLES, 16),
-                          nir_imm_intN_t(&b, ALL_SAMPLES, 16));
-      return true;
-   }
+   if (s->info.fs.early_fragment_tests)
+      return false;
 
    /* If depth/stencil feedback is already used, we're done */
    if (writes_zs)

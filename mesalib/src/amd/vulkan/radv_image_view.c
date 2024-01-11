@@ -504,7 +504,7 @@ gfx6_make_texture_descriptor(struct radv_device *device, struct radv_image *imag
    if (!(image->planes[0].surface.flags & RADEON_SURF_Z_OR_SBUFFER) && image->planes[0].surface.meta_offset) {
       state[6] = S_008F28_ALPHA_IS_ON_MSB(vi_alpha_is_on_msb(device, vk_format));
    } else {
-      if (device->instance->disable_aniso_single_level) {
+      if (device->instance->drirc.disable_aniso_single_level) {
          /* The last dword is unused by hw. The shader uses it to clear
           * bits in the first dword of sampler state.
           */

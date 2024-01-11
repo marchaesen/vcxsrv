@@ -251,6 +251,7 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
 
       /* create ssa name for restore mask */
       if (info.has_divergent_break) {
+         // TODO: this phi is unnecessary if we end WQM immediately after the loop
          /* this phi might be trivial but ensures a parallelcopy on the loop header */
          aco_ptr<Pseudo_instruction> phi{create_instruction<Pseudo_instruction>(
             aco_opcode::p_linear_phi, Format::PSEUDO, preds.size(), 1)};

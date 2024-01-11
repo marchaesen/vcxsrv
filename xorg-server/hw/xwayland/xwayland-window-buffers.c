@@ -39,33 +39,29 @@ struct xwl_window_buffer {
     struct xwl_window *xwl_window;
     PixmapPtr pixmap;
     RegionPtr damage_region;
-    Bool recycle_on_release;
     int refcnt;
     uint32_t time;
     struct xorg_list link_buffer;
 };
 
-static Bool
+static void
 copy_pixmap_area(PixmapPtr src_pixmap, PixmapPtr dst_pixmap,
                  int x, int y, int width, int height)
 {
     GCPtr pGC;
     pGC = GetScratchGC(dst_pixmap->drawable.depth,
                        dst_pixmap->drawable.pScreen);
-    if (pGC) {
-        ValidateGC(&dst_pixmap->drawable, pGC);
-        (void) (*pGC->ops->CopyArea) (&src_pixmap->drawable,
-                                      &dst_pixmap->drawable,
-                                      pGC,
-                                      x, y,
-                                      width, height,
-                                      x, y);
-        FreeScratchGC(pGC);
+    if (!pGC)
+        FatalError("GetScratchGC failed for depth %d", dst_pixmap->drawable.depth);
 
-        return TRUE;
-    }
-
-    return FALSE;
+    ValidateGC(&dst_pixmap->drawable, pGC);
+    (void) (*pGC->ops->CopyArea) (&src_pixmap->drawable,
+                                  &dst_pixmap->drawable,
+                                  pGC,
+                                  x, y,
+                                  width, height,
+                                  x, y);
+    FreeScratchGC(pGC);
 }
 
 static struct xwl_window_buffer *
@@ -99,7 +95,7 @@ xwl_window_buffer_destroy_pixmap(struct xwl_window_buffer *xwl_window_buffer)
 }
 
 static Bool
-xwl_window_buffer_dispose(struct xwl_window_buffer *xwl_window_buffer)
+xwl_window_buffer_maybe_dispose(struct xwl_window_buffer *xwl_window_buffer)
 {
     assert(xwl_window_buffer->refcnt > 0);
 
@@ -115,16 +111,6 @@ xwl_window_buffer_dispose(struct xwl_window_buffer *xwl_window_buffer)
     free(xwl_window_buffer);
 
     return TRUE;
-}
-
-static void
-xwl_window_buffer_recycle(struct xwl_window_buffer *xwl_window_buffer)
-{
-    RegionEmpty(xwl_window_buffer->damage_region);
-    xwl_window_buffer->recycle_on_release = FALSE;
-
-    if (xwl_window_buffer->pixmap)
-        xwl_window_buffer_destroy_pixmap (xwl_window_buffer);
 }
 
 static void
@@ -154,7 +140,7 @@ static struct xwl_window_buffer *
 xwl_window_buffer_get_available(struct xwl_window *xwl_window)
 {
     if (xorg_list_is_empty(&xwl_window->window_buffers_available))
-        return xwl_window_buffer_new(xwl_window);
+        return NULL;
 
     return xorg_list_last_entry(&xwl_window->window_buffers_available,
                                 struct xwl_window_buffer,
@@ -172,7 +158,7 @@ xwl_window_buffer_timer_callback(OsTimerPtr timer, CARD32 time, void *arg)
                                   &xwl_window->window_buffers_available,
                                   link_buffer) {
         if ((int64_t)(time - xwl_window_buffer->time) >= BUFFER_TIMEOUT)
-            xwl_window_buffer_dispose(xwl_window_buffer);
+            xwl_window_buffer_maybe_dispose(xwl_window_buffer);
     }
 
     /* If there are still available buffers, re-arm the timer */
@@ -199,11 +185,8 @@ xwl_window_buffer_release_callback(void *data)
     /* Drop the reference on the buffer we took in get_pixmap. If that
      * frees the window buffer, we're done.
      */
-    if (xwl_window_buffer_dispose(xwl_window_buffer))
+    if (xwl_window_buffer_maybe_dispose(xwl_window_buffer))
         return;
-
-    if (xwl_window_buffer->recycle_on_release)
-        xwl_window_buffer_recycle(xwl_window_buffer);
 
     /* We append the buffers to the end of the list, as we pick the last
      * entry again when looking for new available buffers, that means the
@@ -238,29 +221,6 @@ xwl_window_buffers_init(struct xwl_window *xwl_window)
 }
 
 void
-xwl_window_buffers_recycle(struct xwl_window *xwl_window)
-{
-    struct xwl_window_buffer *xwl_window_buffer, *tmp;
-
-    /* Dispose available buffers */
-    xorg_list_for_each_entry_safe(xwl_window_buffer, tmp,
-                                  &xwl_window->window_buffers_available,
-                                  link_buffer) {
-        xwl_window_buffer_dispose(xwl_window_buffer);
-    }
-
-    if (xwl_window->window_buffers_timer)
-        TimerCancel(xwl_window->window_buffers_timer);
-
-    /* Mark the others for recycle on release */
-    xorg_list_for_each_entry(xwl_window_buffer,
-                             &xwl_window->window_buffers_unavailable,
-                             link_buffer) {
-        xwl_window_buffer->recycle_on_release = TRUE;
-    }
-}
-
-void
 xwl_window_buffers_dispose(struct xwl_window *xwl_window)
 {
     struct xwl_window_buffer *xwl_window_buffer, *tmp;
@@ -273,20 +233,97 @@ xwl_window_buffers_dispose(struct xwl_window *xwl_window)
                                   &xwl_window->window_buffers_available,
                                   link_buffer) {
         xorg_list_del(&xwl_window_buffer->link_buffer);
-        xwl_window_buffer_dispose(xwl_window_buffer);
+        xwl_window_buffer_maybe_dispose(xwl_window_buffer);
     }
 
     xorg_list_for_each_entry_safe(xwl_window_buffer, tmp,
                                   &xwl_window->window_buffers_unavailable,
                                   link_buffer) {
         xorg_list_del(&xwl_window_buffer->link_buffer);
-        xwl_window_buffer_dispose(xwl_window_buffer);
+        xwl_window_buffer_maybe_dispose(xwl_window_buffer);
     }
 
-    if (xwl_window->window_buffers_timer) {
-        TimerFree(xwl_window->window_buffers_timer);
-        xwl_window->window_buffers_timer = 0;
+    if (xwl_window->window_buffers_timer)
+        TimerCancel(xwl_window->window_buffers_timer);
+}
+
+struct pixmap_visit {
+    PixmapPtr old;
+    PixmapPtr new;
+};
+
+static int
+xwl_set_pixmap_visit_window(WindowPtr window, void *data)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct pixmap_visit *visit = data;
+
+    if (screen->GetWindowPixmap(window) == visit->old) {
+        screen->SetWindowPixmap(window, visit->new);
+        return WT_WALKCHILDREN;
     }
+
+    return WT_DONTWALKCHILDREN;
+}
+
+static void
+xwl_window_set_pixmap(WindowPtr window, PixmapPtr pixmap)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct pixmap_visit visit;
+
+    visit.old = screen->GetWindowPixmap(window);
+    visit.new = pixmap;
+
+#ifdef COMPOSITE
+    pixmap->screen_x = visit.old->screen_x;
+    pixmap->screen_y = visit.old->screen_y;
+#endif
+
+    TraverseTree(window, xwl_set_pixmap_visit_window, &visit);
+}
+
+static PixmapPtr
+xwl_window_allocate_pixmap(struct xwl_window *xwl_window)
+{
+    ScreenPtr screen = xwl_window->xwl_screen->screen;
+    PixmapPtr window_pixmap;
+
+#ifdef XWL_HAS_GLAMOR
+    /* Try the xwayland/glamor direct hook first */
+    window_pixmap = xwl_glamor_create_pixmap_for_window(xwl_window);
+    if (window_pixmap)
+        return window_pixmap;
+#endif /* XWL_HAS_GLAMOR */
+
+    window_pixmap = screen->GetWindowPixmap(xwl_window->window);
+    return screen->CreatePixmap(screen,
+                                window_pixmap->drawable.width,
+                                window_pixmap->drawable.height,
+                                window_pixmap->drawable.depth,
+                                CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
+}
+
+void
+xwl_window_recycle_pixmap(struct xwl_window *xwl_window)
+{
+    PixmapPtr window_pixmap, new_window_pixmap;
+    WindowPtr window;
+    ScreenPtr screen;
+
+    new_window_pixmap = xwl_window_allocate_pixmap(xwl_window);
+    if (!new_window_pixmap)
+        return;
+
+    window = xwl_window->window;
+    screen = window->drawable.pScreen;
+    window_pixmap = screen->GetWindowPixmap(window);
+    copy_pixmap_area(window_pixmap,
+                     new_window_pixmap,
+                     0, 0,
+                     window_pixmap->drawable.width,
+                     window_pixmap->drawable.height);
+    xwl_window_set_pixmap(xwl_window->window, new_window_pixmap);
 }
 
 PixmapPtr
@@ -295,8 +332,7 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
 {
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     struct xwl_window_buffer *xwl_window_buffer;
-    PixmapPtr window_pixmap;
-    RegionPtr full_damage;
+    PixmapPtr window_pixmap, new_window_pixmap;
 
     window_pixmap = (*xwl_screen->screen->GetWindowPixmap) (xwl_window->window);
 
@@ -305,57 +341,45 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
         return window_pixmap;
 #endif /* XWL_HAS_GLAMOR */
 
-    xwl_window_buffer = xwl_window_buffer_get_available(xwl_window);
-    if (!xwl_window_buffer)
-        return window_pixmap;
-
     xwl_window_buffer_add_damage_region(xwl_window, damage_region);
 
-    full_damage = xwl_window_buffer->damage_region;
-
-    if (xwl_window_buffer->pixmap) {
+    xwl_window_buffer = xwl_window_buffer_get_available(xwl_window);
+    if (xwl_window_buffer) {
+        RegionPtr full_damage = xwl_window_buffer->damage_region;
         BoxPtr pBox = RegionRects(full_damage);
         int nBox = RegionNumRects(full_damage);
+
+        new_window_pixmap = xwl_window_buffer->pixmap;
+
         while (nBox--) {
-            if (!copy_pixmap_area(window_pixmap,
-                                  xwl_window_buffer->pixmap,
-                                  pBox->x1 + xwl_window->window->borderWidth,
-                                  pBox->y1 + xwl_window->window->borderWidth,
-                                  pBox->x2 - pBox->x1,
-                                  pBox->y2 - pBox->y1))
-                return window_pixmap;
+            copy_pixmap_area(window_pixmap,
+                             new_window_pixmap,
+                             pBox->x1 + xwl_window->window->borderWidth,
+                             pBox->y1 + xwl_window->window->borderWidth,
+                             pBox->x2 - pBox->x1,
+                             pBox->y2 - pBox->y1);
 
             pBox++;
         }
+
+        RegionEmpty(xwl_window_buffer->damage_region);
     } else {
-#ifdef XWL_HAS_GLAMOR
-        /* Try the xwayland/glamor direct hook first */
-        xwl_window_buffer->pixmap =
-            xwl_glamor_create_pixmap_for_window(xwl_window);
-#endif /* XWL_HAS_GLAMOR */
-        if (!xwl_window_buffer->pixmap) {
-            xwl_window_buffer->pixmap =
-                (*xwl_screen->screen->CreatePixmap) (window_pixmap->drawable.pScreen,
-                                                     window_pixmap->drawable.width,
-                                                     window_pixmap->drawable.height,
-                                                     window_pixmap->drawable.depth,
-                                                     CREATE_PIXMAP_USAGE_BACKING_PIXMAP);
-        }
+        xwl_window_buffer = xwl_window_buffer_new(xwl_window);
 
-        if (!xwl_window_buffer->pixmap)
-            return window_pixmap;
-
-        if (!copy_pixmap_area(window_pixmap,
-                              xwl_window_buffer->pixmap,
-                              0, 0,
-                              window_pixmap->drawable.width,
-                              window_pixmap->drawable.height)) {
-            xwl_window_buffer_recycle(xwl_window_buffer);
+        new_window_pixmap = xwl_window_allocate_pixmap(xwl_window);
+        if (!new_window_pixmap) {
+            xwl_window_buffer_maybe_dispose(xwl_window_buffer);
             return window_pixmap;
         }
+
+        copy_pixmap_area(window_pixmap,
+                         new_window_pixmap,
+                         0, 0,
+                         window_pixmap->drawable.width,
+                         window_pixmap->drawable.height);
     }
 
-    RegionEmpty(xwl_window_buffer->damage_region);
+    xwl_window_buffer->pixmap = window_pixmap;
 
     /* Hold a reference on the buffer until it's released by the compositor */
     xwl_window_buffer->refcnt++;
@@ -366,6 +390,8 @@ xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
     xorg_list_del(&xwl_window_buffer->link_buffer);
     xorg_list_append(&xwl_window_buffer->link_buffer,
                      &xwl_window->window_buffers_unavailable);
+
+    xwl_window_set_pixmap(xwl_window->window, new_window_pixmap);
 
     if (xorg_list_is_empty(&xwl_window->window_buffers_available))
         TimerCancel(xwl_window->window_buffers_timer);

@@ -319,8 +319,11 @@ xwl_window_get_output(struct xwl_window *xwl_window)
     struct xwl_screen *xwl_screen = xwl_window->xwl_screen;
     struct xwl_output *xwl_output;
 
-    xwl_output = xwl_output_from_wl_output(xwl_screen, xwl_window->wl_output);
+    xwl_output = xwl_output_get_output_from_name(xwl_screen, xwl_screen->output_name);
+    if (xwl_output)
+        return xwl_output;
 
+    xwl_output = xwl_output_from_wl_output(xwl_screen, xwl_window->wl_output);
     if (xwl_output)
         return xwl_output;
 
@@ -1192,6 +1195,9 @@ xwl_unrealize_window(WindowPtr window)
 
     xwl_window_buffers_dispose(xwl_window);
 
+    if (xwl_window->window_buffers_timer)
+        TimerFree(xwl_window->window_buffers_timer);
+
     if (xwl_window->frame_callback)
         wl_callback_destroy(xwl_window->frame_callback);
 
@@ -1229,7 +1235,7 @@ xwl_window_set_window_pixmap(WindowPtr window,
 
     xwl_window = xwl_window_get(window);
     if (xwl_window)
-            xwl_window_buffers_recycle(xwl_window);
+        xwl_window_buffers_dispose(xwl_window);
 }
 
 Bool

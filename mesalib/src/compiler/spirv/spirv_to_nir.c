@@ -4375,9 +4375,13 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
                                  w + 5, count - 5);
       break;
 
-   case SpvOpCopyLogical:
+   case SpvOpCopyLogical: {
       ssa = vtn_composite_copy(b, vtn_ssa_value(b, w[3]));
+      struct vtn_type *dst_type = vtn_get_value_type(b, w[2]);
+      vtn_assert(vtn_types_compatible(b, type, dst_type));
+      ssa->type = glsl_get_bare_type(dst_type->type);
       break;
+   }
    case SpvOpCopyObject:
       vtn_copy_value(b, w[3], w[2]);
       return;
@@ -5252,7 +5256,8 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
 
    case SpvExecutionModeDepthReplacing:
       vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
-      b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_ANY;
+      if (b->shader->info.fs.depth_layout == FRAG_DEPTH_LAYOUT_NONE)
+         b->shader->info.fs.depth_layout = FRAG_DEPTH_LAYOUT_ANY;
       break;
    case SpvExecutionModeDepthGreater:
       vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);

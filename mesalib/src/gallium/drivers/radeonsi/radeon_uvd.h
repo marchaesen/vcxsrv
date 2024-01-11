@@ -15,7 +15,7 @@
 #include "ac_uvd_dec.h"
 
 /* driver dependent callback */
-typedef struct pb_buffer *(*ruvd_set_dtb)(struct ruvd_msg *msg, struct vl_video_buffer *vb);
+typedef struct pb_buffer_lean *(*ruvd_set_dtb)(struct ruvd_msg *msg, struct vl_video_buffer *vb);
 
 /* create an UVD decode */
 struct pipe_video_codec *si_common_uvd_create_decoder(struct pipe_context *context,

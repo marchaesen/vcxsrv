@@ -29,6 +29,7 @@
 #include "vk_util.h"
 #include "util/u_debug.h"
 
+#include "compiler/glsl_types.h"
 #include "compiler/spirv/nir_spirv.h"
 
 uint32_t vk_get_driver_version(void)
@@ -140,4 +141,20 @@ vk_spec_info_to_nir_spirv(const VkSpecializationInfo *spec_info,
 
    *out_num_spec_entries = num_spec_entries;
    return spec_entries;
+}
+
+void
+vk_compiler_cache_init(void)
+{
+#if USE_VK_COMPILER
+   glsl_type_singleton_init_or_ref();
+#endif
+}
+
+void
+vk_compiler_cache_finish(void)
+{
+#if USE_VK_COMPILER
+   glsl_type_singleton_decref();
+#endif
 }

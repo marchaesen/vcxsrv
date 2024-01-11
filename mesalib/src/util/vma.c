@@ -167,7 +167,7 @@ util_vma_heap_alloc(struct util_vma_heap *heap,
     * alignment.
     */
    if (heap->nospan_shift) {
-      assert(ALIGN(BITFIELD64_BIT(heap->nospan_shift), alignment) ==
+      assert(align64(BITFIELD64_BIT(heap->nospan_shift), alignment) ==
             BITFIELD64_BIT(heap->nospan_shift));
    }
 

@@ -98,6 +98,8 @@ enum mesa_vk_command_buffer_state {
    MESA_VK_COMMAND_BUFFER_STATE_PENDING,
 };
 
+/* this needs spec fixes */
+#define MESA_VK_SHADER_STAGE_WORKGRAPH_HACK_BIT_FIXME (1<<30)
 VkShaderStageFlags vk_shader_stages_from_bind_point(VkPipelineBindPoint pipelineBindPoint);
 
 struct vk_command_buffer {

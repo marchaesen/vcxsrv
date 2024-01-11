@@ -108,7 +108,7 @@ agx_batch_get_so_address(struct agx_batch *batch, unsigned buffer,
 
    /* Otherwise, write the target */
    struct agx_resource *rsrc = agx_resource(target->buffer);
-   agx_batch_writes(batch, rsrc);
+   agx_batch_writes(batch, rsrc, 0);
 
    *size = target->buffer_size;
    return rsrc->bo->ptr.gpu + target->buffer_offset;
@@ -121,10 +121,13 @@ agx_draw_vbo_from_xfb(struct pipe_context *pctx,
 {
    perf_debug_ctx(agx_context(pctx), "draw auto");
 
-   unsigned count = 0;
-   pipe_buffer_read(pctx,
-                    agx_so_target(indirect->count_from_stream_output)->offset,
-                    0, 4, &count);
+   struct agx_streamout_target *so =
+      agx_so_target(indirect->count_from_stream_output);
+
+   unsigned offset_B;
+   pipe_buffer_read(pctx, so->offset, 0, 4, &offset_B);
+
+   unsigned count = offset_B / so->stride;
 
    /* XXX: Probably need to divide here */
 

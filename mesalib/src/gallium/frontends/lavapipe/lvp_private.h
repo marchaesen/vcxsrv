@@ -488,6 +488,21 @@ lvp_pipeline_type_from_bind_point(VkPipelineBindPoint bind_point)
    }
 }
 
+static inline uint32_t
+lvp_pipeline_types_from_shader_stages(VkShaderStageFlags stageFlags)
+{
+   uint32_t types = 0;
+#ifdef VK_ENABLE_BETA_EXTENSIONS
+   if (stageFlags & MESA_VK_SHADER_STAGE_WORKGRAPH_HACK_BIT_FIXME)
+      types |= BITFIELD_BIT(LVP_PIPELINE_EXEC_GRAPH);
+#endif
+   if (stageFlags & VK_SHADER_STAGE_COMPUTE_BIT)
+      types |= BITFIELD_BIT(LVP_PIPELINE_COMPUTE);
+   if (stageFlags & (VK_SHADER_STAGE_ALL_GRAPHICS | VK_SHADER_STAGE_MESH_BIT_EXT | VK_SHADER_STAGE_TASK_BIT_EXT))
+      types |= BITFIELD_BIT(LVP_PIPELINE_GRAPHICS);
+   return types;
+}
+
 struct lvp_pipeline {
    struct vk_object_base base;
    struct lvp_device *                          device;

@@ -407,7 +407,7 @@ vmw_swc_region_relocation(struct svga_winsys_context *swc,
    ++vswc->region.staged;
 
    if (vmw_swc_add_validate_buffer(vswc, reloc->buffer, flags)) {
-      vswc->seen_regions += reloc->buffer->size;
+      vswc->seen_regions += reloc->buffer->base.size;
       if ((swc->hints & SVGA_HINT_FLAG_CAN_PRE_FLUSH) &&
           vswc->seen_regions >= VMW_GMR_POOL_SIZE/5)
          vswc->preemptive_flush = true;
@@ -449,7 +449,7 @@ vmw_swc_mob_relocation(struct svga_winsys_context *swc,
    }
 
    if (vmw_swc_add_validate_buffer(vswc, pb_buffer, flags)) {
-      vswc->seen_mobs += pb_buffer->size;
+      vswc->seen_mobs += pb_buffer->base.size;
 
       if ((swc->hints & SVGA_HINT_FLAG_CAN_PRE_FLUSH) &&
           vswc->seen_mobs >=

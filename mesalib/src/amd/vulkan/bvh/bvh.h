@@ -48,6 +48,7 @@
 #include <vulkan/vulkan.h>
 typedef struct radv_ir_node radv_ir_node;
 typedef struct radv_global_sync_data radv_global_sync_data;
+typedef struct radv_bvh_geometry_data radv_bvh_geometry_data;
 
 typedef uint16_t float16_t;
 
@@ -107,8 +108,6 @@ struct radv_accel_struct_header {
 
 struct radv_ir_node {
    radv_aabb aabb;
-   /* Generic normalized cost of not merging this node. */
-   float cost;
 };
 
 #define RADV_UNKNOWN_BVH_OFFSET 0xFFFFFFFF
@@ -198,5 +197,18 @@ struct radv_bvh_box32_node {
 /* If the task index is set to this value, there is no
  * more work to do. */
 #define TASK_INDEX_INVALID 0xFFFFFFFF
+
+struct radv_bvh_geometry_data {
+   uint64_t data;
+   uint64_t indices;
+   uint64_t transform;
+
+   uint32_t geometry_id;
+   uint32_t geometry_type;
+   uint32_t first_id;
+   uint32_t stride;
+   uint32_t vertex_format;
+   uint32_t index_format;
+};
 
 #endif

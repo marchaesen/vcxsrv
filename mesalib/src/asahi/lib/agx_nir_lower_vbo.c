@@ -113,14 +113,14 @@ pass(struct nir_builder *b, nir_instr *instr, void *data)
    if (intr->intrinsic != nir_intrinsic_load_input)
       return false;
 
-   struct agx_vbufs *vbufs = data;
+   struct agx_attribute *attribs = data;
    b->cursor = nir_before_instr(instr);
 
    nir_src *offset_src = nir_get_io_offset_src(intr);
    assert(nir_src_is_const(*offset_src) && "no attribute indirects");
    unsigned index = nir_intrinsic_base(intr) + nir_src_as_uint(*offset_src);
 
-   struct agx_attribute attrib = vbufs->attributes[index];
+   struct agx_attribute attrib = attribs[index];
    uint32_t stride = attrib.stride;
    uint16_t offset = attrib.src_offset;
 
@@ -262,9 +262,9 @@ pass(struct nir_builder *b, nir_instr *instr, void *data)
 }
 
 bool
-agx_nir_lower_vbo(nir_shader *shader, struct agx_vbufs *vbufs)
+agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs)
 {
    assert(shader->info.stage == MESA_SHADER_VERTEX);
    return nir_shader_instructions_pass(
-      shader, pass, nir_metadata_block_index | nir_metadata_dominance, vbufs);
+      shader, pass, nir_metadata_block_index | nir_metadata_dominance, attribs);
 }

@@ -305,4 +305,11 @@ XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
 extern int
  XICheckInvalidMaskBits(ClientPtr client, unsigned char *mask, int len);
 
+void
+XTestDeviceSendEvents(DeviceIntPtr dev,
+                      int type,
+                      int detail,
+                      int flags,
+                      const ValuatorMask *mask);
+
 #endif                          /* EXEVENTS_H */

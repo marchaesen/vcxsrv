@@ -6508,15 +6508,16 @@
               <iso639Id>ckv</iso639Id>
               <iso639Id>pwn</iso639Id>
               <iso639Id>pyu</iso639Id>
+              <iso639Id>pzh</iso639Id>
               <iso639Id>dru</iso639Id>
-              <iso639Id>ais</iso639Id>
               <iso639Id>ssf</iso639Id>
+              <iso639Id>szy</iso639Id>
               <iso639Id>tao</iso639Id>
               <iso639Id>tsu</iso639Id>
               <iso639Id>trv</iso639Id>
               <iso639Id>xnb</iso639Id>
               <iso639Id>sxr</iso639Id>
-              <iso639Id>uun</iso639Id>
+              <iso639Id>uon</iso639Id>
               <iso639Id>fos</iso639Id>
             </languageList>
           </configItem>

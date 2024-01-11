@@ -535,7 +535,7 @@ compute_version_es2(const struct gl_extensions *extensions,
                          extensions->ARB_shader_image_load_store &&
                          extensions->ARB_shader_image_size &&
                          extensions->ARB_shader_storage_buffer_object &&
-
+                         extensions->EXT_color_buffer_float &&
                          extensions->EXT_draw_buffers2 &&
                          extensions->KHR_blend_equation_advanced &&
                          extensions->KHR_robustness &&

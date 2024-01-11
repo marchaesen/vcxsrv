@@ -172,7 +172,7 @@ VkResult pvr_free_list_create(struct pvr_device *device,
    size_alignment = (addr_alignment / ROGUE_FREE_LIST_ENTRY_SIZE) *
                     ROGUE_BIF_PM_PHYSICAL_PAGE_SIZE;
 
-   assert(util_is_power_of_two_nonzero(size_alignment));
+   assert(util_is_power_of_two_nonzero64(size_alignment));
 
    initial_size = align64(initial_size, size_alignment);
    max_size = align64(max_size, size_alignment);

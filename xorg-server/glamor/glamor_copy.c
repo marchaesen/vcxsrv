@@ -378,7 +378,7 @@ glamor_copy_fbo_fbo_draw(DrawablePtr src,
     if (gc && !glamor_set_planemask(gc->depth, gc->planemask))
         goto bail_ctx;
 
-    if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))
+    if (!glamor_set_alu(dst, gc ? gc->alu : GXcopy))
         goto bail_ctx;
 
     if (bitplane && !glamor_priv->can_copyplane)
@@ -529,7 +529,7 @@ glamor_copy_fbo_fbo_temp(DrawablePtr src,
     if (gc && !glamor_set_planemask(gc->depth, gc->planemask))
         goto bail_ctx;
 
-    if (!glamor_set_alu(screen, gc ? gc->alu : GXcopy))
+    if (!glamor_set_alu(dst, gc ? gc->alu : GXcopy))
         goto bail_ctx;
 
     /* Find the size of the area to copy

@@ -145,6 +145,7 @@ struct xwl_screen {
     int libdecor_fd;
     struct libdecor *libdecor_context;
 #endif
+    const char *output_name;
 };
 
 /* Apps which use randr/vidmode to change the mode when going fullscreen,

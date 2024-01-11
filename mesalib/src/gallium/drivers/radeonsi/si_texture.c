@@ -949,7 +949,7 @@ static struct si_texture *si_texture_create_object(struct pipe_screen *screen,
                                                    const struct pipe_resource *base,
                                                    const struct radeon_surf *surface,
                                                    const struct si_texture *plane0,
-                                                   struct pb_buffer *imported_buf,
+                                                   struct pb_buffer_lean *imported_buf,
                                                    uint64_t offset, unsigned pitch_in_bytes,
                                                    uint64_t alloc_size, unsigned alignment)
 {
@@ -1580,7 +1580,7 @@ static bool si_texture_is_aux_plane(const struct pipe_resource *resource)
 
 static struct pipe_resource *si_texture_from_winsys_buffer(struct si_screen *sscreen,
                                                            const struct pipe_resource *templ,
-                                                           struct pb_buffer *buf, unsigned stride,
+                                                           struct pb_buffer_lean *buf, unsigned stride,
                                                            uint64_t offset, uint64_t modifier,
                                                            unsigned usage, bool dedicated)
 {
@@ -1705,7 +1705,7 @@ static struct pipe_resource *si_texture_from_handle(struct pipe_screen *screen,
                                                     struct winsys_handle *whandle, unsigned usage)
 {
    struct si_screen *sscreen = (struct si_screen *)screen;
-   struct pb_buffer *buf = NULL;
+   struct pb_buffer_lean *buf = NULL;
 
    buf = sscreen->ws->buffer_from_handle(sscreen->ws, whandle,
                                          sscreen->info.max_alignment,
@@ -2262,7 +2262,7 @@ si_memobj_from_handle(struct pipe_screen *screen, struct winsys_handle *whandle,
 {
    struct si_screen *sscreen = (struct si_screen *)screen;
    struct si_memory_object *memobj = CALLOC_STRUCT(si_memory_object);
-   struct pb_buffer *buf = NULL;
+   struct pb_buffer_lean *buf = NULL;
 
    if (!memobj)
       return NULL;
@@ -2312,7 +2312,7 @@ static struct pipe_resource *si_resource_from_memobj(struct pipe_screen *screen,
    /* si_texture_from_winsys_buffer doesn't increment refcount of
     * memobj->buf, so increment it here.
     */
-   struct pb_buffer *buf = NULL;
+   struct pb_buffer_lean *buf = NULL;
    radeon_bo_reference(sscreen->ws, &buf, memobj->buf);
    return res;
 }

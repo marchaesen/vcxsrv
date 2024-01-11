@@ -41,8 +41,8 @@ variables:
 # changing these will force rebuilding the associated image
 # Note: these tags have no meaning and are not tied to a particular
 # fontconfig version
-  FEDORA_TAG:    '2023-12-05.1-7c59f403cca5'
-  FREEBSD_TAG:   '2023-12-05.1-b3f6fd9ee634'
+  FEDORA_TAG:    '2024-01-11.1-21391676125f'
+  FREEBSD_TAG:   '2024-01-11.1-6ddd7d2cf9ad'
 
   FEDORA_EXEC:   'bash .gitlab-ci/fedora-install.sh'
   FREEBSD_EXEC:  'bash .gitlab-ci/freebsd-install.sh'
@@ -326,6 +326,8 @@ freebsd:13.2@container-clean:
     when: always
     expire_in: 5 days
     paths:
+      - build*/doc/fontconfig-user.html
+      - build*/doc/fontconfig-devel/*
       - build*/fc-build.log
       - build*/fontconfig-*.tar.*
       - build*/test/*log
@@ -715,3 +717,18 @@ check-merge-request:
       junit: results.xml
   allow_failure: true
 
+pages:
+  stage: deploy
+  script:
+    - |
+      mkdir public || :
+      cp -a build*/doc/fontconfig-user.html build*/doc/fontconfig-devel public/
+  artifacts:
+    paths:
+      - public
+  dependencies:
+    - t_fedora:rawhide:autotools shared libxml2
+  needs:
+    - t_fedora:rawhide:autotools shared libxml2
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main" && $CI_PIPELINE_SOURCE != "merge_request_event"

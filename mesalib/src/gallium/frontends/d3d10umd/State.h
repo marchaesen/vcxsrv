@@ -62,6 +62,7 @@ struct Shader
 };
 
 struct Query;
+struct ElementLayout;
 
 struct Device
 {
@@ -105,6 +106,7 @@ struct Device
    Query *pPredicate;
    BOOL PredicateValue;
 
+   ElementLayout *element_layout;
    BOOL velems_changed;
 };
 
@@ -326,7 +328,7 @@ CastPipeShader(D3D10DDI_HSHADER hShader)
 
 struct ElementLayout
 {
-   struct cso_velems_state *velems;
+   struct cso_velems_state state;
 };
 
 
@@ -335,14 +337,6 @@ CastElementLayout(D3D10DDI_HELEMENTLAYOUT hElementLayout)
 {
    return static_cast<ElementLayout *>(hElementLayout.pDrvPrivate);
 }
-
-static inline void *
-CastPipeInputLayout(D3D10DDI_HELEMENTLAYOUT hElementLayout)
-{
-   ElementLayout *pElementLayout = CastElementLayout(hElementLayout);
-   return pElementLayout ? pElementLayout->handle : NULL;
-}
-
 
 struct SamplerState
 {

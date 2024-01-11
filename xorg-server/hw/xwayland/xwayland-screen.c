@@ -253,6 +253,7 @@ xwl_close_screen(ScreenPtr screen)
     wl_display_disconnect(xwl_screen->display);
 
     screen->CloseScreen = xwl_screen->CloseScreen;
+
     free(xwl_screen);
 
     return screen->CloseScreen(screen);
@@ -845,6 +846,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-fullscreen") == 0) {
             use_fixed_size = 1;
             xwl_screen->fullscreen = 1;
+        }
+        else if (strcmp(argv[i], "-output") == 0) {
+            xwl_screen->output_name = argv[i + 1];
         }
         else if (strcmp(argv[i], "-host-grab") == 0) {
             xwl_screen->host_grab = 1;

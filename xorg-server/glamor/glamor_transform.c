@@ -143,7 +143,7 @@ glamor_set_solid(DrawablePtr    drawable,
 
     pixel = gc->fgPixel;
 
-    if (!glamor_set_alu(drawable->pScreen, alu)) {
+    if (!glamor_set_alu(drawable, alu)) {
         switch (gc->alu) {
         case GXclear:
             pixel = 0;
@@ -209,7 +209,7 @@ glamor_set_tiled(DrawablePtr    drawable,
                  GLint          offset_uniform,
                  GLint          size_inv_uniform)
 {
-    if (!glamor_set_alu(drawable->pScreen, gc->alu))
+    if (!glamor_set_alu(drawable, gc->alu))
         return FALSE;
 
     if (!glamor_set_planemask(gc->depth, gc->planemask))

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "agx_builder.h"
 #include "agx_test.h"
 
 #include <gtest/gtest.h>
@@ -170,6 +171,23 @@ TEST_F(Optimizer, CopypropRespectsAbsNeg)
 TEST_F(Optimizer, IntCopyprop)
 {
    CASE32(agx_xor_to(b, out, agx_mov(b, wx), wy), agx_xor_to(b, out, wx, wy));
+}
+
+TEST_F(Optimizer, CopypropSplitMovedUniform64)
+{
+   CASE32(
+      {
+         /* emit_load_preamble puts in the move, so we do too */
+         agx_index mov = agx_mov(b, agx_uniform(40, AGX_SIZE_64));
+         agx_instr *spl = agx_split(b, 2, mov);
+         spl->dest[0] = agx_temp(b->shader, AGX_SIZE_32);
+         spl->dest[1] = agx_temp(b->shader, AGX_SIZE_32);
+         agx_xor_to(b, out, spl->dest[0], spl->dest[1]);
+      },
+      {
+         agx_xor_to(b, out, agx_uniform(40, AGX_SIZE_32),
+                    agx_uniform(42, AGX_SIZE_32));
+      });
 }
 
 TEST_F(Optimizer, IntCopypropDoesntConvert)

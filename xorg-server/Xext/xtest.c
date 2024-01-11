@@ -148,7 +148,7 @@ ProcXTestCompareCursor(ClientPtr client)
     return Success;
 }
 
-static void
+void
 XTestDeviceSendEvents(DeviceIntPtr dev,
                       int type,
                       int detail,
@@ -645,9 +645,6 @@ AllocXTestDevice(ClientPtr client, const char *name,
                                      XIGetKnownProperty(XI_PROP_XTEST_DEVICE),
                                      FALSE);
         XIRegisterPropertyHandler(*keybd, DeviceSetXTestProperty, NULL, NULL);
-
-        (*ptr)->sendEventsProc = XTestDeviceSendEvents;
-        (*keybd)->sendEventsProc = XTestDeviceSendEvents;
     }
 
     free(xtestname);

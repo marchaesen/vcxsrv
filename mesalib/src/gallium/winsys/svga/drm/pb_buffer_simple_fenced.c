@@ -175,8 +175,8 @@ fenced_manager_dump_locked(struct fenced_manager *fenced_mgr)
       assert(!fenced_buf->fence);
       debug_printf("%10p %"PRIu64" %8u %7s\n",
                    (void *) fenced_buf,
-                   fenced_buf->base.size,
-                   p_atomic_read(&fenced_buf->base.reference.count),
+                   fenced_buf->base.base.size,
+                   p_atomic_read(&fenced_buf->base.base.reference.count),
                    fenced_buf->buffer ? "gpu" : "none");
       curr = next;
       next = curr->next;
@@ -191,8 +191,8 @@ fenced_manager_dump_locked(struct fenced_manager *fenced_mgr)
       signaled = ops->fence_signalled(ops, fenced_buf->fence, 0);
       debug_printf("%10p %"PRIu64" %8u %7s %10p %s\n",
                    (void *) fenced_buf,
-                   fenced_buf->base.size,
-                   p_atomic_read(&fenced_buf->base.reference.count),
+                   fenced_buf->base.base.size,
+                   p_atomic_read(&fenced_buf->base.base.reference.count),
                    "gpu",
                    (void *) fenced_buf->fence,
                    signaled == 0 ? "y" : "n");
@@ -209,7 +209,7 @@ static inline void
 fenced_buffer_destroy_locked(struct fenced_manager *fenced_mgr,
                              struct fenced_buffer *fenced_buf)
 {
-   assert(!pipe_is_referenced(&fenced_buf->base.reference));
+   assert(!pipe_is_referenced(&fenced_buf->base.base.reference));
 
    assert(!fenced_buf->fence);
    assert(fenced_buf->head.prev);
@@ -233,11 +233,11 @@ static inline void
 fenced_buffer_add_locked(struct fenced_manager *fenced_mgr,
                          struct fenced_buffer *fenced_buf)
 {
-   assert(pipe_is_referenced(&fenced_buf->base.reference));
+   assert(pipe_is_referenced(&fenced_buf->base.base.reference));
    assert(fenced_buf->flags & PB_USAGE_GPU_READ_WRITE);
    assert(fenced_buf->fence);
 
-   p_atomic_inc(&fenced_buf->base.reference.count);
+   p_atomic_inc(&fenced_buf->base.base.reference.count);
 
    list_del(&fenced_buf->head);
    assert(fenced_mgr->num_unfenced);
@@ -275,7 +275,7 @@ fenced_buffer_remove_locked(struct fenced_manager *fenced_mgr,
    list_addtail(&fenced_buf->head, &fenced_mgr->unfenced);
    ++fenced_mgr->num_unfenced;
 
-   if (p_atomic_dec_zero(&fenced_buf->base.reference.count)) {
+   if (p_atomic_dec_zero(&fenced_buf->base.base.reference.count)) {
       fenced_buffer_destroy_locked(fenced_mgr, fenced_buf);
       return true;
    }
@@ -301,7 +301,7 @@ fenced_buffer_finish_locked(struct fenced_manager *fenced_mgr,
    debug_warning("waiting for GPU");
 #endif
 
-   assert(pipe_is_referenced(&fenced_buf->base.reference));
+   assert(pipe_is_referenced(&fenced_buf->base.base.reference));
    assert(fenced_buf->fence);
 
    if(fenced_buf->fence) {
@@ -317,7 +317,7 @@ fenced_buffer_finish_locked(struct fenced_manager *fenced_mgr,
 
       mtx_lock(&fenced_mgr->mutex);
 
-      assert(pipe_is_referenced(&fenced_buf->base.reference));
+      assert(pipe_is_referenced(&fenced_buf->base.base.reference));
 
       /*
        * Only proceed if the fence object didn't change in the meanwhile.
@@ -506,7 +506,7 @@ fenced_buffer_destroy(void *winsys, struct pb_buffer *buf)
    struct fenced_buffer *fenced_buf = fenced_buffer(buf);
    struct fenced_manager *fenced_mgr = fenced_buf->mgr;
 
-   assert(!pipe_is_referenced(&fenced_buf->base.reference));
+   assert(!pipe_is_referenced(&fenced_buf->base.base.reference));
 
    mtx_lock(&fenced_mgr->mutex);
 
@@ -651,7 +651,7 @@ fenced_buffer_fence(struct pb_buffer *buf,
 
    mtx_lock(&fenced_mgr->mutex);
 
-   assert(pipe_is_referenced(&fenced_buf->base.reference));
+   assert(pipe_is_referenced(&fenced_buf->base.base.reference));
    assert(fenced_buf->buffer);
 
    if(fence != fenced_buf->fence) {
@@ -730,10 +730,10 @@ fenced_bufmgr_create_buffer(struct pb_manager *mgr,
    if(!fenced_buf)
       goto no_buffer;
 
-   pipe_reference_init(&fenced_buf->base.reference, 1);
-   fenced_buf->base.alignment_log2 = util_logbase2(desc->alignment);
-   fenced_buf->base.usage = desc->usage;
-   fenced_buf->base.size = size;
+   pipe_reference_init(&fenced_buf->base.base.reference, 1);
+   fenced_buf->base.base.alignment_log2 = util_logbase2(desc->alignment);
+   fenced_buf->base.base.usage = desc->usage;
+   fenced_buf->base.base.size = size;
    fenced_buf->size = size;
 
    fenced_buf->base.vtbl = &fenced_buffer_vtbl;

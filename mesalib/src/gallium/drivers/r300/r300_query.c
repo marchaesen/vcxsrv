@@ -73,9 +73,10 @@ static struct pipe_query *r300_create_query(struct pipe_context *pipe,
 static void r300_destroy_query(struct pipe_context* pipe,
                                struct pipe_query* query)
 {
+    struct r300_context *r300 = r300_context(pipe);
     struct r300_query* q = r300_query(query);
 
-    pb_reference(&q->buf, NULL);
+    radeon_bo_reference(r300->rws, &q->buf, NULL);
     FREE(query);
 }
 
@@ -120,7 +121,7 @@ static bool r300_end_query(struct pipe_context* pipe,
     struct r300_query *q = r300_query(query);
 
     if (q->type == PIPE_QUERY_GPU_FINISHED) {
-        pb_reference(&q->buf, NULL);
+        radeon_bo_reference(r300->rws, &q->buf, NULL);
         r300_flush(pipe, PIPE_FLUSH_ASYNC,
                    (struct pipe_fence_handle**)&q->buf);
         return true;

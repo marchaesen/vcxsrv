@@ -1004,7 +1004,7 @@ nir_udiv_imm(nir_builder *build, nir_def *x, uint64_t y)
 
    if (y == 1) {
       return x;
-   } else if (util_is_power_of_two_nonzero(y)) {
+   } else if (util_is_power_of_two_nonzero64(y)) {
       return nir_ushr_imm(build, x, ffsll(y) - 1);
    } else {
       return nir_udiv(build, x, nir_imm_intN_t(build, y, x->bit_size));
@@ -1016,7 +1016,7 @@ nir_umod_imm(nir_builder *build, nir_def *x, uint64_t y)
 {
    assert(y > 0 && y <= u_uintN_max(x->bit_size));
 
-   if (util_is_power_of_two_nonzero(y)) {
+   if (util_is_power_of_two_nonzero64(y)) {
       return nir_iand_imm(build, x, y - 1);
    } else {
       return nir_umod(build, x, nir_imm_intN_t(build, y, x->bit_size));

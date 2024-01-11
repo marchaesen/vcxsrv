@@ -51,7 +51,7 @@ msm_ioctl_gem_new(int fd, unsigned long request, void *arg)
 {
    struct shim_fd *shim_fd = drm_shim_fd_lookup(fd);
    struct drm_msm_gem_new *create = arg;
-   size_t size = ALIGN(create->size, 4096);
+   size_t size = (size_t)align64(create->size, 4096);
 
    if (!size)
       return -EINVAL;

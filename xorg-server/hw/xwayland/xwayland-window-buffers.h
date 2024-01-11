@@ -33,8 +33,8 @@
 #include "regionstr.h"
 
 void xwl_window_buffers_init(struct xwl_window *xwl_window);
-void xwl_window_buffers_recycle(struct xwl_window *xwl_window);
 void xwl_window_buffers_dispose(struct xwl_window *xwl_window);
+void xwl_window_recycle_pixmap(struct xwl_window *xwl_window);
 PixmapPtr xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
                                         RegionPtr damage_region);
 

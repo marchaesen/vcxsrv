@@ -951,7 +951,7 @@ static bool r300_render_allocate_vertices(struct vbuf_render* render,
     DBG(r300, DBG_DRAW, "r300: render_allocate_vertices (size: %d)\n", size);
 
     if (!r300->vbo || size + r300->draw_vbo_offset > r300->vbo->size) {
-	pb_reference(&r300->vbo, NULL);
+	radeon_bo_reference(r300->rws, &r300->vbo, NULL);
         r300->vbo = NULL;
         r300render->vbo_ptr = NULL;
 

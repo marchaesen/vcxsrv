@@ -2,11 +2,11 @@ python3 = import('python3')
 
 # XWin requires OpenGL spec files in order to generate wrapper code for native GL functions
 py3 = python3.find_python()
-if run_command(py3, '-c', 'import lxml;').returncode() != 0
+if run_command(py3, '-c', 'import lxml;', check: false).returncode() != 0
     error('python3 lxml module not found')
 endif
 
-khronos_spec_dir = dependency('khronos-opengl-registry').get_pkgconfig_variable('specdir')
+khronos_spec_dir = dependency('khronos-opengl-registry').get_variable(pkgconfig : 'specdir')
 
 gen_gl_wrappers_opts= ['-nodebug']
 gen_gl_wrappers_cmd = ['env', 'PYTHONPATH=' + khronos_spec_dir, py3, files('./gen_gl_wrappers.py'), gen_gl_wrappers_opts]

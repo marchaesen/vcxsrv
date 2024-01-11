@@ -352,7 +352,7 @@ static void r600_flush_from_st(struct pipe_context *ctx,
 
 	if (!radeon_emitted(&rctx->gfx.cs, rctx->initial_gfx_cs_size)) {
 		if (fence)
-			ws->fence_reference(&gfx_fence, rctx->last_gfx_fence);
+			ws->fence_reference(ws, &gfx_fence, rctx->last_gfx_fence);
 		if (!(flags & PIPE_FLUSH_DEFERRED))
 			ws->cs_sync_flush(&rctx->gfx.cs);
 	} else {
@@ -374,8 +374,8 @@ static void r600_flush_from_st(struct pipe_context *ctx,
 		struct r600_multi_fence *multi_fence =
 			CALLOC_STRUCT(r600_multi_fence);
 		if (!multi_fence) {
-			ws->fence_reference(&sdma_fence, NULL);
-			ws->fence_reference(&gfx_fence, NULL);
+			ws->fence_reference(ws, &sdma_fence, NULL);
+			ws->fence_reference(ws, &gfx_fence, NULL);
 			goto finish;
 		}
 
@@ -412,7 +412,7 @@ static void r600_flush_dma_ring(void *ctx, unsigned flags,
 
 	if (!radeon_emitted(cs, 0)) {
 		if (fence)
-			rctx->ws->fence_reference(fence, rctx->last_sdma_fence);
+			rctx->ws->fence_reference(rctx->ws, fence, rctx->last_sdma_fence);
 		return;
 	}
 
@@ -421,7 +421,7 @@ static void r600_flush_dma_ring(void *ctx, unsigned flags,
 
 	rctx->ws->cs_flush(cs, flags, &rctx->last_sdma_fence);
 	if (fence)
-		rctx->ws->fence_reference(fence, rctx->last_sdma_fence);
+		rctx->ws->fence_reference(rctx->ws, fence, rctx->last_sdma_fence);
 
 	if (check_vm) {
 		/* Use conservative timeout 800ms, after which we won't wait any
@@ -666,8 +666,8 @@ void r600_common_context_cleanup(struct r600_common_context *rctx)
 	slab_destroy_child(&rctx->pool_transfers_unsync);
 
 	u_suballocator_destroy(&rctx->allocator_zeroed_memory);
-	rctx->ws->fence_reference(&rctx->last_gfx_fence, NULL);
-	rctx->ws->fence_reference(&rctx->last_sdma_fence, NULL);
+	rctx->ws->fence_reference(rctx->ws, &rctx->last_gfx_fence, NULL);
+	rctx->ws->fence_reference(rctx->ws, &rctx->last_sdma_fence, NULL);
 	r600_resource_reference(&rctx->eop_bug_scratch, NULL);
 }
 
@@ -1072,8 +1072,8 @@ static void r600_fence_reference(struct pipe_screen *screen,
 	struct r600_multi_fence *rsrc = (struct r600_multi_fence *)src;
 
 	if (pipe_reference(&(*rdst)->reference, &rsrc->reference)) {
-		ws->fence_reference(&(*rdst)->gfx, NULL);
-		ws->fence_reference(&(*rdst)->sdma, NULL);
+		ws->fence_reference(ws, &(*rdst)->gfx, NULL);
+		ws->fence_reference(ws, &(*rdst)->sdma, NULL);
 		FREE(*rdst);
 	}
         *rdst = rsrc;
