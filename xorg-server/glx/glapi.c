@@ -383,8 +383,8 @@ _glapi_add_dispatch(const char *const *function_names,
     static int next_dynamic_offset = FIRST_DYNAMIC_OFFSET;
     const char *const real_sig = (parameter_signature != NULL)
         ? parameter_signature : "";
-    struct _glapi_function *entry[8];
-    GLboolean is_static[8];
+    struct _glapi_function *entry[MAX_EXTENSION_FUNCS];
+    GLboolean is_static[MAX_EXTENSION_FUNCS];
     unsigned i;
     unsigned j;
     int offset = ~0;
