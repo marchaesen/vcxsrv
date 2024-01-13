@@ -59,7 +59,6 @@ vpe_files = files(
   'src/core/inc/color_test_values.h',
   'src/core/inc/vpe_visual_confirm.h',
   'src/core/inc/color_cs.h',
-  'src/core/inc/diag_reg_helper.h',
   'src/core/inc/shaper_builder.h',
   'src/core/inc/color_bg.h',
   'src/core/inc/transform.h',

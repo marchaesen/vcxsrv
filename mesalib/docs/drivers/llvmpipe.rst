@@ -31,7 +31,7 @@ Requirements
 
    For Linux, on a recent Debian based distribution do:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       aptitude install llvm-dev
 
@@ -42,7 +42,7 @@ Requirements
 
    For a RPM-based distribution do:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       yum install llvm-devel
 
@@ -76,7 +76,7 @@ Building
 
 To build everything on Linux invoke meson as:
 
-.. code-block:: console
+.. code-block:: sh
 
    mkdir build
    cd build

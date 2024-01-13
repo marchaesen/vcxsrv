@@ -43,7 +43,7 @@ enum config_type {
 };
 
 typedef void (*config_callback_t)(
-    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, int64_t size);
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size);
 
 #define MAX_CONFIG_PACKET_DATA_SIZE_DWORD 0x01000
 

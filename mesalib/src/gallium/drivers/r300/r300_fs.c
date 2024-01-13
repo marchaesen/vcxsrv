@@ -65,11 +65,13 @@ void r300_shader_read_fs_inputs(struct tgsi_shader_info* info,
             case TGSI_SEMANTIC_TEXCOORD:
                 assert(index < ATTR_TEXCOORD_COUNT);
                 fs_inputs->texcoord[index] = i;
+                fs_inputs->num_texcoord++;
                 break;
 
             case TGSI_SEMANTIC_GENERIC:
                 assert(index < ATTR_GENERIC_COUNT);
                 fs_inputs->generic[index] = i;
+                fs_inputs->num_generic++;
                 break;
 
             case TGSI_SEMANTIC_FOG:

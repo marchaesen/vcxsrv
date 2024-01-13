@@ -963,7 +963,7 @@ create_new_program(struct state_key *key,
    nir_validate_shader(b.shader, "after generating ff-vertex shader");
 
    if (key->fog_mode)
-      NIR_PASS_V(b.shader, st_nir_lower_fog, key->fog_mode, p.state_params);
+      NIR_PASS(_, b.shader, st_nir_lower_fog, key->fog_mode, p.state_params);
 
    _mesa_add_separate_state_parameters(program, p.state_params);
    _mesa_free_parameter_list(p.state_params);

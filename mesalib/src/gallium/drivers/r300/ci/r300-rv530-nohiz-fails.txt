@@ -368,8 +368,6 @@ shaders@glsl-bug-110796,Fail
 shaders@glsl-fs-bug25902,Fail
 shaders@glsl-fwidth,Fail
 shaders@glsl-lod-bias,Fail
-shaders@glsl-max-varyings,Fail
-shaders@glsl-max-varyings >max_varying_components,Fail
 shaders@glsl-orangebook-ch06-bump,Fail
 shaders@glsl-uniform-interstage-limits@subdivide 5,Fail
 shaders@glsl-uniform-interstage-limits@subdivide 5- statechanges,Fail
@@ -417,7 +415,6 @@ spec@!opengl 1.1@linestipple@Line loop,Fail
 spec@!opengl 1.1@linestipple@Line strip,Fail
 spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
 spec@!opengl 1.1@read-front samples=6,Fail
-spec@!opengl 1.1@streaming-texture-leak,Timeout
 spec@!opengl 1.1@texgen,Fail
 spec@!opengl 1.1@texsubimage,Fail
 
@@ -491,13 +488,6 @@ spec@arb_pixel_buffer_object@pbo-getteximage,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 
 spec@arb_sampler_objects@sampler-incomplete,Fail
-
-# The test accidentally assigns a varying output instead of an attribute input to
-# gl_Position, then it gets optimized out and then set_vertex_inputs_outputs gets
-# angry that nobody set gl_Position.
-spec@arb_separate_shader_objects@getprogrampipelineiv,Crash
-spec@glsl-1.20@linker@invariant-propagation-globals,Crash
-spec@glsl-es-1.00@linker@glsl-no-glposition,Crash
 
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgrad,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
@@ -840,33 +830,6 @@ spec@glsl-1.10@execution@loops@glsl-fs-loop-300,Fail
 spec@glsl-1.10@execution@loops@glsl-vs-loop-300,Fail
 
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
-
-spec@glsl-1.10@execution@varying-packing@simple float array,Fail
-spec@glsl-1.10@execution@varying-packing@simple float separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2x3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2x3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2x4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat2x4 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3x2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3x2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3x4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat3x4 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4x2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4x2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4x3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple mat4x3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec2 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec2 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec3 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec3 separate,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec4 array,Fail
-spec@glsl-1.10@execution@varying-packing@simple vec4 separate,Fail
 
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-const-accept,Fail
 spec@glsl-1.20@execution@clipping@vs-clip-vertex-different-from-position,Fail

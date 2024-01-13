@@ -3850,8 +3850,8 @@ link_shader_opts(struct varying_matches *vm,
     */
    if (producer->options->lower_to_scalar && !vm->disable_varying_packing &&
       !vm->disable_xfb_packing) {
-      NIR_PASS_V(producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
-      NIR_PASS_V(consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
+      NIR_PASS(_, producer, nir_lower_io_to_scalar_early, nir_var_shader_out);
+      NIR_PASS(_, consumer, nir_lower_io_to_scalar_early, nir_var_shader_in);
    }
 
    gl_nir_opts(producer);
@@ -3860,12 +3860,12 @@ link_shader_opts(struct varying_matches *vm,
    if (nir_link_opt_varyings(producer, consumer))
       gl_nir_opts(consumer);
 
-   NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out, NULL);
-   NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in, NULL);
+   NIR_PASS(_, producer, nir_remove_dead_variables, nir_var_shader_out, NULL);
+   NIR_PASS(_, consumer, nir_remove_dead_variables, nir_var_shader_in, NULL);
 
    if (remove_unused_varyings(producer, consumer, prog, mem_ctx)) {
-      NIR_PASS_V(producer, nir_lower_global_vars_to_local);
-      NIR_PASS_V(consumer, nir_lower_global_vars_to_local);
+      NIR_PASS(_, producer, nir_lower_global_vars_to_local);
+      NIR_PASS(_, consumer, nir_lower_global_vars_to_local);
 
       gl_nir_opts(producer);
       gl_nir_opts(consumer);
@@ -3874,9 +3874,9 @@ link_shader_opts(struct varying_matches *vm,
        * nir_compact_varyings() depends on all dead varyings being removed so
        * we need to call nir_remove_dead_variables() again here.
        */
-      NIR_PASS_V(producer, nir_remove_dead_variables, nir_var_shader_out,
+      NIR_PASS(_, producer, nir_remove_dead_variables, nir_var_shader_out,
                  NULL);
-      NIR_PASS_V(consumer, nir_remove_dead_variables, nir_var_shader_in,
+      NIR_PASS(_, consumer, nir_remove_dead_variables, nir_var_shader_in,
                  NULL);
    }
 
@@ -4281,9 +4281,9 @@ link_varyings(struct gl_shader_program *prog, unsigned first,
 
    if (!prog->SeparateShader) {
       /* If not SSO remove unused varyings from the first/last stage */
-      NIR_PASS_V(prog->_LinkedShaders[first]->Program->nir,
+      NIR_PASS(_, prog->_LinkedShaders[first]->Program->nir,
                  nir_remove_dead_variables, nir_var_shader_in, NULL);
-      NIR_PASS_V(prog->_LinkedShaders[last]->Program->nir,
+      NIR_PASS(_, prog->_LinkedShaders[last]->Program->nir,
                  nir_remove_dead_variables, nir_var_shader_out, NULL);
    } else {
       /* Sort inputs / outputs into a canonical order.  This is necessary so

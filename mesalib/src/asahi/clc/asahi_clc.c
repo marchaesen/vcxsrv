@@ -144,54 +144,54 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
    nir_validate_ssa_dominance(nir, "after spirv_to_nir");
    ralloc_steal(memctx, nir);
 
-   NIR_PASS_V(nir, nir_lower_system_values);
+   NIR_PASS(_, nir, nir_lower_system_values);
    nir_shader_instructions_pass(nir, lower_builtins, nir_metadata_none, NULL);
 
    /* We have to lower away local constant initializers right before we
     * inline functions.  That way they get properly initialized at the top
     * of the function and not at the top of its caller.
     */
-   NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
-   NIR_PASS_V(nir, nir_lower_returns);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_remove_non_exported);
-   NIR_PASS_V(nir, nir_copy_prop);
-   NIR_PASS_V(nir, nir_opt_deref);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, nir_var_function_temp);
+   NIR_PASS(_, nir, nir_lower_returns);
+   NIR_PASS(_, nir, nir_inline_functions);
+   nir_remove_non_exported(nir);
+   NIR_PASS(_, nir, nir_copy_prop);
+   NIR_PASS(_, nir, nir_opt_deref);
 
    /* We can go ahead and lower the rest of the constant initializers.  We do
     * this here so that nir_remove_dead_variables and split_per_member_structs
     * below see the corresponding stores.
     */
-   NIR_PASS_V(nir, nir_lower_variable_initializers, ~0);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, ~0);
 
    /* LLVM loves take advantage of the fact that vec3s in OpenCL are 16B
     * aligned and so it can just read/write them as vec4s.  This results in a
     * LOT of vec4->vec3 casts on loads and stores.  One solution to this
     * problem is to get rid of all vec3 variables.
     */
-   NIR_PASS_V(nir, nir_lower_vec3_to_vec4,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global | nir_var_mem_constant);
+   NIR_PASS(_, nir, nir_lower_vec3_to_vec4,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global | nir_var_mem_constant);
 
    /* We assign explicit types early so that the optimizer can take advantage
     * of that information and hopefully get rid of some of our memcpys.
     */
-   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
-              nir_var_uniform | nir_var_shader_temp | nir_var_function_temp |
-                 nir_var_mem_shared | nir_var_mem_global,
-              glsl_get_cl_type_size_align);
+   NIR_PASS(_, nir, nir_lower_vars_to_explicit_types,
+            nir_var_uniform | nir_var_shader_temp | nir_var_function_temp |
+               nir_var_mem_shared | nir_var_mem_global,
+            glsl_get_cl_type_size_align);
 
    optimize(nir);
 
-   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_all, NULL);
+   NIR_PASS(_, nir, nir_remove_dead_variables, nir_var_all, NULL);
 
    /* Lower again, this time after dead-variables to get more compact variable
     * layouts.
     */
-   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global | nir_var_mem_constant,
-              glsl_get_cl_type_size_align);
+   NIR_PASS(_, nir, nir_lower_vars_to_explicit_types,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global | nir_var_mem_constant,
+            glsl_get_cl_type_size_align);
    if (nir->constant_data_size > 0) {
       assert(nir->constant_data == NULL);
       nir->constant_data = rzalloc_size(nir, nir->constant_data_size);
@@ -200,21 +200,21 @@ compile(void *memctx, const uint32_t *spirv, size_t spirv_size)
                                           nir_var_mem_constant);
    }
 
-   NIR_PASS_V(nir, nir_lower_memcpy);
+   NIR_PASS(_, nir, nir_lower_memcpy);
 
-   NIR_PASS_V(nir, nir_lower_explicit_io, nir_var_mem_constant,
-              nir_address_format_64bit_global);
+   NIR_PASS(_, nir, nir_lower_explicit_io, nir_var_mem_constant,
+            nir_address_format_64bit_global);
 
-   NIR_PASS_V(nir, nir_lower_explicit_io, nir_var_uniform,
-              nir_address_format_32bit_offset_as_64bit);
+   NIR_PASS(_, nir, nir_lower_explicit_io, nir_var_uniform,
+            nir_address_format_32bit_offset_as_64bit);
 
    /* Note: we cannot lower explicit I/O here, because we need derefs in tact
     * for function calls into the library to work.
     */
 
-   NIR_PASS_V(nir, nir_lower_convert_alu_types, NULL);
-   NIR_PASS_V(nir, nir_opt_if, 0);
-   NIR_PASS_V(nir, nir_opt_idiv_const, 16);
+   NIR_PASS(_, nir, nir_lower_convert_alu_types, NULL);
+   NIR_PASS(_, nir, nir_opt_if, 0);
+   NIR_PASS(_, nir, nir_opt_idiv_const, 16);
 
    optimize(nir);
 

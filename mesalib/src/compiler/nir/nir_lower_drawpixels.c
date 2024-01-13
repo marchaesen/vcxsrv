@@ -240,7 +240,7 @@ lower_drawpixels_instr(nir_builder *b, nir_instr *instr, void *cb_data)
    return false;
 }
 
-void
+bool
 nir_lower_drawpixels(nir_shader *shader,
                      const nir_lower_drawpixels_options *options)
 {
@@ -251,8 +251,8 @@ nir_lower_drawpixels(nir_shader *shader,
 
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
-   nir_shader_instructions_pass(shader, lower_drawpixels_instr,
-                                nir_metadata_block_index |
-                                   nir_metadata_dominance,
-                                &state);
+   return nir_shader_instructions_pass(shader, lower_drawpixels_instr,
+                                       nir_metadata_block_index |
+                                          nir_metadata_dominance,
+                                       &state);
 }

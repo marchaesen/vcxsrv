@@ -308,7 +308,7 @@ the GPU (including its internal hang detection).  If a fault in GPU address
 space happened, you should expect to find a message from the iommu, with the
 faulting address and a hardware unit involved:
 
-.. code-block:: console
+.. code-block:: text
 
   *** gpu fault: ttbr0=000000001c941000 iova=000000010066a000 dir=READ type=TRANSLATION source=TP|VFD (0,0,0,1)
 
@@ -346,7 +346,7 @@ though going here is the last resort and likely won't be helpful.
 The ``PC`` value is an instruction address in the current firmware.
 You would need to disassemble the firmware (/lib/firmware/qcom/aXXX_sqe.fw) via:
 
-.. code-block:: console
+.. code-block:: sh
 
   afuc-disasm -v a650_sqe.fw > a650_sqe.fw.disasm
 
@@ -373,14 +373,14 @@ send to the kernel.  Mesa itself doesn't implement a way to stream them out
 (though it maybe should!).  Instead, we have an interface for the kernel to
 capture all submitted command streams:
 
-.. code-block:: console
+.. code-block:: sh
 
   cat /sys/kernel/debug/dri/0/rd > cmdstream &
 
 By default, command stream capture does not capture texture/vertex/etc. data.
 You can enable capturing all the BOs with:
 
-.. code-block:: console
+.. code-block:: sh
 
   echo Y > /sys/module/msm/parameters/rd_full
 
@@ -400,7 +400,7 @@ Additionally it is geared towards analyzing the GPU state at the moment of the c
 Alternatively, it's possible to obtain the whole submission with all command
 streams via ``/sys/kernel/debug/dri/0/hangrd``:
 
-.. code-block:: console
+.. code-block:: sh
 
   sudo cat /sys/kernel/debug/dri/0/hangrd > logfile.rd // Do the cat _before_ the expected hang
 
@@ -421,17 +421,17 @@ Dumping rendering results or even just memory is currently unsupported.
 
 Replaying is done via `replay` tool:
 
-.. code-block:: console
+.. code-block:: sh
 
   ./replay test_replay.rd
 
 More examples:
 
-.. code-block:: console
+.. code-block:: sh
 
   ./replay --first=start_submit_n --last=last_submit_n test_replay.rd
 
-.. code-block:: console
+.. code-block:: sh
 
   ./replay --override=0 --generator=./generate_rd test_replay.rd
 
@@ -453,7 +453,7 @@ The workflow would look like this:
 1. Find the cmdstream № you want to edit;
 2. Decompile it:
 
-.. code-block:: console
+.. code-block:: sh
 
   ./rddecompiler -s %cmd_stream_n% example.rd > generate_rd.c
 
@@ -461,7 +461,7 @@ The workflow would look like this:
 4. Compile it back, see rdcompiler-meson.build for the instructions;
 5. Plug the generator into cmdstream replay:
 
-.. code-block:: console
+.. code-block:: sh
 
   ./replay --override=%cmd_stream_№% --generator=~/generate_rd
 
@@ -529,7 +529,7 @@ because it would require much less breadcrumb writes and syncs.
 
 Breadcrumbs settings:
 
-.. code-block:: console
+.. code-block:: sh
 
   TU_BREADCRUMBS=%IP%:%PORT%,break=%BREAKPOINT%:%BREAKPOINT_HITS%
 
@@ -544,26 +544,26 @@ A typical work flow would be:
 
 - Start listening for breadcrumbs on a remote host:
 
-.. code-block:: console
+.. code-block:: sh
 
    nc -lvup $PORT | stdbuf -o0 xxd -pc -c 4 | awk -Wposix '{printf("%u:%u\n", "0x" $0, a[$0]++)}'
 
 - Start capturing command stream;
 - Replay the hanging trace with:
 
-.. code-block:: console
+.. code-block:: sh
 
    TU_BREADCRUMBS=$IP:$PORT,break=-1:0
 
 - Increase hangcheck period:
 
-.. code-block:: console
+.. code-block:: sh
 
    echo -n 60000 > /sys/kernel/debug/dri/0/hangcheck_period_ms
 
 - After GPU hang note the last breadcrumb and relaunch trace with:
 
-.. code-block:: console
+.. code-block:: sh
 
    TU_BREADCRUMBS=%IP%:%PORT%,break=%LAST_BREADCRUMB%:%HITS%
 
@@ -589,7 +589,7 @@ Finding instances of stale reg reads
 Turnip has a debug option to stomp the registers with invalid values to catch
 the cases where stale data is read.
 
-.. code-block:: console
+.. code-block:: sh
 
   MESA_VK_ABORT_ON_DEVICE_LOSS=1 \
   TU_DEBUG_STALE_REGS_RANGE=0x00000c00,0x0000be01 \

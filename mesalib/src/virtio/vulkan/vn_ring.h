@@ -77,7 +77,7 @@ struct vn_ring_submit_command {
    struct vn_renderer_shmem *reply_shmem;
    struct vn_cs_decoder reply;
 
-   /* valid when instance ring submission succeeds */
+   /* valid when ring submission succeeds */
    bool ring_seqno_valid;
    uint32_t ring_seqno;
 };
@@ -94,6 +94,8 @@ vn_ring_submit_command_init(struct vn_ring *ring,
 
    submit->reply_size = reply_size;
    submit->reply_shmem = NULL;
+
+   submit->ring_seqno_valid = false;
 
    return &submit->command;
 }

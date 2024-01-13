@@ -179,10 +179,10 @@ glsl_to_nir(const struct gl_constants *consts,
     * inline functions.  That way they get properly initialized at the top
     * of the function and not at the top of its caller.
     */
-   NIR_PASS_V(shader, nir_lower_variable_initializers, nir_var_all);
-   NIR_PASS_V(shader, nir_lower_returns);
-   NIR_PASS_V(shader, nir_inline_functions);
-   NIR_PASS_V(shader, nir_opt_deref);
+   NIR_PASS(_, shader, nir_lower_variable_initializers, nir_var_all);
+   NIR_PASS(_, shader, nir_lower_returns);
+   NIR_PASS(_, shader, nir_inline_functions);
+   NIR_PASS(_, shader, nir_opt_deref);
 
    nir_validate_shader(shader, "after function inlining and return lowering");
 
@@ -2615,24 +2615,24 @@ glsl_float64_funcs_to_nir(struct gl_context *ctx,
 
    nir_validate_shader(nir, "float64_funcs_to_nir");
 
-   NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
-   NIR_PASS_V(nir, nir_lower_returns);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_opt_deref);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, nir_var_function_temp);
+   NIR_PASS(_, nir, nir_lower_returns);
+   NIR_PASS(_, nir, nir_inline_functions);
+   NIR_PASS(_, nir, nir_opt_deref);
 
    /* Do some optimizations to clean up the shader now.  By optimizing the
     * functions in the library, we avoid having to re-do that work every
     * time we inline a copy of a function.  Reducing basic blocks also helps
     * with compile times.
     */
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_function_temp, NULL);
-   NIR_PASS_V(nir, nir_copy_prop);
-   NIR_PASS_V(nir, nir_opt_dce);
-   NIR_PASS_V(nir, nir_opt_cse);
-   NIR_PASS_V(nir, nir_opt_gcm, true);
-   NIR_PASS_V(nir, nir_opt_peephole_select, 1, false, false);
-   NIR_PASS_V(nir, nir_opt_dce);
+   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+   NIR_PASS(_, nir, nir_remove_dead_variables, nir_var_function_temp, NULL);
+   NIR_PASS(_, nir, nir_copy_prop);
+   NIR_PASS(_, nir, nir_opt_dce);
+   NIR_PASS(_, nir, nir_opt_cse);
+   NIR_PASS(_, nir, nir_opt_gcm, true);
+   NIR_PASS(_, nir, nir_opt_peephole_select, 1, false, false);
+   NIR_PASS(_, nir, nir_opt_dce);
 
    return nir;
 }

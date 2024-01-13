@@ -50,7 +50,7 @@ _dev_icd = custom_target(
   command : [
     prog_python, '@INPUT0@',
     '--api-version', '1.1', '--xml', '@INPUT1@',
-    '--lib-path', meson.current_build_dir() / 'libvulkan_lvp.so',
+    '--lib-path', meson.current_build_dir() / icd_file_name,
     '--out', '@OUTPUT@',
   ],
   build_by_default : true,

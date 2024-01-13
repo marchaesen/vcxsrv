@@ -37,4 +37,4 @@ variables:
    WINDOWS_X64_BUILD_TAG: "2023-12-22-msvc"
 
    WINDOWS_X64_TEST_PATH: "windows/x86_64_test"
-   WINDOWS_X64_TEST_TAG: "2023-12-22-msvc"
+   WINDOWS_X64_TEST_TAG: "2024-01-10-warp"

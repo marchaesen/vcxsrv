@@ -57,7 +57,7 @@ static inline void config_writer_new(struct config_writer *writer)
         return;
 
     /* Buffer does not have enough space to write */
-    if (writer->buf->size < (int64_t)sizeof(uint32_t)) {
+    if (writer->buf->size < sizeof(uint32_t)) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
@@ -121,7 +121,7 @@ void config_writer_fill(struct config_writer *writer, uint32_t value)
     }
 
     /* Buffer does not have enough space to write */
-    if (writer->buf->size < (int64_t)sizeof(uint32_t)) {
+    if (writer->buf->size < sizeof(uint32_t)) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
@@ -138,6 +138,7 @@ void config_writer_fill_direct_config_packet_header(
 {
     uint32_t *cmd_space;
     uint64_t  size = writer->buf->cpu_va - writer->base_cpu_va;
+    uint64_t  w_size = sizeof(uint32_t);
 
     VPE_ASSERT(writer->type == CONFIG_TYPE_DIRECT);
 
@@ -155,16 +156,16 @@ void config_writer_fill_direct_config_packet_header(
     }
 
     /* Buffer does not have enough space to write */
-    if (writer->buf->size < (int64_t)sizeof(uint32_t)) {
+    if (writer->buf->size < w_size) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
 
     cmd_space    = (uint32_t *)(uintptr_t)writer->buf->cpu_va;
     *cmd_space++ = packet->u32all;
-    writer->buf->cpu_va += sizeof(uint32_t);
-    writer->buf->gpu_va += sizeof(uint32_t);
-    writer->buf->size -= sizeof(uint32_t);
+    writer->buf->cpu_va += w_size;
+    writer->buf->gpu_va += w_size;
+    writer->buf->size -= w_size;
 }
 
 void config_writer_fill_direct_config_packet(
@@ -172,6 +173,7 @@ void config_writer_fill_direct_config_packet(
 {
     uint32_t *cmd_space;
     uint64_t  size = writer->buf->cpu_va - writer->base_cpu_va;
+    uint64_t  w_size = 2 * sizeof(uint32_t);
 
     VPE_ASSERT(writer->type == CONFIG_TYPE_DIRECT);
     VPE_ASSERT(packet->bits.VPEP_CONFIG_DATA_SIZE == 0);
@@ -188,7 +190,7 @@ void config_writer_fill_direct_config_packet(
         config_writer_new(writer);
     }
 
-    if (writer->buf->size < (int64_t)(2 * sizeof(uint32_t))) {
+    if (writer->buf->size < w_size) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
@@ -228,7 +230,7 @@ void config_writer_fill_indirect_destination(struct config_writer *writer,
 void config_writer_complete(struct config_writer *writer)
 {
     uint32_t *cmd_space = (uint32_t *)(uintptr_t)writer->base_cpu_va;
-    uint32_t  size      = (uint32_t)(writer->buf->cpu_va - writer->base_cpu_va);
+    uint64_t  size      = writer->buf->cpu_va - writer->base_cpu_va;
 
     if (writer->status != VPE_STATUS_OK)
         return;

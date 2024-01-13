@@ -118,7 +118,7 @@ Additional GPU IDs are enumerated in the ``panfrost_model_list`` list in
 As an example: assuming Mesa is installed to a local path ``~/lib`` and Mesa's
 build directory is ``~/mesa/build``, a shader can be compiled for Mali-G52 as:
 
-.. code-block:: console
+.. code-block:: sh
 
    ~/shader-db$ BIFROST_MESA_DEBUG=shaders \
    LIBGL_DRIVERS_PATH=~/lib/dri/ \
@@ -128,7 +128,7 @@ build directory is ``~/mesa/build``, a shader can be compiled for Mali-G52 as:
 
 The same shader can be compiled for Mali-T720 as:
 
-.. code-block:: console
+.. code-block:: sh
 
    ~/shader-db$ MIDGARD_MESA_DEBUG=shaders \
    LIBGL_DRIVERS_PATH=~/lib/dri/ \
@@ -148,7 +148,7 @@ and various flags to dEQP mimic the surfaceless environment that our
 continuous integration (CI) uses. This eliminates window system dependencies,
 although it requires a specially built CTS:
 
-.. code-block:: console
+.. code-block:: sh
 
    ~/VK-GL-CTS/build/external/openglcts/modules$ PAN_MESA_DEBUG=trace,dump \
    LIBGL_DRIVERS_PATH=~/lib/dri/ \

@@ -120,7 +120,7 @@ bool
 gl_nir_can_add_pointsize_to_program(const struct gl_constants *consts,
                                     struct gl_program *prog);
 
-void
+bool
 gl_nir_add_point_size(struct nir_shader *nir);
 
 bool lower_packed_varying_needs_lowering(nir_shader *shader, nir_variable *var,

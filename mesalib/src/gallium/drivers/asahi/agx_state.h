@@ -851,7 +851,7 @@ void agx_upload_uniforms(struct agx_batch *batch);
 uint64_t agx_upload_stage_uniforms(struct agx_batch *batch, uint64_t textures,
                                    enum pipe_shader_type stage);
 
-void agx_nir_lower_point_size(nir_shader *nir, bool fixed_point_size);
+bool agx_nir_lower_point_size(nir_shader *nir, bool fixed_point_size);
 
 bool agx_nir_lower_sysvals(nir_shader *shader, bool lower_draw_params);
 

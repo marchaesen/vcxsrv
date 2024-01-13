@@ -541,6 +541,14 @@ static void r300_update_rs_block(struct r300_context *r300)
         }
     }
 
+    for (; i < ATTR_GENERIC_COUNT; i++) {
+        if (fs_inputs->generic[i] != ATTR_UNUSED) {
+            fprintf(stderr, "r300: ERROR: FS input generic %i unassigned, "
+                    "not enough hardware slots (it's not a bug, do not "
+                    "report it).\n", i);
+        }
+    }
+
     gen_offset = 0;
     /* Re-use color varyings for texcoords if possible.
      *
@@ -645,6 +653,14 @@ static void r300_update_rs_block(struct r300_context *r300)
         }
     }
 
+    for (; i < ATTR_TEXCOORD_COUNT; i++) {
+        if (fs_inputs->texcoord[i] != ATTR_UNUSED) {
+            fprintf(stderr, "r300: ERROR: FS input texcoord %i unassigned, "
+                    "not enough hardware slots (it's not a bug, do not "
+                    "report it).\n", i);
+        }
+    }
+
     /* Rasterize pointcoord. */
     if (fs_inputs->pcoord != ATTR_UNUSED && tex_count < 8) {
 
@@ -664,14 +680,6 @@ static void r300_update_rs_block(struct r300_context *r300)
 
         tex_count++;
         tex_ptr += 2;
-    }
-
-    for (; i < ATTR_GENERIC_COUNT; i++) {
-        if (fs_inputs->generic[i] != ATTR_UNUSED) {
-            fprintf(stderr, "r300: ERROR: FS input generic %i unassigned, "
-                    "not enough hardware slots (it's not a bug, do not "
-                    "report it).\n", i);
-        }
     }
 
     /* Rasterize fog coordinates. */

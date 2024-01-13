@@ -33,7 +33,7 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    }
 }
 
-void
+bool
 agx_nir_lower_subgroups(nir_shader *s)
 {
    /* First, do as much common lowering as we can */
@@ -47,9 +47,11 @@ agx_nir_lower_subgroups(nir_shader *s)
       .ballot_bit_size = 32,
    };
 
-   NIR_PASS_V(s, nir_lower_subgroups, &opts);
+   bool progress = nir_lower_subgroups(s, &opts);
 
    /* Then do AGX-only lowerings on top */
-   nir_shader_intrinsics_pass(
+   progress |= nir_shader_intrinsics_pass(
       s, lower, nir_metadata_block_index | nir_metadata_dominance, NULL);
+
+   return progress;
 }

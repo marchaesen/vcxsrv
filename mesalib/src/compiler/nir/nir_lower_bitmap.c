@@ -110,11 +110,12 @@ lower_bitmap_impl(nir_function_impl *impl,
                                   nir_metadata_dominance);
 }
 
-void
+bool
 nir_lower_bitmap(nir_shader *shader,
                  const nir_lower_bitmap_options *options)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    lower_bitmap_impl(nir_shader_get_entrypoint(shader), options);
+   return true;
 }

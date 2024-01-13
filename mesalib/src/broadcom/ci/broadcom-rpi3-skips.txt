@@ -5,10 +5,6 @@
 # This is causing a binning memory overflow problem
 dEQP-GLES2.functional.fragment_ops.scissor.outside_render_line
 
-# These are very slow
-dEQP-GLES2.functional.uniform_api.random.3
-dEQP-GLES2.functional.uniform_api.random.79
-
 # Conformance issue: VC4 needs dynamic loops in the VS to cause a
 # shader link failure.
 #
@@ -20,20 +16,8 @@ dEQP-GLES2.functional.uniform_api.random.79
 # list for tracking.
 dEQP-GLES2.functional.shaders.loops.*dynamic.*vertex
 
-# Timeout tests (> 1 minute to run)
-KHR-GLES2.texture_3d.filtering.sizes.3x7x5_linear_mipmap_linear
-KHR-GLES2.texture_3d.filtering.sizes.4x8x8_linear_mipmap_linear
-
 # Slow tests (> 1 minute to run)
-spec@ext_framebuffer_multisample@accuracy
-glx@glx-multithread-texture
-spec@arb_internalformat_query2@all internalformat_<x>_type pname checks
 spec@!opengl 1.1@streaming-texture-leak
-spec@!opengl 1.0@gl-1.0-blend-func
-shaders@glsl-predication-on-large-array
-spec@arb_texture_rectangle@copyteximage rect samples=2
-spec@arb_texture_rectangle@copyteximage rect samples=4
-spec@ext_texture_env_combine@texture-env-combine
 
 # Versions / Extensions not supported
 spec@!opengl 3.*
@@ -50,3 +34,5 @@ spec@glsl-1.50.*
 spec@glsl-3.*
 spec@glsl-4.*
 spec@glsl-es-3.*
+
+# Slow tests (> 1 minute to run)

@@ -56,22 +56,13 @@ void vpe10_opp_set_clamping(
 {
     PROGRAM_ENTRY();
 
+    //OCSC operations are handled in output gamma sequence to allow
+    // full range bg color fill. Hence, no clamping should be done on the output.
     switch (params->clamping_level) {
     case CLAMPING_LIMITED_RANGE_8BPC:
     case CLAMPING_LIMITED_RANGE_10BPC:
     case CLAMPING_LIMITED_RANGE_12BPC:
-        REG_SET_2(VPFMT_CLAMP_CNTL, 0, VPFMT_CLAMP_DATA_EN, 1, VPFMT_CLAMP_COLOR_FORMAT,
-            params->clamping_level);
-        break;
     case CLAMPING_LIMITED_RANGE_PROGRAMMABLE:
-        REG_SET_2(VPFMT_CLAMP_CNTL, 0, VPFMT_CLAMP_DATA_EN, 1, VPFMT_CLAMP_COLOR_FORMAT, 7);
-        REG_SET_2(VPFMT_CLAMP_COMPONENT_R, 0, VPFMT_CLAMP_LOWER_R, params->r_clamp_component_lower,
-            VPFMT_CLAMP_UPPER_R, params->r_clamp_component_upper);
-        REG_SET_2(VPFMT_CLAMP_COMPONENT_G, 0, VPFMT_CLAMP_LOWER_G, params->g_clamp_component_lower,
-            VPFMT_CLAMP_UPPER_G, params->g_clamp_component_upper);
-        REG_SET_2(VPFMT_CLAMP_COMPONENT_B, 0, VPFMT_CLAMP_LOWER_B, params->b_clamp_component_lower,
-            VPFMT_CLAMP_UPPER_B, params->b_clamp_component_upper);
-        break;
     case CLAMPING_FULL_RANGE:
     default:
         REG_SET_2(VPFMT_CLAMP_CNTL, 0, VPFMT_CLAMP_DATA_EN, 0, VPFMT_CLAMP_COLOR_FORMAT, 0);

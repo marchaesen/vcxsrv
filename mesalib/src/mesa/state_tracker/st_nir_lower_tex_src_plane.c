@@ -103,77 +103,64 @@ assign_extra_samplers(lower_tex_src_state *state, unsigned free_slots)
    }
 }
 
-static void
-lower_tex_src_plane_block(nir_builder *b, lower_tex_src_state *state, nir_block *block)
+static bool
+lower_tex_src_plane(nir_builder *b, nir_instr *instr, void *data)
 {
-   nir_foreach_instr(instr, block) {
-      if (instr->type != nir_instr_type_tex)
-         continue;
+   lower_tex_src_state *state = data;
+   if (instr->type != nir_instr_type_tex)
+      return false;
 
-      nir_tex_instr *tex = nir_instr_as_tex(instr);
-      int plane_index = nir_tex_instr_src_index(tex, nir_tex_src_plane);
+   nir_tex_instr *tex = nir_instr_as_tex(instr);
+   int plane_index = nir_tex_instr_src_index(tex, nir_tex_src_plane);
 
-      if (plane_index < 0)
-         continue;
+   if (plane_index < 0)
+      return false;
 
-      nir_const_value *plane = nir_src_as_const_value(tex->src[plane_index].src);
-      assume(plane);
+   nir_const_value *plane = nir_src_as_const_value(tex->src[plane_index].src);
+   assume(plane);
 
-      if (plane[0].i32 > 0) {
-         unsigned y_samp = tex->texture_index;
-         int tex_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
-         if (tex_index >= 0) {
-            nir_deref_instr *deref = nir_src_as_deref(tex->src[tex_index].src);
-            y_samp = nir_deref_instr_get_variable(deref)->data.binding;
-         }
-
-         assume(((state->lower_3plane & (1 << y_samp)) && plane[0].i32 < 3) ||
-               (plane[0].i32 < 2));
-
-         unsigned u_v_samp = state->sampler_map[y_samp][plane[0].i32 - 1];
-         BITSET_SET(state->shader->info.textures_used, u_v_samp);
-         BITSET_SET(state->shader->info.samplers_used, u_v_samp);
-
-         /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
-          * to reference the correct sampler nir variable.
-          */
-         int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
-         if (tex_index >= 0 && samp_index >= 0) {
-            b->cursor = nir_before_instr(&tex->instr);
-
-            nir_variable* samp = find_sampler(state, u_v_samp);
-            assert(samp);
-
-            nir_deref_instr *tex_deref_instr = nir_build_deref_var(b, samp);
-            nir_def *tex_deref = &tex_deref_instr->def;
-
-            nir_src_rewrite(&tex->src[tex_index].src, tex_deref);
-            nir_src_rewrite(&tex->src[samp_index].src, tex_deref);
-         } else {
-            /* For others we need to update texture_index */
-            assume(tex->texture_index == tex->sampler_index);
-            tex->texture_index = tex->sampler_index = u_v_samp;
-         }
+   if (plane[0].i32 > 0) {
+      unsigned y_samp = tex->texture_index;
+      int tex_index = nir_tex_instr_src_index(tex, nir_tex_src_texture_deref);
+      if (tex_index >= 0) {
+         nir_deref_instr *deref = nir_src_as_deref(tex->src[tex_index].src);
+         y_samp = nir_deref_instr_get_variable(deref)->data.binding;
       }
 
-      nir_tex_instr_remove_src(tex, plane_index);
+      assume(((state->lower_3plane & (1 << y_samp)) && plane[0].i32 < 3) ||
+            (plane[0].i32 < 2));
+
+      unsigned u_v_samp = state->sampler_map[y_samp][plane[0].i32 - 1];
+      BITSET_SET(state->shader->info.textures_used, u_v_samp);
+      BITSET_SET(state->shader->info.samplers_used, u_v_samp);
+
+      /* For drivers using PIPE_CAP_NIR_SAMPLERS_AS_DEREF, we need
+       * to reference the correct sampler nir variable.
+       */
+      int samp_index = nir_tex_instr_src_index(tex, nir_tex_src_sampler_deref);
+      if (tex_index >= 0 && samp_index >= 0) {
+         b->cursor = nir_before_instr(&tex->instr);
+
+         nir_variable* samp = find_sampler(state, u_v_samp);
+         assert(samp);
+
+         nir_deref_instr *tex_deref_instr = nir_build_deref_var(b, samp);
+         nir_def *tex_deref = &tex_deref_instr->def;
+
+         nir_src_rewrite(&tex->src[tex_index].src, tex_deref);
+         nir_src_rewrite(&tex->src[samp_index].src, tex_deref);
+      } else {
+         /* For others we need to update texture_index */
+         assume(tex->texture_index == tex->sampler_index);
+         tex->texture_index = tex->sampler_index = u_v_samp;
+      }
    }
+
+   nir_tex_instr_remove_src(tex, plane_index);
+   return true;
 }
 
-static void
-lower_tex_src_plane_impl(lower_tex_src_state *state, nir_function_impl *impl)
-{
-   nir_builder b = nir_builder_create(impl);
-
-   nir_foreach_block(block, impl) {
-      lower_tex_src_plane_block(&b, state, block);
-   }
-
-   nir_metadata_preserve(impl, nir_metadata_block_index |
-                               nir_metadata_dominance);
-}
-
-void
+bool
 st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
                            unsigned lower_2plane, unsigned lower_3plane)
 {
@@ -185,7 +172,7 @@ st_nir_lower_tex_src_plane(struct nir_shader *shader, unsigned free_slots,
 
    assign_extra_samplers(&state, free_slots);
 
-   nir_foreach_function_impl(impl, shader) {
-      lower_tex_src_plane_impl(&state, impl);
-   }
+   return nir_shader_instructions_pass(shader, lower_tex_src_plane,
+                                       nir_metadata_block_index |
+                                       nir_metadata_dominance, &state);
 }

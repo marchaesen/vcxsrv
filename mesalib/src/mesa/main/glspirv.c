@@ -303,17 +303,17 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
       .point_coord = !ctx->Const.GLSLPointCoordIsSysVal,
       .front_face = !ctx->Const.GLSLFrontFacingIsSysVal,
    };
-   NIR_PASS_V(nir, nir_lower_sysvals_to_varyings, &sysvals_to_varyings);
+   NIR_PASS(_, nir, nir_lower_sysvals_to_varyings, &sysvals_to_varyings);
 
    /* We have to lower away local constant initializers right before we
     * inline functions.  That way they get properly initialized at the top
     * of the function and not at the top of its caller.
     */
-   NIR_PASS_V(nir, nir_lower_variable_initializers, nir_var_function_temp);
-   NIR_PASS_V(nir, nir_lower_returns);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_copy_prop);
-   NIR_PASS_V(nir, nir_opt_deref);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, nir_var_function_temp);
+   NIR_PASS(_, nir, nir_lower_returns);
+   NIR_PASS(_, nir, nir_inline_functions);
+   NIR_PASS(_, nir, nir_copy_prop);
+   NIR_PASS(_, nir, nir_opt_deref);
 
    /* Pick off the single entrypoint that we want */
    nir_remove_non_entrypoints(nir);
@@ -323,18 +323,18 @@ _mesa_spirv_to_nir(struct gl_context *ctx,
     * nir_remove_dead_variables and split_per_member_structs below see the
     * corresponding stores.
     */
-   NIR_PASS_V(nir, nir_lower_variable_initializers, ~0);
+   NIR_PASS(_, nir, nir_lower_variable_initializers, ~0);
 
    /* Split member structs.  We do this before lower_io_to_temporaries so that
     * it doesn't lower system values to temporaries by accident.
     */
-   NIR_PASS_V(nir, nir_split_var_copies);
-   NIR_PASS_V(nir, nir_split_per_member_structs);
+   NIR_PASS(_, nir, nir_split_var_copies);
+   NIR_PASS(_, nir, nir_split_per_member_structs);
 
    if (nir->info.stage == MESA_SHADER_VERTEX)
       nir_remap_dual_slot_attributes(nir, &linked_shader->Program->DualSlotInputs);
 
-   NIR_PASS_V(nir, nir_lower_frexp);
+   NIR_PASS(_, nir, nir_lower_frexp);
 
    return nir;
 }

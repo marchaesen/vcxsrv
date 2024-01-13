@@ -40,7 +40,7 @@ void vpe_desc_writer_init(struct vpe_desc_writer *writer, struct vpe_buf *buf, i
     writer->plane_desc_added = false;
     writer->status           = VPE_STATUS_OK;
 
-    if (buf->size < (int64_t)size) {
+    if (buf->size < size) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
@@ -63,7 +63,7 @@ void vpe_desc_writer_add_plane_desc(
         return;
 
     /* Buffer does not have enough space to write */
-    if (writer->buf->size < (int64_t)size) {
+    if (writer->buf->size < size) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }
@@ -95,7 +95,7 @@ void vpe_desc_writer_add_config_desc(
         return;
 
     /* Buffer does not have enough space to write */
-    if (writer->buf->size < (int64_t)size) {
+    if (writer->buf->size < size) {
         writer->status = VPE_STATUS_BUFFER_OVERFLOW;
         return;
     }

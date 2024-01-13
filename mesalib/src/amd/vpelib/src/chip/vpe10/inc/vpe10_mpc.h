@@ -1433,7 +1433,7 @@ bool vpe10_mpc_program_3dlut_indirect(struct mpc *mpc,
     bool use_tetrahedral_9, bool use_12bits);
 
 // Blend-gamma control.
-void vpe10_mpc_program_1dlut(struct mpc *mpc, const struct pwl_params *params);
+void vpe10_mpc_program_1dlut(struct mpc *mpc, const struct pwl_params *params, enum cm_type gamma_type);
 
 void vpe10_mpc_program_cm_location(struct mpc *mpc, uint8_t location);
 

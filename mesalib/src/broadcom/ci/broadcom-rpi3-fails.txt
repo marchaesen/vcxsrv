@@ -18,6 +18,9 @@ dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 
 dEQP-GLES2.functional.depth_stencil_clear.depth_stencil_masked,Fail
 
+dEQP-GLES2.functional.uniform_api.random.3,Fail
+dEQP-GLES2.functional.uniform_api.random.79,Fail
+
 # Sampling grid slightly off in test 2?
 dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_mirror_rgba8888,Fail
 dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_linear_linear_repeat_rgba8888,Fail
@@ -114,7 +117,6 @@ glx@glx_ext_import_context@query context info,Fail
 shaders@glsl-arb-fragment-coord-conventions,Fail
 shaders@glsl-bug-110796,Fail
 shaders@glsl-max-vertex-attrib,Fail
-shaders@glsl-predication-on-large-array,Fail
 spec@!opengl 1.0@gl-1.0-bitmap-heart-dance,Fail
 spec@!opengl 1.0@gl-1.0-drawbuffer-modes,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
@@ -941,6 +943,12 @@ spec@arb_internalformat_query2@all internalformat_<x>_size pname checks@GL_INTER
 spec@arb_internalformat_query2@all internalformat_<x>_size pname checks@GL_INTERNALFORMAT_DEPTH_SIZE,Fail
 spec@arb_internalformat_query2@all internalformat_<x>_size pname checks@GL_INTERNALFORMAT_GREEN_SIZE,Fail
 spec@arb_internalformat_query2@all internalformat_<x>_size pname checks@GL_INTERNALFORMAT_RED_SIZE,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTERNALFORMAT_ALPHA_TYPE,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTERNALFORMAT_BLUE_TYPE,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTERNALFORMAT_DEPTH_TYPE,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTERNALFORMAT_GREEN_TYPE,Fail
+spec@arb_internalformat_query2@all internalformat_<x>_type pname checks@GL_INTERNALFORMAT_RED_TYPE,Fail
 spec@arb_internalformat_query2@api error checks,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks,Fail
 spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_COMBINED_DIMENSIONS,Fail
@@ -1171,6 +1179,26 @@ spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
 
+spec@ext_framebuffer_multisample@accuracy 2 depth_draw depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 2 depth_draw small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 2 depth_resolve depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 2 depth_resolve small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 depth_draw depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 depth_draw small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 depth_resolve depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 depth_resolve small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 srgb depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy 4 srgb depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy 4 srgb small depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy 4 srgb small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_draw depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_draw small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples depth_resolve small depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb depthstencil,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil linear,Fail
+spec@ext_framebuffer_multisample@accuracy all_samples srgb small depthstencil,Fail
 spec@ext_framebuffer_multisample@multisample-blit 2 depth,Fail
 spec@ext_framebuffer_multisample@multisample-blit 4 depth,Fail
 spec@ext_framebuffer_multisample@no-color 2 depth combined,Fail

@@ -817,7 +817,8 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
             return;
          }
          if (t->Image[face][baseLevel]->InternalFormat !=
-             baseImage->InternalFormat) {
+             baseImage->InternalFormat ||
+             t->Image[face][baseLevel]->TexFormat != baseImage->TexFormat) {
             incomplete(t, BASE, "Cube face format mismatch");
             return;
          }
@@ -876,7 +877,8 @@ _mesa_test_texobj_completeness( const struct gl_context *ctx,
                   incomplete(t, MIPMAP, "TexImage[%d] is missing", i);
                   return;
                }
-               if (img->InternalFormat != baseImage->InternalFormat) {
+               if (img->InternalFormat != baseImage->InternalFormat ||
+                   img->TexFormat != baseImage->TexFormat) {
                   incomplete(t, MIPMAP, "Format[i] != Format[baseLevel]");
                   return;
                }

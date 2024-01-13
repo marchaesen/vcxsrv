@@ -199,6 +199,12 @@ void r300_translate_vertex_shader(struct r300_context *r300,
 
     r300_init_vs_outputs(r300, shader);
 
+    /* Nothing to do if the shader does not write gl_Position. */
+    if (vs->outputs.pos == ATTR_UNUSED) {
+        vs->dummy = true;
+        return;
+    }
+
     /* Setup the compiler */
     memset(&compiler, 0, sizeof(compiler));
     rc_init(&compiler.Base, &r300->vs_regalloc_state);

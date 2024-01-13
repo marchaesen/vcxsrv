@@ -1744,8 +1744,8 @@ agx_compile_nir(struct agx_device *dev, nir_shader *nir,
                               dev->params.num_dies > 1;
    key.libagx = dev->libagx;
 
-   NIR_PASS_V(nir, agx_nir_lower_sysvals, true);
-   NIR_PASS_V(nir, agx_nir_layout_uniforms, compiled, &key.reserved_preamble);
+   NIR_PASS(_, nir, agx_nir_lower_sysvals, true);
+   NIR_PASS(_, nir, agx_nir_layout_uniforms, compiled, &key.reserved_preamble);
 
    agx_compile_shader_nir(nir, &key, debug, &binary, &compiled->info);
 
@@ -1788,21 +1788,21 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
    if (nir->info.stage == MESA_SHADER_VERTEX) {
       struct asahi_vs_shader_key *key = &key_->vs;
 
-      NIR_PASS_V(nir, agx_nir_lower_vbo, key->attribs);
-      NIR_PASS_V(nir, agx_nir_lower_point_size, key->fixed_point_size);
+      NIR_PASS(_, nir, agx_nir_lower_vbo, key->attribs);
+      NIR_PASS(_, nir, agx_nir_lower_point_size, key->fixed_point_size);
 
       if (should_lower_clip_m1_1(dev, key->clip_halfz)) {
-         NIR_PASS_V(nir, nir_shader_intrinsics_pass, agx_nir_lower_clip_m1_1,
-                    nir_metadata_block_index | nir_metadata_dominance, NULL);
+         NIR_PASS(_, nir, nir_shader_intrinsics_pass, agx_nir_lower_clip_m1_1,
+                  nir_metadata_block_index | nir_metadata_dominance, NULL);
       }
    } else if (nir->info.stage == MESA_SHADER_GEOMETRY) {
       struct asahi_gs_shader_key *key = &key_->gs;
 
       /* XFB occurs for GS, not VS. TODO: Check if active. */
       if (nir->xfb_info != NULL) {
-         NIR_PASS_V(nir, nir_io_add_const_offset_to_base,
-                    nir_var_shader_in | nir_var_shader_out);
-         NIR_PASS_V(nir, nir_io_add_intrinsic_xfb_info);
+         NIR_PASS(_, nir, nir_io_add_const_offset_to_base,
+                  nir_var_shader_in | nir_var_shader_out);
+         NIR_PASS(_, nir, nir_io_add_intrinsic_xfb_info);
       }
 
       struct blob_reader vs_reader;
@@ -1811,21 +1811,21 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
       nir_shader *vs = nir_deserialize(NULL, &agx_nir_options, &vs_reader);
 
       /* Apply the VS key to the VS before linking it in */
-      NIR_PASS_V(vs, agx_nir_lower_vbo, key->attribs);
-      NIR_PASS_V(vs, agx_nir_lower_ia, &key->ia);
+      NIR_PASS(_, vs, agx_nir_lower_vbo, key->attribs);
+      NIR_PASS(_, vs, agx_nir_lower_ia, &key->ia);
 
-      NIR_PASS_V(vs, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
-      NIR_PASS_V(nir, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
+      NIR_PASS(_, vs, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
+      NIR_PASS(_, nir, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
 
       /* Lower VS sysvals before it's merged in, so we access the correct shader
        * stage for UBOs etc. Skip draw parameters, those are lowered later.
        */
-      NIR_PASS_V(vs, agx_nir_lower_sysvals, false);
+      NIR_PASS(_, vs, agx_nir_lower_sysvals, false);
 
       /* Link VS with GS */
-      NIR_PASS_V(nir, agx_nir_lower_gs, vs, dev->libagx, &key->ia,
-                 key->rasterizer_discard, &gs_count, &gs_copy, &pre_gs,
-                 &gs_out_prim, &gs_out_count_words);
+      NIR_PASS(_, nir, agx_nir_lower_gs, vs, dev->libagx, &key->ia,
+               key->rasterizer_discard, &gs_count, &gs_copy, &pre_gs,
+               &gs_out_prim, &gs_out_count_words);
       ralloc_free(vs);
    } else if (nir->info.stage == MESA_SHADER_FRAGMENT) {
       struct asahi_fs_shader_key *key = &key_->fs;
@@ -1884,43 +1884,44 @@ agx_compile_variant(struct agx_device *dev, struct pipe_context *pctx,
        * the flat/linear masks that get propagated back to the VS.
        */
       if (key->clip_plane_enable) {
-         NIR_PASS_V(nir, nir_lower_clip_fs, key->clip_plane_enable, false);
+         NIR_PASS(_, nir, nir_lower_clip_fs, key->clip_plane_enable, false);
       }
 
       /* Similarly for cull distancing lowering */
       if (key->cull_distance_size) {
-         NIR_PASS_V(nir, agx_nir_lower_cull_distance_fs,
-                    key->cull_distance_size);
+         NIR_PASS(_, nir, agx_nir_lower_cull_distance_fs,
+                  key->cull_distance_size);
       }
 
       /* Discards must be lowering before lowering MSAA to handle discards */
-      NIR_PASS_V(nir, agx_nir_lower_discard_zs_emit);
+      NIR_PASS(_, nir, agx_nir_lower_discard_zs_emit);
 
       /* Alpha-to-coverage must be lowered before alpha-to-one */
       if (key->blend.alpha_to_coverage)
-         NIR_PASS_V(nir, agx_nir_lower_alpha_to_coverage, tib.nr_samples);
+         NIR_PASS(_, nir, agx_nir_lower_alpha_to_coverage, tib.nr_samples);
 
       /* Alpha-to-one must be lowered before blending */
       if (key->blend.alpha_to_one)
-         NIR_PASS_V(nir, agx_nir_lower_alpha_to_one);
+         NIR_PASS(_, nir, agx_nir_lower_alpha_to_one);
 
-      NIR_PASS_V(nir, nir_lower_blend, &opts);
+      NIR_PASS(_, nir, nir_lower_blend, &opts);
 
       /* XXX: don't replicate this all over the driver */
       unsigned rt_spill_base = BITSET_LAST_BIT(nir->info.textures_used) +
                                (2 * BITSET_LAST_BIT(nir->info.images_used));
       unsigned rt_spill = rt_spill_base;
-      NIR_PASS_V(nir, agx_nir_lower_tilebuffer, &tib, colormasks, &rt_spill,
-                 &force_translucent, false);
+      NIR_PASS(_, nir, agx_nir_lower_tilebuffer, &tib, colormasks, &rt_spill,
+               &force_translucent, false);
 
-      NIR_PASS_V(nir, agx_nir_lower_sample_intrinsics);
-      NIR_PASS_V(nir, agx_nir_lower_monolithic_msaa,
-                 &(struct agx_msaa_state){
-                    .nr_samples = tib.nr_samples,
-                    .api_sample_mask = key->api_sample_mask,
-                 });
+      NIR_PASS(_, nir, agx_nir_lower_sample_intrinsics);
+      NIR_PASS(_, nir, agx_nir_lower_monolithic_msaa,
+               &(struct agx_msaa_state){
+                  .nr_samples = tib.nr_samples,
+                  .api_sample_mask = key->api_sample_mask,
+               });
 
-      NIR_PASS_V(nir, agx_nir_predicate_layer_id);
+      if (nir->info.inputs_read & VARYING_BIT_LAYER)
+         NIR_PASS(_, nir, agx_nir_predicate_layer_id);
    }
 
    struct agx_shader_key base_key = {0};
@@ -2026,22 +2027,22 @@ agx_shader_initialize(struct agx_device *dev, struct agx_uncompiled_shader *so,
    /* We need to lower robustness before bindings, since robustness lowering
     * affects the bindings used.
     */
-   NIR_PASS_V(nir, nir_lower_robust_access, &robustness);
+   NIR_PASS(_, nir, nir_lower_robust_access, &robustness);
 
    /* Similarly, we need to do early texture lowering before bindings */
-   NIR_PASS_V(nir, agx_nir_lower_texture_early, support_lod_bias);
+   NIR_PASS(_, nir, agx_nir_lower_texture_early, support_lod_bias);
 
    /* We need to lower binding tables before calling agx_preprocess_nir, since
     * that does texture lowering that needs to know the binding model.
     */
-   NIR_PASS_V(nir, agx_nir_lower_bindings, &so->uses_bindless_samplers);
+   NIR_PASS(_, nir, agx_nir_lower_bindings, &so->uses_bindless_samplers);
 
    if (nir->info.stage == MESA_SHADER_FRAGMENT) {
       /* Lower to maximum colour buffers, the excess stores will get cleaned up
        * by tilebuffer lowering so they won't become real shader code. However,
        * that depends on the shader key which we don't have at this point.
        */
-      NIR_PASS_V(nir, nir_lower_fragcolor, 8);
+      NIR_PASS(_, nir, nir_lower_fragcolor, 8);
    }
 
    bool allow_mediump = !(dev->debug & AGX_DBG_NO16);
@@ -2050,8 +2051,9 @@ agx_shader_initialize(struct agx_device *dev, struct agx_uncompiled_shader *so,
    if (nir->info.stage == MESA_SHADER_FRAGMENT &&
        (nir->info.inputs_read & VARYING_BITS_TEX_ANY)) {
 
-      NIR_PASS_V(nir, nir_shader_intrinsics_pass, agx_nir_lower_point_sprite_zw,
-                 nir_metadata_block_index | nir_metadata_dominance, NULL);
+      NIR_PASS(_, nir, nir_shader_intrinsics_pass,
+               agx_nir_lower_point_sprite_zw,
+               nir_metadata_block_index | nir_metadata_dominance, NULL);
    }
 
    blob_init(&so->serialized_nir);

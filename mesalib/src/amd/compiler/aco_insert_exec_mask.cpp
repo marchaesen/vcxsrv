@@ -177,6 +177,7 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
    unsigned idx = block->index;
    Builder bld(ctx.program, &instructions);
    std::vector<unsigned>& preds = block->linear_preds;
+   bool restore_exec = false;
 
    /* start block */
    if (preds.empty()) {
@@ -234,11 +235,10 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
       assert(preds[0] == idx - 1);
       ctx.info[idx].exec = ctx.info[idx - 1].exec;
       loop_info& info = ctx.loop.back();
-      while (ctx.info[idx].exec.size() > info.num_exec_masks)
-         ctx.info[idx].exec.pop_back();
+      assert(ctx.info[idx].exec.size() == info.num_exec_masks);
 
       /* create ssa names for outer exec masks */
-      if (info.has_discard) {
+      if (info.has_discard && preds.size() > 1) {
          aco_ptr<Pseudo_instruction> phi;
          for (int i = 0; i < info.num_exec_masks - 1; i++) {
             phi.reset(create_instruction<Pseudo_instruction>(aco_opcode::p_linear_phi,
@@ -249,54 +249,22 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
          }
       }
 
-      /* create ssa name for restore mask */
-      if (info.has_divergent_break) {
-         // TODO: this phi is unnecessary if we end WQM immediately after the loop
-         /* this phi might be trivial but ensures a parallelcopy on the loop header */
+      ctx.info[idx].exec.back().second |= mask_type_loop;
+
+      if (info.has_divergent_continue) {
+         /* create ssa name for loop active mask */
          aco_ptr<Pseudo_instruction> phi{create_instruction<Pseudo_instruction>(
             aco_opcode::p_linear_phi, Format::PSEUDO, preds.size(), 1)};
          phi->definitions[0] = bld.def(bld.lm);
-         phi->operands[0] = get_exec_op(ctx.info[preds[0]].exec[info.num_exec_masks - 1].first);
+         phi->operands[0] = get_exec_op(ctx.info[preds[0]].exec.back().first);
          ctx.info[idx].exec.back().first = bld.insert(std::move(phi));
-      }
 
-      /* create ssa name for loop active mask */
-      aco_ptr<Pseudo_instruction> phi{create_instruction<Pseudo_instruction>(
-         aco_opcode::p_linear_phi, Format::PSEUDO, preds.size(), 1)};
-      if (info.has_divergent_continue)
-         phi->definitions[0] = bld.def(bld.lm);
-      else
-         phi->definitions[0] = Definition(exec, bld.lm);
-      phi->operands[0] = get_exec_op(ctx.info[preds[0]].exec.back().first);
-      Temp loop_active = bld.insert(std::move(phi));
-
-      if (info.has_divergent_break) {
-         uint8_t mask_type =
-            (ctx.info[idx].exec.back().second & (mask_type_wqm | mask_type_exact)) | mask_type_loop;
-         ctx.info[idx].exec.emplace_back(loop_active, mask_type);
-      } else {
-         ctx.info[idx].exec.back().first = Operand(loop_active);
-         ctx.info[idx].exec.back().second |= mask_type_loop;
-      }
-
-      /* create a parallelcopy to move the active mask to exec */
-      unsigned i = 0;
-      if (info.has_divergent_continue) {
-         while (block->instructions[i]->opcode != aco_opcode::p_logical_start) {
-            bld.insert(std::move(block->instructions[i]));
-            i++;
-         }
+         restore_exec = true;
          uint8_t mask_type = ctx.info[idx].exec.back().second & (mask_type_wqm | mask_type_exact);
-         assert(ctx.info[idx].exec.back().first.size() == bld.lm.size());
-         ctx.info[idx].exec.emplace_back(
-            bld.copy(Definition(exec, bld.lm), ctx.info[idx].exec.back().first), mask_type);
+         ctx.info[idx].exec.emplace_back(ctx.info[idx].exec.back().first, mask_type);
       }
 
-      return i;
-   }
-
-   /* loop exit block */
-   if (block->kind & block_kind_loop_exit) {
+   } else if (block->kind & block_kind_loop_exit) {
       Block* header = ctx.loop.back().loop_header;
       loop_info& info = ctx.loop.back();
 
@@ -306,7 +274,7 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
       /* fill the loop header phis */
       std::vector<unsigned>& header_preds = header->linear_preds;
       int instr_idx = 0;
-      if (info.has_discard) {
+      if (info.has_discard && header_preds.size() > 1) {
          while (instr_idx < info.num_exec_masks - 1) {
             aco_ptr<Instruction>& phi = header->instructions[instr_idx];
             assert(phi->opcode == aco_opcode::p_linear_phi);
@@ -316,7 +284,7 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
          }
       }
 
-      {
+      if (info.has_divergent_continue) {
          aco_ptr<Instruction>& phi = header->instructions[instr_idx++];
          assert(phi->opcode == aco_opcode::p_linear_phi);
          for (unsigned i = 1; i < phi->operands.size(); i++)
@@ -325,13 +293,10 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
       }
 
       if (info.has_divergent_break) {
-         aco_ptr<Instruction>& phi = header->instructions[instr_idx];
-         assert(phi->opcode == aco_opcode::p_linear_phi);
-         for (unsigned i = 1; i < phi->operands.size(); i++)
-            phi->operands[i] =
-               get_exec_op(ctx.info[header_preds[i]].exec[info.num_exec_masks].first);
+         restore_exec = true;
+         /* Drop the loop active mask. */
+         info.num_exec_masks--;
       }
-
       assert(!(block->kind & block_kind_top_level) || info.num_exec_masks <= 2);
 
       /* create the loop exit phis if not trivial */
@@ -352,9 +317,6 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
             aco_ptr<Pseudo_instruction> phi{create_instruction<Pseudo_instruction>(
                aco_opcode::p_linear_phi, Format::PSEUDO, preds.size(), 1)};
             phi->definitions[0] = bld.def(bld.lm);
-            if (exec_idx == info.num_exec_masks - 1u) {
-               phi->definitions[0] = Definition(exec, bld.lm);
-            }
             for (unsigned i = 0; i < phi->operands.size(); i++)
                phi->operands[i] = get_exec_op(ctx.info[preds[i]].exec[exec_idx].first);
             ctx.info[idx].exec.emplace_back(bld.insert(std::move(phi)), type);
@@ -372,8 +334,10 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
       unsigned num_exec_masks =
          std::min(ctx.info[preds[0]].exec.size(), ctx.info[preds[1]].exec.size());
 
-      if (block->kind & block_kind_merge)
+      if (block->kind & block_kind_merge) {
+         restore_exec = true;
          num_exec_masks--;
+      }
       if (block->kind & block_kind_top_level)
          num_exec_masks = std::min(num_exec_masks, 2u);
 
@@ -412,15 +376,15 @@ add_coupling_code(exec_ctx& ctx, Block* block, std::vector<aco_ptr<Instruction>>
             ctx.info[idx].exec.back().second |= mask_type_global;
             transition_to_Exact(ctx, bld, idx);
             ctx.handle_wqm = false;
+            restore_exec = false;
             i++;
          }
       }
    }
 
    /* restore exec mask after divergent control flow */
-   if (block->kind & (block_kind_loop_exit | block_kind_merge) &&
-       !ctx.info[idx].exec.back().first.isUndefined()) {
-      Operand restore = ctx.info[idx].exec.back().first;
+   if (restore_exec) {
+      Operand restore = get_exec_op(ctx.info[idx].exec.back().first);
       assert(restore.size() == bld.lm.size());
       bld.copy(Definition(exec, bld.lm), restore);
       if (!restore.isConstant())
@@ -663,9 +627,20 @@ add_branch_code(exec_ctx& ctx, Block* block)
             has_divergent_continue = true;
       }
 
+      if (has_divergent_break) {
+         /* save restore exec mask */
+         uint8_t mask = ctx.info[idx].exec.back().second;
+         if (ctx.info[idx].exec.back().first.constantEquals(-1u)) {
+            ctx.info[idx].exec.emplace_back(Operand(exec, bld.lm), mask);
+         } else {
+            bld.reset(bld.instructions, std::prev(bld.instructions->end()));
+            Operand restore = bld.copy(bld.def(bld.lm), Operand(exec, bld.lm));
+            ctx.info[idx].exec.emplace(std::prev(ctx.info[idx].exec.end()), restore, mask);
+            bld.reset(bld.instructions);
+         }
+         ctx.info[idx].exec.back().second &= (mask_type_wqm | mask_type_exact);
+      }
       unsigned num_exec_masks = ctx.info[idx].exec.size();
-      if (block->kind & block_kind_top_level)
-         num_exec_masks = std::min(num_exec_masks, 2u);
 
       ctx.loop.emplace_back(&ctx.program->blocks[block->linear_succs[0]], num_exec_masks,
                             has_divergent_break, has_divergent_continue, has_discard);

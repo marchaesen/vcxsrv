@@ -869,9 +869,6 @@ agx_ra_assign_local(struct ra_ctx *rctx)
 
    block->ssa_to_reg_out = rctx->ssa_to_reg;
 
-   STATIC_ASSERT(sizeof(block->regs_out) == sizeof(used_regs));
-   memcpy(block->regs_out, used_regs, sizeof(used_regs));
-
    /* Also set the sources for the phis in our successors, since that logically
     * happens now (given the possibility of live range splits, etc)
     */

@@ -9,3 +9,7 @@ xerrordb
 xkbdata
 xwin.rc
 test-driver
+*~
+*.swp
+*.patch
+tags

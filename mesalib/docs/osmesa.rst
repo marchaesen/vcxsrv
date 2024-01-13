@@ -23,7 +23,7 @@ Building OSMesa
 
 Configure and build Mesa with something like:
 
-.. code-block:: console
+.. code-block:: sh
 
    meson setup builddir -Dosmesa=true -Dgallium-drivers=swrast -Dvulkan-drivers=[] -Dprefix=$PWD/builddir/install
    meson install -C builddir

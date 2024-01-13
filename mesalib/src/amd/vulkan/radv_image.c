@@ -554,7 +554,7 @@ radv_patch_image_from_extra_info(struct radv_device *device, struct radv_image *
          image_info->surf_index = NULL;
       }
 
-      if (create_info->prime_blit_src && device->physical_device->rad_info.gfx_level == GFX9) {
+      if (create_info->prime_blit_src && !device->physical_device->rad_info.sdma_supports_compression) {
          /* Older SDMA hw can't handle DCC */
          image->planes[plane].surface.flags |= RADEON_SURF_DISABLE_DCC;
       }

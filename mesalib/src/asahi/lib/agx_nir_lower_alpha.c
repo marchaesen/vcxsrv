@@ -5,13 +5,14 @@
  */
 
 #include "agx_tilebuffer.h"
+#include "nir.h"
 #include "nir_builder.h"
 
 /*
  * Lower alpha-to-coverage to sample_mask and some math. May run on either a
  * monolithic pixel shader or a fragment epilogue.
  */
-void
+bool
 agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
 {
    /* nir_lower_io_to_temporaries ensures that stores are in the last block */
@@ -41,14 +42,14 @@ agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
    /* If render target 0 isn't written, the alpha value input to
     * alpha-to-coverage is undefined. We assume that the alpha would be 1.0,
     * which would effectively disable alpha-to-coverage, skipping the lowering.
+    *
+    * Similarly, if there are less than 4 components, alpha is undefined.
     */
-   if (!store)
-      return;
-
-   /* Similarly, if there are less than 4 components, alpha is undefined */
-   nir_def *rgba = store->src[0].ssa;
-   if (rgba->num_components < 4)
-      return;
+   nir_def *rgba = store ? store->src[0].ssa : NULL;
+   if (!rgba || rgba->num_components < 4) {
+      nir_metadata_preserve(impl, nir_metadata_all);
+      return false;
+   }
 
    nir_builder _b = nir_builder_at(nir_before_instr(&store->instr));
    nir_builder *b = &_b;
@@ -67,6 +68,9 @@ agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
    /* Discard samples that aren't covered */
    nir_discard_agx(b, nir_inot(b, mask));
    shader->info.fs.uses_discard = true;
+   nir_metadata_preserve(impl,
+                         nir_metadata_dominance | nir_metadata_block_index);
+   return true;
 }
 
 /*
@@ -74,9 +78,11 @@ agx_nir_lower_alpha_to_coverage(nir_shader *shader, uint8_t nr_samples)
  * alpha-to-one is used. May run on either a monolithic pixel shader or a
  * fragment epilogue.
  */
-void
+bool
 agx_nir_lower_alpha_to_one(nir_shader *shader)
 {
+   bool progress = false;
+
    /* nir_lower_io_to_temporaries ensures that stores are in the last block */
    nir_function_impl *impl = nir_shader_get_entrypoint(shader);
    nir_block *block = nir_impl_last_block(impl);
@@ -109,5 +115,15 @@ agx_nir_lower_alpha_to_one(nir_shader *shader)
          &b, rgba, nir_imm_floatN_t(&b, 1.0, rgba->bit_size), 3);
 
       nir_src_rewrite(&intr->src[0], rgb1);
+      progress = true;
    }
+
+   if (progress) {
+      nir_metadata_preserve(impl,
+                            nir_metadata_block_index | nir_metadata_dominance);
+   } else {
+      nir_metadata_preserve(impl, nir_metadata_all);
+   }
+
+   return progress;
 }

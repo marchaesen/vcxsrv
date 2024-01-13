@@ -18,8 +18,7 @@ r300-rv530-deqp-gles2:
     - .ondracka-rv530
     - .deqp-test-valve
   variables:
-    DEQP_VER: gles2
-    DEQP_EXPECTED_RENDERER: RV530
+    DEQP_SUITE: r300-rv530
     GPU_VERSION: r300-rv530-nohiz
     # Only single process can use hiz at a time, and we have some issues
     # there in depth stencil tests, so it brings flakes,

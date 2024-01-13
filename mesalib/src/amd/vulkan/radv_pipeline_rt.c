@@ -732,6 +732,8 @@ compile_rt_prolog(struct radv_device *device, struct radv_ray_tracing_pipeline *
       combine_config(config, &pipeline->base.base.shaders[MESA_SHADER_INTERSECTION]->config);
 
    postprocess_rt_config(config, device->physical_device->rad_info.gfx_level, device->physical_device->rt_wave_size);
+
+   pipeline->prolog->max_waves = radv_get_max_waves(device, config, &pipeline->prolog->info);
 }
 
 static VkResult

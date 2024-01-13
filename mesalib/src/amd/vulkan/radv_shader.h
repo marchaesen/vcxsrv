@@ -803,6 +803,9 @@ struct radv_shader_part *radv_shader_part_cache_get(struct radv_device *device, 
 uint64_t radv_shader_get_va(const struct radv_shader *shader);
 struct radv_shader *radv_find_shader(struct radv_device *device, uint64_t pc);
 
+unsigned radv_get_max_waves(const struct radv_device *device, const struct ac_shader_config *conf,
+                            const struct radv_shader_info *info);
+
 unsigned radv_get_max_scratch_waves(const struct radv_device *device, struct radv_shader *shader);
 
 const char *radv_get_shader_name(const struct radv_shader_info *info, gl_shader_stage stage);

@@ -324,6 +324,7 @@ xwl_window_recycle_pixmap(struct xwl_window *xwl_window)
                      window_pixmap->drawable.width,
                      window_pixmap->drawable.height);
     xwl_window_set_pixmap(xwl_window->window, new_window_pixmap);
+    screen->DestroyPixmap(window_pixmap);
 }
 
 PixmapPtr

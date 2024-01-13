@@ -386,7 +386,7 @@ lower_distance_to_vec4(nir_shader *shader, struct lower_distance_state *state)
    }
 }
 
-void
+bool
 nir_lower_clip_cull_distance_to_vec4s(nir_shader *shader)
 {
    int clip_size = 0;
@@ -409,8 +409,10 @@ nir_lower_clip_cull_distance_to_vec4s(nir_shader *shader)
          cull_size = MAX2(cull_size, get_unwrapped_array_length(shader, var));
    }
 
-   if (clip_size == 0 && cull_size == 0)
-      return;
+   if (clip_size == 0 && cull_size == 0) {
+      nir_shader_preserve_all_metadata(shader);
+      return false;
+   }
 
    struct lower_distance_state state;
    state.old_distance_out_var = NULL;
@@ -430,6 +432,9 @@ nir_lower_clip_cull_distance_to_vec4s(nir_shader *shader)
    lower_distance_to_vec4(shader, &state);
 
    nir_fixup_deref_modes(shader);
+
+   /* Assume we made progress */
+   return true;
 }
 
 static bool

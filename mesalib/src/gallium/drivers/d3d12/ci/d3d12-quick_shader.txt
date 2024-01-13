@@ -1,7 +1,6 @@
 spec@arb_gpu_shader_int64@execution@indirect-array-two-accesses,Fail
 spec@arb_separate_shader_objects@execution@layout-location-block-with-struct-member,Crash
 spec@arb_separate_shader_objects@execution@layout-location-struct-mixed-with-implicitly-assigned-varying,Crash
-spec@arb_shader_storage_buffer_object@execution@ssbo-atomiccompswap-int,Fail
 spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-07,Fail
 spec@arb_shader_texture_lod@execution@glsl-fs-shadow2dgradarb-cumulative,Fail
 spec@arb_tessellation_shader@execution@dmat-vs-gs-tcs-tes,Fail
@@ -49,10 +48,6 @@ spec@arb_enhanced_layouts@execution@component-layout@vs-fs-array-dvec3,Crash
 # TODO: Need to investigate and debug
 spec@arb_enhanced_layouts@execution@component-layout@vs-gs-fs-double,Fail
 spec@arb_tessellation_shader@execution@dvec3-vs-tcs-tes,Fail
-
-# WARP bug: Due to SIMT, the FS loop runs 4 times, and all 4 threads end up with
-# the final value from the SSBO instead of remembering their own value they computed.
-spec@glsl-4.50@execution@ssbo-atomiccompswap-int,Fail
 
 # Needs https://github.com/KhronosGroup/SPIRV-Tools/pull/5477,
 # https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/850,

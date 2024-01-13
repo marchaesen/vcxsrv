@@ -22,8 +22,8 @@ Fontconfig does not:
 
 ## Documentation
 
-* [Fontconfig User Documentation](https://www.freedesktop.org/software/fontconfig/fontconfig-user.html)
-* [Fontconfig Developer Documentation](https://www.freedesktop.org/software/fontconfig/fontconfig-devel/)
+* [Fontconfig User Documentation](https://fontconfig.pages.freedesktop.org/fontconfig/fontconfig-user.html)
+* [Fontconfig Developer Documentation](https://fontconfig.pages.freedesktop.org/fontconfig/fontconfig-devel/)
 
 ## Bug reports
 

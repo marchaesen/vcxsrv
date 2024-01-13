@@ -635,19 +635,20 @@ consume_dual_stores(nir_builder *b, nir_intrinsic_instr *store, void *data)
  * This pass requires that shader I/O is lowered to explicit load/store
  * instructions using nir_lower_io.
  */
-void
+bool
 nir_lower_blend(nir_shader *shader, const nir_lower_blend_options *options)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
 
    struct ctx ctx = { .options = options };
-   nir_shader_intrinsics_pass(shader, consume_dual_stores,
-                              nir_metadata_block_index |
-                                 nir_metadata_dominance,
-                              ctx.src1);
+   bool progress = nir_shader_intrinsics_pass(shader, consume_dual_stores,
+                                              nir_metadata_block_index |
+                                                 nir_metadata_dominance,
+                                              ctx.src1);
 
-   nir_shader_intrinsics_pass(shader, nir_lower_blend_instr,
-                              nir_metadata_block_index |
-                                 nir_metadata_dominance,
-                              &ctx);
+   progress |= nir_shader_intrinsics_pass(shader, nir_lower_blend_instr,
+                                          nir_metadata_block_index |
+                                             nir_metadata_dominance,
+                                          &ctx);
+   return progress;
 }
