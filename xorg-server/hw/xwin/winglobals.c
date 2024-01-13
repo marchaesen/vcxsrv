@@ -59,7 +59,7 @@ HWND g_hDlgAbout = NULL;
 const char *g_pszQueryHost = NULL;
 Bool g_fXdmcpEnabled = FALSE;
 Bool g_fAuthEnabled = FALSE;
-Bool g_fCompositeAlpha = FALSE;
+Bool g_fCompositeAlpha = TRUE;
 HICON g_hIconX = NULL;
 HICON g_hSmallIconX = NULL;
 

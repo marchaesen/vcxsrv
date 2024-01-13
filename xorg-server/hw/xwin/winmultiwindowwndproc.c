@@ -348,7 +348,12 @@ typedef struct _ACCENTPOLICY
     ULONG AnimationId;
 } ACCENTPOLICY;
 
+#define ACCENT_DISABLED 0
+#define ACCENT_ENABLE_GRADIENT 1
+#define ACCENT_ENABLE_TRANSPARENTGRADIENT 2
 #define ACCENT_ENABLE_BLURBEHIND 3
+#define ACCENT_ENABLE_ACRYLICBLURBEHIND 4
+#define ACCENT_INVALID_STATE 5
 
 typedef struct _WINCOMPATTR
 {
@@ -378,7 +383,8 @@ CheckForAlpha(HWND hWnd, WindowPtr pWin, winScreenInfo *pScreenInfo)
             /* SetWindowCompositionAttribute() exists on Windows 7 and later,
                but doesn't work for this purpose, so first check for Windows 10
                or later */
-            if (osvi.dwMajorVersion >= 10)
+            if (osvi.dwMajorVersion >= 10 ||
+                (osvi.dwMajorVersion == 6) && (osvi.dwMinorVersion == 2))
                 {
                     HMODULE hUser32 = GetModuleHandle("user32");
 
