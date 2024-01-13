@@ -109,6 +109,8 @@ vdrm_execbuf(struct vdrm_device *vdev, struct vdrm_execbuf_params *p)
 
    simple_mtx_lock(&vdev->eb_lock);
 
+   p->req->seqno = ++vdev->next_seqno;
+
    ret = vdev->funcs->flush_locked(vdev, NULL);
    if (ret)
       goto out_unlock;

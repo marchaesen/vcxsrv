@@ -97,6 +97,10 @@
 #define DETECT_ARCH_MIPS 1
 #endif
 
+#if defined(__hppa__)
+#define DETECT_ARCH_HPPA 1
+#endif
+
 #ifndef DETECT_ARCH_X86
 #define DETECT_ARCH_X86 0
 #endif
@@ -135,6 +139,10 @@
 
 #ifndef DETECT_ARCH_MIPS
 #define DETECT_ARCH_MIPS 0
+#endif
+
+#ifndef DETECT_ARCH_HPPA
+#define DETECT_ARCH_HPPA 0
 #endif
 
 #endif /* UTIL_DETECT_ARCH_H_ */

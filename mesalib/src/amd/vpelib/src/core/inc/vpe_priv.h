@@ -104,7 +104,7 @@ struct vpe_cmd_info {
 
 struct config_record {
     uint64_t config_base_addr;
-    int64_t  config_size;
+    uint64_t  config_size;
 };
 
 /** represents a stream input, i.e. common to all segments */

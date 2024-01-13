@@ -111,7 +111,7 @@ struct resource {
 
 /** translate the vpe ip version into vpe hw level */
 enum vpe_ip_level vpe_resource_parse_ip_version(
-    uint8_t mj, uint8_t mi, uint8_t rv);
+    uint8_t major, uint8_t minor, uint8_t rev_id);
 
 /** initialize the resource ased on vpe hw level */
 enum vpe_status vpe_construct_resource(

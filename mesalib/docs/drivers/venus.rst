@@ -51,7 +51,7 @@ vtest
 The simplest way to test Venus is to use virglrenderer's vtest server.  To
 build virglrenderer with Venus support and to start the vtest server,
 
-.. code-block:: console
+.. code-block:: sh
 
     $ git clone https://gitlab.freedesktop.org/virgl/virglrenderer.git
     $ cd virglrenderer
@@ -63,7 +63,7 @@ build virglrenderer with Venus support and to start the vtest server,
 
 In another shell,
 
-.. code-block:: console
+.. code-block:: sh
 
     $ export VK_ICD_FILENAMES=<path-to-virtio_icd.x86_64.json>
     $ export VN_DEBUG=vtest
@@ -84,7 +84,7 @@ driver, which was upstreamed in kernel 5.16.
 crosvm is written in Rust.  To build crosvm, make sure Rust has been installed
 and
 
-.. code-block:: console
+.. code-block:: sh
 
  $ git clone --recurse-submodules \
        https://chromium.googlesource.com/chromiumos/platform/crosvm
@@ -97,7 +97,7 @@ Note that crosvm must be built with ``default-no-sandbox`` or started with
 
 This is how one might want to start crosvm
 
-.. code-block:: console
+.. code-block:: sh
 
  $ sudo LD_LIBRARY_PATH=<...> VK_ICD_FILENAMES=<...> ./target/debug/crosvm run \
        --gpu vulkan=true \
@@ -126,7 +126,7 @@ the `Chrome OS kernel
 
 To build minigbm and to enable minigbm support in virglrenderer,
 
-.. code-block:: console
+.. code-block:: sh
 
  $ git clone https://chromium.googlesource.com/chromiumos/platform/minigbm
  $ cd minigbm
@@ -141,7 +141,7 @@ Make sure a host Wayland compositor is running.  Replace
 
 In the guest, build and start sommelier, the special Wayland compositor,
 
-.. code-block:: console
+.. code-block:: sh
 
  $ git clone https://chromium.googlesource.com/chromiumos/platform2
  $ cd platform2/vm_tools/sommelier

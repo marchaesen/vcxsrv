@@ -382,17 +382,33 @@ void si_set_mutable_tex_desc_fields(struct si_screen *sscreen, struct si_texture
          state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.zs.stencil_swizzle_mode);
          state[4] |= S_008F20_PITCH(tex->surface.u.gfx9.zs.stencil_epitch);
       } else {
-         uint16_t epitch = tex->surface.u.gfx9.epitch;
-         if (tex->buffer.b.b.format == PIPE_FORMAT_R8G8_R8B8_UNORM &&
-             block_width == 1) {
-            /* epitch is patched in ac_surface for sdma/vcn blocks to get
-             * a value expressed in elements unit.
-             * But here the texture is used with block_width == 1 so we
-             * need epitch in pixel units.
-             */
-            epitch = (epitch + 1) / tex->surface.blk_w - 1;
-         }
          state[3] |= S_008F1C_SW_MODE(tex->surface.u.gfx9.swizzle_mode);
+
+         uint32_t hw_format = G_008F14_DATA_FORMAT(state[1]);
+         uint16_t epitch = tex->surface.u.gfx9.epitch;
+
+         /* epitch is surf_pitch - 1 and are in elements unit.
+          * For some reason I don't understand, when a packed YUV format
+          * like UYUV is used, we have to double epitch (making it a pixel
+          * pitch instead of an element pitch). Note that it's only done
+          * when sampling the texture using its native format; we don't
+          * need to do this when sampling it as UINT32 (as done by
+          * SI_IMAGE_ACCESS_BLOCK_FORMAT_AS_UINT).
+          * This looks broken, so it's possible that surf_pitch / epitch
+          * are computed incorrectly, but that's the only way I found
+          * to get these use cases to work properly:
+          *   - yuyv dmabuf import (#6131)
+          *   - jpeg vaapi decode
+          *   - yuyv texture sampling (!26947)
+          *   - jpeg vaapi get image (#10375)
+          */
+         if ((tex->buffer.b.b.format == PIPE_FORMAT_R8G8_R8B8_UNORM ||
+             tex->buffer.b.b.format == PIPE_FORMAT_G8R8_B8R8_UNORM) &&
+             (hw_format == V_008F14_IMG_DATA_FORMAT_GB_GR ||
+                hw_format == V_008F14_IMG_DATA_FORMAT_BG_RG)) {
+            epitch = (epitch + 1) * 2 - 1;
+         }
+
          state[4] |= S_008F20_PITCH(epitch);
       }
 

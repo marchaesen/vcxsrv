@@ -411,15 +411,3 @@ spec@arb_vertex_program@arb_vertex_program-property-bindings,Fail
 # https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/850,
 # and CI changes to glue them together
 spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations spirv,Fail
-
-# WARP bug: submitting an indirect draw with a count buffer modifies the arg buffer to zero
-# entries between >= dynamic count and < static max count
-spec@arb_query_buffer_object@coherency,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_FRAGMENT_SHADER_INVOCATIONS,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_PRIMITIVES_GENERATED,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_PRIMITIVES_SUBMITTED,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_SAMPLES_PASSED,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TIMESTAMP,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TIME_ELAPSED,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_VERTEX_SHADER_INVOCATIONS,Fail
-spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_VERTICES_SUBMITTED,Fail

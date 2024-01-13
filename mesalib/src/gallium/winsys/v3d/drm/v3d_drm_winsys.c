@@ -34,10 +34,6 @@
 struct pipe_screen *
 v3d_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
-#ifndef USE_V3D_SIMULATOR
-   fprintf (stderr, "Do not manually force v3d driver; hardware uses vc4 to create display\n");
-#endif
-
    return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), config,
                                          NULL, v3d_screen_create);
 }

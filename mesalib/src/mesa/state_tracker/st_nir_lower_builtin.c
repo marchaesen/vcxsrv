@@ -222,9 +222,10 @@ lower_builtin_instr(nir_builder *b, nir_intrinsic_instr *intrin,
    return true;
 }
 
-void
+bool
 st_nir_lower_builtin(nir_shader *shader)
 {
+   bool progress = false;
    struct set *vars = _mesa_pointer_set_create(NULL);
 
    nir_foreach_uniform_variable(var, shader) {
@@ -240,13 +241,18 @@ st_nir_lower_builtin(nir_shader *shader)
        * be eliminated beforehand to avoid trying to lower one of those
        * builtins
        */
-      nir_lower_indirect_var_derefs(shader, vars);
+      progress |= nir_lower_indirect_var_derefs(shader, vars);
 
       if (nir_shader_intrinsics_pass(shader, lower_builtin_instr,
                                        nir_metadata_block_index |
-                                       nir_metadata_dominance, NULL))
+                                       nir_metadata_dominance, NULL)) {
          nir_remove_dead_derefs(shader);
+         progress = true;
+      }
+   } else {
+      nir_shader_preserve_all_metadata(shader);
    }
 
    _mesa_set_destroy(vars, NULL);
+   return progress;
 }

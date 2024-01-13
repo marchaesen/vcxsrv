@@ -59,7 +59,7 @@ typedef struct {
    bool scalar_blend_const;
 } nir_lower_blend_options;
 
-void nir_lower_blend(nir_shader *shader,
+bool nir_lower_blend(nir_shader *shader,
                      const nir_lower_blend_options *options);
 
 #endif

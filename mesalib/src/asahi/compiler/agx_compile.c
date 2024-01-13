@@ -26,7 +26,6 @@
 
 /* clang-format off */
 static const struct debug_named_value agx_debug_options[] = {
-   {"msgs",      AGX_DBG_MSGS,		"Print debug messages"},
    {"shaders",   AGX_DBG_SHADERS,	"Dump shaders in NIR and AIR"},
    {"shaderdb",  AGX_DBG_SHADERDB,	"Print statistics"},
    {"verbose",   AGX_DBG_VERBOSE,	"Disassemble verbosely"},
@@ -51,12 +50,6 @@ agx_get_compiler_debug(void)
 {
    return debug_get_option_agx_compiler_debug();
 }
-
-#define DBG(fmt, ...)                                                          \
-   do {                                                                        \
-      if (agx_compiler_debug & AGX_DBG_MSGS)                                   \
-         fprintf(stderr, "%s:%d: " fmt, __func__, __LINE__, ##__VA_ARGS__);    \
-   } while (0)
 
 static agx_index
 agx_cached_preload(agx_context *ctx, agx_index *cache, unsigned base,
@@ -1997,7 +1990,16 @@ agx_emit_undef(agx_builder *b, nir_undef_instr *instr)
     * the lowering happens in NIR and this just allows for late lowering passes
     * to result in undefs.
     */
-   agx_mov_imm_to(b, agx_def_index(&instr->def), 0);
+   if (instr->def.num_components > 1) {
+      assert(instr->def.num_components <= 4);
+      agx_index zero = agx_mov_imm(b, instr->def.bit_size, 0);
+
+      agx_emit_collect_to(b, agx_def_index(&instr->def),
+                          instr->def.num_components,
+                          (agx_index[4]){zero, zero, zero, zero});
+   } else {
+      agx_mov_imm_to(b, agx_def_index(&instr->def), 0);
+   }
 }
 
 static void
@@ -2364,12 +2366,8 @@ agx_optimize_loop_nir(nir_shader *nir)
    do {
       progress = false;
 
-      NIR_PASS(progress, nir, nir_lower_var_copies);
-      NIR_PASS(progress, nir, nir_lower_vars_to_ssa);
-
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
-      NIR_PASS(progress, nir, nir_lower_phis_to_scalar, true);
       NIR_PASS(progress, nir, nir_opt_dce);
       NIR_PASS(progress, nir, nir_opt_dead_cf);
       NIR_PASS(progress, nir, nir_opt_cse);
@@ -2377,10 +2375,7 @@ agx_optimize_loop_nir(nir_shader *nir)
       NIR_PASS(progress, nir, nir_opt_phi_precision);
       NIR_PASS(progress, nir, nir_opt_algebraic);
       NIR_PASS(progress, nir, nir_opt_constant_folding);
-
       NIR_PASS(progress, nir, nir_opt_undef);
-      NIR_PASS(progress, nir, nir_lower_undef_to_zero);
-
       NIR_PASS(progress, nir, nir_opt_shrink_vectors);
       NIR_PASS(progress, nir, nir_opt_loop_unroll);
    } while (progress);
@@ -2409,16 +2404,16 @@ static void
 agx_optimize_nir(nir_shader *nir, unsigned *preamble_size)
 {
    /* This runs only once up front since other optimizations don't affect it */
-   NIR_PASS_V(nir, nir_opt_shrink_stores, true);
+   NIR_PASS(_, nir, nir_opt_shrink_stores, true);
 
    agx_optimize_loop_nir(nir);
 
-   NIR_PASS_V(nir, nir_opt_load_store_vectorize,
-              &(const nir_load_store_vectorize_options){
-                 .modes = nir_var_mem_global | nir_var_mem_constant,
-                 .callback = mem_vectorize_cb,
-              });
-   NIR_PASS_V(nir, nir_lower_pack);
+   NIR_PASS(_, nir, nir_opt_load_store_vectorize,
+            &(const nir_load_store_vectorize_options){
+               .modes = nir_var_mem_global | nir_var_mem_constant,
+               .callback = mem_vectorize_cb,
+            });
+   NIR_PASS(_, nir, nir_lower_pack);
 
    bool progress = false;
    NIR_PASS(progress, nir, agx_nir_lower_address);
@@ -2428,8 +2423,8 @@ agx_optimize_nir(nir_shader *nir, unsigned *preamble_size)
     * lowering int64 too, to avoid lowering constant int64 arithmetic.
     */
    if (progress) {
-      NIR_PASS_V(nir, nir_opt_constant_folding);
-      NIR_PASS_V(nir, nir_opt_dce);
+      NIR_PASS(_, nir, nir_opt_constant_folding);
+      NIR_PASS(_, nir, nir_opt_dce);
    }
 
    /* Only lower int64 after optimizing address arithmetic, so that u2u64/i2i64
@@ -2452,16 +2447,16 @@ agx_optimize_nir(nir_shader *nir, unsigned *preamble_size)
    }
 
    if (likely(!(agx_compiler_debug & AGX_DBG_NOPREAMBLE)))
-      NIR_PASS_V(nir, agx_nir_opt_preamble, preamble_size);
+      NIR_PASS(_, nir, agx_nir_opt_preamble, preamble_size);
 
    /* Forming preambles may dramatically reduce the instruction count
     * in certain blocks, causing some if-else statements to become
     * trivial. We want to peephole select those, given that control flow
     * prediction instructions are costly.
     */
-   NIR_PASS_V(nir, nir_opt_peephole_select, 64, false, true);
+   NIR_PASS(_, nir, nir_opt_peephole_select, 64, false, true);
 
-   NIR_PASS_V(nir, nir_opt_algebraic_late);
+   NIR_PASS(_, nir, nir_opt_algebraic_late);
 
    /* Fuse add/sub/multiplies/shifts after running opt_algebraic_late to fuse
     * isub but before shifts are lowered.
@@ -2477,19 +2472,19 @@ agx_optimize_nir(nir_shader *nir, unsigned *preamble_size)
    /* Do remaining lowering late, since this inserts &s for shifts so we want to
     * do it after fusing constant shifts. Constant folding will clean up.
     */
-   NIR_PASS_V(nir, agx_nir_lower_algebraic_late);
-   NIR_PASS_V(nir, nir_opt_constant_folding);
-   NIR_PASS_V(nir, nir_opt_combine_barriers, NULL, NULL);
+   NIR_PASS(_, nir, agx_nir_lower_algebraic_late);
+   NIR_PASS(_, nir, nir_opt_constant_folding);
+   NIR_PASS(_, nir, nir_opt_combine_barriers, NULL, NULL);
 
    /* Must run after uses are fixed but before a last round of copyprop + DCE */
    if (nir->info.stage == MESA_SHADER_FRAGMENT)
-      NIR_PASS_V(nir, agx_nir_lower_load_mask);
+      NIR_PASS(_, nir, agx_nir_lower_load_mask);
 
-   NIR_PASS_V(nir, nir_copy_prop);
-   NIR_PASS_V(nir, nir_opt_dce);
-   NIR_PASS_V(nir, nir_opt_cse);
-   NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
-   NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
+   NIR_PASS(_, nir, nir_copy_prop);
+   NIR_PASS(_, nir, nir_opt_dce);
+   NIR_PASS(_, nir, nir_opt_cse);
+   NIR_PASS(_, nir, nir_lower_alu_to_scalar, NULL, NULL);
+   NIR_PASS(_, nir, nir_lower_load_const_to_scalar);
 
    /* Cleanup optimizations */
    nir_move_options move_all = nir_move_const_undef | nir_move_load_ubo |
@@ -2497,9 +2492,9 @@ agx_optimize_nir(nir_shader *nir, unsigned *preamble_size)
                                nir_move_copies | nir_move_load_ssbo |
                                nir_move_alu;
 
-   NIR_PASS_V(nir, nir_opt_sink, move_all);
-   NIR_PASS_V(nir, nir_opt_move, move_all);
-   NIR_PASS_V(nir, nir_lower_phis_to_scalar, true);
+   NIR_PASS(_, nir, nir_opt_sink, move_all);
+   NIR_PASS(_, nir, nir_opt_move, move_all);
+   NIR_PASS(_, nir, nir_lower_phis_to_scalar, true);
 }
 
 /* ABI: position first, then user, then psiz */
@@ -2900,12 +2895,12 @@ static void
 link_libagx(nir_shader *nir, const nir_shader *libagx)
 {
    nir_link_shader_functions(nir, libagx);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_remove_non_entrypoints);
-   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global,
-              glsl_get_cl_type_size_align);
+   NIR_PASS(_, nir, nir_inline_functions);
+   nir_remove_non_entrypoints(nir);
+   NIR_PASS(_, nir, nir_lower_vars_to_explicit_types,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global,
+            glsl_get_cl_type_size_align);
 }
 
 /*
@@ -2930,23 +2925,22 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
    if (out)
       memset(out, 0, sizeof(*out));
 
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
+   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
 
    /* Lower large arrays to scratch and small arrays to csel */
-   NIR_PASS_V(nir, nir_lower_vars_to_scratch, nir_var_function_temp, 16,
-              glsl_get_natural_size_align_bytes);
-   NIR_PASS_V(nir, nir_lower_indirect_derefs, nir_var_function_temp, ~0);
-   NIR_PASS_V(nir, nir_split_var_copies);
-   NIR_PASS_V(nir, nir_lower_global_vars_to_local);
-   NIR_PASS_V(nir, nir_lower_var_copies);
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-   NIR_PASS_V(nir, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
-              glsl_type_size, nir_lower_io_lower_64bit_to_32);
-   NIR_PASS_V(nir, nir_lower_ssbo);
+   NIR_PASS(_, nir, nir_lower_vars_to_scratch, nir_var_function_temp, 16,
+            glsl_get_natural_size_align_bytes);
+   NIR_PASS(_, nir, nir_lower_indirect_derefs, nir_var_function_temp, ~0);
+   NIR_PASS(_, nir, nir_split_var_copies);
+   NIR_PASS(_, nir, nir_lower_global_vars_to_local);
+   NIR_PASS(_, nir, nir_lower_var_copies);
+   NIR_PASS(_, nir, nir_lower_io, nir_var_shader_in | nir_var_shader_out,
+            glsl_type_size, nir_lower_io_lower_64bit_to_32);
+   NIR_PASS(_, nir, nir_lower_ssbo);
    if (nir->info.stage == MESA_SHADER_FRAGMENT) {
       struct interp_masks masks = agx_interp_masks(nir);
 
-      NIR_PASS_V(nir, agx_nir_lower_frag_sidefx);
+      NIR_PASS(_, nir, agx_nir_lower_frag_sidefx);
 
       /* Interpolate varyings at fp16 and write to the tilebuffer at fp16. As an
        * exception, interpolate flat shaded at fp32. This works around a
@@ -2956,9 +2950,9 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
       if (likely(allow_mediump)) {
          uint64_t texcoord = agx_texcoord_mask(nir);
 
-         NIR_PASS_V(nir, nir_lower_mediump_io,
-                    nir_var_shader_in | nir_var_shader_out,
-                    ~(masks.flat | texcoord), false);
+         NIR_PASS(_, nir, nir_lower_mediump_io,
+                  nir_var_shader_in | nir_var_shader_out,
+                  ~(masks.flat | texcoord), false);
       }
 
       if (out) {
@@ -2970,34 +2964,35 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
       out->cull_distance_size = nir->info.cull_distance_array_size;
 
       if (out->cull_distance_size)
-         NIR_PASS_V(nir, agx_nir_lower_cull_distance_vs);
+         NIR_PASS(_, nir, agx_nir_lower_cull_distance_vs);
    }
 
    /* Clean up deref gunk after lowering I/O */
-   NIR_PASS_V(nir, nir_opt_dce);
-   NIR_PASS_V(nir, agx_nir_lower_texture);
+   NIR_PASS(_, nir, nir_opt_dce);
+   NIR_PASS(_, nir, agx_nir_lower_texture);
 
    link_libagx(nir, libagx);
 
    /* Runs before we lower away idiv, to work at all. But runs after lowering
     * textures, since the cube map array lowering generates division by 6.
     */
-   NIR_PASS_V(nir, nir_opt_idiv_const, 16);
+   NIR_PASS(_, nir, nir_opt_idiv_const, 16);
 
    nir_lower_idiv_options idiv_options = {
       .allow_fp16 = true,
    };
 
-   NIR_PASS_V(nir, nir_lower_idiv, &idiv_options);
-   NIR_PASS_V(nir, nir_lower_frexp);
-   NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
-   NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
-   NIR_PASS_V(nir, nir_lower_flrp, 16 | 32 | 64, false);
-   NIR_PASS_V(nir, agx_lower_sincos);
-   NIR_PASS_V(nir, nir_shader_intrinsics_pass, agx_lower_front_face,
-              nir_metadata_block_index | nir_metadata_dominance, NULL);
-   NIR_PASS_V(nir, nir_lower_frag_coord_to_pixel_coord);
-   NIR_PASS_V(nir, agx_nir_lower_subgroups);
+   NIR_PASS(_, nir, nir_lower_idiv, &idiv_options);
+   NIR_PASS(_, nir, nir_lower_frexp);
+   NIR_PASS(_, nir, nir_lower_alu_to_scalar, NULL, NULL);
+   NIR_PASS(_, nir, nir_lower_load_const_to_scalar);
+   NIR_PASS(_, nir, nir_lower_flrp, 16 | 32 | 64, false);
+   NIR_PASS(_, nir, agx_lower_sincos);
+   NIR_PASS(_, nir, nir_shader_intrinsics_pass, agx_lower_front_face,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
+   NIR_PASS(_, nir, nir_lower_frag_coord_to_pixel_coord);
+   NIR_PASS(_, nir, agx_nir_lower_subgroups);
+   NIR_PASS(_, nir, nir_lower_phis_to_scalar, true);
 
    /* After lowering, run through the standard suite of NIR optimizations. We
     * will run through the loop later, once we have the shader key, but if we
@@ -3005,15 +3000,15 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
     */
    agx_optimize_loop_nir(nir);
 
-   NIR_PASS_V(nir, nir_opt_deref);
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-   NIR_PASS_V(nir, nir_lower_explicit_io,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global,
-              nir_address_format_62bit_generic);
+   NIR_PASS(_, nir, nir_opt_deref);
+   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+   NIR_PASS(_, nir, nir_lower_explicit_io,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global,
+            nir_address_format_62bit_generic);
 
    /* We're lowered away all variables. Remove them all for smaller shaders. */
-   NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_all, NULL);
+   NIR_PASS(_, nir, nir_remove_dead_variables, nir_var_all, NULL);
    nir->info.io_lowered = true;
 
    /* Move before lowering */
@@ -3021,9 +3016,9 @@ agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
                                nir_move_load_input | nir_move_comparisons |
                                nir_move_copies | nir_move_load_ssbo;
 
-   NIR_PASS_V(nir, nir_opt_sink, move_all);
-   NIR_PASS_V(nir, nir_opt_move, move_all);
-   NIR_PASS_V(nir, agx_nir_lower_shared_bitsize);
+   NIR_PASS(_, nir, nir_opt_sink, move_all);
+   NIR_PASS(_, nir, nir_opt_move, move_all);
+   NIR_PASS(_, nir, agx_nir_lower_shared_bitsize);
 }
 
 void
@@ -3055,15 +3050,17 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
    if (nir->info.stage == MESA_SHADER_FRAGMENT)
       NIR_PASS(needs_libagx, nir, agx_nir_lower_interpolation);
 
+   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+
    if (needs_libagx) {
       link_libagx(nir, key->libagx);
 
-      NIR_PASS_V(nir, nir_opt_deref);
-      NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-      NIR_PASS_V(nir, nir_lower_explicit_io,
-                 nir_var_shader_temp | nir_var_function_temp |
-                    nir_var_mem_shared | nir_var_mem_global,
-                 nir_address_format_62bit_generic);
+      NIR_PASS(_, nir, nir_opt_deref);
+      NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+      NIR_PASS(_, nir, nir_lower_explicit_io,
+               nir_var_shader_temp | nir_var_function_temp |
+                  nir_var_mem_shared | nir_var_mem_global,
+               nir_address_format_62bit_generic);
    }
 
    /* Late sysval lowering creates large loads. Load lowering creates unpacks */
@@ -3073,7 +3070,7 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
                nir_var_function_temp | nir_var_mem_global | nir_var_mem_shared,
       .callback = mem_access_size_align_cb,
    };
-   NIR_PASS_V(nir, nir_lower_mem_access_bit_sizes, &lower_mem_access_options);
+   NIR_PASS(_, nir, nir_lower_mem_access_bit_sizes, &lower_mem_access_options);
 
    /* Cleanup 8-bit math before lowering */
    bool progress;
@@ -3085,26 +3082,31 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
       NIR_PASS(progress, nir, nir_opt_dce);
    } while (progress);
 
-   NIR_PASS_V(nir, nir_lower_bit_size, lower_bit_size_callback, NULL);
+   NIR_PASS(_, nir, nir_lower_bit_size, lower_bit_size_callback, NULL);
 
    /* Late blend lowering creates vectors */
-   NIR_PASS_V(nir, nir_lower_alu_to_scalar, NULL, NULL);
-   NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
+   NIR_PASS(_, nir, nir_lower_alu_to_scalar, NULL, NULL);
+   NIR_PASS(_, nir, nir_lower_load_const_to_scalar);
 
    /* Late VBO lowering creates constant udiv instructions */
-   NIR_PASS_V(nir, nir_opt_idiv_const, 16);
+   NIR_PASS(_, nir, nir_opt_idiv_const, 16);
 
    /* Varying output is scalar, other I/O is vector. Lowered late because
     * transform feedback programs will use vector output.
     */
    if (nir->info.stage == MESA_SHADER_VERTEX) {
-      NIR_PASS_V(nir, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
-      NIR_PASS_V(nir, agx_nir_lower_layer);
+      NIR_PASS(_, nir, nir_lower_io_to_scalar, nir_var_shader_out, NULL, NULL);
+
+      if (nir->info.outputs_written &
+          (VARYING_BIT_LAYER | VARYING_BIT_VIEWPORT)) {
+
+         NIR_PASS(_, nir, agx_nir_lower_layer);
+      }
    }
 
-   NIR_PASS_V(nir, nir_opt_constant_folding);
-   NIR_PASS_V(nir, nir_shader_intrinsics_pass, lower_load_from_texture_handle,
-              nir_metadata_block_index | nir_metadata_dominance, NULL);
+   NIR_PASS(_, nir, nir_opt_constant_folding);
+   NIR_PASS(_, nir, nir_shader_intrinsics_pass, lower_load_from_texture_handle,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
 
    out->push_count = key->reserved_preamble;
    agx_optimize_nir(nir, &out->push_count);
@@ -3121,10 +3123,10 @@ agx_compile_shader_nir(nir_shader *nir, struct agx_shader_key *key,
           * Also constant fold to get the benefit. We need to rescalarize after
           * folding constants.
           */
-         NIR_PASS_V(nir, agx_nir_opt_ixor_bcsel);
-         NIR_PASS_V(nir, nir_opt_constant_folding);
-         NIR_PASS_V(nir, nir_lower_load_const_to_scalar);
-         NIR_PASS_V(nir, nir_opt_dce);
+         NIR_PASS(_, nir, agx_nir_opt_ixor_bcsel);
+         NIR_PASS(_, nir, nir_opt_constant_folding);
+         NIR_PASS(_, nir, nir_lower_load_const_to_scalar);
+         NIR_PASS(_, nir, nir_opt_dce);
       }
    }
 

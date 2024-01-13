@@ -633,7 +633,6 @@ vn_ring_submit_command(struct vn_ring *ring,
    vn_cs_encoder_commit(&submit->command);
 
    size_t reply_offset = 0;
-   submit->reply_shmem = NULL;
    if (submit->reply_size) {
       submit->reply_shmem = vn_instance_reply_shmem_alloc(
          ring->instance, submit->reply_size, &reply_offset);
@@ -653,11 +652,16 @@ vn_ring_submit_command(struct vn_ring *ring,
    mtx_unlock(&ring->mutex);
 
    if (submit->reply_size) {
-      void *reply_ptr = submit->reply_shmem->mmap_ptr + reply_offset;
-      submit->reply =
-         VN_CS_DECODER_INITIALIZER(reply_ptr, submit->reply_size);
-      if (submit->ring_seqno_valid)
+      if (likely(submit->ring_seqno_valid)) {
+         void *reply_ptr = submit->reply_shmem->mmap_ptr + reply_offset;
+         submit->reply =
+            VN_CS_DECODER_INITIALIZER(reply_ptr, submit->reply_size);
          vn_ring_wait_seqno(ring, submit->ring_seqno);
+      } else {
+         vn_renderer_shmem_unref(ring->instance->renderer,
+                                 submit->reply_shmem);
+         submit->reply_shmem = NULL;
+      }
    }
 }
 

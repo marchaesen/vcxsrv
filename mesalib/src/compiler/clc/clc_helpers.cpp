@@ -30,8 +30,11 @@
 #include <llvm/ADT/ArrayRef.h>
 #include <llvm/IR/DiagnosticPrinter.h>
 #include <llvm/IR/DiagnosticInfo.h>
+#include <llvm/IR/LegacyPassManager.h>
 #include <llvm/IR/LLVMContext.h>
 #include <llvm/IR/Type.h>
+#include <llvm/MC/TargetRegistry.h>
+#include <llvm/Target/TargetMachine.h>
 #include <llvm/Support/raw_ostream.h>
 #include <llvm/Bitcode/BitcodeWriter.h>
 #include <llvm/Bitcode/BitcodeReader.h>
@@ -74,9 +77,11 @@ constexpr spv_target_env spirv_target = SPV_ENV_UNIVERSAL_1_5;
 constexpr SPIRV::VersionNumber invalid_spirv_trans_version = static_cast<SPIRV::VersionNumber>(0);
 
 using ::llvm::Function;
+using ::llvm::legacy::PassManager;
 using ::llvm::LLVMContext;
 using ::llvm::Module;
 using ::llvm::raw_string_ostream;
+using ::llvm::TargetRegistry;
 using ::clang::driver::Driver;
 
 static void
@@ -775,7 +780,11 @@ clc_compile_to_llvm_module(LLVMContext &llvm_ctx,
                                        &c->getDiagnosticOpts())
    };
 
+#if LLVM_VERSION_MAJOR >= 17
+   const char *triple = args->address_bits == 32 ? "spirv-unknown-unknown" : "spirv64-unknown-unknown";
+#else
    const char *triple = args->address_bits == 32 ? "spir-unknown-unknown" : "spir64-unknown-unknown";
+#endif
 
    std::vector<const char *> clang_opts = {
       args->source.name,
@@ -1046,6 +1055,46 @@ llvm_mod_to_spirv(std::unique_ptr<::llvm::Module> mod,
 #if LLVM_VERSION_MAJOR >= 13
    /* This was the default in 12.0 and older, but currently we'll fail to parse without this */
    spirv_opts.setPreserveOCLKernelArgTypeMetadataThroughString(true);
+#endif
+
+#if LLVM_VERSION_MAJOR >= 17
+   if (args->use_llvm_spirv_target) {
+      const char *triple = args->address_bits == 32 ? "spirv-unknown-unknown" : "spirv64-unknown-unknown";
+      std::string error_msg("");
+      auto target = TargetRegistry::lookupTarget(triple, error_msg);
+      if (target) {
+         auto TM = target->createTargetMachine(
+            triple, "", "", {}, std::nullopt, std::nullopt,
+#if LLVM_VERSION_MAJOR >= 18
+            ::llvm::CodeGenOptLevel::None
+#else
+            ::llvm::CodeGenOpt::None
+#endif
+         );
+
+         auto PM = PassManager();
+         ::llvm::SmallVector<char> buf;
+         auto OS = ::llvm::raw_svector_ostream(buf);
+         TM->addPassesToEmitFile(
+            PM, OS, nullptr,
+#if LLVM_VERSION_MAJOR >= 18
+            ::llvm::CodeGenFileType::ObjectFile
+#else
+            ::llvm::CGFT_ObjectFile
+#endif
+         );
+
+         PM.run(*mod);
+
+         out_spirv->size = buf.size_in_bytes();
+         out_spirv->data = malloc(out_spirv->size);
+         memcpy(out_spirv->data, buf.data(), out_spirv->size);
+         return 0;
+      } else {
+         clc_error(logger, "LLVM SPIR-V target not found.\n");
+         return -1;
+      }
+   }
 #endif
 
    std::ostringstream spv_stream;

@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 #include "agx_state.h"
+#include "nir.h"
 #include "nir_builder.h"
 
 /*
@@ -35,13 +36,13 @@ pass(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    return true;
 }
 
-void
+bool
 agx_nir_lower_point_size(nir_shader *nir, bool fixed_point_size)
 {
    /* Handle existing point size write */
-   nir_shader_intrinsics_pass(nir, pass,
-                              nir_metadata_block_index | nir_metadata_dominance,
-                              &fixed_point_size);
+   bool progress = nir_shader_intrinsics_pass(
+      nir, pass, nir_metadata_block_index | nir_metadata_dominance,
+      &fixed_point_size);
 
    /* Write the fixed-function point size if we have one */
    if (fixed_point_size) {
@@ -54,5 +55,10 @@ agx_nir_lower_point_size(nir_shader *nir, bool fixed_point_size)
          .io_semantics.num_slots = 1, .write_mask = nir_component_mask(1));
 
       nir->info.outputs_written |= VARYING_BIT_PSIZ;
+      progress = true;
+      nir_metadata_preserve(b.impl,
+                            nir_metadata_dominance | nir_metadata_block_index);
    }
+
+   return progress;
 }

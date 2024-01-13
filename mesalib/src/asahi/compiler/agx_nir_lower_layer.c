@@ -7,12 +7,11 @@
 #include "compiler/nir/nir_builder.h"
 #include "agx_nir.h"
 
-void
+bool
 agx_nir_lower_layer(nir_shader *s)
 {
    assert(s->info.stage == MESA_SHADER_VERTEX);
-   if (!(s->info.outputs_written & (VARYING_BIT_LAYER | VARYING_BIT_VIEWPORT)))
-      return;
+   assert(s->info.outputs_written & (VARYING_BIT_LAYER | VARYING_BIT_VIEWPORT));
 
    /* Writes are in the last block, search */
    nir_function_impl *impl = nir_shader_get_entrypoint(s);
@@ -64,4 +63,8 @@ agx_nir_lower_layer(nir_shader *s)
                     .io_semantics.location = VARYING_SLOT_LAYER,
                     .io_semantics.num_slots = 1,
                     .io_semantics.no_varying = true);
+
+   nir_metadata_preserve(impl,
+                         nir_metadata_dominance | nir_metadata_block_index);
+   return true;
 }

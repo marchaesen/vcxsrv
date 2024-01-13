@@ -143,7 +143,7 @@ struct mpc_funcs {
         bool use_tetrahedral_9, bool use_12bits);
 
     // Blend-gamma control.
-    void (*program_1dlut)(struct mpc *mpc, const struct pwl_params *params);
+    void (*program_1dlut)(struct mpc *mpc, const struct pwl_params *params, enum cm_type gamma_type);
 
     void (*program_cm_location)(struct mpc *mpc, uint8_t location);
 

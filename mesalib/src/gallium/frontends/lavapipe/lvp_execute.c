@@ -62,7 +62,6 @@ enum gs_output {
 };
 
 struct descriptor_buffer_offset {
-   struct lvp_pipeline_layout *layout;
    uint32_t buffer_index;
    VkDeviceSize offset;
 
@@ -4058,32 +4057,6 @@ descriptor_layouts_equal(const struct lvp_descriptor_set_layout *a, const struct
 }
 
 static void
-check_db_compat(struct rendering_state *state, struct lvp_pipeline_layout *layout, enum lvp_pipeline_type pipeline_type, int first_set, int set_count)
-{
-   bool independent = (layout->vk.create_flags & VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT) > 0;
-   /* handle compatibility rules for unbinding */
-   for (unsigned j = 0; j < ARRAY_SIZE(state->desc_buffers); j++) {
-      struct lvp_pipeline_layout *l2 = state->desc_buffer_offsets[pipeline_type][j].layout;
-      if ((j >= first_set && j < first_set + set_count) || !l2 || l2 == layout)
-         continue;
-      bool independent_l2 = (l2->vk.create_flags & VK_PIPELINE_LAYOUT_CREATE_INDEPENDENT_SETS_BIT_EXT) > 0;
-      if (independent != independent_l2) {
-         memset(&state->desc_buffer_offsets[pipeline_type][j], 0, sizeof(state->desc_buffer_offsets[pipeline_type][j]));
-      } else {
-         if (layout->vk.set_count != l2->vk.set_count) {
-            memset(&state->desc_buffer_offsets[pipeline_type][j], 0, sizeof(state->desc_buffer_offsets[pipeline_type][j]));
-         } else {
-            const struct lvp_descriptor_set_layout *a = get_set_layout(layout, j);
-            const struct lvp_descriptor_set_layout *b = get_set_layout(l2, j);
-            if (!!a != !!b || !descriptor_layouts_equal(a, b)) {
-               memset(&state->desc_buffer_offsets[pipeline_type][j], 0, sizeof(state->desc_buffer_offsets[pipeline_type][j]));
-            }
-         }
-      }
-   }
-}
-
-static void
 bind_db_samplers(struct rendering_state *state, enum lvp_pipeline_type pipeline_type, unsigned set)
 {
    const struct lvp_descriptor_set_layout *set_layout = state->desc_buffer_offsets[pipeline_type][set].sampler_layout;
@@ -4136,8 +4109,6 @@ handle_descriptor_buffer_embedded_samplers(struct vk_cmd_queue_entry *cmd, struc
       return;
    uint32_t types = lvp_pipeline_types_from_shader_stages(bind->stageFlags);
    u_foreach_bit(pipeline_type, types) {
-      check_db_compat(state, layout, pipeline_type, bind->set, 1);
-
       state->desc_buffer_offsets[pipeline_type][bind->set].sampler_layout = set_layout;
       bind_db_samplers(state, pipeline_type, bind->set);
    }
@@ -4151,9 +4122,7 @@ handle_descriptor_buffer_offsets(struct vk_cmd_queue_entry *cmd, struct renderin
    u_foreach_bit(pipeline_type, types) {
       for (unsigned i = 0; i < dbo->setCount; i++) {
          LVP_FROM_HANDLE(lvp_pipeline_layout, layout, dbo->layout);
-         check_db_compat(state, layout, pipeline_type, dbo->firstSet, dbo->setCount);
          unsigned idx = dbo->firstSet + i;
-         state->desc_buffer_offsets[pipeline_type][idx].layout = layout;
          state->desc_buffer_offsets[pipeline_type][idx].buffer_index = dbo->pBufferIndices[i];
          state->desc_buffer_offsets[pipeline_type][idx].offset = dbo->pOffsets[i];
          const struct lvp_descriptor_set_layout *set_layout = get_set_layout(layout, idx);

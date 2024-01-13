@@ -126,7 +126,7 @@ Basic formatting guidelines
 -  This GNU indent command generally does the right thing for
    formatting:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       indent -br -i3 -npcs --no-tabs infile.c -o outfile.c
 

@@ -32,9 +32,14 @@
 extern "C" {
 #endif
 
-#define SDR_VIDEO_WHITE_POINT 100 // nits
-#define SDR_WHITE_POINT       80  // nits
-#define HDR_PEAK_WHITE        10000
+#define SDR_VIDEO_WHITE_POINT  100 // nits
+#define SDR_WHITE_POINT        80  // nits
+#define HDR_PEAK_WHITE         10000
+#define CCCS_NORM              HDR_PEAK_WHITE/SDR_WHITE_POINT
+#define STUDIO_RANGE_FOOT_ROOM_10_BIT  vpe_fixpt_from_fraction(64, 1023)
+#define STUDIO_RANGE_SCALE_10_BIT      vpe_fixpt_from_fraction(940 - 64, 1023)
+#define STUDIO_RANGE_FOOT_ROOM_8_BIT  vpe_fixpt_from_fraction(16, 255)
+#define STUDIO_RANGE_SCALE_8_BIT      vpe_fixpt_from_fraction(235 - 16, 255)
 
 struct vpe_priv;
 struct stream_ctx;
@@ -52,13 +57,19 @@ enum color_depth {
     COLOR_DEPTH_COUNT
 };
 
-enum color_transfer_func {
+/*
+* Special comment for TRANSFER_FUNC_LINEAR_0_125, 
+  Inside of the pipeline, vpe operates in 0 - 1 nominal range.
+  For degamma operations, 0_125 refers to input normalization and for regam, 0_125 refers to output normalization. 
+ */
+ enum color_transfer_func {
     TRANSFER_FUNC_UNKNOWN,
     TRANSFER_FUNC_SRGB,
     TRANSFER_FUNC_BT709,
     TRANSFER_FUNC_BT1886,
     TRANSFER_FUNC_PQ2084,
-    TRANSFER_FUNC_LINEAR_0_125,
+    TRANSFER_FUNC_LINEAR_0_1,
+    TRANSFER_FUNC_LINEAR_0_125, 
     TRANSFER_FUNC_NORMALIZED_PQ
 };
 
@@ -115,6 +126,11 @@ enum transfer_func_type {
     TF_TYPE_HWPWL
 };
 
+enum cm_type {
+    CM_DEGAM,
+    CM_REGAM,
+};
+
 enum {
     TRANSFER_FUNC_POINTS = 1025
 };
@@ -135,6 +151,8 @@ struct transfer_func_distributed_points {
 struct transfer_func {
     enum transfer_func_type  type;
     enum color_transfer_func tf;
+    enum cm_type             cm_gamma_type;
+    struct fixed31_32        start_base; //Used to clamp curve start
 
     /* FP16 1.0 reference level in nits, default is 80 nits, only for PQ*/
     uint32_t sdr_ref_white_level;
@@ -234,10 +252,6 @@ enum vpe_status vpe_color_tm_update_hdr_mult(uint16_t shaper_in_exp_max, uint32_
 
 enum vpe_status vpe_color_update_shaper(
     uint16_t shaper_in_exp_max, struct transfer_func *shaper_func, bool enable_3dlut);
-
-enum vpe_status vpe_color_update_blnd_gam(struct vpe_priv *vpe_priv,
-    const struct vpe_build_param *param, const struct vpe_tonemap_params *tm_params,
-    struct transfer_func *blnd_tf_func, bool enable_3dlut);
 
 enum vpe_status vpe_color_build_tm_cs(const struct vpe_tonemap_params *tm_params,
     struct vpe_surface_info surface_info, struct vpe_color_space *vcs);

@@ -2051,7 +2051,7 @@ radv_shader_upload(struct radv_device *device, struct radv_shader *shader, const
    return true;
 }
 
-static unsigned
+unsigned
 radv_get_max_waves(const struct radv_device *device, const struct ac_shader_config *conf,
                    const struct radv_shader_info *info)
 {

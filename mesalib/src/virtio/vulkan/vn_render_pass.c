@@ -76,25 +76,33 @@
       }                                                                      \
    } while (false)
 
-static void
+static inline void
 vn_render_pass_count_present_src(const VkRenderPassCreateInfo *create_info,
                                  uint32_t *initial_count,
                                  uint32_t *final_count)
 {
+   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+      *initial_count = *final_count = 0;
+      return;
+   }
    COUNT_PRESENT_SRC(create_info->pAttachments, create_info->attachmentCount,
                      initial_count, final_count);
 }
 
-static void
+static inline void
 vn_render_pass_count_present_src2(const VkRenderPassCreateInfo2 *create_info,
                                   uint32_t *initial_count,
                                   uint32_t *final_count)
 {
+   if (VN_PRESENT_SRC_INTERNAL_LAYOUT == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR) {
+      *initial_count = *final_count = 0;
+      return;
+   }
    COUNT_PRESENT_SRC(create_info->pAttachments, create_info->attachmentCount,
                      initial_count, final_count);
 }
 
-static void
+static inline void
 vn_render_pass_replace_present_src(struct vn_render_pass *pass,
                                    const VkRenderPassCreateInfo *create_info,
                                    VkAttachmentDescription *out_atts)
@@ -103,7 +111,7 @@ vn_render_pass_replace_present_src(struct vn_render_pass *pass,
                        create_info->attachmentCount, out_atts);
 }
 
-static void
+static inline void
 vn_render_pass_replace_present_src2(struct vn_render_pass *pass,
                                     const VkRenderPassCreateInfo2 *create_info,
                                     VkAttachmentDescription2 *out_atts)

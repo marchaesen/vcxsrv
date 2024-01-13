@@ -107,12 +107,12 @@ bool agx_nir_lower_monolithic_msaa(struct nir_shader *shader,
 
 bool agx_nir_lower_sample_intrinsics(struct nir_shader *shader);
 
-void agx_nir_lower_alpha_to_coverage(struct nir_shader *shader,
+bool agx_nir_lower_alpha_to_coverage(struct nir_shader *shader,
                                      uint8_t nr_samples);
 
-void agx_nir_lower_alpha_to_one(struct nir_shader *shader);
+bool agx_nir_lower_alpha_to_one(struct nir_shader *shader);
 
-void agx_nir_predicate_layer_id(struct nir_shader *shader);
+bool agx_nir_predicate_layer_id(struct nir_shader *shader);
 
 void agx_usc_tilebuffer(struct agx_usc_builder *b,
                         struct agx_tilebuffer_layout *tib);

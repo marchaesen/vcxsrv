@@ -83,7 +83,7 @@ v3dv-rpi4-vk-full:arm64:
   parallel: 6
   timeout: 1h 30m
   variables:
-    TEST_PHASE_TIMEOUT: 80
+    TEST_PHASE_TIMEOUT: 180
     DEQP_FRACTION: 1
 
 

@@ -20,7 +20,7 @@ behavior.
 Portal 2
 ========
 
-.. code-block:: console
+.. code-block:: text
 
   1030842 glXSwapBuffers(dpy = 0x82a8000, drawable = 20971540)
   1030876 glBufferDataARB(target = GL_ELEMENT_ARRAY_BUFFER, size = 65536, data = NULL, usage = GL_DYNAMIC_DRAW)
@@ -54,7 +54,7 @@ the GPU access from the previous frame has completed. This pattern of
 incrementing ``glBufferSubData()`` offsets interleaved with draws from that data
 is common among newer Valve games.
 
-.. code-block:: console
+.. code-block:: text
 
   [ during setup ]
 
@@ -93,7 +93,7 @@ during setup.
 Terraria
 ========
 
-.. code-block:: console
+.. code-block:: text
 
   167581 glXSwapBuffers(dpy = 0x3004630, drawable = 25165844)
 
@@ -114,7 +114,7 @@ synchronization.
 Don't Starve
 ============
 
-.. code-block:: console
+.. code-block:: text
 
   7251917 glGenBuffers(n = 1, buffers = &115052)
   7251918 glBindBuffer(target = GL_ARRAY_BUFFER, buffer = 115052)
@@ -142,7 +142,7 @@ always happen at the end of the next frame.
 Euro Truck Simulator
 ====================
 
-.. code-block:: console
+.. code-block:: text
 
   [usage of VBO 14,15]
   [...]
@@ -199,7 +199,7 @@ different buffer.
 Plague Inc
 ==========
 
-.. code-block:: console
+.. code-block:: text
 
   1640732 glXSwapBuffers(dpy = 0xb218f20, drawable = 23068674)
   1640733 glClientWaitSync(sync = 0xb4141430, flags = 0x0, timeout = 0) = GL_ALREADY_SIGNALED
@@ -246,7 +246,7 @@ ranges when in explicit mode.
 Darkest Dungeon
 ===============
 
-.. code-block:: console
+.. code-block:: text
 
   938384 glXSwapBuffers(dpy = 0x377fcd0, drawable = 23068692)
   
@@ -276,7 +276,7 @@ frame.
 Tabletop Simulator
 ==================
 
-.. code-block:: console
+.. code-block:: text
 
   1287594 glXSwapBuffers(dpy = 0x3e10810, drawable = 23068692)
   1287595 glClientWaitSync(sync = 0x7abf554e37b0, flags = 0x0, timeout = 0) = GL_ALREADY_SIGNALED
@@ -306,7 +306,7 @@ the current frame, so the unsynchronized access to the buffers is safe.
 Hollow Knight
 =============
 
-.. code-block:: console
+.. code-block:: text
 
   1873034 glXSwapBuffers(dpy = 0x28609d0, drawable = 23068692)
   1873035 glClientWaitSync(sync = 0x7b1a5ca6e130, flags = 0x0, timeout = 0) = GL_ALREADY_SIGNALED
@@ -344,7 +344,7 @@ frame's buffer.
 Borderlands 2
 =============
 
-.. code-block:: console
+.. code-block:: text
 
   3561998 glFlush()
   3562004 glXSwapBuffers(dpy = 0xbaf0f90, drawable = 23068705)

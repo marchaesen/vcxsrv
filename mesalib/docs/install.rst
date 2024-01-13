@@ -46,7 +46,7 @@ Third party/extra tools.
    respectively, (or later) should work. On Windows with MinGW, install
    Flex and Bison with:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       mingw-get install msys-flex msys-bison
 
@@ -68,7 +68,7 @@ configure error message.
 Here are some common ways to retrieve most/all of the dependencies based
 on the packaging tool used by your distro.
 
-.. code-block:: console
+.. code-block:: sh
 
      zypper source-install --build-deps-only Mesa # openSUSE/SLED/SLES
      yum-builddep mesa # yum Fedora, OpenSuse(?)
@@ -84,7 +84,7 @@ for \*nix systems like Linux and BSD, macOS, Haiku, and Windows.
 
 The general approach is:
 
-.. code-block:: console
+.. code-block:: sh
 
      meson setup builddir/
      meson compile -C builddir/
@@ -92,7 +92,7 @@ The general approach is:
 
 On Windows you can also use the Visual Studio backend
 
-.. code-block:: console
+.. code-block:: sh
 
      meson setup builddir --backend=vs
      cd builddir
@@ -108,7 +108,7 @@ It's often necessary or useful when debugging driver issues or testing new
 branches to run against a local build of Mesa without doing a system-wide
 install. Meson has built-in support for this with its ``devenv`` subcommand:
 
-.. code-block:: console
+.. code-block:: sh
 
      meson devenv -C builddir glxinfo
 
@@ -126,7 +126,7 @@ assume ``$MESA_INSTALLDIR`` is an absolute path to this location.
 
 First, configure Mesa and install in the temporary location:
 
-.. code-block:: console
+.. code-block:: sh
 
    meson setup builddir/ -Dprefix="$MESA_INSTALLDIR" OTHER_OPTIONS
    meson install -C builddir/
@@ -135,7 +135,7 @@ where ``OTHER_OPTIONS`` is replaced by any meson configuration options you may
 want.  For instance, if you want to build the LLVMpipe drivers, it would look
 like this:
 
-.. code-block:: console
+.. code-block:: sh
 
    meson setup builddir/ -Dprefix="$MESA_INSTALLDIR" \
       -Dgallium-drivers=swrast -Dvulkan-drivers=swrast
@@ -148,7 +148,7 @@ Which variable you have to set depends on the API.
 OpenGL
 ~~~~~~
 
-.. code-block:: console
+.. code-block:: sh
 
    LD_LIBRARY_PATH="$MESA_INSTALLDIR/lib64" glxinfo
 
@@ -159,7 +159,7 @@ contains ``libGL.so`` and use that one.
 Vulkan
 ~~~~~~
 
-.. code-block:: console
+.. code-block:: sh
 
    VK_ICD_FILENAMES="$MESA_INSTALLDIR/share/vulkan/icd/my_icd.json" vulkaninfo
 
@@ -170,7 +170,7 @@ is named ``lvp_icd.x86_64.json``.
 OpenCL
 ~~~~~~
 
-.. code-block:: console
+.. code-block:: sh
 
    OCL_ICD_VENDORS="$MESA_INSTALLDIR/etc/OpenCL/vendors" clinfo
 
@@ -212,7 +212,7 @@ When compilation has finished, look in the top-level ``lib/`` (or
 ``lib64/``) directory. You'll see a set of library files similar to
 this:
 
-.. code-block:: console
+.. code-block:: text
 
    lrwxrwxrwx    1 brian    users          10 Mar 26 07:53 libGL.so -> libGL.so.1*
    lrwxrwxrwx    1 brian    users          19 Mar 26 07:53 libGL.so.1 -> libGL.so.1.5.060100*
@@ -226,7 +226,7 @@ the OSMesa (Off-Screen) interface library.
 
 If you built the DRI hardware drivers, you'll also see the DRI drivers:
 
-.. code-block:: console
+.. code-block:: text
 
    -rwxr-xr-x   1 brian users 16895413 Jul 21 12:11 i915_dri.so
    -rwxr-xr-x   1 brian users 16895413 Jul 21 12:11 i965_dri.so
@@ -247,6 +247,6 @@ determine the proper compiler and linker flags.
 
 For example, compiling and linking a GLUT application can be done with:
 
-.. code-block:: console
+.. code-block:: sh
 
       gcc `pkg-config --cflags --libs glut` mydemo.c -o mydemo

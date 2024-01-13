@@ -58,7 +58,7 @@ lower_write(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *data)
    return true;
 }
 
-void
+bool
 agx_nir_lower_cull_distance_vs(nir_shader *s)
 {
    assert(s->info.stage == MESA_SHADER_VERTEX);
@@ -70,9 +70,10 @@ agx_nir_lower_cull_distance_vs(nir_shader *s)
    s->info.outputs_written |=
       BITFIELD64_RANGE(VARYING_SLOT_CULL_PRIMITIVE,
                        DIV_ROUND_UP(s->info.cull_distance_array_size, 4));
+   return true;
 }
 
-void
+bool
 agx_nir_lower_cull_distance_fs(nir_shader *s, unsigned nr_distances)
 {
    assert(s->info.stage == MESA_SHADER_FRAGMENT);
@@ -109,4 +110,7 @@ agx_nir_lower_cull_distance_fs(nir_shader *s, unsigned nr_distances)
                                            DIV_ROUND_UP(nr_distances, 4));
 
    s->info.fs.uses_discard = true;
+   nir_metadata_preserve(b->impl,
+                         nir_metadata_dominance | nir_metadata_block_index);
+   return true;
 }

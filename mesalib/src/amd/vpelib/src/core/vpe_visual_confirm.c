@@ -145,7 +145,7 @@ struct vpe_color vpe_get_visual_confirm_color(enum vpe_surface_pixel_format form
     }
 
     // Due to there will be regamma (ogam), need convert the bg color for visual confirm
-    vpe_bg_color_convert(output_cs, output_tf, &visual_confirm_color);
+    vpe_bg_color_convert(output_cs, output_tf, &visual_confirm_color, enable_3dlut);
 
     // Experimental: To make FP16 Linear color looks more visually ok
     if (output_tf->tf == TRANSFER_FUNC_LINEAR_0_125) {

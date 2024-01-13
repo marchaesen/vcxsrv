@@ -92,7 +92,7 @@ lower_impl(nir_function_impl *impl,
    return true;
 }
 
-void
+bool
 nir_lower_point_size_mov(nir_shader *shader,
                          const gl_state_index16 *pointsize_state_tokens)
 {
@@ -103,6 +103,6 @@ nir_lower_point_size_mov(nir_shader *shader,
       nir_find_variable_with_location(shader, nir_var_shader_out,
                                       VARYING_SLOT_PSIZ);
 
-   lower_impl(nir_shader_get_entrypoint(shader), pointsize_state_tokens,
-              out);
+   return lower_impl(nir_shader_get_entrypoint(shader), pointsize_state_tokens,
+                     out);
 }

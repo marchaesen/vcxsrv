@@ -575,7 +575,7 @@ unsigned
 num_encoded_alu_operands(const aco_ptr<Instruction>& instr)
 {
    if (instr->isSALU()) {
-      if (instr->isSOP2())
+      if (instr->isSOP2() || instr->isSOPC())
          return 2;
       else if (instr->isSOP1())
          return 1;

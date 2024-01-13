@@ -4909,7 +4909,7 @@ fixup_io_locations(nir_shader *nir)
             if (var->data.location == VARYING_SLOT_VAR0)
                var->data.driver_location = 0;
             else if (var->data.patch)
-               var->data.driver_location = var->data.location - VARYING_SLOT_VAR0;
+               var->data.driver_location = var->data.location - VARYING_SLOT_PATCH0;
             else
                var->data.driver_location = var->data.location;
          }
@@ -4936,7 +4936,7 @@ fixup_io_locations(nir_shader *nir)
                   size += glsl_count_vec4_slots(var->type, false, false);
             }
             if (var->data.patch)
-               var->data.driver_location = var->data.location - VARYING_SLOT_VAR0;
+               var->data.driver_location = var->data.location - VARYING_SLOT_PATCH0;
             else
                var->data.driver_location = slot;
             found = true;

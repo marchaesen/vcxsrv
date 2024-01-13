@@ -40,15 +40,12 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *_)
    return true;
 }
 
-void
+bool
 agx_nir_predicate_layer_id(nir_shader *shader)
 {
    assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   assert(shader->info.inputs_read & VARYING_BIT_LAYER);
 
-   /* If layer is not read, there's nothing to lower */
-   if (shader->info.inputs_read & VARYING_BIT_LAYER) {
-      nir_shader_intrinsics_pass(
-         shader, lower, nir_metadata_block_index | nir_metadata_dominance,
-         NULL);
-   }
+   return nir_shader_intrinsics_pass(
+      shader, lower, nir_metadata_block_index | nir_metadata_dominance, NULL);
 }

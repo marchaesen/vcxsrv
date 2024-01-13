@@ -79,12 +79,12 @@ lower_vertex_id(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    return true;
 }
 
-void
+bool
 agx_nir_lower_ia(nir_shader *s, struct agx_ia_key *key)
 {
-   nir_shader_intrinsics_pass(s, lower_vertex_id,
-                              nir_metadata_block_index | nir_metadata_dominance,
-                              key);
+   return nir_shader_intrinsics_pass(
+      s, lower_vertex_id, nir_metadata_block_index | nir_metadata_dominance,
+      key);
 }
 
 struct multidraw_state {
@@ -135,7 +135,7 @@ lower_multidraw(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    return true;
 }
 
-void
+bool
 agx_nir_lower_multidraw(nir_shader *s, struct agx_ia_key *key)
 {
    assert(key->indirect_multidraw);
@@ -171,4 +171,8 @@ agx_nir_lower_multidraw(nir_shader *s, struct agx_ia_key *key)
 
    b->cursor = nir_before_impl(b->impl);
    nir_def_rewrite_uses(state.raw_id, nir_load_primitive_id(b));
+
+   nir_metadata_preserve(b->impl,
+                         nir_metadata_block_index | nir_metadata_dominance);
+   return true;
 }

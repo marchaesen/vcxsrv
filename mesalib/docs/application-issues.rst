@@ -35,7 +35,7 @@ than the given year.
 
 For example, if the game was released in 2001, do
 
-.. code-block:: console
+.. code-block:: sh
 
    export MESA_EXTENSION_MAX_YEAR=2001
 

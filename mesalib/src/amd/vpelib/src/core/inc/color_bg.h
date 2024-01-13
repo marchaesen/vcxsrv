@@ -27,7 +27,10 @@
 #include "color.h"
 
 void vpe_bg_color_convert(
-    enum color_space cs, struct transfer_func *output_tf, struct vpe_color *bg_color);
+    enum color_space cs, struct transfer_func *output_tf, struct vpe_color *bg_color, bool enable_3dlut);
 
 enum vpe_status vpe_bg_color_outside_cs_gamut(
-    const struct vpe_color_space *vcs, struct vpe_color *bg_color);
+    const struct vpe_priv *vpe_priv, struct vpe_color *bg_color);
+
+enum vpe_status vpe_is_valid_bg_color(const struct vpe_priv *vpe_priv, struct vpe_color *bg_color);
+

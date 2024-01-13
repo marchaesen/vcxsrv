@@ -144,7 +144,7 @@ installed as the binary ``glsl_compiler``.
 Here's an example of using the compiler to compile a vertex shader and
 emit :ext:`GL_ARB_vertex_program`-style instructions:
 
-.. code-block:: console
+.. code-block:: sh
 
        src/compiler/glsl/glsl_compiler --version XXX --dump-ast myshader.vert
 

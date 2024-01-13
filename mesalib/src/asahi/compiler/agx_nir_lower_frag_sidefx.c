@@ -58,7 +58,7 @@ agx_nir_lower_frag_sidefx(nir_shader *s)
       return false;
 
    /* Lower writes from helper invocations with the common pass */
-   NIR_PASS_V(s, nir_lower_helper_writes, false);
+   NIR_PASS(_, s, nir_lower_helper_writes, false);
 
    bool writes_zs =
       s->info.outputs_written &

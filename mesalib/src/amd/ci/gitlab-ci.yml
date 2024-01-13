@@ -94,7 +94,7 @@ radeonsi-raven-piglit-quick_shader:x86_64:
     PIGLIT_PROFILES: quick_shader
     PIGLIT_FRACTION: 2
 
-.radeonsi-raven-va:x86_64:
+radeonsi-raven-va:x86_64:
   extends:
     - .lava-test-deqp:x86_64
     - .radeonsi-raven-test:x86_64
@@ -117,7 +117,7 @@ radeonsi-raven-piglit-quick_shader:x86_64:
 
 radeonsi-raven-va-full:x86_64:
   extends:
-    - .radeonsi-raven-va:x86_64
+    - radeonsi-raven-va:x86_64
     - .radeonsi-vaapi-manual-rules
   variables:
     JOB_TIMEOUT: 60

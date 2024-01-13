@@ -12,11 +12,11 @@ struct nir_shader;
 struct agx_ia_key;
 enum mesa_prim;
 
-void agx_nir_lower_ia(struct nir_shader *s, struct agx_ia_key *ia);
+bool agx_nir_lower_ia(struct nir_shader *s, struct agx_ia_key *ia);
 
-void agx_nir_lower_multidraw(struct nir_shader *s, struct agx_ia_key *key);
+bool agx_nir_lower_multidraw(struct nir_shader *s, struct agx_ia_key *key);
 
-void agx_nir_lower_gs(struct nir_shader *gs, struct nir_shader *vs,
+bool agx_nir_lower_gs(struct nir_shader *gs, struct nir_shader *vs,
                       const struct nir_shader *libagx, struct agx_ia_key *ia,
                       bool rasterizer_discard, struct nir_shader **gs_count,
                       struct nir_shader **gs_copy, struct nir_shader **pre_gs,

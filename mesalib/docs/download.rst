@@ -28,13 +28,13 @@ Mesa releases are available in two formats: ``.tar.xz`` and ``.tar.gz``.
 
 To unpack the tarball:
 
-.. code-block:: console
+.. code-block:: sh
 
       tar xf mesa-Y.N.P.tar.xz
 
 or
 
-.. code-block:: console
+.. code-block:: sh
 
       tar xf mesa-Y.N.P.tar.gz
 

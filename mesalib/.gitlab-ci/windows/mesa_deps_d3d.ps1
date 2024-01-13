@@ -18,7 +18,7 @@ Remove-Item -Recurse 'C:\agility'
 
 Write-Host "Downloading Updated WARP at:"
 Get-Date
-Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.7.1 -OutFile 'warp.zip'
+Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.9 -OutFile 'warp.zip'
 Expand-Archive -Path 'warp.zip' -DestinationPath 'C:\warp'
 # Copy WARP into mesa-deps\bin
 Copy-Item 'C:\warp\build\native\amd64\d3d10warp.dll' -Destination $depsInstallPath\bin

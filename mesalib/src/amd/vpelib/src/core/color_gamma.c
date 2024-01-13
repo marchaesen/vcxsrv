@@ -336,44 +336,26 @@ static struct fixed31_32 translate_from_linear_space_ex(struct fixed31_32 arg,
     return translate_from_linear_space(&scratch_gamma_args);
 }
 
-static void build_pq(struct pwl_float_data_ex *rgb_regamma, uint32_t hw_points_num,
-    const struct hw_x_point *coordinate_x, uint32_t hdr_normalization)
+static void build_pq(uint32_t hw_points_num, const struct hw_x_point *coordinate_x,
+    struct fixed31_32 x_scale, struct fixed31_32 y_scale, struct pwl_float_data_ex *rgb_regamma)
 {
-    uint32_t i, start_index;
+    uint32_t i, curve_start_index;
 
     struct pwl_float_data_ex *rgb     = rgb_regamma;
     const struct hw_x_point  *coord_x = coordinate_x;
     struct fixed31_32         output;
-    struct fixed31_32         scaling_factor = vpe_fixpt_from_fraction(1, hdr_normalization);
+    struct fixed31_32         slope;
 
-    /* TODO: start index is from segment 2^-24, skipping first segment
-     * due to x values too small for power calculations
+    /* Curve Start index is from segment 2^-24, the first segment must be
+     * treated as a linear interpolation due to numbers being to small for power
+     * operations
      */
-    start_index = 32;
-    rgb += start_index;
-    coord_x += start_index;
+    curve_start_index = 32;
+    vpe_compute_pq(vpe_fixpt_mul(coord_x[curve_start_index].x, x_scale), &output);
+    output = vpe_fixpt_mul(output, y_scale);
+    slope = vpe_fixpt_div(output, coord_x[curve_start_index].x);
 
-    for (i = start_index; i <= hw_points_num; i++) {
-
-        vpe_compute_pq(vpe_fixpt_mul(coord_x->x, scaling_factor), &output);
-
-        /* should really not happen? */
-        if (vpe_fixpt_lt(output, vpe_fixpt_zero))
-            output = vpe_fixpt_zero;
-        else if (vpe_fixpt_lt(vpe_fixpt_one, output))
-            output = vpe_fixpt_one;
-
-        rgb->r = output;
-        rgb->g = output;
-        rgb->b = output;
-
-        ++coord_x;
-        ++rgb;
-    }
-    coord_x                 = coordinates_x;
-    rgb                     = rgb_regamma;
-    struct fixed31_32 slope = vpe_fixpt_div(rgb[start_index].r, coord_x[start_index].x);
-    for (i = 0; i < start_index; i++) {
+    for (i = 0; i < curve_start_index; i++) {
         output = vpe_fixpt_mul(coord_x->x, slope);
         rgb->r = output;
         rgb->g = output;
@@ -382,38 +364,42 @@ static void build_pq(struct pwl_float_data_ex *rgb_regamma, uint32_t hw_points_n
         ++coord_x;
         ++rgb;
     }
+
+    for (i = curve_start_index; i <= hw_points_num; i++) {
+
+        vpe_compute_pq(vpe_fixpt_mul(coord_x->x, x_scale), &output);
+        output = vpe_fixpt_mul(output, y_scale);
+        rgb->r = output;
+        rgb->g = output;
+        rgb->b = output;
+
+        ++coord_x;
+        ++rgb;
+    }
 }
 
-static void build_de_pq(struct transfer_func_distributed_points *de_pq, uint32_t hw_points_num,
-    const struct hw_x_point *coordinate_x_degamma, struct fixed31_32 x_scale,
-    struct fixed31_32 y_scale)
+static void build_de_pq(uint32_t hw_points_num, const struct hw_x_point *coordinate_x_degamma,
+    struct fixed31_32 x_scale, struct fixed31_32 y_scale,
+    struct transfer_func_distributed_points *de_pq)
 {
-    uint32_t           i;
     struct fixed31_32  output;
-    struct fixed31_32 *de_pq_table = vpe_color_get_table(type_de_pq_table);
 
-    precompute_de_pq(x_scale, y_scale);
-
-    for (i = 0; i < hw_points_num; i++) {
-        output = de_pq_table[i];
-        /* should really not happen? */
-        if (vpe_fixpt_lt(output, vpe_fixpt_zero))
-            output = vpe_fixpt_zero;
-
+    for (uint32_t i = 0; i < hw_points_num; i++) {
+        compute_de_pq(vpe_fixpt_mul(coordinates_x_degamma[i].x, x_scale), &output);
+        output = vpe_fixpt_mul(output, y_scale);
         de_pq->red[i]   = output;
         de_pq->green[i] = output;
         de_pq->blue[i]  = output;
     }
 }
 
-static bool build_degamma(struct transfer_func_distributed_points *curve, uint32_t hw_points_num,
-    const struct hw_x_point *coordinate_x_degamma, enum color_transfer_func type,
-    struct fixed31_32 yuv2rgbScaling)
+static bool build_degamma(uint32_t hw_points_num, const struct hw_x_point *coordinate_x_degamma,
+    enum color_transfer_func type, struct fixed31_32 x_scale, struct fixed31_32 y_scale,
+    struct transfer_func_distributed_points *curve)
 {
     uint32_t                  i;
     struct gamma_coefficients coeff;
-    struct fixed31_32         scaledX;
-    struct fixed31_32         scaledY;
+    struct fixed31_32         output;
     bool                      ret = false;
 
     if (!build_coefficients(&coeff, type))
@@ -424,11 +410,14 @@ static bool build_degamma(struct transfer_func_distributed_points *curve, uint32
 
     i = 0;
     while (i != MAX_HW_POINTS_DEGAMMA) {
-        scaledX         = vpe_fixpt_mul(coordinate_x_degamma[i].x, yuv2rgbScaling);
-        scaledY         = translate_to_linear_space_ex(scaledX, &coeff, 0);
-        curve->red[i]   = scaledY;
-        curve->green[i] = scaledY;
-        curve->blue[i]  = scaledY;
+        output = vpe_fixpt_mul(coordinate_x_degamma[i].x, x_scale);
+
+        output = translate_to_linear_space_ex(output, &coeff, 0);
+        output = vpe_fixpt_mul(output, y_scale);
+
+        curve->red[i]   = output;
+        curve->green[i] = output;
+        curve->blue[i]  = output;
         i++;
     }
     ret = true;
@@ -436,9 +425,10 @@ release:
     return ret;
 }
 
-static bool build_regamma(struct vpe_priv *vpe_priv, struct pwl_float_data_ex *rgb_regamma,
-    uint32_t hw_points_num, const struct hw_x_point *coordinate_x, enum color_transfer_func type,
-    struct calculate_buffer *cal_buffer)
+static bool build_regamma(struct vpe_priv *vpe_priv, uint32_t hw_points_num,
+    const struct hw_x_point *coordinate_x, enum color_transfer_func type, struct fixed31_32 x_scale,
+    struct fixed31_32 y_scale, struct calculate_buffer *cal_buffer,
+    struct pwl_float_data_ex *rgb_regamma)
 {
     uint32_t i;
     bool     ret = false;
@@ -460,7 +450,9 @@ static bool build_regamma(struct vpe_priv *vpe_priv, struct pwl_float_data_ex *r
     i = 0;
     while (i <= hw_points_num) {
         /* TODO use y vs r,g,b */
-        rgb->r = translate_from_linear_space_ex(coord_x->x, coeff, 0, cal_buffer);
+        rgb->r = vpe_fixpt_mul(coord_x->x, x_scale);
+        rgb->r = translate_from_linear_space_ex(rgb->r, coeff, 0, cal_buffer);
+        rgb->r = vpe_fixpt_mul(rgb->r, y_scale);
         rgb->g = rgb->r;
         rgb->b = rgb->r;
         ++coord_x;
@@ -488,8 +480,7 @@ static void build_new_custom_resulted_curve(
     }
 }
 
-static bool map_regamma_hw_to_x_user(struct pixel_gamma_point *coeff128,
-    struct hw_x_point *coords_x, const struct pwl_float_data_ex *rgb_regamma,
+static bool map_regamma_hw_to_x_user(struct hw_x_point *coords_x, const struct pwl_float_data_ex *rgb_regamma,
     uint32_t hw_points_num, struct transfer_func_distributed_points *tf_pts, bool doClamping)
 {
     /* setup to spare calculated ideal regamma values */
@@ -517,42 +508,53 @@ static bool map_regamma_hw_to_x_user(struct pixel_gamma_point *coeff128,
 }
 
 static bool calculate_curve(struct vpe_priv *vpe_priv, enum color_transfer_func trans,
+    struct fixed31_32 x_scale, struct fixed31_32 y_scale,
     struct transfer_func_distributed_points *points, struct pwl_float_data_ex *rgb_regamma,
-    uint32_t hdr_normalization, struct calculate_buffer *cal_buffer)
+    struct calculate_buffer *cal_buffer)
 {
+    int                                      hdr_norm = vpe_priv->resource.internal_hdr_normalization;
+    int                                      y_norm;
+    struct fixed31_32                        combined_scale;
+
     bool ret = false;
-
-    if (trans == TRANSFER_FUNC_PQ2084) {
-        points->end_exponent        = 0;
-        points->x_point_at_y1_red   = 1;
-        points->x_point_at_y1_green = 1;
-        points->x_point_at_y1_blue  = 1;
-
-        build_pq(rgb_regamma, MAX_HW_POINTS, coordinates_x, hdr_normalization);
+    switch (trans)
+    {
+    case TRANSFER_FUNC_SRGB:
+    case TRANSFER_FUNC_BT709:
+    case TRANSFER_FUNC_BT1886:
+        build_regamma(vpe_priv, MAX_HW_POINTS, coordinates_x, trans, x_scale, y_scale, cal_buffer,
+            rgb_regamma);
         ret = true;
-    } else if (trans == TRANSFER_FUNC_LINEAR_0_125) {
+        break;
+    case TRANSFER_FUNC_PQ2084:
+        build_pq(MAX_HW_POINTS, coordinates_x, x_scale, y_scale, rgb_regamma);
+        ret = true;
+        break;
+    case TRANSFER_FUNC_LINEAR_0_125:
+    case TRANSFER_FUNC_LINEAR_0_1:
+        if (trans == TRANSFER_FUNC_LINEAR_0_1)
+            y_norm = 1;
+        else
+            y_norm = CCCS_NORM;
+        
+        combined_scale = vpe_fixpt_div_int(vpe_fixpt_from_int(y_norm), hdr_norm);
+        combined_scale = vpe_fixpt_mul(combined_scale,  y_scale);
+        combined_scale = vpe_fixpt_mul(combined_scale, x_scale);
         for (int i = 0; i < MAX_HW_POINTS; i++) {
-            rgb_regamma[i].r =
-                vpe_fixpt_mul(coordinates_x[i].x, vpe_fixpt_from_fraction(125, hdr_normalization));
+            rgb_regamma[i].r = vpe_fixpt_mul(coordinates_x[i].x, combined_scale);
             rgb_regamma[i].g = rgb_regamma[i].r;
             rgb_regamma[i].b = rgb_regamma[i].r;
         }
+        
         ret = true;
-    } else {
-        // trans == TRANSFER_FUNC_SRGB
-        // trans == TRANSFER_FUNC_BT709
-        // trans == TRANSFER_FUNCTION_GAMMA22
-        // trans == TRANSFER_FUNCTION_GAMMA24
-        // trans == TRANSFER_FUNCTION_GAMMA26
-        points->end_exponent        = 0;
-        points->x_point_at_y1_red   = 1;
-        points->x_point_at_y1_green = 1;
-        points->x_point_at_y1_blue  = 1;
-
-        build_regamma(vpe_priv, rgb_regamma, MAX_HW_POINTS, coordinates_x, trans, cal_buffer);
-
-        ret = true;
+        break;
+    case TRANSFER_FUNC_NORMALIZED_PQ:
+    case TRANSFER_FUNC_UNKNOWN:
+        break;
+    default:
+        break;
     }
+
     return ret;
 }
 
@@ -561,34 +563,56 @@ static bool calculate_curve(struct vpe_priv *vpe_priv, enum color_transfer_func 
 bool vpe_color_calculate_degamma_params(struct vpe_priv *vpe_priv, struct fixed31_32 x_scale,
     struct fixed31_32 y_scale, struct transfer_func *input_tf)
 {
-    struct transfer_func_distributed_points *tf_pts = &input_tf->tf_pts;
-    enum color_transfer_func                 tf;
-    uint32_t                                 i;
-    bool                                     ret = true;
+    struct transfer_func_distributed_points *tf_pts   = &input_tf->tf_pts;
+    enum color_transfer_func                 tf       = input_tf->tf;
+    int                                      hdr_norm = vpe_priv->resource.internal_hdr_normalization;
+    bool                                     ret      = false;
+    int                                      x_norm;
+    struct fixed31_32                        scale_combined;
+    struct fixed31_32                        output;
 
-    tf = input_tf->tf;
 
-    if (tf == TRANSFER_FUNC_PQ2084 || tf == TRANSFER_FUNC_NORMALIZED_PQ)
-        build_de_pq(tf_pts, MAX_HW_POINTS_DEGAMMA, coordinates_x_degamma, x_scale, y_scale);
-    else if (tf == TRANSFER_FUNC_SRGB || tf == TRANSFER_FUNC_BT709 || tf == TRANSFER_FUNC_BT1886)
-        build_degamma(tf_pts, MAX_HW_POINTS_DEGAMMA, coordinates_x_degamma, tf, x_scale);
-    else if (tf == TRANSFER_FUNC_LINEAR_0_125) {
-        // just copy coordinates_x_degamma into curve
-        i = 0;
-        while (i != MAX_HW_POINTS_DEGAMMA) {
-            tf_pts->red[i] = vpe_fixpt_mul(coordinates_x[i].x, y_scale);
-            tf_pts->red[i] = tf_pts->red[i];
-            tf_pts->red[i] = tf_pts->red[i];
-            i++;
+
+    switch (tf)
+    {
+    case TRANSFER_FUNC_PQ2084:
+    case TRANSFER_FUNC_NORMALIZED_PQ:
+        build_de_pq(MAX_HW_POINTS_DEGAMMA, coordinates_x_degamma, x_scale, y_scale, tf_pts);
+        ret = true;
+        break;
+    case TRANSFER_FUNC_SRGB:
+    case TRANSFER_FUNC_BT709:
+    case TRANSFER_FUNC_BT1886:
+        build_degamma(MAX_HW_POINTS_DEGAMMA, coordinates_x_degamma, tf, x_scale, y_scale, tf_pts);
+        ret = true;
+        break;
+    case TRANSFER_FUNC_LINEAR_0_1:
+    case TRANSFER_FUNC_LINEAR_0_125:
+        if (tf == TRANSFER_FUNC_LINEAR_0_1)
+            x_norm = 1;
+        else
+            x_norm = CCCS_NORM;
+
+        scale_combined = vpe_fixpt_div_int(vpe_fixpt_from_int(hdr_norm), x_norm);
+        scale_combined = vpe_fixpt_mul(scale_combined, x_scale);
+        scale_combined = vpe_fixpt_mul(scale_combined, y_scale);
+
+        for (int i = 0; i < MAX_HW_POINTS_DEGAMMA; i ++) {
+            output = vpe_fixpt_mul(coordinates_x_degamma[i].x, scale_combined);
+            tf_pts->red[i] = output;
+            tf_pts->green[i] = output;
+            tf_pts->blue[i] = output;
         }
-    } else
-        ret = false;
-
+        ret = true;
+        break;
+    default:
+        break;
+    }
     return ret;
 }
 
-bool vpe_color_calculate_regamma_params(
-    struct vpe_priv *vpe_priv, struct transfer_func *output_tf, struct calculate_buffer *cal_buffer)
+bool vpe_color_calculate_regamma_params(struct vpe_priv *vpe_priv, struct fixed31_32 x_scale,
+    struct fixed31_32 y_scale, struct calculate_buffer *cal_buffer, struct transfer_func *output_tf)
 {
     struct transfer_func_distributed_points *tf_pts      = &output_tf->tf_pts;
     struct pwl_float_data_ex                *rgb_regamma = NULL;
@@ -608,11 +632,10 @@ bool vpe_color_calculate_regamma_params(
 
     tf = output_tf->tf;
 
-    ret = calculate_curve(vpe_priv, tf, tf_pts, rgb_regamma,
-        vpe_priv->resource.internal_hdr_normalization, cal_buffer);
+    ret = calculate_curve(vpe_priv, tf, x_scale, y_scale, tf_pts, rgb_regamma, cal_buffer);
 
     if (ret) {
-        map_regamma_hw_to_x_user(coeff, coordinates_x, rgb_regamma, MAX_HW_POINTS, tf_pts, false);
+        map_regamma_hw_to_x_user(coordinates_x, rgb_regamma, MAX_HW_POINTS, tf_pts, false);
     }
 
     vpe_free(coeff);

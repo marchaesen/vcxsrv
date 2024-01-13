@@ -78,6 +78,7 @@ struct clc_compile_args {
    /* SPIRV version to target. */
    enum clc_spirv_version spirv_version;
    struct clc_optional_features features;
+   bool use_llvm_spirv_target;
 
    /* Allowed extensions SPIRV extensions the OpenCL->SPIRV translation can
     * enable. A pointer to a NULL terminated array of strings, allow any

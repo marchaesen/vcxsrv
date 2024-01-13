@@ -43,12 +43,12 @@ extern "C" {
     ((version & VPELIB_API_VERSION_MINOR_MASK) >> VPELIB_API_VERSION_MINOR_SHIFT)
 
 
-#define VPE_VERSION(mj, mn, rv)     (((mj) << 16) | ((mn) << 8) | (rv))
-#define VPE_VERSION_MAJ(ver)        ((ver) >> 16)
-#define VPE_VERSION_MIN(ver)        (((ver) >> 8) & 0xFF)
-#define VPE_VERSION_REV(ver)        ((ver) & 0xFF)
-#define VPE_VERSION_6_1_0(ver)      ((ver) == VPE_VERSION(6, 1, 0))
-#define VPE_VERSION_6_1_1(ver)      ((ver) == VPE_VERSION(6, 1, 1))
+#define VPE_VERSION(major, minor, rev_id)     (((major) << 16) | ((minor) << 8) | (rev_id))
+#define VPE_VERSION_MAJ(ver)                  ((ver) >> 16)
+#define VPE_VERSION_MIN(ver)                  (((ver) >> 8) & 0xFF)
+#define VPE_VERSION_REV(ver)                  ((ver) & 0xFF)
+#define VPE_VERSION_6_1_0(ver)                ((ver) == VPE_VERSION(6, 1, 0))
+#define VPE_VERSION_6_1_1(ver)                (((ver) == VPE_VERSION(6, 1, 1)) || ((ver) == VPE_VERSION(6, 1, 2)))
 
 #ifdef __cplusplus
 }

@@ -244,7 +244,7 @@ void agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx,
 
 bool agx_nir_lower_discard_zs_emit(nir_shader *s);
 
-void agx_nir_lower_cull_distance_fs(struct nir_shader *s,
+bool agx_nir_lower_cull_distance_fs(struct nir_shader *s,
                                     unsigned nr_distances);
 
 bool agx_nir_needs_texture_crawl(nir_instr *instr);
@@ -297,9 +297,6 @@ static const nir_shader_compiler_options agx_nir_options = {
    .support_16bit_alu = true,
    .max_unroll_iterations = 32,
    .lower_uniforms_to_ubo = true,
-   .force_indirect_unrolling_sampler = true,
-   .force_indirect_unrolling =
-      (nir_var_shader_in | nir_var_shader_out | nir_var_function_temp),
    .lower_int64_options =
       (nir_lower_int64_options) ~(nir_lower_iadd64 | nir_lower_imul_2x32_64),
    .lower_doubles_options = (nir_lower_doubles_options)(~0),

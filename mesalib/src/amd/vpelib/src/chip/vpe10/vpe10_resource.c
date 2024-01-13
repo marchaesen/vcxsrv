@@ -175,9 +175,16 @@ static bool vpe10_init_scaler_data(struct vpe_priv *vpe_priv, struct stream_ctx 
     struct dpp *dpp = vpe_priv->resource.dpp[0];
     calculate_scaling_ratios(scl_data, src_rect, dst_rect, stream_ctx->stream.surface_info.format);
 
-    if (!dpp->funcs->get_optimal_number_of_taps(
-            dpp, scl_data, &stream_ctx->stream.scaling_info.taps))
-        return false;
+    if (vpe_priv->init.debug.skip_optimal_tap_check) {
+        scl_data->taps.v_taps   = stream_ctx->stream.scaling_info.taps.v_taps;
+        scl_data->taps.h_taps   = stream_ctx->stream.scaling_info.taps.h_taps;
+        scl_data->taps.v_taps_c = stream_ctx->stream.scaling_info.taps.v_taps_c;
+        scl_data->taps.h_taps_c = stream_ctx->stream.scaling_info.taps.h_taps_c;
+    } else {
+        if (!dpp->funcs->get_optimal_number_of_taps(
+                dpp, scl_data, &stream_ctx->stream.scaling_info.taps))
+            return false;
+    }
 
     if ((stream_ctx->stream.use_external_scaling_coeffs ==
             false) || /* don't try to optimize is the scaler is configured externally*/
@@ -655,7 +662,7 @@ static void build_clamping_params(
 }
 
 static void frontend_config_callback(
-    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, int64_t size)
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size)
 {
     struct config_frontend_cb_ctx *cb_ctx     = (struct config_frontend_cb_ctx *)ctx;
     struct vpe_priv               *vpe_priv   = cb_ctx->vpe_priv;
@@ -781,7 +788,7 @@ int32_t vpe10_program_frontend(struct vpe_priv *vpe_priv, uint32_t pipe_idx, uin
 }
 
 static void backend_config_callback(
-    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, int64_t size)
+    void *ctx, uint64_t cfg_base_gpu, uint64_t cfg_base_cpu, uint64_t size)
 {
     struct config_backend_cb_ctx *cb_ctx     = (struct config_backend_cb_ctx *)ctx;
     struct vpe_priv              *vpe_priv   = cb_ctx->vpe_priv;
@@ -830,7 +837,6 @@ int32_t vpe10_program_backend(
         cdc->funcs->program_global_sync(cdc, VPE10_CDC_VUPDATE_OFFSET_DEFAULT,
             VPE10_CDC_VUPDATE_WIDTH_DEFAULT, VPE10_CDC_VREADY_OFFSET_DEFAULT);
 
-        mpc->funcs->program_output_csc(mpc, surface_info->format, output_ctx->cs, NULL);
         mpc->funcs->set_output_transfer_func(mpc, output_ctx);
         // program shaper, 3dlut and 1dlut in MPC for after blend
         // Note: cannot program both before and after blend CM

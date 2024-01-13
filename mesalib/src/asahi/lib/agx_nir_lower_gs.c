@@ -260,8 +260,8 @@ agx_nir_link_vs_gs(nir_shader *vs, nir_shader *gs)
    }
 
    /* Rewrite geometry shader inputs to read from those arrays */
-   NIR_PASS_V(gs, nir_shader_intrinsics_pass, lower_gs_inputs,
-              nir_metadata_block_index | nir_metadata_dominance, &state);
+   NIR_PASS(_, gs, nir_shader_intrinsics_pass, lower_gs_inputs,
+            nir_metadata_block_index | nir_metadata_dominance, &state);
 
    /* Link the vertex shader with the geometry shader. This assumes that
     * all functions have been inlined in the vertex shader.
@@ -431,11 +431,11 @@ agx_nir_create_geometry_count_shader(nir_shader *gs, const nir_shader *libagx,
       shader->info.name = "count";
    }
 
-   NIR_PASS_V(shader, nir_shader_intrinsics_pass, lower_gs_count_instr,
-              nir_metadata_block_index | nir_metadata_dominance, state);
+   NIR_PASS(_, shader, nir_shader_intrinsics_pass, lower_gs_count_instr,
+            nir_metadata_block_index | nir_metadata_dominance, state);
 
-   NIR_PASS_V(shader, nir_shader_intrinsics_pass, lower_id,
-              nir_metadata_block_index | nir_metadata_dominance, NULL);
+   NIR_PASS(_, shader, nir_shader_intrinsics_pass, lower_id,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
 
    /* Preprocess it */
    UNUSED struct agx_uncompiled_shader_info info;
@@ -1019,22 +1019,22 @@ static void
 link_libagx(nir_shader *nir, const nir_shader *libagx)
 {
    nir_link_shader_functions(nir, libagx);
-   NIR_PASS_V(nir, nir_inline_functions);
-   NIR_PASS_V(nir, nir_remove_non_entrypoints);
-   NIR_PASS_V(nir, nir_lower_indirect_derefs, nir_var_function_temp, 64);
-   NIR_PASS_V(nir, nir_lower_vars_to_explicit_types,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global,
-              glsl_get_cl_type_size_align);
-   NIR_PASS_V(nir, nir_opt_deref);
-   NIR_PASS_V(nir, nir_lower_vars_to_ssa);
-   NIR_PASS_V(nir, nir_lower_explicit_io,
-              nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
-                 nir_var_mem_global,
-              nir_address_format_62bit_generic);
+   NIR_PASS(_, nir, nir_inline_functions);
+   nir_remove_non_entrypoints(nir);
+   NIR_PASS(_, nir, nir_lower_indirect_derefs, nir_var_function_temp, 64);
+   NIR_PASS(_, nir, nir_lower_vars_to_explicit_types,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global,
+            glsl_get_cl_type_size_align);
+   NIR_PASS(_, nir, nir_opt_deref);
+   NIR_PASS(_, nir, nir_lower_vars_to_ssa);
+   NIR_PASS(_, nir, nir_lower_explicit_io,
+            nir_var_shader_temp | nir_var_function_temp | nir_var_mem_shared |
+               nir_var_mem_global,
+            nir_address_format_62bit_generic);
 }
 
-void
+bool
 agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
                  struct agx_ia_key *ia, bool rasterizer_discard,
                  nir_shader **gs_count, nir_shader **gs_copy,
@@ -1054,14 +1054,14 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
     * anything. Otherwise, smash the invocation ID to zero.
     */
    if (gs->info.gs.invocations != 1) {
-      NIR_PASS_V(gs, agx_nir_lower_gs_instancing);
+      agx_nir_lower_gs_instancing(gs);
    } else {
       nir_function_impl *impl = nir_shader_get_entrypoint(gs);
       nir_builder b = nir_builder_at(nir_before_impl(impl));
 
-      NIR_PASS_V(gs, nir_shader_intrinsics_pass, rewrite_invocation_id,
-                 nir_metadata_block_index | nir_metadata_dominance,
-                 nir_imm_int(&b, 0));
+      nir_shader_intrinsics_pass(
+         gs, rewrite_invocation_id,
+         nir_metadata_block_index | nir_metadata_dominance, nir_imm_int(&b, 0));
    }
 
    /* Link VS into the GS */
@@ -1070,13 +1070,13 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
    /* Lower geometry shader writes to contain all of the required counts, so we
     * know where in the various buffers we should write vertices.
     */
-   NIR_PASS_V(gs, nir_lower_gs_intrinsics,
-              nir_lower_gs_intrinsics_count_primitives |
-                 nir_lower_gs_intrinsics_per_stream |
-                 nir_lower_gs_intrinsics_count_vertices_per_primitive |
-                 nir_lower_gs_intrinsics_overwrite_incomplete |
-                 nir_lower_gs_intrinsics_always_end_primitive |
-                 nir_lower_gs_intrinsics_count_decomposed_primitives);
+   NIR_PASS(_, gs, nir_lower_gs_intrinsics,
+            nir_lower_gs_intrinsics_count_primitives |
+               nir_lower_gs_intrinsics_per_stream |
+               nir_lower_gs_intrinsics_count_vertices_per_primitive |
+               nir_lower_gs_intrinsics_overwrite_incomplete |
+               nir_lower_gs_intrinsics_always_end_primitive |
+               nir_lower_gs_intrinsics_count_decomposed_primitives);
 
    /* Clean up after all that lowering we did */
    bool progress = false;
@@ -1101,18 +1101,18 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
    } while (progress);
 
    if (ia->indirect_multidraw)
-      NIR_PASS_V(gs, agx_nir_lower_multidraw, ia);
+      NIR_PASS(_, gs, agx_nir_lower_multidraw, ia);
 
-   NIR_PASS_V(gs, nir_shader_intrinsics_pass, lower_id,
-              nir_metadata_block_index | nir_metadata_dominance, NULL);
+   NIR_PASS(_, gs, nir_shader_intrinsics_pass, lower_id,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
 
    link_libagx(gs, libagx);
 
-   NIR_PASS_V(gs, nir_lower_idiv,
-              &(const nir_lower_idiv_options){.allow_fp16 = true});
+   NIR_PASS(_, gs, nir_lower_idiv,
+            &(const nir_lower_idiv_options){.allow_fp16 = true});
 
    /* All those variables we created should've gone away by now */
-   NIR_PASS_V(gs, nir_remove_dead_variables, nir_var_function_temp, NULL);
+   NIR_PASS(_, gs, nir_remove_dead_variables, nir_var_function_temp, NULL);
 
    /* If we know counts at compile-time we can simplify, so try to figure out
     * the counts statically.
@@ -1165,8 +1165,8 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
       gs_state.stride_B += size_B;
    }
 
-   NIR_PASS_V(gs, nir_shader_instructions_pass, lower_output_to_var,
-              nir_metadata_block_index | nir_metadata_dominance, &state);
+   NIR_PASS(_, gs, nir_shader_instructions_pass, lower_output_to_var,
+            nir_metadata_block_index | nir_metadata_dominance, &state);
 
    /* Set flatshade_first. For now this is always a constant, but in the future
     * we will want this to be dynamic.
@@ -1178,8 +1178,8 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
       gs_state.flatshade_first = nir_imm_bool(&b, ia->flatshade_first);
    }
 
-   NIR_PASS_V(gs, nir_shader_intrinsics_pass, lower_gs_instr, nir_metadata_none,
-              &gs_state);
+   NIR_PASS(_, gs, nir_shader_intrinsics_pass, lower_gs_instr,
+            nir_metadata_none, &gs_state);
 
    /* Clean up after all that lowering we did */
    nir_lower_global_vars_to_local(gs);
@@ -1199,12 +1199,12 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
    } while (progress);
 
    /* All those variables we created should've gone away by now */
-   NIR_PASS_V(gs, nir_remove_dead_variables, nir_var_function_temp, NULL);
+   NIR_PASS(_, gs, nir_remove_dead_variables, nir_var_function_temp, NULL);
 
-   NIR_PASS_V(gs, nir_opt_sink, ~0);
-   NIR_PASS_V(gs, nir_opt_move, ~0);
-   NIR_PASS_V(gs, nir_shader_intrinsics_pass, lower_id,
-              nir_metadata_block_index | nir_metadata_dominance, NULL);
+   NIR_PASS(_, gs, nir_opt_sink, ~0);
+   NIR_PASS(_, gs, nir_opt_move, ~0);
+   NIR_PASS(_, gs, nir_shader_intrinsics_pass, lower_id,
+            nir_metadata_block_index | nir_metadata_dominance, NULL);
 
    /* Create auxiliary programs */
    *gs_copy = agx_nir_create_gs_copy_shader(
@@ -1218,6 +1218,7 @@ agx_nir_lower_gs(nir_shader *gs, nir_shader *vs, const nir_shader *libagx,
    /* Signal what primitive we want to draw the GS Copy VS with */
    *out_mode = gs->info.gs.output_primitive;
    *out_count_words = gs_state.count_stride_el;
+   return true;
 }
 
 nir_shader *

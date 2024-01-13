@@ -123,7 +123,7 @@ st_nir_assign_vs_in_locations(struct nir_shader *nir)
 
    /* Re-lower global vars, to deal with any dead VS inputs. */
    if (removed_inputs)
-      NIR_PASS_V(nir, nir_lower_global_vars_to_local);
+      NIR_PASS(_, nir, nir_lower_global_vars_to_local);
 }
 
 static int
@@ -320,13 +320,13 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
     */
    if (!shader_program->data->spirv &&
        !st->ctx->Const.PackedDriverUniformStorage)
-      NIR_PASS_V(nir, st_nir_lower_builtin);
+      NIR_PASS(_, nir, st_nir_lower_builtin);
 
    if (!screen->get_param(screen, PIPE_CAP_NIR_ATOMICS_AS_DEREF))
-      NIR_PASS_V(nir, gl_nir_lower_atomics, shader_program, true);
+      NIR_PASS(_, nir, gl_nir_lower_atomics, shader_program, true);
 
-   NIR_PASS_V(nir, nir_opt_intrinsics);
-   NIR_PASS_V(nir, nir_opt_fragdepth);
+   NIR_PASS(_, nir, nir_opt_intrinsics);
+   NIR_PASS(_, nir, nir_opt_fragdepth);
 
    /* Lower 64-bit ops. */
    if (nir->options->lower_int64_options ||
@@ -357,7 +357,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
          NIR_PASS(lowered_64bit_ops, nir, nir_lower_int64);
 
       if (revectorize && !nir->options->vectorize_vec2_16bit)
-         NIR_PASS_V(nir, nir_opt_vectorize, nullptr, nullptr);
+         NIR_PASS(_, nir, nir_opt_vectorize, nullptr, nullptr);
 
       if (revectorize || lowered_64bit_ops)
          gl_nir_opts(nir);
@@ -377,7 +377,7 @@ st_glsl_to_nir_post_opts(struct st_context *st, struct gl_program *prog,
          }
          align_offset_state = STATE_ATOMIC_COUNTER_OFFSET;
       }
-      NIR_PASS_V(nir, nir_lower_atomics_to_ssbo, align_offset_state);
+      NIR_PASS(_, nir, nir_lower_atomics_to_ssbo, align_offset_state);
    }
 
    st_set_prog_affected_state_flags(prog);
@@ -404,18 +404,18 @@ static void
 st_nir_vectorize_io(nir_shader *producer, nir_shader *consumer)
 {
    if (consumer)
-      NIR_PASS_V(consumer, nir_lower_io_to_vector, nir_var_shader_in);
+      NIR_PASS(_, consumer, nir_lower_io_to_vector, nir_var_shader_in);
 
    if (!producer)
       return;
 
-   NIR_PASS_V(producer, nir_lower_io_to_vector, nir_var_shader_out);
+   NIR_PASS(_, producer, nir_lower_io_to_vector, nir_var_shader_out);
 
    if (producer->info.stage == MESA_SHADER_TESS_CTRL &&
        producer->options->vectorize_tess_levels)
-      NIR_PASS_V(producer, nir_vectorize_tess_levels);
+      NIR_PASS(_, producer, nir_vectorize_tess_levels);
 
-   NIR_PASS_V(producer, nir_opt_combine_stores, nir_var_shader_out);
+   NIR_PASS(_, producer, nir_opt_combine_stores, nir_var_shader_out);
 
    if ((producer)->info.stage != MESA_SHADER_TESS_CTRL) {
       /* Calling lower_io_to_vector creates output variable writes with
@@ -424,30 +424,34 @@ st_nir_vectorize_io(nir_shader *producer, nir_shader *consumer)
        * them.  This, in turn, creates temporary variables and extra
        * copy_deref intrinsics that we need to clean up.
        */
-      NIR_PASS_V(producer, nir_lower_io_to_temporaries,
+      NIR_PASS(_, producer, nir_lower_io_to_temporaries,
                  nir_shader_get_entrypoint(producer), true, false);
-      NIR_PASS_V(producer, nir_lower_global_vars_to_local);
-      NIR_PASS_V(producer, nir_split_var_copies);
-      NIR_PASS_V(producer, nir_lower_var_copies);
+      NIR_PASS(_, producer, nir_lower_global_vars_to_local);
+      NIR_PASS(_, producer, nir_split_var_copies);
+      NIR_PASS(_, producer, nir_lower_var_copies);
    }
 
    /* Undef scalar store_deref intrinsics are not ignored by nir_lower_io,
     * so they must be removed before that. These passes remove them.
     */
-   NIR_PASS_V(producer, nir_lower_vars_to_ssa);
-   NIR_PASS_V(producer, nir_opt_undef);
-   NIR_PASS_V(producer, nir_opt_dce);
+   NIR_PASS(_, producer, nir_lower_vars_to_ssa);
+   NIR_PASS(_, producer, nir_opt_undef);
+   NIR_PASS(_, producer, nir_opt_dce);
 }
 
 extern "C" {
 
-void
+bool
 st_nir_lower_wpos_ytransform(struct nir_shader *nir,
                              struct gl_program *prog,
                              struct pipe_screen *pscreen)
 {
-   if (nir->info.stage != MESA_SHADER_FRAGMENT)
-      return;
+   bool progress = false;
+
+   if (nir->info.stage != MESA_SHADER_FRAGMENT) {
+      nir_shader_preserve_all_metadata(nir);
+      return progress;
+   }
 
    static const gl_state_index16 wposTransformState[STATE_LENGTH] = {
       STATE_FB_WPOS_Y_TRANSFORM
@@ -470,8 +474,8 @@ st_nir_lower_wpos_ytransform(struct nir_shader *nir,
                          PIPE_CAP_FS_COORD_PIXEL_CENTER_HALF_INTEGER);
 
    if (nir_lower_wpos_ytransform(nir, &wpos_options)) {
-      nir_validate_shader(nir, "after nir_lower_wpos_ytransform");
       _mesa_add_state_reference(prog->Parameters, wposTransformState);
+      progress = true;
    }
 
    static const gl_state_index16 pntcTransformState[STATE_LENGTH] = {
@@ -480,7 +484,10 @@ st_nir_lower_wpos_ytransform(struct nir_shader *nir,
 
    if (nir_lower_pntc_ytransform(nir, &pntcTransformState)) {
       _mesa_add_state_reference(prog->Parameters, pntcTransformState);
+      progress = true;
    }
+
+   return progress;
 }
 
 static bool
@@ -601,7 +608,7 @@ st_link_glsl_to_nir(struct gl_context *ctx,
       /* This needs to run after the initial pass of nir_lower_vars_to_ssa, so
        * that the buffer indices are constants in nir where they where
        * constants in GLSL. */
-      NIR_PASS_V(nir, gl_nir_lower_buffers, shader_program);
+      NIR_PASS(_, nir, gl_nir_lower_buffers, shader_program);
 
       /* Remap the locations to slots so those requiring two slots will occupy
        * two locations. For instance, if we have in the IR code a dvec3 attr0 in
@@ -611,11 +618,11 @@ st_link_glsl_to_nir(struct gl_context *ctx,
       if (nir->info.stage == MESA_SHADER_VERTEX && !shader_program->data->spirv)
          nir_remap_dual_slot_attributes(nir, &shader->Program->DualSlotInputs);
 
-      NIR_PASS_V(nir, st_nir_lower_wpos_ytransform, shader->Program,
+      NIR_PASS(_, nir, st_nir_lower_wpos_ytransform, shader->Program,
                  st->screen);
 
-      NIR_PASS_V(nir, nir_lower_system_values);
-      NIR_PASS_V(nir, nir_lower_compute_system_values, NULL);
+      NIR_PASS(_, nir, nir_lower_system_values);
+      NIR_PASS(_, nir, nir_lower_compute_system_values, NULL);
 
       if (i >= 1) {
          struct gl_program *prev_shader = linked_shader[i - 1]->Program;
@@ -779,9 +786,9 @@ st_nir_lower_samplers(struct pipe_screen *screen, nir_shader *nir,
                       struct gl_program *prog)
 {
    if (screen->get_param(screen, PIPE_CAP_NIR_SAMPLERS_AS_DEREF))
-      NIR_PASS_V(nir, gl_nir_lower_samplers_as_deref, shader_program);
+      NIR_PASS(_, nir, gl_nir_lower_samplers_as_deref, shader_program);
    else
-      NIR_PASS_V(nir, gl_nir_lower_samplers, shader_program);
+      NIR_PASS(_, nir, gl_nir_lower_samplers, shader_program);
 
    if (prog) {
       BITSET_COPY(prog->info.textures_used, nir->info.textures_used);
@@ -809,17 +816,17 @@ void
 st_nir_lower_uniforms(struct st_context *st, nir_shader *nir)
 {
    if (st->ctx->Const.PackedDriverUniformStorage) {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
+      NIR_PASS(_, nir, nir_lower_io, nir_var_uniform,
                  st_packed_uniforms_type_size,
                  (nir_lower_io_options)0);
    } else {
-      NIR_PASS_V(nir, nir_lower_io, nir_var_uniform,
+      NIR_PASS(_, nir, nir_lower_io, nir_var_uniform,
                  st_unpacked_uniforms_type_size,
                  (nir_lower_io_options)0);
    }
 
    if (nir->options->lower_uniforms_to_ubo)
-      NIR_PASS_V(nir, nir_lower_uniforms_to_ubo,
+      NIR_PASS(_, nir, nir_lower_uniforms_to_ubo,
                  st->ctx->Const.PackedDriverUniformStorage,
                  !st->ctx->Const.NativeIntegers);
 }
@@ -837,8 +844,8 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
 
    MESA_TRACE_FUNC();
 
-   NIR_PASS_V(nir, nir_split_var_copies);
-   NIR_PASS_V(nir, nir_lower_var_copies);
+   NIR_PASS(_, nir, nir_split_var_copies);
+   NIR_PASS(_, nir, nir_lower_var_copies);
 
    const bool lower_tg4_offsets =
       !st->screen->get_param(screen, PIPE_CAP_TEXTURE_GATHER_OFFSETS);
@@ -848,7 +855,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
       opts.lower_rect = !!st->lower_rect_tex;
       opts.lower_tg4_offsets = lower_tg4_offsets;
 
-      NIR_PASS_V(nir, nir_lower_tex, &opts);
+      NIR_PASS(_, nir, nir_lower_tex, &opts);
    }
 
    st_nir_assign_varying_locations(st, nir);
@@ -859,7 +866,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
     */
    if (nir->options->lower_io_variables) {
       nir_lower_io_passes(nir, false);
-      NIR_PASS_V(nir, nir_remove_dead_variables,
+      NIR_PASS(_, nir, nir_remove_dead_variables,
                  nir_var_shader_in | nir_var_shader_out, NULL);
    }
 
@@ -878,7 +885,7 @@ st_finalize_nir(struct st_context *st, struct gl_program *prog,
 
    st_nir_lower_samplers(screen, nir, shader_program, prog);
    if (!screen->get_param(screen, PIPE_CAP_NIR_IMAGES_AS_DEREF))
-      NIR_PASS_V(nir, gl_nir_lower_images, false);
+      NIR_PASS(_, nir, gl_nir_lower_images, false);
 
    char *msg = NULL;
    if (finalize_by_driver && screen->finalize_nir)

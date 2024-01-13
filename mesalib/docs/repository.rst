@@ -26,19 +26,19 @@ To get the Mesa sources anonymously (read-only):
 #. Install the Git software on your computer if needed.
 #. Get an initial, local copy of the repository with:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git clone https://gitlab.freedesktop.org/mesa/mesa.git
 
 #. Later, you can update your tree from the upstream repository with:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git pull origin
 
 #. If you also want the Mesa demos/tests repository:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git clone https://gitlab.freedesktop.org/mesa/demos.git
 
@@ -77,7 +77,7 @@ tokens <https://gitlab.freedesktop.org/profile/personal_access_tokens>`__
 to push over HTTPS if ssh does not suit your needs. In this case, create
 a token, and put it in the URL as shown here:
 
-.. code-block:: console
+.. code-block:: sh
 
    git remote set-url --push origin https://USER:TOKEN@gitlab.freedesktop.org/your~user~name/mesa.git
 
@@ -89,7 +89,7 @@ Windows <https://git-scm.com/book/en/v2/Getting-Started-Installing-Git#_installi
 you'll want to enable automatic CR/LF conversion in your local copy of
 the repository:
 
-.. code-block:: console
+.. code-block:: sh
 
    git config --global core.autocrlf true
 
@@ -118,7 +118,7 @@ Developer Git Tips
    If you try to do a pull by just saying\ ``git pull`` and Git
    complains that you have not specified a branch, try:
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git config branch.main.remote origin
       git config branch.main.merge main
@@ -137,7 +137,7 @@ Developer Git Tips
 
    If it has been awhile since you've done the initial clone, try
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git pull
 
@@ -145,7 +145,7 @@ Developer Git Tips
 
    Make your changes and use
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git add <files to commit>
       git commit
@@ -161,7 +161,7 @@ Developer Git Tips
 
    To avoid this,
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git pull --rebase
       git push
@@ -181,7 +181,7 @@ Developer Git Tips
 
    If you want the rebase action to be the default action, then
 
-   .. code-block:: console
+   .. code-block:: sh
 
       git config branch.main.rebase true
       git config --global branch.autosetuprebase=always

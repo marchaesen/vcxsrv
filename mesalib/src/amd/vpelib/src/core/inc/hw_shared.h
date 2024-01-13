@@ -30,11 +30,6 @@
 extern "C" {
 #endif
 
-enum cm_type {
-    CM_DEGAM,
-    CM_REGAM,
-};
-
 struct bias_and_scale {
     uint32_t scale_red;
     uint32_t bias_red;

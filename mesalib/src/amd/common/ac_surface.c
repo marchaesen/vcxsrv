@@ -1883,12 +1883,16 @@ static int gfx9_compute_miptree(struct ac_addrlib *addrlib, const struct radeon_
       util_next_power_of_two(LINEAR_PITCH_ALIGNMENT / surf->bpe);
 
    if (!compressed && surf->blk_w > 1 && out.pitch == out.pixelPitch &&
-       surf->u.gfx9.swizzle_mode == ADDR_SW_LINEAR) {
-      /* Adjust surf_pitch to be in elements units not in pixels */
+       surf->u.gfx9.swizzle_mode == ADDR_SW_LINEAR &&
+       in->numMipLevels == 1) {
+      /* Divide surf_pitch (= pitch in pixels) by blk_w to get a
+       * pitch in elements instead because that's what the hardware needs
+       * in resource descriptors.
+       * See the comment in si_descriptors.c.
+       */
       surf->u.gfx9.surf_pitch = align(surf->u.gfx9.surf_pitch / surf->blk_w,
                                       linear_alignment);
-      surf->u.gfx9.epitch =
-         MAX2(surf->u.gfx9.epitch, surf->u.gfx9.surf_pitch * surf->blk_w - 1);
+      surf->u.gfx9.epitch = surf->u.gfx9.surf_pitch - 1;
        /* Adjust surf_slice_size and surf_size to reflect the change made to surf_pitch. */
       surf->u.gfx9.surf_slice_size = (uint64_t)surf->u.gfx9.surf_pitch * out.height * surf->bpe;
       surf->surf_size = surf->u.gfx9.surf_slice_size * in->numSlices;

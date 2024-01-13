@@ -138,7 +138,7 @@ Setup
 Each board will be registered in freedesktop.org GitLab.  You'll want
 something like this to register a fastboot board:
 
-.. code-block:: console
+.. code-block:: sh
 
    sudo gitlab-runner register \
         --url https://gitlab.freedesktop.org \
@@ -194,7 +194,7 @@ Caching downloads
 To improve the runtime for downloading traces during traces job runs, you will
 want a pass-through HTTP cache.  On your runner box, install nginx:
 
-.. code-block:: console
+.. code-block:: sh
 
    sudo apt install nginx libnginx-mod-http-lua
 
@@ -213,7 +213,7 @@ your devices are on.
 
 Enable the site and restart nginx:
 
-.. code-block:: console
+.. code-block:: sh
 
    sudo rm /etc/nginx/sites-enabled/default
    sudo ln -s /etc/nginx/sites-available/fdo-cache /etc/nginx/sites-enabled/fdo-cache

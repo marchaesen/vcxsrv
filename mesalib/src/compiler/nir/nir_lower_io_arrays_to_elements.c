@@ -350,7 +350,7 @@ lower_io_arrays_to_elements(nir_shader *shader, nir_variable_mode mask,
    }
 }
 
-void
+bool
 nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
                                              bool outputs_only)
 {
@@ -387,6 +387,7 @@ nir_lower_io_arrays_to_elements_no_indirects(nir_shader *shader,
    _mesa_hash_table_destroy(split_outputs, NULL);
 
    nir_remove_dead_derefs(shader);
+   return true;
 }
 
 void

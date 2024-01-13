@@ -112,7 +112,7 @@ good contact point.
    then they should be squashed together. The commit messages and the
    "``cherry picked from``"-tags must be preserved.
 
-   .. code-block:: console
+   .. code-block:: text
 
       git show b10859ec41d09c57663a258f43fe57c12332698e
 
@@ -177,7 +177,7 @@ to stabilization and bugfixing.
 
 Setup the branchpoint:
 
-.. code-block:: console
+.. code-block:: sh
 
    # Make sure main can carry on at the new version
    $EDITOR VERSION # bump the version number, keeping in mind the wrap around at the end of the year
@@ -194,7 +194,7 @@ Once it has been merged, note the last commit *before* your "VERSION:
 bump to X.Y" as this is the branchpoint. This is ``$LAST_COMMIT`` in the
 command below:
 
-.. code-block:: console
+.. code-block:: sh
 
    VERSION=X.Y
 
@@ -206,7 +206,7 @@ command below:
 Now that we have an official branchpoint, let's push the tag and create
 the branches:
 
-.. code-block:: console
+.. code-block:: sh
 
    git push origin $VERSION-branchpoint
    git checkout $VERSION-branchpoint
@@ -220,7 +220,7 @@ and altered in way necessary, with the caveat that anything pushed to
 the ``X.Y`` branch must not be altered anymore. A convenient command
 to perform an interactive rebase over everything since the last release is:
 
-.. code-block:: console
+.. code-block:: sh
 
    git rebase -i mesa-$(cat VERSION)
 
@@ -255,7 +255,7 @@ Most of the testing should already be done during the
 
 Here is one solution:
 
-.. code-block:: console
+.. code-block:: sh
 
    __glxgears_cmd='glxgears 2>&1 | grep -v "configuration file"'
    __es2info_cmd='es2_info 2>&1 | egrep "GL_VERSION|GL_RENDERER|.*dri\.so"'
@@ -307,7 +307,7 @@ Use the release.sh script from X.Org `util-modular <https://gitlab.freedesktop.o
 
 Start the release process.
 
-.. code-block:: console
+.. code-block:: sh
 
    ../relative/path/to/release.sh . # append --dist if you've already done distcheck above
 
@@ -329,7 +329,7 @@ in the ``mesa-X.Y.Z.announce`` template. Commit this change.
 Don't forget to push the commits to both the ``staging/X.Y`` branch and
 the ``X.Y`` branch:
 
-.. code-block:: console
+.. code-block:: sh
 
    git push origin HEAD:staging/X.Y
    git push origin HEAD:X.Y
@@ -340,14 +340,14 @@ Back on mesa main, add the new release notes into the tree
 
 Something like the following steps will do the trick:
 
-.. code-block:: console
+.. code-block:: sh
 
    git cherry-pick -x X.Y~1
    git cherry-pick -x X.Y
 
 Then run the
 
-.. code-block:: console
+.. code-block:: sh
 
    ./bin/post_version.py X.Y.Z
 
@@ -356,7 +356,7 @@ docs/relnotes.rst and docs/release-calendar.csv. It will then generate
 a Git commit automatically. Check that everything looks correct and
 push:
 
-.. code-block:: console
+.. code-block:: sh
 
       git push origin main X.Y
 

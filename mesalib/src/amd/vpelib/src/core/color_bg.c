@@ -1,6 +1,7 @@
 #include <string.h>
 #include <math.h>
 #include "color_bg.h"
+#include "vpe_priv.h"
 
 struct csc_vector {
     float x;
@@ -14,6 +15,44 @@ struct csc_table {
     struct csc_vector green_coef; // GREEN coefficient
     struct csc_vector blue_coef;  // BLUE coefficient
 };
+
+
+const double bt_709_rgb_xyz_matrix[] = {
+    0.135676572958501,   0.117645247657296,   0.059378179384203,
+    0.069958232931727,   0.235290495314592,   0.023751271753681,
+    0.006359839357430,   0.039215082552432,   0.312725078090138
+};
+
+const double bt_601_rgb_xyz_matrix[] = {
+    0.129468377303939,   0.120169907240092,   0.063061715455969,
+    0.069871822671967,   0.230648692928563,   0.028479484399470,
+    0.006165160823997,   0.036826261896157,   0.315308577279846
+};
+
+const double bt_2020_rgb_xyz_matrix[] = {
+    0.209559197891125,   0.047578961279863,   0.055561840829013,
+    0.086428369751707,   0.223061365529709,   0.019510264718585,
+    0.000000000000000,   0.009235916013150,   0.349064083986850
+};
+
+const double bt_709_xyz_rgb_matrix[] = {
+    9.850972467794900,    -4.672897196261683,    -1.515534225814599,
+   -2.946029289607537,     5.702028879962675,     0.126307165371354,
+    0.169088388136759,    -0.619990756501448,     3.212679374598414
+};
+
+const double bt_601_xyz_rgb_matrix[] = {
+    10.656544932293809,   -5.288117709127149,    -1.653672548215019,
+   -3.249384680406732,     6.011485965740993,     0.106904010143450,
+    0.171144655726832,    -0.598710197023623,     3.191344462670923
+};
+
+const double bt_2020_xyz_rgb_matrix[] = {
+    5.217784765870115,    -1.081066212086299,    -0.770110277731489,
+   -2.026396206177778,     4.913316828677627,     0.047928710680581,
+    0.053616587979668,    -0.130001864005497,     2.863535322904176
+};
+
 
 static struct csc_table bgcolor_to_rgbfull_table[COLOR_SPACE_MAX] = {
     [COLOR_SPACE_YCBCR601] =
@@ -92,6 +131,80 @@ static float clip_float(float x)
         return x;
 }
 
+static void color_multiply_matrices_double(double *mResult, double *M1,
+    double *M2, unsigned int Rows1, unsigned int Cols1, unsigned int Cols2)
+{
+    unsigned int i, j, k;
+
+    for (i = 0; i < Rows1; i++) {
+        for (j = 0; j < Cols2; j++) {
+            mResult[(i * Cols2) + j] = 0.0;
+            for (k = 0; k < Cols1; k++)
+                mResult[(i * Cols2) + j] = mResult[(i * Cols2) + j] +
+                    M1[(i * Cols1) + k] * M2[(k * Cols2) + j];
+        }
+    }
+}
+
+static void set_gamut_remap_matrix(double* res, enum color_space src_cs, enum color_space dst_cs) {
+
+    double rgb_to_xyz[9] = { 0.0 };
+    double xyz_to_rgb[9] = { 0.0 };
+
+    switch (src_cs)
+    {
+    case COLOR_SPACE_SRGB:
+    case COLOR_SPACE_SRGB_LIMITED:
+    case COLOR_SPACE_MSREF_SCRGB:
+    case COLOR_SPACE_YCBCR709_LIMITED:
+    case COLOR_SPACE_YCBCR709:
+    case COLOR_SPACE_JFIF:
+        memcpy(rgb_to_xyz, bt_709_rgb_xyz_matrix, 9 * sizeof(double));
+        break;
+    case COLOR_SPACE_YCBCR601:
+    case COLOR_SPACE_YCBCR601_LIMITED:
+        memcpy(rgb_to_xyz, bt_601_rgb_xyz_matrix, 9 * sizeof(double));
+        break;
+    case COLOR_SPACE_2020_RGB_FULLRANGE:
+    case COLOR_SPACE_2020_RGB_LIMITEDRANGE:
+    case COLOR_SPACE_2020_YCBCR:
+    case COLOR_SPACE_2020_YCBCR_LIMITED:
+        memcpy(rgb_to_xyz, bt_2020_rgb_xyz_matrix, 9 * sizeof(double));
+        break;
+    default:
+        VPE_ASSERT(0);
+        break;
+    }
+
+    switch (dst_cs)
+    {
+    case COLOR_SPACE_SRGB:
+    case COLOR_SPACE_SRGB_LIMITED:
+    case COLOR_SPACE_MSREF_SCRGB:
+    case COLOR_SPACE_YCBCR709_LIMITED:
+    case COLOR_SPACE_YCBCR709:
+    case COLOR_SPACE_JFIF:
+        memcpy(xyz_to_rgb, bt_709_xyz_rgb_matrix, 9 * sizeof(double));
+        break;
+    case COLOR_SPACE_YCBCR601:
+    case COLOR_SPACE_YCBCR601_LIMITED:
+        memcpy(xyz_to_rgb, bt_601_xyz_rgb_matrix, 9 * sizeof(double));
+        break;
+    case COLOR_SPACE_2020_RGB_FULLRANGE:
+    case COLOR_SPACE_2020_RGB_LIMITEDRANGE:
+    case COLOR_SPACE_2020_YCBCR:
+    case COLOR_SPACE_2020_YCBCR_LIMITED:
+        memcpy(xyz_to_rgb, bt_2020_xyz_rgb_matrix, 9 * sizeof(double));
+        break;
+    default:
+        VPE_ASSERT(0);
+        break;
+    }
+
+    color_multiply_matrices_double(res, xyz_to_rgb, rgb_to_xyz, 3, 3, 3);
+
+}
+
 static bool bg_csc(struct vpe_color *bg_color, enum color_space cs)
 {
     struct csc_table *entry             = &bgcolor_to_rgbfull_table[cs];
@@ -132,6 +245,35 @@ static bool bg_csc(struct vpe_color *bg_color, enum color_space cs)
     }
     bg_color->is_ycbcr = false;
     return output_is_clipped;
+}
+
+static inline bool is_global_bg_blend_applied(struct stream_ctx *stream_ctx) {
+
+    return (stream_ctx->stream.blend_info.blending)  &&
+        (stream_ctx->stream.blend_info.global_alpha) &&
+        (stream_ctx->stream.blend_info.global_alpha_value != 1.0);
+}
+
+/*
+    In order to support background color fill correctly, we need to do studio -> full range conversion
+    before the blend block. However, there is also a requirement for HDR output to be blended in linear space.
+    Hence, if we have PQ out and studio range, we need to make sure no blenidng will occur. Othewise the job
+    is invalid.
+
+*/
+static enum vpe_status is_valid_blend(const struct vpe_priv *vpe_priv, struct vpe_color *bg_color) {
+
+    enum vpe_status status = VPE_STATUS_OK;
+    const struct vpe_color_space *vcs = &vpe_priv->output_ctx.surface.cs;
+    struct stream_ctx *stream_ctx = vpe_priv->stream_ctx;  //Only need to check the first stream.
+
+    if ((vcs->range == VPE_COLOR_RANGE_STUDIO) &&
+        (vcs->tf == VPE_TF_PQ) &&
+        ((stream_ctx->stream.surface_info.cs.encoding == VPE_PIXEL_ENCODING_RGB) ||
+            is_global_bg_blend_applied(stream_ctx)))
+        status = VPE_STATUS_BG_COLOR_OUT_OF_RANGE;
+
+    return status;
 }
 
 struct gamma_coefs {
@@ -252,106 +394,183 @@ static void compute_depq(double inY, double *outX, bool clip)
     *outX = ret;
 }
 
-static bool is_rgb_limited(enum color_space cs)
+static bool is_limited_cs(enum color_space cs)
 {
-    return (cs == COLOR_SPACE_SRGB_LIMITED || cs == COLOR_SPACE_2020_RGB_LIMITEDRANGE);
+    bool is_limited = false;
+
+    switch (cs)
+    {
+    case COLOR_SPACE_SRGB:
+    case COLOR_SPACE_2020_RGB_FULLRANGE:
+    case COLOR_SPACE_MSREF_SCRGB:
+    case COLOR_SPACE_YCBCR601:
+    case COLOR_SPACE_YCBCR709:
+    case COLOR_SPACE_JFIF:
+    case COLOR_SPACE_2020_YCBCR:
+        is_limited = false;
+        break;
+    case COLOR_SPACE_SRGB_LIMITED:
+    case COLOR_SPACE_YCBCR601_LIMITED:
+    case COLOR_SPACE_YCBCR709_LIMITED:
+    case COLOR_SPACE_2020_RGB_LIMITEDRANGE:
+    case COLOR_SPACE_2020_YCBCR_LIMITED:
+        is_limited = true;
+        break;
+    default:
+        VPE_ASSERT(0);
+        is_limited = false;
+        break;
+    }
+    return is_limited;
 }
 
-void vpe_bg_color_convert(
-    enum color_space output_cs, struct transfer_func *output_tf, struct vpe_color *bg_color)
-{
-    enum color_space bgcolor_cs;
+static void vpe_bg_degam(
+    struct transfer_func *output_tf, struct vpe_color *bg_color) {
 
-    if (bg_color->is_ycbcr) {
-        // Need YUV to RGB csc as internal pipe is using RGB full range
-        // For range conversion, if output is limited, we assume bg color
-        // is limited range too
-        switch (output_cs) {
-            // output is ycbr cs, follow output's setting
-        case COLOR_SPACE_YCBCR601:
-        case COLOR_SPACE_YCBCR709:
-        case COLOR_SPACE_YCBCR601_LIMITED:
-        case COLOR_SPACE_YCBCR709_LIMITED:
-        case COLOR_SPACE_2020_YCBCR:
-        case COLOR_SPACE_2020_YCBCR_LIMITED:
-            bgcolor_cs = output_cs;
+    double degam_r = (double)bg_color->rgba.r;
+    double degam_g = (double)bg_color->rgba.g;
+    double degam_b = (double)bg_color->rgba.b;
+
+    // de-gam
+    switch (output_tf->tf) {
+
+    case TRANSFER_FUNC_PQ2084:
+        compute_depq((double)bg_color->rgba.r, &degam_r, true);
+        compute_depq((double)bg_color->rgba.g, &degam_g, true);
+        compute_depq((double)bg_color->rgba.b, &degam_b, true);
+        break;
+    case TRANSFER_FUNC_SRGB:
+    case TRANSFER_FUNC_BT709:
+    case TRANSFER_FUNC_BT1886:
+        compute_degam(output_tf->tf, (double)bg_color->rgba.r, &degam_r, true);
+        compute_degam(output_tf->tf, (double)bg_color->rgba.g, &degam_g, true);
+        compute_degam(output_tf->tf, (double)bg_color->rgba.b, &degam_b, true);
+        break;
+    case TRANSFER_FUNC_LINEAR_0_125:
+    case TRANSFER_FUNC_LINEAR_0_1:
+        break;
+    default:
+        VPE_ASSERT(0);
+        break;
+    }
+    bg_color->rgba.r = (float)degam_r;
+    bg_color->rgba.g = (float)degam_g;
+    bg_color->rgba.b = (float)degam_b;
+
+}
+
+static void vpe_bg_inverse_gamut_remap(enum color_space output_cs,
+    struct transfer_func *output_tf, struct vpe_color *bg_color)
+{
+
+        double bg_rgb[3] = { 0.0 };
+        double final_bg_rgb[3] = { 0.0 };
+        double matrix[9] = { 0.0 };
+        bg_rgb[0] = (double)bg_color->rgba.r;
+        bg_rgb[1] = (double)bg_color->rgba.g;
+        bg_rgb[2] = (double)bg_color->rgba.b;
+
+        switch (output_tf->tf) {
+        case TRANSFER_FUNC_LINEAR_0_1:
+        case TRANSFER_FUNC_LINEAR_0_125:
+            /* Since linear output uses Bt709, and this conversion is only needed
+             * when the tone mapping is enabled on (Bt2020) input, it is needed to
+             * apply the reverse of Bt2020 -> Bt709 on the background color to
+             * cancel out the effect of Bt2020 -> Bt709 on the background color.
+             */
+            set_gamut_remap_matrix(matrix, COLOR_SPACE_SRGB, COLOR_SPACE_2020_RGB_FULLRANGE);
+            color_multiply_matrices_double(final_bg_rgb, matrix, bg_rgb, 3, 3, 1);
+
+            bg_color->rgba.r = (float)clip_double(final_bg_rgb[0]);
+            bg_color->rgba.g = (float)clip_double(final_bg_rgb[1]);
+            bg_color->rgba.b = (float)clip_double(final_bg_rgb[2]);
+
             break;
-            // output is RGB cs, follow output's range
-            // but need yuv to rgb csc
-        case COLOR_SPACE_SRGB_LIMITED:
-            bgcolor_cs = COLOR_SPACE_YCBCR709_LIMITED;
-            break;
-        case COLOR_SPACE_2020_RGB_LIMITEDRANGE:
-            bgcolor_cs = COLOR_SPACE_2020_YCBCR_LIMITED;
-            break;
-        case COLOR_SPACE_SRGB:
-        case COLOR_SPACE_MSREF_SCRGB:
-            bgcolor_cs = COLOR_SPACE_YCBCR709;
-            break;
-        case COLOR_SPACE_2020_RGB_FULLRANGE:
-            bgcolor_cs = COLOR_SPACE_2020_YCBCR;
+        case TRANSFER_FUNC_PQ2084:
+        case TRANSFER_FUNC_SRGB:
+        case TRANSFER_FUNC_BT709:
+        case TRANSFER_FUNC_BT1886:
             break;
         default:
-            // should revise the newly added CS
-            // and set corresponding bgcolor_cs accordingly
             VPE_ASSERT(0);
-            bgcolor_cs = COLOR_SPACE_YCBCR709;
             break;
         }
-    } else {
-        // RGB BG color, use output's cs for range check
+
+}
+
+static void inverse_output_csc(enum color_space output_cs, struct vpe_color* bg_color)
+{
+    enum color_space bgcolor_cs = COLOR_SPACE_YCBCR709;
+
+    switch (output_cs) {
+        // output is ycbr cs, follow output's setting
+    case COLOR_SPACE_YCBCR601:
+    case COLOR_SPACE_YCBCR709:
+    case COLOR_SPACE_YCBCR601_LIMITED:
+    case COLOR_SPACE_YCBCR709_LIMITED:
+    case COLOR_SPACE_2020_YCBCR:
+    case COLOR_SPACE_2020_YCBCR_LIMITED:
         bgcolor_cs = output_cs;
+        break;
+        // output is RGB cs, follow output's range
+        // but need yuv to rgb csc
+    case COLOR_SPACE_SRGB_LIMITED:
+        bgcolor_cs = COLOR_SPACE_YCBCR709_LIMITED;
+        break;
+    case COLOR_SPACE_2020_RGB_LIMITEDRANGE:
+        bgcolor_cs = COLOR_SPACE_2020_YCBCR_LIMITED;
+        break;
+    case COLOR_SPACE_SRGB:
+    case COLOR_SPACE_MSREF_SCRGB:
+        bgcolor_cs = COLOR_SPACE_YCBCR709;
+        break;
+    case COLOR_SPACE_2020_RGB_FULLRANGE:
+        bgcolor_cs = COLOR_SPACE_2020_YCBCR;
+        break;
+    default:
+        // should revise the newly added CS
+        // and set corresponding bgcolor_cs accordingly
+        VPE_ASSERT(0);
+        bgcolor_cs = COLOR_SPACE_YCBCR709;
+        break;
     }
 
     // input is [0-0xffff]
     // convert bg color to RGB full range for use inside pipe
-    if (bg_color->is_ycbcr || is_rgb_limited(bgcolor_cs))
-        bg_csc(bg_color, bgcolor_cs);
+    bg_csc(bg_color, bgcolor_cs);
+}
 
-    if (output_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
-        double degam_r = 0;
-        double degam_g = 0;
-        double degam_b = 0;
+// To understand the logic for background color conversion,
+// please refer to vpe_update_output_gamma_sequence in color.c
+void vpe_bg_color_convert(
+    enum color_space output_cs, struct transfer_func *output_tf, struct vpe_color *bg_color, bool enable_3dlut)
+{
+    // inverse OCSC
+    if (bg_color->is_ycbcr)
+        inverse_output_csc(output_cs, bg_color);
 
-        // de-gam
-        switch (output_tf->tf) {
-        case TRANSFER_FUNC_SRGB:
-        case TRANSFER_FUNC_BT709:
-        case TRANSFER_FUNC_BT1886:
-            compute_degam(output_tf->tf, (double)bg_color->rgba.r, &degam_r, true);
-            compute_degam(output_tf->tf, (double)bg_color->rgba.g, &degam_g, true);
-            compute_degam(output_tf->tf, (double)bg_color->rgba.b, &degam_b, true);
-            bg_color->rgba.r = (float)degam_r;
-            bg_color->rgba.g = (float)degam_g;
-            bg_color->rgba.b = (float)degam_b;
-            break;
-        case TRANSFER_FUNC_PQ2084:
-            compute_depq((double)bg_color->rgba.r, &degam_r, true);
-            compute_depq((double)bg_color->rgba.g, &degam_g, true);
-            compute_depq((double)bg_color->rgba.b, &degam_b, true);
-            bg_color->rgba.r = (float)degam_r;
-            bg_color->rgba.g = (float)degam_g;
-            bg_color->rgba.b = (float)degam_b;
-            break;
-        case TRANSFER_FUNC_LINEAR_0_125:
-            break;
-        default:
-            VPE_ASSERT(0);
-            break;
-        }
+    if (output_tf->type != TF_TYPE_BYPASS) {
+        // inverse degam
+        if (output_tf->tf == TRANSFER_FUNC_PQ2084 && !is_limited_cs(output_cs))
+            vpe_bg_degam(output_tf, bg_color);
+        // inverse gamut remap
+        if (enable_3dlut)
+            vpe_bg_inverse_gamut_remap(output_cs, output_tf, bg_color);
     }
-
     // for TF_TYPE_BYPASS, bg color should be programmed to mpc as linear
 }
+
 enum vpe_status vpe_bg_color_outside_cs_gamut(
-    const struct vpe_color_space *vcs, struct vpe_color *bg_color)
+    const struct vpe_priv *vpe_priv, struct vpe_color *bg_color)
 {
     enum color_space         cs;
     enum color_transfer_func tf;
     struct vpe_color         bg_color_copy = *bg_color;
+    const struct vpe_color_space *vcs      = &vpe_priv->output_ctx.surface.cs;
+
     vpe_color_get_color_space_and_tf(vcs, &cs, &tf);
 
-    if (is_rgb_limited(cs) || (bg_color->is_ycbcr)) {
+    if ((bg_color->is_ycbcr)) {
         // using the bg_color_copy instead as bg_csc will modify it
         // we should not do modification in checking stage
         // otherwise validate_cached_param() will fail
@@ -360,4 +579,17 @@ enum vpe_status vpe_bg_color_outside_cs_gamut(
         }
     }
     return VPE_STATUS_OK;
+}
+
+// These two checks are only neccessary for VPE1.0 and contain alot of quirks to work around VPE 1.0 limitations.
+enum vpe_status vpe_is_valid_bg_color(const struct vpe_priv *vpe_priv, struct vpe_color *bg_color) {
+
+    enum vpe_status status = VPE_STATUS_OK;
+
+    status = is_valid_blend(vpe_priv, bg_color);
+
+    if (status == VPE_STATUS_OK)
+        status = vpe_bg_color_outside_cs_gamut(vpe_priv, bg_color);
+
+    return status;
 }

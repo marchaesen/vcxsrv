@@ -88,9 +88,9 @@ debian/x86_64_build:
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build ${DEBIAN_BUILD_TAG}
   rules:
-    - !reference [.use-debian/x86_64_build-base, rules]
     # python-test requires this job
     - !reference [python-test, rules]
+    - !reference [.use-debian/x86_64_build-base, rules]
 
 .use-debian/x86_64_build:
   extends:

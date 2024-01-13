@@ -580,8 +580,8 @@ gl_nir_lower_blend_equation_advanced(nir_shader *sh, bool coherent)
    /* Remove any dead writes before assigning location to __blend_fb_fetch
     * otherwise they will be unable to be removed.
     */
-   NIR_PASS_V(sh, nir_split_var_copies);
-   NIR_PASS_V(sh, nir_opt_dead_write_vars);
+   NIR_PASS(_, sh, nir_split_var_copies);
+   NIR_PASS(_, sh, nir_opt_dead_write_vars);
 
    nir_foreach_variable_with_modes(var, sh, nir_var_shader_out) {
       if (strcmp(var->name, "__blend_fb_fetch") == 0) {

@@ -35,78 +35,78 @@
 #include "nir/nir.h"
 #include "nir/nir_builder.h"
 
-void
+struct alpha_test_state {
+   bool alpha_to_one;
+   enum compare_func func;
+   const gl_state_index16 *alpha_ref_state_tokens;
+};
+
+static bool
+lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+{
+   struct alpha_test_state *state = data;
+   nir_variable *out = NULL;
+
+   switch (intr->intrinsic) {
+   case nir_intrinsic_store_deref:
+      out = nir_intrinsic_get_var(intr, 0);
+      break;
+   case nir_intrinsic_store_output:
+      /* already had i/o lowered.. lookup the matching output var: */
+      nir_foreach_shader_out_variable(var, b->shader) {
+         int drvloc = var->data.driver_location;
+         if (nir_intrinsic_base(intr) == drvloc) {
+            out = var;
+            break;
+         }
+      }
+      assume(out);
+      break;
+   default:
+      return false;
+   }
+
+   if (out->data.mode != nir_var_shader_out)
+      return false;
+
+   if (out->data.location != FRAG_RESULT_COLOR &&
+       out->data.location != FRAG_RESULT_DATA0)
+      return false;
+
+   b->cursor = nir_before_instr(&intr->instr);
+
+   nir_def *alpha;
+   if (state->alpha_to_one)
+      alpha = nir_imm_float(b, 1.0);
+   else if (intr->intrinsic == nir_intrinsic_store_deref)
+      alpha = nir_channel(b, intr->src[1].ssa, 3);
+   else
+      alpha = nir_channel(b, intr->src[0].ssa, 3);
+
+   nir_variable *var = nir_state_variable_create(b->shader, glsl_float_type(),
+                                                 "gl_AlphaRefMESA",
+                                                 state->alpha_ref_state_tokens);
+   nir_def *alpha_ref = nir_load_var(b, var);
+   nir_def *condition = nir_compare_func(b, state->func, alpha, alpha_ref);
+
+   nir_discard_if(b, nir_inot(b, condition));
+   b->shader->info.fs.uses_discard = true;
+   return true;
+}
+
+bool
 nir_lower_alpha_test(nir_shader *shader, enum compare_func func,
                      bool alpha_to_one,
                      const gl_state_index16 *alpha_ref_state_tokens)
 {
-   assert(alpha_ref_state_tokens);
-   assert(shader->info.stage == MESA_SHADER_FRAGMENT);
+   struct alpha_test_state state = {
+      .alpha_ref_state_tokens = alpha_ref_state_tokens,
+      .alpha_to_one = alpha_to_one,
+      .func = func,
+   };
 
-   nir_foreach_function_impl(impl, shader) {
-      nir_builder b = nir_builder_at(nir_before_impl(impl));
-
-      nir_foreach_block(block, impl) {
-         nir_foreach_instr_safe(instr, block) {
-            if (instr->type == nir_instr_type_intrinsic) {
-               nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
-
-               nir_variable *out = NULL;
-
-               switch (intr->intrinsic) {
-               case nir_intrinsic_store_deref:
-                  out = nir_intrinsic_get_var(intr, 0);
-                  break;
-               case nir_intrinsic_store_output:
-                  /* already had i/o lowered.. lookup the matching output var: */
-                  nir_foreach_shader_out_variable(var, shader) {
-                     int drvloc = var->data.driver_location;
-                     if (nir_intrinsic_base(intr) == drvloc) {
-                        out = var;
-                        break;
-                     }
-                  }
-                  assume(out);
-                  break;
-               default:
-                  continue;
-               }
-
-               if (out->data.mode != nir_var_shader_out)
-                  continue;
-
-               if (out->data.location != FRAG_RESULT_COLOR &&
-                   out->data.location != FRAG_RESULT_DATA0)
-                  continue;
-
-               b.cursor = nir_before_instr(&intr->instr);
-
-               nir_def *alpha;
-               if (alpha_to_one) {
-                  alpha = nir_imm_float(&b, 1.0);
-               } else if (intr->intrinsic == nir_intrinsic_store_deref) {
-                  alpha = nir_channel(&b, intr->src[1].ssa,
-                                      3);
-               } else {
-                  alpha = nir_channel(&b, intr->src[0].ssa,
-                                      3);
-               }
-
-               nir_variable *var = nir_state_variable_create(shader, glsl_float_type(),
-                                                             "gl_AlphaRefMESA",
-                                                             alpha_ref_state_tokens);
-               nir_def *alpha_ref = nir_load_var(&b, var);
-
-               nir_def *condition =
-                  nir_compare_func(&b, func, alpha, alpha_ref);
-
-               nir_discard_if(&b, nir_inot(&b, condition));
-               shader->info.fs.uses_discard = true;
-            }
-         }
-      }
-
-      nir_metadata_preserve(impl, nir_metadata_block_index |
-                                     nir_metadata_dominance);
-   }
+   return nir_shader_intrinsics_pass(shader, lower,
+                                     nir_metadata_block_index |
+                                        nir_metadata_dominance,
+                                     &state);
 }
