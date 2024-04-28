@@ -1,7 +1,7 @@
 
 # Initialize Autoconf
 AC_PREREQ([2.70])
-AC_INIT([libXmu], [1.1.4],
+AC_INIT([libXmu], [1.2.1],
 	[https://gitlab.freedesktop.org/xorg/lib/libxmu/-/issues/], [libXmu])
 AC_CONFIG_SRCDIR([Makefile.am])
 AC_CONFIG_HEADERS([config.h])
@@ -30,7 +30,7 @@ XORG_WITH_XSLTPROC
 XORG_CHECK_SGML_DOCTOOLS(1.8)
 
 # Obtain compiler/linker options for dependencies
-PKG_CHECK_MODULES(XMU, xt xext x11 xextproto)
+PKG_CHECK_MODULES(XMU, [xt >= 1.1 xext x11 xextproto])
 PKG_CHECK_MODULES(XMUU, x11)
 
 # Checks for library functions.

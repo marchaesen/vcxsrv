@@ -114,6 +114,9 @@ nir_lower_cl_images(nir_shader *shader, bool lower_image_derefs, bool lower_samp
 
    ASSERTED int last_loc = -1;
    int num_rd_images = 0, num_wr_images = 0;
+
+   BITSET_ZERO(shader->info.image_buffers);
+   BITSET_ZERO(shader->info.msaa_images);
    nir_foreach_variable_with_modes(var, shader, nir_var_image | nir_var_uniform) {
       if (!glsl_type_is_image(var->type) && !glsl_type_is_texture(var->type))
          continue;
@@ -128,6 +131,17 @@ nir_lower_cl_images(nir_shader *shader, bool lower_image_derefs, bool lower_samp
       else
          var->data.driver_location = num_wr_images++;
       var->data.binding = var->data.driver_location;
+
+      switch (glsl_get_sampler_dim(var->type)) {
+      case GLSL_SAMPLER_DIM_BUF:
+         BITSET_SET(shader->info.image_buffers, var->data.binding);
+         break;
+      case GLSL_SAMPLER_DIM_MS:
+         BITSET_SET(shader->info.msaa_images, var->data.binding);
+         break;
+      default:
+         break;
+      }
    }
    shader->info.num_textures = num_rd_images;
    BITSET_ZERO(shader->info.textures_used);

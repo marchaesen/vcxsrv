@@ -1,25 +1,8 @@
 /*
  * Copyright 2009 Corbin Simpson <MostAwesomeDude@gmail.com>
  * Copyright 2010 Marek Olšák <maraeo@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 /* r300_render: Vertex and index buffer primitive emission. Contains both
  * HW TCL fastpath rendering, and SW TCL Draw-assisted rendering. */
@@ -601,6 +584,7 @@ static void r300_draw_elements(struct r300_context *r300,
     unsigned short_count;
     int buffer_offset = 0, index_offset = 0; /* for index bias emulation */
     uint16_t indices3[3];
+    const uint8_t *local_ptr = info->index.user;
 
     if (draw->index_bias && !r300->screen->caps.is_r500) {
         r300_split_index_bias(r300, draw->index_bias, &buffer_offset,
@@ -608,7 +592,7 @@ static void r300_draw_elements(struct r300_context *r300,
     }
 
     r300_translate_index_buffer(r300, info, &indexBuffer,
-                                &indexSize, index_offset, &start, count);
+                                &indexSize, index_offset, &start, count, &local_ptr);
 
     /* Fallback for misaligned ushort indices. */
     if (indexSize == 2 && (start & 1) && indexBuffer) {
@@ -628,10 +612,18 @@ static void r300_draw_elements(struct r300_context *r300,
                                      count, (uint8_t*)ptr);
         }
     } else {
-        if (info->has_user_indices)
-            r300_upload_index_buffer(r300, &indexBuffer, indexSize,
+        if (info->has_user_indices) {
+           struct pipe_resource* indexSaved = indexBuffer;
+
+           if (local_ptr != info->index.user)
+              start = 0;
+
+           r300_upload_index_buffer(r300, &indexBuffer, indexSize,
                                      &start, count,
-                                     info->index.user);
+                                     local_ptr);
+
+           pipe_resource_reference(&indexSaved, NULL);
+        }
     }
 
     /* 19 dwords for emit_draw_elements. Give up if the function fails. */

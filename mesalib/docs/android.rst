@@ -33,9 +33,9 @@ Then, create your Meson cross file to use it, something like this
     pkgconfig = ['env', 'PKG_CONFIG_LIBDIR=NDKDIR/pkgconfig', '/usr/bin/pkg-config']
 
     [host_machine]
-    system = 'linux'
+    system = 'android'
     cpu_family = 'arm'
-    cpu = 'armv8'
+    cpu = 'aarch64'
     endian = 'little'
 
 Now, use that cross file for your Android build directory (as in this
@@ -66,6 +66,7 @@ driver development, we need to unlock the device and remount
     adb disable-verity
     adb reboot
     adb remount -R
+    adb remount
 
 Now you can replace drivers as in:
 
@@ -74,8 +75,13 @@ Now you can replace drivers as in:
     adb push build-android-aarch64/src/freedreno/vulkan/libvulkan_freedreno.so /vendor/lib64/hw/vulkan.sdm710.so
 
 Note this command doesn't quite work because libvulkan wants the
-SONAME to match.  For now, in turnip we have been using a hack to the
-meson.build to change the SONAME.
+SONAME to match. You can use ``patchelf`` to fix this:
+
+.. code-block:: sh
+
+   cp build-android-aarch64/src/freedreno/vulkan/libvulkan_freedreno.so /tmp/vulkan.sdm710.so
+   patchelf --set-soname vulkan.sdm710.so /tmp/vulkan.sdm710.so
+   adb push /tmp/vulkan.sdm710.so /vendor/lib64/hw/
 
 Replacing Android drivers on Chrome OS
 --------------------------------------

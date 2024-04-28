@@ -30,9 +30,7 @@ _libmesaclc_c_args = []
 _libmesaclc_cpp_args = ['-DLLVM_LIB_DIR="@0@"'.format(llvm_libdir)]
 _libmesaclc_sources = []
 
-if get_option('opencl-external-clang-headers') \
-   .disable_auto_if(host_machine.system() == 'windows') \
-   .disabled()
+if not _shared_llvm
   # LLVM 16 moved clang header path from using full version to only major version
   if dep_llvm.version().version_compare('< 16')
     # Prior to LLVM 16, this path used a full version
@@ -43,15 +41,6 @@ if get_option('opencl-external-clang-headers') \
   endif
   clang_resource_dir = join_paths(llvm_libdir, 'clang', clang_version_dir, 'include')
 
-  if dep_llvm.version().version_compare('< 15.0')
-    opencl_c_h = custom_target(
-      'opencl-c.h',
-      input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c.h')],
-      output : 'opencl-c.h.h',
-      command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_source'],
-    )
-  endif
-
   opencl_c_base_h = custom_target(
     'opencl-c-base.h',
     input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c-base.h')],
@@ -59,17 +48,15 @@ if get_option('opencl-external-clang-headers') \
     command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_base_source'],
   )
 
-  _libmesaclc_sources += [opencl_c_base_h]
-  if dep_llvm.version().version_compare('< 15.0')
-    _libmesaclc_sources += [opencl_c_h]
-  endif
+  opencl_c_h = custom_target(
+    'opencl-c.h',
+    input : [files_xxd, join_paths(clang_resource_dir, 'opencl-c.h')],
+    output : 'opencl-c.h.h',
+    command : [prog_python, '@INPUT@', '@OUTPUT@', '-n', 'opencl_c_source'],
+  )
 
+  _libmesaclc_sources += [opencl_c_base_h, opencl_c_h]
   _libmesaclc_cpp_args += ['-DUSE_STATIC_OPENCL_C_H=1']
-endif
-
-# Supported added for SPIRV 1.4 in a version that required LLVM 14.
-if dep_llvm.version().version_compare('>= 14.0')
-  _libmesaclc_cpp_args += ['-DHAS_SPIRV_1_4=1']
 endif
 
 _basedir = dep_clc.get_variable(pkgconfig : 'libexecdir')
@@ -125,7 +112,13 @@ _libmesaclc = static_library(
                  idep_mesautil, dep_spirv_tools, idep_vtn]
 )
 
+_idep_mesaclc_link_args = []
+if _shared_llvm
+  _idep_mesaclc_link_args += cc.get_supported_link_arguments('-fPIC')
+endif
+
 idep_mesaclc = declare_dependency(
   link_with : _libmesaclc,
   include_directories : include_directories('.'),
+  link_args : _idep_mesaclc_link_args,
 )

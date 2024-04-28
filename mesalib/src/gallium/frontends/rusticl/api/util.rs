@@ -1,4 +1,4 @@
-use crate::api::icd::CLResult;
+use crate::api::icd::{ArcedCLObject, CLResult};
 use crate::api::types::*;
 use crate::core::event::*;
 use crate::core::queue::*;
@@ -270,13 +270,7 @@ pub fn event_list_from_cl(
     // CL_INVALID_EVENT_WAIT_LIST if event_wait_list is NULL and num_events_in_wait_list > 0, or
     // event_wait_list is not NULL and num_events_in_wait_list is 0, or if event objects in
     // event_wait_list are not valid events.
-    if event_wait_list.is_null() && num_events_in_wait_list > 0
-        || !event_wait_list.is_null() && num_events_in_wait_list == 0
-    {
-        return Err(CL_INVALID_EVENT_WAIT_LIST);
-    }
-
-    let res = Event::from_cl_arr(event_wait_list, num_events_in_wait_list)
+    let res = Event::arcs_from_arr(event_wait_list, num_events_in_wait_list)
         .map_err(|_| CL_INVALID_EVENT_WAIT_LIST)?;
 
     // CL_INVALID_CONTEXT if context associated with command_queue and events in event_list are not

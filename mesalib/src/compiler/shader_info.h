@@ -56,6 +56,7 @@ struct spirv_supported_capabilities {
    bool device_group;
    bool draw_parameters;
    bool float_controls;
+   bool float_controls2;
    bool float16_atomic_add;
    bool float16_atomic_min_max;
    bool float16;
@@ -95,6 +96,7 @@ struct spirv_supported_capabilities {
    bool physical_storage_buffer_address;
    bool post_depth_coverage;
    bool printf;
+   bool quad_control;
    bool ray_cull_mask;
    bool ray_query;
    bool ray_tracing;
@@ -103,6 +105,7 @@ struct spirv_supported_capabilities {
    bool runtime_descriptor_array;
    bool shader_clock;
    bool shader_enqueue;
+   bool shader_sm_builtins_nv;
    bool shader_viewport_index_layer;
    bool shader_viewport_mask_nv;
    bool sparse_residency;
@@ -347,6 +350,11 @@ typedef struct shader_info {
    bool uses_printf:1;
 
    /**
+    * VK_KHR_shader_maximal_reconvergence
+    */
+   bool maximally_reconverges:1;
+
+   /**
      * Set if this shader uses legacy (DX9 or ARB assembly) math rules.
      *
      * From the ARB_fragment_program specification:
@@ -381,6 +389,9 @@ typedef struct shader_info {
           * Valid values: SI_VS_BLIT_SGPRS_POS_*
           */
          uint8_t blit_sgprs_amd:4;
+
+         /* Software TES executing as HW VS */
+         bool tes_agx:1;
 
          /* True if the shader writes position in window space coordinates pre-transform */
          bool window_space_position:1;
@@ -423,6 +434,11 @@ typedef struct shader_info {
           * True if this fragment shader requires full quad invocations.
           */
          bool require_full_quads:1;
+
+         /**
+          * Whether the derivative group must be equivalent to the quad group.
+          */
+         bool quad_derivatives:1;
 
          /**
           * True if this fragment shader requires helper invocations.  This
@@ -517,7 +533,7 @@ typedef struct shader_info {
       struct {
          uint16_t workgroup_size_hint[3];
 
-         uint8_t user_data_components_amd:3;
+         uint8_t user_data_components_amd:4;
 
          /*
           * Arrangement of invocations used to calculate derivatives in a compute

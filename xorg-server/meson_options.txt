@@ -6,8 +6,6 @@ option('xwayland', type: 'combo', choices: ['true', 'false', 'auto'], value: 'au
        description: 'Enable Xwayland X server')
 option('glamor', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
        description: 'Enable glamor (default yes for Xorg/Xwayland builds)')
-option('xwayland_eglstream', type: 'combo', choices: ['true', 'false', 'auto'],
-       value: 'auto', description: 'Enable EGLStream support for glamor on Xwayland')
 option('xwayland_ei', type: 'combo', choices: ['socket', 'portal', 'false', 'auto'],
        value: 'auto', description: 'Enable emulated input support on Xwayland')
 option('xnest', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
@@ -35,7 +33,8 @@ option('serverconfigdir', type: 'string',
 option('glx', type: 'boolean', value: true)
 option('xdmcp', type: 'boolean', value: true)
 option('xdm-auth-1', type: 'boolean', value: true)
-option('secure-rpc', type: 'boolean', value: true)
+option('secure-rpc', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto',
+       description: 'Enable Secure-RPC (DES) authentication')
 option('ipv6', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')
 option('hyperv', type: 'boolean', value: true)
 option('input_thread', type: 'combo', choices: ['true', 'false', 'auto'], value: 'auto')

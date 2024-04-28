@@ -48,9 +48,12 @@ struct d3d12_resource {
    unsigned int plane_slice;
    struct pipe_resource* first_plane;
    unsigned mip_levels;
+
    struct sw_displaytarget *dt;
    unsigned dt_refcount; /* For planar resources sharing the dt pointer */
    unsigned dt_stride;
+   struct pipe_resource *dt_proxy;
+
    struct util_range valid_buffer_range;
    uint32_t bind_counts[PIPE_SHADER_TYPES][D3D12_RESOURCE_BINDING_TYPES];
    unsigned generation_id;

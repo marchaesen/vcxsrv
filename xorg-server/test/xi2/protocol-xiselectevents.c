@@ -63,21 +63,19 @@
 
 #include "protocol-common.h"
 
+DECLARE_WRAP_FUNCTION(XISetEventMask, int, DeviceIntPtr dev,
+                      WindowPtr win, ClientPtr client,
+                      int len, unsigned char *mask);
+
+
 static unsigned char *data[4096 * 20];  /* the request data buffer */
 
 extern ClientRec client_window;
 
-int
-__real_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
-                      int len, unsigned char *mask);
-
-int
-__wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
-                      int len, unsigned char *mask)
+static int
+override_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
+                        int len, unsigned char *mask)
 {
-    if (!enable_XISetEventMask_wrap)
-        return __real_XISetEventMask(dev, win, client, len, mask);
-
     return Success;
 }
 
@@ -288,11 +286,15 @@ test_XISelectEvents(void)
     xXIEventMask *mask;
     xXISelectEventsReq *req;
 
+    wrapped_XISetEventMask = override_XISetEventMask;
+
+    init_simple();
+
     req = (xXISelectEventsReq *) data;
 
     request_init(req, XISelectEvents);
 
-    printf("Testing for BadValue on zero-length masks\n");
+    dbg("Testing for BadValue on zero-length masks\n");
     /* zero masks are BadValue, regardless of the window */
     req->num_masks = 0;
 
@@ -305,7 +307,7 @@ test_XISelectEvents(void)
     req->win = CLIENT_WINDOW_ID;
     request_XISelectEvent(req, BadValue);
 
-    printf("Testing for BadWindow.\n");
+    dbg("Testing for BadWindow.\n");
     /* None window is BadWindow, regardless of the masks.
      * We don't actually need to set the masks here, BadWindow must occur
      * before checking the masks.
@@ -325,7 +327,7 @@ test_XISelectEvents(void)
     req->num_masks = 0xFFFC;
     request_XISelectEvent(req, BadWindow);
 
-    printf("Triggering num_masks/length overflow\n");
+    dbg("Triggering num_masks/length overflow\n");
     req->win = ROOT_WINDOW_ID;
     /* Integer overflow - req->length can't hold that much */
     req->num_masks = 0xFFFF;
@@ -334,14 +336,14 @@ test_XISelectEvents(void)
     req->win = ROOT_WINDOW_ID;
     req->num_masks = 1;
 
-    printf("Triggering bogus mask length error\n");
+    dbg("Triggering bogus mask length error\n");
     mask = (xXIEventMask *) &req[1];
     mask->deviceid = 0;
     mask->mask_len = 0xFFFF;
     request_XISelectEvent(req, BadLength);
 
     /* testing various device ids */
-    printf("Testing existing device ids.\n");
+    dbg("Testing existing device ids.\n");
     for (i = 0; i < 6; i++) {
         mask = (xXIEventMask *) &req[1];
         mask->deviceid = i;
@@ -351,7 +353,7 @@ test_XISelectEvents(void)
         request_XISelectEvent(req, Success);
     }
 
-    printf("Testing non-existing device ids.\n");
+    dbg("Testing non-existing device ids.\n");
     for (i = 6; i <= 0xFFFF; i++) {
         req->win = ROOT_WINDOW_ID;
         req->num_masks = 1;
@@ -364,12 +366,13 @@ test_XISelectEvents(void)
     request_XISelectEvents_masks(req);
 }
 
-int
+const testfunc_t*
 protocol_xiselectevents_test(void)
 {
-    init_simple();
+    static const testfunc_t testfuncs[] = {
+        test_XISelectEvents,
+        NULL,
+    };
 
-    test_XISelectEvents();
-
-    return 0;
+    return testfuncs;
 }

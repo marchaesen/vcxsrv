@@ -287,14 +287,14 @@ dxil_container_add_state_validation(struct dxil_container *c,
          return false;
    }
 
-   /* This looks to be a bug in the DXIL validation logic. When replicating these I/O dependency
+   /* This was a bug in the DXIL validation logic prior to 1.8. When replicating these I/O dependency
     * tables from the metadata to the container, the pointer is advanced for each stream,
     * and then copied for all streams... meaning that the first streams have zero data, since the
     * pointer is advanced and then never written to. The last stream (that has data) then has the
     * data from all streams written to it. However, if any stream before the last one has a larger
     * size, this will cause corruption, since it's writing to the smaller space that was allocated
     * for the last stream. We assume that never happens, and just zero all earlier streams. */
-   if (m->shader_kind == DXIL_GEOMETRY_SHADER) {
+   if (m->shader_kind == DXIL_GEOMETRY_SHADER && m->minor_validator < 8) {
       bool zero_view_id_deps = false, zero_io_deps = false;
       for (int i = 3; i >= 0; --i) {
          if (state->state.psv1.uses_view_id && m->dependency_table_dwords_per_input[i]) {

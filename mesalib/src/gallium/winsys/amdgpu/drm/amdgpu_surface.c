@@ -47,7 +47,7 @@ static int amdgpu_surface_init(struct radeon_winsys *rws,
                                enum radeon_surf_mode mode,
                                struct radeon_surf *surf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    int r;
 
    r = amdgpu_surface_sanity(tex);
@@ -81,17 +81,17 @@ static int amdgpu_surface_init(struct radeon_winsys *rws,
     * always use consecutive surface indices when FMASK is allocated between
     * them.
     */
-   config.info.surf_index = &ws->surf_index_color;
-   config.info.fmask_surf_index = &ws->surf_index_fmask;
+   config.info.surf_index = &aws->surf_index_color;
+   config.info.fmask_surf_index = &aws->surf_index_fmask;
 
    if (flags & RADEON_SURF_Z_OR_SBUFFER)
       config.info.surf_index = NULL;
 
    /* Use radeon_info from the driver, not the winsys. The driver is allowed to change it. */
-   return ac_compute_surface(ws->addrlib, info, &config, mode, surf);
+   return ac_compute_surface(aws->addrlib, info, &config, mode, surf);
 }
 
-void amdgpu_surface_init_functions(struct amdgpu_screen_winsys *ws)
+void amdgpu_surface_init_functions(struct amdgpu_screen_winsys *sws)
 {
-   ws->base.surface_init = amdgpu_surface_init;
+   sws->base.surface_init = amdgpu_surface_init;
 }

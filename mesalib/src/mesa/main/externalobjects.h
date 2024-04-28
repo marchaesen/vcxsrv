@@ -44,7 +44,7 @@ _mesa_lookup_memory_object(struct gl_context *ctx, GLuint memory)
       return NULL;
 
    return (struct gl_memory_object *)
-      _mesa_HashLookup(ctx->Shared->MemoryObjects, memory);
+      _mesa_HashLookup(&ctx->Shared->MemoryObjects, memory);
 }
 
 static inline struct gl_memory_object *
@@ -54,7 +54,7 @@ _mesa_lookup_memory_object_locked(struct gl_context *ctx, GLuint memory)
       return NULL;
 
    return (struct gl_memory_object *)
-      _mesa_HashLookupLocked(ctx->Shared->MemoryObjects, memory);
+      _mesa_HashLookupLocked(&ctx->Shared->MemoryObjects, memory);
 }
 
 static inline struct gl_semaphore_object *
@@ -64,7 +64,7 @@ _mesa_lookup_semaphore_object(struct gl_context *ctx, GLuint semaphore)
       return NULL;
 
    return (struct gl_semaphore_object *)
-      _mesa_HashLookup(ctx->Shared->SemaphoreObjects, semaphore);
+      _mesa_HashLookup(&ctx->Shared->SemaphoreObjects, semaphore);
 }
 
 static inline struct gl_semaphore_object *
@@ -74,7 +74,7 @@ _mesa_lookup_semaphore_object_locked(struct gl_context *ctx, GLuint semaphore)
       return NULL;
 
    return (struct gl_semaphore_object *)
-      _mesa_HashLookupLocked(ctx->Shared->SemaphoreObjects, semaphore);
+      _mesa_HashLookupLocked(&ctx->Shared->SemaphoreObjects, semaphore);
 }
 
 extern void

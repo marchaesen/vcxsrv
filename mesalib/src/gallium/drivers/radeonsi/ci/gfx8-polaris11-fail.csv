@@ -240,4 +240,3 @@ KHR-GL46.shader_ballot_tests.ShaderBallotFunctionRead,Fail
 KHR-GL46.shader_image_load_store.advanced-sso-subroutine,Fail
 KHR-GL46.shader_image_load_store.basic-allTargets-atomic,Fail
 KHR-GL46.draw_indirect.basic-drawArrays-bufferOffset,Fail
-KHR-Single-GL46.enhanced_layouts.xfb_capture_inactive_output_component,Fail

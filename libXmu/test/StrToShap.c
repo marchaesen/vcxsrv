@@ -172,8 +172,12 @@ test_XmuCvtShapeStyleToString(void)
     value = 1984;
     from.addr = (XPointer) &value;
     g_test_message("ShapeStyleToString(%d)", value);
-    ret = XmuCvtShapeStyleToString(NULL, NULL, &nargs, &from, &to, NULL);
-    g_assert_cmpint(ret, ==, False);
+    if (setjmp(jmp_env) == 0) {
+        ret = XmuCvtShapeStyleToString(NULL, NULL, &nargs, &from, &to, NULL);
+        g_assert_cmpint(ret, ==, False);
+    } else {
+        /* We jumped here from error handler as expected. */
+    }
     g_assert_cmpint(warning_count, >, 0);
     g_test_message("test_XmuCvtShapeStyleToString completed");
 }

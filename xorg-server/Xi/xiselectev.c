@@ -27,13 +27,15 @@
 #include <dix-config.h>
 #endif
 
+#include <X11/extensions/XI2proto.h>
+
+#include "dix/dix_priv.h"
+
 #include "dixstruct.h"
 #include "windowstr.h"
 #include "exglobals.h"
 #include "exevents.h"
-#include <X11/extensions/XI2proto.h>
 #include "inpututils.h"
-
 #include "xiselectev.h"
 
 /**
@@ -349,6 +351,7 @@ ProcXIGetSelectedEvents(ClientPtr client)
     InputClientsPtr others = NULL;
     xXIEventMask *evmask = NULL;
     DeviceIntPtr dev;
+    uint32_t length;
 
     REQUEST(xXIGetSelectedEventsReq);
     REQUEST_SIZE_MATCH(xXIGetSelectedEventsReq);
@@ -417,10 +420,12 @@ ProcXIGetSelectedEvents(ClientPtr client)
         }
     }
 
+    /* save the value before SRepXIGetSelectedEvents swaps it */
+    length = reply.length;
     WriteReplyToClient(client, sizeof(xXIGetSelectedEventsReply), &reply);
 
     if (reply.num_masks)
-        WriteToClient(client, reply.length * 4, buffer);
+        WriteToClient(client, length * 4, buffer);
 
     free(buffer);
     return Success;

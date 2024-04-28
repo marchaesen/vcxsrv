@@ -298,7 +298,7 @@ static VkResult
 format_supported_with_usage(VkDevice device_h, VkFormat format,
                             VkImageUsageFlags imageUsage)
 {
-   TU_FROM_HANDLE(tu_device, device, device_h);
+   VK_FROM_HANDLE(tu_device, device, device_h);
    struct tu_physical_device *phys_dev = device->physical_device;
    VkPhysicalDevice phys_dev_h = tu_physical_device_to_handle(phys_dev);
    VkResult result;
@@ -389,7 +389,7 @@ tu_GetSwapchainGrallocUsageANDROID(VkDevice device_h,
                                    VkImageUsageFlags imageUsage,
                                    int *grallocUsage)
 {
-   TU_FROM_HANDLE(tu_device, device, device_h);
+   VK_FROM_HANDLE(tu_device, device, device_h);
    VkResult result;
 
    result = format_supported_with_usage(device_h, format, imageUsage);
@@ -409,7 +409,7 @@ tu_GetSwapchainGrallocUsage2ANDROID(VkDevice device_h,
                                     uint64_t *grallocConsumerUsage,
                                     uint64_t *grallocProducerUsage)
 {
-   TU_FROM_HANDLE(tu_device, device, device_h);
+   VK_FROM_HANDLE(tu_device, device, device_h);
    VkResult result;
 
    *grallocConsumerUsage = 0;

@@ -58,6 +58,8 @@ read_counted_string (unsigned short *countp, char **stringp, FILE *file)
 	if (fread (data, sizeof (char), len, file) != len) {
 #ifdef HAVE_EXPLICIT_BZERO
 	    explicit_bzero (data, len);
+#elif HAVE_EXPLICIT_MEMSET
+	    explicit_memset (data, 0, len);
 #else
 	    bzero (data, len);
 #endif
@@ -107,6 +109,8 @@ XauReadAuth (FILE *auth_file)
     if (local.data) {
 #ifdef HAVE_EXPLICIT_BZERO
 	explicit_bzero (local.data, local.data_length);
+#elif HAVE_EXPLICIT_MEMSET
+	explicit_memset (local.data, 0, local.data_length);
 #else
 	bzero (local.data, local.data_length);
 #endif

@@ -21,11 +21,12 @@ unsigned gfx10_ngg_get_vertices_per_prim(struct si_shader *shader)
       } else if (shader->key.ge.opt.ngg_culling & SI_NGG_CULL_LINES)
          return 2;
       else {
-         /* We always build up all three indices for the prim export
-          * independent of the primitive type. The additional garbage
-          * data shouldn't hurt. This is used by exports and streamout.
+         /* The shader compiler replaces 0 with 3. The generated code will be correct regardless
+          * of the draw primitive type, but it's less efficient.
+          *
+          * Computing prim export values for non-existent vertices has no effect.
           */
-         return 3;
+         return 0; /* unknown */
       }
    } else {
       assert(shader->selector->stage == MESA_SHADER_TESS_EVAL);
@@ -139,8 +140,8 @@ retry_select_mode:
       bool uses_primitive_id = gs_sel->info.uses_primid;
       if (gs_stage == MESA_SHADER_VERTEX) {
          uses_instance_id |=
-            shader->key.ge.part.vs.prolog.instance_divisor_is_one ||
-            shader->key.ge.part.vs.prolog.instance_divisor_is_fetched;
+            shader->key.ge.mono.instance_divisor_is_one ||
+            shader->key.ge.mono.instance_divisor_is_fetched;
       } else {
          uses_primitive_id |= shader->key.ge.mono.u.vs_export_prim_id;
       }

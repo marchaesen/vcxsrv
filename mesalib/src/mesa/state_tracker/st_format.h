@@ -70,7 +70,8 @@ extern mesa_format
 st_ChooseTextureFormat(struct gl_context * ctx, GLenum target,
                        GLint internalFormat,
                        GLenum format, GLenum type);
-
+bool
+st_QueryTextureFormatSupport(struct gl_context *ctx, GLenum target, GLenum internalFormat);
 void
 st_QueryInternalFormat(struct gl_context *ctx, GLenum target,
                        GLenum internalFormat, GLenum pname, GLint *params);

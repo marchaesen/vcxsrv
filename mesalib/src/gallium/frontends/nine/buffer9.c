@@ -1,25 +1,8 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
  * Copyright 2015 Patrick Rudolph <siro@das-labor.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "buffer9.h"
 #include "device9.h"
@@ -33,7 +16,7 @@
 #include "pipe/p_state.h"
 #include "pipe/p_defines.h"
 #include "util/format/u_formats.h"
-#include "util/u_box.h"
+#include "util/box.h"
 #include "util/u_inlines.h"
 
 #define DBG_CHANNEL (DBG_INDEXBUFFER|DBG_VERTEXBUFFER)
@@ -267,7 +250,7 @@ NineBuffer9_Lock( struct NineBuffer9 *This,
     /* Write out of bound seems to have to be taken into account for these.
      * TODO: Do more tests (is it only at buffer first lock ? etc).
      * Since these buffers are supposed to be locked once and never
-     * writen again (MANAGED or DYNAMIC is used for the other uses cases),
+     * written again (MANAGED or DYNAMIC is used for the other uses cases),
      * performance should be unaffected. */
     if (!(This->base.usage & D3DUSAGE_DYNAMIC) && This->base.pool == D3DPOOL_DEFAULT)
         SizeToLock = This->size - OffsetToLock;
@@ -620,7 +603,7 @@ NineBuffer9_Upload( struct NineBuffer9 *This )
             upload_flags |= PIPE_MAP_UNSYNCHRONIZED;
         } else {
             /* We cannot use PIPE_MAP_UNSYNCHRONIZED. We must choose between no flag and DISCARD.
-             * Criterias to discard:
+             * Criteria to discard:
              * . Most of the resource was filled (but some apps do allocate a big buffer
              * to only use a small part in a round fashion)
              * . The region to upload is very small compared to the filled region and
@@ -638,7 +621,7 @@ NineBuffer9_Upload( struct NineBuffer9 *This )
                 /* Avoid DISCARDING too much by discarding only if most of the buffer
                  * has been used */
                 DBG_FLAG(DBG_INDEXBUFFER|DBG_VERTEXBUFFER,
-             "Uploading %p DISCARD: valid %d %d, filled %d %d, required %d %d, box_upload %d %d, required already_valid %d %d, conficting %d %d\n",
+             "Uploading %p DISCARD: valid %d %d, filled %d %d, required %d %d, box_upload %d %d, required already_valid %d %d, conflicting %d %d\n",
              This, valid_region->x, valid_region->width, filled_region->x, filled_region->width,
              required_valid_region->x, required_valid_region->width, box_upload.x, box_upload.width,
              region_already_valid.x, region_already_valid.width, conflicting_region.x, conflicting_region.width

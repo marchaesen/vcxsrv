@@ -179,6 +179,12 @@ choose_instr(struct sched_ctx *s)
          continue;
       }
 
+      /* Heuristic: sink wait_pix to increase parallelism. Since wait_pix does
+       * not read or write registers, this has no effect on pressure.
+       */
+      if (n->instr->op == AGX_OPCODE_WAIT_PIX)
+         return n;
+
       int32_t delta = calculate_pressure_delta(n->instr, s->live);
 
       if (delta < min_delta) {

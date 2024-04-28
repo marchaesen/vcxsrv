@@ -178,7 +178,7 @@ svga_set_shader_images(struct pipe_context *pipe,
    /* number of bound image views */
    svga->curr.num_image_views[shader] = start + num;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    SVGA_DBG(DEBUG_UAV, "%s: num_image_views=%d start=%d num=%d unbind_num_trailing_slots=%d\n",
             __func__, svga->curr.num_image_views[shader], start, num,
             unbind_num_trailing_slots);

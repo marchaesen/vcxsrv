@@ -13,14 +13,14 @@ extern "C" {
 #define ST_DEBUG_TGSI          (1 <<  1)
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 extern unsigned st_debug;
 #else
 #define st_debug 0
 #endif
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 void st_debug_parse(void);
 #else
 #define st_debug_parse() ((void)0)

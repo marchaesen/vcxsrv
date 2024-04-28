@@ -43,7 +43,14 @@
 #define MALI_BLEND_AU_R5G5B5A1    (MALI_RGB5_A1_AU << 12)
 #define MALI_BLEND_PU_R5G5B5A1    (MALI_RGB5_A1_PU << 12)
 
-#if PAN_ARCH <= 6
+#if PAN_ARCH <= 5
+#define BFMT2(pipe, internal, writeback, srgb)                                 \
+   [PIPE_FORMAT_##pipe] = {                                                    \
+      MALI_COLOR_BUFFER_INTERNAL_FORMAT_##internal,                            \
+      MALI_COLOR_FORMAT_##writeback,                                           \
+      { 0, 0 },                                                                \
+   }
+#elif PAN_ARCH == 6
 #define BFMT2(pipe, internal, writeback, srgb)                                 \
    [PIPE_FORMAT_##pipe] = {                                                    \
       MALI_COLOR_BUFFER_INTERNAL_FORMAT_##internal,                            \

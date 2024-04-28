@@ -1,24 +1,7 @@
 /*
  * Copyright © 2023 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #version 460
@@ -74,17 +57,9 @@ void main() {
     bool is_active;
     if (args.geom_data.geometry_type == VK_GEOMETRY_TYPE_TRIANGLES_KHR) {
         is_active = build_triangle(bounds, dst_ptr, args.geom_data, gl_GlobalInvocationID.x);
-    } else if (args.geom_data.geometry_type == VK_GEOMETRY_TYPE_AABBS_KHR) {
-        VOID_REF src_ptr = OFFSET(args.geom_data.data, src_offset);
-        is_active = build_aabb(bounds, src_ptr, dst_ptr, args.geom_data.geometry_id, gl_GlobalInvocationID.x);
     } else {
         VOID_REF src_ptr = OFFSET(args.geom_data.data, src_offset);
-        /* arrayOfPointers */
-        if (args.geom_data.stride == 8) {
-            src_ptr = DEREF(REF(VOID_REF)(src_ptr));
-        }
-
-        is_active = build_instance(bounds, src_ptr, dst_ptr, gl_GlobalInvocationID.x);
+        is_active = build_aabb(bounds, src_ptr, dst_ptr, args.geom_data.geometry_id, gl_GlobalInvocationID.x);
     }
 
     if (!is_active)
@@ -110,10 +85,15 @@ void main() {
                       gl_StorageSemanticsBuffer,
                       gl_SemanticsAcquireRelease | gl_SemanticsMakeAvailable | gl_SemanticsMakeVisible);
 
-        radv_bvh_box32_node node = DEREF(REF(radv_bvh_box32_node)OFFSET(src_bvh, offset));
+        REF(radv_bvh_box32_node) src_node = REF(radv_bvh_box32_node)OFFSET(src_bvh, offset);
+        REF(radv_bvh_box32_node) dst_node = REF(radv_bvh_box32_node)OFFSET(dst_bvh, offset);
+        uint32_t children[4];
+        for (uint32_t i = 0; i < 4; ++i)
+            children[i] = DEREF(src_node).children[i];
+
         uint32_t valid_child_count = 0;
         for (uint32_t i = 0; i < 4; ++valid_child_count, ++i)
-            if (node.children[i] == RADV_BVH_INVALID_NODE)
+            if (children[i] == RADV_BVH_INVALID_NODE)
                 break;
 
         /* Check if all children have been processed. As this is an atomic the last path coming from
@@ -127,33 +107,37 @@ void main() {
         if (ready_child_count != valid_child_count - 1)
             break;
 
+        for (uint32_t i = 0; i < 4; ++i)
+            DEREF(dst_node).children[i] = children[i];
+
         for (uint32_t i = 0; i < valid_child_count; ++i) {
-            uint32_t child_offset = id_to_offset(node.children[i]);
+            uint32_t child_offset = id_to_offset(children[i]);
+            radv_aabb child_bounds;
             if (child_offset == dst_offset)
-                node.coords[i] = bounds;
+                child_bounds = bounds;
             else if (child_offset >= internal_nodes_offset) {
-                radv_aabb child_bounds = radv_aabb(vec3(INFINITY), vec3(-INFINITY));
-                radv_bvh_box32_node child_node = DEREF(REF(radv_bvh_box32_node)OFFSET(dst_bvh, child_offset));
+                child_bounds = radv_aabb(vec3(INFINITY), vec3(-INFINITY));
+                REF(radv_bvh_box32_node) child_node = REF(radv_bvh_box32_node)OFFSET(dst_bvh, child_offset);
                 for (uint32_t j = 0; j < 4; ++j) {
-                    if (child_node.children[j] == RADV_BVH_INVALID_NODE)
+                    if (DEREF(child_node).children[j] == RADV_BVH_INVALID_NODE)
                         break;
-                    child_bounds.min = min(child_bounds.min, child_node.coords[j].min);
-                    child_bounds.max = max(child_bounds.max, child_node.coords[j].max);
+                    child_bounds.min = min(child_bounds.min, DEREF(child_node).coords[j].min);
+                    child_bounds.max = max(child_bounds.max, DEREF(child_node).coords[j].max);
                 }
-                node.coords[i] = child_bounds;
             } else {
                 uint32_t child_index = (child_offset - first_leaf_offset) / leaf_node_size;
-                node.coords[i] = DEREF(INDEX(radv_aabb, args.leaf_bounds, child_index));
+                child_bounds = DEREF(INDEX(radv_aabb, args.leaf_bounds, child_index));
             }
-        }
 
-        DEREF(REF(radv_bvh_box32_node)OFFSET(dst_bvh, offset)) = node;
+            DEREF(dst_node).coords[i] = child_bounds;
+        }
 
         if (parent_id == RADV_BVH_ROOT_NODE) {
             radv_aabb root_bounds = radv_aabb(vec3(INFINITY), vec3(-INFINITY));
             for (uint32_t i = 0; i < valid_child_count; ++i) {
-                root_bounds.min = min(root_bounds.min, node.coords[i].min);
-                root_bounds.max = max(root_bounds.max, node.coords[i].max);
+                radv_aabb bounds = DEREF(dst_node).coords[i];
+                root_bounds.min = min(root_bounds.min, bounds.min);
+                root_bounds.max = max(root_bounds.max, bounds.max);
             }
             DEREF(args.dst).aabb = root_bounds;
         }

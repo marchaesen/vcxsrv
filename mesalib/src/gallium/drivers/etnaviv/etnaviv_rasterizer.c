@@ -25,8 +25,6 @@
 #include "etnaviv_context.h"
 #include "etnaviv_screen.h"
 
-#include "hw/common.xml.h"
-
 #include "etnaviv_translate.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
@@ -52,7 +50,7 @@ etna_rasterizer_state_create(struct pipe_context *pctx,
                    translate_polygon_mode(so->fill_front) |
                    COND(so->point_quad_rasterization, VIVS_PA_CONFIG_POINT_SPRITE_ENABLE) |
                    COND(so->point_size_per_vertex, VIVS_PA_CONFIG_POINT_SIZE_ENABLE) |
-                   COND(VIV_FEATURE(ctx->screen, chipMinorFeatures1, WIDE_LINE), VIVS_PA_CONFIG_WIDE_LINE);
+                   COND(VIV_FEATURE(ctx->screen, ETNA_FEATURE_WIDE_LINE), VIVS_PA_CONFIG_WIDE_LINE);
    cs->PA_LINE_WIDTH = fui(so->line_width / 2.0f);
    cs->PA_POINT_SIZE = fui(so->point_size / 2.0f);
    cs->SE_DEPTH_SCALE = fui(so->offset_scale);

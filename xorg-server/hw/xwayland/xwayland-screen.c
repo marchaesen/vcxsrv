@@ -25,6 +25,7 @@
 
 #include <xwayland-config.h>
 
+#include <math.h>
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
@@ -34,6 +35,9 @@
 #endif
 
 #include <X11/Xatom.h>
+
+#include "os/osdep.h"
+
 #include <micmap.h>
 #include <misyncshm.h>
 #include <os.h>
@@ -68,6 +72,7 @@
 #include "xdg-shell-client-protocol.h"
 #include "xwayland-shell-v1-client-protocol.h"
 #include "tearing-control-v1-client-protocol.h"
+#include "fractional-scale-v1-client-protocol.h"
 
 static DevPrivateKeyRec xwl_screen_private_key;
 static DevPrivateKeyRec xwl_client_private_key;
@@ -145,6 +150,18 @@ xwl_screen_get_fixed_or_first_output(struct xwl_screen *xwl_screen)
     return xwl_screen_get_first_output(xwl_screen);
 }
 
+int
+xwl_screen_get_width(struct xwl_screen *xwl_screen)
+{
+    return round(xwl_screen->width);
+}
+
+int
+xwl_screen_get_height(struct xwl_screen *xwl_screen)
+{
+    return round(xwl_screen->height);
+}
+
 static void
 xwl_property_callback(CallbackListPtr *pcbl, void *closure,
                       void *calldata)
@@ -219,9 +236,9 @@ xwl_close_screen(ScreenPtr screen)
     struct xwl_output *xwl_output, *next_xwl_output;
     struct xwl_seat *xwl_seat, *next_xwl_seat;
     struct xwl_wl_surface *xwl_wl_surface, *xwl_wl_surface_next;
-
+#ifdef XWL_HAS_GLAMOR
     xwl_dmabuf_feedback_destroy(&xwl_screen->default_feedback);
-
+#endif
     DeleteCallback(&PropertyStateCallback, xwl_property_callback, screen);
     XaceDeleteCallback(XACE_PROPERTY_ACCESS, xwl_access_property_callback, screen);
 
@@ -291,7 +308,7 @@ xwl_cursor_warped_to(DeviceIntPtr device,
 
     xwl_window = xwl_window_from_window(window);
     if (!xwl_window && xwl_seat->focus_window) {
-        focus = xwl_seat->focus_window->window;
+        focus = xwl_seat->focus_window->toplevel;
 
         /* Warps on non wl_surface backed Windows are only allowed
          * as long as the pointer stays within the focus window.
@@ -325,15 +342,15 @@ find_matching_input_output_window(struct xwl_screen *xwl_screen,
         /* When confining happens on InputOnly windows, work out the InputOutput
          * window that would be covered by its geometry.
          */
-        if (window->drawable.x < xwl_window->window->drawable.x ||
+        if (window->drawable.x < xwl_window->toplevel->drawable.x ||
             window->drawable.x + window->drawable.width >
-            xwl_window->window->drawable.x + xwl_window->window->drawable.width ||
-            window->drawable.y < xwl_window->window->drawable.y ||
+            xwl_window->toplevel->drawable.x + xwl_window->toplevel->drawable.width ||
+            window->drawable.y < xwl_window->toplevel->drawable.y ||
             window->drawable.y + window->drawable.height >
-            xwl_window->window->drawable.y + xwl_window->window->drawable.height)
+            xwl_window->toplevel->drawable.y + xwl_window->toplevel->drawable.height)
             continue;
 
-        if (xwl_window->window->drawable.class == InputOnly)
+        if (xwl_window->toplevel->drawable.class == InputOnly)
             continue;
 
         return xwl_window;
@@ -407,11 +424,6 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
         if (!xwl_window->allow_commits)
             continue;
 
-#ifdef XWL_HAS_GLAMOR
-        if (xwl_screen->glamor && !xwl_glamor_allow_commits(xwl_window))
-            continue;
-#endif
-
         xwl_window_post_damage(xwl_window);
         xorg_list_del(&xwl_window->link_damage);
         xorg_list_append(&xwl_window->link_damage, &commit_window_list);
@@ -421,7 +433,7 @@ xwl_screen_post_damage(struct xwl_screen *xwl_screen)
         return;
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_glamor_needs_buffer_flush(xwl_screen))
+    if (xwl_screen->glamor)
         glamor_block_handler(xwl_screen->screen);
 #endif
 
@@ -498,6 +510,10 @@ registry_global(void *data, struct wl_registry *registry, uint32_t id,
     else if (strcmp(interface, wp_tearing_control_manager_v1_interface.name) == 0) {
         xwl_screen->tearing_control_manager =
             wl_registry_bind(registry, id, &wp_tearing_control_manager_v1_interface, 1);
+    }
+    else if (strcmp(interface, wp_fractional_scale_manager_v1_interface.name) == 0) {
+        xwl_screen->fractional_scale_manager =
+            wl_registry_bind(registry, id, &wp_fractional_scale_manager_v1_interface, 1);
     }
 #ifdef XWL_HAS_GLAMOR
     else if (xwl_screen->glamor) {
@@ -749,6 +765,69 @@ xwl_screen_get_next_output_serial(struct xwl_screen *xwl_screen)
     return xwl_screen->output_name_serial++;
 }
 
+void
+xwl_screen_lost_focus(struct xwl_screen *xwl_screen)
+{
+    struct xwl_seat *xwl_seat;
+
+    xorg_list_for_each_entry(xwl_seat, &xwl_screen->seat_list, link) {
+        xwl_seat_leave_ptr(xwl_seat, TRUE);
+        xwl_seat_leave_kbd(xwl_seat);
+    }
+}
+
+Bool
+xwl_screen_should_use_fractional_scale(struct xwl_screen *xwl_screen)
+{
+    /* Fullscreen uses a viewport already */
+    if (xwl_screen->fullscreen)
+        return FALSE;
+
+    if (xwl_screen->rootless)
+        return FALSE;
+
+    /* We need both fractional scale and viewporter protocols */
+    if (!xwl_screen->fractional_scale_manager)
+        return FALSE;
+
+    if (!xwl_screen->viewporter)
+        return FALSE;
+
+    return xwl_screen->hidpi;
+}
+
+Bool
+xwl_screen_update_global_surface_scale(struct xwl_screen *xwl_screen)
+{
+    ScreenPtr screen = xwl_screen->screen;
+    struct xwl_window *xwl_window;
+    int32_t old_scale;
+
+    if (xwl_screen_should_use_fractional_scale(xwl_screen))
+        return FALSE;
+
+    if (xwl_screen->rootless)
+        return FALSE;
+
+    if (xwl_screen->fullscreen)
+        return FALSE;
+
+    if (!xwl_screen->hidpi)
+        return FALSE;
+
+    if (screen->root == NullWindow)
+        return FALSE;
+
+    xwl_window = xwl_window_get(screen->root);
+    if (!xwl_window)
+        return FALSE;
+
+    old_scale = xwl_screen->global_surface_scale;
+    xwl_screen->global_surface_scale = xwl_window_get_max_output_scale(xwl_window);
+
+    return (xwl_screen->global_surface_scale != old_scale);
+}
+
 Bool
 xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 {
@@ -758,9 +837,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     int ret, bpc, green_bpc, i;
     unsigned int xwl_width = 640;
     unsigned int xwl_height = 480;
-#ifdef XWL_HAS_GLAMOR
-    Bool use_eglstreams = FALSE;
-#endif
     Bool use_fixed_size = FALSE;
 
     if (!dixRegisterPrivateKey(&xwl_screen_private_key, PRIVATE_SCREEN, 0))
@@ -813,13 +889,6 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         else if (strcmp(argv[i], "-shm") == 0) {
             xwl_screen->glamor = XWL_GLAMOR_NONE;
         }
-        else if (strcmp(argv[i], "-eglstream") == 0) {
-#ifdef XWL_HAS_EGLSTREAM
-            use_eglstreams = TRUE;
-#else
-            ErrorF("Xwayland glamor: this build does not have EGLStream support\n");
-#endif
-        }
 #ifdef XWL_HAS_GLAMOR
         else if (strcmp(argv[i], "-glamor") == 0) {
             if (strncmp(argv[i + 1], "es", 2) == 0)
@@ -869,6 +938,12 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
             ErrorF("This build does not have XDG portal support\n");
 #endif
         }
+        else if (strcmp(argv[i], "-nokeymap") == 0) {
+            xwl_screen->nokeymap = 1;
+        }
+        else if (strcmp(argv[i], "-hidpi") == 0) {
+            xwl_screen->hidpi = 1;
+        }
     }
 
     if (!xwl_screen->rootless) {
@@ -881,8 +956,10 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     }
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor)
-        xwl_glamor_init_backends(xwl_screen, use_eglstreams);
+    if (xwl_screen->glamor && !xwl_glamor_init_gbm(xwl_screen)) {
+        ErrorF("xwayland glamor: failed to setup GBM backend, falling back to sw accel\n");
+        xwl_screen->glamor = 0;
+    }
 #endif
 
     /* In rootless mode, we don't have any screen storage, and the only
@@ -901,6 +978,7 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xorg_list_init(&xwl_screen->drm_leases);
     xorg_list_init(&xwl_screen->pending_wl_surface_destroy);
     xwl_screen->depth = 24;
+    xwl_screen->global_surface_scale = 1;
 
     if (!monitorResolution)
         monitorResolution = DEFAULT_DPI;
@@ -965,7 +1043,8 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     miSetPixmapDepths();
 
     ret = fbScreenInit(pScreen, NULL,
-                       xwl_screen->width, xwl_screen->height,
+                       xwl_screen_get_width(xwl_screen),
+                       xwl_screen_get_height(xwl_screen),
                        monitorResolution, monitorResolution, 0,
                        BitsPerPixel(xwl_screen->depth));
     if (!ret)
@@ -1004,19 +1083,13 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
         return FALSE;
 
 #ifdef XWL_HAS_GLAMOR
-    if (xwl_screen->glamor) {
-        xwl_glamor_select_backend(xwl_screen, use_eglstreams);
-
-        if (xwl_screen->egl_backend == NULL || !xwl_glamor_init(xwl_screen)) {
-           ErrorF("Failed to initialize glamor, falling back to sw\n");
-           xwl_screen->glamor = XWL_GLAMOR_NONE;
-        }
+    if (xwl_screen->glamor && !xwl_glamor_init(xwl_screen)) {
+       ErrorF("Failed to initialize glamor, falling back to sw\n");
+       xwl_screen->glamor = XWL_GLAMOR_NONE;
     }
-#ifdef GLAMOR_HAS_GBM
-    if (xwl_screen->glamor && xwl_screen->rootless)
-        xwl_screen->present = xwl_present_init(pScreen);
-#endif /* GLAMOR_HAS_GBM */
-#endif /* XWL_HAS_GLAMOR */
+#endif
+
+    xwl_screen->present = xwl_present_init(pScreen);
 
     if (!xwl_screen->glamor) {
         xwl_screen->CreateScreenResources = pScreen->CreateScreenResources;
@@ -1040,8 +1113,11 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
     xwl_screen->ChangeWindowAttributes = pScreen->ChangeWindowAttributes;
     pScreen->ChangeWindowAttributes = xwl_change_window_attributes;
 
-    xwl_screen->ResizeWindow = pScreen->ResizeWindow;
-    pScreen->ResizeWindow = xwl_resize_window;
+    xwl_screen->ClipNotify = pScreen->ClipNotify;
+    pScreen->ClipNotify = xwl_clip_notify;
+
+    xwl_screen->ConfigNotify = pScreen->ConfigNotify;
+    pScreen->ConfigNotify = xwl_config_notify;
 
     xwl_screen->MoveWindow = pScreen->MoveWindow;
     pScreen->MoveWindow = xwl_move_window;

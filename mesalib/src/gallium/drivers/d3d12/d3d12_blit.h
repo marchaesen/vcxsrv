@@ -32,6 +32,9 @@ void
 d3d12_context_blit_init(struct pipe_context *ctx);
 
 void
+d3d12_context_copy_init(struct pipe_context *ctx);
+
+void
 d3d12_direct_copy(struct d3d12_context *ctx,
                   struct d3d12_resource *dst,
                   unsigned dst_level,
@@ -39,5 +42,13 @@ d3d12_direct_copy(struct d3d12_context *ctx,
                   struct d3d12_resource *src,
                   unsigned src_level,
                   const struct pipe_box *psrc_box, unsigned mask);
+
+struct pipe_resource *
+create_staging_resource(struct d3d12_context *ctx,
+                        struct d3d12_resource *src,
+                        unsigned src_level,
+                        const struct pipe_box *src_box,
+                        struct pipe_box *dst_box,
+                        unsigned mask);
 
 #endif // D3D12_BLIT_H

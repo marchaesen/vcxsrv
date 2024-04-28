@@ -23,7 +23,7 @@
 
 #include "pipe/p_screen.h"
 
-#include "util/u_box.h"
+#include "util/box.h"
 #include "util/format/u_format.h"
 #include "util/format/u_format_zs.h"
 #include "util/u_inlines.h"

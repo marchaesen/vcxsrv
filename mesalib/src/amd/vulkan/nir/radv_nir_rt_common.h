@@ -1,24 +1,7 @@
 /*
  * Copyright © 2021 Google
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef RADV_RT_COMMON_H
@@ -30,7 +13,7 @@
 
 #include "compiler/spirv/spirv.h"
 
-#include "radv_private.h"
+struct radv_device;
 
 nir_def *build_addr_to_node(nir_builder *b, nir_def *addr);
 
@@ -118,6 +101,9 @@ struct radv_ray_traversal_vars {
    /* Information about the current instance used for culling. */
    nir_deref_instr *instance_addr;
    nir_deref_instr *sbt_offset_and_flags;
+
+   /* Statistics. Iteration count in the low 16 bits, candidate instance counts in the high 16 bits. */
+   nir_deref_instr *iteration_instance_count;
 };
 
 struct radv_ray_traversal_args {
@@ -135,6 +121,9 @@ struct radv_ray_traversal_args {
    uint32_t stack_stride;
    uint32_t stack_entries;
    uint32_t stack_base;
+
+   uint32_t set_flags;
+   uint32_t unset_flags;
 
    bool ignore_cull_mask;
 
@@ -158,4 +147,4 @@ struct radv_ray_traversal_args {
 nir_def *radv_build_ray_traversal(struct radv_device *device, nir_builder *b,
                                   const struct radv_ray_traversal_args *args);
 
-#endif
+#endif /* RADV_NIR_RT_COMMON_H */

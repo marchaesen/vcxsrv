@@ -294,7 +294,7 @@ static uint32_t pvr_encode_direct_write(
 #define RESERVE_32BIT 1U
 #define RESERVE_64BIT 2U
 
-#if defined(DEBUG)
+#if MESA_DEBUG
 #   define pvr_find_constant(usage, words, name) \
       pvr_find_constant2(usage, words, name)
 #   define pvr_get_temps(usage, words, name) pvr_get_temps2(usage, words, name)

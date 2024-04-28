@@ -23,10 +23,17 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "util/u_dynarray.h"
 #include "d3d12_compiler.h"
 #include "d3d12_nir_passes.h"
 #include "dxil_nir.h"
 #include "program/prog_statevars.h"
+
+struct output_writes {
+   nir_def *val;
+   nir_deref_instr *deref;
+   unsigned write_mask;
+};
 
 struct lower_state {
    nir_variable *uniform; /* (1/w, 1/h, pt_sz, max_sz) */
@@ -34,7 +41,6 @@ struct lower_state {
    nir_variable *psiz_out;
    nir_variable *point_coord_out[10];
    unsigned num_point_coords;
-   nir_variable *varying_out[VARYING_SLOT_MAX];
 
    nir_def *point_dir_imm[4];
    nir_def *point_coord_imm[4];
@@ -42,8 +48,8 @@ struct lower_state {
    /* Current point primitive */
    nir_def *point_pos;
    nir_def *point_size;
-   nir_def *varying[VARYING_SLOT_MAX];
-   unsigned varying_write_mask[VARYING_SLOT_MAX];
+
+   struct util_dynarray output_writes;
 
    bool sprite_origin_lower_left;
    bool point_size_per_vertex;
@@ -60,9 +66,6 @@ find_outputs(nir_shader *shader, struct lower_state *state)
          break;
       case VARYING_SLOT_PSIZ:
          state->psiz_out = var;
-         break;
-      default:
-         state->varying_out[var->data.location] = var;
          break;
       }
    }
@@ -140,10 +143,15 @@ lower_store(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state *stat
       case VARYING_SLOT_PSIZ:
          state->point_size = instr->src[1].ssa;
          break;
-      default:
-         state->varying[var->data.location] = instr->src[1].ssa;
-         state->varying_write_mask[var->data.location] = nir_intrinsic_write_mask(instr);
-         break;
+      default: {
+            struct output_writes data = {
+               .val = instr->src[1].ssa,
+               .deref = nir_src_as_deref(instr->src[0]),
+               .write_mask = nir_intrinsic_write_mask(instr),
+            };
+            util_dynarray_append(&state->output_writes, struct output_writes, data);
+            break;
+         }
       }
 
       nir_instr_remove(&instr->instr);
@@ -165,11 +173,8 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
    if (stream_id == 0) {
       for (unsigned i = 0; i < 4; i++) {
          /* All outputs need to be emitted for each vertex */
-         for (unsigned slot = 0; slot < VARYING_SLOT_MAX; ++slot) {
-            if (state->varying[slot] != NULL) {
-               nir_store_var(b, state->varying_out[slot], state->varying[slot],
-                             state->varying_write_mask[slot]);
-            }
+         util_dynarray_foreach(&state->output_writes, struct output_writes, data) {
+            nir_store_deref(b, data->deref, data->val, data->write_mask);
          }
 
          /* pos = scaled_point_size * point_dir + point_pos */
@@ -206,8 +211,7 @@ lower_emit_vertex(nir_intrinsic_instr *instr, nir_builder *b, struct lower_state
    /* Reset everything */
    state->point_pos = NULL;
    state->point_size = NULL;
-   for (unsigned i = 0; i < VARYING_SLOT_MAX; ++i)
-      state->varying[i] = NULL;
+   util_dynarray_clear(&state->output_writes);
 
    return true;
 }
@@ -239,6 +243,7 @@ d3d12_lower_point_sprite(nir_shader *shader,
    const gl_state_index16 tokens[4] = { STATE_INTERNAL_DRIVER,
                                         D3D12_STATE_VAR_PT_SPRITE };
    struct lower_state state;
+   util_dynarray_init(&state.output_writes, shader);
    bool progress = false;
 
    assert(shader->info.gs.output_primitive == MESA_PRIM_POINTS);
@@ -280,10 +285,6 @@ d3d12_lower_point_sprite(nir_shader *shader,
    }
 
    state.num_point_coords = count;
-   if (count) {
-      dxil_reassign_driver_locations(shader, nir_var_shader_out,
-                                     next_inputs_read);
-   }
 
    nir_foreach_function_impl(impl, shader) {
       nir_builder builder = nir_builder_create(impl);
@@ -300,6 +301,7 @@ d3d12_lower_point_sprite(nir_shader *shader,
                                   nir_metadata_dominance);
    }
 
+   util_dynarray_fini(&state.output_writes);
    shader->info.gs.output_primitive = MESA_PRIM_TRIANGLE_STRIP;
    shader->info.gs.vertices_out = shader->info.gs.vertices_out * 4 /
       util_bitcount(shader->info.gs.active_stream_mask);

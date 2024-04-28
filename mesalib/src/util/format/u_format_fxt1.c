@@ -23,9 +23,9 @@
  *
  **************************************************************************/
 
+#include "u_format_pack.h"
 #include "util/format/u_format.h"
 #include "util/format/u_format_fxt1.h"
-#include "util/format/u_format_pack.h"
 #include "util/format_srgb.h"
 #include "util/u_math.h"
 

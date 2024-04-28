@@ -1,24 +1,7 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "iunknown.h"
 #include "util/u_atomic.h"
@@ -48,6 +31,7 @@ NineUnknown_ctor( struct NineUnknown *This,
         This->forward = false;
         This->bind = 0;
     }
+    This->has_bind_or_refs = This->bind + This->refs;
 
     This->container = pParams->container;
     This->device = pParams->device;
@@ -119,6 +103,7 @@ NineUnknown_AddRef( struct NineUnknown *This )
         r = p_atomic_inc_return(&This->refs);
 
     if (r == 1) {
+        p_atomic_inc(&This->has_bind_or_refs);
         if (This->device)
             NineUnknown_AddRef(NineUnknown(This->device));
     }
@@ -142,9 +127,11 @@ NineUnknown_Release( struct NineUnknown *This )
 
     if (r == 0) {
         struct NineDevice9 *device = This->device;
+        UINT b_or_ref = p_atomic_dec_return(&This->has_bind_or_refs);
         /* Containers (here with !forward) take care of item destruction */
 
-        if (!This->container && This->bind == 0) {
+        if (!This->container && b_or_ref == 0) {
+            assert(p_atomic_read(&This->bind) == 0);
             This->dtor(This);
         }
         if (device) {
@@ -166,8 +153,10 @@ NineUnknown_ReleaseWithDtorLock( struct NineUnknown *This )
 
     if (r == 0) {
         struct NineDevice9 *device = This->device;
+        UINT b_or_ref = p_atomic_dec_return(&This->has_bind_or_refs);
         /* Containers (here with !forward) take care of item destruction */
-        if (!This->container && This->bind == 0) {
+        if (!This->container && b_or_ref == 0) {
+            assert(p_atomic_read(&This->bind) == 0);
             NineLockGlobalMutex();
             This->dtor(This);
             NineUnlockGlobalMutex();

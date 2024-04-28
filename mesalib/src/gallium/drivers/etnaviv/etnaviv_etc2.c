@@ -28,7 +28,6 @@
 #include "etnaviv_etc2.h"
 #include "etnaviv_resource.h"
 #include "etnaviv_screen.h"
-#include "hw/common.xml.h"
 #include "util/format/u_format.h"
 
 bool
@@ -39,7 +38,7 @@ etna_etc2_needs_patching(const struct pipe_resource *prsc)
    if (!util_format_is_etc(prsc->format))
       return false;
 
-   if (VIV_FEATURE(screen, chipMinorFeatures2, HALTI1))
+   if (VIV_FEATURE(screen, ETNA_FEATURE_HALTI1))
       return false;
 
    switch (prsc->format) {

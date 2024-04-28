@@ -210,7 +210,7 @@ err_out:
 void pvr_border_color_table_finish(struct pvr_border_color_table *const table,
                                    struct pvr_device *const device)
 {
-#if defined(DEBUG)
+#if MESA_DEBUG
    BITSET_SET_RANGE_INSIDE_WORD(table->unused_entries,
                                 0,
                                 PVR_BORDER_COLOR_TABLE_NR_BUILTIN_ENTRIES - 1);

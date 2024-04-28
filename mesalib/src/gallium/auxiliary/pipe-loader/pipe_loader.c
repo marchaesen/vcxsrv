@@ -169,11 +169,12 @@ pipe_loader_get_driinfo_xml(const char *driver_name)
 }
 
 struct pipe_screen *
-pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk)
+pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk, bool implicit)
 {
    struct pipe_screen_config config;
 
    pipe_loader_load_options(dev);
+   config.implicit_driver_load = implicit;
    config.options_info = &dev->option_info;
    config.options = &dev->option_cache;
 
@@ -181,9 +182,9 @@ pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk)
 }
 
 struct pipe_screen *
-pipe_loader_create_screen(struct pipe_loader_device *dev)
+pipe_loader_create_screen(struct pipe_loader_device *dev, bool implicit)
 {
-   return pipe_loader_create_screen_vk(dev, false);
+   return pipe_loader_create_screen_vk(dev, false, implicit);
 }
 
 struct util_dl_library *

@@ -1,24 +1,7 @@
 /*
  * Copyright 2009 Nicolai Hähnle <nhaehnle@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "radeon_compiler.h"
 
@@ -97,7 +80,7 @@ static void rc_convert_rgb_alpha(struct radeon_compiler *c, void *user)
 			continue;
 		}
 
-		/* Only rewrite scalar opcodes that are used separatelly for now. */
+		/* Only rewrite scalar opcodes that are used separately for now. */
 		if (var->Friend)
 			continue;
 
@@ -138,6 +121,12 @@ void r3xx_compile_fragment_program(struct r300_fragment_program_compiler* c)
 		{ NULL, NULL }
 	};
 
+	struct radeon_program_transformation opt_presubtract[] = {
+                { &rc_opt_presubtract, NULL },
+                { NULL, NULL }
+        };
+
+
 	/* List of compiler passes. */
 	struct radeon_compiler_pass fs_list[] = {
 		/* NAME				DUMP PREDICATE	FUNCTION			PARAM */
@@ -154,6 +143,7 @@ void r3xx_compile_fragment_program(struct r300_fragment_program_compiler* c)
 		{"inline literals",		1, is_r500 && opt,		rc_inline_literals,			NULL},
 		{"dataflow swizzles",		1, 1,		rc_dataflow_swizzles,		NULL},
 		{"dead constants",		1, 1,		rc_remove_unused_constants,	&c->code->constants_remap_table},
+		{"dataflow presubtract",	1, opt,		rc_local_transform,		opt_presubtract},
 		{"pair translate",		1, 1,		rc_pair_translate,		NULL},
 		{"pair scheduling",		1, 1,		rc_pair_schedule,		&opt},
 		{"dead sources",		1, 1,		rc_pair_remove_dead_sources, NULL},

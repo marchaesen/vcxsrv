@@ -32,8 +32,8 @@
 #include <stdbool.h>
 #include "genxml/gen_macros.h"
 #include "util/format/u_format.h"
-#include "pan_bo.h"
-#include "pan_device.h"
+
+#include "pan_pool.h"
 
 /* Tiler structure size computation */
 
@@ -48,14 +48,12 @@ unsigned panfrost_choose_hierarchy_mask(unsigned width, unsigned height,
 
 #if defined(PAN_ARCH) && PAN_ARCH <= 5
 static inline unsigned
-panfrost_tiler_get_polygon_list_size(const struct panfrost_device *dev,
-                                     unsigned fb_width, unsigned fb_height,
-                                     unsigned vertex_count)
+panfrost_tiler_get_polygon_list_size(unsigned fb_width, unsigned fb_height,
+                                     unsigned vertex_count, bool hierarchy)
 {
    if (!vertex_count)
       return MALI_MIDGARD_TILER_MINIMUM_HEADER_SIZE + 4;
 
-   bool hierarchy = !dev->model->quirks.no_hierarchical_tiling;
    unsigned hierarchy_mask = panfrost_choose_hierarchy_mask(
       fb_width, fb_height, vertex_count, hierarchy);
 

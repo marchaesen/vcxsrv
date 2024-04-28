@@ -2250,22 +2250,26 @@ pvr_create_renderpass_state(const VkGraphicsPipelineCreateInfo *const info)
    const struct pvr_render_subpass *const subpass =
       &pass->subpasses[info->subpass];
 
-   VkImageAspectFlags attachment_aspects = VK_IMAGE_ASPECT_NONE;
+   enum vk_rp_attachment_flags attachments = 0;
 
    assert(info->subpass < pass->subpass_count);
 
    for (uint32_t i = 0; i < subpass->color_count; i++) {
-      attachment_aspects |=
-         pass->attachments[subpass->color_attachments[i]].aspects;
+      if (pass->attachments[subpass->color_attachments[i]].aspects)
+         attachments |= MESA_VK_RP_ATTACHMENT_COLOR_0_BIT << i;
    }
 
    if (subpass->depth_stencil_attachment != VK_ATTACHMENT_UNUSED) {
-      attachment_aspects |=
+      VkImageAspectFlags ds_aspects =
          pass->attachments[subpass->depth_stencil_attachment].aspects;
+      if (ds_aspects & VK_IMAGE_ASPECT_DEPTH_BIT)
+         attachments |= MESA_VK_RP_ATTACHMENT_DEPTH_BIT;
+      if (ds_aspects & VK_IMAGE_ASPECT_STENCIL_BIT)
+         attachments |= MESA_VK_RP_ATTACHMENT_STENCIL_BIT;
    }
 
    return (struct vk_render_pass_state){
-      .attachment_aspects = attachment_aspects,
+      .attachments = attachments,
 
       /* TODO: This is only needed for VK_KHR_create_renderpass2 (or core 1.2),
        * which is not currently supported.

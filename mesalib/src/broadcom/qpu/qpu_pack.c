@@ -721,6 +721,10 @@ static const struct opcode_desc add_ops_v71[] = {
         { 188, 188, .raddr_mask = OP_MASK(35), V3D_QPU_A_LOG, 71 },
         { 188, 188, .raddr_mask = OP_MASK(36), V3D_QPU_A_SIN, 71 },
         { 188, 188, .raddr_mask = OP_MASK(37), V3D_QPU_A_RSQRT2, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(38), V3D_QPU_A_BALLOT, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(39), V3D_QPU_A_BCASTF, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(40), V3D_QPU_A_ALLEQ, 71 },
+        { 188, 188, .raddr_mask = OP_MASK(41), V3D_QPU_A_ALLFEQ, 71 },
 
         { 189, 189, .raddr_mask = ANYOPMASK, V3D_QPU_A_LDVPMG_IN, 71 },
 
@@ -802,6 +806,10 @@ static const struct opcode_desc add_ops_v71[] = {
 
         { 250, 250, .raddr_mask = ANYOPMASK, V3D_QPU_A_V10PACK, 71 },
         { 251, 251, .raddr_mask = ANYOPMASK, V3D_QPU_A_V11FPACK, 71 },
+
+        { 252, 252, .raddr_mask = ANYOPMASK, V3D_QPU_A_ROTQ, 71 },
+        { 253, 253, .raddr_mask = ANYOPMASK, V3D_QPU_A_ROT, 71 },
+        { 254, 254, .raddr_mask = ANYOPMASK, V3D_QPU_A_SHUFFLE, 71 },
 };
 
 static const struct opcode_desc mul_ops_v71[] = {

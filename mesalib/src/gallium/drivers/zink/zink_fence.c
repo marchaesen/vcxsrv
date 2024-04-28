@@ -185,7 +185,12 @@ zink_fence_finish(struct zink_screen *screen, struct pipe_context *pctx, struct 
    if (submit_diff > 1)
       return true;
 
-   if (fence->submitted && zink_screen_check_last_finished(screen, fence->batch_id))
+   /* - if fence is submitted, batch_id is nonzero and can be checked
+    * - if fence is not submitted here, it must be reset; batch_id will be 0 and submitted is false
+    * in either case, the fence has finished
+    */
+   if ((fence->submitted && zink_screen_check_last_finished(screen, fence->batch_id)) ||
+       (!fence->submitted && submit_diff))
       return true;
 
    return fence_wait(screen, fence, timeout_ns);

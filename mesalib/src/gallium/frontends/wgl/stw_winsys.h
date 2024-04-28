@@ -63,6 +63,10 @@ struct stw_winsys_framebuffer
    struct pipe_resource *
    (*get_resource)(struct stw_winsys_framebuffer *fb,
                    enum st_attachment_type statt);
+
+   void
+   (*flush_frontbuffer)(struct stw_winsys_framebuffer *fb,
+                        struct pipe_context *context);
 };
 
 struct stw_winsys

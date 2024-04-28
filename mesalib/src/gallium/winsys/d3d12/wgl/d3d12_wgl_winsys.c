@@ -47,7 +47,7 @@ d3d12_wgl_present(struct pipe_screen *screen,
                   struct pipe_resource *res,
                   HDC hDC)
 {
-   screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, NULL);
+   screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, 0, NULL);
 }
 
 unsigned

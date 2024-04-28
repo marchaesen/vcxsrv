@@ -17,14 +17,14 @@
 static VKAPI_ATTR PFN_vkVoidFunction VKAPI_CALL
 tu_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
-   TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
    return vk_instance_get_proc_addr_unchecked(&pdevice->instance->vk, pName);
 }
 
 static bool
 tu_wsi_can_present_on_device(VkPhysicalDevice physicalDevice, int fd)
 {
-   TU_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, pdevice, physicalDevice);
 
    return wsi_common_drm_devices_equal(fd, pdevice->local_fd);
 }

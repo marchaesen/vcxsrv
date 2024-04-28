@@ -27,7 +27,6 @@
 #include "compiler/nir/nir_builder.h"
 #include "util/macros.h"
 #include "util/u_memory.h"
-#include "pan_bo.h"
 #include "pan_encoder.h"
 #include "pan_jc.h"
 #include "pan_pool.h"
@@ -40,20 +39,8 @@
       nir_imm_int(b, 0),                                                       \
       .base = offsetof(struct pan_indirect_dispatch_info, name))
 
-static mali_ptr
-get_rsd(const struct panfrost_device *dev)
-{
-   return dev->indirect_dispatch.descs->ptr.gpu;
-}
-
-static mali_ptr
-get_tls(const struct panfrost_device *dev)
-{
-   return dev->indirect_dispatch.descs->ptr.gpu + pan_size(RENDERER_STATE);
-}
-
 static void
-pan_indirect_dispatch_init(struct panfrost_device *dev)
+pan_indirect_dispatch_init(struct pan_indirect_dispatch_meta *meta)
 {
    nir_builder b = nir_builder_init_simple_shader(
       MESA_SHADER_COMPUTE, GENX(pan_shader_get_compiler_options)(), "%s",
@@ -121,7 +108,7 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
    nir_pop_if(&b, NULL);
 
    struct panfrost_compile_inputs inputs = {
-      .gpu_id = panfrost_device_gpu_id(dev),
+      .gpu_id = meta->gpu_id,
       .no_ubo_to_push = true,
    };
    struct pan_shader_info shader_info;
@@ -139,40 +126,40 @@ pan_indirect_dispatch_init(struct panfrost_device *dev)
    shader_info.push.count =
       DIV_ROUND_UP(sizeof(struct pan_indirect_dispatch_info), 4);
 
-   dev->indirect_dispatch.bin = panfrost_bo_create(
-      dev, binary.size, PAN_BO_EXECUTE, "Indirect dispatch shader");
+   struct panfrost_ptr bin =
+      pan_pool_alloc_aligned(meta->bin_pool, binary.size, 64);
 
-   memcpy(dev->indirect_dispatch.bin->ptr.cpu, binary.data, binary.size);
+   memcpy(bin.cpu, binary.data, binary.size);
    util_dynarray_fini(&binary);
 
-   dev->indirect_dispatch.descs = panfrost_bo_create(
-      dev, pan_size(RENDERER_STATE) + pan_size(LOCAL_STORAGE), 0,
-      "Indirect dispatch descriptors");
+   struct panfrost_ptr rsd =
+      pan_pool_alloc_desc(meta->desc_pool, RENDERER_STATE);
+   struct panfrost_ptr tsd =
+      pan_pool_alloc_desc(meta->desc_pool, LOCAL_STORAGE);
 
-   mali_ptr address = dev->indirect_dispatch.bin->ptr.gpu;
-
-   void *rsd = dev->indirect_dispatch.descs->ptr.cpu;
-   pan_pack(rsd, RENDERER_STATE, cfg) {
-      pan_shader_prepare_rsd(&shader_info, address, &cfg);
+   pan_pack(rsd.cpu, RENDERER_STATE, cfg) {
+      pan_shader_prepare_rsd(&shader_info, bin.gpu, &cfg);
    }
 
-   void *tsd = dev->indirect_dispatch.descs->ptr.cpu + pan_size(RENDERER_STATE);
-   pan_pack(tsd, LOCAL_STORAGE, ls) {
+   pan_pack(tsd.cpu, LOCAL_STORAGE, ls) {
       ls.wls_instances = MALI_LOCAL_STORAGE_NO_WORKGROUP_MEM;
    };
+
+   meta->rsd = rsd.gpu;
+   meta->tsd = tsd.gpu;
 }
 
 unsigned
-GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool, struct pan_jc *jc,
+GENX(pan_indirect_dispatch_emit)(struct pan_indirect_dispatch_meta *meta,
+                                 struct pan_pool *pool, struct pan_jc *jc,
                                  const struct pan_indirect_dispatch_info *inputs)
 {
-   struct panfrost_device *dev = pool->dev;
    struct panfrost_ptr job = pan_pool_alloc_desc(pool, COMPUTE_JOB);
    void *invocation = pan_section_ptr(job.cpu, COMPUTE_JOB, INVOCATION);
 
    /* If we haven't compiled the indirect dispatch shader yet, do it now */
-   if (!dev->indirect_dispatch.bin)
-      pan_indirect_dispatch_init(dev);
+   if (!meta->rsd)
+      pan_indirect_dispatch_init(meta);
 
    panfrost_pack_work_groups_compute(invocation, 1, 1, 1, 1, 1, 1, false,
                                      false);
@@ -182,19 +169,12 @@ GENX(pan_indirect_dispatch_emit)(struct pan_pool *pool, struct pan_jc *jc,
    }
 
    pan_section_pack(job.cpu, COMPUTE_JOB, DRAW, cfg) {
-      cfg.state = get_rsd(dev);
-      cfg.thread_storage = get_tls(pool->dev);
+      cfg.state = meta->rsd;
+      cfg.thread_storage = meta->tsd;
       cfg.push_uniforms =
          pan_pool_upload_aligned(pool, inputs, sizeof(*inputs), 16);
    }
 
    return pan_jc_add_job(pool, jc, MALI_JOB_TYPE_COMPUTE, false, true, 0, 0,
                          &job, false);
-}
-
-void
-GENX(pan_indirect_dispatch_cleanup)(struct panfrost_device *dev)
-{
-   panfrost_bo_unreference(dev->indirect_dispatch.bin);
-   panfrost_bo_unreference(dev->indirect_dispatch.descs);
 }

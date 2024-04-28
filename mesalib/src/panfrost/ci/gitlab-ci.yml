@@ -232,6 +232,7 @@ panfrost-g52-gl:arm64:
     PAN_MESA_DEBUG: "deqp,sync,indirect"
 
 panfrost-g52-vk:arm64:
+  parallel: 2
   extends:
     - .lava-test-deqp:arm64
     - .panfrost-bifrost-rules
@@ -241,8 +242,9 @@ panfrost-g52-vk:arm64:
   variables:
     MESA_VK_IGNORE_CONFORMANCE_WARNING: 1
     PAN_I_WANT_A_BROKEN_VULKAN_DRIVER: 1
-    PANVK_DEBUG: no_known_warn
+    PANVK_DEBUG: "no_known_warn,sync"
     DEQP_SUITE: panfrost-g52-vk
+    HWCI_START_WESTON: 1
 
 panfrost-g52-piglit-gles2:arm64:
   extends:

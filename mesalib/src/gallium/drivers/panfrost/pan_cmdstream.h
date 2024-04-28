@@ -40,7 +40,7 @@
 
 #include "util/u_prim.h"
 
-#define PAN_GPU_INDIRECTS (PAN_ARCH == 7)
+#define PAN_GPU_INDIRECTS (PAN_ARCH == 7 || PAN_ARCH >= 10)
 
 struct panfrost_rasterizer {
    struct pipe_rasterizer_state base;
@@ -273,7 +273,7 @@ panfrost_emit_resources(struct panfrost_batch *batch,
 {
    struct panfrost_context *ctx = batch->ctx;
    struct panfrost_ptr T;
-   unsigned nr_tables = 12;
+   unsigned nr_tables = PAN_NUM_RESOURCE_TABLES;
 
    /* Although individual resources need only 16 byte alignment, the
     * resource table as a whole must be 64-byte aligned.

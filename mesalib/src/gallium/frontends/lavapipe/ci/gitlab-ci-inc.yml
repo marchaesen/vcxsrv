@@ -30,5 +30,7 @@
   variables:
     GPU_VERSION: lvp
     VK_DRIVER: lvp
+    DEQP_VER: vk
     DEQP_EXPECTED_RENDERER: llvmpipe
     LVP_POISON_MEMORY: "1"
+    HWCI_START_WESTON: 1

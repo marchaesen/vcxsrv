@@ -34,7 +34,9 @@ struct renderonly;
 struct renderonly_scanout;
 struct winsys_handle;
 
-struct pipe_screen *panfrost_drm_screen_create(int drmFD);
+struct pipe_screen *
+panfrost_drm_screen_create(int drmFD,
+                           const struct pipe_screen_config *config);
 struct pipe_screen *
 panfrost_drm_screen_create_renderonly(int fd, struct renderonly *ro,
                                       const struct pipe_screen_config *config);

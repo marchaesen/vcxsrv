@@ -25,7 +25,9 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "panvk_private.h"
+#include "panvk_wsi.h"
+#include "panvk_instance.h"
+#include "panvk_physical_device.h"
 
 #include "vk_util.h"
 #include "wsi_common.h"
@@ -34,19 +36,23 @@ static VKAPI_PTR PFN_vkVoidFunction
 panvk_wsi_proc_addr(VkPhysicalDevice physicalDevice, const char *pName)
 {
    VK_FROM_HANDLE(panvk_physical_device, pdevice, physicalDevice);
-   return vk_instance_get_proc_addr_unchecked(&pdevice->instance->vk, pName);
+   struct panvk_instance *instance = to_panvk_instance(pdevice->vk.instance);
+
+   return vk_instance_get_proc_addr_unchecked(&instance->vk, pName);
 }
 
 VkResult
 panvk_wsi_init(struct panvk_physical_device *physical_device)
 {
+   struct panvk_instance *instance =
+      to_panvk_instance(physical_device->vk.instance);
    VkResult result;
 
-   result = wsi_device_init(
-      &physical_device->wsi_device,
-      panvk_physical_device_to_handle(physical_device), panvk_wsi_proc_addr,
-      &physical_device->instance->vk.alloc, physical_device->master_fd, NULL,
-      &(struct wsi_device_options){.sw_device = false});
+   result = wsi_device_init(&physical_device->wsi_device,
+                            panvk_physical_device_to_handle(physical_device),
+                            panvk_wsi_proc_addr, &instance->vk.alloc,
+                            physical_device->master_fd, NULL,
+                            &(struct wsi_device_options){.sw_device = false});
    if (result != VK_SUCCESS)
       return result;
 
@@ -60,7 +66,9 @@ panvk_wsi_init(struct panvk_physical_device *physical_device)
 void
 panvk_wsi_finish(struct panvk_physical_device *physical_device)
 {
+   struct panvk_instance *instance =
+      to_panvk_instance(physical_device->vk.instance);
+
    physical_device->vk.wsi_device = NULL;
-   wsi_device_finish(&physical_device->wsi_device,
-                     &physical_device->instance->vk.alloc);
+   wsi_device_finish(&physical_device->wsi_device, &instance->vk.alloc);
 }

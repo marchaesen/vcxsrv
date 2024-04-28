@@ -412,7 +412,7 @@ _mesa_dump_textures(GLuint writeImages)
 {
    GET_CURRENT_CONTEXT(ctx);
    WriteImages = writeImages;
-   _mesa_HashWalk(ctx->Shared->TexObjects, dump_texture_cb, ctx);
+   _mesa_HashWalk(&ctx->Shared->TexObjects, dump_texture_cb, ctx);
 }
 
 
@@ -445,7 +445,7 @@ _mesa_dump_renderbuffers(GLboolean writeImages)
 {
    GET_CURRENT_CONTEXT(ctx);
    WriteImages = writeImages;
-   _mesa_HashWalk(ctx->Shared->RenderBuffers, dump_renderbuffer_cb, ctx);
+   _mesa_HashWalk(&ctx->Shared->RenderBuffers, dump_renderbuffer_cb, ctx);
 }
 
 

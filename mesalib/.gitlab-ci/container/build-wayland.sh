@@ -3,8 +3,17 @@
 
 set -ex
 
+# When changing this file, you need to bump the following
+# .gitlab-ci/image-tags.yml tags:
+# DEBIAN_BUILD_TAG
+# DEBIAN_X86_64_TEST_ANDROID_TAG
+# DEBIAN_X86_64_TEST_GL_TAG
+# DEBIAN_X86_64_TEST_VK_TAG
+# FEDORA_X86_64_BUILD_TAG
+# KERNEL_ROOTFS_TAG
+
 export LIBWAYLAND_VERSION="1.21.0"
-export WAYLAND_PROTOCOLS_VERSION="1.31"
+export WAYLAND_PROTOCOLS_VERSION="1.34"
 
 git clone https://gitlab.freedesktop.org/wayland/wayland
 cd wayland

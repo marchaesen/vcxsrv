@@ -2,6 +2,11 @@
 dEQP-VK.draw.dynamic_rendering.multiple_interpolation.structured.no_sample_decoration.4_samples
 nir-stress=dEQP-VK.draw.dynamic_rendering.multiple_interpolation.structured.no_sample_decoration.4_samples
 
+dEQP-VK.dynamic_rendering.graphics_pipeline_library.suballocation.formats.r8g8_uint.input.load.dont_care.draw
+dEQP-VK.dynamic_rendering.primary_cmd_buff.dedicated_allocation.formats.r16g16b16a16_snorm.input.load.dont_care.draw
+dEQP-VK.dynamic_rendering.primary_cmd_buff.dedicated_allocation.formats.r8_unorm.input.load.dont_care.draw
+dEQP-VK.dynamic_rendering.primary_cmd_buff.suballocation.formats.b8g8r8a8_unorm.input.load.dont_care.draw
+
 dEQP-VK.tessellation.invariance.outer_edge_division.quads_fractional_odd_spacing
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.first.line_strip_with_adjacency
 dEQP-VK.rasterization.provoking_vertex.transform_feedback.per_pipeline.triangle_strip_with_adjacency

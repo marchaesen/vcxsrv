@@ -72,7 +72,7 @@ bi_analyze_ranges(bi_context *ctx)
       if (!bi_is_direct_aligned_ubo(ins))
          continue;
 
-      unsigned ubo = ins->src[1].value;
+      unsigned ubo = pan_res_handle_get_index(ins->src[1].value);
       unsigned word = ins->src[0].value / 4;
       unsigned channels = bi_opcode_props[ins->op].sr_count;
 
@@ -139,7 +139,7 @@ bi_opt_push_ubo(bi_context *ctx)
       if (!bi_is_ubo(ins))
          continue;
 
-      unsigned ubo = ins->src[1].value;
+      unsigned ubo = pan_res_handle_get_index(ins->src[1].value);
       unsigned offset = ins->src[0].value;
 
       if (!bi_is_direct_aligned_ubo(ins)) {

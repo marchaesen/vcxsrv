@@ -114,7 +114,7 @@ update_swtnl_draw(struct svga_context *svga, uint64_t dirty)
 
    if (dirty & SVGA_NEW_VBUFFER)
       draw_set_vertex_buffers(svga->swtnl.draw,
-                              svga->curr.num_vertex_buffers, 0,
+                              svga->curr.num_vertex_buffers,
                               svga->curr.vb);
 
    if (dirty & SVGA_NEW_VELEMENT)

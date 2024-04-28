@@ -132,6 +132,11 @@ try_conversion_folding(struct ir3_instruction *conv)
    if (conv->opc != OPC_MOV)
       return false;
 
+   /* Don't fold in conversions to/from shared */
+   if ((conv->srcs[0]->flags & IR3_REG_SHARED) !=
+       (conv->dsts[0]->flags & IR3_REG_SHARED))
+      return false;
+
    /* NOTE: we can have non-ssa srcs after copy propagation: */
    src = ssa(conv->srcs[0]);
    if (!src)

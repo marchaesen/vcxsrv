@@ -50,10 +50,6 @@ from The Open Group.
 #include <ctype.h>
 #include <X11/Xos.h>
 
-#ifdef __sgi_not_xconsortium
-#define	XKB_EXTEND_LOOKUP_STRING
-#endif
-
 static int
 _XkbHandleSpecialSym(KeySym keysym, char *buffer, int nbytes, int *extra_rtrn)
 {
@@ -276,11 +272,7 @@ _XkbGetCharset(void)
     else {
         struct stat sbuf;
         FILE *file;
-#ifndef __UNIXOS2__
         char *cf = CHARSET_FILE;
-#else
-        char *cf = __XOS2RedirRoot(CHARSET_FILE);
-#endif
 
 #ifndef S_ISREG
 # define S_ISREG(mode)   (((mode) & S_IFMT) == S_IFREG)

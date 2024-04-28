@@ -256,7 +256,7 @@ static const struct format_mapping format_map[] = {
       { PIPE_FORMAT_R8G8B8A8_UNORM, DEFAULT_RGBA_FORMATS }
    },
    {
-      { GL_BGRA, 0 },
+      { GL_BGRA, GL_BGRA8_EXT, 0 },
       { DEFAULT_RGBA_FORMATS }
    },
    {
@@ -1333,6 +1333,21 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
       is_renderbuffer = true;
    } else {
       pTarget = gl_target_to_pipe(target);
+      if (internalFormat == format) {
+         if (internalFormat == GL_RGBA) {
+            /* with GL_RGBA, these are effectively aliases to required formats */
+            switch (type) {
+            case GL_UNSIGNED_SHORT_5_5_5_1:
+            case GL_UNSIGNED_SHORT_4_4_4_4:
+            case GL_UNSIGNED_INT_8_8_8_8:
+               is_renderbuffer = true;
+               break;
+            default: break;
+            }
+         } else if (internalFormat == GL_RGB && type == GL_UNSIGNED_SHORT_5_6_5) {
+            is_renderbuffer = true;
+         }
+      }
    }
 
    if (target == GL_TEXTURE_1D || target == GL_TEXTURE_1D_ARRAY) {
@@ -1351,7 +1366,9 @@ st_ChooseTextureFormat(struct gl_context *ctx, GLenum target,
    bindings = PIPE_BIND_SAMPLER_VIEW;
    if (_mesa_is_depth_or_stencil_format(internalFormat))
       bindings |= PIPE_BIND_DEPTH_STENCIL;
-   else if (is_renderbuffer || internalFormat == 3 || internalFormat == 4 ||
+   else if (is_renderbuffer)
+      bindings |= PIPE_BIND_RENDER_TARGET;
+   else if (internalFormat == 3 || internalFormat == 4 ||
             internalFormat == GL_RGB || internalFormat == GL_RGBA ||
             internalFormat == GL_RGBA2 ||
             internalFormat == GL_RGB4 || internalFormat == GL_RGBA4 ||
@@ -1505,6 +1522,49 @@ st_QuerySamplesForFormat(struct gl_context *ctx, GLenum target,
    }
 
    return num_sample_counts;
+}
+
+/* check whether any texture can be allocated for a given format */
+bool
+st_QueryTextureFormatSupport(struct gl_context *ctx, GLenum target, GLenum internalFormat)
+{
+   struct st_context *st = st_context(ctx);
+
+   /* If an sRGB framebuffer is unsupported, sRGB formats behave like linear
+    * formats.
+    */
+   if (!ctx->Extensions.EXT_sRGB) {
+      internalFormat = _mesa_get_linear_internalformat(internalFormat);
+   }
+
+   /* multisample textures need >= 2 samples */
+   unsigned min_samples = target == GL_TEXTURE_2D_MULTISAMPLE ||
+                          target == GL_TEXTURE_2D_MULTISAMPLE_ARRAY ? 1 : 0;
+   unsigned max_samples = min_samples ? 16 : 1;
+
+   /* compressed textures will be allocated as e.g., RGBA8, so check that instead */
+   enum pipe_format pf = st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
+                                          PIPE_TEXTURE_2D, 0, 0, 0,
+                                          false, false);
+   if (util_format_is_compressed(pf)) {
+      enum pipe_format fmts[2] = {0};
+      pf = st_mesa_format_to_pipe_format(st, st_pipe_format_to_mesa_format(pf));
+      fmts[0] = pf;
+      for (unsigned i = max_samples; i > min_samples; i >>= 1) {
+         if (find_supported_format(st->screen, fmts, PIPE_TEXTURE_2D,
+                                   i, i, PIPE_BIND_SAMPLER_VIEW, false))
+            return true;
+      }
+      return false;
+   }
+   for (unsigned i = max_samples; i > min_samples; i >>= 1) {
+      if (st_choose_format(st, internalFormat, GL_NONE, GL_NONE,
+                           PIPE_TEXTURE_2D, i, i, PIPE_BIND_SAMPLER_VIEW,
+                           false, false))
+         return true;
+   }
+
+   return false;
 }
 
 

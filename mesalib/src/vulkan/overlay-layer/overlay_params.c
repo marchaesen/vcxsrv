@@ -51,19 +51,17 @@ parse_output_file(const char *str)
    return fopen(str, "w+");
 }
 
-static int
+static const char *
 parse_control(const char *str)
 {
-   int ret = os_socket_listen_abstract(str, 1);
-   if (ret < 0) {
-      fprintf(stderr, "ERROR: Couldn't create socket pipe at '%s'\n", str);
-      fprintf(stderr, "ERROR: '%s'\n", strerror(errno));
-      return ret;
+   static char control_str[64];
+   if (strlen(str) > 63) {
+      fprintf(stderr, "ERROR: control string too long. Must be < 64 chars");
+      return NULL;
    }
+   strcpy(control_str, str);
 
-   os_socket_block(ret, false);
-
-   return ret;
+   return control_str;
 }
 
 static uint32_t
@@ -169,7 +167,7 @@ parse_overlay_env(struct overlay_params *params,
    params->enabled[OVERLAY_PARAM_ENABLED_format] = true;
    params->fps_sampling_period = 500000; /* 500ms */
    params->width = params->height = 300;
-   params->control = -1;
+   params->control = NULL;
 
    if (!env)
       return;

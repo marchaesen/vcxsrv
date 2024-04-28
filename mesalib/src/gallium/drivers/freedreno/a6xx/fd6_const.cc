@@ -208,7 +208,7 @@ fd6_emit_ubos(const struct ir3_shader_variant *v, struct fd_ringbuffer *ring,
 
    for (int i = 0; i < num_ubos; i++) {
       /* NIR constant data is packed into the end of the shader. */
-      if (i == const_state->constant_data_ubo) {
+      if (i == const_state->consts_ubo.idx) {
          int size_vec4s = DIV_ROUND_UP(v->constant_data_size, 16);
          OUT_RELOC(ring, v->bo, v->info.constant_data_offset,
                    (uint64_t)A6XX_UBO_1_SIZE(size_vec4s) << 32, 0);

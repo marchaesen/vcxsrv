@@ -1,4 +1,7 @@
-
+/*
+ * Copyright Axel Davy <davyaxel0@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_FLAGS_H_
 #define _NINE_FLAGS_H_

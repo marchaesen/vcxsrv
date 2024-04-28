@@ -247,6 +247,7 @@ typedef struct glamor_screen_private {
     Bool can_copyplane;
     Bool use_gpu_shader4;
     int max_fbo_size;
+    Bool enable_gradient_shader;
 
     /**
      * Stores information about supported formats. Note, that this list contains all
@@ -654,7 +655,7 @@ Bool glamor_get_drawable_location(const DrawablePtr drawable);
 void glamor_get_drawable_deltas(DrawablePtr drawable, PixmapPtr pixmap,
                                 int *x, int *y);
 GLint glamor_compile_glsl_prog(GLenum type, const char *source);
-void glamor_link_glsl_prog(ScreenPtr screen, GLint prog,
+Bool glamor_link_glsl_prog(ScreenPtr screen, GLint prog,
                            const char *format, ...) _X_ATTRIBUTE_PRINTF(3,4);
 void glamor_get_color_4f_from_pixel(PixmapPtr pixmap,
                                     unsigned long fg_pixel, GLfloat *color);
@@ -710,7 +711,7 @@ void glamor_trapezoids(CARD8 op,
                        int ntrap, xTrapezoid *traps);
 
 /* glamor_gradient.c */
-void glamor_init_gradient_shader(ScreenPtr screen);
+Bool glamor_init_gradient_shader(ScreenPtr screen);
 PicturePtr glamor_generate_linear_gradient_picture(ScreenPtr screen,
                                                    PicturePtr src_picture,
                                                    int x_source, int y_source,
@@ -986,7 +987,5 @@ void glamor_xv_render(glamor_port_private *port_priv, int id);
 #endif
 
 #include "glamor_font.h"
-
-#define GLAMOR_MIN_ALU_INSTRUCTIONS 128 /* Minimum required number of native ALU instructions */
 
 #endif                          /* GLAMOR_PRIV_H */

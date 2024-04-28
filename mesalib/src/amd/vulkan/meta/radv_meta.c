@@ -3,27 +3,11 @@
  * based on intel anv code:
  * Copyright © 2015 Intel Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "radv_meta.h"
+#include "radv_printf.h"
 
 #include "vk_common_entrypoints.h"
 #include "vk_pipeline_cache.h"
@@ -63,7 +47,7 @@ radv_suspend_queries(struct radv_meta_saved_state *state, struct radv_cmd_buffer
    /* Primitives generated queries (legacy). */
    if (cmd_buffer->state.active_prims_gen_queries) {
       cmd_buffer->state.suspend_streamout = true;
-      radv_emit_streamout_enable(cmd_buffer);
+      cmd_buffer->state.dirty |= RADV_CMD_DIRTY_STREAMOUT_ENABLE;
    }
 
    /* Primitives generated queries (NGG). */
@@ -106,7 +90,7 @@ radv_resume_queries(const struct radv_meta_saved_state *state, struct radv_cmd_b
    /* Primitives generated queries (legacy). */
    if (cmd_buffer->state.active_prims_gen_queries) {
       cmd_buffer->state.suspend_streamout = false;
-      radv_emit_streamout_enable(cmd_buffer);
+      cmd_buffer->state.dirty |= RADV_CMD_DIRTY_STREAMOUT_ENABLE;
    }
 
    /* Primitives generated queries (NGG). */
@@ -141,6 +125,13 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
 
       state->old_graphics_pipeline = cmd_buffer->state.graphics_pipeline;
 
+      for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
+         if (i == MESA_SHADER_COMPUTE)
+            continue;
+
+         state->old_shader_objs[i] = cmd_buffer->state.shader_objs[i];
+      }
+
       /* Save all dynamic states. */
       state->dynamic = cmd_buffer->state.dynamic;
    }
@@ -149,6 +140,8 @@ radv_meta_save(struct radv_meta_saved_state *state, struct radv_cmd_buffer *cmd_
       assert(!(state->flags & RADV_META_SAVE_GRAPHICS_PIPELINE));
 
       state->old_compute_pipeline = cmd_buffer->state.compute_pipeline;
+
+      state->old_shader_objs[MESA_SHADER_COMPUTE] = cmd_buffer->state.shader_objs[MESA_SHADER_COMPUTE];
    }
 
    if (state->flags & RADV_META_SAVE_DESCRIPTORS) {
@@ -186,6 +179,19 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
                               radv_pipeline_to_handle(&state->old_graphics_pipeline->base));
       } else {
          cmd_buffer->state.graphics_pipeline = NULL;
+
+         for (unsigned i = 0; i <= MESA_SHADER_MESH; i++) {
+            if (i == MESA_SHADER_COMPUTE)
+               continue;
+
+            if (!state->old_shader_objs[i])
+               continue;
+
+            VkShaderEXT old_shader_obj = radv_shader_object_to_handle(state->old_shader_objs[i]);
+            VkShaderStageFlagBits s = mesa_to_vk_shader_stage(i);
+
+            radv_CmdBindShadersEXT(radv_cmd_buffer_to_handle(cmd_buffer), 1, &s, &old_shader_obj);
+         }
       }
 
       /* Restore all dynamic states. */
@@ -202,6 +208,13 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
                               radv_pipeline_to_handle(&state->old_compute_pipeline->base));
       } else {
          cmd_buffer->state.compute_pipeline = NULL;
+
+         if (state->old_shader_objs[MESA_SHADER_COMPUTE]) {
+            VkShaderEXT old_shader_obj = radv_shader_object_to_handle(state->old_shader_objs[MESA_SHADER_COMPUTE]);
+            VkShaderStageFlagBits s = VK_SHADER_STAGE_COMPUTE_BIT;
+
+            radv_CmdBindShadersEXT(radv_cmd_buffer_to_handle(cmd_buffer), 1, &s, &old_shader_obj);
+         }
       }
    }
 
@@ -296,7 +309,7 @@ meta_free(void *_device, void *data)
 static bool
 radv_builtin_cache_path(char *path)
 {
-   char *xdg_cache_home = getenv("XDG_CACHE_HOME");
+   char *xdg_cache_home = secure_getenv("XDG_CACHE_HOME");
    const char *suffix = "/radv_builtin_shaders";
    const char *suffix2 = "/.cache/radv_builtin_shaders";
    struct passwd pwd, *result;
@@ -432,6 +445,7 @@ fail:
 VkResult
 radv_device_init_meta(struct radv_device *device)
 {
+   struct radv_physical_device *pdev = radv_device_physical(device);
    VkResult result;
 
    memset(&device->meta_state, 0, sizeof(device->meta_state));
@@ -492,7 +506,7 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_resolve_fragment;
 
-   if (device->physical_device->use_fmask) {
+   if (pdev->use_fmask) {
       result = radv_device_init_meta_fmask_expand_state(device, on_demand);
       if (result != VK_SUCCESS)
          goto fail_fmask_expand;
@@ -510,7 +524,7 @@ radv_device_init_meta(struct radv_device *device)
    if (result != VK_SUCCESS)
       goto fail_astc_decode;
 
-   if (device->uses_device_generated_commands) {
+   if (radv_uses_device_generated_commands(device)) {
       result = radv_device_init_dgc_prepare_state(device);
       if (result != VK_SUCCESS)
          goto fail_dgc;
@@ -526,11 +540,11 @@ radv_device_init_meta(struct radv_device *device)
       /* FIXME: Acceleration structure builds hang when the build shaders are compiled with LLVM.
        * Work around it by forcing ACO for now.
        */
-      bool use_llvm = device->physical_device->use_llvm;
+      bool use_llvm = pdev->use_llvm;
       if (loaded_cache || use_llvm) {
-         device->physical_device->use_llvm = false;
+         pdev->use_llvm = false;
          result = radv_device_init_accel_struct_build_state(device);
-         device->physical_device->use_llvm = use_llvm;
+         pdev->use_llvm = use_llvm;
 
          if (result != VK_SUCCESS)
             goto fail_accel_struct;
@@ -610,6 +624,7 @@ radv_device_finish_meta(struct radv_device *device)
 nir_builder PRINTFLIKE(3, 4)
    radv_meta_init_shader(struct radv_device *dev, gl_shader_stage stage, const char *name, ...)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(dev);
    nir_builder b = nir_builder_init_simple_shader(stage, NULL, NULL);
    if (name) {
       va_list args;
@@ -618,7 +633,9 @@ nir_builder PRINTFLIKE(3, 4)
       va_end(args);
    }
 
-   b.shader->options = &dev->physical_device->nir_options[stage];
+   b.shader->options = &pdev->nir_options[stage];
+
+   radv_device_associate_nir(dev, b.shader);
 
    return b;
 }
@@ -653,6 +670,7 @@ void
 radv_meta_build_resolve_shader_core(struct radv_device *device, nir_builder *b, bool is_integer, int samples,
                                     nir_variable *input_img, nir_variable *color, nir_def *img_coord)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
    nir_deref_instr *input_img_deref = nir_build_deref_var(b, input_img);
    nir_def *sample0 = nir_txf_ms_deref(b, input_img_deref, img_coord, nir_imm_int(b, 0));
 
@@ -661,7 +679,7 @@ radv_meta_build_resolve_shader_core(struct radv_device *device, nir_builder *b, 
       return;
    }
 
-   if (device->physical_device->use_fmask) {
+   if (pdev->use_fmask) {
       nir_def *all_same = nir_samples_identical_deref(b, input_img_deref, img_coord);
       nir_push_if(b, nir_inot(b, all_same));
    }
@@ -675,7 +693,7 @@ radv_meta_build_resolve_shader_core(struct radv_device *device, nir_builder *b, 
    accum = nir_fdiv_imm(b, accum, samples);
    nir_store_var(b, color, accum, 0xf);
 
-   if (device->physical_device->use_fmask) {
+   if (pdev->use_fmask) {
       nir_push_else(b, NULL);
       nir_store_var(b, color, sample0, 0xf);
       nir_pop_if(b, NULL);

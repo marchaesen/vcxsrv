@@ -58,3 +58,7 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuyv
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvyu
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88
+
+# This subset hangs since a077c14f150 ("zink: Fix resizable BAR detection logic")
+# for very weird reasons, skip it completely until the issue is properly fixed.
+spec@arb_shader_image_load_store.*

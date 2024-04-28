@@ -195,7 +195,8 @@ vc4_blitter_save(struct vc4_context *vc4)
 {
         util_blitter_save_fragment_constant_buffer_slot(vc4->blitter,
                                                         vc4->constbuf[PIPE_SHADER_FRAGMENT].cb);
-        util_blitter_save_vertex_buffer_slot(vc4->blitter, vc4->vertexbuf.vb);
+        util_blitter_save_vertex_buffers(vc4->blitter, vc4->vertexbuf.vb,
+                                         vc4->vertexbuf.count);
         util_blitter_save_vertex_elements(vc4->blitter, vc4->vtx);
         util_blitter_save_vertex_shader(vc4->blitter, vc4->prog.bind_vs);
         util_blitter_save_rasterizer(vc4->blitter, vc4->rasterizer);

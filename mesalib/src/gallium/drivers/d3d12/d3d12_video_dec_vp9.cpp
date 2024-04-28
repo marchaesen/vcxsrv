@@ -62,7 +62,7 @@ d3d12_video_decoder_refresh_dpb_active_references_vp9(struct d3d12_video_decoder
 
 void
 d3d12_video_decoder_get_frame_info_vp9(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool *pIsInterlaced)
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB)
 {
    auto pPicParams = d3d12_video_decoder_get_current_dxva_picparams<DXVA_PicParams_VP9>(pD3D12Dec);
    *pWidth = pPicParams->width;
@@ -74,7 +74,6 @@ d3d12_video_decoder_get_frame_info_vp9(
       Golden, and AltRef) of the current frame.
    */
    *pMaxDPB = 8 + 1 /*current picture*/;
-   *pIsInterlaced = false;
 }
 
 void

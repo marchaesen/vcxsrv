@@ -33,7 +33,8 @@
 #include <string.h>
 #include <sys/select.h>
 
-#include "dbus-core.h"
+#include "config/dbus-core.h"
+
 #include "input.h"
 #include "inputstr.h"
 #include "hotplug.h"

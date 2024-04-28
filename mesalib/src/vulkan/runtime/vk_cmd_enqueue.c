@@ -369,3 +369,103 @@ finish:
       vk_command_buffer_set_error(cmd_buffer, result);
 }
 #endif
+
+static void
+vk_cmd_build_acceleration_structures_khr_free(struct vk_cmd_queue *queue,
+                                              struct vk_cmd_queue_entry *cmd)
+{
+   struct vk_cmd_build_acceleration_structures_khr *build =
+      &cmd->u.build_acceleration_structures_khr;
+   
+   for (uint32_t i = 0; i < build->info_count; i++) {
+      vk_free(queue->alloc, (void *)build->infos[i].pGeometries);
+      vk_free(queue->alloc, (void *)build->pp_build_range_infos[i]);
+   }
+}
+
+VKAPI_ATTR void VKAPI_CALL
+vk_cmd_enqueue_CmdBuildAccelerationStructuresKHR(
+   VkCommandBuffer commandBuffer, uint32_t infoCount,
+   const VkAccelerationStructureBuildGeometryInfoKHR *pInfos,
+   const VkAccelerationStructureBuildRangeInfoKHR *const *ppBuildRangeInfos)
+{
+   VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
+
+   if (vk_command_buffer_has_error(cmd_buffer))
+      return;
+
+   struct vk_cmd_queue *queue = &cmd_buffer->cmd_queue;
+
+   struct vk_cmd_queue_entry *cmd =
+      vk_zalloc(queue->alloc, vk_cmd_queue_type_sizes[VK_CMD_BUILD_ACCELERATION_STRUCTURES_KHR], 8,
+                VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+   if (!cmd)
+      goto err;
+
+   cmd->type = VK_CMD_BUILD_ACCELERATION_STRUCTURES_KHR;
+   cmd->driver_free_cb = vk_cmd_build_acceleration_structures_khr_free;
+
+   struct vk_cmd_build_acceleration_structures_khr *build =
+      &cmd->u.build_acceleration_structures_khr;
+
+   build->info_count = infoCount;
+   if (pInfos) {
+      build->infos = vk_zalloc(queue->alloc, sizeof(*build->infos) * infoCount, 8,
+                               VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!build->infos)
+         goto err;
+
+      memcpy((VkAccelerationStructureBuildGeometryInfoKHR *)build->infos, pInfos,
+             sizeof(*build->infos) * (infoCount));
+   
+      for (uint32_t i = 0; i < infoCount; i++) {
+         uint32_t geometries_size =
+            build->infos[i].geometryCount * sizeof(VkAccelerationStructureGeometryKHR);
+         VkAccelerationStructureGeometryKHR *geometries =
+            vk_zalloc(queue->alloc, geometries_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+         if (!geometries)
+            goto err;
+
+         if (pInfos[i].pGeometries) {
+            memcpy(geometries, pInfos[i].pGeometries, geometries_size);
+         } else {
+            for (uint32_t j = 0; j < build->infos[i].geometryCount; j++)
+               memcpy(&geometries[j], pInfos[i].ppGeometries[j], sizeof(VkAccelerationStructureGeometryKHR));
+         }
+
+         build->infos[i].pGeometries = geometries;
+      }
+   }
+   if (ppBuildRangeInfos) {
+      build->pp_build_range_infos =
+         vk_zalloc(queue->alloc, sizeof(*build->pp_build_range_infos) * infoCount, 8,
+                   VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!build->pp_build_range_infos)
+         goto err;
+
+      VkAccelerationStructureBuildRangeInfoKHR **pp_build_range_infos =
+         (void *)build->pp_build_range_infos;
+
+      for (uint32_t i = 0; i < infoCount; i++) {
+         uint32_t build_range_size =
+            build->infos[i].geometryCount * sizeof(VkAccelerationStructureBuildRangeInfoKHR);
+         VkAccelerationStructureBuildRangeInfoKHR *p_build_range_infos =
+            vk_zalloc(queue->alloc, build_range_size, 8, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+         if (!p_build_range_infos)
+            goto err;
+
+         memcpy(p_build_range_infos, ppBuildRangeInfos[i], build_range_size);
+
+         pp_build_range_infos[i] = p_build_range_infos;
+      }
+   }
+
+   list_addtail(&cmd->cmd_link, &queue->cmds);
+   return;
+
+err:
+   if (cmd)
+      vk_cmd_build_acceleration_structures_khr_free(queue, cmd);
+
+   vk_command_buffer_set_error(cmd_buffer, VK_ERROR_OUT_OF_HOST_MEMORY);
+}

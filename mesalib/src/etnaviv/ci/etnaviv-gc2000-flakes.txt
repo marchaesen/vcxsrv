@@ -44,7 +44,6 @@ spec@!opengl 1.2@texwrap 3d
 spec@!opengl 1.2@texwrap 3d proj
 spec@!opengl 1.2@texwrap 3d proj@GL_RGBA8- NPOT- projected
 spec@!opengl 1.4@gl-1.4-tex1d-2dborder
-spec@!opengl 1.4@tex-miplevel-selection-lod-bias
 spec@!opengl 2.0@gl-2.0-link-empty-prog
 spec@!opengl 2.0@tex3d-npot
 spec@!opengl 2.1@pbo@test_draw_pixels
@@ -80,7 +79,6 @@ spec@ext_texture_compression_s3tc@s3tc-teximage
 spec@ext_texture_compression_s3tc@s3tc-texsubimage
 spec@ext_texture_compression_s3tc@s3tc-texsubimage_gles2
 spec@ext_texture_compression_s3tc@texwrap formats
-spec@ext_texture_lod_bias@lodbias
 spec@nv_copy_image@nv_copy_image-simple --tex-to-tex
 spec@nv_conditional_render@bitmap
 spec@oes_compressed_etc1_rgb8_texture@miptree
@@ -90,7 +88,6 @@ spec@!opengl 1.0@gl-1.0-readpixsanity
 spec@!opengl 1.1@draw-pixel-with-texture
 spec@!opengl 1.1@gl-1.1-drawarrays-vertex-count 100000 varray gl_quads
 spec@!opengl 1.1@copytexsubimage
-spec@!opengl 1.1@depthstencil-default_fb-copypixels
 spec@!opengl 1.1@texwrap 1d
 spec@!opengl 1.1@texwrap 1d@GL_RGBA8
 spec@!opengl 1.1@texwrap 1d@GL_RGBA8- swizzled
@@ -156,17 +153,10 @@ spec@!opengl 1.5@normal3b3s-invariance-short
 spec@!opengl 2.0@fragment-and-vertex-texturing
 spec@!opengl 2.0@vertex-program-two-side front2 back2
 spec@!opengl 2.0@vertex-program-two-side front2 back2@vs and fs
-spec@arb_depth_texture@depth-level-clamp
 spec@arb_depth_texture@fbo-depth-gl_depth_component16-drawpixels
-spec@arb_depth_texture@fbo-depth-gl_depth_component24-blit
 spec@arb_pixel_buffer_object@cubemap pbo
-spec@arb_pixel_buffer_object@texsubimage-depth-formats pbo
-spec@arb_texture_storage@texture-storage
-spec@arb_texture_storage@texture-storage@2D mipmap rendering 
 spec@ext_direct_state_access@textures@CopyTextureImage1DEXT
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420
-spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-copypixels
-spec@nv_copy_image@nv_copy_image-simple --tex-to-tex
 
 # manually added
 shaders@glsl-fs-texture2drect-proj4
@@ -217,3 +207,34 @@ spec@arb_fragment_program@texturing@txp-2d
 spec@arb_vertex_program@instructions@xpd
 
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410
+
+# uprev Piglit in Mesa
+dEQP-GLES2.functional.fbo.render.stencil_clear.tex2d_rgb_stencil_index8
+dEQP-GLES2.functional.shaders.random.all_features.fragment.72
+dEQP-GLES2.functional.shaders.random.texture.fragment.43
+dEQP-GLES2.functional.shaders.random.texture.vertex.19
+dEQP-GLES2.functional.shaders.random.texture.vertex.23
+dEQP-GLES2.functional.texture.format.l8_cube_pot
+spec@ati_fragment_shader@ati_fragment_shader-error04-endshader
+spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_rgba_s3tc_dxt1_ext
+
+
+# Updated by ci-collate, found in this job run: https://gitlab.freedesktop.org/mesa/mesa/-/jobs/56260516
+spec@!opengl 1.4@copy-pixels
+
+# Nightly run expectations update
+dEQP-GLES2.functional.fbo.render.depth.tex2d_rgb_depth_component16
+dEQP-GLES2.functional.fbo.render.stencil_clear.rbo_rgb565_stencil_index8
+dEQP-GLES2.functional.shaders.random.all_features.fragment.4
+dEQP-GLES2.functional.shaders.random.texture.fragment.13
+dEQP-GLES2.functional.shaders.random.texture.fragment.138
+dEQP-GLES2.functional.texture.filtering.2d.linear_nearest_mirror_rgb888_pot
+dEQP-GLES2.functional.texture.filtering.2d.nearest_mipmap_nearest_nearest_mirror_rgba8888
+dEQP-GLES2.functional.uniform_api.random.48
+spec@arb_color_buffer_float@gl_rgba8-drawpixels
+spec@arb_point_sprite@arb_point_sprite-checkerboard
+spec@ati_texture_compression_3dc@texwrap formats
+spec@ati_texture_compression_3dc@texwrap formats@GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI
+spec@ati_texture_compression_3dc@texwrap formats@GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI- swizzled
+spec@glsl-1.10@execution@copy-propagation@glsl-fs-copy-propagation-texcoords-1
+

@@ -1,4 +1,4 @@
-# VK_ICD_FILENAMES environment variable is not used when running with
+# VK_DRIVER_FILES environment variable is not used when running with
 # elevated privileges. Add a key to the registry instead.
 $hkey_path = "HKLM:\SOFTWARE\Khronos\Vulkan\Drivers\"
 $hkey_name = Join-Path -Path $pwd -ChildPath "_install\share\vulkan\icd.d\dzn_icd.x86_64.json"

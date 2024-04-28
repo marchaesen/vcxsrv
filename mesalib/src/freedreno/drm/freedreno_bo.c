@@ -27,6 +27,7 @@
 #include "util/os_mman.h"
 
 #include "freedreno_drmif.h"
+#include "freedreno_drm_perfetto.h"
 #include "freedreno_priv.h"
 
 simple_mtx_t table_lock = SIMPLE_MTX_INITIALIZER;
@@ -141,10 +142,11 @@ bo_new(struct fd_device *dev, uint32_t size, uint32_t flags,
    struct fd_bo *bo = NULL;
 
    if (size < FD_BO_HEAP_BLOCK_SIZE) {
-      if ((flags == 0) && dev->default_heap)
-         bo = fd_bo_heap_alloc(dev->default_heap, size);
-      else if ((flags == RING_FLAGS) && dev->ring_heap)
-         bo = fd_bo_heap_alloc(dev->ring_heap, size);
+      uint32_t alloc_flags = flags & ~_FD_BO_HINTS;
+      if ((alloc_flags == 0) && dev->default_heap)
+         bo = fd_bo_heap_alloc(dev->default_heap, size, flags);
+      else if ((alloc_flags == RING_FLAGS) && dev->ring_heap)
+         bo = fd_bo_heap_alloc(dev->ring_heap, size, flags);
       if (bo)
          return bo;
    }
@@ -167,6 +169,8 @@ bo_new(struct fd_device *dev, uint32_t size, uint32_t flags,
    simple_mtx_unlock(&table_lock);
 
    bo->alloc_flags = flags;
+
+   fd_alloc_log(bo, FD_ALLOC_NONE, FD_ALLOC_ACTIVE);
 
    return bo;
 }
@@ -386,6 +390,7 @@ fd_bo_del(struct fd_bo *bo)
 
    bo_finalize(bo);
    dev_flush(dev);
+   fd_alloc_log(bo, FD_ALLOC_ACTIVE, FD_ALLOC_NONE);
    bo_del(bo);
 }
 
@@ -419,6 +424,7 @@ fd_bo_del_array(struct fd_bo **bos, int count)
     */
 
    for (int i = 0; i < count; i++) {
+      fd_alloc_log(bos[i], FD_ALLOC_ACTIVE, FD_ALLOC_NONE);
       bo_del(bos[i]);
    }
 }

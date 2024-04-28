@@ -77,7 +77,7 @@ struct stw_device
    CRITICAL_SECTION fb_mutex;
    struct stw_framebuffer *fb_head;
    
-#ifdef DEBUG
+#if MESA_DEBUG
    unsigned long memdbg_no;
 #endif
 

@@ -85,18 +85,21 @@ test_XISetClientPointer(void)
     int i;
     xXISetClientPointerReq request;
 
+    init_simple();
+    client_window = init_client(0, NULL);
+
     request_init(&request, XISetClientPointer);
 
     request.win = CLIENT_WINDOW_ID;
 
-    printf("Testing BadDevice error for XIAllDevices and XIMasterDevices.\n");
+    dbg("Testing BadDevice error for XIAllDevices and XIMasterDevices.\n");
     request.deviceid = XIAllDevices;
     request_XISetClientPointer(&request, BadDevice);
 
     request.deviceid = XIAllMasterDevices;
     request_XISetClientPointer(&request, BadDevice);
 
-    printf("Testing Success for VCP and VCK.\n");
+    dbg("Testing Success for VCP and VCK.\n");
     request.deviceid = devices.vcp->id; /* 2 */
     request_XISetClientPointer(&request, Success);
     assert(client_window.clientPtr->id == 2);
@@ -105,32 +108,32 @@ test_XISetClientPointer(void)
     request_XISetClientPointer(&request, Success);
     assert(client_window.clientPtr->id == 2);
 
-    printf("Testing BadDevice error for all other devices.\n");
+    dbg("Testing BadDevice error for all other devices.\n");
     for (i = 4; i <= 0xFFFF; i++) {
         request.deviceid = i;
         request_XISetClientPointer(&request, BadDevice);
     }
 
-    printf("Testing window None\n");
+    dbg("Testing window None\n");
     request.win = None;
     request.deviceid = devices.vcp->id; /* 2 */
     request_XISetClientPointer(&request, Success);
     assert(client_request.clientPtr->id == 2);
 
-    printf("Testing invalid window\n");
+    dbg("Testing invalid window\n");
     request.win = INVALID_WINDOW_ID;
     request.deviceid = devices.vcp->id;
     request_XISetClientPointer(&request, BadWindow);
 
 }
 
-int
+const testfunc_t*
 protocol_xisetclientpointer_test(void)
 {
-    init_simple();
-    client_window = init_client(0, NULL);
+    static const testfunc_t testfuncs[] = {
+        test_XISetClientPointer,
+        NULL,
+    };
 
-    test_XISetClientPointer();
-
-    return 0;
+    return testfuncs;
 }

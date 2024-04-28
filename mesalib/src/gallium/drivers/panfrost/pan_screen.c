@@ -37,6 +37,7 @@
 #include "util/u_process.h"
 #include "util/u_screen.h"
 #include "util/u_video.h"
+#include "util/xmlconfig.h"
 
 #include <fcntl.h>
 
@@ -107,10 +108,6 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
 
    /* Native MRT is introduced with v5 */
    bool has_mrt = (dev->arch >= 5);
-
-   /* Only kernel drivers >= 1.1 can allocate HEAP BOs */
-   bool has_heap = panfrost_device_kmod_version_major(dev) > 1 ||
-                   panfrost_device_kmod_version_minor(dev) >= 1;
 
    switch (param) {
    case PIPE_CAP_NPOT_TEXTURES:
@@ -217,7 +214,7 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
          return 0;
 
    case PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT:
-      return 65536;
+      return PAN_MAX_TEXEL_BUFFER_ELEMENTS;
 
    /* Must be at least 64 for correct behaviour */
    case PIPE_CAP_TEXTURE_BUFFER_OFFSET_ALIGNMENT:
@@ -239,11 +236,11 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 1;
 
    case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return 1 << (MAX_MIP_LEVELS - 1);
+      return 1 << (PAN_MAX_MIP_LEVELS - 1);
 
    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
-      return MAX_MIP_LEVELS;
+      return PAN_MAX_MIP_LEVELS;
 
    case PIPE_CAP_FS_COORD_ORIGIN_LOWER_LEFT:
    case PIPE_CAP_FS_COORD_PIXEL_CENTER_INTEGER:
@@ -333,7 +330,7 @@ panfrost_get_param(struct pipe_screen *screen, enum pipe_cap param)
       return 0;
 
    case PIPE_CAP_DRAW_INDIRECT:
-      return has_heap;
+      return 1;
 
    case PIPE_CAP_START_INSTANCE:
    case PIPE_CAP_DRAW_PARAMETERS:
@@ -554,12 +551,6 @@ panfrost_is_format_supported(struct pipe_screen *screen,
 {
    struct panfrost_device *dev = pan_device(screen);
 
-   assert(target == PIPE_BUFFER || target == PIPE_TEXTURE_1D ||
-          target == PIPE_TEXTURE_1D_ARRAY || target == PIPE_TEXTURE_2D ||
-          target == PIPE_TEXTURE_2D_ARRAY || target == PIPE_TEXTURE_RECT ||
-          target == PIPE_TEXTURE_3D || target == PIPE_TEXTURE_CUBE ||
-          target == PIPE_TEXTURE_CUBE_ARRAY);
-
    /* MSAA 2x gets rounded up to 4x. MSAA 8x/16x only supported on v5+.
     * TODO: debug MSAA 8x/16x */
 
@@ -616,9 +607,10 @@ panfrost_walk_dmabuf_modifiers(struct pipe_screen *screen,
 {
    /* Query AFBC status */
    struct panfrost_device *dev = pan_device(screen);
-   bool afbc = dev->has_afbc && panfrost_format_supports_afbc(dev, format);
+   bool afbc =
+      dev->has_afbc && panfrost_format_supports_afbc(dev->arch, format);
    bool ytr = panfrost_afbc_can_ytr(format);
-   bool tiled_afbc = panfrost_afbc_can_tile(dev);
+   bool tiled_afbc = panfrost_afbc_can_tile(dev->arch);
 
    unsigned count = 0;
 
@@ -775,7 +767,7 @@ panfrost_destroy_screen(struct pipe_screen *pscreen)
    panfrost_resource_screen_destroy(pscreen);
    panfrost_pool_cleanup(&screen->blitter.bin_pool);
    panfrost_pool_cleanup(&screen->blitter.desc_pool);
-   pan_blend_shaders_cleanup(dev);
+   pan_blend_shader_cache_cleanup(&dev->blend_shaders);
 
    if (screen->vtbl.screen_destroy)
       screen->vtbl.screen_destroy(pscreen);
@@ -837,6 +829,9 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
 
    struct panfrost_device *dev = pan_device(&screen->base);
 
+   driParseConfigFiles(config->options, config->options_info, 0,
+                       "panfrost", NULL, NULL, NULL, 0, NULL, 0);
+
    /* Debug must be set first for pandecode to work correctly */
    dev->debug =
       debug_get_flags_option("PAN_MESA_DEBUG", panfrost_debug_options, 0);
@@ -854,6 +849,18 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
       panfrost_destroy_screen(&(screen->base));
       return NULL;
    }
+
+   screen->force_afbc_packing = dev->debug & PAN_DBG_FORCE_PACK;
+   if (!screen->force_afbc_packing)
+      screen->force_afbc_packing = driQueryOptionb(config->options,
+                                                   "pan_force_afbc_packing");
+
+   screen->csf_tiler_heap.chunk_size = driQueryOptioni(config->options,
+                                                       "pan_csf_chunk_size");
+   screen->csf_tiler_heap.initial_chunks = driQueryOptioni(config->options,
+                                                           "pan_csf_initial_chunks");
+   screen->csf_tiler_heap.max_chunks = driQueryOptioni(config->options,
+                                                       "pan_csf_max_chunks");
 
    dev->ro = ro;
 
@@ -882,7 +889,8 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
    screen->base.set_damage_region = panfrost_resource_set_damage_region;
 
    panfrost_resource_screen_init(&screen->base);
-   pan_blend_shaders_init(dev);
+   pan_blend_shader_cache_init(&dev->blend_shaders,
+                               panfrost_device_gpu_id(dev));
 
    panfrost_disk_cache_init(screen);
 
@@ -900,6 +908,8 @@ panfrost_create_screen(int fd, const struct pipe_screen_config *config,
       panfrost_cmdstream_screen_init_v7(screen);
    else if (dev->arch == 9)
       panfrost_cmdstream_screen_init_v9(screen);
+   else if (dev->arch == 10)
+      panfrost_cmdstream_screen_init_v10(screen);
    else
       unreachable("Unhandled architecture major");
 

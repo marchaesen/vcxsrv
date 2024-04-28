@@ -30,7 +30,7 @@
 
 #include "util/u_dynarray.h"
 
-#include "common/intel_decoder.h"
+#include "decoder/intel_decoder.h"
 #include "drm-uapi/i915_drm.h"
 
 #include "crocus_fence.h"

@@ -177,7 +177,7 @@ _glamor_create_getcolor_fs_source(ScreenPtr screen, int stops_count,
     }
 }
 
-static void
+static Bool
 _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
                                        int dyn_gen)
 {
@@ -316,7 +316,7 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
 
     if ((glamor_priv->radial_max_nstops >= stops_count) && (dyn_gen)) {
         /* Very Good, not to generate again. */
-        return;
+        return TRUE;
     }
 
     glamor_make_current(glamor_priv);
@@ -353,7 +353,10 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_SOURCE, "v_texcoord");
 
-    glamor_link_glsl_prog(screen, gradient_prog, "radial gradient");
+    if (!glamor_link_glsl_prog(screen, gradient_prog, "radial gradient")) {
+        glDeleteProgram(gradient_prog);
+        return FALSE;
+    }
 
     if (dyn_gen) {
         index = 2;
@@ -367,9 +370,11 @@ _glamor_create_radial_gradient_program(ScreenPtr screen, int stops_count,
     }
 
     glamor_priv->gradient_prog[SHADER_GRADIENT_RADIAL][index] = gradient_prog;
+
+    return TRUE;
 }
 
-static void
+static Bool
 _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
                                        int dyn_gen)
 {
@@ -500,7 +505,7 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
 
     if ((glamor_priv->linear_max_nstops >= stops_count) && (dyn_gen)) {
         /* Very Good, not to generate again. */
-        return;
+        return TRUE;
     }
 
     glamor_make_current(glamor_priv);
@@ -533,7 +538,10 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(gradient_prog, GLAMOR_VERTEX_SOURCE, "v_texcoord");
 
-    glamor_link_glsl_prog(screen, gradient_prog, "linear gradient");
+    if (!glamor_link_glsl_prog(screen, gradient_prog, "linear gradient")) {
+        glDeleteProgram(gradient_prog);
+        return FALSE;
+    }
 
     if (dyn_gen) {
         index = 2;
@@ -547,9 +555,11 @@ _glamor_create_linear_gradient_program(ScreenPtr screen, int stops_count,
     }
 
     glamor_priv->gradient_prog[SHADER_GRADIENT_LINEAR][index] = gradient_prog;
+
+    return TRUE;
 }
 
-void
+Bool
 glamor_init_gradient_shader(ScreenPtr screen)
 {
     glamor_screen_private *glamor_priv;
@@ -564,11 +574,15 @@ glamor_init_gradient_shader(ScreenPtr screen)
     glamor_priv->linear_max_nstops = 0;
     glamor_priv->radial_max_nstops = 0;
 
-    _glamor_create_linear_gradient_program(screen, 0, 0);
-    _glamor_create_linear_gradient_program(screen, LINEAR_LARGE_STOPS, 0);
+    if (!_glamor_create_linear_gradient_program(screen, 0, 0) ||
+        !_glamor_create_linear_gradient_program(screen, LINEAR_LARGE_STOPS, 0))
+        return FALSE;
 
-    _glamor_create_radial_gradient_program(screen, 0, 0);
-    _glamor_create_radial_gradient_program(screen, RADIAL_LARGE_STOPS, 0);
+    if (!_glamor_create_radial_gradient_program(screen, 0, 0) ||
+        !_glamor_create_radial_gradient_program(screen, RADIAL_LARGE_STOPS, 0))
+        return FALSE;
+
+    return TRUE;
 }
 
 static void

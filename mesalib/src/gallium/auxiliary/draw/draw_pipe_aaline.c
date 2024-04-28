@@ -334,7 +334,7 @@ generate_aaline_fs(struct aaline_stage *aaline)
    if (!aaline_fs.tokens)
       return false;
 
-#if 0 /* DEBUG */
+#if 0 /* debug */
    debug_printf("draw_aaline, orig shader:\n");
    tgsi_dump(orig_fs->tokens, 0);
    debug_printf("draw_aaline, new shader:\n");

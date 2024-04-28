@@ -136,4 +136,12 @@ typedef struct {
     CARD32 pad6;
 } SELinuxListItemsReply;
 
+#ifdef XSELINUX
+#define SELINUX_MODE_DEFAULT    0
+#define SELINUX_MODE_DISABLED   1
+#define SELINUX_MODE_PERMISSIVE 2
+#define SELINUX_MODE_ENFORCING  3
+extern int selinuxEnforcingState;
+#endif
+
 #endif                          /* _XSELINUX_H */

@@ -510,7 +510,7 @@ batch_from_key(struct fd_context *ctx, struct fd_batch_key *key) assert_dt
    }
 
    batch = alloc_batch_locked(cache, ctx, false);
-#ifdef DEBUG
+#if MESA_DEBUG
    DBG("%p: hash=0x%08x, %ux%u, %u layers, %u samples", batch, hash, key->width,
        key->height, key->layers, key->samples);
    for (unsigned idx = 0; idx < key->num_surfs; idx++) {

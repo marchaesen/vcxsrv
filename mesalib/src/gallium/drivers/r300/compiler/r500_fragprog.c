@@ -1,28 +1,6 @@
 /*
  * Copyright 2008 Corbin Simpson <MostAwesomeDude@gmail.com>
- *
- * All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT OWNER(S) AND/OR ITS SUPPLIERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "r500_fragprog.h"
@@ -122,7 +100,6 @@ static void r500_transform_IF_instr(
 		}
 	} else {
 		rc_compare_func compare_func = RC_COMPARE_FUNC_NEVER;
-		unsigned int reverse_srcs = 0;
 		unsigned int preserve_opcode = 0;
 		for (list_ptr = writer_list; list_ptr;
 						list_ptr = list_ptr->Next) {
@@ -134,15 +111,9 @@ static void r500_transform_IF_instr(
 			case RC_OPCODE_SNE:
 				compare_func = RC_COMPARE_FUNC_NOTEQUAL;
 				break;
-			case RC_OPCODE_SLE:
-				reverse_srcs = 1;
-				FALLTHROUGH;
 			case RC_OPCODE_SGE:
 				compare_func = RC_COMPARE_FUNC_GEQUAL;
 				break;
-			case RC_OPCODE_SGT:
-				reverse_srcs = 1;
-				FALLTHROUGH;
 			case RC_OPCODE_SLT:
 				compare_func = RC_COMPARE_FUNC_LESS;
 				break;
@@ -152,19 +123,14 @@ static void r500_transform_IF_instr(
 				break;
 			}
 			if (!preserve_opcode) {
-				writer->Inst->U.I.Opcode = RC_OPCODE_SUB;
+				writer->Inst->U.I.Opcode = RC_OPCODE_ADD;
+				writer->Inst->U.I.SrcReg[1].Negate =
+					~writer->Inst->U.I.SrcReg[1].Negate;
 			}
 			writer->Inst->U.I.DstReg.WriteMask = 0;
 			writer->Inst->U.I.DstReg.File = RC_FILE_NONE;
 			writer->Inst->U.I.WriteALUResult = alu_chan;
 			writer->Inst->U.I.ALUResultCompare = compare_func;
-			if (reverse_srcs) {
-				struct rc_src_register temp_src;
-				temp_src = writer->Inst->U.I.SrcReg[0];
-				writer->Inst->U.I.SrcReg[0] =
-					writer->Inst->U.I.SrcReg[1];
-				writer->Inst->U.I.SrcReg[1] = temp_src;
-			}
 		}
 	}
 

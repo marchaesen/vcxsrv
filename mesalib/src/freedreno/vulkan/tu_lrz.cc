@@ -51,6 +51,7 @@
  * before using LRZ.
  */
 
+template <chip CHIP>
 static void
 tu6_emit_lrz_buffer(struct tu_cs *cs, struct tu_image *depth_image)
 {
@@ -59,6 +60,10 @@ tu6_emit_lrz_buffer(struct tu_cs *cs, struct tu_image *depth_image)
                       A6XX_GRAS_LRZ_BUFFER_BASE(0),
                       A6XX_GRAS_LRZ_BUFFER_PITCH(0),
                       A6XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE(0));
+
+      if (CHIP >= A7XX)
+         tu_cs_emit_regs(cs, A7XX_GRAS_LRZ_DEPTH_BUFFER_INFO(0));
+
       return;
    }
 
@@ -71,6 +76,10 @@ tu6_emit_lrz_buffer(struct tu_cs *cs, struct tu_image *depth_image)
                    A6XX_GRAS_LRZ_BUFFER_BASE(.qword = lrz_iova),
                    A6XX_GRAS_LRZ_BUFFER_PITCH(.pitch = depth_image->lrz_pitch),
                    A6XX_GRAS_LRZ_FAST_CLEAR_BUFFER_BASE(.qword = lrz_fc_iova));
+
+   if (CHIP >= A7XX)
+      // TODO: Figure out the correct value to set here.
+      tu_cs_emit_regs(cs, A7XX_GRAS_LRZ_DEPTH_BUFFER_INFO(0));
 }
 
 static void
@@ -215,6 +224,7 @@ tu_lrz_begin_resumed_renderpass(struct tu_cmd_buffer *cmd)
    }
 }
 
+template <chip CHIP>
 void
 tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd)
 {
@@ -238,7 +248,7 @@ tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd)
 
       for (unsigned i = 0; i < pass->attachment_count; i++) {
          struct tu_image *image = cmd->state.attachments[i]->image;
-         tu_disable_lrz(cmd, &cmd->cs, image);
+         tu_disable_lrz<CHIP>(cmd, &cmd->cs, image);
       }
 
       /* We need a valid LRZ fast-clear base, in case the render pass contents
@@ -254,9 +264,10 @@ tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd)
    tu_lrz_begin_resumed_renderpass(cmd);
 
    if (!cmd->state.lrz.valid) {
-      tu6_emit_lrz_buffer(&cmd->cs, NULL);
+      tu6_emit_lrz_buffer<CHIP>(&cmd->cs, NULL);
    }
 }
+TU_GENX(tu_lrz_begin_renderpass);
 
 void
 tu_lrz_begin_secondary_cmdbuf(struct tu_cmd_buffer *cmd)
@@ -269,6 +280,7 @@ tu_lrz_begin_secondary_cmdbuf(struct tu_cmd_buffer *cmd)
    }
 }
 
+template <chip CHIP>
 void
 tu_lrz_tiling_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 {
@@ -282,7 +294,7 @@ tu_lrz_tiling_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 
    struct tu_lrz_state *lrz = &cmd->state.lrz;
 
-   tu6_emit_lrz_buffer(cs, lrz->image_view->image);
+   tu6_emit_lrz_buffer<CHIP>(cs, lrz->image_view->image);
 
    if (lrz->reuse_previous_state) {
       /* Reuse previous LRZ state, LRZ cache is assumed to be
@@ -338,12 +350,14 @@ tu_lrz_tiling_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
       }
    }
 }
+TU_GENX(tu_lrz_tiling_begin);
 
+template <chip CHIP>
 void
 tu_lrz_tiling_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 {
    if (cmd->state.lrz.fast_clear || cmd->state.lrz.gpu_dir_tracking) {
-      tu6_emit_lrz_buffer(cs, cmd->state.lrz.image_view->image);
+      tu6_emit_lrz_buffer<CHIP>(cs, cmd->state.lrz.image_view->image);
 
       if (cmd->state.lrz.gpu_dir_tracking) {
          tu6_write_lrz_reg(cmd, &cmd->cs,
@@ -373,7 +387,9 @@ tu_lrz_tiling_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
     * reason to do such clear.
     */
 }
+TU_GENX(tu_lrz_tiling_end);
 
+template <chip CHIP>
 void
 tu_lrz_sysmem_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 {
@@ -387,12 +403,12 @@ tu_lrz_sysmem_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
    struct tu_lrz_state *lrz = &cmd->state.lrz;
 
    if (cmd->device->physical_device->info->a6xx.has_lrz_dir_tracking) {
-      tu_disable_lrz(cmd, cs, lrz->image_view->image);
+      tu_disable_lrz<CHIP>(cmd, cs, lrz->image_view->image);
       /* Make sure depth view comparison will fail. */
       tu6_write_lrz_reg(cmd, cs,
          A6XX_GRAS_LRZ_DEPTH_VIEW(.dword = 0));
    } else {
-      tu6_emit_lrz_buffer(cs, lrz->image_view->image);
+      tu6_emit_lrz_buffer<CHIP>(cs, lrz->image_view->image);
       /* Even though we disable LRZ writes in sysmem mode - there is still
        * LRZ test, so LRZ should be cleared.
        */
@@ -408,6 +424,7 @@ tu_lrz_sysmem_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
       }
    }
 }
+TU_GENX(tu_lrz_sysmem_begin);
 
 void
 tu_lrz_sysmem_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
@@ -416,6 +433,7 @@ tu_lrz_sysmem_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs)
 }
 
 /* Disable LRZ outside of renderpass. */
+template <chip CHIP>
 void
 tu_disable_lrz(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
                struct tu_image *image)
@@ -426,11 +444,13 @@ tu_disable_lrz(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
    if (!image->lrz_height)
       return;
 
-   tu6_emit_lrz_buffer(cs, image);
+   tu6_emit_lrz_buffer<CHIP>(cs, image);
    tu6_disable_lrz_via_depth_view(cmd, cs);
 }
+TU_GENX(tu_disable_lrz);
 
 /* Clear LRZ, used for out of renderpass depth clears. */
+template <chip CHIP>
 void
 tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
                          struct tu_image *image,
@@ -460,7 +480,7 @@ tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
    bool fast_clear = image->lrz_fc_size && (pDepthStencil->depth == 0.f ||
                                             pDepthStencil->depth == 1.f);
 
-   tu6_emit_lrz_buffer(&cmd->cs, image);
+   tu6_emit_lrz_buffer<CHIP>(&cmd->cs, image);
 
    tu6_write_lrz_reg(cmd, &cmd->cs, A6XX_GRAS_LRZ_DEPTH_VIEW(
          .base_layer = range->baseArrayLayer,
@@ -481,6 +501,7 @@ tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
       tu6_clear_lrz<A6XX>(cmd, &cmd->cs, image, (const VkClearValue*) pDepthStencil);
    }
 }
+TU_GENX(tu_lrz_clear_depth_image);
 
 void
 tu_lrz_disable_during_renderpass(struct tu_cmd_buffer *cmd)

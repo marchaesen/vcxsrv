@@ -206,8 +206,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-kingoftown
     VK_DRIVER: freedreno
-    FORCE_KERNEL_TAG: "v6.4.12-for-mesa-ci-f6b4ad45f48d"  # 6.6 is slow and unstable
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 # Status: https://lava.collabora.dev/scheduler/device_type/sc7180-trogdor-lazor-limozeen
 .lava-sc7180-trogdor-lazor-limozeen:arm64:
@@ -224,8 +222,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sc7180-trogdor-lazor-limozeen
     VK_DRIVER: freedreno
-    FORCE_KERNEL_TAG: "v6.4.12-for-mesa-ci-f6b4ad45f48d"  # 6.6 is slow and unstable
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 # Status: https://lava.collabora.dev/scheduler/device_type/sm8350-hdk
 .lava-sm8350-hdk:arm64:
@@ -243,8 +239,6 @@
     KERNEL_IMAGE_TYPE: ""
     RUNNER_TAG: mesa-ci-x86-64-lava-sm8350-hdk
     VK_DRIVER: freedreno
-    FORCE_KERNEL_TAG: "v6.4.12-for-mesa-ci-f6b4ad45f48d"  # 6.6 is slow and unstable
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
 
 
 .google-freedreno-test:
@@ -356,8 +350,6 @@
     BM_CMDLINE: "ip=dhcp console=ttyMSM0,115200n8 root=/dev/nfs rw nfsrootdebug nfsroot=,tcp,nfsvers=4.2 init=/init"
     DEVICE_TYPE: sdm845-cheza-r3
     GPU_VERSION: freedreno-a630
-    FORCE_KERNEL_TAG: "v6.4.12-for-mesa-ci-f6b4ad45f48d"  # 6.6 is slow and unstable
-    KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
   timeout: 20m
   tags:
     - google-freedreno-cheza

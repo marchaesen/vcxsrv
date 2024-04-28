@@ -42,7 +42,8 @@ void crocus_blitter_begin(struct crocus_context *ice, enum crocus_blitter_op op,
    util_blitter_save_geometry_shader(ice->blitter, ice->shaders.uncompiled[MESA_SHADER_GEOMETRY]);
    util_blitter_save_so_targets(ice->blitter, ice->state.so_targets,
                                 (struct pipe_stream_output_target**)ice->state.so_target);
-   util_blitter_save_vertex_buffer_slot(ice->blitter, ice->state.vertex_buffers);
+   util_blitter_save_vertex_buffers(ice->blitter, ice->state.vertex_buffers,
+                                    util_last_bit(ice->state.bound_vertex_buffers));
    util_blitter_save_vertex_elements(ice->blitter, (void *)ice->state.cso_vertex_elements);
    if (op & CROCUS_SAVE_FRAGMENT_STATE) {
       util_blitter_save_blend(ice->blitter, ice->state.cso_blend);

@@ -50,6 +50,8 @@ bool gl_nir_lower_blend_equation_advanced(nir_shader *sh, bool coherent);
 bool gl_nir_lower_buffers(nir_shader *shader,
                           const struct gl_shader_program *shader_program);
 
+void gl_nir_lower_discard_flow(nir_shader *shader);
+
 void gl_nir_lower_named_interface_blocks(struct gl_shader_program *prog);
 
 void gl_nir_lower_packed_varyings(const struct gl_constants *consts,
@@ -61,6 +63,8 @@ void gl_nir_lower_packed_varyings(const struct gl_constants *consts,
                                   struct gl_linked_shader *linked_shader,
                                   bool disable_varying_packing,
                                   bool disable_xfb_packing, bool xfb_enabled);
+
+void gl_nir_inline_functions(nir_shader *shader);
 
 #ifdef __cplusplus
 }

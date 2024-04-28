@@ -137,7 +137,7 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
    /* Consider each slot separately */
    for (unsigned offset = 0; offset < sem.num_slots; ++offset) {
       unsigned location = sem.location + offset;
-      unsigned index = nir_intrinsic_base(intr) + offset;
+      unsigned index = pan_res_handle_get_index(nir_intrinsic_base(intr)) + offset;
 
       if (slots[location].type) {
          assert(slots[location].type == type);

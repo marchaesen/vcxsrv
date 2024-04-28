@@ -220,8 +220,8 @@ code point for the page, or <constant>FC_CHARSET_DONE</constant> if
 @RET@           FcChar32
 @FUNC@          FcCharSetCoverage
 @TYPE1@         const FcCharSet *       @ARG1@          a
-@TYPE2@         FcChar32                @ARG2@          page
-@TYPE3@         FcChar32[8]             @ARG3@          result
+@TYPE2@         FcChar32%               @ARG2@          page
+@TYPE3@         FcChar32[8]%            @ARG3@          result
 @PURPOSE@       DEPRECATED return coverage for a Unicode page
 @DESC@
 DEPRECATED

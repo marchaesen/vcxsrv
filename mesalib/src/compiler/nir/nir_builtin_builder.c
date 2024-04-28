@@ -231,7 +231,7 @@ nir_atan(nir_builder *b, nir_def *y_over_x)
     *    !isnan(y_over_x) ? ... : y_over_x;
     */
    if (b->exact ||
-       nir_is_float_control_signed_zero_inf_nan_preserve(b->shader->info.float_controls_execution_mode, bit_size)) {
+       nir_is_float_control_signed_zero_inf_nan_preserve(b->fp_fast_math, bit_size)) {
       const bool exact = b->exact;
 
       b->exact = true;

@@ -3,6 +3,8 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "agx_builder.h"
+#include "agx_compiler.h"
 #include "agx_test.h"
 
 #include <gtest/gtest.h>
@@ -12,6 +14,7 @@
       agx_builder *A = agx_test_builder(mem_ctx);                              \
       agx_builder *B = agx_test_builder(mem_ctx);                              \
                                                                                \
+      A->shader->scratch_size = 2000;                                          \
       agx_emit_parallel_copies(A, copies, ARRAY_SIZE(copies));                 \
                                                                                \
       {                                                                        \
@@ -229,6 +232,84 @@ TEST_F(LowerParallelCopy, VectorizeAlignedHalfRegs)
       agx_mov_to(b, agx_register(0, AGX_SIZE_32),
                  agx_register(10, AGX_SIZE_32));
       agx_mov_to(b, agx_register(2, AGX_SIZE_32), agx_uniform(8, AGX_SIZE_32));
+   });
+}
+
+TEST_F(LowerParallelCopy, StackCopies)
+{
+   struct agx_copy test[] = {
+      {.dest = 21, .dest_mem = true, .src = agx_register(20, AGX_SIZE_16)},
+      {.dest = 22, .dest_mem = true, .src = agx_register(22, AGX_SIZE_32)},
+      {.dest = 0, .src = agx_memory_register(10, AGX_SIZE_16)},
+      {.dest = 1, .src = agx_memory_register(11, AGX_SIZE_16)},
+      {.dest = 0, .dest_mem = true, .src = agx_memory_register(12, AGX_SIZE_16)},
+      {.dest = 1, .dest_mem = true, .src = agx_memory_register(13, AGX_SIZE_16)},
+      {.dest = 2,
+       .dest_mem = true,
+       .src = agx_memory_register(804, AGX_SIZE_32)},
+      {.dest = 804,
+       .dest_mem = true,
+       .src = agx_memory_register(2, AGX_SIZE_32)},
+      {.dest = 807,
+       .dest_mem = true,
+       .src = agx_memory_register(808, AGX_SIZE_16)},
+      {.dest = 808,
+       .dest_mem = true,
+       .src = agx_memory_register(807, AGX_SIZE_16)},
+   };
+
+   CASE(test, {
+      /* Vectorized fill */
+      agx_mov_to(b, agx_register(0, AGX_SIZE_32),
+                 agx_memory_register(10, AGX_SIZE_32));
+
+      /* Regular spills */
+      agx_mov_to(b, agx_memory_register(21, AGX_SIZE_16),
+                 agx_register(20, AGX_SIZE_16));
+      agx_mov_to(b, agx_memory_register(22, AGX_SIZE_32),
+                 agx_register(22, AGX_SIZE_32));
+
+      /* Vectorized stack->stack copy */
+      agx_mov_to(b, agx_memory_register(1000, AGX_SIZE_32),
+                 agx_register(0, AGX_SIZE_32));
+
+      agx_mov_to(b, agx_register(0, AGX_SIZE_32),
+                 agx_memory_register(12, AGX_SIZE_32));
+
+      agx_mov_to(b, agx_memory_register(0, AGX_SIZE_32),
+                 agx_register(0, AGX_SIZE_32));
+
+      agx_mov_to(b, agx_register(0, AGX_SIZE_32),
+                 agx_memory_register(1000, AGX_SIZE_32));
+
+      /* Stack swap: 32-bit */
+      agx_index temp1 = agx_register(0, AGX_SIZE_32);
+      agx_index temp2 = agx_register(2, AGX_SIZE_32);
+      agx_index spilled_gpr_vec2 = agx_register(0, AGX_SIZE_32);
+      agx_index scratch_vec2 = agx_memory_register(1000, AGX_SIZE_32);
+      spilled_gpr_vec2.channels_m1++;
+      scratch_vec2.channels_m1++;
+
+      agx_mov_to(b, scratch_vec2, spilled_gpr_vec2);
+      agx_mov_to(b, temp1, agx_memory_register(2, AGX_SIZE_32));
+      agx_mov_to(b, temp2, agx_memory_register(804, AGX_SIZE_32));
+      agx_mov_to(b, agx_memory_register(804, AGX_SIZE_32), temp1);
+      agx_mov_to(b, agx_memory_register(2, AGX_SIZE_32), temp2);
+      agx_mov_to(b, spilled_gpr_vec2, scratch_vec2);
+
+      /* Stack swap: 16-bit */
+      spilled_gpr_vec2.size = AGX_SIZE_16;
+      scratch_vec2.size = AGX_SIZE_16;
+      temp1.size = AGX_SIZE_16;
+      temp2.size = AGX_SIZE_16;
+      temp2.value = 1;
+
+      agx_mov_to(b, scratch_vec2, spilled_gpr_vec2);
+      agx_mov_to(b, temp1, agx_memory_register(807, AGX_SIZE_16));
+      agx_mov_to(b, temp2, agx_memory_register(808, AGX_SIZE_16));
+      agx_mov_to(b, agx_memory_register(808, AGX_SIZE_16), temp1);
+      agx_mov_to(b, agx_memory_register(807, AGX_SIZE_16), temp2);
+      agx_mov_to(b, spilled_gpr_vec2, scratch_vec2);
    });
 }
 

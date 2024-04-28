@@ -181,7 +181,7 @@ static GLenum
 valid_prim_mode_custom(struct gl_context *ctx, GLenum mode,
                        GLbitfield valid_prim_mask)
 {
-#if DEBUG
+#if MESA_DEBUG
    ASSERTED unsigned mask = ctx->ValidPrimMask;
    ASSERTED unsigned mask_indexed = ctx->ValidPrimMaskIndexed;
    ASSERTED bool drawpix_valid = ctx->DrawPixValid;
@@ -223,18 +223,7 @@ valid_prim_mode_indexed(struct gl_context *ctx, GLenum mode)
 static GLenum
 valid_elements_type(struct gl_context *ctx, GLenum type)
 {
-   /* GL_UNSIGNED_BYTE  = 0x1401
-    * GL_UNSIGNED_SHORT = 0x1403
-    * GL_UNSIGNED_INT   = 0x1405
-    *
-    * The trick is that bit 1 and bit 2 mean USHORT and UINT, respectively.
-    * After clearing those two bits (with ~6), we should get UBYTE.
-    * Both bits can't be set, because the enum would be greater than UINT.
-    */
-   if (!(type <= GL_UNSIGNED_INT && (type & ~6) == GL_UNSIGNED_BYTE))
-      return GL_INVALID_ENUM;
-
-   return GL_NO_ERROR;
+   return _mesa_is_index_type_valid(type) ? GL_NO_ERROR : GL_INVALID_ENUM;
 }
 
 static inline bool
@@ -1018,20 +1007,6 @@ check_array_data(struct gl_context *ctx, struct gl_vertex_array_object *vao,
 }
 
 
-static inline unsigned
-get_index_size_shift(GLenum type)
-{
-   /* The type is already validated, so use a fast conversion.
-    *
-    * GL_UNSIGNED_BYTE  - GL_UNSIGNED_BYTE = 0
-    * GL_UNSIGNED_SHORT - GL_UNSIGNED_BYTE = 2
-    * GL_UNSIGNED_INT   - GL_UNSIGNED_BYTE = 4
-    *
-    * Divide by 2 to get 0,1,2.
-    */
-   return (type - GL_UNSIGNED_BYTE) >> 1;
-}
-
 /**
  * Examine the array's data for NaNs, etc.
  * For debug purposes; not normally used.
@@ -1620,7 +1595,7 @@ _mesa_validated_drawrangeelements(struct gl_context *ctx,
       assert(end == ~0u);
    }
 
-   unsigned index_size_shift = get_index_size_shift(type);
+   unsigned index_size_shift = _mesa_get_index_size_shift(type);
 
    if (index_bo) {
       if (!indices_aligned(index_size_shift, indices))
@@ -1975,7 +1950,7 @@ _mesa_DrawElementsUserBuf(const GLvoid *ptr)
       (const struct marshal_cmd_DrawElementsUserBuf *)ptr;
    const GLenum mode = cmd->mode;
    const GLsizei count = cmd->count;
-   const GLenum type = cmd->type;
+   const GLenum type = _mesa_decode_index_type(cmd->type);
    const GLsizei instance_count = cmd->instance_count;
 
    if (!_mesa_is_no_error_enabled(ctx) &&
@@ -1998,6 +1973,40 @@ _mesa_DrawElementsUserBuf(const GLvoid *ptr)
    ctx->DrawID = 0;
 }
 
+/**
+ * Same as glDrawElementsInstancedBaseVertexBaseInstance, but the index
+ * buffer is set by the indexBuf parameter instead of using the bound
+ * GL_ELEMENT_ARRAY_BUFFER if indexBuf != NULL.
+ */
+void GLAPIENTRY
+_mesa_DrawElementsUserBufPacked(const GLvoid *ptr)
+{
+   GET_CURRENT_CONTEXT(ctx);
+   FLUSH_FOR_DRAW(ctx);
+
+   _mesa_set_varying_vp_inputs(ctx, ctx->VertexProgram._VPModeInputFilter &
+                               ctx->Array._DrawVAO->_EnabledWithMapMode);
+   if (ctx->NewState)
+      _mesa_update_state(ctx);
+
+   const struct marshal_cmd_DrawElementsUserBufPacked *cmd =
+      (const struct marshal_cmd_DrawElementsUserBufPacked *)ptr;
+   const GLenum mode = cmd->mode;
+   const GLsizei count = cmd->count;
+   const GLenum type = _mesa_decode_index_type(cmd->type);
+
+   if (!_mesa_is_no_error_enabled(ctx) &&
+       !_mesa_validate_DrawElements(ctx, mode, count, type))
+      return;
+
+   struct gl_buffer_object *index_bo =
+      cmd->index_buffer ? cmd->index_buffer : ctx->Array.VAO->IndexBufferObj;
+
+   const GLvoid *indices = (void*)(uintptr_t)cmd->indices;
+
+   _mesa_validated_drawrangeelements(ctx, index_bo, mode, false, 0, ~0,
+                                     count, type, indices, 0, 1, 0);
+}
 
 /**
  * Inner support for both _mesa_MultiDrawElements() and
@@ -2018,7 +2027,7 @@ _mesa_validated_multidrawelements(struct gl_context *ctx,
    if (primcount == 0)
       return;
 
-   unsigned index_size_shift = get_index_size_shift(type);
+   unsigned index_size_shift = _mesa_get_index_size_shift(type);
 
    min_index_ptr = (uintptr_t) indices[0];
    max_index_ptr = 0;
@@ -2531,7 +2540,7 @@ _mesa_MultiDrawElementsIndirect(GLenum mode, GLenum type,
            !_mesa_validate_DrawElements(ctx, mode, 1, type)))
          return;
 
-      unsigned index_size_shift = get_index_size_shift(type);
+      unsigned index_size_shift = _mesa_get_index_size_shift(type);
 
       struct pipe_draw_info info;
       info.mode = mode;

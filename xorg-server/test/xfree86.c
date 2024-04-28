@@ -108,11 +108,13 @@ xfree86_add_comment(void)
     free(current);
 }
 
-int
+const testfunc_t*
 xfree86_test(void)
 {
-    xfree86_option_list_duplicate();
-    xfree86_add_comment();
-
-    return 0;
+    static const testfunc_t testfuncs[] = {
+        xfree86_option_list_duplicate,
+        xfree86_add_comment,
+        NULL,
+    };
+    return testfuncs;
 }

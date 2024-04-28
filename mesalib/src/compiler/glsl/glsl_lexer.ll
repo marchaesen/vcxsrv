@@ -609,6 +609,16 @@ layout		{
 			    return LITERAL_INTEGER(8);
 			}
 
+[0-9]+\.[0-9]+([eE][+-]?[0-9]+)?(hf|HF)	|
+\.[0-9]+([eE][+-]?[0-9]+)?(hf|HF)	|
+[0-9]+\.([eE][+-]?[0-9]+)?(hf|HF)	|
+[0-9]+[eE][+-]?[0-9]+(hf|HF)		{
+			    if (!yyextra->AMD_gpu_shader_half_float_enable)
+			        return ERROR_TOK;
+			    yylval->dreal = _mesa_strtod(yytext, NULL);
+			    return FLOAT16CONSTANT;
+			}
+
 [0-9]+\.[0-9]+([eE][+-]?[0-9]+)?[fF]?	|
 \.[0-9]+([eE][+-]?[0-9]+)?[fF]?		|
 [0-9]+\.([eE][+-]?[0-9]+)?[fF]?		|
@@ -738,6 +748,24 @@ uint64_t	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable || yyext
 u64vec2		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable || yyextra->AMD_gpu_shader_int64_enable, &glsl_type_builtin_u64vec2);
 u64vec3		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable || yyextra->AMD_gpu_shader_int64_enable, &glsl_type_builtin_u64vec3);
 u64vec4		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->ARB_gpu_shader_int64_enable || yyextra->AMD_gpu_shader_int64_enable, &glsl_type_builtin_u64vec4);
+
+    /* Additional words for AMD_gpu_shader_half_float */
+float16_t	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_float16_t);
+f16vec2		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16vec2);
+f16vec3		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16vec3);
+f16vec4		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16vec4);
+f16mat2		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat2);
+f16mat3		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat3);
+f16mat4		TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat4);
+f16mat2x2	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat2);
+f16mat2x3	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat2x3);
+f16mat2x4	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat2x4);
+f16mat3x2	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat3x2);
+f16mat3x3	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat3);
+f16mat3x4	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat3x4);
+f16mat4x2	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat4x2);
+f16mat4x3	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat4x3);
+f16mat4x4	TYPE_WITH_ALT(0, 0, 0, 0, yyextra->AMD_gpu_shader_half_float_enable, &glsl_type_builtin_f16mat4);
 
 [_a-zA-Z][_a-zA-Z0-9]*	{
 			    struct _mesa_glsl_parse_state *state = yyextra;

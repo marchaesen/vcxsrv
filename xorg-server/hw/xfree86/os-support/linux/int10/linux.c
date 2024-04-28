@@ -55,21 +55,6 @@ typedef struct {
     char *alloc;
 } linuxInt10Priv;
 
-#if defined DoSubModules
-
-typedef enum {
-    INT10_NOT_LOADED,
-    INT10_LOADED_VM86,
-    INT10_LOADED_X86EMU,
-    INT10_LOAD_FAILED
-} Int10LinuxSubModuleState;
-
-static Int10LinuxSubModuleState loadedSubModule = INT10_NOT_LOADED;
-
-static Int10LinuxSubModuleState int10LinuxLoadSubModule(ScrnInfoPtr pScrn);
-
-#endif                          /* DoSubModules */
-
 static Bool
 readLegacy(struct pci_device *dev, unsigned char *buf, int base, int len)
 {
@@ -117,14 +102,6 @@ xf86ExtendedInitInt10(int entityIndex, int Flags)
         free(options);
         return NULL;
     }
-
-#if defined DoSubModules
-    if (loadedSubModule == INT10_NOT_LOADED)
-        loadedSubModule = int10LinuxLoadSubModule(pScrn);
-
-    if (loadedSubModule == INT10_LOAD_FAILED)
-        return NULL;
-#endif
 
     if ((!vidMem) || (!sysMem)) {
         if ((fd = open(DEV_MEM, O_RDWR, 0)) >= 0) {
@@ -518,44 +495,3 @@ xf86int10Addr(xf86Int10InfoPtr pInt, CARD32 addr)
     else
         return (void *) (memType) addr;
 }
-
-#if defined DoSubModules
-
-static Bool
-vm86_tst(void)
-{
-    int __res;
-
-#ifdef __PIC__
-    /* When compiling with -fPIC, we can't use asm constraint "b" because
-       %ebx is already taken by gcc. */
-    __asm__ __volatile__("pushl %%ebx\n\t"
-                         "movl %2,%%ebx\n\t"
-                         "movl %1,%%eax\n\t"
-                         "int $0x80\n\t" "popl %%ebx":"=a"(__res)
-                         :"n"((int) 113), "r"(NULL));
-#else
-    __asm__ __volatile__("int $0x80\n\t":"=a"(__res):"a"((int) 113),
-                         "b"((struct vm86_struct *) NULL));
-#endif
-
-    if (__res < 0 && __res == -ENOSYS)
-        return FALSE;
-
-    return TRUE;
-}
-
-static Int10LinuxSubModuleState
-int10LinuxLoadSubModule(ScrnInfoPtr pScrn)
-{
-    if (vm86_tst()) {
-        if (xf86LoadSubModule(pScrn, "vm86"))
-            return INT10_LOADED_VM86;
-    }
-    if (xf86LoadSubModule(pScrn, "x86emu"))
-        return INT10_LOADED_X86EMU;
-
-    return INT10_LOAD_FAILED;
-}
-
-#endif                          /* DoSubModules */

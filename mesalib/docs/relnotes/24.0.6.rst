@@ -1,0 +1,159 @@
+Mesa 24.0.6 Release Notes / 2024-04-24
+======================================
+
+Mesa 24.0.6 is a bug fix release which fixes bugs found since the 24.0.5 release.
+
+Mesa 24.0.6 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.0.6 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    8b7a92dbe6468c18f2383700135b5fe9de836cdf0cc8fd7dbae3c7110237d604  mesa-24.0.6.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- radv: mesa-9999/src/amd/vulkan/radv_image_view.c:147: radv_set_mutable_tex_desc_fields: Assertion \`(plane->surface.u.gfx9.surf_pitch * plane->surface.bpe) % 256 == 0' failed.
+- r600: Valheim hangs CAYMAN gpu (regression/bisected)
+- r600: Artifacts in Oxygen Not Included around air ducts and pipes (regression, bisected)
+- RADV, regression : Objects randomly appear/disappear on Unreal Engine 4 titles using D3D12 backend on Polaris
+- mesa 23.1.0-rc3 flickering textures/lighting in Unreal 4 games Polaris10
+- anv: flaky vkd3d-proton test_buffer_feedback_instructions_sm51
+
+
+Changes
+-------
+
+Bas Nieuwenhuizen (1):
+
+- radv: Fix differing aspect masks for multiplane image copies.
+
+Boris Brezillon (1):
+
+- nir/lower_blend: Fix nir_blend_logicop() for 8/16-bit integer formats
+
+Dave Airlie (1):
+
+- egl/dri2: don't bind dri2 for zink
+
+Eric Engestrom (5):
+
+- docs: add sha256sum for 24.0.5
+- .pick_status.json: Update to 2bb102f020b3a5834d219ab474c6bcdd02f88d09
+- .pick_status.json: Update to 7a1779edc7fb82c891e584074b95d1a4801c1782
+- .pick_status.json: Mark 3c673919c348b0611595b32fcc8a3d376868c830 as denominated
+- .pick_status.json: Update to cd5c9870ea1d7e73d05f125b229f34e5749c8345
+
+Eric R. Smith (3):
+
+- panfrost: fix a GPU/CPU synchronization problem
+- panfrost: mark separate_stencil as valid when surface is valid
+- panfrost: fix an incorrect stencil clear optimization
+
+Georg Lehmann (1):
+
+- aco: use v1 definition for v_interp_p1lv_f16
+
+Gert Wollny (4):
+
+- r600/sfn: Add array element parent also to array
+- r600/sfn: Use dependecies to order barriers and LDS/RAT instructions
+- r600/sfn: when emitting fp64 op2 groups pre-load values
+- r600/sfn: Don't put b2f64 conversion into ALU group
+
+Iago Toral Quiroga (1):
+
+- broadcom/compiler: enable perquad with uses_wide_subgroup_intrinsics
+
+Ian Romanick (1):
+
+- intel/brw: Fix handling of cmat_signed_mask
+
+Jonathan Gray (3):
+
+- intel/dev: update DG2 device names
+- intel/dev: update DG2 device names
+- intel/dev: 0x7d45 is mtl-u not mtl-h
+
+Jose Maria Casanova Crespo (1):
+
+- broadcom/compiler: needs_quad_helper_invocation enable PER_QUAD TMU access
+
+Karol Herbst (1):
+
+- rusticl/program: handle -cl-no-subgroup-ifp
+
+Konstantin Seurer (1):
+
+- lavapipe: Handle multiple planes in GetDescriptorEXT
+
+M Henning (1):
+
+- nvk: Don't use a descriptor cbuf if it's too large
+
+Mike Blumenkrantz (13):
+
+- lavapipe: don't clamp index buffer size for null index buffer draws
+- zink: block LA formats with srgb
+- llvmpipe: clamp 32bit query results to low 32 bits rather than MIN
+- lavapipe: clamp 32bit query results to low 32 bits rather than MIN
+- nir/remove_unused_io_vars: check all components to determine variable liveness
+- lavapipe: disable stencil test if no stencil attachment
+- egl: fix defines for zink's dri3 check
+- egl/android: fix zink loading
+- zink: disable buffer reordering correctly on shader image binds
+- zink: destroy shaderdb pipelines
+- zink: add VK_PIPELINE_CREATE_CAPTURE_STATISTICS_BIT_KHR for shaderdb
+- brw/lower_a2c: fix for scalarized fs outputs
+- zink: copy shader name when copying shader info
+
+Patrick Lerda (2):
+
+- r300: fix r300_draw_elements() behavior
+- panfrost: remove panfrost_create_shader_state() related dead code
+
+Paulo Zanoni (1):
+
+- anv/sparse: replace device->using_sparse with device->num_sparse_resources
+
+Sagar Ghuge (3):
+
+- anv: Fix typo in DestinationAlphaBlendFactor value
+- anv: Use appropriate argument format for indirect draw
+- isl: Update isl_swizzle_supports_rendering comment
+
+Samuel Pitoiset (3):
+
+- radv: add missing SQTT markers when an indirect indexed draw is used with DGC
+- radv: use canonicalized VA for VM fault reports
+- radv: fix waiting for occlusion queries on GFX6-8
+
+Stéphane Cerveau (1):
+
+- vulkan/video: hevc: b-frames can be reference or not
+
+Yonggang Luo (1):
+
+- compiler/spirv: vtn_add_printf_string support for handling OpBitcast
+
+nyanmisaka (1):
+
+- radeonsi/uvd_enc: update to use correct padding size

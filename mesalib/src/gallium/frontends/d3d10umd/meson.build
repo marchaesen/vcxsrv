@@ -5,8 +5,6 @@ if cc.get_argument_syntax() == 'gcc'
   _c_args_d3d10umd += '-Wno-unknown-pragmas'
 endif
 
-inc_winddk = include_directories('../../../../include/winddk')
-
 libd3d10umd = static_library(
   'd3d10umd',
   files(

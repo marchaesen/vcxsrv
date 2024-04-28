@@ -60,7 +60,7 @@ extern simple_mtx_t fence_lock;
 #define SUBALLOC_SIZE (32 * 1024)
 /* Maximum known alignment requirement is a6xx's TEX_CONST at 16 dwords */
 #define SUBALLOC_ALIGNMENT 64
-#define RING_FLAGS (FD_BO_GPUREADONLY | FD_BO_CACHED_COHERENT)
+#define RING_FLAGS (FD_BO_GPUREADONLY | FD_BO_CACHED_COHERENT | FD_BO_HINT_COMMAND)
 
 /*
  * Stupid/simple growable array implementation:
@@ -192,7 +192,7 @@ struct fd_bo_heap *fd_bo_heap_new(struct fd_device *dev, uint32_t flags);
 void fd_bo_heap_destroy(struct fd_bo_heap *heap);
 
 struct fd_bo *fd_bo_heap_block(struct fd_bo *bo);
-struct fd_bo *fd_bo_heap_alloc(struct fd_bo_heap *heap, uint32_t size);
+struct fd_bo *fd_bo_heap_alloc(struct fd_bo_heap *heap, uint32_t size, uint32_t flags);
 
 static inline uint32_t
 submit_offset(struct fd_bo *bo, uint32_t offset)
@@ -314,6 +314,7 @@ struct fd_pipe_funcs {
     * the pipe implementation)
     */
    void (*flush)(struct fd_pipe *pipe, uint32_t fence);
+   void (*finish)(struct fd_pipe *pipe);
 
    int (*get_param)(struct fd_pipe *pipe, enum fd_param_id param,
                     uint64_t *value);
@@ -401,6 +402,7 @@ struct fd_submit_funcs {
 struct fd_submit {
    int32_t refcnt;
    struct fd_pipe *pipe;
+   struct fd_device *dev;
    const struct fd_submit_funcs *funcs;
 
    struct fd_ringbuffer *primary;

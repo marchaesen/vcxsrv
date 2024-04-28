@@ -10,18 +10,17 @@
 #include "sid.h"
 #include "nir.h"
 
-
-struct si_shader_profile {
-   uint32_t sha1[SHA1_DIGEST_LENGTH32];
-   uint32_t options;
-};
-
-static struct si_shader_profile profiles[] =
+struct si_shader_profile si_shader_profiles[] =
 {
    {
       /* Plot3D */
       {0x485320cd, 0x87a9ba05, 0x24a60e4f, 0x25aa19f7, 0xf5287451},
       SI_PROFILE_VS_NO_BINNING,
+   },
+   {
+      /* Viewperf/Energy */
+      {0x17118671, 0xd0102e0c, 0x947f3592, 0xb2057e7b, 0x4da5d9b0},
+      SI_PROFILE_NO_OPT_UNIFORM_VARYINGS,    /* Uniform propagation regresses performance. */
    },
    {
       /* Viewperf/Medical */
@@ -41,6 +40,11 @@ static struct si_shader_profile profiles[] =
       SI_PROFILE_CLAMP_DIV_BY_ZERO,
    },
 };
+
+unsigned si_get_num_shader_profiles(void)
+{
+   return ARRAY_SIZE(si_shader_profiles);
+}
 
 static unsigned get_inst_tessfactor_writemask(nir_intrinsic_instr *intrin)
 {
@@ -603,9 +607,9 @@ void si_nir_scan_shader(struct si_screen *sscreen, const struct nir_shader *nir,
    info->base = nir->info;
 
    /* Get options from shader profiles. */
-   for (unsigned i = 0; i < ARRAY_SIZE(profiles); i++) {
-      if (_mesa_printed_sha1_equal(info->base.source_sha1, profiles[i].sha1)) {
-         info->options = profiles[i].options;
+   for (unsigned i = 0; i < ARRAY_SIZE(si_shader_profiles); i++) {
+      if (_mesa_printed_sha1_equal(info->base.source_sha1, si_shader_profiles[i].sha1)) {
+         info->options = si_shader_profiles[i].options;
          break;
       }
    }
@@ -795,9 +799,6 @@ void si_nir_scan_shader(struct si_screen *sscreen, const struct nir_shader *nir,
          nir->info.stage == MESA_SHADER_VERTEX && !info->base.vs.blit_sgprs_amd ? info->num_inputs : 0;
       unsigned num_vbos_in_sgprs = si_num_vbos_in_user_sgprs_inline(sscreen->info.gfx_level);
       info->num_vbos_in_user_sgprs = MIN2(info->num_vs_inputs, num_vbos_in_sgprs);
-
-      /* The prolog is a no-op if there are no inputs. */
-      info->vs_needs_prolog = info->num_inputs && !info->base.vs.blit_sgprs_amd;
    }
 
    if (nir->info.stage == MESA_SHADER_VERTEX ||

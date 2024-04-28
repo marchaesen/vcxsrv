@@ -224,6 +224,14 @@ struct vk_rmv_command_buffer_description {
    uint64_t app_available_scratch_size;
 };
 
+enum vk_rmv_misc_internal_type {
+   VK_RMV_MISC_INTERNAL_TYPE_PADDING,
+};
+
+struct vk_rmv_misc_internal_description {
+   enum vk_rmv_misc_internal_type type;
+};
+
 struct vk_rmv_resource_create_token {
    uint32_t resource_id;
    bool is_driver_internal;
@@ -238,6 +246,7 @@ struct vk_rmv_resource_create_token {
       struct vk_rmv_pipeline_description pipeline;
       struct vk_rmv_descriptor_pool_description descriptor_pool;
       struct vk_rmv_command_buffer_description command_buffer;
+      struct vk_rmv_misc_internal_description misc_internal;
    };
 };
 

@@ -42,7 +42,7 @@ v3d_blitter_save(struct v3d_context *v3d, bool op_blit, bool render_cond)
 {
         util_blitter_save_fragment_constant_buffer_slot(v3d->blitter,
                                                         v3d->constbuf[PIPE_SHADER_FRAGMENT].cb);
-        util_blitter_save_vertex_buffer_slot(v3d->blitter, v3d->vertexbuf.vb);
+        util_blitter_save_vertex_buffers(v3d->blitter, v3d->vertexbuf.vb, v3d->vertexbuf.count);
         util_blitter_save_vertex_elements(v3d->blitter, v3d->vtx);
         util_blitter_save_vertex_shader(v3d->blitter, v3d->prog.bind_vs);
         util_blitter_save_geometry_shader(v3d->blitter, v3d->prog.bind_gs);

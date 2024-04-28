@@ -1208,6 +1208,7 @@ copy_array_object(struct gl_context *ctx,
    /* The bitmask of bound VBOs needs to match the VertexBinding array */
    dest->VertexAttribBufferMask = src->VertexAttribBufferMask;
    dest->NonZeroDivisorMask = src->NonZeroDivisorMask;
+   dest->NonIdentityBufferAttribMapping = src->NonIdentityBufferAttribMapping;
    dest->_AttributeMapMode = src->_AttributeMapMode;
    /* skip NumUpdates and IsDynamic because they can only increase, not decrease */
 }

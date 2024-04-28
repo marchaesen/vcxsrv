@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_PDATA_H_
 #define _NINE_PDATA_H_

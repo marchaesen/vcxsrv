@@ -6,7 +6,6 @@
     - changes: &venus_file_list
       - src/virtio/**/*
       when: on_success
-    - when: never
 
 
 .venus-lavapipe-test:
@@ -17,11 +16,11 @@
     VK_DRIVER: virtio
     CROSVM_GALLIUM_DRIVER: "llvmpipe"
     CROSVM_VK_DRIVER: "lvp"
-    CROSVM_GPU_ARGS: "vulkan=true,gles=false,backend=virglrenderer,egl=true,surfaceless=true"
+    CROSVM_GPU_ARGS: "vulkan=true,gles=false,backend=virglrenderer,egl=true,surfaceless=true,fixed-blob-mapping=false"
 
 venus-lavapipe:
   extends:
-    - .deqp-test-vk
+    - .deqp-test
     - .venus-lavapipe-test
   variables:
     DEQP_FRACTION: 35

@@ -8,6 +8,7 @@
 #include "asahi/lib/decode.h"
 #include "util/bitset.h"
 #include "util/u_dynarray.h"
+#include "util/u_range.h"
 #include "agx_state.h"
 
 #define foreach_active(ctx, idx)                                               \
@@ -22,12 +23,6 @@
                    AGX_DBG_BATCH))                                             \
          agx_msg("[Batch %u] " fmt "\n", agx_batch_idx(batch), ##__VA_ARGS__); \
    } while (0)
-
-static unsigned
-agx_batch_idx(struct agx_batch *batch)
-{
-   return batch - batch->ctx->batches.slots;
-}
 
 bool
 agx_batch_is_active(struct agx_batch *batch)
@@ -109,10 +104,9 @@ agx_batch_init(struct agx_context *ctx,
     */
    if (!batch->bo_list.set) {
       batch->bo_list.set = rzalloc_array(ctx, BITSET_WORD, 128);
-      batch->bo_list.word_count = 128;
+      batch->bo_list.bit_count = 128 * sizeof(BITSET_WORD) * 8;
    } else {
-      memset(batch->bo_list.set, 0,
-             batch->bo_list.word_count * sizeof(BITSET_WORD));
+      memset(batch->bo_list.set, 0, batch->bo_list.bit_count / 8);
    }
 
    if (agx_batch_is_compute(batch)) {
@@ -125,9 +119,7 @@ agx_batch_init(struct agx_context *ctx,
 
    util_dynarray_init(&batch->scissor, ctx);
    util_dynarray_init(&batch->depth_bias, ctx);
-   util_dynarray_init(&batch->occlusion_queries, ctx);
-   util_dynarray_init(&batch->nonocclusion_queries, ctx);
-   util_dynarray_init(&batch->timestamp_queries, ctx);
+   util_dynarray_init(&batch->timestamps, ctx);
 
    batch->clear = 0;
    batch->draw = 0;
@@ -138,12 +130,23 @@ agx_batch_init(struct agx_context *ctx,
    batch->clear_stencil = 0;
    batch->varyings = 0;
    batch->geometry_state = 0;
-   batch->any_draws = false;
    batch->initialized = false;
    batch->draws = 0;
+   batch->incoherent_writes = false;
    agx_bo_unreference(batch->sampler_heap.bo);
    batch->sampler_heap.bo = NULL;
    batch->sampler_heap.count = 0;
+   batch->vs_scratch = false;
+   batch->fs_scratch = false;
+   batch->cs_scratch = false;
+   batch->vs_preamble_scratch = 0;
+   batch->fs_preamble_scratch = 0;
+   batch->cs_preamble_scratch = 0;
+
+   /* May get read before write, need to initialize to 0 to avoid GPU-side UAF
+    * conditions.
+    */
+   batch->uniforms.tables[AGX_SYSVAL_TABLE_PARAMS] = 0;
 
    /* We need to emit prim state at the start. Max collides with all. */
    batch->reduced_prim = MESA_PRIM_COUNT;
@@ -174,8 +177,6 @@ agx_batch_cleanup(struct agx_context *ctx, struct agx_batch *batch, bool reset)
    uint64_t begin_ts = ~0, end_ts = 0;
    /* TODO: UAPI pending */
    agx_finish_batch_queries(batch, begin_ts, end_ts);
-   batch->occlusion_buffer.cpu = NULL;
-   batch->occlusion_buffer.gpu = 0;
 
    if (reset) {
       int handle;
@@ -209,9 +210,7 @@ agx_batch_cleanup(struct agx_context *ctx, struct agx_batch *batch, bool reset)
 
    util_dynarray_fini(&batch->scissor);
    util_dynarray_fini(&batch->depth_bias);
-   util_dynarray_fini(&batch->occlusion_queries);
-   util_dynarray_fini(&batch->nonocclusion_queries);
-   util_dynarray_fini(&batch->timestamp_queries);
+   util_dynarray_fini(&batch->timestamps);
 
    if (!(dev->debug & (AGX_DBG_TRACE | AGX_DBG_SYNC))) {
       agx_batch_print_stats(dev, batch);
@@ -476,9 +475,9 @@ agx_batch_reads(struct agx_batch *batch, struct agx_resource *rsrc)
                            false);
 }
 
-void
-agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc,
-                 unsigned level)
+static void
+agx_batch_writes_internal(struct agx_batch *batch, struct agx_resource *rsrc,
+                          unsigned level)
 {
    struct agx_context *ctx = batch->ctx;
    struct agx_batch *writer = agx_writer_get(ctx, rsrc->bo->handle);
@@ -508,12 +507,30 @@ agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc,
     */
    agx_writer_remove(ctx, rsrc->bo->handle);
    agx_writer_add(ctx, agx_batch_idx(batch), rsrc->bo->handle);
+   assert(agx_batch_is_active(batch));
+}
+
+void
+agx_batch_writes(struct agx_batch *batch, struct agx_resource *rsrc,
+                 unsigned level)
+{
+   agx_batch_writes_internal(batch, rsrc, level);
 
    if (rsrc->base.target == PIPE_BUFFER) {
       /* Assume BOs written by the GPU are fully valid */
       rsrc->valid_buffer_range.start = 0;
       rsrc->valid_buffer_range.end = ~0;
    }
+}
+
+void
+agx_batch_writes_range(struct agx_batch *batch, struct agx_resource *rsrc,
+                       unsigned offset, unsigned size)
+{
+   assert(rsrc->base.target == PIPE_BUFFER);
+   agx_batch_writes_internal(batch, rsrc, 0);
+   util_range_add(&rsrc->base, &rsrc->valid_buffer_range, offset,
+                  offset + size);
 }
 
 static int
@@ -568,7 +585,7 @@ agx_batch_submit(struct agx_context *ctx, struct agx_batch *batch,
    /* We allocate the worst-case sync array size since this won't be excessive
     * for most workloads
     */
-   unsigned max_syncs = agx_batch_bo_list_bits(batch) + 1;
+   unsigned max_syncs = batch->bo_list.bit_count + 1;
    unsigned in_sync_count = 0;
    unsigned shared_bo_count = 0;
    struct drm_asahi_sync *in_syncs =
@@ -663,11 +680,7 @@ agx_batch_submit(struct agx_context *ctx, struct agx_batch *batch,
    free(in_syncs);
    free(shared_bos);
 
-   if (dev->debug & (AGX_DBG_TRACE | AGX_DBG_SYNC)) {
-      /* Wait so we can get errors reported back */
-      int ret = drmSyncobjWait(dev->fd, &batch->syncobj, 1, INT64_MAX, 0, NULL);
-      assert(!ret);
-
+   if (dev->debug & (AGX_DBG_TRACE | AGX_DBG_SYNC | AGX_DBG_SCRATCH)) {
       if (dev->debug & AGX_DBG_TRACE) {
          /* agxdecode DRM commands */
          switch (cmd_type) {
@@ -676,6 +689,10 @@ agx_batch_submit(struct agx_context *ctx, struct agx_batch *batch,
          }
          agxdecode_next_frame();
       }
+
+      /* Wait so we can get errors reported back */
+      int ret = drmSyncobjWait(dev->fd, &batch->syncobj, 1, INT64_MAX, 0, NULL);
+      assert(!ret);
 
       agx_batch_print_stats(dev, batch);
    }
@@ -753,13 +770,6 @@ agx_batch_reset(struct agx_context *ctx, struct agx_batch *batch)
    agx_batch_cleanup(ctx, batch, true);
 }
 
-void
-agx_batch_add_timestamp_query(struct agx_batch *batch, struct agx_query *q)
-{
-   if (q)
-      util_dynarray_append(&batch->timestamp_queries, struct agx_query *, q);
-}
-
 /*
  * Timestamp queries record the time after all current work is finished,
  * which we handle as the time after all current batches finish (since we're a
@@ -772,5 +782,24 @@ agx_add_timestamp_end_query(struct agx_context *ctx, struct agx_query *q)
    unsigned idx;
    foreach_active(ctx, idx) {
       agx_batch_add_timestamp_query(&ctx->batches.slots[idx], q);
+   }
+}
+
+/*
+ * To implement a memory barrier conservatively, flush any batch that contains
+ * an incoherent memory write (requiring a memory barrier to synchronize). This
+ * could be further optimized.
+ */
+void
+agx_memory_barrier(struct pipe_context *pctx, unsigned flags)
+{
+   struct agx_context *ctx = agx_context(pctx);
+
+   unsigned i;
+   foreach_active(ctx, i) {
+      struct agx_batch *batch = &ctx->batches.slots[i];
+
+      if (batch->incoherent_writes)
+         agx_flush_batch_for_reason(ctx, batch, "Memory barrier");
    }
 }

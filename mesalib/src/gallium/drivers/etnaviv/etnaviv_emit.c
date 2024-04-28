@@ -39,7 +39,6 @@
 #include "etnaviv_uniforms.h"
 #include "etnaviv_util.h"
 #include "etnaviv_zsa.h"
-#include "hw/common.xml.h"
 #include "hw/state.xml.h"
 #include "hw/state_blt.xml.h"
 #include "util/u_math.h"
@@ -448,7 +447,7 @@ etna_emit_state(struct etna_context *ctx)
    if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER))) {
       /*0140C*/ EMIT_STATE(PE_DEPTH_NORMALIZE, ctx->framebuffer.PE_DEPTH_NORMALIZE);
 
-      if (screen->specs.halti < 0 || screen->model == 0x880) {
+      if (screen->specs.halti < 0 || screen->info->model == 0x880) {
          /*01410*/ EMIT_STATE_RELOC(PE_DEPTH_ADDR, &ctx->framebuffer.PE_DEPTH_ADDR);
       }
 
@@ -485,7 +484,7 @@ etna_emit_state(struct etna_context *ctx)
       /*0142C*/ EMIT_STATE(PE_COLOR_FORMAT, val);
    }
    if (unlikely(dirty & (ETNA_DIRTY_FRAMEBUFFER))) {
-      if (screen->specs.halti >= 0 && screen->model != 0x880) {
+      if (screen->specs.halti >= 0 && screen->info->model != 0x880) {
          /*01434*/ EMIT_STATE(PE_COLOR_STRIDE, ctx->framebuffer.PE_COLOR_STRIDE);
          /*01454*/ EMIT_STATE(PE_HDEPTH_CONTROL, ctx->framebuffer.PE_HDEPTH_CONTROL);
          /*01460*/ EMIT_STATE_RELOC(PE_PIPE_COLOR_ADDR(0), &ctx->framebuffer.PE_PIPE_COLOR_ADDR[0]);
@@ -519,7 +518,7 @@ etna_emit_state(struct etna_context *ctx)
       }
    }
    if (unlikely(dirty & (ETNA_DIRTY_BLEND_COLOR)) &&
-       VIV_FEATURE(screen, chipMinorFeatures1, HALF_FLOAT)) {
+       VIV_FEATURE(screen, ETNA_FEATURE_HALF_FLOAT)) {
          /*014B0*/ EMIT_STATE(PE_ALPHA_COLOR_EXT0, ctx->blend_color.PE_ALPHA_COLOR_EXT0);
          /*014B4*/ EMIT_STATE(PE_ALPHA_COLOR_EXT1, ctx->blend_color.PE_ALPHA_COLOR_EXT1);
    }

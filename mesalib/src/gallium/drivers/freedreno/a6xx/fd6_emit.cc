@@ -780,7 +780,7 @@ fd6_emit_cs_state(struct fd_context *ctx, struct fd_ringbuffer *ring,
 void
 fd6_emit_ccu_cntl(struct fd_ringbuffer *ring, struct fd_screen *screen, bool gmem)
 {
-   enum a6xx_ccu_color_cache_size cache_size = (a6xx_ccu_color_cache_size)(screen->info->a6xx.gmem_ccu_color_cache_fraction);
+   enum a6xx_ccu_cache_size cache_size = (enum a6xx_ccu_cache_size)(screen->info->a6xx.gmem_ccu_color_cache_fraction);
    uint32_t offset = gmem ? screen->ccu_offset_gmem : screen->ccu_offset_bypass;
    uint32_t offset_hi = offset >> 21;
    offset &= 0x1fffff;
@@ -792,7 +792,7 @@ fd6_emit_ccu_cntl(struct fd_ringbuffer *ring, struct fd_screen *screen, bool gme
                                screen->info->a6xx.concurrent_resolve,
                             .depth_offset_hi = 0,
                             .color_offset_hi = offset_hi,
-                            .depth_cache_size = 0,
+                            .depth_cache_size = CCU_CACHE_SIZE_FULL,
                             .depth_offset = 0,
                             .color_cache_size = cache_size,
                             .color_offset = offset,

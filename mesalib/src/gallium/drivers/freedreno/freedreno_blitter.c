@@ -79,7 +79,9 @@ default_src_texture(struct pipe_sampler_view *src_templ,
 static void
 fd_blitter_pipe_begin(struct fd_context *ctx, bool render_cond) assert_dt
 {
-   util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vtx.vertexbuf.vb);
+   util_blitter_save_vertex_buffers(
+      ctx->blitter, ctx->vtx.vertexbuf.vb,
+      util_last_bit(ctx->vtx.vertexbuf.enabled_mask));
    util_blitter_save_vertex_elements(ctx->blitter, ctx->vtx.vtx);
    util_blitter_save_vertex_shader(ctx->blitter, ctx->prog.vs);
    util_blitter_save_tessctrl_shader(ctx->blitter, ctx->prog.hs);
@@ -235,8 +237,8 @@ fd_blitter_clear(struct pipe_context *pctx, unsigned buffers,
    pctx->set_viewport_states(pctx, 0, 1, &vp);
 
    pctx->bind_vertex_elements_state(pctx, ctx->solid_vbuf_state.vtx);
-   pctx->set_vertex_buffers(pctx, 1, 0, false,
-                            &ctx->solid_vbuf_state.vertexbuf.vb[0]);
+   util_set_vertex_buffers(pctx, 1, false,
+                           &ctx->solid_vbuf_state.vertexbuf.vb[0]);
    pctx->set_stream_output_targets(pctx, 0, NULL, NULL);
 
    if (pfb->layers > 1)

@@ -57,7 +57,6 @@ static const nir_shader_compiler_options vs_nir_options = {
    /* could be implemented by clamp */
    .lower_fsat = true,
    .lower_bitops = true,
-   .lower_rotate = true,
    .lower_sincos = true,
    .lower_fceil = true,
    .lower_insert_byte = true,
@@ -78,7 +77,6 @@ static const nir_shader_compiler_options fs_nir_options = {
    .lower_flrp32 = true,
    .lower_flrp64 = true,
    .lower_fsign = true,
-   .lower_rotate = true,
    .lower_fdot = true,
    .lower_fdph = true,
    .lower_insert_byte = true,
@@ -325,15 +323,25 @@ static bool
 lima_fs_upload_shader(struct lima_context *ctx,
                       struct lima_fs_compiled_shader *fs)
 {
+   static const uint32_t pp_clear_program[] = {
+      PP_CLEAR_PROGRAM
+   };
+   int shader_size = sizeof(pp_clear_program);
+   void *shader = (void *)pp_clear_program;
    struct lima_screen *screen = lima_screen(ctx->base.screen);
 
-   fs->bo = lima_bo_create(screen, fs->state.shader_size, 0);
+   if (fs->state.shader_size) {
+      shader_size = fs->state.shader_size;
+      shader = fs->shader;
+   }
+
+   fs->bo = lima_bo_create(screen, shader_size, 0);
    if (!fs->bo) {
       fprintf(stderr, "lima: create fs shader bo fail\n");
       return false;
    }
 
-   memcpy(lima_bo_map(fs->bo), fs->shader, fs->state.shader_size);
+   memcpy(lima_bo_map(fs->bo), shader, shader_size);
 
    return true;
 }

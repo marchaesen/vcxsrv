@@ -43,17 +43,22 @@
                        RR_Reflect_X  | \
                        RR_Reflect_Y)
 
+#define MAX_OUTPUT_NAME 256
+
 struct xwl_output {
     struct xorg_list link;
     struct xwl_screen *xwl_screen;
     RROutputPtr randr_output;
     RRCrtcPtr randr_crtc;
+    RRTransformPtr transform;
 
     /* only for regular outputs */
     struct wl_output *output;
     struct zxdg_output_v1 *xdg_output;
     uint32_t server_output_id;
-    int32_t x, y, width, height, refresh;
+    int32_t x, y, width, height, refresh, scale;
+    int32_t mode_width, mode_height;
+    double xscale; /* Effective scale, can be fractional */
     Rotation rotation;
     Bool wl_output_done;
     Bool xdg_output_done;
@@ -75,7 +80,12 @@ struct xwl_emulated_mode {
 
 Bool xwl_screen_init_output(struct xwl_screen *xwl_screen);
 
+void xwl_output_set_name(struct xwl_output *xwl_output, const char *name);
+
 Bool xwl_screen_init_randr_fixed(struct xwl_screen *xwl_screen);
+
+void
+xwl_output_set_xscale(struct xwl_output *xwl_output, double xscale);
 
 Bool
 xwl_randr_add_modes_fixed(struct xwl_output *xwl_output,

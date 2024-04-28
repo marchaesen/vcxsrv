@@ -22,8 +22,8 @@
  */
 
 #include "vk_rmv_common.h"
-#include "vulkan/runtime/vk_buffer.h"
-#include "vulkan/runtime/vk_device.h"
+#include "vk_buffer.h"
+#include "vk_device.h"
 
 void
 vk_memory_trace_init(struct vk_device *device, const struct vk_rmv_device_info *device_info)

@@ -1,8 +1,8 @@
-# 
+#
 #  test/Makefile.am
-# 
+#
 #  Copyright © 2003 Keith Packard
-# 
+#
 #  Permission to use, copy, modify, distribute, and sell this software and its
 #  documentation for any purpose is hereby granted without fee, provided that
 #  the above copyright notice appear in all copies and that both that
@@ -12,7 +12,7 @@
 #  specific, written prior permission.  The authors make no
 #  representations about the suitability of this software for any purpose.  It
 #  is provided "as is" without express or implied warranty.
-# 
+#
 #  THE AUTHOR(S) DISCLAIMS ALL WARRANTIES WITH REGARD TO THIS SOFTWARE,
 #  INCLUDING ALL IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO
 #  EVENT SHALL THE AUTHOR(S) BE LIABLE FOR ANY SPECIAL, INDIRECT OR
@@ -46,6 +46,8 @@ TESTDATA =			\
 	fonts.conf.in		\
 	test-45-generic.json	\
 	test-60-generic.json	\
+	test-70-no-bitmaps-and-emoji.json	\
+	test-70-no-bitmaps-except-emoji.json	\
 	test-90-synthetic.json	\
 	test-issue-286.json	\
 	test-style-match.json	\

@@ -26,6 +26,8 @@
 
 #include <stdlib.h>
 
+#include "os/osdep.h"
+
 #include    <X11/X.h>
 #include    "scrnintstr.h"
 #include    "windowstr.h"
@@ -40,6 +42,7 @@
 #include    "gcstruct.h"
 #include    "damage.h"
 #include    "damagestr.h"
+#include    "glyphstr_priv.h"
 
 #define wrap(priv, real, mem, func) {\
     priv->mem = real->mem; \

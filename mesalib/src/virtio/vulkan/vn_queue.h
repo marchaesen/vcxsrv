@@ -13,8 +13,6 @@
 
 #include "vn_common.h"
 
-#include "vn_feedback.h"
-
 struct vn_queue {
    struct vn_queue_base base;
 
@@ -29,6 +27,9 @@ struct vn_queue {
     */
    VkSemaphore sparse_semaphore;
    uint64_t sparse_semaphore_counter;
+
+   /* for vn_queue_submission storage */
+   struct vn_cached_storage storage;
 };
 VK_DEFINE_HANDLE_CASTS(vn_queue, base.base.base, VkQueue, VK_OBJECT_TYPE_QUEUE)
 
@@ -61,6 +62,8 @@ struct vn_sync_payload_external {
    /* ring seqno of the last queue submission */
    uint32_t ring_seqno;
 };
+
+struct vn_feedback_slot;
 
 struct vn_fence {
    struct vn_object_base base;
@@ -95,26 +98,23 @@ struct vn_semaphore {
    struct vn_sync_payload temporary;
 
    struct {
-      /* non-NULL if VN_PERF_NO_TIMELINE_SEM_FEEDBACK is disabled */
+      /* non-NULL if VN_PERF_NO_SEMAPHORE_FEEDBACK is disabled */
       struct vn_feedback_slot *slot;
 
-      /* Lists of allocated vn_feedback_src
-       * The pending_src_list tracks vn_feedback_src slots that have
-       * not been signaled since the last submission cleanup.
-       * The free_src_list tracks vn_feedback_src slots that have
-       * signaled and can be reused.
-       * On submission prepare, used vn_feedback_src are moved from
-       * the free list to the pending list. On submission cleanup,
-       * vn_feedback_src of any associated semaphores are checked
-       * and moved to the free list if they were signaled.
-       * vn_feedback_src slots are allocated on demand if the
-       * free_src_list is empty.
+      /* Lists of allocated vn_semaphore_feedback_cmd
+       *
+       * On submission prepare, sfb cmd is cache allocated from the free list
+       * and is moved to the pending list after initialization.
+       *
+       * On submission cleanup, sfb cmds of the owner semaphores are checked
+       * and cached to the free list if they have been "signaled", which is
+       * proxyed via the src slot value having been reached.
        */
-      struct list_head pending_src_list;
-      struct list_head free_src_list;
+      struct list_head pending_cmds;
+      struct list_head free_cmds;
 
-      /* Lock for accessing free/pending src lists */
-      simple_mtx_t src_lists_mtx;
+      /* Lock for accessing free/pending sfb cmds */
+      simple_mtx_t cmd_mtx;
 
       /* Cached counter value to track if an async sem wait call is needed */
       uint64_t signaled_counter;

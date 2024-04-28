@@ -70,7 +70,7 @@ struct vk_command_buffer_ops {
     * set by `vk_common_AllocateCommandBuffers()` and the driver must not rely
     * on it until `vkBeginCommandBuffer()` time.
     */
-   VkResult (*create)(struct vk_command_pool *,
+   VkResult (*create)(struct vk_command_pool *, VkCommandBufferLevel,
                       struct vk_command_buffer **);
 
    /** Resets the command buffer
@@ -174,11 +174,25 @@ struct vk_command_buffer {
    struct vk_framebuffer *framebuffer;
    VkRect2D render_area;
 
+   /**
+    * True if we are currently inside a CmdPipelineBarrier() is inserted by
+    * the runtime's vk_render_pass.c
+    */
+   bool runtime_rp_barrier;
+
    /* This uses the same trick as STACK_ARRAY */
    struct vk_attachment_state *attachments;
    struct vk_attachment_state _attachments[8];
 
    VkRenderPassSampleLocationsBeginInfoEXT *pass_sample_locations;
+
+   /**
+    * Bitmask of shader stages bound via a vk_pipeline since the last call to
+    * vkBindShadersEXT().
+    *
+    * Used by the common vk_pipeline implementation
+    */
+   VkShaderStageFlags pipeline_shader_stages;
 };
 
 VK_DEFINE_HANDLE_CASTS(vk_command_buffer, base, VkCommandBuffer,

@@ -82,7 +82,6 @@ def main(paths: list[str]):
             'VK_DESCRIPTOR_TYPE_',
             'VK_DRIVER_ID_',
             'VK_DYNAMIC_STATE_',
-            'VK_ERROR_',
             'VK_FORMAT_',
             'VK_IMAGE_ASPECT_MEMORY_PLANE_',
             'VK_IMAGE_ASPECT_PLANE_',

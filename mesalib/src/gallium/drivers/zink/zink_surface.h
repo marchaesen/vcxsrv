@@ -51,7 +51,7 @@ create_ivci(struct zink_screen *screen,
             const struct pipe_surface *templ,
             enum pipe_texture_target target);
 
-struct pipe_surface *
+struct zink_surface *
 zink_get_surface(struct zink_context *ctx,
             struct pipe_resource *pres,
             const struct pipe_surface *templ,

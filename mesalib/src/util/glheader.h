@@ -90,6 +90,13 @@ typedef unsigned char GLbitfield8;
 typedef unsigned short GLbitfield16;
 typedef GLuint64 GLbitfield64;
 
+/* This is for packing the GL index type. The reason it's a structure is that
+ * we don't want it to be used as integer accidentally.
+ */
+typedef struct {
+   unsigned char value;
+} GLindextype;
+
 /* There is no formal spec for the following extension. */
 #ifndef GL_ATI_texture_compression_3dc
 #define GL_ATI_texture_compression_3dc                          1

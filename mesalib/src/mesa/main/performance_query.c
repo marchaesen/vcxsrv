@@ -44,7 +44,7 @@
 void
 _mesa_init_performance_queries(struct gl_context *ctx)
 {
-   ctx->PerfQuery.Objects = _mesa_NewHashTable();
+   _mesa_InitHashTable(&ctx->PerfQuery.Objects);
 }
 
 static void
@@ -65,15 +65,13 @@ free_performance_query(void *data, void *user)
 void
 _mesa_free_performance_queries(struct gl_context *ctx)
 {
-   _mesa_HashDeleteAll(ctx->PerfQuery.Objects,
-                       free_performance_query, ctx);
-   _mesa_DeleteHashTable(ctx->PerfQuery.Objects);
+   _mesa_DeinitHashTable(&ctx->PerfQuery.Objects, free_performance_query, ctx);
 }
 
 static inline struct gl_perf_query_object *
 lookup_object(struct gl_context *ctx, GLuint id)
 {
-   return _mesa_HashLookup(ctx->PerfQuery.Objects, id);
+   return _mesa_HashLookup(&ctx->PerfQuery.Objects, id);
 }
 
 static GLuint
@@ -490,7 +488,7 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
       return;
    }
 
-   id = _mesa_HashFindFreeKeyBlock(ctx->PerfQuery.Objects, 1);
+   id = _mesa_HashFindFreeKeyBlock(&ctx->PerfQuery.Objects, 1);
    if (!id) {
       /* The GL_INTEL_performance_query spec says:
        *
@@ -514,7 +512,7 @@ _mesa_CreatePerfQueryINTEL(GLuint queryId, GLuint *queryHandle)
    obj->Active = false;
    obj->Ready = false;
 
-   _mesa_HashInsert(ctx->PerfQuery.Objects, id, obj, true);
+   _mesa_HashInsert(&ctx->PerfQuery.Objects, id, obj);
    *queryHandle = id;
 }
 
@@ -549,7 +547,7 @@ _mesa_DeletePerfQueryINTEL(GLuint queryHandle)
       obj->Ready = true;
    }
 
-   _mesa_HashRemove(ctx->PerfQuery.Objects, queryHandle);
+   _mesa_HashRemove(&ctx->PerfQuery.Objects, queryHandle);
    ctx->pipe->delete_intel_perf_query(ctx->pipe, (struct pipe_query *)obj);
 }
 

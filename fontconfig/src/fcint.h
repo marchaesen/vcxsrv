@@ -732,10 +732,6 @@ FcConfigPatternsAdd (FcConfig	*config,
 		     FcPattern	*pattern,
 		     FcBool	accept);
 
-FcPrivate FcBool
-FcConfigAcceptFont (FcConfig	    *config,
-		    const FcPattern *font);
-
 FcPrivate FcFileTime
 FcConfigModifiedTime (FcConfig *config);
 

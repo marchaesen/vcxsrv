@@ -39,6 +39,11 @@ struct v3dv_bo {
 
    const char *name;
 
+   /* In a CL where a BRANCH has been emitted, the offset of the BRANCH
+    * instruction in the BO.
+    */
+   uint32_t cl_branch_offset;
+
    /** Entry in the linked list of buffers freed, by age. */
    struct list_head time_list;
    /** Entry in the per-page-count linked list of buffers freed (by age). */

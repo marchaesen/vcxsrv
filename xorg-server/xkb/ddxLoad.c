@@ -37,13 +37,15 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/Xos.h>
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
+#include <X11/extensions/XI.h>
 #include <X11/extensions/XKM.h>
+
+#include "os/osdep.h"
+
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "windowstr.h"
-#define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
-#include <X11/extensions/XI.h>
 
 #define	PRE_ERROR_MSG "\"The XKEYBOARD keymap compiler (xkbcomp) reports:\""
 #define	ERROR_PREFIX	"\"> \""

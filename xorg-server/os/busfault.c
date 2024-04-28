@@ -26,8 +26,10 @@
 
 #include <X11/Xos.h>
 #include <X11/Xdefs.h>
+
+#include "os/busfault.h"
+
 #include "misc.h"
-#include <busfault.h>
 #include <list.h>
 #include <stddef.h>
 #include <stdlib.h>

@@ -115,7 +115,8 @@ struct pipe_video_codec *si_uvd_create_decoder(struct pipe_context *context,
          else
             return si_vce_create_encoder(context, templ, ctx->ws, si_vce_get_buffer);
       }
-   } else if (templ->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING)
+   } else if (((struct si_screen *)(context->screen))->info.ip[AMD_IP_VPE].num_queues &&
+              templ->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING)
       return si_vpe_create_processor(context, templ);
 
    if (ctx->vcn_ip_ver == VCN_4_0_0)

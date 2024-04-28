@@ -56,15 +56,6 @@ lower(agx_builder *b, agx_instr *I)
    case AGX_OPCODE_NOT:
       return agx_bitop_to(b, I->dest[0], I->src[0], agx_zero(), AGX_BITOP_NOT);
 
-   case AGX_OPCODE_AND:
-      return agx_bitop_to(b, I->dest[0], I->src[0], I->src[1], AGX_BITOP_AND);
-
-   case AGX_OPCODE_XOR:
-      return agx_bitop_to(b, I->dest[0], I->src[0], I->src[1], AGX_BITOP_XOR);
-
-   case AGX_OPCODE_OR:
-      return agx_bitop_to(b, I->dest[0], I->src[0], I->src[1], AGX_BITOP_OR);
-
    /* Unfused comparisons are fused with a 0/1 select */
    case AGX_OPCODE_ICMP:
       return agx_icmpsel_to(b, I->dest[0], I->src[0], I->src[1],
@@ -75,6 +66,14 @@ lower(agx_builder *b, agx_instr *I)
       return agx_fcmpsel_to(b, I->dest[0], I->src[0], I->src[1],
                             agx_immediate(I->invert_cond ? 0 : 1),
                             agx_immediate(I->invert_cond ? 1 : 0), I->fcond);
+
+   case AGX_OPCODE_BALLOT:
+      return agx_icmp_ballot_to(b, I->dest[0], I->src[0], agx_zero(),
+                                AGX_ICOND_UEQ, true /* invert */);
+
+   case AGX_OPCODE_QUAD_BALLOT:
+      return agx_icmp_quad_ballot_to(b, I->dest[0], I->src[0], agx_zero(),
+                                     AGX_ICOND_UEQ, true /* invert */);
 
    /* Writes to the nesting counter lowered to the real register */
    case AGX_OPCODE_BEGIN_CF:
@@ -91,6 +90,12 @@ lower(agx_builder *b, agx_instr *I)
       else
          return cmpsel_for_break_if(b, I);
    }
+
+   case AGX_OPCODE_EXPORT:
+      /* We already lowered exports during RA, we just need to remove them late
+       * after inserting waits.
+       */
+      return (void *)true;
 
    default:
       return NULL;

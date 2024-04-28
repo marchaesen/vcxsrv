@@ -36,8 +36,13 @@ in this Software without prior written authorization from the X Consortium.
 #undef CreateWindow
 #endif
 
+#include <stdio.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/saverproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "windowstr.h"
@@ -47,7 +52,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "dixstruct.h"
 #include "resource.h"
 #include "opaque.h"
-#include <X11/extensions/saverproto.h>
 #include "gcstruct.h"
 #include "cursorstr.h"
 #include "colormapst.h"
@@ -62,9 +66,6 @@ in this Software without prior written authorization from the X Consortium.
 #include "dpmsproc.h"
 #endif
 #include "protocol-versions.h"
-
-#include <stdio.h>
-
 #include "extinit.h"
 
 static int ScreenSaverEventBase = 0;
@@ -456,7 +457,7 @@ UninstallSaverColormap(ScreenPtr pScreen)
 
     if (pPriv && pPriv->installedMap != None) {
         rc = dixLookupResourceByType((void **) &pCmap, pPriv->installedMap,
-                                     RT_COLORMAP, serverClient,
+                                     X11_RESTYPE_COLORMAP, serverClient,
                                      DixUninstallAccess);
         if (rc == Success)
             (*pCmap->pScreen->UninstallColormap) (pCmap);
@@ -480,7 +481,7 @@ CreateSaverWindow(ScreenPtr pScreen)
     pSaver = &pScreen->screensaver;
     if (pSaver->pWindow) {
         pSaver->pWindow = NullWindow;
-        FreeResource(pSaver->wid, RT_NONE);
+        FreeResource(pSaver->wid, X11_RESTYPE_NONE);
         if (pPriv) {
             UninstallSaverColormap(pScreen);
             pPriv->hasWindow = FALSE;
@@ -504,7 +505,7 @@ CreateSaverWindow(ScreenPtr pScreen)
     if (!pWin)
         return FALSE;
 
-    if (!AddResource(pWin->drawable.id, RT_WINDOW, pWin))
+    if (!AddResource(pWin->drawable.id, X11_RESTYPE_WINDOW, pWin))
         return FALSE;
 
     mask = 0;
@@ -524,7 +525,7 @@ CreateSaverWindow(ScreenPtr pScreen)
         CursorPtr cursor;
         if (!pWin->optional)
             if (!MakeWindowOptional(pWin)) {
-                FreeResource(pWin->drawable.id, RT_NONE);
+                FreeResource(pWin->drawable.id, X11_RESTYPE_NONE);
                 return FALSE;
             }
         cursor = RefCursor(pAttr->pCursor);
@@ -552,7 +553,7 @@ CreateSaverWindow(ScreenPtr pScreen)
     if (wantMap == None || IsMapInstalled(wantMap, pWin))
         return TRUE;
 
-    result = dixLookupResourceByType((void **) &pCmap, wantMap, RT_COLORMAP,
+    result = dixLookupResourceByType((void **) &pCmap, wantMap, X11_RESTYPE_COLORMAP,
                                      serverClient, DixInstallAccess);
     if (result != Success)
         return TRUE;
@@ -576,7 +577,7 @@ DestroySaverWindow(ScreenPtr pScreen)
     pSaver = &pScreen->screensaver;
     if (pSaver->pWindow) {
         pSaver->pWindow = NullWindow;
-        FreeResource(pSaver->wid, RT_NONE);
+        FreeResource(pSaver->wid, X11_RESTYPE_NONE);
     }
     pPriv->hasWindow = FALSE;
     CheckScreenPrivate(pScreen);
@@ -905,7 +906,7 @@ ScreenSaverSetAttributes(ClientPtr client)
             else {
                 ret =
                     dixLookupResourceByType((void **) &pPixmap, pixID,
-                                            RT_PIXMAP, client, DixReadAccess);
+                                            X11_RESTYPE_PIXMAP, client, DixReadAccess);
                 if (ret == Success) {
                     if ((pPixmap->drawable.depth != depth) ||
                         (pPixmap->drawable.pScreen != pScreen)) {
@@ -937,7 +938,7 @@ ScreenSaverSetAttributes(ClientPtr client)
             else {
                 ret =
                     dixLookupResourceByType((void **) &pPixmap, pixID,
-                                            RT_PIXMAP, client, DixReadAccess);
+                                            X11_RESTYPE_PIXMAP, client, DixReadAccess);
                 if (ret == Success) {
                     if ((pPixmap->drawable.depth != depth) ||
                         (pPixmap->drawable.pScreen != pScreen)) {
@@ -1020,7 +1021,7 @@ ScreenSaverSetAttributes(ClientPtr client)
             break;
         case CWColormap:
             cmap = (Colormap) * pVlist;
-            ret = dixLookupResourceByType((void **) &pCmap, cmap, RT_COLORMAP,
+            ret = dixLookupResourceByType((void **) &pCmap, cmap, X11_RESTYPE_COLORMAP,
                                           client, DixUseAccess);
             if (ret != Success) {
                 client->errorValue = cmap;
@@ -1040,7 +1041,7 @@ ScreenSaverSetAttributes(ClientPtr client)
             }
             else {
                 ret = dixLookupResourceByType((void **) &pCursor, cursorID,
-                                              RT_CURSOR, client, DixUseAccess);
+                                              X11_RESTYPE_CURSOR, client, DixUseAccess);
                 if (ret != Success) {
                     client->errorValue = cursorID;
                     goto PatchUp;
@@ -1237,7 +1238,7 @@ ProcScreenSaverSuspend(ClientPtr client)
         if (suspend == TRUE)
             this->count++;
         else if (--this->count == 0)
-            FreeResource(this->clientResource, RT_NONE);
+            FreeResource(this->clientResource, X11_RESTYPE_NONE);
 
         return Success;
     }

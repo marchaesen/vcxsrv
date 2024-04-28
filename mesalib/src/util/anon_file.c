@@ -28,6 +28,7 @@
  */
 
 #include "anon_file.h"
+#include "detect_os.h"
 
 #ifndef _WIN32
 
@@ -38,14 +39,14 @@
 
 #if defined(HAVE_MEMFD_CREATE) || defined(__FreeBSD__) || defined(__OpenBSD__)
 #include <sys/mman.h>
-#elif defined(ANDROID)
+#elif DETECT_OS_ANDROID
 #include <sys/syscall.h>
 #include <linux/memfd.h>
 #else
 #include <stdio.h>
 #endif
 
-#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || defined(HAVE_MKOSTEMP) || defined(ANDROID))
+#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || defined(HAVE_MKOSTEMP) || DETECT_OS_ANDROID)
 static int
 set_cloexec_or_close(int fd)
 {
@@ -69,7 +70,7 @@ err:
 }
 #endif
 
-#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || defined(ANDROID))
+#if !(defined(__FreeBSD__) || defined(HAVE_MEMFD_CREATE) || DETECT_OS_ANDROID)
 static int
 create_tmpfile_cloexec(char *tmpname)
 {
@@ -120,7 +121,7 @@ os_create_anonymous_file(int64_t size, const char *debug_name)
    if (!debug_name)
       debug_name = "mesa-shared";
    fd = memfd_create(debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);
-#elif defined(ANDROID)
+#elif DETECT_OS_ANDROID
    if (!debug_name)
       debug_name = "mesa-shared";
    fd = syscall(SYS_memfd_create, debug_name, MFD_CLOEXEC | MFD_ALLOW_SEALING);

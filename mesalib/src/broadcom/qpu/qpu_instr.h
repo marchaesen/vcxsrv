@@ -235,6 +235,13 @@ enum v3d_qpu_add_op {
         V3D_QPU_A_V8PACK,
         V3D_QPU_A_V10PACK,
         V3D_QPU_A_V11FPACK,
+        V3D_QPU_A_BALLOT,
+        V3D_QPU_A_BCASTF,
+        V3D_QPU_A_ALLEQ,
+        V3D_QPU_A_ALLFEQ,
+        V3D_QPU_A_ROTQ,
+        V3D_QPU_A_ROT,
+        V3D_QPU_A_SHUFFLE,
 };
 
 enum v3d_qpu_mul_op {

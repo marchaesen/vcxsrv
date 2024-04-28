@@ -101,9 +101,9 @@ get_validator_version(IDxcValidator *val)
       return NO_DXIL_VALIDATION;
 
    if (major == 1)
-      return (enum dxil_validator_version)(DXIL_VALIDATOR_1_0 + MIN2(minor, 7));
+      return (enum dxil_validator_version)(DXIL_VALIDATOR_1_0 + MIN2(minor, 8));
    if (major > 1)
-      return DXIL_VALIDATOR_1_7;
+      return DXIL_VALIDATOR_1_8;
    return NO_DXIL_VALIDATION;
 }
 

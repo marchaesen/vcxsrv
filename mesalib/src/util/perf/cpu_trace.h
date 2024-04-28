@@ -9,6 +9,7 @@
 #include "u_perfetto.h"
 #include "u_gpuvis.h"
 
+#include "util/detect_os.h"
 #include "util/macros.h"
 
 #if defined(HAVE_PERFETTO)
@@ -33,7 +34,7 @@
  *
  *   https://github.com/android/ndk/issues/1178
  */
-#elif defined(ANDROID) && !defined(__cplusplus)
+#elif DETECT_OS_ANDROID && !defined(__cplusplus)
 
 #include <cutils/trace.h>
 

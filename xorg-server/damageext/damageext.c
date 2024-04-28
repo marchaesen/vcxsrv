@@ -25,6 +25,8 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+
 #include "damageextint.h"
 #include "damagestr.h"
 #include "protocol-versions.h"
@@ -161,7 +163,7 @@ DamageExtDestroy(DamagePtr pDamage, void *closure)
 
     pDamageExt->pDamage = 0;
     if (pDamageExt->id)
-        FreeResource(pDamageExt->id, RT_NONE);
+        FreeResource(pDamageExt->id, X11_RESTYPE_NONE);
 }
 
 void
@@ -312,7 +314,7 @@ ProcDamageDestroy(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xDamageDestroyReq);
     VERIFY_DAMAGEEXT(pDamageExt, stuff->damage, client, DixWriteAccess);
-    FreeResource(stuff->damage, RT_NONE);
+    FreeResource(stuff->damage, X11_RESTYPE_NONE);
     return Success;
 }
 
@@ -681,7 +683,7 @@ PanoramiXDamageCreate(ClientPtr client)
     }
 
     if (rc != Success)
-        FreeResource(stuff->damage, RT_NONE);
+        FreeResource(stuff->damage, X11_RESTYPE_NONE);
 
     return rc;
 }

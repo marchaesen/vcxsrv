@@ -84,9 +84,7 @@ vlVaHandleVAEncPictureParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *cont
    context->desc.h264enc.num_slice_descriptors = 0;
    memset(&context->desc.h264enc.slices_descriptors, 0, sizeof(context->desc.h264enc.slices_descriptors));
 
-   context->desc.h264enc.quant_i_frames = h264->pic_init_qp;
-   context->desc.h264enc.quant_b_frames = h264->pic_init_qp;
-   context->desc.h264enc.quant_p_frames = h264->pic_init_qp;
+   context->desc.h264enc.init_qp = h264->pic_init_qp;
    context->desc.h264enc.gop_cnt++;
    if (context->desc.h264enc.gop_cnt == context->desc.h264enc.gop_size)
       context->desc.h264enc.gop_cnt = 0;
@@ -109,6 +107,7 @@ VAStatus
 vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf)
 {
    VAEncSliceParameterBufferH264 *h264;
+   unsigned slice_qp;
 
    h264 = buf->data;
    memset(&context->desc.h264enc.ref_idx_l0_list, VA_INVALID_ID, sizeof(context->desc.h264enc.ref_idx_l0_list));
@@ -144,12 +143,16 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
    slice_descriptor.macroblock_address = h264->macroblock_address;
    slice_descriptor.num_macroblocks = h264->num_macroblocks;
 
+   slice_qp = context->desc.h264enc.init_qp + h264->slice_qp_delta;
+
    if ((h264->slice_type == 1) || (h264->slice_type == 6)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_B;
       slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_B;
+      context->desc.h264enc.quant_b_frames = slice_qp;
    } else if ((h264->slice_type == 0) || (h264->slice_type == 5)) {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_P;
       slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_P;
+      context->desc.h264enc.quant_p_frames = slice_qp;
    } else if ((h264->slice_type == 2) || (h264->slice_type == 7)) {
       if (context->desc.h264enc.picture_type == PIPE_H2645_ENC_PICTURE_TYPE_IDR) {
          if (slice_descriptor.macroblock_address == 0) {
@@ -161,6 +164,7 @@ vlVaHandleVAEncSliceParameterBufferTypeH264(vlVaDriver *drv, vlVaContext *contex
          context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_I;
          slice_descriptor.slice_type = PIPE_H264_SLICE_TYPE_I;
       }
+      context->desc.h264enc.quant_i_frames = slice_qp;
    } else {
       context->desc.h264enc.picture_type = PIPE_H2645_ENC_PICTURE_TYPE_SKIP;
    }

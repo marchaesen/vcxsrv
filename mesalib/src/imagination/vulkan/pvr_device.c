@@ -155,6 +155,9 @@ static const struct vk_instance_extension_table pvr_instance_extensions = {
    .KHR_get_physical_device_properties2 = true,
    .KHR_get_surface_capabilities2 = PVR_USE_WSI_PLATFORM,
    .KHR_surface = PVR_USE_WSI_PLATFORM,
+#ifndef VK_USE_PLATFORM_WIN32_KHR
+   .EXT_headless_surface = PVR_USE_WSI_PLATFORM,
+#endif
    .EXT_debug_report = true,
    .EXT_debug_utils = true,
 };
@@ -180,11 +183,15 @@ static void pvr_physical_device_get_supported_extensions(
       .KHR_external_semaphore_fd = PVR_USE_WSI_PLATFORM,
       .KHR_get_memory_requirements2 = true,
       .KHR_image_format_list = true,
+      .KHR_index_type_uint8 = true,
+      .KHR_shader_expect_assume = true,
       .KHR_swapchain = PVR_USE_WSI_PLATFORM,
       .KHR_timeline_semaphore = true,
       .KHR_uniform_buffer_standard_layout = true,
       .EXT_external_memory_dma_buf = true,
       .EXT_host_query_reset = true,
+      .EXT_index_type_uint8 = true,
+      .EXT_memory_budget = true,
       .EXT_private_data = true,
       .EXT_scalar_block_layout = true,
       .EXT_texel_buffer_alignment = true,
@@ -254,6 +261,9 @@ static void pvr_physical_device_get_supported_features(
       .variableMultisampleRate = false,
       .inheritedQueries = false,
 
+      /* VK_KHR_index_type_uint8 */
+      .indexTypeUint8 = true,
+
       /* Vulkan 1.2 / VK_KHR_timeline_semaphore */
       .timelineSemaphore = true,
 
@@ -272,6 +282,8 @@ static void pvr_physical_device_get_supported_features(
       /* Vulkan 1.3 / VK_EXT_texel_buffer_alignment */
       .texelBufferAlignment = true,
 
+      /* VK_KHR_shader_expect_assume */
+      .shaderExpectAssume = true,
    };
 }
 
@@ -368,10 +380,12 @@ pvr_get_physical_device_descriptor_limits(
 }
 
 static bool pvr_physical_device_get_properties(
-   const struct pvr_device_info *const dev_info,
-   const struct pvr_device_runtime_info *const dev_runtime_info,
+   const struct pvr_physical_device *const pdevice,
    struct vk_properties *const properties)
 {
+   const struct pvr_device_info *const dev_info = &pdevice->dev_info;
+   const struct pvr_device_runtime_info *const dev_runtime_info =
+      &pdevice->dev_runtime_info;
    const struct pvr_descriptor_limits *descriptor_limits =
       pvr_get_physical_device_descriptor_limits(dev_info, dev_runtime_info);
 
@@ -532,7 +546,7 @@ static bool pvr_physical_device_get_properties(
       .viewportBoundsRange[1] = 2U * max_render_size,
 
       .viewportSubPixelBits = 0,
-      .minMemoryMapAlignment = 64U,
+      .minMemoryMapAlignment = pdevice->ws->page_size,
       .minTexelBufferOffsetAlignment = 16U,
       .minUniformBufferOffsetAlignment = 4U,
       .minStorageBufferOffsetAlignment = 4U,
@@ -755,9 +769,7 @@ static VkResult pvr_physical_device_init(struct pvr_physical_device *pdevice,
    pvr_physical_device_get_supported_extensions(&supported_extensions);
    pvr_physical_device_get_supported_features(&pdevice->dev_info,
                                               &supported_features);
-   if (!pvr_physical_device_get_properties(&pdevice->dev_info,
-                                           &pdevice->dev_runtime_info,
-                                           &supported_properties)) {
+   if (!pvr_physical_device_get_properties(pdevice, &supported_properties)) {
       result = vk_errorf(instance,
                          VK_ERROR_INITIALIZATION_FAILED,
                          "Failed to collect physical device properties");
@@ -1001,10 +1013,10 @@ pvr_physical_device_enumerate(struct vk_instance *const vk_instance)
    mesa_logd("Found compatible display device '%s'.",
              drm_display_device->nodes[DRM_NODE_PRIMARY]);
 
-   pdevice = vk_alloc(&vk_instance->alloc,
-                      sizeof(*pdevice),
-                      8,
-                      VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
+   pdevice = vk_zalloc(&vk_instance->alloc,
+                       sizeof(*pdevice),
+                       8,
+                       VK_SYSTEM_ALLOCATION_SCOPE_INSTANCE);
    if (!pdevice) {
       result = vk_error(instance, VK_ERROR_OUT_OF_HOST_MEMORY);
       goto out_free_drm_devices;
@@ -1163,7 +1175,7 @@ uint32_t pvr_calc_fscommon_size_and_tiles_in_flight(
 
    num_tile_in_flight /= num_allocs;
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    /* Validate the above result. */
 
    assert(num_tile_in_flight >= MIN2(num_tile_in_flight, max_tiles_in_flight));
@@ -1187,6 +1199,22 @@ const static VkQueueFamilyProperties pvr_queue_family_properties = {
    .timestampValidBits = 0,
    .minImageTransferGranularity = { 1, 1, 1 },
 };
+
+static uint64_t pvr_compute_heap_budget(struct pvr_physical_device *pdevice)
+{
+   const uint64_t heap_size = pdevice->memory.memoryHeaps[0].size;
+   const uint64_t heap_used = pdevice->heap_used;
+   uint64_t sys_available = 0, heap_available;
+   ASSERTED bool has_available_memory =
+      os_get_available_system_memory(&sys_available);
+   assert(has_available_memory);
+
+   /* Let's not incite the app to starve the system: report at most 90% of
+    * available system memory.
+    */
+   heap_available = sys_available * 9 / 10;
+   return MIN2(heap_size, heap_used + heap_available);
+}
 
 void pvr_GetPhysicalDeviceQueueFamilyProperties2(
    VkPhysicalDevice physicalDevice,
@@ -1216,7 +1244,24 @@ void pvr_GetPhysicalDeviceMemoryProperties2(
    pMemoryProperties->memoryProperties = pdevice->memory;
 
    vk_foreach_struct (ext, pMemoryProperties->pNext) {
-      pvr_debug_ignored_stype(ext->sType);
+      switch (ext->sType) {
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MEMORY_BUDGET_PROPERTIES_EXT: {
+         VkPhysicalDeviceMemoryBudgetPropertiesEXT *pMemoryBudget =
+            (VkPhysicalDeviceMemoryBudgetPropertiesEXT *)ext;
+
+         pMemoryBudget->heapBudget[0] = pvr_compute_heap_budget(pdevice);
+         pMemoryBudget->heapUsage[0] = pdevice->heap_used;
+
+         for (uint32_t i = 1; i < VK_MAX_MEMORY_HEAPS; i++) {
+            pMemoryBudget->heapBudget[i] = 0u;
+            pMemoryBudget->heapUsage[i] = 0u;
+         }
+         break;
+      }
+      default:
+         pvr_debug_ignored_stype(ext->sType);
+         break;
+      }
    }
 }
 
@@ -2054,6 +2099,27 @@ VkResult pvr_EnumerateInstanceLayerProperties(uint32_t *pPropertyCount,
    return vk_error(NULL, VK_ERROR_LAYER_NOT_PRESENT);
 }
 
+static void free_memory(struct pvr_device *device,
+                        struct pvr_device_memory *mem,
+                        const VkAllocationCallbacks *pAllocator)
+{
+   if (!mem)
+      return;
+
+   /* From the Vulkan spec (§11.2.13. Freeing Device Memory):
+    *   If a memory object is mapped at the time it is freed, it is implicitly
+    *   unmapped.
+    */
+   if (mem->bo->map)
+      device->ws->ops->buffer_unmap(mem->bo);
+
+   p_atomic_add(&device->pdevice->heap_used, -mem->bo->size);
+
+   device->ws->ops->buffer_destroy(mem->bo);
+
+   vk_object_free(&device->vk, pAllocator, mem);
+}
+
 VkResult pvr_AllocateMemory(VkDevice _device,
                             const VkMemoryAllocateInfo *pAllocateInfo,
                             const VkAllocationCallbacks *pAllocator,
@@ -2063,6 +2129,7 @@ VkResult pvr_AllocateMemory(VkDevice _device,
    PVR_FROM_HANDLE(pvr_device, device, _device);
    enum pvr_winsys_bo_type type = PVR_WINSYS_BO_TYPE_GPU;
    struct pvr_device_memory *mem;
+   uint64_t heap_used;
    VkResult result;
 
    assert(pAllocateInfo->sType == VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO);
@@ -2157,6 +2224,12 @@ VkResult pvr_AllocateMemory(VkDevice _device,
          goto err_vk_object_free_mem;
    }
 
+   heap_used = p_atomic_add_return(&device->pdevice->heap_used, mem->bo->size);
+   if (heap_used > device->pdevice->memory.memoryHeaps[0].size) {
+      free_memory(device, mem, pAllocator);
+      return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+   }
+
    *pMem = pvr_device_memory_to_handle(mem);
 
    return VK_SUCCESS;
@@ -2215,19 +2288,7 @@ void pvr_FreeMemory(VkDevice _device,
    PVR_FROM_HANDLE(pvr_device, device, _device);
    PVR_FROM_HANDLE(pvr_device_memory, mem, _mem);
 
-   if (!mem)
-      return;
-
-   /* From the Vulkan spec (§11.2.13. Freeing Device Memory):
-    *   If a memory object is mapped at the time it is freed, it is implicitly
-    *   unmapped.
-    */
-   if (mem->bo->map)
-      device->ws->ops->buffer_unmap(mem->bo);
-
-   device->ws->ops->buffer_destroy(mem->bo);
-
-   vk_object_free(&device->vk, pAllocator, mem);
+   free_memory(device, mem, pAllocator);
 }
 
 VkResult pvr_MapMemory(VkDevice _device,

@@ -504,6 +504,7 @@ typedef struct {
 
          /* Used for valhall texturing */
          bool shadow;
+         bool wide_indices;
          bool texel_offset;
          bool array_enable;
          bool integer_coordinates;

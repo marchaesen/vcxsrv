@@ -34,28 +34,28 @@ class d3d12_video_bitstream_builder_h264 : public d3d12_video_bitstream_builder_
    d3d12_video_bitstream_builder_h264(bool insert_aud_nalu = false);
    ~d3d12_video_bitstream_builder_h264() {};
 
-   void build_sps(const struct pipe_h264_enc_seq_param &                 seqData,
-                  const enum pipe_video_profile &                        profile,
-                  const D3D12_VIDEO_ENCODER_LEVELS_H264 &                level,
-                  const DXGI_FORMAT &                                    inputFmt,
-                  const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &   codecConfig,
-                  const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_H264 &gopConfig,
-                  uint32_t                                               seq_parameter_set_id,
-                  uint32_t                                               max_num_ref_frames,
-                  D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC            sequenceTargetResolution,
-                  D3D12_BOX                                              frame_cropping_codec_config,
-                  std::vector<uint8_t> &                                 headerBitstream,
-                  std::vector<uint8_t>::iterator                         placingPositionStart,
-                  size_t &                                               writtenBytes);
+   H264_SPS build_sps(const struct pipe_h264_enc_seq_param &                 seqData,
+                      const enum pipe_video_profile &                        profile,
+                      const D3D12_VIDEO_ENCODER_LEVELS_H264 &                level,
+                      const DXGI_FORMAT &                                    inputFmt,
+                      const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &   codecConfig,
+                      const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_H264 &gopConfig,
+                      uint32_t                                               seq_parameter_set_id,
+                      uint32_t                                               max_num_ref_frames,
+                      D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC            sequenceTargetResolution,
+                      D3D12_BOX                                              frame_cropping_codec_config,
+                      std::vector<uint8_t> &                                 headerBitstream,
+                      std::vector<uint8_t>::iterator                         placingPositionStart,
+                      size_t &                                               writtenBytes);
 
-   void build_pps(const enum pipe_video_profile &                            profile,
-                  const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &       codecConfig,
-                  const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 &pictureControl,
-                  uint32_t                                                   pic_parameter_set_id,
-                  uint32_t                                                   seq_parameter_set_id,
-                  std::vector<uint8_t> &                                     headerBitstream,
-                  std::vector<uint8_t>::iterator                             placingPositionStart,
-                  size_t &                                                   writtenBytes);
+   H264_PPS build_pps(const enum pipe_video_profile &                            profile,
+                      const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &       codecConfig,
+                      const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 &pictureControl,
+                      uint32_t                                                   pic_parameter_set_id,
+                      uint32_t                                                   seq_parameter_set_id,
+                      std::vector<uint8_t> &                                     headerBitstream,
+                      std::vector<uint8_t>::iterator                             placingPositionStart,
+                      size_t &                                                   writtenBytes);
 
    void write_end_of_stream_nalu(std::vector<uint8_t> &         headerBitstream,
                                  std::vector<uint8_t>::iterator placingPositionStart,
@@ -71,38 +71,30 @@ class d3d12_video_bitstream_builder_h264 : public d3d12_video_bitstream_builder_
    void print_pps(const H264_PPS &pps);
    void print_sps(const H264_SPS &sps);
 
-   uint32_t get_active_sps_id()
+   const H264_SPS& get_active_sps()
    {
-      return m_activeSPSIndex;
+      return m_activeSPSStructure;
    };
-   uint32_t get_active_pps_id()
+   const H264_PPS& get_active_pps()
    {
-      return m_activePPSIndex;
-   };
-
-   std::vector<uint8_t>& get_active_pps()
-   {
-      return m_activePPS;
+      return m_activePPSStructure;
    };
 
-   void set_active_sps_id(uint32_t active_sps_id)
+   void set_active_sps(H264_SPS &active_sps)
    {
-      m_activeSPSIndex = active_sps_id;
-      debug_printf("[d3d12_video_bitstream_builder_h264] Setting new active SPS ID: %d ", m_activeSPSIndex);
+      m_activeSPSStructure = active_sps;
    };
-   void set_active_pps_id(uint32_t active_pps_id)
+   void set_active_pps(H264_PPS &active_pps)
    {
-      m_activePPSIndex = active_pps_id;
-      debug_printf("[d3d12_video_bitstream_builder_h264] Setting new active PPS ID: %d ", m_activePPSIndex);
+      m_activePPSStructure = active_pps;
    };
 
    bool insert_aud_nalu_requested() { return m_insert_aud_nalu; }
 
  private:
    d3d12_video_nalu_writer_h264 m_h264Encoder;
-   std::vector<uint8_t> m_activePPS;
-   uint32_t m_activeSPSIndex = 0;
-   uint32_t m_activePPSIndex = 0;
+   H264_SPS m_activeSPSStructure = {};
+   H264_PPS m_activePPSStructure = {};
    bool m_insert_aud_nalu = false;
 };
 

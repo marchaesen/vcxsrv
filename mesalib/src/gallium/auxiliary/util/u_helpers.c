@@ -48,16 +48,16 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
                                   uint32_t *enabled_buffers,
                                   const struct pipe_vertex_buffer *src,
                                   unsigned count,
-                                  unsigned unbind_num_trailing_slots,
                                   bool take_ownership)
 {
-   unsigned i;
+   unsigned last_count = util_last_bit(*enabled_buffers);
    uint32_t bitmask = 0;
+   unsigned i = 0;
 
-   *enabled_buffers &= ~BITFIELD_MASK(count);
+   assert(!count || src);
 
    if (src) {
-      for (i = 0; i < count; i++) {
+      for (; i < count; i++) {
          if (src[i].buffer.resource)
             bitmask |= 1 << i;
 
@@ -69,17 +69,12 @@ void util_set_vertex_buffers_mask(struct pipe_vertex_buffer *dst,
 
       /* Copy over the other members of pipe_vertex_buffer. */
       memcpy(dst, src, count * sizeof(struct pipe_vertex_buffer));
-
-      *enabled_buffers |= bitmask;
-   }
-   else {
-      /* Unreference the buffers. */
-      for (i = 0; i < count; i++)
-         pipe_vertex_buffer_unreference(&dst[i]);
    }
 
-   for (i = 0; i < unbind_num_trailing_slots; i++)
-      pipe_vertex_buffer_unreference(&dst[count + i]);
+   *enabled_buffers = bitmask;
+
+   for (; i < last_count; i++)
+      pipe_vertex_buffer_unreference(&dst[i]);
 }
 
 /**
@@ -90,19 +85,16 @@ void util_set_vertex_buffers_count(struct pipe_vertex_buffer *dst,
                                    unsigned *dst_count,
                                    const struct pipe_vertex_buffer *src,
                                    unsigned count,
-                                   unsigned unbind_num_trailing_slots,
                                    bool take_ownership)
 {
-   unsigned i;
    uint32_t enabled_buffers = 0;
 
-   for (i = 0; i < *dst_count; i++) {
+   for (unsigned i = 0; i < *dst_count; i++) {
       if (dst[i].buffer.resource)
          enabled_buffers |= (1ull << i);
    }
 
-   util_set_vertex_buffers_mask(dst, &enabled_buffers, src,
-                                count, unbind_num_trailing_slots,
+   util_set_vertex_buffers_mask(dst, &enabled_buffers, src, count,
                                 take_ownership);
 
    *dst_count = util_last_bit(enabled_buffers);

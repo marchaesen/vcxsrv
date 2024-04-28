@@ -534,7 +534,7 @@ static void
 tu_bo_set_kernel_name(struct tu_device *dev, struct tu_bo *bo, const char *name)
 {
    bool kernel_bo_names = dev->bo_sizes != NULL;
-#ifdef DEBUG
+#if MESA_DEBUG
    kernel_bo_names = true;
 #endif
    if (!kernel_bo_names)
@@ -697,10 +697,13 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
 
    if (bo->refcnt != 0) {
       p_atomic_inc(&bo->refcnt);
+      assert(bo->res_id == res_id);
       *out_bo = bo;
       result = VK_SUCCESS;
       goto out_unlock;
    }
+
+   bo->res_id = res_id;
 
    result = tu_bo_init(dev, bo, handle, size, iova,
                        TU_BO_ALLOC_NO_FLAGS, "dmabuf");

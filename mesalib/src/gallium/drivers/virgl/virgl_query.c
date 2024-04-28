@@ -30,7 +30,13 @@
 #include "virgl_screen.h"
 
 struct virgl_query {
-   struct virgl_resource *buf;
+   enum pipe_query_type type;
+
+   union {
+      struct virgl_resource *buf;
+      struct pipe_fence_handle *fence; // PIPE_QUERY_GPU_FINISHED
+   };
+
    uint32_t handle;
    uint32_t result_size;
    uint32_t pipeline_stats;
@@ -123,6 +129,11 @@ static struct pipe_query *virgl_create_query(struct pipe_context *ctx,
    if (!query)
       return NULL;
 
+   query->type = query_type;
+
+   if (query->type == PIPE_QUERY_GPU_FINISHED)
+      return (struct pipe_query *)query;
+
    query->buf = (struct virgl_resource *)
       pipe_buffer_create(ctx->screen, PIPE_BIND_CUSTOM, PIPE_USAGE_STAGING,
                          sizeof(struct virgl_host_query_state));
@@ -159,9 +170,13 @@ static void virgl_destroy_query(struct pipe_context *ctx,
    struct virgl_context *vctx = virgl_context(ctx);
    struct virgl_query *query = virgl_query(q);
 
-   virgl_encode_delete_object(vctx, query->handle, VIRGL_OBJECT_QUERY);
+   if (query->type == PIPE_QUERY_GPU_FINISHED) {
+      ctx->screen->fence_reference(ctx->screen, &query->fence, NULL);
+   } else {
+      virgl_encode_delete_object(vctx, query->handle, VIRGL_OBJECT_QUERY);
+      pipe_resource_reference((struct pipe_resource **)&query->buf, NULL);
+   }
 
-   pipe_resource_reference((struct pipe_resource **)&query->buf, NULL);
    FREE(query);
 }
 
@@ -183,6 +198,11 @@ static bool virgl_end_query(struct pipe_context *ctx,
    struct virgl_context *vctx = virgl_context(ctx);
    struct virgl_query *query = virgl_query(q);
    struct virgl_host_query_state *host_state;
+
+   if (query->type == PIPE_QUERY_GPU_FINISHED) {
+      ctx->flush(ctx, &query->fence, PIPE_FLUSH_DEFERRED);
+      return true;
+   }
 
    host_state = vs->vws->resource_map(vs->vws, query->buf->hw_res);
    if (!host_state)
@@ -206,6 +226,13 @@ static bool virgl_get_query_result(struct pipe_context *ctx,
                                    union pipe_query_result *result)
 {
    struct virgl_query *query = virgl_query(q);
+
+   if (query->type == PIPE_QUERY_GPU_FINISHED) {
+      struct pipe_screen *screen = ctx->screen;
+
+      result->b = screen->fence_finish(screen, ctx, query->fence, wait ? OS_TIMEOUT_INFINITE : 0);
+      return result->b;
+   }
 
    if (!query->ready) {
       struct virgl_screen *vs = virgl_screen(ctx->screen);

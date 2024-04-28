@@ -293,7 +293,7 @@ setup_border_colors(struct fd_texture_stateobj *tex,
          }
       }
 
-#ifdef DEBUG
+#if MESA_DEBUG
       memset(&e->__pad0, 0, sizeof(e->__pad0));
       memset(&e->__pad1, 0, sizeof(e->__pad1));
 #endif

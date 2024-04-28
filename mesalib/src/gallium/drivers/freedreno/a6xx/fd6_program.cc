@@ -111,7 +111,7 @@ fd6_emit_shader(struct fd_context *ctx, struct fd_ringbuffer *ring,
       return;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* Name should generally match what you get with MESA_SHADER_CAPTURE_PATH: */
    const char *name = so->name;
    if (name)
@@ -1199,13 +1199,6 @@ emit_interp_state(struct fd_ringbuffer *ring, const struct fd6_program_state *st
                   bool rasterflat, bool sprite_coord_mode,
                   uint32_t sprite_coord_enable)
 {
-   enum {
-      INTERP_SMOOTH = 0,
-      INTERP_FLAT = 1,
-      INTERP_ZERO = 2,
-      INTERP_ONE = 3,
-   };
-
    const struct ir3_shader_variant *fs = state->fs;
    uint32_t vinterp[8], vpsrepl[8];
 
@@ -1313,7 +1306,7 @@ fd6_program_create(void *data, const struct ir3_shader_variant *bs,
    state->binning_stateobj = fd_ringbuffer_new_object(ctx->pipe, 0x1000);
    state->stateobj = fd_ringbuffer_new_object(ctx->pipe, 0x1000);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (!ds) {
       for (unsigned i = 0; i < bs->inputs_count; i++) {
          if (vs->inputs[i].sysval)

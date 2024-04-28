@@ -25,10 +25,12 @@ DEPS=(
     bison
     ccache
     curl
+    "clang-${LLVM_VERSION}"
     "clang-format-${LLVM_VERSION}"
     dpkg-cross
     findutils
     flex
+    flatbuffers-compiler
     g++
     cmake
     gcc
@@ -41,6 +43,7 @@ DEPS=(
     libelf-dev
     libepoxy-dev
     libexpat1-dev
+    libflatbuffers-dev
     libgtk-3-dev
     "libllvm${LLVM_VERSION}"
     libomxil-bellagio-dev
@@ -56,6 +59,7 @@ DEPS=(
     libxrandr-dev
     libxrender-dev
     libxshmfence-dev
+    libxtensor-dev
     libxxf86vm-dev
     libwayland-egl-backend-dev
     make
@@ -66,6 +70,7 @@ DEPS=(
     python3-pil
     python3-pip
     python3-ply
+    python3-pycparser
     python3-requests
     python3-setuptools
     qemu-user
@@ -82,6 +87,10 @@ apt-get update
 
 apt-get install -y --no-remove "${DEPS[@]}" "${EPHEMERAL[@]}" \
         $EXTRA_LOCAL_PACKAGES
+
+. .gitlab-ci/container/build-llvm-spirv.sh
+
+. .gitlab-ci/container/build-libclc.sh
 
 # Needed for ci-fairy, this revision is able to upload files to S3
 pip3 install --break-system-packages git+http://gitlab.freedesktop.org/freedesktop/ci-templates@ffe4d1b10aab7534489f0c4bbc4c5899df17d3f2

@@ -56,7 +56,9 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
 #include <X11/X.h>
+
 #include <xserver_poll.h>
 #include "xf86.h"
 #include "xf86Priv.h"
@@ -409,16 +411,6 @@ xf86WaitForInput(int fd, int timeout)
     }
     xf86ErrorFVerb(9, "poll returned %d\n", r);
     return r;
-}
-
-int
-xf86SerialSendBreak(int fd, int duration)
-{
-    int r;
-
-    SYSCALL(r = tcsendbreak(fd, duration));
-    return r;
-
 }
 
 int

@@ -17,11 +17,12 @@ is" without express or implied warranty.
 #endif
 
 #include <X11/X.h>
+#include <X11/Xdefs.h>
 #include <X11/Xproto.h>
+
 #include "screenint.h"
 #include "input.h"
 #include "misc.h"
-#include "cursor.h"
 #include "cursorstr.h"
 #include "scrnintstr.h"
 #include "servermd.h"
@@ -156,7 +157,7 @@ xnestDeviceCursorInitialize(DeviceIntPtr pDev, ScreenPtr pScreen)
     xnestCursorFuncPtr pScreenPriv;
 
     pScreenPriv = (xnestCursorFuncPtr)
-        dixLookupPrivate(&pScreen->devPrivates, xnestCursorScreenKey);
+        dixLookupPrivate(&pScreen->devPrivates, &xnestScreenCursorFuncKeyRec);
 
     return pScreenPriv->spriteFuncs->DeviceCursorInitialize(pDev, pScreen);
 }
@@ -167,7 +168,7 @@ xnestDeviceCursorCleanup(DeviceIntPtr pDev, ScreenPtr pScreen)
     xnestCursorFuncPtr pScreenPriv;
 
     pScreenPriv = (xnestCursorFuncPtr)
-        dixLookupPrivate(&pScreen->devPrivates, xnestCursorScreenKey);
+        dixLookupPrivate(&pScreen->devPrivates, &xnestScreenCursorFuncKeyRec);
 
     pScreenPriv->spriteFuncs->DeviceCursorCleanup(pDev, pScreen);
 }

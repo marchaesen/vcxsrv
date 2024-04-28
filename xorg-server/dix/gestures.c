@@ -27,6 +27,8 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/eventconvert.h"
+
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "dixgrabs.h"
@@ -35,7 +37,6 @@
 #include "exevents.h"
 #include "exglobals.h"
 #include "inpututils.h"
-#include "eventconvert.h"
 #include "windowstr.h"
 #include "mi.h"
 
@@ -200,8 +201,8 @@ GestureAddGrabListener(DeviceIntPtr dev, GestureInfoPtr gi, GrabPtr grab)
         BUG_RETURN_MSG(1, "Unsupported grab type\n");
     }
 
-    /* grab listeners are always RT_NONE since we keep the grab pointer */
-    GestureAddListener(gi, grab->resource, RT_NONE, type, grab->window, grab);
+    /* grab listeners are always X11_RESTYPE_NONE since we keep the grab pointer */
+    GestureAddListener(gi, grab->resource, X11_RESTYPE_NONE, type, grab->window, grab);
 }
 
 /**

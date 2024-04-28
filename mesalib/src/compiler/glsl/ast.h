@@ -197,6 +197,7 @@ enum ast_operators {
    ast_identifier,
    ast_int_constant,
    ast_uint_constant,
+   ast_float16_constant,
    ast_float_constant,
    ast_bool_constant,
    ast_double_constant,
@@ -258,6 +259,7 @@ public:
    union {
       const char *identifier;
       int int_constant;
+      float float16_constant;
       float float_constant;
       unsigned uint_constant;
       int bool_constant;

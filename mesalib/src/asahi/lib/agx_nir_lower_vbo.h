@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_NIR_LOWER_VBO_H
-#define __AGX_NIR_LOWER_VBO_H
+#pragma once
 
 #include <stdbool.h>
 #include <stdint.h>
@@ -36,6 +35,4 @@ bool agx_vbo_supports_format(enum pipe_format format);
 
 #ifdef __cplusplus
 } /* extern C */
-#endif
-
 #endif

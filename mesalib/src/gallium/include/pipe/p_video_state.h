@@ -191,6 +191,8 @@ struct pipe_picture_desc
    enum pipe_format input_format;
    bool input_full_range;
    enum pipe_format output_format;
+   /* Flush flags for pipe_video_codec::end_frame */
+   unsigned flush_flags;
    /* A fence used on PIPE_VIDEO_ENTRYPOINT_DECODE/PROCESSING to signal job completion */
    struct pipe_fence_handle **fence;
 };
@@ -631,6 +633,7 @@ struct pipe_h264_enc_picture_desc
    unsigned intra_idr_period;
    unsigned ip_period;
 
+   unsigned init_qp;
    unsigned quant_i_frames;
    unsigned quant_p_frames;
    unsigned quant_b_frames;
@@ -666,7 +669,7 @@ struct pipe_h264_enc_picture_desc
    unsigned num_slice_descriptors;
    struct h264_slice_descriptor slices_descriptors[128];
 
-   /* Use with PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SICE */
+   /* Use with PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SIZE */
    unsigned max_slice_bytes;
 
    bool insert_aud_nalu;
@@ -814,6 +817,7 @@ struct pipe_h265_enc_rate_control
    unsigned peak_bitrate;
    unsigned frame_rate_num;
    unsigned frame_rate_den;
+   unsigned init_qp;
    unsigned quant_i_frames;
    unsigned quant_p_frames;
    unsigned quant_b_frames;
@@ -867,7 +871,7 @@ struct pipe_h265_enc_picture_desc
    unsigned num_slice_descriptors;
    struct h265_slice_descriptor slices_descriptors[128];
 
-   /* Use with PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SICE */
+   /* Use with PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SIZE */
    unsigned max_slice_bytes;
    enum pipe_video_feedback_metadata_type requested_metadata;
    bool renew_headers_on_idr;
@@ -892,6 +896,7 @@ struct pipe_av1_enc_rate_control
    unsigned enforce_hrd;
    unsigned max_au_size;
    unsigned qp; /* Initial QP */
+   unsigned qp_inter;
    unsigned max_qp;
    unsigned min_qp;
    bool app_requested_qp_range;
@@ -996,6 +1001,7 @@ struct pipe_av1_enc_picture_desc
       uint32_t use_superres:1;
       uint32_t reduced_tx_set:1;
       uint32_t skip_mode_present:1;
+      uint32_t long_term_reference:1;
    };
    struct pipe_enc_quality_modes quality_modes;
    struct pipe_enc_intra_refresh intra_refresh;
@@ -1028,6 +1034,9 @@ struct pipe_av1_enc_picture_desc
    uint32_t primary_ref_frame;
    uint8_t refresh_frame_flags;
    uint8_t ref_frame_idx[7];
+   uint32_t ref_frame_ctrl_l0;            /* forward prediction only */
+   void *ref_list[8];                     /* for tracking ref frames */
+   void *recon_frame;
 
    struct {
       uint8_t cdef_damping_minus_3;
@@ -2004,6 +2013,21 @@ union pipe_enc_cap_roi {
       uint32_t roi_rc_qp_delta_support         : 1;
       uint32_t reserved                        : 22;
 
+   } bits;
+   uint32_t value;
+};
+
+union pipe_enc_cap_surface_alignment {
+   struct {
+      /**
+       * log2_width_alignment
+       */
+      uint32_t log2_width_alignment                 : 4;
+      /**
+       * log2_height_alignment
+       */
+      uint32_t log2_height_alignment                : 4;
+      uint32_t reserved                             : 24;
    } bits;
    uint32_t value;
 };

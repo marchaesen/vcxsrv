@@ -31,6 +31,9 @@
 #endif
 
 #include <math.h>
+
+#include "dix/ptrveloc_priv.h"
+
 #include <ptrveloc.h>
 #include <exevents.h>
 #include <X11/Xatom.h>
@@ -98,11 +101,12 @@ DeletePredictableAccelerationProperties(DeviceIntPtr,
 /* some int which is not a profile number */
 #define PROFILE_UNINITIALIZE (-100)
 
+static int SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num);
+
 /**
  * Init DeviceVelocity struct so it should match the average case
  */
-void
-InitVelocityData(DeviceVelocityPtr vel)
+static void InitVelocityData(DeviceVelocityPtr vel)
 {
     memset(vel, 0, sizeof(DeviceVelocityRec));
 
@@ -122,8 +126,7 @@ InitVelocityData(DeviceVelocityPtr vel)
 /**
  * Clean up DeviceVelocityRec
  */
-void
-FreeVelocityData(DeviceVelocityPtr vel)
+static void FreeVelocityData(DeviceVelocityPtr vel)
 {
     free(vel->tracker);
     SetAccelerationProfile(vel, PROFILE_UNINITIALIZE);
@@ -697,8 +700,7 @@ QueryTrackers(DeviceVelocityPtr vel, int cur_t)
  * Perform velocity approximation based on 2D 'mickeys' (mouse motion delta).
  * return true if non-visible state reset is suggested
  */
-BOOL
-ProcessVelocityData2D(DeviceVelocityPtr vel, double dx, double dy, int time)
+static BOOL ProcessVelocityData2D(DeviceVelocityPtr vel, double dx, double dy, int time)
 {
     double velocity;
 
@@ -757,10 +759,11 @@ ApplyConstantDeceleration(DeviceVelocityPtr vel, double *fdx, double *fdy)
 /*
  * compute the acceleration for given velocity and enforce min_acceleration
  */
-double
-BasicComputeAcceleration(DeviceIntPtr dev,
-                         DeviceVelocityPtr vel,
-                         double velocity, double threshold, double acc)
+static double BasicComputeAcceleration(DeviceIntPtr dev,
+                                       DeviceVelocityPtr vel,
+                                       double velocity,
+                                       double threshold,
+                                       double acc)
 {
 
     double result;
@@ -1020,8 +1023,7 @@ GetAccelerationProfile(DeviceVelocityPtr vel, int profile_num)
  *
  * returns FALSE if profile number is unavailable, TRUE otherwise.
  */
-int
-SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num)
+static int SetAccelerationProfile(DeviceVelocityPtr vel, int profile_num)
 {
     PointerAccelerationProfileFunc profile;
 

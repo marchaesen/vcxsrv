@@ -45,8 +45,8 @@ SOFTWARE.
 	<pattern low="61" high="63">000</pattern>  <!-- cat0 -->
 	<encode>
 		<map name="IMMED">src->cat0.immed</map>
-		<map name="COMP1">src->cat0.comp1</map>
-		<map name="COMP2">src->cat0.comp2</map>
+		<map name="COMP1">reg_comp(src->srcs[0])</map>
+		<map name="COMP2">reg_comp(src->srcs[1])</map>
 		<map name="INV1">src->cat0.inv1</map>
 		<map name="INV2">src->cat0.inv2</map>
 		<map name="EQ">!!(src->flags &amp; IR3_INSTR_EQ)</map>
@@ -110,6 +110,44 @@ SOFTWARE.
 	<pattern low="55" high="58">1000</pattern> <!-- OPC -->
 </bitset>
 
+<bitset name="predt" extends="#instruction-cat0-0src">
+	<doc>
+		The predt, predf, and prede instructions are used to enable
+		"predicated execution" for a region of code. During predicated
+		execution, the execution mask is combined with the "predication
+		mask" to determine the active fibers. So this is similar to
+		branching with the exception that inactive fibers keep executing
+		instead of being parked; the instructions they execute simply
+		have no effect. Since no branch stack is necessary to support
+		predication, it is more performant for divergent branches.
+
+		More concretely, the hardware seems to keep track of a
+		predication mask and a predication mode. The mode can be "none"
+		(no predication, the default, and set by prede), "true" (set by
+		predt), or "false" (set by predf). The final execution mask is
+		determined by and'ing with ~0 (none mode), the predication mask
+		(true mode), or its negation (false mode).
+
+		Predication is enabled by predt or predf which take the value of
+		p0.x of all fibers (not only the active ones) and store them in
+		the predication mask. Then the mode is set to true or false.
+		Executing prede disables predication by setting the mode to
+		none.
+
+		One peculiarity, and the reason the execution mode state is
+		necessary, is that any instruction marked with (jp) will also
+		update the execution mask. The current mode will be kept in that
+		case.
+	</doc>
+	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
+	<pattern low="55" high="58">1101</pattern> <!-- OPC -->
+</bitset>
+
+<bitset name="predf" extends="#instruction-cat0-0src">
+	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
+	<pattern low="55" high="58">1110</pattern> <!-- OPC -->
+</bitset>
+
 <bitset name="prede" extends="#instruction-cat0-0src">
 	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
 	<pattern low="55" high="58">1111</pattern> <!-- OPC -->
@@ -134,16 +172,6 @@ SOFTWARE.
 <bitset name="kill" extends="#instruction-cat0-1src">
 	<pattern low="49" high="51">xx0</pattern>  <!-- OPC_HI -->
 	<pattern low="55" high="58">0101</pattern> <!-- OPC -->
-</bitset>
-
-<bitset name="predt" extends="#instruction-cat0-1src">
-	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
-	<pattern low="55" high="58">1101</pattern> <!-- OPC -->
-</bitset>
-
-<bitset name="predf" extends="#instruction-cat0-1src">
-	<pattern low="49" high="51">xx1</pattern>  <!-- OPC_HI -->
-	<pattern low="55" high="58">1110</pattern> <!-- OPC -->
 </bitset>
 
 

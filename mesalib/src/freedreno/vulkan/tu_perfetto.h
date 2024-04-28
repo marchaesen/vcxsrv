@@ -51,6 +51,14 @@ tu_perfetto_submit(struct tu_device *dev,
                    uint32_t submission_id,
                    struct tu_perfetto_clocks *clocks);
 
+void tu_perfetto_log_create_buffer(struct tu_device *dev, struct tu_buffer *buffer);
+void tu_perfetto_log_bind_buffer(struct tu_device *dev, struct tu_buffer *buffer);
+void tu_perfetto_log_destroy_buffer(struct tu_device *dev, struct tu_buffer *buffer);
+
+void tu_perfetto_log_create_image(struct tu_device *dev, struct tu_image *image);
+void tu_perfetto_log_bind_image(struct tu_device *dev, struct tu_image *image);
+void tu_perfetto_log_destroy_image(struct tu_device *dev, struct tu_image *image);
+
 #ifdef __cplusplus
 }
 #endif

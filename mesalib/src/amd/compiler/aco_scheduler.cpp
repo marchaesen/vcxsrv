@@ -1,25 +1,7 @@
 /*
  * Copyright © 2018 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_builder.h"
@@ -33,11 +15,15 @@
 
 #define SMEM_WINDOW_SIZE    (350 - ctx.num_waves * 35)
 #define VMEM_WINDOW_SIZE    (1024 - ctx.num_waves * 64)
+#define LDS_WINDOW_SIZE     64
 #define POS_EXP_WINDOW_SIZE 512
 #define SMEM_MAX_MOVES      (64 - ctx.num_waves * 4)
 #define VMEM_MAX_MOVES      (256 - ctx.num_waves * 16)
+#define LDSDIR_MAX_MOVES    10
+#define LDS_MAX_MOVES       32
 /* creating clauses decreases def-use distances, so make it less aggressive the lower num_waves is */
 #define VMEM_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 2)
+#define VMEM_STORE_CLAUSE_MAX_GRAB_DIST (ctx.num_waves * 4)
 #define POS_EXP_MAX_MOVES         512
 
 namespace aco {
@@ -424,7 +410,7 @@ bool
 is_done_sendmsg(amd_gfx_level gfx_level, const Instruction* instr)
 {
    if (gfx_level <= GFX10_3 && instr->opcode == aco_opcode::s_sendmsg)
-      return (instr->sopp().imm & sendmsg_id_mask) == sendmsg_gs_done;
+      return (instr->salu().imm & sendmsg_id_mask) == sendmsg_gs_done;
    return false;
 }
 
@@ -577,7 +563,7 @@ perform_hazard_query(hazard_query* query, Instruction* instr, bool upwards)
    if (upwards) {
       if (instr->opcode == aco_opcode::p_pops_gfx9_add_exiting_wave_id ||
           (instr->opcode == aco_opcode::s_wait_event &&
-           !(instr->sopp().imm & wait_event_imm_dont_wait_export_ready))) {
+           !(instr->salu().imm & wait_event_imm_dont_wait_export_ready))) {
          return hazard_fail_unreorderable;
       }
    } else {
@@ -997,6 +983,85 @@ schedule_VMEM(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& registe
 }
 
 void
+schedule_LDS(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
+             Instruction* current, int idx)
+{
+   assert(idx != 0);
+   int window_size = LDS_WINDOW_SIZE;
+   int max_moves = current->isLDSDIR() ? LDSDIR_MAX_MOVES : LDS_MAX_MOVES;
+   int16_t k = 0;
+
+   /* first, check if we have instructions before current to move down */
+   hazard_query hq;
+   init_hazard_query(ctx, &hq);
+   add_to_hazard_query(&hq, current);
+
+   DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, false);
+
+   for (int i = 0; k < max_moves && i < window_size; i++) {
+      aco_ptr<Instruction>& candidate = block->instructions[cursor.source_idx];
+      bool is_mem = candidate->isVMEM() || candidate->isFlatLike() || candidate->isSMEM();
+      if (candidate->opcode == aco_opcode::p_logical_start || is_mem)
+         break;
+
+      if (candidate->isDS() || candidate->isLDSDIR()) {
+         add_to_hazard_query(&hq, candidate.get());
+         ctx.mv.downwards_skip(cursor);
+         continue;
+      }
+
+      if (perform_hazard_query(&hq, candidate.get(), false) != hazard_success ||
+          ctx.mv.downwards_move(cursor, false) != move_success)
+         break;
+
+      k++;
+   }
+
+   /* second, check if we have instructions after current to move up */
+   bool found_dependency = false;
+   int i = 0;
+   UpwardsCursor up_cursor = ctx.mv.upwards_init(idx + 1, true);
+   /* find the first instruction depending on current */
+   for (; k < max_moves && i < window_size; i++) {
+      aco_ptr<Instruction>& candidate = block->instructions[up_cursor.source_idx];
+      bool is_mem = candidate->isVMEM() || candidate->isFlatLike() || candidate->isSMEM();
+      if (candidate->opcode == aco_opcode::p_logical_end || is_mem)
+         break;
+
+      /* check if candidate depends on current */
+      if (!ctx.mv.upwards_check_deps(up_cursor)) {
+         init_hazard_query(ctx, &hq);
+         add_to_hazard_query(&hq, candidate.get());
+         ctx.mv.upwards_update_insert_idx(up_cursor);
+         ctx.mv.upwards_skip(up_cursor);
+         found_dependency = true;
+         i++;
+         break;
+      }
+
+      ctx.mv.upwards_skip(up_cursor);
+   }
+
+   for (; found_dependency && k < max_moves && i < window_size; i++) {
+      aco_ptr<Instruction>& candidate = block->instructions[up_cursor.source_idx];
+      bool is_mem = candidate->isVMEM() || candidate->isFlatLike() || candidate->isSMEM();
+      if (candidate->opcode == aco_opcode::p_logical_end || is_mem)
+         break;
+
+      HazardResult haz = perform_hazard_query(&hq, candidate.get(), true);
+      if (haz == hazard_fail_exec || haz == hazard_fail_unreorderable)
+         break;
+
+      if (haz != hazard_success || ctx.mv.upwards_move(up_cursor) != move_success) {
+         add_to_hazard_query(&hq, candidate.get());
+         ctx.mv.upwards_skip(up_cursor);
+      } else {
+         k++;
+      }
+   }
+}
+
+void
 schedule_position_export(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& register_demand,
                          Instruction* current, int idx)
 {
@@ -1051,9 +1116,9 @@ schedule_VMEM_store(sched_ctx& ctx, Block* block, std::vector<RegisterDemand>& r
    init_hazard_query(ctx, &hq);
 
    DownwardsCursor cursor = ctx.mv.downwards_init(idx, true, true);
-   unsigned skip = 0;
+   int skip = 0;
 
-   for (int i = 0; i < VMEM_CLAUSE_MAX_GRAB_DIST; i++) {
+   for (int i = 0; (i - skip) < VMEM_STORE_CLAUSE_MAX_GRAB_DIST; i++) {
       aco_ptr<Instruction>& candidate = block->instructions[cursor.source_idx];
       if (candidate->opcode == aco_opcode::p_logical_start)
          break;
@@ -1087,6 +1152,9 @@ schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
    for (unsigned idx = 0; idx < block->instructions.size(); idx++) {
       Instruction* current = block->instructions[idx].get();
 
+      if (current->opcode == aco_opcode::p_logical_end)
+         break;
+
       if (block->kind & block_kind_export_end && current->isEXP() && ctx.schedule_pos_exports) {
          unsigned target = current->exp().dest;
          if (target >= V_008DFC_SQ_EXP_POS && target < V_008DFC_SQ_EXP_PRIM) {
@@ -1109,6 +1177,11 @@ schedule_block(sched_ctx& ctx, Program* program, Block* block, live& live_vars)
       if (current->isSMEM()) {
          ctx.mv.current = current;
          schedule_SMEM(ctx, block, live_vars.register_demand[block->index], current, idx);
+      }
+
+      if (current->isLDSDIR() || (current->isDS() && !current->ds().gds)) {
+         ctx.mv.current = current;
+         schedule_LDS(ctx, block, live_vars.register_demand[block->index], current, idx);
       }
    }
 

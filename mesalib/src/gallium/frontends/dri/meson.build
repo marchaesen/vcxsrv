@@ -36,6 +36,10 @@ files_libdri = files(
   'dri_util.h',
 )
 
+if with_platform_x11
+  deps_for_libdri += dep_xcb
+endif
+
 if with_dri
   files_libdri += files('drisw.c')
 endif
@@ -46,8 +50,8 @@ endif
 
 libdri_c_args = []
 if with_gallium_zink and not with_platform_android
-  if get_option('glvnd')
-    libdri_c_args += '-DKOPPER_LIB_NAMES="libEGL_@0@ and libGLX_@0@"'.format(get_option('glvnd-vendor-name'))
+  if with_glvnd
+    libdri_c_args += '-DKOPPER_LIB_NAMES="libEGL_@0@ and libGLX_@0@"'.format(glvnd_vendor_name)
   else
     libdri_c_args += '-DKOPPER_LIB_NAMES="libEGL and libGLX"'
   endif
@@ -64,7 +68,7 @@ libdri = static_library(
   [ files_libdri, sha1_h ],
   include_directories : [
     inc_include, inc_util, inc_mesa, inc_mapi, inc_src, inc_gallium,
-    inc_gallium_aux, inc_util,  inc_gallium_drivers,
+    inc_gallium_aux, inc_util, inc_gallium_drivers, inc_loader,
   ],
   c_args : [libdri_c_args],
   gnu_symbol_visibility : 'hidden',

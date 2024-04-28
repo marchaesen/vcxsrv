@@ -88,6 +88,7 @@ d3d12_make_passthrough_gs(struct d3d12_context *ctx, struct d3d12_gs_variant_key
    nir->info.gs.vertices_out = 1;
    nir->info.gs.invocations = 1;
    nir->info.gs.active_stream_mask = 1;
+   nir->num_outputs = 0;
 
    /* Copy inputs to outputs. */
    while (varyings) {
@@ -120,11 +121,24 @@ d3d12_make_passthrough_gs(struct d3d12_context *ctx, struct d3d12_gs_variant_key
          out->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
          out->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
          out->data.compact = key->varyings->slots[i].vars[j].compact;
+         out->data.always_active_io = key->varyings->slots[i].vars[j].always_active_io;
 
          nir_deref_instr *in_value = nir_build_deref_array(&b, nir_build_deref_var(&b, in),
                                                                nir_imm_int(&b, 0));
          copy_vars(&b, nir_build_deref_var(&b, out), in_value);
+         nir->num_outputs++;
       }
+   }
+
+   if (key->has_front_face) {
+      nir_variable *front_facing_var = nir_variable_create(nir,
+                                                       nir_var_shader_out,
+                                                       glsl_uint_type(),
+                                                       "gl_FrontFacing");
+      front_facing_var->data.location = VARYING_SLOT_VAR12;
+      front_facing_var->data.driver_location = nir->num_outputs++;
+      front_facing_var->data.interpolation = INTERP_MODE_FLAT;
+      nir_store_deref(&b, nir_build_deref_var(&b, front_facing_var), nir_imm_int(&b, 1), 1);
    }
 
    nir_emit_vertex(&b, 0);
@@ -223,6 +237,7 @@ d3d12_begin_emit_primitives_gs(struct emit_primitives_context *emit_ctx,
          emit_ctx->out[emit_ctx->num_vars]->data.driver_location = key->varyings->slots[i].vars[j].driver_location;
          emit_ctx->out[emit_ctx->num_vars]->data.interpolation = key->varyings->slots[i].vars[j].interpolation;
          emit_ctx->out[emit_ctx->num_vars]->data.compact = key->varyings->slots[i].vars[j].compact;
+         emit_ctx->out[emit_ctx->num_vars]->data.always_active_io = key->varyings->slots[i].vars[j].always_active_io;
 
          emit_ctx->num_vars++;
       }

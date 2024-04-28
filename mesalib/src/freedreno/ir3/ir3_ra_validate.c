@@ -86,19 +86,31 @@ struct file_state {
 };
 
 struct reaching_state {
-   struct file_state half, full, shared;
+   struct file_state half, full, shared, predicate;
 };
 
 struct ra_val_ctx {
    struct ir3_instruction *current_instr;
 
+   /* The current state of the dataflow analysis for the instruction we're
+    * processing.
+    */
    struct reaching_state reaching;
+
+   /* The state at the end of each basic block. */
    struct reaching_state *block_reaching;
    unsigned block_count;
 
-   unsigned full_size, half_size;
+   /* When validating shared RA, we have to take spill/reload instructions into
+    * account. This saves an array of reg_state for the source of each spill
+    * instruction, to be restored at the corresponding reload(s).
+    */
+   struct hash_table *spill_reaching;
+
+   unsigned full_size, half_size, predicate_size;
 
    bool merged_regs;
+   bool shared_ra;
 
    bool failed;
 };
@@ -122,12 +134,52 @@ validate_error(struct ra_val_ctx *ctx, const char *condstr)
 static unsigned
 get_file_size(struct ra_val_ctx *ctx, struct ir3_register *reg)
 {
-   if (reg->flags & IR3_REG_SHARED)
-      return RA_SHARED_SIZE;
-   else if (ctx->merged_regs || !(reg->flags & IR3_REG_HALF))
+   if (reg->flags & IR3_REG_SHARED) {
+      if (reg->flags & IR3_REG_HALF)
+         return RA_SHARED_HALF_SIZE;
+      else
+         return RA_SHARED_SIZE;
+   } else if (reg->flags & IR3_REG_PREDICATE) {
+      return ctx->predicate_size;
+   } else if (ctx->merged_regs || !(reg->flags & IR3_REG_HALF)) {
       return ctx->full_size;
-   else
+   } else {
       return ctx->half_size;
+   }
+}
+
+static struct reg_state *
+get_spill_state(struct ra_val_ctx *ctx, struct ir3_register *dst)
+{
+   struct hash_entry *entry = _mesa_hash_table_search(ctx->spill_reaching, dst);
+   if (entry)
+      return entry->data;
+   else
+      return NULL;
+}
+
+static struct reg_state *
+get_or_create_spill_state(struct ra_val_ctx *ctx, struct ir3_register *dst)
+{
+   struct reg_state *state = get_spill_state(ctx, dst);
+   if (state)
+      return state;
+
+   state = rzalloc_array(ctx, struct reg_state, reg_size(dst));
+   _mesa_hash_table_insert(ctx->spill_reaching, dst, state);
+   return state;
+}
+
+static bool
+validate_reg_is_src(const struct ir3_register *reg)
+{
+   return ra_reg_is_src(reg) || ra_reg_is_predicate(reg);
+}
+
+static bool
+validate_reg_is_dst(const struct ir3_register *reg)
+{
+   return ra_reg_is_dst(reg) || ra_reg_is_predicate(reg);
 }
 
 /* Validate simple things, like the registers being in-bounds. This way we
@@ -138,14 +190,20 @@ static void
 validate_simple(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
 {
    ctx->current_instr = instr;
-   ra_foreach_dst (dst, instr) {
+   foreach_dst_if (dst, instr, validate_reg_is_dst) {
+      if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED))
+         continue;
+      validate_assert(ctx, ra_reg_get_num(dst) != INVALID_REG);
       unsigned dst_max = ra_reg_get_physreg(dst) + reg_size(dst);
       validate_assert(ctx, dst_max <= get_file_size(ctx, dst));
       if (dst->tied)
          validate_assert(ctx, ra_reg_get_num(dst) == ra_reg_get_num(dst->tied));
    }
 
-   ra_foreach_src (src, instr) {
+   foreach_src_if (src, instr, validate_reg_is_src) {
+      if (ctx->shared_ra && !(src->flags & IR3_REG_SHARED))
+         continue;
+      validate_assert(ctx, ra_reg_get_num(src) != INVALID_REG);
       unsigned src_max = ra_reg_get_physreg(src) + reg_size(src);
       validate_assert(ctx, src_max <= get_file_size(ctx, src));
    }
@@ -194,6 +252,8 @@ merge_state(struct ra_val_ctx *ctx, struct reaching_state *dst,
    bool progress = false;
    progress |= merge_file(&dst->full, &src->full, ctx->full_size);
    progress |= merge_file(&dst->half, &src->half, ctx->half_size);
+   progress |=
+      merge_file(&dst->predicate, &src->predicate, ctx->predicate_size);
    return progress;
 }
 
@@ -209,21 +269,57 @@ ra_val_get_file(struct ra_val_ctx *ctx, struct ir3_register *reg)
 {
    if (reg->flags & IR3_REG_SHARED)
       return &ctx->reaching.shared;
+   else if (reg->flags & IR3_REG_PREDICATE)
+      return &ctx->reaching.predicate;
    else if (ctx->merged_regs || !(reg->flags & IR3_REG_HALF))
       return &ctx->reaching.full;
    else
       return &ctx->reaching.half;
 }
 
+/* Predicate RA implements spilling by cloning the instruction that produces a
+ * def. In that case, we might end up two different defs legitimately reaching a
+ * source. To support validation, the RA will store the original def in the
+ * instruction's data field.
+ */
+static struct ir3_register *
+get_original_def(struct ir3_register *def)
+{
+   if (def == UNKNOWN || def == UNDEF || def == OVERDEF)
+      return def;
+   if (def->flags & IR3_REG_PREDICATE)
+      return def->instr->data;
+   return def;
+}
+
 static void
 propagate_normal_instr(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
 {
-   ra_foreach_dst (dst, instr) {
+   foreach_dst_if (dst, instr, validate_reg_is_dst) {
+      /* Process destinations from scalar ALU instructions that were demoted to
+       * normal ALU instructions. For these we must treat the instruction as a
+       * spill of itself and set the propagate state to itself. See
+       * try_demote_instructions().
+       */
+      if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED)) {
+         if (instr->flags & IR3_INSTR_SHARED_SPILL) {
+            struct reg_state *state = get_or_create_spill_state(ctx, dst);
+            for (unsigned i = 0; i < reg_size(dst); i++) {
+               state[i] = (struct reg_state){
+                  .def = dst,
+                  .offset = i,
+               };
+            }
+         }
+         continue;
+      }
+
       struct file_state *file = ra_val_get_file(ctx, dst);
       physreg_t physreg = ra_reg_get_physreg(dst);
+
       for (unsigned i = 0; i < reg_size(dst); i++) {
          file->regs[physreg + i] = (struct reg_state){
-            .def = dst,
+            .def = get_original_def(dst),
             .offset = i,
          };
       }
@@ -239,6 +335,16 @@ propagate_split(struct ra_val_ctx *ctx, struct ir3_instruction *split)
    physreg_t src_physreg = ra_reg_get_physreg(src);
    struct file_state *file = ra_val_get_file(ctx, dst);
 
+   if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED)) {
+      struct reg_state *src_state = get_spill_state(ctx, src->def);
+      if (src_state) {
+         struct reg_state *dst_state = get_or_create_spill_state(ctx, dst);
+         memcpy(dst_state, &src_state[split->split.off * reg_elem_size(src)],
+                reg_size(dst) * sizeof(struct reg_state));
+      }
+      return;
+   }
+
    unsigned offset = split->split.off * reg_elem_size(src);
    for (unsigned i = 0; i < reg_elem_size(src); i++) {
       file->regs[dst_physreg + i] = file->regs[src_physreg + offset + i];
@@ -249,30 +355,50 @@ static void
 propagate_collect(struct ra_val_ctx *ctx, struct ir3_instruction *collect)
 {
    struct ir3_register *dst = collect->dsts[0];
-   physreg_t dst_physreg = ra_reg_get_physreg(dst);
-   struct file_state *file = ra_val_get_file(ctx, dst);
-
    unsigned size = reg_size(dst);
-   struct reg_state srcs[size];
 
-   for (unsigned i = 0; i < collect->srcs_count; i++) {
-      struct ir3_register *src = collect->srcs[i];
-      unsigned dst_offset = i * reg_elem_size(dst);
-      for (unsigned j = 0; j < reg_elem_size(dst); j++) {
-         if (!ra_reg_is_src(src)) {
-            srcs[dst_offset + j] = (struct reg_state){
-               .def = dst,
-               .offset = dst_offset + j,
-            };
-         } else {
-            physreg_t src_physreg = ra_reg_get_physreg(src);
-            srcs[dst_offset + j] = file->regs[src_physreg + j];
+   if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED)) {
+      struct reg_state *dst_state = NULL;
+
+      for (unsigned i = 0; i < collect->srcs_count; i++) {
+         struct ir3_register *src = collect->srcs[i];
+         unsigned dst_offset = i * reg_elem_size(dst);
+
+         if (ra_reg_is_src(src)) {
+            struct reg_state *src_state = get_spill_state(ctx, src->def);
+            if (src_state) {
+               if (!dst_state)
+                  dst_state = get_or_create_spill_state(ctx, dst);
+               memcpy(&dst_state[dst_offset], src_state,
+                      reg_size(src) * sizeof(struct reg_state));
+            }
          }
       }
-   }
+   } else {
+      struct file_state *file = ra_val_get_file(ctx, dst);
+      physreg_t dst_physreg = ra_reg_get_physreg(dst);
+      struct reg_state srcs[size];
 
-   for (unsigned i = 0; i < size; i++)
-      file->regs[dst_physreg + i] = srcs[i];
+      for (unsigned i = 0; i < collect->srcs_count; i++) {
+         struct ir3_register *src = collect->srcs[i];
+         unsigned dst_offset = i * reg_elem_size(dst);
+
+         for (unsigned j = 0; j < reg_elem_size(dst); j++) {
+            if (!ra_reg_is_src(src)) {
+               srcs[dst_offset + j] = (struct reg_state){
+                  .def = dst,
+                  .offset = dst_offset + j,
+               };
+            } else {
+               physreg_t src_physreg = ra_reg_get_physreg(src);
+               srcs[dst_offset + j] = file->regs[src_physreg + j];
+            }
+         }
+      }
+
+      for (unsigned i = 0; i < size; i++)
+         file->regs[dst_physreg + i] = srcs[i];
+   }
 }
 
 static void
@@ -291,15 +417,25 @@ propagate_parallelcopy(struct ra_val_ctx *ctx, struct ir3_instruction *pcopy)
       struct ir3_register *src = pcopy->srcs[i];
       struct file_state *file = ra_val_get_file(ctx, dst);
 
-      for (unsigned j = 0; j < reg_size(dst); j++) {
-         if (src->flags & (IR3_REG_IMMED | IR3_REG_CONST)) {
-            srcs[offset + j] = (struct reg_state){
-               .def = dst,
-               .offset = j,
-            };
-         } else {
-            physreg_t src_physreg = ra_reg_get_physreg(src);
-            srcs[offset + j] = file->regs[src_physreg + j];
+      if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED)) {
+         if (ra_reg_is_src(src)) {
+            struct reg_state *src_state = get_spill_state(ctx, src->def);
+            if (src_state) {
+               struct reg_state *dst_state = get_or_create_spill_state(ctx, dst);
+               memcpy(dst_state, src_state, reg_size(dst) * sizeof(struct reg_state));
+            }
+         }
+      } else {
+         for (unsigned j = 0; j < reg_size(dst); j++) {
+            if (src->flags & (IR3_REG_IMMED | IR3_REG_CONST)) {
+               srcs[offset + j] = (struct reg_state){
+                  .def = dst,
+                  .offset = j,
+               };
+            } else {
+               physreg_t src_physreg = ra_reg_get_physreg(src);
+               srcs[offset + j] = file->regs[src_physreg + j];
+            }
          }
       }
 
@@ -310,6 +446,12 @@ propagate_parallelcopy(struct ra_val_ctx *ctx, struct ir3_instruction *pcopy)
    offset = 0;
    for (unsigned i = 0; i < pcopy->dsts_count; i++) {
       struct ir3_register *dst = pcopy->dsts[i];
+
+      if (ctx->shared_ra && !(dst->flags & IR3_REG_SHARED)) {
+         offset += reg_size(dst);
+         continue;
+      }
+
       physreg_t dst_physreg = ra_reg_get_physreg(dst);
       struct file_state *file = ra_val_get_file(ctx, dst);
 
@@ -322,6 +464,23 @@ propagate_parallelcopy(struct ra_val_ctx *ctx, struct ir3_instruction *pcopy)
 }
 
 static void
+propagate_spill(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
+{
+   if (instr->srcs[0]->flags & IR3_REG_SHARED) { /* spill */
+      struct reg_state *state = get_or_create_spill_state(ctx, instr->dsts[0]);
+      physreg_t src_physreg = ra_reg_get_physreg(instr->srcs[0]);
+      memcpy(state, &ctx->reaching.shared.regs[src_physreg],
+             reg_size(instr->srcs[0]) * sizeof(struct reg_state));
+   } else { /* reload */
+      struct reg_state *state = get_spill_state(ctx, instr->srcs[0]->def);
+      assert(state);
+      physreg_t dst_physreg = ra_reg_get_physreg(instr->dsts[0]);
+      memcpy(&ctx->reaching.shared.regs[dst_physreg], state,
+             reg_size(instr->dsts[0]) * sizeof(struct reg_state));
+   }
+}
+
+static void
 propagate_instr(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
 {
    if (instr->opc == OPC_META_SPLIT)
@@ -330,6 +489,13 @@ propagate_instr(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
       propagate_collect(ctx, instr);
    else if (instr->opc == OPC_META_PARALLEL_COPY)
       propagate_parallelcopy(ctx, instr);
+   else if (ctx->shared_ra && instr->opc == OPC_MOV &&
+            /* Moves from immed/const with IR3_INSTR_SHARED_SPILL were demoted
+             * from scalar ALU, see try_demote_instruction().
+             */
+            !(instr->srcs[0]->flags & (IR3_REG_IMMED | IR3_REG_CONST)) &&
+            (instr->flags & IR3_INSTR_SHARED_SPILL))
+      propagate_spill(ctx, instr);
    else
       propagate_normal_instr(ctx, instr);
 }
@@ -351,10 +517,8 @@ propagate_block(struct ra_val_ctx *ctx, struct ir3_block *block)
       progress |=
          merge_state(ctx, &ctx->block_reaching[succ->index], &ctx->reaching);
    }
-   for (unsigned i = 0; i < 2; i++) {
+   for (unsigned i = 0; i < block->physical_successors_count; i++) {
       struct ir3_block *succ = block->physical_successors[i];
-      if (!succ)
-         continue;
       progress |= merge_state_physical(ctx, &ctx->block_reaching[succ->index],
                                        &ctx->reaching);
    }
@@ -428,10 +592,16 @@ dump_reg_state(struct reg_state *state)
       /* The analysis should always remove UNKNOWN eventually. */
       assert(state->def != UNKNOWN);
 
-      fprintf(stderr, "ssa_%u:%u(%sr%u.%c) + %u", state->def->instr->serialno,
+      const char *prefix = "r";
+      unsigned num = state->def->num / 4;
+      if (state->def->flags & IR3_REG_PREDICATE) {
+         prefix = "p";
+         num = 0;
+      }
+
+      fprintf(stderr, "ssa_%u:%u(%s%s%u.%c) + %u", state->def->instr->serialno,
               state->def->name, (state->def->flags & IR3_REG_HALF) ? "h" : "",
-              state->def->num / 4, "xyzw"[state->def->num % 4],
-              state -> offset);
+              prefix, num, "xyzw"[state->def->num % 4], state -> offset);
    }
 }
 
@@ -439,11 +609,13 @@ static void
 check_reaching_src(struct ra_val_ctx *ctx, struct ir3_instruction *instr,
                    struct ir3_register *src)
 {
+   if (ctx->shared_ra && !(src->flags & IR3_REG_SHARED))
+      return;
    struct file_state *file = ra_val_get_file(ctx, src);
    physreg_t physreg = ra_reg_get_physreg(src);
    for (unsigned i = 0; i < reg_size(src); i++) {
       struct reg_state expected = (struct reg_state){
-         .def = src->def,
+         .def = get_original_def(src->def),
          .offset = i,
       };
       chase_definition(&expected);
@@ -476,7 +648,7 @@ check_reaching_instr(struct ra_val_ctx *ctx, struct ir3_instruction *instr)
       return;
    }
 
-   ra_foreach_src (src, instr) {
+   foreach_src_if (src, instr, validate_reg_is_src) {
       check_reaching_src(ctx, instr, src);
    }
 }
@@ -519,6 +691,8 @@ check_reaching_defs(struct ra_val_ctx *ctx, struct ir3 *ir)
       start->half.regs[i].def = UNDEF;
    for (unsigned i = 0; i < RA_SHARED_SIZE; i++)
       start->shared.regs[i].def = UNDEF;
+   for (unsigned i = 0; i < ctx->predicate_size; i++)
+      start->predicate.regs[i].def = UNDEF;
 
    bool progress;
    do {
@@ -541,7 +715,7 @@ check_reaching_defs(struct ra_val_ctx *ctx, struct ir3 *ir)
 
 void
 ir3_ra_validate(struct ir3_shader_variant *v, unsigned full_size,
-                unsigned half_size, unsigned block_count)
+                unsigned half_size, unsigned block_count, bool shared_ra)
 {
 #ifdef NDEBUG
 #define VALIDATE 0
@@ -556,7 +730,11 @@ ir3_ra_validate(struct ir3_shader_variant *v, unsigned full_size,
    ctx->merged_regs = v->mergedregs;
    ctx->full_size = full_size;
    ctx->half_size = half_size;
+   ctx->predicate_size = v->compiler->num_predicates * 2;
    ctx->block_count = block_count;
+   ctx->shared_ra = shared_ra;
+   if (ctx->shared_ra)
+      ctx->spill_reaching = _mesa_pointer_hash_table_create(ctx);
 
    foreach_block (block, &v->ir->block_list) {
       foreach_instr (instr, &block->instr_list) {

@@ -15,6 +15,9 @@ is" without express or implied warranty.
 #ifndef XNESTCOLOR_H
 #define XNESTCOLOR_H
 
+#include <X11/X.h>
+#include <X11/Xdefs.h>
+
 #define DUMB_WINDOW_MANAGERS
 
 #define MAXCMAPS 1

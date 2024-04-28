@@ -1,7 +1,7 @@
 # Basic test set
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 fraction = 60
 renderer_check = "Turnip Adreno .* 630"
@@ -10,7 +10,7 @@ renderer_check = "Turnip Adreno .* 630"
 # Autotuner forces sysmem on most CTS tests
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 prefix = "gmem-"
 fraction = 150
@@ -20,7 +20,7 @@ TU_DEBUG = "gmem,forcebin"
 # force-gmem with unaligned gmem store testing (~15s)
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "gmem-unaligned-"
@@ -31,7 +31,7 @@ TU_DEBUG = "gmem,unaligned_store"
 # force-sysmem testing (~15s)
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
@@ -42,7 +42,7 @@ TU_DEBUG = "sysmem"
 # force-spilling testing (~10s)
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.*"]
 prefix = "spill-"
@@ -53,7 +53,7 @@ IR3_SHADER_DEBUG = "spillall"
 # dynamic rendering testing using emulated renderpass
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass2.*"]
 prefix = "dynamic-"
@@ -64,7 +64,7 @@ TU_DEBUG = "dynamic"
 # testing for stale regs usage
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt"]
 prefix = "stale-regs-"
 fraction = 200

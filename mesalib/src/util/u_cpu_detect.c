@@ -198,7 +198,7 @@ check_os_altivec_support(void)
    } else {
       bool enable_altivec = true;    /* Default: enable  if available, and if not overridden */
       bool enable_vsx = true;
-#ifdef DEBUG
+#if MESA_DEBUG
       /* Disabling Altivec code generation is not the same as disabling VSX code generation,
        * which can be done simply by passing -mattr=-vsx to the LLVM compiler; cf.
        * lp_build_create_jit_compiler_for_module().
@@ -638,7 +638,7 @@ void check_cpu_caps_override(void)
    if (debug_get_bool_option("GALLIUM_NOSSE", false)) {
       util_cpu_caps.has_sse = 0;
    }
-#ifdef DEBUG
+#if MESA_DEBUG
    /* For simulating less capable machines */
    if (debug_get_bool_option("LP_FORCE_SSE2", false)) {
       util_cpu_caps.has_sse3 = 0;

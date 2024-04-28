@@ -31,7 +31,6 @@
  * - main interface to GEM in the kernel
  */
 
-#include <xf86drm.h>
 #include <util/u_atomic.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -71,7 +70,7 @@
 #include "i915/iris_bufmgr.h"
 #include "xe/iris_bufmgr.h"
 
-#include "drm-uapi/i915_drm.h"
+#include <xf86drm.h>
 
 #ifdef HAVE_VALGRIND
 #include <valgrind.h>
@@ -207,7 +206,7 @@ struct iris_bufmgr {
    simple_mtx_t bo_deps_lock;
 
    /** Array of lists of cached gem objects of power-of-two sizes */
-   struct iris_bucket_cache bucket_cache[IRIS_HEAP_MAX];
+   struct iris_bucket_cache *bucket_cache;
 
    time_t time;
 
@@ -231,8 +230,10 @@ struct iris_bufmgr {
 
    struct intel_device_info devinfo;
    const struct iris_kmd_backend *kmd_backend;
+   struct intel_bind_timeline bind_timeline; /* Xe only */
    bool bo_reuse:1;
    bool use_global_vm:1;
+   bool compute_engine_supported:1;
 
    struct intel_aux_map_context *aux_map_ctx;
 
@@ -722,7 +723,7 @@ iris_slab_alloc(void *priv,
 {
    struct iris_bufmgr *bufmgr = priv;
    struct iris_slab *slab = calloc(1, sizeof(struct iris_slab));
-   uint32_t flags;
+   uint32_t flags = BO_ALLOC_NO_SUBALLOC;
    unsigned slab_size = 0;
    /* We only support slab allocation for IRIS_MEMZONE_OTHER */
    enum iris_memory_zone memzone = IRIS_MEMZONE_OTHER;
@@ -776,11 +777,13 @@ iris_slab_alloc(void *priv,
 
    if (heap == IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT ||
        heap == IRIS_HEAP_SYSTEM_MEMORY_UNCACHED)
-      flags = BO_ALLOC_SMEM;
+      flags |= BO_ALLOC_SMEM;
    else if (heap == IRIS_HEAP_DEVICE_LOCAL)
-      flags = BO_ALLOC_LMEM;
+      flags |= BO_ALLOC_LMEM;
+   else if (heap == IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR)
+      flags |= BO_ALLOC_LMEM | BO_ALLOC_CPU_VISIBLE;
    else
-      flags = BO_ALLOC_PLAIN;
+      flags |= BO_ALLOC_PLAIN;
 
    slab->bo =
       iris_bo_alloc(bufmgr, "slab", slab_size, slab_size, memzone, flags);
@@ -845,8 +848,13 @@ flags_to_heap(struct iris_bufmgr *bufmgr, unsigned flags)
          return IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
 
       if ((flags & BO_ALLOC_LMEM) ||
-          ((flags & BO_ALLOC_SCANOUT) && !(flags & BO_ALLOC_SHARED)))
+          ((flags & BO_ALLOC_SCANOUT) && !(flags & BO_ALLOC_SHARED))) {
+
+         if ((flags & BO_ALLOC_CPU_VISIBLE) && !intel_vram_all_mappable(devinfo))
+            return IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR;
+
          return IRIS_HEAP_DEVICE_LOCAL;
+      }
 
       return IRIS_HEAP_DEVICE_LOCAL_PREFERRED;
    } else if (devinfo->has_llc) {
@@ -1007,6 +1015,9 @@ alloc_bo_from_cache(struct iris_bufmgr *bufmgr,
       if (match_zone && memzone != iris_memzone_for_address(cur->address))
          continue;
 
+      if (cur->real.capture != !!(flags & BO_ALLOC_CAPTURE))
+         continue;
+
       /* If the last BO in the cache is busy, there are no idle BOs.  Bail,
        * either falling back to a non-matching memzone, or if that fails,
        * allocating a fresh buffer.
@@ -1100,6 +1111,7 @@ alloc_fresh_bo(struct iris_bufmgr *bufmgr, uint64_t bo_size, unsigned flags)
          regions[num_regions++] = bufmgr->sys.region;
          break;
       case IRIS_HEAP_DEVICE_LOCAL:
+      case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
          regions[num_regions++] = bufmgr->vram.region;
          break;
       case IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT:
@@ -1125,6 +1137,7 @@ alloc_fresh_bo(struct iris_bufmgr *bufmgr, uint64_t bo_size, unsigned flags)
    bo->size = bo_size;
    bo->idle = true;
    bo->zeroed = true;
+   bo->real.capture = (flags & BO_ALLOC_CAPTURE) != 0;
 
    return bo;
 }
@@ -1135,6 +1148,7 @@ iris_heap_to_string[IRIS_HEAP_MAX] = {
    [IRIS_HEAP_SYSTEM_MEMORY_UNCACHED] = "system-uncached",
    [IRIS_HEAP_DEVICE_LOCAL] = "local",
    [IRIS_HEAP_DEVICE_LOCAL_PREFERRED] = "local-preferred",
+   [IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR] = "local-cpu-visible-small-bar",
 };
 
 static enum iris_mmap_mode
@@ -1145,6 +1159,7 @@ heap_to_mmap_mode(struct iris_bufmgr *bufmgr, enum iris_heap heap)
    switch (heap) {
    case IRIS_HEAP_DEVICE_LOCAL:
       return intel_vram_all_mappable(devinfo) ? IRIS_MMAP_WC : IRIS_MMAP_NONE;
+   case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
    case IRIS_HEAP_DEVICE_LOCAL_PREFERRED:
       return IRIS_MMAP_WC;
    case IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT:
@@ -1172,6 +1187,12 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
 
    if (memzone != IRIS_MEMZONE_OTHER || (flags & BO_ALLOC_COHERENT))
       flags |= BO_ALLOC_NO_SUBALLOC;
+
+   /* By default, capture all driver-internal buffers like shader kernels,
+    * surface states, dynamic states, border colors, and so on.
+    */
+   if (memzone < IRIS_MEMZONE_OTHER || INTEL_DEBUG(DEBUG_CAPTURE_ALL))
+      flags |= BO_ALLOC_CAPTURE;
 
    bo = alloc_bo_from_slabs(bufmgr, name, size, alignment, flags);
 
@@ -1224,14 +1245,7 @@ iris_bo_alloc(struct iris_bufmgr *bufmgr,
    bo->real.reusable = bucket && bufmgr->bo_reuse;
    bo->real.protected = flags & BO_ALLOC_PROTECTED;
    bo->index = -1;
-   bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
    bo->real.prime_fd = -1;
-
-   /* By default, capture all driver-internal buffers like shader kernels,
-    * surface states, dynamic states, border colors, and so on.
-    */
-   if (memzone < IRIS_MEMZONE_OTHER || INTEL_DEBUG(DEBUG_CAPTURE_ALL))
-      bo->real.kflags |= EXEC_OBJECT_CAPTURE;
 
    assert(bo->real.map == NULL || bo->real.mmap_mode == mmap_mode);
    bo->real.mmap_mode = mmap_mode;
@@ -1292,10 +1306,9 @@ iris_bo_create_userptr(struct iris_bufmgr *bufmgr, const char *name,
    bo->real.userptr = true;
 
    bo->bufmgr = bufmgr;
-   bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
 
    if (INTEL_DEBUG(DEBUG_CAPTURE_ALL))
-      bo->real.kflags |= EXEC_OBJECT_CAPTURE;
+      bo->real.capture = true;
 
    simple_mtx_lock(&bufmgr->lock);
    bo->address = vma_alloc(bufmgr, memzone, size, 1);
@@ -1412,9 +1425,8 @@ iris_bo_gem_create_from_name(struct iris_bufmgr *bufmgr,
    /* Xe KMD expects at least 1-way coherency for imports */
    bo->real.heap = IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
    bo->real.mmap_mode = IRIS_MMAP_NONE;
-   bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
    if (INTEL_DEBUG(DEBUG_CAPTURE_ALL))
-      bo->real.kflags |= EXEC_OBJECT_CAPTURE;
+      bo->real.capture = true;
    bo->address = vma_alloc(bufmgr, IRIS_MEMZONE_OTHER, bo->size, 1);
    if (bo->address == 0ull)
       goto err_free;
@@ -1524,6 +1536,17 @@ bo_free(struct iris_bo *bo)
    }
 }
 
+static enum iris_heap
+iris_get_heap_max(struct iris_bufmgr *bufmgr)
+{
+   if (bufmgr->vram.size) {
+      return intel_vram_all_mappable(&bufmgr->devinfo) ?
+             IRIS_HEAP_MAX_LARGE_BAR : IRIS_HEAP_MAX;
+   }
+
+   return IRIS_HEAP_MAX_NO_VRAM;
+}
+
 /** Frees all cached buffers significantly older than @time. */
 static void
 cleanup_bo_cache(struct iris_bufmgr *bufmgr, time_t time)
@@ -1533,7 +1556,7 @@ cleanup_bo_cache(struct iris_bufmgr *bufmgr, time_t time)
    if (bufmgr->time == time)
       return;
 
-   for (int h = 0; h < IRIS_HEAP_MAX; h++) {
+   for (int h = 0; h < iris_get_heap_max(bufmgr); h++) {
       struct iris_bucket_cache *cache = &bufmgr->bucket_cache[h];
 
       for (int i = 0; i < cache->num_buckets; i++) {
@@ -1769,6 +1792,7 @@ iris_bufmgr_destroy_global_vm(struct iris_bufmgr *bufmgr)
       /* Nothing to do in i915 */
       break;
    case INTEL_KMD_TYPE_XE:
+      intel_bind_timeline_finish(&bufmgr->bind_timeline, bufmgr->fd);
       iris_xe_destroy_global_vm(bufmgr);
       break;
    default:
@@ -1795,7 +1819,7 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
    simple_mtx_lock(&bufmgr->lock);
 
    /* Free any cached buffer objects we were going to reuse */
-   for (int h = 0; h < IRIS_HEAP_MAX; h++) {
+   for (int h = 0; h < iris_get_heap_max(bufmgr); h++) {
       struct iris_bucket_cache *cache = &bufmgr->bucket_cache[h];
 
       for (int i = 0; i < cache->num_buckets; i++) {
@@ -1808,6 +1832,7 @@ iris_bufmgr_destroy(struct iris_bufmgr *bufmgr)
          }
       }
    }
+   free(bufmgr->bucket_cache);
 
    /* Close any buffer objects on the dead list. */
    list_for_each_entry_safe(struct iris_bo, bo, &bufmgr->zombie_list, head) {
@@ -1839,29 +1864,18 @@ iris_gem_get_tiling(struct iris_bo *bo, uint32_t *tiling)
    struct iris_bufmgr *bufmgr = bo->bufmgr;
 
    if (!bufmgr->devinfo.has_tiling_uapi) {
-      *tiling = I915_TILING_NONE;
+      *tiling = 0;
       return 0;
    }
 
-   struct drm_i915_gem_get_tiling ti = { .handle = bo->gem_handle };
-   int ret = intel_ioctl(bufmgr->fd, DRM_IOCTL_I915_GEM_GET_TILING, &ti);
-
-   if (ret) {
-      DBG("gem_get_tiling failed for BO %u: %s\n",
-          bo->gem_handle, strerror(errno));
-   }
-
-   *tiling = ti.tiling_mode;
-
-   return ret;
+   assert(iris_bufmgr_get_device_info(bo->bufmgr)->kmd_type == INTEL_KMD_TYPE_I915);
+   return iris_i915_bo_get_tiling(bo, tiling);
 }
 
 int
 iris_gem_set_tiling(struct iris_bo *bo, const struct isl_surf *surf)
 {
    struct iris_bufmgr *bufmgr = bo->bufmgr;
-   uint32_t tiling_mode = isl_tiling_to_i915_tiling(surf->tiling);
-   int ret;
 
    /* If we can't do map_gtt, the set/get_tiling API isn't useful. And it's
     * actually not supported by the kernel in those cases.
@@ -1869,22 +1883,8 @@ iris_gem_set_tiling(struct iris_bo *bo, const struct isl_surf *surf)
    if (!bufmgr->devinfo.has_tiling_uapi)
       return 0;
 
-   /* GEM_SET_TILING is slightly broken and overwrites the input on the
-    * error path, so we have to open code intel_ioctl().
-    */
-   struct drm_i915_gem_set_tiling set_tiling = {
-      .handle = bo->gem_handle,
-      .tiling_mode = tiling_mode,
-      .stride = surf->row_pitch_B,
-   };
-
-   ret = intel_ioctl(bufmgr->fd, DRM_IOCTL_I915_GEM_SET_TILING, &set_tiling);
-   if (ret) {
-      DBG("gem_set_tiling failed for BO %u: %s\n",
-          bo->gem_handle, strerror(errno));
-   }
-
-   return ret;
+   assert(iris_bufmgr_get_device_info(bo->bufmgr)->kmd_type == INTEL_KMD_TYPE_I915);
+   return iris_i915_bo_set_tiling(bo, surf);
 }
 
 struct iris_bo *
@@ -1935,9 +1935,8 @@ iris_bo_import_dmabuf(struct iris_bufmgr *bufmgr, int prime_fd,
    /* Xe KMD expects at least 1-way coherency for imports */
    bo->real.heap = IRIS_HEAP_SYSTEM_MEMORY_CACHED_COHERENT;
    bo->real.mmap_mode = IRIS_MMAP_NONE;
-   bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED;
    if (INTEL_DEBUG(DEBUG_CAPTURE_ALL))
-      bo->real.kflags |= EXEC_OBJECT_CAPTURE;
+      bo->real.capture = true;
    bo->gem_handle = handle;
    bo->real.prime_fd = needs_prime_fd(bufmgr) ? dup(prime_fd) : -1;
 
@@ -2189,7 +2188,7 @@ intel_aux_map_buffer_alloc(void *driver_ctx, uint32_t size)
    unsigned int page_size = getpagesize();
    size = MAX2(ALIGN(size, page_size), page_size);
 
-   struct iris_bo *bo = alloc_fresh_bo(bufmgr, size, 0);
+   struct iris_bo *bo = alloc_fresh_bo(bufmgr, size, BO_ALLOC_CAPTURE);
    if (!bo) {
       free(buf);
       return NULL;
@@ -2209,8 +2208,6 @@ intel_aux_map_buffer_alloc(void *driver_ctx, uint32_t size)
    bo->name = "aux-map";
    p_atomic_set(&bo->refcount, 1);
    bo->index = -1;
-   bo->real.kflags = EXEC_OBJECT_SUPPORTS_48B_ADDRESS | EXEC_OBJECT_PINNED |
-                     EXEC_OBJECT_CAPTURE;
    bo->real.mmap_mode = heap_to_mmap_mode(bufmgr, bo->real.heap);
    bo->real.prime_fd = -1;
 
@@ -2269,6 +2266,9 @@ iris_bufmgr_init_global_vm(struct iris_bufmgr *bufmgr)
       /* i915 don't require VM, so returning true even if use_global_vm is false */
       return true;
    case INTEL_KMD_TYPE_XE:
+      if (!intel_bind_timeline_init(&bufmgr->bind_timeline, bufmgr->fd))
+         return false;
+
       bufmgr->use_global_vm = iris_xe_init_global_vm(bufmgr, &bufmgr->global_vm_id);
       /* Xe requires VM */
       return bufmgr->use_global_vm;
@@ -2325,6 +2325,11 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
    bufmgr->devinfo.has_compute_engine = engine_info &&
                                         intel_engines_count(engine_info,
                                                             INTEL_ENGINE_CLASS_COMPUTE);
+   bufmgr->compute_engine_supported = bufmgr->devinfo.has_compute_engine &&
+                                      intel_engines_supported_count(bufmgr->fd,
+                                                                    &bufmgr->devinfo,
+                                                                    engine_info,
+                                                                    INTEL_ENGINE_CLASS_COMPUTE);
    free(engine_info);
 
    if (!iris_bufmgr_init_global_vm(bufmgr))
@@ -2337,40 +2342,69 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
    /* The STATE_BASE_ADDRESS size field can only hold 1 page shy of 4GB */
    const uint64_t _4GB_minus_1 = _4GB - PAGE_SIZE;
 
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SHADER],
-                      PAGE_SIZE, _4GB_minus_1 - PAGE_SIZE);
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_BINDER],
-                      IRIS_MEMZONE_BINDER_START + IRIS_SCRATCH_ZONE_SIZE,
-                      IRIS_BINDER_ZONE_SIZE - IRIS_SCRATCH_ZONE_SIZE);
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SCRATCH],
-                      IRIS_MEMZONE_SCRATCH_START, IRIS_SCRATCH_ZONE_SIZE);
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_SURFACE],
-                      IRIS_MEMZONE_SURFACE_START, _4GB_minus_1 -
-                      IRIS_BINDER_ZONE_SIZE - IRIS_SCRATCH_ZONE_SIZE);
+   const struct {
+      uint64_t start;
+      uint64_t size;
+   } vma[IRIS_MEMZONE_COUNT] = {
+      [IRIS_MEMZONE_SHADER] = {
+         .start = PAGE_SIZE,
+         .size  = _4GB_minus_1 - PAGE_SIZE
+      },
+      [IRIS_MEMZONE_BINDER] = {
+         .start = IRIS_MEMZONE_BINDER_START + IRIS_SCRATCH_ZONE_SIZE,
+         .size  = IRIS_BINDER_ZONE_SIZE - IRIS_SCRATCH_ZONE_SIZE
+      },
+      [IRIS_MEMZONE_SCRATCH] = {
+         .start = IRIS_MEMZONE_SCRATCH_START,
+         .size  = IRIS_SCRATCH_ZONE_SIZE
+      },
+      [IRIS_MEMZONE_SURFACE] = {
+         .start = IRIS_MEMZONE_SURFACE_START,
+         .size = _4GB_minus_1 - IRIS_BINDER_ZONE_SIZE - IRIS_SCRATCH_ZONE_SIZE
+      },
+      [IRIS_MEMZONE_DYNAMIC] = {
+         .start = IRIS_MEMZONE_DYNAMIC_START + IRIS_BORDER_COLOR_POOL_SIZE,
 
-   /* Wa_2209859288: the Tigerlake PRM's workarounds volume says:
-    *
-    *    "PSDunit is dropping MSB of the blend state pointer from SD FIFO"
-    *    "Limit the Blend State Pointer to < 2G"
-    *
-    * We restrict the dynamic state pool to 2GB so that we don't ever get a
-    * BLEND_STATE pointer with the MSB set.  We aren't likely to need the
-    * full 4GB for dynamic state anyway.
-    */
-   const uint64_t dynamic_pool_size =
-      (devinfo->ver >= 12 ? _2GB : _4GB_minus_1) - IRIS_BORDER_COLOR_POOL_SIZE;
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_DYNAMIC],
-                      IRIS_MEMZONE_DYNAMIC_START + IRIS_BORDER_COLOR_POOL_SIZE,
-                      dynamic_pool_size);
+         /* Wa_2209859288: the Tigerlake PRM's workarounds volume says:
+          *
+          *    "PSDunit is dropping MSB of the blend state pointer from SD
+          *     FIFO [...] Limit the Blend State Pointer to < 2G"
+          *
+          * We restrict the dynamic state pool to 2GB so that we don't ever
+          * get a BLEND_STATE pointer with the MSB set.  We aren't likely to
+          * need the full 4GB for dynamic state anyway.
+          */
+         .size  = (devinfo->ver >= 12 ? _2GB : _4GB_minus_1)
+                  - IRIS_BORDER_COLOR_POOL_SIZE
+      },
+      [IRIS_MEMZONE_OTHER] = {
+         .start = IRIS_MEMZONE_OTHER_START,
 
-   /* Leave the last 4GB out of the high vma range, so that no state
-    * base address + size can overflow 48 bits.
-    */
-   util_vma_heap_init(&bufmgr->vma_allocator[IRIS_MEMZONE_OTHER],
-                      IRIS_MEMZONE_OTHER_START,
-                      (devinfo->gtt_size - _4GB) - IRIS_MEMZONE_OTHER_START);
+         /* Leave the last 4GB out of the high vma range, so that no state
+          * base address + size can overflow 48 bits.
+          */
+         .size  = (devinfo->gtt_size - _4GB) - IRIS_MEMZONE_OTHER_START,
+      },
+   };
 
-   for (int h = 0; h < IRIS_HEAP_MAX; h++)
+   for (unsigned i = 0; i < IRIS_MEMZONE_COUNT; i++) {
+      util_vma_heap_init(&bufmgr->vma_allocator[i],
+                         vma[i].start, vma[i].size);
+   }
+
+   if (INTEL_DEBUG(DEBUG_HEAPS)) {
+      for (unsigned i = 0; i < IRIS_MEMZONE_COUNT; i++) {
+         fprintf(stderr, "%-11s | 0x%016" PRIx64 "-0x%016" PRIx64 "\n",
+                 memzone_name(i), vma[i].start,
+                 vma[i].start + vma[i].size - 1);
+      }
+   }
+
+   bufmgr->bucket_cache = calloc(iris_get_heap_max(bufmgr),
+                                 sizeof(*bufmgr->bucket_cache));
+   if (!bufmgr->bucket_cache)
+      goto error_bucket_cache;
+   for (int h = 0; h < iris_get_heap_max(bufmgr); h++)
       init_cache_buckets(bufmgr, h);
 
    unsigned min_slab_order = 8;  /* 256 bytes */
@@ -2385,7 +2419,7 @@ iris_bufmgr_create(struct intel_device_info *devinfo, int fd, bool bo_reuse)
          MIN2(min_order + num_slab_orders_per_allocator, max_slab_order);
 
       if (!pb_slabs_init(&bufmgr->bo_slabs[i], min_order, max_order,
-                         IRIS_HEAP_MAX, true, bufmgr,
+                         iris_get_heap_max(bufmgr), true, bufmgr,
                          iris_can_reclaim_slab,
                          iris_slab_alloc,
                          (void *) iris_slab_free)) {
@@ -2416,6 +2450,10 @@ error_slabs_init:
 
       pb_slabs_deinit(&bufmgr->bo_slabs[i]);
    }
+   free(bufmgr->bucket_cache);
+error_bucket_cache:
+   for (unsigned i = 0; i < IRIS_MEMZONE_COUNT; i++)
+      util_vma_heap_finish(&bufmgr->vma_allocator[i]);
    iris_bufmgr_destroy_global_vm(bufmgr);
 error_init_vm:
    close(bufmgr->fd);
@@ -2478,7 +2516,7 @@ iris_bufmgr_get_for_fd(int fd, bool bo_reuse)
       }
    }
 
-   if (!intel_get_device_info_from_fd(fd, &devinfo))
+   if (!intel_get_device_info_from_fd(fd, &devinfo, 8, -1))
       return NULL;
 
    if (devinfo.ver < 8 || devinfo.platform == INTEL_PLATFORM_CHV)
@@ -2554,6 +2592,12 @@ iris_bufmgr_use_global_vm_id(struct iris_bufmgr *bufmgr)
    return bufmgr->use_global_vm;
 }
 
+bool
+iris_bufmgr_compute_engine_supported(struct iris_bufmgr *bufmgr)
+{
+   return bufmgr->compute_engine_supported;
+}
+
 /**
  * Return the pat entry based on the bo heap and allocation flags.
  */
@@ -2567,9 +2611,16 @@ iris_heap_to_pat_entry(const struct intel_device_info *devinfo,
    case IRIS_HEAP_SYSTEM_MEMORY_UNCACHED:
       return &devinfo->pat.writecombining;
    case IRIS_HEAP_DEVICE_LOCAL:
+   case IRIS_HEAP_DEVICE_LOCAL_CPU_VISIBLE_SMALL_BAR:
    case IRIS_HEAP_DEVICE_LOCAL_PREFERRED:
       return &devinfo->pat.writecombining;
    default:
       unreachable("invalid heap for platforms using PAT entries");
    }
+}
+
+struct intel_bind_timeline *
+iris_bufmgr_get_bind_timeline(struct iris_bufmgr *bufmgr)
+{
+   return &bufmgr->bind_timeline;
 }

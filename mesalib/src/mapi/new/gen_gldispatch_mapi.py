@@ -93,7 +93,7 @@ def generate_table(functions, allFunctions):
 
 def generate_noop_array(functions):
     text = "#ifdef MAPI_TMP_NOOP_ARRAY\n"
-    text += "#ifdef DEBUG\n\n"
+    text += "#if MESA_DEBUG\n\n"
 
     for func in functions:
         text += "static {f.rt} GLAPIENTRY noop{f.basename}({f.decArgs})\n".format(f=func)
@@ -115,14 +115,14 @@ def generate_noop_array(functions):
         text += "   (mapi_func) noop_generic,\n"
     text += "   (mapi_func) noop_generic\n"
     text += "};\n\n"
-    text += "#else /* DEBUG */\n\n"
+    text += "#else /* !MESA_DEBUG */\n\n"
     text += "const mapi_func table_noop_array[] = {\n"
     for i in range(len(functions) + genCommon.MAPI_TABLE_NUM_DYNAMIC - 1):
         text += "   (mapi_func) noop_generic,\n"
     text += "   (mapi_func) noop_generic\n"
 
     text += "};\n\n"
-    text += "#endif /* DEBUG */\n"
+    text += "#endif /* MESA_DEBUG */\n"
     text += "#undef MAPI_TMP_NOOP_ARRAY\n"
     text += "#endif /* MAPI_TMP_NOOP_ARRAY */\n"
     return text

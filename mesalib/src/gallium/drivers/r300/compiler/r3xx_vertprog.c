@@ -1,24 +1,7 @@
 /*
  * Copyright 2009 Nicolai Hähnle <nhaehnle@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "radeon_compiler.h"
 
@@ -689,6 +672,7 @@ static void allocate_temporary_registers(struct radeon_compiler *c, void *user)
 
 	if (!ra_allocate(graph)) {
 		rc_error(c, "Ran out of hardware temporaries\n");
+                ralloc_free(graph);
 		return;
 	}
 
@@ -704,46 +688,6 @@ static void allocate_temporary_registers(struct radeon_compiler *c, void *user)
 	}
 
 	ralloc_free(graph);
-}
-
-/**
- * R3xx-R4xx vertex engine does not support the Absolute source operand modifier
- * and the Saturate opcode modifier. Only Absolute is currently transformed.
- */
-static int transform_nonnative_modifiers(
-	struct radeon_compiler *c,
-	struct rc_instruction *inst,
-	void* unused)
-{
-	const struct rc_opcode_info *opcode = rc_get_opcode_info(inst->U.I.Opcode);
-	unsigned i;
-
-	/* Transform ABS(a) to MAX(a, -a). */
-	for (i = 0; i < opcode->NumSrcRegs; i++) {
-		if (inst->U.I.SrcReg[i].Abs) {
-			struct rc_instruction *new_inst;
-			unsigned temp;
-
-			inst->U.I.SrcReg[i].Abs = 0;
-
-			temp = rc_find_free_temporary(c);
-
-			new_inst = rc_insert_new_instruction(c, inst->Prev);
-			new_inst->U.I.Opcode = RC_OPCODE_MAX;
-			new_inst->U.I.DstReg.File = RC_FILE_TEMPORARY;
-			new_inst->U.I.DstReg.Index = temp;
-			new_inst->U.I.SrcReg[0] = inst->U.I.SrcReg[i];
-			new_inst->U.I.SrcReg[0].Swizzle = RC_SWIZZLE_XYZW;
-			new_inst->U.I.SrcReg[1] = inst->U.I.SrcReg[i];
-			new_inst->U.I.SrcReg[1].Swizzle = RC_SWIZZLE_XYZW;
-			new_inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
-
-			inst->U.I.SrcReg[i].File = RC_FILE_TEMPORARY;
-			inst->U.I.SrcReg[i].Index = temp;
-			inst->U.I.SrcReg[i].RelAddr = 0;
-		}
-	}
-	return 1;
 }
 
 /**
@@ -845,15 +789,6 @@ void r3xx_compile_vertex_program(struct r300_vertex_program_compiler *c)
 		{ NULL, NULL }
 	};
 
-	/* Note: These passes have to be done separately from ALU rewrite,
-	 * otherwise non-native ALU instructions with source conflits
-	 * or non-native modifiers will not be treated properly.
-	 */
-	struct radeon_program_transformation emulate_modifiers[] = {
-		{ &transform_nonnative_modifiers, NULL },
-		{ NULL, NULL }
-	};
-
 	struct radeon_program_transformation resolve_src_conflicts[] = {
 		{ &transform_source_conflicts, NULL },
 		{ NULL, NULL }
@@ -864,8 +799,7 @@ void r3xx_compile_vertex_program(struct r300_vertex_program_compiler *c)
 		/* NAME				DUMP PREDICATE	FUNCTION			PARAM */
 		{"add artificial outputs",	0, 1,		rc_vs_add_artificial_outputs,	NULL},
 		{"native rewrite",		1, 1,		rc_local_transform,		alu_rewrite},
-		{"emulate modifiers",		1, !is_r500,	rc_local_transform,		emulate_modifiers},
-		{"deadcode",			1, opt,		rc_dataflow_deadcode,		NULL},
+		{"unused channels",		1, opt,		rc_mark_unused_channels,	NULL},
 		{"dataflow optimize",		1, opt,		rc_optimize,			NULL},
 		/* This pass must be done after optimizations. */
 		{"source conflict resolve",	1, 1,		rc_local_transform,		resolve_src_conflicts},

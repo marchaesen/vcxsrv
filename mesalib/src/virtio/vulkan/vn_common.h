@@ -28,12 +28,14 @@
 #include "util/bitscan.h"
 #include "util/bitset.h"
 #include "util/compiler.h"
+#include "util/detect_os.h"
 #include "util/libsync.h"
 #include "util/list.h"
 #include "util/macros.h"
 #include "util/os_time.h"
 #include "util/perf/cpu_trace.h"
 #include "util/simple_mtx.h"
+#include "util/u_atomic.h"
 #include "util/u_math.h"
 #include "util/xmlconfig.h"
 #include "vk_alloc.h"
@@ -109,7 +111,7 @@ enum vn_debug {
    VN_DEBUG_LOG_CTX_INFO = 1ull << 5,
    VN_DEBUG_CACHE = 1ull << 6,
    VN_DEBUG_NO_SPARSE = 1ull << 7,
-   VN_DEBUG_GPL = 1ull << 8,
+   VN_DEBUG_NO_GPL = 1ull << 8,
 };
 
 enum vn_perf {
@@ -120,12 +122,13 @@ enum vn_perf {
    VN_PERF_NO_FENCE_FEEDBACK = 1ull << 4,
    VN_PERF_NO_MEMORY_SUBALLOC = 1ull << 5,
    VN_PERF_NO_CMD_BATCHING = 1ull << 6,
-   VN_PERF_NO_TIMELINE_SEM_FEEDBACK = 1ull << 7,
+   VN_PERF_NO_SEMAPHORE_FEEDBACK = 1ull << 7,
    VN_PERF_NO_QUERY_FEEDBACK = 1ull << 8,
    VN_PERF_NO_ASYNC_MEM_ALLOC = 1ull << 9,
    VN_PERF_NO_TILED_WSI_IMAGE = 1ull << 10,
    VN_PERF_NO_MULTI_RING = 1ull << 11,
    VN_PERF_NO_ASYNC_IMAGE_CREATE = 1ull << 12,
+   VN_PERF_NO_ASYNC_IMAGE_FORMAT = 1ull << 13,
 };
 
 typedef uint64_t vn_object_id;
@@ -179,9 +182,6 @@ struct vn_refcount {
 struct vn_env {
    uint64_t debug;
    uint64_t perf;
-   /* zero will be overridden to UINT32_MAX as no limit */
-   uint32_t draw_cmd_batch_limit;
-   uint32_t relax_base_sleep_us;
 };
 extern struct vn_env vn_env;
 
@@ -204,10 +204,47 @@ struct vn_watchdog {
    atomic_bool alive;
 };
 
+enum vn_relax_reason {
+   VN_RELAX_REASON_RING_SEQNO,
+   VN_RELAX_REASON_TLS_RING_SEQNO,
+   VN_RELAX_REASON_RING_SPACE,
+   VN_RELAX_REASON_FENCE,
+   VN_RELAX_REASON_SEMAPHORE,
+   VN_RELAX_REASON_QUERY,
+};
+
+/* vn_relax_profile defines the driver side polling behavior
+ *
+ * - base_sleep_us:
+ *   - the minimum polling interval after initial busy waits
+ *
+ * - busy_wait_order:
+ *   - initial 2 ^ busy_wait_order times thrd_yield()
+ *
+ * - warn_order:
+ *   - number of polls at order N:
+ *     - fn_cnt(N) = 2 ^ N
+ *   - interval of poll at order N:
+ *     - fn_step(N) = base_sleep_us * (2 ^ (N - busy_wait_order))
+ *   - warn occasionally if we have slept at least:
+ *     - for (i = busy_wait_order; i < warn_order; i++)
+ *          total_sleep += fn_cnt(i) * fn_step(i)
+ *
+ * - abort_order:
+ *   - similar to warn_order, but would abort() instead
+ */
+struct vn_relax_profile {
+   uint32_t base_sleep_us;
+   uint32_t busy_wait_order;
+   uint32_t warn_order;
+   uint32_t abort_order;
+};
+
 struct vn_relax_state {
    struct vn_instance *instance;
    uint32_t iter;
-   const char *reason;
+   const struct vn_relax_profile profile;
+   const char *reason_str;
 };
 
 /* TLS ring
@@ -233,6 +270,22 @@ struct vn_tls {
    bool async_pipeline_create;
    /* Track TLS rings owned across instances. */
    struct list_head tls_rings;
+};
+
+/* A cached storage for object internal usages with below constraints:
+ * - It belongs to the object and shares the lifetime.
+ * - The storage reuse is protected by external synchronization.
+ * - The returned storage is not zero-initialized.
+ * - It never shrinks unless being purged via fini.
+ *
+ * The current users are:
+ * - VkCommandPool
+ * - VkQueue
+ */
+struct vn_cached_storage {
+   const VkAllocationCallbacks *alloc;
+   size_t size;
+   void *data;
 };
 
 void
@@ -302,6 +355,14 @@ vn_refcount_dec(struct vn_refcount *ref)
    return old == 1;
 }
 
+extern uint64_t vn_next_obj_id;
+
+static inline uint64_t
+vn_get_next_obj_id(void)
+{
+   return p_atomic_fetch_add(&vn_next_obj_id, 1);
+}
+
 uint32_t
 vn_extension_get_spec_version(const char *name);
 
@@ -336,7 +397,7 @@ vn_watchdog_fini(struct vn_watchdog *watchdog)
 }
 
 struct vn_relax_state
-vn_relax_init(struct vn_instance *instance, const char *reason);
+vn_relax_init(struct vn_instance *instance, enum vn_relax_reason reason);
 
 void
 vn_relax(struct vn_relax_state *state);
@@ -356,7 +417,7 @@ vn_instance_base_init(
 {
    VkResult result = vk_instance_init(&instance->base, supported_extensions,
                                       dispatch_table, info, alloc);
-   instance->id = (uintptr_t)instance;
+   instance->id = vn_get_next_obj_id();
    return result;
 }
 
@@ -376,7 +437,7 @@ vn_physical_device_base_init(
    VkResult result = vk_physical_device_init(
       &physical_dev->base, &instance->base, supported_extensions, NULL, NULL,
       dispatch_table);
-   physical_dev->id = (uintptr_t)physical_dev;
+   physical_dev->id = vn_get_next_obj_id();
    return result;
 }
 
@@ -395,7 +456,7 @@ vn_device_base_init(struct vn_device_base *dev,
 {
    VkResult result = vk_device_init(&dev->base, &physical_dev->base,
                                     dispatch_table, info, alloc);
-   dev->id = (uintptr_t)dev;
+   dev->id = vn_get_next_obj_id();
    return result;
 }
 
@@ -413,7 +474,7 @@ vn_queue_base_init(struct vn_queue_base *queue,
 {
    VkResult result =
       vk_queue_init(&queue->base, &dev->base, queue_info, queue_index);
-   queue->id = (uintptr_t)queue;
+   queue->id = vn_get_next_obj_id();
    return result;
 }
 
@@ -429,7 +490,7 @@ vn_object_base_init(struct vn_object_base *obj,
                     struct vn_device_base *dev)
 {
    vk_object_base_init(&dev->base, &obj->base, type);
-   obj->id = (uintptr_t)obj;
+   obj->id = vn_get_next_obj_id();
 }
 
 static inline void
@@ -492,7 +553,7 @@ vn_object_get_id(const void *obj, VkObjectType type)
 static inline pid_t
 vn_gettid(void)
 {
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    return gettid();
 #else
    return syscall(SYS_gettid);
@@ -524,5 +585,48 @@ vn_tls_get_ring(struct vn_instance *instance);
 
 void
 vn_tls_destroy_ring(struct vn_tls_ring *tls_ring);
+
+static inline uint32_t
+vn_cache_key_hash_function(const void *key)
+{
+   return _mesa_hash_data(key, SHA1_DIGEST_LENGTH);
+}
+
+static inline bool
+vn_cache_key_equal_function(const void *key1, const void *key2)
+{
+   return memcmp(key1, key2, SHA1_DIGEST_LENGTH) == 0;
+}
+
+static inline void
+vn_cached_storage_init(struct vn_cached_storage *storage,
+                       const VkAllocationCallbacks *alloc)
+{
+   storage->alloc = alloc;
+   storage->size = 0;
+   storage->data = NULL;
+}
+
+static inline void *
+vn_cached_storage_get(struct vn_cached_storage *storage, size_t size)
+{
+   if (size > storage->size) {
+      void *data =
+         vk_realloc(storage->alloc, storage->data, size, VN_DEFAULT_ALIGN,
+                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!data)
+         return NULL;
+
+      storage->size = size;
+      storage->data = data;
+   }
+   return storage->data;
+}
+
+static inline void
+vn_cached_storage_fini(struct vn_cached_storage *storage)
+{
+   vk_free(storage->alloc, storage->data);
+}
 
 #endif /* VN_COMMON_H */

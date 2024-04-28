@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_HELPERS_H
-#define __AGX_HELPERS_H
+#pragma once
 
 #include <stdbool.h>
 #include "asahi/compiler/agx_compile.h"
@@ -18,6 +17,11 @@
 #define agx_push(ptr, T, cfg)                                                  \
    for (unsigned _loop = 0; _loop < 1; ++_loop, ptr += AGX_##T##_LENGTH)       \
       agx_pack(ptr, T, cfg)
+
+#define agx_push_packed(ptr, src, T)                                           \
+   STATIC_ASSERT(sizeof(src) == AGX_##T##_LENGTH);                             \
+   memcpy(ptr, &src, sizeof(src));                                             \
+   ptr += sizeof(src);
 
 static inline enum agx_sampler_states
 agx_translate_sampler_state_count(unsigned count, bool extended)
@@ -90,19 +94,6 @@ agx_translate_index_size(uint8_t size_B)
    return __builtin_ctz(size_B);
 }
 
-static enum agx_pass_type
-agx_pass_type_for_shader(struct agx_shader_info *info)
-{
-   if (info->reads_tib && info->writes_sample_mask)
-      return AGX_PASS_TYPE_TRANSLUCENT_PUNCH_THROUGH;
-   else if (info->reads_tib)
-      return AGX_PASS_TYPE_TRANSLUCENT;
-   else if (info->writes_sample_mask)
-      return AGX_PASS_TYPE_PUNCH_THROUGH;
-   else
-      return AGX_PASS_TYPE_OPAQUE;
-}
-
 static enum agx_conservative_depth
 agx_translate_depth_layout(enum gl_frag_depth_layout layout)
 {
@@ -157,5 +148,3 @@ agx_translate_shade_model(struct agx_varyings_fs *fs, unsigned binding,
          return AGX_SHADE_MODEL_FLAT_VERTEX_0;
    }
 }
-
-#endif

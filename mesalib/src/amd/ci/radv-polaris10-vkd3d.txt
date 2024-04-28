@@ -1,6 +1,0 @@
-test_view_min_lod:4551:Test 20: Test failed: Got 0x00000000, expected 0xffffffff at (0, 0, 0).
-test_view_min_lod:4551:Test 22: Test failed: Got 0x00000000, expected 0x0f0f0f0f at (0, 0, 0).
-test_view_min_lod:4551:Test 46: Test failed: Got 0x0f0f0f0f, expected 0xffffffff at (0, 0, 0).
-test_view_min_lod:4551:Test 47: Test failed: Got 0xffffffff, expected 0x0f0f0f0f at (0, 0, 0).
-test_view_min_lod:4551:Test 49: Test failed: Got 0x0f0f0f0f, expected 0xffffffff at (0, 0, 0).
-test_view_min_lod:4551:Test 50: Test failed: Got 0xffffffff, expected 0x0f0f0f0f at (0, 0, 0).

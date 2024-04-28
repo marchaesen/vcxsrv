@@ -115,6 +115,54 @@ lower_clip_plane_store(nir_builder *b, nir_intrinsic_instr *instr,
    return true;
 }
 
+/* vulkan (and some drivers) provides no concept of enabling clip planes through api,
+ * so we rewrite disabled clip planes to a zero value in order to disable them
+ */
+static bool
+lower_clip_plane_store_io(nir_builder *b, nir_intrinsic_instr *intr,
+                          void *cb_data)
+{
+   unsigned clip_plane_enable = *(unsigned *)cb_data;
+
+   switch (intr->intrinsic) {
+   case nir_intrinsic_store_output:
+   case nir_intrinsic_store_per_primitive_output:
+   case nir_intrinsic_store_per_vertex_output:
+      break;
+   default:
+      return false;
+   }
+   nir_io_semantics sem = nir_intrinsic_io_semantics(intr);
+   if (sem.location != VARYING_SLOT_CLIP_DIST0 &&
+       sem.location != VARYING_SLOT_CLIP_DIST1)
+      return false;
+
+   b->cursor = nir_before_instr(&intr->instr);
+   nir_src *src_offset = nir_get_io_offset_src(intr);
+   int wrmask = nir_intrinsic_write_mask(intr);
+   int c = nir_intrinsic_component(intr);
+   nir_def *zero = nir_imm_int(b, 0);
+   if (nir_src_is_const(*src_offset)) {
+      int i = sem.location == VARYING_SLOT_CLIP_DIST1 ? 4 : 0;
+      i += nir_src_as_const_value(*src_offset)->u32 * 4;
+      i += c;
+      nir_def *val;
+      if (wrmask & 0x1) {
+         if (clip_plane_enable & BITFIELD_BIT(i))
+            return false;
+         val = zero;
+      } else
+         val = nir_undef(b, 1, 32);
+      nir_src_rewrite(&intr->src[0], val);
+   } else {
+      nir_def *first = clip_plane_enable & BITFIELD_BIT(c) ? intr->src[0].ssa : zero;
+      nir_def *second = clip_plane_enable & BITFIELD_BIT(c + 4) ? intr->src[0].ssa : zero;
+      nir_def *val = nir_bcsel(b, nir_ieq_imm(b, src_offset->ssa, 0), first, second);
+      nir_src_rewrite(&intr->src[0], val);
+   }
+   return true;
+}
+
 bool
 nir_lower_clip_disable(nir_shader *shader, unsigned clip_plane_enable)
 {
@@ -124,7 +172,8 @@ nir_lower_clip_disable(nir_shader *shader, unsigned clip_plane_enable)
    if (clip_plane_enable == u_bit_consecutive(0, shader->info.clip_distance_array_size))
       return false;
 
-   return nir_shader_intrinsics_pass(shader, lower_clip_plane_store,
+   return nir_shader_intrinsics_pass(shader,
+                                     shader->info.io_lowered ? lower_clip_plane_store_io : lower_clip_plane_store,
                                        nir_metadata_block_index |
                                           nir_metadata_dominance,
                                        &clip_plane_enable);

@@ -1,4 +1,12 @@
 doc_targets = []
+tests = []
+
+if host_machine.system() != 'windows'
+  tests += [
+    'check-missing-doc',
+    'check-whitespace-in-args'
+  ]
+endif
 
 docbook2man = find_program('docbook2man', required: get_option('doc-man'))
 docbook2txt = find_program('docbook2txt', required: get_option('doc-txt'))
@@ -52,13 +60,8 @@ endforeach
 edit_sgml = find_program('edit-sgml.py')
 
 # copy into build directory, it includes generated files from build directory
-fontconfig_devel_sgml = configure_file(output: 'fontconfig-devel.sgml',
-  input: 'fontconfig-devel.sgml',
-  copy: true)
-
-fontconfig_user_sgml = configure_file(output: 'fontconfig-user.sgml',
-  input: 'fontconfig-user.sgml',
-  copy: true)
+fontconfig_devel_sgml = fs.copyfile('fontconfig-devel.sgml')
+fontconfig_user_sgml = fs.copyfile('fontconfig-user.sgml')
 
 version_conf = configuration_data()
 version_conf.set('VERSION', meson.project_version())
@@ -175,3 +178,8 @@ if docbook2html.found()
     install_dir: get_option('datadir') / 'doc' / 'fontconfig',
     install: true)
 endif
+
+foreach script : tests
+  py = find_program(script)
+  test(script, py)
+endforeach

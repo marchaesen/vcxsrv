@@ -45,10 +45,12 @@ struct tu_lrz_state
 void
 tu6_emit_lrz(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 
+template <chip CHIP>
 void
 tu_disable_lrz(struct tu_cmd_buffer *cmd, struct tu_cs *cs,
                struct tu_image *image);
 
+template <chip CHIP>
 void
 tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
                          struct tu_image *image,
@@ -56,6 +58,7 @@ tu_lrz_clear_depth_image(struct tu_cmd_buffer *cmd,
                          uint32_t rangeCount,
                          const VkImageSubresourceRange *pRanges);
 
+template <chip CHIP>
 void
 tu_lrz_begin_renderpass(struct tu_cmd_buffer *cmd);
 
@@ -65,12 +68,15 @@ tu_lrz_begin_resumed_renderpass(struct tu_cmd_buffer *cmd);
 void
 tu_lrz_begin_secondary_cmdbuf(struct tu_cmd_buffer *cmd);
 
+template <chip CHIP>
 void
 tu_lrz_tiling_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 
+template <chip CHIP>
 void
 tu_lrz_tiling_end(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 
+template <chip CHIP>
 void
 tu_lrz_sysmem_begin(struct tu_cmd_buffer *cmd, struct tu_cs *cs);
 

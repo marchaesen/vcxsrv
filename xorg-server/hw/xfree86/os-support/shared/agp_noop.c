@@ -35,10 +35,12 @@
 #endif
 
 #include <X11/X.h>
+
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
-#include "xf86OSpriv.h"
+#include "xf86_os_support.h"
 
 Bool
 xf86GARTCloseScreen(int screenNum)
@@ -91,12 +93,6 @@ xf86BindGARTMemory(int screenNum, int key, unsigned long offset)
 
 Bool
 xf86UnbindGARTMemory(int screenNum, int key)
-{
-    return FALSE;
-}
-
-Bool
-xf86EnableAGP(int screenNum, CARD32 mode)
 {
     return FALSE;
 }

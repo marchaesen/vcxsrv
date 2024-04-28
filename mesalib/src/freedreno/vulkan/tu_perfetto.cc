@@ -7,6 +7,7 @@
 
 #include "tu_perfetto.h"
 #include "tu_device.h"
+#include "tu_image.h"
 
 #include "util/hash_table.h"
 #include "util/perf/u_perfetto.h"
@@ -301,6 +302,27 @@ stage_end(struct tu_device *dev, uint64_t ts_ns, enum tu_stage_id stage_id,
    });
 }
 
+class TuMemoryDataSource : public perfetto::DataSource<TuMemoryDataSource> {
+ public:
+   void OnSetup(const SetupArgs &) override
+   {
+   }
+
+   void OnStart(const StartArgs &) override
+   {
+      PERFETTO_LOG("Memory tracing started");
+   }
+
+   void OnStop(const StopArgs &) override
+   {
+      PERFETTO_LOG("Memory tracing stopped");
+   }
+};
+
+PERFETTO_DECLARE_DATA_SOURCE_STATIC_MEMBERS(TuMemoryDataSource);
+PERFETTO_DEFINE_DATA_SOURCE_STATIC_MEMBERS(TuMemoryDataSource);
+
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -310,14 +332,22 @@ tu_perfetto_init(void)
 {
    util_perfetto_init();
 
+   {
    perfetto::DataSourceDescriptor dsd;
-#ifdef ANDROID
-   /* AGI requires this name */
-   dsd.set_name("gpu.renderstages");
+#if DETECT_OS_ANDROID
+     /* AGI requires this name */
+     dsd.set_name("gpu.renderstages");
 #else
-   dsd.set_name("gpu.renderstages.msm");
+      dsd.set_name("gpu.renderstages.msm");
 #endif
-   TuRenderpassDataSource::Register(dsd);
+      TuRenderpassDataSource::Register(dsd);
+   }
+
+   {
+     perfetto::DataSourceDescriptor dsd;
+     dsd.set_name("gpu.memory.msm");
+     TuMemoryDataSource::Register(dsd);
+   }
 }
 
 static void
@@ -528,6 +558,80 @@ tu_perfetto_end_cmd_buffer_annotation_rp(
    stage_end(dev, ts_ns, CMD_BUFFER_ANNOTATION_RENDER_PASS_STAGE_ID,
              flush_data, payload, NULL);
 }
+
+
+static void
+log_mem(struct tu_device *dev, struct tu_buffer *buffer, struct tu_image *image,
+        perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::Operation op)
+{
+   TuMemoryDataSource::Trace([=](TuMemoryDataSource::TraceContext tctx) {
+      auto packet = tctx.NewTracePacket();
+
+      packet->set_timestamp(perfetto::base::GetBootTimeNs().count());
+
+      auto event = packet->set_vulkan_memory_event();
+
+      event->set_timestamp(perfetto::base::GetBootTimeNs().count());
+      event->set_operation(op);
+      event->set_pid(getpid());
+
+      if (buffer) {
+         event->set_source(perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::SOURCE_BUFFER);
+         event->set_memory_size(buffer->vk.size);
+         if (buffer->bo)
+            event->set_memory_address(buffer->iova);
+      } else {
+         assert(image);
+         event->set_source(perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::SOURCE_IMAGE);
+         event->set_memory_size(image->layout[0].size);
+         if (image->bo)
+            event->set_memory_address(image->iova);
+      }
+
+   });
+}
+
+void
+tu_perfetto_log_create_buffer(struct tu_device *dev, struct tu_buffer *buffer)
+{
+   log_mem(dev, buffer, NULL, perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_CREATE);
+}
+
+void
+tu_perfetto_log_bind_buffer(struct tu_device *dev, struct tu_buffer *buffer)
+{
+   log_mem(dev, buffer, NULL, perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_BIND);
+}
+
+void
+tu_perfetto_log_destroy_buffer(struct tu_device *dev, struct tu_buffer *buffer)
+{
+   log_mem(dev, buffer, NULL, buffer->bo ?
+      perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_DESTROY_BOUND :
+      perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_DESTROY);
+}
+
+void
+tu_perfetto_log_create_image(struct tu_device *dev, struct tu_image *image)
+{
+   log_mem(dev, NULL, image, perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_CREATE);
+}
+
+void
+tu_perfetto_log_bind_image(struct tu_device *dev, struct tu_image *image)
+{
+   log_mem(dev, NULL, image, perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_BIND);
+}
+
+void
+tu_perfetto_log_destroy_image(struct tu_device *dev, struct tu_image *image)
+{
+   log_mem(dev, NULL, image, image->bo ?
+      perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_DESTROY_BOUND :
+      perfetto::protos::pbzero::perfetto_pbzero_enum_VulkanMemoryEvent::OP_DESTROY);
+}
+
+
 
 #ifdef __cplusplus
 }

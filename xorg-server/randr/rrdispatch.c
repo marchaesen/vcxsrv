@@ -19,8 +19,11 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
  * OF THIS SOFTWARE.
  */
+#include <dix-config.h>
 
-#include "randrstr.h"
+#include "dix/dix_priv.h"
+#include "randr/randrstr_priv.h"
+
 #include "protocol-versions.h"
 
 Bool
@@ -135,7 +138,7 @@ ProcRRSelectInput(ClientPtr client)
                 if (!pHead ||
                     !AddResource(pWin->drawable.id, RREventType,
                                  (void *) pHead)) {
-                    FreeResource(clientResource, RT_NONE);
+                    FreeResource(clientResource, X11_RESTYPE_NONE);
                     return BadAlloc;
                 }
                 *pHead = 0;

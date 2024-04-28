@@ -734,9 +734,6 @@ LoadColornameDB(void)
     if ((pathname = getenv("XCMSDB")) == NULL) {
 	pathname = XCMSDB;
     }
-#ifdef __UNIXOS2__
-    pathname = __XOS2RedirRoot(pathname);
-#endif
 
     length = (int)strlen(pathname);
     if ((length == 0) || (length >= (BUFSIZ - 5))){

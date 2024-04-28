@@ -115,7 +115,7 @@ if [ $version != $last ]; then
 	
 	echo $version_note
 	echo
-	git log --pretty=short $last.. | git shortlog | cat
+	git log --no-merges --pretty=short $last.. | git shortlog | cat
 	
 	#
 	# previous changelogs

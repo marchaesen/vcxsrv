@@ -65,10 +65,13 @@ strndup_checks(void)
     free(allofit);
 }
 
-int
+const testfunc_t*
 string_test(void)
 {
-    strndup_checks();
+    static const testfunc_t testfuncs[] = {
+        strndup_checks,
+        NULL,
+    };
 
-    return 0;
+    return testfuncs;
 }

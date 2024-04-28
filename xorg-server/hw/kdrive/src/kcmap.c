@@ -169,7 +169,7 @@ KdUninstallColormap(ColormapPtr pCmap)
         return;
 
     /* install default */
-    dixLookupResourceByType((void **) &defMap, defMapID, RT_COLORMAP,
+    dixLookupResourceByType((void **) &defMap, defMapID, X11_RESTYPE_COLORMAP,
                             serverClient, DixInstallAccess);
     if (defMap)
         (*pCmap->pScreen->InstallColormap) (defMap);

@@ -36,7 +36,7 @@ test-dozen-deqp:
   variables:
     GIT_STRATEGY: none # testing doesn't build anything from source
     DZN_AGILITY_RELATIVE_PATH: "D3D12\\"
-    DZN_AGILITY_SDK_VERSION: 610
+    DZN_AGILITY_SDK_VERSION: 613
     DEQP_FRACTION: 4
   script:
     - . _install/deqp_runner_run.ps1

@@ -24,7 +24,7 @@
 #include "dxil_function.h"
 #include "dxil_module.h"
 
-#define MAX_FUNC_PARAMS 17
+#define MAX_FUNC_PARAMS 18
 
 struct predefined_func_descr {
    const char *base_name;
@@ -62,6 +62,8 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.sampleCmp", "R", "i@@ffffiiiff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleCmpLevel", "R", "i@@ffffiiiff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.sampleCmpLevelZero", "R", "i@@ffffiiif", DXIL_ATTR_KIND_READ_ONLY},
+{"dx.op.sampleCmpBias", "R", "i@@ffffiiifff", DXIL_ATTR_KIND_READ_ONLY},
+{"dx.op.sampleCmpGrad", "R", "i@@ffffiiiffffffff", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.textureLoad", "R", "i@iiiiiii", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.textureGather", "R", "i@@ffffiii", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.textureGatherCmp", "R", "i@@ffffiiif", DXIL_ATTR_KIND_READ_ONLY},
@@ -78,7 +80,7 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.outputControlPointID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.gsInstanceID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.viewID", "i", "i", DXIL_ATTR_KIND_READ_NONE},
-{"dx.op.domainLocation", "f", "ii", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.domainLocation", "f", "ic", DXIL_ATTR_KIND_READ_NONE},
 {"dx.op.legacyF16ToF32", "f", "ii", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.legacyF32ToF16", "i", "if", DXIL_ATTR_KIND_READ_ONLY},
 {"dx.op.makeDouble", "g", "iii", DXIL_ATTR_KIND_READ_NONE},
@@ -111,6 +113,8 @@ static struct  predefined_func_descr predefined_funcs[] = {
 {"dx.op.quadReadLaneAt", "O", "iOi", DXIL_ATTR_KIND_NO_UNWIND},
 {"dx.op.quadOp", "O", "iOc", DXIL_ATTR_KIND_NO_UNWIND},
 {"dx.op.dot4AddPacked", "i", "iiii", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.startVertexLocation", "i", "i", DXIL_ATTR_KIND_READ_NONE},
+{"dx.op.startInstanceLocation", "i", "i", DXIL_ATTR_KIND_READ_NONE},
 };
 
 struct func_descr {

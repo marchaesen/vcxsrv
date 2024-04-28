@@ -31,6 +31,7 @@
 #include "c11/threads.h"
 #include "util/rounding.h"
 #include "util/bitscan.h"
+#include "util/detect_os.h"
 #include "util/list.h"
 #include "util/log.h"
 #include "util/macros.h"
@@ -67,12 +68,12 @@
 #include <vulkan/vulkan.h>
 
 #include "tu_entrypoints.h"
-#include "vulkan/runtime/vk_common_entrypoints.h"
 
 #include "vk_format.h"
 #include "vk_image.h"
 #include "vk_command_buffer.h"
 #include "vk_command_pool.h"
+#include "vk_common_entrypoints.h"
 #include "vk_queue.h"
 #include "vk_object.h"
 #include "vk_sync.h"
@@ -129,9 +130,6 @@
 #define MIN_FDM_TEXEL_SIZE (1u << MIN_FDM_TEXEL_SIZE_LOG2)
 #define MAX_FDM_TEXEL_SIZE_LOG2 10
 #define MAX_FDM_TEXEL_SIZE (1u << MAX_FDM_TEXEL_SIZE_LOG2)
-
-#define TU_FROM_HANDLE(__tu_type, __name, __handle)                          \
-   VK_FROM_HANDLE(__tu_type, __name, __handle)
 
 #define TU_GPU_GENS A6XX, A7XX
 #define TU_GENX(FUNC_NAME)                                                   \

@@ -32,6 +32,7 @@
 struct gl_constants;
 struct gl_shader_program;
 struct gl_uniform_storage;
+struct set;
 
 /**
  * Built-in / reserved GL variables names start with "gl_"

@@ -135,7 +135,8 @@ void vid_dec_FillOutput(vid_dec_PrivateType *priv, struct pipe_video_buffer *buf
                                   pipe_format_to_chroma_format(buf->buffer_format),
                                   buf->interlaced);
       for (j = 0; j < views[i]->texture->array_size; ++j) {
-         struct pipe_box box = {0, 0, j, width, height, 1};
+         struct pipe_box box;
+         u_box_3d(0, 0, j, width, height, 1, &box);
          struct pipe_transfer *transfer;
          uint8_t *map, *dst;
          map = priv->pipe->texture_map(priv->pipe, views[i]->texture, 0,

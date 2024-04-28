@@ -861,7 +861,7 @@ static VkResult pvr_pds_bgnd_program_create_and_upload(
 
    texture_program.num_texture_dma_kicks += 1;
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    pvr_pds_set_sizes_pixel_shader_sa_texture_data(&texture_program, dev_info);
    assert(texture_program_data_size_in_dwords == texture_program.data_size);
 #endif
@@ -956,7 +956,7 @@ pvr_spm_init_bgobj_state(struct pvr_device *device,
          pvr_dev_addr_t tile_buffer_addr;
 
          if (const_map[i] == PVR_SPM_LOAD_DEST_UNUSED) {
-#if defined(DEBUG)
+#if MESA_DEBUG
             for (uint32_t j = i; j < PVR_SPM_LOAD_CONST_COUNT; j++)
                assert(const_map[j] == PVR_SPM_LOAD_DEST_UNUSED);
 #endif

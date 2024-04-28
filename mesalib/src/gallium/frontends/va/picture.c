@@ -651,12 +651,12 @@ handleVAEncMiscParameterTypeMaxSliceSize(vlVaContext *context, VAEncMiscParamete
    switch (u_reduce_video_profile(context->templat.profile)) {
       case PIPE_VIDEO_FORMAT_MPEG4_AVC:
       {
-         context->desc.h264enc.slice_mode = PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SICE;
+         context->desc.h264enc.slice_mode = PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SIZE;
          context->desc.h264enc.max_slice_bytes = max_slice_size_buffer->max_slice_size;
       } break;
       case PIPE_VIDEO_FORMAT_HEVC:
       {
-         context->desc.h265enc.slice_mode = PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SICE;
+         context->desc.h265enc.slice_mode = PIPE_VIDEO_SLICE_MODE_MAX_SLICE_SIZE;
          context->desc.h265enc.max_slice_bytes = max_slice_size_buffer->max_slice_size;
       } break;
       default:
@@ -1301,6 +1301,10 @@ vlVaEndPicture(VADriverContextP ctx, VAContextID context_id)
    } else if (context->decoder->entrypoint == PIPE_VIDEO_ENTRYPOINT_PROCESSING) {
       context->desc.base.fence = &surf->fence;
    }
+
+   /* when there are external handles, we can't set PIPE_FLUSH_ASYNC */
+   if (context->desc.base.fence)
+      context->desc.base.flush_flags = drv->has_external_handles ? 0 : PIPE_FLUSH_ASYNC;
 
    context->decoder->end_frame(context->decoder, context->target, &context->desc.base);
 

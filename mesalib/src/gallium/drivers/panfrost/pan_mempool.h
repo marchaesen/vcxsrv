@@ -25,6 +25,7 @@
 #ifndef __PAN_MEMPOOL_H__
 #define __PAN_MEMPOOL_H__
 
+#include "pan_bo.h"
 #include "pan_pool.h"
 
 /* Represents grow-only memory. It may be owned by the batch (OpenGL), or may
@@ -33,6 +34,15 @@
 struct panfrost_pool {
    /* Inherit from pan_pool */
    struct pan_pool base;
+
+   /* Parent device for allocation */
+   struct panfrost_device *dev;
+
+   /* Label for created BOs */
+   const char *label;
+
+   /* BO flags to use in the pool */
+   unsigned create_flags;
 
    /* BOs allocated by this pool */
    struct util_dynarray bos;

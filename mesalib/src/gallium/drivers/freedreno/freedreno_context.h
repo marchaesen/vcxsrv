@@ -184,7 +184,7 @@ enum fd_dirty_3d_state {
 static inline void
 fd_print_dirty_state(BITMASK_ENUM(fd_dirty_3d_state) dirty)
 {
-#ifdef DEBUG
+#if MESA_DEBUG
    if (!FD_DBG(MSGS))
       return;
 

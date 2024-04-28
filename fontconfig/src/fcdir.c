@@ -234,7 +234,7 @@ FcDirScanConfig (FcFontSet	*set,
 
     if (FcDebug () & FC_DBG_SCAN)
 	printf ("\tScanning dir %s\n", s_dir);
-	
+
     d = opendir ((char *) s_dir);
     if (!d)
     {
@@ -459,7 +459,10 @@ FcDirCacheRead (const FcChar8 *dir, FcBool force, FcConfig *config)
 
     /* Not using existing cache file, construct new cache */
     if (!cache)
+    {
+	FcDirCacheDeleteUUID (dir, config);
 	cache = FcDirCacheScan (dir, config);
+    }
     FcConfigDestroy (config);
 
     return cache;

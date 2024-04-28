@@ -200,6 +200,8 @@
 #define RENCODE_COLOR_SPACE_YUV                                                     0
 #define RENCODE_COLOR_SPACE_RGB                                                     1
 
+#define RENCODE_VCN4_AV1_MAX_NUM_LTR                                                2
+
 typedef struct rvcn_enc_session_info_s {
    uint32_t interface_version;
    uint32_t sw_context_address_hi;
@@ -310,13 +312,26 @@ typedef struct rvcn_enc_rate_ctl_layer_init_s {
 } rvcn_enc_rate_ctl_layer_init_t;
 
 typedef struct rvcn_enc_rate_ctl_per_picture_s {
-   uint32_t qp;
-   uint32_t min_qp_app;
-   uint32_t max_qp_app;
-   uint32_t max_au_size;
+   uint32_t qp_obs;
+   uint32_t min_qp_app_obs;
+   uint32_t max_qp_app_obs;
+   uint32_t max_au_size_obs;
+   uint32_t qp_i;
+   uint32_t qp_p;
+   uint32_t qp_b;
+   uint32_t min_qp_i;
+   uint32_t max_qp_i;
+   uint32_t min_qp_p;
+   uint32_t max_qp_p;
+   uint32_t min_qp_b;
+   uint32_t max_qp_b;
+   uint32_t max_au_size_i;
+   uint32_t max_au_size_p;
+   uint32_t max_au_size_b;
    uint32_t enabled_filler_data;
    uint32_t skip_frame_enable;
    uint32_t enforce_hrd;
+   uint32_t reserved_0xff;
 } rvcn_enc_rate_ctl_per_picture_t;
 
 typedef struct rvcn_enc_quality_params_s {
@@ -611,10 +626,13 @@ typedef struct rvcn_enc_av1_color_description_s
 typedef struct rvcn_enc_av1_ref_frame_s
 {
    bool in_use;
+   bool is_ltr;
    uint32_t frame_id;
    uint32_t temporal_id;
    uint32_t slot_id;
    uint32_t frame_type;
+   uint32_t ltr_seq;
+   void *frame_signature;
 } rvcn_enc_av1_ref_frame_t;
 
 typedef struct rvcn_enc_av1_recon_slot_s

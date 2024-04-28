@@ -47,7 +47,7 @@
 #include <stdlib.h>
 
 #include "exa_priv.h"
-
+#include "glyphstr_priv.h"
 #include "mipict.h"
 
 #if DEBUG_GLYPH_CACHE

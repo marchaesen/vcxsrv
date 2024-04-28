@@ -49,6 +49,7 @@ dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.unorm_
 dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.unorm_color.gather.s_mirrored_repeat_t_clamp_to_border_pot,Fail
 dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.unorm_depth.gather.s_mirrored_repeat_t_clamp_to_border_npot,Fail
 dEQP-GLES31.functional.texture.border_clamp.per_axis_wrap_mode.texture_2d.unorm_depth.gather.s_mirrored_repeat_t_clamp_to_border_pot,Fail
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail
 dEQP-GLES31.functional.texture.gather.basic.2d.depth32f.size_npot.compare_greater.mirrored_repeat_clamp_to_edge,Fail
 dEQP-GLES31.functional.texture.gather.basic.2d.depth32f.size_npot.compare_greater.repeat_mirrored_repeat,Fail
 dEQP-GLES31.functional.texture.gather.basic.2d.depth32f.size_npot.compare_less.mirrored_repeat_clamp_to_edge,Fail

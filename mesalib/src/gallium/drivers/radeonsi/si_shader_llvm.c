@@ -223,10 +223,8 @@ void si_llvm_create_main_func(struct si_shader_context *ctx)
       if (ctx->args->ac.vs_rel_patch_id.used)
          ctx->abi.vs_rel_patch_id = ac_get_arg(&ctx->ac, ctx->args->ac.vs_rel_patch_id);
 
-      /* Non-monolithic shaders apply the LS-HS input VGPR hw bug workaround in
-       * the VS prolog, while monolithic shaders apply it here.
-       */
-      if (shader->is_monolithic && shader->key.ge.part.vs.prolog.ls_vgpr_fix)
+      /* Apply the LS-HS input VGPR hw bug workaround. */
+      if (shader->key.ge.as_ls && ctx->screen->info.has_ls_vgpr_init_bug)
          ac_fixup_ls_hs_input_vgprs(&ctx->ac, &ctx->abi, &ctx->args->ac);
    }
 }
@@ -239,7 +237,6 @@ void si_llvm_optimize_module(struct si_shader_context *ctx)
 
    /* Run the pass */
    LLVMRunPassManager(ctx->compiler->passmgr, ctx->ac.module);
-   LLVMDisposeBuilder(ctx->ac.builder);
 }
 
 void si_llvm_dispose(struct si_shader_context *ctx)
@@ -488,9 +485,6 @@ static LLVMValueRef si_llvm_load_intrinsic(struct ac_shader_abi *abi, nir_intrin
    struct si_shader_context *ctx = si_shader_context_from_abi(abi);
 
    switch (intrin->intrinsic) {
-   case nir_intrinsic_load_tess_rel_patch_id_amd:
-      return si_get_rel_patch_id(ctx);
-
    case nir_intrinsic_load_lds_ngg_scratch_base_amd:
       return LLVMBuildPtrToInt(ctx->ac.builder, ctx->gs_ngg_scratch.value, ctx->ac.i32, "");
 
@@ -569,14 +563,6 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
 
    switch (ctx->stage) {
    case MESA_SHADER_VERTEX:
-      /* preload instance_divisor_constbuf to be used for input load after culling */
-      if (ctx->shader->key.ge.opt.ngg_culling &&
-          ctx->shader->key.ge.part.vs.prolog.instance_divisor_is_fetched) {
-         struct ac_llvm_pointer buf = ac_get_ptr_arg(&ctx->ac, &ctx->args->ac, ctx->args->internal_bindings);
-         ctx->instance_divisor_constbuf =
-            ac_build_load_to_sgpr(
-               &ctx->ac, buf, LLVMConstInt(ctx->ac.i32, SI_VS_CONST_INSTANCE_DIVISORS, 0));
-      }
       break;
 
    case MESA_SHADER_TESS_CTRL:
@@ -663,9 +649,7 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
             if (!shader->key.ge.as_ls && !shader->key.ge.as_es)
                ac_init_exec_full_mask(&ctx->ac);
          } else {
-            /* If the prolog is present, EXEC is set there instead. */
-             if (!si_vs_needs_prolog(sel, &shader->key.ge.part.vs.prolog))
-                ac_init_exec_full_mask(&ctx->ac);
+            ac_init_exec_full_mask(&ctx->ac);
          }
       }
 
@@ -747,12 +731,9 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
       ctx->stage == MESA_SHADER_VERTEX && shader->key.ge.as_ls &&
       shader->key.ge.opt.same_patch_vertices;
 
-   bool tcs_need_output =
-      ctx->stage == MESA_SHADER_TESS_CTRL && info->tessfactors_are_def_in_all_invocs;
-
    bool ps_need_output = ctx->stage == MESA_SHADER_FRAGMENT;
 
-   if (ls_need_output || tcs_need_output || ps_need_output) {
+   if (ls_need_output || ps_need_output) {
       for (unsigned i = 0; i < info->num_outputs; i++) {
          LLVMTypeRef type = ctx->ac.f32;
 
@@ -912,17 +893,6 @@ bool si_llvm_build_shader_part(struct si_screen *sscreen, gl_shader_stage stage,
    bool exports_mrtz = false;
 
    switch (stage) {
-   case MESA_SHADER_VERTEX:
-      shader.key.ge.as_ls = key->vs_prolog.as_ls;
-      shader.key.ge.as_es = key->vs_prolog.as_es;
-      shader.key.ge.as_ngg = key->vs_prolog.as_ngg;
-      wave32 = key->vs_prolog.wave32;
-      break;
-   case MESA_SHADER_TESS_CTRL:
-      assert(!prolog);
-      shader.key.ge.part.tcs.epilog = key->tcs_epilog.states;
-      wave32 = key->tcs_epilog.wave32;
-      break;
    case MESA_SHADER_FRAGMENT:
       if (prolog) {
          shader.key.ps.part.prolog = key->ps_prolog.states;
@@ -955,12 +925,6 @@ bool si_llvm_build_shader_part(struct si_screen *sscreen, gl_shader_stage stage,
    void (*build)(struct si_shader_context *, union si_shader_part_key *);
 
    switch (stage) {
-   case MESA_SHADER_VERTEX:
-      build = si_llvm_build_vs_prolog;
-      break;
-   case MESA_SHADER_TESS_CTRL:
-      build = si_llvm_build_tcs_epilog;
-      break;
    case MESA_SHADER_FRAGMENT:
       build = prolog ? si_llvm_build_ps_prolog : si_llvm_build_ps_epilog;
       break;

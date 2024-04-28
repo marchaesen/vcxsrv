@@ -53,3 +53,11 @@ dEQP-GLES3.functional.fbo.color.tex2d.rgb565
 dEQP-GLES3.functional.texture.specification.teximage2d_align.cube_rgba4_51_2
 # ci-collate: Issue found in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/49638414
 dEQP-GLES31.functional.fbo.color.texcubearray.rgb565
+
+# uprev Piglit in Mesa
+dEQP-GLES3.functional.fbo.blit.conversion.rgba4_to_rgb10_a2
+dEQP-GLES3.functional.fbo.blit.conversion.rgba8_to_r16f
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16f_rg8.texture2d_array_to_texture3d
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16f_rg8ui.texture2d_array_to_texture3d
+dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.r16ui_r16i.texture2d_array_to_texture2d_array
+

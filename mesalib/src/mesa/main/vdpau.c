@@ -39,6 +39,7 @@
 #include "glformats.h"
 #include "texobj.h"
 #include "teximage.h"
+#include "textureview.h"
 #include "api_exec_decl.h"
 
 #include "state_tracker/st_cb_texture.h"
@@ -179,7 +180,7 @@ register_surface(struct gl_context *ctx, GLboolean isOutput,
       }
 
       /* This will disallow respecifying the storage. */
-      tex->Immutable = GL_TRUE;
+      _mesa_set_texture_view_state(ctx, tex, target, 1);
       _mesa_unlock_texture(ctx, tex);
 
       _mesa_reference_texobj(&surf->textures[i], tex);

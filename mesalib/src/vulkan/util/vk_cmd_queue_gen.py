@@ -48,6 +48,9 @@ MANUAL_COMMANDS = [
     # The VkPipelineLayout object could be released before the command is
     # executed
     'CmdBindDescriptorSets',
+
+    # Incomplete struct copies which lead to an use after free.
+    'CmdBuildAccelerationStructuresKHR',
 ]
 
 NO_ENQUEUE_COMMANDS = [

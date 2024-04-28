@@ -25,12 +25,15 @@
 
 #include <xwayland-config.h>
 
+#include <errno.h>
+#include <unistd.h>
+#include <libgen.h>
+#include <libei.h>
+
+#include "dix/dix_priv.h"
+
 #include <inputstr.h>
 #include <inpututils.h>
-#include <libgen.h>
-#include <unistd.h>
-
-#include <libei.h>
 
 #ifdef XWL_HAS_EI_PORTAL
 #include "liboeffis.h"

@@ -87,20 +87,6 @@
 #define XF86_M_RNG		0x080   /* ring */
 #define XF86_M_DSR		0x100   /* data set ready */
 
-#ifndef NO_OSLIB_PROTOTYPES
-/*
- * This is to prevent re-entrancy to FatalError() when aborting.
- * Anything that can be called as a result of ddxGiveUp() should use this
- * instead of FatalError().
- */
-
-#define xf86FatalError(a, b) \
-	if (dispatchException & DE_TERMINATE) { \
-		ErrorF(a, b); \
-		ErrorF("\n"); \
-		return; \
-	} else FatalError(a, b)
-
 /***************************************************************************/
 /* Prototypes                                                              */
 /***************************************************************************/
@@ -119,8 +105,6 @@ extern _X_EXPORT void xf86DisableIO(void);
 extern _X_EXPORT void xf86SetTVOut(int);
 extern _X_EXPORT void xf86SetRGBOut(void);
 #endif
-extern _X_EXPORT void xf86OSRingBell(int, int, int);
-extern _X_EXPORT void xf86SetReallySlowBcopy(void);
 extern _X_EXPORT void xf86SlowBcopy(unsigned char *, unsigned char *, int);
 extern _X_EXPORT int xf86OpenSerial(XF86OptionPtr options);
 extern _X_EXPORT int xf86SetSerial(int fd, XF86OptionPtr options);
@@ -130,13 +114,11 @@ extern _X_EXPORT int xf86WriteSerial(int fd, const void *buf, int count);
 extern _X_EXPORT int xf86CloseSerial(int fd);
 extern _X_EXPORT int xf86FlushInput(int fd);
 extern _X_EXPORT int xf86WaitForInput(int fd, int timeout);
-extern _X_EXPORT int xf86SerialSendBreak(int fd, int duration);
 extern _X_EXPORT int xf86SetSerialModemState(int fd, int state);
 extern _X_EXPORT int xf86GetSerialModemState(int fd);
 extern _X_EXPORT int xf86SerialModemSetBits(int fd, int bits);
 extern _X_EXPORT int xf86SerialModemClearBits(int fd, int bits);
 extern _X_EXPORT int xf86LoadKernelModule(const char *pathname);
-extern _X_EXPORT void xf86OSInputThreadInit(void);
 
 /* AGP GART interface */
 
@@ -156,11 +138,9 @@ extern _X_EXPORT Bool xf86AcquireGART(int screenNum);
 extern _X_EXPORT Bool xf86ReleaseGART(int screenNum);
 extern _X_EXPORT int xf86AllocateGARTMemory(int screenNum, unsigned long size,
                                             int type, unsigned long *physical);
-extern _X_EXPORT Bool xf86DeallocateGARTMemory(int screenNum, int key);
 extern _X_EXPORT Bool xf86BindGARTMemory(int screenNum, int key,
                                          unsigned long offset);
 extern _X_EXPORT Bool xf86UnbindGARTMemory(int screenNum, int key);
-extern _X_EXPORT Bool xf86EnableAGP(int screenNum, CARD32 mode);
 extern _X_EXPORT Bool xf86GARTCloseScreen(int screenNum);
 
 /* These routines are in shared/sigio.c and are not loaded as part of the
@@ -169,34 +149,6 @@ extern _X_EXPORT Bool xf86GARTCloseScreen(int screenNum);
    wrappers than to wrap each individual function called. */
 extern _X_EXPORT int xf86InstallSIGIOHandler(int fd, void (*f) (int, void *),
                                              void *);
-extern _X_EXPORT int xf86RemoveSIGIOHandler(int fd);
-
-#ifdef XF86_OS_PRIVS
-typedef void (*PMClose) (void);
-extern _X_EXPORT void xf86OpenConsole(void);
-extern _X_EXPORT void xf86CloseConsole(void);
-extern _X_HIDDEN Bool xf86VTActivate(int vtno);
-extern _X_EXPORT Bool xf86VTSwitchPending(void);
-extern _X_EXPORT Bool xf86VTSwitchAway(void);
-extern _X_EXPORT Bool xf86VTSwitchTo(void);
-extern _X_EXPORT void xf86VTRequest(int sig);
-extern _X_EXPORT int xf86ProcessArgument(int, char **, int);
-extern _X_EXPORT void xf86UseMsg(void);
-extern _X_EXPORT PMClose xf86OSPMOpen(void);
-
-extern _X_EXPORT void xf86InitVidMem(void);
-
-#endif                          /* XF86_OS_PRIVS */
-
-#ifdef XSERVER_PLATFORM_BUS
-#include "hotplug.h"
-void
-xf86PlatformDeviceProbe(struct OdevAttributes *attribs);
-
-void
-xf86PlatformReprobeDevice(int index, struct OdevAttributes *attribs);
-#endif
 
 _XFUNCPROTOEND
-#endif                          /* NO_OSLIB_PROTOTYPES */
 #endif                          /* _XF86_OSPROC_H */

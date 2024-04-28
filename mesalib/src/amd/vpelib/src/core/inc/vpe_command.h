@@ -41,6 +41,9 @@ enum VPE_CMD_OPCODE {
     VPE_CMD_OPCODE_POLL_REGMEM = 0x8,
     VPE_CMD_OPCODE_ATOMIC      = 0xA,
     VPE_CMD_OPCODE_PLANE_FILL  = 0xB,
+#ifdef VPE_BUILD_1_1
+    VPE_CMD_OPCODE_COLLABORATE_SYNC = 0xC,
+#endif
     VPE_CMD_OPCODE_TIMESTAMP = 0xD
 };
 
@@ -192,6 +195,14 @@ enum VPE_VPEP_CFG_SUBOP {
 
 #define VPE_IND_CFG_PKT_REGISTER_OFFSET__SHIFT 2
 #define VPE_IND_CFG_PKT_REGISTER_OFFSET_MASK   0x000FFFFC
+
+#ifdef VPE_BUILD_1_1
+// Collaborate sync Command Header
+#define VPE_COLLABORATE_SYNC_HEADER_MASK                 0x000000FF
+#define VPE_COLLABORATE_SYNC_DATA_MASK(collaborate_data) ((collaborate_data) & 0xFFFFFFFF)
+#define VPE_COLLABORATE_SYNC_CMD_HEADER                                                            \
+    (VPE_CMD_HEADER(VPE_CMD_OPCODE_COLLABORATE_SYNC, 0) & VPE_COLLABORATE_SYNC_HEADER_MASK)
+#endif
 
 /**************************
  * Poll Reg/Mem Sub-OpCode

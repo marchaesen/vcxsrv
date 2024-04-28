@@ -100,19 +100,10 @@ xthread_t (*_Xthread_self_fn)(void) = NULL;
 #define ECHECK(err) (WSAGetLastError() == err)
 #define ESET(val) WSASetLastError(val)
 #else
-#ifdef __UNIXOS2__
-#define ECHECK(err) (errno == err)
-#define ESET(val)
-#else
 #define ECHECK(err) (errno == err)
 #define ESET(val) errno = val
 #endif
-#endif
 
-#ifdef __UNIXOS2__
-#include <limits.h>
-#define MAX_PATH _POSIX_PATH_MAX
-#endif
 
 /*
  * The following routines are internal routines used by Xlib for protocol
@@ -1726,7 +1717,7 @@ _XData32(
  *       and so, you may be better off using gethostname (if it exists).
  */
 
-#if (defined(_POSIX_SOURCE) && !defined(AIXV3) && !defined(__QNX__)) || defined(hpux) || defined(SVR4)
+#if defined(_POSIX_SOURCE) || defined(SVR4)
 #define NEED_UTSNAME
 #include <sys/utsname.h>
 #else
@@ -1877,10 +1868,6 @@ static int AccessFile (path, pathbuf, len_pathbuf, pathret)
 
     /* try the places set in the environment */
     drive = getenv ("_XBASEDRIVE");
-#ifdef __UNIXOS2__
-    if (!drive)
-	drive = getenv ("X11ROOT");
-#endif
     if (!drive)
 	drive = "C:";
     len = strlen (drive) + strlen (path);
@@ -1893,7 +1880,6 @@ static int AccessFile (path, pathbuf, len_pathbuf, pathret)
 	return 1;
     }
 
-#ifndef __UNIXOS2__
     /* one last place to look */
     drive = getenv ("HOMEDRIVE");
     if (drive) {
@@ -1928,7 +1914,6 @@ static int AccessFile (path, pathbuf, len_pathbuf, pathret)
 	    }
 	}
     }
-#endif
     return 0;
 }
 

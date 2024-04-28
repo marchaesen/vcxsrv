@@ -52,16 +52,4 @@ typedef struct {
     int reserved2;
 } XDGAModeRec, *XDGAModePtr;
 
-/* DDX interface */
-
-extern Bool DGAScreenAvailable(ScreenPtr pScreen);
-extern Bool DGAActive(int Index);
-
-extern Bool DGAVTSwitch(void);
-extern Bool DGAStealButtonEvent(DeviceIntPtr dev, int Index,
-                                int button, int is_down);
-extern Bool DGAStealMotionEvent(DeviceIntPtr dev, int Index, int dx, int dy);
-extern Bool DGAStealKeyEvent(DeviceIntPtr dev, int Index,
-                             int key_code, int is_down);
-
 #endif                          /* __DGAPROC_H */

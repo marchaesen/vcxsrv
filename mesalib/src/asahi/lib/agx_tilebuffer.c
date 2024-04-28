@@ -47,7 +47,7 @@ agx_select_tile_size(unsigned bytes_per_pixel)
 }
 
 struct agx_tilebuffer_layout
-agx_build_tilebuffer_layout(enum pipe_format *formats, uint8_t nr_cbufs,
+agx_build_tilebuffer_layout(const enum pipe_format *formats, uint8_t nr_cbufs,
                             uint8_t nr_samples, bool layered)
 {
    struct agx_tilebuffer_layout tib = {
@@ -59,6 +59,12 @@ agx_build_tilebuffer_layout(enum pipe_format *formats, uint8_t nr_cbufs,
 
    for (unsigned rt = 0; rt < nr_cbufs; ++rt) {
       tib.logical_format[rt] = formats[rt];
+
+      /* If there are gaps in the layout, don't allocate holes. Obscure,
+       * PIPE_FORMAT_NONE has a size of 1, not 0.
+       */
+      if (formats[rt] == PIPE_FORMAT_NONE)
+         continue;
 
       /* Require natural alignment for tilebuffer allocations. This could be
        * optimized, but this shouldn't be a problem in practice.
@@ -120,7 +126,7 @@ agx_build_tilebuffer_layout(enum pipe_format *formats, uint8_t nr_cbufs,
 enum pipe_format
 agx_tilebuffer_physical_format(struct agx_tilebuffer_layout *tib, unsigned rt)
 {
-   return agx_pixel_format[tib->logical_format[rt]].internal;
+   return agx_pixel_format[tib->logical_format[rt]].renderable;
 }
 
 bool

@@ -56,10 +56,16 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
+#include <sys/stat.h>
 #include <X11/X.h>
+
+#include "os/osdep.h"
+
 #include <xserver_poll.h>
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 #include "inputstr.h"
 

@@ -27,7 +27,7 @@
  * MATERIALS OR THE USE OR OTHER DEALINGS IN THE MATERIALS.
  */
 
-#include "vndserver.h"
+#include "vndserver_priv.h"
 
 #include <pixmapstr.h>
 

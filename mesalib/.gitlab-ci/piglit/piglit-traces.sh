@@ -8,12 +8,16 @@ set -ex
 export PAGER=cat  # FIXME: export everywhere
 
 INSTALL=$(realpath -s "$PWD"/install)
-S3_ARGS="--token-file ${CI_JOB_JWT_FILE}"
+S3_ARGS="--token-file ${S3_JWT_FILE}"
 
 RESULTS=$(realpath -s "$PWD"/results)
 mkdir -p "$RESULTS"
 
 export PIGLIT_REPLAY_DESCRIPTION_FILE="$INSTALL/$PIGLIT_TRACES_FILE"
+
+# FIXME: guess why /usr/local/bin is not included in all runners PATH.
+# Needed because yq and ci-fairy are installed there.
+PATH="/usr/local/bin:$PATH"
 
 if [ "$PIGLIT_REPLAY_SUBCOMMAND" = "profile" ]; then
     yq -iY 'del(.traces[][] | select(.label[]? == "no-perf"))' \
@@ -50,7 +54,7 @@ if [ -n "${VK_DRIVER}" ]; then
   export DXVK_LOG="$RESULTS/dxvk"
   [ -d "$DXVK_LOG" ] || mkdir -pv "$DXVK_LOG"
   export DXVK_STATE_CACHE=0
-  export VK_ICD_FILENAMES="$INSTALL/share/vulkan/icd.d/${VK_DRIVER}_icd.${VK_CPU:-$(uname -m)}.json"
+  export VK_DRIVER_FILES="$INSTALL/share/vulkan/icd.d/${VK_DRIVER}_icd.${VK_CPU:-$(uname -m)}.json"
 fi
 
 # Sanity check to ensure that our environment is sufficient to make our tests
@@ -113,7 +117,7 @@ else
       mkdir -p /tmp/.X11-unix
 
       env \
-        VK_ICD_FILENAMES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
+        VK_DRIVER_FILES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
 	weston -Bheadless-backend.so --use-gl -Swayland-0 --xwayland --idle-time=0 &
 
       while [ ! -S "$WESTON_X11_SOCK" ]; do sleep 1; done
@@ -184,6 +188,15 @@ RUN_CMD="export LD_LIBRARY_PATH=$__LD_LIBRARY_PATH; $SANITY_MESA_VERSION_CMD && 
 # have), you could get a corrupted local trace that would spuriously fail the
 # run.
 rm -rf replayer-db
+
+# ANGLE: download compiled ANGLE runtime and the compiled restricted traces (all-in-one package)
+if [ -n "$PIGLIT_REPLAY_ANGLE_TAG" ]; then
+  ARCH="amd64"
+  FILE="angle-bin-${ARCH}-${PIGLIT_REPLAY_ANGLE_TAG}.tar.zst"
+  ci-fairy s3cp $S3_ARGS "https://s3.freedesktop.org/mesa-tracie-private/${FILE}" "${FILE}"
+  mkdir -p replayer-db/angle
+  tar --zstd -xf ${FILE} -C replayer-db/angle/
+fi
 
 if ! eval $RUN_CMD;
 then

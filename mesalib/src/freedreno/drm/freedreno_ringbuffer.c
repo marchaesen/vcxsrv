@@ -36,6 +36,7 @@ fd_submit_new(struct fd_pipe *pipe)
    struct fd_submit *submit = pipe->funcs->submit_new(pipe);
    submit->refcnt = 1;
    submit->pipe = fd_pipe_ref(pipe);
+   submit->dev = fd_device_ref(pipe->dev);
    return submit;
 }
 
@@ -48,9 +49,13 @@ fd_submit_del(struct fd_submit *submit)
    if (submit->primary)
       fd_ringbuffer_del(submit->primary);
 
-   fd_pipe_del(submit->pipe);
+   struct fd_pipe *pipe = submit->pipe;
+   struct fd_device *dev = submit->dev;
 
    submit->funcs->destroy(submit);
+
+   fd_pipe_del(pipe);
+   fd_device_del(dev);
 }
 
 struct fd_submit *

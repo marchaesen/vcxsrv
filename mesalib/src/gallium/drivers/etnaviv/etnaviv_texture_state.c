@@ -87,7 +87,6 @@ etna_create_sampler_state_state(struct pipe_context *pipe,
 {
    struct etna_sampler_state *cs = CALLOC_STRUCT(etna_sampler_state);
    struct etna_context *ctx = etna_context(pipe);
-   struct etna_screen *screen = ctx->screen;
    const bool ansio = ss->max_anisotropy > 1;
    const bool mipmap = ss->min_mip_filter != PIPE_TEX_MIPFILTER_NONE;
 
@@ -110,8 +109,8 @@ etna_create_sampler_state_state(struct pipe_context *pipe,
       cs->config0 |= VIVS_TE_SAMPLER_CONFIG0_ROUND_UV;
    }
 
-   cs->config1 = screen->specs.seamless_cube_map ?
-      COND(ss->seamless_cube_map, VIVS_TE_SAMPLER_CONFIG1_SEAMLESS_CUBE_MAP) : 0;
+   cs->config1 =
+      COND(ss->seamless_cube_map, VIVS_TE_SAMPLER_CONFIG1_SEAMLESS_CUBE_MAP);
 
    cs->config_lod =
       COND(ss->lod_bias != 0.0 && mipmap, VIVS_TE_SAMPLER_LOD_CONFIG_BIAS_ENABLE) |

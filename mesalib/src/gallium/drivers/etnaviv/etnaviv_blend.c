@@ -29,7 +29,6 @@
 #include "etnaviv_context.h"
 #include "etnaviv_screen.h"
 #include "etnaviv_translate.h"
-#include "hw/common.xml.h"
 #include "pipe/p_defines.h"
 #include "util/u_memory.h"
 #include "util/half_float.h"
@@ -93,7 +92,7 @@ etna_blend_state_create(struct pipe_context *pctx,
    }
 
    logicop_enable = so->logicop_enable &&
-                    VIV_FEATURE(ctx->screen, chipMinorFeatures2, LOGIC_OP);
+                    VIV_FEATURE(ctx->screen, ETNA_FEATURE_LOGIC_OP);
 
    co->PE_LOGIC_OP =
          VIVS_PE_LOGIC_OP_OP(logicop_enable ? so->logicop_func : LOGIC_OP_COPY) |
@@ -110,7 +109,7 @@ etna_blend_state_create(struct pipe_context *pctx,
     */
    if (so->dither &&
        (!alpha_enable ||
-        VIV_FEATURE(ctx->screen, chipMinorFeatures3, PE_DITHER_FIX))) {
+        VIV_FEATURE(ctx->screen, ETNA_FEATURE_PE_DITHER_FIX))) {
       co->PE_DITHER[0] = 0x6e4ca280;
       co->PE_DITHER[1] = 0x5d7f91b3;
    } else {

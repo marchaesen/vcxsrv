@@ -85,7 +85,6 @@ static const nir_shader_compiler_options sp_compiler_options = {
    .lower_fdph = true,
    .lower_flrp64 = true,
    .lower_fmod = true,
-   .lower_rotate = true,
    .lower_uniforms_to_ubo = true,
    .lower_vector_cmp = true,
    .lower_int64_options = nir_lower_imul_2x32_64,
@@ -496,6 +495,7 @@ softpipe_flush_frontbuffer(struct pipe_screen *_screen,
                            struct pipe_resource *resource,
                            unsigned level, unsigned layer,
                            void *context_private,
+                           unsigned nboxes,
                            struct pipe_box *sub_box)
 {
    struct softpipe_screen *screen = softpipe_screen(_screen);
@@ -504,7 +504,7 @@ softpipe_flush_frontbuffer(struct pipe_screen *_screen,
 
    assert(texture->dt);
    if (texture->dt)
-      winsys->displaytarget_display(winsys, texture->dt, context_private, sub_box);
+      winsys->displaytarget_display(winsys, texture->dt, context_private, nboxes, sub_box);
 }
 
 static int

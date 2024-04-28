@@ -193,7 +193,7 @@ static void si_late_optimize_16bit_samplers(struct si_screen *sscreen, nir_shade
     * We only use a16/g16 if all of the affected sources are 16bit.
     */
    bool has_g16 = sscreen->info.gfx_level >= GFX10;
-   struct nir_fold_tex_srcs_options fold_srcs_options[] = {
+   struct nir_opt_tex_srcs_options opt_srcs_options[] = {
       {
          .sampler_dims =
             ~(BITFIELD_BIT(GLSL_SAMPLER_DIM_CUBE) | BITFIELD_BIT(GLSL_SAMPLER_DIM_BUF)),
@@ -207,16 +207,17 @@ static void si_late_optimize_16bit_samplers(struct si_screen *sscreen, nir_shade
          .src_types = (1 << nir_tex_src_ddx) | (1 << nir_tex_src_ddy),
       },
    };
-   struct nir_fold_16bit_tex_image_options fold_16bit_options = {
+   struct nir_opt_16bit_tex_image_options opt_16bit_options = {
       .rounding_mode = nir_rounding_mode_rtz,
-      .fold_tex_dest_types = nir_type_float,
-      .fold_image_dest_types = nir_type_float,
-      .fold_image_store_data = true,
-      .fold_srcs_options_count = has_g16 ? 2 : 1,
-      .fold_srcs_options = fold_srcs_options,
+      .opt_tex_dest_types = nir_type_float,
+      .opt_image_dest_types = nir_type_float,
+      .opt_image_store_data = true,
+      .opt_image_srcs = true,
+      .opt_srcs_options_count = has_g16 ? 2 : 1,
+      .opt_srcs_options = opt_srcs_options,
    };
    bool changed = false;
-   NIR_PASS(changed, nir, nir_fold_16bit_tex_image, &fold_16bit_options);
+   NIR_PASS(changed, nir, nir_opt_16bit_tex_image, &opt_16bit_options);
 
    if (changed) {
       si_nir_opts(sscreen, nir, false);
@@ -254,20 +255,16 @@ static bool si_lower_intrinsics(nir_shader *nir)
                                         NULL);
 }
 
-const nir_lower_subgroups_options si_nir_subgroups_options = {
-   .subgroup_size = 64,
-   .ballot_bit_size = 64,
-   .ballot_components = 1,
-   .lower_to_scalar = true,
-   .lower_subgroup_masks = true,
-   .lower_relative_shuffle = true,
-   .lower_shuffle_to_32bit = true,
-   .lower_vote_trivial = false,
-   .lower_vote_eq = true,
-   .lower_vote_bool_eq = true,
-   .lower_inverse_ballot = true,
-   .lower_boolean_reduce = true,
-};
+void si_lower_mediump_io(nir_shader *nir)
+{
+   NIR_PASS_V(nir, nir_lower_mediump_io,
+              /* TODO: LLVM fails to compile this test if VS inputs are 16-bit:
+               * dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_lowp_geometry
+               */
+              (nir->info.stage != MESA_SHADER_VERTEX ? nir_var_shader_in : 0) | nir_var_shader_out,
+              BITFIELD64_BIT(VARYING_SLOT_PNTC) | BITFIELD64_RANGE(VARYING_SLOT_VAR0, 32),
+              true);
+}
 
 /**
  * Perform "lowering" operations on the NIR that are run once when the shader
@@ -297,7 +294,8 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
 
    const struct nir_lower_image_options lower_image_options = {
       .lower_cube_size = true,
-      .lower_to_fragment_mask_load_amd = sscreen->info.gfx_level < GFX11,
+      .lower_to_fragment_mask_load_amd = sscreen->info.gfx_level < GFX11 &&
+                                         !(sscreen->debug_flags & DBG(NO_FMASK)),
    };
    NIR_PASS_V(nir, nir_lower_image, &lower_image_options);
 
@@ -305,7 +303,7 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
 
    NIR_PASS_V(nir, ac_nir_lower_sin_cos);
 
-   NIR_PASS_V(nir, nir_lower_subgroups, &si_nir_subgroups_options);
+   NIR_PASS_V(nir, nir_lower_subgroups, sscreen->nir_lower_subgroups_options);
 
    NIR_PASS_V(nir, nir_lower_discard_or_demote, true);
 
@@ -351,21 +349,11 @@ static void si_lower_nir(struct si_screen *sscreen, struct nir_shader *nir)
       }
    }
 
-   if (sscreen->b.get_shader_param(&sscreen->b, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_FP16)) {
-      NIR_PASS_V(nir, nir_lower_mediump_io,
-                 /* TODO: LLVM fails to compile this test if VS inputs are 16-bit:
-                  * dEQP-GLES31.functional.shaders.builtin_functions.integer.bitfieldinsert.uvec3_lowp_geometry
-                  */
-                 (nir->info.stage != MESA_SHADER_VERTEX ? nir_var_shader_in : 0) | nir_var_shader_out,
-                 BITFIELD64_BIT(VARYING_SLOT_PNTC) | BITFIELD64_RANGE(VARYING_SLOT_VAR0, 32),
-                 true);
-   }
-
    si_nir_opts(sscreen, nir, true);
    /* Run late optimizations to fuse ffma and eliminate 16-bit conversions. */
    si_nir_late_opts(nir);
 
-   if (sscreen->b.get_shader_param(&sscreen->b, PIPE_SHADER_FRAGMENT, PIPE_SHADER_CAP_FP16))
+   if (sscreen->info.gfx_level >= GFX9)
       si_late_optimize_16bit_samplers(sscreen, nir);
 
    NIR_PASS_V(nir, nir_remove_dead_variables, nir_var_function_temp, NULL);

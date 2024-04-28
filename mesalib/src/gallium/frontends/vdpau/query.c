@@ -108,6 +108,8 @@ vlVdpVideoSurfaceQueryGetPutBitsYCbCrCapabilities(VdpDevice device, VdpChromaTyp
 {
    vlVdpDevice *dev;
    struct pipe_screen *pscreen;
+   VdpYCbCrFormat ycbcrFormat;
+   bool supported;
 
    if (!is_supported)
       return VDP_STATUS_INVALID_POINTER;
@@ -122,47 +124,50 @@ vlVdpVideoSurfaceQueryGetPutBitsYCbCrCapabilities(VdpDevice device, VdpChromaTyp
 
    mtx_lock(&dev->mutex);
 
+   ycbcrFormat = bits_ycbcr_format;
    switch(bits_ycbcr_format) {
    case VDP_YCBCR_FORMAT_NV12:
-      *is_supported = surface_chroma_type == VDP_CHROMA_TYPE_420;
+      supported = surface_chroma_type == VDP_CHROMA_TYPE_420;
       break;
 
    case VDP_YCBCR_FORMAT_YV12:
-      *is_supported = surface_chroma_type == VDP_CHROMA_TYPE_420;
+      supported = surface_chroma_type == VDP_CHROMA_TYPE_420;
 
       /* We can convert YV12 to NV12 on the fly! */
-      if (*is_supported &&
-          pscreen->is_video_format_supported(pscreen,
-                                             PIPE_FORMAT_NV12,
-                                             PIPE_VIDEO_PROFILE_UNKNOWN,
-                                             PIPE_VIDEO_ENTRYPOINT_BITSTREAM)) {
-         mtx_unlock(&dev->mutex);
-         return VDP_STATUS_OK;
-      }
+      ycbcrFormat = VDP_YCBCR_FORMAT_NV12;
       break;
 
    case VDP_YCBCR_FORMAT_UYVY:
    case VDP_YCBCR_FORMAT_YUYV:
-      *is_supported = surface_chroma_type == VDP_CHROMA_TYPE_422;
+      supported = surface_chroma_type == VDP_CHROMA_TYPE_422;
       break;
 
    case VDP_YCBCR_FORMAT_Y8U8V8A8:
    case VDP_YCBCR_FORMAT_V8U8Y8A8:
-      *is_supported = surface_chroma_type == VDP_CHROMA_TYPE_444;
+      supported = surface_chroma_type == VDP_CHROMA_TYPE_444;
+      break;
+
+   case VDP_YCBCR_FORMAT_P010:
+   case VDP_YCBCR_FORMAT_P016:
+      /* Do any other profiles imply support for this chroma type? */
+      supported = (surface_chroma_type == VDP_CHROMA_TYPE_420_16)
+                  && vl_codec_supported(pscreen, PIPE_VIDEO_PROFILE_HEVC_MAIN_10, false);
       break;
 
    default:
-      *is_supported = false;
+      supported = false;
       break;
    }
 
-   if (*is_supported &&
+   if (supported &&
        !pscreen->is_video_format_supported(pscreen,
-                                           FormatYCBCRToPipe(bits_ycbcr_format),
+                                           FormatYCBCRToPipe(ycbcrFormat),
                                            PIPE_VIDEO_PROFILE_UNKNOWN,
                                            PIPE_VIDEO_ENTRYPOINT_BITSTREAM)) {
-      *is_supported = false;
+      supported = false;
    }
+   *is_supported = supported;
+
    mtx_unlock(&dev->mutex);
 
    return VDP_STATUS_OK;

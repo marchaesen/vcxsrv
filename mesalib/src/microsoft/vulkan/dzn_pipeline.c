@@ -77,6 +77,18 @@ gfx_pipeline_variant_key_hash(const void *key)
    return _mesa_hash_data(key, sizeof(struct dzn_graphics_pipeline_variant_key));
 }
 
+static bool
+gfx_pipeline_cmd_signature_key_equal(const void *a, const void *b)
+{
+   return !memcmp(a, b, sizeof(struct dzn_indirect_draw_cmd_sig_key));
+}
+
+static uint32_t
+gfx_pipeline_cmd_signature_key_hash(const void *key)
+{
+   return _mesa_hash_data(key, sizeof(struct dzn_indirect_draw_cmd_sig_key));
+}
+
 struct dzn_cached_blob {
    struct vk_pipeline_cache_object base;
    uint8_t hash[SHA1_DIGEST_LENGTH];
@@ -208,13 +220,20 @@ dzn_pipeline_get_nir_shader(struct dzn_device *device,
                             const VkPipelineShaderStageCreateInfo *stage_info,
                             gl_shader_stage stage,
                             const struct dzn_nir_options *options,
+                            struct dxil_spirv_metadata *metadata,
                             nir_shader **nir)
 {
    if (cache) {
       *nir = vk_pipeline_cache_lookup_nir(cache, hash, SHA1_DIGEST_LENGTH,
                                           options->nir_opts, NULL, NULL);
-       if (*nir)
-          return VK_SUCCESS;
+      if (*nir) {
+         /* This bit is explicitly added into the info before caching, since this sysval wouldn't
+          * actually be present for this bit to be set by info gathering. */
+         if ((*nir)->info.stage == MESA_SHADER_VERTEX &&
+             BITSET_TEST((*nir)->info.system_values_read, SYSTEM_VALUE_FIRST_VERTEX))
+            metadata->needs_draw_sysvals = true;
+         return VK_SUCCESS;
+      }
    }
 
    struct dzn_physical_device *pdev =
@@ -238,8 +257,9 @@ dzn_pipeline_get_nir_shader(struct dzn_device *device,
          .register_space = DZN_REGISTER_SPACE_PUSH_CONSTANT,
          .base_shader_register = 0,
       },
-      .zero_based_vertex_instance_id = false,
-      .zero_based_compute_workgroup_id = false,
+      .first_vertex_and_base_instance_mode = pdev->options21.ExtendedCommandInfoSupported ?
+            DXIL_SPIRV_SYSVAL_TYPE_NATIVE : DXIL_SPIRV_SYSVAL_TYPE_RUNTIME_DATA,
+      .workgroup_id_mode = DXIL_SPIRV_SYSVAL_TYPE_RUNTIME_DATA,
       .yz_flip = {
          .mode = options->yz_flip_mode,
          .y_mask = options->y_flip_mask,
@@ -253,8 +273,7 @@ dzn_pipeline_get_nir_shader(struct dzn_device *device,
       .shader_model_max = dzn_get_shader_model(pdev),
    };
 
-   bool requires_runtime_data;
-   dxil_spirv_nir_passes(*nir, &conf, &requires_runtime_data);
+   dxil_spirv_nir_passes(*nir, &conf, metadata);
 
    if (stage == MESA_SHADER_VERTEX) {
       bool needs_conv = false;
@@ -268,8 +287,12 @@ dzn_pipeline_get_nir_shader(struct dzn_device *device,
    }
    (*nir)->info.subgroup_size = options->subgroup_size;
 
-   if (cache)
+   if (cache) {
+      /* Cache this additional metadata */
+      if (metadata->needs_draw_sysvals)
+         BITSET_SET((*nir)->info.system_values_read, SYSTEM_VALUE_FIRST_VERTEX);
       vk_pipeline_cache_add_nir(cache, hash, SHA1_DIGEST_LENGTH, *nir);
+   }
 
    return VK_SUCCESS;
 }
@@ -384,7 +407,7 @@ enum dxil_shader_model
    dzn_get_shader_model(const struct dzn_physical_device *pdev)
 {
    static_assert(D3D_SHADER_MODEL_6_0 == 0x60 && SHADER_MODEL_6_0 == 0x60000, "Validating math below");
-   static_assert(D3D_SHADER_MODEL_6_7 == 0x67 && SHADER_MODEL_6_7 == 0x60007, "Validating math below");
+   static_assert(D3D_SHADER_MODEL_6_8 == 0x68 && SHADER_MODEL_6_8 == 0x60008, "Validating math below");
    return ((pdev->shader_model & 0xf0) << 12) | (pdev->shader_model & 0xf);
 }
 
@@ -414,6 +437,7 @@ dzn_pipeline_compile_shader(struct dzn_device *device,
    struct blob dxil_blob;
    VkResult result = VK_SUCCESS;
 
+   nir_shader_gather_info(nir, nir_shader_get_entrypoint(nir));
    if (instance->debug_flags & DZN_DEBUG_NIR)
       nir_print_shader(nir, stderr);
 
@@ -450,7 +474,7 @@ dzn_pipeline_compile_shader(struct dzn_device *device,
       }
    }
 
-   if (!res) {
+   if (!res && !(instance->debug_flags & DZN_DEBUG_EXPERIMENTAL)) {
       if (err) {
          mesa_loge(
                "== VALIDATION ERROR =============================================\n"
@@ -476,11 +500,11 @@ dzn_pipeline_get_gfx_shader_slot(D3D12_PIPELINE_STATE_STREAM_DESC *stream,
       return desc;
    }
    case MESA_SHADER_TESS_CTRL: {
-      d3d12_gfx_pipeline_state_stream_new_desc(stream, DS, D3D12_SHADER_BYTECODE, desc);
+      d3d12_gfx_pipeline_state_stream_new_desc(stream, HS, D3D12_SHADER_BYTECODE, desc);
       return desc;
    }
    case MESA_SHADER_TESS_EVAL: {
-      d3d12_gfx_pipeline_state_stream_new_desc(stream, HS, D3D12_SHADER_BYTECODE, desc);
+      d3d12_gfx_pipeline_state_stream_new_desc(stream, DS, D3D12_SHADER_BYTECODE, desc);
       return desc;
    }
    case MESA_SHADER_GEOMETRY: {
@@ -578,7 +602,8 @@ dzn_pipeline_cache_add_dxil_shader(struct vk_pipeline_cache *cache,
 }
 
 struct dzn_cached_gfx_pipeline_header {
-   uint32_t stages : 31;
+   uint32_t stages : 30;
+   uint32_t needs_draw_sysvals : 1;
    uint32_t rast_disabled_from_missing_position : 1;
    uint32_t input_count;
 };
@@ -647,6 +672,7 @@ dzn_pipeline_cache_lookup_gfx_pipeline(struct dzn_graphics_pipeline *pipeline,
    }
 
    pipeline->rast_disabled_from_missing_position = info->rast_disabled_from_missing_position;
+   pipeline->needs_draw_sysvals = info->needs_draw_sysvals;
 
    *cache_hit = true;
 
@@ -687,6 +713,7 @@ dzn_pipeline_cache_add_gfx_pipeline(struct dzn_graphics_pipeline *pipeline,
 
    info->input_count = vertex_input_count;
    info->stages = stages;
+   info->needs_draw_sysvals = pipeline->needs_draw_sysvals;
    info->rast_disabled_from_missing_position = pipeline->rast_disabled_from_missing_position;
 
    offset = ALIGN_POT(offset + sizeof(*info), alignof(D3D12_INPUT_ELEMENT_DESC));
@@ -902,13 +929,17 @@ dzn_graphics_pipeline_compile_shaders(struct dzn_device *device,
          .subgroup_size = subgroup_enum,
       };
 
+      struct dxil_spirv_metadata metadata = { 0 };
       ret = dzn_pipeline_get_nir_shader(device, layout,
                                         cache, stages[stage].nir_hash,
                                         stages[stage].info, stage,
-                                        &options,
+                                        &options, &metadata,
                                         &pipeline->templates.shaders[stage].nir);
       if (ret != VK_SUCCESS)
          return ret;
+
+      if (stage == MESA_SHADER_VERTEX)
+         pipeline->needs_draw_sysvals = metadata.needs_draw_sysvals;
    }
 
    if (pipeline->use_gs_for_polygon_mode_point) {
@@ -971,11 +1002,11 @@ dzn_graphics_pipeline_compile_shaders(struct dzn_device *device,
       }};
 
       assert(pipeline->templates.shaders[stage].nir);
-      bool requires_runtime_data;
+      struct dxil_spirv_metadata metadata = { 0 };
       dxil_spirv_nir_link(pipeline->templates.shaders[stage].nir,
                           prev_stage != MESA_SHADER_NONE ?
                           pipeline->templates.shaders[prev_stage].nir : NULL,
-                          &conf, &requires_runtime_data);
+                          &conf, &metadata);
 
       if (prev_stage != MESA_SHADER_NONE) {
          memcpy(stages[stage].link_hashes[0], stages[prev_stage].spirv_hash, SHA1_DIGEST_LENGTH);
@@ -1511,6 +1542,7 @@ dzn_graphics_pipeline_translate_zsa(struct dzn_device *device,
       in->pRasterizationState;
    const VkPipelineDepthStencilStateCreateInfo *in_zsa =
       in_rast->rasterizerDiscardEnable ? NULL : in->pDepthStencilState;
+   const VkPipelineRenderingCreateInfo *ri = vk_find_struct_const(in, PIPELINE_RENDERING_CREATE_INFO);
 
    if (!in_zsa ||
        in_rast->cullMode == VK_CULL_MODE_FRONT_AND_BACK) {
@@ -1530,21 +1562,26 @@ dzn_graphics_pipeline_translate_zsa(struct dzn_device *device,
    D3D12_DEPTH_STENCIL_DESC2 desc;
    memset(&desc, 0, sizeof(desc));
 
-   desc.DepthEnable =
-      in_zsa->depthTestEnable || in_zsa->depthBoundsTestEnable;
-   desc.DepthWriteMask =
-      in_zsa->depthWriteEnable ?
-      D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
-   desc.DepthFunc =
-      in_zsa->depthTestEnable ?
-      dzn_translate_compare_op(in_zsa->depthCompareOp) :
-      D3D12_COMPARISON_FUNC_ALWAYS;
+   bool has_no_depth = ri && ri->depthAttachmentFormat == VK_FORMAT_UNDEFINED;
+   bool has_no_stencil = ri && ri->stencilAttachmentFormat == VK_FORMAT_UNDEFINED;
+
+   desc.DepthEnable = !has_no_depth &&
+      (in_zsa->depthTestEnable || in_zsa->depthBoundsTestEnable);
+   if (desc.DepthEnable) {
+      desc.DepthWriteMask =
+         in_zsa->depthWriteEnable ?
+         D3D12_DEPTH_WRITE_MASK_ALL : D3D12_DEPTH_WRITE_MASK_ZERO;
+      desc.DepthFunc =
+         in_zsa->depthTestEnable ?
+         dzn_translate_compare_op(in_zsa->depthCompareOp) :
+         D3D12_COMPARISON_FUNC_ALWAYS;
+   }
    pipeline->zsa.depth_bounds.enable = in_zsa->depthBoundsTestEnable;
    pipeline->zsa.depth_bounds.min = in_zsa->minDepthBounds;
    pipeline->zsa.depth_bounds.max = in_zsa->maxDepthBounds;
    desc.DepthBoundsTestEnable = in_zsa->depthBoundsTestEnable;
-   desc.StencilEnable = in_zsa->stencilTestEnable;
-   if (in_zsa->stencilTestEnable) {
+   desc.StencilEnable = in_zsa->stencilTestEnable && !has_no_stencil;
+   if (desc.StencilEnable) {
       desc.FrontFace.StencilFailOp = translate_stencil_op(in_zsa->front.failOp);
       desc.FrontFace.StencilDepthFailOp = translate_stencil_op(in_zsa->front.depthFailOp);
       desc.FrontFace.StencilPassOp = translate_stencil_op(in_zsa->front.passOp);
@@ -1779,6 +1816,11 @@ static void dzn_graphics_pipeline_delete_variant(struct hash_entry *he)
       ID3D12PipelineState_Release(variant->state);
 }
 
+static void dzn_graphics_pipeline_delete_cmd_sig(struct hash_entry *he)
+{
+   ID3D12CommandSignature_Release((ID3D12CommandSignature *)he->data);
+}
+
 static void
 dzn_graphics_pipeline_cleanup_nir_shaders(struct dzn_graphics_pipeline *pipeline)
 {
@@ -1816,6 +1858,8 @@ dzn_graphics_pipeline_destroy(struct dzn_graphics_pipeline *pipeline,
       if (pipeline->indirect_cmd_sigs[i])
          ID3D12CommandSignature_Release(pipeline->indirect_cmd_sigs[i]);
    }
+   _mesa_hash_table_destroy(pipeline->custom_stride_cmd_sigs,
+                            dzn_graphics_pipeline_delete_cmd_sig);
 
    dzn_pipeline_finish(&pipeline->base);
    vk_free2(&pipeline->base.base.device->alloc, alloc, pipeline);
@@ -2223,73 +2267,106 @@ dzn_graphics_pipeline_get_state(struct dzn_graphics_pipeline *pipeline,
 
 ID3D12CommandSignature *
 dzn_graphics_pipeline_get_indirect_cmd_sig(struct dzn_graphics_pipeline *pipeline,
-                                           enum dzn_indirect_draw_cmd_sig_type type)
+                                           struct dzn_indirect_draw_cmd_sig_key key)
 {
-   assert(type < DZN_NUM_INDIRECT_DRAW_CMD_SIGS);
+   assert(key.value < DZN_NUM_INDIRECT_DRAW_CMD_SIGS);
 
-   struct dzn_device *device =
-      container_of(pipeline->base.base.device, struct dzn_device, vk);
-   ID3D12CommandSignature *cmdsig = pipeline->indirect_cmd_sigs[type];
+   struct dzn_device *device = container_of(pipeline->base.base.device, struct dzn_device, vk);
+
+   uint32_t cmd_arg_count = 0;
+   D3D12_INDIRECT_ARGUMENT_DESC cmd_args[DZN_INDIRECT_CMD_SIG_MAX_ARGS];
+   uint32_t stride = 0;
+
+   if (key.triangle_fan) {
+      assert(key.indexed);
+      cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
+         .Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW,
+      };
+      stride += sizeof(D3D12_INDEX_BUFFER_VIEW);
+   }
+
+   if (key.draw_params) {
+      cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC){
+         .Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT,
+         .Constant = {
+            .RootParameterIndex = pipeline->base.root.sysval_cbv_param_idx,
+            .DestOffsetIn32BitValues = offsetof(struct dxil_spirv_vertex_runtime_data, first_vertex) / 4,
+            .Num32BitValuesToSet = 2,
+         },
+      };
+      stride += sizeof(uint32_t) * 2;
+   }
+
+   if (key.draw_id) {
+      struct dzn_physical_device *pdev = container_of(device->vk.physical, struct dzn_physical_device, vk);
+      if (pdev->options21.ExecuteIndirectTier >= D3D12_EXECUTE_INDIRECT_TIER_1_1) {
+         cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC){
+            .Type = D3D12_INDIRECT_ARGUMENT_TYPE_INCREMENTING_CONSTANT,
+            .IncrementingConstant = {
+               .RootParameterIndex = pipeline->base.root.sysval_cbv_param_idx,
+               .DestOffsetIn32BitValues = offsetof(struct dxil_spirv_vertex_runtime_data, draw_id) / 4,
+            },
+         };
+      } else {
+         cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC){
+            .Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT,
+            .Constant = {
+               .RootParameterIndex = pipeline->base.root.sysval_cbv_param_idx,
+               .DestOffsetIn32BitValues = offsetof(struct dxil_spirv_vertex_runtime_data, draw_id) / 4,
+               .Num32BitValuesToSet = 1,
+            },
+         };
+         stride += sizeof(uint32_t);
+      }
+   }
+
+   cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
+      .Type = key.indexed ?
+              D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED :
+              D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,
+   };
+   stride += key.indexed ? sizeof(D3D12_DRAW_INDEXED_ARGUMENTS) :
+                           sizeof(D3D12_DRAW_ARGUMENTS);
+
+   assert(cmd_arg_count <= ARRAY_SIZE(cmd_args));
+   assert(offsetof(struct dxil_spirv_vertex_runtime_data, first_vertex) == 0);
+   ID3D12CommandSignature *cmdsig = NULL;
+
+   if (key.custom_stride == 0 || key.custom_stride == stride)
+      cmdsig = pipeline->indirect_cmd_sigs[key.value];
+   else {
+      if (!pipeline->custom_stride_cmd_sigs) {
+         pipeline->custom_stride_cmd_sigs =
+            _mesa_hash_table_create(NULL, gfx_pipeline_cmd_signature_key_hash, gfx_pipeline_cmd_signature_key_equal);
+      }
+      struct hash_entry *entry = _mesa_hash_table_search(pipeline->custom_stride_cmd_sigs, &key);
+      if (entry)
+         cmdsig = entry->data;
+   }
 
    if (cmdsig)
       return cmdsig;
 
-   bool triangle_fan = type == DZN_INDIRECT_DRAW_TRIANGLE_FAN_CMD_SIG;
-   bool indexed = type == DZN_INDIRECT_INDEXED_DRAW_CMD_SIG || triangle_fan;
-
-   uint32_t cmd_arg_count = 0;
-   D3D12_INDIRECT_ARGUMENT_DESC cmd_args[DZN_INDIRECT_CMD_SIG_MAX_ARGS];
-
-   if (triangle_fan) {
-      cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
-         .Type = D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW,
-      };
-   }
-
-   cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
-      .Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT,
-      .Constant = {
-         .RootParameterIndex = pipeline->base.root.sysval_cbv_param_idx,
-         .DestOffsetIn32BitValues = offsetof(struct dxil_spirv_vertex_runtime_data, first_vertex) / 4,
-         .Num32BitValuesToSet = 2,
-      },
-   };
-
-   cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
-      .Type = D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT,
-      .Constant = {
-         .RootParameterIndex = pipeline->base.root.sysval_cbv_param_idx,
-         .DestOffsetIn32BitValues = offsetof(struct dxil_spirv_vertex_runtime_data, draw_id) / 4,
-         .Num32BitValuesToSet = 1,
-      },
-   };
-
-   cmd_args[cmd_arg_count++] = (D3D12_INDIRECT_ARGUMENT_DESC) {
-      .Type = indexed ?
-              D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED :
-              D3D12_INDIRECT_ARGUMENT_TYPE_DRAW,
-   };
-
-   assert(cmd_arg_count <= ARRAY_SIZE(cmd_args));
-   assert(offsetof(struct dxil_spirv_vertex_runtime_data, first_vertex) == 0);
-
    D3D12_COMMAND_SIGNATURE_DESC cmd_sig_desc = {
-      .ByteStride =
-         triangle_fan ?
-         sizeof(struct dzn_indirect_triangle_fan_draw_exec_params) :
-         sizeof(struct dzn_indirect_draw_exec_params),
+      .ByteStride = key.custom_stride ? key.custom_stride : stride,
       .NumArgumentDescs = cmd_arg_count,
       .pArgumentDescs = cmd_args,
    };
+   /* A root signature should be specified iff root params are changing */
+   ID3D12RootSignature *root_sig = key.draw_id || key.draw_params ?
+      pipeline->base.root.sig : NULL;
    HRESULT hres =
       ID3D12Device1_CreateCommandSignature(device->dev, &cmd_sig_desc,
-                                           pipeline->base.root.sig,
+                                           root_sig,
                                            &IID_ID3D12CommandSignature,
                                            (void **)&cmdsig);
    if (FAILED(hres))
       return NULL;
 
-   pipeline->indirect_cmd_sigs[type] = cmdsig;
+   if (key.custom_stride == 0 || key.custom_stride == stride)
+      pipeline->indirect_cmd_sigs[key.value] = cmdsig;
+   else
+      _mesa_hash_table_insert(pipeline->custom_stride_cmd_sigs, &key, cmdsig);
    return cmdsig;
 }
 
@@ -2466,9 +2543,10 @@ dzn_compute_pipeline_compile_shader(struct dzn_device *device,
       .nir_opts = &nir_opts,
       .subgroup_size = subgroup_enum,
    };
+   struct dxil_spirv_metadata metadata = { 0 };
    ret = dzn_pipeline_get_nir_shader(device, layout, cache, nir_hash,
                                      &info->stage, MESA_SHADER_COMPUTE,
-                                     &options, &nir);
+                                     &options, &metadata, &nir);
    if (ret != VK_SUCCESS)
       return ret;
 

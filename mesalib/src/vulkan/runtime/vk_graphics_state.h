@@ -29,6 +29,7 @@
 #include "vk_limits.h"
 
 #include "util/bitset.h"
+#include "util/enum_operators.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -102,11 +103,16 @@ enum mesa_vk_dynamic_graphics_state {
    MESA_VK_DYNAMIC_CB_BLEND_EQUATIONS,
    MESA_VK_DYNAMIC_CB_WRITE_MASKS,
    MESA_VK_DYNAMIC_CB_BLEND_CONSTANTS,
+   MESA_VK_DYNAMIC_RP_ATTACHMENTS,
    MESA_VK_DYNAMIC_ATTACHMENT_FEEDBACK_LOOP_ENABLE,
+   MESA_VK_DYNAMIC_COLOR_ATTACHMENT_MAP,
+   MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP,
 
    /* Must be left at the end */
    MESA_VK_DYNAMIC_GRAPHICS_STATE_ENUM_MAX,
 };
+
+#define MESA_VK_ATTACHMENT_UNUSED (0xff)
 
 /** Populate a bitset with dynamic states
  *
@@ -351,29 +357,29 @@ struct vk_rasterization_state {
        */
       float width;
 
-      /** VkPipelineRasterizationLineStateCreateInfoEXT::lineRasterizationMode
+      /** VkPipelineRasterizationLineStateCreateInfoKHR::lineRasterizationMode
        *
-       * Will be set to VK_LINE_RASTERIZATION_MODE_DEFAULT_EXT if
-       * VkPipelineRasterizationLineStateCreateInfoEXT is not provided.
+       * Will be set to VK_LINE_RASTERIZATION_MODE_DEFAULT_KHR if
+       * VkPipelineRasterizationLineStateCreateInfoKHR is not provided.
        *
        * MESA_VK_DYNAMIC_RS_LINE_MODE
        */
-      VkLineRasterizationModeEXT mode;
+      VkLineRasterizationModeKHR mode;
 
       struct {
-         /** VkPipelineRasterizationLineStateCreateInfoEXT::stippledLineEnable
+         /** VkPipelineRasterizationLineStateCreateInfoKHR::stippledLineEnable
           *
           * MESA_VK_DYNAMIC_RS_LINE_STIPPLE_ENABLE
           */
          bool enable;
 
-         /** VkPipelineRasterizationLineStateCreateInfoEXT::lineStippleFactor
+         /** VkPipelineRasterizationLineStateCreateInfoKHR::lineStippleFactor
           *
           * MESA_VK_DYNAMIC_RS_LINE_STIPPLE
           */
          uint32_t factor;
 
-         /** VkPipelineRasterizationLineStateCreateInfoEXT::lineStipplePattern
+         /** VkPipelineRasterizationLineStateCreateInfoKHR::lineStipplePattern
           *
           * MESA_VK_DYNAMIC_RS_LINE_STIPPLE
           */
@@ -663,14 +669,69 @@ struct vk_color_blend_state {
    float blend_constants[4];
 };
 
+enum vk_rp_attachment_flags {
+   MESA_VK_RP_ATTACHMENT_NONE                      = 0,
+
+   MESA_VK_RP_ATTACHMENT_COLOR_0_BIT               = (1 << 0),
+   MESA_VK_RP_ATTACHMENT_COLOR_1_BIT               = (1 << 1),
+   MESA_VK_RP_ATTACHMENT_COLOR_2_BIT               = (1 << 2),
+   MESA_VK_RP_ATTACHMENT_COLOR_3_BIT               = (1 << 3),
+   MESA_VK_RP_ATTACHMENT_COLOR_4_BIT               = (1 << 4),
+   MESA_VK_RP_ATTACHMENT_COLOR_5_BIT               = (1 << 5),
+   MESA_VK_RP_ATTACHMENT_COLOR_6_BIT               = (1 << 6),
+   MESA_VK_RP_ATTACHMENT_COLOR_7_BIT               = (1 << 7),
+   MESA_VK_RP_ATTACHMENT_ANY_COLOR_BITS            = 0xff,
+
+   MESA_VK_RP_ATTACHMENT_DEPTH_BIT                 = (1 << 8),
+   MESA_VK_RP_ATTACHMENT_STENCIL_BIT               = (1 << 9),
+
+   MESA_VK_RP_ATTACHMENT_INFO_INVALID = 0xffff,
+};
+MESA_DEFINE_CPP_ENUM_BITFIELD_OPERATORS(vk_rp_attachment_flags)
+static_assert(MESA_VK_MAX_COLOR_ATTACHMENTS == 8,
+              "This enum must match the global runtime limit");
+
+#define MESA_VK_RP_ATTACHMENT_COLOR_BIT(n) \
+   ((enum vk_rp_attachment_flags)(MESA_VK_RP_ATTACHMENT_COLOR_0_BIT << (n)))
+
+/***/
+struct vk_input_attachment_location_state {
+   /** VkRenderingInputAttachmentIndexInfoKHR::pColorAttachmentLocations
+    *
+    * MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP
+    */
+   uint8_t color_map[MESA_VK_MAX_COLOR_ATTACHMENTS];
+
+   /** VkRenderingInputAttachmentIndexInfoKHR::pDepthInputAttachmentIndex
+    *
+    * MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP
+    */
+   uint8_t depth_att;
+
+   /** VkRenderingInputAttachmentIndexInfoKHR::pStencilInputAttachmentIndex
+    *
+    * MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP
+    */
+   uint8_t stencil_att;
+};
+
+/***/
+struct vk_color_attachment_location_state {
+   /** VkRenderingAttachmentLocationInfoKHR::pColorAttachmentLocations
+    *
+    * MESA_VK_DYNAMIC_COLOR_ATTACHMENT_MAP
+    */
+   uint8_t color_map[MESA_VK_MAX_COLOR_ATTACHMENTS];
+};
+
 /***/
 struct vk_render_pass_state {
    /** Set of image aspects bound as color/depth/stencil attachments
     *
-    * Set to VK_IMAGE_ASPECT_METADATA_BIT to indicate that attachment info
-    * is invalid.
+    * Set to MESA_VK_RP_ATTACHMENT_INFO_INVALID to indicate that attachment
+    * info is invalid.
     */
-   VkImageAspectFlags attachment_aspects;
+   enum vk_rp_attachment_flags attachments;
 
    /** VkPipelineRenderingCreateInfo::viewMask */
    uint32_t view_mask;
@@ -693,6 +754,12 @@ struct vk_render_pass_state {
    /** VkAttachmentSampleCountInfoAMD::depthStencilAttachmentSamples */
    uint8_t depth_stencil_attachment_samples;
 };
+
+static inline bool
+vk_render_pass_state_has_attachment_info(const struct vk_render_pass_state *rp)
+{
+   return rp->attachments != MESA_VK_RP_ATTACHMENT_INFO_INVALID;
+}
 
 static inline VkImageAspectFlags
 vk_pipeline_flags_feedback_loops(VkPipelineCreateFlags2KHR flags)
@@ -831,8 +898,18 @@ struct vk_dynamic_graphics_state {
    /** Color blend state */
    struct vk_color_blend_state cb;
 
+   struct {
+      enum vk_rp_attachment_flags attachments;
+   } rp;
+
    /** MESA_VK_DYNAMIC_ATTACHMENT_FEEDBACK_LOOP_ENABLE */
    VkImageAspectFlags feedback_loops;
+
+   /** MESA_VK_DYNAMIC_INPUT_ATTACHMENT_MAP */
+   struct vk_input_attachment_location_state ial;
+
+   /** MESA_VK_DYNAMIC_COLOR_ATTACHMENT_MAP */
+   struct vk_color_attachment_location_state cal;
 
    /** For pipelines, which bits of dynamic state are set */
    BITSET_DECLARE(set, MESA_VK_DYNAMIC_GRAPHICS_STATE_ENUM_MAX);
@@ -854,6 +931,8 @@ struct vk_graphics_pipeline_all_state {
    struct vk_sample_locations_state ms_sample_locations;
    struct vk_depth_stencil_state ds;
    struct vk_color_blend_state cb;
+   struct vk_input_attachment_location_state ial;
+   struct vk_color_attachment_location_state cal;
    struct vk_render_pass_state rp;
 };
 
@@ -910,6 +989,12 @@ struct vk_graphics_pipeline_state {
 
    /** Color blend state */
    const struct vk_color_blend_state *cb;
+
+   /** Input attachment mapping state */
+   const struct vk_input_attachment_location_state *ial;
+
+   /** Color attachment mapping state */
+   const struct vk_color_attachment_location_state *cal;
 
    /** Render pass state */
    const struct vk_render_pass_state *rp;
@@ -1049,8 +1134,6 @@ void
 vk_graphics_pipeline_get_state(const struct vk_graphics_pipeline_state *state,
                                BITSET_WORD *set_state_out);
 
-extern const struct vk_dynamic_graphics_state vk_default_dynamic_graphics_state;
-
 /** Initialize a vk_dynamic_graphics_state with defaults
  *
  * :param dyn:          |out| Dynamic graphics state to initizlie
@@ -1157,8 +1240,32 @@ void
 vk_cmd_set_cb_attachment_count(struct vk_command_buffer *cmd,
                                uint32_t attachment_count);
 
+/* Set render pass attachments on a command buffer.
+ *
+ * This is required for VK_EXT_shader_object in order to disable attachments
+ * based on bound shaders.
+ */
+void
+vk_cmd_set_rp_attachments(struct vk_command_buffer *cmd,
+                          enum vk_rp_attachment_flags attachments);
+
 const char *
 vk_dynamic_graphic_state_to_str(enum mesa_vk_dynamic_graphics_state state);
+
+/** Check whether the color attachment location map is the identity
+ *
+ * :param cal: |in| Color attachment location state
+ */
+static inline bool
+vk_color_attachment_location_state_is_identity(
+   const struct vk_color_attachment_location_state *cal)
+{
+   for (unsigned i = 0; i < ARRAY_SIZE(cal->color_map); i++) {
+      if (cal->color_map[i] != i)
+         return false;
+   }
+   return true;
+}
 
 #ifdef __cplusplus
 }

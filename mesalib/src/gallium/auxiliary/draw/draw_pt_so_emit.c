@@ -146,27 +146,23 @@ so_emit_prim(struct pt_so_emit *so,
    }
 
    /* check have we space to emit prim first - if not don't do anything */
-   for (unsigned i = 0; i < num_vertices; ++i) {
-      for (unsigned slot = 0; slot < state->num_outputs; ++slot) {
-         unsigned num_comps = state->output[slot].num_components;
-         int ob = state->output[slot].output_buffer;
-         unsigned dst_offset = state->output[slot].dst_offset * sizeof(float);
-         unsigned write_size = num_comps * sizeof(float);
+   for (unsigned slot = 0; slot < state->num_outputs; ++slot) {
+      int ob = state->output[slot].output_buffer;
 
-         if (state->output[slot].stream != so->stream)
-            continue;
-         /* If a buffer is missing then that's equivalent to
-          * an overflow */
-         if (!draw->so.targets[ob]) {
-            return;
-         }
-         if ((buffer_total_bytes[ob] + write_size + dst_offset) >
-             draw->so.targets[ob]->target.buffer_size) {
-            return;
-         }
+      if (state->output[slot].stream != so->stream)
+         continue;
+      /* If a buffer is missing then that's equivalent to an overflow */
+      if (!draw->so.targets[ob]) {
+         return;
       }
-      for (unsigned ob = 0; ob < draw->so.num_targets; ++ob) {
-         buffer_total_bytes[ob] += state->stride[ob] * sizeof(float);
+      buffer_written[ob] = true;
+   }
+   for (unsigned ob = 0; ob < draw->so.num_targets; ++ob) {
+      if (buffer_written[ob]) {
+         unsigned size_req = num_vertices * state->stride[ob] * sizeof(float);
+         if (buffer_total_bytes[ob] + size_req > draw->so.targets[ob]->target.buffer_size) {
+            return;
+         }
       }
    }
 
@@ -191,7 +187,6 @@ so_emit_prim(struct pt_so_emit *so,
             continue;
 
          unsigned ob = state->output[slot].output_buffer;
-         buffer_written[ob] = true;
 
          float *buffer = (float *)((char *)draw->so.targets[ob]->mapping +
                             draw->so.targets[ob]->target.buffer_offset +

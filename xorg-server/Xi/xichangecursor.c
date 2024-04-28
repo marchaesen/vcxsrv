@@ -35,16 +35,18 @@
 
 #include <X11/X.h>              /* for inputstr.h    */
 #include <X11/Xproto.h>         /* Request macro     */
+#include <X11/extensions/XI.h>
+#include <X11/extensions/XI2proto.h>
+
+#include "dix/dix_priv.h"
+
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
 #include "scrnintstr.h"         /* screen structure  */
-#include <X11/extensions/XI.h>
-#include <X11/extensions/XI2proto.h>
 #include "extnsionst.h"
 #include "exevents.h"
 #include "exglobals.h"
 #include "input.h"
-
 #include "xichangecursor.h"
 
 /***********************************************************************
@@ -97,7 +99,7 @@ ProcXIChangeCursor(ClientPtr client)
     }
     else {
         rc = dixLookupResourceByType((void **) &pCursor, stuff->cursor,
-                                     RT_CURSOR, client, DixUseAccess);
+                                     X11_RESTYPE_CURSOR, client, DixUseAccess);
         if (rc != Success)
             return rc;
     }

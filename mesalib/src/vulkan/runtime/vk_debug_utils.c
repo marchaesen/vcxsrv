@@ -82,6 +82,44 @@ vk_debug_message_instance(struct vk_instance *instance,
    }
 }
 
+void
+vk_address_binding_report(struct vk_instance *instance,
+                          struct vk_object_base *object, 
+                          uint64_t base_address,
+                          uint64_t size,
+                          VkDeviceAddressBindingTypeEXT type)
+{
+   if (list_is_empty(&instance->debug_utils.callbacks))
+      return;
+
+   VkDeviceAddressBindingCallbackDataEXT addr_binding = {
+      .sType = VK_STRUCTURE_TYPE_DEVICE_ADDRESS_BINDING_CALLBACK_DATA_EXT,
+      .flags = object->client_visible ? 0 : VK_DEVICE_ADDRESS_BINDING_INTERNAL_OBJECT_BIT_EXT,
+      .baseAddress = base_address,
+      .size = size,
+      .bindingType = type,
+   };
+
+   VkDebugUtilsObjectNameInfoEXT object_name_info = {
+         .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+         .pNext = NULL,
+         .objectType = object->type,
+         .objectHandle = (uint64_t)(uintptr_t)object,
+         .pObjectName = object->object_name,
+   };
+
+   VkDebugUtilsMessengerCallbackDataEXT cb_data = {
+      .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CALLBACK_DATA_EXT,
+      .pNext = &addr_binding,
+      .objectCount = 1,
+      .pObjects = &object_name_info,
+   };
+
+   vk_debug_message(instance, VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT,
+                    VK_DEBUG_UTILS_MESSAGE_TYPE_DEVICE_ADDRESS_BINDING_BIT_EXT,
+                    &cb_data);
+}
+
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_common_CreateDebugUtilsMessengerEXT(
    VkInstance _instance,
@@ -191,13 +229,57 @@ vk_common_set_object_name_locked(
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL
+vk_common_DebugMarkerSetObjectNameEXT(
+   VkDevice _device,
+   const VkDebugMarkerObjectNameInfoEXT *pNameInfo)
+{
+   VK_FROM_HANDLE(vk_device, device, _device);
+
+   assert(pNameInfo->sType == VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT);
+
+   VkObjectType object_type;
+   switch (pNameInfo->objectType) {
+   case VK_DEBUG_REPORT_OBJECT_TYPE_SURFACE_KHR_EXT:
+      object_type = VK_OBJECT_TYPE_SURFACE_KHR;
+      break;
+   case VK_DEBUG_REPORT_OBJECT_TYPE_SWAPCHAIN_KHR_EXT:
+      object_type = VK_OBJECT_TYPE_SWAPCHAIN_KHR;
+      break;
+   case VK_DEBUG_REPORT_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT_EXT:
+      object_type = VK_OBJECT_TYPE_DEBUG_REPORT_CALLBACK_EXT;
+      break;
+   case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_KHR_EXT:
+      object_type = VK_OBJECT_TYPE_DISPLAY_KHR;
+      break;
+   case VK_DEBUG_REPORT_OBJECT_TYPE_DISPLAY_MODE_KHR_EXT:
+      object_type = VK_OBJECT_TYPE_DISPLAY_MODE_KHR;
+      break;
+   case VK_DEBUG_REPORT_OBJECT_TYPE_VALIDATION_CACHE_EXT_EXT:
+      object_type = VK_OBJECT_TYPE_VALIDATION_CACHE_EXT;
+      break;
+   default:
+      object_type = (VkObjectType)pNameInfo->objectType;
+      break;
+   }
+
+   VkDebugUtilsObjectNameInfoEXT name_info = {
+      .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+      .objectType = object_type,
+      .objectHandle = pNameInfo->object,
+      .pObjectName = pNameInfo->pObjectName,
+   };
+
+   return device->dispatch_table.SetDebugUtilsObjectNameEXT(_device, &name_info);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
 vk_common_SetDebugUtilsObjectNameEXT(
    VkDevice _device,
    const VkDebugUtilsObjectNameInfoEXT *pNameInfo)
 {
    VK_FROM_HANDLE(vk_device, device, _device);
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (pNameInfo->objectType == VK_OBJECT_TYPE_SWAPCHAIN_KHR ||
        pNameInfo->objectType == VK_OBJECT_TYPE_SURFACE_KHR) {
 #else

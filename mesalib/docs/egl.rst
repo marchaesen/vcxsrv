@@ -1,7 +1,7 @@
 EGL
 ===
 
-The current version of EGL in Mesa implements EGL 1.4. More information
+The current version of EGL in Mesa implements EGL 1.5. More information
 about EGL can be found at https://www.khronos.org/egl/.
 
 The Mesa's implementation of EGL uses a driver architecture. The main
@@ -26,10 +26,9 @@ Build EGL
               -D gles2=enabled \
               -D gallium-drivers=...
 
-   The main library and OpenGL is enabled by default. The first two
-   options above enables :doc:`OpenGL ES 1.x and 2.x <opengles>`. The
-   last two options enables the listed classic and Gallium drivers
-   respectively.
+   The main EGL library and OpenGL are enabled by default. The two
+   ``gles*`` options after enable :doc:`OpenGL ES 1.x and 2.x+
+   <opengles>`. The last option enables the listed Gallium drivers.
 
 #. Build and install Mesa as usual.
 

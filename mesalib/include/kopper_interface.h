@@ -47,7 +47,7 @@ typedef struct __DRIkopperDrawableInfoRec    __DRIkopperDrawableInfo;
  * relying on a particular window system or DRI protocol.
  */
 #define __DRI_KOPPER "DRI_Kopper"
-#define __DRI_KOPPER_VERSION 1
+#define __DRI_KOPPER_VERSION 2
 
 struct __DRIkopperDrawableInfoRec {
    bool multiplanes_available;
@@ -71,6 +71,7 @@ struct __DRIkopperExtensionRec {
     int64_t (*swapBuffers)(__DRIdrawable *draw, uint32_t flush_flags);
     void (*setSwapInterval)(__DRIdrawable *drawable, int interval);
     int (*queryBufferAge)(__DRIdrawable *drawable);
+    int64_t (*swapBuffersWithDamage)(__DRIdrawable *draw, uint32_t flush_flags, int nrects, const int *rects);
 };
 
 /**

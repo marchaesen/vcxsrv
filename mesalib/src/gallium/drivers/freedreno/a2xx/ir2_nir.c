@@ -31,6 +31,7 @@
 #include "nir_legacy.h"
 
 static const nir_shader_compiler_options options = {
+   .compact_arrays = true,
    .lower_fpow = true,
    .lower_flrp32 = true,
    .lower_fmod = true,
@@ -43,7 +44,6 @@ static const nir_shader_compiler_options options = {
    .lower_all_io_to_temps = true,
    .vertex_id_zero_based = true, /* its not implemented anyway */
    .lower_bitops = true,
-   .lower_rotate = true,
    .lower_vector_cmp = true,
    .lower_fdph = true,
    .has_fsub = true,

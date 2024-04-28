@@ -29,7 +29,8 @@
 
 #include "util/u_debug.h"
 #include "util/u_memory.h"
-#include "util/u_box.h"
+#include "util/box.h"
+#include "pipe/p_state.h"
 
 #include "lima_util.h"
 #include "lima_parser.h"

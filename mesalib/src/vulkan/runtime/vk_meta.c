@@ -139,7 +139,7 @@ vk_meta_lookup_object(struct vk_meta_device *meta,
 {
    assert(key_size >= sizeof(enum vk_meta_object_key_type));
    assert(*(enum vk_meta_object_key_type *)key_data !=
-          VK_META_OBJECT_KEY_TYPE_INVALD);
+          VK_META_OBJECT_KEY_TYPE_INVALID);
 
    struct cache_key key = {
       .obj_type = obj_type,
@@ -172,7 +172,7 @@ vk_meta_cache_object(struct vk_device *device,
 {
    assert(key_size >= sizeof(enum vk_meta_object_key_type));
    assert(*(enum vk_meta_object_key_type *)key_data !=
-          VK_META_OBJECT_KEY_TYPE_INVALD);
+          VK_META_OBJECT_KEY_TYPE_INVALID);
 
    struct cache_key *key = cache_key_create(obj_type, key_data, key_size);
    struct vk_object_base *obj =

@@ -12,7 +12,7 @@
 # and run ci-fairy generate-template. For details, see
 # https://freedesktop.pages.freedesktop.org/ci-templates/ci-fairy.html#templating-gitlab-ci-yml
 
-.templates_sha: &template_sha d11c0dd4c1c9a69c14b4af9b50cdd12b89d24672
+.templates_sha: &template_sha 98b1218f146a1ec96d65e3ce0041f9a6ec5cb5e6
 
 include:
   {% for distro in distributions|sort(attribute="name") %}
@@ -270,6 +270,7 @@ check-ci-script:
       - build*/doc/fontconfig-user.html
       - build*/doc/fontconfig-devel/*
       - build*/fc-build.log
+      - build*/config.log
       - build*/fontconfig-*.tar.*
       - build*/test/*log
       - build*/fontconfig*/_build

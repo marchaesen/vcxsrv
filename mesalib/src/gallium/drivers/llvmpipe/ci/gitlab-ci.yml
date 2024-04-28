@@ -38,6 +38,14 @@ llvmpipe:
     section_end weston
     LD_LIBRARY_PATH="$PWD/install" WAYLAND_DISPLAY=wayland-0 xvfb-run --server-args='-noreset' bash -c ". $SCRIPTS_DIR/setup-test-env.sh && ${XVFB_SCRIPT}"
 
+llvmpipe-full:
+  extends:
+    - llvmpipe
+    - .llvmpipe-manual-rules
+  timeout: 45m  # base runtime = 30m
+  variables:
+    DEQP_FRACTION: 1
+
 llvmpipe-deqp-asan:
   variables:
     DEQP_SUITE: llvmpipe-asan

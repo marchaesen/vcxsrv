@@ -230,13 +230,14 @@ apply_blit_scissor(const struct pipe_scissor_state *scissor,
 }
 
 void
-iris_blorp_surf_for_resource(struct isl_device *isl_dev,
+iris_blorp_surf_for_resource(struct iris_batch *batch,
                              struct blorp_surf *surf,
                              struct pipe_resource *p_res,
                              enum isl_aux_usage aux_usage,
                              unsigned level,
                              bool is_dest)
 {
+   const struct isl_device *isl_dev = &batch->screen->isl_dev;
    struct iris_resource *res = (void *) p_res;
    const struct intel_device_info *devinfo = isl_dev->info;
 
@@ -247,8 +248,7 @@ iris_blorp_surf_for_resource(struct isl_device *isl_dev,
          .offset = res->offset,
          .reloc_flags = is_dest ? IRIS_BLORP_RELOC_FLAGS_EXEC_OBJECT_WRITE : 0,
          .mocs = iris_mocs(res->bo, isl_dev,
-                           is_dest ? ISL_SURF_USAGE_RENDER_TARGET_BIT
-                                   : ISL_SURF_USAGE_TEXTURE_BIT),
+                           iris_blorp_batch_usage(batch, is_dest)),
          .local_hint = iris_bo_likely_local(res->bo),
       },
       .aux_usage = aux_usage,
@@ -515,10 +515,10 @@ iris_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
                                    IRIS_DOMAIN_RENDER_WRITE);
 
       struct blorp_surf src_surf, dst_surf;
-      iris_blorp_surf_for_resource(&screen->isl_dev,  &src_surf,
+      iris_blorp_surf_for_resource(batch,  &src_surf,
                                    &src_res->base.b, src_aux_usage,
                                    info->src.level, false);
-      iris_blorp_surf_for_resource(&screen->isl_dev, &dst_surf,
+      iris_blorp_surf_for_resource(batch, &dst_surf,
                                    &dst_res->base.b, dst_aux_usage,
                                    info->dst.level, true);
 
@@ -683,14 +683,14 @@ iris_copy_region(struct blorp_context *blorp,
       struct blorp_address src_addr = {
          .buffer = src_res->bo, .offset = src_res->offset + src_box->x,
          .mocs = iris_mocs(src_res->bo, &screen->isl_dev,
-                           ISL_SURF_USAGE_TEXTURE_BIT),
+                           iris_blorp_batch_usage(batch, false /* is_dest */)),
          .local_hint = iris_bo_likely_local(src_res->bo),
       };
       struct blorp_address dst_addr = {
          .buffer = dst_res->bo, .offset = dst_res->offset + dstx,
          .reloc_flags = IRIS_BLORP_RELOC_FLAGS_EXEC_OBJECT_WRITE,
          .mocs = iris_mocs(dst_res->bo, &screen->isl_dev,
-                           ISL_SURF_USAGE_RENDER_TARGET_BIT),
+                           iris_blorp_batch_usage(batch, true /* is_dest */)),
          .local_hint = iris_bo_likely_local(dst_res->bo),
       };
 
@@ -716,10 +716,10 @@ iris_copy_region(struct blorp_context *blorp,
       iris_emit_buffer_barrier_for(batch, dst_res->bo, write_domain);
 
       struct blorp_surf src_surf, dst_surf;
-      iris_blorp_surf_for_resource(&screen->isl_dev, &src_surf,
-                                   src, src_aux_usage, src_level, false);
-      iris_blorp_surf_for_resource(&screen->isl_dev, &dst_surf,
-                                   dst, dst_aux_usage, dst_level, true);
+      iris_blorp_surf_for_resource(batch, &src_surf, src,
+                                   src_aux_usage, src_level, false);
+      iris_blorp_surf_for_resource(batch, &dst_surf, dst,
+                                   dst_aux_usage, dst_level, true);
 
       for (int slice = 0; slice < src_box->depth; slice++) {
          iris_batch_maybe_flush(batch, 1500);

@@ -32,10 +32,11 @@
 #endif
 
 #include <X11/X.h>
+
 #include "os.h"
 #include "xf86.h"
 #include "xf86Priv.h"
-#define XF86_OS_PRIVS
+#include "xf86_os_support.h"
 #include "xf86_OSproc.h"
 
 PMClose

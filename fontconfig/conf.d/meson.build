@@ -36,6 +36,8 @@ conf_files = [
   '65-nonlatin.conf',
   '69-unifont.conf',
   '70-no-bitmaps.conf',
+  '70-no-bitmaps-and-emoji.conf',
+  '70-no-bitmaps-except-emoji.conf',
   '70-yes-bitmaps.conf',
   '80-delicious.conf',
   '90-synthetic.conf',

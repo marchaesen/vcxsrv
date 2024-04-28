@@ -23,7 +23,6 @@
  */
 
 #include "pan_shader.h"
-#include "pan_device.h"
 #include "pan_format.h"
 
 #if PAN_ARCH <= 5

@@ -79,7 +79,7 @@ dzn_meta_compile_shader(struct dzn_device *device, nir_shader *nir,
 
    if ((instance->debug_flags & DZN_DEBUG_DXIL) &&
        (instance->debug_flags & DZN_DEBUG_INTERNAL) &&
-       !res) {
+       !res && !(instance->debug_flags & DZN_DEBUG_EXPERIMENTAL)) {
       fprintf(stderr,
             "== VALIDATION ERROR =============================================\n"
             "%s\n"
@@ -87,7 +87,7 @@ dzn_meta_compile_shader(struct dzn_device *device, nir_shader *nir,
             err ? err : "unknown");
       ralloc_free(err);
    }
-   assert(res);
+   assert(res || (instance->debug_flags & DZN_DEBUG_EXPERIMENTAL));
 #endif
 
    void *data;
@@ -100,9 +100,9 @@ dzn_meta_compile_shader(struct dzn_device *device, nir_shader *nir,
 #define DZN_META_INDIRECT_DRAW_MAX_PARAM_COUNT 5
 
 static void
-dzn_meta_indirect_draw_finish(struct dzn_device *device, enum dzn_indirect_draw_type type)
+dzn_meta_indirect_draw_finish(struct dzn_device *device, struct dzn_indirect_draw_type type)
 {
-   struct dzn_meta_indirect_draw *meta = &device->indirect_draws[type];
+   struct dzn_meta_indirect_draw *meta = &device->indirect_draws[type.value];
 
    if (meta->root_sig)
       ID3D12RootSignature_Release(meta->root_sig);
@@ -113,9 +113,9 @@ dzn_meta_indirect_draw_finish(struct dzn_device *device, enum dzn_indirect_draw_
 
 static VkResult
 dzn_meta_indirect_draw_init(struct dzn_device *device,
-                            enum dzn_indirect_draw_type type)
+                            struct dzn_indirect_draw_type type)
 {
-   struct dzn_meta_indirect_draw *meta = &device->indirect_draws[type];
+   struct dzn_meta_indirect_draw *meta = &device->indirect_draws[type.value];
    struct dzn_instance *instance =
       container_of(device->vk.physical->instance, struct dzn_instance, vk);
    VkResult ret = VK_SUCCESS;
@@ -123,23 +123,10 @@ dzn_meta_indirect_draw_init(struct dzn_device *device,
    glsl_type_singleton_init_or_ref();
 
    nir_shader *nir = dzn_nir_indirect_draw_shader(type);
-   bool triangle_fan = type == DZN_INDIRECT_DRAW_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_DRAW_COUNT_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
-   bool indirect_count = type == DZN_INDIRECT_DRAW_COUNT ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT ||
-                         type == DZN_INDIRECT_DRAW_COUNT_TRIANGLE_FAN ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
-   bool prim_restart = type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
    uint32_t shader_params_size =
-      triangle_fan && prim_restart ?
+      type.triangle_fan_primitive_restart ?
       sizeof(struct dzn_indirect_draw_triangle_fan_prim_restart_rewrite_params) :
-      triangle_fan ?
+      type.triangle_fan ?
       sizeof(struct dzn_indirect_draw_triangle_fan_rewrite_params) :
       sizeof(struct dzn_indirect_draw_rewrite_params);
 
@@ -176,7 +163,7 @@ dzn_meta_indirect_draw_init(struct dzn_device *device,
       .ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL,
    };
 
-   if (indirect_count) {
+   if (type.indirect_count) {
       root_params[root_param_count++] = (D3D12_ROOT_PARAMETER1) {
          .ParameterType = D3D12_ROOT_PARAMETER_TYPE_SRV,
          .Descriptor = {
@@ -189,7 +176,7 @@ dzn_meta_indirect_draw_init(struct dzn_device *device,
    }
 
 
-   if (triangle_fan) {
+   if (type.triangle_fan) {
       root_params[root_param_count++] = (D3D12_ROOT_PARAMETER1) {
          .ParameterType = D3D12_ROOT_PARAMETER_TYPE_UAV,
          .Descriptor = {
@@ -553,6 +540,16 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
          .OffsetInDescriptorsFromTableStart = 0,
       },
    };
+   D3D12_DESCRIPTOR_RANGE1 sampler_ranges[] = {
+      {
+         .RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER,
+         .NumDescriptors = 1,
+         .BaseShaderRegister = 0,
+         .RegisterSpace = 0,
+         .Flags = 0,
+         .OffsetInDescriptorsFromTableStart = 0,
+      },
+   };
 
    D3D12_STATIC_SAMPLER_DESC samplers[] = {
       {
@@ -572,7 +569,7 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
       },
    };
 
-   D3D12_ROOT_PARAMETER1 root_params[] = {
+   D3D12_ROOT_PARAMETER1 root_params[4] = {
       {
          .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
          .DescriptorTable = {
@@ -590,18 +587,25 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
          },
          .ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX,
       },
-   };
-
-   D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_sig_desc = {
-      .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
-      .Desc_1_1 = {
-         .NumParameters = ARRAY_SIZE(root_params),
-         .pParameters = root_params,
-         .NumStaticSamplers = ARRAY_SIZE(samplers),
-         .pStaticSamplers = samplers,
-         .Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
+      {
+         .ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+         .DescriptorTable = {
+            .NumDescriptorRanges = ARRAY_SIZE(sampler_ranges),
+            .pDescriptorRanges = sampler_ranges,
+         },
+         .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
+      },
+      {
+         .ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS,
+         .Constants = {
+            .ShaderRegister = 0,
+            .RegisterSpace = 0,
+            .Num32BitValues = 1,
+         },
+         .ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL,
       },
    };
+   uint32_t num_root_params = 2;
 
    uint32_t samples = key->resolve_mode == dzn_blit_resolve_none ?
       key->samples : 1;
@@ -627,8 +631,35 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
       .sampler_dim = key->sampler_dim,
       .src_is_array = key->src_is_array,
       .resolve_mode = key->resolve_mode,
+      .stencil_fallback = key->loc == FRAG_RESULT_STENCIL && key->stencil_bit != 0xf,
       .padding = 0,
    };
+
+   D3D12_VERSIONED_ROOT_SIGNATURE_DESC root_sig_desc = {
+      .Version = D3D_ROOT_SIGNATURE_VERSION_1_1,
+      .Desc_1_1 = {
+         .NumParameters = num_root_params,
+         .pParameters = root_params,
+         .NumStaticSamplers = ARRAY_SIZE(samplers),
+         .pStaticSamplers = samplers,
+         .Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
+      },
+   };
+
+   if (!device->support_static_samplers) {
+      root_sig_desc.Desc_1_1.NumStaticSamplers = 0;
+      root_sig_desc.Desc_1_1.NumParameters = 3;
+   }
+
+   /* Don't need fs constants unless we're doing the stencil fallback */
+   if (blit_fs_info.stencil_fallback) {
+      if (device->support_static_samplers) {
+         root_params[2] = root_params[3];
+         root_sig_desc.Desc_1_1.NumParameters = 3;
+      } else {
+         root_sig_desc.Desc_1_1.NumParameters = 4;
+      }
+   }
 
    blit->root_sig = dzn_device_create_root_sig(device, &root_sig_desc);
    if (!blit->root_sig) {
@@ -675,7 +706,7 @@ dzn_meta_blit_create(struct dzn_device *device, const struct dzn_meta_blit_key *
       } else {
          assert(key->loc == FRAG_RESULT_STENCIL);
          desc.DepthStencilState.StencilEnable = true;
-         desc.DepthStencilState.StencilWriteMask = 0xff;
+         desc.DepthStencilState.StencilWriteMask = key->stencil_bit == 0xf ? 0xff : (1 << key->stencil_bit);
          desc.DepthStencilState.FrontFace.StencilFailOp = D3D12_STENCIL_OP_REPLACE;
          desc.DepthStencilState.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_REPLACE;
          desc.DepthStencilState.FrontFace.StencilPassOp = D3D12_STENCIL_OP_REPLACE;
@@ -773,7 +804,7 @@ dzn_meta_finish(struct dzn_device *device)
       dzn_meta_triangle_fan_rewrite_index_finish(device, i);
 
    for (uint32_t i = 0; i < ARRAY_SIZE(device->indirect_draws); i++)
-      dzn_meta_indirect_draw_finish(device, i);
+      dzn_meta_indirect_draw_finish(device, (struct dzn_indirect_draw_type) { .value = i });
 
    dzn_meta_blits_finish(device);
 }
@@ -781,22 +812,34 @@ dzn_meta_finish(struct dzn_device *device)
 VkResult
 dzn_meta_init(struct dzn_device *device)
 {
+   struct dzn_physical_device *pdev = container_of(device->vk.physical, struct dzn_physical_device, vk);
    VkResult result = dzn_meta_blits_init(device);
    if (result != VK_SUCCESS)
       goto out;
 
    for (uint32_t i = 0; i < ARRAY_SIZE(device->indirect_draws); i++) {
+      struct dzn_indirect_draw_type type = { .value = i };
+      if (type.triangle_fan_primitive_restart && !type.triangle_fan)
+         continue;
+      if (type.triangle_fan && pdev->options15.TriangleFanSupported)
+         continue;
+      if (type.draw_params && pdev->options21.ExtendedCommandInfoSupported)
+         continue;
+      if (type.draw_id && pdev->options21.ExecuteIndirectTier >= D3D12_EXECUTE_INDIRECT_TIER_1_1)
+         continue;
       VkResult result =
-         dzn_meta_indirect_draw_init(device, i);
+         dzn_meta_indirect_draw_init(device, type);
       if (result != VK_SUCCESS)
          goto out;
    }
 
-   for (uint32_t i = 0; i < ARRAY_SIZE(device->triangle_fan); i++) {
-      VkResult result =
-         dzn_meta_triangle_fan_rewrite_index_init(device, i);
-      if (result != VK_SUCCESS)
-         goto out;
+   if (!pdev->options15.TriangleFanSupported) {
+      for (uint32_t i = 0; i < ARRAY_SIZE(device->triangle_fan); i++) {
+         VkResult result =
+            dzn_meta_triangle_fan_rewrite_index_init(device, i);
+         if (result != VK_SUCCESS)
+            goto out;
+      }
    }
 
 out:

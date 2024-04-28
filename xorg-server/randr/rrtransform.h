@@ -30,8 +30,8 @@ typedef struct _rrTransform RRTransformRec, *RRTransformPtr;
 
 struct _rrTransform {
     PictTransform transform;
-    struct pict_f_transform f_transform;
-    struct pict_f_transform f_inverse;
+    struct pixman_f_transform f_transform;
+    struct pixman_f_transform f_inverse;
     PictFilterPtr filter;
     xFixed *params;
     int nparams;
@@ -73,7 +73,7 @@ RRTransformCompute(int x,
                    Rotation rotation,
                    RRTransformPtr rr_transform,
                    PictTransformPtr transform,
-                   struct pict_f_transform *f_transform,
-                   struct pict_f_transform *f_inverse);
+                   struct pixman_f_transform *f_transform,
+                   struct pixman_f_transform *f_inverse);
 
 #endif                          /* _RRTRANSFORM_H_ */

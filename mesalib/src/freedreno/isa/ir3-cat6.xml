@@ -34,7 +34,34 @@ SOFTWARE.
 	 '.b' - "bindless" instructions
 	 '.g' - "global" atomics that operate on raw iova addresses
 	 '.s' - "ssbo" pre-a6xx image/ssbo atomics
+	 '.k' - "constants" load into constant reg file
  -->
+
+<bitset name="#const-dst-imm" extends="#const-dst">
+	<display>
+		{OFFSET}
+	</display>
+	<field name="OFFSET" low="0" high="7" type="uint"/>
+	<pattern pos="8">0</pattern>
+</bitset>
+
+<bitset name="#const-dst-a1" extends="#const-dst">
+	<display>
+		a1.x{OFFSET}
+	</display>
+	<field name="OFFSET" low="0" high="7" type="uoffset"/>
+	<pattern pos="8">1</pattern>
+</bitset>
+
+<bitset name="#const-dst" size="9">
+	<doc>
+		Encoding for c[*] destination which can be constant or have an
+		offset of a1.x.
+	</doc>
+	<encode type="struct ir3_instruction *" case-prefix="">
+		<map name="OFFSET">extract_reg_uim(src->srcs[0])</map>
+	</encode>
+</bitset>
 
 <bitset name="#instruction-cat6" extends="#instruction">
 	<field   pos="59"          name="JP" type="bool" display="(jp)"/>
@@ -146,6 +173,41 @@ SOFTWARE.
 		<map name="OFF">extract_reg_uim(src->srcs[2])</map>
 		<map name="SIZE">extract_reg_uim(src->srcs[4])</map>
 		<map name="SRC1_CONST">!!(src->srcs[0]->flags &amp; IR3_REG_CONST)</map>
+	</encode>
+</bitset>
+
+<bitset name="ldg.k" extends="#instruction-cat6-a3xx">
+	<doc>
+		LoaD Global Constants
+	</doc>
+
+	<gen min="600"/>
+
+	<display>
+		{SY}{JP}{NAME}.{TYPE} c[{DST}], g[{SRC1}{OFF}], {SIZE}
+	</display>
+
+	<pattern pos="0"           >1</pattern>
+	<field   low="1"  high="13" name="OFF"  type="offset"/>
+	<field   low="14" high="21" name="SRC1" type="#cat6-src-const-or-gpr">
+		<param name="SRC1_CONST" as="SRC_CONST"/>
+	</field>
+	<pattern pos="22"          >0</pattern>
+	<field   low="23" high="26" name="SIZE" type="uint"/>
+	<pattern low="27" high="31">00xxx</pattern>
+	<field   low="32" high="40" name="DST" type="#const-dst"/>
+	<pattern low="41" high="48">xxxxxxxx</pattern>
+	<pattern pos="52"          >1</pattern>
+	<pattern low="53" high="53">0</pattern>
+	<pattern low="54" high="58">00000</pattern>  <!-- OPC -->
+
+	<derived name="SRC1_CONST" expr="#false" type="bool"/>
+
+	<encode>
+		<map name="DST">src</map>
+		<map name="SRC1">src->srcs[1]</map>
+		<map name="OFF">extract_reg_uim(src->srcs[2])</map>
+		<map name="SIZE">extract_reg_uim(src->srcs[3])</map>
 	</encode>
 </bitset>
 
@@ -392,32 +454,6 @@ SOFTWARE.
 	<pattern low="54" high="58">01011</pattern>  <!-- OPC -->
 </bitset>
 
-<bitset name="#stc-dst-imm" extends="#stc-dst">
-	<display>
-		{OFFSET}
-	</display>
-	<field name="OFFSET" low="0" high="7" type="uint"/>
-	<pattern pos="8">0</pattern>
-</bitset>
-
-<bitset name="#stc-dst-a1" extends="#stc-dst">
-	<display>
-		a1.x{OFFSET}
-	</display>
-	<field name="OFFSET" low="0" high="7" type="uoffset"/>
-	<pattern pos="8">1</pattern>
-</bitset>
-
-<bitset name="#stc-dst" size="9">
-	<doc>
-		Encoding for stc destination which can be constant or have an
-		offset of a1.x.
-	</doc>
-	<encode type="struct ir3_instruction *" case-prefix="">
-		<map name="OFFSET">extract_reg_uim(src->srcs[0])</map>
-	</encode>
-</bitset>
-
 <bitset name="stc" extends="#instruction-cat6-a3xx">
 	<doc>
 		STore Const - used for shader prolog (between shps and shpe)
@@ -450,7 +486,7 @@ SOFTWARE.
 	<pattern pos="23"          >1</pattern>
 	<field   low="24" high="26" name="SIZE" type="uint"/>
 	<pattern low="27" high="31">xxxxx</pattern>
-	<field   low="32" high="40" name="DST" type="#stc-dst"/>
+	<field   low="32" high="40" name="DST" type="#const-dst"/>
 	<pattern low="41" high="48">xxxxxxxx</pattern>
 	<pattern low="52" high="53">xx</pattern>
 	<pattern low="54" high="58">11100</pattern>  <!-- OPC -->
@@ -984,7 +1020,6 @@ SOFTWARE.
 
 <bitset name="#cat6-ldc-common" extends="#instruction-cat6-a6xx">
 	<pattern pos="0"           >x</pattern>
-	<pattern pos="11"          >x</pattern>        <!-- TYPED -->
 	<pattern low="14" high="19">011110</pattern>   <!-- OPC -->
 	<pattern low="20" high="22">1xx</pattern>
 	<field   pos="23"           name="SRC1_IM" type="bool"/>
@@ -1021,6 +1056,7 @@ SOFTWARE.
 		{SY}{JP}ldc.{LOAD_SIZE}.k.{MODE}{BASE} c[a1.x], {SRC1}, {SRC2}
 	</display>
 
+	<pattern pos="11">x</pattern>
 	<derived name="LOAD_SIZE" expr="#cat6-load-size" type="uint"/>
 
 	<field   low="32" high="39" name="LOAD_SIZE_MINUS_ONE" type="uint"/>
@@ -1041,13 +1077,15 @@ SOFTWARE.
 	meaning?  Maybe I don't have enough ldc examples from deqp-glesN
 	 -->
 	<display>
-		{SY}{JP}{NAME}.offset{OFFSET}.{TYPE_SIZE}.{MODE}{BASE} {DST}, {SRC1}, {SRC2}
+		{SY}{JP}{NAME}{U}.offset{OFFSET}.{TYPE_SIZE}.{MODE}{BASE} {DST}, {SRC1}, {SRC2}
 	</display>
+	<field   pos="11" name="U" type="bool" display=".u"/>
 	<field   low="9"  high="10" name="OFFSET" type="uint"/>   <!-- D_MINUS_ONE -->
 	<field   low="32" high="39" name="DST" type="#reg-gpr"/>
 	<pattern low="52" high="53">10</pattern>
 	<encode>
 		<map name="OFFSET">src->cat6.d</map>
+		<map name="U">!!(src->flags &amp; IR3_INSTR_U)</map>
 	</encode>
 </bitset>
 

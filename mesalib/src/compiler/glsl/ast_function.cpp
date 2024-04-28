@@ -889,6 +889,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_INT:
          result = new(ctx) ir_expression(ir_unop_i2u, src);
          break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162u, src);
+         break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2u, src);
          break;
@@ -919,6 +922,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
       case GLSL_TYPE_UINT:
          result = new(ctx) ir_expression(ir_unop_u2i, src);
          break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162i, src);
+         break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2i, src);
          break;
@@ -936,6 +942,31 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
          break;
       }
       break;
+   case GLSL_TYPE_FLOAT16:
+      switch (b) {
+      case GLSL_TYPE_UINT:
+         result = new(ctx) ir_expression(ir_unop_u2f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_INT:
+         result = new(ctx) ir_expression(ir_unop_i2f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_BOOL:
+         result = new(ctx) ir_expression(ir_unop_b2f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_FLOAT:
+         result = new(ctx) ir_expression(ir_unop_f2f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_DOUBLE:
+         result = new(ctx) ir_expression(ir_unop_d2f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_UINT64:
+         result = new(ctx) ir_expression(ir_unop_u642f16, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_INT64:
+         result = new(ctx) ir_expression(ir_unop_i642f16, desired_type, src, NULL);
+         break;
+      }
+      break;
    case GLSL_TYPE_FLOAT:
       switch (b) {
       case GLSL_TYPE_UINT:
@@ -946,6 +977,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
          break;
       case GLSL_TYPE_BOOL:
          result = new(ctx) ir_expression(ir_unop_b2f, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162f, desired_type, src, NULL);
          break;
       case GLSL_TYPE_DOUBLE:
          result = new(ctx) ir_expression(ir_unop_d2f, desired_type, src, NULL);
@@ -967,6 +1001,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
          break;
       case GLSL_TYPE_INT:
          result = new(ctx) ir_expression(ir_unop_i2b, desired_type, src, NULL);
+         break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162b, desired_type, src, NULL);
          break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2b, desired_type, src, NULL);
@@ -997,6 +1034,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
                                          new(ctx) ir_expression(ir_unop_b2f,
                                                                 src));
          break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162d, desired_type, src, NULL);
+         break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2d, desired_type, src, NULL);
          break;
@@ -1021,6 +1061,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
                                          new(ctx) ir_expression(ir_unop_b2i64,
                                                                 src));
          break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162u64, src);
+         break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2u64, src);
          break;
@@ -1042,6 +1085,9 @@ convert_component(ir_rvalue *src, const glsl_type *desired_type)
          break;
       case GLSL_TYPE_BOOL:
          result = new(ctx) ir_expression(ir_unop_b2i64, src);
+         break;
+      case GLSL_TYPE_FLOAT16:
+         result = new(ctx) ir_expression(ir_unop_f162i64, src);
          break;
       case GLSL_TYPE_FLOAT:
          result = new(ctx) ir_expression(ir_unop_f2i64, src);
@@ -1654,7 +1700,7 @@ emit_inline_matrix_constructor(const glsl_type *type,
        * components with zero.
        */
       glsl_base_type param_base_type = first_param->type->base_type;
-      assert(glsl_type_is_float(first_param->type) || glsl_type_is_double(first_param->type));
+      assert(glsl_type_is_float_16_32_64(first_param->type));
       ir_variable *rhs_var =
          new(ctx) ir_variable(glsl_simple_type(param_base_type, 4, 1),
                               "mat_ctor_vec",

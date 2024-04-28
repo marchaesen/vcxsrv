@@ -15,6 +15,8 @@ is" without express or implied warranty.
 #ifndef XNESTVISUAL_H
 #define XNESTVISUAL_H
 
+#include <X11/X.h>
+
 Visual *xnestVisual(VisualPtr pVisual);
 Visual *xnestVisualFromID(ScreenPtr pScreen, VisualID visual);
 Colormap xnestDefaultVisualColormap(Visual * visual);

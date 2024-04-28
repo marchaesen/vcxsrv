@@ -399,6 +399,7 @@ util_widen_mask(uint32_t mask, unsigned multiplier)
 enum util_popcnt {
    POPCNT_NO,
    POPCNT_YES,
+   POPCNT_INVALID,
 };
 
 /* Convenient function to select popcnt through a C++ template argument.

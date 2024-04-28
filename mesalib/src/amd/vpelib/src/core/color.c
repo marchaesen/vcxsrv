@@ -59,6 +59,20 @@ static bool color_update_input_cs(struct vpe_priv *vpe_priv, enum color_space in
 
 static bool is_ycbcr(enum color_space in_cs);
 
+static void get_shaper_norm_factor(struct vpe_tonemap_params *tm_params,
+    struct stream_ctx *stream_ctx, uint32_t *shaper_norm_factor)
+{
+    if (tm_params->shaper_tf == VPE_TF_PQ_NORMALIZED) {
+        if (tm_params->input_pq_norm_factor == 0) {
+            *shaper_norm_factor = stream_ctx->stream.hdr_metadata.max_mastering;
+        } else {
+            *shaper_norm_factor = tm_params->input_pq_norm_factor;
+        }
+    } else {
+        *shaper_norm_factor = HDR_PEAK_WHITE;
+    }
+}
+
 static bool is_ycbcr(enum color_space in_cs)
 {
     if ((in_cs == COLOR_SPACE_YCBCR601) || (in_cs == COLOR_SPACE_YCBCR601_LIMITED) ||
@@ -412,7 +426,7 @@ static enum vpe_status vpe_update_blnd_gamma(
 
     is_studio = (param->dst_surface.cs.range == VPE_COLOR_RANGE_STUDIO);
     output_ctx = &vpe_priv->output_ctx;
-    lut3d_enabled = tm_params->enable_3dlut;
+    lut3d_enabled = tm_params->UID != 0 || tm_params->enable_3dlut;
 
     if (is_studio) {
 
@@ -663,7 +677,7 @@ enum vpe_status vpe_color_update_color_space_and_tf(
     status = vpe_allocate_cm_memory(vpe_priv, param);
     if (status == VPE_STATUS_OK) {
 
-        color_check_output_cm_update(vpe_priv, &param->dst_surface.cs);
+        color_check_output_cm_update(vpe_priv, &vpe_priv->output_ctx.surface.cs);
 
         for (stream_idx = 0; stream_idx < param->num_streams; stream_idx++) {
 
@@ -672,7 +686,7 @@ enum vpe_status vpe_color_update_color_space_and_tf(
 
             color_check_input_cm_update(vpe_priv, stream_ctx,
                 &param->streams[stream_idx].surface_info.cs, &param->streams[stream_idx].color_adj,
-                param->streams[stream_idx].tm_params.enable_3dlut);
+                param->streams[stream_idx].tm_params.UID != 0 || param->streams[stream_idx].tm_params.enable_3dlut);
 
             build_scale_and_bias(stream_ctx->bias_scale,
                 &param->streams[stream_idx].surface_info.cs,
@@ -680,7 +694,7 @@ enum vpe_status vpe_color_update_color_space_and_tf(
 
             if (stream_ctx->dirty_bits.color_space) {
                 if (!color_update_input_cs(vpe_priv, stream_ctx->cs,
-                    &param->streams[stream_idx].color_adj, stream_ctx->input_cs,
+                    &stream_ctx->stream.color_adj, stream_ctx->input_cs,
                     &stream_ctx->color_adjustments, &new_matrix_scaling_factor)) {
                     vpe_log("err: input cs not being programmed!");
                 }
@@ -700,13 +714,14 @@ enum vpe_status vpe_color_update_color_space_and_tf(
                     vpe_priv->stream_ctx->tf_scaling_factor,
                     vpe_fixpt_one,
                     vpe_fixpt_zero,
-                    stream_ctx->stream.tm_params.enable_3dlut, // By Pass degamma if 3DLUT is enabled
+                    stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut, // By Pass degamma if 3DLUT is enabled
                     stream_ctx->input_tf);
             }
 
             if (stream_ctx->dirty_bits.color_space || output_ctx->dirty_bits.color_space) {
                 status = vpe_color_update_gamut(vpe_priv, stream_ctx->cs, output_ctx->cs,
-                    stream_ctx->gamut_remap, stream_ctx->stream.tm_params.enable_3dlut);
+                    stream_ctx->gamut_remap,
+                    stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut);
             }
 
             
@@ -777,12 +792,11 @@ enum vpe_status vpe_color_update_movable_cm(
     for (stream_idx = 0; stream_idx < param->num_streams; stream_idx++) {
         stream_ctx = &vpe_priv->stream_ctx[stream_idx];
 
-        bool enable_3dlut = stream_ctx->stream.tm_params.enable_3dlut;
-        bool update_3dlut = stream_ctx->stream.tm_params.update_3dlut;
+        bool enable_3dlut = stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut;
 
-        if (stream_ctx->update_3dlut) {
+        if (stream_ctx->update_3dlut || stream_ctx->UID_3DLUT != stream_ctx->stream.tm_params.UID) {
 
-            uint32_t                 pqNormFactor;
+            uint32_t                 shaper_norm_factor;
             struct vpe_color_space   tm_out_cs;
             enum color_space         out_lut_cs;
             enum color_transfer_func tf;
@@ -825,17 +839,15 @@ enum vpe_status vpe_color_update_movable_cm(
 
             //Blendgam is updated by output vpe_update_output_gamma_sequence
 
-            if (param->streams[stream_idx].tm_params.shaper_tf == VPE_TF_PQ_NORMALIZED)
-                pqNormFactor = stream_ctx->stream.hdr_metadata.max_mastering;
-            else
-                pqNormFactor = HDR_PEAK_WHITE;
+            get_shaper_norm_factor(
+                &param->streams[stream_idx].tm_params, stream_ctx, &shaper_norm_factor);
 
-            vpe_color_tm_update_hdr_mult(SHAPER_EXP_MAX_IN, pqNormFactor,
+            vpe_color_tm_update_hdr_mult(SHAPER_EXP_MAX_IN, shaper_norm_factor,
                 &stream_ctx->lut3d_func->hdr_multiplier, enable_3dlut);
 
             vpe_color_update_shaper(SHAPER_EXP_MAX_IN, stream_ctx->in_shaper_func, enable_3dlut);
 
-            vpe_color_build_tm_cs(&stream_ctx->stream.tm_params, param->dst_surface, &tm_out_cs);
+            vpe_color_build_tm_cs(&stream_ctx->stream.tm_params, vpe_priv->output_ctx.surface, &tm_out_cs);
 
             vpe_color_get_color_space_and_tf(&tm_out_cs, &out_lut_cs, &tf);
 
@@ -846,6 +858,7 @@ enum vpe_status vpe_color_update_movable_cm(
                 stream_ctx->lut3d_func, enable_3dlut);
 
             stream_ctx->update_3dlut = false;
+            stream_ctx->UID_3DLUT = param->streams[stream_idx].tm_params.UID;
         }
     }
 exit:
@@ -860,19 +873,40 @@ void vpe_color_get_color_space_and_tf(
     *cs = COLOR_SPACE_UNKNOWN;
     *tf = TRANSFER_FUNC_UNKNOWN;
 
+    switch (vcs->tf) {
+    case VPE_TF_G22:
+        *tf = TRANSFER_FUNC_SRGB;
+        break;
+    case VPE_TF_G24:
+        *tf = TRANSFER_FUNC_BT1886;
+        break;
+    case VPE_TF_PQ:
+        *tf = TRANSFER_FUNC_PQ2084;
+        break;
+    case VPE_TF_PQ_NORMALIZED:
+        *tf = TRANSFER_FUNC_NORMALIZED_PQ;
+        break;
+    case VPE_TF_G10:
+        *tf = TRANSFER_FUNC_LINEAR_0_125;
+        break;
+    case VPE_TF_SRGB:
+        *tf = TRANSFER_FUNC_SRGB;
+        break;
+    case VPE_TF_BT709:
+        *tf = TRANSFER_FUNC_BT709;
+        break;
+    case VPE_TF_HLG:
+        *tf = TRANSFER_FUNC_HLG;
+        break;
+    default:
+        break;
+    }
+
     if (vcs->encoding == VPE_PIXEL_ENCODING_YCbCr) {
         switch (vcs->tf) {
         case VPE_TF_G22:
             *tf = TRANSFER_FUNC_BT709;
             break;
-        case VPE_TF_G24:
-            *tf = TRANSFER_FUNC_BT1886;
-            break;
-        case VPE_TF_PQ:
-            *tf = TRANSFER_FUNC_PQ2084;
-            break;
-        case VPE_TF_PQ_NORMALIZED:
-            *tf = TRANSFER_FUNC_NORMALIZED_PQ;
         default:
             break;
         }
@@ -897,26 +931,6 @@ void vpe_color_get_color_space_and_tf(
             break;
         }
     } else {
-        switch (vcs->tf) {
-        case VPE_TF_G22:
-            *tf = TRANSFER_FUNC_SRGB;
-            break;
-        case VPE_TF_G24:
-            *tf = TRANSFER_FUNC_BT1886;
-            break;
-        case VPE_TF_PQ:
-            *tf = TRANSFER_FUNC_PQ2084;
-            break;
-        case VPE_TF_PQ_NORMALIZED:
-            *tf = TRANSFER_FUNC_NORMALIZED_PQ;
-            break;
-        case VPE_TF_G10:
-            *tf = TRANSFER_FUNC_LINEAR_0_125;
-            break;
-        default:
-            break;
-        }
-
         switch (vcs->primaries) {
         case VPE_PRIMARIES_BT709:
             if (vcs->tf == VPE_TF_G10) {
@@ -977,7 +991,7 @@ void vpe_convert_full_range_color_enum(enum color_space *cs)
 bool vpe_is_HDR(enum color_transfer_func tf)
 {
 
-    return (tf == TRANSFER_FUNC_PQ2084 || tf == TRANSFER_FUNC_LINEAR_0_125);
+    return (tf == TRANSFER_FUNC_PQ2084 || tf == TRANSFER_FUNC_LINEAR_0_125 || tf == TRANSFER_FUNC_HLG);
 }
 
 /*

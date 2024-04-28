@@ -29,22 +29,11 @@ fc_sources = [
   'ftglue.c',
 ]
 
-# FIXME: obviously fragile, cc.preprocess would be sweet
-cpp = cc.cmd_array()
-if cc.get_argument_syntax() == 'gcc'
-  cpp += ['-E', '-P']
-elif cc.get_argument_syntax() == 'msvc'
-  cpp += ['/EP']
-else
-  error('FIXME: implement cc.preprocess')
-endif
-
-cpp += ['-I', join_paths(meson.current_source_dir(), '..')]
-
-fcobjshash_gperf = custom_target('fcobjshash.gperf',
-  input: 'fcobjshash.gperf.h',
+fcobjshash_h = cc.preprocess('fcobjshash.gperf.h', include_directories: incbase)
+fcobjshash_gperf = custom_target(
+  input: fcobjshash_h,
   output: 'fcobjshash.gperf',
-  command: [python3, files('cutout.py')[0], '@INPUT@', '@OUTPUT@', '@BUILD_ROOT@', cpp],
+  command: ['cutout.py', '@INPUT@', '@OUTPUT@'],
   build_by_default: true,
 )
 
@@ -55,17 +44,18 @@ fcobjshash_h = custom_target('fcobjshash.h',
 )
 
 # Define FcPublic appropriately for exports on windows
-fc_extra_c_args = []
+fc_c_shared_args = []
 
-if cc.get_argument_syntax() == 'msvc'
-  fc_extra_c_args += '-DFcPublic=__declspec(dllexport)'
+if host_machine.system() == 'windows' and get_option('default_library') in ['both', 'shared']
+  fc_c_shared_args += '-DFcPublic=__declspec(dllexport)'
+  fc_c_shared_args += '-DDLL_EXPORT'
 endif
 
 libfontconfig = library('fontconfig',
   fc_sources, alias_headers, ft_alias_headers, fclang_h, fccase_h, fcobjshash_h,
-  c_args: c_args + fc_extra_c_args,
+  c_shared_args: fc_c_shared_args,
   include_directories: incbase,
-  dependencies: deps,
+  dependencies: [deps, math_dep],
   install: true,
   soversion: soversion,
   version: libversion,

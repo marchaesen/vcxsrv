@@ -81,7 +81,7 @@ enum vpe_status vpe_check_output_support(struct vpe *vpe, const struct vpe_build
 
 enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream *stream);
 
-enum vpe_status vpe_cache_tone_map_params(struct stream_ctx *, const struct vpe_build_param *param);
+enum vpe_status vpe_cache_tone_map_params(struct stream_ctx *, const struct vpe_stream *stream);
 
 enum vpe_status vpe_check_tone_map_support(
     struct vpe *vpe, const struct vpe_stream *stream, const struct vpe_build_param *param);

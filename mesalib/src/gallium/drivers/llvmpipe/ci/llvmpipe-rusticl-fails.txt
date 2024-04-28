@@ -26,9 +26,6 @@ api@clgetkernelarginfo,Fail
 # Failed (error code: CL_SUCCESS): Trigger CL_LINK_PROGRAM_FAILURE if there is a failure to link the compiled binaries and/or libraries.
 api@cllinkprogram,Fail
 
-# piglit: error: eglCreateSync64KHR(EGL_SYNC_CL_EVENT_KHR) failed (4)
-interop@egl_khr_cl_event2,Fail
-
 # input.cl:31:2: error: use of undeclared identifier 'double2'; did you mean 'double'?
 # [...]
 # Program built when it should have failed: CL_SUCCESS

@@ -43,7 +43,7 @@ static inline long sys_futex(void *addr1, int op, int val1, const struct timespe
    return syscall(SYS_futex, addr1, op, val1, timeout, addr2, val3);
 }
 
-int futex_wake(uint32_t *addr, int count)
+int futex_wake(uint32_t *addr, int32_t count)
 {
    return sys_futex(addr, FUTEX_WAKE, count, NULL, NULL, 0);
 }
@@ -64,9 +64,9 @@ int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
 #include <sys/types.h>
 #include <sys/umtx.h>
 
-int futex_wake(uint32_t *addr, int count)
+int futex_wake(uint32_t *addr, int32_t count)
 {
-   assert(count == (int)(uint32_t)count); /* Check that bits weren't discarded */
+   assert(count >= 0);
    return _umtx_op(addr, UMTX_OP_WAKE, (uint32_t)count, NULL, NULL) == -1 ? errno : 0;
 }
 
@@ -94,7 +94,7 @@ int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
 #include <sys/futex.h>
 #include <sys/time.h>
 
-int futex_wake(uint32_t *addr, int count)
+int futex_wake(uint32_t *addr, int32_t count)
 {
    return futex(addr, FUTEX_WAKE, count, NULL, NULL);
 }
@@ -122,7 +122,7 @@ int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
 #include <assert.h>
 #include <errno.h>
 
-int futex_wake(uint32_t *addr, int count)
+int futex_wake(uint32_t *addr, int32_t count)
 {
    /* All current callers fall into one of these buckets, and we'll get the semantics
     * wrong if someone tries to be more clever.
@@ -140,9 +140,9 @@ int futex_wait(uint32_t *addr, int32_t value, const struct timespec *timeout)
    DWORD timeout_ms = INFINITE;
    if (timeout != NULL) {
       struct timespec tsnow;
-      timespec_get(&tsnow, TIME_UTC);
+      timespec_get(&tsnow, TIME_MONOTONIC);
 
-      timeout_ms = (timeout->tv_sec - tsnow.tv_nsec) * 1000 +
+      timeout_ms = (timeout->tv_sec - tsnow.tv_sec) * 1000 +
                    (timeout->tv_nsec - tsnow.tv_nsec) / 1000000;
    }
 

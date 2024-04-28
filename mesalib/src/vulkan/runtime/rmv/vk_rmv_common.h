@@ -32,6 +32,10 @@
 #include <vulkan/vulkan_core.h>
 #include "vk_rmv_tokens.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct vk_memory_trace_data;
 
 /*
@@ -136,5 +140,9 @@ uint32_t vk_rmv_get_resource_id_locked(struct vk_device *device, uint64_t handle
  * id is given to it.
  * The memory trace mutex should be locked when entering this function. */
 void vk_rmv_destroy_resource_id_locked(struct vk_device *device, uint64_t handle);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

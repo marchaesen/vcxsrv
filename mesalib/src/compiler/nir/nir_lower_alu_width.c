@@ -111,6 +111,7 @@ lower_reduction(nir_alu_instr *alu, nir_op chan_op, nir_op merge_op,
          chan->src[1].swizzle[0] = chan->src[1].swizzle[channel];
       }
       chan->exact = alu->exact;
+      chan->fp_fast_math = alu->fp_fast_math;
 
       nir_builder_instr_insert(builder, &chan->instr);
 
@@ -169,6 +170,7 @@ lower_fdot(nir_alu_instr *alu, nir_builder *builder)
       if (i != 0)
          instr->src[2].src = nir_src_for_ssa(prev);
       instr->exact = builder->exact;
+      instr->fp_fast_math = builder->fp_fast_math;
 
       nir_builder_instr_insert(builder, &instr->instr);
 
@@ -187,6 +189,7 @@ lower_alu_instr_width(nir_builder *b, nir_instr *instr, void *_data)
    unsigned i, chan;
 
    b->exact = alu->exact;
+   b->fp_fast_math = alu->fp_fast_math;
 
    unsigned num_components = alu->def.num_components;
    unsigned target_width = 1;
@@ -232,6 +235,7 @@ lower_alu_instr_width(nir_builder *b, nir_instr *instr, void *_data)
    case nir_op_unpack_snorm_4x8:
    case nir_op_unpack_unorm_2x16:
    case nir_op_unpack_snorm_2x16:
+   case nir_op_mqsad_4x8:
       /* There is no scalar version of these ops, unless we were to break it
        * down to bitshifts and math (which is definitely not intended).
        */
@@ -405,6 +409,7 @@ lower_alu_instr_width(nir_builder *b, nir_instr *instr, void *_data)
 
       nir_alu_ssa_dest_init(lower, components, alu->def.bit_size);
       lower->exact = alu->exact;
+      lower->fp_fast_math = alu->fp_fast_math;
 
       for (i = 0; i < components; i++) {
          vec->src[chan + i].src = nir_src_for_ssa(&lower->def);

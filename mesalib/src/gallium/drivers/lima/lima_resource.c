@@ -363,12 +363,11 @@ lima_resource_from_handle(struct pipe_screen *pscreen,
    /* check alignment for the buffer */
    if (res->tiled ||
        (pres->bind & (PIPE_BIND_RENDER_TARGET | PIPE_BIND_DEPTH_STENCIL))) {
-      unsigned width, height, stride, size;
+      unsigned width, stride, size;
 
       width = align(pres->width0, 16);
-      height = align(pres->height0, 16);
       stride = util_format_get_stride(pres->format, width);
-      size = util_format_get_2d_size(pres->format, stride, height);
+      size = util_format_get_2d_size(pres->format, stride, pres->height0);
 
       if (res->tiled && res->levels[0].stride != stride) {
          fprintf(stderr, "tiled imported buffer has mismatching stride: %d (BO) != %d (expected)",
@@ -709,7 +708,7 @@ lima_transfer_map(struct pipe_context *pctx,
       ptrans->layer_stride = res->levels[level].layer_stride;
 
       if ((usage & PIPE_MAP_WRITE) && (usage & PIPE_MAP_DIRECTLY))
-         panfrost_minmax_cache_invalidate(res->index_cache, ptrans);
+         panfrost_minmax_cache_invalidate(res->index_cache, ptrans->box.x, ptrans->box.width);
 
       return bo->map + res->levels[level].offset +
          box->z * res->levels[level].layer_stride +
@@ -817,7 +816,9 @@ lima_transfer_unmap(struct pipe_context *pctx,
    lima_transfer_flush_region(pctx, ptrans, &box);
    if (trans->staging)
       free(trans->staging);
-   panfrost_minmax_cache_invalidate(res->index_cache, ptrans);
+   if (ptrans->usage & PIPE_MAP_WRITE) {
+      panfrost_minmax_cache_invalidate(res->index_cache, ptrans->box.x, ptrans->box.width);
+   }
 
    pipe_resource_reference(&ptrans->resource, NULL);
    slab_free(&ctx->transfer_pool, trans);
@@ -837,8 +838,8 @@ lima_util_blitter_save_states(struct lima_context *ctx)
    util_blitter_save_scissor(ctx->blitter, &ctx->scissor);
    util_blitter_save_vertex_elements(ctx->blitter,
                                      ctx->vertex_elements);
-   util_blitter_save_vertex_buffer_slot(ctx->blitter,
-                                        ctx->vertex_buffers.vb);
+   util_blitter_save_vertex_buffers(ctx->blitter,
+                                    ctx->vertex_buffers.vb, ctx->vertex_buffers.count);
 
    util_blitter_save_framebuffer(ctx->blitter, &ctx->framebuffer.base);
 

@@ -139,13 +139,11 @@ void si_get_ir_cache_key(struct si_shader_selector *sel, bool ngg, bool es,
 
    if (ngg)
       shader_variant_flags |= 1 << 0;
-   if (sel->nir)
-      shader_variant_flags |= 1 << 1;
+   /* bit gap */
    if (wave_size == 32)
       shader_variant_flags |= 1 << 2;
-
-   /* bit gap */
-
+   if (sel->screen->options.optimize_io)
+      shader_variant_flags |= 1 << 3;
    /* use_ngg_culling disables NGG passthrough for non-culling shaders to reduce context
     * rolls, which can be changed with AMD_DEBUG=nonggc or AMD_DEBUG=nggc.
     */
@@ -662,13 +660,6 @@ static unsigned si_get_vs_vgpr_comp_cnt(struct si_screen *sscreen, struct si_sha
    return max;
 }
 
-unsigned si_get_shader_prefetch_size(struct si_shader *shader)
-{
-   /* inst_pref_size is calculated in cache line size granularity */
-   assert(!(shader->bo->b.b.width0 & 0x7f));
-   return MIN2(shader->bo->b.b.width0, 8064) / 128;
-}
-
 static void si_shader_ls(struct si_screen *sscreen, struct si_shader *shader)
 {
    struct si_pm4_state *pm4;
@@ -906,14 +897,25 @@ void gfx9_get_gs_info(struct si_shader_selector *es, struct si_shader_selector *
    assert(out->max_prims_per_subgroup <= max_out_prims);
 }
 
+static void gfx9_set_gs_sgpr_num_es_outputs(struct si_context *sctx, unsigned esgs_vertex_stride)
+{
+   /* The stride must always be odd (e.g. a multiple of 4 + 1) to reduce LDS bank conflicts. */
+   assert(esgs_vertex_stride % 4 == 1);
+   unsigned num_es_outputs = (esgs_vertex_stride - 1) / 4;
+
+   /* If there are no ES outputs, GS doesn't use this SGPR field, so only set it if the number
+    * is non-zero.
+    */
+   if (num_es_outputs)
+      SET_FIELD(sctx->current_gs_state, GS_STATE_NUM_ES_OUTPUTS, num_es_outputs);
+}
+
 static void si_emit_shader_gs(struct si_context *sctx, unsigned index)
 {
    struct si_shader *shader = sctx->queued.named.gs;
 
-   if (sctx->gfx_level >= GFX9) {
-      SET_FIELD(sctx->current_gs_state, GS_STATE_ESGS_VERTEX_STRIDE,
-                shader->key.ge.part.gs.es->info.esgs_vertex_stride / 4);
-   }
+   if (sctx->gfx_level >= GFX9)
+      gfx9_set_gs_sgpr_num_es_outputs(sctx, shader->key.ge.part.gs.es->info.esgs_vertex_stride / 4);
 
    radeon_begin(&sctx->gfx_cs);
 
@@ -1167,8 +1169,8 @@ static void gfx10_emit_shader_ngg(struct si_context *sctx, unsigned index)
 {
    struct si_shader *shader = sctx->queued.named.gs;
 
-   SET_FIELD(sctx->current_gs_state, GS_STATE_ESGS_VERTEX_STRIDE,
-             shader->ngg.esgs_vertex_stride);
+   if (shader->selector->stage == MESA_SHADER_GEOMETRY)
+      gfx9_set_gs_sgpr_num_es_outputs(sctx, shader->ngg.esgs_vertex_stride);
 
    radeon_begin(&sctx->gfx_cs);
    if (HAS_TESS) {
@@ -1226,8 +1228,8 @@ static void gfx11_dgpu_emit_shader_ngg(struct si_context *sctx, unsigned index)
 {
    struct si_shader *shader = sctx->queued.named.gs;
 
-   SET_FIELD(sctx->current_gs_state, GS_STATE_ESGS_VERTEX_STRIDE,
-             shader->ngg.esgs_vertex_stride);
+   if (shader->selector->stage == MESA_SHADER_GEOMETRY)
+      gfx9_set_gs_sgpr_num_es_outputs(sctx, shader->ngg.esgs_vertex_stride);
 
    radeon_begin(&sctx->gfx_cs);
    gfx11_begin_packed_context_regs();
@@ -2099,11 +2101,10 @@ static void si_shader_init_pm4_state(struct si_screen *sscreen, struct si_shader
    assert(!(sscreen->debug_flags & DBG(SQTT)) || shader->pm4.spi_shader_pgm_lo_reg != 0);
 }
 
-static void si_clear_vs_key_inputs(struct si_context *sctx, union si_shader_key *key,
-                                   struct si_vs_prolog_bits *prolog_key)
+static void si_clear_vs_key_inputs(union si_shader_key *key)
 {
-   prolog_key->instance_divisor_is_one = 0;
-   prolog_key->instance_divisor_is_fetched = 0;
+   key->ge.mono.instance_divisor_is_one = 0;
+   key->ge.mono.instance_divisor_is_fetched = 0;
    key->ge.mono.vs_fetch_opencode = 0;
    memset(key->ge.mono.vs_fix_fetch, 0, sizeof(key->ge.mono.vs_fix_fetch));
 }
@@ -2118,19 +2119,19 @@ void si_vs_key_update_inputs(struct si_context *sctx)
       return;
 
    if (vs->info.base.vs.blit_sgprs_amd) {
-      si_clear_vs_key_inputs(sctx, key, &key->ge.part.vs.prolog);
+      si_clear_vs_key_inputs(key);
       key->ge.opt.prefer_mono = 0;
-      sctx->uses_nontrivial_vs_prolog = false;
+      sctx->uses_nontrivial_vs_inputs = false;
       return;
    }
 
-   bool uses_nontrivial_vs_prolog = false;
+   bool uses_nontrivial_vs_inputs = false;
 
    if (elts->instance_divisor_is_one || elts->instance_divisor_is_fetched)
-      uses_nontrivial_vs_prolog = true;
+      uses_nontrivial_vs_inputs = true;
 
-   key->ge.part.vs.prolog.instance_divisor_is_one = elts->instance_divisor_is_one;
-   key->ge.part.vs.prolog.instance_divisor_is_fetched = elts->instance_divisor_is_fetched;
+   key->ge.mono.instance_divisor_is_one = elts->instance_divisor_is_one;
+   key->ge.mono.instance_divisor_is_fetched = elts->instance_divisor_is_fetched;
    key->ge.opt.prefer_mono = elts->instance_divisor_is_fetched;
 
    unsigned count_mask = (1 << vs->info.num_inputs) - 1;
@@ -2160,33 +2161,30 @@ void si_vs_key_update_inputs(struct si_context *sctx)
 
       key->ge.mono.vs_fix_fetch[i].bits = fix_fetch;
       if (fix_fetch)
-         uses_nontrivial_vs_prolog = true;
+         uses_nontrivial_vs_inputs = true;
    }
    key->ge.mono.vs_fetch_opencode = opencode;
    if (opencode)
-      uses_nontrivial_vs_prolog = true;
+      uses_nontrivial_vs_inputs = true;
 
-   sctx->uses_nontrivial_vs_prolog = uses_nontrivial_vs_prolog;
+   sctx->uses_nontrivial_vs_inputs = uses_nontrivial_vs_inputs;
 
-   /* draw_vertex_state (display lists) requires a trivial VS prolog that ignores
-    * the current vertex buffers and vertex elements.
+   /* draw_vertex_state (display lists) requires that all VS input lowering is disabled
+    * because its vertex elements never need any lowering.
     *
-    * We just computed the prolog key because we needed to set uses_nontrivial_vs_prolog,
-    * so that we know whether the VS prolog should be updated when we switch from
-    * draw_vertex_state to draw_vbo. Now clear the VS prolog for draw_vertex_state.
-    * This should happen rarely because the VS prolog should be trivial in most
-    * cases.
+    * We just computed the key because we needed to set uses_nontrivial_vs_inputs, so that we know
+    * whether the VS should be updated when we switch from draw_vertex_state to draw_vbo. Now
+    * clear the VS input bits for draw_vertex_state. This should happen rarely because VS inputs
+    * don't usually need any lowering.
     */
-   if (uses_nontrivial_vs_prolog && sctx->force_trivial_vs_prolog)
-      si_clear_vs_key_inputs(sctx, key, &key->ge.part.vs.prolog);
+   if (uses_nontrivial_vs_inputs && sctx->force_trivial_vs_inputs)
+      si_clear_vs_key_inputs(key);
 }
 
-void si_get_vs_key_inputs(struct si_context *sctx, union si_shader_key *key,
-                          struct si_vs_prolog_bits *prolog_key)
+static void si_get_vs_key_inputs(struct si_context *sctx, union si_shader_key *key)
 {
-   prolog_key->instance_divisor_is_one = sctx->shader.vs.key.ge.part.vs.prolog.instance_divisor_is_one;
-   prolog_key->instance_divisor_is_fetched = sctx->shader.vs.key.ge.part.vs.prolog.instance_divisor_is_fetched;
-
+   key->ge.mono.instance_divisor_is_one = sctx->shader.vs.key.ge.mono.instance_divisor_is_one;
+   key->ge.mono.instance_divisor_is_fetched = sctx->shader.vs.key.ge.mono.instance_divisor_is_fetched;
    key->ge.mono.vs_fetch_opencode = sctx->shader.vs.key.ge.mono.vs_fetch_opencode;
    memcpy(key->ge.mono.vs_fix_fetch, sctx->shader.vs.key.ge.mono.vs_fix_fetch,
           sizeof(key->ge.mono.vs_fix_fetch));
@@ -2613,7 +2611,7 @@ static inline void si_shader_selector_key(struct pipe_context *ctx, struct si_sh
       break;
    case MESA_SHADER_TESS_CTRL:
       if (sctx->gfx_level >= GFX9) {
-         si_get_vs_key_inputs(sctx, key, &key->ge.part.tcs.ls_prolog);
+         si_get_vs_key_inputs(sctx, key);
          key->ge.part.tcs.ls = sctx->shader.vs.cso;
       }
       break;
@@ -2626,10 +2624,10 @@ static inline void si_shader_selector_key(struct pipe_context *ctx, struct si_sh
    case MESA_SHADER_GEOMETRY:
       if (sctx->gfx_level >= GFX9) {
          if (sctx->shader.tes.cso) {
-            si_clear_vs_key_inputs(sctx, key, &key->ge.part.gs.vs_prolog);
+            si_clear_vs_key_inputs(key);
             key->ge.part.gs.es = sctx->shader.tes.cso;
          } else {
-            si_get_vs_key_inputs(sctx, key, &key->ge.part.gs.vs_prolog);
+            si_get_vs_key_inputs(sctx, key);
             key->ge.part.gs.es = sctx->shader.vs.cso;
          }
 
@@ -3484,7 +3482,7 @@ static void si_update_rasterized_prim(struct si_context *sctx)
    }
 
    /* This must be done unconditionally because it also depends on si_shader fields. */
-   si_update_ngg_prim_state_sgpr(sctx, hw_vs, sctx->ngg);
+   si_update_ngg_sgpr_state_out_prim(sctx, hw_vs, sctx->ngg);
 }
 
 static void si_update_common_shader_state(struct si_context *sctx, struct si_shader_selector *sel,
@@ -3657,8 +3655,6 @@ static void si_bind_tcs_shader(struct pipe_context *ctx, void *state)
 
    sctx->shader.tcs.cso = sel;
    sctx->shader.tcs.current = (sel && sel->variants_count) ? sel->variants[0] : NULL;
-   sctx->shader.tcs.key.ge.part.tcs.epilog.invoc0_tess_factors_are_def =
-      sel ? sel->info.tessfactors_are_def_in_all_invocs : 0;
    si_update_tess_uses_prim_id(sctx);
    si_update_tess_in_out_patch_vertices(sctx);
 
@@ -3684,11 +3680,20 @@ static void si_bind_tes_shader(struct pipe_context *ctx, void *state)
    sctx->ia_multi_vgt_param_key.u.uses_tess = sel != NULL;
    si_update_tess_uses_prim_id(sctx);
 
-   sctx->shader.tcs.key.ge.part.tcs.epilog.prim_mode =
+   sctx->shader.tcs.key.ge.opt.tes_prim_mode =
       sel ? sel->info.base.tess._primitive_mode : 0;
 
-   sctx->shader.tcs.key.ge.part.tcs.epilog.tes_reads_tess_factors =
+   sctx->shader.tcs.key.ge.opt.tes_reads_tess_factors =
       sel ? sel->info.reads_tess_factors : 0;
+
+   if (sel) {
+      sctx->tcs_offchip_layout &= 0x1fffffff;
+      sctx->tcs_offchip_layout |=
+         (sel->info.base.tess._primitive_mode << 29) |
+         (sel->info.reads_tess_factors << 31);
+
+      si_mark_atom_dirty(sctx, &sctx->atoms.s.tess_io_layout);
+   }
 
    si_update_common_shader_state(sctx, sel, PIPE_SHADER_TESS_EVAL);
    si_select_draw_vbo(sctx);
@@ -3706,12 +3711,10 @@ void si_update_vrs_flat_shading(struct si_context *sctx)
    if (sctx->gfx_level >= GFX10_3 && sctx->shader.ps.cso) {
       struct si_state_rasterizer *rs = sctx->queued.named.rasterizer;
       struct si_shader_info *info = &sctx->shader.ps.cso->info;
-      bool allow_flat_shading = info->allow_flat_shading;
-
-      if (allow_flat_shading &&
-          (rs->line_smooth || rs->poly_smooth || rs->poly_stipple_enable ||
-           rs->point_smooth || (!rs->flatshade && info->uses_interp_color)))
-         allow_flat_shading = false;
+      bool allow_flat_shading =
+         info->allow_flat_shading && !sctx->framebuffer.disable_vrs_flat_shading &&
+         !rs->line_smooth && !rs->poly_smooth && !rs->poly_stipple_enable &&
+         !rs->point_smooth && (rs->flatshade || !info->uses_interp_color);
 
       if (sctx->allow_flat_shading != allow_flat_shading) {
          sctx->allow_flat_shading = allow_flat_shading;
@@ -3856,6 +3859,8 @@ static void si_destroy_shader_selector(struct pipe_context *ctx, void *cso)
       si_delete_shader(sctx, sel->main_shader_part_es);
    if (sel->main_shader_part_ngg)
       si_delete_shader(sctx, sel->main_shader_part_ngg);
+   if (sel->main_shader_part_ngg_es)
+      si_delete_shader(sctx, sel->main_shader_part_ngg_es);
 
    free(sel->keys);
    free(sel->variants);
@@ -4232,108 +4237,50 @@ bool si_update_spi_tmpring_size(struct si_context *sctx, unsigned bytes)
 
 void si_init_tess_factor_ring(struct si_context *sctx)
 {
-   assert(!sctx->tess_rings);
+   struct si_screen *sscreen = sctx->screen;
+   assert(!sctx->has_tessellation);
 
-   /* The address must be aligned to 2^19, because the shader only
-    * receives the high 13 bits. Align it to 2MB to match the GPU page size.
-    */
-   sctx->tess_rings = pipe_aligned_buffer_create(sctx->b.screen,
-                                                 PIPE_RESOURCE_FLAG_UNMAPPABLE |
-                                                 SI_RESOURCE_FLAG_32BIT |
-                                                 SI_RESOURCE_FLAG_DRIVER_INTERNAL |
-                                                 SI_RESOURCE_FLAG_DISCARDABLE,
-                                                 PIPE_USAGE_DEFAULT,
-                                                 sctx->screen->hs.tess_offchip_ring_size +
-                                                 sctx->screen->hs.tess_factor_ring_size,
-                                                 2 * 1024 * 1024);
-   if (!sctx->tess_rings)
+   if (sctx->has_tessellation)
       return;
 
-   if (sctx->screen->info.has_tmz_support) {
-      sctx->tess_rings_tmz = pipe_aligned_buffer_create(sctx->b.screen,
-                                                        PIPE_RESOURCE_FLAG_UNMAPPABLE |
-                                                        PIPE_RESOURCE_FLAG_ENCRYPTED |
-                                                        SI_RESOURCE_FLAG_32BIT |
-                                                        SI_RESOURCE_FLAG_DRIVER_INTERNAL |
-                                                        SI_RESOURCE_FLAG_DISCARDABLE,
-                                                        PIPE_USAGE_DEFAULT,
-                                                        sctx->screen->hs.tess_offchip_ring_size +
-                                                        sctx->screen->hs.tess_factor_ring_size,
-                                                        2 * 1024 * 1024);
-   }
+   simple_mtx_lock(&sscreen->tess_ring_lock);
 
-   uint64_t factor_va =
-      si_resource(sctx->tess_rings)->gpu_address + sctx->screen->hs.tess_offchip_ring_size;
-
-   unsigned tf_ring_size_field = sctx->screen->hs.tess_factor_ring_size / 4;
-   if (sctx->gfx_level >= GFX11)
-      tf_ring_size_field /= sctx->screen->info.max_se;
-
-   assert((tf_ring_size_field & C_030938_SIZE) == 0);
-
-   if (sctx->shadowing.registers) {
-      /* These registers will be shadowed, so set them only once. */
-      /* TODO: tmz + shadowed_regs support */
-      struct radeon_cmdbuf *cs = &sctx->gfx_cs;
-
-      assert(sctx->gfx_level >= GFX7);
-
-      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(sctx->tess_rings),
-                                RADEON_USAGE_READWRITE | RADEON_PRIO_SHADER_RINGS);
-      si_emit_vgt_flush(cs);
-
-      /* Set tessellation registers. */
-      radeon_begin(cs);
-      radeon_set_uconfig_reg(R_030938_VGT_TF_RING_SIZE,
-                             S_030938_SIZE(tf_ring_size_field));
-      radeon_set_uconfig_reg(R_030940_VGT_TF_MEMORY_BASE, factor_va >> 8);
-      if (sctx->gfx_level >= GFX10) {
-         radeon_set_uconfig_reg(R_030984_VGT_TF_MEMORY_BASE_HI,
-                                S_030984_BASE_HI(factor_va >> 40));
-      } else if (sctx->gfx_level == GFX9) {
-         radeon_set_uconfig_reg(R_030944_VGT_TF_MEMORY_BASE_HI,
-                                S_030944_BASE_HI(factor_va >> 40));
+   if (!sscreen->tess_rings) {
+      /* The address must be aligned to 2^19, because the shader only
+       * receives the high 13 bits. Align it to 2MB to match the GPU page size.
+       */
+      sscreen->tess_rings = pipe_aligned_buffer_create(sctx->b.screen,
+                                                       PIPE_RESOURCE_FLAG_UNMAPPABLE |
+                                                       SI_RESOURCE_FLAG_32BIT |
+                                                       SI_RESOURCE_FLAG_DRIVER_INTERNAL |
+                                                       SI_RESOURCE_FLAG_DISCARDABLE,
+                                                       PIPE_USAGE_DEFAULT,
+                                                       sscreen->hs.tess_offchip_ring_size +
+                                                       sscreen->hs.tess_factor_ring_size,
+                                                       2 * 1024 * 1024);
+      if (!sscreen->tess_rings) {
+         simple_mtx_unlock(&sscreen->tess_ring_lock);
+         return;
       }
-      radeon_set_uconfig_reg(R_03093C_VGT_HS_OFFCHIP_PARAM,
-                             sctx->screen->hs.hs_offchip_param);
-      radeon_end();
-      return;
-   }
 
-   /* The codepath without register shadowing is below. */
-   /* Add these registers to cs_preamble_state. */
-   for (unsigned tmz = 0; tmz <= 1; tmz++) {
-      struct si_pm4_state *pm4 = tmz ? sctx->cs_preamble_state_tmz : sctx->cs_preamble_state;
-      struct pipe_resource *tf_ring = tmz ? sctx->tess_rings_tmz : sctx->tess_rings;
-
-      if (!tf_ring)
-         continue; /* TMZ not supported */
-
-      uint64_t va = si_resource(tf_ring)->gpu_address + sctx->screen->hs.tess_offchip_ring_size;
-
-      si_cs_preamble_add_vgt_flush(sctx, tmz);
-
-      if (sctx->gfx_level >= GFX7) {
-         si_pm4_set_reg(pm4, R_030938_VGT_TF_RING_SIZE, S_030938_SIZE(tf_ring_size_field));
-         si_pm4_set_reg(pm4, R_03093C_VGT_HS_OFFCHIP_PARAM, sctx->screen->hs.hs_offchip_param);
-         si_pm4_set_reg(pm4, R_030940_VGT_TF_MEMORY_BASE, va >> 8);
-         if (sctx->gfx_level >= GFX10)
-            si_pm4_set_reg(pm4, R_030984_VGT_TF_MEMORY_BASE_HI, S_030984_BASE_HI(va >> 40));
-         else if (sctx->gfx_level == GFX9)
-            si_pm4_set_reg(pm4, R_030944_VGT_TF_MEMORY_BASE_HI, S_030944_BASE_HI(va >> 40));
-      } else {
-         si_pm4_set_reg(pm4, R_008988_VGT_TF_RING_SIZE, S_008988_SIZE(tf_ring_size_field));
-         si_pm4_set_reg(pm4, R_0089B8_VGT_TF_MEMORY_BASE, factor_va >> 8);
-         si_pm4_set_reg(pm4, R_0089B0_VGT_HS_OFFCHIP_PARAM, sctx->screen->hs.hs_offchip_param);
+      if (sscreen->info.has_tmz_support) {
+         sscreen->tess_rings_tmz = pipe_aligned_buffer_create(sctx->b.screen,
+                                                              PIPE_RESOURCE_FLAG_UNMAPPABLE |
+                                                              PIPE_RESOURCE_FLAG_ENCRYPTED |
+                                                              SI_RESOURCE_FLAG_32BIT |
+                                                              SI_RESOURCE_FLAG_DRIVER_INTERNAL |
+                                                              SI_RESOURCE_FLAG_DISCARDABLE,
+                                                              PIPE_USAGE_DEFAULT,
+                                                              sscreen->hs.tess_offchip_ring_size +
+                                                              sscreen->hs.tess_factor_ring_size,
+                                                              2 * 1024 * 1024);
       }
-      si_pm4_finalize(pm4);
    }
 
-   /* Flush the context to re-emit the cs_preamble state.
-    * This is done only once in a lifetime of a context.
-    */
-   sctx->initial_gfx_cs_size = 0; /* force flush */
-   si_flush_gfx_cs(sctx, RADEON_FLUSH_ASYNC_START_NEXT_GFX_IB_NOW, NULL);
+   simple_mtx_unlock(&sscreen->tess_ring_lock);
+   sctx->has_tessellation = true;
+
+   si_mark_atom_dirty(sctx, &sctx->atoms.s.spi_ge_ring_state);
 }
 
 static void si_emit_vgt_pipeline_state(struct si_context *sctx, unsigned index)
@@ -4343,6 +4290,15 @@ static void si_emit_vgt_pipeline_state(struct si_context *sctx, unsigned index)
    radeon_begin(cs);
    radeon_opt_set_context_reg(sctx, R_028B54_VGT_SHADER_STAGES_EN, SI_TRACKED_VGT_SHADER_STAGES_EN,
                               sctx->vgt_shader_stages_en);
+   if (sctx->gfx_level == GFX10_3) {
+      /* Legacy Tess+GS should disable reuse to prevent hangs on GFX10.3. */
+      bool has_legacy_tess_gs = G_028B54_HS_EN(sctx->vgt_shader_stages_en) &&
+                                G_028B54_GS_EN(sctx->vgt_shader_stages_en) &&
+                                !G_028B54_PRIMGEN_EN(sctx->vgt_shader_stages_en); /* !NGG */
+
+      radeon_opt_set_context_reg(sctx, R_028AB4_VGT_REUSE_OFF, SI_TRACKED_VGT_REUSE_OFF,
+                                 S_028AB4_REUSE_OFF(has_legacy_tess_gs));
+   }
    radeon_end_update_context_roll(sctx);
 
    if (sctx->gfx_level >= GFX10) {
@@ -4385,22 +4341,12 @@ struct si_fixed_func_tcs_shader_key {
    uint8_t vertices_out;
 };
 
-static uint32_t si_fixed_func_tcs_shader_key_hash(const void *key)
-{
-   return _mesa_hash_data(key, sizeof(struct si_fixed_func_tcs_shader_key));
-}
-
-static bool si_fixed_func_tcs_shader_key_equals(const void *a, const void *b)
-{
-   return memcmp(a, b, sizeof(struct si_fixed_func_tcs_shader_key)) == 0;
-}
+DERIVE_HASH_TABLE(si_fixed_func_tcs_shader_key);
 
 bool si_set_tcs_to_fixed_func_shader(struct si_context *sctx)
 {
    if (!sctx->fixed_func_tcs_shader_cache) {
-      sctx->fixed_func_tcs_shader_cache = _mesa_hash_table_create(
-         NULL, si_fixed_func_tcs_shader_key_hash,
-         si_fixed_func_tcs_shader_key_equals);
+      sctx->fixed_func_tcs_shader_cache = si_fixed_func_tcs_shader_key_table_create(NULL);
    }
 
    struct si_fixed_func_tcs_shader_key key;
@@ -4421,9 +4367,6 @@ bool si_set_tcs_to_fixed_func_shader(struct si_context *sctx)
    }
 
    sctx->shader.tcs.cso = tcs;
-   sctx->shader.tcs.key.ge.part.tcs.epilog.invoc0_tess_factors_are_def =
-      tcs->info.tessfactors_are_def_in_all_invocs;
-
    return true;
 }
 
@@ -4440,28 +4383,12 @@ static void si_update_tess_in_out_patch_vertices(struct si_context *sctx)
          sctx->shader.tcs.key.ge.opt.same_patch_vertices = same_patch_vertices;
          sctx->do_update_shaders = true;
       }
-
-      if (sctx->gfx_level == GFX9 && sctx->screen->info.has_ls_vgpr_init_bug) {
-         /* Determine whether the LS VGPR fix should be applied.
-          *
-          * It is only required when num input CPs > num output CPs,
-          * which cannot happen with the fixed function TCS.
-          */
-         bool ls_vgpr_fix =
-            sctx->patch_vertices > tcs->info.base.tess.tcs_vertices_out;
-
-         if (ls_vgpr_fix != sctx->shader.tcs.key.ge.part.tcs.ls_prolog.ls_vgpr_fix) {
-            sctx->shader.tcs.key.ge.part.tcs.ls_prolog.ls_vgpr_fix = ls_vgpr_fix;
-            sctx->do_update_shaders = true;
-         }
-      }
    } else {
       /* These fields are static for fixed function TCS. So no need to set
        * do_update_shaders between fixed-TCS draws. As fixed-TCS to user-TCS
        * or opposite, do_update_shaders should already be set by bind state.
        */
       sctx->shader.tcs.key.ge.opt.same_patch_vertices = sctx->gfx_level >= GFX9;
-      sctx->shader.tcs.key.ge.part.tcs.ls_prolog.ls_vgpr_fix = false;
 
       /* User may only change patch vertices, needs to update fixed func TCS. */
       if (sctx->shader.tcs.cso &&
@@ -4481,7 +4408,7 @@ static void si_set_patch_vertices(struct pipe_context *ctx, uint8_t patch_vertic
          /* Update the io layout now if possible,
           * otherwise make sure it's done by si_update_shaders.
           */
-         if (sctx->tess_rings)
+         if (sctx->has_tessellation)
             si_update_tess_io_layout_state(sctx);
          else
             sctx->do_update_shaders = true;
@@ -4543,6 +4470,7 @@ void si_update_tess_io_layout_state(struct si_context *sctx)
    unsigned num_tcs_patch_outputs = util_last_bit64(tcs->info.patch_outputs_written);
 
    unsigned input_vertex_size = ls->info.lshs_vertex_stride;
+   unsigned num_vs_outputs = (input_vertex_size - 4) / 16;
    unsigned output_vertex_size = num_tcs_outputs * 16;
    unsigned input_patch_size;
 
@@ -4571,112 +4499,38 @@ void si_update_tess_io_layout_state(struct si_context *sctx)
       lds_per_patch = MAX2(input_patch_size, output_patch_size);
    }
 
-   /* Ensure that we only need 4 waves per CU, so that we don't need to check
-    * resource usage (such as whether we have enough VGPRs to fit the whole
-    * threadgroup into the CU). It also ensures that the number of tcs in and out
-    * vertices per threadgroup are at most 256, which is the hw limit.
-    */
-   unsigned max_verts_per_patch = MAX2(num_tcs_input_cp, num_tcs_output_cp);
-   unsigned num_patches = 256 / max_verts_per_patch;
-
-   /* Not necessary for correctness, but higher numbers are slower.
-    * The hardware can do more, but the radeonsi shader constant is
-    * limited to 6 bits.
-    */
-   num_patches = MIN2(num_patches, 64); /* e.g. 64 triangles in exactly 3 waves */
-
-   /* When distributed tessellation is unsupported, switch between SEs
-    * at a higher frequency to manually balance the workload between SEs.
-    */
-   if (!sctx->screen->info.has_distributed_tess && sctx->screen->info.max_se > 1)
-      num_patches = MIN2(num_patches, 16); /* recommended */
-
-   /* Make sure the output data fits in the offchip buffer */
-   num_patches =
-      MIN2(num_patches, (sctx->screen->hs.tess_offchip_block_dw_size * 4) / output_patch_size);
-
-   /* Make sure that the data fits in LDS. This assumes the shaders only
-    * use LDS for the inputs and outputs.
-    *
-    * The maximum allowed LDS size is 32K. Higher numbers can hang.
-    * Use 16K as the maximum, so that we can fit 2 workgroups on the same CU.
-    */
-   ASSERTED unsigned max_lds_size = 32 * 1024; /* hw limit */
-   unsigned target_lds_size = 16 * 1024; /* target at least 2 workgroups per CU, 16K each */
-   num_patches = MIN2(num_patches, target_lds_size / lds_per_patch);
-   num_patches = MAX2(num_patches, 1);
-   assert(num_patches * lds_per_patch <= max_lds_size);
-
-   /* Make sure that vector lanes are fully occupied by cutting off the last wave
-    * if it's only partially filled.
-    */
-   unsigned temp_verts_per_tg = num_patches * max_verts_per_patch;
-   unsigned wave_size = ls_current->wave_size;
-
-   if (temp_verts_per_tg > wave_size &&
-       (wave_size - temp_verts_per_tg % wave_size >= MAX2(max_verts_per_patch, 8)))
-      num_patches = (temp_verts_per_tg & ~(wave_size - 1)) / max_verts_per_patch;
-
-   if (sctx->gfx_level == GFX6) {
-      /* GFX6 bug workaround, related to power management. Limit LS-HS
-       * threadgroups to only one wave.
-       */
-      unsigned one_wave = wave_size / max_verts_per_patch;
-      num_patches = MIN2(num_patches, one_wave);
-   }
-
-   /* The VGT HS block increments the patch ID unconditionally
-    * within a single threadgroup. This results in incorrect
-    * patch IDs when instanced draws are used.
-    *
-    * The intended solution is to restrict threadgroups to
-    * a single instance by setting SWITCH_ON_EOI, which
-    * should cause IA to split instances up. However, this
-    * doesn't work correctly on GFX6 when there is no other
-    * SE to switch to.
-    */
-   if (has_primid_instancing_bug && tess_uses_primid)
-      num_patches = 1;
+   unsigned num_patches =
+      ac_compute_num_tess_patches(&sctx->screen->info, num_tcs_input_cp,
+                                  num_tcs_output_cp, output_patch_size,
+                                  lds_per_patch, ls_current->wave_size,
+                                  tess_uses_primid);
 
    if (sctx->num_patches_per_workgroup != num_patches) {
       sctx->num_patches_per_workgroup = num_patches;
       si_mark_atom_dirty(sctx, &sctx->atoms.s.vgt_pipeline_state);
    }
 
-   unsigned output_patch0_offset = input_patch_size * num_patches;
-   unsigned perpatch_output_offset = output_patch0_offset + pervertex_output_patch_size;
-
    /* Compute userdata SGPRs. */
-   assert(((input_vertex_size / 4) & ~0xff) == 0);
-   assert(((perpatch_output_offset / 4) & ~0xffff) == 0);
    assert(num_tcs_input_cp <= 32);
    assert(num_tcs_output_cp <= 32);
-   assert(num_patches <= 64);
-   assert(((pervertex_output_patch_size * num_patches) & ~0xffff) == 0);
+   assert(num_patches <= 128);
+   assert(num_vs_outputs <= 63);
+   assert(num_tcs_outputs <= 63);
 
-   uint64_t ring_va = (unlikely(sctx->ws->cs_is_secure(&sctx->gfx_cs)) ?
-      si_resource(sctx->tess_rings_tmz) : si_resource(sctx->tess_rings))->gpu_address;
+   uint64_t ring_va =
+      sctx->ws->cs_is_secure(&sctx->gfx_cs) ?
+          si_resource(sctx->screen->tess_rings_tmz)->gpu_address :
+          si_resource(sctx->screen->tess_rings)->gpu_address;
    assert((ring_va & u_bit_consecutive(0, 19)) == 0);
 
    sctx->tes_offchip_ring_va_sgpr = ring_va;
-   sctx->tcs_offchip_layout =
-      (num_patches - 1) | ((num_tcs_output_cp - 1) << 6) | ((num_tcs_input_cp - 1) << 11) |
-      ((pervertex_output_patch_size * num_patches) << 16);
+   sctx->tcs_offchip_layout &= 0xe0000000;
+   sctx->tcs_offchip_layout |=
+      (num_patches - 1) | ((num_tcs_output_cp - 1) << 7) | ((num_tcs_input_cp - 1) << 12) |
+      (num_vs_outputs << 17) | (num_tcs_outputs << 23);
 
    /* Compute the LDS size. */
-   unsigned lds_size = lds_per_patch * num_patches;
-
-   if (sctx->gfx_level >= GFX7) {
-      assert(lds_size <= 65536);
-      lds_size = align(lds_size, 512) / 512;
-   } else {
-      assert(lds_size <= 32768);
-      lds_size = align(lds_size, 256) / 256;
-   }
-
-   /* Set SI_SGPR_VS_STATE_BITS. */
-   SET_FIELD(sctx->current_vs_state, VS_STATE_LS_OUT_VERTEX_SIZE, input_vertex_size / 4);
-   SET_FIELD(sctx->current_vs_state, VS_STATE_TCS_OUT_PATCH0_OFFSET, perpatch_output_offset / 4);
+   unsigned lds_size = ac_compute_tess_lds_size(&sctx->screen->info, lds_per_patch, num_patches);
 
    /* We should be able to support in-shader LDS use with LLVM >= 9
     * by just adding the lds_sizes together, but it has never
@@ -4855,11 +4709,99 @@ static void si_emit_spi_map(struct si_context *sctx, unsigned index)
    radeon_end_update_context_roll(sctx);
 }
 
+static void si_emit_spi_ge_ring_state(struct si_context *sctx, unsigned index)
+{
+   struct si_screen *sscreen = sctx->screen;
+
+   if (sctx->has_tessellation) {
+      struct pipe_resource *tf_ring =
+         sctx->ws->cs_is_secure(&sctx->gfx_cs) ? sscreen->tess_rings_tmz : sscreen->tess_rings;
+      uint64_t factor_va = si_resource(tf_ring)->gpu_address +
+                           sscreen->hs.tess_offchip_ring_size;
+
+      unsigned tf_ring_size_field = sscreen->hs.tess_factor_ring_size / 4;
+      if (sctx->gfx_level >= GFX11)
+         tf_ring_size_field /= sscreen->info.max_se;
+
+      assert((tf_ring_size_field & C_030938_SIZE) == 0);
+
+      radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, si_resource(tf_ring),
+                                RADEON_USAGE_READWRITE | RADEON_PRIO_SHADER_RINGS);
+
+      radeon_begin(&sctx->gfx_cs);
+      /* Required before writing tessellation config registers. */
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_VS_PARTIAL_FLUSH) | EVENT_INDEX(4));
+
+      radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
+      radeon_emit(EVENT_TYPE(V_028A90_VGT_FLUSH) | EVENT_INDEX(0));
+
+      if (sctx->gfx_level >= GFX7) {
+         radeon_set_uconfig_reg_seq(R_030938_VGT_TF_RING_SIZE, 3);
+         radeon_emit(S_030938_SIZE(tf_ring_size_field)); /* R_030938_VGT_TF_RING_SIZE */
+         radeon_emit(sscreen->hs.hs_offchip_param);      /* R_03093C_VGT_HS_OFFCHIP_PARAM */
+         radeon_emit(factor_va >> 8);                           /* R_030940_VGT_TF_MEMORY_BASE */
+
+         if (sctx->gfx_level >= GFX10)
+            radeon_set_uconfig_reg(R_030984_VGT_TF_MEMORY_BASE_HI, S_030984_BASE_HI(factor_va >> 40));
+         else if (sctx->gfx_level == GFX9)
+            radeon_set_uconfig_reg(R_030944_VGT_TF_MEMORY_BASE_HI, S_030944_BASE_HI(factor_va >> 40));
+      } else {
+         radeon_set_uconfig_reg(R_008988_VGT_TF_RING_SIZE, S_008988_SIZE(tf_ring_size_field));
+         radeon_set_uconfig_reg(R_0089B8_VGT_TF_MEMORY_BASE, factor_va >> 8);
+         radeon_set_uconfig_reg(R_0089B0_VGT_HS_OFFCHIP_PARAM, sscreen->hs.hs_offchip_param);
+      }
+      radeon_end();
+   }
+
+   if (sctx->gfx_level >= GFX11) {
+      radeon_begin(&sctx->gfx_cs);
+      /* We must wait for idle using an EOP event before changing the attribute ring registers.
+       * Use the bottom-of-pipe EOP event, but increment the PWS counter instead of writing memory.
+       */
+      radeon_emit(PKT3(PKT3_RELEASE_MEM, 6, 0));
+      radeon_emit(S_490_EVENT_TYPE(V_028A90_BOTTOM_OF_PIPE_TS) |
+                  S_490_EVENT_INDEX(5) |
+                  S_490_PWS_ENABLE(1));
+      radeon_emit(0); /* DST_SEL, INT_SEL, DATA_SEL */
+      radeon_emit(0); /* ADDRESS_LO */
+      radeon_emit(0); /* ADDRESS_HI */
+      radeon_emit(0); /* DATA_LO */
+      radeon_emit(0); /* DATA_HI */
+      radeon_emit(0); /* INT_CTXID */
+
+      /* Wait for the PWS counter. */
+      radeon_emit(PKT3(PKT3_ACQUIRE_MEM, 6, 0));
+      radeon_emit(S_580_PWS_STAGE_SEL(V_580_CP_ME) |
+                  S_580_PWS_COUNTER_SEL(V_580_TS_SELECT) |
+                  S_580_PWS_ENA2(1) |
+                  S_580_PWS_COUNT(0));
+      radeon_emit(0xffffffff); /* GCR_SIZE */
+      radeon_emit(0x01ffffff); /* GCR_SIZE_HI */
+      radeon_emit(0); /* GCR_BASE_LO */
+      radeon_emit(0); /* GCR_BASE_HI */
+      radeon_emit(S_585_PWS_ENA(1));
+      radeon_emit(0); /* GCR_CNTL */
+
+      assert((sscreen->attribute_ring->gpu_address >> 32) == sscreen->info.address32_hi);
+
+      radeon_set_uconfig_reg_seq(R_031110_SPI_GS_THROTTLE_CNTL1, 4);
+      radeon_emit(0x12355123);      /* SPI_GS_THROTTLE_CNTL1 */
+      radeon_emit(0x1544D);         /* SPI_GS_THROTTLE_CNTL2 */
+      radeon_emit(sscreen->attribute_ring->gpu_address >> 16); /* SPI_ATTRIBUTE_RING_BASE */
+      radeon_emit(S_03111C_MEM_SIZE((sscreen->info.attribute_ring_size_per_se >> 16) - 1) |
+                  S_03111C_BIG_PAGE(sscreen->info.discardable_allows_big_page) |
+                  S_03111C_L1_POLICY(1)); /* SPI_ATTRIBUTE_RING_SIZE */
+      radeon_end();
+   }
+}
+
 void si_init_shader_functions(struct si_context *sctx)
 {
    sctx->atoms.s.vgt_pipeline_state.emit = si_emit_vgt_pipeline_state;
    sctx->atoms.s.scratch_state.emit = si_emit_scratch_state;
    sctx->atoms.s.tess_io_layout.emit = si_emit_tess_io_layout_state;
+   sctx->atoms.s.spi_ge_ring_state.emit = si_emit_spi_ge_ring_state;
 
    sctx->b.create_vs_state = si_create_shader;
    sctx->b.create_tcs_state = si_create_shader;

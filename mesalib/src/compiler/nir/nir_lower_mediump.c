@@ -67,9 +67,11 @@ nir_recompute_io_bases(nir_shader *nir, nir_variable_mode modes)
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
    BITSET_DECLARE(inputs, NUM_TOTAL_VARYING_SLOTS);
-   BITSET_DECLARE(dual_slot_inputs, NUM_TOTAL_VARYING_SLOTS);
+   BITSET_DECLARE(per_prim_inputs, NUM_TOTAL_VARYING_SLOTS);  /* FS only */
+   BITSET_DECLARE(dual_slot_inputs, NUM_TOTAL_VARYING_SLOTS); /* VS only */
    BITSET_DECLARE(outputs, NUM_TOTAL_VARYING_SLOTS);
    BITSET_ZERO(inputs);
+   BITSET_ZERO(per_prim_inputs);
    BITSET_ZERO(dual_slot_inputs);
    BITSET_ZERO(outputs);
 
@@ -88,7 +90,11 @@ nir_recompute_io_bases(nir_shader *nir, nir_variable_mode modes)
 
          if (mode == nir_var_shader_in) {
             for (unsigned i = 0; i < num_slots; i++) {
-               BITSET_SET(inputs, sem.location + i);
+               if (sem.per_primitive)
+                  BITSET_SET(per_prim_inputs, sem.location + i);
+               else
+                  BITSET_SET(inputs, sem.location + i);
+
                if (sem.high_dvec2)
                   BITSET_SET(dual_slot_inputs, sem.location + i);
             }
@@ -98,6 +104,8 @@ nir_recompute_io_bases(nir_shader *nir, nir_variable_mode modes)
          }
       }
    }
+
+   const unsigned num_normal_inputs = BITSET_COUNT(inputs) + BITSET_COUNT(dual_slot_inputs);
 
    /* Renumber bases. */
    bool changed = false;
@@ -115,10 +123,16 @@ nir_recompute_io_bases(nir_shader *nir, nir_variable_mode modes)
             num_slots = (num_slots + sem.high_16bits + 1) / 2;
 
          if (mode == nir_var_shader_in) {
-            nir_intrinsic_set_base(intr,
-                                   BITSET_PREFIX_SUM(inputs, sem.location) +
-                                   BITSET_PREFIX_SUM(dual_slot_inputs, sem.location) +
-                                   (sem.high_dvec2 ? 1 : 0));
+            if (sem.per_primitive) {
+               nir_intrinsic_set_base(intr,
+                                      num_normal_inputs +
+                                      BITSET_PREFIX_SUM(per_prim_inputs, sem.location));
+            } else {
+               nir_intrinsic_set_base(intr,
+                                      BITSET_PREFIX_SUM(inputs, sem.location) +
+                                      BITSET_PREFIX_SUM(dual_slot_inputs, sem.location) +
+                                      (sem.high_dvec2 ? 1 : 0));
+            }
          } else if (sem.dual_source_blend_index) {
             nir_intrinsic_set_base(intr,
                                    BITSET_PREFIX_SUM(outputs, NUM_TOTAL_VARYING_SLOTS));
@@ -753,45 +767,45 @@ const_is_i16(nir_scalar scalar)
 }
 
 static bool
-can_fold_16bit_src(nir_def *ssa, nir_alu_type src_type, bool sext_matters)
+can_opt_16bit_src(nir_def *ssa, nir_alu_type src_type, bool sext_matters)
 {
-   bool fold_f16 = src_type == nir_type_float32;
-   bool fold_u16 = src_type == nir_type_uint32 && sext_matters;
-   bool fold_i16 = src_type == nir_type_int32 && sext_matters;
-   bool fold_i16_u16 = (src_type == nir_type_uint32 || src_type == nir_type_int32) && !sext_matters;
+   bool opt_f16 = src_type == nir_type_float32;
+   bool opt_u16 = src_type == nir_type_uint32 && sext_matters;
+   bool opt_i16 = src_type == nir_type_int32 && sext_matters;
+   bool opt_i16_u16 = (src_type == nir_type_uint32 || src_type == nir_type_int32) && !sext_matters;
 
-   bool can_fold = fold_f16 || fold_u16 || fold_i16 || fold_i16_u16;
-   for (unsigned i = 0; can_fold && i < ssa->num_components; i++) {
+   bool can_opt = opt_f16 || opt_u16 || opt_i16 || opt_i16_u16;
+   for (unsigned i = 0; can_opt && i < ssa->num_components; i++) {
       nir_scalar comp = nir_scalar_resolved(ssa, i);
       if (nir_scalar_is_undef(comp))
          continue;
       else if (nir_scalar_is_const(comp)) {
-         if (fold_f16)
-            can_fold &= const_is_f16(comp);
-         else if (fold_u16)
-            can_fold &= const_is_u16(comp);
-         else if (fold_i16)
-            can_fold &= const_is_i16(comp);
-         else if (fold_i16_u16)
-            can_fold &= (const_is_u16(comp) || const_is_i16(comp));
+         if (opt_f16)
+            can_opt &= const_is_f16(comp);
+         else if (opt_u16)
+            can_opt &= const_is_u16(comp);
+         else if (opt_i16)
+            can_opt &= const_is_i16(comp);
+         else if (opt_i16_u16)
+            can_opt &= (const_is_u16(comp) || const_is_i16(comp));
       } else {
-         if (fold_f16)
-            can_fold &= is_f16_to_f32_conversion(comp.def->parent_instr);
-         else if (fold_u16)
-            can_fold &= is_u16_to_u32_conversion(comp.def->parent_instr);
-         else if (fold_i16)
-            can_fold &= is_i16_to_i32_conversion(comp.def->parent_instr);
-         else if (fold_i16_u16)
-            can_fold &= (is_i16_to_i32_conversion(comp.def->parent_instr) ||
-                         is_u16_to_u32_conversion(comp.def->parent_instr));
+         if (opt_f16)
+            can_opt &= is_f16_to_f32_conversion(comp.def->parent_instr);
+         else if (opt_u16)
+            can_opt &= is_u16_to_u32_conversion(comp.def->parent_instr);
+         else if (opt_i16)
+            can_opt &= is_i16_to_i32_conversion(comp.def->parent_instr);
+         else if (opt_i16_u16)
+            can_opt &= (is_i16_to_i32_conversion(comp.def->parent_instr) ||
+                        is_u16_to_u32_conversion(comp.def->parent_instr));
       }
    }
 
-   return can_fold;
+   return can_opt;
 }
 
 static void
-fold_16bit_src(nir_builder *b, nir_instr *instr, nir_src *src, nir_alu_type src_type)
+opt_16bit_src(nir_builder *b, nir_instr *instr, nir_src *src, nir_alu_type src_type)
 {
    b->cursor = nir_before_instr(instr);
 
@@ -820,17 +834,17 @@ fold_16bit_src(nir_builder *b, nir_instr *instr, nir_src *src, nir_alu_type src_
 }
 
 static bool
-fold_16bit_store_data(nir_builder *b, nir_intrinsic_instr *instr)
+opt_16bit_store_data(nir_builder *b, nir_intrinsic_instr *instr)
 {
    nir_alu_type src_type = nir_intrinsic_src_type(instr);
    nir_src *data_src = &instr->src[3];
 
    b->cursor = nir_before_instr(&instr->instr);
 
-   if (!can_fold_16bit_src(data_src->ssa, src_type, true))
+   if (!can_opt_16bit_src(data_src->ssa, src_type, true))
       return false;
 
-   fold_16bit_src(b, &instr->instr, data_src, src_type);
+   opt_16bit_src(b, &instr->instr, data_src, src_type);
 
    nir_intrinsic_set_src_type(instr, (src_type & ~32) | 16);
 
@@ -838,8 +852,8 @@ fold_16bit_store_data(nir_builder *b, nir_intrinsic_instr *instr)
 }
 
 static bool
-fold_16bit_destination(nir_def *ssa, nir_alu_type dest_type,
-                       unsigned exec_mode, nir_rounding_mode rdm)
+opt_16bit_destination(nir_def *ssa, nir_alu_type dest_type,
+                      unsigned exec_mode, nir_rounding_mode rdm)
 {
    bool is_f32_to_f16 = dest_type == nir_type_float32;
    bool is_i32_to_i16 = dest_type == nir_type_int32 || dest_type == nir_type_uint32;
@@ -872,15 +886,15 @@ fold_16bit_destination(nir_def *ssa, nir_alu_type dest_type,
 }
 
 static bool
-fold_16bit_image_dest(nir_intrinsic_instr *instr, unsigned exec_mode,
-                      nir_alu_type allowed_types, nir_rounding_mode rdm)
+opt_16bit_image_dest(nir_intrinsic_instr *instr, unsigned exec_mode,
+                     nir_alu_type allowed_types, nir_rounding_mode rdm)
 {
    nir_alu_type dest_type = nir_intrinsic_dest_type(instr);
 
    if (!(nir_alu_type_get_base_type(dest_type) & allowed_types))
       return false;
 
-   if (!fold_16bit_destination(&instr->def, dest_type, exec_mode, rdm))
+   if (!opt_16bit_destination(&instr->def, dest_type, exec_mode, rdm))
       return false;
 
    nir_intrinsic_set_dest_type(instr, (dest_type & ~32) | 16);
@@ -889,8 +903,8 @@ fold_16bit_image_dest(nir_intrinsic_instr *instr, unsigned exec_mode,
 }
 
 static bool
-fold_16bit_tex_dest(nir_tex_instr *tex, unsigned exec_mode,
-                    nir_alu_type allowed_types, nir_rounding_mode rdm)
+opt_16bit_tex_dest(nir_tex_instr *tex, unsigned exec_mode,
+                   nir_alu_type allowed_types, nir_rounding_mode rdm)
 {
    /* Skip sparse residency */
    if (tex->is_sparse)
@@ -910,7 +924,7 @@ fold_16bit_tex_dest(nir_tex_instr *tex, unsigned exec_mode,
    if (!(nir_alu_type_get_base_type(tex->dest_type) & allowed_types))
       return false;
 
-   if (!fold_16bit_destination(&tex->def, tex->dest_type, exec_mode, rdm))
+   if (!opt_16bit_destination(&tex->def, tex->dest_type, exec_mode, rdm))
       return false;
 
    tex->dest_type = (tex->dest_type & ~32) | 16;
@@ -918,8 +932,8 @@ fold_16bit_tex_dest(nir_tex_instr *tex, unsigned exec_mode,
 }
 
 static bool
-fold_16bit_tex_srcs(nir_builder *b, nir_tex_instr *tex,
-                    struct nir_fold_tex_srcs_options *options)
+opt_16bit_tex_srcs(nir_builder *b, nir_tex_instr *tex,
+                   struct nir_opt_tex_srcs_options *options)
 {
    if (tex->op != nir_texop_tex &&
        tex->op != nir_texop_txb &&
@@ -939,7 +953,7 @@ fold_16bit_tex_srcs(nir_builder *b, nir_tex_instr *tex,
    if (nir_tex_instr_src_index(tex, nir_tex_src_backend1) >= 0)
       return false;
 
-   unsigned fold_srcs = 0;
+   unsigned opt_srcs = 0;
    for (unsigned i = 0; i < tex->num_srcs; i++) {
       /* Filter out sources that should be ignored. */
       if (!(BITFIELD_BIT(tex->src[i].src_type) & options->src_types))
@@ -954,23 +968,23 @@ fold_16bit_tex_srcs(nir_builder *b, nir_tex_instr *tex,
        * because it's out of bounds and the higher bits don't
        * matter.
        */
-      if (!can_fold_16bit_src(src->ssa, src_type, false))
+      if (!can_opt_16bit_src(src->ssa, src_type, false))
          return false;
 
-      fold_srcs |= (1 << i);
+      opt_srcs |= (1 << i);
    }
 
-   u_foreach_bit(i, fold_srcs) {
+   u_foreach_bit(i, opt_srcs) {
       nir_src *src = &tex->src[i].src;
       nir_alu_type src_type = nir_tex_instr_src_type(tex, i) | src->ssa->bit_size;
-      fold_16bit_src(b, &tex->instr, src, src_type);
+      opt_16bit_src(b, &tex->instr, src, src_type);
    }
 
-   return !!fold_srcs;
+   return !!opt_srcs;
 }
 
 static bool
-fold_16bit_image_srcs(nir_builder *b, nir_intrinsic_instr *instr, int lod_idx)
+opt_16bit_image_srcs(nir_builder *b, nir_intrinsic_instr *instr, int lod_idx)
 {
    enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
    bool is_ms = (dim == GLSL_SAMPLER_DIM_MS || dim == GLSL_SAMPLER_DIM_SUBPASS_MS);
@@ -979,24 +993,24 @@ fold_16bit_image_srcs(nir_builder *b, nir_intrinsic_instr *instr, int lod_idx)
    nir_src *lod = lod_idx >= 0 ? &instr->src[lod_idx] : NULL;
 
    if (dim == GLSL_SAMPLER_DIM_BUF ||
-       !can_fold_16bit_src(coords->ssa, nir_type_int32, false) ||
-       (sample && !can_fold_16bit_src(sample->ssa, nir_type_int32, false)) ||
-       (lod && !can_fold_16bit_src(lod->ssa, nir_type_int32, false)))
+       !can_opt_16bit_src(coords->ssa, nir_type_int32, false) ||
+       (sample && !can_opt_16bit_src(sample->ssa, nir_type_int32, false)) ||
+       (lod && !can_opt_16bit_src(lod->ssa, nir_type_int32, false)))
       return false;
 
-   fold_16bit_src(b, &instr->instr, coords, nir_type_int32);
+   opt_16bit_src(b, &instr->instr, coords, nir_type_int32);
    if (sample)
-      fold_16bit_src(b, &instr->instr, sample, nir_type_int32);
+      opt_16bit_src(b, &instr->instr, sample, nir_type_int32);
    if (lod)
-      fold_16bit_src(b, &instr->instr, lod, nir_type_int32);
+      opt_16bit_src(b, &instr->instr, lod, nir_type_int32);
 
    return true;
 }
 
 static bool
-fold_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
+opt_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
 {
-   struct nir_fold_16bit_tex_image_options *options = params;
+   struct nir_opt_16bit_tex_image_options *options = params;
    unsigned exec_mode = b->shader->info.float_controls_execution_mode;
    bool progress = false;
 
@@ -1007,26 +1021,26 @@ fold_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
       case nir_intrinsic_bindless_image_store:
       case nir_intrinsic_image_deref_store:
       case nir_intrinsic_image_store:
-         if (options->fold_image_store_data)
-            progress |= fold_16bit_store_data(b, intrinsic);
-         if (options->fold_image_srcs)
-            progress |= fold_16bit_image_srcs(b, intrinsic, 4);
+         if (options->opt_image_store_data)
+            progress |= opt_16bit_store_data(b, intrinsic);
+         if (options->opt_image_srcs)
+            progress |= opt_16bit_image_srcs(b, intrinsic, 4);
          break;
       case nir_intrinsic_bindless_image_load:
       case nir_intrinsic_image_deref_load:
       case nir_intrinsic_image_load:
-         if (options->fold_image_dest_types)
-            progress |= fold_16bit_image_dest(intrinsic, exec_mode,
-                                              options->fold_image_dest_types,
-                                              options->rounding_mode);
-         if (options->fold_image_srcs)
-            progress |= fold_16bit_image_srcs(b, intrinsic, 3);
+         if (options->opt_image_dest_types)
+            progress |= opt_16bit_image_dest(intrinsic, exec_mode,
+                                             options->opt_image_dest_types,
+                                             options->rounding_mode);
+         if (options->opt_image_srcs)
+            progress |= opt_16bit_image_srcs(b, intrinsic, 3);
          break;
       case nir_intrinsic_bindless_image_sparse_load:
       case nir_intrinsic_image_deref_sparse_load:
       case nir_intrinsic_image_sparse_load:
-         if (options->fold_image_srcs)
-            progress |= fold_16bit_image_srcs(b, intrinsic, 3);
+         if (options->opt_image_srcs)
+            progress |= opt_16bit_image_srcs(b, intrinsic, 3);
          break;
       case nir_intrinsic_bindless_image_atomic:
       case nir_intrinsic_bindless_image_atomic_swap:
@@ -1034,8 +1048,8 @@ fold_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
       case nir_intrinsic_image_deref_atomic_swap:
       case nir_intrinsic_image_atomic:
       case nir_intrinsic_image_atomic_swap:
-         if (options->fold_image_srcs)
-            progress |= fold_16bit_image_srcs(b, intrinsic, -1);
+         if (options->opt_image_srcs)
+            progress |= opt_16bit_image_srcs(b, intrinsic, -1);
          break;
       default:
          break;
@@ -1043,12 +1057,12 @@ fold_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
    } else if (instr->type == nir_instr_type_tex) {
       nir_tex_instr *tex = nir_instr_as_tex(instr);
 
-      if (options->fold_tex_dest_types)
-         progress |= fold_16bit_tex_dest(tex, exec_mode, options->fold_tex_dest_types,
-                                         options->rounding_mode);
+      if (options->opt_tex_dest_types)
+         progress |= opt_16bit_tex_dest(tex, exec_mode, options->opt_tex_dest_types,
+                                        options->rounding_mode);
 
-      for (unsigned i = 0; i < options->fold_srcs_options_count; i++) {
-         progress |= fold_16bit_tex_srcs(b, tex, &options->fold_srcs_options[i]);
+      for (unsigned i = 0; i < options->opt_srcs_options_count; i++) {
+         progress |= opt_16bit_tex_srcs(b, tex, &options->opt_srcs_options[i]);
       }
    }
 
@@ -1056,11 +1070,11 @@ fold_16bit_tex_image(nir_builder *b, nir_instr *instr, void *params)
 }
 
 bool
-nir_fold_16bit_tex_image(nir_shader *nir,
-                         struct nir_fold_16bit_tex_image_options *options)
+nir_opt_16bit_tex_image(nir_shader *nir,
+                        struct nir_opt_16bit_tex_image_options *options)
 {
    return nir_shader_instructions_pass(nir,
-                                       fold_16bit_tex_image,
+                                       opt_16bit_tex_image,
                                        nir_metadata_block_index | nir_metadata_dominance,
                                        options);
 }

@@ -27,6 +27,10 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
+
+#include "os/osdep.h"
+
 #include "xf86.h"
 #include "xf86Config.h"
 #include "xf86_OSlib.h"

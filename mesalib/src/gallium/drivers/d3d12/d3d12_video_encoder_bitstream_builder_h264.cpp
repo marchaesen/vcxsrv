@@ -53,7 +53,7 @@ Convert12ToSpecH264Profiles(D3D12_VIDEO_ENCODER_PROFILE_H264 profile12)
    }
 }
 
-void
+H264_SPS
 d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_param &                 seqData,
                                               const enum pipe_video_profile &                        profile,
                                               const D3D12_VIDEO_ENCODER_LEVELS_H264 &                level,
@@ -168,6 +168,8 @@ d3d12_video_bitstream_builder_h264::build_sps(const struct pipe_h264_enc_seq_par
 
    // Convert the H264 SPS structure into bytes
    m_h264Encoder.sps_to_nalu_bytes(&spsStructure, headerBitstream, placingPositionStart, writtenBytes);
+
+   return spsStructure;
 }
 
 void
@@ -194,7 +196,7 @@ d3d12_video_bitstream_builder_h264::write_aud(std::vector<uint8_t> &         hea
    m_h264Encoder.write_access_unit_delimiter_nalu(headerBitstream, placingPositionStart, writtenBytes);
 }
 
-void
+H264_PPS
 d3d12_video_bitstream_builder_h264::build_pps(const enum pipe_video_profile &                            profile,
                                               const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_H264 &       codecConfig,
                                               const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_H264 &pictureControl,
@@ -236,6 +238,8 @@ d3d12_video_bitstream_builder_h264::build_pps(const enum pipe_video_profile &   
 
    // Convert the H264 SPS structure into bytes
    m_h264Encoder.pps_to_nalu_bytes(&ppsStructure, headerBitstream, bIsHighProfile, placingPositionStart, writtenBytes);
+
+   return ppsStructure;
 }
 
 void

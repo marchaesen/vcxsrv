@@ -581,10 +581,25 @@ enum vpe_status vpe_bg_color_outside_cs_gamut(
     return VPE_STATUS_OK;
 }
 
-// These two checks are only neccessary for VPE1.0 and contain alot of quirks to work around VPE 1.0 limitations.
+static inline bool is_target_rect_equal_to_dest_rect(const struct vpe_priv *vpe_priv)
+{
+    const struct vpe_rect *target_rect = &vpe_priv->output_ctx.target_rect;
+    const struct vpe_rect *dst_rect = &vpe_priv->stream_ctx[0].stream.scaling_info.dst_rect;
+
+    return (target_rect->height == dst_rect ->height) && (target_rect->width  == dst_rect ->width) &&
+           (target_rect->x == dst_rect ->x) && (target_rect->y == dst_rect ->y);
+}
+
+// These two checks are only necessary for VPE1.0 and contain a lot of quirks to work around VPE 1.0
+// limitations.
 enum vpe_status vpe_is_valid_bg_color(const struct vpe_priv *vpe_priv, struct vpe_color *bg_color) {
 
     enum vpe_status status = VPE_STATUS_OK;
+
+    /* no need for background filling as for target rect equal to dest rect */
+    if (is_target_rect_equal_to_dest_rect(vpe_priv)) {
+        return VPE_STATUS_OK;
+    }
 
     status = is_valid_blend(vpe_priv, bg_color);
 

@@ -123,10 +123,14 @@ enum ir3_wavesize_option {
 /**
  * Description of a lowered UBO.
  */
+struct nir_def;
+
 struct ir3_ubo_info {
+   struct nir_def *global_base; /* For global loads, the base address */
    uint32_t block;         /* Which constant block */
    uint16_t bindless_base; /* For bindless, which base register is used */
    bool bindless;
+   bool global;
 };
 
 /**
@@ -152,6 +156,16 @@ enum ir3_push_consts_type {
    IR3_PUSH_CONSTS_PER_STAGE,
    IR3_PUSH_CONSTS_SHARED,
    IR3_PUSH_CONSTS_SHARED_PREAMBLE,
+};
+
+/* This represents an internal UBO filled out by the driver. There are a few
+ * common UBOs that must be filled out identically by all drivers, for example
+ * for shader linkage, but drivers can also add their own that they manage
+ * themselves.
+ */
+struct ir3_driver_ubo {
+   int32_t idx;
+   uint32_t size;
 };
 
 /**
@@ -186,8 +200,11 @@ struct ir3_const_state {
    unsigned num_ubos;
    unsigned num_driver_params; /* scalar */
 
-   /* UBO that should be mapped to the NIR shader's constant_data (or -1). */
-   int32_t constant_data_ubo;
+   struct ir3_driver_ubo consts_ubo;
+   struct ir3_driver_ubo driver_params_ubo;
+   struct ir3_driver_ubo primitive_map_ubo, primitive_param_ubo;
+
+   int32_t constant_data_dynamic_offsets;
 
    struct {
       /* user const start at zero */
@@ -217,6 +234,7 @@ struct ir3_const_state {
    uint32_t *immediates;
 
    unsigned preamble_size;
+   unsigned global_size;
 
    /* State of ubo access lowered to push consts: */
    struct ir3_ubo_analysis_state ubo_state;
@@ -340,6 +358,11 @@ struct ir3_shader_key {
           * the limit:
           */
          unsigned safe_constlen : 1;
+
+         /* Whether driconf "dual_color_blend_by_location" workaround is
+          * enabled
+          */
+         unsigned force_dual_color_blend : 1;
       };
       uint32_t global;
    };
@@ -1243,12 +1266,7 @@ ir3_shader_branchstack_hw(const struct ir3_shader_variant *v)
    if (v->compiler->gen < 5)
       return v->branchstack;
 
-   if (v->branchstack > 0) {
-      uint32_t branchstack = v->branchstack / 2 + 1;
-      return MIN2(branchstack, v->compiler->branchstack_size / 2);
-   } else {
-      return 0;
-   }
+   return DIV_ROUND_UP(MIN2(v->branchstack, v->compiler->branchstack_size), 2);
 }
 
 ENDC;

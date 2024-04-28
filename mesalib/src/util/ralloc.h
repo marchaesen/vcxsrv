@@ -313,6 +313,11 @@ void *ralloc_parent(const void *ptr);
  */
 void ralloc_set_destructor(const void *ptr, void(*destructor)(void *));
 
+/**
+ * Duplicate memory, allocating the memory from the given context.
+ */
+void *ralloc_memdup(const void *ctx, const void *mem, size_t n) MALLOCLIKE;
+
 /// \defgroup array String Functions @{
 /**
  * Duplicate a string, allocating the memory from the given context.

@@ -1,3 +1,5 @@
+#include "util/detect_os.h"
+
 #include "target-helpers/drm_helper.h"
 #include "target-helpers/sw_helper.h"
 
@@ -82,6 +84,7 @@ DEFINE_LOADER_DRM_ENTRYPOINT(vc4)
 
 #if defined(GALLIUM_PANFROST)
 DEFINE_LOADER_DRM_ENTRYPOINT(panfrost)
+DEFINE_LOADER_DRM_ENTRYPOINT(panthor)
 #endif
 
 #if defined(GALLIUM_ASAHI)
@@ -123,29 +126,28 @@ DEFINE_LOADER_DRM_ENTRYPOINT(pl111)
 DEFINE_LOADER_DRM_ENTRYPOINT(rcar_du)
 DEFINE_LOADER_DRM_ENTRYPOINT(repaper)
 DEFINE_LOADER_DRM_ENTRYPOINT(rockchip)
+DEFINE_LOADER_DRM_ENTRYPOINT(rzg2l_du)
+DEFINE_LOADER_DRM_ENTRYPOINT(ssd130x)
 DEFINE_LOADER_DRM_ENTRYPOINT(st7586)
 DEFINE_LOADER_DRM_ENTRYPOINT(st7735r)
 DEFINE_LOADER_DRM_ENTRYPOINT(sti)
 DEFINE_LOADER_DRM_ENTRYPOINT(stm)
 DEFINE_LOADER_DRM_ENTRYPOINT(sun4i_drm)
 DEFINE_LOADER_DRM_ENTRYPOINT(udl)
+DEFINE_LOADER_DRM_ENTRYPOINT(zynqmp_dpsub)
 #endif
 
 #if defined(GALLIUM_LIMA)
 DEFINE_LOADER_DRM_ENTRYPOINT(lima)
 #endif
 
-#if defined(GALLIUM_ZINK) && !defined(__APPLE__)
-#if defined(ANDROID)
-DEFINE_LOADER_DRM_ENTRYPOINT(zink);
-#else
+#if defined(GALLIUM_ZINK)
 const __DRIextension **__driDriverGetExtensions_zink(void);
 
 PUBLIC const __DRIextension **__driDriverGetExtensions_zink(void)
 {
-   return galliumvk_driver_extensions;
+   return debug_get_bool_option("LIBGL_KOPPER_DISABLE", false) ? galliumdrm_driver_extensions : galliumvk_driver_extensions;
 }
-#endif
 #endif
 
 #if defined(GALLIUM_D3D12)

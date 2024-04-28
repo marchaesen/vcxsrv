@@ -794,13 +794,11 @@ winWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Are we tracking yet? */
         if (!s_fTracking) {
-            TRACKMOUSEEVENT tme;
-
-            /* Setup data structure */
-            ZeroMemory(&tme, sizeof(tme));
-            tme.cbSize = sizeof(tme);
-            tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hwnd;
+            TRACKMOUSEEVENT tme = (TRACKMOUSEEVENT) {
+                tme.cbSize = sizeof(tme),
+                tme.dwFlags = TME_LEAVE,
+                tme.hwndTrack = hwnd
+            };
 
             /* Call the tracking function */
             if (!TrackMouseEvent(&tme))

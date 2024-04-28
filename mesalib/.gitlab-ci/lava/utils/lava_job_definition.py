@@ -15,6 +15,8 @@ from lava.utils.uart_job_definition import (
     fastboot_deploy_actions,
     tftp_boot_action,
     tftp_deploy_actions,
+    qemu_boot_action,
+    qemu_deploy_actions,
     uart_test_actions,
 )
 
@@ -71,6 +73,9 @@ class LAVAJobDefinition:
         if args.boot_method == "fastboot":
             deploy_actions = fastboot_deploy_actions(self, nfsrootfs)
             boot_action = fastboot_boot_action(args)
+        elif args.boot_method == "qemu-nfs":
+            deploy_actions = qemu_deploy_actions(self, nfsrootfs)
+            boot_action = qemu_boot_action(args)
         else:  # tftp
             deploy_actions = tftp_deploy_actions(self, nfsrootfs)
             boot_action = tftp_boot_action(args)
@@ -142,6 +147,10 @@ class LAVAJobDefinition:
         if self.job_submitter.lava_tags:
             values["tags"] = self.job_submitter.lava_tags.split(",")
 
+        # QEMU lava jobs mandate proper arch value in the context
+        if self.job_submitter.boot_method == "qemu-nfs":
+            values["context"]["arch"] = self.job_submitter.mesa_job_name.split(":")[1]
+
         return values
 
     def attach_kernel_and_dtb(self, deploy_field):
@@ -184,7 +193,7 @@ class LAVAJobDefinition:
                     "set +x  # HIDE_START",
                     f'echo -n "{jwt_file.read()}" > "{self.job_submitter.jwt_file}"',
                     "set -x  # HIDE_END",
-                    f'echo "export CI_JOB_JWT_FILE={self.job_submitter.jwt_file}" >> /set-job-env-vars.sh',
+                    f'echo "export S3_JWT_FILE={self.job_submitter.jwt_file}" >> /set-job-env-vars.sh',
                 ]
         else:
             download_steps += [
@@ -203,7 +212,13 @@ class LAVAJobDefinition:
         #   - exec .gitlab-ci/common/init-stage2.sh
 
         with open(self.job_submitter.first_stage_init, "r") as init_sh:
-            run_steps += [x.rstrip() for x in init_sh if not x.startswith("#") and x.rstrip()]
+            # For vmware farm, patch nameserver as 8.8.8.8 is off limit.
+            # This is temporary and will be reverted once the farm is moved.
+            if self.job_submitter.mesa_job_name.startswith("vmware-"):
+                run_steps += [x.rstrip().replace("nameserver 8.8.8.8", "nameserver 10.25.198.110") for x in init_sh if not x.startswith("#") and x.rstrip()]
+            else:
+                run_steps += [x.rstrip() for x in init_sh if not x.startswith("#") and x.rstrip()]
+
         # We cannot distribute the Adreno 660 shader firmware inside rootfs,
         # since the license isn't bundled inside the repository
         if self.job_submitter.device_type == "sm8350-hdk":

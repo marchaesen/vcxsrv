@@ -66,12 +66,12 @@
  */
 
 #include <string.h>
-#include <sys/param.h>
 
 #include "vl/vl_decoder.h"
 #include "vl/vl_video_buffer.h"
 #include "util/u_video.h"
 #include "util/u_memory.h"
+#include "util/macros.h"
 
 #include "virgl_screen.h"
 #include "virgl_resource.h"
@@ -106,7 +106,7 @@ static int fill_base_picture_desc(const struct pipe_picture_desc *desc,
     ITEM_SET(vbase, desc, protected_playback);
     ITEM_SET(vbase, desc, key_size);
     memcpy(vbase->decrypt_key, desc->decrypt_key,
-           MIN(desc->key_size, sizeof(vbase->decrypt_key)));
+           MIN2(desc->key_size, sizeof(vbase->decrypt_key)));
 
     return 0;
 }
@@ -1042,7 +1042,7 @@ static void virgl_video_decode_bitstream(struct pipe_video_codec *codec,
     if (!ptr)
         return;
     for (i = 0, vcdc->bs_size = 0; i < num_buffers; i++) {
-        memcpy(ptr + vcdc->bs_size, buffers[i], sizes[i]);
+        memcpy((uint8_t *)ptr + vcdc->bs_size, buffers[i], sizes[i]);
         vcdc->bs_size += sizes[i];
     }
     pipe_buffer_unmap(&vctx->base, xfer);

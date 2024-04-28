@@ -40,7 +40,7 @@ static void *
 llvmpipe_create_tcs_state(struct pipe_context *pipe,
                           const struct pipe_shader_state *templ)
 {
-   llvmpipe_register_shader(pipe, templ, false);
+   llvmpipe_register_shader(pipe, templ);
 
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct lp_tess_ctrl_shader *state;
@@ -101,8 +101,6 @@ llvmpipe_delete_tcs_state(struct pipe_context *pipe, void *tcs)
       return;
    }
 
-   llvmpipe_register_shader(pipe, &state->dtcs->state, true);
-
    draw_delete_tess_ctrl_shader(llvmpipe->draw, state->dtcs);
    FREE(state);
 }
@@ -112,7 +110,7 @@ static void *
 llvmpipe_create_tes_state(struct pipe_context *pipe,
                           const struct pipe_shader_state *templ)
 {
-   llvmpipe_register_shader(pipe, templ, false);
+   llvmpipe_register_shader(pipe, templ);
 
    struct llvmpipe_context *llvmpipe = llvmpipe_context(pipe);
    struct lp_tess_eval_shader *state;
@@ -172,8 +170,6 @@ llvmpipe_delete_tes_state(struct pipe_context *pipe, void *tes)
    if (!state) {
       return;
    }
-
-   llvmpipe_register_shader(pipe, &state->dtes->state, true);
 
    draw_delete_tess_eval_shader(llvmpipe->draw, state->dtes);
    FREE(state);

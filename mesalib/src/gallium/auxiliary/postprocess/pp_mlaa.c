@@ -45,7 +45,7 @@
 #include "postprocess/pp_filters.h"
 #include "postprocess/pp_private.h"
 
-#include "util/u_box.h"
+#include "util/box.h"
 #include "util/u_sampler.h"
 #include "util/u_inlines.h"
 #include "util/u_memory.h"

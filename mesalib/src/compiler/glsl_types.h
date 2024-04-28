@@ -611,6 +611,12 @@ glsl_type_is_integer_16_32_64(const glsl_type *t)
 }
 
 static inline bool
+glsl_type_is_float_16(const glsl_type *t)
+{
+   return t->base_type == GLSL_TYPE_FLOAT16;
+}
+
+static inline bool
 glsl_type_is_float_16_32(const glsl_type *t)
 {
    return t->base_type == GLSL_TYPE_FLOAT16 || glsl_type_is_float(t);
@@ -818,6 +824,7 @@ unsigned glsl_atomic_size(const glsl_type *type);
  * Type A contains type B if A is B or A is a composite type (struct,
  * interface, array) that has an element that contains B.
  */
+bool glsl_type_contains_32bit(const glsl_type *t);
 bool glsl_type_contains_64bit(const glsl_type *t);
 bool glsl_type_contains_image(const glsl_type *t);
 bool glsl_contains_atomic(const glsl_type *t);
@@ -924,12 +931,12 @@ static inline const glsl_type *glsl_float_type(void) { return &glsl_type_builtin
 static inline const glsl_type *glsl_float16_t_type(void) { return &glsl_type_builtin_float16_t; }
 static inline const glsl_type *glsl_double_type(void) { return &glsl_type_builtin_double; }
 static inline const glsl_type *glsl_vec2_type(void) { return &glsl_type_builtin_vec2; }
-static inline const glsl_type *glsl_dvec2_type(void) { return &glsl_type_builtin_ivec2; }
+static inline const glsl_type *glsl_dvec2_type(void) { return &glsl_type_builtin_dvec2; }
 static inline const glsl_type *glsl_uvec2_type(void) { return &glsl_type_builtin_uvec2; }
 static inline const glsl_type *glsl_ivec2_type(void) { return &glsl_type_builtin_ivec2; }
 static inline const glsl_type *glsl_bvec2_type(void) { return &glsl_type_builtin_bvec2; }
 static inline const glsl_type *glsl_vec4_type(void) { return &glsl_type_builtin_vec4; }
-static inline const glsl_type *glsl_dvec4_type(void) { return &glsl_type_builtin_ivec4; }
+static inline const glsl_type *glsl_dvec4_type(void) { return &glsl_type_builtin_dvec4; }
 static inline const glsl_type *glsl_uvec4_type(void) { return &glsl_type_builtin_uvec4; }
 static inline const glsl_type *glsl_ivec4_type(void) { return &glsl_type_builtin_ivec4; }
 static inline const glsl_type *glsl_bvec4_type(void) { return &glsl_type_builtin_bvec4; }

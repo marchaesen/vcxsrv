@@ -1,6 +1,6 @@
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles2-master.txt"]
+caselists = ["/deqp/mustpass/gles2-main.txt"]
 deqp_args = [
     "/deqp/modules/gles2/deqp-gles2",
     "--deqp-surface-width=256",
@@ -15,7 +15,7 @@ renderer_check = "virgl.*LLVMPIPE"
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles3-master.txt"]
+caselists = ["/deqp/mustpass/gles3-main.txt"]
 deqp_args = [
     "/deqp/modules/gles3/deqp-gles3",
     "--deqp-surface-width=256",
@@ -28,7 +28,7 @@ timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
 
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
-caselists = ["/deqp/mustpass/gles31-master.txt"]
+caselists = ["/deqp/mustpass/gles31-main.txt"]
 deqp_args = [
     "/deqp/modules/gles31/deqp-gles31",
     "--deqp-surface-width=256",
@@ -42,7 +42,7 @@ timeout = 360.0 # Starting 8 Crosvm instances simultaneously can take some time
 [[deqp]]
 deqp = "/install/crosvm-runner.sh"
 caselists = [
-    "/deqp/mustpass/gl32-master.txt",
+    "/deqp/mustpass/gl32-main.txt",
 ]
 deqp_args = [
     "/deqp/external/openglcts/modules/glcts",

@@ -180,6 +180,8 @@ AC_FUNC_VPRINTF
 AC_FUNC_MMAP
 AC_CHECK_FUNCS([link mkstemp mkostemp _mktemp_s mkdtemp getopt getopt_long getprogname getexecname rand random lrand48 random_r rand_r readlink fstatvfs fstatfs lstat strerror strerror_r])
 
+AC_SEARCH_LIBS([fabs], [m], [], [AC_MSG_ERROR([unable to find the fabs() function])])
+
 dnl AC_CHECK_FUNCS doesn't check for header files.
 dnl posix_fadvise() may be not available in older libc.
 AC_CHECK_SYMBOL([posix_fadvise], [fcntl.h], [fc_func_posix_fadvise=1], [fc_func_posix_fadvise=0])

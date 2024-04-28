@@ -57,6 +57,8 @@ lower_load_input_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
                    intr->def.bit_size);
       chan_intr->num_components = 1;
 
+      if (intr->name)
+         chan_intr->name = intr->name;
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_component(chan_intr, (newc + newi) % 4);
       nir_intrinsic_set_dest_type(chan_intr, nir_intrinsic_dest_type(intr));
@@ -95,6 +97,8 @@ lower_load_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
                    intr->def.bit_size);
       chan_intr->num_components = 1;
 
+      if (intr->name)
+         chan_intr->name = intr->name;
       nir_intrinsic_set_align_offset(chan_intr,
                                      (nir_intrinsic_align_offset(intr) +
                                       i * (intr->def.bit_size / 8)) %
@@ -143,6 +147,8 @@ lower_store_output_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
       chan_intr->num_components = 1;
 
+      if (intr->name)
+         chan_intr->name = intr->name;
       nir_intrinsic_set_base(chan_intr, nir_intrinsic_base(intr));
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
       nir_intrinsic_set_component(chan_intr, (newc + newi) % 4);
@@ -204,6 +210,8 @@ lower_store_to_scalar(nir_builder *b, nir_intrinsic_instr *intr)
          nir_intrinsic_instr_create(b->shader, intr->intrinsic);
       chan_intr->num_components = 1;
 
+      if (intr->name)
+         chan_intr->name = intr->name;
       nir_intrinsic_set_write_mask(chan_intr, 0x1);
       nir_intrinsic_set_align_offset(chan_intr,
                                      (nir_intrinsic_align_offset(intr) +
@@ -251,7 +259,8 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
 
    if ((intr->intrinsic == nir_intrinsic_load_input ||
         intr->intrinsic == nir_intrinsic_load_per_vertex_input ||
-        intr->intrinsic == nir_intrinsic_load_interpolated_input) &&
+        intr->intrinsic == nir_intrinsic_load_interpolated_input ||
+        intr->intrinsic == nir_intrinsic_load_input_vertex) &&
        (state->mask & nir_var_shader_in) &&
        (!state->filter || state->filter(instr, state->filter_data))) {
       lower_load_input_to_scalar(b, intr);
@@ -259,7 +268,8 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
    }
 
    if ((intr->intrinsic == nir_intrinsic_load_output ||
-        intr->intrinsic == nir_intrinsic_load_per_vertex_output) &&
+        intr->intrinsic == nir_intrinsic_load_per_vertex_output ||
+        intr->intrinsic == nir_intrinsic_load_per_primitive_output) &&
        (state->mask & nir_var_shader_out) &&
        (!state->filter || state->filter(instr, state->filter_data))) {
       lower_load_input_to_scalar(b, intr);
@@ -276,7 +286,8 @@ nir_lower_io_to_scalar_instr(nir_builder *b, nir_instr *instr, void *data)
    }
 
    if ((intr->intrinsic == nir_intrinsic_store_output ||
-        intr->intrinsic == nir_intrinsic_store_per_vertex_output) &&
+        intr->intrinsic == nir_intrinsic_store_per_vertex_output ||
+        intr->intrinsic == nir_intrinsic_store_per_primitive_output) &&
        state->mask & nir_var_shader_out &&
        (!state->filter || state->filter(instr, state->filter_data))) {
       lower_store_output_to_scalar(b, intr);

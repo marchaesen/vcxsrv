@@ -38,9 +38,9 @@
 #include "util/u_upload_mgr.h"
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
-#include "intel/compiler/brw_compiler.h"
-#include "intel/compiler/brw_eu.h"
-#include "intel/compiler/brw_nir.h"
+#include "intel/compiler/elk/elk_compiler.h"
+#include "intel/compiler/elk/elk_disasm.h"
+#include "intel/compiler/elk/elk_nir.h"
 #include "crocus_context.h"
 #include "crocus_resource.h"
 
@@ -102,7 +102,7 @@ crocus_find_previous_compile(const struct crocus_context *ice,
 {
    hash_table_foreach(ice->shaders.cache, entry) {
       const struct keybox *keybox = entry->key;
-      const struct brw_base_prog_key *key = (const void *)keybox->data;
+      const struct elk_base_prog_key *key = (const void *)keybox->data;
       if (keybox->cache_id == cache_id &&
           key->program_string_id == program_string_id) {
          return keybox->data;
@@ -187,9 +187,9 @@ struct crocus_compiled_shader *
 crocus_upload_shader(struct crocus_context *ice,
                      enum crocus_program_cache_id cache_id, uint32_t key_size,
                      const void *key, const void *assembly, uint32_t asm_size,
-                     struct brw_stage_prog_data *prog_data,
+                     struct elk_stage_prog_data *prog_data,
                      uint32_t prog_data_size, uint32_t *streamout,
-                     enum brw_param_builtin *system_values,
+                     enum elk_param_builtin *system_values,
                      unsigned num_system_values, unsigned num_cbufs,
                      const struct crocus_binding_table *bt)
 {
@@ -258,14 +258,14 @@ bool
 crocus_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
                            const void *key, uint32_t key_size,
                            const void *kernel, uint32_t kernel_size,
-                           const struct brw_stage_prog_data *prog_data_templ,
+                           const void *prog_data_templ,
                            uint32_t prog_data_size, uint32_t *kernel_out,
                            void *prog_data_out)
 {
    struct blorp_context *blorp = blorp_batch->blorp;
    struct crocus_context *ice = blorp->driver_ctx;
 
-   struct brw_stage_prog_data *prog_data = ralloc_size(NULL, prog_data_size);
+   struct elk_stage_prog_data *prog_data = ralloc_size(NULL, prog_data_size);
    memcpy(prog_data, prog_data_templ, prog_data_size);
 
    struct crocus_binding_table bt;
@@ -334,13 +334,13 @@ void
 crocus_print_program_cache(struct crocus_context *ice)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_isa_info *isa = &screen->compiler->isa;
+   const struct elk_isa_info *isa = &screen->compiler->isa;
 
    hash_table_foreach(ice->shaders.cache, entry) {
       const struct keybox *keybox = entry->key;
       struct crocus_compiled_shader *shader = entry->data;
       fprintf(stderr, "%s:\n", cache_name(keybox->cache_id));
-      brw_disassemble(isa, ice->shaders.cache_bo_map + shader->offset, 0,
+      elk_disassemble(isa, ice->shaders.cache_bo_map + shader->offset, 0,
                       shader->prog_data->program_size, NULL, stderr);
    }
 }

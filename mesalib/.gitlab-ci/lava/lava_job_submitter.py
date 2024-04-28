@@ -16,7 +16,7 @@ import sys
 import time
 from collections import defaultdict
 from dataclasses import dataclass, fields
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from os import environ, getenv, path
 from typing import Any, Optional
 
@@ -25,6 +25,8 @@ from lavacli.utils import flow_yaml as lava_yaml
 
 from lava.exceptions import (
     MesaCIException,
+    MesaCIFatalException,
+    MesaCIRetriableException,
     MesaCIParseException,
     MesaCIRetryError,
     MesaCITimeoutError,
@@ -58,7 +60,7 @@ except ImportError as e:
 
 # Timeout in seconds to decide if the device from the dispatched LAVA job has
 # hung or not due to the lack of new log output.
-DEVICE_HANGING_TIMEOUT_SEC = int(getenv("DEVICE_HANGING_TIMEOUT_SEC",  5*60))
+DEVICE_HANGING_TIMEOUT_SEC = int(getenv("DEVICE_HANGING_TIMEOUT_SEC", 5 * 60))
 
 # How many seconds the script should wait before try a new polling iteration to
 # check if the dispatched LAVA job is running or waiting in the job queue.
@@ -81,18 +83,29 @@ NUMBER_OF_RETRIES_TIMEOUT_DETECTION = int(
     getenv("LAVA_NUMBER_OF_RETRIES_TIMEOUT_DETECTION", 2)
 )
 
+CI_JOB_TIMEOUT_SEC = int(getenv("CI_JOB_TIMEOUT", 3600))
+# How many seconds the script will wait to let LAVA run the job and give the final details.
+EXPECTED_JOB_DURATION_SEC = int(getenv("EXPECTED_JOB_DURATION_SEC", 60 * 10))
+# CI_JOB_STARTED is given by GitLab CI/CD in UTC timezone by default.
+CI_JOB_STARTED_AT_RAW = getenv("CI_JOB_STARTED_AT", "")
+CI_JOB_STARTED_AT: datetime = (
+    datetime.fromisoformat(CI_JOB_STARTED_AT_RAW)
+    if CI_JOB_STARTED_AT_RAW
+    else datetime.now(timezone.utc)
+)
+
 
 def raise_exception_from_metadata(metadata: dict, job_id: int) -> None:
     """
     Investigate infrastructure errors from the job metadata.
-    If it finds an error, raise it as MesaCIException.
+    If it finds an error, raise it as MesaCIRetriableException.
     """
     if "result" not in metadata or metadata["result"] != "fail":
         return
     if "error_type" in metadata:
         error_type = metadata["error_type"]
         if error_type == "Infrastructure":
-            raise MesaCIException(
+            raise MesaCIRetriableException(
                 f"LAVA job {job_id} failed with Infrastructure Error. Retry."
             )
         if error_type == "Job":
@@ -100,12 +113,12 @@ def raise_exception_from_metadata(metadata: dict, job_id: int) -> None:
             # with mal-formed job definitions. As we are always validating the
             # jobs, only the former is probable to happen. E.g.: When some LAVA
             # action timed out more times than expected in job definition.
-            raise MesaCIException(
+            raise MesaCIRetriableException(
                 f"LAVA job {job_id} failed with JobError "
                 "(possible LAVA timeout misconfiguration/bug). Retry."
             )
     if "case" in metadata and metadata["case"] == "validate":
-        raise MesaCIException(
+        raise MesaCIRetriableException(
             f"LAVA job {job_id} failed validation (possible download error). Retry."
         )
 
@@ -182,7 +195,6 @@ def is_job_hanging(job, max_idle_time):
 
 
 def parse_log_lines(job, log_follower, new_log_lines):
-
     if log_follower.feed(new_log_lines):
         # If we had non-empty log data, we can assure that the device is alive.
         job.heartbeat()
@@ -200,7 +212,6 @@ def parse_log_lines(job, log_follower, new_log_lines):
 
 
 def fetch_new_log_lines(job):
-
     # The XMLRPC binary packet may be corrupted, causing a YAML scanner error.
     # Retry the log fetching several times before exposing the error.
     for _ in range(5):
@@ -216,14 +227,28 @@ def submit_job(job):
     try:
         job.submit()
     except Exception as mesa_ci_err:
-        raise MesaCIException(
+        raise MesaCIRetriableException(
             f"Could not submit LAVA job. Reason: {mesa_ci_err}"
         ) from mesa_ci_err
 
 
-def wait_for_job_get_started(job):
+def wait_for_job_get_started(job, attempt_no):
     print_log(f"Waiting for job {job.job_id} to start.")
     while not job.is_started():
+        current_job_duration_sec: int = int(
+            (datetime.now(timezone.utc) - CI_JOB_STARTED_AT).total_seconds()
+        )
+        remaining_time_sec: int = max(0, CI_JOB_TIMEOUT_SEC - current_job_duration_sec)
+        if remaining_time_sec < EXPECTED_JOB_DURATION_SEC:
+            job.cancel()
+            raise MesaCIFatalException(
+                f"{CONSOLE_LOG['BOLD']}"
+                f"{CONSOLE_LOG['FG_YELLOW']}"
+                f"Job {job.job_id} only has {remaining_time_sec} seconds "
+                "remaining to run, but it is expected to take at least "
+                f"{EXPECTED_JOB_DURATION_SEC} seconds."
+                f"{CONSOLE_LOG['RESET']}",
+            )
         time.sleep(WAIT_FOR_DEVICE_POLLING_TIME_SEC)
     job.refresh_log()
     print_log(f"Job {job.job_id} started.")
@@ -299,7 +324,7 @@ def execute_job_with_retries(
         try:
             job_log["submitter_start_time"] = datetime.now().isoformat()
             submit_job(job)
-            wait_for_job_get_started(job)
+            wait_for_job_get_started(job, attempt_no)
             log_follower: LogFollower = bootstrap_log_follower()
             follow_job_execution(job, log_follower)
             return job
@@ -318,6 +343,8 @@ def execute_job_with_retries(
                 f"Finished executing LAVA job in the attempt #{attempt_no}"
                 f"{CONSOLE_LOG['RESET']}"
             )
+            if job.exception and not isinstance(job.exception, MesaCIRetriableException):
+                break
 
     return last_failed_job
 
@@ -471,8 +498,9 @@ class LAVAJobSubmitter(PathResolver):
         if not last_attempt_job:
             # No job was run, something bad happened
             STRUCTURAL_LOG["job_combined_status"] = "script_crash"
-            current_exception = str(sys.exc_info()[0])
+            current_exception = str(sys.exc_info()[1])
             STRUCTURAL_LOG["job_combined_fail_reason"] = current_exception
+            print(f"Interrupting the script. Reason: {current_exception}")
             raise SystemExit(1)
 
         STRUCTURAL_LOG["job_combined_status"] = last_attempt_job.status
@@ -509,7 +537,6 @@ class StructuredLoggerWrapper:
     def logger_context(self):
         context = contextlib.nullcontext()
         try:
-
             global STRUCTURAL_LOG
             STRUCTURAL_LOG = StructuredLogger(
                 self.__submitter.structured_log_file, truncate=True

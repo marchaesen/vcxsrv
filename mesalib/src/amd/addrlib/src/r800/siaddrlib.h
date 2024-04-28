@@ -68,8 +68,11 @@ struct SiChipSettings
     UINT_32 isPolaris10       : 1;
     UINT_32 isPolaris11       : 1;
     UINT_32 isPolaris12       : 1;
+    // VI fusion
     UINT_32 isVegaM           : 1;
     UINT_32 isCarrizo         : 1;
+
+    UINT_32                   : 2;
 };
 
 /**

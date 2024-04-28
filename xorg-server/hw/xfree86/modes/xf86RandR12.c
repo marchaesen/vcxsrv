@@ -24,6 +24,8 @@
 #include <xorg-config.h>
 #endif
 
+#include "dix/screenint_priv.h"
+
 #include "xf86.h"
 #include "os.h"
 #include "globals.h"
@@ -33,7 +35,7 @@
 #include "mipointer.h"
 #include "windowstr.h"
 #include "inputstr.h"
-#include <randrstr.h>
+#include "randrstr_priv.h"
 #include <X11/extensions/render.h>
 
 #include "xf86cmap.h"
@@ -294,7 +296,7 @@ xf86ComputeCrtcPan(Bool transform_in_use,
         double r[3];
         double q[2], u[2], t[2], v[2], w[2], p[2];
         double f;
-        struct pict_f_vector d;
+        struct pixman_f_vector d;
         int i;
 
         /* Get the un-normalized crtc coordinates again */
@@ -368,7 +370,7 @@ xf86RandR13Pan(xf86CrtcPtr crtc, int x, int y)
         (crtc->panningTrackingArea.y2 <= crtc->panningTrackingArea.y1 ||
          (y >= crtc->panningTrackingArea.y1 &&
           y < crtc->panningTrackingArea.y2))) {
-        struct pict_f_vector c;
+        struct pixman_f_vector c;
 
         /*
          * Pre-clip the mouse position to the panning area so that we don't

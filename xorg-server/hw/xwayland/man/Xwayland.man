@@ -54,13 +54,6 @@ support (optional).
 
 This option is not compatible with rootless mode (\fI-rootless\fP).
 .TP 8
-.B \-eglstream
-Use EGLStream backend for NVidia GPUs. If \fIXwayland\fP was compiled with
-EGLStream support, this option will instruct \fIXwayland\fP to try that
-backend first, then fallback to the GBM backend if EGLStream is not supported
-by the Wayland server. Without this option, \fIXwayland\fP tries the GBM
-backend first, and fallback to EGLStream if GBM is not usable.
-.TP 8
 .B \-enable-ei-portal
 Enable support for the XDG portal for input emulation.
 
@@ -88,6 +81,11 @@ Without this option and without \fI-shm\fP option, \fIXwayland\fP tries the Open
 and fallback to GL ES if GL version is less than 2.1.
 
 This option is not compatible with \fI-shm\fP option.
+.TP 8
+.B \-hidpi
+Adjust to the scale of the outputs when running rootful in windowing mode.
+
+This option is not compatible with rootless mode (\fI-rootless\fP).
 .TP 8
 .B \-host-grab
 Disable host keyboard shorcuts and confine the pointer when running rootful.
@@ -124,6 +122,15 @@ support touch input.
 Force additional non-native modes to be exposed when viewporter is not
 supported by the Wayland compositor.
 .TP 8
+.B \-nokeymap
+Instructs \fIXwayland\fP to ignore the keymap set by the Wayland compositor.
+
+By default, \fIXwayland\fP (as any Wayland client) uses the keymap set by the
+Wayland compositor using the standard Wayland protocol.
+
+This option is meant for some specific use cases where it may be desirable to
+let the X11 clients control the keymap used in Xwayland, ignoring the keymap
+specified by the Wayland compositor.
 .B \-output \fIname\fP
 Specifies on which output \fIXwayland\fP fullscreen rootful should be placed.
 The name must match the name of an existing Wayland output (output names can

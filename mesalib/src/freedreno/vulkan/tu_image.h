@@ -23,9 +23,9 @@ struct tu_image
    struct vk_image vk;
 
    struct fdl_layout layout[3];
-   uint32_t total_size;
+   uint64_t total_size;
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    /* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
    VkDeviceMemory owned_memory;
 #endif

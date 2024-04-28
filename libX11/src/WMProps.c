@@ -122,14 +122,6 @@ void XSetWMProperties (
 		 * systems will have to change this.
 		 */
 		char *cp = strrchr (argv[0], '/');
-#ifdef __UNIXOS2__
-		char *os2_cp = strrchr (argv[0],'\\');
-		char *dot_cp = strrchr (argv[0],'.');
-		if (os2_cp && (os2_cp > cp)) {
-		    if(dot_cp && (dot_cp > os2_cp)) *dot_cp = '\0';
-		    cp=os2_cp;
-		}
-#endif
 		tmp.res_name = (cp ? cp + 1 : argv[0]);
 	    }
 	    tmp.res_class = classHints->res_class;

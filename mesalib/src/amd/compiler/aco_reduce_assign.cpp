@@ -2,25 +2,7 @@
  * Copyright © 2018 Valve Corporation
  * Copyright © 2018 Google
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_builder.h"
@@ -79,11 +61,14 @@ setup_reduce_temp(Program* program)
           * Here, the linear vgpr is used before any phi copies, so this isn't necessary.
           */
          if (inserted_at >= 0) {
-            aco_ptr<Instruction> end{create_instruction<Instruction>(
+            aco_ptr<Instruction> end{create_instruction(
                aco_opcode::p_end_linear_vgpr, Format::PSEUDO, vtmp_inserted_at >= 0 ? 2 : 1, 0)};
             end->operands[0] = Operand(reduceTmp);
-            if (vtmp_inserted_at >= 0)
+            end->operands[0].setLateKill(true);
+            if (vtmp_inserted_at >= 0) {
                end->operands[1] = Operand(vtmp);
+               end->operands[1].setLateKill(true);
+            }
             /* insert after the phis of the block */
             std::vector<aco_ptr<Instruction>>::iterator it = block.instructions.begin();
             while ((*it)->opcode == aco_opcode::p_linear_phi || (*it)->opcode == aco_opcode::p_phi)
@@ -106,8 +91,8 @@ setup_reduce_temp(Program* program)
 
          if ((int)last_top_level_block_idx != inserted_at) {
             reduceTmp = program->allocateTmp(reduceTmp.regClass());
-            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
-               aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+            aco_ptr<Instruction> create{
+               create_instruction(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
             create->definitions[0] = Definition(reduceTmp);
             /* find the right place to insert this definition */
             if (last_top_level_block_idx == block.index) {
@@ -151,8 +136,8 @@ setup_reduce_temp(Program* program)
 
          if (need_vtmp && (int)last_top_level_block_idx != vtmp_inserted_at) {
             vtmp = program->allocateTmp(vtmp.regClass());
-            aco_ptr<Pseudo_instruction> create{create_instruction<Pseudo_instruction>(
-               aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
+            aco_ptr<Instruction> create{
+               create_instruction(aco_opcode::p_start_linear_vgpr, Format::PSEUDO, 0, 1)};
             create->definitions[0] = Definition(vtmp);
             if (last_top_level_block_idx == block.index) {
                it = block.instructions.insert(it, std::move(create));
@@ -169,8 +154,11 @@ setup_reduce_temp(Program* program)
 
          if (instr->isReduction()) {
             instr->operands[1] = Operand(reduceTmp);
-            if (need_vtmp)
+            instr->operands[1].setLateKill(true);
+            if (need_vtmp) {
                instr->operands[2] = Operand(vtmp);
+               instr->operands[2].setLateKill(true);
+            }
          } else {
             assert(instr->opcode == aco_opcode::p_interp_gfx11 ||
                    instr->opcode == aco_opcode::p_bpermute_permlane);

@@ -1,7 +1,7 @@
 # Basic test set
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 timeout = 300
 renderer_check = "Turnip Adreno .* 630"
 
@@ -9,7 +9,7 @@ renderer_check = "Turnip Adreno .* 630"
 # Autotuner forces sysmem on most CTS tests
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 timeout = 300
 prefix = "gmem-"
 fraction = 10
@@ -19,7 +19,7 @@ TU_DEBUG = "gmem,forcebin"
 # force-sysmem testing
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 timeout = 300
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"

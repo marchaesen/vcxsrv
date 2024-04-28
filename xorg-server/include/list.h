@@ -274,19 +274,8 @@ xorg_list_is_empty(struct xorg_list *head)
 #define xorg_list_last_entry(ptr, type, member) \
     xorg_list_entry((ptr)->prev, type, member)
 
-#ifdef HAVE_TYPEOF
 #define __container_of(ptr, sample, member)			\
     container_of(ptr, typeof(*sample), member)
-#else
-/* This implementation of __container_of has undefined behavior according
- * to the C standard, but it works in many cases.  If your compiler doesn't
- * support typeof() and fails with this implementation, please try a newer
- * compiler.
- */
-#define __container_of(ptr, sample, member)                            \
-    (void *)((char *)(ptr)                                             \
-            - ((char *)&(sample)->member - (char *)(sample)))
-#endif
 
 /**
  * Loop through the list given by head and set pos to struct in the list.

@@ -55,5 +55,7 @@ spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent client-stor
 # on CI runtime:
 spec@nv_copy_image@nv_copy_image.*
 
-# Exclude this test which might fail when a new extension is implemented.
-dEQP-VK.info.device_extensions
+# uprev Piglit in Mesa
+spec@arb_timer_query@timestamp-get
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-modifiers.*
+

@@ -41,10 +41,11 @@ struct zink_batch_usage;
 
 struct kopper_swapchain_image {
    bool init;
-   bool acquired;
+   bool readback_needs_update;
    bool dt_has_data;
    int age;
    VkImage image;
+   struct zink_resource *acquired;
    struct pipe_resource *readback;
    VkSemaphore acquire;
    VkImageLayout layout;
@@ -95,6 +96,20 @@ struct kopper_displaytarget
    bool is_kill;
    VkPresentModeKHR present_mode;
    unsigned readback_counter;
+
+   bool age_locked; //disables buffer age during readback
+};
+
+struct zink_kopper_present_info {
+   VkPresentInfoKHR info;
+   VkPresentRegionsKHR rinfo;
+   VkPresentRegionKHR region;
+   VkRectLayerKHR regions[64];
+   uint32_t image;
+   struct kopper_swapchain *swapchain;
+   struct zink_resource *res;
+   VkSemaphore sem;
+   bool indefinite_acquire;
 };
 
 struct zink_context;
@@ -119,6 +134,9 @@ zink_kopper_acquired(const struct kopper_displaytarget *cdt, uint32_t idx)
    return idx != UINT32_MAX && cdt->swapchain->images[idx].acquired;
 }
 
+void
+zink_kopper_update_last_written(struct zink_resource *res);
+
 struct kopper_displaytarget *
 zink_kopper_displaytarget_create(struct zink_screen *screen, unsigned tex_usage,
                                  enum pipe_format format, unsigned width,
@@ -135,7 +153,7 @@ zink_kopper_acquire_submit(struct zink_screen *screen, struct zink_resource *res
 VkSemaphore
 zink_kopper_present(struct zink_screen *screen, struct zink_resource *res); 
 void
-zink_kopper_present_queue(struct zink_screen *screen, struct zink_resource *res);
+zink_kopper_present_queue(struct zink_screen *screen, struct zink_resource *res, unsigned nrects, struct pipe_box *boxes);
 bool
 zink_kopper_acquire_readback(struct zink_context *ctx, struct zink_resource *res, struct zink_resource **readback);
 bool
@@ -158,6 +176,8 @@ int
 zink_kopper_query_buffer_age(struct pipe_context *pctx, struct pipe_resource *pres);
 void
 zink_kopper_prune_batch_usage(struct kopper_displaytarget *cdt, const struct zink_batch_usage *u);
+void
+zink_kopper_set_readback_needs_update(struct zink_resource *res);
 
 #ifdef __cplusplus
 }

@@ -257,6 +257,25 @@ _mesa_PixelStoref_no_error(GLenum pname, GLfloat param)
    _mesa_PixelStorei_no_error(pname, lroundf(param));
 }
 
+void
+_mesa_init_pixelstore_attrib(struct gl_context *ctx,
+                             struct gl_pixelstore_attrib *pack)
+{
+   pack->Alignment = 4;
+   pack->RowLength = 0;
+   pack->ImageHeight = 0;
+   pack->SkipPixels = 0;
+   pack->SkipRows = 0;
+   pack->SkipImages = 0;
+   pack->SwapBytes = GL_FALSE;
+   pack->LsbFirst = GL_FALSE;
+   pack->Invert = GL_FALSE;
+   pack->CompressedBlockWidth = 0;
+   pack->CompressedBlockHeight = 0;
+   pack->CompressedBlockDepth = 0;
+   pack->CompressedBlockSize = 0;
+   _mesa_reference_buffer_object(ctx, &pack->BufferObj, NULL);
+}
 
 /**
  * Initialize the context's pixel store state.
@@ -265,34 +284,9 @@ void
 _mesa_init_pixelstore(struct gl_context *ctx)
 {
    /* Pixel transfer */
-   ctx->Pack.Alignment = 4;
-   ctx->Pack.RowLength = 0;
-   ctx->Pack.ImageHeight = 0;
-   ctx->Pack.SkipPixels = 0;
-   ctx->Pack.SkipRows = 0;
-   ctx->Pack.SkipImages = 0;
-   ctx->Pack.SwapBytes = GL_FALSE;
-   ctx->Pack.LsbFirst = GL_FALSE;
-   ctx->Pack.Invert = GL_FALSE;
-   ctx->Pack.CompressedBlockWidth = 0;
-   ctx->Pack.CompressedBlockHeight = 0;
-   ctx->Pack.CompressedBlockDepth = 0;
-   ctx->Pack.CompressedBlockSize = 0;
-   _mesa_reference_buffer_object(ctx, &ctx->Pack.BufferObj, NULL);
-   ctx->Unpack.Alignment = 4;
-   ctx->Unpack.RowLength = 0;
-   ctx->Unpack.ImageHeight = 0;
-   ctx->Unpack.SkipPixels = 0;
-   ctx->Unpack.SkipRows = 0;
-   ctx->Unpack.SkipImages = 0;
-   ctx->Unpack.SwapBytes = GL_FALSE;
-   ctx->Unpack.LsbFirst = GL_FALSE;
-   ctx->Unpack.Invert = GL_FALSE;
-   ctx->Unpack.CompressedBlockWidth = 0;
-   ctx->Unpack.CompressedBlockHeight = 0;
-   ctx->Unpack.CompressedBlockDepth = 0;
-   ctx->Unpack.CompressedBlockSize = 0;
-   _mesa_reference_buffer_object(ctx, &ctx->Unpack.BufferObj, NULL);
+   _mesa_init_pixelstore_attrib(ctx, &ctx->Pack);
+   _mesa_init_pixelstore_attrib(ctx, &ctx->Unpack);
+   _mesa_init_pixelstore_attrib(ctx, &ctx->DefaultPacking);
 
    /*
     * _mesa_unpack_image() returns image data in this format.  When we
@@ -301,15 +295,6 @@ _mesa_init_pixelstore(struct gl_context *ctx)
     * unpacking parameters to these values!
     */
    ctx->DefaultPacking.Alignment = 1;
-   ctx->DefaultPacking.RowLength = 0;
-   ctx->DefaultPacking.SkipPixels = 0;
-   ctx->DefaultPacking.SkipRows = 0;
-   ctx->DefaultPacking.ImageHeight = 0;
-   ctx->DefaultPacking.SkipImages = 0;
-   ctx->DefaultPacking.SwapBytes = GL_FALSE;
-   ctx->DefaultPacking.LsbFirst = GL_FALSE;
-   ctx->DefaultPacking.Invert = GL_FALSE;
-   _mesa_reference_buffer_object(ctx, &ctx->DefaultPacking.BufferObj, NULL);
 }
 
 

@@ -273,6 +273,13 @@ struct tc_unflushed_batch_token;
  */
 #define TC_MAX_SUBDATA_BYTES        320
 
+enum tc_call_id {
+#define CALL(name) TC_CALL_##name,
+#include "u_threaded_context_calls.h"
+#undef CALL
+   TC_NUM_CALLS,
+};
+
 enum tc_binding_type {
    TC_BINDING_VERTEX_BUFFER,
    TC_BINDING_STREAMOUT_BUFFER,
@@ -301,6 +308,8 @@ enum tc_binding_type {
    TC_BINDING_IMAGE_TES,
    TC_BINDING_IMAGE_CS,
 };
+
+typedef uint16_t (*tc_execute)(struct pipe_context *pipe, void *call);
 
 typedef void (*tc_replace_buffer_storage_func)(struct pipe_context *ctx,
                                                struct pipe_resource *dst,
@@ -558,6 +567,12 @@ struct threaded_context_options {
    void (*fs_parse)(void *state, struct tc_renderpass_info *info);
 };
 
+struct tc_vertex_buffers {
+   struct tc_call_base base;
+   uint8_t count;
+   struct pipe_vertex_buffer slot[0]; /* more will be allocated if needed */
+};
+
 struct threaded_context {
    struct pipe_context base;
    struct pipe_context *pipe;
@@ -616,7 +631,7 @@ struct threaded_context {
 
    int8_t last_completed;
 
-   unsigned max_vertex_buffers;
+   uint8_t num_vertex_buffers;
    unsigned max_const_buffers;
    unsigned max_shader_buffers;
    unsigned max_images;
@@ -652,6 +667,9 @@ struct threaded_context {
    struct tc_renderpass_info *renderpass_info_recording;
    /* accessed by driver thread */
    struct tc_renderpass_info *renderpass_info;
+
+   /* Callbacks that call pipe_context functions. */
+   tc_execute execute_func[TC_NUM_CALLS];
 };
 
 
@@ -692,6 +710,8 @@ threaded_context_flush(struct pipe_context *_pipe,
 struct tc_draw_single *
 tc_add_draw_single_call(struct pipe_context *_pipe,
                         struct pipe_resource *index_bo);
+struct pipe_vertex_buffer *
+tc_add_set_vertex_buffers_call(struct pipe_context *_pipe, unsigned count);
 
 void
 tc_draw_vbo(struct pipe_context *_pipe, const struct pipe_draw_info *info,
@@ -775,6 +795,44 @@ tc_buffer_write(struct pipe_context *pipe,
                 const void *data)
 {
    pipe->buffer_subdata(pipe, buf, PIPE_MAP_WRITE | TC_TRANSFER_MAP_NO_INVALIDATE, offset, size, data);
+}
+
+static inline struct tc_buffer_list *
+tc_get_next_buffer_list(struct pipe_context *_pipe)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   return &tc->buffer_lists[tc->next_buf_list];
+}
+
+/* Set a buffer binding and add it to the buffer list. */
+static inline void
+tc_bind_buffer(uint32_t *binding, struct tc_buffer_list *next, struct pipe_resource *buf)
+{
+   uint32_t id = threaded_resource(buf)->buffer_id_unique;
+   *binding = id;
+   BITSET_SET(next->buffer_list, id & TC_BUFFER_ID_MASK);
+}
+
+/* Reset a buffer binding. */
+static inline void
+tc_unbind_buffer(uint32_t *binding)
+{
+   *binding = 0;
+}
+
+static inline void
+tc_track_vertex_buffer(struct pipe_context *_pipe, unsigned index,
+                         struct pipe_resource *buf,
+                         struct tc_buffer_list *next_buffer_list)
+{
+   struct threaded_context *tc = threaded_context(_pipe);
+
+   if (buf) {
+      tc_bind_buffer(&tc->vertex_buffers[index], next_buffer_list, buf);
+   } else {
+      tc_unbind_buffer(&tc->vertex_buffers[index]);
+   }
 }
 
 #ifdef __cplusplus

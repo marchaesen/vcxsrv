@@ -36,6 +36,7 @@ struct tu_native_format tu6_format_vtx(enum pipe_format format);
 struct tu_native_format tu6_format_color(enum pipe_format format, enum a6xx_tile_mode tile_mode);
 struct tu_native_format tu6_format_texture(enum pipe_format format, enum a6xx_tile_mode tile_mode);
 
-bool tu6_mutable_format_list_ubwc_compatible(const VkImageFormatListCreateInfo *fmt_list);
+bool tu6_mutable_format_list_ubwc_compatible(const struct fd_dev_info *info,
+                                             const VkImageFormatListCreateInfo *fmt_list);
 
 #endif /* TU_FORMATS_H */

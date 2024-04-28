@@ -67,6 +67,9 @@ sweep_block(nir_shader *nir, nir_block *block)
          nir_foreach_phi_src(src, nir_instr_as_phi(instr))
             gc_mark_live(nir->gctx, src);
          break;
+      case nir_instr_type_intrinsic:
+         ralloc_steal(nir, (void*)nir_instr_as_intrinsic(instr)->name);
+         break;
       default:
          break;
       }

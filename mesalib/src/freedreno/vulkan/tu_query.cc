@@ -18,6 +18,7 @@
 #include "tu_cmd_buffer.h"
 #include "tu_cs.h"
 #include "tu_device.h"
+#include "tu_rmv.h"
 
 #include "common/freedreno_gpu_event.h"
 
@@ -29,19 +30,14 @@ struct PACKED query_slot {
    uint64_t available;
 };
 
-struct PACKED occlusion_slot_value {
-   /* Seems sample counters are placed to be 16-byte aligned
-    * even though this query needs an 8-byte slot. */
-   uint64_t value;
-   uint64_t _padding;
-};
-
 struct PACKED occlusion_query_slot {
    struct query_slot common;
-   uint64_t result;
+   uint64_t _padding0;
 
-   struct occlusion_slot_value begin;
-   struct occlusion_slot_value end;
+   uint64_t begin;
+   uint64_t result;
+   uint64_t end;
+   uint64_t _padding1;
 };
 
 struct PACKED timestamp_query_slot {
@@ -95,13 +91,18 @@ struct PACKED primitives_generated_query_slot {
    uint64_t end;
 };
 
-/* Returns the IOVA of a given uint64_t field in a given slot of a query
- * pool. */
+/* Returns the IOVA or mapped address of a given uint64_t field
+ * in a given slot of a query pool. */
 #define query_iova(type, pool, query, field)                         \
    pool->bo->iova + pool->stride * (query) + offsetof(type, field)
+#define query_addr(type, pool, query, field)                         \
+   (uint64_t *) ((char *) pool->bo->map + pool->stride * (query) +   \
+                 offsetof(type, field))
 
 #define occlusion_query_iova(pool, query, field)                     \
    query_iova(struct occlusion_query_slot, pool, query, field)
+#define occlusion_query_addr(pool, query, field)                     \
+   query_addr(struct occlusion_query_slot, pool, query, field)
 
 #define pipeline_stat_query_iova(pool, query, field, idx)                    \
    pool->bo->iova + pool->stride * (query) +                                 \
@@ -213,7 +214,7 @@ tu_CreateQueryPool(VkDevice _device,
                    const VkAllocationCallbacks *pAllocator,
                    VkQueryPool *pQueryPool)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO);
    assert(pCreateInfo->queryCount > 0);
 
@@ -333,6 +334,9 @@ tu_CreateQueryPool(VkDevice _device,
    pool->stride = slot_size;
    pool->size = pCreateInfo->queryCount;
    pool->pipeline_statistics = pCreateInfo->pipelineStatistics;
+
+   TU_RMV(query_pool_create, device, pool);
+
    *pQueryPool = tu_query_pool_to_handle(pool);
 
    return VK_SUCCESS;
@@ -343,11 +347,13 @@ tu_DestroyQueryPool(VkDevice _device,
                     VkQueryPool _pool,
                     const VkAllocationCallbacks *pAllocator)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_query_pool, pool, _pool);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_query_pool, pool, _pool);
 
    if (!pool)
       return;
+
+   TU_RMV(resource_destroy, device, pool);
 
    tu_bo_finish(device, pool->bo);
    vk_object_free(&device->vk, pAllocator, pool);
@@ -521,6 +527,9 @@ get_query_pool_results(struct tu_device *device,
                result = query_result_addr(pool, query, uint64_t, stat_idx);
             } else if (pool->type == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
                result = query_result_addr(pool, query, struct perfcntr_query_slot, k);
+            } else if (pool->type == VK_QUERY_TYPE_OCCLUSION) {
+               assert(k == 0);
+               result = occlusion_query_addr(pool, query, result);
             } else {
                result = query_result_addr(pool, query, uint64_t, k);
             }
@@ -563,8 +572,8 @@ tu_GetQueryPoolResults(VkDevice _device,
                        VkDeviceSize stride,
                        VkQueryResultFlags flags)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(firstQuery + queryCount <= pool->size);
 
    if (vk_device_is_lost(&device->vk))
@@ -659,6 +668,9 @@ emit_copy_query_pool_results(struct tu_cmd_buffer *cmdbuf,
          } else if (pool->type == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
             result_iova = query_result_iova(pool, query,
                                             struct perfcntr_query_slot, k);
+         } else if (pool->type == VK_QUERY_TYPE_OCCLUSION) {
+            assert(k == 0);
+            result_iova = occlusion_query_iova(pool, query, result);
          } else {
             result_iova = query_result_iova(pool, query, uint64_t, k);
          }
@@ -711,9 +723,9 @@ tu_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
                            VkDeviceSize stride,
                            VkQueryResultFlags flags)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
-   TU_FROM_HANDLE(tu_buffer, buffer, dstBuffer);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_buffer, buffer, dstBuffer);
    struct tu_cs *cs = &cmdbuf->cs;
    assert(firstQuery + queryCount <= pool->size);
 
@@ -759,6 +771,9 @@ emit_reset_query_pool(struct tu_cmd_buffer *cmdbuf,
          } else if (pool->type == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
             result_iova = query_result_iova(pool, query,
                                             struct perfcntr_query_slot, k);
+         } else if (pool->type == VK_QUERY_TYPE_OCCLUSION) {
+            assert(k == 0);
+            result_iova = occlusion_query_iova(pool, query, result);
          } else {
             result_iova = query_result_iova(pool, query, uint64_t, k);
          }
@@ -777,8 +792,8 @@ tu_CmdResetQueryPool(VkCommandBuffer commandBuffer,
                      uint32_t firstQuery,
                      uint32_t queryCount)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
 
    switch (pool->type) {
    case VK_QUERY_TYPE_TIMESTAMP:
@@ -800,7 +815,7 @@ tu_ResetQueryPool(VkDevice device,
                   uint32_t firstQuery,
                   uint32_t queryCount)
 {
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
 
    for (uint32_t i = 0; i < queryCount; i++) {
       struct query_slot *slot = slot_address(pool, i + firstQuery);
@@ -812,6 +827,9 @@ tu_ResetQueryPool(VkDevice device,
          if (pool->type == VK_QUERY_TYPE_PERFORMANCE_QUERY_KHR) {
             res = query_result_addr(pool, i + firstQuery,
                                     struct perfcntr_query_slot, k);
+         } else if (pool->type == VK_QUERY_TYPE_OCCLUSION) {
+            assert(k == 0);
+            res = occlusion_query_addr(pool, i + firstQuery, result);
          } else {
             res = query_result_addr(pool, i + firstQuery, uint64_t, k);
          }
@@ -1066,8 +1084,8 @@ tu_CmdBeginQuery(VkCommandBuffer commandBuffer,
                  uint32_t query,
                  VkQueryControlFlags flags)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(query < pool->size);
 
    switch (pool->type) {
@@ -1106,8 +1124,8 @@ tu_CmdBeginQueryIndexedEXT(VkCommandBuffer commandBuffer,
                            VkQueryControlFlags flags,
                            uint32_t index)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(query < pool->size);
 
    switch (pool->type) {
@@ -1148,8 +1166,8 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
 
    uint64_t available_iova = query_available_iova(pool, query);
    uint64_t begin_iova = occlusion_query_iova(pool, query, begin);
+   uint64_t result_iova = occlusion_query_iova(pool, query, result);
    uint64_t end_iova = occlusion_query_iova(pool, query, end);
-   uint64_t result_iova = query_result_iova(pool, query, uint64_t, 0);
    tu_cs_emit_pkt7(cs, CP_MEM_WRITE, 4);
    tu_cs_emit_qw(cs, end_iova);
    tu_cs_emit_qw(cs, 0xffffffffffffffffull);
@@ -1170,11 +1188,12 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
          tu_cs_emit(cs, CCU_CLEAN_DEPTH);
       }
    } else {
-      /* A7XX TODO: Calculate (end - begin) via ZPASS_DONE. */
-      tu_cs_emit_pkt7(cs, CP_EVENT_WRITE, 3);
+      tu_cs_emit_pkt7(cs, CP_EVENT_WRITE7, 3);
       tu_cs_emit(cs, CP_EVENT_WRITE7_0(.event = ZPASS_DONE,
-                                       .write_sample_count = true).value);
-      tu_cs_emit_qw(cs, end_iova);
+                                       .write_sample_count = true,
+                                       .sample_count_end_offset = true,
+                                       .write_accum_sample_count_diff = true).value);
+      tu_cs_emit_qw(cs, begin_iova);
    }
 
    tu_cs_emit_pkt7(cs, CP_WAIT_REG_MEM, 6);
@@ -1185,13 +1204,15 @@ emit_end_occlusion_query(struct tu_cmd_buffer *cmdbuf,
    tu_cs_emit(cs, CP_WAIT_REG_MEM_4_MASK(~0));
    tu_cs_emit(cs, CP_WAIT_REG_MEM_5_DELAY_LOOP_CYCLES(16));
 
-   /* result (dst) = result (srcA) + end (srcB) - begin (srcC) */
-   tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 9);
-   tu_cs_emit(cs, CP_MEM_TO_MEM_0_DOUBLE | CP_MEM_TO_MEM_0_NEG_C);
-   tu_cs_emit_qw(cs, result_iova);
-   tu_cs_emit_qw(cs, result_iova);
-   tu_cs_emit_qw(cs, end_iova);
-   tu_cs_emit_qw(cs, begin_iova);
+   if (!cmdbuf->device->physical_device->info->a7xx.has_event_write_sample_count) {
+      /* result (dst) = result (srcA) + end (srcB) - begin (srcC) */
+      tu_cs_emit_pkt7(cs, CP_MEM_TO_MEM, 9);
+      tu_cs_emit(cs, CP_MEM_TO_MEM_0_DOUBLE | CP_MEM_TO_MEM_0_NEG_C);
+      tu_cs_emit_qw(cs, result_iova);
+      tu_cs_emit_qw(cs, result_iova);
+      tu_cs_emit_qw(cs, end_iova);
+      tu_cs_emit_qw(cs, begin_iova);
+   }
 
    tu_cs_emit_pkt7(cs, CP_WAIT_MEM_WRITES, 0);
 
@@ -1553,8 +1574,8 @@ tu_CmdEndQuery(VkCommandBuffer commandBuffer,
                VkQueryPool queryPool,
                uint32_t query)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(query < pool->size);
 
    switch (pool->type) {
@@ -1590,8 +1611,8 @@ tu_CmdEndQueryIndexedEXT(VkCommandBuffer commandBuffer,
                          uint32_t query,
                          uint32_t index)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmdbuf, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
    assert(query < pool->size);
 
    switch (pool->type) {
@@ -1614,8 +1635,8 @@ tu_CmdWriteTimestamp2(VkCommandBuffer commandBuffer,
                       VkQueryPool queryPool,
                       uint32_t query)
 {
-   TU_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
-   TU_FROM_HANDLE(tu_query_pool, pool, queryPool);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd, commandBuffer);
+   VK_FROM_HANDLE(tu_query_pool, pool, queryPool);
 
    /* Inside a render pass, just write the timestamp multiple times so that
     * the user gets the last one if we use GMEM. There isn't really much
@@ -1694,7 +1715,7 @@ tu_EnumeratePhysicalDeviceQueueFamilyPerformanceQueryCountersKHR(
     VkPerformanceCounterKHR*                    pCounters,
     VkPerformanceCounterDescriptionKHR*         pCounterDescriptions)
 {
-   TU_FROM_HANDLE(tu_physical_device, phydev, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, phydev, physicalDevice);
 
    uint32_t desc_count = *pCounterCount;
    uint32_t group_count;
@@ -1744,7 +1765,7 @@ tu_GetPhysicalDeviceQueueFamilyPerformanceQueryPassesKHR(
       const VkQueryPoolPerformanceCreateInfoKHR*  pPerformanceQueryCreateInfo,
       uint32_t*                                   pNumPasses)
 {
-   TU_FROM_HANDLE(tu_physical_device, phydev, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, phydev, physicalDevice);
    uint32_t group_count = 0;
    uint32_t gid = 0, cid = 0, n_passes;
    const struct fd_perfcntr_group *group =

@@ -17,116 +17,116 @@ ringbuffer:
     wptr: 83
     size: 32768
 bos:
-  - iova: 0x0000000100000000
-    size: 532480
+  - iova: 0x0000000100000000-0x0000000100082000
+    size: 532480 (0x82000)
     name:                                 
-  - iova: 0x0000000100082000
-    size: 40960
+  - iova: 0x0000000100082000-0x000000010008c000
+    size: 40960 (0xa000)
     name:                                 
-  - iova: 0x000000010008c000
-    size: 32768
+  - iova: 0x000000010008c000-0x0000000100094000
+    size: 32768 (0x8000)
     name:                                 
-  - iova: 0x0000000100094000
-    size: 24576
+  - iova: 0x0000000100094000-0x000000010009a000
+    size: 24576 (0x6000)
     name:                                 
-  - iova: 0x000000010009a000
-    size: 8192
+  - iova: 0x000000010009a000-0x000000010009c000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x000000010009c000
-    size: 40960
+  - iova: 0x000000010009c000-0x00000001000a6000
+    size: 40960 (0xa000)
     name:                                 
-  - iova: 0x00000001000a6000
-    size: 32768
+  - iova: 0x00000001000a6000-0x00000001000ae000
+    size: 32768 (0x8000)
     name:                                 
-  - iova: 0x00000001000ae000
-    size: 24576
+  - iova: 0x00000001000ae000-0x00000001000b4000
+    size: 24576 (0x6000)
     name:                                 
-  - iova: 0x00000001000b4000
-    size: 8192
+  - iova: 0x00000001000b4000-0x00000001000b6000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x00000001000b6000
-    size: 20480
+  - iova: 0x00000001000b6000-0x00000001000bb000
+    size: 20480 (0x5000)
     name:                                 
-  - iova: 0x00000001000bb000
-    size: 16384
+  - iova: 0x00000001000bb000-0x00000001000bf000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x00000001000bf000
-    size: 40960
+  - iova: 0x00000001000bf000-0x00000001000c9000
+    size: 40960 (0xa000)
     name:                                 
-  - iova: 0x00000001000c9000
-    size: 32768
+  - iova: 0x00000001000c9000-0x00000001000d1000
+    size: 32768 (0x8000)
     name:                                 
-  - iova: 0x00000001000d1000
-    size: 20480
+  - iova: 0x00000001000d1000-0x00000001000d6000
+    size: 20480 (0x5000)
     name:                                 
-  - iova: 0x00000001000d6000
-    size: 16384
+  - iova: 0x00000001000d6000-0x00000001000da000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x00000001000da000
-    size: 20480
+  - iova: 0x00000001000da000-0x00000001000df000
+    size: 20480 (0x5000)
     name:                                 
-  - iova: 0x00000001000df000
-    size: 16384
+  - iova: 0x00000001000df000-0x00000001000e3000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x00000001000e3000
-    size: 16384
+  - iova: 0x00000001000e3000-0x00000001000e7000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x00000001000e7000
-    size: 1048576
+  - iova: 0x00000001000e7000-0x00000001001e7000
+    size: 1048576 (0x100000)
     name:                                 
-  - iova: 0x00000001001e7000
-    size: 131072
+  - iova: 0x00000001001e7000-0x0000000100207000
+    size: 131072 (0x20000)
     name:                                 
-  - iova: 0x0000000100207000
-    size: 4096
+  - iova: 0x0000000100207000-0x0000000100208000
+    size: 4096 (0x1000)
     name:                                 
-  - iova: 0x0000000100208000
-    size: 16384
+  - iova: 0x0000000100208000-0x000000010020c000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x000000010020c000
-    size: 8192
+  - iova: 0x000000010020c000-0x000000010020e000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x000000010020e000
-    size: 4096
+  - iova: 0x000000010020e000-0x000000010020f000
+    size: 4096 (0x1000)
     name:                                 
-  - iova: 0x000000010020f000
-    size: 16384
+  - iova: 0x000000010020f000-0x0000000100213000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x0000000100213000
-    size: 8192
+  - iova: 0x0000000100213000-0x0000000100215000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x0000000100215000
-    size: 4096
+  - iova: 0x0000000100215000-0x0000000100216000
+    size: 4096 (0x1000)
     name:                                 
-  - iova: 0x0000000100216000
-    size: 16384
+  - iova: 0x0000000100216000-0x000000010021a000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x000000010021a000
-    size: 8192
+  - iova: 0x000000010021a000-0x000000010021c000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x000000010021c000
-    size: 4096
+  - iova: 0x000000010021c000-0x000000010021d000
+    size: 4096 (0x1000)
     name:                                 
-  - iova: 0x000000010021d000
-    size: 16384
+  - iova: 0x000000010021d000-0x0000000100221000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x0000000100221000
-    size: 8192
+  - iova: 0x0000000100221000-0x0000000100223000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x0000000100223000
-    size: 16384
+  - iova: 0x0000000100223000-0x0000000100227000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x0000000100227000
-    size: 16384
+  - iova: 0x0000000100227000-0x000000010022b000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x000000010022b000
-    size: 8192
+  - iova: 0x000000010022b000-0x000000010022d000
+    size: 8192 (0x2000)
     name:                                 
-  - iova: 0x000000010022d000
-    size: 16384
+  - iova: 0x000000010022d000-0x0000000100231000
+    size: 16384 (0x4000)
     name:                                 
-  - iova: 0x0000000100231000
-    size: 32768
+  - iova: 0x0000000100231000-0x0000000100239000
+    size: 32768 (0x8000)
     name:                                 
 gmu-log:
     iova: 0x0000000060009000
@@ -1744,7 +1744,7 @@ registers:
 	00000000	0xa630: 00000000
 	00100000	RB_DBG_ECO_CNTL: 0x100000
 	00000001	RB_ADDR_MODE_CNTL: ADDR_64B
-	08000000	RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = 0 | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_COLOR_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
+	08000000	RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = CCU_CACHE_SIZE_FULL | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
 	00000002	RB_NC_MODE_CNTL: { LOWER_BIT = 1 | UPPER_BIT = 0 }
 	00000000	RB_PERFCTR_RB_SEL[0]+0: 00000000
 	00000000	RB_PERFCTR_RB_SEL[0x1]+0: 00000000
@@ -1765,7 +1765,7 @@ registers:
 	00000000	0x8e23: 00000000
 	00000000	0x8e24: 00000000
 	00000000	0x8e25: 00000000
-	00000000	RB_UNKNOWN_8E28: 0
+	00000000	RB_CMP_DBG_ECO_CNTL: 0
 	00000000	RB_PERFCTR_CMP_SEL[0]+0: 00000000
 	00000000	RB_PERFCTR_CMP_SEL[0x1]+0: 00000000
 	00000000	RB_PERFCTR_CMP_SEL[0x2]+0: 00000000
@@ -2022,7 +2022,7 @@ got cmdszdw=83
  +	00000000			RB_2D_SRC_SOLID_C3: 0
 !+	00000001			RB_UNKNOWN_8E01: 0x1
 !+	00100000			RB_DBG_ECO_CNTL: 0x100000
-!+	08000000			RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = 0 | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_COLOR_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
+!+	08000000			RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = CCU_CACHE_SIZE_FULL | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
  +	00000000			VPC_UNKNOWN_9210: 0
  +	00000000			VPC_UNKNOWN_9211: 0
  +	00000000			VPC_POINT_COORD_INVERT: { 0 }
@@ -2332,7 +2332,7 @@ got cmdszdw=83
  +	00000000				RB_UNKNOWN_88F0: 0
  +	00000001				RB_UNKNOWN_8E01: 0x1
  +	00100000				RB_DBG_ECO_CNTL: 0x100000
- +	08000000				RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = 0 | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_COLOR_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
+ +	08000000				RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = CCU_CACHE_SIZE_FULL | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
  +	00000000				VPC_UNKNOWN_9210: 0
  +	00000000				VPC_UNKNOWN_9211: 0
  +	00000000				VPC_POINT_COORD_INVERT: { 0 }
@@ -5212,7 +5212,7 @@ ESTIMATED CRASH LOCATION!
 !+	00000000			RB_2D_DST_PITCH: 0
  +	00000001			RB_UNKNOWN_8E01: 0x1
  +	00100000			RB_DBG_ECO_CNTL: 0x100000
- +	08000000			RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = 0 | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_COLOR_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
+ +	08000000			RB_CCU_CNTL: { DEPTH_OFFSET_HI = 0 | COLOR_OFFSET_HI = 0 | DEPTH_CACHE_SIZE = CCU_CACHE_SIZE_FULL | DEPTH_OFFSET = 0 | COLOR_CACHE_SIZE = CCU_CACHE_SIZE_FULL | COLOR_OFFSET = 0x10000 }
  +	00000000			VPC_UNKNOWN_9210: 0
  +	00000000			VPC_UNKNOWN_9211: 0
  +	00000000			VPC_POINT_COORD_INVERT: { 0 }

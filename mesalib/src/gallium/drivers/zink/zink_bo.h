@@ -94,10 +94,10 @@ zink_heap_from_domain_flags(VkMemoryPropertyFlags domains, enum zink_alloc_flag 
 }
 
 static ALWAYS_INLINE unsigned
-zink_mem_type_idx_from_bits(struct zink_screen *screen, enum zink_heap heap, uint32_t bits)
+zink_mem_type_idx_from_types(struct zink_screen *screen, enum zink_heap heap, uint32_t types)
 {
    for (unsigned i = 0; i < screen->heap_count[heap]; i++) {
-      if (bits & BITFIELD_BIT(screen->heap_map[heap][i])) {
+      if (types & BITFIELD_BIT(screen->heap_map[heap][i])) {
          return screen->heap_map[heap][i];
       }
    }

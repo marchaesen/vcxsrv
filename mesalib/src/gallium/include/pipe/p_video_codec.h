@@ -212,6 +212,7 @@ struct pipe_video_buffer
    unsigned height;
    bool interlaced;
    unsigned bind;
+   bool contiguous_planes;
 
    /**
     * destroy this video buffer

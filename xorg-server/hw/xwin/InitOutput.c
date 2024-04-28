@@ -31,6 +31,9 @@ from The Open Group.
 #ifdef HAVE_XWIN_CONFIG_H
 #include <xwin-config.h>
 #endif
+
+#include "os/osdep.h"
+
 #include "win.h"
 #include "winmsg.h"
 #include "winconfig.h"
@@ -53,6 +56,9 @@ typedef HRESULT  (__stdcall *  SHGETFOLDERPATHPROC)(HWND hwndOwner,
                                                     HANDLE hToken,
                                                     DWORD dwFlags, LPTSTR pszPath);
 #endif
+
+#include "dix/screenint_priv.h"
+#include "os/osdep.h"
 
 #include "winmonitors.h"
 #include "nonsdk_extinit.h"
@@ -110,12 +116,14 @@ static PixmapFormatRec g_PixmapFormats[] = {
     {32, 32, BITMAP_SCANLINE_PAD}
 };
 
-#if defined(GLXEXT) && defined(XWIN_WINDOWS_DRI)
+#ifdef GLXEXT
+#ifdef XWIN_WINDOWS_DRI
 static Bool noDriExtension;
 
 static const ExtensionModule xwinExtensions[] = {
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
 };
+#endif
 #endif
 
 /*
@@ -591,9 +599,9 @@ winFixupPaths(void)
         putenv(buffer);
     }
     if (getenv("HOME") == NULL) {
-        char buffer[MAX_PATH + 5];
+        char buffer[MAX_PATH + 5] = {0};
 
-        strncpy(buffer, "HOME=", 5);
+        strncpy(buffer, "HOME=", 6);
 
         /* query appdata directory */
         if (SHGetFolderPathA
@@ -635,10 +643,8 @@ OsVendorPreInit(int argc, char *argv[])
 {
     winFixupPaths();
 
-#ifdef DDXOSVERRORF
     if (!OsVendorVErrorFProc)
         OsVendorVErrorFProc = OsVendorVErrorF;
-#endif
 
     if (!g_fLogInited) {
         /* keep this order. If LogInit fails it calls Abort which then calls

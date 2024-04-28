@@ -65,6 +65,8 @@ struct instance_data {
 
    /* Dumping of frame stats to a file has been enabled and started. */
    bool capture_started;
+
+   int socket;
 };
 
 struct frame_stat {
@@ -336,6 +338,7 @@ static struct instance_data *new_instance_data(VkInstance instance)
    struct instance_data *data = rzalloc(NULL, struct instance_data);
    data->instance = instance;
    data->control_client = -1;
+   data->socket = -1;
    map_object(HKEY(data->instance), data);
    return data;
 }
@@ -344,8 +347,8 @@ static void destroy_instance_data(struct instance_data *data)
 {
    if (data->params.output_file)
       fclose(data->params.output_file);
-   if (data->params.control >= 0)
-      os_socket_close(data->params.control);
+   if (data->socket >= 0)
+      os_socket_close(data->socket);
    unmap_object(HKEY(data->instance));
    ralloc_free(data);
 }
@@ -717,7 +720,7 @@ static void control_client_check(struct device_data *device_data)
    if (instance_data->control_client >= 0)
       return;
 
-   int socket = os_socket_accept(instance_data->params.control);
+   int socket = os_socket_accept(instance_data->socket);
    if (socket == -1) {
       if (errno != EAGAIN && errno != EWOULDBLOCK && errno != ECONNABORTED)
          fprintf(stderr, "ERROR on socket: %s\n", strerror(errno));
@@ -783,7 +786,18 @@ static void snapshot_swapchain_frame(struct swapchain_data *data)
    uint32_t f_idx = data->n_frames % ARRAY_SIZE(data->frames_stats);
    uint64_t now = os_time_get(); /* us */
 
-   if (instance_data->params.control >= 0) {
+   if (instance_data->params.control && instance_data->socket < 0) {
+      int ret = os_socket_listen_abstract(instance_data->params.control, 1);
+      if (ret >= 0) {
+         os_socket_block(ret, false);
+         instance_data->socket = ret;
+      } else {
+         fprintf(stderr, "ERROR: Couldn't create socket pipe at '%s'\n", instance_data->params.control);
+         fprintf(stderr, "ERROR: '%s'\n", strerror(errno));
+      }
+   }
+
+   if (instance_data->socket >= 0) {
       control_client_check(device_data);
       process_control_socket(instance_data);
    }
@@ -2632,7 +2646,7 @@ static VkResult overlay_CreateInstance(
     * capturing fps data right away.
     */
    instance_data->capture_enabled =
-      instance_data->params.output_file && instance_data->params.control < 0;
+      instance_data->params.output_file && instance_data->params.control == NULL;
    instance_data->capture_started = instance_data->capture_enabled;
 
    for (int i = OVERLAY_PARAM_ENABLED_vertices;

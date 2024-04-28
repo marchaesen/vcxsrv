@@ -1,26 +1,10 @@
 /*
  * Copyright © 2021 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 #include "nir/nir_builder.h"
+#include "radv_formats.h"
 #include "radv_meta.h"
 
 static nir_shader *
@@ -231,8 +215,11 @@ radv_can_use_fmask_copy(struct radv_cmd_buffer *cmd_buffer, const struct radv_im
                         const struct radv_image *dst_image, unsigned num_rects,
                         const struct radv_meta_blit2d_rect *rects)
 {
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
    /* TODO: Test on pre GFX10 chips. */
-   if (cmd_buffer->device->physical_device->rad_info.gfx_level < GFX10)
+   if (pdev->info.gfx_level < GFX10)
       return false;
 
    /* TODO: Add support for layers. */
@@ -271,7 +258,7 @@ void
 radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf *src,
                 struct radv_meta_blit2d_surf *dst)
 {
-   struct radv_device *device = cmd_buffer->device;
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_image_view src_iview, dst_iview;
    uint32_t samples = src->image->vk.samples;
    uint32_t samples_log2 = ffs(samples) - 1;
@@ -283,7 +270,7 @@ radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
    }
 
    radv_CmdBindPipeline(radv_cmd_buffer_to_handle(cmd_buffer), VK_PIPELINE_BIND_POINT_COMPUTE,
-                        cmd_buffer->device->meta_state.fmask_copy.pipeline[samples_log2]);
+                        device->meta_state.fmask_copy.pipeline[samples_log2]);
 
    radv_image_view_init(&src_iview, device,
                         &(VkImageViewCreateInfo){
@@ -319,9 +306,9 @@ radv_fmask_copy(struct radv_cmd_buffer *cmd_buffer, struct radv_meta_blit2d_surf
                         },
                         0, NULL);
 
-   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-                                 cmd_buffer->device->meta_state.fmask_copy.p_layout, 0, /* set */
-                                 2,                                                     /* descriptorWriteCount */
+   radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE, device->meta_state.fmask_copy.p_layout,
+                                 0, /* set */
+                                 2, /* descriptorWriteCount */
                                  (VkWriteDescriptorSet[]){{.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
                                                            .dstBinding = 0,
                                                            .dstArrayElement = 0,

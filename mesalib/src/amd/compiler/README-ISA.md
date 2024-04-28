@@ -203,6 +203,13 @@ the correct layout is:
 * [25:16]: Newest overlapped wave ID.
 * [9:0]: Current wave ID.
 
+## RDNA3 `v_pk_fmac_f16_dpp`
+
+"Table 30. Which instructions support DPP" in the RDNA3 ISA documentation has no exception for
+VOP2 `v_pk_fmac_f16`. But like all other packed math opcodes, DPP does not function in practice.
+RDNA1 and RDNA2 support `v_pk_fmac_f16_dpp`.
+
+
 # Hardware Bugs
 
 ## SMEM corrupts VCCZ on SI/CI

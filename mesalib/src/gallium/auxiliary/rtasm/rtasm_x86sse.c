@@ -194,8 +194,8 @@ static void emit_1b( struct x86_function *p, char b0 )
 
 static void emit_1i( struct x86_function *p, int i0 )
 {
-   int *icsr = (int *)reserve(p, sizeof(i0));
-   *icsr = i0;
+   unsigned char *csr = reserve(p, sizeof(i0));
+   memcpy(csr, &i0, sizeof(i0));
 }
 
 static void emit_1ub( struct x86_function *p, unsigned char b0 )
@@ -434,7 +434,8 @@ int x86_call_forward( struct x86_function *p)
 void x86_fixup_fwd_jump( struct x86_function *p,
                          int fixup )
 {
-   *(int *)(p->store + fixup - 4) = x86_get_label(p) - fixup;
+   int lblfixed = x86_get_label(p) - fixup;
+   memcpy(p->store + fixup - 4, &lblfixed, sizeof(lblfixed));
 }
 
 void x86_jmp( struct x86_function *p, int label)

@@ -1,4 +1,4 @@
-.default_tag: &default_tag "2024-01-11.1"
+.default_tag: &default_tag "2024-04-22.1"
 
 distributions:
   - name: fedora
@@ -7,8 +7,8 @@ distributions:
     qemu_based: false
     versions:
       - "rawhide"
+      - "40"
       - "39"
-      - "38"
     builds:
       - name: "autotools shared expat"
         variables:
@@ -26,6 +26,11 @@ distributions:
           FC_BUILDSYS: meson
           FC_BUILD_TYPE: shared
           FC_XML_BACKEND: expat
+      - name: "meson shared libxml2"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: libxml2
       - name: "autotools static expat"
         build_only: "rawhide"
         variables:
@@ -44,6 +49,12 @@ distributions:
           FC_BUILDSYS: meson
           FC_BUILD_TYPE: static
           FC_XML_BACKEND: expat
+      - name: "meson static libxml2"
+        build_only: "rawhide"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: static
+          FC_XML_BACKEND: libxml2
       - name: "mingw autotools static libxml2"
         build_only: "rawhide"
         variables:
@@ -89,6 +100,12 @@ distributions:
           FC_BUILD_TYPE: shared
           FC_XML_BACKEND: expat
           FC_BUILD_NO_CHECK: 1
+      - name: "meson shared libxml2"
+        variables:
+          FC_BUILDSYS: meson
+          FC_BUILD_TYPE: shared
+          FC_XML_BACKEND: libxml2
+          FC_BUILD_NO_CHECK: 1
 
 packages:
   fedora:
@@ -112,6 +129,8 @@ packages:
         "ninja-build",
         "wget",
         "python3-pip",
+        "mingw64-expat",
+        "mingw64-gcc",
         "mingw64-gettext",
         "mingw64-freetype",
         "mingw64-libxml2",
@@ -137,4 +156,5 @@ packages:
         "py39-pip",
         "pkgconf",
         "gmake",
+        "gettext-runtime",
       ]

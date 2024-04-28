@@ -24,6 +24,7 @@
 #define _PRESENT_PROTO_H_
 
 #include <X11/extensions/presenttokens.h>
+#include <X11/extensions/dri3proto.h>
 
 #define Window CARD32
 #define Pixmap CARD32
@@ -135,6 +136,37 @@ typedef struct {
     CARD32  pad7;
 } xPresentQueryCapabilitiesReply;
 #define sz_xPresentQueryCapabilitiesReply       32
+
+typedef struct {
+    CARD8   reqType;
+    CARD8   presentReqType;
+    CARD16  length;
+    Window  window;
+
+    Pixmap  pixmap;
+    CARD32  serial;
+
+    Region  valid;
+    Region  update;
+
+    INT16   x_off;
+    INT16   y_off;
+    CARD32  target_crtc;
+
+    DRI3Syncobj acquire_syncobj;
+    DRI3Syncobj release_syncobj;
+    CARD64 acquire_point;
+    CARD64 release_point;
+
+    CARD32  options;
+    CARD32  pad1;
+
+    CARD64  target_msc;
+    CARD64  divisor;
+    CARD64  remainder;
+    /* followed by a LISTofPRESENTNOTIFY */
+} xPresentPixmapSyncedReq;
+#define sz_xPresentPixmapSyncedReq	88
 
 /*
  * Events

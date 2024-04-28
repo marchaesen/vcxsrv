@@ -130,7 +130,7 @@ update_need_pipeline(struct svga_context *svga, uint64_t dirty)
       svga->dirty |= SVGA_NEW_NEED_PIPELINE;
    }
 
-   /* DEBUG */
+   /* debug */
    if (0 && svga->state.sw.need_pipeline)
       debug_printf("sw.need_pipeline = %d\n", svga->state.sw.need_pipeline);
 

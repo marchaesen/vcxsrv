@@ -334,7 +334,7 @@ d3d12_video_decoder_refresh_dpb_active_references_av1(struct d3d12_video_decoder
 
 void
 d3d12_video_decoder_get_frame_info_av1(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool &isInterlaced);
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB);
 
 DXVA_PicParams_AV1
 d3d12_video_decoder_dxva_picparams_from_pipe_picparams_av1(

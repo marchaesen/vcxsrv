@@ -32,12 +32,14 @@
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XIproto.h>
 #include <X11/extensions/XI2proto.h>
+
+#include "dix/eventconvert.h"
+
 #include "inputstr.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
 #include "exglobals.h"
 #include "enterleave.h"
-#include "eventconvert.h"
 #include "xkbsrv.h"
 #include "inpututils.h"
 
@@ -615,9 +617,15 @@ FixDeviceValuator(DeviceIntPtr dev, deviceValuator * ev, ValuatorClassPtr v,
 
     ev->type = DeviceValuator;
     ev->deviceid = dev->id;
-    ev->num_valuators = nval < 3 ? nval : 3;
+    ev->num_valuators = nval < 6 ? nval : 6;
     ev->first_valuator = first;
     switch (ev->num_valuators) {
+    case 6:
+        ev->valuator5 = v->axisVal[first + 5];
+    case 5:
+        ev->valuator4 = v->axisVal[first + 4];
+    case 4:
+        ev->valuator3 = v->axisVal[first + 3];
     case 3:
         ev->valuator2 = v->axisVal[first + 2];
     case 2:
@@ -626,7 +634,6 @@ FixDeviceValuator(DeviceIntPtr dev, deviceValuator * ev, ValuatorClassPtr v,
         ev->valuator0 = v->axisVal[first];
         break;
     }
-    first += ev->num_valuators;
 }
 
 static void
@@ -646,7 +653,7 @@ FixDeviceStateNotify(DeviceIntPtr dev, deviceStateNotify * ev, KeyClassPtr k,
         ev->num_buttons = b->numButtons;
         memcpy((char *) ev->buttons, (char *) b->down, 4);
     }
-    else if (k) {
+    if (k) {
         ev->classes_reported |= (1 << KeyClass);
         ev->num_keys = k->xkbInfo->desc->max_key_code -
             k->xkbInfo->desc->min_key_code;
@@ -670,14 +677,26 @@ FixDeviceStateNotify(DeviceIntPtr dev, deviceStateNotify * ev, KeyClassPtr k,
     }
 }
 
-
+/**
+ * The device state notify event is split across multiple 32-byte events.
+ * The first one contains the first 32 button state bits, the first 32
+ * key state bits, and the first 3 valuator values.
+ *
+ * If a device has more than that, the server sends out:
+ * - one deviceButtonStateNotify for buttons 32 and above
+ * - one deviceKeyStateNotify for keys 32 and above
+ * - one deviceValuator event per 6 valuators above valuator 4
+ *
+ * All events but the last one have the deviceid binary ORed with MORE_EVENTS,
+ */
 static void
 DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
 {
+    /* deviceStateNotify, deviceKeyStateNotify, deviceButtonStateNotify
+     * and one deviceValuator for each 6 valuators */
+    deviceStateNotify sev[3 + (MAX_VALUATORS + 6)/6];
     int evcount = 1;
-    deviceStateNotify *ev, *sev;
-    deviceKeyStateNotify *kev;
-    deviceButtonStateNotify *bev;
+    deviceStateNotify *ev = sev;
 
     KeyClassPtr k;
     ButtonClassPtr b;
@@ -690,87 +709,53 @@ DeliverStateNotifyEvent(DeviceIntPtr dev, WindowPtr win)
 
     if ((b = dev->button) != NULL) {
         nbuttons = b->numButtons;
-        if (nbuttons > 32)
+        if (nbuttons > 32) /* first 32 are encoded in deviceStateNotify */
             evcount++;
     }
     if ((k = dev->key) != NULL) {
         nkeys = k->xkbInfo->desc->max_key_code - k->xkbInfo->desc->min_key_code;
-        if (nkeys > 32)
+        if (nkeys > 32) /* first 32 are encoded in deviceStateNotify */
             evcount++;
-        if (nbuttons > 0) {
-            evcount++;
-        }
     }
     if ((v = dev->valuator) != NULL) {
         nval = v->numAxes;
-
-        if (nval > 3)
-            evcount++;
-        if (nval > 6) {
-            if (!(k && b))
-                evcount++;
-            if (nval > 9)
-                evcount += ((nval - 7) / 3);
-        }
+        /* first three are encoded in deviceStateNotify, then
+         * it's 6 per deviceValuator event */
+        evcount += ((nval - 3) + 6)/6;
     }
 
-    sev = ev = xallocarray(evcount, sizeof(xEvent));
-    FixDeviceStateNotify(dev, ev, NULL, NULL, NULL, first);
+    BUG_RETURN(evcount <= ARRAY_SIZE(sev));
 
-    if (b != NULL) {
-        FixDeviceStateNotify(dev, ev++, NULL, b, v, first);
-        first += 3;
-        nval -= 3;
-        if (nbuttons > 32) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            bev = (deviceButtonStateNotify *) ev++;
-            bev->type = DeviceButtonStateNotify;
-            bev->deviceid = dev->id;
-            memcpy((char *) &bev->buttons[4], (char *) &b->down[4],
-                   DOWN_LENGTH - 4);
-        }
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
+    FixDeviceStateNotify(dev, ev, k, b, v, first);
+
+    if (b != NULL && nbuttons > 32) {
+        deviceButtonStateNotify *bev = (deviceButtonStateNotify *) ++ev;
+        (ev - 1)->deviceid |= MORE_EVENTS;
+        bev->type = DeviceButtonStateNotify;
+        bev->deviceid = dev->id;
+        memcpy((char *) &bev->buttons[4], (char *) &b->down[4],
+               DOWN_LENGTH - 4);
     }
 
-    if (k != NULL) {
-        FixDeviceStateNotify(dev, ev++, k, NULL, v, first);
-        first += 3;
-        nval -= 3;
-        if (nkeys > 32) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            kev = (deviceKeyStateNotify *) ev++;
-            kev->type = DeviceKeyStateNotify;
-            kev->deviceid = dev->id;
-            memmove((char *) &kev->keys[0], (char *) &k->down[4], 28);
-        }
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
+    if (k != NULL && nkeys > 32) {
+        deviceKeyStateNotify *kev = (deviceKeyStateNotify *) ++ev;
+        (ev - 1)->deviceid |= MORE_EVENTS;
+        kev->type = DeviceKeyStateNotify;
+        kev->deviceid = dev->id;
+        memmove((char *) &kev->keys[0], (char *) &k->down[4], 28);
     }
 
+    first = 3;
+    nval -= 3;
     while (nval > 0) {
-        FixDeviceStateNotify(dev, ev++, NULL, NULL, v, first);
-        first += 3;
-        nval -= 3;
-        if (nval > 0) {
-            (ev - 1)->deviceid |= MORE_EVENTS;
-            FixDeviceValuator(dev, (deviceValuator *) ev++, v, first);
-            first += 3;
-            nval -= 3;
-        }
+        ev->deviceid |= MORE_EVENTS;
+        FixDeviceValuator(dev, (deviceValuator *) ++ev, v, first);
+        first += 6;
+        nval -= 6;
     }
 
     DeliverEventsToWindow(dev, win, (xEvent *) sev, evcount,
                           DeviceStateNotifyMask, NullGrab);
-    free(sev);
 }
 
 void
@@ -784,8 +769,9 @@ DeviceFocusEvent(DeviceIntPtr dev, int type, int mode, int detail,
 
     mouse = IsFloating(dev) ? dev : GetMaster(dev, MASTER_POINTER);
 
-    /* XI 2 event */
-    btlen = (mouse->button) ? bits_to_bytes(mouse->button->numButtons) : 0;
+    /* XI 2 event contains the logical button map - maps are CARD8
+     * so we need 256 bits for the possibly maximum mapping */
+    btlen = (mouse->button) ? bits_to_bytes(256) : 0;
     btlen = bytes_to_int32(btlen);
     len = sizeof(xXIFocusInEvent) + btlen * 4;
 

@@ -75,14 +75,13 @@ LengthFromMinCb(int length, int cbsize)
 
 void
 d3d12_video_decoder_get_frame_info_hevc(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool &isInterlaced)
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB)
 {
    auto pPicParams = d3d12_video_decoder_get_current_dxva_picparams<DXVA_PicParams_HEVC>(pD3D12Dec);
    UINT log2_min_luma_coding_block_size = pPicParams->log2_min_luma_coding_block_size_minus3 + 3;
    *pWidth = LengthFromMinCb(pPicParams->PicWidthInMinCbsY, log2_min_luma_coding_block_size);
    *pHeight = LengthFromMinCb(pPicParams->PicHeightInMinCbsY, log2_min_luma_coding_block_size);
    *pMaxDPB = pPicParams->sps_max_dec_pic_buffering_minus1 + 1;
-   isInterlaced = false;
 }
 
 ///

@@ -60,6 +60,13 @@ vk_debug_message_instance(struct vk_instance *instance,
                           int32_t messageIdNumber,
                           const char *pMessage);
 
+void
+vk_address_binding_report(struct vk_instance *instance,
+                          struct vk_object_base *object,
+                          uint64_t base_address,
+                          uint64_t size,
+                          VkDeviceAddressBindingTypeEXT type);
+
 #ifdef __cplusplus
 }
 #endif

@@ -141,6 +141,9 @@ enum ac_descriptor_type
    AC_DESC_PLANE_2,
 };
 
+void ac_set_nir_options(struct radeon_info *info, bool use_llvm,
+                        nir_shader_compiler_options *options);
+
 unsigned ac_get_spi_shader_z_format(bool writes_z, bool writes_stencil, bool writes_samplemask,
                                     bool writes_mrt0_alpha);
 
@@ -193,6 +196,14 @@ unsigned ac_compute_esgs_workgroup_size(enum amd_gfx_level gfx_level, unsigned w
 
 unsigned ac_compute_ngg_workgroup_size(unsigned es_verts, unsigned gs_inst_prims,
                                        unsigned max_vtx_out, unsigned prim_amp_factor);
+
+uint32_t ac_compute_num_tess_patches(const struct radeon_info *info, uint32_t num_tcs_input_cp,
+                                     uint32_t num_tcs_output_cp, uint32_t vram_per_patch,
+                                     uint32_t lds_per_patch, uint32_t wave_size,
+                                     bool tess_uses_primid);
+
+uint32_t ac_compute_tess_lds_size(const struct radeon_info *info,
+                                  uint32_t lds_per_patch, uint32_t num_patches);
 
 uint32_t ac_apply_cu_en(uint32_t value, uint32_t clear_mask, unsigned value_shift,
                         const struct radeon_info *info);

@@ -20,6 +20,8 @@
 #include "vn_android.h"
 #include "vn_instance.h"
 
+#define IMAGE_FORMAT_CACHE_MAX_ENTRIES 100
+
 #define VN_EXTENSION_TABLE_INDEX(tbl, ext)                                   \
    ((const bool *)((const void *)(&(tbl)) +                                  \
                    offsetof(__typeof__(tbl), ext)) -                         \
@@ -141,9 +143,12 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
          ycbcr_2plane_444_formats;
 
       /* KHR */
+      VkPhysicalDeviceFragmentShadingRateFeaturesKHR fragment_shading_rate;
       VkPhysicalDeviceShaderClockFeaturesKHR shader_clock;
+      VkPhysicalDeviceShaderExpectAssumeFeaturesKHR expect_assume;
 
       /* EXT */
+      VkPhysicalDeviceAttachmentFeedbackLoopLayoutFeaturesEXT attachment_feedback_loop_layout;
       VkPhysicalDeviceBorderColorSwizzleFeaturesEXT border_color_swizzle;
       VkPhysicalDeviceColorWriteEnableFeaturesEXT color_write_enable;
       VkPhysicalDeviceConditionalRenderingFeaturesEXT conditional_rendering;
@@ -243,9 +248,12 @@ vn_physical_device_init_features(struct vn_physical_device *physical_dev)
    VN_ADD_PNEXT_EXT(feats2, YCBCR_2_PLANE_444_FORMATS_FEATURES_EXT, local_feats.ycbcr_2plane_444_formats, exts->EXT_ycbcr_2plane_444_formats);
 
    /* KHR */
+   VN_ADD_PNEXT_EXT(feats2, FRAGMENT_SHADING_RATE_FEATURES_KHR, local_feats.fragment_shading_rate, exts->KHR_fragment_shading_rate);
    VN_ADD_PNEXT_EXT(feats2, SHADER_CLOCK_FEATURES_KHR, local_feats.shader_clock, exts->KHR_shader_clock);
+   VN_ADD_PNEXT_EXT(feats2, SHADER_EXPECT_ASSUME_FEATURES_KHR, local_feats.expect_assume, exts->KHR_shader_expect_assume);
 
    /* EXT */
+   VN_ADD_PNEXT_EXT(feats2, ATTACHMENT_FEEDBACK_LOOP_LAYOUT_FEATURES_EXT, local_feats.attachment_feedback_loop_layout, exts->EXT_attachment_feedback_loop_layout);
    VN_ADD_PNEXT_EXT(feats2, BORDER_COLOR_SWIZZLE_FEATURES_EXT, local_feats.border_color_swizzle, exts->EXT_border_color_swizzle);
    VN_ADD_PNEXT_EXT(feats2, COLOR_WRITE_ENABLE_FEATURES_EXT, local_feats.color_write_enable, exts->EXT_color_write_enable);
    VN_ADD_PNEXT_EXT(feats2, CONDITIONAL_RENDERING_FEATURES_EXT, local_feats.conditional_rendering, exts->EXT_conditional_rendering);
@@ -453,6 +461,7 @@ vn_physical_device_init_properties(struct vn_physical_device *physical_dev)
    }
 
    /* KHR */
+   VN_ADD_PNEXT_EXT(props2, FRAGMENT_SHADING_RATE_PROPERTIES_KHR, props->fragment_shading_rate, exts->KHR_fragment_shading_rate);
    VN_ADD_PNEXT_EXT(props2, PUSH_DESCRIPTOR_PROPERTIES_KHR, props->push_descriptor, exts->KHR_push_descriptor);
 
    /* EXT */
@@ -691,6 +700,13 @@ vn_physical_device_init_properties(struct vn_physical_device *physical_dev)
    VN_SET_CORE_VALUE(vk12_props, conformanceVersion.patch, 0);
 
    vn_physical_device_init_uuids(physical_dev);
+
+   /* Disable unsupported VkPhysicalDeviceFragmentShadingRatePropertiesKHR */
+   if (exts->KHR_fragment_shading_rate) {
+      /* TODO: Add support for VK_EXT_sample_locations */
+      VN_SET_CORE_VALUE(&props->fragment_shading_rate,
+                        fragmentShadingRateWithCustomSampleLocations, false);
+   }
 }
 
 static VkResult
@@ -833,14 +849,14 @@ vn_physical_device_init_external_memory(
       physical_dev->external_memory.renderer_handle_type =
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       physical_dev->external_memory.supported_handle_types |=
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID;
-#else  /* ANDROID */
+#else  /* DETECT_OS_ANDROID */
       physical_dev->external_memory.supported_handle_types =
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_OPAQUE_FD_BIT |
          VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT;
-#endif /* ANDROID */
+#endif /* DETECT_OS_ANDROID */
    }
 }
 
@@ -979,7 +995,7 @@ vn_physical_device_get_native_extensions(
    const bool can_external_mem =
       vn_physical_device_get_external_memory_support(physical_dev);
    if (can_external_mem) {
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       exts->ANDROID_external_memory_android_hardware_buffer = true;
 
       /* For wsi, we require renderer:
@@ -995,10 +1011,10 @@ vn_physical_device_get_native_extensions(
       if (physical_dev->renderer_sync_fd.semaphore_importable &&
           physical_dev->renderer_sync_fd.fence_exportable)
          exts->ANDROID_native_buffer = true;
-#else  /* ANDROID */
+#else  /* DETECT_OS_ANDROID */
       exts->KHR_external_memory_fd = true;
       exts->EXT_external_memory_dma_buf = true;
-#endif /* ANDROID */
+#endif /* DETECT_OS_ANDROID */
    }
 
 #ifdef VN_USE_WSI_PLATFORM
@@ -1099,18 +1115,7 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_image_robustness = true,
       .EXT_inline_uniform_block = true,
       .EXT_pipeline_creation_cache_control = true,
-      /* TODO(VK_EXT_pipeline_creation_feedback): The native implementation
-       * invalidates all feedback. Teach the venus protocol to receive valid
-       * feedback from renderer.
-       *
-       * Even though we implement this natively, we still require host driver
-       * support to avoid invalid usage in the renderer, because we (the guest
-       * driver) do not scrub the extension bits from the
-       * VkGraphicsPipelineCreateInfo pNext chain.  The host driver still
-       * writes feedback into VkPipelineCreationFeedback, which is harmless,
-       * but the renderer does not send the returned feedback to us due to
-       * protocol deficiencies.
-       */
+      /* hide behind renderer support to allow structs passing through */
       .EXT_pipeline_creation_feedback = true,
       .EXT_shader_demote_to_helper_invocation = true,
       .EXT_subgroup_size_control = true,
@@ -1119,11 +1124,14 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_ycbcr_2plane_444_formats = true,
 
       /* KHR */
+      .KHR_fragment_shading_rate = true,
       .KHR_pipeline_library = true,
       .KHR_push_descriptor = true,
       .KHR_shader_clock = true,
+      .KHR_shader_expect_assume = true,
 
       /* EXT */
+      .EXT_attachment_feedback_loop_layout = true,
       .EXT_border_color_swizzle = true,
       .EXT_calibrated_timestamps = true,
       .EXT_color_write_enable = true,
@@ -1135,7 +1143,7 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_extended_dynamic_state3 = true,
       .EXT_dynamic_rendering_unused_attachments = true,
       .EXT_fragment_shader_interlock = true,
-      .EXT_graphics_pipeline_library = VN_DEBUG(GPL),
+      .EXT_graphics_pipeline_library = !VN_DEBUG(NO_GPL),
       .EXT_image_2d_view_of_3d = true,
       .EXT_image_drm_format_modifier = true,
       .EXT_image_view_min_lod = true,
@@ -1149,23 +1157,7 @@ vn_physical_device_get_passthrough_extensions(
       .EXT_non_seamless_cube_map = true,
       .EXT_primitive_topology_list_restart = true,
       .EXT_primitives_generated_query = true,
-      /* TODO(VK_EXT_private_data): Support natively.
-       *
-       * We support this extension with a hybrid native/passthrough model
-       * until we teach venus how to do deep surgery on pNext
-       * chains to (a) remove VkDevicePrivateDataCreateInfo, (b) remove Vk
-       * VkPhysicalDevicePrivateDataFeatures, and (c) modify its bits in
-       * VkPhysicalDeviceVulkan13Features.
-       *
-       * For now, we implement the extension functions natively by using
-       * Mesa's common implementation. We passthrough
-       * VkDevicePrivateDataCreateInfo to the renderer, which is harmless.
-       * We passthrough the extension enablement and feature bits to the
-       * renderer because otherwise VkDevicePrivateDataCreateInfo would
-       * cause invalid usage in the renderer. Therefore, even though we
-       * implement the extension natively, we expose the extension only if the
-       * renderer supports it too.
-       */
+      /* hide behind renderer support to allow structs passing through */
       .EXT_private_data = true,
       .EXT_provoking_vertex = true,
       .EXT_queue_family_foreign = true,
@@ -1316,6 +1308,59 @@ vn_physical_device_init_renderer_version(
    return VK_SUCCESS;
 }
 
+static void
+vn_image_format_cache_debug_dump(
+   struct vn_image_format_properties_cache *cache)
+{
+   vn_log(NULL, "  hit %u\n", cache->debug.cache_hit_count);
+   vn_log(NULL, "  miss %u\n", cache->debug.cache_miss_count);
+   vn_log(NULL, "  skip %u\n", cache->debug.cache_skip_count);
+}
+
+static void
+vn_image_format_cache_init(struct vn_physical_device *physical_dev)
+{
+   struct vn_image_format_properties_cache *cache =
+      &physical_dev->image_format_cache;
+
+   if (VN_PERF(NO_ASYNC_IMAGE_FORMAT))
+      return;
+
+   cache->ht = _mesa_hash_table_create(NULL, vn_cache_key_hash_function,
+                                       vn_cache_key_equal_function);
+   if (!cache->ht)
+      return;
+
+   simple_mtx_init(&cache->mutex, mtx_plain);
+   list_inithead(&cache->lru);
+}
+
+static void
+vn_image_format_cache_fini(struct vn_physical_device *physical_dev)
+{
+   const VkAllocationCallbacks *alloc =
+      &physical_dev->base.base.instance->alloc;
+   struct vn_image_format_properties_cache *cache =
+      &physical_dev->image_format_cache;
+
+   if (!cache->ht)
+      return;
+
+   hash_table_foreach(cache->ht, hash_entry) {
+      struct vn_image_format_cache_entry *cache_entry = hash_entry->data;
+      list_del(&cache_entry->head);
+      vk_free(alloc, cache_entry);
+   }
+   assert(list_is_empty(&cache->lru));
+
+   _mesa_hash_table_destroy(cache->ht, NULL);
+
+   simple_mtx_destroy(&cache->mutex);
+
+   if (VN_DEBUG(CACHE))
+      vn_image_format_cache_debug_dump(cache);
+}
+
 static VkResult
 vn_physical_device_init(struct vn_physical_device *physical_dev)
 {
@@ -1351,6 +1396,8 @@ vn_physical_device_init(struct vn_physical_device *physical_dev)
    util_sparse_array_init(&physical_dev->format_properties,
                           sizeof(struct vn_format_properties_entry), 64);
 
+   vn_image_format_cache_init(physical_dev);
+
    return VK_SUCCESS;
 
 fail:
@@ -1364,6 +1411,8 @@ vn_physical_device_fini(struct vn_physical_device *physical_dev)
 {
    struct vn_instance *instance = physical_dev->instance;
    const VkAllocationCallbacks *alloc = &instance->base.base.alloc;
+
+   vn_image_format_cache_fini(physical_dev);
 
    simple_mtx_destroy(&physical_dev->format_update_mutex);
    util_sparse_array_finish(&physical_dev->format_properties);
@@ -1491,7 +1540,6 @@ enumerate_physical_devices(struct vn_instance *instance,
    const VkAllocationCallbacks *alloc = &instance->base.base.alloc;
    struct vn_ring *ring = instance->ring.ring;
    struct vn_physical_device *physical_devs = NULL;
-   VkPhysicalDevice *handles = NULL;
    VkResult result;
 
    uint32_t count = 0;
@@ -1506,12 +1554,7 @@ enumerate_physical_devices(struct vn_instance *instance,
    if (!physical_devs)
       return VK_ERROR_OUT_OF_HOST_MEMORY;
 
-   handles = vk_alloc(alloc, sizeof(*handles) * count, VN_DEFAULT_ALIGN,
-                      VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
-   if (!handles) {
-      vk_free(alloc, physical_devs);
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
-   }
+   STACK_ARRAY(VkPhysicalDevice, handles, count);
 
    for (uint32_t i = 0; i < count; i++) {
       struct vn_physical_device *physical_dev = &physical_devs[i];
@@ -1538,7 +1581,7 @@ enumerate_physical_devices(struct vn_instance *instance,
    if (result != VK_SUCCESS)
       goto fail;
 
-   vk_free(alloc, handles);
+   STACK_ARRAY_FINISH(handles);
    *out_physical_devs = physical_devs;
    *out_count = count;
 
@@ -1548,7 +1591,7 @@ fail:
    for (uint32_t i = 0; i < count; i++)
       vn_physical_device_base_fini(&physical_devs[i].base);
    vk_free(alloc, physical_devs);
-   vk_free(alloc, handles);
+   STACK_ARRAY_FINISH(handles);
    return result;
 }
 
@@ -1729,13 +1772,20 @@ static void
 vn_physical_device_add_format_properties(
    struct vn_physical_device *physical_dev,
    struct vn_format_properties_entry *entry,
-   const VkFormatProperties *props)
+   const VkFormatProperties *props,
+   const VkFormatProperties3 *props3)
 {
    simple_mtx_lock(&physical_dev->format_update_mutex);
    if (!entry->valid) {
       entry->properties = *props;
       entry->valid = true;
    }
+
+   if (props3 && !entry->props3_valid) {
+      entry->properties3 = *props3;
+      entry->props3_valid = true;
+   }
+
    simple_mtx_unlock(&physical_dev->format_update_mutex);
 }
 
@@ -1775,6 +1825,7 @@ vn_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          /* clang-format off */
 
       /* KHR */
+      CASE(FRAGMENT_SHADING_RATE_PROPERTIES_KHR, fragment_shading_rate);
       CASE(PUSH_DESCRIPTOR_PROPERTIES_KHR, push_descriptor);
 
       /* EXT */
@@ -1898,12 +1949,32 @@ vn_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
       vn_physical_device_from_handle(physicalDevice);
    struct vn_ring *ring = physical_dev->instance->ring.ring;
 
+   /* VkFormatProperties3 is cached if its the only struct in pNext */
+   VkFormatProperties3 *props3 = NULL;
+   if (pFormatProperties->pNext) {
+      const VkBaseOutStructure *base = pFormatProperties->pNext;
+      if (base->sType == VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_3 &&
+          base->pNext == NULL) {
+         props3 = (VkFormatProperties3 *)base;
+      }
+   }
+
    struct vn_format_properties_entry *entry = NULL;
-   if (!pFormatProperties->pNext) {
+   if (!pFormatProperties->pNext || props3) {
       entry = vn_physical_device_get_format_properties(physical_dev, format);
       if (entry->valid) {
-         pFormatProperties->formatProperties = entry->properties;
-         return;
+         const bool has_valid_props3 = props3 && entry->props3_valid;
+         if (has_valid_props3)
+            *props3 = entry->properties3;
+
+         /* Make the host call if our cache doesn't have props3 but the app
+          * now requests it.
+          */
+         if (!props3 || has_valid_props3) {
+            pFormatProperties->formatProperties = entry->properties;
+            pFormatProperties->pNext = props3;
+            return;
+         }
       }
    }
 
@@ -1912,7 +1983,7 @@ vn_GetPhysicalDeviceFormatProperties2(VkPhysicalDevice physicalDevice,
 
    if (entry) {
       vn_physical_device_add_format_properties(
-         physical_dev, entry, &pFormatProperties->formatProperties);
+         physical_dev, entry, &pFormatProperties->formatProperties, props3);
    }
 }
 
@@ -2059,6 +2130,290 @@ vn_modifier_plane_count(struct vn_physical_device *physical_dev,
    return plane_count;
 }
 
+static bool
+vn_image_get_image_format_key(
+   struct vn_physical_device *physical_dev,
+   const VkPhysicalDeviceImageFormatInfo2 *format_info,
+   const VkImageFormatProperties2 *format_props,
+   uint8_t *key)
+{
+   struct mesa_sha1 sha1_ctx;
+
+   if (!physical_dev->image_format_cache.ht)
+      return false;
+
+   _mesa_sha1_init(&sha1_ctx);
+
+   /* VUID-VkPhysicalDeviceImageFormatInfo2-pNext-pNext
+    * Each pNext member of any structure (including this one) in the pNext
+    * chain must be either NULL or a pointer to a valid instance of
+    * VkImageCompressionControlEXT, VkImageFormatListCreateInfo,
+    * VkImageStencilUsageCreateInfo, VkOpticalFlowImageFormatInfoNV,
+    * VkPhysicalDeviceExternalImageFormatInfo,
+    * VkPhysicalDeviceImageDrmFormatModifierInfoEXT,
+    * VkPhysicalDeviceImageViewImageFormatInfoEXT, or VkVideoProfileListInfoKHR
+    *
+    * Exclude VkOpticalFlowImageFormatInfoNV and VkVideoProfileListInfoKHR
+    */
+   if (format_info->pNext) {
+      vk_foreach_struct_const(src, format_info->pNext) {
+         switch (src->sType) {
+         case VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_CONTROL_EXT: {
+            struct VkImageCompressionControlEXT *compression_control =
+               (struct VkImageCompressionControlEXT *)src;
+            _mesa_sha1_update(&sha1_ctx, &compression_control->flags,
+                              sizeof(VkImageCompressionFlagsEXT));
+            _mesa_sha1_update(
+               &sha1_ctx, compression_control->pFixedRateFlags,
+               sizeof(uint32_t) *
+                  compression_control->compressionControlPlaneCount);
+            break;
+         }
+         case VK_STRUCTURE_TYPE_IMAGE_FORMAT_LIST_CREATE_INFO: {
+            struct VkImageFormatListCreateInfo *format_list =
+               (struct VkImageFormatListCreateInfo *)src;
+            _mesa_sha1_update(
+               &sha1_ctx, format_list->pViewFormats,
+               sizeof(VkFormat) * format_list->viewFormatCount);
+
+            break;
+         }
+         case VK_STRUCTURE_TYPE_IMAGE_STENCIL_USAGE_CREATE_INFO: {
+            struct VkImageStencilUsageCreateInfo *stencil_usage =
+               (struct VkImageStencilUsageCreateInfo *)src;
+            _mesa_sha1_update(&sha1_ctx, &stencil_usage->stencilUsage,
+                              sizeof(VkImageUsageFlags));
+            break;
+         }
+         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTERNAL_IMAGE_FORMAT_INFO: {
+            struct VkPhysicalDeviceExternalImageFormatInfo *ext_image =
+               (struct VkPhysicalDeviceExternalImageFormatInfo *)src;
+            _mesa_sha1_update(&sha1_ctx, &ext_image->handleType,
+                              sizeof(VkExternalMemoryHandleTypeFlagBits));
+            break;
+         }
+         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_DRM_FORMAT_MODIFIER_INFO_EXT: {
+            struct VkPhysicalDeviceImageDrmFormatModifierInfoEXT
+               *modifier_info =
+                  (struct VkPhysicalDeviceImageDrmFormatModifierInfoEXT *)src;
+            _mesa_sha1_update(&sha1_ctx, &modifier_info->drmFormatModifier,
+                              sizeof(uint64_t));
+            if (modifier_info->sharingMode == VK_SHARING_MODE_CONCURRENT) {
+               _mesa_sha1_update(
+                  &sha1_ctx, modifier_info->pQueueFamilyIndices,
+                  sizeof(uint32_t) * modifier_info->queueFamilyIndexCount);
+            }
+            break;
+         }
+         case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_VIEW_IMAGE_FORMAT_INFO_EXT: {
+            struct VkPhysicalDeviceImageViewImageFormatInfoEXT *view_image =
+               (struct VkPhysicalDeviceImageViewImageFormatInfoEXT *)src;
+            _mesa_sha1_update(&sha1_ctx, &view_image->imageViewType,
+                              sizeof(VkImageViewType));
+            break;
+         }
+         default:
+            physical_dev->image_format_cache.debug.cache_skip_count++;
+            return false;
+         }
+      }
+   }
+
+   /* Hash pImageFormatProperties pNext as well since some of them are
+    * optional in that they can be attached without a corresponding pNext
+    * in pImageFormatInfo.
+    *
+    * VUID-VkImageFormatProperties2-pNext-pNext
+    * Each pNext member of any structure (including this one) in the pNext
+    * chain must be either NULL or a pointer to a valid instance of
+    * VkAndroidHardwareBufferUsageANDROID, VkExternalImageFormatProperties,
+    * VkFilterCubicImageViewImageFormatPropertiesEXT,
+    * VkHostImageCopyDevicePerformanceQueryEXT,
+    * VkImageCompressionPropertiesEXT,
+    * VkSamplerYcbcrConversionImageFormatProperties, or
+    * VkTextureLODGatherFormatPropertiesAMD
+    *
+    * VkAndroidHardwareBufferUsageANDROID is handled outside of the cache.
+    * VkFilterCubicImageViewImageFormatPropertiesEXT,
+    * VkHostImageCopyDevicePerformanceQueryEXT,
+    * VkHostImageCopyDevicePerformanceQueryEXT,
+    * VkTextureLODGatherFormatPropertiesAMD are not supported
+    */
+   if (format_props->pNext) {
+      vk_foreach_struct_const(src, format_props->pNext) {
+         switch (src->sType) {
+         case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES:
+         case VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT:
+         case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES:
+            _mesa_sha1_update(&sha1_ctx, &src->sType,
+                              sizeof(VkStructureType));
+            break;
+         default:
+            physical_dev->image_format_cache.debug.cache_skip_count++;
+            return false;
+         }
+      }
+   }
+
+   static const size_t format_info_2_hash_block_size =
+      sizeof(VkFormat) + sizeof(VkImageType) + sizeof(VkImageTiling) +
+      sizeof(VkImageUsageFlags) + sizeof(VkImageCreateFlags);
+
+   _mesa_sha1_update(&sha1_ctx, &format_info->format,
+                     format_info_2_hash_block_size);
+   _mesa_sha1_final(&sha1_ctx, key);
+
+   return true;
+}
+
+static bool
+vn_image_init_format_from_cache(
+   struct vn_physical_device *physical_dev,
+   struct VkImageFormatProperties2 *pImageFormatProperties,
+   VkResult *cached_result,
+   uint8_t *key)
+{
+   struct vn_image_format_properties_cache *cache =
+      &physical_dev->image_format_cache;
+
+   assert(cache->ht);
+
+   simple_mtx_lock(&cache->mutex);
+   struct hash_entry *hash_entry = _mesa_hash_table_search(cache->ht, key);
+   if (hash_entry) {
+      struct vn_image_format_cache_entry *cache_entry = hash_entry->data;
+
+      /* Copy the properties even if the cached_result is not supported.
+       * Per spec 1.3.275 "If the combination of parameters to
+       * vkGetPhysicalDeviceImageFormatProperties2 is not supported by the
+       * implementation for use in vkCreateImage, then all members of
+       * imageFormatProperties will be filled with zero."
+       */
+      pImageFormatProperties->imageFormatProperties =
+         cache_entry->properties.format.imageFormatProperties;
+      *cached_result = cache_entry->properties.cached_result;
+
+      if (pImageFormatProperties->pNext) {
+         vk_foreach_struct_const(src, pImageFormatProperties->pNext) {
+            switch (src->sType) {
+            case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES: {
+               struct VkExternalImageFormatProperties *ext_image =
+                  (struct VkExternalImageFormatProperties *)src;
+               ext_image->externalMemoryProperties =
+                  cache_entry->properties.ext_image.externalMemoryProperties;
+               break;
+            }
+            case VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT: {
+               struct VkImageCompressionPropertiesEXT *compression =
+                  (struct VkImageCompressionPropertiesEXT *)src;
+               compression->imageCompressionFlags =
+                  cache_entry->properties.compression.imageCompressionFlags;
+               compression->imageCompressionFixedRateFlags =
+                  cache_entry->properties.compression
+                     .imageCompressionFixedRateFlags;
+               break;
+            }
+            case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES: {
+               struct VkSamplerYcbcrConversionImageFormatProperties
+                  *ycbcr_conversion =
+                     (struct VkSamplerYcbcrConversionImageFormatProperties *)
+                        src;
+               ycbcr_conversion->combinedImageSamplerDescriptorCount =
+                  cache_entry->properties.ycbcr_conversion
+                     .combinedImageSamplerDescriptorCount;
+               break;
+            }
+            default:
+               unreachable("unexpected format props pNext");
+            }
+         }
+      }
+
+      list_move_to(&cache_entry->head, &cache->lru);
+      p_atomic_inc(&cache->debug.cache_hit_count);
+   } else {
+      p_atomic_inc(&cache->debug.cache_miss_count);
+   }
+   simple_mtx_unlock(&cache->mutex);
+
+   return !!hash_entry;
+}
+
+static void
+vn_image_store_format_in_cache(
+   struct vn_physical_device *physical_dev,
+   uint8_t *key,
+   struct VkImageFormatProperties2 *pImageFormatProperties,
+   VkResult cached_result)
+{
+   const VkAllocationCallbacks *alloc =
+      &physical_dev->base.base.instance->alloc;
+   struct vn_image_format_properties_cache *cache =
+      &physical_dev->image_format_cache;
+   struct vn_image_format_cache_entry *cache_entry = NULL;
+
+   assert(cache->ht);
+
+   simple_mtx_lock(&cache->mutex);
+
+   /* Check if entry was added before lock */
+   if (_mesa_hash_table_search(cache->ht, key)) {
+      simple_mtx_unlock(&cache->mutex);
+      return;
+   }
+
+   if (_mesa_hash_table_num_entries(cache->ht) ==
+       IMAGE_FORMAT_CACHE_MAX_ENTRIES) {
+      /* Evict/use the last entry in the lru list for this new entry */
+      cache_entry = list_last_entry(&cache->lru,
+                                    struct vn_image_format_cache_entry, head);
+
+      _mesa_hash_table_remove_key(cache->ht, cache_entry->key);
+      list_del(&cache_entry->head);
+   } else {
+      cache_entry = vk_zalloc(alloc, sizeof(*cache_entry), VN_DEFAULT_ALIGN,
+                              VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
+      if (!cache_entry) {
+         simple_mtx_unlock(&cache->mutex);
+         return;
+      }
+   }
+
+   if (pImageFormatProperties->pNext) {
+      vk_foreach_struct_const(src, pImageFormatProperties->pNext) {
+         switch (src->sType) {
+         case VK_STRUCTURE_TYPE_EXTERNAL_IMAGE_FORMAT_PROPERTIES: {
+            cache_entry->properties.ext_image =
+               *((struct VkExternalImageFormatProperties *)src);
+            break;
+         }
+         case VK_STRUCTURE_TYPE_IMAGE_COMPRESSION_PROPERTIES_EXT: {
+            cache_entry->properties.compression =
+               *((struct VkImageCompressionPropertiesEXT *)src);
+            break;
+         }
+         case VK_STRUCTURE_TYPE_SAMPLER_YCBCR_CONVERSION_IMAGE_FORMAT_PROPERTIES: {
+            cache_entry->properties.ycbcr_conversion =
+               *((struct VkSamplerYcbcrConversionImageFormatProperties *)src);
+            break;
+         }
+         default:
+            unreachable("unexpected format props pNext");
+         }
+      }
+   }
+
+   cache_entry->properties.format = *pImageFormatProperties;
+   cache_entry->properties.cached_result = cached_result;
+
+   memcpy(cache_entry->key, key, SHA1_DIGEST_LENGTH);
+
+   _mesa_hash_table_insert(cache->ht, cache_entry->key, cache_entry);
+   list_add(&cache_entry->head, &cache->lru);
+
+   simple_mtx_unlock(&cache->mutex);
+}
+
 VkResult
 vn_GetPhysicalDeviceImageFormatProperties2(
    VkPhysicalDevice physicalDevice,
@@ -2186,10 +2541,27 @@ vn_GetPhysicalDeviceImageFormatProperties2(
       local_info.format.flags &= ~VK_IMAGE_CREATE_ALIAS_BIT;
    }
 
-   VkResult result;
-   /* TODO per-device cache */
-   result = vn_call_vkGetPhysicalDeviceImageFormatProperties2(
-      ring, physicalDevice, pImageFormatInfo, pImageFormatProperties);
+   /* Check if image format props is in the cache. */
+   uint8_t key[SHA1_DIGEST_LENGTH] = { 0 };
+   const bool cacheable = vn_image_get_image_format_key(
+      physical_dev, pImageFormatInfo, pImageFormatProperties, key);
+
+   VkResult result = VK_SUCCESS;
+   if (!(cacheable &&
+         vn_image_init_format_from_cache(physical_dev, pImageFormatProperties,
+                                         &result, key))) {
+      result = vn_call_vkGetPhysicalDeviceImageFormatProperties2(
+         ring, physicalDevice, pImageFormatInfo, pImageFormatProperties);
+
+      /* If cacheable, cache successful and unsupported results. */
+      if (cacheable &&
+          (result == VK_SUCCESS || result == VK_ERROR_FORMAT_NOT_SUPPORTED ||
+           result == VK_ERROR_IMAGE_USAGE_NOT_SUPPORTED_KHR)) {
+         vn_image_store_format_in_cache(physical_dev, key,
+                                        pImageFormatProperties, result);
+      }
+   }
+
    if (result != VK_SUCCESS || !external_info)
       return vn_result(physical_dev->instance, result);
 
@@ -2414,4 +2786,18 @@ vn_GetPhysicalDeviceCalibrateableTimeDomainsEXT(
 
    return vn_call_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT(
       ring, physicalDevice, pTimeDomainCount, pTimeDomains);
+}
+
+VkResult
+vn_GetPhysicalDeviceFragmentShadingRatesKHR(
+   VkPhysicalDevice physicalDevice,
+   uint32_t *pFragmentShadingRateCount,
+   VkPhysicalDeviceFragmentShadingRateKHR *pFragmentShadingRates)
+{
+   struct vn_physical_device *physical_dev =
+      vn_physical_device_from_handle(physicalDevice);
+   struct vn_ring *ring = physical_dev->instance->ring.ring;
+
+   return vn_call_vkGetPhysicalDeviceFragmentShadingRatesKHR(
+      ring, physicalDevice, pFragmentShadingRateCount, pFragmentShadingRates);
 }

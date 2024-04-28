@@ -1,3 +1,8 @@
+/*
+ * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
+ * Copyright Axel Davy <davyaxel0@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_FF_H_
 #define _NINE_FF_H_
@@ -83,20 +88,21 @@ nine_ff_get_projected_key(struct nine_context *context, unsigned num_stages)
     for (s = 0; s < num_stages; ++s) {
         unsigned gen = (context->ff.tex_stage[s][D3DTSS_TEXCOORDINDEX] >> 16) + 1;
         unsigned dim = context->ff.tex_stage[s][D3DTSS_TEXTURETRANSFORMFLAGS] & 0x7;
+        unsigned idx = context->ff.tex_stage[s][D3DTSS_TEXCOORDINDEX] & 7;
         unsigned proj = !!(context->ff.tex_stage[s][D3DTSS_TEXTURETRANSFORMFLAGS] & D3DTTFF_PROJECTED);
 
-        if (!context->vs) {
+        if (!context->programmable_vs) {
             if (dim > 4)
-                dim = input_texture_coord[s];
+                dim = input_texture_coord[idx];
 
             if (!dim && gen == NINED3DTSS_TCI_PASSTHRU)
-                dim = input_texture_coord[s];
+                dim = input_texture_coord[idx];
             else if (!dim)
                 dim = 4;
 
             if (dim == 1) /* NV behaviour */
                 proj = 0;
-            if (dim > input_texture_coord[s] && gen == NINED3DTSS_TCI_PASSTHRU)
+            if (dim > input_texture_coord[idx] && gen == NINED3DTSS_TCI_PASSTHRU)
                 proj = 0;
         } else {
             dim = 4;

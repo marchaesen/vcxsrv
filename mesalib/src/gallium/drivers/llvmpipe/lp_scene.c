@@ -75,7 +75,7 @@ lp_scene_create(struct lp_setup_context *setup)
 
    (void) mtx_init(&scene->mutex, mtx_plain);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* Do some scene limit sanity checks here */
    {
       size_t maxBins = TILES_X * TILES_Y;

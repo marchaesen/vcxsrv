@@ -4,7 +4,7 @@ use crate::core::format::*;
 use crate::core::platform::*;
 use crate::core::util::*;
 use crate::core::version::*;
-use crate::impl_cl_type_trait;
+use crate::impl_cl_type_trait_base;
 
 use mesa_rust::compiler::clc::*;
 use mesa_rust::compiler::nir::*;
@@ -212,10 +212,10 @@ impl<'a> HelperContextWrapper for HelperContext<'a> {
     }
 }
 
-impl_cl_type_trait!(cl_device_id, Device, CL_INVALID_DEVICE);
+impl_cl_type_trait_base!(cl_device_id, Device, [Device], CL_INVALID_DEVICE);
 
 impl Device {
-    fn new(screen: PipeScreen) -> Option<Arc<Device>> {
+    fn new(screen: PipeScreen) -> Option<Device> {
         if !Self::check_valid(&screen) {
             return None;
         }
@@ -230,7 +230,7 @@ impl Device {
         }
 
         let mut d = Self {
-            base: CLObjectBase::new(),
+            base: CLObjectBase::new(RusticlTypes::Device),
             helper_ctx: Mutex::new(helper_ctx),
             screen: screen,
             cl_version: CLVersion::Cl3_0,
@@ -265,20 +265,13 @@ impl Device {
         // now figure out what version we are
         d.check_version();
 
-        Some(Arc::new(d))
+        Some(d)
     }
 
     /// Converts a temporary reference to a static if and only if this device lives inside static
     /// memory.
     pub fn to_static(&self) -> Option<&'static Self> {
-        for dev in devs() {
-            let dev = dev.as_ref();
-            if self == dev {
-                return Some(dev);
-            }
-        }
-
-        None
+        devs().iter().find(|&dev| self == dev)
     }
 
     fn fill_format_tables(&mut self) {
@@ -664,7 +657,7 @@ impl Device {
             .shader_param(pipe_shader_type::PIPE_SHADER_COMPUTE, cap)
     }
 
-    pub fn all() -> impl Iterator<Item = Arc<Device>> {
+    pub fn all() -> impl Iterator<Item = Device> {
         load_screens().filter_map(Device::new)
     }
 
@@ -732,7 +725,8 @@ impl Device {
     }
 
     pub fn is_gl_sharing_supported(&self) -> bool {
-        self.screen.param(pipe_cap::PIPE_CAP_DMABUF) != 0
+        self.screen.param(pipe_cap::PIPE_CAP_CL_GL_SHARING) != 0
+            && self.screen.param(pipe_cap::PIPE_CAP_DMABUF) != 0
             && !self.is_device_software()
             && self.screen.is_res_handle_supported()
             && self.screen.device_uuid().is_some()
@@ -791,8 +785,17 @@ impl Device {
     }
 
     pub fn global_mem_size(&self) -> cl_ulong {
-        self.screen
-            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE)
+        if let Some(memory_info) = self.screen().query_memory_info() {
+            let memory: cl_ulong = if memory_info.total_device_memory != 0 {
+                memory_info.total_device_memory.into()
+            } else {
+                memory_info.total_staging_memory.into()
+            };
+            memory * 1024
+        } else {
+            self.screen
+                .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_GLOBAL_SIZE)
+        }
     }
 
     pub fn image_2d_size(&self) -> usize {
@@ -1048,7 +1051,7 @@ impl Device {
     }
 }
 
-pub fn devs() -> &'static Vec<Arc<Device>> {
+pub fn devs() -> &'static Vec<Device> {
     &Platform::get().devs
 }
 
@@ -1056,16 +1059,12 @@ pub fn get_devs_for_type(device_type: cl_device_type) -> Vec<&'static Device> {
     devs()
         .iter()
         .filter(|d| device_type & d.device_type(true) != 0)
-        .map(Arc::as_ref)
         .collect()
 }
 
 pub fn get_dev_for_uuid(uuid: [c_char; UUID_SIZE]) -> Option<&'static Device> {
-    devs()
-        .iter()
-        .find(|d| {
-            let uuid: [c_uchar; UUID_SIZE] = unsafe { transmute(uuid) };
-            uuid == d.screen().device_uuid().unwrap()
-        })
-        .map(Arc::as_ref)
+    devs().iter().find(|d| {
+        let uuid: [c_uchar; UUID_SIZE] = unsafe { transmute(uuid) };
+        uuid == d.screen().device_uuid().unwrap()
+    })
 }

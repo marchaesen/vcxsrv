@@ -84,6 +84,7 @@ cl_alloc_bo(struct v3dv_cl *cl, uint32_t space, bool use_branch)
 
    /* Chain to the new BO from the old one if requested */
    if (use_branch && cl->bo) {
+      cl->bo->cl_branch_offset = v3dv_cl_offset(cl);
       cl_emit(cl, BRANCH, branch) {
          branch.address = v3dv_cl_address(bo, 0);
       }
@@ -122,7 +123,7 @@ v3dv_cl_ensure_space_with_branch(struct v3dv_cl *cl, uint32_t space)
     * end with a 'return from sub list' command.
     */
    bool needs_return_from_sub_list = false;
-   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_SECONDARY && cl->size > 0)
+   if (cl->job->type == V3DV_JOB_TYPE_GPU_CL_INCOMPLETE && cl->size > 0)
          needs_return_from_sub_list = true;
 
    /*

@@ -94,7 +94,7 @@ _mesa_new_pipeline_object(struct gl_context *ctx, GLuint name)
 void
 _mesa_init_pipeline(struct gl_context *ctx)
 {
-   ctx->Pipeline.Objects = _mesa_NewHashTable();
+   _mesa_InitHashTable(&ctx->Pipeline.Objects);
 
    ctx->Pipeline.Current = NULL;
 
@@ -105,7 +105,7 @@ _mesa_init_pipeline(struct gl_context *ctx)
 
 
 /**
- * Callback for deleting a pipeline object.  Called by _mesa_HashDeleteAll().
+ * Callback for deleting a pipeline object.  Called by _mesa_DeleteHashTable().
  */
 static void
 delete_pipelineobj_cb(void *data, void *userData)
@@ -123,10 +123,7 @@ void
 _mesa_free_pipeline_data(struct gl_context *ctx)
 {
    _mesa_reference_pipeline_object(ctx, &ctx->_Shader, NULL);
-
-   _mesa_HashDeleteAll(ctx->Pipeline.Objects, delete_pipelineobj_cb, ctx);
-   _mesa_DeleteHashTable(ctx->Pipeline.Objects);
-
+   _mesa_DeinitHashTable(&ctx->Pipeline.Objects, delete_pipelineobj_cb, ctx);
    _mesa_delete_pipeline_object(ctx, ctx->Pipeline.Default);
 }
 
@@ -145,7 +142,7 @@ _mesa_lookup_pipeline_object(struct gl_context *ctx, GLuint id)
       return NULL;
    else
       return (struct gl_pipeline_object *)
-         _mesa_HashLookupLocked(ctx->Pipeline.Objects, id);
+         _mesa_HashLookupLocked(&ctx->Pipeline.Objects, id);
 }
 
 /**
@@ -155,7 +152,7 @@ static void
 save_pipeline_object(struct gl_context *ctx, struct gl_pipeline_object *obj)
 {
    if (obj->Name > 0) {
-      _mesa_HashInsertLocked(ctx->Pipeline.Objects, obj->Name, obj, true);
+      _mesa_HashInsertLocked(&ctx->Pipeline.Objects, obj->Name, obj);
    }
 }
 
@@ -167,7 +164,7 @@ static void
 remove_pipeline_object(struct gl_context *ctx, struct gl_pipeline_object *obj)
 {
    if (obj->Name > 0) {
-      _mesa_HashRemoveLocked(ctx->Pipeline.Objects, obj->Name);
+      _mesa_HashRemoveLocked(&ctx->Pipeline.Objects, obj->Name);
    }
 }
 
@@ -609,7 +606,7 @@ create_program_pipelines(struct gl_context *ctx, GLsizei n, GLuint *pipelines,
    if (!pipelines)
       return;
 
-   _mesa_HashFindFreeKeys(ctx->Pipeline.Objects, pipelines, n);
+   _mesa_HashFindFreeKeys(&ctx->Pipeline.Objects, pipelines, n);
 
    for (i = 0; i < n; i++) {
       struct gl_pipeline_object *obj;

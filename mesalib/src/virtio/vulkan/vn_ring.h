@@ -46,7 +46,8 @@ vn_ring_get_layout(size_t buf_size,
 
 struct vn_ring *
 vn_ring_create(struct vn_instance *instance,
-               const struct vn_ring_layout *layout);
+               const struct vn_ring_layout *layout,
+               uint8_t direct_order);
 
 void
 vn_ring_destroy(struct vn_ring *ring);
@@ -118,5 +119,19 @@ vn_ring_submit_command(struct vn_ring *ring,
 VkResult
 vn_ring_submit_command_simple(struct vn_ring *ring,
                               const struct vn_cs_encoder *cs);
+
+VkResult
+vn_ring_submit_roundtrip(struct vn_ring *ring, uint64_t *roundtrip_seqno);
+
+void
+vn_ring_wait_roundtrip(struct vn_ring *ring, uint64_t roundtrip_seqno);
+
+static inline void
+vn_ring_roundtrip(struct vn_ring *ring)
+{
+   uint64_t roundtrip_seqno;
+   if (vn_ring_submit_roundtrip(ring, &roundtrip_seqno) == VK_SUCCESS)
+      vn_ring_wait_roundtrip(ring, roundtrip_seqno);
+}
 
 #endif /* VN_RING_H */

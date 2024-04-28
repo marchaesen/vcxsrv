@@ -162,6 +162,23 @@ FormatYCBCRToPipe(VdpYCbCrFormat vdpau_format)
 
 }
 
+static inline enum pipe_format
+ChromaToPipeFormat(VdpChromaType vdpau_type)
+{
+   switch (vdpau_type) {
+      case VDP_CHROMA_TYPE_420:
+         return PIPE_FORMAT_NV12;
+#ifdef VDP_CHROMA_TYPE_420_16
+      case VDP_CHROMA_TYPE_420_16:
+         return PIPE_FORMAT_P016;
+#endif
+      default:
+         assert(0);
+   }
+
+   return PIPE_FORMAT_NONE;
+}
+
 static inline VdpYCbCrFormat
 PipeToFormatYCBCR(enum pipe_format p_format)
 {
@@ -276,6 +293,8 @@ ProfileToPipe(VdpDecoderProfile vdpau_profile)
          return PIPE_VIDEO_PROFILE_HEVC_MAIN_12;
       case VDP_DECODER_PROFILE_HEVC_MAIN_444:
          return PIPE_VIDEO_PROFILE_HEVC_MAIN_444;
+      case VDP_DECODER_PROFILE_AV1_MAIN:
+         return PIPE_VIDEO_PROFILE_AV1_MAIN;
       default:
          return PIPE_VIDEO_PROFILE_UNKNOWN;
    }
@@ -319,6 +338,8 @@ PipeToProfile(enum pipe_video_profile p_profile)
          return VDP_DECODER_PROFILE_HEVC_MAIN_12;
       case PIPE_VIDEO_PROFILE_HEVC_MAIN_444:
          return VDP_DECODER_PROFILE_HEVC_MAIN_444;
+      case PIPE_VIDEO_PROFILE_AV1_MAIN:
+         return VDP_DECODER_PROFILE_AV1_MAIN;
       default:
          assert(0);
          return -1;

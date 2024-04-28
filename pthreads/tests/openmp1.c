@@ -88,9 +88,6 @@ int main(int argc, char *argv[]) {
     pthread_t b_thr;
     int status;
 
-    printf("%s:%d - %s - a_thr:%p - b_thr:%p\n",
-           __FILE__,__LINE__,__FUNCTION__,a_thr.p,b_thr.p);
-
     status = pthread_create(&a_thr, NULL, _thread, (void*) 1 );
     if ( status != 0 ) {
       printf("Failed to create thread 1\n");
@@ -102,6 +99,9 @@ int main(int argc, char *argv[]) {
       printf("Failed to create thread 2\n");
       return (-1);
     }
+
+    printf("%s:%d - %s - a_thr:%p - b_thr:%p\n",
+           __FILE__,__LINE__,__FUNCTION__,a_thr.p,b_thr.p);
 
     status = pthread_join(a_thr, NULL);
     if ( status != 0 ) {

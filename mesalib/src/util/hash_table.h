@@ -163,12 +163,38 @@ hash_table_call_foreach(struct hash_table *ht,
 }
 
 /**
+ * This helper macro generates the boilerplate required to use a hash table with
+ * a fixed-size struct as the key.
+ */
+#define DERIVE_HASH_TABLE(T)                                                   \
+   static uint32_t T##_hash(const void *key)                                   \
+   {                                                                           \
+      return _mesa_hash_data(key, sizeof(struct T));                           \
+   }                                                                           \
+                                                                               \
+   static bool T##_equal(const void *a, const void *b)                         \
+   {                                                                           \
+      return memcmp(a, b, sizeof(struct T)) == 0;                              \
+   }                                                                           \
+                                                                               \
+   static struct hash_table *T##_table_create(void *memctx)                    \
+   {                                                                           \
+      return _mesa_hash_table_create(memctx, T##_hash, T##_equal);             \
+   }
+
+/**
  * Hash table wrapper which supports 64-bit keys.
  */
 struct hash_table_u64 {
    struct hash_table *table;
    void *freed_key_data;
    void *deleted_key_data;
+};
+
+struct hash_entry_u64 {
+   uint64_t key;
+   void *data;
+   struct hash_entry *_entry;
 };
 
 struct hash_table_u64 *
@@ -189,6 +215,29 @@ _mesa_hash_table_u64_remove(struct hash_table_u64 *ht, uint64_t key);
 
 void
 _mesa_hash_table_u64_clear(struct hash_table_u64 *ht);
+
+struct hash_entry_u64
+_mesa_hash_table_u64_next_entry(struct hash_table_u64 *ht,
+                                struct hash_entry_u64 *ent);
+
+static inline uint32_t
+_mesa_hash_table_u64_num_entries(struct hash_table_u64 *ht)
+{
+   return (!!ht->freed_key_data) + (!!ht->deleted_key_data) +
+          _mesa_hash_table_num_entries(ht->table);
+}
+
+/**
+ * This foreach function is safe against deletion (which just replaces
+ * an entry's data with the deleted marker), but not against insertion
+ * (which may rehash the table, making entry a dangling pointer).
+ */
+#define hash_table_u64_foreach(ht, entry)                                      \
+   for (struct hash_entry_u64 entry =                                          \
+         _mesa_hash_table_u64_next_entry(ht, NULL);                            \
+        entry.data != NULL;                                                    \
+        entry = _mesa_hash_table_u64_next_entry(ht, &entry))
+
 
 #ifdef __cplusplus
 } /* extern C */

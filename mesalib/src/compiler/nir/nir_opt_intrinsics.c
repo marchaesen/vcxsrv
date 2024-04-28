@@ -258,8 +258,21 @@ try_opt_exclusive_scan_to_inclusive(nir_intrinsic_instr *intrin)
          return false;
 
       /* Don't reassociate exact float operations. */
-      if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) == nir_type_float &&
-          alu->op != nir_op_fmax && alu->op != nir_op_fmin && alu->exact)
+      if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) == nir_type_float && alu->exact)
+         return false;
+
+      /* SPIR-V rules for fmax/fmin scans are *very* stupid.
+       * The required identity is Inf instead of NaN but if one input
+       * is NaN, the other value has to be returned.
+       *
+       * This means for invocation 0:
+       * min(subgroupExclusiveMin(NaN), NaN) -> Inf
+       * subgroupInclusiveMin(NaN) -> undefined (NaN for any sane backend)
+       *
+       * SPIR-V [NF]Min/Max don't allow undefined result, even with standard
+       * float controls.
+       */
+      if (alu->op == nir_op_fmax || alu->op == nir_op_fmin)
          return false;
 
       if (alu->def.num_components != 1)

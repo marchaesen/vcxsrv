@@ -449,7 +449,7 @@
     <value name="Instance" value="1"/>
   </enum>
 
-  <enum name="CEU Condition">
+  <enum name="CS Condition">
     <value name="Lequal" value="0"/>
     <value name="Greater" value="1"/>
     <value name="Equal" value="2"/>
@@ -459,26 +459,35 @@
     <value name="Always" value="6"/>
   </enum>
 
-  <enum name="CEU State">
+  <enum name="CS State">
     <value name="Timestamp" value="0"/>
     <value name="Cycle count" value="1"/>
     <value name="Disjoint count" value="2"/>
     <value name="Error status" value="3"/>
   </enum>
 
-  <enum name="CEU Heap Operation">
+  <enum name="CS Heap Operation">
     <value name="Vertex/Tiler Started" value="0"/>
     <value name="Vertex/Tiler Completed" value="1"/>
     <value name="Fragment Completed" value="3"/>
   </enum>
 
-  <enum name="CEU Flush Mode">
+  <enum name="CS Flush Mode">
     <value name="None" value="0"/>
     <value name="Clean" value="1"/>
     <value name="Clean and invalidate" value="3"/>
   </enum>
 
-  <enum name="CEU Opcode">
+  <enum name="CS Sync scope">
+    <value name="System" value="0"/>
+    <value name="CSG" value="2"/>
+  </enum>
+
+  <enum name="CS Exception type">
+    <value name="Tiler OOM" value="2"/>
+  </enum>
+
+  <enum name="CS Opcode">
     <value name="NOP" value="0"/>
     <value name="MOVE" value="1"/>
     <value name="MOVE32" value="2"/>
@@ -498,7 +507,7 @@
     <value name="BRANCH" value="22"/>
     <value name="SET_SB_ENTRY" value="23"/>
     <value name="PROGRESS_WAIT" value="24"/>
-    <!-- SET_EXCEPTION_HANDLER -->
+    <value name="SET_EXCEPTION_HANDLER" value="25"/>
     <value name="CALL" value="32"/>
     <value name="JUMP" value="33"/>
     <value name="REQ_RESOURCE" value="34"/>
@@ -509,7 +518,7 @@
     <value name="STORE_STATE" value="40"/>
     <value name="PROT_REGION" value="41"/>
     <value name="PROGRESS_STORE" value="42"/>
-    <value name="PROGEESS_LOAD" value="43"/>
+    <value name="PROGRESS_LOAD" value="43"/>
     <value name="RUN_COMPUTE_INDIRECT" value="44"/>
     <value name="ERROR_BARRIER" value="47"/>
     <value name="HEAP_SET" value="48"/>
@@ -520,65 +529,58 @@
     <value name="SYNC_WAIT64" value="53"/>
   </enum>
 
-  <struct name="CEU Base" size="2">
+  <struct name="CS Base" size="2">
     <field name="Data" size="56" start="0" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode"/>
   </struct>
 
-  <struct name="CEU NOP" size="2">
+  <struct name="CS NOP" size="2">
     <field name="Ignored" size="56" start="0" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="NOP"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="NOP"/>
   </struct>
 
-  <struct name="CEU ERROR_BARRIER" size="2">
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="ERROR_BARRIER"/>
-  </struct>
-
-  <struct name="CEU PROGRESS_WAIT" size="2">
-    <field name="Trace Buffer ID" size="5" start="0" type="uint"/>
-    <field name="Source" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="PROGRESS_WAIT"/>
-  </struct>
-
-  <struct name="CEU PROGRESS_STORE" size="2">
-    <field name="Source" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="PROGRESS_STORE"/>
-  </struct>
-
-  <struct name="CEU PROGRESS_LOAD" size="2">
-    <field name="Destination" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="PROGRESS_LOAD"/>
-  </struct>
-
-  <struct name="CEU MOVE" size="2">
+  <struct name="CS MOVE" size="2">
     <field name="Immediate" size="48" start="0" type="hex"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="MOVE"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="MOVE"/>
   </struct>
 
-  <struct name="CEU MOVE32" size="2">
+  <struct name="CS MOVE32" size="2">
     <field name="Immediate" size="32" start="0" type="hex"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="MOVE32"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="MOVE32"/>
   </struct>
 
-  <struct name="CEU WAIT" size="2">
-    <field name="Slots" size="8" start="16" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="WAIT"/>
+  <struct name="CS WAIT" size="2">
+    <field name="Wait mask" size="8" start="16" type="hex"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="WAIT"/>
   </struct>
 
-  <struct name="CEU RUN_COMPUTE" size="2">
+  <struct name="CS RUN_COMPUTE" size="2">
     <field name="Task increment" size="14" start="0" type="uint"/>
     <field name="Task axis" size="2" start="14" type="Task Axis"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
     <field name="SRT select" size="2" start="40" type="uint"/>
     <field name="SPD select" size="2" start="42" type="uint"/>
     <field name="TSD select" size="2" start="44" type="uint"/>
     <field name="FAU select" size="2" start="46" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="RUN_COMPUTE"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_COMPUTE"/>
   </struct>
 
-  <struct name="CEU RUN_IDVS" size="2">
+  <struct name="CS RUN_TILING" size="2">
     <field name="Flags override" size="32" start="0" type="hex"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="SRT select" size="2" start="40" type="uint"/>
+    <field name="SPD select" size="2" start="42" type="uint"/>
+    <field name="TSD select" size="2" start="44" type="uint"/>
+    <field name="FAU select" size="2" start="46" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_TILING"/>
+  </struct>
+
+  <struct name="CS RUN_IDVS" size="2">
+    <field name="Flags override" size="32" start="0" type="hex"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
     <field name="Malloc enable" size="1" start="33" type="bool"/>
     <field name="Draw ID register enable" size="1" start="34" type="bool"/>
     <field name="Varying SRT select" size="1" start="35" type="bool"/>
@@ -587,201 +589,248 @@
     <field name="Fragment SRT select" size="1" start="38" type="bool"/>
     <field name="Fragment TSD select" size="1" start="39" type="bool"/>
     <field name="Draw ID" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="RUN_IDVS"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_IDVS"/>
   </struct>
 
-  <struct name="CEU RUN_FRAGMENT" size="2">
+  <struct name="CS RUN_FRAGMENT" size="2">
     <field name="Enable TEM" size="1" start="0" type="bool"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="RUN_FRAGMENT"/>
+    <field name="Tile order" size="4" start="4" type="Tile Render Order" default="Z Order"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_FRAGMENT"/>
   </struct>
 
-  <struct name="CEU FINISH_TILING" size="2">
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="FINISH_TILING"/>
+  <struct name="CS RUN_FULLSCREEN" size="2">
+    <field name="Flags override" size="32" start="0" type="hex"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="DCD" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_FULLSCREEN"/>
   </struct>
 
-  <struct name="CEU FINISH_FRAGMENT" size="2">
+  <struct name="CS FINISH_TILING" size="2">
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="FINISH_TILING"/>
+  </struct>
+
+  <struct name="CS FINISH_FRAGMENT" size="2">
     <field name="Increment Fragment Completed" size="1" start="0" type="bool"/>
     <field name="Wait mask" size="16" start="16" type="hex"/>
     <field name="Last Heap Chunk" size="8" start="32" type="hex"/>
     <field name="First Heap Chunk" size="8" start="40" type="hex"/>
-    <field name="Scoreboard entry" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="FINISH_FRAGMENT"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="FINISH_FRAGMENT"/>
   </struct>
 
-  <struct name="CEU HEAP_OPERATION" size="2">
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Operation" size="2" start="32" type="CEU Heap Operation"/>
-    <field name="Scoreboard entry" size="4" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="HEAP_OPERATION"/>
-  </struct>
-
-  <struct name="CEU TRACE_POINT" size="2">
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Base Register" size="8" start="32" type="uint"/>
-    <field name="Register Count" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="TRACE_POINT"/>
-  </struct>
-
-  <struct name="CEU CALL" size="2">
-    <field name="Length" size="8" start="32" type="uint"/>
-    <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="CALL"/>
-  </struct>
-
-  <struct name="CEU JUMP" size="2">
-    <field name="Length" size="8" start="32" type="uint"/>
-    <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="JUMP"/>
-  </struct>
-
-  <struct name="CEU ADD_IMMEDIATE64" size="2">
+  <struct name="CS ADD_IMMEDIATE32" size="2">
     <field name="Immediate" size="32" start="0" type="int"/>
     <field name="Source" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="ADD_IMMEDIATE64"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="ADD_IMMEDIATE32"/>
   </struct>
 
-  <struct name="CEU ADD_IMMEDIATE32" size="2">
+  <struct name="CS ADD_IMMEDIATE64" size="2">
     <field name="Immediate" size="32" start="0" type="int"/>
     <field name="Source" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="ADD_IMMEDIATE32"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="ADD_IMMEDIATE64"/>
   </struct>
 
-  <struct name="CEU UMIN32" size="2">
+  <struct name="CS UMIN32" size="2">
     <field name="Source 1" size="8" start="32" type="uint"/>
     <field name="Source 2" size="8" start="40" type="uint"/>
     <field name="Destination" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="UMIN32"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="UMIN32"/>
   </struct>
 
-  <struct name="CEU LOAD_MULTIPLE" size="2">
+  <struct name="CS LOAD_MULTIPLE" size="2">
     <field name="Offset" size="16" start="0" type="int"/>
     <field name="Mask" size="16" start="16" type="hex"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Base" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="LOAD_MULTIPLE"/>
+    <field name="Base register" size="8" start="48" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="LOAD_MULTIPLE"/>
   </struct>
 
-  <struct name="CEU STORE_MULTIPLE" size="2">
+  <struct name="CS STORE_MULTIPLE" size="2">
     <field name="Offset" size="16" start="0" type="int"/>
     <field name="Mask" size="16" start="16" type="hex"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Base" size="8" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="STORE_MULTIPLE"/>
+    <field name="Base register" size="8" start="48" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="STORE_MULTIPLE"/>
   </struct>
 
-  <struct name="CEU BRANCH" size="2">
+  <struct name="CS BRANCH" size="2">
     <field name="Offset" size="16" start="0" type="int"/>
-    <field name="Condition" size="3" start="28" type="CEU Condition"/>
+    <field name="Condition" size="3" start="28" type="CS Condition"/>
     <field name="Value" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="BRANCH"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="BRANCH"/>
   </struct>
 
-  <struct name="CEU PROT_REGION" size="2">
-    <field name="Size (instructions)" size="16" start="0" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="PROT_REGION"/>
-  </struct>
-
-  <struct name="CEU SET_SB_ENTRY" size="2">
+  <struct name="CS SET_SB_ENTRY" size="2">
     <field name="Endpoint entry" size="4" start="0" type="uint"/>
     <field name="Other entry" size="4" start="4" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SET_SB_ENTRY"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SET_SB_ENTRY"/>
   </struct>
 
-  <struct name="CEU SYNC_ADD32" size="2">
-    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
-    <field name="Error propagate" size="1" start="0" type="bool"/>
-    <field name="Scope CSG" size="1" start="2" type="bool"/>
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Data" size="8" start="32" type="uint"/>
+  <struct name="CS PROGRESS_WAIT" size="2">
+    <field name="Queue" size="5" start="0" type="uint"/>
+    <field name="Source" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="PROGRESS_WAIT"/>
+  </struct>
+
+  <struct name="CS SET_EXCEPTION_HANDLER" size="2">
+    <field name="Exception type" size="8" start="0" type="CS Exception type"/>
+    <field name="Length" size="8" start="32" type="uint"/>
+    <field name="Address" size="8" start="32" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SET_EXCEPTION_HANDLER"/>
+  </struct>
+
+  <struct name="CS CALL" size="2">
+    <field name="Length" size="8" start="32" type="uint"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_ADD32"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="CALL"/>
   </struct>
 
-  <struct name="CEU SYNC_SET32" size="2">
-    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
-    <field name="Error propagate" size="1" start="0" type="bool"/>
-    <field name="Scope CSG" size="1" start="2" type="bool"/>
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Data" size="8" start="32" type="uint"/>
+  <struct name="CS JUMP" size="2">
+    <field name="Length" size="8" start="32" type="uint"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_SET32"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="JUMP"/>
   </struct>
 
-  <struct name="CEU STORE_STATE" size="2">
-    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
-    <field name="Offset" size="16" start="0" type="int"/>
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="State" size="2" start="32" type="CEU State"/>
-    <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="STORE_STATE"/>
-  </struct>
-
-  <struct name="CEU SYNC_ADD64" size="2">
-    <!-- Iter status is written at [Address + 8], 0 == NO_FAULT, 1 == FAULT -->
-    <field name="Error propagate" size="1" start="0" type="bool"/>
-    <!-- Used for inter-queue synchronization (unblocking a queue waiting on a mem-based fence) -->
-    <field name="Scope CSG" size="1" start="2" type="bool"/>
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Data" size="8" start="32" type="uint"/>
-    <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_ADD64"/>
-  </struct>
-
-  <struct name="CEU SYNC_SET64" size="2">
-    <!-- Iter status is written at [Address + 8], 0 == NO_FAULT, 1 == FAULT -->
-    <field name="Error propagate" size="1" start="0" type="bool"/>
-    <field name="Scope CSG" size="1" start="2" type="bool"/>
-    <field name="Wait mask" size="16" start="16" type="hex"/>
-    <field name="Data" size="8" start="32" type="uint"/>
-    <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Scoreboard slot" size="4" start="48" type="hex"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_SET64"/>
-  </struct>
-
-  <struct name="CEU FLUSH_CACHE2" size="2">
-    <field name="L2 flush mode" size="4" start="0" type="CEU Flush Mode"/>
-    <field name="LSC flush mode" size="4" start="4" type="CEU Flush Mode"/>
-    <field name="Other invalidate" size="1" start="9" type="bool"/>
-    <field name="Scoreboard mask" size="16" start="16" type="hex"/>
-    <field name="Latest Flush ID" size="8" start="40" type="uint"/>
-    <field name="Scoreboard entry" size="4" start="48" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="FLUSH_CACHE2"/>
-  </struct>
-
-  <struct name="CEU REQ_RESOURCE" size="2">
+  <struct name="CS REQ_RESOURCE" size="2">
     <field name="Compute" size="1" start="0" type="bool"/>
     <field name="Fragment" size="1" start="1" type="bool"/>
     <field name="Tiler" size="1" start="2" type="bool"/>
     <field name="IDVS" size="1" start="3" type="bool"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="REQ_RESOURCE"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="REQ_RESOURCE"/>
   </struct>
 
-  <struct name="CEU SYNC_WAIT32" size="2">
-    <field name="Error reject" size="1" start="0" type="bool"/>
-    <field name="Invert" size="1" start="28" type="bool"/>
+  <struct name="CS FLUSH_CACHE2" size="2">
+    <field name="L2 flush mode" size="4" start="0" type="CS Flush Mode"/>
+    <field name="LSC flush mode" size="4" start="4" type="CS Flush Mode"/>
+    <field name="Other invalidate" size="1" start="9" type="bool"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="Latest Flush ID" size="8" start="40" type="uint"/>
+    <field name="Signal slot" size="4" start="48" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="FLUSH_CACHE2"/>
+  </struct>
+
+  <struct name="CS SYNC_ADD32" size="2">
+    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
+    <field name="Error propagate" size="1" start="0" type="bool"/>
+    <field name="Scope" size="2" start="1" type="CS Sync scope"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
     <field name="Data" size="8" start="32" type="uint"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_WAIT32"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_ADD32"/>
   </struct>
 
-  <struct name="CEU SYNC_WAIT64" size="2">
-    <field name="Error reject" size="1" start="0" type="bool"/>
-    <field name="Invert" size="1" start="28" type="bool"/>
+  <struct name="CS SYNC_SET32" size="2">
+    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
+    <field name="Error propagate" size="1" start="0" type="bool"/>
+    <field name="Scope" size="2" start="1" type="CS Sync scope"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
     <field name="Data" size="8" start="32" type="uint"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="SYNC_WAIT64"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_SET32"/>
   </struct>
 
-  <struct name="CEU HEAP_SET" size="2">
+  <struct name="CS SYNC_WAIT32" size="2">
+    <field name="Error reject" size="1" start="0" type="bool"/>
+    <field name="Condition" size="4" start="28" type="CS Condition"/>
+    <field name="Data" size="8" start="32" type="uint"/>
     <field name="Address" size="8" start="40" type="uint"/>
-    <field name="Opcode" size="8" start="56" type="CEU Opcode" default="HEAP_SET"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_WAIT32"/>
+  </struct>
+
+  <struct name="CS STORE_STATE" size="2">
+    <!-- Iter status is written at [Address + 4], 0 == NO_FAULT, 1 == FAULT -->
+    <field name="Offset" size="16" start="0" type="int"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="State" size="2" start="32" type="CS State"/>
+    <field name="Address" size="8" start="40" type="uint"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="STORE_STATE"/>
+  </struct>
+
+  <struct name="CS PROT_REGION" size="2">
+    <field name="Size" size="16" start="0" type="uint" modifier="shr(3)"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="PROT_REGION"/>
+  </struct>
+
+  <struct name="CS PROGRESS_STORE" size="2">
+    <field name="Source" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="PROGRESS_STORE"/>
+  </struct>
+
+  <struct name="CS PROGRESS_LOAD" size="2">
+    <field name="Destination" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="PROGRESS_LOAD"/>
+  </struct>
+
+  <struct name="CS RUN_COMPUTE_INDIRECT" size="2">
+    <field name="Workgroups per task" size="16" start="0" type="uint"/>
+    <field name="Progress increment" size="1" start="32" type="bool" default="false"/>
+    <field name="SRT select" size="2" start="40" type="uint"/>
+    <field name="SPD select" size="2" start="42" type="uint"/>
+    <field name="TSD select" size="2" start="44" type="uint"/>
+    <field name="FAU select" size="2" start="46" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="RUN_COMPUTE_INDIRECT"/>
+  </struct>
+
+  <struct name="CS ERROR_BARRIER" size="2">
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="ERROR_BARRIER"/>
+  </struct>
+
+  <struct name="CS HEAP_SET" size="2">
+    <field name="Address" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="HEAP_SET"/>
+  </struct>
+
+  <struct name="CS HEAP_OPERATION" size="2">
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="Operation" size="2" start="32" type="CS Heap Operation"/>
+    <field name="Signal slot" size="4" start="48" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="HEAP_OPERATION"/>
+  </struct>
+
+  <struct name="CS TRACE_POINT" size="2">
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="Base Register" size="8" start="32" type="uint"/>
+    <field name="Register Count" size="8" start="40" type="uint"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="TRACE_POINT"/>
+  </struct>
+
+  <struct name="CS SYNC_ADD64" size="2">
+    <!-- Iter status is written at [Address + 8], 0 == NO_FAULT, 1 == FAULT -->
+    <field name="Error propagate" size="1" start="0" type="bool"/>
+    <!-- Used for inter-queue synchronization (unblocking a queue waiting on a mem-based fence) -->
+    <field name="Scope" size="2" start="1" type="CS Sync scope"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="Data" size="8" start="32" type="uint"/>
+    <field name="Address" size="8" start="40" type="uint"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_ADD64"/>
+  </struct>
+
+  <struct name="CS SYNC_SET64" size="2">
+    <!-- Iter status is written at [Address + 8], 0 == NO_FAULT, 1 == FAULT -->
+    <field name="Error propagate" size="1" start="0" type="bool"/>
+    <field name="Scope" size="2" start="1" type="CS Sync scope"/>
+    <field name="Wait mask" size="16" start="16" type="hex"/>
+    <field name="Data" size="8" start="32" type="uint"/>
+    <field name="Address" size="8" start="40" type="uint"/>
+    <field name="Signal slot" size="4" start="48" type="hex"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_SET64"/>
+  </struct>
+
+  <struct name="CS SYNC_WAIT64" size="2">
+    <field name="Error reject" size="1" start="0" type="bool"/>
+    <field name="Condition" size="4" start="28" type="CS Condition"/>
+    <field name="Data" size="8" start="32" type="uint"/>
+    <field name="Address" size="8" start="40" type="uint"/>
+    <field name="Opcode" size="8" start="56" type="CS Opcode" default="SYNC_WAIT64"/>
   </struct>
 
   <struct name="Attribute" size="8" align="32">

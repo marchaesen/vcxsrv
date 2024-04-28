@@ -27,34 +27,28 @@
 
 #include <stddef.h>
 #include <genxml/gen_macros.h>
-#include "pan_bo.h"
 
 #include "util/u_dynarray.h"
+
+struct panfrost_ptr {
+   /* CPU address */
+   void *cpu;
+
+   /* GPU address */
+   mali_ptr gpu;
+};
 
 /* Represents grow-only memory. */
 
 struct pan_pool {
-   /* Parent device for allocation */
-   struct panfrost_device *dev;
-
-   /* Label for created BOs */
-   const char *label;
-
-   /* BO flags to use in the pool */
-   unsigned create_flags;
-
    /* Minimum size for allocated BOs. */
    size_t slab_size;
 };
 
 static inline void
-pan_pool_init(struct pan_pool *pool, struct panfrost_device *dev,
-              unsigned create_flags, size_t slab_size, const char *label)
+pan_pool_init(struct pan_pool *pool, size_t slab_size)
 {
-   pool->dev = dev;
-   pool->create_flags = create_flags;
    pool->slab_size = slab_size;
-   pool->label = label;
 }
 
 /* Represents a fat pointer for GPU-mapped memory, returned from the transient

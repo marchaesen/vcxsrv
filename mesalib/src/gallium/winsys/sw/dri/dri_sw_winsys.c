@@ -39,11 +39,20 @@
 
 #include "util/compiler.h"
 #include "util/format/u_formats.h"
+#include "util/detect_os.h"
+
+#if DETECT_OS_UNIX
+# include <sys/stat.h>
+# include <errno.h>
+# include <sys/mman.h>
+#endif
+
 #include "pipe/p_state.h"
 #include "util/u_inlines.h"
 #include "util/format/u_format.h"
 #include "util/u_math.h"
 #include "util/u_memory.h"
+#include "util/os_file.h"
 
 #include "frontend/sw_winsys.h"
 #include "dri_sw_winsys.h"
@@ -61,6 +70,11 @@ struct dri_sw_displaytarget
    void *data;
    void *mapped;
    const void *front_private;
+   /* dmabuf */
+   int fd;
+   int offset;
+   size_t size;
+   bool unbacked;
 };
 
 struct dri_sw_winsys
@@ -141,8 +155,10 @@ dri_sw_displaytarget_create(struct sw_winsys *winsys,
 
    nblocksy = util_format_get_nblocksy(format, height);
    size = dri_sw_dt->stride * nblocksy;
+   dri_sw_dt->size = size;
 
    dri_sw_dt->shmid = -1;
+   dri_sw_dt->fd = -1;
 
 #ifdef HAVE_SYS_SHM_H
    if (ws->lf->put_image_shm)
@@ -164,13 +180,54 @@ no_dt:
    return NULL;
 }
 
+static struct sw_displaytarget *
+dri_sw_displaytarget_create_mapped(struct sw_winsys *winsys,
+                                   unsigned tex_usage,
+                                   enum pipe_format format,
+                                   unsigned width, unsigned height,
+                                   unsigned stride,
+                                   void *data)
+{
+   UNUSED struct dri_sw_winsys *ws = dri_sw_winsys(winsys);
+   struct dri_sw_displaytarget *dri_sw_dt;
+   unsigned nblocksy, size;
+
+   dri_sw_dt = CALLOC_STRUCT(dri_sw_displaytarget);
+   if(!dri_sw_dt)
+      return NULL;
+
+   dri_sw_dt->format = format;
+   dri_sw_dt->width = width;
+   dri_sw_dt->height = height;
+
+   dri_sw_dt->stride = stride;
+
+   nblocksy = util_format_get_nblocksy(format, height);
+   size = dri_sw_dt->stride * nblocksy;
+   dri_sw_dt->size = size;
+
+   dri_sw_dt->shmid = -1;
+   dri_sw_dt->fd = -1;
+   dri_sw_dt->unbacked = true;
+
+   dri_sw_dt->data = data;
+   dri_sw_dt->mapped = data;
+
+   return (struct sw_displaytarget *)dri_sw_dt;
+}
+
 static void
 dri_sw_displaytarget_destroy(struct sw_winsys *ws,
                              struct sw_displaytarget *dt)
 {
    struct dri_sw_displaytarget *dri_sw_dt = dri_sw_displaytarget(dt);
 
-   if (dri_sw_dt->shmid >= 0) {
+   if (dri_sw_dt->unbacked) {}
+   else if (dri_sw_dt->fd >= 0) {
+      if (dri_sw_dt->mapped)
+         ws->displaytarget_unmap(ws, dt);
+      close(dri_sw_dt->fd);
+   } else if (dri_sw_dt->shmid >= 0) {
 #ifdef HAVE_SYS_SHM_H
       shmdt(dri_sw_dt->data);
       shmctl(dri_sw_dt->shmid, IPC_RMID, NULL);
@@ -188,13 +245,45 @@ dri_sw_displaytarget_map(struct sw_winsys *ws,
                          unsigned flags)
 {
    struct dri_sw_displaytarget *dri_sw_dt = dri_sw_displaytarget(dt);
-   dri_sw_dt->mapped = dri_sw_dt->data;
-
+   dri_sw_dt->map_flags = flags;
+   if (dri_sw_dt->unbacked)
+      return dri_sw_dt->mapped;
+#if DETECT_OS_UNIX
+   if (dri_sw_dt->fd > -1) {
+      bool success = false;
+      if (!success) {
+         /* if this fails, it's a dmabuf that wasn't exported by us,
+          * so it doesn't have the header that we're looking for
+          */
+         off_t size = lseek(dri_sw_dt->fd, 0, SEEK_END);
+         lseek(dri_sw_dt->fd, 0, SEEK_SET);
+         if (size < 1) {
+            fprintf(stderr, "dmabuf import failed: fd has no data\n");
+            return NULL;
+         }
+         unsigned prot = 0;
+         if (flags & PIPE_MAP_READ)
+            prot |= PROT_READ;
+         if (flags & PIPE_MAP_WRITE)
+            prot |= PROT_WRITE;
+         dri_sw_dt->size = size;
+         dri_sw_dt->data = mmap(NULL, dri_sw_dt->size, prot, MAP_SHARED, dri_sw_dt->fd, 0);
+         if (dri_sw_dt->data == MAP_FAILED) {
+            dri_sw_dt->data = NULL;
+            fprintf(stderr, "dmabuf import failed to mmap: %s\n", strerror(errno));
+         } else
+            dri_sw_dt->mapped = ((uint8_t*)dri_sw_dt->data) + dri_sw_dt->offset;
+      } else
+         dri_sw_dt->mapped = ((uint8_t*)dri_sw_dt->data) + dri_sw_dt->offset;
+   } else
+#endif
    if (dri_sw_dt->front_private && (flags & PIPE_MAP_READ)) {
       struct dri_sw_winsys *dri_sw_ws = dri_sw_winsys(ws);
       dri_sw_ws->lf->get_image((void *)dri_sw_dt->front_private, 0, 0, dri_sw_dt->width, dri_sw_dt->height, dri_sw_dt->stride, dri_sw_dt->data);
+      dri_sw_dt->mapped = dri_sw_dt->data;
+   } else {
+      dri_sw_dt->mapped = dri_sw_dt->data;
    }
-   dri_sw_dt->map_flags = flags;
    return dri_sw_dt->mapped;
 }
 
@@ -203,6 +292,17 @@ dri_sw_displaytarget_unmap(struct sw_winsys *ws,
                            struct sw_displaytarget *dt)
 {
    struct dri_sw_displaytarget *dri_sw_dt = dri_sw_displaytarget(dt);
+
+   if (dri_sw_dt->unbacked) {
+      dri_sw_dt->map_flags = 0;
+      return;
+   }
+#if DETECT_OS_UNIX
+   if (dri_sw_dt->fd > -1) {
+      munmap(dri_sw_dt->data, dri_sw_dt->size);
+      dri_sw_dt->data = NULL;
+   } else
+#endif
    if (dri_sw_dt->front_private && (dri_sw_dt->map_flags & PIPE_MAP_WRITE)) {
       struct dri_sw_winsys *dri_sw_ws = dri_sw_winsys(ws);
       dri_sw_ws->lf->put_image2((void *)dri_sw_dt->front_private, dri_sw_dt->data, 0, 0, dri_sw_dt->width, dri_sw_dt->height, dri_sw_dt->stride);
@@ -217,8 +317,17 @@ dri_sw_displaytarget_from_handle(struct sw_winsys *winsys,
                                  struct winsys_handle *whandle,
                                  unsigned *stride)
 {
+#if DETECT_OS_UNIX
+   int fd = os_dupfd_cloexec(whandle->handle);
+   struct sw_displaytarget *sw = dri_sw_displaytarget_create(winsys, templ->usage, templ->format, templ->width0, templ->height0, 64, NULL, stride);
+   struct dri_sw_displaytarget *dri_sw_dt = dri_sw_displaytarget(sw);
+   dri_sw_dt->fd = fd;
+   dri_sw_dt->offset = whandle->offset;
+   return sw;
+#else
    assert(0);
    return NULL;
+#endif
 }
 
 static bool
@@ -242,6 +351,7 @@ static void
 dri_sw_displaytarget_display(struct sw_winsys *ws,
                              struct sw_displaytarget *dt,
                              void *context_private,
+                             unsigned nboxes,
                              struct pipe_box *box)
 {
    struct dri_sw_winsys *dri_sw_ws = dri_sw_winsys(ws);
@@ -249,41 +359,39 @@ dri_sw_displaytarget_display(struct sw_winsys *ws,
    struct dri_drawable *dri_drawable = (struct dri_drawable *)context_private;
    unsigned width, height, x = 0, y = 0;
    unsigned blsize = util_format_get_blocksize(dri_sw_dt->format);
-   unsigned offset = 0;
-   unsigned offset_x = 0;
-   char *data = dri_sw_dt->data;
    bool is_shm = dri_sw_dt->shmid != -1;
    /* Set the width to 'stride / cpp'.
     *
     * PutImage correctly clips to the width of the dst drawable.
     */
-   if (box) {
-      offset = dri_sw_dt->stride * box->y;
-      offset_x = box->x * blsize;
-      data += offset;
-      /* don't add x offset for shm, the put_image_shm will deal with it */
-      if (!is_shm)
-         data += offset_x;
-      x = box->x;
-      y = box->y;
-      width = box->width;
-      height = box->height;
-   } else {
+   if (!nboxes) {
       width = dri_sw_dt->stride / blsize;
       height = dri_sw_dt->height;
-   }
-
-   if (is_shm) {
-      dri_sw_ws->lf->put_image_shm(dri_drawable, dri_sw_dt->shmid, dri_sw_dt->data, offset, offset_x,
-                                   x, y, width, height, dri_sw_dt->stride);
+      if (is_shm)
+         dri_sw_ws->lf->put_image_shm(dri_drawable, dri_sw_dt->shmid, dri_sw_dt->data, 0, 0,
+                                    0, 0, width, height, dri_sw_dt->stride);
+      else
+         dri_sw_ws->lf->put_image(dri_drawable, dri_sw_dt->data, width, height);
       return;
    }
-
-   if (box)
-      dri_sw_ws->lf->put_image2(dri_drawable, data,
-                                x, y, width, height, dri_sw_dt->stride);
-   else
-      dri_sw_ws->lf->put_image(dri_drawable, data, width, height);
+   for (unsigned i = 0; i < nboxes; i++) {
+      unsigned offset = dri_sw_dt->stride * box[i].y;
+      unsigned offset_x = box[i].x * blsize;
+      char *data = dri_sw_dt->data + offset;
+      x = box[i].x;
+      y = box[i].y;
+      width = box[i].width;
+      height = box[i].height;
+      if (is_shm) {
+         /* don't add x offset for shm, the put_image_shm will deal with it */
+         dri_sw_ws->lf->put_image_shm(dri_drawable, dri_sw_dt->shmid, dri_sw_dt->data, offset, offset_x,
+                                      x, y, width, height, dri_sw_dt->stride);
+      } else {
+         data += offset_x;
+         dri_sw_ws->lf->put_image2(dri_drawable, data,
+                                   x, y, width, height, dri_sw_dt->stride);
+      }
+   }
 }
 
 static void
@@ -308,6 +416,7 @@ dri_create_sw_winsys(const struct drisw_loader_funcs *lf)
 
    /* screen texture functions */
    ws->base.displaytarget_create = dri_sw_displaytarget_create;
+   ws->base.displaytarget_create_mapped = dri_sw_displaytarget_create_mapped;
    ws->base.displaytarget_destroy = dri_sw_displaytarget_destroy;
    ws->base.displaytarget_from_handle = dri_sw_displaytarget_from_handle;
    ws->base.displaytarget_get_handle = dri_sw_displaytarget_get_handle;

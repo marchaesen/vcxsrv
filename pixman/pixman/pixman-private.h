@@ -1050,27 +1050,8 @@ float pixman_unorm_to_float (uint16_t u, int n_bits);
  * Various debugging code
  */
 
-#undef DEBUG
-
 #define COMPILE_TIME_ASSERT(x)						\
     do { typedef int compile_time_assertion [(x)?1:-1]; } while (0)
-
-/* Turn on debugging depending on what type of release this is
- */
-#if (((PIXMAN_VERSION_MICRO % 2) == 0) && ((PIXMAN_VERSION_MINOR % 2) == 1))
-
-/* Debugging gets turned on for development releases because these
- * are the things that end up in bleeding edge distributions such
- * as Rawhide etc.
- *
- * For performance reasons we don't turn it on for stable releases or
- * random git checkouts. (Random git checkouts are often used for
- * performance work).
- */
-
-#    define DEBUG
-
-#endif
 
 void
 _pixman_log_error (const char *function, const char *message);

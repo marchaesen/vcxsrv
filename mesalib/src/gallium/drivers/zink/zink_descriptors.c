@@ -825,11 +825,14 @@ create_pool(struct zink_screen *screen, unsigned num_type_sizes, const VkDescrip
    dpci.poolSizeCount = num_type_sizes;
    dpci.flags = flags;
    dpci.maxSets = MAX_LAZY_DESCRIPTORS;
-   VkResult result = VKSCR(CreateDescriptorPool)(screen->dev, &dpci, 0, &pool);
-   if (result != VK_SUCCESS) {
-      mesa_loge("ZINK: vkCreateDescriptorPool failed (%s)", vk_Result_to_str(result));
-      return VK_NULL_HANDLE;
-   }
+   VkResult result;
+   VRAM_ALLOC_LOOP(result,
+      VKSCR(CreateDescriptorPool)(screen->dev, &dpci, 0, &pool),
+      if (result != VK_SUCCESS) {
+         mesa_loge("ZINK: vkCreateDescriptorPool failed (%s)", vk_Result_to_str(result));
+         return VK_NULL_HANDLE;
+      }
+   );
    return pool;
 }
 
@@ -1060,8 +1063,11 @@ enlarge_db(struct zink_context *ctx)
    struct zink_batch_state *bs = ctx->batch.state;
    /* ensure current db surives */
    zink_batch_reference_resource(&ctx->batch, bs->dd.db);
-   /* rebinding a db mid-batch is extremely costly: scaling by 10x should ensure it never happens more than twice */
-   ctx->dd.db.max_db_size *= 10;
+   /* rebinding a db mid-batch is extremely costly: if we start with a factor
+    * 16 and then half the factor with each new allocation. It shouldn't need to
+    * do this more than twice. */
+   ctx->dd.db.max_db_size *= ctx->dd.db.size_enlarge_scale;
+   ctx->dd.db.size_enlarge_scale = MAX2(ctx->dd.db.size_enlarge_scale >> 1, 4);
    reinit_db(screen, bs);
 }
 
@@ -1501,7 +1507,7 @@ zink_batch_descriptor_deinit(struct zink_screen *screen, struct zink_batch_state
    }
 
    if (bs->dd.db_xfer)
-      pipe_buffer_unmap(&bs->ctx->base, bs->dd.db_xfer);
+      zink_screen_buffer_unmap(&screen->base, bs->dd.db_xfer);
    bs->dd.db_xfer = NULL;
    if (bs->dd.db)
       screen->base.resource_destroy(&screen->base, &bs->dd.db->base.b);
@@ -1588,12 +1594,12 @@ zink_batch_descriptor_init(struct zink_screen *screen, struct zink_batch_state *
    }
 
    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB && !(bs->ctx->flags & ZINK_CONTEXT_COPY_ONLY)) {
-      unsigned bind = ZINK_BIND_RESOURCE_DESCRIPTOR | ZINK_BIND_SAMPLER_DESCRIPTOR;
+      unsigned bind = ZINK_BIND_DESCRIPTOR;
       struct pipe_resource *pres = pipe_buffer_create(&screen->base, bind, 0, bs->ctx->dd.db.max_db_size * screen->base_descriptor_size);
       if (!pres)
          return false;
       bs->dd.db = zink_resource(pres);
-      bs->dd.db_map = pipe_buffer_map(&bs->ctx->base, pres, PIPE_MAP_READ | PIPE_MAP_WRITE | PIPE_MAP_PERSISTENT | PIPE_MAP_THREAD_SAFE, &bs->dd.db_xfer);
+      bs->dd.db_map = pipe_buffer_map(&bs->ctx->base, pres, PIPE_MAP_READ | PIPE_MAP_WRITE | PIPE_MAP_PERSISTENT | PIPE_MAP_COHERENT | PIPE_MAP_THREAD_SAFE, &bs->dd.db_xfer);
    }
    return true;
 }
@@ -1644,6 +1650,7 @@ zink_descriptors_init(struct zink_context *ctx)
       }
       /* start small */
       ctx->dd.db.max_db_size = 250;
+      ctx->dd.db.size_enlarge_scale = 16;
    }
 
    return true;
@@ -1730,7 +1737,7 @@ zink_descriptors_init_bindless(struct zink_context *ctx)
    ctx->dd.bindless_init = true;
 
    if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB) {
-      unsigned bind = ZINK_BIND_RESOURCE_DESCRIPTOR | ZINK_BIND_SAMPLER_DESCRIPTOR;
+      unsigned bind = ZINK_BIND_DESCRIPTOR;
       VkDeviceSize size;
       VKSCR(GetDescriptorSetLayoutSizeEXT)(screen->dev, screen->bindless_layout, &size);
       struct pipe_resource *pres = pipe_buffer_create(&screen->base, bind, 0, size);

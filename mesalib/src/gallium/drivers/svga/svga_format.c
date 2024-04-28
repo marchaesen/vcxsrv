@@ -1682,7 +1682,7 @@ svga_get_format_cap(struct svga_screen *ss,
    SVGA3dDevCapResult result;
    const struct format_cap *entry;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    check_format_tables();
 #else
    (void) check_format_tables;
@@ -1713,7 +1713,7 @@ svga_get_dx_format_cap(struct svga_screen *ss,
    struct svga_winsys_screen *sws = ss->sws;
    const struct format_cap *entry;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    check_format_tables();
 #else
    (void) check_format_tables;

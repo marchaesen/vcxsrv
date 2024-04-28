@@ -112,6 +112,14 @@ virtio_pipe_get_param(struct fd_pipe *pipe, enum fd_param_id param,
    }
 }
 
+static void
+virtio_pipe_finish(struct fd_pipe *pipe)
+{
+   struct virtio_pipe *virtio_pipe = to_virtio_pipe(pipe);
+   if (util_queue_is_initialized(&virtio_pipe->retire_queue))
+      util_queue_finish(&virtio_pipe->retire_queue);
+}
+
 static int
 virtio_pipe_wait(struct fd_pipe *pipe, const struct fd_fence *fence, uint64_t timeout)
 {
@@ -208,6 +216,7 @@ static const struct fd_pipe_funcs funcs = {
    .ringbuffer_new_object = fd_ringbuffer_sp_new_object,
    .submit_new = virtio_submit_new,
    .flush = fd_pipe_sp_flush,
+   .finish = virtio_pipe_finish,
    .get_param = virtio_pipe_get_param,
    .wait = virtio_pipe_wait,
    .destroy = virtio_pipe_destroy,

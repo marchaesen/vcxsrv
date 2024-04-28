@@ -53,7 +53,7 @@ New-Item -ItemType Directory -Path "$piglit_source" | Out-Null
 Push-Location -Path $piglit_source
 git init
 git remote add origin https://gitlab.freedesktop.org/mesa/piglit.git
-git fetch --depth 1 origin b41accc83689966f91217fc5b57dbe06202b8c8c # of branch main
+git fetch --depth 1 origin 814046fe6942eac660ee4a6cc5fcc54011a49945 # of branch main
 if (!$?) {
   Write-Host "Failed to fetch Piglit repository"
   Pop-Location

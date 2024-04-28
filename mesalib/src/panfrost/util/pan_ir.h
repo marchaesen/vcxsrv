@@ -29,25 +29,6 @@
 #include "util/hash_table.h"
 #include "util/u_dynarray.h"
 
-/* On Valhall, the driver gives the hardware a table of resource tables.
- * Resources are addressed as the index of the table together with the index of
- * the resource within the table. For simplicity, we put one type of resource
- * in each table and fix the numbering of the tables.
- *
- * This numbering is arbitrary. It is a software ABI between the
- * Gallium driver and the Valhall compiler.
- */
-enum pan_resource_table {
-   PAN_TABLE_UBO = 0,
-   PAN_TABLE_ATTRIBUTE,
-   PAN_TABLE_ATTRIBUTE_BUFFER,
-   PAN_TABLE_SAMPLER,
-   PAN_TABLE_TEXTURE,
-   PAN_TABLE_IMAGE,
-
-   PAN_NUM_RESOURCE_TABLES
-};
-
 /* Indices for named (non-XFB) varyings that are present. These are packed
  * tightly so they correspond to a bitfield present (P) indexed by (1 <<
  * PAN_VARY_*). This has the nice property that you can lookup the buffer index
@@ -399,11 +380,14 @@ void pan_print_alu_type(nir_alu_type t, FILE *fp);
 bool pan_nir_lower_zs_store(nir_shader *nir);
 bool pan_nir_lower_store_component(nir_shader *shader);
 
+bool pan_nir_lower_image_ms(nir_shader *shader);
 bool pan_nir_lower_64bit_intrin(nir_shader *shader);
 
 bool pan_lower_helper_invocation(nir_shader *shader);
 bool pan_lower_sample_pos(nir_shader *shader);
 bool pan_lower_xfb(nir_shader *nir);
+
+bool pan_lower_image_index(nir_shader *shader, unsigned vs_img_attrib_offset);
 
 void pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info);
 
@@ -425,36 +409,37 @@ pan_subgroup_size(unsigned arch)
       return 1;
 }
 
-/* Architectural maximums, since this register may be not implemented
- * by a given chip. G31 is actually 512 instead of 768 but it doesn't
- * really matter. */
-
+/*
+ * Helper extracting the table from a given handle of Valhall descriptor model.
+ */
 static inline unsigned
-panfrost_max_thread_count(unsigned arch, unsigned work_reg_count)
+pan_res_handle_get_table(unsigned handle)
 {
-   switch (arch) {
-   /* Midgard */
-   case 4:
-   case 5:
-      if (work_reg_count > 8)
-         return 64;
-      else if (work_reg_count > 4)
-         return 128;
-      else
-         return 256;
+   unsigned table = handle >> 24;
 
-   /* Bifrost, first generation */
-   case 6:
-      return 384;
+   assert(table < 64);
+   return table;
+}
 
-   /* Bifrost, second generation (G31 is 512 but it doesn't matter) */
-   case 7:
-      return work_reg_count > 32 ? 384 : 768;
+/*
+ * Helper returning the index from a given handle of Valhall descriptor model.
+ */
+static inline unsigned
+pan_res_handle_get_index(unsigned handle)
+{
+   return handle & BITFIELD_MASK(24);
+}
 
-   /* Valhall (for completeness) */
-   default:
-      return work_reg_count > 32 ? 512 : 1024;
-   }
+/*
+ * Helper creating an handle for Valhall descriptor model.
+ */
+static inline unsigned
+pan_res_handle(unsigned table, unsigned index)
+{
+   assert(table < 64);
+   assert(index < (1u << 24));
+
+   return (table << 24) | index;
 }
 
 #endif

@@ -1,29 +1,7 @@
 /*
- * Copyright (C) 2009 Nicolai Haehnle.
+ * Copyright 2009 Nicolai Haehnle.
  * Copyright 2010 Tom Stellard <tstellar@gmail.com>
- *
- * All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT OWNER(S) AND/OR ITS SUPPLIERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "util/u_math.h"
@@ -242,27 +220,6 @@ static int is_src_uniform_constant(struct rc_src_register src,
 	return 1;
 }
 
-static void constant_folding_add(struct rc_instruction * inst)
-{
-	rc_swizzle swz = 0;
-	unsigned int negate = 0;
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[0], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			inst->U.I.SrcReg[0] = inst->U.I.SrcReg[1];
-			return;
-		}
-	}
-
-	if (is_src_uniform_constant(inst->U.I.SrcReg[1], &swz, &negate)) {
-		if (swz == RC_SWIZZLE_ZERO) {
-			inst->U.I.Opcode = RC_OPCODE_MOV;
-			return;
-		}
-	}
-}
-
 /**
  * Replace 0.0, 1.0 and 0.5 immediate constants by their
  * respective swizzles. Simplify instructions like ADD dst, src, 0;
@@ -343,10 +300,6 @@ static void constant_folding(struct radeon_compiler * c, struct rc_instruction *
 
 		inst->U.I.SrcReg[src] = newsrc;
 	}
-
-	if (c->type == RC_FRAGMENT_PROGRAM &&
-		inst->U.I.Opcode == RC_OPCODE_ADD)
-		constant_folding_add(inst);
 
 	/* In case this instruction has been converted, make sure all of the
 	 * registers that are no longer used are empty. */
@@ -670,15 +623,20 @@ static int peephole_mad_presub_bias(
 	struct rc_src_register src1_reg = inst_mad->U.I.SrcReg[1];
 	if ((src1_reg.Negate & inst_mad->U.I.DstReg.WriteMask) != 0 || src1_reg.Abs)
 		return 0;
-        struct rc_constant *constant = &c->Program.Constants.Constants[src1_reg.Index];
-	if (constant->Type != RC_CONSTANT_IMMEDIATE)
-		return 0;
-        for (i = 0; i < 4; i++) {
-		if (!(inst_mad->U.I.DstReg.WriteMask & (1 << i)))
-			continue;
-		swz = GET_SWZ(src1_reg.Swizzle, i);
-		if (swz >= RC_SWIZZLE_ZERO || constant->u.Immediate[swz] != 2.0)
+	if (src1_reg.File == RC_FILE_INLINE) {
+		if (rc_inline_to_float(src1_reg.Index) != 2.0f)
+			 return 0;
+	} else {
+	        struct rc_constant *constant = &c->Program.Constants.Constants[src1_reg.Index];
+		if (constant->Type != RC_CONSTANT_IMMEDIATE)
 			return 0;
+	        for (i = 0; i < 4; i++) {
+			if (!(inst_mad->U.I.DstReg.WriteMask & (1 << i)))
+				continue;
+			swz = GET_SWZ(src1_reg.Swizzle, i);
+			if (swz >= RC_SWIZZLE_ZERO || constant->u.Immediate[swz] != 2.0)
+				return 0;
+		}
 	}
 
 	/* Check src0. */
@@ -882,11 +840,9 @@ static int peephole_mul_omod(
  * 	0 if inst is still part of the program.
  * 	1 if inst is no longer part of the program.
  */
-static int peephole(struct radeon_compiler * c, struct rc_instruction * inst)
+int
+rc_opt_presubtract(struct radeon_compiler *c, struct rc_instruction *inst, void *data)
 {
-	if (!c->has_presub)
-		return 0;
-
 	switch(inst->U.I.Opcode) {
 	case RC_OPCODE_ADD:
 	{
@@ -1435,7 +1391,7 @@ static void transform_vertex_ROUND(struct radeon_compiler* c,
 }
 
 /**
- * Apply various optimizations specific to the A0 adress register loads.
+ * Apply various optimizations specific to the A0 address register loads.
  */
 static void optimize_A0_loads(struct radeon_compiler * c) {
 	struct rc_instruction * inst = c->Program.Instructions.Next;
@@ -1504,14 +1460,6 @@ void rc_optimize(struct radeon_compiler * c, void *user)
 
 	if (c->type != RC_FRAGMENT_PROGRAM) {
 		return;
-	}
-
-	/* Presubtract operations. */
-	inst = c->Program.Instructions.Next;
-	while(inst != &c->Program.Instructions) {
-		struct rc_instruction * cur = inst;
-		inst = inst->Next;
-		peephole(c, cur);
 	}
 
 	/* Output modifiers. */

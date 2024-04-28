@@ -1,5 +1,7 @@
+#include <xf86drm.h>
 #include <stdio.h>
-#include <lib/pan_device.h>
+#include <lib/kmod/pan_kmod.h>
+#include <lib/pan_props.h>
 #include "pan_perf.h"
 
 int
@@ -15,10 +17,8 @@ main(void)
    void *ctx = ralloc_context(NULL);
    struct panfrost_perf *perf = rzalloc(ctx, struct panfrost_perf);
 
-   struct panfrost_device dev = {};
-   panfrost_open_device(ctx, fd, &dev);
+   panfrost_perf_init(perf, fd);
 
-   panfrost_perf_init(perf, &dev);
    int ret = panfrost_perf_enable(perf);
 
    if (ret < 0) {
@@ -52,5 +52,5 @@ main(void)
       exit(1);
    }
 
-   panfrost_close_device(&dev);
+   return 0;
 }

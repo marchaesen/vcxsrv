@@ -2169,7 +2169,6 @@ static const nir_shader_compiler_options nir_options = {
         .lower_ldexp = true,
         .lower_fneg = true,
         .lower_ineg = true,
-        .lower_rotate = true,
         .lower_to_scalar = true,
         .lower_umax = true,
         .lower_umin = true,

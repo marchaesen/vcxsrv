@@ -237,8 +237,7 @@ get_pos0_output(nir_builder *b, nir_def **output)
    /* Some applications don't write position but expect (0, 0, 0, 1)
     * so use that value instead of undef when it isn't written.
     */
-
-   nir_def *vec[4];
+   nir_def *vec[4] = {0};
 
    for (int i = 0; i < 4; i++) {
       if (output[i])
@@ -491,16 +490,12 @@ ac_nir_export_parameters(nir_builder *b,
  * including a stride to the base and component offsets.
  */
 nir_def *
-ac_nir_calc_io_offset(nir_builder *b,
-                      nir_intrinsic_instr *intrin,
-                      nir_def *base_stride,
-                      unsigned component_stride,
-                      ac_nir_map_io_driver_location map_io)
+ac_nir_calc_io_offset_mapped(nir_builder *b,
+                             nir_intrinsic_instr *intrin,
+                             nir_def *base_stride,
+                             unsigned component_stride,
+                             unsigned mapped_driver_location)
 {
-   unsigned base = nir_intrinsic_base(intrin);
-   unsigned semantic = nir_intrinsic_io_semantics(intrin).location;
-   unsigned mapped_driver_location = map_io ? map_io(semantic) : base;
-
    /* base is the driver_location, which is in slots (1 slot = 4x4 bytes) */
    nir_def *base_op = nir_imul_imm(b, base_stride, mapped_driver_location);
 
@@ -515,6 +510,21 @@ ac_nir_calc_io_offset(nir_builder *b,
    unsigned const_op = nir_intrinsic_component(intrin) * component_stride;
 
    return nir_iadd_imm_nuw(b, nir_iadd_nuw(b, base_op, offset_op), const_op);
+}
+
+nir_def *
+ac_nir_calc_io_offset(nir_builder *b,
+                      nir_intrinsic_instr *intrin,
+                      nir_def *base_stride,
+                      unsigned component_stride,
+                      ac_nir_map_io_driver_location map_io)
+{
+   unsigned base = nir_intrinsic_base(intrin);
+   unsigned semantic = nir_intrinsic_io_semantics(intrin).location;
+   unsigned mapped_driver_location = map_io ? map_io(semantic) : base;
+
+   return ac_nir_calc_io_offset_mapped(b, intrin, base_stride, component_stride,
+                                       mapped_driver_location);
 }
 
 bool
@@ -813,12 +823,32 @@ gather_outputs(nir_builder *b, nir_function_impl *impl, struct shader_outputs *o
          nir_def **output_data =
             get_output_and_type(outputs, sem.location, sem.high_16bits, &output_type);
 
+         b->cursor = nir_after_instr(instr);
+         nir_def *store_val = intrin->src[0].ssa;
+         /* 16-bit output stored in a normal varying slot that isn't a dedicated 16-bit slot. */
+         const bool non_dedicated_16bit = sem.location < VARYING_SLOT_VAR0_16BIT && store_val->bit_size == 16;
+
          u_foreach_bit (i, nir_intrinsic_write_mask(intrin)) {
             unsigned comp = nir_intrinsic_component(intrin) + i;
-            output_data[comp] = nir_channel(b, intrin->src[0].ssa, i);
+            nir_def *store_component = nir_channel(b, store_val, i);
 
-            if (output_type)
-               output_type[comp] = type;
+            if (non_dedicated_16bit) {
+               if (sem.high_16bits) {
+                  nir_def *lo = output_data[comp] ? nir_unpack_32_2x16_split_x(b, output_data[comp]) : nir_imm_intN_t(b, 0, 16);
+                  output_data[comp] = nir_pack_32_2x16_split(b, lo, store_component);
+               } else {
+                  nir_def *hi = output_data[comp] ? nir_unpack_32_2x16_split_y(b, output_data[comp]) : nir_imm_intN_t(b, 0, 16);
+                  output_data[comp] = nir_pack_32_2x16_split(b, store_component, hi);
+               }
+
+               if (output_type)
+                  output_type[comp] = nir_type_uint32;
+            } else {
+               output_data[comp] = store_component;
+
+               if (output_type)
+                  output_type[comp] = type;
+            }
          }
 
          /* remove all store output instruction */
@@ -851,6 +881,7 @@ ac_nir_lower_legacy_vs(nir_shader *nir,
       .type_16bit_hi = output_types_16bit_hi,
    };
    gather_outputs(&b, impl, &outputs);
+   b.cursor = nir_after_impl(impl);
 
    if (export_primitive_id) {
       /* When the primitive ID is read by FS, we must ensure that it's exported by the previous
@@ -889,10 +920,17 @@ ac_nir_lower_legacy_vs(nir_shader *nir,
    nir_metadata_preserve(impl, preserved);
 }
 
+static nir_def *
+ac_nir_accum_ior(nir_builder *b, nir_def *accum_result, nir_def *new_term)
+{
+   return accum_result ? nir_ior(b, accum_result, new_term) : new_term;
+}
+
 bool
 ac_nir_gs_shader_query(nir_builder *b,
                        bool has_gen_prim_query,
-                       bool has_pipeline_stats_query,
+                       bool has_gs_invocations_query,
+                       bool has_gs_primitives_query,
                        unsigned num_vertices_per_primitive,
                        unsigned wave_size,
                        nir_def *vertex_count[4],
@@ -900,24 +938,24 @@ ac_nir_gs_shader_query(nir_builder *b,
 {
    nir_def *pipeline_query_enabled = NULL;
    nir_def *prim_gen_query_enabled = NULL;
-   nir_def *shader_query_enabled = NULL;
+   nir_def *any_query_enabled = NULL;
+
    if (has_gen_prim_query) {
       prim_gen_query_enabled = nir_load_prim_gen_query_enabled_amd(b);
-      if (has_pipeline_stats_query) {
-         pipeline_query_enabled = nir_load_pipeline_stat_query_enabled_amd(b);
-         shader_query_enabled = nir_ior(b, pipeline_query_enabled, prim_gen_query_enabled);
-      } else {
-         shader_query_enabled = prim_gen_query_enabled;
-      }
-   } else if (has_pipeline_stats_query) {
+      any_query_enabled = ac_nir_accum_ior(b, any_query_enabled, prim_gen_query_enabled);
+   }
+
+   if (has_gs_invocations_query || has_gs_primitives_query) {
       pipeline_query_enabled = nir_load_pipeline_stat_query_enabled_amd(b);
-      shader_query_enabled = pipeline_query_enabled;
-   } else {
+      any_query_enabled = ac_nir_accum_ior(b, any_query_enabled, pipeline_query_enabled);
+   }
+
+   if (!any_query_enabled) {
       /* has no query */
       return false;
    }
 
-   nir_if *if_shader_query = nir_push_if(b, shader_query_enabled);
+   nir_if *if_shader_query = nir_push_if(b, any_query_enabled);
 
    nir_def *active_threads_mask = nir_ballot(b, 1, wave_size, nir_imm_true(b));
    nir_def *num_active_threads = nir_bit_count(b, active_threads_mask);
@@ -953,7 +991,7 @@ ac_nir_gs_shader_query(nir_builder *b,
    /* Store the query result to query result using an atomic add. */
    nir_if *if_first_lane = nir_push_if(b, nir_elect(b, 1));
    {
-      if (has_pipeline_stats_query) {
+      if (has_gs_invocations_query || has_gs_primitives_query) {
          nir_if *if_pipeline_query = nir_push_if(b, pipeline_query_enabled);
          {
             nir_def *count = NULL;
@@ -968,10 +1006,11 @@ ac_nir_gs_shader_query(nir_builder *b,
                }
             }
 
-            if (count)
+            if (has_gs_primitives_query && count)
                nir_atomic_add_gs_emit_prim_count_amd(b, count);
 
-            nir_atomic_add_shader_invocation_count_amd(b, num_active_threads);
+            if (has_gs_invocations_query)
+               nir_atomic_add_shader_invocation_count_amd(b, num_active_threads);
          }
          nir_pop_if(b, if_pipeline_query);
       }
@@ -1037,9 +1076,24 @@ lower_legacy_gs_store_output(nir_builder *b, nir_intrinsic_instr *intrin,
    /* 64bit output has been lowered to 32bit */
    assert(store_val->bit_size <= 32);
 
+   /* 16-bit output stored in a normal varying slot that isn't a dedicated 16-bit slot. */
+   const bool non_dedicated_16bit = sem.location < VARYING_SLOT_VAR0_16BIT && store_val->bit_size == 16;
+
    u_foreach_bit (i, write_mask) {
       unsigned comp = component + i;
-      outputs[comp] = nir_channel(b, store_val, i);
+      nir_def *store_component = nir_channel(b, store_val, i);
+
+      if (non_dedicated_16bit) {
+         if (sem.high_16bits) {
+            nir_def *lo = outputs[comp] ? nir_unpack_32_2x16_split_x(b, outputs[comp]) : nir_imm_intN_t(b, 0, 16);
+            outputs[comp] = nir_pack_32_2x16_split(b, lo, store_component);
+         } else {
+            nir_def *hi = outputs[comp] ? nir_unpack_32_2x16_split_y(b, outputs[comp]) : nir_imm_intN_t(b, 0, 16);
+            outputs[comp] = nir_pack_32_2x16_split(b, store_component, hi);
+         }
+      } else {
+         outputs[comp] = store_component;
+      }
    }
 
    nir_instr_remove(&intrin->instr);
@@ -1231,6 +1285,7 @@ ac_nir_lower_legacy_gs(nir_shader *nir,
    bool progress = ac_nir_gs_shader_query(b,
                                           has_gen_prim_query,
                                           has_pipeline_stats_query,
+                                          has_pipeline_stats_query,
                                           num_vertices_per_primitive,
                                           64,
                                           s.vertex_count,
@@ -1249,4 +1304,149 @@ ac_nir_lower_legacy_gs(nir_shader *nir,
 
    if (progress)
       nir_metadata_preserve(impl, nir_metadata_none);
+}
+
+/* Shader logging function for printing nir_def values. The driver prints this after
+ * command submission.
+ *
+ * Ring buffer layout: {uint32_t num_dwords; vec4; vec4; vec4; ... }
+ * - The buffer size must be 2^N * 16 + 4
+ * - num_dwords is incremented atomically and the ring wraps around, removing
+ *   the oldest entries.
+ */
+void
+ac_nir_store_debug_log_amd(nir_builder *b, nir_def *uvec4)
+{
+   nir_def *buf = nir_load_debug_log_desc_amd(b);
+   nir_def *zero = nir_imm_int(b, 0);
+
+   nir_def *max_index =
+      nir_iadd_imm(b, nir_ushr_imm(b, nir_iadd_imm(b, nir_channel(b, buf, 2), -4), 4), -1);
+   nir_def *index = nir_ssbo_atomic(b, 32, buf, zero, nir_imm_int(b, 1),
+                                    .atomic_op = nir_atomic_op_iadd);
+   index = nir_iand(b, index, max_index);
+   nir_def *offset = nir_iadd_imm(b, nir_imul_imm(b, index, 16), 4);
+   nir_store_buffer_amd(b, uvec4, buf, offset, zero, zero);
+}
+
+static bool
+needs_rounding_mode_16_64(nir_instr *instr)
+{
+   if (instr->type != nir_instr_type_alu)
+      return false;
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+   if (alu->op == nir_op_fquantize2f16)
+      return true;
+   if (alu->def.bit_size != 16 && alu->def.bit_size != 64)
+      return false;
+   if (nir_alu_type_get_base_type(nir_op_infos[alu->op].output_type) != nir_type_float)
+      return false;
+
+   switch (alu->op) {
+   case nir_op_f2f64:
+   case nir_op_b2f64:
+   case nir_op_f2f16_rtz:
+   case nir_op_b2f16:
+   case nir_op_fsat:
+   case nir_op_fabs:
+   case nir_op_fneg:
+   case nir_op_fsign:
+   case nir_op_ftrunc:
+   case nir_op_fceil:
+   case nir_op_ffloor:
+   case nir_op_ffract:
+   case nir_op_fround_even:
+   case nir_op_fmin:
+   case nir_op_fmax:
+      return false;
+   default:
+      return true;
+   }
+}
+
+static bool
+can_use_fmamix(nir_scalar s, enum amd_gfx_level gfx_level)
+{
+   s = nir_scalar_chase_movs(s);
+   if (!list_is_singular(&s.def->uses))
+      return false;
+
+   if (nir_scalar_is_intrinsic(s) &&
+       nir_scalar_intrinsic_op(s) == nir_intrinsic_load_interpolated_input)
+      return gfx_level >= GFX11;
+
+   if (!nir_scalar_is_alu(s))
+      return false;
+
+   switch (nir_scalar_alu_op(s)) {
+   case nir_op_fmul:
+   case nir_op_ffma:
+   case nir_op_fadd:
+   case nir_op_fsub:
+      return true;
+   case nir_op_fsat:
+      return can_use_fmamix(nir_scalar_chase_alu_src(s, 0), gfx_level);
+   default:
+      return false;
+   }
+}
+
+static bool
+split_pack_half(nir_builder *b, nir_instr *instr, void *param)
+{
+   enum amd_gfx_level gfx_level = *(enum amd_gfx_level *)param;
+
+   if (instr->type != nir_instr_type_alu)
+      return false;
+   nir_alu_instr *alu = nir_instr_as_alu(instr);
+   if (alu->op != nir_op_pack_half_2x16_rtz_split && alu->op != nir_op_pack_half_2x16_split)
+      return false;
+
+   nir_scalar s = nir_get_scalar(&alu->def, 0);
+
+   if (!can_use_fmamix(nir_scalar_chase_alu_src(s, 0), gfx_level) ||
+       !can_use_fmamix(nir_scalar_chase_alu_src(s, 1), gfx_level))
+      return false;
+
+   b->cursor = nir_before_instr(instr);
+
+   /* Split pack_half into two f2f16 to create v_fma_mix{lo,hi}_f16 
+    * in the backend.
+    */
+   nir_def *lo = nir_f2f16(b, nir_ssa_for_alu_src(b, alu, 0));
+   nir_def *hi = nir_f2f16(b, nir_ssa_for_alu_src(b, alu, 1));
+   nir_def_rewrite_uses(&alu->def, nir_pack_32_2x16_split(b, lo, hi));
+   nir_instr_remove(&alu->instr);
+   return true;
+}
+
+bool
+ac_nir_opt_pack_half(nir_shader *shader, enum amd_gfx_level gfx_level)
+{
+   if (gfx_level < GFX10)
+      return false;
+
+   unsigned exec_mode = shader->info.float_controls_execution_mode;
+   bool set_mode = false;
+   if (!nir_is_rounding_mode_rtz(exec_mode, 16)) {
+      nir_foreach_function_impl(impl, shader) {
+         nir_foreach_block(block, impl) {
+            nir_foreach_instr(instr, block) {
+               if (needs_rounding_mode_16_64(instr))
+                  return false;
+            }
+         }
+      }
+      set_mode = true;
+   }
+
+   bool progress = nir_shader_instructions_pass(shader, split_pack_half,
+                                                nir_metadata_block_index | nir_metadata_dominance, &gfx_level);
+
+   if (set_mode && progress) {
+      exec_mode &= ~(FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP16 | FLOAT_CONTROLS_ROUNDING_MODE_RTE_FP64);
+      exec_mode |= FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP16 | FLOAT_CONTROLS_ROUNDING_MODE_RTZ_FP64;
+      shader->info.float_controls_execution_mode = exec_mode;
+   }
+   return progress;
 }

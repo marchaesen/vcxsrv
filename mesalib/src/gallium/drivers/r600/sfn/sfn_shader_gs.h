@@ -1,3 +1,9 @@
+/*
+ * Copyright 2021 Collabora LTD
+ * Author: Gert Wollny <gert.wollny@collabora.com>
+ * SPDX-License-Identifier: MIT
+ */
+
 #ifndef SFN_GEOMETRYSHADER_H
 #define SFN_GEOMETRYSHADER_H
 

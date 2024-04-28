@@ -1,22 +1,8 @@
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_linear,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_linear_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_nearest,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.linear_nearest_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_linear,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_linear_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_nearest,Fail
-dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_nearest_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_linear,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_linear_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_nearest,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.linear_nearest_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.nearest_linear,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.nearest_linear_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.nearest_nearest,Fail
-dEQP-VK.texture.mipmap.3d.image_view_min_lod.base_level.nearest_nearest_integer_texel_coord,Fail
-dEQP-VK.texture.mipmap.cubemap.image_view_min_lod.base_level.linear_nearest,Fail
-dEQP-VK.texture.mipmap.cubemap.image_view_min_lod.base_level.nearest_linear,Fail
-dEQP-VK.texture.mipmap.cubemap.image_view_min_lod.base_level.nearest_nearest,Fail
-
 # New CTS failures in 1.3.7.0.
 dEQP-VK.api.version_check.unavailable_entry_points,Fail
+
+# New CTS failures in 1.3.8.0.
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_npot_diff_format_clear,Fail
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_npot_diff_format_noclear,Fail
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.whole_image_diff_format,Fail
+dEQP-VK.api.get_device_proc_addr.non_enabled,Fail

@@ -22,7 +22,7 @@
  */
 
 #include "v3dv_private.h"
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 #include "vk_android.h"
 #endif
 #include "vk_enum_defines.h"
@@ -732,7 +732,7 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
          if (external_props)
             external_props->externalMemoryProperties = prime_fd_props;
          break;
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       case VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID:
          if (external_props) {
             external_props->externalMemoryProperties.exportFromImportedHandleTypes = 0;
@@ -748,7 +748,7 @@ v3dv_GetPhysicalDeviceImageFormatProperties2(VkPhysicalDevice physicalDevice,
    }
 
    if (android_usage) {
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       android_usage->androidHardwareBufferUsage =
          vk_image_usage_to_ahb_usage(base_info->flags, base_info->usage);
 #endif

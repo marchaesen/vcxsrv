@@ -47,10 +47,11 @@ decode_files = [
   'isa.h',
 ]
 
-libir3decode = static_library(
+_libir3decode = static_library(
   'ir3decode',
   decode_files,
   dependencies: [idep_mesautil, idep_isaspec_decode],
+  link_with: [libisaspec],
   include_directories: [
     inc_include,
     inc_src,
@@ -58,10 +59,21 @@ libir3decode = static_library(
   gnu_symbol_visibility: 'hidden',
 )
 
+idep_libir3decode = declare_dependency(
+  include_directories : [
+    include_directories('.'),
+    inc_include,
+    inc_src
+  ],
+  link_with : _libir3decode,
+  dependencies: [idep_isaspec_decode],
+  sources : [ir3_isa],
+)
+
 ir3disasm = executable(
   'ir3-disasm',
   ['ir3-disasm.c'],
-  link_with: libir3decode,
+  dependencies: [idep_libir3decode, idep_libfreedreno_common],
   build_by_default: with_tools.contains('freedreno'),
   include_directories: [
     inc_src,

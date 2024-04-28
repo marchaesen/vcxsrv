@@ -102,6 +102,7 @@ store_general(struct v3d_job *job,
         struct v3d_resource *rsc = v3d_resource(psurf->texture);
 
         rsc->writes++;
+        rsc->graphics_written = true;
 
         uint32_t layer_offset =
                 v3d_layer_offset(&rsc->base, psurf->u.tex.level,

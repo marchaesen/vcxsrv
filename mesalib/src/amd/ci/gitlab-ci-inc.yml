@@ -46,6 +46,13 @@
     - !reference [.collabora-farm-rules, rules]
     - !reference [.radv-rules, rules]
 
+.radv-collabora-rules-restricted:
+  stage: amd
+  rules:
+    - !reference [.test, rules]
+    - !reference [.restricted-rules, rules]
+    - !reference [.radv-collabora-rules, rules]
+
 .radv-valve-rules:
   stage: amd
   rules:
@@ -216,13 +223,6 @@
     GPU_VERSION: amd-raven
     VK_DRIVER: radeon
 
-.radv-traces:
-  extends:
-    - .lava-piglit-traces:x86_64
-  variables:
-    PIGLIT_PLATFORM: mixed_glx_egl  # TODO, take wine/VK in account
-    PIGLIT_TRACES_FILE: traces-amd.yml
-
 ############### Valve Infra
 .test-radv:
   variables:
@@ -242,12 +242,23 @@
   extends:
     - .radv-valve-rules
     - .test-radv
-    - .b2c-test-vk
+    - .b2c-x86_64-test-vk
+  variables:
+    B2C_KERNEL_URL: https://fs.mupuf.org/linux-6.6-b2c-radv-ci # 6.6
 
-.deqp-test-valve:
+.b2c-deqp-test:
   variables:
     B2C_JOB_SUCCESS_REGEX: '^\+ DEQP_EXITCODE=0\r$'
     HWCI_TEST_SCRIPT: ./install/deqp-runner.sh
+
+.tahiti-test-valve:
+  variables:
+    FDO_CI_CONCURRENT: 8
+    RUNNER_FARM_LOCATION: mupuf
+    B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=8g'
+  tags:
+    - farm:$RUNNER_FARM_LOCATION
+    - amdgpu:codename:TAHITI
 
 .kabini-test-valve:
   variables:
@@ -349,7 +360,6 @@
     RUNNER_FARM_LOCATION: keywords
     FDO_CI_CONCURRENT: 32
     B2C_KERNEL_CMDLINE_EXTRAS: 'b2c.swap=16g'
-    B2C_KERNEL_URL: 'https://gitlab.freedesktop.org/mupuf/boot2container/-/releases/v0.9.10/downloads/linux-x86_64'  # Linux 6.3
   tags:
     - farm:$RUNNER_FARM_LOCATION
     - amdgpu:codename:NAVI31
@@ -363,7 +373,7 @@
 .vkcts-test-valve:
   extends:
     - .b2c-test-radv-vk
-    - .deqp-test-valve
+    - .b2c-deqp-test
   variables:
     DEQP_VER: vk
 

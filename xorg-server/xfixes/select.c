@@ -24,6 +24,8 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+
 #include "xfixesint.h"
 #include "xace.h"
 

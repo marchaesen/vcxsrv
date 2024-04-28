@@ -39,6 +39,7 @@
 #include "main/varray.h"
 #include "util/bitscan.h"
 #include "state_tracker/st_draw.h"
+#include "pipe/p_context.h"
 
 #include "vbo_private.h"
 
@@ -199,7 +200,7 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
    /* Don't use this if selection or feedback mode is enabled. st/mesa can't
     * handle it.
     */
-   if (!ctx->Driver.DrawGalliumVertexState || ctx->RenderMode != GL_RENDER)
+   if (!ctx->Const.HasDrawVertexState || ctx->RenderMode != GL_RENDER)
       return USE_SLOW_PATH;
 
    const gl_vertex_processing_mode mode = ctx->VertexProgram._VPMode;
@@ -280,16 +281,41 @@ vbo_save_playback_vertex_list_gallium(struct gl_context *ctx,
    /* Set edge flags. */
    _mesa_update_edgeflag_state_explicit(ctx, enabled & VERT_BIT_EDGEFLAG);
 
+   st_prepare_draw(ctx, ST_PIPELINE_RENDER_STATE_MASK_NO_VARRAYS);
+
+   struct pipe_context *pipe = ctx->pipe;
+   uint32_t velem_mask = ctx->VertexProgram._Current->info.inputs_read;
+
    /* Fast path using a pre-built gallium vertex buffer state. */
    if (node->modes || node->num_draws > 1) {
-      ctx->Driver.DrawGalliumVertexState(ctx, state, info,
-                                         node->start_counts,
-                                         node->modes,
-                                         node->num_draws);
+      const struct pipe_draw_start_count_bias *draws = node->start_counts;
+      const uint8_t *mode = node->modes;
+      unsigned num_draws = node->num_draws;
+
+      if (!mode) {
+         pipe->draw_vertex_state(pipe, state, velem_mask, info, draws, num_draws);
+      } else {
+         /* Find consecutive draws where mode doesn't vary. */
+         for (unsigned i = 0, first = 0; i <= num_draws; i++) {
+            if (i == num_draws || mode[i] != mode[first]) {
+               unsigned current_num_draws = i - first;
+
+               /* Increase refcount to be able to use take_vertex_state_ownership
+                * with all draws.
+                */
+               if (i != num_draws && info.take_vertex_state_ownership)
+                  p_atomic_inc(&state->reference.count);
+
+               info.mode = mode[first];
+               pipe->draw_vertex_state(pipe, state, velem_mask, info, &draws[first],
+                                       current_num_draws);
+               first = i;
+            }
+         }
+      }
    } else if (node->num_draws) {
-      ctx->Driver.DrawGalliumVertexState(ctx, state, info,
-                                         &node->start_count,
-                                         NULL, 1);
+      pipe->draw_vertex_state(pipe, state, velem_mask, info,
+                              &node->start_count, 1);
    }
 
    /* Restore edge flag state and ctx->VertexProgram._VaryingInputs. */

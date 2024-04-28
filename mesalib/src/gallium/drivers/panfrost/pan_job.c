@@ -65,7 +65,7 @@ panfrost_batch_add_surface(struct panfrost_batch *batch,
 {
    if (surf) {
       struct panfrost_resource *rsrc = pan_resource(surf->texture);
-      pan_legalize_afbc_format(batch->ctx, rsrc, surf->format, true);
+      pan_legalize_afbc_format(batch->ctx, rsrc, surf->format, true, false);
       panfrost_batch_write_rsrc(batch, rsrc, PIPE_SHADER_FRAGMENT);
    }
 }
@@ -113,12 +113,15 @@ static void
 panfrost_batch_cleanup(struct panfrost_context *ctx,
                        struct panfrost_batch *batch)
 {
+   struct panfrost_screen *screen = pan_screen(ctx->base.screen);
    struct panfrost_device *dev = pan_device(ctx->base.screen);
 
    assert(batch->seqnum);
 
    if (ctx->batch == batch)
       ctx->batch = NULL;
+
+   screen->vtbl.cleanup_batch(batch);
 
    unsigned batch_idx = panfrost_batch_idx(batch);
 
@@ -177,7 +180,7 @@ panfrost_get_batch(struct panfrost_context *ctx,
 
    /* The selected slot is used, we need to flush the batch */
    if (batch->seqnum) {
-      perf_debug_ctx(ctx, "Flushing batch due to seqnum overflow");
+      perf_debug(ctx, "Flushing batch due to seqnum overflow");
       panfrost_batch_submit(ctx, batch);
    }
 
@@ -227,7 +230,7 @@ panfrost_get_fresh_batch_for_fbo(struct panfrost_context *ctx,
     * draw/clear queued. Otherwise we may reuse the batch. */
 
    if (batch->draw_count + batch->compute_count > 0) {
-      perf_debug_ctx(ctx, "Flushing the current FBO due to: %s", reason);
+      perf_debug(ctx, "Flushing the current FBO due to: %s", reason);
       panfrost_batch_submit(ctx, batch);
       batch = panfrost_get_batch(ctx, &ctx->pipe_framebuffer);
    }
@@ -300,7 +303,7 @@ panfrost_batch_uses_resource(struct panfrost_batch *batch,
                              struct panfrost_resource *rsrc)
 {
    /* A resource is used iff its current BO is used */
-   uint32_t handle = panfrost_bo_handle(rsrc->image.data.bo);
+   uint32_t handle = panfrost_bo_handle(rsrc->bo);
    unsigned size = util_dynarray_num_elements(&batch->bos, pan_bo_access);
 
    /* If out of bounds, certainly not used */
@@ -364,11 +367,10 @@ panfrost_batch_read_rsrc(struct panfrost_batch *batch,
 {
    uint32_t access = PAN_BO_ACCESS_READ | panfrost_access_for_stage(stage);
 
-   panfrost_batch_add_bo_old(batch, rsrc->image.data.bo, access);
+   panfrost_batch_add_bo_old(batch, rsrc->bo, access);
 
    if (rsrc->separate_stencil)
-      panfrost_batch_add_bo_old(batch, rsrc->separate_stencil->image.data.bo,
-                                access);
+      panfrost_batch_add_bo_old(batch, rsrc->separate_stencil->bo, access);
 
    panfrost_batch_update_access(batch, rsrc, false);
 }
@@ -380,11 +382,10 @@ panfrost_batch_write_rsrc(struct panfrost_batch *batch,
 {
    uint32_t access = PAN_BO_ACCESS_WRITE | panfrost_access_for_stage(stage);
 
-   panfrost_batch_add_bo_old(batch, rsrc->image.data.bo, access);
+   panfrost_batch_add_bo_old(batch, rsrc->bo, access);
 
    if (rsrc->separate_stencil)
-      panfrost_batch_add_bo_old(batch, rsrc->separate_stencil->image.data.bo,
-                                access);
+      panfrost_batch_add_bo_old(batch, rsrc->separate_stencil->bo, access);
 
    panfrost_batch_update_access(batch, rsrc, true);
 }
@@ -451,11 +452,14 @@ panfrost_batch_to_fb_info(const struct panfrost_batch *batch,
                           struct pan_image_view *zs, struct pan_image_view *s,
                           bool reserve)
 {
+   struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
+
    memset(fb, 0, sizeof(*fb));
    memset(rts, 0, sizeof(*rts) * 8);
    memset(zs, 0, sizeof(*zs));
    memset(s, 0, sizeof(*s));
 
+   fb->tile_buf_budget = dev->optimal_tib_size;
    fb->width = batch->key.width;
    fb->height = batch->key.height;
    fb->extent.minx = batch->minx;
@@ -463,6 +467,7 @@ panfrost_batch_to_fb_info(const struct panfrost_batch *batch,
    fb->extent.maxx = batch->maxx - 1;
    fb->extent.maxy = batch->maxy - 1;
    fb->nr_samples = util_framebuffer_get_num_samples(&batch->key);
+   fb->force_samples = pan_tristate_get(batch->line_smoothing) ? 16 : 0;
    fb->rt_count = batch->key.nr_cbufs;
    fb->sprite_coord_origin = pan_tristate_get(batch->sprite_coord_origin);
    fb->first_provoking_vertex = pan_tristate_get(batch->first_provoking_vertex);
@@ -490,6 +495,19 @@ panfrost_batch_to_fb_info(const struct panfrost_batch *batch,
       }
 
       fb->rts[i].discard = !reserve && !(batch->resolve & mask);
+
+      /* Clamp the rendering area to the damage extent. The
+       * KHR_partial_update spec states that trying to render outside of
+       * the damage region is "undefined behavior", so we should be safe.
+       */
+      if (!fb->rts[i].discard) {
+         fb->extent.minx = MAX2(fb->extent.minx, prsrc->damage.extent.minx);
+         fb->extent.miny = MAX2(fb->extent.miny, prsrc->damage.extent.miny);
+         fb->extent.maxx = MIN2(fb->extent.maxx, prsrc->damage.extent.maxx - 1);
+         fb->extent.maxy = MIN2(fb->extent.maxy, prsrc->damage.extent.maxy - 1);
+         assert(fb->extent.minx <= fb->extent.maxx);
+         assert(fb->extent.miny <= fb->extent.maxy);
+      }
 
       rts[i].format = surf->format;
       rts[i].dim = MALI_TEXTURE_DIMENSION_2D;
@@ -622,16 +640,19 @@ panfrost_batch_submit(struct panfrost_context *ctx,
       struct pipe_surface *surf = batch->key.zsbuf;
       struct panfrost_resource *z_rsrc = pan_resource(surf->texture);
 
-      /* Shared depth/stencil resources are not supported, and would
-       * break this optimisation. */
-      assert(!(z_rsrc->base.bind & PAN_BIND_SHARED_MASK));
+      /* if there are multiple levels or layers, we optimize only the first */
+      if (surf->u.tex.level == 0 && surf->u.tex.first_layer == 0) {
+         /* Shared depth/stencil resources are not supported, and would
+          * break this optimisation. */
+         assert(!(z_rsrc->base.bind & PAN_BIND_SHARED_MASK));
 
-      if (batch->clear & PIPE_CLEAR_STENCIL) {
-         z_rsrc->stencil_value = batch->clear_stencil;
-         z_rsrc->constant_stencil = true;
-      } else if (z_rsrc->constant_stencil) {
-         batch->clear_stencil = z_rsrc->stencil_value;
-         batch->clear |= PIPE_CLEAR_STENCIL;
+         if (batch->clear & PIPE_CLEAR_STENCIL) {
+            z_rsrc->stencil_value = batch->clear_stencil;
+            z_rsrc->constant_stencil = true;
+         } else if (z_rsrc->constant_stencil) {
+            batch->clear_stencil = z_rsrc->stencil_value;
+            batch->clear |= PIPE_CLEAR_STENCIL;
+         }
       }
 
       if (batch->draws & PIPE_CLEAR_STENCIL)
@@ -675,7 +696,7 @@ void
 panfrost_flush_all_batches(struct panfrost_context *ctx, const char *reason)
 {
    if (reason)
-      perf_debug_ctx(ctx, "Flushing everything due to: %s", reason);
+      perf_debug(ctx, "Flushing everything due to: %s", reason);
 
    struct panfrost_batch *batch = panfrost_get_batch_for_fbo(ctx);
    panfrost_batch_submit(ctx, batch);
@@ -693,7 +714,7 @@ panfrost_flush_writer(struct panfrost_context *ctx,
    struct hash_entry *entry = _mesa_hash_table_search(ctx->writers, rsrc);
 
    if (entry) {
-      perf_debug_ctx(ctx, "Flushing writer due to: %s", reason);
+      perf_debug(ctx, "Flushing writer due to: %s", reason);
       panfrost_batch_submit(ctx, entry->data);
    }
 }
@@ -710,7 +731,7 @@ panfrost_flush_batches_accessing_rsrc(struct panfrost_context *ctx,
       if (!panfrost_batch_uses_resource(batch, rsrc))
          continue;
 
-      perf_debug_ctx(ctx, "Flushing user due to: %s", reason);
+      perf_debug(ctx, "Flushing user due to: %s", reason);
       panfrost_batch_submit(ctx, batch);
    }
 }

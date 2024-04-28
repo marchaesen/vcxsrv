@@ -385,6 +385,23 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    dst_sz = alu->def.num_components;
    wrmask = (1 << dst_sz) - 1;
 
+   bool use_shared = !alu->def.divergent &&
+      ctx->compiler->has_scalar_alu &&
+      /* not ALU ops */
+      alu->op != nir_op_fddx &&
+      alu->op != nir_op_fddx_fine &&
+      alu->op != nir_op_fddx_coarse &&
+      alu->op != nir_op_fddy &&
+      alu->op != nir_op_fddy_fine &&
+      alu->op != nir_op_fddy_coarse &&
+      /* it probably isn't worth emulating these with scalar-only ops */
+      alu->op != nir_op_udot_4x8_uadd &&
+      alu->op != nir_op_udot_4x8_uadd_sat &&
+      alu->op != nir_op_sudot_4x8_iadd &&
+      alu->op != nir_op_sudot_4x8_iadd_sat &&
+      /* not supported in HW, we have to fall back to normal registers */
+      alu->op != nir_op_ffma;
+
    dst = ir3_get_def(ctx, &alu->def, dst_sz);
 
    /* Vectors are special in that they have non-scalarized writemasks,
@@ -398,9 +415,9 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       for (int i = 0; i < info->num_inputs; i++) {
          nir_alu_src *asrc = &alu->src[i];
 
-         src[i] = ir3_get_src(ctx, &asrc->src)[asrc->swizzle[0]];
+         src[i] = ir3_get_src_shared(ctx, &asrc->src, use_shared)[asrc->swizzle[0]];
          if (!src[i])
-            src[i] = create_immed_typed(ctx->block, 0, dst_type);
+            src[i] = create_immed_typed_shared(ctx->block, 0, dst_type, use_shared);
          dst[i] = ir3_MOV(b, src[i], dst_type);
       }
 
@@ -413,7 +430,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
     */
    if (alu->op == nir_op_mov) {
       nir_alu_src *asrc = &alu->src[0];
-      struct ir3_instruction *const *src0 = ir3_get_src(ctx, &asrc->src);
+      struct ir3_instruction *const *src0 =
+         ir3_get_src_shared(ctx, &asrc->src, use_shared);
 
       for (unsigned i = 0; i < dst_sz; i++) {
          if (wrmask & (1 << i)) {
@@ -433,7 +451,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    for (int i = 0; i < info->num_inputs; i++) {
       nir_alu_src *asrc = &alu->src[i];
 
-      src[i] = ir3_get_src(ctx, &asrc->src)[asrc->swizzle[0]];
+      src[i] = ir3_get_src_shared(ctx, &asrc->src, use_shared)[asrc->swizzle[0]];
       bs[i] = nir_src_bit_size(asrc->src);
 
       compile_assert(ctx, src[i]);
@@ -641,10 +659,21 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       dst[0] = ir3_MULL_U(b, src[0], 0, src[1], 0);
       break;
    case nir_op_imadsh_mix16:
-      dst[0] = ir3_MADSH_M16(b, src[0], 0, src[1], 0, src[2], 0);
+      if (use_shared) {
+         struct ir3_instruction *sixteen = create_immed_shared(b, 16, true);
+         struct ir3_instruction *src1 = ir3_SHR_B(b, src[1], 0, sixteen, 0);
+         struct ir3_instruction *mul = ir3_MULL_U(b, src[0], 0, src1, 0);
+         dst[0] = ir3_ADD_U(b, ir3_SHL_B(b, mul, 0, sixteen, 0), 0, src[2], 0);
+      } else {
+         dst[0] = ir3_MADSH_M16(b, src[0], 0, src[1], 0, src[2], 0);
+      }
       break;
    case nir_op_imad24_ir3:
-      dst[0] = ir3_MAD_S24(b, src[0], 0, src[1], 0, src[2], 0);
+      if (use_shared) {
+         dst[0] = ir3_ADD_U(b, ir3_MUL_U24(b, src[0], 0, src[1], 0), 0, src[2], 0);
+      } else {
+         dst[0] = ir3_MAD_S24(b, src[0], 0, src[1], 0, src[2], 0);
+      }
       break;
    case nir_op_imul:
       compile_assert(ctx, alu->def.bit_size == 16);
@@ -659,7 +688,8 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    case nir_op_inot:
       if (bs[0] == 1) {
          struct ir3_instruction *one =
-               create_immed_typed(ctx->block, 1, ctx->compiler->bool_type);
+               create_immed_typed_shared(ctx->block, 1, ctx->compiler->bool_type,
+                                         use_shared);
          dst[0] = ir3_SUB_U(b, one, 0, src[0], 0);
       } else {
          dst[0] = ir3_NOT_B(b, src[0], 0);
@@ -712,17 +742,7 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       break;
 
    case nir_op_bcsel: {
-      struct ir3_instruction *cond = src[0];
-
-      /* If src[0] is a negation (likely as a result of an ir3_b2n(cond)),
-       * we can ignore that and use original cond, since the nonzero-ness of
-       * cond stays the same.
-       */
-      if (cond->opc == OPC_ABSNEG_S && cond->flags == 0 &&
-          (cond->srcs[0]->flags & (IR3_REG_SNEG | IR3_REG_SABS)) ==
-             IR3_REG_SNEG) {
-         cond = cond->srcs[0]->def->instr;
-      }
+      struct ir3_instruction *cond = ir3_get_cond_for_nonzero_compare(src[0]);
 
       compile_assert(ctx, bs[1] == bs[2]);
 
@@ -765,8 +785,9 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
       // support is in place, this should probably move to a NIR lowering pass:
       struct ir3_instruction *hi, *lo;
 
-      hi = ir3_COV(b, ir3_SHR_B(b, src[0], 0, create_immed(b, 16), 0), TYPE_U32,
-                   TYPE_U16);
+      hi = ir3_COV(b,
+                   ir3_SHR_B(b, src[0], 0, create_immed_shared(b, 16, use_shared), 0),
+                   TYPE_U32, TYPE_U16);
       lo = ir3_COV(b, src[0], TYPE_U32, TYPE_U16);
 
       hi = ir3_CBITS_B(b, hi, 0);
@@ -786,15 +807,17 @@ emit_alu(struct ir3_context *ctx, nir_alu_instr *alu)
    case nir_op_ifind_msb: {
       struct ir3_instruction *cmp;
       dst[0] = ir3_CLZ_S(b, src[0], 0);
-      cmp = ir3_CMPS_S(b, dst[0], 0, create_immed(b, 0), 0);
+      cmp = ir3_CMPS_S(b, dst[0], 0, create_immed_shared(b, 0, use_shared), 0);
       cmp->cat2.condition = IR3_COND_GE;
-      dst[0] = ir3_SEL_B32(b, ir3_SUB_U(b, create_immed(b, 31), 0, dst[0], 0),
+      dst[0] = ir3_SEL_B32(b, ir3_SUB_U(b, create_immed_shared(b, 31, use_shared), 0,
+                                        dst[0], 0),
                            0, cmp, 0, dst[0], 0);
       break;
    }
    case nir_op_ufind_msb:
       dst[0] = ir3_CLZ_B(b, src[0], 0);
-      dst[0] = ir3_SEL_B32(b, ir3_SUB_U(b, create_immed(b, 31), 0, dst[0], 0),
+      dst[0] = ir3_SEL_B32(b, ir3_SUB_U(b, create_immed_shared(b, 31, use_shared), 0,
+                                        dst[0], 0),
                            0, src[0], 0, dst[0], 0);
       break;
    case nir_op_find_lsb:
@@ -891,6 +914,12 @@ emit_intrinsic_load_ubo_ldc(struct ir3_context *ctx, nir_intrinsic_instr *intr,
       ctx->so->bindless_ubo = true;
    ir3_handle_nonuniform(ldc, intr);
 
+   if (!intr->def.divergent &&
+       ctx->compiler->has_scalar_alu) {
+      ldc->dsts[0]->flags |= IR3_REG_SHARED;
+      ldc->flags |= IR3_INSTR_U;
+   }
+
    ir3_split_dest(b, dst, ldc, 0, ncomp);
 }
 
@@ -919,6 +948,40 @@ emit_intrinsic_copy_ubo_to_uniform(struct ir3_context *ctx,
 
    array_insert(b, b->keeps, ldc);
 }
+
+static void
+emit_intrinsic_copy_global_to_uniform(struct ir3_context *ctx,
+                                      nir_intrinsic_instr *intr)
+{
+   struct ir3_block *b = ctx->block;
+
+   unsigned size = nir_intrinsic_range(intr);
+   unsigned dst = nir_intrinsic_range_base(intr);
+   unsigned addr_offset = nir_intrinsic_base(intr);
+   unsigned dst_lo = dst & 0xff;
+   unsigned dst_hi = dst >> 8;
+
+   struct ir3_instruction *a1 = NULL;
+   if (dst_hi)
+      a1 = ir3_get_addr1(ctx, dst_hi << 8);
+
+   struct ir3_instruction *addr_lo = ir3_get_src(ctx, &intr->src[0])[0];
+   struct ir3_instruction *addr_hi = ir3_get_src(ctx, &intr->src[0])[1];
+   struct ir3_instruction *addr = ir3_collect(b, addr_lo, addr_hi);
+   struct ir3_instruction *ldg = ir3_LDG_K(b, create_immed(b, dst_lo), 0, addr, 0, 
+                                           create_immed(b, addr_offset), 0,
+                                           create_immed(b, size), 0);
+   ldg->barrier_class = ldg->barrier_conflict = IR3_BARRIER_CONST_W;
+   ldg->cat6.type = TYPE_U32;
+
+   if (a1) {
+      ir3_instr_set_address(ldg, a1);
+      ldg->flags |= IR3_INSTR_A1EN;
+   }
+
+   array_insert(b, b->keeps, ldg);
+}
+
 
 /* handles direct/indirect UBO reads: */
 static void
@@ -1936,9 +1999,8 @@ emit_intrinsic_reduce(struct ir3_context *ctx, nir_intrinsic_instr *intr)
     * not supported.
     */
    struct ir3_instruction *identity =
-      create_immed(ctx->block, get_reduce_identity(nir_reduce_op, dst_size));
-   identity = ir3_READ_FIRST_MACRO(ctx->block, identity, 0);
-   identity->dsts[0]->flags |= IR3_REG_SHARED;
+      create_immed_shared(ctx->block, get_reduce_identity(nir_reduce_op, dst_size),
+                          true);
 
    /* OPC_SCAN_MACRO has the following destinations:
     * - Exclusive scan result (interferes with source)
@@ -1982,6 +2044,113 @@ emit_intrinsic_reduce(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    }
 
    return create_multidst_mov(ctx->block, dst);
+}
+
+static struct ir3_instruction *
+emit_intrinsic_reduce_clusters(struct ir3_context *ctx,
+                               nir_intrinsic_instr *intr)
+{
+   nir_op nir_reduce_op = (nir_op)nir_intrinsic_reduction_op(intr);
+   reduce_op_t reduce_op = get_reduce_op(nir_reduce_op);
+   unsigned dst_size = intr->def.bit_size;
+
+   bool need_exclusive =
+      intr->intrinsic == nir_intrinsic_exclusive_scan_clusters_ir3;
+   bool need_scratch = reduce_op == REDUCE_OP_MUL_U && dst_size == 32;
+
+   /* Note: the shared reg is initialized to the identity, so we need it to
+    * always be 32-bit even when the source isn't because half shared regs are
+    * not supported.
+    */
+   struct ir3_instruction *identity =
+      create_immed_shared(ctx->block, get_reduce_identity(nir_reduce_op, dst_size),
+                          true);
+
+   struct ir3_instruction *inclusive_src = ir3_get_src(ctx, &intr->src[0])[0];
+
+   struct ir3_instruction *exclusive_src = NULL;
+   if (need_exclusive)
+         exclusive_src = ir3_get_src(ctx, &intr->src[1])[0];
+
+   /* OPC_SCAN_CLUSTERS_MACRO has the following destinations:
+    * - Shared reg reduction result, must be initialized to the identity
+    * - Inclusive scan result
+    * - (iff exclusive) Exclusive scan result. Conditionally added because
+    *   calculating the exclusive value is optional (i.e., not a side-effect of
+    *   calculating the inclusive value) and won't be DCE'd anymore at this
+    *   point.
+    * - (iff 32b mul_u) Scratch register. We try to emit "op rx, ry, rx" for
+    *   most ops but this isn't possible for the 32b mul_u macro since its
+    *   destination is clobbered. So conditionally allocate an extra
+    *   register in that case.
+    *
+    * Note that the getlast loop this macro expands to iterates over all
+    * clusters. However, for each iteration, not only the fibers in the current
+    * cluster are active but all later ones as well. Since they still need their
+    * sources when their cluster is handled, all destinations interfere with
+    * the sources.
+    */
+   unsigned ndst = 2 + need_exclusive + need_scratch;
+   unsigned nsrc = 2 + need_exclusive;
+   struct ir3_instruction *scan =
+      ir3_instr_create(ctx->block, OPC_SCAN_CLUSTERS_MACRO, ndst, nsrc);
+   scan->cat1.reduce_op = reduce_op;
+
+   unsigned dst_flags = IR3_REG_EARLY_CLOBBER;
+   if (ir3_bitsize(ctx, dst_size) == 16)
+      dst_flags |= IR3_REG_HALF;
+
+   struct ir3_register *reduce = __ssa_dst(scan);
+   reduce->flags |= IR3_REG_SHARED;
+   struct ir3_register *inclusive = __ssa_dst(scan);
+   inclusive->flags |= dst_flags;
+
+   struct ir3_register *exclusive = NULL;
+   if (need_exclusive) {
+      exclusive = __ssa_dst(scan);
+      exclusive->flags |= dst_flags;
+   }
+
+   if (need_scratch) {
+      struct ir3_register *scratch = __ssa_dst(scan);
+      scratch->flags |= dst_flags;
+   }
+
+   struct ir3_register *reduce_init = __ssa_src(scan, identity, IR3_REG_SHARED);
+   ir3_reg_tie(reduce, reduce_init);
+
+   __ssa_src(scan, inclusive_src, 0);
+
+   if (need_exclusive)
+      __ssa_src(scan, exclusive_src, 0);
+
+   struct ir3_register *dst;
+   switch (intr->intrinsic) {
+   case nir_intrinsic_reduce_clusters_ir3:
+      dst = reduce;
+      break;
+   case nir_intrinsic_inclusive_scan_clusters_ir3:
+      dst = inclusive;
+      break;
+   case nir_intrinsic_exclusive_scan_clusters_ir3: {
+      assert(exclusive != NULL);
+      dst = exclusive;
+      break;
+   }
+   default:
+      unreachable("unknown reduce intrinsic");
+   }
+
+   return create_multidst_mov(ctx->block, dst);
+}
+
+static struct ir3_instruction *
+emit_intrinsic_brcst_active(struct ir3_context *ctx, nir_intrinsic_instr *intr)
+{
+   struct ir3_instruction *default_src = ir3_get_src(ctx, &intr->src[0])[0];
+   struct ir3_instruction *brcst_val = ir3_get_src(ctx, &intr->src[1])[0];
+   return ir3_BRCST_ACTIVE(ctx->block, nir_intrinsic_cluster_size(intr),
+                           brcst_val, default_src);
 }
 
 static void setup_input(struct ir3_context *ctx, nir_intrinsic_instr *intr);
@@ -2075,12 +2244,20 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
                intr->def.bit_size == 16 ? TYPE_F16 : TYPE_F32);
          }
       } else {
-         src = ir3_get_src(ctx, &intr->src[0]);
+         src = ctx->compiler->has_scalar_alu ?
+            ir3_get_src_maybe_shared(ctx, &intr->src[0]) : 
+            ir3_get_src(ctx, &intr->src[0]);
          for (int i = 0; i < dest_components; i++) {
             dst[i] = create_uniform_indirect(
                b, idx + i,
                intr->def.bit_size == 16 ? TYPE_F16 : TYPE_F32,
                ir3_get_addr0(ctx, src[0], 1));
+            /* Since this may not be foldable into conversions into shared
+             * registers, manually make it shared. Optimizations can undo this if
+             * the user can't use shared regs.
+             */
+            if (ctx->compiler->has_scalar_alu && !intr->def.divergent)
+               dst[i]->dsts[0]->flags |= IR3_REG_SHARED;
          }
          /* NOTE: if relative addressing is used, we set
           * constlen in the compiler (to worst-case value)
@@ -2147,15 +2324,6 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       ir3_split_dest(b, dst, ctx->tess_coord, 0, 2);
       break;
 
-   case nir_intrinsic_end_patch_ir3:
-      assert(ctx->so->type == MESA_SHADER_TESS_CTRL);
-      struct ir3_instruction *end = ir3_PREDE(b);
-      array_insert(b, b->keeps, end);
-
-      end->barrier_class = IR3_BARRIER_EVERYTHING;
-      end->barrier_conflict = IR3_BARRIER_EVERYTHING;
-      break;
-
    case nir_intrinsic_store_global_ir3:
       ctx->funcs->emit_intrinsic_store_global_ir3(ctx, intr);
       break;
@@ -2171,6 +2339,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       break;
    case nir_intrinsic_copy_ubo_to_uniform_ir3:
       emit_intrinsic_copy_ubo_to_uniform(ctx, intr);
+      break;
+   case nir_intrinsic_copy_global_to_uniform_ir3:
+      emit_intrinsic_copy_global_to_uniform(ctx, intr);
       break;
    case nir_intrinsic_load_frag_coord:
    case nir_intrinsic_load_frag_coord_unscaled_ir3:
@@ -2360,7 +2531,6 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       ir3_split_dest(b, dst, ctx->local_invocation_id, 0, 3);
       break;
    case nir_intrinsic_load_workgroup_id:
-   case nir_intrinsic_load_workgroup_id_zero_base:
       if (ctx->compiler->has_shared_regfile) {
          if (!ctx->work_group_id) {
             ctx->work_group_id =
@@ -2472,8 +2642,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       cond->cat2.condition = IR3_COND_NE;
 
       /* condition always goes in predicate register: */
-      cond->dsts[0]->num = regid(REG_P0, 0);
-      cond->dsts[0]->flags &= ~IR3_REG_SSA;
+      cond->dsts[0]->flags |= IR3_REG_PREDICATE;
 
       if (intr->intrinsic == nir_intrinsic_demote ||
           intr->intrinsic == nir_intrinsic_demote_if) {
@@ -2489,37 +2658,11 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
                             IR3_BARRIER_ACTIVE_FIBERS_W;
       kill->barrier_conflict = IR3_BARRIER_IMAGE_W | IR3_BARRIER_BUFFER_W |
                                IR3_BARRIER_ACTIVE_FIBERS_R;
-      kill->srcs[0]->num = regid(REG_P0, 0);
-      array_insert(ctx->ir, ctx->ir->predicates, kill);
+      kill->srcs[0]->flags |= IR3_REG_PREDICATE;
 
       array_insert(b, b->keeps, kill);
       ctx->so->has_kill = true;
 
-      break;
-   }
-
-   case nir_intrinsic_cond_end_ir3: {
-      struct ir3_instruction *cond, *kill;
-
-      src = ir3_get_src(ctx, &intr->src[0]);
-      cond = src[0];
-
-      /* NOTE: only cmps.*.* can write p0.x: */
-      struct ir3_instruction *zero =
-            create_immed_typed(b, 0, is_half(cond) ? TYPE_U16 : TYPE_U32);
-      cond = ir3_CMPS_S(b, cond, 0, zero, 0);
-      cond->cat2.condition = IR3_COND_NE;
-
-      /* condition always goes in predicate register: */
-      cond->dsts[0]->num = regid(REG_P0, 0);
-
-      kill = ir3_PREDT(b, cond, 0);
-
-      kill->barrier_class = IR3_BARRIER_EVERYTHING;
-      kill->barrier_conflict = IR3_BARRIER_EVERYTHING;
-
-      array_insert(ctx->ir, ctx->ir->predicates, kill);
-      array_insert(b, b->keeps, kill);
       break;
    }
 
@@ -2531,20 +2674,14 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
          dst[0] = ir3_ANY_MACRO(ctx->block, pred, 0);
       else
          dst[0] = ir3_ALL_MACRO(ctx->block, pred, 0);
-      dst[0]->srcs[0]->num = regid(REG_P0, 0);
-      array_insert(ctx->ir, ctx->ir->predicates, dst[0]);
+      dst[0]->srcs[0]->flags |= IR3_REG_PREDICATE;
       break;
    }
    case nir_intrinsic_elect:
       dst[0] = ir3_ELECT_MACRO(ctx->block);
-      /* This may expand to a divergent if/then, so allocate stack space for
-       * it.
-       */
-      ctx->max_stack = MAX2(ctx->max_stack, ctx->stack + 1);
       break;
    case nir_intrinsic_preamble_start_ir3:
       dst[0] = ir3_SHPS_MACRO(ctx->block);
-      ctx->max_stack = MAX2(ctx->max_stack, ctx->stack + 1);
       break;
 
    case nir_intrinsic_read_invocation_cond_ir3: {
@@ -2553,9 +2690,15 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       dst[0] = ir3_READ_COND_MACRO(ctx->block, ir3_get_predicate(ctx, cond), 0,
                                    src, 0);
       dst[0]->dsts[0]->flags |= IR3_REG_SHARED;
-      dst[0]->srcs[0]->num = regid(REG_P0, 0);
-      array_insert(ctx->ir, ctx->ir->predicates, dst[0]);
-      ctx->max_stack = MAX2(ctx->max_stack, ctx->stack + 1);
+      dst[0]->srcs[0]->flags |= IR3_REG_PREDICATE;
+      /* Work around a bug with half-register shared -> non-shared moves by
+       * adding an extra mov here so that the original destination stays full.
+       */
+      if (src->dsts[0]->flags & IR3_REG_HALF) {
+         dst[0] = ir3_MOV(b, dst[0], TYPE_U32);
+         if (!ctx->compiler->has_scalar_alu)
+            dst[0]->dsts[0]->flags &= ~IR3_REG_SHARED;
+      }
       break;
    }
 
@@ -2563,7 +2706,12 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
       dst[0] = ir3_READ_FIRST_MACRO(ctx->block, src, 0);
       dst[0]->dsts[0]->flags |= IR3_REG_SHARED;
-      ctx->max_stack = MAX2(ctx->max_stack, ctx->stack + 1);
+      /* See above. */
+      if (src->dsts[0]->flags & IR3_REG_HALF) {
+         dst[0] = ir3_MOV(b, dst[0], TYPE_U32);
+         if (!ctx->compiler->has_scalar_alu)
+            dst[0]->dsts[0]->flags &= ~IR3_REG_SHARED;
+      }
       break;
    }
 
@@ -2577,9 +2725,7 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
          struct ir3_instruction *src = ir3_get_src(ctx, &intr->src[0])[0];
          struct ir3_instruction *pred = ir3_get_predicate(ctx, src);
          ballot = ir3_BALLOT_MACRO(ctx->block, pred, components);
-         ballot->srcs[0]->num = regid(REG_P0, 0);
-         array_insert(ctx->ir, ctx->ir->predicates, ballot);
-         ctx->max_stack = MAX2(ctx->max_stack, ctx->stack + 1);
+         ballot->srcs[0]->flags |= IR3_REG_PREDICATE;
       }
 
       ballot->barrier_class = IR3_BARRIER_ACTIVE_FIBERS_R;
@@ -2645,6 +2791,16 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       dst[0] = emit_intrinsic_reduce(ctx, intr);
       break;
 
+   case nir_intrinsic_reduce_clusters_ir3:
+   case nir_intrinsic_inclusive_scan_clusters_ir3:
+   case nir_intrinsic_exclusive_scan_clusters_ir3:
+      dst[0] = emit_intrinsic_reduce_clusters(ctx, intr);
+      break;
+
+   case nir_intrinsic_brcst_active_ir3:
+      dst[0] = emit_intrinsic_brcst_active(ctx, intr);
+      break;
+
    case nir_intrinsic_preamble_end_ir3: {
       struct ir3_instruction *instr = ir3_SHPE(ctx->block);
       instr->barrier_class = instr->barrier_conflict = IR3_BARRIER_CONST_W;
@@ -2658,7 +2814,9 @@ emit_intrinsic(struct ir3_context *ctx, nir_intrinsic_instr *intr)
       unsigned dst_hi = dst >> 8;
 
       struct ir3_instruction *src =
-         ir3_create_collect(b, ir3_get_src(ctx, &intr->src[0]), components);
+         ir3_create_collect(b, ir3_get_src_shared(ctx, &intr->src[0],
+                                                  ctx->compiler->has_scalar_alu),
+                            components);
       struct ir3_instruction *a1 = NULL;
       if (dst_hi) {
          /* Encode only the high part of the destination in a1.x to increase the
@@ -3441,10 +3599,24 @@ emit_phi(struct ir3_context *ctx, nir_phi_instr *nphi)
 
    dst = ir3_get_def(ctx, &nphi->def, 1);
 
+   if (exec_list_is_singular(&nphi->srcs)) {
+      nir_phi_src *src = list_entry(exec_list_get_head(&nphi->srcs),
+                                    nir_phi_src, node);
+      if (nphi->def.divergent == src->src.ssa->divergent) {
+         dst[0] = ir3_get_src_maybe_shared(ctx, &src->src)[0];
+         ir3_put_def(ctx, &nphi->def);
+         return;
+      }
+   }
+
    phi = ir3_instr_create(ctx->block, OPC_META_PHI, 1,
                           exec_list_length(&nphi->srcs));
    __ssa_dst(phi);
    phi->phi.nphi = nphi;
+
+   if (ctx->compiler->has_scalar_alu &&
+       !nphi->def.divergent)
+      phi->dsts[0]->flags |= IR3_REG_SHARED;
 
    dst[0] = phi;
 
@@ -3481,7 +3653,14 @@ read_phi_src(struct ir3_context *ctx, struct ir3_block *blk,
             /* Create an ir3 undef */
             return NULL;
          } else {
-            return ir3_get_src(ctx, &nsrc->src)[0];
+            /* We need to insert the move at the end of the block */
+            struct ir3_block *old_block = ctx->block;
+            ctx->block = blk;
+            struct ir3_instruction *src =
+               ir3_get_src_shared(ctx, &nsrc->src,
+                                  phi->dsts[0]->flags & IR3_REG_SHARED)[0];
+            ctx->block = old_block;
+            return src;
          }
       }
    }
@@ -3631,7 +3810,6 @@ emit_block(struct ir3_context *ctx, nir_block *nblock)
 
    list_addtail(&ctx->block->node, &ctx->ir->block_list);
 
-   ctx->block->loop_id = ctx->loop_id;
    ctx->block->loop_depth = ctx->loop_depth;
 
    /* re-emit addr register in each block if needed: */
@@ -3655,8 +3833,15 @@ emit_block(struct ir3_context *ctx, nir_block *nblock)
       if (nblock->successors[i]) {
          ctx->block->successors[i] =
             get_block_or_continue(ctx, nblock->successors[i]);
-         ctx->block->physical_successors[i] = ctx->block->successors[i];
       }
+   }
+
+   /* Emit unconditional branch if we only have one successor. Conditional
+    * branches are emitted in emit_if.
+    */
+   if (ctx->block->successors[0] && !ctx->block->successors[1]) {
+      if (!ir3_block_get_terminator(ctx->block))
+         ir3_JUMP(ctx->block);
    }
 
    _mesa_hash_table_clear(ctx->sel_cond_conversions, NULL);
@@ -3664,66 +3849,274 @@ emit_block(struct ir3_context *ctx, nir_block *nblock)
 
 static void emit_cf_list(struct ir3_context *ctx, struct exec_list *list);
 
+/* Get the ir3 branch condition for a given nir source. This will strip any inot
+ * instructions and set *inv when the condition should be inverted. This
+ * inversion can be directly folded into branches (in the inv1/inv2 fields)
+ * instead of adding an explicit not.b/sub.u instruction.
+ */
+static struct ir3_instruction *
+get_branch_condition(struct ir3_context *ctx, nir_src *src, bool *inv)
+{
+   struct ir3_instruction *condition = ir3_get_src(ctx, src)[0];
+
+   if (src->ssa->parent_instr->type == nir_instr_type_alu) {
+      nir_alu_instr *nir_cond = nir_instr_as_alu(src->ssa->parent_instr);
+
+      if (nir_cond->op == nir_op_inot) {
+         struct ir3_instruction *inv_cond =
+            get_branch_condition(ctx, &nir_cond->src[0].src, inv);
+         *inv = !*inv;
+         return inv_cond;
+      }
+   }
+
+   *inv = false;
+   return ir3_get_predicate(ctx, condition);
+}
+
+/* Try to fold br (and/or cond1, cond2) into braa/brao cond1, cond2.
+ */
+static struct ir3_instruction *
+fold_conditional_branch(struct ir3_context *ctx, struct nir_src *nir_cond)
+{
+   if (!ctx->compiler->has_branch_and_or)
+      return NULL;
+
+   if (nir_cond->ssa->parent_instr->type != nir_instr_type_alu)
+      return NULL;
+
+   nir_alu_instr *alu_cond = nir_instr_as_alu(nir_cond->ssa->parent_instr);
+
+   if ((alu_cond->op != nir_op_iand) && (alu_cond->op != nir_op_ior))
+      return NULL;
+
+   /* If the result of the and/or is also used for something else than an if
+    * condition, the and/or cannot be removed. In that case, we will end-up with
+    * extra predicate conversions for the conditions without actually removing
+    * any instructions, resulting in an increase of instructions. Let's not fold
+    * the conditions in the branch in that case.
+    */
+   if (!nir_def_only_used_by_if(&alu_cond->def))
+      return NULL;
+
+   bool inv1, inv2;
+   struct ir3_instruction *cond1 =
+      get_branch_condition(ctx, &alu_cond->src[0].src, &inv1);
+   struct ir3_instruction *cond2 =
+      get_branch_condition(ctx, &alu_cond->src[1].src, &inv2);
+
+   struct ir3_instruction *branch;
+   if (alu_cond->op == nir_op_iand) {
+      branch = ir3_BRAA(ctx->block, cond1, IR3_REG_PREDICATE, cond2,
+                        IR3_REG_PREDICATE);
+   } else {
+      branch = ir3_BRAO(ctx->block, cond1, IR3_REG_PREDICATE, cond2,
+                        IR3_REG_PREDICATE);
+   }
+
+   branch->cat0.inv1 = inv1;
+   branch->cat0.inv2 = inv2;
+   return branch;
+}
+
+static bool
+instr_can_be_predicated(nir_instr *instr)
+{
+   /* Anything that doesn't expand to control-flow can be predicated. */
+   switch (instr->type) {
+   case nir_instr_type_alu:
+   case nir_instr_type_deref:
+   case nir_instr_type_tex:
+   case nir_instr_type_load_const:
+   case nir_instr_type_undef:
+   case nir_instr_type_phi:
+   case nir_instr_type_parallel_copy:
+      return true;
+   case nir_instr_type_call:
+   case nir_instr_type_jump:
+      return false;
+   case nir_instr_type_intrinsic: {
+      nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+      switch (intrin->intrinsic) {
+      case nir_intrinsic_reduce:
+      case nir_intrinsic_inclusive_scan:
+      case nir_intrinsic_exclusive_scan:
+      case nir_intrinsic_reduce_clusters_ir3:
+      case nir_intrinsic_inclusive_scan_clusters_ir3:
+      case nir_intrinsic_exclusive_scan_clusters_ir3:
+      case nir_intrinsic_brcst_active_ir3:
+      case nir_intrinsic_ballot:
+      case nir_intrinsic_elect:
+      case nir_intrinsic_read_invocation_cond_ir3:
+      case nir_intrinsic_discard_if:
+      case nir_intrinsic_discard:
+      case nir_intrinsic_demote:
+      case nir_intrinsic_demote_if:
+      case nir_intrinsic_terminate:
+      case nir_intrinsic_terminate_if:
+         return false;
+      default:
+         return true;
+      }
+   }
+   }
+
+   unreachable("Checked all cases");
+}
+
+static bool
+nif_can_be_predicated(nir_if *nif)
+{
+   /* For non-divergent branches, predication is more expensive than a branch
+    * because the latter can potentially skip all instructions.
+    */
+   if (!nir_src_is_divergent(nif->condition))
+      return false;
+
+   /* Although it could potentially be possible to allow a limited form of
+    * nested predication (e.g., by resetting the predication mask after a nested
+    * branch), let's avoid this for now and only use predication for leaf
+    * branches. That is, for ifs that contain exactly one block in both branches
+    * (note that they always contain at least one block).
+    */
+   if (!exec_list_is_singular(&nif->then_list) ||
+       !exec_list_is_singular(&nif->else_list)) {
+      return false;
+   }
+
+   nir_foreach_instr (instr, nir_if_first_then_block(nif)) {
+      if (!instr_can_be_predicated(instr))
+         return false;
+   }
+
+   nir_foreach_instr (instr, nir_if_first_else_block(nif)) {
+      if (!instr_can_be_predicated(instr))
+         return false;
+   }
+
+   return true;
+}
+
+/* A typical if-else block like this:
+ * if (cond) {
+ *     tblock;
+ * } else {
+ *     fblock;
+ * }
+ * Will be emitted as:
+ *        |-- i --|
+ *        | ...   |
+ *        | predt |
+ *        |-------|
+ *    succ0 /   \ succ1
+ * |-- i+1 --| |-- i+2 --|
+ * | tblock  | | fblock  |
+ * | predf   | | jump    |
+ * |---------| |---------|
+ *    succ0 \   / succ0
+ *        |-- j --|
+ *        |  ...  |
+ *        |-------|
+ * Where the numbers at the top of blocks are their indices. That is, the true
+ * block and false block are laid-out contiguously after the current block. This
+ * layout is verified during legalization in prede_sched which also inserts the
+ * final prede instruction. Note that we don't insert prede right away to allow
+ * opt_jump to optimize the jump in the false block.
+ */
+static struct ir3_instruction *
+emit_predicated_branch(struct ir3_context *ctx, nir_if *nif)
+{
+   if (!ctx->compiler->has_predication)
+      return NULL;
+   if (!nif_can_be_predicated(nif))
+      return NULL;
+
+   struct ir3_block *then_block = get_block(ctx, nir_if_first_then_block(nif));
+   struct ir3_block *else_block = get_block(ctx, nir_if_first_else_block(nif));
+   assert(list_is_empty(&then_block->instr_list) &&
+          list_is_empty(&else_block->instr_list));
+
+   bool inv;
+   struct ir3_instruction *condition =
+      get_branch_condition(ctx, &nif->condition, &inv);
+   struct ir3_instruction *pred, *pred_inv;
+
+   if (!inv) {
+      pred = ir3_PREDT(ctx->block, condition, IR3_REG_PREDICATE);
+      pred_inv = ir3_PREDF(then_block, condition, IR3_REG_PREDICATE);
+   } else {
+      pred = ir3_PREDF(ctx->block, condition, IR3_REG_PREDICATE);
+      pred_inv = ir3_PREDT(then_block, condition, IR3_REG_PREDICATE);
+   }
+
+   pred->srcs[0]->num = REG_P0_X;
+   pred_inv->srcs[0]->num = REG_P0_X;
+   return pred;
+}
+
+static struct ir3_instruction *
+emit_conditional_branch(struct ir3_context *ctx, nir_if *nif)
+{
+   nir_src *nir_cond = &nif->condition;
+   struct ir3_instruction *folded = fold_conditional_branch(ctx, nir_cond);
+   if (folded)
+      return folded;
+
+   struct ir3_instruction *predicated = emit_predicated_branch(ctx, nif);
+   if (predicated)
+      return predicated;
+
+   bool inv1;
+   struct ir3_instruction *cond1 = get_branch_condition(ctx, nir_cond, &inv1);
+   struct ir3_instruction *branch =
+      ir3_BR(ctx->block, cond1, IR3_REG_PREDICATE);
+   branch->cat0.inv1 = inv1;
+   return branch;
+}
+
 static void
 emit_if(struct ir3_context *ctx, nir_if *nif)
 {
-   struct ir3_instruction *condition = ir3_get_src(ctx, &nif->condition)[0];
+   struct ir3_instruction *condition = ir3_get_src_maybe_shared(ctx, &nif->condition)[0];
 
    if (condition->opc == OPC_ANY_MACRO && condition->block == ctx->block) {
-      ctx->block->condition = ssa(condition->srcs[0]);
-      ctx->block->brtype = IR3_BRANCH_ANY;
+      struct ir3_instruction *pred = ssa(condition->srcs[0]);
+      ir3_BANY(ctx->block, pred, IR3_REG_PREDICATE);
    } else if (condition->opc == OPC_ALL_MACRO &&
               condition->block == ctx->block) {
-      ctx->block->condition = ssa(condition->srcs[0]);
-      ctx->block->brtype = IR3_BRANCH_ALL;
+      struct ir3_instruction *pred = ssa(condition->srcs[0]);
+      ir3_BALL(ctx->block, pred, IR3_REG_PREDICATE);
    } else if (condition->opc == OPC_ELECT_MACRO &&
               condition->block == ctx->block) {
-      ctx->block->condition = NULL;
-      ctx->block->brtype = IR3_BRANCH_GETONE;
+      ir3_GETONE(ctx->block);
    } else if (condition->opc == OPC_SHPS_MACRO &&
               condition->block == ctx->block) {
       /* TODO: technically this only works if the block is the only user of the
        * shps, but we only use it in very constrained scenarios so this should
        * be ok.
        */
-      ctx->block->condition = NULL;
-      ctx->block->brtype = IR3_BRANCH_SHPS;
+      ir3_SHPS(ctx->block);
    } else {
-      ctx->block->condition = ir3_get_predicate(ctx, condition);
-      ctx->block->brtype = IR3_BRANCH_COND;
+      emit_conditional_branch(ctx, nif);
    }
+
+   ctx->block->divergent_condition = nif->condition.ssa->divergent;
 
    emit_cf_list(ctx, &nif->then_list);
    emit_cf_list(ctx, &nif->else_list);
-
-   struct ir3_block *last_then = get_block(ctx, nir_if_last_then_block(nif));
-   struct ir3_block *first_else = get_block(ctx, nir_if_first_else_block(nif));
-   assert(last_then->physical_successors[0] &&
-          !last_then->physical_successors[1]);
-   last_then->physical_successors[1] = first_else;
-
-   struct ir3_block *last_else = get_block(ctx, nir_if_last_else_block(nif));
-   struct ir3_block *after_if =
-      get_block(ctx, nir_cf_node_as_block(nir_cf_node_next(&nif->cf_node)));
-   assert(last_else->physical_successors[0] &&
-          !last_else->physical_successors[1]);
-   if (after_if != last_else->physical_successors[0])
-      last_else->physical_successors[1] = after_if;
 }
 
 static void
 emit_loop(struct ir3_context *ctx, nir_loop *nloop)
 {
    assert(!nir_loop_has_continue_construct(nloop));
-   unsigned old_loop_id = ctx->loop_id;
-   ctx->loop_id = ctx->so->loops + 1;
    ctx->loop_depth++;
 
    struct nir_block *nstart = nir_loop_first_block(nloop);
    struct ir3_block *continue_blk = NULL;
 
    /* There's always one incoming edge from outside the loop, and if there
-    * are more than two backedges from inside the loop (so more than 2 total
+    * is more than one backedge from inside the loop (so more than 2 total
     * edges) then we need to create a continue block after the loop to ensure
     * that control reconverges at the end of each loop iteration.
     */
@@ -3735,30 +4128,14 @@ emit_loop(struct ir3_context *ctx, nir_loop *nloop)
 
    if (continue_blk) {
       struct ir3_block *start = get_block(ctx, nstart);
+      ir3_JUMP(continue_blk);
       continue_blk->successors[0] = start;
-      continue_blk->physical_successors[0] = start;
-      continue_blk->loop_id = ctx->loop_id;
       continue_blk->loop_depth = ctx->loop_depth;
       list_addtail(&continue_blk->node, &ctx->ir->block_list);
    }
 
    ctx->so->loops++;
    ctx->loop_depth--;
-   ctx->loop_id = old_loop_id;
-}
-
-static void
-stack_push(struct ir3_context *ctx)
-{
-   ctx->stack++;
-   ctx->max_stack = MAX2(ctx->max_stack, ctx->stack);
-}
-
-static void
-stack_pop(struct ir3_context *ctx)
-{
-   compile_assert(ctx, ctx->stack > 0);
-   ctx->stack--;
 }
 
 static void
@@ -3770,14 +4147,10 @@ emit_cf_list(struct ir3_context *ctx, struct exec_list *list)
          emit_block(ctx, nir_cf_node_as_block(node));
          break;
       case nir_cf_node_if:
-         stack_push(ctx);
          emit_if(ctx, nir_cf_node_as_if(node));
-         stack_pop(ctx);
          break;
       case nir_cf_node_loop:
-         stack_push(ctx);
          emit_loop(ctx, nir_cf_node_as_loop(node));
-         stack_pop(ctx);
          break;
       case nir_cf_node_function:
          ir3_context_error(ctx, "TODO\n");
@@ -3840,24 +4213,18 @@ emit_stream_out(struct ir3_context *ctx)
    orig_end_block->successors[0] = stream_out_block;
    orig_end_block->successors[1] = new_end_block;
 
-   orig_end_block->physical_successors[0] = stream_out_block;
-   orig_end_block->physical_successors[1] = new_end_block;
-
    stream_out_block->successors[0] = new_end_block;
-
-   stream_out_block->physical_successors[0] = new_end_block;
 
    /* setup 'if (vtxcnt < maxvtxcnt)' condition: */
    cond = ir3_CMPS_S(ctx->block, vtxcnt, 0, maxvtxcnt, 0);
-   cond->dsts[0]->num = regid(REG_P0, 0);
-   cond->dsts[0]->flags &= ~IR3_REG_SSA;
+   cond->dsts[0]->flags |= IR3_REG_PREDICATE;
    cond->cat2.condition = IR3_COND_LT;
 
    /* condition goes on previous block to the conditional,
     * since it is used to pick which of the two successor
     * paths to take:
     */
-   orig_end_block->condition = cond;
+   ir3_BR(orig_end_block, cond, IR3_REG_PREDICATE);
 
    /* switch to stream_out_block to generate the stream-out
     * instructions:
@@ -3901,6 +4268,8 @@ emit_stream_out(struct ir3_context *ctx)
       }
    }
 
+   ir3_JUMP(ctx->block);
+
    /* and finally switch to the new_end_block: */
    ctx->block = new_end_block;
 }
@@ -3912,9 +4281,6 @@ setup_predecessors(struct ir3 *ir)
       for (int i = 0; i < ARRAY_SIZE(block->successors); i++) {
          if (block->successors[i])
             ir3_block_add_predecessor(block->successors[i], block);
-         if (block->physical_successors[i])
-            ir3_block_add_physical_predecessor(block->physical_successors[i],
-                                               block);
       }
    }
 }
@@ -3924,12 +4290,8 @@ emit_function(struct ir3_context *ctx, nir_function_impl *impl)
 {
    nir_metadata_require(impl, nir_metadata_block_index);
 
-   compile_assert(ctx, ctx->stack == 0);
-
    emit_cf_list(ctx, &impl->body);
    emit_block(ctx, impl->end_block);
-
-   compile_assert(ctx, ctx->stack == 0);
 
    /* at this point, we should have a single empty block,
     * into which we emit the 'end' instruction.
@@ -3976,16 +4338,28 @@ setup_input(struct ir3_context *ctx, nir_intrinsic_instr *intr)
    unsigned ncomp = nir_intrinsic_dest_components(intr);
    unsigned n = nir_intrinsic_base(intr) + offset;
    unsigned slot = nir_intrinsic_io_semantics(intr).location + offset;
-   unsigned compmask;
+   unsigned compmask = BITFIELD_MASK(ncomp + frac);
 
    /* Inputs are loaded using ldlw or ldg for other stages. */
    compile_assert(ctx, ctx->so->type == MESA_SHADER_FRAGMENT ||
                           ctx->so->type == MESA_SHADER_VERTEX);
 
-   if (ctx->so->type == MESA_SHADER_FRAGMENT)
-      compmask = BITFIELD_MASK(ncomp) << frac;
-   else
-      compmask = BITFIELD_MASK(ncomp + frac);
+   /* for clip+cull distances, unused components can't be eliminated because
+    * they're read by fixed-function, even if there's a hole.  Note that
+    * clip/cull distance arrays must be declared in the FS, so we can just
+    * use the NIR clip/cull distances to avoid reading ucp_enables in the
+    * shader key.
+    */
+   if (ctx->so->type == MESA_SHADER_FRAGMENT &&
+       (slot == VARYING_SLOT_CLIP_DIST0 ||
+        slot == VARYING_SLOT_CLIP_DIST1)) {
+      unsigned clip_cull_mask = so->clip_mask | so->cull_mask;
+
+      if (slot == VARYING_SLOT_CLIP_DIST0)
+         compmask = clip_cull_mask & 0xf;
+      else
+         compmask = clip_cull_mask >> 4;
+   }
 
    /* for a4xx+ rasterflat */
    if (so->inputs[n].rasterflat && ctx->so->key.rasterflat)
@@ -4011,6 +4385,9 @@ setup_input(struct ir3_context *ctx, nir_intrinsic_instr *intr)
 
       if (slot == VARYING_SLOT_PRIMITIVE_ID)
          so->reads_primid = true;
+
+      so->inputs[n].inloc = 4 * n;
+      so->varying_in = MAX2(so->varying_in, 4 * n + 4);
    } else {
       struct ir3_instruction *input = NULL;
 
@@ -4107,6 +4484,8 @@ pack_inlocs(struct ir3_context *ctx)
     * shader key.
     */
    unsigned clip_cull_mask = so->clip_mask | so->cull_mask;
+
+   so->varying_in = 0;
 
    for (unsigned i = 0; i < so->inputs_count; i++) {
       unsigned compmask = 0, maxcomp = 0;
@@ -4877,6 +5256,10 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
 
    IR3_PASS(ir, ir3_array_to_ssa);
 
+   ir3_calc_reconvergence(so);
+
+   IR3_PASS(ir, ir3_lower_shared_phis);
+
    do {
       progress = false;
 
@@ -4886,6 +5269,8 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       progress |= IR3_PASS(ir, ir3_cp, so);
       progress |= IR3_PASS(ir, ir3_cse);
       progress |= IR3_PASS(ir, ir3_dce, so);
+      progress |= IR3_PASS(ir, ir3_opt_predicates, so);
+      progress |= IR3_PASS(ir, ir3_shared_fold);
    } while (progress);
 
    /* at this point, for binning pass, throw away unneeded outputs:
@@ -4974,7 +5359,12 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
    IR3_PASS(ir, ir3_legalize_relative);
    IR3_PASS(ir, ir3_lower_subgroups);
 
-   if (so->type == MESA_SHADER_FRAGMENT)
+   /* This isn't valid to do when transform feedback is done in HW, which is
+    * a4xx onward, because the VS may use components not read by the FS for
+    * transform feedback. Ideally we'd delete this, but a5xx and earlier seem to
+    * be broken without it.
+    */
+   if (so->type == MESA_SHADER_FRAGMENT && ctx->compiler->gen < 6)
       pack_inlocs(ctx);
 
    /*
@@ -5020,6 +5410,21 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
       }
    }
 
+   uint8_t clip_cull_mask = ctx->so->clip_mask | ctx->so->cull_mask;
+   /* Having non-zero clip/cull mask and not writting corresponding regs
+    * leads to a GPU fault on A7XX.
+    */
+   if (clip_cull_mask &&
+       ir3_find_output_regid(ctx->so, VARYING_SLOT_CLIP_DIST0) == regid(63, 0)) {
+      ctx->so->clip_mask &= 0xf0;
+      ctx->so->cull_mask &= 0xf0;
+   }
+   if ((clip_cull_mask >> 4) &&
+       ir3_find_output_regid(ctx->so, VARYING_SLOT_CLIP_DIST1) == regid(63, 0)) {
+      ctx->so->clip_mask &= 0xf;
+      ctx->so->cull_mask &= 0xf;
+   }
+
    if (ctx->astc_srgb)
       fixup_astc_srgb(ctx);
 
@@ -5054,8 +5459,6 @@ ir3_compile_shader_nir(struct ir3_compiler *compiler,
          ir3_instr_create(ctx->block, OPC_UNLOCK, 0, 0);
       ir3_instr_move_before(unlock, end);
    }
-
-   so->branchstack = ctx->max_stack;
 
    so->pvtmem_size = ALIGN(so->pvtmem_size, compiler->pvtmem_per_fiber_align);
 

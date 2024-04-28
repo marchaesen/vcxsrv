@@ -103,25 +103,23 @@ class PrintCode(gl_XML.gl_print_base):
         out('')
         out('')
 
-    def print_async_body(self, func):
-        fixed_params = func.get_fixed_params()
-        variable_params = func.get_variable_params()
-
-        out('/* {0}: marshalled asynchronously */'.format(func.name))
-        func.print_struct()
-
-        out('uint32_t')
-        out(('_mesa_unmarshal_{0}(struct gl_context *ctx, '
-             'const struct marshal_cmd_{0} *restrict cmd)').format(func.name))
+    def print_unmarshal_func(self, func, is_packed=False):
+        func.print_unmarshal_prototype(is_packed=is_packed)
         out('{')
         with indent():
-            for p in fixed_params:
+            for p in func.fixed_params:
+                type = func.get_marshal_type(p)
+
                 if p.count:
                     p_decl = '{0} *{1} = cmd->{1};'.format(
                             p.get_base_type_string(), p.name)
+                elif is_packed and func.packed_param_name == p.name:
+                    if func.packed_param_size == 0:
+                        p_decl = '{0} {1} = ({0})(uintptr_t)0;'.format(type, p.name)
+                    else:
+                        p_decl = '{0} {1} = ({0})(uintptr_t)cmd->{1};'.format(type, p.name)
                 else:
-                    p_decl = '{0} {1} = cmd->{1};'.format(
-                            marshal_XML.get_marshal_type(func.name, p), p.name)
+                    p_decl = '{0} {1} = cmd->{1};'.format(type, p.name)
 
                 if not p_decl.startswith('const ') and p.count:
                     # Declare all local function variables as const, even if
@@ -130,13 +128,13 @@ class PrintCode(gl_XML.gl_print_base):
 
                 out(p_decl)
 
-            if variable_params:
-                for p in variable_params:
+            if func.variable_params:
+                for p in func.variable_params:
                     out('{0} *{1};'.format(
                             p.get_base_type_string(), p.name))
                 out('const char *variable_data = (const char *) (cmd + 1);')
                 i = 1
-                for p in variable_params:
+                for p in func.variable_params:
                     out('{0} = ({1} *) variable_data;'.format(
                             p.name, p.get_base_type_string()))
 
@@ -144,23 +142,126 @@ class PrintCode(gl_XML.gl_print_base):
                         out('if (cmd->{0}_null)'.format(p.name))
                         with indent():
                             out('{0} = NULL;'.format(p.name))
-                        if i < len(variable_params):
+                        if i < len(func.variable_params):
                             out('else')
                             with indent():
                                 out('variable_data += {0};'.format(p.size_string(False, marshal=1)))
-                    elif i < len(variable_params):
+                    elif i < len(func.variable_params):
                         out('variable_data += {0};'.format(p.size_string(False, marshal=1)))
                     i += 1
 
             self.print_call(func, unmarshal=1)
-            if variable_params:
-                out('return cmd->cmd_base.cmd_size;')
+            if func.variable_params:
+                out('return cmd->num_slots;')
             else:
-                struct = 'struct marshal_cmd_{0}'.format(func.name)
-                out('const unsigned cmd_size = (align(sizeof({0}), 8) / 8);'.format(struct))
-                out('assert(cmd_size == cmd->cmd_base.cmd_size);')
-                out('return cmd_size;')
+                out('return align(sizeof({0}), 8) / 8;'.format(func.get_marshal_struct_name(is_packed)))
         out('}')
+
+        if not is_packed and func.packed_fixed_params:
+            self.print_unmarshal_func(func, is_packed=True)
+
+    def print_marshal_async_code(self, func, is_packed=False):
+        struct = func.get_marshal_struct_name(is_packed)
+
+        if func.marshal_sync:
+            out('int cmd_size = sizeof({0});'.format(struct))
+
+            out('if ({0}) {{'.format(func.marshal_sync))
+            with indent():
+                out('_mesa_glthread_finish_before(ctx, "{0}");'.format(func.name))
+                self.print_call(func)
+                out('return;')
+            out('}')
+        else:
+            size_terms = ['sizeof({0})'.format(struct)]
+            for p in func.variable_params:
+                out('int {0}_size = {1};'.format(p.name, p.size_string(marshal=1)))
+                if p.img_null_flag:
+                    size_terms.append('({0} ? {0}_size : 0)'.format(p.name))
+                else:
+                    size_terms.append('{0}_size'.format(p.name))
+
+            out('int cmd_size = {0};'.format(' + '.join(size_terms)))
+
+            # Fall back to syncing if variable-length sizes can't be handled.
+            #
+            # Check that any counts for variable-length arguments might be < 0, in
+            # which case the command alloc or the memcpy would blow up before we
+            # get to the validation in Mesa core.
+            list = []
+            assert_size = False
+            for p in func.parameters:
+                if p.is_variable_length():
+                    if p.marshal_count:
+                        assert_size = True
+                    else:
+                        list.append('{0}_size < 0'.format(p.name))
+                        list.append('({0}_size > 0 && !{0})'.format(p.name))
+
+            if len(list) != 0:
+                list.append('(unsigned)cmd_size > MARSHAL_MAX_CMD_SIZE')
+
+                out('if (unlikely({0})) {{'.format(' || '.join(list)))
+                with indent():
+                    out('_mesa_glthread_finish_before(ctx, "{0}");'.format(func.name))
+                    self.print_call(func)
+                    out('return;')
+                out('}')
+            elif assert_size:
+                out('assert(cmd_size >= 0 && cmd_size <= MARSHAL_MAX_CMD_SIZE);')
+
+        # Add the call into the batch.
+        dispatch_cmd = 'DISPATCH_CMD_{0}{1}'.format(func.name, '_packed' if is_packed else '')
+        if func.get_fixed_params(is_packed) or func.variable_params:
+            out('{0} *cmd = _mesa_glthread_allocate_command(ctx, {1}, cmd_size);'
+                .format(struct, dispatch_cmd))
+        else:
+            out('_mesa_glthread_allocate_command(ctx, {0}, cmd_size);'.format(dispatch_cmd))
+
+        if func.variable_params:
+            out('cmd->num_slots = align(cmd_size, 8) / 8;')
+
+        for p in func.get_fixed_params(is_packed):
+            type = func.get_marshal_type(p)
+
+            if p.count:
+                out('memcpy(cmd->{0}, {0}, {1});'.format(
+                        p.name, p.size_string()))
+            elif is_packed and p.name == func.packed_param_name:
+                out('cmd->{0} = (uintptr_t){0}; /* truncated */'.format(p.name))
+            elif type == 'GLenum8':
+                out('cmd->{0} = MIN2({0}, 0xff); /* clamped to 0xff (invalid enum) */'.format(p.name))
+            elif type == 'GLenum16':
+                out('cmd->{0} = MIN2({0}, 0xffff); /* clamped to 0xffff (invalid enum) */'.format(p.name))
+            elif type == 'GLclamped16i':
+                out('cmd->{0} = CLAMP({0}, INT16_MIN, INT16_MAX);'.format(p.name))
+            elif type == 'GLpacked16i':
+                out('cmd->{0} = {0} < 0 ? UINT16_MAX : MIN2({0}, UINT16_MAX);'.format(p.name))
+            else:
+                out('cmd->{0} = {0};'.format(p.name))
+
+        if func.variable_params:
+            out('char *variable_data = (char *) (cmd + 1);')
+            i = 1
+            for p in func.variable_params:
+                if p.img_null_flag:
+                    out('cmd->{0}_null = !{0};'.format(p.name))
+                    out('if (!cmd->{0}_null) {{'.format(p.name))
+                    with indent():
+                        out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
+                        if i < len(func.variable_params):
+                            out('variable_data += {0}_size;'.format(p.name))
+                    out('}')
+                else:
+                    out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
+                    if i < len(func.variable_params):
+                        out('variable_data += {0}_size;'.format(p.name))
+                i += 1
+
+    def print_async_body(self, func):
+        out('/* {0}: marshalled asynchronously */'.format(func.name))
+        func.print_struct()
+        self.print_unmarshal_func(func)
 
         out('{0}{1} GLAPIENTRY'.format('static ' if func.marshal_is_static() else '', func.return_type))
         out('_mesa_marshal_{0}({1})'.format(
@@ -171,86 +272,22 @@ class PrintCode(gl_XML.gl_print_base):
             if func.marshal_call_before:
                 out(func.marshal_call_before);
 
-            if not func.marshal_sync:
-                for p in func.variable_params:
-                    out('int {0}_size = {1};'.format(p.name, p.size_string(marshal=1)))
+            if func.packed_fixed_params:
+                if func.packed_param_size > 0:
+                    out('if (((uintptr_t){0} & 0x{1}) == (uintptr_t){0}) {{'
+                        .format(func.packed_param_name,
+                                'ff' * func.packed_param_size))
+                else:
+                    out('if (!{0}) {{'.format(func.packed_param_name))
 
-            struct = 'struct marshal_cmd_{0}'.format(func.name)
-            size_terms = ['sizeof({0})'.format(struct)]
-            if not func.marshal_sync:
-                for p in func.variable_params:
-                    if p.img_null_flag:
-                        size_terms.append('({0} ? {0}_size : 0)'.format(p.name))
-                    else:
-                        size_terms.append('{0}_size'.format(p.name))
-            out('int cmd_size = {0};'.format(' + '.join(size_terms)))
-            out('{0} *cmd;'.format(struct))
-
-            if func.marshal_sync:
-                out('if ({0}) {{'.format(func.marshal_sync))
                 with indent():
-                    out('_mesa_glthread_finish_before(ctx, "{0}");'.format(func.name))
-                    self.print_call(func)
-                    out('return;')
+                    self.print_marshal_async_code(func, is_packed=True)
+                out('} else {')
+                with indent():
+                    self.print_marshal_async_code(func)
                 out('}')
             else:
-                # Fall back to syncing if variable-length sizes can't be handled.
-                #
-                # Check that any counts for variable-length arguments might be < 0, in
-                # which case the command alloc or the memcpy would blow up before we
-                # get to the validation in Mesa core.
-                list = []
-                for p in func.parameters:
-                    if p.is_variable_length():
-                        list.append('{0}_size < 0'.format(p.name))
-                        list.append('({0}_size > 0 && !{0})'.format(p.name))
-
-                if len(list) != 0:
-                    list.append('(unsigned)cmd_size > MARSHAL_MAX_CMD_SIZE')
-
-                    out('if (unlikely({0})) {{'.format(' || '.join(list)))
-                    with indent():
-                        out('_mesa_glthread_finish_before(ctx, "{0}");'.format(func.name))
-                        self.print_call(func)
-                        out('return;')
-                    out('}')
-
-            # Add the call into the batch.
-            out('cmd = _mesa_glthread_allocate_command(ctx, '
-                'DISPATCH_CMD_{0}, cmd_size);'.format(func.name))
-
-            for p in fixed_params:
-                type = marshal_XML.get_marshal_type(func.name, p)
-
-                if p.count:
-                    out('memcpy(cmd->{0}, {0}, {1});'.format(
-                            p.name, p.size_string()))
-                elif type == 'GLenum16':
-                    out('cmd->{0} = MIN2({0}, 0xffff); /* clamped to 0xffff (invalid enum) */'.format(p.name))
-                elif type == 'int16_t':
-                    out('cmd->{0} = CLAMP({0}, INT16_MIN, INT16_MAX);'.format(p.name))
-                else:
-                    out('cmd->{0} = {0};'.format(p.name))
-            if variable_params:
-                out('char *variable_data = (char *) (cmd + 1);')
-                i = 1
-                for p in variable_params:
-                    if p.img_null_flag:
-                        out('cmd->{0}_null = !{0};'.format(p.name))
-                        out('if (!cmd->{0}_null) {{'.format(p.name))
-                        with indent():
-                            out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
-                            if i < len(variable_params):
-                                out('variable_data += {0}_size;'.format(p.name))
-                        out('}')
-                    else:
-                        out(('memcpy(variable_data, {0}, {0}_size);').format(p.name))
-                        if i < len(variable_params):
-                            out('variable_data += {0}_size;'.format(p.name))
-                    i += 1
-
-            if not fixed_params and not variable_params:
-                out('(void) cmd;')
+                self.print_marshal_async_code(func)
 
             if func.marshal_call_after:
                 out(func.marshal_call_after)
@@ -279,8 +316,16 @@ class PrintCode(gl_XML.gl_print_base):
                 if not condition:
                     continue
 
-                settings_by_condition[condition].append(
-                    'SET_{0}(table, _mesa_marshal_{0});'.format(func.name))
+                if func.marshal_no_error:
+                    no_error_condition = '_mesa_is_no_error_enabled(ctx) && ({0})'.format(condition)
+                    error_condition = '!_mesa_is_no_error_enabled(ctx) && ({0})'.format(condition)
+                    settings_by_condition[no_error_condition].append(
+                        'SET_{0}(table, _mesa_marshal_{0}_no_error);'.format(func.name))
+                    settings_by_condition[error_condition].append(
+                        'SET_{0}(table, _mesa_marshal_{0});'.format(func.name))
+                else:
+                    settings_by_condition[condition].append(
+                        'SET_{0}(table, _mesa_marshal_{0});'.format(func.name))
 
             # Print out an if statement for each unique condition, with
             # the SET_* calls nested inside it.
@@ -328,10 +373,12 @@ if __name__ == '__main__':
         file_name = sys.argv[1]
         file_index = int(sys.argv[2])
         file_count = int(sys.argv[3])
+        pointer_size = int(sys.argv[4])
     except Exception:
         show_usage()
 
     printer = PrintCode()
 
-    api = gl_XML.parse_GL_API(file_name, marshal_XML.marshal_item_factory())
+    assert pointer_size != 0
+    api = gl_XML.parse_GL_API(file_name, marshal_XML.marshal_item_factory(), pointer_size)
     printer.Print(api)

@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <stdarg.h>
 
+#include "common/freedreno_rd_output.h"
 #include "util/u_math.h"
 #include "util/timespec.h"
 #include "vk_enum_to_str.h"
@@ -54,11 +55,19 @@ tu_env_init_once(void)
 
    if (TU_DEBUG(STARTUP))
       mesa_logi("TU_DEBUG=0x%x", tu_env.debug);
+
+   /* TU_DEBUG=rd functionality was moved to fd_rd_output. This debug option
+    * should translate to the basic-level FD_RD_DUMP_ENABLE option.
+    */
+   if (TU_DEBUG(RD))
+      fd_rd_dump_env.flags |= FD_RD_DUMP_ENABLE;
 }
 
 void
 tu_env_init(void)
 {
+   fd_rd_dump_env_init();
+
    static once_flag once = ONCE_FLAG_INIT;
    call_once(&once, tu_env_init_once);
 }

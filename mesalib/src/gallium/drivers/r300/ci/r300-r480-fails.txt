@@ -3,7 +3,6 @@ dEQP-GLES2.functional.clipping.line.wide_line_clip_viewport_corner,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_center,Fail
 dEQP-GLES2.functional.clipping.point.wide_point_clip_viewport_corner,Fail
-dEQP-GLES2.functional.draw.draw_elements.indices.user_ptr.index_byte,Fail
 dEQP-GLES2.functional.fbo.completeness.renderable.texture.color0.rgb_half_float_oes,Fail
 dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgb,Fail
 dEQP-GLES2.functional.fbo.render.repeated_clear.tex2d_rgba,Fail

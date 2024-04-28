@@ -509,6 +509,8 @@ xf86LookupMode(ScrnInfoPtr scrp, DisplayModePtr modep,
             /* scan through the modes in the sort order above */
             if ((p->type & type) != type)
                 continue;
+            if (p->name == NULL)
+                continue;
 
             if (strcmp(p->name, modep->name) == 0) {
 

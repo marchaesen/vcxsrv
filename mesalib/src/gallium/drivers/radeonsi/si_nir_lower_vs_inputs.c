@@ -37,15 +37,14 @@ fast_udiv_nuw(nir_builder *b, nir_def *num, nir_def *divisor)
 }
 
 static nir_def *
-get_vertex_index_for_mono_shader(nir_builder *b, int input_index,
-                                 struct lower_vs_inputs_state *s)
+get_vertex_index(nir_builder *b, int input_index, struct lower_vs_inputs_state *s)
 {
    const union si_shader_key *key = &s->shader->key;
 
    bool divisor_is_one =
-      key->ge.part.vs.prolog.instance_divisor_is_one & (1u << input_index);
+      key->ge.mono.instance_divisor_is_one & (1u << input_index);
    bool divisor_is_fetched =
-      key->ge.part.vs.prolog.instance_divisor_is_fetched & (1u << input_index);
+      key->ge.mono.instance_divisor_is_fetched & (1u << input_index);
 
    if (divisor_is_one || divisor_is_fetched) {
       nir_def *instance_id = nir_load_instance_id(b);
@@ -77,13 +76,6 @@ get_vertex_index_for_mono_shader(nir_builder *b, int input_index,
    }
 }
 
-static nir_def *
-get_vertex_index_for_part_shader(nir_builder *b, int input_index,
-                                 struct lower_vs_inputs_state *s)
-{
-   return ac_nir_load_arg_at_offset(b, &s->args->ac, s->args->vertex_index0, input_index);
-}
-
 static void
 get_vertex_index_for_all_inputs(nir_shader *nir, struct lower_vs_inputs_state *s)
 {
@@ -95,16 +87,13 @@ get_vertex_index_for_all_inputs(nir_shader *nir, struct lower_vs_inputs_state *s
    const struct si_shader_selector *sel = s->shader->selector;
    const union si_shader_key *key = &s->shader->key;
 
-   if (key->ge.part.vs.prolog.instance_divisor_is_fetched) {
+   if (key->ge.mono.instance_divisor_is_fetched) {
       s->instance_divisor_constbuf =
          si_nir_load_internal_binding(b, s->args, SI_VS_CONST_INSTANCE_DIVISORS, 4);
    }
 
-   for (int i = 0; i < sel->info.num_inputs; i++) {
-      s->vertex_index[i] = s->shader->is_monolithic ?
-         get_vertex_index_for_mono_shader(b, i, s) :
-         get_vertex_index_for_part_shader(b, i, s);
-   }
+   for (int i = 0; i < sel->info.num_inputs; i++)
+      s->vertex_index[i] = get_vertex_index(b, i, s);
 }
 
 static void

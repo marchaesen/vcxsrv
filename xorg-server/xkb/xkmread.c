@@ -1168,23 +1168,6 @@ ReadXkmGeometry(FILE * file, XkbDescPtr xkb)
     return nRead;
 }
 
-Bool
-XkmProbe(FILE * file)
-{
-    unsigned hdr, tmp;
-    int nRead = 0;
-
-    hdr = (('x' << 24) | ('k' << 16) | ('m' << 8) | XkmFileVersion);
-    tmp = XkmGetCARD32(file, &nRead);
-    if (tmp != hdr) {
-        if ((tmp & (~0xff)) == (hdr & (~0xff))) {
-            _XkbLibError(_XkbErrBadFileVersion, "XkmProbe", tmp & 0xff);
-        }
-        return 0;
-    }
-    return 1;
-}
-
 static Bool
 XkmReadTOC(FILE * file, xkmFileInfo * file_info, int max_toc,
            xkmSectionInfo * toc)

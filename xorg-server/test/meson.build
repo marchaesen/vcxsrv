@@ -2,6 +2,7 @@ simple_xinit = executable(
     'simple-xinit',
     'simple-xinit.c',
     include_directories: inc,
+    dependencies: [ xproto_dep ],
 )
 
 piglit_env = environment()
@@ -91,7 +92,7 @@ if get_option('xvfb')
                  # Use full_path so people can copy and paste the
                  # command line from testlog.txt easily.
                  args: [
-                     rendercheck.path(),
+                     rendercheck.full_path(),
                      rctest[1].split(' '),
                      '--',
                      xvfb_args,
@@ -127,7 +128,7 @@ if get_option('xvfb')
                     test(rctest[0],
                         simple_xinit,
                         args: [simple_xinit.full_path(),
-                                rendercheck.path(),
+                                rendercheck.full_path(),
                                 rctest[1].split(' '),
                                 '----',
                                 xephyr_server.full_path(),
@@ -232,7 +233,7 @@ if build_xorg
     unit = executable('tests',
          unit_sources,
          c_args: unit_c_args,
-         dependencies: [pixman_dep, randrproto_dep, inputproto_dep, libxcvt_dep],
+         dependencies: [x11_dep, pixman_dep, randrproto_dep, inputproto_dep, libxcvt_dep],
          include_directories: unit_includes,
          link_args: ldwraps,
          link_with: xorg_link,

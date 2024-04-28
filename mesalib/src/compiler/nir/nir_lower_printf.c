@@ -93,18 +93,6 @@ lower_printf_intrin(nir_builder *b, nir_intrinsic_instr *prntf, void *_options)
       nir_def *arg = nir_load_deref(b, arg_deref);
       const struct glsl_type *arg_type = arg_deref->type;
 
-      /* Clang does promotion of arguments to their "native" size. That means
-       * that any floats have been converted to doubles for the call to
-       * printf. Since doubles are optional, some drivers might not support
-       * them. For those drivers, convert them back to float before writing.
-       * Copy prop and other optimizations should remove all hints of doubles.
-       */
-      if (glsl_get_base_type(arg_type) == GLSL_TYPE_DOUBLE &&
-          options && options->treat_doubles_as_floats) {
-         arg = nir_f2f32(b, arg);
-         arg_type = glsl_float_type();
-      }
-
       unsigned field_offset = glsl_get_struct_field_offset(args->type, i);
       nir_def *arg_offset =
          nir_i2iN(b, nir_iadd_imm(b, offset, fmt_str_id_size + field_offset),

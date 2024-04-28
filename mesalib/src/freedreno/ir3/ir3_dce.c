@@ -130,8 +130,10 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
          instr_dce(block->keeps[i], false);
 
       /* We also need to account for if-condition: */
-      if (block->condition)
-         instr_dce(block->condition, false);
+      struct ir3_instruction *terminator = ir3_block_get_terminator(block);
+      if (terminator) {
+         instr_dce(terminator, false);
+      }
    }
 
    /* remove un-used instructions: */
@@ -171,12 +173,6 @@ find_and_remove_unused(struct ir3 *ir, struct ir3_shader_variant *so)
       struct ir3_instruction *instr = ir->a1_users[i];
       if (instr && (instr->flags & IR3_INSTR_UNUSED))
          ir->a1_users[i] = NULL;
-   }
-
-   for (i = 0; i < ir->predicates_count; i++) {
-      struct ir3_instruction *instr = ir->predicates[i];
-      if (instr && (instr->flags & IR3_INSTR_UNUSED))
-         ir->predicates[i] = NULL;
    }
 
    /* cleanup unused inputs: */

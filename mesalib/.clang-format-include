@@ -2,6 +2,7 @@
 # enforcement in the CI.
 
 src/gallium/drivers/i915
+src/gallium/targets/teflon/**/*
 src/amd/vulkan/**/*
 src/amd/compiler/**/*
 src/egl/**/*

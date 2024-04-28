@@ -18,3 +18,7 @@ KHR-GL43.copy_image.functional
 # These tests started hitting timeouts when we upgraded LLVM from v11 to 13
 spec@arb_texture_rg@fbo-blending-formats
 spec@ext_framebuffer_object@fbo-blending-formats
+
+# uprev Piglit in Mesa
+spec@egl_ext_protected_content@conformance
+

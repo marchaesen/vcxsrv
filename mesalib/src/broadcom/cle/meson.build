@@ -45,7 +45,7 @@ endforeach
 
 v3d_xml_h = custom_target(
   'v3d_xml.h',
-  input : ['../../intel/genxml/gen_zipped_file.py', v3d_xml_files],
+  input : ['../../util/gen_zipped_xml_file.py', v3d_xml_files],
   output : 'v3d_xml.h',
   command : [prog_python, '@INPUT@'],
   capture : true,

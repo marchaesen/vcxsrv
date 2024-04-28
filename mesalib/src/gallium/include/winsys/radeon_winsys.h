@@ -189,19 +189,20 @@ enum radeon_ctx_pstate
 #define RADEON_ALL_PRIORITIES (RADEON_USAGE_READ - 1)
 
 /* Upper bits of priorities are used by usage flags. */
-#define RADEON_USAGE_READ (1 << 28)
-#define RADEON_USAGE_WRITE (1 << 29)
+#define RADEON_USAGE_READ (1 << 27)
+#define RADEON_USAGE_WRITE (1 << 28)
 #define RADEON_USAGE_READWRITE (RADEON_USAGE_READ | RADEON_USAGE_WRITE)
 
 /* The winsys ensures that the CS submission will be scheduled after
  * previously flushed CSs referencing this BO in a conflicting way.
  */
-#define RADEON_USAGE_SYNCHRONIZED (1 << 30)
+#define RADEON_USAGE_SYNCHRONIZED (1 << 29)
 
 /* When used, an implicit sync is done to make sure a compute shader
  * will read the written values from a previous draw.
  */
-#define RADEON_USAGE_NEEDS_IMPLICIT_SYNC (1u << 31)
+#define RADEON_USAGE_CB_NEEDS_IMPLICIT_SYNC (1u << 30)
+#define RADEON_USAGE_DB_NEEDS_IMPLICIT_SYNC (1u << 31)
 
 struct winsys_handle;
 struct radeon_winsys_ctx;
@@ -314,7 +315,7 @@ struct radeon_winsys {
     * L3 caches. This is needed for good multithreading performance on
     * AMD Zen CPUs.
     */
-   void (*pin_threads_to_L3_cache)(struct radeon_winsys *ws, unsigned cache);
+   void (*pin_threads_to_L3_cache)(struct radeon_winsys *ws, unsigned cpu);
 
    /**************************************************************************
     * Buffer management. Buffer attributes are mostly fixed over its lifetime.
@@ -790,6 +791,22 @@ radeon_bo_reference(struct radeon_winsys *rws, struct pb_buffer_lean **dst,
    if (pipe_reference(&(*dst)->reference, &src->reference))
       rws->buffer_destroy(rws, old);
    *dst = src;
+}
+
+/* Same as radeon_bo_reference, but ignore the value in *dst. */
+static inline void
+radeon_bo_set_reference(struct pb_buffer_lean **dst, struct pb_buffer_lean *src)
+{
+   *dst = src;
+   pipe_reference(NULL, &src->reference); /* only increment refcount */
+}
+
+/* Unreference dst, but don't assign anything. */
+static inline void
+radeon_bo_drop_reference(struct radeon_winsys *rws, struct pb_buffer_lean *dst)
+{
+   if (pipe_reference(&dst->reference, NULL)) /* only decrement refcount */
+      rws->buffer_destroy(rws, dst);
 }
 
 /* The following bits describe the heaps managed by slab allocators (pb_slab) and

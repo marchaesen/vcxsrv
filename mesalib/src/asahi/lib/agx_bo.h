@@ -4,8 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_BO_H
-#define __AGX_BO_H
+#pragma once
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -131,5 +130,3 @@ struct agx_bo *agx_bo_cache_fetch(struct agx_device *dev, size_t size,
                                   size_t align, uint32_t flags,
                                   const bool dontwait);
 void agx_bo_cache_evict_all(struct agx_device *dev);
-
-#endif

@@ -26,13 +26,15 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include <errno.h>
 #include <sys/socket.h>
 #include <stdio.h>
 #include <stdarg.h>
-
 #include <libaudit.h>
-
 #include <X11/Xatom.h>
+
+#include "dix/registry_priv.h"
+
 #include "selection.h"
 #include "inputstr.h"
 #include "scrnintstr.h"
@@ -199,7 +201,7 @@ SELinuxLabelInitial(void)
 
         /* Do the default colormap */
         dixLookupResourceByType(&unused, screenInfo.screens[i]->defColormap,
-                                RT_COLORMAP, serverClient, DixCreateAccess);
+                                X11_RESTYPE_COLORMAP, serverClient, DixCreateAccess);
     }
 }
 
@@ -662,7 +664,7 @@ SELinuxResource(CallbackListPtr *pcbl, void *unused, void *calldata)
         rec->status = rc;
 
     /* Perform the background none check on windows */
-    if (access_mode & DixCreateAccess && rec->rtype == RT_WINDOW) {
+    if (access_mode & DixCreateAccess && rec->rtype == X11_RESTYPE_WINDOW) {
         rc = SELinuxDoCheck(subj, obj, class, DixBlendAccess, &auditdata);
         if (rc != Success)
             ((WindowPtr) rec->res)->forcedBG = TRUE;
@@ -764,7 +766,7 @@ SELinuxResourceState(CallbackListPtr *pcbl, void *unused, void *calldata)
     SELinuxObjectRec *obj;
     WindowPtr pWin;
 
-    if (rec->type != RT_WINDOW)
+    if (rec->type != X11_RESTYPE_WINDOW)
         return;
     if (rec->state != ResourceStateAdding)
         return;

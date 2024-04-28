@@ -203,9 +203,9 @@ static void radeon_uvd_enc_session_init_hevc(struct radeon_uvd_encoder *enc)
    enc->enc_pic.session_init.aligned_picture_width = align(enc->base.width, 64);
    enc->enc_pic.session_init.aligned_picture_height = align(enc->base.height, 16);
    enc->enc_pic.session_init.padding_width =
-      enc->enc_pic.session_init.aligned_picture_width - enc->base.width;
+      (enc->enc_pic.crop_left + enc->enc_pic.crop_right) * 2;
    enc->enc_pic.session_init.padding_height =
-      enc->enc_pic.session_init.aligned_picture_height - enc->base.height;
+      (enc->enc_pic.crop_top + enc->enc_pic.crop_bottom) * 2;
    enc->enc_pic.session_init.pre_encode_mode = RENC_UVD_PREENCODE_MODE_NONE;
    enc->enc_pic.session_init.pre_encode_chroma_enabled = false;
 

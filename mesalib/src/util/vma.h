@@ -66,6 +66,8 @@ bool util_vma_heap_alloc_addr(struct util_vma_heap *heap,
 void util_vma_heap_free(struct util_vma_heap *heap,
                         uint64_t offset, uint64_t size);
 
+uint64_t util_vma_heap_get_max_free_continuous_size(struct util_vma_heap *heap);
+
 void util_vma_heap_print(struct util_vma_heap *heap, FILE *fp,
                          const char *tab, uint64_t total_size);
 

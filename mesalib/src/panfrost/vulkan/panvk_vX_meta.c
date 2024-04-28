@@ -27,7 +27,7 @@
 #include "pan_encoder.h"
 #include "pan_shader.h"
 
-#include "panvk_private.h"
+#include "panvk_device.h"
 
 #include "vk_format.h"
 
@@ -48,11 +48,11 @@ panvk_per_arch(meta_emit_viewport)(struct pan_pool *pool, uint16_t minx,
 }
 
 void
-panvk_per_arch(meta_init)(struct panvk_physical_device *dev)
+panvk_per_arch(meta_init)(struct panvk_device *dev)
 {
-   panvk_pool_init(&dev->meta.bin_pool, &dev->pdev, NULL, PAN_BO_EXECUTE,
+   panvk_pool_init(&dev->meta.bin_pool, dev, NULL, PAN_KMOD_BO_FLAG_EXECUTABLE,
                    16 * 1024, "panvk_meta binary pool", false);
-   panvk_pool_init(&dev->meta.desc_pool, &dev->pdev, NULL, 0, 16 * 1024,
+   panvk_pool_init(&dev->meta.desc_pool, dev, NULL, 0, 16 * 1024,
                    "panvk_meta descriptor pool", false);
    panvk_per_arch(meta_blit_init)(dev);
    panvk_per_arch(meta_copy_init)(dev);
@@ -60,7 +60,7 @@ panvk_per_arch(meta_init)(struct panvk_physical_device *dev)
 }
 
 void
-panvk_per_arch(meta_cleanup)(struct panvk_physical_device *dev)
+panvk_per_arch(meta_cleanup)(struct panvk_device *dev)
 {
    panvk_per_arch(meta_blit_cleanup)(dev);
    panvk_pool_cleanup(&dev->meta.desc_pool);

@@ -56,8 +56,7 @@ write_stream_out_to_cache(struct blob *blob,
 static void
 copy_blob_to_driver_cache_blob(struct blob *blob, struct gl_program *prog)
 {
-   prog->driver_cache_blob = ralloc_size(NULL, blob->size);
-   memcpy(prog->driver_cache_blob, blob->data, blob->size);
+   prog->driver_cache_blob = ralloc_memdup(NULL, blob->data, blob->size);
    prog->driver_cache_blob_size = blob->size;
 }
 

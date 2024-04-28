@@ -5,11 +5,10 @@
  *
  */
 
+#pragma once
+
 #include "util/disk_cache.h"
 #include "agx_state.h"
-
-#ifndef AGX_DISK_CACHE_H
-#define AGX_DISK_CACHE_H
 
 void agx_disk_cache_store(struct disk_cache *cache,
                           const struct agx_uncompiled_shader *uncompiled,
@@ -22,5 +21,3 @@ agx_disk_cache_retrieve(struct agx_screen *screen,
                         const union asahi_shader_key *key);
 
 void agx_disk_cache_init(struct agx_screen *screen);
-
-#endif

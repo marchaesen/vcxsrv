@@ -1,7 +1,15 @@
 // Most keyboards have the EuroSign engraved on the E key
+// EuroSign on E, level 3
 partial
 xkb_symbols "e" {
     key <AD03>	{ [  NoSymbol,   NoSymbol,   EuroSign,	NoSymbol ]	};
+};
+
+// EuroSign on E, level 4
+// Alternative to eurosing(e) to keep 3rd level symbol.
+partial
+xkb_symbols "E" {
+    key <AD03>	{ [  NoSymbol,   NoSymbol,   NoSymbol,	EuroSign ]	};
 };
 
 // Many Apple keyboards have the EuroSign engraved on the 2 key

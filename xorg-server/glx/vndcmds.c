@@ -31,7 +31,7 @@
 #include <protocol-versions.h>
 
 #include "hashtable.h"
-#include "vndserver.h"
+#include "vndserver_priv.h"
 #include "vndservervendor.h"
 
 /**

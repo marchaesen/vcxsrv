@@ -20,7 +20,10 @@
 # SOFTWARE.
 
 files_panfrost = files(
+  'driinfo_panfrost.h',
   'pan_afbc_cso.c',
+  'pan_bo.c',
+  'pan_device.c',
   'pan_disk_cache.c',
   'pan_fence.c',
   'pan_helpers.c',
@@ -37,6 +40,7 @@ files_panfrost = files(
   'pan_mempool.h',
   'pan_nir_remove_fragcolor_stores.c',
   'pan_nir_lower_sysvals.c',
+  'pan_nir_lower_res_indices.c',
 )
 
 panfrost_includes = [
@@ -54,13 +58,15 @@ compile_args_panfrost = [
   '-Wno-pointer-arith'
 ]
 
-panfrost_versions = ['4', '5', '6', '7', '9']
+panfrost_versions = ['4', '5', '6', '7', '9', '10']
 libpanfrost_versions = []
 
 foreach ver : panfrost_versions
   files_panfrost_vx = ['pan_cmdstream.c', pan_packers]
   if ver in ['4', '5', '6', '7', '9']
     files_panfrost_vx += ['pan_jm.c']
+  elif ver in ['10']
+    files_panfrost_vx += ['pan_csf.c']
   endif
   libpanfrost_versions += static_library(
     'panfrost-v' + ver, files_panfrost_vx,

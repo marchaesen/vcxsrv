@@ -66,9 +66,6 @@ SOFTWARE.
 #ifndef MAX_REQUEST_SIZE
 #define MAX_REQUEST_SIZE 65535
 #endif
-#ifndef MAX_BIG_REQUEST_SIZE
-#define MAX_BIG_REQUEST_SIZE 4194303
-#endif
 
 typedef struct _FontPathRec *FontPathPtr;
 typedef struct _NewClientRec *NewClientPtr;
@@ -91,12 +88,6 @@ typedef struct _NewClientRec *NewClientPtr;
 
 #ifdef DDXBEFORERESET
 extern void ddxBeforeReset(void);
-#endif
-
-#ifdef DDXOSVERRORF
-extern _X_EXPORT void (*OsVendorVErrorFProc) (const char *,
-                                              va_list args)
-_X_ATTRIBUTE_PRINTF(1, 0);
 #endif
 
 extern _X_EXPORT Bool WaitForSomething(Bool clients_are_ready);
@@ -161,25 +152,13 @@ static inline void RemoveNotifyFd(int fd)
     (void) SetNotifyFd(fd, NULL, X_NOTIFY_NONE, NULL);
 }
 
-extern _X_EXPORT int OnlyListenToOneClient(ClientPtr /*client */ );
-
-extern _X_EXPORT void ListenToAllClients(void);
-
 extern _X_EXPORT void IgnoreClient(ClientPtr /*client */ );
 
 extern _X_EXPORT void AttendClient(ClientPtr /*client */ );
 
-extern _X_EXPORT void MakeClientGrabImpervious(ClientPtr /*client */ );
-
-extern _X_EXPORT void MakeClientGrabPervious(ClientPtr /*client */ );
-
 extern _X_EXPORT void ListenOnOpenFD(int /* fd */ , int /* noxauth */ );
 
 extern _X_EXPORT Bool AddClientOnOpenFD(int /* fd */ );
-
-#ifdef MONOTONIC_CLOCK
-extern void ForceClockId(clockid_t /* forced_clockid */);
-#endif
 
 extern _X_EXPORT CARD32 GetTimeInMillis(void);
 extern _X_EXPORT CARD64 GetTimeInMicros(void);
@@ -191,10 +170,6 @@ typedef struct _OsTimerRec *OsTimerPtr;
 typedef CARD32 (*OsTimerCallback) (OsTimerPtr timer,
                                    CARD32 time,
                                    void *arg);
-
-extern _X_EXPORT void TimerInit(void);
-
-extern _X_EXPORT Bool TimerForce(OsTimerPtr /* timer */ );
 
 #define TimerAbsolute (1<<0)
 #define TimerForceOld (1<<1)
@@ -212,17 +187,7 @@ extern _X_EXPORT void TimerFree(OsTimerPtr /* pTimer */ );
 extern _X_EXPORT void SetScreenSaverTimer(void);
 extern _X_EXPORT void FreeScreenSaverTimer(void);
 
-extern _X_EXPORT void AutoResetServer(int /*sig */ );
-
 extern _X_EXPORT void GiveUp(int /*sig */ );
-
-extern _X_EXPORT void UseMsg(void);
-
-extern _X_EXPORT void ProcessCommandLine(int /*argc */ , char * /*argv */ []);
-
-extern _X_EXPORT int set_font_authorizations(char **authorizations,
-                                             int *authlen,
-                                             void *client);
 
 /*
  * This function malloc(3)s buffer, terminating the server if there is not
@@ -294,140 +259,18 @@ XNFvprintf(const char *fmt, va_list va)
 _X_ATTRIBUTE_PRINTF(1, 0)
     _X_DEPRECATED;
 
-typedef void (*OsSigHandlerPtr) (int /* sig */ );
 typedef int (*OsSigWrapperPtr) (int /* sig */ );
 
-extern _X_EXPORT OsSigHandlerPtr
-OsSignal(int /* sig */ , OsSigHandlerPtr /* handler */ );
 extern _X_EXPORT OsSigWrapperPtr
 OsRegisterSigWrapper(OsSigWrapperPtr newWrap);
-
-extern _X_EXPORT int auditTrailLevel;
 
 extern _X_EXPORT void
 LockServer(void);
 extern _X_EXPORT void
 UnlockServer(void);
 
-extern _X_EXPORT int
-OsLookupColor(int /*screen */ ,
-              char * /*name */ ,
-              unsigned /*len */ ,
-              unsigned short * /*pred */ ,
-              unsigned short * /*pgreen */ ,
-              unsigned short * /*pblue */ );
-
-extern _X_EXPORT void
-OsInit(void);
-
-extern _X_EXPORT void
-OsCleanup(Bool);
-
-extern _X_EXPORT void
-OsVendorFatalError(const char *f, va_list args)
-_X_ATTRIBUTE_PRINTF(1, 0);
-
-extern _X_EXPORT void
-OsVendorInit(void);
-
-extern _X_EXPORT void
-OsBlockSignals(void);
-
-extern _X_EXPORT void
-OsReleaseSignals(void);
-
-extern void
-OsResetSignals(void);
-
-extern _X_EXPORT void
-OsAbort(void)
-    _X_NORETURN;
-
-#if !defined(WIN32)
-extern _X_EXPORT int
-System(const char *);
-extern _X_EXPORT void *
-Popen(const char *, const char *);
-extern _X_EXPORT int
-Pclose(void *);
-extern _X_EXPORT void *
-Fopen(const char *, const char *);
-extern _X_EXPORT int
-Fclose(void *);
-#else
-
-extern const char *
-Win32TempDir(void);
-
-extern int
-System(const char *cmdline);
-
-#define Fopen(a,b) fopen(a,b)
-#define Fclose(a) fclose(a)
-#endif
-
 extern _X_EXPORT Bool
 PrivsElevated(void);
-
-extern _X_EXPORT void
-CheckUserParameters(int argc, char **argv, char **envp);
-extern _X_EXPORT void
-CheckUserAuthorization(void);
-
-extern _X_EXPORT int
-AddHost(ClientPtr /*client */ ,
-        int /*family */ ,
-        unsigned /*length */ ,
-        const void * /*pAddr */ );
-
-extern _X_EXPORT Bool
-ForEachHostInFamily(int family,
-                    Bool (*func)(
-                                           unsigned char *addr,
-                                           short len,
-                                           void *closure),
-                    void *closure);
-
-extern _X_EXPORT int
-RemoveHost(ClientPtr client,
-           int family,
-           unsigned length,
-           void *pAddr);
-
-extern _X_EXPORT int
-GetHosts(void ** /*data */ ,
-         int * /*pnHosts */ ,
-         int * /*pLen */ ,
-         BOOL * /*pEnabled */ );
-
-typedef struct sockaddr *sockaddrPtr;
-
-extern _X_EXPORT int
-InvalidHost(sockaddrPtr /*saddr */ , int /*len */ , ClientPtr client);
-
-#define LCC_UID_SET	(1 << 0)
-#define LCC_GID_SET	(1 << 1)
-#define LCC_PID_SET	(1 << 2)
-#define LCC_ZID_SET	(1 << 3)
-
-typedef struct {
-    int fieldsSet;              /* Bit mask of fields set */
-    int euid;                   /* Effective uid */
-    int egid;                   /* Primary effective group id */
-    int nSuppGids;              /* Number of supplementary group ids */
-    int *pSuppGids;             /* Array of supplementary group ids */
-    int pid;                    /* Process id */
-    int zoneid;                 /* Only set on Solaris 10 & later */
-} LocalClientCredRec;
-
-extern _X_EXPORT int
-GetLocalClientCreds(ClientPtr, LocalClientCredRec **);
-
-extern _X_EXPORT void
-FreeLocalClientCreds(LocalClientCredRec *);
-
-extern _X_EXPORT int
-ChangeAccessControl(ClientPtr /*client */ , int /*fEnabled */ );
 
 extern _X_EXPORT int
 GetClientFd(ClientPtr);
@@ -436,104 +279,7 @@ extern _X_EXPORT Bool
 ClientIsLocal(ClientPtr client);
 
 extern _X_EXPORT int
-GetAccessControl(void);
-
-extern _X_EXPORT void
-AddLocalHosts(void);
-
-extern _X_EXPORT void
-ResetHosts(const char *display);
-
-extern _X_EXPORT void
-EnableLocalAccess(void);
-
-extern _X_EXPORT void
-DisableLocalAccess(void);
-
-extern _X_EXPORT void
-EnableLocalHost(void);
-
-extern _X_EXPORT void
-DisableLocalHost(void);
-
-#ifndef NO_LOCAL_CLIENT_CRED
-extern _X_EXPORT void
-EnableLocalUser(void);
-
-extern _X_EXPORT void
-DisableLocalUser(void);
-
-extern _X_EXPORT void
-LocalAccessScopeUser(void);
-#endif
-
-extern _X_EXPORT void
-AccessUsingXdmcp(void);
-
-extern _X_EXPORT void
-DefineSelf(int /*fd */ );
-
-#ifdef XDMCP
-extern _X_EXPORT void
-AugmentSelf(void *from, int len);
-
-extern _X_EXPORT void
-RegisterAuthorizations(void);
-#endif
-
-extern _X_EXPORT void
-InitAuthorization(const char * /*filename */ );
-
-/* extern int LoadAuthorization(void); */
-
-extern _X_EXPORT int
-AuthorizationFromID(XID id,
-                    unsigned short *name_lenp,
-                    const char **namep,
-                    unsigned short *data_lenp, char **datap);
-
-extern _X_EXPORT XID
-CheckAuthorization(unsigned int /*namelength */ ,
-                   const char * /*name */ ,
-                   unsigned int /*datalength */ ,
-                   const char * /*data */ ,
-                   ClientPtr /*client */ ,
-                   const char **        /*reason */
-    );
-
-extern _X_EXPORT void
-ResetAuthorization(void);
-
-extern _X_EXPORT int
-RemoveAuthorization(unsigned short name_length,
-                    const char *name,
-                    unsigned short data_length, const char *data);
-
-extern _X_EXPORT int
-AddAuthorization(unsigned int /*name_length */ ,
-                 const char * /*name */ ,
-                 unsigned int /*data_length */ ,
-                 char * /*data */ );
-
-#ifdef XCSECURITY
-extern _X_EXPORT XID
-GenerateAuthorization(unsigned int /* name_length */ ,
-                      const char * /* name */ ,
-                      unsigned int /* data_length */ ,
-                      const char * /* data */ ,
-                      unsigned int * /* data_length_return */ ,
-                      char ** /* data_return */ );
-#endif
-
-extern _X_EXPORT int
 ddxProcessArgument(int /*argc */ , char * /*argv */ [], int /*i */ );
-
-#define CHECK_FOR_REQUIRED_ARGUMENTS(num)  \
-    do if (((i + num) >= argc) || (!argv[i + num])) {                   \
-        UseMsg();                                                       \
-        FatalError("Required argument to %s not specified\n", argv[i]); \
-    } while (0)
-
 
 extern _X_EXPORT void
 ddxUseMsg(void);
@@ -682,14 +428,6 @@ _X_ATTRIBUTE_PRINTF(2, 0)
 _X_ATTRIBUTE_PRINTF(4, 5);
 
 extern _X_EXPORT void
-FreeAuditTimer(void);
-extern _X_EXPORT void
-AuditF(const char *f, ...)
-_X_ATTRIBUTE_PRINTF(1, 2);
-extern _X_EXPORT void
-VAuditF(const char *f, va_list args)
-_X_ATTRIBUTE_PRINTF(1, 0);
-extern _X_EXPORT void
 FatalError(const char *f, ...)
 _X_ATTRIBUTE_PRINTF(1, 2)
     _X_NORETURN;
@@ -735,8 +473,5 @@ xorg_backtrace(void);
 #if defined(WIN32) && !defined(__CYGWIN__) && !defined(_MSC_VER)
 typedef _sigset_t sigset_t;
 #endif
-
-extern _X_EXPORT int
-os_move_fd(int fd);
 
 #endif                          /* OS_H */

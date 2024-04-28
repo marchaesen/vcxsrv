@@ -55,7 +55,7 @@ crocus_disk_cache_compute_key(struct disk_cache *cache,
     * It's essentially random data which we don't want to include in our
     * hashing and comparisons.  We'll set a proper value on a cache hit.
     */
-   union brw_any_prog_key prog_key;
+   union elk_any_prog_key prog_key;
    memcpy(&prog_key, orig_prog_key, prog_key_size);
    prog_key.base.program_string_id = 0;
 
@@ -87,7 +87,7 @@ crocus_disk_cache_store(struct disk_cache *cache,
       return;
 
    gl_shader_stage stage = ish->nir->info.stage;
-   const struct brw_stage_prog_data *prog_data = shader->prog_data;
+   const struct elk_stage_prog_data *prog_data = shader->prog_data;
 
    cache_key cache_key;
    crocus_disk_cache_compute_key(cache, ish, prog_key, prog_key_size, cache_key);
@@ -110,11 +110,11 @@ crocus_disk_cache_store(struct disk_cache *cache,
     * 5. Legacy param array (only used for compute workgroup ID)
     * 6. Binding table
     */
-   blob_write_bytes(&blob, shader->prog_data, brw_prog_data_size(stage));
+   blob_write_bytes(&blob, shader->prog_data, elk_prog_data_size(stage));
    blob_write_bytes(&blob, map + shader->offset, shader->prog_data->program_size);
    blob_write_bytes(&blob, &shader->num_system_values, sizeof(unsigned));
    blob_write_bytes(&blob, shader->system_values,
-                    shader->num_system_values * sizeof(enum brw_param_builtin));
+                    shader->num_system_values * sizeof(enum elk_param_builtin));
    blob_write_bytes(&blob, prog_data->param,
                     prog_data->nr_params * sizeof(uint32_t));
    blob_write_bytes(&blob, &shader->bt, sizeof(shader->bt));
@@ -160,9 +160,9 @@ crocus_disk_cache_retrieve(struct crocus_context *ice,
    if (!buffer)
       return NULL;
 
-   const uint32_t prog_data_size = brw_prog_data_size(stage);
+   const uint32_t prog_data_size = elk_prog_data_size(stage);
 
-   struct brw_stage_prog_data *prog_data = ralloc_size(NULL, prog_data_size);
+   struct elk_stage_prog_data *prog_data = ralloc_size(NULL, prog_data_size);
    const void *assembly;
    uint32_t num_system_values;
    uint32_t *system_values = NULL;
@@ -175,9 +175,9 @@ crocus_disk_cache_retrieve(struct crocus_context *ice,
    num_system_values = blob_read_uint32(&blob);
    if (num_system_values) {
       system_values =
-         ralloc_array(NULL, enum brw_param_builtin, num_system_values);
+         ralloc_array(NULL, enum elk_param_builtin, num_system_values);
       blob_copy_bytes(&blob, system_values,
-                      num_system_values * sizeof(enum brw_param_builtin));
+                      num_system_values * sizeof(enum elk_param_builtin));
    }
 
    prog_data->param = NULL;
@@ -193,7 +193,7 @@ crocus_disk_cache_retrieve(struct crocus_context *ice,
    if ((stage == MESA_SHADER_VERTEX ||
         stage == MESA_SHADER_TESS_EVAL ||
         stage == MESA_SHADER_GEOMETRY) && screen->devinfo.ver > 6) {
-      struct brw_vue_prog_data *vue_prog_data = (void *) prog_data;
+      struct elk_vue_prog_data *vue_prog_data = (void *) prog_data;
       so_decls = screen->vtbl.create_so_decl_list(&ish->stream_output,
                                                   &vue_prog_data->vue_map);
    }
@@ -254,7 +254,7 @@ crocus_disk_cache_init(struct crocus_screen *screen)
    _mesa_sha1_format(timestamp, id_sha1);
 
    const uint64_t driver_flags =
-      brw_get_compiler_config_value(screen->compiler);
+      elk_get_compiler_config_value(screen->compiler);
    screen->disk_cache = disk_cache_create(renderer, timestamp, driver_flags);
 #endif
 }

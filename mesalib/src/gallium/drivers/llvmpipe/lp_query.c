@@ -372,12 +372,12 @@ llvmpipe_get_query_result_resource(struct pipe_context *pipe,
       switch (result_type) {
       case PIPE_QUERY_TYPE_I32: {
          int32_t *iptr = (int32_t *)dst;
-         *iptr = (int32_t) MIN2(value, INT32_MAX);
+         *iptr = (int32_t) (value & INT32_MAX);
          break;
       }
       case PIPE_QUERY_TYPE_U32: {
          uint32_t *uptr = (uint32_t *)dst;
-         *uptr = (uint32_t) MIN2(value, UINT32_MAX);
+         *uptr = (uint32_t) (value & UINT32_MAX);
          break;
       }
       case PIPE_QUERY_TYPE_I64: {

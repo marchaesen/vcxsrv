@@ -14,7 +14,6 @@
 #include "vn_common.h"
 
 #include "vn_cs.h"
-#include "vn_feedback.h"
 
 struct vn_command_pool {
    struct vn_object_base base;
@@ -25,18 +24,25 @@ struct vn_command_pool {
 
    struct list_head command_buffers;
 
-   struct list_head free_query_batches;
-   struct list_head free_query_feedback_cmds;
-
-   /* Temporary storage for scrubbing VK_IMAGE_LAYOUT_PRESENT_SRC_KHR. The
-    * storage's lifetime is the command pool's lifetime. We increase the
-    * storage as needed, but never shrink it. Upon used by the cmd buffer, the
-    * storage must fit within command scope to avoid locking or suballocation.
+   /* The list contains the recycled query records allocated from the same
+    * command pool.
+    *
+    * For normal cmd pool, no additional locking is needed as below have
+    * already been protected by external synchronization:
+    * - alloc: record query, reset query and patch-in query records from the
+    *          secondary cmds
+    * - recycle: explicit and implicit cmd reset, cmd free and pool reset
+    * - free: pool purge reset and pool destroy
+    *
+    * For feedback cmd pool, external locking is needed for now for below:
+    * - alloc: queue submission
+    * - recycle: queue submission and companion cmd reset/free
+    * - free: device destroy
     */
-   struct {
-      void *data;
-      size_t size;
-   } tmp;
+   struct list_head free_query_records;
+
+   /* for scrubbing VK_IMAGE_LAYOUT_PRESENT_SRC_KHR */
+   struct vn_cached_storage storage;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(vn_command_pool,
                                base.base,
@@ -68,9 +74,11 @@ struct vn_command_buffer_builder {
    uint32_t view_mask;
    /* track if VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT was set */
    bool is_simultaneous;
-   /* track the query feedbacks deferred outside the render pass instance */
-   struct list_head query_batches;
+   /* track the recorded queries and resets */
+   struct list_head query_records;
 };
+
+struct vn_query_feedback_cmd;
 
 struct vn_command_buffer {
    struct vn_object_base base;
@@ -80,25 +88,45 @@ struct vn_command_buffer {
    enum vn_command_buffer_state state;
    struct vn_cs_encoder cs;
 
-   uint32_t draw_cmd_batched;
-
    struct vn_command_buffer_builder builder;
 
-   struct vn_command_buffer *linked_query_feedback_cmd;
+   struct vn_query_feedback_cmd *linked_qfb_cmd;
 
    struct list_head head;
-
-   struct list_head feedback_head;
 };
 VK_DEFINE_HANDLE_CASTS(vn_command_buffer,
                        base.base,
                        VkCommandBuffer,
                        VK_OBJECT_TYPE_COMMAND_BUFFER)
 
-struct vn_feedback_query_batch *
-vn_cmd_query_batch_alloc(struct vn_command_pool *pool,
-                         struct vn_query_pool *query_pool,
-                         uint32_t query,
-                         uint32_t query_count,
-                         bool copy);
+/* Queries recorded to support qfb.
+ * - query_count is the actual queries used with multiview considered
+ * - copy is whether the record is for result copy or query reset
+ *
+ * The query records are tracked at each cmd with the recording order. Those
+ * from the secondary cmds are patched into the primary ones at this moment.
+ */
+struct vn_cmd_query_record {
+   struct vn_query_pool *query_pool;
+   uint32_t query;
+   uint32_t query_count;
+   bool copy;
+
+   struct list_head head;
+};
+
+struct vn_cmd_query_record *
+vn_cmd_pool_alloc_query_record(struct vn_command_pool *cmd_pool,
+                               struct vn_query_pool *query_pool,
+                               uint32_t query,
+                               uint32_t query_count,
+                               bool copy);
+
+static inline void
+vn_cmd_pool_free_query_records(struct vn_command_pool *cmd_pool,
+                               struct list_head *query_records)
+{
+   list_splicetail(query_records, &cmd_pool->free_query_records);
+}
+
 #endif /* VN_COMMAND_BUFFER_H */

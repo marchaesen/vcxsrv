@@ -163,7 +163,7 @@ namespace {
 
 device::device(clover::platform &platform, pipe_loader_device *ldev) :
    platform(platform), clc_cache(NULL), ldev(ldev) {
-   pipe = pipe_loader_create_screen(ldev);
+   pipe = pipe_loader_create_screen(ldev, false);
    if (pipe && pipe->get_param(pipe, PIPE_CAP_COMPUTE)) {
       const bool has_supported_ir = supports_ir(PIPE_SHADER_IR_NATIVE) ||
                                     supports_ir(PIPE_SHADER_IR_NIR_SERIALIZED);

@@ -711,7 +711,7 @@ bind_image_textures(struct gl_context *ctx, GLuint first, GLuint count,
     *       their parameters are valid and no other error occurs."
     */
 
-   _mesa_HashLockMutex(ctx->Shared->TexObjects);
+   _mesa_HashLockMutex(&ctx->Shared->TexObjects);
 
    for (i = 0; i < count; i++) {
       struct gl_image_unit *u = &ctx->ImageUnits[first + i];
@@ -788,7 +788,7 @@ bind_image_textures(struct gl_context *ctx, GLuint first, GLuint count,
       }
    }
 
-   _mesa_HashUnlockMutex(ctx->Shared->TexObjects);
+   _mesa_HashUnlockMutex(&ctx->Shared->TexObjects);
 }
 
 void GLAPIENTRY

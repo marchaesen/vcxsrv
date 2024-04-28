@@ -17,6 +17,9 @@
 
 #include "pan_kmod_backend.h"
 
+/* Only needed for pan_arch(), don't add per-arch stuff here. */
+#include "genxml/gen_macros.h"
+
 const struct pan_kmod_ops panfrost_kmod_ops;
 
 struct panfrost_kmod_vm {
@@ -41,6 +44,13 @@ static struct pan_kmod_dev *
 panfrost_kmod_dev_create(int fd, uint32_t flags, drmVersionPtr version,
                          const struct pan_kmod_allocator *allocator)
 {
+   if (version->version_major < 1 ||
+       (version->version_major == 1 && version->version_minor < 1)) {
+      mesa_loge("kernel driver is too old (requires at least 1.1, found %d.%d)",
+                version->version_major, version->version_minor);
+      return NULL;
+   }
+
    struct panfrost_kmod_dev *panfrost_dev =
       pan_kmod_alloc(allocator, sizeof(*panfrost_dev));
    if (!panfrost_dev) {
@@ -85,6 +95,85 @@ panfrost_query_raw(int fd, enum drm_panfrost_param param, bool required,
 }
 
 static void
+panfrost_dev_query_thread_props(const struct pan_kmod_dev *dev,
+                                struct pan_kmod_dev_props *props)
+{
+   int fd = dev->fd;
+
+   props->max_threads_per_core =
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_MAX_THREADS, true, 0);
+   if (!props->max_threads_per_core) {
+      switch (pan_arch(props->gpu_prod_id)) {
+      case 4:
+      case 5:
+         props->max_threads_per_core = 256;
+         break;
+
+      case 6:
+         /* Bifrost, first generation */
+         props->max_threads_per_core = 384;
+         break;
+
+      case 7:
+         /* Bifrost, second generation (G31 is 512 but it doesn't matter) */
+         props->max_threads_per_core = 768;
+         break;
+
+      case 9:
+         /* Valhall, first generation. */
+         props->max_threads_per_core = 512;
+         break;
+
+      default:
+         assert(!"Unsupported arch");
+      }
+   }
+
+   props->max_threads_per_wg = panfrost_query_raw(
+      fd, DRM_PANFROST_PARAM_THREAD_MAX_WORKGROUP_SZ, true, 0);
+   if (!props->max_threads_per_wg)
+      props->max_threads_per_wg = props->max_threads_per_core;
+
+   uint32_t thread_features =
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_THREAD_FEATURES, true, 0);
+   props->num_registers_per_core = thread_features & 0xffff;
+   if (!props->num_registers_per_core) {
+      switch (pan_arch(props->gpu_prod_id)) {
+      case 4:
+      case 5:
+         /* Assume we can always schedule max_threads_per_core when using 4
+          * registers per-shader or less.
+          */
+         props->num_registers_per_core = props->max_threads_per_core * 4;
+         break;
+
+      case 6:
+         /* Assume we can always schedule max_threads_per_core for shader
+          * using the full per-shader register file (64 regs).
+          */
+         props->num_registers_per_core = props->max_threads_per_core * 64;
+         break;
+
+      case 7:
+      case 9:
+         /* Assume we can always schedule max_threads_per_core for shaders
+          * using half the per-shader register file (32 regs).
+          */
+         props->num_registers_per_core = props->max_threads_per_core * 32;
+         break;
+
+      default:
+         assert(!"Unsupported arch");
+      }
+   }
+
+   props->max_tls_instance_per_core =
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_THREAD_TLS_ALLOC, true, 0);
+   if (!props->max_tls_instance_per_core)
+      props->max_tls_instance_per_core = props->max_threads_per_core;
+}
+
+static void
 panfrost_dev_query_props(const struct pan_kmod_dev *dev,
                          struct pan_kmod_dev_props *props)
 {
@@ -96,44 +185,23 @@ panfrost_dev_query_props(const struct pan_kmod_dev *dev,
    props->gpu_revision =
       panfrost_query_raw(fd, DRM_PANFROST_PARAM_GPU_REVISION, true, 0);
    props->shader_present =
-      panfrost_query_raw(fd, DRM_PANFROST_PARAM_SHADER_PRESENT, false, 0xffff);
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_SHADER_PRESENT, true, 0);
    props->tiler_features =
-      panfrost_query_raw(fd, DRM_PANFROST_PARAM_TILER_FEATURES, false, 0x809);
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_TILER_FEATURES, true, 0);
    props->mem_features =
       panfrost_query_raw(fd, DRM_PANFROST_PARAM_MEM_FEATURES, true, 0);
    props->mmu_features =
-      panfrost_query_raw(fd, DRM_PANFROST_PARAM_MMU_FEATURES, false, 0);
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_MMU_FEATURES, true, 0);
 
    for (unsigned i = 0; i < ARRAY_SIZE(props->texture_features); i++) {
-      /* If unspecified, assume ASTC/ETC only. Factory default for Juno, and
-       * should exist on any Mali configuration. All hardware should report
-       * these texture formats but the kernel might not be new enough. */
-      static const uint32_t default_tex_features[4] = {
-         (1 << 1) |     // ETC2 RGB8
-            (1 << 2) |  // ETC2 R11 UNORM
-            (1 << 3) |  // ETC2 RGBA8
-            (1 << 4) |  // ETC2 RG11 UNORM
-            (1 << 17) | // ETC2 R11 SNORM
-            (1 << 18) | // ETC2 RG11 SNORM
-            (1 << 19) | // ETC2 RGB8A1
-            (1 << 20) | // ASTC 3D LDR
-            (1 << 21) | // ASTC 3D HDR
-            (1 << 22) | // ASTC 2D LDR
-            (1 << 23),  // ASTC 2D HDR
-         0,
-         0,
-         0,
-      };
-
-      props->texture_features[i] =
-         panfrost_query_raw(fd, DRM_PANFROST_PARAM_TEXTURE_FEATURES0 + i, false,
-                            default_tex_features[i]);
+      props->texture_features[i] = panfrost_query_raw(
+         fd, DRM_PANFROST_PARAM_TEXTURE_FEATURES0 + i, true, 0);
    }
 
-   props->thread_tls_alloc =
-      panfrost_query_raw(fd, DRM_PANFROST_PARAM_THREAD_TLS_ALLOC, false, 0);
    props->afbc_features =
-      panfrost_query_raw(fd, DRM_PANFROST_PARAM_AFBC_FEATURES, false, 0);
+      panfrost_query_raw(fd, DRM_PANFROST_PARAM_AFBC_FEATURES, true, 0);
+
+   panfrost_dev_query_thread_props(dev, props);
 }
 
 static uint32_t

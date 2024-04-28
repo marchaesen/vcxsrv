@@ -1,28 +1,6 @@
 /*
- * Copyright (C) 2008 Nicolai Haehnle.
- *
- * All Rights Reserved.
- *
- * Permission is hereby granted, free of charge, to any person obtaining
- * a copy of this software and associated documentation files (the
- * "Software"), to deal in the Software without restriction, including
- * without limitation the rights to use, copy, modify, merge, publish,
- * distribute, sublicense, and/or sell copies of the Software, and to
- * permit persons to whom the Software is furnished to do so, subject to
- * the following conditions:
- *
- * The above copyright notice and this permission notice (including the
- * next paragraph) shall be included in all copies or substantial
- * portions of the Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
- * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
- * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
- * IN NO EVENT SHALL THE COPYRIGHT OWNER(S) AND/OR ITS SUPPLIERS BE
- * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
- * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
- * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
+ * Copyright 2008 Nicolai Haehnle.
+ * SPDX-License-Identifier: MIT
  */
 
 /**
@@ -107,11 +85,6 @@ static struct rc_dst_register dstregtmpmask(int index, int mask)
 	return dst;
 }
 
-static const struct rc_src_register builtin_zero = {
-	.File = RC_FILE_NONE,
-	.Index = 0,
-	.Swizzle = RC_SWIZZLE_0000
-};
 static const struct rc_src_register builtin_one = {
 	.File = RC_FILE_NONE,
 	.Index = 0,
@@ -218,85 +191,6 @@ static void transform_RSQ(struct radeon_compiler* c,
 	inst->U.I.SrcReg[0] = absolute(inst->U.I.SrcReg[0]);
 }
 
-static void transform_SEQ(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, inst->U.I.SrcReg[0], negate(inst->U.I.SrcReg[1]));
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		negate(absolute(srcreg(RC_FILE_TEMPORARY, dst.Index))), builtin_zero, builtin_one);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SGE(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, inst->U.I.SrcReg[0], negate(inst->U.I.SrcReg[1]));
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		srcreg(RC_FILE_TEMPORARY, dst.Index), builtin_zero, builtin_one);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SGT(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, negate(inst->U.I.SrcReg[0]), inst->U.I.SrcReg[1]);
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		srcreg(RC_FILE_TEMPORARY, dst.Index), builtin_one, builtin_zero);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SLE(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, negate(inst->U.I.SrcReg[0]), inst->U.I.SrcReg[1]);
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		srcreg(RC_FILE_TEMPORARY, dst.Index), builtin_zero, builtin_one);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SLT(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, inst->U.I.SrcReg[0], negate(inst->U.I.SrcReg[1]));
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		srcreg(RC_FILE_TEMPORARY, dst.Index), builtin_one, builtin_zero);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SNE(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	struct rc_dst_register dst = new_dst_reg(c, inst);
-
-	emit2(c, inst->Prev, RC_OPCODE_ADD, NULL, dst, inst->U.I.SrcReg[0], negate(inst->U.I.SrcReg[1]));
-	emit3(c, inst->Prev, RC_OPCODE_CMP, &inst->U.I, inst->U.I.DstReg,
-		negate(absolute(srcreg(RC_FILE_TEMPORARY, dst.Index))), builtin_one, builtin_zero);
-
-	rc_remove_instruction(inst);
-}
-
-static void transform_SUB(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	inst->U.I.Opcode = RC_OPCODE_ADD;
-	inst->U.I.SrcReg[1] = negate(inst->U.I.SrcReg[1]);
-}
-
 static void transform_KILP(struct radeon_compiler * c,
 	struct rc_instruction * inst)
 {
@@ -307,11 +201,6 @@ static void transform_KILP(struct radeon_compiler * c,
 /**
  * Can be used as a transformation for @ref radeonClauseLocalTransform,
  * no userData necessary.
- *
- * Eliminates the following ALU instructions:
- *  LRP, SEQ, SGE, SGT, SLE, SLT, SNE, SUB
- * using:
- *  MOV, ADD, MUL, MAD, FRC, DP3, LG2, EX2, CMP
  *
  * Transforms RSQ to Radeon's native RSQ by explicitly setting
  * absolute value.
@@ -327,13 +216,10 @@ int radeonTransformALU(
 	case RC_OPCODE_DP2: transform_DP2(c, inst); return 1;
 	case RC_OPCODE_KILP: transform_KILP(c, inst); return 1;
 	case RC_OPCODE_RSQ: transform_RSQ(c, inst); return 1;
-	case RC_OPCODE_SEQ: transform_SEQ(c, inst); return 1;
-	case RC_OPCODE_SGE: transform_SGE(c, inst); return 1;
-	case RC_OPCODE_SGT: transform_SGT(c, inst); return 1;
-	case RC_OPCODE_SLE: transform_SLE(c, inst); return 1;
-	case RC_OPCODE_SLT: transform_SLT(c, inst); return 1;
-	case RC_OPCODE_SNE: transform_SNE(c, inst); return 1;
-	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
+	case RC_OPCODE_SEQ: unreachable();
+	case RC_OPCODE_SGE: unreachable();
+	case RC_OPCODE_SLT: unreachable();
+	case RC_OPCODE_SNE: unreachable();
 	default:
 		return 0;
 	}
@@ -451,24 +337,6 @@ static void transform_r300_vertex_SNE(struct radeon_compiler *c,
 	rc_remove_instruction(inst);
 }
 
-static void transform_r300_vertex_SGT(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	/* x > y  <==>  -x < -y */
-	inst->U.I.Opcode = RC_OPCODE_SLT;
-	inst->U.I.SrcReg[0].Negate ^= RC_MASK_XYZW;
-	inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
-}
-
-static void transform_r300_vertex_SLE(struct radeon_compiler* c,
-	struct rc_instruction* inst)
-{
-	/* x <= y  <==>  -x >= -y */
-	inst->U.I.Opcode = RC_OPCODE_SGE;
-	inst->U.I.SrcReg[0].Negate ^= RC_MASK_XYZW;
-	inst->U.I.SrcReg[1].Negate ^= RC_MASK_XYZW;
-}
-
 /**
  * For use with rc_local_transform, this transforms non-native ALU
  * instructions of the r300 up to r500 vertex engine.
@@ -489,15 +357,12 @@ int r300_transform_vertex_alu(
 			return 1;
 		}
 		return 0;
-	case RC_OPCODE_SGT: transform_r300_vertex_SGT(c, inst); return 1;
-	case RC_OPCODE_SLE: transform_r300_vertex_SLE(c, inst); return 1;
 	case RC_OPCODE_SNE:
 		if (!c->is_r500) {
 			transform_r300_vertex_SNE(c, inst);
 			return 1;
 		}
 		return 0;
-	case RC_OPCODE_SUB: transform_SUB(c, inst); return 1;
 	default:
 		return 0;
 	}

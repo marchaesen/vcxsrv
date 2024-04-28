@@ -39,6 +39,8 @@
 
 #include "pixman-arm-asm.h"
 
+	pixman_syntax_unified
+
 /*
  * Note: This code is only using armv5te instructions (not even armv6),
  *       but is scheduled for ARM Cortex-A8 pipeline. So it might need to
@@ -62,7 +64,7 @@
                                       prefetch_distance,        \
                                       prefetch_braking_distance
 
-pixman_asm_function fname
+pixman_asm_function \fname
 	W		.req	r0
 	DST		.req	r1
 	SRC		.req	r2
@@ -76,39 +78,39 @@ pixman_asm_function fname
 
 	ldr	UNIT_X, [sp]
 	push	{r4, r5, r6, r7, r8, r10}
-	mvn	VXMASK, #((1 << bpp_shift) - 1)
+	mvn	VXMASK, #((1 << \bpp_shift) - 1)
 	ldr	SRC_WIDTH_FIXED, [sp, #28]
 
 	/* define helper macro */
 	.macro	scale_2_pixels
-		ldr&t	TMP1, [SRC, TMP1]
-		and	TMP2, VXMASK, VX, asr #(16 - bpp_shift)
+		ldr\()\t	TMP1, [SRC, TMP1]
+		and	TMP2, VXMASK, VX, asr #(16 - \bpp_shift)
 		adds	VX, VX, UNIT_X
-		str&t	TMP1, [DST], #(1 << bpp_shift)
-9:		subpls	VX, VX, SRC_WIDTH_FIXED
+		str\()\t	TMP1, [DST], #(1 << \bpp_shift)
+9:		subspl	VX, VX, SRC_WIDTH_FIXED
 		bpl	9b
 
-		ldr&t	TMP2, [SRC, TMP2]
-		and	TMP1, VXMASK, VX, asr #(16 - bpp_shift)
+		ldr\()\t	TMP2, [SRC, TMP2]
+		and	TMP1, VXMASK, VX, asr #(16 - \bpp_shift)
 		adds	VX, VX, UNIT_X
-		str&t	TMP2, [DST], #(1 << bpp_shift)
-9:		subpls	VX, VX, SRC_WIDTH_FIXED
+		str\()\t	TMP2, [DST], #(1 << \bpp_shift)
+9:		subspl	VX, VX, SRC_WIDTH_FIXED
 		bpl	9b
 	.endm
 
 	/* now do the scaling */
-	and	TMP1, VXMASK, VX, asr #(16 - bpp_shift)
+	and	TMP1, VXMASK, VX, asr #(16 - \bpp_shift)
 	adds	VX, VX, UNIT_X
-9:	subpls	VX, VX, SRC_WIDTH_FIXED
+9:	subspl	VX, VX, SRC_WIDTH_FIXED
 	bpl	9b
-	subs	W, W, #(8 + prefetch_braking_distance)
+	subs	W, W, #(8 + \prefetch_braking_distance)
 	blt	2f
 	/* calculate prefetch offset */
-	mov	PF_OFFS, #prefetch_distance
+	mov	PF_OFFS, #\prefetch_distance
 	mla	PF_OFFS, UNIT_X, PF_OFFS, VX
 1:	/* main loop, process 8 pixels per iteration with prefetch */
-	pld	[SRC, PF_OFFS, asr #(16 - bpp_shift)]
-	add	PF_OFFS, UNIT_X, lsl #3
+	pld	[SRC, PF_OFFS, asr #(16 - \bpp_shift)]
+	add	PF_OFFS, PF_OFFS, UNIT_X, lsl #3
 	scale_2_pixels
 	scale_2_pixels
 	scale_2_pixels
@@ -116,7 +118,7 @@ pixman_asm_function fname
 	subs	W, W, #8
 	bge	1b
 2:
-	subs	W, W, #(4 - 8 - prefetch_braking_distance)
+	subs	W, W, #(4 - 8 - \prefetch_braking_distance)
 	blt	2f
 1:	/* process the remaining pixels */
 	scale_2_pixels
@@ -129,8 +131,8 @@ pixman_asm_function fname
 	scale_2_pixels
 2:
 	tst	W, #1
-	ldrne&t	TMP1, [SRC, TMP1]
-	strne&t	TMP1, [DST]
+	ldr\()\t\()ne	TMP1, [SRC, TMP1]
+	str\()\t\()ne	TMP1, [DST]
 	/* cleanup helper macro */
 	.purgem	scale_2_pixels
 	.unreq	DST
@@ -146,7 +148,7 @@ pixman_asm_function fname
 	/* return */
 	pop	{r4, r5, r6, r7, r8, r10}
 	bx	lr
-.endfunc
+	pixman_end_asm_function
 .endm
 
 generate_nearest_scanline_func \

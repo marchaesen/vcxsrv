@@ -31,6 +31,9 @@ from The Open Group.
 #endif
 
 #include <X11/X.h>
+
+#include "mi/mi_priv.h"
+
 #include "servermd.h"
 #include "misc.h"
 #include "mi.h"
@@ -55,6 +58,8 @@ from The Open Group.
 typedef struct {
     void *pbits;                /* pointer to framebuffer */
     int width;                  /* delta to add to a framebuffer addr to move one row down */
+    int xsize;
+    int ysize;
 } miScreenInitParmsRec, *miScreenInitParmsPtr;
 
 /* this plugs into pScreen->ModifyPixmapHeader */
@@ -166,8 +171,8 @@ miCreateScreenResources(ScreenPtr pScreen)
         if (!pPixmap)
             return FALSE;
 
-        if (!(*pScreen->ModifyPixmapHeader) (pPixmap, pScreen->width,
-                                             pScreen->height,
+        if (!(*pScreen->ModifyPixmapHeader) (pPixmap, pScrInitParms->xsize,
+                                             pScrInitParms->ysize,
                                              pScreen->rootDepth,
                                              BitsPerPixel(pScreen->rootDepth),
                                              PixmapBytePad(pScrInitParms->width,
@@ -184,8 +189,8 @@ miCreateScreenResources(ScreenPtr pScreen)
     return TRUE;
 }
 
-Bool
-miScreenDevPrivateInit(ScreenPtr pScreen, int width, void *pbits)
+static Bool
+miScreenDevPrivateInit(ScreenPtr pScreen, int width, void *pbits, int xsize, int ysize)
 {
     miScreenInitParmsPtr pScrInitParms;
 
@@ -198,6 +203,8 @@ miScreenDevPrivateInit(ScreenPtr pScreen, int width, void *pbits)
         return FALSE;
     pScrInitParms->pbits = pbits;
     pScrInitParms->width = width;
+    pScrInitParms->xsize = xsize;
+    pScrInitParms->ysize = ysize;
     pScreen->devPrivate = (void *) pScrInitParms;
     return TRUE;
 }
@@ -291,7 +298,7 @@ miScreenInit(ScreenPtr pScreen, void *pbits,  /* pointer to screen bits */
 
     miSetZeroLineBias(pScreen, DEFAULTZEROLINEBIAS);
 
-    return miScreenDevPrivateInit(pScreen, width, pbits);
+    return miScreenDevPrivateInit(pScreen, width, pbits, xsize, ysize);
 }
 
 DevPrivateKeyRec miZeroLineScreenKeyRec;
@@ -304,4 +311,12 @@ miSetZeroLineBias(ScreenPtr pScreen, unsigned int bias)
 
     dixSetPrivate(&pScreen->devPrivates, miZeroLineScreenKey,
                   (unsigned long *) (uintptr_t) bias);
+}
+
+void miScreenClose(ScreenPtr pScreen)
+{
+    if (pScreen->devPrivate) {
+        free(pScreen->devPrivate);
+        pScreen->devPrivate = NULL;
+    }
 }

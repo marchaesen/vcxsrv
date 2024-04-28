@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_NIR_FORMAT_HELPERS_H
-#define __AGX_NIR_FORMAT_HELPERS_H
+#pragma once
 
 #include "util/format/u_formats.h"
 #include "nir_builder.h"
@@ -28,5 +27,3 @@ nir_sign_extend_if_sint(nir_builder *b, nir_def *x, enum pipe_format format)
 
    return nir_format_sign_extend_ivec(b, x, bits);
 }
-
-#endif

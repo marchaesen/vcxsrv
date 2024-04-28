@@ -401,7 +401,7 @@ __OUT_IB5(struct fd_ringbuffer *ring, struct fd_ringbuffer *target)
  */
 #define HW_QUERY_BASE_REG REG_AXXX_CP_SCRATCH_REG4
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #define __EMIT_MARKER 1
 #else
 #define __EMIT_MARKER 0

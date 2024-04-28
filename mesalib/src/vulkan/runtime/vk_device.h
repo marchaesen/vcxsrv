@@ -38,6 +38,7 @@ extern "C" {
 #endif
 
 struct vk_command_buffer_ops;
+struct vk_device_shader_ops;
 struct vk_sync;
 
 enum vk_queue_submit_mode {
@@ -130,6 +131,9 @@ struct vk_device {
    /** Command buffer vtable when using the common command pool */
    const struct vk_command_buffer_ops *command_buffer_ops;
 
+   /** Shader vtable for VK_EXT_shader_object and common pipelines */
+   const struct vk_device_shader_ops *shader_ops;
+
    /** Driver provided callback for capturing traces
     * 
     * Triggers for this callback are:
@@ -190,6 +194,9 @@ struct vk_device {
 
    /* Set by vk_device_set_drm_fd() */
    int drm_fd;
+
+   /** Implicit pipeline cache, or NULL */
+   struct vk_pipeline_cache *mem_cache;
 
    /** An enum describing how timeline semaphores work */
    enum vk_device_timeline_mode {

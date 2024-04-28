@@ -112,8 +112,7 @@ hud_draw_colored_prims(struct hud_context *hud, unsigned prim,
                  &vbuffer.buffer_offset, &vbuffer.buffer.resource);
    u_upload_unmap(hud->pipe->stream_uploader);
 
-   cso_set_vertex_buffers(cso, 1, 0, false, &vbuffer);
-   pipe_resource_reference(&vbuffer.buffer.resource, NULL);
+   cso_set_vertex_buffers(cso, 1, true, &vbuffer);
    cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
    cso_draw_arrays(cso, prim, 0, num_vertices);
 }
@@ -601,21 +600,25 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
 
       pipe->set_constant_buffer(pipe, PIPE_SHADER_VERTEX, 0, false, &hud->constbuf);
 
-      cso_set_vertex_buffers(cso, 1, 0, false, &hud->bg.vbuf);
+      cso_set_vertex_buffers(cso, 1, true, &hud->bg.vbuf);
       cso_draw_arrays(cso, MESA_PRIM_QUADS, 0, hud->bg.num_vertices);
+      hud->bg.vbuf.buffer.resource = NULL;
+   } else {
+      pipe_resource_reference(&hud->bg.vbuf.buffer.resource, NULL);
    }
-   pipe_resource_reference(&hud->bg.vbuf.buffer.resource, NULL);
 
    /* draw accumulated vertices for text */
    if (hud->text.num_vertices) {
       cso_set_vertex_shader_handle(cso, hud->vs_text);
       cso_set_vertex_elements(cso, &hud->text_velems);
-      cso_set_vertex_buffers(cso, 1, 0, false, &hud->text.vbuf);
+      cso_set_vertex_buffers(cso, 1, true, &hud->text.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_text);
       cso_draw_arrays(cso, MESA_PRIM_QUADS, 0, hud->text.num_vertices);
       cso_set_vertex_elements(cso, &hud->velems);
+      hud->text.vbuf.buffer.resource = NULL;
+   } else {
+      pipe_resource_reference(&hud->text.vbuf.buffer.resource, NULL);
    }
-   pipe_resource_reference(&hud->text.vbuf.buffer.resource, NULL);
 
    if (hud->simple)
       goto done;
@@ -635,11 +638,13 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
 
    if (hud->whitelines.num_vertices) {
       cso_set_vertex_shader_handle(cso, hud->vs_color);
-      cso_set_vertex_buffers(cso, 1, 0, false, &hud->whitelines.vbuf);
+      cso_set_vertex_buffers(cso, 1, true, &hud->whitelines.vbuf);
       cso_set_fragment_shader_handle(hud->cso, hud->fs_color);
       cso_draw_arrays(cso, MESA_PRIM_LINES, 0, hud->whitelines.num_vertices);
+      hud->whitelines.vbuf.buffer.resource = NULL;
+   } else {
+      pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, NULL);
    }
-   pipe_resource_reference(&hud->whitelines.vbuf.buffer.resource, NULL);
 
    /* draw the rest */
    cso_set_blend(cso, &hud->alpha_blend);
@@ -650,7 +655,7 @@ hud_draw_results(struct hud_context *hud, struct pipe_resource *tex)
    }
 
 done:
-   cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEW0 | CSO_UNBIND_VS_CONSTANTS | CSO_UNBIND_VERTEX_BUFFER0);
+   cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEW0 | CSO_UNBIND_VS_CONSTANTS);
 
    /* restore states not restored by cso */
    if (hud->st) {
@@ -998,16 +1003,16 @@ hud_graph_add_value(struct hud_graph *gr, double value)
    value = value > gr->pane->ceiling ? gr->pane->ceiling : value;
 
    if (gr->fd) {
-      if (gr->fd == stdout) {
+      if (gr->fd == stdout && !gr->separator) {
          fprintf(gr->fd, "%s: ", gr->name);
       }
       if (fabs(value - lround(value)) > FLT_EPSILON) {
          fprintf(gr->fd, get_float_modifier(value), value);
-         fprintf(gr->fd, "\n");
       }
       else {
-         fprintf(gr->fd, "%" PRIu64 "\n", (uint64_t) lround(value));
+         fprintf(gr->fd, "%" PRIu64, (uint64_t) lround(value));
       }
+      fprintf(gr->fd, "%s", gr->separator ? gr->separator : "\n");
    }
 
    if (gr->index == gr->pane->max_num_vertices) {
@@ -1073,7 +1078,8 @@ static void strcat_without_spaces(char *dst, const char *src)
  * is a HUD variable such as "fps", or "cpu"
  */
 static void
-hud_graph_set_dump_file(struct hud_graph *gr, const char *hud_dump_dir, bool to_stdout)
+hud_graph_set_dump_file(struct hud_graph *gr, const char *hud_dump_dir,
+                        bool to_stdout, const char *separator)
 {
    if (hud_dump_dir) {
       char *dump_file = malloc(strlen(hud_dump_dir) + sizeof(PATH_SEP)
@@ -1093,6 +1099,8 @@ hud_graph_set_dump_file(struct hud_graph *gr, const char *hud_dump_dir, bool to_
       /* flush output after each line is written */
       setvbuf(gr->fd, NULL, _IOLBF, 0);
    }
+
+   gr->separator = separator;
 }
 
 /**
@@ -1231,6 +1239,7 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
    bool dyn_ceiling = false;
    bool reset_colors = false;
    bool sort_items = false;
+   bool is_csv = false;
    bool to_stdout = false;
    const char *period_env;
 
@@ -1395,6 +1404,10 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
       else if (strcmp(name, "stdout") == 0) {
          to_stdout = true;
       }
+      else if (strcmp(name, "csv") == 0) {
+         to_stdout = true;
+         is_csv = true;
+      }
       else {
          bool processed = false;
 
@@ -1551,7 +1564,16 @@ hud_parse_env_var(struct hud_context *hud, struct pipe_screen *screen,
          struct hud_graph *gr;
 
          LIST_FOR_EACH_ENTRY(gr, &pane->graph_list, head) {
-            hud_graph_set_dump_file(gr, hud_dump_dir, to_stdout);
+            char *separator = NULL;
+
+            if (is_csv) {
+               if (gr ==
+                   list_last_entry(&pane->graph_list, struct hud_graph, head))
+                  separator = "\n";
+               else
+                  separator = ", ";
+            }
+            hud_graph_set_dump_file(gr, hud_dump_dir, to_stdout, separator);
          }
       }
    }
@@ -1610,6 +1632,7 @@ print_help(struct pipe_screen *screen)
    puts("");
    puts("  Available names:");
    puts("    stdout (prints the counters value to stdout)");
+   puts("    csv (prints the counter values to stdout as CSV, use + to separate names)");
    puts("    fps");
    puts("    frametime");
    puts("    cpu");

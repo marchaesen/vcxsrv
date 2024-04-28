@@ -84,6 +84,9 @@ struct dri_drawable
    unsigned int lastStamp;
    int w, h;
 
+   /* generic for swrast */
+   unsigned buffer_age;
+
    /* kopper */
    struct kopper_loader_info info;
    __DRIimage   *image; //texture_from_pixmap
@@ -109,6 +112,7 @@ struct dri_drawable
                              struct dri_drawable *drawable);
 
    void (*swap_buffers)(struct dri_drawable *drawable);
+   void (*swap_buffers_with_damage)(struct dri_drawable *drawable, int nrects, const int *rects);
 };
 
 /* Typecast the opaque pointer to our own type. */

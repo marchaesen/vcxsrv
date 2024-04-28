@@ -483,6 +483,13 @@ struct v3d_job {
         bool decided_global_ez_enable;
 
         /**
+         * When we decide if we nee to disable early Z/S gobally, track the
+         * Z-state we used to make that decision so we can change the decision
+         * if the state changes.
+         */
+        struct v3d_depth_stencil_alpha_state *global_ez_zsa_decision_state;
+
+        /**
          * If this job has been configured to use early Z/S clear.
          */
         bool early_zs_clear;

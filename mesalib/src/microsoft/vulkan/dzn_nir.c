@@ -84,47 +84,16 @@ dzn_nir_create_bo_desc(nir_builder *b,
 }
 
 nir_shader *
-dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
+dzn_nir_indirect_draw_shader(struct dzn_indirect_draw_type type)
 {
-   const char *type_str[] = {
-      "draw",
-      "draw_count",
-      "indexed_draw",
-      "indexed_draw_count",
-      "draw_triangle_fan",
-      "draw_count_triangle_fan",
-      "indexed_draw_triangle_fan",
-      "indexed_draw_count_triangle_fan",
-      "indexed_draw_triangle_fan_prim_restart",
-      "indexed_draw_count_triangle_fan_prim_restart",
-   };
-
-   assert(type < ARRAY_SIZE(type_str));
-
-   bool indexed = type == DZN_INDIRECT_INDEXED_DRAW ||
-                  type == DZN_INDIRECT_INDEXED_DRAW_COUNT ||
-                  type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN ||
-                  type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN ||
-                  type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART ||
-                  type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
-   bool triangle_fan = type == DZN_INDIRECT_DRAW_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_DRAW_COUNT_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
-   bool indirect_count = type == DZN_INDIRECT_DRAW_COUNT ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT ||
-                         type == DZN_INDIRECT_DRAW_COUNT_TRIANGLE_FAN ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN ||
-                         type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
-   bool prim_restart = type == DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART ||
-                       type == DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART;
    nir_builder b =
       nir_builder_init_simple_shader(MESA_SHADER_COMPUTE,
                                      dxil_get_base_nir_compiler_options(),
-                                     "dzn_meta_indirect_%s()",
-                                     type_str[type]);
+                                     "dzn_meta_indirect_%sdraw%s%s%s()",
+                                     type.indexed ? "indexed_" : "",
+                                     type.indirect_count ? "_count" : "",
+                                     type.triangle_fan ? "_triangle_fan" : "",
+                                     type.triangle_fan_primitive_restart ? "_primitive_restart" : "");
    b.shader->info.internal = true;
 
    nir_def *params_desc =
@@ -134,8 +103,8 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
    nir_def *exec_buf_desc =
       dzn_nir_create_bo_desc(&b, nir_var_mem_ssbo, 0, 2, "exec_buf", ACCESS_NON_READABLE);
 
-   unsigned params_size;
-   if (triangle_fan)
+   unsigned params_size = 0;
+   if (type.triangle_fan)
       params_size = sizeof(struct dzn_indirect_draw_triangle_fan_rewrite_params);
    else
       params_size = sizeof(struct dzn_indirect_draw_rewrite_params);
@@ -145,15 +114,24 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
                    params_desc, nir_imm_int(&b, 0),
                    .align_mul = 4, .align_offset = 0, .range_base = 0, .range = ~0);
 
+   uint32_t exec_stride_imm = 0;
+   uint32_t draw_args_offset = 0;
+   if (type.triangle_fan)
+      exec_stride_imm += sizeof(D3D12_INDEX_BUFFER_VIEW);
+   if (type.draw_params)
+      exec_stride_imm += sizeof(uint32_t) * 2;
+   if (type.draw_id)
+      exec_stride_imm += sizeof(uint32_t);
+   draw_args_offset = exec_stride_imm;
+   exec_stride_imm += (type.indexed || type.triangle_fan) ?
+      sizeof(D3D12_DRAW_INDEXED_ARGUMENTS) : sizeof(D3D12_DRAW_ARGUMENTS);
+
    nir_def *draw_stride = nir_channel(&b, params, 0);
-   nir_def *exec_stride =
-      triangle_fan ?
-      nir_imm_int(&b, sizeof(struct dzn_indirect_triangle_fan_draw_exec_params)) :
-      nir_imm_int(&b, sizeof(struct dzn_indirect_draw_exec_params));
+   nir_def *exec_stride = nir_imm_int(&b, exec_stride_imm);
    nir_def *index =
       nir_channel(&b, nir_load_global_invocation_id(&b, 32), 0);
 
-   if (indirect_count) {
+   if (type.indirect_count) {
       nir_def *count_buf_desc =
          dzn_nir_create_bo_desc(&b, nir_var_mem_ssbo, 0, 3, "count_buf", ACCESS_NON_WRITEABLE);
 
@@ -173,37 +151,40 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
 
    /* The first entry contains the indirect count */
    nir_def *exec_offset =
-      indirect_count ?
+      type.indirect_count ?
       nir_imul(&b, exec_stride, nir_iadd_imm(&b, index, 1)) : 
       nir_imul(&b, exec_stride, index);
 
    nir_def *draw_info1 =
       nir_load_ssbo(&b, 4, 32, draw_buf_desc, draw_offset, .align_mul = 4);
    nir_def *draw_info2 =
-      indexed ?
+      type.indexed ?
       nir_load_ssbo(&b, 1, 32, draw_buf_desc,
                     nir_iadd_imm(&b, draw_offset, 16), .align_mul = 4) :
       nir_imm_int(&b, 0);
 
-   nir_def *first_vertex = nir_channel(&b, draw_info1, indexed ? 3 : 2);
+   nir_def *first_vertex = nir_channel(&b, draw_info1, type.indexed ? 3 : 2);
    nir_def *base_instance =
-      indexed ? draw_info2 : nir_channel(&b, draw_info1, 3);
+      type.indexed ? draw_info2 : nir_channel(&b, draw_info1, 3);
 
-   nir_def *exec_vals[8] = {
-      first_vertex,
-      base_instance,
-      index,
-   };
+   uint32_t exec_val_idx = 0;
+   nir_def *exec_vals[8] = { NULL };
+   if (type.draw_params) {
+      exec_vals[exec_val_idx++] = first_vertex;
+      exec_vals[exec_val_idx++] = base_instance;
+   }
+   if (type.draw_id)
+      exec_vals[exec_val_idx++] = index;
 
-   if (triangle_fan) {
+   if (type.triangle_fan) {
       /* Patch {vertex,index}_count and first_index */
       nir_def *triangle_count =
          nir_usub_sat(&b, nir_channel(&b, draw_info1, 0), nir_imm_int(&b, 2));
-      exec_vals[3] = nir_imul_imm(&b, triangle_count, 3);
-      exec_vals[4] = nir_channel(&b, draw_info1, 1);
-      exec_vals[5] = nir_imm_int(&b, 0);
-      exec_vals[6] = first_vertex;
-      exec_vals[7] = base_instance;
+      exec_vals[exec_val_idx++] = nir_imul_imm(&b, triangle_count, 3);
+      exec_vals[exec_val_idx++] = nir_channel(&b, draw_info1, 1);
+      exec_vals[exec_val_idx++] = nir_imm_int(&b, 0);
+      exec_vals[exec_val_idx++] = first_vertex;
+      exec_vals[exec_val_idx++] = base_instance;
 
       nir_def *triangle_fan_exec_buf_desc =
          dzn_nir_create_bo_desc(&b, nir_var_mem_ssbo, 0, 4,
@@ -225,11 +206,11 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
       triangle_fan_exec_vals[triangle_fan_exec_param_count++] = triangle_fan_index_buf_addr_lo;
       triangle_fan_exec_vals[triangle_fan_exec_param_count++] = triangle_fan_index_buf_addr_hi;
 
-      if (prim_restart) {
+      if (type.triangle_fan_primitive_restart) {
          triangle_fan_exec_vals[triangle_fan_exec_param_count++] = nir_channel(&b, draw_info1, 2);
          triangle_fan_exec_vals[triangle_fan_exec_param_count++] = nir_channel(&b, draw_info1, 0);
-         uint32_t index_count_offset =
-            offsetof(struct dzn_indirect_triangle_fan_draw_exec_params, indexed_draw.index_count);
+         uint32_t index_count_offset = draw_args_offset +
+            offsetof(D3D12_DRAW_INDEXED_ARGUMENTS, IndexCountPerInstance);
          nir_def *exec_buf_start =
             nir_load_ubo(&b, 2, 32,
                          params_desc, nir_imm_int(&b, 16),
@@ -247,7 +228,7 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
          triangle_fan_exec_vals[triangle_fan_exec_param_count++] = nir_imm_int(&b, 1);
       } else {
          triangle_fan_exec_vals[triangle_fan_exec_param_count++] =
-            indexed ? nir_channel(&b, draw_info1, 2) : nir_imm_int(&b, 0);
+            type.indexed ? nir_channel(&b, draw_info1, 2) : nir_imm_int(&b, 0);
          triangle_fan_exec_vals[triangle_fan_exec_param_count++] =
             triangle_count;
       }
@@ -255,7 +236,7 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
       triangle_fan_exec_vals[triangle_fan_exec_param_count++] = nir_imm_int(&b, 1);
 
       unsigned rewrite_index_exec_params =
-         prim_restart ?
+         type.triangle_fan_primitive_restart ?
          sizeof(struct dzn_indirect_triangle_fan_prim_restart_rewrite_index_exec_params) :
          sizeof(struct dzn_indirect_triangle_fan_rewrite_index_exec_params);
       nir_def *triangle_fan_exec_stride =
@@ -285,21 +266,24 @@ dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type)
                      .write_mask = 0xf, .access = ACCESS_NON_READABLE, .align_mul = 16);
       exec_offset = nir_iadd_imm(&b, exec_offset, ARRAY_SIZE(ibview_vals) * 4);
    } else {
-      exec_vals[3] = nir_channel(&b, draw_info1, 0);
-      exec_vals[4] = nir_channel(&b, draw_info1, 1);
-      exec_vals[5] = nir_channel(&b, draw_info1, 2);
-      exec_vals[6] = nir_channel(&b, draw_info1, 3);
-      exec_vals[7] = draw_info2;
+      exec_vals[exec_val_idx++] = nir_channel(&b, draw_info1, 0);
+      exec_vals[exec_val_idx++] = nir_channel(&b, draw_info1, 1);
+      exec_vals[exec_val_idx++] = nir_channel(&b, draw_info1, 2);
+      exec_vals[exec_val_idx++] = nir_channel(&b, draw_info1, 3);
+      if (type.indexed)
+         exec_vals[exec_val_idx++] = draw_info2;
    }
 
-   nir_store_ssbo(&b, nir_vec(&b, exec_vals, 4),
+   nir_store_ssbo(&b, nir_vec(&b, exec_vals, MIN2(exec_val_idx, 4)),
                   exec_buf_desc, exec_offset,
-                  .write_mask = 0xf, .access = ACCESS_NON_READABLE, .align_mul = 16);
-   nir_store_ssbo(&b, nir_vec(&b, &exec_vals[4], 4),
-                  exec_buf_desc, nir_iadd_imm(&b, exec_offset, 16),
-                  .write_mask = 0xf, .access = ACCESS_NON_READABLE, .align_mul = 16);
+                  .write_mask = ((1 << exec_val_idx) - 1) & 0xf, .access = ACCESS_NON_READABLE, .align_mul = 16);
+   if (exec_val_idx > 4) {
+      nir_store_ssbo(&b, nir_vec(&b, &exec_vals[4], exec_val_idx - 4),
+                     exec_buf_desc, nir_iadd_imm(&b, exec_offset, 16),
+                     .write_mask = ((1 << (exec_val_idx - 4)) - 1) & 0xf, .access = ACCESS_NON_READABLE, .align_mul = 16);
+   }
 
-   if (indirect_count)
+   if (type.indirect_count)
       nir_pop_if(&b, NULL);
 
    return b.shader;
@@ -650,11 +634,13 @@ dzn_nir_blit_fs(const struct dzn_nir_blit_info *info)
 
    uint32_t out_comps =
       (info->loc == FRAG_RESULT_DEPTH || info->loc == FRAG_RESULT_STENCIL) ? 1 : 4;
-   nir_variable *out =
-      nir_variable_create(b.shader, nir_var_shader_out,
-                          glsl_vector_type(info->out_type, out_comps),
-                          "out");
-   out->data.location = info->loc;
+   nir_variable *out = NULL;
+   if (!info->stencil_fallback) {
+      out = nir_variable_create(b.shader, nir_var_shader_out,
+                                glsl_vector_type(info->out_type, out_comps),
+                                "out");
+      out->data.location = info->loc;
+   }
 
    nir_def *res = NULL;
 
@@ -771,7 +757,16 @@ dzn_nir_blit_fs(const struct dzn_nir_blit_info *info)
       res = &tex->def;
    }
 
-   nir_store_var(&b, out, nir_trim_vector(&b, res, out_comps), 0xf);
+   if (info->stencil_fallback) {
+      nir_def *mask_desc =
+         dzn_nir_create_bo_desc(&b, nir_var_mem_ubo, 0, 0, "mask", 0);
+      nir_def *mask = nir_load_ubo(&b, 1, 32, mask_desc, nir_imm_int(&b, 0),
+         .align_mul = 16, .align_offset = 0, .range_base = 0, .range = ~0);
+      nir_def *fail = nir_ieq_imm(&b, nir_iand(&b, nir_channel(&b, res, 0), mask), 0);
+      nir_discard_if(&b, fail);
+   } else {
+      nir_store_var(&b, out, nir_trim_vector(&b, res, out_comps), 0xf);
+   }
 
    return b.shader;
 }

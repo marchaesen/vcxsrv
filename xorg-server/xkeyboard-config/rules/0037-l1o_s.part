@@ -10,3 +10,4 @@
   *			grp:ctrl_space_toggle	= +group(ctrl_space_toggle):1
   *			grp:rctrl_rshift_toggle	= +group(rctrl_rshift_toggle):1
   *			grp:shifts_toggle	= +group(shifts_toggle):1
+  $azerty		caps:digits_row		= +capslock(digits_row):1

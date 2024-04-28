@@ -1,25 +1,7 @@
 /*
  * Copyright © 2018 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_instruction_selection.h"
@@ -34,35 +16,6 @@
 namespace aco {
 
 namespace {
-
-bool
-is_loop_header_block(nir_block* block)
-{
-   return block->cf_node.parent->type == nir_cf_node_loop &&
-          block == nir_loop_first_block(nir_cf_node_as_loop(block->cf_node.parent));
-}
-
-/* similar to nir_block_is_unreachable(), but does not require dominance information */
-bool
-is_block_reachable(nir_function_impl* impl, nir_block* known_reachable, nir_block* block)
-{
-   if (block == nir_start_block(impl) || block == known_reachable)
-      return true;
-
-   /* skip loop back-edges */
-   if (is_loop_header_block(block)) {
-      nir_loop* loop = nir_cf_node_as_loop(block->cf_node.parent);
-      nir_block* preheader = nir_block_cf_tree_prev(nir_loop_first_block(loop));
-      return is_block_reachable(impl, known_reachable, preheader);
-   }
-
-   set_foreach (block->predecessors, entry) {
-      if (is_block_reachable(impl, known_reachable, (nir_block*)entry->key))
-         return true;
-   }
-
-   return false;
-}
 
 /* Check whether the given SSA def is only used by cross-lane instructions. */
 bool
@@ -109,25 +62,24 @@ only_used_by_cross_lane_instrs(nir_def* ssa, bool follow_phis = true)
 /* If one side of a divergent IF ends in a branch and the other doesn't, we
  * might have to emit the contents of the side without the branch at the merge
  * block instead. This is so that we can use any SGPR live-out of the side
- * without the branch without creating a linear phi in the invert or merge block. */
+ * without the branch without creating a linear phi in the invert or merge block.
+ *
+ * This also removes any unreachable merge blocks.
+ */
 bool
 sanitize_if(nir_function_impl* impl, nir_if* nif)
 {
-   // TODO: skip this if the condition is uniform and there are no divergent breaks/continues?
-
    nir_block* then_block = nir_if_last_then_block(nif);
    nir_block* else_block = nir_if_last_else_block(nif);
-   bool then_jump = nir_block_ends_in_jump(then_block) ||
-                    !is_block_reachable(impl, nir_if_first_then_block(nif), then_block);
-   bool else_jump = nir_block_ends_in_jump(else_block) ||
-                    !is_block_reachable(impl, nir_if_first_else_block(nif), else_block);
-   if (then_jump == else_jump)
+   bool then_jump = nir_block_ends_in_jump(then_block);
+   bool else_jump = nir_block_ends_in_jump(else_block);
+   if (!then_jump && !else_jump)
       return false;
 
    /* If the continue from block is empty then return as there is nothing to
     * move.
     */
-   if (nir_cf_list_is_empty_block(else_jump ? &nif->then_list : &nif->else_list))
+   if (nir_cf_list_is_empty_block(then_jump ? &nif->else_list : &nif->then_list))
       return false;
 
    /* Even though this if statement has a jump on one side, we may still have
@@ -138,9 +90,13 @@ sanitize_if(nir_function_impl* impl, nir_if* nif)
    nir_opt_remove_phis_block(nir_cf_node_as_block(nir_cf_node_next(&nif->cf_node)));
 
    /* Finally, move the continue from branch after the if-statement. */
-   nir_block* last_continue_from_blk = else_jump ? then_block : else_block;
+   nir_block* last_continue_from_blk = then_jump ? else_block : then_block;
    nir_block* first_continue_from_blk =
-      else_jump ? nir_if_first_then_block(nif) : nir_if_first_else_block(nif);
+      then_jump ? nir_if_first_else_block(nif) : nir_if_first_then_block(nif);
+
+   /* We don't need to repair SSA. nir_remove_after_cf_node() replaces any uses with undef. */
+   if (then_jump && else_jump)
+      nir_remove_after_cf_node(&nif->cf_node);
 
    nir_cf_list tmp;
    nir_cf_extract(&tmp, nir_before_block(first_continue_from_blk),
@@ -168,6 +124,24 @@ sanitize_cf_list(nir_function_impl* impl, struct exec_list* cf_list)
          nir_loop* loop = nir_cf_node_as_loop(cf_node);
          assert(!nir_loop_has_continue_construct(loop));
          progress |= sanitize_cf_list(impl, &loop->body);
+
+         /* NIR seems to allow this, and even though the loop exit has no predecessors, SSA defs from the
+          * loop header are live. Handle this without complicating the ACO IR by creating a dummy break.
+          */
+         if (nir_cf_node_cf_tree_next(&loop->cf_node)->predecessors->entries == 0) {
+            nir_builder b = nir_builder_create(impl);
+            b.cursor = nir_after_block_before_jump(nir_loop_last_block(loop));
+
+            nir_def *cond = nir_imm_false(&b);
+            /* We don't use block divergence information, so just this is enough. */
+            cond->divergent = false;
+
+            nir_push_if(&b, cond);
+            nir_jump(&b, nir_jump_break);
+            nir_pop_if(&b, NULL);
+
+            progress = true;
+         }
          break;
       }
       case nir_cf_node_function: unreachable("Invalid cf type");
@@ -393,6 +367,7 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_op_frexp_exp:
                case nir_op_cube_amd:
                case nir_op_msad_4x8:
+               case nir_op_mqsad_4x8:
                case nir_op_udot_4x8_uadd:
                case nir_op_sdot_4x8_iadd:
                case nir_op_sudot_4x8_iadd:
@@ -469,7 +444,6 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_intrinsic_load_workgroup_id:
                case nir_intrinsic_load_num_workgroups:
                case nir_intrinsic_load_ray_launch_size:
-               case nir_intrinsic_load_ray_launch_size_addr_amd:
                case nir_intrinsic_load_sbt_base_amd:
                case nir_intrinsic_load_subgroup_id:
                case nir_intrinsic_load_num_subgroups:
@@ -478,14 +452,17 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_intrinsic_vote_all:
                case nir_intrinsic_vote_any:
                case nir_intrinsic_read_first_invocation:
+               case nir_intrinsic_as_uniform:
                case nir_intrinsic_read_invocation:
                case nir_intrinsic_first_invocation:
                case nir_intrinsic_ballot:
+               case nir_intrinsic_ballot_relaxed:
                case nir_intrinsic_bindless_image_samples:
                case nir_intrinsic_load_scalar_arg_amd:
                case nir_intrinsic_load_lds_ngg_scratch_base_amd:
                case nir_intrinsic_load_lds_ngg_gs_out_vertex_base_amd:
-               case nir_intrinsic_load_smem_amd: type = RegType::sgpr; break;
+               case nir_intrinsic_load_smem_amd:
+               case nir_intrinsic_unit_test_uniform_amd: type = RegType::sgpr; break;
                case nir_intrinsic_load_sample_id:
                case nir_intrinsic_load_input:
                case nir_intrinsic_load_output:
@@ -530,8 +507,9 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_intrinsic_bvh64_intersect_ray_amd:
                case nir_intrinsic_load_vector_arg_amd:
                case nir_intrinsic_load_rt_dynamic_callable_stack_base_amd:
-               case nir_intrinsic_ordered_xfb_counter_add_amd:
-               case nir_intrinsic_cmat_muladd_amd: type = RegType::vgpr; break;
+               case nir_intrinsic_ordered_xfb_counter_add_gfx11_amd:
+               case nir_intrinsic_cmat_muladd_amd:
+               case nir_intrinsic_unit_test_divergent_amd: type = RegType::vgpr; break;
                case nir_intrinsic_load_shared:
                case nir_intrinsic_load_shared2_amd:
                   /* When the result of these loads is only used by cross-lane instructions,
@@ -550,6 +528,7 @@ init_context(isel_context* ctx, nir_shader* shader)
                case nir_intrinsic_quad_swap_diagonal:
                case nir_intrinsic_quad_swizzle_amd:
                case nir_intrinsic_masked_swizzle_amd:
+               case nir_intrinsic_rotate:
                case nir_intrinsic_inclusive_scan:
                case nir_intrinsic_exclusive_scan:
                case nir_intrinsic_reduce:
@@ -633,6 +612,8 @@ init_context(isel_context* ctx, nir_shader* shader)
    ctx->program->constant_data.insert(ctx->program->constant_data.end(),
                                       (uint8_t*)shader->constant_data,
                                       (uint8_t*)shader->constant_data + shader->constant_data_size);
+
+   BITSET_CLEAR_RANGE(ctx->output_args, 0, BITSET_SIZE(ctx->output_args));
 }
 
 void

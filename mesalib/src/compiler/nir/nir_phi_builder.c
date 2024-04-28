@@ -100,7 +100,7 @@ nir_phi_builder_create(nir_function_impl *impl)
 
    pb->num_blocks = impl->num_blocks;
    pb->blocks = ralloc_array(pb, nir_block *, pb->num_blocks);
-   nir_foreach_block(block, impl) {
+   nir_foreach_block_unstructured(block, impl) {
       pb->blocks[block->index] = block;
    }
 

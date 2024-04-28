@@ -319,9 +319,12 @@ nir_blend_logicop(
    if (util_format_is_float(format) || util_format_is_srgb(format))
       return src;
 
+   nir_alu_type type =
+      util_format_is_pure_integer(format) ? nir_type_uint : nir_type_float;
+
    if (bit_size != 32) {
-      src = nir_f2f32(b, src);
-      dst = nir_f2f32(b, dst);
+      src = nir_convert_to_bit_size(b, src, type, 32);
+      dst = nir_convert_to_bit_size(b, dst, type, 32);
    }
 
    assert(src->num_components <= 4);
@@ -358,8 +361,8 @@ nir_blend_logicop(
       assert(util_format_is_pure_integer(format));
    }
 
-   if (bit_size == 16)
-      out = nir_f2f16(b, out);
+   if (bit_size != 32)
+      out = nir_convert_to_bit_size(b, out, type, bit_size);
 
    return out;
 }

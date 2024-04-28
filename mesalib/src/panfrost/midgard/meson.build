@@ -59,10 +59,6 @@ libpanfrost_midgard_disasm = static_library(
   'panfrost_midgard_disasm',
   ['disassemble.c', 'midgard_ops.c', 'midgard_print_constant.c'],
   include_directories : [
-   inc_mapi,
-   inc_mesa,
-   inc_gallium,
-   inc_gallium_aux,
    inc_include,
    inc_src,
    inc_panfrost_hw,
@@ -76,10 +72,6 @@ libpanfrost_midgard = static_library(
   'panfrost_midgard',
   [libpanfrost_midgard_files, midgard_nir_algebraic_c],
   include_directories : [
-   inc_mapi,
-   inc_mesa,
-   inc_gallium,
-   inc_gallium_aux,
    inc_include,
    inc_src,
    inc_panfrost_hw,

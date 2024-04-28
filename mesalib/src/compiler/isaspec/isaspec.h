@@ -41,11 +41,6 @@ struct isa_decode_value {
 	uint64_t num;
 };
 
-struct isa_decode_hook {
-	const char *fieldname;
-	void (*cb)(void *data, struct isa_decode_value *val);
-};
-
 struct isa_entrypoint {
 	const char *name;
 	uint32_t offset;
@@ -120,10 +115,6 @@ struct isa_decode_options {
 	unsigned entrypoint_count;
 	const struct isa_entrypoint *entrypoints;
 };
-
-void isa_disasm(void *bin, int sz, FILE *out, const struct isa_decode_options *options);
-
-bool isa_decode(void *out, void *bin, const struct isa_decode_options *options);
 
 #ifdef __cplusplus
 }

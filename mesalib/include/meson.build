@@ -20,6 +20,7 @@
 
 inc_include = [include_directories('.')]
 inc_d3d9 = include_directories('D3D9')
+inc_winddk = include_directories('winddk')
 
 # Most things assume that Android headers are in the default include
 # path when compiling for Android so add the stub headers to

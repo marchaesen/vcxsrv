@@ -49,7 +49,23 @@ struct pipe_draw_info;
 struct pipe_grid_info;
 struct pipe_draw_start_count_bias;
 
+static inline void
+GENX(jm_init_context)(struct panfrost_context *ctx)
+{
+}
+
+static inline void
+GENX(jm_cleanup_context)(struct panfrost_context *ctx)
+{
+}
+
 void GENX(jm_init_batch)(struct panfrost_batch *batch);
+
+static inline void
+GENX(jm_cleanup_batch)(struct panfrost_batch *batch)
+{
+}
+
 int GENX(jm_submit_batch)(struct panfrost_batch *batch);
 
 void GENX(jm_preload_fb)(struct panfrost_batch *batch, struct pan_fb_info *fb);

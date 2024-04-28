@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_DUMP_H_
 #define _NINE_DUMP_H_
@@ -16,7 +20,7 @@ const char *nine_D3DPRESENTFLAG_to_str(DWORD);
 const char *nine_D3DLOCK_to_str(DWORD);
 const char *nine_D3DSAMP_to_str(DWORD);
 
-#if defined(DEBUG) || !defined(NDEBUG)
+#if MESA_DEBUG || !defined(NDEBUG)
 
 void
 nine_dump_D3DADAPTER_IDENTIFIER9(unsigned, const D3DADAPTER_IDENTIFIER9 *);
@@ -29,7 +33,7 @@ nine_dump_D3DMATERIAL9(unsigned, const D3DMATERIAL9 *);
 void
 nine_dump_D3DTSS_value(unsigned, D3DTEXTURESTAGESTATETYPE, DWORD);
 
-#else /* !DEBUG && NDEBUG */
+#else /* !(MESA_DEBUG || !NDEBUG) */
 
 static inline void
 nine_dump_D3DADAPTER_IDENTIFIER9(unsigned ch, const D3DADAPTER_IDENTIFIER9 *id)
@@ -47,6 +51,6 @@ static inline void
 nine_dump_D3DTSS_value(unsigned ch, D3DTEXTURESTAGESTATETYPE tss, DWORD value)
 { }
 
-#endif /* DEBUG || !NDEBUG */
+#endif /* MESA_DEBUG || !NDEBUG */
 
 #endif /* _NINE_DUMP_H_H_ */

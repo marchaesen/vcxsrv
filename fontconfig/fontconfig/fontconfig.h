@@ -454,6 +454,10 @@ FcConfigGetFonts (FcConfig	*config,
 		  FcSetName	set);
 
 FcPublic FcBool
+FcConfigAcceptFont (FcConfig	    *config,
+		    const FcPattern *font);
+
+FcPublic FcBool
 FcConfigAppFontAddFile (FcConfig    *config,
 			const FcChar8  *file);
 

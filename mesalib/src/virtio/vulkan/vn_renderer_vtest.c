@@ -536,15 +536,13 @@ vtest_vcmd_submit_cmd2(struct vtest *vtest,
    for (uint32_t i = 0; i < submit->batch_count; i++) {
       const struct vn_renderer_submit_batch *batch = &submit->batches[i];
       struct vcmd_submit_cmd2_batch dst = {
+         .flags = VCMD_SUBMIT_CMD2_FLAG_RING_IDX,
          .cmd_offset = cs_offset / sizeof(uint32_t),
          .cmd_size = batch->cs_size / sizeof(uint32_t),
          .sync_offset = sync_offset / sizeof(uint32_t),
          .sync_count = batch->sync_count,
+         .ring_idx = batch->ring_idx,
       };
-      if (vtest->base.info.supports_multiple_timelines) {
-         dst.flags = VCMD_SUBMIT_CMD2_FLAG_RING_IDX;
-         dst.ring_idx = batch->ring_idx;
-      }
       vtest_write(vtest, &dst, sizeof(dst));
 
       cs_offset += batch->cs_size;
@@ -948,7 +946,7 @@ vtest_init_renderer_info(struct vtest *vtest)
       capset->vk_ext_command_serialization_spec_version;
    info->vk_mesa_venus_protocol_spec_version =
       capset->vk_mesa_venus_protocol_spec_version;
-   info->supports_blob_id_0 = capset->supports_blob_id_0;
+   assert(capset->supports_blob_id_0);
 
    /* ensure vk_extension_mask is large enough to hold all capset masks */
    STATIC_ASSERT(sizeof(info->vk_extension_mask) >=
@@ -956,9 +954,9 @@ vtest_init_renderer_info(struct vtest *vtest)
    memcpy(info->vk_extension_mask, capset->vk_extension_mask1,
           sizeof(capset->vk_extension_mask1));
 
-   info->allow_vk_wait_syncs = capset->allow_vk_wait_syncs;
+   assert(capset->allow_vk_wait_syncs);
 
-   info->supports_multiple_timelines = capset->supports_multiple_timelines;
+   assert(capset->supports_multiple_timelines);
    info->max_timeline_count = vtest->max_timeline_count;
 }
 

@@ -85,16 +85,6 @@ si_fill_aco_shader_info(struct si_shader *shader, struct aco_shader_info *info,
    }
 
    switch (stage) {
-   case MESA_SHADER_VERTEX:
-      /* Only part mode VS may have prolog, mono mode VS will embed prolog in nir.
-       * But we don't know exactly if part mode VS needs prolog because it also depends
-       * on shader select key ls_vgpr_fix which is not known when VS main part compile.
-       * Now just assume ls_vgpr_fix is always false, which just cause ACO to add extra
-       * s_setprio and exec init code when it's finally combined with prolog.
-       */
-      if (!shader->is_gs_copy_shader && !shader->is_monolithic)
-         info->vs.has_prolog = si_vs_needs_prolog(sel, &key->ge.part.vs.prolog);
-      break;
    case MESA_SHADER_TESS_CTRL:
       info->vs.tcs_in_out_eq = key->ge.opt.same_patch_vertices;
       info->vs.tcs_temp_only_input_mask = sel->info.tcs_vgpr_only_inputs;
@@ -274,85 +264,6 @@ si_aco_build_shader_part_binary(void** priv_ptr, uint32_t num_sgprs, uint32_t nu
 }
 
 static bool
-si_aco_build_tcs_epilog(struct si_screen *screen,
-                        struct aco_compiler_options *options,
-                        struct si_shader_part *result)
-{
-   const union si_shader_part_key *key = &result->key;
-
-   struct si_shader_args args;
-   struct ac_arg rel_patch_id;
-   struct ac_arg invocation_id;
-   struct ac_arg tcs_out_current_patch_data_offset;
-   struct ac_arg tess_factors[6];
-   si_get_tcs_epilog_args(screen->info.gfx_level, &args, &rel_patch_id, &invocation_id,
-                          &tcs_out_current_patch_data_offset, tess_factors);
-
-   struct aco_tcs_epilog_info einfo = {
-      .pass_tessfactors_by_reg = key->tcs_epilog.states.invoc0_tess_factors_are_def,
-      .tcs_out_patch_fits_subgroup = key->tcs_epilog.noop_s_barrier,
-      .primitive_mode = key->tcs_epilog.states.prim_mode,
-      .tess_offchip_ring_size = screen->hs.tess_offchip_ring_size,
-      .tes_reads_tessfactors = key->tcs_epilog.states.tes_reads_tess_factors,
-
-      .rel_patch_id = rel_patch_id,
-      .invocation_id = invocation_id,
-      .tcs_out_current_patch_data_offset = tcs_out_current_patch_data_offset,
-      .tcs_out_lds_layout = args.tes_offchip_addr,
-      .tcs_offchip_layout = args.tcs_offchip_layout,
-   };
-   memcpy(einfo.tess_lvl_out, tess_factors, sizeof(einfo.tess_lvl_out));
-   memcpy(einfo.tess_lvl_in, tess_factors + 4, sizeof(einfo.tess_lvl_in));
-
-   struct aco_shader_info info = {0};
-   info.hw_stage = AC_HW_HULL_SHADER;
-   info.wave_size = key->tcs_epilog.wave32 ? 32 : 64;
-   /* Set to >wave_size to keep p_barrier work. GFX6 has single wave for HS. */
-   info.workgroup_size = screen->info.gfx_level >= GFX7 ? 128 : info.wave_size;
-
-   aco_compile_tcs_epilog(options, &info, &einfo, &args.ac,
-                          si_aco_build_shader_part_binary, (void **)result);
-   return true;
-}
-
-static bool
-si_aco_build_vs_prolog(struct si_screen *screen,
-                       struct aco_compiler_options *options,
-                       struct si_shader_part *result)
-{
-   const union si_shader_part_key *key = &result->key;
-
-   struct si_shader_args args;
-   si_get_vs_prolog_args(screen->info.gfx_level, &args, key);
-
-   struct aco_gl_vs_prolog_info pinfo = {
-      .instance_divisor_is_one = key->vs_prolog.states.instance_divisor_is_one,
-      .instance_divisor_is_fetched = key->vs_prolog.states.instance_divisor_is_fetched,
-      .instance_diviser_buf_offset = SI_VS_CONST_INSTANCE_DIVISORS * 16,
-      .num_inputs = key->vs_prolog.num_inputs,
-      .as_ls = key->vs_prolog.as_ls,
-
-      .internal_bindings = args.internal_bindings,
-   };
-
-   struct aco_shader_info info = {0};
-   info.workgroup_size = info.wave_size = key->vs_prolog.wave32 ? 32 : 64;
-
-   if (key->vs_prolog.as_ngg)
-      info.hw_stage = AC_HW_NEXT_GEN_GEOMETRY_SHADER;
-   else if (key->vs_prolog.as_es)
-      info.hw_stage = options->gfx_level >= GFX9 ? AC_HW_LEGACY_GEOMETRY_SHADER : AC_HW_EXPORT_SHADER;
-   else if (key->vs_prolog.as_ls)
-      info.hw_stage = options->gfx_level >= GFX9 ? AC_HW_HULL_SHADER : AC_HW_LOCAL_SHADER;
-   else
-      info.hw_stage = AC_HW_VERTEX_SHADER;
-
-   aco_compile_gl_vs_prolog(options, &info, &pinfo, &args.ac,
-                            si_aco_build_shader_part_binary, (void **)result);
-   return true;
-}
-
-static bool
 si_aco_build_ps_prolog(struct aco_compiler_options *options,
                        struct si_shader_part *result)
 {
@@ -437,11 +348,6 @@ si_aco_build_shader_part(struct si_screen *screen, gl_shader_stage stage, bool p
    si_fill_aco_options(screen, stage, &options, debug);
 
    switch (stage) {
-   case MESA_SHADER_VERTEX:
-      return si_aco_build_vs_prolog(screen, &options, result);
-   case MESA_SHADER_TESS_CTRL:
-      return si_aco_build_tcs_epilog(screen, &options, result);
-      break;
    case MESA_SHADER_FRAGMENT:
       if (prolog)
          return si_aco_build_ps_prolog(&options, result);

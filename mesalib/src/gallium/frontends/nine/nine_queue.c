@@ -1,24 +1,7 @@
 /*
  * Copyright 2016 Patrick Rudolph <siro@das-labor.org>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "nine_queue.h"
 #include "util/u_thread.h"
@@ -45,7 +28,7 @@
  *
  * nine_queue_flush does block, while nine_queue_alloc doesn't block.
  *
- * nine_queue_alloc returns NULL on insufficent space.
+ * nine_queue_alloc returns NULL on insufficient space.
  *
  * Consumer:
  * Calls nine_queue_wait_flush to wait for a cmdbuf.
@@ -206,7 +189,7 @@ nine_queue_alloc(struct nine_queue_pool* ctx, unsigned space)
 
 /* Returns the current queue flush state.
  * TRUE nothing flushed
- * FALSE one ore more instructions queued flushed. */
+ * FALSE one or more instructions queued flushed. */
 bool
 nine_queue_no_flushed_work(struct nine_queue_pool* ctx)
 {
@@ -215,7 +198,7 @@ nine_queue_no_flushed_work(struct nine_queue_pool* ctx)
 
 /* Returns the current queue empty state.
  * TRUE no instructions queued.
- * FALSE one ore more instructions queued. */
+ * FALSE one or more instructions queued. */
 bool
 nine_queue_isempty(struct nine_queue_pool* ctx)
 {

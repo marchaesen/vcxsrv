@@ -96,8 +96,8 @@ pan_kmod_vm_init(struct pan_kmod_vm *vm, struct pan_kmod_dev *dev,
 }
 
 static inline int
-pank_kmod_vm_op_check(struct pan_kmod_vm *vm, enum pan_kmod_vm_op_mode mode,
-                      struct pan_kmod_vm_op *op)
+pan_kmod_vm_op_check(struct pan_kmod_vm *vm, enum pan_kmod_vm_op_mode mode,
+                     struct pan_kmod_vm_op *op)
 {
    /* We should only have sync operations on an async VM bind request. */
    if (mode != PAN_KMOD_VM_OP_MODE_ASYNC && op->syncs.count) {

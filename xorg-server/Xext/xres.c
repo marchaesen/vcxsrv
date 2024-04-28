@@ -11,12 +11,14 @@
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <assert.h>
+
+#include "dix/registry_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "dixstruct.h"
 #include "extnsionst.h"
 #include "swaprep.h"
-#include "registry.h"
 #include <X11/extensions/XResproto.h>
 #include "pixmapstr.h"
 #include "windowstr.h"

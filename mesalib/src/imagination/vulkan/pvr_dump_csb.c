@@ -38,7 +38,7 @@
 #include "util/list.h"
 #include "util/macros.h"
 #include "util/u_math.h"
-#include "vulkan/util/vk_enum_to_str.h"
+#include "vk_enum_to_str.h"
 
 /*****************************************************************************
    Utilities

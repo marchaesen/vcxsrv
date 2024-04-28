@@ -30,9 +30,9 @@
 /**
  * flush commands to the hardware
  */
-static void flush(struct rvce_encoder *enc)
+static void flush(struct rvce_encoder *enc, unsigned flags)
 {
-   enc->ws->cs_flush(&enc->cs, PIPE_FLUSH_ASYNC, NULL);
+   enc->ws->cs_flush(&enc->cs, flags, NULL);
    enc->task_info_idx = 0;
    enc->bs_idx = 0;
 }
@@ -225,7 +225,7 @@ static void rvce_destroy(struct pipe_video_codec *encoder)
       enc->fb = &fb;
       enc->session(enc);
       enc->destroy(enc);
-      flush(enc);
+      flush(enc, PIPE_FLUSH_ASYNC);
       si_vid_destroy_buffer(&fb);
    }
    si_vid_destroy_buffer(&enc->cpb);
@@ -271,7 +271,7 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video
       enc->create(enc);
       enc->config(enc);
       enc->feedback(enc);
-      flush(enc);
+      flush(enc, PIPE_FLUSH_ASYNC);
       // dump_feedback(enc, &fb);
       si_vid_destroy_buffer(&fb);
       need_rate_control = false;
@@ -280,7 +280,7 @@ static void rvce_begin_frame(struct pipe_video_codec *encoder, struct pipe_video
    if (need_rate_control) {
       enc->session(enc);
       enc->config(enc);
-      flush(enc);
+      flush(enc, PIPE_FLUSH_ASYNC);
    }
 }
 
@@ -310,7 +310,7 @@ static void rvce_end_frame(struct pipe_video_codec *encoder, struct pipe_video_b
    struct rvce_cpb_slot *slot = list_entry(enc->cpb_slots.prev, struct rvce_cpb_slot, list);
 
    if (!enc->dual_inst || enc->bs_idx > 1)
-      flush(enc);
+      flush(enc, picture->flush_flags);
 
    /* update the CPB backtrack with the just encoded frame */
    slot->picture_type = enc->pic.picture_type;
@@ -360,7 +360,7 @@ static void rvce_flush(struct pipe_video_codec *encoder)
 {
    struct rvce_encoder *enc = (struct rvce_encoder *)encoder;
 
-   flush(enc);
+   flush(enc, PIPE_FLUSH_ASYNC);
 }
 
 static void rvce_cs_flush(void *ctx, unsigned flags, struct pipe_fence_handle **fence)

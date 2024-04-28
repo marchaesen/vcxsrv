@@ -156,7 +156,7 @@
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
-       <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+       <param name="params" type="const GLint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
     <function name="TextureParameterfEXT" deprecated="3.1" exec="dlist">
@@ -170,11 +170,11 @@
        <param name="texture" type="GLuint" />
        <param name="target" type="GLenum" />
        <param name="pname" type="GLenum" />
-       <param name="params" type="const float *" count="_mesa_tex_param_enum_to_count(pname)"/>
+       <param name="params" type="const float *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
     </function>
 
    <function name="TextureImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -187,7 +187,7 @@
    </function>
 
    <function name="TextureImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -201,7 +201,7 @@
    </function>
 
    <function name="TextureImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -216,7 +216,7 @@
    </function>
 
    <function name="TextureSubImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -228,7 +228,7 @@
    </function>
 
    <function name="TextureSubImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -242,7 +242,7 @@
    </function>
 
    <function name="TextureSubImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -316,7 +316,7 @@
    </function>
 
    <function name="GetTextureImageEXT" deprecated="3.1"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -372,7 +372,7 @@
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLint *" count="_mesa_texenv_enum_to_count(pname)"/>
+      <param name="param" type="const GLint *" marshal_count="_mesa_texenv_enum_to_count(pname)"/>
    </function>
 
    <function name="MultiTexEnvfEXT" deprecated="3.1" exec="dlist">
@@ -386,7 +386,7 @@
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLfloat *" count="_mesa_texenv_enum_to_count(pname)"/>
+      <param name="param" type="const GLfloat *" marshal_count="_mesa_texenv_enum_to_count(pname)"/>
    </function>
 
    <function name="GetMultiTexEnvivEXT" deprecated="3.1">
@@ -414,7 +414,7 @@
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="param" type="const GLint*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="MultiTexParameterfEXT" deprecated="3.1" exec="dlist">
@@ -428,7 +428,7 @@
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLfloat*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="param" type="const GLfloat*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="GetMultiTexParameterivEXT" deprecated="3.1">
@@ -446,7 +446,7 @@
    </function>
 
    <function name="GetMultiTexImageEXT" deprecated="3.1"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -472,7 +472,7 @@
    </function>
 
    <function name="MultiTexImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -485,7 +485,7 @@
    </function>
 
    <function name="MultiTexImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -499,7 +499,7 @@
    </function>
 
    <function name="MultiTexImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -514,7 +514,7 @@
    </function>
 
    <function name="MultiTexSubImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -526,7 +526,7 @@
    </function>
 
    <function name="MultiTexSubImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -540,7 +540,7 @@
    </function>
 
    <function name="MultiTexSubImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -624,7 +624,7 @@
       <param name="texunit" type="GLenum" />
       <param name="coord" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLdouble*" count="_mesa_texgen_enum_to_count(pname)"/>
+      <param name="param" type="const GLdouble*" marshal_count="_mesa_texgen_enum_to_count(pname)"/>
    </function>
 
    <function name="MultiTexGenfEXT" deprecated="3.1">
@@ -638,7 +638,7 @@
       <param name="texunit" type="GLenum" />
       <param name="coord" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLfloat *" count="_mesa_texgen_enum_to_count(pname)"/>
+      <param name="param" type="const GLfloat *" marshal_count="_mesa_texgen_enum_to_count(pname)"/>
    </function>
 
    <function name="MultiTexGeniEXT" deprecated="3.1">
@@ -652,7 +652,7 @@
       <param name="texunit" type="GLenum" />
       <param name="coord" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLint *" count="_mesa_texgen_enum_to_count(pname)"/>
+      <param name="param" type="const GLint *" marshal_count="_mesa_texgen_enum_to_count(pname)"/>
    </function>
 
    <function name="GetMultiTexGendvEXT" deprecated="3.1">
@@ -708,7 +708,7 @@
     </function>
 
    <function name="CompressedTextureImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -720,7 +720,7 @@
    </function>
 
    <function name="CompressedTextureImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -733,7 +733,7 @@
    </function>
 
    <function name="CompressedTextureImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -747,7 +747,7 @@
    </function>
 
    <function name="CompressedTextureSubImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -759,7 +759,7 @@
    </function>
 
    <function name="CompressedTextureSubImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -773,7 +773,7 @@
    </function>
 
    <function name="CompressedTextureSubImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -789,7 +789,7 @@
    </function>
 
    <function name="GetCompressedTextureImageEXT" deprecated="3.1"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -797,7 +797,7 @@
    </function>
 
    <function name="CompressedMultiTexImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -809,7 +809,7 @@
    </function>
 
    <function name="CompressedMultiTexImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -822,7 +822,7 @@
    </function>
 
    <function name="CompressedMultiTexImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -836,7 +836,7 @@
    </function>
 
    <function name="CompressedMultiTexSubImage1DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -848,7 +848,7 @@
    </function>
 
    <function name="CompressedMultiTexSubImage2DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -862,7 +862,7 @@
    </function>
 
    <function name="CompressedMultiTexSubImage3DEXT" deprecated="3.1" exec="dlist"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -878,7 +878,7 @@
    </function>
 
    <function name="GetCompressedMultiTexImageEXT" deprecated="3.1"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="level" type="GLint" />
@@ -1342,14 +1342,14 @@
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLint*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameterIuivEXT" deprecated="3.1" exec="dlist">
       <param name="texture" type="GLuint" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLuint*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLuint*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="GetTextureParameterIivEXT" deprecated="3.1">
@@ -1370,14 +1370,14 @@
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLint*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLint*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="MultiTexParameterIuivEXT" deprecated="3.1" exec="dlist">
       <param name="texunit" type="GLenum" />
       <param name="target" type="GLenum" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLuint*" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLuint*" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="GetMultiTexParameterIivEXT" deprecated="3.1">

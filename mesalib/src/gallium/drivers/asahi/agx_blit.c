@@ -8,8 +8,8 @@
  */
 
 #include <stdint.h>
-#include "asahi/compiler/agx_compile.h"
 #include "asahi/layout/layout.h"
+#include "asahi/lib/agx_nir_passes.h"
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_format_convert.h"
 #include "gallium/auxiliary/util/u_blitter.h"
@@ -102,9 +102,6 @@ asahi_blit_compute_shader(struct pipe_context *ctx, enum asahi_blit_clamp clamp,
 static bool
 asahi_compute_blit_supported(const struct pipe_blit_info *info)
 {
-   /* XXX: Hot fix. compute blits broken on G13X? needs investigation */
-   return false;
-#if 0
    return (info->src.box.depth == info->dst.box.depth) && !info->alpha_blend &&
           !info->num_window_rectangles && !info->sample0_only &&
           !info->scissor_enable && !info->window_rectangle_include &&
@@ -121,7 +118,6 @@ asahi_compute_blit_supported(const struct pipe_blit_info *info)
           info->dst.format != PIPE_FORMAT_R5G6B5_UNORM &&
           info->dst.format != PIPE_FORMAT_R5G5B5A1_UNORM &&
           info->dst.format != PIPE_FORMAT_R5G5B5X1_UNORM;
-#endif
 }
 
 static void
@@ -318,10 +314,15 @@ void
 agx_blitter_save(struct agx_context *ctx, struct blitter_context *blitter,
                  bool render_cond)
 {
-   util_blitter_save_vertex_buffer_slot(blitter, ctx->vertex_buffers);
+   util_blitter_save_vertex_buffers(blitter, ctx->vertex_buffers,
+                                    util_last_bit(ctx->vb_mask));
    util_blitter_save_vertex_elements(blitter, ctx->attributes);
    util_blitter_save_vertex_shader(blitter,
                                    ctx->stage[PIPE_SHADER_VERTEX].shader);
+   util_blitter_save_tessctrl_shader(blitter,
+                                     ctx->stage[PIPE_SHADER_TESS_CTRL].shader);
+   util_blitter_save_tesseval_shader(blitter,
+                                     ctx->stage[PIPE_SHADER_TESS_EVAL].shader);
    util_blitter_save_geometry_shader(blitter,
                                      ctx->stage[PIPE_SHADER_GEOMETRY].shader);
    util_blitter_save_rasterizer(blitter, ctx->rast);
@@ -378,6 +379,7 @@ agx_blit(struct pipe_context *pipe, const struct pipe_blit_info *info)
                             info->src.format);
 
    if (asahi_compute_blit_supported(info) &&
+       (agx_device(pipe->screen)->debug & AGX_DBG_COMPBLIT) &&
        !(ail_is_compressed(&agx_resource(info->dst.resource)->layout) &&
          util_format_get_blocksize(info->dst.format) == 16)) {
 
@@ -405,10 +407,6 @@ try_copy_via_blit(struct pipe_context *pctx, struct pipe_resource *dst,
 
    /* TODO: Handle these for rusticl copies */
    if (dst->target != src->target)
-      return false;
-
-   /* TODO: float formats don't roundtrip, cast */
-   if (util_format_is_float(dst->format) || util_format_is_float(src->format))
       return false;
 
    struct pipe_blit_info info = {

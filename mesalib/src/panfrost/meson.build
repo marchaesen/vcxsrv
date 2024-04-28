@@ -49,10 +49,6 @@ bifrost_compiler = executable(
   'bifrost_compiler',
   [files_bifrost],
   include_directories : [
-    inc_mapi,
-    inc_mesa,
-    inc_gallium,
-    inc_gallium_aux,
     inc_include,
     inc_src,
     inc_panfrost,

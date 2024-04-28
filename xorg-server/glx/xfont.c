@@ -33,6 +33,8 @@
 #endif
 #include "glheader.h"
 
+#include "dix/dix_priv.h"
+
 #include "glxserver.h"
 #include "glxutil.h"
 #include "unpack.h"

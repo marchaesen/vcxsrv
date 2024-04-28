@@ -99,7 +99,7 @@ string.
 
 @RET@           FcBool
 @FUNC@          FcIsLower
-@TYPE1@         FcChar8                         @ARG1@          c
+@TYPE1@         FcChar8%                        @ARG1@          c
 @PURPOSE@       check for lower case ASCII character
 @DESC@
 This macro checks whether <parameter>c</parameter> is an lower case ASCII
@@ -108,7 +108,7 @@ letter.
 
 @RET@           FcBool
 @FUNC@          FcIsUpper
-@TYPE1@         FcChar8                         @ARG1@          c
+@TYPE1@         FcChar8%                        @ARG1@          c
 @PURPOSE@       check for upper case ASCII character
 @DESC@
 This macro checks whether <parameter>c</parameter> is a upper case ASCII
@@ -117,7 +117,7 @@ letter.
 
 @RET@           FcChar8
 @FUNC@          FcToLower
-@TYPE1@         FcChar8                         @ARG1@          c
+@TYPE1@         FcChar8%                        @ARG1@          c
 @PURPOSE@       convert upper case ASCII to lower case
 @DESC@
 This macro converts upper case ASCII <parameter>c</parameter> to the

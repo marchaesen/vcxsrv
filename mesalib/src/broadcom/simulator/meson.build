@@ -29,8 +29,8 @@ files_per_version = files(
 )
 
 v3d_args = []
-dep_v3dv3 = dependency('v3dv3', required: false)
-if dep_v3dv3.found()
+dep_v3d_hw = dependency('v3d_hw', required: false)
+if dep_v3d_hw.found()
   v3d_args += '-DUSE_V3D_SIMULATOR'
 endif
 
@@ -44,7 +44,7 @@ foreach ver : v3d_versions
     ],
     c_args : [v3d_args, '-DV3D_VERSION=' + ver],
     gnu_symbol_visibility: 'hidden',
-    dependencies : [dep_v3dv3, dep_libdrm, dep_valgrind],
+    dependencies : [dep_v3d_hw, dep_libdrm, dep_valgrind],
 )
 endforeach
 
@@ -55,7 +55,7 @@ libbroadcom_simulator = static_library(
   c_args : [v3d_args, no_override_init_args],
   cpp_args : [v3d_args],
   gnu_symbol_visibility : 'hidden', 
-  dependencies : [dep_v3dv3, dep_libdrm, dep_valgrind],
+  dependencies : [dep_v3d_hw, dep_libdrm, dep_valgrind],
   link_with : [per_version_libs],
   build_by_default : false,
 )

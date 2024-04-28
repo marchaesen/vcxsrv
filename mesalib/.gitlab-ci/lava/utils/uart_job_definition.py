@@ -82,6 +82,24 @@ def tftp_deploy_actions(job_definition: "LAVAJobDefinition", nfsrootfs) -> tuple
     return (tftp_deploy,)
 
 
+def qemu_deploy_actions(job_definition: "LAVAJobDefinition", nfsrootfs) -> tuple[dict[str, Any]]:
+    args = job_definition.job_submitter
+    qemu_deploy = {
+        "timeout": {"minutes": 5},
+        "to": "nfs",
+        "images": {
+            "kernel": {
+                "image_arg": "-kernel {kernel}",
+                "url": f"{args.kernel_url_prefix}/{args.kernel_image_name}",
+            },
+            "nfsrootfs": nfsrootfs,
+        },
+    }
+    job_definition.attach_external_modules(qemu_deploy)
+
+    return (qemu_deploy,)
+
+
 def uart_test_actions(
     args: "LAVAJobSubmitter", init_stage1_steps: list[str], artifact_download_steps: list[str]
 ) -> tuple[dict[str, Any]]:
@@ -138,6 +156,16 @@ def tftp_boot_action(args: "LAVAJobSubmitter") -> dict[str, Any]:
     }
 
     return tftp_boot
+
+
+def qemu_boot_action(args: "LAVAJobSubmitter") -> dict[str, Any]:
+    qemu_boot = {
+        "failure_retry": NUMBER_OF_ATTEMPTS_LAVA_BOOT,
+        "method": args.boot_method,
+        "prompts": ["lava-shell:"],
+    }
+
+    return qemu_boot
 
 
 def fastboot_boot_action(args: "LAVAJobSubmitter") -> dict[str, Any]:

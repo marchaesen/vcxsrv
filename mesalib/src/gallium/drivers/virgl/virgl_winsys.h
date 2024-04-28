@@ -27,6 +27,7 @@
 #include "virtio-gpu/virgl_hw.h"
 
 struct pipe_box;
+struct pipe_resource;
 struct pipe_fence_handle;
 struct winsys_handle;
 struct virgl_hw_res;
@@ -86,6 +87,7 @@ struct virgl_winsys {
 
    struct virgl_hw_res *(*resource_create_from_handle)(struct virgl_winsys *vws,
                                                        struct winsys_handle *whandle,
+                                                       struct pipe_resource *templ,
                                                        uint32_t *plane,
                                                        uint32_t *stride,
                                                        uint32_t *plane_offset,
@@ -133,6 +135,7 @@ struct virgl_winsys {
 
    /* for sw paths */
    void (*flush_frontbuffer)(struct virgl_winsys *vws,
+                             struct virgl_cmd_buf *cbuf,
                              struct virgl_hw_res *res,
                              unsigned level, unsigned layer,
                              void *winsys_drawable_handle,
@@ -184,5 +187,5 @@ static inline void virgl_ws_fill_new_caps_defaults(struct virgl_drm_caps *caps)
 }
 
 extern enum virgl_formats pipe_to_virgl_format(enum pipe_format format);
-
+extern enum pipe_format virgl_to_pipe_format(enum virgl_formats format);
 #endif

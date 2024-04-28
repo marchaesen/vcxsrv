@@ -73,7 +73,7 @@ static inline struct trace_context *
 trace_context(struct pipe_context *pipe)
 {
    assert(pipe);
-#ifdef DEBUG
+#if MESA_DEBUG
    trace_context_check(pipe);
 #endif
    return (struct trace_context *)pipe;

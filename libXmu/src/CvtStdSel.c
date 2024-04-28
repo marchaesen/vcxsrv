@@ -47,12 +47,7 @@ in this Software without prior written authorization from The Open Group.
 #ifdef WIN32
 #include <X11/Xwinsock.h>
 #else
-#ifndef Lynx
 #include <sys/socket.h>
-#else
-#include <sys/types.h>
-#include <socket.h>
-#endif
 #define XOS_USE_XT_LOCKING
 #endif
 #include <X11/Xos_r.h>
@@ -99,16 +94,8 @@ get_os_name(void)
 
 	if (uname (&utss) >= 0) {
 	    char *os_name;
-	    int len = strlen(utss.sysname) + 1;
-#ifndef hpux				/* because of hostname length crock */
-	    len += 2 + strlen(utss.release);
-#endif
-	    os_name = XtMalloc (len);
-	    strcpy (os_name, utss.sysname);
-#ifndef hpux
-	    strcat (os_name, " ");
-	    strcat (os_name, utss.release);
-#endif
+
+	    XtAsprintf(&os_name, "%s %s", utss.sysname, utss.release);
 	    return os_name;
 	}
 #endif
@@ -136,7 +123,7 @@ get_os_name(void)
 	}
 #endif
 
-#if !defined(SYSV) && (defined(CSRG_BASED) || defined(unix))
+#ifdef CSRG_BASED
 	return XtNewString("BSD");
 #else
 	return NULL;

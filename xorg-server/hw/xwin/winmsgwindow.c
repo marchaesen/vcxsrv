@@ -41,7 +41,7 @@ static
 LRESULT CALLBACK
 winMsgWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebugWin32Message("winMsgWindowProc", hwnd, message, wParam, lParam);
 #endif
 
@@ -153,7 +153,7 @@ winMsgWindowThreadProc(void *arg)
 
         /* Pump the msg window message queue */
         while (GetMessage(&msg, hwndMsg, 0, 0) > 0) {
-#if CYGDEBUG
+#if ENABLE_DEBUG
             winDebugWin32Message("winMsgWindowThread", msg.hwnd, msg.message,
                                  msg.wParam, msg.lParam);
 #endif

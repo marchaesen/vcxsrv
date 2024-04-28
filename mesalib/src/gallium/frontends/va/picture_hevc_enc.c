@@ -63,9 +63,7 @@ vlVaHandleVAEncPictureParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *cont
    context->coded_buf = coded_buf;
    context->desc.h265enc.pic.log2_parallel_merge_level_minus2 = h265->log2_parallel_merge_level_minus2;
    context->desc.h265enc.pic.nal_unit_type = h265->nal_unit_type;
-   context->desc.h265enc.rc.quant_i_frames = h265->pic_init_qp;
-   context->desc.h265enc.rc.quant_p_frames = h265->pic_init_qp;
-   context->desc.h265enc.rc.quant_b_frames = h265->pic_init_qp;
+   context->desc.h265enc.rc.init_qp = h265->pic_init_qp;
 
    switch(h265->pic_fields.bits.coding_type) {
    case 1:
@@ -106,6 +104,7 @@ VAStatus
 vlVaHandleVAEncSliceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *context, vlVaBuffer *buf)
 {
    VAEncSliceParameterBufferHEVC *h265;
+   unsigned slice_qp;
 
    h265 = buf->data;
    memset(&context->desc.h265enc.ref_idx_l0_list, VA_INVALID_ID, sizeof(context->desc.h265enc.ref_idx_l0_list));
@@ -135,6 +134,23 @@ vlVaHandleVAEncSliceParameterBufferTypeHEVC(vlVaDriver *drv, vlVaContext *contex
    context->desc.h265enc.slice.cabac_init_flag = h265->slice_fields.bits.cabac_init_flag;
    context->desc.h265enc.slice.slice_deblocking_filter_disabled_flag = h265->slice_fields.bits.slice_deblocking_filter_disabled_flag;
    context->desc.h265enc.slice.slice_loop_filter_across_slices_enabled_flag = h265->slice_fields.bits.slice_loop_filter_across_slices_enabled_flag;
+
+   slice_qp = context->desc.h265enc.rc.init_qp + h265->slice_qp_delta;
+
+   switch (context->desc.h265enc.picture_type) {
+   case PIPE_H2645_ENC_PICTURE_TYPE_I:
+   case PIPE_H2645_ENC_PICTURE_TYPE_IDR:
+      context->desc.h265enc.rc.quant_i_frames = slice_qp;
+      break;
+   case PIPE_H2645_ENC_PICTURE_TYPE_P:
+      context->desc.h265enc.rc.quant_p_frames = slice_qp;
+      break;
+   case PIPE_H2645_ENC_PICTURE_TYPE_B:
+      context->desc.h265enc.rc.quant_b_frames = slice_qp;
+      break;
+   default:
+      break;
+   }
 
    /* Handle the slice control parameters */
    struct h265_slice_descriptor slice_descriptor;

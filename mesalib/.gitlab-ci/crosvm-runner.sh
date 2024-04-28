@@ -96,7 +96,7 @@ set +e -x
 NIR_DEBUG="novalidate" \
 LIBGL_ALWAYS_SOFTWARE=${CROSVM_LIBGL_ALWAYS_SOFTWARE} \
 GALLIUM_DRIVER=${CROSVM_GALLIUM_DRIVER} \
-VK_ICD_FILENAMES=$CI_PROJECT_DIR/install/share/vulkan/icd.d/${CROSVM_VK_DRIVER}_icd.x86_64.json \
+VK_DRIVER_FILES=$CI_PROJECT_DIR/install/share/vulkan/icd.d/${CROSVM_VK_DRIVER}_icd.x86_64.json \
 crosvm --no-syslog run \
     --gpu "${CROSVM_GPU_ARGS}" --gpu-render-server "path=/usr/local/libexec/virgl_render_server" \
     -m "${CROSVM_MEMORY:-4096}" -c "${CROSVM_CPU:-2}" --disable-sandbox \

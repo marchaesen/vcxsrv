@@ -247,4 +247,19 @@ pvr_vdmctrl_index_size_nr_bytes(enum PVRX(VDMCTRL_INDEX_SIZE) index_size)
    }
 }
 
+static enum PVRX(VDMCTRL_INDEX_SIZE)
+   pvr_vdmctrl_index_size_from_type(VkIndexType type)
+{
+   switch (type) {
+   case VK_INDEX_TYPE_UINT32:
+      return PVRX(VDMCTRL_INDEX_SIZE_B32);
+   case VK_INDEX_TYPE_UINT16:
+      return PVRX(VDMCTRL_INDEX_SIZE_B16);
+   case VK_INDEX_TYPE_UINT8_KHR:
+      return PVRX(VDMCTRL_INDEX_SIZE_B8);
+   default:
+      unreachable("Invalid index type");
+   }
+}
+
 #endif /* PVR_CSB_ENUM_HELPERS_H */

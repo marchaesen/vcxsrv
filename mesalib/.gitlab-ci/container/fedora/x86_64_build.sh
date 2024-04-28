@@ -27,9 +27,11 @@ EPHEMERAL=(
 DEPS=(
     bindgen
     bison
+    cbindgen
     ccache
     clang-devel
     flex
+    flatbuffers-compiler
     gcc
     gcc-c++
     gettext
@@ -41,6 +43,7 @@ DEPS=(
     "pkgconfig(SPIRV-Tools)"
     "pkgconfig(dri2proto)"
     "pkgconfig(expat)"
+    "pkgconfig(flatbuffers)"
     "pkgconfig(glproto)"
     "pkgconfig(libclc)"
     "pkgconfig(libelf)"
@@ -66,6 +69,7 @@ DEPS=(
     "pkgconfig(xfixes)"
     "pkgconfig(xrandr)"
     "pkgconfig(xshmfence)"
+    "pkgconfig(xtensor)"
     "pkgconfig(xxf86vm)"
     "pkgconfig(zlib)"
     procps-ng
@@ -73,6 +77,7 @@ DEPS=(
     python3-devel
     python3-mako
     python3-ply
+    python3-pycparser
     rust-packaging
     vulkan-headers
     spirv-tools-devel

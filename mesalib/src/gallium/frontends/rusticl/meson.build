@@ -18,7 +18,7 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 # SOFTWARE.
 
-rust = import('unstable-rust')
+rust = import('rust')
 
 libmesa_rust_util_files = files(
   'util/lib.rs',
@@ -91,13 +91,6 @@ rusticl_args = [
   '-Aclippy::too_many_arguments',
   '-Aclippy::type_complexity',
 ]
-
-if rustc.version().version_compare('>=1.72')
-  rusticl_args += [
-    # Needs to be fixed
-    '-Aclippy::arc-with-non-send-sync'
-  ]
-endif
 
 if with_platform_x11
   rusticl_args += [
@@ -206,7 +199,7 @@ rusticl_opencl_gen = static_library(
   'rusticl_opencl_gen',
   rusticl_opencl_bindings_rs,
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_gen_args,
   ],
@@ -241,7 +234,7 @@ rusticl_llvm_gen = static_library(
   'rusticl_llvm_gen',
   rusticl_llvm_bindings_rs,
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_gen_args,
   ],
@@ -404,7 +397,7 @@ libmesa_rust_gen = static_library(
   dependencies: [
     idep_mesaclc,
   ],
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_gen_args,
   ],
@@ -414,7 +407,7 @@ libc_rust_gen = static_library(
   'libc_rust_gen',
   rusticl_libc_bindings_rs,
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_gen_args,
   ],
@@ -424,7 +417,7 @@ libmesa_rust_util = static_library(
   'mesa_rust_util',
   [libmesa_rust_util_files],
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_args,
   ],
@@ -434,7 +427,7 @@ libmesa_rust = static_library(
   'mesa_rust',
   [libmesa_rust_files],
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'rlib',
+  rust_abi : 'rust',
   rust_args : [
     rusticl_args,
   ],
@@ -459,7 +452,7 @@ librusticl = static_library(
   'rusticl',
   [rusticl_files],
   gnu_symbol_visibility : 'hidden',
-  rust_crate_type : 'staticlib',
+  rust_abi : 'c',
   rust_args : [
     rusticl_args,
   ],

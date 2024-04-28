@@ -1,24 +1,7 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_IUNKNOWN_H_
 #define _NINE_IUNKNOWN_H_
@@ -40,13 +23,14 @@ struct NineDevice9;
 
 struct NineUnknown
 {
-    /* pointer to vtable (can be overriden outside gallium nine) */
+    /* pointer to vtable (can be overridden outside gallium nine) */
     void *vtable;
     /* pointer to internal vtable  */
     void *vtable_internal;
 
     int32_t refs; /* external reference count */
     int32_t bind; /* internal bind count */
+    int32_t has_bind_or_refs; /* 0 if no ref, 1 if bind or ref, 2 if both */
     bool forward; /* whether to forward references to the container */
 
     /* container: for surfaces and volumes only.
@@ -130,7 +114,7 @@ NineUnknown_FreePrivateData( struct NineUnknown *This,
 static inline void
 NineUnknown_Destroy( struct NineUnknown *This )
 {
-    assert(!(This->refs | This->bind));
+    assert(!(This->refs | This->bind) && !This->has_bind_or_refs);
     This->dtor(This);
 }
 
@@ -140,6 +124,8 @@ NineUnknown_Bind( struct NineUnknown *This )
     UINT b = p_atomic_inc_return(&This->bind);
     assert(b);
 
+    if (b == 1)
+        p_atomic_inc(&This->has_bind_or_refs);
     if (b == 1 && This->forward)
         NineUnknown_Bind(This->container);
 
@@ -150,10 +136,13 @@ static inline UINT
 NineUnknown_Unbind( struct NineUnknown *This )
 {
     UINT b = p_atomic_dec_return(&This->bind);
+    UINT b_or_ref = 1;
 
+    if (b == 0)
+        b_or_ref = p_atomic_dec_return(&This->has_bind_or_refs);
     if (b == 0 && This->forward)
         NineUnknown_Unbind(This->container);
-    else if (b == 0 && This->refs == 0 && !This->container)
+    else if (b_or_ref == 0 && !This->container)
         This->dtor(This);
 
     return b;
@@ -173,7 +162,7 @@ NineUnknown_Detach( struct NineUnknown *This )
     assert(This->container && !This->forward);
 
     This->container = NULL;
-    if (!(This->refs | This->bind))
+    if (!(This->has_bind_or_refs))
         This->dtor(This);
 }
 

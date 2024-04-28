@@ -37,6 +37,7 @@
 #include <inttypes.h>
 #include <stdbool.h>
 #include "simple_mtx.h"
+#include "bitscan.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -45,7 +46,8 @@ extern "C" {
 struct util_idalloc
 {
    uint32_t *data;
-   unsigned num_elements;    /* number of allocated elements of "data" */
+   unsigned num_elements;     /* number of allocated elements of "data" */
+   unsigned num_set_elements; /* the last non-zero element of "data" + 1 */
    unsigned lowest_free_idx;
 };
 
@@ -70,17 +72,25 @@ util_idalloc_reserve(struct util_idalloc *buf, unsigned id);
 static inline bool
 util_idalloc_exists(struct util_idalloc *buf, unsigned id)
 {
-   return id / 32 < buf->num_elements &&
+   return id / 32 < buf->num_set_elements &&
           buf->data[id / 32] & BITFIELD_BIT(id % 32);
 }
 
 #define util_idalloc_foreach(buf, id) \
-   for (uint32_t i = 0, mask = (buf)->num_elements ? (buf)->data[0] : 0, id, \
-                 count = (buf)->num_elements; \
+   for (uint32_t i = 0, mask = (buf)->num_set_elements ? (buf)->data[0] : 0, id, \
+                 count = (buf)->num_used; \
         i < count; mask = ++i < count ? (buf)->data[i] : 0) \
       while (mask) \
          if ((id = i * 32 + u_bit_scan(&mask)), true)
 
+/* This allows freeing IDs while iterating, excluding ID=0. */
+#define util_idalloc_foreach_no_zero_safe(buf, id) \
+   for (uint32_t i = 0, bit, id, count = (buf)->num_set_elements, \
+         mask = count ? (buf)->data[0] & ~0x1 : 0; \
+        i < count; mask = ++i < count ? (buf)->data[i] : 0) \
+      while (mask) \
+         if ((bit = u_bit_scan(&mask), id = i * 32 + bit), \
+             (buf)->data[i] & BITFIELD_BIT(bit))
 
 /* Thread-safe variant. */
 struct util_idalloc_mt {

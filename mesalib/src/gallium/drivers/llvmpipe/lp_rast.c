@@ -54,7 +54,7 @@
 #include <windows.h>
 #endif
 
-#ifdef DEBUG
+#if MESA_DEBUG
 int jit_line = 0;
 const struct lp_rast_state *jit_state = NULL;
 const struct lp_rasterizer_task *jit_task = NULL;
@@ -1005,7 +1005,7 @@ rasterize_bin(struct lp_rasterizer_task *task,
 
    lp_rast_tile_end(task);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* Debug/Perf flags:
     */
    if (bin->head->count == 1) {
@@ -1218,7 +1218,7 @@ thread_function(void *init_data)
    }
 
 #ifdef _WIN32
-   util_semaphore_signal(&task->work_done);
+   util_semaphore_signal(&task->exited);
 #endif
 
    return 0;
@@ -1235,6 +1235,9 @@ create_rast_threads(struct lp_rasterizer *rast)
    for (unsigned i = 0; i < rast->num_threads; i++) {
       util_semaphore_init(&rast->tasks[i].work_ready, 0);
       util_semaphore_init(&rast->tasks[i].work_done, 0);
+#ifdef _WIN32
+      util_semaphore_init(&rast->tasks[i].exited, 0);
+#endif
       if (thrd_success != u_thread_create(rast->threads + i, thread_function,
                                             (void *) &rast->tasks[i])) {
          rast->num_threads = i; /* previous thread is max */
@@ -1328,7 +1331,7 @@ lp_rast_destroy(struct lp_rasterizer *rast)
       DWORD exit_code = STILL_ACTIVE;
       if (GetExitCodeThread(rast->threads[i].handle, &exit_code) &&
           exit_code == STILL_ACTIVE) {
-         util_semaphore_wait(&rast->tasks[i].work_done);
+         util_semaphore_wait(&rast->tasks[i].exited);
       }
 #else
       thrd_join(rast->threads[i], NULL);
@@ -1339,6 +1342,9 @@ lp_rast_destroy(struct lp_rasterizer *rast)
    for (unsigned i = 0; i < rast->num_threads; i++) {
       util_semaphore_destroy(&rast->tasks[i].work_ready);
       util_semaphore_destroy(&rast->tasks[i].work_done);
+#ifdef _WIN32
+      util_semaphore_destroy(&rast->tasks[i].exited);
+#endif
    }
    for (unsigned i = 0; i < MAX2(1, rast->num_threads); i++) {
       align_free(rast->tasks[i].thread_data.cache);

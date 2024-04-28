@@ -63,6 +63,11 @@ GetGPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
 {
    return heap->GetGPUDescriptorHandleForHeapStart();
 }
+D3D12_HEAP_DESC
+inline GetDesc(ID3D12Heap* heap)
+{
+   return heap->GetDesc();
+}
 inline D3D12_RESOURCE_DESC
 GetDesc(ID3D12Resource *res)
 {
@@ -96,6 +101,13 @@ GetGPUDescriptorHandleForHeapStart(ID3D12DescriptorHeap *heap)
 {
    D3D12_GPU_DESCRIPTOR_HANDLE ret;
    heap->GetGPUDescriptorHandleForHeapStart(&ret);
+   return ret;
+}
+D3D12_HEAP_DESC
+inline GetDesc(ID3D12Heap* heap)
+{
+   D3D12_HEAP_DESC ret;
+   heap->GetDesc(&ret);
    return ret;
 }
 inline D3D12_RESOURCE_DESC

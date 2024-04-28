@@ -106,7 +106,7 @@ winQueryScreenDIBFormat(ScreenPtr pScreen, BITMAPINFOHEADER * pbmih)
     }
 
     /* Initialize our bitmap info header */
-    ZeroMemory(pbmih, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
+    memset(pbmih, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD), 1);
     pbmih->biSize = sizeof(BITMAPINFOHEADER);
 
     /* Get the biBitCount */
@@ -1140,17 +1140,13 @@ winCreateColormapShadowGDI(ColormapPtr pColormap)
     dwEntriesMax = pVisual->ColormapEntries;
 
     /* Allocate a Windows logical color palette with max entries */
-    lpPaletteNew = malloc(sizeof(LOGPALETTE)
-                          + (dwEntriesMax - 1) * sizeof(PALETTEENTRY));
+    lpPaletteNew = calloc(sizeof(LOGPALETTE)
+                          + (dwEntriesMax - 1) * sizeof(PALETTEENTRY), 1);
     if (lpPaletteNew == NULL) {
         ErrorF("winCreateColormapShadowGDI - Couldn't allocate palette "
                "with %d entries\n", (int) dwEntriesMax);
         return FALSE;
     }
-
-    /* Zero out the colormap */
-    ZeroMemory(lpPaletteNew, sizeof(LOGPALETTE)
-               + (dwEntriesMax - 1) * sizeof(PALETTEENTRY));
 
     /* Set the logical palette structure */
     lpPaletteNew->palVersion = 0x0300;

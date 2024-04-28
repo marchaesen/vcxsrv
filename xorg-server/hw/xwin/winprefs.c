@@ -545,7 +545,9 @@ LoadImageComma(char *fname, char *iconDirectory, int sx, int sy, int flags)
     }
     else {
         char *file = malloc(PATH_MAX + NAME_MAX + 2);
+#ifdef  __CYGWIN__
         Bool convert = FALSE;
+#endif
 
         if (!file)
             return NULL;

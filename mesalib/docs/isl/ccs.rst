@@ -16,7 +16,8 @@ referring both to the *multisample control surface* used for multisample
 compression and the control surface used for fast-clears. In ISL, the
 :c:enumerator:`isl_aux_usage.ISL_AUX_USAGE_MCS` enum always refers to
 multisample color compression while the
-:c:enumerator:`isl_aux_usage.ISL_AUX_USAGE_CCS_` enums always refer to
+:c:enumerator:`isl_aux_usage.ISL_AUX_USAGE_CCS_D` and
+:c:enumerator:`isl_aux_usage.ISL_AUX_USAGE_CCS_E` enums always refer to
 single-sampled color compression. Throughout this chapter and the rest of the
 ISL documentation, we will use the term "color control surface", abbreviated
 CCS, to denote the control surface used for both fast-clears and color

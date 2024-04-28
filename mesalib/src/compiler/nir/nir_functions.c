@@ -447,8 +447,8 @@ nir_link_shader_functions(nir_shader *shader,
                 sizeof(dst_info->arg_sizes[0]) * dst_info->num_args);
 
          dst_info->string_size = src_info->string_size;
-         dst_info->strings = ralloc_size(shader, dst_info->string_size);
-         memcpy(dst_info->strings, src_info->strings, dst_info->string_size);
+         dst_info->strings = ralloc_memdup(shader, src_info->strings,
+                                           dst_info->string_size);
       }
    }
 

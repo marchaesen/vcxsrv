@@ -440,7 +440,7 @@ To free a resource, use one of the following.
 FreeResource frees all resources matching the given id, regardless of
 type; the type's deleteFunc will be called on each matching resource,
 except that skipDeleteFuncType can be set to a single type for which
-the deleteFunc should not be called (otherwise pass RT_NONE).
+the deleteFunc should not be called (otherwise pass RT_NONE / X11_RESTYPE_NONE).
 FreeResourceByType frees a specific resource matching a given id
 and type; if skipFree is true, then the deleteFunc is not called.
 </para>
@@ -657,14 +657,11 @@ make the server suspend until one or more of the following occurs:
 <para>
 Before WaitForSomething() computes the masks to pass to select, poll or
 similar operating system interface, it needs to
-see if there is anything to do on the work queue; if so, it must call a DIX
-routine called ProcessWorkQueue.
+see if there is anything to do on the work queue; it must call a DIX
+routine called ProcessWorkQueue().
 <blockquote>
 <programlisting>
-	extern WorkQueuePtr	workQueue;
-
-	if (workQueue)
-		ProcessWorkQueue ();
+	ProcessWorkQueue ();
 </programlisting>
 </blockquote>
 </para>

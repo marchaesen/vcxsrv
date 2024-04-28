@@ -39,6 +39,7 @@
 
 #include <xf86drm.h>
 
+#include "etna_core_info.h"
 #include "util/list.h"
 #include "util/log.h"
 #include "util/macros.h"
@@ -121,8 +122,7 @@ struct etna_bo {
 struct etna_gpu {
 	struct etna_device *dev;
 	uint32_t core;
-	uint32_t model;
-	uint32_t revision;
+	struct etna_core_info info;
 };
 
 struct etna_pipe {

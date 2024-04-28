@@ -661,24 +661,6 @@ static inline VOID SafeAssign(
 
 /**
 ****************************************************************************************************
-*   SafeAssign
-*
-*   @brief
-*       NULL pointer safe assignment for AddrTileMode
-****************************************************************************************************
-*/
-static inline VOID SafeAssign(
-    AddrTileMode*    pLVal, ///< [in] Pointer to left val
-    AddrTileMode     rVal)  ///< [in] Right value
-{
-    if (pLVal)
-    {
-        *pLVal = rVal;
-    }
-}
-
-/**
-****************************************************************************************************
 *   RoundHalf
 *
 *   @brief

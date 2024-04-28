@@ -28,13 +28,15 @@ void
 tu_bo_suballocator_init(struct tu_suballocator *suballoc,
                         struct tu_device *dev,
                         uint32_t default_size,
-                        enum tu_bo_alloc_flags flags)
+                        enum tu_bo_alloc_flags flags,
+                        const char *name)
 {
    suballoc->dev = dev;
    suballoc->default_size = default_size;
    suballoc->flags = flags;
    suballoc->bo = NULL;
    suballoc->cached_bo = NULL;
+   suballoc->name = name;
 }
 
 void
@@ -82,7 +84,7 @@ tu_suballoc_bo_alloc(struct tu_suballoc_bo *suballoc_bo,
    if (!suballoc->bo) {
       VkResult result = tu_bo_init_new(suballoc->dev, &suballoc->bo,
                                        alloc_size,
-                                       suballoc->flags, "suballoc");
+                                       suballoc->flags, suballoc->name);
       if (result != VK_SUCCESS)
          return result;
    }

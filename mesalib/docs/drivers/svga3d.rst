@@ -122,7 +122,7 @@ Building the Code
    ::
 
       cd $TOP/mesa
-      meson builddir -Dvulkan-drivers= -Dgallium-drivers=svga -Ddri-drivers= -Dglvnd=true -Dglvnd-vendor-name=mesa
+      meson builddir -Dvulkan-drivers= -Dgallium-drivers=svga -Ddri-drivers= -Dglvnd=enabled -Dglvnd-vendor-name=mesa
 
       meson compile -C builddir
       sudo meson install -C builddir

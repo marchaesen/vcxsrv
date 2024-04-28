@@ -120,6 +120,23 @@ iris_binder_reserve(struct iris_context *ice,
 }
 
 /**
+ * Reserve and record binder space for generation shader (FS stage only).
+ */
+void
+iris_binder_reserve_gen(struct iris_context *ice)
+{
+   struct iris_binder *binder = &ice->state.binder;
+
+   binder->bt_offset[MESA_SHADER_FRAGMENT] =
+      iris_binder_reserve(ice, sizeof(uint32_t));
+
+   iris_record_state_size(ice->state.sizes,
+                          binder->bo->address +
+                          binder->bt_offset[MESA_SHADER_FRAGMENT],
+                          sizeof(uint32_t));
+}
+
+/**
  * Reserve and record binder space for 3D pipeline shader stages.
  *
  * Note that you must actually populate the new binding tables after

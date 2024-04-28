@@ -694,12 +694,52 @@ ir_validate::visit_leave(ir_expression *ir)
       assert(glsl_type_is_double(ir->operands[0]->type));
       assert(glsl_type_is_boolean(ir->type));
       break;
+   case ir_unop_u2f16:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT16);
+      assert(glsl_type_is_uint_16_32(ir->operands[0]->type));
+      break;
+   case ir_unop_f162u:
+      assert(glsl_type_is_uint_16_32(ir->type));
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT16);
+      break;
+   case ir_unop_i2f16:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT16);
+      assert(glsl_type_is_int_16_32(ir->operands[0]->type));
+      break;
+   case ir_unop_f162i:
+      assert(glsl_type_is_int_16_32(ir->type));
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT16);
+      break;
+   case ir_unop_d2f16:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT16);
+      assert(glsl_type_is_double(ir->operands[0]->type));
+      break;
+   case ir_unop_f162d:
+      assert(glsl_type_is_double(ir->type));
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT16);
+      break;
+   case ir_unop_u642f16:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT16);
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_UINT64);
+      break;
+   case ir_unop_f162u64:
+      assert(ir->type->base_type == GLSL_TYPE_UINT64);
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT16);
+      break;
+   case ir_unop_i642f16:
+      assert(ir->type->base_type == GLSL_TYPE_FLOAT16);
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_INT64);
+      break;
+   case ir_unop_f162i64:
+      assert(ir->type->base_type == GLSL_TYPE_INT64);
+      assert(ir->operands[0]->type->base_type == GLSL_TYPE_FLOAT16);
+      break;
 
    case ir_unop_frexp_sig:
-      assert(glsl_type_is_float_32_64(ir->operands[0]->type));
+      assert(glsl_type_is_float_16_32_64(ir->operands[0]->type));
       break;
    case ir_unop_frexp_exp:
-      assert(glsl_type_is_float_32_64(ir->operands[0]->type));
+      assert(glsl_type_is_float_16_32_64(ir->operands[0]->type));
       assert(ir->type->base_type == GLSL_TYPE_INT);
       break;
    case ir_unop_subroutine_to_int:
@@ -849,7 +889,7 @@ ir_validate::visit_leave(ir_expression *ir)
 
    case ir_binop_ldexp:
       assert(ir->operands[0]->type == ir->type);
-      assert(glsl_type_is_float_32_64(ir->operands[0]->type));
+      assert(glsl_type_is_float_16_32_64(ir->operands[0]->type));
       assert(ir->operands[1]->type->base_type == GLSL_TYPE_INT);
       assert(glsl_get_components(ir->operands[0]->type) ==
              glsl_get_components(ir->operands[1]->type));
@@ -1207,7 +1247,7 @@ validate_ir_tree(exec_list *instructions)
     * and it's half composed of assert()s anyway which wouldn't do
     * anything.
     */
-#ifndef DEBUG
+#if !MESA_DEBUG
    if (!debug_get_bool_option("GLSL_VALIDATE", false))
       return;
 #endif

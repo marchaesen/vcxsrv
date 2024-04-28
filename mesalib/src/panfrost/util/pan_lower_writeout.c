@@ -106,6 +106,7 @@ pan_nir_lower_zs_store(nir_shader *nir)
                stores[1] = intr;
                writeout |= PAN_WRITEOUT_S;
             } else if (sem.dual_source_blend_index) {
+               assert(!stores[2]); /* there should be only 1 source for dual blending */
                stores[2] = intr;
                writeout |= PAN_WRITEOUT_2;
             }

@@ -89,24 +89,6 @@ is_eligible_mov(struct ir3_instruction *instr,
    return false;
 }
 
-/* we can end up with extra cmps.s from frontend, which uses a
- *
- *    cmps.s p0.x, cond, 0
- *
- * as a way to mov into the predicate register.  But frequently 'cond'
- * is itself a cmps.s/cmps.f/cmps.u. So detect this special case.
- */
-static bool
-is_foldable_double_cmp(struct ir3_instruction *cmp)
-{
-   struct ir3_instruction *cond = ssa(cmp->srcs[0]);
-   return (cmp->dsts[0]->num == regid(REG_P0, 0)) && cond &&
-          (cmp->srcs[1]->flags & IR3_REG_IMMED) &&
-          (cmp->srcs[1]->iim_val == 0) &&
-          (cmp->cat2.condition == IR3_COND_NE) &&
-          (!cond->address || cond->address->def->instr->block == cmp->block);
-}
-
 /* propagate register flags from src to dst.. negates need special
  * handling to cancel each other out.
  */
@@ -134,7 +116,7 @@ combine_flags(unsigned *dstflags, struct ir3_instruction *src)
    if (srcflags & IR3_REG_BNOT)
       *dstflags ^= IR3_REG_BNOT;
 
-   *dstflags &= ~IR3_REG_SSA;
+   *dstflags &= ~(IR3_REG_SSA | IR3_REG_SHARED);
    *dstflags |= srcflags & IR3_REG_SSA;
    *dstflags |= srcflags & IR3_REG_CONST;
    *dstflags |= srcflags & IR3_REG_IMMED;
@@ -160,6 +142,9 @@ static bool
 lower_immed(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr, unsigned n,
             struct ir3_register *reg, unsigned new_flags)
 {
+   if (ctx->shader->compiler->load_shader_consts_via_preamble)
+      return false;
+
    if (!(new_flags & IR3_REG_IMMED))
       return false;
 
@@ -295,7 +280,7 @@ try_swap_mad_two_srcs(struct ir3_instruction *instr, unsigned new_flags)
    /* If the reason we couldn't fold without swapping is something
     * other than const source, then swapping won't help:
     */
-   if (!(new_flags & IR3_REG_CONST))
+   if (!(new_flags & (IR3_REG_CONST | IR3_REG_SHARED)))
       return false;
 
    instr->cat3.swapped = true;
@@ -319,22 +304,6 @@ try_swap_mad_two_srcs(struct ir3_instruction *instr, unsigned new_flags)
    return valid_swap;
 }
 
-/* Values that are uniform inside a loop can become divergent outside
- * it if the loop has a divergent trip count. This means that we can't
- * propagate a copy of a shared to non-shared register if it would
- * make the shared reg's live range extend outside of its loop. Users
- * outside the loop would see the value for the thread(s) that last
- * exited the loop, rather than for their own thread.
- */
-static bool
-is_valid_shared_copy(struct ir3_instruction *dst_instr,
-                     struct ir3_instruction *src_instr,
-                     struct ir3_register *src_reg)
-{
-   return !(src_reg->flags & IR3_REG_SHARED) ||
-      dst_instr->block->loop_id == src_instr->block->loop_id;
-}
-
 /**
  * Handle cp for a given src register.  This additionally handles
  * the cases of collapsing immedate/const (which replace the src
@@ -353,9 +322,6 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
       struct ir3_register *src_reg = src->srcs[0];
       unsigned new_flags = reg->flags;
 
-      if (!is_valid_shared_copy(instr, src, src_reg))
-         return false;
-
       combine_flags(&new_flags, src);
 
       if (ir3_valid_flags(instr, n, new_flags)) {
@@ -373,6 +339,8 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
          reg->def->instr->use_count++;
 
          return true;
+      } else if (n == 1 && try_swap_mad_two_srcs(instr, new_flags)) {
+         return true;
       }
    } else if ((is_same_type_mov(src) || is_const_mov(src)) &&
               /* cannot collapse const/immed/etc into control flow: */
@@ -380,9 +348,6 @@ reg_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr,
       /* immed/const/etc cases, which require some special handling: */
       struct ir3_register *src_reg = src->srcs[0];
       unsigned new_flags = reg->flags;
-
-      if (!is_valid_shared_copy(instr, src, src_reg))
-         return false;
 
       if (src_reg->flags & IR3_REG_ARRAY)
          return false;
@@ -608,32 +573,6 @@ instr_cp(struct ir3_cp_ctx *ctx, struct ir3_instruction *instr)
       ctx->progress = true;
    }
 
-   /* Re-write the instruction writing predicate register to get rid
-    * of the double cmps.
-    */
-   if ((instr->opc == OPC_CMPS_S) && is_foldable_double_cmp(instr)) {
-      struct ir3_instruction *cond = ssa(instr->srcs[0]);
-      switch (cond->opc) {
-      case OPC_CMPS_S:
-      case OPC_CMPS_F:
-      case OPC_CMPS_U:
-         instr->opc = cond->opc;
-         instr->flags = cond->flags;
-         instr->cat2 = cond->cat2;
-         if (cond->address)
-            ir3_instr_set_address(instr, cond->address->def->instr);
-         instr->srcs[0] = ir3_reg_clone(ctx->shader, cond->srcs[0]);
-         instr->srcs[1] = ir3_reg_clone(ctx->shader, cond->srcs[1]);
-         instr->barrier_class |= cond->barrier_class;
-         instr->barrier_conflict |= cond->barrier_conflict;
-         unuse(cond);
-         ctx->progress = true;
-         break;
-      default:
-         break;
-      }
-   }
-
    /* Handle converting a sam.s2en (taking samp/tex idx params via register)
     * into a normal sam (encoding immediate samp/tex idx) if they are
     * immediate. This saves some instructions and regs in the common case
@@ -701,10 +640,9 @@ ir3_cp(struct ir3 *ir, struct ir3_shader_variant *so)
    ir3_clear_mark(ir);
 
    foreach_block (block, &ir->block_list) {
-      if (block->condition) {
-         instr_cp(&ctx, block->condition);
-         block->condition = eliminate_output_mov(&ctx, block->condition);
-      }
+      struct ir3_instruction *terminator = ir3_block_get_terminator(block);
+      if (terminator)
+         instr_cp(&ctx, terminator);
 
       for (unsigned i = 0; i < block->keeps_count; i++) {
          instr_cp(&ctx, block->keeps[i]);

@@ -106,9 +106,9 @@ va_fuse_add_imm(bi_instr *I)
    /* If the constant is negated, flip the sign bit */
    if (I->src[s].neg) {
       if (I->op == BI_OPCODE_FADD_IMM_F32)
-         I->index ^= (1 << 31);
+         I->index ^= (1u << 31);
       else if (I->op == BI_OPCODE_FADD_IMM_V2F16)
-         I->index ^= (1 << 31) | (1 << 15);
+         I->index ^= (1u << 31) | (1u << 15);
       else
          unreachable("unexpected .neg");
    }

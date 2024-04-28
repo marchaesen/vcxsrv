@@ -63,6 +63,16 @@ dri3_screen_init(ScreenPtr screen, const dri3_screen_info_rec *info)
     return TRUE;
 }
 
+RESTYPE dri3_syncobj_type;
+
+static int dri3_syncobj_free(void *data, XID id)
+{
+    struct dri3_syncobj *syncobj = data;
+    if (--syncobj->refcount == 0)
+        syncobj->free(syncobj);
+    return 0;
+}
+
 void
 dri3_extension_init(void)
 {
@@ -92,6 +102,11 @@ dri3_extension_init(void)
         if (!dri3_screen_init(screenInfo.screens[i], NULL))
             goto bail;
     }
+
+    dri3_syncobj_type = CreateNewResourceType(dri3_syncobj_free, "DRI3Syncobj");
+    if (!dri3_syncobj_type)
+        goto bail;
+
     return;
 
 bail:

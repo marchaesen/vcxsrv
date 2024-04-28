@@ -122,6 +122,10 @@ Equipment Corporation.
 #endif
 
 #include <X11/X.h>
+
+#include "dix/gc_priv.h"
+#include "dix/registry_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "resource.h"
@@ -140,7 +144,6 @@ Equipment Corporation.
 #endif
 #include "xace.h"
 #include <assert.h>
-#include "registry.h"
 #include "gcstruct.h"
 
 #ifdef XSERVER_DTRACE
@@ -296,7 +299,7 @@ GetPixmapBytes(void *value, XID id, ResourceSizePtr size)
 static void
 GetWindowBytes(void *value, XID id, ResourceSizePtr size)
 {
-    SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
+    SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(X11_RESTYPE_PIXMAP);
     ResourceSizeRec pixmapSize = { 0, 0, 0 };
     WindowPtr window = value;
 
@@ -345,12 +348,12 @@ FindWindowSubRes(void *value, FindAllRes func, void *cdata)
     if (window->backgroundState == BackgroundPixmap)
     {
         PixmapPtr pixmap = window->background.pixmap;
-        func(window->background.pixmap, pixmap->drawable.id, RT_PIXMAP, cdata);
+        func(window->background.pixmap, pixmap->drawable.id, X11_RESTYPE_PIXMAP, cdata);
     }
     if (window->border.pixmap && !window->borderIsPixel)
     {
         PixmapPtr pixmap = window->border.pixmap;
-        func(window->background.pixmap, pixmap->drawable.id, RT_PIXMAP, cdata);
+        func(window->background.pixmap, pixmap->drawable.id, X11_RESTYPE_PIXMAP, cdata);
     }
 }
 
@@ -369,7 +372,7 @@ FindWindowSubRes(void *value, FindAllRes func, void *cdata)
 static void
 GetGcBytes(void *value, XID id, ResourceSizePtr size)
 {
-    SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(RT_PIXMAP);
+    SizeType pixmapSizeFunc = GetResourceTypeSizeFunc(X11_RESTYPE_PIXMAP);
     ResourceSizeRec pixmapSize = { 0, 0, 0 };
     GCPtr gc = value;
 
@@ -417,83 +420,83 @@ FindGCSubRes(void *value, FindAllRes func, void *cdata)
     if (gc->stipple)
     {
         PixmapPtr pixmap = gc->stipple;
-        func(pixmap, pixmap->drawable.id, RT_PIXMAP, cdata);
+        func(pixmap, pixmap->drawable.id, X11_RESTYPE_PIXMAP, cdata);
     }
     if (gc->tile.pixmap && !gc->tileIsPixel)
     {
         PixmapPtr pixmap = gc->tile.pixmap;
-        func(pixmap, pixmap->drawable.id, RT_PIXMAP, cdata);
+        func(pixmap, pixmap->drawable.id, X11_RESTYPE_PIXMAP, cdata);
     }
 }
 
 static struct ResourceType *resourceTypes;
 
 static const struct ResourceType predefTypes[] = {
-  /* [RT_NONE & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */(DeleteType)NoopDDA,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadValue,
-    },
-  /* [RT_WINDOW & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */DeleteWindow,
-  /*.sizeFunc = */GetWindowBytes,
-  /*.findSubResFunc = */FindWindowSubRes,
-  /*.errorValue = */BadWindow,
-    },
-  /* [RT_PIXMAP & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */dixDestroyPixmap,
-  /*.sizeFunc = */GetPixmapBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadPixmap,
-    },
-  /* [RT_GC & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */FreeGC,
-  /*.sizeFunc = */GetGcBytes,
-  /*.findSubResFunc = */FindGCSubRes,
-  /*.errorValue = */BadGC,
-    },
-  /* [RT_FONT & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */CloseFont,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadFont,
-    },
-  /* [RT_CURSOR & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */FreeCursor,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadCursor,
-    },
-  /* [RT_COLORMAP & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */FreeColormap,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadColor,
-    },
-  /* [RT_CMAPENTRY & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */FreeClientPixels,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadColor,
-    },
-  /* [RT_OTHERCLIENT & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */OtherClientGone,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadValue,
-    },
-  /* [RT_PASSIVEGRAB & (RC_LASTPREDEF - 1)] = */ {
-  /*.deleteFunc = */DeletePassiveGrab,
-  /*.sizeFunc = */GetDefaultBytes,
-  /*.findSubResFunc = */DefaultFindSubRes,
-  /*.errorValue = */BadValue,
-    },
+    [X11_RESTYPE_NONE & (RC_LASTPREDEF - 1)] = {
+                                       .deleteFunc = (DeleteType) NoopDDA,
+                                       .sizeFunc = GetDefaultBytes,
+                                       .findSubResFunc = DefaultFindSubRes,
+                                       .errorValue = BadValue,
+                                       },
+    [X11_RESTYPE_WINDOW & (RC_LASTPREDEF - 1)] = {
+                                         .deleteFunc = DeleteWindow,
+                                         .sizeFunc = GetWindowBytes,
+                                         .findSubResFunc = FindWindowSubRes,
+                                         .errorValue = BadWindow,
+                                         },
+    [X11_RESTYPE_PIXMAP & (RC_LASTPREDEF - 1)] = {
+                                         .deleteFunc = dixDestroyPixmap,
+                                         .sizeFunc = GetPixmapBytes,
+                                         .findSubResFunc = DefaultFindSubRes,
+                                         .errorValue = BadPixmap,
+                                         },
+    [X11_RESTYPE_GC & (RC_LASTPREDEF - 1)] = {
+                                     .deleteFunc = FreeGC,
+                                     .sizeFunc = GetGcBytes,
+                                     .findSubResFunc = FindGCSubRes,
+                                     .errorValue = BadGC,
+                                     },
+    [X11_RESTYPE_FONT & (RC_LASTPREDEF - 1)] = {
+                                       .deleteFunc = CloseFont,
+                                       .sizeFunc = GetDefaultBytes,
+                                       .findSubResFunc = DefaultFindSubRes,
+                                       .errorValue = BadFont,
+                                       },
+    [X11_RESTYPE_CURSOR & (RC_LASTPREDEF - 1)] = {
+                                         .deleteFunc = FreeCursor,
+                                         .sizeFunc = GetDefaultBytes,
+                                         .findSubResFunc = DefaultFindSubRes,
+                                         .errorValue = BadCursor,
+                                         },
+    [X11_RESTYPE_COLORMAP & (RC_LASTPREDEF - 1)] = {
+                                           .deleteFunc = FreeColormap,
+                                           .sizeFunc = GetDefaultBytes,
+                                           .findSubResFunc = DefaultFindSubRes,
+                                           .errorValue = BadColor,
+                                           },
+    [X11_RESTYPE_CMAPENTRY & (RC_LASTPREDEF - 1)] = {
+                                            .deleteFunc = FreeClientPixels,
+                                            .sizeFunc = GetDefaultBytes,
+                                            .findSubResFunc = DefaultFindSubRes,
+                                            .errorValue = BadColor,
+                                            },
+    [X11_RESTYPE_OTHERCLIENT & (RC_LASTPREDEF - 1)] = {
+                                              .deleteFunc = OtherClientGone,
+                                              .sizeFunc = GetDefaultBytes,
+                                              .findSubResFunc = DefaultFindSubRes,
+                                              .errorValue = BadValue,
+                                              },
+    [X11_RESTYPE_PASSIVEGRAB & (RC_LASTPREDEF - 1)] = {
+                                              .deleteFunc = DeletePassiveGrab,
+                                              .sizeFunc = GetDefaultBytes,
+                                              .findSubResFunc = DefaultFindSubRes,
+                                              .errorValue = BadValue,
+                                              },
 };
 
 CallbackListPtr ResourceStateCallback;
 
-static _X_INLINE void
+static inline void
 CallResourceStateCallback(ResourceState state, ResourceRec * res)
 {
     if (ResourceStateCallback) {
@@ -549,7 +552,7 @@ GetResourceTypeSizeFunc(RESTYPE type)
  * Override the default function that calculates resource size. For
  * example, video driver knows better how to calculate pixmap memory
  * usage and can therefore wrap or override size calculation for
- * RT_PIXMAP.
+ * X11_RESTYPE_PIXMAP.
  *
  * @param[in] type     Resource type used in size calculations.
  *
@@ -643,7 +646,7 @@ InitClientResources(ClientPtr client)
     int i, j;
 
     if (client == serverClient) {
-        lastResourceType = RT_LASTPREDEF;
+        lastResourceType = X11_RESTYPE_LASTPREDEF;
         lastResourceClass = RC_LASTPREDEF;
         TypeMask = RC_LASTPREDEF - 1;
         free(resourceTypes);
@@ -1221,7 +1224,7 @@ dixLookupResourceByType(void **result, XID id, RESTYPE rtype,
 
     if (client) {
         cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
-                       res->value, RT_NONE, NULL, mode);
+                       res->value, X11_RESTYPE_NONE, NULL, mode);
         if (cid == BadValue)
             return resourceTypes[rtype & TypeMask].errorValue;
         if (cid != Success)
@@ -1256,7 +1259,7 @@ dixLookupResourceByClass(void **result, XID id, RESTYPE rclass,
 
     if (client) {
         cid = XaceHook(XACE_RESOURCE_ACCESS, client, id, res->type,
-                       res->value, RT_NONE, NULL, mode);
+                       res->value, X11_RESTYPE_NONE, NULL, mode);
         if (cid != Success)
             return cid;
     }

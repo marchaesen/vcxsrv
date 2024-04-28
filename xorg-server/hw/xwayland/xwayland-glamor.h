@@ -34,12 +34,8 @@
 #include <xf86drm.h>
 
 #include "xwayland-types.h"
-
-typedef enum _xwl_egl_backend_flags {
-    XWL_EGL_BACKEND_NO_FLAG = 0,
-    XWL_EGL_BACKEND_NEEDS_BUFFER_FLUSH = (1 << 0),
-    XWL_EGL_BACKEND_NEEDS_N_BUFFERING = (1 << 1),
-} xwl_egl_backend_flags;
+#include "xwayland-glamor-gbm.h"
+#include "dri3.h"
 
 typedef enum _xwl_glamor_mode_flags{
     XWL_GLAMOR_NONE = 0,
@@ -48,116 +44,34 @@ typedef enum _xwl_glamor_mode_flags{
     XWL_GLAMOR_DEFAULT = XWL_GLAMOR_GL | XWL_GLAMOR_GLES,
 } xwl_glamor_mode_flags;
 
-struct xwl_egl_backend {
-    /* Set by the backend if available */
-    Bool is_available;
-
-    /* Features and requirements set by the backend */
-    xwl_egl_backend_flags backend_flags;
-
-    /* Called once for each interface in the global registry. Backends
-     * should use this to bind to any wayland interfaces they need.
-     */
-    Bool (*init_wl_registry)(struct xwl_screen *xwl_screen,
-                             struct wl_registry *wl_registry,
-                             uint32_t id, const char *name,
-                             uint32_t version);
-
-    /* Check that the required Wayland interfaces are available.
-     */
-    Bool (*has_wl_interfaces)(struct xwl_screen *xwl_screen);
-
-    /* Called before glamor has been initialized. Backends should setup a
-     * valid, glamor compatible EGL context in this hook.
-     */
-    Bool (*init_egl)(struct xwl_screen *xwl_screen);
-
-    /* Called after glamor has been initialized, and after all of the
-     * common Xwayland DDX hooks have been connected. Backends should use
-     * this to setup any required wraps around X server callbacks like
-     * CreatePixmap.
-     */
-    Bool (*init_screen)(struct xwl_screen *xwl_screen);
-
-    /* Called by Xwayland to retrieve a pointer to a valid wl_buffer for
-     * the given window/pixmap combo so that damage to the pixmap may be
-     * displayed on-screen. Backends should use this to create a new
-     * wl_buffer for a currently buffer-less pixmap, or simply return the
-     * pixmap they've prepared beforehand.
-     */
-    struct wl_buffer *(*get_wl_buffer_for_pixmap)(PixmapPtr pixmap);
-
-    /* Called by Xwayland to perform any pre-wl_surface damage routines
-     * that are required by the backend. If your backend is poorly
-     * designed and lacks the ability to render directly to a surface,
-     * you should implement blitting from the glamor pixmap to the wayland
-     * pixmap here. Otherwise, this callback is optional.
-     */
-    Bool (*post_damage)(struct xwl_window *xwl_window,
-                        PixmapPtr pixmap, RegionPtr region);
-
-    /* Called by Xwayland to confirm with the egl backend that the given
-     * pixmap is completely setup and ready for display on-screen. This
-     * callback is optional.
-     */
-    Bool (*allow_commits)(struct xwl_window *xwl_window);
-
-    /* Called by Xwayland to check whether the given pixmap can be
-     * presented by xwl_present_flip. If not implemented, assumed TRUE.
-     */
-    Bool (*check_flip)(PixmapPtr pixmap);
-
-    /* Called to get the DRM device of the primary GPU that this backend
-     * is set up on.
-     */
-    drmDevice *(*get_main_device)(struct xwl_screen *xwl_screen);
-
-    /* Direct hook to create the backing pixmap for a window */
-    PixmapPtr (*create_pixmap_for_window)(struct xwl_window *xwl_window);
-};
-
 #ifdef XWL_HAS_GLAMOR
 
-void xwl_glamor_init_backends(struct xwl_screen *xwl_screen,
-                              Bool use_eglstream);
-void xwl_glamor_select_backend(struct xwl_screen *xwl_screen,
-                               Bool use_eglstream);
 Bool xwl_glamor_init(struct xwl_screen *xwl_screen);
 
 Bool xwl_screen_set_drm_interface(struct xwl_screen *xwl_screen,
                                   uint32_t id, uint32_t version);
-Bool xwl_dmabuf_setup_feedback_for_window(struct xwl_window *xwl_window);
-Bool xwl_screen_set_dmabuf_interface(struct xwl_screen *xwl_screen,
-                                     uint32_t id, uint32_t version);
+Bool xwl_screen_set_syncobj_interface(struct xwl_screen *xwl_screen,
+                                      uint32_t id, uint32_t version);
 struct wl_buffer *xwl_glamor_pixmap_get_wl_buffer(PixmapPtr pixmap);
 void xwl_glamor_init_wl_registry(struct xwl_screen *xwl_screen,
                                  struct wl_registry *registry,
                                  uint32_t id, const char *interface,
                                  uint32_t version);
-Bool xwl_glamor_has_wl_interfaces(struct xwl_screen *xwl_screen,
-                                 struct xwl_egl_backend *xwl_egl_backend);
-Bool xwl_glamor_post_damage(struct xwl_window *xwl_window,
-                            PixmapPtr pixmap, RegionPtr region);
-Bool xwl_glamor_allow_commits(struct xwl_window *xwl_window);
 void xwl_glamor_egl_make_current(struct xwl_screen *xwl_screen);
-Bool xwl_glamor_needs_buffer_flush(struct xwl_screen *xwl_screen);
-Bool xwl_glamor_needs_n_buffering(struct xwl_screen *xwl_screen);
-Bool xwl_glamor_is_modifier_supported(struct xwl_screen *xwl_screen,
-                                      uint32_t format, uint64_t modifier);
-uint32_t wl_drm_format_for_depth(int depth);
-Bool xwl_glamor_get_formats(ScreenPtr screen,
-                            CARD32 *num_formats, CARD32 **formats);
-Bool xwl_glamor_get_modifiers(ScreenPtr screen, uint32_t format,
-                              uint32_t *num_modifiers, uint64_t **modifiers);
-Bool xwl_glamor_get_drawable_modifiers_and_scanout(DrawablePtr drawable,
-                                                   uint32_t format,
-                                                   uint32_t *num_modifiers,
-                                                   uint64_t **modifiers,
-                                                   Bool *supports_scanout);
-Bool xwl_glamor_get_drawable_modifiers(DrawablePtr drawable, uint32_t format,
-                                       uint32_t *num_modifiers, uint64_t **modifiers);
 Bool xwl_glamor_check_flip(WindowPtr present_window, PixmapPtr pixmap);
 PixmapPtr xwl_glamor_create_pixmap_for_window (struct xwl_window *xwl_window);
+Bool xwl_glamor_supports_implicit_sync(struct xwl_screen *xwl_screen);
+void xwl_glamor_dmabuf_import_sync_file(PixmapPtr pixmap, int sync_file);
+int xwl_glamor_dmabuf_export_sync_file(PixmapPtr pixmap);
+Bool xwl_glamor_supports_syncobjs(struct xwl_screen *xwl_screen);
+int xwl_glamor_get_fence(struct xwl_screen *screen);
+void xwl_glamor_wait_fence(struct xwl_screen *xwl_screen, int fence);
+struct dri3_syncobj *xwl_glamor_dri3_syncobj_create(struct xwl_screen *xwl_screen);
+void xwl_glamor_dri3_syncobj_passthrough(struct xwl_window *xwl_window,
+                                         struct dri3_syncobj *acquire_syncobj,
+                                         struct dri3_syncobj *release_syncobj,
+                                         uint64_t acquire_point,
+                                         uint64_t release_point);
 
 #ifdef XV
 /* glamor Xv Adaptor */
@@ -165,21 +79,5 @@ Bool xwl_glamor_xv_init(ScreenPtr pScreen);
 #endif /* XV */
 
 #endif /* XWL_HAS_GLAMOR */
-
-#ifdef GLAMOR_HAS_GBM
-void xwl_glamor_init_gbm(struct xwl_screen *xwl_screen);
-#else
-static inline void xwl_glamor_init_gbm(struct xwl_screen *xwl_screen)
-{
-}
-#endif
-
-#ifdef XWL_HAS_EGLSTREAM
-void xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen);
-#else
-static inline void xwl_glamor_init_eglstream(struct xwl_screen *xwl_screen)
-{
-}
-#endif
 
 #endif /* XWAYLAND_GLAMOR_H */

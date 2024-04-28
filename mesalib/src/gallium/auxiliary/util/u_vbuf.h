@@ -82,7 +82,6 @@ void u_vbuf_set_vertex_elements(struct u_vbuf *mgr,
 void u_vbuf_unset_vertex_elements(struct u_vbuf *mgr);
 void u_vbuf_set_vertex_buffers(struct u_vbuf *mgr,
                                unsigned count,
-                               unsigned unbind_num_trailing_slots,
                                bool take_ownership,
                                const struct pipe_vertex_buffer *bufs);
 void u_vbuf_draw_vbo(struct pipe_context *pipe,

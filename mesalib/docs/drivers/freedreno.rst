@@ -369,9 +369,8 @@ Command Stream Capture
 ^^^^^^^^^^^^^^^^^^^^^^
 
 During Mesa development, it's often useful to look at the command streams we
-send to the kernel.  Mesa itself doesn't implement a way to stream them out
-(though it maybe should!).  Instead, we have an interface for the kernel to
-capture all submitted command streams:
+send to the kernel.  We have an interface for the kernel to capture all
+submitted command streams:
 
 .. code-block:: sh
 
@@ -390,6 +389,29 @@ a heavyweight game.  Instead, to capture a command stream within a game, you
 probably want to cause a crash in the GPU during a frame of interest so that a
 single GPU core dump is generated.  Emitting ``0xdeadbeef`` in the CS should be
 enough to cause a fault.
+
+``fd_rd_output`` facilities provide support for generating the command stream
+capture from inside Mesa. Different ``FD_RD_DUMP`` options are available:
+
+- ``enable`` simply enables dumping the command stream on each submit for a
+  given logical device. When a more advanced option is specified, ``enable`` is
+  implied as specified.
+- ``combine`` will combine all dumps into a single file instead of writing the
+  dump for each submit into a standalone file.
+- ``full`` will dump every buffer object, which is necessary for replays of
+  command streams (see below).
+- ``trigger`` will establish a trigger file through which dumps can be better
+  controlled. Writing a positive integer value into the file will enable dumping
+  of that many subsequent submits. Writing -1 will enable dumping of submits
+  until disabled. Writing 0 (or any other value) will disable dumps.
+
+Output dump files and trigger file (when enabled) are hard-coded to be placed
+under ``/tmp``, or ``/data/local/tmp`` under Android. `FD_RD_DUMP_TESTNAME` can
+be used to specify a more descriptive prefix for the output or trigger files.
+
+Functionality is generic to any Freedreno-based backend, but is currently only
+integrated in the MSM backend of Turnip. Using the existing ``TU_DEBUG=rd``
+option will translate to ``FD_RD_DUMP=enable``.
 
 Capturing Hang RD
 +++++++++++++++++
@@ -410,7 +432,7 @@ The format of hangrd is the same as in ordinary command stream capture.
 Replaying Command Stream
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-`replay` tool allows capturing and replaying ``rd`` to reproduce GPU faults.
+``replay`` tool allows capturing and replaying ``rd`` to reproduce GPU faults.
 Especially useful for transient GPU issues since it has much higher chances to
 reproduce them.
 
@@ -419,7 +441,7 @@ Dumping rendering results or even just memory is currently unsupported.
 - Replaying command streams requires kernel with ``MSM_INFO_SET_IOVA`` support.
 - Requires ``rd`` capture to have full snapshots of the memory (``rd_full`` is enabled).
 
-Replaying is done via `replay` tool:
+Replaying is done via ``replay`` tool:
 
 .. code-block:: sh
 
@@ -433,7 +455,7 @@ More examples:
 
 .. code-block:: sh
 
-  ./replay --override=0 --generator=./generate_rd test_replay.rd
+  ./replay --override=0 test_replay.rd
 
 Editing Command Stream (a6xx+)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -446,7 +468,7 @@ Given the address space bounds the generated program creates a new ``rd`` which
 could be used to override cmdstream with 'replay'. Generated ``rd`` is not replayable
 on its own and depends on buffers provided by the source ``rd``.
 
-C source could be compiled using rdcompiler-meson.build as an example.
+C source could be compiled by putting it into src/freedreno/decode/generate-rd.cc.
 
 The workflow would look like this:
 
@@ -455,15 +477,15 @@ The workflow would look like this:
 
 .. code-block:: sh
 
-  ./rddecompiler -s %cmd_stream_n% example.rd > generate_rd.c
+  ./rddecompiler -s %cmd_stream_n% example.rd > src/freedreno/decode/generate-rd.cc
 
-3. Edit the command stream;
-4. Compile it back, see rdcompiler-meson.build for the instructions;
+3. Edit the command stream;;
+4. Compile and deploy freedreno tools;
 5. Plug the generator into cmdstream replay:
 
 .. code-block:: sh
 
-  ./replay --override=%cmd_stream_№% --generator=~/generate_rd
+  ./replay --override=%cmd_stream_№%
 
 6. Repeat 3-5.
 
@@ -608,9 +630,9 @@ the cases where stale data is read.
   ``renderpass``
     stomp registers before each renderpass.
   ``inverse``
-    changes `TU_DEBUG_STALE_REGS_RANGE` meaning to
+    changes ``TU_DEBUG_STALE_REGS_RANGE`` meaning to
     "regs that should NOT be stomped".
 
 The best way to pinpoint the reg which causes a failure is to bisect the regs
 range. In case when a fail is caused by combination of several registers
-the `inverse` flag may be set to find the reg which prevents the failure.
+the ``inverse`` flag may be set to find the reg which prevents the failure.

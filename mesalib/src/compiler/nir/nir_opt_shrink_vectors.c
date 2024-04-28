@@ -33,7 +33,7 @@
  * For memory loads, while it can be tricky to eliminate unused low components
  * or channels in the middle of a writemask (you might need to increment some
  * offset from a load_uniform, for example), it is trivial to just drop the
- * trailing components.
+ * trailing components. This pass shrinks low components on select intrinsics.
  * For vector ALU and load_const, only used by other ALU instructions,
  * this pass eliminates arbitrary channels as well as duplicate channels,
  * and reswizzles the uses.
@@ -58,8 +58,33 @@ round_up_components(unsigned n)
    return (n > 5) ? util_next_power_of_two(n) : n;
 }
 
+static void
+reswizzle_alu_uses(nir_def *def, uint8_t *reswizzle)
+{
+   nir_foreach_use(use_src, def) {
+      /* all uses must be ALU instructions */
+      assert(nir_src_parent_instr(use_src)->type == nir_instr_type_alu);
+      nir_alu_src *alu_src = (nir_alu_src *)use_src;
+
+      /* reswizzle ALU sources */
+      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
+         alu_src->swizzle[i] = reswizzle[alu_src->swizzle[i]];
+   }
+}
+
 static bool
-shrink_dest_to_read_mask(nir_def *def)
+is_only_used_by_alu(nir_def *def)
+{
+   nir_foreach_use(use_src, def) {
+      if (nir_src_parent_instr(use_src)->type != nir_instr_type_alu)
+         return false;
+   }
+
+   return true;
+}
+
+static bool
+shrink_dest_to_read_mask(nir_def *def, bool shrink_start)
 {
    /* early out if there's nothing to do. */
    if (def->num_components == 1)
@@ -72,18 +97,42 @@ shrink_dest_to_read_mask(nir_def *def)
    }
 
    unsigned mask = nir_def_components_read(def);
-   int last_bit = util_last_bit(mask);
 
    /* If nothing was read, leave it up to DCE. */
    if (!mask)
       return false;
 
-   unsigned rounded = round_up_components(last_bit);
-   assert(rounded <= def->num_components);
-   last_bit = rounded;
+   nir_intrinsic_instr *intr = NULL;
+   if (def->parent_instr->type == nir_instr_type_intrinsic)
+      intr = nir_instr_as_intrinsic(def->parent_instr);
 
-   if (def->num_components > last_bit) {
-      def->num_components = last_bit;
+   shrink_start &= (intr != NULL) && nir_intrinsic_has_component(intr) &&
+                   is_only_used_by_alu(def);
+
+   int last_bit = util_last_bit(mask);
+   int first_bit = shrink_start ? (ffs(mask) - 1) : 0;
+
+   const unsigned comps = last_bit - first_bit;
+   const unsigned rounded = round_up_components(comps);
+   assert(rounded <= def->num_components);
+
+   if ((def->num_components > rounded) || first_bit > 0) {
+      def->num_components = rounded;
+
+      if (first_bit) {
+         assert(shrink_start);
+
+         nir_intrinsic_set_component(intr, nir_intrinsic_component(intr) + first_bit);
+
+         /* Reswizzle sources, which must be ALU since they have swizzle */
+         uint8_t swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
+         for (unsigned i = 0; i < comps; ++i) {
+            swizzle[first_bit + i] = i;
+         }
+
+         reswizzle_alu_uses(def, swizzle);
+      }
+
       return true;
    }
 
@@ -116,31 +165,6 @@ shrink_intrinsic_to_non_sparse(nir_intrinsic_instr *instr)
       break;
    default:
       break;
-   }
-
-   return true;
-}
-
-static void
-reswizzle_alu_uses(nir_def *def, uint8_t *reswizzle)
-{
-   nir_foreach_use(use_src, def) {
-      /* all uses must be ALU instructions */
-      assert(nir_src_parent_instr(use_src)->type == nir_instr_type_alu);
-      nir_alu_src *alu_src = (nir_alu_src *)use_src;
-
-      /* reswizzle ALU sources */
-      for (unsigned i = 0; i < NIR_MAX_VEC_COMPONENTS; i++)
-         alu_src->swizzle[i] = reswizzle[alu_src->swizzle[i]];
-   }
-}
-
-static bool
-is_only_used_by_alu(nir_def *def)
-{
-   nir_foreach_use(use_src, def) {
-      if (nir_src_parent_instr(use_src)->type != nir_instr_type_alu)
-         return false;
    }
 
    return true;
@@ -281,7 +305,8 @@ opt_shrink_vectors_alu(nir_builder *b, nir_alu_instr *instr)
 }
 
 static bool
-opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
+opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr,
+                             bool shrink_start)
 {
    switch (instr->intrinsic) {
    case nir_intrinsic_load_uniform:
@@ -302,7 +327,7 @@ opt_shrink_vectors_intrinsic(nir_builder *b, nir_intrinsic_instr *instr)
       assert(instr->num_components != 0);
 
       /* Trim the dest to the used channels */
-      if (!shrink_dest_to_read_mask(&instr->def))
+      if (!shrink_dest_to_read_mask(&instr->def, shrink_start))
          return false;
 
       instr->num_components = instr->def.num_components;
@@ -397,7 +422,7 @@ opt_shrink_vectors_load_const(nir_load_const_instr *instr)
 static bool
 opt_shrink_vectors_ssa_undef(nir_undef_instr *instr)
 {
-   return shrink_dest_to_read_mask(&instr->def);
+   return shrink_dest_to_read_mask(&instr->def, false);
 }
 
 static bool
@@ -497,7 +522,7 @@ opt_shrink_vectors_phi(nir_builder *b, nir_phi_instr *instr)
 }
 
 static bool
-opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
+opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr, bool shrink_start)
 {
    b->cursor = nir_before_instr(instr);
 
@@ -509,7 +534,8 @@ opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
       return opt_shrink_vectors_tex(b, nir_instr_as_tex(instr));
 
    case nir_instr_type_intrinsic:
-      return opt_shrink_vectors_intrinsic(b, nir_instr_as_intrinsic(instr));
+      return opt_shrink_vectors_intrinsic(b, nir_instr_as_intrinsic(instr),
+                                          shrink_start);
 
    case nir_instr_type_load_const:
       return opt_shrink_vectors_load_const(nir_instr_as_load_const(instr));
@@ -528,7 +554,7 @@ opt_shrink_vectors_instr(nir_builder *b, nir_instr *instr)
 }
 
 bool
-nir_opt_shrink_vectors(nir_shader *shader)
+nir_opt_shrink_vectors(nir_shader *shader, bool shrink_start)
 {
    bool progress = false;
 
@@ -537,7 +563,7 @@ nir_opt_shrink_vectors(nir_shader *shader)
 
       nir_foreach_block_reverse(block, impl) {
          nir_foreach_instr_reverse(instr, block) {
-            progress |= opt_shrink_vectors_instr(&b, instr);
+            progress |= opt_shrink_vectors_instr(&b, instr, shrink_start);
          }
       }
 

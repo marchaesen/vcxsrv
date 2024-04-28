@@ -52,9 +52,6 @@
 
 #define CS_GPR(n) (0x2600 + (n) * 8)
 
-/* The number of bits in our TIMESTAMP queries. */
-#define TIMESTAMP_BITS 36
-
 /* For gfx12 we set the streamout buffers using 4 separate commands
  * (3DSTATE_SO_BUFFER_INDEX_*) instead of 3DSTATE_SO_BUFFER. However the layout
  * of the 3DSTATE_SO_BUFFER_INDEX_* commands is identical to that of

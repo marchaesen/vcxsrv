@@ -1,37 +1,20 @@
 /*
  * Copyright © 2023 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "nir.h"
 #include "nir_builder.h"
 #include "radv_nir.h"
-#include "radv_private.h"
+#include "radv_pipeline_graphics.h"
 
 static bool
-radv_should_lower_poly_line_smooth(nir_shader *nir, const struct radv_pipeline_key *key)
+radv_should_lower_poly_line_smooth(nir_shader *nir, const struct radv_graphics_state_key *gfx_state)
 {
    nir_function_impl *impl = nir_shader_get_entrypoint(nir);
 
-   if (!key->ps.line_smooth_enabled && !key->dynamic_line_rast_mode)
+   if (!gfx_state->rs.line_smooth_enabled && !gfx_state->dynamic_line_rast_mode)
       return false;
 
    nir_foreach_block (block, impl) {
@@ -53,11 +36,11 @@ radv_should_lower_poly_line_smooth(nir_shader *nir, const struct radv_pipeline_k
 }
 
 void
-radv_nir_lower_poly_line_smooth(nir_shader *nir, const struct radv_pipeline_key *key)
+radv_nir_lower_poly_line_smooth(nir_shader *nir, const struct radv_graphics_state_key *gfx_state)
 {
    bool progress = false;
 
-   if (!radv_should_lower_poly_line_smooth(nir, key))
+   if (!radv_should_lower_poly_line_smooth(nir, gfx_state))
       return;
 
    NIR_PASS(progress, nir, nir_lower_poly_line_smooth, RADV_NUM_SMOOTH_AA_SAMPLES);

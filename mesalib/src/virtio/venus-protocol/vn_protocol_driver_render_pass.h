@@ -858,6 +858,64 @@ vn_encode_VkSubpassDescriptionDepthStencilResolve(struct vn_cs_encoder *enc, con
     vn_encode_VkSubpassDescriptionDepthStencilResolve_self(enc, val);
 }
 
+/* struct VkFragmentShadingRateAttachmentInfoKHR chain */
+
+static inline size_t
+vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR_pnext(const void *val)
+{
+    /* no known/supported struct */
+    return vn_sizeof_simple_pointer(NULL);
+}
+
+static inline size_t
+vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR_self(const VkFragmentShadingRateAttachmentInfoKHR *val)
+{
+    size_t size = 0;
+    /* skip val->{sType,pNext} */
+    size += vn_sizeof_simple_pointer(val->pFragmentShadingRateAttachment);
+    if (val->pFragmentShadingRateAttachment)
+        size += vn_sizeof_VkAttachmentReference2(val->pFragmentShadingRateAttachment);
+    size += vn_sizeof_VkExtent2D(&val->shadingRateAttachmentTexelSize);
+    return size;
+}
+
+static inline size_t
+vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR(const VkFragmentShadingRateAttachmentInfoKHR *val)
+{
+    size_t size = 0;
+
+    size += vn_sizeof_VkStructureType(&val->sType);
+    size += vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR_pnext(val->pNext);
+    size += vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR_self(val);
+
+    return size;
+}
+
+static inline void
+vn_encode_VkFragmentShadingRateAttachmentInfoKHR_pnext(struct vn_cs_encoder *enc, const void *val)
+{
+    /* no known/supported struct */
+    vn_encode_simple_pointer(enc, NULL);
+}
+
+static inline void
+vn_encode_VkFragmentShadingRateAttachmentInfoKHR_self(struct vn_cs_encoder *enc, const VkFragmentShadingRateAttachmentInfoKHR *val)
+{
+    /* skip val->{sType,pNext} */
+    if (vn_encode_simple_pointer(enc, val->pFragmentShadingRateAttachment))
+        vn_encode_VkAttachmentReference2(enc, val->pFragmentShadingRateAttachment);
+    vn_encode_VkExtent2D(enc, &val->shadingRateAttachmentTexelSize);
+}
+
+static inline void
+vn_encode_VkFragmentShadingRateAttachmentInfoKHR(struct vn_cs_encoder *enc, const VkFragmentShadingRateAttachmentInfoKHR *val)
+{
+    assert(val->sType == VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR);
+    vn_encode_VkStructureType(enc, &(VkStructureType){ VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR });
+    vn_encode_VkFragmentShadingRateAttachmentInfoKHR_pnext(enc, val->pNext);
+    vn_encode_VkFragmentShadingRateAttachmentInfoKHR_self(enc, val);
+}
+
 /* struct VkSubpassDescription2 chain */
 
 static inline size_t
@@ -873,6 +931,14 @@ vn_sizeof_VkSubpassDescription2_pnext(const void *val)
             size += vn_sizeof_VkStructureType(&pnext->sType);
             size += vn_sizeof_VkSubpassDescription2_pnext(pnext->pNext);
             size += vn_sizeof_VkSubpassDescriptionDepthStencilResolve_self((const VkSubpassDescriptionDepthStencilResolve *)pnext);
+            return size;
+        case VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:
+            if (!vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */))
+                break;
+            size += vn_sizeof_simple_pointer(pnext);
+            size += vn_sizeof_VkStructureType(&pnext->sType);
+            size += vn_sizeof_VkSubpassDescription2_pnext(pnext->pNext);
+            size += vn_sizeof_VkFragmentShadingRateAttachmentInfoKHR_self((const VkFragmentShadingRateAttachmentInfoKHR *)pnext);
             return size;
         default:
             /* ignore unknown/unsupported struct */
@@ -952,6 +1018,14 @@ vn_encode_VkSubpassDescription2_pnext(struct vn_cs_encoder *enc, const void *val
             vn_encode_VkStructureType(enc, &pnext->sType);
             vn_encode_VkSubpassDescription2_pnext(enc, pnext->pNext);
             vn_encode_VkSubpassDescriptionDepthStencilResolve_self(enc, (const VkSubpassDescriptionDepthStencilResolve *)pnext);
+            return;
+        case VK_STRUCTURE_TYPE_FRAGMENT_SHADING_RATE_ATTACHMENT_INFO_KHR:
+            if (!vn_cs_renderer_protocol_has_extension(227 /* VK_KHR_fragment_shading_rate */))
+                break;
+            vn_encode_simple_pointer(enc, pnext);
+            vn_encode_VkStructureType(enc, &pnext->sType);
+            vn_encode_VkSubpassDescription2_pnext(enc, pnext->pNext);
+            vn_encode_VkFragmentShadingRateAttachmentInfoKHR_self(enc, (const VkFragmentShadingRateAttachmentInfoKHR *)pnext);
             return;
         default:
             /* ignore unknown/unsupported struct */

@@ -171,6 +171,18 @@ nir_cf_node_remove(nir_cf_node *node)
    nir_cf_delete(&list);
 }
 
+static inline void
+nir_remove_after_cf_node(nir_cf_node *node)
+{
+   nir_cf_node *end = node;
+   while (!nir_cf_node_is_last(end))
+      end = nir_cf_node_next(end);
+
+   nir_cf_list list;
+   nir_cf_extract(&list, nir_after_cf_node(node), nir_after_cf_node(end));
+   nir_cf_delete(&list);
+}
+
 /** inserts undef phi sources from predcessor into phis of the block */
 void nir_insert_phi_undef(nir_block *block, nir_block *pred);
 

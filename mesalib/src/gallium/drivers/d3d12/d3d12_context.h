@@ -168,8 +168,30 @@ struct d3d12_context {
    struct slab_child_pool transfer_pool_unsync;
    struct list_head context_list_entry;
    struct threaded_context *threaded_context;
-   struct primconvert_context *primconvert;
+   struct d3d12_batch batches[8];
+   unsigned current_batch_idx;
+   struct util_dynarray recently_destroyed_bos;
+   struct util_dynarray barrier_scratch;
+   struct set *pending_barriers_bos;
+   struct util_dynarray local_pending_barriers_bos;
+   uint64_t submit_id;
+   ID3D12GraphicsCommandList *cmdlist;
+   ID3D12GraphicsCommandList2 *cmdlist2;
+   ID3D12GraphicsCommandList8 *cmdlist8;
+   ID3D12GraphicsCommandList *state_fixup_cmdlist;
+   struct hash_table_u64 *bo_state_table;
    struct blitter_context *blitter;
+   uint flags;
+   bool queries_disabled;
+
+#ifdef __cplusplus
+   ResourceStateManager *resource_state_manager;
+#else
+   void *resource_state_manager; /* opaque pointer; we don't know about classes in C */
+#endif
+
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   struct primconvert_context *primconvert;
    struct u_suballocator query_allocator;
    struct u_suballocator so_allocator;
    struct hash_table *pso_cache;
@@ -179,15 +201,6 @@ struct d3d12_context {
    struct hash_table *gs_variant_cache;
    struct hash_table *tcs_variant_cache;
    struct hash_table *compute_transform_cache;
-   struct hash_table_u64 *bo_state_table;
-
-   struct d3d12_batch batches[8];
-   unsigned current_batch_idx;
-
-   struct util_dynarray recently_destroyed_bos;
-   struct util_dynarray barrier_scratch;
-   struct set *pending_barriers_bos;
-   struct util_dynarray local_pending_barriers_bos;
 
    struct pipe_constant_buffer cbufs[PIPE_SHADER_TYPES][PIPE_MAX_CONSTANT_BUFFERS];
    struct pipe_framebuffer_state fb;
@@ -255,14 +268,7 @@ struct d3d12_context {
    ID3D12PipelineState *current_compute_pso;
    uint16_t reverse_depth_range;
 
-   uint64_t submit_id;
-   ID3D12GraphicsCommandList *cmdlist;
-   ID3D12GraphicsCommandList2 *cmdlist2;
-   ID3D12GraphicsCommandList8 *cmdlist8;
-   ID3D12GraphicsCommandList *state_fixup_cmdlist;
-
    struct list_head active_queries;
-   bool queries_disabled;
 
    struct d3d12_descriptor_pool *sampler_pool;
    struct d3d12_descriptor_handle null_sampler;
@@ -280,16 +286,11 @@ struct d3d12_context {
    bool queries_suspended;
 
    uint32_t transform_state_vars[8];
-
-#ifdef __cplusplus
-   ResourceStateManager *resource_state_manager;
-#else
-   void *resource_state_manager; /* opaque pointer; we don't know about classes in C */
-#endif
    struct pipe_query *timestamp_query;
 
    /* used by d3d12_blit.cpp */
    void *stencil_resolve_vs, *stencil_resolve_fs, *stencil_resolve_fs_no_flip, *sampler_state;
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 };
 
 static inline struct d3d12_context *
@@ -382,6 +383,18 @@ d3d12_init_sampler_view_descriptor(struct d3d12_sampler_view *sampler_view);
 
 void
 d3d12_invalidate_context_bindings(struct d3d12_context *ctx, struct d3d12_resource *res);
+
+void
+d3d12_rebind_buffer(struct d3d12_context *ctx, struct d3d12_resource *res);
+
+void
+d3d12_init_null_sampler(struct d3d12_context *ctx);
+
+bool
+d3d12_init_polygon_stipple(struct pipe_context *pctx);
+
+void
+d3d12_init_graphics_context_functions(struct d3d12_context *ctx);
 
 #ifdef HAVE_GALLIUM_D3D12_VIDEO
 struct pipe_video_codec* d3d12_video_create_codec( struct pipe_context *context,

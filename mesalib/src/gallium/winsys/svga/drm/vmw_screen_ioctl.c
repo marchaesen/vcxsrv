@@ -514,7 +514,7 @@ vmw_ioctl_command(struct vmw_winsys_screen *vws, int32_t cid,
    int ret;
    int argsize;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    {
       static bool firsttime = true;
       static bool debug = false;

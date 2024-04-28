@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_IO_H
-#define __AGX_IO_H
+#pragma once
 
 #include <stdbool.h>
 #include "agx_bo.h"
@@ -272,5 +271,3 @@ struct agx_map_entry {
 } __attribute__((packed));
 
 uint64_t agx_get_global_id(struct agx_device *dev);
-
-#endif

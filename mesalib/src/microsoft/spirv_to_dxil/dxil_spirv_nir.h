@@ -41,12 +41,12 @@ dxil_spirv_nir_prep(nir_shader *nir);
 void
 dxil_spirv_nir_link(nir_shader *nir, nir_shader *prev_stage_nir,
                     const struct dxil_spirv_runtime_conf *conf,
-                    bool *requires_runtime_data);
+                    struct dxil_spirv_metadata *metadata);
 
 void
 dxil_spirv_nir_passes(nir_shader *nir,
                       const struct dxil_spirv_runtime_conf *conf,
-                      bool *requires_runtime_data);
+                      struct dxil_spirv_metadata *metadata);
 
 struct dxil_spirv_binding_remapping {
    /* If ~0, don't lower to bindless */
@@ -78,6 +78,9 @@ struct dxil_spirv_bindless_entry {
 
 bool
 dxil_spirv_nir_lower_bindless(nir_shader *nir, struct dxil_spirv_nir_lower_bindless_options *options);
+
+bool
+dxil_spirv_nir_lower_buffer_device_address(nir_shader *nir);
 
 bool
 dxil_spirv_nir_lower_yz_flip(nir_shader *shader,

@@ -28,7 +28,7 @@
  *    <wallbraker@gmail.com> Chia-I Wu <olv@lunarg.com>
  */
 
-#include <xf86drm.h>
+#include "util/libdrm.h"
 #include "git_sha1.h"
 #include "GL/mesa_glinterop.h"
 #include "GL/internal/mesa_interface.h"
@@ -54,6 +54,7 @@
 #include "dri_helpers.h"
 #include "dri_drawable.h"
 #include "dri_query_renderer.h"
+#include "loader_dri_helper.h"
 
 #include "drm-uapi/drm_fourcc.h"
 
@@ -234,12 +235,14 @@ dri_image_drawable_get_buffers(struct dri_drawable *drawable,
                                const enum st_attachment_type *statts,
                                unsigned statts_count)
 {
-   unsigned int image_format = __DRI_IMAGE_FORMAT_NONE;
-   enum pipe_format pf;
+   enum pipe_format color_format = PIPE_FORMAT_NONE;
    uint32_t buffer_mask = 0;
-   unsigned i, bind;
+   unsigned i;
 
    for (i = 0; i < statts_count; i++) {
+      enum pipe_format pf;
+      unsigned bind;
+
       dri_drawable_get_format(drawable, statts[i], &pf, &bind);
       if (pf == PIPE_FORMAT_NONE)
          continue;
@@ -247,62 +250,13 @@ dri_image_drawable_get_buffers(struct dri_drawable *drawable,
       switch (statts[i]) {
       case ST_ATTACHMENT_FRONT_LEFT:
          buffer_mask |= __DRI_IMAGE_BUFFER_FRONT;
+         color_format = pf;
          break;
       case ST_ATTACHMENT_BACK_LEFT:
          buffer_mask |= __DRI_IMAGE_BUFFER_BACK;
+         color_format = pf;
          break;
       default:
-         continue;
-      }
-
-      switch (pf) {
-      case PIPE_FORMAT_R16G16B16A16_FLOAT:
-         image_format = __DRI_IMAGE_FORMAT_ABGR16161616F;
-         break;
-      case PIPE_FORMAT_R16G16B16X16_FLOAT:
-         image_format = __DRI_IMAGE_FORMAT_XBGR16161616F;
-         break;
-      case PIPE_FORMAT_B5G5R5A1_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ARGB1555;
-         break;
-      case PIPE_FORMAT_B5G6R5_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_RGB565;
-         break;
-      case PIPE_FORMAT_BGRX8888_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_XRGB8888;
-         break;
-      case PIPE_FORMAT_BGRA8888_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ARGB8888;
-         break;
-      case PIPE_FORMAT_RGBX8888_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_XBGR8888;
-         break;
-      case PIPE_FORMAT_RGBA8888_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ABGR8888;
-         break;
-      case PIPE_FORMAT_B10G10R10X2_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_XRGB2101010;
-         break;
-      case PIPE_FORMAT_B10G10R10A2_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ARGB2101010;
-         break;
-      case PIPE_FORMAT_R10G10B10X2_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_XBGR2101010;
-         break;
-      case PIPE_FORMAT_R10G10B10A2_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ABGR2101010;
-         break;
-      case PIPE_FORMAT_R5G5B5A1_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ABGR1555;
-         break;
-      case PIPE_FORMAT_B4G4R4A4_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ARGB4444;
-         break;
-      case PIPE_FORMAT_R4G4B4A4_UNORM:
-         image_format = __DRI_IMAGE_FORMAT_ABGR4444;
-         break;
-      default:
-         image_format = __DRI_IMAGE_FORMAT_NONE;
          break;
       }
    }
@@ -324,7 +278,7 @@ dri_image_drawable_get_buffers(struct dri_drawable *drawable,
     */
    return drawable->screen->image.loader->getBuffers(
                                           opaque_dri_drawable(drawable),
-                                          image_format,
+                                          color_format,
                                           (uint32_t *)&drawable->base.stamp,
                                           drawable->loaderPrivate, buffer_mask,
                                           images);
@@ -1854,13 +1808,17 @@ dri2_from_dma_bufs3(__DRIscreen *screen,
                     unsigned *error,
                     void *loaderPrivate)
 {
+   unsigned bind = 0;
    __DRIimage *img;
+
+   if (flags & __DRI_IMAGE_PROTECTED_CONTENT_FLAG)
+      bind |= PIPE_BIND_PROTECTED;
+   if (flags & __DRI_IMAGE_PRIME_LINEAR_BUFFER)
+      bind |= PIPE_BIND_PRIME_BLIT_DST;
 
    img = dri2_create_image_from_fd(screen, width, height, fourcc,
                                    modifier, fds, num_fds, strides, offsets,
-                                   (flags & __DRI_IMAGE_PROTECTED_CONTENT_FLAG) ?
-                                      PIPE_BIND_PROTECTED : 0,
-                                   error, loaderPrivate);
+                                   bind, error, loaderPrivate);
    if (img == NULL)
       return NULL;
 
@@ -2374,15 +2332,17 @@ dri2_create_drawable(struct dri_screen *screen, const struct gl_config *visual,
  * Returns the struct gl_config supported by this driver.
  */
 static const __DRIconfig **
-dri2_init_screen(struct dri_screen *screen)
+dri2_init_screen(struct dri_screen *screen, bool implicit)
 {
    const __DRIconfig **configs;
    struct pipe_screen *pscreen = NULL;
 
    (void) mtx_init(&screen->opencl_func_mutex, mtx_plain);
 
+#ifdef HAVE_LIBDRM
    if (pipe_loader_drm_probe_fd(&screen->dev, screen->fd, false))
-      pscreen = pipe_loader_create_screen(screen->dev);
+      pscreen = pipe_loader_create_screen(screen->dev, implicit);
+#endif
 
    if (!pscreen)
        goto fail;
@@ -2430,7 +2390,7 @@ fail:
  * Returns the struct gl_config supported by this driver.
  */
 static const __DRIconfig **
-dri_swrast_kms_init_screen(struct dri_screen *screen)
+dri_swrast_kms_init_screen(struct dri_screen *screen, bool implicit)
 {
 #if defined(GALLIUM_SOFTPIPE)
    const __DRIconfig **configs;
@@ -2438,7 +2398,7 @@ dri_swrast_kms_init_screen(struct dri_screen *screen)
 
 #ifdef HAVE_DRISW_KMS
    if (pipe_loader_sw_probe_kms(&screen->dev, screen->fd))
-      pscreen = pipe_loader_create_screen(screen->dev);
+      pscreen = pipe_loader_create_screen(screen->dev, implicit);
 #endif
 
    if (!pscreen)
@@ -2480,16 +2440,21 @@ fail:
 static int
 dri_query_compatible_render_only_device_fd(int kms_only_fd)
 {
+#ifdef HAVE_LIBDRM
    return pipe_loader_get_compatible_render_capable_device_fd(kms_only_fd);
+#else
+   return -1;
+#endif
 }
 
 static const struct __DRImesaCoreExtensionRec mesaCoreExtension = {
-   .base = { __DRI_MESA, 1 },
+   .base = { __DRI_MESA, 2 },
    .version_string = MESA_INTERFACE_VERSION_STRING,
    .createNewScreen = driCreateNewScreen2,
    .createContext = driCreateContextAttribs,
    .initScreen = dri2_init_screen,
    .queryCompatibleRenderOnlyDeviceFd = dri_query_compatible_render_only_device_fd,
+   .createNewScreen3 = driCreateNewScreen3,
 };
 
 /* This is the table of extensions that the loader will dlsym() for. */
@@ -2503,11 +2468,12 @@ const __DRIextension *galliumdrm_driver_extensions[] = {
 };
 
 static const struct __DRImesaCoreExtensionRec swkmsMesaCoreExtension = {
-   .base = { __DRI_MESA, 1 },
+   .base = { __DRI_MESA, 2 },
    .version_string = MESA_INTERFACE_VERSION_STRING,
    .createNewScreen = driCreateNewScreen2,
    .createContext = driCreateContextAttribs,
    .initScreen = dri_swrast_kms_init_screen,
+   .createNewScreen3 = driCreateNewScreen3,
 };
 
 const __DRIextension *dri_swrast_kms_driver_extensions[] = {

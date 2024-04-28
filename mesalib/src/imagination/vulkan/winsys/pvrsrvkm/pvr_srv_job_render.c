@@ -128,7 +128,7 @@ VkResult pvr_srv_winsys_free_list_create(
                                          grow_num_pages,
                                          grow_threshold,
                                          parent_handle,
-#if defined(DEBUG)
+#if MESA_DEBUG
                                          PVR_SRV_TRUE /* free_list_check */,
 #else
                                          PVR_SRV_FALSE /* free_list_check */,

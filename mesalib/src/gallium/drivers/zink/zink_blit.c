@@ -362,13 +362,20 @@ zink_blit(struct pipe_context *pctx,
    bool stencil_blit = false;
    if (!util_blitter_is_blit_supported(ctx->blitter, info)) {
       if (util_format_is_depth_or_stencil(info->src.resource->format)) {
-         struct pipe_blit_info depth_blit = *info;
-         depth_blit.mask = PIPE_MASK_Z;
-         stencil_blit = util_blitter_is_blit_supported(ctx->blitter, &depth_blit);
-         if (stencil_blit) {
-            zink_blit_begin(ctx, ZINK_BLIT_SAVE_FB | ZINK_BLIT_SAVE_FS | ZINK_BLIT_SAVE_TEXTURES);
-            util_blitter_blit(ctx->blitter, &depth_blit);
+         if (info->mask & PIPE_MASK_Z) {
+            struct pipe_blit_info depth_blit = *info;
+            depth_blit.mask = PIPE_MASK_Z;
+            if (util_blitter_is_blit_supported(ctx->blitter, &depth_blit)) {
+               zink_blit_begin(ctx, ZINK_BLIT_SAVE_FB | ZINK_BLIT_SAVE_FS | ZINK_BLIT_SAVE_TEXTURES);
+               util_blitter_blit(ctx->blitter, &depth_blit);
+            } else {
+               mesa_loge("ZINK: depth blit unsupported %s -> %s",
+                         util_format_short_name(info->src.resource->format),
+                         util_format_short_name(info->dst.resource->format));
+            }
          }
+         if (info->mask & PIPE_MASK_S)
+            stencil_blit = true;
       }
       if (!stencil_blit) {
          mesa_loge("ZINK: blit unsupported %s -> %s",
@@ -501,7 +508,8 @@ zink_blit_begin(struct zink_context *ctx, enum zink_blit_flags flags)
    util_blitter_save_vertex_elements(ctx->blitter, ctx->element_state);
    util_blitter_save_viewport(ctx->blitter, ctx->vp_state.viewport_states);
 
-   util_blitter_save_vertex_buffer_slot(ctx->blitter, ctx->vertex_buffers);
+   util_blitter_save_vertex_buffers(ctx->blitter, ctx->vertex_buffers,
+                                    util_last_bit(ctx->gfx_pipeline_state.vertex_buffers_enabled_mask));
    util_blitter_save_vertex_shader(ctx->blitter, ctx->gfx_stages[MESA_SHADER_VERTEX]);
    util_blitter_save_tessctrl_shader(ctx->blitter, ctx->gfx_stages[MESA_SHADER_TESS_CTRL]);
    util_blitter_save_tesseval_shader(ctx->blitter, ctx->gfx_stages[MESA_SHADER_TESS_EVAL]);

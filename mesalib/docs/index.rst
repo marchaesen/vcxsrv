@@ -76,6 +76,7 @@ Linux, FreeBSD, and other operating systems.
    gallium-nine
    viewperf
    xlibdriver
+   teflon
 
 .. toctree::
    :maxdepth: 1

@@ -648,17 +648,6 @@ lower_tess_ctrl_block(nir_block *block, nir_builder *b, struct state *state)
    }
 }
 
-static void
-emit_tess_epilouge(nir_builder *b, struct state *state)
-{
-   /* Insert endpatch instruction:
-    *
-    * TODO we should re-work this to use normal flow control.
-    */
-
-   nir_end_patch_ir3(b);
-}
-
 void
 ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
                         unsigned topology)
@@ -723,12 +712,6 @@ ir3_nir_lower_tess_ctrl(nir_shader *shader, struct ir3_shader_variant *v,
    nir_cf_reinsert(&body, b.cursor);
 
    b.cursor = nir_after_cf_list(&nif->then_list);
-
-   /* Insert conditional exit for threads invocation id != 0 */
-   nir_def *iid0_cond = nir_ieq_imm(&b, iid, 0);
-   nir_cond_end_ir3(&b, iid0_cond);
-
-   emit_tess_epilouge(&b, &state);
 
    nir_pop_if(&b, nif);
 

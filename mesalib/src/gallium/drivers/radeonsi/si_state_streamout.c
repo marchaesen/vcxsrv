@@ -64,6 +64,9 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
    unsigned old_num_targets = sctx->streamout.num_targets;
    unsigned i;
 
+   if (!old_num_targets && !num_targets)
+      return;
+
    /* We are going to unbind the buffers. Mark which caches need to be flushed. */
    if (old_num_targets && sctx->streamout.begin_emitted) {
       /* Stop streamout. */
@@ -101,9 +104,8 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
     *    spec@ext_transform_feedback@immediate-reuse
     *    spec@ext_transform_feedback@immediate-reuse-index-buffer
     *    spec@ext_transform_feedback@immediate-reuse-uniform-buffer
-    *    .. and some dEQP-GLES[23].functional.fragment_ops.random.*
     */
-   if (sctx->gfx_level >= GFX11)
+   if (sctx->gfx_level >= GFX11 && old_num_targets)
       si_flush_gfx_cs(sctx, 0, NULL);
 
    /* Streamout buffers must be bound in 2 places:

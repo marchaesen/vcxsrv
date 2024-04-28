@@ -153,11 +153,4 @@ typedef FcObjectSet	XftObjectSet;
 
 #define XftConfigSubstitute(p) FcConfigSubstitute (0, p, FcMatchPattern)
 
-_XFUNCPROTOBEGIN
-
-FcBool
-XftNameUnparse (XftPattern *pat, char *dest, int len);
-
-_XFUNCPROTOEND
-
 #endif /* _XFTCOMPAT_H_ */

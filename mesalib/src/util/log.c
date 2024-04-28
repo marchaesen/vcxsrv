@@ -94,7 +94,7 @@ mesa_log_init_once(void)
    mesa_log_file = stderr;
 
 #if !DETECT_OS_WINDOWS
-   if (geteuid() == getuid()) {
+   if (__normal_user()) {
       const char *log_file = os_get_option("MESA_LOG_FILE");
       if (log_file) {
          FILE *fp = fopen(log_file, "w");

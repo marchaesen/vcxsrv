@@ -45,7 +45,7 @@
 /* If we crash in a jitted function, we can examine jit_line and jit_state
  * to get some info.  This is not thread-safe, however.
  */
-#ifdef DEBUG
+#if MESA_DEBUG && !THREAD_SANITIZER
 
 struct lp_rasterizer_task;
 extern int jit_line;
@@ -102,6 +102,9 @@ struct lp_rasterizer_task
 
    util_semaphore work_ready;
    util_semaphore work_done;
+#ifdef _WIN32
+   util_semaphore exited;
+#endif
 };
 
 

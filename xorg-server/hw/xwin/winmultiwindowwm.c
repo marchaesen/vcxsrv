@@ -1624,9 +1624,9 @@ winInitWM(void **ppWMInfo,
           pthread_mutex_t * ppmServerStarted,
           int dwScreen, HWND hwndScreen, Bool compositeWM)
 {
-    WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
-    WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
-    XMsgProcArgPtr pXMsgArg = malloc(sizeof(XMsgProcArgRec));
+    WMProcArgPtr pArg = calloc(sizeof(WMProcArgRec), 1);
+    WMInfoPtr pWMInfo = calloc(sizeof(WMInfoRec), 1);
+    XMsgProcArgPtr pXMsgArg = calloc(sizeof(XMsgProcArgRec), 1);
 
     /* Bail if the input parameters are bad */
     if (pArg == NULL || pWMInfo == NULL || pXMsgArg == NULL) {
@@ -1636,11 +1636,6 @@ winInitWM(void **ppWMInfo,
         free(pXMsgArg);
         return FALSE;
     }
-
-    /* Zero the allocated memory */
-    ZeroMemory(pArg, sizeof(WMProcArgRec));
-    ZeroMemory(pWMInfo, sizeof(WMInfoRec));
-    ZeroMemory(pXMsgArg, sizeof(XMsgProcArgRec));
 
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;

@@ -30,8 +30,9 @@
 #include <xcb/xcb_keysyms.h>
 #include <X11/keysym.h>
 
-#include "ephyr.h"
+#include "os/osdep.h"
 
+#include "ephyr.h"
 #include "inputstr.h"
 #include "scrnintstr.h"
 #include "ephyrlog.h"

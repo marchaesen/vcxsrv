@@ -55,6 +55,7 @@
 #define AMDGPU_INFO_FW_GFX_ME 0x04
 #define AMDGPU_INFO_FW_GFX_PFP 0x05
 #define AMDGPU_INFO_FW_GFX_CE 0x06
+#define AMDGPU_INFO_FW_VCN 0x0e
 #define AMDGPU_INFO_DEV_INFO 0x16
 #define AMDGPU_INFO_MEMORY 0x19
 #define AMDGPU_INFO_VIDEO_CAPS_DECODE 0
@@ -75,6 +76,16 @@
 #define AMDGPU_VRAM_TYPE_DDR5  10
 #define AMDGPU_VRAM_TYPE_LPDDR4 11
 #define AMDGPU_VRAM_TYPE_LPDDR5 12
+
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG2 0
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG4 1
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_VC1 2
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG4_AVC 3
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_HEVC 4
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_JPEG 5
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_VP9 6
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_AV1 7
+#define AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_COUNT 8
 
 struct drm_amdgpu_heap_info {
    uint64_t total_heap_size;
@@ -292,6 +303,11 @@ static int amdgpu_query_hw_ip_info(amdgpu_device_handle dev, unsigned type,
 {
    return -EINVAL;
 }
+static int amdgpu_query_hw_ip_count(amdgpu_device_handle dev, unsigned type,
+   uint32_t *count)
+{
+   return -EINVAL;
+}
 static int amdgpu_query_heap_info(amdgpu_device_handle dev, uint32_t heap,
    uint32_t flags, struct amdgpu_heap_info *info)
 {
@@ -338,14 +354,6 @@ static intptr_t readlink(const char *path, char *buf, size_t bufsiz)
 #endif
 
 #define CIK_TILE_MODE_COLOR_2D 14
-
-static bool has_syncobj(int fd)
-{
-   uint64_t value;
-   if (drmGetCap(fd, DRM_CAP_SYNCOBJ, &value))
-      return false;
-   return value ? true : false;
-}
 
 static bool has_timeline_syncobj(int fd)
 {
@@ -599,7 +607,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    struct amdgpu_gpu_info amdinfo;
    struct drm_amdgpu_info_device device_info = {0};
    struct amdgpu_buffer_size_alignments alignment_info = {0};
-   uint32_t vce_version = 0, vce_feature = 0, uvd_version = 0, uvd_feature = 0;
+   uint32_t vidip_fw_version = 0, vidip_fw_feature = 0;
+   uint32_t num_instances = 0;
    int r, i, j;
    amdgpu_device_handle dev = dev_p;
 
@@ -628,6 +637,13 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       fprintf(stderr, "amdgpu: DRM version is %u.%u.%u, but this driver is "
                       "only compatible with 3.27.0 (kernel 4.20+) or later.\n",
               info->drm_major, info->drm_minor, info->drm_patchlevel);
+      return false;
+   }
+
+   uint64_t cap;
+   r = drmGetCap(fd, DRM_CAP_SYNCOBJ, &cap);
+   if (r != 0 || cap == 0) {
+      fprintf(stderr, "amdgpu: syncobj support is missing but is required.\n");
       return false;
    }
 
@@ -681,6 +697,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       }
       info->ip[ip_type].num_queues = util_bitcount(ip_info.available_rings);
 
+      /* query ip count */
+      r = amdgpu_query_hw_ip_count(dev, ip_type, &num_instances);
+      if (!r)
+         info->ip[ip_type].num_instances = num_instances;
+
       /* According to the kernel, only SDMA and VPE require 256B alignment, but use it
        * for all queues because the kernel reports wrong limits for some of the queues.
        * This is only space allocation alignment, so it's OK to keep it like this even
@@ -729,16 +750,34 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       return false;
    }
 
-   r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_UVD, 0, 0, &uvd_version, &uvd_feature);
-   if (r) {
-      fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(uvd) failed.\n");
-      return false;
-   }
+   if (info->ip[AMD_IP_VCN_DEC].num_queues || info->ip[AMD_IP_VCN_UNIFIED].num_queues) {
+      r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_VCN, 0, 0, &vidip_fw_version, &vidip_fw_feature);
+      if (r) {
+         fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(vcn) failed.\n");
+         return false;
+      } else {
+         info->vcn_dec_version = (vidip_fw_version & 0x0F000000) >> 24;
+         info->vcn_enc_major_version = (vidip_fw_version & 0x00F00000) >> 20;
+         info->vcn_enc_minor_version = (vidip_fw_version & 0x000FF000) >> 12;
+      }
+   } else {
+      if (info->ip[AMD_IP_VCE].num_queues) {
+         r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_VCE, 0, 0, &vidip_fw_version, &vidip_fw_feature);
+         if (r) {
+            fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(vce) failed.\n");
+            return false;
+         } else
+            info->vce_fw_version = vidip_fw_version;
+      }
 
-   r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_VCE, 0, 0, &vce_version, &vce_feature);
-   if (r) {
-      fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(vce) failed.\n");
-      return false;
+      if (info->ip[AMD_IP_UVD].num_queues) {
+         r = amdgpu_query_firmware_version(dev, AMDGPU_INFO_FW_UVD, 0, 0, &vidip_fw_version, &vidip_fw_feature);
+         if (r) {
+            fprintf(stderr, "amdgpu: amdgpu_query_firmware_version(uvd) failed.\n");
+            return false;
+         } else
+            info->uvd_fw_version = vidip_fw_version;
+      }
    }
 
    r = amdgpu_query_sw_info(dev, amdgpu_sw_info_address32_hi, &info->address32_hi);
@@ -859,6 +898,7 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
          break;
       case FAMILY_GFX1150:
          identify_chip(GFX1150);
+         identify_chip(GFX1151);
          break;
       }
 
@@ -976,6 +1016,9 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       case VCN_IP_VERSION(4, 0, 5):
          info->vcn_ip_version = VCN_4_0_5;
          break;
+      case VCN_IP_VERSION(4, 0, 6):
+         info->vcn_ip_version = VCN_4_0_6;
+         break;
       default:
          info->vcn_ip_version = VCN_UNKNOWN;
       }
@@ -1007,15 +1050,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
    info->max_se = device_info.num_shader_engines;
    info->max_sa_per_se = device_info.num_shader_arrays_per_engine;
    info->num_cu_per_sh = device_info.num_cu_per_sh;
-   info->uvd_fw_version = info->ip[AMD_IP_UVD].num_queues ? uvd_version : 0;
-   info->vce_fw_version = info->ip[AMD_IP_VCE].num_queues ? vce_version : 0;
 
    info->memory_freq_mhz_effective *= ac_memory_ops_per_clock(info->vram_type);
 
    info->has_userptr = true;
-   info->has_syncobj = has_syncobj(fd);
    info->has_timeline_syncobj = has_timeline_syncobj(fd);
-   info->has_fence_to_handle = info->has_syncobj;
    info->has_local_buffers = true;
    info->has_bo_metadata = true;
    info->has_eqaa_surface_allocator = info->gfx_level < GFX11;
@@ -1210,6 +1249,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
     */
    info->has_pops_missed_overlap_bug = info->family == CHIP_VEGA10 || info->family == CHIP_RAVEN;
 
+   /* GFX6 hw bug when the IBO addr is 0 which causes invalid clamping (underflow).
+    * Setting the IB addr to 2 or higher solves this issue.
+    */
+   info->has_null_index_buffer_clamping_bug = info->gfx_level == GFX6;
+
    /* Drawing from 0-sized index buffers causes hangs on gfx10. */
    info->has_zero_index_buffer_bug = info->gfx_level == GFX10;
 
@@ -1254,6 +1298,11 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
     */
    info->has_async_compute_threadgroup_bug = info->family == CHIP_ICELAND ||
                                              info->family == CHIP_TONGA;
+
+   /* GFX7 CP requires 32 bytes alignment for the indirect buffer arguments on
+    * the compute queue.
+    */
+   info->has_async_compute_align32_bug = info->gfx_level == GFX7;
 
    /* Support for GFX10.3 was added with F32_ME_FEATURE_VERSION_31 but the
     * feature version wasn't bumped.
@@ -1617,8 +1666,16 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
             exit(1);
          }
 
-         ac_parse_ib(stdout, ib, size / 4, NULL, 0, "IB", info->gfx_level, info->family,
-                     AMD_IP_GFX, NULL, NULL);
+         struct ac_ib_parser ib_parser = {
+            .f = stdout,
+            .ib = ib,
+            .num_dw = size / 4,
+            .gfx_level = info->gfx_level,
+            .family = info->family,
+            .ip_type = AMD_IP_GFX,
+         };
+
+         ac_parse_ib(&ib_parser, "IB");
          free(ib);
          exit(0);
       }
@@ -1701,22 +1758,10 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
    fprintf(f, "    pcie_bandwidth = %1.1f GB/s\n", info->pcie_bandwidth_mbps / 1024.0);
    fprintf(f, "    clock_crystal_freq = %i KHz\n", info->clock_crystal_freq);
 
-   const char *ip_string[AMD_NUM_IP_TYPES] = {
-      [AMD_IP_GFX] = "GFX",
-      [AMD_IP_COMPUTE] = "COMP",
-      [AMD_IP_SDMA] = "SDMA",
-      [AMD_IP_UVD] = "UVD",
-      [AMD_IP_VCE] = "VCE",
-      [AMD_IP_UVD_ENC] = "UVD_ENC",
-      [AMD_IP_VCN_DEC] = "VCN_DEC",
-      [AMD_IP_VCN_ENC] = (info->vcn_ip_version >= VCN_4_0_0) ? "VCN" : "VCN_ENC",
-      [AMD_IP_VCN_JPEG] = "VCN_JPG",
-      [AMD_IP_VPE] = "VPE",
-   };
-
    for (unsigned i = 0; i < AMD_NUM_IP_TYPES; i++) {
       if (info->ip[i].num_queues) {
-         fprintf(f, "    IP %-7s %2u.%u \tqueues:%u \talign:%u \tpad_dw:0x%x\n", ip_string[i],
+         fprintf(f, "    IP %-7s %2u.%u \tqueues:%u \talign:%u \tpad_dw:0x%x\n",
+                 ac_get_ip_type_string(info, i),
                  info->ip[i].ver_major, info->ip[i].ver_minor, info->ip[i].num_queues,
                  info->ip[i].ib_alignment, info->ip[i].ib_pad_dw_mask);
       }
@@ -1801,25 +1846,63 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
    fprintf(f, "    pfp_fw_feature = %i\n", info->pfp_fw_feature);
 
    fprintf(f, "Multimedia info:\n");
-   fprintf(f, "    vce_encode = %u\n", info->ip[AMD_IP_VCE].num_queues);
+   if (info->ip[AMD_IP_VCN_DEC].num_queues || info->ip[AMD_IP_VCN_UNIFIED].num_queues) {
+      if (info->family >= CHIP_NAVI31 || info->family == CHIP_GFX940)
+         fprintf(f, "    vcn_unified = %u\n", info->ip[AMD_IP_VCN_UNIFIED].num_instances);
+      else {
+         fprintf(f, "    vcn_decode = %u\n", info->ip[AMD_IP_VCN_DEC].num_instances);
+         fprintf(f, "    vcn_encode = %u\n", info->ip[AMD_IP_VCN_ENC].num_instances);
+      }
+      fprintf(f, "    vcn_enc_major_version = %u\n", info->vcn_enc_major_version);
+      fprintf(f, "    vcn_enc_minor_version = %u\n", info->vcn_enc_minor_version);
+      fprintf(f, "    vcn_dec_version = %u\n", info->vcn_dec_version);
+   } else if (info->ip[AMD_IP_VCE].num_queues) {
+      fprintf(f, "    vce_encode = %u\n", info->ip[AMD_IP_VCE].num_queues);
+      fprintf(f, "    vce_fw_version = %u\n", info->vce_fw_version);
+      fprintf(f, "    vce_harvest_config = %i\n", info->vce_harvest_config);
+   } else if (info->ip[AMD_IP_UVD].num_queues)
+      fprintf(f, "    uvd_fw_version = %u\n", info->uvd_fw_version);
 
-   if (info->family >= CHIP_NAVI31 || info->family == CHIP_GFX940)
-      fprintf(f, "    vcn_unified = %u\n", info->ip[AMD_IP_VCN_UNIFIED].num_queues);
-   else {
-      fprintf(f, "    vcn_decode = %u\n", info->ip[AMD_IP_VCN_DEC].num_queues);
-      fprintf(f, "    vcn_encode = %u\n", info->ip[AMD_IP_VCN_ENC].num_queues);
+   if (info->ip[AMD_IP_VCN_JPEG].num_queues)
+      fprintf(f, "    jpeg_decode = %u\n", info->ip[AMD_IP_VCN_JPEG].num_instances);
+
+   if ((info->drm_minor >= 41) &&
+       (info->ip[AMD_IP_VCN_DEC].num_queues || info->ip[AMD_IP_VCN_UNIFIED].num_queues
+       || info->ip[AMD_IP_VCE].num_queues || info->ip[AMD_IP_UVD].num_queues)) {
+      char max_res_dec[64] = {0}, max_res_enc[64] = {0};
+      char codec_str[][8] = {
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG2] = "mpeg2",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG4] = "mpeg4",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_VC1] = "vc1",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_MPEG4_AVC] = "h264",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_HEVC] = "hevc",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_JPEG] = "jpeg",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_VP9] = "vp9",
+         [AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_AV1] = "av1",
+      };
+      fprintf(f, "    %-8s %-4s %-16s %-4s %-16s\n",
+              "codec", "dec", "max_resolution", "enc", "max_resolution");
+      for (unsigned i = 0; i < AMDGPU_INFO_VIDEO_CAPS_CODEC_IDX_COUNT; i++) {
+         if (info->dec_caps.codec_info[i].valid)
+            sprintf(max_res_dec, "%ux%u", info->dec_caps.codec_info[i].max_width,
+                    info->dec_caps.codec_info[i].max_height);
+         else
+            sprintf(max_res_dec, "%s", "-");
+         if (info->enc_caps.codec_info[i].valid)
+            sprintf(max_res_enc, "%ux%u", info->enc_caps.codec_info[i].max_width,
+                    info->enc_caps.codec_info[i].max_height);
+         else
+            sprintf(max_res_enc, "%s", "-");
+         fprintf(f, "    %-8s %-4s %-16s %-4s %-16s\n", codec_str[i],
+                 info->dec_caps.codec_info[i].valid ? "*" : "-", max_res_dec,
+                 info->enc_caps.codec_info[i].valid ? "*" : "-", max_res_enc);
+      }
    }
-
-   fprintf(f, "    uvd_fw_version = %u\n", info->uvd_fw_version);
-   fprintf(f, "    vce_fw_version = %u\n", info->vce_fw_version);
-   fprintf(f, "    vce_harvest_config = %i\n", info->vce_harvest_config);
 
    fprintf(f, "Kernel & winsys capabilities:\n");
    fprintf(f, "    drm = %i.%i.%i\n", info->drm_major, info->drm_minor, info->drm_patchlevel);
    fprintf(f, "    has_userptr = %i\n", info->has_userptr);
-   fprintf(f, "    has_syncobj = %u\n", info->has_syncobj);
    fprintf(f, "    has_timeline_syncobj = %u\n", info->has_timeline_syncobj);
-   fprintf(f, "    has_fence_to_handle = %u\n", info->has_fence_to_handle);
    fprintf(f, "    has_local_buffers = %u\n", info->has_local_buffers);
    fprintf(f, "    has_bo_metadata = %u\n", info->has_bo_metadata);
    fprintf(f, "    has_eqaa_surface_allocator = %u\n", info->has_eqaa_surface_allocator);
@@ -1842,7 +1925,7 @@ void ac_print_gpu_info(const struct radeon_info *info, FILE *f)
    fprintf(f, "    has_tmz_support = %u\n", info->has_tmz_support);
    for (unsigned i = 0; i < AMD_NUM_IP_TYPES; i++) {
       if (info->max_submitted_ibs[i]) {
-         fprintf(f, "    IP %-7s max_submitted_ibs = %u\n", ip_string[i],
+         fprintf(f, "    IP %-7s max_submitted_ibs = %u\n", ac_get_ip_type_string(info, i),
                  info->max_submitted_ibs[i]);
       }
    }

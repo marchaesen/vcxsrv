@@ -48,6 +48,8 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+
 #include "windowstr.h"
 #include "dixstruct.h"
 #include "dispatch.h"
@@ -101,7 +103,7 @@ InitSelections(void)
     CurrentSelections = NULL;
 }
 
-static _X_INLINE void
+static inline void
 CallSelectionCallback(Selection * pSel, ClientPtr client,
                       SelectionCallbackKind kind)
 {

@@ -38,8 +38,8 @@ class glx_item_factory(gl_XML.gl_item_factory):
     def create_enum(self, element, context, category):
         return glx_enum(element, context, category)
 
-    def create_api(self):
-        return glx_api(self)
+    def create_api(self, pointer_type):
+        return glx_api(self, pointer_type)
 
 
 class glx_enum(gl_XML.gl_enum):

@@ -450,6 +450,12 @@ is_not_used_by_if(const nir_alu_instr *instr)
 }
 
 static inline bool
+is_only_used_by_if(const nir_alu_instr *instr)
+{
+   return nir_def_only_used_by_if(&instr->def);
+}
+
+static inline bool
 is_used_by_non_fsat(const nir_alu_instr *instr)
 {
    nir_foreach_use(src, &instr->def) {

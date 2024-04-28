@@ -29,24 +29,74 @@ case "$OSTYPE" in
     *    ) MyPWD=$(pwd)    ;;  # On any other platforms, returns a Unix style path.
 esac
 
+normpath() {
+    printf "%s" "$1" | sed -E 's,/+,/,g'
+}
+
 TESTDIR=${srcdir-"$MyPWD"}
 BUILDTESTDIR=${builddir-"$MyPWD"}
 
 BASEDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
-FONTDIR="$BASEDIR"/fonts
-CACHEDIR="$BASEDIR"/cache.dir
+FONTDIR=$(normpath "$BASEDIR"/fonts)
+CACHEDIR=$(normpath "$BASEDIR"/cache.dir)
 EXPECTED=${EXPECTED-"out.expected"}
 
-FCLIST="$LOG_COMPILER ../fc-list/fc-list$EXEEXT"
-FCCACHE="$LOG_COMPILER ../fc-cache/fc-cache$EXEEXT"
+FCLIST="$LOG_COMPILER $BUILDTESTDIR/../fc-list/fc-list$EXEEXT"
+FCCACHE="$LOG_COMPILER $BUILDTESTDIR/../fc-cache/fc-cache$EXEEXT"
 
 if [ -x "$(command -v bwrap)" ]; then
     BWRAP="$(command -v bwrap)"
 fi
 
-FONT1=$TESTDIR/4x6.pcf
-FONT2=$TESTDIR/8x16.pcf
+if [ -x "$(command -v md5sum)" ]; then
+    MD5SUM="$(command -v md5sum)"
+elif [ -x "$(command -v md5)" ]; then
+    MD5SUM="$(command -v md5)"
+else
+    echo "E: No md5sum or equivalent command"
+    exit 1
+fi
+
+FONT1=$(normpath $TESTDIR/4x6.pcf)
+FONT2=$(normpath $TESTDIR/8x16.pcf)
 TEST=""
+export TZ=UTC
+
+fdate() {
+    sdate=$1
+    ret=0
+    date -d @0 > /dev/null 2>&1 || ret=$?
+    if [ $ret -eq 0 ]; then
+        ret=$(date -u -d @${sdate} +%y%m%d%H%M.%S)
+    else
+        ret=$(date -u -j -f "%s" +%y%m%d%H%M.%S $sdate)
+    fi
+    echo $ret
+}
+
+fstat() {
+    fmt=$1
+    fn=$2
+    ret=0
+    stat -c %Y "$fn" > /dev/null 2>&1 || ret=$?
+    if [ $ret -eq 0 ]; then
+        # GNU
+        ret=$(stat -c "$fmt" "$fn")
+    else
+        # BSD
+        if [ "x$fmt" == "x%Y" ]; then
+            ret=$(stat -f "%m" "$fn")
+        elif [ "x$fmt" == "x%y" ]; then
+            ret=$(stat -f "%Sm" -t "%F %T %z" "$fn")
+        elif [ "x$fmt" == "x%n %s %y %z" ]; then
+            ret=$(stat -f "%SN %z %Sm %Sc" -t "%F %T %z" "$fn")
+        else
+            echo "E: Unknown format"
+            exit 1
+        fi
+    fi
+    echo $ret
+}
 
 clean_exit() {
     rc=$?
@@ -65,14 +115,14 @@ check () {
 	$FCLIST - family pixelsize | sort;
 	echo "=";
 	$FCLIST - family pixelsize | sort;
-    } > out
-  tr -d '\015' <out >out.tmp; mv out.tmp out
-  if cmp out "$BUILDTESTDIR"/"$EXPECTED" > /dev/null ; then : ; else
+    } > "$BUILDTESTDIR"/out
+  tr -d '\015' <"$BUILDTESTDIR"/out >"$BUILDTESTDIR"/out.tmp; mv "$BUILDTESTDIR"/out.tmp "$BUILDTESTDIR"/out
+  if cmp "$BUILDTESTDIR"/out "$BUILDTESTDIR"/"$EXPECTED" > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "*** output is in 'out', expected output in '$EXPECTED'"
     exit 1
   fi
-  rm -f out
+  rm -f "$BUILDTESTDIR"/out
 }
 
 prep() {
@@ -88,16 +138,16 @@ dotest () {
 
 sed "s!@FONTDIR@!$FONTDIR!
 s!@REMAPDIR@!!
-s!@CACHEDIR@!$CACHEDIR!" < "$TESTDIR"/fonts.conf.in > fonts.conf
+s!@CACHEDIR@!$CACHEDIR!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/fonts.conf
 
-FONTCONFIG_FILE="$MyPWD"/fonts.conf
+FONTCONFIG_FILE="$BUILDTESTDIR"/fonts.conf
 export FONTCONFIG_FILE
 
 dotest "Basic check"
 prep
 cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
 check
 
@@ -105,7 +155,7 @@ dotest "With a subdir"
 prep
 cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
 $FCCACHE "$FONTDIR"
 check
@@ -115,7 +165,7 @@ prep
 mkdir "$FONTDIR"/a
 cp "$FONT1" "$FONT2" "$FONTDIR"/a
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"/a
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"/a
 fi
 $FCCACHE "$FONTDIR"/a
 check
@@ -128,11 +178,11 @@ mkdir "$FONTDIR"/b
 mkdir "$FONTDIR"/b/a
 cp "$FONT1" "$FONTDIR"/a
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"/a
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"/a
 fi
 cp "$FONT2" "$FONTDIR"/b/a
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"/b/a
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"/b/a
 fi
 check
 
@@ -156,11 +206,11 @@ check
 dotest "Keep mtime of the font directory"
 prep
 cp "$FONT1" "$FONTDIR"
-touch -d @0 "$FONTDIR"
-stat -c '%y' "$FONTDIR" > out1
-$FCCACHE "$FONTDIR"
-stat -c '%y' "$FONTDIR" > out2
-if cmp out1 out2 > /dev/null ; then : ; else
+touch -t $(fdate 0) "$FONTDIR"
+fstat "%y" "$FONTDIR" > "$BUILDTESTDIR"/out1
+$FCCACHE -v "$FONTDIR"
+fstat "%y" "$FONTDIR" > "$BUILDTESTDIR"/out2
+if cmp "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "mtime was modified"
     exit 1
@@ -171,109 +221,125 @@ dotest "Basic functionality with the bind-mounted cache dir"
 prep
 cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
 $FCCACHE "$FONTDIR"
 sleep 1
-ls -l "$CACHEDIR" > out1
+ls -l "$CACHEDIR" > "$BUILDTESTDIR"/out1
 TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 # Once font dir is remapped, we could use $FONTDIR as different one in theory.
 # but we don't use it here and to avoid duplicate entries, set the non-existing
 # directory here.
 sed "s!@FONTDIR@!$FONTDIR/a!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
-s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > bind-fonts.conf
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f "%{file}\n" ":foundry=Misc" > xxx
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/test/test-bz106618"$EXEEXT" | sort > flist1
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev find "$TESTTMPDIR"/fonts/ -type f -name '*.pcf' | sort > flist2
-ls -l "$CACHEDIR" > out2
-if cmp out1 out2 > /dev/null ; then : ; else
+s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/bind-fonts.conf
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f "%{file}\n" ":foundry=Misc" > "$BUILDTESTDIR"/xxx
+if test -x "$BUILDTESTDIR"/test-bz106618"$EXEEXT"; then
+    TESTEXE=test-bz106618"$EXEEXT"
+elif test -x "$BUILDTESTDIR"/test_bz106618"$EXEEXT"; then
+    TESTEXE=test_bz106618"$EXEEXT"
+else
+    echo "*** Test failed: no test case for bz106618"
+    exit 1
+fi
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/test/"$TESTEXE" | sort > "$BUILDTESTDIR"/flist1
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev find "$TESTTMPDIR"/fonts/ -type f -name '*.pcf' | sort > "$BUILDTESTDIR"/flist2
+ls -l "$CACHEDIR" > "$BUILDTESTDIR"/out2
+if cmp "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 > /dev/null ; then : ; else
   echo "*** Test failed: $TEST"
   echo "cache was created/updated."
   echo "Before:"
-  cat out1
+  cat "$BUILDTESTDIR"/out1
   echo "After:"
-  cat out2
+  cat "$BUILDTESTDIR"/out2
   exit 1
 fi
-if [ x"$(cat xxx)" != "x$TESTTMPDIR/fonts/4x6.pcf" ]; then
+if [ x"$(cat $BUILDTESTDIR/xxx)" != "x$TESTTMPDIR/fonts/4x6.pcf" ]; then
   echo "*** Test failed: $TEST"
   echo "file property doesn't point to the new place: $TESTTMPDIR/fonts/4x6.pcf"
   exit 1
 fi
-if cmp flist1 flist2 > /dev/null ; then : ; else
+if cmp "$BUILDTESTDIR"/flist1 "$BUILDTESTDIR"/flist2 > /dev/null ; then : ; else
   echo "*** Test failed: $TEST"
   echo "file properties doesn't point to the new places"
   echo "Expected result:"
-  cat flist2
+  cat "$BUILDTESTDIR"/flist2
   echo "Actual result:"
-  cat flist1
+  cat "$BUILDTESTDIR"/flist1
   exit 1
 fi
-rm -rf "$TESTTMPDIR" out1 out2 xxx flist1 flist2 bind-fonts.conf
+rm -rf "$TESTTMPDIR" "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 "$BUILDTESTDIR"/xxx "$BUILDTESTDIR"/flist1 "$BUILDTESTDIR"/flist2 "$BUILDTESTDIR"/bind-fonts.conf
 
 dotest "Different directory content between host and sandbox"
 prep
 cp "$FONT1" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
 $FCCACHE "$FONTDIR"
 sleep 1
-ls -1 --color=no "$CACHEDIR"/*cache*> out1
-stat -c '%n %s %y %z' "$(cat out1)" > stat1
+ls -1 --color=no "$CACHEDIR"/*cache*> "$BUILDTESTDIR"/out1
+fstat "%n %s %y %z" "$(cat $BUILDTESTDIR/out1)" > "$BUILDTESTDIR"/stat1
 TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 TESTTMP2DIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 cp "$FONT2" "$TESTTMP2DIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$TESTTMP2DIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$TESTTMP2DIR"
 fi
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts</dir><dir salt="'"'"salt-to-make-different"'"'">$FONTDIR!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
-s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > bind-fonts.conf
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f "%{file}\n" ":foundry=Misc" > xxx
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/test/test-bz106618"$EXEEXT" | sort > flist1
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev find "$TESTTMPDIR"/fonts/ -type f -name '*.pcf' | sort > flist2
-ls -1 --color=no "$CACHEDIR"/*cache* > out2
-stat -c '%n %s %y %z' "$(cat out1)" > stat2
-if cmp stat1 stat2 > /dev/null ; then : ; else
+s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/bind-fonts.conf
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f "%{file}\n" ":foundry=Misc" > "$BUILDTESTDIR"/xxx
+if test -x "$BUILDTESTDIR"/test-bz106618"$EXEEXT"; then
+    TESTEXE=test-bz106618"$EXEEXT"
+elif test -x "$BUILDTESTDIR"/test_bz106618"$EXEEXT"; then
+    TESTEXE=test_bz106618"$EXEEXT"
+else
+    echo "*** Test failed: no test case for bz106618"
+    exit 1
+fi
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/test/"$TESTEXE" | sort > "$BUILDTESTDIR"/flist1
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$TESTTMP2DIR" "$FONTDIR" --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev find "$TESTTMPDIR"/fonts/ -type f -name '*.pcf' | sort > "$BUILDTESTDIR"/flist2
+ls -1 --color=no "$CACHEDIR"/*cache* > "$BUILDTESTDIR"/out2
+fstat "%n %s %y %z" "$(cat $BUILDTESTDIR/out1)" > "$BUILDTESTDIR"/stat2
+if cmp "$BUILDTESTDIR"/stat1 "$BUILDTESTDIR"/stat2 > /dev/null ; then : ; else
   echo "*** Test failed: $TEST"
   echo "cache was created/updated."
-  cat stat1 stat2
+  cat "$BUILDTESTDIR"/stat1 "$BUILDTESTDIR"/stat2
   exit 1
 fi
-if grep -v -- "$(cat out1)" out2 > /dev/null ; then : ; else
+if grep -v -- "$(cat $BUILDTESTDIR/out1)" "$BUILDTESTDIR"/out2 > /dev/null ; then : ; else
   echo "*** Test failed: $TEST"
   echo "cache wasn't created for dir inside sandbox."
-  cat out1 out2
+  cat "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2
   exit 1
 fi
-if [ x"$(cat xxx)" != "x$TESTTMPDIR/fonts/4x6.pcf" ]; then
+if [ x"$(cat $BUILDTESTDIR/xxx)" != "x$TESTTMPDIR/fonts/4x6.pcf" ]; then
   echo "*** Test failed: $TEST"
   echo "file property doesn't point to the new place: $TESTTMPDIR/fonts/4x6.pcf"
   exit 1
 fi
-if cmp flist1 flist2 > /dev/null ; then
+if cmp "$BUILDTESTDIR"/flist1 "$BUILDTESTDIR"/flist2 > /dev/null ; then
   echo "*** Test failed: $TEST"
   echo "Missing fonts should be available on sandbox"
   echo "Expected result:"
-  cat flist2
+  cat "$BUILDTESTDIR"/flist2
   echo "Actual result:"
-  cat flist1
+  cat "$BUILDTESTDIR"/flist1
   exit 1
 fi
-rm -rf "$TESTTMPDIR" "$TESTTMP2DIR" out1 out2 xxx flist1 flist2 stat1 stat2 bind-fonts.conf
+rm -rf "$TESTTMPDIR" "$TESTTMP2DIR" "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 "$BUILDTESTDIR"/xxx "$BUILDTESTDIR"/flist1 "$BUILDTESTDIR"/flist2 "$BUILDTESTDIR"/stat1 "$BUILDTESTDIR"/stat2 "$BUILDTESTDIR"/bind-fonts.conf
 
 dotest "Check consistency of MD5 in cache name"
 prep
 mkdir -p "$FONTDIR"/sub
 cp "$FONT1" "$FONTDIR"/sub
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"/sub
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"/sub
 fi
 $FCCACHE "$FONTDIR"
 sleep 1
-(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > out1
+(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > "$BUILDTESTDIR"/out1
 TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 mkdir -p "$TESTTMPDIR"/cache.dir
 # Once font dir is remapped, we could use $FONTDIR as different one in theory.
@@ -281,54 +347,54 @@ mkdir -p "$TESTTMPDIR"/cache.dir
 # directory here.
 sed "s!@FONTDIR@!$FONTDIR/a!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
-s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > bind-fonts.conf
-$BWRAP --bind / / --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-cache/fc-cache"$EXEEXT" "$TESTTMPDIR"/fonts
-(cd "$TESTTMPDIR"/cache.dir; ls -1 --color=no ./*cache*) > out2
-if cmp out1 out2 > /dev/null ; then : ; else
+s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/bind-fonts.conf
+$BWRAP --bind / / --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-cache/fc-cache"$EXEEXT" "$TESTTMPDIR"/fonts
+(cd "$TESTTMPDIR"/cache.dir; ls -1 --color=no ./*cache*) > "$BUILDTESTDIR"/out2
+if cmp "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "cache was created unexpectedly."
     echo "Before:"
-    cat out1
+    cat "$BUILDTESTDIR"/out1
     echo "After:"
-    cat out2
+    cat "$BUILDTESTDIR"/out2
     exit 1
 fi
-rm -rf "$TESTTMPDIR" out1 out2 bind-fonts.conf
+rm -rf "$TESTTMPDIR" "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 "$BUILDTESTDIR"/bind-fonts.conf
 
 dotest "Fallback to uuid"
 prep
 cp "$FONT1" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
-touch -d @"$(stat -c %Y "$FONTDIR")" "$FONTDIR"
+touch -t "$(fdate $(fstat "%Y" "$FONTDIR"))" "$FONTDIR"
 $FCCACHE "$FONTDIR"
 sleep 1
 _cache=$(ls -1 --color=no "$CACHEDIR"/*cache*)
-_mtime=$(stat -c %Y "$FONTDIR")
+_mtime=$(fstat "%Y" "$FONTDIR")
 _uuid=$(uuidgen)
 _newcache=$(echo "$_cache" | sed "s/\([0-9a-f]*\)\(\-.*\)/$_uuid\2/")
 mv "$_cache" "$_newcache"
 echo "$_uuid" > "$FONTDIR"/.uuid
-touch -d @"$_mtime" "$FONTDIR"
-(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > out1
+touch -t "$(fdate "$_mtime")" "$FONTDIR"
+(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > "$BUILDTESTDIR"/out1
 TESTTMPDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 mkdir -p "$TESTTMPDIR"/cache.dir
 sed "s!@FONTDIR@!$TESTTMPDIR/fonts!
 s!@REMAPDIR@!<remap-dir as-path="'"'"$FONTDIR"'"'">$TESTTMPDIR/fonts</remap-dir>!
-s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > bind-fonts.conf
-$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind .. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f ""
-(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > out2
-if cmp out1 out2 > /dev/null ; then : ; else
+s!@CACHEDIR@!$TESTTMPDIR/cache.dir!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/bind-fonts.conf
+$BWRAP --bind / / --bind "$CACHEDIR" "$TESTTMPDIR"/cache.dir --bind "$FONTDIR" "$TESTTMPDIR"/fonts --bind "$BUILDTESTDIR"/.. "$TESTTMPDIR"/build --dev-bind /dev /dev --setenv FONTCONFIG_FILE "$TESTTMPDIR"/build/test/bind-fonts.conf "$TESTTMPDIR"/build/fc-match/fc-match"$EXEEXT" -f ""
+(cd "$CACHEDIR"; ls -1 --color=no ./*cache*) > "$BUILDTESTDIR"/out2
+if cmp "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "cache was created unexpectedly."
     echo "Before:"
-    cat out1
+    cat "$BUILDTESTDIR"/out1
     echo "After:"
-    cat out2
+    cat "$BUILDTESTDIR"/out2
     exit 1
 fi
-rm -rf "$TESTTMPDIR" out1 out2 bind-fonts.conf
+rm -rf "$TESTTMPDIR" "$BUILDTESTDIR"/out1 "$BUILDTESTDIR"/out2 "$BUILDTESTDIR"/bind-fonts.conf
 
 else
     echo "No bubblewrap installed. skipping..."
@@ -337,33 +403,38 @@ fi # if [ x"$BWRAP" != "x" -a "x$EXEEXT" = "x" ]
 if [ "x$EXEEXT" = "x" ]; then
 dotest "sysroot option"
 prep
-mkdir -p "$MyPWD"/sysroot/"$FONTDIR"
-mkdir -p "$MyPWD"/sysroot/"$CACHEDIR"
-mkdir -p "$MyPWD"/sysroot/"$MyPWD"
-cp "$FONT1" "$MyPWD"/sysroot/"$FONTDIR"
+mkdir -p "$BUILDTESTDIR"/sysroot/"$FONTDIR"
+mkdir -p "$BUILDTESTDIR"/sysroot/"$CACHEDIR"
+mkdir -p "$BUILDTESTDIR"/sysroot/"$BUILDTESTDIR"
+cp "$FONT1" "$BUILDTESTDIR"/sysroot/"$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$MyPWD"/sysroot/"$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$BUILDTESTDIR"/sysroot/"$FONTDIR"
 fi
-cp "$MyPWD"/fonts.conf "$MyPWD"/sysroot/"$MyPWD"/fonts.conf
-$FCCACHE -y "$MyPWD"/sysroot
+cp "$BUILDTESTDIR"/fonts.conf "$BUILDTESTDIR"/sysroot/"$BUILDTESTDIR"/fonts.conf
+$FCCACHE -y "$BUILDTESTDIR"/sysroot
 
 dotest "creating cache file on sysroot"
-md5=$(printf "%s" "$FONTDIR" | md5sum | sed 's/ .*$//')
+md5=$(printf "%s" "$FONTDIR" | $MD5SUM | sed 's/ .*$//')
 echo "checking for cache file $md5"
-if ! ls "$MyPWD/sysroot/$CACHEDIR/$md5"*; then
+if ! ls "$BUILDTESTDIR/sysroot/$CACHEDIR/$md5"*; then
   echo "*** Test failed: $TEST"
   echo "No cache for $FONTDIR ($md5)"
-  ls "$MyPWD"/sysroot/"$CACHEDIR"
+  ls "$BUILDTESTDIR"/sysroot/"$CACHEDIR"
   exit 1
 fi
 
-rm -rf "$MyPWD"/sysroot
+rm -rf "$BUILDTESTDIR"/sysroot
 
 dotest "read newer caches when multiple places are allowed to store"
 prep
 cp "$FONT1" "$FONT2" "$FONTDIR"
+if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
+    # epoch 0 has special meaning. increase to avoid epoch 0
+    old_epoch=${SOURCE_DATE_EPOCH}
+    SOURCE_DATE_EPOCH=$(("$SOURCE_DATE_EPOCH" + 1))
+fi
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
 MYCACHEBASEDIR=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 MYCACHEDIR="$MYCACHEBASEDIR"/cache.dir
@@ -375,9 +446,9 @@ mkdir -p "$MYOWNCACHEDIR"
 
 sed "s!@FONTDIR@!$FONTDIR!
 s!@REMAPDIR@!!
-s!@CACHEDIR@!$MYCACHEDIR!" < "$TESTDIR"/fonts.conf.in > my-fonts.conf
+s!@CACHEDIR@!$MYCACHEDIR!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/my-fonts.conf
 
-FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCCACHE "$FONTDIR"
+FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCCACHE "$FONTDIR"
 
 sleep 1
 cat<<EOF>"$MYCONFIG"
@@ -390,42 +461,41 @@ cat<<EOF>"$MYCONFIG"
 EOF
 sed "s!@FONTDIR@!$FONTDIR!
 s!@REMAPDIR@!<include ignore_missing=\"yes\">$MYCONFIG</include>!
-s!@CACHEDIR@!$MYOWNCACHEDIR!" < "$TESTDIR"/fonts.conf.in > my-fonts.conf
+s!@CACHEDIR@!$MYOWNCACHEDIR!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/my-fonts.conf
 
 if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
-  old_epoch=${SOURCE_DATE_EPOCH}
   SOURCE_DATE_EPOCH=$(("$SOURCE_DATE_EPOCH" + 1))
 fi
-FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCCACHE -f "$FONTDIR"
+FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCCACHE -f "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ]; then
   SOURCE_DATE_EPOCH=${old_epoch}
 fi
 
 sed "s!@FONTDIR@!$FONTDIR!
 s!@REMAPDIR@!<include ignore_missing=\"yes\">$MYCONFIG</include>!
-s!@CACHEDIR@!$MYCACHEDIR</cachedir><cachedir>$MYOWNCACHEDIR!" < "$TESTDIR"/fonts.conf.in > my-fonts.conf
+s!@CACHEDIR@!$MYCACHEDIR</cachedir><cachedir>$MYOWNCACHEDIR!" < "$TESTDIR"/fonts.conf.in > "$BUILDTESTDIR"/my-fonts.conf
 
 {
-    FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCLIST - family pixelsize | sort;
+    FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCLIST - family pixelsize | sort;
     echo "=";
-    FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCLIST - family pixelsize | sort;
+    FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCLIST - family pixelsize | sort;
     echo "=";
-    FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCLIST - family pixelsize | sort;
-} > my-out
-tr -d '\015' <my-out >my-out.tmp; mv my-out.tmp my-out
-sed -e 's/pixelsize=6/pixelsize=8/g' "$BUILDTESTDIR"/"$EXPECTED" > my-out.expected
+    FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCLIST - family pixelsize | sort;
+} > "$BUILDTESTDIR"/my-out
+tr -d '\015' <"$BUILDTESTDIR"/my-out >"$BUILDTESTDIR"/my-out.tmp; mv "$BUILDTESTDIR"/my-out.tmp "$BUILDTESTDIR"/my-out
+sed -e 's/pixelsize=6/pixelsize=8/g' "$BUILDTESTDIR"/"$EXPECTED" > "$BUILDTESTDIR"/my-out.expected
 
-if cmp my-out my-out.expected > /dev/null ; then : ; else
+if cmp "$BUILDTESTDIR"/my-out "$BUILDTESTDIR"/my-out.expected > /dev/null ; then : ; else
     echo "*** Test failed: $TEST"
     echo "*** output is in 'my-out', expected output in 'my-out.expected'"
     echo "Actual Result"
-    cat my-out
+    cat "$BUILDTESTDIR"/my-out
     echo "Expected Result"
-    cat my-out.expected
+    cat "$BUILDTESTDIR"/my-out.expected
     exit 1
 fi
 
-rm -rf "$MYCACHEBASEDIR" "$MYCONFIG" my-fonts.conf my-out my-out.expected
+rm -rf "$MYCACHEBASEDIR" "$MYCONFIG" "$BUILDTESTDIR"/my-fonts.conf "$BUILDTESTDIR"/my-out "$BUILDTESTDIR"/my-out.expected
 
 fi # if [ "x$EXEEXT" = "x" ]
 
@@ -435,7 +505,7 @@ if [ -x "$BUILDTESTDIR"/test-crbug1004254 ]; then
     curl -s -o "$FONTDIR"/noto.zip https://noto-website-2.storage.googleapis.com/pkgs/NotoSans-hinted.zip
     (cd "$FONTDIR"; unzip noto.zip)
     if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-	touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+        touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
     fi
     "$BUILDTESTDIR"/test-crbug1004254
 else
@@ -452,10 +522,10 @@ export temp_HOME=$(mktemp -d "$TMPDIR"/fontconfig.XXXXXXXX)
 export HOME="$temp_HOME"
 cp "$FONT1" "$FONT2" "$FONTDIR"
 if [ -n "${SOURCE_DATE_EPOCH:-}" ] && [ ${#SOURCE_DATE_EPOCH} -gt 0 ]; then
-    touch -m -t "$(date -d @"${SOURCE_DATE_EPOCH}" +%y%m%d%H%M.%S)" "$FONTDIR"
+    touch -m -t "$(fdate ${SOURCE_DATE_EPOCH})" "$FONTDIR"
 fi
-echo "<fontconfig><dir>$FONTDIR</dir><cachedir prefix=\"xdg\">fontconfig</cachedir></fontconfig>" > my-fonts.conf
-FONTCONFIG_FILE="$MyPWD"/my-fonts.conf $FCCACHE "$FONTDIR" || :
+echo "<fontconfig><dir>$FONTDIR</dir><cachedir prefix=\"xdg\">fontconfig</cachedir></fontconfig>" > "$BUILDTESTDIR"/my-fonts.conf
+FONTCONFIG_FILE="$BUILDTESTDIR"/my-fonts.conf $FCCACHE "$FONTDIR" || :
 if [ -d "$HOME"/.cache ] && [ -d "$HOME"/.cache/fontconfig ]; then : ; else
   echo "*** Test failed: $TEST"
   echo "No \$HOME/.cache/fontconfig directory"
@@ -465,7 +535,7 @@ if [ -d "$HOME"/.cache ] && [ -d "$HOME"/.cache/fontconfig ]; then : ; else
 fi
 
 export HOME="$old_HOME"
-rm -rf "$temp_HOME" my-fonts.conf
+rm -rf "$temp_HOME" "$BUILDTESTDIR"/my-fonts.conf
 unset XDG_CACHE_HOME
 unset old_HOME
 unset temp_HOME

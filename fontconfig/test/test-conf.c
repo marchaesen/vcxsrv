@@ -278,7 +278,7 @@ build_pattern (json_object *obj)
 }
 
 static FcFontSet *
-build_fs (json_object *obj)
+build_fs (FcConfig *config, json_object *obj)
 {
     FcFontSet *fs = FcFontSetCreate ();
     int i, n;
@@ -292,7 +292,10 @@ build_fs (json_object *obj)
 	if (json_object_get_type (o) != json_type_object)
 	    continue;
 	pat = build_pattern (o);
-	FcFontSetAdd (fs, pat);
+	if (FcConfigAcceptFont (config, pat))
+	    FcFontSetAdd (fs, pat);
+	else
+	    FcPatternDestroy(pat);
     }
 
     return fs;
@@ -310,7 +313,7 @@ build_fonts (FcConfig *config, json_object *root)
 	fprintf (stderr, "W: No fonts defined\n");
 	return FcFalse;
     }
-    fs = build_fs (fonts);
+    fs = build_fs (config, fonts);
     /* FcConfigSetFonts (config, fs, FcSetSystem); */
     if (config->fonts[FcSetSystem])
 	FcFontSetDestroy (config->fonts[FcSetSystem]);
@@ -385,7 +388,11 @@ run_test (FcConfig *config, json_object *root)
 		}
 		if (result_fs)
 		    FcFontSetDestroy (result_fs);
-		result_fs = build_fs (iter.val);
+		result_fs = build_fs (config, iter.val);
+	    }
+	    else if (strcmp (iter.key, "$comment") == 0)
+	    {
+		/* ignore it */
 	    }
 	    else
 	    {
@@ -394,7 +401,7 @@ run_test (FcConfig *config, json_object *root)
 	}
 	if (method != NULL && strcmp (method, "match") == 0)
 	{
-	    FcPattern *match;
+	    FcPattern *match = NULL;
 	    FcResult res;
 
 	    if (!query)
@@ -449,17 +456,26 @@ run_test (FcConfig *config, json_object *root)
 		    }
 		} while (FcPatternIterNext (result, &iter));
 	    bail:
-		FcPatternDestroy (match);
+		if (match)
+			FcPatternDestroy (match);
 	    }
 	    else
 	    {
-		fprintf (stderr, "E: no match\n");
-		fail++;
+		FcPatternIter iter;
+		int vc;
+
+		FcPatternIterStart (result, &iter);
+		vc = FcPatternIterValueCount (result, &iter);
+		if (vc > 0)
+		{
+		    fprintf (stderr, "E: no match\n");
+		    fail++;
+		}
 	    }
 	}
 	else if (method != NULL && strcmp (method, "list") == 0)
 	{
-	    FcFontSet *fs;
+	    FcFontSet *fs = NULL;
 
 	    if (!query)
 	    {
@@ -529,7 +545,8 @@ run_test (FcConfig *config, json_object *root)
 		    } while (FcPatternIterNext (result_fs->fonts[i], &iter));
 		}
 	    bail2:
-		FcFontSetDestroy (fs);
+		if (fs)
+			FcFontSetDestroy (fs);
 	    }
 	}
 	else
@@ -562,7 +579,7 @@ static FcBool
 run_scenario (FcConfig *config, char *file)
 {
     FcBool ret = FcTrue;
-    json_object *root, *scenario;
+    json_object *root;
 
     root = json_object_from_file (file);
     if (!root)

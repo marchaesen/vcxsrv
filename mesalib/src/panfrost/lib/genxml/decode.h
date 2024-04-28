@@ -41,6 +41,12 @@ struct pandecode_context {
    struct util_dynarray ro_mappings;
    int dump_frame_count;
    simple_mtx_t lock;
+
+   /* On CSF context, set to true if the root CS ring buffer
+    * is managed in userspace. The blob does that, and mesa might use
+    * usermode queues too at some point.
+    */
+   bool usermode_queue;
 };
 
 void pandecode_dump_file_open(struct pandecode_context *ctx);

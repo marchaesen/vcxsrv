@@ -1,8 +1,10 @@
 project('fontconfig', 'c',
   version: '2.15.0',
-  meson_version : '>= 0.60.0',
+  meson_version : '>= 1.3.0',
   default_options: [ 'buildtype=debugoptimized'],
 )
+
+fs = import('fs')
 
 fc_version = meson.project_version()
 version_arr = fc_version.split('.')
@@ -23,7 +25,9 @@ freetype_req = '>= 21.0.15'
 freetype_req_cmake = '>= 2.8.1'
 
 cc = meson.get_compiler('c')
+math_dep = cc.find_library('m', required: false)
 
+conf = configuration_data()
 
 freetype_dep = dependency('freetype2', method: 'pkg-config', version: freetype_req, required: false)
 
@@ -33,30 +37,65 @@ if not freetype_dep.found()
     fallback: ['freetype2', 'freetype_dep'], default_options: 'werror=false')
 endif
 
-# Linking expat should not be so difficult... see: https://github.com/mesonbuild/meson/issues/10516
-expat_dep = dependency('expat', required: false)
-if not expat_dep.found()
-  expat_dep = cc.find_library('expat', required : false)
-  if not expat_dep.found()
-    expat_dep = dependency('expat', method: 'system', fallback: ['expat', 'expat_dep'])
+if freetype_dep.type_name() == 'internal'
+  conf.set('FREETYPE_PCF_LONG_FAMILY_NAMES', false)
+else
+  if cc.compiles(files('meson-cc-tests/freetype-pcf-long-family-names.c'),
+		         dependencies: freetype_dep)
+    conf.set('FREETYPE_PCF_LONG_FAMILY_NAMES', true)
+  else
+    conf.set('FREETYPE_PCF_LONG_FAMILY_NAMES', false)
   endif
 endif
 
-i18n = import('i18n')
+jsonc_dep = dependency('json-c', required: false)
+
+xml_dep = dependency('', required: false)
+xmlbackend = get_option('xml-backend')
+xmltype = ''
+if xmlbackend == 'auto' or xmlbackend == 'expat'
+  # Linking expat should not be so difficult... see: https://github.com/mesonbuild/meson/issues/10516
+  xml_dep = dependency('expat', required: false)
+  if not xml_dep.found()
+    xml_dep = cc.find_library('expat', required : false)
+    if not xml_dep.found() and xmlbackend == 'expat'
+      xml_dep = dependency('expat', method: 'system', required: true, fallback: ['expat', 'expat_dep'])
+    else
+      xmltype = 'expat'
+    endif
+  endif
+endif
+if (xmlbackend == 'auto' and not xml_dep.found()) or xmlbackend == 'libxml2'
+  xml_dep = dependency('libxml-2.0', required: true)
+  conf.set('ENABLE_LIBXML2', 1)
+endif
+if xmltype == ''
+  xmltype = xml_dep.name()
+endif
+
 pkgmod = import('pkgconfig')
 python3 = import('python').find_installation()
 
 check_headers = [
   ['dirent.h'],
+  ['dlfcn.h'],
   ['fcntl.h'],
+  ['inttypes.h'],
+  ['stdint.h'],
+  ['stdio.h'],
   ['stdlib.h'],
+  ['strings.h'],
   ['string.h'],
   ['unistd.h'],
   ['sys/statvfs.h'],
   ['sys/vfs.h'],
   ['sys/statfs.h'],
+  ['sys/stat.h'],
+  ['sys/types.h'],
   ['sys/param.h'],
   ['sys/mount.h'],
+  ['time.h'],
+  ['wchar.h'],
 ]
 
 check_funcs = [
@@ -78,8 +117,17 @@ check_funcs = [
   ['fstatvfs'],
   ['fstatfs'],
   ['lstat'],
+  ['strerror'],
+  ['strerror_r'],
   ['mmap'],
   ['vprintf'],
+  ['vsnprintf'],
+  ['vsprintf'],
+  ['getpagesize'],
+  ['getpid'],
+  ['dcgettext'],
+  ['gettext'],
+  ['localtime_r'],
 ]
 
 check_freetype_funcs = [
@@ -96,9 +144,10 @@ check_header_symbols = [
 
 check_struct_members = [
   ['struct statvfs', 'f_basetype', ['sys/statvfs.h']],
-  ['struct statvfs', 'f_fstypename', ['sys/statvfs.']],
-  ['struct statfs', 'f_flags', []],
-  ['struct statfs', 'f_fstypename', []],
+  ['struct statvfs', 'f_fstypename', ['sys/statvfs.h']],
+  ['struct statfs', 'f_flags', ['sys/vfs.h', 'sys/statfs.h', 'sys/param.h', 'sys/mount.h']],
+  ['struct statfs', 'f_fstypename', ['sys/vfs.h', 'sys/statfs.h', 'sys/param.h', 'sys/mount.h']],
+  ['struct stat', 'st_mtim', ['sys/stat.h']],
   ['struct dirent', 'd_type', ['sys/types.h', 'dirent.h']],
 ]
 
@@ -115,9 +164,53 @@ add_project_arguments('-DHAVE_CONFIG_H', language: 'c')
 
 c_args = []
 
-conf = configuration_data()
-deps = [freetype_dep, expat_dep]
+deps = [freetype_dep, xml_dep]
 incbase = include_directories('.')
+
+# For compatibility to autoconf (regardless of the usage in fontconfig)
+conf.set_quoted('PACKAGE_NAME', meson.project_name())
+conf.set_quoted('PACKAGE_TARNAME', meson.project_name())
+conf.set_quoted('PACKAGE_VERSION', meson.project_version())
+conf.set_quoted('PACKAGE_STRING', '@0@ @1@'.format(meson.project_name(), meson.project_version()))
+conf.set_quoted('PACKAGE_BUGREPORT', 'https://gitlab.freedesktop.org/fontconfig/fontconfig/issues/new')
+conf.set_quoted('PACKAGE_URL', '')
+
+if host_machine.system() == 'windows'
+  conf.set('EXEEXT', '.exe')
+else
+  conf.set('EXEEXT', '')
+endif
+
+i18n = import('i18n')
+gettext_args = [ '--msgid-bugs-address=@0@'.format(conf.get('PACKAGE_BUGREPORT')) ]
+
+# Check for libintl.h
+opt_nls = get_option('nls')
+libintl_dep = dependency('intl', required: false, fallback: ['libintl', 'libintl_dep'])
+if libintl_dep.found()
+  conf.set('ENABLE_NLS', opt_nls.allowed().to_int())
+  deps += [libintl_dep]
+else
+  opt_nls = opt_nls.require(false)
+endif
+
+# Check iconv support
+iconv = get_option('iconv')
+iconv_dep = dependency('', required: false)
+found_iconv = 0
+if iconv.allowed()
+  iconv_dep = cc.find_library('iconv', required: false)
+  if cc.has_header_symbol('iconv.h', 'libiconv_open', dependencies: libintl_dep)
+    conf.set('LIBICONV_PLUG', 1)
+    found_iconv = 1
+  elif cc.has_header('iconv.h') and cc.has_function('iconv_open', dependencies: iconv_dep)
+    found_iconv = 1
+  else
+    iconv.require(false)
+  endif
+endif
+conf.set('USE_ICONV', found_iconv)
+deps += [iconv_dep]
 
 # We cannot try compiling against an internal dependency
 if freetype_dep.type_name() == 'internal'
@@ -191,9 +284,13 @@ foreach check : check_alignofs
 endforeach
 
 if cc.compiles(files('meson-cc-tests/flexible-array-member-test.c'))
-  conf.set('FLEXIBLE_ARRAY_MEMBER', true)
+  conf.set('FLEXIBLE_ARRAY_MEMBER', '/**/')
 else
   conf.set('FLEXIBLE_ARRAY_MEMBER', 1)
+endif
+
+if cc.compiles(files('meson-cc-tests/pthread-prio-inherit-test.c'))
+  conf.set('HAVE_PTHREAD_PRIO_INHERIT', 1)
 endif
 
 if cc.links(files('meson-cc-tests/stdatomic-primitives-test.c'), name: 'stdatomic.h atomics')
@@ -208,20 +305,6 @@ if cc.links(files('meson-cc-tests/solaris-atomic-operations.c'), name: 'Solaris 
   conf.set('HAVE_SOLARIS_ATOMIC_OPS', 1)
 endif
 
-
-# Check iconv support
-iconv_dep = []
-found_iconv = 0
-if host_machine.system() != 'windows'
-  iconv_dep = dependency('iconv', required: get_option('iconv'))
-  found_iconv = iconv_dep.found().to_int()
-else
-  if get_option('iconv').enabled()
-    warning('-Diconv was set but this is not functional on Windows.')
-  endif
-endif
-conf.set('USE_ICONV', found_iconv)
-deps += [iconv_dep]
 
 prefix = get_option('prefix')
 
@@ -376,10 +459,7 @@ foreach t : ['uint64_t', 'int32_t', 'uintptr_t', 'intptr_t']
   endif
 endforeach
 
-fcstdint_h = configure_file(
-  input: 'src/fcstdint.h.in',
-  output: 'fcstdint.h',
-  copy: true)
+fcstdint_h = fs.copyfile('src/fcstdint.h.in', 'fcstdint.h')
 
 makealias = files('src/makealias.py')[0]
 
@@ -422,7 +502,7 @@ subdir('conf.d')
 subdir('its')
 
 # xgettext is optional (on Windows for instance)
-if find_program('xgettext', required : get_option('nls')).found()
+if find_program('xgettext', required : opt_nls).found()
   subdir('po')
   subdir('po-conf')
 endif
@@ -456,10 +536,11 @@ doc_targets = get_variable('doc_targets', [])
 
 summary({
   'Documentation': (doc_targets.length() > 0 ? doc_targets : false),
-  'NLS': not get_option('nls').disabled(),
+  'NLS': not opt_nls.disabled(),
   'Tests': not get_option('tests').disabled(),
   'Tools': not get_option('tools').disabled(),
   'iconv': found_iconv == 1,
+  'XML backend': xmltype,
 }, section: 'General', bool_yn: true, list_sep: ', ')
 summary({
   'Hinting': preferred_hinting,

@@ -10,6 +10,7 @@
 
 #include "tu_knl_drm.h"
 #include "tu_device.h"
+#include "tu_rmv.h"
 
 static inline void
 tu_sync_cacheline_to_gpu(void const *p __attribute__((unused)))
@@ -73,7 +74,7 @@ sync_cache(VkDevice _device,
            uint32_t count,
            const VkMappedMemoryRange *ranges)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
 
    if (!device->physical_device->has_cached_non_coherent_memory) {
       tu_finishme(
@@ -82,7 +83,7 @@ sync_cache(VkDevice _device,
    }
 
    for (uint32_t i = 0; i < count; i++) {
-      TU_FROM_HANDLE(tu_device_memory, mem, ranges[i].memory);
+      VK_FROM_HANDLE(tu_device_memory, mem, ranges[i].memory);
       tu_sync_cache_bo(device, mem->bo, ranges[i].offset, ranges[i].size, op);
    }
 
@@ -164,9 +165,12 @@ tu_drm_bo_finish(struct tu_device *dev, struct tu_bo *bo)
       return;
    }
 
-   if (bo->map)
+   if (bo->map) {
+      TU_RMV(bo_unmap, dev, bo);
       munmap(bo->map, bo->size);
+   }
 
+   TU_RMV(bo_destroy, dev, bo);
    tu_debug_bos_del(dev, bo);
 
    mtx_lock(&dev->bo_mutex);

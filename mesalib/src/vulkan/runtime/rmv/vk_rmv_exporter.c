@@ -30,7 +30,7 @@
 
 #include "util/format/u_format.h"
 #include "util/u_process.h"
-#include "vulkan/util/vk_format.h"
+#include "vk_format.h"
 
 static int
 vk_rmv_token_compare(const void *first, const void *second)
@@ -1395,6 +1395,14 @@ rmt_dump_command_buffer_resource(struct vk_rmv_command_buffer_description *descr
 }
 
 static void
+rmt_dump_misc_internal_resource(struct vk_rmv_misc_internal_description *description,
+                                FILE *output)
+{
+   /* 8 bits of zero-value enum are the only thing in the payload */
+   fwrite(&description->type, 1, 1, output);
+}
+
+static void
 rmt_dump_resource_create(struct vk_rmv_resource_create_token *token, FILE *output)
 {
    uint64_t data = 0;
@@ -1433,6 +1441,9 @@ rmt_dump_resource_create(struct vk_rmv_resource_create_token *token, FILE *outpu
       break;
    case VK_RMV_RESOURCE_TYPE_COMMAND_ALLOCATOR:
       rmt_dump_command_buffer_resource(&token->command_buffer, output);
+      break;
+   case VK_RMV_RESOURCE_TYPE_MISC_INTERNAL:
+      rmt_dump_misc_internal_resource(&token->misc_internal, output);
       break;
    default:
       unreachable("invalid resource type");

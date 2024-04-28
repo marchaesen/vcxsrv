@@ -31,9 +31,9 @@
       SET CERT_PATH=$(python -m certifi) &&
       SET SSL_CERT_FILE=$(python -m certifi) &&
       SET REQUESTS_CA_BUNDLE=$(python -m certifi) &&
-      meson build $env:MESON_ARGS &&
-      ninja -C build &&
-      ninja -C build test"
+      meson setup -Dxml-backend=expat $env:MESON_ARGS build &&
+      meson compile --verbose -C build &&
+      meson test -C build"
   artifacts:
     name: fontconfig-$CI_COMMIT_SHA-$CI_JOB_ID
     when: always
@@ -74,9 +74,9 @@ meson macos:
     - unzip ninja-mac.zip
     - sudo cp ninja /usr/local/bin
   script:
-    - CERT_PATH=$(python3 -m certifi) && export SSL_CERT_FILE=${CERT_PATH} && export REQUESTS_CA_BUNDLE=${CERT_PATH} && meson build
-    - ninja -C build
-    - ninja -C build test
+    - CERT_PATH=$(python3 -m certifi) && export SSL_CERT_FILE=${CERT_PATH} && export REQUESTS_CA_BUNDLE=${CERT_PATH} && meson setup -Diconv=enabled build
+    - meson compile --verbose -C build
+    - meson test -C build
 
 # msys infrastructure is a bit broken, disable for now
 meson msys2:
@@ -138,5 +138,5 @@ meson android arm64 fedora:
       ar          = toolchain + '-ar'
       strip       = toolchain + '-strip'
       EOF
-    - meson setup --werror --cross-file android-cross-file.txt build
+    - meson setup --werror -Dxml-backend=expat -Diconv=enabled --cross-file android-cross-file.txt build
     - meson compile --verbose -C build

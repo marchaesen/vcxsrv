@@ -249,6 +249,9 @@ vk_common_CmdWaitEvents(
    VK_FROM_HANDLE(vk_command_buffer, cmd_buffer, commandBuffer);
    struct vk_device *device = cmd_buffer->base.device;
 
+   if (eventCount == 0)
+      return;
+
    STACK_ARRAY(VkDependencyInfo, deps, eventCount);
 
    /* Note that dstStageMask and srcStageMask in the CmdWaitEvent2() call

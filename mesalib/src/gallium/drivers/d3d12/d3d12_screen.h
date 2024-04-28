@@ -108,6 +108,8 @@ struct d3d12_screen {
    volatile uint32_t ctx_count;
    volatile uint64_t resource_id_generator;
 
+   D3D12_COMMAND_LIST_TYPE queue_type;
+
    /* capabilities */
    D3D_FEATURE_LEVEL max_feature_level;
    enum dxil_shader_model max_shader_model;

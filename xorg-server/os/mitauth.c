@@ -38,6 +38,7 @@ from The Open Group.
 #include <X11/X.h>
 #include "os.h"
 #include "osdep.h"
+#include "mitauth.h"
 #include "dixstruct.h"
 
 static struct auth {

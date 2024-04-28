@@ -34,7 +34,7 @@
 /* This file holds the driver allocated pixmaps + better initial placement code.
  */
 
-static _X_INLINE void *
+static inline void *
 ExaGetPixmapAddress(PixmapPtr p)
 {
     ExaPixmapPriv(p);

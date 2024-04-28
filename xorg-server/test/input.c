@@ -37,8 +37,10 @@
 #include <X11/Xatom.h>
 #include "windowstr.h"
 #include "inputstr.h"
-#include "eventconvert.h"
 #include "exevents.h"
+
+#include "dix/eventconvert.h"
+
 #include "exglobals.h"
 #include "dixgrabs.h"
 #include "eventstr.h"
@@ -997,7 +999,7 @@ test_padding_for_int32(int i)
 static void
 include_byte_padding_macros(void)
 {
-    printf("Testing bits_to_bytes()\n");
+    dbg("Testing bits_to_bytes()\n");
 
     /* the macros don't provide overflow protection */
     test_bits_to_byte(0);
@@ -1010,7 +1012,7 @@ include_byte_padding_macros(void)
     test_bits_to_byte(INT_MAX - 9);
     test_bits_to_byte(INT_MAX - 8);
 
-    printf("Testing bytes_to_int32()\n");
+    dbg("Testing bytes_to_int32()\n");
 
     test_bytes_to_int32(0);
     test_bytes_to_int32(1);
@@ -1026,7 +1028,7 @@ include_byte_padding_macros(void)
     test_bytes_to_int32(INT_MAX - 4);
     test_bytes_to_int32(INT_MAX - 3);
 
-    printf("Testing pad_to_int32()\n");
+    dbg("Testing pad_to_int32()\n");
 
     test_pad_to_int32(0);
     test_pad_to_int32(1);
@@ -1043,7 +1045,7 @@ include_byte_padding_macros(void)
     test_pad_to_int32(INT_MAX - 4);
     test_pad_to_int32(INT_MAX - 3);
 
-    printf("Testing padding_for_int32()\n");
+    dbg("Testing padding_for_int32()\n");
 
     test_padding_for_int32(0);
     test_padding_for_int32(1);
@@ -1076,7 +1078,7 @@ xi_unregister_handlers(void)
     handler = XIRegisterPropertyHandler(&dev, NULL, NULL, NULL);
     assert(handler == 3);
 
-    printf("Unlinking from front.\n");
+    dbg("Unlinking from front.\n");
 
     XIUnregisterPropertyHandler(&dev, 4);       /* NOOP */
     assert(dev.properties.handlers->id == 3);
@@ -1565,7 +1567,7 @@ input_option_test(void)
     InputOption *opt;
     const char *val;
 
-    printf("Testing input_option list interface\n");
+    dbg("Testing input_option list interface\n");
 
     list = input_option_new(list, "key", "value");
     assert(list);
@@ -1654,7 +1656,7 @@ _test_double_fp16_values(double orig_d)
     double final_d;
 
     if (orig_d > 0x7FFF) {
-        printf("Test out of range\n");
+        dbg("Test out of range\n");
         assert(0);
     }
 
@@ -1668,7 +1670,7 @@ _test_double_fp16_values(double orig_d)
      *    snprintf(first_fp16_s, sizeof(first_fp16_s), "%d + %u * 2^-16", (first_fp16 & 0xffff0000) >> 16, first_fp16 & 0xffff);
      *    snprintf(final_fp16_s, sizeof(final_fp16_s), "%d + %u * 2^-16", (final_fp16 & 0xffff0000) >> 16, final_fp16 & 0xffff);
      *
-     *    printf("FP16: original double: %f first fp16: %s, re-encoded double: %f, final fp16: %s\n", orig_d, first_fp16_s, final_d, final_fp16_s);
+     *    dbg("FP16: original double: %f first fp16: %s, re-encoded double: %f, final fp16: %s\n", orig_d, first_fp16_s, final_d, final_fp16_s);
      * }
      */
 
@@ -1689,7 +1691,7 @@ _test_double_fp32_values(double orig_d)
     double final_d;
 
     if (orig_d > 0x7FFFFFFF) {
-        printf("Test out of range\n");
+        dbg("Test out of range\n");
         assert(0);
     }
 
@@ -1703,7 +1705,7 @@ _test_double_fp32_values(double orig_d)
      *     snprintf(first_fp32_s, sizeof(first_fp32_s), "%d + %u * 2^-32", first_fp32.integral, first_fp32.frac);
      *     snprintf(final_fp32_s, sizeof(final_fp32_s), "%d + %u * 2^-32", first_fp32.integral, final_fp32.frac);
      *
-     *     printf("FP32: original double: %f first fp32: %s, re-encoded double: %f, final fp32: %s\n", orig_d, first_fp32_s, final_d, final_fp32_s);
+     *     dbg("FP32: original double: %f first fp32: %s, re-encoded double: %f, final fp32: %s\n", orig_d, first_fp32_s, final_d, final_fp32_s);
      * }
      */
 
@@ -1722,7 +1724,7 @@ dix_double_fp_conversion(void)
 {
     uint32_t i;
 
-    printf("Testing double to FP1616/FP3232 conversions\n");
+    dbg("Testing double to FP1616/FP3232 conversions\n");
 
     _test_double_fp16_values(0);
     for (i = 1; i < 0x7FFF; i <<= 1) {
@@ -1926,28 +1928,31 @@ dix_enqueue_events(void)
     inputInfo.devices = NULL;
 }
 
-int
+const testfunc_t*
 input_test(void)
 {
-    dix_enqueue_events();
-    dix_double_fp_conversion();
-    dix_input_valuator_masks();
-    dix_input_valuator_masks_unaccel();
-    dix_input_attributes();
-    dix_init_valuators();
-    dix_event_to_core_conversion();
-    dix_event_to_xi1_conversion();
-    dix_check_grab_values();
-    xi2_struct_sizes();
-    dix_grab_matching();
-    dix_valuator_mode();
-    include_byte_padding_macros();
-    include_bit_test_macros();
-    xi_unregister_handlers();
-    dix_valuator_alloc();
-    dix_get_master();
-    input_option_test();
-    mieq_test();
+    static const testfunc_t testfuncs[] = {
+        dix_enqueue_events,
+        dix_double_fp_conversion,
+        dix_input_valuator_masks,
+        dix_input_valuator_masks_unaccel,
+        dix_input_attributes,
+        dix_init_valuators,
+        dix_event_to_core_conversion,
+        dix_event_to_xi1_conversion,
+        dix_check_grab_values,
+        xi2_struct_sizes,
+        dix_grab_matching,
+        dix_valuator_mode,
+        include_byte_padding_macros,
+        include_bit_test_macros,
+        xi_unregister_handlers,
+        dix_valuator_alloc,
+        dix_get_master,
+        input_option_test,
+        mieq_test,
+        NULL,
+    };
 
-    return 0;
+    return testfuncs;
 }

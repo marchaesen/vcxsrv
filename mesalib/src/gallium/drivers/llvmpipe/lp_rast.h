@@ -147,7 +147,7 @@ struct lp_rast_plane {
  * Objects of this type are put into the lp_setup_context::data buffer.
  */
 struct lp_rast_triangle {
-#ifdef DEBUG
+#if MESA_DEBUG
    float v[3][2];
    float pad0;
    float pad1;
@@ -171,7 +171,7 @@ struct lp_rast_triangle {
  * Objects of this type are put into the lp_setup_context::data buffer.
  */
 struct lp_rast_rectangle {
-#ifdef DEBUG
+#if MESA_DEBUG
    float v[2][2]; /**< diagonal corners */
 #endif
 

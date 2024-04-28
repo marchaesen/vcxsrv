@@ -38,7 +38,7 @@
 _CRTIMP int _vscprintf(const char *format, va_list argptr);
 #endif
 
-static const char*
+const char*
 util_printf_prev_tok(const char *str)
 {
    while (*str != '%')

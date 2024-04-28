@@ -131,7 +131,7 @@ image_write_source_can_be_immediate(agx_instr *I, unsigned s)
 }
 
 static void
-agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I, bool is_float)
+agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I)
 {
    agx_foreach_ssa_src(I, s) {
       agx_index src = I->src[s];
@@ -145,21 +145,23 @@ agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I, bool is_float)
       uint8_t value = def->imm;
       uint16_t value_u16 = def->imm;
 
-      bool float_src = is_float;
+      bool float_src = agx_is_float_src(I, s);
 
-      /* fcmpsel takes first 2 as floats specially */
-      if (s < 2 && (I->op == AGX_OPCODE_FCMPSEL || I->op == AGX_OPCODE_FCMP))
-         float_src = true;
       if (I->op == AGX_OPCODE_ST_TILE && s == 0)
          continue;
       if (I->op == AGX_OPCODE_ZS_EMIT && s != 0)
+         continue;
+      if (I->op == AGX_OPCODE_TEXTURE_SAMPLE && s != 4)
          continue;
       if ((I->op == AGX_OPCODE_DEVICE_STORE ||
            I->op == AGX_OPCODE_LOCAL_STORE || I->op == AGX_OPCODE_ATOMIC ||
            I->op == AGX_OPCODE_LOCAL_ATOMIC) &&
           s != 2)
          continue;
-      if ((I->op == AGX_OPCODE_LOCAL_LOAD || I->op == AGX_OPCODE_DEVICE_LOAD) &&
+      if (I->op == AGX_OPCODE_ST_VARY && s != 0)
+         continue;
+      if ((I->op == AGX_OPCODE_LOCAL_LOAD || I->op == AGX_OPCODE_DEVICE_LOAD ||
+           I->op == AGX_OPCODE_STACK_STORE) &&
           s != 1)
          continue;
       if (I->op == AGX_OPCODE_SPLIT)
@@ -184,6 +186,27 @@ agx_optimizer_inline_imm(agx_instr **defs, agx_instr *I, bool is_float)
          I->src[s] = agx_abs(agx_immediate(value_u16));
       }
    }
+}
+
+/*
+ * Fuse not into and/or/xor. Specifically, acts on not and fuses:
+ *
+ *    not(and(x, y) -> nand(x, y)
+ *    not(or(x, y) -> nor(x, y)
+ *    not(xor(x, y) -> xnor(x, y)
+ */
+static bool
+agx_optimizer_not(agx_instr *I, agx_instr *use)
+{
+   /* Check for bit op and use of not op */
+   if (I->op != AGX_OPCODE_BITOP || use->op != AGX_OPCODE_NOT)
+      return false;
+
+   /* Remap operation to the appropriate one */
+   I->truth_table ^= 0xF;
+   I->dest[0] = use->dest[0];
+
+   return true;
 }
 
 static bool
@@ -345,6 +368,63 @@ agx_optimizer_cmpsel(agx_instr **defs, agx_instr *I)
    }
 }
 
+/*
+ * Fuse conditions into ballots:
+ *
+ *    ballot(cmp(x, y)) -> ballot_cmp(x, y)
+ */
+static void
+agx_optimizer_ballot(agx_context *ctx, agx_instr **defs, agx_instr *I)
+{
+   agx_instr *def = defs[I->src[0].value];
+   if (!def || (def->op != AGX_OPCODE_ICMP && def->op != AGX_OPCODE_FCMP))
+      return;
+
+   bool quad = I->op == AGX_OPCODE_QUAD_BALLOT;
+   assert(quad || I->op == AGX_OPCODE_BALLOT);
+
+   /* Replace with a fused instruction since the # of sources changes */
+   agx_builder b = agx_init_builder(ctx, agx_before_instr(I));
+
+   agx_instr *fused = agx_icmp_ballot_to(
+      &b, I->dest[0], def->src[0], def->src[1], def->icond, def->invert_cond);
+
+   if (def->op == AGX_OPCODE_ICMP) {
+      fused->op = quad ? AGX_OPCODE_ICMP_QUAD_BALLOT : AGX_OPCODE_ICMP_BALLOT;
+   } else {
+      fused->op = quad ? AGX_OPCODE_FCMP_QUAD_BALLOT : AGX_OPCODE_FCMP_BALLOT;
+   }
+
+   agx_remove_instruction(I);
+}
+
+/*
+ * Fuse not srcs into bitop.
+ */
+static void
+agx_optimizer_bitop(agx_instr **defs, agx_instr *I)
+{
+   agx_foreach_ssa_src(I, s) {
+      agx_index src = I->src[s];
+      agx_instr *def = defs[src.value];
+
+      /* Check for not src */
+      if (def->op != AGX_OPCODE_NOT)
+         continue;
+
+      /* Select new operation */
+      if (s == 0) {
+         I->truth_table =
+            ((I->truth_table & 0x5) << 1) | ((I->truth_table & 0xa) >> 1);
+      } else if (s == 1) {
+         I->truth_table = ((I->truth_table & 0x3) << 2) | (I->truth_table >> 2);
+      }
+
+      /* Fuse */
+      I->src[s] = def->src[0];
+   }
+}
+
 static void
 agx_optimizer_forward(agx_context *ctx)
 {
@@ -366,17 +446,20 @@ agx_optimizer_forward(agx_context *ctx)
          agx_optimizer_fmov(defs, I);
 
       /* Inline immediates if we can. TODO: systematic */
-      if (I->op != AGX_OPCODE_ST_VARY && I->op != AGX_OPCODE_COLLECT &&
-          I->op != AGX_OPCODE_TEXTURE_SAMPLE &&
-          I->op != AGX_OPCODE_IMAGE_LOAD && I->op != AGX_OPCODE_TEXTURE_LOAD &&
+      if (I->op != AGX_OPCODE_COLLECT && I->op != AGX_OPCODE_IMAGE_LOAD &&
+          I->op != AGX_OPCODE_TEXTURE_LOAD &&
           I->op != AGX_OPCODE_UNIFORM_STORE &&
-          I->op != AGX_OPCODE_BLOCK_IMAGE_STORE)
-         agx_optimizer_inline_imm(defs, I, info.is_float);
+          I->op != AGX_OPCODE_BLOCK_IMAGE_STORE && I->op != AGX_OPCODE_EXPORT)
+         agx_optimizer_inline_imm(defs, I);
 
       if (I->op == AGX_OPCODE_IF_ICMP)
          agx_optimizer_if_cmp(defs, I);
       else if (I->op == AGX_OPCODE_ICMPSEL)
          agx_optimizer_cmpsel(defs, I);
+      else if (I->op == AGX_OPCODE_BALLOT || I->op == AGX_OPCODE_QUAD_BALLOT)
+         agx_optimizer_ballot(ctx, defs, I);
+      else if (I->op == AGX_OPCODE_BITOP)
+         agx_optimizer_bitop(defs, I);
    }
 
    free(defs);
@@ -412,6 +495,11 @@ agx_optimizer_backward(agx_context *ctx)
 
       if (!use || BITSET_TEST(multiple, I->dest[0].value))
          continue;
+
+      if (agx_optimizer_not(I, use)) {
+         agx_remove_instruction(use);
+         continue;
+      }
 
       /* Destination has a single use, try to propagate */
       if (info.is_float && agx_optimizer_fmov_rev(I, use)) {

@@ -32,6 +32,18 @@ typedef enum {
    PARAMETER_LIST_INEXACT_MATCH /*< Match requires implicit conversion. */
 } parameter_list_match_t;
 
+static inline const glsl_type *
+get_param_type(const ir_instruction *inst)
+{
+   const ir_variable *var = inst->as_variable();
+   if (var)
+      return var->type;
+
+   const ir_rvalue *rvalue = inst->as_rvalue();
+   assert(rvalue != NULL);
+   return rvalue->type;
+}
+
 /**
  * \brief Check if two parameter lists match.
  *
@@ -60,12 +72,15 @@ parameter_lists_match(_mesa_glsl_parse_state *state,
       if (node_b->is_tail_sentinel())
 	 return PARAMETER_LIST_NO_MATCH;
 
+      const ir_instruction *inst_a = (const ir_instruction *) node_a;
+      const ir_instruction *inst_b = (const ir_instruction *) node_b;
 
-      const ir_variable *const param = (ir_variable *) node_a;
-      const ir_rvalue *const actual = (ir_rvalue *) node_b;
+      const ir_variable *const param = inst_a->as_variable();
+      assert(param != NULL);
+      const glsl_type *actual_type = get_param_type(inst_b);
 
-      if (param->type == actual->type)
-	 continue;
+      if (param->type == actual_type)
+         continue;
 
       /* Try to find an implicit conversion from actual to param. */
       inexact_match = true;
@@ -84,12 +99,12 @@ parameter_lists_match(_mesa_glsl_parse_state *state,
       case ir_var_const_in:
       case ir_var_function_in:
          if (param->data.implicit_conversion_prohibited ||
-             !_mesa_glsl_can_implicitly_convert(actual->type, param->type, state))
+             !_mesa_glsl_can_implicitly_convert(actual_type, param->type, state))
             return PARAMETER_LIST_NO_MATCH;
 	 break;
 
       case ir_var_function_out:
-	 if (!_mesa_glsl_can_implicitly_convert(param->type, actual->type, state))
+	 if (!_mesa_glsl_can_implicitly_convert(param->type, actual_type, state))
 	    return PARAMETER_LIST_NO_MATCH;
 	 break;
 
@@ -369,18 +384,6 @@ ir_function::matching_signature(_mesa_glsl_parse_state *state,
    return match;
 }
 
-
-static inline const glsl_type *
-get_param_type(ir_instruction *inst)
-{
-   ir_variable *var = inst->as_variable();
-   if (var)
-      return var->type;
-
-   ir_rvalue *rvalue = inst->as_rvalue();
-   assert(rvalue != NULL);
-   return rvalue->type;
-}
 
 static bool
 parameter_lists_match_exact(const exec_list *list_a, const exec_list *list_b)

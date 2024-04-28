@@ -60,6 +60,11 @@ struct ra_regs;
 
 #define NR_BO_CACHE_BUCKETS (MAX_BO_CACHE_BUCKET - MIN_BO_CACHE_BUCKET + 1)
 
+/* const0 1 0 0 -1.67773, mov.v0 $0 ^const0.xxxx, stop */
+#define PP_CLEAR_PROGRAM \
+   0x00020425, 0x0000000c, 0x01e007cf, 0xb0000000, \
+   0x000005f5, 0x00000000, 0x00000000, 0x00000000, \
+
 struct lima_screen {
    struct pipe_screen base;
    struct renderonly *ro;

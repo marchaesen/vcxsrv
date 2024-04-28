@@ -75,6 +75,13 @@
 
 #define dzn_stub() unreachable("Unsupported feature")
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR) || \
+    defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
+    defined(VK_USE_PLATFORM_XCB_KHR) || \
+    defined(VK_USE_PLATFORM_XLIB_KHR)
+#define DZN_USE_WSI_PLATFORM
+#endif
+
 struct dxil_validator;
 struct util_dl_library;
 
@@ -152,7 +159,8 @@ struct dzn_meta_blit_key {
          uint32_t src_is_array : 1;
          uint32_t resolve_mode : 3;
          uint32_t linear_filter : 1;
-         uint32_t padding : 9;
+         uint32_t stencil_bit : 4;
+         uint32_t padding : 5;
       };
       const uint64_t u64;
    };
@@ -219,6 +227,7 @@ struct dzn_physical_device {
    D3D12_FEATURE_DATA_D3D12_OPTIONS16 options16;
    D3D12_FEATURE_DATA_D3D12_OPTIONS17 options17;
    D3D12_FEATURE_DATA_D3D12_OPTIONS19 options19;
+   D3D12_FEATURE_DATA_D3D12_OPTIONS21 options21;
    VkPhysicalDeviceMemoryProperties memory;
    D3D12_HEAP_FLAGS heap_flags_for_mem_type[VK_MAX_MEMORY_TYPES];
    const struct vk_sync_type *sync_types[MAX_SYNC_TYPES + 1];
@@ -922,12 +931,21 @@ struct dzn_pipeline {
 
 extern const struct vk_pipeline_cache_object_ops dzn_cached_blob_ops;
 
-enum dzn_indirect_draw_cmd_sig_type {
-   DZN_INDIRECT_DRAW_CMD_SIG,
-   DZN_INDIRECT_INDEXED_DRAW_CMD_SIG,
-   DZN_INDIRECT_DRAW_TRIANGLE_FAN_CMD_SIG,
-   DZN_NUM_INDIRECT_DRAW_CMD_SIGS,
+struct dzn_indirect_draw_cmd_sig_key {
+   union {
+      struct {
+         uint8_t indexed : 1;
+         uint8_t draw_params : 1;
+         uint8_t draw_id : 1;
+         uint8_t triangle_fan : 1;
+      };
+      uint8_t value;
+   };
+
+   uint8_t padding[3];
+   uint32_t custom_stride;
 };
+#define DZN_NUM_INDIRECT_DRAW_CMD_SIGS (1 << 4)
 
 struct dzn_graphics_pipeline {
    struct dzn_pipeline base;
@@ -982,6 +1000,7 @@ struct dzn_graphics_pipeline {
 
    bool rast_disabled_from_missing_position;
    bool use_gs_for_polygon_mode_point;
+   bool needs_draw_sysvals;
 
    struct {
       uint32_t view_mask;
@@ -1006,6 +1025,7 @@ struct dzn_graphics_pipeline {
    struct hash_table *variants;
 
    ID3D12CommandSignature *indirect_cmd_sigs[DZN_NUM_INDIRECT_DRAW_CMD_SIGS];
+   struct hash_table *custom_stride_cmd_sigs;
 };
 
 #define dzn_graphics_pipeline_get_desc(pipeline, streambuf, name) \
@@ -1021,7 +1041,7 @@ dzn_graphics_pipeline_get_state(struct dzn_graphics_pipeline *pipeline,
 
 ID3D12CommandSignature *
 dzn_graphics_pipeline_get_indirect_cmd_sig(struct dzn_graphics_pipeline *pipeline,
-                                           enum dzn_indirect_draw_cmd_sig_type cmd_sig_type);
+                                           struct dzn_indirect_draw_cmd_sig_key key);
 
 VkFormat dzn_graphics_pipeline_patch_vi_format(VkFormat format);
 
@@ -1246,6 +1266,8 @@ enum dzn_debug_flags {
    DZN_DEBUG_REDIRECTS = 1 << 9,
    DZN_DEBUG_BINDLESS = 1 << 10,
    DZN_DEBUG_NO_BINDLESS = 1 << 11,
+   DZN_DEBUG_EXPERIMENTAL = 1 << 12,
+   DZN_DEBUG_MULTIVIEW = 1 << 13,
 };
 
 struct dzn_instance {

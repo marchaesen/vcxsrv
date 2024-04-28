@@ -180,6 +180,8 @@ ir_expression *i2b(operand a);
 ir_expression *f2b(operand a);
 ir_expression *b2f(operand a);
 
+ir_expression *f2f16(operand a);
+
 ir_expression *f2d(operand a);
 ir_expression *i2d(operand a);
 ir_expression *u2d(operand a);

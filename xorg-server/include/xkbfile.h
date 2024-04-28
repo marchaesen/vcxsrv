@@ -207,10 +207,6 @@ extern _X_EXPORT unsigned XkbConvertGetByNameComponents(Bool /* toXkm */ ,
                                                         unsigned        /* orig */
     );
 
-extern _X_EXPORT Bool XkbNameMatchesPattern(char * /* name */ ,
-                                            char *      /* pattern */
-    );
-
 /***====================================================================***/
 
 extern _X_EXPORT Bool XkbWriteXKBKeycodes(FILE * /* file */ ,
@@ -262,9 +258,6 @@ extern _X_EXPORT Bool XkbWriteXKBKeymapForNames(FILE * /* file */ ,
     );
 
 /***====================================================================***/
-
-extern _X_EXPORT Bool XkmProbe(FILE *   /* file */
-    );
 
 extern _X_EXPORT unsigned XkmReadFile(FILE * /* file */ ,
                                       unsigned /* need */ ,

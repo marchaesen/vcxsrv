@@ -119,6 +119,7 @@ Allow connections from clients with an endianess different to that of the server
 .TP 8
 .B \-byteswappedclients
 Prohibit connections from clients with an endianess different to that of the server.
+This is the default unless \fB\+byteswappedclients\fP is specified.
 .TP 8
 .B \-c
 turns off key-click.

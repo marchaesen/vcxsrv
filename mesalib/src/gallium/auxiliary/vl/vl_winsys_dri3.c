@@ -571,7 +571,7 @@ vl_dri3_flush_frontbuffer(struct pipe_screen *screen,
                           struct pipe_context *pipe,
                           struct pipe_resource *resource,
                           unsigned level, unsigned layer,
-                          void *context_private, struct pipe_box *sub_box)
+                          void *context_private, unsigned nboxes, struct pipe_box *sub_box)
 {
    struct vl_dri3_screen *scrn = (struct vl_dri3_screen *)context_private;
    uint32_t options = XCB_PRESENT_OPTION_NONE;
@@ -843,7 +843,7 @@ vl_dri3_screen_create(Display *display, int screen)
    free(geom_reply);
 
    if (pipe_loader_drm_probe_fd(&scrn->base.dev, fd, false))
-      scrn->base.pscreen = pipe_loader_create_screen(scrn->base.dev);
+      scrn->base.pscreen = pipe_loader_create_screen(scrn->base.dev, false);
 
    if (!scrn->base.pscreen)
       goto release_pipe;

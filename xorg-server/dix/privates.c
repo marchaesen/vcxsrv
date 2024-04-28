@@ -265,7 +265,7 @@ fixupDefaultColormaps(FixupFunc fixup, unsigned bytes)
         ColormapPtr cmap;
 
         dixLookupResourceByType((void **) &cmap,
-                                screenInfo.screens[s]->defColormap, RT_COLORMAP,
+                                screenInfo.screens[s]->defColormap, X11_RESTYPE_COLORMAP,
                                 serverClient, DixCreateAccess);
         if (cmap &&
             !fixup(&cmap->devPrivates, screenInfo.screens[s]->screenSpecificPrivates[PRIVATE_COLORMAP].offset, bytes))
@@ -572,7 +572,7 @@ dixFreePrivates(PrivatePtr privates, DevPrivateType type)
 /*
  * Return size of privates for the specified type
  */
-extern _X_EXPORT int
+int
 dixPrivatesSize(DevPrivateType type)
 {
     assert(type >= PRIVATE_SCREEN);
@@ -584,13 +584,13 @@ dixPrivatesSize(DevPrivateType type)
 
 /* Table of devPrivates offsets */
 static const int offsets[] = {
-    -1,                         /* RT_NONE */
-    offsetof(WindowRec, devPrivates),   /* RT_WINDOW */
-    offsetof(PixmapRec, devPrivates),   /* RT_PIXMAP */
-    offsetof(GC, devPrivates),  /* RT_GC */
-    -1,                         /* RT_FONT */
-    offsetof(CursorRec, devPrivates),   /* RT_CURSOR */
-    offsetof(ColormapRec, devPrivates), /* RT_COLORMAP */
+    -1,                                 /* X11_RESTYPE_NONE */
+    offsetof(WindowRec, devPrivates),   /* X11_RESTYPE_WINDOW */
+    offsetof(PixmapRec, devPrivates),   /* X11_RESTYPE_PIXMAP */
+    offsetof(GC, devPrivates),          /* X11_RESTYPE_GC */
+    -1,                                 /* X11_RESTYPE_FONT */
+    offsetof(CursorRec, devPrivates),   /* X11_RESTYPE_CURSOR */
+    offsetof(ColormapRec, devPrivates), /* X11_RESTYPE_COLORMAP */
 };
 
 int
@@ -601,10 +601,10 @@ dixLookupPrivateOffset(RESTYPE type)
      * points at pixmaps (thanks, DBE)
      */
     if (type & RC_DRAWABLE) {
-        if (type == RT_WINDOW)
-            return offsets[RT_WINDOW & TypeMask];
+        if (type == X11_RESTYPE_WINDOW)
+            return offsets[X11_RESTYPE_WINDOW & TypeMask];
         else
-            return offsets[RT_PIXMAP & TypeMask];
+            return offsets[X11_RESTYPE_PIXMAP & TypeMask];
     }
     type = type & TypeMask;
     if (type < ARRAY_SIZE(offsets))
@@ -616,7 +616,7 @@ dixLookupPrivateOffset(RESTYPE type)
  * Screen-specific privates
  */
 
-extern _X_EXPORT Bool
+Bool
 dixRegisterScreenSpecificPrivateKey(ScreenPtr pScreen, DevPrivateKey key,
                                     DevPrivateType type, unsigned size)
 {

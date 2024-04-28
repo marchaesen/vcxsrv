@@ -241,7 +241,7 @@ llvmpipe_create_sampler_view(struct pipe_context *pipe,
       pipe_resource_reference(&view->texture, texture);
       view->context = pipe;
 
-#ifdef DEBUG
+#if MESA_DEBUG
      /*
       * This is possibly too lenient, but the primary reason is just
       * to catch gallium frontends which forget to initialize this, so

@@ -492,7 +492,6 @@ LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     POINT ptMouse;
-    PAINTSTRUCT ps;
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
     ScreenPtr s_pScreen = NULL;
@@ -626,6 +625,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 #ifdef XWIN_GLX_WINDOWS
         if (pWinPriv->fWglUsed) {
+            PAINTSTRUCT ps;
             /*
                For regions which are being drawn by GL, the shadow framebuffer doesn't have the
                correct bits, so don't bitblt from the shadow framebuffer
@@ -677,13 +677,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Are we tracking yet? */
         if (!s_fTracking) {
-            TRACKMOUSEEVENT tme;
-
-            /* Setup data structure */
-            ZeroMemory(&tme, sizeof(tme));
-            tme.cbSize = sizeof(tme);
-            tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hwnd;
+            TRACKMOUSEEVENT tme = (TRACKMOUSEEVENT) {
+                .cbSize = sizeof(TRACKMOUSEEVENT),
+                .dwFlags = TME_LEAVE,
+                .hwndTrack = hwnd,
+            };
 
             /* Call the tracking function */
             if (!TrackMouseEvent(&tme))
@@ -1125,13 +1123,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
 
         if (!(pWinPos->flags & SWP_NOZORDER)) {
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
             winDebug("\twindow z order was changed\n");
 #endif
             if (pWinPos->hwndInsertAfter == HWND_TOP
                 || pWinPos->hwndInsertAfter == HWND_TOPMOST
                 || pWinPos->hwndInsertAfter == HWND_NOTOPMOST) {
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
                 winDebug("\traise to top\n");
 #endif
                 /* Raise the window to the top in Z order */

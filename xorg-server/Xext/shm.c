@@ -37,14 +37,17 @@ in this Software without prior written authorization from The Open Group.
 #include <sys/ipc.h>
 #include <sys/shm.h>
 #endif
-#ifdef HAVE_MEMFD_CREATE
 #include <sys/mman.h>
-#endif
 #include <unistd.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "os/auth.h"
+#include "os/busfault.h"
+#include "os/osdep.h"
+
 #include "misc.h"
 #include "os.h"
 #include "dixstruct.h"
@@ -61,7 +64,6 @@ in this Software without prior written authorization from The Open Group.
 #include <X11/Xfuncproto.h>
 #include <sys/mman.h>
 #include "protocol-versions.h"
-#include "busfault.h"
 
 /* Needed for Solaris cross-zone shared memory extension */
 #ifdef HAVE_SHMCTL64
@@ -94,6 +96,8 @@ in this Software without prior written authorization from The Open Group.
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #endif
+
+#include "dix/dix_priv.h"
 
 #include "extinit.h"
 
@@ -476,7 +480,7 @@ ProcShmDetach(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xShmDetachReq);
     VERIFY_SHMSEG(stuff->shmseg, shmdesc, client);
-    FreeResource(stuff->shmseg, RT_NONE);
+    FreeResource(stuff->shmseg, X11_RESTYPE_NONE);
     return Success;
 }
 
@@ -1014,7 +1018,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
 
         if (pMap) {
             result = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid,
-                              RT_PIXMAP, pMap, RT_NONE, NULL, DixCreateAccess);
+                              X11_RESTYPE_PIXMAP, pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
             if (result != Success) {
                 pDraw->pScreen->DestroyPixmap(pMap);
                 break;
@@ -1023,7 +1027,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
             shmdesc->refcnt++;
             pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
             pMap->drawable.id = newPix->info[j].id;
-            if (!AddResource(newPix->info[j].id, RT_PIXMAP, (void *) pMap)) {
+            if (!AddResource(newPix->info[j].id, X11_RESTYPE_PIXMAP, (void *) pMap)) {
                 result = BadAlloc;
                 break;
             }
@@ -1036,7 +1040,7 @@ ProcPanoramiXShmCreatePixmap(ClientPtr client)
 
     if (result != Success) {
         while (j--)
-            FreeResource(newPix->info[j].id, RT_NONE);
+            FreeResource(newPix->info[j].id, X11_RESTYPE_NONE);
         free(newPix);
     }
     else
@@ -1128,8 +1132,8 @@ ProcShmCreatePixmap(ClientPtr client)
                                                    shmdesc->addr +
                                                    stuff->offset);
     if (pMap) {
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, RT_PIXMAP,
-                      pMap, RT_NONE, NULL, DixCreateAccess);
+        rc = XaceHook(XACE_RESOURCE_ACCESS, client, stuff->pid, X11_RESTYPE_PIXMAP,
+                      pMap, X11_RESTYPE_NONE, NULL, DixCreateAccess);
         if (rc != Success) {
             pDraw->pScreen->DestroyPixmap(pMap);
             return rc;
@@ -1138,7 +1142,7 @@ ProcShmCreatePixmap(ClientPtr client)
         shmdesc->refcnt++;
         pMap->drawable.serialNumber = NEXT_SERIAL_NUMBER;
         pMap->drawable.id = stuff->pid;
-        if (AddResource(stuff->pid, RT_PIXMAP, (void *) pMap)) {
+        if (AddResource(stuff->pid, X11_RESTYPE_PIXMAP, (void *) pMap)) {
             return Success;
         }
     }
@@ -1156,7 +1160,7 @@ ShmBusfaultNotify(void *context)
            (unsigned int) shmdesc->resource);
     busfault_unregister(shmdesc->busfault);
     shmdesc->busfault = NULL;
-    FreeResource (shmdesc->resource, RT_NONE);
+    FreeResource (shmdesc->resource, X11_RESTYPE_NONE);
 }
 
 static int
@@ -1338,7 +1342,7 @@ ProcShmCreateSegment(ClientPtr client)
     }
 
     if (WriteFdToClient(client, fd, TRUE) < 0) {
-        FreeResource(stuff->shmseg, RT_NONE);
+        FreeResource(stuff->shmseg, X11_RESTYPE_NONE);
         close(fd);
         return BadAlloc;
     }

@@ -86,8 +86,8 @@ SOFTWARE.
 	<value val="0x17" display="$17"/>
 	<value val="0x18" display="$18"/>
 	<value val="0x19" display="$19"/>
-	<value val="0x1a" display="$1a"/>
-	<value val="0x1b" display="$1b"/>
+	<value val="0x1a" display="$sp"/>
+	<value val="0x1b" display="$lr"/>
 </enum>
 
 <expr name="#reg-special">
@@ -150,15 +150,20 @@ SOFTWARE.
 
 <bitset name="#alu-2src" extends="#instruction-rep">
 	<display>
-		{REP}{XMOV}{NAME} {DST}, {SRC1}, {SRC2}
+		{REP}{XMOV}{PEEK}{NAME} {DST}, {SRC1}, {SRC2}
 	</display>
 
-	<pattern low="5" high="8">xxxx</pattern>
+	<pattern low="5" high="7">xxx</pattern>
+	<field name="PEEK" pos="8" type="bool" display="(peek)"/>
 	<field name="XMOV" low="9" high="10" type="#xmov"/>
 	<field name="DST" low="11" high="15" type="#dst"/>
 	<field name="SRC2" low="16" high="20" type="#src"/>
 	<field name="SRC1" low="21" high="25" type="#src"/>
 	<pattern low="27" high="31">10011</pattern>
+
+	<encode>
+		<map name="PEEK">src->peek</map>
+	</encode>
 </bitset>
 
 <bitset name="#alu-1src" extends="#instruction-rep">
@@ -254,7 +259,7 @@ SOFTWARE.
 	<override>
 		<expr>{SRC1} == 0</expr>
 		<display>
-			{REP}{XMOV}mov {DST}, {SRC2}
+			{REP}{XMOV}{PEEK}mov {DST}, {SRC2}
 		</display>
 	</override>
 	<pattern low="0" high="4">00110</pattern>
@@ -917,6 +922,21 @@ SOFTWARE.
 	</encode>
 </bitset>
 
+<bitset name="jumpa" extends="#instruction">
+	<display>
+		jumpa #{TARGET}
+	</display>
+
+	<gen min="7"/>
+
+	<field name="TARGET" low="0" high="25" type="absbranch"/>
+	<pattern low="26" high="31">111001</pattern>
+
+	<encode>
+		<map name="TARGET">src->literal</map>
+	</encode>
+</bitset>
+
 <bitset name="waitin" extends="#instruction-no-args">
 	<doc>
 		A special branch instruction that parses the next PM4 packet
@@ -931,17 +951,15 @@ SOFTWARE.
 	<pattern low="26" high="31">110110</pattern>
 </bitset>
 
-<bitset name="preemptleave" extends="#instruction">
+<bitset name="bl" extends="#instruction">
 	<doc>
-		Try to leave the preempt handler without jumping back to the
-		instruction that was interrupted. Jumps to the given destination
-		if this fails.
+		Jump to the target and store a return address in $lr.
 	</doc>
 	<display>
-		preemptleave #{TARGET}
+		bl #{TARGET}
 	</display>
 
-	<field name="TARGET" low="0" high="25" type="absbranch"/>
+	<field name="TARGET" low="0" high="25" type="absbranch" call="true"/>
 	<pattern low="26" high="31">111000</pattern>
 
 	<encode>
@@ -983,6 +1001,54 @@ SOFTWARE.
 	</display>
 	<pattern low="0" high="25">01000000000000000000000000</pattern>
 	<pattern low="27" high="31">00000</pattern>
+</bitset>
+
+<bitset name="#jump-a7xx" extends="#instruction">
+	<gen min="7"/>
+	<pattern low="26" high="31">110111</pattern>
+</bitset>
+
+<bitset name="jumpr" extends="#jump-a7xx">
+	<doc>
+                Indirect jump instruction. Jump to the given offset.
+                Used as a return instruction together with bl:
+
+			bl #fxn
+			...
+
+			fxn:
+			...
+			jump $lr
+			nop
+
+		However this is only used by hand-crafted assembly
+		routines that make sure to never use any stack space. Otherwise
+		sret is used.
+	</doc>
+
+	<display>
+		jump {SRC1}
+	</display>
+
+	<pattern low="20" high="25">110111</pattern>
+	<pattern low="5" high="19">000000000000000</pattern>
+	<field name="SRC1" low="0" high="4" type="#src"/>
+</bitset>
+
+<bitset name="sret" extends="#jump-a7xx">
+	<doc>
+		Seems to be equivalent to "jump $lr". This seems to be used by
+		the compiled code, and is always immediately followed by a
+		"sub $sp, $sp, imm" instruction to restore the stack frame. It's
+		therefore possible this also includes a stack overflow check.
+	</doc>
+
+	<display>
+		sret
+	</display>
+
+	<pattern low="20" high="25">110110</pattern>
+	<pattern low="0" high="19">00000000000000000000</pattern>
 </bitset>
 
 </isa>

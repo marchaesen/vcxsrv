@@ -275,7 +275,7 @@ ensure_state_fixup_cmdlist(struct d3d12_context *ctx, ID3D12CommandAllocator *al
    if (!ctx->state_fixup_cmdlist) {
       struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
       screen->dev->CreateCommandList(0,
-                                     D3D12_COMMAND_LIST_TYPE_DIRECT,
+                                     screen->queue_type,
                                      alloc,
                                      nullptr,
                                      IID_PPV_ARGS(&ctx->state_fixup_cmdlist));
@@ -472,8 +472,11 @@ d3d12_transition_resource_state(struct d3d12_context *ctx,
                                 D3D12_RESOURCE_STATES state,
                                 d3d12_transition_flags flags)
 {
+
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
    if (flags & D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS)
       d3d12_invalidate_context_bindings(ctx, res);
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    d3d12_context_state_table_entry *state_entry = find_or_create_state_entry(ctx, res->bo);
    bool pending_memory_barrier = (flags & D3D12_TRANSITION_FLAG_PENDING_MEMORY_BARRIER) != 0;
@@ -507,8 +510,11 @@ d3d12_transition_subresources_state(struct d3d12_context *ctx,
                                     D3D12_RESOURCE_STATES state,
                                     d3d12_transition_flags flags)
 {
+
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
    if(flags & D3D12_TRANSITION_FLAG_INVALIDATE_BINDINGS)
       d3d12_invalidate_context_bindings(ctx, res);
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    d3d12_context_state_table_entry *state_entry = find_or_create_state_entry(ctx, res->bo);
    bool is_whole_resource = num_levels * num_layers * num_planes == state_entry->batch_end.num_subresources;

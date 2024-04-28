@@ -6,8 +6,6 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "panvk_private.h"
-
 #include <hardware/hardware.h>
 #include <hardware/hwvulkan.h>
 #include <vulkan/vk_icd.h>

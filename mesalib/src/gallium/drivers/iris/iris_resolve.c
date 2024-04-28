@@ -508,8 +508,8 @@ iris_resolve_color(struct iris_context *ice,
    //DBG("%s to mt %p level %u layer %u\n", __func__, mt, level, layer);
 
    struct blorp_surf surf;
-   iris_blorp_surf_for_resource(&batch->screen->isl_dev, &surf,
-                                &res->base.b, res->aux.usage, level, true);
+   iris_blorp_surf_for_resource(batch, &surf, &res->base.b,
+                                res->aux.usage, level, true);
 
    iris_batch_maybe_flush(batch, 1500);
 
@@ -576,8 +576,8 @@ iris_mcs_exec(struct iris_context *ice,
    iris_batch_maybe_flush(batch, 1500);
 
    struct blorp_surf surf;
-   iris_blorp_surf_for_resource(&batch->screen->isl_dev, &surf,
-                                &res->base.b, res->aux.usage, 0, true);
+   iris_blorp_surf_for_resource(batch, &surf, &res->base.b,
+                                res->aux.usage, 0, true);
 
    /* MCS partial resolve will read from the MCS surface. */
    assert(res->aux.bo == res->bo);
@@ -596,10 +596,10 @@ iris_mcs_exec(struct iris_context *ice,
        * the full resolve.
        */
       struct blorp_surf src_surf, dst_surf;
-      iris_blorp_surf_for_resource(&batch->screen->isl_dev, &src_surf,
-                                   &res->base.b, res->aux.usage, 0, false);
-      iris_blorp_surf_for_resource(&batch->screen->isl_dev, &dst_surf,
-                                   &res->base.b, ISL_AUX_USAGE_NONE, 0, true);
+      iris_blorp_surf_for_resource(batch, &src_surf, &res->base.b,
+                                   res->aux.usage, 0, false);
+      iris_blorp_surf_for_resource(batch, &dst_surf, &res->base.b,
+                                   ISL_AUX_USAGE_NONE, 0, true);
 
       blorp_copy(&blorp_batch, &src_surf, 0, 0, &dst_surf, 0, 0,
                  0, 0, 0, 0, surf.surf->logical_level0_px.width,
@@ -703,7 +703,7 @@ iris_hiz_exec(struct iris_context *ice,
    /* A data cache flush is not suggested by HW docs, but we found it to fix
     * a number of failures.
     */
-   unsigned wa_flush = intel_device_info_is_dg2(batch->screen->devinfo) &&
+   unsigned wa_flush = devinfo->verx10 >= 125 &&
                        res->aux.usage == ISL_AUX_USAGE_HIZ_CCS ?
                        PIPE_CONTROL_DATA_CACHE_FLUSH : 0;
 
@@ -730,8 +730,8 @@ iris_hiz_exec(struct iris_context *ice,
    iris_batch_sync_region_start(batch);
 
    struct blorp_surf surf;
-   iris_blorp_surf_for_resource(&batch->screen->isl_dev, &surf,
-                                &res->base.b, res->aux.usage, level, true);
+   iris_blorp_surf_for_resource(batch, &surf, &res->base.b,
+                                res->aux.usage, level, true);
 
    struct blorp_batch blorp_batch;
    enum blorp_batch_flags flags = 0;

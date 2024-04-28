@@ -21,8 +21,9 @@
  * SOFTWARE.
  */
 
-#include "pan_bo.h"
-#include "pan_device.h"
+#include <stdint.h>
+
+#include "pan_samples.h"
 
 /* Sample positions are specified partially in hardware, partially in software
  * on Mali. On Midgard, sample positions are completely fixed but need to be
@@ -127,21 +128,21 @@ const struct mali_sample_positions sample_position_lut[] = {
 };
 /* clang-format on */
 
-mali_ptr
-panfrost_sample_positions(const struct panfrost_device *dev,
-                          enum mali_sample_pattern pattern)
+unsigned panfrost_sample_positions_buffer_size(void)
+{
+   return sizeof(sample_position_lut);
+}
+
+unsigned
+panfrost_sample_positions_offset(enum mali_sample_pattern pattern)
 {
    assert(pattern < ARRAY_SIZE(sample_position_lut));
    unsigned offset = (pattern * sizeof(sample_position_lut[0]));
-   return dev->sample_positions->ptr.gpu + offset;
+   return offset;
 }
 
 void
-panfrost_upload_sample_positions(struct panfrost_device *dev)
+panfrost_upload_sample_positions(void *buffer)
 {
-   STATIC_ASSERT(sizeof(sample_position_lut) < 4096);
-   dev->sample_positions = panfrost_bo_create(dev, 4096, 0, "Sample positions");
-
-   memcpy(dev->sample_positions->ptr.cpu, sample_position_lut,
-          sizeof(sample_position_lut));
+   memcpy(buffer, sample_position_lut, sizeof(sample_position_lut));
 }

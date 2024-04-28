@@ -30,6 +30,10 @@
 
 #include "detect_os.h"
 
+#if DETECT_OS_ANDROID
+#include <linux/fcntl.h>
+#endif
+
 #if DETECT_OS_UNIX
 
 #include <string.h>
@@ -124,7 +128,7 @@ os_malloc_aligned_fd(size_t size, size_t alignment, int *fd, char const *fd_name
    if(mem_fd < 0)
       return NULL;
 
-#if defined(HAVE_MEMFD_CREATE) || defined(ANDROID)
+#if defined(HAVE_MEMFD_CREATE) || DETECT_OS_ANDROID
    // Seal fd, so no one can grow or shrink the memory.
    if (fcntl(mem_fd, F_ADD_SEALS, F_SEAL_SHRINK | F_SEAL_GROW | F_SEAL_SEAL) != 0)
       goto fail;

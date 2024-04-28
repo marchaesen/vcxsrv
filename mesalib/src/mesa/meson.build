@@ -123,6 +123,7 @@ files_libmesa = files(
   'main/glthread_get.c',
   'main/glthread_list.c',
   'main/glthread_marshal.h',
+  'main/glthread_pixels.c',
   'main/glthread_shaderobj.c',
   'main/glthread_varray.c',
   'main/hash.c',

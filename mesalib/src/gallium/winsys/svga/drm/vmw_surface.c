@@ -261,7 +261,7 @@ vmw_svga_winsys_surface_reference(struct vmw_svga_winsys_surface **pdst,
       if (dst->buf)
          vmw_svga_winsys_buffer_destroy(&dst->screen->base, dst->buf);
       vmw_ioctl_surface_destroy(dst->screen, dst->sid);
-#ifdef DEBUG
+#if MESA_DEBUG
       /* to detect dangling pointers */
       assert(p_atomic_read(&dst->validated) == 0);
       dst->sid = SVGA3D_INVALID_ID;

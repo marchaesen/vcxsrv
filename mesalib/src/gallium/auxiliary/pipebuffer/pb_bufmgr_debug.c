@@ -46,7 +46,7 @@
 #include "pb_bufmgr.h"
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 
 
 #define PB_DEBUG_CREATE_BACKTRACE 8
@@ -483,7 +483,7 @@ pb_debug_manager_create(struct pb_manager *provider,
 }
 
 
-#else /* !DEBUG */
+#else /* !MESA_DEBUG */
 
 
 struct pb_manager *
@@ -494,4 +494,4 @@ pb_debug_manager_create(struct pb_manager *provider,
 }
 
 
-#endif /* !DEBUG */
+#endif /* MESA_DEBUG */

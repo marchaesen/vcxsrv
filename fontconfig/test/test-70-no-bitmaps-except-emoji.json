@@ -1,0 +1,43 @@
+{
+  "fonts": [
+    {
+      "family": "Noto Color Emoji",
+      "style": "Regular",
+      "outline": false,
+      "scalable": true
+    },
+    {
+      "family": "Fixed",
+      "style": "Regular",
+      "outline": false,
+      "scalable": false
+    }
+  ],
+  "tests": [
+    {
+      "method": "match",
+      "query": {
+        "family": "Noto Color Emoji"
+      },
+      "result": {
+        "family": "Noto Color Emoji",
+        "style": "Regular",
+        "outline": false,
+        "scalable": true
+      }
+    },
+    {
+      "method": "match",
+      "query": {
+        "family": "Fixed"
+      },
+      "$comment": "fontconfig always fallback to something. Even though the expected result here would be no result.",
+      "result": {
+        "family": "Noto Color Emoji",
+        "style": "Regular",
+        "outline": false,
+        "scalable": true
+      }
+    }
+  ]
+}

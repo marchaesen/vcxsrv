@@ -253,6 +253,11 @@ static bool gpir_emit_intrinsic(gpir_block *block, nir_instr *ni)
    case nir_intrinsic_load_uniform:
    {
       int offset = nir_intrinsic_base(instr);
+
+      if (!nir_src_is_const(instr->src[0])) {
+         gpir_error("indirect indexing for uniforms is not implemented\n");
+         return false;
+      }
       offset += (int)nir_src_as_float(instr->src[0]);
 
       return gpir_create_load(block, &instr->def,

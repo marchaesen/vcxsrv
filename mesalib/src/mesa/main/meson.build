@@ -31,7 +31,7 @@ main_marshal_generated_h = custom_target(
   'marshal_generated.h',
   input : [files('../../mapi/glapi/gen/gl_marshal_h.py'), gl_and_es_api_files],
   output : 'marshal_generated.h',
-  command : [prog_python, '@INPUT0@', '-f', '@INPUT1@'],
+  command : [prog_python, '@INPUT0@', '@INPUT1@', sizeof_pointer],
   depend_files : files('../../mapi/glapi/gen/marshal_XML.py') + glapi_gen_depends,
   capture : true,
 )

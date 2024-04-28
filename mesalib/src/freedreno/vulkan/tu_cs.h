@@ -480,6 +480,12 @@ tu_cond_exec_end(struct tu_cs *cs)
    }
 }
 
+uint64_t
+tu_cs_emit_data_nop(struct tu_cs *cs,
+                    const uint32_t *data,
+                    uint32_t size,
+                    uint32_t align);
+
 /* Temporary struct for tracking a register state to be written, used by
  * a6xx-pack.h and tu_cs_emit_regs()
  */

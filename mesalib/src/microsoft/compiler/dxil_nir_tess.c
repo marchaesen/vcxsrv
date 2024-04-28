@@ -33,7 +33,7 @@ is_memory_barrier_tcs_patch(const nir_intrinsic_instr *intr)
    if (intr->intrinsic == nir_intrinsic_barrier &&
        nir_intrinsic_memory_modes(intr) & nir_var_shader_out) {
       assert(nir_intrinsic_memory_modes(intr) == nir_var_shader_out);
-      assert(nir_intrinsic_memory_scope(intr) == SCOPE_WORKGROUP);
+      assert(nir_intrinsic_memory_scope(intr) == SCOPE_WORKGROUP || nir_intrinsic_memory_scope(intr) == SCOPE_INVOCATION);
       return true;
    } else {
       return false;

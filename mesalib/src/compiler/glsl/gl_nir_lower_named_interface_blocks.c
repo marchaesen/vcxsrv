@@ -102,6 +102,8 @@ process_derefs(nir_builder *b, nir_deref_instr **p, nir_deref_instr *parent)
          } else {
             parent = nir_build_deref_struct(b, parent, (*p)->strct.index);
          }
+      } else if ((*p)->deref_type == nir_deref_type_array_wildcard) {
+         parent = nir_build_deref_array_wildcard(b, parent);
       }
    }
 
@@ -362,8 +364,10 @@ void
 gl_nir_lower_named_interface_blocks(struct gl_shader_program *prog)
 {
    for (unsigned int i = 0; i < MESA_SHADER_STAGES; i++) {
-      if (prog->_LinkedShaders[i] != NULL)
+      if (prog->_LinkedShaders[i] != NULL) {
+         NIR_PASS(_, prog->_LinkedShaders[i]->Program->nir, nir_split_var_copies);
          lower_named_interface_blocks(prog->_LinkedShaders[i]);
+      }
    }
 }
 

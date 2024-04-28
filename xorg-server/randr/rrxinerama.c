@@ -67,10 +67,15 @@
  *           Mitani Hiroshi <hmitani@drl.mei.co.jp>,
  *           David Thomas <davtom@dream.org.uk>.
  */
+#include <dix-config.h>
 
-#include "randrstr.h"
-#include "swaprep.h"
+#include <X11/Xmd.h>
 #include <X11/extensions/panoramiXproto.h>
+
+#include "dix/dix_priv.h"
+#include "randr/randrstr_priv.h"
+
+#include "swaprep.h"
 #include "protocol-versions.h"
 
 /* Xinerama is not multi-screen capable; just report about screen 0 */

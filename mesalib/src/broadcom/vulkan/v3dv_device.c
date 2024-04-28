@@ -53,7 +53,7 @@
 #include "util/u_debug.h"
 #include "util/format/u_format.h"
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 #include "vk_android.h"
 #endif
 
@@ -109,6 +109,8 @@ static const struct vk_instance_extension_table instance_extensions = {
    .KHR_get_surface_capabilities2       = true,
    .KHR_surface                         = true,
    .KHR_surface_protected_capabilities  = true,
+   .EXT_surface_maintenance1            = true,
+   .EXT_swapchain_colorspace            = true,
 #endif
 #ifdef VK_USE_PLATFORM_WAYLAND_KHR
    .KHR_wayland_surface                 = true,
@@ -121,6 +123,9 @@ static const struct vk_instance_extension_table instance_extensions = {
 #endif
 #ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
    .EXT_acquire_xlib_display            = true,
+#endif
+#ifndef VK_USE_PLATFORM_WIN32_KHR
+   .EXT_headless_surface                = true,
 #endif
    .EXT_debug_report                    = true,
    .EXT_debug_utils                     = true,
@@ -142,6 +147,7 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .KHR_driver_properties                = true,
       .KHR_descriptor_update_template       = true,
       .KHR_depth_stencil_resolve            = true,
+      .KHR_dynamic_rendering                = true,
       .KHR_external_fence                   = true,
       .KHR_external_fence_fd                = true,
       .KHR_external_memory                  = true,
@@ -152,6 +158,9 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .KHR_get_memory_requirements2         = true,
       .KHR_image_format_list                = true,
       .KHR_imageless_framebuffer            = true,
+      .KHR_index_type_uint8                 = true,
+      .KHR_line_rasterization               = true,
+      .KHR_load_store_op_none               = true,
       .KHR_performance_query                = device->caps.perfmon,
       .KHR_relaxed_block_layout             = true,
       .KHR_maintenance1                     = true,
@@ -161,6 +170,7 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .KHR_multiview                        = true,
       .KHR_pipeline_executable_properties   = true,
       .KHR_separate_depth_stencil_layouts   = true,
+      .KHR_shader_expect_assume             = true,
       .KHR_shader_float_controls            = true,
       .KHR_shader_non_semantic_info         = true,
       .KHR_sampler_mirror_clamp_to_edge     = true,
@@ -179,6 +189,7 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .KHR_incremental_present              = true,
 #endif
       .KHR_variable_pointers                = true,
+      .KHR_vertex_attribute_divisor         = true,
       .KHR_vulkan_memory_model              = true,
       .KHR_zero_initialize_workgroup_memory = true,
       .EXT_4444_formats                     = true,
@@ -187,8 +198,10 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .EXT_color_write_enable               = true,
       .EXT_custom_border_color              = true,
       .EXT_depth_clip_control               = true,
+      .EXT_depth_clip_enable                = device->devinfo.ver >= 71,
       .EXT_load_store_op_none               = true,
       .EXT_inline_uniform_block             = true,
+      .EXT_extended_dynamic_state           = true,
       .EXT_external_memory_dma_buf          = true,
       .EXT_host_query_reset                 = true,
       .EXT_image_drm_format_modifier        = true,
@@ -208,10 +221,13 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .EXT_shader_demote_to_helper_invocation = true,
       .EXT_shader_module_identifier         = true,
       .EXT_subgroup_size_control            = true,
+#ifdef V3DV_USE_WSI_PLATFORM
+      .EXT_swapchain_maintenance1           = true,
+#endif
       .EXT_texel_buffer_alignment           = true,
       .EXT_tooling_info                     = true,
       .EXT_vertex_attribute_divisor         = true,
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       .ANDROID_external_memory_android_hardware_buffer = true,
       .ANDROID_native_buffer                = true,
       .EXT_queue_family_foreign             = true,
@@ -335,12 +351,10 @@ get_features(const struct v3dv_physical_device *physical_device,
 
       .samplerMirrorClampToEdge = true,
 
-      /* These are mandatory by Vulkan 1.2, however, we don't support any of
-       * the optional features affected by them (non 32-bit types for
-       * shaderSubgroupExtendedTypes and additional subgroup ballot for
-       * subgroupBroadcastDynamicId), so in practice setting them to true
-       * doesn't have any implications for us until we implement any of these
-       * optional features.
+      /* Extended subgroup types is mandatory by Vulkan 1.2, however, it is
+       * only in effect if the implementation supports non 32-bit types, which
+       * we don't, so in practice setting it to true doesn't have any
+       * implications for us.
        */
       .shaderSubgroupExtendedTypes = true,
       .subgroupBroadcastDynamicId = true,
@@ -387,13 +401,16 @@ get_features(const struct v3dv_physical_device *physical_device,
       /* VK_EXT_line_rasterization */
       .rectangularLines = true,
       .bresenhamLines = true,
-      .smoothLines = false,
+      .smoothLines = true,
       .stippledRectangularLines = false,
       .stippledBresenhamLines = false,
       .stippledSmoothLines = false,
 
       /* VK_EXT_color_write_enable */
       .colorWriteEnable = true,
+
+      /* VK_EXT_extended_dynamic_state */
+      .extendedDynamicState = true,
 
       /* VK_KHR_pipeline_executable_properties */
       .pipelineExecutableInfo = true,
@@ -430,6 +447,9 @@ get_features(const struct v3dv_physical_device *physical_device,
       /* VK_EXT_depth_clip_control */
       .depthClipControl = true,
 
+      /* VK_EXT_depth_clip_enable */
+      .depthClipEnable = physical_device->devinfo.ver >= 71,
+
       /* VK_EXT_attachment_feedback_loop_layout */
       .attachmentFeedbackLoopLayout = true,
 
@@ -453,6 +473,17 @@ get_features(const struct v3dv_physical_device *physical_device,
       /* VK_EXT_subgroup_size_control */
       .subgroupSizeControl = true,
       .computeFullSubgroups = true,
+
+      /* VK_KHR_shader_expect_assume */
+      .shaderExpectAssume = true,
+
+      /* VK_KHR_dynamic_rendering */
+      .dynamicRendering = true,
+
+#ifdef V3DV_USE_WSI_PLATFORM
+      /* VK_EXT_swapchain_maintenance1 */
+      .swapchainMaintenance1 = true,
+#endif
    };
 }
 
@@ -667,7 +698,8 @@ device_has_expected_features(struct v3dv_physical_device *device)
 {
    return v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_TFU) &&
           v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_CSD) &&
-          v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_CACHE_FLUSH);
+          v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_CACHE_FLUSH) &&
+          device->caps.multisync;
 }
 
 
@@ -856,12 +888,6 @@ create_physical_device(struct v3dv_instance *instance,
       goto fail;
    }
 
-   if (!device_has_expected_features(device)) {
-      result = vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
-                         "Kernel driver doesn't have required features.");
-      goto fail;
-   }
-
    device->caps.cpu_queue =
       v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_CPU_QUEUE);
 
@@ -870,6 +896,12 @@ create_physical_device(struct v3dv_instance *instance,
 
    device->caps.perfmon =
       v3d_has_feature(device, DRM_V3D_PARAM_SUPPORTS_PERFMON);
+
+   if (!device_has_expected_features(device)) {
+      result = vk_errorf(instance, VK_ERROR_INITIALIZATION_FAILED,
+                         "Kernel driver doesn't have required features.");
+      goto fail;
+   }
 
    result = init_uuids(device);
    if (result != VK_SUCCESS)
@@ -1373,11 +1405,21 @@ v3dv_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
    snprintf(vk12.driverInfo, VK_MAX_DRIVER_INFO_SIZE,
             "Mesa " PACKAGE_VERSION MESA_GIT_SHA1);
 
+   VkSubgroupFeatureFlags subgroup_ops = VK_SUBGROUP_FEATURE_BASIC_BIT;
+   if (pdevice->devinfo.ver >= 71) {
+      subgroup_ops |= VK_SUBGROUP_FEATURE_BALLOT_BIT |
+                      VK_SUBGROUP_FEATURE_SHUFFLE_BIT |
+                      VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT |
+                      VK_SUBGROUP_FEATURE_VOTE_BIT |
+                      VK_SUBGROUP_FEATURE_QUAD_BIT;
+   }
+
    VkPhysicalDeviceVulkan11Properties vk11 = {
       .deviceLUIDValid = false,
       .subgroupSize = V3D_CHANNELS,
-      .subgroupSupportedStages = VK_SHADER_STAGE_COMPUTE_BIT,
-      .subgroupSupportedOperations = VK_SUBGROUP_FEATURE_BASIC_BIT,
+      .subgroupSupportedStages = VK_SHADER_STAGE_COMPUTE_BIT |
+                                 VK_SHADER_STAGE_FRAGMENT_BIT,
+      .subgroupSupportedOperations = subgroup_ops,
       .subgroupQuadOperationsInAllStages = false,
       .pointClippingBehavior = VK_POINT_CLIPPING_BEHAVIOR_ALL_CLIP_PLANES,
       .maxMultiviewViewCount = MAX_MULTIVIEW_VIEW_COUNT,
@@ -1427,7 +1469,7 @@ v3dv_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          props->allowCommandBufferQueryCopies = true;
          break;
       }
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wswitch"
       case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PRESENTATION_PROPERTIES_ANDROID: {
@@ -1741,7 +1783,7 @@ v3dv_CreateDevice(VkPhysicalDevice physicalDevice,
       return vk_error(NULL, result);
    }
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    device->gralloc = u_gralloc_create(U_GRALLOC_TYPE_AUTO);
    assert(device->gralloc);
 #endif
@@ -1771,7 +1813,7 @@ v3dv_CreateDevice(VkPhysicalDevice physicalDevice,
       perf_debug("Device created with Robust Image Access enabled.\n");
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
    v3dv_X(device, device_check_prepacked_sizes)();
 #endif
    init_device_meta(device);
@@ -1812,7 +1854,7 @@ fail:
    v3dv_event_free_resources(device);
    v3dv_query_free_resources(device);
    vk_device_finish(&device->vk);
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    u_gralloc_destroy(&device->gralloc);
 #endif
    vk_free(&device->vk.alloc, device);
@@ -1853,7 +1895,7 @@ v3dv_DestroyDevice(VkDevice _device,
    mtx_destroy(&device->query_mutex);
 
    vk_device_finish(&device->vk);
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    u_gralloc_destroy(&device->gralloc);
 #endif
    vk_free2(&device->vk.alloc, pAllocator, device);
@@ -2159,7 +2201,7 @@ v3dv_AllocateMemory(VkDevice _device,
       if (result == VK_SUCCESS)
          close(fd_info->fd);
    } else if (mem->vk.ahardware_buffer) {
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       const native_handle_t *handle = AHardwareBuffer_getNativeHandle(mem->vk.ahardware_buffer);
       assert(handle->numFds > 0);
       size_t size = lseek(handle->data[0], 0, SEEK_END);
@@ -2417,7 +2459,7 @@ v3dv_BindImageMemory2(VkDevice _device,
                       const VkBindImageMemoryInfo *pBindInfos)
 {
    for (uint32_t i = 0; i < bindInfoCount; i++) {
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
       V3DV_FROM_HANDLE(v3dv_device_memory, mem, pBindInfos[i].memory);
       V3DV_FROM_HANDLE(v3dv_device, device, _device);
       if (mem != NULL && mem->vk.ahardware_buffer) {
@@ -2454,7 +2496,7 @@ v3dv_BindImageMemory2(VkDevice _device,
          vk_find_struct_const(pBindInfos->pNext,
                               BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR);
       if (swapchain_info && swapchain_info->swapchain) {
-#ifndef ANDROID
+#if !DETECT_OS_ANDROID
          struct v3dv_image *swapchain_image =
             v3dv_wsi_get_image_from_swapchain(swapchain_info->swapchain,
                                               swapchain_info->imageIndex);
@@ -2688,6 +2730,105 @@ v3dv_DestroyFramebuffer(VkDevice _device,
       return;
 
    vk_object_free(&device->vk, pAllocator, fb);
+}
+
+void
+v3dv_setup_dynamic_framebuffer(struct v3dv_cmd_buffer *cmd_buffer,
+                               const VkRenderingInfoKHR *info)
+{
+   struct v3dv_device *device = cmd_buffer->device;
+
+   /* Max framebuffer attachments is max_color_RTs + D/S multiplied by two for
+    * MSAA resolves.
+    */
+   const uint32_t max_attachments =
+      2 * (V3D_MAX_RENDER_TARGETS(device->devinfo.ver) + 1);
+   const uint32_t attachments_alloc_size =
+      sizeof(struct v3dv_image_view *) * max_attachments;
+
+   /* Only allocate the dynamic framebuffer once and will stay valid
+    * for the duration of the command buffer.
+    */
+   struct v3dv_framebuffer *fb = cmd_buffer->state.dynamic_framebuffer;
+   if (!fb) {
+      uint32_t alloc_size = sizeof(struct v3dv_framebuffer) +
+                            attachments_alloc_size;
+      fb = vk_object_zalloc(&cmd_buffer->device->vk, NULL, alloc_size,
+                            VK_OBJECT_TYPE_FRAMEBUFFER);
+      if (fb == NULL) {
+         v3dv_flag_oom(cmd_buffer, NULL);
+         return;
+      }
+      cmd_buffer->state.dynamic_framebuffer = fb;
+   } else {
+      memset(fb->attachments, 0, attachments_alloc_size);
+   }
+
+   fb->width = info->renderArea.offset.x + info->renderArea.extent.width;
+   fb->height = info->renderArea.offset.y + info->renderArea.extent.height;
+
+   /* From the Vulkan spec for VkFramebufferCreateInfo:
+    *
+    *    "If the render pass uses multiview, then layers must be one (...)"
+    */
+   fb->layers = info->viewMask == 0 ? info->layerCount : 1;
+
+   struct v3dv_render_pass *pass = &cmd_buffer->state.dynamic_pass;
+   assert(pass->subpass_count == 1 && pass->subpasses);
+   assert(pass->subpasses[0].color_count == info->colorAttachmentCount);
+   fb->color_attachment_count = info->colorAttachmentCount;
+
+   uint32_t a = 0;
+   for (int i = 0; i < info->colorAttachmentCount; i++) {
+      if (info->pColorAttachments[i].imageView == VK_NULL_HANDLE)
+         continue;
+      fb->attachments[a++] =
+         v3dv_image_view_from_handle(info->pColorAttachments[i].imageView);
+      if (info->pColorAttachments[i].resolveMode != VK_RESOLVE_MODE_NONE) {
+         fb->attachments[a++] =
+            v3dv_image_view_from_handle(info->pColorAttachments[i].resolveImageView);
+      }
+   }
+
+   if ((info->pDepthAttachment && info->pDepthAttachment->imageView) ||
+       (info->pStencilAttachment && info->pStencilAttachment->imageView)) {
+      const struct VkRenderingAttachmentInfo *common_ds_info =
+         (info->pDepthAttachment &&
+          info->pDepthAttachment->imageView != VK_NULL_HANDLE) ?
+         info->pDepthAttachment :
+         info->pStencilAttachment;
+
+      fb->attachments[a++] =
+         v3dv_image_view_from_handle(common_ds_info->imageView);
+
+      if (common_ds_info->resolveMode != VK_RESOLVE_MODE_NONE) {
+         fb->attachments[a++] =
+            v3dv_image_view_from_handle(common_ds_info->resolveImageView);
+      }
+   }
+
+   assert(a == pass->attachment_count);
+   fb->attachment_count = a;
+
+   /* Dynamic rendering doesn't provide the size of the underlying framebuffer
+    * so we estimate its size from the render area. This means it is possible
+    * the underlying attachments are larger and thus we cannot assume we have
+    * edge padding.
+    */
+   fb->has_edge_padding = false;
+}
+
+void
+v3dv_destroy_dynamic_framebuffer(struct v3dv_cmd_buffer *cmd_buffer)
+{
+   if (!cmd_buffer->state.dynamic_framebuffer)
+      return;
+
+   VkDevice vk_device = v3dv_device_to_handle(cmd_buffer->device);
+   VkFramebuffer vk_dynamic_fb =
+      v3dv_framebuffer_to_handle(cmd_buffer->state.dynamic_framebuffer);
+   v3dv_DestroyFramebuffer(vk_device, vk_dynamic_fb, NULL);
+   cmd_buffer->state.dynamic_framebuffer = NULL;
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

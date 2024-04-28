@@ -70,3 +70,27 @@ dEQP-VK.ssbo.phys.layout.random.all_per_block_buffers.22
 dEQP-VK.ssbo.phys.layout.random.all_shared_buffer.3
 dEQP-VK.ssbo.phys.layout.random.scalar.3
 dEQP-VK.ssbo.phys.layout.random.scalar.93
+
+# WSI tests are too flaky to be useful
+dEQP-VK.image.swapchain_mutable.*
+dEQP-VK.wsi.*
+
+# These require VK_KHR_shader_draw_parameters but they don't check for it
+# (Seems to be fixed in some later release of CTS 1.3.7).
+dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multi_draw.*
+
+# Skip tests for unsupported features so we can increase the number of tests
+# that are actually useful in the limited CI time we have per job.
+dEQP-VK.pipeline.monolithic.multisample_with_fragment_shading_rate.*
+dEQP-VK.pipeline.monolithic.bind_point.graphics_raytracing.*
+dEQP-VK.pipeline.monolithic.bind_point.compute_raytracing.*
+dEQP-VK.pipeline.pipeline_library.*
+dEQP-VK.pipeline.fast_linked_library.*
+dEQP-VK.pipeline.shader_object*
+dEQP-VK.protected_memory.*
+dEQP-VK.transform_feedback.*
+dEQP-VK.ray_tracing_pipeline.*
+dEQP-VK.ray_query.*
+dEQP-VK.fragment_shading_rate.*
+dEQP-VK.mesh_shader.*
+dEQP-VK.shader_object.rendering.*

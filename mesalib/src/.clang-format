@@ -57,6 +57,7 @@ ForEachMacros:
 
   - hash_table_foreach
   - hash_table_foreach_remove
+  - hash_table_u64_foreach
 
   - rb_tree_foreach
   - rb_tree_foreach_rev
@@ -195,6 +196,7 @@ ForEachMacros:
   - agx_foreach_block_from_rev
   - agx_foreach_block_rev
   - agx_foreach_dest
+  - agx_foreach_dest_rev
   - agx_foreach_instr_global
   - agx_foreach_instr_global_rev
   - agx_foreach_instr_global_safe
@@ -207,11 +209,16 @@ ForEachMacros:
   - agx_foreach_instr_in_block_safe_rev
   - agx_foreach_non_phi_in_block_rev
   - agx_foreach_phi_in_block
+  - agx_foreach_phi_in_block_safe
   - agx_foreach_predecessor
   - agx_foreach_src
+  - agx_foreach_src_rev
   - agx_foreach_ssa_dest
+  - agx_foreach_ssa_dest_rev
   - agx_foreach_ssa_src
+  - agx_foreach_ssa_src_rev
   - agx_foreach_successor
+  - foreach_next_use
 
 # radv
   - PHASE
@@ -225,8 +232,10 @@ ForEachMacros:
   - foreach_sched_node
   - foreach_src
   - foreach_src_n
+  - foreach_src_if
   - foreach_dst
   - foreach_dst_n
+  - foreach_dst_if
   - ra_foreach_dst
   - ra_foreach_src
   - ra_foreach_src_rev
@@ -295,6 +304,7 @@ ForEachMacros:
   - bi_foreach_src
   - bi_foreach_ssa_src
   - bi_foreach_successor
+  - cs_emit
   - mir_foreach_block
   - mir_foreach_block_from
   - mir_foreach_bundle_in_block

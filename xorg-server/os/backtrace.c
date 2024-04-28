@@ -27,8 +27,13 @@
 
 #include "os.h"
 #include "misc.h"
+
 #include <errno.h>
 #include <string.h>
+
+#ifndef WIN32
+#include <sys/wait.h>
+#endif
 
 #ifdef HAVE_LIBUNWIND
 

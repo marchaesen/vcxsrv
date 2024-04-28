@@ -78,8 +78,8 @@ _XFUNCPROTOBEGIN
 #endif
 
 #if __has_attribute(malloc)
-# if defined(__clang__)
-/* Clang does not support the optional deallocator argument */
+# if defined(__clang__) || (defined(__GNUC__) && __GNUC__ < 11)
+/* Clang or gcc do not support the optional deallocator argument */
 #  define XAU_MALLOC_ATTRIBUTE(X) __attribute__((malloc))
 # else
 #  define XAU_MALLOC_ATTRIBUTE(X) __attribute__((malloc X))

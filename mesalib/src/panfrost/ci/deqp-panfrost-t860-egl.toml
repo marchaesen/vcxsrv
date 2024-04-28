@@ -1,7 +1,7 @@
 # wayland
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-wayland"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",
@@ -12,7 +12,7 @@ prefix = "wayland-"
 # x11
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-x11"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",

@@ -297,6 +297,8 @@ typedef struct {
    vl_csc_matrix csc;
    mtx_t mutex;
    char vendor_string[256];
+
+   bool has_external_handles;
 } vlVaDriver;
 
 typedef struct {
@@ -444,6 +446,9 @@ VAStatus vlVaBeginPicture(VADriverContextP ctx, VAContextID context, VASurfaceID
 VAStatus vlVaRenderPicture(VADriverContextP ctx, VAContextID context, VABufferID *buffers, int num_buffers);
 VAStatus vlVaEndPicture(VADriverContextP ctx, VAContextID context);
 VAStatus vlVaSyncSurface(VADriverContextP ctx, VASurfaceID render_target);
+#if VA_CHECK_VERSION(1, 15, 0)
+VAStatus vlVaSyncSurface2(VADriverContextP ctx, VASurfaceID surface, uint64_t timeout_ns);
+#endif
 VAStatus vlVaQuerySurfaceStatus(VADriverContextP ctx, VASurfaceID render_target, VASurfaceStatus *status);
 VAStatus vlVaQuerySurfaceError(VADriverContextP ctx, VASurfaceID render_target,
                                VAStatus error_status, void **error_info);

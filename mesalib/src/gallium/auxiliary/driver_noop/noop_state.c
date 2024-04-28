@@ -128,6 +128,12 @@ static void noop_set_sampler_views(struct pipe_context *ctx,
                                    bool take_ownership,
                                    struct pipe_sampler_view **views)
 {
+   if (take_ownership && views) {
+      for (unsigned i = 0; i < count; i++) {
+         struct pipe_sampler_view *view = views[i];
+         pipe_sampler_view_reference(&view, NULL);
+      }
+   }
 }
 
 static void noop_bind_sampler_states(struct pipe_context *ctx,
@@ -180,6 +186,10 @@ static void noop_set_constant_buffer(struct pipe_context *ctx,
                                      bool take_ownership,
                                      const struct pipe_constant_buffer *cb)
 {
+   if (take_ownership && cb) {
+      struct pipe_resource *buf = cb->buffer;
+      pipe_resource_reference(&buf, NULL);
+   }
 }
 
 static void noop_set_inlinable_constants(struct pipe_context *ctx,
@@ -215,10 +225,14 @@ static void noop_delete_state(struct pipe_context *ctx, void *state)
 
 static void noop_set_vertex_buffers(struct pipe_context *ctx,
                                     unsigned count,
-                                    unsigned unbind_num_trailing_slots,
-                                    bool take_ownership,
                                     const struct pipe_vertex_buffer *buffers)
 {
+   for (unsigned i = 0; i < count; i++) {
+      if (!buffers[i].is_user_buffer) {
+         struct pipe_resource *buf = buffers[i].buffer.resource;
+         pipe_resource_reference(&buf, NULL);
+      }
+   }
 }
 
 static void *noop_create_vertex_elements(struct pipe_context *ctx,

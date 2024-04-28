@@ -1,86 +1,3 @@
-# "Fail, buffer content is not well preserved when age > 0 (Fail)"
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_clear_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_render_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.no_resize.odd_render_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_clear_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_render_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_after_swap.odd_render_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_clear_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_clear_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_render_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_clear_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_even_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_render_even_clear_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_render_even_clear,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_render_even_none,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_render_even_render_render,Fail
-dEQP-EGL.functional.buffer_age.no_preserve.resize_before_swap.odd_render_render_even_render,Fail
-
 dEQP-EGL.functional.query_context.get_current_context.rgba8888_window,Crash
 
 wayland-dEQP-EGL.functional.resize.surface_size.grow,Fail
@@ -92,25 +9,19 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_ust_test,Fai
 spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_test,Fail
 spec@egl_chromium_sync_control@conformance,Fail
 
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_uyvy,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xrgb8888,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_xyuv,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvyu,Fail
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
+
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
-
-# "Could not create initial indirect-rendering context."
-glx@glx_ext_import_context@free context,Fail
-glx@glx_ext_import_context@get context id,Fail
-
-glx@glx_ext_import_context@get current display,Fail
-glx@glx_ext_import_context@import context- multi process,Fail
-glx@glx_ext_import_context@import context- single process,Fail
-glx@glx_ext_import_context@imported context has same context id,Fail
-glx@glx_ext_import_context@make current- multi process,Fail
-glx@glx_ext_import_context@make current- single process,Fail
-glx@glx_ext_import_context@query context info,Fail
-
-# See also the EGL buffer age failures
-glx@glx-buffer-age,Fail
-glx@glx-buffer-age vblank_mode=0,Fail
 
 glx@glx-swap-pixmap-bad,Fail
 
@@ -168,15 +79,11 @@ spec@!opengl 2.1@polygon-stipple-fs,Fail
 
 spec@!opengl 3.0@clearbuffer-depth-cs-probe,Fail
 
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index,Fail
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-mixed-const-non-const-uniform-index2,Fail
-spec@arb_arrays_of_arrays@execution@image_store@basic-imagestore-non-const-uniform-index,Fail
-
 spec@arb_framebuffer_object@fbo-blit-scaled-linear,Fail
 
 
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-tf-separate,Fail
-spec@arb_gpu_shader_fp64@execution@glsl-fs-loop-unroll-mul-fp64,Fail
+spec@arb_gpu_shader_fp64@execution@glsl-fs-loop-unroll-mul-fp64,Crash
 spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-load.indirect.3,Fail
 
 spec@arb_program_interface_query@arb_program_interface_query-getprogramresourceindex,Fail
@@ -542,10 +449,6 @@ spec@arb_sample_shading@samplemask 8@sample mask_in_one,Fail
 
 spec@arb_shader_image_load_store@early-z,Fail
 spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
-spec@arb_shader_image_load_store@host-mem-barrier,Fail
-spec@arb_shader_image_load_store@host-mem-barrier@Transform feedback/WaW/one bit barrier test/16x16,Fail
-spec@arb_shader_image_load_store@host-mem-barrier@Transform feedback/WaW/one bit barrier test/4x4,Fail
-spec@arb_shader_image_load_store@host-mem-barrier@Transform feedback/WaW/one bit barrier test/64x64,Fail
 
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 
@@ -626,11 +529,7 @@ spec@egl_khr_surfaceless_context@viewport,Fail
 
 spec@egl_mesa_configless_context@basic,Fail
 
-spec@ext_external_objects@vk-image-overwrite,Fail
 spec@ext_external_objects@vk-image-overwrite@RGB 10 A2 UINT optimal: Failed to initialize OpenGL FBO/RBO,Fail
-
-# Fails across most drivers, but it's a silly test.
-spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
 
 spec@ext_framebuffer_multisample@blit-mismatched-formats,Fail
 spec@ext_framebuffer_multisample@clip-and-scissor-blit 16 msaa,Fail
@@ -682,13 +581,13 @@ spec@arb_timer_query@timestamp-get,Fail
 # SIGKILL
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-fs-getuniformdv,Crash
 spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-gs-getuniformdv,Crash
-spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-getuniformdv,Crash
 
 spec@arb_fragment_layer_viewport@layer-no-gs,Fail
 
 # sparse_backing_alloc: Assertion `bo->u.sparse.num_backing_pages < DIV_ROUND_UP(bo->base.size, ZINK_SPARSE_BUFFER_PAGE_SIZE)' failed
 KHR-GL46.sparse_texture_tests.SparseTextureCommitment,Crash
 
-# Assertion `size % ZINK_SPARSE_BUFFER_PAGE_SIZE == 0 || offset + size == bo->base.size' failed.
-spec@arb_sparse_buffer@basic,Crash
-spec@arb_sparse_buffer@buffer-data,Crash
+# uprev Piglit in Mesa
+spec@arb_shader_storage_buffer_object@max-ssbo-size@fs,Crash
+spec@arb_shader_storage_buffer_object@max-ssbo-size@vs,Crash
+

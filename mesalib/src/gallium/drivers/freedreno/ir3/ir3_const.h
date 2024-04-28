@@ -119,7 +119,7 @@ ir3_emit_constant_data(const struct ir3_shader_variant *v,
 
    for (unsigned i = 0; i < state->num_enabled; i++) {
       unsigned ubo = state->range[i].ubo.block;
-      if (ubo != const_state->constant_data_ubo)
+      if (ubo != const_state->consts_ubo.idx)
          continue;
 
       uint32_t size = state->range[i].end - state->range[i].start;
@@ -161,7 +161,7 @@ ir3_emit_user_consts(const struct ir3_shader_variant *v,
       assert(!state->range[i].ubo.bindless);
       unsigned ubo = state->range[i].ubo.block;
       if (!(constbuf->enabled_mask & (1 << ubo)) ||
-          ubo == const_state->constant_data_ubo) {
+          ubo == const_state->consts_ubo.idx) {
          continue;
       }
       struct pipe_constant_buffer *cb = &constbuf->cb[ubo];
@@ -218,7 +218,7 @@ ir3_emit_ubos(struct fd_context *ctx, const struct ir3_shader_variant *v,
       struct fd_bo *bos[params];
 
       for (uint32_t i = 0; i < params; i++) {
-         if (i == const_state->constant_data_ubo) {
+         if (i == const_state->consts_ubo.idx) {
             bos[i] = v->bo;
             offsets[i] = v->info.constant_data_offset;
             continue;

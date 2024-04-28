@@ -66,26 +66,11 @@
 #include "util/u_vbuf.h"
 #include "util/u_memory.h"
 #include "util/hash_table.h"
+#include "util/thread_sched.h"
 #include "cso_cache/cso_context.h"
 #include "compiler/glsl/glsl_parser_extras.h"
 
 DEBUG_GET_ONCE_BOOL_OPTION(mesa_mvp_dp4, "MESA_MVP_DP4", false)
-
-/* The list of state update functions. */
-st_update_func_t st_update_functions[ST_NUM_ATOMS];
-
-static void
-init_atoms_once(void)
-{
-   STATIC_ASSERT(ARRAY_SIZE(st_update_functions) <= 64);
-
-#define ST_STATE(FLAG, st_update) st_update_functions[FLAG##_INDEX] = st_update;
-#include "st_atom_list.h"
-#undef ST_STATE
-
-   if (util_get_cpu_caps()->has_popcnt)
-      st_update_functions[ST_NEW_VERTEX_ARRAYS_INDEX] = st_update_array_with_popcnt;
-}
 
 void
 st_invalidate_buffers(struct st_context *st)
@@ -486,8 +471,11 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    st->cso_context = cso_create_context(pipe, cso_flags);
    ctx->cso_context = st->cso_context;
 
-   static once_flag flag = ONCE_FLAG_INIT;
-   call_once(&flag, init_atoms_once);
+   STATIC_ASSERT(ARRAY_SIZE(st->update_functions) <= 64);
+
+#define ST_STATE(FLAG, st_update) st->update_functions[FLAG##_INDEX] = st_update;
+#include "st_atom_list.h"
+#undef ST_STATE
 
    st_init_clear(st);
    {
@@ -617,8 +605,16 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
       !screen->get_param(screen, PIPE_CAP_FLATSHADE);
    st->lower_alpha_test =
       !screen->get_param(screen, PIPE_CAP_ALPHA_TEST);
-   st->lower_point_size =
-      !screen->get_param(screen, PIPE_CAP_POINT_SIZE_FIXED);
+   switch (screen->get_param(screen, PIPE_CAP_POINT_SIZE_FIXED)) {
+   case PIPE_POINT_SIZE_LOWER_ALWAYS:
+      st->lower_point_size = true;
+      st->add_point_size = true;
+      break;
+   case PIPE_POINT_SIZE_LOWER_USER_ONLY:
+      st->lower_point_size = true;
+      break;
+   default: break;
+   }
    st->lower_two_sided_color =
       !screen->get_param(screen, PIPE_CAP_TWO_SIDED_COLOR);
    st->lower_ucp =
@@ -693,14 +689,6 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
 
    ctx->Const.ShaderCompilerOptions[MESA_SHADER_TESS_EVAL].PositionAlwaysPrecise = options->vs_position_always_precise;
 
-   /* NIR drivers that support tess shaders and compact arrays need to use
-    * GLSLTessLevelsAsInputs / PIPE_CAP_GLSL_TESS_LEVELS_AS_INPUTS. The NIR
-    * linker doesn't support linking these as compat arrays of sysvals.
-    */
-   assert(ctx->Const.GLSLTessLevelsAsInputs ||
-      !screen->get_param(screen, PIPE_CAP_NIR_COMPACT_ARRAYS) ||
-      !ctx->Extensions.ARB_tessellation_shader);
-
    /* Set which shader types can be compiled at link time. */
    st->shader_has_one_variant[MESA_SHADER_VERTEX] =
          st->has_shareable_shaders &&
@@ -730,21 +718,20 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
          !st->lower_ucp;
    st->shader_has_one_variant[MESA_SHADER_COMPUTE] = st->has_shareable_shaders;
 
-   if (util_get_cpu_caps()->num_L3_caches == 1 ||
-       !st->pipe->set_context_param)
-      st->pin_thread_counter = ST_L3_PINNING_DISABLED;
+   if (!st->pipe->set_context_param || !util_thread_scheduler_enabled())
+      st->pin_thread_counter = ST_THREAD_SCHEDULER_DISABLED;
 
    st->bitmap.cache.empty = true;
 
    if (ctx->Const.ForceGLNamesReuse && ctx->Shared->RefCount == 1) {
-      _mesa_HashEnableNameReuse(ctx->Shared->TexObjects);
-      _mesa_HashEnableNameReuse(ctx->Shared->ShaderObjects);
-      _mesa_HashEnableNameReuse(ctx->Shared->BufferObjects);
-      _mesa_HashEnableNameReuse(ctx->Shared->SamplerObjects);
-      _mesa_HashEnableNameReuse(ctx->Shared->FrameBuffers);
-      _mesa_HashEnableNameReuse(ctx->Shared->RenderBuffers);
-      _mesa_HashEnableNameReuse(ctx->Shared->MemoryObjects);
-      _mesa_HashEnableNameReuse(ctx->Shared->SemaphoreObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->TexObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->ShaderObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->BufferObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->SamplerObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->FrameBuffers);
+      _mesa_HashEnableNameReuse(&ctx->Shared->RenderBuffers);
+      _mesa_HashEnableNameReuse(&ctx->Shared->MemoryObjects);
+      _mesa_HashEnableNameReuse(&ctx->Shared->SemaphoreObjects);
    }
    /* SPECviewperf13/sw-04 crashes since a56849ddda6 if Mesa is build with
     * -O3 on gcc 7.5, which doesn't happen with ForceGLNamesReuse, which is
@@ -752,7 +739,7 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
     * of closed source drivers.
     */
    if (ctx->Const.ForceGLNamesReuse)
-      _mesa_HashEnableNameReuse(ctx->Query.QueryObjects);
+      _mesa_HashEnableNameReuse(&ctx->Query.QueryObjects);
 
    _mesa_override_extensions(ctx);
    _mesa_compute_version(ctx);
@@ -783,6 +770,7 @@ st_create_context_priv(struct gl_context *ctx, struct pipe_context *pipe,
    _vbo_CreateContext(ctx);
 
    st_init_driver_flags(st);
+   st_init_update_array(st);
 
    /* Initialize context's winsys buffers list */
    list_inithead(&st->winsys_buffers);
@@ -945,7 +933,7 @@ st_destroy_context(struct st_context *st)
    /* This must be called first so that glthread has a chance to finish */
    _mesa_glthread_destroy(ctx);
 
-   _mesa_HashWalk(ctx->Shared->TexObjects, destroy_tex_sampler_cb, st);
+   _mesa_HashWalk(&ctx->Shared->TexObjects, destroy_tex_sampler_cb, st);
 
    /* For the fallback textures, free any sampler views belonging to this
     * context.
@@ -978,7 +966,7 @@ st_destroy_context(struct st_context *st)
       _mesa_reference_framebuffer(&stfb, NULL);
    }
 
-   _mesa_HashWalk(ctx->Shared->FrameBuffers, destroy_framebuffer_attachment_sampler_cb, st);
+   _mesa_HashWalk(&ctx->Shared->FrameBuffers, destroy_framebuffer_attachment_sampler_cb, st);
 
    pipe_sampler_view_reference(&st->pixel_xfer.pixelmap_sampler_view, NULL);
    pipe_resource_reference(&st->pixel_xfer.pixelmap_texture, NULL);
@@ -987,16 +975,16 @@ st_destroy_context(struct st_context *st)
 
    st_destroy_program_variants(st);
 
-   st_context_free_zombie_objects(st);
-
-   simple_mtx_destroy(&st->zombie_sampler_views.mutex);
-   simple_mtx_destroy(&st->zombie_shaders.mutex);
-
    /* Do not release debug_output yet because it might be in use by other threads.
     * These threads will be terminated by _mesa_free_context_data and
     * st_destroy_context_priv.
     */
    _mesa_free_context_data(ctx, false);
+
+   st_context_free_zombie_objects(st);
+
+   simple_mtx_destroy(&st->zombie_sampler_views.mutex);
+   simple_mtx_destroy(&st->zombie_shaders.mutex);
 
    /* This will free the st_context too, so 'st' must not be accessed
     * afterwards. */

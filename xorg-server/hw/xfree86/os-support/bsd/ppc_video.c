@@ -27,22 +27,19 @@
 #include <xorg-config.h>
 #endif
 
+#include <sys/mman.h>
 #include <X11/X.h>
+
 #include "xf86.h"
 #include "xf86Priv.h"
-
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
-#include "xf86OSpriv.h"
 
 #include "bus/Pci.h"
 
 /***************************************************************************/
 /* Video Memory Mapping section                                            */
 /***************************************************************************/
-
-#ifdef __OpenBSD__
-#define DEV_MEM "/dev/xf86"
-#endif
 
 Bool xf86EnableIO(void);
 void xf86DisableIO(void);

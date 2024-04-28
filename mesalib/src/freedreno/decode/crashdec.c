@@ -46,6 +46,9 @@ struct rnn *rnn_gmu;
 struct rnn *rnn_control;
 struct rnn *rnn_pipe;
 
+static uint64_t fault_iova;
+static bool has_fault_iova;
+
 struct cffdec_options options = {
    .draw_filter = -1,
 };
@@ -430,6 +433,24 @@ dump_cmdstream(void)
 }
 
 /*
+ * Decode optional 'fault-info' section.  We only get this section if
+ * the devcoredump was triggered by an iova fault:
+ */
+
+static void
+decode_fault_info(void)
+{
+   foreach_line_in_section (line) {
+      if (startswith(line, "  - far:")) {
+         parseline(line, "  - far: %" PRIx64, &fault_iova);
+         has_fault_iova = true;
+      }
+
+      printf("%s", line);
+   }
+}
+
+/*
  * Decode 'bos' (buffers) section:
  */
 
@@ -442,8 +463,32 @@ decode_bos(void)
    foreach_line_in_section (line) {
       if (startswith(line, "  - iova:")) {
          parseline(line, "  - iova: %" PRIx64, &iova);
+         continue;
       } else if (startswith(line, "    size:")) {
          parseline(line, "    size: %u", &size);
+
+         /*
+          * This is a bit convoluted, vs just printing the lines as
+          * they come.  But we want to have both the iova and size
+          * so we can print the end address of the buffer
+          */
+
+         uint64_t end = iova + size;
+
+         printf("  - iova: 0x%016" PRIx64 "-0x%016" PRIx64, iova, end);
+
+         if (has_fault_iova) {
+            if ((iova <= fault_iova) && (fault_iova < end)) {
+               /* Fault address was within what should be a mapped buffer!! */
+               printf("\t==");
+            } else if ((iova <= fault_iova) && (fault_iova < (end + size))) {
+               /* Fault address was near this mapped buffer */
+               printf("\t>=");
+            }
+         }
+         printf("\n");
+         printf("    size: %u (0x%x)\n", size, size);
+         continue;
       } else if (startswith(line, "    data: !!ascii85 |")) {
          uint32_t *buf = popline_ascii85(size / 4);
 
@@ -797,6 +842,8 @@ decode(void)
          } else {
             rnn_control = NULL;
          }
+      } else if (startswith(line, "fault-info:")) {
+         decode_fault_info();
       } else if (startswith(line, "bos:")) {
          decode_bos();
       } else if (startswith(line, "ringbuffer:")) {

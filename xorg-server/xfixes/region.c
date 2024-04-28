@@ -24,9 +24,11 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+#include "render/picturestr_priv.h"
+
 #include "xfixesint.h"
 #include "scrnintstr.h"
-#include <picturestr.h>
 
 #include <regionstr.h>
 #include <gcstruct.h>
@@ -115,7 +117,7 @@ ProcXFixesCreateRegionFromBitmap(ClientPtr client)
     REQUEST_SIZE_MATCH(xXFixesCreateRegionFromBitmapReq);
     LEGAL_NEW_RESOURCE(stuff->region, client);
 
-    rc = dixLookupResourceByType((void **) &pPixmap, stuff->bitmap, RT_PIXMAP,
+    rc = dixLookupResourceByType((void **) &pPixmap, stuff->bitmap, X11_RESTYPE_PIXMAP,
                                  client, DixReadAccess);
     if (rc != Success) {
         client->errorValue = stuff->bitmap;
@@ -159,7 +161,7 @@ ProcXFixesCreateRegionFromWindow(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXFixesCreateRegionFromWindowReq);
     LEGAL_NEW_RESOURCE(stuff->region, client);
-    rc = dixLookupResourceByType((void **) &pWin, stuff->window, RT_WINDOW,
+    rc = dixLookupResourceByType((void **) &pWin, stuff->window, X11_RESTYPE_WINDOW,
                                  client, DixGetAttrAccess);
     if (rc != Success) {
         client->errorValue = stuff->window;
@@ -299,7 +301,7 @@ ProcXFixesDestroyRegion(ClientPtr client)
 
     REQUEST_SIZE_MATCH(xXFixesDestroyRegionReq);
     VERIFY_REGION(pRegion, stuff->region, client, DixWriteAccess);
-    FreeResource(stuff->region, RT_NONE);
+    FreeResource(stuff->region, X11_RESTYPE_NONE);
     return Success;
 }
 
@@ -650,7 +652,7 @@ ProcXFixesSetWindowShapeRegion(ClientPtr client)
     REQUEST(xXFixesSetWindowShapeRegionReq);
 
     REQUEST_SIZE_MATCH(xXFixesSetWindowShapeRegionReq);
-    rc = dixLookupResourceByType((void **) &pWin, stuff->dest, RT_WINDOW,
+    rc = dixLookupResourceByType((void **) &pWin, stuff->dest, X11_RESTYPE_WINDOW,
                                  client, DixSetAttrAccess);
     if (rc != Success) {
         client->errorValue = stuff->dest;

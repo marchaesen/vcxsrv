@@ -27,9 +27,6 @@
 #include "present_priv.h"
 #include <misync.h>
 #include <misyncstr.h>
-#ifdef MONOTONIC_CLOCK
-#include <time.h>
-#endif
 
 /*
  * Screen flip mode
@@ -742,6 +739,12 @@ present_scmd_pixmap(WindowPtr window,
                     RRCrtcPtr target_crtc,
                     SyncFence *wait_fence,
                     SyncFence *idle_fence,
+#ifdef DRI3
+                    struct dri3_syncobj *acquire_syncobj,
+                    struct dri3_syncobj *release_syncobj,
+                    uint64_t acquire_point,
+                    uint64_t release_point,
+#endif /* DRI3 */
                     uint32_t options,
                     uint64_t target_window_msc,
                     uint64_t divisor,
@@ -757,6 +760,11 @@ present_scmd_pixmap(WindowPtr window,
     ScreenPtr                   screen = window->drawable.pScreen;
     present_window_priv_ptr     window_priv = present_get_window_priv(window, TRUE);
     present_screen_priv_ptr     screen_priv = present_screen_priv(screen);
+
+#ifdef DRI3
+    if (acquire_syncobj || release_syncobj)
+        return BadValue;
+#endif /* DRI3 */
 
     if (!window_priv)
         return BadAlloc;
@@ -828,6 +836,12 @@ present_scmd_pixmap(WindowPtr window,
                                    target_crtc,
                                    wait_fence,
                                    idle_fence,
+#ifdef DRI3
+                                   acquire_syncobj,
+                                   release_syncobj,
+                                   acquire_point,
+                                   release_point,
+#endif /* DRI3 */
                                    options,
                                    screen_priv->info ? screen_priv->info->capabilities : 0,
                                    notifies,

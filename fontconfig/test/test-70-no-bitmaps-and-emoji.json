@@ -1,0 +1,34 @@
+{
+  "fonts": [
+    {
+      "family": "Noto Color Emoji",
+      "style": "Regular",
+      "outline": false,
+      "scalable": true
+    },
+    {
+      "family": "Fixed",
+      "style": "Regular",
+      "outline": false,
+      "scalable": false
+    }
+  ],
+  "tests": [
+    {
+      "method": "match",
+      "query": {
+        "family": "Noto Color Emoji"
+      },
+      "result": {
+      }
+    },
+    {
+      "method": "match",
+      "query": {
+        "family": "Fixed"
+      },
+      "result": {
+      }
+    }
+  ]
+}

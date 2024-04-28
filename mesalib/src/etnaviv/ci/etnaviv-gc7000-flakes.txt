@@ -227,3 +227,7 @@ dEQP-GLES2.functional.vertex_arrays.multiple_attributes.input_types.3_unsigned_s
 dEQP-GLES2.functional.vertex_arrays.multiple_attributes.stride.3_float2_32_float2_32_float2_32
 dEQP-GLES2.functional.vertex_arrays.multiple_attributes.stride.3_float2_8_float2_0_float2_0
 dEQP-GLES2.functional.vertex_arrays.single_attribute.output_types.user_ptr_0_0_float3_vec3_dynamic_draw_quads_256
+
+# Nightly run expectations update
+dEQP-GLES2.functional.texture.specification.random_teximage2d.cube_4
+

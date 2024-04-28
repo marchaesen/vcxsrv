@@ -1747,7 +1747,8 @@ void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf)
       sctx->vertex_buffers_dirty = num_elems > 0;
 
       /* We don't know which buffer was invalidated, so we have to add all of them. */
-      for (unsigned i = 0; i < ARRAY_SIZE(sctx->vertex_buffer); i++) {
+      unsigned num_vb = sctx->num_vertex_buffers;
+      for (unsigned i = 0; i < num_vb; i++) {
          struct si_resource *buf = si_resource(sctx->vertex_buffer[i].buffer.resource);
          if (buf) {
             radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, buf,
@@ -1756,10 +1757,12 @@ void si_rebind_buffer(struct si_context *sctx, struct pipe_resource *buf)
          }
       }
    } else if (buffer->bind_history & SI_BIND_VERTEX_BUFFER) {
+      unsigned num_vb = sctx->num_vertex_buffers;
+
       for (i = 0; i < num_elems; i++) {
          int vb = sctx->vertex_elements->vertex_buffer_index[i];
 
-         if (vb >= ARRAY_SIZE(sctx->vertex_buffer))
+         if (vb >= num_vb)
             continue;
          if (!sctx->vertex_buffer[vb].buffer.resource)
             continue;
@@ -3049,7 +3052,8 @@ static void si_emit_gfx_resources_add_all_to_bo_list(struct si_context *sctx, un
    }
    si_buffer_resources_begin_new_cs(sctx, &sctx->internal_bindings);
 
-   for (unsigned i = 0; i < ARRAY_SIZE(sctx->vertex_buffer); i++) {
+   unsigned num_vb = sctx->num_vertex_buffers;
+   for (unsigned i = 0; i < num_vb; i++) {
       struct si_resource *buf = si_resource(sctx->vertex_buffer[i].buffer.resource);
       if (buf) {
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, buf,

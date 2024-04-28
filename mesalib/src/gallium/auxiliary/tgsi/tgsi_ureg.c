@@ -2144,7 +2144,7 @@ const struct tgsi_token *ureg_finalize( struct ureg_program *ureg )
       tgsi_dump( tokens, 0 );
    }
 
-#if DEBUG
+#if MESA_DEBUG
    /* tgsi_sanity doesn't seem to return if there are too many constants. */
    bool too_many_constants = false;
    for (unsigned i = 0; i < ARRAY_SIZE(ureg->const_decls); i++) {

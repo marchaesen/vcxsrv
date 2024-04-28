@@ -101,6 +101,11 @@ struct v3d_resource {
         bool compute_written;
 
         /**
+         * Indicates if the Graphics pipeline has written the resource
+         */
+        bool graphics_written;
+
+        /**
          * Number of times the resource has been written to.
          *
          * This is used to track whether we need to load the surface on first

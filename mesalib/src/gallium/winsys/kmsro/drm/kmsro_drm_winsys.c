@@ -101,7 +101,8 @@ struct pipe_screen *kmsro_drm_screen_create(int kms_fd,
       ro->create_for_resource = renderonly_create_kms_dumb_buffer_for_resource;
       screen = lima_drm_screen_create_renderonly(ro->gpu_fd, ro, config);
 #endif
-   } else if (strcmp(render_dev_name, "panfrost") == 0) {
+   } else if (strcmp(render_dev_name, "panfrost") == 0 ||
+              strcmp(render_dev_name, "panthor") == 0) {
 #if defined(GALLIUM_PANFROST)
       ro->create_for_resource = panfrost_create_kms_dumb_buffer_for_resource;
       screen = panfrost_drm_screen_create_renderonly(ro->gpu_fd, ro, config);

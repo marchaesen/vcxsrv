@@ -12,6 +12,7 @@
 
 .llvmpipe-manual-rules:
   stage: software-renderer
+  retry: !reference [.scheduled_pipeline-rules, retry]
   rules:
     - !reference [.test, rules]
     - !reference [.gl-manual-rules, rules]

@@ -31,13 +31,52 @@ struct amdgpu_sparse_backing_chunk {
    uint32_t begin, end;
 };
 
+static bool amdgpu_bo_fence_wait(struct amdgpu_winsys *aws,
+                                 struct pipe_fence_handle **fence,
+                                 uint64_t timeout, int64_t abs_timeout)
+{
+   if (timeout == 0) {
+      bool idle = amdgpu_fence_wait(*fence, 0, false);
+
+      if (!idle) {
+         simple_mtx_unlock(&aws->bo_fence_lock);
+         return false; /* busy */
+      }
+
+      /* It's idle. Remove it from the ring to skip checking it again later. */
+      amdgpu_fence_reference(fence, NULL);
+   } else {
+      struct pipe_fence_handle *tmp_fence = NULL;
+      amdgpu_fence_reference(&tmp_fence, *fence);
+
+      /* While waiting, unlock the mutex. */
+      simple_mtx_unlock(&aws->bo_fence_lock);
+
+      bool idle = amdgpu_fence_wait(tmp_fence, abs_timeout, true);
+      if (!idle) {
+         amdgpu_fence_reference(&tmp_fence, NULL);
+         return false; /* busy */
+      }
+
+      simple_mtx_lock(&aws->bo_fence_lock);
+      /* It's idle. Remove it from the ring to skip checking it again later. */
+      if (tmp_fence == *fence)
+         amdgpu_fence_reference(fence, NULL);
+      amdgpu_fence_reference(&tmp_fence, NULL);
+   }
+
+   return true;
+}
+
 static bool amdgpu_bo_wait(struct radeon_winsys *rws,
                            struct pb_buffer_lean *_buf, uint64_t timeout,
                            unsigned usage)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = amdgpu_winsys_bo(_buf);
    int64_t abs_timeout = 0;
+
+   assert(p_atomic_read(&bo->num_active_ioctls) >= 0);
 
    if (timeout == 0) {
       if (p_atomic_read(&bo->num_active_ioctls))
@@ -51,10 +90,14 @@ static bool amdgpu_bo_wait(struct radeon_winsys *rws,
          return false;
    }
 
-   if (is_real_bo(bo) && get_real_bo(bo)->is_shared) {
-      /* We can't use user fences for shared buffers, because user fences
-       * are local to this process only. If we want to wait for all buffer
-       * uses in all processes, we have to use amdgpu_bo_wait_for_idle.
+   if (is_real_bo(bo) && (get_real_bo(bo)->is_shared || get_real_bo(bo)->slab_has_busy_alt_fences)) {
+      /* We can't use user fences for shared buffers, because user fences are local to this
+       * process only. If we want to wait for all buffer uses in all processes, we have to
+       * use amdgpu_bo_wait_for_idle.
+       *
+       * Additionally, if this is a slab buffer and one of the slab entries has non-NULL
+       * alt_fence, we can't easily wait for that here. Instead, use the kernel ioctl to wait
+       * for the buffer.
        */
       bool buffer_busy = true;
       int r;
@@ -62,50 +105,34 @@ static bool amdgpu_bo_wait(struct radeon_winsys *rws,
       r = amdgpu_bo_wait_for_idle(get_real_bo(bo)->bo_handle, timeout, &buffer_busy);
       if (r)
          fprintf(stderr, "%s: amdgpu_bo_wait_for_idle failed %i\n", __func__, r);
+
+      if (!buffer_busy)
+         get_real_bo(bo)->slab_has_busy_alt_fences = false;
       return !buffer_busy;
    }
 
-   simple_mtx_lock(&ws->bo_fence_lock);
+   simple_mtx_lock(&aws->bo_fence_lock);
 
    u_foreach_bit(i, bo->fences.valid_fence_mask) {
-      struct pipe_fence_handle **fence = get_fence_from_ring(ws, &bo->fences, i);
+      struct pipe_fence_handle **fence = get_fence_from_ring(aws, &bo->fences, i);
 
       if (fence) {
-         if (timeout == 0) {
-            bool idle = amdgpu_fence_wait(*fence, 0, false);
-
-            if (!idle) {
-               simple_mtx_unlock(&ws->bo_fence_lock);
-               return false; /* busy */
-            }
-
-            /* It's idle. Remove it from the ring to skip checking it again later. */
-            amdgpu_fence_reference(fence, NULL);
-         } else {
-            struct pipe_fence_handle *tmp_fence = NULL;
-            amdgpu_fence_reference(&tmp_fence, *fence);
-
-            /* While waiting, unlock the mutex. */
-            simple_mtx_unlock(&ws->bo_fence_lock);
-
-            bool idle = amdgpu_fence_wait(tmp_fence, abs_timeout, true);
-            if (!idle) {
-               amdgpu_fence_reference(&tmp_fence, NULL);
-               return false; /* busy */
-            }
-
-            simple_mtx_lock(&ws->bo_fence_lock);
-            /* It's idle. Remove it from the ring to skip checking it again later. */
-            if (tmp_fence == *fence)
-               amdgpu_fence_reference(fence, NULL);
-            amdgpu_fence_reference(&tmp_fence, NULL);
-         }
+         /* This also unlocks the mutex on failure. */
+         if (!amdgpu_bo_fence_wait(aws, fence, timeout, abs_timeout))
+            return false;
       }
 
       bo->fences.valid_fence_mask &= ~BITFIELD_BIT(i); /* remove the fence from the BO */
    }
 
-   simple_mtx_unlock(&ws->bo_fence_lock);
+   /* Also wait for alt_fence. */
+   if (bo->alt_fence) {
+      /* This also unlocks the mutex on failure. */
+      if (!amdgpu_bo_fence_wait(aws, &bo->alt_fence, timeout, abs_timeout))
+         return false;
+   }
+
+   simple_mtx_unlock(&aws->bo_fence_lock);
    return true; /* idle */
 }
 
@@ -134,22 +161,23 @@ static enum radeon_bo_flag amdgpu_bo_get_flags(
 static void amdgpu_bo_remove_fences(struct amdgpu_winsys_bo *bo)
 {
    bo->fences.valid_fence_mask = 0;
+   amdgpu_fence_reference(&bo->alt_fence, NULL);
 }
 
-void amdgpu_bo_destroy(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf)
+void amdgpu_bo_destroy(struct amdgpu_winsys *aws, struct pb_buffer_lean *_buf)
 {
    struct amdgpu_bo_real *bo = get_real_bo(amdgpu_winsys_bo(_buf));
    struct amdgpu_screen_winsys *sws_iter;
 
-   simple_mtx_lock(&ws->bo_export_table_lock);
+   simple_mtx_lock(&aws->bo_export_table_lock);
 
    /* amdgpu_bo_from_handle might have revived the bo */
    if (p_atomic_read(&bo->b.base.reference.count)) {
-      simple_mtx_unlock(&ws->bo_export_table_lock);
+      simple_mtx_unlock(&aws->bo_export_table_lock);
       return;
    }
 
-   _mesa_hash_table_remove_key(ws->bo_export_table, bo->bo_handle);
+   _mesa_hash_table_remove_key(aws->bo_export_table, bo->bo_handle);
 
    if (bo->b.base.placement & RADEON_DOMAIN_VRAM_GTT) {
       amdgpu_bo_va_op(bo->bo_handle, 0, bo->b.base.size,
@@ -157,28 +185,28 @@ void amdgpu_bo_destroy(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf)
       amdgpu_va_range_free(bo->va_handle);
    }
 
-   simple_mtx_unlock(&ws->bo_export_table_lock);
+   simple_mtx_unlock(&aws->bo_export_table_lock);
 
    if (!bo->is_user_ptr && bo->cpu_ptr) {
       bo->cpu_ptr = NULL;
-      amdgpu_bo_unmap(&ws->dummy_ws.base, &bo->b.base);
+      amdgpu_bo_unmap(&aws->dummy_sws.base, &bo->b.base);
    }
    assert(bo->is_user_ptr || bo->map_count == 0);
 
    amdgpu_bo_free(bo->bo_handle);
 
-#if DEBUG
-   if (ws->debug_all_bos) {
-      simple_mtx_lock(&ws->global_bo_list_lock);
+#if MESA_DEBUG
+   if (aws->debug_all_bos) {
+      simple_mtx_lock(&aws->global_bo_list_lock);
       list_del(&bo->global_list_item);
-      ws->num_buffers--;
-      simple_mtx_unlock(&ws->global_bo_list_lock);
+      aws->num_buffers--;
+      simple_mtx_unlock(&aws->global_bo_list_lock);
    }
 #endif
 
    /* Close all KMS handles retrieved for other DRM file descriptions */
-   simple_mtx_lock(&ws->sws_list_lock);
-   for (sws_iter = ws->sws_list; sws_iter; sws_iter = sws_iter->next) {
+   simple_mtx_lock(&aws->sws_list_lock);
+   for (sws_iter = aws->sws_list; sws_iter; sws_iter = sws_iter->next) {
       struct hash_entry *entry;
 
       if (!sws_iter->kms_handles)
@@ -192,14 +220,14 @@ void amdgpu_bo_destroy(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf)
          _mesa_hash_table_remove(sws_iter->kms_handles, entry);
       }
    }
-   simple_mtx_unlock(&ws->sws_list_lock);
+   simple_mtx_unlock(&aws->sws_list_lock);
 
    amdgpu_bo_remove_fences(&bo->b);
 
    if (bo->b.base.placement & RADEON_DOMAIN_VRAM)
-      ws->allocated_vram -= align64(bo->b.base.size, ws->info.gart_page_size);
+      aws->allocated_vram -= align64(bo->b.base.size, aws->info.gart_page_size);
    else if (bo->b.base.placement & RADEON_DOMAIN_GTT)
-      ws->allocated_gtt -= align64(bo->b.base.size, ws->info.gart_page_size);
+      aws->allocated_gtt -= align64(bo->b.base.size, aws->info.gart_page_size);
 
    simple_mtx_destroy(&bo->map_lock);
    FREE(bo);
@@ -207,33 +235,33 @@ void amdgpu_bo_destroy(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf)
 
 static void amdgpu_bo_destroy_or_cache(struct radeon_winsys *rws, struct pb_buffer_lean *_buf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = amdgpu_winsys_bo(_buf);
 
    assert(is_real_bo(bo)); /* slab buffers have a separate vtbl */
 
    if (bo->type >= AMDGPU_BO_REAL_REUSABLE)
-      pb_cache_add_buffer(&ws->bo_cache, &((struct amdgpu_bo_real_reusable*)bo)->cache_entry);
+      pb_cache_add_buffer(&aws->bo_cache, &((struct amdgpu_bo_real_reusable*)bo)->cache_entry);
    else
-      amdgpu_bo_destroy(ws, _buf);
+      amdgpu_bo_destroy(aws, _buf);
 }
 
-static void amdgpu_clean_up_buffer_managers(struct amdgpu_winsys *ws)
+static void amdgpu_clean_up_buffer_managers(struct amdgpu_winsys *aws)
 {
-   pb_slabs_reclaim(&ws->bo_slabs);
-   pb_cache_release_all_buffers(&ws->bo_cache);
+   pb_slabs_reclaim(&aws->bo_slabs);
+   pb_cache_release_all_buffers(&aws->bo_cache);
 }
 
 static bool amdgpu_bo_do_map(struct radeon_winsys *rws, struct amdgpu_bo_real *bo, void **cpu)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
 
    assert(!bo->is_user_ptr);
 
    int r = amdgpu_bo_cpu_map(bo->bo_handle, cpu);
    if (r) {
       /* Clean up buffer managers and try again. */
-      amdgpu_clean_up_buffer_managers(ws);
+      amdgpu_clean_up_buffer_managers(aws);
       r = amdgpu_bo_cpu_map(bo->bo_handle, cpu);
       if (r)
          return false;
@@ -241,10 +269,10 @@ static bool amdgpu_bo_do_map(struct radeon_winsys *rws, struct amdgpu_bo_real *b
 
    if (p_atomic_inc_return(&bo->map_count) == 1) {
       if (bo->b.base.placement & RADEON_DOMAIN_VRAM)
-         ws->mapped_vram += bo->b.base.size;
+         aws->mapped_vram += bo->b.base.size;
       else if (bo->b.base.placement & RADEON_DOMAIN_GTT)
-         ws->mapped_gtt += bo->b.base.size;
-      ws->num_mapped_buffers++;
+         aws->mapped_gtt += bo->b.base.size;
+      aws->num_mapped_buffers++;
    }
 
    return true;
@@ -255,7 +283,7 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
                     struct radeon_cmdbuf *rcs,
                     enum pipe_map_flags usage)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = (struct amdgpu_winsys_bo*)buf;
    struct amdgpu_bo_real *real;
    struct amdgpu_cs *cs = rcs ? amdgpu_cs(rcs) : NULL;
@@ -339,7 +367,7 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
                            RADEON_USAGE_READWRITE);
          }
 
-         ws->buffer_wait_time += os_time_get_nano() - time;
+         aws->buffer_wait_time += os_time_get_nano() - time;
       }
    }
 
@@ -384,7 +412,7 @@ void *amdgpu_bo_map(struct radeon_winsys *rws,
 
 void amdgpu_bo_unmap(struct radeon_winsys *rws, struct pb_buffer_lean *buf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_winsys_bo *bo = (struct amdgpu_winsys_bo*)buf;
    struct amdgpu_bo_real *real;
 
@@ -401,35 +429,35 @@ void amdgpu_bo_unmap(struct radeon_winsys *rws, struct pb_buffer_lean *buf)
              "too many unmaps or forgot RADEON_MAP_TEMPORARY flag");
 
       if (real->b.base.placement & RADEON_DOMAIN_VRAM)
-         ws->mapped_vram -= real->b.base.size;
+         aws->mapped_vram -= real->b.base.size;
       else if (real->b.base.placement & RADEON_DOMAIN_GTT)
-         ws->mapped_gtt -= real->b.base.size;
-      ws->num_mapped_buffers--;
+         aws->mapped_gtt -= real->b.base.size;
+      aws->num_mapped_buffers--;
    }
 
    amdgpu_bo_cpu_unmap(real->bo_handle);
 }
 
-static void amdgpu_add_buffer_to_global_list(struct amdgpu_winsys *ws, struct amdgpu_bo_real *bo)
+static void amdgpu_add_buffer_to_global_list(struct amdgpu_winsys *aws, struct amdgpu_bo_real *bo)
 {
-#if DEBUG
-   if (ws->debug_all_bos) {
-      simple_mtx_lock(&ws->global_bo_list_lock);
-      list_addtail(&bo->global_list_item, &ws->global_bo_list);
-      ws->num_buffers++;
-      simple_mtx_unlock(&ws->global_bo_list_lock);
+#if MESA_DEBUG
+   if (aws->debug_all_bos) {
+      simple_mtx_lock(&aws->global_bo_list_lock);
+      list_addtail(&bo->global_list_item, &aws->global_bo_list);
+      aws->num_buffers++;
+      simple_mtx_unlock(&aws->global_bo_list_lock);
    }
 #endif
 }
 
-static unsigned amdgpu_get_optimal_alignment(struct amdgpu_winsys *ws,
+static unsigned amdgpu_get_optimal_alignment(struct amdgpu_winsys *aws,
                                              uint64_t size, unsigned alignment)
 {
    /* Increase the alignment for faster address translation and better memory
     * access pattern.
     */
-   if (size >= ws->info.pte_fragment_size) {
-      alignment = MAX2(alignment, ws->info.pte_fragment_size);
+   if (size >= aws->info.pte_fragment_size) {
+      alignment = MAX2(alignment, aws->info.pte_fragment_size);
    } else if (size) {
       unsigned msb = util_last_bit(size);
 
@@ -438,7 +466,7 @@ static unsigned amdgpu_get_optimal_alignment(struct amdgpu_winsys *ws,
    return alignment;
 }
 
-static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
+static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *aws,
                                                  uint64_t size,
                                                  unsigned alignment,
                                                  enum radeon_bo_domain initial_domain,
@@ -457,7 +485,7 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
                                           RADEON_DOMAIN_GDS |
                                           RADEON_DOMAIN_OA)) == 1);
 
-   alignment = amdgpu_get_optimal_alignment(ws, size, alignment);
+   alignment = amdgpu_get_optimal_alignment(aws, size, alignment);
 
    if (heap >= 0 && flags & RADEON_FLAG_NO_INTERPROCESS_SHARING) {
       struct amdgpu_bo_real_reusable *new_bo;
@@ -472,7 +500,7 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
          return NULL;
 
       bo = &new_bo->b;
-      pb_cache_init_entry(&ws->bo_cache, &new_bo->cache_entry, &bo->b.base, heap);
+      pb_cache_init_entry(&aws->bo_cache, &new_bo->cache_entry, &bo->b.base, heap);
       bo->b.type = slab_backing ? AMDGPU_BO_REAL_REUSABLE_SLAB : AMDGPU_BO_REAL_REUSABLE;
    } else {
       bo = CALLOC_STRUCT(amdgpu_bo_real);
@@ -493,7 +521,7 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
        * shared with the OS, allow VRAM placements too. The idea is not to use
        * VRAM usefully, but to use it so that it's not unused and wasted.
        */
-      if (!ws->info.has_dedicated_vram)
+      if (!aws->info.has_dedicated_vram)
          request.preferred_heap |= AMDGPU_GEM_DOMAIN_GTT;
    }
 
@@ -510,28 +538,28 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
       request.flags |= AMDGPU_GEM_CREATE_CPU_GTT_USWC;
 
    if (flags & RADEON_FLAG_DISCARDABLE &&
-       ws->info.drm_minor >= 47)
+       aws->info.drm_minor >= 47)
       request.flags |= AMDGPU_GEM_CREATE_DISCARDABLE;
 
-   if (ws->zero_all_vram_allocs &&
+   if (aws->zero_all_vram_allocs &&
        (request.preferred_heap & AMDGPU_GEM_DOMAIN_VRAM))
       request.flags |= AMDGPU_GEM_CREATE_VRAM_CLEARED;
 
    if ((flags & RADEON_FLAG_ENCRYPTED) &&
-       ws->info.has_tmz_support) {
+       aws->info.has_tmz_support) {
       request.flags |= AMDGPU_GEM_CREATE_ENCRYPTED;
 
       if (!(flags & RADEON_FLAG_DRIVER_INTERNAL)) {
          struct amdgpu_screen_winsys *sws_iter;
-         simple_mtx_lock(&ws->sws_list_lock);
-         for (sws_iter = ws->sws_list; sws_iter; sws_iter = sws_iter->next) {
+         simple_mtx_lock(&aws->sws_list_lock);
+         for (sws_iter = aws->sws_list; sws_iter; sws_iter = sws_iter->next) {
             *((bool*) &sws_iter->base.uses_secure_bos) = true;
          }
-         simple_mtx_unlock(&ws->sws_list_lock);
+         simple_mtx_unlock(&aws->sws_list_lock);
       }
    }
 
-   r = amdgpu_bo_alloc(ws->dev, &request, &buf_handle);
+   r = amdgpu_bo_alloc(aws->dev, &request, &buf_handle);
    if (r) {
       fprintf(stderr, "amdgpu: Failed to allocate a buffer:\n");
       fprintf(stderr, "amdgpu:    size      : %"PRIu64" bytes\n", size);
@@ -542,9 +570,9 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
    }
 
    if (initial_domain & RADEON_DOMAIN_VRAM_GTT) {
-      unsigned va_gap_size = ws->check_vm ? MAX2(4 * alignment, 64 * 1024) : 0;
+      unsigned va_gap_size = aws->check_vm ? MAX2(4 * alignment, 64 * 1024) : 0;
 
-      r = amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
+      r = amdgpu_va_range_alloc(aws->dev, amdgpu_gpu_va_range_general,
                                 size + va_gap_size, alignment,
                                 0, &va, &va_handle,
                                 (flags & RADEON_FLAG_32BIT ? AMDGPU_VA_RANGE_32_BIT : 0) |
@@ -561,8 +589,7 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
       if (flags & RADEON_FLAG_GL2_BYPASS)
          vm_flags |= AMDGPU_VM_MTYPE_UC;
 
-      r = amdgpu_bo_va_op_raw(ws->dev, buf_handle, 0, size, va, vm_flags,
-			   AMDGPU_VA_OP_MAP);
+      r = amdgpu_bo_va_op_raw(aws->dev, buf_handle, 0, size, va, vm_flags, AMDGPU_VA_OP_MAP);
       if (r)
          goto error_va_map;
    }
@@ -573,17 +600,17 @@ static struct amdgpu_winsys_bo *amdgpu_create_bo(struct amdgpu_winsys *ws,
    bo->b.base.alignment_log2 = util_logbase2(alignment);
    bo->b.base.usage = flags;
    bo->b.base.size = size;
-   bo->b.unique_id = __sync_fetch_and_add(&ws->next_bo_unique_id, 1);
+   bo->b.unique_id = __sync_fetch_and_add(&aws->next_bo_unique_id, 1);
    bo->bo_handle = buf_handle;
    bo->va_handle = va_handle;
 
    if (initial_domain & RADEON_DOMAIN_VRAM)
-      ws->allocated_vram += align64(size, ws->info.gart_page_size);
+      aws->allocated_vram += align64(size, aws->info.gart_page_size);
    else if (initial_domain & RADEON_DOMAIN_GTT)
-      ws->allocated_gtt += align64(size, ws->info.gart_page_size);
+      aws->allocated_gtt += align64(size, aws->info.gart_page_size);
 
    amdgpu_bo_export(bo->bo_handle, amdgpu_bo_handle_type_kms, &bo->kms_handle);
-   amdgpu_add_buffer_to_global_list(ws, bo);
+   amdgpu_add_buffer_to_global_list(aws, bo);
 
    return &bo->b;
 
@@ -598,9 +625,9 @@ error_bo_alloc:
    return NULL;
 }
 
-bool amdgpu_bo_can_reclaim(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf)
+bool amdgpu_bo_can_reclaim(struct amdgpu_winsys *aws, struct pb_buffer_lean *_buf)
 {
-   return amdgpu_bo_wait(&ws->dummy_ws.base, _buf, 0, RADEON_USAGE_READWRITE);
+   return amdgpu_bo_wait(&aws->dummy_sws.base, _buf, 0, RADEON_USAGE_READWRITE);
 }
 
 bool amdgpu_bo_can_reclaim_slab(void *priv, struct pb_slab_entry *entry)
@@ -610,41 +637,41 @@ bool amdgpu_bo_can_reclaim_slab(void *priv, struct pb_slab_entry *entry)
    return amdgpu_bo_can_reclaim(priv, &bo->b.base);
 }
 
-static unsigned get_slab_wasted_size(struct amdgpu_winsys *ws, struct amdgpu_bo_slab_entry *bo)
+static unsigned get_slab_wasted_size(struct amdgpu_winsys *aws, struct amdgpu_bo_slab_entry *bo)
 {
    assert(bo->b.base.size <= bo->entry.slab->entry_size);
    assert(bo->b.base.size < (1 << bo->b.base.alignment_log2) ||
-          bo->b.base.size < 1 << ws->bo_slabs.min_order ||
+          bo->b.base.size < 1 << aws->bo_slabs.min_order ||
           bo->b.base.size > bo->entry.slab->entry_size / 2);
    return bo->entry.slab->entry_size - bo->b.base.size;
 }
 
 static void amdgpu_bo_slab_destroy(struct radeon_winsys *rws, struct pb_buffer_lean *_buf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_slab_entry *bo = get_slab_entry_bo(amdgpu_winsys_bo(_buf));
 
    if (bo->b.base.placement & RADEON_DOMAIN_VRAM)
-      ws->slab_wasted_vram -= get_slab_wasted_size(ws, bo);
+      aws->slab_wasted_vram -= get_slab_wasted_size(aws, bo);
    else
-      ws->slab_wasted_gtt -= get_slab_wasted_size(ws, bo);
+      aws->slab_wasted_gtt -= get_slab_wasted_size(aws, bo);
 
-   pb_slab_free(&ws->bo_slabs, &bo->entry);
+   pb_slab_free(&aws->bo_slabs, &bo->entry);
 }
 
 /* Return the power of two size of a slab entry matching the input size. */
-static unsigned get_slab_pot_entry_size(struct amdgpu_winsys *ws, unsigned size)
+static unsigned get_slab_pot_entry_size(struct amdgpu_winsys *aws, unsigned size)
 {
    unsigned entry_size = util_next_power_of_two(size);
-   unsigned min_entry_size = 1 << ws->bo_slabs.min_order;
+   unsigned min_entry_size = 1 << aws->bo_slabs.min_order;
 
    return MAX2(entry_size, min_entry_size);
 }
 
 /* Return the slab entry alignment. */
-static unsigned get_slab_entry_alignment(struct amdgpu_winsys *ws, unsigned size)
+static unsigned get_slab_entry_alignment(struct amdgpu_winsys *aws, unsigned size)
 {
-   unsigned entry_size = get_slab_pot_entry_size(ws, size);
+   unsigned entry_size = get_slab_pot_entry_size(aws, size);
 
    if (size <= entry_size * 3 / 4)
       return entry_size / 4;
@@ -655,12 +682,12 @@ static unsigned get_slab_entry_alignment(struct amdgpu_winsys *ws, unsigned size
 struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_size,
                                      unsigned group_index)
 {
-   struct amdgpu_winsys *ws = priv;
+   struct amdgpu_winsys *aws = priv;
    enum radeon_bo_domain domains = radeon_domain_from_heap(heap);
    enum radeon_bo_flag flags = radeon_flags_from_heap(heap);
 
    /* Determine the slab buffer size. */
-   unsigned max_entry_size = 1 << (ws->bo_slabs.min_order + ws->bo_slabs.num_orders - 1);
+   unsigned max_entry_size = 1 << (aws->bo_slabs.min_order + aws->bo_slabs.num_orders - 1);
 
    assert(entry_size <= max_entry_size);
 
@@ -685,14 +712,14 @@ struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_s
    /* The largest slab should have the same size as the PTE fragment
     * size to get faster address translation.
     */
-   slab_size = MAX2(slab_size, ws->info.pte_fragment_size);
+   slab_size = MAX2(slab_size, aws->info.pte_fragment_size);
 
    flags |= RADEON_FLAG_NO_INTERPROCESS_SHARING |
             RADEON_FLAG_NO_SUBALLOC |
             RADEON_FLAG_WINSYS_SLAB_BACKING;
 
    struct amdgpu_bo_real_reusable_slab *slab_bo =
-      (struct amdgpu_bo_real_reusable_slab*)amdgpu_bo_create(ws, slab_size, slab_size,
+      (struct amdgpu_bo_real_reusable_slab*)amdgpu_bo_create(aws, slab_size, slab_size,
                                                              domains, flags);
    if (!slab_bo)
       return NULL;
@@ -720,7 +747,7 @@ struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_s
       struct amdgpu_bo_slab_entry *bo = &slab_bo->entries[i];
 
       bo->b.base.placement = domains;
-      bo->b.base.alignment_log2 = util_logbase2(get_slab_entry_alignment(ws, entry_size));
+      bo->b.base.alignment_log2 = util_logbase2(get_slab_entry_alignment(aws, entry_size));
       bo->b.base.size = entry_size;
       bo->b.type = AMDGPU_BO_SLAB_ENTRY;
 
@@ -731,33 +758,33 @@ struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_s
    /* Wasted alignment due to slabs with 3/4 allocations being aligned to a power of two. */
    assert(slab_bo->slab.num_entries * entry_size <= slab_size);
    if (domains & RADEON_DOMAIN_VRAM)
-      ws->slab_wasted_vram += slab_size - slab_bo->slab.num_entries * entry_size;
+      aws->slab_wasted_vram += slab_size - slab_bo->slab.num_entries * entry_size;
    else
-      ws->slab_wasted_gtt += slab_size - slab_bo->slab.num_entries * entry_size;
+      aws->slab_wasted_gtt += slab_size - slab_bo->slab.num_entries * entry_size;
 
    return &slab_bo->slab;
 
 fail:
-   amdgpu_winsys_bo_reference(ws, (struct amdgpu_winsys_bo**)&slab_bo, NULL);
+   amdgpu_winsys_bo_reference(aws, (struct amdgpu_winsys_bo**)&slab_bo, NULL);
    return NULL;
 }
 
-void amdgpu_bo_slab_free(struct amdgpu_winsys *ws, struct pb_slab *slab)
+void amdgpu_bo_slab_free(struct amdgpu_winsys *aws, struct pb_slab *slab)
 {
    struct amdgpu_bo_real_reusable_slab *bo = get_bo_from_slab(slab);
    unsigned slab_size = bo->b.b.b.base.size;
 
    assert(bo->slab.num_entries * bo->slab.entry_size <= slab_size);
    if (bo->b.b.b.base.placement & RADEON_DOMAIN_VRAM)
-      ws->slab_wasted_vram -= slab_size - bo->slab.num_entries * bo->slab.entry_size;
+      aws->slab_wasted_vram -= slab_size - bo->slab.num_entries * bo->slab.entry_size;
    else
-      ws->slab_wasted_gtt -= slab_size - bo->slab.num_entries * bo->slab.entry_size;
+      aws->slab_wasted_gtt -= slab_size - bo->slab.num_entries * bo->slab.entry_size;
 
    for (unsigned i = 0; i < bo->slab.num_entries; ++i)
       amdgpu_bo_remove_fences(&bo->entries[i].b);
 
    os_free_aligned(bo->entries);
-   amdgpu_winsys_bo_reference(ws, (struct amdgpu_winsys_bo**)&bo, NULL);
+   amdgpu_winsys_bo_reference(aws, (struct amdgpu_winsys_bo**)&bo, NULL);
 }
 
 #if DEBUG_SPARSE_COMMITS
@@ -821,7 +848,7 @@ sparse_dump(struct amdgpu_bo_sparse *bo, const char *func)
  * which will be reflected by a change to *pnum_pages.
  */
 static struct amdgpu_sparse_backing *
-sparse_backing_alloc(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
+sparse_backing_alloc(struct amdgpu_winsys *aws, struct amdgpu_bo_sparse *bo,
                      uint32_t *pstart_page, uint32_t *pnum_pages)
 {
    struct amdgpu_sparse_backing *best_backing;
@@ -870,7 +897,7 @@ sparse_backing_alloc(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
                   bo->b.base.size - (uint64_t)bo->num_backing_pages * RADEON_SPARSE_PAGE_SIZE);
       size = MAX2(size, RADEON_SPARSE_PAGE_SIZE);
 
-      buf = amdgpu_bo_create(ws, size, RADEON_SPARSE_PAGE_SIZE,
+      buf = amdgpu_bo_create(aws, size, RADEON_SPARSE_PAGE_SIZE,
                              bo->b.base.placement,
                              (bo->b.base.usage & ~RADEON_FLAG_SPARSE &
                               /* Set the interprocess sharing flag to disable pb_cache because
@@ -912,20 +939,20 @@ sparse_backing_alloc(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
 }
 
 static void
-sparse_free_backing_buffer(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
+sparse_free_backing_buffer(struct amdgpu_winsys *aws, struct amdgpu_bo_sparse *bo,
                            struct amdgpu_sparse_backing *backing)
 {
    bo->num_backing_pages -= backing->bo->b.base.size / RADEON_SPARSE_PAGE_SIZE;
 
    /* Add fences from bo to backing->bo. */
-   simple_mtx_lock(&ws->bo_fence_lock);
+   simple_mtx_lock(&aws->bo_fence_lock);
    u_foreach_bit(i, bo->b.fences.valid_fence_mask) {
-      add_seq_no_to_list(ws, &backing->bo->b.fences, i, bo->b.fences.seq_no[i]);
+      add_seq_no_to_list(aws, &backing->bo->b.fences, i, bo->b.fences.seq_no[i]);
    }
-   simple_mtx_unlock(&ws->bo_fence_lock);
+   simple_mtx_unlock(&aws->bo_fence_lock);
 
    list_del(&backing->list);
-   amdgpu_winsys_bo_reference(ws, (struct amdgpu_winsys_bo**)&backing->bo, NULL);
+   amdgpu_winsys_bo_reference(aws, (struct amdgpu_winsys_bo**)&backing->bo, NULL);
    FREE(backing->chunks);
    FREE(backing);
 }
@@ -935,7 +962,7 @@ sparse_free_backing_buffer(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo
  * free structure.
  */
 static bool
-sparse_backing_free(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
+sparse_backing_free(struct amdgpu_winsys *aws, struct amdgpu_bo_sparse *bo,
                     struct amdgpu_sparse_backing *backing,
                     uint32_t start_page, uint32_t num_pages)
 {
@@ -990,18 +1017,18 @@ sparse_backing_free(struct amdgpu_winsys *ws, struct amdgpu_bo_sparse *bo,
 
    if (backing->num_chunks == 1 && backing->chunks[0].begin == 0 &&
        backing->chunks[0].end == backing->bo->b.base.size / RADEON_SPARSE_PAGE_SIZE)
-      sparse_free_backing_buffer(ws, bo, backing);
+      sparse_free_backing_buffer(aws, bo, backing);
 
    return true;
 }
 
 static void amdgpu_bo_sparse_destroy(struct radeon_winsys *rws, struct pb_buffer_lean *_buf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_sparse *bo = get_sparse_bo(amdgpu_winsys_bo(_buf));
    int r;
 
-   r = amdgpu_bo_va_op_raw(ws->dev, NULL, 0,
+   r = amdgpu_bo_va_op_raw(aws->dev, NULL, 0,
                            (uint64_t)bo->num_va_pages * RADEON_SPARSE_PAGE_SIZE,
                            amdgpu_va_get_start_addr(bo->va_handle), 0, AMDGPU_VA_OP_CLEAR);
    if (r) {
@@ -1009,7 +1036,7 @@ static void amdgpu_bo_sparse_destroy(struct radeon_winsys *rws, struct pb_buffer
    }
 
    while (!list_is_empty(&bo->backing)) {
-      sparse_free_backing_buffer(ws, bo,
+      sparse_free_backing_buffer(aws, bo,
                                  container_of(bo->backing.next,
                                               struct amdgpu_sparse_backing, list));
    }
@@ -1021,7 +1048,7 @@ static void amdgpu_bo_sparse_destroy(struct radeon_winsys *rws, struct pb_buffer
 }
 
 static struct pb_buffer_lean *
-amdgpu_bo_sparse_create(struct amdgpu_winsys *ws, uint64_t size,
+amdgpu_bo_sparse_create(struct amdgpu_winsys *aws, uint64_t size,
                         enum radeon_bo_domain domain,
                         enum radeon_bo_flag flags)
 {
@@ -1047,7 +1074,7 @@ amdgpu_bo_sparse_create(struct amdgpu_winsys *ws, uint64_t size,
    bo->b.base.alignment_log2 = util_logbase2(RADEON_SPARSE_PAGE_SIZE);
    bo->b.base.usage = flags;
    bo->b.base.size = size;
-   bo->b.unique_id =  __sync_fetch_and_add(&ws->next_bo_unique_id, 1);
+   bo->b.unique_id =  __sync_fetch_and_add(&aws->next_bo_unique_id, 1);
    bo->b.type = AMDGPU_BO_SPARSE;
 
    bo->num_va_pages = DIV_ROUND_UP(size, RADEON_SPARSE_PAGE_SIZE);
@@ -1059,16 +1086,16 @@ amdgpu_bo_sparse_create(struct amdgpu_winsys *ws, uint64_t size,
 
    /* For simplicity, we always map a multiple of the page size. */
    map_size = align64(size, RADEON_SPARSE_PAGE_SIZE);
-   va_gap_size = ws->check_vm ? 4 * RADEON_SPARSE_PAGE_SIZE : 0;
+   va_gap_size = aws->check_vm ? 4 * RADEON_SPARSE_PAGE_SIZE : 0;
 
    uint64_t gpu_address;
-   r = amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
+   r = amdgpu_va_range_alloc(aws->dev, amdgpu_gpu_va_range_general,
                              map_size + va_gap_size, RADEON_SPARSE_PAGE_SIZE,
                              0, &gpu_address, &bo->va_handle, AMDGPU_VA_RANGE_HIGH);
    if (r)
       goto error_va_alloc;
 
-   r = amdgpu_bo_va_op_raw(ws->dev, NULL, 0, map_size, gpu_address,
+   r = amdgpu_bo_va_op_raw(aws->dev, NULL, 0, map_size, gpu_address,
                            AMDGPU_VM_PAGE_PRT, AMDGPU_VA_OP_MAP);
    if (r)
       goto error_va_map;
@@ -1089,7 +1116,7 @@ static bool
 amdgpu_bo_sparse_commit(struct radeon_winsys *rws, struct pb_buffer_lean *buf,
                         uint64_t offset, uint64_t size, bool commit)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_sparse *bo = get_sparse_bo(amdgpu_winsys_bo(buf));
    struct amdgpu_sparse_commitment *comm;
    uint32_t va_page, end_va_page;
@@ -1132,13 +1159,13 @@ amdgpu_bo_sparse_commit(struct radeon_winsys *rws, struct pb_buffer_lean *buf,
             uint32_t backing_start, backing_size;
 
             backing_size = va_page - span_va_page;
-            backing = sparse_backing_alloc(ws, bo, &backing_start, &backing_size);
+            backing = sparse_backing_alloc(aws, bo, &backing_start, &backing_size);
             if (!backing) {
                ok = false;
                goto out;
             }
 
-            r = amdgpu_bo_va_op_raw(ws->dev, backing->bo->bo_handle,
+            r = amdgpu_bo_va_op_raw(aws->dev, backing->bo->bo_handle,
                                     (uint64_t)backing_start * RADEON_SPARSE_PAGE_SIZE,
                                     (uint64_t)backing_size * RADEON_SPARSE_PAGE_SIZE,
                                     amdgpu_va_get_start_addr(bo->va_handle) +
@@ -1148,7 +1175,7 @@ amdgpu_bo_sparse_commit(struct radeon_winsys *rws, struct pb_buffer_lean *buf,
                                     AMDGPU_VM_PAGE_EXECUTABLE,
                                     AMDGPU_VA_OP_REPLACE);
             if (r) {
-               ok = sparse_backing_free(ws, bo, backing, backing_start, backing_size);
+               ok = sparse_backing_free(aws, bo, backing, backing_start, backing_size);
                assert(ok && "sufficient memory should already be allocated");
 
                ok = false;
@@ -1165,7 +1192,7 @@ amdgpu_bo_sparse_commit(struct radeon_winsys *rws, struct pb_buffer_lean *buf,
          }
       }
    } else {
-      r = amdgpu_bo_va_op_raw(ws->dev, NULL, 0,
+      r = amdgpu_bo_va_op_raw(aws->dev, NULL, 0,
                               (uint64_t)(end_va_page - va_page) * RADEON_SPARSE_PAGE_SIZE,
                               amdgpu_va_get_start_addr(bo->va_handle) +
                               (uint64_t)va_page * RADEON_SPARSE_PAGE_SIZE,
@@ -1202,7 +1229,7 @@ amdgpu_bo_sparse_commit(struct radeon_winsys *rws, struct pb_buffer_lean *buf,
             span_pages++;
          }
 
-         if (!sparse_backing_free(ws, bo, backing, backing_start, span_pages)) {
+         if (!sparse_backing_free(aws, bo, backing, backing_start, span_pages)) {
             /* Couldn't allocate tracking data structures, so we have to leak */
             fprintf(stderr, "amdgpu: leaking PRT backing memory\n");
             ok = false;
@@ -1266,8 +1293,7 @@ amdgpu_bo_find_next_committed_memory(struct pb_buffer_lean *buf,
 
    /* Calc size of first committed part */
    *range_size = *range_size - uncommitted_range_next - uncommitted_range_prev;
-   return *range_size ? uncommitted_range_prev
-	   : uncommitted_range_prev + uncommitted_range_next;
+   return *range_size ? uncommitted_range_prev : uncommitted_range_prev + uncommitted_range_next;
 }
 
 static void amdgpu_buffer_get_metadata(struct radeon_winsys *rws,
@@ -1275,7 +1301,7 @@ static void amdgpu_buffer_get_metadata(struct radeon_winsys *rws,
                                        struct radeon_bo_metadata *md,
                                        struct radeon_surf *surf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_real *bo = get_real_bo(amdgpu_winsys_bo(_buf));
    struct amdgpu_bo_info info = {0};
    int r;
@@ -1284,7 +1310,7 @@ static void amdgpu_buffer_get_metadata(struct radeon_winsys *rws,
    if (r)
       return;
 
-   ac_surface_apply_bo_metadata(&ws->info, surf, info.metadata.tiling_info,
+   ac_surface_apply_bo_metadata(&aws->info, surf, info.metadata.tiling_info,
                                 &md->mode);
 
    md->size_metadata = info.metadata.size_metadata;
@@ -1296,11 +1322,11 @@ static void amdgpu_buffer_set_metadata(struct radeon_winsys *rws,
                                        struct radeon_bo_metadata *md,
                                        struct radeon_surf *surf)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_real *bo = get_real_bo(amdgpu_winsys_bo(_buf));
    struct amdgpu_bo_metadata metadata = {0};
 
-   ac_surface_compute_bo_metadata(&ws->info, surf, &metadata.tiling_info);
+   ac_surface_compute_bo_metadata(&aws->info, surf, &metadata.tiling_info);
 
    metadata.size_metadata = md->size_metadata;
    memcpy(metadata.umd_metadata, md->metadata, sizeof(md->metadata));
@@ -1309,7 +1335,7 @@ static void amdgpu_buffer_set_metadata(struct radeon_winsys *rws,
 }
 
 struct pb_buffer_lean *
-amdgpu_bo_create(struct amdgpu_winsys *ws,
+amdgpu_bo_create(struct amdgpu_winsys *aws,
                  uint64_t size,
                  unsigned alignment,
                  enum radeon_bo_domain domain,
@@ -1323,10 +1349,10 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
    if (flags & RADEON_FLAG_SPARSE) {
       assert(RADEON_SPARSE_PAGE_SIZE % alignment == 0);
 
-      return amdgpu_bo_sparse_create(ws, size, domain, flags);
+      return amdgpu_bo_sparse_create(aws, size, domain, flags);
    }
 
-   unsigned max_slab_entry_size = 1 << (ws->bo_slabs.min_order + ws->bo_slabs.num_orders - 1);
+   unsigned max_slab_entry_size = 1 << (aws->bo_slabs.min_order + aws->bo_slabs.num_orders - 1);
    int heap = radeon_get_heap_index(domain, flags);
 
    /* Sub-allocate small buffers from slabs. */
@@ -1340,11 +1366,11 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
       if (size < alignment && alignment <= 4 * 1024)
          alloc_size = alignment;
 
-      if (alignment > get_slab_entry_alignment(ws, alloc_size)) {
+      if (alignment > get_slab_entry_alignment(aws, alloc_size)) {
          /* 3/4 allocations can return too small alignment. Try again with a power of two
           * allocation size.
           */
-         unsigned pot_size = get_slab_pot_entry_size(ws, alloc_size);
+         unsigned pot_size = get_slab_pot_entry_size(aws, alloc_size);
 
          if (alignment <= pot_size) {
             /* This size works but wastes some memory to fulfil the alignment. */
@@ -1354,12 +1380,12 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
          }
       }
 
-      entry = pb_slab_alloc(&ws->bo_slabs, alloc_size, heap);
+      entry = pb_slab_alloc(&aws->bo_slabs, alloc_size, heap);
       if (!entry) {
          /* Clean up buffer managers and try again. */
-         amdgpu_clean_up_buffer_managers(ws);
+         amdgpu_clean_up_buffer_managers(aws);
 
-         entry = pb_slab_alloc(&ws->bo_slabs, alloc_size, heap);
+         entry = pb_slab_alloc(&aws->bo_slabs, alloc_size, heap);
       }
       if (!entry)
          return NULL;
@@ -1367,13 +1393,13 @@ amdgpu_bo_create(struct amdgpu_winsys *ws,
       struct amdgpu_bo_slab_entry *slab_bo = container_of(entry, struct amdgpu_bo_slab_entry, entry);
       pipe_reference_init(&slab_bo->b.base.reference, 1);
       slab_bo->b.base.size = size;
-      slab_bo->b.unique_id = __sync_fetch_and_add(&ws->next_bo_unique_id, 1);
+      slab_bo->b.unique_id = __sync_fetch_and_add(&aws->next_bo_unique_id, 1);
       assert(alignment <= 1 << slab_bo->b.base.alignment_log2);
 
       if (domain & RADEON_DOMAIN_VRAM)
-         ws->slab_wasted_vram += get_slab_wasted_size(ws, slab_bo);
+         aws->slab_wasted_vram += get_slab_wasted_size(aws, slab_bo);
       else
-         ws->slab_wasted_gtt += get_slab_wasted_size(ws, slab_bo);
+         aws->slab_wasted_gtt += get_slab_wasted_size(aws, slab_bo);
 
       return &slab_bo->b.base;
    }
@@ -1384,8 +1410,8 @@ no_slab:
     * like constant/uniform buffers, can benefit from better and more reuse.
     */
    if (domain & RADEON_DOMAIN_VRAM_GTT) {
-      size = align64(size, ws->info.gart_page_size);
-      alignment = align(alignment, ws->info.gart_page_size);
+      size = align64(size, aws->info.gart_page_size);
+      alignment = align(alignment, aws->info.gart_page_size);
    }
 
    bool use_reusable_pool = flags & RADEON_FLAG_NO_INTERPROCESS_SHARING &&
@@ -1398,7 +1424,7 @@ no_slab:
 
        /* Get a buffer from the cache. */
        bo = (struct amdgpu_winsys_bo*)
-            pb_cache_reclaim_buffer(&ws->bo_cache, size, alignment, 0, heap);
+            pb_cache_reclaim_buffer(&aws->bo_cache, size, alignment, 0, heap);
        if (bo) {
           /* If the buffer is amdgpu_bo_real_reusable, but we need amdgpu_bo_real_reusable_slab,
            * keep the allocation but make the structure bigger.
@@ -1410,7 +1436,7 @@ no_slab:
                 (struct amdgpu_winsys_bo*)REALLOC(bo, orig_size, new_size);
 
              if (!new_bo) {
-                amdgpu_winsys_bo_reference(ws, &bo, NULL);
+                amdgpu_winsys_bo_reference(aws, &bo, NULL);
                 return NULL;
              }
 
@@ -1423,12 +1449,12 @@ no_slab:
    }
 
    /* Create a new one. */
-   bo = amdgpu_create_bo(ws, size, alignment, domain, flags, heap);
+   bo = amdgpu_create_bo(aws, size, alignment, domain, flags, heap);
    if (!bo) {
       /* Clean up buffer managers and try again. */
-      amdgpu_clean_up_buffer_managers(ws);
+      amdgpu_clean_up_buffer_managers(aws);
 
-      bo = amdgpu_create_bo(ws, size, alignment, domain, flags, heap);
+      bo = amdgpu_create_bo(aws, size, alignment, domain, flags, heap);
       if (!bo)
          return NULL;
    }
@@ -1437,13 +1463,13 @@ no_slab:
 }
 
 static struct pb_buffer_lean *
-amdgpu_buffer_create(struct radeon_winsys *ws,
+amdgpu_buffer_create(struct radeon_winsys *rws,
                      uint64_t size,
                      unsigned alignment,
                      enum radeon_bo_domain domain,
                      enum radeon_bo_flag flags)
 {
-   struct pb_buffer_lean * res = amdgpu_bo_create(amdgpu_winsys(ws), size, alignment, domain,
+   struct pb_buffer_lean * res = amdgpu_bo_create(amdgpu_winsys(rws), size, alignment, domain,
                            flags);
    return res;
 }
@@ -1453,7 +1479,7 @@ static struct pb_buffer_lean *amdgpu_bo_from_handle(struct radeon_winsys *rws,
                                                unsigned vm_alignment,
                                                bool is_prime_linear_buffer)
 {
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    struct amdgpu_bo_real *bo = NULL;
    enum amdgpu_bo_handle_type type;
    struct amdgpu_bo_import_result result = {0};
@@ -1475,19 +1501,19 @@ static struct pb_buffer_lean *amdgpu_bo_from_handle(struct radeon_winsys *rws,
       return NULL;
    }
 
-   r = amdgpu_bo_import(ws->dev, type, whandle->handle, &result);
+   r = amdgpu_bo_import(aws->dev, type, whandle->handle, &result);
    if (r)
       return NULL;
 
-   simple_mtx_lock(&ws->bo_export_table_lock);
-   bo = util_hash_table_get(ws->bo_export_table, result.buf_handle);
+   simple_mtx_lock(&aws->bo_export_table_lock);
+   bo = util_hash_table_get(aws->bo_export_table, result.buf_handle);
 
    /* If the amdgpu_winsys_bo instance already exists, bump the reference
     * counter and return it.
     */
    if (bo) {
       p_atomic_inc(&bo->b.base.reference.count);
-      simple_mtx_unlock(&ws->bo_export_table_lock);
+      simple_mtx_unlock(&aws->bo_export_table_lock);
 
       /* Release the buffer handle, because we don't need it anymore.
        * This function is returning an existing buffer, which has its own
@@ -1502,9 +1528,9 @@ static struct pb_buffer_lean *amdgpu_bo_from_handle(struct radeon_winsys *rws,
    if (r)
       goto error;
 
-   r = amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
+   r = amdgpu_va_range_alloc(aws->dev, amdgpu_gpu_va_range_general,
                              result.alloc_size,
-                             amdgpu_get_optimal_alignment(ws, result.alloc_size,
+                             amdgpu_get_optimal_alignment(aws, result.alloc_size,
                                                           vm_alignment),
                              0, &va, &va_handle, AMDGPU_VA_RANGE_HIGH);
    if (r)
@@ -1514,7 +1540,7 @@ static struct pb_buffer_lean *amdgpu_bo_from_handle(struct radeon_winsys *rws,
    if (!bo)
       goto error;
 
-   r = amdgpu_bo_va_op_raw(ws->dev, result.buf_handle, 0, result.alloc_size, va,
+   r = amdgpu_bo_va_op_raw(aws->dev, result.buf_handle, 0, result.alloc_size, va,
                            AMDGPU_VM_PAGE_READABLE | AMDGPU_VM_PAGE_WRITEABLE |
                            AMDGPU_VM_PAGE_EXECUTABLE |
                            (is_prime_linear_buffer ? AMDGPU_VM_MTYPE_UC : 0),
@@ -1543,32 +1569,32 @@ static struct pb_buffer_lean *amdgpu_bo_from_handle(struct radeon_winsys *rws,
    pipe_reference_init(&bo->b.base.reference, 1);
    bo->b.base.placement = initial;
    bo->b.base.alignment_log2 = util_logbase2(info.phys_alignment ?
-				info.phys_alignment : ws->info.gart_page_size);
+                                             info.phys_alignment : aws->info.gart_page_size);
    bo->b.base.usage = flags;
    bo->b.base.size = result.alloc_size;
    bo->b.type = AMDGPU_BO_REAL;
-   bo->b.unique_id = __sync_fetch_and_add(&ws->next_bo_unique_id, 1);
+   bo->b.unique_id = __sync_fetch_and_add(&aws->next_bo_unique_id, 1);
    simple_mtx_init(&bo->map_lock, mtx_plain);
    bo->bo_handle = result.buf_handle;
    bo->va_handle = va_handle;
    bo->is_shared = true;
 
    if (bo->b.base.placement & RADEON_DOMAIN_VRAM)
-      ws->allocated_vram += align64(bo->b.base.size, ws->info.gart_page_size);
+      aws->allocated_vram += align64(bo->b.base.size, aws->info.gart_page_size);
    else if (bo->b.base.placement & RADEON_DOMAIN_GTT)
-      ws->allocated_gtt += align64(bo->b.base.size, ws->info.gart_page_size);
+      aws->allocated_gtt += align64(bo->b.base.size, aws->info.gart_page_size);
 
    amdgpu_bo_export(bo->bo_handle, amdgpu_bo_handle_type_kms, &bo->kms_handle);
 
-   amdgpu_add_buffer_to_global_list(ws, bo);
+   amdgpu_add_buffer_to_global_list(aws, bo);
 
-   _mesa_hash_table_insert(ws->bo_export_table, bo->bo_handle, bo);
-   simple_mtx_unlock(&ws->bo_export_table_lock);
+   _mesa_hash_table_insert(aws->bo_export_table, bo->bo_handle, bo);
+   simple_mtx_unlock(&aws->bo_export_table_lock);
 
    return &bo->b.base;
 
 error:
-   simple_mtx_unlock(&ws->bo_export_table_lock);
+   simple_mtx_unlock(&aws->bo_export_table_lock);
    if (bo)
       FREE(bo);
    if (va_handle)
@@ -1582,7 +1608,7 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
                                  struct winsys_handle *whandle)
 {
    struct amdgpu_screen_winsys *sws = amdgpu_screen_winsys(rws);
-   struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+   struct amdgpu_winsys *aws = amdgpu_winsys(rws);
    enum amdgpu_bo_handle_type type;
    struct hash_entry *entry;
    int r;
@@ -1601,7 +1627,7 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
       type = amdgpu_bo_handle_type_gem_flink_name;
       break;
    case WINSYS_HANDLE_TYPE_KMS:
-      if (sws->fd == ws->fd) {
+      if (sws->fd == aws->fd) {
          whandle->handle = bo->kms_handle;
 
          if (bo->is_shared)
@@ -1610,9 +1636,9 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
          goto hash_table_set;
       }
 
-      simple_mtx_lock(&ws->sws_list_lock);
+      simple_mtx_lock(&aws->sws_list_lock);
       entry = _mesa_hash_table_search(sws->kms_handles, bo);
-      simple_mtx_unlock(&ws->sws_list_lock);
+      simple_mtx_unlock(&aws->sws_list_lock);
       if (entry) {
          whandle->handle = (uintptr_t)entry->data;
          return true;
@@ -1647,17 +1673,17 @@ static bool amdgpu_bo_get_handle(struct radeon_winsys *rws,
       if (r)
          return false;
 
-      simple_mtx_lock(&ws->sws_list_lock);
+      simple_mtx_lock(&aws->sws_list_lock);
       _mesa_hash_table_insert_pre_hashed(sws->kms_handles,
                                          bo->kms_handle, bo,
                                          (void*)(uintptr_t)whandle->handle);
-      simple_mtx_unlock(&ws->sws_list_lock);
+      simple_mtx_unlock(&aws->sws_list_lock);
    }
 
  hash_table_set:
-   simple_mtx_lock(&ws->bo_export_table_lock);
-   _mesa_hash_table_insert(ws->bo_export_table, bo->bo_handle, bo);
-   simple_mtx_unlock(&ws->bo_export_table_lock);
+   simple_mtx_lock(&aws->bo_export_table_lock);
+   _mesa_hash_table_insert(aws->bo_export_table, bo->bo_handle, bo);
+   simple_mtx_unlock(&aws->bo_export_table_lock);
 
    bo->is_shared = true;
    return true;
@@ -1667,26 +1693,26 @@ static struct pb_buffer_lean *amdgpu_bo_from_ptr(struct radeon_winsys *rws,
 					    void *pointer, uint64_t size,
 					    enum radeon_bo_flag flags)
 {
-    struct amdgpu_winsys *ws = amdgpu_winsys(rws);
+    struct amdgpu_winsys *aws = amdgpu_winsys(rws);
     amdgpu_bo_handle buf_handle;
     struct amdgpu_bo_real *bo;
     uint64_t va;
     amdgpu_va_handle va_handle;
     /* Avoid failure when the size is not page aligned */
-    uint64_t aligned_size = align64(size, ws->info.gart_page_size);
+    uint64_t aligned_size = align64(size, aws->info.gart_page_size);
 
     bo = CALLOC_STRUCT(amdgpu_bo_real);
     if (!bo)
         return NULL;
 
-    if (amdgpu_create_bo_from_user_mem(ws->dev, pointer,
+    if (amdgpu_create_bo_from_user_mem(aws->dev, pointer,
                                        aligned_size, &buf_handle))
         goto error;
 
-    if (amdgpu_va_range_alloc(ws->dev, amdgpu_gpu_va_range_general,
+    if (amdgpu_va_range_alloc(aws->dev, amdgpu_gpu_va_range_general,
                               aligned_size,
-                              amdgpu_get_optimal_alignment(ws, aligned_size,
-                                                           ws->info.gart_page_size),
+                              amdgpu_get_optimal_alignment(aws, aligned_size,
+                                                           aws->info.gart_page_size),
                               0, &va, &va_handle, AMDGPU_VA_RANGE_HIGH))
         goto error_va_alloc;
 
@@ -1700,15 +1726,15 @@ static struct pb_buffer_lean *amdgpu_bo_from_ptr(struct radeon_winsys *rws,
     bo->b.base.alignment_log2 = 0;
     bo->b.base.size = size;
     bo->b.type = AMDGPU_BO_REAL;
-    bo->b.unique_id = __sync_fetch_and_add(&ws->next_bo_unique_id, 1);
+    bo->b.unique_id = __sync_fetch_and_add(&aws->next_bo_unique_id, 1);
     simple_mtx_init(&bo->map_lock, mtx_plain);
     bo->bo_handle = buf_handle;
     bo->cpu_ptr = pointer;
     bo->va_handle = va_handle;
 
-    ws->allocated_gtt += aligned_size;
+    aws->allocated_gtt += aligned_size;
 
-    amdgpu_add_buffer_to_global_list(ws, bo);
+    amdgpu_add_buffer_to_global_list(aws, bo);
 
     amdgpu_bo_export(bo->bo_handle, amdgpu_bo_handle_type_kms, &bo->kms_handle);
 
@@ -1755,35 +1781,35 @@ uint64_t amdgpu_bo_get_va(struct pb_buffer_lean *buf)
    }
 }
 
-static void amdgpu_buffer_destroy(struct radeon_winsys *ws, struct pb_buffer_lean *buf)
+static void amdgpu_buffer_destroy(struct radeon_winsys *rws, struct pb_buffer_lean *buf)
 {
    struct amdgpu_winsys_bo *bo = amdgpu_winsys_bo(buf);
 
    if (bo->type == AMDGPU_BO_SLAB_ENTRY)
-      amdgpu_bo_slab_destroy(ws, buf);
+      amdgpu_bo_slab_destroy(rws, buf);
    else if (bo->type == AMDGPU_BO_SPARSE)
-      amdgpu_bo_sparse_destroy(ws, buf);
+      amdgpu_bo_sparse_destroy(rws, buf);
    else
-      amdgpu_bo_destroy_or_cache(ws, buf);
+      amdgpu_bo_destroy_or_cache(rws, buf);
 }
 
-void amdgpu_bo_init_functions(struct amdgpu_screen_winsys *ws)
+void amdgpu_bo_init_functions(struct amdgpu_screen_winsys *sws)
 {
-   ws->base.buffer_set_metadata = amdgpu_buffer_set_metadata;
-   ws->base.buffer_get_metadata = amdgpu_buffer_get_metadata;
-   ws->base.buffer_map = amdgpu_bo_map;
-   ws->base.buffer_unmap = amdgpu_bo_unmap;
-   ws->base.buffer_wait = amdgpu_bo_wait;
-   ws->base.buffer_create = amdgpu_buffer_create;
-   ws->base.buffer_destroy = amdgpu_buffer_destroy;
-   ws->base.buffer_from_handle = amdgpu_bo_from_handle;
-   ws->base.buffer_from_ptr = amdgpu_bo_from_ptr;
-   ws->base.buffer_is_user_ptr = amdgpu_bo_is_user_ptr;
-   ws->base.buffer_is_suballocated = amdgpu_bo_is_suballocated;
-   ws->base.buffer_get_handle = amdgpu_bo_get_handle;
-   ws->base.buffer_commit = amdgpu_bo_sparse_commit;
-   ws->base.buffer_find_next_committed_memory = amdgpu_bo_find_next_committed_memory;
-   ws->base.buffer_get_virtual_address = amdgpu_bo_get_va;
-   ws->base.buffer_get_initial_domain = amdgpu_bo_get_initial_domain;
-   ws->base.buffer_get_flags = amdgpu_bo_get_flags;
+   sws->base.buffer_set_metadata = amdgpu_buffer_set_metadata;
+   sws->base.buffer_get_metadata = amdgpu_buffer_get_metadata;
+   sws->base.buffer_map = amdgpu_bo_map;
+   sws->base.buffer_unmap = amdgpu_bo_unmap;
+   sws->base.buffer_wait = amdgpu_bo_wait;
+   sws->base.buffer_create = amdgpu_buffer_create;
+   sws->base.buffer_destroy = amdgpu_buffer_destroy;
+   sws->base.buffer_from_handle = amdgpu_bo_from_handle;
+   sws->base.buffer_from_ptr = amdgpu_bo_from_ptr;
+   sws->base.buffer_is_user_ptr = amdgpu_bo_is_user_ptr;
+   sws->base.buffer_is_suballocated = amdgpu_bo_is_suballocated;
+   sws->base.buffer_get_handle = amdgpu_bo_get_handle;
+   sws->base.buffer_commit = amdgpu_bo_sparse_commit;
+   sws->base.buffer_find_next_committed_memory = amdgpu_bo_find_next_committed_memory;
+   sws->base.buffer_get_virtual_address = amdgpu_bo_get_va;
+   sws->base.buffer_get_initial_domain = amdgpu_bo_get_initial_domain;
+   sws->base.buffer_get_flags = amdgpu_bo_get_flags;
 }

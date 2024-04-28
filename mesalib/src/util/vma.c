@@ -352,6 +352,16 @@ util_vma_heap_free(struct util_vma_heap *heap,
    util_vma_heap_validate(heap);
 }
 
+uint64_t
+util_vma_heap_get_max_free_continuous_size(struct util_vma_heap *heap)
+{
+   if (list_is_empty(&heap->holes))
+      return 0;
+
+   struct util_vma_hole *top_hole = list_first_entry(&heap->holes, struct util_vma_hole, link);
+   return top_hole->size;
+}
+
 void
 util_vma_heap_print(struct util_vma_heap *heap, FILE *fp,
                     const char *tab, uint64_t total_size)

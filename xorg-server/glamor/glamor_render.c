@@ -61,7 +61,7 @@ static struct blendinfo composite_op_info[] = {
 
 #define RepeatFix			10
 static GLuint
-glamor_create_composite_fs(glamor_screen_private *glamor_priv, struct shader_key *key)
+glamor_create_composite_fs(glamor_screen_private *glamor_priv, struct shader_key *key, Bool enable_rel_sampler)
 {
     const char *repeat_define =
         "#define RepeatNone               	      0\n"
@@ -129,6 +129,15 @@ glamor_create_composite_fs(glamor_screen_private *glamor_priv, struct shader_key
         "			tex = (fract(tex) / wh.xy);\n"
         "		}\n"
         "	}\n"
+        "	return vec4(texture(tex_image, tex).rgb, 1.0);\n"
+        "}\n";
+    const char *stub_rel_sampler =
+        " vec4 rel_sampler_rgba(sampler2D tex_image, vec2 tex, vec4 wh, int repeat)\n"
+        "{\n"
+        "	return texture(tex_image, tex);\n"
+        "}\n"
+        " vec4 rel_sampler_rgbx(sampler2D tex_image, vec2 tex, vec4 wh, int repeat)\n"
+        "{\n"
         "	return vec4(texture(tex_image, tex).rgb, 1.0);\n"
         "}\n";
 
@@ -327,7 +336,8 @@ glamor_create_composite_fs(glamor_screen_private *glamor_priv, struct shader_key
                 GLAMOR_DEFAULT_PRECISION
                 "%s%s%s%s%s%s%s%s", header, GLAMOR_COMPAT_DEFINES_FS,
                 repeat_define, relocate_texture,
-                rel_sampler, source_fetch, mask_fetch, dest_swizzle, in);
+                enable_rel_sampler ? rel_sampler : stub_rel_sampler,
+                source_fetch, mask_fetch, dest_swizzle, in);
 
     prog = glamor_compile_glsl_prog(GL_FRAGMENT_SHADER, source);
     free(source);
@@ -391,18 +401,21 @@ glamor_create_composite_shader(ScreenPtr screen, struct shader_key *key,
     GLuint vs, fs, prog;
     GLint source_sampler_uniform_location, mask_sampler_uniform_location;
     glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
+    Bool enable_rel_sampler = TRUE;
 
     glamor_make_current(glamor_priv);
     vs = glamor_create_composite_vs(glamor_priv, key);
     if (vs == 0)
         return;
-    fs = glamor_create_composite_fs(glamor_priv, key);
+    fs = glamor_create_composite_fs(glamor_priv, key, enable_rel_sampler);
     if (fs == 0)
         return;
 
     prog = glCreateProgram();
     glAttachShader(prog, vs);
     glAttachShader(prog, fs);
+    glDeleteShader(vs);
+    glDeleteShader(fs);
 
     glBindAttribLocation(prog, GLAMOR_VERTEX_POS, "v_position");
     glBindAttribLocation(prog, GLAMOR_VERTEX_SOURCE, "v_texcoord0");
@@ -412,7 +425,22 @@ glamor_create_composite_shader(ScreenPtr screen, struct shader_key *key,
         glBindFragDataLocationIndexed(prog, 0, 0, "color0");
         glBindFragDataLocationIndexed(prog, 0, 1, "color1");
     }
-    glamor_link_glsl_prog(screen, prog, "composite");
+
+    if (!glamor_link_glsl_prog(screen, prog, "composite")) {
+        /* Failed to link the shader, try again without rel_sampler. */
+        enable_rel_sampler = FALSE;
+        glDetachShader(prog, fs);
+        fs = glamor_create_composite_fs(glamor_priv, key, enable_rel_sampler);
+        if (fs == 0)
+            return;
+        glAttachShader(prog, fs);
+        glDeleteShader(fs);
+
+        if (!glamor_link_glsl_prog(screen, prog, "composite")) {
+            glDeleteProgram(prog);
+            return;
+        }
+    }
 
     shader->prog = prog;
 
@@ -1407,6 +1435,7 @@ glamor_convert_gradient_picture(ScreenPtr screen,
     int error;
     PictFormatPtr pFormat;
     PictFormatShort format;
+    glamor_screen_private *glamor_priv = glamor_get_screen_private(screen);
 
     if (source->pDrawable) {
         pFormat = source->pFormat;
@@ -1416,7 +1445,7 @@ glamor_convert_gradient_picture(ScreenPtr screen,
         pFormat = PictureMatchFormat(screen, 32, format);
     }
 
-    if (!source->pDrawable) {
+    if (glamor_priv->enable_gradient_shader && !source->pDrawable) {
         if (source->pSourcePict->type == SourcePictTypeLinear) {
             dst = glamor_generate_linear_gradient_picture(screen,
                                                           source, x_source,

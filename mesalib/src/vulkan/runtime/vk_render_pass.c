@@ -1392,13 +1392,40 @@ can_use_attachment_initial_layout(struct vk_command_buffer *cmd_buffer,
    return true;
 }
 
-static void
-set_attachment_layout(struct vk_command_buffer *cmd_buffer,
-                      uint32_t att_idx,
-                      uint32_t view_mask,
-                      VkImageLayout layout,
-                      VkImageLayout stencil_layout)
+uint32_t
+vk_command_buffer_get_attachment_layout(const struct vk_command_buffer *cmd_buffer,
+                                        const struct vk_image *image,
+                                        VkImageLayout *out_layout,
+                                        VkImageLayout *out_stencil_layout)
 {
+   const struct vk_render_pass *render_pass = cmd_buffer->render_pass;
+   assert(render_pass != NULL);
+
+   const struct vk_subpass *subpass =
+      &render_pass->subpasses[cmd_buffer->subpass_idx];
+   int first_view = ffs(subpass->view_mask) - 1;
+
+   for (uint32_t a = 0; a < render_pass->attachment_count; a++) {
+      if (cmd_buffer->attachments[a].image_view->image == image) {
+         *out_layout = cmd_buffer->attachments[a].views[first_view].layout;
+         *out_stencil_layout =
+            cmd_buffer->attachments[a].views[first_view].stencil_layout;
+         return a;
+      }
+   }
+   unreachable("Image not found in attachments");
+}
+
+void
+vk_command_buffer_set_attachment_layout(struct vk_command_buffer *cmd_buffer,
+                                        uint32_t att_idx,
+                                        VkImageLayout layout,
+                                        VkImageLayout stencil_layout)
+{
+   const struct vk_render_pass *render_pass = cmd_buffer->render_pass;
+   const struct vk_subpass *subpass =
+      &render_pass->subpasses[cmd_buffer->subpass_idx];
+   uint32_t view_mask = subpass->view_mask;
    struct vk_attachment_state *att_state = &cmd_buffer->attachments[att_idx];
 
    u_foreach_bit(view, view_mask) {
@@ -1650,9 +1677,10 @@ begin_subpass(struct vk_command_buffer *cmd_buffer,
             };
             __vk_append_struct(color_attachment, color_initial_layout);
 
-            set_attachment_layout(cmd_buffer, sp_att->attachment,
-                                  subpass->view_mask,
-                                  sp_att->layout, VK_IMAGE_LAYOUT_UNDEFINED);
+            vk_command_buffer_set_attachment_layout(cmd_buffer,
+                                                    sp_att->attachment,
+                                                    sp_att->layout,
+                                                    VK_IMAGE_LAYOUT_UNDEFINED);
          }
       } else {
          /* We've seen at least one of the views of this attachment before so
@@ -1770,9 +1798,10 @@ begin_subpass(struct vk_command_buffer *cmd_buffer,
                                   &stencil_initial_layout);
             }
 
-            set_attachment_layout(cmd_buffer, sp_att->attachment,
-                                  subpass->view_mask,
-                                  sp_att->layout, sp_att->stencil_layout);
+            vk_command_buffer_set_attachment_layout(cmd_buffer,
+                                                    sp_att->attachment,
+                                                    sp_att->layout,
+                                                    sp_att->stencil_layout);
          }
       } else {
          /* We've seen at least one of the views of this attachment before so
@@ -2048,8 +2077,10 @@ begin_subpass(struct vk_command_buffer *cmd_buffer,
          .pImageMemoryBarriers = image_barrier_count > 0 ?
                                  image_barriers : NULL,
       };
+      cmd_buffer->runtime_rp_barrier = true;
       disp->CmdPipelineBarrier2(vk_command_buffer_to_handle(cmd_buffer),
                                 &dependency_info);
+      cmd_buffer->runtime_rp_barrier = false;
    }
 
    STACK_ARRAY_FINISH(image_barriers);
@@ -2227,8 +2258,10 @@ end_subpass(struct vk_command_buffer *cmd_buffer,
          .memoryBarrierCount = 1,
          .pMemoryBarriers = &mem_barrier,
       };
+      cmd_buffer->runtime_rp_barrier = true;
       disp->CmdPipelineBarrier2(vk_command_buffer_to_handle(cmd_buffer),
                                 &dependency_info);
+      cmd_buffer->runtime_rp_barrier = false;
    }
 }
 
@@ -2455,8 +2488,10 @@ vk_common_CmdEndRenderPass2(VkCommandBuffer commandBuffer,
          .imageMemoryBarrierCount = image_barrier_count,
          .pImageMemoryBarriers = image_barriers,
       };
+      cmd_buffer->runtime_rp_barrier = true;
       disp->CmdPipelineBarrier2(vk_command_buffer_to_handle(cmd_buffer),
                                 &dependency_info);
+      cmd_buffer->runtime_rp_barrier = false;
    }
 
    STACK_ARRAY_FINISH(image_barriers);

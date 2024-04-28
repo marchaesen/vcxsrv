@@ -1,22 +1,5 @@
 # Copyright © 2017 Intel Corporation
-
-# Permission is hereby granted, free of charge, to any person obtaining a copy
-# of this software and associated documentation files (the "Software"), to deal
-# in the Software without restriction, including without limitation the rights
-# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-# copies of the Software, and to permit persons to whom the Software is
-# furnished to do so, subject to the following conditions:
-
-# The above copyright notice and this permission notice shall be included in
-# all copies or substantial portions of the Software.
-
-# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-# SOFTWARE.
+# SPDX-License-Identifier: MIT
 
 files_r300 = files(
   'r300_blit.c',
@@ -145,32 +128,3 @@ driver_r300 = declare_dependency(
   compile_args : '-DGALLIUM_R300',
   link_with : [libr300, libradeonwinsys],
 )
-
-if with_tests
-  test(
-    'r300_compiler_test',
-    executable(
-      'r300_compiler_test',
-      files(
-        'compiler/tests/r300_compiler_tests.c',
-        'compiler/tests/radeon_compiler_optimize_tests.c',
-        'compiler/tests/radeon_compiler_regalloc_tests.c',
-        'compiler/tests/radeon_compiler_util_tests.c',
-        'compiler/tests/rc_test_helpers.c',
-        'compiler/tests/unit_test.c',
-      ),
-      c_args : [
-        '-DTEST_PATH="@0@"'.format(
-          join_paths(meson.current_source_dir(), 'compiler', 'tests')
-        )
-      ],
-      include_directories : [
-        inc_src, inc_include, inc_gallium, inc_gallium_aux,
-        include_directories('compiler'),
-      ],
-      link_with : [libr300, libgallium],
-      dependencies : [dep_m, dep_clock, dep_dl, dep_unwind, idep_mesautil],
-    ),
-    suite : ['r300'],
-  )
-endif

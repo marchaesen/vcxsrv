@@ -26,3 +26,21 @@
     - changes:
         *r300_file_list
       when: manual
+
+.r300-nine-rules:
+  stage: amd
+  rules:
+    - !reference [.test, rules]
+    - !reference [.r300-rules, rules]
+    - changes: &nine_file_list
+        - src/gallium/frontends/nine/*
+      when: on_success
+
+.r300-nine-manual-rules:
+  stage: amd
+  retry: !reference [.scheduled_pipeline-rules, retry]
+  rules:
+    - !reference [.test, rules]
+    - !reference [.r300-manual-rules, rules]
+    - changes: *nine_file_list
+      when: manual

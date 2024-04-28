@@ -72,6 +72,9 @@ SOFTWARE.
 #endif
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "os.h"
 #include "osdep.h"
 #include "opaque.h"
@@ -890,9 +893,6 @@ FlushClient(ClientPtr who, OsCommPtr oc, const void *__extraBuf, int extraCount)
             todo = notWritten;
         }
         else if (ETEST(errno)
-#ifdef SUNSYSV                  /* check for another brain-damaged OS bug */
-                 || (errno == 0)
-#endif
 #ifdef EMSGSIZE                 /* check for another brain-damaged OS bug */
                  || ((errno == EMSGSIZE) && (todo == 1))
 #endif

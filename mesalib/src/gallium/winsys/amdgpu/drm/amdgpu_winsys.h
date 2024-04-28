@@ -19,16 +19,27 @@ struct amdgpu_cs;
 
 /* DRM file descriptors, file descriptions and buffer sharing.
  *
- * amdgpu_device_initialize first argument is a file descriptor (fd)
- * representing a specific GPU.
- * If a fd is duplicated using os_dupfd_cloexec,
- * the file description will remain the same (os_same_file_description will
- * return 0).
- * But if the same device is re-opened, the fd and the file description will
- * be different.
+ * amdgpu_device_initialize() creates one amdgpu_device_handle for one
+ * gpu. It does this by getting sysfs path(eg /dev/dri/cardxx) for the fd.
+ * It uses the sysfs path to return the amdgpu_device_handle if already created
+ * or to create new one.
+ *
+ * Thus amdgpu_device_handle's fd will be from the first time the gpu
+ * was initialized by amdgpu_device_initialize().
+ *
+ * KMS/GEM buffer handles are specific to a DRM file description. i.e. the
+ * same handle value may refer to different underlying BOs in different
+ * DRM file descriptions even for the same gpu. The
+ * https://en.wikipedia.org/wiki/File:File_table_and_inode_table.svg diagram shows
+ * the file descriptors and its relation to file descriptions in the file table.
+ *
+ * The fd's are considered different if the fd's are obtained using open()
+ * function. The fd's that are duplicates(using dup() or fcntl F_DUPFD) of
+ * open fd, all will be same when compared with os_same_file_description()
+ * function which uses kcmp system call.
  *
  * amdgpu_screen_winsys's fd tracks the file description which was
- * given to amdgpu_winsys_create. This is the fd used by the application
+ * given to amdgpu_winsys_create(). This is the fd used by the application
  * using the driver and may be used in other ioctl (eg: drmModeAddFB)
  *
  * amdgpu_winsys's fd is the file description used to initialize the
@@ -37,17 +48,52 @@ struct amdgpu_cs;
  * The 2 fds can be different, even in systems with a single GPU, eg: if
  * radv is initialized before radeonsi.
  *
- * This fd tracking is useful for buffer sharing because KMS/GEM handles are
- * specific to a DRM file description, i.e. the same handle value may refer
- * to different underlying BOs in different DRM file descriptions.
- * As an example, if an app wants to use drmModeAddFB it'll need a KMS handle
- * valid for its fd (== amdgpu_screen_winsys::fd).
- * If both fds are identical, there's nothing to do: bo->u.real.kms_handle
- * can be used directly (see amdgpu_bo_get_handle).
- * If they're different, the BO has to be exported from the device fd as
- * a dma-buf, then imported from the app fd as a KMS handle.
+ * This fd tracking is useful for buffer sharing. As an example, if an app
+ * wants to use drmModeAddFB it'll need a KMS handle valid for its
+ * fd (== amdgpu_screen_winsys::fd). If both fds are identical, there's
+ * nothing to do: bo->u.real.kms_handle can be used directly
+ * (see amdgpu_bo_get_handle). If they're different, the BO has to be exported
+ * from the device fd as a dma-buf, then imported to the app fd to get the
+ * KMS handle of the buffer for that app fd.
+ *
+ * Examples:
+ * 1) OpenGL, then VAAPI:
+ *    OpenGL                             | VAAPI (same device, != file description)
+ *    -----------------------------------│-----------------------------------------
+ *    fd = 5 (/dev/dri/renderD128)       │fd = 9 (/dev/dri/renderD128')
+ *          │                            │       │
+ *     device_handle = 0xffff0250        │ device_handle = 0xffff0250 (fd=5, re-used)
+ *          │                            │       │
+ *    amdgpu_screen_winsys = 0xffff0120  │amdgpu_winsys = 0xffff0470  ◄─────────────┐
+ *          │   ├─ fd = dup(5) = 6       │       │   └─ sws_list = 0xffff0120       │
+ *          │   └─ aws = 0xffff0470 ◄──┐ │       │                 0xffff0640 ◄───┐ │
+ *          │                          │ │amdgpu_screen_winsys = 0xffff0640 ──────┘ │
+ *    amdgpu_winsys = 0xffff0470    ───┘ │           └─ fd = dup(9) = 10            │
+ *          │   ├─ dev = 0xffff0250      │                                          │
+ *          │   ├─ sws_list = 0xffff0120 │                                          │
+ *          │   └─ fd = 6                │                                          │
+ *    dev_tab(0xffff0250) = 0xffff0470 ──│──────────────────────────────────────────┘
+ *
+ * 2) Vulkan (fd=5) then OpenGL (same device, != file description):
+ *    -----------------------------
+ *    fd = 9 (/dev/dri/renderD128)
+ *           │
+ *     device_handle = 0xffff0250 (fd=5, re-used)
+ *           │
+ *    amdgpu_screen_winsys = 0xffff0740
+ *           │   ├─ fd = dup(9) = 10
+ *           │   └─ aws = 0xffff0940 ◄───┐
+ *    amdgpu_winsys = 0xffff0940 ────────┘
+ *           │   ├─ dev = 0xffff0250
+ *           │   ├─ sws_list = 0xffff0740
+ *           │   └─ fd = 5
+ *    dev_tab(0xffff0250) = 0xffff0940
  */
 
+/* One struct amdgpu_screen_winsys is created in amdgpu_winsys_create() for one
+ * fd. For fd's that are same (read above description for same if condition),
+ * already created amdgpu_screen_winsys will be returned.
+ */
 struct amdgpu_screen_winsys {
    struct radeon_winsys base;
    struct amdgpu_winsys *aws;
@@ -139,6 +185,7 @@ struct amdgpu_seq_no_fences {
 /* valid_fence_mask should have 1 bit for each queue. */
 static_assert(sizeof(((struct amdgpu_seq_no_fences*)NULL)->valid_fence_mask) * 8 >= AMDGPU_MAX_QUEUES, "");
 
+/* One struct amdgpu_winsys is created for one gpu in amdgpu_winsys_create(). */
 struct amdgpu_winsys {
    struct pipe_reference reference;
    /* See comment above */
@@ -182,7 +229,7 @@ struct amdgpu_winsys {
    bool noop_cs;
    bool reserve_vmid;
    bool zero_all_vram_allocs;
-#if DEBUG
+#if MESA_DEBUG
    bool debug_all_bos;
 
    /* List of all allocated buffers */
@@ -202,10 +249,10 @@ struct amdgpu_winsys {
    struct hash_table *bo_export_table;
    simple_mtx_t bo_export_table_lock;
 
-   /* Since most winsys functions require struct radeon_winsys *, dummy_ws.base is used
+   /* Since most winsys functions require struct radeon_winsys *, dummy_sws.base is used
     * for invoking them because sws_list can be NULL.
     */
-   struct amdgpu_screen_winsys dummy_ws;
+   struct amdgpu_screen_winsys dummy_sws;
 };
 
 static inline struct amdgpu_screen_winsys *
@@ -220,6 +267,6 @@ amdgpu_winsys(struct radeon_winsys *base)
    return amdgpu_screen_winsys(base)->aws;
 }
 
-void amdgpu_surface_init_functions(struct amdgpu_screen_winsys *ws);
+void amdgpu_surface_init_functions(struct amdgpu_screen_winsys *sws);
 
 #endif

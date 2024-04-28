@@ -1704,8 +1704,8 @@ offsets = {
     "DrawArraysInstancedBaseInstanceDrawID": 1668,
     "DrawElementsInstancedBaseVertexBaseInstanceDrawID": 1669,
     "InternalInvalidateFramebufferAncillaryMESA": 1670,
-    "VendorPrivate": 1671,
-    "VendorPrivateWithReply": 1672,
+    "DrawElementsPacked": 1671,
+    "DrawElementsUserBufPacked": 1672,
     "QueryExtensionsString": 1673,
     "QueryServerString": 1674,
     "ClientInfo": 1675,
@@ -1752,6 +1752,8 @@ offsets = {
     "UseXFont": 1716,
     "CreateGLXPixmap": 1717,
     "DestroyGLXPixmap": 1718,
+    "VendorPrivate": 1719,
+    "VendorPrivateWithReply": 1720,
 }
 
 functions = [

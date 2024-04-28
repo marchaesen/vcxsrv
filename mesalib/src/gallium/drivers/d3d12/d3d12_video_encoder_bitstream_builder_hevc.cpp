@@ -297,7 +297,7 @@ d3d12_video_encoder_convert_pixel_size_hevc_to_12tusize(const uint32_t& TUSize)
     }
 }
 
-void
+HevcVideoParameterSet
 d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_HEVC& profile,
          const D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC& level,
          const DXGI_FORMAT inputFmt,
@@ -306,15 +306,14 @@ d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_
          uint8_t vps_video_parameter_set_id,
          std::vector<BYTE> &headerBitstream,
          std::vector<BYTE>::iterator placingPositionStart,
-         size_t &writtenBytes,
-         HevcVideoParameterSet* pVPSStruct)
+         size_t &writtenBytes)
 {
    uint8_t HEVCProfileIdc = convert_profile12_to_stdprofile(profile);
    uint32_t HEVCLevelIdc = 0u;
    d3d12_video_encoder_convert_from_d3d12_level_hevc(level.Level, HEVCLevelIdc);
    bool isHighTier = (level.Tier == D3D12_VIDEO_ENCODER_TIER_HEVC_HIGH);
 
-   memset(&m_latest_vps, 0, sizeof(HevcVideoParameterSet));
+   HevcVideoParameterSet m_latest_vps = {};
    m_latest_vps.nalu = {
          // forbidden_zero_bit 
          0u,
@@ -346,13 +345,10 @@ d3d12_video_bitstream_builder_hevc::build_vps(const D3D12_VIDEO_ENCODER_PROFILE_
 
    m_hevcEncoder.vps_to_nalu_bytes(&m_latest_vps, headerBitstream, placingPositionStart, writtenBytes);
 
-   if(pVPSStruct != nullptr)
-   {
-      *pVPSStruct = m_latest_vps;
-   }
+   return m_latest_vps;
 }
 
-void
+HevcSeqParameterSet
 d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& parentVPS,
          const struct pipe_h265_enc_seq_param & seqData,
          uint8_t seq_parameter_set_id,
@@ -364,10 +360,9 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
          const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_HEVC& hevcGOP,    
          std::vector<BYTE> &headerBitstream,
          std::vector<BYTE>::iterator placingPositionStart,
-         size_t &writtenBytes,
-         HevcSeqParameterSet* outputSPS)
+         size_t &writtenBytes)
 {
-   memset(&m_latest_sps, 0, sizeof(HevcSeqParameterSet));
+   HevcSeqParameterSet m_latest_sps = {};
 
    // In case is 420 10 bits
    if(inputFmt == DXGI_FORMAT_P010)
@@ -487,23 +482,19 @@ d3d12_video_bitstream_builder_hevc::build_sps(const HevcVideoParameterSet& paren
    
    m_hevcEncoder.sps_to_nalu_bytes(&m_latest_sps, headerBitstream, placingPositionStart, writtenBytes);
 
-   if(outputSPS != nullptr)
-   {
-      *outputSPS = m_latest_sps;
-   }
+   return m_latest_sps;
 }
 
-void
+HevcPicParameterSet
 d3d12_video_bitstream_builder_hevc::build_pps(const HevcSeqParameterSet& parentSPS,
          uint8_t pic_parameter_set_id,
          const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
          const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC& pictureControl,
          std::vector<BYTE> &headerBitstream,
          std::vector<BYTE>::iterator placingPositionStart,
-         size_t &writtenBytes,
-         HevcPicParameterSet* outputPPS)
+         size_t &writtenBytes)
 {
-   memset(&m_latest_pps, 0, sizeof(HevcPicParameterSet));
+   HevcPicParameterSet m_latest_pps = {};
 
    m_latest_pps.nalu.nal_unit_type = HEVC_NALU_PPS_NUT;
    m_latest_pps.nalu.nuh_temporal_id_plus1 = 1;
@@ -543,10 +534,7 @@ d3d12_video_bitstream_builder_hevc::build_pps(const HevcSeqParameterSet& parentS
 
    m_hevcEncoder.pps_to_nalu_bytes(&m_latest_pps, headerBitstream, placingPositionStart, writtenBytes);
 
-   if(outputPPS != nullptr)
-   {
-      *outputPPS = m_latest_pps;
-   }
+   return m_latest_pps;
 }
 
 void

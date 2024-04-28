@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database xmlns="http://nouveau.freedesktop.org/"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
+<import file="freedreno_copyright.xml"/>
 <import file="adreno/adreno_common.xml"/>
 
 <enum name="vgt_event_type" varset="chip">
@@ -324,7 +325,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<doc>fetch state sub-blocks and initiate shader code DMAs</doc>
 	<value name="CP_SET_STATE" value="0x25"/>
 	<doc>load constant into chip and to memory</doc>
-	<value name="CP_SET_CONSTANT" value="0x2d"/>
+	<value name="CP_SET_CONSTANT" value="0x2d" variants="A2XX"/>
 	<doc>load sequencer instruction memory (pointer-based)</doc>
 	<value name="CP_IM_LOAD" value="0x27"/>
 	<doc>load sequencer instruction memory (code embedded in packet)</doc>
@@ -371,7 +372,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CP_LOAD_STATE" value="0x30" variants="A3XX"/>
 	<value name="CP_LOAD_STATE4" value="0x30" variants="A4XX-A5XX"/>
 	<doc>Conditionally load a IB based on a flag, prefetch enabled</doc>
-	<value name="CP_COND_INDIRECT_BUFFER_PFE" value="0x3a"/>
+	<value name="CP_COND_INDIRECT_BUFFER_PFE" value="0x3a" variants="A3XX-A5XX"/>
 	<doc>Conditionally load a IB based on a flag, prefetch disabled</doc>
 	<value name="CP_COND_INDIRECT_BUFFER_PFD" value="0x32" variants="A3XX"/>
 	<doc>Load a buffer with pre-fetch enabled</doc>
@@ -573,6 +574,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<value name="CP_WAIT_TWO_REGS" value="0x70" variants="A6XX"/>
 	<value name="CP_MEMCPY" value="0x75" variants="A6XX-"/>
 	<value name="CP_SET_BIN_DATA5_OFFSET" value="0x2e" variants="A6XX-"/>
+	<!-- A750+, set in place of CP_SET_BIN_DATA5_OFFSET but has different values -->
+	<value name="CP_SET_UNK_BIN_DATA" value="0x2d" variants="A7XX-"/>
 	<doc>
                 Write CP_CONTEXT_SWITCH_*_INFO from CP to the following dwords,
                 and forcibly switch to the indicated context.
@@ -648,6 +651,9 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 	<doc>Reset various on-chip state used for synchronization</doc>
 	<value name="CP_RESET_CONTEXT_STATE" value="0x1f" variants="A7XX-"/>
+
+	<doc>Invalidates the "CCHE" introduced on a740</doc>
+	<value name="CP_CCHE_INVALIDATE" value="0x3a" variants="A7XX-"/>
 </enum>
 
 
@@ -1653,8 +1659,8 @@ opcode: CP_LOAD_STATE4 (30) (4 dwords)
 		<bitfield name="WRITE_SAMPLE_COUNT" pos="12" type="boolean"/>
 		<!-- Write sample count at (iova + 16) -->
 		<bitfield name="SAMPLE_COUNT_END_OFFSET" pos="13" type="boolean"/>
-		<!-- *(iova + 8) = *(iova + 16) - *iova -->
-		<bitfield name="WRITE_SAMPLE_COUNT_DIFF" pos="14" type="boolean"/>
+		<!-- *(iova + 8) += *(iova + 16) - *iova -->
+		<bitfield name="WRITE_ACCUM_SAMPLE_COUNT_DIFF" pos="14" type="boolean"/>
 
 		<!-- Next 4 flags are valid to set only when concurrent binning is enabled -->
 		<!-- Increment 16b BV counter. Valid only in BV pipe -->

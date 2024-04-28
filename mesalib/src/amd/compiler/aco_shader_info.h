@@ -5,24 +5,7 @@
  * based in part on anv driver which is:
  * Copyright © 2015 Intel Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 #ifndef ACO_SHADER_INFO_H
 #define ACO_SHADER_INFO_H
@@ -74,11 +57,11 @@ struct aco_ps_epilog_info {
    bool mrt0_is_dual_src;
 
    bool alpha_to_coverage_via_mrtz;
+   bool alpha_to_one;
 
    /* OpenGL only */
    uint16_t color_types;
    bool clamp_color;
-   bool alpha_to_one;
    bool skip_null_export;
    unsigned broadcast_last_cbuf;
    enum compare_func alpha_func;
@@ -86,33 +69,6 @@ struct aco_ps_epilog_info {
    struct ac_arg depth;
    struct ac_arg stencil;
    struct ac_arg samplemask;
-};
-
-struct aco_tcs_epilog_info {
-   bool pass_tessfactors_by_reg;
-   bool tcs_out_patch_fits_subgroup;
-   enum tess_primitive_mode primitive_mode;
-   unsigned tess_offchip_ring_size;
-   bool tes_reads_tessfactors;
-
-   struct ac_arg invocation_id;
-   struct ac_arg rel_patch_id;
-   struct ac_arg tcs_out_current_patch_data_offset;
-   struct ac_arg patch_base;
-   struct ac_arg tess_lvl_in[2];
-   struct ac_arg tess_lvl_out[4];
-   struct ac_arg tcs_out_lds_layout;
-   struct ac_arg tcs_offchip_layout;
-};
-
-struct aco_gl_vs_prolog_info {
-   uint16_t instance_divisor_is_one;
-   uint16_t instance_divisor_is_fetched;
-   unsigned instance_diviser_buf_offset;
-   unsigned num_inputs;
-   bool as_ls;
-
-   struct ac_arg internal_bindings;
 };
 
 struct aco_ps_prolog_info {
@@ -147,6 +103,7 @@ struct aco_shader_info {
    bool has_epilog;                        /* Only for TCS or PS. */
    bool merged_shader_compiled_separately; /* GFX9+ */
    struct ac_arg next_stage_pc;
+   struct ac_arg epilog_pc; /* Vulkan only */
    struct {
       bool tcs_in_out_eq;
       uint64_t tcs_temp_only_input_mask;
@@ -157,10 +114,6 @@ struct aco_shader_info {
 
       /* Vulkan only */
       uint32_t num_lds_blocks;
-      struct ac_arg epilog_pc;
-      uint32_t num_linked_outputs;
-      uint32_t num_linked_patch_outputs;
-      uint32_t tcs_vertices_out;
 
       /* OpenGL only */
       bool pass_tessfactors_by_reg;
@@ -172,9 +125,6 @@ struct aco_shader_info {
       uint32_t num_interp;
       unsigned spi_ps_input_ena;
       unsigned spi_ps_input_addr;
-
-      /* Vulkan only */
-      struct ac_arg epilog_pc;
 
       /* OpenGL only */
       struct ac_arg alpha_reference;
@@ -228,6 +178,7 @@ enum aco_statistic {
    aco_statistic_salu,
    aco_statistic_vmem,
    aco_statistic_smem,
+   aco_statistic_vopd,
    aco_num_statistics
 };
 

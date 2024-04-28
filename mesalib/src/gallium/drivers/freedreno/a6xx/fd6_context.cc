@@ -170,6 +170,10 @@ setup_state_map(struct fd_context *ctx)
                       BIT(FD6_GROUP_PROG) | BIT(FD6_GROUP_PROG_KEY));
    fd_context_add_map(ctx, FD_DIRTY_RASTERIZER | FD_DIRTY_MIN_SAMPLES | FD_DIRTY_FRAMEBUFFER,
                       BIT(FD6_GROUP_PROG_KEY));
+   if (ctx->screen->driconf.dual_color_blend_by_location) {
+      fd_context_add_map(ctx, FD_DIRTY_BLEND_DUAL,
+                         BIT(FD6_GROUP_PROG_KEY));
+   }
    fd_context_add_map(ctx, FD_DIRTY_RASTERIZER, BIT(FD6_GROUP_RASTERIZER));
    fd_context_add_map(ctx,
                       FD_DIRTY_FRAMEBUFFER | FD_DIRTY_RASTERIZER_DISCARD |

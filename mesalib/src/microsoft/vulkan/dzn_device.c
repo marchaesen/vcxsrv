@@ -60,13 +60,6 @@
 
 #include <directx/d3d12sdklayers.h>
 
-#if defined(VK_USE_PLATFORM_WIN32_KHR) || \
-    defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
-    defined(VK_USE_PLATFORM_XCB_KHR) || \
-    defined(VK_USE_PLATFORM_XLIB_KHR)
-#define DZN_USE_WSI_PLATFORM
-#endif
-
 #define DZN_API_VERSION VK_MAKE_VERSION(1, 2, VK_HEADER_VERSION)
 
 #define MAX_TIER2_MEMORY_TYPES 4
@@ -97,6 +90,9 @@ static const struct vk_instance_extension_table instance_extensions = {
 #ifdef VK_USE_PLATFORM_XLIB_KHR
    .KHR_xlib_surface                         = true,
 #endif
+#ifndef VK_USE_PLATFORM_WIN32_KHR
+   .EXT_headless_surface                     = true,
+#endif
    .EXT_debug_report                         = true,
    .EXT_debug_utils                          = true,
 };
@@ -107,6 +103,7 @@ dzn_physical_device_get_extensions(struct dzn_physical_device *pdev)
    pdev->vk.supported_extensions = (struct vk_device_extension_table) {
       .KHR_16bit_storage                     = pdev->options4.Native16BitShaderOpsSupported,
       .KHR_bind_memory2                      = true,
+      .KHR_buffer_device_address             = pdev->shader_model >= D3D_SHADER_MODEL_6_6,
       .KHR_create_renderpass2                = true,
       .KHR_dedicated_allocation              = true,
       .KHR_depth_stencil_resolve             = true,
@@ -135,6 +132,7 @@ dzn_physical_device_get_extensions(struct dzn_physical_device *pdev)
       .KHR_sampler_mirror_clamp_to_edge      = true,
       .KHR_separate_depth_stencil_layouts    = true,
       .KHR_shader_draw_parameters            = true,
+      .KHR_shader_expect_assume              = true,
       .KHR_shader_float16_int8               = pdev->options4.Native16BitShaderOpsSupported,
       .KHR_shader_float_controls             = true,
       .KHR_shader_integer_dot_product        = true,
@@ -146,6 +144,7 @@ dzn_physical_device_get_extensions(struct dzn_physical_device *pdev)
       .KHR_synchronization2                  = true,
       .KHR_timeline_semaphore                = true,
       .KHR_uniform_buffer_standard_layout    = true,
+      .EXT_buffer_device_address             = pdev->shader_model >= D3D_SHADER_MODEL_6_6,
       .EXT_descriptor_indexing               = pdev->shader_model >= D3D_SHADER_MODEL_6_6,
 #if defined(_WIN32)
       .EXT_external_memory_host              = pdev->dev13,
@@ -186,6 +185,8 @@ static const struct debug_control dzn_debug_options[] = {
    { "redirects", DZN_DEBUG_REDIRECTS },
    { "bindless", DZN_DEBUG_BINDLESS },
    { "nobindless", DZN_DEBUG_NO_BINDLESS },
+   { "experimental", DZN_DEBUG_EXPERIMENTAL },
+   { "multiview", DZN_DEBUG_MULTIVIEW },
    { NULL, 0 }
 };
 
@@ -267,6 +268,7 @@ try_find_d3d12core_next_to_self(char *path, size_t path_arr_size)
       return NULL;
    }
 
+   *(last_slash + 1) = '\0';
    return path;
 }
 #endif
@@ -346,8 +348,9 @@ dzn_physical_device_init_uuids(struct dzn_physical_device *pdev)
    _mesa_sha1_init(&sha1_ctx);
    _mesa_sha1_update(&sha1_ctx,  mesa_version, strlen(mesa_version));
    disk_cache_get_function_identifier(dzn_physical_device_init_uuids, &sha1_ctx);
-   _mesa_sha1_update(&sha1_ctx,  &pdev->options, sizeof(pdev->options));
-   _mesa_sha1_update(&sha1_ctx,  &pdev->options2, sizeof(pdev->options2));
+   _mesa_sha1_update(&sha1_ctx, &pdev->options,
+      offsetof(struct dzn_physical_device, options21) + sizeof(pdev->options21) -
+                     offsetof(struct dzn_physical_device, options));
    _mesa_sha1_final(&sha1_ctx, sha1);
    memcpy(pdev->pipeline_cache_uuid, sha1, VK_UUID_SIZE);
 
@@ -394,8 +397,8 @@ dzn_physical_device_cache_caps(struct dzn_physical_device *pdev)
    pdev->feature_level = levels.MaxSupportedFeatureLevel;
 
    static const D3D_SHADER_MODEL valid_shader_models[] = {
-      D3D_SHADER_MODEL_6_7, D3D_SHADER_MODEL_6_6, D3D_SHADER_MODEL_6_5, D3D_SHADER_MODEL_6_4,
-      D3D_SHADER_MODEL_6_3, D3D_SHADER_MODEL_6_2, D3D_SHADER_MODEL_6_1,
+      D3D_SHADER_MODEL_6_8 ,D3D_SHADER_MODEL_6_7, D3D_SHADER_MODEL_6_6, D3D_SHADER_MODEL_6_5,
+      D3D_SHADER_MODEL_6_4, D3D_SHADER_MODEL_6_3, D3D_SHADER_MODEL_6_2, D3D_SHADER_MODEL_6_1,
    };
    for (UINT i = 0; i < ARRAY_SIZE(valid_shader_models); ++i) {
       D3D12_FEATURE_DATA_SHADER_MODEL shader_model = { valid_shader_models[i] };
@@ -433,6 +436,9 @@ dzn_physical_device_cache_caps(struct dzn_physical_device *pdev)
       pdev->options19.MaxSamplerDescriptorHeapSize = D3D12_MAX_SHADER_VISIBLE_SAMPLER_HEAP_SIZE;
       pdev->options19.MaxSamplerDescriptorHeapSizeWithStaticSamplers = pdev->options19.MaxSamplerDescriptorHeapSize;
       pdev->options19.MaxViewDescriptorHeapSize = D3D12_MAX_SHADER_VISIBLE_DESCRIPTOR_HEAP_SIZE_TIER_1;
+   }
+   if (FAILED(ID3D12Device1_CheckFeatureSupport(pdev->dev, D3D12_FEATURE_D3D12_OPTIONS21, &pdev->options21, sizeof(pdev->options21)))) {
+      pdev->options21.ExecuteIndirectTier = D3D12_EXECUTE_INDIRECT_TIER_1_0;
    }
    {
       D3D12_FEATURE_DATA_FORMAT_SUPPORT a4b4g4r4_support = {
@@ -758,7 +764,7 @@ dzn_physical_device_get_features(const struct dzn_physical_device *pdev,
       .separateDepthStencilLayouts        = true,
       .hostQueryReset                     = true,
       .timelineSemaphore                  = true,
-      .bufferDeviceAddress                = false,
+      .bufferDeviceAddress                = pdev->shader_model >= D3D_SHADER_MODEL_6_6,
       .bufferDeviceAddressCaptureReplay   = false,
       .bufferDeviceAddressMultiDevice     = false,
       .vulkanMemoryModel                  = false,
@@ -783,6 +789,7 @@ dzn_physical_device_get_features(const struct dzn_physical_device *pdev,
       .dynamicRendering                   = true,
       .shaderIntegerDotProduct            = true,
       .maintenance4                       = false,
+      .shaderExpectAssume                 = true,
 
       .vertexAttributeInstanceRateDivisor = true,
       .vertexAttributeInstanceRateZeroDivisor = true,
@@ -1136,6 +1143,9 @@ dzn_physical_device_create(struct vk_instance *instance,
    dzn_physical_device_cache_caps(pdev);
    dzn_physical_device_init_memory(pdev);
    dzn_physical_device_init_uuids(pdev);
+
+   if (dzn_instance->debug_flags & DZN_DEBUG_MULTIVIEW)
+      pdev->options3.ViewInstancingTier = D3D12_VIEW_INSTANCING_TIER_NOT_SUPPORTED;
 
    dzn_physical_device_get_extensions(pdev);
    if (driQueryOptionb(&dzn_instance->dri_options, "dzn_enable_8bit_loads_stores") &&
@@ -1738,6 +1748,7 @@ static const driOptionDescription dzn_dri_options[] = {
    DRI_CONF_SECTION_DEBUG
       DRI_CONF_DZN_CLAIM_WIDE_LINES(false)
       DRI_CONF_DZN_ENABLE_8BIT_LOADS_STORES(false)
+      DRI_CONF_DZN_DISABLE(false)
       DRI_CONF_VK_WSI_FORCE_SWAPCHAIN_TO_CURRENT_EXTENT(false)
    DRI_CONF_SECTION_END
 };
@@ -1806,8 +1817,10 @@ dzn_instance_create(const VkInstanceCreateInfo *pCreateInfo,
 
    bool missing_validator = false;
 #ifdef _WIN32
-   instance->dxil_validator = dxil_create_validator(NULL);
-   missing_validator = !instance->dxil_validator;
+   if ((instance->debug_flags & DZN_DEBUG_EXPERIMENTAL) == 0) {
+      instance->dxil_validator = dxil_create_validator(NULL);
+      missing_validator = !instance->dxil_validator;
+   }
 #endif
 
    if (missing_validator) {
@@ -1836,6 +1849,11 @@ dzn_instance_create(const VkInstanceCreateInfo *pCreateInfo,
 
    instance->sync_binary_type = vk_sync_binary_get_type(&dzn_sync_type);
    dzn_init_dri_config(instance);
+
+   if (driQueryOptionb(&instance->dri_options, "dzn_disable")) {
+      dzn_instance_destroy(instance, pAllocator);
+      return vk_errorf(NULL, VK_ERROR_INITIALIZATION_FAILED, "dzn_disable set, failing instance creation");
+   }
 
    *out = dzn_instance_to_handle(instance);
    return VK_SUCCESS;
@@ -2381,7 +2399,9 @@ dzn_device_create(struct dzn_physical_device *pdev,
    device->support_static_samplers = true;
    device->bindless = (instance->debug_flags & DZN_DEBUG_BINDLESS) != 0 ||
       device->vk.enabled_features.descriptorIndexing ||
-      device->vk.enabled_extensions.EXT_descriptor_indexing;
+      device->vk.enabled_extensions.EXT_descriptor_indexing ||
+      device->vk.enabled_features.bufferDeviceAddress ||
+      device->vk.enabled_extensions.EXT_buffer_device_address;
 
    if (device->bindless) {
       uint32_t sampler_count = MIN2(pdev->options19.MaxSamplerDescriptorHeapSize, 4000);
@@ -3062,7 +3082,8 @@ dzn_buffer_create(struct dzn_device *device,
 
    if (buf->usage &
        (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT |
-        VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT)) {
+        VK_BUFFER_USAGE_STORAGE_TEXEL_BUFFER_BIT |
+        VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)) {
       buf->desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
       buf->valid_access |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
    }
@@ -3076,7 +3097,7 @@ dzn_buffer_create(struct dzn_device *device,
             return vk_error(device, VK_ERROR_OUT_OF_DEVICE_MEMORY);
          }
       }
-      if (buf->usage & VK_BUFFER_USAGE_STORAGE_BUFFER_BIT) {
+      if (buf->usage & (VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT)) {
          buf->uav_bindless_slot = dzn_device_descriptor_heap_alloc_slot(device, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
          if (buf->uav_bindless_slot < 0) {
             dzn_buffer_destroy(buf, pAllocator);
@@ -3677,7 +3698,8 @@ dzn_GetBufferDeviceAddress(VkDevice device,
 {
    struct dzn_buffer *buffer = dzn_buffer_from_handle(pInfo->buffer);
 
-   return buffer->gpuva;
+   /* Insert a pointer tag so we never return null */
+   return ((uint64_t)buffer->uav_bindless_slot << 32ull) | (0xD3ull << 56);
 }
 
 VKAPI_ATTR uint64_t VKAPI_CALL
@@ -3792,6 +3814,7 @@ dzn_GetMemoryFdPropertiesKHR(VkDevice _device,
    if (heap_desc.Properties.Type != D3D12_HEAP_TYPE_CUSTOM)
       heap_desc.Properties = dzn_ID3D12Device4_GetCustomHeapProperties(device->dev, 0, heap_desc.Properties.Type);
 
+   pProperties->memoryTypeBits = 0;
    for (uint32_t i = 0; i < pdev->memory.memoryTypeCount; ++i) {
       const VkMemoryType *mem_type = &pdev->memory.memoryTypes[i];
       D3D12_HEAP_PROPERTIES required_props = deduce_heap_properties_from_memory(pdev, mem_type);
@@ -3834,6 +3857,7 @@ dzn_GetMemoryHostPointerPropertiesEXT(VkDevice _device,
 
    struct dzn_physical_device *pdev = container_of(device->vk.physical, struct dzn_physical_device, vk);
    D3D12_HEAP_DESC heap_desc = dzn_ID3D12Heap_GetDesc(heap);
+   pMemoryHostPointerProperties->memoryTypeBits = 0;
    for (uint32_t i = 0; i < pdev->memory.memoryTypeCount; ++i) {
       const VkMemoryType *mem_type = &pdev->memory.memoryTypes[i];
       D3D12_HEAP_PROPERTIES required_props = deduce_heap_properties_from_memory(pdev, mem_type);

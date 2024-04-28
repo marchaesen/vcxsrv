@@ -25,6 +25,10 @@ pub struct SPIRVBin {
     info: Option<clc_parsed_spirv>,
 }
 
+// Safety: SPIRVBin is not mutable and is therefore Send and Sync, needed due to `clc_binary::data`
+unsafe impl Send for SPIRVBin {}
+unsafe impl Sync for SPIRVBin {}
+
 #[derive(PartialEq, Eq, Hash, Clone)]
 pub struct SPIRVKernelArg {
     pub name: String,
@@ -190,37 +194,32 @@ impl SPIRVBin {
         let mut out = clc_binary::default();
         let res = unsafe { clc_link_spirv(&linker_args, &logger, &mut out) };
 
-        let info;
-        if !library {
+        let info = if !library && res {
             let mut pspirv = clc_parsed_spirv::default();
             let res = unsafe { clc_parse_spirv(&out, &logger, &mut pspirv) };
-
-            if res {
-                info = Some(pspirv);
-            } else {
-                info = None;
-            }
-        } else {
-            info = None;
-        }
-
-        let res = if res {
-            Some(SPIRVBin {
-                spirv: out,
-                info: info,
-            })
+            res.then_some(pspirv)
         } else {
             None
         };
+
+        let res = res.then_some(SPIRVBin {
+            spirv: out,
+            info: info,
+        });
         (res, msgs.join("\n"))
     }
 
-    pub fn clone_on_validate(&self, options: &clc_validator_options) -> (Option<Self>, String) {
+    pub fn validate(&self, options: &clc_validator_options) -> (bool, String) {
         let mut msgs: Vec<String> = Vec::new();
         let logger = create_clc_logger(&mut msgs);
         let res = unsafe { clc_validate_spirv(&self.spirv, &logger, options) };
 
-        (res.then(|| self.clone()), msgs.join("\n"))
+        (res, msgs.join("\n"))
+    }
+
+    pub fn clone_on_validate(&self, options: &clc_validator_options) -> (Option<Self>, String) {
+        let (res, msgs) = self.validate(options);
+        (res.then(|| self.clone()), msgs)
     }
 
     fn kernel_infos(&self) -> &[clc_kernel_info] {

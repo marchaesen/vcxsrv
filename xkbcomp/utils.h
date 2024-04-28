@@ -138,6 +138,9 @@ uInformation(const char * /* s */ , ...
 
 /***====================================================================***/
 
+#include <strings.h>
+#include <string.h>
+
 #define	NullString	((char *)NULL)
 
 #define	uStringText(s)		((s)==NullString?"<NullString>":(s))
@@ -146,25 +149,9 @@ uInformation(const char * /* s */ , ...
 #define	uStringCompare(s1,s2)	(((s1)==NullString||(s2)==NullString)?\
                                  (s1)!=(s2):strcmp(s1,s2))
 #define	uStrCaseEqual(s1,s2)	(uStrCaseCmp(s1,s2)==0)
-#ifdef HAVE_STRCASECMP
-#include <strings.h>
 #define	uStrCaseCmp(s1,s2)	(strcasecmp(s1,s2))
 #define	uStrCasePrefix(p,s)	(strncasecmp(p,s,strlen(p))==0)
-#else
-     extern int uStrCaseCmp(const char * /* s1 */ ,
-                            const char *        /* s2 */
-    );
-     extern int uStrCasePrefix(const char * /* p */ ,
-                               const char * /* str */
-    );
-#endif
-#ifdef HAVE_STRDUP
-#include <string.h>
 #define	uStringDup(s1)		((s1) ? strdup(s1) : NULL)
-#else
-     extern char *uStringDup(const char *       /* s1 */
-    );
-#endif
 
 /***====================================================================***/
 

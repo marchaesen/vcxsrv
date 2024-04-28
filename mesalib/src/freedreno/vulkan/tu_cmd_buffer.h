@@ -54,7 +54,7 @@ struct tu_descriptor_state
    uint32_t dynamic_descriptors[MAX_DYNAMIC_BUFFERS_SIZE];
    uint64_t set_iova[MAX_SETS];
    uint32_t max_sets_bound;
-   bool dynamic_bound;
+   uint32_t max_dynamic_offset_size;
 };
 
 enum tu_cmd_dirty_bits
@@ -132,6 +132,19 @@ enum tu_cmd_access_mask {
     */
    TU_ACCESS_BINDLESS_DESCRIPTOR_READ = 1 << 13,
 
+   /* A write to a GMEM attachment made by CP_EVENT_WRITE::BLIT. */
+   TU_ACCESS_BLIT_WRITE_GMEM = 1 << 14,
+
+   /* Similar to UCHE_READ, but specifically for GMEM attachment reads. */
+   TU_ACCESS_UCHE_READ_GMEM = 1 << 15,
+
+   /* The CCHE is a write-through cache which sits behind UCHE, with multiple
+    * incoherent copies. Because it's write-through we only have to worry
+    * about invalidating it for reads. It's invalidated by "ccinv" in the
+    * shader and CP_CCHE_INVALIDATE in the command stream.
+    */
+   TU_ACCESS_CCHE_READ = 1 << 16,
+
    TU_ACCESS_READ =
       TU_ACCESS_UCHE_READ |
       TU_ACCESS_CCU_COLOR_READ |
@@ -139,7 +152,8 @@ enum tu_cmd_access_mask {
       TU_ACCESS_CCU_COLOR_INCOHERENT_READ |
       TU_ACCESS_CCU_DEPTH_INCOHERENT_READ |
       TU_ACCESS_SYSMEM_READ |
-      TU_ACCESS_BINDLESS_DESCRIPTOR_READ,
+      TU_ACCESS_BINDLESS_DESCRIPTOR_READ |
+      TU_ACCESS_CCHE_READ,
 
    TU_ACCESS_WRITE =
       TU_ACCESS_UCHE_WRITE |
@@ -186,10 +200,15 @@ enum tu_cmd_flush_bits {
    TU_CMD_FLAG_CCU_INVALIDATE_COLOR = 1 << 3,
    TU_CMD_FLAG_CACHE_FLUSH = 1 << 4,
    TU_CMD_FLAG_CACHE_INVALIDATE = 1 << 5,
-   TU_CMD_FLAG_WAIT_MEM_WRITES = 1 << 6,
-   TU_CMD_FLAG_WAIT_FOR_IDLE = 1 << 7,
-   TU_CMD_FLAG_WAIT_FOR_ME = 1 << 8,
-   TU_CMD_FLAG_BINDLESS_DESCRIPTOR_INVALIDATE = 1 << 9,
+   TU_CMD_FLAG_CCHE_INVALIDATE = 1 << 6,
+   TU_CMD_FLAG_WAIT_MEM_WRITES = 1 << 7,
+   TU_CMD_FLAG_WAIT_FOR_IDLE = 1 << 8,
+   TU_CMD_FLAG_WAIT_FOR_ME = 1 << 9,
+   TU_CMD_FLAG_BINDLESS_DESCRIPTOR_INVALIDATE = 1 << 10,
+   /* This is an unusual flush that isn't automatically executed if pending,
+    * as it isn't necessary. Therefore, it's not included in ALL_FLUSH.
+    */
+   TU_CMD_FLAG_BLIT_CACHE_FLUSH = 1 << 11,
 
    TU_CMD_FLAG_ALL_FLUSH =
       TU_CMD_FLAG_CCU_FLUSH_DEPTH |
@@ -205,6 +224,7 @@ enum tu_cmd_flush_bits {
       TU_CMD_FLAG_CCU_INVALIDATE_COLOR |
       TU_CMD_FLAG_CACHE_INVALIDATE |
       TU_CMD_FLAG_BINDLESS_DESCRIPTOR_INVALIDATE |
+      TU_CMD_FLAG_CCHE_INVALIDATE |
       /* Treat CP_WAIT_FOR_ME as a "cache" that needs to be invalidated when a
        * a command that needs CP_WAIT_FOR_ME is executed. This means we may
        * insert an extra WAIT_FOR_ME before an indirect command requiring it
@@ -482,6 +502,9 @@ struct tu_cmd_state
    bool stencil_front_write;
    bool stencil_back_write;
    bool pipeline_feedback_loop_ds;
+   bool pipeline_sysmem_single_prim_mode;
+   bool pipeline_has_tess;
+   bool pipeline_disable_gmem;
 
    bool pipeline_blend_lrz, pipeline_bandwidth;
    uint32_t pipeline_draw_states;
@@ -503,6 +526,7 @@ struct tu_cmd_state
    struct tu_draw_state lrz_and_depth_plane_state;
 
    struct tu_vs_params last_vs_params;
+   bool last_draw_indexed;
 
    struct tu_tess_params tess_params;
 
@@ -650,6 +674,11 @@ tu_emit_event_write(struct tu_cmd_buffer *cmd,
                     struct tu_cs *cs,
                     enum fd_gpu_event event);
 
+void
+tu_flush_for_access(struct tu_cache_state *cache,
+                    enum tu_cmd_access_mask src_mask,
+                    enum tu_cmd_access_mask dst_mask);
+
 static inline struct tu_descriptor_state *
 tu_get_descriptors_state(struct tu_cmd_buffer *cmd_buffer,
                          VkPipelineBindPoint bind_point)
@@ -672,8 +701,12 @@ void tu6_apply_depth_bounds_workaround(struct tu_device *device,
 void
 update_stencil_mask(uint32_t *value, VkStencilFaceFlags face, uint32_t mask);
 
-typedef void (*tu_fdm_bin_apply_t)(struct tu_cs *cs, void *data, VkRect2D bin,
-                                   unsigned views, VkExtent2D *frag_areas);
+typedef void (*tu_fdm_bin_apply_t)(struct tu_cmd_buffer *cmd,
+                                   struct tu_cs *cs,
+                                   void *data,
+                                   VkRect2D bin,
+                                   unsigned views,
+                                   VkExtent2D *frag_areas);
 
 struct tu_fdm_bin_patchpoint {
    uint64_t iova;
@@ -709,7 +742,7 @@ _tu_create_fdm_bin_patchpoint(struct tu_cmd_buffer *cmd,
    for (unsigned i = 0; i < num_views; i++) {
       unscaled_frag_areas[i] = (VkExtent2D) { 1, 1 };
    }
-   apply(cs, state, (VkRect2D) {
+   apply(cmd, cs, state, (VkRect2D) {
          { 0, 0 },
          { MAX_VIEWPORT_SIZE, MAX_VIEWPORT_SIZE },
         }, num_views, unscaled_frag_areas);

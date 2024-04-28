@@ -113,8 +113,8 @@ struct fdl_layout {
    struct fdl_slice ubwc_slices[FDL_MAX_MIP_LEVELS];
    uint32_t pitch0;
    uint32_t ubwc_width0;
-   uint32_t layer_size;
-   uint32_t ubwc_layer_size; /* in bytes */
+   uint64_t layer_size;
+   uint64_t ubwc_layer_size; /* in bytes */
    bool ubwc : 1;
    bool layer_first : 1; /* see above description */
    bool tile_all : 1;
@@ -143,7 +143,7 @@ struct fdl_layout {
    uint32_t nr_samples;
    enum pipe_format format;
 
-   uint32_t size;       /* Size of the whole image, in bytes. */
+   uint64_t size;       /* Size of the whole image, in bytes. */
    uint32_t base_align; /* Alignment of the base address, in bytes. */
    uint8_t pitchalign;  /* log2(pitchalign) */
 };

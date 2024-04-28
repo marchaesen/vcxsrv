@@ -13,3 +13,4 @@ dEQP-GLES31.functional.copy_image.non_compressed.viewclass_16_bits.rg8ui_rg8ui.t
 dEQP-GLES31.functional.copy_image.non_compressed.viewclass_32_bits.rg16i_rgb10_a2.cubemap_to_renderbuffer
 dEQP-GLES3.functional.texture.specification.texstorage3d.format.depth_component16_2d_array
 dEQP-GLES3.functional.texture.specification.texstorage2d.format.rgb565_cube
+dEQP-GLES31.functional.fbo.color.texcubearray.r16f

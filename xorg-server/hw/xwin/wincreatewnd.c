@@ -504,14 +504,12 @@ winGetWorkArea(RECT * prcWorkArea, winScreenInfo * pScreenInfo)
 static Bool
 winTaskbarOnScreenEdge(unsigned int uEdge, winScreenInfo * pScreenInfo)
 {
-    APPBARDATA abd;
-    HWND hwndAutoHide;
+    APPBARDATA abd = (APPBARDATA) {
+        .cbSize = sizeof(APPBARDATA),
+        .uEdge = uEdge
+    };
 
-    ZeroMemory(&abd, sizeof(abd));
-    abd.cbSize = sizeof(abd);
-    abd.uEdge = uEdge;
-
-    hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
+    HWND hwndAutoHide = (HWND) SHAppBarMessage(ABM_GETAUTOHIDEBAR, &abd);
     if (hwndAutoHide != NULL) {
         /*
            Found an autohide taskbar on that edge, but is it on the
@@ -533,15 +531,15 @@ winTaskbarOnScreenEdge(unsigned int uEdge, winScreenInfo * pScreenInfo)
 static Bool
 winAdjustForAutoHide(RECT * prcWorkArea, winScreenInfo * pScreenInfo)
 {
-    APPBARDATA abd;
+    APPBARDATA abd = (APPBARDATA) {
+        .cbSize = sizeof(APPBARDATA)
+    };
 
     winDebug("winAdjustForAutoHide - Original WorkArea: %d %d %d %d\n",
              (int) prcWorkArea->top, (int) prcWorkArea->left,
              (int) prcWorkArea->bottom, (int) prcWorkArea->right);
 
     /* Find out if the Windows taskbar is set to auto-hide */
-    ZeroMemory(&abd, sizeof(abd));
-    abd.cbSize = sizeof(abd);
     if (SHAppBarMessage(ABM_GETSTATE, &abd) & ABS_AUTOHIDE)
         winDebug("winAdjustForAutoHide - Taskbar is auto hide\n");
 

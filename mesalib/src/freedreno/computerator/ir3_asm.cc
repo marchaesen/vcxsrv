@@ -46,6 +46,8 @@ ir3_asm_assemble(struct ir3_compiler *c, FILE *in)
           sizeof(kernel->base.buf_sizes));
    memcpy(kernel->base.buf_addr_regs, kernel->info.buf_addr_regs,
           sizeof(kernel->base.buf_addr_regs));
+   memcpy(kernel->base.buf_init_data, kernel->info.buf_init_data,
+          sizeof(kernel->base.buf_init_data));
 
    unsigned sz = v->info.size;
 

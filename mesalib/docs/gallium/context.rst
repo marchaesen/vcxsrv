@@ -893,7 +893,7 @@ This function allows frontends to query kernel information defined inside
 get_compute_state_subgroup_size
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-This function returns the choosen subgroup size when `launch_grid` is
+This function returns the choosen subgroup size when ``launch_grid`` is
 called with the given block size. This doesn't need to be implemented when
 only one size is reported through ``PIPE_COMPUTE_CAP_SUBGROUP_SIZES`` or
 ``pipe_compute_state_object_info::simd_sizes``.

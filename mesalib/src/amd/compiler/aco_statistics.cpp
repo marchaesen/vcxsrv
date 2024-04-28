@@ -1,25 +1,7 @@
 /*
  * Copyright © 2020 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_ir.h"
@@ -335,6 +317,9 @@ get_wait_counter_info(aco_ptr<Instruction>& instr)
    if (instr->format == Format::DS)
       return wait_counter_info(0, 0, 20, 0);
 
+   if (instr->isLDSDIR())
+      return wait_counter_info(0, 13, 0, 0);
+
    if (instr->isVMEM() && !instr->definitions.empty())
       return wait_counter_info(320, 0, 0, 0);
 
@@ -350,9 +335,15 @@ get_wait_imm(Program* program, aco_ptr<Instruction>& instr)
    if (instr->opcode == aco_opcode::s_endpgm) {
       return wait_imm(0, 0, 0, 0);
    } else if (instr->opcode == aco_opcode::s_waitcnt) {
-      return wait_imm(GFX10_3, instr->sopp().imm);
+      return wait_imm(GFX10_3, instr->salu().imm);
    } else if (instr->opcode == aco_opcode::s_waitcnt_vscnt) {
-      return wait_imm(0, 0, 0, instr->sopk().imm);
+      return wait_imm(0, 0, 0, instr->salu().imm);
+   } else if (instr->isVINTERP_INREG()) {
+      wait_imm imm;
+      imm.exp = instr->vinterp_inreg().wait_exp;
+      if (imm.exp == 0x7)
+         imm.exp = wait_imm::unset_counter;
+      return imm;
    } else {
       unsigned max_lgkm_cnt = program->gfx_level >= GFX10 ? 62 : 14;
       unsigned max_exp_cnt = 6;
@@ -531,7 +522,8 @@ collect_preasm_stats(Program* program)
       program->statistics[aco_statistic_instructions] += block.instructions.size();
 
       for (aco_ptr<Instruction>& instr : block.instructions) {
-         bool is_branch = instr->isSOPP() && instr->sopp().block != -1;
+         const bool is_branch =
+            instr->isSOPP() && instr_info.classes[(int)instr->opcode] == instr_class::branch;
          if (is_branch)
             program->statistics[aco_statistic_branches]++;
 
@@ -540,6 +532,8 @@ collect_preasm_stats(Program* program)
          if (instr->isSALU() && !instr->isSOPP() &&
              instr_info.classes[(int)instr->opcode] != instr_class::waitcnt)
             program->statistics[aco_statistic_salu]++;
+         if (instr->isVOPD())
+            program->statistics[aco_statistic_vopd]++;
 
          if ((instr->isVMEM() || instr->isScratch() || instr->isGlobal()) &&
              !instr->operands.empty()) {

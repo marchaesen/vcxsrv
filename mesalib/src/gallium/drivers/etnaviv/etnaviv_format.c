@@ -292,6 +292,9 @@ texture_use_int_filter(const struct pipe_sampler_view *sv,
    if (util_format_is_srgb(sv->format))
       return false;
 
+   if (util_format_is_depth_or_stencil(sv->format))
+      return false;
+
    if (util_format_description(sv->format)->layout == UTIL_FORMAT_LAYOUT_ASTC)
       return false;
 
@@ -299,8 +302,6 @@ texture_use_int_filter(const struct pipe_sampler_view *sv,
       return false;
 
    switch (sv->format) {
-   /* apparently D16 can't use int filter but D24 can */
-   case PIPE_FORMAT_Z16_UNORM:
    case PIPE_FORMAT_R10G10B10A2_UNORM:
    case PIPE_FORMAT_R10G10B10X2_UNORM:
    case PIPE_FORMAT_ETC2_R11_UNORM:

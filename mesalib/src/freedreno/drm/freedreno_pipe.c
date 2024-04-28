@@ -152,6 +152,9 @@ fd_pipe_purge(struct fd_pipe *pipe)
       fd_fence_flush(unflushed_fence);
       fd_fence_del(unflushed_fence);
    }
+
+   if (pipe->funcs->finish)
+      pipe->funcs->finish(pipe);
 }
 
 int

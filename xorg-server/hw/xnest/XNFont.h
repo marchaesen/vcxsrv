@@ -15,6 +15,8 @@ is" without express or implied warranty.
 #ifndef XNESTFONT_H
 #define XNESTFONT_H
 
+#include <X11/Xdefs.h>
+
 typedef struct {
     XFontStruct *font_struct;
 } xnestPrivFont;

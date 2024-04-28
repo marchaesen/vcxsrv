@@ -11,6 +11,7 @@
 #include "pan_kmod.h"
 
 extern const struct pan_kmod_ops panfrost_kmod_ops;
+extern const struct pan_kmod_ops panthor_kmod_ops;
 
 static const struct {
    const char *name;
@@ -19,6 +20,10 @@ static const struct {
    {
       "panfrost",
       &panfrost_kmod_ops,
+   },
+   {
+      "panthor",
+      &panthor_kmod_ops,
    },
 };
 

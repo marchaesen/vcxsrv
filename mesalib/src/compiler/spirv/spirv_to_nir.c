@@ -63,7 +63,7 @@ vtn_default_log_level(void)
    const char *str = getenv("MESA_SPIRV_LOG_LEVEL");
 
    if (str == NULL)
-      return NIR_SPIRV_DEBUG_LEVEL_WARNING;
+      return level;
 
    for (int i = 0; i < ARRAY_SIZE(vtn_log_level_strings); i++) {
       if (strcasecmp(str, vtn_log_level_strings[i]) == 0) {
@@ -156,7 +156,7 @@ vtn_dump_shader(struct vtn_builder *b, const char *path, const char *prefix)
    if (len < 0 || len >= sizeof(filename))
       return;
 
-   FILE *f = fopen(filename, "w");
+   FILE *f = fopen(filename, "wb");
    if (f == NULL)
       return;
 
@@ -201,7 +201,7 @@ _vtn_fail(struct vtn_builder *b, const char *file, unsigned line,
                file, line, fmt, args);
    va_end(args);
 
-   const char *dump_path = getenv("MESA_SPIRV_FAIL_DUMP_PATH");
+   const char *dump_path = secure_getenv("MESA_SPIRV_FAIL_DUMP_PATH");
    if (dump_path)
       vtn_dump_shader(b, dump_path, "fail");
 
@@ -542,7 +542,7 @@ vtn_string_literal(struct vtn_builder *b, const uint32_t *words,
    }
 #endif
 
-   const char *str = (char *)words;
+   const char *str = (const char *)words;
    const char *end = memchr(str, 0, word_count * 4);
    vtn_fail_if(end == NULL, "String is not null-terminated");
 
@@ -4383,6 +4383,7 @@ vtn_handle_composite(struct vtn_builder *b, SpvOp opcode,
       break;
    }
    case SpvOpCopyObject:
+   case SpvOpExpectKHR:
       vtn_copy_value(b, w[3], w[2]);
       return;
 
@@ -4901,6 +4902,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
          spv_check_supported(float_controls, cap);
          break;
 
+      case SpvCapabilityFloatControls2:
+         spv_check_supported(float_controls2, cap);
+         break;
+
       case SpvCapabilityPhysicalStorageBufferAddresses:
          spv_check_supported(physical_storage_buffer_address, cap);
          break;
@@ -4920,6 +4925,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityFragmentShaderPixelInterlockEXT:
          spv_check_supported(fragment_shader_pixel_interlock, cap);
+         break;
+
+      case SpvCapabilityShaderSMBuiltinsNV:
+         spv_check_supported(shader_sm_builtins_nv, cap);
          break;
 
       case SpvCapabilityDemoteToHelperInvocation:
@@ -5069,6 +5078,10 @@ vtn_handle_preamble_instruction(struct vtn_builder *b, SpvOp opcode,
 
       case SpvCapabilityCooperativeMatrixKHR:
          spv_check_supported(cooperative_matrix, cap);
+         break;
+
+      case SpvCapabilityQuadControlKHR:
+         spv_check_supported(quad_control, cap);
          break;
 
       default:
@@ -5516,9 +5529,14 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       break;
    }
 
+   case SpvExecutionModeMaximallyReconvergesKHR:
+      b->shader->info.maximally_reconverges = true;
+      break;
+
    case SpvExecutionModeLocalSizeId:
    case SpvExecutionModeLocalSizeHintId:
    case SpvExecutionModeSubgroupsPerWorkgroupId:
+   case SpvExecutionModeFPFastMathDefault:
    case SpvExecutionModeMaxNodeRecursionAMDX:
    case SpvExecutionModeStaticNumWorkgroupsAMDX:
    case SpvExecutionModeMaxNumWorkgroupsAMDX:
@@ -5578,6 +5596,16 @@ vtn_handle_execution_mode(struct vtn_builder *b, struct vtn_value *entry_point,
       b->shader->info.fs.stencil_back_layout = FRAG_STENCIL_LAYOUT_UNCHANGED;
       break;
 
+   case SpvExecutionModeRequireFullQuadsKHR:
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      b->shader->info.fs.require_full_quads = true;
+      break;
+
+   case SpvExecutionModeQuadDerivativesKHR:
+      vtn_assert(b->shader->info.stage == MESA_SHADER_FRAGMENT);
+      b->shader->info.fs.quad_derivatives = true;
+      break;
+
    case SpvExecutionModeCoalescingAMDX:
       vtn_assert(b->shader->info.stage == MESA_SHADER_COMPUTE);
       b->shader->info.cs.workgroup_count[0] = 1;
@@ -5622,6 +5650,44 @@ vtn_handle_execution_mode_id(struct vtn_builder *b, struct vtn_value *entry_poin
       vtn_assert(b->shader->info.stage == MESA_SHADER_KERNEL);
       b->shader->info.num_subgroups = vtn_constant_uint(b, mode->operands[0]);
       break;
+
+   case SpvExecutionModeFPFastMathDefault: {
+      struct vtn_type *type = vtn_get_type(b, mode->operands[0]);
+      SpvFPFastMathModeMask flags = vtn_constant_uint(b, mode->operands[1]);
+
+      SpvFPFastMathModeMask can_fast_math =
+         SpvFPFastMathModeAllowRecipMask |
+         SpvFPFastMathModeAllowContractMask |
+         SpvFPFastMathModeAllowReassocMask |
+         SpvFPFastMathModeAllowTransformMask;
+      if ((flags & can_fast_math) != can_fast_math)
+         b->exact = true;
+
+      unsigned execution_mode = 0;
+      if (!(flags & SpvFPFastMathModeNotNaNMask)) {
+         switch (glsl_get_bit_size(type->type)) {
+         case 16: execution_mode |= FLOAT_CONTROLS_NAN_PRESERVE_FP16; break;
+         case 32: execution_mode |= FLOAT_CONTROLS_NAN_PRESERVE_FP32; break;
+         case 64: execution_mode |= FLOAT_CONTROLS_NAN_PRESERVE_FP64; break;
+         }
+      }
+      if (!(flags & SpvFPFastMathModeNotInfMask)) {
+         switch (glsl_get_bit_size(type->type)) {
+         case 16: execution_mode |= FLOAT_CONTROLS_INF_PRESERVE_FP16; break;
+         case 32: execution_mode |= FLOAT_CONTROLS_INF_PRESERVE_FP32; break;
+         case 64: execution_mode |= FLOAT_CONTROLS_INF_PRESERVE_FP64; break;
+         }
+      }
+      if (!(flags & SpvFPFastMathModeNSZMask)) {
+         switch (glsl_get_bit_size(type->type)) {
+         case 16: execution_mode |= FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP16; break;
+         case 32: execution_mode |= FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP32; break;
+         case 64: execution_mode |= FLOAT_CONTROLS_SIGNED_ZERO_PRESERVE_FP64; break;
+         }
+      }
+      b->shader->info.float_controls_execution_mode |= execution_mode;
+      break;
+   }
 
    case SpvExecutionModeMaxNodeRecursionAMDX:
       vtn_assert(b->shader->info.stage == MESA_SHADER_COMPUTE);
@@ -6458,18 +6524,18 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
       vtn_handle_integer_dot(b, opcode, w, count);
       break;
 
+   case SpvOpBitcast:
+      vtn_handle_bitcast(b, w, count);
+      break;
+
    /* TODO: One day, we should probably do something with this information
     * For now, though, it's safe to implement them as no-ops.
     * Needed for Rusticl sycl support.
     */
    case SpvOpAssumeTrueKHR:
+      break;
+
    case SpvOpExpectKHR:
-      break;
-
-   case SpvOpBitcast:
-      vtn_handle_bitcast(b, w, count);
-      break;
-
    case SpvOpVectorExtractDynamic:
    case SpvOpVectorInsertDynamic:
    case SpvOpVectorShuffle:
@@ -6524,6 +6590,8 @@ vtn_handle_body_instruction(struct vtn_builder *b, SpvOp opcode,
    case SpvOpGroupNonUniformLogicalXor:
    case SpvOpGroupNonUniformQuadBroadcast:
    case SpvOpGroupNonUniformQuadSwap:
+   case SpvOpGroupNonUniformQuadAllKHR:
+   case SpvOpGroupNonUniformQuadAnyKHR:
    case SpvOpGroupAll:
    case SpvOpGroupAny:
    case SpvOpGroupBroadcast:
@@ -6929,7 +6997,7 @@ spirv_to_nir(const uint32_t *words, size_t word_count,
       return NULL;
    }
 
-   const char *dump_path = getenv("MESA_SPIRV_DUMP_PATH");
+   const char *dump_path = secure_getenv("MESA_SPIRV_DUMP_PATH");
    if (dump_path)
       vtn_dump_shader(b, dump_path, "spirv");
 

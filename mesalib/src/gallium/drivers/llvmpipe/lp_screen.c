@@ -59,6 +59,10 @@
 
 #include "nir.h"
 
+#ifdef HAVE_LIBDRM
+#include <xf86drm.h>
+#include <fcntl.h>
+#endif
 
 int LP_DEBUG = 0;
 
@@ -118,7 +122,18 @@ llvmpipe_get_name(struct pipe_screen *screen)
 static int
 llvmpipe_get_param(struct pipe_screen *screen, enum pipe_cap param)
 {
+#ifdef HAVE_LINUX_UDMABUF_H
+   struct llvmpipe_screen *lscreen = llvmpipe_screen(screen);
+#endif
+
    switch (param) {
+#ifdef HAVE_LINUX_UDMABUF_H
+   case PIPE_CAP_DMABUF:
+      if (lscreen->udmabuf_fd != -1)
+         return DRM_PRIME_CAP_IMPORT | DRM_PRIME_CAP_EXPORT;
+      else
+         return DRM_PRIME_CAP_IMPORT;
+#endif
    case PIPE_CAP_NPOT_TEXTURES:
    case PIPE_CAP_MIXED_FRAMEBUFFER_SIZES:
    case PIPE_CAP_MIXED_COLOR_DEPTH_BITS:
@@ -410,6 +425,11 @@ llvmpipe_get_shader_param(struct pipe_screen *screen,
             return PIPE_MAX_SHADER_SAMPLER_VIEWS;
          else
             return 0;
+      case PIPE_SHADER_CAP_MAX_CONST_BUFFERS:
+         if (debug_get_bool_option("DRAW_USE_LLVM", false))
+            return LP_MAX_TGSI_CONST_BUFFERS;
+         else
+            return draw_get_shader_param(shader, param);
       default:
          return draw_get_shader_param(shader, param);
       }
@@ -616,7 +636,6 @@ static const struct nir_shader_compiler_options gallivm_nir_options = {
    .lower_extract_word = true,
    .lower_insert_byte = true,
    .lower_insert_word = true,
-   .lower_rotate = true,
    .lower_uadd_carry = true,
    .lower_usub_borrow = true,
    .lower_mul_2x32_64 = true,
@@ -832,11 +851,20 @@ llvmpipe_is_format_supported(struct pipe_screen *_screen,
        format != PIPE_FORMAT_ETC1_RGB8)
       return false;
 
+   /* planar not supported natively */
    if ((format_desc->layout == UTIL_FORMAT_LAYOUT_SUBSAMPLED ||
         format_desc->layout == UTIL_FORMAT_LAYOUT_PLANAR2 ||
         format_desc->layout == UTIL_FORMAT_LAYOUT_PLANAR3) &&
        target == PIPE_BUFFER)
       return false;
+
+   if (format_desc->colorspace == UTIL_FORMAT_COLORSPACE_YUV) {
+      if (format == PIPE_FORMAT_UYVY ||
+          format == PIPE_FORMAT_YUYV ||
+          format == PIPE_FORMAT_NV12)
+         return true;
+      return false;
+   }
 
    /*
     * Everything can be supported by u_format
@@ -853,6 +881,7 @@ llvmpipe_flush_frontbuffer(struct pipe_screen *_screen,
                            struct pipe_resource *resource,
                            unsigned level, unsigned layer,
                            void *context_private,
+                           unsigned nboxes,
                            struct pipe_box *sub_box)
 {
    struct llvmpipe_screen *screen = llvmpipe_screen(_screen);
@@ -866,7 +895,7 @@ llvmpipe_flush_frontbuffer(struct pipe_screen *_screen,
          llvmpipe_flush_resource(_pipe, resource, 0, true, true,
                                  false, "frontbuffer");
       winsys->displaytarget_display(winsys, texture->dt,
-                                    context_private, sub_box);
+                                    context_private, nboxes, sub_box);
    }
 }
 
@@ -887,6 +916,10 @@ llvmpipe_destroy_screen(struct pipe_screen *_screen)
    disk_cache_destroy(screen->disk_shader_cache);
 
    glsl_type_singleton_decref();
+
+#ifdef HAVE_LIBDRM
+   close(screen->udmabuf_fd);
+#endif
 
    mtx_destroy(&screen->rast_mutex);
    mtx_destroy(&screen->cs_mutex);
@@ -1125,6 +1158,9 @@ llvmpipe_create_screen(struct sw_winsys *winsys)
                                               screen->num_threads);
    screen->num_threads = MIN2(screen->num_threads, LP_MAX_THREADS);
 
+#ifdef HAVE_LINUX_UDMABUF_H
+   screen->udmabuf_fd = open("/dev/udmabuf", O_RDWR);
+#endif
 
    snprintf(screen->renderer_string, sizeof(screen->renderer_string),
             "llvmpipe (LLVM " MESA_LLVM_VERSION_STRING ", %u bits)",

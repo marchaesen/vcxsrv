@@ -1030,6 +1030,14 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
          baseformat = _mesa_base_fbo_format(ctx, internalformat);
       }
 
+      /* If the internal format is unsupported, or if a particular component
+       * is not present in the format, 0 is written to params.
+       */
+      if (!st_QueryTextureFormatSupport(ctx, target, internalformat)) {
+         buffer[0] = GL_NONE;
+         break;
+      }
+
       /* Let the driver choose the texture format.
        *
        * Disclaimer: I am considering that drivers use for renderbuffers the
@@ -1112,6 +1120,12 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       if (get_pname == 0)
          goto end;
 
+      /* if the resource is unsupported, zero is returned */
+      if (!st_QueryTextureFormatSupport(ctx, target, internalformat)) {
+         buffer[0] = 0;
+         break;
+      }
+
       _mesa_GetIntegerv(get_pname, buffer);
       break;
    }
@@ -1122,6 +1136,12 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
 
       if (!_mesa_is_array_texture(target))
          goto end;
+
+      /* if the resource is unsupported, zero is returned */
+      if (!st_QueryTextureFormatSupport(ctx, target, internalformat)) {
+         buffer[0] = 0;
+         break;
+      }
 
       _mesa_GetIntegerv(GL_MAX_ARRAY_TEXTURE_LAYERS, buffer);
       break;
@@ -1136,6 +1156,12 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       };
       unsigned i;
       GLint current_value;
+
+      /* if the resource is unsupported, zero is returned */
+      if (!st_QueryTextureFormatSupport(ctx, target, internalformat)) {
+         buffer[0] = 0;
+         break;
+      }
 
       /* Combining the dimensions. Note that for array targets, this would
        * automatically include the value of MAX_LAYERS, as that value is
@@ -1514,6 +1540,14 @@ _mesa_GetInternalformativ(GLenum target, GLenum internalformat, GLenum pname,
       int targetIndex = _mesa_tex_target_to_index(ctx, target);
       if (targetIndex < 0 || targetIndex == TEXTURE_BUFFER_INDEX)
          goto end;
+
+      /* If the resource is not supported for image textures,
+       * or if image textures are not supported, NONE is returned.
+       */
+      if (!st_QueryTextureFormatSupport(ctx, target, internalformat)) {
+         buffer[0] = GL_NONE;
+         break;
+      }
 
       /* From spec: "Equivalent to calling GetTexParameter with <value> set
        * to IMAGE_FORMAT_COMPATIBILITY_TYPE."

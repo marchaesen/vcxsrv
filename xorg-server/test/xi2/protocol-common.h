@@ -91,17 +91,6 @@ struct devices {
 extern struct devices devices;
 
 /**
- * test-specific userdata, passed into the reply handler.
- */
-extern void *global_userdata;
-
-/**
- * The reply handler called from WriteToClient. Set this handler if you need
- * to check the reply values.
- */
-extern void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
-
-/**
  * The default screen used for the windows. Initialized by init_simple().
  */
 extern ScreenRec screen;
@@ -141,17 +130,5 @@ void init_window(WindowPtr window, WindowPtr parent, int id);
  * device setup.
  */
 void init_simple(void);
-
-/* Declarations for various overrides in the test files. */
-void __wrap_WriteToClient(ClientPtr client, int len, void *data);
-int __wrap_XISetEventMask(DeviceIntPtr dev, WindowPtr win, ClientPtr client,
-                          int len, unsigned char *mask);
-int __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
-                           Mask access);
-int __real_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client,
-                           Mask access);
-Bool __wrap_AddResource(XID id, RESTYPE type, void *value);
-int __wrap_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
-int __real_dixLookupClient(ClientPtr *c, XID id, ClientPtr client, Mask access);
 
 #endif                          /* PROTOCOL_COMMON_H */

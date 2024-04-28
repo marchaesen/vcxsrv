@@ -5,8 +5,7 @@
  *
  */
 
-#ifndef __AGX_DECODE_H__
-#define __AGX_DECODE_H__
+#pragma once
 
 #include <sys/types.h>
 #include "agx_bo.h"
@@ -37,5 +36,3 @@ void libagxdecode_vdm(uint64_t addr, const char *label, bool verbose);
 void libagxdecode_cdm(uint64_t addr, const char *label, bool verbose);
 void libagxdecode_usc(uint64_t addr, const char *label, bool verbose);
 void libagxdecode_shutdown(void);
-
-#endif /* __AGX_DECODE_H__ */

@@ -240,7 +240,7 @@ d3d12_video_decoder_reconfigure_dpb(struct d3d12_video_decoder *                
                                     const d3d12_video_decode_output_conversion_arguments &conversionArguments);
 void
 d3d12_video_decoder_get_frame_info(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool &isInterlaced);
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB);
 void
 d3d12_video_decoder_store_converted_dxva_picparams_from_pipe_input(struct d3d12_video_decoder *codec,
                                                                    struct pipe_picture_desc *  picture,

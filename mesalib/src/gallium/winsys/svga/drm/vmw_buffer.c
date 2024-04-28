@@ -297,7 +297,7 @@ vmw_dma_bufmgr_region_ptr(struct pb_buffer *buf,
    return true;
 }
 
-#ifdef DEBUG
+#if MESA_DEBUG
 struct svga_winsys_buffer {
    struct pb_buffer *pb_buf;
    struct debug_flush_buf *fbuf;
@@ -344,7 +344,7 @@ vmw_svga_winsys_buffer_destroy(struct svga_winsys_screen *sws,
    struct pb_buffer *pbuf = vmw_pb_buffer(buf);
    (void)sws;
    pb_reference(&pbuf, NULL);
-#ifdef DEBUG
+#if MESA_DEBUG
    debug_flush_buf_reference(&buf->fbuf, NULL);
    FREE(buf);
 #endif
@@ -377,7 +377,7 @@ vmw_svga_winsys_buffer_map(struct svga_winsys_screen *sws,
 
    map = pb_map(vmw_pb_buffer(buf), pb_flags, NULL);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (map != NULL)
       debug_flush_map(buf->fbuf, pb_flags);
 #endif
@@ -392,7 +392,7 @@ vmw_svga_winsys_buffer_unmap(struct svga_winsys_screen *sws,
 {
    (void)sws;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    debug_flush_unmap(buf->fbuf);
 #endif
 

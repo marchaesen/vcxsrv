@@ -556,8 +556,7 @@ vtn_emit_cf_func_unstructured(struct vtn_builder *b, struct vtn_function *func,
             nir_goto(&b->nb, then_block->block);
          } else {
             vtn_add_unstructured_block(b, func, &work_list, else_block);
-            nir_goto_if(&b->nb, then_block->block, nir_src_for_ssa(cond),
-                                else_block->block);
+            nir_goto_if(&b->nb, then_block->block, cond, else_block->block);
          }
 
          break;
@@ -587,7 +586,7 @@ vtn_emit_cf_func_unstructured(struct vtn_builder *b, struct vtn_function *func,
             vtn_add_unstructured_block(b, func, &work_list, cse->block);
 
             /* add branching */
-            nir_goto_if(&b->nb, cse->block->block, nir_src_for_ssa(cond), e);
+            nir_goto_if(&b->nb, cse->block->block, cond, e);
             b->nb.cursor = nir_after_block(e);
          }
 

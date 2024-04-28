@@ -2,7 +2,7 @@
 # Touch this file needs update both WINDOWS_X64_BUILD_TAG WINDOWS_X64_TEST_TAG
 # This file needs run in administrator mode
 
-$env:VULKAN_SDK_VERSION="1.3.211.0"
+$env:VULKAN_SDK_VERSION="1.3.275.0"
 
 $ProgressPreference = "SilentlyContinue"
 

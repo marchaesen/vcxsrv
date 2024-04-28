@@ -74,7 +74,7 @@ static int
 get_refresh_rate(void)
 {
 #ifndef _GAMING_XBOX
-   DEVMODE devModes;
+   DEVMODE devModes = { .dmSize = sizeof(DEVMODE) };
 
    if (EnumDisplaySettings(NULL, ENUM_CURRENT_SETTINGS, &devModes)) {
       /* clamp the value, just in case we get garbage */
@@ -160,6 +160,9 @@ stw_init(const struct stw_winsys *stw_winsys)
    if (!stw_dev->ctx_table) {
       goto error1;
    }
+
+   /* Per WGL_EXT_swap_control, the default swap interval is 1. */
+   stw_dev->swap_interval = 1;
 
    /* env var override for WGL_EXT_swap_control, useful for testing/debugging */
    const char *s = os_get_option("WGL_SWAP_INTERVAL");
@@ -258,7 +261,8 @@ stw_cleanup(void)
    st_screen_destroy(stw_dev->fscreen);
    FREE(stw_dev->fscreen);
 
-   stw_dev->screen->destroy(stw_dev->screen);
+   if (stw_dev->screen)
+      stw_dev->screen->destroy(stw_dev->screen);
 
    stw_tls_cleanup();
 

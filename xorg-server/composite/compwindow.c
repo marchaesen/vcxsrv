@@ -45,7 +45,11 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+#include "os/osdep.h"
+
 #include "compint.h"
+#include "compositeext_priv.h"
 
 #ifdef PANORAMIX
 #include "panoramiXsrv.h"
@@ -607,9 +611,9 @@ compDestroyWindow(WindowPtr pWin)
 
     pScreen->DestroyWindow = cs->DestroyWindow;
     while ((cw = GetCompWindow(pWin)))
-        FreeResource(cw->clients->id, RT_NONE);
+        FreeResource(cw->clients->id, X11_RESTYPE_NONE);
     while ((csw = GetCompSubwindows(pWin)))
-        FreeResource(csw->clients->id, RT_NONE);
+        FreeResource(csw->clients->id, X11_RESTYPE_NONE);
 
     if (pWin->redirectDraw != RedirectDrawNone) {
         PixmapPtr pPixmap = (*pScreen->GetWindowPixmap) (pWin);

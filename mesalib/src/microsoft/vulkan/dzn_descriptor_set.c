@@ -524,13 +524,31 @@ dzn_GetDescriptorSetLayoutSupport(VkDevice _device,
    const VkDescriptorSetLayoutBinding *bindings = pCreateInfo->pBindings;
    uint32_t sampler_count = 0, other_desc_count = 0;
 
+   const VkDescriptorSetLayoutBindingFlagsCreateInfo *binding_flags =
+      vk_find_struct_const(pCreateInfo->pNext, DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO);
+   VkDescriptorSetVariableDescriptorCountLayoutSupport *variable_count =
+      vk_find_struct(pSupport->pNext, DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_LAYOUT_SUPPORT);
+   if (variable_count)
+      variable_count->maxVariableDescriptorCount = 0;
+
    for (uint32_t i = 0; i < pCreateInfo->bindingCount; i++) {
       VkDescriptorType desc_type = bindings[i].descriptorType;
       bool has_sampler = dzn_desc_type_has_sampler(desc_type);
+      bool is_sampler = desc_type == VK_DESCRIPTOR_TYPE_SAMPLER;
+
+      UINT upper_bound = MAX_DESCS_PER_CBV_SRV_UAV_HEAP - other_desc_count;
+      if (has_sampler) {
+         UINT sampler_upper_bound = MAX_DESCS_PER_SAMPLER_HEAP - sampler_count;
+         upper_bound = is_sampler ? sampler_upper_bound : MIN2(sampler_upper_bound, upper_bound);
+      }
+
+      if (binding_flags && binding_flags->bindingCount &&
+          (binding_flags->pBindingFlags[i] & VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT))
+         variable_count->maxVariableDescriptorCount = device->bindless ? INT32_MAX : upper_bound;
 
       if (has_sampler)
          sampler_count += bindings[i].descriptorCount;
-      if (desc_type != VK_DESCRIPTOR_TYPE_SAMPLER)
+      if (!is_sampler)
          other_desc_count += bindings[i].descriptorCount;
       if (dzn_descriptor_type_depends_on_shader_usage(desc_type, device->bindless))
          other_desc_count += bindings[i].descriptorCount;
@@ -1690,7 +1708,7 @@ dzn_descriptor_set_init(struct dzn_descriptor_set *set,
          const struct dzn_sampler **sampler =
             &layout->immutable_samplers[layout->bindings[b].immutable_sampler_idx];
          for (dzn_descriptor_set_ptr_init(set->layout, &ptr, b, 0);
-              dzn_descriptor_set_ptr_is_valid(&ptr);
+              dzn_descriptor_set_ptr_is_valid(&ptr) && ptr.binding == b;
               dzn_descriptor_set_ptr_move(set->layout, &ptr, 1)) {
             dzn_descriptor_set_ptr_write_sampler_desc(device, set, &ptr, *sampler);
             sampler++;

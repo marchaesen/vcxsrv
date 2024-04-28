@@ -408,7 +408,7 @@ create_variant(struct etna_shader *shader,
 
    etna_disk_cache_store(shader->compiler, v);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (DBG_ENABLED(ETNA_DBG_DUMP_SHADERS))
       etna_dump_shader(v);
 #endif

@@ -26,27 +26,21 @@
 #include <stdarg.h>
 #include <stdio.h>
 
-#if 1
-int
-winDebug(const char *format, ...)
-{
-  int count;
-  va_list ap;
-  va_start(ap, format);
-  count = fprintf(stderr, "xwinclip: ");
-  count += vfprintf(stderr, format, ap);
-  va_end(ap);
-  return count;
-}
-#endif
+#include "internal.h"
 
-int
-ErrorF(const char *format, ...)
+void winDebug(const char *format, ...)
 {
-  int count;
   va_list ap;
   va_start(ap, format);
-  count = vfprintf(stderr, format, ap);
+  fprintf(stderr, "xwinclip: ");
+  vfprintf(stderr, format, ap);
   va_end(ap);
-  return count;
+}
+
+void ErrorF(const char *format, ...)
+{
+  va_list ap;
+  va_start(ap, format);
+  vfprintf(stderr, format, ap);
+  va_end(ap);
 }

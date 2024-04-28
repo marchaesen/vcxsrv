@@ -79,7 +79,7 @@ subdir('nir')
 
 subdir('spirv')
 
-if with_opencl_spirv
+if with_clc
   subdir('clc')
 endif
 if with_gallium

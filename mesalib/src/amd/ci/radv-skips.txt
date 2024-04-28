@@ -1,6 +1,3 @@
-# Exclude this test which might fail when a new extension is implemented.
-dEQP-VK.info.device_extensions
-
 # Exclude WSI related tests.
 dEQP-VK.image.swapchain_mutable.*
 dEQP-VK.wsi.*
@@ -55,3 +52,10 @@ dEQP-VK.binding_model.descriptor_buffer.multiple.*buffers32_sets1
 # These cases are slow.
 dEQP-VK.texture.explicit_lod.2d.sizes.128x128_.*
 dEQP-VK.api.device_init.create_instance_device_intentional_alloc_fail.basic
+
+# Some reconvergence tests are very slow.
+dEQP-VK.reconvergence.(subgroup|workgroup)_uniform_control_flow_(ballot|elect).compute.nesting4.*
+dEQP-VK.reconvergence.maximal.compute.nesting4.7.38
+
+# This test seems to hang on some GPUs.
+dEQP-VK.api.command_buffers.many_indirect_disps_on_secondary

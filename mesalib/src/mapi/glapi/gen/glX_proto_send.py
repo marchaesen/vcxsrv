@@ -928,7 +928,7 @@ class PrintGlxProtoInit_c(gl_XML.gl_print_base):
 #include "glapi.h"
 #include <assert.h>
 
-#ifndef GLX_USE_APPLEGL
+#if !defined(GLX_USE_APPLEGL) || defined(GLX_USE_APPLE)
 
 /**
  * No-op function used to initialize functions that have no GLX protocol

@@ -23,7 +23,7 @@
 
 #include "vk_image.h"
 
-#ifndef _WIN32
+#if DETECT_OS_LINUX || DETECT_OS_BSD
 #include <drm-uapi/drm_fourcc.h>
 #endif
 
@@ -38,7 +38,7 @@
 #include "vk_util.h"
 #include "vulkan/wsi/wsi_common.h"
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 #include "vk_android.h"
 #include <vulkan/vulkan_android.h>
 #endif
@@ -72,6 +72,7 @@ vk_image_init(struct vk_device *device,
    image->samples = pCreateInfo->samples;
    image->tiling = pCreateInfo->tiling;
    image->usage = pCreateInfo->usage;
+   image->sharing_mode = pCreateInfo->sharingMode;
 
    if (image->aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
       const VkImageStencilUsageCreateInfo *stencil_usage_info =
@@ -95,11 +96,11 @@ vk_image_init(struct vk_device *device,
       vk_find_struct_const(pCreateInfo->pNext, WSI_IMAGE_CREATE_INFO_MESA);
    image->wsi_legacy_scanout = wsi_info && wsi_info->scanout;
 
-#ifndef _WIN32
+#if DETECT_OS_LINUX || DETECT_OS_BSD
    image->drm_format_mod = ((1ULL << 56) - 1) /* DRM_FORMAT_MOD_INVALID */;
 #endif
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    const VkExternalFormatANDROID *ext_format =
       vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_FORMAT_ANDROID);
    if (ext_format && ext_format->externalFormat != 0) {
@@ -111,6 +112,11 @@ vk_image_init(struct vk_device *device,
 
    image->ahb_format = vk_image_format_to_ahb_format(image->format);
 #endif
+
+   const VkImageCompressionControlEXT *compr_info =
+      vk_find_struct_const(pCreateInfo->pNext, IMAGE_COMPRESSION_CONTROL_EXT);
+   if (compr_info)
+      image->compr_flags = compr_info->flags;
 }
 
 void *
@@ -144,7 +150,7 @@ vk_image_destroy(struct vk_device *device,
    vk_object_free(device, alloc, image);
 }
 
-#ifndef _WIN32
+#if DETECT_OS_LINUX || DETECT_OS_BSD
 VKAPI_ATTR VkResult VKAPI_CALL
 vk_common_GetImageDrmFormatModifierPropertiesEXT(UNUSED VkDevice device,
                                                  VkImage _image,
@@ -613,6 +619,7 @@ vk_image_layout_is_read_only(VkImageLayout layout,
    case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
    case VK_IMAGE_LAYOUT_ATTACHMENT_OPTIMAL:
    case VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT:
+   case VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR:
       return false;
 
    case VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL:
@@ -998,6 +1005,7 @@ vk_image_layout_to_usage_flags(VkImageLayout layout,
              VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT;
 
    case VK_IMAGE_LAYOUT_ATTACHMENT_FEEDBACK_LOOP_OPTIMAL_EXT:
+   case VK_IMAGE_LAYOUT_RENDERING_LOCAL_READ_KHR:
       if (aspect == VK_IMAGE_ASPECT_DEPTH_BIT ||
           aspect == VK_IMAGE_ASPECT_STENCIL_BIT) {
          return VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT |

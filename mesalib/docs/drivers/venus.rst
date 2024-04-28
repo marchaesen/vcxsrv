@@ -65,14 +65,14 @@ In another shell,
 
 .. code-block:: sh
 
-    $ export VK_ICD_FILENAMES=<path-to-virtio_icd.x86_64.json>
+    $ export VK_DRIVER_FILES=<path-to-virtio_icd.x86_64.json>
     $ export VN_DEBUG=vtest
     $ vulkaninfo
     $ vkcube
 
 If the host driver of the system is not new enough, it is a good idea to build
 the host driver as well when building the Venus driver.  Just remember to set
-:envvar:`VK_ICD_FILENAMES` when starting the vtest server so that the vtest
+:envvar:`VK_DRIVER_FILES` when starting the vtest server so that the vtest
 server finds the locally built host driver.
 
 Virtio-GPU
@@ -99,7 +99,7 @@ This is how one might want to start crosvm
 
 .. code-block:: sh
 
- $ sudo LD_LIBRARY_PATH=<...> VK_ICD_FILENAMES=<...> ./target/debug/crosvm run \
+ $ sudo LD_LIBRARY_PATH=<...> VK_DRIVER_FILES=<...> ./target/debug/crosvm run \
        --gpu vulkan=true \
        --gpu-render-server path=<path-to-virglrenderer>/out/server/virgl_render_server \
        --display-window-keyboard \

@@ -6,25 +6,28 @@ GPUs based on the Midgard and Bifrost microarchitectures. It is **conformant**
 on Mali-G52 and Mali-G57 but **non-conformant** on other GPUs. The following
 hardware is currently supported:
 
-=========  ============ ============ =======
-Product    Architecture OpenGL ES    OpenGL
-=========  ============ ============ =======
-Mali T620  Midgard (v4) 2.0          2.1
-Mali T720  Midgard (v4) 2.0          2.1
-Mali T760  Midgard (v5) 3.1          3.1
-Mali T820  Midgard (v5) 3.1          3.1
-Mali T830  Midgard (v5) 3.1          3.1
-Mali T860  Midgard (v5) 3.1          3.1
-Mali T880  Midgard (v5) 3.1          3.1
-Mali G72   Bifrost (v6) 3.1          3.1
-Mali G31   Bifrost (v7) 3.1          3.1
-Mali G51   Bifrost (v7) 3.1          3.1
-Mali G52   Bifrost (v7) 3.1          3.1
-Mali G76   Bifrost (v7) 3.1          3.1
-Mali G57   Valhall (v9) 3.1          3.1
-=========  ============ ============ =======
+=========  ============= ============ =======
+Product    Architecture  OpenGL ES    OpenGL
+=========  ============= ============ =======
+Mali T600  Midgard (v4)  2.0          2.1
+Mali T620  Midgard (v4)  2.0          2.1
+Mali T720  Midgard (v4)  2.0          2.1
+Mali T760  Midgard (v5)  3.1          3.1
+Mali T820  Midgard (v5)  3.1          3.1
+Mali T830  Midgard (v5)  3.1          3.1
+Mali T860  Midgard (v5)  3.1          3.1
+Mali T880  Midgard (v5)  3.1          3.1
+Mali G72   Bifrost (v6)  3.1          3.1
+Mali G31   Bifrost (v7)  3.1          3.1
+Mali G51   Bifrost (v7)  3.1          3.1
+Mali G52   Bifrost (v7)  3.1          3.1
+Mali G76   Bifrost (v7)  3.1          3.1
+Mali G57   Valhall (v9)  3.1          3.1
+Mali G310  Valhall (v10) 3.1          3.1
+Mali G610  Valhall (v10) 3.1          3.1
+=========  ============= ============ =======
 
-Other Midgard and Bifrost chips (T604, G71) are not yet supported.
+Other Midgard and Bifrost chips (e.g. G71) are not yet supported.
 
 Older Mali chips based on the Utgard architecture (Mali 400, Mali 450) are
 supported in the :doc:`Lima <lima>` driver, not Panfrost. Lima is also
@@ -102,15 +105,16 @@ was installed.
 By default, drm-shim mocks a Mali-G52 system. To select a specific Mali GPU,
 set the ``PAN_GPU_ID`` environment variable to the desired GPU ID:
 
-=========  ============ =======
-Product    Architecture GPU ID
-=========  ============ =======
-Mali-T720  Midgard (v4) 720
-Mali-T860  Midgard (v5) 860
-Mali-G72   Bifrost (v6) 6221
-Mali-G52   Bifrost (v7) 7212
-Mali-G57   Valhall (v9) 9093
-=========  ============ =======
+=========  ============= =======
+Product    Architecture  GPU ID
+=========  ============= =======
+Mali-T720  Midgard (v4)  720
+Mali-T860  Midgard (v5)  860
+Mali-G72   Bifrost (v6)  6221
+Mali-G52   Bifrost (v7)  7212
+Mali-G57   Valhall (v9)  9093
+Mali-G610  Valhall (v10) a867
+=========  ============= =======
 
 Additional GPU IDs are enumerated in the ``panfrost_model_list`` list in
 ``src/panfrost/lib/pan_props.c``.

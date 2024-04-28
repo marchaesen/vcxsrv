@@ -1057,7 +1057,7 @@ svga_get_time(struct svga_context *svga)
  * function call with an error value, the purpose is to trigger and test
  * retry path handling.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 
 /*
  * Optionally replace a function call with a PIPE_ERROR_OUT_OF_MEMORY

@@ -74,7 +74,6 @@ extern "C" {
  * \name Some forward type declarations
  */
 /*@{*/
-struct _mesa_HashTable;
 struct gl_attrib_node;
 struct gl_list_extensions;
 struct gl_meta_state;
@@ -1479,28 +1478,6 @@ struct gl_buffer_object
 
 
 /**
- * Client pixel packing/unpacking attributes
- */
-struct gl_pixelstore_attrib
-{
-   GLint Alignment;
-   GLint RowLength;
-   GLint SkipPixels;
-   GLint SkipRows;
-   GLint ImageHeight;
-   GLint SkipImages;
-   GLboolean SwapBytes;
-   GLboolean LsbFirst;
-   GLboolean Invert;        /**< GL_MESA_pack_invert */
-   GLint CompressedBlockWidth;   /**< GL_ARB_compressed_texture_pixel_storage */
-   GLint CompressedBlockHeight;
-   GLint CompressedBlockDepth;
-   GLint CompressedBlockSize;
-   struct gl_buffer_object *BufferObj; /**< GL_ARB_pixel_buffer_object */
-};
-
-
-/**
  * Enum for defining the mapping for the position/generic0 attribute.
  *
  * Do not change the order of the values as these are used as
@@ -1632,25 +1609,11 @@ struct gl_vertex_array_object
    GLboolean EverBound;
 
    /**
-    * Whether the VAO is changed by the application so often that some of
-    * the derived fields are not updated at all to decrease overhead.
-    * Also, interleaved arrays are not detected, because it's too expensive
-    * to do that before every draw call.
-    */
-   bool IsDynamic;
-
-   /**
     * Marked to true if the object is shared between contexts and immutable.
     * Then reference counting is done using atomics and thread safe.
     * Is used for dlist VAOs.
     */
    bool SharedAndImmutable;
-
-   /**
-    * Number of updates that were done by the application. This is used to
-    * decide whether the VAO is static or dynamic.
-    */
-   unsigned NumUpdates;
 
    /** Vertex attribute arrays */
    struct gl_array_attributes VertexAttrib[VERT_ATTRIB_MAX];
@@ -1666,6 +1629,12 @@ struct gl_vertex_array_object
 
    /** Mask of VERT_BIT_* values indicating which arrays are enabled */
    GLbitfield Enabled;
+
+   /**
+    * Mask of vertex attributes that have:
+    *    VertexAttrib[i].BufferBindingIndex != i.
+    */
+   GLbitfield NonIdentityBufferAttribMapping;
 
    /**
     * Mask indicating which VertexAttrib and BufferBinding structures have
@@ -1705,7 +1674,7 @@ struct gl_array_attrib
    struct gl_vertex_array_object DefaultVAOState;
 
    /** Array objects (GL_ARB_vertex_array_object) */
-   struct _mesa_HashTable *Objects;
+   struct _mesa_HashTable Objects;
 
    GLint ActiveTexture;		/**< Client Active Texture */
    GLuint LockFirst;            /**< GL_EXT_compiled_vertex_array */
@@ -1938,7 +1907,7 @@ struct gl_transform_feedback_state
    struct gl_buffer_object *CurrentBuffer;
 
    /** The table of all transform feedback objects */
-   struct _mesa_HashTable *Objects;
+   struct _mesa_HashTable Objects;
 
    /** The current xform-fb object (GL_TRANSFORM_FEEDBACK_BINDING) */
    struct gl_transform_feedback_object *CurrentObject;
@@ -2070,7 +2039,7 @@ struct gl_perf_monitor_state
    GLuint NumGroups;
 
    /** The table of all performance monitors. */
-   struct _mesa_HashTable *Monitors;
+   struct _mesa_HashTable Monitors;
 };
 
 
@@ -2079,7 +2048,7 @@ struct gl_perf_monitor_state
  */
 struct gl_perf_query_state
 {
-   struct _mesa_HashTable *Objects; /**< The table of all performance query objects */
+   struct _mesa_HashTable Objects; /**< The table of all performance query objects */
 };
 
 
@@ -2325,7 +2294,7 @@ struct gl_pipeline_shader_state
    struct gl_pipeline_object *Default;
 
    /** Pipeline objects */
-   struct _mesa_HashTable *Objects;
+   struct _mesa_HashTable Objects;
 };
 
 /**
@@ -2356,7 +2325,7 @@ struct gl_query_object
  */
 struct gl_query_state
 {
-   struct _mesa_HashTable *QueryObjects;
+   struct _mesa_HashTable QueryObjects;
    struct gl_query_object *CurrentOcclusionObject; /* GL_ARB_occlusion_query */
    struct gl_query_object *CurrentTimerObject;     /* GL_EXT_timer_query */
 
@@ -2408,8 +2377,8 @@ struct gl_shared_state
    GLint RefCount;			   /**< Reference count */
    bool DisplayListsAffectGLThread;
 
-   struct _mesa_HashTable *DisplayList;	   /**< Display lists hash table */
-   struct _mesa_HashTable *TexObjects;	   /**< Texture objects hash table */
+   struct _mesa_HashTable DisplayList;	   /**< Display lists hash table */
+   struct _mesa_HashTable TexObjects;	   /**< Texture objects hash table */
 
    /** Default texture objects (shared by all texture units) */
    struct gl_texture_object *DefaultTex[NUM_TEXTURE_TARGETS];
@@ -2432,16 +2401,16 @@ struct gl_shared_state
     * \name Vertex/geometry/fragment programs
     */
    /*@{*/
-   struct _mesa_HashTable *Programs; /**< All vertex/fragment programs */
+   struct _mesa_HashTable Programs; /**< All vertex/fragment programs */
    struct gl_program *DefaultVertexProgram;
    struct gl_program *DefaultFragmentProgram;
    /*@}*/
 
    /* GL_ATI_fragment_shader */
-   struct _mesa_HashTable *ATIShaders;
+   struct _mesa_HashTable ATIShaders;
    struct ati_fragment_shader *DefaultFragmentShader;
 
-   struct _mesa_HashTable *BufferObjects;
+   struct _mesa_HashTable BufferObjects;
 
    /* Buffer objects released by a different context than the one that
     * created them. Since the creating context holds one global buffer
@@ -2457,17 +2426,17 @@ struct gl_shared_state
    struct set *ZombieBufferObjects;
 
    /** Table of both gl_shader and gl_shader_program objects */
-   struct _mesa_HashTable *ShaderObjects;
+   struct _mesa_HashTable ShaderObjects;
 
    /* GL_EXT_framebuffer_object */
-   struct _mesa_HashTable *RenderBuffers;
-   struct _mesa_HashTable *FrameBuffers;
+   struct _mesa_HashTable RenderBuffers;
+   struct _mesa_HashTable FrameBuffers;
 
    /* GL_ARB_sync */
    struct set *SyncObjects;
 
    /** GL_ARB_sampler_objects */
-   struct _mesa_HashTable *SamplerObjects;
+   struct _mesa_HashTable SamplerObjects;
 
    /* GL_ARB_bindless_texture */
    struct hash_table_u64 *TextureHandles;
@@ -2482,10 +2451,10 @@ struct gl_shared_state
    simple_mtx_t ShaderIncludeMutex;
 
    /** EXT_external_objects */
-   struct _mesa_HashTable *MemoryObjects;
+   struct _mesa_HashTable MemoryObjects;
 
    /** EXT_semaphore */
-   struct _mesa_HashTable *SemaphoreObjects;
+   struct _mesa_HashTable SemaphoreObjects;
 
    /**
     * Whether at least one image has been imported or exported, excluding

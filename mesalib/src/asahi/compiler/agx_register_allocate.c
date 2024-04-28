@@ -3,39 +3,125 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "util/bitset.h"
+#include "util/macros.h"
 #include "util/u_dynarray.h"
+#include "util/u_memory.h"
 #include "util/u_qsort.h"
 #include "agx_builder.h"
+#include "agx_compile.h"
 #include "agx_compiler.h"
 #include "agx_debug.h"
 #include "agx_opcodes.h"
+#include "shader_enums.h"
 
 /* SSA-based register allocator */
+
+enum ra_class {
+   /* General purpose register */
+   RA_GPR,
+
+   /* Memory, used to assign stack slots */
+   RA_MEM,
+
+   /* Keep last */
+   RA_CLASSES,
+};
+
+static inline enum ra_class
+ra_class_for_index(agx_index idx)
+{
+   return idx.memory ? RA_MEM : RA_GPR;
+}
+
+struct phi_web_node {
+   /* Parent index, or circular for root */
+   uint32_t parent;
+
+   /* If root, assigned register, or ~0 if no register assigned. */
+   uint16_t reg;
+   bool assigned;
+
+   /* Rank, at most log2(n) so need ~5-bits */
+   uint8_t rank;
+};
+static_assert(sizeof(struct phi_web_node) == 8, "packed");
+
+static unsigned
+phi_web_find(struct phi_web_node *web, unsigned x)
+{
+   if (web[x].parent == x) {
+      /* Root */
+      return x;
+   } else {
+      /* Search up the tree */
+      unsigned root = x;
+      while (web[root].parent != root)
+         root = web[root].parent;
+
+      /* Compress path. Second pass ensures O(1) memory usage. */
+      while (web[x].parent != x) {
+         unsigned temp = web[x].parent;
+         web[x].parent = root;
+         x = temp;
+      }
+
+      return root;
+   }
+}
+
+static void
+phi_web_union(struct phi_web_node *web, unsigned x, unsigned y)
+{
+   x = phi_web_find(web, x);
+   y = phi_web_find(web, y);
+
+   if (x == y)
+      return;
+
+   /* Union-by-rank: ensure x.rank >= y.rank */
+   if (web[x].rank < web[y].rank) {
+      unsigned temp = x;
+      x = y;
+      y = temp;
+   }
+
+   web[y].parent = x;
+
+   /* Increment rank if necessary */
+   if (web[x].rank == web[y].rank) {
+      web[x].rank++;
+   }
+}
 
 struct ra_ctx {
    agx_context *shader;
    agx_block *block;
    agx_instr *instr;
-   uint8_t *ssa_to_reg;
+   uint16_t *ssa_to_reg;
    uint8_t *ncomps;
    enum agx_size *sizes;
+   enum ra_class *classes;
    BITSET_WORD *visited;
-   BITSET_WORD *used_regs;
+   BITSET_WORD *used_regs[RA_CLASSES];
 
    /* Maintained while assigning registers */
-   unsigned *max_reg;
+   unsigned *max_reg[RA_CLASSES];
 
    /* For affinities */
    agx_instr **src_to_collect_phi;
+   struct phi_web_node *phi_web;
 
    /* If bit i of used_regs is set, and register i is the first consecutive
     * register holding an SSA value, then reg_to_ssa[i] is the SSA index of the
     * value currently in register  i.
+    *
+    * Only for GPRs. We can add reg classes later if we have a use case.
     */
    uint32_t reg_to_ssa[AGX_NUM_REGS];
 
    /* Maximum number of registers that RA is allowed to use */
-   unsigned bound;
+   unsigned bound[RA_CLASSES];
 };
 
 enum agx_size
@@ -57,12 +143,26 @@ agx_split_width(const agx_instr *I)
 }
 
 /*
- * Calculate register demand in 16-bit registers. Becuase we allocate in SSA,
- * this calculation is exact in linear-time. Depends on liveness information.
+ * Calculate register demand in 16-bit registers, while gathering widths and
+ * classes. Becuase we allocate in SSA, this calculation is exact in
+ * linear-time. Depends on liveness information.
  */
 static unsigned
-agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
+agx_calc_register_demand(agx_context *ctx)
 {
+   uint8_t *widths = calloc(ctx->alloc, sizeof(uint8_t));
+   enum ra_class *classes = calloc(ctx->alloc, sizeof(enum ra_class));
+
+   agx_foreach_instr_global(ctx, I) {
+      agx_foreach_ssa_dest(I, d) {
+         unsigned v = I->dest[d].value;
+         assert(widths[v] == 0 && "broken SSA");
+         /* Round up vectors for easier live range splitting */
+         widths[v] = util_next_power_of_two(agx_index_size_16(I->dest[d]));
+         classes[v] = ra_class_for_index(I->dest[d]);
+      }
+   }
+
    /* Calculate demand at the start of each block based on live-in, then update
     * for each instruction processed. Calculate rolling maximum.
     */
@@ -81,7 +181,8 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
       {
          int i;
          BITSET_FOREACH_SET(i, block->live_in, ctx->alloc) {
-            demand += widths[i];
+            if (classes[i] == RA_GPR)
+               demand += widths[i];
          }
       }
 
@@ -100,6 +201,14 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
          if (I->op == AGX_OPCODE_PHI)
             continue;
 
+         if (I->op == AGX_OPCODE_PRELOAD) {
+            unsigned size = agx_size_align_16(I->src[0].size);
+            max_demand = MAX2(max_demand, I->src[0].value + size);
+         } else if (I->op == AGX_OPCODE_EXPORT) {
+            unsigned size = agx_size_align_16(I->src[0].size);
+            max_demand = MAX2(max_demand, I->imm + size);
+         }
+
          /* Handle late-kill registers from last instruction */
          demand -= late_kill_count;
          late_kill_count = 0;
@@ -109,6 +218,8 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
             if (!I->src[s].kill)
                continue;
             assert(I->src[s].type == AGX_INDEX_NORMAL);
+            if (ra_class_for_index(I->src[s]) != RA_GPR)
+               continue;
 
             bool skip = false;
 
@@ -124,10 +235,9 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
          }
 
          /* Make destinations live */
-         agx_foreach_dest(I, d) {
-            if (agx_is_null(I->dest[d]))
+         agx_foreach_ssa_dest(I, d) {
+            if (ra_class_for_index(I->dest[d]) != RA_GPR)
                continue;
-            assert(I->dest[d].type == AGX_INDEX_NORMAL);
 
             /* Live range splits allocate at power-of-two granularity. Round up
              * destination sizes (temporarily) to powers-of-two.
@@ -145,15 +255,17 @@ agx_calc_register_demand(agx_context *ctx, uint8_t *widths)
       demand -= late_kill_count;
    }
 
+   free(widths);
+   free(classes);
    return max_demand;
 }
 
 static bool
-find_regs_simple(struct ra_ctx *rctx, unsigned count, unsigned align,
-                 unsigned *out)
+find_regs_simple(struct ra_ctx *rctx, enum ra_class cls, unsigned count,
+                 unsigned align, unsigned *out)
 {
-   for (unsigned reg = 0; reg + count <= rctx->bound; reg += align) {
-      if (!BITSET_TEST_RANGE(rctx->used_regs, reg, reg + count - 1)) {
+   for (unsigned reg = 0; reg + count <= rctx->bound[cls]; reg += align) {
+      if (!BITSET_TEST_RANGE(rctx->used_regs[cls], reg, reg + count - 1)) {
          *out = reg;
          return true;
       }
@@ -176,17 +288,18 @@ find_regs_simple(struct ra_ctx *rctx, unsigned count, unsigned align,
  * Postcondition: at least one register in the returned region is already free.
  */
 static unsigned
-find_best_region_to_evict(struct ra_ctx *rctx, unsigned size,
+find_best_region_to_evict(struct ra_ctx *rctx, enum ra_class cls, unsigned size,
                           BITSET_WORD *already_evicted, BITSET_WORD *killed)
 {
    assert(util_is_power_of_two_or_zero(size) && "precondition");
-   assert((rctx->bound % size) == 0 &&
+   assert((rctx->bound[cls] % size) == 0 &&
           "register file size must be aligned to the maximum vector size");
+   assert(cls == RA_GPR);
 
    unsigned best_base = ~0;
    unsigned best_moves = ~0;
 
-   for (unsigned base = 0; base + size <= rctx->bound; base += size) {
+   for (unsigned base = 0; base + size <= rctx->bound[cls]; base += size) {
       /* r0l is unevictable, skip it. By itself, this does not pose a problem.
        * We are allocating n registers, but the region containing r0l has at
        * most n-1 free. Since there are at least n free registers total, there
@@ -214,7 +327,7 @@ find_best_region_to_evict(struct ra_ctx *rctx, unsigned size,
          /* We need a move for each blocked register (TODO: we only need a
           * single move for 32-bit pairs, could optimize to use that instead.)
           */
-         if (BITSET_TEST(rctx->used_regs, reg))
+         if (BITSET_TEST(rctx->used_regs[cls], reg))
             moves++;
          else
             any_free = true;
@@ -238,7 +351,7 @@ find_best_region_to_evict(struct ra_ctx *rctx, unsigned size,
       }
    }
 
-   assert(best_base < rctx->bound &&
+   assert(best_base < rctx->bound[cls] &&
           "not enough registers (should have spilled already)");
    return best_base;
 }
@@ -246,20 +359,21 @@ find_best_region_to_evict(struct ra_ctx *rctx, unsigned size,
 static void
 set_ssa_to_reg(struct ra_ctx *rctx, unsigned ssa, unsigned reg)
 {
-   *(rctx->max_reg) = MAX2(*(rctx->max_reg), reg + rctx->ncomps[ssa] - 1);
+   enum ra_class cls = rctx->classes[ssa];
+
+   *(rctx->max_reg[cls]) =
+      MAX2(*(rctx->max_reg[cls]), reg + rctx->ncomps[ssa] - 1);
+
    rctx->ssa_to_reg[ssa] = reg;
 }
 
 static unsigned
 assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
                        const agx_instr *I, struct util_dynarray *copies,
-                       BITSET_WORD *clobbered, BITSET_WORD *killed)
+                       BITSET_WORD *clobbered, BITSET_WORD *killed,
+                       enum ra_class cls)
 {
-   /* XXX: This needs some special handling but so far it has been prohibitively
-    * difficult to hit the case
-    */
-   if (I->op == AGX_OPCODE_PHI)
-      unreachable("TODO");
+   assert(cls == RA_GPR);
 
    /* Expand the destination to the next power-of-two size. This simplifies
     * splitting and is accounted for by the demand calculation, so is legal.
@@ -272,14 +386,15 @@ assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
     * shuffle some variables around. Look for a range of the register file
     * that is partially blocked.
     */
-   unsigned base = find_best_region_to_evict(rctx, count, clobbered, killed);
+   unsigned base =
+      find_best_region_to_evict(rctx, cls, count, clobbered, killed);
 
    assert(count <= 16 && "max allocation size (conservative)");
    BITSET_DECLARE(evict_set, 16) = {0};
 
    /* Store the set of blocking registers that need to be evicted */
    for (unsigned i = 0; i < count; ++i) {
-      if (BITSET_TEST(rctx->used_regs, base + i)) {
+      if (BITSET_TEST(rctx->used_regs[cls], base + i)) {
          BITSET_SET(evict_set, i);
       }
    }
@@ -287,7 +402,7 @@ assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
    /* We are going to allocate the destination to this range, so it is now fully
     * used. Mark it as such so we don't reassign here later.
     */
-   BITSET_SET_RANGE(rctx->used_regs, base, base + count - 1);
+   BITSET_SET_RANGE(rctx->used_regs[cls], base, base + count - 1);
 
    /* Before overwriting the range, we need to evict blocked variables */
    for (unsigned i = 0; i < 16; ++i) {
@@ -314,11 +429,13 @@ assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
        * recursion because nr is decreasing because of the gap.
        */
       assert(nr < count && "fully contained in range that's not full");
-      unsigned new_reg =
-         assign_regs_by_copying(rctx, nr, align, I, copies, clobbered, killed);
+      unsigned new_reg = assign_regs_by_copying(rctx, nr, align, I, copies,
+                                                clobbered, killed, cls);
 
       /* Copy the variable over, register by register */
       for (unsigned i = 0; i < nr; i += align) {
+         assert(cls == RA_GPR);
+
          struct agx_copy copy = {
             .dest = new_reg + i,
             .src = agx_register(reg + i, rctx->sizes[ssa]),
@@ -337,6 +454,7 @@ assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
       BITSET_SET_RANGE(clobbered, new_reg, new_reg + nr - 1);
 
       /* Update bookkeeping for this variable */
+      assert(cls == rctx->classes[cls]);
       set_ssa_to_reg(rctx, ssa, new_reg);
       rctx->reg_to_ssa[new_reg] = ssa;
 
@@ -347,8 +465,10 @@ assign_regs_by_copying(struct ra_ctx *rctx, unsigned npot_count, unsigned align,
    /* We overallocated for non-power-of-two vectors. Free up the excess now.
     * This is modelled as late kill in demand calculation.
     */
-   if (npot_count != count)
-      BITSET_CLEAR_RANGE(rctx->used_regs, base + npot_count, base + count - 1);
+   if (npot_count != count) {
+      BITSET_CLEAR_RANGE(rctx->used_regs[cls], base + npot_count,
+                         base + count - 1);
+   }
 
    return base;
 }
@@ -400,7 +520,9 @@ insert_copies_for_clobbered_killed(struct ra_ctx *rctx, unsigned reg,
    agx_foreach_ssa_src(I, s) {
       unsigned reg = rctx->ssa_to_reg[I->src[s].value];
 
-      if (I->src[s].kill && BITSET_TEST(clobbered, reg)) {
+      if (I->src[s].kill && ra_class_for_index(I->src[s]) == RA_GPR &&
+          BITSET_TEST(clobbered, reg)) {
+
          assert(nr_vars < ARRAY_SIZE(vars) &&
                 "cannot clobber more than max variable size");
 
@@ -410,6 +532,8 @@ insert_copies_for_clobbered_killed(struct ra_ctx *rctx, unsigned reg,
 
    if (nr_vars == 0)
       return;
+
+   assert(I->op != AGX_OPCODE_PHI && "kill bit not set for phis");
 
    /* Sort by descending alignment so they are packed with natural alignment */
    util_qsort_r(vars, nr_vars, sizeof(vars[0]), sort_by_size, rctx->sizes);
@@ -432,6 +556,7 @@ insert_copies_for_clobbered_killed(struct ra_ctx *rctx, unsigned reg,
       unsigned var_count = rctx->ncomps[var];
       unsigned var_align = agx_size_align_16(rctx->sizes[var]);
 
+      assert(rctx->classes[var] == RA_GPR && "construction");
       assert((base % var_align) == 0 && "induction");
       assert((var_count % var_align) == 0 && "no partial variables");
 
@@ -453,6 +578,49 @@ insert_copies_for_clobbered_killed(struct ra_ctx *rctx, unsigned reg,
    assert(base <= reg + count && "no overflow");
 }
 
+/*
+ * When shuffling registers to assign a phi destination, we can't simply insert
+ * the required moves before the phi, since phis happen in parallel along the
+ * edge. Instead, there are two cases:
+ *
+ * 1. The source of the copy is the destination of a phi. Since we are
+ *    emitting shuffle code, there will be no more reads of that destination
+ *    with the old register. Since the phis all happen in parallel and writes
+ *    precede reads, there was no previous read of that destination either. So
+ *    the old destination is dead. Just replace the phi's destination with the
+ *    moves's destination instead.
+ *
+ * 2. Otherwise, the source of the copy is a live-in value, since it's
+ *    live when assigning phis at the start of a block but it is not a phi.
+ *    If we move in parallel with the phi, the phi will still read the correct
+ *    old register regardless and the destinations can't alias. So, insert a phi
+ *    to do the copy in parallel along the incoming edges.
+ */
+static void
+agx_emit_move_before_phi(agx_context *ctx, agx_block *block,
+                         struct agx_copy *copy)
+{
+   assert(!copy->dest_mem && !copy->src.memory && "no memory shuffles");
+
+   /* Look for the phi writing the destination */
+   agx_foreach_phi_in_block(block, phi) {
+      if (agx_is_equiv(phi->dest[0], copy->src) && !phi->dest[0].memory) {
+         phi->dest[0].value = copy->dest;
+         return;
+      }
+   }
+
+   /* There wasn't such a phi, so it's live-in. Insert a phi instead. */
+   agx_builder b = agx_init_builder(ctx, agx_before_block(block));
+
+   agx_instr *phi = agx_phi_to(&b, agx_register_like(copy->dest, copy->src),
+                               agx_num_predecessors(block));
+
+   agx_foreach_src(phi, s) {
+      phi->src[s] = copy->src;
+   }
+}
+
 static unsigned
 find_regs(struct ra_ctx *rctx, agx_instr *I, unsigned dest_idx, unsigned count,
           unsigned align)
@@ -460,9 +628,13 @@ find_regs(struct ra_ctx *rctx, agx_instr *I, unsigned dest_idx, unsigned count,
    unsigned reg;
    assert(count == align);
 
-   if (find_regs_simple(rctx, count, align, &reg)) {
+   enum ra_class cls = ra_class_for_index(I->dest[dest_idx]);
+
+   if (find_regs_simple(rctx, cls, count, align, &reg)) {
       return reg;
    } else {
+      assert(cls == RA_GPR && "no memory live range splits");
+
       BITSET_DECLARE(clobbered, AGX_NUM_REGS) = {0};
       BITSET_DECLARE(killed, AGX_NUM_REGS) = {0};
       struct util_dynarray copies = {0};
@@ -472,27 +644,52 @@ find_regs(struct ra_ctx *rctx, agx_instr *I, unsigned dest_idx, unsigned count,
       agx_foreach_ssa_src(I, s) {
          unsigned v = I->src[s].value;
 
-         if (BITSET_TEST(rctx->visited, v)) {
+         if (BITSET_TEST(rctx->visited, v) && !I->src[s].memory) {
             unsigned base = rctx->ssa_to_reg[v];
             unsigned nr = rctx->ncomps[v];
+
+            assert(base + nr <= AGX_NUM_REGS);
             BITSET_SET_RANGE(killed, base, base + nr - 1);
          }
       }
 
       reg = assign_regs_by_copying(rctx, count, align, I, &copies, clobbered,
-                                   killed);
+                                   killed, cls);
       insert_copies_for_clobbered_killed(rctx, reg, count, I, &copies,
                                          clobbered);
 
-      /* Insert the necessary copies */
-      agx_builder b = agx_init_builder(rctx->shader, agx_before_instr(I));
-      agx_emit_parallel_copies(
-         &b, copies.data, util_dynarray_num_elements(&copies, struct agx_copy));
+      /* Insert the necessary copies. Phis need special handling since we can't
+       * insert instructions before the phi.
+       */
+      if (I->op == AGX_OPCODE_PHI) {
+         util_dynarray_foreach(&copies, struct agx_copy, copy) {
+            agx_emit_move_before_phi(rctx->shader, rctx->block, copy);
+         }
+      } else {
+         agx_builder b = agx_init_builder(rctx->shader, agx_before_instr(I));
+         agx_emit_parallel_copies(
+            &b, copies.data,
+            util_dynarray_num_elements(&copies, struct agx_copy));
+      }
+
+      util_dynarray_fini(&copies);
 
       /* assign_regs asserts this is cleared, so clear to be reassigned */
-      BITSET_CLEAR_RANGE(rctx->used_regs, reg, reg + count - 1);
+      BITSET_CLEAR_RANGE(rctx->used_regs[cls], reg, reg + count - 1);
       return reg;
    }
+}
+
+static uint32_t
+search_ssa_to_reg_out(struct ra_ctx *ctx, struct agx_block *blk,
+                      enum ra_class cls, unsigned ssa)
+{
+   for (unsigned reg = 0; reg < ctx->bound[cls]; ++reg) {
+      if (blk->reg_to_ssa_out[cls][reg] == ssa)
+         return reg;
+   }
+
+   unreachable("variable not defined in block");
 }
 
 /*
@@ -523,6 +720,7 @@ reserve_live_in(struct ra_ctx *rctx)
          continue;
 
       unsigned base;
+      enum ra_class cls = rctx->classes[i];
 
       /* If we split live ranges, the variable might be defined differently at
        * the end of each predecessor. Join them together with a phi inserted at
@@ -536,7 +734,7 @@ reserve_live_in(struct ra_ctx *rctx)
          agx_foreach_predecessor(rctx->block, pred) {
             unsigned pred_idx = agx_predecessor_index(rctx->block, *pred);
 
-            if ((*pred)->ssa_to_reg_out == NULL) {
+            if ((*pred)->reg_to_ssa_out[cls] == NULL) {
                /* If this is a loop header, we don't know where the register
                 * will end up. So, we create a phi conservatively but don't fill
                 * it in until the end of the loop. Stash in the information
@@ -544,10 +742,13 @@ reserve_live_in(struct ra_ctx *rctx)
                 */
                assert(rctx->block->loop_header);
                phi->src[pred_idx] = agx_get_index(i, size);
+               phi->src[pred_idx].memory = rctx->classes[i] == RA_MEM;
             } else {
                /* Otherwise, we can build the phi now */
-               unsigned reg = (*pred)->ssa_to_reg_out[i];
-               phi->src[pred_idx] = agx_register(reg, size);
+               unsigned reg = search_ssa_to_reg_out(rctx, *pred, cls, i);
+               phi->src[pred_idx] = cls == RA_MEM
+                                       ? agx_memory_register(reg, size)
+                                       : agx_register(reg, size);
             }
          }
 
@@ -563,14 +764,17 @@ reserve_live_in(struct ra_ctx *rctx)
          assert(nr_preds == 1);
 
          agx_block **pred = util_dynarray_begin(&rctx->block->predecessors);
-         base = (*pred)->ssa_to_reg_out[i];
+         /* TODO: Flip logic to eliminate the search */
+         base = search_ssa_to_reg_out(rctx, *pred, cls, i);
       }
 
       set_ssa_to_reg(rctx, i, base);
 
       for (unsigned j = 0; j < rctx->ncomps[i]; ++j) {
-         BITSET_SET(rctx->used_regs, base + j);
-         rctx->reg_to_ssa[base + j] = i;
+         BITSET_SET(rctx->used_regs[cls], base + j);
+
+         if (cls == RA_GPR)
+            rctx->reg_to_ssa[base + j] = i;
       }
    }
 }
@@ -578,7 +782,8 @@ reserve_live_in(struct ra_ctx *rctx)
 static void
 assign_regs(struct ra_ctx *rctx, agx_index v, unsigned reg)
 {
-   assert(reg < rctx->bound && "must not overflow register file");
+   enum ra_class cls = ra_class_for_index(v);
+   assert(reg < rctx->bound[cls] && "must not overflow register file");
    assert(v.type == AGX_INDEX_NORMAL && "only SSA gets registers allocated");
    set_ssa_to_reg(rctx, v.value, reg);
 
@@ -588,10 +793,21 @@ assign_regs(struct ra_ctx *rctx, agx_index v, unsigned reg)
    assert(rctx->ncomps[v.value] >= 1);
    unsigned end = reg + rctx->ncomps[v.value] - 1;
 
-   assert(!BITSET_TEST_RANGE(rctx->used_regs, reg, end) && "no interference");
-   BITSET_SET_RANGE(rctx->used_regs, reg, end);
+   assert(!BITSET_TEST_RANGE(rctx->used_regs[cls], reg, end) &&
+          "no interference");
+   BITSET_SET_RANGE(rctx->used_regs[cls], reg, end);
 
-   rctx->reg_to_ssa[reg] = v.value;
+   if (cls == RA_GPR)
+      rctx->reg_to_ssa[reg] = v.value;
+
+   /* Phi webs need to remember which register they're assigned to */
+   struct phi_web_node *node =
+      &rctx->phi_web[phi_web_find(rctx->phi_web, v.value)];
+
+   if (!node->assigned) {
+      node->reg = reg;
+      node->assigned = true;
+   }
 }
 
 static void
@@ -640,10 +856,12 @@ try_coalesce_with(struct ra_ctx *rctx, agx_index ssa, unsigned count,
    }
 
    unsigned base = rctx->ssa_to_reg[ssa.value];
-   if (BITSET_TEST_RANGE(rctx->used_regs, base, base + count - 1))
+   enum ra_class cls = ra_class_for_index(ssa);
+
+   if (BITSET_TEST_RANGE(rctx->used_regs[cls], base, base + count - 1))
       return false;
 
-   assert(base + count <= rctx->bound && "invariant");
+   assert(base + count <= rctx->bound[cls] && "invariant");
    *out = base;
    return true;
 }
@@ -652,12 +870,32 @@ static unsigned
 pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
 {
    agx_index idx = I->dest[d];
+   enum ra_class cls = ra_class_for_index(idx);
    assert(idx.type == AGX_INDEX_NORMAL);
 
    unsigned count = rctx->ncomps[idx.value];
    assert(count >= 1);
 
    unsigned align = count;
+
+   /* Try to allocate entire phi webs compatibly */
+   unsigned phi_idx = phi_web_find(rctx->phi_web, idx.value);
+   if (rctx->phi_web[phi_idx].assigned) {
+      unsigned reg = rctx->phi_web[phi_idx].reg;
+      if ((reg % align) == 0 && reg + align < rctx->bound[cls] &&
+          !BITSET_TEST_RANGE(rctx->used_regs[cls], reg, reg + align - 1))
+         return reg;
+   }
+
+   /* Try to allocate moves compatibly with their sources */
+   if (I->op == AGX_OPCODE_MOV && I->src[0].type == AGX_INDEX_NORMAL &&
+       I->src[0].memory == I->dest[0].memory &&
+       I->src[0].size == I->dest[0].size) {
+
+      unsigned out;
+      if (try_coalesce_with(rctx, I->src[0], count, false, &out))
+         return out;
+   }
 
    /* Try to allocate phis compatibly with their sources */
    if (I->op == AGX_OPCODE_PHI) {
@@ -679,20 +917,44 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
                 "and this is not a phi node, so we have assigned a register");
 
          unsigned base = affinity_base_of_collect(rctx, I, s);
-         if (base >= rctx->bound || (base + count) > rctx->bound)
+         if (base >= rctx->bound[cls] || (base + count) > rctx->bound[cls])
             continue;
 
          /* Unaligned destinations can happen when dest size > src size */
          if (base % align)
             continue;
 
-         if (!BITSET_TEST_RANGE(rctx->used_regs, base, base + count - 1))
+         if (!BITSET_TEST_RANGE(rctx->used_regs[cls], base, base + count - 1))
             return base;
       }
    }
 
-   /* Try to allocate sources of collects contiguously */
+   /* Try to coalesce scalar exports */
    agx_instr *collect_phi = rctx->src_to_collect_phi[idx.value];
+   if (collect_phi && collect_phi->op == AGX_OPCODE_EXPORT) {
+      unsigned reg = collect_phi->imm;
+
+      if (!BITSET_TEST_RANGE(rctx->used_regs[cls], reg, reg + align - 1) &&
+          (reg % align) == 0)
+         return reg;
+   }
+
+   /* Try to coalesce vector exports */
+   if (collect_phi && collect_phi->op == AGX_OPCODE_SPLIT) {
+      if (collect_phi->dest[0].type == AGX_INDEX_NORMAL) {
+         agx_instr *exp = rctx->src_to_collect_phi[collect_phi->dest[0].value];
+         if (exp && exp->op == AGX_OPCODE_EXPORT) {
+            unsigned reg = exp->imm;
+
+            if (!BITSET_TEST_RANGE(rctx->used_regs[cls], reg,
+                                   reg + align - 1) &&
+                (reg % align) == 0)
+               return reg;
+         }
+      }
+   }
+
+   /* Try to allocate sources of collects contiguously */
    if (collect_phi && collect_phi->op == AGX_OPCODE_COLLECT) {
       agx_instr *collect = collect_phi;
 
@@ -718,17 +980,18 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
 
          /* Determine where the collect should start relative to the source */
          unsigned base = affinity_base_of_collect(rctx, collect, s);
-         if (base >= rctx->bound)
+         if (base >= rctx->bound[cls])
             continue;
 
          unsigned our_reg = base + (our_source * align);
 
          /* Don't allocate past the end of the register file */
-         if ((our_reg + align) > rctx->bound)
+         if ((our_reg + align) > rctx->bound[cls])
             continue;
 
          /* If those registers are free, then choose them */
-         if (!BITSET_TEST_RANGE(rctx->used_regs, our_reg, our_reg + align - 1))
+         if (!BITSET_TEST_RANGE(rctx->used_regs[cls], our_reg,
+                                our_reg + align - 1))
             return our_reg;
       }
 
@@ -738,9 +1001,10 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
       /* Prefer ranges of the register file that leave room for all sources of
        * the collect contiguously.
        */
-      for (unsigned base = 0; base + (collect->nr_srcs * align) <= rctx->bound;
+      for (unsigned base = 0;
+           base + (collect->nr_srcs * align) <= rctx->bound[cls];
            base += collect_align) {
-         if (!BITSET_TEST_RANGE(rctx->used_regs, base,
+         if (!BITSET_TEST_RANGE(rctx->used_regs[cls], base,
                                 base + (collect->nr_srcs * align) - 1))
             return base + offset;
       }
@@ -750,9 +1014,9 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
        * for a register for the source such that the collect base is aligned.
        */
       if (collect_align > align) {
-         for (unsigned reg = offset; reg + collect_align <= rctx->bound;
+         for (unsigned reg = offset; reg + collect_align <= rctx->bound[cls];
               reg += collect_align) {
-            if (!BITSET_TEST_RANGE(rctx->used_regs, reg, reg + count - 1))
+            if (!BITSET_TEST_RANGE(rctx->used_regs[cls], reg, reg + count - 1))
                return reg;
          }
       }
@@ -772,7 +1036,8 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
       if (phi->dest[0].type == AGX_INDEX_REGISTER) {
          unsigned base = phi->dest[0].value;
 
-         if (!BITSET_TEST_RANGE(rctx->used_regs, base, base + count - 1))
+         if (base + count <= rctx->bound[cls] &&
+             !BITSET_TEST_RANGE(rctx->used_regs[cls], base, base + count - 1))
             return base;
       }
    }
@@ -786,12 +1051,14 @@ pick_regs(struct ra_ctx *rctx, agx_instr *I, unsigned d)
 static void
 agx_ra_assign_local(struct ra_ctx *rctx)
 {
-   BITSET_DECLARE(used_regs, AGX_NUM_REGS) = {0};
-   uint8_t *ssa_to_reg = calloc(rctx->shader->alloc, sizeof(uint8_t));
+   BITSET_DECLARE(used_regs_gpr, AGX_NUM_REGS) = {0};
+   BITSET_DECLARE(used_regs_mem, AGX_NUM_MODELED_REGS) = {0};
+   uint16_t *ssa_to_reg = calloc(rctx->shader->alloc, sizeof(uint16_t));
 
    agx_block *block = rctx->block;
    uint8_t *ncomps = rctx->ncomps;
-   rctx->used_regs = used_regs;
+   rctx->used_regs[RA_GPR] = used_regs_gpr;
+   rctx->used_regs[RA_MEM] = used_regs_mem;
    rctx->ssa_to_reg = ssa_to_reg;
 
    reserve_live_in(rctx);
@@ -800,7 +1067,7 @@ agx_ra_assign_local(struct ra_ctx *rctx)
     * This could be optimized (sync with agx_calc_register_demand).
     */
    if (rctx->shader->any_cf)
-      BITSET_SET(used_regs, 0);
+      BITSET_SET(used_regs_gpr, 0);
 
    agx_foreach_instr_in_block(block, I) {
       rctx->instr = I;
@@ -809,13 +1076,17 @@ agx_ra_assign_local(struct ra_ctx *rctx)
        * can be removed by assigning the destinations overlapping the source.
        */
       if (I->op == AGX_OPCODE_SPLIT && I->src[0].kill) {
+         assert(ra_class_for_index(I->src[0]) == RA_GPR);
          unsigned reg = ssa_to_reg[I->src[0].value];
          unsigned width = agx_size_align_16(agx_split_width(I));
 
          agx_foreach_dest(I, d) {
+            assert(ra_class_for_index(I->dest[0]) == RA_GPR);
+
             /* Free up the source */
             unsigned offset_reg = reg + (d * width);
-            BITSET_CLEAR_RANGE(used_regs, offset_reg, offset_reg + width - 1);
+            BITSET_CLEAR_RANGE(used_regs_gpr, offset_reg,
+                               offset_reg + width - 1);
 
             /* Assign the destination where the source was */
             if (!agx_is_null(I->dest[d]))
@@ -825,7 +1096,7 @@ agx_ra_assign_local(struct ra_ctx *rctx)
          unsigned excess =
             rctx->ncomps[I->src[0].value] - (I->nr_dests * width);
          if (excess) {
-            BITSET_CLEAR_RANGE(used_regs, reg + (I->nr_dests * width),
+            BITSET_CLEAR_RANGE(used_regs_gpr, reg + (I->nr_dests * width),
                                reg + rctx->ncomps[I->src[0].value] - 1);
          }
 
@@ -845,11 +1116,14 @@ agx_ra_assign_local(struct ra_ctx *rctx)
       /* First, free killed sources */
       agx_foreach_ssa_src(I, s) {
          if (I->src[s].kill) {
+            assert(I->op != AGX_OPCODE_PHI && "phis don't use .kill");
+
+            enum ra_class cls = ra_class_for_index(I->src[s]);
             unsigned reg = ssa_to_reg[I->src[s].value];
             unsigned count = ncomps[I->src[s].value];
 
             assert(count >= 1);
-            BITSET_CLEAR_RANGE(used_regs, reg, reg + count - 1);
+            BITSET_CLEAR_RANGE(rctx->used_regs[cls], reg, reg + count - 1);
          }
       }
 
@@ -867,7 +1141,19 @@ agx_ra_assign_local(struct ra_ctx *rctx)
       agx_set_dests(rctx, I);
    }
 
-   block->ssa_to_reg_out = rctx->ssa_to_reg;
+   for (unsigned i = 0; i < RA_CLASSES; ++i) {
+      block->reg_to_ssa_out[i] =
+         malloc(rctx->bound[i] * sizeof(*block->reg_to_ssa_out[i]));
+
+      /* Initialize with sentinel so we don't have unused regs mapping to r0 */
+      memset(block->reg_to_ssa_out[i], 0xFF,
+             rctx->bound[i] * sizeof(*block->reg_to_ssa_out[i]));
+   }
+
+   int i;
+   BITSET_FOREACH_SET(i, block->live_out, rctx->shader->alloc) {
+      block->reg_to_ssa_out[rctx->classes[i]][rctx->ssa_to_reg[i]] = i;
+   }
 
    /* Also set the sources for the phis in our successors, since that logically
     * happens now (given the possibility of live range splits, etc)
@@ -882,10 +1168,12 @@ agx_ra_assign_local(struct ra_ctx *rctx)
 
             agx_replace_src(
                phi, pred_idx,
-               agx_register(rctx->ssa_to_reg[value], phi->src[pred_idx].size));
+               agx_register_like(rctx->ssa_to_reg[value], phi->src[pred_idx]));
          }
       }
    }
+
+   free(rctx->ssa_to_reg);
 }
 
 /*
@@ -912,7 +1200,7 @@ agx_insert_parallel_copies(agx_context *ctx, agx_block *block)
 
       agx_foreach_phi_in_block(succ, phi) {
          assert(!any_succ && "control flow graph has a critical edge");
-         nr_phi++;
+         nr_phi += agx_channels(phi->dest[0]);
       }
 
       any_succ = true;
@@ -938,10 +1226,28 @@ agx_insert_parallel_copies(agx_context *ctx, agx_block *block)
          assert(dest.type == AGX_INDEX_REGISTER);
          assert(dest.size == src.size);
 
-         copies[i++] = (struct agx_copy){
-            .dest = dest.value,
-            .src = src,
-         };
+         /* Scalarize the phi, since the parallel copy lowering doesn't handle
+          * vector phis. While we scalarize phis in NIR, we can generate vector
+          * phis from spilling so must take care.
+          */
+         for (unsigned c = 0; c < agx_channels(phi->dest[0]); ++c) {
+            agx_index src_ = src;
+            unsigned offs = c * agx_size_align_16(src.size);
+
+            if (src.type != AGX_INDEX_IMMEDIATE) {
+               assert(src.type == AGX_INDEX_UNIFORM ||
+                      src.type == AGX_INDEX_REGISTER);
+               src_.value += offs;
+               src_.channels_m1 = 1 - 1;
+            }
+
+            assert(i < nr_phi);
+            copies[i++] = (struct agx_copy){
+               .dest = dest.value + offs,
+               .dest_mem = dest.memory,
+               .src = src_,
+            };
+         }
       }
 
       agx_emit_parallel_copies(&b, copies, nr_phi);
@@ -950,11 +1256,108 @@ agx_insert_parallel_copies(agx_context *ctx, agx_block *block)
    }
 }
 
+static void
+lower_exports(agx_context *ctx)
+{
+   struct agx_copy copies[AGX_NUM_REGS];
+   unsigned nr = 0;
+   agx_block *block = agx_exit_block(ctx);
+
+   agx_foreach_instr_in_block_safe(block, I) {
+      if (I->op != AGX_OPCODE_EXPORT)
+         continue;
+
+      assert(agx_channels(I->src[0]) == 1 && "scalarized in frontend");
+      assert(nr < ARRAY_SIZE(copies));
+
+      copies[nr++] = (struct agx_copy){
+         .dest = I->imm,
+         .src = I->src[0],
+      };
+
+      /* We cannot use fewer registers than we export */
+      ctx->max_reg =
+         MAX2(ctx->max_reg, I->imm + agx_size_align_16(I->src[0].size));
+   }
+
+   agx_builder b = agx_init_builder(ctx, agx_after_block_logical(block));
+   agx_emit_parallel_copies(&b, copies, nr);
+}
+
 void
 agx_ra(agx_context *ctx)
 {
+   bool force_spilling =
+      (agx_compiler_debug & AGX_DBG_SPILL) && ctx->key->has_scratch;
+
+   /* Determine maximum possible registers. We won't exceed this! */
+   unsigned max_possible_regs = AGX_NUM_REGS;
+
+   /* Compute shaders need to have their entire workgroup together, so our
+    * register usage is bounded by the workgroup size.
+    */
+   if (gl_shader_stage_is_compute(ctx->stage)) {
+      unsigned threads_per_workgroup;
+
+      /* If we don't know the workgroup size, worst case it. TODO: Optimize
+       * this, since it'll decimate opencl perf.
+       */
+      if (ctx->nir->info.workgroup_size_variable) {
+         threads_per_workgroup = 1024;
+      } else {
+         threads_per_workgroup = ctx->nir->info.workgroup_size[0] *
+                                 ctx->nir->info.workgroup_size[1] *
+                                 ctx->nir->info.workgroup_size[2];
+      }
+
+      max_possible_regs =
+         agx_max_registers_for_occupancy(threads_per_workgroup);
+   }
+
+   /* The helper program is unspillable and has a limited register file */
+   if (force_spilling)
+      max_possible_regs = 32;
+   else if (ctx->key->is_helper)
+      max_possible_regs = 32;
+
+   /* Calculate the demand. We'll use it to determine if we need to spill and to
+    * bound register assignment.
+    */
    agx_compute_liveness(ctx);
+   unsigned effective_demand = agx_calc_register_demand(ctx);
+   bool spilling = (effective_demand > max_possible_regs);
+
+   if (spilling) {
+      assert(ctx->key->has_scratch && "internal shaders are unspillable");
+      agx_spill(ctx, max_possible_regs);
+
+      /* After spilling, recalculate liveness and demand */
+      agx_compute_liveness(ctx);
+      effective_demand = agx_calc_register_demand(ctx);
+
+      /* The resulting program can now be assigned registers */
+      assert(effective_demand <= max_possible_regs && "spiller post-condition");
+   }
+
+   /* Record all phi webs. First initialize the union-find data structure with
+    * all SSA defs in their own singletons, then union together anything related
+    * by a phi. The resulting union-find structure will be the webs.
+    */
+   struct phi_web_node *phi_web = calloc(ctx->alloc, sizeof(*phi_web));
+   for (unsigned i = 0; i < ctx->alloc; ++i) {
+      phi_web[i].parent = i;
+   }
+
+   agx_foreach_block(ctx, block) {
+      agx_foreach_phi_in_block(block, phi) {
+         agx_foreach_ssa_src(phi, s) {
+            phi_web_union(phi_web, phi->dest[0].value, phi->src[s].value);
+         }
+      }
+   }
+
    uint8_t *ncomps = calloc(ctx->alloc, sizeof(uint8_t));
+   enum ra_class *classes = calloc(ctx->alloc, sizeof(enum ra_class));
    agx_instr **src_to_collect_phi = calloc(ctx->alloc, sizeof(agx_instr *));
    enum agx_size *sizes = calloc(ctx->alloc, sizeof(enum agx_size));
    BITSET_WORD *visited = calloc(BITSET_WORDS(ctx->alloc), sizeof(BITSET_WORD));
@@ -962,7 +1365,8 @@ agx_ra(agx_context *ctx)
 
    agx_foreach_instr_global(ctx, I) {
       /* Record collects/phis so we can coalesce when assigning */
-      if (I->op == AGX_OPCODE_COLLECT || I->op == AGX_OPCODE_PHI) {
+      if (I->op == AGX_OPCODE_COLLECT || I->op == AGX_OPCODE_PHI ||
+          I->op == AGX_OPCODE_EXPORT || I->op == AGX_OPCODE_SPLIT) {
          agx_foreach_ssa_src(I, s) {
             src_to_collect_phi[I->src[s].value] = I;
          }
@@ -974,6 +1378,7 @@ agx_ra(agx_context *ctx)
          /* Round up vectors for easier live range splitting */
          ncomps[v] = util_next_power_of_two(agx_index_size_16(I->dest[d]));
          sizes[v] = I->dest[d].size;
+         classes[v] = ra_class_for_index(I->dest[d]);
 
          max_ncomps = MAX2(max_ncomps, ncomps[v]);
       }
@@ -989,27 +1394,16 @@ agx_ra(agx_context *ctx)
    unsigned reg_file_alignment = MAX2(max_ncomps, 8);
    assert(util_is_power_of_two_nonzero(reg_file_alignment));
 
-   /* Calculate the demand and use it to bound register assignment */
-   unsigned demand =
-      ALIGN_POT(agx_calc_register_demand(ctx, ncomps), reg_file_alignment);
-
-   /* TODO: Spilling. Abort so we don't smash the stack in release builds. */
-   if (demand > AGX_NUM_REGS) {
-      fprintf(stderr, "\n");
-      fprintf(stderr, "------------------------------------------------\n");
-      fprintf(stderr, "Asahi Linux shader compiler limitation!\n");
-      fprintf(stderr, "We ran out of registers! Nyaaaa 😿\n");
-      fprintf(stderr, "Do not report this as a bug.\n");
-      fprintf(stderr, "We know -- we're working on it!\n");
-      fprintf(stderr, "------------------------------------------------\n");
-      fprintf(stderr, "\n");
-      abort();
-   }
+   unsigned demand = ALIGN_POT(effective_demand, reg_file_alignment);
+   assert(demand <= max_possible_regs && "Invariant");
 
    /* Round up the demand to the maximum number of registers we can use without
     * affecting occupancy. This reduces live range splitting.
     */
    unsigned max_regs = agx_occupancy_for_register_count(demand).max_registers;
+   if (ctx->key->is_helper || force_spilling)
+      max_regs = max_possible_regs;
+
    max_regs = ROUND_DOWN_TO(max_regs, reg_file_alignment);
 
    /* Or, we can bound tightly for debugging */
@@ -1019,6 +1413,9 @@ agx_ra(agx_context *ctx)
    /* ...but not too tightly */
    assert((max_regs % reg_file_alignment) == 0 && "occupancy limits aligned");
    assert(max_regs >= (6 * 2) && "space for vertex shader preloading");
+   assert(max_regs <= max_possible_regs);
+
+   unsigned max_mem_slot = 0;
 
    /* Assign registers in dominance-order. This coincides with source-order due
     * to a NIR invariant, so we do not need special handling for this.
@@ -1028,12 +1425,21 @@ agx_ra(agx_context *ctx)
          .shader = ctx,
          .block = block,
          .src_to_collect_phi = src_to_collect_phi,
+         .phi_web = phi_web,
          .ncomps = ncomps,
          .sizes = sizes,
+         .classes = classes,
          .visited = visited,
-         .bound = max_regs,
-         .max_reg = &ctx->max_reg,
+         .bound[RA_GPR] = max_regs,
+         .bound[RA_MEM] = AGX_NUM_MODELED_REGS,
+         .max_reg[RA_GPR] = &ctx->max_reg,
+         .max_reg[RA_MEM] = &max_mem_slot,
       });
+   }
+
+   if (spilling) {
+      ctx->spill_base = ctx->scratch_size;
+      ctx->scratch_size += (max_mem_slot + 1) * 2;
    }
 
    /* Vertex shaders preload the vertex/instance IDs (r5, r6) even if the shader
@@ -1050,6 +1456,8 @@ agx_ra(agx_context *ctx)
 
       if (ins->op == AGX_OPCODE_COLLECT) {
          assert(ins->dest[0].type == AGX_INDEX_REGISTER);
+         assert(!ins->dest[0].memory);
+
          unsigned base = ins->dest[0].value;
          unsigned width = agx_size_align_16(ins->src[0].size);
 
@@ -1062,6 +1470,7 @@ agx_ra(agx_context *ctx)
                continue;
             assert(ins->src[i].size == ins->src[0].size);
 
+            assert(n < ins->nr_srcs);
             copies[n++] = (struct agx_copy){
                .dest = base + (i * width),
                .src = ins->src[i],
@@ -1086,11 +1495,14 @@ agx_ra(agx_context *ctx)
             if (ins->dest[i].type != AGX_INDEX_REGISTER)
                continue;
 
+            assert(!ins->dest[i].memory);
+
             agx_index src = ins->src[0];
             src.size = ins->dest[i].size;
             src.channels_m1 = 0;
             src.value += (i * width);
 
+            assert(n < ARRAY_SIZE(copies));
             copies[n++] = (struct agx_copy){
                .dest = ins->dest[i].value,
                .src = src,
@@ -1105,10 +1517,12 @@ agx_ra(agx_context *ctx)
       }
    }
 
-   /* Insert parallel copies lowering phi nodes */
+   /* Insert parallel copies lowering phi nodes and exports */
    agx_foreach_block(ctx, block) {
       agx_insert_parallel_copies(ctx, block);
    }
+
+   lower_exports(ctx);
 
    agx_foreach_instr_global_safe(ctx, I) {
       switch (I->op) {
@@ -1122,7 +1536,8 @@ agx_ra(agx_context *ctx)
       case AGX_OPCODE_MOV:
          if (I->src[0].type == AGX_INDEX_REGISTER &&
              I->dest[0].size == I->src[0].size &&
-             I->src[0].value == I->dest[0].value) {
+             I->src[0].value == I->dest[0].value &&
+             I->src[0].memory == I->dest[0].memory) {
 
             assert(I->dest[0].type == AGX_INDEX_REGISTER);
             agx_remove_instruction(I);
@@ -1134,13 +1549,20 @@ agx_ra(agx_context *ctx)
       }
    }
 
+   if (spilling)
+      agx_lower_spill(ctx);
+
    agx_foreach_block(ctx, block) {
-      free(block->ssa_to_reg_out);
-      block->ssa_to_reg_out = NULL;
+      for (unsigned i = 0; i < ARRAY_SIZE(block->reg_to_ssa_out); ++i) {
+         free(block->reg_to_ssa_out[i]);
+         block->reg_to_ssa_out[i] = NULL;
+      }
    }
 
+   free(phi_web);
    free(src_to_collect_phi);
    free(ncomps);
    free(sizes);
+   free(classes);
    free(visited);
 }

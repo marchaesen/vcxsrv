@@ -6,13 +6,13 @@ set -ex
 git config --global user.email "mesa@example.com"
 git config --global user.name "Mesa CI"
 
-CROSVM_VERSION=e3815e62d675ef436956a992e0ed58b7309c759d
+CROSVM_VERSION=1641c55bcc922588e24de73e9cca7b5e4005bd6d
 git clone --single-branch -b main --no-checkout https://chromium.googlesource.com/crosvm/crosvm /platform/crosvm
 pushd /platform/crosvm
 git checkout "$CROSVM_VERSION"
 git submodule update --init
 
-VIRGLRENDERER_VERSION=747c6ae5b194ca551a79958a9a86c42bddcc4553
+VIRGLRENDERER_VERSION=d9c002fac153b834a2c17731f2b85c36e333e102
 rm -rf third_party/virglrenderer
 git clone --single-branch -b main --no-checkout https://gitlab.freedesktop.org/virgl/virglrenderer.git third_party/virglrenderer
 pushd third_party/virglrenderer
@@ -31,10 +31,10 @@ RUSTFLAGS='-L native=/usr/local/lib' cargo install \
   --version 0.65.1 \
   $EXTRA_CARGO_ARGS
 
-CROSVM_USE_SYSTEM_VIRGLRENDERER=1 RUSTFLAGS='-L native=/usr/local/lib' cargo install \
+CROSVM_USE_SYSTEM_MINIGBM=1 CROSVM_USE_SYSTEM_VIRGLRENDERER=1 RUSTFLAGS='-L native=/usr/local/lib' cargo install \
   -j ${FDO_CI_CONCURRENT:-4} \
   --locked \
-  --features 'default-no-sandbox gpu x virgl_renderer virgl_renderer_next' \
+  --features 'default-no-sandbox gpu x virgl_renderer' \
   --path . \
   --root /usr/local \
   $EXTRA_CARGO_ARGS

@@ -34,6 +34,9 @@ void genX(emit_hashing_mode)(struct iris_context *ice,
                              struct iris_batch *batch,
                              unsigned width, unsigned height,
                              unsigned scale);
+void genX(emit_urb_config)(struct iris_batch *batch,
+                           bool has_tess_eval,
+                           bool has_geometry);
 void genX(emit_depth_state_workarounds)(struct iris_context *ice,
                                         struct iris_batch *batch,
                                         const struct isl_surf *surf);
@@ -48,6 +51,8 @@ void genX(emit_3dprimitive_was)(struct iris_batch *batch,
                                 const struct pipe_draw_indirect_info *indirect,
                                 uint32_t primitive_topology,
                                 uint32_t vertex_count);
+void genX(urb_workaround)(struct iris_batch *batch,
+                          const struct intel_urb_config *urb_cfg);
 
 static inline void
 genX(maybe_emit_breakpoint)(struct iris_batch *batch,
@@ -70,3 +75,11 @@ void genX(math_div32_gpr0)(struct iris_context *ice,
                            struct iris_batch *batch,
                            uint32_t D);
 
+/* iris_indirect_gen.c */
+void genX(init_screen_gen_state)(struct iris_screen *screen);
+struct iris_gen_indirect_params *
+genX(emit_indirect_generate)(struct iris_batch *batch,
+                             const struct pipe_draw_info *draw,
+                             const struct pipe_draw_indirect_info *indirect,
+                             const struct pipe_draw_start_count_bias *sc,
+                             struct iris_address *out_params_addr);

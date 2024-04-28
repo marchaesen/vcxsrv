@@ -26,6 +26,7 @@ struct amd_ip_info {
    uint8_t ver_minor;
    uint8_t ver_rev;
    uint8_t num_queues;
+   uint8_t num_instances;
    uint32_t ib_alignment;
    uint32_t ib_pad_dw_mask;
 };
@@ -96,12 +97,14 @@ struct radeon_info {
    bool has_small_prim_filter_sample_loc_bug;
    bool has_ls_vgpr_init_bug;
    bool has_pops_missed_overlap_bug;
+   bool has_null_index_buffer_clamping_bug;
    bool has_zero_index_buffer_bug;
    bool has_image_load_dcc_bug;
    bool has_two_planes_iterate256_bug;
    bool has_vgt_flush_ngg_legacy_bug;
    bool has_cs_regalloc_hang_bug;
    bool has_async_compute_threadgroup_bug;
+   bool has_async_compute_align32_bug;
    bool has_32bit_predication;
    bool has_3d_cube_border_color_mipmap;
    bool has_image_opcodes;
@@ -182,6 +185,9 @@ struct radeon_info {
    uint32_t uvd_fw_version;
    uint32_t vce_fw_version;
    uint32_t vce_harvest_config;
+   uint32_t vcn_dec_version;
+   uint32_t vcn_enc_major_version;
+   uint32_t vcn_enc_minor_version;
    struct video_caps_info {
       struct video_codec_cap {
          uint32_t valid;
@@ -203,9 +209,7 @@ struct radeon_info {
    uint32_t max_submitted_ibs[AMD_NUM_IP_TYPES];
    bool is_amdgpu;
    bool has_userptr;
-   bool has_syncobj;
    bool has_timeline_syncobj;
-   bool has_fence_to_handle;
    bool has_local_buffers;
    bool has_bo_metadata;
    bool has_eqaa_surface_allocator;

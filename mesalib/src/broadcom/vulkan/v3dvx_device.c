@@ -387,7 +387,7 @@ v3dX(get_hw_clear_color)(const VkClearColorValue *color,
    }
 }
 
-#ifdef DEBUG
+#if MESA_DEBUG
 void
 v3dX(device_check_prepacked_sizes)(void)
 {

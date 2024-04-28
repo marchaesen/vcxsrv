@@ -1,6 +1,7 @@
 use crate::pipe::screen::*;
 
 use mesa_rust_gen::*;
+use mesa_rust_util::ptr::ThreadSafeCPtr;
 use mesa_rust_util::string::c_string_to_string;
 
 use std::collections::HashMap;
@@ -8,31 +9,35 @@ use std::{env, ptr};
 
 #[derive(PartialEq)]
 pub(super) struct PipeLoaderDevice {
-    pub(super) ldev: *mut pipe_loader_device,
+    ldev: ThreadSafeCPtr<pipe_loader_device>,
 }
 
 impl PipeLoaderDevice {
     fn new(ldev: *mut pipe_loader_device) -> Option<Self> {
-        if ldev.is_null() {
-            return None;
-        }
-        Some(Self { ldev })
+        Some(Self {
+            // SAFETY: `pipe_loader_device` is considered to be thread-safe
+            ldev: unsafe { ThreadSafeCPtr::new(ldev)? },
+        })
     }
 
     fn load_screen(self) -> Option<PipeScreen> {
-        let s = unsafe { pipe_loader_create_screen(self.ldev) };
+        let s = unsafe { pipe_loader_create_screen(self.ldev.as_ptr(), false) };
         PipeScreen::new(self, s)
     }
 
     pub fn driver_name(&self) -> String {
-        c_string_to_string(unsafe { *self.ldev }.driver_name)
+        c_string_to_string(unsafe { self.ldev.as_ref() }.driver_name)
+    }
+
+    pub fn device_type(&self) -> pipe_loader_device_type {
+        unsafe { self.ldev.as_ref().type_ }
     }
 }
 
 impl Drop for PipeLoaderDevice {
     fn drop(&mut self) {
         unsafe {
-            pipe_loader_release(&mut self.ldev, 1);
+            pipe_loader_release(&mut self.ldev.as_ptr(), 1);
         }
     }
 }
@@ -93,7 +98,7 @@ pub fn load_screens() -> impl Iterator<Item = PipeScreen> {
     let mut enabled_devs = get_enabled_devs();
 
     devs.filter(move |dev| {
-        let driver_name = unsafe { c_string_to_string(dev.ldev.as_ref().unwrap().driver_name) };
+        let driver_name = unsafe { c_string_to_string(dev.ldev.as_ref().driver_name) };
 
         if let Some(enabled_devs) = enabled_devs.get_mut(&driver_name) {
             let res = (*enabled_devs & 1) == 1;

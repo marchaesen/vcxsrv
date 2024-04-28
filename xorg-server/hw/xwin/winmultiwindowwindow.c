@@ -84,7 +84,7 @@ winInitMultiWindowClass(void)
         wcx.lpszClassName = WINDOW_CLASS_X;
         wcx.hIconSm = hIconSmall;
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
         winDebug ("winCreateWindowsWindow - Creating class: %s\n", WINDOW_CLASS_X);
 #endif
 
@@ -105,7 +105,7 @@ winCreateWindowMultiWindow(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug ("winCreateWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
@@ -138,7 +138,7 @@ winDestroyWindowMultiWindow(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug ("winDestroyWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
@@ -218,7 +218,7 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
     /* Store the origin, height, and width in a rectangle structure */
     SetRect(&rcNew, iX, iY, iX + iWidth, iY + iHeight);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     lpRc = &rcNew;
     winDebug("winPositionWindowMultiWindow - drawable (%d, %d)-(%d, %d)\n",
            (int)lpRc->left, (int)lpRc->top, (int)lpRc->right, (int)lpRc->bottom);
@@ -233,7 +233,7 @@ winPositionWindowMultiWindow(WindowPtr pWin, int x, int y)
     /* Get a rectangle describing the old Windows window */
     GetWindowRect(hWnd, &rcOld);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     /* Get a rectangle describing the Windows window client area */
     GetClientRect(hWnd, &rcClient);
 
@@ -317,7 +317,7 @@ winUnmapWindowMultiWindow(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug ("winUnmapWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
@@ -348,7 +348,7 @@ winMapWindowMultiWindow(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug ("winMapWindowMultiWindow - pWin: %p\n", pWin);
 #endif
 
@@ -676,7 +676,7 @@ winUpdateWindowsWindow(WindowPtr pWin)
     winWindowPriv(pWin);
     HWND hWnd = pWinPriv->hWnd;
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug("winUpdateWindowsWindow\n");
 #endif
 
@@ -736,7 +736,7 @@ winUpdateWindowsWindow(WindowPtr pWin)
         }
     }
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug ("-winUpdateWindowsWindow\n");
 #endif
 }
@@ -752,9 +752,9 @@ winGetWindowID(WindowPtr pWin)
     ClientPtr c = wClient(pWin);
 
     /* */
-    FindClientResourcesByType(c, RT_WINDOW, winFindWindow, &wi);
+    FindClientResourcesByType(c, X11_RESTYPE_WINDOW, winFindWindow, &wi);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     winDebug("winGetWindowID - Window ID: %u\n", (unsigned int)wi.id);
 #endif
 
@@ -790,13 +790,13 @@ winReorderWindowsMultiWindow(void)
     DWORD dwCurrentProcessID = GetCurrentProcessId();
     DWORD dwWindowProcessID = 0;
 
-#if CYGMULTIWINDOW_DEBUG || CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG || ENABLE_DEBUG
     winTrace("winReorderWindowsMultiWindow\n");
 #endif
 
     if (fRestacking) {
         /* It is a recursive call so immediately exit */
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
         ErrorF("winReorderWindowsMultiWindow - "
                "exit because fRestacking == TRUE\n");
 #endif

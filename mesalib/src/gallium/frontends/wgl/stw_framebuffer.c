@@ -730,13 +730,14 @@ wait_swap_interval(struct stw_framebuffer *fb, int interval)
 BOOL
 stw_framebuffer_swap_locked(HDC hdc, struct stw_framebuffer *fb)
 {
-   struct stw_context *ctx;
+   struct stw_context *ctx = stw_current_context();
    if (!(fb->pfi->pfd.dwFlags & PFD_DOUBLEBUFFER)) {
       stw_framebuffer_unlock(fb);
+      if (ctx)
+         stw_st_flush(ctx->st, fb->drawable, ST_FLUSH_END_OF_FRAME | ST_FLUSH_FRONT);
       return true;
    }
 
-   ctx = stw_current_context();
    if (ctx) {
       if (ctx->hud) {
          /* Display the HUD */
@@ -758,7 +759,7 @@ stw_framebuffer_swap_locked(HDC hdc, struct stw_framebuffer *fb)
       wait_swap_interval(fb, interval);
    }
 
-   return stw_st_swap_framebuffer_locked(hdc, ctx->st, fb->drawable);
+   return stw_st_swap_framebuffer_locked(hdc, fb->drawable);
 }
 
 BOOL APIENTRY

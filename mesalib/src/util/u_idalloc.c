@@ -74,6 +74,7 @@ util_idalloc_alloc(struct util_idalloc *buf)
       unsigned bit = ffs(~buf->data[i]) - 1;
       buf->data[i] |= 1u << bit;
       buf->lowest_free_idx = i;
+      buf->num_set_elements = MAX2(buf->num_set_elements, i + 1);
       return i * 32 + bit;
    }
 
@@ -82,6 +83,7 @@ util_idalloc_alloc(struct util_idalloc *buf)
 
    buf->lowest_free_idx = num_elements;
    buf->data[num_elements] |= 1;
+   buf->num_set_elements = MAX2(buf->num_set_elements, num_elements + 1);
    return num_elements * 32;
 }
 
@@ -134,6 +136,8 @@ ret:
    if (buf->lowest_free_idx == base)
       buf->lowest_free_idx = base + num / 32;
 
+   buf->num_set_elements = MAX2(buf->num_set_elements, base + num_alloc);
+
    /* Validate this algorithm. */
    for (unsigned i = 0; i < num; i++)
       assert(util_idalloc_exists(buf, base * 32 + i));
@@ -144,18 +148,30 @@ ret:
 void
 util_idalloc_free(struct util_idalloc *buf, unsigned id)
 {
-   assert(id / 32 < buf->num_elements);
    unsigned idx = id / 32;
+
+   if (idx >= buf->num_elements)
+       return;
+
    buf->lowest_free_idx = MIN2(idx, buf->lowest_free_idx);
    buf->data[idx] &= ~(1 << (id % 32));
+
+   /* Decrease num_used to the last used element + 1. */
+   if (buf->num_set_elements == idx + 1) {
+      while (buf->num_set_elements > 0 && !buf->data[buf->num_set_elements - 1])
+         buf->num_set_elements--;
+   }
 }
 
 void
 util_idalloc_reserve(struct util_idalloc *buf, unsigned id)
 {
-   if (id / 32 >= buf->num_elements)
-      util_idalloc_resize(buf, (id / 32 + 1) * 2);
-   buf->data[id / 32] |= 1u << (id % 32);
+   unsigned idx = id / 32;
+
+   if (idx >= buf->num_elements)
+      util_idalloc_resize(buf, (idx + 1) * 2);
+   buf->data[idx] |= 1u << (id % 32);
+   buf->num_set_elements = MAX2(buf->num_set_elements, idx + 1);
 }
 
 void

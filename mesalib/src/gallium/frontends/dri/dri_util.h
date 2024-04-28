@@ -104,6 +104,11 @@ struct __DriverContextConfig {
 #define __DRIVER_CONTEXT_ATTRIB_PROTECTED        (1 << 4)
 
 __DRIscreen *
+driCreateNewScreen3(int scrn, int fd,
+                    const __DRIextension **loader_extensions,
+                    const __DRIextension **driver_extensions,
+                    const __DRIconfig ***driver_configs, bool implicit, void *data);
+__DRIscreen *
 driCreateNewScreen2(int scrn, int fd,
                     const __DRIextension **loader_extensions,
                     const __DRIextension **driver_extensions,

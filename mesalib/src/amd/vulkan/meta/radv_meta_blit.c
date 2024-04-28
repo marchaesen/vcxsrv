@@ -1,28 +1,12 @@
 /*
  * Copyright © 2015 Intel Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "nir/nir_builder.h"
 #include "radv_meta.h"
+#include "vk_command_pool.h"
 #include "vk_common_entrypoints.h"
 
 struct blit_region {
@@ -194,12 +178,12 @@ meta_emit_blit(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image,
                struct radv_image *dst_image, struct radv_image_view *dst_iview, VkImageLayout dst_image_layout,
                VkRect2D dst_box, VkSampler sampler)
 {
-   struct radv_device *device = cmd_buffer->device;
-   uint32_t src_width = radv_minify(src_iview->image->vk.extent.width, src_iview->vk.base_mip_level);
-   uint32_t src_height = radv_minify(src_iview->image->vk.extent.height, src_iview->vk.base_mip_level);
-   uint32_t src_depth = radv_minify(src_iview->image->vk.extent.depth, src_iview->vk.base_mip_level);
-   uint32_t dst_width = radv_minify(dst_iview->image->vk.extent.width, dst_iview->vk.base_mip_level);
-   uint32_t dst_height = radv_minify(dst_iview->image->vk.extent.height, dst_iview->vk.base_mip_level);
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   uint32_t src_width = u_minify(src_iview->image->vk.extent.width, src_iview->vk.base_mip_level);
+   uint32_t src_height = u_minify(src_iview->image->vk.extent.height, src_iview->vk.base_mip_level);
+   uint32_t src_depth = u_minify(src_iview->image->vk.extent.depth, src_iview->vk.base_mip_level);
+   uint32_t dst_width = u_minify(dst_iview->image->vk.extent.width, dst_iview->vk.base_mip_level);
+   uint32_t dst_height = u_minify(dst_iview->image->vk.extent.height, dst_iview->vk.base_mip_level);
 
    assert(src_image->vk.samples == dst_image->vk.samples);
 
@@ -389,9 +373,9 @@ static void
 blit_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkImageLayout src_image_layout,
            struct radv_image *dst_image, VkImageLayout dst_image_layout, const VkImageBlit2 *region, VkFilter filter)
 {
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const VkImageSubresourceLayers *src_res = &region->srcSubresource;
    const VkImageSubresourceLayers *dst_res = &region->dstSubresource;
-   struct radv_device *device = cmd_buffer->device;
    struct radv_meta_saved_state saved_state;
    VkSampler sampler;
 
@@ -515,7 +499,7 @@ blit_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
       /* 3D images have just 1 layer */
       const uint32_t src_array_slice = src_image->vk.image_type == VK_IMAGE_TYPE_3D ? 0 : src_start + i;
 
-      radv_image_view_init(&dst_iview, cmd_buffer->device,
+      radv_image_view_init(&dst_iview, device,
                            &(VkImageViewCreateInfo){
                               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                               .image = radv_image_to_handle(dst_image),
@@ -528,7 +512,7 @@ blit_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
                                                    .layerCount = 1},
                            },
                            0, NULL);
-      radv_image_view_init(&src_iview, cmd_buffer->device,
+      radv_image_view_init(&src_iview, device,
                            &(VkImageViewCreateInfo){
                               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                               .image = radv_image_to_handle(src_image),
@@ -556,9 +540,9 @@ blit_image(struct radv_cmd_buffer *cmd_buffer, struct radv_image *src_image, VkI
 VKAPI_ATTR void VKAPI_CALL
 radv_CmdBlitImage2(VkCommandBuffer commandBuffer, const VkBlitImageInfo2 *pBlitImageInfo)
 {
-   RADV_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
-   RADV_FROM_HANDLE(radv_image, src_image, pBlitImageInfo->srcImage);
-   RADV_FROM_HANDLE(radv_image, dst_image, pBlitImageInfo->dstImage);
+   VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
+   VK_FROM_HANDLE(radv_image, src_image, pBlitImageInfo->srcImage);
+   VK_FROM_HANDLE(radv_image, dst_image, pBlitImageInfo->dstImage);
 
    for (unsigned r = 0; r < pBlitImageInfo->regionCount; r++) {
       blit_image(cmd_buffer, src_image, pBlitImageInfo->srcImageLayout, dst_image, pBlitImageInfo->dstImageLayout,

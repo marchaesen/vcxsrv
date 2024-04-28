@@ -91,6 +91,18 @@ null_sw_displaytarget_create(struct sw_winsys *winsys,
    return NULL;
 }
 
+static struct sw_displaytarget *
+null_sw_displaytarget_create_mapped(struct sw_winsys *winsys,
+                                    unsigned tex_usage,
+                                    enum pipe_format format,
+                                    unsigned width, unsigned height,
+                                    unsigned stride,
+                                    void *data)
+{
+   fprintf(stderr, "null_sw_displaytarget_create_mapped() returning NULL\n");
+   return NULL;
+}
+
 
 static struct sw_displaytarget *
 null_sw_displaytarget_from_handle(struct sw_winsys *winsys,
@@ -116,6 +128,7 @@ static void
 null_sw_displaytarget_display(struct sw_winsys *winsys,
                               struct sw_displaytarget *dt,
                               void *context_private,
+                              unsigned nboxes,
                               struct pipe_box *box)
 {
    assert(0);
@@ -141,6 +154,7 @@ null_sw_create(void)
    winsys->destroy = null_sw_destroy;
    winsys->is_displaytarget_format_supported = null_sw_is_displaytarget_format_supported;
    winsys->displaytarget_create = null_sw_displaytarget_create;
+   winsys->displaytarget_create_mapped = null_sw_displaytarget_create_mapped;
    winsys->displaytarget_from_handle = null_sw_displaytarget_from_handle;
    winsys->displaytarget_get_handle = null_sw_displaytarget_get_handle;
    winsys->displaytarget_map = null_sw_displaytarget_map;

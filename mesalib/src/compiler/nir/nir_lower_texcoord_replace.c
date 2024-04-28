@@ -107,6 +107,7 @@ nir_lower_texcoord_replace_impl(nir_function_impl *impl,
          unsigned base = var->data.location - VARYING_SLOT_TEX0;
 
          b.cursor = nir_after_instr(instr);
+         uint32_t component_mask = BITFIELD_MASK(glsl_get_vector_elements(var->type)) << var->data.location_frac;
          nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
          nir_def *index = get_io_index(&b, deref);
          nir_def *mask =
@@ -114,7 +115,7 @@ nir_lower_texcoord_replace_impl(nir_function_impl *impl,
                      nir_iadd_imm(&b, index, base));
 
          nir_def *cond = nir_test_mask(&b, mask, coord_replace);
-         nir_def *result = nir_bcsel(&b, cond, new_coord,
+         nir_def *result = nir_bcsel(&b, cond, nir_channels(&b, new_coord, component_mask),
                                      &intrin->def);
 
          nir_def_rewrite_uses_after(&intrin->def,

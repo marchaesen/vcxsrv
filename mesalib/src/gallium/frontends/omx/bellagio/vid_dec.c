@@ -36,13 +36,7 @@
 
 #include <OMX_Video.h>
 
-/* bellagio defines a DEBUG macro that we don't want */
-#ifndef DEBUG
 #include <bellagio/omxcore.h>
-#undef DEBUG
-#else
-#include <bellagio/omxcore.h>
-#endif
 
 #include "pipe/p_screen.h"
 #include "pipe/p_video_codec.h"

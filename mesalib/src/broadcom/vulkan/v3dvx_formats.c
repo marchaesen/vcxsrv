@@ -26,9 +26,9 @@
 #include "broadcom/cle/v3dx_pack.h"
 
 #include "util/format/u_format.h"
-#include "vulkan/util/vk_util.h"
 #include "vk_enum_to_str.h"
 #include "vk_enum_defines.h"
+#include "vk_util.h"
 
 #define SWIZ(x,y,z,w) {   \
    PIPE_SWIZZLE_##x,      \

@@ -4,6 +4,7 @@
  */
 
 #include "agx_builder.h"
+#include "agx_compiler.h"
 #include "agx_test.h"
 
 #include <gtest/gtest.h>
@@ -127,6 +128,47 @@ TEST_F(Optimizer, FusedFnegCancel)
           agx_fmul_to(b, out, wx, agx_abs(wx)));
 }
 
+TEST_F(Optimizer, FusedNot)
+{
+   CASE32(agx_not_to(b, out, agx_and(b, wx, wx)), agx_nand_to(b, out, wx, wx));
+
+   CASE32(agx_not_to(b, out, agx_or(b, wx, wx)), agx_nor_to(b, out, wx, wx));
+
+   CASE32(agx_not_to(b, out, agx_xor(b, wx, wx)), agx_xnor_to(b, out, wx, wx));
+
+   CASE32(agx_xor_to(b, out, agx_not(b, wx), agx_not(b, wx)),
+          agx_xor_to(b, out, wx, wx));
+
+   CASE32(agx_xor_to(b, out, agx_not(b, wx), wx), agx_xnor_to(b, out, wx, wx));
+
+   CASE32(agx_xor_to(b, out, wx, agx_not(b, wx)), agx_xnor_to(b, out, wx, wx));
+
+   CASE32(agx_nand_to(b, out, agx_not(b, wx), agx_not(b, wx)),
+          agx_or_to(b, out, wx, wx));
+
+   CASE32(agx_andn1_to(b, out, agx_not(b, wx), wx), agx_and_to(b, out, wx, wx));
+
+   CASE32(agx_andn1_to(b, out, wx, agx_not(b, wx)), agx_nor_to(b, out, wx, wx));
+
+   CASE32(agx_andn2_to(b, out, agx_not(b, wx), wx), agx_nor_to(b, out, wx, wx));
+
+   CASE32(agx_andn2_to(b, out, wx, agx_not(b, wx)), agx_and_to(b, out, wx, wx));
+
+   CASE32(agx_xor_to(b, out, agx_not(b, wx), agx_uniform(8, AGX_SIZE_32)),
+          agx_xnor_to(b, out, wx, agx_uniform(8, AGX_SIZE_32)));
+
+   CASE32(agx_or_to(b, out, agx_immediate(123), agx_not(b, wx)),
+          agx_orn2_to(b, out, agx_immediate(123), wx));
+
+   CASE32(agx_xor_to(b, out, wx, agx_not(b, wy)), agx_xnor_to(b, out, wx, wy));
+
+   CASE32(agx_xor_to(b, out, wy, agx_not(b, wx)), agx_xnor_to(b, out, wy, wx));
+
+   CASE32(agx_and_to(b, out, agx_not(b, wx), wy), agx_andn1_to(b, out, wx, wy));
+
+   CASE32(agx_or_to(b, out, wx, agx_not(b, wy)), agx_orn2_to(b, out, wx, wy));
+}
+
 TEST_F(Optimizer, FmulFsatF2F16)
 {
    CASE16(
@@ -216,6 +258,37 @@ TEST_F(Optimizer, NoConversionsOn16BitALU)
    });
 
    NEGCASE32(agx_fmov_to(b, out, agx_fadd(b, hx, hy)));
+}
+
+TEST_F(Optimizer, BallotCondition)
+{
+   CASE32(agx_ballot_to(b, out, agx_icmp(b, wx, wy, AGX_ICOND_UEQ, true)),
+          agx_icmp_ballot_to(b, out, wx, wy, AGX_ICOND_UEQ, true));
+
+   CASE32(agx_ballot_to(b, out, agx_fcmp(b, wx, wy, AGX_FCOND_GE, false)),
+          agx_fcmp_ballot_to(b, out, wx, wy, AGX_FCOND_GE, false));
+
+   CASE32(agx_quad_ballot_to(b, out, agx_icmp(b, wx, wy, AGX_ICOND_UEQ, true)),
+          agx_icmp_quad_ballot_to(b, out, wx, wy, AGX_ICOND_UEQ, true));
+
+   CASE32(agx_quad_ballot_to(b, out, agx_fcmp(b, wx, wy, AGX_FCOND_GT, false)),
+          agx_fcmp_quad_ballot_to(b, out, wx, wy, AGX_FCOND_GT, false));
+}
+
+TEST_F(Optimizer, BallotMultipleUses)
+{
+   CASE32(
+      {
+         agx_index cmp = agx_fcmp(b, wx, wy, AGX_FCOND_GT, false);
+         agx_index ballot = agx_quad_ballot(b, cmp);
+         agx_fadd_to(b, out, cmp, ballot);
+      },
+      {
+         agx_index cmp = agx_fcmp(b, wx, wy, AGX_FCOND_GT, false);
+         agx_index ballot =
+            agx_fcmp_quad_ballot(b, wx, wy, AGX_FCOND_GT, false);
+         agx_fadd_to(b, out, cmp, ballot);
+      });
 }
 
 TEST_F(Optimizer, IfCondition)

@@ -38,11 +38,13 @@
 #include <unistd.h>
 #include <time.h>
 
+#include "util/detect_os.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 /* On Android, rely on the system's libsync instead of rolling our own
  * sync_wait() and sync_merge().  This gives us compatibility with pre-4.7
  * Android kernels.
@@ -157,7 +159,7 @@ sync_valid_fd(int fd)
 	return ioctl(fd, SYNC_IOC_FILE_INFO, &info) >= 0;
 }
 
-#endif /* !ANDROID */
+#endif /* DETECT_OS_ANDROID */
 
 /* accumulate fd2 into fd1.  If *fd1 is not a valid fd then dup fd2,
  * otherwise sync_merge() and close the old *fd1.  This can be used
@@ -202,7 +204,7 @@ static inline int sync_accumulate(const char *name, int *fd1, int fd2)
 /* Helper macro to complain if fd is non-negative and not a valid fence fd.
  * Sprinkle this around to help catch fd lifetime issues.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #  include "util/log.h"
 #  define validate_fence_fd(fd) do {                                         \
       if (((fd) >= 0) && !sync_valid_fd(fd))                                 \

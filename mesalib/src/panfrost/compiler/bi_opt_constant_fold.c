@@ -72,7 +72,7 @@ bi_fold_constant(bi_instr *I, bool *unsupported)
       if (I->not_result || I->src[0].neg || I->src[1].neg)
          break;
 
-      return (a << c) | b;
+      return (a << (c & 0x1F)) | b;
 
    case BI_OPCODE_F32_TO_U32:
       if (I->round == BI_ROUND_NONE) {

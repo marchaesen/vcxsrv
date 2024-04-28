@@ -58,13 +58,15 @@ struct panfrost_resource {
    /* Description of the resource layout */
    struct pan_image image;
 
+   struct panfrost_bo *bo;
+
    struct {
       /* Is the checksum for this image valid? Implicitly refers to
        * the first slice; we only checksum non-mipmapped 2D images */
       bool crc;
 
       /* Has anything been written to this slice? */
-      BITSET_DECLARE(data, MAX_MIP_LEVELS);
+      BITSET_DECLARE(data, PAN_MAX_MIP_LEVELS);
    } valid;
 
    /* Whether the modifier can be changed */
@@ -189,11 +191,13 @@ void panfrost_pack_afbc(struct panfrost_context *ctx,
 
 void pan_resource_modifier_convert(struct panfrost_context *ctx,
                                    struct panfrost_resource *rsrc,
-                                   uint64_t modifier, const char *reason);
+                                   uint64_t modifier, bool copy_resource,
+                                   const char *reason);
 
 void pan_legalize_afbc_format(struct panfrost_context *ctx,
                               struct panfrost_resource *rsrc,
-                              enum pipe_format format, bool write);
+                              enum pipe_format format, bool write,
+                              bool discard);
 void pan_dump_resource(struct panfrost_context *ctx,
                        struct panfrost_resource *rsc);
 

@@ -1037,6 +1037,10 @@ vk_queue_wait_before_present(struct vk_queue *queue,
       return VK_SUCCESS;
 
    const uint32_t wait_count = pPresentInfo->waitSemaphoreCount;
+
+   if (wait_count == 0)
+      return VK_SUCCESS;
+
    STACK_ARRAY(struct vk_sync_wait, waits, wait_count);
 
    for (uint32_t i = 0; i < wait_count; i++) {
@@ -1124,7 +1128,7 @@ vk_queue_finish(struct vk_queue *queue)
       vk_queue_submit_destroy(queue, submit);
    }
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (queue->anb_semaphore != VK_NULL_HANDLE) {
       struct vk_device *device = queue->base.device;
       device->dispatch_table.DestroySemaphore(vk_device_to_handle(device),

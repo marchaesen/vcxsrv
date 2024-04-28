@@ -53,7 +53,7 @@
 #define MESA_GIT_SHA1 "(unknown git revision)"
 #endif
 
-#ifdef DEBUG
+#if MESA_DEBUG
 int SVGA_DEBUG = 0;
 
 static const struct debug_named_value svga_debug_flags[] = {
@@ -93,8 +93,8 @@ svga_get_name( struct pipe_screen *pscreen )
 {
    const char *build = "", *llvm = "", *mutex = "";
    static char name[100];
-#ifdef DEBUG
-   /* Only return internal details in the DEBUG version:
+#if MESA_DEBUG
+   /* Only return internal details in the MESA_DEBUG version:
     */
    build = "build: DEBUG;";
    mutex = "mutex: " PIPE_ATOMIC ";";
@@ -737,7 +737,6 @@ vgpu10_get_shader_param(struct pipe_screen *screen,
    .lower_fdph = true,                                                        \
    .lower_flrp64 = true,                                                      \
    .lower_ldexp = true,                                                       \
-   .lower_rotate = true,                                                      \
    .lower_uniforms_to_ubo = true,                                             \
    .lower_vector_cmp = true,                                                  \
    .lower_cs_local_index_to_id = true,                                        \
@@ -1052,7 +1051,7 @@ svga_screen_create(struct svga_winsys_screen *sws)
    struct svga_screen *svgascreen;
    struct pipe_screen *screen;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    SVGA_DEBUG = debug_get_flags_option("SVGA_DEBUG", svga_debug_flags, 0 );
 #endif
 
@@ -1329,7 +1328,7 @@ svga_winsys_screen(struct pipe_screen *screen)
 }
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 struct svga_screen *
 svga_screen(struct pipe_screen *screen)
 {

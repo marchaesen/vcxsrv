@@ -32,7 +32,8 @@
 
 #include "dix.h"
 #include "os.h"
-#include "dbus-core.h"
+
+#include "config/dbus-core.h"
 
 /* How often to attempt reconnecting when we get booted off the bus. */
 #define RECONNECT_DELAY (10 * 1000)     /* in ms */

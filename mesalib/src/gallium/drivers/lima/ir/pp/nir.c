@@ -403,6 +403,8 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
          default: {
             ppir_dest *dest = ppir_node_get_dest(node);
             dest->ssa.out_type = out_type;
+            dest->ssa.num_components = 4;
+            dest->write_mask = u_bit_consecutive(0, 4);
             node->is_out = 1;
             return true;
             }
@@ -415,9 +417,9 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
 
       ppir_dest *dest = ppir_node_get_dest(&alu_node->node);
       dest->type = ppir_target_ssa;
-      dest->ssa.num_components = instr->num_components;
+      dest->ssa.num_components = 4;
       dest->ssa.index = 0;
-      dest->write_mask = u_bit_consecutive(0, instr->num_components);
+      dest->write_mask = u_bit_consecutive(0, 4);
       dest->ssa.out_type = out_type;
 
       alu_node->num_src = 1;
@@ -427,7 +429,7 @@ static bool ppir_emit_intrinsic(ppir_block *block, nir_instr *ni)
 
       nir_legacy_src legacy_src = nir_legacy_chase_src(instr->src);
       ppir_node_add_src(block->comp, &alu_node->node, alu_node->src, &legacy_src,
-                        u_bit_consecutive(0, instr->num_components));
+                        u_bit_consecutive(0, 4));
 
       alu_node->node.is_out = 1;
 

@@ -104,17 +104,13 @@ apply_swizzle_channel(nir_builder *b, nir_def *vec, unsigned swizzle,
 }
 
 static bool
-pass(struct nir_builder *b, nir_instr *instr, void *data)
+pass(struct nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
-   if (instr->type != nir_instr_type_intrinsic)
-      return false;
-
-   nir_intrinsic_instr *intr = nir_instr_as_intrinsic(instr);
    if (intr->intrinsic != nir_intrinsic_load_input)
       return false;
 
    struct agx_attribute *attribs = data;
-   b->cursor = nir_before_instr(instr);
+   b->cursor = nir_instr_remove(&intr->instr);
 
    nir_src *offset_src = nir_get_io_offset_src(intr);
    assert(nir_src_is_const(*offset_src) && "no attribute indirects");
@@ -171,7 +167,35 @@ pass(struct nir_builder *b, nir_instr *instr, void *data)
       el = nir_load_vertex_id(b);
    }
 
-   nir_def *base = nir_load_vbo_base_agx(b, nir_imm_int(b, attrib.buf));
+   /* VBO bases are per-attribute, otherwise they're per-buffer. This allows
+    * memory sinks to work properly with robustness, allows folding
+    * the src_offset into the VBO base to save an add in the shader, and reduces
+    * the size of the vertex fetch key. That last piece allows reusing a linked
+    * VS with both separate and interleaved attributes.
+    */
+   nir_def *buf_handle = nir_imm_int(b, index);
+
+   /* Robustness is handled at the ID level */
+   nir_def *bounds = nir_load_attrib_clamp_agx(b, buf_handle);
+
+   /* For now, robustness is always applied. This gives GL robustness semantics.
+    * For robustBufferAccess2, we'll want to check for out-of-bounds access
+    * (where el > bounds), and replace base with the address of a zero sink.
+    * With soft fault and a large enough sink, we don't need to clamp the index,
+    * allowing that robustness behaviour to be implemented in 2 cmpsel
+    * before the load. That is faster than the 4 cmpsel required after the load,
+    * and it avoids waiting on the load which should help prolog performance.
+    *
+    * TODO: Plumb through soft fault information to skip this.
+    *
+    * TODO: Add a knob for robustBufferAccess2 semantics.
+    */
+   bool robust = true;
+   if (robust) {
+      el = nir_umin(b, el, bounds);
+   }
+
+   nir_def *base = nir_load_vbo_base_agx(b, buf_handle);
 
    assert((stride % interchange_align) == 0 && "must be aligned");
    assert((offset % interchange_align) == 0 && "must be aligned");
@@ -265,6 +289,6 @@ bool
 agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs)
 {
    assert(shader->info.stage == MESA_SHADER_VERTEX);
-   return nir_shader_instructions_pass(
+   return nir_shader_intrinsics_pass(
       shader, pass, nir_metadata_block_index | nir_metadata_dominance, attribs);
 }

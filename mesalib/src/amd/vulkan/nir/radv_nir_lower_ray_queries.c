@@ -1,24 +1,7 @@
 /*
  * Copyright © 2022 Konstantin Seurer
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "nir/nir.h"
@@ -30,7 +13,6 @@
 #include "nir/radv_nir_rt_common.h"
 #include "radv_debug.h"
 #include "radv_nir.h"
-#include "radv_private.h"
 #include "radv_shader.h"
 
 /* Traversal stack size. Traversal supports backtracking so we can go deeper than this size if
@@ -648,6 +630,8 @@ lower_rq_terminate(nir_builder *b, nir_def *index, nir_intrinsic_instr *instr, s
 bool
 radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_instance *instance = radv_physical_device_instance(pdev);
    bool progress = false;
    struct hash_table *query_ht = _mesa_pointer_hash_table_create(NULL);
 
@@ -655,7 +639,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
       if (!var->data.ray_query)
          continue;
 
-      lower_ray_query(shader, var, query_ht, device->physical_device->max_shared_size);
+      lower_ray_query(shader, var, query_ht, pdev->max_shared_size);
 
       progress = true;
    }
@@ -670,7 +654,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
          if (!var->data.ray_query)
             continue;
 
-         lower_ray_query(shader, var, query_ht, device->physical_device->max_shared_size);
+         lower_ray_query(shader, var, query_ht, pdev->max_shared_size);
 
          progress = true;
       }
@@ -710,7 +694,7 @@ radv_nir_lower_ray_queries(struct nir_shader *shader, struct radv_device *device
                lower_rq_generate_intersection(&builder, index, intrinsic, vars);
                break;
             case nir_intrinsic_rq_initialize:
-               lower_rq_initialize(&builder, index, intrinsic, vars, device->instance);
+               lower_rq_initialize(&builder, index, intrinsic, vars, instance);
                break;
             case nir_intrinsic_rq_load:
                new_dest = lower_rq_load(device, &builder, index, intrinsic, vars);

@@ -268,7 +268,7 @@ a630-traces-restricted:
     - .google-freedreno-rules-restricted
   variables:
     PIGLIT_TRACES_FILE: restricted-traces-freedreno.yml
-    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri= --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${CI_JOB_JWT_FILE}"
+    PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri= --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${S3_JWT_FILE}"
   allow_failure: true
 
 a630-traces-performance:

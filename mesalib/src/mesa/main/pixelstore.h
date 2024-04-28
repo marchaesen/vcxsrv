@@ -37,6 +37,10 @@
 struct gl_context;
 
 extern void
+_mesa_init_pixelstore_attrib(struct gl_context *ctx,
+                             struct gl_pixelstore_attrib *pack);
+
+extern void
 _mesa_init_pixelstore( struct gl_context *ctx );
 
 

@@ -402,7 +402,7 @@ util_pstipple_create_fragment_shader(const struct tgsi_token *tokens,
    if (!new_tokens)
       return NULL;
 
-#if 0 /* DEBUG */
+#if 0 /* debug */
    tgsi_dump(fs->tokens, 0);
    tgsi_dump(new_fs->tokens, 0);
 #endif

@@ -231,6 +231,8 @@ lower_drawpixels_instr(nir_builder *b, nir_instr *instr, void *cb_data)
    case nir_intrinsic_load_input: {
       if (nir_intrinsic_io_semantics(intr).location == VARYING_SLOT_TEX0)
          return lower_texcoord(b, state, intr);
+      if (nir_intrinsic_io_semantics(intr).location == VARYING_SLOT_COL0)
+         return lower_color(b, state, intr);
       break;
    }
    default:

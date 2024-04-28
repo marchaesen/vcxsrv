@@ -3,3 +3,7 @@ dEQP-VK.robustness.buffer_access.through_pointers.graphics.writes.fragment.32B_i
 # New CTS flakes in 1.3.7.0
 dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.*
 dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.*
+
+# uprev Piglit in Mesa
+dEQP-VK.transform_feedback.primitives_generated_query.get.*reset.*
+

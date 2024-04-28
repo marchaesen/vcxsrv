@@ -1,25 +1,7 @@
 /*
  * Copyright © 2019 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_builder.h"
@@ -56,9 +38,12 @@ struct merge_node {
    uint32_t index = -1u;      /* index into the vector of merge sets */
    uint32_t defined_at = -1u; /* defining block */
 
-   /* we also remember two dominating defs with the same value: */
+   /* We also remember two closest equal intersecting ancestors. Because they intersect with this
+    * merge node, they must dominate it (intersection isn't possible otherwise) and have the same
+    * value (or else they would not be allowed to be in the same merge set).
+    */
    Temp equal_anc_in = Temp();  /* within the same merge set */
-   Temp equal_anc_out = Temp(); /* from a different set */
+   Temp equal_anc_out = Temp(); /* from the other set we're currently trying to merge with */
 };
 
 struct cssa_ctx {
@@ -89,7 +74,7 @@ collect_parallelcopies(cssa_ctx& ctx)
          if (!def.isTemp())
             continue;
 
-         std::vector<unsigned>& preds =
+         Block::edge_vec& preds =
             phi->opcode == aco_opcode::p_phi ? block.logical_preds : block.linear_preds;
          uint32_t index = ctx.merge_sets.size();
          merge_set set;
@@ -194,9 +179,9 @@ intersects(cssa_ctx& ctx, Temp var, Temp parent)
    /* parent is defined in a different block than var */
    if (node_parent.defined_at < node_var.defined_at) {
       /* if the parent is not live-in, they don't interfere */
-      std::vector<uint32_t>& preds = var.type() == RegType::vgpr
-                                        ? ctx.program->blocks[block_idx].logical_preds
-                                        : ctx.program->blocks[block_idx].linear_preds;
+      Block::edge_vec& preds = var.type() == RegType::vgpr
+                                  ? ctx.program->blocks[block_idx].logical_preds
+                                  : ctx.program->blocks[block_idx].linear_preds;
       for (uint32_t pred : preds) {
          if (!ctx.live_out[pred].count(parent.id()))
             return false;
@@ -243,7 +228,7 @@ intersects(cssa_ctx& ctx, Temp var, Temp parent)
 
 /* check interference between var and parent:
  * i.e. they have different values and intersect.
- * If parent and var share the same value, also updates the equal ancestor. */
+ * If parent and var intersect and share the same value, also updates the equal ancestor. */
 inline bool
 interference(cssa_ctx& ctx, Temp var, Temp parent)
 {
@@ -252,12 +237,13 @@ interference(cssa_ctx& ctx, Temp var, Temp parent)
    node_var.equal_anc_out = Temp();
 
    if (node_var.index == ctx.merge_node_table[parent.id()].index) {
-      /* check/update in other set */
+      /* Check/update in other set. equal_anc_out is only present if it intersects with 'parent',
+       * but that's fine since it has to for it to intersect with 'var'. */
       parent = ctx.merge_node_table[parent.id()].equal_anc_out;
    }
 
    Temp tmp = parent;
-   /* check if var intersects with parent or any equal-valued ancestor */
+   /* Check if 'var' intersects with 'parent' or any ancestors which might intersect too. */
    while (tmp != Temp() && !intersects(ctx, var, tmp)) {
       merge_node& node_tmp = ctx.merge_node_table[tmp.id()];
       tmp = node_tmp.equal_anc_in;
@@ -267,7 +253,7 @@ interference(cssa_ctx& ctx, Temp var, Temp parent)
    if (tmp == Temp())
       return false;
 
-   /* var and parent, same value, but in different sets */
+   /* var and parent, same value and intersect, but in different sets */
    if (node_var.value == ctx.merge_node_table[parent.id()].value) {
       node_var.equal_anc_out = tmp;
       return false;
@@ -305,8 +291,11 @@ try_merge_merge_set(cssa_ctx& ctx, Temp dst, merge_set& set_b)
       while (!dom.empty() && !dominates(ctx, dom.back(), current))
          dom.pop_back(); /* not the desired parent, remove */
 
-      if (!dom.empty() && interference(ctx, current, dom.back()))
+      if (!dom.empty() && interference(ctx, current, dom.back())) {
+         for (Temp t : union_set)
+            ctx.merge_node_table[t.id()].equal_anc_out = Temp();
          return false; /* intersection detected */
+      }
 
       dom.emplace_back(current); /* otherwise, keep checking */
       if (current != dst)
@@ -317,7 +306,7 @@ try_merge_merge_set(cssa_ctx& ctx, Temp dst, merge_set& set_b)
    for (Temp t : union_set) {
       merge_node& node = ctx.merge_node_table[t.id()];
       /* update the equal ancestors:
-       * i.e. the 'closest' dominating def with the same value */
+       * i.e. the 'closest' dominating def which intersects */
       Temp in = node.equal_anc_in;
       Temp out = node.equal_anc_out;
       if (in == Temp() || (out != Temp() && defined_after(ctx, out, in)))
@@ -417,8 +406,8 @@ emit_copies_block(Builder& bld, std::map<uint32_t, ltg_node>& ltg, RegType type)
       // TODO: this should be restricted to a feasible number of registers
       // and otherwise use a temporary to avoid having to reload more (spilled)
       // variables than we have registers.
-      aco_ptr<Pseudo_instruction> copy{create_instruction<Pseudo_instruction>(
-         aco_opcode::p_parallelcopy, Format::PSEUDO, num, num)};
+      aco_ptr<Instruction> copy{
+         create_instruction(aco_opcode::p_parallelcopy, Format::PSEUDO, num, num)};
       it = ltg.begin();
       for (unsigned i = 0; i < num; i++) {
          while (it->second.cp.def.regClass().type() != type)

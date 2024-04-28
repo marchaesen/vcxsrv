@@ -3,8 +3,6 @@ use crate::api::{icd::CLResult, types::CLVec};
 use mesa_rust_gen::*;
 use rusticl_opencl_gen::*;
 
-use std::mem;
-
 use super::gl::is_cube_map_face;
 
 pub fn cl_mem_type_to_texture_target(mem_type: cl_mem_object_type) -> pipe_texture_target {
@@ -33,17 +31,10 @@ pub fn cl_mem_type_to_texture_target_gl(
 }
 
 pub fn create_pipe_box(
-    base: CLVec<usize>,
-    region: CLVec<usize>,
+    mut base: CLVec<usize>,
+    mut region: CLVec<usize>,
     mem_type: cl_mem_object_type,
 ) -> CLResult<pipe_box> {
-    let x = base[0].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-    let mut y = base[1].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-    let mut z = base[2].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-    let width = region[0].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-    let mut height = region[1].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-    let mut depth = region[2].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?;
-
     if matches!(
         mem_type,
         CL_MEM_OBJECT_BUFFER
@@ -52,29 +43,29 @@ pub fn create_pipe_box(
             | CL_MEM_OBJECT_IMAGE1D_BUFFER
             | CL_MEM_OBJECT_IMAGE2D
     ) {
-        debug_assert!(depth == 1);
-        depth = 1;
+        debug_assert!(region[2] == 1);
+        region[2] = 1;
     }
 
     if matches!(
         mem_type,
         CL_MEM_OBJECT_BUFFER | CL_MEM_OBJECT_IMAGE1D | CL_MEM_OBJECT_IMAGE1D_BUFFER
     ) {
-        debug_assert!(height == 1);
-        height = 1;
+        debug_assert!(region[1] == 1);
+        region[1] = 1;
     }
 
     if mem_type == CL_MEM_OBJECT_IMAGE1D_ARRAY {
-        mem::swap(&mut height, &mut depth);
-        mem::swap(&mut y, &mut z);
-    }
+        base.swap(1, 2);
+        region.swap(1, 2);
+    };
 
     Ok(pipe_box {
-        x: x,
-        y: y,
-        z: z,
-        width: width,
-        height: height,
-        depth: depth,
+        x: base[0].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+        y: base[1].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+        z: base[2].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+        width: region[0].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+        height: region[1].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
+        depth: region[2].try_into().map_err(|_| CL_OUT_OF_HOST_MEMORY)?,
     })
 }

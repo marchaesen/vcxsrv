@@ -351,23 +351,17 @@ static VkResult
 vn_android_get_modifier_properties(struct vn_device *dev,
                                    VkFormat format,
                                    uint64_t modifier,
-                                   const VkAllocationCallbacks *alloc,
                                    VkDrmFormatModifierPropertiesEXT *out_props)
 {
    VkPhysicalDevice physical_device =
       vn_physical_device_to_handle(dev->physical_device);
    VkDrmFormatModifierPropertiesListEXT mod_prop_list = {
       .sType = VK_STRUCTURE_TYPE_DRM_FORMAT_MODIFIER_PROPERTIES_LIST_EXT,
-      .pNext = NULL,
-      .drmFormatModifierCount = 0,
-      .pDrmFormatModifierProperties = NULL,
    };
    VkFormatProperties2 format_prop = {
       .sType = VK_STRUCTURE_TYPE_FORMAT_PROPERTIES_2,
       .pNext = &mod_prop_list,
    };
-   VkDrmFormatModifierPropertiesEXT *mod_props = NULL;
-   bool modifier_found = false;
 
    vn_GetPhysicalDeviceFormatProperties2(physical_device, format,
                                          &format_prop);
@@ -378,16 +372,14 @@ vn_android_get_modifier_properties(struct vn_device *dev,
       return VK_ERROR_INVALID_EXTERNAL_HANDLE;
    }
 
-   mod_props = vk_zalloc(
-      alloc, sizeof(*mod_props) * mod_prop_list.drmFormatModifierCount,
-      VN_DEFAULT_ALIGN, VK_SYSTEM_ALLOCATION_SCOPE_COMMAND);
-   if (!mod_props)
-      return VK_ERROR_OUT_OF_HOST_MEMORY;
+   STACK_ARRAY(VkDrmFormatModifierPropertiesEXT, mod_props,
+               mod_prop_list.drmFormatModifierCount);
 
    mod_prop_list.pDrmFormatModifierProperties = mod_props;
    vn_GetPhysicalDeviceFormatProperties2(physical_device, format,
                                          &format_prop);
 
+   bool modifier_found = false;
    for (uint32_t i = 0; i < mod_prop_list.drmFormatModifierCount; i++) {
       if (mod_props[i].drmFormatModifier == modifier) {
          *out_props = mod_props[i];
@@ -396,7 +388,7 @@ vn_android_get_modifier_properties(struct vn_device *dev,
       }
    }
 
-   vk_free(alloc, mod_props);
+   STACK_ARRAY_FINISH(mod_props);
 
    if (!modifier_found) {
       vn_log(dev->instance,
@@ -694,7 +686,7 @@ vn_android_get_ahb_format_properties(
    }
 
    VkResult result = vn_android_get_modifier_properties(
-      dev, format, buf_props.modifier, &dev->base.base.alloc, &mod_props);
+      dev, format, buf_props.modifier, &mod_props);
    if (result != VK_SUCCESS)
       return result;
 

@@ -7,7 +7,7 @@
 
 set -ex
 
-git clone https://github.com/microsoft/DirectX-Headers -b v1.611.0 --depth 1
+git clone https://github.com/microsoft/DirectX-Headers -b v1.613.1 --depth 1
 pushd DirectX-Headers
 meson setup build --backend=ninja --buildtype=release -Dbuild-test=false $EXTRA_MESON_ARGS
 meson install -C build

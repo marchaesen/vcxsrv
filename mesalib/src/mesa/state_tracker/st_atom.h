@@ -63,7 +63,7 @@ st_setup_current_user(struct st_context *st,
                       struct pipe_vertex_buffer *vbuffer, unsigned *num_vbuffers);
 
 void
-st_update_array_with_popcnt(struct st_context *st);
+st_init_update_array(struct st_context *st);
 
 struct pipe_vertex_state *
 st_create_gallium_vertex_state(struct gl_context *ctx,

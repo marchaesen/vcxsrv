@@ -272,7 +272,17 @@ mv /usr/local/bin/*-runner $ROOTFS/usr/bin/.
 
 
 ############### Build dEQP
-DEQP_TARGET=surfaceless . .gitlab-ci/container/build-deqp.sh
+DEQP_API=GL \
+DEQP_TARGET=surfaceless \
+. .gitlab-ci/container/build-deqp.sh
+
+DEQP_API=GLES \
+DEQP_TARGET=surfaceless \
+. .gitlab-ci/container/build-deqp.sh
+
+DEQP_API=VK \
+DEQP_TARGET=default \
+. .gitlab-ci/container/build-deqp.sh
 
 mv /deqp $ROOTFS/.
 
@@ -355,8 +365,8 @@ popd
 
 . .gitlab-ci/container/container_post_build.sh
 
-ci-fairy s3cp --token-file "${CI_JOB_JWT_FILE}" /lava-files/"${ROOTFSTAR}" \
+ci-fairy s3cp --token-file "${S3_JWT_FILE}" /lava-files/"${ROOTFSTAR}" \
       https://${S3_PATH}/"${ROOTFSTAR}"
 
 touch /lava-files/done
-ci-fairy s3cp --token-file "${CI_JOB_JWT_FILE}" /lava-files/done https://${S3_PATH}/done
+ci-fairy s3cp --token-file "${S3_JWT_FILE}" /lava-files/done https://${S3_PATH}/done

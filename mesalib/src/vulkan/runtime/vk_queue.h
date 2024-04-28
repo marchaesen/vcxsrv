@@ -146,7 +146,7 @@ struct vk_queue {
    struct util_dynarray labels;
    bool region_begin;
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    /** SYNC_FD signal semaphore for vkQueueSignalReleaseImageANDROID
     *
     * VK_ANDROID_native_buffer enforces explicit fencing on the present api

@@ -799,7 +799,7 @@ struct __DRIuseInvalidateExtensionRec {
  * returns a reliable value.  The X server requires v1 and uses v2.
  */
 #define __DRI_CORE "DRI_Core"
-#define __DRI_CORE_VERSION 2
+#define __DRI_CORE_VERSION 3
 
 struct __DRIcoreExtensionRec {
     __DRIextension base;
@@ -858,6 +858,8 @@ struct __DRIcoreExtensionRec {
 
     /* Used by the X server. */
     int (*unbindContext)(__DRIcontext *ctx);
+
+    void (*swapBuffersWithDamage)(__DRIdrawable *drawable, int nrects, const int *rects);
 };
 
 /**
@@ -913,7 +915,7 @@ struct __DRIframebufferRec {
  * extension.  Version 1 is required by the X server, and version 3 is used.
  */
 #define __DRI_SWRAST "DRI_SWRast"
-#define __DRI_SWRAST_VERSION 4
+#define __DRI_SWRAST_VERSION 6
 
 struct __DRIswrastExtensionRec {
     __DRIextension base;
@@ -960,6 +962,22 @@ struct __DRIswrastExtensionRec {
                                     const __DRIextension **driver_extensions,
                                     const __DRIconfig ***driver_configs,
                                     void *loaderPrivate);
+   /**
+    * \since version 5
+   */
+   int (*queryBufferAge)(__DRIdrawable *drawable);
+
+   /**
+    * createNewScreen() with the driver extensions passed in and implicit load flag.
+    *
+    * \since version 6
+    */
+   __DRIscreen *(*createNewScreen3)(int screen,
+                                    const __DRIextension **loader_extensions,
+                                    const __DRIextension **driver_extensions,
+                                    const __DRIconfig ***driver_configs,
+                                    bool implicit,
+                                    void *loaderPrivate);
 
 };
 
@@ -971,6 +989,13 @@ typedef __DRIscreen *
                              const __DRIextension **extensions,
                              const __DRIextension **driver_extensions,
                              const __DRIconfig ***driver_configs,
+                             void *loaderPrivate);
+typedef __DRIscreen *
+(*__DRIcreateNewScreen3Func)(int screen, int fd,
+                             const __DRIextension **extensions,
+                             const __DRIextension **driver_extensions,
+                             const __DRIconfig ***driver_configs,
+                             bool implicit,
                              void *loaderPrivate);
 
 typedef __DRIdrawable *
@@ -1107,7 +1132,7 @@ struct __DRIdri2LoaderExtensionRec {
  * constructors for DRI2.  The X server uses up to version 4.
  */
 #define __DRI_DRI2 "DRI_DRI2"
-#define __DRI_DRI2_VERSION 4
+#define __DRI_DRI2_VERSION 5
 
 #define __DRI_API_OPENGL	0	/**< OpenGL compatibility profile */
 #define __DRI_API_GLES		1	/**< OpenGL ES 1.x */
@@ -1226,6 +1251,13 @@ struct __DRIdri2ExtensionRec {
     * \since version 4
     */
    __DRIcreateNewScreen2Func            createNewScreen2;
+
+   /**
+    * createNewScreen with the driver's extension list passed in and implicit load flag.
+    *
+    * \since version 5
+    */
+   __DRIcreateNewScreen3Func            createNewScreen3;
 };
 
 
@@ -1236,51 +1268,7 @@ struct __DRIdri2ExtensionRec {
 #define __DRI_IMAGE "DRI_IMAGE"
 #define __DRI_IMAGE_VERSION 20
 
-/**
- * These formats correspond to the similarly named MESA_FORMAT_*
- * tokens, except in the native endian of the CPU.  For example, on
- * little endian __DRI_IMAGE_FORMAT_XRGB8888 corresponds to
- * MESA_FORMAT_XRGB8888, but MESA_FORMAT_XRGB8888_REV on big endian.
- *
- * __DRI_IMAGE_FORMAT_NONE is for images that aren't directly usable
- * by the driver (YUV planar formats) but serve as a base image for
- * creating sub-images for the different planes within the image.
- *
- * R8, GR88 and NONE should not be used with createImageFromName or
- * createImage, and are returned by query from sub images created with
- * createImageFromNames (NONE, see above) and fromPlane (R8 & GR88).
- */
-#define __DRI_IMAGE_FORMAT_RGB565       0x1001
-#define __DRI_IMAGE_FORMAT_XRGB8888     0x1002
-#define __DRI_IMAGE_FORMAT_ARGB8888     0x1003
-#define __DRI_IMAGE_FORMAT_ABGR8888     0x1004
-#define __DRI_IMAGE_FORMAT_XBGR8888     0x1005
-#define __DRI_IMAGE_FORMAT_R8           0x1006 /* Since version 5 */
-#define __DRI_IMAGE_FORMAT_GR88         0x1007
-#define __DRI_IMAGE_FORMAT_NONE         0x1008
-#define __DRI_IMAGE_FORMAT_XRGB2101010  0x1009
-#define __DRI_IMAGE_FORMAT_ARGB2101010  0x100a
-#define __DRI_IMAGE_FORMAT_SARGB8       0x100b
-#define __DRI_IMAGE_FORMAT_ARGB1555     0x100c
-#define __DRI_IMAGE_FORMAT_R16          0x100d
-#define __DRI_IMAGE_FORMAT_GR1616       0x100e
-#define __DRI_IMAGE_FORMAT_YUYV         0x100f
-#define __DRI_IMAGE_FORMAT_XBGR2101010  0x1010
-#define __DRI_IMAGE_FORMAT_ABGR2101010  0x1011
-#define __DRI_IMAGE_FORMAT_SABGR8       0x1012
-#define __DRI_IMAGE_FORMAT_UYVY         0x1013
-#define __DRI_IMAGE_FORMAT_XBGR16161616F 0x1014
-#define __DRI_IMAGE_FORMAT_ABGR16161616F 0x1015
-#define __DRI_IMAGE_FORMAT_SXRGB8       0x1016
-#define __DRI_IMAGE_FORMAT_ABGR16161616 0x1017
-#define __DRI_IMAGE_FORMAT_XBGR16161616 0x1018
-#define __DRI_IMAGE_FORMAT_ARGB4444	0x1019
-#define __DRI_IMAGE_FORMAT_XRGB4444	0x101a
-#define __DRI_IMAGE_FORMAT_ABGR4444	0x101b
-#define __DRI_IMAGE_FORMAT_XBGR4444	0x101c
-#define __DRI_IMAGE_FORMAT_XRGB1555	0x101d
-#define __DRI_IMAGE_FORMAT_ABGR1555	0x101e
-#define __DRI_IMAGE_FORMAT_XBGR1555	0x101f
+/* __DRI_IMAGE_FORMAT_* tokens are no longer exported */
 
 #define __DRI_IMAGE_USE_SHARE		0x0001
 #define __DRI_IMAGE_USE_SCANOUT		0x0002
@@ -2083,7 +2071,7 @@ struct __DRIimageLoaderExtensionRec {
  */
 
 #define __DRI_IMAGE_DRIVER           "DRI_IMAGE_DRIVER"
-#define __DRI_IMAGE_DRIVER_VERSION   1
+#define __DRI_IMAGE_DRIVER_VERSION   2
 
 struct __DRIimageDriverExtensionRec {
    __DRIextension               base;
@@ -2093,6 +2081,7 @@ struct __DRIimageDriverExtensionRec {
    __DRIcreateNewDrawableFunc           createNewDrawable;
    __DRIcreateContextAttribsFunc        createContextAttribs;
    __DRIgetAPIMaskFunc                  getAPIMask;
+   __DRIcreateNewScreen3Func            createNewScreen3;
 };
 
 /**

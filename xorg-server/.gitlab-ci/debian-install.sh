@@ -6,16 +6,18 @@ set -o xtrace
 # Packages which are needed by this script, but not for the xserver build
 EPHEMERAL="
 	libcairo2-dev
-	libevdev-dev
 	libexpat-dev
 	libgles2-mesa-dev
-	libinput-dev
 	libxkbcommon-dev
 	x11-utils
 	x11-xserver-utils
 	xauth
 	xvfb
 	"
+
+# Add bullseye-backports for the newer linux-libc-dev package
+echo 'deb http://deb.debian.org/debian bullseye-backports main' >> /etc/apt/sources.list
+apt update
 
 apt-get install -y \
 	$EPHEMERAL \
@@ -34,7 +36,6 @@ apt-get install -y \
 	libcairo2 \
 	libcairo2-dev \
 	libdbus-1-dev \
-	libdmx-dev \
 	libdrm-dev \
 	libegl1-mesa-dev \
 	libepoxy-dev \
@@ -47,12 +48,14 @@ apt-get install -y \
 	libgles2 \
 	libglx-mesa0 \
 	libinput10 \
+	libinput-dev \
 	libnvidia-egl-wayland-dev \
 	libpango1.0-0 \
 	libpango1.0-dev \
 	libpciaccess-dev \
 	libpixman-1-dev \
 	libselinux1-dev \
+	libspice-protocol-dev \
 	libsystemd-dev \
 	libtool \
 	libudev-dev \
@@ -94,6 +97,7 @@ apt-get install -y \
 	libxtst-dev \
 	libxv-dev \
 	libz-mingw-w64-dev \
+	linux-libc-dev/bullseye-backports \
 	mesa-common-dev \
 	meson \
 	mingw-w64-tools \
@@ -115,8 +119,8 @@ apt-get install -y \
 
 cd /root
 
-# Xwayland requires drm 2.4.109 for drmGetDeviceFromDevId
-git clone https://gitlab.freedesktop.org/mesa/drm --depth 1 --branch=libdrm-2.4.109
+# Xwayland requires drm 2.4.116 for drmSyncobjEventfd
+git clone https://gitlab.freedesktop.org/mesa/drm --depth 1 --branch=libdrm-2.4.116
 cd drm
 meson _build
 ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
@@ -131,8 +135,8 @@ ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf libxcvt
 
-# xserver requires xorgproto >= 2023.2 for XWAYLAND
-git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 --branch=xorgproto-2023.2
+# xserver requires xorgproto >= 2024.1 for XWAYLAND
+git clone https://gitlab.freedesktop.org/xorg/proto/xorgproto.git --depth 1 --branch=xorgproto-2024.1
 pushd xorgproto
 ./autogen.sh
 make -j${FDO_CI_CONCURRENT:-4} install
@@ -147,8 +151,8 @@ ninja -C _build -j${FDO_CI_CONCURRENT:-4} install
 cd ..
 rm -rf wayland
 
-# Xwayland requires wayland-protocols >= 1.30, but Debian bullseye has 1.20 only
-git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.30
+# Xwayland requires wayland-protocols >= 1.34, but Debian bullseye has 1.20 only
+git clone https://gitlab.freedesktop.org/wayland/wayland-protocols.git --depth 1 --branch=1.34
 cd wayland-protocols
 meson _build
 ninja -C _build -j${FDO_CI_CONCURRENT:-4} install

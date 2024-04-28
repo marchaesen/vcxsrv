@@ -34,6 +34,10 @@
 #include "vk_debug_utils.h"
 #include "vk_physical_device.h"
 
+#if !VK_LITE_RUNTIME_INSTANCE
+#include "compiler/glsl_types.h"
+#endif
+
 #define VERSION_IS_1_0(version) \
    (VK_API_VERSION_MAJOR(version) == 1 && VK_API_VERSION_MINOR(version) == 0)
 
@@ -197,9 +201,11 @@ vk_instance_init(struct vk_instance *instance,
 
    instance->trace_mode = parse_debug_string(getenv("MESA_VK_TRACE"), trace_options);
    instance->trace_frame = (uint32_t)debug_get_num_option("MESA_VK_TRACE_FRAME", 0xFFFFFFFF);
-   instance->trace_trigger_file = getenv("MESA_VK_TRACE_TRIGGER");
+   instance->trace_trigger_file = secure_getenv("MESA_VK_TRACE_TRIGGER");
 
-   vk_compiler_cache_init();
+#if !VK_LITE_RUNTIME_INSTANCE
+   glsl_type_singleton_init_or_ref();
+#endif
 
    return VK_SUCCESS;
 }
@@ -219,7 +225,10 @@ vk_instance_finish(struct vk_instance *instance)
 {
    destroy_physical_devices(instance);
 
-   vk_compiler_cache_finish();
+#if !VK_LITE_RUNTIME_INSTANCE
+   glsl_type_singleton_decref();
+#endif
+
    if (unlikely(!list_is_empty(&instance->debug_utils.callbacks))) {
       list_for_each_entry_safe(struct vk_debug_utils_messenger, messenger,
                                &instance->debug_utils.callbacks, link) {
@@ -389,8 +398,8 @@ vk_instance_add_driver_trace_modes(struct vk_instance *instance,
 static VkResult
 enumerate_drm_physical_devices_locked(struct vk_instance *instance)
 {
-   /* TODO: Check for more devices ? */
-   drmDevicePtr devices[8];
+   /* libdrm returns a maximum of 256 devices (see MAX_DRM_NODES in libdrm) */
+   drmDevicePtr devices[256];
    int max_devices = drmGetDevices2(0, devices, ARRAY_SIZE(devices));
 
    if (max_devices < 1)

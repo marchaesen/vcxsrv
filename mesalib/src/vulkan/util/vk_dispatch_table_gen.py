@@ -152,6 +152,62 @@ ${entrypoint_table('instance', instance_entrypoints)}
 ${entrypoint_table('physical_device', physical_device_entrypoints)}
 ${entrypoint_table('device', device_entrypoints)}
 
+<%def name="uncompacted_dispatch_table(entrypoints)">
+% for e in entrypoints:
+  % if e.alias:
+    <% continue %>
+  % endif
+  % if e.guard is not None:
+#ifdef ${e.guard}
+  % endif
+    PFN_vk${e.name} ${e.name};
+  % if e.aliases:
+    % for a in e.aliases:
+    PFN_vk${a.name} ${a.name};
+    % endfor
+  % endif
+  % if e.guard is not None:
+#else
+    PFN_vkVoidFunction ${e.name};
+    % if e.aliases:
+      % for a in e.aliases:
+        PFN_vkVoidFunction ${a.name};
+      % endfor
+    % endif
+#endif
+  % endif
+% endfor
+</%def>
+
+
+struct vk_instance_uncompacted_dispatch_table {
+  ${uncompacted_dispatch_table(instance_entrypoints)}
+};
+
+struct vk_physical_device_uncompacted_dispatch_table {
+  ${uncompacted_dispatch_table(physical_device_entrypoints)}
+};
+
+struct vk_device_uncompacted_dispatch_table {
+  ${uncompacted_dispatch_table(device_entrypoints)}
+};
+
+struct vk_uncompacted_dispatch_table {
+    union {
+        struct {
+            struct vk_instance_uncompacted_dispatch_table instance;
+            struct vk_physical_device_uncompacted_dispatch_table physical_device;
+            struct vk_device_uncompacted_dispatch_table device;
+        };
+
+        struct {
+            ${uncompacted_dispatch_table(instance_entrypoints)}
+            ${uncompacted_dispatch_table(physical_device_entrypoints)}
+            ${uncompacted_dispatch_table(device_entrypoints)}
+        };
+    };
+};
+
 void
 vk_instance_dispatch_table_load(struct vk_instance_dispatch_table *table,
                                 PFN_vkGetInstanceProcAddr gpa,
@@ -162,6 +218,19 @@ vk_physical_device_dispatch_table_load(struct vk_physical_device_dispatch_table 
                                        VkInstance instance);
 void
 vk_device_dispatch_table_load(struct vk_device_dispatch_table *table,
+                              PFN_vkGetDeviceProcAddr gpa,
+                              VkDevice device);
+
+void
+vk_instance_uncompacted_dispatch_table_load(struct vk_instance_uncompacted_dispatch_table *table,
+                                PFN_vkGetInstanceProcAddr gpa,
+                                VkInstance instance);
+void
+vk_physical_device_uncompacted_dispatch_table_load(struct vk_physical_device_uncompacted_dispatch_table *table,
+                                       PFN_vkGetInstanceProcAddr gpa,
+                                       VkInstance instance);
+void
+vk_device_uncompacted_dispatch_table_load(struct vk_device_uncompacted_dispatch_table *table,
                               PFN_vkGetDeviceProcAddr gpa,
                               VkDevice device);
 
@@ -265,6 +334,46 @@ ${load_dispatch_table('physical_device', 'VkInstance', 'GetInstanceProcAddr',
                       physical_device_entrypoints)}
 
 ${load_dispatch_table('device', 'VkDevice', 'GetDeviceProcAddr',
+                      device_entrypoints)}
+
+<%def name="load_uncompacted_dispatch_table(type, VkType, ProcAddr, entrypoints)">
+void
+vk_${type}_uncompacted_dispatch_table_load(struct vk_${type}_uncompacted_dispatch_table *table,
+                               PFN_vk${ProcAddr} gpa,
+                               ${VkType} obj)
+{
+% if type != 'physical_device':
+    table->${ProcAddr} = gpa;
+% endif
+% for e in entrypoints:
+  % if e.alias or e.name == '${ProcAddr}':
+    <% continue %>
+  % endif
+  % if e.guard is not None:
+#ifdef ${e.guard}
+  % endif
+    table->${e.name} = (PFN_vk${e.name}) gpa(obj, "vk${e.name}");
+  % for a in e.aliases:
+    table->${a.name} = (PFN_vk${a.name}) gpa(obj, "vk${a.name}");
+    if (table->${e.name} && !table->${a.name})
+       table->${a.name} = (PFN_vk${a.name}) table->${e.name};
+    if (!table->${e.name})
+       table->${e.name} = (PFN_vk${e.name}) table->${a.name};
+  % endfor
+  % if e.guard is not None:
+#endif
+  % endif
+% endfor
+}
+</%def>
+
+${load_uncompacted_dispatch_table('instance', 'VkInstance', 'GetInstanceProcAddr',
+                      instance_entrypoints)}
+
+${load_uncompacted_dispatch_table('physical_device', 'VkInstance', 'GetInstanceProcAddr',
+                      physical_device_entrypoints)}
+
+${load_uncompacted_dispatch_table('device', 'VkDevice', 'GetDeviceProcAddr',
                       device_entrypoints)}
 
 

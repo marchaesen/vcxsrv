@@ -237,6 +237,7 @@ union si_state_atoms {
       struct si_atom cache_flush;
       struct si_atom streamout_begin; /* this must be done after cache_flush */
       struct si_atom render_cond; /* this must be after cache_flush */
+      struct si_atom spi_ge_ring_state; /* this must be last because it waits for idle. */
    } s;
    struct si_atom array[sizeof(struct si_atoms_s) / sizeof(struct si_atom)];
 };
@@ -342,7 +343,7 @@ enum si_tracked_reg
 
    /* The slots below can be reused by other generations. */
    SI_TRACKED_VGT_ESGS_RING_ITEMSIZE,        /* GFX6-8 (GFX9+ can reuse this slot) */
-   SI_TRACKED_VGT_REUSE_OFF,                 /* GFX6-8 (GFX9+ can reuse this slot) */
+   SI_TRACKED_VGT_REUSE_OFF,                 /* GFX6-8,10.3 */
    SI_TRACKED_IA_MULTI_VGT_PARAM,            /* GFX6-8 (GFX9+ can reuse this slot) */
 
    SI_TRACKED_VGT_GS_MAX_PRIMS_PER_SUBGROUP, /* GFX9 - the slots above can be reused */
@@ -457,6 +458,7 @@ enum
    SI_RING_ESGS,                       /* gfx6-8 */
    SI_RING_GSVS,                       /* gfx6-10 */
    SI_GS_QUERY_EMULATED_COUNTERS_BUF,  /* gfx10+ */
+   SI_RING_SHADER_LOG,
 
    SI_NUM_INTERNAL_BINDINGS,
 
@@ -657,8 +659,6 @@ void si_get_active_slot_masks(struct si_screen *sscreen, const struct si_shader_
                               uint64_t *const_and_shader_buffers, uint64_t *samplers_and_images);
 int si_shader_select(struct pipe_context *ctx, struct si_shader_ctx_state *state);
 void si_vs_key_update_inputs(struct si_context *sctx);
-void si_get_vs_key_inputs(struct si_context *sctx, union si_shader_key *key,
-                          struct si_vs_prolog_bits *prolog_key);
 void si_update_ps_inputs_read_or_disabled(struct si_context *sctx);
 void si_update_vrs_flat_shading(struct si_context *sctx);
 unsigned si_get_input_prim(const struct si_shader_selector *gs, const union si_shader_key *key);
@@ -673,7 +673,6 @@ void si_ps_key_update_framebuffer_rasterizer_sample_shading(struct si_context *s
 void si_init_tess_factor_ring(struct si_context *sctx);
 bool si_update_gs_ring_buffers(struct si_context *sctx);
 bool si_update_spi_tmpring_size(struct si_context *sctx, unsigned bytes);
-unsigned si_get_shader_prefetch_size(struct si_shader *shader);
 bool si_set_tcs_to_fixed_func_shader(struct si_context *sctx);
 void si_update_tess_io_layout_state(struct si_context *sctx);
 

@@ -34,7 +34,7 @@
 #include "intel/blorp/blorp.h"
 #include "intel/dev/intel_debug.h"
 #include "intel/common/intel_l3_config.h"
-#include "intel/compiler/brw_compiler.h"
+#include "intel/compiler/intel_shader_enums.h"
 #include "intel/ds/intel_driver_ds.h"
 #include "iris_batch.h"
 #include "iris_binder.h"
@@ -47,6 +47,9 @@ struct iris_context;
 struct blorp_batch;
 struct blorp_params;
 
+#define IRIS_MAX_DRAW_BUFFERS 8
+#define IRIS_MAX_SOL_BINDINGS 64
+
 #define IRIS_MAX_TEXTURE_BUFFER_SIZE (1 << 27)
 /* IRIS_MAX_ABOS and IRIS_MAX_SSBOS must be the same. */
 #define IRIS_MAX_ABOS 16
@@ -55,22 +58,22 @@ struct blorp_params;
 #define IRIS_MAX_CLIP_PLANES 8
 #define IRIS_MAX_GLOBAL_BINDINGS 128
 
-enum iris_param_domain {
-   BRW_PARAM_DOMAIN_BUILTIN = 0,
-   BRW_PARAM_DOMAIN_IMAGE,
-};
-
 enum {
    DRI_CONF_BO_REUSE_DISABLED,
    DRI_CONF_BO_REUSE_ALL
 };
 
-#define BRW_PARAM(domain, val)   (BRW_PARAM_DOMAIN_##domain << 24 | (val))
-#define BRW_PARAM_DOMAIN(param)  ((uint32_t)(param) >> 24)
-#define BRW_PARAM_VALUE(param)   ((uint32_t)(param) & 0x00ffffff)
-#define BRW_PARAM_IMAGE(idx, offset) BRW_PARAM(IMAGE, ((idx) << 8) | (offset))
-#define BRW_PARAM_IMAGE_IDX(value)   (BRW_PARAM_VALUE(value) >> 8)
-#define BRW_PARAM_IMAGE_OFFSET(value)(BRW_PARAM_VALUE(value) & 0xf)
+enum iris_param_domain {
+   ELK_PARAM_DOMAIN_BUILTIN = 0,
+   ELK_PARAM_DOMAIN_IMAGE,
+};
+
+#define ELK_PARAM(domain, val)   (ELK_PARAM_DOMAIN_##domain << 24 | (val))
+#define ELK_PARAM_DOMAIN(param)  ((uint32_t)(param) >> 24)
+#define ELK_PARAM_VALUE(param)   ((uint32_t)(param) & 0x00ffffff)
+#define ELK_PARAM_IMAGE(idx, offset) ELK_PARAM(IMAGE, ((idx) << 8) | (offset))
+#define ELK_PARAM_IMAGE_IDX(value)   (ELK_PARAM_VALUE(value) >> 8)
+#define ELK_PARAM_IMAGE_OFFSET(value)(ELK_PARAM_VALUE(value) & 0xf)
 
 /**
  * Dirty flags.  When state changes, we flag some combination of these
@@ -304,6 +307,137 @@ PRAGMA_DIAGNOSTIC_POP
 
 /** @} */
 
+struct iris_ubo_range
+{
+   uint16_t block;
+
+   /* In units of 32-byte registers */
+   uint8_t start;
+   uint8_t length;
+};
+
+struct iris_fs_data {
+   int urb_setup[VARYING_SLOT_MAX];
+   uint8_t urb_setup_attribs[VARYING_SLOT_MAX];
+   uint8_t urb_setup_attribs_count;
+
+   uint64_t inputs;
+   unsigned num_varying_inputs;
+
+   unsigned msaa_flags_param;
+   uint32_t flat_inputs;
+
+   uint8_t computed_depth_mode;
+   uint8_t max_polygons;
+   uint8_t dispatch_multi;
+
+   bool computed_stencil;
+   bool early_fragment_tests;
+   bool post_depth_coverage;
+   bool inner_coverage;
+   bool dispatch_8;
+   bool dispatch_16;
+   bool dispatch_32;
+   bool dual_src_blend;
+   bool uses_pos_offset;
+   bool uses_omask;
+   bool uses_kill;
+   bool uses_src_depth;
+   bool uses_src_w;
+   bool uses_sample_mask;
+   bool uses_vmask;
+   bool has_side_effects;
+   bool pulls_bary;
+
+   bool uses_nonperspective_interp_modes;
+
+   bool is_per_sample;
+};
+
+struct iris_push_const_block {
+   unsigned dwords;     /* Dword count, not reg aligned */
+   unsigned regs;
+   unsigned size;       /* Bytes, register aligned */
+};
+
+struct iris_cs_data {
+   struct {
+      struct iris_push_const_block cross_thread;
+      struct iris_push_const_block per_thread;
+   } push;
+
+   unsigned local_size[3];
+   unsigned prog_offset[3];
+   unsigned prog_mask;
+
+   uint8_t generate_local_id;
+   enum intel_compute_walk_order walk_order;
+
+   bool uses_barrier;
+   bool first_param_is_builtin_subgroup_id;
+};
+
+static inline uint32_t
+iris_cs_data_prog_offset(const struct iris_cs_data *prog_data,
+                         unsigned dispatch_width)
+{
+   assert(dispatch_width == 8 ||
+          dispatch_width == 16 ||
+          dispatch_width == 32);
+   const unsigned index = dispatch_width / 16;
+   assert(prog_data->prog_mask & (1 << index));
+   return prog_data->prog_offset[index];
+}
+
+struct iris_vue_data {
+   struct intel_vue_map            vue_map;
+   unsigned                        urb_read_length;
+   uint32_t                        cull_distance_mask;
+   unsigned                        urb_entry_size;
+   enum intel_shader_dispatch_mode dispatch_mode;
+   bool                            include_vue_handles;
+};
+
+struct iris_vs_data {
+   struct iris_vue_data base;
+
+   bool uses_vertexid;
+   bool uses_instanceid;
+   bool uses_firstvertex;
+   bool uses_baseinstance;
+   bool uses_drawid;
+};
+
+struct iris_tcs_data {
+   struct iris_vue_data base;
+
+   int  instances;
+   int  patch_count_threshold;
+   bool include_primitive_id;
+};
+
+struct iris_tes_data {
+   struct iris_vue_data base;
+
+   enum intel_tess_partitioning    partitioning;
+   enum intel_tess_output_topology output_topology;
+   enum intel_tess_domain          domain;
+   bool                            include_primitive_id;
+};
+
+struct iris_gs_data {
+   struct iris_vue_data base;
+
+   unsigned vertices_in;
+   unsigned output_vertex_size_hwords;
+   unsigned output_topology;
+   unsigned control_data_header_size_hwords;
+   unsigned control_data_format;
+   int      static_vertex_count;
+   int      invocations;
+   bool     include_primitive_id;
+};
+
 struct iris_depth_stencil_alpha_state;
 
 /**
@@ -533,10 +667,11 @@ struct iris_compiled_shader {
    void *map;
 
    /** The program data (owned by the program cache hash table) */
-   struct brw_stage_prog_data *prog_data;
+   struct brw_stage_prog_data *brw_prog_data;
+   struct elk_stage_prog_data *elk_prog_data;
 
    /** A list of system values to be uploaded as uniforms. */
-   enum brw_param_builtin *system_values;
+   uint32_t *system_values;
    unsigned num_system_values;
 
    /** Size (in bytes) of the kernel input data */
@@ -553,12 +688,81 @@ struct iris_compiled_shader {
 
    struct iris_binding_table bt;
 
+   gl_shader_stage stage;
+
+   /**
+    * Data derived from prog_data.
+    */
+   struct iris_ubo_range ubo_ranges[4];
+
+   unsigned nr_params;
+   unsigned total_scratch;
+   unsigned total_shared;
+   unsigned program_size;
+   unsigned const_data_offset;
+   unsigned dispatch_grf_start_reg;
+   bool     has_ubo_pull;
+   bool     use_alt_mode;
+
+   union {
+      struct iris_fs_data  fs;
+      struct iris_cs_data  cs;
+      struct iris_vs_data  vs;
+      struct iris_tcs_data tcs;
+      struct iris_tes_data tes;
+      struct iris_gs_data  gs;
+   };
+
    /**
     * Shader packets and other data derived from prog_data.  These must be
     * completely determined from prog_data.
     */
    uint8_t derived_data[0];
 };
+
+static inline uint64_t
+KSP(const struct iris_compiled_shader *shader)
+{
+   struct iris_resource *res = (void *) shader->assembly.res;
+   return iris_bo_offset_from_base_address(res->bo) + shader->assembly.offset;
+}
+
+#define DEFINE_IRIS_SHADER_DATA(TYPE, STAGE, FIELD)                      \
+static inline TYPE *                                                     \
+iris_ ## FIELD ## _data(struct iris_compiled_shader *shader)             \
+{                                                                        \
+   assert(shader->stage == STAGE);                                       \
+   return &shader->FIELD;                                                \
+}                                                                        \
+static inline const TYPE *                                               \
+iris_ ## FIELD ## _data_const(const struct iris_compiled_shader *shader) \
+{                                                                        \
+   assert(shader->stage == STAGE);                                       \
+   return &shader->FIELD;                                                \
+}
+
+DEFINE_IRIS_SHADER_DATA(struct iris_fs_data,  MESA_SHADER_FRAGMENT,  fs)
+DEFINE_IRIS_SHADER_DATA(struct iris_cs_data,  MESA_SHADER_COMPUTE,   cs)
+DEFINE_IRIS_SHADER_DATA(struct iris_vs_data,  MESA_SHADER_VERTEX,    vs)
+DEFINE_IRIS_SHADER_DATA(struct iris_tcs_data, MESA_SHADER_TESS_CTRL, tcs)
+DEFINE_IRIS_SHADER_DATA(struct iris_tes_data, MESA_SHADER_TESS_EVAL, tes)
+DEFINE_IRIS_SHADER_DATA(struct iris_gs_data,  MESA_SHADER_GEOMETRY,  gs)
+
+#undef DEFINE_IRIS_SHADER_DATA
+
+static inline struct iris_vue_data *
+iris_vue_data(struct iris_compiled_shader *shader)
+{
+   switch (shader->stage) {
+   case MESA_SHADER_VERTEX:    return &shader->vs.base;
+   case MESA_SHADER_TESS_CTRL: return &shader->tcs.base;
+   case MESA_SHADER_TESS_EVAL: return &shader->tes.base;
+   case MESA_SHADER_GEOMETRY:  return &shader->gs.base;
+   default:
+      unreachable("invalid shader stage for vue prog data");
+      return NULL;
+   }
+}
 
 /**
  * API context state that is replicated per shader stage.
@@ -707,6 +911,28 @@ struct iris_context {
        * drawid and is_indexed_draw. They will go in their own vertex element.
        */
       struct iris_state_ref derived_draw_params;
+
+      struct {
+         /**
+          * Generation fragment shader
+          */
+         struct iris_compiled_shader *shader;
+
+         /**
+          * Ring buffer where to generate indirect draw commands
+          */
+         struct iris_bo *ring_bo;
+
+         /**
+          * Allocated iris_gen_indirect_params
+          */
+         struct iris_state_ref params;
+
+         /**
+          * Vertices used to dispatch the generated fragment shaders
+          */
+         struct iris_state_ref vertices;
+      } generation;
    } draw;
 
    struct {
@@ -714,11 +940,12 @@ struct iris_context {
       struct iris_compiled_shader *prog[MESA_SHADER_STAGES];
       struct iris_compiled_shader *last_vue_shader;
       struct {
-         unsigned size[4];
-         unsigned entries[4];
-         unsigned start[4];
+         struct intel_urb_config cfg;
          bool constrained;
       } urb;
+
+      /** Last urb emitted by the driver. */
+      struct intel_urb_config last_urb;
 
       /** Uploader for shader assembly from the driver thread */
       struct u_upload_mgr *uploader_driver;
@@ -809,7 +1036,7 @@ struct iris_context {
        * Array of aux usages for drawing, altered to account for any
        * self-dependencies from resources bound for sampling and rendering.
        */
-      enum isl_aux_usage draw_aux_usage[BRW_MAX_DRAW_BUFFERS];
+      enum isl_aux_usage draw_aux_usage[IRIS_MAX_DRAW_BUFFERS];
 
       /** Aux usage of the fb's depth buffer (which may or may not exist). */
       enum isl_aux_usage hiz_usage;
@@ -831,6 +1058,9 @@ struct iris_context {
 
       /** State tracking for Wa_18020335297. */
       bool viewport_ptr_set;
+
+      /** State for Wa_14015055625, Wa_14019166699 */
+      bool uses_primitive_id;
 
       /** Do we have integer RT in current framebuffer state? */
       bool has_integer_rt;
@@ -922,6 +1152,60 @@ struct iris_context {
    } state;
 };
 
+/**
+ * Push constant data handed over to the indirect draw generation shader
+ */
+struct iris_gen_indirect_params {
+   /**
+    * Address of iris_context:draw:generation:ring_bo
+    */
+   uint64_t generated_cmds_addr;
+   /**
+    * Address of indirect data to draw with
+    */
+   uint64_t indirect_data_addr;
+   /**
+    * Address inside iris_context:draw:generation:ring_bo where to draw ids
+    */
+   uint64_t draw_id_addr;
+   /**
+    * Address of the indirect count (can be null, in which case max_draw_count
+    * is used)
+    */
+   uint64_t draw_count_addr;
+   /**
+    * Address to jump to in order to generate more draws
+    */
+   uint64_t gen_addr;
+   /**
+    * Address to jump to to end generated draws
+    */
+   uint64_t end_addr;
+   /**
+    * Stride between the indirect draw data
+    */
+   uint32_t indirect_data_stride;
+   /**
+    * Base index of the current generated draws in the ring buffer (increments
+    * by ring_count)
+    */
+   uint32_t draw_base;
+   /**
+    * Maximum number of generated draw if draw_count_addr is null
+    */
+   uint32_t max_draw_count;
+   /**
+    * bits 0-7:   ANV_GENERATED_FLAG_*
+    * bits 8-15:  vertex buffer mocs
+    * bits 16-23: stride between generated commands
+    */
+   uint32_t flags;
+   /**
+    * Number of items to generate in the ring buffer
+    */
+   uint32_t ring_count;
+};
+
 #define perf_debug(dbg, ...) do {                      \
    if (INTEL_DEBUG(DEBUG_PERF))                        \
       dbg_printf(__VA_ARGS__);                         \
@@ -947,7 +1231,8 @@ void iris_init_resource_functions(struct pipe_context *ctx);
 void iris_init_perfquery_functions(struct pipe_context *ctx);
 void iris_update_compiled_shaders(struct iris_context *ice);
 void iris_update_compiled_compute_shader(struct iris_context *ice);
-void iris_fill_cs_push_const_buffer(struct brw_cs_prog_data *cs_prog_data,
+void iris_fill_cs_push_const_buffer(struct iris_screen *screen,
+                                    struct iris_compiled_shader *shader,
                                     unsigned threads,
                                     uint32_t *dst);
 
@@ -955,7 +1240,7 @@ void iris_fill_cs_push_const_buffer(struct brw_cs_prog_data *cs_prog_data,
 /* iris_blit.c */
 #define IRIS_BLORP_RELOC_FLAGS_EXEC_OBJECT_WRITE      (1 << 2)
 
-void iris_blorp_surf_for_resource(struct isl_device *isl_dev,
+void iris_blorp_surf_for_resource(struct iris_batch *batch,
                                   struct blorp_surf *surf,
                                   struct pipe_resource *p_res,
                                   enum isl_aux_usage aux_usage,
@@ -980,6 +1265,21 @@ iris_blorp_flags_for_batch(struct iris_batch *batch)
       return BLORP_BATCH_USE_BLITTER;
 
    return 0;
+}
+
+static inline isl_surf_usage_flags_t
+iris_blorp_batch_usage(struct iris_batch *batch, bool is_dest)
+{
+   switch (batch->name) {
+   case IRIS_BATCH_RENDER:
+      return is_dest ? ISL_SURF_USAGE_RENDER_TARGET_BIT : ISL_SURF_USAGE_TEXTURE_BIT;
+   case IRIS_BATCH_COMPUTE:
+      return is_dest ? ISL_SURF_USAGE_STORAGE_BIT : ISL_SURF_USAGE_TEXTURE_BIT;
+   case IRIS_BATCH_BLITTER:
+      return is_dest ? ISL_SURF_USAGE_BLITTER_DST_BIT : ISL_SURF_USAGE_BLITTER_SRC_BIT;
+   default:
+      unreachable("Unhandled batch type");
+   }
 }
 
 /* iris_draw.c */
@@ -1013,6 +1313,7 @@ void iris_flush_all_caches(struct iris_batch *batch);
 void iris_init_flush_functions(struct pipe_context *ctx);
 
 /* iris_program.c */
+void iris_compiler_init(struct iris_screen *screen);
 void iris_upload_ubo_ssbo_surf_state(struct iris_context *ice,
                                      struct pipe_shader_buffer *buf,
                                      struct iris_state_ref *surf_state,
@@ -1030,6 +1331,25 @@ uint32_t iris_group_index_to_bti(const struct iris_binding_table *bt,
 uint32_t iris_bti_to_group_index(const struct iris_binding_table *bt,
                                  enum iris_surface_group group,
                                  uint32_t bti);
+void iris_apply_brw_prog_data(struct iris_compiled_shader *shader,
+                              struct brw_stage_prog_data *prog_data);
+void iris_apply_elk_prog_data(struct iris_compiled_shader *shader,
+                              struct elk_stage_prog_data *prog_data);
+struct intel_cs_dispatch_info
+iris_get_cs_dispatch_info(const struct intel_device_info *devinfo,
+                          const struct iris_compiled_shader *shader,
+                          const uint32_t block[3]);
+unsigned
+iris_cs_push_const_total_size(const struct iris_compiled_shader *shader,
+                              unsigned threads);
+uint32_t
+iris_fs_barycentric_modes(const struct iris_compiled_shader *shader,
+                          enum intel_msaa_flags pushed_msaa_flags);
+bool iris_use_tcs_multi_patch(struct iris_screen *screen);
+bool iris_indirect_ubos_use_sampler(struct iris_screen *screen);
+const void *iris_get_compiler_options(struct pipe_screen *pscreen,
+                                      enum pipe_shader_ir ir,
+                                      enum pipe_shader_type pstage);
 
 /* iris_disk_cache.c */
 
@@ -1057,14 +1377,14 @@ struct iris_compiled_shader *iris_find_cached_shader(struct iris_context *ice,
 
 struct iris_compiled_shader *iris_create_shader_variant(const struct iris_screen *,
                                                         void *mem_ctx,
+                                                        gl_shader_stage stage,
                                                         enum iris_program_cache_id cache_id,
                                                         uint32_t key_size,
                                                         const void *key);
 
 void iris_finalize_program(struct iris_compiled_shader *shader,
-                           struct brw_stage_prog_data *prog_data,
                            uint32_t *streamout,
-                           enum brw_param_builtin *system_values,
+                           uint32_t *system_values,
                            unsigned num_system_values,
                            unsigned kernel_input_size,
                            unsigned num_cbufs,
@@ -1121,10 +1441,13 @@ bool iris_blorp_lookup_shader(struct blorp_batch *blorp_batch,
 bool iris_blorp_upload_shader(struct blorp_batch *blorp_batch, uint32_t stage,
                               const void *key, uint32_t key_size,
                               const void *kernel, uint32_t kernel_size,
-                              const struct brw_stage_prog_data *prog_data,
+                              const void *prog_data,
                               uint32_t prog_data_size,
                               uint32_t *kernel_out,
                               void *prog_data_out);
+
+void iris_ensure_indirect_generation_shader(struct iris_batch *batch);
+
 
 /* iris_resolve.c */
 
@@ -1158,8 +1481,8 @@ iris_execute_indirect_draw_supported(const struct iris_context *ice,
                                      const struct pipe_draw_info *draw)
 {
    const struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
-   const struct brw_vs_prog_data *vs_prog_data = (void *)
-      ice->shaders.prog[MESA_SHADER_VERTEX]->prog_data;
+   const struct iris_vs_data *vs_data =
+      iris_vs_data(ice->shaders.prog[MESA_SHADER_VERTEX]);
    const bool is_multiview = draw->view_mask != 0;
    const size_t struct_size = draw->index_size ?
       sizeof(uint32_t) * 5 :
@@ -1172,29 +1495,14 @@ iris_execute_indirect_draw_supported(const struct iris_context *ice,
            (indirect &&
            !indirect->count_from_stream_output) &&
            !is_multiview &&
-           !(vs_prog_data->uses_firstvertex ||
-             vs_prog_data->uses_baseinstance ||
-             vs_prog_data->uses_drawid));
+           !(vs_data->uses_firstvertex ||
+             vs_data->uses_baseinstance ||
+             vs_data->uses_drawid));
 }
 
 #ifdef genX
 #  include "iris_genx_protos.h"
 #else
-#  define genX(x) gfx4_##x
-#  include "iris_genx_protos.h"
-#  undef genX
-#  define genX(x) gfx5_##x
-#  include "iris_genx_protos.h"
-#  undef genX
-#  define genX(x) gfx6_##x
-#  include "iris_genx_protos.h"
-#  undef genX
-#  define genX(x) gfx7_##x
-#  include "iris_genx_protos.h"
-#  undef genX
-#  define genX(x) gfx75_##x
-#  include "iris_genx_protos.h"
-#  undef genX
 #  define genX(x) gfx8_##x
 #  include "iris_genx_protos.h"
 #  undef genX

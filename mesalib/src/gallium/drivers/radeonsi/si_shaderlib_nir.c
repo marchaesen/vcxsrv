@@ -606,6 +606,48 @@ void *si_clear_render_target_shader(struct si_context *sctx, enum pipe_texture_t
    return create_shader_state(sctx, b.shader);
 }
 
+/* Store the clear color at the beginning of every 256B block. This is required when we clear DCC
+ * to GFX11_DCC_CLEAR_SINGLE.
+ */
+void *si_clear_image_dcc_single_shader(struct si_context *sctx, bool is_msaa, unsigned wg_dim)
+{
+   const nir_shader_compiler_options *nir_options =
+      sctx->b.screen->get_compiler_options(sctx->b.screen, PIPE_SHADER_IR_NIR, PIPE_SHADER_COMPUTE);
+
+   nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE, nir_options,
+                                                  "write_clear_color_dcc_single");
+   b.shader->info.num_images = 1;
+   if (is_msaa)
+      BITSET_SET(b.shader->info.msaa_images, 0);
+   b.shader->info.workgroup_size[0] = 8;
+   b.shader->info.workgroup_size[1] = 8;
+   b.shader->info.cs.user_data_components_amd = 5;
+
+   const struct glsl_type *img_type =
+      glsl_image_type(is_msaa ? GLSL_SAMPLER_DIM_MS : GLSL_SAMPLER_DIM_2D, true, GLSL_TYPE_FLOAT);
+   nir_variable *output_img = nir_variable_create(b.shader, nir_var_image, img_type, "out_img");
+   output_img->data.binding = 0;
+
+   nir_def *global_id = nir_pad_vector_imm_int(&b, get_global_ids(&b, wg_dim), 0, 3);
+   nir_def *clear_color = nir_trim_vector(&b, nir_load_user_data_amd(&b), 4);
+
+   nir_def *dcc_block_width, *dcc_block_height;
+   unpack_2x16(&b, nir_channel(&b, nir_load_user_data_amd(&b), 4), &dcc_block_width,
+               &dcc_block_height);
+
+   /* Compute the coordinates. */
+   nir_def *coord = nir_trim_vector(&b, global_id, 2);
+   coord = nir_imul(&b, coord, nir_vec2(&b, dcc_block_width, dcc_block_height));
+   coord = nir_vec4(&b, nir_channel(&b, coord, 0), nir_channel(&b, coord, 1),
+                    nir_channel(&b, global_id, 2), nir_undef(&b, 1, 32));
+
+   /* Store the clear color. */
+   nir_image_deref_store(&b, &nir_build_deref_var(&b, output_img)->def, coord, nir_imm_int(&b, 0),
+                         clear_color, nir_imm_int(&b, 0));
+
+   return create_shader_state(sctx, b.shader);
+}
+
 void *si_clear_12bytes_buffer_shader(struct si_context *sctx)
 {
    const nir_shader_compiler_options *options =
@@ -697,13 +739,15 @@ void *si_create_dma_compute_shader(struct si_context *sctx, unsigned num_dwords_
     * the 2nd store writes into 1 * wavesize + tid,
     * the 3rd store writes into 2 * wavesize + tid, etc.
     */
-   nir_def *store_address = get_global_ids(&b, 1);
+   nir_def *store_address =
+      nir_iadd(&b, nir_imul_imm(&b, nir_channel(&b, nir_load_workgroup_id(&b), 0),
+                                default_wave_size * num_mem_ops),
+               nir_channel(&b, nir_load_local_invocation_id(&b), 0));
 
    /* Convert from a "store size unit" into bytes. */
    store_address = nir_imul_imm(&b, store_address, 4 * inst_dwords[0]);
 
-   nir_def *load_address = store_address, *value, *values[num_mem_ops];
-   value = nir_undef(&b, 1, 32);
+   nir_def *load_address = store_address, *value = NULL, *values[num_mem_ops];
 
    if (is_copy) {
       b.shader->info.num_ssbos++;
@@ -723,7 +767,7 @@ void *si_create_dma_compute_shader(struct si_context *sctx, unsigned num_dwords_
             load_address = nir_iadd(&b, load_address,
                                     nir_imm_int(&b, 4 * inst_dwords[i] * default_wave_size));
          }
-         values[i] = nir_load_ssbo(&b, 4, 32, nir_imm_int(&b, 1),load_address,
+         values[i] = nir_load_ssbo(&b, inst_dwords[i], 32, nir_imm_int(&b, 1), load_address,
                                    .access = load_qualifier);
       }
 

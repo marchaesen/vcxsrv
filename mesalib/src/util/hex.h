@@ -23,8 +23,6 @@
 #ifndef UTIL_HEX_H
 #define UTIL_HEX_H
 
-#include <stdlib.h>
-
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -47,18 +45,24 @@ static inline char *mesa_bytes_to_hex(char *buf, const unsigned char *binary,
   return buf;
 }
 
+static inline int _mesa_hex_to_int(unsigned char c)
+{
+  return c - (c >= 'a' ? 'a' - 10 : '0');
+}
+
 /*
  * Read `len` pairs of hexadecimal digits from `hex` and write the values to
  * `binary` as `len` bytes.
+ * Hexadecimals must be lower case.
  */
 static inline void mesa_hex_to_bytes(unsigned char *buf, const char *hex,
-                                     unsigned len) {
+                                     unsigned len)
+{
   for (unsigned i = 0; i < len; i++) {
-    char tmp[3];
-    tmp[0] = hex[i * 2];
-    tmp[1] = hex[(i * 2) + 1];
-    tmp[2] = '\0';
-    buf[i] = strtol(tmp, NULL, 16);
+    int hi = _mesa_hex_to_int(hex[i * 2]);
+    int lo = _mesa_hex_to_int(hex[i * 2 + 1]);
+
+    buf[i] = (hi << 4) | lo;
   }
 }
 

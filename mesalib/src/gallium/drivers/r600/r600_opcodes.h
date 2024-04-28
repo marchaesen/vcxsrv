@@ -1,4 +1,4 @@
-
+// SPDX-License-Identifier: MIT
 #ifndef R600_OPCODES_H
 #define R600_OPCODES_H
 

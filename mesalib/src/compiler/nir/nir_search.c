@@ -370,6 +370,15 @@ match_expression(const nir_algebraic_table *table, const nir_search_expression *
    if (expr->cond_index != -1 && !table->expression_cond[expr->cond_index](instr))
       return false;
 
+   if (expr->nsz && nir_is_float_control_signed_zero_preserve(instr->fp_fast_math, instr->def.bit_size))
+      return false;
+
+   if (expr->nnan && nir_is_float_control_nan_preserve(instr->fp_fast_math, instr->def.bit_size))
+      return false;
+
+   if (expr->ninf && nir_is_float_control_inf_preserve(instr->fp_fast_math, instr->def.bit_size))
+      return false;
+
    if (!nir_op_matches_search_op(instr->op, expr->opcode))
       return false;
 
@@ -460,6 +469,7 @@ construct_value(nir_builder *build,
        * replacement should be exact.
        */
       alu->exact = state->has_exact_alu || expr->exact;
+      alu->fp_fast_math = nir_instr_as_alu(instr)->fp_fast_math;
 
       for (unsigned i = 0; i < nir_op_infos[op].num_inputs; i++) {
          /* If the source is an explicitly sized source, then we need to reset
@@ -697,9 +707,9 @@ nir_replace_instr(nir_builder *build, nir_alu_instr *instr,
 
 #if 0
    fprintf(stderr, "matched: ");
-   dump_value(&search->value);
+   dump_value(table, &search->value);
    fprintf(stderr, " -> ");
-   dump_value(replace);
+   dump_value(table, replace);
    fprintf(stderr, " ssa_%d\n", instr->def.index);
 #endif
 
@@ -845,7 +855,7 @@ nir_algebraic_instr(nir_builder *build, nir_instr *instr,
    const unsigned execution_mode =
       build->shader->info.float_controls_execution_mode;
    const bool ignore_inexact =
-      nir_is_float_control_signed_zero_inf_nan_preserve(execution_mode, bit_size) ||
+      nir_is_float_control_signed_zero_inf_nan_preserve(alu->fp_fast_math, bit_size) ||
       nir_is_denorm_flush_to_zero(execution_mode, bit_size);
 
    int xform_idx = *util_dynarray_element(states, uint16_t,

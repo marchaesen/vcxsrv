@@ -26,5 +26,5 @@ libetnavivdrm = static_library(
     inc_etnaviv,
   ],
   link_with: libetnaviv_drm,
-  dependencies : [dep_libdrm, idep_nir_headers, idep_mesautil],
+  dependencies : [dep_libdrm, idep_nir_headers, idep_mesautil, idep_etna_common],
 )

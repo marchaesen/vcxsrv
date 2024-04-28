@@ -9,6 +9,7 @@
 #include "util/timespec.h"
 #include "agx_bo.h"
 #include "agx_compile.h"
+#include "agx_scratch.h"
 #include "decode.h"
 #include "glsl_types.h"
 #include "libagx_shaders.h"
@@ -348,17 +349,23 @@ agx_open_device(void *memctx, struct agx_device *dev)
                     sizeof(libagx_shaders_nir));
    dev->libagx = nir_deserialize(memctx, &agx_nir_options, &blob);
 
+   dev->helper = agx_build_helper(dev);
+
    return true;
 }
 
 void
 agx_close_device(struct agx_device *dev)
 {
+   if (dev->helper)
+      agx_bo_unreference(dev->helper);
+
    agx_bo_cache_evict_all(dev);
    util_sparse_array_finish(&dev->bo_map);
 
    util_vma_heap_finish(&dev->main_heap);
    util_vma_heap_finish(&dev->usc_heap);
+   glsl_type_singleton_decref();
 
    close(dev->fd);
 }

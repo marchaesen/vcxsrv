@@ -1,29 +1,11 @@
 /*
  * Copyright 2010 Red Hat Inc.
  *           2010 Jerome Glisse
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
- *
  * Authors: Dave Airlie <airlied@redhat.com>
  *          Jerome Glisse <jglisse@redhat.com>
+ * SPDX-License-Identifier: MIT
  */
+
 #include "r600_formats.h"
 #include "r600_shader.h"
 #include "r600d.h"
@@ -578,8 +560,6 @@ static void r600_bind_vertex_elements(struct pipe_context *ctx, void *state)
 
 static void r600_set_vertex_buffers(struct pipe_context *ctx,
 				    unsigned count,
-				    unsigned unbind_num_trailing_slots,
-				    bool take_ownership,
 				    const struct pipe_vertex_buffer *input)
 {
 	struct r600_context *rctx = (struct r600_context *)ctx;
@@ -591,47 +571,32 @@ static void r600_set_vertex_buffers(struct pipe_context *ctx,
 	uint32_t new_buffer_mask = 0;
 
 	/* Set vertex buffers. */
-	if (input) {
-		for (i = 0; i < count; i++) {
-			if (likely((input[i].buffer.resource != vb[i].buffer.resource) ||
-				   (vb[i].buffer_offset != input[i].buffer_offset) ||
-				   (vb[i].is_user_buffer != input[i].is_user_buffer))) {
-				if (input[i].buffer.resource) {
-					vb[i].buffer_offset = input[i].buffer_offset;
-					if (take_ownership) {
-						pipe_resource_reference(&vb[i].buffer.resource, NULL);
-						vb[i].buffer.resource = input[i].buffer.resource;
-					} else {
-						pipe_resource_reference(&vb[i].buffer.resource,
-									input[i].buffer.resource);
-					}
-					new_buffer_mask |= 1 << i;
-					r600_context_add_resource_size(ctx, input[i].buffer.resource);
-				} else {
-					pipe_resource_reference(&vb[i].buffer.resource, NULL);
-					disable_mask |= 1 << i;
-				}
-			} else if (input[i].buffer.resource) {
-				if (take_ownership) {
-					pipe_resource_reference(&vb[i].buffer.resource, NULL);
-					vb[i].buffer.resource = input[i].buffer.resource;
-				} else {
-					pipe_resource_reference(&vb[i].buffer.resource,
-								input[i].buffer.resource);
-				}
+	for (i = 0; i < count; i++) {
+		if (likely((input[i].buffer.resource != vb[i].buffer.resource) ||
+			   (vb[i].buffer_offset != input[i].buffer_offset) ||
+			   (vb[i].is_user_buffer != input[i].is_user_buffer))) {
+			if (input[i].buffer.resource) {
+				vb[i].buffer_offset = input[i].buffer_offset;
+				pipe_resource_reference(&vb[i].buffer.resource, NULL);
+				vb[i].buffer.resource = input[i].buffer.resource;
+				new_buffer_mask |= 1 << i;
+				r600_context_add_resource_size(ctx, input[i].buffer.resource);
+			} else {
+				pipe_resource_reference(&vb[i].buffer.resource, NULL);
+				disable_mask |= 1 << i;
 			}
-		}
-	} else {
-		for (i = 0; i < count; i++) {
+		} else if (input[i].buffer.resource) {
 			pipe_resource_reference(&vb[i].buffer.resource, NULL);
+			vb[i].buffer.resource = input[i].buffer.resource;
 		}
-		disable_mask = ((1ull << count) - 1);
 	}
 
-	for (i = 0; i < unbind_num_trailing_slots; i++) {
-		pipe_resource_reference(&vb[count + i].buffer.resource, NULL);
-	}
-	disable_mask |= ((1ull << unbind_num_trailing_slots) - 1) << count;
+	unsigned last_count = util_last_bit(rctx->vertex_buffer_state.enabled_mask);
+	for (; i < last_count; i++)
+		pipe_resource_reference(&vb[i].buffer.resource, NULL);
+
+	if (last_count > count)
+		disable_mask |= BITFIELD_RANGE(count, last_count - count);
 
 	rctx->vertex_buffer_state.enabled_mask &= ~disable_mask;
 	rctx->vertex_buffer_state.dirty_mask &= rctx->vertex_buffer_state.enabled_mask;

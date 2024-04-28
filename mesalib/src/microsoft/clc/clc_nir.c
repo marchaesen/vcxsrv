@@ -25,6 +25,7 @@
 #include "nir.h"
 #include "glsl_types.h"
 #include "nir_builder.h"
+#include "nir_deref.h"
 
 #include "clc_nir.h"
 #include "clc_compiler.h"
@@ -260,4 +261,84 @@ clc_lower_printf_base(nir_shader *nir, unsigned uav_id)
    }
 
    return printf_var != NULL;
+}
+
+/* Find patterns of:
+ * - deref_var for one of the kernel inputs
+ * - load_deref to get a pointer to global/constant memory
+ * - cast the pointer into a deref
+ * - use a basic deref chain that terminates in a load/store/atomic
+ * 
+ * When this pattern is found, replace the load_deref with a constant value,
+ * based on which kernel argument is being loaded from. This can only be done
+ * for chains that terminate in a pointer access, since the presence of null
+ * pointers should be detected by actually performing the load and inspecting
+ * the resulting pointer value.
+ */
+static bool
+lower_deref_base_to_constant(nir_builder *b, nir_intrinsic_instr *intr, void *context)
+{
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_deref:
+   case nir_intrinsic_store_deref:
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_deref_atomic_swap:
+      break;
+   default:
+      return false;
+   }
+
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   if (!nir_deref_mode_must_be(deref, nir_var_mem_global | nir_var_mem_constant))
+      return false;
+
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+   bool ret = false;
+
+   if (path.path[0]->deref_type != nir_deref_type_cast)
+      goto done;
+   if (!nir_deref_mode_must_be(path.path[0], nir_var_mem_global | nir_var_mem_constant))
+      goto done;
+
+   nir_instr *cast_src = path.path[0]->parent.ssa->parent_instr;
+   if (cast_src->type != nir_instr_type_intrinsic)
+      goto done;
+
+   nir_intrinsic_instr *cast_src_intr = nir_instr_as_intrinsic(cast_src);
+   if (cast_src_intr->intrinsic != nir_intrinsic_load_deref)
+      goto done;
+
+   nir_deref_instr *load_deref_src = nir_src_as_deref(cast_src_intr->src[0]);
+   if (load_deref_src->deref_type != nir_deref_type_var ||
+       load_deref_src->modes != nir_var_uniform)
+      goto done;
+
+   nir_variable *var = load_deref_src->var;
+
+   ret = true;
+   b->cursor = nir_before_instr(&path.path[0]->instr);
+   nir_def *original_offset = nir_unpack_64_2x32_split_x(b, &cast_src_intr->def);
+   nir_def *constant_ptr = nir_pack_64_2x32_split(b, original_offset, nir_imm_int(b, var->data.binding));
+   nir_deref_instr *new_path = nir_build_deref_cast_with_alignment(b, constant_ptr, path.path[0]->modes, path.path[0]->type, path.path[0]->cast.ptr_stride,
+                                                                   path.path[0]->cast.align_mul, path.path[0]->cast.align_offset);
+
+   for (unsigned i = 1; path.path[i]; ++i) {
+      b->cursor = nir_after_instr(&path.path[i]->instr);
+      new_path = nir_build_deref_follower(b, new_path, path.path[i]);
+   }
+   nir_src_rewrite(&intr->src[0], &new_path->def);
+
+done:
+   nir_deref_path_finish(&path);
+   return ret;
+}
+
+bool
+clc_nir_lower_global_pointers_to_constants(nir_shader *nir)
+{
+   return nir_shader_intrinsics_pass(nir, lower_deref_base_to_constant,
+                                     nir_metadata_block_index |
+                                     nir_metadata_dominance |
+                                     nir_metadata_loop_analysis, NULL);
 }

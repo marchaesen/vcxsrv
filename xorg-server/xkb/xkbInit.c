@@ -39,12 +39,14 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
+
+#include "os/cmdline.h"
+
 #include "misc.h"
 #include "inputstr.h"
 #include "opaque.h"
 #include "property.h"
 #include "scrnintstr.h"
-#define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 #include "xkbgeom.h"
 #include <X11/extensions/XKMformat.h>
@@ -663,7 +665,7 @@ InitKeyboardDeviceStructInternal(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
     return FALSE;
 }
 
-_X_EXPORT Bool
+Bool
 InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
                          BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)
 {
@@ -671,7 +673,7 @@ InitKeyboardDeviceStruct(DeviceIntPtr dev, XkbRMLVOSet * rmlvo,
                                             NULL, 0, bell_func, ctrl_func);
 }
 
-_X_EXPORT Bool
+Bool
 InitKeyboardDeviceStructFromString(DeviceIntPtr dev,
                                    const char *keymap, int keymap_length,
                                    BellProcPtr bell_func, KbdCtrlProcPtr ctrl_func)

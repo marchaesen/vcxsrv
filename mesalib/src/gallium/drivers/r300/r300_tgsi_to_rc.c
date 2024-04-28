@@ -1,24 +1,7 @@
 /*
  * Copyright 2009 Nicolai Hähnle <nhaehnle@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE COPYRIGHT HOLDER(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include <stdio.h>
 #include "r300_tgsi_to_rc.h"
@@ -62,9 +45,7 @@ static unsigned translate_opcode(unsigned opcode)
         case TGSI_OPCODE_DDY: return RC_OPCODE_DDY;
         case TGSI_OPCODE_KILL: return RC_OPCODE_KILP;
         case TGSI_OPCODE_SEQ: return RC_OPCODE_SEQ;
-        case TGSI_OPCODE_SGT: return RC_OPCODE_SGT;
         case TGSI_OPCODE_SIN: return RC_OPCODE_SIN;
-        case TGSI_OPCODE_SLE: return RC_OPCODE_SLE;
         case TGSI_OPCODE_SNE: return RC_OPCODE_SNE;
         case TGSI_OPCODE_TEX: return RC_OPCODE_TEX;
         case TGSI_OPCODE_TXD: return RC_OPCODE_TXD;

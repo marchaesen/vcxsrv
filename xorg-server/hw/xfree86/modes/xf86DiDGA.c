@@ -28,6 +28,7 @@
 #include "xf86DDC.h"
 #include "xf86_OSproc.h"
 #include "dgaproc.h"
+#include "dgaproc_priv.h"
 #include "xf86Crtc.h"
 #include "xf86Modes.h"
 #include "gcstruct.h"

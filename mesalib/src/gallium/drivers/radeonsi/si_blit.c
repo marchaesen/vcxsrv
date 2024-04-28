@@ -947,10 +947,6 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
                              const struct pipe_box *src_box)
 {
    struct si_context *sctx = (struct si_context *)ctx;
-   struct si_texture *ssrc = (struct si_texture *)src;
-   struct pipe_surface *dst_view, dst_templ;
-   struct pipe_sampler_view src_templ, *src_view;
-   struct pipe_box dstbox;
 
    /* Handle buffers first. */
    if (dst->target == PIPE_BUFFER && src->target == PIPE_BUFFER) {
@@ -962,11 +958,31 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
                              src_box, SI_OP_SYNC_BEFORE_AFTER))
       return;
 
+   si_gfx_copy_image(sctx, dst, dst_level, dstx, dsty, dstz, src, src_level, src_box);
+}
+
+void si_gfx_copy_image(struct si_context *sctx, struct pipe_resource *dst,
+                       unsigned dst_level, unsigned dstx, unsigned dsty, unsigned dstz,
+                       struct pipe_resource *src, unsigned src_level,
+                       const struct pipe_box *src_box)
+{
+   struct si_texture *ssrc = (struct si_texture *)src;
+   struct pipe_surface *dst_view, dst_templ;
+   struct pipe_sampler_view src_templ, *src_view;
+   struct pipe_box dstbox;
+
+   /* If the blitter isn't available fail here instead of crashing. */
+   if (!sctx->blitter) {
+      fprintf(stderr, "si_resource_copy_region failed src_format: %s dst_format: %s\n",
+              util_format_name(src->format), util_format_name(dst->format));
+      return;
+   }
+
    assert(u_max_sample(dst) == u_max_sample(src));
 
    /* The driver doesn't decompress resources automatically while
     * u_blitter is rendering. */
-   si_decompress_subresource(ctx, src, PIPE_MASK_RGBAZS, src_level, src_box->z,
+   si_decompress_subresource(&sctx->b, src, PIPE_MASK_RGBAZS, src_level, src_box->z,
                              src_box->z + src_box->depth - 1, false);
 
    util_blitter_default_dst_texture(&dst_templ, dst, dst_level, dstz);
@@ -975,27 +991,27 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
    assert(!util_format_is_compressed(src->format) && !util_format_is_compressed(dst->format));
    assert(!util_format_is_subsampled_422(src->format));
 
-   if (!util_blitter_is_copy_supported(sctx->blitter, dst, src)) {
+   /* We can't blit as floats because it wouldn't preserve NaNs.
+    * Z32_FLOAT needs to keep using floats.
+    */
+   if ((util_format_is_float(dst_templ.format) &&
+        !util_format_is_depth_or_stencil(dst_templ.format)) ||
+       !util_blitter_is_copy_supported(sctx->blitter, dst, src)) {
       switch (ssrc->surface.bpe) {
       case 1:
-         dst_templ.format = PIPE_FORMAT_R8_UNORM;
-         src_templ.format = PIPE_FORMAT_R8_UNORM;
+         dst_templ.format = src_templ.format = PIPE_FORMAT_R8_UINT;
          break;
       case 2:
-         dst_templ.format = PIPE_FORMAT_R8G8_UNORM;
-         src_templ.format = PIPE_FORMAT_R8G8_UNORM;
+         dst_templ.format = src_templ.format = PIPE_FORMAT_R16_UINT;
          break;
       case 4:
-         dst_templ.format = PIPE_FORMAT_R8G8B8A8_UNORM;
-         src_templ.format = PIPE_FORMAT_R8G8B8A8_UNORM;
+         dst_templ.format = src_templ.format = PIPE_FORMAT_R32_UINT;
          break;
       case 8:
-         dst_templ.format = PIPE_FORMAT_R16G16B16A16_UINT;
-         src_templ.format = PIPE_FORMAT_R16G16B16A16_UINT;
+         dst_templ.format = src_templ.format = PIPE_FORMAT_R32G32_UINT;
          break;
       case 16:
-         dst_templ.format = PIPE_FORMAT_R32G32B32A32_UINT;
-         src_templ.format = PIPE_FORMAT_R32G32B32A32_UINT;
+         dst_templ.format = src_templ.format = PIPE_FORMAT_R32G32B32A32_UINT;
          break;
       default:
          fprintf(stderr, "Unhandled format %s with blocksize %u\n",
@@ -1007,18 +1023,17 @@ void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst
    /* SNORM blitting has precision issues on some chips. Use the SINT
     * equivalent instead, which doesn't force DCC decompression.
     */
-   if (util_format_is_snorm(dst_templ.format)) {
+   if (util_format_is_snorm(dst_templ.format))
       dst_templ.format = src_templ.format = util_format_snorm_to_sint(dst_templ.format);
-   }
 
    vi_disable_dcc_if_incompatible_format(sctx, dst, dst_level, dst_templ.format);
    vi_disable_dcc_if_incompatible_format(sctx, src, src_level, src_templ.format);
 
    /* Initialize the surface. */
-   dst_view = ctx->create_surface(ctx, dst, &dst_templ);
+   dst_view = sctx->b.create_surface(&sctx->b, dst, &dst_templ);
 
    /* Initialize the sampler view. */
-   src_view = ctx->create_sampler_view(ctx, src, &src_templ);
+   src_view = sctx->b.create_sampler_view(&sctx->b, src, &src_templ);
 
    u_box_3d(dstx, dsty, dstz, abs(src_box->width), abs(src_box->height), abs(src_box->depth),
             &dstbox);
@@ -1149,7 +1164,7 @@ bool si_msaa_resolve_blit_via_CB(struct pipe_context *ctx, const struct pipe_bli
          if (!vi_dcc_get_clear_info(sctx, dst, info->dst.level, DCC_UNCOMPRESSED, &clear_info))
             goto resolve_to_temp;
 
-         si_execute_clears(sctx, &clear_info, 1, SI_CLEAR_TYPE_DCC);
+         si_execute_clears(sctx, &clear_info, 1, SI_CLEAR_TYPE_DCC, info->render_condition_enable);
          dst->dirty_level_mask &= ~(1 << info->dst.level);
       }
 
@@ -1252,16 +1267,6 @@ static void si_blit(struct pipe_context *ctx, const struct pipe_blit_info *info)
 
    if (unlikely(sctx->sqtt_enabled))
       sctx->sqtt_next_event = EventCmdCopyImage;
-
-   /* Using compute for copying to a linear texture in GTT is much faster than
-    * going through RBs (render backends). This improves DRI PRIME performance.
-    */
-   if (util_can_blit_via_copy_region(info, false, sctx->render_cond != NULL)) {
-      si_resource_copy_region(ctx, info->dst.resource, info->dst.level,
-                              info->dst.box.x, info->dst.box.y, info->dst.box.z,
-                              info->src.resource, info->src.level, &info->src.box);
-      return;
-   }
 
    if (si_compute_blit(sctx, info, false))
       return;

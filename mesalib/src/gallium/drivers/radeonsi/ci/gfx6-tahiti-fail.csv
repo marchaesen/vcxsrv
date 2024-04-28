@@ -741,7 +741,6 @@ KHR-GL46.transform_feedback_overflow_query_ARB.basic-single-stream-interleaved-a
 KHR-GL46.transform_feedback_overflow_query_ARB.basic-single-stream-separate-attribs,Fail
 KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-multiple-buffers-per-stream,Fail
 KHR-GL46.transform_feedback_overflow_query_ARB.multiple-streams-one-buffer-per-stream,Fail
-KHR-Single-GL46.enhanced_layouts.xfb_capture_inactive_output_component,Fail
 
 dEQP-GLES2.functional.texture.format.la88_2d_npot,Fail
 dEQP-GLES2.functional.texture.format.la88_2d_pot,Fail

@@ -24,6 +24,7 @@
 
 #include <stdarg.h>
 #include <stddef.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -35,6 +36,8 @@ typedef struct u_printf_info {
    unsigned string_size;
    char *strings;
 } u_printf_info;
+
+const char *util_printf_prev_tok(const char *str);
 
 /* find next valid printf specifier in a C string wrapper */
 size_t util_printf_next_spec_pos(const char *str, size_t pos);

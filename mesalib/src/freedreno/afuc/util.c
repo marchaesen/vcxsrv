@@ -269,32 +269,45 @@ afuc_printc(enum afuc_color c, const char *fmt, ...)
    printf("%s", ctx->colors->reset);
 }
 
-int afuc_util_init(int gpuver, bool colors)
+int afuc_util_init(enum afuc_fwid fw_id, int *gpuver_out, bool colors)
 {
    char *name, *control_reg_name, *variant;
    char *pipe_reg_name = NULL;
 
-   switch (gpuver) {
-   case 7:
+   switch (fw_id) {
+   case AFUC_A750:
+      name = "A6XX";
+      variant = "A7XX";
+      control_reg_name = "A7XX_GEN3_CONTROL_REG";
+      pipe_reg_name = "A7XX_PIPE_REG";
+      *gpuver_out = 7;
+      break;
+   case AFUC_A730:
+   case AFUC_A740:
       name = "A6XX";
       variant = "A7XX";
       control_reg_name = "A7XX_CONTROL_REG";
       pipe_reg_name = "A7XX_PIPE_REG";
+      *gpuver_out = 7;
       break;
-   case 6:
+   case AFUC_A630:
+   case AFUC_A650:
+   case AFUC_A660:
       name = "A6XX";
       variant = "A6XX";
       control_reg_name = "A6XX_CONTROL_REG";
       pipe_reg_name = "A6XX_PIPE_REG";
+      *gpuver_out = 6;
       break;
-   case 5:
+   case AFUC_A530:
       name = "A5XX";
       variant = "A5XX";
       control_reg_name = "A5XX_CONTROL_REG";
       pipe_reg_name = "A5XX_PIPE_REG";
+      *gpuver_out = 5;
       break;
    default:
-      fprintf(stderr, "unknown GPU version!\n");
+      fprintf(stderr, "unknown GPU version %03x!\n", fw_id);
       return -1;
    }
 

@@ -2,7 +2,7 @@
 # shellcheck disable=SC1003 # works for us now...
 # shellcheck disable=SC2086 # we want word splitting
 
-section_switch meson-configure "meson: configure"
+section_switch meson-cross-file "meson: cross file generate"
 
 set -e
 set -o xtrace
@@ -49,6 +49,38 @@ if [ -n "$CROSS" ]; then
     fi
 fi
 
+if [ -n "$HOST_BUILD_OPTIONS" ]; then
+    section_switch meson-host-configure "meson: host configure"
+
+    # Stash the PKG_CONFIG_LIBDIR so that we can use the base x86_64 image
+    # libraries.
+    tmp_pkg_config_libdir=$PKG_CONFIG_LIBDIR
+    unset PKG_CONFIG_LIBDIR
+
+    # Compile a host version for the few tools we need for a cross build (for
+    # now just intel-clc)
+    rm -rf _host_build
+    meson setup _host_build \
+          --native-file=native.file \
+          -D prefix=/usr \
+          -D libdir=lib \
+          ${HOST_BUILD_OPTIONS}
+
+    pushd _host_build
+
+    section_switch meson-host-build "meson: host build"
+
+    meson configure
+    ninja
+    ninja install
+    popd
+
+    # Restore PKG_CONFIG_LIBDIR
+    if [ -n "$tmp_pkg_config_libdir" ]; then
+        export PKG_CONFIG_LIBDIR=$tmp_pkg_config_libdir
+    fi
+fi
+
 # Only use GNU time if available, not any shell built-in command
 case $CI_JOB_NAME in
     # ASAN leak detection is incompatible with strace
@@ -66,11 +98,13 @@ case $CI_JOB_NAME in
         ;;
 esac
 
+section_switch meson-configure "meson: configure"
+
 rm -rf _build
 meson setup _build \
       --native-file=native.file \
       --wrap-mode=nofallback \
-      --force-fallback-for perfetto,syn \
+      --force-fallback-for perfetto,syn,paste \
       ${CROSS+--cross "$CROSS_FILE"} \
       -D prefix=$PWD/install \
       -D libdir=lib \

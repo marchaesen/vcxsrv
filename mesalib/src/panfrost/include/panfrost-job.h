@@ -42,11 +42,7 @@ typedef uint64_t mali_ptr;
 #define MALI_EXTRACT_TYPE(fmt)     ((fmt)&0xe0)
 #define MALI_EXTRACT_INDEX(pixfmt) (((pixfmt) >> 12) & 0xFF)
 
-/* Mali hardware can texture up to 65536 x 65536 x 65536 and render up to 16384
- * x 16384, but 8192 x 8192 should be enough for anyone.  The OpenGL game
- * "Cathedral" requires a texture of width 8192 to start.
- */
-#define MAX_MIP_LEVELS (14)
+#define MAX_MIP_LEVELS (17)
 
 #define MAX_IMAGE_PLANES (3)
 

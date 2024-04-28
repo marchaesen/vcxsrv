@@ -4,6 +4,7 @@
 #endif
 
 #include <string.h>
+#include <sys/mman.h>
 
 #include "xf86.h"
 #include "xf86Modes.h"

@@ -2,25 +2,7 @@
  * Copyright Michael Schellenberger Costa
  * Copyright © 2020 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef ACO_UTIL_H
@@ -1030,6 +1012,188 @@ template <typename T, unsigned offset, unsigned size>
 using bitfield_array64 = bitfield_array<T, offset, size, uint64_t>;
 
 using bitarray8 = bitfield_array<uint8_t, 0, 8, uint8_t>;
+
+/*
+ * Resizable array optimized for small lengths. If it's smaller than Size, the elements will be
+ * inlined into the object.
+ */
+template <typename T, uint32_t Size> class small_vec {
+public:
+   static_assert(std::is_trivially_copyable<T>::value);
+   static_assert(std::is_trivially_destructible<T>::value);
+
+   using value_type = T;
+   using pointer = value_type*;
+   using const_pointer = const value_type*;
+   using reference = value_type&;
+   using const_reference = const value_type&;
+   using iterator = pointer;
+   using const_iterator = const_pointer;
+   using reverse_iterator = std::reverse_iterator<iterator>;
+   using const_reverse_iterator = std::reverse_iterator<const_iterator>;
+   using size_type = uint16_t;
+   using difference_type = std::ptrdiff_t;
+
+   constexpr small_vec() = default;
+   constexpr small_vec(const small_vec&) = delete;
+   constexpr small_vec(small_vec&& other) { *this = std::move(other); }
+
+   ~small_vec()
+   {
+      if (capacity > Size)
+         free(data);
+   }
+
+   constexpr small_vec& operator=(const small_vec&) = delete;
+   constexpr small_vec& operator=(small_vec&& other)
+   {
+      clear();
+      void* ptr = this;
+      memcpy(ptr, &other, sizeof(*this));
+      other.length = 0;
+      other.capacity = Size;
+      return *this;
+   }
+
+   constexpr iterator begin() noexcept { return capacity > Size ? data : inline_data; }
+
+   constexpr const_iterator begin() const noexcept { return capacity > Size ? data : inline_data; }
+
+   constexpr iterator end() noexcept { return std::next(begin(), length); }
+
+   constexpr const_iterator end() const noexcept { return std::next(begin(), length); }
+
+   constexpr const_iterator cbegin() const noexcept { return begin(); }
+
+   constexpr const_iterator cend() const noexcept { return std::next(begin(), length); }
+
+   constexpr reverse_iterator rbegin() noexcept { return reverse_iterator(end()); }
+
+   constexpr const_reverse_iterator rbegin() const noexcept
+   {
+      return const_reverse_iterator(end());
+   }
+
+   constexpr reverse_iterator rend() noexcept { return reverse_iterator(begin()); }
+
+   constexpr const_reverse_iterator rend() const noexcept
+   {
+      return const_reverse_iterator(begin());
+   }
+
+   constexpr const_reverse_iterator crbegin() const noexcept
+   {
+      return const_reverse_iterator(cend());
+   }
+
+   constexpr const_reverse_iterator crend() const noexcept
+   {
+      return const_reverse_iterator(cbegin());
+   }
+
+   constexpr reference operator[](const size_type index) noexcept
+   {
+      assert(length > index);
+      return *(std::next(begin(), index));
+   }
+
+   constexpr const_reference operator[](const size_type index) const noexcept
+   {
+      assert(length > index);
+      return *(std::next(begin(), index));
+   }
+
+   constexpr reference back() noexcept
+   {
+      assert(length > 0);
+      return *(std::next(begin(), length - 1));
+   }
+
+   constexpr const_reference back() const noexcept
+   {
+      assert(length > 0);
+      return *(std::next(begin(), length - 1));
+   }
+
+   constexpr reference front() noexcept
+   {
+      assert(length > 0);
+      return *begin();
+   }
+
+   constexpr const_reference front() const noexcept
+   {
+      assert(length > 0);
+      return *cbegin();
+   }
+
+   constexpr bool empty() const noexcept { return length == 0; }
+
+   constexpr size_type size() const noexcept { return length; }
+
+   constexpr void pop_back() noexcept
+   {
+      assert(length > 0);
+      --length;
+   }
+
+   constexpr void reserve(size_type n)
+   {
+      if (n > capacity) {
+         if (capacity > Size) {
+            data = (T*)realloc(data, sizeof(T) * n);
+         } else {
+            T* ptr = (T*)malloc(sizeof(T) * n);
+            memcpy(ptr, inline_data, sizeof(T) * length);
+            data = ptr;
+         }
+         capacity = n;
+      }
+   }
+
+   constexpr void push_back(const value_type& val) noexcept
+   {
+      if (length == capacity)
+         reserve(2 * capacity);
+
+      *std::next(begin(), length++) = val;
+   }
+
+   template <typename... Args> constexpr void emplace_back(Args... args) noexcept
+   {
+      if (length == capacity)
+         reserve(2 * capacity);
+
+      *std::next(begin(), length++) = T(args...);
+   }
+
+   constexpr void clear() noexcept
+   {
+      if (capacity > Size)
+         free(data);
+      length = 0;
+      capacity = Size;
+   }
+
+   constexpr bool operator==(const small_vec& other) const
+   {
+      if (size() != other.size())
+         return false;
+      for (unsigned i = 0; i < size(); i++) {
+         if (*(std::next(begin(), i)) != other[i])
+            return false;
+      }
+      return true;
+   }
+
+private:
+   uint32_t length = 0;
+   uint32_t capacity = Size;
+   union {
+      T* data = NULL;
+      T inline_data[Size];
+   };
+};
 
 } // namespace aco
 

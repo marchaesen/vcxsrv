@@ -309,6 +309,7 @@ static int parse_reg(const char *str)
                                   /* category 6: */
 "ldg"                             return TOKEN(T_OP_LDG);
 "ldg.a"                           return TOKEN(T_OP_LDG_A);
+"ldg.k"                           return TOKEN(T_OP_LDG_K);
 "ldl"                             return TOKEN(T_OP_LDL);
 "ldp"                             return TOKEN(T_OP_LDP);
 "stg"                             return TOKEN(T_OP_STG);
@@ -434,6 +435,7 @@ static int parse_reg(const char *str)
 "s2en"                            return TOKEN(T_S2EN);
 "s"                               return 's';
 "k"                               return 'k';
+"u"                               return 'u';
 "base"[0-9]+                      ir3_yylval.num = strtol(yytext+4, NULL, 10); return T_BASE;
 "offset"[0-9]+                    ir3_yylval.num = strtol(yytext+6, NULL, 10); return T_OFFSET;
 "uniform"                         return T_UNIFORM;
