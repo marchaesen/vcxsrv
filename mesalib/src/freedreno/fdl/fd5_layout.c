@@ -104,7 +104,7 @@ fdl5_layout(struct fdl_layout *layout, enum pipe_format format,
    }
 
    if (layout->layer_first) {
-      layout->layer_size = align(layout->size, 4096);
+      layout->layer_size = align64(layout->size, 4096);
       layout->size = layout->layer_size * array_size;
    }
 }

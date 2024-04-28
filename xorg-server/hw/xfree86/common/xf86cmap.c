@@ -40,6 +40,8 @@
 #include <X11/X.h>
 #include "misc.h"
 #include <X11/Xproto.h>
+
+#include "dix/colormap_priv.h"
 #include "colormapst.h"
 #include "scrnintstr.h"
 
@@ -55,6 +57,7 @@
 #ifdef XFreeXDGA
 #include <X11/extensions/xf86dgaproto.h>
 #include "dgaproc.h"
+#include "dgaproc_priv.h"
 #endif
 
 #include "xf86cmap.h"
@@ -218,7 +221,7 @@ xf86HandleColormaps(ScreenPtr pScreen,
 
     /* get the default map */
     dixLookupResourceByType((void **) &pDefMap, pScreen->defColormap,
-                            RT_COLORMAP, serverClient, DixInstallAccess);
+                            X11_RESTYPE_COLORMAP, serverClient, DixInstallAccess);
 
     if (!CMapAllocateColormapPrivate(pDefMap)) {
         CMapUnwrapScreen(pScreen);

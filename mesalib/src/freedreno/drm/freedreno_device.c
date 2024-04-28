@@ -31,6 +31,7 @@
 #include "util/os_file.h"
 
 #include "freedreno_drmif.h"
+#include "freedreno_drm_perfetto.h"
 #include "freedreno_priv.h"
 
 struct fd_device *msm_device_new(int fd, drmVersionPtr version);
@@ -88,6 +89,8 @@ out:
    if (!dev)
       return NULL;
 
+   fd_drm_perfetto_init();
+
    p_atomic_set(&dev->refcnt, 1);
    dev->fd = fd;
    dev->handle_table =
@@ -104,6 +107,9 @@ out:
    if (!use_heap) {
       struct fd_pipe *pipe = fd_pipe_new(dev, FD_PIPE_3D);
 
+      if (!pipe)
+         goto fail;
+
       /* Userspace fences don't appear to be reliable enough (missing some
        * cache flushes?) on older gens, so limit sub-alloc heaps to a6xx+
        * for now:
@@ -119,6 +125,10 @@ out:
    }
 
    return dev;
+
+fail:
+   fd_device_del(dev);
+   return NULL;
 }
 
 /* like fd_device_new() but creates it's own private dup() of the fd

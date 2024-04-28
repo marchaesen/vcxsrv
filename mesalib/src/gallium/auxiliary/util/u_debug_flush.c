@@ -37,7 +37,7 @@
  * @author Thomas Hellstrom <thellstrom@vmware.com>
  */
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #include "util/compiler.h"
 #include "util/simple_mtx.h"
 #include "util/u_debug_stack.h"

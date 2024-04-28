@@ -42,6 +42,12 @@ struct alpha_test_state {
 };
 
 static bool
+is_color_output(int location)
+{
+   return location == FRAG_RESULT_COLOR || location == FRAG_RESULT_DATA0;
+}
+
+static bool
 lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
 {
    struct alpha_test_state *state = data;
@@ -50,28 +56,19 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    switch (intr->intrinsic) {
    case nir_intrinsic_store_deref:
       out = nir_intrinsic_get_var(intr, 0);
+      if (out->data.mode != nir_var_shader_out)
+         return false;
+
+      if (!is_color_output(out->data.location))
+         return false;
       break;
    case nir_intrinsic_store_output:
-      /* already had i/o lowered.. lookup the matching output var: */
-      nir_foreach_shader_out_variable(var, b->shader) {
-         int drvloc = var->data.driver_location;
-         if (nir_intrinsic_base(intr) == drvloc) {
-            out = var;
-            break;
-         }
-      }
-      assume(out);
+      if (!is_color_output(nir_intrinsic_io_semantics(intr).location))
+         return false;
       break;
    default:
       return false;
    }
-
-   if (out->data.mode != nir_var_shader_out)
-      return false;
-
-   if (out->data.location != FRAG_RESULT_COLOR &&
-       out->data.location != FRAG_RESULT_DATA0)
-      return false;
 
    b->cursor = nir_before_instr(&intr->instr);
 

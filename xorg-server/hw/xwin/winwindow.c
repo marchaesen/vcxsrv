@@ -61,7 +61,7 @@ winCreateWindowRootless(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winCreateWindowRootless (%p)\n", pWin);
 #endif
 
@@ -86,7 +86,7 @@ winDestroyWindowRootless(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winDestroyWindowRootless (%p)\n", pWin);
 #endif
 
@@ -115,7 +115,7 @@ winPositionWindowRootless(WindowPtr pWin, int x, int y)
 
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winPositionWindowRootless (%p)\n", pWin);
 #endif
 
@@ -139,7 +139,7 @@ winChangeWindowAttributesRootless(WindowPtr pWin, unsigned long mask)
 
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winChangeWindowAttributesRootless (%p)\n", pWin);
 #endif
 
@@ -165,7 +165,7 @@ winUnmapWindowRootless(WindowPtr pWin)
     winWindowPriv(pWin);
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winUnmapWindowRootless (%p)\n", pWin);
 #endif
 
@@ -195,7 +195,7 @@ winMapWindowRootless(WindowPtr pWin)
 
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winMapWindowRootless (%p)\n", pWin);
 #endif
 
@@ -217,7 +217,7 @@ winSetShapeRootless(WindowPtr pWin, int kind)
 
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winTrace("winSetShapeRootless (%p, %i)\n", pWin, kind);
 #endif
 
@@ -247,7 +247,7 @@ winAddRgn(WindowPtr pWin, void *data)
 
     /* If pWin is not Root */
     if (pWin->parent != NULL) {
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winAddRgn ()\n");
 #endif
         if (pWin->mapped) {
@@ -320,7 +320,7 @@ winReshapeRootless(WindowPtr pWin)
 
     winWindowPriv(pWin);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winReshapeRootless ()\n");
 #endif
 

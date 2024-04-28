@@ -56,7 +56,7 @@ g_SrcDir=os.path.realpath(g_Args[0])
 g_DestDir=os.path.realpath(g_Args[1])
 
 if g_Options.Extension:
-  g_Extre=re.compile('.*\.%s$'%g_Options.Extension,re.I)
+  g_Extre=re.compile(r'.*\.%s$'%g_Options.Extension, re.I)
 else:
   g_Extre=None
 

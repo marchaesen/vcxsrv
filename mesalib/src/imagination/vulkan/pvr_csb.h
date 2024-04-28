@@ -80,7 +80,7 @@ struct pvr_csb {
     * be relocated into the new bo without breaking the update.
     */
    void *relocation_mark;
-#if defined(DEBUG)
+#if MESA_DEBUG
    /* Used to track the state of the `relocation_mark` and to catch cases where
     * the driver might have emitted to the cs without using the
     * `relocation_mark`. Doing so is mostly harmless but will waste memory in
@@ -201,7 +201,7 @@ pvr_csb_get_start_address(const struct pvr_csb *csb)
  */
 static inline void pvr_csb_set_relocation_mark(struct pvr_csb *csb)
 {
-#if defined(DEBUG)
+#if MESA_DEBUG
    assert(csb->relocation_mark_status ==
              PVR_CSB_RELOCATION_MARK_UNINITIALIZED ||
           csb->relocation_mark_status == PVR_CSB_RELOCATION_MARK_CLEARED);
@@ -220,7 +220,7 @@ static inline void pvr_csb_set_relocation_mark(struct pvr_csb *csb)
  */
 static inline void pvr_csb_clear_relocation_mark(UNUSED struct pvr_csb *csb)
 {
-#if defined(DEBUG)
+#if MESA_DEBUG
    assert(csb->relocation_mark_status == PVR_CSB_RELOCATION_MARK_SET ||
           csb->relocation_mark_status ==
              PVR_CSB_RELOCATION_MARK_SET_AND_CONSUMED);

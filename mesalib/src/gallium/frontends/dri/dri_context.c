@@ -169,7 +169,7 @@ dri_create_context(struct dri_screen *screen,
    if (debug_get_bool_option("MESA_NO_ERROR", false) ||
        driQueryOptionb(&screen->dev->option_cache, "mesa_no_error"))
 #if !defined(_WIN32)
-      if (geteuid() == getuid())
+      if (__normal_user())
 #endif
          attribs.flags |= ST_CONTEXT_FLAG_NO_ERROR;
 

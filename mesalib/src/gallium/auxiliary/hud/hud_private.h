@@ -123,6 +123,7 @@ struct hud_graph {
    unsigned index; /* vertex index being updated */
    double current_value;
    FILE *fd;
+   const char *separator;
 };
 
 struct hud_pane {

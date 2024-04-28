@@ -104,12 +104,6 @@ typedef struct _XkbEventCause {
 #define	XkbSetCauseXkbReq(c,e,cl)  XkbSetCauseReq(c,XkbReqCode,e,cl)
 #define	XkbSetCauseUnknown(c)	   XkbSetCauseKey(c,0,0)
 
-#define	_OFF_TIMER		0
-#define	_KRG_WARN_TIMER		1
-#define	_KRG_TIMER		2
-#define	_SK_TIMEOUT_TIMER	3
-#define	_ALL_TIMEOUT_TIMER	4
-
 #define	_BEEP_NONE		0
 #define	_BEEP_FEATURE_ON	1
 #define	_BEEP_FEATURE_OFF	2
@@ -458,13 +452,6 @@ extern _X_EXPORT KeySym *XkbResizeKeySyms(XkbDescPtr /* xkb */ ,
 extern _X_EXPORT XkbAction *XkbResizeKeyActions(XkbDescPtr /* xkb */ ,
                                                 int /* key */ ,
                                                 int     /* needed */
-    );
-
-extern _X_EXPORT void XkbUpdateKeyTypesFromCore(DeviceIntPtr /* pXDev */ ,
-                                                KeySymsPtr /* syms */ ,
-                                                KeyCode /* first */ ,
-                                                CARD8 /* num */ ,
-                                                XkbChangesPtr   /* pChanges */
     );
 
 extern _X_EXPORT void XkbUpdateDescActions(XkbDescPtr /* xkb */ ,
@@ -861,13 +848,6 @@ extern _X_EXPORT void XkbCopyControls(XkbDescPtr /* dst */ ,
 
 #include "xkbfile.h"
 #include "xkbrules.h"
-
-#define	_XkbListKeycodes	0
-#define	_XkbListTypes		1
-#define	_XkbListCompat		2
-#define	_XkbListSymbols		3
-#define	_XkbListGeometry	4
-#define	_XkbListNumComponents	5
 
 extern _X_EXPORT unsigned int XkbDDXLoadKeymapByNames(DeviceIntPtr /* keybd */ ,
                                                       XkbComponentNamesPtr

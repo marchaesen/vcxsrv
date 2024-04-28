@@ -14,6 +14,14 @@ function x_off {
 
 # TODO: implement x_on !
 
+export JOB_START_S=$(date -u +"%s" -d "${CI_JOB_STARTED_AT:?}")
+
+function get_current_minsec {
+    DATE_S=$(date -u +"%s")
+    CURR_TIME=$((DATE_S-JOB_START_S))
+    printf "%02d:%02d" $((CURR_TIME/60)) $((CURR_TIME%60))
+}
+
 function error {
     x_off 2>/dev/null
     RED="\e[0;31m"
@@ -21,10 +29,7 @@ function error {
     # we force the following to be not in a section
     section_end $CURRENT_SECTION
 
-    DATE_S=$(date -u +"%s")
-    JOB_START_S=$(date -u +"%s" -d "${CI_JOB_STARTED_AT:?}")
-    CURR_TIME=$((DATE_S-JOB_START_S))
-    CURR_MINSEC="$(printf "%02d" $((CURR_TIME/60))):$(printf "%02d" $((CURR_TIME%60)))"
+    CURR_MINSEC=$(get_current_minsec)
     echo -e "\n${RED}[${CURR_MINSEC}] ERROR: $*${ENDCOLOR}\n"
     [ "$state_x" -eq 0 ] || set -x
 }
@@ -42,10 +47,7 @@ function build_section_start {
     CYAN="\e[0;36m"
     ENDCOLOR="\e[0m"
 
-    DATE_S=$(date -u +"%s")
-    JOB_START_S=$(date -u +"%s" -d "${CI_JOB_STARTED_AT:?}")
-    CURR_TIME=$((DATE_S-JOB_START_S))
-    CURR_MINSEC="$(printf "%02d" $((CURR_TIME/60))):$(printf "%02d" $((CURR_TIME%60)))"
+    CURR_MINSEC=$(get_current_minsec)
     echo -e "\n\e[0Ksection_start:$(date +%s):$section_name$section_params\r\e[0K${CYAN}[${CURR_MINSEC}] $*${ENDCOLOR}\n"
 }
 
@@ -87,6 +89,7 @@ function uncollapsed_section_switch {
 }
 
 export -f x_off
+export -f get_current_minsec
 export -f error
 export -f trap_err
 export -f build_section_start

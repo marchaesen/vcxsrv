@@ -6,6 +6,7 @@ from typing import Any, Optional
 
 from lava.exceptions import (
     MesaCIException,
+    MesaCIRetriableException,
     MesaCIKnownIssueException,
     MesaCIParseException,
     MesaCITimeoutError,
@@ -34,7 +35,7 @@ class LAVAJob:
         self._is_finished = False
         self.log: dict[str, Any] = log
         self.status = "not_submitted"
-        self.__exception: Optional[str] = None
+        self.__exception: Optional[Exception] = None
 
     def heartbeat(self) -> None:
         self.last_log_time: datetime = datetime.now()
@@ -63,13 +64,13 @@ class LAVAJob:
         return self._is_finished
 
     @property
-    def exception(self) -> str:
+    def exception(self) -> Optional[Exception]:
         return self.__exception
 
     @exception.setter
     def exception(self, exception: Exception) -> None:
-        self.__exception = repr(exception)
-        self.log["dut_job_fail_reason"] = self.__exception
+        self.__exception = exception
+        self.log["dut_job_fail_reason"] = repr(self.__exception)
 
     def validate(self) -> Optional[dict]:
         """Returns a dict with errors, if the validation fails.
@@ -176,9 +177,13 @@ class LAVAJob:
             self.status = "canceled"
         elif isinstance(exception, MesaCITimeoutError):
             self.status = "hung"
-        elif isinstance(exception, MesaCIException):
+        elif isinstance(exception, MesaCIRetriableException):
             self.status = "failed"
         elif isinstance(exception, KeyboardInterrupt):
+            self.status = "interrupted"
+            print_log("LAVA job submitter was interrupted. Cancelling the job.")
+            raise
+        elif isinstance(exception, MesaCIException):
             self.status = "interrupted"
             print_log("LAVA job submitter was interrupted. Cancelling the job.")
             raise

@@ -896,6 +896,12 @@ opcode("uror", 0, tuint, [0, 0], [tuint, tuint32], False, "", """
          (src0 << (-src1 & rotate_mask));
 """)
 
+opcode("shfr", 0, tuint32, [0, 0, 0], [tuint32, tuint32, tuint32], False, "", """
+   uint32_t rotate_mask = sizeof(src0) * 8 - 1;
+   dst = (src1 >> (src2 & rotate_mask)) |
+         (src0 << (-src2 & rotate_mask));
+""")
+
 bitwise_description = """
 Bitwise {0}, also used as a boolean {0} for hardware supporting integers.
 """
@@ -1029,6 +1035,9 @@ triop("flrp", tfloat, "", "src0 * (1 - src2) + src1 * src2")
 triop("iadd3", tint, _2src_commutative + associative, "src0 + src1 + src2",
       description = "Ternary addition")
 
+triop("imad", tint, _2src_commutative + associative, "src0 * src1 + src2",
+      description = "Integer multiply-add")
+
 csel_description = """
 A vector conditional select instruction (like ?:, but operating per-
 component on vectors). The condition is {} bool ({}).
@@ -1138,6 +1147,14 @@ then add them together. There is also a third source which is a 32-bit unsigned
 integer and added to the result.
 """)
 
+opcode("mqsad_4x8", 4, tuint32, [1, 2, 4], [tuint32, tuint32, tuint32], False, "", """
+uint64_t src = src1.x | ((uint64_t)src1.y << 32);
+dst.x = msad(src0.x, src, src2.x);
+dst.y = msad(src0.x, src >> 8, src2.y);
+dst.z = msad(src0.x, src >> 16, src2.z);
+dst.w = msad(src0.x, src >> 24, src2.w);
+""")
+
 # Combines the first component of each input to make a 3-component vector.
 
 triop_horiz("vec3", 3, 1, 1, 1, """
@@ -1231,11 +1248,11 @@ dst.p = src15.x;
 binop("amul", tint, _2src_commutative + associative, "src0 * src1")
 
 # ir3-specific instruction that maps directly to mul-add shift high mix,
-# (IMADSH_MIX16 i.e. ah * bl << 16 + c). It is used for lowering integer
+# (IMADSH_MIX16 i.e. al * bh << 16 + c). It is used for lowering integer
 # multiplication (imul) on Freedreno backend..
 opcode("imadsh_mix16", 0, tint32,
        [0, 0, 0], [tint32, tint32, tint32], False, "", """
-dst = ((((src0 & 0xffff0000) >> 16) * (src1 & 0x0000ffff)) << 16) + src2;
+dst = ((((src0 & 0x0000ffff) << 16) * (src1 & 0xffff0000)) >> 16) + src2;
 """)
 
 # ir3-specific instruction that maps directly to ir3 mad.s24.

@@ -71,16 +71,6 @@ SOFTWARE.
 #include "miwideline.h"
 #include "mi.h"
 
-#if 0
-#ifdef HAVE_DIX_CONFIG_H
-#include <dix-config.h>
-#endif
-
-#include "misc.h"
-#include "pixmapstr.h"
-#include "gcstruct.h"
-#endif
-
 typedef struct {
     int count;                  /* number of spans                  */
     DDXPointPtr points;         /* pointer to list of start points  */

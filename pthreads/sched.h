@@ -56,7 +56,7 @@
     typedef int pid_t;
 #endif
 
-#if __GNUC__ < 4
+#if ! defined __GNUC__ || __GNUC__ < 4
 /* GCC v4.0 and later, (as used by MinGW), allows us to repeat a
  * typedef, provided every duplicate is consistent; only set this
  * multiple definition guard when we cannot be certain that it is

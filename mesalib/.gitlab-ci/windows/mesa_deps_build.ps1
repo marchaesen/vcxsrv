@@ -12,7 +12,7 @@ $depsInstallPath="C:\mesa-deps"
 
 Get-Date
 Write-Host "Cloning DirectX-Headers"
-git clone -b v1.611.0 --depth=1 https://github.com/microsoft/DirectX-Headers deps/DirectX-Headers
+git clone -b v1.613.1 --depth=1 https://github.com/microsoft/DirectX-Headers deps/DirectX-Headers
 if (!$?) {
   Write-Host "Failed to clone DirectX-Headers repository"
   Exit 1
@@ -32,16 +32,17 @@ if (!$buildstatus) {
 
 Get-Date
 Write-Host "Cloning zlib"
-git clone -b v1.2.13 --depth=1 https://github.com/madler/zlib deps/zlib
+git clone -b v1.3.1 --depth=1 https://github.com/madler/zlib deps/zlib
 if (!$?) {
   Write-Host "Failed to clone zlib repository"
   Exit 1
 }
 Write-Host "Downloading zlib meson build files"
-Invoke-WebRequest -Uri "https://wrapdb.mesonbuild.com/v2/zlib_1.2.13-1/get_patch" -OutFile deps/zlib.zip
+Invoke-WebRequest -Uri "https://wrapdb.mesonbuild.com/v2/zlib_1.3.1-1/get_patch" -OutFile deps/zlib.zip
 Expand-Archive -Path deps/zlib.zip -Destination deps/zlib
 # Wrap archive puts build files in a version subdir
-Move-Item deps/zlib/zlib-1.2.13/* deps/zlib
+robocopy deps/zlib/zlib-1.3.1 deps/zlib /E
+Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path deps/zlib/zlib-1.3.1
 $zlib_build = New-Item -ItemType Directory -Path ".\deps\zlib" -Name "build"
 Push-Location -Path $zlib_build.FullName
 meson .. --backend=ninja -Dprefix="$depsInstallPath" --default-library=static --buildtype=release -Db_vscrt=mt && `
@@ -51,35 +52,6 @@ Pop-Location
 Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path $zlib_build
 if (!$buildstatus) {
   Write-Host "Failed to compile zlib"
-  Exit 1
-}
-
-
-Get-Date
-Write-Host "Cloning libva"
-git clone https://github.com/intel/libva.git deps/libva
-if (!$?) {
-  Write-Host "Failed to clone libva repository"
-  Exit 1
-}
-
-Push-Location -Path ".\deps\libva"
-Write-Host "Checking out libva df3c584bb79d1a1e521372d62fa62e8b1c52ce6c"
-# libva-win32 is released with libva version 2.17 (see https://github.com/intel/libva/releases/tag/2.17.0)
-git checkout 2.17.0
-Pop-Location
-
-Write-Host "Building libva"
-# libva already has a build dir in their repo, use builddir instead
-$libva_build = New-Item -ItemType Directory -Path ".\deps\libva" -Name "builddir"
-Push-Location -Path $libva_build.FullName
-meson .. -Dprefix="$depsInstallPath"
-ninja -j32 install
-$buildstatus = $?
-Pop-Location
-Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path $libva_build
-if (!$buildstatus) {
-  Write-Host "Failed to compile libva"
   Exit 1
 }
 
@@ -158,12 +130,12 @@ Remove-Item -Recurse -Force -ErrorAction SilentlyContinue -Path $llvm_build
 
 Get-Date
 Write-Host "Cloning SPIRV-Tools"
-git clone -b "sdk-$env:VULKAN_SDK_VERSION" --depth=1 https://github.com/KhronosGroup/SPIRV-Tools deps/SPIRV-Tools
+git clone -b "vulkan-sdk-$env:VULKAN_SDK_VERSION" --depth=1 https://github.com/KhronosGroup/SPIRV-Tools deps/SPIRV-Tools
 if (!$?) {
   Write-Host "Failed to clone SPIRV-Tools repository"
   Exit 1
 }
-git clone -b "sdk-$env:VULKAN_SDK_VERSION" --depth=1 https://github.com/KhronosGroup/SPIRV-Headers deps/SPIRV-Tools/external/SPIRV-Headers
+git clone -b "vulkan-sdk-$env:VULKAN_SDK_VERSION" --depth=1 https://github.com/KhronosGroup/SPIRV-Headers deps/SPIRV-Tools/external/SPIRV-Headers
 if (!$?) {
   Write-Host "Failed to clone SPIRV-Headers repository"
   Exit 1

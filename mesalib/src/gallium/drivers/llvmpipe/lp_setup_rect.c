@@ -315,7 +315,7 @@ try_rect_cw(struct lp_setup_context *setup,
    if (!rect)
       return false;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    rect->v[0][0] = v0[0][0];
    rect->v[0][1] = v0[0][1];
    rect->v[1][0] = v1[0][0];

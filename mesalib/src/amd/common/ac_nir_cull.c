@@ -164,19 +164,31 @@ ac_nir_cull_triangle(nir_builder *b,
 static void
 rotate_45degrees(nir_builder *b, nir_def *v[2])
 {
-   /* sin(45) == cos(45) */
-   nir_def *sincos45 = nir_imm_float(b, 0.707106781);
-
-   /* x2  =  x*cos45 - y*sin45  =  x*sincos45 - y*sincos45
-    * y2  =  x*sin45 + y*cos45  =  x*sincos45 + y*sincos45
+   /* Rotating a triangle by 45 degrees:
+    *
+    *    x2  =  x*cos(45) - y*sin(45)
+    *    y2  =  x*sin(45) + y*cos(45)
+    *
+    * Since sin(45) == cos(45), we can write:
+    *
+    *    x2  =  x*cos(45) - y*cos(45)  =  (x - y) * cos(45)
+    *    y2  =  x*cos(45) + y*cos(45)  =  (x + y) * cos(45)
+    *
+    * The width of each square (rotated diamond) is sqrt(0.5), so we have to scale it to 1
+    * by multiplying by 1/sqrt(0.5) = sqrt(2) because we want round() to give us the position
+    * of the closest center of the square (rotated diamond). After scaling, we get:
+    *
+    *    x2  =  (x - y) * cos(45) * sqrt(2)
+    *    y2  =  (x + y) * cos(45) * sqrt(2)
+    *
+    * Since cos(45) * sqrt(2) = 1, we get:
+    *
+    *    x2  =  x - y
+    *    y2  =  x + y
     */
-   nir_def *first = nir_fmul(b, v[0], sincos45);
-
-   /* Doing 2x ffma while duplicating the multiplication is 33% faster than fmul+fadd+fadd. */
-   nir_def *result[2] = {
-      nir_ffma(b, nir_fneg(b, v[1]), sincos45, first),
-      nir_ffma(b, v[1], sincos45, first),
-   };
+   nir_def *result[2];
+   result[0] = nir_fsub(b, v[0], v[1]);
+   result[1] = nir_fadd(b, v[0], v[1]);
 
    memcpy(v, result, sizeof(result));
 }
@@ -254,12 +266,6 @@ cull_small_primitive_line(nir_builder *b, nir_def *pos[3][4],
 
       nir_def *rounded_to_eq[2];
       for (unsigned chan = 0; chan < 2; chan++) {
-         /* The width of each square is sqrt(0.5), so scale it to 1 because we want
-          * round() to give us the position of the closest center of a square (diamond).
-          */
-         v0[chan] = nir_fmul_imm(b, v0[chan], 1.414213562);
-         v1[chan] = nir_fmul_imm(b, v1[chan], 1.414213562);
-
          /* Compute the bounding box around both vertices. We do this because we must
           * enlarge the line area by the precision of the rasterizer.
           */

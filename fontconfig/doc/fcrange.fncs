@@ -33,8 +33,8 @@ populates it with the contents of <parameter>range</parameter>.
 
 @RET@           FcRange *
 @FUNC@          FcRangeCreateDouble
-@TYPE1@         double                          @ARG1@          begin
-@TYPE2@         double                          @ARG2@          end
+@TYPE1@         double%                         @ARG1@          begin
+@TYPE2@         double%                         @ARG2@          end
 @PURPOSE@       create a range object for double
 @DESC@
 <function>FcRangeCreateDouble</function> creates a new FcRange object with
@@ -44,8 +44,8 @@ double sized value.
 
 @RET@           FcRange *
 @FUNC@          FcRangeCreateInteger
-@TYPE1@         int                             @ARG1@          begin
-@TYPE2@         int                             @ARG2@          end
+@TYPE1@         int%                            @ARG1@          begin
+@TYPE2@         int%                            @ARG2@          end
 @PURPOSE@       create a range object for integer
 @DESC@
 <function>FcRangeCreateInteger</function> creates a new FcRange object with

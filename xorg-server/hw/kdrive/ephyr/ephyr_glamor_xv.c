@@ -50,16 +50,16 @@ ephyr_glamor_xv_stop_video(KdScreenInfo *screen, void *data, Bool cleanup)
 
 static int
 ephyr_glamor_xv_set_port_attribute(KdScreenInfo *screen,
-                                   Atom attribute, INT32 value, void *data)
+                                   Atom attribute, int value, void *data)
 {
-    return glamor_xv_set_port_attribute(data, attribute, value);
+    return glamor_xv_set_port_attribute(data, attribute, (INT32)value);
 }
 
 static int
 ephyr_glamor_xv_get_port_attribute(KdScreenInfo *screen,
-                                   Atom attribute, INT32 *value, void *data)
+                                   Atom attribute, int *value, void *data)
 {
-    return glamor_xv_get_port_attribute(data, attribute, value);
+    return glamor_xv_get_port_attribute(data, attribute, (INT32 *)value);
 }
 
 static void

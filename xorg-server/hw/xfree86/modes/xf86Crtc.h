@@ -339,8 +339,8 @@ struct _xf86Crtc {
      */
     PictTransform crtc_to_framebuffer;
     /* framebuffer_to_crtc was removed in ABI 2 */
-    struct pict_f_transform f_crtc_to_framebuffer;      /* ABI 2 */
-    struct pict_f_transform f_framebuffer_to_crtc;      /* ABI 2 */
+    struct pixman_f_transform f_crtc_to_framebuffer;      /* ABI 2 */
+    struct pixman_f_transform f_framebuffer_to_crtc;      /* ABI 2 */
     PictFilterPtr filter;       /* ABI 2 */
     xFixed *params;             /* ABI 2 */
     int nparams;                /* ABI 2 */

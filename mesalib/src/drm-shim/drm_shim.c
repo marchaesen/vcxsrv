@@ -30,6 +30,7 @@
 
 /* Prevent glibc from defining open64 when we want to alias it. */
 #undef _FILE_OFFSET_BITS
+#undef _TIME_BITS
 #define _LARGEFILE64_SOURCE
 
 #include <stdbool.h>

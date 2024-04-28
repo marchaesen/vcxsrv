@@ -48,7 +48,7 @@ struct draw_context *st_get_draw_context(struct st_context *st);
 
 void
 st_feedback_draw_vbo(struct gl_context *ctx,
-                     struct pipe_draw_info *info,
+                     const struct pipe_draw_info *info,
                      unsigned drawid_offset,
                      const struct pipe_draw_indirect_info *indirect,
                      const struct pipe_draw_start_count_bias *draws,
@@ -79,7 +79,7 @@ st_prepare_draw(struct gl_context *ctx, uint64_t state_mask);
 
 void
 st_draw_gallium(struct gl_context *ctx,
-                struct pipe_draw_info *info,
+                const struct pipe_draw_info *info,
                 unsigned drawid_offset,
                 const struct pipe_draw_indirect_info *indirect,
                 const struct pipe_draw_start_count_bias *draws,

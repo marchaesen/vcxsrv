@@ -15,6 +15,7 @@
 #include "ac_vcn_dec.h"
 
 #define NUM_BUFFERS                                         4
+#define MAX_JPEG_INST                                       64
 
 struct rvcn_dec_dynamic_dpb_t2 {
    struct list_head list;

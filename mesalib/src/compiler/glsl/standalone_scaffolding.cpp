@@ -288,8 +288,6 @@ void initialize_context_to_defaults(struct gl_context *ctx, gl_api api)
    for (int sh = 0; sh < MESA_SHADER_STAGES; ++sh)
       memcpy(&ctx->Const.ShaderCompilerOptions[sh], &options, sizeof(options));
 
-   _mesa_locale_init();
-
    ctx->Driver.NewProgram = standalone_new_program;
 }
 

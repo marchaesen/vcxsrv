@@ -29,6 +29,9 @@
 #endif
 #include <stdint.h>
 #include <X11/Xatom.h>
+
+#include "dix/dix_priv.h"
+
 #include "input.h"
 #include "inputstr.h"
 #include "scrnintstr.h"
@@ -60,57 +63,12 @@ device_cursor_cleanup(DeviceIntPtr dev, ScreenPtr screen)
 }
 
 static void
-xtest_init_devices(void)
+xtest_init(void)
 {
-    assert(xtestpointer);
-    assert(xtestkeyboard);
-    assert(IsXTestDevice(xtestpointer, NULL));
-    assert(IsXTestDevice(xtestkeyboard, NULL));
-    assert(IsXTestDevice(xtestpointer, inputInfo.pointer));
-
-    assert(IsXTestDevice(xtestkeyboard, inputInfo.keyboard));
-    assert(GetXTestDevice(inputInfo.pointer) == xtestpointer);
-
-    assert(GetXTestDevice(inputInfo.keyboard) == xtestkeyboard);
-}
-
-/**
- * Each xtest devices has a property attached marking it. This property
- * cannot be changed.
- */
-static void
-xtest_properties(void)
-{
-    int rc;
-    char value = 1;
-    XIPropertyValuePtr prop;
-    Atom xtest_prop = XIGetKnownProperty(XI_PROP_XTEST_DEVICE);
-
-    rc = XIGetDeviceProperty(xtestpointer, xtest_prop, &prop);
-    assert(rc == Success);
-    assert(prop);
-
-    rc = XIGetDeviceProperty(xtestkeyboard, xtest_prop, &prop);
-    assert(rc == Success);
-    assert(prop != NULL);
-
-    rc = XIChangeDeviceProperty(xtestpointer, xtest_prop,
-                                XA_INTEGER, 8, PropModeReplace, 1, &value,
-                                FALSE);
-    assert(rc == BadAccess);
-    rc = XIChangeDeviceProperty(xtestkeyboard, xtest_prop,
-                                XA_INTEGER, 8, PropModeReplace, 1, &value,
-                                FALSE);
-    assert(rc == BadAccess);
-}
-
-int
-xtest_test(void)
-{
-    ScreenRec screen = {0};
-    ClientRec server_client = {0};
-    WindowRec root = {{0}};
-    WindowOptRec optional = {0};
+    static ScreenRec screen = {0};
+    static ClientRec server_client = {0};
+    static WindowRec root = {{0}};
+    static WindowOptRec optional = {0};
 
     /* random stuff that needs initialization */
     root.drawable.id = 0xab;
@@ -134,11 +92,75 @@ xtest_test(void)
 
     /* this also inits the xtest devices */
     InitCoreDevices();
+}
 
-    xtest_init_devices();
-    xtest_properties();
-
+static void
+xtest_cleanup(void)
+{
     CloseDownDevices();
+}
 
-    return 0;
+static void
+xtest_init_devices(void)
+{
+    xtest_init();
+
+    assert(xtestpointer);
+    assert(xtestkeyboard);
+    assert(IsXTestDevice(xtestpointer, NULL));
+    assert(IsXTestDevice(xtestkeyboard, NULL));
+    assert(IsXTestDevice(xtestpointer, inputInfo.pointer));
+
+    assert(IsXTestDevice(xtestkeyboard, inputInfo.keyboard));
+    assert(GetXTestDevice(inputInfo.pointer) == xtestpointer);
+
+    assert(GetXTestDevice(inputInfo.keyboard) == xtestkeyboard);
+
+    xtest_cleanup();
+}
+
+/**
+ * Each xtest devices has a property attached marking it. This property
+ * cannot be changed.
+ */
+static void
+xtest_properties(void)
+{
+    int rc;
+    char value = 1;
+    XIPropertyValuePtr prop;
+    Atom xtest_prop;
+
+    xtest_init();
+
+    xtest_prop = XIGetKnownProperty(XI_PROP_XTEST_DEVICE);
+    rc = XIGetDeviceProperty(xtestpointer, xtest_prop, &prop);
+    assert(rc == Success);
+    assert(prop);
+
+    rc = XIGetDeviceProperty(xtestkeyboard, xtest_prop, &prop);
+    assert(rc == Success);
+    assert(prop != NULL);
+
+    rc = XIChangeDeviceProperty(xtestpointer, xtest_prop,
+                                XA_INTEGER, 8, PropModeReplace, 1, &value,
+                                FALSE);
+    assert(rc == BadAccess);
+    rc = XIChangeDeviceProperty(xtestkeyboard, xtest_prop,
+                                XA_INTEGER, 8, PropModeReplace, 1, &value,
+                                FALSE);
+    assert(rc == BadAccess);
+
+    xtest_cleanup();
+}
+
+const testfunc_t*
+xtest_test(void)
+{
+    static const testfunc_t testfuncs[] = {
+        xtest_init_devices,
+        xtest_properties,
+        NULL,
+    };
+    return testfuncs;
 }

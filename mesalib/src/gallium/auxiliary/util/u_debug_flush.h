@@ -36,7 +36,7 @@
  *
  * @author Thomas Hellstrom <thellstrom@vmware.com>
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 
 #ifndef U_DEBUG_FLUSH_H_
 #define U_DEBUG_FLUSH_H_

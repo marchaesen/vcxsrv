@@ -209,6 +209,8 @@ struct etna_resource {
    struct pipe_resource *render;
    /* frontend flushes resource via an explicit call to flush_resource */
    bool explicit_flush;
+   /* resource is shared outside of the screen */
+   bool shared;
 };
 
 /* returns TRUE if a is newer than b */

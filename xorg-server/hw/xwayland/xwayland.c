@@ -33,6 +33,12 @@
 #include <errno.h>
 
 #include <X11/Xatom.h>
+
+#include "dix/dix_priv.h"
+#include "dix/screenint_priv.h"
+#include "os/cmdline.h"
+#include "os/osdep.h"
+
 #include <selection.h>
 #include <micmap.h>
 #include <misyncshm.h>
@@ -44,6 +50,8 @@
 #include <xserver_poll.h>
 #include <propertyst.h>
 #include <version-config.h>
+
+#include "os/auth.h"
 
 #include "xwayland-screen.h"
 #include "xwayland-vidmode.h"
@@ -93,15 +101,14 @@ ddxUseMsg(void)
     ErrorF("-rootless              run rootless, requires wm support\n");
     ErrorF("-fullscreen            run fullscreen when rootful\n");
     ErrorF("-geometry WxH          set Xwayland window size when rootful\n");
+    ErrorF("-hidpi                 adjust to output scale when rootful\n");
     ErrorF("-host-grab             disable host keyboard shortcuts when rootful\n");
+    ErrorF("-nokeymap              ignore keymap from the Wayland compositor\n");
     ErrorF("-output                specify which output to use for fullscreen when rootful\n");
     ErrorF("-wm fd                 create X client for wm on given fd\n");
     ErrorF("-initfd fd             add given fd as a listen socket for initialization clients\n");
     ErrorF("-listenfd fd           add given fd as a listen socket\n");
     ErrorF("-listen fd             deprecated, use \"-listenfd\" instead\n");
-#ifdef XWL_HAS_EGLSTREAM
-    ErrorF("-eglstream             use eglstream backend for nvidia GPUs\n");
-#endif
     ErrorF("-shm                   use shared memory for passing buffers\n");
 #ifdef XWL_HAS_GLAMOR
     ErrorF("-glamor [gl|es|off]    use given API for Glamor acceleration. Incompatible with -shm option\n");
@@ -157,9 +164,9 @@ try_raising_nofile_limit(void)
         return;
     }
 
-    LogMessageVerb(X_INFO, 3, "Raising the file descriptors limit to %li\n",
-                   rlim.rlim_max);
-#endif
+    LogMessageVerb(X_INFO, 3, "Raising the file descriptors limit to %llu\n",
+                   (long long unsigned int) rlim.rlim_max);
+#endif /* RLIMIT_NOFILE */
 }
 
 static void
@@ -233,9 +240,6 @@ ddxProcessArgument(int argc, char *argv[], int i)
         LogSetParameter(XLOG_VERBOSITY, ++verbosity);
         return 1;
     }
-    else if (strcmp(argv[i], "-eglstream") == 0) {
-        return 1;
-    }
     else if (strcmp(argv[i], "-version") == 0) {
         xwl_show_version();
         exit(0);
@@ -266,6 +270,12 @@ ddxProcessArgument(int argc, char *argv[], int i)
     else if (strcmp(argv[i], "-output") == 0) {
         CHECK_FOR_REQUIRED_ARGUMENTS(1);
         return 2;
+    }
+    else if (strcmp(argv[i], "-nokeymap") == 0) {
+        return 1;
+    }
+    else if (strcmp(argv[i], "-hidpi") == 0) {
+        return 1;
     }
 
     return 0;

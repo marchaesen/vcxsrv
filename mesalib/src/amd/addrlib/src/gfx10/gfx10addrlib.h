@@ -146,6 +146,8 @@ const UINT_32 Gfx10Rsrc3dThin64KBSwModeMask = (1u << ADDR_SW_64KB_Z_X) |
 const UINT_32 Gfx10Rsrc3dThinSwModeMask = Gfx10Rsrc3dThin64KBSwModeMask |
                                           Gfx10BlkVarSwModeMask;
 
+const UINT_32 Gfx10Rsrc3dViewAs2dSwModeMask = Gfx10Rsrc3dThinSwModeMask | Gfx10LinearSwModeMask;
+
 const UINT_32 Gfx10Rsrc3dThickSwModeMask = Gfx10Rsrc3dSwModeMask & ~(Gfx10Rsrc3dThinSwModeMask | Gfx10LinearSwModeMask);
 
 const UINT_32 Gfx10Rsrc3dThick4KBSwModeMask = Gfx10Rsrc3dThickSwModeMask & Gfx10Blk4KBSwModeMask;

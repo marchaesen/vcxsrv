@@ -1194,7 +1194,7 @@ static void ruvd_end_frame(struct pipe_video_codec *decoder, struct pipe_video_b
                FB_BUFFER_OFFSET + dec->fb_size, RADEON_USAGE_READ, RADEON_DOMAIN_GTT);
    set_reg(dec, dec->reg.cntl, 1);
 
-   flush(dec, PIPE_FLUSH_ASYNC, picture->fence);
+   flush(dec, picture->flush_flags, picture->fence);
    next_buffer(dec);
 }
 

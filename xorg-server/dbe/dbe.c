@@ -40,12 +40,14 @@
 #include <stdint.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "scrnintstr.h"
 #include "extnsionst.h"
 #include "extinit.h"
 #include "gcstruct.h"
 #include "dixstruct.h"
-#define NEED_DBE_PROTOCOL
 #include "dbestruct.h"
 #include "midbe.h"
 #include "xace.h"
@@ -411,7 +413,7 @@ ProcDbeDeallocateBackBufferName(ClientPtr client)
         return dbeErrorBase + DbeBadBuffer;
     }
 
-    FreeResource(stuff->buffer, RT_NONE);
+    FreeResource(stuff->buffer, X11_RESTYPE_NONE);
 
     return Success;
 
@@ -1312,7 +1314,7 @@ DbeDestroyWindow(WindowPtr pWin)
              * NULL if there are no more buffer IDs associated with this
              * window.
              */
-            FreeResource(pDbeWindowPriv->IDs[0], RT_NONE);
+            FreeResource(pDbeWindowPriv->IDs[0], X11_RESTYPE_NONE);
             pDbeWindowPriv = DBE_WINDOW_PRIV(pWin);
         }
     }

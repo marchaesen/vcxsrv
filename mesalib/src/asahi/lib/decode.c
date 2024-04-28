@@ -301,17 +301,19 @@ agxdecode_stateful(uint64_t va, const char *label, decode_cmd decoder,
    unsigned sp = 0;
 
    uint8_t buf[1024];
+   size_t size = sizeof(buf);
    if (!lib_config.read_gpu_mem) {
       struct agx_bo *alloc = agxdecode_find_mapped_gpu_mem_containing(va);
       assert(alloc != NULL && "nonexistent object");
       fprintf(agxdecode_dump_stream, "%s (%" PRIx64 ", handle %u)\n", label, va,
               alloc->handle);
+      size = MIN2(size, alloc->size - (va - alloc->ptr.gpu));
    } else {
       fprintf(agxdecode_dump_stream, "%s (%" PRIx64 ")\n", label, va);
    }
    fflush(agxdecode_dump_stream);
 
-   int len = agxdecode_fetch_gpu_array(va, buf);
+   int len = agxdecode_fetch_gpu_mem(va, size, buf);
 
    int left = len;
    uint8_t *map = buf;
@@ -421,10 +423,11 @@ agxdecode_usc(const uint8_t *map, UNUSED uint64_t *link, UNUSED bool verbose,
       agx_unpack(agxdecode_dump_stream, map, USC_SAMPLER, temp);
       DUMP_UNPACKED(USC_SAMPLER, temp, "Sampler state\n");
 
-      uint8_t buf[(AGX_SAMPLER_LENGTH + AGX_BORDER_LENGTH) * temp.count];
-      uint8_t *samp = buf;
+      size_t stride =
+         AGX_SAMPLER_LENGTH + (extended_samplers ? AGX_BORDER_LENGTH : 0);
+      uint8_t *samp = alloca(stride * temp.count);
 
-      agxdecode_fetch_gpu_array(temp.buffer, buf);
+      agxdecode_fetch_gpu_mem(temp.buffer, stride * temp.count, samp);
 
       for (unsigned i = 0; i < temp.count; ++i) {
          DUMP_CL(SAMPLER, samp, "Sampler");
@@ -471,8 +474,18 @@ agxdecode_usc(const uint8_t *map, UNUSED uint64_t *link, UNUSED bool verbose,
       return AGX_USC_UNIFORM_LENGTH;
    }
 
+   case AGX_USC_CONTROL_UNIFORM_HIGH: {
+      agx_unpack(agxdecode_dump_stream, map, USC_UNIFORM_HIGH, temp);
+      DUMP_UNPACKED(USC_UNIFORM_HIGH, temp, "Uniform (high)\n");
+
+      uint8_t buf[2 * temp.size_halfs];
+      agxdecode_fetch_gpu_array(temp.buffer, buf);
+      u_hexdump(agxdecode_dump_stream, buf, 2 * temp.size_halfs, false);
+
+      return AGX_USC_UNIFORM_HIGH_LENGTH;
+   }
+
       USC_CASE(FRAGMENT_PROPERTIES, "Fragment properties");
-      USC_CASE(UNIFORM_HIGH, "Uniform high");
       USC_CASE(SHARED, "Shared");
       USC_CASE(REGISTERS, "Registers");
 

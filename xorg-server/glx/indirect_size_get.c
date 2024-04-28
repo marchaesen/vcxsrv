@@ -33,7 +33,7 @@
 #include "indirect_util.h"
 #include "indirect_size.h"
 
-#if defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590))
+#if defined(__GNUC__)
 #define PURE __attribute__((pure))
 #else
 #define PURE

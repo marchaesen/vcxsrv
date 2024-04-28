@@ -40,6 +40,7 @@
 #include "freedreno_pm4.h"
 
 #include "afuc.h"
+#include "afuc-isa.h"
 #include "util.h"
 #include "emu.h"
 
@@ -191,13 +192,19 @@ post_instr_cb(void *data, unsigned n, void *instr)
    }
 }
 
+uint32_t jumptbl_offset = ~0;
+
 /* Assume that instructions that don't match are raw data */
 static void
 no_match(FILE *out, const BITSET_WORD *bitset, size_t size)
 {
-   fprintf(out, "[%08x]", bitset[0]);
-   print_gpu_reg(out, bitset[0]);
-   fprintf(out, "\n");
+   if (jumptbl_offset != ~0 && bitset[0] == afuc_nop_literal(jumptbl_offset, gpuver)) {
+      fprintf(out, "[#jumptbl]\n");
+   } else {
+      fprintf(out, "[%08x]", bitset[0]);
+      print_gpu_reg(out, bitset[0]);
+      fprintf(out, "\n");
+   }
 }
 
 static void
@@ -217,7 +224,7 @@ get_decode_options(struct isa_decode_options *options)
 static void
 disasm_instr(struct isa_decode_options *options, uint32_t *instrs, unsigned pc)
 {
-   isa_disasm(&instrs[pc], 4, stdout, options);
+   afuc_isa_disasm(&instrs[pc], 4, stdout, options);
 }
 
 static void
@@ -239,6 +246,25 @@ setup_packet_table(struct isa_decode_options *options,
 
    options->entrypoints = entrypoints;
    options->entrypoint_count = sizedwords;
+}
+
+static uint32_t
+find_jump_table(uint32_t *instrs, uint32_t sizedwords,
+                uint32_t *jmptbl, uint32_t jmptbl_size)
+{
+   for (unsigned i = 0; i <= sizedwords - jmptbl_size; i++) {
+      bool found = true;
+      for (unsigned j = 0; j < jmptbl_size; j++) {
+         if (instrs[i + j] != jmptbl[j]) {
+            found = false;
+            break;
+         }
+      }
+      if (found)
+         return i;
+   }
+
+   return ~0;
 }
 
 static void
@@ -289,6 +315,9 @@ disasm(struct emu *emu)
 
    setup_packet_table(&options, emu->jmptbl, ARRAY_SIZE(emu->jmptbl));
 
+   jumptbl_offset = find_jump_table(emu->instrs, sizedwords, emu->jmptbl,
+                                    ARRAY_SIZE(emu->jmptbl));
+
    /* TODO add option to emulate LPAC SQE instead: */
    if (emulator) {
       /* Start from clean slate: */
@@ -302,9 +331,30 @@ disasm(struct emu *emu)
    }
 
    /* print instructions: */
-   isa_disasm(emu->instrs, sizedwords * 4, stdout, &options);
+   afuc_isa_disasm(emu->instrs, MIN2(sizedwords, jumptbl_offset) * 4, stdout, &options);
+
+   /* print jump table */
+   if (jumptbl_offset != ~0) {
+      if (gpuver >= 7) {
+         /* The BV/LPAC microcode must be aligned to 32 bytes. On a7xx, by
+          * convention the firmware aligns the jumptable preceding it instead
+          * of the microcode itself, with nop instructions. Insert this
+          * directive to make sure that it stays aligned when reassembling
+          * even if the user modifies the BR microcode.
+          */
+         printf(".align 32\n");
+      }
+      printf("jumptbl:\n");
+      printf(".jumptbl\n");
+
+      if (jumptbl_offset + ARRAY_SIZE(emu->jmptbl) != sizedwords) {
+         for (unsigned i = jumptbl_offset + ARRAY_SIZE(emu->jmptbl); i < sizedwords; i++)
+            printf("[%08x]\n", emu->instrs[i]);
+      }
+   }
 
    if (bv_offset) {
+      printf("\n.section BV\n");
       printf(";\n");
       printf("; BV microcode:\n");
       printf(";\n");
@@ -322,13 +372,27 @@ disasm(struct emu *emu)
 
       uint32_t sizedwords = lpac_offset - bv_offset;
 
-      isa_disasm(emu->instrs, sizedwords * 4, stdout, &options);
+      jumptbl_offset = find_jump_table(emu->instrs, sizedwords, emu->jmptbl,
+                                       ARRAY_SIZE(emu->jmptbl));
+
+      afuc_isa_disasm(emu->instrs, MIN2(sizedwords, jumptbl_offset) * 4, stdout, &options);
+
+      if (jumptbl_offset != ~0) {
+         printf(".align 32\n");
+         printf("jumptbl:\n");
+         printf(".jumptbl\n");
+         if (jumptbl_offset + ARRAY_SIZE(emu->jmptbl) != sizedwords) {
+            for (unsigned i = jumptbl_offset + ARRAY_SIZE(emu->jmptbl); i < sizedwords; i++)
+               printf("[%08x]\n", emu->instrs[i]);
+         }
+      }
 
       emu->instrs -= bv_offset;
       emu->sizedwords += bv_offset;
    }
 
    if (lpac_offset) {
+      printf("\n.section LPAC\n");
       printf(";\n");
       printf("; LPAC microcode:\n");
       printf(";\n");
@@ -344,7 +408,19 @@ disasm(struct emu *emu)
 
       setup_packet_table(&options, emu->jmptbl, ARRAY_SIZE(emu->jmptbl));
 
-      isa_disasm(emu->instrs, emu->sizedwords * 4, stdout, &options);
+      jumptbl_offset = find_jump_table(emu->instrs, emu->sizedwords, emu->jmptbl,
+                                       ARRAY_SIZE(emu->jmptbl));
+
+      afuc_isa_disasm(emu->instrs, MIN2(emu->sizedwords, jumptbl_offset) * 4, stdout, &options);
+
+      if (jumptbl_offset != ~0) {
+         printf("jumptbl:\n");
+         printf(".jumptbl\n");
+         if (jumptbl_offset + ARRAY_SIZE(emu->jmptbl) != emu->sizedwords) {
+            for (unsigned i = jumptbl_offset + ARRAY_SIZE(emu->jmptbl); i < emu->sizedwords; i++)
+               printf("[%08x]\n", emu->instrs[i]);
+         }
+      }
 
       emu->instrs -= lpac_offset;
       emu->sizedwords += lpac_offset;
@@ -359,7 +435,7 @@ disasm_raw(uint32_t *instrs, int sizedwords)
    get_decode_options(&options);
    options.cbdata = &state;
 
-   isa_disasm(instrs, sizedwords * 4, stdout, &options);
+   afuc_isa_disasm(instrs, sizedwords * 4, stdout, &options);
 }
 
 static void
@@ -379,7 +455,7 @@ disasm_legacy(uint32_t *buf, int sizedwords)
    setup_packet_table(&options, jmptbl, 0x80);
 
    /* print instructions: */
-   isa_disasm(instrs, sizedwords * 4, stdout, &options);
+   afuc_isa_disasm(instrs, sizedwords * 4, stdout, &options);
 
    /* print jumptable: */
    if (verbose) {
@@ -408,7 +484,7 @@ usage(void)
                    "\tdisasm [-g GPUVER] [-v] [-c] [-r] filename.asm\n"
                    "\t\t-c - use colors\n"
                    "\t\t-e - emulator mode\n"
-                   "\t\t-g - specify GPU version (5, etc)\n"
+                   "\t\t-g - override GPU firmware id\n"
                    "\t\t-r - raw disasm, don't try to find jumptable\n"
                    "\t\t-v - verbose output\n"
            );
@@ -421,11 +497,11 @@ main(int argc, char **argv)
    uint32_t *buf;
    char *file;
    bool colors = false;
-   uint32_t gpu_id = 0;
    size_t sz;
    int c, ret;
    bool unit_test = false;
    bool raw = false;
+   enum afuc_fwid fw_id = 0;
 
    /* Argument parsing: */
    while ((c = getopt(argc, argv, "ceg:rvu")) != -1) {
@@ -438,7 +514,7 @@ main(int argc, char **argv)
          verbose  = true;
          break;
       case 'g':
-         gpu_id = atoi(optarg);
+         fw_id = strtol(optarg, NULL, 16);
          break;
       case 'r':
          raw = true;
@@ -464,41 +540,26 @@ main(int argc, char **argv)
 
    file = argv[optind];
 
-   /* if gpu version not specified, infer from filename: */
-   if (!gpu_id) {
-      char *str = strstr(file, "a5");
-      if (!str)
-         str = strstr(file, "a6");
-      if (!str)
-         str = strstr(file, "a7");
-      if (str)
-         gpu_id = atoi(str + 1);
-   }
+   buf = (uint32_t *)os_read_file(file, &sz);
 
-   if (gpu_id < 500) {
-      printf("invalid gpu_id: %d\n", gpu_id);
-      return -1;
-   }
+   if (!fw_id)
+      fw_id = afuc_get_fwid(buf[1]);
 
-   gpuver = gpu_id / 100;
+   ret = afuc_util_init(fw_id, &gpuver, colors);
+   if (ret < 0) {
+      usage();
+   }
 
    /* a6xx is *mostly* a superset of a5xx, but some opcodes shuffle
     * around, and behavior of special regs is a bit different.  Right
     * now we only bother to support the a6xx variant.
     */
-   if (emulator && (gpuver != 6)) {
-      fprintf(stderr, "Emulator only supported on a6xx!\n");
+   if (emulator && (gpuver < 6 || gpuver > 7)) {
+      fprintf(stderr, "Emulator only supported on a6xx-a7xx!\n");
       return 1;
    }
 
-   ret = afuc_util_init(gpuver, colors);
-   if (ret < 0) {
-      usage();
-   }
-
    printf("; a%dxx microcode\n", gpuver);
-
-   buf = (uint32_t *)os_read_file(file, &sz);
 
    if (!unit_test)
       printf("; Disassembling microcode: %s\n", file);
@@ -512,7 +573,7 @@ main(int argc, char **argv)
       struct emu emu = {
             .instrs = &buf[1],
             .sizedwords = sz / 4 - 1,
-            .gpu_id = gpu_id,
+            .fw_id = fw_id,
       };
 
       disasm(&emu);

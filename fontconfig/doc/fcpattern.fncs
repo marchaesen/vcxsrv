@@ -181,7 +181,7 @@ values added to the list have binding <parameter>weak</parameter> instead of <pa
 @FUNC++++++@    FcPatternAddFTFace
 @TYPE1++++++@   FcPattern *                     @ARG1++++++@    p
 @TYPE2++++++@   const char *                    @ARG2++++++@    object
-@TYPE3++++++@   const FT_Face                   @ARG3++++++@    f
+@TYPE3++++++@   const FT_Face%                  @ARG3++++++@    f
 
 @PROTOTYPE+++++++@
 @RET+++++++@    FcBool
@@ -480,7 +480,7 @@ point to. if <parameter>iter</parameter> isn't valid, returns 0.
 @FUNC@          FcPatternIterGetValue
 @TYPE1@         const FcPattern *               @ARG1@          p
 @TYPE2@         FcPatternIter *                 @ARG2@          iter
-@TYPE3@         int                             @ARG3@          id
+@TYPE3@         int%                            @ARG3@          id
 @TYPE4@         FcValue *                       @ARG4@          v
 @TYPE5@         FcValueBinding *                @ARG5@          b
 @PURPOSE@       Returns a value which the iterator point to

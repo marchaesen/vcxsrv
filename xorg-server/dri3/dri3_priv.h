@@ -102,4 +102,7 @@ dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
                              CARD32 *num_screen_modifiers,
                              CARD64 **screen_modifiers);
 
+int
+dri3_import_syncobj(ClientPtr client, ScreenPtr screen, XID id, int fd);
+
 #endif /* _DRI3PRIV_H_ */

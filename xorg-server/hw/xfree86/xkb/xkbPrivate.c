@@ -10,7 +10,6 @@
 #include <stdio.h>
 #include <X11/X.h>
 #include "windowstr.h"
-#define XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 
 #include "dixgrabs.h"

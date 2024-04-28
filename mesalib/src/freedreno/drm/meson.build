@@ -43,6 +43,15 @@ libfreedreno_drm_deps = [
   dep_valgrind,
 ]
 
+if with_perfetto
+  libfreedreno_drm_deps += dep_perfetto
+  libfreedreno_drm_files += 'freedreno_drm_perfetto.cc'
+endif
+
+# The header file ends up part of the build (but just a stub)
+# in either case:
+libfreedreno_drm_files += 'freedreno_drm_perfetto.h'
+
 libfreedreno_drm_msm_files = files(
   'msm/msm_bo.c',
   'msm/msm_device.c',

@@ -1,25 +1,8 @@
 /*
  * Copyright 2008 Corbin Simpson <MostAwesomeDude@gmail.com>
  * Copyright 2009 Marek Olšák <maraeo@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "draw/draw_context.h"
 
@@ -1045,8 +1028,6 @@ static void* r300_create_fs_state(struct pipe_context* pipe,
     fs->state = *shader;
 
     if (fs->state.type == PIPE_SHADER_IR_NIR) {
-       if (r300->screen->caps.is_r500)
-           NIR_PASS_V(shader->ir.nir, r300_transform_fs_trig_input);
        fs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen);
     } else {
        assert(fs->state.type == PIPE_SHADER_IR_TGSI);
@@ -1118,6 +1099,8 @@ static void r300_delete_fs_state(struct pipe_context* pipe, void* shader)
 {
     struct r300_fragment_shader* fs = (struct r300_fragment_shader*)shader;
     struct r300_fragment_shader_code *tmp, *ptr = fs->first;
+
+    free(fs->shader->code.constants_remap_table);
 
     while (ptr) {
         tmp = ptr;
@@ -1772,22 +1755,19 @@ static void r300_set_viewport_states(struct pipe_context* pipe,
 
 static void r300_set_vertex_buffers_hwtcl(struct pipe_context* pipe,
                                     unsigned count,
-                                    unsigned unbind_num_trailing_slots,
-                                    bool take_ownership,
                                     const struct pipe_vertex_buffer* buffers)
 {
     struct r300_context* r300 = r300_context(pipe);
 
     util_set_vertex_buffers_count(r300->vertex_buffer,
-                                  &r300->nr_vertex_buffers,
-                                  buffers, count,
-                                  unbind_num_trailing_slots, take_ownership);
+                                  &r300->nr_vertex_buffers, buffers, count,
+                                  true);
 
     /* There must be at least one vertex buffer set, otherwise it locks up. */
     if (!r300->nr_vertex_buffers) {
         util_set_vertex_buffers_count(r300->vertex_buffer,
                                       &r300->nr_vertex_buffers,
-                                      &r300->dummy_vb, 1, 0, false);
+                                      &r300->dummy_vb, 1, false);
     }
 
     r300->vertex_arrays_dirty = true;
@@ -1795,19 +1775,15 @@ static void r300_set_vertex_buffers_hwtcl(struct pipe_context* pipe,
 
 static void r300_set_vertex_buffers_swtcl(struct pipe_context* pipe,
                                     unsigned count,
-                                    unsigned unbind_num_trailing_slots,
-                                    bool take_ownership,
                                     const struct pipe_vertex_buffer* buffers)
 {
     struct r300_context* r300 = r300_context(pipe);
     unsigned i;
 
     util_set_vertex_buffers_count(r300->vertex_buffer,
-                                  &r300->nr_vertex_buffers,
-                                  buffers, count,
-                                  unbind_num_trailing_slots, take_ownership);
-    draw_set_vertex_buffers(r300->draw, count,
-                            unbind_num_trailing_slots, buffers);
+                                  &r300->nr_vertex_buffers, buffers, count,
+                                  true);
+    draw_set_vertex_buffers(r300->draw, count, buffers);
 
     if (!buffers)
         return;
@@ -1945,39 +1921,7 @@ static void* r300_create_vs_state(struct pipe_context* pipe,
     vs->state = *shader;
 
     if (vs->state.type == PIPE_SHADER_IR_NIR) {
-       static const struct nir_to_rc_options swtcl_options = {0};
-       static const struct nir_to_rc_options hwtcl_r300_options = {
-           .lower_cmp = true,
-           .lower_fabs = true,
-           .ubo_vec4_max = 0x00ff,
-           .unoptimized_ra = true,
-       };
-       static const struct nir_to_rc_options hwtcl_r500_options = {
-           .ubo_vec4_max = 0x00ff,
-           .unoptimized_ra = true,
-       };
-       const struct nir_to_rc_options *ntr_options;
-       if (r300->screen->caps.has_tcl) {
-           if (r300->screen->caps.is_r500) {
-               ntr_options = &hwtcl_r500_options;
-
-               /* Only nine should set both NTT shader name and
-                * use_legacy_math_rules and D3D9 already mandates
-                * the proper range for the trigonometric inputs.
-                */
-               struct shader_info *info = &(((struct nir_shader *)(shader->ir.nir))->info);
-               if (!info->use_legacy_math_rules ||
-                   !(info->name && !strcmp("TTN", info->name))) {
-                   NIR_PASS_V(shader->ir.nir, r300_transform_vs_trig_input);
-               }
-           }
-           else
-               ntr_options = &hwtcl_r300_options;
-       } else {
-           ntr_options = &swtcl_options;
-       }
-       vs->state.tokens = nir_to_rc_options(shader->ir.nir, pipe->screen,
-                                              ntr_options);
+       vs->state.tokens = nir_to_rc(shader->ir.nir, pipe->screen);
     } else {
        assert(vs->state.type == PIPE_SHADER_IR_TGSI);
        /* we need to keep a local copy of the tokens */

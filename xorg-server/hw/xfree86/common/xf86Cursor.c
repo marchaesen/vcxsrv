@@ -46,6 +46,7 @@
 
 #ifdef XFreeXDGA
 #include "dgaproc.h"
+#include "dgaproc_priv.h"
 #endif
 
 typedef struct _xf86EdgeRec {

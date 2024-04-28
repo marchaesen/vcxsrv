@@ -50,56 +50,62 @@
 #include "protocol-common.h"
 #include "exglobals.h"
 
+DECLARE_WRAP_FUNCTION(WriteToClient, void, ClientPtr client, int len, void *data);
+
 extern XExtensionVersion XIVersion;
 
-struct test_data {
+static struct test_data {
     int major_client;
     int minor_client;
     int major_server;
     int minor_server;
     int major_expected;
     int minor_expected;
-};
+} versions;
+
 
 extern ClientRec client_window;
 
 static void
-reply_XIQueryVersion(ClientPtr client, int len, char *data, void *closure)
+reply_XIQueryVersion(ClientPtr client, int len, void *data)
 {
-    xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
-    struct test_data *versions = (struct test_data *) closure;
+    xXIQueryVersionReply *reply = (xXIQueryVersionReply *) data;
+    xXIQueryVersionReply rep = *reply; /* copy so swapping doesn't touch the real reply */
+
     unsigned int sver, cver, ver;
 
+    assert(len < 0xffff); /* suspicious size, swapping bug */
+
     if (client->swapped) {
-        swapl(&rep->length);
-        swaps(&rep->sequenceNumber);
-        swaps(&rep->major_version);
-        swaps(&rep->minor_version);
+        swapl(&rep.length);
+        swaps(&rep.sequenceNumber);
+        swaps(&rep.major_version);
+        swaps(&rep.minor_version);
     }
 
-    reply_check_defaults(rep, len, XIQueryVersion);
+    reply_check_defaults(&rep, len, XIQueryVersion);
 
-    assert(rep->length == 0);
+    assert(rep.length == 0);
 
-    sver = versions->major_server * 1000 + versions->minor_server;
-    cver = versions->major_client * 1000 + versions->minor_client;
-    ver = rep->major_version * 1000 + rep->minor_version;
+    sver = versions.major_server * 1000 + versions.minor_server;
+    cver = versions.major_client * 1000 + versions.minor_client;
+    ver = rep.major_version * 1000 + rep.minor_version;
 
     assert(ver >= 2000);
     assert((sver > cver) ? ver == cver : ver == sver);
 }
 
 static void
-reply_XIQueryVersion_multiple(ClientPtr client, int len, char *data, void *closure)
+reply_XIQueryVersion_multiple(ClientPtr client, int len, void *data)
 {
-    xXIQueryVersionReply *rep = (xXIQueryVersionReply *) data;
-    struct test_data *versions = (struct test_data *) closure;
+    xXIQueryVersionReply *reply = (xXIQueryVersionReply *) data;
+    xXIQueryVersionReply rep = *reply; /* copy so swapping doesn't touch the real reply */
 
-    reply_check_defaults(rep, len, XIQueryVersion);
-    assert(rep->length == 0);
+    reply_check_defaults(&rep, len, XIQueryVersion);
+    assert(rep.length == 0);
 
-    assert(versions->major_expected == rep->major_version);
-    assert(versions->minor_expected == rep->minor_version);
+    assert(versions.major_expected == rep.major_version);
+    assert(versions.minor_expected == rep.minor_version);
 }
 
 /**
@@ -112,13 +118,11 @@ static void
 request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
 {
     int rc;
-    struct test_data versions;
     xXIQueryVersionReq request;
     ClientRec client;
 
     request_init(&request, XIQueryVersion);
     client = init_client(request.length, &request);
-    global_userdata = (void *) &versions;
 
     /* Change the server to support smaj.smin */
     XIVersion.major_version = smaj;
@@ -151,25 +155,27 @@ request_XIQueryVersion(int smaj, int smin, int cmaj, int cmin, int error)
 static void
 test_XIQueryVersion(void)
 {
-    reply_handler = reply_XIQueryVersion;
+    init_simple();
 
-    printf("Server version 2.0 - client versions [1..3].0\n");
+    wrapped_WriteToClient = reply_XIQueryVersion;
+
+    dbg("Server version 2.0 - client versions [1..3].0\n");
     /* some simple tests to catch common errors quickly */
     request_XIQueryVersion(2, 0, 1, 0, BadValue);
     request_XIQueryVersion(2, 0, 2, 0, Success);
     request_XIQueryVersion(2, 0, 3, 0, Success);
 
-    printf("Server version 3.0 - client versions [1..3].0\n");
+    dbg("Server version 3.0 - client versions [1..3].0\n");
     request_XIQueryVersion(3, 0, 1, 0, BadValue);
     request_XIQueryVersion(3, 0, 2, 0, Success);
     request_XIQueryVersion(3, 0, 3, 0, Success);
 
-    printf("Server version 2.0 - client versions [1..3].[1..3]\n");
+    dbg("Server version 2.0 - client versions [1..3].[1..3]\n");
     request_XIQueryVersion(2, 0, 1, 1, BadValue);
     request_XIQueryVersion(2, 0, 2, 2, Success);
     request_XIQueryVersion(2, 0, 3, 3, Success);
 
-    printf("Server version 2.2 - client versions [1..3].0\n");
+    dbg("Server version 2.2 - client versions [1..3].0\n");
     request_XIQueryVersion(2, 2, 1, 0, BadValue);
     request_XIQueryVersion(2, 2, 2, 0, Success);
     request_XIQueryVersion(2, 2, 3, 0, Success);
@@ -178,7 +184,7 @@ test_XIQueryVersion(void)
     /* this one takes a while */
     unsigned int cmin, cmaj, smin, smaj;
 
-    printf("Testing all combinations.\n");
+    dbg("Testing all combinations.\n");
     for (smaj = 2; smaj <= 0xFFFF; smaj++)
         for (smin = 0; smin <= 0xFFFF; smin++)
             for (cmin = 0; cmin <= 0xFFFF; cmin++)
@@ -189,8 +195,6 @@ test_XIQueryVersion(void)
                 }
 
 #endif
-
-    reply_handler = NULL;
 }
 
 
@@ -200,8 +204,9 @@ test_XIQueryVersion_multiple(void)
     xXIQueryVersionReq request;
     ClientRec client;
     XIClientPtr pXIClient;
-    struct test_data versions;
     int rc;
+
+    init_simple();
 
     request_init(&request, XIQueryVersion);
     client = init_client(request.length, &request);
@@ -210,8 +215,7 @@ test_XIQueryVersion_multiple(void)
     XIVersion.major_version = 2;
     XIVersion.minor_version = 2;
 
-    reply_handler = reply_XIQueryVersion_multiple;
-    global_userdata = (void *) &versions;
+    wrapped_WriteToClient = reply_XIQueryVersion_multiple;
 
     /* run 1 */
 
@@ -290,13 +294,14 @@ test_XIQueryVersion_multiple(void)
     assert(rc == BadValue);
 }
 
-int
+const testfunc_t*
 protocol_xiqueryversion_test(void)
 {
-    init_simple();
+    static const testfunc_t testfuncs[] = {
+        test_XIQueryVersion,
+        test_XIQueryVersion_multiple,
+        NULL,
+    };
 
-    test_XIQueryVersion();
-    test_XIQueryVersion_multiple();
-
-    return 0;
+    return testfuncs;
 }

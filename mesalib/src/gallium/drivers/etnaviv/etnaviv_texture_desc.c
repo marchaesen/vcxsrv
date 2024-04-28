@@ -93,6 +93,8 @@ etna_create_sampler_state_desc(struct pipe_context *pipe,
       VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MIN(translate_texture_filter(ss->min_img_filter)) |
       VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MIP(translate_texture_mipfilter(ss->min_mip_filter)) |
       VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_MAG(translate_texture_filter(ss->mag_img_filter)) |
+      COND(ss->compare_mode, VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_COMPARE_ENABLE) |
+      VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_COMPARE_FUNC(translate_texture_compare(ss->compare_func)) |
       VIVS_NTE_DESCRIPTOR_SAMP_CTRL0_UNK21;
       /* no ROUND_UV bit? */
    cs->SAMP_CTRL1 = VIVS_NTE_DESCRIPTOR_SAMP_CTRL1_UNK1;

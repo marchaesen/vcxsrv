@@ -57,7 +57,7 @@
 
 #include "util/simple_mtx.h"
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #define DEBUG_PRINT(msg, ...) fprintf(stderr, msg, __VA_ARGS__)
 #else
 #define DEBUG_PRINT(msg, ...)
@@ -483,6 +483,7 @@ static void
 kms_sw_displaytarget_display(struct sw_winsys *ws,
                              struct sw_displaytarget *dt,
                              void *context_private,
+                             unsigned nboxes,
                              struct pipe_box *box)
 {
    /* This function should not be called, instead the dri2 loader should

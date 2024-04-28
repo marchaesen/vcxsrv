@@ -101,7 +101,7 @@ flush_delayed_errors( struct gl_context *ctx )
 
 /**
  * Report a warning (a recoverable error condition) to stderr if
- * either DEBUG is defined or the MESA_DEBUG env var is set.
+ * either MESA_DEBUG is defined to 1 or the MESA_DEBUG env var is set.
  *
  * \param ctx GL context.
  * \param fmtString printf()-like format string.
@@ -257,7 +257,7 @@ _mesa_gl_debug(struct gl_context *ctx,
  * Record an OpenGL state error.  These usually occur when the user
  * passes invalid parameters to a GL function.
  *
- * If debugging is enabled (either at compile-time via the DEBUG macro, or
+ * If debugging is enabled (either at compile-time via the MESA_DEBUG macro, or
  * run-time via the MESA_DEBUG environment variable), report the error with
  * _mesa_debug().
  *
@@ -341,8 +341,8 @@ _mesa_error_no_memory(const char *caller)
 }
 
 /**
- * Report debug information.  Print error message to stderr via fprintf().
- * No-op if DEBUG mode not enabled.
+ * Report debug information.  Print error message to stderr via fprintf()
+ * when debug mode is enabled by NDEBUG; otherwise no-op.
  *
  * \param ctx GL context.
  * \param fmtString printf()-style format string, followed by optional args.
@@ -357,7 +357,7 @@ _mesa_debug( const struct gl_context *ctx, const char *fmtString, ... )
    vsnprintf(s, MAX_DEBUG_MESSAGE_LENGTH, fmtString, args);
    va_end(args);
    output_if_debug(MESA_LOG_DEBUG, s);
-#endif /* DEBUG */
+#endif /* !NDEBUG */
    (void) ctx;
    (void) fmtString;
 }

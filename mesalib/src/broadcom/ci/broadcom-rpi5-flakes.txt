@@ -1,2 +1,15 @@
-# First time seen when added rpi5 nightly test
+dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multiple_interpolation.structured.no_sample_decoration.4_samples
+dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multiple_interpolation.structured.no_sample_decoration.4_samples
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1024
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1024
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1048576
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.8192
 dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.queuefamily.payload_local.image.guard_local.image.frag
+dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.subgroup.payload_local.image.guard_local.buffer.frag
+dEQP-VK.memory_model.message_passing.ext.u32.coherent.atomic_fence.atomicwrite.subgroup.payload_local.image.guard_local.buffer.frag
+dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.fence_fence.atomicwrite.device.payload_local.image.guard_local.buffer.frag
+dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.fence_fence.atomicwrite.queuefamily.payload_local.image.guard_local.image.frag
+dEQP-VK.pipeline.monolithic.image.suballocation.sampling_type.combined.view_type.1d_array.format.r8_unorm.count_1.size.443x1_array_of_6
+dEQP-VK.spirv_assembly.type.scalar.i8.shift_left_logical_shift16_tesse
+dEQP-VK.synchronization2.cross_instance.suballocated.write_blit_image_read_image_tess_eval.image_128x128_r32g32b32a32_sfloat_binary_semaphore_fence_fd
+dEQP-VK.texture.shadow.cube.linear.less_d24_unorm_s8_uint

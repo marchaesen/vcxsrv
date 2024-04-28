@@ -12,10 +12,8 @@ use rusticl_opencl_gen::*;
 use rusticl_proc_macros::cl_entrypoint;
 use rusticl_proc_macros::cl_info_entrypoint;
 
-use std::collections::HashSet;
 use std::ffi::c_char;
 use std::ffi::c_void;
-use std::iter::FromIterator;
 use std::mem::transmute;
 use std::mem::MaybeUninit;
 use std::ptr;
@@ -24,7 +22,7 @@ use std::slice;
 #[cl_info_entrypoint(cl_get_context_info)]
 impl CLInfo<cl_context_info> for cl_context {
     fn query(&self, q: cl_context_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
-        let ctx = self.get_ref()?;
+        let ctx = Context::ref_from_raw(*self)?;
         Ok(match q {
             CL_CONTEXT_DEVICES => cl_prop::<Vec<cl_device_id>>(
                 ctx.devs
@@ -34,7 +32,7 @@ impl CLInfo<cl_context_info> for cl_context {
             ),
             CL_CONTEXT_NUM_DEVICES => cl_prop::<cl_uint>(ctx.devs.len() as u32),
             CL_CONTEXT_PROPERTIES => cl_prop::<&Properties<cl_context_properties>>(&ctx.properties),
-            CL_CONTEXT_REFERENCE_COUNT => cl_prop::<cl_uint>(self.refcnt()?),
+            CL_CONTEXT_REFERENCE_COUNT => cl_prop::<cl_uint>(Context::refcnt(*self)?),
             // CL_INVALID_VALUE if param_name is not one of the supported values
             _ => return Err(CL_INVALID_VALUE),
         })
@@ -164,9 +162,10 @@ fn create_context(
     }
 
     // Duplicate devices specified in devices are ignored.
-    let set: HashSet<_> =
-        HashSet::from_iter(unsafe { slice::from_raw_parts(devices, num_devices as usize) }.iter());
-    let devs: Result<_, _> = set.into_iter().map(cl_device_id::get_ref).collect();
+    let mut devs = unsafe { slice::from_raw_parts(devices, num_devices as usize) }.to_owned();
+    devs.sort();
+    devs.dedup();
+    let devs: Result<_, _> = devs.into_iter().map(Device::ref_from_raw).collect();
     let devs: Vec<&Device> = devs?;
 
     let gl_ctx_manager = GLCtxManager::new(gl_context, glx_display, egl_display)?;
@@ -194,11 +193,7 @@ fn create_context(
         }
     }
 
-    Ok(cl_context::from_arc(Context::new(
-        devs,
-        props,
-        gl_ctx_manager,
-    )))
+    Ok(Context::new(devs, props, gl_ctx_manager).into_cl())
 }
 
 #[cl_entrypoint]
@@ -234,12 +229,12 @@ fn create_context_from_type(
 
 #[cl_entrypoint]
 fn retain_context(context: cl_context) -> CLResult<()> {
-    context.retain()
+    Context::retain(context)
 }
 
 #[cl_entrypoint]
 fn release_context(context: cl_context) -> CLResult<()> {
-    context.release()
+    Context::release(context)
 }
 
 #[cl_entrypoint]
@@ -248,7 +243,7 @@ fn set_context_destructor_callback(
     pfn_notify: ::std::option::Option<FuncDeleteContextCB>,
     user_data: *mut ::std::os::raw::c_void,
 ) -> CLResult<()> {
-    let c = context.get_ref()?;
+    let c = Context::ref_from_raw(context)?;
 
     // SAFETY: The requirements on `DeleteContextCB::new` match the requirements
     // imposed by the OpenCL specification. It is the caller's duty to uphold them.

@@ -415,7 +415,6 @@ LRESULT CALLBACK
 winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     POINT ptMouse;
-    PAINTSTRUCT ps;
     WindowPtr pWin = NULL;
     winPrivWinPtr pWinPriv = NULL;
     ScreenPtr s_pScreen = NULL;
@@ -430,7 +429,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
     LRESULT ret;
     static Bool hasEnteredSizeMove = FALSE;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebugWin32Message("winTopLevelWindowProc", hwnd, message, wParam,
                          lParam);
 #endif
@@ -578,6 +577,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
 #ifdef XWIN_GLX_WINDOWS
         if (pWinPriv->fWglUsed) {
+            PAINTSTRUCT ps;
             /*
                For regions which are being drawn by GL, the shadow framebuffer doesn't have the
                correct bits, so don't bitblt from the shadow framebuffer
@@ -621,13 +621,11 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Are we tracking yet? */
         if (!s_fTracking) {
-            TRACKMOUSEEVENT tme;
-
-            /* Setup data structure */
-            ZeroMemory(&tme, sizeof(tme));
-            tme.cbSize = sizeof(tme);
-            tme.dwFlags = TME_LEAVE;
-            tme.hwndTrack = hwnd;
+            TRACKMOUSEEVENT tme = (TRACKMOUSEEVENT) {
+                .cbSize = sizeof(TRACKMOUSEEVENT),
+                .dwFlags = TME_LEAVE,
+                .hwndTrack = hwnd,
+            };
 
             /* Call the tracking function */
             if (!TrackMouseEvent(&tme))
@@ -844,7 +842,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         if (wParam == VK_F4 && (GetKeyState(VK_MENU) & 0x8000))
             break;
 
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
         if (wParam == VK_ESCAPE) {
             /* Place for debug: put any tests and dumps here */
             WINDOWPLACEMENT windPlace;
@@ -1011,7 +1009,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
             HWND forHwnd = GetForegroundWindow();
 
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
             ErrorF("overridden window is shown\n");
 #endif
             if (forHwnd != NULL) {
@@ -1046,13 +1044,13 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         LPWINDOWPOS pWinPos = (LPWINDOWPOS) lParam;
 
         if (!(pWinPos->flags & SWP_NOZORDER)) {
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
             winDebug("\twindow z order was changed\n");
 #endif
             if (pWinPos->hwndInsertAfter == HWND_TOP
                 || pWinPos->hwndInsertAfter == HWND_TOPMOST
                 || pWinPos->hwndInsertAfter == HWND_NOTOPMOST) {
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
                 winDebug("\traise to top\n");
 #endif
                 /* Raise the window to the top in Z order */
@@ -1081,7 +1079,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 /* If this is top of X windows in Windows stack,
                    raise it in X stack. */
                 if (hWndAbove == NULL) {
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
                     winDebug("\traise to top\n");
 #endif
                     winRaiseWindow(pWin);
@@ -1107,7 +1105,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
     case WM_SIZE:
         /* see dix/window.c */
-#if CYGWINDOWING_DEBUG
+#if ENABLE_DEBUG
     {
         char buf[64];
 
@@ -1211,7 +1209,7 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 
         /* Check if this window needs to be made active when clicked */
         if (!GetProp(pWinPriv->hWnd, WIN_NEEDMANAGE_PROP)) {
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
             ErrorF("winTopLevelWindowProc - WM_MOUSEACTIVATE - "
                    "MA_NOACTIVATE\n");
 #endif

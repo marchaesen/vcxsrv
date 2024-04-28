@@ -374,16 +374,10 @@ static void si_create_fence_fd(struct pipe_context *ctx, struct pipe_fence_handl
 
    switch (type) {
    case PIPE_FD_TYPE_NATIVE_SYNC:
-      if (!sscreen->info.has_fence_to_handle)
-         goto finish;
-
       sfence->gfx = ws->fence_import_sync_file(ws, fd);
       break;
 
    case PIPE_FD_TYPE_SYNCOBJ:
-      if (!sscreen->info.has_syncobj)
-         goto finish;
-
       sfence->gfx = ws->fence_import_syncobj(ws, fd);
       break;
 
@@ -391,7 +385,6 @@ static void si_create_fence_fd(struct pipe_context *ctx, struct pipe_fence_handl
       unreachable("bad fence fd type when importing");
    }
 
-finish:
    if (!sfence->gfx) {
       FREE(sfence);
       return;
@@ -406,9 +399,6 @@ static int si_fence_get_fd(struct pipe_screen *screen, struct pipe_fence_handle 
    struct radeon_winsys *ws = sscreen->ws;
    struct si_fence *sfence = (struct si_fence *)fence;
    int gfx_fd = -1;
-
-   if (!sscreen->info.has_fence_to_handle)
-      return -1;
 
    util_queue_fence_wait(&sfence->ready);
 

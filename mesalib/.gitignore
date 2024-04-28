@@ -3,3 +3,4 @@
 *.pyo
 *.out
 /build
+.venv/

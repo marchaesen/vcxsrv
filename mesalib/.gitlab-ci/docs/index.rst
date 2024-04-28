@@ -305,6 +305,12 @@ The ``--target`` argument takes a regex that you can use to select the
 jobs names you want to run, eg. ``--target 'zink.*'`` will run all the
 zink jobs, leaving the other drivers' jobs free for others to use.
 
+Note that in fork pipelines, GitLab only adds the jobs for the files that have
+changed **since the last push**, so you might not get the jobs you expect.
+You can work around that by adding a dummy change in a file core to what you're
+working on and then making a new push with that change, and removing that change
+before you create the MR.
+
 Conformance Tests
 -----------------
 

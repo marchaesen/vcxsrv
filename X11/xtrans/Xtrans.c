@@ -204,8 +204,9 @@ TRANS(ParseAddress) (const char *address,
 
     char	*mybuf, *tmpptr = NULL;
     const char	*_protocol = NULL;
-    char	*_host, *_port;
+    const char	*_host, *_port;
     char	hostnamebuf[256];
+    char	*_host_buf;
     int		_host_len;
 
     prmsg (3,"ParseAddress(%s)\n", address);
@@ -293,7 +294,7 @@ TRANS(ParseAddress) (const char *address,
 
     /* Get the host part */
 
-    _host = mybuf;
+    _host = _host_buf = mybuf;
 
     if ((mybuf = strrchr (mybuf,':')) == NULL)
     {
@@ -316,10 +317,10 @@ TRANS(ParseAddress) (const char *address,
     /* hostname in IPv6 [numeric_addr]:0 form? */
     else if ( (_host_len > 3) &&
       ((strcmp(_protocol, "tcp") == 0) || (strcmp(_protocol, "inet6") == 0))
-      && (*_host == '[') && (*(_host + _host_len - 1) == ']') ) {
+      && (_host_buf[0] == '[') && (_host_buf[_host_len - 1] == ']') ) {
 	struct sockaddr_in6 sin6;
 
-	*(_host + _host_len - 1) = '\0';
+	_host_buf[_host_len - 1] = '\0';
 
 	/* Verify address is valid IPv6 numeric form */
 	if (inet_pton(AF_INET6, _host + 1, &sin6) == 1) {
@@ -328,7 +329,7 @@ TRANS(ParseAddress) (const char *address,
 	    _protocol = "inet6";
 	} else {
 	    /* It's not, restore it just in case some other code can use it. */
-	    *(_host + _host_len - 1) = ']';
+	    _host_buf[_host_len - 1] = ']';
 	}
     }
 #endif
@@ -1348,7 +1349,7 @@ int TRANS(GetHostname) (char *buf, int maxlen)
     uname (&name);
     len = strlen (name.nodename);
     if (len >= maxlen) len = maxlen - 1;
-    strncpy (buf, name.nodename, len);
+    memcpy (buf, name.nodename, len);
     buf[len] = '\0';
 #else
     buf[0] = '\0';

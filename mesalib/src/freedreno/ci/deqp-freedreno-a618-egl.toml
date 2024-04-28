@@ -1,7 +1,7 @@
 # x11
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-x11"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 skips = ["install/freedreno-a618-premerge-skips.txt"]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -11,7 +11,7 @@ deqp_args = [
 
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-wayland"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 skips = ["install/freedreno-a618-premerge-skips.txt"]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",

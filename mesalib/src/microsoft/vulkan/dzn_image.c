@@ -261,7 +261,8 @@ dzn_image_create(struct dzn_device *device,
    }
 
    if (pCreateInfo->sharingMode == VK_SHARING_MODE_CONCURRENT &&
-       !(image->desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL))
+       !(image->desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL) &&
+       image->desc.SampleDesc.Count == 1)
       image->desc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
 
    *out = dzn_image_to_handle(image);
@@ -820,9 +821,17 @@ dzn_BindImageMemory2(VkDevice dev,
       VK_FROM_HANDLE(dzn_device_memory, mem, bind_info->memory);
       VK_FROM_HANDLE(dzn_image, image, bind_info->image);
 
-      vk_foreach_struct_const(s, bind_info->pNext) {
-         dzn_debug_ignored_stype(s->sType);
+#ifdef DZN_USE_WSI_PLATFORM
+      const VkBindImageMemorySwapchainInfoKHR *swapchain_info =
+         vk_find_struct_const(pBindInfos[i].pNext, BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR);
+
+      if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE) {
+         struct dzn_image *swapchain_img =
+            dzn_image_from_handle(wsi_common_get_image(swapchain_info->swapchain, swapchain_info->imageIndex));
+
+         mem = swapchain_img->mem;
       }
+#endif
 
       image->mem = mem;
 

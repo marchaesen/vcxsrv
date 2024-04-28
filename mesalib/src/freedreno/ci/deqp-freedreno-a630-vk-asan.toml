@@ -1,7 +1,7 @@
 # Basic test set
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
 fraction = 1000
 renderer_check = "Turnip Adreno .* 630"
@@ -12,7 +12,7 @@ ASAN_OPTIONS = "detect_leaks=0"
 # Force the spiller on one test so we see its memory usage.
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
-caselists = ["/deqp/mustpass/vk-master.txt"]
+caselists = ["/deqp/mustpass/vk-main.txt"]
 skips = ["install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.barrier-in-loop-with-break"]
 prefix = "spill-"

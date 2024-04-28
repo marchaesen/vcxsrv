@@ -3,9 +3,10 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "asahi/compiler/agx_compile.h"
+#include "asahi/lib/agx_nir_passes.h"
 #include "compiler/glsl_types.h"
 #include "compiler/nir/nir_builder.h"
+#include "util/bitset.h"
 #include "agx_state.h"
 #include "nir.h"
 #include "nir_builder_opcodes.h"
@@ -21,30 +22,6 @@
  *    1. Textures
  *    2. Images (read/write interleaved)
  */
-
-/*
- * We support the following merged shader stages:
- *
- *    VS/GS
- *    VS/TCS
- *    TES/GS
- *
- * TCS and GS are always merged. So, we lower TCS and GS samplers to bindless
- * and let VS and TES have exclusive binding table access.
- *
- * This could be optimized but it should be good enough for now.
- */
-static bool
-agx_stage_needs_bindless(enum pipe_shader_type stage)
-{
-   switch (stage) {
-   case MESA_SHADER_TESS_CTRL:
-   case MESA_SHADER_GEOMETRY:
-      return true;
-   default:
-      return false;
-   }
-}
 
 static bool
 lower_sampler(nir_builder *b, nir_tex_instr *tex)
@@ -66,8 +43,7 @@ lower(nir_builder *b, nir_instr *instr, void *data)
 {
    bool *uses_bindless_samplers = data;
    bool progress = false;
-   bool force_bindless = agx_nir_needs_texture_crawl(instr) ||
-                         agx_stage_needs_bindless(b->shader->info.stage);
+   bool force_bindless = agx_nir_needs_texture_crawl(instr);
    b->cursor = nir_before_instr(instr);
 
    if (instr->type == nir_instr_type_intrinsic) {
@@ -134,17 +110,19 @@ lower(nir_builder *b, nir_instr *instr, void *data)
        * The GL spec says out-of-bounds image indexing is undefined, but
        * faulting is not acceptable for robustness.
        */
-      index =
-         nir_umin(b, index, nir_imm_int(b, b->shader->info.num_images - 1));
+      index = nir_umin(
+         b, index,
+         nir_imm_intN_t(b, b->shader->info.num_images - 1, index->bit_size));
 
       index = nir_iadd_imm(b, nir_imul_imm(b, index, 2), offset);
       nir_src_rewrite(&intr->src[0], nir_load_texture_handle_agx(b, index));
    } else if (instr->type == nir_instr_type_tex) {
       nir_tex_instr *tex = nir_instr_as_tex(instr);
 
-      if (agx_stage_needs_bindless(b->shader->info.stage) &&
+      if (((BITSET_COUNT(b->shader->info.samplers_used) > 16) &&
+           (nir_tex_instr_src_index(tex, nir_tex_src_sampler_offset) >= 0 ||
+            tex->sampler_index >= 16)) &&
           lower_sampler(b, tex)) {
-
          progress = true;
          *uses_bindless_samplers = true;
       }
@@ -167,8 +145,9 @@ lower(nir_builder *b, nir_instr *instr, void *data)
          index = nir_imm_int(b, tex->texture_index);
 
       /* As above */
-      index =
-         nir_umin(b, index, nir_imm_int(b, b->shader->info.num_textures - 1));
+      index = nir_umin(
+         b, index,
+         nir_imm_intN_t(b, b->shader->info.num_textures - 1, index->bit_size));
 
       nir_tex_instr_add_src(tex, nir_tex_src_texture_handle,
                             nir_load_texture_handle_agx(b, index));

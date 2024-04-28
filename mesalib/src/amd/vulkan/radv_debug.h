@@ -1,30 +1,15 @@
 /*
  * Copyright © 2017 Google.
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef RADV_DEBUG_H
 #define RADV_DEBUG_H
 
-#include "radv_private.h"
+#include "radv_device.h"
+#include "radv_instance.h"
+#include "radv_physical_device.h"
 
 /* Please keep docs/envvars.rst up-to-date when you add/remove options. */
 enum {
@@ -48,30 +33,33 @@ enum {
    RADV_DEBUG_NOBINNING = 1ull << 17,
    RADV_DEBUG_NO_NGG = 1ull << 18,
    RADV_DEBUG_DUMP_META_SHADERS = 1ull << 19,
-   RADV_DEBUG_NO_MEMORY_CACHE = 1ull << 20,
-   RADV_DEBUG_DISCARD_TO_DEMOTE = 1ull << 21,
-   RADV_DEBUG_LLVM = 1ull << 22,
-   RADV_DEBUG_FORCE_COMPRESS = 1ull << 23,
-   RADV_DEBUG_HANG = 1ull << 24,
-   RADV_DEBUG_IMG = 1ull << 25,
-   RADV_DEBUG_NO_UMR = 1ull << 26,
-   RADV_DEBUG_INVARIANT_GEOM = 1ull << 27,
-   RADV_DEBUG_NO_DISPLAY_DCC = 1ull << 28,
-   RADV_DEBUG_NO_TC_COMPAT_CMASK = 1ull << 29,
-   RADV_DEBUG_NO_VRS_FLAT_SHADING = 1ull << 30,
-   RADV_DEBUG_NO_ATOC_DITHERING = 1ull << 31,
-   RADV_DEBUG_NO_NGGC = 1ull << 32,
-   RADV_DEBUG_DUMP_PROLOGS = 1ull << 33,
-   RADV_DEBUG_NO_DMA_BLIT = 1ull << 34,
-   RADV_DEBUG_SPLIT_FMA = 1ull << 35,
-   RADV_DEBUG_DUMP_EPILOGS = 1ull << 36,
-   RADV_DEBUG_NO_FMASK = 1ull << 37,
-   RADV_DEBUG_SHADOW_REGS = 1ull << 38,
-   RADV_DEBUG_EXTRA_MD = 1ull << 39,
-   RADV_DEBUG_NO_GPL = 1ull << 40,
-   RADV_DEBUG_VIDEO_ARRAY_PATH = 1ull << 41,
-   RADV_DEBUG_NO_RT = 1ull << 42,
-   RADV_DEBUG_NO_MESH_SHADER = 1ull << 43,
+   RADV_DEBUG_DISCARD_TO_DEMOTE = 1ull << 20,
+   RADV_DEBUG_LLVM = 1ull << 21,
+   RADV_DEBUG_FORCE_COMPRESS = 1ull << 22,
+   RADV_DEBUG_HANG = 1ull << 23,
+   RADV_DEBUG_IMG = 1ull << 24,
+   RADV_DEBUG_NO_UMR = 1ull << 25,
+   RADV_DEBUG_INVARIANT_GEOM = 1ull << 26,
+   RADV_DEBUG_NO_DISPLAY_DCC = 1ull << 27,
+   RADV_DEBUG_NO_TC_COMPAT_CMASK = 1ull << 28,
+   RADV_DEBUG_NO_VRS_FLAT_SHADING = 1ull << 29,
+   RADV_DEBUG_NO_ATOC_DITHERING = 1ull << 30,
+   RADV_DEBUG_NO_NGGC = 1ull << 31,
+   RADV_DEBUG_DUMP_PROLOGS = 1ull << 32,
+   RADV_DEBUG_NO_DMA_BLIT = 1ull << 33,
+   RADV_DEBUG_SPLIT_FMA = 1ull << 34,
+   RADV_DEBUG_DUMP_EPILOGS = 1ull << 35,
+   RADV_DEBUG_NO_FMASK = 1ull << 36,
+   RADV_DEBUG_SHADOW_REGS = 1ull << 37,
+   RADV_DEBUG_EXTRA_MD = 1ull << 38,
+   RADV_DEBUG_NO_GPL = 1ull << 39,
+   RADV_DEBUG_VIDEO_ARRAY_PATH = 1ull << 40,
+   RADV_DEBUG_NO_RT = 1ull << 41,
+   RADV_DEBUG_NO_MESH_SHADER = 1ull << 42,
+   RADV_DEBUG_NO_NGG_GS = 1ull << 43,
+   RADV_DEBUG_NO_GS_FAST_LAUNCH_2 = 1ull << 44,
+   RADV_DEBUG_NO_ESO = 1ull << 45,
+   RADV_DEBUG_PSO_CACHE_STATS = 1ull << 46,
 };
 
 enum {
@@ -88,8 +76,10 @@ enum {
    RADV_PERFTEST_RT_WAVE_64 = 1u << 10,
    RADV_PERFTEST_VIDEO_DECODE = 1u << 11,
    RADV_PERFTEST_DMA_SHADERS = 1u << 12,
-   RADV_PERFTEST_GS_FAST_LAUNCH_2 = 1u << 13,
-   RADV_PERFTEST_TRANSFER_QUEUE = 1u << 14,
+   RADV_PERFTEST_TRANSFER_QUEUE = 1u << 13,
+   RADV_PERFTEST_NIR_CACHE = 1u << 14,
+   RADV_PERFTEST_RT_WAVE_32 = 1u << 15,
+   RADV_PERFTEST_VIDEO_ENCODE = 1u << 16,
 };
 
 bool radv_init_trace(struct radv_device *device);
@@ -107,4 +97,25 @@ void radv_check_trap_handler(struct radv_queue *queue);
 
 bool radv_vm_fault_occurred(struct radv_device *device, struct radv_winsys_gpuvm_fault_info *fault_info);
 
-#endif
+
+ALWAYS_INLINE static bool
+radv_device_fault_detection_enabled(const struct radv_device *device)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_instance *instance = radv_physical_device_instance(pdev);
+
+   return instance->debug_flags & RADV_DEBUG_HANG;
+}
+
+struct radv_trace_data {
+   uint32_t primary_id;
+   uint32_t secondary_id;
+   uint64_t gfx_ring_pipeline;
+   uint64_t comp_ring_pipeline;
+   uint64_t vertex_descriptors;
+   uint64_t vertex_prolog;
+   uint64_t descriptor_sets[MAX_SETS];
+   VkDispatchIndirectCommand indirect_dispatch;
+};
+
+#endif /* RADV_DEBUG_H */

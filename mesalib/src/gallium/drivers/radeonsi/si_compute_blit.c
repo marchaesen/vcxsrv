@@ -40,30 +40,6 @@ static bool si_can_use_compute_blit(struct si_context *sctx, enum pipe_format fo
    return true;
 }
 
-static void si_use_compute_copy_for_float_formats(struct si_context *sctx,
-                                                  struct pipe_resource *texture,
-                                                  unsigned level)
-{
-   struct si_texture *tex = (struct si_texture *)texture;
-
-   /* If we are uploading into FP16 or R11G11B10_FLOAT via a blit, CB clobbers NaNs,
-    * so in order to preserve them exactly, we have to use the compute blit.
-    * The compute blit is used only when the destination doesn't have DCC, so
-    * disable it here, which is kinda a hack.
-    * If we are uploading into 32-bit floats with DCC via a blit, NaNs will also get
-    * lost so we need to disable DCC as well.
-    *
-    * This makes KHR-GL45.texture_view.view_classes pass on gfx9.
-    */
-   if (vi_dcc_enabled(tex, level) &&
-       util_format_is_float(texture->format) &&
-       /* Check if disabling DCC enables the compute copy. */
-       !si_can_use_compute_blit(sctx, texture->format, texture->nr_samples, true, true) &&
-       si_can_use_compute_blit(sctx, texture->format, texture->nr_samples, true, false)) {
-      si_texture_disable_dcc(sctx, tex);
-   }
-}
-
 /* Determine the cache policy. */
 static enum si_cache_policy get_cache_policy(struct si_context *sctx, enum si_coherency coher,
                                              uint64_t size)
@@ -458,7 +434,8 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
       }
 
       /* TODO: use compute for unaligned big sizes */
-      if (method == SI_AUTO_SELECT_CLEAR_METHOD && (
+      if (method == SI_AUTO_SELECT_CLEAR_METHOD &&
+          (flags & SI_OP_CS_RENDER_COND_ENABLE ||
            clear_value_size > 4 ||
            (clear_value_size == 4 && offset % 4 == 0 && size > compute_min_size))) {
          method = SI_COMPUTE_CLEAR_METHOD;
@@ -468,6 +445,7 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
                                      clear_value_size, flags, coher);
       } else {
          assert(clear_value_size == 4);
+         assert(!(flags & SI_OP_CS_RENDER_COND_ENABLE));
          si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, dst, offset, aligned_size, *clear_value,
                                 flags, coher, get_cache_policy(sctx, coher, size));
       }
@@ -478,6 +456,7 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
 
    /* Handle non-dword alignment. */
    if (size) {
+      assert(!(flags & SI_OP_CS_RENDER_COND_ENABLE));
       assert(dst);
       assert(dst->target == PIPE_BUFFER);
       assert(size < 4);
@@ -535,7 +514,10 @@ void si_compute_shorten_ubyte_buffer(struct si_context *sctx, struct pipe_resour
    if (!sctx->cs_ubyte_to_ushort)
       sctx->cs_ubyte_to_ushort = si_create_ubyte_to_ushort_compute_shader(sctx);
 
-   enum si_coherency coher = SI_COHERENCY_SHADER;
+   /* Use COHERENCY_NONE to get SI_CONTEXT_WB_L2 automatically used in
+    * si_launch_grid_internal_ssbos.
+    */
+   enum si_coherency coher = SI_COHERENCY_NONE;
 
    si_improve_sync_flags(sctx, dst, src, &flags);
 
@@ -625,9 +607,11 @@ static void si_launch_grid_internal_images(struct si_context *sctx,
    }
 
    /* This must be done before the compute shader. */
-   for (unsigned i = 0; i < num_images; i++) {
-      si_make_CB_shader_coherent(sctx, images[i].resource->nr_samples, true,
-            ((struct si_texture*)images[i].resource)->surface.u.gfx9.color.dcc.pipe_aligned);
+   if (flags & SI_OP_SYNC_PS_BEFORE) {
+      for (unsigned i = 0; i < num_images; i++) {
+         si_make_CB_shader_coherent(sctx, images[i].resource->nr_samples, true,
+               ((struct si_texture*)images[i].resource)->surface.u.gfx9.color.dcc.pipe_aligned);
+      }
    }
 
    si_launch_grid_internal(sctx, info, shader, flags | SI_OP_CS_IMAGE);
@@ -646,8 +630,6 @@ bool si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
    struct si_texture *ssrc = (struct si_texture*)src;
    struct si_texture *sdst = (struct si_texture*)dst;
 
-   si_use_compute_copy_for_float_formats(sctx, dst, dst_level);
-
    /* The compute copy is mandatory for compressed and subsampled formats because the gfx copy
     * doesn't support them. In all other cases, call si_can_use_compute_blit.
     *
@@ -656,12 +638,30 @@ bool si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
     */
    if (!util_format_is_compressed(src->format) &&
        !util_format_is_compressed(dst->format) &&
-       !util_format_is_subsampled_422(src->format) &&
-       (!si_can_use_compute_blit(sctx, dst->format, dst->nr_samples, true,
-                                 vi_dcc_enabled(sdst, dst_level)) ||
-        !si_can_use_compute_blit(sctx, src->format, src->nr_samples, false,
-                                 vi_dcc_enabled(ssrc, src_level))))
-      return false;
+       !util_format_is_subsampled_422(src->format)) {
+      bool src_can_use_compute_blit =
+         si_can_use_compute_blit(sctx, src->format, src->nr_samples, false,
+                                 vi_dcc_enabled(ssrc, src_level));
+
+      if (!src_can_use_compute_blit)
+         return false;
+
+      bool dst_can_use_compute_blit =
+         si_can_use_compute_blit(sctx, dst->format, dst->nr_samples, true,
+                                 vi_dcc_enabled(sdst, dst_level));
+
+      if (!dst_can_use_compute_blit && !sctx->has_graphics &&
+          si_can_use_compute_blit(sctx, dst->format, dst->nr_samples, false,
+                                  vi_dcc_enabled(sdst, dst_level))) {
+         /* Non-graphics context don't have a blitter, so try harder to do
+          * a compute blit by disabling dcc on the destination texture.
+          */
+         dst_can_use_compute_blit = si_texture_disable_dcc(sctx, sdst);
+      }
+
+      if (!dst_can_use_compute_blit)
+         return false;
+   }
 
    enum pipe_format src_format = util_format_linear(src->format);
    enum pipe_format dst_format = util_format_linear(dst->format);
@@ -973,6 +973,47 @@ void si_compute_expand_fmask(struct pipe_context *ctx, struct pipe_resource *tex
                    (uint32_t *)&fmask_expand_values[log_fragments][log_samples - 1],
                    log_fragments >= 2 && log_samples == 4 ? 8 : 4, SI_OP_SYNC_AFTER,
                    SI_COHERENCY_SHADER, SI_AUTO_SELECT_CLEAR_METHOD);
+}
+
+void si_compute_clear_image_dcc_single(struct si_context *sctx, struct si_texture *tex,
+                                       unsigned level, enum pipe_format format,
+                                       const union pipe_color_union *color, unsigned flags)
+{
+   assert(sctx->gfx_level >= GFX11); /* not believed to be useful on gfx10 */
+   unsigned dcc_block_width = tex->surface.u.gfx9.color.dcc_block_width;
+   unsigned dcc_block_height = tex->surface.u.gfx9.color.dcc_block_height;
+   unsigned width = DIV_ROUND_UP(u_minify(tex->buffer.b.b.width0, level), dcc_block_width);
+   unsigned height = DIV_ROUND_UP(u_minify(tex->buffer.b.b.height0, level), dcc_block_height);
+   unsigned depth = util_num_layers(&tex->buffer.b.b, level);
+   bool is_msaa = tex->buffer.b.b.nr_samples >= 2;
+
+   struct pipe_image_view image = {0};
+   image.resource = &tex->buffer.b.b;
+   image.shader_access = image.access = PIPE_IMAGE_ACCESS_WRITE | SI_IMAGE_ACCESS_DCC_OFF;
+   image.format = format;
+   image.u.tex.level = level;
+   image.u.tex.last_layer = depth - 1;
+
+   if (util_format_is_srgb(format)) {
+      union pipe_color_union color_srgb;
+      for (int i = 0; i < 3; i++)
+         color_srgb.f[i] = util_format_linear_to_srgb_float(color->f[i]);
+      color_srgb.f[3] = color->f[3];
+      memcpy(sctx->cs_user_data, color_srgb.ui, sizeof(color->ui));
+   } else {
+      memcpy(sctx->cs_user_data, color->ui, sizeof(color->ui));
+   }
+
+   sctx->cs_user_data[4] = dcc_block_width | (dcc_block_height << 16);
+
+   struct pipe_grid_info info = {0};
+   unsigned wg_dim = set_work_size(&info, 8, 8, 1, width, height, depth);
+
+   void **shader = &sctx->cs_clear_image_dcc_single[is_msaa][wg_dim];
+   if (!*shader)
+      *shader = si_clear_image_dcc_single_shader(sctx, is_msaa, wg_dim);
+
+   si_launch_grid_internal_images(sctx, &image, 1, &info, *shader, flags);
 }
 
 void si_init_compute_blit_functions(struct si_context *sctx)

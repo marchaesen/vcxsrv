@@ -263,8 +263,8 @@ st_RasterPos(struct gl_context *ctx, const GLfloat v[4])
    rs->VAO->VertexAttrib[VERT_ATTRIB_POS].Ptr = (GLubyte *) v;
    ctx->NewDriverState |= ST_NEW_VERTEX_ARRAYS;
 
-   /* Non-dynamic VAOs merge vertex buffers, which changes vertex elements. */
-   if (!rs->VAO->IsDynamic) {
+   /* The slow path merges vertex buffers, which changes vertex elements. */
+   if (!ctx->Const.UseVAOFastPath) {
       ctx->Array.NewVertexElements = true;
    }
 

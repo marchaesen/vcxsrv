@@ -84,6 +84,7 @@ public:
 
 private:
    void add_instr(nir_instr *instr, unsigned num_components, unsigned bit_size);
+   void truncate_after_instruction(exec_node *ir);
    nir_def *evaluate_rvalue(ir_rvalue *ir);
 
    nir_alu_instr *emit(nir_op op, unsigned dest_size, nir_def **srcs);
@@ -175,24 +176,6 @@ glsl_to_nir(const struct gl_constants *consts,
       nir_print_shader(shader, stdout);
    }
 
-   /* We have to lower away local constant initializers right before we
-    * inline functions.  That way they get properly initialized at the top
-    * of the function and not at the top of its caller.
-    */
-   NIR_PASS(_, shader, nir_lower_variable_initializers, nir_var_all);
-   NIR_PASS(_, shader, nir_lower_returns);
-   NIR_PASS(_, shader, nir_inline_functions);
-   NIR_PASS(_, shader, nir_opt_deref);
-
-   nir_validate_shader(shader, "after function inlining and return lowering");
-
-   /* We set func->is_entrypoint after nir_function_create if the function
-    * is named "main", so we can use nir_remove_non_entrypoints() for this.
-    * Now that we have inlined everything remove all of the functions except
-    * func->is_entrypoint.
-    */
-   nir_remove_non_entrypoints(shader);
-
    shader->info.name = ralloc_asprintf(shader, "GLSL%d", shader_prog->Name);
    if (shader_prog->Label)
       shader->info.label = ralloc_strdup(shader, shader_prog->Label);
@@ -236,6 +219,17 @@ nir_visitor::evaluate_deref(ir_instruction *ir)
 {
    ir->accept(this);
    return this->deref;
+}
+
+void
+nir_visitor::truncate_after_instruction(exec_node *ir)
+{
+   if (!ir)
+      return;
+
+   while (!ir->get_next()->is_tail_sentinel()) {
+      ((ir_instruction *)ir->get_next())->remove();
+   }
 }
 
 nir_constant *
@@ -449,6 +443,9 @@ nir_visitor::visit(ir_variable *ir)
    var->data.from_named_ifc_block = ir->data.from_named_ifc_block;
    var->data.compact = false;
    var->data.used = ir->data.used;
+   var->data.max_array_access = ir->data.max_array_access;
+   var->data.implicit_sized_array = ir->data.implicit_sized_array;
+   var->data.from_ssbo_unsized_array = ir->data.from_ssbo_unsized_array;
 
    switch(ir->data.mode) {
    case ir_var_auto:
@@ -589,6 +586,8 @@ nir_visitor::visit(ir_variable *ir)
    var->data.bindless = ir->data.bindless;
    var->data.offset = ir->data.offset;
    var->data.access = (gl_access_qualifier)mem_access;
+   var->data.has_initializer = ir->data.has_initializer;
+   var->data.is_implicit_initializer = ir->data.is_implicit_initializer;
 
    if (glsl_type_is_image(glsl_without_array(var->type))) {
       var->data.image.format = ir->data.image_format;
@@ -660,23 +659,28 @@ nir_visitor::create_function(ir_function_signature *ir)
       /* The return value is a variable deref (basically an out parameter) */
       func->params[np].num_components = 1;
       func->params[np].bit_size = 32;
+      func->params[np].type = ir->return_type;
+      func->params[np].is_return = true;
       np++;
    }
 
    foreach_in_list(ir_variable, param, &ir->parameters) {
-      /* FINISHME: pass arrays, structs, etc by reference? */
-      assert(glsl_type_is_vector(param->type) || glsl_type_is_scalar(param->type));
+      func->params[np].num_components = 1;
+      func->params[np].bit_size = 32;
 
-      if (param->data.mode == ir_var_function_in) {
-         func->params[np].num_components = param->type->vector_elements;
-         func->params[np].bit_size = glsl_get_bit_size(param->type);
-      } else {
-         func->params[np].num_components = 1;
-         func->params[np].bit_size = 32;
-      }
+      func->params[np].type = param->type;
+      func->params[np].is_return = false;
       np++;
    }
    assert(np == func->num_params);
+
+   func->is_subroutine = ir->function()->is_subroutine;
+   func->num_subroutine_types = ir->function()->num_subroutine_types;
+   func->subroutine_index = ir->function()->subroutine_index;
+   func->subroutine_types =
+      ralloc_array(func, const struct glsl_type *, func->num_subroutine_types);
+   for (int i = 0; i < func->num_subroutine_types; i++)
+     func->subroutine_types[i] = ir->function()->subroutine_types[i];
 
    _mesa_hash_table_insert(this->overload_table, ir, func);
 }
@@ -709,20 +713,6 @@ nir_visitor::visit(ir_function_signature *ir)
       this->is_global = false;
 
       b = nir_builder_at(nir_after_impl(impl));
-
-      unsigned i = (ir->return_type != &glsl_type_builtin_void) ? 1 : 0;
-
-      foreach_in_list(ir_variable, param, &ir->parameters) {
-         nir_variable *var =
-            nir_local_variable_create(impl, param->type, param->name);
-
-         if (param->data.mode == ir_var_function_in) {
-            nir_store_var(&b, var, nir_load_param(&b, i), ~0);
-         }
-
-         _mesa_hash_table_insert(var_table, param, var);
-         i++;
-      }
 
       visit_exec_list(&ir->body, this);
 
@@ -801,6 +791,11 @@ nir_visitor::visit(ir_loop_jump *ir)
 
    nir_jump_instr *instr = nir_jump_instr_create(this->shader, type);
    nir_builder_instr_insert(&b, &instr->instr);
+
+   /* Eliminate all instructions after the jump, since they are unreachable
+    * and NIR considers adding these instructions illegal.
+    */
+   truncate_after_instruction(ir);
 }
 
 void
@@ -811,12 +806,20 @@ nir_visitor::visit(ir_return *ir)
          nir_build_deref_cast(&b, nir_load_param(&b, 0),
                               nir_var_function_temp, ir->value->type, 0);
 
-      nir_def *val = evaluate_rvalue(ir->value);
-      nir_store_deref(&b, ret_deref, val, ~0);
+      if (glsl_type_is_vector_or_scalar(ir->value->type)) {
+         nir_store_deref(&b, ret_deref, evaluate_rvalue(ir->value), ~0);
+      } else {
+         nir_copy_deref(&b, ret_deref, evaluate_deref(ir->value));
+      }
    }
 
    nir_jump_instr *instr = nir_jump_instr_create(this->shader, nir_jump_return);
    nir_builder_instr_insert(&b, &instr->instr);
+
+   /* Eliminate all instructions after the jump, since they are unreachable
+    * and NIR considers adding these instructions illegal.
+    */
+   truncate_after_instruction(ir);
 }
 
 static void
@@ -836,6 +839,12 @@ deref_get_qualifier(nir_deref_instr *deref)
 {
    nir_deref_path path;
    nir_deref_path_init(&path, deref, NULL);
+
+   /* Function params can lead to a deref cast just return zero as these
+    * params have no qualifers anyway.
+    */
+   if (path.path[0]->deref_type != nir_deref_type_var)
+      return (gl_access_qualifier) 0;
 
    unsigned qualifiers = path.path[0]->var->data.access;
 
@@ -1532,24 +1541,29 @@ nir_visitor::visit(ir_call *ir)
       ir_rvalue *param_rvalue = (ir_rvalue *) actual_node;
       ir_variable *sig_param = (ir_variable *) formal_node;
 
-      if (sig_param->data.mode == ir_var_function_out ||
-          sig_param->data.mode == ir_var_function_inout) {
-         nir_variable *out_param =
+      nir_deref_instr *param_deref;
+      if (sig_param->data.mode == ir_var_function_in &&
+          glsl_contains_opaque(sig_param->type)) {
+         param_deref = evaluate_deref(param_rvalue);
+      } else {
+         nir_variable *param =
             nir_local_variable_create(this->impl, sig_param->type, "param");
-         out_param->data.precision = sig_param->data.precision;
-         nir_deref_instr *out_param_deref = nir_build_deref_var(&b, out_param);
+         param->data.precision = sig_param->data.precision;
+         param_deref = nir_build_deref_var(&b, param);
 
-         if (sig_param->data.mode == ir_var_function_inout) {
-            nir_store_deref(&b, out_param_deref,
-                            nir_load_deref(&b, evaluate_deref(param_rvalue)),
-                            ~0);
+         if (sig_param->data.mode == ir_var_function_in ||
+             sig_param->data.mode == ir_var_function_inout) {
+            if (glsl_type_is_vector_or_scalar(param->type)) {
+               nir_store_deref(&b, param_deref,
+                               evaluate_rvalue(param_rvalue),
+                               ~0);
+            } else {
+               nir_copy_deref(&b, param_deref, evaluate_deref(param_rvalue));
+            }
          }
-
-         call->params[i] = nir_src_for_ssa(&out_param_deref->def);
-      } else if (sig_param->data.mode == ir_var_function_in) {
-         nir_def *val = evaluate_rvalue(param_rvalue);
-         call->params[i] = nir_src_for_ssa(val);
       }
+
+      call->params[i] = nir_src_for_ssa(&param_deref->def);
 
       i++;
    }
@@ -1567,17 +1581,28 @@ nir_visitor::visit(ir_call *ir)
 
       if (sig_param->data.mode == ir_var_function_out ||
           sig_param->data.mode == ir_var_function_inout) {
-         nir_store_deref(&b, evaluate_deref(param_rvalue),
-                         nir_load_deref(&b, nir_src_as_deref(call->params[i])),
-                         ~0);
+         if (glsl_type_is_vector_or_scalar(sig_param->type)) {
+            nir_store_deref(&b, evaluate_deref(param_rvalue),
+                            nir_load_deref(&b, nir_src_as_deref(call->params[i])),
+                            ~0);
+         } else {
+            nir_copy_deref(&b, evaluate_deref(param_rvalue),
+                           nir_src_as_deref(call->params[i]));
+         }
       }
 
       i++;
    }
 
 
-   if (ir->return_deref)
-      nir_store_deref(&b, evaluate_deref(ir->return_deref), nir_load_deref(&b, ret_deref), ~0);
+   if (ir->return_deref) {
+      if (glsl_type_is_vector_or_scalar(ir->return_deref->type)) {
+         nir_store_deref(&b, evaluate_deref(ir->return_deref),
+                         nir_load_deref(&b, ret_deref), ~0);
+      } else {
+         nir_copy_deref(&b, evaluate_deref(ir->return_deref), ret_deref);
+      }
+   }
 }
 
 void
@@ -1861,10 +1886,20 @@ nir_visitor::visit(ir_expression *ir)
    case ir_unop_b2i64:
    case ir_unop_d2f:
    case ir_unop_f2d:
+   case ir_unop_f162u:
+   case ir_unop_u2f16:
+   case ir_unop_f162i:
+   case ir_unop_i2f16:
    case ir_unop_f162f:
    case ir_unop_f2f16:
    case ir_unop_f162b:
    case ir_unop_b2f16:
+   case ir_unop_f162d:
+   case ir_unop_d2f16:
+   case ir_unop_f162u64:
+   case ir_unop_u642f16:
+   case ir_unop_f162i64:
+   case ir_unop_i642f16:
    case ir_unop_i2i:
    case ir_unop_u2u:
    case ir_unop_d2i:
@@ -2374,7 +2409,8 @@ nir_visitor::visit(ir_texture *ir)
 
    /* check for bindless handles */
    if (!nir_deref_mode_is(sampler_deref, nir_var_uniform) ||
-       nir_deref_instr_get_variable(sampler_deref)->data.bindless) {
+       (nir_deref_instr_get_variable(sampler_deref) &&
+        nir_deref_instr_get_variable(sampler_deref)->data.bindless)) {
       nir_def *load = nir_load_deref(&b, sampler_deref);
       instr->src[0] = nir_tex_src_for_ssa(nir_tex_src_texture_handle, load);
       instr->src[1] = nir_tex_src_for_ssa(nir_tex_src_sampler_handle, load);
@@ -2499,7 +2535,8 @@ void
 nir_visitor::visit(ir_dereference_variable *ir)
 {
    if (ir->variable_referenced()->data.mode == ir_var_function_out ||
-       ir->variable_referenced()->data.mode == ir_var_function_inout) {
+       ir->variable_referenced()->data.mode == ir_var_function_inout ||
+       ir->variable_referenced()->data.mode == ir_var_function_in) {
       unsigned i = (sig->return_type != &glsl_type_builtin_void) ? 1 : 0;
 
       foreach_in_list(ir_variable, param, &sig->parameters) {
@@ -2509,8 +2546,13 @@ nir_visitor::visit(ir_dereference_variable *ir)
          i++;
       }
 
+      nir_variable_mode mode =
+         glsl_contains_opaque(ir->variable_referenced()->type) &&
+         ir->variable_referenced()->data.mode == ir_var_function_in ?
+            nir_var_uniform : nir_var_function_temp;
+
       this->deref = nir_build_deref_cast(&b, nir_load_param(&b, i),
-                                         nir_var_function_temp, ir->type, 0);
+                                         mode, ir->type, 0);
       return;
    }
 

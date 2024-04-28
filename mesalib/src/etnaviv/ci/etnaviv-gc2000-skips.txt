@@ -14,11 +14,7 @@ spec@arb_map_buffer_alignment@arb_map_buffer_alignment-map-invalidate-range
 spec@!opengl 1.0@depth-clear-precision-check
 spec@arb_point_parameters@arb_point_parameters-point-attenuation
 
-# not a flake not an error ... hmmm
-spec@glsl-1.20@execution@tex-miplevel-.*
-
 # GPU hangs that maybe destabilize other tests.
-tex-miplevel-selection.*ProjGradARB
 variable-indexing@vs-varying
 
 # times out in the ASan run

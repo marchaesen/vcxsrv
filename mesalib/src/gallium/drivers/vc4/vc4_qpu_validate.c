@@ -121,7 +121,7 @@ vc4_qpu_validate(uint64_t *insts, uint32_t num_inst)
          * keep compiling the validation code to make sure it doesn't get
          * broken.
          */
-#ifndef DEBUG
+#if !MESA_DEBUG
         return;
 #endif
 

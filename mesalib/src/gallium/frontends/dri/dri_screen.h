@@ -104,8 +104,6 @@ struct dri_screen
    struct pipe_loader_device *dev;
 
    /* gallium */
-   bool d_depth_bits_last;
-   bool sd_depth_bits_last;
    bool auto_fake_front;
    bool has_reset_status_query;
    bool has_protected_context;

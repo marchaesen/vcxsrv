@@ -119,7 +119,7 @@ impl Queue {
         let ctx = QueueContext::new_for(device)?;
         let (tx_q, rx_t) = mpsc::channel::<Vec<Arc<Event>>>();
         Ok(Arc::new(Self {
-            base: CLObjectBase::new(),
+            base: CLObjectBase::new(RusticlTypes::Queue),
             context: context,
             device: device,
             props: props,

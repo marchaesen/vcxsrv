@@ -227,7 +227,10 @@
 .lint-rustfmt-rules:
   rules:
     - !reference [.never-post-merge-rules, rules]
-    - !reference [.core-rules, rules]
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - changes:
+        - .gitlab-ci.yml
+        - .gitlab-ci/**/*
     # in merge pipeline, formatting checks are not allowed to fail
     - if: $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "merge_request_event"
       changes: &rust_file_list
@@ -239,24 +242,12 @@
       when: on_success
       allow_failure: true
 
-.lint-clang-format-rules:
+# Rules for .mr-label-maker.yml
+.mr-label-maker-rules:
   rules:
     - !reference [.never-post-merge-rules, rules]
-    - !reference [.core-rules, rules]
-    # in merge pipeline, formatting checks are not allowed to fail
-    - if: $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "merge_request_event"
-      changes: &clang_format_file_list
-        - .clang-format
-        - .clang-format-include
-        - .clang-format-ignore
-        - src/**/.clang-format
-        - src/egl/**/*
-        - src/amd/vulkan/**/*
-        - src/amd/compiler/**/*
-        - src/etnaviv/isa/**/*
+    - !reference [.no_scheduled_pipelines-rules, rules]
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+      changes:
+        - .mr-label-maker.yml
       when: on_success
-      allow_failure: false
-    # in other pipelines, formatting checks are allowed to fail
-    - changes: *clang_format_file_list
-      when: on_success
-      allow_failure: true

@@ -34,7 +34,7 @@
 #include "crocus_context.h"
 #include "crocus_resource.h"
 #include "crocus_screen.h"
-#include "intel/compiler/brw_compiler.h"
+#include "intel/compiler/elk/elk_compiler.h"
 #include "util/format_srgb.h"
 
 static bool

@@ -849,7 +849,6 @@ XmuScanlineNot(XmuScanline *scanline, int minx, int maxx)
 }
 
 
-#ifndef notdef
 /*
  * Function:
  *	XmuScanlineOrSegment
@@ -1116,7 +1115,6 @@ XmuScanlineXorSegment(XmuScanline *dst, XmuSegment *src)
 
   return (dst);
 }
-#endif /* notdef */
 
 /*
  * Function:

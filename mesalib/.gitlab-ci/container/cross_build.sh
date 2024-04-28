@@ -52,7 +52,8 @@ if [[ $arch != "armhf" ]]; then
     # We don't need clang-format for the crossbuilds, but the installed amd64
     # package will conflict with libclang. Uninstall clang-format (and its
     # problematic dependency) to fix.
-    apt-get remove -y "clang-format-${LLVM_VERSION}" "libclang-cpp${LLVM_VERSION}"
+    apt-get remove -y "clang-format-${LLVM_VERSION}" "libclang-cpp${LLVM_VERSION}" \
+            "llvm-${LLVM_VERSION}-runtime" "llvm-${LLVM_VERSION}-linker-tools"
 
     # llvm-*-tools:$arch conflicts with python3:amd64. Install dependencies only
     # with apt-get, then force-install llvm-*-{dev,tools}:$arch with dpkg to get

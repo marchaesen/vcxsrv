@@ -194,15 +194,35 @@ os_read_file(const char *filename, size_t *size)
    return buf;
 }
 
-#if DETECT_OS_LINUX && ALLOW_KCMP
+#if (DETECT_OS_LINUX || DETECT_OS_FREEBSD) && ALLOW_KCMP
 
 #include <sys/syscall.h>
 #include <unistd.h>
 
+#if DETECT_OS_LINUX
 /* copied from <linux/kcmp.h> */
 #define KCMP_FILE 0
+#endif
 
 #endif
+
+#if DETECT_OS_DRAGONFLY || DETECT_OS_FREEBSD
+
+#include "macros.h" /* ARRAY_SIZE */
+
+#include <sys/sysctl.h>
+#if DETECT_OS_DRAGONFLY
+#include <sys/kinfo.h>
+typedef void *kvaddr_t;
+#elif DETECT_OS_FREEBSD
+#include <sys/file.h>
+#define kinfo_file xfile
+#define f_pid xf_pid
+#define f_fd xf_fd
+#define f_file xf_file
+#endif
+
+#endif /* DETECT_OS_DRAGONFLY || DETECT_OS_FREEBSD */
 
 int
 os_same_file_description(int fd1, int fd2)
@@ -217,6 +237,32 @@ os_same_file_description(int fd1, int fd2)
 
 #ifdef SYS_kcmp
    return syscall(SYS_kcmp, pid, pid, KCMP_FILE, fd1, fd2);
+#elif DETECT_OS_DRAGONFLY || DETECT_OS_FREEBSD
+   int mib[] = { CTL_KERN, KERN_FILE };
+   size_t len;
+   if (sysctl(mib, ARRAY_SIZE(mib), NULL, &len, NULL, 0))
+      return -1;
+   struct kinfo_file *kf = malloc(len);
+   if (sysctl(mib, ARRAY_SIZE(mib), kf, &len, NULL, 0))
+      return -1;
+
+   size_t count = len / sizeof(*kf);
+   pid_t pid = getpid();
+   kvaddr_t fd1_kfile = 0, fd2_kfile = 0;
+   for (size_t i = 0; i < count; i++) {
+      if (pid != kf[i].f_pid)
+          continue;
+      if (fd1 == kf[i].f_fd)
+          fd1_kfile = kf[i].f_file;
+      if (fd2 == kf[i].f_fd)
+          fd2_kfile = kf[i].f_file;
+   }
+   free(kf);
+
+   if (fd1_kfile == 0 || fd2_kfile == 0)
+      return -1;
+
+   return (fd1_kfile < fd2_kfile) | ((fd1_kfile > fd2_kfile) << 1);
 #else
    /* Otherwise we can't tell */
    return -1;

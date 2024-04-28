@@ -33,7 +33,9 @@ extern "C" {
 #define PAN_PERF_MAX_CATEGORIES 4
 #define PAN_PERF_MAX_COUNTERS   64
 
-struct panfrost_device;
+struct pan_kmod_dev;
+struct pan_kmod_dev_props;
+struct panfrost_model;
 struct panfrost_perf_category;
 struct panfrost_perf;
 
@@ -83,8 +85,8 @@ struct panfrost_perf_config {
 };
 
 struct panfrost_perf {
-   struct panfrost_device *dev;
-
+   struct pan_kmod_dev *dev;
+   unsigned core_id_range;
    const struct panfrost_perf_config *cfg;
 
    // Memory where to dump counter values
@@ -98,8 +100,7 @@ struct panfrost_perf {
 uint32_t panfrost_perf_counter_read(const struct panfrost_perf_counter *counter,
                                     const struct panfrost_perf *perf);
 
-void panfrost_perf_init(struct panfrost_perf *perf,
-                        struct panfrost_device *dev);
+void panfrost_perf_init(struct panfrost_perf *perf, int fd);
 
 int panfrost_perf_enable(struct panfrost_perf *perf);
 

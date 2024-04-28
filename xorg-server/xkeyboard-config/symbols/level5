@@ -37,7 +37,7 @@ xkb_symbols "menu_switch" {
 // See also types/level5 (EIGHT_LEVEL_WITH_LEVEL5_LOCK) and compat/level5 (level5_lock).
 partial modifier_keys
 xkb_symbols "lock" {
-  replace key <HYPR> {[  NoSymbol  ], type[group1] = "ONE_LEVEL", vmods = NumLock,
+  replace key <HYPR> {[  NoSymbol  ], type[group1] = "ONE_LEVEL", virtualMods = NumLock,
                                       actions[group1] = [ SetMods(modifiers=NumLock) ]};
   modifier_map Mod2 { <HYPR> };
 };

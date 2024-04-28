@@ -29,7 +29,7 @@
 #include "state_tracker/st_texture.h"
 #include "state_tracker/st_util.h"
 
-#include "util/u_box.h"
+#include "util/box.h"
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
 
@@ -282,7 +282,10 @@ blit(struct pipe_context *pipe,
    blit.src.box = *src_box;
    u_box_3d(dstx, dsty, dstz, src_box->width, src_box->height,
             src_box->depth, &blit.dst.box);
-   blit.mask = PIPE_MASK_RGBA;
+   if (util_format_is_depth_or_stencil(dst_format))
+      blit.mask = PIPE_MASK_ZS;
+   else
+      blit.mask = PIPE_MASK_RGBA;
    blit.filter = PIPE_TEX_FILTER_NEAREST;
 
    pipe->blit(pipe, &blit);

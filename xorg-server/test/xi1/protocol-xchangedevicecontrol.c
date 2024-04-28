@@ -40,11 +40,13 @@
 
 #include "protocol-common.h"
 
+DECLARE_WRAP_FUNCTION(WriteToClient, void, ClientPtr client, int len, void *data);
+
 extern ClientRec client_window;
 static ClientRec client_request;
 
 static void
-reply_ChangeDeviceControl(ClientPtr client, int len, char *data, void *userdata)
+reply_ChangeDeviceControl(ClientPtr client, int len, void *data)
 {
     xChangeDeviceControlReply *rep = (xChangeDeviceControlReply *) data;
 
@@ -85,27 +87,29 @@ static unsigned char *data[4096];       /* the request buffer */
 static void
 test_ChangeDeviceControl(void)
 {
+    init_simple();
+
     xChangeDeviceControlReq *request = (xChangeDeviceControlReq *) data;
     xDeviceCtl *control = (xDeviceCtl *) (&request[1]);
 
     request_init(request, ChangeDeviceControl);
 
-    reply_handler = reply_ChangeDeviceControl;
+    wrapped_WriteToClient  = reply_ChangeDeviceControl;
 
     client_request = init_client(request->length, request);
 
-    printf("Testing invalid lengths:\n");
-    printf(" -- no control struct\n");
+    dbg("Testing invalid lengths:\n");
+    dbg(" -- no control struct\n");
     request_ChangeDeviceControl(&client_request, request, control, BadLength);
 
-    printf(" -- xDeviceResolutionCtl\n");
+    dbg(" -- xDeviceResolutionCtl\n");
     request_init(request, ChangeDeviceControl);
     request->control = DEVICE_RESOLUTION;
     control->length = (sizeof(xDeviceResolutionCtl) >> 2);
     request->length += control->length - 2;
     request_ChangeDeviceControl(&client_request, request, control, BadLength);
 
-    printf(" -- xDeviceEnableCtl\n");
+    dbg(" -- xDeviceEnableCtl\n");
     request_init(request, ChangeDeviceControl);
     request->control = DEVICE_ENABLE;
     control->length = (sizeof(xDeviceEnableCtl) >> 2);
@@ -115,12 +119,12 @@ test_ChangeDeviceControl(void)
     /* XXX: Test functionality! */
 }
 
-int
+const testfunc_t*
 protocol_xchangedevicecontrol_test(void)
 {
-    init_simple();
-
-    test_ChangeDeviceControl();
-
-    return 0;
+    static const testfunc_t testfuncs[] = {
+        test_ChangeDeviceControl,
+        NULL,
+    };
+    return testfuncs;
 }

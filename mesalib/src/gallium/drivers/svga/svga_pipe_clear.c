@@ -41,7 +41,8 @@
 static void
 begin_blit(struct svga_context *svga)
 {
-   util_blitter_save_vertex_buffer_slot(svga->blitter, svga->curr.vb);
+   util_blitter_save_vertex_buffers(svga->blitter, svga->curr.vb,
+                                    svga->curr.num_vertex_buffers);
    util_blitter_save_vertex_elements(svga->blitter, (void*)svga->curr.velems);
    util_blitter_save_vertex_shader(svga->blitter, svga->curr.vs);
    util_blitter_save_geometry_shader(svga->blitter, svga->curr.gs);

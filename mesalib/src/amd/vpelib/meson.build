@@ -41,6 +41,7 @@ c_args_vpe += [
   '-DLITTLEENDIAN_CPU',
   '-DVPE_BUILD_1_0',
   '-DVPE_BUILD_1_X',
+  '-DVPE_BUILD_1_1',
 ]
 
 vpe_files = files(
@@ -66,6 +67,7 @@ vpe_files = files(
   'src/core/inc/color.h',
   'src/core/inc/mpc.h',
   'src/core/inc/3dlut_builder.h',
+  'src/core/inc/geometric_scaling.h',
   'src/core/inc/cmd_builder.h',
   'src/core/inc/background.h',
   'src/core/inc/color_gamma.h',
@@ -85,6 +87,7 @@ vpe_files = files(
   'src/core/vpelib.c',
   'src/core/vpe_desc_writer.c',
   'src/core/3dlut_builder.c',
+  'src/core/geometric_scaling.c',
   'src/core/color_test_values.c',
   'src/core/resource.c',
   'src/core/color_table.c',
@@ -125,6 +128,10 @@ vpe_files = files(
   'src/chip/vpe10/vpe10_background.c',
   'src/chip/vpe10/vpe10_cdc.c',
   'src/chip/vpe10/vpe10_vpec.c',
+  'src/chip/vpe11/inc/vpe11_cmd_builder.h',
+  'src/chip/vpe11/inc/vpe11_resource.h',
+  'src/chip/vpe11/vpe11_cmd_builder.c',
+  'src/chip/vpe11/vpe11_resource.c',
 )
 
 inc_amd_vpe = include_directories(
@@ -134,6 +141,7 @@ inc_amd_vpe = include_directories(
   'src/chip',
   'src/utils/inc',
   'src/chip/vpe10/inc',
+  'src/chip/vpe11/inc',
 )
 
 libvpe = static_library(

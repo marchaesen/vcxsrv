@@ -55,6 +55,25 @@ enum afuc_color {
 
 void afuc_printc(enum afuc_color c, const char *fmt, ...);
 
-int afuc_util_init(int gpuver, bool colors);
+enum afuc_fwid {
+   AFUC_A730 = 0x730,
+   AFUC_A740 = 0x740,
+   AFUC_A750 = 0x520,
+
+   AFUC_A630 = 0x6ee,
+   AFUC_A650 = 0x6dc,
+   AFUC_A660 = 0x6dd,
+
+   AFUC_A530 = 0x5ff,
+};
+
+static inline enum afuc_fwid
+afuc_get_fwid(uint32_t first_dword)
+{
+   /* The firmware ID is in bits 12-24 of the first dword */
+   return (first_dword >> 12) & 0xfff;
+}
+
+int afuc_util_init(enum afuc_fwid fw_id, int *gpuver, bool colors);
 
 #endif /* _UTIL_H_ */

@@ -37,6 +37,21 @@ else
   libloader_dri3_helper = []
 endif
 
+if with_platform_wayland
+  libloader_wayland_helper = static_library(
+    'loader_wayland_helper',
+    'loader_wayland_helper.c',
+    gnu_symbol_visibility : 'hidden',
+    include_directories : [inc_include, inc_src],
+    dependencies : [
+      dep_wayland_client,
+    ],
+    build_by_default : false,
+  )
+else
+  libloader_wayland_helper = []
+endif
+
 loader_c_args = [
   '-DUSE_DRICONF',
   '-DDEFAULT_DRIVER_DIR="@0@"'.format(dri_search_path),

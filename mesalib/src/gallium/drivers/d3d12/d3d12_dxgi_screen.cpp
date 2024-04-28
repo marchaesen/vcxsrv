@@ -55,7 +55,7 @@ get_dxgi_factory()
    }
 
    UINT flags = 0;
-#ifndef DEBUG
+#if !MESA_DEBUG
    if (d3d12_debug & D3D12_DEBUG_DEBUG_LAYER)
 #endif
       flags |= DXGI_CREATE_FACTORY_DEBUG;

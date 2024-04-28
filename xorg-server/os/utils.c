@@ -78,10 +78,14 @@ __stdcall unsigned long GetTickCount(void);
 #define TRANS_SERVER
 #define TRANS_REOPEN
 #include <X11/Xtrans/Xtrans.h>
+
+#include "os/audit.h"
+
 #include "input.h"
 #include "dixfont.h"
 #include <X11/fonts/libxfont2.h>
 #include "osdep.h"
+#include "xdmcp.h"
 #include "extension.h"
 #include <signal.h>
 #ifndef WIN32
@@ -102,16 +106,15 @@ __stdcall unsigned long GetTickCount(void);
 #endif
 #endif
 
-#include "opaque.h"
+#include "dix/dix_priv.h"
+#include "os/auth.h"
+#include "os/cmdline.h"
+#include "os/osdep.h"
 
 #include "dixstruct.h"
-
 #include "xkbsrv.h"
-
 #include "picture.h"
-
 #include "miinitext.h"
-
 #include "present.h"
 
 Bool noTestExtensions;
@@ -168,10 +171,6 @@ Bool noXFixesExtension = FALSE;
 /* Xinerama is disabled by default unless enabled via +xinerama */
 Bool noPanoramiXExtension = TRUE;
 #endif
-#ifdef XSELINUX
-Bool noSELinuxExtension = FALSE;
-int selinuxEnforcingState = SELINUX_MODE_DEFAULT;
-#endif
 #ifdef XV
 Bool noXvExtension = FALSE;
 #endif
@@ -196,15 +195,9 @@ Bool AllowByteSwappedClients = FALSE;
 Bool PanoramiXExtensionDisabledHack = FALSE;
 #endif
 
-int auditTrailLevel = 1;
-
 char *SeatId = NULL;
 
 sig_atomic_t inSignalContext = FALSE;
-
-#if defined(SVR4) || defined(__linux__) || defined(CSRG_BASED)
-#define HAS_SAVED_IDS_AND_SETEUID
-#endif
 
 #ifdef MONOTONIC_CLOCK
 static clockid_t clockid;
@@ -1136,78 +1129,6 @@ set_font_authorizations(char **authorizations, int *authlen, void *client)
 #endif                          /* TCPCONN */
 }
 
-void *
-XNFalloc(unsigned long amount)
-{
-    void *ptr = malloc(amount);
-
-    if (!ptr)
-        FatalError("Out of memory");
-    return ptr;
-}
-
-/* The original XNFcalloc was used with the xnfcalloc macro which multiplied
- * the arguments at the call site without allowing calloc to check for overflow.
- * XNFcallocarray was added to fix that without breaking ABI.
- */
-void *
-XNFcalloc(unsigned long amount)
-{
-    return XNFcallocarray(1, amount);
-}
-
-void *
-XNFcallocarray(size_t nmemb, size_t size)
-{
-    void *ret = calloc(nmemb, size);
-
-    if (!ret)
-        FatalError("XNFcalloc: Out of memory");
-    return ret;
-}
-
-void *
-XNFrealloc(void *ptr, unsigned long amount)
-{
-    void *ret = realloc(ptr, amount);
-
-    if (!ret)
-        FatalError("XNFrealloc: Out of memory");
-    return ret;
-}
-
-void *
-XNFreallocarray(void *ptr, size_t nmemb, size_t size)
-{
-    void *ret = reallocarray(ptr, nmemb, size);
-
-    if (!ret)
-        FatalError("XNFreallocarray: Out of memory");
-    return ret;
-}
-
-char *
-Xstrdup(const char *s)
-{
-    if (s == NULL)
-        return NULL;
-    return strdup(s);
-}
-
-char *
-XNFstrdup(const char *s)
-{
-    char *ret;
-
-    if (s == NULL)
-        return NULL;
-
-    ret = strdup(s);
-    if (!ret)
-        FatalError("XNFstrdup: Out of memory");
-    return ret;
-}
-
 void
 SmartScheduleStopTimer(void)
 {
@@ -1374,49 +1295,6 @@ OsAbort(void)
  * as well.  As it is now, xkbcomp messages don't end up in the log file.
  */
 
-int
-System(const char *command)
-{
-    int pid, p;
-    void (*csig) (int);
-    int status;
-
-    if (!command)
-        return 1;
-
-    csig = OsSignal(SIGCHLD, SIG_DFL);
-    if (csig == SIG_ERR) {
-        perror("signal");
-        return -1;
-    }
-    DebugF("System: `%s'\n", command);
-
-    switch (pid = fork()) {
-    case -1:                   /* error */
-        p = -1;
-        break;
-    case 0:                    /* child */
-        if (setgid(getgid()) == -1)
-            _exit(127);
-        if (setuid(getuid()) == -1)
-            _exit(127);
-        execl("/bin/sh", "sh", "-c", command, (char *) NULL);
-        _exit(127);
-    default:                   /* parent */
-        do {
-            p = waitpid(pid, &status, 0);
-        } while (p == -1 && errno == EINTR);
-
-    }
-
-    if (OsSignal(SIGCHLD, csig) == SIG_ERR) {
-        perror("signal");
-        return -1;
-    }
-
-    return p == -1 ? -1 : status;
-}
-
 static struct pid {
     struct pid *next;
     FILE *fp;
@@ -1518,78 +1396,6 @@ void *
 Fopen(const char *file, const char *type)
 {
     FILE *iop;
-
-#ifndef HAS_SAVED_IDS_AND_SETEUID
-    struct pid *cur;
-    int pdes[2], pid;
-
-    if (file == NULL || type == NULL)
-        return NULL;
-
-    if ((*type != 'r' && *type != 'w') || type[1])
-        return NULL;
-
-    if ((cur = malloc(sizeof(struct pid))) == NULL)
-        return NULL;
-
-    if (pipe(pdes) < 0) {
-        free(cur);
-        return NULL;
-    }
-
-    switch (pid = fork()) {
-    case -1:                   /* error */
-        close(pdes[0]);
-        close(pdes[1]);
-        free(cur);
-        return NULL;
-    case 0:                    /* child */
-        if (setgid(getgid()) == -1)
-            _exit(127);
-        if (setuid(getuid()) == -1)
-            _exit(127);
-        if (*type == 'r') {
-            if (pdes[1] != 1) {
-                /* stdout */
-                dup2(pdes[1], 1);
-                close(pdes[1]);
-            }
-            close(pdes[0]);
-        }
-        else {
-            if (pdes[0] != 0) {
-                /* stdin */
-                dup2(pdes[0], 0);
-                close(pdes[0]);
-            }
-            close(pdes[1]);
-        }
-        execl("/bin/cat", "cat", file, (char *) NULL);
-        _exit(127);
-    }
-
-    /* Avoid EINTR during stdio calls */
-    OsBlockSignals();
-
-    /* parent */
-    if (*type == 'r') {
-        iop = fdopen(pdes[0], type);
-        close(pdes[1]);
-    }
-    else {
-        iop = fdopen(pdes[1], type);
-        close(pdes[0]);
-    }
-
-    cur->fp = iop;
-    cur->pid = pid;
-    cur->next = pidlist;
-    pidlist = cur;
-
-    DebugF("Fopen(%s), fp = %p\n", file, iop);
-
-    return iop;
-#else
     int ruid, euid;
 
     ruid = getuid();
@@ -1605,7 +1411,6 @@ Fopen(const char *file, const char *type)
         return NULL;
     }
     return iop;
-#endif                          /* HAS_SAVED_IDS_AND_SETEUID */
 }
 
 int
@@ -1650,11 +1455,7 @@ Pclose(void *iop)
 int
 Fclose(void *iop)
 {
-#ifdef HAS_SAVED_IDS_AND_SETEUID
     return fclose(iop);
-#else
-    return Pclose(iop);
-#endif
 }
 
 #endif                          /* !WIN32 */
@@ -1689,14 +1490,12 @@ Win32TempDir(void)
 int
 System(const char *cmdline)
 {
-    STARTUPINFO si;
-    PROCESS_INFORMATION pi;
+    STARTUPINFO si = (STARTUPINFO) {
+        .cb = sizeof(si),
+    };
+    PROCESS_INFORMATION pi = (PROCESS_INFORMATION){0};
     DWORD dwExitCode;
     char *cmd = strdup(cmdline);
-
-    ZeroMemory(&si, sizeof(si));
-    si.cb = sizeof(si);
-    ZeroMemory(&pi, sizeof(pi));
 
     if (!CreateProcess(NULL, cmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi)) {
         LPVOID buffer;
@@ -2046,136 +1845,6 @@ CheckUserAuthorization(void)
         pam_end(pamh, PAM_SUCCESS);
     }
 #endif
-}
-
-/*
- * Tokenize a string into a NULL terminated array of strings. Always returns
- * an allocated array unless an error occurs.
- */
-char **
-xstrtokenize(const char *str, const char *separators)
-{
-    char **list, **nlist;
-    char *tok, *tmp;
-    unsigned num = 0, n;
-
-    if (!str)
-        return NULL;
-    list = calloc(1, sizeof(*list));
-    if (!list)
-        return NULL;
-    tmp = strdup(str);
-    if (!tmp)
-        goto error;
-    for (tok = strtok(tmp, separators); tok; tok = strtok(NULL, separators)) {
-        nlist = reallocarray(list, num + 2, sizeof(*list));
-        if (!nlist)
-            goto error;
-        list = nlist;
-        list[num] = strdup(tok);
-        if (!list[num])
-            goto error;
-        list[++num] = NULL;
-    }
-    free(tmp);
-    return list;
-
- error:
-    free(tmp);
-    for (n = 0; n < num; n++)
-        free(list[n]);
-    free(list);
-    return NULL;
-}
-
-/* Format a signed number into a string in a signal safe manner. The string
- * should be at least 21 characters in order to handle all int64_t values.
- */
-void
-FormatInt64(int64_t num, char *string)
-{
-    if (num < 0) {
-        string[0] = '-';
-        num *= -1;
-        string++;
-    }
-    FormatUInt64(num, string);
-}
-
-/* Format a number into a string in a signal safe manner. The string should be
- * at least 21 characters in order to handle all uint64_t values. */
-void
-FormatUInt64(uint64_t num, char *string)
-{
-    uint64_t divisor;
-    int len;
-    int i;
-
-    for (len = 1, divisor = 10;
-         len < 20 && num / divisor;
-         len++, divisor *= 10);
-
-    for (i = len, divisor = 1; i > 0; i--, divisor *= 10)
-        string[i - 1] = '0' + ((num / divisor) % 10);
-
-    string[len] = '\0';
-}
-
-/**
- * Format a double number as %.2f.
- */
-void
-FormatDouble(double dbl, char *string)
-{
-    int slen = 0;
-    uint64_t frac;
-
-    frac = (dbl > 0 ? dbl : -dbl) * 100.0 + 0.5;
-    frac %= 100;
-
-    /* write decimal part to string */
-    if (dbl < 0 && dbl > -1)
-        string[slen++] = '-';
-    FormatInt64((int64_t)dbl, &string[slen]);
-
-    while(string[slen] != '\0')
-        slen++;
-
-    /* append fractional part, but only if we have enough characters. We
-     * expect string to be 21 chars (incl trailing \0) */
-    if (slen <= 17) {
-        string[slen++] = '.';
-        if (frac < 10)
-            string[slen++] = '0';
-
-        FormatUInt64(frac, &string[slen]);
-    }
-}
-
-
-/* Format a number into a hexadecimal string in a signal safe manner. The string
- * should be at least 17 characters in order to handle all uint64_t values. */
-void
-FormatUInt64Hex(uint64_t num, char *string)
-{
-    uint64_t divisor;
-    int len;
-    int i;
-
-    for (len = 1, divisor = 0x10;
-         len < 16 && num / divisor;
-         len++, divisor *= 0x10);
-
-    for (i = len, divisor = 1; i > 0; i--, divisor *= 0x10) {
-        int val = (num / divisor) % 0x10;
-
-        if (val < 10)
-            string[i - 1] = '0' + val;
-        else
-            string[i - 1] = 'a' + val - 10;
-    }
-
-    string[len] = '\0';
 }
 
 #if !defined(WIN32) || defined(__CYGWIN__)

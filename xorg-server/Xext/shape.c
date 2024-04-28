@@ -29,9 +29,13 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #include <stdlib.h>
-
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/shapeproto.h>
+
+#include "dix/dix_priv.h"
+#include "dix/gc_priv.h"
+
 #include "misc.h"
 #include "os.h"
 #include "windowstr.h"
@@ -41,7 +45,6 @@ in this Software without prior written authorization from The Open Group.
 #include "dixstruct.h"
 #include "resource.h"
 #include "opaque.h"
-#include <X11/extensions/shapeproto.h>
 #include "regionstr.h"
 #include "gcstruct.h"
 #include "extinit.h"
@@ -362,7 +365,7 @@ ProcShapeMask(ClientPtr client)
         srcRgn = 0;
     else {
         rc = dixLookupResourceByType((void **) &pPixmap, stuff->src,
-                                     RT_PIXMAP, client, DixReadAccess);
+                                     X11_RESTYPE_PIXMAP, client, DixReadAccess);
         if (rc != Success)
             return rc;
         if (pPixmap->drawable.pScreen != pScreen ||
@@ -783,7 +786,7 @@ ProcShapeSelectInput(ClientPtr client)
             if (!pHead ||
                 !AddResource(pWin->drawable.id, ShapeEventType,
                              (void *) pHead)) {
-                FreeResource(clientResource, RT_NONE);
+                FreeResource(clientResource, X11_RESTYPE_NONE);
                 return BadAlloc;
             }
             *pHead = 0;

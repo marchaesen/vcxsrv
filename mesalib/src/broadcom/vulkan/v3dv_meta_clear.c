@@ -26,6 +26,7 @@
 
 #include "compiler/nir/nir_builder.h"
 #include "util/u_pack_color.h"
+#include "vk_common_entrypoints.h"
 
 static void
 get_hw_clear_color(struct v3dv_device *device,
@@ -1122,13 +1123,13 @@ emit_subpass_ds_clear_rects(struct v3dv_cmd_buffer *cmd_buffer,
                         pipeline->pipeline);
 
    if (aspects & VK_IMAGE_ASPECT_STENCIL_BIT) {
-      v3dv_CmdSetStencilReference(cmd_buffer_handle,
-                                  VK_STENCIL_FACE_FRONT_AND_BACK,
-                                  clear_ds->stencil);
-      v3dv_CmdSetStencilWriteMask(cmd_buffer_handle,
-                                  VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
-      v3dv_CmdSetStencilCompareMask(cmd_buffer_handle,
-                                    VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+      vk_common_CmdSetStencilReference(cmd_buffer_handle,
+                                       VK_STENCIL_FACE_FRONT_AND_BACK,
+                                       clear_ds->stencil);
+      vk_common_CmdSetStencilWriteMask(cmd_buffer_handle,
+                                       VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
+      vk_common_CmdSetStencilCompareMask(cmd_buffer_handle,
+                                         VK_STENCIL_FACE_FRONT_AND_BACK, 0xff);
    }
 
    for (uint32_t i = 0; i < rect_count; i++) {

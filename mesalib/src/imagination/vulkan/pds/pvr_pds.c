@@ -751,7 +751,7 @@ pvr_pds_vertex_shader(struct pvr_pds_vertex_shader_program *restrict program,
 
    /* Generate the PDS vertex shader data. */
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    if (gen_mode == PDS_GENERATE_DATA_SEGMENT) {
       for (uint32_t i = 0; i < program->data_size; i++)
          buffer[i] = 0xDEADBEEF;
@@ -1781,7 +1781,7 @@ pvr_pds_compute_shader(struct pvr_pds_compute_shader_program *restrict program,
    /* 2x 64 bit registers that will mask out the Predicate load. */
    uint32_t cond_render_pred_mask_constant = 0;
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    if (gen_mode == PDS_GENERATE_DATA_SEGMENT) {
       for (uint32_t j = 0; j < program->data_size; j++)
          buffer[j] = 0xDEADBEEF;

@@ -46,7 +46,6 @@
 /* Bus-specific headers */
 #include "xf86Bus.h"
 
-#define XF86_OS_PRIVS
 #include "xf86_OSproc.h"
 
 #define PCI_VENDOR_GENERIC		0x00FF

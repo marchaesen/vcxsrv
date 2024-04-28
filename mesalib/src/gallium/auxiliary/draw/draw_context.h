@@ -321,7 +321,6 @@ void draw_delete_mesh_shader(struct draw_context *draw,
 
 void draw_set_vertex_buffers(struct draw_context *draw,
                              unsigned count,
-                             unsigned unbind_num_trailing_slots,
                              const struct pipe_vertex_buffer *buffers);
 
 void draw_set_vertex_elements(struct draw_context *draw,

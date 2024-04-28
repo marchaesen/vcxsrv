@@ -1,3 +1,8 @@
+/*
+ * Copyright Pavel Ondračka <pavel.ondracka@gmail.com>
+ * SPDX-License-Identifier: MIT
+ */
+
 #include <stdbool.h>
 #include "r300_nir.h"
 #include "nir_builder.h"

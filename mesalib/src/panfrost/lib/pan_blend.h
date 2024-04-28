@@ -35,7 +35,12 @@
 #include "panfrost/util/pan_ir.h"
 
 struct MALI_BLEND_EQUATION;
-struct panfrost_device;
+
+struct pan_blend_shader_cache {
+   unsigned gpu_id;
+   struct hash_table *shaders;
+   pthread_mutex_t lock;
+};
 
 struct pan_blend_equation {
    unsigned blend_enable                  : 1;
@@ -143,32 +148,25 @@ void pan_blend_to_fixed_function_equation(const struct pan_blend_equation eq,
 
 uint32_t pan_pack_blend(const struct pan_blend_equation equation);
 
-void pan_blend_shaders_init(struct panfrost_device *dev);
+void pan_blend_shader_cache_init(struct pan_blend_shader_cache *cache,
+                                 unsigned gpu_id);
 
-void pan_blend_shaders_cleanup(struct panfrost_device *dev);
+void pan_blend_shader_cache_cleanup(struct pan_blend_shader_cache *cache);
 
 #ifdef PAN_ARCH
 
-nir_shader *GENX(pan_blend_create_shader)(const struct panfrost_device *dev,
-                                          const struct pan_blend_state *state,
-                                          nir_alu_type src0_type,
-                                          nir_alu_type src1_type, unsigned rt);
-
 #if PAN_ARCH >= 6
-uint64_t GENX(pan_blend_get_internal_desc)(const struct panfrost_device *dev,
-                                           enum pipe_format fmt, unsigned rt,
+uint64_t GENX(pan_blend_get_internal_desc)(enum pipe_format fmt, unsigned rt,
                                            unsigned force_size, bool dithered);
 
-bool GENX(pan_inline_rt_conversion)(nir_shader *s,
-                                    const struct panfrost_device *dev,
-                                    enum pipe_format *formats);
+bool GENX(pan_inline_rt_conversion)(nir_shader *s, enum pipe_format *formats);
 #endif
 
 /* Take blend_shaders.lock before calling this function and release it when
  * you're done with the shader variant object.
  */
 struct pan_blend_shader_variant *GENX(pan_blend_get_shader_locked)(
-   const struct panfrost_device *dev, const struct pan_blend_state *state,
+   struct pan_blend_shader_cache *cache, const struct pan_blend_state *state,
    nir_alu_type src0_type, nir_alu_type src1_type, unsigned rt);
 #endif
 

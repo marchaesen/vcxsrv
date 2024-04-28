@@ -483,6 +483,7 @@ trace_screen_flush_frontbuffer(struct pipe_screen *_screen,
                                struct pipe_resource *resource,
                                unsigned level, unsigned layer,
                                void *context_private,
+                               unsigned nboxes,
                                struct pipe_box *sub_box)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
@@ -501,7 +502,7 @@ trace_screen_flush_frontbuffer(struct pipe_screen *_screen,
 
    trace_dump_call_end();
 
-   screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private, sub_box);
+   screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private, nboxes, sub_box);
 }
 
 
@@ -634,7 +635,8 @@ trace_screen_allocate_memory(struct pipe_screen *_screen,
 static struct pipe_memory_allocation *
 trace_screen_allocate_memory_fd(struct pipe_screen *_screen,
                                 uint64_t size,
-                                int *fd)
+                                int *fd,
+                                bool dmabuf)
 {
    struct trace_screen *tr_scr = trace_screen(_screen);
    struct pipe_screen *screen = tr_scr->screen;
@@ -645,8 +647,9 @@ trace_screen_allocate_memory_fd(struct pipe_screen *_screen,
    trace_dump_arg(ptr, screen);
    trace_dump_arg(uint, size);
    trace_dump_arg(ptr, fd);
+   trace_dump_arg(bool, dmabuf);
 
-   result = screen->allocate_memory_fd(screen, size, fd);
+   result = screen->allocate_memory_fd(screen, size, fd, dmabuf);
 
    trace_dump_ret(ptr, result);
 

@@ -3268,6 +3268,45 @@ vn_decode_VkShaderFloatControlsIndependence(struct vn_cs_decoder *dec, VkShaderF
     vn_decode_int32_t(dec, (int32_t *)val);
 }
 
+/* enum VkFragmentShadingRateCombinerOpKHR */
+
+static inline size_t
+vn_sizeof_VkFragmentShadingRateCombinerOpKHR(const VkFragmentShadingRateCombinerOpKHR *val)
+{
+    assert(sizeof(*val) == sizeof(int32_t));
+    return vn_sizeof_int32_t((const int32_t *)val);
+}
+
+static inline void
+vn_encode_VkFragmentShadingRateCombinerOpKHR(struct vn_cs_encoder *enc, const VkFragmentShadingRateCombinerOpKHR *val)
+{
+    vn_encode_int32_t(enc, (const int32_t *)val);
+}
+
+static inline void
+vn_decode_VkFragmentShadingRateCombinerOpKHR(struct vn_cs_decoder *dec, VkFragmentShadingRateCombinerOpKHR *val)
+{
+    vn_decode_int32_t(dec, (int32_t *)val);
+}
+
+static inline size_t
+vn_sizeof_VkFragmentShadingRateCombinerOpKHR_array(const VkFragmentShadingRateCombinerOpKHR *val, uint32_t count)
+{
+    return vn_sizeof_int32_t_array((const int32_t *)val, count);
+}
+
+static inline void
+vn_encode_VkFragmentShadingRateCombinerOpKHR_array(struct vn_cs_encoder *enc, const VkFragmentShadingRateCombinerOpKHR *val, uint32_t count)
+{
+    vn_encode_int32_t_array(enc, (const int32_t *)val, count);
+}
+
+static inline void
+vn_decode_VkFragmentShadingRateCombinerOpKHR_array(struct vn_cs_decoder *dec, VkFragmentShadingRateCombinerOpKHR *val, uint32_t count)
+{
+    vn_decode_int32_t_array(dec, (int32_t *)val, count);
+}
+
 /* enum VkVendorId */
 
 static inline size_t

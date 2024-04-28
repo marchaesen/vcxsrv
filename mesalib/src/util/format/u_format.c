@@ -1468,3 +1468,55 @@ util_format_get_array(const enum util_format_type type, const unsigned bits,
 
    return PIPE_FORMAT_NONE;
 }
+
+unsigned
+util_format_get_last_component(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   unsigned num = 0;
+
+   for (unsigned i = 1; i < 4; i++) {
+      if (desc->swizzle[i] <= PIPE_SWIZZLE_W)
+         num = i;
+   }
+   return num;
+}
+
+int
+util_format_get_largest_non_void_channel(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   int chan = -1, max_size = 0;
+
+   for (int i = 0; i < 4; i++) {
+      if (desc->channel[i].type != UTIL_FORMAT_TYPE_VOID &&
+          desc->channel[i].size > max_size) {
+         chan = i;
+         max_size = desc->channel[i].size;
+      }
+   }
+
+   return chan;
+}
+
+unsigned
+util_format_get_max_channel_size(enum pipe_format format)
+{
+   const struct util_format_description *desc = util_format_description(format);
+   int max_src_chan = util_format_get_largest_non_void_channel(format);
+   assert(max_src_chan >= 0 || util_format_is_compressed(format));
+
+   switch (format) {
+   case PIPE_FORMAT_BPTC_RGB_FLOAT:
+   case PIPE_FORMAT_BPTC_RGB_UFLOAT:
+      return 16;
+   case PIPE_FORMAT_ETC2_R11_UNORM:
+   case PIPE_FORMAT_ETC2_R11_SNORM:
+   case PIPE_FORMAT_ETC2_RG11_UNORM:
+   case PIPE_FORMAT_ETC2_RG11_SNORM:
+      return 11;
+   default:
+      return util_format_is_compressed(format) ?
+               8 : desc->channel[max_src_chan].size;
+   }
+}

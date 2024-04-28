@@ -478,6 +478,7 @@ virgl_drm_winsys_resource_get_storage_size(struct virgl_winsys *qws,
 static struct virgl_hw_res *
 virgl_drm_winsys_resource_create_handle(struct virgl_winsys *qws,
                                         struct winsys_handle *whandle,
+                                        UNUSED struct pipe_resource *templ,
                                         uint32_t *plane,
                                         uint32_t *stride,
                                         uint32_t *plane_offset,

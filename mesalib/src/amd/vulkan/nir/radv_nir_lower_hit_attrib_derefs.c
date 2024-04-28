@@ -6,7 +6,13 @@
 
 #include "nir.h"
 #include "nir_builder.h"
+#include "radv_constants.h"
 #include "radv_nir.h"
+
+struct lower_hit_attrib_deref_args {
+   nir_variable_mode mode;
+   uint32_t base_offset;
+};
 
 static bool
 lower_hit_attrib_deref(nir_builder *b, nir_instr *instr, void *data)
@@ -18,8 +24,9 @@ lower_hit_attrib_deref(nir_builder *b, nir_instr *instr, void *data)
    if (intrin->intrinsic != nir_intrinsic_load_deref && intrin->intrinsic != nir_intrinsic_store_deref)
       return false;
 
+   struct lower_hit_attrib_deref_args *args = data;
    nir_deref_instr *deref = nir_src_as_deref(intrin->src[0]);
-   if (!nir_deref_mode_is(deref, nir_var_ray_hit_attrib))
+   if (!nir_deref_mode_is(deref, args->mode))
       return false;
 
    assert(deref->deref_type == nir_deref_type_var);
@@ -33,7 +40,7 @@ lower_hit_attrib_deref(nir_builder *b, nir_instr *instr, void *data)
       nir_def *components[NIR_MAX_VEC_COMPONENTS];
 
       for (uint32_t comp = 0; comp < num_components; comp++) {
-         uint32_t offset = deref->var->data.driver_location + comp * DIV_ROUND_UP(bit_size, 8);
+         uint32_t offset = args->base_offset + deref->var->data.driver_location + comp * DIV_ROUND_UP(bit_size, 8);
          uint32_t base = offset / 4;
          uint32_t comp_offset = offset % 4;
 
@@ -61,7 +68,7 @@ lower_hit_attrib_deref(nir_builder *b, nir_instr *instr, void *data)
       uint32_t bit_size = value->bit_size;
 
       for (uint32_t comp = 0; comp < num_components; comp++) {
-         uint32_t offset = deref->var->data.driver_location + comp * DIV_ROUND_UP(bit_size, 8);
+         uint32_t offset = args->base_offset + deref->var->data.driver_location + comp * DIV_ROUND_UP(bit_size, 8);
          uint32_t base = offset / 4;
          uint32_t comp_offset = offset % 4;
 
@@ -95,24 +102,43 @@ lower_hit_attrib_deref(nir_builder *b, nir_instr *instr, void *data)
    return true;
 }
 
-bool
-radv_nir_lower_hit_attrib_derefs(nir_shader *shader)
+static bool
+radv_nir_lower_rt_vars(nir_shader *shader, nir_variable_mode mode, uint32_t base_offset)
 {
    bool progress = false;
 
-   progress |= nir_split_struct_vars(shader, nir_var_ray_hit_attrib);
-   progress |= nir_lower_indirect_derefs(shader, nir_var_ray_hit_attrib, UINT32_MAX);
-   progress |= nir_split_array_vars(shader, nir_var_ray_hit_attrib);
+   progress |= nir_split_struct_vars(shader, mode);
+   progress |= nir_lower_indirect_derefs(shader, mode, UINT32_MAX);
+   progress |= nir_split_array_vars(shader, mode);
 
-   progress |= nir_lower_vars_to_explicit_types(shader, nir_var_ray_hit_attrib, glsl_get_natural_size_align_bytes);
+   progress |= nir_lower_vars_to_explicit_types(shader, mode, glsl_get_natural_size_align_bytes);
+
+   struct lower_hit_attrib_deref_args args = {
+      .mode = mode,
+      .base_offset = base_offset,
+   };
 
    progress |= nir_shader_instructions_pass(shader, lower_hit_attrib_deref,
-                                            nir_metadata_block_index | nir_metadata_dominance, NULL);
+                                            nir_metadata_block_index | nir_metadata_dominance, &args);
 
    if (progress) {
       nir_remove_dead_derefs(shader);
-      nir_remove_dead_variables(shader, nir_var_ray_hit_attrib, NULL);
+      nir_remove_dead_variables(shader, mode, NULL);
    }
 
+   return progress;
+}
+
+bool
+radv_nir_lower_hit_attrib_derefs(nir_shader *shader)
+{
+   return radv_nir_lower_rt_vars(shader, nir_var_ray_hit_attrib, 0);
+}
+
+bool
+radv_nir_lower_ray_payload_derefs(nir_shader *shader, uint32_t offset)
+{
+   bool progress = radv_nir_lower_rt_vars(shader, nir_var_function_temp, RADV_MAX_HIT_ATTRIB_SIZE + offset);
+   progress |= radv_nir_lower_rt_vars(shader, nir_var_shader_call_data, RADV_MAX_HIT_ATTRIB_SIZE + offset);
    return progress;
 }

@@ -88,7 +88,7 @@ xwinDevWindowsHandlerNotify(int fd, int ready, void *data)
 void
 InitInput(int argc, char *argv[])
 {
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("InitInput\n");
 #endif
 
@@ -126,7 +126,7 @@ InitInput(int argc, char *argv[])
     }
 #endif
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("InitInput - returning\n");
 #endif
 }

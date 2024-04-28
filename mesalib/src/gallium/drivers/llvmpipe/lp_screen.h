@@ -73,6 +73,10 @@ struct llvmpipe_screen
    char renderer_string[100];
 
    struct disk_cache *disk_shader_cache;
+
+#ifdef HAVE_LIBDRM
+   int udmabuf_fd;
+#endif
 };
 
 

@@ -50,7 +50,7 @@ While most instruction types in NIR require vector sizes to perfectly match on
 inputs and outputs, ALU instruction sources have an additional
 :c:member:`nir_alu_src.swizzle` field which allows them to act on vectors
 which are not the native vector size of the instruction.  This is ideal for
-hardware with a native data type of `vec4` but also means that ALU
+hardware with a native data type of :nir:alu-op:`vec4` but also means that ALU
 instructions are often used (and required) for packing/unpacking vectors for
 use in other instruction types like intrinsics or texture ops.
 

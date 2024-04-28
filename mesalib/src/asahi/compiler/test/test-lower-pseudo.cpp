@@ -40,10 +40,3 @@ TEST_F(LowerPseudo, Not)
 {
    CASE(agx_not_to(b, wx, wy), agx_bitop_to(b, wx, wy, agx_zero(), 0x5));
 }
-
-TEST_F(LowerPseudo, BinaryBitwise)
-{
-   CASE(agx_and_to(b, wx, wy, wz), agx_bitop_to(b, wx, wy, wz, 0x8));
-   CASE(agx_xor_to(b, wx, wy, wz), agx_bitop_to(b, wx, wy, wz, 0x6));
-   CASE(agx_or_to(b, wx, wy, wz), agx_bitop_to(b, wx, wy, wz, 0xE));
-}

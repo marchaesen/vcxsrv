@@ -2,7 +2,14 @@
 
 set -ex
 
-MOLD_VERSION="1.11.0"
+# When changing this file, you need to bump the following
+# .gitlab-ci/image-tags.yml tags:
+# DEBIAN_BASE_TAG
+# DEBIAN_BUILD_TAG
+# FEDORA_X86_64_BUILD_TAG
+# KERNEL_ROOTFS_TAG
+
+MOLD_VERSION="2.4.1"
 
 git clone -b v"$MOLD_VERSION" --single-branch --depth 1 https://github.com/rui314/mold.git
 pushd mold

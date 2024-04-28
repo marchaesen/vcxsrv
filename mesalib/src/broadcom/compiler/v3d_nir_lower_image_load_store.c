@@ -199,13 +199,8 @@ pack_16bit(nir_builder *b, nir_def *color,
                          unsigned num_components,
                          enum hw_conversion conversion)
 {
-        nir_def *results[2];
-        nir_def *channels[4];
-
-        /* Note that usually you should not use this method (that relies on
-         * custom packing) if we are not doing any conversion. But we support
-         * also that case, and let the caller decide which method to use.
-         */
+        nir_def *results[2] = {0};
+        nir_def *channels[4] = {0};
 
         for (unsigned i = 0; i < num_components; i++) {
                 channels[i] = nir_channel(b, color, i);
@@ -217,6 +212,11 @@ pack_16bit(nir_builder *b, nir_def *color,
                         channels[i] = nir_f2unorm_16_v3d(b, channels[i]);
                         break;
                 default:
+                        /* Note that usually you should not use this method
+                         * (that relies on custom packing) if we are not doing
+                         * any conversion. But we support also that case, and
+                         * let the caller decide which method to use.
+                         */
                         break;
                 }
         }
@@ -231,6 +231,8 @@ pack_16bit(nir_builder *b, nir_def *color,
         case 2:
                 results[0] = nir_pack_2x32_to_2x16_v3d(b, channels[0], channels[1]);
                 break;
+        default:
+                unreachable("Invalid number of components");
         }
 
         return nir_vec(b, results, DIV_ROUND_UP(num_components, 2));

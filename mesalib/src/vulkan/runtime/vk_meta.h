@@ -78,7 +78,7 @@ void vk_meta_device_finish(struct vk_device *device,
 
 /** Keys should start with one of these to ensure uniqueness */
 enum vk_meta_object_key_type {
-   VK_META_OBJECT_KEY_TYPE_INVALD = 0,
+   VK_META_OBJECT_KEY_TYPE_INVALID = 0,
    VK_META_OBJECT_KEY_CLEAR_PIPELINE,
    VK_META_OBJECT_KEY_BLIT_PIPELINE,
    VK_META_OBJECT_KEY_BLIT_SAMPLER,

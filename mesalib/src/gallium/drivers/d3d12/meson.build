@@ -19,32 +19,51 @@
 # FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
 # IN THE SOFTWARE.
 
+libd3d12_compiler_args = []
+_with_gallium_d3d12_graphics = get_option('gallium-d3d12-graphics')
+with_gallium_d3d12_graphics = false
+if not _with_gallium_d3d12_graphics.disabled()
+  with_gallium_d3d12_graphics = true
+  libd3d12_compiler_args += '-DHAVE_GALLIUM_D3D12_GRAPHICS'
+endif
+
+if not with_gallium_d3d12_video and not with_gallium_d3d12_graphics
+  error('d3d12 gallium driver must have at least one of gallium-d3d12-video or gallium-d3d12-graphics enabled.')
+endif
+
 files_libd3d12 = files(
   'd3d12_batch.cpp',
-  'd3d12_blit.cpp',
+  'd3d12_copy.cpp',
   'd3d12_bufmgr.cpp',
-  'd3d12_cmd_signature.cpp',
-  'd3d12_compiler.cpp',
-  'd3d12_compute_transforms.cpp',
-  'd3d12_context.cpp',
-  'd3d12_descriptor_pool.cpp',
-  'd3d12_draw.cpp',
+  'd3d12_context_common.cpp',
   'd3d12_fence.cpp',
   'd3d12_format.c',
-  'd3d12_gs_variant.cpp',
-  'd3d12_lower_image_casts.c',
-  'd3d12_lower_point_sprite.c',
-  'd3d12_nir_passes.c',
-  'd3d12_pipeline_state.cpp',
-  'd3d12_query.cpp',
   'd3d12_residency.cpp',
   'd3d12_resource.cpp',
   'd3d12_resource_state.cpp',
-  'd3d12_root_signature.cpp',
   'd3d12_screen.cpp',
-  'd3d12_surface.cpp',
-  'd3d12_tcs_variant.cpp',
 )
+
+if with_gallium_d3d12_graphics
+  files_libd3d12 += [
+    'd3d12_blit.cpp',
+    'd3d12_draw.cpp',
+    'd3d12_surface.cpp',
+    'd3d12_context_graphics.cpp',
+    'd3d12_cmd_signature.cpp',
+    'd3d12_compiler.cpp',
+    'd3d12_compute_transforms.cpp',
+    'd3d12_descriptor_pool.cpp',
+    'd3d12_nir_passes.c',
+    'd3d12_pipeline_state.cpp',
+    'd3d12_query.cpp',
+    'd3d12_root_signature.cpp',
+    'd3d12_gs_variant.cpp',
+    'd3d12_lower_image_casts.c',
+    'd3d12_lower_point_sprite.c',
+    'd3d12_tcs_variant.cpp',
+  ]
+endif
 
 if with_gallium_d3d12_video
   files_libd3d12 += [
@@ -129,6 +148,8 @@ libd3d12 = static_library(
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_include, inc_src, inc_mesa, inc_gallium, inc_gallium_aux],
   dependencies: [idep_nir_headers, idep_libdxil_compiler, dep_dxheaders],
+  c_args: libd3d12_compiler_args,
+  cpp_args: libd3d12_compiler_args,
 )
 
 driver_d3d12 = declare_dependency(

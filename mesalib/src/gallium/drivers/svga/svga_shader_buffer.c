@@ -95,7 +95,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
 
    assert(start + num <= SVGA_MAX_SHADER_BUFFERS);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    const struct pipe_shader_buffer *b = buffers;
    SVGA_DBG(DEBUG_UAV, "%s: shader=%d start=%d num=%d ",
             __func__, shader, start, num);
@@ -141,7 +141,7 @@ svga_set_shader_buffers(struct pipe_context *pipe,
          svga->curr.num_shader_buffers[shader] = start;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    SVGA_DBG(DEBUG_UAV,
             "%s: current num_shader_buffers=%d start=%d num=%d buffers=",
             __func__, svga->curr.num_shader_buffers[shader],
@@ -177,7 +177,7 @@ svga_set_hw_atomic_buffers(struct pipe_context *pipe,
 
    assert(start + num <= SVGA_MAX_ATOMIC_BUFFERS);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    SVGA_DBG(DEBUG_UAV, "%s: start=%d num=%d \n", __func__, start, num);
 #endif
 
@@ -221,7 +221,7 @@ svga_set_hw_atomic_buffers(struct pipe_context *pipe,
          svga->curr.num_atomic_buffers = start;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    SVGA_DBG(DEBUG_UAV, "%s: current num_atomic_buffers=%d start=%d num=%d ",
             __func__, svga->curr.num_atomic_buffers,
             start, num);

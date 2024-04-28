@@ -7,6 +7,8 @@
 # Second-stage init, used to set up devices and our job environment before
 # running tests.
 
+shopt -s extglob
+
 # Make sure to kill itself and all the children process from this script on
 # exiting, since any console output may interfere with LAVA signals handling,
 # which based on the log console.
@@ -106,6 +108,13 @@ export XDG_CACHE_HOME=/tmp
 # Make sure Python can find all our imports
 export PYTHONPATH=$(python3 -c "import sys;print(\":\".join(sys.path))")
 
+# If we need to specify a driver, it means several drivers could pick up this gpu;
+# ensure that the other driver can't accidentally be used
+if [ -n "$MESA_LOADER_DRIVER_OVERRIDE" ]; then
+  rm /install/lib/dri/!($MESA_LOADER_DRIVER_OVERRIDE)_dri.so
+fi
+ls -1 /install/lib/dri/*_dri.so || true
+
 if [ "$HWCI_FREQ_MAX" = "true" ]; then
   # Ensure initialization of the DRM device (needed by MSM)
   head -0 /dev/dri/renderD128
@@ -156,7 +165,7 @@ fi
 if [ -n "$HWCI_START_XORG" ]; then
   echo "touch /xorg-started; sleep 100000" > /xorg-script
   env \
-    VK_ICD_FILENAMES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
+    VK_DRIVER_FILES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
     xinit /bin/sh /xorg-script -- /usr/bin/Xorg -noreset -s 0 -dpms -logfile /Xorg.0.log &
   BACKGROUND_PIDS="$! $BACKGROUND_PIDS"
 
@@ -183,7 +192,7 @@ if [ -n "$HWCI_START_WESTON" ]; then
   mkdir -p /tmp/.X11-unix
 
   env \
-    VK_ICD_FILENAMES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
+    VK_DRIVER_FILES="/install/share/vulkan/icd.d/${VK_DRIVER}_icd.$(uname -m).json" \
     weston -Bheadless-backend.so --use-gl -Swayland-0 --xwayland --idle-time=0 &
   BACKGROUND_PIDS="$! $BACKGROUND_PIDS"
 
@@ -208,7 +217,7 @@ cleanup
 # upload artifacts
 if [ -n "$S3_RESULTS_UPLOAD" ]; then
   tar --zstd -cf results.tar.zst results/;
-  ci-fairy s3cp --token-file "${CI_JOB_JWT_FILE}" results.tar.zst https://"$S3_RESULTS_UPLOAD"/results.tar.zst;
+  ci-fairy s3cp --token-file "${S3_JWT_FILE}" results.tar.zst https://"$S3_RESULTS_UPLOAD"/results.tar.zst;
 fi
 
 # We still need to echo the hwci: mesa message, as some scripts rely on it, such

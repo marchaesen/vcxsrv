@@ -161,6 +161,26 @@ va_flow_is_wait_or_none(enum va_flow flow)
    return (flow <= VA_FLOW_WAIT);
 }
 
+static inline bool
+va_is_valid_const_table(unsigned table)
+{
+   return (table >= 0 && table <= 11) || (table >= 60 && table <= 63);
+}
+
+static inline uint32_t
+va_res_fold_table_idx(uint32_t table)
+{
+   switch (table) {
+   case 0 ... 11:
+      return table;
+   case 60 ... 63:
+      return table + 12 - 60;
+   default:
+      assert(!"Can't pack table");
+      return 0;
+   }
+}
+
 #ifdef __cplusplus
 } /* extern C */
 #endif

@@ -391,20 +391,12 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
    }
 #endif
 
-   bool parity = false;
-
    /* Handling load_const instructions is tricky. */
 
    const nir_const_value *const const1 =
       nir_src_as_const_value(alu1->src[src1].src);
 
    if (const1 != NULL) {
-      /* Assume that constant folding will eliminate source mods and unary
-       * ops.
-       */
-      if (parity)
-         return false;
-
       const nir_const_value *const const2 =
          nir_src_as_const_value(alu2->src[src2].src);
 
@@ -431,6 +423,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
    uint8_t alu1_swizzle[NIR_MAX_VEC_COMPONENTS] = { 0 };
    nir_src alu1_actual_src;
    nir_alu_instr *neg1 = get_neg_instr(alu1->src[src1].src);
+   bool parity = false;
 
    if (neg1) {
       parity = !parity;
@@ -441,7 +434,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
    } else {
       alu1_actual_src = alu1->src[src1].src;
 
-      for (unsigned i = 0; i < nir_ssa_alu_instr_src_components(alu1, src1); i++)
+      for (unsigned i = 0; i < nir_src_num_components(alu1_actual_src); i++)
          alu1_swizzle[i] = i;
    }
 
@@ -458,9 +451,13 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
    } else {
       alu2_actual_src = alu2->src[src2].src;
 
-      for (unsigned i = 0; i < nir_ssa_alu_instr_src_components(alu2, src2); i++)
+      for (unsigned i = 0; i < nir_src_num_components(alu2_actual_src); i++)
          alu2_swizzle[i] = i;
    }
+
+   /* Bail early if sources are not equal or we don't have parity. */
+   if (!parity || !nir_srcs_equal(alu1_actual_src, alu2_actual_src))
+      return false;
 
    for (unsigned i = 0; i < nir_ssa_alu_instr_src_components(alu1, src1); i++) {
       if (alu1_swizzle[alu1->src[src1].swizzle[i]] !=
@@ -468,7 +465,7 @@ nir_alu_srcs_negative_equal(const nir_alu_instr *alu1,
          return false;
    }
 
-   return parity && nir_srcs_equal(alu1_actual_src, alu2_actual_src);
+   return true;
 }
 
 bool
@@ -776,6 +773,8 @@ nir_instr_set_add_or_rewrite(struct set *instr_set, nir_instr *instr,
        */
       if (instr->type == nir_instr_type_alu && nir_instr_as_alu(instr)->exact)
          nir_instr_as_alu(match)->exact = true;
+      if (instr->type == nir_instr_type_alu)
+         nir_instr_as_alu(match)->fp_fast_math = nir_instr_as_alu(instr)->fp_fast_math;
 
       nir_def_rewrite_uses(def, new_def);
 

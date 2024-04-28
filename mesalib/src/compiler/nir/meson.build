@@ -209,6 +209,7 @@ files_libnir = files(
   'nir_lower_subgroups.c',
   'nir_lower_system_values.c',
   'nir_lower_task_shader.c',
+  'nir_lower_terminate_to_demote.c',
   'nir_lower_tess_coord_z.c',
   'nir_lower_tex_shadow.c',
   'nir_lower_tex.c',
@@ -257,6 +258,7 @@ files_libnir = files(
   'nir_opt_memcpy.c',
   'nir_opt_move.c',
   'nir_opt_move_discards_to_top.c',
+  'nir_opt_mqsad.c',
   'nir_opt_non_uniform_access.c',
   'nir_opt_offsets.c',
   'nir_opt_peephole_select.c',
@@ -272,6 +274,8 @@ files_libnir = files(
   'nir_opt_sink.c',
   'nir_opt_undef.c',
   'nir_opt_uniform_atomics.c',
+  'nir_opt_uniform_subgroup.c',
+  'nir_opt_varyings.c',
   'nir_opt_vectorize.c',
   'nir_passthrough_gs.c',
   'nir_passthrough_tcs.c',
@@ -299,6 +303,7 @@ files_libnir = files(
   'nir_sweep.c',
   'nir_to_lcssa.c',
   'nir_trivialize_registers.c',
+  'nir_use_dominance.c',
   'nir_validate.c',
   'nir_vla.h',
   'nir_worklist.c',
@@ -350,6 +355,11 @@ if with_tests
     msvc_designated_initializer = 'cpp_std=c++20'
   endif
 
+  msvc_bigobj = []
+  if cc.get_id() == 'msvc'
+    msvc_bigobj = '/bigobj'
+  endif
+
   test(
     'nir_tests',
     executable(
@@ -370,11 +380,19 @@ if with_tests
         'tests/opt_if_tests.cpp',
         'tests/opt_peephole_select.cpp',
         'tests/opt_shrink_vectors_tests.cpp',
+        'tests/opt_varyings_tests_bicm_binary_alu.cpp',
+        'tests/opt_varyings_tests_dead_input.cpp',
+        'tests/opt_varyings_tests_dead_output.cpp',
+        'tests/opt_varyings_tests_dedup.cpp',
+        'tests/opt_varyings_tests_prop_const.cpp',
+        'tests/opt_varyings_tests_prop_ubo.cpp',
+        'tests/opt_varyings_tests_prop_uniform.cpp',
+        'tests/opt_varyings_tests_prop_uniform_expr.cpp',
         'tests/serialize_tests.cpp',
         'tests/range_analysis_tests.cpp',
         'tests/vars_tests.cpp',
       ),
-      cpp_args : [cpp_msvc_compat_args],
+      cpp_args : [cpp_msvc_compat_args, msvc_bigobj],
       override_options: [msvc_designated_initializer],
       gnu_symbol_visibility : 'hidden',
       include_directories : [inc_include, inc_src],

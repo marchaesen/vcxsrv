@@ -26,12 +26,20 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
+#include <sys/stat.h>
+
+#include "../../../../os/cmdline.h"
+
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 #ifdef HAVE_SYS_KD_H
 #include <sys/kd.h>
 #endif
+
+#include "os/osdep.h"
 
 /*
  * Applications see VT number as consecutive integers starting from 1.
@@ -59,7 +67,7 @@ static char consoleDev[PATH_MAX] = "/dev/fb";
 
 /* Set by -dev argument on CLI
    Used by hw/xfree86/common/xf86AutoConfig.c for VIS_GETIDENTIFIER */
-_X_HIDDEN char xf86SolarisFbDev[PATH_MAX] = "/dev/fb";
+char xf86SolarisFbDev[PATH_MAX] = "/dev/fb";
 
 #ifdef HAS_USL_VTS
 static void

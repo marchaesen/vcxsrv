@@ -10,6 +10,7 @@ libasahi_lib_files = files(
   'agx_border.c',
   'agx_device.c',
   'agx_formats.c',
+  'agx_linker.c',
   'agx_meta.c',
   'agx_tilebuffer.c',
   'agx_nir_lower_alpha.c',
@@ -17,10 +18,14 @@ libasahi_lib_files = files(
   'agx_nir_lower_ia.c',
   'agx_nir_lower_msaa.c',
   'agx_nir_lower_sample_intrinsics.c',
+  'agx_nir_lower_tess.c',
+  'agx_nir_lower_texture.c',
   'agx_nir_lower_tilebuffer.c',
+  'agx_nir_lower_uvs.c',
   'agx_nir_lower_vbo.c',
-  'agx_nir_predicate_layer_id.c',
+  'agx_nir_prolog_epilog.c',
   'agx_ppp.h',
+  'agx_scratch.c',
   'pool.c',
 )
 
@@ -32,21 +37,10 @@ libagx_shader_files = files(
   'shaders/libagx.h',
   'shaders/geometry.cl',
   'shaders/geometry.h',
+  'shaders/tessellation.cl',
+  'shaders/tessellator.cl',
   'shaders/texture.cl',
-)
-
-agx_pack = custom_target(
-  'agx_pack.h',
-  input : ['gen_pack.py', 'cmdbuf.xml'],
-  output : 'agx_pack.h',
-  command : [prog_python, '@INPUT@'],
-  capture : true,
-)
-
-idep_agx_pack = declare_dependency(
-  sources : [agx_pack],
-  dependencies : dep_valgrind,
-  include_directories : include_directories('.'),
+  'shaders/helper.cl',
 )
 
 libasahi_decode = static_library(
@@ -81,7 +75,7 @@ libagx_shaders = custom_target(
     '-I' + join_paths(meson.current_source_dir(), '.'),
     '-I' + join_paths(meson.current_source_dir(), '../../'),
     '-I' + join_paths(meson.current_source_dir(), 'shaders'),
-    '-I' + join_paths(meson.current_build_dir(), '.'),
+    '-I' + join_paths(meson.current_build_dir(), '../genxml'),
     ],
   env: ['MESA_SHADER_CACHE_DISABLE=true'],
   depends : [prog_asahi_clc, agx_pack],

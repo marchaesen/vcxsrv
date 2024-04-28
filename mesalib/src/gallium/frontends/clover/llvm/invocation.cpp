@@ -128,11 +128,20 @@ namespace {
    }
 
    void
+#if LLVM_VERSION_MAJOR >= 19
+   diagnostic_handler(const ::llvm::DiagnosticInfo *di, void *data) {
+      if (di->getSeverity() == ::llvm::DS_Error) {
+#else
    diagnostic_handler(const ::llvm::DiagnosticInfo &di, void *data) {
       if (di.getSeverity() == ::llvm::DS_Error) {
+#endif
          raw_string_ostream os { *reinterpret_cast<std::string *>(data) };
          ::llvm::DiagnosticPrinterRawOStream printer { os };
+#if LLVM_VERSION_MAJOR >= 19
+         di->print(printer);
+#else
          di.print(printer);
+#endif
          throw build_error();
       }
    }

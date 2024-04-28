@@ -33,12 +33,14 @@
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"           /* DeviceIntPtr      */
-#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI2.h>
 #include <X11/extensions/XI2proto.h>
-#include "swaprep.h"
 
+#include "dix/dix_priv.h"
+
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
+#include "swaprep.h"
 #include "exglobals.h"          /* BadDevice */
 #include "exevents.h"
 #include "xipassivegrab.h"
@@ -93,6 +95,7 @@ ProcXIPassiveGrabDevice(ClientPtr client)
     GrabParameters param;
     void *tmp;
     int mask_len;
+    uint32_t length;
 
     REQUEST(xXIPassiveGrabDeviceReq);
     REQUEST_FIXED_SIZE(xXIPassiveGrabDeviceReq,
@@ -172,7 +175,7 @@ ProcXIPassiveGrabDevice(ClientPtr client)
 
     if (stuff->cursor != None) {
         ret = dixLookupResourceByType(&tmp, stuff->cursor,
-                                      RT_CURSOR, client, DixUseAccess);
+                                      X11_RESTYPE_CURSOR, client, DixUseAccess);
         if (ret != Success) {
             client->errorValue = stuff->cursor;
             goto out;
@@ -247,9 +250,11 @@ ProcXIPassiveGrabDevice(ClientPtr client)
         }
     }
 
+    /* save the value before SRepXIPassiveGrabDevice swaps it */
+    length = rep.length;
     WriteReplyToClient(client, sizeof(rep), &rep);
     if (rep.num_modifiers)
-        WriteToClient(client, rep.length * 4, modifiers_failed);
+        WriteToClient(client, length * 4, modifiers_failed);
 
  out:
     free(modifiers_failed);

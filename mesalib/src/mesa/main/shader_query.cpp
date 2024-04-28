@@ -64,8 +64,11 @@ DECL_RESOURCE_FUNC(XFB, gl_transform_feedback_buffer);
 DECL_RESOURCE_FUNC(SUB, gl_subroutine_function);
 
 static GLenum
-mediump_to_highp_type(GLenum type)
+mediump_to_highp_type(struct gl_shader_program *shProg, GLenum type)
 {
+   if (!shProg->IsES)
+      return type;
+
    switch (type) {
    case GL_FLOAT16_NV:
       return GL_FLOAT;
@@ -1466,16 +1469,16 @@ _mesa_program_resource_prop(struct gl_shader_program *shProg,
       case GL_UNIFORM:
       case GL_BUFFER_VARIABLE:
          *val = RESOURCE_UNI(res)->type->gl_type;
-         *val = mediump_to_highp_type(*val);
+         *val = mediump_to_highp_type(shProg, *val);
          return 1;
       case GL_PROGRAM_INPUT:
       case GL_PROGRAM_OUTPUT:
          *val = RESOURCE_VAR(res)->type->gl_type;
-         *val = mediump_to_highp_type(*val);
+         *val = mediump_to_highp_type(shProg, *val);
          return 1;
       case GL_TRANSFORM_FEEDBACK_VARYING:
          *val = RESOURCE_XFV(res)->Type;
-         *val = mediump_to_highp_type(*val);
+         *val = mediump_to_highp_type(shProg, *val);
          return 1;
       default:
          goto invalid_operation;

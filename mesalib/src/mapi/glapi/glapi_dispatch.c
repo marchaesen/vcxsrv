@@ -53,7 +53,7 @@
 
 #define NAME(func)  gl##func
 
-#if 0  /* Use this to log GL calls to stdout (for DEBUG only!) */
+#if 0  /* Use this to log GL calls to stdout (for debug only!) */
 
 #define F stdout
 #define DISPATCH(FUNC, ARGS, MESSAGE)		\

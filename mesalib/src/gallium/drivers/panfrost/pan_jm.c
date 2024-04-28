@@ -169,7 +169,10 @@ jm_submit_jc(struct panfrost_batch *batch, mali_ptr first_job_desc,
    /* Trace the job if we're doing that */
    if (dev->debug & (PAN_DBG_TRACE | PAN_DBG_SYNC)) {
       /* Wait so we can get errors reported back */
-      drmSyncobjWait(panfrost_device_fd(dev), &out_sync, 1, INT64_MAX, 0, NULL);
+      ret = drmSyncobjWait(panfrost_device_fd(dev), &out_sync, 1, INT64_MAX,
+                           0, NULL);
+      if (ret)
+         return errno;
 
       if (dev->debug & PAN_DBG_TRACE)
          pandecode_jc(dev->decode_ctx, submit.jc, panfrost_device_gpu_id(dev));
@@ -232,9 +235,11 @@ done:
 void
 GENX(jm_preload_fb)(struct panfrost_batch *batch, struct pan_fb_info *fb)
 {
+   struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
+
    GENX(pan_preload_fb)
-   (&batch->pool.base, &batch->jm.jobs.vtc_jc, fb, batch->tls.gpu,
-    PAN_ARCH >= 6 ? batch->tiler_ctx.bifrost : 0, NULL);
+   (&dev->blitter, &batch->pool.base, &batch->jm.jobs.vtc_jc, fb,
+    batch->tls.gpu, PAN_ARCH >= 6 ? batch->tiler_ctx.bifrost : 0, NULL);
 }
 
 void
@@ -300,6 +305,11 @@ GENX(jm_launch_grid)(struct panfrost_batch *batch,
       cfg.textures = batch->textures[PIPE_SHADER_COMPUTE];
       cfg.samplers = batch->samplers[PIPE_SHADER_COMPUTE];
    }
+
+#if PAN_ARCH == 4
+   pan_section_pack(t.cpu, COMPUTE_JOB, COMPUTE_PADDING, cfg)
+      ;
+#endif
 #else
    struct panfrost_context *ctx = batch->ctx;
    struct panfrost_compiled_shader *cs = ctx->prog[PIPE_SHADER_COMPUTE];
@@ -333,9 +343,10 @@ GENX(jm_launch_grid)(struct panfrost_batch *batch,
    unsigned indirect_dep = 0;
 #if PAN_GPU_INDIRECTS
    if (info->indirect) {
+      struct panfrost_device *dev = pan_device(batch->ctx->base.screen);
       struct pan_indirect_dispatch_info indirect = {
          .job = t.gpu,
-         .indirect_dim = pan_resource(info->indirect)->image.data.bo->ptr.gpu +
+         .indirect_dim = pan_resource(info->indirect)->image.data.base +
                          info->indirect_offset,
          .num_wg_sysval =
             {
@@ -346,7 +357,8 @@ GENX(jm_launch_grid)(struct panfrost_batch *batch,
       };
 
       indirect_dep = GENX(pan_indirect_dispatch_emit)(
-         &batch->pool.base, &batch->jm.jobs.vtc_jc, &indirect);
+         &dev->indirect_dispatch, &batch->pool.base, &batch->jm.jobs.vtc_jc,
+         &indirect);
    }
 #endif
 
@@ -449,6 +461,11 @@ jm_emit_vertex_job(struct panfrost_batch *batch,
 
    section = pan_section_ptr(job, COMPUTE_JOB, DRAW);
    jm_emit_vertex_draw(batch, section);
+
+#if PAN_ARCH == 4
+   pan_section_pack(job, COMPUTE_JOB, COMPUTE_PADDING, cfg)
+      ;
+#endif
 }
 #endif /* PAN_ARCH <= 7 */
 
@@ -481,7 +498,7 @@ jm_emit_tiler_draw(void *out, struct panfrost_batch *batch, bool fs_required,
 
          struct panfrost_resource *rsrc =
             pan_resource(ctx->occlusion_query->rsrc);
-         cfg.occlusion = rsrc->image.data.bo->ptr.gpu;
+         cfg.occlusion = rsrc->image.data.base;
          panfrost_batch_write_rsrc(ctx->batch, rsrc, PIPE_SHADER_FRAGMENT);
       }
 
@@ -508,6 +525,11 @@ jm_emit_tiler_draw(void *out, struct panfrost_batch *batch, bool fs_required,
       cfg.maximum_z = batch->maximum_z;
 
       cfg.depth_stencil = batch->depth_stencil;
+
+      if (prim == MESA_PRIM_LINES && rast->line_smooth) {
+         cfg.multisample_enable = true;
+         cfg.single_sampled_lines = false;
+      }
 
       if (fs_required) {
          bool has_oq = ctx->occlusion_query && ctx->active_queries;

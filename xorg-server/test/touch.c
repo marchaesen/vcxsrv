@@ -306,16 +306,16 @@ touch_init(void)
     free_device(&dev);
 }
 
-int
+const testfunc_t*
 touch_test(void)
 {
-    printf("touch_test: start...\n");
-    touch_grow_queue();
-    touch_find_ddxid();
-    touch_begin_ddxtouch();
-    touch_init();
-    touch_begin_touch();
-
-    printf("touch_test: exiting successfully\n");
-    return 0;
+    static const testfunc_t testfuncs[] = {
+        touch_grow_queue,
+        touch_find_ddxid,
+        touch_begin_ddxtouch,
+        touch_init,
+        touch_begin_touch,
+        NULL,
+    };
+    return testfuncs;
 }

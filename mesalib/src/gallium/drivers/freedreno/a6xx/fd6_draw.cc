@@ -37,6 +37,7 @@
 #include "freedreno_state.h"
 
 #include "fd6_barrier.h"
+#include "fd6_blend.h"
 #include "fd6_blitter.h"
 #include "fd6_context.h"
 #include "fd6_draw.h"
@@ -234,6 +235,11 @@ get_program_state(struct fd_context *ctx, const struct pipe_draw_info *info)
    key.key.sample_shading = (ctx->min_samples > 1);
    key.key.msaa = (ctx->framebuffer.samples > 1);
    key.key.rasterflat = ctx->rasterizer->flatshade;
+
+   if (unlikely(ctx->screen->driconf.dual_color_blend_by_location)) {
+      struct fd6_blend_stateobj *blend = fd6_blend_stateobj(ctx->blend);
+      key.key.force_dual_color_blend = blend->use_dual_src_blend;
+   }
 
    if (PIPELINE == HAS_TESS_GS) {
       if (info->mode == MESA_PRIM_PATCHES) {

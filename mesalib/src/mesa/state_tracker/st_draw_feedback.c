@@ -93,7 +93,7 @@ set_feedback_vertex_format(struct gl_context *ctx)
  */
 void
 st_feedback_draw_vbo(struct gl_context *ctx,
-                     struct pipe_draw_info *info,
+                     const struct pipe_draw_info *info,
                      unsigned drawid_offset,
                      const struct pipe_draw_indirect_info *indirect,
                      const struct pipe_draw_start_count_bias *draws,
@@ -116,11 +116,11 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       return;
 
    /* must get these after state validation! */
-   struct st_common_variant_key key;
-   /* We have to use memcpy to make sure that all bits are copied. */
-   memcpy(&key, &st->vp_variant->key, sizeof(key));
-   key.is_draw_shader = true;
-
+   struct st_common_variant_key key = {
+      .st = st,
+      .passthrough_edgeflags = st->ctx->Array._PerVertexEdgeFlagsEnabled,
+      .is_draw_shader = true
+   };
    vp = (struct gl_vertex_program *)ctx->VertexProgram._Current;
    vp_variant = st_get_common_variant(st, &vp->Base, &key);
 
@@ -157,8 +157,8 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       }
    }
 
-   draw_set_vertex_buffers(draw, num_vbuffers, 0, vbuffers);
    draw_set_vertex_elements(draw, vp->num_inputs, velements.velems);
+   draw_set_vertex_buffers(draw, num_vbuffers, vbuffers);
 
    if (info->index_size) {
       if (info->has_user_indices) {
@@ -455,7 +455,7 @@ st_feedback_draw_vbo(struct gl_context *ctx,
       if (!vbuffers[buf].is_user_buffer)
          pipe_resource_reference(&vbuffers[buf].buffer.resource, NULL);
    }
-   draw_set_vertex_buffers(draw, 0, num_vbuffers, NULL);
+   draw_set_vertex_buffers(draw, 0, NULL);
 
    draw_bind_vertex_shader(draw, NULL);
 }

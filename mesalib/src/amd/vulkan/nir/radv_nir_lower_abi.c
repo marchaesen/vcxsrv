@@ -1,24 +1,7 @@
 /*
  * Copyright © 2022 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "ac_nir.h"
@@ -26,9 +9,10 @@
 #include "nir_builder.h"
 #include "radv_constants.h"
 #include "radv_nir.h"
-#include "radv_private.h"
+#include "radv_pipeline_graphics.h"
 #include "radv_shader.h"
 #include "radv_shader_args.h"
+#include "sid.h"
 
 #define GET_SGPR_FIELD_NIR(arg, field)                                                                                 \
    ac_nir_unpack_arg(b, &s->args->ac, arg, field##__SHIFT, util_bitcount(field##__MASK))
@@ -37,7 +21,7 @@ typedef struct {
    enum amd_gfx_level gfx_level;
    const struct radv_shader_args *args;
    const struct radv_shader_info *info;
-   const struct radv_pipeline_key *pl_key;
+   const struct radv_graphics_state_key *gfx_state;
    uint32_t address32_hi;
    nir_def *gsvs_ring[4];
 } lower_abi_state;
@@ -95,11 +79,23 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       if (s->info->num_tess_patches) {
          replacement = nir_imm_int(b, s->info->num_tess_patches);
       } else {
-         if (stage == MESA_SHADER_TESS_CTRL) {
-            replacement = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_PATCHES);
-         } else {
-            replacement = GET_SGPR_FIELD_NIR(s->args->tes_state, TES_STATE_NUM_PATCHES);
-         }
+         nir_def *n = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_PATCHES);
+         replacement = nir_iadd_imm_nuw(b, n, 1);
+      }
+      break;
+   case nir_intrinsic_load_tcs_tess_levels_to_tes_amd:
+      if (s->info->outputs_linked) {
+         replacement = nir_imm_bool(b, s->info->tcs.tes_reads_tess_factors);
+      } else {
+         replacement =
+            nir_ine_imm(b, GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_TES_READS_TF), 0);
+      }
+      break;
+   case nir_intrinsic_load_tcs_primitive_mode_amd:
+      if (s->info->outputs_linked) {
+         replacement = nir_imm_int(b, s->info->tes._primitive_mode);
+      } else {
+         replacement = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_PRIMITIVE_MODE);
       }
       break;
    case nir_intrinsic_load_ring_esgs_amd:
@@ -157,16 +153,18 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       break;
    case nir_intrinsic_load_patch_vertices_in:
       if (stage == MESA_SHADER_TESS_CTRL) {
-         if (s->pl_key->tcs.tess_input_vertices) {
-            replacement = nir_imm_int(b, s->pl_key->tcs.tess_input_vertices);
+         if (s->gfx_state->ts.patch_control_points) {
+            replacement = nir_imm_int(b, s->gfx_state->ts.patch_control_points);
          } else {
-            replacement = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_PATCH_CONTROL_POINTS);
+            nir_def *n = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_PATCH_CONTROL_POINTS);
+            replacement = nir_iadd_imm_nuw(b, n, 1);
          }
       } else if (stage == MESA_SHADER_TESS_EVAL) {
          if (s->info->tes.tcs_vertices_out) {
             replacement = nir_imm_int(b, s->info->tes.tcs_vertices_out);
          } else {
-            replacement = GET_SGPR_FIELD_NIR(s->args->tes_state, TES_STATE_TCS_VERTICES_OUT);
+            nir_def *n = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_OUT_PATCH_CP);
+            replacement = nir_iadd_imm_nuw(b, n, 1);
          }
       } else
          unreachable("invalid tessellation shader stage");
@@ -275,9 +273,9 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
          if (s->info->inputs_linked) {
             replacement = nir_imm_int(b, get_tcs_input_vertex_stride(s->info->tcs.num_linked_inputs));
          } else {
-            nir_def *lshs_vertex_stride =
-               GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_LSHS_VERTEX_STRIDE);
-            replacement = nir_ishl_imm(b, lshs_vertex_stride, 2);
+            nir_def *num_ls_out = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_LS_OUTPUTS);
+            nir_def *extra_dw = nir_bcsel(b, nir_ieq_imm(b, num_ls_out, 0), nir_imm_int(b, 0), nir_imm_int(b, 4));
+            replacement = nir_iadd_nuw(b, nir_ishl_imm(b, num_ls_out, 4), extra_dw);
          }
       }
       break;
@@ -285,9 +283,13 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
    case nir_intrinsic_load_esgs_vertex_stride_amd: {
       /* Emulate VGT_ESGS_RING_ITEMSIZE on GFX9+ to reduce context register writes. */
       assert(s->gfx_level >= GFX9);
-      const unsigned stride =
-         s->info->is_ngg ? s->info->ngg_info.vgt_esgs_ring_itemsize : s->info->gs_ring_info.vgt_esgs_ring_itemsize;
-      replacement = nir_imm_int(b, stride);
+      if (s->info->merged_shader_compiled_separately) {
+         replacement = ac_nir_load_arg(b, &s->args->ac, s->args->vgt_esgs_ring_itemsize);
+      } else {
+         const unsigned stride =
+            s->info->is_ngg ? s->info->ngg_info.vgt_esgs_ring_itemsize : s->info->gs_ring_info.vgt_esgs_ring_itemsize;
+         replacement = nir_imm_int(b, stride);
+      }
       break;
    }
    case nir_intrinsic_load_hs_out_patch_data_offset_amd: {
@@ -298,15 +300,12 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
          out_vertices_per_patch = nir_imm_int(b, s->info->tcs.tcs_vertices_out);
       } else {
          if (s->info->inputs_linked) {
+            out_vertices_per_patch = nir_imm_int(b, s->info->tes.tcs_vertices_out);
             num_tcs_outputs = nir_imm_int(b, s->info->tes.num_linked_inputs);
          } else {
-            num_tcs_outputs = GET_SGPR_FIELD_NIR(s->args->tes_state, TES_STATE_NUM_TCS_OUTPUTS);
-         }
-
-         if (s->info->tes.tcs_vertices_out) {
-            out_vertices_per_patch = nir_imm_int(b, s->info->tes.tcs_vertices_out);
-         } else {
-            out_vertices_per_patch = GET_SGPR_FIELD_NIR(s->args->tes_state, TES_STATE_TCS_VERTICES_OUT);
+            nir_def *n = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_OUT_PATCH_CP);
+            out_vertices_per_patch = nir_iadd_imm_nuw(b, n, 1);
+            num_tcs_outputs = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_HS_OUTPUTS);
          }
       }
 
@@ -317,13 +316,8 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
          unsigned num_patches = s->info->num_tess_patches;
          replacement = nir_imul_imm(b, per_vertex_output_patch_size, num_patches);
       } else {
-         nir_def *num_patches;
-
-         if (stage == MESA_SHADER_TESS_CTRL) {
-            num_patches = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_PATCHES);
-         } else {
-            num_patches = GET_SGPR_FIELD_NIR(s->args->tes_state, TES_STATE_NUM_PATCHES);
-         }
+         nir_def *n = GET_SGPR_FIELD_NIR(s->args->tcs_offchip_layout, TCS_OFFCHIP_LAYOUT_NUM_PATCHES);
+         nir_def *num_patches = nir_iadd_imm_nuw(b, n, 1);
          replacement = nir_imul(b, per_vertex_output_patch_size, num_patches);
       }
       break;
@@ -348,20 +342,20 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       break;
    }
    case nir_intrinsic_load_rasterization_samples_amd:
-      if (s->pl_key->dynamic_rasterization_samples) {
+      if (s->gfx_state->dynamic_rasterization_samples) {
          replacement = GET_SGPR_FIELD_NIR(s->args->ps_state, PS_STATE_NUM_SAMPLES);
       } else {
-         replacement = nir_imm_int(b, s->pl_key->ps.num_samples);
+         replacement = nir_imm_int(b, s->gfx_state->ms.rasterization_samples);
       }
       break;
    case nir_intrinsic_load_provoking_vtx_in_prim_amd: {
-      if (s->pl_key->dynamic_provoking_vtx_mode) {
+      if (s->gfx_state->dynamic_provoking_vtx_mode) {
          replacement = ac_nir_load_arg(b, &s->args->ac, s->args->ngg_provoking_vtx);
       } else {
          unsigned provoking_vertex = 0;
-         if (s->pl_key->vs.provoking_vtx_last) {
+         if (s->gfx_state->rs.provoking_vtx_last) {
             if (stage == MESA_SHADER_VERTEX) {
-               provoking_vertex = radv_get_num_vertices_per_prim(s->pl_key) - 1;
+               provoking_vertex = radv_get_num_vertices_per_prim(s->gfx_state) - 1;
             } else if (stage == MESA_SHADER_GEOMETRY) {
                provoking_vertex = b->shader->info.gs.vertices_in - 1;
             } else {
@@ -423,10 +417,18 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       break;
 
    case nir_intrinsic_load_lds_ngg_gs_out_vertex_base_amd:
-      replacement = nir_imm_int(b, s->info->ngg_info.esgs_ring_size);
+      if (s->info->merged_shader_compiled_separately) {
+         replacement = GET_SGPR_FIELD_NIR(s->args->ngg_lds_layout, NGG_LDS_LAYOUT_GS_OUT_VERTEX_BASE);
+      } else {
+         replacement = nir_imm_int(b, s->info->ngg_info.esgs_ring_size);
+      }
       break;
    case nir_intrinsic_load_lds_ngg_scratch_base_amd:
-      replacement = nir_imm_int(b, s->info->ngg_info.scratch_lds_base);
+      if (s->info->merged_shader_compiled_separately) {
+         replacement = GET_SGPR_FIELD_NIR(s->args->ngg_lds_layout, NGG_LDS_LAYOUT_SCRATCH_BASE);
+      } else {
+         replacement = nir_imm_int(b, s->info->ngg_info.scratch_lds_base);
+      }
       break;
    case nir_intrinsic_load_num_vertices_per_primitive_amd: {
       unsigned num_vertices;
@@ -436,7 +438,7 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
          if (s->info->vs.dynamic_num_verts_per_prim) {
             replacement = ac_nir_load_arg(b, &s->args->ac, s->args->num_verts_per_prim);
          } else {
-            replacement = nir_imm_int(b, radv_get_num_vertices_per_prim(s->pl_key));
+            replacement = nir_imm_int(b, radv_get_num_vertices_per_prim(s->gfx_state));
          }
       } else if (stage == MESA_SHADER_TESS_EVAL) {
          if (s->info->tes.point_mode) {
@@ -485,11 +487,11 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       break;
    }
    case nir_intrinsic_load_poly_line_smooth_enabled:
-      if (s->pl_key->dynamic_line_rast_mode) {
+      if (s->gfx_state->dynamic_line_rast_mode) {
          nir_def *line_rast_mode = GET_SGPR_FIELD_NIR(s->args->ps_state, PS_STATE_LINE_RAST_MODE);
-         replacement = nir_ieq_imm(b, line_rast_mode, VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_EXT);
+         replacement = nir_ieq_imm(b, line_rast_mode, VK_LINE_RASTERIZATION_MODE_RECTANGULAR_SMOOTH_KHR);
       } else {
-         replacement = nir_imm_bool(b, s->pl_key->ps.line_smooth_enabled);
+         replacement = nir_imm_bool(b, s->gfx_state->rs.line_smooth_enabled);
       }
       break;
    case nir_intrinsic_load_initial_edgeflags_amd:
@@ -499,7 +501,7 @@ lower_abi_instr(nir_builder *b, nir_intrinsic_instr *intrin, void *state)
       replacement = ac_nir_load_arg(b, &s->args->ac, s->args->ac.load_provoking_vtx);
       break;
    case nir_intrinsic_load_rasterization_primitive_amd:
-      assert(s->pl_key->unknown_rast_prim);
+      assert(s->gfx_state->unknown_rast_prim);
       /* Load the primitive topology from an user SGPR when it's unknown at compile time (GPL). */
       replacement = GET_SGPR_FIELD_NIR(s->args->ps_state, PS_STATE_RAST_PRIM);
       break;
@@ -547,18 +549,18 @@ load_gsvs_ring(nir_builder *b, lower_abi_state *s, unsigned stream_id)
 }
 
 void
-radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struct radv_shader_info *info,
-                   const struct radv_shader_args *args, const struct radv_pipeline_key *pl_key, uint32_t address32_hi)
+radv_nir_lower_abi(nir_shader *shader, enum amd_gfx_level gfx_level, const struct radv_shader_stage *stage,
+                   const struct radv_graphics_state_key *gfx_state, uint32_t address32_hi)
 {
    lower_abi_state state = {
       .gfx_level = gfx_level,
-      .info = info,
-      .args = args,
-      .pl_key = pl_key,
+      .info = &stage->info,
+      .args = &stage->args,
+      .gfx_state = gfx_state,
       .address32_hi = address32_hi,
    };
 
-   if (shader->info.stage == MESA_SHADER_GEOMETRY && !info->is_ngg) {
+   if (shader->info.stage == MESA_SHADER_GEOMETRY && !stage->info.is_ngg) {
       nir_function_impl *impl = nir_shader_get_entrypoint(shader);
 
       nir_builder b = nir_builder_at(nir_before_impl(impl));

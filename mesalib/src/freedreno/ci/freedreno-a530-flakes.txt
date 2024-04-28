@@ -161,3 +161,7 @@ spec@arb_uniform_buffer_object@execution@shared-row_major-array-mat2x2-and-colum
 spec@mesa_shader_integer_functions@execution@built-in-functions@fs-umulextended-only-msb-nonuniform
 # ci-collate: Issue found in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/49445812
 KHR-GLES31.core.compute_shader.simple-compute-shared_context
+
+# uprev Piglit in Mesa
+KHR-GLES31.core.compute_shader.simple-compute-shared_context-persistent-buffer
+

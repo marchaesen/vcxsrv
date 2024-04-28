@@ -1305,11 +1305,8 @@ BOOL_32 Gfx9Lib::HwlInitGlobalParams(
              ((m_pipesLog2 == 2) && ((m_seLog2 == 1) || (m_seLog2 == 2)))))
         {
             ADDR_ASSERT(m_settings.isVega10 == FALSE);
-
             ADDR_ASSERT(m_settings.isRaven == FALSE);
-
             ADDR_ASSERT(m_settings.isVega20 == FALSE);
-
             if (m_settings.isVega12)
             {
                 m_settings.htileCacheRbConflict = 1;

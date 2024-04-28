@@ -343,7 +343,6 @@ spec@arb_uniform_buffer_object@execution@std140-struct-array-array-array-struct,
 spec@arb_uniform_buffer_object@execution@shared-array-struct-array-struct,Fail
 spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct,Fail
 
-dEQP-GLES31.functional.compute.indirect_dispatch.gen_in_compute.multi_dispatch_reuse_command,Fail
+# uprev Piglit in Mesa
+spec@glsl-1.40@uniform_buffer@two-stages,Fail
 
-# New CTS failures in 1.3.6.3
-KHR-GLES31.core.compute_shader.simple-compute-shared_context-persistent-buffer,Fail

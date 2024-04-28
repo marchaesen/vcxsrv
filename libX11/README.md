@@ -31,6 +31,18 @@ For patch submission instructions, see:
 
   https://www.x.org/wiki/Development/Documentation/SubmittingPatches
 
+## Release 1.8.9
+
+ * Fix regressions introduced in 1.8.8 (!245, !248) - this includes reverting
+   for now the previous "Fix XIM input sometimes jumbled (#198, !236)"
+
+## Release 1.8.8
+
+ * Fix XIM input sometimes jumbled (#198, !236)
+ * Fix _XkbReadGetDeviceInfoReply for nButtons == dev->buttons (!237)
+ * Drop ifdefs for platforms that are no longer supported (!242, !243)
+ * Assorted memory handling cleanups
+
 ## Release 1.8.7
 
  * Security fixes and hardening in XImage and pixmap handling code

@@ -32,7 +32,7 @@ The different data layouts fall into two categories: array and packed.  When an
 array layout is used, the components are stored sequentially in an array of the
 given encoding.  For instance, if the data is encoded in an 8-bit RGBA array
 format the data is stored in an array of type :c:type:`uint8_t` where the blue
-component of the `i`'th color value is accessed as:
+component of the ``i``'th color value is accessed as:
 
 .. code-block:: C
 
@@ -48,8 +48,8 @@ a standard C data type.
 Packed formats, on the other hand, are encoded with the entire color value
 packed into a single 8, 16, or 32-bit value.  The components are specified by
 which bits they occupy within that value.  For instance, with the popular
-`RGB565` format, each :c:type:`vec3` takes up 16 bits and the
-`i`'th color value is accessed as:
+``RGB565`` format, each :c:type:`vec3` takes up 16 bits and the
+``i``'th color value is accessed as:
 
 .. code-block:: C
 
@@ -58,24 +58,24 @@ which bits they occupy within that value.  For instance, with the popular
    uint8_t b = (*(uint16_t *)data >> 11) & 0x1f;
 
 Packed formats are useful because they allow you to specify formats with uneven
-component sizes such as `RGBA1010102` or where the components are
-smaller than 8 bits such as `RGB565` discussed above.  It does,
+component sizes such as ``RGBA1010102`` or where the components are
+smaller than 8 bits such as ``RGB565`` discussed above.  It does,
 however, come with the restriction that the entire vector must fit within 8,
 16, or 32 bits.
 
 One has to be careful when reasoning about packed formats because it is easy to
 get the color order wrong.  With array formats, the channel ordering is usually
-implied directly from the format name with `RGBA8888` storing the
-formats as in the first example and `BGRA8888` storing them in the BGRA
+implied directly from the format name with ``RGBA8888`` storing the
+formats as in the first example and ``BGRA8888`` storing them in the BGRA
 ordering.  Packed formats, however, are not as simple because some
 specifications choose to use a MSB to LSB ordering and others LSB to MSB.  One
 must be careful to pay attention to the enum in question in order to avoid
 getting them backwards.
 
 From an API perspective, both types of formats are available.  In Vulkan, the
-formats that are of the form :c:enumerator:`VK_FORMAT_xxx_PACKEDn` are packed
-formats where the entire color fits in `n` bits and formats without the
-`_PACKEDn` suffix are array formats.  In GL, if you specify one of the
+formats that are of the form ``VK_FORMAT_xxx_PACKEDn`` are packed
+formats where the entire color fits in ``n`` bits and formats without the
+``_PACKEDn`` suffix are array formats.  In GL, if you specify one of the
 base types such as :c:enumerator:`GL_FLOAT` you get an array format but if you
 specify a packed type such as :c:enumerator:`GL_UNSIGNED_INT_8_8_8_8_REV` you
 get a packed format.

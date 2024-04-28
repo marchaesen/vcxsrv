@@ -34,5 +34,3 @@ spec@glsl-1.50.*
 spec@glsl-3.*
 spec@glsl-4.*
 spec@glsl-es-3.*
-
-# Slow tests (> 1 minute to run)

@@ -4,7 +4,7 @@
 #include <stdio.h>
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 
 unsigned st_debug = 0;
 

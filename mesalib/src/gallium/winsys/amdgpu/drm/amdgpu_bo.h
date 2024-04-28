@@ -10,8 +10,11 @@
 #define AMDGPU_BO_H
 
 #include "amdgpu_winsys.h"
-
 #include "pipebuffer/pb_slab.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct amdgpu_sparse_backing_chunk;
 
@@ -52,6 +55,19 @@ struct amdgpu_winsys_bo {
    enum amdgpu_bo_type type:8;
    struct amdgpu_seq_no_fences fences;
 
+   /* Since some IPs like VCN want to have an unlimited number of queues, we can't generate our
+    * own sequence numbers for those queues. Instead, each buffer will have "alt_fence", which
+    * means an alternative fence. This fence is the last use of that buffer on any VCN queue.
+    * If any other queue wants to use that buffer, it has to insert alt_fence as a dependency,
+    * and replace alt_fence with the new submitted fence, so that it's always equal to the last
+    * use.
+    *
+    * Only VCN uses and updates alt_fence when an IB is submitted. Other IPs only use alt_fence
+    * as a fence dependency. alt_fence is NULL when VCN isn't used, so there is no negative
+    * impact on CPU overhead in that case.
+    */
+   struct pipe_fence_handle *alt_fence;
+
    /* This is set when a buffer is returned by buffer_create(), not when the memory is allocated
     * as part of slab BO.
     */
@@ -76,7 +92,7 @@ struct amdgpu_bo_real {
    void *cpu_ptr; /* for user_ptr and permanent maps */
    int map_count;
    uint32_t kms_handle;
-#if DEBUG
+#if MESA_DEBUG
    struct list_head global_list_item;
 #endif
    simple_mtx_t map_lock;
@@ -87,6 +103,9 @@ struct amdgpu_bo_real {
     * it can only transition from false to true. Protected by lock.
     */
    bool is_shared;
+
+   /* Whether this is a slab buffer and alt_fence was set on one of the slab entries. */
+   bool slab_has_busy_alt_fences;
 };
 
 /* Same as amdgpu_bo_real except this BO isn't destroyed when its reference count drops to 0.
@@ -136,25 +155,25 @@ static inline bool is_real_bo(struct amdgpu_winsys_bo *bo)
    return bo->type >= AMDGPU_BO_REAL;
 }
 
-static struct amdgpu_bo_real *get_real_bo(struct amdgpu_winsys_bo *bo)
+static inline struct amdgpu_bo_real *get_real_bo(struct amdgpu_winsys_bo *bo)
 {
    assert(is_real_bo(bo));
    return (struct amdgpu_bo_real*)bo;
 }
 
-static struct amdgpu_bo_real_reusable *get_real_bo_reusable(struct amdgpu_winsys_bo *bo)
+static inline struct amdgpu_bo_real_reusable *get_real_bo_reusable(struct amdgpu_winsys_bo *bo)
 {
    assert(bo->type >= AMDGPU_BO_REAL_REUSABLE);
    return (struct amdgpu_bo_real_reusable*)bo;
 }
 
-static struct amdgpu_bo_sparse *get_sparse_bo(struct amdgpu_winsys_bo *bo)
+static inline struct amdgpu_bo_sparse *get_sparse_bo(struct amdgpu_winsys_bo *bo)
 {
    assert(bo->type == AMDGPU_BO_SPARSE && bo->base.usage & RADEON_FLAG_SPARSE);
    return (struct amdgpu_bo_sparse*)bo;
 }
 
-static struct amdgpu_bo_slab_entry *get_slab_entry_bo(struct amdgpu_winsys_bo *bo)
+static inline struct amdgpu_bo_slab_entry *get_slab_entry_bo(struct amdgpu_winsys_bo *bo)
 {
    assert(bo->type == AMDGPU_BO_SLAB_ENTRY);
    return (struct amdgpu_bo_slab_entry*)bo;
@@ -165,10 +184,16 @@ static inline struct amdgpu_bo_real_reusable_slab *get_bo_from_slab(struct pb_sl
    return container_of(slab, struct amdgpu_bo_real_reusable_slab, slab);
 }
 
-static struct amdgpu_bo_real *get_slab_entry_real_bo(struct amdgpu_winsys_bo *bo)
+static inline struct amdgpu_bo_real *get_slab_entry_real_bo(struct amdgpu_winsys_bo *bo)
 {
    assert(bo->type == AMDGPU_BO_SLAB_ENTRY);
    return &get_bo_from_slab(((struct amdgpu_bo_slab_entry*)bo)->entry.slab)->b.b;
+}
+
+static struct amdgpu_bo_real_reusable_slab *get_real_bo_reusable_slab(struct amdgpu_winsys_bo *bo)
+{
+   assert(bo->type == AMDGPU_BO_REAL_REUSABLE_SLAB);
+   return (struct amdgpu_bo_real_reusable_slab*)bo;
 }
 
 /* Given a sequence number "fences->seq_no[queue_index]", return a pointer to a non-NULL fence
@@ -178,7 +203,7 @@ static struct amdgpu_bo_real *get_slab_entry_real_bo(struct amdgpu_winsys_bo *bo
  * to set the fence to NULL in the ring, which is why we return a pointer to a pointer.
  */
 static inline struct pipe_fence_handle **
-get_fence_from_ring(struct amdgpu_winsys *ws, struct amdgpu_seq_no_fences *fences,
+get_fence_from_ring(struct amdgpu_winsys *aws, struct amdgpu_seq_no_fences *fences,
                     unsigned queue_index)
 {
    /* The caller should check if the BO has a fence. */
@@ -186,12 +211,12 @@ get_fence_from_ring(struct amdgpu_winsys *ws, struct amdgpu_seq_no_fences *fence
    assert(fences->valid_fence_mask & BITFIELD_BIT(queue_index));
 
    uint_seq_no buffer_seq_no = fences->seq_no[queue_index];
-   uint_seq_no latest_seq_no = ws->queues[queue_index].latest_seq_no;
+   uint_seq_no latest_seq_no = aws->queues[queue_index].latest_seq_no;
    bool fence_present = latest_seq_no - buffer_seq_no < AMDGPU_FENCE_RING_SIZE;
 
    if (fence_present) {
       struct pipe_fence_handle **fence =
-         &ws->queues[queue_index].fences[buffer_seq_no % AMDGPU_FENCE_RING_SIZE];
+         &aws->queues[queue_index].fences[buffer_seq_no % AMDGPU_FENCE_RING_SIZE];
 
       if (*fence)
          return fence;
@@ -204,10 +229,10 @@ get_fence_from_ring(struct amdgpu_winsys *ws, struct amdgpu_seq_no_fences *fence
    return NULL;
 }
 
-static inline uint_seq_no pick_latest_seq_no(struct amdgpu_winsys *ws, unsigned queue_index,
+static inline uint_seq_no pick_latest_seq_no(struct amdgpu_winsys *aws, unsigned queue_index,
                                              uint_seq_no n1, uint_seq_no n2)
 {
-   uint_seq_no latest = ws->queues[queue_index].latest_seq_no;
+   uint_seq_no latest = aws->queues[queue_index].latest_seq_no;
 
    /* Since sequence numbers can wrap around, we need to pick the later number that's logically
     * before "latest". The trick is to subtract "latest + 1" to underflow integer such
@@ -219,11 +244,11 @@ static inline uint_seq_no pick_latest_seq_no(struct amdgpu_winsys *ws, unsigned 
    return s1 >= s2 ? n1 : n2;
 }
 
-static inline void add_seq_no_to_list(struct amdgpu_winsys *ws, struct amdgpu_seq_no_fences *fences,
+static inline void add_seq_no_to_list(struct amdgpu_winsys *aws, struct amdgpu_seq_no_fences *fences,
                                       unsigned queue_index, uint_seq_no seq_no)
 {
    if (fences->valid_fence_mask & BITFIELD_BIT(queue_index)) {
-      fences->seq_no[queue_index] = pick_latest_seq_no(ws, queue_index, seq_no,
+      fences->seq_no[queue_index] = pick_latest_seq_no(aws, queue_index, seq_no,
                                                        fences->seq_no[queue_index]);
    } else {
       fences->seq_no[queue_index] = seq_no;
@@ -231,39 +256,56 @@ static inline void add_seq_no_to_list(struct amdgpu_winsys *ws, struct amdgpu_se
    }
 }
 
-bool amdgpu_bo_can_reclaim(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf);
-struct pb_buffer_lean *amdgpu_bo_create(struct amdgpu_winsys *ws,
+bool amdgpu_bo_can_reclaim(struct amdgpu_winsys *aws, struct pb_buffer_lean *_buf);
+struct pb_buffer_lean *amdgpu_bo_create(struct amdgpu_winsys *aws,
                                    uint64_t size,
                                    unsigned alignment,
                                    enum radeon_bo_domain domain,
                                    enum radeon_bo_flag flags);
-void amdgpu_bo_destroy(struct amdgpu_winsys *ws, struct pb_buffer_lean *_buf);
+void amdgpu_bo_destroy(struct amdgpu_winsys *aws, struct pb_buffer_lean *_buf);
 void *amdgpu_bo_map(struct radeon_winsys *rws,
                     struct pb_buffer_lean *buf,
                     struct radeon_cmdbuf *rcs,
                     enum pipe_map_flags usage);
 void amdgpu_bo_unmap(struct radeon_winsys *rws, struct pb_buffer_lean *buf);
-void amdgpu_bo_init_functions(struct amdgpu_screen_winsys *ws);
+void amdgpu_bo_init_functions(struct amdgpu_screen_winsys *sws);
 
 bool amdgpu_bo_can_reclaim_slab(void *priv, struct pb_slab_entry *entry);
 struct pb_slab *amdgpu_bo_slab_alloc(void *priv, unsigned heap, unsigned entry_size,
                                      unsigned group_index);
-void amdgpu_bo_slab_free(struct amdgpu_winsys *ws, struct pb_slab *slab);
+void amdgpu_bo_slab_free(struct amdgpu_winsys *aws, struct pb_slab *slab);
 uint64_t amdgpu_bo_get_va(struct pb_buffer_lean *buf);
 
-static inline
-struct amdgpu_winsys_bo *amdgpu_winsys_bo(struct pb_buffer_lean *bo)
+static inline struct amdgpu_winsys_bo *
+amdgpu_winsys_bo(struct pb_buffer_lean *bo)
 {
    return (struct amdgpu_winsys_bo *)bo;
 }
 
-static inline
-void amdgpu_winsys_bo_reference(struct amdgpu_winsys *ws,
-                                struct amdgpu_winsys_bo **dst,
-                                struct amdgpu_winsys_bo *src)
+static inline void
+amdgpu_winsys_bo_reference(struct amdgpu_winsys *aws, struct amdgpu_winsys_bo **dst,
+                           struct amdgpu_winsys_bo *src)
 {
-   radeon_bo_reference(&ws->dummy_ws.base,
+   radeon_bo_reference(&aws->dummy_sws.base,
                        (struct pb_buffer_lean**)dst, (struct pb_buffer_lean*)src);
 }
+
+/* Same as amdgpu_winsys_bo_reference, but ignore the value in *dst. */
+static inline void
+amdgpu_winsys_bo_set_reference(struct amdgpu_winsys_bo **dst, struct amdgpu_winsys_bo *src)
+{
+   radeon_bo_set_reference((struct pb_buffer_lean**)dst, (struct pb_buffer_lean*)src);
+}
+
+/* Unreference dst, but don't assign anything. */
+static inline void
+amdgpu_winsys_bo_drop_reference(struct amdgpu_winsys *aws, struct amdgpu_winsys_bo *dst)
+{
+   radeon_bo_drop_reference(&aws->dummy_sws.base, &dst->base);
+}
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif

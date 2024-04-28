@@ -4,8 +4,7 @@
  *
  */
 
-#ifndef __AIL_LAYOUT_H_
-#define __AIL_LAYOUT_H_
+#pragma once
 
 #include "util/format/u_format.h"
 #include "util/macros.h"
@@ -273,6 +272,4 @@ void ail_tile(void *_tiled, void *_linear, struct ail_layout *tiled_layout,
 
 #ifdef __cplusplus
 } /* extern C */
-#endif
-
 #endif

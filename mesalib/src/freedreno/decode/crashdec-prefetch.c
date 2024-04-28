@@ -195,7 +195,12 @@ handle_prefetch(uint32_t *dwords, uint32_t sizedwords)
 {
    struct prefetch_state rb_state = {};
    struct ib *ib1 = scan_cmdstream(&rb_state, 1, dwords, sizedwords);
+
    if (!ib1)
+      return;
+
+   /* If the gpu crashed in IB1, we can skip the rest: */
+   if (!options.ibs[2].rem)
       return;
 
    struct prefetch_state ib1_state = {};

@@ -272,6 +272,7 @@ ProcAppleDRICreatePixmap(ClientPtr client)
     xAppleDRICreatePixmapReply rep;
     int width, height, pitch, bpp;
     void *ptr;
+    CARD32 stringLength;
 
     REQUEST_SIZE_MATCH(xAppleDRICreatePixmapReq);
 
@@ -307,6 +308,7 @@ ProcAppleDRICreatePixmap(ClientPtr client)
     if (sizeof(rep) != sz_xAppleDRICreatePixmapReply)
         ErrorF("error sizeof(rep) is %zu\n", sizeof(rep));
 
+    stringLength = rep.stringLength;  /* save unswapped value */
     if (client->swapped) {
         swaps(&rep.sequenceNumber);
         swapl(&rep.length);
@@ -319,7 +321,7 @@ ProcAppleDRICreatePixmap(ClientPtr client)
     }
 
     WriteToClient(client, sizeof(rep), &rep);
-    WriteToClient(client, rep.stringLength, path);
+    WriteToClient(client, stringLength, path);
 
     return Success;
 }

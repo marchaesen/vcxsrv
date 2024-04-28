@@ -1132,7 +1132,7 @@
         <param name="n" type="GLsizei" counter="true"/>
         <param name="type" type="GLenum"/>
         <param name="lists" type="const GLvoid *" variable_param="type" count="n"
-               marshal_count="(n * _mesa_calllists_enum_to_count(type))"/>
+               marshal_large_count="(n * _mesa_calllists_enum_to_count(type))"/>
         <glx rop="2" large="true"/>
     </function>
 
@@ -1161,8 +1161,7 @@
         <glx rop="4"/>
     </function>
 
-    <function name="Bitmap" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+    <function name="Bitmap" deprecated="3.1" exec="dlist" marshal="custom">
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
         <param name="xorig" type="GLfloat"/>
@@ -2122,7 +2121,7 @@
     </function>
 
     <function name="PolygonStipple" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="mask" type="const GLubyte *" img_width="32" img_height="32" img_format="GL_COLOR_INDEX" img_type="GL_BITMAP" img_target="0" img_pad_dimensions="false"/>
         <glx rop="102"/>
     </function>
@@ -2171,7 +2170,7 @@
     </function>
 
     <function name="TexImage1D" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -2184,7 +2183,7 @@
     </function>
 
     <function name="TexImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -2619,20 +2618,22 @@
         <glx rop="167"/>
     </function>
 
-    <function name="PixelStoref" no_error="true">
+    <function name="PixelStoref" no_error="true"
+              marshal_call_after="_mesa_glthread_PixelStorei(ctx, pname, lroundf(param));">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLfloat"/>
         <glx sop="109" handcode="client"/>
     </function>
 
-    <function name="PixelStorei" es1="1.0" es2="2.0" no_error="true">
+    <function name="PixelStorei" es1="1.0" es2="2.0" no_error="true"
+              marshal_call_after="_mesa_glthread_PixelStorei(ctx, pname, param);">
         <param name="pname" type="GLenum"/>
         <param name="param" type="GLint"/>
         <glx sop="110" handcode="client"/>
     </function>
 
     <function name="PixelMapfv" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLfloat *" count="mapsize"/>
@@ -2640,7 +2641,7 @@
     </function>
 
     <function name="PixelMapuiv" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLuint *" count="mapsize"/>
@@ -2648,7 +2649,7 @@
     </function>
 
     <function name="PixelMapusv" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="mapsize" type="GLsizei" counter="true"/>
         <param name="values" type="const GLushort *" count="mapsize"/>
@@ -2670,7 +2671,7 @@
     </function>
 
     <function name="ReadPixels" es1="1.0" es2="2.0" no_error="true"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="x" type="GLint"/>
         <param name="y" type="GLint"/>
         <param name="width" type="GLsizei"/>
@@ -2681,8 +2682,7 @@
         <glx sop="111"/>
     </function>
 
-    <function name="DrawPixels" deprecated="3.1" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+    <function name="DrawPixels" deprecated="3.1" exec="dlist" marshal="custom">
         <param name="width" type="GLsizei"/>
         <param name="height" type="GLsizei"/>
         <param name="format" type="GLenum"/>
@@ -2776,28 +2776,28 @@
     </function>
 
     <function name="GetPixelMapfv" deprecated="3.1"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="values" type="GLfloat *" output="true" variable_param="map"/>
         <glx sop="125"/>
     </function>
 
     <function name="GetPixelMapuiv" deprecated="3.1"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="values" type="GLuint *" output="true" variable_param="map"/>
         <glx sop="126"/>
     </function>
 
     <function name="GetPixelMapusv" deprecated="3.1"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="map" type="GLenum"/>
         <param name="values" type="GLushort *" output="true" variable_param="map"/>
         <glx sop="127"/>
     </function>
 
     <function name="GetPolygonStipple" deprecated="3.1"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="mask" type="GLubyte *" output="true" img_width="32" img_height="32" img_format="GL_COLOR_INDEX" img_type="GL_BITMAP"/>
         <glx sop="128"/>
     </function>
@@ -2844,7 +2844,7 @@
     </function>
 
     <function name="GetTexImage"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="format" type="GLenum"/>
@@ -3211,14 +3211,15 @@
     </function>
 
     <function name="DrawArrays" es1="1.0" es2="2.0" marshal="custom" exec="dlist"
-              marshal_struct="public">
+              marshal_no_error="true">
         <param name="mode" type="GLenum"/>
         <param name="first" type="GLint"/>
         <param name="count" type="GLsizei"/>
         <glx rop="193" handcode="true"/>
     </function>
 
-    <function name="DrawElements" es1="1.0" es2="2.0" marshal="custom" exec="dlist">
+    <function name="DrawElements" es1="1.0" es2="2.0" marshal="custom" exec="dlist"
+              marshal_no_error="true" marshal_struct="public">
         <param name="mode" type="GLenum"/>
         <param name="count" type="GLsizei"/>
         <param name="type" type="GLenum"/>
@@ -3344,7 +3345,7 @@
     </function>
 
     <function name="TexSubImage1D" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3357,7 +3358,7 @@
     </function>
 
     <function name="TexSubImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -3791,7 +3792,8 @@
         <glx rop="4097"/>
     </function>
 
-    <function name="DrawRangeElements" es2="3.0" marshal="custom" exec="dlist">
+    <function name="DrawRangeElements" es2="3.0" marshal="custom" exec="dlist"
+              marshal_no_error="true">
         <param name="mode" type="GLenum"/>
         <param name="start" type="GLuint"/>
         <param name="end" type="GLuint"/>
@@ -4059,7 +4061,7 @@
     </function>
 
     <function name="TexImage3D" es2="3.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLint"/>
@@ -4074,7 +4076,7 @@
     </function>
 
     <function name="TexSubImage3D" es2="3.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4552,7 +4554,7 @@
     </function>
 
     <function name="CompressedTexImage3D" es2="3.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4566,7 +4568,7 @@
     </function>
 
     <function name="CompressedTexImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4579,7 +4581,7 @@
     </function>
 
     <function name="CompressedTexImage1D" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="internalformat" type="GLenum"/>
@@ -4591,7 +4593,7 @@
     </function>
 
     <function name="CompressedTexSubImage3D" es2="3.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4607,7 +4609,7 @@
     </function>
 
     <function name="CompressedTexSubImage2D" es1="1.0" es2="2.0" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4621,7 +4623,7 @@
     </function>
 
     <function name="CompressedTexSubImage1D" no_error="true" exec="dlist"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="xoffset" type="GLint"/>
@@ -4633,7 +4635,7 @@
     </function>
 
     <function name="GetCompressedTexImage"
-              marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+              marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
         <param name="target" type="GLenum"/>
         <param name="level" type="GLint"/>
         <param name="img" type="GLvoid *" output="true"/>
@@ -5319,7 +5321,7 @@
 
     <function name="DrawBuffers" es2="3.0" no_error="true" exec="dlist">
         <param name="n" type="GLsizei" counter="true"/>
-        <param name="bufs" type="const GLenum *" count="n"/>
+        <param name="bufs" type="const GLenum *" count="n" marshal_count="CLAMP(n, 0, MAX_DRAW_BUFFERS)"/>
         <glx rop="233" large="true"/>
     </function>
 
@@ -5408,7 +5410,7 @@
     <function name="GetActiveAttrib" es2="2.0">
         <param name="program" type="GLuint"/>
         <param name="index" type="GLuint"/>
-        <param name="bufSize" type="GLsizei "/>
+        <param name="bufSize" type="GLsizei"/>
         <param name="length" type="GLsizei *" output="true"/>
         <param name="size" type="GLint *" output="true"/>
         <param name="type" type="GLenum *" output="true"/>
@@ -12683,6 +12685,9 @@
     <function name="FramebufferFetchBarrierEXT" es2="2.0"/>
 </category>
 
+<xi:include href="EXT_texture_storage.xml"
+	    xmlns:xi="http://www.w3.org/2001/XInclude"/>
+
 <!-- Unnumbered extensions sorted by name. -->
 
 <category name="GL_AMD_framebuffer_multisample_advanced">
@@ -12939,6 +12944,10 @@
         <param name="cmd" type="const GLvoid *"/> <!-- struct marshal_cmd_DrawElementsUserBuf -->
     </function>
 
+    <function name="DrawElementsUserBufPacked" es1="1.0" es2="2.0" marshal="custom">
+        <param name="cmd" type="const GLvoid *"/> <!-- struct marshal_cmd_DrawElementsUserBufPacked -->
+    </function>
+
     <function name="MultiDrawArraysUserBuf" es1="1.0" es2="2.0" marshal="custom">
     </function>
 
@@ -12957,7 +12966,23 @@
     </function>
 
     <function name="DrawElementsInstancedBaseVertexBaseInstanceDrawID"
-              es1="1.0" es2="2.0" marshal="custom">
+              es1="1.0" es2="2.0" marshal="custom" marshal_struct="public">
+        <param name="mode" type="GLenum"/>
+        <param name="count" type="GLsizei"/>
+        <param name="type" type="GLenum"/>
+        <param name="indices" type="const GLvoid *"/>
+        <param name="instance_count" type="GLsizei"/>
+        <param name="basevertex" type="GLint"/>
+        <param name="baseinstance" type="GLuint"/>
+        <param name="drawid" type="GLuint"/>
+    </function>
+
+    <function name="DrawElementsPacked" es1="1.0" es2="2.0" marshal="custom"
+              marshal_struct="public">
+        <param name="mode" type="GLenum"/>
+        <param name="type" type="GLenum"/>
+        <param name="count" type="GLushort"/>
+        <param name="indices" type="GLushort"/>
     </function>
 
     <!-- Internal function for glthread to implement ancillary buffer invalidation. -->

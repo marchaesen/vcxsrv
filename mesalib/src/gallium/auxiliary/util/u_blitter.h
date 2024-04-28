@@ -129,7 +129,8 @@ struct blitter_context
    unsigned cb_slot;
    struct pipe_constant_buffer saved_fs_constant_buffer;
 
-   struct pipe_vertex_buffer saved_vertex_buffer;
+   unsigned saved_num_vb;
+   struct pipe_vertex_buffer saved_vertex_buffers[PIPE_MAX_ATTRIBS];
 
    unsigned saved_num_so_targets;
    struct pipe_stream_output_target *saved_so_targets[PIPE_MAX_SO_BUFFERS];
@@ -532,11 +533,15 @@ util_blitter_save_fragment_constant_buffer_slot(
 }
 
 static inline void
-util_blitter_save_vertex_buffer_slot(struct blitter_context *blitter,
-                                     struct pipe_vertex_buffer *vertex_buffers)
+util_blitter_save_vertex_buffers(struct blitter_context *blitter,
+                                 struct pipe_vertex_buffer *vertex_buffers,
+                                 unsigned count)
 {
-   pipe_vertex_buffer_reference(&blitter->saved_vertex_buffer,
-                                &vertex_buffers[0]);
+   for (unsigned i = 0; i < count; i++) {
+      pipe_vertex_buffer_reference(&blitter->saved_vertex_buffers[i],
+                                   &vertex_buffers[i]);
+   }
+   blitter->saved_num_vb = count;
 }
 
 static inline void

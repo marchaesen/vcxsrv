@@ -24,6 +24,8 @@
 #include "dix-config.h"
 #endif
 
+#include <errno.h>
+
 #include <xserver_poll.h>
 #include <xf86drm.h>
 

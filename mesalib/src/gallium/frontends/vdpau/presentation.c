@@ -269,7 +269,7 @@ vlVdpPresentationQueueDisplay(VdpPresentationQueue presentation_queue,
    pipe->screen->fence_reference(pipe->screen, &surf->fence, NULL);
    pipe->flush(pipe, &surf->fence, 0);
    pipe->screen->flush_frontbuffer(pipe->screen, pipe, tex, 0, 0,
-                                   vscreen->get_private(vscreen), NULL);
+                                   vscreen->get_private(vscreen), 0, NULL);
 
    pq->last_surf = surf;
 

@@ -1,24 +1,7 @@
 /*
  * Copyright © 2022 Friedrich Vock
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef _WIN32
@@ -30,7 +13,15 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "ac_gpu_info.h"
-#include "radv_private.h"
+#include "radv_buffer.h"
+#include "radv_descriptor_set.h"
+#include "radv_device_memory.h"
+#include "radv_event.h"
+#include "radv_image.h"
+#include "radv_pipeline_graphics.h"
+#include "radv_pipeline_rt.h"
+#include "radv_query.h"
+#include "radv_rmv.h"
 
 #define RADV_FTRACE_INSTANCE_PATH "/sys/kernel/tracing/instances/amd_rmv"
 
@@ -173,6 +164,8 @@ static void
 evaluate_trace_event(struct radv_device *device, uint64_t timestamp, struct util_dynarray *tokens,
                      struct trace_event_amdgpu_vm_update_ptes *event)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
    if (event->common.pid != getpid() && event->pid != getpid()) {
       return;
    }
@@ -180,8 +173,8 @@ evaluate_trace_event(struct radv_device *device, uint64_t timestamp, struct util
    struct trace_event_address_array *array = (struct trace_event_address_array *)(event + 1);
 
    for (uint32_t i = 0; i < event->num_ptes; ++i)
-      emit_page_table_update_event(&device->vk.memory_trace_data, !device->physical_device->rad_info.has_dedicated_vram,
-                                   timestamp, event, (uint64_t *)array->data, i);
+      emit_page_table_update_event(&device->vk.memory_trace_data, !pdev->info.has_dedicated_vram, timestamp, event,
+                                   (uint64_t *)array->data, i);
 }
 
 static void
@@ -368,23 +361,23 @@ error:
 }
 
 static void
-fill_memory_info(const struct radeon_info *info, struct vk_rmv_memory_info *out_info, int32_t index)
+fill_memory_info(const struct radeon_info *gpu_info, struct vk_rmv_memory_info *out_info, int32_t index)
 {
    switch (index) {
    case VK_RMV_MEMORY_LOCATION_DEVICE:
       out_info->physical_base_address = 0;
-      out_info->size =
-         info->all_vram_visible ? (uint64_t)info->vram_size_kb * 1024ULL : (uint64_t)info->vram_vis_size_kb * 1024ULL;
+      out_info->size = gpu_info->all_vram_visible ? (uint64_t)gpu_info->vram_size_kb * 1024ULL
+                                                  : (uint64_t)gpu_info->vram_vis_size_kb * 1024ULL;
       break;
    case VK_RMV_MEMORY_LOCATION_DEVICE_INVISIBLE:
-      out_info->physical_base_address = (uint64_t)info->vram_vis_size_kb * 1024ULL;
-      out_info->size = info->all_vram_visible ? 0 : (uint64_t)info->vram_size_kb * 1024ULL;
+      out_info->physical_base_address = (uint64_t)gpu_info->vram_vis_size_kb * 1024ULL;
+      out_info->size = gpu_info->all_vram_visible ? 0 : (uint64_t)gpu_info->vram_size_kb * 1024ULL;
       break;
    case VK_RMV_MEMORY_LOCATION_HOST: {
       uint64_t ram_size = -1U;
       os_get_total_physical_memory(&ram_size);
       out_info->physical_base_address = 0;
-      out_info->size = MIN2((uint64_t)info->gart_size_kb * 1024ULL, ram_size);
+      out_info->size = MIN2((uint64_t)gpu_info->gart_size_kb * 1024ULL, ram_size);
    } break;
    default:
       unreachable("invalid memory index");
@@ -421,27 +414,27 @@ memory_type_from_vram_type(uint32_t vram_type)
 }
 
 void
-radv_rmv_fill_device_info(const struct radv_physical_device *device, struct vk_rmv_device_info *info)
+radv_rmv_fill_device_info(const struct radv_physical_device *pdev, struct vk_rmv_device_info *info)
 {
-   const struct radeon_info *rad_info = &device->rad_info;
+   const struct radeon_info *gpu_info = &pdev->info;
 
    for (int32_t i = 0; i < VK_RMV_MEMORY_LOCATION_COUNT; ++i) {
-      fill_memory_info(rad_info, &info->memory_infos[i], i);
+      fill_memory_info(gpu_info, &info->memory_infos[i], i);
    }
 
-   if (rad_info->marketing_name)
-      strncpy(info->device_name, rad_info->marketing_name, sizeof(info->device_name) - 1);
-   info->pcie_family_id = rad_info->family_id;
-   info->pcie_revision_id = rad_info->pci_rev_id;
-   info->pcie_device_id = rad_info->pci.dev;
+   if (gpu_info->marketing_name)
+      strncpy(info->device_name, gpu_info->marketing_name, sizeof(info->device_name) - 1);
+   info->pcie_family_id = gpu_info->family_id;
+   info->pcie_revision_id = gpu_info->pci_rev_id;
+   info->pcie_device_id = gpu_info->pci.dev;
    info->minimum_shader_clock = 0;
-   info->maximum_shader_clock = rad_info->max_gpu_freq_mhz;
-   info->vram_type = memory_type_from_vram_type(rad_info->vram_type);
-   info->vram_bus_width = rad_info->memory_bus_width;
-   info->vram_operations_per_clock = ac_memory_ops_per_clock(rad_info->vram_type);
+   info->maximum_shader_clock = gpu_info->max_gpu_freq_mhz;
+   info->vram_type = memory_type_from_vram_type(gpu_info->vram_type);
+   info->vram_bus_width = gpu_info->memory_bus_width;
+   info->vram_operations_per_clock = ac_memory_ops_per_clock(gpu_info->vram_type);
    info->minimum_memory_clock = 0;
-   info->maximum_memory_clock = rad_info->memory_freq_mhz;
-   info->vram_bandwidth = rad_info->memory_bandwidth_gbps;
+   info->maximum_memory_clock = gpu_info->memory_freq_mhz;
+   info->vram_bandwidth = gpu_info->memory_bandwidth_gbps;
 }
 
 void
@@ -480,23 +473,24 @@ void
 radv_rmv_log_heap_create(struct radv_device *device, VkDeviceMemory heap, bool is_internal,
                          VkMemoryAllocateFlags alloc_flags)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_device_memory, memory, heap);
+   VK_FROM_HANDLE(radv_device_memory, memory, heap);
 
    /* Do not log zero-sized device memory objects. */
    if (!memory->alloc_size)
       return;
 
-   radv_rmv_log_bo_allocate(device, memory->bo, memory->alloc_size, false);
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
 
    struct vk_rmv_resource_create_token token = {0};
    token.is_driver_internal = is_internal;
    token.resource_id = vk_rmv_get_resource_id_locked(&device->vk, (uint64_t)heap);
    token.type = VK_RMV_RESOURCE_TYPE_HEAP;
-   token.heap.alignment = device->physical_device->rad_info.max_alignment;
+   token.heap.alignment = pdev->info.max_alignment;
    token.heap.size = memory->alloc_size;
    token.heap.heap_index = memory->heap_index;
    token.heap.alloc_flags = alloc_flags;
@@ -507,18 +501,24 @@ radv_rmv_log_heap_create(struct radv_device *device, VkDeviceMemory heap, bool i
 }
 
 void
-radv_rmv_log_bo_allocate(struct radv_device *device, struct radeon_winsys_bo *bo, uint32_t size, bool is_internal)
+radv_rmv_log_bo_allocate(struct radv_device *device, struct radeon_winsys_bo *bo, bool is_internal)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
    if (!device->vk.memory_trace_data.is_enabled)
+      return;
+
+   /* RMV doesn't seem to support GDS/OA domains. */
+   if (!(bo->initial_domain & RADEON_DOMAIN_VRAM_GTT))
       return;
 
    struct vk_rmv_virtual_allocate_token token = {0};
    token.address = bo->va;
    /* If all VRAM is visible, no bo will be in invisible memory. */
-   token.is_in_invisible_vram = bo->vram_no_cpu_access && !device->physical_device->rad_info.all_vram_visible;
+   token.is_in_invisible_vram = bo->vram_no_cpu_access && !pdev->info.all_vram_visible;
    token.preferred_domains = (enum vk_rmv_kernel_memory_domain)bo->initial_domain;
    token.is_driver_internal = is_internal;
-   token.page_count = DIV_ROUND_UP(size, 4096);
+   token.page_count = DIV_ROUND_UP(bo->size, 4096);
 
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    vk_rmv_emit_token(&device->vk.memory_trace_data, VK_RMV_TOKEN_TYPE_VIRTUAL_ALLOCATE, &token);
@@ -530,6 +530,10 @@ void
 radv_rmv_log_bo_destroy(struct radv_device *device, struct radeon_winsys_bo *bo)
 {
    if (!device->vk.memory_trace_data.is_enabled)
+      return;
+
+   /* RMV doesn't seem to support GDS/OA domains. */
+   if (!(bo->initial_domain & RADEON_DOMAIN_VRAM_GTT))
       return;
 
    struct vk_rmv_virtual_free_token token = {0};
@@ -547,7 +551,7 @@ radv_rmv_log_buffer_bind(struct radv_device *device, VkBuffer _buffer)
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_buffer, buffer, _buffer);
+   VK_FROM_HANDLE(radv_buffer, buffer, _buffer);
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    log_resource_bind_locked(device, (uint64_t)_buffer, buffer->bo, buffer->offset, buffer->vk.size);
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
@@ -560,7 +564,7 @@ radv_rmv_log_image_create(struct radv_device *device, const VkImageCreateInfo *c
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_image, image, _image);
+   VK_FROM_HANDLE(radv_image, image, _image);
 
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    struct vk_rmv_resource_create_token token = {0};
@@ -592,34 +596,32 @@ radv_rmv_log_image_create(struct radv_device *device, const VkImageCreateInfo *c
 }
 
 void
-radv_rmv_log_image_bind(struct radv_device *device, VkImage _image)
+radv_rmv_log_image_bind(struct radv_device *device, uint32_t bind_idx, VkImage _image)
 {
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_image, image, _image);
+   VK_FROM_HANDLE(radv_image, image, _image);
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
-   log_resource_bind_locked(device, (uint64_t)_image, image->bindings[0].bo, image->bindings[0].offset, image->size);
+   log_resource_bind_locked(device, (uint64_t)_image, image->bindings[bind_idx].bo, image->bindings[bind_idx].offset,
+                            image->bindings[bind_idx].range);
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
 }
 
 void
-radv_rmv_log_query_pool_create(struct radv_device *device, VkQueryPool _pool, bool is_internal)
+radv_rmv_log_query_pool_create(struct radv_device *device, VkQueryPool _pool)
 {
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_query_pool, pool, _pool);
+   VK_FROM_HANDLE(radv_query_pool, pool, _pool);
 
    if (pool->vk.query_type != VK_QUERY_TYPE_OCCLUSION && pool->vk.query_type != VK_QUERY_TYPE_PIPELINE_STATISTICS &&
        pool->vk.query_type != VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT)
       return;
 
-   radv_rmv_log_bo_allocate(device, pool->bo, pool->size, is_internal);
-
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    struct vk_rmv_resource_create_token create_token = {0};
-   create_token.is_driver_internal = is_internal;
    create_token.resource_id = vk_rmv_get_resource_id_locked(&device->vk, (uint64_t)_pool);
    create_token.type = VK_RMV_RESOURCE_TYPE_QUERY_HEAP;
    create_token.query_pool.type = pool->vk.query_type;
@@ -637,12 +639,6 @@ radv_rmv_log_command_buffer_bo_create(struct radv_device *device, struct radeon_
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   /* Only one of executable_size, data_size and scratch_size should be > 0 */
-   /* TODO: Trace CS BOs for executable data */
-   uint32_t size = MAX3(executable_size, data_size, scratch_size);
-
-   radv_rmv_log_bo_allocate(device, bo, size, true);
-
    uint64_t upload_resource_identifier = (uint64_t)(uintptr_t)bo;
 
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
@@ -659,7 +655,7 @@ radv_rmv_log_command_buffer_bo_create(struct radv_device *device, struct radeon_
    create_token.command_buffer.app_available_scratch_size = scratch_size;
 
    vk_rmv_emit_token(&device->vk.memory_trace_data, VK_RMV_TOKEN_TYPE_RESOURCE_CREATE, &create_token);
-   log_resource_bind_locked(device, upload_resource_identifier, bo, 0, size);
+   log_resource_bind_locked(device, upload_resource_identifier, bo, 0, bo->size);
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
    vk_rmv_log_cpu_map(&device->vk, bo->va, false);
 }
@@ -677,7 +673,6 @@ radv_rmv_log_command_buffer_bo_destroy(struct radv_device *device, struct radeon
    vk_rmv_emit_token(&device->vk.memory_trace_data, VK_RMV_TOKEN_TYPE_RESOURCE_DESTROY, &destroy_token);
    vk_rmv_destroy_resource_id_locked(&device->vk, (uint64_t)(uintptr_t)bo);
    simple_mtx_unlock(&device->vk.memory_trace_data.token_mtx);
-   radv_rmv_log_bo_destroy(device, bo);
    vk_rmv_log_cpu_map(&device->vk, bo->va, true);
 }
 
@@ -687,7 +682,6 @@ radv_rmv_log_border_color_palette_create(struct radv_device *device, struct rade
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   radv_rmv_log_bo_allocate(device, bo, RADV_BORDER_COLOR_BUFFER_SIZE, true);
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    uint32_t resource_id = vk_rmv_get_resource_id_locked(&device->vk, (uint64_t)(uintptr_t)bo);
 
@@ -762,17 +756,15 @@ radv_rmv_log_sparse_remove_residency(struct radv_device *device, struct radeon_w
 
 void
 radv_rmv_log_descriptor_pool_create(struct radv_device *device, const VkDescriptorPoolCreateInfo *create_info,
-                                    VkDescriptorPool _pool, bool is_internal)
+                                    VkDescriptorPool _pool)
 {
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_descriptor_pool, pool, _pool);
+   VK_FROM_HANDLE(radv_descriptor_pool, pool, _pool);
 
-   if (pool->bo) {
-      radv_rmv_log_bo_allocate(device, pool->bo, pool->size, is_internal);
+   if (pool->bo)
       vk_rmv_log_cpu_map(&device->vk, pool->bo->va, false);
-   }
 
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    struct vk_rmv_resource_create_token create_token = {0};
@@ -911,9 +903,8 @@ radv_rmv_log_event_create(struct radv_device *device, VkEvent _event, VkEventCre
    if (!device->vk.memory_trace_data.is_enabled)
       return;
 
-   RADV_FROM_HANDLE(radv_event, event, _event);
+   VK_FROM_HANDLE(radv_event, event, _event);
 
-   radv_rmv_log_bo_allocate(device, event->bo, 8, is_internal);
    simple_mtx_lock(&device->vk.memory_trace_data.token_mtx);
    struct vk_rmv_resource_create_token create_token = {0};
    create_token.is_driver_internal = is_internal;

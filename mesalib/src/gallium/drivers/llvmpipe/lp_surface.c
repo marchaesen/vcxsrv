@@ -162,7 +162,8 @@ lp_blit(struct pipe_context *pipe,
       info.mask = PIPE_MASK_R;
    }
 
-   util_blitter_save_vertex_buffer_slot(lp->blitter, lp->vertex_buffer);
+   util_blitter_save_vertex_buffers(lp->blitter, lp->vertex_buffer,
+                                    lp->num_vertex_buffers);
    util_blitter_save_vertex_elements(lp->blitter, (void*)lp->velems);
    util_blitter_save_vertex_shader(lp->blitter, (void*)lp->vs);
    util_blitter_save_geometry_shader(lp->blitter, (void*)lp->gs);

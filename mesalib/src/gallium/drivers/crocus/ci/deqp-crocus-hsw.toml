@@ -1,6 +1,6 @@
 [[deqp]]
 deqp = "/deqp/modules/gles2/deqp-gles2"
-caselists = ["/deqp/mustpass/gles2-master.txt"]
+caselists = ["/deqp/mustpass/gles2-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -13,7 +13,7 @@ renderer_check = "Intel.*HSW GT2"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"
-caselists = ["/deqp/mustpass/gles3-master.txt"]
+caselists = ["/deqp/mustpass/gles3-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -26,7 +26,7 @@ renderer_check = "Intel.*HSW GT2"
 
 [[deqp]]
 deqp = "/deqp/modules/gles31/deqp-gles31"
-caselists = ["/deqp/mustpass/gles31-master.txt"]
+caselists = ["/deqp/mustpass/gles31-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -40,9 +40,9 @@ renderer_check = "Intel.*HSW GT2"
 [[deqp]]
 deqp = "/deqp/external/openglcts/modules/glcts"
 caselists = [
-        "/deqp/mustpass/gles2-khr-master.txt",
-        "/deqp/mustpass/gles3-khr-master.txt",
-        "/deqp/mustpass/gles31-khr-master.txt"
+        "/deqp/mustpass/gles2-khr-main.txt",
+        "/deqp/mustpass/gles3-khr-main.txt",
+        "/deqp/mustpass/gles31-khr-main.txt"
 ]
 deqp_args = [
     "--deqp-surface-width=256",
@@ -54,7 +54,7 @@ deqp_args = [
 
 [[deqp]]
 deqp = "/deqp/external/openglcts/modules/glcts"
-caselists = ["/deqp/mustpass/gl46-master.txt"]
+caselists = ["/deqp/mustpass/gl46-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
     "--deqp-surface-type=pbuffer", "--deqp-visibility=hidden",

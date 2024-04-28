@@ -32,7 +32,7 @@
 #include "util/format/u_formats.h"
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 struct pipe_context;
 struct pipe_surface;
 struct pipe_transfer;

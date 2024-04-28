@@ -1,30 +1,14 @@
 /*
  * Copyright © 2021 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include <inttypes.h>
 
+#include "radv_buffer.h"
 #include "radv_cs.h"
-#include "radv_private.h"
+#include "radv_spm.h"
 #include "sid.h"
 
 #define SPM_RING_BASE_ALIGN 32
@@ -41,9 +25,9 @@ radv_spm_init_bo(struct radv_device *device)
    device->spm.sample_interval = sample_interval;
 
    struct radeon_winsys_bo *bo = NULL;
-   result = ws->buffer_create(ws, size, 4096, RADEON_DOMAIN_VRAM,
-                              RADEON_FLAG_CPU_ACCESS | RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_ZERO_VRAM,
-                              RADV_BO_PRIORITY_SCRATCH, 0, &bo);
+   result = radv_bo_create(device, NULL, size, 4096, RADEON_DOMAIN_VRAM,
+                           RADEON_FLAG_CPU_ACCESS | RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_ZERO_VRAM,
+                           RADV_BO_PRIORITY_SCRATCH, 0, true, &bo);
    device->spm.bo = bo;
    if (result != VK_SUCCESS)
       return false;
@@ -52,7 +36,7 @@ radv_spm_init_bo(struct radv_device *device)
    if (result != VK_SUCCESS)
       return false;
 
-   device->spm.ptr = ws->buffer_map(device->spm.bo);
+   device->spm.ptr = radv_buffer_map(ws, device->spm.bo);
    if (!device->spm.ptr)
       return false;
 
@@ -62,7 +46,8 @@ radv_spm_init_bo(struct radv_device *device)
 static void
 radv_emit_spm_counters(struct radv_device *device, struct radeon_cmdbuf *cs, enum radv_queue_family qf)
 {
-   const enum amd_gfx_level gfx_level = device->physical_device->rad_info.gfx_level;
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const enum amd_gfx_level gfx_level = pdev->info.gfx_level;
    struct ac_spm *spm = &device->spm;
 
    if (gfx_level >= GFX11) {
@@ -142,7 +127,8 @@ radv_emit_spm_counters(struct radv_device *device, struct radeon_cmdbuf *cs, enu
 void
 radv_emit_spm_setup(struct radv_device *device, struct radeon_cmdbuf *cs, enum radv_queue_family qf)
 {
-   const enum amd_gfx_level gfx_level = device->physical_device->rad_info.gfx_level;
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const enum amd_gfx_level gfx_level = pdev->info.gfx_level;
    struct ac_spm *spm = &device->spm;
    uint64_t va = radv_buffer_get_va(spm->bo);
    uint64_t ring_size = spm->buffer_size;
@@ -170,7 +156,7 @@ radv_emit_spm_setup(struct radv_device *device, struct radeon_cmdbuf *cs, enum r
 
    radeon_set_uconfig_reg(cs, R_03726C_RLC_SPM_ACCUM_MODE, 0);
 
-   if (device->physical_device->rad_info.gfx_level >= GFX11) {
+   if (pdev->info.gfx_level >= GFX11) {
       radeon_set_uconfig_reg(cs, R_03721C_RLC_SPM_PERFMON_SEGMENT_SIZE,
                              S_03721C_TOTAL_NUM_SEGMENT(total_muxsel_lines) |
                                 S_03721C_GLOBAL_NUM_SEGMENT(spm->num_muxsel_lines[AC_SPM_SEGMENT_TYPE_GLOBAL]) |
@@ -238,14 +224,15 @@ radv_emit_spm_setup(struct radv_device *device, struct radeon_cmdbuf *cs, enum r
 bool
 radv_spm_init(struct radv_device *device)
 {
-   const struct radeon_info *info = &device->physical_device->rad_info;
-   struct ac_perfcounters *pc = &device->physical_device->ac_perfcounters;
+   struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radeon_info *gpu_info = &pdev->info;
+   struct ac_perfcounters *pc = &pdev->ac_perfcounters;
 
    /* We failed to initialize the performance counters. */
    if (!pc->blocks)
       return false;
 
-   if (!ac_init_spm(info, pc, &device->spm))
+   if (!ac_init_spm(gpu_info, pc, &device->spm))
       return false;
 
    if (!radv_spm_init_bo(device))
@@ -261,7 +248,7 @@ radv_spm_finish(struct radv_device *device)
 
    if (device->spm.bo) {
       ws->buffer_make_resident(ws, device->spm.bo, false);
-      ws->buffer_destroy(ws, device->spm.bo);
+      radv_bo_destroy(device, NULL, device->spm.bo);
    }
 
    ac_destroy_spm(&device->spm);

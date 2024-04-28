@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database xmlns="http://nouveau.freedesktop.org/"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
+<import file="freedreno_copyright.xml"/>
 
 <!--
 	This documents the internal register spaces used by the CP firmware since
@@ -271,6 +272,8 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 	<!-- new in gen3+ -->
 	<reg32 name="PRED_REG" offset="0x17f"/>
+
+	<reg32 name="THREAD_SYNC" offset="0x200"/>
 </domain>
 
 <domain name="A7XX_CONTROL_REG" width="32">
@@ -361,6 +364,10 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 	<reg32 name="SECURE_MODE" offset="0x075"/>
 	<reg32 name="PREEMPT_COOKIE" offset="0x078"/>
 
+	<doc>These registers seem to define a range that load/store instructions can access</doc>
+	<reg32 name="LOAD_STORE_RANGE_MIN" offset="0x0a0"/>
+	<reg32 name="LOAD_STORE_RANGE_LEN" offset="0x0a1"/>
+
 	<doc>
 		Register used to create critical sections when reading/writing
 		shared memory (0x200-0x2ff). Each bit contains a lock. Writing 1
@@ -389,6 +396,85 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		other internal syncing.
 	</doc>
 	<reg32 name="THREAD_SYNC" offset="0x23f"/>
+</domain>
+
+<!-- Starting with a750, the control registers are shuffled around -->
+
+<domain name="A7XX_GEN3_CONTROL_REG" width="32">
+	<reg32 name="COPROCESSOR_LOCK" offset="0x014"/>
+
+	<reg32 name="REG_WRITE_ADDR" offset="0x018"/>
+	<reg32 name="REG_WRITE" offset="0x019"/>
+
+	<doc> After setting these, read result from $regdata </doc>
+	<reg32 name="REG_READ_DWORDS" offset="0x01a"/>
+	<reg32 name="REG_READ_ADDR" offset="0x01b"/>
+
+	<reg64 name="IB1_BASE" offset="0x020"/>
+	<reg32 name="IB1_DWORDS" offset="0x022"/>
+	<reg64 name="IB2_BASE" offset="0x024"/>
+	<reg32 name="IB2_DWORDS" offset="0x026"/>
+	<reg64 name="IB3_BASE" offset="0x028"/>
+	<reg32 name="IB3_DWORDS" offset="0x02a"/>
+
+	<reg64 name="MEM_READ_ADDR" offset="0x02c"/>
+	<reg32 name="MEM_READ_DWORDS" offset="0x02e"/>
+	<reg32 name="MEM_READ_ADDR_HI_PRIVILEGED" offset="0x02f"/>
+
+	<reg32 name="IB_LEVEL" offset="0x03d"/>
+
+	<reg32 name="PACKET_TABLE_WRITE_ADDR" offset="0x070"/>
+	<reg32 name="PACKET_TABLE_WRITE" offset="0x071"/>
+
+	<reg32 name="LOAD_STORE_HI" offset="0x07a"/>
+
+	<reg64 name="BV_INSTR_BASE" offset="0x080"/>
+	<reg32 name="BV_CNTL" offset="0x082"/>
+
+	<reg64 name="LPAC_INSTR_BASE" offset="0x083"/>
+	<reg32 name="LPAC_CNTL" offset="0x085"/>
+
+	<reg32 name="LOAD_STORE_RANGE_MIN" offset="0x0a2"/>
+	<reg32 name="LOAD_STORE_RANGE_LEN" offset="0x0a3"/>
+
+	<reg32 name="WFI_PEND_INCR" offset="0x0b0"/>
+	<reg32 name="QUERY_PEND_INCR" offset="0x0b1"/>
+
+	<reg32 name="WFI_PEND_CTR" offset="0x0b2"/>
+	<reg32 name="QUERY_PEND_CTR" offset="0x0b3"/>
+
+	<reg32 name="CACHE_CLEAN_PEND_INCR" offset="0x0b4"/>
+	<reg32 name="CACHE_CLEAN_PEND_CTR" offset="0x0b8"/>
+
+	<reg32 name="PERFCNTR_CNTL" offset="0x0c9">
+		<bitfield name="NUM_PREEMPTIONS" low="0" high="1" type="sqe_perfcntr_cntl"/>
+		<bitfield name="PREEMPTION_REACTION_DELAY" low="2" high="3" type="sqe_perfcntr_cntl"/>
+		<bitfield name="PREEMPTION_SWITCH_OUT_TIME" low="4" high="5" type="sqe_perfcntr_cntl"/>
+		<bitfield name="PREEMPTION_SWITCH_IN_TIME" low="6" high="7" type="sqe_perfcntr_cntl"/>
+		<bitfield name="DEAD_DRAWS_IN_BIN_RENDER" low="8" high="9" type="sqe_perfcntr_cntl"/>
+		<bitfield name="PREDICATED_DRAWS_KILLED" low="10" high="11" type="sqe_perfcntr_cntl"/>
+		<!-- MODE_SWITCH? -->
+		<bitfield name="ZPASS_DONE" low="14" high="15" type="sqe_perfcntr_cntl"/>
+		<bitfield name="CONTEXT_DONE" low="16" high="17" type="sqe_perfcntr_cntl"/>
+		<bitfield name="CACHE_FLUSH" low="18" high="19" type="sqe_perfcntr_cntl"/>
+		<bitfield name="LONG_PREEMPTIONS" low="20" high="21" type="sqe_perfcntr_cntl"/>
+		<bitfield name="VSD_DECODE_STARVE" low="22" high="23" type="sqe_perfcntr_cntl"/>
+		<bitfield name="SYNC_STALL" low="24" high="25" type="sqe_perfcntr_cntl"/>
+		<bitfield name="PM4_WFI_STALL" low="26" high="27" type="sqe_perfcntr_cntl"/>
+		<bitfield name="SYS_WFI_STALL" low="28" high="29" type="sqe_perfcntr_cntl"/>
+	</reg32>
+
+	<reg32 name="CONTEXT_SWITCH_CNTL" offset="0x131"/>
+	<reg32 name="PREEMPT_COOKIE" offset="0x132"/>
+	<reg32 name="PREEMPT_ENABLE" offset="0x133"/>
+	<reg32 name="PREEMPT_TRIGGER" offset="0x0134"/>
+
+	<reg64 name="AQE1_PREEMPT_BASE" offset="0x26e"/>
+	<reg64 name="AQE0_PREEMPT_BASE" offset="0x275"/>
+
+	<reg32 name="THREAD_SYNC" offset="0x27f"/>
+
+	<!-- the scratch control registers are now at 0x400-0x5ff instead of 0x100-0x1ff -->
 </domain>
 
 </database>

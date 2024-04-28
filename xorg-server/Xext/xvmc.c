@@ -290,7 +290,7 @@ ProcXvMCDestroyContext(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    FreeResource(stuff->context_id, RT_NONE);
+    FreeResource(stuff->context_id, X11_RESTYPE_NONE);
 
     return Success;
 }
@@ -368,7 +368,7 @@ ProcXvMCDestroySurface(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    FreeResource(stuff->surface_id, RT_NONE);
+    FreeResource(stuff->surface_id, X11_RESTYPE_NONE);
 
     return Success;
 }
@@ -496,7 +496,7 @@ ProcXvMCDestroySubpicture(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    FreeResource(stuff->subpicture_id, RT_NONE);
+    FreeResource(stuff->subpicture_id, X11_RESTYPE_NONE);
 
     return Success;
 }

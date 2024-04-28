@@ -50,6 +50,7 @@
 /* Temporary storage for the set of attributes that need locations assigned. */
 struct temp_attr {
    unsigned slots;
+   unsigned original_idx;
    nir_variable *var;
 };
 
@@ -61,7 +62,10 @@ compare_attr(const void *a, const void *b)
    const struct temp_attr *const r = (const struct temp_attr *) b;
 
    /* Reversed because we want a descending order sort below. */
-   return r->slots - l->slots;
+   if (r->slots != l->slots)
+      return r->slots - l->slots;
+
+   return l->original_idx - r->original_idx;
 }
 
 /**
@@ -561,6 +565,94 @@ check_location_aliasing(struct explicit_location_info explicit_locations[][4],
    return true;
 }
 
+static void
+resize_input_array(nir_shader *shader, struct gl_shader_program *prog,
+                   unsigned stage, unsigned num_vertices)
+{
+   nir_foreach_shader_in_variable(var, shader) {
+      if (!glsl_type_is_array(var->type) || var->data.patch)
+         continue;
+
+      unsigned size = glsl_array_size(var->type);
+
+      if (stage == MESA_SHADER_GEOMETRY) {
+         /* Generate a link error if the shader has declared this array with
+          * an incorrect size.
+          */
+         if (!var->data.implicit_sized_array &&
+             size != -1 && size != num_vertices) {
+            linker_error(prog, "size of array %s declared as %u, "
+                         "but number of input vertices is %u\n",
+                         var->name, size, num_vertices);
+            break;
+         }
+
+         /* Generate a link error if the shader attempts to access an input
+          * array using an index too large for its actual size assigned at
+          * link time.
+          */
+         if (var->data.max_array_access >= (int)num_vertices) {
+            linker_error(prog, "%s shader accesses element %i of "
+                         "%s, but only %i input vertices\n",
+                         _mesa_shader_stage_to_string(stage),
+                         var->data.max_array_access, var->name, num_vertices);
+            break;
+         }
+      }
+
+      var->type = glsl_array_type(var->type->fields.array, num_vertices, 0);
+      var->data.max_array_access = num_vertices - 1;
+   }
+
+   nir_fixup_deref_types(shader);
+}
+
+/**
+ * Resize tessellation evaluation per-vertex inputs to the size of
+ * tessellation control per-vertex outputs.
+ */
+void
+resize_tes_inputs(const struct gl_constants *consts,
+                  struct gl_shader_program *prog)
+{
+   if (prog->_LinkedShaders[MESA_SHADER_TESS_EVAL] == NULL)
+      return;
+
+   struct gl_linked_shader *tcs = prog->_LinkedShaders[MESA_SHADER_TESS_CTRL];
+   struct gl_linked_shader *tes = prog->_LinkedShaders[MESA_SHADER_TESS_EVAL];
+
+   /* If no control shader is present, then the TES inputs are statically
+    * sized to MaxPatchVertices; the actual size of the arrays won't be
+    * known until draw time.
+    */
+   const int num_vertices = tcs
+      ? tcs->Program->info.tess.tcs_vertices_out
+      : consts->MaxPatchVertices;
+
+   resize_input_array(tes->Program->nir, prog, MESA_SHADER_TESS_EVAL,
+                      num_vertices);
+   if (tcs) {
+      /* Convert the gl_PatchVerticesIn system value into a constant, since
+       * the value is known at this point.
+       */
+      nir_variable *var =
+         nir_find_variable_with_location(tes->Program->nir,
+                                         nir_var_system_value,
+                                         SYSTEM_VALUE_VERTICES_IN);
+      if (var) {
+         var->data.location = 0;
+         var->data.explicit_location = false;
+         var->data.mode = nir_var_mem_constant;
+
+         nir_constant *val = rzalloc(var, nir_constant);
+         val->values[0].i32 = num_vertices;
+         var->constant_initializer = val;
+
+         nir_fixup_deref_modes(tes->Program->nir);
+      }
+   }
+}
+
 static bool
 validate_explicit_variable_location(const struct gl_constants *consts,
                                     struct explicit_location_info explicit_locations[][4],
@@ -745,7 +837,7 @@ gl_nir_cross_validate_outputs_to_inputs(const struct gl_constants *consts,
          if (!validate_explicit_variable_location(consts,
                                                   output_explicit_locations,
                                                   var, prog, producer)) {
-            return;
+            goto out;
          }
       }
    }
@@ -799,7 +891,7 @@ gl_nir_cross_validate_outputs_to_inputs(const struct gl_constants *consts,
             if (!validate_explicit_variable_location(consts,
                                                      input_explicit_locations,
                                                      input, prog, consumer)) {
-               return;
+               goto out;
             }
 
             while (idx < slot_limit) {
@@ -807,7 +899,7 @@ gl_nir_cross_validate_outputs_to_inputs(const struct gl_constants *consts,
                   linker_error(prog,
                                "Invalid location %u in %s shader\n", idx,
                                _mesa_shader_stage_to_string(consumer->Stage));
-                  return;
+                  goto out;
                }
 
                output = output_explicit_locations[idx][input->data.location_frac].var;
@@ -870,6 +962,7 @@ gl_nir_cross_validate_outputs_to_inputs(const struct gl_constants *consts,
       }
    }
 
+ out:
    _mesa_symbol_table_dtor(table);
 }
 
@@ -1237,6 +1330,7 @@ assign_attribute_or_color_locations(void *mem_ctx,
       }
       to_assign[num_attr].slots = slots;
       to_assign[num_attr].var = var;
+      to_assign[num_attr].original_idx = num_attr;
       num_attr++;
    }
 
@@ -1374,7 +1468,8 @@ static bool
 process_xfb_layout_qualifiers(void *mem_ctx, const struct gl_linked_shader *sh,
                               struct gl_shader_program *prog,
                               unsigned *num_xfb_decls,
-                              char ***varying_names)
+                              char ***varying_names,
+                              bool *compact_arrays)
 {
    bool has_xfb_qualifiers = false;
 
@@ -1389,6 +1484,7 @@ process_xfb_layout_qualifiers(void *mem_ctx, const struct gl_linked_shader *sh,
       }
    }
 
+   *compact_arrays = sh->Program->nir->options->compact_arrays;
    nir_foreach_shader_out_variable(var, sh->Program->nir) {
       /* From the ARB_enhanced_layouts spec:
        *
@@ -1411,6 +1507,7 @@ process_xfb_layout_qualifiers(void *mem_ctx, const struct gl_linked_shader *sh,
 
    if (*num_xfb_decls == 0)
       return has_xfb_qualifiers;
+
 
    unsigned i = 0;
    *varying_names = ralloc_array(mem_ctx, char *, *num_xfb_decls);
@@ -1453,7 +1550,7 @@ process_xfb_layout_qualifiers(void *mem_ctx, const struct gl_linked_shader *sh,
 static void
 xfb_decl_init(struct xfb_decl *xfb_decl, const struct gl_constants *consts,
               const struct gl_extensions *exts, const void *mem_ctx,
-              const char *input)
+              const char *input, bool compact_arrays)
 {
    /* We don't have to be pedantic about what is a valid GLSL variable name,
     * because any variable with an invalid name can't exist in the IR anyway.
@@ -1510,11 +1607,11 @@ xfb_decl_init(struct xfb_decl *xfb_decl, const struct gl_constants *consts,
     * class must behave specially to account for the fact that gl_ClipDistance
     * is converted from a float[8] to a vec4[2].
     */
-   if (consts->ShaderCompilerOptions[MESA_SHADER_VERTEX].LowerCombinedClipCullDistance &&
+   if (!compact_arrays &&
        strcmp(xfb_decl->var_name, "gl_ClipDistance") == 0) {
       xfb_decl->lowered_builtin_array_variable = clip_distance;
    }
-   if (consts->ShaderCompilerOptions[MESA_SHADER_VERTEX].LowerCombinedClipCullDistance &&
+   if (!compact_arrays &&
        strcmp(xfb_decl->var_name, "gl_CullDistance") == 0) {
       xfb_decl->lowered_builtin_array_variable = cull_distance;
    }
@@ -1584,11 +1681,11 @@ xfb_decl_assign_location(struct xfb_decl *xfb_decl,
       switch (xfb_decl->lowered_builtin_array_variable) {
       case clip_distance:
          actual_array_size = prog->last_vert_prog ?
-            prog->last_vert_prog->info.clip_distance_array_size : 0;
+            prog->last_vert_prog->nir->info.clip_distance_array_size : 0;
          break;
       case cull_distance:
          actual_array_size = prog->last_vert_prog ?
-            prog->last_vert_prog->info.cull_distance_array_size : 0;
+            prog->last_vert_prog->nir->info.cull_distance_array_size : 0;
          break;
       case none:
       default:
@@ -1987,10 +2084,10 @@ parse_xfb_decls(const struct gl_constants *consts,
                 const struct gl_extensions *exts,
                 struct gl_shader_program *prog,
                 const void *mem_ctx, unsigned num_names,
-                char **varying_names, struct xfb_decl *decls)
+                char **varying_names, struct xfb_decl *decls, bool compact_arrays)
 {
    for (unsigned i = 0; i < num_names; ++i) {
-      xfb_decl_init(&decls[i], consts, exts, mem_ctx, varying_names[i]);
+      xfb_decl_init(&decls[i], consts, exts, mem_ctx, varying_names[i], compact_arrays);
 
       if (!xfb_decl_is_varying(&decls[i]))
          continue;
@@ -4036,7 +4133,7 @@ assign_final_varying_locations(const struct gl_constants *consts,
    if (consumer) {
       unsigned consumer_vertices = 0;
       if (consumer && consumer->Stage == MESA_SHADER_GEOMETRY)
-         consumer_vertices = prog->Geom.VerticesIn;
+         consumer_vertices = consumer->Program->nir->info.gs.vertices_in;
 
       gl_nir_lower_packed_varyings(consts, prog, mem_ctx, slots_used, components,
                                    nir_var_shader_in, consumer_vertices,
@@ -4157,6 +4254,7 @@ link_varyings(struct gl_shader_program *prog, unsigned first,
    bool has_xfb_qualifiers = false;
    unsigned num_xfb_decls = 0;
    char **varying_names = NULL;
+   bool compact_arrays = false;
    struct xfb_decl *xfb_decls = NULL;
 
    if (last > MESA_SHADER_FRAGMENT)
@@ -4176,7 +4274,8 @@ link_varyings(struct gl_shader_program *prog, unsigned first,
          has_xfb_qualifiers =
             process_xfb_layout_qualifiers(mem_ctx, prog->_LinkedShaders[i],
                                           prog, &num_xfb_decls,
-                                          &varying_names);
+                                          &varying_names,
+                                          &compact_arrays);
          break;
       }
    }
@@ -4204,7 +4303,7 @@ link_varyings(struct gl_shader_program *prog, unsigned first,
       xfb_decls = rzalloc_array(mem_ctx, struct xfb_decl,
                                       num_xfb_decls);
       if (!parse_xfb_decls(consts, exts, prog, mem_ctx, num_xfb_decls,
-                           varying_names, xfb_decls))
+                           varying_names, xfb_decls, compact_arrays))
          return false;
    }
 
@@ -4392,43 +4491,6 @@ link_varyings(struct gl_shader_program *prog, unsigned first,
    return prog->data->LinkStatus != LINKING_FAILURE;
 }
 
-/**
- * Store the gl_FragDepth layout in the gl_shader_program struct.
- */
-static void
-store_fragdepth_layout(struct gl_shader_program *prog)
-{
-   if (prog->_LinkedShaders[MESA_SHADER_FRAGMENT] == NULL) {
-      return;
-   }
-
-   nir_shader *nir = prog->_LinkedShaders[MESA_SHADER_FRAGMENT]->Program->nir;
-   nir_foreach_shader_out_variable(var, nir) {
-      if (strcmp(var->name, "gl_FragDepth") == 0) {
-         switch (var->data.depth_layout) {
-         case nir_depth_layout_none:
-            prog->FragDepthLayout = FRAG_DEPTH_LAYOUT_NONE;
-            return;
-         case nir_depth_layout_any:
-            prog->FragDepthLayout = FRAG_DEPTH_LAYOUT_ANY;
-            return;
-         case nir_depth_layout_greater:
-            prog->FragDepthLayout = FRAG_DEPTH_LAYOUT_GREATER;
-            return;
-         case nir_depth_layout_less:
-            prog->FragDepthLayout = FRAG_DEPTH_LAYOUT_LESS;
-            return;
-         case nir_depth_layout_unchanged:
-            prog->FragDepthLayout = FRAG_DEPTH_LAYOUT_UNCHANGED;
-            return;
-         default:
-            assert(0);
-            return;
-         }
-      }
-   }
-}
-
 bool
 gl_assign_attribute_or_color_locations(const struct gl_constants *consts,
                                        struct gl_shader_program *prog)
@@ -4461,8 +4523,6 @@ gl_nir_link_varyings(const struct gl_constants *consts,
    unsigned first, last;
 
    MESA_TRACE_FUNC();
-
-   store_fragdepth_layout(prog);
 
    first = MESA_SHADER_STAGES;
    last = 0;
@@ -4508,6 +4568,9 @@ gl_nir_link_varyings(const struct gl_constants *consts,
             break;
          }
       }
+
+      /* Lower IO and thoroughly optimize and compact varyings. */
+      gl_nir_lower_optimize_varyings(consts, prog, false);
    }
 
    ralloc_free(mem_ctx);

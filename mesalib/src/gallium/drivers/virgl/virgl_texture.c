@@ -190,7 +190,7 @@ static void *texture_transfer_map_resolve(struct pipe_context *ctx,
             goto fail;
 
          if (!util_format_translate_3d(resource->format,
-                                       ptr + vtex->metadata.level_offset[level],
+                                       (uint8_t *)ptr + vtex->metadata.level_offset[level],
                                        trans->base.stride,
                                        trans->base.layer_stride,
                                        box->x, box->y, box->z,
@@ -212,7 +212,7 @@ static void *texture_transfer_map_resolve(struct pipe_context *ctx,
       if ((usage & PIPE_MAP_WRITE) == 0)
          pipe_resource_reference(&trans->resolve_transfer->resource, NULL);
 
-      return ptr + trans->offset;
+      return (uint8_t *)ptr + trans->offset;
    }
 
 fail:

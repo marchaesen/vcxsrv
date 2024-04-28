@@ -31,7 +31,7 @@
 #include "ir3_compiler.h"
 #include "ir3_context.h"
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #define SCHED_DEBUG (ir3_shader_debug & IR3_DBG_SCHEDMSGS)
 #else
 #define SCHED_DEBUG 0
@@ -362,23 +362,21 @@ struct ir3_postsched_deps_state {
     * Note, this table is twice as big as the # of regs, to deal with
     * half-precision regs.  The approach differs depending on whether
     * the half and full precision register files are "merged" (conflict,
-    * ie. a6xx+) in which case we consider each full precision dep
+    * ie. a6xx+) in which case we use "regs" for both full precision and half
+    * precision dependencies and consider each full precision dep
     * as two half-precision dependencies, vs older separate (non-
-    * conflicting) in which case the first half of the table is used
-    * for full precision and 2nd half for half-precision.
+    * conflicting) in which case the separate "half_regs" table is used for
+    * half-precision deps. See ir3_reg_file_offset().
     */
-   struct ir3_postsched_node *regs[2 * 256];
-   unsigned dst_n[2 * 256];
+   struct ir3_postsched_node *regs[2 * GPR_REG_SIZE];
+   unsigned dst_n[2 * GPR_REG_SIZE];
+   struct ir3_postsched_node *half_regs[GPR_REG_SIZE];
+   unsigned half_dst_n[GPR_REG_SIZE];
+   struct ir3_postsched_node *shared_regs[2 * SHARED_REG_SIZE];
+   unsigned shared_dst_n[2 * SHARED_REG_SIZE];
+   struct ir3_postsched_node *nongpr_regs[2 * NONGPR_REG_SIZE];
+   unsigned nongpr_dst_n[2 * NONGPR_REG_SIZE];
 };
-
-/* bounds checking read/write accessors, since OoB access to stuff on
- * the stack is gonna cause a bad day.
- */
-#define dep_reg(state, idx)                                                    \
-   *({                                                                         \
-      assert((idx) < ARRAY_SIZE((state)->regs));                               \
-      &(state)->regs[(idx)];                                                   \
-   })
 
 static void
 add_dep(struct ir3_postsched_deps_state *state,
@@ -399,28 +397,31 @@ add_dep(struct ir3_postsched_deps_state *state,
 
 static void
 add_single_reg_dep(struct ir3_postsched_deps_state *state,
-                   struct ir3_postsched_node *node, unsigned num, int src_n,
+                   struct ir3_postsched_node *node,
+                   struct ir3_postsched_node **dep_ptr,
+                   unsigned *dst_n_ptr, unsigned num, int src_n,
                    int dst_n)
 {
-   struct ir3_postsched_node *dep = dep_reg(state, num);
+   struct ir3_postsched_node *dep = *dep_ptr;
 
    unsigned d = 0;
    if (src_n >= 0 && dep && state->direction == F) {
+      struct ir3_compiler *compiler = state->ctx->ir->compiler;
       /* get the dst_n this corresponds to */
       unsigned dst_n = state->dst_n[num];
-      unsigned d_soft = ir3_delayslots(dep->instr, node->instr, src_n, true);
-      d = ir3_delayslots_with_repeat(dep->instr, node->instr, dst_n, src_n);
+      unsigned d_soft = ir3_delayslots(compiler, dep->instr, node->instr, src_n, true);
+      d = ir3_delayslots_with_repeat(compiler, dep->instr, node->instr, dst_n, src_n);
       node->delay = MAX2(node->delay, d_soft);
       if (is_sy_producer(dep->instr))
          node->has_sy_src = true;
-      if (is_ss_producer(dep->instr))
+      if (needs_ss(compiler, dep->instr, node->instr))
          node->has_ss_src = true;
    }
 
    add_dep(state, dep, node, d);
    if (src_n < 0) {
-      dep_reg(state, num) = node;
-      state->dst_n[num] = dst_n;
+      *dep_ptr = node;
+      *dst_n_ptr = dst_n;
    }
 }
 
@@ -438,24 +439,36 @@ add_reg_dep(struct ir3_postsched_deps_state *state,
             struct ir3_postsched_node *node, const struct ir3_register *reg,
             unsigned num, int src_n, int dst_n)
 {
-   if (state->merged) {
-      /* Make sure that special registers like a0.x that are written as
-       * half-registers don't alias random full registers by pretending that
-       * they're full registers:
-       */
-      if ((reg->flags & IR3_REG_HALF) && !is_reg_special(reg)) {
-         /* single conflict in half-reg space: */
-         add_single_reg_dep(state, node, num, src_n, dst_n);
-      } else {
-         /* two conflicts in half-reg space: */
-         add_single_reg_dep(state, node, 2 * num + 0, src_n, dst_n);
-         add_single_reg_dep(state, node, 2 * num + 1, src_n, dst_n);
-      }
-   } else {
-      if (reg->flags & IR3_REG_HALF)
-         num += ARRAY_SIZE(state->regs) / 2;
-      add_single_reg_dep(state, node, num, src_n, dst_n);
+   struct ir3_postsched_node **regs;
+   unsigned *dst_n_ptr;
+   enum ir3_reg_file file;
+   unsigned size = reg_elem_size(reg);
+   unsigned offset = ir3_reg_file_offset(reg, num, state->merged, &file);
+   switch (file) {
+   case IR3_FILE_FULL:
+      assert(offset + size <= ARRAY_SIZE(state->regs));
+      regs = state->regs;
+      dst_n_ptr = state->dst_n;
+      break;
+   case IR3_FILE_HALF:
+      assert(offset + 1 <= ARRAY_SIZE(state->half_regs));
+      regs = state->half_regs;
+      dst_n_ptr = state->half_dst_n;
+      break;
+   case IR3_FILE_SHARED:
+      assert(offset + size <= ARRAY_SIZE(state->shared_regs));
+      regs = state->shared_regs;
+      dst_n_ptr = state->shared_dst_n;
+      break;
+   case IR3_FILE_NONGPR:
+      assert(offset + size <= ARRAY_SIZE(state->nongpr_regs));
+      regs = state->nongpr_regs;
+      dst_n_ptr = state->nongpr_dst_n;
+      break;
    }
+
+   for (unsigned i = 0; i < size; i++)
+      add_single_reg_dep(state, node, &regs[offset + i], &dst_n_ptr[offset + i], num, src_n, dst_n);
 }
 
 static void
@@ -650,6 +663,12 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
    ctx->sy_delay = 0;
    ctx->ss_delay = 0;
 
+   /* The terminator has to stay at the end. Instead of trying to set up
+    * dependencies to achieve this, it's easier to just remove it now and add it
+    * back after scheduling.
+    */
+   struct ir3_instruction *terminator = ir3_block_take_terminator(block);
+
    /* move all instructions to the unscheduled list, and
     * empty the block's instruction list (to which we will
     * be inserting).
@@ -663,8 +682,6 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
    foreach_instr_safe (instr, &ctx->unscheduled_list) {
       switch (instr->opc) {
       case OPC_NOP:
-      case OPC_B:
-      case OPC_JUMP:
          list_delinit(&instr->node);
          break;
       default:
@@ -707,6 +724,9 @@ sched_block(struct ir3_postsched_ctx *ctx, struct ir3_block *block)
    }
 
    sched_dag_destroy(ctx);
+
+   if (terminator)
+      list_addtail(&terminator->node, &block->instr_list);
 }
 
 static bool

@@ -50,7 +50,7 @@
 #define DEBUG_UAV          0x80000
 #define DEBUG_RETRY        0x100000
 
-#ifdef DEBUG
+#if MESA_DEBUG
 extern int SVGA_DEBUG;
 #define DBSTR(x) x
 #else
@@ -61,7 +61,7 @@ extern int SVGA_DEBUG;
 static inline void
 SVGA_DBG( unsigned flag, const char *fmt, ... )
 {
-#ifdef DEBUG 
+#if MESA_DEBUG 
     if (SVGA_DEBUG & flag)
     {
         va_list args;

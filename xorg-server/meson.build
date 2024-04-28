@@ -60,14 +60,16 @@ endforeach
 
 add_project_arguments(common_wflags, language : ['c', 'objc'])
 
-libdrm_req = '>= 2.4.109'
+libdrm_req = '>= 2.4.116'
 libselinux_req = '>= 2.0.86'
 xext_req = '>= 1.0.99.4'
 wayland_req = '>= 1.21.0'
-wayland_protocols_req = '>= 1.30'
+wayland_protocols_req = '>= 1.34'
 gbm_req = '>= 10.2'
 xf86dgaproto_req = '>= 2.0.99.1'
+xshmfence_req = '>= 1.1'
 
+x11_dep = dependency('x11')
 xproto_dep = dependency('xproto', version: '>= 7.0.31', fallback: ['xorgproto', 'ext_xorgproto'])
 randrproto_dep = dependency('randrproto', version: '>= 1.6.0', fallback: ['xorgproto', 'ext_xorgproto'])
 renderproto_dep = dependency('renderproto', version: '>= 0.11', fallback: ['xorgproto', 'ext_xorgproto'])
@@ -79,7 +81,7 @@ fixesproto_dep = dependency('fixesproto', version: '>= 6.0', fallback: ['xorgpro
 damageproto_dep = dependency('damageproto', version: '>= 1.1', fallback: ['xorgproto', 'ext_xorgproto'])
 xcmiscproto_dep = dependency('xcmiscproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'])
 bigreqsproto_dep = dependency('bigreqsproto', version: '>= 1.1.0', fallback: ['xorgproto', 'ext_xorgproto'])
-presentproto_dep = dependency('presentproto', version: '>= 1.3', fallback: ['xorgproto', 'ext_xorgproto'])
+presentproto_dep = dependency('presentproto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'])
 xtrans_dep = dependency('xtrans', version: '>= 1.3.5')
 
 videoproto_dep = dependency('videoproto', fallback: ['xorgproto', 'ext_xorgproto'])
@@ -89,12 +91,12 @@ scrnsaverproto_dep = dependency('scrnsaverproto', version: '>= 1.1', fallback: [
 resourceproto_dep = dependency('resourceproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'])
 xf86driproto_dep = dependency('xf86driproto', version: '>= 2.1.0', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri1') == 'true')
 dri2proto_dep = dependency('dri2proto', version: '>= 2.8', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri2') == 'true')
-dri3proto_dep = dependency('dri3proto', version: '>= 1.2', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri3') == 'true')
+dri3proto_dep = dependency('dri3proto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('dri3') == 'true')
 xineramaproto_dep = dependency('xineramaproto', fallback: ['xorgproto', 'ext_xorgproto'])
 xf86bigfontproto_dep = dependency('xf86bigfontproto', version: '>= 1.2.0', fallback: ['xorgproto', 'ext_xorgproto'], required: get_option('xf86bigfont'))
 xf86vidmodeproto_dep = dependency('xf86vidmodeproto', version: '>= 2.2.99.1', fallback: ['xorgproto', 'ext_xorgproto'])
 applewmproto_dep = dependency('applewmproto', version: '>= 1.4', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
-xshmfence_dep = dependency('xshmfence', version: '>= 1.1', required: false)
+xshmfence_dep = dependency('xshmfence', version: xshmfence_req, required: false)
 xwaylandproto_dep = dependency('xwaylandproto', version: '>= 1.0', fallback: ['xorgproto', 'ext_xorgproto'], required: false)
 dpmsproto_dep = dependency('dpmsproto', version: '>= 1.2', required: get_option('dpms'))
 
@@ -225,6 +227,7 @@ if (host_machine.system() != 'darwin' and
     ]
 
     if build_glamor
+        xwayland_dep += dependency('xshmfence', version: xshmfence_req, required: xwayland_required)
         xwayland_dep += dependency('libdrm', version: libdrm_req, required: xwayland_required)
         xwayland_dep += dependency('epoxy', required: xwayland_required)
     endif
@@ -359,21 +362,6 @@ if build_xwayland
     endif
 else
     have_libdecor = false
-endif
-
-eglstream_option = get_option('xwayland_eglstream')
-if build_xwayland and build_glamor
-    eglstream_dep = dependency('wayland-eglstream-protocols', required:false)
-    if eglstream_option == 'auto'
-        build_eglstream = eglstream_dep.found()
-    else
-        build_eglstream = eglstream_option == 'true'
-        if build_eglstream and not eglstream_dep.found()
-            error('glamor EGLStream support requested, but wayland-eglstream-protocols not found')
-        endif
-    endif
-else
-    build_eglstream = false
 endif
 
 if build_xwayland
@@ -643,6 +631,7 @@ common_dep = [
 ]
 
 inc = include_directories(
+    '.',
     'Xext',
     'Xi',
     'composite',
@@ -655,6 +644,7 @@ inc = include_directories(
     'miext/shadow',
     'miext/sync',
     'dbe',
+    'dix',
     'dri3',
     'include',
     'present',
@@ -699,36 +689,7 @@ if serverconfigdir == ''
     serverconfigdir = join_paths(get_option('prefix'), get_option('libdir'), 'xorg')
 endif
 
-manpage_config = configuration_data()
-manpage_config.set('vendorversion', '"xorg-server @0@" "X Version 11"'.format(meson.project_version()))
-manpage_config.set('xorgversion', '"xorg-server @0@" "X Version 11"'.format(meson.project_version()))
-manpage_config.set('xservername', 'Xorg')
-manpage_config.set('xconfigfile', 'xorg.conf')
-manpage_config.set('projectroot', get_option('prefix'))
-manpage_config.set('apploaddir', '$(appdefaultdir)')
-manpage_config.set('appmansuffix', '1')
-manpage_config.set('drivermansuffix', '4')
-manpage_config.set('adminmansuffix', '8')
-manpage_config.set('libmansuffix', '3')
-manpage_config.set('miscmansuffix', '7')
-manpage_config.set('filemansuffix', '5')
-manpage_config.set('logdir', log_dir)
-manpage_config.set('datadir', join_paths(get_option('prefix'), get_option('datadir')))
-manpage_config.set('mandir', join_paths(get_option('prefix'), get_option('mandir')))
-manpage_config.set('sysconfdir', join_paths(get_option('prefix'), get_option('sysconfdir')))
-manpage_config.set('xconfigdir', 'xorg.conf.d')
-manpage_config.set('xkbdir', xkb_dir)
-manpage_config.set('XKB_DFLT_RULES', get_option('xkb_default_rules'))
-manpage_config.set('XKB_DFLT_MODEL', get_option('xkb_default_model'))
-manpage_config.set('XKB_DFLT_LAYOUT', get_option('xkb_default_layout'))
-manpage_config.set('XKB_DFLT_VARIANT', get_option('xkb_default_variant'))
-manpage_config.set('XKB_DFLT_OPTIONS', get_option('xkb_default_options'))
-manpage_config.set('bundle_id_prefix', '...')
-manpage_config.set('modulepath', module_dir)
-# wtf doesn't this work
-# manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), libexecdir))
-manpage_config.set('suid_wrapper_dir', join_paths(get_option('prefix'), 'libexec'))
-manpage_config.set('default_font_path', default_font_path)
+subdir('man')
 
 require_docs = get_option('docs') == 'true'
 require_devel_docs = get_option('devel-docs') == 'true'
@@ -841,12 +802,6 @@ subdir('hw')
 if host_machine.system() != 'windows'
     subdir('test')
 endif
-
-install_man(configure_file(
-    input: 'man/Xserver.man',
-    output: 'Xserver.1',
-    configuration: manpage_config,
-))
 
 if build_xorg
     sdkconfig = configuration_data()

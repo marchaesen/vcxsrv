@@ -349,7 +349,7 @@ ir3_nir_lower_preamble(nir_shader *nir, struct ir3_shader_variant *v)
    /* First, lower load/store_preamble. */  
    const struct ir3_const_state *const_state = ir3_const_state(v);
    unsigned preamble_base = v->shader_options.num_reserved_user_consts * 4 +
-      const_state->ubo_state.size / 4;
+      const_state->ubo_state.size / 4 + const_state->global_size * 4;
    unsigned preamble_size = const_state->preamble_size * 4;
 
    BITSET_DECLARE(promoted_to_float, preamble_size);

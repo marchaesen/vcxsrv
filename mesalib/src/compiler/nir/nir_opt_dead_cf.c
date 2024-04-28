@@ -69,18 +69,6 @@
  */
 
 static void
-remove_after_cf_node(nir_cf_node *node)
-{
-   nir_cf_node *end = node;
-   while (!nir_cf_node_is_last(end))
-      end = nir_cf_node_next(end);
-
-   nir_cf_list list;
-   nir_cf_extract(&list, nir_after_cf_node(node), nir_after_cf_node(end));
-   nir_cf_delete(&list);
-}
-
-static void
 opt_constant_if(nir_if *if_stmt, bool condition)
 {
    nir_block *last_block = condition ? nir_if_last_then_block(if_stmt)
@@ -93,7 +81,7 @@ opt_constant_if(nir_if *if_stmt, bool condition)
     */
 
    if (nir_block_ends_in_jump(last_block)) {
-      remove_after_cf_node(&if_stmt->cf_node);
+      nir_remove_after_cf_node(&if_stmt->cf_node);
    } else {
       /* Remove any phi nodes after the if by rewriting uses to point to the
        * correct source.
@@ -276,7 +264,7 @@ dead_cf_block(nir_block *block)
    /* opt_constant_if() doesn't handle this case. */
    if (nir_block_ends_in_jump(block) &&
        !exec_node_is_tail_sentinel(block->cf_node.node.next)) {
-      remove_after_cf_node(&block->cf_node);
+      nir_remove_after_cf_node(&block->cf_node);
       return true;
    }
 
@@ -358,7 +346,7 @@ dead_cf_list(struct exec_list *list, bool *list_ends_in_jump)
             nir_block *next = nir_cf_node_as_block(nir_cf_node_next(cur));
             if (!exec_list_is_empty(&next->instr_list) ||
                 !exec_node_is_tail_sentinel(next->cf_node.node.next)) {
-               remove_after_cf_node(cur);
+               nir_remove_after_cf_node(cur);
                return true;
             }
          }
@@ -376,7 +364,7 @@ dead_cf_list(struct exec_list *list, bool *list_ends_in_jump)
          if (next->predecessors->entries == 0 &&
              (!exec_list_is_empty(&next->instr_list) ||
               !exec_node_is_tail_sentinel(next->cf_node.node.next))) {
-            remove_after_cf_node(cur);
+            nir_remove_after_cf_node(cur);
             return true;
          }
          break;

@@ -14,17 +14,17 @@ static void
 print_xid(void* ptr, void* v)
 {
     XID *x = v;
-    printf("%ld", (long)(*x));
+    dbg("%ld", (long)(*x));
 }
 
 static void
 print_int(void* ptr, void* v)
 {
     int *x = v;
-    printf("%d", *x);
+    dbg("%d", *x);
 }
 
-static int
+static void
 test1(void)
 {
     HashTable h;
@@ -32,7 +32,7 @@ test1(void)
     int ok = 1;
     const int numKeys = 420;
 
-    printf("test1\n");
+    dbg("test1\n");
     h = ht_create(sizeof(XID), sizeof(int), ht_resourceid_hash, ht_resourceid_compare, NULL);
 
     for (c = 0; c < numKeys; ++c) {
@@ -44,9 +44,11 @@ test1(void)
       }
     }
 
-    printf("Distribution after insertion\n");
-    ht_dump_distribution(h);
-    ht_dump_contents(h, print_xid, print_int, NULL);
+    if (verbose) {
+      dbg("Distribution after insertion\n");
+      ht_dump_distribution(h);
+      ht_dump_contents(h, print_xid, print_int, NULL);
+    }
 
     for (c = 0; c < numKeys; ++c) {
       XID id = c;
@@ -55,34 +57,36 @@ test1(void)
         if (*v == 2 * c) {
           // ok
         } else {
-          printf("Key %d doesn't have expected value %d but has %d instead\n",
+          dbg("Key %d doesn't have expected value %d but has %d instead\n",
                  c, 2 * c, *v);
           ok = 0;
         }
       } else {
         ok = 0;
-        printf("Cannot find key %d\n", c);
+        dbg("Cannot find key %d\n", c);
       }
     }
 
     if (ok) {
-      printf("%d keys inserted and found\n", c);
+      dbg("%d keys inserted and found\n", c);
 
       for (c = 0; c < numKeys; ++c) {
         XID id = c;
         ht_remove(h, &id);
       }
 
-      printf("Distribution after deletion\n");
-      ht_dump_distribution(h);
+      if (verbose) {
+        dbg("Distribution after deletion\n");
+        ht_dump_distribution(h);
+      }
     }
 
     ht_destroy(h);
 
-    return ok;
+    assert(ok);
 }
 
-static int
+static void
 test2(void)
 {
     HashTable h;
@@ -90,7 +94,7 @@ test2(void)
     int ok = 1;
     const int numKeys = 420;
 
-    printf("test2\n");
+    dbg("test2\n");
     h = ht_create(sizeof(XID), 0, ht_resourceid_hash, ht_resourceid_compare, NULL);
 
     for (c = 0; c < numKeys; ++c) {
@@ -102,7 +106,7 @@ test2(void)
       XID id = c;
       if (!ht_find(h, &id)) {
         ok = 0;
-        printf("Cannot find key %d\n", c);
+        dbg("Cannot find key %d\n", c);
       }
     }
 
@@ -110,22 +114,22 @@ test2(void)
         XID id = c + 1;
         if (ht_find(h, &id)) {
             ok = 0;
-            printf("Could find a key that shouldn't be there\n");
+            dbg("Could find a key that shouldn't be there\n");
         }
     }
 
     ht_destroy(h);
 
     if (ok) {
-        printf("Test with empty keys OK\n");
+        dbg("Test with empty keys OK\n");
     } else {
-        printf("Test with empty keys FAILED\n");
+        dbg("Test with empty keys FAILED\n");
     }
 
-    return ok;
+    assert(ok);
 }
 
-static int
+static void
 test3(void)
 {
     int ok = 1;
@@ -133,34 +137,38 @@ test3(void)
         .keySize = 4
     };
     HashTable h;
-    printf("test3\n");
+    dbg("test3\n");
     h = ht_create(4, 0, ht_generic_hash, ht_generic_compare, &hashSetup);
 
     if (!ht_add(h, "helo") ||
         !ht_add(h, "wrld")) {
-        printf("Could not insert keys\n");
+        dbg("Could not insert keys\n");
     }
 
     if (!ht_find(h, "helo") ||
         !ht_find(h, "wrld")) {
         ok = 0;
-        printf("Could not find inserted keys\n");
+        dbg("Could not find inserted keys\n");
     }
 
-    printf("Hash distribution with two strings\n");
-    ht_dump_distribution(h);
+    if (verbose) {
+       dbg("Hash distribution with two strings\n");
+       ht_dump_distribution(h);
+    }
 
     ht_destroy(h);
 
-    return ok;
+    assert(ok);
 }
 
-int
+const testfunc_t*
 hashtabletest_test(void)
 {
-    int ok = test1();
-    ok = ok && test2();
-    ok = ok && test3();
-
-    return ok ? 0 : 1;
+    static const testfunc_t testfuncs[] = {
+        test1,
+        test2,
+        test3,
+        NULL,
+    };
+    return testfuncs;
 }

@@ -78,7 +78,7 @@ glamor_compile_glsl_prog(GLenum type, const char *source)
     return prog;
 }
 
-void
+Bool
 glamor_link_glsl_prog(ScreenPtr screen, GLint prog, const char *format, ...)
 {
     GLint ok;
@@ -106,8 +106,9 @@ glamor_link_glsl_prog(ScreenPtr screen, GLint prog, const char *format, ...)
 
         glGetProgramInfoLog(prog, size, NULL, info);
         ErrorF("Failed to link: %s\n", info);
-        FatalError("GLSL link failure\n");
+        return FALSE;
     }
+    return TRUE;
 }
 
 

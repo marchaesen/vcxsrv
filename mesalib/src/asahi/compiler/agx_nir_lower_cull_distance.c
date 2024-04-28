@@ -9,6 +9,7 @@
 #include "agx_compile.h"
 #include "agx_nir.h"
 #include "glsl_types.h"
+#include "shader_enums.h"
 
 /*
  * Lower cull distance to discard. From the spec:
@@ -61,7 +62,9 @@ lower_write(nir_builder *b, nir_intrinsic_instr *intr, UNUSED void *data)
 bool
 agx_nir_lower_cull_distance_vs(nir_shader *s)
 {
-   assert(s->info.stage == MESA_SHADER_VERTEX);
+   assert(s->info.stage == MESA_SHADER_VERTEX ||
+          s->info.stage == MESA_SHADER_TESS_EVAL);
+
    assert(s->info.outputs_written & VARYING_BIT_CULL_DIST0);
 
    nir_shader_intrinsics_pass(
@@ -91,7 +94,7 @@ agx_nir_lower_cull_distance_fs(nir_shader *s, unsigned nr_distances)
        * partial derivatives and the value somewhere.
        */
       nir_def *cf = nir_load_coefficients_agx(
-         b, .component = i & 3,
+         b, nir_imm_int(b, 0), .component = i & 3,
          .io_semantics.location = VARYING_SLOT_CULL_PRIMITIVE + (i / 4),
          .io_semantics.num_slots = nr_distances / 4,
          .interp_mode = INTERP_MODE_NOPERSPECTIVE);

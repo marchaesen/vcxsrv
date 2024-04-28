@@ -100,7 +100,7 @@ struct svga_screen
    } hud;
 };
 
-#ifndef DEBUG
+#if !MESA_DEBUG
 /** cast wrapper */
 static inline struct svga_screen *
 svga_screen(struct pipe_screen *pscreen)

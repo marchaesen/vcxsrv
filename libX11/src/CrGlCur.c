@@ -31,28 +31,16 @@ in this Software without prior written authorization from The Open Group.
 
 #ifdef USE_DYNAMIC_XCURSOR
 
-#ifdef __UNIXOS2__
-#define RTLD_LAZY 1
-#define LIBXCURSOR "Xcursor.dll"
-#endif
 #include <stdio.h>
 #include <string.h>
-#if defined(hpux)
-#include <dl.h>
-#else
 #include <dlfcn.h>
-#endif
 #include "Cr.h"
 
 #ifdef __CYGWIN__
 #define LIBXCURSOR "cygXcursor-1.dll"
 #endif
 
-#if defined(hpux)
-typedef shl_t	XModuleType;
-#else
 typedef void *XModuleType;
-#endif
 
 #ifndef LIBXCURSOR
 #define LIBXCURSOR "libXcursor.so.1"
@@ -68,11 +56,7 @@ open_library (void)
     XModuleType	module;
     for (;;)
     {
-#if defined(hpux)
-	module = shl_load(library, BIND_DEFERRED, 0L);
-#else
 	module =  dlopen(library, RTLD_LAZY);
-#endif
 	if (module)
 	    return module;
 	dot = strrchr (library, '.');
@@ -88,28 +72,9 @@ fetch_symbol (XModuleType module, const char *under_symbol)
 {
     void *result = NULL;
     const char *symbol = under_symbol + 1;
-#if defined(hpux)
-    int getsyms_cnt, i;
-    struct shl_symbol *symbols;
-
-    getsyms_cnt = shl_getsymbols(module, TYPE_PROCEDURE,
-				 EXPORT_SYMBOLS, malloc, &symbols);
-
-    for(i=0; i<getsyms_cnt; i++) {
-        if(!strcmp(symbols[i].name, symbol)) {
-	    result = symbols[i].value;
-	    break;
-         }
-    }
-
-    if(getsyms_cnt > 0) {
-        free(symbols);
-    }
-#else
     result = dlsym (module, symbol);
     if (!result)
 	result = dlsym (module, under_symbol);
-#endif
     return result;
 }
 

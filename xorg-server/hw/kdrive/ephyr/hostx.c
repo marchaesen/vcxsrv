@@ -420,11 +420,6 @@ hostx_set_title(char *title)
     ephyrTitle = title;
 }
 
-#ifdef __SUNPRO_C
-/* prevent "Function has no return statement" error for x_io_error_handler */
-#pragma does_not_return(exit)
-#endif
-
 static void
 hostx_init_shm(void)
 {

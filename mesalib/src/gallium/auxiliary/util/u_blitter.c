@@ -642,17 +642,19 @@ void util_blitter_restore_vertex_states(struct blitter_context *blitter)
    struct pipe_context *pipe = ctx->base.pipe;
    unsigned i;
 
-   /* Vertex buffer. */
-   if (ctx->base.saved_vertex_buffer.buffer.resource) {
-      pipe->set_vertex_buffers(pipe, 1, 0, true,
-                               &ctx->base.saved_vertex_buffer);
-      ctx->base.saved_vertex_buffer.buffer.resource = NULL;
-   }
-
    /* Vertex elements. */
    if (ctx->base.saved_velem_state != INVALID_PTR) {
       pipe->bind_vertex_elements_state(pipe, ctx->base.saved_velem_state);
       ctx->base.saved_velem_state = INVALID_PTR;
+   }
+
+   /* Vertex buffer. */
+   if (ctx->base.saved_num_vb) {
+      pipe->set_vertex_buffers(pipe, ctx->base.saved_num_vb,
+                               ctx->base.saved_vertex_buffers);
+      memset(ctx->base.saved_vertex_buffers, 0,
+             sizeof(ctx->base.saved_vertex_buffers[0]) * ctx->base.saved_num_vb);
+      ctx->base.saved_num_vb = 0;
    }
 
    /* Vertex shader. */
@@ -1409,8 +1411,8 @@ static void blitter_draw(struct blitter_context_priv *ctx,
       return;
    u_upload_unmap(pipe->stream_uploader);
 
-   pipe->set_vertex_buffers(pipe, 1, 0, false, &vb);
    pipe->bind_vertex_elements_state(pipe, vertex_elements_cso);
+   pipe->set_vertex_buffers(pipe, 1, &vb);
    pipe->bind_vs_state(pipe, get_vs(&ctx->base));
 
    if (ctx->base.use_index_buffer) {
@@ -1426,7 +1428,6 @@ static void blitter_draw(struct blitter_context_priv *ctx,
       util_draw_arrays_instanced(pipe, MESA_PRIM_TRIANGLE_FAN, 0, 4,
                                  0, num_instances);
    }
-   pipe_resource_reference(&vb.buffer.resource, NULL);
 }
 
 void util_blitter_draw_rectangle(struct blitter_context *blitter,
@@ -1830,8 +1831,7 @@ blitter_draw_tex(struct blitter_context_priv *ctx,
       util_map_texcoords2d_onto_cubemap((unsigned)layer % 6,
                                         /* pointer, stride in floats */
                                         &face_coord[0][0], 2,
-                                        &ctx->vertices[0][1][0], 8,
-                                        false);
+                                        &ctx->vertices[0][1][0], 8);
       for (unsigned i = 0; i < 4; i++)
          ctx->vertices[i][1][3] = coord.texcoord.w;
 
@@ -2384,7 +2384,7 @@ void util_blitter_clear_render_target(struct blitter_context *blitter,
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = { 0 };
    bool msaa;
    unsigned num_layers;
    blitter_get_vs_func get_vs;
@@ -2455,7 +2455,7 @@ void util_blitter_clear_depth_stencil(struct blitter_context *blitter,
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = { 0 };
    struct pipe_stencil_ref sr = { { 0 } };
    unsigned num_layers;
 
@@ -2535,7 +2535,7 @@ void util_blitter_custom_depth_stencil(struct blitter_context *blitter,
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = { 0 };
 
    assert(zsurf->texture);
    if (!zsurf->texture)
@@ -2631,10 +2631,11 @@ void util_blitter_clear_buffer(struct blitter_context *blitter,
    blitter_check_saved_vertex_states(ctx);
    blitter_disable_render_cond(ctx);
 
-   pipe->set_vertex_buffers(pipe, 1, 0, false, &vb);
    pipe->bind_vertex_elements_state(pipe,
                                     ctx->velem_state_readbuf[num_channels-1]);
+   pipe->set_vertex_buffers(pipe, 1, &vb);
    bind_vs_pos_only(ctx, num_channels);
+
    if (ctx->has_geometry_shader)
       pipe->bind_gs_state(pipe, NULL);
    if (ctx->has_tessellation) {
@@ -2653,7 +2654,6 @@ out:
    util_blitter_restore_render_cond(blitter);
    util_blitter_unset_running_flag(blitter);
    pipe_so_target_reference(&so_target, NULL);
-   pipe_resource_reference(&vb.buffer.resource, NULL);
 }
 
 /* probably radeon specific */
@@ -2669,7 +2669,7 @@ void util_blitter_custom_resolve_color(struct blitter_context *blitter,
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = { 0 };
    struct pipe_surface *srcsurf, *dstsurf, surf_tmpl;
 
    util_blitter_set_running_flag(blitter);
@@ -2731,7 +2731,7 @@ void util_blitter_custom_color(struct blitter_context *blitter,
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
    struct pipe_context *pipe = ctx->base.pipe;
-   struct pipe_framebuffer_state fb_state;
+   struct pipe_framebuffer_state fb_state = { 0 };
 
    assert(dstsurf->texture);
    if (!dstsurf->texture)
@@ -2952,33 +2952,36 @@ util_blitter_stencil_fallback(struct blitter_context *blitter,
    struct pipe_stencil_ref sr = { { (1u << stencil_bits) - 1 } };
    pipe->set_stencil_ref(pipe, sr);
 
-   union blitter_attrib coord;
-   get_texcoords(src_view, src->width0, src->height0,
-                 srcbox->x, srcbox->y,
-                 srcbox->x + srcbox->width, srcbox->y + srcbox->height,
-                 srcbox->z, 0, true,
-                 &coord);
+   for (unsigned i = 0; i <= util_res_sample_count(dst) - 1; i++) {
+      pipe->set_sample_mask(pipe, 1 << i);
+      union blitter_attrib coord;
+      get_texcoords(src_view, src->width0, src->height0,
+                  srcbox->x, srcbox->y,
+                  srcbox->x + srcbox->width, srcbox->y + srcbox->height,
+                  srcbox->z, i, true,
+                  &coord);
 
-   for (int i = 0; i < stencil_bits; ++i) {
-      uint32_t mask = 1 << i;
-      struct pipe_constant_buffer cb = {
-         .user_buffer = &mask,
-         .buffer_size = sizeof(mask),
-      };
-      pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, blitter->cb_slot,
-                                false, &cb);
+      for (int i = 0; i < stencil_bits; ++i) {
+         uint32_t mask = 1 << i;
+         struct pipe_constant_buffer cb = {
+            .user_buffer = &mask,
+            .buffer_size = sizeof(mask),
+         };
+         pipe->set_constant_buffer(pipe, PIPE_SHADER_FRAGMENT, blitter->cb_slot,
+                                 false, &cb);
 
-      pipe->bind_depth_stencil_alpha_state(pipe,
-         get_stencil_blit_fallback_dsa(ctx, i));
+         pipe->bind_depth_stencil_alpha_state(pipe,
+            get_stencil_blit_fallback_dsa(ctx, i));
 
-      blitter->draw_rectangle(blitter, ctx->velem_state,
-                              get_vs_passthrough_pos_generic,
-                              dstbox->x, dstbox->y,
-                              dstbox->x + dstbox->width,
-                              dstbox->y + dstbox->height,
-                              0, 1,
-                              UTIL_BLITTER_ATTRIB_TEXCOORD_XYZW,
-                              &coord);
+         blitter->draw_rectangle(blitter, ctx->velem_state,
+                                 get_vs_passthrough_pos_generic,
+                                 dstbox->x, dstbox->y,
+                                 dstbox->x + dstbox->width,
+                                 dstbox->y + dstbox->height,
+                                 0, 1,
+                                 UTIL_BLITTER_ATTRIB_TEXCOORD_XYZW,
+                                 &coord);
+      }
    }
 
    if (scissor)

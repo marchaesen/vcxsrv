@@ -59,13 +59,10 @@ typedef struct vbeControllerInfoBlock {
     CARD8 OemData[256];
 } vbeControllerInfoRec, *vbeControllerInfoPtr;
 
-#if defined(__GNUC__) || defined(__USLC__) || defined(__SUNPRO_C)
+#if defined(__GNUC__)
 #pragma pack()                  /* All GCC versions recognise this syntax */
 #else
 #pragma pack(0)
-#endif
-
-#if !( defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590)) )
 #define __attribute__(a)
 #endif
 

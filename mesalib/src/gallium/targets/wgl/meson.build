@@ -28,7 +28,7 @@ wgl_def = custom_target(
   command : gen_vs_module_defs_normal_command,
 )
 
-gallium_wgl_name = get_option('gallium-windows-dll-name')
+gallium_wgl_name = get_option('gallium-wgl-dll-name')
 libgallium_wgl = shared_library(
   gallium_wgl_name,
   ['wgl.c'],

@@ -7,9 +7,6 @@
 /* Build glamor support for Xwayland */
 #mesondefine XWL_HAS_GLAMOR
 
-/* Build eglstream support for Xwayland */
-#mesondefine XWL_HAS_EGLSTREAM
-
 /* Build Xwayland with libdecor support*/
 #mesondefine XWL_HAS_LIBDECOR
 

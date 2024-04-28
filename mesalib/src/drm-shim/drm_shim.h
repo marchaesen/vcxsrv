@@ -44,6 +44,13 @@ struct shim_device {
    /* Mapping from mmap offset to shim_bo */
    struct hash_table_u64 *offset_map;
 
+   /* IOMEM region */
+   struct {
+      off64_t start;
+      size_t size;
+      void *(*mmap)(size_t length, int prot, int flags, off64_t offset);
+   } iomem_region;
+
    mtx_t mem_lock;
    /* Heap from which shim_bo are allocated */
    struct util_vma_heap mem_heap;
@@ -101,6 +108,8 @@ struct shim_bo *drm_shim_bo_lookup(struct shim_fd *shim_fd, int handle);
 int drm_shim_bo_get_handle(struct shim_fd *shim_fd, struct shim_bo *bo);
 uint64_t drm_shim_bo_get_mmap_offset(struct shim_fd *shim_fd,
                                      struct shim_bo *bo);
+void drm_shim_init_iomem_region(off64_t offset, size_t size,
+                                void *(*mmap_handler)(size_t, int, int, off64_t));
 
 /* driver-specific hooks. */
 void drm_shim_driver_init(void);

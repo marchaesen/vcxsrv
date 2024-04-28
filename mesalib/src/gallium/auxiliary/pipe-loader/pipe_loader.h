@@ -88,17 +88,19 @@ pipe_loader_probe(struct pipe_loader_device **devs, int ndev, bool with_zink);
  *
  * \param dev Device the screen will be created for.
  * \param sw_vk Device is for software vulkan
+ * \param implicit Whether the driver is being loaded implicitly.
  */
 struct pipe_screen *
-pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk);
+pipe_loader_create_screen_vk(struct pipe_loader_device *dev, bool sw_vk, bool implicit);
 
 /**
  * Create a pipe_screen for the specified device.
  *
  * \param dev Device the screen will be created for.
+ * \param implicit Whether the driver is being loaded implicitly.
  */
 struct pipe_screen *
-pipe_loader_create_screen(struct pipe_loader_device *dev);
+pipe_loader_create_screen(struct pipe_loader_device *dev, bool implicit);
 
 /**
  * Ensures that the driconf option cache has been parsed for the driver.
@@ -155,8 +157,7 @@ pipe_loader_sw_probe_dri(struct pipe_loader_device **devs,
  * \sa pipe_loader_probe
  */
 bool
-pipe_loader_vk_probe_dri(struct pipe_loader_device **devs,
-                         const struct drisw_loader_funcs *drisw_lf);
+pipe_loader_vk_probe_dri(struct pipe_loader_device **devs);
 
 #ifdef HAVE_DRISW_KMS
 /**

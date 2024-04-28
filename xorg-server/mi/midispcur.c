@@ -34,6 +34,9 @@ in this Software without prior written authorization from The Open Group.
 #endif
 
 #include   <X11/X.h>
+
+#include   "dix/gc_priv.h"
+
 #include   "misc.h"
 #include   "input.h"
 #include   "cursorstr.h"

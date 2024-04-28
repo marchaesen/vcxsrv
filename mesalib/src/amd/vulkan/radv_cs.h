@@ -2,24 +2,7 @@
  * Copyright © 2016 Red Hat.
  * Copyright © 2016 Bas Nieuwenhuizen
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef RADV_CS_H
@@ -28,7 +11,10 @@
 #include <assert.h>
 #include <stdint.h>
 #include <string.h>
-#include "radv_private.h"
+
+#include "radv_cmd_buffer.h"
+#include "radv_physical_device.h"
+#include "radv_radeon_winsys.h"
 #include "sid.h"
 
 static inline unsigned
@@ -103,7 +89,7 @@ radeon_set_sh_reg(struct radeon_cmdbuf *cs, unsigned reg, unsigned value)
 }
 
 static inline void
-radeon_set_sh_reg_idx(const struct radv_physical_device *pdevice, struct radeon_cmdbuf *cs, unsigned reg, unsigned idx,
+radeon_set_sh_reg_idx(const struct radv_physical_device *pdev, struct radeon_cmdbuf *cs, unsigned reg, unsigned idx,
                       unsigned value)
 {
    assert(reg >= SI_SH_REG_OFFSET && reg < SI_SH_REG_END);
@@ -111,7 +97,7 @@ radeon_set_sh_reg_idx(const struct radv_physical_device *pdevice, struct radeon_
    assert(idx);
 
    unsigned opcode = PKT3_SET_SH_REG_INDEX;
-   if (pdevice->rad_info.gfx_level < GFX10)
+   if (pdev->info.gfx_level < GFX10)
       opcode = PKT3_SET_SH_REG;
 
    radeon_emit(cs, PKT3(opcode, 1, 0));
@@ -158,7 +144,7 @@ radeon_set_uconfig_reg(struct radeon_cmdbuf *cs, unsigned reg, unsigned value)
 }
 
 static inline void
-radeon_set_uconfig_reg_idx(const struct radv_physical_device *pdevice, struct radeon_cmdbuf *cs, unsigned reg,
+radeon_set_uconfig_reg_idx(const struct radv_physical_device *pdev, struct radeon_cmdbuf *cs, unsigned reg,
                            unsigned idx, unsigned value)
 {
    assert(reg >= CIK_UCONFIG_REG_OFFSET && reg < CIK_UCONFIG_REG_END);
@@ -166,8 +152,7 @@ radeon_set_uconfig_reg_idx(const struct radv_physical_device *pdevice, struct ra
    assert(idx);
 
    unsigned opcode = PKT3_SET_UCONFIG_REG_INDEX;
-   if (pdevice->rad_info.gfx_level < GFX9 ||
-       (pdevice->rad_info.gfx_level == GFX9 && pdevice->rad_info.me_fw_version < 26))
+   if (pdev->info.gfx_level < GFX9 || (pdev->info.gfx_level == GFX9 && pdev->info.me_fw_version < 26))
       opcode = PKT3_SET_UCONFIG_REG;
 
    radeon_emit(cs, PKT3(opcode, 1, 0));
@@ -270,5 +255,18 @@ radv_cs_write_data(const struct radv_device *device, struct radeon_cmdbuf *cs, c
    radeon_emit_array(cs, dwords, count);
    assert(cs->cdw == cdw_end);
 }
+
+void radv_cs_emit_write_event_eop(struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level, enum radv_queue_family qf,
+                                  unsigned event, unsigned event_flags, unsigned dst_sel, unsigned data_sel,
+                                  uint64_t va, uint32_t new_fence, uint64_t gfx9_eop_bug_va);
+
+void radv_cs_emit_cache_flush(struct radeon_winsys *ws, struct radeon_cmdbuf *cs, enum amd_gfx_level gfx_level,
+                              uint32_t *flush_cnt, uint64_t flush_va, enum radv_queue_family qf,
+                              enum radv_cmd_flush_bits flush_bits, enum rgp_flush_bits *sqtt_flush_bits,
+                              uint64_t gfx9_eop_bug_va);
+
+void radv_emit_cond_exec(const struct radv_device *device, struct radeon_cmdbuf *cs, uint64_t va, uint32_t count);
+
+void radv_cs_write_data_imm(struct radeon_cmdbuf *cs, unsigned engine_sel, uint64_t va, uint32_t imm);
 
 #endif /* RADV_CS_H */

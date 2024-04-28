@@ -37,6 +37,7 @@ enum dxil_shader_model {
    SHADER_MODEL_6_5,
    SHADER_MODEL_6_6,
    SHADER_MODEL_6_7,
+   SHADER_MODEL_6_8,
 };
 
 enum dxil_validator_version {
@@ -49,6 +50,7 @@ enum dxil_validator_version {
    DXIL_VALIDATOR_1_5,
    DXIL_VALIDATOR_1_6,
    DXIL_VALIDATOR_1_7,
+   DXIL_VALIDATOR_1_8,
 };
 
 #ifdef __cplusplus

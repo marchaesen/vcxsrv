@@ -25,6 +25,7 @@
 #include "d3d12_resource.h"
 #include "d3d12_video_dec.h"
 #include "d3d12_residency.h"
+#include "d3d12_context.h"
 
 #include "util/format/u_format.h"
 #include "util/u_inlines.h"
@@ -59,8 +60,15 @@ d3d12_video_buffer_create_impl(struct pipe_context *pipe,
    pD3D12VideoBuffer->base.width         = tmpl->width;
    pD3D12VideoBuffer->base.height        = tmpl->height;
    pD3D12VideoBuffer->base.interlaced    = tmpl->interlaced;
+   pD3D12VideoBuffer->base.contiguous_planes = true;
    pD3D12VideoBuffer->base.associated_data = nullptr;
-   pD3D12VideoBuffer->base.bind = PIPE_BIND_SAMPLER_VIEW | PIPE_BIND_RENDER_TARGET | PIPE_BIND_DISPLAY_TARGET | PIPE_BIND_CUSTOM;
+
+   pD3D12VideoBuffer->base.bind =  PIPE_BIND_CUSTOM;
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   struct d3d12_screen *dscreen = (struct d3d12_screen*) pipe->screen;
+   if (dscreen->max_feature_level >= D3D_FEATURE_LEVEL_11_0)
+      pD3D12VideoBuffer->base.bind |= (PIPE_BIND_RENDER_TARGET | PIPE_BIND_SAMPLER_VIEW);
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    // Fill vtable
    pD3D12VideoBuffer->base.destroy                     = d3d12_video_buffer_destroy;
@@ -230,6 +238,9 @@ d3d12_video_buffer_get_surfaces(struct pipe_video_buffer *buffer)
    struct d3d12_video_buffer *pD3D12VideoBuffer = (struct d3d12_video_buffer *) buffer;
    struct pipe_context *      pipe              = pD3D12VideoBuffer->base.context;
    struct pipe_surface        surface_template  = {};
+
+   if (!pipe->create_surface)
+      return nullptr;
 
    // Some video frameworks iterate over [0..VL_MAX_SURFACES) and ignore the nullptr entries
    // So we have to null initialize the other surfaces not used from [num_planes..VL_MAX_SURFACES)

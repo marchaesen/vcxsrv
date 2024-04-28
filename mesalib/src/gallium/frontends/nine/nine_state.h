@@ -1,24 +1,7 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #ifndef _NINE_STATE_H_
 #define _NINE_STATE_H_
@@ -93,7 +76,7 @@
 #define NINE_STATE_UNHANDLED   (1 << 29)
 
 /* These states affect the ff shader key,
- * which we recompute everytime. */
+ * which we recompute every time. */
 #define NINE_STATE_FF_SHADER    0
 
 #define NINE_STATE_COMMIT_DSA  (1 << 0)
@@ -698,7 +681,7 @@ nine_context_get_pipe_multithread( struct NineDevice9 *device );
 
 /* Get the pipe_context (should not be called from the worker thread).
  * All the work in the worker thread is paused before returning.
- * It is neccessary to release in order to restart the thread.
+ * It is necessary to release in order to restart the thread.
  * This is intended for use of the nine_context pipe_context that don't
  * need the worker thread to finish all queued job. */
 struct pipe_context *

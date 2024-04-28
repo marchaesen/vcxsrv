@@ -65,7 +65,7 @@ main()
    */
   _h_kernel32 = LoadLibrary(TEXT("KERNEL32.DLL"));
   _try_enter_critical_section =
-        (BOOL (PT_STDCALL *)(LPCRITICAL_SECTION))
+        (BOOL (WINAPI *)(LPCRITICAL_SECTION))
         GetProcAddress(_h_kernel32,
                          (LPCSTR) "TryEnterCriticalSection");
 

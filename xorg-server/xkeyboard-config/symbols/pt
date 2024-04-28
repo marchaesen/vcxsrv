@@ -213,7 +213,7 @@ xkb_symbols "colemak" {
     key <AB01>  { [         z,          Z, guillemotleft,        less ] };
     key <AB02>  { [         x,          X, guillemotright,    greater ] };
     key <AB03>  { [         c,          C,         cent,    copyright ] };
-    key <AB08>  { [         k,          K,          kra,    ampersand ] };
+    key <AB06>  { [         k,          K,          kra,    ampersand ] };
     key <AB07>  { [         m,          M,           mu,    masculine ] };
 
     key <CAPS> { [    BackSpace,    BackSpace,       BackSpace,        BackSpace ] };

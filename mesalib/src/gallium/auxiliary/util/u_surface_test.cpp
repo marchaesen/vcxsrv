@@ -1,6 +1,6 @@
 /* SPDX-License-Identifier: MIT */
 
-#include "u_box.h"
+#include "util/box.h"
 #include "u_surface.h"
 #include <gtest/gtest.h>
 

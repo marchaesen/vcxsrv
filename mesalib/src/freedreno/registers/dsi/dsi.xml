@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database xmlns="http://nouveau.freedesktop.org/"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 <import file="freedreno_copyright.xml"/>
 
 <domain name="DSI" width="32">
@@ -149,6 +149,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="HSA_POWER_STOP" pos="16" type="boolean"/>
 		<bitfield name="HBP_POWER_STOP" pos="20" type="boolean"/>
 		<bitfield name="HFP_POWER_STOP" pos="24" type="boolean"/>
+		<bitfield name="DATABUS_WIDEN" pos="25" type="boolean"/>
 		<bitfield name="PULSE_MODE_HSA_HE" pos="28" type="boolean"/>
 	</reg32>
 	<reg32 offset="0x0001c" name="VID_CFG1">

@@ -54,7 +54,7 @@ vmw_svga_winsys_shader_reference(struct vmw_svga_winsys_shader **pdst,
 
       if (!sws->have_vgpu10)
          vmw_ioctl_shader_destroy(dst->screen, dst->shid);
-#ifdef DEBUG
+#if MESA_DEBUG
       /* to detect dangling pointers */
       assert(p_atomic_read(&dst->validated) == 0);
       dst->shid = SVGA3D_INVALID_ID;

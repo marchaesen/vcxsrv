@@ -26,8 +26,6 @@
 
 #include "etnaviv_texture.h"
 
-#include "hw/common.xml.h"
-
 #include "etnaviv_clear_blit.h"
 #include "etnaviv_context.h"
 #include "etnaviv_emit.h"
@@ -130,7 +128,7 @@ etna_can_use_sampler_ts(struct pipe_sampler_view *view, int num)
       return false;
 
    /* The hardware supports it. */
-   if (!VIV_FEATURE(screen, chipMinorFeatures2, TEXTURE_TILED_READ))
+   if (!VIV_FEATURE(screen, ETNA_FEATURE_TEXTURE_TILED_READ))
       return false;
 
    /* The sampler view will be bound to sampler < VIVS_TS_SAMPLER__LEN.
@@ -164,6 +162,14 @@ etna_update_sampler_source(struct pipe_sampler_view *view, int num)
    struct etna_resource *to = base, *from = base;
    struct etna_context *ctx = etna_context(view->context);
    bool enable_sampler_ts = false;
+
+   if (base->shared && !_mesa_set_search(ctx->updated_resources, view->texture)) {
+      for (int i = view->u.tex.first_level; i <= view->u.tex.last_level; i++)
+         etna_resource_level_mark_changed(&base->levels[i]);
+
+      pipe_reference(NULL, &view->texture->reference);
+      _mesa_set_add(ctx->updated_resources, view->texture);
+   }
 
    if (base->render && etna_resource_newer(etna_resource(base->render), base))
       from = etna_resource(base->render);
@@ -202,11 +208,11 @@ etna_resource_sampler_compatible(struct etna_resource *res)
 
    struct etna_screen *screen = etna_screen(res->base.screen);
    /* This GPU supports texturing from supertiled textures? */
-   if (res->layout == ETNA_LAYOUT_SUPER_TILED && VIV_FEATURE(screen, chipMinorFeatures2, SUPERTILED_TEXTURE))
+   if (res->layout == ETNA_LAYOUT_SUPER_TILED && VIV_FEATURE(screen, ETNA_FEATURE_SUPERTILED_TEXTURE))
       return true;
 
    /* This GPU supports texturing from linear textures? */
-   if (res->layout == ETNA_LAYOUT_LINEAR && VIV_FEATURE(screen, chipMinorFeatures1, LINEAR_TEXTURE_SUPPORT))
+   if (res->layout == ETNA_LAYOUT_LINEAR && VIV_FEATURE(screen, ETNA_FEATURE_LINEAR_TEXTURE_SUPPORT))
       return true;
 
    /* Otherwise, only support tiled layouts */
@@ -214,7 +220,7 @@ etna_resource_sampler_compatible(struct etna_resource *res)
       return false;
 
    /* If we have HALIGN support, we can allow for the RS padding */
-   if (VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN))
+   if (VIV_FEATURE(screen, ETNA_FEATURE_TEXTURE_HALIGN))
       return true;
 
    /* Non-HALIGN GPUs only accept 4x4 tile-aligned textures */

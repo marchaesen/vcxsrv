@@ -53,7 +53,7 @@
 static const struct tgsi_token *
 get_dummy_fragment_shader(void)
 {
-#ifdef DEBUG
+#if MESA_DEBUG
    static const float color[4] = { 1.0, 0.0, 0.0, 0.0 }; /* red */
 #else
    static const float color[4] = { 0.0, 0.0, 0.0, 0.0 }; /* black */
@@ -200,7 +200,7 @@ make_fs_key(const struct svga_context *svga,
 
    key->fs.alpha_to_one = svga->curr.blend->alpha_to_one;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /*
     * We expect a consistent set of samplers and sampler views.
     * Do some debug checks/warnings here.

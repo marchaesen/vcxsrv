@@ -43,7 +43,6 @@
 #include "inputstr.h"
 #include "opaque.h"
 #include "property.h"
-#define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 #include "../xkb/xkbgeom.h"
 #include <X11/extensions/XKMformat.h>
@@ -175,12 +174,14 @@ xkb_set_get_rules_test(void)
     XkbFreeRMLVOSet(&rmlvo_backup, FALSE);
 }
 
-int
+const testfunc_t*
 xkb_test(void)
 {
-    xkb_set_get_rules_test();
-    xkb_get_rules_test();
-    xkb_set_rules_test();
-
-    return 0;
+    static const testfunc_t testfuncs[] = {
+        xkb_set_get_rules_test,
+        xkb_get_rules_test,
+        xkb_set_rules_test,
+        NULL,
+    };
+    return testfuncs;
 }

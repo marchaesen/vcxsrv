@@ -1169,6 +1169,7 @@ nir_lower_phis_to_regs_block(nir_block *block)
    bool progress = false;
    nir_foreach_phi_safe(phi, block) {
       nir_def *reg = decl_reg_for_ssa_def(&b, &phi->def);
+      set_reg_divergent(reg, phi->def.divergent);
 
       b.cursor = nir_after_instr(&phi->instr);
       nir_def_rewrite_uses(&phi->def, nir_load_reg(&b, reg));

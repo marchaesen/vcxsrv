@@ -236,10 +236,6 @@ padding_for_int32(const int bytes)
 
 
 extern _X_EXPORT char **xstrtokenize(const char *str, const char *separators);
-extern void FormatInt64(int64_t num, char *string);
-extern void FormatUInt64(uint64_t num, char *string);
-extern void FormatUInt64Hex(uint64_t num, char *string);
-extern void FormatDouble(double dbl, char *string);
 
 /**
  * Compare the two version numbers comprising of major.minor.
@@ -290,7 +286,7 @@ wrong_size(void)
 }
 #endif
 
-#if !(defined(__GNUC__) || (defined(__SUNPRO_C) && (__SUNPRO_C >= 0x590)))
+#if !(defined(__GNUC__))
 static inline int
 __builtin_constant_p(int x)
 {

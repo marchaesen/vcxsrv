@@ -1,4 +1,5 @@
 KHR-GLES31.core.shader_image_load_store.basic-glsl-earlyFragTests
+dEQP-GLES31.functional.ssbo.layout.instance_array_basic_type.std430.ivec4
 
 glx@glx_arb_sync_control@waitformsc
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-24_8 samples=2
@@ -11,6 +12,7 @@ spec@!opengl 1.1@masked-clear
 spec@arb_occlusion_query@occlusion_query_order
 spec@arb_texture_multisample@large-float-texture
 spec@egl_chromium_sync_control@conformance
+spec@ext_packed_depth_stencil@depthstencil-render-miplevels 585 ds=z24_s8
 
 # Seen this one flake a few times already
 spec@egl 1.4@largest possible eglcreatepbuffersurface and then glclear
@@ -32,3 +34,15 @@ dEQP-VK.renderpass2.suballocation.load_store_op_none.depthstencil_d24_unorm_s8_u
 # first encounter 01/04/2023
 spec@ext_framebuffer_blit@fbo-sys-blit
 spec@ext_framebuffer_blit@fbo-sys-sub-blit
+
+dEQP-VK.fragment_operations.occlusion_query.precise_test_scissors_depth_write_stencil_clear_stencil_write
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1024
+dEQP-VK.memory.pipeline_barrier.transfer_dst_uniform_texel_buffer.1048576
+dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.atomic_atomic.atomicrmw.device.payload_local.image.guard_local.image.frag
+dEQP-VK.memory_model.message_passing.ext.u32.noncoherent.fence_fence.atomicwrite.device.payload_local.image.guard_local.buffer.frag
+dEQP-VK.pipeline.monolithic.image.suballocation.sampling_type.combined.view_type.1d_array.format.r8_unorm.count_1.size.443x1_array_of_6
+dEQP-VK.renderpass.suballocation.load_store_op_none.depthstencil_d24_unorm_s8_uint_load_op_depth_load_stencil_none_store_op_depth_store_stencil_none_stencil_write_off
+dEQP-VK.synchronization.basic.timeline_semaphore.one_queue
+dEQP-VK.synchronization2.basic.timeline_semaphore.one_queue
+dEQP-VK.synchronization2.signal_order.shared_binary_semaphore.write_ssbo_compute_indirect_read_ssbo_geometry.buffer_262144_opaque_fd
+dEQP-VK.texture.shadow.cube.linear.less_d24_unorm_s8_uint

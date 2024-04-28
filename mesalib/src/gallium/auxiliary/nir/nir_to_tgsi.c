@@ -3343,7 +3343,7 @@ ntt_optimize_nir(struct nir_shader *s, struct pipe_screen *screen,
       };
       NIR_PASS(progress, s, nir_opt_load_store_vectorize, &vectorize_opts);
       NIR_PASS(progress, s, nir_opt_shrink_stores, true);
-      NIR_PASS(progress, s, nir_opt_shrink_vectors);
+      NIR_PASS(progress, s, nir_opt_shrink_vectors, false);
       NIR_PASS(progress, s, nir_opt_loop);
       NIR_PASS(progress, s, nir_opt_vectorize, ntt_should_vectorize_instr, NULL);
       NIR_PASS(progress, s, nir_opt_undef);
@@ -3689,13 +3689,15 @@ ntt_fix_nir_options(struct pipe_screen *screen, struct nir_shader *s,
        !options->lower_fdph ||
        !options->lower_flrp64 ||
        !options->lower_fmod ||
-       !options->lower_rotate ||
        !options->lower_uadd_carry ||
        !options->lower_usub_borrow ||
        !options->lower_uadd_sat ||
        !options->lower_usub_sat ||
        !options->lower_uniforms_to_ubo ||
        !options->lower_vector_cmp ||
+       options->has_rotate8 ||
+       options->has_rotate16 ||
+       options->has_rotate32 ||
        options->lower_fsqrt != lower_fsqrt ||
        options->force_indirect_unrolling != no_indirects_mask ||
        force_indirect_unrolling_sampler) {
@@ -3709,7 +3711,6 @@ ntt_fix_nir_options(struct pipe_screen *screen, struct nir_shader *s,
       new_options->lower_fdph = true;
       new_options->lower_flrp64 = true;
       new_options->lower_fmod = true;
-      new_options->lower_rotate = true;
       new_options->lower_uadd_carry = true;
       new_options->lower_usub_borrow = true;
       new_options->lower_uadd_sat = true;
@@ -3717,6 +3718,9 @@ ntt_fix_nir_options(struct pipe_screen *screen, struct nir_shader *s,
       new_options->lower_uniforms_to_ubo = true;
       new_options->lower_vector_cmp = true;
       new_options->lower_fsqrt = lower_fsqrt;
+      new_options->has_rotate8 = false;
+      new_options->has_rotate16 = false;
+      new_options->has_rotate32 = false;
       new_options->force_indirect_unrolling = no_indirects_mask;
       new_options->force_indirect_unrolling_sampler = force_indirect_unrolling_sampler;
 
@@ -4062,7 +4066,6 @@ static const nir_shader_compiler_options nir_to_tgsi_compiler_options = {
    .lower_fdph = true,
    .lower_flrp64 = true,
    .lower_fmod = true,
-   .lower_rotate = true,
    .lower_uniforms_to_ubo = true,
    .lower_uadd_carry = true,
    .lower_usub_borrow = true,

@@ -30,12 +30,6 @@
 #ifdef USE_V3D_SIMULATOR
 
 #include "v3d_simulator_wrapper.h"
-
-#define V3D_TECH_VERSION 3
-#define V3D_REVISION 3
-#define V3D_SUB_REV 0
-#define V3D_HIDDEN_REV 0
-#define V3D_COMPAT_REV 0
 #include "v3d_hw_auto.h"
 
 extern "C" {
@@ -45,13 +39,29 @@ struct v3d_hw *v3d_hw_auto_new(void *in_params)
         return v3d_hw_auto_make_unique().release();
 }
 
-
-uint32_t v3d_hw_get_mem(const struct v3d_hw *hw, uint32_t *size, void **p)
+uint64_t v3d_hw_get_mem(const struct v3d_hw *hw, uint64_t *size)
 {
-        return hw->get_mem(size, p);
+        uint64_t addr;
+        assert(hw->get_mem(&addr, size));
+        return addr;
 }
 
-bool v3d_hw_alloc_mem(struct v3d_hw *hw, size_t min_size)
+void v3d_hw_set_mem(struct v3d_hw *hw, uint64_t addr, uint8_t value, uint64_t size)
+{
+        hw->set_mem(addr, value, size);
+}
+
+void v3d_hw_write_mem(struct v3d_hw *hw, uint64_t addr, const void *p, uint64_t size)
+{
+        hw->write_mem(addr, p, size);
+}
+
+void v3d_hw_read_mem(struct v3d_hw *hw, void *p, uint64_t addr, uint64_t size)
+{
+        hw->read_mem(p, addr, size);
+}
+
+bool v3d_hw_alloc_mem(struct v3d_hw *hw, uint64_t min_size)
 {
         return hw->alloc_mem(min_size) == V3D_HW_ALLOC_SUCCESS;
 }

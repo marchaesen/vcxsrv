@@ -29,6 +29,7 @@
 #include <vulkan/vulkan.h>
 
 #include "util/format/u_formats.h"
+#include "vk_format.h"
 
 /* This is based on VkClearColorValue which is an array of RGBA, and on the
  * output register usage for the biggest 32 bit 4 component formats which use up
@@ -251,5 +252,68 @@ void pvr_get_hw_clear_color(VkFormat vk_format,
                             uint32_t packed_out[static const 4]);
 
 uint32_t pvr_pbe_pixel_num_loads(enum pvr_transfer_pbe_pixel_src pbe_format);
+
+static inline bool pvr_vk_format_has_32bit_component(VkFormat vk_format)
+{
+   const struct util_format_description *desc =
+      vk_format_description(vk_format);
+
+   for (uint32_t i = 0; i < desc->nr_channels; i++) {
+      if (desc->channel[i].size == 32U)
+         return true;
+   }
+
+   return false;
+}
+
+static inline bool pvr_vk_format_is_fully_normalized(VkFormat vk_format)
+{
+   const struct util_format_description *desc =
+      vk_format_description(vk_format);
+
+   for (uint32_t i = 0; i < desc->nr_channels; i++) {
+      if (!desc->channel[i].normalized)
+         return false;
+   }
+
+   return true;
+}
+
+static inline uint32_t
+pvr_vk_format_get_common_color_channel_count(VkFormat src_format,
+                                         VkFormat dst_format)
+{
+   const struct util_format_description *dst_desc =
+      vk_format_description(dst_format);
+   const struct util_format_description *src_desc =
+      vk_format_description(src_format);
+   uint32_t count = 0;
+
+   /* Check if destination format is alpha only and source format has alpha
+    * channel.
+    */
+   if (util_format_is_alpha(vk_format_to_pipe_format(dst_format))) {
+      count = 1;
+   } else if (dst_desc->nr_channels <= src_desc->nr_channels) {
+      for (uint32_t i = 0; i < dst_desc->nr_channels; i++) {
+         enum pipe_swizzle swizzle = dst_desc->swizzle[i];
+
+         if (swizzle > PIPE_SWIZZLE_W)
+            continue;
+
+         for (uint32_t j = 0; j < src_desc->nr_channels; j++) {
+            if (src_desc->swizzle[j] == swizzle) {
+               count++;
+               break;
+            }
+         }
+      }
+   } else {
+      count = dst_desc->nr_channels;
+   }
+
+   return count;
+}
+
 
 #endif /* PVR_FORMATS_H */

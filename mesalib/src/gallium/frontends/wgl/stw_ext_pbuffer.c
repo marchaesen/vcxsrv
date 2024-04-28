@@ -135,7 +135,7 @@ stw_pbuffer_create(const struct stw_pixelformat_info *pfi, int iWidth, int iHeig
       return 0;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /*
     * Verify the client area size matches the specified size.
     */

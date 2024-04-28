@@ -137,6 +137,13 @@ pub struct GLCtxManager {
     gl_ctx: GLCtx,
 }
 
+// SAFETY: We do have a few pointers inside [GLCtxManager], but nothing really relevant here:
+//  * pointers of the GLX/EGL context and _XDisplay/EGLDisplay, but we don't do much with them
+//    except calling into our mesa internal GL sharing extension, which properly locks data.
+//  * pointer to the _XDisplay/EGLDisplay
+unsafe impl Send for GLCtxManager {}
+unsafe impl Sync for GLCtxManager {}
+
 impl GLCtxManager {
     pub fn new(
         gl_context: *mut c_void,
@@ -144,7 +151,7 @@ impl GLCtxManager {
         egl_display: EGLDisplay,
     ) -> CLResult<Option<Self>> {
         let mut info = mesa_glinterop_device_info {
-            version: 3,
+            version: 4,
             ..Default::default()
         };
         let xplat_manager = XPlatManager::new();
@@ -310,7 +317,7 @@ impl GLCtxManager {
 
         // CL_INVALID_GL_OBJECT if bufobj is not a GL buffer object or is a GL buffer
         // object but does not have an existing data store or the size of the buffer is 0.
-        if target == GL_ARRAY_BUFFER && export_out.buf_size == 0 {
+        if [GL_ARRAY_BUFFER, GL_TEXTURE_BUFFER].contains(&target) && export_out.buf_size == 0 {
             return Err(CL_INVALID_GL_OBJECT);
         }
 
@@ -326,6 +333,7 @@ pub struct GLMemProps {
     pub height: u16,
     pub depth: u16,
     pub width: u32,
+    pub offset: u32,
     pub array_size: u16,
     pub pixel_size: u8,
     pub stride: u32,
@@ -349,7 +357,7 @@ pub struct GLExportManager {
 impl GLExportManager {
     pub fn get_gl_mem_props(&self) -> CLResult<GLMemProps> {
         let pixel_size = if self.is_gl_buffer() {
-            0
+            1
         } else {
             format_from_gl(self.export_out.internal_format)
                 .ok_or(CL_OUT_OF_HOST_MEMORY)?
@@ -361,6 +369,7 @@ impl GLExportManager {
         let mut depth = self.export_out.depth as u16;
         let mut width = self.export_out.width;
         let mut array_size = 1;
+        let mut offset = 0;
 
         // some fixups
         match self.export_in.target {
@@ -373,9 +382,10 @@ impl GLExportManager {
                 array_size = depth;
                 depth = 1;
             }
-            GL_ARRAY_BUFFER => {
+            GL_ARRAY_BUFFER | GL_TEXTURE_BUFFER => {
                 array_size = 1;
                 width = self.export_out.buf_size as u32;
+                offset = self.export_out.buf_offset as u32;
                 height = 1;
                 depth = 1;
             }
@@ -389,6 +399,7 @@ impl GLExportManager {
             height: height,
             depth: depth,
             width: width,
+            offset: offset,
             array_size: array_size,
             pixel_size: pixel_size,
             stride: self.export_out.stride,
@@ -445,18 +456,17 @@ pub fn create_shadow_slice(
     Ok(slice)
 }
 
-pub fn copy_cube_to_slice(
-    q: &Arc<Queue>,
-    ctx: &PipeContext,
-    mem_objects: &[Arc<Mem>],
-) -> CLResult<()> {
+pub fn copy_cube_to_slice(q: &Arc<Queue>, ctx: &PipeContext, mem_objects: &[Mem]) -> CLResult<()> {
     for mem in mem_objects {
-        let gl_obj = mem.gl_obj.as_ref().unwrap();
+        let Mem::Image(image) = mem else {
+            continue;
+        };
+        let gl_obj = image.gl_obj.as_ref().unwrap();
         if !is_cube_map_face(gl_obj.gl_object_target) {
             continue;
         }
-        let width = mem.image_desc.image_width;
-        let height = mem.image_desc.image_height;
+        let width = image.image_desc.image_width;
+        let height = image.image_desc.image_height;
 
         // Fill in values for doing the copy
         let idx = get_array_slice_idx(gl_obj.gl_object_target);
@@ -465,7 +475,7 @@ pub fn copy_cube_to_slice(
         let region = CLVec::<usize>::new([width, height, 1]);
         let src_bx = create_pipe_box(src_origin, region, CL_MEM_OBJECT_IMAGE2D_ARRAY)?;
 
-        let cl_res = mem.get_res_of_dev(q.device)?;
+        let cl_res = image.get_res_of_dev(q.device)?;
         let gl_res = gl_obj.shadow_map.as_ref().unwrap().get(cl_res).unwrap();
 
         ctx.resource_copy_region(gl_res.as_ref(), cl_res.as_ref(), &dst_offset, &src_bx);
@@ -474,18 +484,17 @@ pub fn copy_cube_to_slice(
     Ok(())
 }
 
-pub fn copy_slice_to_cube(
-    q: &Arc<Queue>,
-    ctx: &PipeContext,
-    mem_objects: &[Arc<Mem>],
-) -> CLResult<()> {
+pub fn copy_slice_to_cube(q: &Arc<Queue>, ctx: &PipeContext, mem_objects: &[Mem]) -> CLResult<()> {
     for mem in mem_objects {
-        let gl_obj = mem.gl_obj.as_ref().unwrap();
+        let Mem::Image(image) = mem else {
+            continue;
+        };
+        let gl_obj = image.gl_obj.as_ref().unwrap();
         if !is_cube_map_face(gl_obj.gl_object_target) {
             continue;
         }
-        let width = mem.image_desc.image_width;
-        let height = mem.image_desc.image_height;
+        let width = image.image_desc.image_width;
+        let height = image.image_desc.image_height;
 
         // Fill in values for doing the copy
         let idx = get_array_slice_idx(gl_obj.gl_object_target) as u32;
@@ -494,7 +503,7 @@ pub fn copy_slice_to_cube(
         let region = CLVec::<usize>::new([width, height, 1]);
         let src_bx = create_pipe_box(src_origin, region, CL_MEM_OBJECT_IMAGE2D_ARRAY)?;
 
-        let cl_res = mem.get_res_of_dev(q.device)?;
+        let cl_res = image.get_res_of_dev(q.device)?;
         let gl_res = gl_obj.shadow_map.as_ref().unwrap().get(cl_res).unwrap();
 
         ctx.resource_copy_region(cl_res.as_ref(), gl_res.as_ref(), &dst_offset, &src_bx);
@@ -531,6 +540,7 @@ pub fn target_from_gl(target: u32) -> CLResult<(u32, u32)> {
     // internal format does not map to a supported OpenCL image format.
     Ok(match target {
         GL_ARRAY_BUFFER => (CL_MEM_OBJECT_BUFFER, CL_GL_OBJECT_BUFFER),
+        GL_TEXTURE_BUFFER => (CL_MEM_OBJECT_IMAGE1D_BUFFER, CL_GL_OBJECT_TEXTURE_BUFFER),
         GL_RENDERBUFFER => (CL_MEM_OBJECT_IMAGE2D, CL_GL_OBJECT_RENDERBUFFER),
         GL_TEXTURE_1D => (CL_MEM_OBJECT_IMAGE1D, CL_GL_OBJECT_TEXTURE1D),
         GL_TEXTURE_1D_ARRAY => (CL_MEM_OBJECT_IMAGE1D_ARRAY, CL_GL_OBJECT_TEXTURE1D_ARRAY),

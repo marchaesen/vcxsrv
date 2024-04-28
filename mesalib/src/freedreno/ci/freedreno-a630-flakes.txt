@@ -215,6 +215,7 @@ KHR-GL46.buffer_storage.map_persistent_dispatch
 KHR-GL46.buffer_storage.map_persistent_flush
 KHR-GL46.compute_shader.atomic-case1
 KHR-GL46.compute_shader.resource-uniform
+KHR-GL46.direct_state_access.framebuffers_texture_layer_attachment
 KHR-GL46.sepshaderobjs.StateInteraction
 KHR-GL46.shader_bitfield_operation.findMSB.ivec4_2
 KHR-GL46.shader_bitfield_operation.imulExtended.ivec2_3
@@ -226,3 +227,59 @@ KHR-GL46.shader_storage_buffer_object.basic-matrixOperations-case3-cs
 
 # recently started flaking towards to UnexpectedPass
 spec@ext_external_objects@vk-depth-display@D24S8
+
+# uprev Piglit in Mesa
+glx@glx-destroycontext-1
+glx@glx-visuals-depth -pixmap
+glx@glx-visuals-stencil -pixmap
+spec@arb_timer_query@timestamp-get
+stale-regs-dEQP-VK.clipping.clip_volume.clipped.large_points
+stale-regs-dEQP-VK.draw.dynamic_rendering.complete_secondary_cmd_buff.simple_draw.simple_draw_instanced_triangle_list
+stale-regs-dEQP-VK.draw.dynamic_rendering.primary_cmd_buff.multi_draw.mosaic.indexed_mixed.max_draws.standard_stride.2_instances_base_3.tess_geom.single_view.offset_6
+stale-regs-dEQP-VK.draw.renderpass.multi_draw.mosaic.indexed_random.max_draws.stride_extra_4.10_instances.vert_only.multiview.no_offset
+stale-regs-dEQP-VK.draw.renderpass.multi_draw.overlapping.indexed_mixed.one_draw.stride_zero.no_instances.with_tess.single_view.offset_6
+stale-regs-dEQP-VK.graphicsfuzz.cov-transpose-multiply
+stale-regs-dEQP-VK.image.format_reinterpret.2d_array.b8g8r8a8_uint_r8g8b8a8_sint
+stale-regs-dEQP-VK.image.format_reinterpret.cube.a8b8g8r8_unorm_pack32_a2b10g10r10_uint_pack32
+stale-regs-dEQP-VK.image.mutable.2d_array.r8g8b8a8_sint_r16g16_sfloat_store_load_format_list
+stale-regs-dEQP-VK.image.store.without_format.buffer.r16g16_uint_minalign_linear
+stale-regs-dEQP-VK.query_pool.statistics_query.host_query_reset.clipping_primitives.primary.64bits_triangle_strip_with_adjacency_clear_color
+stale-regs-dEQP-VK.ssbo.phys.layout.3_level_array.std140.mat4x3
+stale-regs-dEQP-VK.subgroups.ballot_broadcast.compute.subgroupbroadcast_nonconst_bvec3_requiredsubgroupsize64
+stale-regs-dEQP-VK.synchronization.*
+stale-regs-dEQP-VK.texture.filtering.3d.combinations.linear_mipmap_linear.nearest.clamp_to_edge.mirror_clamp_to_edge.repeat
+stale-regs-dEQP-VK.texture.filtering.3d.combinations.nearest_mipmap_nearest.nearest.mirror_clamp_to_edge.clamp_to_edge.clamp_to_edge
+stale-regs-dEQP-VK.texture.mipmap.2d.basic.linear_nearest_clamp_non_square
+stale-regs-dEQP-VK.texture.mipmap.3d.max_lod.linear_linear
+stale-regs-dEQP-VK.texture.shadow.cube_array.linear_mipmap_linear.non_seamless_greater_x8_d24_unorm_pack32
+stale-regs-dEQP-VK.texture.shadow.cube_array.nearest_mipmap_linear.non_seamless_not_equal_d32_sfloat_s8_uint
+stale-regs-dEQP-VK.texture.swizzle.component_mapping.color.r16_sscaled_2d_npot_zzzz
+stale-regs-dEQP-VK.texture.swizzle.texture_coordinate.astc_10x8_srgb_block_2d_npot_yy
+stale-regs-dEQP-VK.texture.swizzle.texture_coordinate.r32g32b32a32_sint_2d_npot_xx
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.copy..*reset.*
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.32bit.geom.xfb.rast.triangle_fan.pgq_0_xfb_0.single_draw.pqg_first.none
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.64bit.geom.xfb.rast.triangle_strip_with_adjacency.pgq_0_xfb_0.single_draw.xfbq_first.none_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.64bit.vert.no_xfb.rast.triangle_fan.pgq_default.single_draw.pqg_first.after
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list.pgq_0_xfb_0.two_draws.xfbq_first.none
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_strip.pgq_0_xfb_default.two_draws.xfbq_first.after_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.triangle_strip_with_adjacency.pgq_0_xfb_0.two_draws.pqg_first.after_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.triangle_fan.pgq_default_xfb_1.two_draws.xfbq_first.after_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.host_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.triangle_strip.pgq_default_xfb_0.single_draw.xfbq_first.none
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.no_xfb.empty_frag.line_list_with_adjacency.pgq_default.two_draws.pqg_first.none
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.no_xfb.rast.line_list_with_adjacency.pgq_0.single_draw.pqg_first.before
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.color_write_disable_dynamic.triangle_strip_with_adjacency.pgq_0_xfb_1.single_draw.xfbq_first.before
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.color_write_disable_dynamic_ds.triangle_list.pgq_0_xfb_1.two_draws.pqg_first.before_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.color_write_disable_static.triangle_fan.pgq_default_xfb_default.single_draw.xfbq_first.before
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.color_write_disable_static.triangle_list.pgq_default_xfb_default.two_draws.xfbq_first.after
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.color_write_disable_static_ds.triangle_strip.pgq_0_xfb_default.single_draw.pqg_first.after_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.empty_frag.triangle_list.pgq_0_xfb_default.two_draws.pqg_first.none_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.geom.xfb.rast.triangle_list.pgq_0_xfb_default.single_draw.pqg_first.none_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.32bit.vert.xfb.no_attachment.triangle_fan.pgq_default_xfb_default.two_draws.pqg_first.none
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.64bit.geom.xfb.rast.line_list_with_adjacency.pgq_0_xfb_1.single_draw.pqg_first.before
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_32bit_xfb_64bit.geom.xfb.rast.line_list_with_adjacency.pgq_default_xfb_1.single_draw.pqg_first.before
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_32bit_xfb_64bit.vert.xfb.rast.line_list.pgq_default_xfb_default.single_draw.xfbq_first.none_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_32bit_xfb_64bit.vert.xfb.rast.line_strip.pgq_default_xfb_default.two_draws.pqg_first.before_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.line_list.pgq_0_xfb_0.single_draw.xfbq_first.before_2_queries
+stale-regs-dEQP-VK.transform_feedback.primitives_generated_query.get.queue_reset.pgq_64bit_xfb_32bit.geom.xfb.rast.triangle_list.pgq_default_xfb_1.single_draw.xfbq_first.none
+stale-regs-dEQP-VK.transform_feedback.simple.query_omit_write_line_strip_with_adjacency_1_61_32bits
+

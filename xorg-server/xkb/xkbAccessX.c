@@ -46,6 +46,12 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 int XkbDfltRepeatDelay = 660;
 int XkbDfltRepeatInterval = 40;
 
+#define _OFF_TIMER              0
+#define _KRG_WARN_TIMER         1
+#define _KRG_TIMER              2
+#define _SK_TIMEOUT_TIMER       3
+#define _ALL_TIMEOUT_TIMER      4
+
 #define	DFLT_TIMEOUT_CTRLS (XkbAX_KRGMask|XkbStickyKeysMask|XkbMouseKeysMask)
 #define	DFLT_TIMEOUT_OPTS  (XkbAX_IndicatorFBMask)
 

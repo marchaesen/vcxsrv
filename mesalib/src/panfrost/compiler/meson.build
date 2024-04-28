@@ -136,7 +136,7 @@ bifrost_nir_algebraic_c = custom_target(
 libpanfrost_bifrost_disasm = static_library(
   'panfrost_bifrost_disasm',
   ['bifrost/disassemble.c', 'bi_print_common.c', bifrost_gen_disasm_c],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw],
+  include_directories : [inc_include, inc_src, inc_panfrost_hw],
   dependencies: [idep_nir],
   link_with: [libpanfrost_util],
   c_args : [no_override_init_args],
@@ -147,7 +147,7 @@ libpanfrost_bifrost_disasm = static_library(
 libpanfrost_bifrost = static_library(
   'panfrost_bifrost',
   [libpanfrost_bifrost_files, bi_opcodes_c, bi_printer_c, bi_packer_c, bifrost_nir_algebraic_c, valhall_c],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux, inc_panfrost_hw, inc_valhall],
+  include_directories : [inc_include, inc_src, inc_panfrost_hw, inc_valhall],
   dependencies: [idep_nir, idep_bi_opcodes_h, idep_bi_builder_h, idep_valhall_enums_h],
   link_with: [libpanfrost_util, libpanfrost_bifrost_disasm, libpanfrost_valhall_disasm],
   c_args : [no_override_init_args],
@@ -180,8 +180,8 @@ if with_tests
       ),
       c_args : [c_msvc_compat_args, no_override_init_args],
       gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mesa, inc_valhall],
-      dependencies: [idep_gtest, idep_nir, idep_bi_opcodes_h, idep_bi_builder_h],
+      include_directories : [inc_include, inc_src, inc_valhall],
+      dependencies: [idep_gtest, idep_nir, idep_bi_opcodes_h, idep_bi_builder_h, idep_valhall_enums_h],
       link_with : [libpanfrost_bifrost],
     ),
     suite : ['panfrost'],

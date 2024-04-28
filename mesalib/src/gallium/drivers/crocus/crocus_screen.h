@@ -37,13 +37,13 @@
 struct crocus_resource;
 struct crocus_context;
 struct crocus_sampler_state;
-struct brw_vue_map;
-struct brw_tcs_prog_key;
-struct brw_tes_prog_key;
-struct brw_cs_prog_key;
-struct brw_wm_prog_key;
-struct brw_vs_prog_key;
-struct brw_gs_prog_key;
+struct intel_vue_map;
+struct elk_tcs_prog_key;
+struct elk_tes_prog_key;
+struct elk_cs_prog_key;
+struct elk_wm_prog_key;
+struct elk_vs_prog_key;
+struct elk_gs_prog_key;
 struct shader_info;
 
 #define READ_ONCE(x) (*(volatile __typeof__(x) *)&(x))
@@ -115,26 +115,26 @@ struct crocus_vtable {
                                      uint32_t report_id);
 
    uint32_t *(*create_so_decl_list)(const struct pipe_stream_output_info *sol,
-                                    const struct brw_vue_map *vue_map);
+                                    const struct intel_vue_map *vue_map);
    void (*populate_vs_key)(const struct crocus_context *ice,
                            const struct shader_info *info,
                            gl_shader_stage last_stage,
-                           struct brw_vs_prog_key *key);
+                           struct elk_vs_prog_key *key);
    void (*populate_tcs_key)(const struct crocus_context *ice,
-                            struct brw_tcs_prog_key *key);
+                            struct elk_tcs_prog_key *key);
    void (*populate_tes_key)(const struct crocus_context *ice,
                             const struct shader_info *info,
                             gl_shader_stage last_stage,
-                            struct brw_tes_prog_key *key);
+                            struct elk_tes_prog_key *key);
    void (*populate_gs_key)(const struct crocus_context *ice,
                            const struct shader_info *info,
                            gl_shader_stage last_stage,
-                           struct brw_gs_prog_key *key);
+                           struct elk_gs_prog_key *key);
    void (*populate_fs_key)(const struct crocus_context *ice,
                            const struct shader_info *info,
-                           struct brw_wm_prog_key *key);
+                           struct elk_wm_prog_key *key);
    void (*populate_cs_key)(const struct crocus_context *ice,
-                           struct brw_cs_prog_key *key);
+                           struct elk_cs_prog_key *key);
    void (*fill_clamp_mask)(const struct crocus_sampler_state *state,
                            int s,
                            uint32_t *clamp_mask);
@@ -208,7 +208,7 @@ struct crocus_screen {
    struct intel_device_info devinfo;
    struct isl_device isl_dev;
    struct crocus_bufmgr *bufmgr;
-   struct brw_compiler *compiler;
+   struct elk_compiler *compiler;
    struct intel_perf_config *perf_cfg;
 
    const struct intel_l3_config *l3_config_3d;

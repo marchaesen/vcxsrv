@@ -21,6 +21,10 @@
  */
 
 #include "present_priv.h"
+#include <unistd.h>
+#ifdef DRI3
+#include <sys/eventfd.h>
+#endif /* DRI3 */
 
 /*
  * Called when the wait fence is triggered; just gets the current msc/ust and
@@ -36,6 +40,21 @@ present_wait_fence_triggered(void *param)
 
     screen_priv->re_execute(vblank);
 }
+
+#ifdef DRI3
+static void present_syncobj_triggered(int fd, int xevents, void *data)
+{
+    present_vblank_ptr vblank = data;
+    ScreenPtr screen = vblank->screen;
+    present_screen_priv_ptr screen_priv = present_screen_priv(screen);
+
+    SetNotifyFd(fd, NULL, 0, NULL);
+    close(fd);
+    vblank->efd = -1;
+
+    screen_priv->re_execute(vblank);
+}
+#endif /* DRI3 */
 
 Bool
 present_execute_wait(present_vblank_ptr vblank, uint64_t crtc_msc)
@@ -58,6 +77,23 @@ present_execute_wait(present_vblank_ptr vblank, uint64_t crtc_msc)
             return TRUE;
         }
     }
+
+#ifdef DRI3
+    /* Defer execution of explicitly synchronized copies.
+     * Flip synchronization is managed by the driver.
+     */
+    if (!vblank->flip && vblank->acquire_syncobj &&
+        !vblank->acquire_syncobj->is_signaled(vblank->acquire_syncobj,
+                                              vblank->acquire_point)) {
+        vblank->efd = eventfd(0, EFD_CLOEXEC);
+        SetNotifyFd(vblank->efd, present_syncobj_triggered, X_NOTIFY_READ, vblank);
+        vblank->acquire_syncobj->signaled_eventfd(vblank->acquire_syncobj,
+                                                  vblank->acquire_point,
+                                                  vblank->efd);
+        return TRUE;
+    }
+#endif /* DRI3 */
+
     return FALSE;
 }
 
@@ -85,9 +121,17 @@ present_execute_copy(present_vblank_ptr vblank, uint64_t crtc_msc)
      * which is then freed, freeing the region
      */
     vblank->update = NULL;
-    screen_priv->flush(window);
-
-    present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
+#ifdef DRI3
+    if (vblank->release_syncobj) {
+        int fence_fd = screen_priv->flush_fenced(window);
+        vblank->release_syncobj->import_fence(vblank->release_syncobj,
+                                              vblank->release_point, fence_fd);
+    } else
+#endif /* DRI3 */
+    {
+        screen_priv->flush(window);
+        present_pixmap_idle(vblank->pixmap, vblank->window, vblank->serial, vblank->idle_fence);
+    }
 }
 
 void

@@ -110,6 +110,4 @@ struct astr {
 
 void print_escaped_astr(FILE *out, struct astr *astr);
 
-char *aprintf(const char *format, ...);
-
 #endif

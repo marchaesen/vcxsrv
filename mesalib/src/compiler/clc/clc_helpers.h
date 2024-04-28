@@ -96,7 +96,8 @@ clc_free_spirv_binary(struct clc_binary *spvbin);
 #define clc_log(logger, level, fmt, ...) do {        \
       if (!logger || !logger->level) break;          \
       char *_msg = NULL;                             \
-      asprintf(&_msg, fmt, ##__VA_ARGS__);           \
+      int r = asprintf(&_msg, fmt, ##__VA_ARGS__);   \
+      if (r < 0) break;                              \
       assert(_msg);                                  \
       logger->level(logger->priv, _msg);             \
       free(_msg);                                    \

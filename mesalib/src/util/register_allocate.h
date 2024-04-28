@@ -133,6 +133,8 @@ void ra_set_node_spill_cost(struct ra_graph *g, unsigned int n, float cost);
 int ra_get_best_spill_node(struct ra_graph *g);
 /** @} */
 
+float ra_debug_get_node_spill_cost(struct ra_graph *g, unsigned int n);
+float ra_debug_get_spill_benefit(struct ra_graph *g, unsigned int n);
 
 #ifdef __cplusplus
 }  // extern "C"

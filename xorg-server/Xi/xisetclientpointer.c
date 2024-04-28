@@ -36,6 +36,9 @@
 
 #include <X11/X.h>              /* for inputstr.h    */
 #include <X11/Xproto.h>         /* Request macro     */
+
+#include "dix/dix_priv.h"
+
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
 #include "scrnintstr.h"         /* screen structure  */
@@ -44,7 +47,6 @@
 #include "extnsionst.h"
 #include "exevents.h"
 #include "exglobals.h"
-
 #include "xisetclientpointer.h"
 
 int _X_COLD

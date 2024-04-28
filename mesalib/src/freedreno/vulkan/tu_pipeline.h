@@ -93,8 +93,6 @@ struct tu_program_state
       struct tu_draw_state vpc_state;
       struct tu_draw_state fs_state;
 
-      uint32_t hs_param_dwords;
-
       struct tu_push_constant_range shared_consts;
 
       struct tu_program_descriptor_linkage link[MESA_SHADER_STAGES];
@@ -137,6 +135,8 @@ struct tu_pipeline
     */
    uint32_t set_state_mask;
    struct tu_draw_state dynamic_state[TU_DYNAMIC_STATE_COUNT];
+
+   BITSET_DECLARE(static_state_mask, MESA_VK_DYNAMIC_GRAPHICS_STATE_ENUM_MAX);
 
    struct {
       bool raster_order_attachment_access;

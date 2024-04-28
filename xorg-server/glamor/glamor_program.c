@@ -378,7 +378,8 @@ glamor_build_program(ScreenPtr          screen,
         glBindFragDataLocationIndexed(prog->prog, 0, 1, "color1");
     }
 
-    glamor_link_glsl_prog(screen, prog->prog, "%s_%s", prim->name, fill->name);
+    if (!glamor_link_glsl_prog(screen, prog->prog, "%s_%s", prim->name, fill->name))
+        goto fail;
 
     prog->matrix_uniform = glamor_get_uniform(prog, glamor_program_location_none, "v_matrix");
     prog->fg_uniform = glamor_get_uniform(prog, glamor_program_location_fg, "fg");

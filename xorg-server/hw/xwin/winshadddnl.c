@@ -98,15 +98,13 @@ winCreatePrimarySurfaceShadowDDNL(ScreenPtr pScreen)
 {
     winScreenPriv(pScreen);
     HRESULT ddrval = DD_OK;
-    DDSURFACEDESC2 ddsd;
+    DDSURFACEDESC2 ddsd = (DDSURFACEDESC2) {
+        .dwSize = sizeof(DDSURFACEDESC2),
+        .dwFlags = DDSD_CAPS,
+        .ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE
+    };
 
     winDebug("winCreatePrimarySurfaceShadowDDNL - Creating primary surface\n");
-
-    /* Describe the primary surface */
-    ZeroMemory(&ddsd, sizeof(ddsd));
-    ddsd.dwSize = sizeof(ddsd);
-    ddsd.dwFlags = DDSD_CAPS;
-    ddsd.ddsCaps.dwCaps = DDSCAPS_PRIMARYSURFACE;
 
     /* Create the primary surface */
     ddrval = IDirectDraw4_CreateSurface(pScreenPriv->pdd4,
@@ -195,11 +193,12 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     winScreenPriv(pScreen);
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
     HRESULT ddrval = DD_OK;
-    DDSURFACEDESC2 ddsdShadow;
     char *lpSurface = NULL;
-    DDPIXELFORMAT ddpfPrimary;
+    DDPIXELFORMAT ddpfPrimary = (DDPIXELFORMAT) {
+        .dwSize = sizeof(DDPIXELFORMAT)
+    };
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - w %u h %u d %u\n",
              (unsigned int)pScreenInfo->dwWidth,
              (unsigned int)pScreenInfo->dwHeight,
@@ -211,17 +210,11 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
                                                pScreenInfo->dwBPP);
 
     /* Allocate memory for our shadow surface */
-    lpSurface = malloc(pScreenInfo->dwPaddedWidth * pScreenInfo->dwHeight);
+    lpSurface = calloc(pScreenInfo->dwPaddedWidth, pScreenInfo->dwHeight);
     if (lpSurface == NULL) {
         ErrorF("winAllocateFBShadowDDNL - Could not allocate bits\n");
         return FALSE;
     }
-
-    /*
-     * Initialize the framebuffer memory so we don't get a
-     * strange display at startup
-     */
-    ZeroMemory(lpSurface, pScreenInfo->dwPaddedWidth * pScreenInfo->dwHeight);
 
     /* Create a clipper */
     ddrval = (*g_fpDirectDrawCreateClipper) (0,
@@ -232,7 +225,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - Created a clipper\n");
 #endif
 
@@ -245,7 +238,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - Attached clipper to window\n");
 #endif
 
@@ -259,7 +252,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - Created and initialized DD\n");
 #endif
 
@@ -275,7 +268,6 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
 
     /* Are we full screen? */
     if (pScreenInfo->fFullScreen) {
-        DDSURFACEDESC2 ddsdCurrent;
         DWORD dwRefreshRateCurrent = 0;
         HDC hdc = NULL;
 
@@ -295,8 +287,9 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
          * if a refresh rate has been passed on the command line.
          */
         if (pScreenInfo->dwRefreshRate != 0) {
-            ZeroMemory(&ddsdCurrent, sizeof(ddsdCurrent));
-            ddsdCurrent.dwSize = sizeof(ddsdCurrent);
+            DDSURFACEDESC2 ddsdCurrent = (DDSURFACEDESC2) {
+                .dwSize = sizeof(DDSURFACEDESC2)
+            };
 
             /* Get information about current display settings */
             ddrval = IDirectDraw4_GetDisplayMode(pScreenPriv->pdd4,
@@ -390,8 +383,6 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     }
 
     /* Get primary surface's pixel format */
-    ZeroMemory(&ddpfPrimary, sizeof(ddpfPrimary));
-    ddpfPrimary.dwSize = sizeof(ddpfPrimary);
     ddrval = IDirectDrawSurface4_GetPixelFormat(pScreenPriv->pddsPrimary4,
                                                 &ddpfPrimary);
     if (FAILED(ddrval)) {
@@ -400,7 +391,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - Primary masks: %08x %08x %08x "
              "dwRGBBitCount: %u\n",
              (unsigned int)ddpfPrimary.u2.dwRBitMask,
@@ -418,16 +409,17 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
      * so you shouldn't be allocating video memory when
      * you have the option of using system memory instead.
      */
-    ZeroMemory(&ddsdShadow, sizeof(ddsdShadow));
-    ddsdShadow.dwSize = sizeof(ddsdShadow);
-    ddsdShadow.dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
-        | DDSD_LPSURFACE | DDSD_PITCH | DDSD_PIXELFORMAT;
-    ddsdShadow.ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY;
-    ddsdShadow.dwHeight = pScreenInfo->dwHeight;
-    ddsdShadow.dwWidth = pScreenInfo->dwWidth;
-    ddsdShadow.u1.lPitch = pScreenInfo->dwPaddedWidth;
-    ddsdShadow.lpSurface = lpSurface;
-    ddsdShadow.u4.ddpfPixelFormat = ddpfPrimary;
+    DDSURFACEDESC2 ddsdShadow = (DDSURFACEDESC2) {
+        .dwSize = sizeof(ddsdShadow),
+        .dwFlags = DDSD_CAPS | DDSD_HEIGHT | DDSD_WIDTH
+            | DDSD_LPSURFACE | DDSD_PITCH | DDSD_PIXELFORMAT,
+        .ddsCaps.dwCaps = DDSCAPS_OFFSCREENPLAIN | DDSCAPS_SYSTEMMEMORY,
+        .dwHeight = pScreenInfo->dwHeight,
+        .dwWidth = pScreenInfo->dwWidth,
+        .u1.lPitch = pScreenInfo->dwPaddedWidth,
+        .lpSurface = lpSurface,
+        .u4.ddpfPixelFormat = ddpfPrimary
+    };
 
     winDebug("winAllocateFBShadowDDNL - lPitch: %d\n",
              (int) pScreenInfo->dwPaddedWidth);
@@ -442,7 +434,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG || YES
+#if ENABLE_DEBUG || YES
     winDebug("winAllocateFBShadowDDNL - Created shadow pitch: %d\n",
              (int) ddsdShadow.u1.lPitch);
 #endif
@@ -451,7 +443,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     pScreenInfo->dwStride = (ddsdShadow.u1.lPitch * 8)
         / pScreenInfo->dwBPP;
 
-#if CYGDEBUG || YES
+#if ENABLE_DEBUG || YES
     winDebug("winAllocateFBShadowDDNL - Created shadow stride: %d\n",
              (int) pScreenInfo->dwStride);
 #endif
@@ -464,7 +456,7 @@ winAllocateFBShadowDDNL(ScreenPtr pScreen)
     pScreenPriv->dwGreenMask = ddsdShadow.u4.ddpfPixelFormat.u3.dwGBitMask;
     pScreenPriv->dwBlueMask = ddsdShadow.u4.ddpfPixelFormat.u4.dwBBitMask;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAllocateFBShadowDDNL - Returning\n");
 #endif
 
@@ -607,7 +599,7 @@ winShadowUpdateDDNL(ScreenPtr pScreen, shadowBufPtr pBuf)
         DeleteObject(hrgnCombined);
         hrgnCombined = NULL;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winShadowUpdateDDNL - be x1 %d y1 %d x2 %d y2 %d\n",
                  pBoxExtents->x1, pBoxExtents->y1,
                  pBoxExtents->x2, pBoxExtents->y2);
@@ -660,7 +652,7 @@ winCloseScreenShadowDDNL(ScreenPtr pScreen)
     winScreenInfo *pScreenInfo = pScreenPriv->pScreenInfo;
     Bool fReturn = TRUE;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCloseScreenShadowDDNL - Freeing screen resources\n");
 #endif
 
@@ -799,7 +791,7 @@ winInitVisualsShadowDDNL(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winInitVisualsShadowDDNL - Returning\n");
 #endif
 
@@ -1144,7 +1136,7 @@ winDestroyColormapShadowDDNL(ColormapPtr pColormap)
      * we need to handle the default colormap in a special way.
      */
     if (pColormap->flags & IsDefault) {
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug
             ("winDestroyColormapShadowDDNL - Destroying default colormap\n");
 #endif

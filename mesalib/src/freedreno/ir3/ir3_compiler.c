@@ -47,8 +47,10 @@ static const struct debug_named_value shader_debug_options[] = {
    {"nocache",    IR3_DBG_NOCACHE,    "Disable shader cache"},
    {"spillall",   IR3_DBG_SPILLALL,   "Spill as much as possible to test the spiller"},
    {"nopreamble", IR3_DBG_NOPREAMBLE, "Disable the preamble pass"},
-#ifdef DEBUG
-   /* DEBUG-only options: */
+   {"fullsync",   IR3_DBG_FULLSYNC,   "Add (sy) + (ss) after each cat5/cat6"},
+   {"fullnop",    IR3_DBG_FULLNOP,    "Add nops before each instruction"},
+#if MESA_DEBUG
+   /* MESA_DEBUG-only options: */
    {"schedmsgs",  IR3_DBG_SCHEDMSGS,  "Enable scheduler debug messages"},
    {"ramsgs",     IR3_DBG_RAMSGS,     "Enable register-allocation debug messages"},
 #endif
@@ -72,6 +74,7 @@ ir3_compiler_destroy(struct ir3_compiler *compiler)
 }
 
 static const nir_shader_compiler_options ir3_base_options = {
+   .compact_arrays = true,
    .lower_fpow = true,
    .lower_scmp = true,
    .lower_flrp16 = true,
@@ -109,7 +112,6 @@ static const nir_shader_compiler_options ir3_base_options = {
    .lower_unpack_unorm_2x16 = true,
    .lower_pack_split = true,
    .use_interpolated_input_intrinsics = true,
-   .lower_rotate = true,
    .lower_to_scalar = true,
    .has_imul24 = true,
    .has_fsub = true,
@@ -123,6 +125,8 @@ static const nir_shader_compiler_options ir3_base_options = {
 
    .lower_int64_options = (nir_lower_int64_options)~0,
    .lower_doubles_options = (nir_lower_doubles_options)~0,
+
+   .divergence_analysis_options = nir_divergence_uniform_load_tears,
 };
 
 struct ir3_compiler *
@@ -134,7 +138,7 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
    ir3_shader_debug = debug_get_option_ir3_shader_debug();
    ir3_shader_override_path =
-      !__check_suid() ? debug_get_option_ir3_shader_override_path() : NULL;
+      __normal_user() ? debug_get_option_ir3_shader_override_path() : NULL;
 
    if (ir3_shader_override_path) {
       ir3_shader_debug |= IR3_DBG_NOCACHE;
@@ -154,6 +158,10 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
    compiler->max_variable_workgroup_size = 1024;
 
    compiler->local_mem_size = dev_info->cs_shared_mem_size;
+
+   compiler->num_predicates = 1;
+   compiler->bitops_can_write_predicates = false;
+   compiler->has_branch_and_or = false;
 
    if (compiler->gen >= 6) {
       compiler->samgq_workaround = true;
@@ -209,6 +217,13 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
 
       compiler->has_fs_tex_prefetch = dev_info->a6xx.has_fs_tex_prefetch;
       compiler->stsc_duplication_quirk = dev_info->a7xx.stsc_duplication_quirk;
+      compiler->load_shader_consts_via_preamble = dev_info->a7xx.load_shader_consts_via_preamble;
+      compiler->load_inline_uniforms_via_preamble_ldgk = dev_info->a7xx.load_inline_uniforms_via_preamble_ldgk;
+      compiler->num_predicates = 4;
+      compiler->bitops_can_write_predicates = true;
+      compiler->has_branch_and_or = true;
+      compiler->has_predication = true;
+      compiler->has_scalar_alu = dev_info->a6xx.has_scalar_alu;
    } else {
       compiler->max_const_pipeline = 512;
       compiler->max_const_geom = 512;
@@ -219,6 +234,8 @@ ir3_compiler_create(struct fd_device *dev, const struct fd_dev_id *dev_id,
        * earlier gen's.
        */
       compiler->max_const_safe = 256;
+
+      compiler->has_scalar_alu = false;
    }
 
    /* This is just a guess for a4xx. */

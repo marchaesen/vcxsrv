@@ -31,9 +31,8 @@ _mesa_glthread_ProgramChanged(struct gl_context *ctx)
 {
    struct glthread_state *glthread = &ctx->GLThread;
 
-   /* Track the last change. */
-   p_atomic_set(&glthread->LastProgramChangeBatch, glthread->next);
-   _mesa_glthread_flush_batch(ctx);
+   /* Track the last change to shader programs. */
+   _mesa_glthread_fence_call(ctx, &glthread->LastProgramChangeBatch);
 }
 
 uint32_t

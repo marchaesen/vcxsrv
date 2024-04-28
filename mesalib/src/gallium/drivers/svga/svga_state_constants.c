@@ -428,7 +428,7 @@ emit_const_range(struct svga_context *svga,
           shader == PIPE_SHADER_FRAGMENT);
    assert(!svga_have_vgpu10(svga));
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (offset + count > SVGA3D_CONSTREG_MAX) {
       debug_printf("svga: too many constants (offset %u + count %u = %u (max = %u))\n",
                    offset, count, offset + count, SVGA3D_CONSTREG_MAX);

@@ -55,7 +55,7 @@
     <function name="MemoryObjectParameterivEXT" es2="3.2">
         <param name="memoryObject" type="GLuint"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLint *" count="_mesa_memobj_enum_to_count(pname)"/>
+        <param name="params" type="const GLint *" marshal_count="_mesa_memobj_enum_to_count(pname)"/>
     </function>
 
     <function name="GetMemoryObjectParameterivEXT" es2="3.2">
@@ -202,7 +202,7 @@
     <function name="SemaphoreParameterui64vEXT" es2="3.2">
         <param name="semaphore" type="GLuint"/>
         <param name="pname" type="GLenum"/>
-        <param name="params" type="const GLuint64 *" count="_mesa_semaphore_enum_to_count(pname)"/>
+        <param name="params" type="const GLuint64 *" marshal_count="_mesa_semaphore_enum_to_count(pname)"/>
     </function>
 
     <function name="GetSemaphoreParameterui64vEXT" es2="3.2">

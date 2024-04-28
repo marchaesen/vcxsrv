@@ -108,6 +108,7 @@ struct Device
 
    ElementLayout *element_layout;
    BOOL velems_changed;
+   BOOL vbuffers_changed;
 };
 
 

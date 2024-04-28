@@ -48,11 +48,7 @@ dEQP-GLES2.functional.texture.mipmap.cube.projected.linear_nearest,Fail
 wayland-dEQP-EGL.functional.create_context.no_config,Fail
 wayland-dEQP-EGL.functional.image.modify.renderbuffer_depth16_renderbuffer_clear_depth,Fail
 wayland-dEQP-EGL.functional.render.multi_context.gles2.rgb888_window,Fail
-wayland-dEQP-EGL.functional.render.multi_context.gles2.rgba8888_pbuffer,Fail
 wayland-dEQP-EGL.functional.render.multi_thread.gles2.rgb888_window,Fail
-wayland-dEQP-EGL.functional.render.multi_thread.gles2.rgba8888_pbuffer,Fail
-wayland-dEQP-EGL.functional.wide_color.pbuffer_8888_colorspace_srgb,Fail
-wayland-dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb,Fail
 wayland-dEQP-EGL.functional.wide_color.window_fp16_default_colorspace,Fail
 
 x11-dEQP-EGL.functional.create_context.no_config,Fail
@@ -66,22 +62,11 @@ x11-dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb,Fail
 
 shaders@glsl-arb-fragment-coord-conventions,Fail
 shaders@glsl-bug-110796,Fail
-shaders@glsl-bug-22603,Fail
 shaders@glsl-fs-flat-color,Fail
 shaders@glsl-predication-on-large-array,Fail
 shaders@glsl-routing,Fail
-spec@arb_arrays_of_arrays@execution@glsl-arrays-copy-size-mismatch,Fail
 spec@arb_color_buffer_float@gl_rgba8-render,Fail
 spec@arb_color_buffer_float@gl_rgba8-render-sanity,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component16-blit,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component16-copypixels,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component16-readpixels,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component24-blit,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component24-copypixels,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component24-readpixels,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component32-blit,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component32-copypixels,Fail
-spec@arb_depth_texture@fbo-depth-gl_depth_component32-readpixels,Fail
 spec@arb_depth_texture@fbo-generatemipmap-formats,Fail
 spec@arb_depth_texture@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT24,Fail
 spec@arb_depth_texture@fbo-generatemipmap-formats@GL_DEPTH_COMPONENT24 NPOT,Fail
@@ -106,11 +91,8 @@ spec@arb_fragment_program_shadow@txp-shadow2d,Fail
 spec@arb_fragment_program_shadow@txp-shadow2drect,Fail
 spec@arb_framebuffer_srgb@arb_framebuffer_srgb-srgb_conformance,Fail
 spec@arb_framebuffer_srgb@framebuffer-srgb,Fail
-spec@arb_occlusion_query2@render,Fail
 spec@arb_occlusion_query@occlusion_query_conform,Fail
 spec@arb_occlusion_query@occlusion_query_conform@GetObjivAval_multi2,Fail
-spec@arb_occlusion_query@occlusion_query_meta_fragments,Fail
-spec@arb_occlusion_query@occlusion_query_meta_save,Fail
 spec@arb_pixel_buffer_object@cubemap npot pbo,Fail
 spec@arb_pixel_buffer_object@cubemap pbo,Fail
 spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
@@ -163,27 +145,26 @@ spec@arb_texture_rg@texwrap formats bordercolor@GL_RG8- border color only,Fail
 spec@arb_texture_rg@texwrap formats bordercolor-swizzled,Fail
 spec@arb_texture_rg@texwrap formats bordercolor-swizzled@GL_RG8- swizzled- border color only,Fail
 spec@arb_texture_storage@texture-storage@cube array texture,Fail
-spec@arb_vertex_program@arl,Crash
+spec@arb_vertex_program@arl,Fail
 spec@arb_vertex_program@big-param,Fail
 spec@arb_vertex_program@clip-plane-transformation arb,Fail
-spec@arb_vertex_program@instructions@arl,Crash
-spec@arb_vertex_program@vp-address-01,Crash
-spec@arb_vertex_program@vp-arl-constant-array,Crash
-spec@arb_vertex_program@vp-arl-constant-array-huge,Crash
-spec@arb_vertex_program@vp-arl-constant-array-huge-offset,Crash
-spec@arb_vertex_program@vp-arl-constant-array-huge-offset-neg,Crash
-spec@arb_vertex_program@vp-arl-constant-array-huge-relative-offset,Crash
-spec@arb_vertex_program@vp-arl-constant-array-huge-varying,Crash
-spec@arb_vertex_program@vp-arl-constant-array-varying,Crash
-spec@arb_vertex_program@vp-arl-env-array,Crash
-spec@arb_vertex_program@vp-arl-local-array,Crash
-spec@arb_vertex_program@vp-arl-neg-array-2,Crash
-spec@arb_vertex_program@vp-arl-neg-array,Crash
+spec@arb_vertex_program@instructions@arl,Fail
+spec@arb_vertex_program@vp-address-01,Fail
+spec@arb_vertex_program@vp-arl-constant-array,Fail
+spec@arb_vertex_program@vp-arl-constant-array-huge,Fail
+spec@arb_vertex_program@vp-arl-constant-array-huge-offset,Fail
+spec@arb_vertex_program@vp-arl-constant-array-huge-offset-neg,Fail
+spec@arb_vertex_program@vp-arl-constant-array-huge-relative-offset,Fail
+spec@arb_vertex_program@vp-arl-constant-array-huge-varying,Fail
+spec@arb_vertex_program@vp-arl-constant-array-varying,Fail
+spec@arb_vertex_program@vp-arl-env-array,Fail
+spec@arb_vertex_program@vp-arl-local-array,Fail
+spec@arb_vertex_program@vp-arl-neg-array-2,Fail
+spec@arb_vertex_program@vp-arl-neg-array,Fail
 spec@ati_fragment_shader@ati_fragment_shader-render-default,Fail
 spec@ati_fragment_shader@ati_fragment_shader-render-notexture,Fail
 spec@ati_fragment_shader@ati_fragment_shader-render-sources,Fail
 spec@egl 1.4@eglterminate then unbind context,Fail
-spec@egl_ext_protected_content@conformance,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_depth_component24,Fail
 spec@egl_khr_gl_image@egl_khr_gl_renderbuffer_image-clear-shared-image gl_rgba,Fail
 spec@egl_khr_surfaceless_context@viewport,Fail
@@ -204,26 +185,15 @@ spec@ext_framebuffer_object@fbo-blending-formats@GL_RGB,Fail
 spec@ext_framebuffer_object@fbo-cubemap,Fail
 spec@ext_framebuffer_object@fbo-depth-sample-compare,Fail
 spec@ext_framebuffer_object@fbo-maxsize,Fail
-spec@ext_framebuffer_object@fbo-readpixels-depth-formats,Fail
-spec@ext_framebuffer_object@fbo-readpixels-depth-formats@GL_DEPTH_COMPONENT/GL_FLOAT,Fail
-spec@ext_framebuffer_object@fbo-readpixels-depth-formats@GL_DEPTH_COMPONENT/GL_UNSIGNED_INT,Fail
 spec@ext_framebuffer_object@fbo-scissor-bitmap,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-blit,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-copypixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-readpixels,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-blit,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-copypixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-readpixels,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-blit,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-copypixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-readpixels,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-blit,Fail
 spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-copypixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-readpixels,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-export,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p010,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_p012,Fail
@@ -234,22 +204,10 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y410,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y412,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y416,Fail
-spec@ext_occlusion_query_boolean@any-samples,Fail
 spec@ext_packed_depth_stencil@depth_stencil texture,Fail
 spec@ext_packed_depth_stencil@fbo-blit-d24s8,Fail
-spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-blit,Fail
-spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-copypixels,Fail
-spec@ext_packed_depth_stencil@fbo-depth-gl_depth24_stencil8-readpixels,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-blit,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-copypixels,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-drawpixels-24_8,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-readpixels-24_8,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-readpixels-float-and-ushort,Fail
 spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-blit,Fail
 spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-copypixels,Fail
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-drawpixels,Fail
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-readpixels,Fail
-spec@ext_packed_depth_stencil@readpixels-24_8,Fail
 spec@ext_provoking_vertex@provoking-vertex,Fail
 spec@ext_texture_format_bgra8888@api-errors,Fail
 spec@ext_texture_lod_bias@lodbias,Fail
@@ -621,7 +579,6 @@ spec@!opengl 1.5@depth-tex-compare,Fail
 spec@!opengl 2.0@early-z,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag,Fail
 spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Fail
-spec@!opengl 2.0@occlusion-query-discard,Fail
 spec@!opengl 2.0@vertex-program-two-side back front2 back2,Fail
 spec@!opengl 2.0@vertex-program-two-side back front2 back2@vs and fs,Fail
 spec@!opengl 2.0@vertex-program-two-side back front2,Fail
@@ -662,9 +619,6 @@ spec@ext_texture_compression_s3tc@compressedteximage gl_compressed_srgb_s3tc_dxt
 # Expects that some format/internal_format combinations should be supported when they currently aren't.
 spec@arb_clear_texture@arb_clear_texture-supported-formats,Fail
 
-# Expects DEPTH_COMPONENT_32F, which is given by ARB_depth_buffer_float and isn't supported by Lima.
-spec@arb_clear_texture@arb_clear_texture-depth,Fail
-
 # Precision issue when lowering GL_RGB16 and GL_RGBA16
 spec@arb_clear_texture@arb_clear_texture-sized-formats,Fail
 
@@ -673,10 +627,9 @@ spec@!opengl 1.1@line-smooth-stipple,Fail
 # bookworm update
 spec@ext_framebuffer_multisample@renderbufferstorage-samples,Fail
 
-# New CTS failures in 1.3.6.3
-wayland-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer,Crash
-x11-dEQP-EGL.functional.fence_sync.valid.egl_fence_persistent_buffer,Crash
-
 # remove this after https://gitlab.freedesktop.org/mesa/piglit/-/merge_requests/843
 # is merged and piglit is updated
 spec@glsl-1.10@execution@glsl-1.10-built-in-uniform-state,Fail
+
+x11-dEQP-EGL.functional.wide_color.pbuffer_888_colorspace_srgb,Fail
+x11-dEQP-EGL.functional.wide_color.window_888_colorspace_srgb,Fail

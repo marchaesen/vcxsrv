@@ -785,7 +785,7 @@ update_uav(struct svga_context *svga, uint64_t dirty)
    SVGA_DBG(DEBUG_UAV, "%s: SetUAViews uavSpliceIndex=%d", __func__,
             uavSpliceIndex);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    for (unsigned i = 0; i < ARRAY_SIZE(uaViewIds); i++) {
       SVGA_DBG(DEBUG_UAV, " %d ", uaViewIds[i]);
    }
@@ -891,7 +891,7 @@ update_cs_uav(struct svga_context *svga, uint64_t dirty)
 
    SVGA_DBG(DEBUG_UAV, "%s: SetCSUAViews", __func__);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    for (unsigned i = 0; i < ARRAY_SIZE(uaViewIds); i++) {
       SVGA_DBG(DEBUG_UAV, " %d ", uaViewIds[i]);
    }

@@ -190,10 +190,10 @@ ADDR_E_RETURNCODE Lib::Create(
                     case FAMILY_SI:
                         pLib = SiHwlInit(&client);
                         break;
-                    case FAMILY_VI:
-                    case FAMILY_CZ: // VI based fusion
                     case FAMILY_CI:
                     case FAMILY_KV: // CI based fusion
+                    case FAMILY_VI:
+                    case FAMILY_CZ: // VI based fusion
                         pLib = CiHwlInit(&client);
                         break;
                     default:
@@ -216,8 +216,8 @@ ADDR_E_RETURNCODE Lib::Create(
                         pLib = Gfx10HwlInit(&client);
                         break;
                     case FAMILY_NV3:
-                    case FAMILY_GFX1103:
                     case FAMILY_GFX1150:
+                    case FAMILY_GFX1103:
                         pLib = Gfx11HwlInit(&client);
                         break;
                     default:
@@ -231,6 +231,10 @@ ADDR_E_RETURNCODE Lib::Create(
         }
     }
 
+    if(pLib == NULL)
+    {
+        returnCode = ADDR_OUTOFMEMORY;
+    }
     if (pLib != NULL)
     {
         BOOL_32 initValid;
@@ -269,6 +273,7 @@ ADDR_E_RETURNCODE Lib::Create(
         {
             delete pLib;
             pLib = NULL;
+            returnCode = ADDR_OUTOFMEMORY;
             ADDR_ASSERT_ALWAYS();
         }
         else
@@ -287,12 +292,6 @@ ADDR_E_RETURNCODE Lib::Create(
 
         pLib->SetMaxAlignments();
 
-    }
-    else if ((pLib == NULL) &&
-             (returnCode == ADDR_OK))
-    {
-        // Unknown failures, we return the general error code
-        returnCode = ADDR_ERROR;
     }
 
     return returnCode;

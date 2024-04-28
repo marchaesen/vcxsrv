@@ -43,10 +43,13 @@ st_interop_query_device_info(struct st_context *st,
    if (out->version == 0)
       return MESA_GLINTEROP_INVALID_VERSION;
 
-   out->pci_segment_group = screen->get_param(screen, PIPE_CAP_PCI_GROUP);
-   out->pci_bus = screen->get_param(screen, PIPE_CAP_PCI_BUS);
-   out->pci_device = screen->get_param(screen, PIPE_CAP_PCI_DEVICE);
-   out->pci_function = screen->get_param(screen, PIPE_CAP_PCI_FUNCTION);
+   /* PCI values are obsolete on version >= 4 of the interface */
+   if (out->version < 4) {
+      out->pci_segment_group = screen->get_param(screen, PIPE_CAP_PCI_GROUP);
+      out->pci_bus = screen->get_param(screen, PIPE_CAP_PCI_BUS);
+      out->pci_device = screen->get_param(screen, PIPE_CAP_PCI_DEVICE);
+      out->pci_function = screen->get_param(screen, PIPE_CAP_PCI_FUNCTION);
+   }
 
    out->vendor_id = screen->get_param(screen, PIPE_CAP_VENDOR_ID);
    out->device_id = screen->get_param(screen, PIPE_CAP_DEVICE_ID);
@@ -59,8 +62,8 @@ st_interop_query_device_info(struct st_context *st,
    if (out->version >= 3 && screen->get_device_uuid)
       screen->get_device_uuid(screen, out->device_uuid);
 
-   /* Instruct the caller that we support up-to version three of the interface */
-   out->version = MIN2(out->version, 3);
+   /* Instruct the caller that we support up-to version four of the interface */
+   out->version = MIN2(out->version, 4);
 
    return MESA_GLINTEROP_SUCCESS;
 }

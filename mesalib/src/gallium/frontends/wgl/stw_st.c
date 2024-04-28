@@ -169,8 +169,9 @@ stw_st_framebuffer_validate_locked(struct st_context *st,
     * drawing. A fake front texture is needed to handle that scenario.
     * For MSAA, we just need to make sure that the back buffer also
     * exists, so we can blt to it during flush_frontbuffer. */
-   if (mask & ST_ATTACHMENT_FRONT_LEFT_MASK &&
-       stwfb->fb->winsys_framebuffer) {
+   if ((mask & ST_ATTACHMENT_FRONT_LEFT_MASK) &&
+       stwfb->fb->winsys_framebuffer &&
+       (stwfb->stvis.buffer_mask & ST_ATTACHMENT_BACK_LEFT_MASK)) {
       if (stwfb->stvis.samples <= 1)
          stwfb->needs_fake_front = true;
       else
@@ -436,7 +437,6 @@ stw_st_flush(struct st_context *st,
  */
 static bool
 stw_st_framebuffer_present_locked(HDC hdc,
-                                  struct st_context *st,
                                   struct pipe_frontend_drawable *drawable,
                                   enum st_attachment_type statt)
 {
@@ -488,6 +488,9 @@ stw_st_framebuffer_flush_front(struct st_context *st,
       /* fake front texture is now invalid */
       p_atomic_inc(&stwfb->base.stamp);
       need_swap_textures = true;
+   } else if (stwfb->fb->winsys_framebuffer &&
+              stwfb->fb->winsys_framebuffer->flush_frontbuffer) {
+      stwfb->fb->winsys_framebuffer->flush_frontbuffer(stwfb->fb->winsys_framebuffer, pipe);
    }
 
    if (need_swap_textures) {
@@ -506,7 +509,7 @@ stw_st_framebuffer_flush_front(struct st_context *st,
 
    hDC = GetDC(stwfb->fb->hWnd);
 
-   ret = stw_st_framebuffer_present_locked(hDC, st, &stwfb->base, statt);
+   ret = stw_st_framebuffer_present_locked(hDC, &stwfb->base, statt);
 
    ReleaseDC(stwfb->fb->hWnd, hDC);
 
@@ -565,7 +568,7 @@ stw_st_destroy_framebuffer_locked(struct pipe_frontend_drawable *drawable)
  * Swap the buffers of the given framebuffer.
  */
 bool
-stw_st_swap_framebuffer_locked(HDC hdc, struct st_context *st,
+stw_st_swap_framebuffer_locked(HDC hdc,
                                struct pipe_frontend_drawable *drawable)
 {
    struct stw_st_framebuffer *stwfb = stw_st_framebuffer(drawable);
@@ -601,7 +604,7 @@ stw_st_swap_framebuffer_locked(HDC hdc, struct st_context *st,
    stwfb->texture_mask = mask;
 
    front = ST_ATTACHMENT_FRONT_LEFT;
-   return stw_st_framebuffer_present_locked(hdc, st, &stwfb->base, front);
+   return stw_st_framebuffer_present_locked(hdc, &stwfb->base, front);
 }
 
 

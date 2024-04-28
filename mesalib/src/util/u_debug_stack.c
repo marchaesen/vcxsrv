@@ -179,7 +179,7 @@ debug_backtrace_print(FILE *f,
             frame_ip(&backtrace[i]));
    }
 }
-#elif defined(ANDROID)
+#elif DETECT_OS_ANDROID
    /* Not implemented here; see u_debug_stack_android.cpp */
 #else /* ! HAVE_LIBUNWIND */
 

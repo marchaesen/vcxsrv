@@ -1,27 +1,7 @@
 /* -*- mesa-c++  -*-
- *
- * Copyright (c) 2022 Collabora LTD
- *
+ * Copyright 2022 Collabora LTD
  * Author: Gert Wollny <gert.wollny@collabora.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include "sfn_nir_lower_alu.h"
@@ -127,6 +107,47 @@ LowerSinCos::lower(nir_instr *instr)
       return nir_fcos_amd(b, normalized);
 }
 
+class FixKcacheIndirectRead : public NirLowerInstruction {
+private:
+   bool filter(const nir_instr *instr) const override;
+   nir_def *lower(nir_instr *instr) override;
+};
+
+bool FixKcacheIndirectRead::filter(const nir_instr *instr) const
+{
+   if (instr->type != nir_instr_type_intrinsic)
+      return false;
+
+   auto intr = nir_instr_as_intrinsic(instr);
+   if (intr->intrinsic != nir_intrinsic_load_ubo)
+      return false;
+
+   return nir_src_as_const_value(intr->src[0]) == nullptr;
+}
+
+nir_def *FixKcacheIndirectRead::lower(nir_instr *instr)
+{
+   auto intr = nir_instr_as_intrinsic(instr);
+   assert(nir_src_as_const_value(intr->src[0]) == nullptr);
+
+   nir_def *result = &intr->def;
+   for (unsigned i = 14; i < b->shader->info.num_ubos; ++i) {
+      auto test_bufid = nir_imm_int(b, i);
+      auto direct_value =
+	    nir_load_ubo(b, intr->num_components,
+			 intr->def.bit_size,
+			 test_bufid,
+			 intr->src[1].ssa);
+      auto direct_load = nir_instr_as_intrinsic(direct_value->parent_instr);
+      nir_intrinsic_copy_const_indices(direct_load, intr);
+      result = nir_bcsel(b,
+			 nir_ieq(b, test_bufid, intr->src[0].ssa),
+	                 direct_value,
+	                 result);
+   }
+   return result;
+}
+
 } // namespace r600
 
 bool
@@ -139,4 +160,11 @@ bool
 r600_nir_lower_trigen(nir_shader *shader, amd_gfx_level gfx_level)
 {
    return r600::LowerSinCos(gfx_level).run(shader);
+}
+
+bool
+r600_nir_fix_kcache_indirect_access(nir_shader *shader)
+{
+   return shader->info.num_ubos > 14 ?
+	    r600::FixKcacheIndirectRead().run(shader) : false;
 }

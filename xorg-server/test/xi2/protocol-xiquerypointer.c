@@ -44,10 +44,11 @@
 
 #include "protocol-common.h"
 
+DECLARE_WRAP_FUNCTION(WriteToClient, void, ClientPtr client, int len, void *data);
+
 extern ClientRec client_window;
 static ClientRec client_request;
-static void reply_XIQueryPointer_data(ClientPtr client, int len,
-                                      char *data, void *closure);
+static void reply_XIQueryPointer_data(ClientPtr client, int len, void *data);
 
 static struct {
     DeviceIntPtr dev;
@@ -55,39 +56,42 @@ static struct {
 } test_data;
 
 static void
-reply_XIQueryPointer(ClientPtr client, int len, char *data, void *closure)
+reply_XIQueryPointer(ClientPtr client, int len, void *data)
 {
-    xXIQueryPointerReply *rep = (xXIQueryPointerReply *) data;
+    xXIQueryPointerReply *reply = (xXIQueryPointerReply *) data;
+    xXIQueryPointerReply rep = *reply; /* copy so swapping doesn't touch the real reply */
     SpritePtr sprite;
 
-    if (!rep->repType)
+    assert(len < 0xffff); /* suspicious size, swapping bug */
+
+    if (!rep.repType)
         return;
 
     if (client->swapped) {
-        swapl(&rep->length);
-        swaps(&rep->sequenceNumber);
-        swapl(&rep->root);
-        swapl(&rep->child);
-        swapl(&rep->root_x);
-        swapl(&rep->root_y);
-        swapl(&rep->win_x);
-        swapl(&rep->win_y);
-        swaps(&rep->buttons_len);
+        swapl(&rep.length);
+        swaps(&rep.sequenceNumber);
+        swapl(&rep.root);
+        swapl(&rep.child);
+        swapl(&rep.root_x);
+        swapl(&rep.root_y);
+        swapl(&rep.win_x);
+        swapl(&rep.win_y);
+        swaps(&rep.buttons_len);
     }
 
-    reply_check_defaults(rep, len, XIQueryPointer);
+    reply_check_defaults(&rep, len, XIQueryPointer);
 
-    assert(rep->root == root.drawable.id);
-    assert(rep->same_screen == xTrue);
+    assert(rep.root == root.drawable.id);
+    assert(rep.same_screen == xTrue);
 
     sprite = test_data.dev->spriteInfo->sprite;
-    assert((rep->root_x >> 16) == sprite->hot.x);
-    assert((rep->root_y >> 16) == sprite->hot.y);
+    assert((rep.root_x >> 16) == sprite->hot.x);
+    assert((rep.root_y >> 16) == sprite->hot.y);
 
     if (test_data.win == &root) {
-        assert(rep->root_x == rep->win_x);
-        assert(rep->root_y == rep->win_y);
-        assert(rep->child == window.drawable.id);
+        assert(rep.root_x == rep.win_x);
+        assert(rep.root_y == rep.win_y);
+        assert(rep.child == window.drawable.id);
     }
     else {
         int x, y;
@@ -95,20 +99,22 @@ reply_XIQueryPointer(ClientPtr client, int len, char *data, void *closure)
         x = sprite->hot.x - window.drawable.x;
         y = sprite->hot.y - window.drawable.y;
 
-        assert((rep->win_x >> 16) == x);
-        assert((rep->win_y >> 16) == y);
-        assert(rep->child == None);
+        assert((rep.win_x >> 16) == x);
+        assert((rep.win_y >> 16) == y);
+        assert(rep.child == None);
     }
 
-    assert(rep->same_screen == xTrue);
+    assert(rep.same_screen == xTrue);
 
-    reply_handler = reply_XIQueryPointer_data;
+    wrapped_WriteToClient = reply_XIQueryPointer_data;
 }
 
 static void
-reply_XIQueryPointer_data(ClientPtr client, int len, char *data, void *closure)
+reply_XIQueryPointer_data(ClientPtr client, int len, void *data)
 {
-    reply_handler = reply_XIQueryPointer;
+    wrapped_WriteToClient = reply_XIQueryPointer;
+
+    assert(len < 0xffff); /* suspicious size, swapping bug */
 }
 
 static void
@@ -139,11 +145,13 @@ test_XIQueryPointer(void)
     int i;
     xXIQueryPointerReq request;
 
+    init_simple();
+
     memset(&request, 0, sizeof(request));
 
     request_init(&request, XIQueryPointer);
 
-    reply_handler = reply_XIQueryPointer;
+    wrapped_WriteToClient = reply_XIQueryPointer;
 
     client_request = init_client(request.length, &request);
 
@@ -192,12 +200,12 @@ test_XIQueryPointer(void)
     request_XIQueryPointer(&client_request, &request, BadLength);
 }
 
-int
+const testfunc_t*
 protocol_xiquerypointer_test(void)
 {
-    init_simple();
-
-    test_XIQueryPointer();
-
-    return 0;
+    static const testfunc_t testfuncs[] = {
+        test_XIQueryPointer,
+        NULL,
+    };
+    return testfuncs;
 }

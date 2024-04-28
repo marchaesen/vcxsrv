@@ -55,7 +55,7 @@ vc4_bo_label(struct vc4_screen *screen, struct vc4_bo *bo, const char *fmt, ...)
          * whole-system allocation information), or if VC4_DEBUG=surf is set
          * (for debugging a single app's allocation).
          */
-#ifndef DEBUG
+#if !MESA_DEBUG
         if (!VC4_DBG(SURFACE))
                 return;
 #endif

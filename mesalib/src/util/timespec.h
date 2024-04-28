@@ -79,6 +79,24 @@ timespec_sub(struct timespec *r,
    }
 }
 
+/**
+ * Saturating timespec subtraction
+ *
+ * \param r[out] result: max(a - b, 0)
+ * \param a[in] operand
+ * \param b[in] operand
+ */
+static inline void
+timespec_sub_saturate(struct timespec *r,
+                      const struct timespec *a, const struct timespec *b)
+{
+   timespec_sub(r, a, b);
+   if (r->tv_sec < 0) {
+      r->tv_sec = 0;
+      r->tv_nsec = 0;
+   }
+}
+
 #define TIME_T_MAX \
    ((time_t)(((time_t)-1) > 0 ? u_uintN_max(sizeof(time_t) * 8) : \
                                 u_intN_max(sizeof(time_t) * 8)))

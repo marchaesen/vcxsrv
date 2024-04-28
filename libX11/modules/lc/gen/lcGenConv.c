@@ -53,7 +53,7 @@
 #include "XlcGeneric.h"
 #include <stdio.h>
 
-#if !defined(Lynx_22) && !defined(X_LOCALE)
+#ifndef X_LOCALE
 #define STDCVT
 #endif
 

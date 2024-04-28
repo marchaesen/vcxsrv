@@ -63,6 +63,7 @@
 #include "vk_buffer.h"
 #include "vk_command_buffer.h"
 #include "vk_device.h"
+#include "vk_enum_to_str.h"
 #include "vk_graphics_state.h"
 #include "vk_image.h"
 #include "vk_instance.h"
@@ -70,7 +71,6 @@
 #include "vk_physical_device.h"
 #include "vk_queue.h"
 #include "vk_sync.h"
-#include "vulkan/util/vk_enum_to_str.h"
 #include "wsi_common.h"
 
 #ifdef HAVE_VALGRIND
@@ -105,6 +105,8 @@ struct pvr_physical_device {
    struct pvr_device_runtime_info dev_runtime_info;
 
    VkPhysicalDeviceMemoryProperties memory;
+
+   uint64_t heap_used;
 
    struct wsi_device wsi_device;
 
@@ -1596,7 +1598,7 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(pvr_render_pass,
    } while (0)
 
 /* A non-fatal assert. Useful for debugging. */
-#ifdef DEBUG
+#if MESA_DEBUG
 #   define pvr_assert(x)                                           \
       ({                                                           \
          if (unlikely(!(x)))                                       \

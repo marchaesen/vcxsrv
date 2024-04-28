@@ -77,8 +77,8 @@ extern void winDebug(const char *format, ...);
 extern void winReshapeMultiWindow(WindowPtr pWin);
 extern void winUpdateRgnMultiWindow(WindowPtr pWin);
 
-#ifndef CYGDEBUG
-#define CYGDEBUG NO
+#ifndef ENABLE_DEBUG
+#define ENABLE_DEBUG NO
 #endif
 
 /*
@@ -189,7 +189,7 @@ static Bool g_shutdown = FALSE;
  * Translate msg id to text, for debug purposes
  */
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
 static const char *
 MessageName(winWMMessagePtr msg)
 {
@@ -386,7 +386,7 @@ GetWindowName(WMInfoPtr pWMInfo, xcb_window_t iWin, char **ppWindowName)
     xcb_connection_t *conn = pWMInfo->conn;
     char *pszWindowName = NULL;
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     ErrorF("GetWindowName\n");
 #endif
 
@@ -791,7 +791,7 @@ winMultiWindowWMProc(void *pArg)
     /* Initialize the Window Manager */
     winInitMultiWindowWM(pWMInfo, pProcArg);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     ErrorF("winMultiWindowWMProc ()\n");
 #endif
 
@@ -808,7 +808,7 @@ winMultiWindowWMProc(void *pArg)
             pthread_exit(NULL);
         }
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
         ErrorF("winMultiWindowWMProc - MSG: %s (%d) ID: %d\n",
                MessageName(&(pNode->msg)), (int)pNode->msg.msg, (int)pNode->msg.dwID);
 #endif
@@ -1002,7 +1002,7 @@ winMultiWindowWMProc(void *pArg)
     /* Free the passed-in argument */
     free(pProcArg);
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     ErrorF("-winMultiWindowWMProc ()\n");
 #endif
     return NULL;
@@ -1395,9 +1395,9 @@ winInitWM(void **ppWMInfo,
           pthread_mutex_t * ppmServerStarted,
           int dwScreen, HWND hwndScreen, Bool compositeWM)
 {
-    WMProcArgPtr pArg = malloc(sizeof(WMProcArgRec));
-    WMInfoPtr pWMInfo = malloc(sizeof(WMInfoRec));
-    XMsgProcArgPtr pXMsgArg = malloc(sizeof(XMsgProcArgRec));
+    WMProcArgPtr pArg = calloc(sizeof(WMProcArgRec), 1);
+    WMInfoPtr pWMInfo = calloc(sizeof(WMInfoRec), 1);
+    XMsgProcArgPtr pXMsgArg = calloc(sizeof(XMsgProcArgRec), 1);
 
     /* Bail if the input parameters are bad */
     if (pArg == NULL || pWMInfo == NULL || pXMsgArg == NULL) {
@@ -1407,11 +1407,6 @@ winInitWM(void **ppWMInfo,
         free(pXMsgArg);
         return FALSE;
     }
-
-    /* Zero the allocated memory */
-    ZeroMemory(pArg, sizeof(WMProcArgRec));
-    ZeroMemory(pWMInfo, sizeof(WMInfoRec));
-    ZeroMemory(pXMsgArg, sizeof(XMsgProcArgRec));
 
     /* Set a return pointer to the Window Manager info structure */
     *ppWMInfo = pWMInfo;
@@ -1446,7 +1441,7 @@ winInitWM(void **ppWMInfo,
         return FALSE;
     }
 
-#if CYGDEBUG || YES
+#if ENABLE_DEBUG || YES
     winDebug("winInitWM - Returning.\n");
 #endif
 
@@ -1636,7 +1631,7 @@ winSendMessageToWM(void *pWMInfo, winWMMessagePtr pMsg)
 {
     WMMsgNodePtr pNode;
 
-#if CYGMULTIWINDOW_DEBUG
+#if ENABLE_DEBUG
     ErrorF("winSendMessageToWM %s\n", MessageName(pMsg));
 #endif
 

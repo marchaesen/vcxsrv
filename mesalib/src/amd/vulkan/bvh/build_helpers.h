@@ -1,24 +1,7 @@
 /*
  * Copyright © 2022 Konstantin Seurer
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef BVH_BUILD_HELPERS_H
@@ -156,6 +139,7 @@
 
 #define VK_GEOMETRY_TYPE_TRIANGLES_KHR 0
 #define VK_GEOMETRY_TYPE_AABBS_KHR     1
+#define VK_GEOMETRY_TYPE_INSTANCES_KHR 2
 
 #define VK_GEOMETRY_INSTANCE_TRIANGLE_FACING_CULL_DISABLE_BIT_KHR 1
 #define VK_GEOMETRY_INSTANCE_TRIANGLE_FLIP_FACING_BIT_KHR         2
@@ -459,6 +443,7 @@ TYPE(AccelerationStructureInstance, 8);
 bool
 build_triangle(inout radv_aabb bounds, VOID_REF dst_ptr, radv_bvh_geometry_data geom_data, uint32_t global_id)
 {
+   bool is_valid = true;
    triangle_indices indices = load_indices(geom_data.indices, geom_data.index_format, global_id);
 
    triangle_vertices vertices = load_vertices(geom_data.data, indices, geom_data.vertex_format, geom_data.stride);
@@ -468,7 +453,11 @@ build_triangle(inout radv_aabb bounds, VOID_REF dst_ptr, radv_bvh_geometry_data 
     * format does not have a NaN representation, then all triangles are considered active.
     */
    if (isnan(vertices.vertex[0].x) || isnan(vertices.vertex[1].x) || isnan(vertices.vertex[2].x))
+#if ALWAYS_ACTIVE
+      is_valid = false;
+#else
       return false;
+#endif
 
    if (geom_data.transform != NULL) {
       mat4 transform = mat4(1.0);
@@ -497,12 +486,13 @@ build_triangle(inout radv_aabb bounds, VOID_REF dst_ptr, radv_bvh_geometry_data 
    DEREF(node).geometry_id_and_flags = geom_data.geometry_id;
    DEREF(node).id = 9;
 
-   return true;
+   return is_valid;
 }
 
 bool
 build_aabb(inout radv_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t geometry_id, uint32_t global_id)
 {
+   bool is_valid = true;
    REF(radv_bvh_aabb_node) node = REF(radv_bvh_aabb_node)(dst_ptr);
 
    for (uint32_t vec = 0; vec < 2; vec++)
@@ -519,12 +509,16 @@ build_aabb(inout radv_aabb bounds, VOID_REF src_ptr, VOID_REF dst_ptr, uint32_t 
     * NaN, and the first is not, the behavior is undefined.
     */
    if (isnan(bounds.min.x))
+#if ALWAYS_ACTIVE
+      is_valid = false;
+#else
       return false;
+#endif
 
    DEREF(node).primitive_id = global_id;
    DEREF(node).geometry_id_and_flags = geometry_id;
 
-   return true;
+   return is_valid;
 }
 
 radv_aabb
@@ -716,4 +710,4 @@ should_execute_phase()
    for (; task_index != TASK_INDEX_INVALID && should_execute_phase(); task_index = fetch_task(header, true))
 #endif
 
-#endif
+#endif /* BUILD_HELPERS_H */

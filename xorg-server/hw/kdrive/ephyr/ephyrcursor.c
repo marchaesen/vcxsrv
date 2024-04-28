@@ -246,7 +246,7 @@ miPointerSpriteFuncRec EphyrPointerSpriteFuncs = {
 Bool
 ephyrCursorInit(ScreenPtr screen)
 {
-    if (!dixRegisterPrivateKey(&ephyrCursorPrivateKey, PRIVATE_CURSOR_BITS,
+    if (!dixRegisterPrivateKey(&ephyrCursorPrivateKey, PRIVATE_CURSOR,
                                sizeof(ephyrCursorRec)))
         return FALSE;
 

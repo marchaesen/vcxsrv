@@ -35,9 +35,8 @@
 #include "drm-uapi/drm_fourcc.h"
 #include "genxml/gen_macros.h"
 #include "util/format/u_format.h"
-#include "pan_bo.h"
-#include "pan_device.h"
 #include "pan_format.h"
+#include "pan_pool.h"
 #include "pan_util.h"
 
 #ifdef __cplusplus
@@ -116,7 +115,7 @@ struct pan_image_layout {
 };
 
 struct pan_image_mem {
-   struct panfrost_bo *bo;
+   mali_ptr base;
    unsigned offset;
 };
 
@@ -224,10 +223,15 @@ enum pan_afbc_mode {
    PAN_AFBC_MODE_INVALID
 };
 
-bool panfrost_format_supports_afbc(const struct panfrost_device *dev,
-                                   enum pipe_format format);
-
 enum pan_afbc_mode panfrost_afbc_format(unsigned arch, enum pipe_format format);
+
+/* A format may be compressed as AFBC if it has an AFBC internal format */
+
+static inline bool
+panfrost_format_supports_afbc(unsigned arch, enum pipe_format format)
+{
+   return panfrost_afbc_format(arch, format) != PAN_AFBC_MODE_INVALID;
+}
 
 #define AFBC_HEADER_BYTES_PER_TILE 16
 
@@ -235,7 +239,14 @@ bool panfrost_afbc_can_ytr(enum pipe_format format);
 
 bool panfrost_afbc_can_pack(enum pipe_format format);
 
-bool panfrost_afbc_can_tile(const struct panfrost_device *dev);
+/*
+ * Check if a gen supports AFBC with tiled headers (and hence also solid
+ * colour blocks).
+ */
+static inline bool panfrost_afbc_can_tile(unsigned arch)
+{
+   return arch >= 7;
+}
 
 /*
  * Represents the block size of a single plane. For AFBC, this represents the
@@ -274,8 +285,7 @@ struct pan_block_size panfrost_block_size(uint64_t modifier,
 unsigned GENX(panfrost_estimate_texture_payload_size)(
    const struct pan_image_view *iview);
 
-void GENX(panfrost_new_texture)(const struct panfrost_device *dev,
-                                const struct pan_image_view *iview, void *out,
+void GENX(panfrost_new_texture)(const struct pan_image_view *iview, void *out,
                                 const struct panfrost_ptr *payload);
 #endif
 
@@ -285,9 +295,6 @@ unsigned panfrost_get_layer_stride(const struct pan_image_layout *layout,
 unsigned panfrost_texture_offset(const struct pan_image_layout *layout,
                                  unsigned level, unsigned array_idx,
                                  unsigned surface_idx);
-
-struct pan_pool;
-struct pan_jc;
 
 /* DRM modifier helper */
 
@@ -301,8 +308,7 @@ struct pan_image_explicit_layout {
 };
 
 bool
-pan_image_layout_init(const struct panfrost_device *dev,
-                      struct pan_image_layout *layout,
+pan_image_layout_init(unsigned arch, struct pan_image_layout *layout,
                       const struct pan_image_explicit_layout *explicit_layout);
 
 unsigned panfrost_get_legacy_stride(const struct pan_image_layout *layout,

@@ -20,8 +20,8 @@
    "entries": [
     {"name": "BINNING_ALLOWED", "value": 0},
     {"name": "FORCE_BINNING_ON", "value": 1},
-    {"name": "DISABLE_BINNING_USE_NEW_SC", "value": 2},
-    {"name": "DISABLE_BINNING_USE_LEGACY_SC", "value": 3}
+    {"name": "BINNING_ONE_PRIM_PER_BATCH", "value": 2},
+    {"name": "BINNING_DISABLED", "value": 3}
    ]
   },
   "BlendOp": {

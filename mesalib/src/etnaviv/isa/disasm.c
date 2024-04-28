@@ -7,7 +7,7 @@
 
 #include "util/os_file.h"
 
-#include "isa.h"
+#include "etnaviv-isa.h"
 
 static void
 pre_instr_cb(void *d, unsigned n, void *instr)
@@ -22,12 +22,12 @@ main(int argc, char *argv[])
    size_t sz;
    void *raw = os_read_file(argv[1], &sz);
 
-   isa_disasm(raw, sz, stdout,
-              &(struct isa_decode_options){
-                 .show_errors = true,
-                 .branch_labels = true,
-                 .pre_instr_cb = pre_instr_cb,
-              });
+   etnaviv_isa_disasm(raw, sz, stdout,
+                      &(struct isa_decode_options){
+                         .show_errors = true,
+                         .branch_labels = true,
+                         .pre_instr_cb = pre_instr_cb,
+                      });
 
    return 0;
 }

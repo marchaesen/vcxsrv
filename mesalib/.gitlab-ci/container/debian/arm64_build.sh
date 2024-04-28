@@ -27,6 +27,7 @@ DEPS=(
     cmake
     curl
     fastboot
+    flatbuffers-compiler
     flex
     g++
     git
@@ -36,6 +37,7 @@ DEPS=(
     libdrm-dev
     libelf-dev
     libexpat1-dev
+    libflatbuffers-dev
     libvulkan-dev
     libx11-dev
     libx11-xcb-dev
@@ -50,6 +52,7 @@ DEPS=(
     libxext-dev
     libxrandr-dev
     libxshmfence-dev
+    libxtensor-dev
     libxxf86vm-dev
     libwayland-dev
     libwayland-egl-backend-dev
@@ -61,6 +64,7 @@ DEPS=(
     python3-mako
     python3-pil
     python3-pip
+    python3-pycparser
     python3-requests
     python3-setuptools
     u-boot-tools

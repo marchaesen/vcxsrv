@@ -931,10 +931,6 @@ Test:SpvParserTest_IEqual_SpvBinaryLogicalTest_EmitExpression_5.spvasm:main|Frag
 Test:SpvParserTest_Impl_GenericVulkanShader_GLSL450MemoryModel.spvasm:main|GLCompute: Pass
 Test:SpvParserTest_Impl_GenericVulkanShader_SimpleMemoryModel.spvasm:main|GLCompute: Pass
 Test:SpvParserTest_Impl_GenericVulkanShader_VulkanMemoryModel.spvasm:main|GLCompute: Fail
-SPIR-V WARNING:
-
-    Unsupported SPIR-V capability: SpvCapabilityVulkanMemoryModel (5345)
-    28 bytes into the SPIR-V binary
 SPIR-V parsing FAILED:
 
     Vulkan memory model is unsupported by this driver

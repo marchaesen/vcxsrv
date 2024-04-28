@@ -929,7 +929,7 @@ do_lower_jumps(exec_list *instructions, bool pull_out_jumps, bool lower_sub_retu
    bool progress_ever = false;
    do {
       v.progress = false;
-      visit_exec_list(instructions, &v);
+      visit_exec_list_safe(instructions, &v);
       progress_ever = v.progress || progress_ever;
    } while (v.progress);
 

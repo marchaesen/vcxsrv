@@ -34,6 +34,7 @@
 #include <limits.h>
 #include <setjmp.h>
 #include <sys/resource.h>
+#include <assert.h>
 #ifdef HAVE_MALLOC_H
 # include <malloc.h>
 #endif
@@ -41,6 +42,9 @@
 /* Tell gcc not to warn that we're asking for impossible sizes in some tests */
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Walloc-size-larger-than="
+
+/* to silence missing prototype warning */
+void *Xmureallocarray(void *optr, size_t nmemb, size_t size);
 
 /*
  * To ensure we're testing our Xmureallocarray and not any system-provided
@@ -156,9 +160,16 @@ static void test_Xmureallocarray_oversize(void)
 
     p2 = Xmureallocarray(p, 2, ALLOC_LIMIT);
     g_assert_null(p2);
+    /* Unfortunately, g_assert_null has a test_nonfatal_assertions option that
+     * provides a code path that can get here even if p2 is not NULL, thus
+     * leading gcc to issue a -Wuse-after-free warning if we don't assert
+     * again that p2 is NULL and thus p is still valid.
+     */
+    assert(p2 == NULL);
     g_assert_cmpint(errno, ==, ENOMEM);
 
     errno = 0;
+    /* Free p, since we forced the realloc to fail, leaving it valid */
     free(p);
     g_assert_cmpint(errno, ==, 0);
 }
@@ -183,19 +194,25 @@ static void test_Xmureallocarray_overflow(void)
 
     p2 = Xmureallocarray(p, 1, SIZE_MAX);
     g_assert_null(p2);
+    /* See above about why we assert this again */
+    assert(p2 == NULL);
     g_assert_cmpint(errno, ==, ENOMEM);
 
     /* SQRT_SIZE_MAX * SQRT_SIZE_MAX == 0 due to overflow */
     p2 = Xmureallocarray(p, SQRT_SIZE_MAX, SQRT_SIZE_MAX);
     g_assert_null(p2);
+    assert(p2 == NULL);
     g_assert_cmpint(errno, ==, ENOMEM);
+
 
     /* Overflows to a small positive number */
     p2 = Xmureallocarray(p, SQRT_SIZE_MAX + 1, SQRT_SIZE_MAX);
     g_assert_null(p2);
+    assert(p2 == NULL);
     g_assert_cmpint(errno, ==, ENOMEM);
 
     errno = 0;
+    /* Free p, since we forced the reallocs to fail, leaving it valid */
     free(p);
     g_assert_cmpint(errno, ==, 0);
 }

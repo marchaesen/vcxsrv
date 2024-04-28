@@ -60,11 +60,14 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
+#include <sys/mman.h>
 #include <X11/X.h>
+
 #include "xf86.h"
+#include "xf86_os_support."
 #include "xf86Priv.h"
 #include "xf86_OSlib.h"
-#include "xf86OSpriv.h"
 #include "compiler.h"
 
 #if defined(__NetBSD__) && !defined(MAP_FILE)

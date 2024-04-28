@@ -356,12 +356,23 @@ struct EncodedBitstreamResolvedMetadata
    struct d3d12_fence m_FenceData;
 };
 
+enum d3d12_video_encoder_driver_workarounds
+{
+   d3d12_video_encoder_driver_workaround_none = 0x0,
+   // Workaround for drivers supporting rate control reconfiguration but not reporting it
+   // and having issues with encoder state/heap objects recreation
+   d3d12_video_encoder_driver_workaround_rate_control_reconfig = 0x1,
+};
+DEFINE_ENUM_FLAG_OPERATORS(d3d12_video_encoder_driver_workarounds);
+
 struct d3d12_video_encoder
 {
    struct pipe_video_codec base = {};
    struct pipe_screen *    m_screen = nullptr;
    struct d3d12_screen *   m_pD3D12Screen = nullptr;
    UINT max_quality_levels = 1;
+
+   enum d3d12_video_encoder_driver_workarounds driver_workarounds = d3d12_video_encoder_driver_workaround_none;
 
    ///
    /// D3D12 objects and context info

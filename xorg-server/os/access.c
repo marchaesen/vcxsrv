@@ -187,10 +187,14 @@ SOFTWARE.
 #define X_INCLUDE_NETDB_H
 #include <X11/Xos_r.h>
 
+#include "os/auth.h"
+
 #include "dixstruct.h"
 #include "osdep.h"
 
 #include "xace.h"
+#include "rpcauth.h"
+#include "xdmcp.h"
 
 Bool defeatAccessControl = FALSE;
 
@@ -253,6 +257,14 @@ static Bool siAddrMatch(int family, void *addr, int len, HOST * host,
 static int siCheckAddr(const char *addrString, int length);
 static void siTypesInitialize(void);
 
+static void EnableLocalHost(void);
+static void DisableLocalHost(void);
+
+#ifndef NO_LOCAL_CLIENT_CRED
+static void EnableLocalUser(void);
+static void DisableLocalUser(void);
+#endif
+
 /*
  * called when authorization is not enabled to add the
  * local host to the access list
@@ -273,8 +285,7 @@ EnableLocalAccess(void)
     }
 }
 
-void
-EnableLocalHost(void)
+static void EnableLocalHost(void)
 {
     if (!UsingXdmcp) {
         LocalHostEnabled = TRUE;
@@ -300,8 +311,7 @@ DisableLocalAccess(void)
     }
 }
 
-void
-DisableLocalHost(void)
+static void DisableLocalHost(void)
 {
     HOST *self;
 
@@ -343,8 +353,7 @@ out:
     return length;
 }
 
-void
-EnableLocalUser(void)
+static void EnableLocalUser(void)
 {
     char *addr = NULL;
     int length = -1;
@@ -359,8 +368,7 @@ EnableLocalUser(void)
     free(addr);
 }
 
-void
-DisableLocalUser(void)
+static void DisableLocalUser(void)
 {
     char *addr = NULL;
     int length = -1;
@@ -440,20 +448,11 @@ DefineSelf(int fd)
 #if !defined(TCPCONN) && !defined(UNIXCONN)
     return;
 #else
-    register int n;
     int len;
     caddr_t addr;
     int family;
     register HOST *host;
-
-#ifndef WIN32
     struct utsname name;
-#else
-    struct {
-        char nodename[512];
-    } name;
-#endif
-
     register struct hostent *hp;
 
     union {
@@ -465,7 +464,9 @@ DefineSelf(int fd)
     } saddr;
 
     struct sockaddr_in *inetaddr;
+#if defined(IPv6) && defined(AF_INET6)
     struct sockaddr_in6 *inet6addr;
+#endif
     struct sockaddr_in broad_addr;
 
 #ifdef XTHREADS_NEEDS_BYNAMEPARAMS
@@ -477,11 +478,7 @@ DefineSelf(int fd)
      * uname() lets me access to the whole string (it smashes release, you
      * see), whereas gethostname() kindly truncates it for me.
      */
-#ifndef WIN32
     uname(&name);
-#else
-    gethostname(name.nodename, sizeof(name.nodename));
-#endif
 
     hp = _XGethostbyname(name.nodename, hparams);
     if (hp != NULL) {
@@ -1179,7 +1176,11 @@ GetLocalClientCreds(ClientPtr client, LocalClientCredRec ** lccp)
     ucred_t *peercred = NULL;
     const gid_t *gids;
 #elif defined(SO_PEERCRED)
+#ifndef __OpenBSD__
     struct ucred peercred;
+#else
+    struct sockpeercred peercred;
+#endif
     socklen_t so_len = sizeof(peercred);
 #elif defined(LOCAL_PEERCRED) && defined(HAVE_XUCRED_CR_PID)
     struct xucred peercred;
@@ -1637,13 +1638,6 @@ ChangeAccessControl(ClientPtr client, int fEnabled)
         return rc;
     AccessEnabled = fEnabled;
     return Success;
-}
-
-/* returns FALSE if xhost + in effect, else TRUE */
-int
-GetAccessControl(void)
-{
-    return AccessEnabled;
 }
 
 int

@@ -104,9 +104,10 @@ void
 agx_opt_cse(agx_context *ctx)
 {
    struct set *instr_set = _mesa_set_create(NULL, hash_instr, instrs_equal);
+   agx_index *replacement = malloc(sizeof(agx_index) * ctx->alloc);
 
    agx_foreach_block(ctx, block) {
-      agx_index *replacement = calloc(sizeof(agx_index), ctx->alloc);
+      memset(replacement, 0, sizeof(agx_index) * ctx->alloc);
       _mesa_set_clear(instr_set, NULL);
 
       agx_foreach_instr_in_block(block, instr) {
@@ -131,9 +132,8 @@ agx_opt_cse(agx_context *ctx)
             }
          }
       }
-
-      free(replacement);
    }
 
+   free(replacement);
    _mesa_set_destroy(instr_set, NULL);
 }

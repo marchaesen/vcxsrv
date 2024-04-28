@@ -1,4 +1,3 @@
-
 /*
  *
  * Copyright 1991-1999 by The XFree86 Project, Inc.
@@ -8,9 +7,6 @@
  *   Copyright 1990,91 by Thomas Roell, Dinkelscherben, Germany.
  *
  */
-
-#define _NEED_SYSI86
-
 #ifdef HAVE_XORG_CONFIG_H
 #include <xorg-config.h>
 #endif

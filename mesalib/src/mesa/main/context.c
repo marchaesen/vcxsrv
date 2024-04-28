@@ -202,8 +202,6 @@ one_time_init(const char *extensions_override)
    STATIC_ASSERT(sizeof(GLint) == 4);
    STATIC_ASSERT(sizeof(GLuint) == 4);
 
-   _mesa_locale_init();
-
    const char *env_const = os_get_option("MESA_EXTENSION_OVERRIDE");
    if (env_const) {
       if (extensions_override &&
@@ -222,7 +220,7 @@ one_time_init(const char *extensions_override)
 
    atexit(one_time_fini);
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    if (MESA_VERBOSE != 0) {
       _mesa_debug(NULL, "Mesa " PACKAGE_VERSION " DEBUG build" MESA_GIT_SHA1 "\n");
    }
@@ -474,7 +472,7 @@ _mesa_init_constants(struct gl_constants *consts, gl_api api)
    consts->MaxGeometryTotalOutputComponents = MAX_GEOMETRY_TOTAL_OUTPUT_COMPONENTS;
    consts->MaxGeometryShaderInvocations = MAX_GEOMETRY_SHADER_INVOCATIONS;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    consts->GenerateTemporaryNames = true;
 #else
    consts->GenerateTemporaryNames = false;

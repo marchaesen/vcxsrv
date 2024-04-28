@@ -36,7 +36,7 @@
 #include <vulkan/vk_icd.h>
 
 #include "vk_android.h"
-#include "vulkan/util/vk_enum_defines.h"
+#include "vk_enum_defines.h"
 
 #include "util/libsync.h"
 #include "util/log.h"

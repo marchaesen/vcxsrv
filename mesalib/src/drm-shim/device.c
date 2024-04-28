@@ -413,6 +413,15 @@ drm_shim_bo_get_mmap_offset(struct shim_fd *shim_fd, struct shim_bo *bo)
    return bo->mem_addr;
 }
 
+void
+drm_shim_init_iomem_region(off64_t offset, size_t size,
+                           void *(*mmap_handler)(size_t, int, int, off64_t))
+{
+   shim_device.iomem_region.mmap = mmap_handler;
+   shim_device.iomem_region.start = offset;
+   shim_device.iomem_region.size = size;
+}
+
 /* For mmap() on the DRM fd, look up the BO from the "offset" and map the BO's
  * fd.
  */
@@ -420,6 +429,12 @@ void *
 drm_shim_mmap(struct shim_fd *shim_fd, size_t length, int prot, int flags,
               int fd, off64_t offset)
 {
+   if (shim_device.iomem_region.mmap &&
+       offset >= shim_device.iomem_region.start &&
+       offset + length <= shim_device.iomem_region.start + shim_device.iomem_region.size) {
+      return shim_device.iomem_region.mmap(length, prot, flags, offset);
+   }
+
    mtx_lock(&shim_device.mem_lock);
    struct shim_bo *bo = _mesa_hash_table_u64_search(shim_device.offset_map, offset);
    mtx_unlock(&shim_device.mem_lock);

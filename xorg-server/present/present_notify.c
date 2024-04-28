@@ -19,8 +19,10 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
  * OF THIS SOFTWARE.
  */
+#include <dix-config.h>
 
-#include "present_priv.h"
+#include "dix/dix_priv.h"
+#include "present/present_priv.h"
 
 /*
  * Mark all pending notifies for 'window' as invalid when

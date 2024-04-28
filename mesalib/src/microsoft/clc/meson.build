@@ -31,6 +31,7 @@ libclc_compiler = shared_library(
   include_directories : [inc_include, inc_src, inc_spirv],
   dependencies: [idep_mesaclc, idep_nir_headers, dep_version, idep_mesautil,
                  idep_libdxil_compiler, idep_nir, idep_vtn],
+  install : true,
   name_prefix : ''  # otherwise mingw will create libclon12compiler.dll
 )
 

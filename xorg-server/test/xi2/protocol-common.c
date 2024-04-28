@@ -30,6 +30,9 @@
 
 #include <errno.h>
 #include <stdint.h>
+
+#include "dix/dix_priv.h"
+
 #include "extinit.h"            /* for XInputExtensionInit */
 #include "exglobals.h"
 #include "xkbsrv.h"             /* for XkbInitPrivates */
@@ -37,7 +40,6 @@
 #include "syncsrv.h"
 #include <X11/extensions/XI2.h>
 
-#define INSIDE_PROTOCOL_COMMON
 #include "protocol-common.h"
 
 struct devices devices;
@@ -45,13 +47,6 @@ ScreenRec screen;
 WindowRec root;
 WindowRec window;
 static ClientRec server_client;
-
-void *global_userdata;
-
-void (*reply_handler) (ClientPtr client, int len, char *data, void *userdata);
-
-int enable_GrabButton_wrap = 1;
-int enable_XISetEventMask_wrap = 1;
 
 static void
 fake_init_sprite(DeviceIntPtr dev)
@@ -287,12 +282,31 @@ init_simple(void)
     devices = init_devices();
 }
 
-void
-__wrap_WriteToClient(ClientPtr client, int len, void *data)
+WRAP_FUNCTION(WriteToClient, void, ClientPtr client, int len, void *data)
 {
-    assert(reply_handler != NULL);
+    IMPLEMENT_WRAP_FUNCTION(WriteToClient, client, len, data);
+}
 
-    (*reply_handler) (client, len, data, global_userdata);
+WRAP_FUNCTION(XISetEventMask, int,
+              DeviceIntPtr dev, WindowPtr win, ClientPtr client,
+              int len, unsigned char *mask)
+{
+    IMPLEMENT_WRAP_FUNCTION_WITH_RETURN(XISetEventMask, dev, win, client, len, mask);
+}
+
+WRAP_FUNCTION(AddResource, Bool, XID id, RESTYPE type, void *value)
+{
+    IMPLEMENT_WRAP_FUNCTION_WITH_RETURN(AddResource, id, type, value);
+}
+
+WRAP_FUNCTION(GrabButton, int,
+              ClientPtr client, DeviceIntPtr dev,
+              DeviceIntPtr modifier_device, int button,
+              GrabParameters *param, enum InputLevel grabtype,
+              GrabMask *mask)
+{
+    IMPLEMENT_WRAP_FUNCTION_WITH_RETURN(GrabButton, client, dev, modifier_device,
+                                        button, param, grabtype, mask);
 }
 
 /* dixLookupWindow requires a lot of setup not necessary for this test.
@@ -300,8 +314,8 @@ __wrap_WriteToClient(ClientPtr client, int len, void *data)
  * fake client window. If the requested ID is neither of those wanted,
  * return whatever the real dixLookupWindow does.
  */
-int
-__wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
+WRAP_FUNCTION(dixLookupWindow, int,
+              WindowPtr *win, XID id, ClientPtr client, Mask access)
 {
     if (id == root.drawable.id) {
         *win = &root;
@@ -317,9 +331,8 @@ __wrap_dixLookupWindow(WindowPtr *win, XID id, ClientPtr client, Mask access)
 
 extern ClientRec client_window;
 
-int
-__wrap_dixLookupClient(ClientPtr *pClient, XID rid, ClientPtr client,
-                       Mask access)
+WRAP_FUNCTION(dixLookupClient, int,
+              ClientPtr *pClient, XID rid, ClientPtr client, Mask access)
 {
     if (rid == ROOT_WINDOW_ID)
         return BadWindow;

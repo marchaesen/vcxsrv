@@ -35,49 +35,48 @@ panvk_entrypoints = custom_target(
 )
 
 libpanvk_files = files(
-  'panvk_cmd_buffer.c',
-  'panvk_cs.c',
-  'panvk_device.c',
-  'panvk_descriptor_set.c',
-  'panvk_formats.c',
+  'panvk_buffer.c',
+  'panvk_cmd_pool.c',
+  'panvk_device_memory.c',
+  'panvk_event.c',
   'panvk_image.c',
+  'panvk_instance.c',
   'panvk_mempool.c',
-  'panvk_pass.c',
-  'panvk_pipeline.c',
-  'panvk_pipeline_cache.c',
-  'panvk_private.h',
+  'panvk_physical_device.c',
+  'panvk_priv_bo.c',
   'panvk_query.c',
-  'panvk_shader.c',
   'panvk_wsi.c',
-) + [vk_cmd_enqueue_entrypoints[0], vk_common_entrypoints[0]]
+)
 
 panvk_deps = []
 panvk_flags = []
 panvk_per_arch_libs = []
 
-foreach arch : ['6', '7']
+foreach arch : [6, 7]
   panvk_per_arch_libs += static_library(
     'panvk_v@0@'.format(arch),
     [
       panvk_entrypoints[0],
+      'panvk_vX_buffer_view.c',
       'panvk_vX_cmd_buffer.c',
-      'panvk_vX_cs.c',
       'panvk_vX_descriptor_set.c',
+      'panvk_vX_descriptor_set_layout.c',
       'panvk_vX_device.c',
-      'panvk_vX_image.c',
+      'panvk_vX_image_view.c',
       'panvk_vX_meta.c',
       'panvk_vX_meta_blit.c',
       'panvk_vX_meta_copy.c',
       'panvk_vX_meta_clear.c',
       'panvk_vX_nir_lower_descriptors.c',
       'panvk_vX_pipeline.c',
+      'panvk_vX_pipeline_layout.c',
+      'panvk_vX_queue.c',
+      'panvk_vX_sampler.c',
       'panvk_vX_shader.c',
     ],
     include_directories : [
       inc_include,
       inc_src,
-      inc_gallium, # XXX: util/format/u_formats.h
-      inc_gallium_aux, # XXX: renderonly
       inc_panfrost,
     ],
     dependencies : [
@@ -110,8 +109,6 @@ libvulkan_panfrost = shared_library(
   include_directories : [
     inc_include,
     inc_src,
-    inc_gallium, # XXX: util/format/u_formats.h
-    inc_gallium_aux, # XXX: renderonly
     inc_panfrost,
   ],
   link_whole : [panvk_per_arch_libs],
@@ -174,4 +171,6 @@ _dev_icd = custom_target(
   build_by_default : true,
 )
 
+devenv.append('VK_DRIVER_FILES', _dev_icd.full_path())
+# Deprecated: replaced by VK_DRIVER_FILES above
 devenv.append('VK_ICD_FILENAMES', _dev_icd.full_path())

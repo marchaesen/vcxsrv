@@ -1,25 +1,7 @@
 /*
  * Copyright © 2018 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #ifndef ACO_IR_H
@@ -58,6 +40,7 @@ enum {
    DEBUG_FORCE_WAITDEPS = 0x200,
    DEBUG_NO_VALIDATE_IR = 0x400,
    DEBUG_NO_SCHED_ILP = 0x800,
+   DEBUG_NO_SCHED_VOPD = 0x1000,
 };
 
 enum storage_class : uint8_t {
@@ -938,11 +921,7 @@ private:
 struct Block;
 struct Instruction;
 struct Pseudo_instruction;
-struct SOP1_instruction;
-struct SOP2_instruction;
-struct SOPK_instruction;
-struct SOPP_instruction;
-struct SOPC_instruction;
+struct SALU_instruction;
 struct SMEM_instruction;
 struct DS_instruction;
 struct LDSDIR_instruction;
@@ -957,6 +936,7 @@ struct Pseudo_reduction_instruction;
 struct VALU_instruction;
 struct VINTERP_inreg_instruction;
 struct VINTRP_instruction;
+struct VOPD_instruction;
 struct DPP16_instruction;
 struct DPP8_instruction;
 struct SDWA_instruction;
@@ -1000,61 +980,13 @@ struct Instruction {
       return *(Pseudo_instruction*)this;
    }
    constexpr bool isPseudo() const noexcept { return format == Format::PSEUDO; }
-   SOP1_instruction& sop1() noexcept
-   {
-      assert(isSOP1());
-      return *(SOP1_instruction*)this;
-   }
-   const SOP1_instruction& sop1() const noexcept
-   {
-      assert(isSOP1());
-      return *(SOP1_instruction*)this;
-   }
+
    constexpr bool isSOP1() const noexcept { return format == Format::SOP1; }
-   SOP2_instruction& sop2() noexcept
-   {
-      assert(isSOP2());
-      return *(SOP2_instruction*)this;
-   }
-   const SOP2_instruction& sop2() const noexcept
-   {
-      assert(isSOP2());
-      return *(SOP2_instruction*)this;
-   }
    constexpr bool isSOP2() const noexcept { return format == Format::SOP2; }
-   SOPK_instruction& sopk() noexcept
-   {
-      assert(isSOPK());
-      return *(SOPK_instruction*)this;
-   }
-   const SOPK_instruction& sopk() const noexcept
-   {
-      assert(isSOPK());
-      return *(SOPK_instruction*)this;
-   }
    constexpr bool isSOPK() const noexcept { return format == Format::SOPK; }
-   SOPP_instruction& sopp() noexcept
-   {
-      assert(isSOPP());
-      return *(SOPP_instruction*)this;
-   }
-   const SOPP_instruction& sopp() const noexcept
-   {
-      assert(isSOPP());
-      return *(SOPP_instruction*)this;
-   }
    constexpr bool isSOPP() const noexcept { return format == Format::SOPP; }
-   SOPC_instruction& sopc() noexcept
-   {
-      assert(isSOPC());
-      return *(SOPC_instruction*)this;
-   }
-   const SOPC_instruction& sopc() const noexcept
-   {
-      assert(isSOPC());
-      return *(SOPC_instruction*)this;
-   }
    constexpr bool isSOPC() const noexcept { return format == Format::SOPC; }
+
    SMEM_instruction& smem() noexcept
    {
       assert(isSMEM());
@@ -1210,6 +1142,17 @@ struct Instruction {
       return *(VINTERP_inreg_instruction*)this;
    }
    constexpr bool isVINTERP_INREG() const noexcept { return format == Format::VINTERP_INREG; }
+   VOPD_instruction& vopd() noexcept
+   {
+      assert(isVOPD());
+      return *(VOPD_instruction*)this;
+   }
+   const VOPD_instruction& vopd() const noexcept
+   {
+      assert(isVOPD());
+      return *(VOPD_instruction*)this;
+   }
+   constexpr bool isVOPD() const noexcept { return format == Format::VOPD; }
    constexpr bool isVOP1() const noexcept { return (uint16_t)format & (uint16_t)Format::VOP1; }
    constexpr bool isVOP2() const noexcept { return (uint16_t)format & (uint16_t)Format::VOP2; }
    constexpr bool isVOPC() const noexcept { return (uint16_t)format & (uint16_t)Format::VOPC; }
@@ -1278,9 +1221,20 @@ struct Instruction {
    }
    constexpr bool isVALU() const noexcept
    {
-      return isVOP1() || isVOP2() || isVOPC() || isVOP3() || isVOP3P() || isVINTERP_INREG();
+      return isVOP1() || isVOP2() || isVOPC() || isVOP3() || isVOP3P() || isVINTERP_INREG() ||
+             isVOPD();
    }
 
+   SALU_instruction& salu() noexcept
+   {
+      assert(isSALU());
+      return *(SALU_instruction*)this;
+   }
+   const SALU_instruction& salu() const noexcept
+   {
+      assert(isSALU());
+      return *(SALU_instruction*)this;
+   }
    constexpr bool isSALU() const noexcept
    {
       return isSOP1() || isSOP2() || isSOPC() || isSOPK() || isSOPP();
@@ -1293,30 +1247,13 @@ struct Instruction {
 };
 static_assert(sizeof(Instruction) == 16, "Unexpected padding");
 
-struct SOPK_instruction : public Instruction {
-   uint16_t imm;
-   uint16_t padding;
-};
-static_assert(sizeof(SOPK_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
-
-struct SOPP_instruction : public Instruction {
+struct SALU_instruction : public Instruction {
+   /* In case of SOPP branch instructions, contains the Block index,
+    * and otherwise, for SOPP and SOPK the 16-bit signed immediate.
+    */
    uint32_t imm;
-   int block;
 };
-static_assert(sizeof(SOPP_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
-
-struct SOPC_instruction : public Instruction {
-   uint32_t padding;
-};
-static_assert(sizeof(SOPC_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
-
-struct SOP1_instruction : public Instruction {};
-static_assert(sizeof(SOP1_instruction) == sizeof(Instruction) + 0, "Unexpected padding");
-
-struct SOP2_instruction : public Instruction {
-   uint32_t padding;
-};
-static_assert(sizeof(SOP2_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
+static_assert(sizeof(SALU_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
 /**
  * Scalar Memory Format:
@@ -1367,6 +1304,12 @@ struct VINTERP_inreg_instruction : public VALU_instruction {
 };
 static_assert(sizeof(VINTERP_inreg_instruction) == sizeof(VALU_instruction) + 4,
               "Unexpected padding");
+
+struct VOPD_instruction : public VALU_instruction {
+   aco_opcode opy;
+   uint16_t padding;
+};
+static_assert(sizeof(VOPD_instruction) == sizeof(VALU_instruction) + 4, "Unexpected padding");
 
 /**
  * Data Parallel Primitives Format:
@@ -1460,7 +1403,8 @@ static_assert(sizeof(SDWA_instruction) == sizeof(VALU_instruction) + 4, "Unexpec
 struct VINTRP_instruction : public Instruction {
    uint8_t attribute;
    uint8_t component;
-   uint16_t padding;
+   bool high_16bits;
+   uint8_t padding;
 };
 static_assert(sizeof(VINTRP_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
@@ -1613,7 +1557,7 @@ static_assert(sizeof(Export_instruction) == sizeof(Instruction) + 4, "Unexpected
 struct Pseudo_instruction : public Instruction {
    PhysReg scratch_sgpr; /* might not be valid if it's not needed */
    bool tmp_in_scc;
-   uint8_t padding;
+   bool needs_scratch_reg; /* if scratch_sgpr/scc can be written, initialized by RA. */
 };
 static_assert(sizeof(Pseudo_instruction) == sizeof(Instruction) + 4, "Unexpected padding");
 
@@ -1698,8 +1642,6 @@ VALU_instruction::swapOperands(unsigned idx0, unsigned idx1)
    this->opsel_hi[idx0].swap(this->opsel_hi[idx1]);
 }
 
-extern thread_local aco::monotonic_buffer_resource* instruction_buffer;
-
 struct instr_deleter_functor {
    /* Don't yet free any instructions. They will be de-allocated
     * all at once after compilation finished.
@@ -1709,27 +1651,10 @@ struct instr_deleter_functor {
 
 template <typename T> using aco_ptr = std::unique_ptr<T, instr_deleter_functor>;
 
-template <typename T>
-T*
-create_instruction(aco_opcode opcode, Format format, uint32_t num_operands,
-                   uint32_t num_definitions)
-{
-   std::size_t size =
-      sizeof(T) + num_operands * sizeof(Operand) + num_definitions * sizeof(Definition);
-   void* data = instruction_buffer->allocate(size, alignof(uint32_t));
-   memset(data, 0, size);
-   T* inst = (T*)data;
+size_t get_instr_data_size(Format format);
 
-   inst->opcode = opcode;
-   inst->format = format;
-
-   uint16_t operands_offset = sizeof(T) - offsetof(Instruction, operands);
-   inst->operands = aco::span<Operand>(operands_offset, num_operands);
-   uint16_t definitions_offset = (char*)inst->operands.end() - (char*)&inst->definitions;
-   inst->definitions = aco::span<Definition>(definitions_offset, num_definitions);
-
-   return inst;
-}
+Instruction* create_instruction(aco_opcode opcode, Format format, uint32_t num_operands,
+                                uint32_t num_definitions);
 
 constexpr bool
 Instruction::usesModifiers() const noexcept
@@ -1807,6 +1732,8 @@ bool can_swap_operands(aco_ptr<Instruction>& instr, aco_opcode* new_op, unsigned
 uint32_t get_reduction_identity(ReduceOp op, unsigned idx);
 
 unsigned get_mimg_nsa_dwords(const Instruction* instr);
+
+unsigned get_vopd_opy_start(const Instruction* instr);
 
 unsigned get_operand_size(aco_ptr<Instruction>& instr, unsigned index);
 
@@ -1908,14 +1835,16 @@ struct RegisterDemand {
 
 /* CFG */
 struct Block {
+   using edge_vec = small_vec<uint32_t, 2>;
+
    float_mode fp_mode;
    unsigned index;
    unsigned offset = 0;
    std::vector<aco_ptr<Instruction>> instructions;
-   std::vector<unsigned> logical_preds;
-   std::vector<unsigned> linear_preds;
-   std::vector<unsigned> logical_succs;
-   std::vector<unsigned> linear_succs;
+   edge_vec logical_preds;
+   edge_vec linear_preds;
+   edge_vec logical_succs;
+   edge_vec linear_succs;
    RegisterDemand register_demand = RegisterDemand();
    uint32_t kind = 0;
    int32_t logical_idom = -1;
@@ -2179,14 +2108,6 @@ void select_ps_epilog(Program* program, void* pinfo, ac_shader_config* config,
                       const struct aco_compiler_options* options,
                       const struct aco_shader_info* info, const struct ac_shader_args* args);
 
-void select_tcs_epilog(Program* program, void* pinfo, ac_shader_config* config,
-                       const struct aco_compiler_options* options,
-                       const struct aco_shader_info* info, const struct ac_shader_args* args);
-
-void select_gl_vs_prolog(Program* program, void* pinfo, ac_shader_config* config,
-                         const struct aco_compiler_options* options,
-                         const struct aco_shader_info* info, const struct ac_shader_args* args);
-
 void select_ps_prolog(Program* program, void* pinfo, ac_shader_config* config,
                       const struct aco_compiler_options* options,
                       const struct aco_shader_info* info, const struct ac_shader_args* args);
@@ -2203,12 +2124,12 @@ void optimize(Program* program);
 void optimize_postRA(Program* program);
 void setup_reduce_temp(Program* program);
 void lower_to_cssa(Program* program, live& live_vars);
-void register_allocation(Program* program, std::vector<IDSet>& live_out_per_block,
-                         ra_test_policy = {});
+void register_allocation(Program* program, live& live_vars, ra_test_policy = {});
 void ssa_elimination(Program* program);
 void lower_to_hw_instr(Program* program);
 void schedule_program(Program* program, live& live_vars);
 void schedule_ilp(Program* program);
+void schedule_vopd(Program* program);
 void spill(Program* program, live& live_vars);
 void insert_wait_states(Program* program);
 bool dealloc_vgprs(Program* program);

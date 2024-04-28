@@ -129,6 +129,7 @@ struct stream_ctx {
     enum color_space         cs;
     bool                     enable_3dlut;
     bool                     update_3dlut;
+    uint64_t                 UID_3DLUT;                 // UID for current 3D LUT params
 
     union {
         struct {
@@ -254,6 +255,12 @@ struct vpe_priv {
     bool scale_yuv_matrix; // this is a flag that forces scaling the yuv->rgb matrix
                            //  when embedding the color adjustments
 
+#ifdef VPE_BUILD_1_1
+    // collaborate sync data counter
+    int32_t  collaborate_sync_index;
+    uint16_t vpe_num_instance;
+    bool     collaboration_mode;
+#endif
     enum vpe_expansion_mode expansion_mode;
 };
 

@@ -1,4 +1,5 @@
 $env:PIGLIT_NO_FAST_SKIP = 1
+$env:PIGLIT_SPIRV_AS_BINARY = "C:\VulkanSDK\$env:VULKAN_SDK_VERSION\Bin\spirv-as.exe"
 
 Copy-Item -Path _install\bin\opengl32.dll -Destination C:\Piglit\bin\opengl32.dll
 Copy-Item -Path _install\bin\libgallium_wgl.dll -Destination C:\Piglit\bin\libgallium_wgl.dll

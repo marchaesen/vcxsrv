@@ -40,8 +40,16 @@ struct lp_sampler_matrix {
    uint32_t texture_count;
    uint32_t sampler_count;
 
-   uint32_t sampler_keys[LP_SAMPLE_KEY_COUNT];
+   BITSET_DECLARE(sample_keys, LP_SAMPLE_KEY_COUNT);
    BITSET_DECLARE(image_ops, LP_TOTAL_IMAGE_OP_COUNT);
+
+   /* Per sample key functions which compile and cache sample functions on demand. */
+   void *jit_sample_functions[LP_SAMPLE_KEY_COUNT];
+   void *compile_function;
+   struct hash_table *cache;
+   simple_mtx_t lock;
+
+   struct llvmpipe_context *ctx;
 
    struct util_dynarray gallivms;
 };
@@ -50,6 +58,8 @@ void llvmpipe_init_sampler_matrix(struct llvmpipe_context *ctx);
 
 void llvmpipe_sampler_matrix_destroy(struct llvmpipe_context *ctx);
 
-void llvmpipe_register_shader(struct pipe_context *ctx, const struct pipe_shader_state *shader, bool unregister);
+void llvmpipe_register_shader(struct pipe_context *ctx, const struct pipe_shader_state *shader);
+
+void llvmpipe_clear_sample_functions_cache(struct llvmpipe_context *ctx, struct pipe_fence_handle **fence);
 
 #endif /* LP_SAMPLER_MATRIX */

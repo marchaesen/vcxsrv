@@ -2,7 +2,7 @@ use crate::api::icd::CLResult;
 use crate::api::icd::ReferenceCountedAPIPointer;
 use crate::core::context::Context;
 use crate::core::event::Event;
-use crate::core::memory::Mem;
+use crate::core::memory::MemBase;
 use crate::core::program::Program;
 use crate::core::queue::Queue;
 
@@ -153,7 +153,7 @@ cl_callback!(
 );
 
 impl MemCB {
-    pub fn call(self, mem: &Mem) {
+    pub fn call(self, mem: &MemBase) {
         let cl = cl_mem::from_ptr(mem);
         // SAFETY: `cl` must have pointed to an OpenCL context, which is where we just got it from.
         // All other requirements are covered by this callback's type invariants.
@@ -187,7 +187,7 @@ cl_callback!(
 );
 
 impl SVMFreeCb {
-    pub fn call(self, queue: &Queue, svm_pointers: &mut [*mut c_void]) {
+    pub fn call(self, queue: &Queue, svm_pointers: &mut [usize]) {
         let cl = cl_command_queue::from_ptr(queue);
         // SAFETY: `cl` must be a valid pointer to an OpenCL queue, which is where we just got it from.
         // All other requirements are covered by this callback's type invariants.
@@ -195,7 +195,7 @@ impl SVMFreeCb {
             (self.func)(
                 cl,
                 svm_pointers.len() as u32,
-                svm_pointers.as_mut_ptr(),
+                svm_pointers.as_mut_ptr().cast(),
                 self.data,
             )
         };

@@ -81,29 +81,6 @@ delete_block(struct ir3 *ir, struct ir3_block *block)
       }
       succ->predecessors_count--;
    }
-
-   for (unsigned i = 0; i < 2; i++) {
-      struct ir3_block *succ = block->physical_successors[i];
-      if (!succ)
-         continue;
-
-      ir3_block_remove_physical_predecessor(succ, block);
-   }
-
-   if (block->physical_predecessors_count != 0) {
-      /* There should be only one physical predecessor, for the fallthrough
-       * edge.
-       */
-      assert(block->physical_predecessors_count == 1);
-      struct ir3_block *pred = block->physical_predecessors[0];
-      assert(block->node.next != &ir->block_list);
-      struct ir3_block *next = list_entry(block->node.next, struct ir3_block, node);
-      if (pred->physical_successors[1] == block)
-         pred->physical_successors[1] = next;
-      else
-         pred->physical_successors[0] = next;
-      ir3_block_add_physical_predecessor(next, pred);
-   }
 }
 
 bool

@@ -91,13 +91,23 @@ initialise_coverage_var(struct lower_line_smooth_state *state,
 
         nir_def *real_line_width = nir_load_aa_line_width(&b);
 
-        /* The line coord varies from 0.0 to 1.0 across the width of the line */
+        /* According to the PRM, the line coord varies from 0.0 to 1.0 across
+         * the width of the line. But actually, when a perspective projection
+         * is used, it is also applied to the line coords, so the values end
+         * up being between [min_coord, 1], based on the Wc coordinate.  We
+         * need to re-map the values to be between [0.0, 1.0].
+         */
         nir_def *line_coord = nir_load_line_coord(&b);
+        nir_def *wc = nir_load_fep_w_v3d(&b, 32);
+        nir_def *min_coord_val = nir_fsub(&b, nir_imm_float(&b, 1.0f), wc);
+        nir_def *normalized_line_coord = nir_fdiv(&b,
+                                                  nir_fsub(&b, line_coord, min_coord_val),
+                                                  nir_fsub_imm(&b, 1.0, min_coord_val));;
 
         /* fabs(line_coord - 0.5) * real_line_width */
         nir_def *pixels_from_center =
                 nir_fmul(&b, real_line_width,
-                         nir_fabs(&b, nir_fsub(&b, line_coord,
+                         nir_fabs(&b, nir_fsub(&b, normalized_line_coord,
                                                nir_imm_float(&b, 0.5f))));
 
         /* 0.5 - 1/√2 * (pixels_from_center - line_width * 0.5) */

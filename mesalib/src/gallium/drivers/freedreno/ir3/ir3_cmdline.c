@@ -122,6 +122,8 @@ load_glsl(unsigned num_files, char *const *files, gl_shader_stage stage)
 
    nir_shader *nir = glsl_to_nir(&local_ctx.Const, prog, stage, nir_options);
 
+   gl_nir_inline_functions(nir);
+
    /* required NIR passes: */
    if (nir_options->lower_all_io_to_temps ||
        nir->info.stage == MESA_SHADER_VERTEX ||

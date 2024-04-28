@@ -38,6 +38,7 @@
 /* Includes for authorization */
 #include "securitysrv.h"
 #include "os/osdep.h"
+#include "os/mitauth.h"
 
 #include <xcb/xcb.h>
 
@@ -61,7 +62,7 @@ static xcb_auth_info_t auth_info;
  */
 
 #ifndef XCSECURITY
-static XID
+XID
 GenerateAuthorization(unsigned name_length,
                       const char *name,
                       unsigned data_length,

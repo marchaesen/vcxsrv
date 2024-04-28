@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef AGX_INTERNAL_FORMATS_H
-#define AGX_INTERNAL_FORMATS_H
+#pragma once
 
 #include <stdbool.h>
 #include "util/format/u_formats.h"
@@ -44,5 +43,3 @@ agx_internal_format_supports_mask(enum agx_internal_formats format)
       return true;
    }
 }
-
-#endif

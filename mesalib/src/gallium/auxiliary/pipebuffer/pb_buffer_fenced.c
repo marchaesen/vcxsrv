@@ -196,7 +196,7 @@ fenced_buffer_copy_storage_to_cpu_locked(struct fenced_buffer *fenced_buf);
 static void
 fenced_manager_dump_locked(struct fenced_manager *fenced_mgr)
 {
-#ifdef DEBUG
+#if MESA_DEBUG
    struct pb_fence_ops *ops = fenced_mgr->ops;
    struct list_head *curr, *next;
    struct fenced_buffer *fenced_buf;
@@ -987,7 +987,7 @@ fenced_bufmgr_destroy(struct pb_manager *mgr)
          ;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* assert(!fenced_mgr->num_unfenced); */
 #endif
 

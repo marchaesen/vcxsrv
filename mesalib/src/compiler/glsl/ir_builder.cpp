@@ -554,6 +554,12 @@ interpolate_at_sample(operand a, operand b)
 }
 
 ir_expression *
+f2f16(operand a)
+{
+   return expr(ir_unop_f2f16, a);
+}
+
+ir_expression *
 f2d(operand a)
 {
    return expr(ir_unop_f2d, a);

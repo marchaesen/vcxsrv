@@ -860,3 +860,92 @@ nir_cf_delete(nir_cf_list *cf_list)
       cleanup_cf_node(node, cf_list->impl);
    }
 }
+
+struct block_index {
+   nir_block *block;
+   uint32_t index;
+};
+
+static void
+calc_cfg_post_dfs_indices(nir_function_impl *impl,
+                          nir_block *block,
+                          struct block_index *blocks,
+                          uint32_t *count)
+{
+   if (block == impl->end_block)
+      return;
+
+   assert(block->index < impl->num_blocks);
+
+   if (blocks[block->index].block != NULL) {
+      assert(blocks[block->index].block == block);
+      return;
+   }
+
+   blocks[block->index].block = block;
+
+   for (uint32_t i = 0; i < ARRAY_SIZE(block->successors); i++) {
+      if (block->successors[i] != NULL)
+         calc_cfg_post_dfs_indices(impl, block->successors[i], blocks, count);
+   }
+
+   /* Pre-increment so that unreachable blocks have an index of 0 */
+   blocks[block->index].index = ++(*count);
+}
+
+static int
+rev_cmp_block_index(const void *_a, const void *_b)
+{
+   const struct block_index *a = _a, *b = _b;
+
+   return b->index - a->index;
+}
+
+void
+nir_sort_unstructured_blocks(nir_function_impl *impl)
+{
+   /* Re-index the blocks.
+    *
+    * We hand-roll it here instead of calling the helper because we also want
+    * to assert that there are no structured control-flow constructs.
+    */
+   impl->num_blocks = 0;
+   foreach_list_typed(nir_cf_node, node, node, &impl->body) {
+      nir_block *block = nir_cf_node_as_block(node);
+      block->index = impl->num_blocks++;
+   }
+
+   struct block_index *blocks =
+      rzalloc_array(NULL, struct block_index, impl->num_blocks);
+
+   uint32_t count = 0;
+   calc_cfg_post_dfs_indices(impl, nir_start_block(impl), blocks, &count);
+   assert(count <= impl->num_blocks);
+
+   qsort(blocks, impl->num_blocks, sizeof(*blocks), rev_cmp_block_index);
+
+   struct exec_list dead_blocks;
+   exec_list_move_nodes_to(&impl->body, &dead_blocks);
+
+   for (uint32_t i = 0; i < count; i++) {
+      nir_block *block = blocks[i].block;
+      exec_node_remove(&block->cf_node.node);
+      block->index = i;
+      exec_list_push_tail(&impl->body, &block->cf_node.node);
+   }
+   impl->end_block->index = count;
+
+   for (uint32_t i = count; i < impl->num_blocks; i++) {
+      assert(blocks[i].index == 0);
+      assert(blocks[i].block == NULL);
+   }
+
+   foreach_list_typed_safe(nir_cf_node, node, node, &dead_blocks)
+      cleanup_cf_node(node, impl);
+
+   ralloc_free(blocks);
+
+   /* Dominance is toast but we indexed blocks as part of this pass. */
+   impl->valid_metadata &= nir_metadata_dominance;
+   impl->valid_metadata |= nir_metadata_block_index;
+}

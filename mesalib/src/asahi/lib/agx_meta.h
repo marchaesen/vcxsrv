@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_META_H
-#define __AGX_META_H
+#pragma once
 
 #include "asahi/compiler/agx_compile.h"
 #include "agx_tilebuffer.h"
@@ -43,5 +42,3 @@ struct agx_meta_shader *agx_get_meta_shader(struct agx_meta_cache *cache,
 
 void agx_meta_init(struct agx_meta_cache *cache, struct agx_device *dev);
 void agx_meta_cleanup(struct agx_meta_cache *cache);
-
-#endif

@@ -34,6 +34,8 @@
 #include <dix-config.h>
 #endif
 
+#include <errno.h>
+
 #include "quartz.h"
 
 #include "misc.h"
@@ -269,7 +271,7 @@ ProcAppleWMSelectInput(register ClientPtr client)
             pHead = (WMEventPtr *)malloc(sizeof(WMEventPtr));
             if (!pHead ||
                 !AddResource(eventResource, EventType, (void *)pHead)) {
-                FreeResource(clientResource, RT_NONE);
+                FreeResource(clientResource, X11_RESTYPE_NONE);
                 return BadAlloc;
             }
             *pHead = 0;

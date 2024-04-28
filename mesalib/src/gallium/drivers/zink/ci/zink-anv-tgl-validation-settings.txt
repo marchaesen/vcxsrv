@@ -1,6 +1,6 @@
 # Please include a comment with the log message and a testcase triggering each
 # VUID at the bottom of the file.
-khronos_validation.message_id_filter = VUID-VkPhysicalDeviceProperties2-pNext-pNext,VUID-VkDeviceCreateInfo-pNext-pNext,UNASSIGNED-CoreValidation-Shader-InconsistentSpirv,VUID-vkDestroyDevice-device-00378,VUID-VkShaderModuleCreateInfo-pCode-01377,VUID-RuntimeSpirv-Location-06272,VUID-VkGraphicsPipelineCreateInfo-renderPass-06590,VUID-VkGraphicsPipelineCreateInfo-Geometry-07725,VUID-vkCmdDrawMultiIndexedEXT-format-07753,UNASSIGNED-CoreValidation-Shader-InterfaceTypeMismatch,VUID-RuntimeSpirv-OpEntryPoint-07754,VUID-VkShaderModuleCreateInfo-pCode-01379,VUID-RuntimeSpirv-OpEntryPoint-08743,VUID-VkGraphicsPipelineCreateInfo-topology-00737,VUID-VkGraphicsPipelineCreateInfo-pStages-00736,VUID-vkCmdCopyImage-srcImage-07743,VUID-vkCmdDrawMultiIndexedEXT-format-07753,VUID-vkCmdDrawMultiEXT-pDepthAttachment-06181,VUID-vkCmdDrawMultiEXT-pStencilAttachment-06182,VUID-vkCmdDrawMultiIndexedEXT-pDepthAttachment-06181,VUID-vkCmdDrawMultiIndexedEXT-pStencilAttachment-06182,VUID-vkDestroyDevice-device-05137
+khronos_validation.message_id_filter = VUID-VkPhysicalDeviceProperties2-pNext-pNext,VUID-VkDeviceCreateInfo-pNext-pNext,UNASSIGNED-CoreValidation-Shader-InconsistentSpirv,VUID-vkDestroyDevice-device-00378,VUID-VkShaderModuleCreateInfo-pCode-01377,VUID-RuntimeSpirv-Location-06272,VUID-VkGraphicsPipelineCreateInfo-renderPass-06590,VUID-VkGraphicsPipelineCreateInfo-Geometry-07725,VUID-vkCmdDrawMultiIndexedEXT-format-07753,UNASSIGNED-CoreValidation-Shader-InterfaceTypeMismatch,VUID-RuntimeSpirv-OpEntryPoint-07754,VUID-VkShaderModuleCreateInfo-pCode-01379,VUID-RuntimeSpirv-OpEntryPoint-08743,VUID-VkGraphicsPipelineCreateInfo-topology-00737,VUID-VkGraphicsPipelineCreateInfo-pStages-00736,VUID-vkCmdCopyImage-srcImage-07743,VUID-vkCmdDrawMultiIndexedEXT-format-07753,VUID-vkCmdDrawMultiEXT-pDepthAttachment-06181,VUID-vkCmdDrawMultiEXT-pStencilAttachment-06182,VUID-vkCmdDrawMultiIndexedEXT-pDepthAttachment-06181,VUID-vkCmdDrawMultiIndexedEXT-pStencilAttachment-06182,VUID-vkDestroyDevice-device-05137,VUID-vkCmdDrawMultiEXT-Input-08734
 khronos_validation.report_flags = error
 khronos_validation.debug_action = VK_DBG_LAYER_ACTION_LOG_MSG,VK_DBG_LAYER_ACTION_BREAK
 VK_LAYER_ENABLES=VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT
@@ -142,3 +142,7 @@ khronos_validation.log_filename = stdout
 
 # VUID-vkDestroyDevice-device-05137
 # some kind of bug
+
+# VUID-vkCmdDrawMultiEXT-Input-08734
+# not sure if cts bug...
+# KHR-GL46.direct_state_access.vertex_arrays_attribute_format

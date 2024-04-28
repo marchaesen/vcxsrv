@@ -1,6 +1,6 @@
 [[deqp]]
 deqp = "/deqp/modules/gles2/deqp-gles2"
-caselists = ["/deqp/mustpass/gles2-master.txt"]
+caselists = ["/deqp/mustpass/gles2-main.txt"]
 tests_per_group = 250
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -13,7 +13,7 @@ renderer_check = "Mali450"
 # wayland
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-wayland"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 tests_per_group = 250
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",
@@ -25,7 +25,7 @@ prefix = "wayland-"
 # x11
 [[deqp]]
 deqp = "/deqp/modules/egl/deqp-egl-x11"
-caselists = ["/deqp/mustpass/egl-master.txt"]
+caselists = ["/deqp/mustpass/egl-main.txt"]
 tests_per_group = 250
 deqp_args = [
     "--deqp-surface-width=256", "--deqp-surface-height=256",

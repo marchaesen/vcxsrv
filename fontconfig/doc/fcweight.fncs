@@ -21,7 +21,7 @@
  */
 @RET@           double
 @FUNC@          FcWeightFromOpenTypeDouble
-@TYPE1@         double                          @ARG1@          ot_weight
+@TYPE1@         double%                         @ARG1@          ot_weight
 @PURPOSE@       Convert from OpenType weight values to fontconfig ones
 @DESC@
 <function>FcWeightFromOpenTypeDouble</function> returns an double value
@@ -36,7 +36,7 @@ necessarily match any of the predefined constants.
 
 @RET@           double
 @FUNC@          FcWeightToOpenTypeDouble
-@TYPE1@         double                          @ARG1@          ot_weight
+@TYPE1@         double%                         @ARG1@          ot_weight
 @PURPOSE@       Convert from fontconfig weight values to OpenType ones
 @DESC@
 <function>FcWeightToOpenTypeDouble</function> is the inverse of
@@ -48,7 +48,7 @@ returns a number in the range 1 to 1000.
 
 @RET@           int
 @FUNC@          FcWeightFromOpenType
-@TYPE1@         int                             @ARG1@          ot_weight
+@TYPE1@         int%                            @ARG1@          ot_weight
 @PURPOSE@       Convert from OpenType weight values to fontconfig ones
 @DESC@
 <function>FcWeightFromOpenType</function> is like
@@ -59,7 +59,7 @@ Use the other function instead.
 
 @RET@           int
 @FUNC@          FcWeightToOpenType
-@TYPE1@         int                             @ARG1@          ot_weight
+@TYPE1@         int%                            @ARG1@          ot_weight
 @PURPOSE@       Convert from fontconfig weight values to OpenType ones
 @DESC@
 <function>FcWeightToOpenType</function> is like

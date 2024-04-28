@@ -1506,6 +1506,8 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
    surf->is_displayable = surf->is_linear || surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
                           surf->micro_tile_mode == RADEON_MICRO_MODE_RENDER;
 
+   surf->thick_tiling = AddrSurfInfoOut.blockSlices > 1;
+
    /* The rotated micro tile mode doesn't work if both CMASK and RB+ are
     * used at the same time. This case is not currently expected to occur
     * because we don't use rotated. Enforce this restriction on all chips
@@ -1851,6 +1853,8 @@ static int gfx9_compute_miptree(struct ac_addrlib *addrlib, const struct radeon_
             surf->u.gfx9.prt_level_pitch[i] = out.mipChainPitch;
       }
    }
+
+   surf->thick_tiling = out.blockSlices > 1; /* should be 0 for depth and stencil */
 
    if (in->flags.stencil) {
       surf->u.gfx9.zs.stencil_swizzle_mode = in->swizzleMode;
@@ -3381,12 +3385,12 @@ void ac_surface_print_info(FILE *out, const struct radeon_info *info,
 }
 
 static nir_def *gfx10_nir_meta_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                                   struct gfx9_meta_equation *equation,
-                                                   int blkSizeBias, unsigned blkStart,
-                                                   nir_def *meta_pitch, nir_def *meta_slice_size,
-                                                   nir_def *x, nir_def *y, nir_def *z,
-                                                   nir_def *pipe_xor,
-                                                   nir_def **bit_position)
+                                               const struct gfx9_meta_equation *equation,
+                                               int blkSizeBias, unsigned blkStart,
+                                               nir_def *meta_pitch, nir_def *meta_slice_size,
+                                               nir_def *x, nir_def *y, nir_def *z,
+                                               nir_def *pipe_xor,
+                                               nir_def **bit_position)
 {
    nir_def *zero = nir_imm_int(b, 0);
    nir_def *one = nir_imm_int(b, 1);
@@ -3436,11 +3440,11 @@ static nir_def *gfx10_nir_meta_addr_from_coord(nir_builder *b, const struct rade
 }
 
 static nir_def *gfx9_nir_meta_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                                  struct gfx9_meta_equation *equation,
-                                                  nir_def *meta_pitch, nir_def *meta_height,
-                                                  nir_def *x, nir_def *y, nir_def *z,
-                                                  nir_def *sample, nir_def *pipe_xor,
-                                                  nir_def **bit_position)
+                                              const struct gfx9_meta_equation *equation,
+                                              nir_def *meta_pitch, nir_def *meta_height,
+                                              nir_def *x, nir_def *y, nir_def *z,
+                                              nir_def *sample, nir_def *pipe_xor,
+                                              nir_def **bit_position)
 {
    nir_def *zero = nir_imm_int(b, 0);
    nir_def *one = nir_imm_int(b, 1);
@@ -3503,11 +3507,11 @@ static nir_def *gfx9_nir_meta_addr_from_coord(nir_builder *b, const struct radeo
 }
 
 nir_def *ac_nir_dcc_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                        unsigned bpe, struct gfx9_meta_equation *equation,
-                                        nir_def *dcc_pitch, nir_def *dcc_height,
-                                        nir_def *dcc_slice_size,
-                                        nir_def *x, nir_def *y, nir_def *z,
-                                        nir_def *sample, nir_def *pipe_xor)
+                                    unsigned bpe, const struct gfx9_meta_equation *equation,
+                                    nir_def *dcc_pitch, nir_def *dcc_height,
+                                    nir_def *dcc_slice_size,
+                                    nir_def *x, nir_def *y, nir_def *z,
+                                    nir_def *sample, nir_def *pipe_xor)
 {
    if (info->gfx_level >= GFX10) {
       unsigned bpp_log2 = util_logbase2(bpe);
@@ -3523,12 +3527,12 @@ nir_def *ac_nir_dcc_addr_from_coord(nir_builder *b, const struct radeon_info *in
 }
 
 nir_def *ac_nir_cmask_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                        struct gfx9_meta_equation *equation,
-                                        nir_def *cmask_pitch, nir_def *cmask_height,
-                                        nir_def *cmask_slice_size,
-                                        nir_def *x, nir_def *y, nir_def *z,
-                                        nir_def *pipe_xor,
-                                        nir_def **bit_position)
+                                      const struct gfx9_meta_equation *equation,
+                                      nir_def *cmask_pitch, nir_def *cmask_height,
+                                      nir_def *cmask_slice_size,
+                                      nir_def *x, nir_def *y, nir_def *z,
+                                      nir_def *pipe_xor,
+                                      nir_def **bit_position)
 {
    nir_def *zero = nir_imm_int(b, 0);
 
@@ -3544,11 +3548,11 @@ nir_def *ac_nir_cmask_addr_from_coord(nir_builder *b, const struct radeon_info *
 }
 
 nir_def *ac_nir_htile_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                          struct gfx9_meta_equation *equation,
-                                          nir_def *htile_pitch,
-                                          nir_def *htile_slice_size,
-                                          nir_def *x, nir_def *y, nir_def *z,
-                                          nir_def *pipe_xor)
+                                      const struct gfx9_meta_equation *equation,
+                                      nir_def *htile_pitch,
+                                      nir_def *htile_slice_size,
+                                      nir_def *x, nir_def *y, nir_def *z,
+                                      nir_def *pipe_xor)
 {
    return gfx10_nir_meta_addr_from_coord(b, info, equation, -4, 2,
                                             htile_pitch, htile_slice_size,

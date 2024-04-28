@@ -1,3 +1,7 @@
+/*
+ * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "nine_debug.h"
 #include "nine_pipe.h"
@@ -9,7 +13,7 @@
 
 #include "nine_dump.h"
 
-#if defined(DEBUG) || !defined(NDEBUG)
+#if MESA_DEBUG || !defined(NDEBUG)
 
 static char thread_local tls[128];
 
@@ -811,4 +815,4 @@ nine_dump_D3DCAPS9(unsigned ch, const D3DCAPS9 *caps)
     FREE(s);
 }
 
-#endif /* DEBUG || !NDEBUG */
+#endif /* MESA_DEBUG || !NDEBUG */

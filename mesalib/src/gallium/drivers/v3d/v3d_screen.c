@@ -150,7 +150,7 @@ v3d_screen_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
         case PIPE_CAP_CONDITIONAL_RENDER:
         case PIPE_CAP_CONDITIONAL_RENDER_INVERTED:
         case PIPE_CAP_CUBE_MAP_ARRAY:
-        case PIPE_CAP_NIR_COMPACT_ARRAYS:
+        case PIPE_CAP_TEXTURE_BARRIER:
                 return 1;
 
         case PIPE_CAP_POLYGON_OFFSET_CLAMP:
@@ -680,6 +680,7 @@ v3d_screen_is_format_supported(struct pipe_screen *pscreen,
 }
 
 static const nir_shader_compiler_options v3d_nir_options = {
+        .compact_arrays = true,
         .lower_uadd_sat = true,
         .lower_usub_sat = true,
         .lower_iadd_sat = true,
@@ -720,7 +721,6 @@ static const nir_shader_compiler_options v3d_nir_options = {
         .lower_ldexp = true,
         .lower_mul_high = true,
         .lower_wpos_pntc = true,
-        .lower_rotate = true,
         .lower_to_scalar = true,
         .lower_int64_options = nir_lower_imul_2x32_64,
         .lower_fquantize2f16 = true,

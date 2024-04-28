@@ -19,7 +19,7 @@
 #include "state_tracker/st_context.h"
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #   define TRACE(x...) printf("hgl:frontend: " x)
 #   define CALLED() TRACE("CALLED: %s\n", __PRETTY_FUNCTION__)
 #else
@@ -70,7 +70,7 @@ hgl_st_framebuffer_flush_front(struct st_context *st,
 
 	// TODO: pipe_context here??? Might be needed for hw renderers
 	buffer->screen->flush_frontbuffer(buffer->screen, NULL, ptex, 0, 0,
-		buffer->winsysContext, NULL);
+		buffer->winsysContext, 0, NULL);
 
 	return true;
 }

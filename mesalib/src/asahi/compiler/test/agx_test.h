@@ -20,6 +20,7 @@ agx_test_builder(void *memctx)
 
    agx_block *blk = rzalloc(ctx, agx_block);
    util_dynarray_init(&blk->predecessors, NULL);
+   ctx->num_blocks = 1;
 
    list_addtail(&blk->link, &ctx->blocks);
    list_inithead(&blk->instructions);
@@ -29,6 +30,20 @@ agx_test_builder(void *memctx)
    b->cursor = agx_after_block(blk);
 
    return b;
+}
+
+static inline agx_block *
+agx_test_block(agx_context *ctx)
+{
+   agx_block *blk = rzalloc(ctx, agx_block);
+
+   util_dynarray_init(&blk->predecessors, blk);
+   list_addtail(&blk->link, &ctx->blocks);
+   list_inithead(&blk->instructions);
+
+   blk->index = ctx->num_blocks++;
+
+   return blk;
 }
 
 /* Helper to compare for logical equality of instructions. Need to compare the

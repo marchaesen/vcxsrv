@@ -87,15 +87,10 @@ _mesa_is_valid_generate_texture_mipmap_internalformat(struct gl_context *ctx,
        *  not specified with an unsized internal format from table 8.3 or a
        *  sized internal format that is both color-renderable and
        *  texture-filterable according to table 8.10."
-       *
-       * GL_EXT_texture_format_BGRA8888 adds a GL_BGRA_EXT unsized internal
-       * format, and includes it in a very similar looking table.  So we
-       * include it here as well.
        */
       return internalformat == GL_RGBA || internalformat == GL_RGB ||
              internalformat == GL_LUMINANCE_ALPHA ||
              internalformat == GL_LUMINANCE || internalformat == GL_ALPHA ||
-             internalformat == GL_BGRA_EXT ||
              (_mesa_is_es3_color_renderable(ctx, internalformat) &&
               _mesa_is_es3_texture_filterable(ctx, internalformat));
    }

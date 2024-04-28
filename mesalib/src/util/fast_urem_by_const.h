@@ -68,7 +68,7 @@ util_fast_urem32(uint32_t n, uint32_t d, uint64_t magic)
 {
    uint64_t lowbits = magic * n;
    uint32_t result = _mul32by64_hi(d, lowbits);
-#ifdef DEBUG
+#if MESA_DEBUG
    assert(result == n % d);
 #endif
    return result;

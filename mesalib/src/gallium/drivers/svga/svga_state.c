@@ -216,7 +216,7 @@ update_state(struct svga_context *svga,
              const struct svga_tracked_state *atoms[],
              uint64_t *state)
 {
-#ifdef DEBUG
+#if MESA_DEBUG
    bool debug = true;
 #else
    bool debug = false;

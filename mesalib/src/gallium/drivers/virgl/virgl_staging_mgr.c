@@ -96,7 +96,7 @@ virgl_staging_alloc(struct virgl_staging_mgr *staging,
                     unsigned alignment,
                     unsigned *out_offset,
                     struct virgl_hw_res **outbuf,
-                    void **ptr)
+                    uint8_t **ptr)
 {
    struct virgl_winsys *vws = staging->vws;
    unsigned offset = align(staging->offset, alignment);

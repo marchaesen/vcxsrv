@@ -116,7 +116,7 @@ wgl_screen_create(HDC hDC)
    struct sw_winsys *winsys;
    UNUSED bool sw_only = debug_get_bool_option("LIBGL_ALWAYS_SOFTWARE", false);
 
-   winsys = gdi_create_sw_winsys();
+   winsys = gdi_create_sw_winsys(gdi_sw_acquire_hdc_by_value, gdi_sw_release_hdc_by_value);
    if (!winsys)
       return NULL;
 
@@ -193,7 +193,7 @@ wgl_present(struct pipe_screen *screen,
 
 #ifdef GALLIUM_ZINK
    if (use_zink) {
-      screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, NULL);
+      screen->flush_frontbuffer(screen, ctx, res, 0, 0, hDC, 0, NULL);
       return;
    }
 #endif

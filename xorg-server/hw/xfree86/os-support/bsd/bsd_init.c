@@ -29,16 +29,20 @@
 
 #include <X11/X.h>
 
-#include "compiler.h"
+#include "os/cmdline.h"
 
+#include "compiler.h"
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 
 #include <sys/utsname.h>
 #include <sys/ioctl.h>
 #include <stdlib.h>
 #include <errno.h>
+
+#include "os/osdep.h"
 
 static Bool KeepTty = FALSE;
 
@@ -86,7 +90,7 @@ static int initialVT = -1;
 #define CHECK_DRIVER_MSG \
   "Check your kernel's console driver configuration and /dev entries"
 
-static char *supported_drivers[] = {
+static const char *supported_drivers[] = {
 #ifdef PCCONS_SUPPORT
     "pccons (with X support)",
 #endif
@@ -150,7 +154,7 @@ static xf86ConsOpen_t xf86ConsTab[] = {
 };
 
 void
-xf86OpenConsole()
+xf86OpenConsole(void)
 {
     int i, fd = -1;
     xf86ConsOpen_t *driver;
@@ -251,7 +255,9 @@ xf86OpenConsole()
                 sleep(1);
             }
 #endif
+#if defined(__FreeBSD__) || defined(__FreeBSD_kernel__)
  acquire_vt:
+#endif
             if (!xf86Info.ShareVTs) {
                 /*
                  * now get the VT
@@ -317,7 +323,7 @@ xf86OpenConsole()
 #ifdef PCCONS_SUPPORT
 
 static int
-xf86OpenPccons()
+xf86OpenPccons(void)
 {
     int fd = -1;
 
@@ -342,7 +348,7 @@ xf86OpenPccons()
 #ifdef SYSCONS_SUPPORT
 
 static int
-xf86OpenSyscons()
+xf86OpenSyscons(void)
 {
     int fd = -1;
     vtmode_t vtmode;
@@ -448,13 +454,16 @@ xf86OpenSyscons()
 #ifdef PCVT_SUPPORT
 
 static int
-xf86OpenPcvt()
+xf86OpenPcvt(void)
 {
     /* This looks much like syscons, since pcvt is API compatible */
     int fd = -1;
     vtmode_t vtmode;
-    char vtname[12], *vtprefix;
+    char vtname[12];
+    const char *vtprefix;
+#ifdef __NetBSD__
     struct pcvtid pcvt_version;
+#endif
 
 #ifndef __OpenBSD__
     vtprefix = "/dev/ttyv";
@@ -470,7 +479,9 @@ xf86OpenPcvt()
     }
 #endif
     if (fd >= 0) {
+#ifdef __NetBSD__
         if (ioctl(fd, VGAPCVTID, &pcvt_version) >= 0) {
+#endif
             if (ioctl(fd, VT_GETMODE, &vtmode) < 0) {
                 FatalError("%s: VT_GETMODE failed\n%s%s\n%s",
                            "xf86OpenPcvt",
@@ -521,20 +532,32 @@ xf86OpenPcvt()
             }
             xf86Info.consType = PCVT;
 #ifdef WSCONS_SUPPORT
+#ifdef __NetBSD__
             xf86Msg(X_PROBED,
                     "Using wscons driver on %s in pcvt compatibility mode "
                     "(version %d.%d)\n", vtname,
                     pcvt_version.rmajor, pcvt_version.rminor);
 #else
+            xf86Msg(X_PROBED,
+                    "Using wscons driver on %s in pcvt compatibility mode ",
+                    vtname);
+#endif
+#else
+# ifdef __NetBSD__
             xf86Msg(X_PROBED, "Using pcvt driver (version %d.%d)\n",
                     pcvt_version.rmajor, pcvt_version.rminor);
+# else
+            xf86Msg(X_PROBED, "Using pcvt driver\n");
+# endif
 #endif
+#ifdef __NetBSD__
         }
         else {
             /* Not pcvt */
             close(fd);
             fd = -1;
         }
+#endif
     }
     return fd;
 }
@@ -544,7 +567,7 @@ xf86OpenPcvt()
 #ifdef WSCONS_SUPPORT
 
 static int
-xf86OpenWScons()
+xf86OpenWScons(void)
 {
     int fd = -1;
     int mode = WSDISPLAYIO_MODE_MAPPED;
@@ -575,7 +598,7 @@ xf86OpenWScons()
 #endif                          /* WSCONS_SUPPORT */
 
 void
-xf86CloseConsole()
+xf86CloseConsole(void)
 {
 #if defined(SYSCONS_SUPPORT) || defined(PCVT_SUPPORT)
     struct vt_mode VT;
@@ -652,7 +675,7 @@ xf86ProcessArgument(int argc, char *argv[], int i)
 }
 
 void
-xf86UseMsg()
+xf86UseMsg(void)
 {
 #if defined (SYSCONS_SUPPORT) || defined (PCVT_SUPPORT)
     ErrorF("vtXX                   use the specified VT number (1-12)\n");

@@ -31,6 +31,7 @@
 
 #include "pipe_loader_priv.h"
 
+#include "util/detect_os.h"
 #include "util/os_file.h"
 #include "util/u_memory.h"
 #include "util/u_dl.h"
@@ -78,7 +79,7 @@ static const struct sw_driver_descriptor driver_descriptors = {
          .create_winsys_kms_dri = kms_dri_create_winsys,
       },
 #endif
-#ifndef __ANDROID__
+#if !DETECT_OS_ANDROID
       {
          .name = "null",
          .create_winsys = null_sw_create,
@@ -107,7 +108,7 @@ static const struct sw_driver_descriptor kopper_driver_descriptors = {
          .create_winsys_kms_dri = kms_dri_create_winsys,
       },
 #endif
-#ifndef __ANDROID__
+#if !DETECT_OS_ANDROID
       {
          .name = "null",
          .create_winsys = null_sw_create,
@@ -233,7 +234,7 @@ fail:
 }
 #ifdef HAVE_ZINK
 bool
-pipe_loader_vk_probe_dri(struct pipe_loader_device **devs, const struct drisw_loader_funcs *drisw_lf)
+pipe_loader_vk_probe_dri(struct pipe_loader_device **devs)
 {
    struct pipe_loader_sw_device *sdev = CALLOC_STRUCT(pipe_loader_sw_device);
    int i;
@@ -246,7 +247,7 @@ pipe_loader_vk_probe_dri(struct pipe_loader_device **devs, const struct drisw_lo
 
    for (i = 0; sdev->dd->winsys[i].name; i++) {
       if (strcmp(sdev->dd->winsys[i].name, "dri") == 0) {
-         sdev->ws = sdev->dd->winsys[i].create_winsys_dri(drisw_lf);
+         sdev->ws = sdev->dd->winsys[i].create_winsys_dri(NULL);
          break;
       }
    }

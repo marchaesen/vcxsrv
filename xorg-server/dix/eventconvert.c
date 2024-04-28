@@ -39,13 +39,14 @@
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XI2.h>
 
+#include "dix/eventconvert.h"
+
 #include "dix.h"
 #include "inputstr.h"
 #include "misc.h"
 #include "eventstr.h"
 #include "exevents.h"
 #include "exglobals.h"
-#include "eventconvert.h"
 #include "inpututils.h"
 #include "xiquerydevice.h"
 #include "xkbsrv.h"

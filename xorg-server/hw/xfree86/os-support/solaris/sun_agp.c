@@ -32,9 +32,12 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
 #include <X11/X.h>
+
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 #include "xf86_OSproc.h"
 #include <unistd.h>
@@ -301,26 +304,6 @@ xf86UnbindGARTMemory(int screenNum, int key)
 
     xf86DrvMsgVerb(screenNum, X_INFO, 3,
                    "xf86UnbindGARTMemory: unbind key %d\n", key);
-
-    return TRUE;
-}
-
-/* XXX Interface may change. */
-Bool
-xf86EnableAGP(int screenNum, CARD32 mode)
-{
-    agp_setup_t setup;
-
-    if (!GARTInit(screenNum) || (acquiredScreen != screenNum))
-        return FALSE;
-
-    setup.agps_mode = mode;
-    if (ioctl(gartFd, AGPIOC_SETUP, &setup) != 0) {
-        xf86DrvMsg(screenNum, X_WARNING, "xf86EnableAGP: "
-                   "AGPIOC_SETUP with mode %x failed (%s)\n",
-                   (unsigned int) mode, strerror(errno));
-        return FALSE;
-    }
 
     return TRUE;
 }

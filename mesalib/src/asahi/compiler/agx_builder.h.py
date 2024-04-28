@@ -115,12 +115,47 @@ agx_${opcode}(agx_builder *b
 /* Convenience methods */
 
 enum agx_bitop_table {
-   AGX_BITOP_NOT = 0x5,
-   AGX_BITOP_XOR = 0x6,
-   AGX_BITOP_AND = 0x8,
-   AGX_BITOP_MOV = 0xA,
-   AGX_BITOP_OR  = 0xE
+   AGX_BITOP_NOR   = 0x1,
+   AGX_BITOP_ANDN2 = 0x2,
+   AGX_BITOP_ANDN1 = 0x4,
+   AGX_BITOP_NOT   = 0x5,
+   AGX_BITOP_XOR   = 0x6,
+   AGX_BITOP_NAND  = 0x7,
+   AGX_BITOP_AND   = 0x8,
+   AGX_BITOP_XNOR  = 0x9,
+   AGX_BITOP_MOV   = 0xA,
+   AGX_BITOP_ORN2  = 0xB,
+   AGX_BITOP_ORN1  = 0xD,
+   AGX_BITOP_OR    = 0xE
 };
+
+#define BINOP_BITOP(name, table)                                                     \
+   static inline agx_instr *                                                         \
+   agx_## name ##_to(agx_builder *b, agx_index dst0, agx_index src0, agx_index src1) \
+   {                                                                                 \
+      return agx_bitop_to(b, dst0, src0, src1, AGX_BITOP_ ## table);                 \
+   }                                                                                 \
+                                                                                     \
+   static inline agx_index                                                           \
+   agx_## name (agx_builder *b, agx_index src0, agx_index src1)                      \
+   {                                                                                 \
+      agx_index tmp = agx_temp(b->shader, src0.size);                                \
+      agx_##name##_to(b, tmp, src0, src1);                                           \
+      return tmp;                                                                    \
+   }
+
+BINOP_BITOP(nor, NOR)
+BINOP_BITOP(andn2, ANDN2)
+BINOP_BITOP(andn1, ANDN1)
+BINOP_BITOP(xor, XOR)
+BINOP_BITOP(nand, NAND)
+BINOP_BITOP(and, AND)
+BINOP_BITOP(xnor, XNOR)
+BINOP_BITOP(orn2, ORN2)
+BINOP_BITOP(orn1, ORN1)
+BINOP_BITOP(or, OR)
+
+#undef BINOP_BITOP
 
 static inline agx_instr *
 agx_fmov_to(agx_builder *b, agx_index dst0, agx_index src0)

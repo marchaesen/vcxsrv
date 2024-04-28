@@ -29,6 +29,9 @@
 extern "C" {
 #endif
 
+struct vk_command_buffer;
+struct vk_image;
+
 /**
  * Pseudo-extension struct that may be chained into VkRenderingAttachmentInfo
  * to indicate an initial layout for the attachment.  This is only allowed if
@@ -425,9 +428,9 @@ vk_subpass_dependency_is_fb_local(const VkSubpassDependency2 *dep,
       VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT |
       VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 
-   const VkPipelineStageFlags2 src_framebuffer_space_stages = 
+   const VkPipelineStageFlags2 src_framebuffer_space_stages =
       framebuffer_space_stages | VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT;
-   const VkPipelineStageFlags2 dst_framebuffer_space_stages = 
+   const VkPipelineStageFlags2 dst_framebuffer_space_stages =
       framebuffer_space_stages | VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT;
 
    /* Check for frambuffer-space dependency. */
@@ -438,6 +441,18 @@ vk_subpass_dependency_is_fb_local(const VkSubpassDependency2 *dep,
    /* Check for framebuffer-local dependency. */
    return dep->dependencyFlags & VK_DEPENDENCY_BY_REGION_BIT;
 }
+
+uint32_t
+vk_command_buffer_get_attachment_layout(const struct vk_command_buffer *cmd_buffer,
+                                        const struct vk_image *image,
+                                        VkImageLayout *out_layout,
+                                        VkImageLayout *out_stencil_layout);
+
+void
+vk_command_buffer_set_attachment_layout(struct vk_command_buffer *cmd_buffer,
+                                        uint32_t att_idx,
+                                        VkImageLayout layout,
+                                        VkImageLayout stencil_layout);
 
 #ifdef __cplusplus
 }

@@ -132,11 +132,20 @@ struct sw_winsys
    (*displaytarget_display)( struct sw_winsys *ws, 
                              struct sw_displaytarget *dt,
                              void *context_private,
+                             unsigned nboxes,
                              struct pipe_box *box );
 
    void 
    (*displaytarget_destroy)( struct sw_winsys *ws, 
                              struct sw_displaytarget *dt );
+
+   struct sw_displaytarget *
+   (*displaytarget_create_mapped)( struct sw_winsys *ws,
+                                   unsigned tex_usage,
+                                   enum pipe_format format,
+                                   unsigned width, unsigned height,
+                                   unsigned stride,
+                                   void *data );
 };
 
 

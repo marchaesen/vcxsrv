@@ -97,6 +97,8 @@ virgl_get_param(struct pipe_screen *screen, enum pipe_cap param)
          return vscreen->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_MIRROR_CLAMP_TO_EDGE;
       FALLTHROUGH;
    case PIPE_CAP_TEXTURE_MIRROR_CLAMP:
+      if (vscreen->caps.caps.v2.host_feature_check_version >= 22)
+         return vscreen->caps.caps.v2.capability_bits_v2 & VIRGL_CAP_V2_MIRROR_CLAMP;
       return vscreen->caps.caps.v1.bset.mirror_clamp &&
              !(vscreen->caps.caps.v2.capability_bits & VIRGL_CAP_HOST_IS_GLES);
    case PIPE_CAP_TEXTURE_SWIZZLE:
@@ -925,7 +927,7 @@ static void virgl_flush_frontbuffer(struct pipe_screen *screen,
                                     struct pipe_context *ctx,
                                       struct pipe_resource *res,
                                       unsigned level, unsigned layer,
-                                    void *winsys_drawable_handle, struct pipe_box *sub_box)
+                                    void *winsys_drawable_handle, unsigned nboxes, struct pipe_box *sub_box)
 {
    struct virgl_screen *vscreen = virgl_screen(screen);
    struct virgl_winsys *vws = vscreen->vws;
@@ -934,8 +936,8 @@ static void virgl_flush_frontbuffer(struct pipe_screen *screen,
 
    if (vws->flush_frontbuffer) {
       virgl_flush_eq(vctx, vctx, NULL);
-      vws->flush_frontbuffer(vws, vres->hw_res, level, layer, winsys_drawable_handle,
-                             sub_box);
+      vws->flush_frontbuffer(vws, vctx->cbuf, vres->hw_res, level, layer, winsys_drawable_handle,
+                             nboxes == 1 ? sub_box : NULL);
    }
 }
 
@@ -1052,6 +1054,10 @@ static struct disk_cache *virgl_get_disk_shader_cache (struct pipe_screen *pscre
 
 static void virgl_disk_cache_create(struct virgl_screen *screen)
 {
+   struct mesa_sha1 sha1_ctx;
+   _mesa_sha1_init(&sha1_ctx);
+
+#ifdef HAVE_DL_ITERATE_PHDR
    const struct build_id_note *note =
       build_id_find_nhdr_for_addr(virgl_disk_cache_create);
    assert(note);
@@ -1062,9 +1068,8 @@ static void virgl_disk_cache_create(struct virgl_screen *screen)
    const uint8_t *id_sha1 = build_id_data(note);
    assert(id_sha1);
 
-   struct mesa_sha1 sha1_ctx;
-   _mesa_sha1_init(&sha1_ctx);
    _mesa_sha1_update(&sha1_ctx, id_sha1, build_id_len);
+#endif
 
    /* When we switch the host the caps might change and then we might have to
     * apply different lowering. */

@@ -913,6 +913,8 @@ va_pack_instr(const bi_instr *I)
       if (I->op == BI_OPCODE_TEX_FETCH && I->shadow)
          invalid_instruction(I, "TEX_FETCH does not support .shadow");
 
+      if (I->wide_indices)
+         hex |= (1ull << 8);
       if (I->array_enable)
          hex |= (1ull << 10);
       if (I->texel_offset)

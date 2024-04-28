@@ -171,13 +171,14 @@ dd_screen_flush_frontbuffer(struct pipe_screen *_screen,
                             struct pipe_resource *resource,
                             unsigned level, unsigned layer,
                             void *context_private,
+                            unsigned nboxes,
                             struct pipe_box *sub_box)
 {
    struct pipe_screen *screen = dd_screen(_screen)->screen;
    struct pipe_context *pipe = _pipe ? dd_context(_pipe)->pipe : NULL;
 
    screen->flush_frontbuffer(screen, pipe, resource, level, layer, context_private,
-                             sub_box);
+                             nboxes, sub_box);
 }
 
 static int

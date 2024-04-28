@@ -74,47 +74,31 @@ static VkResult
 queue_wait_idle(struct v3dv_queue *queue,
                 struct v3dv_submit_sync_info *sync_info)
 {
-   if (queue->device->pdevice->caps.multisync) {
-      int ret = drmSyncobjWait(queue->device->pdevice->render_fd,
-                               queue->last_job_syncs.syncs, 4,
-                               INT64_MAX, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL,
-                               NULL);
-      if (ret) {
-         return vk_errorf(queue, VK_ERROR_DEVICE_LOST,
-                          "syncobj wait failed: %m");
-      }
+   int ret = drmSyncobjWait(queue->device->pdevice->render_fd,
+                            queue->last_job_syncs.syncs, 4,
+                            INT64_MAX, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL,
+                            NULL);
+   if (ret)
+      return vk_errorf(queue, VK_ERROR_DEVICE_LOST, "syncobj wait failed: %m");
 
-      bool first = true;
-      for (int i = 0; i < 4; i++) {
-         if (!queue->last_job_syncs.first[i])
-            first = false;
-      }
+   bool first = true;
+   for (int i = 0; i < 4; i++) {
+      if (!queue->last_job_syncs.first[i])
+         first = false;
+   }
 
-      /* If we're not the first job, that means we're waiting on some
-       * per-queue-type syncobj which transitively waited on the semaphores
-       * so we can skip the semaphore wait.
-       */
-      if (first) {
-         VkResult result = vk_sync_wait_many(&queue->device->vk,
-                                             sync_info->wait_count,
-                                             sync_info->waits,
-                                             VK_SYNC_WAIT_COMPLETE,
-                                             UINT64_MAX);
-         if (result != VK_SUCCESS)
-            return result;
-      }
-   } else {
-      /* Without multisync, all the semaphores are baked into the one syncobj
-       * at the start of each submit so we only need to wait on the one.
-       */
-      int ret = drmSyncobjWait(queue->device->pdevice->render_fd,
-                               &queue->last_job_syncs.syncs[V3DV_QUEUE_ANY], 1,
-                               INT64_MAX, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_ALL,
-                               NULL);
-      if (ret) {
-         return vk_errorf(queue, VK_ERROR_DEVICE_LOST,
-                          "syncobj wait failed: %m");
-      }
+   /* If we're not the first job, that means we're waiting on some
+    * per-queue-type syncobj which transitively waited on the semaphores
+    * so we can skip the semaphore wait.
+    */
+   if (first) {
+      VkResult result = vk_sync_wait_many(&queue->device->vk,
+                                          sync_info->wait_count,
+                                          sync_info->waits,
+                                          VK_SYNC_WAIT_COMPLETE,
+                                          UINT64_MAX);
+      if (result != VK_SUCCESS)
+         return result;
    }
 
    for (int i = 0; i < 4; i++)
@@ -469,45 +453,35 @@ static VkResult
 export_perfmon_last_job_sync(struct v3dv_queue *queue, struct v3dv_job *job, int *fd)
 {
    int err;
-   if (job->device->pdevice->caps.multisync) {
-      static const enum v3dv_queue_type queues_to_sync[] = {
-         V3DV_QUEUE_CL,
-         V3DV_QUEUE_CSD,
-      };
+   static const enum v3dv_queue_type queues_to_sync[] = {
+      V3DV_QUEUE_CL,
+      V3DV_QUEUE_CSD,
+   };
 
-      for (uint32_t i = 0; i < ARRAY_SIZE(queues_to_sync); i++) {
-         enum v3dv_queue_type queue_type = queues_to_sync[i];
-         int tmp_fd = -1;
+   for (uint32_t i = 0; i < ARRAY_SIZE(queues_to_sync); i++) {
+      enum v3dv_queue_type queue_type = queues_to_sync[i];
+      int tmp_fd = -1;
 
-         err = drmSyncobjExportSyncFile(job->device->pdevice->render_fd,
-                                        queue->last_job_syncs.syncs[queue_type],
-                                        &tmp_fd);
-
-         if (err) {
-            close(*fd);
-            return vk_errorf(&job->device->queue, VK_ERROR_UNKNOWN,
-                             "sync file export failed: %m");
-         }
-
-         err = sync_accumulate("v3dv", fd, tmp_fd);
-
-         if (err) {
-            close(tmp_fd);
-            close(*fd);
-            return vk_errorf(&job->device->queue, VK_ERROR_UNKNOWN,
-                             "failed to accumulate sync files: %m");
-         }
-      }
-   } else {
       err = drmSyncobjExportSyncFile(job->device->pdevice->render_fd,
-                                     queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                                     fd);
+                                     queue->last_job_syncs.syncs[queue_type],
+                                     &tmp_fd);
 
       if (err) {
+         close(*fd);
          return vk_errorf(&job->device->queue, VK_ERROR_UNKNOWN,
                           "sync file export failed: %m");
       }
+
+      err = sync_accumulate("v3dv", fd, tmp_fd);
+
+      if (err) {
+         close(tmp_fd);
+         close(*fd);
+         return vk_errorf(&job->device->queue, VK_ERROR_UNKNOWN,
+                          "failed to accumulate sync files: %m");
+      }
    }
+
    return VK_SUCCESS;
 }
 
@@ -921,147 +895,6 @@ handle_csd_indirect_cpu_job(struct v3dv_queue *queue,
    return VK_SUCCESS;
 }
 
-/**
- * This handles semaphore waits for the single sync path by accumulating
- * wait semaphores into the QUEUE_ANY syncobj. Notice this is only required
- * to ensure we accumulate any *external* semaphores (since for anything else
- * we are already accumulating out syncs with each submission to the kernel).
- */
-static VkResult
-process_singlesync_waits(struct v3dv_queue *queue,
-                         uint32_t count, struct vk_sync_wait *waits)
-{
-   struct v3dv_device *device = queue->device;
-   assert(!device->pdevice->caps.multisync);
-
-   if (count == 0)
-      return VK_SUCCESS;
-
-   VkResult result = VK_SUCCESS;
-
-   int err = 0;
-   int fd = -1;
-   err = drmSyncobjExportSyncFile(device->pdevice->render_fd,
-                                  queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                                  &fd);
-   if (err) {
-      result = vk_errorf(queue, VK_ERROR_UNKNOWN,
-                         "sync file export failed: %m");
-      goto fail;
-   }
-
-   for (uint32_t i = 0; i < count; i++) {
-      uint32_t syncobj = vk_sync_as_drm_syncobj(waits[i].sync)->syncobj;
-      int wait_fd = -1;
-
-      err = drmSyncobjExportSyncFile(device->pdevice->render_fd,
-                                     syncobj, &wait_fd);
-      if (err) {
-         result = vk_errorf(queue, VK_ERROR_UNKNOWN,
-                            "sync file export failed: %m");
-         goto fail;
-      }
-
-      err = sync_accumulate("v3dv", &fd, wait_fd);
-      close(wait_fd);
-      if (err) {
-         result = vk_errorf(queue, VK_ERROR_UNKNOWN,
-                            "sync file merge failed: %m");
-         goto fail;
-      }
-   }
-
-   err = drmSyncobjImportSyncFile(device->pdevice->render_fd,
-                                  queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                                  fd);
-   if (err) {
-      result = vk_errorf(queue, VK_ERROR_UNKNOWN,
-                         "sync file import failed: %m");
-   }
-
-fail:
-   close(fd);
-   return result;
-}
-
-/**
- * This handles signaling for the single-sync path by importing the QUEUE_ANY
- * syncobj into all syncs to be signaled.
- */
-static VkResult
-process_singlesync_signals(struct v3dv_queue *queue,
-                           uint32_t count, struct vk_sync_signal *signals)
-{
-   struct v3dv_device *device = queue->device;
-   assert(!device->pdevice->caps.multisync && count > 0);
-
-   if (device->pdevice->caps.multisync)
-      return VK_SUCCESS;
-
-   int fd = -1;
-   drmSyncobjExportSyncFile(device->pdevice->render_fd,
-                            queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                            &fd);
-   if (fd == -1) {
-      return vk_errorf(queue, VK_ERROR_UNKNOWN,
-                       "sync file export failed: %m");
-   }
-
-   VkResult result = VK_SUCCESS;
-   for (uint32_t i = 0; i < count; i++) {
-      uint32_t syncobj = vk_sync_as_drm_syncobj(signals[i].sync)->syncobj;
-      int err = drmSyncobjImportSyncFile(device->pdevice->render_fd,
-                                         syncobj, fd);
-      if (err) {
-         result = vk_errorf(queue, VK_ERROR_UNKNOWN,
-                            "sync file import failed: %m");
-         break;
-      }
-   }
-
-   assert(fd >= 0);
-   close(fd);
-
-   return result;
-}
-
-/* This must be called after every submission in the single-sync path to
- * accumulate the out_sync into the QUEUE_ANY sync so we can serialize
- * jobs by waiting on the QUEUE_ANY sync.
- */
-static int
-update_any_queue_sync(struct v3dv_queue *queue, uint32_t out_sync)
-{
-   struct v3dv_device *device = queue->device;
-   assert(!device->pdevice->caps.multisync);
-
-   int render_fd = device->pdevice->render_fd;
-   int fd_any = -1, fd_out_sync = -1;
-   int err;
-   err  = drmSyncobjExportSyncFile(render_fd,
-                                   queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                                   &fd_any);
-   if (err)
-      goto fail;
-
-   err = drmSyncobjExportSyncFile(render_fd, out_sync, &fd_out_sync);
-   if (err)
-      goto fail;
-
-   err = sync_accumulate("v3dv", &fd_any, fd_out_sync);
-   if (err)
-      goto fail;
-
-   err = drmSyncobjImportSyncFile(render_fd,
-                                  queue->last_job_syncs.syncs[V3DV_QUEUE_ANY],
-                                  fd_any);
-
-fail:
-   close(fd_any);
-   close(fd_out_sync);
-   return err;
-}
-
 static VkResult
 handle_cl_job(struct v3dv_queue *queue,
               struct v3dv_job *job,
@@ -1086,7 +919,8 @@ handle_cl_job(struct v3dv_queue *queue,
    struct v3dv_bo *bcl_fist_bo =
       list_first_entry(&job->bcl.bo_list, struct v3dv_bo, list_link);
    submit.bcl_start = bcl_fist_bo->offset;
-   submit.bcl_end = job->bcl.bo->offset + v3dv_cl_offset(&job->bcl);
+   submit.bcl_end = job->suspending ? job->suspended_bcl_end :
+                                      job->bcl.bo->offset + v3dv_cl_offset(&job->bcl);
    submit.rcl_start = job->rcl.bo->offset;
    submit.rcl_end = job->rcl.bo->offset + v3dv_cl_offset(&job->rcl);
 
@@ -1161,25 +995,19 @@ handle_cl_job(struct v3dv_queue *queue,
     * multiple semaphores extension.
     */
    struct drm_v3d_multi_sync ms = { 0 };
-   if (device->pdevice->caps.multisync) {
-      enum v3d_queue wait_stage = needs_rcl_sync ? V3D_RENDER : V3D_BIN;
-      set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
-                    V3DV_QUEUE_CL, V3DV_QUEUE_CL, wait_stage, signal_syncs);
-      if (!ms.base.id)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   enum v3d_queue wait_stage = needs_rcl_sync ? V3D_RENDER : V3D_BIN;
+   set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
+                 V3DV_QUEUE_CL, V3DV_QUEUE_CL, wait_stage, signal_syncs);
+   if (!ms.base.id)
+      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-      submit.flags |= DRM_V3D_SUBMIT_EXTENSION;
-      submit.extensions = (uintptr_t)(void *)&ms;
-      /* Disable legacy sync interface when multisync extension is used */
-      submit.in_sync_rcl = 0;
-      submit.in_sync_bcl = 0;
-      submit.out_sync = 0;
-   } else {
-      uint32_t last_job_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_ANY];
-      submit.in_sync_bcl = needs_bcl_sync ? last_job_sync : 0;
-      submit.in_sync_rcl = needs_rcl_sync ? last_job_sync : 0;
-      submit.out_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_CL];
-   }
+   submit.flags |= DRM_V3D_SUBMIT_EXTENSION;
+   submit.extensions = (uintptr_t)(void *)&ms;
+
+   /* We are using multisync so disable legacy single-sync interface */
+   submit.in_sync_rcl = 0;
+   submit.in_sync_bcl = 0;
+   submit.out_sync = 0;
 
    v3dv_clif_dump(device, job, &submit);
    int ret = v3dv_ioctl(device->pdevice->render_fd,
@@ -1191,9 +1019,6 @@ handle_cl_job(struct v3dv_queue *queue,
               strerror(errno));
       warned = true;
    }
-
-   if (!device->pdevice->caps.multisync && ret == 0)
-      ret = update_any_queue_sync(queue, submit.out_sync);
 
    free(bo_handles);
    multisync_free(device, &ms);
@@ -1216,33 +1041,24 @@ handle_tfu_job(struct v3dv_queue *queue,
 
    struct v3dv_device *device = queue->device;
 
-   const bool needs_sync = sync_info->wait_count || job->serialize;
-
    /* Replace single semaphore settings whenever our kernel-driver supports
     * multiple semaphore extension.
     */
    struct drm_v3d_multi_sync ms = { 0 };
-   if (device->pdevice->caps.multisync) {
-      set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
-                    V3DV_QUEUE_TFU, V3DV_QUEUE_TFU, V3D_TFU, signal_syncs);
-      if (!ms.base.id)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
+                 V3DV_QUEUE_TFU, V3DV_QUEUE_TFU, V3D_TFU, signal_syncs);
+   if (!ms.base.id)
+      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-      job->tfu.flags |= DRM_V3D_SUBMIT_EXTENSION;
-      job->tfu.extensions = (uintptr_t)(void *)&ms;
-      /* Disable legacy sync interface when multisync extension is used */
-      job->tfu.in_sync = 0;
-      job->tfu.out_sync = 0;
-   } else {
-      uint32_t last_job_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_ANY];
-      job->tfu.in_sync = needs_sync ? last_job_sync : 0;
-      job->tfu.out_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_TFU];
-   }
+   job->tfu.flags |= DRM_V3D_SUBMIT_EXTENSION;
+   job->tfu.extensions = (uintptr_t)(void *)&ms;
+
+   /* We are using multisync so disable legacy single-sync interface */
+   job->tfu.in_sync = 0;
+   job->tfu.out_sync = 0;
+
    int ret = v3dv_ioctl(device->pdevice->render_fd,
                         DRM_IOCTL_V3D_SUBMIT_TFU, &job->tfu);
-
-   if (!device->pdevice->caps.multisync && ret == 0)
-      ret = update_any_queue_sync(queue, job->tfu.out_sync);
 
    multisync_free(device, &ms);
    queue->last_job_syncs.first[V3DV_QUEUE_TFU] = false;
@@ -1286,31 +1102,26 @@ handle_csd_job(struct v3dv_queue *queue,
    assert(bo_idx == submit->bo_handle_count);
    submit->bo_handles = (uintptr_t)(void *)bo_handles;
 
-   const bool needs_sync = sync_info->wait_count || job->serialize;
-
    /* Replace single semaphore settings whenever our kernel-driver supports
     * multiple semaphore extension.
     */
    struct drm_v3d_multi_sync ms = { 0 };
-   if (device->pdevice->caps.multisync) {
-      set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
-                    V3DV_QUEUE_CSD, V3DV_QUEUE_CSD, V3D_CSD, signal_syncs);
-      if (!ms.base.id)
-         return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
+   set_multisync(&ms, sync_info, NULL, 0, NULL, device, job,
+                 V3DV_QUEUE_CSD, V3DV_QUEUE_CSD, V3D_CSD, signal_syncs);
+   if (!ms.base.id)
+      return vk_error(device->instance, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-      submit->flags |= DRM_V3D_SUBMIT_EXTENSION;
-      submit->extensions = (uintptr_t)(void *)&ms;
-      /* Disable legacy sync interface when multisync extension is used */
-      submit->in_sync = 0;
-      submit->out_sync = 0;
-   } else {
-      uint32_t last_job_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_ANY];
-      submit->in_sync = needs_sync ? last_job_sync : 0;
-      submit->out_sync = queue->last_job_syncs.syncs[V3DV_QUEUE_CSD];
-   }
+   submit->flags |= DRM_V3D_SUBMIT_EXTENSION;
+   submit->extensions = (uintptr_t)(void *)&ms;
+
+   /* We are using multisync so disable legacy single-sync interface */
+   submit->in_sync = 0;
+   submit->out_sync = 0;
+
    submit->perfmon_id = job->perf ?
       job->perf->kperfmon_ids[counter_pass_idx] : 0;
    queue->last_perfmon_id = submit->perfmon_id;
+
    int ret = v3dv_ioctl(device->pdevice->render_fd,
                         DRM_IOCTL_V3D_SUBMIT_CSD, submit);
 
@@ -1320,9 +1131,6 @@ handle_csd_job(struct v3dv_queue *queue,
               strerror(errno));
       warned = true;
    }
-
-   if (!device->pdevice->caps.multisync && ret == 0)
-      ret = update_any_queue_sync(queue, submit->out_sync);
 
    free(bo_handles);
 
@@ -1420,27 +1228,50 @@ v3dv_queue_driver_submit(struct vk_queue *vk_queue,
    for (int i = 0; i < V3DV_QUEUE_COUNT; i++)
       queue->last_job_syncs.first[i] = true;
 
-   /* If we do not have multisync we need to ensure we accumulate any wait
-    * semaphores into our QUEUE_ANY syncobj so we can handle waiting on
-    * external semaphores.
-    */
-   if (!queue->device->pdevice->caps.multisync) {
-      result =
-         process_singlesync_waits(queue, sync_info.wait_count, sync_info.waits);
-      if (result != VK_SUCCESS)
-         return result;
-   }
-
+   struct v3dv_job *first_suspend_job = NULL;
+   struct v3dv_job *current_suspend_job = NULL;
    for (uint32_t i = 0; i < submit->command_buffer_count; i++) {
       struct v3dv_cmd_buffer *cmd_buffer =
          container_of(submit->command_buffers[i], struct v3dv_cmd_buffer, vk);
       list_for_each_entry_safe(struct v3dv_job, job,
                                &cmd_buffer->jobs, list_link) {
+         if (job->suspending) {
+            job = v3dv_X(job->device,
+                         cmd_buffer_prepare_suspend_job_for_submit)(job);
+            if (!job)
+               return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+         }
 
-         result = queue_handle_job(queue, job, submit->perf_pass_index,
-                                   &sync_info, false);
-         if (result != VK_SUCCESS)
-            return result;
+         if (job->suspending && !job->resuming) {
+            assert(!first_suspend_job);
+            assert(!current_suspend_job);
+            first_suspend_job = job;
+         }
+
+         if (job->resuming) {
+            assert(first_suspend_job);
+            assert(current_suspend_job);
+            v3dv_X(job->device, job_patch_resume_address)(first_suspend_job,
+                                                          current_suspend_job,
+                                                          job);
+            current_suspend_job = NULL;
+         }
+
+         if (job->suspending) {
+            current_suspend_job = job;
+         } else {
+            assert(!current_suspend_job);
+            struct v3dv_job *submit_job = first_suspend_job ?
+                                          first_suspend_job : job;
+            result =
+               queue_handle_job(queue, submit_job, submit->perf_pass_index,
+                                &sync_info, false);
+
+            if (result != VK_SUCCESS)
+               return result;
+
+            first_suspend_job = NULL;
+         }
       }
 
       /* If the command buffer ends with a barrier we need to consume it now.
@@ -1456,20 +1287,18 @@ v3dv_queue_driver_submit(struct vk_queue *vk_queue,
       }
    }
 
+   assert(!first_suspend_job);
+   assert(!current_suspend_job);
+
    /* Handle signaling now */
    if (submit->signal_count > 0) {
-      if (queue->device->pdevice->caps.multisync) {
-         /* Finish by submitting a no-op job that synchronizes across all queues.
-          * This will ensure that the signal semaphores don't get triggered until
-          * all work on any queue completes. See Vulkan's signal operation order
-          * requirements.
-          */
-         return queue_submit_noop_job(queue, submit->perf_pass_index,
-                                      &sync_info, true);
-      } else {
-         return process_singlesync_signals(queue, sync_info.signal_count,
-                                           sync_info.signals);
-      }
+      /* Finish by submitting a no-op job that synchronizes across all queues.
+       * This will ensure that the signal semaphores don't get triggered until
+       * all work on any queue completes. See Vulkan's signal operation order
+       * requirements.
+       */
+      return queue_submit_noop_job(queue, submit->perf_pass_index,
+                                   &sync_info, true);
    }
 
    return VK_SUCCESS;

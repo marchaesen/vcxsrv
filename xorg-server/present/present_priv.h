@@ -36,6 +36,7 @@
 #include <xfixes.h>
 #include <randrstr.h>
 #include <inttypes.h>
+#include "dri3.h"
 
 #if 0
 #define DebugPresent(x) ErrorF x
@@ -90,6 +91,13 @@ struct present_vblank {
     Bool                abort_flip;     /* aborting this flip */
     PresentFlipReason   reason;         /* reason for which flip is not possible */
     Bool                has_suboptimal; /* whether client can support SuboptimalCopy mode */
+#ifdef DRI3
+    struct dri3_syncobj *acquire_syncobj;
+    struct dri3_syncobj *release_syncobj;
+    uint64_t            acquire_point;
+    uint64_t            release_point;
+    int                 efd;
+#endif /* DRI3 */
 };
 
 typedef struct present_screen_priv present_screen_priv_rec, *present_screen_priv_ptr;
@@ -124,6 +132,12 @@ typedef int (*present_priv_pixmap_ptr)(WindowPtr window,
                                        RRCrtcPtr target_crtc,
                                        SyncFence *wait_fence,
                                        SyncFence *idle_fence,
+#ifdef DRI3
+                                       struct dri3_syncobj *acquire_syncobj,
+                                       struct dri3_syncobj *release_syncobj,
+                                       uint64_t acquire_point,
+                                       uint64_t release_point,
+#endif /* DRI3 */
                                        uint32_t options,
                                        uint64_t window_msc,
                                        uint64_t divisor,
@@ -137,6 +151,7 @@ typedef int (*present_priv_queue_vblank_ptr)(ScreenPtr screen,
                                              uint64_t event_id,
                                              uint64_t msc);
 typedef void (*present_priv_flush_ptr)(WindowPtr window);
+typedef int (*present_priv_flush_fenced_ptr)(WindowPtr window);
 typedef void (*present_priv_re_execute_ptr)(present_vblank_ptr vblank);
 
 typedef void (*present_priv_abort_vblank_ptr)(ScreenPtr screen,
@@ -147,6 +162,7 @@ typedef void (*present_priv_abort_vblank_ptr)(ScreenPtr screen,
 typedef void (*present_priv_flip_destroy_ptr)(ScreenPtr screen);
 
 struct present_screen_priv {
+    ScreenPtr                   pScreen;
     CloseScreenProcPtr          CloseScreen;
     ConfigNotifyProcPtr         ConfigNotify;
     DestroyWindowProcPtr        DestroyWindow;
@@ -180,6 +196,7 @@ struct present_screen_priv {
 
     present_priv_queue_vblank_ptr       queue_vblank;
     present_priv_flush_ptr              flush;
+    present_priv_flush_fenced_ptr       flush_fenced;
     present_priv_re_execute_ptr         re_execute;
 
     present_priv_abort_vblank_ptr       abort_vblank;
@@ -290,6 +307,12 @@ present_pixmap(WindowPtr window,
                RRCrtcPtr target_crtc,
                SyncFence *wait_fence,
                SyncFence *idle_fence,
+#ifdef DRI3
+               struct dri3_syncobj *acquire_syncobj,
+               struct dri3_syncobj *release_syncobj,
+               uint64_t acquire_point,
+               uint64_t release_point,
+#endif /* DRI3 */
                uint32_t options,
                uint64_t target_msc,
                uint64_t divisor,
@@ -464,6 +487,12 @@ present_vblank_init(present_vblank_ptr vblank,
                     RRCrtcPtr target_crtc,
                     SyncFence *wait_fence,
                     SyncFence *idle_fence,
+#ifdef DRI3
+                    struct dri3_syncobj *acquire_syncobj,
+                    struct dri3_syncobj *release_syncobj,
+                    uint64_t acquire_point,
+                    uint64_t release_point,
+#endif /* DRI3 */
                     uint32_t options,
                     const uint32_t capabilities,
                     present_notify_ptr notifies,
@@ -482,6 +511,12 @@ present_vblank_create(WindowPtr window,
                       RRCrtcPtr target_crtc,
                       SyncFence *wait_fence,
                       SyncFence *idle_fence,
+#ifdef DRI3
+                      struct dri3_syncobj *acquire_syncobj,
+                      struct dri3_syncobj *release_syncobj,
+                      uint64_t acquire_point,
+                      uint64_t release_point,
+#endif /* DRI3 */
                       uint32_t options,
                       const uint32_t capabilities,
                       present_notify_ptr notifies,

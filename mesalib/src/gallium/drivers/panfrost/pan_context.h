@@ -50,6 +50,8 @@
 #include "compiler/shader_enums.h"
 #include "midgard/midgard_compile.h"
 
+#include "pan_csf.h"
+
 #define SET_BIT(lval, bit, cond)                                               \
    if (cond)                                                                   \
       lval |= (bit);                                                           \
@@ -230,6 +232,10 @@ struct panfrost_context {
 
    int in_sync_fd;
    uint32_t in_sync_obj;
+
+   union {
+      struct panfrost_csf_context csf;
+   };
 };
 
 /* Corresponds to the CSO */
@@ -299,6 +305,24 @@ struct panfrost_sysvals {
    unsigned sysval_count;
 };
 
+/* On Valhall, the driver gives the hardware a table of resource tables.
+ * Resources are addressed as the index of the table together with the index of
+ * the resource within the table. For simplicity, we put one type of resource
+ * in each table and fix the numbering of the tables.
+ *
+ * This numbering is arbitrary.
+ */
+enum panfrost_resource_table {
+   PAN_TABLE_UBO = 0,
+   PAN_TABLE_ATTRIBUTE,
+   PAN_TABLE_ATTRIBUTE_BUFFER,
+   PAN_TABLE_SAMPLER,
+   PAN_TABLE_TEXTURE,
+   PAN_TABLE_IMAGE,
+
+   PAN_NUM_RESOURCE_TABLES
+};
+
 #define RSD_WORDS 16
 
 /* Variants bundle together to form the backing CSO, bundling multiple
@@ -321,6 +345,8 @@ struct panfrost_fs_key {
 
    /* User clip plane lowering */
    uint8_t clip_plane_enable;
+
+   bool line_smooth;
 };
 
 struct panfrost_shader_key {
@@ -428,6 +454,9 @@ bool panfrost_nir_remove_fragcolor_stores(nir_shader *s, unsigned nr_cbufs);
 bool panfrost_nir_lower_sysvals(nir_shader *s,
                                 struct panfrost_sysvals *sysvals);
 
+bool panfrost_nir_lower_res_indices(nir_shader *shader,
+                                    struct panfrost_compile_inputs *inputs);
+
 /** (Vertex buffer index, divisor) tuple that will become an Attribute Buffer
  * Descriptor at draw-time on Midgard
  */
@@ -520,5 +549,7 @@ void panfrost_set_batch_masks_zs(struct panfrost_batch *batch);
 void panfrost_track_image_access(struct panfrost_batch *batch,
                                  enum pipe_shader_type stage,
                                  struct pipe_image_view *image);
+
+void panfrost_context_reinit(struct panfrost_context *ctx);
 
 #endif

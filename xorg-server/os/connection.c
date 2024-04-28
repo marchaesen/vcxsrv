@@ -87,29 +87,24 @@ SOFTWARE.
 #if defined(TCPCONN)
 #include <netinet/in.h>
 #include <arpa/inet.h>
-#ifdef apollo
-#ifndef NO_TCP_H
-#include <netinet/tcp.h>
-#endif
-#else
 #ifdef CSRG_BASED
 #include <sys/param.h>
 #endif
 #include <netinet/tcp.h>
-#endif
 #include <arpa/inet.h>
 #endif
-
 #include <sys/uio.h>
-
 #endif                          /* WIN32 */
+
+#include "dix/dix_priv.h"
+#include "os/audit.h"
+#include "os/auth.h"
+#include "os/osdep.h"
+
 #include "misc.h"               /* for typedef of pointer */
-#include "osdep.h"
 #include "opaque.h"
 #include "dixstruct.h"
 #include "xace.h"
-
-#define Pid_t pid_t
 
 #ifdef HAVE_GETPEERUCRED
 #include <ucred.h>
@@ -123,18 +118,21 @@ SOFTWARE.
 #endif
 
 #include "probes.h"
+#include "xdmcp.h"
 
 struct ospoll   *server_poll;
 
 Bool NewOutputPending;          /* not yet attempted to write some new output */
 Bool NoListenAll;               /* Don't establish any listening sockets */
 
-static Bool RunFromSmartParent; /* send SIGUSR1 to parent process */
 Bool RunFromSigStopParent;      /* send SIGSTOP to our own process; Upstart (or
                                    equivalent) will send SIGCONT back. */
 static char dynamic_display[7]; /* display name */
 Bool PartialNetwork;            /* continue even if unable to bind all addrs */
-static Pid_t ParentProcess;
+#if !defined(WIN32)
+static pid_t ParentProcess;
+static Bool RunFromSmartParent; /* send SIGUSR1 to parent process */
+#endif
 
 int GrabInProgress = 0;
 

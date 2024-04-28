@@ -126,20 +126,10 @@ get_additional_semantic_info(nir_shader *s, nir_variable *var, struct semantic_i
    if (nir_is_arrayed_io(var, s->info.stage))
       type = glsl_get_array_element(type);
 
-   info->comp_type =
-      dxil_get_prog_sig_comp_type(type);
+   info->comp_type = dxil_get_prog_sig_comp_type(type);
+   info->sig_comp_type = dxil_get_comp_type_from_prog_sig_type(info->comp_type);
 
    bool is_depth = is_depth_output(info->kind);
-
-   if (!glsl_type_is_struct(glsl_without_array(type))) {
-      info->sig_comp_type = dxil_get_comp_type(type);
-   } else {
-      /* For structs, just emit them as float registers. This way, they can be
-       * interpolated or not, and it doesn't matter, and it avoids linking issues
-       * that we'd see if the type here tried to depend on (e.g.) interp mode. */
-      info->sig_comp_type = DXIL_COMP_TYPE_F32;
-      info->comp_type = DXIL_PROG_SIG_COMP_TYPE_FLOAT32;
-   }
 
    bool is_gs_input = s->info.stage == MESA_SHADER_GEOMETRY &&
       (var->data.mode & (nir_var_shader_in | nir_var_system_value));
@@ -210,9 +200,6 @@ get_semantic_sv_name(nir_variable *var, struct semantic_info *info, gl_shader_st
    switch (var->data.location) {
    case SYSTEM_VALUE_VERTEX_ID_ZERO_BASE:
       info->kind = DXIL_SEM_VERTEX_ID;
-      break;
-   case SYSTEM_VALUE_FRONT_FACE:
-      info->kind = DXIL_SEM_IS_FRONT_FACE;
       break;
    case SYSTEM_VALUE_INSTANCE_ID:
       info->kind = DXIL_SEM_INSTANCE_ID;

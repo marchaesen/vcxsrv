@@ -26,6 +26,7 @@
 #include "util/u_inlines.h"
 #include "util/u_surface.h"
 #include "pipe/p_state.h"
+#include "frontend/winsys_handle.h"
 
 static VkResult
 lvp_image_create(VkDevice _device,
@@ -37,6 +38,28 @@ lvp_image_create(VkDevice _device,
    struct lvp_image *image;
 
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO);
+
+#ifdef HAVE_LIBDRM
+   unsigned num_layouts = 1;
+   const VkSubresourceLayout *layouts = NULL;
+   enum pipe_format pipe_format = lvp_vk_format_to_pipe_format(pCreateInfo->format);
+   const VkImageDrmFormatModifierExplicitCreateInfoEXT *modinfo = (void*)vk_find_struct_const(pCreateInfo->pNext,
+                                                                  IMAGE_DRM_FORMAT_MODIFIER_EXPLICIT_CREATE_INFO_EXT);
+
+   if (modinfo && pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
+      assert(modinfo->drmFormatModifier == DRM_FORMAT_MOD_LINEAR);
+      assert(modinfo->drmFormatModifierPlaneCount == util_format_get_num_planes(pipe_format));
+      num_layouts = modinfo->drmFormatModifierPlaneCount;
+      layouts = modinfo->pPlaneLayouts;
+   }
+
+   /* planar not supported yet */
+   assert(num_layouts == 1);
+   if (num_layouts > 1) {
+      mesa_loge("lavapipe: planar drm formats are not supported");
+      return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+   }
+#endif
 
    image = vk_image_create(&device->vk, pCreateInfo, alloc, sizeof(*image));
    if (image == NULL)
@@ -110,9 +133,32 @@ lvp_image_create(VkDevice _device,
       template.last_level = pCreateInfo->mipLevels - 1;
       template.nr_samples = pCreateInfo->samples;
       template.nr_storage_samples = pCreateInfo->samples;
-      image->planes[p].bo = device->pscreen->resource_create_unbacked(device->pscreen,
-                                                                      &template,
-                                                                      &image->planes[p].size);
+
+#ifdef HAVE_LIBDRM
+      if (modinfo && pCreateInfo->tiling == VK_IMAGE_TILING_DRM_FORMAT_MODIFIER_EXT) {
+         struct winsys_handle whandle;
+         whandle.type = WINSYS_HANDLE_TYPE_UNBACKED;
+         whandle.layer = 0;
+         whandle.plane = p;
+         whandle.handle = 0;
+         whandle.stride = layouts[p].rowPitch;
+         whandle.array_stride = layouts[p].arrayPitch;
+         whandle.image_stride = layouts[p].depthPitch;
+         image->offset = layouts[p].offset;
+         whandle.format = pCreateInfo->format;
+         whandle.modifier = DRM_FORMAT_MOD_LINEAR;
+         image->planes[p].bo = device->pscreen->resource_from_handle(device->pscreen,
+                                                           &template,
+                                                           &whandle,
+                                                           PIPE_HANDLE_USAGE_EXPLICIT_FLUSH);
+         image->planes[p].size = whandle.size;
+      } else
+#endif
+      {
+         image->planes[p].bo = device->pscreen->resource_create_unbacked(device->pscreen,
+                                                               &template,
+                                                               &image->planes[p].size);
+      }
       if (!image->planes[p].bo)
          return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 

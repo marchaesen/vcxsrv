@@ -397,7 +397,7 @@ qpu_validate(struct v3d_compile *c)
          * keep compiling the validation code to make sure it doesn't get
          * broken.
          */
-#ifndef DEBUG
+#if !MESA_DEBUG
         return;
 #endif
 

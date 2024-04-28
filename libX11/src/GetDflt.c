@@ -184,10 +184,6 @@ XGetDefault(
 #ifdef WIN32
 	char *progname2;
 #endif
-#ifdef __UNIXOS2__
-	char *progname2;
-	char *dotpos;
-#endif
 
 	/*
 	 * strip path off of program name (XXX - this is OS specific)
@@ -198,13 +194,6 @@ XGetDefault(
 	if (progname2 && (!progname || progname < progname2))
 	    progname = progname2;
 #endif
-#ifdef __UNIXOS2__  /* Very similar to WIN32 */
-	progname2 = strrchr (prog, '\\');
-	if (progname2 && (!progname || progname < progname2))
-	    progname = progname2;
-	dotpos = strrchr (prog, '.');
-	if (dotpos && (dotpos>progname2)) *dotpos='\0';
-#endif  /* We take out the .exe suffix  */
 
 	if (progname)
 	    progname++;

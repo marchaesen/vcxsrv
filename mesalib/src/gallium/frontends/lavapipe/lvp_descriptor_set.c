@@ -22,6 +22,7 @@
  */
 
 #include "lvp_private.h"
+#include "vk_acceleration_structure.h"
 #include "vk_descriptors.h"
 #include "vk_util.h"
 #include "util/u_math.h"
@@ -617,7 +618,18 @@ VKAPI_ATTR void VKAPI_CALL lvp_UpdateDescriptorSets(
          }
          break;
 
+      case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+         for (uint32_t j = 0; j < write->descriptorCount; j++) {
+            const VkWriteDescriptorSetAccelerationStructureKHR *accel_structs =
+               vk_find_struct_const(write->pNext, WRITE_DESCRIPTOR_SET_ACCELERATION_STRUCTURE_KHR);
+            VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, accel_structs->pAccelerationStructures[j]);
+
+            desc[j].accel_struct = accel_struct ? vk_acceleration_structure_get_va(accel_struct) : 0;
+         }
+         break;
+
       default:
+         unreachable("Unsupported descriptor type");
          break;
       }
    }
@@ -802,6 +814,8 @@ lvp_descriptor_update_template_entry_size(VkDescriptorType type)
    case VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
    case VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
       return sizeof(VkBufferView);
+   case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+      return sizeof(VkAccelerationStructureKHR);
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
    case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
    case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
@@ -984,7 +998,15 @@ lvp_descriptor_set_update_with_template(VkDevice _device, VkDescriptorSet descri
             }
             break;
          }
+
+         case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
+            VK_FROM_HANDLE(vk_acceleration_structure, accel_struct, *(VkAccelerationStructureKHR *)pSrc);
+            desc[idx].accel_struct = accel_struct ? vk_acceleration_structure_get_va(accel_struct) : 0;
+            break;
+         }
+
          default:
+            unreachable("Unsupported descriptor type");
             break;
          }
 
@@ -1070,20 +1092,28 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
       if (info && info->imageView) {
          LVP_FROM_HANDLE(lvp_image_view, iview, info->imageView);
 
-         lp_jit_texture_from_pipe(&desc->texture, iview->planes[0].sv);
-         desc->functions = iview->planes[0].texture_handle->functions;
+         unsigned plane_count = iview->plane_count;
 
-         if (info->sampler) {
-            LVP_FROM_HANDLE(lvp_sampler, sampler, info->sampler);
-            desc->sampler = sampler->desc.sampler;
-            desc->texture.sampler_index = sampler->desc.texture.sampler_index;
-         } else {
-            lp_jit_sampler_from_pipe(&desc->sampler, &sampler);
-            desc->texture.sampler_index = 0;
+         for (unsigned p = 0; p < plane_count; p++) {
+            lp_jit_texture_from_pipe(&desc[p].texture, iview->planes[p].sv);
+            desc[p].functions = iview->planes[p].texture_handle->functions;
+
+            if (info->sampler) {
+               LVP_FROM_HANDLE(lvp_sampler, sampler, info->sampler);
+               desc[p].sampler = sampler->desc.sampler;
+                 desc[p].texture.sampler_index = sampler->desc.texture.sampler_index;
+            } else {
+               lp_jit_sampler_from_pipe(&desc->sampler, &sampler);
+               desc[p].texture.sampler_index = 0;
+            }
          }
       } else {
-         desc->functions = device->null_texture_handle->functions;
-         desc->texture.sampler_index = 0;
+         unsigned plane_count = size / sizeof(struct lp_descriptor);
+
+         for (unsigned p = 0; p < plane_count; p++) {
+            desc[p].functions = device->null_texture_handle->functions;
+            desc[p].texture.sampler_index = 0;
+         }
       }
 
       break;
@@ -1092,11 +1122,20 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
    case VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE: {
       if (pCreateInfo->data.pSampledImage && pCreateInfo->data.pSampledImage->imageView) {
          LVP_FROM_HANDLE(lvp_image_view, iview, pCreateInfo->data.pSampledImage->imageView);
-         lp_jit_texture_from_pipe(&desc->texture, iview->planes[0].sv);
-         desc->functions = iview->planes[0].texture_handle->functions;
+
+         unsigned plane_count = iview->plane_count;
+
+         for (unsigned p = 0; p < plane_count; p++) {
+            lp_jit_texture_from_pipe(&desc[p].texture, iview->planes[p].sv);
+            desc[p].functions = iview->planes[p].texture_handle->functions;
+         }
       } else {
-         desc->functions = device->null_texture_handle->functions;
-         desc->texture.sampler_index = 0;
+         unsigned plane_count = size / sizeof(struct lp_descriptor);
+
+         for (unsigned p = 0; p < plane_count; p++) {
+            desc[p].functions = device->null_texture_handle->functions;
+            desc[p].texture.sampler_index = 0;
+         }
       }
       break;
    }
@@ -1106,10 +1145,18 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
    case VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT: {
       if (pCreateInfo->data.pStorageImage && pCreateInfo->data.pStorageImage->imageView) {
          LVP_FROM_HANDLE(lvp_image_view, iview, pCreateInfo->data.pStorageImage->imageView);
-         lp_jit_image_from_pipe(&desc->image, &iview->planes[0].iv);
-         desc->functions = iview->planes[0].image_handle->functions;
+
+         unsigned plane_count = iview->plane_count;
+
+         for (unsigned p = 0; p < plane_count; p++) {
+            lp_jit_image_from_pipe(&desc[p].image, &iview->planes[p].iv);
+            desc[p].functions = iview->planes[p].image_handle->functions;
+         }
       } else {
-         desc->functions = device->null_image_handle->functions;
+         unsigned plane_count = size / sizeof(struct lp_descriptor);
+
+         for (unsigned p = 0; p < plane_count; p++)
+            desc[p].functions = device->null_image_handle->functions;
       }
       break;
    }
@@ -1159,7 +1206,12 @@ VKAPI_ATTR void VKAPI_CALL lvp_GetDescriptorEXT(
       }
       break;
    }
+   case VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR: {
+      desc->accel_struct = pCreateInfo->data.accelerationStructure;
+      break;
+   }
    default:
+      unreachable("Unsupported descriptor type");
       break;
    }
 }

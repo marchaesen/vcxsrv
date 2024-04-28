@@ -1,8 +1,9 @@
 OpenGL ES
 =========
 
-Mesa implements OpenGL ES 1.1 and OpenGL ES 2.0. More information about
-OpenGL ES can be found at https://www.khronos.org/opengles/.
+Mesa implements OpenGL ES 1.1, 2.0, 3.0, 3.1 and 3.2, although some drivers
+may expose lower limited set. More information about OpenGL ES can be found at
+https://www.khronos.org/opengles/.
 
 OpenGL ES depends on a working EGL implementation. Please refer to
 :doc:`Mesa EGL <egl>` for more information about EGL.

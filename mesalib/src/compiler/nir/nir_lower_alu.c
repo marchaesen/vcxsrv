@@ -51,6 +51,7 @@ lower_alu_instr(nir_builder *b, nir_instr *instr_, UNUSED void *cb_data)
 
    b->cursor = nir_before_instr(&instr->instr);
    b->exact = instr->exact;
+   b->fp_fast_math = instr->fp_fast_math;
 
    switch (instr->op) {
    case nir_op_bitfield_reverse:

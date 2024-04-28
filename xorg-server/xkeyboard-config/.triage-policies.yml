@@ -1,0 +1,37 @@
+# This is a set of bugbot commands for issues and merge requests - setting any of the
+# bugbot::foo labels will trigger gitlab-triage to run with this ruleset (well, the
+# one we have on the main branch at the time)
+#
+# Note that for adding labels via gitlab-triage, the label must first be created in the project.
+
+
+.too-exotic: &too-exotic
+  name: "Close as too exotic"
+  conditions:
+    labels:
+      - "bugbot::too-exotic"
+  actions:
+    remove_labels:
+      - "bugbot::too-exotic"
+    comment: |
+      Hi. Thanks for filing this issue/merge request. We think this keyboard layout is too exotic
+      to be shipped as part of the default xkeyboard-config keymaps. Layouts added to
+      the distribution means we have to maintain these layouts for years and decades into
+      the future and we avoid having to do so for layouts that we expect have a tiny number of
+      users.
+
+      As a general rule, we will add layouts that are part of official standards but not
+      experimental layouts. If this is the case here, please re-open with a comment.
+
+      Please install it as a custom layout instead, we have
+      [instructions for Xorg](https://who-t.blogspot.com/2021/02/a-pre-supplied-custom-keyboard-layout.html)
+      and [instructions for Wayland](https://xkbcommon.github.io/libxkbcommon/doc/current/md_doc_user_configuration.html).
+    status: "close"
+
+resource_rules:
+  issues:
+    rules:
+      - *too-exotic
+  merge_requests:
+    rules:
+      - *too-exotic

@@ -31,21 +31,6 @@
 
 #include "nir.h"
 
-struct dzn_indirect_draw_params {
-   uint32_t vertex_count;
-   uint32_t instance_count;
-   uint32_t first_vertex;
-   uint32_t first_instance;
-};
-
-struct dzn_indirect_indexed_draw_params {
-   uint32_t index_count;
-   uint32_t instance_count;
-   uint32_t first_index;
-   int32_t vertex_offset;
-   uint32_t first_instance;
-};
-
 struct dzn_indirect_draw_rewrite_params {
    uint32_t draw_buf_stride;
 };
@@ -61,31 +46,6 @@ struct dzn_indirect_draw_triangle_fan_prim_restart_rewrite_params {
    uint32_t triangle_fan_index_buf_stride;
    uint64_t triangle_fan_index_buf_start;
    uint64_t exec_buf_start;
-};
-
-struct dzn_indirect_draw_exec_params {
-   struct {
-      uint32_t first_vertex;
-      uint32_t base_instance;
-      uint32_t draw_id;
-   } sysvals;
-   union {
-      struct dzn_indirect_draw_params draw;
-      struct dzn_indirect_indexed_draw_params indexed_draw;
-   };
-};
-
-struct dzn_indirect_triangle_fan_draw_exec_params {
-   D3D12_INDEX_BUFFER_VIEW ibview;
-   struct {
-      uint32_t first_vertex;
-      uint32_t base_instance;
-      uint32_t draw_id;
-   } sysvals;
-   union {
-      struct dzn_indirect_draw_params draw;
-      struct dzn_indirect_indexed_draw_params indexed_draw;
-   };
 };
 
 struct dzn_triangle_fan_rewrite_index_params {
@@ -114,22 +74,23 @@ struct dzn_indirect_triangle_fan_prim_restart_rewrite_index_exec_params {
    } group_count;
 };
 
-enum dzn_indirect_draw_type {
-   DZN_INDIRECT_DRAW,
-   DZN_INDIRECT_DRAW_COUNT,
-   DZN_INDIRECT_INDEXED_DRAW,
-   DZN_INDIRECT_INDEXED_DRAW_COUNT,
-   DZN_INDIRECT_DRAW_TRIANGLE_FAN,
-   DZN_INDIRECT_DRAW_COUNT_TRIANGLE_FAN,
-   DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN,
-   DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN,
-   DZN_INDIRECT_INDEXED_DRAW_TRIANGLE_FAN_PRIM_RESTART,
-   DZN_INDIRECT_INDEXED_DRAW_COUNT_TRIANGLE_FAN_PRIM_RESTART,
-   DZN_NUM_INDIRECT_DRAW_TYPES,
+struct dzn_indirect_draw_type {
+   union {
+      struct {
+         uint8_t indexed : 1;
+         uint8_t indirect_count : 1;
+         uint8_t draw_params : 1;
+         uint8_t draw_id : 1;
+         uint8_t triangle_fan : 1;
+         uint8_t triangle_fan_primitive_restart : 1;
+      };
+      uint8_t value;
+   };
 };
+#define DZN_NUM_INDIRECT_DRAW_TYPES (1 << 6)
 
 nir_shader *
-dzn_nir_indirect_draw_shader(enum dzn_indirect_draw_type type);
+dzn_nir_indirect_draw_shader(struct dzn_indirect_draw_type type);
 
 nir_shader *
 dzn_nir_triangle_fan_rewrite_index_shader(uint8_t old_index_size);
@@ -153,7 +114,8 @@ struct dzn_nir_blit_info {
          uint32_t sampler_dim : 4;
          uint32_t src_is_array : 1;
          uint32_t resolve_mode : 3;
-         uint32_t padding : 10;
+         uint32_t stencil_fallback : 1;
+         uint32_t padding : 9;
       };
       const uint32_t hash_key;
    };

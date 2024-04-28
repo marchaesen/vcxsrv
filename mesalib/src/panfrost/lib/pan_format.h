@@ -55,15 +55,59 @@ struct pan_blendable_format {
    mali_pixel_format bifrost[2];
 };
 
+#define panfrost_blendable_formats_v4 panfrost_blendable_formats_v5
+extern const struct pan_blendable_format
+   panfrost_blendable_formats_v5[PIPE_FORMAT_COUNT];
 extern const struct pan_blendable_format
    panfrost_blendable_formats_v6[PIPE_FORMAT_COUNT];
 extern const struct pan_blendable_format
    panfrost_blendable_formats_v7[PIPE_FORMAT_COUNT];
 extern const struct pan_blendable_format
    panfrost_blendable_formats_v9[PIPE_FORMAT_COUNT];
+#define panfrost_blendable_formats_v10 panfrost_blendable_formats_v9
+
+static inline const struct pan_blendable_format *
+panfrost_blendable_format_table(unsigned arch)
+{
+   switch (arch) {
+#define FMT_TABLE(x) case x: return panfrost_blendable_formats_v ## x
+   FMT_TABLE(4);
+   FMT_TABLE(5);
+   FMT_TABLE(6);
+   FMT_TABLE(7);
+   FMT_TABLE(9);
+   FMT_TABLE(10);
+#undef FMT_TABLE
+   default:
+      assert(!"Unsupported architecture");
+      return NULL;
+   }
+}
+
+#define panfrost_pipe_format_v4 panfrost_pipe_format_v5
+extern const struct panfrost_format panfrost_pipe_format_v5[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v6[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v7[PIPE_FORMAT_COUNT];
 extern const struct panfrost_format panfrost_pipe_format_v9[PIPE_FORMAT_COUNT];
+#define panfrost_pipe_format_v10 panfrost_pipe_format_v9
+
+static inline const struct panfrost_format *
+panfrost_format_table(unsigned arch)
+{
+   switch (arch) {
+#define FMT_TABLE(x) case x: return panfrost_pipe_format_v ## x
+   FMT_TABLE(4);
+   FMT_TABLE(5);
+   FMT_TABLE(6);
+   FMT_TABLE(7);
+   FMT_TABLE(9);
+   FMT_TABLE(10);
+#undef FMT_TABLE
+   default:
+      assert(!"Unsupported architecture");
+      return NULL;
+   }
+}
 
 /* Helpers to construct swizzles */
 
@@ -143,6 +187,44 @@ struct pan_decomposed_swizzle
    (MALI_RGB_COMPONENT_ORDER_##swizzle) | ((MALI_##mali) << 12) |              \
       (((MALI_SRGB_##srgb)) << 20)
 
+#endif
+
+static inline bool panfrost_format_is_yuv(enum pipe_format f)
+{
+   enum util_format_layout layout = util_format_description(f)->layout;
+
+   /* Mesa's subsampled RGB formats are considered YUV formats on Mali */
+   return layout == UTIL_FORMAT_LAYOUT_SUBSAMPLED ||
+          layout == UTIL_FORMAT_LAYOUT_PLANAR2 ||
+          layout == UTIL_FORMAT_LAYOUT_PLANAR3;
+}
+
+#ifdef PAN_ARCH
+static inline const struct panfrost_format *
+GENX(panfrost_format_from_pipe_format)(enum pipe_format f)
+{
+   return &GENX(panfrost_pipe_format)[f];
+}
+
+static inline const struct pan_blendable_format *
+GENX(panfrost_blendable_format_from_pipe_format)(enum pipe_format f)
+{
+   return &GENX(panfrost_blendable_formats)[f];
+}
+
+#if PAN_ARCH >= 6
+static inline unsigned
+GENX(panfrost_dithered_format_from_pipe_format)(enum pipe_format f, bool dithered)
+{
+   mali_pixel_format pixfmt =
+      GENX(panfrost_blendable_formats)[f].bifrost[dithered];
+
+   /* Formats requiring blend shaders are stored raw in the tilebuffer and will
+    * have 0 as their pixel format. Assumes dithering is set, I don't know of a
+    * case when it makes sense to turn off dithering. */
+   return pixfmt ?: GENX(panfrost_format_from_pipe_format)(f)->hw;
+}
+#endif
 #endif
 
 #endif

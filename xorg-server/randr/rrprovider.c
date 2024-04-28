@@ -22,11 +22,14 @@
  *
  * Authors: Dave Airlie
  */
-
-#include "randrstr.h"
-#include "swaprep.h"
+#include <dix-config.h>
 
 #include <X11/Xatom.h>
+
+#include "dix/dix_priv.h"
+#include "randr/randrstr_priv.h"
+
+#include "swaprep.h"
 
 RESTYPE RRProviderType = 0;
 
@@ -459,7 +462,7 @@ RRProviderInit(void)
     return TRUE;
 }
 
-extern _X_EXPORT Bool
+Bool
 RRProviderLookup(XID id, RRProviderPtr *provider_p)
 {
     int rc = dixLookupResourceByType((void **)provider_p, id,

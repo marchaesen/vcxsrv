@@ -377,19 +377,21 @@ test_nt_list_delete(void)
     free(list);
 }
 
-int
+const testfunc_t*
 list_test(void)
 {
-    test_xorg_list_init();
-    test_xorg_list_add();
-    test_xorg_list_append();
-    test_xorg_list_del();
-    test_xorg_list_for_each();
+    static const testfunc_t testfuncs[] = {
+        test_xorg_list_init,
+        test_xorg_list_add,
+        test_xorg_list_append,
+        test_xorg_list_del,
+        test_xorg_list_for_each,
 
-    test_nt_list_init();
-    test_nt_list_append();
-    test_nt_list_insert();
-    test_nt_list_delete();
-
-    return 0;
+        test_nt_list_init,
+        test_nt_list_append,
+        test_nt_list_insert,
+        test_nt_list_delete,
+        NULL,
+    };
+    return testfuncs;
 }

@@ -94,6 +94,7 @@ EXTENSIONS = [
     Extension("VK_EXT_external_memory_host", alias="ext_host_mem", properties=True),
     Extension("VK_EXT_queue_family_foreign"),
     Extension("VK_KHR_swapchain_mutable_format"),
+    Extension("VK_KHR_incremental_present"),
     Extension("VK_EXT_provoking_vertex",
               alias="pv",
               features=True,
@@ -148,10 +149,6 @@ EXTENSIONS = [
     Extension("VK_EXT_sample_locations",
               alias="sample_locations",
               properties=True),
-    Extension("VK_EXT_conservative_rasterization",
-              alias="cons_raster",
-              properties=True,
-              conditions=["$props.fullyCoveredFragmentShaderInputVariable"]),
     Extension("VK_KHR_shader_draw_parameters"),
     Extension("VK_KHR_sampler_mirror_clamp_to_edge"),
     Extension("VK_EXT_descriptor_buffer", alias="db", features=True, properties=True),
@@ -194,6 +191,9 @@ EXTENSIONS = [
               features=True),
     Extension("VK_KHR_dynamic_rendering",
               alias="dynamic_render",
+              features=True),
+    Extension("VK_KHR_dynamic_rendering_local_read",
+              alias="drlr",
               features=True),
     Extension("VK_EXT_multisampled_render_to_single_sampled",
               alias="msrtss",
@@ -322,7 +322,8 @@ EXTENSIONS = [
               features=True,
               conditions=["$feats.shaderDemoteToHelperInvocation"]),
     Extension("VK_KHR_shader_float_controls",
-              alias="float_controls")
+              alias="float_controls"),
+    Extension("VK_KHR_format_feature_flags2"),
 ]
 
 # constructor: Versions(device_version(major, minor, patch), struct_version(major, minor))
@@ -470,14 +471,16 @@ zink_get_physical_device_info(struct zink_screen *screen)
    // enumerate device supported extensions
    VkResult result = screen->vk.EnumerateDeviceExtensionProperties(screen->pdev, NULL, &num_extensions, NULL);
    if (result != VK_SUCCESS) {
-      mesa_loge("ZINK: vkEnumerateDeviceExtensionProperties failed (%s)", vk_Result_to_str(result));
+      if (!screen->implicitly_loaded)
+         mesa_loge("ZINK: vkEnumerateDeviceExtensionProperties failed (%s)", vk_Result_to_str(result));
    } else {
       if (num_extensions > 0) {
          VkExtensionProperties *extensions = MALLOC(sizeof(VkExtensionProperties) * num_extensions);
          if (!extensions) goto fail;
          result = screen->vk.EnumerateDeviceExtensionProperties(screen->pdev, NULL, &num_extensions, extensions);
          if (result != VK_SUCCESS) {
-            mesa_loge("ZINK: vkEnumerateDeviceExtensionProperties failed (%s)", vk_Result_to_str(result));
+            if (!screen->implicitly_loaded)
+               mesa_loge("ZINK: vkEnumerateDeviceExtensionProperties failed (%s)", vk_Result_to_str(result));
          }
 
          for (uint32_t i = 0; i < num_extensions; ++i) {
@@ -660,6 +663,36 @@ zink_get_physical_device_info(struct zink_screen *screen)
 %endfor
 
    info->num_extensions = num_extensions;
+
+   info->feats.pNext = NULL;
+
+%for version in versions:
+%if version.device_version < (1,2,0):
+      if (VK_MAKE_VERSION(1,2,0) <= screen->vk_version) {
+         /* VkPhysicalDeviceVulkan11Features was added in 1.2, not 1.1 as one would think */
+%else:
+      if (${version.version()} <= screen->vk_version) {
+%endif
+         info->feats${version.struct()}.pNext = info->feats.pNext;
+         info->feats.pNext = &info->feats${version.struct()};
+      }
+%endfor
+
+%for ext in extensions:
+%if ext.has_features:
+<%helpers:guard ext="${ext}">
+%if ext.features_promoted:
+      if (info->have_${ext.name_with_vendor()} && !info->have_vulkan${ext.core_since.struct()}) {
+%else:
+      if (info->have_${ext.name_with_vendor()}) {
+%endif
+         info->${ext.field("feats")}.sType = ${ext.stype("FEATURES")};
+         info->${ext.field("feats")}.pNext = info->feats.pNext;
+         info->feats.pNext = &info->${ext.field("feats")};
+      }
+</%helpers:guard>
+%endif
+%endfor
 
    return true;
 

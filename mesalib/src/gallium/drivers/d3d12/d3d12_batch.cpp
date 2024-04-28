@@ -58,41 +58,52 @@ d3d12_init_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 
    batch->bos = _mesa_hash_table_create(NULL, _mesa_hash_pointer,
                                         _mesa_key_pointer_equal);
-   batch->sampler_tables = _mesa_hash_table_create(NULL, d3d12_sampler_desc_table_key_hash,
-                                                   d3d12_sampler_desc_table_key_equals);
-   batch->sampler_views = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                           _mesa_key_pointer_equal);
+
+   util_dynarray_init(&batch->local_bos, NULL);
+
    batch->surfaces = _mesa_set_create(NULL, _mesa_hash_pointer,
                                       _mesa_key_pointer_equal);
    batch->objects = _mesa_set_create(NULL,
                                      _mesa_hash_pointer,
                                      _mesa_key_pointer_equal);
-   batch->queries = _mesa_set_create(NULL, _mesa_hash_pointer,
-                                     _mesa_key_pointer_equal);
 
-   if (!batch->bos || !batch->sampler_tables || !batch->sampler_views || !batch->surfaces || !batch->objects)
+   if (!batch->bos || !batch->surfaces || !batch->objects)
       return false;
 
-   util_dynarray_init(&batch->zombie_samplers, NULL);
-   util_dynarray_init(&batch->local_bos, NULL);
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0) {
+      batch->queries = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                        _mesa_key_pointer_equal);
 
-   if (FAILED(screen->dev->CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT,
+      batch->view_heap =
+         d3d12_descriptor_heap_new(screen->dev,
+                                    D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
+                                    D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+                                    8096);
+
+      batch->sampler_tables = _mesa_hash_table_create(NULL, d3d12_sampler_desc_table_key_hash,
+                                                      d3d12_sampler_desc_table_key_equals);
+      batch->sampler_views = _mesa_set_create(NULL, _mesa_hash_pointer,
+                                             _mesa_key_pointer_equal);
+
+      if (!batch->sampler_tables || !batch->sampler_views || !batch->view_heap || !batch->queries)
+         return false;
+
+      util_dynarray_init(&batch->zombie_samplers, NULL);
+
+      batch->sampler_heap =
+         d3d12_descriptor_heap_new(screen->dev,
+                                 D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
+                                 D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
+                                 1024);
+
+      if (!batch->sampler_heap)
+         return false;
+   }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
+
+   if (FAILED(screen->dev->CreateCommandAllocator(screen->queue_type,
                                                   IID_PPV_ARGS(&batch->cmdalloc))))
-      return false;
-
-   batch->sampler_heap =
-      d3d12_descriptor_heap_new(screen->dev,
-                                D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER,
-                                D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                              1024);
-
-   batch->view_heap =
-      d3d12_descriptor_heap_new(screen->dev,
-                                D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV,
-                                D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE,
-                                8096);
-
-   if (!batch->sampler_heap && !batch->view_heap)
       return false;
 
    return true;
@@ -138,6 +149,7 @@ delete_object(set_entry *entry)
    object->Release();
 }
 
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
 static void
 delete_query(set_entry *entry)
 {
@@ -145,6 +157,7 @@ delete_query(set_entry *entry)
    if (pipe_reference(&query->reference, nullptr))
       d3d12_destroy_query(query);
 }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
 bool
 d3d12_reset_batch(struct d3d12_context *ctx, struct d3d12_batch *batch, uint64_t timeout_ns)
@@ -160,12 +173,8 @@ d3d12_reset_batch(struct d3d12_context *ctx, struct d3d12_batch *batch, uint64_t
    }
 
    _mesa_hash_table_clear(batch->bos, delete_bo_entry);
-   _mesa_hash_table_clear(batch->sampler_tables, delete_sampler_view_table);
-   _mesa_set_clear(batch->sampler_views, delete_sampler_view);
    _mesa_set_clear(batch->surfaces, delete_surface);
    _mesa_set_clear(batch->objects, delete_object);
-   _mesa_set_clear(batch->queries, delete_query);
-
    
    util_dynarray_foreach(&batch->local_bos, d3d12_bo*, bo) {
       (*bo)->local_reference_mask[batch->ctx_id] &= ~(1 << batch->ctx_index);
@@ -173,12 +182,19 @@ d3d12_reset_batch(struct d3d12_context *ctx, struct d3d12_batch *batch, uint64_t
    }
    util_dynarray_clear(&batch->local_bos);
 
-   util_dynarray_foreach(&batch->zombie_samplers, d3d12_descriptor_handle, handle)
-      d3d12_descriptor_handle_free(handle);
-   util_dynarray_clear(&batch->zombie_samplers);
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   if (d3d12_screen(ctx->base.screen)->max_feature_level >= D3D_FEATURE_LEVEL_11_0) {
+      _mesa_hash_table_clear(batch->sampler_tables, delete_sampler_view_table);
+      _mesa_set_clear(batch->sampler_views, delete_sampler_view);
 
-   d3d12_descriptor_heap_clear(batch->view_heap);
-   d3d12_descriptor_heap_clear(batch->sampler_heap);
+      _mesa_set_clear(batch->queries, delete_query);
+      util_dynarray_foreach(&batch->zombie_samplers, d3d12_descriptor_handle, handle)
+         d3d12_descriptor_handle_free(handle);
+      util_dynarray_clear(&batch->zombie_samplers);
+      d3d12_descriptor_heap_clear(batch->view_heap);
+      d3d12_descriptor_heap_clear(batch->sampler_heap);
+   }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    if (FAILED(batch->cmdalloc->Reset())) {
       debug_printf("D3D12: resetting ID3D12CommandAllocator failed\n");
@@ -194,15 +210,21 @@ d3d12_destroy_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 {
    d3d12_reset_batch(ctx, batch, OS_TIMEOUT_INFINITE);
    batch->cmdalloc->Release();
-   d3d12_descriptor_heap_free(batch->sampler_heap);
-   d3d12_descriptor_heap_free(batch->view_heap);
    _mesa_hash_table_destroy(batch->bos, NULL);
-   _mesa_hash_table_destroy(batch->sampler_tables, NULL);
-   _mesa_set_destroy(batch->sampler_views, NULL);
+
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   if (d3d12_screen(ctx->base.screen)->max_feature_level >= D3D_FEATURE_LEVEL_11_0) {
+      d3d12_descriptor_heap_free(batch->sampler_heap);
+      d3d12_descriptor_heap_free(batch->view_heap);
+      _mesa_hash_table_destroy(batch->sampler_tables, NULL);
+      _mesa_set_destroy(batch->sampler_views, NULL);
+      _mesa_set_destroy(batch->queries, NULL);
+      util_dynarray_fini(&batch->zombie_samplers);
+   }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
+
    _mesa_set_destroy(batch->surfaces, NULL);
    _mesa_set_destroy(batch->objects, NULL);
-   _mesa_set_destroy(batch->queries, NULL);
-   util_dynarray_fini(&batch->zombie_samplers);
    util_dynarray_fini(&batch->local_bos);
 }
 
@@ -210,9 +232,6 @@ void
 d3d12_start_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 {
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
-   ID3D12DescriptorHeap* heaps[2] = { d3d12_descriptor_heap_get(batch->view_heap),
-                                      d3d12_descriptor_heap_get(batch->sampler_heap) };
-
    d3d12_reset_batch(ctx, batch, OS_TIMEOUT_INFINITE);
 
    /* Create or reset global command list */
@@ -223,7 +242,7 @@ d3d12_start_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
          return;
       }
    } else {
-      if (FAILED(screen->dev->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT,
+      if (FAILED(screen->dev->CreateCommandList(0, screen->queue_type,
                                                 batch->cmdalloc, NULL,
                                                 IID_PPV_ARGS(&ctx->cmdlist)))) {
          debug_printf("D3D12: creating ID3D12GraphicsCommandList failed\n");
@@ -238,15 +257,22 @@ d3d12_start_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
       }
    }
 
-   ctx->cmdlist->SetDescriptorHeaps(2, heaps);
-   ctx->cmdlist_dirty = ~0;
-   for (int i = 0; i < PIPE_SHADER_TYPES; ++i)
-      ctx->shader_dirty[i] = ~0;
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0) {
+      ID3D12DescriptorHeap* heaps[2] = { d3d12_descriptor_heap_get(batch->view_heap),
+                                       d3d12_descriptor_heap_get(batch->sampler_heap) };
+      ctx->cmdlist->SetDescriptorHeaps(2, heaps);
 
-   if (!ctx->queries_disabled)
-      d3d12_resume_queries(ctx);
-   if (ctx->current_predication)
-      d3d12_enable_predication(ctx);
+      ctx->cmdlist_dirty = ~0;
+      for (int i = 0; i < PIPE_SHADER_TYPES; ++i)
+         ctx->shader_dirty[i] = ~0;
+   
+      if (!ctx->queries_disabled)
+         d3d12_resume_queries(ctx);
+      if (ctx->current_predication)
+         d3d12_enable_predication(ctx);
+   }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    batch->submit_id = ++ctx->submit_id;
 }
@@ -256,8 +282,10 @@ d3d12_end_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 {
    struct d3d12_screen *screen = d3d12_screen(ctx->base.screen);
 
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
    if (!ctx->queries_disabled)
       d3d12_suspend_queries(ctx);
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    if (FAILED(ctx->cmdlist->Close())) {
       debug_printf("D3D12: closing ID3D12GraphicsCommandList failed\n");
@@ -284,13 +312,18 @@ d3d12_end_batch(struct d3d12_context *ctx, struct d3d12_batch *batch)
 
    batch->fence = d3d12_create_fence(screen);
 
-   set_foreach_remove(batch->queries, entry) {
-      d3d12_query *query = (struct d3d12_query *)entry->key;
-      if (pipe_reference(&query->reference, nullptr))
-         d3d12_destroy_query(query);
-      else
-         query->fence_value = screen->fence_value;
+#ifdef HAVE_GALLIUM_D3D12_GRAPHICS
+   /* batch->queries is NULL when no grfx supported */
+   if (screen->max_feature_level >= D3D_FEATURE_LEVEL_11_0) {
+      set_foreach_remove(batch->queries, entry) {
+         d3d12_query *query = (struct d3d12_query *)entry->key;
+         if (pipe_reference(&query->reference, nullptr))
+            d3d12_destroy_query(query);
+         else
+            query->fence_value = screen->fence_value;
+      }
    }
+#endif // HAVE_GALLIUM_D3D12_GRAPHICS
 
    mtx_unlock(&screen->submit_mutex);
 }

@@ -106,8 +106,8 @@ FcDirCacheDeleteUUID (const FcChar8  *dir,
     FcStrFree (target);
 bail:
     FcStrFree (d);
-#endif
     FcConfigDestroy (config);
+#endif
 
     return ret;
 }
@@ -1358,14 +1358,21 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
     unsigned int    magic;
     int		    written;
     const FcChar8   *sysroot = FcConfigGetSysRoot (config);
+    FcStrSet	    *cpath;
 
     /*
      * Write it to the first directory in the list which is writable
      */
 
+    cpath = FcStrSetCreateEx (FCSS_GROW_BY_64);
+    if (!cpath)
+	return FcFalse;
     list = FcStrListCreate (config->cacheDirs);
     if (!list)
+    {
+	FcStrSetDestroy (cpath);
 	return FcFalse;
+    }
     while ((test_dir = FcStrListNext (list)))
     {
 	if (d)
@@ -1404,12 +1411,26 @@ FcDirCacheWrite (FcCache *cache, FcConfig *config)
 		FcDirCacheCreateTagFile (d);
 		break;
 	    }
+	    /* Record a path that was supposed to be a cache directory */
+	    FcStrSetAdd (cpath, d);
 	}
     }
     if (!test_dir)
-	fprintf (stderr, "Fontconfig error: No writable cache directories\n");
+    {
+	FcStrList *l;
+	FcChar8 *s;
+
+	l = FcStrListCreate (cpath);
+	fprintf (stderr, "\nFontconfig error: No writable cache directories\n");
+	while ((s = FcStrListNext (l)))
+	{
+	    fprintf (stderr, "\t%s\n", s);
+	}
+	FcStrListDone (l);
+    }
     if (d)
 	FcStrFree (d);
+    FcStrSetDestroy (cpath);
     FcStrListDone (list);
     if (!cache_dir)
 	return FcFalse;

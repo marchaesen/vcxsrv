@@ -36,6 +36,8 @@
 #include "util/build_id.h"
 #include "util/disk_cache.h"
 #include "util/mesa-sha1.h"
+#include "intel/compiler/brw_compiler.h"
+#include "intel/compiler/elk/elk_compiler.h"
 
 #include "iris_context.h"
 
@@ -86,7 +88,9 @@ iris_disk_cache_store(struct disk_cache *cache,
       return;
 
    gl_shader_stage stage = ish->nir->info.stage;
-   const struct brw_stage_prog_data *prog_data = shader->prog_data;
+   const struct brw_stage_prog_data *brw = shader->brw_prog_data;
+   const struct elk_stage_prog_data *elk = shader->elk_prog_data;
+   assert((brw == NULL) != (elk == NULL));
 
    cache_key cache_key;
    iris_disk_cache_compute_key(cache, ish, prog_key, prog_key_size, cache_key);
@@ -113,23 +117,40 @@ iris_disk_cache_store(struct disk_cache *cache,
     * 7. Legacy param array (only used for compute workgroup ID)
     * 8. Binding table
     */
-   size_t prog_data_s = brw_prog_data_size(stage);
-   union brw_any_prog_data serializable;
-   assert(prog_data_s <= sizeof(serializable));
-   memcpy(&serializable, shader->prog_data, prog_data_s);
-   serializable.base.param = NULL;
-   serializable.base.relocs = NULL;
-   blob_write_bytes(&blob, &serializable, prog_data_s);
+   if (brw) {
+      size_t prog_data_s = brw_prog_data_size(stage);
+      union brw_any_prog_data serializable;
+      assert(prog_data_s <= sizeof(serializable));
+      memcpy(&serializable, shader->brw_prog_data, prog_data_s);
+      serializable.base.param = NULL;
+      serializable.base.relocs = NULL;
+      blob_write_bytes(&blob, &serializable, prog_data_s);
+   } else {
+      size_t prog_data_s = elk_prog_data_size(stage);
+      union elk_any_prog_data serializable;
+      assert(prog_data_s <= sizeof(serializable));
+      memcpy(&serializable, shader->elk_prog_data, prog_data_s);
+      serializable.base.param = NULL;
+      serializable.base.relocs = NULL;
+      blob_write_bytes(&blob, &serializable, prog_data_s);
+   }
 
-   blob_write_bytes(&blob, shader->map, shader->prog_data->program_size);
+   blob_write_bytes(&blob, shader->map, shader->program_size);
    blob_write_uint32(&blob, shader->num_system_values);
    blob_write_bytes(&blob, shader->system_values,
-                    shader->num_system_values * sizeof(enum brw_param_builtin));
+                    shader->num_system_values * sizeof(uint32_t));
    blob_write_uint32(&blob, shader->kernel_input_size);
-   blob_write_bytes(&blob, prog_data->relocs,
-                    prog_data->num_relocs * sizeof(struct brw_shader_reloc));
-   blob_write_bytes(&blob, prog_data->param,
-                    prog_data->nr_params * sizeof(uint32_t));
+   if (brw) {
+      blob_write_bytes(&blob, brw->relocs,
+                       brw->num_relocs * sizeof(struct brw_shader_reloc));
+      blob_write_bytes(&blob, brw->param,
+                       brw->nr_params * sizeof(uint32_t));
+   } else {
+      blob_write_bytes(&blob, elk->relocs,
+                       elk->num_relocs * sizeof(struct elk_shader_reloc));
+      blob_write_bytes(&blob, elk->param,
+                       elk->nr_params * sizeof(uint32_t));
+   }
    blob_write_bytes(&blob, &shader->bt, sizeof(shader->bt));
 
    disk_cache_put(cache, cache_key, blob.data, blob.size, NULL);
@@ -183,43 +204,65 @@ iris_disk_cache_retrieve(struct iris_screen *screen,
    if (!buffer)
       return false;
 
-   const uint32_t prog_data_size = brw_prog_data_size(stage);
+   const uint32_t prog_data_size = screen->brw ? brw_prog_data_size(stage)
+                                               : elk_prog_data_size(stage);
 
-   struct brw_stage_prog_data *prog_data = ralloc_size(NULL, prog_data_size);
+   void *prog_data = ralloc_size(NULL, prog_data_size);
    const void *assembly;
    uint32_t num_system_values;
    uint32_t kernel_input_size;
    uint32_t *system_values = NULL;
    uint32_t *so_decls = NULL;
 
+   struct brw_stage_prog_data *brw = screen->brw ? prog_data : NULL;
+   struct elk_stage_prog_data *elk = screen->elk ? prog_data : NULL;
+   assert((brw == NULL) != (elk == NULL));
+
    struct blob_reader blob;
    blob_reader_init(&blob, buffer, size);
    blob_copy_bytes(&blob, prog_data, prog_data_size);
-   assembly = blob_read_bytes(&blob, prog_data->program_size);
+   assembly = blob_read_bytes(&blob, brw ? brw->program_size : elk->program_size);
    num_system_values = blob_read_uint32(&blob);
    if (num_system_values) {
       system_values =
-         ralloc_array(NULL, enum brw_param_builtin, num_system_values);
+         ralloc_array(NULL, uint32_t, num_system_values);
       blob_copy_bytes(&blob, system_values,
-                      num_system_values * sizeof(enum brw_param_builtin));
+                      num_system_values * sizeof(uint32_t));
    }
 
    kernel_input_size = blob_read_uint32(&blob);
 
-   prog_data->relocs = NULL;
-   if (prog_data->num_relocs) {
-      struct brw_shader_reloc *relocs =
-         ralloc_array(NULL, struct brw_shader_reloc, prog_data->num_relocs);
-      blob_copy_bytes(&blob, relocs,
-                      prog_data->num_relocs * sizeof(struct brw_shader_reloc));
-      prog_data->relocs = relocs;
-   }
+   if (brw) {
+      brw->relocs = NULL;
+      if (brw->num_relocs) {
+         struct brw_shader_reloc *relocs =
+            ralloc_array(NULL, struct brw_shader_reloc, brw->num_relocs);
+         blob_copy_bytes(&blob, relocs,
+                         brw->num_relocs * sizeof(struct brw_shader_reloc));
+         brw->relocs = relocs;
+      }
 
-   prog_data->param = NULL;
-   if (prog_data->nr_params) {
-      prog_data->param = ralloc_array(NULL, uint32_t, prog_data->nr_params);
-      blob_copy_bytes(&blob, prog_data->param,
-                      prog_data->nr_params * sizeof(uint32_t));
+      brw->param = NULL;
+      if (brw->nr_params) {
+         brw->param = ralloc_array(NULL, uint32_t, brw->nr_params);
+         blob_copy_bytes(&blob, brw->param, brw->nr_params * sizeof(uint32_t));
+      }
+   } else {
+      elk->relocs = NULL;
+      if (elk->num_relocs) {
+         struct elk_shader_reloc *relocs =
+            ralloc_array(NULL, struct elk_shader_reloc, elk->num_relocs);
+         blob_copy_bytes(&blob, relocs,
+                         elk->num_relocs * sizeof(struct elk_shader_reloc));
+         elk->relocs = relocs;
+      }
+
+      elk->param = NULL;
+      if (elk->nr_params) {
+         elk->param = ralloc_array(NULL, uint32_t, elk->nr_params);
+         blob_copy_bytes(&blob, elk->param,
+                         elk->nr_params * sizeof(uint32_t));
+      }
    }
 
    struct iris_binding_table bt;
@@ -228,9 +271,10 @@ iris_disk_cache_retrieve(struct iris_screen *screen,
    if (stage == MESA_SHADER_VERTEX ||
        stage == MESA_SHADER_TESS_EVAL ||
        stage == MESA_SHADER_GEOMETRY) {
-      struct brw_vue_prog_data *vue_prog_data = (void *) prog_data;
-      so_decls = screen->vtbl.create_so_decl_list(&ish->stream_output,
-                                               &vue_prog_data->vue_map);
+      struct intel_vue_map *vue_map =
+         screen->brw ? &brw_vue_prog_data(prog_data)->vue_map
+                     : &elk_vue_prog_data(prog_data)->vue_map;
+      so_decls = screen->vtbl.create_so_decl_list(&ish->stream_output, vue_map);
    }
 
    /* System values and uniforms are stored in constant buffer 0, the
@@ -245,7 +289,12 @@ iris_disk_cache_retrieve(struct iris_screen *screen,
    if (num_system_values || kernel_input_size)
       num_cbufs++;
 
-   iris_finalize_program(shader, prog_data, so_decls, system_values,
+   if (brw)
+      iris_apply_brw_prog_data(shader, brw);
+   else
+      iris_apply_elk_prog_data(shader, elk);
+
+   iris_finalize_program(shader, so_decls, system_values,
                          num_system_values, kernel_input_size, num_cbufs,
                          &bt);
 
@@ -274,11 +323,20 @@ iris_disk_cache_init(struct iris_screen *screen)
    if (INTEL_DEBUG(DEBUG_DISK_CACHE_DISABLE_MASK))
       return;
 
-   /* array length = print length + nul char + 1 extra to verify it's unused */
-   char renderer[11];
-   UNUSED int len =
-      snprintf(renderer, sizeof(renderer), "iris_%04x", screen->devinfo->pci_device_id);
-   assert(len == sizeof(renderer) - 2);
+   /* array length = strlen("iris_") + sha + nul char */
+   char renderer[5 + 40 + 1] = {0};
+
+   if (screen->brw) {
+      char device_info_sha[41];
+      brw_device_sha1(device_info_sha, screen->devinfo);
+      memcpy(renderer, "iris_", 5);
+      memcpy(renderer + 5, device_info_sha, 40);
+   } else {
+      /* For Gfx8, just use PCI ID. */
+      ASSERTED int len = snprintf(renderer, sizeof(renderer),
+                                  "iris_%04x", screen->devinfo->pci_device_id);
+      assert(len < ARRAY_SIZE(renderer) - 1);
+   }
 
    const struct build_id_note *note =
       build_id_find_nhdr_for_addr(iris_disk_cache_init);
@@ -290,8 +348,9 @@ iris_disk_cache_init(struct iris_screen *screen)
    char timestamp[41];
    _mesa_sha1_format(timestamp, id_sha1);
 
-   const uint64_t driver_flags =
-      brw_get_compiler_config_value(screen->compiler);
+   const uint64_t driver_flags = screen->brw ?
+      brw_get_compiler_config_value(screen->brw) :
+      elk_get_compiler_config_value(screen->elk);
    screen->disk_cache = disk_cache_create(renderer, timestamp, driver_flags);
 #endif
 }

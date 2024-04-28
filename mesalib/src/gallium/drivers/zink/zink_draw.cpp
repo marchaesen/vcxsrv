@@ -435,6 +435,9 @@ update_gfx_pipeline(struct zink_context *ctx, struct zink_batch_state *bs, enum 
          /* always rebind all stages */
          VKCTX(CmdBindShadersEXT)(bs->cmdbuf, ZINK_GFX_SHADER_COUNT, stages, ctx->curr_program->objects);
          VKCTX(CmdSetDepthBiasEnable)(bs->cmdbuf, VK_TRUE);
+         VKCTX(CmdSetTessellationDomainOriginEXT)(bs->cmdbuf, VK_TESSELLATION_DOMAIN_ORIGIN_LOWER_LEFT);
+         VKCTX(CmdSetSampleLocationsEnableEXT)(bs->cmdbuf, ctx->gfx_pipeline_state.sample_locations_enabled);
+         VKCTX(CmdSetRasterizationStreamEXT)(bs->cmdbuf, 0);
       }
       ctx->shobj_draw = true;
    }

@@ -161,7 +161,7 @@ Vulkan
 
 .. code-block:: sh
 
-   VK_ICD_FILENAMES="$MESA_INSTALLDIR/share/vulkan/icd/my_icd.json" vulkaninfo
+   VK_DRIVER_FILES="$MESA_INSTALLDIR/share/vulkan/icd/my_icd.json" vulkaninfo
 
 where ``my_icd.json`` is replaced with the actual ICD json file name.  This
 will depend on your driver.  For instance, the 64-bit Lavapipe driver ICD file

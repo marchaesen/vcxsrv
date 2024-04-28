@@ -31,9 +31,13 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <stdio.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/XI.h>
+#include <X11/extensions/XKMformat.h>
+
+#include "dix/dix_priv.h"
+
 #include "misc.h"
 #include "inputstr.h"
-#define	XKBSRV_NEED_FILE_FUNCS
 #include <xkbsrv.h>
 #include "extnsionst.h"
 #include "extinit.h"
@@ -41,8 +45,6 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "xkb-procs.h"
 #include "protocol-versions.h"
 
-#include <X11/extensions/XI.h>
-#include <X11/extensions/XKMformat.h>
 
 int XkbEventBase;
 static int XkbErrorBase;
@@ -2461,8 +2463,7 @@ _XkbSetMapCheckLength(xkbSetMapReq *req)
     if (len == req_len)
         return Success;
 bad:
-    ErrorF("[xkb] BOGUS LENGTH in SetMap: expected %ld got %ld\n",
-           len, req_len);
+    ErrorF("[xkb] BOGUS LENGTH in SetMap: expected %zd got %zd\n", len, req_len);
     return BadLength;
 }
 

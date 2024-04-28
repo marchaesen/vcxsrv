@@ -9,6 +9,9 @@ autom4te.cache/
 autoscan.log
 ChangeLog
 compile
+confdefs.h
+conftest.c
+conftest.err
 config.guess
 config.h
 config.h.in

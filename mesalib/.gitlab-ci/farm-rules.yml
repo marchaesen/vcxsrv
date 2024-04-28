@@ -237,6 +237,25 @@
       when: never
     - !reference [.freedreno-farm-rules, rules]
 
+.vmware-farm-rules:
+  rules:
+    - exists: [ .ci-farms-disabled/vmware ]
+      when: never
+    - changes: [ .ci-farms-disabled/vmware ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: on_success
+    - changes: [ .ci-farms-disabled/* ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: never
+
+.vmware-farm-manual-rules:
+  rules:
+    - exists: [ .ci-farms-disabled/vmware ]
+      when: never
+    - changes: [ .ci-farms-disabled/vmware ]
+      if: '$CI_PIPELINE_SOURCE != "schedule"'
+      when: never
+    - !reference [.vmware-farm-rules, rules]
 
 .ondracka-farm-rules:
   rules:
@@ -310,6 +329,10 @@
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
       changes: [ .ci-farms-disabled/ondracka ]
       exists: [ .ci-farms-disabled/ondracka ]
+      when: never
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+      changes: [ .ci-farms-disabled/vmware ]
+      exists: [ .ci-farms-disabled/vmware ]
       when: never
     # Any other change to ci-farms/* means some farm is getting re-enabled.
     # Run jobs in Marge pipelines (and let it fallback to manual otherwise)

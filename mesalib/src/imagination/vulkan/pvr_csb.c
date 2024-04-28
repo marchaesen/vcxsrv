@@ -81,7 +81,7 @@ void pvr_csb_init(struct pvr_device *device,
    csb->end = NULL;
    csb->relocation_mark = NULL;
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    csb->relocation_mark_status = PVR_CSB_RELOCATION_MARK_UNINITIALIZED;
 #endif
 
@@ -104,7 +104,7 @@ void pvr_csb_init(struct pvr_device *device,
  */
 void pvr_csb_finish(struct pvr_csb *csb)
 {
-#if defined(DEBUG)
+#if MESA_DEBUG
    assert(csb->relocation_mark_status ==
              PVR_CSB_RELOCATION_MARK_UNINITIALIZED ||
           csb->relocation_mark_status == PVR_CSB_RELOCATION_MARK_CLEARED);
@@ -272,7 +272,7 @@ static bool pvr_csb_buffer_extend(struct pvr_csb *csb)
 
       memcpy(new_buffer, csb->relocation_mark, current_state_update_size);
 
-#if defined(DEBUG)
+#if MESA_DEBUG
       assert(csb->relocation_mark_status == PVR_CSB_RELOCATION_MARK_SET);
       csb->relocation_mark_status = PVR_CSB_RELOCATION_MARK_SET_AND_CONSUMED;
       zero_after_move = true;
@@ -330,7 +330,7 @@ void *pvr_csb_alloc_dwords(struct pvr_csb *csb, uint32_t num_dwords)
       return p;
    }
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    if (csb->relocation_mark_status == PVR_CSB_RELOCATION_MARK_CLEARED)
       mesa_logd_once("CS memory without relocation mark detected.");
 #endif

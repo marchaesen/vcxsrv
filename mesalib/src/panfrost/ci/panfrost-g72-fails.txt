@@ -1,0 +1,1 @@
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail

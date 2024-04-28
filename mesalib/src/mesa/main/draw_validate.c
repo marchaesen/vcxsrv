@@ -446,7 +446,7 @@ _mesa_update_valid_to_render_state(struct gl_context *ctx)
       mask &= ~(1 << GL_PATCHES);
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (shader->Flags & GLSL_LOG) {
       struct gl_program **prog = shader->CurrentProgram;
 

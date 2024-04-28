@@ -21,6 +21,8 @@
 #include "tu_descriptor_set.h"
 #include "tu_device.h"
 #include "tu_formats.h"
+#include "tu_rmv.h"
+#include "tu_wsi.h"
 
 uint32_t
 tu6_plane_count(VkFormat format)
@@ -165,7 +167,7 @@ tu_image_view_init(struct tu_device *device,
                    const VkImageViewCreateInfo *pCreateInfo,
                    bool has_z24uint_s8uint)
 {
-   TU_FROM_HANDLE(tu_image, image, pCreateInfo->image);
+   VK_FROM_HANDLE(tu_image, image, pCreateInfo->image);
    const VkImageSubresourceRange *range = &pCreateInfo->subresourceRange;
    VkFormat vk_format = pCreateInfo->format;
    VkImageAspectFlags aspect_mask = pCreateInfo->subresourceRange.aspectMask;
@@ -310,9 +312,10 @@ ubwc_possible(struct tu_device *device,
 
    /* In copy_format, we treat snorm as unorm to avoid clamping.  But snorm
     * and unorm are UBWC incompatible for special values such as all 0's or
-    * all 1's.  Disable UBWC for snorm.
+    * all 1's prior to a740.  Disable UBWC for snorm.
     */
-   if (vk_format_is_snorm(format))
+   if (vk_format_is_snorm(format) &&
+       !info->a7xx.ubwc_unorm_snorm_int_compatible)
       return false;
 
    if (!info->a6xx.has_8bpp_ubwc &&
@@ -330,22 +333,15 @@ ubwc_possible(struct tu_device *device,
       return false;
    }
 
-   /* Disable UBWC for storage images.
+   /* Disable UBWC for storage images when not supported.
     *
-    * The closed GL driver skips UBWC for storage images (and additionally
-    * uses linear for writeonly images).  We seem to have image tiling working
-    * in freedreno in general, so turnip matches that.  freedreno also enables
-    * UBWC on images, but it's not really tested due to the lack of
-    * UBWC-enabled mipmaps in freedreno currently.  Just match the closed GL
-    * behavior of no UBWC.
-   */
-   if ((usage | stencil_usage) & VK_IMAGE_USAGE_STORAGE_BIT) {
-      if (device) {
-         perf_debug(device,
-                    "Disabling UBWC for %s storage image, but should be "
-                    "possible to support",
-                    util_format_name(vk_format_to_pipe_format(format)));
-      }
+    * Prior to a7xx, storage images must be readonly or writeonly to use UBWC.
+    * Freedreno can determine when this isn't the case and decompress the
+    * image on-the-fly, but we don't know which image a binding corresponds to
+    * and we can't change the descriptor so we can't do this.
+    */
+   if (((usage | stencil_usage) & VK_IMAGE_USAGE_STORAGE_BIT) &&
+       !info->a7xx.supports_ibo_ubwc) {
       return false;
    }
 
@@ -374,17 +370,10 @@ ubwc_possible(struct tu_device *device,
        (stencil_usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_INPUT_ATTACHMENT_BIT)))
       return false;
 
-   /* This meant to disable UBWC for MSAA z24s8, but accidentally disables it
-    * for all MSAA.  https://gitlab.freedesktop.org/mesa/mesa/-/issues/7438
-    */
-   if (!info->a6xx.has_z24uint_s8uint && samples > VK_SAMPLE_COUNT_1_BIT) {
-      if (device) {
-         perf_debug(device,
-                    "Disabling UBWC for %d-sample %s image, but it should be "
-                    "possible to support",
-                    samples,
-                    util_format_name(vk_format_to_pipe_format(format)));
-      }
+   if (!info->a6xx.has_z24uint_s8uint &&
+       (format == VK_FORMAT_D24_UNORM_S8_UINT ||
+        format == VK_FORMAT_X8_D24_UNORM_PACK32) &&
+       samples > VK_SAMPLE_COUNT_1_BIT) {
       return false;
    }
 
@@ -505,7 +494,8 @@ tu_image_init(struct tu_device *device, struct tu_image *image,
        !vk_format_is_depth_or_stencil(image->vk.format)) {
       const VkImageFormatListCreateInfo *fmt_list =
          vk_find_struct_const(pCreateInfo->pNext, IMAGE_FORMAT_LIST_CREATE_INFO);
-      if (!tu6_mutable_format_list_ubwc_compatible(fmt_list)) {
+      if (!tu6_mutable_format_list_ubwc_compatible(device->physical_device->info,
+                                                   fmt_list)) {
          if (ubwc_enabled) {
             if (fmt_list && fmt_list->viewFormatCount == 2) {
                perf_debug(
@@ -690,7 +680,23 @@ tu_CreateImage(VkDevice _device,
    uint64_t modifier = DRM_FORMAT_MOD_INVALID;
    const VkSubresourceLayout *plane_layouts = NULL;
 
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
+
+#ifdef TU_USE_WSI_PLATFORM
+   /* Ignore swapchain creation info on Android. Since we don't have an
+    * implementation in Mesa, we're guaranteed to access an Android object
+    * incorrectly.
+    */
+   const VkImageSwapchainCreateInfoKHR *swapchain_info =
+      vk_find_struct_const(pCreateInfo->pNext, IMAGE_SWAPCHAIN_CREATE_INFO_KHR);
+   if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE) {
+      return wsi_common_create_swapchain_image(device->physical_device->vk.wsi_device,
+                                               pCreateInfo,
+                                               swapchain_info->swapchain,
+                                               pImage);
+   }
+#endif
+
    struct tu_image *image = (struct tu_image *)
       vk_object_zalloc(&device->vk, alloc, sizeof(*image), VK_OBJECT_TYPE_IMAGE);
 
@@ -726,7 +732,7 @@ tu_CreateImage(VkDevice _device,
          modifier = DRM_FORMAT_MOD_LINEAR;
    }
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    const VkNativeBufferANDROID *gralloc_info =
       vk_find_struct_const(pCreateInfo->pNext, NATIVE_BUFFER_ANDROID);
    int dma_buf;
@@ -744,9 +750,15 @@ tu_CreateImage(VkDevice _device,
       return result;
    }
 
+   TU_RMV(image_create, device, image);
+
+#ifdef HAVE_PERFETTO
+   tu_perfetto_log_create_image(device, image);
+#endif
+
    *pImage = tu_image_to_handle(image);
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (gralloc_info)
       return tu_import_memory_from_gralloc_handle(_device, dma_buf, alloc,
                                                   *pImage);
@@ -759,18 +771,82 @@ tu_DestroyImage(VkDevice _device,
                 VkImage _image,
                 const VkAllocationCallbacks *pAllocator)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_image, image, _image);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_image, image, _image);
 
    if (!image)
       return;
 
-#ifdef ANDROID
+   TU_RMV(image_destroy, device, image);
+
+#ifdef HAVE_PERFETTO
+   tu_perfetto_log_destroy_image(device, image);
+#endif
+
+#if DETECT_OS_ANDROID
    if (image->owned_memory != VK_NULL_HANDLE)
       tu_FreeMemory(_device, image->owned_memory, pAllocator);
 #endif
 
    vk_object_free(&device->vk, pAllocator, image);
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL
+tu_BindImageMemory2(VkDevice _device,
+                    uint32_t bindInfoCount,
+                    const VkBindImageMemoryInfo *pBindInfos)
+{
+   VK_FROM_HANDLE(tu_device, device, _device);
+
+   for (uint32_t i = 0; i < bindInfoCount; ++i) {
+      VK_FROM_HANDLE(tu_image, image, pBindInfos[i].image);
+      VK_FROM_HANDLE(tu_device_memory, mem, pBindInfos[i].memory);
+
+      /* Ignore this struct on Android, we cannot access swapchain structures there. */
+#ifdef TU_USE_WSI_PLATFORM
+      const VkBindImageMemorySwapchainInfoKHR *swapchain_info =
+         vk_find_struct_const(pBindInfos[i].pNext, BIND_IMAGE_MEMORY_SWAPCHAIN_INFO_KHR);
+
+      if (swapchain_info && swapchain_info->swapchain != VK_NULL_HANDLE) {
+         VkImage _wsi_image = wsi_common_get_image(swapchain_info->swapchain,
+                                                   swapchain_info->imageIndex);
+         VK_FROM_HANDLE(tu_image, wsi_img, _wsi_image);
+
+         image->bo = wsi_img->bo;
+         image->map = NULL;
+         image->iova = wsi_img->iova;
+         continue;
+      }
+#endif
+
+      if (mem) {
+         image->bo = mem->bo;
+         image->iova = mem->bo->iova + pBindInfos[i].memoryOffset;
+
+         if (image->vk.usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) {
+            if (!mem->bo->map) {
+               VkResult result = tu_bo_map(device, mem->bo);
+               if (result != VK_SUCCESS)
+                  return result;
+            }
+
+            image->map = (char *)mem->bo->map + pBindInfos[i].memoryOffset;
+         } else {
+            image->map = NULL;
+         }
+#ifdef HAVE_PERFETTO
+         tu_perfetto_log_bind_image(device, image);
+#endif
+      } else {
+         image->bo = NULL;
+         image->map = NULL;
+         image->iova = 0;
+      }
+
+      TU_RMV(image_bind, device, image);
+   }
+
+   return VK_SUCCESS;
 }
 
 static void
@@ -804,8 +880,8 @@ tu_GetImageMemoryRequirements2(VkDevice _device,
                                const VkImageMemoryRequirementsInfo2 *pInfo,
                                VkMemoryRequirements2 *pMemoryRequirements)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_image, image, pInfo->image);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_image, image, pInfo->image);
 
    tu_get_image_memory_requirements(device, image, pMemoryRequirements);
 }
@@ -826,7 +902,7 @@ tu_GetDeviceImageMemoryRequirements(
    const VkDeviceImageMemoryRequirements *pInfo,
    VkMemoryRequirements2 *pMemoryRequirements)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
 
    struct tu_image image = {0};
 
@@ -881,7 +957,7 @@ tu_GetImageSubresourceLayout2KHR(VkDevice _device,
                                  const VkImageSubresource2KHR *pSubresource,
                                  VkSubresourceLayout2KHR *pLayout)
 {
-   TU_FROM_HANDLE(tu_image, image, _image);
+   VK_FROM_HANDLE(tu_image, image, _image);
 
    tu_get_image_subresource_layout(image, pSubresource, pLayout);
 }
@@ -891,7 +967,7 @@ tu_GetDeviceImageSubresourceLayoutKHR(VkDevice _device,
                                       const VkDeviceImageSubresourceInfoKHR *pInfo,
                                       VkSubresourceLayout2KHR *pLayout)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
 
    struct tu_image image = {0};
 
@@ -907,7 +983,7 @@ tu_CreateImageView(VkDevice _device,
                    const VkAllocationCallbacks *pAllocator,
                    VkImageView *pView)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
    struct tu_image_view *view;
 
    view = (struct tu_image_view *) vk_object_alloc(
@@ -927,8 +1003,8 @@ tu_DestroyImageView(VkDevice _device,
                     VkImageView _iview,
                     const VkAllocationCallbacks *pAllocator)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_image_view, iview, _iview);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_image_view, iview, _iview);
 
    if (!iview)
       return;
@@ -941,7 +1017,7 @@ tu_buffer_view_init(struct tu_buffer_view *view,
                     struct tu_device *device,
                     const VkBufferViewCreateInfo *pCreateInfo)
 {
-   TU_FROM_HANDLE(tu_buffer, buffer, pCreateInfo->buffer);
+   VK_FROM_HANDLE(tu_buffer, buffer, pCreateInfo->buffer);
 
    view->buffer = buffer;
 
@@ -961,7 +1037,7 @@ tu_CreateBufferView(VkDevice _device,
                     const VkAllocationCallbacks *pAllocator,
                     VkBufferView *pView)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device, device, _device);
    struct tu_buffer_view *view;
 
    view = (struct tu_buffer_view *) vk_object_alloc(
@@ -981,8 +1057,8 @@ tu_DestroyBufferView(VkDevice _device,
                      VkBufferView bufferView,
                      const VkAllocationCallbacks *pAllocator)
 {
-   TU_FROM_HANDLE(tu_device, device, _device);
-   TU_FROM_HANDLE(tu_buffer_view, view, bufferView);
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_buffer_view, view, bufferView);
 
    if (!view)
       return;

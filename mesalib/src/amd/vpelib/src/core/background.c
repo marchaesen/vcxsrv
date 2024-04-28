@@ -160,7 +160,11 @@ uint16_t vpe_find_bg_gaps(struct vpe_priv *vpe_priv, const struct vpe_rect *targ
     struct vpe_rect *dst_viewport_rect;
     bool             full_bg       = false;
     const uint32_t   max_seg_width = vpe_priv->pub.caps->plane_caps.max_viewport_width;
+#ifdef VPE_BUILD_1_1
+    const uint16_t num_multiple = vpe_priv->vpe_num_instance ? vpe_priv->vpe_num_instance : 1;
+#else
     const uint16_t num_multiple = 1;
+#endif
 
     num_segs          = vpe_priv->stream_ctx[0].num_segments;
     dst_viewport_rect = &(vpe_priv->stream_ctx[0].segment_ctx[0].scaler_data.dst_viewport);

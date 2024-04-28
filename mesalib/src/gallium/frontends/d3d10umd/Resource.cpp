@@ -118,6 +118,9 @@ translate_resource_flags(UINT flags)
    if (flags & D3D10_DDI_BIND_STREAM_OUTPUT)
       bind |= PIPE_BIND_STREAM_OUTPUT;
 
+   if (flags & D3D10_DDI_BIND_PRESENT)
+      bind |= PIPE_BIND_DISPLAY_TARGET;
+
    return bind;
 }
 

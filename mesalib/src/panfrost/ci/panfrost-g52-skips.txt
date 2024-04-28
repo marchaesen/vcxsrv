@@ -20,11 +20,6 @@ dEQP-VK.api.object_management.max_concurrent.query_pool
 # not implemented
 dEQP-VK.api.copy_and_blit.core.resolve_image.*
 
-# Image copies seem to be broken in general: 8/16bpp are worse affected, but
-# even 32bpp formats are failing when doing any kind of conversion or
-# reinterpretation (channel size or order, uint/sint/unorm/snorm/srgb, etc)
-dEQP-VK.api.copy_and_blit.core.image_to_image.all_formats.color..*
-
 # Causes a GPU timeout
 spec@!opengl 1.1@longprim
 

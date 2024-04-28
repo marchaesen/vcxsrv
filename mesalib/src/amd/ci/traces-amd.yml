@@ -26,7 +26,7 @@ traces:
       checksum: ef3653f50d4853d3e9cb3244c799565a
   0ad/0ad-v2.trace:
     gl-radeonsi-stoney:
-      checksum: 8d71757cb74f8d71bf87c8af7e7f725a
+      checksum: 9755e09853beefa3c901a00972cc8b67
   pathfinder/demo-v2.trace:
     gl-radeonsi-stoney:
       checksum: c81c85f9b247dd1b06c3dd5b669cc283
@@ -52,13 +52,13 @@ traces:
       checksum: 0e7441a7f2c86c75eeac72269786e7a1
   gputest/gimark-v2.trace:
     gl-radeonsi-stoney:
-      checksum: f2aee98f2b8813ad60d98cf241e42114
+      checksum: 942a9334e5e830cdfb950a72d77c48f5
   gputest/pixmark-julia-fp32-v2.trace:
     gl-radeonsi-stoney:
-      checksum: b5e0ae5ad680d884432f89a923f3e70d
+      checksum: 832d5f8268e953d6aa754c0aaf4b65d3
   gputest/pixmark-julia-fp64-v2.trace:
     gl-radeonsi-stoney:
-      checksum: b181b0a910f5ae5b161df70f834c3d5f
+      checksum: 38d31c579d9d1cca6a7a47035d19f194
   gputest/pixmark-volplosion-v2.trace:
     gl-radeonsi-stoney:
       checksum: c8321043b7c05156b71f9837b54e7b50
@@ -94,7 +94,7 @@ traces:
       checksum: 491d0572ab0bcbcbc9827521597b3787
   humus/VolumetricFogging2-v2.trace:
     gl-radeonsi-stoney:
-      checksum: b85d66d9c773fdc550e7d3038ccd71e6
+      checksum: 4c36bc32bc4512773533bbbea078f65b
   supertuxkart/supertuxkart-antediluvian-abyss.rdc:
     gl-radeonsi-stoney:
       checksum: 6b2e8d20d2774ece96c999ef01533695

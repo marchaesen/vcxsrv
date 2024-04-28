@@ -296,3 +296,19 @@ vn_cs_encoder_commit(struct vn_cs_encoder *enc)
 
    vn_cs_encoder_sanity_check(enc);
 }
+
+bool
+vn_cs_encoder_needs_roundtrip(struct vn_cs_encoder *enc)
+{
+   if (!enc->instance->renderer->info.has_guest_vram)
+      return false;
+
+   /* check pinned shmems for new shmem allocs */
+   for (uint32_t i = 0; i < enc->buffer_count; i++) {
+      const struct vn_renderer_shmem *shmem = enc->buffers[i].shmem;
+      if (shmem && !shmem->cache_timestamp)
+         return true;
+   }
+
+   return false;
+}

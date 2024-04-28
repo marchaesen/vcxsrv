@@ -27,10 +27,7 @@ traces:
       checksum: f53ac20e17da91c0359c31f2fa3f401e
   gputest/furmark-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 433b69bea68cfe81914b857bbdc60ea5
-  gputest/pixmark-piano-v2.trace:
-    gl-zink-anv-tgl:
-      checksum: 4c7afcce5d87ec2bced65e92a1c9a41c
+      checksum: 7f513bceca18b6f44049bc5a690df235
   gputest/triangle-v2.trace:
     gl-zink-anv-tgl:
       checksum: 5f694874b15bcd7a3689b387c143590b
@@ -47,20 +44,20 @@ traces:
       checksum: 1760aea00af985b8cd902128235b08f6
   gputest/pixmark-volplosion-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 186cbcd703a3483f2e639b986f6c2b15
+      checksum: 7e49248ad9dc4c052c04b11246c4bd33
       text: Different rendering from iris, but still looks correct (common result with this trace)
   gputest/plot3d-v2.trace:
     gl-zink-anv-tgl:
       checksum: 56f11d133f72712a6df13855ec00cdb0
   gputest/tessmark-v2.trace:
     gl-zink-anv-tgl:
-      checksum: c0e233fb1ebd511c076a5f2eede21fd0
+      checksum: 46e05521eca33c2720ba14c0ea6c9066
   humus/AmbientAperture-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 0bb0e9caf5820f4ead2391ed69791505
+      checksum: 0f3b7351a84e1e6f15430f8766af4b4c
   humus/Portals-v2.trace:
     gl-zink-anv-tgl:
-      checksum: ae4dd23b6d3eac332d61cf3e28e968a4
+      checksum: a37699d09e61a842fc909f0c4fb72cf1
   humus/CelShading-v2.trace:
     gl-zink-anv-tgl:
       checksum: 68f20f660b9d812083066342398fe1b0
@@ -78,13 +75,13 @@ traces:
       checksum: 354a0046d81981a5227691fd8401d8ef
   neverball/neverball-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 0f2d9664dc0983f87068a7e487b3824d
+      checksum: 476a3e154a2564c9b136705cfdcf36de
   paraview/pv-manyspheres-v2.trace:
     gl-zink-anv-tgl:
       checksum: 190153b6437f7063a6853ca94e5914f2
   paraview/pv-waveletcontour-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 3a733fc18bee55c4a4d97a44761ec6ed
+      checksum: be4aba8a24e2bd2beb068d0c9c89dfcb
   paraview/pv-waveletvolume-v2.trace:
     gl-zink-anv-tgl:
       checksum: b36c25e52624cbf8dab73b6acecb8e84
@@ -99,7 +96,7 @@ traces:
       checksum: c824fcadd028eba50d9911ebe1a3f823
   ror/ror-default.trace:
     gl-zink-anv-tgl:
-      checksum: 037eef0b288cc6e9e37bb2334edb7368
+      checksum: d7b07cb1f6fdc6949bdaf84d2173e24b
   supertuxkart/supertuxkart-antediluvian-abyss.rdc:
     gl-zink-anv-tgl:
       label: [skip]
@@ -120,7 +117,7 @@ traces:
       checksum: 7789205e8b4d160dc81e3684f0627a38
   unvanquished/unvanquished-ultra.trace:
     gl-zink-anv-tgl:
-      checksum: 7791755c957b55bfc5d30befe1e1f20d
+      checksum: 026dde18e934e7ce3e36eb13ea8e975c
   valve/counterstrike-v2.trace:
     gl-zink-anv-tgl:
       label: [skip, flakes]
@@ -133,10 +130,10 @@ traces:
       text: occasional segfaults
   valve/half-life-2-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 54149c9a6560176436600bfe8fe2ae1f
+      checksum: 8deac48993e4515589a7165e8bd14f25
   valve/portal-2-v2.trace:
     gl-zink-anv-tgl:
-      checksum: a10392dbca5b15cc76468a3a819b9d4d
+      checksum: 3683fd5bb2224d6f4a1c47c1eab277d9
   warzone2100/warzone2100-default.trace:
     gl-zink-anv-tgl:
       label: [skip, flakes]
@@ -144,4 +141,4 @@ traces:
       text: occasional checksum change
   xonotic/xonotic-keybench-high-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 181424f3afd256108be63d8ea0669b6b
+      checksum: 659ef8c91d9eeccd0dc603b196c2577c

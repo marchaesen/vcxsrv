@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_MINIFLOAT_H_
-#define __AGX_MINIFLOAT_H_
+#pragma once
 
 #include <math.h>
 #include "util/macros.h"
@@ -61,5 +60,3 @@ agx_minifloat_exact(float f)
    float f_ = agx_minifloat_decode(agx_minifloat_encode(f));
    return memcmp(&f, &f_, sizeof(float)) == 0;
 }
-
-#endif

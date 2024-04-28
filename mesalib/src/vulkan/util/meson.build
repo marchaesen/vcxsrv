@@ -67,10 +67,8 @@ vk_synchronization_helpers_gen = files('vk_synchronization_helpers_gen.py')
 
 files_vulkan_util = files(
   'vk_alloc.c',
-  'vk_alloc.h',
   'vk_format.c',
   'vk_util.c',
-  'vk_util.h',
 )
 
 vk_dispatch_table = custom_target(

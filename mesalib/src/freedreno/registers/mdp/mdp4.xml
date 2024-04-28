@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database xmlns="http://nouveau.freedesktop.org/"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 <import file="freedreno_copyright.xml"/>
 <import file="mdp/mdp_common.xml"/>
 
@@ -99,24 +99,6 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<bitfield name="OVERLAY2_DONE" pos="30" type="boolean"/>
 	</bitset>
 
-	<group name="mdp4_csc">
-		<array offset="0x400" name="MV" length="9" stride="4">
-			<reg32 offset="0" name="VAL"/>
-		</array>
-		<array offset="0x500" name="PRE_BV" length="3" stride="4">
-			<reg32 offset="0" name="VAL"/>
-		</array>
-		<array offset="0x580" name="POST_BV" length="3" stride="4">
-			<reg32 offset="0" name="VAL"/>
-		</array>
-		<array offset="0x600" name="PRE_LV" length="6" stride="4">
-			<reg32 offset="0" name="VAL"/>
-		</array>
-		<array offset="0x680" name="POST_LV" length="6" stride="4">
-			<reg32 offset="0" name="VAL"/>
-		</array>
-	</group>
-
 	<reg32 offset="0x00000" name="VERSION">
 		<!--
 			from mdp_probe() we can see minor rev starts at 16.. assume
@@ -210,7 +192,21 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<reg32 offset="0x0200" name="CSC_CONFIG"/>
 
 		<array offset="0x2000" name="CSC" length="1" stride="0x700">
-			<use-group ref="mdp4_csc"/>
+			<array offset="0x400" name="MV" length="9" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x500" name="PRE_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x580" name="POST_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x600" name="PRE_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x680" name="POST_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
 		</array>
 	</array>
 
@@ -265,7 +261,21 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 
 		<reg32 offset="0x1004" name="FETCH_CONFIG"/>
 		<array offset="0x3000" name="CSC" length="1" stride="0x700">
-			<use-group ref="mdp4_csc"/>
+			<array offset="0x400" name="MV" length="9" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x500" name="PRE_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x580" name="POST_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x600" name="PRE_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x680" name="POST_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
 		</array>
 	</array>
 
@@ -331,7 +341,21 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<reg32 offset="0x1008" name="SOLID_COLOR"/>
 
 		<array offset="0x4000" name="CSC" length="1" stride="0x700">
-			<use-group ref="mdp4_csc"/>
+			<array offset="0x400" name="MV" length="9" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x500" name="PRE_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x580" name="POST_BV" length="3" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x600" name="PRE_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
+			<array offset="0x680" name="POST_LV" length="6" stride="4">
+				<reg32 offset="0" name="VAL"/>
+			</array>
 		</array>
 	</array>
 

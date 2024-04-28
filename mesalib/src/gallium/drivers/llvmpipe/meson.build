@@ -119,7 +119,7 @@ libllvmpipe = static_library(
   cpp_args : [cpp_msvc_compat_args],
   gnu_symbol_visibility : 'hidden',
   include_directories : [inc_gallium, inc_gallium_aux, inc_include, inc_src],
-  dependencies : [ dep_llvm, idep_nir_headers, idep_mesautil ],
+  dependencies : [ dep_llvm, idep_nir_headers, idep_mesautil, dep_libdrm],
 )
 
 # This overwrites the softpipe driver dependency, but itself depends on the

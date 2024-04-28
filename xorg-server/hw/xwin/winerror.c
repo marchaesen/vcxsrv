@@ -32,10 +32,11 @@
 #include <xwin-config.h>
 #endif
 
+#include "os/osdep.h"
+
 #include <../xfree86/common/xorgVersion.h>
 #include "win.h"
 
-#ifdef DDXOSVERRORF
 void
 OsVendorVErrorF(const char *pszFormat, va_list va_args)
 {
@@ -52,7 +53,6 @@ OsVendorVErrorF(const char *pszFormat, va_list va_args)
     /* Unlock the printing mutex */
     pthread_mutex_unlock(&s_pmPrinting);
 }
-#endif
 
 /*
  * os/log.c:FatalError () calls our vendor ErrorF, so the message

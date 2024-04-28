@@ -209,12 +209,6 @@ set_bit(CARD8 *image, xf86CursorInfoPtr cursor_info, int x, int y, Bool mask)
  * *_cursor_*_check
  */
 static inline Bool
-xf86_driver_has_show_cursor(xf86CrtcPtr crtc)
-{
-    return crtc->funcs->show_cursor_check || crtc->funcs->show_cursor;
-}
-
-static inline Bool
 xf86_driver_has_load_cursor_image(xf86CrtcPtr crtc)
 {
     return crtc->funcs->load_cursor_image_check || crtc->funcs->load_cursor_image;
@@ -301,7 +295,8 @@ xf86_set_cursor_colors(ScrnInfoPtr scrn, int bg, int fg)
     CursorPtr cursor = xf86CurrentCursor(screen);
     int c;
     CARD8 *bits = cursor ?
-        dixLookupScreenPrivate(&cursor->devPrivates, CursorScreenKey, screen)
+        dixLookupScreenPrivate(&cursor->devPrivates,
+                               &xf86ScreenCursorBitsKeyRec, screen)
         : NULL;
 
     /* Save ARGB versions of these colors */

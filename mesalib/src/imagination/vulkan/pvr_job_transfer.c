@@ -393,7 +393,7 @@ pvr_pbe_src_format_normal(VkFormat src_format,
             count = vk_format_get_blocksizebits(dst_format) / 32U;
          } else {
             count =
-               vk_format_get_common_color_channel_count(src_format, dst_format);
+               pvr_vk_format_get_common_color_channel_count(src_format, dst_format);
          }
 
          if (!src_signed && !dst_signed) {
@@ -416,16 +416,16 @@ pvr_pbe_src_format_normal(VkFormat src_format,
       }
 
    } else if (vk_format_is_float(dst_format) ||
-              vk_format_is_normalized(dst_format)) {
+              pvr_vk_format_is_fully_normalized(dst_format)) {
       bool is_float = true;
 
       if (!vk_format_is_float(src_format) &&
-          !vk_format_is_normalized(src_format) &&
+          !pvr_vk_format_is_fully_normalized(src_format) &&
           !vk_format_is_block_compressed(src_format)) {
          return vk_error(NULL, VK_ERROR_FORMAT_NOT_SUPPORTED);
       }
 
-      if (vk_format_is_normalized(dst_format)) {
+      if (pvr_vk_format_is_fully_normalized(dst_format)) {
          uint32_t chan_width;
 
          is_float = false;
@@ -480,13 +480,13 @@ pvr_pbe_src_format_normal(VkFormat src_format,
       }
 
       if (is_float) {
-         if (vk_format_has_32bit_component(dst_format)) {
+         if (pvr_vk_format_has_32bit_component(dst_format)) {
             uint32_t count;
 
             if (dont_force_pbe) {
                count = vk_format_get_blocksizebits(dst_format) / 32U;
             } else {
-               count = vk_format_get_common_color_channel_count(src_format,
+               count = pvr_vk_format_get_common_color_channel_count(src_format,
                                                                 dst_format);
             }
 
@@ -743,7 +743,7 @@ pvr_pbe_setup_codegen_defaults(const struct pvr_device_info *dev_info,
                                     &surface_params->source_format,
                                     &surface_params->gamma);
 
-   surface_params->is_normalized = vk_format_is_normalized(format);
+   surface_params->is_normalized = pvr_vk_format_is_fully_normalized(format);
    surface_params->pbe_packmode = pvr_get_pbe_packmode(format);
    surface_params->nr_components = vk_format_get_nr_components(format);
 
@@ -974,7 +974,7 @@ static void pvr_pbe_setup_swizzle(const struct pvr_transfer_cmd *transfer_cmd,
           */
       }
 
-      if (vk_format_is_normalized(dst->vk_format)) {
+      if (pvr_vk_format_is_fully_normalized(dst->vk_format)) {
          if (color_fill &&
              (dst->vk_format == VK_FORMAT_B8G8R8A8_UNORM ||
               dst->vk_format == VK_FORMAT_R8G8B8A8_UNORM ||
@@ -996,7 +996,7 @@ static void pvr_pbe_setup_swizzle(const struct pvr_transfer_cmd *transfer_cmd,
             VkFormat src_format = transfer_cmd->sources[i].surface.vk_format;
             uint32_t tmp;
 
-            tmp = vk_format_get_common_color_channel_count(src_format,
+            tmp = pvr_vk_format_get_common_color_channel_count(src_format,
                                                            dst->vk_format);
 
             count = MAX2(count, tmp);
@@ -2238,7 +2238,7 @@ static VkResult pvr_pack_clear_color(VkFormat format,
    const uint32_t red_width =
       vk_format_get_component_bits(format, UTIL_FORMAT_COLORSPACE_RGB, 0U);
    uint32_t pbe_pack_mode = pvr_get_pbe_packmode(format);
-   const bool pbe_norm = vk_format_is_normalized(format);
+   const bool pbe_norm = pvr_vk_format_is_fully_normalized(format);
 
    if (pbe_pack_mode == PVRX(PBESTATE_PACKMODE_INVALID))
       return vk_error(NULL, VK_ERROR_FORMAT_NOT_SUPPORTED);

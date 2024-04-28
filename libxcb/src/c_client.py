@@ -331,7 +331,7 @@ def c_close(self):
     _h(' */')
 
     # Write header file
-    hfile = open('%s.h' % _ns.header, 'w')
+    hfile = open('%s.h' % _ns.header, 'w', encoding='UTF-8')
     for list in _hlines:
         for line in list:
             hfile.write(line)
@@ -339,7 +339,7 @@ def c_close(self):
     hfile.close()
 
     # Write source file
-    cfile = open('%s.c' % _ns.header, 'w')
+    cfile = open('%s.c' % _ns.header, 'w', encoding='UTF-8')
     for list in _clines:
         for line in list:
             cfile.write(line)

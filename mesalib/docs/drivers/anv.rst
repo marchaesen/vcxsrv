@@ -7,26 +7,37 @@ Debugging
 Here are a few environment variable debug environment variables
 specific to ANV:
 
-:envvar:`ANV_ENABLE_PIPELINE_CACHE`
+.. envvar:: ANV_ENABLE_PIPELINE_CACHE
+
    If defined to ``0`` or ``false``, this will disable pipeline
    caching, forcing ANV to reparse and recompile any VkShaderModule
    (SPIRV) it is given.
-:envvar:`ANV_DISABLE_SECONDARY_CMD_BUFFER_CALLS`
+
+.. envvar:: ANV_DISABLE_SECONDARY_CMD_BUFFER_CALLS
+
    If defined to ``1`` or ``true``, this will prevent usage of self
    modifying command buffers to implement ``vkCmdExecuteCommands``. As
    a result of this, it will also disable :ext:`VK_KHR_performance_query`.
-:envvar:`ANV_ALWAYS_BINDLESS`
+
+.. envvar:: ANV_ALWAYS_BINDLESS
+
    If defined to ``1`` or ``true``, this forces all descriptor sets to
    use the internal `Bindless model`_.
-:envvar:`ANV_QUEUE_THREAD_DISABLE`
+
+.. envvar:: ANV_QUEUE_THREAD_DISABLE
+
    If defined to ``1`` or ``true``, this disables support for timeline
    semaphores.
-:envvar:`ANV_USERSPACE_RELOCS`
+
+.. envvar:: ANV_USERSPACE_RELOCS
+
    If defined to ``1`` or ``true``, this forces ANV to always do
    kernel relocations in command buffers. This should only have an
    effect on hardware that doesn't support soft-pinning (Ivybridge,
    Haswell, Cherryview).
-:envvar:`ANV_PRIMITIVE_REPLICATION_MAX_VIEWS`
+
+.. envvar:: ANV_PRIMITIVE_REPLICATION_MAX_VIEWS
+
    Specifies up to how many view shaders can be lowered to handle
    :ext:`VK_KHR_multiview`. Beyond this number, multiview is implemented
    using instanced rendering. If unspecified, the value default to
@@ -388,3 +399,13 @@ executed :
     "main-command-buffer":f1 -> "ring-buffer":f1 [color="#0000ff"];
     "main-command-buffer":f1 -> "ring-buffer":f2 [color="#0000ff"];
   }
+
+Runtime dependencies
+--------------------
+
+Starting with Intel 12th generation/Alder Lake-P and Intel Arc Alchemist, the Intel 3D driver stack requires GuC firmware for proper operation. You have two options to install the firmware:
+
+- Distro package: Install the pre-packaged firmware included in your Linux distribution's repositories.
+- Manual download: You can download the firmware from the official repository: https://git.kernel.org/pub/scm/linux/kernel/git/firmware/linux-firmware.git/tree/i915. Place the downloaded files in the /lib/firmware/i915 directory.
+
+Important: For optimal performance, we recommend updating the GuC firmware to version 70.6.3 or later.

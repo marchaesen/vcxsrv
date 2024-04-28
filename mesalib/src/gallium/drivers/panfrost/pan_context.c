@@ -78,7 +78,7 @@ panfrost_clear(struct pipe_context *pipe, unsigned buffers,
    /* Once there is content, clear with a fullscreen quad */
    panfrost_blitter_save(ctx, PAN_RENDER_CLEAR);
 
-   perf_debug_ctx(ctx, "Clearing with quad");
+   perf_debug(ctx, "Clearing with quad");
    util_blitter_clear(
       ctx->blitter, ctx->pipe_framebuffer.width, ctx->pipe_framebuffer.height,
       util_framebuffer_get_num_layers(&ctx->pipe_framebuffer), buffers, color,
@@ -222,7 +222,8 @@ panfrost_get_blend(struct panfrost_batch *batch, unsigned rti,
    pthread_mutex_lock(&dev->blend_shaders.lock);
    struct pan_blend_shader_variant *shader =
       pan_screen(ctx->base.screen)
-         ->vtbl.get_blend_shader(dev, &pan_blend, col0_type, col1_type, rti);
+         ->vtbl.get_blend_shader(&dev->blend_shaders, &pan_blend, col0_type,
+                                 col1_type, rti);
 
    /* Size check and upload */
    unsigned offset = *shader_offset;
@@ -283,7 +284,7 @@ panfrost_set_shader_images(struct pipe_context *pctx,
        */
       if (drm_is_afbc(rsrc->image.layout.modifier)) {
          pan_resource_modifier_convert(
-            ctx, rsrc, DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED,
+            ctx, rsrc, DRM_FORMAT_MOD_ARM_16X16_BLOCK_U_INTERLEAVED, true,
             "Shader image");
       }
 
@@ -327,15 +328,12 @@ panfrost_bind_sampler_states(struct pipe_context *pctx,
 
 static void
 panfrost_set_vertex_buffers(struct pipe_context *pctx, unsigned num_buffers,
-                            unsigned unbind_num_trailing_slots,
-                            bool take_ownership,
                             const struct pipe_vertex_buffer *buffers)
 {
    struct panfrost_context *ctx = pan_context(pctx);
 
    util_set_vertex_buffers_mask(ctx->vertex_buffers, &ctx->vb_mask, buffers,
-                                num_buffers, unbind_num_trailing_slots,
-                                take_ownership);
+                                num_buffers, true);
 
    ctx->dirty |= PAN_DIRTY_VERTEX;
 }
@@ -550,6 +548,8 @@ panfrost_destroy(struct pipe_context *pipe)
    struct panfrost_context *panfrost = pan_context(pipe);
    struct panfrost_device *dev = pan_device(pipe->screen);
 
+   pan_screen(pipe->screen)->vtbl.context_cleanup(panfrost);
+
    _mesa_hash_table_destroy(panfrost->writers, NULL);
 
    if (panfrost->blitter)
@@ -685,10 +685,10 @@ panfrost_get_query_result(struct pipe_context *pipe, struct pipe_query *q,
    case PIPE_QUERY_OCCLUSION_PREDICATE:
    case PIPE_QUERY_OCCLUSION_PREDICATE_CONSERVATIVE:
       panfrost_flush_writer(ctx, rsrc, "Occlusion query");
-      panfrost_bo_wait(rsrc->image.data.bo, INT64_MAX, false);
+      panfrost_bo_wait(rsrc->bo, INT64_MAX, false);
 
       /* Read back the query results */
-      uint64_t *result = (uint64_t *)rsrc->image.data.bo->ptr.cpu;
+      uint64_t *result = (uint64_t *)rsrc->bo->ptr.cpu;
 
       if (query->type == PIPE_QUERY_OCCLUSION_COUNTER) {
          uint64_t passed = 0;
@@ -734,7 +734,7 @@ panfrost_render_condition_check(struct panfrost_context *ctx)
    if (!ctx->cond_query)
       return true;
 
-   perf_debug_ctx(ctx, "Implementing conditional rendering on the CPU");
+   perf_debug(ctx, "Implementing conditional rendering on the CPU");
 
    union pipe_query_result res = {0};
    bool wait = ctx->cond_mode != PIPE_RENDER_COND_NO_WAIT &&
@@ -830,7 +830,7 @@ panfrost_set_global_binding(struct pipe_context *pctx, unsigned first,
       static_assert(sizeof(addr) == 8, "size out of sync");
 
       memcpy(&addr, handles[i], sizeof(addr));
-      addr += rsrc->image.data.bo->ptr.gpu;
+      addr += rsrc->image.data.base;
 
       memcpy(handles[i], &addr, sizeof(addr));
    }
@@ -982,5 +982,14 @@ panfrost_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
    ret = drmSyncobjCreate(panfrost_device_fd(dev), 0, &ctx->in_sync_obj);
    assert(!ret);
 
+   pan_screen(screen)->vtbl.context_init(ctx);
+
    return gallium;
+}
+
+void
+panfrost_context_reinit(struct panfrost_context *ctx)
+{
+   pan_screen(ctx->base.screen)->vtbl.context_cleanup(ctx);
+   pan_screen(ctx->base.screen)->vtbl.context_init(ctx);
 }

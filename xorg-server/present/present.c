@@ -230,6 +230,12 @@ present_pixmap(WindowPtr window,
                RRCrtcPtr target_crtc,
                SyncFence *wait_fence,
                SyncFence *idle_fence,
+#ifdef DRI3
+               struct dri3_syncobj *acquire_syncobj,
+               struct dri3_syncobj *release_syncobj,
+               uint64_t acquire_point,
+               uint64_t release_point,
+#endif /* DRI3 */
                uint32_t options,
                uint64_t window_msc,
                uint64_t divisor,
@@ -250,6 +256,12 @@ present_pixmap(WindowPtr window,
                                        target_crtc,
                                        wait_fence,
                                        idle_fence,
+#ifdef DRI3
+                                       acquire_syncobj,
+                                       release_syncobj,
+                                       acquire_point,
+                                       release_point,
+#endif /* DRI3 */
                                        options,
                                        window_msc,
                                        divisor,
@@ -272,6 +284,9 @@ present_notify_msc(WindowPtr window,
                           0, 0,
                           NULL,
                           NULL, NULL,
+#ifdef DRI3
+                          NULL, NULL, 0, 0,
+#endif /* DRI3 */
                           divisor == 0 ? PresentOptionAsync : 0,
                           target_msc, divisor, remainder, NULL, 0);
 }

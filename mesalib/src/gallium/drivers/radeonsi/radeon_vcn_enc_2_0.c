@@ -24,7 +24,6 @@
 #define RENCODE_IB_PARAM_LAYER_SELECT              0x00000005
 #define RENCODE_IB_PARAM_RATE_CONTROL_SESSION_INIT 0x00000006
 #define RENCODE_IB_PARAM_RATE_CONTROL_LAYER_INIT   0x00000007
-#define RENCODE_IB_PARAM_RATE_CONTROL_PER_PICTURE  0x00000008
 #define RENCODE_IB_PARAM_QUALITY_PARAMS            0x00000009
 #define RENCODE_IB_PARAM_DIRECT_OUTPUT_NALU        0x0000000a
 #define RENCODE_IB_PARAM_SLICE_HEADER              0x0000000b
@@ -505,10 +504,27 @@ static void radeon_enc_ctx(struct radeon_encoder *enc)
 }
 static void encode(struct radeon_encoder *enc)
 {
+   unsigned i;
+
    enc->before_encode(enc);
    enc->session_info(enc);
    enc->total_task_size = 0;
    enc->task_info(enc, enc->need_feedback);
+
+   if (enc->need_rate_control || enc->need_rc_per_pic) {
+      i = 0;
+      do {
+         enc->enc_pic.layer_sel.temporal_layer_index = i;
+         if (enc->need_rate_control) {
+            enc->layer_select(enc);
+            enc->rc_layer_init(enc);
+         }
+         if (enc->need_rc_per_pic) {
+            enc->layer_select(enc);
+            enc->rc_per_pic(enc);
+         }
+      } while (++i < enc->enc_pic.num_temporal_layers);
+   }
 
    enc->encode_headers(enc);
    enc->ctx(enc);
@@ -549,7 +565,6 @@ void radeon_enc_2_0_init(struct radeon_encoder *enc)
    enc->cmd.layer_select = RENCODE_IB_PARAM_LAYER_SELECT;
    enc->cmd.rc_session_init = RENCODE_IB_PARAM_RATE_CONTROL_SESSION_INIT;
    enc->cmd.rc_layer_init = RENCODE_IB_PARAM_RATE_CONTROL_LAYER_INIT;
-   enc->cmd.rc_per_pic = RENCODE_IB_PARAM_RATE_CONTROL_PER_PICTURE;
    enc->cmd.quality_params = RENCODE_IB_PARAM_QUALITY_PARAMS;
    enc->cmd.nalu = RENCODE_IB_PARAM_DIRECT_OUTPUT_NALU;
    enc->cmd.slice_header = RENCODE_IB_PARAM_SLICE_HEADER;

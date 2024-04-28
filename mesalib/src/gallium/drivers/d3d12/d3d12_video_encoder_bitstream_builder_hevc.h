@@ -34,39 +34,36 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
    d3d12_video_bitstream_builder_hevc() {};
    ~d3d12_video_bitstream_builder_hevc() {};
 
-   void build_vps(const D3D12_VIDEO_ENCODER_PROFILE_HEVC& profile,
-                  const D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC& level,
-                  const DXGI_FORMAT inputFmt,
-                  uint8_t maxRefFrames,
-                  bool gopHasBFrames,
-                  uint8_t vps_video_parameter_set_id,
-                  std::vector<BYTE> &headerBitstream,
-                  std::vector<BYTE>::iterator placingPositionStart,
-                  size_t &writtenBytes,
-                  HevcVideoParameterSet* pVPSStruct = nullptr);
+   HevcVideoParameterSet build_vps(const D3D12_VIDEO_ENCODER_PROFILE_HEVC& profile,
+                                   const D3D12_VIDEO_ENCODER_LEVEL_TIER_CONSTRAINTS_HEVC& level,
+                                   const DXGI_FORMAT inputFmt,
+                                   uint8_t maxRefFrames,
+                                   bool gopHasBFrames,
+                                   uint8_t vps_video_parameter_set_id,
+                                   std::vector<BYTE> &headerBitstream,
+                                   std::vector<BYTE>::iterator placingPositionStart,
+                                   size_t &writtenBytes);
 
-   void build_sps(const HevcVideoParameterSet& parentVPS,
-                  const struct pipe_h265_enc_seq_param & seqData,
-                  uint8_t seq_parameter_set_id,
-                  const D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC& encodeResolution,
-                  const D3D12_BOX& crop_window_upper_layer,
-                  const UINT picDimensionMultipleRequirement,
-                  const DXGI_FORMAT& inputFmt,
-                  const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
-                  const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_HEVC& hevcGOP,    
-                  std::vector<BYTE> &headerBitstream,
-                  std::vector<BYTE>::iterator placingPositionStart,
-                  size_t &writtenBytes,
-                  HevcSeqParameterSet* outputSPS = nullptr);
+   HevcSeqParameterSet build_sps(const HevcVideoParameterSet& parentVPS,
+                                 const struct pipe_h265_enc_seq_param & seqData,
+                                 uint8_t seq_parameter_set_id,
+                                 const D3D12_VIDEO_ENCODER_PICTURE_RESOLUTION_DESC& encodeResolution,
+                                 const D3D12_BOX& crop_window_upper_layer,
+                                 const UINT picDimensionMultipleRequirement,
+                                 const DXGI_FORMAT& inputFmt,
+                                 const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
+                                 const D3D12_VIDEO_ENCODER_SEQUENCE_GOP_STRUCTURE_HEVC& hevcGOP,
+                                 std::vector<BYTE> &headerBitstream,
+                                 std::vector<BYTE>::iterator placingPositionStart,
+                                 size_t &writtenBytes);
 
-   void build_pps(const HevcSeqParameterSet& parentSPS,
-                  uint8_t pic_parameter_set_id,
-                  const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
-                  const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC& pictureControl,
-                  std::vector<BYTE> &headerBitstream,
-                  std::vector<BYTE>::iterator placingPositionStart,
-                  size_t &writtenBytes,
-                  HevcPicParameterSet* outputPPS = nullptr);
+   HevcPicParameterSet build_pps(const HevcSeqParameterSet& parentSPS,
+                                 uint8_t pic_parameter_set_id,
+                                 const D3D12_VIDEO_ENCODER_CODEC_CONFIGURATION_HEVC& codecConfig,
+                                 const D3D12_VIDEO_ENCODER_PICTURE_CONTROL_CODEC_DATA_HEVC& pictureControl,
+                                 std::vector<BYTE> &headerBitstream,
+                                 std::vector<BYTE>::iterator placingPositionStart,
+                                 size_t &writtenBytes);
 
    void write_end_of_stream_nalu(std::vector<uint8_t> &         headerBitstream,
                                  std::vector<uint8_t>::iterator placingPositionStart,
@@ -80,65 +77,41 @@ class d3d12_video_bitstream_builder_hevc : public d3d12_video_bitstream_builder_
    void print_pps(const HevcPicParameterSet& pps);
    void print_rps(const HevcSeqParameterSet* sps, UINT stRpsIdx);
 
-   std::vector<uint8_t>& get_active_pps()
+   const HevcVideoParameterSet& get_active_vps()
    {
-      return m_activePPS;
-   };
-
-   HevcVideoParameterSet get_latest_vps()
-   {
-      return m_latest_vps;
+      return m_active_vps;
    }
 
-   HevcSeqParameterSet get_latest_sps()
+   const HevcSeqParameterSet& get_active_sps()
    {
-      return m_latest_sps;
+      return m_active_sps;
    }
 
-   HevcPicParameterSet get_latest_pps()
+   const HevcPicParameterSet& get_active_pps()
    {
-      return m_latest_pps;
+      return m_active_pps;
    }
 
-   uint32_t get_active_vps_id()
+   void set_active_vps(HevcVideoParameterSet &active_vps)
    {
-      return m_activeVPSIndex;
-   };
-   uint32_t get_active_sps_id()
-   {
-      return m_activeSPSIndex;
-   };
-   uint32_t get_active_pps_id()
-   {
-      return m_activePPSIndex;
-   };
+      m_active_vps = active_vps;
+   }
 
-   void set_active_vps_id(uint32_t active_vps_id)
+   void set_active_sps(HevcSeqParameterSet &active_sps)
    {
-      m_activeVPSIndex = active_vps_id;
-      debug_printf("[d3d12_video_bitstream_builder_hevc] Setting new active VPS ID: %d ", m_activeVPSIndex);
-   };
+      m_active_sps = active_sps;
+   }
 
-   void set_active_sps_id(uint32_t active_sps_id)
+   void set_active_pps(HevcPicParameterSet &active_pps)
    {
-      m_activeSPSIndex = active_sps_id;
-      debug_printf("[d3d12_video_bitstream_builder_hevc] Setting new active SPS ID: %d ", m_activeSPSIndex);
-   };
-   void set_active_pps_id(uint32_t active_pps_id)
-   {
-      m_activePPSIndex = active_pps_id;
-      debug_printf("[d3d12_video_bitstream_builder_hevc] Setting new active PPS ID: %d ", m_activePPSIndex);
-   };
+      m_active_pps = active_pps;
+   }
 
  private:
    d3d12_video_nalu_writer_hevc m_hevcEncoder;
-   uint32_t m_activeVPSIndex = 0;
-   uint32_t m_activeSPSIndex = 0;
-   uint32_t m_activePPSIndex = 0;
-   HevcVideoParameterSet m_latest_vps = {};
-   HevcSeqParameterSet m_latest_sps = {};
-   HevcPicParameterSet m_latest_pps = {};
-   std::vector<uint8_t> m_activePPS;
+   HevcVideoParameterSet m_active_vps = {};
+   HevcSeqParameterSet m_active_sps = {};
+   HevcPicParameterSet m_active_pps = {};
 
    void init_profile_tier_level(HEVCProfileTierLevel *ptl, uint8_t HEVCProfileIdc, uint8_t HEVCLevelIdc, bool isHighTier);
 };

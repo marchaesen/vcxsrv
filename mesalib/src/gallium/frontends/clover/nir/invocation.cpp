@@ -325,7 +325,6 @@ binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
       NIR_PASS_V(nir, nir_lower_variable_initializers, ~nir_var_function_temp);
 
       struct nir_lower_printf_options printf_options;
-      printf_options.treat_doubles_as_floats = false;
       printf_options.max_buffer_size = dev.max_printf_buffer_size();
 
       NIR_PASS_V(nir, nir_lower_printf, &printf_options);

@@ -81,6 +81,7 @@ KHR-.*.core.geometry_shader.layered_framebuffer.depth_support
 KHR-.*.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls
 
 # Typically fails, but occasionally passes.
+KHR-GL46.shader_image_load_store.basic-allTargets-loadStoreVS
 KHR-GL46.shader_image_load_store.basic-allTargets-store
 
 # edfff331b3241d1c18d5c589fcdf75728089c886 mostly fixed this, but apparently it still flakes.
@@ -214,3 +215,20 @@ spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-last
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-last
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-last
 spec@!opengl 3.2@gl-3.2-adj-prims pv-last
+
+# uprev Piglit in Mesa
+KHR-GLES3.copy_tex_image_conversions.required.cubemap_posx_texture2d
+KHR-GLES31.core.shader_bitfield_operation.findMSB.ivec3_1
+KHR-GLES31.core.shader_multisample_interpolation.render.interpolate_at_offset.rgba8i.samples_1
+KHR-GLES31.core.shader_multisample_interpolation.render.interpolate_at_offset_check.rgba8i.samples_1
+KHR-GLES31.core.tessellation_shader.tessellation_shader_tc_barriers.barrier_guarded_read_calls
+glx@glx-visuals-depth -pixmap
+glx@glx-visuals-stencil -pixmap
+
+
+# Nightly run expectations update
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.storage_buffer.tess_eval.multiple_contiguous_descriptors.offset_view_nonzero
+dEQP-VK.binding_model.shader_access.primary_cmd_buf.storage_image.tess_eval.multiple_descriptor_sets.multiple_discontiguous_descriptors.2d
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.storage_buffer_dynamic.tess_ctrl.multiple_descriptor_sets.descriptor_array.offset_view_zero_dynamic_zero
+dEQP-VK.spirv_assembly.instruction.graphics.indexing.input.struct.opinboundsaccesschain_u32_tesse
+

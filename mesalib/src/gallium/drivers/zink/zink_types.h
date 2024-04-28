@@ -55,7 +55,7 @@
 #include "util/u_transfer.h"
 #include "util/u_vertex_state_cache.h"
 
-#include "vulkan/util/vk_util.h"
+#include "vk_util.h"
 
 #include "zink_device_info.h"
 #include "zink_instance.h"
@@ -241,6 +241,8 @@ enum zink_debug {
    ZINK_DEBUG_DGC = (1<<17),
    ZINK_DEBUG_MEM = (1<<18),
    ZINK_DEBUG_QUIET = (1<<19),
+   ZINK_DEBUG_IOOPT = (1<<20),
+   ZINK_DEBUG_NOPC = (1<<21),
 };
 
 enum zink_pv_emulation_primitive {
@@ -449,6 +451,7 @@ struct zink_descriptor_data {
          struct pipe_transfer *bindless_db_xfer;
          uint32_t bindless_db_offsets[4];
          unsigned max_db_size;
+         unsigned size_enlarge_scale;
       } db;
    };
 
@@ -814,15 +817,17 @@ struct zink_shader {
       unsigned char size;
    } bindings[ZINK_DESCRIPTOR_BASE_TYPES][ZINK_MAX_DESCRIPTORS_PER_TYPE];
    size_t num_bindings[ZINK_DESCRIPTOR_BASE_TYPES];
-   unsigned num_texel_buffers;
    uint32_t ubos_used; // bitfield of which ubo indices are used
    uint32_t ssbos_used; // bitfield of which ssbo indices are used
+   uint64_t arrayed_inputs; //mask of locations using arrayed io
+   uint64_t arrayed_outputs; //mask of locations using arrayed io
    uint64_t flat_flags;
    bool bindless;
    bool can_inline;
    bool has_uniforms;
    bool has_edgeflags;
    bool needs_inlining;
+   bool uses_sample;
    struct spirv_shader *spirv;
 
    struct {
@@ -1108,7 +1113,6 @@ struct zink_gfx_program {
    struct zink_program base;
 
    bool is_separable; //not a full program
-   struct zink_context *ctx; //the owner context
 
    uint32_t stages_present; //mask of stages present in this program
    uint32_t stages_remaining; //mask of zink_shader remaining in this program
@@ -1137,7 +1141,7 @@ struct zink_gfx_program {
    uint32_t last_variant_hash;
 
    uint32_t last_finalized_hash[2][4]; //[dynamic, renderpass][primtype idx]
-   VkPipeline last_pipeline[2][4]; //[dynamic, renderpass][primtype idx]
+   struct zink_gfx_pipeline_cache_entry *last_pipeline[2][4]; //[dynamic, renderpass][primtype idx]
 
    struct zink_gfx_lib_cache *libs;
 };
@@ -1360,6 +1364,9 @@ struct zink_resource {
       };
    };
 
+   VkRect2D damage;
+   bool use_damage;
+
    bool copies_warned;
    bool swapchain;
    bool dmabuf;
@@ -1408,6 +1415,7 @@ struct zink_screen {
    bool is_cpu;
    bool abort_on_hang;
    bool frame_marker_emitted;
+   bool implicitly_loaded;
    uint64_t curr_batch; //the current batch id
    uint32_t last_finished;
    VkSemaphore sem;
@@ -1434,6 +1442,7 @@ struct zink_screen {
    bool device_lost;
    int drm_fd;
 
+   struct slab_mempool present_mempool;
    struct slab_parent_pool transfer_pool;
    struct disk_cache *disk_cache;
    struct util_queue cache_put_thread;
@@ -1493,7 +1502,6 @@ struct zink_screen {
    bool need_decompose_attrs;
    bool need_2D_zs;
    bool need_2D_sparse;
-   bool faked_e5sparse; //drivers may not expose R9G9B9E5 but cts requires it
    bool can_hic_shader_read;
 
    uint32_t gfx_queue;
@@ -1519,7 +1527,7 @@ struct zink_screen {
    bool renderdoc_capture_all;
 #endif
 
-   struct vk_dispatch_table vk;
+   struct vk_uncompacted_dispatch_table vk;
 
    void (*buffer_barrier)(struct zink_context *ctx, struct zink_resource *res, VkAccessFlags flags, VkPipelineStageFlags pipeline);
    void (*image_barrier)(struct zink_context *ctx, struct zink_resource *res, VkImageLayout new_layout, VkAccessFlags flags, VkPipelineStageFlags pipeline);
@@ -1530,7 +1538,6 @@ struct zink_screen {
 
    struct {
       bool dual_color_blend_by_location;
-      bool glsl_correct_derivatives_after_discard;
       bool inline_uniforms;
       bool emulate_point_smooth;
       bool zink_shader_object_enable;
@@ -1561,6 +1568,7 @@ struct zink_screen {
       bool lower_robustImageAccess2;
       bool needs_zs_shader_swizzle;
       bool can_do_invalid_linear_modifier;
+      bool io_opt;
       unsigned z16_unscaled_bias;
       unsigned z24_unscaled_bias;
    } driver_workarounds;
@@ -1802,7 +1810,7 @@ struct zink_context {
    struct util_queue_fence flush_fence; //unsigned during flush (blocks unsync ops)
 
    struct zink_fence *deferred_fence;
-   struct zink_fence *last_fence; //the last command buffer submitted
+   struct zink_batch_state *last_batch_state; //the last command buffer submitted
    struct zink_batch_state *batch_states; //list of submitted batch states: ordered by increasing timeline id
    unsigned batch_states_count; //number of states in `batch_states`
    struct zink_batch_state *free_batch_states; //unused batch states
@@ -1810,6 +1818,7 @@ struct zink_context {
    bool oom_flush;
    bool oom_stall;
    bool track_renderpasses;
+   bool no_reorder;
    struct zink_batch batch;
 
    unsigned shader_has_inlinable_uniforms_mask;
@@ -1958,7 +1967,6 @@ struct zink_context {
 
    struct {
       /* descriptor info */
-      uint32_t push_valid;
       uint8_t num_ubos[MESA_SHADER_STAGES];
 
       uint8_t num_ssbos[MESA_SHADER_STAGES];
@@ -2018,6 +2026,7 @@ struct zink_context {
          uint16_t any_bindless_dirty;
       };
       bool bindless_refs_dirty;
+      bool null_fbfetch_init;
    } di;
    void (*invalidate_descriptor_state)(struct zink_context *ctx, gl_shader_stage shader, enum zink_descriptor_type type, unsigned, unsigned);
    struct set *need_barriers[2]; //gfx, compute

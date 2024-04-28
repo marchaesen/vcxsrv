@@ -680,8 +680,10 @@ struct vtn_builder {
    /* True if we need to ignore OpReturn after OpEmitMeshTasksEXT. */
    bool wa_ignore_return_after_emit_mesh_tasks;
 
-   /* Workaround discard bugs in HLSL -> SPIR-V compilers */
+   /* True if DemoteToHelperInvocation capability is used by the shader. */
    bool uses_demote_to_helper_invocation;
+
+   /* Workaround discard bugs in HLSL -> SPIR-V compilers */
    bool convert_discard_to_demote;
 
    gl_shader_stage entry_point_stage;
@@ -968,6 +970,8 @@ void vtn_handle_bitcast(struct vtn_builder *b, const uint32_t *w,
                         unsigned count);
 
 void vtn_handle_no_contraction(struct vtn_builder *b, struct vtn_value *val);
+
+void vtn_handle_fp_fast_math(struct vtn_builder *b, struct vtn_value *val);
 
 void vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
                          const uint32_t *w, unsigned count);

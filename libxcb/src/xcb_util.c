@@ -62,12 +62,25 @@
 
 #include <sys/stat.h>
 
+#ifndef __has_builtin
+# define  __has_builtin(x) 0
+#endif
+
 int xcb_popcount(uint32_t mask)
 {
+#if __has_builtin(__builtin_popcount)
+    return __builtin_popcount(mask);
+#else
+    /*
+     * Count the number of bits set to 1 in a 32-bit word.
+     * Algorithm from MIT AI Lab Memo 239: "HAKMEM", ITEM 169.
+     * https://dspace.mit.edu/handle/1721.1/6086
+     */
     uint32_t y;
     y = (mask >> 1) & 033333333333;
     y = mask - y - ((y >> 1) & 033333333333);
     return ((y + (y >> 3)) & 030707070707) % 077;
+#endif
 }
 
 int xcb_sumof(uint8_t *list, int len)

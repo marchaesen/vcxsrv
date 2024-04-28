@@ -171,13 +171,13 @@ miDbeAllocBackBufferName(WindowPtr pWin, XID bufId, int swapAction)
         /* Security creation/labeling check. */
         rc = XaceHook(XACE_RESOURCE_ACCESS, serverClient, bufId,
                       dbeDrawableResType, pDbeWindowPriv->pBackBuffer,
-                      RT_WINDOW, pWin, DixCreateAccess);
+                      X11_RESTYPE_WINDOW, pWin, DixCreateAccess);
 
         /* Make the back pixmap a DBE drawable resource. */
         if (rc != Success || !AddResource(bufId, dbeDrawableResType,
                                           pDbeWindowPriv->pBackBuffer)) {
             /* free the buffer and the drawable resource */
-            FreeResource(bufId, RT_NONE);
+            FreeResource(bufId, X11_RESTYPE_NONE);
             return (rc == Success) ? BadAlloc : rc;
         }
 
@@ -599,7 +599,7 @@ miDbePositionWindow(WindowPtr pWin, int x, int y)
             /* DbeWindowPrivDelete() will free the window private if there no
              * more buffer IDs associated with this window.
              */
-            FreeResource(pDbeWindowPriv->IDs[0], RT_NONE);
+            FreeResource(pDbeWindowPriv->IDs[0], X11_RESTYPE_NONE);
             pDbeWindowPriv = DBE_WINDOW_PRIV(pWin);
         }
 

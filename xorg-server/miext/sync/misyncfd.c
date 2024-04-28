@@ -25,7 +25,7 @@
 #endif
 
 #include "scrnintstr.h"
-#include "misync.h"
+#include "misync_priv.h"
 #include "misyncstr.h"
 #include "misyncfd.h"
 #include "pixmapstr.h"
@@ -66,7 +66,7 @@ miSyncFDFromFence(DrawablePtr pDraw, SyncFence *pFence)
     return (*priv->funcs.GetFenceFd)(pDraw->pScreen, pFence);
 }
 
-_X_EXPORT Bool miSyncFdScreenInit(ScreenPtr pScreen,
+Bool miSyncFdScreenInit(ScreenPtr pScreen,
                                   const SyncFdScreenFuncsRec *funcs)
 {
     SyncFdScreenPrivatePtr     priv;

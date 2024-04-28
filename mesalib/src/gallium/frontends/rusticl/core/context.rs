@@ -27,7 +27,7 @@ pub struct Context {
     pub devs: Vec<&'static Device>,
     pub properties: Properties<cl_context_properties>,
     pub dtors: Mutex<Vec<DeleteContextCB>>,
-    pub svm_ptrs: Mutex<BTreeMap<*const c_void, Layout>>,
+    pub svm_ptrs: Mutex<BTreeMap<usize, Layout>>,
     pub gl_ctx_manager: Option<GLCtxManager>,
 }
 
@@ -40,7 +40,7 @@ impl Context {
         gl_ctx_manager: Option<GLCtxManager>,
     ) -> Arc<Context> {
         Arc::new(Self {
-            base: CLObjectBase::new(),
+            base: CLObjectBase::new(RusticlTypes::Context),
             devs: devs,
             properties: properties,
             dtors: Mutex::new(Vec::new()),
@@ -187,18 +187,19 @@ impl Context {
         self.devs.iter().any(|dev| dev.svm_supported())
     }
 
-    pub fn add_svm_ptr(&self, ptr: *mut c_void, layout: Layout) {
+    pub fn add_svm_ptr(&self, ptr: usize, layout: Layout) {
         self.svm_ptrs.lock().unwrap().insert(ptr, layout);
     }
 
-    pub fn find_svm_alloc(&self, ptr: *const c_void) -> Option<(*const c_void, Layout)> {
+    pub fn find_svm_alloc(&self, ptr: usize) -> Option<(*const c_void, Layout)> {
         let lock = self.svm_ptrs.lock().unwrap();
         if let Some((&base, layout)) = lock.range(..=ptr).next_back() {
             // SAFETY: we really just do some pointer math here...
             unsafe {
+                let base = base as *const c_void;
                 // we check if ptr is within [base..base+size)
                 // means we can check if ptr - (base + size) < 0
-                if ptr.offset_from(base.add(layout.size())) < 0 {
+                if ptr < (base.add(layout.size()) as usize) {
                     return Some((base, *layout));
                 }
             }
@@ -206,7 +207,7 @@ impl Context {
         None
     }
 
-    pub fn remove_svm_ptr(&self, ptr: *const c_void) -> Option<Layout> {
+    pub fn remove_svm_ptr(&self, ptr: usize) -> Option<Layout> {
         self.svm_ptrs.lock().unwrap().remove(&ptr)
     }
 

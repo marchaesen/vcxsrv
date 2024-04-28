@@ -42,8 +42,15 @@
 
 #include "util/u_upload_mgr.h"
 #include "intel/common/intel_l3_config.h"
+#include "intel/compiler/brw_compiler.h"
 
-#include "blorp/blorp_genX_exec.h"
+#include "genxml/gen_macros.h"
+
+#if GFX_VER >= 9
+#include "blorp/blorp_genX_exec_brw.h"
+#else
+#include "blorp/blorp_genX_exec_elk.h"
+#endif
 
 static uint32_t *
 stream_state(struct iris_batch *batch,
@@ -125,6 +132,13 @@ UNUSED static struct blorp_address
 blorp_get_surface_base_address(UNUSED struct blorp_batch *blorp_batch)
 {
    return (struct blorp_address) { .offset = IRIS_MEMZONE_BINDER_START };
+}
+
+static uint32_t
+blorp_get_dynamic_state(struct blorp_batch *batch,
+                        enum blorp_dynamic_state name)
+{
+   unreachable("Not implemented");
 }
 
 static void *
@@ -274,6 +288,13 @@ blorp_flush_range(UNUSED struct blorp_batch *blorp_batch,
     */
 }
 
+static void
+blorp_pre_emit_urb_config(struct blorp_batch *blorp_batch,
+                          struct intel_urb_config *urb_cfg)
+{
+   genX(urb_workaround)(blorp_batch->driver_batch, urb_cfg);
+}
+
 static const struct intel_l3_config *
 blorp_get_l3_config(struct blorp_batch *blorp_batch)
 {
@@ -410,8 +431,8 @@ iris_blorp_exec_render(struct blorp_batch *blorp_batch,
    ice->state.dirty |= ~skip_bits;
    ice->state.stage_dirty |= ~skip_stage_bits;
 
-   for (int i = 0; i < ARRAY_SIZE(ice->shaders.urb.size); i++)
-      ice->shaders.urb.size[i] = 0;
+   for (int i = 0; i < ARRAY_SIZE(ice->shaders.urb.cfg.size); i++)
+      ice->shaders.urb.cfg.size[i] = 0;
 
    if (params->src.enabled)
       iris_bo_bump_seqno(params->src.addr.buffer, batch->next_seqno,
@@ -492,7 +513,8 @@ blorp_measure_end(struct blorp_batch *blorp_batch,
                          params->num_samples,
                          params->shader_pipeline,
                          params->dst.view.format,
-                         params->src.view.format);
+                         params->src.view.format,
+                         (blorp_batch->flags & BLORP_BATCH_PREDICATE_ENABLE));
 }
 
 void
@@ -500,8 +522,11 @@ genX(init_blorp)(struct iris_context *ice)
 {
    struct iris_screen *screen = (struct iris_screen *)ice->ctx.screen;
 
-   blorp_init(&ice->blorp, ice, &screen->isl_dev, NULL);
-   ice->blorp.compiler = screen->compiler;
+#if GFX_VER >= 9
+   blorp_init_brw(&ice->blorp, ice, &screen->isl_dev, screen->brw, NULL);
+#else
+   blorp_init_elk(&ice->blorp, ice, &screen->isl_dev, screen->elk, NULL);
+#endif
    ice->blorp.lookup_shader = iris_blorp_lookup_shader;
    ice->blorp.upload_shader = iris_blorp_upload_shader;
    ice->blorp.exec = iris_blorp_exec;

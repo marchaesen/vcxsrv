@@ -65,16 +65,3 @@ panfrost_invert_swizzle(const unsigned char *in, unsigned char *out)
       out[idx] = PIPE_SWIZZLE_X + c;
    }
 }
-
-/* Formats requiring blend shaders are stored raw in the tilebuffer and will
- * have 0 as their pixel format. Assumes dithering is set, I don't know of a
- * case when it makes sense to turn off dithering. */
-
-unsigned
-panfrost_format_to_bifrost_blend(const struct panfrost_device *dev,
-                                 enum pipe_format format, bool dithered)
-{
-   mali_pixel_format pixfmt = dev->blendable_formats[format].bifrost[dithered];
-
-   return pixfmt ?: dev->formats[format].hw;
-}

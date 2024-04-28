@@ -21,7 +21,7 @@ struct vn_query_pool {
    VkAllocationCallbacks allocator;
 
    /* non-NULL if VN_PERF_NO_QUERY_FEEDBACK is disabled */
-   struct vn_feedback_buffer *feedback;
+   struct vn_feedback_buffer *fb_buf;
    uint32_t result_array_size;
    bool saturate_on_overflow;
 };

@@ -741,6 +741,7 @@ static const _mesa_glsl_extension _mesa_glsl_supported_extensions[] = {
    /* All other extensions go here, sorted alphabetically.
     */
    EXT(AMD_conservative_depth),
+   EXT(AMD_gpu_shader_half_float),
    EXT(AMD_gpu_shader_int64),
    EXT(AMD_shader_stencil_export),
    EXT(AMD_shader_trinary_minmax),
@@ -979,7 +980,8 @@ _mesa_glsl_can_implicitly_convert(const glsl_type *from, const glsl_type *desire
       return false;
 
    /* int and uint can be converted to float. */
-   if (glsl_type_is_float(desired) && glsl_type_is_integer_32(from))
+   if (glsl_type_is_float(desired) && (glsl_type_is_integer_32(from) ||
+       glsl_type_is_float_16(from)))
       return true;
 
    /* With GLSL 4.0, ARB_gpu_shader5, or MESA_shader_integer_functions, int
@@ -998,7 +1000,7 @@ _mesa_glsl_can_implicitly_convert(const glsl_type *from, const glsl_type *desire
 
    /* Conversions from different types to double. */
    if ((!state || state->has_double()) && glsl_type_is_double(desired)) {
-      if (glsl_type_is_float(from))
+      if (glsl_type_is_float_16_32(from))
          return true;
       if (glsl_type_is_integer_32(from))
          return true;
@@ -2191,6 +2193,7 @@ do_late_parsing_checks(struct _mesa_glsl_parse_state *state)
 
 static void
 opt_shader_and_create_symbol_table(const struct gl_constants *consts,
+                                   const struct gl_extensions *exts,
                                    struct glsl_symbol_table *source_symbols,
                                    struct gl_shader *shader)
 {
@@ -2226,6 +2229,17 @@ opt_shader_and_create_symbol_table(const struct gl_constants *consts,
    }
 
    optimize_dead_builtin_variables(shader->ir, other);
+
+   lower_vector_derefs(shader);
+
+   lower_packing_builtins(shader->ir, exts->ARB_shading_language_packing,
+                          exts->ARB_gpu_shader5,
+                          consts->GLSLHasHalfFloatPacking);
+   do_mat_op_to_vec(shader->ir);
+
+   lower_instructions(shader->ir, exts->ARB_gpu_shader5);
+
+   do_vec_index_to_cond_assign(shader->ir);
 
    validate_ir_tree(shader->ir);
 
@@ -2397,7 +2411,8 @@ _mesa_glsl_compile_shader(struct gl_context *ctx, struct gl_shader *shader,
       lower_builtins(shader->ir);
       assign_subroutine_indexes(state);
       lower_subroutine(shader->ir, state);
-      opt_shader_and_create_symbol_table(&ctx->Const, state->symbols, shader);
+      opt_shader_and_create_symbol_table(&ctx->Const, &ctx->Extensions,
+                                         state->symbols, shader);
    }
 
    if (!force_recompile) {
@@ -2472,10 +2487,6 @@ do_common_optimization(exec_list *ir, bool linked,
       }                                                                 \
    } while (false)
 
-   if (linked) {
-      OPT(do_function_inlining, ir);
-      OPT(do_dead_functions, ir);
-   }
    OPT(propagate_invariance, ir);
    OPT(do_if_simplification, ir);
    OPT(opt_flatten_nested_if_blocks, ir);

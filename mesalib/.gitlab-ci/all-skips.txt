@@ -9,6 +9,9 @@
 # submission, so skip it in the regular CI.
 dEQP-VK.api.driver_properties.conformance_version
 
+# Exclude this test which might fail when a new extension is implemented.
+dEQP-VK.info.device_extensions
+
 # These are tremendously slow (pushing toward a minute), and aren't
 # reliable to be run in parallel with other tests due to CPU-side timing.
 dEQP-GLES[0-9]*.functional.flush_finish.*

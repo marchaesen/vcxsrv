@@ -163,7 +163,7 @@ ProcDPMSSelectInput(register ClientPtr client)
             pHead = (DPMSEventPtr *)malloc(sizeof(DPMSEventPtr));
             if (!pHead ||
                     !AddResource(eventResource, DPMSEventType, (void *)pHead)) {
-                FreeResource(clientResource, RT_NONE);
+                FreeResource(clientResource, X11_RESTYPE_NONE);
                 return BadAlloc;
             }
             *pHead = 0;

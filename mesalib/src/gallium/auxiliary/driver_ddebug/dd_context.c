@@ -571,8 +571,6 @@ dd_context_set_shader_buffers(struct pipe_context *_pipe,
 static void
 dd_context_set_vertex_buffers(struct pipe_context *_pipe,
                               unsigned num_buffers,
-                              unsigned unbind_num_trailing_slots,
-                              bool take_ownership,
                               const struct pipe_vertex_buffer *buffers)
 {
    struct dd_context *dctx = dd_context(_pipe);
@@ -580,11 +578,12 @@ dd_context_set_vertex_buffers(struct pipe_context *_pipe,
 
    safe_memcpy(&dctx->draw_state.vertex_buffers[0], buffers,
                sizeof(buffers[0]) * num_buffers);
-   safe_memcpy(&dctx->draw_state.vertex_buffers[num_buffers], NULL,
-               sizeof(buffers[0]) * unbind_num_trailing_slots);
-   pipe->set_vertex_buffers(pipe, num_buffers,
-                            unbind_num_trailing_slots, take_ownership,
-                            buffers);
+   if (dctx->num_vertex_buffers > num_buffers) {
+      safe_memcpy(&dctx->draw_state.vertex_buffers[num_buffers], NULL,
+                  sizeof(buffers[0]) * (dctx->num_vertex_buffers - num_buffers));
+   }
+   pipe->set_vertex_buffers(pipe, num_buffers, buffers);
+   dctx->num_vertex_buffers = num_buffers;
 }
 
 static void

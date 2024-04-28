@@ -213,9 +213,9 @@ traces:
     freedreno-a630:
       checksum: 730692659fbb9eefa44d6b1a2df2fa8e
     zink-a618:
-      checksum: 2a31ee1a56b755dcf5975b31eacbec32
+      checksum: 552e62fabd05ebfbb6d7bdd574b4e1c7
     zink-a630:
-      checksum: 2a31ee1a56b755dcf5975b31eacbec32
+      checksum: 552e62fabd05ebfbb6d7bdd574b4e1c7
 
   behdad-glyphy/glyphy-v2.trace:
     freedreno-a306:
@@ -338,25 +338,6 @@ traces:
       checksum: 2a99e051c8a0126f2283e6b9bbb2fb40
       text: 'Unsupported SPIR-V capability: SpvCapabilityInt64 (11)'
 
-  gputest/pixmark-piano-v2.trace:
-    freedreno-a306:
-      label: [skip]
-      text: missing 3/4 of rendered image
-      checksum: e7f01e62180b60aef8c67fc4977c90d1
-    freedreno-a530:
-      checksum: c0db49f777798ec7da518bb9eff099c8
-    freedreno-a618:
-      label: [skip]
-    freedreno-a630:
-      label: [skip]
-      text: |-
-        One of the material textures appears brighter on freedreno than
-        i965 in a way that is probably wrong.
-    zink-a618:
-      checksum: d4ac6b6dd39f5a63a7b6e0b39f81daa3
-    zink-a630:
-      checksum: e64bcc59d61d1c75ce5eeb109343d9bd
-
   gputest/pixmark-volplosion-v2.trace:
     freedreno-a306:
       label: [hang]
@@ -368,9 +349,9 @@ traces:
     freedreno-a630:
       checksum: e4da2cf366cb68833569105d37aaa50d
     zink-a618:
-      checksum: dbd6130eeae3eb6d5df73f3069beae28
+      checksum: e4da2cf366cb68833569105d37aaa50d
     zink-a630:
-      checksum: dbd6130eeae3eb6d5df73f3069beae28
+      checksum: e4da2cf366cb68833569105d37aaa50d
 
   gputest/plot3d-v2.trace:
     freedreno-a306:
@@ -732,10 +713,10 @@ traces:
       label: [skip, flakes]
       checksum: a71d1ad391162acef60cbb2804d0cf64
     zink-a618:
-      checksum: 7d084f2cd05644b717cc591bd8e9dcce
+      checksum: b487c2784d458dff4a12f65e5cc46ac1
     zink-a630:
       label: [skip, flakes]
-      checksum: 7d084f2cd05644b717cc591bd8e9dcce
+      checksum: b487c2784d458dff4a12f65e5cc46ac1
       text: "intermittent gpu fault ring 0 fence 4b4 status 00CE0185 rb 0067/0067 ib1 000000010C498000/14d14 ib2 0000000000000000/0000"
 
   warzone2100/warzone2100-default.trace:

@@ -28,6 +28,8 @@
 #include "etnaviv_debug.h"
 #include "etnaviv_util.h"
 
+#include "etnaviv/isa/isa.h"
+
 /* An instruction can only read from one distinct uniform.
  * This function verifies this property and returns true if the instruction
  * is deemed correct and false otherwise.
@@ -59,56 +61,18 @@ check_uniforms(const struct etna_inst *inst)
 }
 
 int
-etna_assemble(uint32_t *out, const struct etna_inst *inst)
+etna_assemble(uint32_t *out, const struct etna_inst *inst, bool has_no_oneconst_limit)
 {
    /* cannot have both src2 and imm */
    if (inst->imm && inst->src[2].use)
       return 1;
 
-   if (!inst->no_oneconst_limit && !check_uniforms(inst))
+   if (!has_no_oneconst_limit && !check_uniforms(inst))
       BUG("error: generating instruction that accesses two different uniforms");
 
    assert(!(inst->opcode&~0x7f));
 
-   out[0] = VIV_ISA_WORD_0_OPCODE(inst->opcode & 0x3f) |
-            VIV_ISA_WORD_0_COND(inst->cond) |
-            COND(inst->sat, VIV_ISA_WORD_0_SAT) |
-            COND(inst->dst.use, VIV_ISA_WORD_0_DST_USE) |
-            VIV_ISA_WORD_0_DST_AMODE(inst->dst.amode) |
-            VIV_ISA_WORD_0_DST_REG(inst->dst.reg) |
-            VIV_ISA_WORD_0_DST_COMPS(inst->dst.write_mask) |
-            VIV_ISA_WORD_0_TEX_ID(inst->tex.id);
-   out[1] = VIV_ISA_WORD_1_TEX_AMODE(inst->tex.amode) |
-            VIV_ISA_WORD_1_TEX_SWIZ(inst->tex.swiz) |
-            COND(inst->src[0].use, VIV_ISA_WORD_1_SRC0_USE) |
-            VIV_ISA_WORD_1_SRC0_REG(inst->src[0].reg) |
-            COND(inst->type & 0x4, VIV_ISA_WORD_1_TYPE_BIT2) |
-            VIV_ISA_WORD_1_SRC0_SWIZ(inst->src[0].swiz) |
-            COND(inst->src[0].neg, VIV_ISA_WORD_1_SRC0_NEG) |
-            COND(inst->src[0].abs, VIV_ISA_WORD_1_SRC0_ABS);
-   out[2] = VIV_ISA_WORD_2_SRC0_AMODE(inst->src[0].amode) |
-            VIV_ISA_WORD_2_SRC0_RGROUP(inst->src[0].rgroup) |
-            COND(inst->src[1].use, VIV_ISA_WORD_2_SRC1_USE) |
-            VIV_ISA_WORD_2_SRC1_REG(inst->src[1].reg) |
-            COND(inst->opcode & 0x40, VIV_ISA_WORD_2_OPCODE_BIT6) |
-            VIV_ISA_WORD_2_SRC1_SWIZ(inst->src[1].swiz) |
-            COND(inst->src[1].neg, VIV_ISA_WORD_2_SRC1_NEG) |
-            COND(inst->src[1].abs, VIV_ISA_WORD_2_SRC1_ABS) |
-            VIV_ISA_WORD_2_SRC1_AMODE(inst->src[1].amode) |
-            VIV_ISA_WORD_2_TYPE_BIT01(inst->type & 0x3);
-   out[3] = VIV_ISA_WORD_3_SRC1_RGROUP(inst->src[1].rgroup) |
-            COND(inst->src[2].use, VIV_ISA_WORD_3_SRC2_USE) |
-            VIV_ISA_WORD_3_SRC2_REG(inst->src[2].reg) |
-            VIV_ISA_WORD_3_SRC2_SWIZ(inst->src[2].swiz) |
-            COND(inst->src[2].neg, VIV_ISA_WORD_3_SRC2_NEG) |
-            COND(inst->src[2].abs, VIV_ISA_WORD_3_SRC2_ABS) |
-            VIV_ISA_WORD_3_SRC2_AMODE(inst->src[2].amode) |
-            VIV_ISA_WORD_3_SRC2_RGROUP(inst->src[2].rgroup) |
-            COND(inst->sel_bit0, VIV_ISA_WORD_3_SEL_BIT0) |
-            COND(inst->sel_bit1, VIV_ISA_WORD_3_SEL_BIT1) |
-            COND(inst->dst_full, VIV_ISA_WORD_3_DST_FULL);
-
-   out[3] |= VIV_ISA_WORD_3_SRC2_IMM(inst->imm);
+   isa_assemble_instruction(out, inst);
 
    return 0;
 }

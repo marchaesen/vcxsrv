@@ -30,12 +30,12 @@ the render pass and dynamic rendering.  For drivers which use
 structure will be populated as if for dynamic rendering, regardless of
 which path is used.  Drivers which use their own render pass structure
 should parse the render pass, if available, and pass a
-:c:struct:`vk_render_pass_state` to the `driver_rp` argument of
+:c:struct:`vk_render_pass_state` to the ``driver_rp`` argument of
 :c:func:`vk_graphics_pipeline_state_fill()` with the relevant information
 from the specified subpass.  If a render pass is available,
 :c:struct:`vk_render_pass_state` will be populated with the
 the information from the :c:struct:`driver_rp`.  If dynamic
-rendering is used or the driver provides a `NULL`
+rendering is used or the driver provides a ``NULL``
 :c:struct:`driver_rp`, the :c:struct:`vk_render_pass_state`
 structure will be populated for dynamic rendering, including color, depth,
 and stencil attachment formats.

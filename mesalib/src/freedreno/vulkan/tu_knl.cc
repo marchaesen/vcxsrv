@@ -187,7 +187,7 @@ l1_dcache_size()
       return 0;
 
 #if DETECT_ARCH_AARCH64 &&                                                   \
-   (!defined(_SC_LEVEL1_DCACHE_LINESIZE) || defined(ANDROID))
+   (!defined(_SC_LEVEL1_DCACHE_LINESIZE) || DETECT_OS_ANDROID)
    /* Bionic does not implement _SC_LEVEL1_DCACHE_LINESIZE properly: */
    uint64_t ctr_el0;
    asm("mrs\t%x0, ctr_el0" : "=r"(ctr_el0));
@@ -247,7 +247,7 @@ tu_physical_device_try_create(struct vk_instance *vk_instance,
 #ifdef TU_HAS_VIRTIO
       result = tu_knl_drm_virtio_load(instance, fd, version, &device);
 #endif
-   } else {
+   } else if (TU_DEBUG(STARTUP)) {
       result = vk_startup_errorf(instance, VK_ERROR_INCOMPATIBLE_DRIVER,
                                  "device %s (%s) is not compatible with turnip",
                                  path, version->name);

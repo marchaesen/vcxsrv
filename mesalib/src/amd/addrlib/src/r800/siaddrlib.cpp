@@ -1645,7 +1645,9 @@ UINT_32 SiLib::HwlGetPitchAlignmentLinear(
     }
     else
     {
-        pitchAlign = Max(8u, 64 / BITS_TO_BYTES(bpp));
+        {
+            pitchAlign = Max(8u, 64 / BITS_TO_BYTES(bpp));
+        }
     }
 
     return pitchAlign;
@@ -2263,7 +2265,10 @@ BOOL_32 SiLib::DecodeGbRegs(
 
     reg.val = pRegValue->gbAddrConfig;
 
-    switch (reg.f.pipe_interleave_size)
+    UINT_32 pipe_interleave_size = reg.f.pipe_interleave_size;
+    UINT_32 row_size             = reg.f.row_size;
+
+    switch (pipe_interleave_size)
     {
         case ADDR_CONFIG_PIPE_INTERLEAVE_256B:
             m_pipeInterleaveBytes = ADDR_PIPEINTERLEAVE_256B;
@@ -2277,7 +2282,7 @@ BOOL_32 SiLib::DecodeGbRegs(
             break;
     }
 
-    switch (reg.f.row_size)
+    switch (row_size)
     {
         case ADDR_CONFIG_1KB_ROW:
             m_rowSize = ADDR_ROWSIZE_1KB;

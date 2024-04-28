@@ -17,9 +17,11 @@ is" without express or implied warranty.
 #endif
 
 #include <X11/X.h>
+#include <X11/Xdefs.h>
 #include <X11/Xproto.h>
-#include "regionstr.h"
 #include <X11/fonts/fontstruct.h>
+
+#include "regionstr.h"
 #include "gcstruct.h"
 #include "scrnintstr.h"
 #include "windowstr.h"

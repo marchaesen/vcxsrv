@@ -33,13 +33,13 @@ import typeexpr
 import static_data
 
 
-def parse_GL_API( file_name, factory = None ):
+def parse_GL_API(file_name, factory=None, pointer_size=0):
 
     if not factory:
         factory = gl_item_factory()
 
-    api = factory.create_api()
-    api.parse_file( file_name )
+    api = factory.create_api(pointer_size)
+    api.parse_file(file_name)
 
     # After the XML has been processed, we need to go back and assign
     # dispatch offsets to the functions that request that their offsets
@@ -430,6 +430,7 @@ class gl_parameter(object):
             self.counter = c
 
         self.marshal_count = element.get("marshal_count")
+        self.marshal_large_count = element.get("marshal_large_count")
         self.count_scale = int(element.get( "count_scale", "1" ))
 
         elements = (count * self.count_scale)
@@ -492,7 +493,8 @@ class gl_parameter(object):
 
 
     def is_variable_length(self):
-        return len(self.count_parameter_list) or self.counter or self.marshal_count
+        return (len(self.count_parameter_list) or self.counter or
+                self.marshal_count or self.marshal_large_count)
 
 
     def is_64_bit(self):
@@ -575,11 +577,14 @@ class gl_parameter(object):
 
         base_size_str += "sizeof(%s)" % ( self.get_base_type_string() )
 
-        if self.counter or self.count_parameter_list or (self.marshal_count and marshal):
+        if (self.counter or self.count_parameter_list or
+            (marshal and (self.marshal_count or self.marshal_large_count))):
             list = [ "compsize" ]
 
-            if self.marshal_count and marshal:
+            if marshal and self.marshal_count:
                 list = [ self.marshal_count ]
+            elif marshal and self.marshal_large_count:
+                list = [ self.marshal_large_count ]
             elif self.counter and self.count_parameter_list:
                 list.append( self.counter )
             elif self.counter:
@@ -588,7 +593,9 @@ class gl_parameter(object):
             if self.size() > 1:
                 list.append( base_size_str )
 
-            if len(list) > 1 and use_parens :
+            # Don't use safe_mul if marshal_count is used, which indicates
+            # a small size.
+            if len(list) > 1 and use_parens and not self.marshal_count:
                 return "safe_mul(%s)" % ", ".join(list)
             else:
                 return " * ".join(list)
@@ -658,6 +665,7 @@ class gl_function( gl_item ):
         # marshal isn't allowed with alias
         assert not alias or not element.get('marshal')
         assert not alias or not element.get('marshal_count')
+        assert not alias or not element.get('marshal_large_count')
         assert not alias or not element.get('marshal_sync')
         assert not alias or not element.get('marshal_call_before')
         assert not alias or not element.get('marshal_call_after')
@@ -855,12 +863,12 @@ class gl_item_factory(object):
     def create_parameter(self, element, context):
         return gl_parameter(element, context)
 
-    def create_api(self):
-        return gl_api(self)
+    def create_api(self, pointer_size):
+        return gl_api(self, pointer_size)
 
 
 class gl_api(object):
-    def __init__(self, factory):
+    def __init__(self, factory, pointer_size):
         self.functions_by_name = OrderedDict()
         self.enums_by_name = {}
         self.types_by_name = {}
@@ -871,6 +879,7 @@ class gl_api(object):
         self.factory = factory
 
         self.next_offset = 0
+        self.pointer_size = pointer_size
 
         typeexpr.create_initial_types()
         return

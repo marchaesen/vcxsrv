@@ -38,7 +38,9 @@
 #include <xorg-config.h>
 #endif
 
+#include <sys/stat.h>
 #include <X11/X.h>
+
 #include "mi.h"
 #include "os.h"
 #include "servermd.h"

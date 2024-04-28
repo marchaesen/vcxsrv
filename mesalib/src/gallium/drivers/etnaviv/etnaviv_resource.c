@@ -26,8 +26,6 @@
 
 #include "etnaviv_resource.h"
 
-#include "hw/common.xml.h"
-
 #include "etnaviv_context.h"
 #include "etnaviv_debug.h"
 #include "etnaviv_screen.h"
@@ -111,7 +109,7 @@ etna_screen_resource_alloc_ts(struct pipe_screen *pscreen,
    /* enable 256B ts mode with compression, as it improves performance
     * the size of the resource might also determine if we want to use it or not
     */
-   if (VIV_FEATURE(screen, chipMinorFeatures6, CACHE128B256BPERLINE)) {
+   if (VIV_FEATURE(screen, ETNA_FEATURE_CACHE128B256BPERLINE)) {
       if ((modifier & VIVANTE_MOD_TS_MASK) == VIVANTE_MOD_TS_128_4)
          ts_mode = TS_MODE_128B;
       else if ((modifier & VIVANTE_MOD_TS_MASK) == VIVANTE_MOD_TS_256_4)
@@ -266,7 +264,7 @@ etna_layout_multiple(const struct etna_screen *screen,
     * textures. If this GPU uses the BLT engine, never do RS align.
     */
    bool rs_align = !specs->use_blt && (!etna_resource_sampler_only(templat) ||
-                   VIV_FEATURE(screen, chipMinorFeatures1, TEXTURE_HALIGN));
+                   VIV_FEATURE(screen, ETNA_FEATURE_TEXTURE_HALIGN));
    int msaa_xscale = 1, msaa_yscale = 1;
 
    /* Compressed textures are padded to their block size, but we don't have
@@ -435,7 +433,7 @@ etna_resource_create(struct pipe_screen *pscreen,
       if (screen->specs.can_supertile)
          layout |= ETNA_LAYOUT_BIT_SUPER;
    } else if (screen->specs.can_supertile &&
-              VIV_FEATURE(screen, chipMinorFeatures2, SUPERTILED_TEXTURE) &&
+              VIV_FEATURE(screen, ETNA_FEATURE_SUPERTILED_TEXTURE) &&
               etna_resource_hw_tileable(screen->specs.use_blt, templat)) {
       layout |= ETNA_LAYOUT_BIT_SUPER;
    }
@@ -521,7 +519,7 @@ select_best_modifier(const struct etna_screen * screen,
    best_modifier = base_modifier = priority_to_modifier[prio];
 
    if (!DBG_ENABLED(ETNA_DBG_SHARED_TS) ||
-       !VIV_FEATURE(screen, chipFeatures, FAST_CLEAR))
+       !VIV_FEATURE(screen, ETNA_FEATURE_FAST_CLEAR))
       return best_modifier;
 
    /* Make a second pass to try and find the best TS modifier if any. */
@@ -678,6 +676,7 @@ etna_resource_from_handle(struct pipe_screen *pscreen,
    rsc->layout = modifier_to_layout(modifier);
    rsc->modifier = modifier;
 
+   rsc->shared = true;
    if (usage & PIPE_HANDLE_USAGE_EXPLICIT_FLUSH)
       rsc->explicit_flush = true;
 
@@ -780,6 +779,7 @@ etna_resource_get_handle(struct pipe_screen *pscreen,
    }
    handle->modifier = etna_resource_modifier(rsc);
 
+   rsc->shared = true;
    if (!(usage & PIPE_HANDLE_USAGE_EXPLICIT_FLUSH))
       rsc->explicit_flush = false;
 

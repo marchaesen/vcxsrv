@@ -99,7 +99,7 @@ QuartzInitServer(int argc, char **argv, char **envp)
     sigset_t set;
     sigemptyset(&set);
     sigaddset(&set, SIGALRM);
-#ifdef BUSFAULT
+#ifdef HAVE_SIGACTION
     sigaddset(&set, SIGBUS);
 #endif
     pthread_sigmask(SIG_BLOCK, &set, NULL);

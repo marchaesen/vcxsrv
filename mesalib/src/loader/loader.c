@@ -54,6 +54,8 @@
 #include "util/u_debug.h"
 #include "git_sha1.h"
 
+#include "drm-uapi/nouveau_drm.h"
+
 #define MAX_DRM_DEVICES 64
 
 #ifdef USE_DRICONF
@@ -123,7 +125,7 @@ loader_get_kernel_driver_name(int fd)
 }
 
 bool
-iris_predicate(int fd)
+iris_predicate(int fd, const char *driver)
 {
    char *kernel_driver = loader_get_kernel_driver_name(fd);
    bool ret = kernel_driver && (strcmp(kernel_driver, "i915") == 0 ||
@@ -132,6 +134,37 @@ iris_predicate(int fd)
    free(kernel_driver);
    return ret;
 }
+
+/* choose zink or nouveau GL */
+bool
+nouveau_zink_predicate(int fd, const char *driver)
+{
+#if !defined(HAVE_NVK) || !defined(HAVE_ZINK)
+   if (!strcmp(driver, "zink"))
+      return false;
+   return true;
+#else
+
+   bool prefer_zink = false;
+
+   /* enable this once zink is up to speed.
+    * struct drm_nouveau_getparam r = { .param = NOUVEAU_GETPARAM_CHIPSET_ID };
+    * int ret = drmCommandWriteRead(fd, DRM_NOUVEAU_GETPARAM, &r, sizeof(r));
+    * if (ret == 0 && (r.value & ~0xf) >= 0x160)
+    *    prefer_zink = true;
+    */
+
+   prefer_zink = debug_get_bool_option("NOUVEAU_USE_ZINK", prefer_zink);
+
+   if (prefer_zink && !strcmp(driver, "zink"))
+      return true;
+
+   if (!prefer_zink && !strcmp(driver, "nouveau"))
+      return true;
+   return false;
+#endif
+}
+
 
 /**
  * Goes through all the platform devices whose driver is on the given list and
@@ -643,7 +676,7 @@ loader_get_pci_driver(int fd)
       if (vendor_id != driver_map[i].vendor_id)
          continue;
 
-      if (driver_map[i].predicate && !driver_map[i].predicate(fd))
+      if (driver_map[i].predicate && !driver_map[i].predicate(fd, driver_map[i].driver))
          continue;
 
       if (driver_map[i].num_chips_ids == -1) {
@@ -675,7 +708,7 @@ loader_get_driver_for_fd(int fd)
     * user's problem, but this allows vc4 simulator to run on an i965 host,
     * and may be useful for some touch testing of i915 on an i965 host.
     */
-   if (geteuid() == getuid()) {
+   if (__normal_user()) {
       const char *override = os_get_option("MESA_LOADER_DRIVER_OVERRIDE");
       if (override)
          return strdup(override);
@@ -780,7 +813,7 @@ loader_open_driver_lib(const char *driver_name,
    const char *search_paths, *next, *end;
 
    search_paths = NULL;
-   if (geteuid() == getuid() && search_path_vars) {
+   if (__normal_user() && search_path_vars) {
       for (int i = 0; search_path_vars[i] != NULL; i++) {
          search_paths = getenv(search_path_vars[i]);
          if (search_paths)

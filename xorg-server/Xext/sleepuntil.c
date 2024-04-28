@@ -166,7 +166,7 @@ SertafiedBlockHandler(void *data, void *wt)
         pNext = pReq->next;
         if (CompareTimeStamps(pReq->revive, now) == LATER)
             break;
-        FreeResource(pReq->id, RT_NONE);
+        FreeResource(pReq->id, X11_RESTYPE_NONE);
 
         /* AttendClient() may have been called via the resource delete
          * function so a client may have input to be processed and so
@@ -195,7 +195,7 @@ SertafiedWakeupHandler(void *data, int i)
         pNext = pReq->next;
         if (CompareTimeStamps(pReq->revive, now) == LATER)
             break;
-        FreeResource(pReq->id, RT_NONE);
+        FreeResource(pReq->id, X11_RESTYPE_NONE);
     }
     if (!pPending) {
         RemoveBlockAndWakeupHandlers(SertafiedBlockHandler,

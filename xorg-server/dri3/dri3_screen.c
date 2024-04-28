@@ -183,8 +183,10 @@ cache_formats_and_modifiers(ScreenPtr screen)
     }
 
     ds->formats = calloc(num_formats, sizeof(dri3_dmabuf_format_rec));
-    if (!ds->formats)
+    if (!ds->formats) {
+        free(formats);
         return BadAlloc;
+    }
 
     for (i = 0; i < num_formats; i++) {
         dri3_dmabuf_format_ptr iter = &ds->formats[i];
@@ -205,6 +207,7 @@ cache_formats_and_modifiers(ScreenPtr screen)
     ds->num_formats = i;
     ds->formats_cached = TRUE;
 
+    free(formats);
     return Success;
 }
 
@@ -269,6 +272,26 @@ dri3_get_supported_modifiers(ScreenPtr screen, DrawablePtr drawable,
 
     *num_screen_modifiers = screen_format->num_modifiers;
     *screen_modifiers = screen_mods;
+
+    return Success;
+}
+
+int dri3_import_syncobj(ClientPtr client, ScreenPtr screen, XID id, int fd)
+{
+    const dri3_screen_info_rec *info = dri3_screen_priv(screen)->info;
+    struct dri3_syncobj *syncobj = NULL;
+
+    if (info->version < 4 || !info->import_syncobj)
+        return BadImplementation;
+
+    syncobj = info->import_syncobj(client, screen, id, fd);
+    close(fd);
+
+    if (!syncobj)
+        return BadAlloc;
+
+    if (!AddResource(id, dri3_syncobj_type, syncobj))
+        return BadAlloc;
 
     return Success;
 }

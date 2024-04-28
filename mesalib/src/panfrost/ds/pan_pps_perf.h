@@ -7,7 +7,6 @@
 
 #pragma once
 
-struct panfrost_device;
 struct panfrost_perf;
 
 namespace pps {
@@ -22,8 +21,7 @@ class PanfrostDevice {
    PanfrostDevice(PanfrostDevice &&);
    PanfrostDevice &operator=(PanfrostDevice &&);
 
-   void *ctx = nullptr;
-   struct panfrost_device *dev = nullptr;
+   int fd = -1;
 };
 
 class PanfrostPerf {

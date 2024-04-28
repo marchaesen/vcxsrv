@@ -20,27 +20,27 @@ Turn on the layer:
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay /path/to/my_vulkan_app
 
 
 List the available statistics:
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=help /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=help /path/to/my_vulkan_app
 
 
 Turn on some statistics:
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,draw,pipeline_graphics /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,draw,pipeline_graphics /path/to/my_vulkan_app
 
 Position the overlay:
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,draw,pipeline_graphics,position=top-right /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=submit,draw,pipeline_graphics,position=top-right /path/to/my_vulkan_app
 
 Logging Statistics
 =======
@@ -49,7 +49,7 @@ Log statistics to a file:
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=output_file=/tmp/output.txt /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=output_file=/tmp/output.txt /path/to/my_vulkan_app
 
 Logging is enabled for the entire lifecycle of the process unless a control socket is specified (see below).
 
@@ -60,7 +60,7 @@ Log statistics to a file, controlling when such statistics will start to be capt
 
 .. code-block:: sh
 
-  VK_INSTANCE_LAYERS=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=output_file=/tmp/output.txt,control=mesa_overlay /path/to/my_vulkan_app
+  VK_LOADER_LAYERS_ENABLE=VK_LAYER_MESA_overlay VK_LAYER_MESA_OVERLAY_CONFIG=output_file=/tmp/output.txt,control=mesa_overlay /path/to/my_vulkan_app
 
 The command above will open a Unix socket with the abstract path :code:`mesa_overlay`. When a control socket is specified,
 logging must be explicitly enabled through the control socket. :code:`mesa-overlay-control.py` provides a convenient CLI:

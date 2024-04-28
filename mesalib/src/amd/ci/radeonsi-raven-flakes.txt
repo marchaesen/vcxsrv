@@ -14,3 +14,9 @@ glx@glx-visuals-stencil -pixmap
 glx@glx-visuals-stencil
 # ci-collate: Issue found in https://gitlab.freedesktop.org/mesa/mesa/-/jobs/49445712
 glx@glx-multithread-texture
+
+# uprev Piglit in Mesa
+glx@glx-swap-singlebuffer
+spec@!opengl 1.1@ppgtt_memory_alignment
+spec@ext_image_dma_buf_import@ext_image_dma_buf_import-refcount-multithread
+

@@ -36,6 +36,8 @@
 #include <string.h>
 #include <stdlib.h>
 
+#include "os/osdep.h"
+
 #include "fb.h"
 #include "pixmapstr.h"
 
@@ -213,6 +215,28 @@ shm_format_for_depth(int depth)
     }
 }
 
+static Bool
+dimensions_match_toplevel_window(ScreenPtr screen, int width, int height)
+{
+    struct xwl_screen *xwl_screen = xwl_screen_get(screen);
+    WindowPtr toplevel;
+
+    if (xwl_screen->rootless)
+        toplevel = screen->root->firstChild;
+    else
+        toplevel = screen->root;
+
+    while (toplevel) {
+        if (width == toplevel->drawable.width &&
+            height == toplevel->drawable.height)
+            return TRUE;
+
+        toplevel = toplevel->nextSib;
+    }
+
+    return FALSE;
+}
+
 static const struct wl_buffer_listener xwl_shm_buffer_listener = {
     xwl_pixmap_buffer_release_cb,
 };
@@ -230,8 +254,9 @@ xwl_shm_create_pixmap(ScreenPtr screen,
     int fd;
 
     if (hint == CREATE_PIXMAP_USAGE_GLYPH_PICTURE ||
-        (!xwl_screen->rootless && hint != CREATE_PIXMAP_USAGE_BACKING_PIXMAP) ||
-        (width == 0 && height == 0) || depth < 15)
+        (width == 0 && height == 0) || depth < 15 ||
+        (hint != CREATE_PIXMAP_USAGE_BACKING_PIXMAP &&
+         !dimensions_match_toplevel_window(screen, width, height)))
         return fbCreatePixmap(screen, width, height, depth, hint);
 
     stride = PixmapBytePad(width, depth);
@@ -314,7 +339,12 @@ xwl_shm_destroy_pixmap(PixmapPtr pixmap)
 struct wl_buffer *
 xwl_shm_pixmap_get_wl_buffer(PixmapPtr pixmap)
 {
-    return xwl_pixmap_get(pixmap)->buffer;
+    struct xwl_pixmap *xwl_pixmap = xwl_pixmap_get(pixmap);
+
+    if (!xwl_pixmap)
+        return NULL;
+
+    return xwl_pixmap->buffer;
 }
 
 Bool

@@ -829,7 +829,7 @@ struct gl_display_list *
 _mesa_lookup_list(struct gl_context *ctx, GLuint list, bool locked)
 {
    return (struct gl_display_list *)
-      _mesa_HashLookupMaybeLocked(ctx->Shared->DisplayList, list, locked);
+      _mesa_HashLookupMaybeLocked(&ctx->Shared->DisplayList, list, locked);
 }
 
 
@@ -1113,7 +1113,7 @@ destroy_list(struct gl_context *ctx, GLuint list)
       return;
 
    _mesa_delete_list(ctx, dlist);
-   _mesa_HashRemoveLocked(ctx->Shared->DisplayList, list);
+   _mesa_HashRemoveLocked(&ctx->Shared->DisplayList, list);
 }
 
 
@@ -1220,7 +1220,7 @@ dlist_alloc(struct gl_context *ctx, OpCode opcode, GLuint bytes, bool align8)
       ctx->ListState.CurrentPos++;
    }
 
-   if (ctx->ListState.CurrentPos + numNodes + contNodes > BLOCK_SIZE) {
+   if (ctx->ListState.CurrentPos + numNodes + contNodes >= BLOCK_SIZE) {
       /* This block is full.  Allocate a new block and chain to it */
       Node *newblock;
       Node *n = ctx->ListState.CurrentBlock + ctx->ListState.CurrentPos;
@@ -10928,9 +10928,9 @@ execute_list(struct gl_context *ctx, GLuint list)
          case OPCODE_CALL_LISTS:
             if (ctx->ListState.CallDepth < MAX_LIST_NESTING) {
                ctx->ListState.CallDepth++;
-               _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+               _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
                CALL_CallLists(ctx->Dispatch.Exec, (n[1].i, n[2].e, get_pointer(&n[3])));
-               _mesa_HashLockMutex(ctx->Shared->DisplayList);
+               _mesa_HashLockMutex(&ctx->Shared->DisplayList);
                ctx->ListState.CallDepth--;
             }
             break;
@@ -13108,11 +13108,11 @@ _mesa_DeleteLists(GLuint list, GLsizei range)
       return;
    }
 
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+   _mesa_HashLockMutex(&ctx->Shared->DisplayList);
    for (i = list; i < list + range; i++) {
       destroy_list(ctx, i);
    }
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+   _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
 }
 
 
@@ -13139,19 +13139,19 @@ _mesa_GenLists(GLsizei range)
    /*
     * Make this an atomic operation
     */
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+   _mesa_HashLockMutex(&ctx->Shared->DisplayList);
 
-   base = _mesa_HashFindFreeKeyBlock(ctx->Shared->DisplayList, range);
+   base = _mesa_HashFindFreeKeyBlock(&ctx->Shared->DisplayList, range);
    if (base) {
       /* reserve the list IDs by with empty/dummy lists */
       GLint i;
       for (i = 0; i < range; i++) {
-         _mesa_HashInsertLocked(ctx->Shared->DisplayList, base + i,
-                                make_list(base + i, 1), true);
+         _mesa_HashInsertLocked(&ctx->Shared->DisplayList, base + i,
+                                make_list(base + i, 1));
       }
    }
 
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+   _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
 
    return base;
 }
@@ -13347,7 +13347,7 @@ _mesa_EndList(void)
 
    (void) alloc_instruction(ctx, OPCODE_END_OF_LIST, 0);
 
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+   _mesa_HashLockMutex(&ctx->Shared->DisplayList);
 
    if (ctx->ListState.Current.UseLoopback)
       replace_op_vertex_list_recursively(ctx, ctx->ListState.CurrentList);
@@ -13399,14 +13399,14 @@ _mesa_EndList(void)
    destroy_list(ctx, ctx->ListState.CurrentList->Name);
 
    /* Install the new list */
-   _mesa_HashInsertLocked(ctx->Shared->DisplayList,
+   _mesa_HashInsertLocked(&ctx->Shared->DisplayList,
                           ctx->ListState.CurrentList->Name,
-                          ctx->ListState.CurrentList, true);
+                          ctx->ListState.CurrentList);
 
    if (MESA_VERBOSE & VERBOSE_DISPLAY_LIST)
       mesa_print_display_list(ctx->ListState.CurrentList->Name);
 
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+   _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
 
    ctx->ListState.CurrentList = NULL;
    ctx->ListState.CurrentBlock = NULL;
@@ -13450,9 +13450,9 @@ _mesa_CallList(GLuint list)
       ctx->CompileFlag = GL_FALSE;
    }
 
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+   _mesa_HashLockMutex(&ctx->Shared->DisplayList);
    execute_list(ctx, list);
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+   _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
    ctx->CompileFlag = save_compile_flag;
 
    /* also restore API function pointers to point to "save" versions */
@@ -13507,7 +13507,7 @@ _mesa_CallLists(GLsizei n, GLenum type, const GLvoid * lists)
 
    GLuint base = ctx->List.ListBase;
 
-   _mesa_HashLockMutex(ctx->Shared->DisplayList);
+   _mesa_HashLockMutex(&ctx->Shared->DisplayList);
 
    /* A loop inside a switch is faster than a switch inside a loop. */
    switch (type) {
@@ -13575,7 +13575,7 @@ _mesa_CallLists(GLsizei n, GLenum type, const GLvoid * lists)
       break;
    }
 
-   _mesa_HashUnlockMutex(ctx->Shared->DisplayList);
+   _mesa_HashUnlockMutex(&ctx->Shared->DisplayList);
    ctx->CompileFlag = save_compile_flag;
 
    /* also restore API function pointers to point to "save" versions */

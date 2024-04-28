@@ -286,9 +286,9 @@ Here is one solution:
    unset LIBGL_DEBUG
    unset LIBGL_ALWAYS_SOFTWARE
    unset GALLIUM_DRIVER
-   export VK_ICD_FILENAMES=`pwd`/test/usr/local/share/vulkan/icd.d/intel_icd.x86_64.json
+   export VK_DRIVER_FILES=`pwd`/test/usr/local/share/vulkan/icd.d/intel_icd.x86_64.json
    steam steam://rungameid/570  -vconsole -vulkan
-   unset VK_ICD_FILENAMES
+   unset VK_DRIVER_FILES
 
 Create release notes for the new release
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

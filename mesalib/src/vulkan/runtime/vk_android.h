@@ -25,11 +25,13 @@
 
 #include "vulkan/vulkan_core.h"
 
+#include "util/detect_os.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#if ANDROID_API_LEVEL >= 26
+#if DETECT_OS_ANDROID && ANDROID_API_LEVEL >= 26
 
 VkFormat vk_ahb_format_to_image_format(uint32_t ahb_format);
 
@@ -41,7 +43,7 @@ uint64_t vk_image_usage_to_ahb_usage(const VkImageCreateFlags vk_create,
 struct AHardwareBuffer *
 vk_alloc_ahardware_buffer(const VkMemoryAllocateInfo *pAllocateInfo);
 
-#else /* ANDROID_API_LEVEL >= 26 */
+#else /* DETECT_OS_ANDROID && ANDROID_API_LEVEL >= 26 */
 
 static inline VkFormat
 vk_ahb_format_to_image_format(uint32_t ahb_format)

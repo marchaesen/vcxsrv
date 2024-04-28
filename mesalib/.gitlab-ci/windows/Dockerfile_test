@@ -14,6 +14,9 @@ RUN C:\mesa_deps_rust.ps1
 
 COPY mesa_init_msvc.ps1 C:\
 
+COPY mesa_deps_libva.ps1 C:\
+RUN C:\mesa_deps_libva.ps1
+
 COPY mesa_deps_test_piglit.ps1 C:\
 RUN C:\mesa_deps_test_piglit.ps1
 COPY mesa_deps_test_deqp.ps1 c:\

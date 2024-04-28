@@ -51,10 +51,6 @@
 
 #define _COMPILER_H
 
-#if defined(__SUNPRO_C)
-#define DO_PROTOTYPES
-#endif
-
 /* Map Sun compiler platform defines to gcc-style used in the code */
 #if defined(__amd64) && !defined(__amd64__)
 #define __amd64__
@@ -94,45 +90,6 @@
 #if !defined(__GNUC__) && !defined(__FUNCTION__)
 #define __FUNCTION__ __func__   /* C99 */
 #endif
-
-#if defined(DO_PROTOTYPES)
-#if !defined(__arm__)
-#if !defined(__sparc__) && !defined(__arm32__) && !defined(__nds32__) \
-      && !(defined(__alpha__) && defined(__linux__)) \
-      && !(defined(__ia64__) && defined(__linux__)) \
-      && !(defined(__mips64) && defined(__linux__)) \
-
-extern _X_EXPORT void outb(unsigned short, unsigned char);
-extern _X_EXPORT void outw(unsigned short, unsigned short);
-extern _X_EXPORT void outl(unsigned short, unsigned int);
-extern _X_EXPORT unsigned int inb(unsigned short);
-extern _X_EXPORT unsigned int inw(unsigned short);
-extern _X_EXPORT unsigned int inl(unsigned short);
-
-#else                           /* __sparc__,  __arm32__, __alpha__, __nds32__ */
-extern _X_EXPORT void outb(unsigned long, unsigned char);
-extern _X_EXPORT void outw(unsigned long, unsigned short);
-extern _X_EXPORT void outl(unsigned long, unsigned int);
-extern _X_EXPORT unsigned int inb(unsigned long);
-extern _X_EXPORT unsigned int inw(unsigned long);
-extern _X_EXPORT unsigned int inl(unsigned long);
-
-#ifdef __SUNPRO_C
-extern _X_EXPORT unsigned char  xf86ReadMmio8    (void *, unsigned long);
-extern _X_EXPORT unsigned short xf86ReadMmio16Be (void *, unsigned long);
-extern _X_EXPORT unsigned short xf86ReadMmio16Le (void *, unsigned long);
-extern _X_EXPORT unsigned int   xf86ReadMmio32Be (void *, unsigned long);
-extern _X_EXPORT unsigned int   xf86ReadMmio32Le (void *, unsigned long);
-extern _X_EXPORT void xf86WriteMmio8    (void *, unsigned long, unsigned int);
-extern _X_EXPORT void xf86WriteMmio16Be (void *, unsigned long, unsigned int);
-extern _X_EXPORT void xf86WriteMmio16Le (void *, unsigned long, unsigned int);
-extern _X_EXPORT void xf86WriteMmio32Be (void *, unsigned long, unsigned int);
-extern _X_EXPORT void xf86WriteMmio32Le (void *, unsigned long, unsigned int);
-#endif                          /* _SUNPRO_C */
-#endif                          /* __sparc__,  __arm32__, __alpha__, __nds32__ */
-#endif                          /* __arm__ */
-
-#endif                          /* NO_INLINE || DO_PROTOTYPES */
 
 #ifdef __GNUC__
 #ifdef __i386__
@@ -265,8 +222,7 @@ inl(unsigned long port)
 
 #endif                          /* __linux__ */
 
-#if (defined(__FreeBSD__) || defined(__OpenBSD__)) \
-      && !defined(DO_PROTOTYPES)
+#if (defined(__FreeBSD__) || defined(__OpenBSD__))
 
 /* for FreeBSD and OpenBSD on Alpha, we use the libio (resp. libalpha) */
 /*  inx/outx routines */
@@ -280,7 +236,7 @@ extern _X_EXPORT unsigned char inb(unsigned int port);
 extern _X_EXPORT unsigned short inw(unsigned int port);
 extern _X_EXPORT unsigned int inl(unsigned int port);
 
-#endif                          /* (__FreeBSD__ || __OpenBSD__ ) && !DO_PROTOTYPES */
+#endif                          /* (__FreeBSD__ || __OpenBSD__ ) */
 
 #if defined(__NetBSD__)
 #include <machine/pio.h>
@@ -941,9 +897,7 @@ inl(unsigned PORT_SIZE port)
 #define asm __asm
 #endif
 #endif
-#if !defined(__SUNPRO_C)
 #include <sys/inline.h>
-#endif
 #endif                          /* __GNUC__ */
 
 #if !defined(MMIO_IS_BE) && \

@@ -71,7 +71,7 @@ if dep_libarchive.found()
   )
 
   foreach kmd : freedreno_kmds
-    if not (kmd in ['kgsl', 'msm'])
+    if not (kmd in ['kgsl', 'msm', 'wsl'])
       warning('replay not supported for ' + kmd + ' KMD')
       continue
     endif
@@ -88,7 +88,10 @@ if dep_libarchive.found()
     if kmd == 'kgsl'
       replay_flags += '-DFD_REPLAY_KGSL'
     elif kmd == 'msm'
+      replay_flags += '-DFD_REPLAY_MSM'
       replay_deps += dep_libdrm
+    elif kmd == 'wsl'
+      replay_flags += '-DFD_REPLAY_WSL'
     endif
 
     replay = executable(
@@ -135,6 +138,26 @@ if dep_libarchive.found()
       libfreedreno_io,
     ],
     build_by_default: with_tools.contains('freedreno'),
+    install: install_fd_decode_tools,
+  )
+
+  generate_rd = executable(
+    'generate_rd',
+    [
+      'generate-rd.cc'
+    ],
+    include_directories: [
+      inc_freedreno,
+      inc_freedreno_rnn,
+      inc_include,
+      inc_src,
+    ],
+    link_with: [
+      libfreedreno_cffdec,
+    ],
+    dependencies : [
+      idep_nir,
+    ],
     install: install_fd_decode_tools,
   )
 else

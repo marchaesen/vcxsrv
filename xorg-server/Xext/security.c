@@ -28,13 +28,17 @@ in this Software without prior written authorization from The Open Group.
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+#include "dix/registry_priv.h"
+#include "os/audit.h"
+#include "os/auth.h"
+
 #include "scrnintstr.h"
 #include "inputstr.h"
 #include "windowstr.h"
 #include "propertyst.h"
 #include "colormapst.h"
 #include "privates.h"
-#include "registry.h"
 #include "xacestr.h"
 #include "securitysrv.h"
 #include <X11/extensions/securproto.h>
@@ -147,7 +151,7 @@ SecurityLabelInitial(void)
 /*
  * Looks up a request name
  */
-static _X_INLINE const char *
+static inline const char *
 SecurityLookupRequestName(ClientPtr client)
 {
     return LookupRequestName(client->majorOp, client->minorOp);
@@ -198,7 +202,7 @@ SecurityDeleteAuthorization(void *value, XID id)
             .authId = pAuth->id
         };
         WriteEventsToClient(rClient(pEventClient), 1, (xEvent *) &are);
-        FreeResource(pEventClient->resource, RT_NONE);
+        FreeResource(pEventClient->resource, X11_RESTYPE_NONE);
     }
 
     /* kill all clients using this auth */
@@ -304,7 +308,7 @@ SecurityAuthorizationExpired(OsTimerPtr timer, CARD32 time, void *pval)
                                                    pAuth->secondsRemaining);
     }
     else {
-        FreeResource(pAuth->id, RT_NONE);
+        FreeResource(pAuth->id, X11_RESTYPE_NONE);
         return 0;
     }
 }                               /* SecurityAuthorizationExpired */
@@ -368,7 +372,7 @@ SecurityEventSelectForAuthorization(SecurityAuthorizationPtr pAuth,
          pEventClient; pEventClient = pEventClient->next) {
         if (SameClient(pEventClient, client)) {
             if (mask == 0)
-                FreeResource(pEventClient->resource, RT_NONE);
+                FreeResource(pEventClient->resource, X11_RESTYPE_NONE);
             else
                 pEventClient->mask = mask;
             return Success;
@@ -580,7 +584,7 @@ ProcSecurityRevokeAuthorization(ClientPtr client)
     if (rc != Success)
         return rc;
 
-    FreeResource(stuff->authId, RT_NONE);
+    FreeResource(stuff->authId, X11_RESTYPE_NONE);
     return Success;
 }                               /* ProcSecurityRevokeAuthorization */
 
@@ -747,12 +751,12 @@ SecurityResource(CallbackListPtr *pcbl, void *unused, void *calldata)
     subj = dixLookupPrivate(&rec->client->devPrivates, stateKey);
 
     /* disable background None for untrusted windows */
-    if ((requested & DixCreateAccess) && (rec->rtype == RT_WINDOW))
+    if ((requested & DixCreateAccess) && (rec->rtype == X11_RESTYPE_WINDOW))
         if (subj->haveState && subj->trustLevel != XSecurityClientTrusted)
             ((WindowPtr) rec->res)->forcedBG = TRUE;
 
     /* additional permissions for specific resource types */
-    if (rec->rtype == RT_WINDOW)
+    if (rec->rtype == X11_RESTYPE_WINDOW)
         allowed |= SecurityWindowExtraMask;
 
     /* special checks for server-owned resources */
@@ -761,7 +765,7 @@ SecurityResource(CallbackListPtr *pcbl, void *unused, void *calldata)
             /* additional operations allowed on root windows */
             allowed |= SecurityRootWindowExtraMask;
 
-        else if (rec->rtype == RT_COLORMAP)
+        else if (rec->rtype == X11_RESTYPE_COLORMAP)
             /* allow access to default colormaps */
             allowed = requested;
 

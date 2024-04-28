@@ -1,5 +1,5 @@
 project('xkeyboard-config',
-        version: '2.40',
+        version: '2.41',
         license: 'MIT/Expat',
         meson_version: '>= 0.54.0')
 
@@ -27,9 +27,7 @@ pkgconfig.generate(
 
 # KcGST only need to be installed as-is
 foreach dir: ['compat', 'geometry', 'keycodes', 'symbols', 'types']
-    install_subdir(dir,
-                   exclude_files: ['Makefile.am'],
-                   install_dir: dir_xkb_base)
+    install_subdir(dir, install_dir: dir_xkb_base)
 endforeach
 
 # Rules are a bit more complicated

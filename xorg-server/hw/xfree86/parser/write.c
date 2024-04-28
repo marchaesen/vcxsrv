@@ -65,13 +65,6 @@
 #include <sys/wait.h>
 #include <errno.h>
 
-#if defined(HAVE_SETEUID) && defined(_POSIX_SAVED_IDS) && _POSIX_SAVED_IDS > 0
-#define HAS_SAVED_IDS_AND_SETEUID
-#endif
-#if defined(WIN32)
-#define HAS_NO_UIDS
-#endif
-
 static int
 doWriteConfigFile(const char *filename, XF86ConfigPtr cptr)
 {
@@ -129,42 +122,10 @@ doWriteConfigFile(const char *filename, XF86ConfigPtr cptr)
 int
 xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
 {
-#ifndef HAS_NO_UIDS
+#ifndef WIN32
     int ret;
 
     if (getuid() != geteuid()) {
-
-#if !defined(HAS_SAVED_IDS_AND_SETEUID)
-        int pid, p;
-        int status;
-        void (*csig) (int);
-
-        /* Need to fork to change ruid without losing euid */
-        csig = OsSignal(SIGCHLD, SIG_DFL);
-        switch ((pid = fork())) {
-        case -1:
-            ErrorF("xf86writeConfigFile(): fork failed (%s)\n",
-                   strerror(errno));
-            return 0;
-        case 0:                /* child */
-            if (setuid(getuid()) == -1)
-                FatalError("xf86writeConfigFile(): "
-                           "setuid failed(%s)\n", strerror(errno));
-            ret = doWriteConfigFile(filename, cptr);
-            exit(ret);
-            break;
-        default:               /* parent */
-            do {
-                p = waitpid(pid, &status, 0);
-            } while (p == -1 && errno == EINTR);
-        }
-        OsSignal(SIGCHLD, csig);
-        if (p != -1 && WIFEXITED(status) && WEXITSTATUS(status) == 0)
-            return 1;           /* success */
-        else
-            return 0;
-
-#else                           /* HAS_SAVED_IDS_AND_SETEUID */
         int ruid, euid;
 
         ruid = getuid();
@@ -182,11 +143,8 @@ xf86writeConfigFile(const char *filename, XF86ConfigPtr cptr)
                    euid, strerror(errno));
         }
         return ret;
-
-#endif                          /* HAS_SAVED_IDS_AND_SETEUID */
-
     }
     else
-#endif                          /* !HAS_NO_UIDS */
+#endif                          /* WIN32 */
         return doWriteConfigFile(filename, cptr);
 }

@@ -5,30 +5,13 @@
  * based in part on anv driver which is:
  * Copyright © 2015 Intel Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
+#include "radv_nir_to_llvm.h"
 #include "nir/nir.h"
 #include "radv_debug.h"
 #include "radv_llvm_helper.h"
-#include "radv_private.h"
 #include "radv_shader.h"
 #include "radv_shader_args.h"
 
@@ -53,12 +36,6 @@ struct radv_shader_context {
    unsigned max_workgroup_size;
    LLVMContextRef context;
    struct ac_llvm_pointer main_function;
-
-   LLVMValueRef descriptor_sets[MAX_SETS];
-
-   LLVMValueRef gs_wave_id;
-
-   uint64_t output_mask;
 };
 
 static inline struct radv_shader_context *
@@ -83,29 +60,6 @@ create_llvm_function(struct ac_llvm_context *ctx, LLVMModuleRef module, LLVMBuil
    ac_llvm_set_target_features(main_function.value, ctx, true);
 
    return main_function;
-}
-
-static void
-load_descriptor_sets(struct radv_shader_context *ctx)
-{
-   const struct radv_userdata_locations *user_sgprs_locs = &ctx->shader_info->user_sgprs_locs;
-   uint32_t mask = ctx->shader_info->desc_set_used_mask;
-
-   if (user_sgprs_locs->shader_data[AC_UD_INDIRECT_DESCRIPTOR_SETS].sgpr_idx != -1) {
-      struct ac_llvm_pointer desc_sets = ac_get_ptr_arg(&ctx->ac, &ctx->args->ac, ctx->args->descriptor_sets[0]);
-      while (mask) {
-         int i = u_bit_scan(&mask);
-
-         ctx->descriptor_sets[i] = ac_build_load_to_sgpr(&ctx->ac, desc_sets, LLVMConstInt(ctx->ac.i32, i, false));
-         LLVMSetAlignment(ctx->descriptor_sets[i], 4);
-      }
-   } else {
-      while (mask) {
-         int i = u_bit_scan(&mask);
-
-         ctx->descriptor_sets[i] = ac_get_arg(&ctx->ac, ctx->args->descriptor_sets[i]);
-      }
-   }
 }
 
 static enum ac_llvm_calling_convention
@@ -154,8 +108,6 @@ create_function(struct radv_shader_context *ctx, gl_shader_stage stage, bool has
    ctx->main_function = create_llvm_function(&ctx->ac, ctx->ac.module, ctx->ac.builder, &ctx->args->ac,
                                              get_llvm_calling_convention(ctx->main_function.value, stage),
                                              ctx->max_workgroup_size, ctx->options);
-
-   load_descriptor_sets(ctx);
 
    if (stage == MESA_SHADER_TESS_CTRL || (stage == MESA_SHADER_VERTEX && ctx->shader_info->vs.as_ls) ||
        ctx->shader_info->is_ngg ||
@@ -231,24 +183,6 @@ radv_get_sampler_desc(struct ac_shader_abi *abi, LLVMValueRef index, enum ac_des
    return radv_load_rsrc(ctx, index, v4 ? ctx->ac.v4i32 : ctx->ac.v8i32);
 }
 
-static void
-scan_shader_output_decl(struct radv_shader_context *ctx, struct nir_variable *variable, struct nir_shader *shader,
-                        gl_shader_stage stage)
-{
-   int idx = variable->data.driver_location;
-   unsigned attrib_count = glsl_count_attribute_slots(variable->type, false);
-   uint64_t mask_attribs;
-
-   if (variable->data.compact) {
-      unsigned component_count = variable->data.location_frac + glsl_get_length(variable->type);
-      attrib_count = (component_count + 3) / 4;
-   }
-
-   mask_attribs = ((1ull << attrib_count) - 1) << idx;
-
-   ctx->output_mask |= mask_attribs;
-}
-
 static LLVMValueRef
 radv_load_output(struct radv_shader_context *ctx, unsigned index, unsigned chan)
 {
@@ -262,19 +196,8 @@ static void
 ac_llvm_finalize_module(struct radv_shader_context *ctx, LLVMPassManagerRef passmgr)
 {
    LLVMRunPassManager(passmgr, ctx->ac.module);
-   LLVMDisposeBuilder(ctx->ac.builder);
 
    ac_llvm_context_dispose(&ctx->ac);
-}
-
-static void
-prepare_gs_input_vgprs(struct radv_shader_context *ctx, bool merged)
-{
-   if (merged) {
-      ctx->gs_wave_id = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->ac.merged_wave_info), 16, 8);
-   } else {
-      ctx->gs_wave_id = ac_get_arg(&ctx->ac, ctx->args->ac.gs_wave_id);
-   }
 }
 
 /* Ensure that the esgs ring is declared.
@@ -409,7 +332,6 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, const struct radv_nir
    for (int shader_idx = 0; shader_idx < shader_count; ++shader_idx) {
       ctx.stage = shaders[shader_idx]->info.stage;
       ctx.shader = shaders[shader_idx];
-      ctx.output_mask = 0;
 
       if (shader_idx && !(shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY && info->is_ngg)) {
          /* Execute a barrier before the second shader in
@@ -433,9 +355,6 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, const struct radv_nir
          ac_build_s_barrier(&ctx.ac, shaders[shader_idx]->info.stage);
       }
 
-      nir_foreach_shader_out_variable (variable, shaders[shader_idx])
-         scan_shader_output_decl(&ctx, variable, shaders[shader_idx], shaders[shader_idx]->info.stage);
-
       bool check_merged_wave_info = shader_count >= 2 && !(is_ngg && shader_idx == 1);
       LLVMBasicBlockRef merge_block = NULL;
 
@@ -452,9 +371,6 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, const struct radv_nir
 
          LLVMPositionBuilderAtEnd(ctx.ac.builder, then_block);
       }
-
-      if (shaders[shader_idx]->info.stage == MESA_SHADER_GEOMETRY && !info->is_ngg)
-         prepare_gs_input_vgprs(&ctx, shader_count >= 2);
 
       if (!ac_nir_translate(&ctx.ac, &ctx.abi, &args->ac, shaders[shader_idx])) {
          abort();

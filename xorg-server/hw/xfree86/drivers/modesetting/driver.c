@@ -36,8 +36,14 @@
 #include "dix-config.h"
 #endif
 
+#include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <X11/extensions/randr.h>
+#include <X11/extensions/Xv.h>
+
+#include "dix/dix_priv.h"
+
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86_OSproc.h"
@@ -46,7 +52,6 @@
 #include "mipointer.h"
 #include "mipointrst.h"
 #include "micmap.h"
-#include <X11/extensions/randr.h>
 #include "fb.h"
 #include "edid.h"
 #include "xf86i2c.h"
@@ -54,7 +59,6 @@
 #include "miscstruct.h"
 #include "dixstruct.h"
 #include "xf86xv.h"
-#include <X11/extensions/Xv.h>
 #include <xorg-config.h>
 #ifdef XSERVER_PLATFORM_BUS
 #include "xf86platformBus.h"
@@ -1607,7 +1611,6 @@ msEnableSharedPixmapFlipping(RRCrtcPtr crtc, PixmapPtr front, PixmapPtr back)
     ScreenPtr screen = crtc->pScreen;
     ScrnInfoPtr scrn = xf86ScreenToScrn(screen);
     modesettingPtr ms = modesettingPTR(scrn);
-    EntityInfoPtr pEnt = ms->pEnt;
     xf86CrtcPtr xf86Crtc = crtc->devPrivate;
 
     if (!xf86Crtc)
@@ -1622,9 +1625,9 @@ msEnableSharedPixmapFlipping(RRCrtcPtr crtc, PixmapPtr front, PixmapPtr back)
         return FALSE;
 
 #ifdef XSERVER_PLATFORM_BUS
-    if (pEnt->location.type == BUS_PLATFORM) {
-        char *syspath =
-            xf86_platform_device_odev_attributes(pEnt->location.id.plat)->
+    if (ms->pEnt->location.type == BUS_PLATFORM) {
+        const char *syspath =
+            xf86_platform_device_odev_attributes(ms->pEnt->location.id.plat)->
             syspath;
 
         /* Not supported for devices using USB transport due to misbehaved

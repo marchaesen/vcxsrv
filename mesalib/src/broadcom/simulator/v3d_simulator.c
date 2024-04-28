@@ -78,12 +78,8 @@ static struct v3d_simulator_state {
         struct v3d_hw *v3d;
         int ver;
 
-        /* Base virtual address of the heap. */
-        void *mem;
-        /* Base hardware address of the heap. */
-        uint32_t mem_base;
         /* Size of the heap. */
-        uint32_t mem_size;
+        uint64_t mem_size;
 
         struct mem_block *heap;
         struct mem_block *overflow;
@@ -122,7 +118,7 @@ struct v3d_simulator_file {
         uint32_t active_perfid;
 
         struct mem_block *gmp;
-        void *gmp_vaddr;
+        uint64_t gmp_addr;
 
         /** For specific gpus, use their create ioctl. Otherwise use dumb bo. */
         enum gem_type gem_type;
@@ -136,7 +132,7 @@ struct v3d_simulator_bo {
         struct mem_block *block;
         uint32_t size;
         uint64_t mmap_offset;
-        void *sim_vaddr;
+        uint64_t sim_addr;
         void *gem_vaddr;
 
         int handle;
@@ -197,7 +193,8 @@ set_gmp_flags(struct v3d_simulator_file *file,
         assert((offset & ((1 << GMP_ALIGN2) - 1)) == 0);
         int gmp_offset = offset >> GMP_ALIGN2;
         int gmp_count = align(size, 1 << GMP_ALIGN2) >> GMP_ALIGN2;
-        uint32_t *gmp = file->gmp_vaddr;
+        uint32_t *gmp = malloc((gmp_count + gmp_offset)*sizeof(uint32_t));
+        v3d_hw_read_mem(sim_state.v3d, gmp, file->gmp_addr, (gmp_offset + gmp_count)*sizeof(uint32_t));
 
         assert(flag <= 0x3);
 
@@ -206,6 +203,9 @@ set_gmp_flags(struct v3d_simulator_file *file,
                 gmp[i / 16] &= ~(0x3 << bitshift);
                 gmp[i / 16] |= flag << bitshift;
         }
+
+        v3d_hw_write_mem(sim_state.v3d, file->gmp_addr, gmp, (gmp_offset + gmp_count)*sizeof(uint32_t));
+        free(gmp);
 }
 
 /**
@@ -216,26 +216,25 @@ static struct v3d_simulator_bo *
 v3d_create_simulator_bo(int fd, unsigned size)
 {
         struct v3d_simulator_file *file = v3d_get_simulator_file_for_fd(fd);
-        struct v3d_simulator_bo *sim_bo = rzalloc(file,
-                                                  struct v3d_simulator_bo);
-        size = align(size, 4096);
-
-        sim_bo->file = file;
 
         simple_mtx_lock(&sim_state.mutex);
+        struct v3d_simulator_bo *sim_bo = rzalloc(file,
+                                                  struct v3d_simulator_bo);
         sim_bo->block = u_mmAllocMem(sim_state.heap, size + 4, GMP_ALIGN2, 0);
         simple_mtx_unlock(&sim_state.mutex);
         assert(sim_bo->block);
-
+        size = align(size, 4096);
+        sim_bo->file = file;
         set_gmp_flags(file, sim_bo->block->ofs, size, 0x3);
 
         sim_bo->size = size;
 
         /* Allocate space for the buffer in simulator memory. */
-        sim_bo->sim_vaddr = sim_state.mem + sim_bo->block->ofs - sim_state.mem_base;
-        memset(sim_bo->sim_vaddr, 0xd0, size);
+        sim_bo->sim_addr = sim_bo->block->ofs;
+        v3d_hw_set_mem(sim_state.v3d, sim_bo->sim_addr, 0xd0, size);
 
-        *(uint32_t *)(sim_bo->sim_vaddr + sim_bo->size) = BO_SENTINEL;
+        uint32_t sentinel = BO_SENTINEL;
+        v3d_hw_write_mem(sim_state.v3d, sim_bo->sim_addr + sim_bo->size, &sentinel, sizeof(sentinel));
 
         return sim_bo;
 }
@@ -344,8 +343,8 @@ v3d_free_simulator_bo(struct v3d_simulator_bo *sim_bo)
                 _mesa_hash_table_remove_key(sim_file->bo_map,
                                             int_to_key(sim_bo->handle));
         }
-        simple_mtx_unlock(&sim_state.mutex);
         ralloc_free(sim_bo);
+        simple_mtx_unlock(&sim_state.mutex);
 }
 
 static struct v3d_simulator_bo *
@@ -370,7 +369,7 @@ v3d_simulator_copy_in_handle(struct v3d_simulator_file *file, int handle)
         if (!sim_bo)
                 return;
 
-        memcpy(sim_bo->sim_vaddr, sim_bo->gem_vaddr, sim_bo->size);
+        v3d_hw_write_mem(sim_state.v3d, sim_bo->sim_addr, sim_bo->gem_vaddr, sim_bo->size);
 }
 
 static void
@@ -381,10 +380,11 @@ v3d_simulator_copy_out_handle(struct v3d_simulator_file *file, int handle)
         if (!sim_bo)
                 return;
 
-        memcpy(sim_bo->gem_vaddr, sim_bo->sim_vaddr, sim_bo->size);
+        v3d_hw_read_mem(sim_state.v3d, sim_bo->gem_vaddr, sim_bo->sim_addr, sim_bo->size);
 
-        if (*(uint32_t *)(sim_bo->sim_vaddr +
-                          sim_bo->size) != BO_SENTINEL) {
+        uint32_t sentinel;
+        v3d_hw_read_mem(sim_state.v3d, &sentinel, sim_bo->sim_addr + sim_bo->size, sizeof(sentinel));
+        if (sentinel != BO_SENTINEL) {
                 fprintf(stderr, "Buffer overflow in handle %d\n",
                         handle);
         }
@@ -735,14 +735,13 @@ v3d_timestamp_query(int fd,
 	struct v3d_simulator_bo *bo = v3d_get_simulator_bo(file, bo_handles[0]);
 	uint32_t *offsets = (void *)(uintptr_t) timestamp_query->offsets;
 	uint32_t *syncs = (void *)(uintptr_t) timestamp_query->syncs;
-	uint8_t *value_addr;
 
 	struct timespec t;
 	clock_gettime(CLOCK_MONOTONIC, &t);
 
 	for (uint32_t i = 0; i < timestamp_query->count; i++) {
-		value_addr = ((uint8_t *) bo->sim_vaddr) + offsets[i];
-		*((uint64_t*)value_addr) = (i == 0) ? t.tv_sec * 1000000000ull + t.tv_nsec : 0ull;
+                uint64_t value = (i == 0) ? t.tv_sec * 1000000000ull + t.tv_nsec : 0ull;
+                v3d_hw_write_mem(sim_state.v3d, bo->sim_addr + offsets[i], &value, sizeof(value));
 	}
 
 	drmSyncobjSignal(fd, syncs, timestamp_query->count);
@@ -758,10 +757,8 @@ v3d_reset_timestamp_queries(int fd,
 	uint32_t *bo_handles = (uint32_t *)(uintptr_t)args->bo_handles;
 	struct v3d_simulator_bo *bo = v3d_get_simulator_bo(file, bo_handles[0]);
 	uint32_t *syncs = (void *)(uintptr_t) reset->syncs;
-	uint8_t *base_addr;
 
-	base_addr = ((uint8_t *) bo->sim_vaddr) + reset->offset;
-	memset(base_addr, 0, 8 * reset->count);
+        v3d_hw_set_mem(sim_state.v3d, bo->sim_addr + reset->offset, 0, reset->count);
 
 	drmSyncobjReset(fd, syncs, reset->count);
 }
@@ -791,25 +788,27 @@ v3d_copy_query_results(int fd,
 	uint32_t *offsets = (void *)(uintptr_t) copy->offsets;
 	uint32_t *syncs = (void *)(uintptr_t) copy->syncs;
 	bool available, write_result;
-	uint8_t *query_addr;
-	uint8_t *data;
+	uint8_t *data = malloc(copy->count * copy->stride);
+	uint64_t query_val;
 
-	data = ((uint8_t *) bo->sim_vaddr) + copy->offset;
-
+	uint8_t *p = data;
 	for (uint32_t i = 0; i < copy->count; i++) {
 		available = (drmSyncobjWait(fd, &syncs[i], 1, 0, 0, NULL) == 0);
 
 		write_result = available || copy->do_partial;
 		if (write_result) {
-			query_addr = ((uint8_t *) timestamp->sim_vaddr) + offsets[i];
-			write_to_buffer(data, 0, copy->do_64bit, *((uint64_t *) query_addr));
+			v3d_hw_read_mem(sim_state.v3d, &query_val, timestamp->sim_addr + offsets[i], sizeof(uint64_t));
+			write_to_buffer(p, 0, copy->do_64bit, query_val);
 		}
 
 		if (copy->availability_bit)
-			write_to_buffer(data, 1, copy->do_64bit, available ? 1u : 0u);
+			write_to_buffer(p, 1, copy->do_64bit, available ? 1u : 0u);
 
-		data += copy->stride;
+		p += copy->stride;
 	}
+
+	v3d_hw_write_mem(sim_state.v3d, bo->sim_addr + copy->offset, data, copy->count * copy->stride);
+	free(data);
 }
 
 static void
@@ -855,7 +854,7 @@ v3d_write_performance_query_result(int fd,
 {
 	struct v3d_simulator_file *file = v3d_get_simulator_file_for_fd(fd);
 	struct v3d_simulator_perfmon *perfmon;
-	uint64_t counter_values[V3D_PERFCNT_NUM];
+	uint64_t counter_values[sim_state.perfcnt_total];
 
 	for (uint32_t i = 0; i < copy->nperfmons; i++) {
 		mtx_lock(&sim_state.submit_lock);
@@ -891,10 +890,9 @@ v3d_copy_performance_query(int fd,
 	uint64_t *kperfmon_ids = (void *)(uintptr_t) copy->kperfmon_ids;
 	uint32_t *syncs = (void *)(uintptr_t) copy->syncs;
 	bool available, write_result;
-	uint8_t *data;
+	uint8_t *data = malloc(copy->count * copy->stride);
 
-	data = ((uint8_t *) bo->sim_vaddr) + copy->offset;
-
+	uint8_t *p = data;
 	for (uint32_t i = 0; i < copy->count; i++) {
 		/* Although we don't have in_syncs implemented in the simulator,
 		 * we don't need to wait for the availability of the syncobjs,
@@ -907,16 +905,19 @@ v3d_copy_performance_query(int fd,
 		if (write_result) {
 			v3d_write_performance_query_result(fd, copy,
 							   (void *)(uintptr_t) kperfmon_ids[i],
-							   data);
+							   p);
 		}
 
 		if (copy->availability_bit) {
-			write_to_buffer(data, copy->ncounters, copy->do_64bit,
+			write_to_buffer(p, copy->ncounters, copy->do_64bit,
 					available ? 1u : 0u);
 		}
 
-		data += copy->stride;
+		p += copy->stride;
 	}
+
+	v3d_hw_write_mem(sim_state.v3d, bo->sim_addr + copy->offset, data, copy->count + copy->stride);
+	free(data);
 }
 
 static int
@@ -1132,9 +1133,7 @@ v3d_simulator_init_global()
 
         sim_state.v3d = v3d_hw_auto_new(NULL);
         v3d_hw_alloc_mem(sim_state.v3d, 1024 * 1024 * 1024);
-        sim_state.mem_base =
-                v3d_hw_get_mem(sim_state.v3d, &sim_state.mem_size,
-                               &sim_state.mem);
+        v3d_hw_get_mem(sim_state.v3d, &sim_state.mem_size);
 
         /* Allocate from anywhere from 4096 up.  We don't allocate at 0,
          * because for OQs and some other addresses in the HW, 0 means
@@ -1146,7 +1145,7 @@ v3d_simulator_init_global()
          * and land there.
          */
         struct mem_block *b = u_mmAllocMem(sim_state.heap, 4096, GMP_ALIGN2, 0);
-        memset(sim_state.mem + b->ofs - sim_state.mem_base, 0xd0, 4096);
+        v3d_hw_set_mem(sim_state.v3d, b->ofs, 0xd0, 4096);
 
         sim_state.ver = v3d_hw_get_version(sim_state.v3d);
 
@@ -1190,9 +1189,8 @@ v3d_simulator_init(int fd)
         simple_mtx_unlock(&sim_state.mutex);
 
         sim_file->gmp = u_mmAllocMem(sim_state.heap, 8096, GMP_ALIGN2, 0);
-        sim_file->gmp_vaddr = (sim_state.mem + sim_file->gmp->ofs -
-                               sim_state.mem_base);
-        memset(sim_file->gmp_vaddr, 0, 8096);
+        sim_file->gmp_addr = sim_file->gmp->ofs;
+        v3d_hw_set_mem(sim_state.v3d, sim_file->gmp_addr, 0, 8096);
 
         return sim_file;
 }
@@ -1205,11 +1203,11 @@ v3d_simulator_destroy(struct v3d_simulator_file *sim_file)
                 _mesa_hash_table_destroy(sim_state.fd_map, NULL);
                 util_dynarray_fini(&sim_state.bin_oom);
                 u_mmDestroy(sim_state.heap);
-                /* No memsetting the struct, because it contains the mutex. */
-                sim_state.mem = NULL;
+                /* No memsetting the sim_state struct, because it contains the
+                 * mutex. */
         }
-        simple_mtx_unlock(&sim_state.mutex);
         ralloc_free(sim_file);
+        simple_mtx_unlock(&sim_state.mutex);
 }
 
 #endif /* USE_V3D_SIMULATOR */

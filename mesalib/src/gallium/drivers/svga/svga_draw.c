@@ -1006,6 +1006,7 @@ draw_vgpu10(struct svga_hwtnl *hwtnl,
    struct svga_context *svga = hwtnl->svga;
    struct svga_winsys_surface *indirect_handle;
    enum pipe_error ret;
+   bool is_instanced_draw = instance_count > 1 || start_instance > 0;
 
    assert(svga_have_vgpu10(svga));
    assert(hwtnl->cmd.prim_count == 0);
@@ -1096,7 +1097,7 @@ draw_vgpu10(struct svga_hwtnl *hwtnl,
                                                        indirect_handle,
                                                        indirect->offset);
       }
-      else if (instance_count > 1) {
+      else if (is_instanced_draw) {
          ret = SVGA3D_vgpu10_DrawIndexedInstanced(svga->swc,
                                                   vcount,
                                                   instance_count,
@@ -1139,7 +1140,7 @@ draw_vgpu10(struct svga_hwtnl *hwtnl,
                                                 indirect_handle,
                                                 indirect->offset);
       }
-      else if (instance_count > 1) {
+      else if (is_instanced_draw) {
          ret = SVGA3D_vgpu10_DrawInstanced(svga->swc,
                                            vcount,
                                            instance_count,
@@ -1376,7 +1377,7 @@ svga_hwtnl_prim(struct svga_hwtnl *hwtnl,
    else {
       /* batch up drawing commands */
       assert(indirect == NULL);
-#ifdef DEBUG
+#if MESA_DEBUG
       check_draw_params(hwtnl, range, min_index, max_index, ib);
       assert(start_instance == 0);
       assert(instance_count <= 1);

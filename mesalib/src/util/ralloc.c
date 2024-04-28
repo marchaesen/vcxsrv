@@ -365,6 +365,18 @@ ralloc_set_destructor(const void *ptr, void(*destructor)(void *))
    info->destructor = destructor;
 }
 
+void *
+ralloc_memdup(const void *ctx, const void *mem, size_t n)
+{
+   void *ptr = ralloc_size(ctx, n);
+
+   if (unlikely(ptr == NULL))
+      return NULL;
+
+   memcpy(ptr, mem, n);
+   return ptr;
+}
+
 char *
 ralloc_strdup(const void *ctx, const char *str)
 {

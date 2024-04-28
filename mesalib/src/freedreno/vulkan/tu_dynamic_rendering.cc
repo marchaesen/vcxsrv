@@ -73,7 +73,7 @@ get_cmd_buffer(struct tu_device *dev, struct tu_cmd_buffer **cmd_buffer_out)
    if (result != VK_SUCCESS)
       return result;
 
-   TU_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, vk_buf);
+   VK_FROM_HANDLE(tu_cmd_buffer, cmd_buffer, vk_buf);
 
    struct dynamic_rendering_entry entry = {
       .cmd_buffer = cmd_buffer,

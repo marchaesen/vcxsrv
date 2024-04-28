@@ -61,3 +61,7 @@ deployment:
     initramfs:
       url: '{{ initramfs_url }}'
 
+{% if dtb_url is defined %}
+    dtb:
+      url: '{{ dtb_url }}'
+{% endif %}

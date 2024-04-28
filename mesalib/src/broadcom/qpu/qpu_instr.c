@@ -183,6 +183,13 @@ v3d_qpu_add_op_name(enum v3d_qpu_add_op op)
                 [V3D_QPU_A_V8PACK] = "v8pack",
                 [V3D_QPU_A_V10PACK] = "v10pack",
                 [V3D_QPU_A_V11FPACK] = "v11fpack",
+                [V3D_QPU_A_BALLOT] = "ballot",
+                [V3D_QPU_A_BCASTF] = "bcastf",
+                [V3D_QPU_A_ALLEQ] = "alleq",
+                [V3D_QPU_A_ALLFEQ] = "allfeq",
+                [V3D_QPU_A_ROTQ] = "rotq",
+                [V3D_QPU_A_ROT] = "rot",
+                [V3D_QPU_A_SHUFFLE] = "shuffle",
         };
 
         if (op >= ARRAY_SIZE(op_names))
@@ -477,6 +484,14 @@ static const uint8_t add_op_args[] = {
         [V3D_QPU_A_V8PACK] = D | A | B,
         [V3D_QPU_A_V10PACK] = D | A | B,
         [V3D_QPU_A_V11FPACK] = D | A | B,
+
+        [V3D_QPU_A_BALLOT] = D | A,
+        [V3D_QPU_A_BCASTF] = D | A,
+        [V3D_QPU_A_ALLEQ] = D | A,
+        [V3D_QPU_A_ALLFEQ] = D | A,
+        [V3D_QPU_A_ROTQ] = D | A | B,
+        [V3D_QPU_A_ROT] = D | A | B,
+        [V3D_QPU_A_SHUFFLE] = D | A | B,
 };
 
 static const uint8_t mul_op_args[] = {
@@ -740,6 +755,13 @@ v3d_qpu_instr_is_sfu(const struct v3d_qpu_instr *inst)
                 case V3D_QPU_A_LOG:
                 case V3D_QPU_A_SIN:
                 case V3D_QPU_A_RSQRT2:
+                case V3D_QPU_A_BALLOT:
+                case V3D_QPU_A_BCASTF:
+                case V3D_QPU_A_ALLEQ:
+                case V3D_QPU_A_ALLFEQ:
+                case V3D_QPU_A_ROTQ:
+                case V3D_QPU_A_ROT:
+                case V3D_QPU_A_SHUFFLE:
                         return true;
                 default:
                         return false;

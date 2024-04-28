@@ -24,7 +24,7 @@
  *
  **************************************************************************/
 
-#if defined(DEBUG)
+#if MESA_DEBUG
 
 /**
  * If the GALLIUM_REFCNT_LOG env var is defined as a filename, gallium
@@ -188,4 +188,4 @@ debug_reference_slowpath(const struct pipe_reference *p,
    }
 }
 
-#endif /* DEBUG */
+#endif /* MESA_DEBUG */

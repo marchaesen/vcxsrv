@@ -41,7 +41,7 @@ from the cache are read-only.
 @RET@           const FcChar8 *
 @FUNC@          FcCacheSubdir
 @TYPE1@         const FcCache *                 @ARG1@          cache
-@TYPE2@         int                             @ARG2@          i
+@TYPE2@         int%                            @ARG2@          i
 @PURPOSE@       Return the <parameter>i</parameter>'th subdirectory.
 @DESC@
 The set of subdirectories stored in a cache file are indexed by this
@@ -70,7 +70,7 @@ FcCacheCopySet.
 @RET@           FcBool
 @FUNC@          FcDirCacheClean
 @TYPE1@         const FcChar8 *                 @ARG1@          cache_dir
-@TYPE2@         FcBool                          @ARG2@          verbose
+@TYPE2@         FcBool%                         @ARG2@          verbose
 @PURPOSE@       Clean up a cache directory
 @DESC@
 This tries to clean up the cache directory of <parameter>cache_dir</parameter>.
@@ -91,7 +91,7 @@ to <parameter>config</parameter>.
 @RET@           FcBool
 @FUNC@          FcDirCacheCreateUUID
 @TYPE1@         FcChar8 *                       @ARG1@          dir
-@TYPE2@         FcBool                          @ARG2@          force
+@TYPE2@         FcBool%                         @ARG2@          force
 @TYPE3@         FcConfig *                      @ARG3@          config
 @PURPOSE@       Create .uuid file at a directory
 @DESC@

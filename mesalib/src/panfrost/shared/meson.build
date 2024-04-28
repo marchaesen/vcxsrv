@@ -30,7 +30,7 @@ libpanfrost_shared_files = files(
 libpanfrost_shared = static_library(
   'panfrost_shared',
   [libpanfrost_shared_files],
-  include_directories : [inc_include, inc_src, inc_mapi, inc_mesa, inc_gallium, inc_gallium_aux],
+  include_directories : [inc_include, inc_src],
   dependencies : idep_mesautil,
   c_args : [no_override_init_args, '-O3'],
   gnu_symbol_visibility : 'hidden',
@@ -47,7 +47,7 @@ if with_tests
       ),
       c_args : [c_msvc_compat_args, no_override_init_args],
       gnu_symbol_visibility : 'hidden',
-      include_directories : [inc_include, inc_src, inc_mesa, inc_panfrost, inc_gallium],
+      include_directories : [inc_include, inc_src, inc_panfrost],
       dependencies: [idep_gtest],
       link_with : [libpanfrost_shared],
     ),

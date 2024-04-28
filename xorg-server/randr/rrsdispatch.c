@@ -20,7 +20,7 @@
  * OF THIS SOFTWARE.
  */
 
-#include "randrstr.h"
+#include "randrstr_priv.h"
 
 static int _X_COLD
 SProcRRQueryVersion(ClientPtr client)

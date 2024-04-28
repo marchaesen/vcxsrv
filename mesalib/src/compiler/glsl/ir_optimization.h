@@ -30,6 +30,7 @@
 #ifndef GLSL_IR_OPTIMIZATION_H
 #define GLSL_IR_OPTIMIZATION_H
 
+struct gl_shader;
 struct gl_linked_shader;
 struct gl_shader_program;
 
@@ -43,7 +44,6 @@ bool do_algebraic(exec_list *instructions, bool native_integers,
 bool do_dead_code(exec_list *instructions);
 bool do_dead_code_local(exec_list *instructions);
 bool do_dead_code_unlinked(exec_list *instructions);
-bool do_dead_functions(exec_list *instructions);
 bool opt_flip_matrices(exec_list *instructions);
 bool do_function_inlining(exec_list *instructions);
 bool do_lower_jumps(exec_list *instructions, bool pull_out_jumps = true, bool lower_sub_return = true, bool lower_main_return = false, bool lower_continue = false);
@@ -53,14 +53,13 @@ bool do_mat_op_to_vec(exec_list *instructions);
 bool do_minmax_prune(exec_list *instructions);
 bool do_tree_grafting(exec_list *instructions);
 bool do_vec_index_to_cond_assign(exec_list *instructions);
-void lower_discard_flow(exec_list *instructions);
 bool lower_instructions(exec_list *instructions,
                         bool have_gpu_shader5);
 bool lower_packing_builtins(exec_list *instructions,
                             bool has_shading_language_packing,
                             bool has_gpu_shader5,
                             bool has_half_float_packing);
-bool lower_vector_derefs(gl_linked_shader *shader);
+bool lower_vector_derefs(gl_shader *shader);
 void optimize_dead_builtin_variables(exec_list *instructions,
                                      enum ir_variable_mode other);
 

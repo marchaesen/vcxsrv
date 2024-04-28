@@ -145,7 +145,7 @@ extern GLfloat _mesa_ubyte_to_float_color_tab[256];
  *** UNCLAMPED_FLOAT_TO_UBYTE: clamp float to [0,1] and map to ubyte in [0,255]
  *** CLAMPED_FLOAT_TO_UBYTE: map float known to be in [0,1] to ubyte in [0,255]
  ***/
-#ifndef DEBUG
+#if !MESA_DEBUG
 /* This function/macro is sensitive to precision.  Test very carefully
  * if you change it!
  */

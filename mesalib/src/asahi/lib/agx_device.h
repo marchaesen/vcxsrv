@@ -3,8 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef __AGX_DEVICE_H
-#define __AGX_DEVICE_H
+#pragma once
 
 #include "util/simple_mtx.h"
 #include "util/sparse_array.h"
@@ -15,7 +14,7 @@
 
 enum agx_dbg {
    AGX_DBG_TRACE = BITFIELD_BIT(0),
-   AGX_DBG_NOCLIPCTRL = BITFIELD_BIT(1),
+   /* bit 1 unused */
    AGX_DBG_NO16 = BITFIELD_BIT(2),
    AGX_DBG_DIRTY = BITFIELD_BIT(3),
    AGX_DBG_PRECOMPILE = BITFIELD_BIT(4),
@@ -31,7 +30,10 @@ enum agx_dbg {
    AGX_DBG_SMALLTILE = BITFIELD_BIT(14),
    AGX_DBG_NOMSAA = BITFIELD_BIT(15),
    AGX_DBG_NOSHADOW = BITFIELD_BIT(16),
-   AGX_DBG_VARYINGS = BITFIELD_BIT(17),
+   /* bit 17 unused */
+   AGX_DBG_SCRATCH = BITFIELD_BIT(18),
+   AGX_DBG_COMPBLIT = BITFIELD_BIT(19),
+   AGX_DBG_FEEDBACK = BITFIELD_BIT(20),
 };
 
 /* Dummy partial declarations, pending real UAPI */
@@ -53,6 +55,8 @@ struct drm_asahi_params_global {
    uint32_t gpu_variant;
    uint32_t num_dies;
    uint32_t timer_frequency_hz;
+   uint32_t num_cores_per_cluster;
+   uint64_t core_masks[32];
 };
 
 /* How many power-of-two levels in the BO cache do we want? 2^14 minimum chosen
@@ -115,6 +119,8 @@ struct agx_device {
       /* Number of hits/misses for the BO cache */
       uint64_t hits, misses;
    } bo_cache;
+
+   struct agx_bo *helper;
 };
 
 bool agx_open_device(void *memctx, struct agx_device *dev);
@@ -145,5 +151,3 @@ agx_gpu_time_to_ns(struct agx_device *dev, uint64_t gpu_time)
 {
    return (gpu_time * NSEC_PER_SEC) / dev->params.timer_frequency_hz;
 }
-
-#endif

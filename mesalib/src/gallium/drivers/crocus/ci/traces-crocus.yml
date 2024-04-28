@@ -40,11 +40,6 @@ traces:
       label: [unsupported]
     crocus-hsw:
       checksum: 7e4948c361528a7873dad9712f629770
-  gputest/pixmark-piano-v2.trace:
-    crocus-g41:
-      label: [hang]
-    crocus-hsw:
-      label: [hang]
   gputest/pixmark-volplosion-v2.trace:
     crocus-g41:
       checksum: 6fc94a69b9e1f38693ea3ed4f530c7da

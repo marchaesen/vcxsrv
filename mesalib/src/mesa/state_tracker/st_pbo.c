@@ -244,11 +244,7 @@ st_pbo_draw(struct st_context *st, const struct st_pbo_addresses *addr,
       velem.velems[0].dual_slot = false;
 
       cso_set_vertex_elements(cso, &velem);
-
-      cso_set_vertex_buffers(cso, 1, 0, false, &vbo);
-      st->last_num_vbuffers = MAX2(st->last_num_vbuffers, 1);
-
-      pipe_resource_reference(&vbo.buffer.resource, NULL);
+      cso_set_vertex_buffers(cso, 1, true, &vbo);
    }
 
    /* Upload constants */

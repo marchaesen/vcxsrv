@@ -76,9 +76,52 @@
 
 #endif
 
+#if     defined(LITTLEENDIAN_CPU)
+
+     typedef struct _GB_ADDR_CONFIG_N {
+          unsigned int num_pipes                      : 3;
+          unsigned int pipe_interleave_size           : 3;
+          unsigned int max_compressed_frags           : 2;
+          unsigned int bank_interleave_size           : 3;
+          unsigned int                                : 1;
+          unsigned int num_banks                      : 3;
+          unsigned int                                : 1;
+          unsigned int shader_engine_tile_size        : 3;
+          unsigned int num_shader_engines             : 2;
+          unsigned int num_gpus                       : 3;
+          unsigned int multi_gpu_tile_size            : 2;
+          unsigned int num_rb_per_se                  : 2;
+          unsigned int row_size                       : 2;
+          unsigned int num_lower_pipes                : 1;
+          unsigned int se_enable                      : 1;
+     } GB_ADDR_CONFIG_N;
+
+#elif       defined(BIGENDIAN_CPU)
+
+     typedef struct _GB_ADDR_CONFIG_N {
+          unsigned int se_enable                      : 1;
+          unsigned int num_lower_pipes                : 1;
+          unsigned int row_size                       : 2;
+          unsigned int num_rb_per_se                  : 2;
+          unsigned int multi_gpu_tile_size            : 2;
+          unsigned int num_gpus                       : 3;
+          unsigned int num_shader_engines             : 2;
+          unsigned int shader_engine_tile_size        : 3;
+          unsigned int                                : 1;
+          unsigned int num_banks                      : 3;
+          unsigned int                                : 1;
+          unsigned int bank_interleave_size           : 3;
+          unsigned int max_compressed_frags           : 2;
+          unsigned int pipe_interleave_size           : 3;
+          unsigned int num_pipes                      : 3;
+     } GB_ADDR_CONFIG_N;
+
+#endif
+
 typedef union {
      unsigned int val : 32;
      GB_ADDR_CONFIG_T f;
+     GB_ADDR_CONFIG_N n;
 } GB_ADDR_CONFIG;
 
 #if       defined(LITTLEENDIAN_CPU)

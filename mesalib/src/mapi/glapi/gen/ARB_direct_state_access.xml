@@ -222,21 +222,21 @@
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLint *" count="_mesa_buffer_enum_to_count(buffer)"/>
+      <param name="value" type="const GLint *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferuiv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLuint *" count="_mesa_buffer_enum_to_count(buffer)"/>
+      <param name="value" type="const GLuint *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferfv">
       <param name="framebuffer" type="GLuint" />
       <param name="buffer" type="GLenum" />
       <param name="drawbuffer" type="GLint" />
-      <param name="value" type="const GLfloat *" count="_mesa_buffer_enum_to_count(buffer)"/>
+      <param name="value" type="const GLfloat *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
    </function>
 
    <function name="ClearNamedFramebufferfi">
@@ -375,7 +375,7 @@
    </function>
 
    <function name="TextureSubImage1D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -386,7 +386,7 @@
    </function>
 
    <function name="TextureSubImage2D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -399,7 +399,7 @@
    </function>
 
    <function name="TextureSubImage3D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -414,7 +414,7 @@
    </function>
 
    <function name="CompressedTextureSubImage1D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -425,7 +425,7 @@
    </function>
 
    <function name="CompressedTextureSubImage2D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -438,7 +438,7 @@
    </function>
 
    <function name="CompressedTextureSubImage3D" no_error="true"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_unpack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_unpack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="xoffset" type="GLint" />
@@ -493,7 +493,7 @@
    <function name="TextureParameterfv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLfloat *" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="param" type="const GLfloat *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameteri">
@@ -505,19 +505,19 @@
    <function name="TextureParameterIiv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameterIuiv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="params" type="const GLuint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="TextureParameteriv">
       <param name="texture" type="GLuint" />
       <param name="pname" type="GLenum" />
-      <param name="param" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+      <param name="param" type="const GLint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
    </function>
 
    <function name="GenerateTextureMipmap" no_error="true">
@@ -530,7 +530,7 @@
    </function>
 
    <function name="GetTextureImage"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="format" type="GLenum" />
@@ -540,7 +540,7 @@
    </function>
 
    <function name="GetCompressedTextureImage"
-             marshal="async" marshal_sync="_mesa_glthread_has_no_pack_buffer(ctx)">
+             marshal="async" marshal_sync="!_mesa_glthread_has_pack_buffer(ctx)">
       <param name="texture" type="GLuint" />
       <param name="level" type="GLint" />
       <param name="bufSize" type="GLsizei" />

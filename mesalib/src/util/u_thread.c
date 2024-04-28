@@ -20,7 +20,7 @@
 #include <OS.h>
 #endif
 
-#if DETECT_OS_LINUX && !defined(ANDROID)
+#if DETECT_OS_LINUX && !DETECT_OS_ANDROID
 #include <sched.h>
 #elif defined(_WIN32) && !defined(HAVE_PTHREAD)
 #include <windows.h>
@@ -37,7 +37,7 @@
 int
 util_get_current_cpu(void)
 {
-#if DETECT_OS_LINUX && !defined(ANDROID)
+#if DETECT_OS_LINUX && !DETECT_OS_ANDROID
    return sched_getcpu();
 
 #elif defined(_WIN32) && !defined(HAVE_PTHREAD)

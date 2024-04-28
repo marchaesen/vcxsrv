@@ -25,7 +25,7 @@
  */
 
 #include <assert.h>
-#include <isa/isa.h>
+#include <etnaviv/isa/etnaviv-isa.h>
 
 #include "etnaviv_disasm.h"
 
@@ -49,5 +49,5 @@ etna_disasm(uint32_t *dwords, int sizedwords, enum debug_t debug)
    if (debug & PRINT_RAW)
       options.pre_instr_cb = pre_instr_cb;
 
-   isa_disasm(dwords, sizedwords * sizeof(uint32_t), stdout, &options);
+   etnaviv_isa_disasm(dwords, sizedwords * sizeof(uint32_t), stdout, &options);
 }

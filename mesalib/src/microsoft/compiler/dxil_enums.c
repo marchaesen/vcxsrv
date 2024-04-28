@@ -43,10 +43,28 @@ enum dxil_prog_sig_comp_type dxil_get_prog_sig_comp_type(const struct glsl_type 
    case GLSL_TYPE_UINT64: return DXIL_PROG_SIG_COMP_TYPE_UINT32;
    case GLSL_TYPE_INT64: return DXIL_PROG_SIG_COMP_TYPE_SINT32;
    case GLSL_TYPE_BOOL: return DXIL_PROG_SIG_COMP_TYPE_UINT32;
-   case GLSL_TYPE_STRUCT: return DXIL_PROG_SIG_COMP_TYPE_UNKNOWN;
+   /* For structs, just emit them as float registers. This way, they can be
+    * interpolated or not, and it doesn't matter, and it avoids linking issues
+    * that we'd see if the type here tried to depend on (e.g.) interp mode. */
+   case GLSL_TYPE_STRUCT: return DXIL_PROG_SIG_COMP_TYPE_FLOAT32;
    default:
       debug_printf("unexpected type: %s\n", glsl_get_type_name(type));
       return DXIL_PROG_SIG_COMP_TYPE_UNKNOWN;
+   }
+}
+
+enum dxil_component_type dxil_get_comp_type_from_prog_sig_type(enum dxil_prog_sig_comp_type type)
+{
+   switch (type) {
+   case DXIL_PROG_SIG_COMP_TYPE_UINT32: return DXIL_COMP_TYPE_U32;
+   case DXIL_PROG_SIG_COMP_TYPE_SINT32: return DXIL_COMP_TYPE_I32;
+   case DXIL_PROG_SIG_COMP_TYPE_FLOAT32: return DXIL_COMP_TYPE_F32;
+   case DXIL_PROG_SIG_COMP_TYPE_UINT16: return DXIL_COMP_TYPE_U16;
+   case DXIL_PROG_SIG_COMP_TYPE_SINT16: return DXIL_COMP_TYPE_I16;
+   case DXIL_PROG_SIG_COMP_TYPE_FLOAT16: return DXIL_COMP_TYPE_F16;
+   default:
+      debug_printf("unexpected signature type\n");
+      unreachable("unexpected signature type");
    }
 }
 
@@ -57,16 +75,17 @@ enum dxil_component_type dxil_get_comp_type(const struct glsl_type *type)
    enum glsl_base_type base_type = glsl_get_base_type(type);
    if (glsl_type_is_texture(type) || glsl_type_is_image(type))
       base_type = glsl_get_sampler_result_type(type);
+
    switch (base_type) {
    case GLSL_TYPE_UINT: return DXIL_COMP_TYPE_U32;
    case GLSL_TYPE_INT: return DXIL_COMP_TYPE_I32;
    case GLSL_TYPE_FLOAT: return DXIL_COMP_TYPE_F32;
    case GLSL_TYPE_FLOAT16: return DXIL_COMP_TYPE_F16;
-   case GLSL_TYPE_DOUBLE: return DXIL_COMP_TYPE_U32;
+   case GLSL_TYPE_DOUBLE: return DXIL_COMP_TYPE_F64;
    case GLSL_TYPE_UINT16: return DXIL_COMP_TYPE_U16;
    case GLSL_TYPE_INT16: return DXIL_COMP_TYPE_I16;
-   case GLSL_TYPE_UINT64: return DXIL_COMP_TYPE_U32;
-   case GLSL_TYPE_INT64: return DXIL_COMP_TYPE_I32;
+   case GLSL_TYPE_UINT64: return DXIL_COMP_TYPE_U64;
+   case GLSL_TYPE_INT64: return DXIL_COMP_TYPE_I64;
    case GLSL_TYPE_BOOL: return DXIL_COMP_TYPE_I1;
 
    default:

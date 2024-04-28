@@ -81,7 +81,7 @@ struct xwl_seat {
     OsTimerPtr x_cursor_timer;
     CursorPtr pending_x_cursor;
     struct xwl_cursor cursor;
-    WindowPtr last_xwindow;
+    struct xwl_window *last_focus_window;
 
     uint32_t pointer_gesture_swipe_fingers;
     uint32_t pointer_gesture_pinch_fingers;
@@ -190,9 +190,12 @@ struct xwl_tablet_pad {
     struct xorg_list pad_group_list;
 };
 
+void xwl_seat_leave_ptr(struct xwl_seat *xwl_seat, Bool focus_lost);
+void xwl_seat_leave_kbd(struct xwl_seat *xwl_seat);
+
 void xwl_seat_destroy(struct xwl_seat *xwl_seat);
 
-void xwl_seat_clear_touch(struct xwl_seat *xwl_seat, WindowPtr window);
+void xwl_seat_clear_touch(struct xwl_seat *xwl_seat, struct xwl_window *xwl_window);
 
 void xwl_seat_emulate_pointer_warp(struct xwl_seat *xwl_seat,
                                    struct xwl_window *xwl_window,

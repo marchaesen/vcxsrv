@@ -146,6 +146,9 @@ disk_cache_type_create(const char *gpu_name,
          goto path_fail;
    }
 
+   if (!getenv("MESA_SHADER_CACHE_DIR") && !getenv("MESA_GLSL_CACHE_DIR"))
+      disk_cache_touch_cache_user_marker(cache->path);
+
    cache->type = cache_type;
 
    cache->stats.enabled = debug_get_bool_option("MESA_SHADER_CACHE_SHOW_STATS",

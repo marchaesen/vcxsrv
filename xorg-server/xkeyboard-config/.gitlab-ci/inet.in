@@ -1776,16 +1776,6 @@ xkb_symbols "benqx" {
 };
 
 
-// Intel
-
-// Intel Classmate
-partial alphanumeric_keys
-xkb_symbols "classmate" {
-    key <I2E>   {       [ XF86AudioLowerVolume  ] };
-    key <I30>   {       [ XF86AudioRaiseVolume  ] };
-};
-
-
 // Unitek
 
 partial alphanumeric_keys

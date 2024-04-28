@@ -306,23 +306,12 @@ panfrost_afbc_get_shaders(struct panfrost_context *ctx,
    return shader;
 }
 
-static uint32_t
-panfrost_afbc_shader_key_hash(const void *key)
-{
-   return _mesa_hash_data(key, sizeof(struct pan_afbc_shader_key));
-}
-
-static bool
-panfrost_afbc_shader_key_equal(const void *a, const void *b)
-{
-   return !memcmp(a, b, sizeof(struct pan_afbc_shader_key));
-}
+DERIVE_HASH_TABLE(pan_afbc_shader_key);
 
 void
 panfrost_afbc_context_init(struct panfrost_context *ctx)
 {
-   ctx->afbc_shaders.shaders = _mesa_hash_table_create(
-      NULL, panfrost_afbc_shader_key_hash, panfrost_afbc_shader_key_equal);
+   ctx->afbc_shaders.shaders = pan_afbc_shader_key_table_create(NULL);
    pthread_mutex_init(&ctx->afbc_shaders.lock, NULL);
 }
 

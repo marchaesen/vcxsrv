@@ -10,9 +10,6 @@ traces:
   gputest/furmark-v2.trace:
     gl-virgl:
       checksum: c377f21f7bfaca0c04983612e7c9a7bb
-  gputest/pixmark-piano-v2.trace:
-    gl-virgl:
-      checksum: 85620a20ed358db81a33ad117fd93739
   gputest/triangle-v2.trace:
     gl-virgl:
       checksum: 5f694874b15bcd7a3689b387c143590b

@@ -81,6 +81,16 @@ v3d_pipe_flush(struct pipe_context *pctx, struct pipe_fence_handle **fence,
         }
 }
 
+/* We can't flush the texture cache within rendering a tile, so we have to
+ * flush all rendering to the kernel so that the next job reading from the
+ * tile gets a flushed cache.
+ */
+static void
+v3d_texture_barrier(struct pipe_context *pctx, unsigned int flags)
+{
+        v3d_flush(pctx);
+}
+
 static void
 v3d_memory_barrier(struct pipe_context *pctx, unsigned int flags)
 {
@@ -379,6 +389,7 @@ v3d_context_create(struct pipe_screen *pscreen, void *priv, unsigned flags)
         pctx->set_debug_callback = u_default_set_debug_callback;
         pctx->invalidate_resource = v3d_invalidate_resource;
         pctx->get_sample_position = v3d_get_sample_position;
+        pctx->texture_barrier = v3d_texture_barrier;
 
         v3d_X(devinfo, draw_init)(pctx);
         v3d_X(devinfo, state_init)(pctx);

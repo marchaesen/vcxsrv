@@ -135,7 +135,7 @@ void si_init_resource_fields(struct si_screen *sscreen, struct si_resource *res,
        * because they might never be moved back again. If a buffer is large enough,
        * upload data by copying from a temporary GTT buffer.
        */
-      if (sscreen->info.has_dedicated_vram &&
+      if (sscreen->info.has_dedicated_vram && !sscreen->info.all_vram_visible &&
           !res->b.cpu_storage && /* TODO: The CPU storage breaks this. */
           size >= sscreen->options.max_vram_map_size)
          res->b.b.flags |= PIPE_RESOURCE_FLAG_DONT_MAP_DIRECTLY;

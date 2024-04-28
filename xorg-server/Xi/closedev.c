@@ -102,7 +102,7 @@ DeleteDeviceEvents(DeviceIntPtr dev, WindowPtr pWin, ClientPtr client)
         next = grab->next;
         if ((grab->device == dev) &&
             (client->clientAsMask == CLIENT_BITS(grab->resource)))
-            FreeResource(grab->resource, RT_NONE);
+            FreeResource(grab->resource, X11_RESTYPE_NONE);
     }
 }
 

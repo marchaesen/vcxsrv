@@ -377,25 +377,25 @@ lower_int64_compare(nir_builder *b, nir_op op, nir_def *x, nir_def *y)
 static nir_def *
 lower_umax64(nir_builder *b, nir_def *x, nir_def *y)
 {
-   return nir_bcsel(b, lower_int64_compare(b, nir_op_ult, x, y), y, x);
+   return nir_bcsel(b, COND_LOWER_CMP(b, ult, x, y), y, x);
 }
 
 static nir_def *
 lower_imax64(nir_builder *b, nir_def *x, nir_def *y)
 {
-   return nir_bcsel(b, lower_int64_compare(b, nir_op_ilt, x, y), y, x);
+   return nir_bcsel(b, COND_LOWER_CMP(b, ilt, x, y), y, x);
 }
 
 static nir_def *
 lower_umin64(nir_builder *b, nir_def *x, nir_def *y)
 {
-   return nir_bcsel(b, lower_int64_compare(b, nir_op_ult, x, y), x, y);
+   return nir_bcsel(b, COND_LOWER_CMP(b, ult, x, y), x, y);
 }
 
 static nir_def *
 lower_imin64(nir_builder *b, nir_def *x, nir_def *y)
 {
-   return nir_bcsel(b, lower_int64_compare(b, nir_op_ilt, x, y), x, y);
+   return nir_bcsel(b, COND_LOWER_CMP(b, ilt, x, y), x, y);
 }
 
 static nir_def *
@@ -1344,6 +1344,7 @@ lower_int64_intrinsic(nir_builder *b, nir_intrinsic_instr *intrin)
    default:
       unreachable("Unsupported intrinsic");
    }
+   return NULL;
 }
 
 static bool

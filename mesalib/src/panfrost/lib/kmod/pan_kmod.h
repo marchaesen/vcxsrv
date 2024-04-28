@@ -32,6 +32,8 @@
 #include "util/sparse_array.h"
 #include "util/u_atomic.h"
 
+#include "kmod/panthor_kmod.h"
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -45,6 +47,11 @@ enum pan_kmod_vm_flags {
     * must have va=PAN_KMOD_VM_MAP_AUTO_VA.
     */
    PAN_KMOD_VM_FLAG_AUTO_VA = BITFIELD_BIT(0),
+
+   /* Let the backend know whether it should track the VM activity or not.
+    * Needed if PAN_KMOD_VM_OP_MODE_DEFER_TO_NEXT_IDLE_POINT is used.
+    */
+   PAN_KMOD_VM_FLAG_TRACK_ACTIVITY = BITFIELD_BIT(1),
 };
 
 /* Object representing a GPU VM. */
@@ -132,6 +139,9 @@ struct pan_kmod_dev_props {
    /* GPU revision. */
    uint32_t gpu_revision;
 
+   /* GPU variant. */
+   uint32_t gpu_variant;
+
    /* Bitmask encoding the number of shader cores exposed by the GPU. */
    uint64_t shader_present;
 
@@ -149,7 +159,23 @@ struct pan_kmod_dev_props {
    uint32_t texture_features[4];
 
    /* Maximum number of threads per core. */
-   uint32_t thread_tls_alloc;
+   uint32_t max_threads_per_core;
+
+   /* Maximum number of threads per workgroup. */
+   uint32_t max_threads_per_wg;
+
+   /* Number of registers per core. Can be used to determine the maximum
+    * number of threads that can be allocated for a specific shader based on
+    * the number of registers assigned to this shader.
+    */
+   uint32_t num_registers_per_core;
+
+   /* Maximum number of thread-local storage instance per core.
+    * If the GPU doesn't have a THREAD_TLS_ALLOC register or the register
+    * value is zero, the backend should assign the value of max_threads_per_core
+    * here.
+    */
+   uint32_t max_tls_instance_per_core;
 
    /* AFBC feature bits. */
    uint32_t afbc_features;

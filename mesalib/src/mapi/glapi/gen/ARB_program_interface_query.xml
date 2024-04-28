@@ -74,7 +74,7 @@
         <param name="program" type="GLuint"/>
         <param name="programInterface" type="GLenum"/>
         <param name="index" type="GLuint"/>
-        <param name="bufSize" type="GLsizei "/>
+        <param name="bufSize" type="GLsizei"/>
         <param name="length" type="GLsizei *" output="true"/>
         <param name="name" type="GLchar *" output="true"/>
     </function>
@@ -83,9 +83,9 @@
         <param name="program" type="GLuint"/>
         <param name="programInterface" type="GLenum"/>
         <param name="index" type="GLuint"/>
-        <param name="propCount" type="GLsizei "/>
+        <param name="propCount" type="GLsizei"/>
         <param name="props" type="const GLenum *" output="true"/>
-        <param name="bufSize" type="GLsizei "/>
+        <param name="bufSize" type="GLsizei"/>
         <param name="length" type="GLsizei *" output="true"/>
         <param name="params" type="GLint *" output="true"/>
     </function>

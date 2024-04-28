@@ -19,7 +19,8 @@ variables:
     FDO_UPSTREAM_REPO: xorg/xserver
     FDO_DISTRIBUTION_VERSION: bullseye-slim
     FDO_DISTRIBUTION_EXEC: 'env FDO_CI_CONCURRENT=${FDO_CI_CONCURRENT} bash .gitlab-ci/debian-install.sh'
-    FDO_DISTRIBUTION_TAG: "2023-06-20-libei.0"
+    FDO_DISTRIBUTION_TAG: "2024-03-26-explicit-sync-2"
+    MESON_BUILDDIR: "build"
 
 include:
   - project: 'freedesktop/ci-templates'
@@ -33,6 +34,7 @@ include:
 stages:
     - docker-image
     - build-and-test
+    - drivers
     - test
 
 .ci-run-policy:
@@ -43,6 +45,54 @@ stages:
       - runner_system_failure
   # Cancel CI run if a newer commit is pushed to the same branch
   interruptible: true
+
+# This is everything but the DDXen
+.dix_paths: &dix_paths
+  # Directories
+  - .gitlab-ci/**/*
+  - composite/**/*
+  - config/**/*
+  - damageext/**/*
+  - dbe/**/*
+  - dix/**/*
+  - doc/**/*
+  - dri3/**/*
+  - exa/**/*
+  - fb/**/*
+  - glamor/**/*
+  - glx/**/*
+  - include/**/*
+  - m4/**/*
+  - man/**/*
+  - mi/**/*
+  - miext/**/*
+  - os/**/*
+  - present/**/*
+  - pseudoramiX/**/*
+  - randr/**/*
+  - record/**/*
+  - render/**/*
+  - test/**/*
+  - Xext/**/*
+  - xfixes/**/*
+  - Xi/**/*
+  - xkb/**/*
+  # Files
+  - hw/meson.build
+  - .gitlab-ci.yml
+  - meson*
+  - xorg-server.m4
+  - xorg-server.pc.in
+  - xserver.ent.in
+
+.xorg_paths: &xorg_paths
+  - hw/xfree86/**/*
+
+.xwayland_paths: &xwayland_paths
+  - hw/xwayland/**/*
+
+.all_ddx_paths:
+  - hw/**/*
 
 debian-bullseye:
   extends:
@@ -60,9 +110,10 @@ debian-bullseye:
     artifacts:
         when: always
         paths:
-            - build/meson-logs/
-            - build/test/piglit-results/
+            - $MESON_BUILDDIR/meson-logs/
+            - $MESON_BUILDDIR/test/piglit-results/
     variables:
+        MESON_ARGS: -Dc_args="-fno-common" -Dprefix=/usr -Dxephyr=true -Dwerror=true
         CCACHE_COMPILERCHECK: content
         CCACHE_DIR: /cache/xserver/cache
         LC_ALL: C.UTF-8
@@ -76,36 +127,101 @@ debian-bullseye:
 meson:
     extends: .common-build-and-test
     script:
-        - .gitlab-ci/build-and-test.sh
+        - .gitlab-ci/meson-build.sh --run-test
+        - .gitlab-ci/check-piglit-results.sh
         - .gitlab-ci/manpages-check
+    variables:
+      XTEST_DIR: /root/xts
+      PIGLIT_DIR: /root/piglit
+      LP_NUM_THREADS: 0
 
 meson-noglamor:
     extends: meson
     variables:
-        MESON_EXTRA_OPTIONS: >
+        MESON_EXTRA_ARGS: >
           -Dglamor=false
 
 meson-nolibdecor:
     extends: meson
     variables:
-        MESON_EXTRA_OPTIONS: >
+        MESON_EXTRA_ARGS: >
           -Dlibdecor=false
 
 mingw-cross-build:
     extends: .common-build-and-test
     script:
-        - meson --cross-file=.gitlab-ci/cross-i686-w64-mingw32.txt -Dglx=false -Dsecure-rpc=false -Dlisten_tcp=true build/
-        - ninja -j${FDO_CI_CONCURRENT:-4} -C build/ install
+        - .gitlab-ci/meson-build.sh --run-install
+    variables:
+      MESON_ARGS: --cross-file=.gitlab-ci/cross-i686-w64-mingw32.txt -Dglx=false -Dsecure-rpc=false -Dlisten_tcp=true
 
 meson-dist:
     extends: .common-build-and-test
     artifacts:
         when: always
         paths:
-            - build/meson-logs/
-            - build/xserver-*/build/meson-logs/
+            - $MESON_BUILDDIR/meson-logs/
+            - $MESON_BUILDDIR/xserver-*/$MESON_BUILDDIR/meson-logs/
     script:
-        - .gitlab-ci/dist.sh
+        - .gitlab-ci/meson-build.sh --run-dist
+        - mkdir xserver-tarball
+        - tar xf $MESON_BUILDDIR/meson-dist/xserver-*.tar.xz -C xserver-tarball --strip-components=1
+        - .gitlab-ci/meson-build.sh -C xserver-tarball --skip-test --skip-dist --run-install
+    variables:
+      MESON_DIST_ARGS: --no-tests
+      DESTDIR: xserver-tarball/install/
+
+xf86-driver-build-test:
+    extends:
+        - .fdo.distribution-image@debian
+        - .ci-run-policy
+    stage: drivers
+    parallel:
+        matrix:
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-input-evdev
+              SHA: xf86-input-evdev-2.10.6
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-input-libinput
+              SHA: xf86-input-libinput-1.4.0
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-input-mouse
+              SHA: xf86-input-mouse-1.9.5
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-input-synaptics
+              SHA: xf86-input-synaptics-1.9.2
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-amdgpu
+              SHA: xf86-video-amdgpu-23.0.0
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-ati
+              SHA: xf86-video-ati-22.0.0
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-qxl
+              SHA: xf86-video-qxl-0.1.6
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-vesa
+              SHA: xf86-video-vesa-2.6.0
+            - REPO: https://gitlab.freedesktop.org/xorg/driver/xf86-video-vmware
+              SHA: xf86-video-vmware-13.4.0
+    script:
+        # Install the server first
+        - .gitlab-ci/meson-build.sh --skip-test --run-install
+        - unset MESON_EXTRA_ARGS
+        - DRIVER=$(basename $REPO)
+        - git clone "$REPO" "$DRIVER"
+        - GIT_DIR="$DRIVER/.git" git checkout -f "$SHA"
+        - |
+          if [[ -e "$DRIVER/meson.build" ]]; then
+            .gitlab-ci/meson-build.sh -C "$DRIVER" --skip-test
+          else
+             pushd "$DRIVER" || exit 1
+             ./autogen.sh && make
+          fi
+    needs:
+        - "meson"
+    variables:
+        GIT_DEPTH: 1
+        MESON_ARGS: -Dprefix=/usr/
+        MESON_EXTRA_ARGS: -Dxwayland=false -Dxnest=false -Dxvfb=false -Dxquartz=false -Ddocs=false
+    rules:
+      - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        changes:
+          *dix_paths
+      - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
+        changes:
+          *xorg_paths
 
 #
 # Verify that commit messages are as expected
@@ -113,6 +229,7 @@ meson-dist:
 check-commits:
   extends:
     - .fdo.ci-fairy
+  needs: []
   stage: test
   script:
     - ci-fairy check-commits --junit-xml=results.xml
@@ -131,7 +248,10 @@ check-commits:
 check-merge-request:
   extends:
     - .fdo.ci-fairy
+  needs: []
   stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == 'merge_request_event'
   script:
     - ci-fairy check-merge-request --require-allow-collaboration --junit-xml=results.xml
   artifacts:

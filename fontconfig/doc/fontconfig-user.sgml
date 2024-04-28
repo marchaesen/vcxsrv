@@ -682,7 +682,7 @@ This is an example of a system-wide configuration file
       &lt;family&gt;Arial&lt;/family&gt;
     &lt;/prefer&gt;
     &lt;default&gt;
-      &lt;family&gt;sans&lt;/family&gt;
+      &lt;family&gt;sans-serif&lt;/family&gt;
     &lt;/default&gt;
   &lt;/alias&gt;
   &lt;alias&gt;
@@ -707,7 +707,7 @@ This is an example of a system-wide configuration file
     &lt;/prefer&gt;
   &lt;/alias&gt;
   &lt;alias&gt;
-    &lt;family&gt;sans&lt;/family&gt;
+    &lt;family&gt;sans-serif&lt;/family&gt;
     &lt;prefer&gt;
       &lt;family&gt;Arial&lt;/family&gt;
     &lt;/prefer&gt;

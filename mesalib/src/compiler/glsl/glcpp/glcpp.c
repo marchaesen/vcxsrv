@@ -170,8 +170,6 @@ main (int argc, char *argv[])
 	if (shader == NULL)
 	   return 1;
 
-	_mesa_locale_init();
-
 	ret = glcpp_preprocess(ctx, &shader, &info_log, NULL, NULL, &gl_ctx);
 
 	fprintf(stderr, "%s", info_log);

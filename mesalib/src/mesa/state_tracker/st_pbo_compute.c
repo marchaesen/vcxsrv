@@ -844,7 +844,7 @@ add_spec_data(struct pbo_async_data *async, struct pbo_data *pd)
    struct pbo_spec_async_data *spec;
    struct set_entry *entry = _mesa_set_search_or_add(&async->specialized, pd, &found);
    if (!found) {
-      spec = calloc(1, sizeof(struct pbo_async_data));
+      spec = calloc(1, sizeof(struct pbo_spec_async_data));
       util_queue_fence_init(&spec->fence);
       memcpy(spec->data, pd, sizeof(struct pbo_data));
       entry->key = spec;

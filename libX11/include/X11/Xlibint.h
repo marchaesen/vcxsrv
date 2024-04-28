@@ -340,9 +340,6 @@ typedef struct _XSQEvent
 #endif
 
 #include <X11/Xproto.h>
-#ifdef __sgi
-#define _SGI_MP_SOURCE  /* turn this on to get MP safe errno */
-#endif
 #include <errno.h>
 #define _XBCOPYFUNC _Xbcopy
 #include <X11/Xfuncs.h>
@@ -1326,12 +1323,6 @@ struct _XConnWatchInfo {	/* info from XAddConnectionWatch */
     XPointer client_data;
     struct _XConnWatchInfo *next;
 };
-
-#ifdef __UNIXOS2__
-extern char* __XOS2RedirRoot(
-    char*
-);
-#endif
 
 extern int _XTextHeight(
     XFontStruct*	/* font_struct */,

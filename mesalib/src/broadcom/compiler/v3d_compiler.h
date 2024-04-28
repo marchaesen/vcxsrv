@@ -793,6 +793,11 @@ struct v3d_compile {
         struct qreg cs_shared_offset;
         int local_invocation_index_bits;
 
+        /* Starting value of the sample mask in a fragment shader. We use
+         * this to identify lanes that have been terminated/discarded.
+         */
+        struct qreg start_msf;
+
         /* If the shader uses subgroup functionality */
         bool has_subgroups;
 
@@ -1313,6 +1318,23 @@ vir_##name##_dest(struct v3d_compile *c, struct qreg dest,               \
                                                a, c->undef));           \
 }
 
+#define VIR_SFU2(name)                                                   \
+static inline struct qreg                                                \
+vir_##name(struct v3d_compile *c, struct qreg a, struct qreg b)          \
+{                                                                        \
+        return vir_emit_def(c, vir_add_inst(V3D_QPU_A_##name,            \
+                                            c->undef,                    \
+                                            a, b));                      \
+}                                                                        \
+static inline struct qinst *                                             \
+vir_##name##_dest(struct v3d_compile *c, struct qreg dest,               \
+                  struct qreg a, struct qreg b)                          \
+{                                                                        \
+        return vir_emit_nondef(c, vir_add_inst(V3D_QPU_A_##name,         \
+                                               dest,                     \
+                                               a, b));                   \
+}
+
 #define VIR_A_ALU2(name) VIR_ALU2(name, vir_add_inst, V3D_QPU_A_##name)
 #define VIR_M_ALU2(name) VIR_ALU2(name, vir_mul_inst, V3D_QPU_M_##name)
 #define VIR_A_ALU1(name) VIR_ALU1(name, vir_add_inst, V3D_QPU_A_##name)
@@ -1411,6 +1433,14 @@ VIR_SFU(EXP)
 VIR_SFU(LOG)
 VIR_SFU(SIN)
 VIR_SFU(RSQRT2)
+
+VIR_SFU(BALLOT)
+VIR_SFU(BCASTF)
+VIR_SFU(ALLEQ)
+VIR_SFU(ALLFEQ)
+VIR_SFU2(ROTQ)
+VIR_SFU2(ROT)
+VIR_SFU2(SHUFFLE)
 
 VIR_A_ALU2(VPACK)
 VIR_A_ALU2(V8PACK)

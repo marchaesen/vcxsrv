@@ -30,12 +30,13 @@
 #include <xwayland-config.h>
 
 #include "xwayland-types.h"
-#include "regionstr.h"
 
+struct xwl_window_buffer;
+
+void xwl_window_buffer_add_damage_region(struct xwl_window *xwl_window);
 void xwl_window_buffers_init(struct xwl_window *xwl_window);
 void xwl_window_buffers_dispose(struct xwl_window *xwl_window);
-void xwl_window_recycle_pixmap(struct xwl_window *xwl_window);
-PixmapPtr xwl_window_buffers_get_pixmap(struct xwl_window *xwl_window,
-                                        RegionPtr damage_region);
+void xwl_window_realloc_pixmap(struct xwl_window *xwl_window);
+PixmapPtr xwl_window_swap_pixmap(struct xwl_window *xwl_window);
 
 #endif /* XWAYLAND_WINDOW_BUFFERS_H */

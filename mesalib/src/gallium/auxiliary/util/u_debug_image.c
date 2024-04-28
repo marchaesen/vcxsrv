@@ -35,7 +35,7 @@
 #include <stdio.h>
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 
 /**
  * Dump an image to .ppm file.

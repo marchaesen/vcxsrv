@@ -43,6 +43,10 @@ libetnaviv_drm = static_library(
   dependencies : [
     dep_libdrm,
     dep_valgrind,
+    idep_etna_common,
+  ],
+  link_with : [
+    libetnaviv_hwdb
   ],
   build_by_default : false,
 )

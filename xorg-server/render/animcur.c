@@ -43,7 +43,7 @@
 #include "cursorstr.h"
 #include "dixfontstr.h"
 #include "opaque.h"
-#include "picturestr.h"
+#include "picturestr_priv.h"
 #include "inputstr.h"
 #include "xace.h"
 
@@ -336,8 +336,8 @@ AnimCursorCreate(CursorPtr *cursors, CARD32 *deltas, int ncursor,
 
     /* security creation/labeling check */
     if (ac->timer)
-        rc = XaceHook(XACE_RESOURCE_ACCESS, client, cid, RT_CURSOR, pCursor,
-                      RT_NONE, NULL, DixCreateAccess);
+        rc = XaceHook(XACE_RESOURCE_ACCESS, client, cid, X11_RESTYPE_CURSOR, pCursor,
+                      X11_RESTYPE_NONE, NULL, DixCreateAccess);
 
     if (rc != Success) {
         TimerFree(ac->timer);

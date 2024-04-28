@@ -1,4 +1,4 @@
-
+// SPDX-License-Identifier: MIT
 #ifndef R300_PUBLIC_H
 #define R300_PUBLIC_H
 

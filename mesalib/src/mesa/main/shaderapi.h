@@ -88,10 +88,6 @@ _mesa_use_program(struct gl_context *ctx, gl_shader_stage stage,
                   struct gl_shader_program *shProg, struct gl_program *prog,
                   struct gl_pipeline_object *shTarget);
 
-extern void
-_mesa_copy_linked_program_data(const struct gl_shader_program *src,
-                               struct gl_linked_shader *dst_sh);
-
 extern bool
 _mesa_validate_shader_target(const struct gl_context *ctx, GLenum type);
 

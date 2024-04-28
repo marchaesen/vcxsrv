@@ -1,25 +1,7 @@
 /*
  * Copyright © 2018 Valve Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
- *
+ * SPDX-License-Identifier: MIT
  */
 
 #include "aco_ir.h"
@@ -47,34 +29,6 @@ murmur_32_scramble(uint32_t h, uint32_t k)
    return h;
 }
 
-template <typename T>
-uint32_t
-hash_murmur_32(Instruction* instr)
-{
-   uint32_t hash = uint32_t(instr->format) << 16 | uint32_t(instr->opcode);
-
-   for (const Operand& op : instr->operands)
-      hash = murmur_32_scramble(hash, op.constantValue());
-
-   /* skip format, opcode and pass_flags */
-   for (unsigned i = 2; i < (sizeof(T) >> 2); i++) {
-      uint32_t u;
-      /* Accesses it though a byte array, so doesn't violate the strict aliasing rule */
-      memcpy(&u, reinterpret_cast<uint8_t*>(instr) + i * 4, 4);
-      hash = murmur_32_scramble(hash, u);
-   }
-
-   /* Finalize. */
-   uint32_t len = instr->operands.size() + instr->definitions.size() + sizeof(T);
-   hash ^= len;
-   hash ^= hash >> 16;
-   hash *= 0x85ebca6b;
-   hash ^= hash >> 13;
-   hash *= 0xc2b2ae35;
-   hash ^= hash >> 16;
-   return hash;
-}
-
 struct InstrHash {
    /* This hash function uses the Murmur3 algorithm written by Austin Appleby
     * https://github.com/aappleby/smhasher/blob/master/src/MurmurHash3.cpp
@@ -84,36 +38,30 @@ struct InstrHash {
     */
    std::size_t operator()(Instruction* instr) const
    {
-      if (instr->isDPP16())
-         return hash_murmur_32<DPP16_instruction>(instr);
+      uint32_t hash = uint32_t(instr->format) << 16 | uint32_t(instr->opcode);
 
-      if (instr->isDPP8())
-         return hash_murmur_32<DPP8_instruction>(instr);
+      for (const Operand& op : instr->operands)
+         hash = murmur_32_scramble(hash, op.constantValue());
 
-      if (instr->isSDWA())
-         return hash_murmur_32<SDWA_instruction>(instr);
+      size_t data_size = get_instr_data_size(instr->format);
 
-      if (instr->isVINTERP_INREG())
-         return hash_murmur_32<VINTERP_inreg_instruction>(instr);
-
-      if (instr->isVALU())
-         return hash_murmur_32<VALU_instruction>(instr);
-
-      switch (instr->format) {
-      case Format::SMEM: return hash_murmur_32<SMEM_instruction>(instr);
-      case Format::VINTRP: return hash_murmur_32<VINTRP_instruction>(instr);
-      case Format::DS: return hash_murmur_32<DS_instruction>(instr);
-      case Format::SOPP: return hash_murmur_32<SOPP_instruction>(instr);
-      case Format::SOPK: return hash_murmur_32<SOPK_instruction>(instr);
-      case Format::EXP: return hash_murmur_32<Export_instruction>(instr);
-      case Format::MUBUF: return hash_murmur_32<MUBUF_instruction>(instr);
-      case Format::MIMG: return hash_murmur_32<MIMG_instruction>(instr);
-      case Format::MTBUF: return hash_murmur_32<MTBUF_instruction>(instr);
-      case Format::FLAT: return hash_murmur_32<FLAT_instruction>(instr);
-      case Format::PSEUDO_BRANCH: return hash_murmur_32<Pseudo_branch_instruction>(instr);
-      case Format::PSEUDO_REDUCTION: return hash_murmur_32<Pseudo_reduction_instruction>(instr);
-      default: return hash_murmur_32<Instruction>(instr);
+      /* skip format, opcode and pass_flags and op/def spans */
+      for (unsigned i = sizeof(Instruction) >> 2; i < (data_size >> 2); i++) {
+         uint32_t u;
+         /* Accesses it though a byte array, so doesn't violate the strict aliasing rule */
+         memcpy(&u, reinterpret_cast<uint8_t*>(instr) + i * 4, 4);
+         hash = murmur_32_scramble(hash, u);
       }
+
+      /* Finalize. */
+      uint32_t len = instr->operands.size() + instr->definitions.size();
+      hash ^= len;
+      hash ^= hash >> 16;
+      hash *= 0x85ebca6b;
+      hash ^= hash >> 13;
+      hash *= 0xc2b2ae35;
+      hash ^= hash >> 16;
+      return hash;
    }
 };
 
@@ -175,6 +123,7 @@ struct InstrPred {
 
          if (a->opcode == aco_opcode::v_permlane16_b32 ||
              a->opcode == aco_opcode::v_permlanex16_b32 ||
+             a->opcode == aco_opcode::v_permlane64_b32 ||
              a->opcode == aco_opcode::v_readfirstlane_b32)
             return aV.pass_flags == bV.pass_flags;
       }
@@ -208,8 +157,8 @@ struct InstrPred {
       case Format::SOPK: {
          if (a->opcode == aco_opcode::s_getreg_b32)
             return false;
-         SOPK_instruction& aK = a->sopk();
-         SOPK_instruction& bK = b->sopk();
+         SALU_instruction& aK = a->salu();
+         SALU_instruction& bK = b->salu();
          return aK.imm == bK.imm;
       }
       case Format::SMEM: {
@@ -221,11 +170,8 @@ struct InstrPred {
       case Format::VINTRP: {
          VINTRP_instruction& aI = a->vintrp();
          VINTRP_instruction& bI = b->vintrp();
-         if (aI.attribute != bI.attribute)
-            return false;
-         if (aI.component != bI.component)
-            return false;
-         return true;
+         return aI.attribute == bI.attribute && aI.component == bI.component &&
+                aI.high_16bits == bI.high_16bits;
       }
       case Format::VINTERP_INREG: {
          VINTERP_inreg_instruction& aI = a->vinterp_inreg();
@@ -367,6 +313,21 @@ can_eliminate(aco_ptr<Instruction>& instr)
    return true;
 }
 
+bool
+is_trivial_phi(Block& block, Instruction* instr)
+{
+   if (!is_phi(instr))
+      return false;
+
+   /* Logical LCSSA phis must be kept in order to prevent the optimizer
+    * from doing invalid transformations. */
+   if (instr->opcode == aco_opcode::p_phi && (block.kind & block_kind_loop_exit))
+      return false;
+
+   return std::all_of(instr->operands.begin(), instr->operands.end(),
+                      [&](Operand& op) { return op == instr->operands[0]; });
+}
+
 void
 process_block(vn_ctx& ctx, Block& block)
 {
@@ -387,18 +348,18 @@ process_block(vn_ctx& ctx, Block& block)
           instr->opcode == aco_opcode::p_demote_to_helper || instr->opcode == aco_opcode::p_end_wqm)
          ctx.exec_id++;
 
-      if (!can_eliminate(instr)) {
-         new_instructions.emplace_back(std::move(instr));
-         continue;
-      }
-
       /* simple copy-propagation through renaming */
       bool copy_instr =
-         instr->opcode == aco_opcode::p_parallelcopy ||
+         is_trivial_phi(block, instr.get()) || instr->opcode == aco_opcode::p_parallelcopy ||
          (instr->opcode == aco_opcode::p_create_vector && instr->operands.size() == 1);
       if (copy_instr && !instr->definitions[0].isFixed() && instr->operands[0].isTemp() &&
           instr->operands[0].regClass() == instr->definitions[0].regClass()) {
          ctx.renames[instr->definitions[0].tempId()] = instr->operands[0].getTemp();
+         continue;
+      }
+
+      if (!can_eliminate(instr)) {
+         new_instructions.emplace_back(std::move(instr));
          continue;
       }
 
@@ -442,7 +403,7 @@ void
 rename_phi_operands(Block& block, aco::unordered_map<uint32_t, Temp>& renames)
 {
    for (aco_ptr<Instruction>& phi : block.instructions) {
-      if (phi->opcode != aco_opcode::p_phi && phi->opcode != aco_opcode::p_linear_phi)
+      if (!is_phi(phi))
          break;
 
       for (Operand& op : phi->operands) {

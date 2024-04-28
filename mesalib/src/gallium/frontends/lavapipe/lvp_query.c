@@ -32,6 +32,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateQueryPool(
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
 
+   uint32_t query_size = sizeof(struct pipe_query *);
    enum pipe_query_type pipeq;
    switch (pCreateInfo->queryType) {
    case VK_QUERY_TYPE_OCCLUSION:
@@ -50,13 +51,29 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateQueryPool(
    case VK_QUERY_TYPE_MESH_PRIMITIVES_GENERATED_EXT:
       pipeq = PIPE_QUERY_PRIMITIVES_GENERATED;
       break;
+   case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_COMPACTED_SIZE_KHR:
+      query_size = sizeof(uint64_t);
+      pipeq = LVP_QUERY_ACCELERATION_STRUCTURE_COMPACTED_SIZE;
+      break;
+   case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE_KHR:
+      query_size = sizeof(uint64_t);
+      pipeq = LVP_QUERY_ACCELERATION_STRUCTURE_SERIALIZATION_SIZE;
+      break;
+   case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SIZE_KHR:
+      query_size = sizeof(uint64_t);
+      pipeq = LVP_QUERY_ACCELERATION_STRUCTURE_SIZE;
+      break;
+   case VK_QUERY_TYPE_ACCELERATION_STRUCTURE_SERIALIZATION_BOTTOM_LEVEL_POINTERS_KHR:
+      query_size = sizeof(uint64_t);
+      pipeq = LVP_QUERY_ACCELERATION_STRUCTURE_INSTANCE_COUNT;
+      break;
    default:
       return VK_ERROR_FEATURE_NOT_PRESENT;
    }
 
    struct lvp_query_pool *pool;
    size_t pool_size = sizeof(*pool)
-      + pCreateInfo->queryCount * sizeof(struct pipe_query *);
+      + pCreateInfo->queryCount * query_size;
 
    pool = vk_zalloc2(&device->vk.alloc, pAllocator,
                     pool_size, 8,
@@ -70,6 +87,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_CreateQueryPool(
    pool->count = pCreateInfo->queryCount;
    pool->base_type = pipeq;
    pool->pipeline_stats = pCreateInfo->pipelineStatistics;
+   pool->data = &pool->queries;
 
    *pQueryPool = lvp_query_pool_to_handle(pool);
    return VK_SUCCESS;
@@ -86,9 +104,11 @@ VKAPI_ATTR void VKAPI_CALL lvp_DestroyQueryPool(
    if (!pool)
       return;
 
-   for (unsigned i = 0; i < pool->count; i++)
-      if (pool->queries[i])
-         device->queue.ctx->destroy_query(device->queue.ctx, pool->queries[i]);
+   if (pool->base_type < PIPE_QUERY_TYPES) {
+      for (unsigned i = 0; i < pool->count; i++)
+         if (pool->queries[i])
+            device->queue.ctx->destroy_query(device->queue.ctx, pool->queries[i]);
+   }
    vk_object_base_finish(&pool->base);
    vk_free2(&device->vk.alloc, pAllocator, pool);
 }
@@ -113,6 +133,19 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_GetQueryPoolResults(
       uint8_t *dest = (uint8_t *)((char *)pData + (stride * (i - firstQuery)));
       union pipe_query_result result;
       bool ready = false;
+
+      if (pool->base_type >= PIPE_QUERY_TYPES) {
+         if (flags & VK_QUERY_RESULT_64_BIT) {
+            uint64_t *dst = (uint64_t *)dest;
+            uint64_t *src = (uint64_t *)pool->data;
+            *dst = src[i];
+         } else {
+            uint32_t *dst = (uint32_t *)dest;
+            uint64_t *src = (uint64_t *)pool->data;
+            *dst = src[i];
+         }
+         continue;
+      }
 
       if (pool->queries[i]) {
          ready = device->queue.ctx->get_query_result(device->queue.ctx,
@@ -168,7 +201,7 @@ VKAPI_ATTR VkResult VKAPI_CALL lvp_GetQueryPoolResults(
                *dest32++ = (uint32_t)
                   MIN2(result.so_statistics.primitives_storage_needed, UINT32_MAX);
             } else {
-               *dest32++ = (uint32_t) MIN2(result.u64, UINT32_MAX);
+               *dest32++ = (uint32_t) (result.u64 & UINT32_MAX);
             }
          } else {
             if (pool->type == VK_QUERY_TYPE_TRANSFORM_FEEDBACK_STREAM_EXT) {
@@ -193,6 +226,9 @@ VKAPI_ATTR void VKAPI_CALL lvp_ResetQueryPool(
 {
    LVP_FROM_HANDLE(lvp_device, device, _device);
    LVP_FROM_HANDLE(lvp_query_pool, pool, queryPool);
+
+   if (pool->base_type >= PIPE_QUERY_TYPES)
+      return;
 
    for (uint32_t i = 0; i < queryCount; i++) {
       uint32_t idx = i + firstQuery;

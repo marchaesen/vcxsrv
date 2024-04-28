@@ -12,6 +12,8 @@
 extern "C" {
 #endif
 
+struct radeon_info;
+
 enum radeon_family
 {
    CHIP_UNKNOWN = 0,
@@ -120,6 +122,7 @@ enum radeon_family
    CHIP_GFX1103_R1,
    CHIP_GFX1103_R2,
    CHIP_GFX1150,
+   CHIP_GFX1151,
    CHIP_LAST,
 };
 
@@ -201,6 +204,7 @@ enum vcn_version{
    VCN_4_0_3,
    VCN_4_0_4,
    VCN_4_0_5,
+   VCN_4_0_6,
 };
 
 #define SDMA_VERSION_VALUE(major, minor) (((major) << 8) | (minor))
@@ -241,6 +245,7 @@ const char *ac_get_family_name(enum radeon_family family);
 enum amd_gfx_level ac_get_gfx_level(enum radeon_family family);
 unsigned ac_get_family_id(enum radeon_family family);
 const char *ac_get_llvm_processor_name(enum radeon_family family);
+const char *ac_get_ip_type_string(const struct radeon_info *info, enum amd_ip_type ip_type);
 
 #ifdef __cplusplus
 }

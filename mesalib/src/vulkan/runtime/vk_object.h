@@ -27,6 +27,7 @@
 #include <vulkan/vk_icd.h>
 
 #include "c11/threads.h"
+#include "util/detect_os.h"
 #include "util/macros.h"
 #include "util/sparse_array.h"
 
@@ -49,6 +50,9 @@ struct vk_object_base {
     */
    VkObjectType type;
 
+   /* True if this object is fully constructed and visible to the client */
+   bool client_visible;
+
    /** Pointer to the device in which this object exists, if any
     *
     * This is NULL for instances and physical devices but should point to a
@@ -64,9 +68,6 @@ struct vk_object_base {
     * level objects.
     */
    struct vk_instance *instance;
-
-   /* True if this object is fully constructed and visible to the client */
-   bool client_visible;
 
    /* For VK_EXT_private_data */
    struct util_sparse_array private_data;

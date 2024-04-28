@@ -1,41 +1,30 @@
 #include "pan_pps_perf.h"
 
-#include <lib/pan_device.h>
+#include <lib/kmod/pan_kmod.h>
 #include <perf/pan_perf.h>
+
 #include <pps/pps.h>
 #include <util/ralloc.h>
 
 namespace pps {
-PanfrostDevice::PanfrostDevice(int fd)
-    : ctx{ralloc_context(nullptr)},
-      dev{reinterpret_cast<struct panfrost_device *>(
-         new struct panfrost_device())}
+PanfrostDevice::PanfrostDevice(int fd): fd(fd)
 {
    assert(fd >= 0);
-   panfrost_open_device(ctx, fd, dev);
 }
 
 PanfrostDevice::~PanfrostDevice()
 {
-   if (ctx) {
-      panfrost_close_device(dev);
-   }
-   if (dev) {
-      delete dev;
-   }
 }
 
-PanfrostDevice::PanfrostDevice(PanfrostDevice &&o): ctx{o.ctx}, dev{o.dev}
+PanfrostDevice::PanfrostDevice(PanfrostDevice &&o): fd{o.fd}
 {
-   o.ctx = nullptr;
-   o.dev = nullptr;
+   o.fd = -1;
 }
 
 PanfrostDevice &
 PanfrostDevice::operator=(PanfrostDevice &&o)
 {
-   std::swap(ctx, o.ctx);
-   std::swap(dev, o.dev);
+   std::swap(fd, o.fd);
    return *this;
 }
 
@@ -44,8 +33,8 @@ PanfrostPerf::PanfrostPerf(const PanfrostDevice &dev)
          rzalloc(nullptr, struct panfrost_perf))}
 {
    assert(perf);
-   assert(dev.dev);
-   panfrost_perf_init(perf, dev.dev);
+   assert(dev.fd >= 0);
+   panfrost_perf_init(perf, dev.fd);
 }
 
 PanfrostPerf::~PanfrostPerf()

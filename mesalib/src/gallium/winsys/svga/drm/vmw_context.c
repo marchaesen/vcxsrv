@@ -98,7 +98,7 @@ struct vmw_svga_winsys_context
    struct vmw_winsys_screen *vws;
    struct hash_table *hash;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    bool must_flush;
    struct debug_stack_frame must_flush_stack[VMW_MUST_FLUSH_STACK];
    struct debug_flush_ctx *fctx;
@@ -278,7 +278,7 @@ vmw_swc_flush(struct svga_winsys_context *swc,
    vswc->region.used = 0;
    vswc->region.reserved = 0;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    vswc->must_flush = false;
    debug_flush_flush(vswc->fctx);
 #endif
@@ -309,7 +309,7 @@ vmw_swc_reserve(struct svga_winsys_context *swc,
 {
    struct vmw_svga_winsys_context *vswc = vmw_svga_winsys_context(swc);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* Check if somebody forgot to check the previous failure */
    if(vswc->must_flush) {
       debug_printf("Forgot to flush:\n");
@@ -328,7 +328,7 @@ vmw_swc_reserve(struct svga_winsys_context *swc,
       vswc->surface.used + nr_relocs > vswc->surface.size ||
       vswc->shader.used + nr_relocs > vswc->shader.size ||
       vswc->region.used + nr_relocs > vswc->region.size) {
-#ifdef DEBUG
+#if MESA_DEBUG
       vswc->must_flush = true;
       debug_backtrace_capture(vswc->must_flush_stack, 1,
                               VMW_MUST_FLUSH_STACK);
@@ -413,7 +413,7 @@ vmw_swc_region_relocation(struct svga_winsys_context *swc,
          vswc->preemptive_flush = true;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (!(flags & SVGA_RELOC_INTERNAL))
       debug_flush_cb_reference(vswc->fctx, vmw_debug_flush_buf(buffer));
 #endif
@@ -457,7 +457,7 @@ vmw_swc_mob_relocation(struct svga_winsys_context *swc,
          vswc->preemptive_flush = true;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (!(flags & SVGA_RELOC_INTERNAL))
       debug_flush_cb_reference(vswc->fctx, vmw_debug_flush_buf(buffer));
 #endif
@@ -678,7 +678,7 @@ vmw_swc_destroy(struct svga_winsys_context *swc)
    _mesa_hash_table_destroy(vswc->hash, NULL);
    pb_validate_destroy(vswc->validate);
    vmw_ioctl_context_destroy(vswc->vws, swc->cid);
-#ifdef DEBUG
+#if MESA_DEBUG
    debug_flush_ctx_destroy(vswc->fctx);
 #endif
    FREE(vswc);
@@ -829,7 +829,7 @@ vmw_svga_winsys_context_create(struct svga_winsys_screen *sws)
    if (!vswc->hash)
       goto out_no_hash;
 
-#ifdef DEBUG
+#if MESA_DEBUG
    vswc->fctx = debug_flush_ctx_create(true, VMW_DEBUG_FLUSH_STACK);
 #endif
 

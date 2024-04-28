@@ -29,6 +29,11 @@ SOFTWARE.
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/Xv.h>
+#include <X11/extensions/Xvproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "misc.h"
 #include "scrnintstr.h"
 #include "windowstr.h"
@@ -37,9 +42,6 @@ SOFTWARE.
 #include "dixstruct.h"
 #include "resource.h"
 #include "opaque.h"
-
-#include <X11/extensions/Xv.h>
-#include <X11/extensions/Xvproto.h>
 #include "xvdix.h"
 #ifdef MITSHM
 #include <X11/extensions/shmproto.h>

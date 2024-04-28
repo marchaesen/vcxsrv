@@ -382,11 +382,6 @@ extern _X_EXPORT Bool miModifyPixmapHeader(PixmapPtr pPixmap,
 extern _X_EXPORT Bool miCreateScreenResources(ScreenPtr /*pScreen */
     );
 
-extern _X_EXPORT Bool miScreenDevPrivateInit(ScreenPtr pScreen,
-                                             int width,
-                                             void *pbits
-    );
-
 extern _X_EXPORT Bool miScreenInit(ScreenPtr pScreen,
                                    void *pbits,
                                    int xsize,

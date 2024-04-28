@@ -55,6 +55,9 @@
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include <X11/Xatom.h>
+
+#include "dix/ptrveloc_priv.h"
+
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86Config.h"
@@ -98,6 +101,7 @@
 
 #ifdef XFreeXDGA
 #include "dgaproc.h"
+#include "dgaproc_priv.h"
 #endif
 
 #include "xkbsrv.h"

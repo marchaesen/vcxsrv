@@ -73,7 +73,6 @@ static const nir_shader_compiler_options midgard_nir_options = {
    .lower_insert_byte = true,
    .lower_insert_word = true,
    .lower_ldexp = true,
-   .lower_rotate = true,
 
    .lower_pack_half_2x16 = true,
    .lower_pack_unorm_2x16 = true,

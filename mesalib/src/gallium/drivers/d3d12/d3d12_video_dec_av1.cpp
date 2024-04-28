@@ -57,7 +57,7 @@ d3d12_video_decoder_refresh_dpb_active_references_av1(struct d3d12_video_decoder
 
 void
 d3d12_video_decoder_get_frame_info_av1(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool &isInterlaced)
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB)
 {
    auto pPicParams = d3d12_video_decoder_get_current_dxva_picparams<DXVA_PicParams_AV1>(pD3D12Dec);
    /* width, height
@@ -75,7 +75,6 @@ d3d12_video_decoder_get_frame_info_av1(
       Each frame may pick up to 7 reference frames (frame_refs[]) from the pool to use for inter prediction of the current frame. 
    */
    *pMaxDPB = 8 + 1 /*current picture*/;
-   isInterlaced = false;
 }
 
 void

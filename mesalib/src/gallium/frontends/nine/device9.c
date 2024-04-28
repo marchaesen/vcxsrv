@@ -1,24 +1,7 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "device9.h"
 #include "stateblock9.h"
@@ -237,7 +220,7 @@ NineDevice9_ctor( struct NineDevice9 *This,
         This->may_swvp = true;
     }
     This->context.swvp = This->swvp;
-    /* TODO: check if swvp is resetted by device Resets */
+    /* TODO: check if swvp is reset by device Resets */
 
     if (This->may_swvp &&
         (This->screen->get_shader_param(This->screen, PIPE_SHADER_VERTEX,
@@ -1062,6 +1045,7 @@ NineDevice9_Reset( struct NineDevice9 *This,
     /* XXX: better use GetBackBuffer here ? */
 
     This->device_needs_reset = (hr != D3D_OK);
+    This->in_scene = FALSE; /* Not sure if should be done also for ResetEx */
     return hr;
 }
 
@@ -2654,7 +2638,7 @@ NineDevice9_GetClipStatus( struct NineDevice9 *This,
     /* Set/GetClipStatus is supposed to get the app some infos
      * about vertices being clipped if it is using the software
      * vertex rendering. It would be too complicated to implement.
-     * Probably the info is for developpers when working on their
+     * Probably the info is for developers when working on their
      * applications. Else it could be for apps to know if it is worth
      * drawing some elements. In that case it makes sense to send
      * 0 for ClipUnion and 0xFFFFFFFF for ClipIntersection (basically

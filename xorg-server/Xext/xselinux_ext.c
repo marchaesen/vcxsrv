@@ -21,6 +21,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
+
 #include "selection.h"
 #include "inputstr.h"
 #include "windowstr.h"
@@ -43,6 +45,9 @@ typedef struct {
     CARD32 dctx_len;
     CARD32 id;
 } SELinuxListItemRec;
+
+Bool noSELinuxExtension = FALSE;
+int selinuxEnforcingState = SELINUX_MODE_DEFAULT;
 
 /*
  * Extension Dispatch

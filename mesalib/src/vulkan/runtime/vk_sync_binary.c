@@ -91,6 +91,9 @@ vk_sync_binary_wait_many(struct vk_device *device,
                          enum vk_sync_wait_flags wait_flags,
                          uint64_t abs_timeout_ns)
 {
+   if (wait_count == 0)
+      return VK_SUCCESS;
+
    STACK_ARRAY(struct vk_sync_wait, timeline_waits, wait_count);
 
    for (uint32_t i = 0; i < wait_count; i++) {

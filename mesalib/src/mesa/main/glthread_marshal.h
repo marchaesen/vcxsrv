@@ -35,17 +35,21 @@
 #include "main/macros.h"
 #include "main/matrix.h"
 
+/* 32-bit signed integer clamped to 0..UINT16_MAX to compress parameters
+ * for glthread. All values < 0 and >= UINT16_MAX are expected to throw
+ * GL_INVALID_VALUE. Negative values are mapped to UINT16_MAX.
+ */
+typedef uint16_t GLpacked16i;
+
+/* 32-bit signed integer clamped to 16 bits. */
+typedef int16_t GLclamped16i;
+
 struct marshal_cmd_base
 {
    /**
     * Type of command.  See enum marshal_dispatch_cmd_id.
     */
    uint16_t cmd_id;
-
-   /**
-    * Number of uint64_t elements used by the command.
-    */
-   uint16_t cmd_size;
 };
 
 /* This must be included after "struct marshal_cmd_base" because it uses it. */
@@ -59,8 +63,9 @@ extern const char *_mesa_unmarshal_func_name[NUM_DISPATCH_CMD];
 struct marshal_cmd_DrawElementsUserBuf
 {
    struct marshal_cmd_base cmd_base;
-   GLenum16 mode;
-   GLenum16 type;
+   GLenum8 mode;
+   GLindextype type;
+   uint16_t num_slots;
    GLsizei count;
    GLsizei instance_count;
    GLint basevertex;
@@ -68,6 +73,18 @@ struct marshal_cmd_DrawElementsUserBuf
    GLuint drawid;
    GLuint user_buffer_mask;
    const GLvoid *indices;
+   struct gl_buffer_object *index_buffer;
+};
+
+struct marshal_cmd_DrawElementsUserBufPacked
+{
+   struct marshal_cmd_base cmd_base;
+   GLenum8 mode;
+   GLindextype type;
+   uint16_t num_slots;
+   GLushort count;
+   GLuint user_buffer_mask;
+   GLuint indices;
    struct gl_buffer_object *index_buffer;
 };
 
@@ -89,8 +106,13 @@ _mesa_glthread_allocate_command(struct gl_context *ctx,
       (struct marshal_cmd_base *)&next->buffer[glthread->used];
    glthread->used += num_elements;
    cmd_base->cmd_id = cmd_id;
-   cmd_base->cmd_size = num_elements;
    return cmd_base;
+}
+
+static inline GLenum
+_mesa_decode_index_type(GLindextype type)
+{
+   return (GLenum)type.value + GL_UNSIGNED_BYTE - 1;
 }
 
 static inline struct marshal_cmd_base *
@@ -102,29 +124,28 @@ _mesa_glthread_get_cmd(uint64_t *opaque_cmd)
 static inline uint64_t *
 _mesa_glthread_next_cmd(uint64_t *opaque_cmd, unsigned cmd_size)
 {
-   assert(_mesa_glthread_get_cmd(opaque_cmd)->cmd_size == cmd_size);
    return opaque_cmd + cmd_size;
 }
 
 static inline bool
 _mesa_glthread_call_is_last(struct glthread_state *glthread,
-                            struct marshal_cmd_base *last)
+                            struct marshal_cmd_base *last, uint16_t num_slots)
 {
    return last &&
-          (uint64_t*)last + last->cmd_size ==
+          (uint64_t*)last + num_slots ==
           &glthread->next_batch->buffer[glthread->used];
 }
 
 static inline bool
-_mesa_glthread_has_no_pack_buffer(const struct gl_context *ctx)
+_mesa_glthread_has_pack_buffer(const struct gl_context *ctx)
 {
-   return ctx->GLThread.CurrentPixelPackBufferName == 0;
+   return ctx->GLThread.CurrentPixelPackBufferName != 0;
 }
 
 static inline bool
-_mesa_glthread_has_no_unpack_buffer(const struct gl_context *ctx)
+_mesa_glthread_has_unpack_buffer(const struct gl_context *ctx)
 {
-   return ctx->GLThread.CurrentPixelUnpackBufferName == 0;
+   return ctx->GLThread.CurrentPixelUnpackBufferName != 0;
 }
 
 static inline unsigned

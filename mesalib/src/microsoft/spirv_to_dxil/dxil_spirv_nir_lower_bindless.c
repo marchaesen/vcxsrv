@@ -254,3 +254,64 @@ dxil_spirv_nir_lower_bindless(nir_shader *nir, struct dxil_spirv_nir_lower_bindl
    }
    return true;
 }
+
+/* Given a global deref chain that starts as a pointer value and ends with a load/store/atomic,
+ * create a new SSBO deref chain. The new chain starts with a load_vulkan_descriptor, then casts
+ * the resulting vec2 to an SSBO deref. */
+static bool
+lower_buffer_device_address(nir_builder *b, nir_intrinsic_instr *intr, void *data)
+{
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_deref:
+   case nir_intrinsic_store_deref:
+   case nir_intrinsic_deref_atomic:
+   case nir_intrinsic_deref_atomic_swap:
+      break;
+   default:
+      assert(intr->intrinsic != nir_intrinsic_copy_deref);
+      return false;
+   }
+   nir_deref_instr *deref = nir_src_as_deref(intr->src[0]);
+   if (!nir_deref_mode_is(deref, nir_var_mem_global))
+      return false;
+
+   nir_deref_path path;
+   nir_deref_path_init(&path, deref, NULL);
+
+   nir_deref_instr *old_head = path.path[0];
+   assert(old_head->deref_type == nir_deref_type_cast &&
+          old_head->parent.ssa->bit_size == 64 &&
+          old_head->parent.ssa->num_components == 1);
+   b->cursor = nir_after_instr(&old_head->instr);
+   nir_def *pointer = old_head->parent.ssa;
+   nir_def *offset = nir_unpack_64_2x32_split_x(b, pointer);
+   nir_def *index = nir_iand_imm(b, nir_unpack_64_2x32_split_y(b, pointer), 0xffffff);
+
+   nir_def *descriptor = nir_load_vulkan_descriptor(b, 2, 32, nir_vec2(b, index, offset),
+                                                    .desc_type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER);
+   nir_deref_instr *head = nir_build_deref_cast_with_alignment(b, descriptor, nir_var_mem_ssbo, old_head->type,
+                                                               old_head->cast.ptr_stride,
+                                                               old_head->cast.align_mul,
+                                                               old_head->cast.align_offset);
+
+   for (int i = 1; path.path[i]; ++i) {
+      nir_deref_instr *old = path.path[i];
+      b->cursor = nir_after_instr(&old->instr);
+      head = nir_build_deref_follower(b, head, old);
+   }
+
+   nir_src_rewrite(&intr->src[0], &head->def);
+
+   nir_deref_path_finish(&path);
+   return true;
+}
+
+bool
+dxil_spirv_nir_lower_buffer_device_address(nir_shader *nir)
+{
+   return nir_shader_intrinsics_pass(nir, lower_buffer_device_address,
+                                     nir_metadata_block_index |
+                                     nir_metadata_dominance |
+                                     nir_metadata_loop_analysis,
+                                     NULL);
+}

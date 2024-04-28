@@ -6,6 +6,6 @@ includedir=@includedir@
 Name: XCB Present
 Description: XCB Present Extension
 Version: @PACKAGE_VERSION@
-Requires.private: xcb xcb-randr xcb-xfixes xcb-sync
+Requires.private: xcb xcb-randr xcb-xfixes xcb-sync xcb-dri3
 Libs: -L${libdir} -lxcb-present
 Cflags: -I${includedir}

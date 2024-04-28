@@ -35,14 +35,14 @@
 static inline uint32_t
 etna_float_to_fixp55(float f)
 {
-   return U_FIXED(f, 5);
+   return S_FIXED(f, 5);
 }
 
 /* float to fixp 8.8 */
 static inline uint32_t
 etna_float_to_fixp88(float f)
 {
-   return U_FIXED(f, 8);
+   return S_FIXED(f, 8);
 }
 
 /* texture size to log2 in fixp 5.5 format */

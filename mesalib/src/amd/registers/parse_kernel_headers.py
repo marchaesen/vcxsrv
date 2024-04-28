@@ -444,6 +444,23 @@ VRSHtileEncoding = {
  ]
 }
 
+BinningModeGfx11 = {
+ "entries": [
+  {"name": "BINNING_ALLOWED", "value": 0},
+  {"name": "FORCE_BINNING_ON", "value": 1},
+  {"name": "BINNING_ONE_PRIM_PER_BATCH", "value": 2},
+  {"name": "BINNING_DISABLED", "value": 3}
+ ]
+}
+
+BinningModeGfx115Plus = {
+ "entries": [
+  {"name": "BINNING_ALLOWED", "value": 0},
+  {"name": "FORCE_BINNING_ON", "value": 1},
+  {"name": "BINNING_DISABLED", "value": 3}
+ ]
+}
+
 missing_enums_all = {
   'FLOAT_MODE': {
     "entries": [
@@ -669,6 +686,11 @@ missing_enums_gfx11plus = {
   },
 }
 
+missing_enums_gfx115plus = {
+  **missing_enums_gfx11plus,
+  "BinningMode": BinningModeGfx115Plus,
+}
+
 enums_missing = {
   'gfx6': {
     **missing_enums_all,
@@ -704,9 +726,10 @@ enums_missing = {
   },
   'gfx11': {
     **missing_enums_gfx11plus,
+    "BinningMode": BinningModeGfx11,
   },
   'gfx115': {
-    **missing_enums_gfx11plus,
+    **missing_enums_gfx115plus,
   },
 }
 

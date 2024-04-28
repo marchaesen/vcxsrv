@@ -37,7 +37,7 @@ vk_pipeline_layout_init(struct vk_device *device,
                         const VkPipelineLayoutCreateInfo *pCreateInfo)
 {
    assert(pCreateInfo->sType == VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO);
-   assert(pCreateInfo->setLayoutCount <= VK_MESA_PIPELINE_LAYOUT_MAX_SETS);
+   assert(pCreateInfo->setLayoutCount <= MESA_VK_MAX_DESCRIPTOR_SETS);
 
    vk_object_base_init(device, &layout->base, VK_OBJECT_TYPE_PIPELINE_LAYOUT);
 
@@ -55,6 +55,12 @@ vk_pipeline_layout_init(struct vk_device *device,
       else
          layout->set_layouts[s] = NULL;
    }
+
+   assert(pCreateInfo->pushConstantRangeCount <
+          MESA_VK_MAX_PUSH_CONSTANT_RANGES);
+   layout->push_range_count = pCreateInfo->pushConstantRangeCount;
+   for (uint32_t r = 0; r < pCreateInfo->pushConstantRangeCount; r++)
+      layout->push_ranges[r] = pCreateInfo->pPushConstantRanges[r];
 }
 
 void *

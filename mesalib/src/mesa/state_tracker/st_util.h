@@ -124,18 +124,20 @@ st_validate_state(struct st_context *st, uint64_t pipeline_state_mask)
        * x86_64: u_bit_scan64 is negligibly faster than u_bit_scan
        * i386:   u_bit_scan64 is noticably slower than u_bit_scan
        */
+      st_update_func_t *update_state = st->update_functions;
+
       if (sizeof(void*) == 8) {
          while (dirty)
-            st_update_functions[u_bit_scan64(&dirty)](st);
+            update_state[u_bit_scan64(&dirty)](st);
       } else {
          /* Split u_bit_scan64 into 2x u_bit_scan32 for i386. */
          uint32_t dirty_lo = dirty;
          uint32_t dirty_hi = dirty >> 32;
 
          while (dirty_lo)
-            st_update_functions[u_bit_scan(&dirty_lo)](st);
+            update_state[u_bit_scan(&dirty_lo)](st);
          while (dirty_hi)
-            st_update_functions[32 + u_bit_scan(&dirty_hi)](st);
+            update_state[32 + u_bit_scan(&dirty_hi)](st);
       }
    }
 }

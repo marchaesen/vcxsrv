@@ -1,11 +1,9 @@
 #!/usr/bin/env python3
-import os
 import socket
 import sys
 import select
 from select import EPOLLIN, EPOLLPRI, EPOLLERR
 import time
-from collections import namedtuple
 import argparse
 
 TIMEOUT = 1.0 # seconds
@@ -96,12 +94,12 @@ class MsgParser:
         while remaining > 0 and ncmds > 0:
             now = time.monotonic()
 
-            if self.buffer == None:
+            if self.buffer is None:
                 self.buffer = self.conn.recv(remaining)
                 self.bufferpos = 0
 
             # disconnected or error
-            if self.buffer == None:
+            if self.buffer is None:
                 return None
 
             for i in range(self.bufferpos, len(self.buffer)):
@@ -173,16 +171,14 @@ def control(args):
         elif cmd == MESA_VERSION_HEADER:
             mesa_version = param.decode('utf-8')
 
-    if version != 1 or name == None or mesa_version == None:
+    if version != 1 or name is None or mesa_version is None:
         print('ERROR: invalid protocol')
         sys.exit(1)
 
-
     if args.info:
-        info = "Protocol Version: {}\n"
-        info += "Device Name: {}\n"
-        info += "Mesa Version: {}"
-        print(info.format(version, name, mesa_version))
+        print(f"Protocol Version: {version}")
+        print(f"Device Name: {name}")
+        print(f"Mesa Version: {mesa_version}")
 
     if args.cmd == 'start-capture':
         conn.send(bytearray(':capture=1;', 'utf-8'))

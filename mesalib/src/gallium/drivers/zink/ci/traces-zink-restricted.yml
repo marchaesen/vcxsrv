@@ -6,14 +6,14 @@ traces-db:
 traces:
   AmnesiaTDD/Amnesia-f700-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 9cd992354bf22310199406ccd83ce458
+      checksum: c0a3a735ce4dcc394af8bef0289ba8b1
   Anna/Anna-f692-v2.trace:
     gl-zink-anv-tgl:
       label: [skip]
       text: "trace contains no swapbuffers, so no frames recorded"
   Antichamber/antichamber-f240-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 50664836118bb25c3a3bc91c10644233
+      checksum: 55e105b22656add7d16efac2bcad82f5
       text: "line widths look wrong compared to freedreno"
   Cradle/cradle-f3000-v2.trace:
     gl-zink-anv-tgl:
@@ -25,7 +25,7 @@ traces:
       text: "note that this trace is stable on freedreno"
   LifelessPlanet/LifelessPlanet-f420-v2.trace:
     gl-zink-anv-tgl:
-      checksum: e7cace46dfa2fe588bf55f03f5a50e1f
+      checksum: defec084a01f13e5cf01147bcfd235e6
   MetroLLRedux/metro-ll-redux-kf480-v2.trace:
     gl-zink-anv-tgl:
       label: [skip, slow]
@@ -38,7 +38,7 @@ traces:
       checksum: 17daf7dc20dd74186d04eb54497a1690
   PenumbraOverture/penumbra-ov-s0-2-864-f1500-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 52e0fe3474930b1d0956128559d90c3a
+      checksum: fff50b2eb306641d90b4249542d437d1
   ShadowWarrior/ShadowWarrior-f3952-v2.trace:
     gl-zink-anv-tgl:
       label: [skip, flakes]
@@ -47,7 +47,7 @@ traces:
         This trace is flaky on freedreno too.
   SirYouAreBeingHunted/sir-f750-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 682cd837d4884dfb4ed484f6181d801b
+      checksum: 68611fd9f51e5ef5d2eb4417031a379f
   SpecOps/specops-s0-1088-f1300-v2.trace:
     gl-zink-anv-tgl:
       label: [skip, broken, flakes]
@@ -60,7 +60,7 @@ traces:
       text: https://gitlab.freedesktop.org/mesa/mesa/-/issues/8986
   TheRavenRemastered/Raven-f10900-v2.trace:
     gl-zink-anv-tgl:
-      checksum: db7b901177e7ac00cc489e0e13f71f76
+      checksum: 64243ccd048cbbfc0649e8f3c5b5cdb3
   TombRaider2013/TombRaider-f1430-v2.trace:
     gl-zink-anv-tgl:
       label: [crash]
@@ -92,10 +92,10 @@ traces:
       text: "note that this trace is stable on freedreno"
   ksp/KSP-trim--f4800-v20201203-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 4ff2057a3aeb911eef0cbe023ad3375a
+      checksum: 28b08ee598387fdc58b6e0e92261e1d3
   overcooked2/Overcooked2-trim--f3301-v20201203-v2.trace:
     gl-zink-anv-tgl:
-      checksum: 2c9b64b805a4e489c3e5201f16743d14
+      checksum: 2d342febd76eb2b33e0496e5ed57e124
   plague-inc-evolved/PlagueIncEvolved-trim--f1200-v20201203-v2.trace:
     gl-zink-anv-tgl:
       label: [skip]

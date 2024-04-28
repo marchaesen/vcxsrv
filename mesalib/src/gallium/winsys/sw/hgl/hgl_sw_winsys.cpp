@@ -42,7 +42,7 @@
 #include <Bitmap.h>
 #include <OS.h>
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #   define TRACE(x...) printf("hgl:winsys: " x)
 #   define CALLED() TRACE("CALLED: %s\n", __PRETTY_FUNCTION__)
 #else
@@ -211,7 +211,8 @@ hgl_winsys_displaytarget_unmap(struct sw_winsys* winsys,
 static void
 hgl_winsys_displaytarget_display(struct sw_winsys* winsys,
 	struct sw_displaytarget* displayTarget, void* contextPrivate,
-	struct pipe_box *box)
+   unsigned nboxes,
+   struct pipe_box *box)
 {
 	assert(contextPrivate);
 

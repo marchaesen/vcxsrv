@@ -1,6 +1,6 @@
 [[deqp]]
 deqp = "/deqp/modules/gles2/deqp-gles2"
-caselists = ["/deqp/mustpass/gles2-master.txt"]
+caselists = ["/deqp/mustpass/gles2-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",
@@ -13,7 +13,7 @@ renderer_check = "RV530"
 
 [[deqp]]
 deqp = "/deqp/external/openglcts/modules/glcts"
-caselists = ["/deqp/mustpass/gles2-khr-master.txt"]
+caselists = ["/deqp/mustpass/gles2-khr-main.txt"]
 deqp_args = [
     "--deqp-surface-width=256",
     "--deqp-surface-height=256",

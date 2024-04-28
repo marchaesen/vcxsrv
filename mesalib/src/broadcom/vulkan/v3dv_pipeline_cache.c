@@ -22,7 +22,7 @@
  */
 
 #include "v3dv_private.h"
-#include "vulkan/util/vk_util.h"
+#include "vk_util.h"
 #include "util/blob.h"
 #include "nir/nir_serialize.h"
 

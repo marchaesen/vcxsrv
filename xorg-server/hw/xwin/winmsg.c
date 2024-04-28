@@ -33,7 +33,7 @@
 #endif
 #include "win.h"
 #include "winmsg.h"
-#if CYGDEBUG
+#if ENABLE_DEBUG
 #include "winmessages.h"
 #endif
 #include <stdarg.h>
@@ -117,7 +117,7 @@ winW32ErrorEx(int verb, const char *msg, DWORD errorcode)
     }
 }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
 void
 winDebugWin32Message(const char *function, HWND hwnd, UINT message,
                      WPARAM wParam, LPARAM lParam)

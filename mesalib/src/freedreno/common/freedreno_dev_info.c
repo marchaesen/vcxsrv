@@ -106,6 +106,18 @@ fd_dev_info(const struct fd_dev_id *id)
    return modified;
 }
 
+const struct fd_dev_info *
+fd_dev_info_raw_by_name(const char *name)
+{
+   for (int i = 0; i < ARRAY_SIZE(fd_dev_recs); i++) {
+      if (!strcmp(fd_dev_recs[i].name, name)) {
+         return fd_dev_recs[i].info;
+      }
+   }
+
+   return NULL;
+}
+
 const char *
 fd_dev_name(const struct fd_dev_id *id)
 {

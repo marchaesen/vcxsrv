@@ -78,18 +78,4 @@ typedef struct _SyncTriggerList {
     struct _SyncTriggerList *next;
 } SyncTriggerList;
 
-extern DevPrivateKeyRec miSyncScreenPrivateKey;
-
-#define SYNC_SCREEN_PRIV(pScreen) 				\
-    (SyncScreenPrivPtr) dixLookupPrivate(&pScreen->devPrivates,	\
-					 &miSyncScreenPrivateKey)
-
-typedef struct _syncScreenPriv {
-    /* Wrappable sync-specific screen functions */
-    SyncScreenFuncsRec funcs;
-
-    /* Wrapped screen functions */
-    CloseScreenProcPtr CloseScreen;
-} SyncScreenPrivRec, *SyncScreenPrivPtr;
-
 #endif                          /* _MISYNCSTR_H_ */

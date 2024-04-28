@@ -24,6 +24,47 @@
 #ifndef VK_LIMITS_H
 #define VK_LIMITS_H
 
+/* Maximun number of shader stages in a single graphics pipeline */
+#define MESA_VK_MAX_GRAPHICS_PIPELINE_STAGES 5
+
+#define MESA_VK_MAX_DESCRIPTOR_SETS 32
+
+/* From the Vulkan 1.3.274 spec:
+ *
+ *    VUID-VkPipelineLayoutCreateInfo-pPushConstantRanges-00292
+ *
+ *    "Any two elements of pPushConstantRanges must not include the same
+ *    stage in stageFlags"
+ *
+ * and
+ *
+ *    VUID-VkPushConstantRange-stageFlags-requiredbitmask
+ *
+ *    "stageFlags must not be 0"
+ *
+ * This means that the number of push constant ranges is effectively bounded
+ * by the number of possible shader stages.  Not the number of stages that can
+ * be compiled together (a pipeline layout can be used in multiple pipelnes
+ * wth different sets of shaders) but the total number of stage bits supported
+ * by the implementation.  Currently, those are
+ *
+ *    - VK_SHADER_STAGE_VERTEX_BIT
+ *    - VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT
+ *    - VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT
+ *    - VK_SHADER_STAGE_GEOMETRY_BIT
+ *    - VK_SHADER_STAGE_FRAGMENT_BIT
+ *    - VK_SHADER_STAGE_COMPUTE_BIT
+ *    - VK_SHADER_STAGE_RAYGEN_BIT_KHR
+ *    - VK_SHADER_STAGE_ANY_HIT_BIT_KHR
+ *    - VK_SHADER_STAGE_CLOSEST_HIT_BIT_KHR
+ *    - VK_SHADER_STAGE_MISS_BIT_KHR
+ *    - VK_SHADER_STAGE_INTERSECTION_BIT_KHR
+ *    - VK_SHADER_STAGE_CALLABLE_BIT_KHR
+ *    - VK_SHADER_STAGE_TASK_BIT_EXT
+ *    - VK_SHADER_STAGE_MESH_BIT_EXT
+ */
+#define MESA_VK_MAX_PUSH_CONSTANT_RANGES 14
+
 #define MESA_VK_MAX_VERTEX_BINDINGS 32
 #define MESA_VK_MAX_VERTEX_ATTRIBUTES 32
 

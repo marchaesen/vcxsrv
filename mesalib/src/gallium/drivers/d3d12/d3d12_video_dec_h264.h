@@ -203,7 +203,7 @@ d3d12_video_decoder_dxva_picparams_from_pipe_picparams_h264(uint32_t            
                                                             pipe_h264_picture_desc *pipeDesc);
 void
 d3d12_video_decoder_get_frame_info_h264(
-   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB, bool &isInterlaced);
+   struct d3d12_video_decoder *pD3D12Dec, uint32_t *pWidth, uint32_t *pHeight, uint16_t *pMaxDPB);
 void
 d3d12_video_decoder_prepare_current_frame_references_h264(struct d3d12_video_decoder *pD3D12Dec,
                                                           ID3D12Resource *            pTexture2D,

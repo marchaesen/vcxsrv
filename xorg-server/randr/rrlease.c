@@ -19,10 +19,14 @@
  * TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE OR PERFORMANCE
  * OF THIS SOFTWARE.
  */
+#include <dix-config.h>
 
-#include "randrstr.h"
-#include "swaprep.h"
 #include <unistd.h>
+
+#include "dix/dix_priv.h"
+#include "randr/randrstr_priv.h"
+
+#include "swaprep.h"
 
 RESTYPE RRLeaseType;
 
@@ -147,7 +151,7 @@ RRLeaseTerminated(RRLeasePtr lease)
         RRLeaseChangeState(lease, RRLeaseTerminating, RRLeaseTerminating);
 
     if (lease->id != None)
-        FreeResource(lease->id, RT_NONE);
+        FreeResource(lease->id, X11_RESTYPE_NONE);
 
     xorg_list_del(&lease->list);
 }
@@ -364,7 +368,7 @@ ProcRRFreeLease(ClientPtr client)
         RRTerminateLease(lease);
     else
         /* Get rid of the resource database entry */
-        FreeResource(stuff->lid, RT_NONE);
+        FreeResource(stuff->lid, X11_RESTYPE_NONE);
 
     return Success;
 }

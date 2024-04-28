@@ -88,6 +88,9 @@ do_swap(struct ir3_compiler *compiler, struct ir3_instruction *instr,
    assert(!entry->src.flags);
 
    if (entry->flags & IR3_REG_HALF) {
+      const unsigned half_size =
+         (entry->flags & IR3_REG_SHARED) ? RA_SHARED_HALF_SIZE : RA_HALF_SIZE;
+
       /* We currently make sure to never emit parallel copies where the
        * source/destination is a half-reg above the range accessable to half
        * registers. However, when a full-reg source overlaps a half-reg
@@ -97,7 +100,7 @@ do_swap(struct ir3_compiler *compiler, struct ir3_instruction *instr,
        * "illegal" swap instead. This may also be useful for implementing
        * "spilling" half-regs to the inaccessable space.
        */
-      if (entry->src.reg >= RA_HALF_SIZE) {
+      if (entry->src.reg >= half_size) {
          /* Choose a temporary that doesn't overlap src or dst */
          physreg_t tmp = entry->dst < 2 ? 2 : 0;
 
@@ -137,7 +140,7 @@ do_swap(struct ir3_compiler *compiler, struct ir3_instruction *instr,
       /* If dst is not addressable, we only need to swap the arguments and
        * let the case above handle it.
        */
-      if (entry->dst >= RA_HALF_SIZE) {
+      if (entry->dst >= half_size) {
          do_swap(compiler, instr,
                  &(struct copy_entry){
                     .src = {.reg = entry->dst},
@@ -154,23 +157,12 @@ do_swap(struct ir3_compiler *compiler, struct ir3_instruction *instr,
    /* a5xx+ is known to support swz, which enables us to swap two registers
     * in-place. If unsupported we emulate it using the xor trick.
     */
-   if (compiler->gen < 5) {
-      /* Shared regs only exist since a5xx, so we don't have to provide a
-       * fallback path for them.
-       */
-      assert(!(entry->flags & IR3_REG_SHARED));
+   if (compiler->gen < 5 || (entry->flags & IR3_REG_SHARED)) {
       do_xor(instr, dst_num, dst_num, src_num, entry->flags);
       do_xor(instr, src_num, src_num, dst_num, entry->flags);
       do_xor(instr, dst_num, dst_num, src_num, entry->flags);
    } else {
-      /* Use a macro for shared regs because any shared reg writes need to
-       * be wrapped in a getone block to work correctly. Writing shared regs
-       * with multiple threads active does not work, even if they all return
-       * the same value.
-       */
-      unsigned opc =
-         (entry->flags & IR3_REG_SHARED) ? OPC_SWZ_SHARED_MACRO : OPC_SWZ;
-      struct ir3_instruction *swz = ir3_instr_create(instr->block, opc, 2, 2);
+      struct ir3_instruction *swz = ir3_instr_create(instr->block, OPC_SWZ, 2, 2);
       ir3_dst_create(swz, dst_num, entry->flags);
       ir3_dst_create(swz, src_num, entry->flags);
       ir3_src_create(swz, src_num, entry->flags);
@@ -188,7 +180,9 @@ do_copy(struct ir3_compiler *compiler, struct ir3_instruction *instr,
 {
    if (entry->flags & IR3_REG_HALF) {
       /* See do_swap() for why this is here. */
-      if (entry->dst >= RA_HALF_SIZE) {
+      const unsigned half_size =
+         (entry->flags & IR3_REG_SHARED) ? RA_SHARED_HALF_SIZE : RA_HALF_SIZE;
+      if (entry->dst >= half_size) {
          /* TODO: is there a hw instruction we can use for this case? */
          physreg_t tmp = !entry->src.flags && entry->src.reg < 2 ? 2 : 0;
 
@@ -222,7 +216,7 @@ do_copy(struct ir3_compiler *compiler, struct ir3_instruction *instr,
          return;
       }
 
-      if (!entry->src.flags && entry->src.reg >= RA_HALF_SIZE) {
+      if (!entry->src.flags && entry->src.reg >= half_size) {
          unsigned src_num = ra_physreg_to_num(entry->src.reg & ~1u,
                                               entry->flags & ~IR3_REG_HALF);
          unsigned dst_num = ra_physreg_to_num(entry->dst, entry->flags);
@@ -252,12 +246,12 @@ do_copy(struct ir3_compiler *compiler, struct ir3_instruction *instr,
    unsigned src_num = ra_physreg_to_num(entry->src.reg, entry->flags);
    unsigned dst_num = ra_physreg_to_num(entry->dst, entry->flags);
 
-   /* Similar to the swap case, we have to use a macro for shared regs. */
-   unsigned opc =
-      (entry->flags & IR3_REG_SHARED) ? OPC_READ_FIRST_MACRO : OPC_MOV;
-   struct ir3_instruction *mov = ir3_instr_create(instr->block, opc, 1, 1);
+   struct ir3_instruction *mov = ir3_instr_create(instr->block, OPC_MOV, 1, 1);
    ir3_dst_create(mov, dst_num, entry->flags);
-   ir3_src_create(mov, src_num, entry->flags | entry->src.flags);
+   if (entry->src.flags & (IR3_REG_IMMED | IR3_REG_CONST))
+      ir3_src_create(mov, INVALID_REG, (entry->flags & IR3_REG_HALF) | entry->src.flags);
+   else
+      ir3_src_create(mov, src_num, entry->flags);
    mov->cat1.dst_type = (entry->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
    mov->cat1.src_type = (entry->flags & IR3_REG_HALF) ? TYPE_U16 : TYPE_U32;
    if (entry->src.flags & IR3_REG_IMMED)
@@ -528,7 +522,7 @@ ir3_lower_copies(struct ir3_shader_variant *v)
             for (unsigned i = 0; i < instr->dsts_count; i++) {
                struct ir3_register *dst = instr->dsts[i];
                struct ir3_register *src = instr->srcs[i];
-               unsigned flags = src->flags & (IR3_REG_HALF | IR3_REG_SHARED);
+               unsigned flags = dst->flags & (IR3_REG_HALF | IR3_REG_SHARED);
                unsigned dst_physreg = ra_reg_get_physreg(dst);
                for (unsigned j = 0; j < reg_elems(dst); j++) {
                   array_insert(
@@ -573,6 +567,63 @@ ir3_lower_copies(struct ir3_shader_variant *v)
             list_del(&instr->node);
          } else if (instr->opc == OPC_META_PHI) {
             list_del(&instr->node);
+         } else if (instr->opc == OPC_MOV) {
+            /* There seems to be a HW bug where moves where the source is 16-bit
+             * non-shared and the destination is 16-bit shared don't work when
+             * only fibers 64-127 are active. We work around it by instead
+             * generating a narrowing mov, which only works with even-numbered
+             * registers (i.e. .x and .z), but for odd numbers we can swap the
+             * components of the normal src and its even neighbor and then
+             * unswap afterwords to make it work for everything.
+             */
+            if ((instr->dsts[0]->flags & IR3_REG_SHARED) &&
+                (instr->dsts[0]->flags & IR3_REG_HALF) &&
+                !(instr->srcs[0]->flags & (IR3_REG_SHARED | IR3_REG_IMMED |
+                                           IR3_REG_CONST)) &&
+                (instr->srcs[0]->flags & IR3_REG_HALF)) {
+               unsigned src_num = instr->srcs[0]->num;
+               unsigned dst_num = instr->dsts[0]->num;
+
+               for (unsigned i = 0; i <= instr->repeat; i++,
+                    src_num++, dst_num++) {
+                  if (src_num & 1) {
+                     for (unsigned i = 0; i < 2; i++) {
+                        struct ir3_instruction *swz = ir3_instr_create(instr->block, OPC_SWZ, 2, 2);
+                        ir3_dst_create(swz, src_num - 1, IR3_REG_HALF);
+                        ir3_dst_create(swz, src_num, IR3_REG_HALF);
+                        ir3_src_create(swz, src_num, IR3_REG_HALF);
+                        ir3_src_create(swz, src_num - 1, IR3_REG_HALF);
+                        swz->cat1.dst_type = TYPE_U16;
+                        swz->cat1.src_type = TYPE_U16;
+                        swz->repeat = 1;
+                        if (i == 0)
+                           ir3_instr_move_before(swz, instr);
+                        else
+                           ir3_instr_move_after(swz, instr);
+                     }
+                  }
+
+                  struct ir3_instruction *mov =
+                     ir3_instr_create(instr->block, OPC_MOV, 1, 1);
+
+                  ir3_dst_create(mov, dst_num, instr->dsts[0]->flags);
+                  ir3_src_create(mov, src_num / 2,
+                                 instr->srcs[0]->flags & ~IR3_REG_HALF);
+
+                  /* Float conversions are banned in this case in
+                   * ir3_valid_flags(), so we only have to worry about normal
+                   * non-converting moves.
+                   */
+                  assert(instr->cat1.src_type == TYPE_U16 ||
+                         instr->cat1.src_type == TYPE_S16);
+                  mov->cat1.src_type = TYPE_U32;
+                  mov->cat1.dst_type = TYPE_U16;
+
+                  ir3_instr_move_before(mov, instr);
+               }
+
+               list_del(&instr->node);
+            }
          }
       }
    }

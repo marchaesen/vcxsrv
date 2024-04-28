@@ -35,6 +35,9 @@ from The Open Group.
 #include <sys/utsname.h>
 #endif
 
+#include "os/cmdline.h"
+#include "os/osdep.h"
+
 #include <../xfree86/common/xorgVersion.h>
 #include "win.h"
 #include "winconfig.h"
@@ -221,13 +224,11 @@ ddxProcessArgument(int argc, char *argv[], int i)
 
     /* Initialize once */
     if (!s_fBeenHere) {
-#ifdef DDXOSVERRORF
         /*
          * This initialises our hook into VErrorF () for catching log messages
          * that are generated before OsInit () is called.
          */
         OsVendorVErrorFProc = OsVendorVErrorF;
-#endif
 
         s_fBeenHere = TRUE;
 
@@ -252,7 +253,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
         }
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("ddxProcessArgument - arg: %s\n", argv[i]);
 #endif
 
@@ -285,7 +286,7 @@ ddxProcessArgument(int argc, char *argv[], int i)
         int iWidth, iHeight, iX, iY;
         int iMonitor;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("ddxProcessArgument - screen - argc: %d i: %d\n", argc, i);
 #endif
 

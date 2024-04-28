@@ -302,6 +302,7 @@ struct dd_context
 
    struct dd_draw_state draw_state;
    unsigned num_draw_calls;
+   unsigned num_vertex_buffers;
 
    struct u_log_context log;
 

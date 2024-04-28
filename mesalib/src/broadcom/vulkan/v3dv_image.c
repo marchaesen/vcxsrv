@@ -28,7 +28,7 @@
 #include "util/u_math.h"
 #include "vk_util.h"
 #include "vulkan/wsi/wsi_common.h"
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 #include "vk_android.h"
 #endif
 
@@ -328,25 +328,35 @@ v3d_setup_plane_slices(struct v3dv_image *image, uint8_t plane,
    return true;
 }
 
-static bool
+static VkResult
 v3d_setup_slices(struct v3dv_image *image, bool disjoint,
                  const VkSubresourceLayout *plane_layouts)
 {
    if (disjoint && image->plane_count == 1)
       disjoint = false;
 
-   uint32_t offset = 0;
+   uint64_t offset = 0;
    for (uint8_t plane = 0; plane < image->plane_count; plane++) {
       offset = disjoint ? 0 : offset;
       if (!v3d_setup_plane_slices(image, plane, offset, plane_layouts)) {
          assert(plane_layouts);
-         return false;
+         return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
       }
-      offset += align(image->planes[plane].size, 64);
+      offset += align64(image->planes[plane].size, 64);
    }
 
+   /* From the Vulkan spec:
+    *
+    *   "If the size of the resultant image would exceed maxResourceSize, then
+    *    vkCreateImage must fail and return VK_ERROR_OUT_OF_DEVICE_MEMORY. This
+    *    failure may occur even when all image creation parameters satisfy their
+    *    valid usage requirements."
+    */
+   if (offset > 0xffffffff)
+      return VK_ERROR_OUT_OF_DEVICE_MEMORY;
+
    image->non_disjoint_size = disjoint ? 0 : offset;
-   return true;
+   return VK_SUCCESS;
 }
 
 uint32_t
@@ -379,15 +389,9 @@ v3dv_update_image_layout(struct v3dv_device *device,
 
    image->vk.drm_format_mod = modifier;
 
-   bool ok =
-      v3d_setup_slices(image, disjoint,
-                       explicit_mod_info ? explicit_mod_info->pPlaneLayouts : NULL);
-   if (!ok) {
-      assert(explicit_mod_info);
-      return VK_ERROR_INVALID_DRM_FORMAT_MODIFIER_PLANE_LAYOUT_EXT;
-   }
-
-   return VK_SUCCESS;
+   return v3d_setup_slices(image, disjoint,
+                           explicit_mod_info ? explicit_mod_info->pPlaneLayouts :
+                                               NULL);
 }
 
 VkResult
@@ -409,7 +413,7 @@ v3dv_image_init(struct v3dv_device *device,
    uint64_t modifier = DRM_FORMAT_MOD_INVALID;
    const VkImageDrmFormatModifierListCreateInfoEXT *mod_info = NULL;
    const VkImageDrmFormatModifierExplicitCreateInfoEXT *explicit_mod_info = NULL;
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (image->is_native_buffer_memory) {
       assert(image->android_explicit_layout);
       explicit_mod_info = image->android_explicit_layout;
@@ -490,7 +494,7 @@ v3dv_image_init(struct v3dv_device *device,
     */
    image->vk.create_flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    /* At this time, an AHB handle is not yet provided.
     * Image layout will be filled up during vkBindImageMemory2
     */
@@ -517,7 +521,7 @@ create_image(struct v3dv_device *device,
    if (image == NULL)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    const VkExternalMemoryImageCreateInfo *external_info =
       vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_MEMORY_IMAGE_CREATE_INFO);
 
@@ -572,7 +576,7 @@ create_image(struct v3dv_device *device,
    if (result != VK_SUCCESS)
       goto fail;
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (image->is_native_buffer_memory) {
       result = v3dv_import_native_buffer_fd(v3dv_device_to_handle(device),
                                             native_buffer->handle->data[0], pAllocator,
@@ -587,7 +591,7 @@ create_image(struct v3dv_device *device,
    return VK_SUCCESS;
 
 fail:
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (image->android_explicit_layout)
       vk_free2(&device->vk.alloc, pAllocator, image->android_explicit_layout);
    if (image->android_plane_layouts)
@@ -653,7 +657,7 @@ v3dv_CreateImage(VkDevice _device,
 {
    V3DV_FROM_HANDLE(v3dv_device, device, _device);
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    /* VkImageSwapchainCreateInfoKHR is not useful at all */
    const VkImageSwapchainCreateInfoKHR *swapchain_info = NULL;
 #else
@@ -748,7 +752,7 @@ v3dv_DestroyImage(VkDevice _device,
       image->shadow = NULL;
    }
 
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
    if (image->is_native_buffer_memory)
       v3dv_FreeMemory(_device,
                       v3dv_device_memory_to_handle(image->planes[0].mem),

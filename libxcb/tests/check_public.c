@@ -16,6 +16,10 @@ typedef enum test_type_t {
 } test_type_t;
 static const char *const test_string[] = { "", "via $DISPLAY " };
 
+/* putenv(3) takes a pointer to a writable string that it adds directly
+   to the environment, so it must be in persistent memory, not on the stack */
+static char display_env[] = "DISPLAY=";
+
 static void parse_display_pass(const char *name, const char *host, const int display, const int screen)
 {
 	int success;
@@ -29,7 +33,7 @@ static void parse_display_pass(const char *name, const char *host, const int dis
 		if(test_type == TEST_ARGUMENT)
 		{
 			argument = name;
-			putenv("DISPLAY=");
+			putenv(display_env);
 		}
 		else if(test_type == TEST_ENVIRONMENT)
 		{
@@ -54,7 +58,7 @@ static void parse_display_pass(const char *name, const char *host, const int dis
 		ck_assert_msg(strcmp(host, got_host) == 0, "screenless parse %sproduced unexpected hostname '%s' for '%s': expected '%s'", test_string[test_type], got_host, name, host);
 		ck_assert_msg(display == got_display, "screenless parse %sproduced unexpected display '%d' for '%s': expected '%d'", test_string[test_type], got_display, name, display);
 	}
-	putenv("DISPLAY=");
+	putenv(display_env);
 }
 
 static void parse_display_fail(const char *name)
@@ -70,7 +74,7 @@ static void parse_display_fail(const char *name)
 		if(test_type == TEST_ARGUMENT)
 		{
 			argument = name;
-			putenv("DISPLAY=");
+			putenv(display_env);
 		}
 		else if(test_type == TEST_ENVIRONMENT)
 		{
@@ -96,7 +100,7 @@ static void parse_display_fail(const char *name)
 		ck_assert_msg(got_host == (char *) -1, "host changed on parse failure %sfor '%s': got %p", test_string[test_type], name, got_host);
 		ck_assert_msg(got_display == -42, "display changed on parse failure %sfor '%s': got %d", test_string[test_type], name, got_display);
 	}
-	putenv("DISPLAY=");
+	putenv(display_env);
 }
 
 START_TEST(parse_display_unix)
@@ -241,7 +245,7 @@ END_TEST
 Suite *public_suite(void)
 {
 	Suite *s = suite_create("Public API");
-	putenv("DISPLAY=");
+	putenv(display_env);
 	suite_add_test(s, parse_display_unix, "xcb_parse_display unix");
 	suite_add_test(s, parse_display_ip, "xcb_parse_display ip");
 	suite_add_test(s, parse_display_ipv4, "xcb_parse_display ipv4");

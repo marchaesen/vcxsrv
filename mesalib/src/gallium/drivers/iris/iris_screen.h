@@ -36,7 +36,7 @@
 #include "iris_resource.h"
 
 struct intel_l3_config;
-struct brw_vue_map;
+struct intel_vue_map;
 struct iris_vs_prog_key;
 struct iris_tcs_prog_key;
 struct iris_tes_prog_key;
@@ -44,6 +44,9 @@ struct iris_gs_prog_key;
 struct iris_fs_prog_key;
 struct iris_cs_prog_key;
 enum iris_program_cache_id;
+
+typedef struct nir_builder nir_builder;
+typedef struct nir_shader nir_shader;
 
 struct u_trace;
 
@@ -74,6 +77,10 @@ struct iris_vtable {
                                         const struct pipe_draw_info *draw,
                                         const struct pipe_draw_indirect_info *indirect,
                                         const struct pipe_draw_start_count_bias *sc);
+   void (*upload_indirect_shader_render_state)(struct iris_context *ice,
+                                               const struct pipe_draw_info *draw,
+                                               const struct pipe_draw_indirect_info *indirect,
+                                               const struct pipe_draw_start_count_bias *sc);
    void (*update_binder_address)(struct iris_batch *batch,
                                  struct iris_binder *binder);
    void (*upload_compute_state)(struct iris_context *ice,
@@ -129,7 +136,7 @@ struct iris_vtable {
                                        enum iris_program_cache_id cache_id,
                                        struct iris_compiled_shader *shader);
    uint32_t *(*create_so_decl_list)(const struct pipe_stream_output_info *sol,
-                                    const struct brw_vue_map *vue_map);
+                                    const struct intel_vue_map *vue_map);
    void (*populate_vs_key)(const struct iris_context *ice,
                            const struct shader_info *info,
                            gl_shader_stage last_stage,
@@ -151,6 +158,9 @@ struct iris_vtable {
                            struct iris_cs_prog_key *key);
    void (*lost_genx_state)(struct iris_context *ice, struct iris_batch *batch);
    void (*disable_rhwo_optimization)(struct iris_batch *batch, bool disable);
+
+   nir_shader *(*load_shader_lib)(struct iris_screen *screen, void *mem_ctx);
+   unsigned (*call_generation_shader)(struct iris_screen *screen, nir_builder *b);
 };
 
 struct iris_address {
@@ -195,6 +205,7 @@ struct iris_screen {
       float lower_depth_range_rate;
       bool intel_enable_wa_14018912822;
       bool enable_tbimr;
+      unsigned generated_indirect_threshold;
    } driconf;
 
    /** Does the kernel support various features (KERNEL_HAS_* bitfield)? */
@@ -214,7 +225,8 @@ struct iris_screen {
    const struct intel_device_info *devinfo;
    struct isl_device isl_dev;
    struct iris_bufmgr *bufmgr;
-   struct brw_compiler *compiler;
+   struct brw_compiler *brw;
+   struct elk_compiler *elk;
    struct intel_perf_config *perf_cfg;
 
    const struct intel_l3_config *l3_config_3d;

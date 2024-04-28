@@ -216,6 +216,10 @@ xfb_decl_is_varying(const struct xfb_decl *xfb_decl)
    return !xfb_decl->next_buffer_separator && !xfb_decl->skip_components;
 }
 
+void
+resize_tes_inputs(const struct gl_constants *consts,
+                  struct gl_shader_program *prog);
+
 bool
 gl_assign_attribute_or_color_locations(const struct gl_constants *consts,
                                        struct gl_shader_program *prog);

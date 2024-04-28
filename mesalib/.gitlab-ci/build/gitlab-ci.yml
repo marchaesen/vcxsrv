@@ -17,7 +17,6 @@
     paths:
       - _build/meson-logs/*.txt
       - _build/meson-logs/strace
-      - shader-db
       - artifacts
 
 # Just Linux
@@ -71,13 +70,15 @@ debian-testing:
       -D glx=dri
       -D gbm=enabled
       -D egl=enabled
+      -D glvnd=disabled
       -D platforms=x11,wayland
     GALLIUM_ST: >
       -D dri3=enabled
+      -D gallium-nine=true
       -D gallium-va=enabled
       -D gallium-rusticl=true
-    GALLIUM_DRIVERS: "swrast,virgl,radeonsi,zink,crocus,iris,i915,r300"
-    VULKAN_DRIVERS: "swrast,amd,intel,intel_hasvk,virtio,nouveau-experimental"
+    GALLIUM_DRIVERS: "swrast,virgl,radeonsi,zink,crocus,iris,i915,r300,svga"
+    VULKAN_DRIVERS: "swrast,amd,intel,intel_hasvk,virtio,nouveau"
     BUILDTYPE: "debugoptimized"
     EXTRA_OPTION: >
       -D spirv-to-dxil=true
@@ -103,8 +104,22 @@ debian-testing-asan:
       -D b_sanitize=address
       -D valgrind=disabled
       -D tools=dlclose-skip
+      -D intel-clc=system
     S3_ARTIFACT_NAME: ""
     ARTIFACTS_DEBUG_SYMBOLS: 1
+    # Do a host build for intel-clc (asan complains not being loaded
+    # as the first library)
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D intel-clc=enabled
+      -D install-intel-clc=true
 
 debian-testing-msan:
   # https://github.com/google/sanitizers/wiki/MemorySanitizerLibcxxHowTo
@@ -116,6 +131,7 @@ debian-testing-msan:
     EXTRA_OPTION:
       -D b_sanitize=memory
       -D b_lundef=false
+      -D intel-clc=system
     S3_ARTIFACT_NAME: ""
     ARTIFACTS_DEBUG_SYMBOLS: 1
     # Don't run all the tests yet:
@@ -124,6 +140,19 @@ debian-testing-msan:
     MESON_TEST_ARGS: "--suite glcpp --suite format"
     GALLIUM_DRIVERS: "freedreno,iris,nouveau,kmsro,r300,r600,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12,crocus"
     VULKAN_DRIVERS: intel,amd,broadcom,virtio
+    # Do a host build for intel-clc (msan complains about
+    # uninitialized values in the LLVM libs)
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D intel-clc=enabled
+      -D install-intel-clc=true
 
 debian-build-testing:
   extends: .meson-build
@@ -134,6 +163,7 @@ debian-build-testing:
       -D glx=dri
       -D gbm=enabled
       -D egl=enabled
+      -D glvnd=disabled
       -D platforms=x11,wayland
     GALLIUM_ST: >
       -D dri3=enabled
@@ -152,6 +182,7 @@ debian-build-testing:
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,intel-ui,nir,nouveau,lima,panfrost,asahi
       -D b_lto=true
     LLVM_VERSION: 15
+    S3_ARTIFACT_NAME: debian-build-testing
   script: |
     section_start lava-pytest "lava-pytest"
     .gitlab-ci/lava/lava-pytest.sh
@@ -161,9 +192,27 @@ debian-build-testing:
     .gitlab-ci/run-yamllint.sh
     section_switch meson "meson"
     .gitlab-ci/meson/build.sh
+    .gitlab-ci/prepare-artifacts.sh
+  timeout: 15m
+
+shader-db:
+  stage: code-validation
+  extends:
+    - .use-debian/x86_64_build
+    - .container+build-rules
+  needs:
+    - debian-build-testing
+  variables:
+    S3_ARTIFACT_NAME: debian-build-testing
+  before_script:
+    - !reference [.download_s3, before_script]
+  script: |
     section_switch shader-db "shader-db"
     .gitlab-ci/run-shader-db.sh
-  timeout: 30m
+  artifacts:
+    paths:
+      - shader-db
+  timeout: 15m
 
 # Test a release build with -Werror so new warnings don't sneak in.
 debian-release:
@@ -177,6 +226,7 @@ debian-release:
       -D glx=dri
       -D gbm=enabled
       -D egl=enabled
+      -D glvnd=disabled
       -D platforms=x11,wayland
     GALLIUM_ST: >
       -D dri3=enabled
@@ -195,6 +245,7 @@ debian-release:
       -D osmesa=true
       -D tools=all
       -D intel-clc=enabled
+      -D intel-rt=enabled
       -D imagination-srv=true
     BUILDTYPE: "release"
     S3_ARTIFACT_NAME: "mesa-x86_64-default-${BUILDTYPE}"
@@ -217,9 +268,9 @@ alpine-build-testing:
       -D glx=disabled
       -D gbm=enabled
       -D egl=enabled
-      -D glvnd=false
+      -D glvnd=disabled
       -D platforms=wayland
-    LLVM_VERSION: ""
+    LLVM_VERSION: "16"
     GALLIUM_DRIVERS: "crocus,etnaviv,freedreno,iris,kmsro,lima,nouveau,panfrost,r300,r600,radeonsi,svga,swrast,tegra,v3d,vc4,virgl,zink"
     GALLIUM_ST: >
       -D dri3=enabled
@@ -257,7 +308,7 @@ fedora-release:
       -D glx=dri
       -D gbm=enabled
       -D egl=enabled
-      -D glvnd=true
+      -D glvnd=enabled
       -D platforms=x11,wayland
     EXTRA_OPTION: >
       -D b_lto=true
@@ -265,8 +316,9 @@ fedora-release:
       -D selinux=true
       -D tools=drm-shim,etnaviv,freedreno,glsl,intel,nir,nouveau,lima,panfrost,imagination
       -D vulkan-layers=device-select,overlay
-      -D intel-clc=enabled
+      -D intel-rt=enabled
       -D imagination-srv=true
+      -D teflon=true
     GALLIUM_DRIVERS: "crocus,etnaviv,freedreno,i915,iris,kmsro,lima,nouveau,panfrost,r300,r600,radeonsi,svga,swrast,tegra,v3d,vc4,virgl,zink"
     GALLIUM_ST: >
       -D dri3=enabled
@@ -309,6 +361,7 @@ debian-android:
       -D glx=disabled
       -D gbm=disabled
       -D egl=enabled
+      -D glvnd=disabled
       -D platforms=android
     EXTRA_OPTION: >
       -D android-stub=true
@@ -316,6 +369,7 @@ debian-android:
       -D platform-sdk-version=33
       -D valgrind=disabled
       -D android-libbacktrace=disabled
+      -D intel-clc=system
     GALLIUM_ST: >
       -D dri3=disabled
       -D gallium-vdpau=disabled
@@ -324,8 +378,19 @@ debian-android:
       -D gallium-xa=disabled
       -D gallium-nine=false
       -D gallium-rusticl=false
-    LLVM_VERSION: ""
+    LLVM_VERSION: "15"
     PKG_CONFIG_LIBDIR: "/disable/non/android/system/pc/files"
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D intel-clc=enabled
+      -D install-intel-clc=true
     ARTIFACTS_DEBUG_SYMBOLS: 1
     S3_ARTIFACT_NAME: mesa-x86_64-android-${BUILDTYPE}
   script:
@@ -377,6 +442,8 @@ debian-arm32:
     - .ci-deqp-artifacts
   variables:
     CROSS: armhf
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -D llvm=disabled
       -D valgrind=disabled
@@ -392,6 +459,8 @@ debian-arm32-asan:
   extends:
     - debian-arm32
   variables:
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -D llvm=disabled
       -D b_sanitize=address
@@ -410,12 +479,15 @@ debian-arm64:
       -Wno-error=array-bounds
       -Wno-error=stringop-truncation
     VULKAN_DRIVERS: "freedreno,broadcom,panfrost,imagination-experimental"
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -D llvm=disabled
       -D valgrind=disabled
       -D imagination-srv=true
       -D perfetto=true
       -D freedreno-kmds=msm,virtio
+      -D teflon=true
     S3_ARTIFACT_NAME: mesa-arm64-default-${BUILDTYPE}
   script:
     - .gitlab-ci/meson/build.sh
@@ -425,6 +497,8 @@ debian-arm64-asan:
   extends:
     - debian-arm64
   variables:
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -D llvm=disabled
       -D b_sanitize=address
@@ -440,6 +514,8 @@ debian-arm64-build-test:
     - .ci-deqp-artifacts
   variables:
     VULKAN_DRIVERS: "amd"
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -Dtools=panfrost,imagination
 
@@ -463,7 +539,6 @@ debian-clang:
     BUILDTYPE: debug
     LLVM_VERSION: 15
     UNWIND: "enabled"
-    GALLIUM_DUMP_CPU: "true"
     C_ARGS: >
       -Wno-error=constant-conversion
       -Wno-error=enum-conversion
@@ -479,7 +554,7 @@ debian-clang:
       -D glx=dri
       -D gbm=enabled
       -D egl=enabled
-      -D glvnd=true
+      -D glvnd=enabled
       -D platforms=x11,wayland
     GALLIUM_ST: >
       -D dri3=enabled
@@ -497,7 +572,7 @@ debian-clang:
       -D opencl-spirv=true
       -D shared-glapi=enabled
     GALLIUM_DRIVERS: "iris,nouveau,kmsro,r300,r600,freedreno,swrast,svga,v3d,vc4,virgl,etnaviv,panfrost,lima,zink,radeonsi,tegra,d3d12,crocus,i915,asahi"
-    VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio,swrast,panfrost,imagination-experimental,microsoft-experimental,nouveau-experimental
+    VULKAN_DRIVERS: intel,amd,freedreno,broadcom,virtio,swrast,panfrost,imagination-experimental,microsoft-experimental,nouveau
     EXTRA_OPTION:
       -D spirv-to-dxil=true
       -D osmesa=true
@@ -506,7 +581,9 @@ debian-clang:
       -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
       -D intel-clc=enabled
+      -D intel-rt=enabled
       -D imagination-srv=true
+      -D teflon=true
     CC: clang-${LLVM_VERSION}
     CXX: clang++-${LLVM_VERSION}
 
@@ -559,6 +636,7 @@ debian-vulkan:
       -D opengl=false
       -D gles1=disabled
       -D gles2=disabled
+      -D glvnd=disabled
       -D platforms=x11,wayland
       -D osmesa=false
     GALLIUM_ST: >
@@ -573,11 +651,11 @@ debian-vulkan:
       -D c_args=-fno-sanitize-recover=all
       -D cpp_args=-fno-sanitize-recover=all
     UBSAN_OPTIONS: "print_stacktrace=1"
-    VULKAN_DRIVERS: amd,broadcom,freedreno,intel,intel_hasvk,virtio,imagination-experimental,microsoft-experimental
+    VULKAN_DRIVERS: amd,broadcom,freedreno,intel,intel_hasvk,panfrost,virtio,imagination-experimental,microsoft-experimental,nouveau
     EXTRA_OPTION: >
       -D vulkan-layers=device-select,overlay
       -D build-aco-tests=true
-      -D intel-clc=disabled
+      -D intel-rt=disabled
       -D imagination-srv=true
 
 debian-x86_32:
@@ -590,8 +668,22 @@ debian-x86_32:
     VULKAN_DRIVERS: intel,amd,swrast,virtio
     GALLIUM_DRIVERS: "iris,nouveau,r300,r600,radeonsi,swrast,virgl,zink,crocus,d3d12"
     LLVM_VERSION: 15
+    DRI_LOADERS:
+      -D glvnd=disabled
     EXTRA_OPTION: >
       -D vulkan-layers=device-select,overlay
+      -D intel-clc=system
+    HOST_BUILD_OPTIONS: >
+      -D build-tests=false
+      -D enable-glcpp-tests=false
+      -D gallium-opencl=disabled
+      -D gallium-drivers=
+      -D vulkan-drivers=
+      -D video-codecs=
+      -D glx=disabled
+      -D platforms=
+      -D intel-clc=enabled
+      -D install-intel-clc=true
 
 debian-s390x:
   extends:
@@ -605,6 +697,8 @@ debian-s390x:
     GALLIUM_DRIVERS: "swrast,zink"
     LLVM_VERSION: 15
     VULKAN_DRIVERS: "swrast"
+    DRI_LOADERS:
+      -D glvnd=disabled
 
 debian-ppc64el:
   extends:
@@ -616,3 +710,5 @@ debian-ppc64el:
     CROSS: ppc64el
     GALLIUM_DRIVERS: "nouveau,radeonsi,swrast,virgl,zink"
     VULKAN_DRIVERS: "amd,swrast"
+    DRI_LOADERS:
+      -D glvnd=disabled

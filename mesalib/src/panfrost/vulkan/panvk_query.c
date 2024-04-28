@@ -21,9 +21,10 @@
  * DEALINGS IN THE SOFTWARE.
  */
 
-#include "panvk_private.h"
+#include "panvk_entrypoints.h"
+#include "panvk_macros.h"
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 panvk_CreateQueryPool(VkDevice _device,
                       const VkQueryPoolCreateInfo *pCreateInfo,
                       const VkAllocationCallbacks *pAllocator,
@@ -33,14 +34,14 @@ panvk_CreateQueryPool(VkDevice _device,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_DestroyQueryPool(VkDevice _device, VkQueryPool _pool,
                        const VkAllocationCallbacks *pAllocator)
 {
    panvk_stub();
 }
 
-VkResult
+VKAPI_ATTR VkResult VKAPI_CALL
 panvk_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool,
                           uint32_t firstQuery, uint32_t queryCount,
                           size_t dataSize, void *pData, VkDeviceSize stride,
@@ -50,7 +51,7 @@ panvk_GetQueryPoolResults(VkDevice _device, VkQueryPool queryPool,
    return VK_SUCCESS;
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
                               VkQueryPool queryPool, uint32_t firstQuery,
                               uint32_t queryCount, VkBuffer dstBuffer,
@@ -60,28 +61,28 @@ panvk_CmdCopyQueryPoolResults(VkCommandBuffer commandBuffer,
    panvk_stub();
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_CmdResetQueryPool(VkCommandBuffer commandBuffer, VkQueryPool queryPool,
                         uint32_t firstQuery, uint32_t queryCount)
 {
    panvk_stub();
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_CmdBeginQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool,
                     uint32_t query, VkQueryControlFlags flags)
 {
    panvk_stub();
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_CmdEndQuery(VkCommandBuffer commandBuffer, VkQueryPool queryPool,
                   uint32_t query)
 {
    panvk_stub();
 }
 
-void
+VKAPI_ATTR void VKAPI_CALL
 panvk_CmdWriteTimestamp2(VkCommandBuffer commandBuffer,
                          VkPipelineStageFlags2 stage, VkQueryPool queryPool,
                          uint32_t query)

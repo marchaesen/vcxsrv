@@ -46,8 +46,7 @@ extern "C" {
  */
 void util_map_texcoords2d_onto_cubemap(unsigned face,
                                        const float *in_st, unsigned in_stride,
-                                       float *out_str, unsigned out_stride,
-                                       bool allow_scale);
+                                       float *out_str, unsigned out_stride);
 
 
 #ifdef __cplusplus

@@ -141,7 +141,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
    ${copy_property("pProperties->properties." + prop.name, "pdevice->properties." + prop.actual_name, prop.decl)}
 % endfor
 
-   vk_foreach_struct(ext, pProperties) {
+   vk_foreach_struct(ext, pProperties->pNext) {
       switch (ext->sType) {
 % for property_struct in property_structs:
 % if property_struct.name not in SPECIALIZED_PROPERTY_STRUCTS:
@@ -223,7 +223,7 @@ def get_property_structs(doc, api, beta):
 
         # Skip extensions with a define for now
         guard = required[full_name].guard
-        if guard is not None and (guard != "VK_ENABLE_BETA_EXTENSIONS" or not beta):
+        if guard is not None and (guard != "VK_ENABLE_BETA_EXTENSIONS" or beta != "true"):
             continue
 
         # find Vulkan structure type

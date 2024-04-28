@@ -52,8 +52,8 @@ panfrost_pool_alloc_backing(struct panfrost_pool *pool, size_t bo_sz)
     * flags to this function and keep the read/write,
     * fragment/vertex+tiler pools separate.
     */
-   struct panfrost_bo *bo = panfrost_bo_create(
-      pool->base.dev, bo_sz, pool->base.create_flags, pool->base.label);
+   struct panfrost_bo *bo =
+      panfrost_bo_create(pool->dev, bo_sz, pool->create_flags, pool->label);
 
    if (pool->owned)
       util_dynarray_append(&pool->bos, struct panfrost_bo *, bo);
@@ -73,7 +73,10 @@ panfrost_pool_init(struct panfrost_pool *pool, void *memctx,
                    bool owned)
 {
    memset(pool, 0, sizeof(*pool));
-   pan_pool_init(&pool->base, dev, create_flags, slab_size, label);
+   pan_pool_init(&pool->base, slab_size);
+   pool->dev = dev;
+   pool->create_flags = create_flags;
+   pool->label = label;
    pool->owned = owned;
 
    if (owned)
@@ -131,8 +134,8 @@ panfrost_pool_alloc_aligned(struct panfrost_pool *pool, size_t sz,
    unsigned offset = ALIGN_POT(pool->transient_offset, alignment);
 
 #ifdef PAN_DBG_OVERFLOW
-   if (unlikely(pool->base.dev->debug & PAN_DBG_OVERFLOW) &&
-       !(pool->base.create_flags & PAN_BO_INVISIBLE)) {
+   if (unlikely(pool->dev->debug & PAN_DBG_OVERFLOW) &&
+       !(pool->create_flags & PAN_BO_INVISIBLE)) {
       unsigned aligned = ALIGN_POT(sz, sysconf(_SC_PAGESIZE));
       unsigned bo_size = aligned + PAN_GUARD_SIZE;
 

@@ -391,7 +391,7 @@ main(int argc, char **argv)
          n = atoi(argv[i]);
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (verbose >= 2) {
       gallivm_debug |= GALLIVM_DEBUG_IR;
       gallivm_debug |= GALLIVM_DEBUG_ASM;

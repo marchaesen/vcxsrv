@@ -21,7 +21,7 @@
 project(
   'pixman',
   ['c'],
-  version : '0.43.1',
+  version : '0.43.5',
   license : 'MIT',
   meson_version : '>= 0.52.0',
   default_options : ['c_std=gnu99', 'buildtype=debugoptimized'],
@@ -252,6 +252,13 @@ if cc.compiles('''
     config.set('ASM_HAVE_FUNC_DIRECTIVE', 1)    
 endif
 
+if cc.compiles('''
+    __asm__ (
+    ".syntax unified\n"
+    );''',
+    name : 'test for ASM .syntax unified directive')
+    config.set('ASM_HAVE_SYNTAX_UNIFIED', 1)
+endif
 
 if cc.links('''
     #include <stdint.h>

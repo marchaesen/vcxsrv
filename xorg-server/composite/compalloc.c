@@ -217,7 +217,7 @@ compRedirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
     }
 
     if (!compCheckRedirect(pWin)) {
-        FreeResource(ccw->id, RT_NONE);
+        FreeResource(ccw->id, X11_RESTYPE_NONE);
         return BadAlloc;
     }
 
@@ -329,7 +329,7 @@ compUnredirectWindow(ClientPtr pClient, WindowPtr pWin, int update)
 
     for (ccw = cw->clients; ccw; ccw = ccw->next)
         if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index) {
-            FreeResource(ccw->id, RT_NONE);
+            FreeResource(ccw->id, X11_RESTYPE_NONE);
             return Success;
         }
     return BadValue;
@@ -477,7 +477,7 @@ compUnredirectSubwindows(ClientPtr pClient, WindowPtr pWin, int update)
         return BadValue;
     for (ccw = csw->clients; ccw; ccw = ccw->next)
         if (ccw->update == update && CLIENT_ID(ccw->id) == pClient->index) {
-            FreeResource(ccw->id, RT_NONE);
+            FreeResource(ccw->id, X11_RESTYPE_NONE);
             return Success;
         }
     return BadValue;

@@ -66,7 +66,7 @@ print_usage(const char *name)
 {
    /* clang-format off */
    fprintf(stderr, "Usage:\n\n"
-           "\t%s [OPTSIONS]... FILE...\n\n"
+           "\t%s [OPTIONS]... FILE...\n\n"
            "Options:\n"
            "\t-v, --verbose    - more verbose disassembly\n"
            "\t--dump-shaders   - dump each shader to a raw file\n"

@@ -80,13 +80,15 @@
 #undef  __PTW32_LEVEL_MAX
 #define __PTW32_LEVEL_MAX  3
 
-#if _POSIX_C_SOURCE >= 200112L			/* POSIX.1-2001 and later */
+#if defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 200112L 
+                                              /* POSIX.1-2001 and later */
 # define __PTW32_LEVEL  __PTW32_LEVEL_MAX	/* include everything     */
 
 #elif defined INCLUDE_NP			/* earlier than POSIX.1-2001, but... */
 # define __PTW32_LEVEL  2			/* include non-portable extensions   */
 
-#elif _POSIX_C_SOURCE >= 199309L		/* POSIX.1-1993           */
+#elif defined _POSIX_C_SOURCE && _POSIX_C_SOURCE >= 199309L		
+                                              /* POSIX.1-1993           */
 # define __PTW32_LEVEL  1 			/* include 1b, 1c, and 1d */
 
 #elif defined _POSIX_SOURCE			/* early POSIX     */

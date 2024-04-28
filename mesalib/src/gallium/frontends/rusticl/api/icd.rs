@@ -173,27 +173,59 @@ pub static DISPATCH: cl_icd_dispatch = cl_icd_dispatch {
 pub type CLError = cl_int;
 pub type CLResult<T> = Result<T, CLError>;
 
+#[derive(Clone, Copy, PartialEq)]
+#[repr(u32)]
+pub enum RusticlTypes {
+    // random number
+    Buffer = 0xec4cf9a9,
+    Context,
+    Device,
+    Event,
+    Image,
+    Kernel,
+    Program,
+    Queue,
+    Sampler,
+}
+
+impl RusticlTypes {
+    pub const fn u32(&self) -> u32 {
+        *self as u32
+    }
+
+    pub const fn from_u32(val: u32) -> Option<Self> {
+        let result = match val {
+            0xec4cf9a9 => Self::Buffer,
+            0xec4cf9aa => Self::Context,
+            0xec4cf9ab => Self::Device,
+            0xec4cf9ac => Self::Event,
+            0xec4cf9ad => Self::Image,
+            0xec4cf9ae => Self::Kernel,
+            0xec4cf9af => Self::Program,
+            0xec4cf9b0 => Self::Queue,
+            0xec4cf9b1 => Self::Sampler,
+            _ => return None,
+        };
+        debug_assert!(result.u32() == val);
+        Some(result)
+    }
+}
+
 #[repr(C)]
 pub struct CLObjectBase<const ERR: i32> {
     dispatch: &'static cl_icd_dispatch,
-    type_err: i32,
-}
-
-impl<const ERR: i32> Default for CLObjectBase<ERR> {
-    fn default() -> Self {
-        Self::new()
-    }
+    rusticl_type: u32,
 }
 
 impl<const ERR: i32> CLObjectBase<ERR> {
-    pub fn new() -> Self {
+    pub fn new(t: RusticlTypes) -> Self {
         Self {
             dispatch: &DISPATCH,
-            type_err: ERR,
+            rusticl_type: t.u32(),
         }
     }
 
-    pub fn check_ptr(ptr: *const Self) -> CLResult<()> {
+    pub fn check_ptr(ptr: *const Self) -> CLResult<RusticlTypes> {
         if ptr.is_null() {
             return Err(ERR);
         }
@@ -203,12 +235,16 @@ impl<const ERR: i32> CLObjectBase<ERR> {
                 return Err(ERR);
             }
 
-            if (*ptr).type_err != ERR {
+            let Some(ty) = RusticlTypes::from_u32((*ptr).rusticl_type) else {
                 return Err(ERR);
-            }
+            };
 
-            Ok(())
+            Ok(ty)
         }
+    }
+
+    pub fn get_type(&self) -> CLResult<RusticlTypes> {
+        RusticlTypes::from_u32(self.rusticl_type).ok_or(ERR)
     }
 }
 
@@ -219,40 +255,63 @@ pub trait ReferenceCountedAPIPointer<T, const ERR: i32> {
     // I can do the cast in the main trait implementation.  So we need to
     // implement that as part of the macro where we know the real type.
     fn from_ptr(ptr: *const T) -> Self;
+}
 
-    fn leak_ref(ptr: *mut Self, r: &std::sync::Arc<T>)
+pub trait BaseCLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, ERR> + 'a>:
+    Sized
+{
+    fn ref_from_raw(obj: CL) -> CLResult<&'a Self> {
+        let obj = obj.get_ptr()?;
+        // SAFETY: `get_ptr` already checks if it's one of our pointers and not null
+        Ok(unsafe { &*obj })
+    }
+
+    fn refs_from_arr(objs: *const CL, count: u32) -> CLResult<Vec<&'a Self>>
     where
-        Self: Sized,
+        CL: Copy,
     {
-        if !ptr.is_null() {
-            unsafe {
-                ptr.write(Self::from_arc(r.clone()));
-            }
+        // CL spec requires validation for obj arrays, both values have to make sense
+        if objs.is_null() && count > 0 || !objs.is_null() && count == 0 {
+            return Err(CL_INVALID_VALUE);
         }
-    }
 
-    fn get_ref(&self) -> CLResult<&T> {
-        unsafe { Ok(self.get_ptr()?.as_ref().unwrap()) }
-    }
+        let mut res = Vec::new();
+        if objs.is_null() || count == 0 {
+            return Ok(res);
+        }
 
-    fn get_arc(&self) -> CLResult<Arc<T>> {
-        unsafe {
-            let ptr = self.get_ptr()?;
+        for i in 0..count as usize {
+            res.push(Self::ref_from_raw(unsafe { *objs.add(i) })?);
+        }
+        Ok(res)
+    }
+}
+
+pub trait CLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, ERR> + 'a>:
+    Sized + BaseCLObject<'a, ERR, CL>
+{
+    fn as_cl(&self) -> CL {
+        CL::from_ptr(self)
+    }
+}
+
+pub trait ArcedCLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, ERR> + 'a>:
+    Sized + BaseCLObject<'a, ERR, CL>
+{
+    /// Note: this operation increases the internal ref count as `ref_from_raw` is the better option
+    /// when an Arc is not needed.
+    fn arc_from_raw(ptr: CL) -> CLResult<Arc<Self>> {
+        let ptr = ptr.get_ptr()?;
+        // SAFETY: `get_ptr` already checks if it's one of our pointers.
+        Ok(unsafe {
             Arc::increment_strong_count(ptr);
-            Ok(Arc::from_raw(ptr))
-        }
+            Arc::from_raw(ptr)
+        })
     }
 
-    fn from_arc(arc: Arc<T>) -> Self
+    fn arcs_from_arr(objs: *const CL, count: u32) -> CLResult<Vec<Arc<Self>>>
     where
-        Self: Sized,
-    {
-        Self::from_ptr(Arc::into_raw(arc))
-    }
-
-    fn get_arc_vec_from_arr(objs: *const Self, count: u32) -> CLResult<Vec<Arc<T>>>
-    where
-        Self: Sized,
+        CL: Copy,
     {
         // CL spec requires validation for obj arrays, both values have to make sense
         if objs.is_null() && count > 0 || !objs.is_null() && count == 0 {
@@ -266,77 +325,82 @@ pub trait ReferenceCountedAPIPointer<T, const ERR: i32> {
 
         for i in 0..count as usize {
             unsafe {
-                res.push((*objs.add(i)).get_arc()?);
+                res.push(Self::arc_from_raw(*objs.add(i))?);
             }
         }
         Ok(res)
     }
 
-    fn get_ref_vec_from_arr<'a>(objs: *const Self, count: u32) -> CLResult<Vec<&'a T>>
-    where
-        Self: Sized + 'a,
-    {
-        // CL spec requires validation for obj arrays, both values have to make sense
-        if objs.is_null() && count > 0 || !objs.is_null() && count == 0 {
-            return Err(CL_INVALID_VALUE);
-        }
-
-        let mut res = Vec::new();
-        if objs.is_null() || count == 0 {
-            return Ok(res);
-        }
-
-        for i in 0..count as usize {
-            unsafe {
-                res.push((*objs.add(i)).get_ref()?);
-            }
-        }
-        Ok(res)
+    fn refcnt(ptr: CL) -> CLResult<u32> {
+        let ptr = ptr.get_ptr()?;
+        // SAFETY: `get_ptr` already checks if it's one of our pointers.
+        let arc = unsafe { Arc::from_raw(ptr) };
+        let res = Arc::strong_count(&arc);
+        // leak the arc again, so we don't reduce the refcount by dropping `arc`
+        let _ = Arc::into_raw(arc);
+        Ok(res as u32)
     }
 
-    fn retain(&self) -> CLResult<()> {
-        unsafe {
-            Arc::increment_strong_count(self.get_ptr()?);
-            Ok(())
-        }
+    fn into_cl(self: Arc<Self>) -> CL {
+        CL::from_ptr(Arc::into_raw(self))
     }
 
-    fn release(&self) -> CLResult<()> {
-        unsafe {
-            Arc::from_raw(self.get_ptr()?);
-            Ok(())
-        }
+    fn release(ptr: CL) -> CLResult<()> {
+        let ptr = ptr.get_ptr()?;
+        // SAFETY: `get_ptr` already checks if it's one of our pointers.
+        unsafe { Arc::decrement_strong_count(ptr) };
+        Ok(())
     }
 
-    fn refcnt(&self) -> CLResult<u32> {
-        Ok((Arc::strong_count(&self.get_arc()?) - 1) as u32)
+    fn retain(ptr: CL) -> CLResult<()> {
+        let ptr = ptr.get_ptr()?;
+        // SAFETY: `get_ptr` already checks if it's one of our pointers.
+        unsafe { Arc::increment_strong_count(ptr) };
+        Ok(())
     }
 }
 
 #[macro_export]
-macro_rules! impl_cl_type_trait {
-    ($cl: ident, $t: path, $err: ident) => {
+macro_rules! impl_cl_type_trait_base {
+    (@BASE $cl: ident, $t: ident, [$($types: ident),+], $err: ident, $($field:ident).+) => {
         impl $crate::api::icd::ReferenceCountedAPIPointer<$t, $err> for $cl {
             fn get_ptr(&self) -> CLResult<*const $t> {
                 type Base = $crate::api::icd::CLObjectBase<$err>;
-                Base::check_ptr(self.cast())?;
+                let t = Base::check_ptr(self.cast())?;
+                if ![$($crate::api::icd::RusticlTypes::$types),+].contains(&t) {
+                    return Err($err);
+                }
 
-                let offset = ::mesa_rust_util::offset_of!($t, base);
+                let offset = ::mesa_rust_util::offset_of!($t, $($field).+);
                 let mut obj_ptr: *const u8 = self.cast();
                 // SAFETY: We offset the pointer back from the ICD specified base type to our
                 //         internal type.
                 unsafe { obj_ptr = obj_ptr.sub(offset) }
-                Ok(obj_ptr.cast())
+
+                let obj_ptr: *const $t = obj_ptr.cast();
+
+                // Check at compile-time that we indeed got the right path
+                unsafe { let _: &Base = &(*obj_ptr).$($field).+; }
+
+                Ok(obj_ptr)
             }
 
             fn from_ptr(ptr: *const $t) -> Self {
                 if ptr.is_null() {
                     return std::ptr::null_mut();
                 }
-                let offset = ::mesa_rust_util::offset_of!($t, base);
+                let offset = ::mesa_rust_util::offset_of!($t, $($field).+);
                 // SAFETY: The resulting pointer is safe as we simply offset into the ICD specified
                 //         base type.
                 unsafe { (ptr as *const u8).add(offset) as Self }
+            }
+        }
+
+        impl $crate::api::icd::BaseCLObject<'_, $err, $cl> for $t {}
+
+        impl $t {
+            fn _ensure_send_sync(&self) -> impl Send + Sync + '_ {
+                self
             }
         }
 
@@ -356,6 +420,27 @@ macro_rules! impl_cl_type_trait {
                 (self as *const Self).hash(state);
             }
         }
+    };
+
+    ($cl: ident, $t: ident, [$($types: ident),+], $err: ident, $($field:ident).+) => {
+        $crate::impl_cl_type_trait_base!(@BASE $cl, $t, [$($types),+], $err, $($field).+);
+        impl $crate::api::icd::CLObject<'_, $err, $cl> for $t {}
+    };
+
+    ($cl: ident, $t: ident, [$($types: ident),+], $err: ident) => {
+        $crate::impl_cl_type_trait_base!($cl, $t, [$($types),+], $err, base);
+    };
+}
+
+#[macro_export]
+macro_rules! impl_cl_type_trait {
+    ($cl: ident, $t: ident, $err: ident, $($field:ident).+) => {
+        $crate::impl_cl_type_trait_base!(@BASE $cl, $t, [$t], $err, $($field).+);
+        impl $crate::api::icd::ArcedCLObject<'_, $err, $cl> for $t {}
+    };
+
+    ($cl: ident, $t: ident, $err: ident) => {
+        $crate::impl_cl_type_trait!($cl, $t, $err, base);
     };
 }
 
@@ -425,6 +510,11 @@ extern "C" fn cl_get_extension_function_address(
         "clGetGLObjectInfo" => cl_get_gl_object_info as *mut ::std::ffi::c_void,
         "clGetGLTextureInfo" => cl_get_gl_texture_info as *mut ::std::ffi::c_void,
 
+        // cl_khr_suggested_local_work_size
+        "clGetKernelSuggestedLocalWorkSizeKHR" => {
+            cl_get_kernel_suggested_local_work_size_khr as *mut ::std::ffi::c_void
+        }
+
         // cl_arm_shared_virtual_memory
         "clEnqueueSVMFreeARM" => cl_enqueue_svm_free_arm as *mut ::std::ffi::c_void,
         "clEnqueueSVMMapARM" => cl_enqueue_svm_map_arm as *mut ::std::ffi::c_void,
@@ -491,7 +581,7 @@ extern "C" fn cl_svm_alloc(
 }
 
 extern "C" fn cl_svm_free(context: cl_context, svm_pointer: *mut ::std::os::raw::c_void) {
-    svm_free(context, svm_pointer).ok();
+    svm_free(context, svm_pointer as usize).ok();
 }
 
 extern "C" fn cl_get_kernel_sub_group_info(

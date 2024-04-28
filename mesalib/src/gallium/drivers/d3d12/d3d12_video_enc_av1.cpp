@@ -34,6 +34,7 @@ void
 d3d12_video_encoder_update_current_rate_control_av1(struct d3d12_video_encoder *pD3D12Enc,
                                                     pipe_av1_enc_picture_desc *picture)
 {
+   struct D3D12EncodeRateControlState m_prevRCState = pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc;
    pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc = {};
    pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_FrameRate.Numerator = picture->rc[0].frame_rate_num;
    pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_FrameRate.Denominator = picture->rc[0].frame_rate_den;
@@ -293,15 +294,40 @@ d3d12_video_encoder_update_current_rate_control_av1(struct d3d12_video_encoder *
       } break;
       case PIPE_H2645_ENC_RATE_CONTROL_METHOD_DISABLE:
       {
+         // We need to initialize the QP value for all frame types on the first frame
+         // otherwise some drivers crash.
+         // frontends currently only send the QP values for the specific frame type of
+         // the current frame, so give a default value for all types until all frame
+         // types are configured on subsequent encode frame calls
+         if (pD3D12Enc->m_fenceValue == 1)
+         {
+            m_prevRCState.m_Config.m_Configuration_CQP
+                  .ConstantQP_FullIntracodedFrame = 30 /* initial_qp_default */;
+            m_prevRCState.m_Config.m_Configuration_CQP
+                  .ConstantQP_InterPredictedFrame_PrevRefOnly = 30 /* initial_qp_default */;
+            m_prevRCState.m_Config.m_Configuration_CQP
+                  .ConstantQP_InterPredictedFrame_BiDirectionalRef = 30 /* initial_qp_default */;
+         }
+
          pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Mode = D3D12_VIDEO_ENCODER_RATE_CONTROL_MODE_CQP;
-         pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
-            .ConstantQP_FullIntracodedFrame = picture->rc[0].app_requested_initial_qp ? picture->rc[0].qp : 0;
-         pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
-            .ConstantQP_InterPredictedFrame_PrevRefOnly =
-            picture->rc[0].app_requested_initial_qp ? picture->rc[0].qp : 0;
-         pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
-            .ConstantQP_InterPredictedFrame_BiDirectionalRef =
-            picture->rc[0].app_requested_initial_qp ? picture->rc[0].qp : 0;
+         if (picture->rc[0].app_requested_initial_qp) {
+            // Load previous RC state for all frames and only update the current frame
+            pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP =
+               m_prevRCState.m_Config.m_Configuration_CQP;
+
+            if ((picture->frame_type == PIPE_AV1_ENC_FRAME_TYPE_INTRA_ONLY) ||
+                          (picture->frame_type == PIPE_AV1_ENC_FRAME_TYPE_KEY)) {
+               // Update intra frame qp
+               pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
+                  .ConstantQP_FullIntracodedFrame = picture->rc[0].qp;
+            } else {
+               // Update inter frame QP config
+               pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
+                  .ConstantQP_InterPredictedFrame_PrevRefOnly = picture->rc[0].qp_inter;
+               pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Config.m_Configuration_CQP
+                  .ConstantQP_InterPredictedFrame_BiDirectionalRef = picture->rc[0].qp_inter;
+            }
+         }
 
          if (picture->quality_modes.level > 0) {
             pD3D12Enc->m_currentEncodeConfig.m_encoderRateControlDesc.m_Flags |=
@@ -2121,14 +2147,14 @@ d3d12_video_encoder_build_post_encode_codec_bitstream_av1(struct d3d12_video_enc
    pipe_resource *pPipeResolvedMetadataBuffer =
       d3d12_resource_from_resource(&pD3D12Screen->base, pResolvedMetadataBuffer);
    assert(resourceMetadataSize < INT_MAX);
-   struct pipe_box box = {
-      0,                                        // x
-      0,                                        // y
-      0,                                        // z
-      static_cast<int>(resourceMetadataSize),   // width
-      1,                                        // height
-      1                                         // depth
-   };
+   struct pipe_box box;
+   u_box_3d(0,                                        // x
+            0,                                        // y
+            0,                                        // z
+            static_cast<int>(resourceMetadataSize),   // width
+            1,                                        // height
+            1,                                        // depth
+            &box);
    struct pipe_transfer *mapTransferMetadata;
    uint8_t *pMetadataBufferSrc =
       reinterpret_cast<uint8_t *>(pD3D12Enc->base.context->buffer_map(pD3D12Enc->base.context,
@@ -2833,14 +2859,14 @@ upload_tile_group_obu(struct d3d12_video_encoder *pD3D12Enc,
 
       // Now copy the decode_tile() element from the driver staging GPU buffer onto the finalized GPU buffer
 
-      struct pipe_box src_box = {
-         static_cast<int>(src_buf_tile_position),   // x
-         0,                                         // y
-         0,                                         // z
-         static_cast<int>(tile_size),               // width
-         1,                                         // height
-         1                                          // depth
-      };
+      struct pipe_box src_box;
+      u_box_3d(static_cast<int>(src_buf_tile_position),   // x
+               0,                                         // y
+               0,                                         // z
+               static_cast<int>(tile_size),               // width
+               1,                                         // height
+               1,                                         // depth
+               &src_box);
 
       pD3D12Enc->base.context->resource_copy_region(pD3D12Enc->base.context,       // ctx
                                                     comp_bit_destination,          // dst

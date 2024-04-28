@@ -31,6 +31,8 @@
 #include "pan_shader.h"
 #include "nir/tgsi_to_nir.h"
 #include "util/u_memory.h"
+#include "util/u_prim.h"
+#include "nir_builder.h"
 #include "nir_serialize.h"
 #include "pan_bo.h"
 #include "pan_context.h"
@@ -64,6 +66,31 @@ static struct panfrost_compiled_shader *
 panfrost_alloc_variant(struct panfrost_uncompiled_shader *so)
 {
    return util_dynarray_grow(&so->variants, struct panfrost_compiled_shader, 1);
+}
+
+static void
+lower_load_poly_line_smooth_enabled(nir_shader *nir,
+                                    const struct panfrost_shader_key *key)
+{
+   nir_function_impl *impl = nir_shader_get_entrypoint(nir);
+   nir_builder b = nir_builder_create(impl);
+
+   nir_foreach_block_safe(block, impl) {
+      nir_foreach_instr_safe(instr, block) {
+         if (instr->type != nir_instr_type_intrinsic)
+            continue;
+
+         nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+         if (intrin->intrinsic != nir_intrinsic_load_poly_line_smooth_enabled)
+            continue;
+
+         b.cursor = nir_before_instr(instr);
+         nir_def_rewrite_uses(&intrin->def, nir_imm_true(&b));
+
+         nir_instr_remove(instr);
+         nir_instr_free(instr);
+      }
+   }
 }
 
 static void
@@ -125,6 +152,12 @@ panfrost_shader_compile(struct panfrost_screen *screen, const nir_shader *ir,
       if (key->fs.clip_plane_enable) {
          NIR_PASS_V(s, nir_lower_clip_fs, key->fs.clip_plane_enable, false);
       }
+
+      if (key->fs.line_smooth) {
+         NIR_PASS_V(s, nir_lower_poly_line_smooth, 16);
+         NIR_PASS_V(s, lower_load_poly_line_smooth_enabled, key);
+         NIR_PASS_V(s, nir_lower_alu);
+      }
    }
 
    if (dev->arch <= 5 && s->info.stage == MESA_SHADER_FRAGMENT) {
@@ -134,6 +167,9 @@ panfrost_shader_compile(struct panfrost_screen *screen, const nir_shader *ir,
    }
 
    NIR_PASS_V(s, panfrost_nir_lower_sysvals, &out->sysvals);
+
+   /* Lower resource indices */
+   NIR_PASS_V(s, panfrost_nir_lower_res_indices, &inputs);
 
    screen->vtbl.compile_shader(s, &inputs, &out->binary, &out->info);
 
@@ -225,6 +261,9 @@ panfrost_build_key(struct panfrost_context *ctx,
    /* User clip plane lowering needed everywhere */
    if (rast) {
       key->fs.clip_plane_enable = rast->clip_plane_enable;
+
+      if (u_reduced_prim(ctx->active_prim) == MESA_PRIM_LINES)
+         key->fs.line_smooth = rast->line_smooth;
    }
 
    if (dev->arch <= 5) {
@@ -369,7 +408,7 @@ panfrost_create_shader_state(struct pipe_context *pctx,
    if (nir->info.stage == MESA_SHADER_FRAGMENT &&
        nir->info.outputs_written & BITFIELD_BIT(FRAG_RESULT_COLOR)) {
 
-      NIR_PASS_V(nir, nir_lower_fragcolor, 8);
+      NIR_PASS_V(nir, nir_lower_fragcolor, nir->info.fs.color_is_dual_source ? 1 : 8);
       so->fragcolor_lowered = true;
    }
 
@@ -377,16 +416,21 @@ panfrost_create_shader_state(struct pipe_context *pctx,
    struct panfrost_device *dev = pan_device(pctx->screen);
    pan_shader_preprocess(nir, panfrost_device_gpu_id(dev));
 
+   /* Vertex shaders get passed images through the vertex attribute descriptor
+    * array. We need to add an offset to all image intrinsics so they point
+    * to the right attribute.
+    */
+   if (nir->info.stage == MESA_SHADER_VERTEX && dev->arch <= 7) {
+      NIR_PASS_V(nir, pan_lower_image_index,
+                 util_bitcount64(nir->info.inputs_read));
+   }
+
    /* If this shader uses transform feedback, compile the transform
     * feedback program. This is a special shader variant.
     */
    struct panfrost_context *ctx = pan_context(pctx);
 
    if (so->nir->xfb_info) {
-      nir_shader *xfb = nir_shader_clone(NULL, so->nir);
-      xfb->info.name = ralloc_asprintf(xfb, "%s@xfb", xfb->info.name);
-      xfb->info.internal = true;
-
       so->xfb = calloc(1, sizeof(struct panfrost_compiled_shader));
       so->xfb->key.vs_is_xfb = true;
 
@@ -497,8 +541,8 @@ panfrost_get_compute_state_info(struct pipe_context *pipe, void *cso,
    struct panfrost_compiled_shader *cs =
       util_dynarray_begin(&uncompiled->variants);
 
-   info->max_threads =
-      panfrost_max_thread_count(dev->arch, cs->info.work_reg_count);
+   info->max_threads = panfrost_compute_max_thread_count(
+      &dev->kmod.props, cs->info.work_reg_count);
    info->private_memory = cs->info.tls_size;
    info->simd_sizes = pan_subgroup_size(dev->arch);
    info->preferred_simd_size = info->simd_sizes;

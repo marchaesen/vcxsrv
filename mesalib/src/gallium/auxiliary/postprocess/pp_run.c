@@ -188,8 +188,7 @@ pp_run(struct pp_queue_t *ppq, struct pipe_resource *in,
    cso_restore_state(cso, CSO_UNBIND_FS_SAMPLERVIEWS |
                           CSO_UNBIND_FS_IMAGE0 |
                           CSO_UNBIND_VS_CONSTANTS |
-                          CSO_UNBIND_FS_CONSTANTS |
-                          CSO_UNBIND_VERTEX_BUFFER0);
+                          CSO_UNBIND_FS_CONSTANTS);
 
    /* restore states not restored by cso */
    if (ppq->p->st) {
@@ -293,7 +292,7 @@ pp_filter_misc_state(struct pp_program *p)
 void
 pp_filter_draw(struct pp_program *p)
 {
-   util_draw_vertex_buffer(p->pipe, p->cso, p->vbuf, 0,
+   util_draw_vertex_buffer(p->pipe, p->cso, p->vbuf, 0, false,
                            MESA_PRIM_QUADS, 4, 2);
 }
 

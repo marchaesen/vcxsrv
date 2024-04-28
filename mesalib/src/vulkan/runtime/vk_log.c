@@ -111,7 +111,7 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
       }
    }
 
-#ifndef DEBUG
+#if !MESA_DEBUG
    if (unlikely(!instance) ||
        (likely(list_is_empty(&instance->debug_utils.callbacks)) &&
         likely(list_is_empty(&instance->debug_report.callbacks))))
@@ -127,7 +127,7 @@ __vk_log_impl(VkDebugUtilsMessageSeverityFlagBitsEXT severity,
 
    char *message_idname = ralloc_asprintf(NULL, "%s:%d", file, line);
 
-#if DEBUG
+#if MESA_DEBUG
    switch (severity) {
    case VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT:
       mesa_logd("%s: %s", message_idname, message);

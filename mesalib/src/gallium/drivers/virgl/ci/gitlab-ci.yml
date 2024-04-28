@@ -67,7 +67,7 @@ virgl-iris-traces-performance:
     PIGLIT_REPLAY_LOOP_TIMES: 150
     PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=${FDO_HTTP_CACHE_URI}"
 
-android-virgl-llvmpipe:
+.android-virgl-llvmpipe:
   extends:
     - .test-android
     - .virgl-rules

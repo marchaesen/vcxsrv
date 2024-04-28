@@ -584,6 +584,8 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
    if (!param->num_filters &&
        src_region->width == dst_region->width &&
        src_region->height == dst_region->height &&
+       src_region->x == dst_region->x &&
+       src_region->y == dst_region->y &&
        can_convert_with_efc(src_surface, dst_surface) &&
        pscreen->get_video_param(pscreen,
                                 PIPE_VIDEO_PROFILE_UNKNOWN,
@@ -687,6 +689,13 @@ vlVaHandleVAProcPipelineParameterBufferType(vlVaDriver *drv, vlVaContext *contex
                                                  src, context->target, deinterlace, param))
          return VA_STATUS_SUCCESS;
    }
+
+   /* Some devices may be media only (PIPE_VIDEO_ENTRYPOINT_PROCESSING with video engine)
+    * and won't have shader support
+    */
+   if (!drv->vscreen->pscreen->get_param(drv->vscreen->pscreen, PIPE_CAP_GRAPHICS) &&
+       !drv->vscreen->pscreen->get_param(drv->vscreen->pscreen, PIPE_CAP_COMPUTE))
+      return VA_STATUS_ERROR_UNSUPPORTED_ENTRYPOINT;
 
    vlVaSetProcParameters(drv, src_surface, dst_surface, param);
 

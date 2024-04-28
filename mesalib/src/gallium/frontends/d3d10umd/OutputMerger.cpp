@@ -924,7 +924,7 @@ CreateDepthStencilState(
       face1->zfail_op  = translateStencilOp(pDepthStencilDesc->BackFace.StencilDepthFailOp);
       face1->valuemask = pDepthStencilDesc->StencilReadMask;
       face1->writemask = pDepthStencilDesc->StencilWriteMask;
-#ifdef DEBUG
+#if MESA_DEBUG
       if (!pDepthStencilDesc->FrontEnable) {
          ASSERT(face0->func == PIPE_FUNC_ALWAYS);
          ASSERT(face0->fail_op == PIPE_STENCIL_OP_KEEP);

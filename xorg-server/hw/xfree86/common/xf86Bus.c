@@ -45,7 +45,6 @@
 
 #include "xf86Bus.h"
 
-#define XF86_OS_PRIVS
 #include "xf86_OSproc.h"
 #ifdef XSERVER_LIBPCIACCESS
 #include "xf86VGAarbiter.h"

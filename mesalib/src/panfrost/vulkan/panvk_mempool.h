@@ -27,6 +27,8 @@
 
 #include "pan_pool.h"
 
+struct panvk_priv_bo;
+
 struct panvk_bo_pool {
    struct util_dynarray free_bos;
 };
@@ -37,13 +39,7 @@ panvk_bo_pool_init(struct panvk_bo_pool *bo_pool)
    util_dynarray_init(&bo_pool->free_bos, NULL);
 }
 
-static inline void
-panvk_bo_pool_cleanup(struct panvk_bo_pool *bo_pool)
-{
-   util_dynarray_foreach(&bo_pool->free_bos, struct panfrost_bo *, bo)
-      panfrost_bo_unreference(*bo);
-   util_dynarray_fini(&bo_pool->free_bos);
-}
+void panvk_bo_pool_cleanup(struct panvk_bo_pool *bo_pool);
 
 /* Represents grow-only memory. It may be owned by the batch (OpenGL), or may
    be unowned for persistent uploads. */
@@ -51,6 +47,15 @@ panvk_bo_pool_cleanup(struct panvk_bo_pool *bo_pool)
 struct panvk_pool {
    /* Inherit from pan_pool */
    struct pan_pool base;
+
+   /* Parent device for allocation */
+   struct panvk_device *dev;
+
+   /* Label for created BOs */
+   const char *label;
+
+   /* BO flags to use in the pool */
+   unsigned create_flags;
 
    /* Before allocating a new BO, check if the BO pool has free BOs.
     * When returning BOs, if bo_pool != NULL, return them to this bo_pool.
@@ -62,7 +67,7 @@ struct panvk_pool {
    struct util_dynarray big_bos;
 
    /* Current transient BO */
-   struct panfrost_bo *transient_bo;
+   struct panvk_priv_bo *transient_bo;
 
    /* Within the topmost transient BO, how much has been used? */
    unsigned transient_offset;
@@ -74,7 +79,7 @@ to_panvk_pool(struct pan_pool *pool)
    return container_of(pool, struct panvk_pool, base);
 }
 
-void panvk_pool_init(struct panvk_pool *pool, struct panfrost_device *dev,
+void panvk_pool_init(struct panvk_pool *pool, struct panvk_device *dev,
                      struct panvk_bo_pool *bo_pool, unsigned create_flags,
                      size_t slab_size, const char *label, bool prealloc);
 
@@ -85,7 +90,7 @@ void panvk_pool_cleanup(struct panvk_pool *pool);
 static inline unsigned
 panvk_pool_num_bos(struct panvk_pool *pool)
 {
-   return util_dynarray_num_elements(&pool->bos, struct panfrost_bo *);
+   return util_dynarray_num_elements(&pool->bos, struct panvk_priv_bo *);
 }
 
 void panvk_pool_get_bo_handles(struct panvk_pool *pool, uint32_t *handles);

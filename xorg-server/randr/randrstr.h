@@ -65,11 +65,6 @@ typedef XID RRCrtc;
 typedef XID RRProvider;
 typedef XID RRLease;
 
-extern int RREventBase, RRErrorBase;
-
-extern int (*ProcRandrVector[RRNumberRequests]) (ClientPtr);
-extern int (*SProcRandrVector[RRNumberRequests]) (ClientPtr);
-
 /*
  * Modeline for a monitor. Name follows directly after this struct
  */
@@ -128,8 +123,8 @@ struct _rrCrtc {
     RRTransformRec client_pending_transform;
     RRTransformRec client_current_transform;
     PictTransform transform;
-    struct pict_f_transform f_transform;
-    struct pict_f_transform f_inverse;
+    struct pixman_f_transform f_transform;
+    struct pixman_f_transform f_inverse;
 
     PixmapPtr scanout_pixmap;
     PixmapPtr scanout_pixmap_back;
@@ -467,64 +462,7 @@ typedef struct _RRClient {
 /*  RRTimesRec	times[0]; */
 } RRClientRec, *RRClientPtr;
 
-extern RESTYPE RRClientType, RREventType;     /* resource types for event masks */
-extern DevPrivateKeyRec RRClientPrivateKeyRec;
-
-#define RRClientPrivateKey (&RRClientPrivateKeyRec)
 extern _X_EXPORT RESTYPE RRCrtcType, RRModeType, RROutputType, RRProviderType, RRLeaseType;
-
-#define VERIFY_RR_OUTPUT(id, ptr, a)\
-    {\
-	int rc = dixLookupResourceByType((void **)&(ptr), id,\
-	                                 RROutputType, client, a);\
-	if (rc != Success) {\
-	    client->errorValue = id;\
-	    return rc;\
-	}\
-    }
-
-#define VERIFY_RR_CRTC(id, ptr, a)\
-    {\
-	int rc = dixLookupResourceByType((void **)&(ptr), id,\
-	                                 RRCrtcType, client, a);\
-	if (rc != Success) {\
-	    client->errorValue = id;\
-	    return rc;\
-	}\
-    }
-
-#define VERIFY_RR_MODE(id, ptr, a)\
-    {\
-	int rc = dixLookupResourceByType((void **)&(ptr), id,\
-	                                 RRModeType, client, a);\
-	if (rc != Success) {\
-	    client->errorValue = id;\
-	    return rc;\
-	}\
-    }
-
-#define VERIFY_RR_PROVIDER(id, ptr, a)\
-    {\
-        int rc = dixLookupResourceByType((void **)&(ptr), id,\
-                                         RRProviderType, client, a);\
-        if (rc != Success) {\
-            client->errorValue = id;\
-            return rc;\
-        }\
-    }
-
-#define VERIFY_RR_LEASE(id, ptr, a)\
-    {\
-        int rc = dixLookupResourceByType((void **)&(ptr), id,\
-                                         RRLeaseType, client, a);\
-        if (rc != Success) {\
-            client->errorValue = id;\
-            return rc;\
-        }\
-    }
-
-#define GetRRClient(pClient)    ((RRClientPtr)dixLookupPrivate(&(pClient)->devPrivates, RRClientPrivateKey))
-#define rrClientPriv(pClient)	RRClientPtr pRRClient = GetRRClient(pClient)
 
 #ifdef RANDR_12_INTERFACE
 /*
@@ -686,7 +624,6 @@ extern _X_EXPORT void
  * the driver calls this whenever it has updated the mode
  */
 extern _X_EXPORT Bool
-
 RRCrtcNotify(RRCrtcPtr crtc,
              RRModePtr mode,
              int x,
@@ -701,7 +638,6 @@ extern _X_EXPORT void
  * Request that the Crtc be reconfigured
  */
 extern _X_EXPORT Bool
-
 RRCrtcSet(RRCrtcPtr crtc,
           RRModePtr mode,
           int x,
@@ -768,11 +704,10 @@ extern _X_EXPORT void
  */
 
 extern _X_EXPORT int
-
 RRCrtcTransformSet(RRCrtcPtr crtc,
                    PictTransformPtr transform,
-                   struct pict_f_transform *f_transform,
-                   struct pict_f_transform *f_inverse,
+                   struct pixman_f_transform *f_transform,
+                   struct pixman_f_transform *f_inverse,
                    char *filter, int filter_len, xFixed * params, int nparams);
 
 /*
@@ -827,22 +762,9 @@ extern _X_EXPORT int
 extern _X_EXPORT int
  ProcRRGetCrtcTransform(ClientPtr client);
 
-int
- ProcRRGetPanning(ClientPtr client);
-
-int
- ProcRRSetPanning(ClientPtr client);
-
-void
- RRConstrainCursorHarder(DeviceIntPtr, ScreenPtr, int, int *, int *);
-
 /* rrdispatch.c */
 extern _X_EXPORT Bool
  RRClientKnowsRates(ClientPtr pClient);
-
-/* rrlease.c */
-void
-RRDeliverLeaseEvent(ClientPtr client, WindowPtr window);
 
 extern _X_EXPORT void
 RRLeaseTerminated(RRLeasePtr lease);
@@ -855,12 +777,6 @@ RRCrtcIsLeased(RRCrtcPtr crtc);
 
 extern _X_EXPORT Bool
 RROutputIsLeased(RROutputPtr output);
-
-void
-RRTerminateLease(RRLeasePtr lease);
-
-Bool
-RRLeaseInit(void);
 
 /* rrmode.c */
 /*
@@ -931,7 +847,6 @@ extern _X_EXPORT Bool
  RROutputSetClones(RROutputPtr output, RROutputPtr * clones, int numClones);
 
 extern _X_EXPORT Bool
-
 RROutputSetModes(RROutputPtr output,
                  RRModePtr * modes, int numModes, int numPreferred);
 
@@ -1005,13 +920,11 @@ extern _X_EXPORT Bool
  RRPostPendingProperties(RROutputPtr output);
 
 extern _X_EXPORT int
-
 RRChangeOutputProperty(RROutputPtr output, Atom property, Atom type,
                        int format, int mode, unsigned long len,
                        const void *value, Bool sendevent, Bool pending);
 
 extern _X_EXPORT int
-
 RRConfigureOutputProperty(RROutputPtr output, Atom property,
                           Bool pending, Bool range, Bool immutable,
                           int num_values, const INT32 *values);
@@ -1116,50 +1029,12 @@ ProcRRChangeProviderProperty(ClientPtr client);
 
 extern _X_EXPORT int
  ProcRRDeleteProviderProperty(ClientPtr client);
+
 /* rrxinerama.c */
 #ifdef XINERAMA
 extern _X_EXPORT void
  RRXineramaExtensionInit(void);
 #endif
-
-void
-RRMonitorInit(ScreenPtr screen);
-
-Bool
-RRMonitorMakeList(ScreenPtr screen, Bool get_active, RRMonitorPtr *monitors_ret, int *nmon_ret);
-
-int
-RRMonitorCountList(ScreenPtr screen);
-
-void
-RRMonitorFreeList(RRMonitorPtr monitors, int nmon);
-
-void
-RRMonitorClose(ScreenPtr screen);
-
-RRMonitorPtr
-RRMonitorAlloc(int noutput);
-
-int
-RRMonitorAdd(ClientPtr client, ScreenPtr screen, RRMonitorPtr monitor);
-
-void
-RRMonitorFree(RRMonitorPtr monitor);
-
-int
-ProcRRGetMonitors(ClientPtr client);
-
-int
-ProcRRSetMonitor(ClientPtr client);
-
-int
-ProcRRDeleteMonitor(ClientPtr client);
-
-int
-ProcRRCreateLease(ClientPtr client);
-
-int
-ProcRRFreeLease(ClientPtr client);
 
 #endif                          /* _RANDRSTR_H_ */
 

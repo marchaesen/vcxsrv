@@ -355,7 +355,7 @@ glamor_pixmap_ensure_fbo(PixmapPtr pixmap, int flag)
     return TRUE;
 }
 
-_X_EXPORT void
+void
 glamor_pixmap_exchange_fbos(PixmapPtr front, PixmapPtr back)
 {
     glamor_pixmap_private *front_priv, *back_priv;

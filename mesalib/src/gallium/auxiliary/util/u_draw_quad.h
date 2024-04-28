@@ -45,8 +45,8 @@ struct cso_velems_state;
 extern void
 util_draw_vertex_buffer(struct pipe_context *pipe, struct cso_context *cso,
                         struct pipe_resource *vbuf, unsigned offset,
-                        enum mesa_prim prim_type, unsigned num_attribs,
-                        unsigned num_verts);
+                        bool vb_take_ownership, enum mesa_prim prim_type,
+                        unsigned num_attribs, unsigned num_verts);
 
 void
 util_draw_user_vertex_buffer(struct cso_context *cso, void *buffer,

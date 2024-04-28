@@ -136,7 +136,6 @@ if with_llvm
     'si_shader_llvm_gs.c',
     'si_shader_llvm_ps.c',
     'si_shader_llvm_tess.c',
-    'si_shader_llvm_vs.c',
   )
 
   radeonsi_include_dirs += [inc_amd_common_llvm]

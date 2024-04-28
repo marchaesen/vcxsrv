@@ -91,7 +91,7 @@ util_queue_fence_signal(struct util_queue_fence *fence)
    assert(val != 0);
 
    if (val == 2)
-      futex_wake(&fence->val, INT_MAX);
+      futex_wake(&fence->val, INT32_MAX);
 }
 
 /**
@@ -138,6 +138,7 @@ void util_queue_fence_signal(struct util_queue_fence *fence);
  * \warning The caller must ensure that no other thread may currently be
  *          waiting (or about to wait) on the fence.
  */
+#if !THREAD_SANITIZER
 static inline void
 util_queue_fence_reset(struct util_queue_fence *fence)
 {
@@ -150,6 +151,23 @@ util_queue_fence_is_signalled(struct util_queue_fence *fence)
 {
    return fence->signalled != 0;
 }
+#else
+static inline void
+util_queue_fence_reset(struct util_queue_fence *fence)
+{
+   assert(fence->signalled);
+   fence->signalled = 0;
+}
+
+static inline bool
+util_queue_fence_is_signalled(struct util_queue_fence *fence)
+{
+   mtx_lock(&fence->mutex);
+   bool signalled = fence->signalled != 0;
+   mtx_unlock(&fence->mutex);
+   return signalled;
+}
+#endif
 #endif
 
 void

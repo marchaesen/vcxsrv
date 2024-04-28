@@ -21,6 +21,7 @@
  */
 
 #include "present_priv.h"
+#include <unistd.h>
 
 void
 present_vblank_notify(present_vblank_ptr vblank, CARD8 kind, CARD8 mode, uint64_t ust, uint64_t crtc_msc)
@@ -55,6 +56,12 @@ present_vblank_init(present_vblank_ptr vblank,
                     RRCrtcPtr target_crtc,
                     SyncFence *wait_fence,
                     SyncFence *idle_fence,
+#ifdef DRI3
+                    struct dri3_syncobj *acquire_syncobj,
+                    struct dri3_syncobj *release_syncobj,
+                    uint64_t acquire_point,
+                    uint64_t release_point,
+#endif /* DRI3 */
                     uint32_t options,
                     const uint32_t capabilities,
                     present_notify_ptr notifies,
@@ -135,6 +142,22 @@ present_vblank_init(present_vblank_ptr vblank,
             goto no_mem;
     }
 
+#ifdef DRI3
+    vblank->efd = -1;
+
+    if (acquire_syncobj) {
+        vblank->acquire_syncobj = acquire_syncobj;
+        ++acquire_syncobj->refcount;
+        vblank->acquire_point = acquire_point;
+    }
+
+    if (release_syncobj) {
+        vblank->release_syncobj = release_syncobj;
+        ++release_syncobj->refcount;
+        vblank->release_point = release_point;
+    }
+#endif /* DRI3 */
+
     if (pixmap)
         DebugPresent(("q %" PRIu64 " %p %" PRIu64 ": %08" PRIx32 " -> %08" PRIx32 " (crtc %p) flip %d vsync %d serial %d\n",
                       vblank->event_id, vblank, target_msc,
@@ -158,6 +181,12 @@ present_vblank_create(WindowPtr window,
                       RRCrtcPtr target_crtc,
                       SyncFence *wait_fence,
                       SyncFence *idle_fence,
+#ifdef DRI3
+                      struct dri3_syncobj *acquire_syncobj,
+                      struct dri3_syncobj *release_syncobj,
+                      uint64_t acquire_point,
+                      uint64_t release_point,
+#endif /* DRI3 */
                       uint32_t options,
                       const uint32_t capabilities,
                       present_notify_ptr notifies,
@@ -172,6 +201,10 @@ present_vblank_create(WindowPtr window,
 
     if (present_vblank_init(vblank, window, pixmap, serial, valid, update,
                             x_off, y_off, target_crtc, wait_fence, idle_fence,
+#ifdef DRI3
+                            acquire_syncobj, release_syncobj,
+                            acquire_point, release_point,
+#endif /* DRI3 */
                             options, capabilities, notifies, num_notifies,
                             target_msc, crtc_msc))
         return vblank;
@@ -228,6 +261,21 @@ present_vblank_destroy(present_vblank_ptr vblank)
 
     if (vblank->notifies)
         present_destroy_notifies(vblank->notifies, vblank->num_notifies);
+
+#ifdef DRI3
+    if (vblank->efd >= 0) {
+        SetNotifyFd(vblank->efd, NULL, 0, NULL);
+        close(vblank->efd);
+    }
+
+    if (vblank->acquire_syncobj &&
+        --vblank->acquire_syncobj->refcount == 0)
+        vblank->acquire_syncobj->free(vblank->acquire_syncobj);
+
+    if (vblank->release_syncobj &&
+        --vblank->release_syncobj->refcount == 0)
+        vblank->release_syncobj->free(vblank->release_syncobj);
+#endif /* DRI3 */
 
     free(vblank);
 }

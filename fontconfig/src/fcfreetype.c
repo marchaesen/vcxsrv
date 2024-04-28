@@ -666,6 +666,16 @@ static const FcChar16 fcMacRomanNonASCIIToUnicode[128] = {
 
 #if USE_ICONV
 #include <iconv.h>
+
+#ifdef _WIN32
+#  ifdef WINICONV_CONST
+#    define FC_ICONV_CONST WINICONV_CONST
+#  endif
+#endif
+#ifndef FC_ICONV_CONST
+#  define FC_ICONV_CONST
+#endif
+
 #endif
 
 /*
@@ -858,8 +868,8 @@ retry:
 	while (in_bytes_left)
 	{
 	    size_t	did = iconv (cd,
-				 &inbuf, &in_bytes_left,
-				 &outbuf, &out_bytes_left);
+				     (FC_ICONV_CONST char **)&inbuf, &in_bytes_left,
+				     &outbuf, &out_bytes_left);
 	    if (did == (size_t) (-1))
 	    {
 		iconv_close (cd);

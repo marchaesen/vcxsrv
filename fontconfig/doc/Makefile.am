@@ -67,6 +67,7 @@ SUFFIXES =	\
 	$(NULL)
 TESTS =				\
 	check-missing-doc	\
+	check-whitespace-in-args	\
 	$(NULL)
 TESTS_ENVIRONMENT = \
 	top_srcdir=${top_srcdir}; export top_srcdir; \
@@ -140,6 +141,8 @@ noinst_SCRIPTS =		\
 ##
 check_SCRIPTS =			\
 	check-missing-doc	\
+	check-whitespace-in-args	\
+	check-whitespace-in-args.py	\
 	$(NULL)
 #
 man3_MANS =		\

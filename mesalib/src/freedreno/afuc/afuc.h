@@ -118,14 +118,18 @@ typedef enum {
    OPC_IRET,          /* return from preemption interrupt handler */
    OPC_CALL,          /* "function" call */
    OPC_WAITIN,        /* wait for input (ie. wait for WPTR to advance) */
-   OPC_PREEMPTLEAVE,  /* try to leave preemption */
+   OPC_BL,            /* Branch and Link (same as the MIPS/ARM instruction) */
    OPC_SETSECURE,     /* switch secure mode on/off */
+   OPC_JUMPR,         /* indirect jump with a register offset */
+   OPC_SRET,          /* Return instruction to use with "bl" */
+   OPC_JUMPA,         /* Absolute jump instruction */
 
    /* pseudo-opcodes without an actual encoding */
    OPC_BREQ,
    OPC_BRNE,
    OPC_JUMP,
    OPC_RAW_LITERAL,
+   OPC_JUMPTBL,
 } afuc_opc;
 
 /**
@@ -133,6 +137,10 @@ typedef enum {
  *
  * Notes:  (applicable to a6xx, double check a5xx)
  *
+ *   0x1a:
+ *      $sp
+ *   0x1b:
+ *      $lr:      written by bl
  *   0x1d:
  *      $addr:    writes configure GPU reg address to read/write
  *                (does not respect CP_PROTECT)
@@ -149,6 +157,8 @@ typedef enum {
  *                or $usraddr
  */
 typedef enum {
+   REG_SP      = 0x1a,
+   REG_LR      = 0x1b,
    REG_REM     = 0x1c,
    REG_MEMDATA = 0x1d,  /* when used as src */
    REG_ADDR    = 0x1d,  /* when used as dst */
@@ -178,7 +188,18 @@ struct afuc_instr {
    bool is_literal : 1;
    bool rep : 1;
    bool preincrement : 1;
+   bool peek : 1;
 };
+
+/* Literal offsets are sometimes encoded as NOP instructions, which on a6xx+
+ * must have a high 8 bits of 0x01.
+ */
+static inline uint32_t
+afuc_nop_literal(uint32_t x, unsigned gpuver)
+{
+   assert((x >> 24) == 0);
+   return gpuver < 6 ? x : x | (1 << 24);
+}
 
 void print_control_reg(uint32_t id);
 void print_sqe_reg(uint32_t id);

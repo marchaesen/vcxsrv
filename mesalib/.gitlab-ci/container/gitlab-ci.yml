@@ -68,6 +68,10 @@ debian/x86_64_build-base:
     - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
+  rules:
+    # python-test requires debian/x86_64_build, which requires this job
+    - !reference [python-test, rules]
+    - !reference [.container, rules]
 
 .use-debian/x86_64_build-base:
   extends:
@@ -222,7 +226,7 @@ debian/x86_64_test-vk:
     - debian/x86_64_test-vk
 
 # Debian based x86_64 test image for Android
-debian/x86_64_test-android:
+.debian/x86_64_test-android:
   extends: .use-debian/x86_64_test-base
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_test-android ${DEBIAN_X86_64_TEST_ANDROID_TAG}

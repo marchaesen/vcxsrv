@@ -309,7 +309,7 @@ xf86RotateCloseScreen(ScreenPtr screen)
 }
 
 static Bool
-xf86CrtcFitsScreen(xf86CrtcPtr crtc, struct pict_f_transform *crtc_to_fb)
+xf86CrtcFitsScreen(xf86CrtcPtr crtc, struct pixman_f_transform *crtc_to_fb)
 {
     ScrnInfoPtr pScrn = crtc->scrn;
     BoxRec b;
@@ -350,7 +350,7 @@ xf86CrtcRotate(xf86CrtcPtr crtc)
     xf86CrtcConfigPtr xf86_config = XF86_CRTC_CONFIG_PTR(pScrn);
     ScreenPtr pScreen = xf86ScrnToScreen(pScrn);
     PictTransform crtc_to_fb;
-    struct pict_f_transform f_crtc_to_fb, f_fb_to_crtc;
+    struct pixman_f_transform f_crtc_to_fb, f_fb_to_crtc;
     xFixed *new_params = NULL;
     int new_nparams = 0;
     PictFilterPtr new_filter = NULL;

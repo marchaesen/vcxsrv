@@ -21,6 +21,7 @@
  * SOFTWARE.
  */
 
+#include "util/ralloc.h"
 #include "util/u_memory.h"
 #include "nir.h"
 #include "nir_builder.h"
@@ -33,7 +34,7 @@ gs_in_prim_for_topology(enum mesa_prim prim)
    case MESA_PRIM_QUADS:
       return MESA_PRIM_LINES_ADJACENCY;
    default:
-      return prim;
+      return u_decomposed_prim(prim);
    }
 }
 
@@ -145,7 +146,8 @@ nir_create_passthrough_gs(const nir_shader_compiler_options *options,
    nir->info.has_transform_feedback_varyings = prev_stage->info.has_transform_feedback_varyings;
    memcpy(nir->info.xfb_stride, prev_stage->info.xfb_stride, sizeof(prev_stage->info.xfb_stride));
    if (prev_stage->xfb_info) {
-      nir->xfb_info = mem_dup(prev_stage->xfb_info, nir_xfb_info_size(prev_stage->xfb_info->output_count));
+      size_t size = nir_xfb_info_size(prev_stage->xfb_info->output_count);
+      nir->xfb_info = ralloc_memdup(nir, prev_stage->xfb_info, size);
    }
 
    bool handle_flat = output_lines && nir->info.gs.output_primitive != gs_out_prim_for_topology(primitive_type);

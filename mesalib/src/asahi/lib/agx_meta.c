@@ -6,6 +6,7 @@
 #include "agx_meta.h"
 #include "agx_compile.h"
 #include "agx_device.h" /* for AGX_MEMORY_TYPE_SHADER */
+#include "agx_nir_passes.h"
 #include "agx_tilebuffer.h"
 #include "nir.h"
 #include "nir_builder.h"
@@ -30,15 +31,13 @@ agx_compile_meta_shader(struct agx_meta_cache *cache, nir_shader *shader,
                         struct agx_shader_key *key,
                         struct agx_tilebuffer_layout *tib)
 {
-   struct util_dynarray binary;
-   util_dynarray_init(&binary, NULL);
-
-   agx_preprocess_nir(shader, cache->dev->libagx, false, NULL);
+   agx_nir_lower_texture(shader);
+   agx_preprocess_nir(shader, cache->dev->libagx);
    if (tib) {
       unsigned bindless_base = 0;
-      agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL, true);
-      agx_nir_lower_monolithic_msaa(
-         shader, &(struct agx_msaa_state){.nr_samples = tib->nr_samples});
+      agx_nir_lower_tilebuffer(shader, tib, NULL, &bindless_base, NULL);
+      agx_nir_lower_monolithic_msaa(shader, tib->nr_samples);
+      agx_nir_lower_multisampled_image_store(shader);
 
       nir_shader_intrinsics_pass(
          shader, lower_tex_handle_to_u0,
@@ -48,11 +47,13 @@ agx_compile_meta_shader(struct agx_meta_cache *cache, nir_shader *shader,
    key->libagx = cache->dev->libagx;
 
    struct agx_meta_shader *res = rzalloc(cache->ht, struct agx_meta_shader);
-   agx_compile_shader_nir(shader, key, NULL, &binary, &res->info);
+   struct agx_shader_part bin;
+   agx_compile_shader_nir(shader, key, NULL, &bin);
 
-   res->ptr = agx_pool_upload_aligned_with_bo(&cache->pool, binary.data,
-                                              binary.size, 128, &res->bo);
-   util_dynarray_fini(&binary);
+   res->info = bin.info;
+   res->ptr = agx_pool_upload_aligned_with_bo(&cache->pool, bin.binary,
+                                              bin.binary_size, 128, &res->bo);
+   free(bin.binary);
    ralloc_free(shader);
 
    return res;
@@ -67,7 +68,7 @@ build_background_op(nir_builder *b, enum agx_meta_op op, unsigned rt,
 
       if (layered) {
          coord = nir_vec3(b, nir_channel(b, coord, 0), nir_channel(b, coord, 1),
-                          agx_internal_layer_id(b));
+                          nir_load_layer_id(b));
       }
 
       nir_tex_instr *tex = nir_tex_instr_create(b->shader, 2);
@@ -114,7 +115,6 @@ agx_build_background_shader(struct agx_meta_cache *cache,
 
    struct agx_shader_key compiler_key = {
       .fs.ignore_tib_dependencies = true,
-      .fs.nr_samples = key->tib.nr_samples,
       .reserved_preamble = key->reserved_preamble,
    };
 
@@ -166,7 +166,7 @@ agx_build_end_of_tile_shader(struct agx_meta_cache *cache,
 
       nir_def *layer = nir_undef(&b, 1, 16);
       if (key->tib.layered)
-         layer = nir_u2u16(&b, agx_internal_layer_id(&b));
+         layer = nir_u2u16(&b, nir_load_layer_id(&b));
 
       nir_block_image_store_agx(
          &b, nir_imm_int(&b, rt), nir_imm_intN_t(&b, offset_B, 16), layer,
@@ -205,23 +205,13 @@ agx_get_meta_shader(struct agx_meta_cache *cache, struct agx_meta_key *key)
    return ret;
 }
 
-static uint32_t
-key_hash(const void *key)
-{
-   return _mesa_hash_data(key, sizeof(struct agx_meta_key));
-}
-
-static bool
-key_compare(const void *a, const void *b)
-{
-   return memcmp(a, b, sizeof(struct agx_meta_key)) == 0;
-}
+DERIVE_HASH_TABLE(agx_meta_key);
 
 void
 agx_meta_init(struct agx_meta_cache *cache, struct agx_device *dev)
 {
    agx_pool_init(&cache->pool, dev, AGX_BO_EXEC | AGX_BO_LOW_VA, true);
-   cache->ht = _mesa_hash_table_create(NULL, key_hash, key_compare);
+   cache->ht = agx_meta_key_table_create(NULL);
    cache->dev = dev;
 }
 

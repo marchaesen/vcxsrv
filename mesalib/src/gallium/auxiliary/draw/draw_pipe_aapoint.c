@@ -387,7 +387,7 @@ generate_aapoint_fs(struct aapoint_stage *aapoint)
    if (!aapoint_fs.tokens)
       return false;
 
-#if 0 /* DEBUG */
+#if 0 /* debug */
    debug_printf("draw_aapoint, orig shader:\n");
    tgsi_dump(orig_fs->tokens, 0);
    debug_printf("draw_aapoint, new shader:\n");

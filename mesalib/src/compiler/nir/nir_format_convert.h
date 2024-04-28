@@ -305,7 +305,7 @@ nir_format_linear_to_srgb(nir_builder *b, nir_def *c)
 {
    nir_def *linear = nir_fmul_imm(b, c, 12.92f);
    nir_def *curved =
-      nir_fadd_imm(b, nir_fmul_imm(b, nir_fpow(b, c, nir_imm_float(b, 1.0 / 2.4)), 1.055f),
+      nir_fadd_imm(b, nir_fmul_imm(b, nir_fpow_imm(b, c, 1.0 / 2.4), 1.055f),
                    -0.055f);
 
    return nir_fsat(b, nir_bcsel(b, nir_flt_imm(b, c, 0.0031308f),

@@ -248,7 +248,7 @@ si_vpe_format(enum pipe_format format)
       ret = VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_YCbCr;
       break;
    case PIPE_FORMAT_P010:
-      ret = VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_10bpc_YCbCr;
+      ret = VPE_SURFACE_PIXEL_FORMAT_VIDEO_420_10bpc_YCrCb;
       break;
    /* VPE output format: */
    case PIPE_FORMAT_A8R8G8B8_UNORM:
@@ -423,13 +423,15 @@ si_vpe_set_plane_info(struct vpe_video_processor *vpeproc,
    si_vpe_set_color_space(process_properties, &surface_info->cs, format, which_surface);
 
    /* Get surface info, such as buffer alignment and offset */
-   if (vpeproc->base.context->screen && vpeproc->base.context->screen->resource_get_info)
+   if (vpeproc->base.context->screen && vpeproc->base.context->screen->resource_get_info) {
       vpeproc->base.context->screen->resource_get_info(vpeproc->base.context->screen,
                                                        surfaces[0]->texture,
                                                        &pitch,
                                                        &offset);
-   else
+   } else {
       SIVPE_ERR("Get plane pitch and offset info failed\n");
+      return VPE_STATUS_ERROR;
+   }
 
    si_res = si_resource(surfaces[0]->texture);
    plane_address->tmz_surface = false;
@@ -450,6 +452,33 @@ si_vpe_set_plane_info(struct vpe_video_processor *vpeproc,
       plane_address->video_progressive.luma_dcc_const_color.quad_part = 0;
       //plane_size->surface_pitch /= 1;   // Byte alignment to Pixel alignment
       /* Get 2nd plane buffer info */
+      if (surfaces[1] && vpeproc->base.context->screen && vpeproc->base.context->screen->resource_get_info) {
+         vpeproc->base.context->screen->resource_get_info(vpeproc->base.context->screen,
+                                                          surfaces[1]->texture,
+                                                          &pitch,
+                                                          &offset);
+      } else {
+         SIVPE_ERR("Get 2nd plane pitch and offset info failed\n");
+         return VPE_STATUS_ERROR;
+      }
+      si_res = si_resource(surfaces[1]->texture);
+      plane_address->video_progressive.chroma_addr.quad_part = si_res->gpu_address + offset;
+      plane_address->video_progressive.chroma_meta_addr.quad_part = 0;
+      plane_address->video_progressive.chroma_dcc_const_color.quad_part = 0;
+
+      plane_size->chroma_size.x = pos_x;
+      plane_size->chroma_size.y = pos_y;
+      plane_size->chroma_size.width = (width + 1) / 2;   // 2 pixel-width alignment
+      plane_size->chroma_size.height = (height + 1) / 2;  // 2 pixel-height alignment
+      plane_size->chroma_pitch = pitch / 2;  // Byte alignment to Pixel alignment (NV12/NV21 2nd plane is 16 bits per pixel)
+      break;
+
+   case PIPE_FORMAT_P010:
+      plane_address->type = VPE_PLN_ADDR_TYPE_VIDEO_PROGRESSIVE;
+      plane_address->video_progressive.luma_addr.quad_part = si_res->gpu_address + offset;
+      plane_address->video_progressive.luma_meta_addr.quad_part = 0;
+      plane_address->video_progressive.luma_dcc_const_color.quad_part = 0;
+      plane_size->surface_pitch /= 2;  // Byte alignment to Pixel alignment (P010 plane is 16 bits per pixel)
       if (surfaces[1] && vpeproc->base.context->screen && vpeproc->base.context->screen->resource_get_info)
          vpeproc->base.context->screen->resource_get_info(vpeproc->base.context->screen,
                                                           surfaces[1]->texture,
@@ -468,8 +497,9 @@ si_vpe_set_plane_info(struct vpe_video_processor *vpeproc,
       plane_size->chroma_size.y = pos_y;
       plane_size->chroma_size.width = (width + 1) / 2;   // 2 pixel-width alignment
       plane_size->chroma_size.height = (height + 1) / 2;  // 2 pixel-height alignment
-      plane_size->chroma_pitch = pitch / 2;  // Byte alignment to Pixel alignment (NV12/NV21 2nd plane is 16 bits per pixel)
+      plane_size->chroma_pitch = pitch / 4;  // Byte alignment to Pixel alignment (NV12/NV21 2nd plane is 32 bits per pixel)
       break;
+
    case PIPE_FORMAT_A8R8G8B8_UNORM:
    case PIPE_FORMAT_A8B8G8R8_UNORM:
    case PIPE_FORMAT_R8G8B8A8_UNORM:
@@ -478,11 +508,6 @@ si_vpe_set_plane_info(struct vpe_video_processor *vpeproc,
    case PIPE_FORMAT_X8B8G8R8_UNORM:
    case PIPE_FORMAT_R8G8B8X8_UNORM:
    case PIPE_FORMAT_B8G8R8X8_UNORM:
-   case PIPE_FORMAT_A2R10G10B10_UNORM:
-   case PIPE_FORMAT_R10G10B10A2_UNORM:
-   case PIPE_FORMAT_A2B10G10R10_UNORM:
-   case PIPE_FORMAT_B10G10R10A2_UNORM:
-   default:
       plane_address->type = VPE_PLN_ADDR_TYPE_GRAPHICS;
       plane_address->grph.addr.quad_part = si_res->gpu_address + offset;
       plane_address->grph.meta_addr.quad_part = 0;
@@ -495,6 +520,13 @@ si_vpe_set_plane_info(struct vpe_video_processor *vpeproc,
       plane_size->chroma_size.height = 0;
       plane_size->chroma_pitch = 0;
       break;
+
+   case PIPE_FORMAT_A2R10G10B10_UNORM:
+   case PIPE_FORMAT_R10G10B10A2_UNORM:
+   case PIPE_FORMAT_A2B10G10R10_UNORM:
+   case PIPE_FORMAT_B10G10R10A2_UNORM:
+   default:
+      SIVPE_ERR("Un-supported format %d\n", format);
    }
    return VPE_STATUS_OK;
 }
@@ -850,6 +882,12 @@ si_vpe_processor_process_frame(struct pipe_video_codec *codec,
                si_vpe_get_tf_str(build_param->dst_surface.cs.tf),
                (build_param->dst_surface.cs.range == VPE_COLOR_RANGE_FULL)?"FULL":"STUDIO");
 
+      SIVPE_DBG(vpeproc->log_level, "Source surface pitch(%d), chroma pitch(%d), dst-surface pitch(%d), chroma pitch(%d)\n",
+               build_param->streams[0].surface_info.plane_size.surface_pitch,
+               build_param->streams[0].surface_info.plane_size.chroma_pitch,
+               build_param->dst_surface.plane_size.surface_pitch,
+               build_param->dst_surface.plane_size.chroma_pitch);
+
       SIVPE_DBG(vpeproc->log_level, "background color RGBA(%0.3f, %0.3f, %0.3f, %0.3f)\n",
                build_param->bg_color.rgba.r,
                build_param->bg_color.rgba.g,
@@ -898,6 +936,14 @@ si_vpe_processor_process_frame(struct pipe_video_codec *codec,
       //SIVPE_DBG(vpeproc->log_level, "ToneMapping update_3dlut(%d) enable_3dlut(%d)\n",
       //         build_param->streams[0].tm_params.update_3dlut,
       //         build_param->streams[0].tm_params.enable_3dlut);
+   }
+
+   if(vpe_handle->level == VPE_IP_LEVEL_1_1) {
+      build_param->num_instances = 2;
+      build_param->collaboration_mode = true;
+   } else {
+      build_param->num_instances = 1;
+      build_param->collaboration_mode = false;
    }
 
    result = vpe_check_support(vpe_handle, build_param, &bufs_required);
@@ -951,7 +997,7 @@ si_vpe_processor_end_frame(struct pipe_video_codec *codec,
    struct pipe_fence_handle *process_fence = NULL;
    assert(codec);
 
-   vpeproc->ws->cs_flush(&vpeproc->cs, PIPE_FLUSH_ASYNC, &process_fence);
+   vpeproc->ws->cs_flush(&vpeproc->cs, picture->flush_flags, &process_fence);
    next_buffer(vpeproc);
 
    if (picture->fence && process_fence) {

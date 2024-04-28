@@ -32,6 +32,9 @@ Equipment Corporation.
 #include <stdio.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "windowstr.h"
 #include "dixfontstr.h"
 #include "gcstruct.h"
@@ -475,7 +478,7 @@ PanoramiXConfigureWindow(ClientPtr client)
 
     /* because we need the parent */
     result = dixLookupResourceByType((void **) &pWin, stuff->window,
-                                     RT_WINDOW, client, DixWriteAccess);
+                                     X11_RESTYPE_WINDOW, client, DixWriteAccess);
     if (result != Success)
         return result;
 

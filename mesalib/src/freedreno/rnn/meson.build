@@ -19,7 +19,6 @@
 # SOFTWARE.
 
 libfreedreno_rnn_files = files(
-  'aprintf.c',
   'colors.c',
   'colors.h',
   'path.c',
@@ -45,25 +44,3 @@ libfreedreno_rnn = static_library(
   dependencies: [ dep_libxml2, idep_mesautil ],
   build_by_default: false,
 )
-
-headergen2 = executable(
-  'headergen2',
-  'headergen2.c',
-  include_directories: [],
-  c_args : [no_override_init_args],
-  gnu_symbol_visibility: 'hidden',
-  dependencies: [],
-  link_with: libfreedreno_rnn,
-  build_by_default: with_tools.contains('freedreno'),
-  install: false
-)
-
-if with_tests
-  foreach xml : ['adreno.xml', 'msm.xml']
-    test('headergen2-' + xml,
-      headergen2,
-      args: [xml],
-      suite: 'freedreno',
-    )
-  endforeach
-endif

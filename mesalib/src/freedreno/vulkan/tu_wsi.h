@@ -12,6 +12,13 @@
 
 #include "tu_common.h"
 
+#if defined(VK_USE_PLATFORM_WAYLAND_KHR) || \
+    defined(VK_USE_PLATFORM_XCB_KHR) || \
+    defined(VK_USE_PLATFORM_XLIB_KHR) || \
+    defined(VK_USE_PLATFORM_DISPLAY_KHR)
+#define TU_USE_WSI_PLATFORM
+#endif
+
 VkResult
 tu_wsi_init(struct tu_physical_device *physical_device);
 

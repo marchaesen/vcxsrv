@@ -31,7 +31,7 @@
 #include "util/format/u_format.h"
 #include "util/u_memory.h"
 #include "util/u_inlines.h"
-#include "util/u_box.h"
+#include "util/box.h"
 #include "pipe/p_context.h"
 #include "pipe-loader/pipe_loader.h"
 #include "frontend/drisw_api.h"
@@ -42,6 +42,10 @@
 #include "dri_drawable.h"
 #include "dri_helpers.h"
 #include "dri_query_renderer.h"
+
+#ifdef HAVE_LIBDRM
+#include <xf86drm.h>
+#endif
 
 DEBUG_GET_ONCE_BOOL_OPTION(swrast_no_present, "SWRAST_NO_PRESENT", false);
 
@@ -186,14 +190,14 @@ drisw_put_image_shm(struct dri_drawable *drawable,
 
 static inline void
 drisw_present_texture(struct pipe_context *pipe, struct dri_drawable *drawable,
-                      struct pipe_resource *ptex, struct pipe_box *sub_box)
+                      struct pipe_resource *ptex, unsigned nrects, struct pipe_box *sub_box)
 {
    struct dri_screen *screen = drawable->screen;
 
    if (screen->swrast_no_present)
       return;
 
-   screen->base.screen->flush_frontbuffer(screen->base.screen, pipe, ptex, 0, 0, drawable, sub_box);
+   screen->base.screen->flush_frontbuffer(screen->base.screen, pipe, ptex, 0, 0, drawable, nrects, sub_box);
 }
 
 static inline void
@@ -207,9 +211,10 @@ drisw_invalidate_drawable(struct dri_drawable *drawable)
 static inline void
 drisw_copy_to_front(struct pipe_context *pipe,
                     struct dri_drawable *drawable,
-                    struct pipe_resource *ptex)
+                    struct pipe_resource *ptex,
+                    int nboxes, struct pipe_box *boxes)
 {
-   drisw_present_texture(pipe, drawable, ptex, NULL);
+   drisw_present_texture(pipe, drawable, ptex, nboxes, boxes);
 
    drisw_invalidate_drawable(drawable);
 }
@@ -219,7 +224,7 @@ drisw_copy_to_front(struct pipe_context *pipe,
  */
 
 static void
-drisw_swap_buffers(struct dri_drawable *drawable)
+drisw_swap_buffers_with_damage(struct dri_drawable *drawable, int nrects, const int *rects)
 {
    struct dri_context *ctx = dri_get_current();
    struct dri_screen *screen = drawable->screen;
@@ -237,6 +242,26 @@ drisw_swap_buffers(struct dri_drawable *drawable)
 
    if (ptex) {
       struct pipe_fence_handle *fence = NULL;
+
+      struct pipe_box stack_boxes[64];
+      if (nrects > ARRAY_SIZE(stack_boxes))
+         nrects = 0;
+      if (nrects) {
+         for (unsigned int i = 0; i < nrects; i++) {
+            const int *rect = &rects[i * 4];
+
+            int w = MIN2(rect[2], ptex->width0);
+            int h = MIN2(rect[3], ptex->height0);
+            int x = CLAMP(rect[0], 0, ptex->width0);
+            int y = CLAMP(ptex->height0 - rect[1] - h, 0, ptex->height0);
+
+            if (h > ptex->height0 - y)
+               h = ptex->height0 - y;
+
+            u_box_2d(x, y, w, h, &stack_boxes[i]);
+         }
+      }
+
       if (ctx->pp)
          pp_run(ctx->pp, ptex, ptex, drawable->textures[ST_ATTACHMENT_DEPTH_STENCIL]);
 
@@ -255,11 +280,18 @@ drisw_swap_buffers(struct dri_drawable *drawable)
       screen->base.screen->fence_finish(screen->base.screen, ctx->st->pipe,
                                         fence, OS_TIMEOUT_INFINITE);
       screen->base.screen->fence_reference(screen->base.screen, &fence, NULL);
-      drisw_copy_to_front(ctx->st->pipe, drawable, ptex);
+      drisw_copy_to_front(ctx->st->pipe, drawable, ptex, nrects, nrects ? stack_boxes : NULL);
+      drawable->buffer_age = 1;
 
       /* TODO: remove this if the framebuffer state doesn't change. */
       st_context_invalidate_state(ctx->st, ST_INVALIDATE_FB_STATE);
    }
+}
+
+static void
+drisw_swap_buffers(struct dri_drawable *drawable)
+{
+   drisw_swap_buffers_with_damage(drawable, 0, NULL);
 }
 
 static void
@@ -299,7 +331,7 @@ drisw_copy_sub_buffer(struct dri_drawable *drawable, int x, int y,
       }
 
       u_box_2d(x, drawable->h - y - h, w, h, &box);
-      drisw_present_texture(ctx->st->pipe, drawable, ptex, &box);
+      drisw_present_texture(ctx->st->pipe, drawable, ptex, 1, &box);
    }
 }
 
@@ -327,7 +359,7 @@ drisw_flush_frontbuffer(struct dri_context *ctx,
    ptex = drawable->textures[statt];
 
    if (ptex) {
-      drisw_copy_to_front(ctx->st->pipe, ctx->draw, ptex);
+      drisw_copy_to_front(ctx->st->pipe, ctx->draw, ptex, 0, NULL);
    }
 
    return true;
@@ -370,6 +402,7 @@ drisw_allocate_textures(struct dri_context *stctx,
          pipe_resource_reference(&drawable->textures[i], NULL);
          pipe_resource_reference(&drawable->msaa_textures[i], NULL);
       }
+      drawable->buffer_age = 0;
    }
 
    memset(&templ, 0, sizeof(templ));
@@ -478,6 +511,8 @@ static __DRIimageExtension driSWImageExtension = {
     .destroyImage = dri2_destroy_image,
 };
 
+extern const __DRIimageExtension driVkImageExtension;
+
 static const __DRIrobustnessExtension dri2Robustness = {
    .base = { __DRI2_ROBUSTNESS, 1 }
 };
@@ -487,22 +522,22 @@ static const __DRIrobustnessExtension dri2Robustness = {
  */
 
 static const __DRIextension *drisw_screen_extensions[] = {
+   &driSWImageExtension.base,
    &driTexBufferExtension.base,
    &dri2RendererQueryExtension.base,
    &dri2ConfigQueryExtension.base,
    &dri2FenceExtension.base,
-   &driSWImageExtension.base,
    &dri2FlushControlExtension.base,
    NULL
 };
 
 static const __DRIextension *drisw_robust_screen_extensions[] = {
+   &driSWImageExtension.base,
    &driTexBufferExtension.base,
    &dri2RendererQueryExtension.base,
    &dri2ConfigQueryExtension.base,
    &dri2FenceExtension.base,
    &dri2Robustness.base,
-   &driSWImageExtension.base,
    &dri2FlushControlExtension.base,
    NULL
 };
@@ -534,12 +569,13 @@ drisw_create_drawable(struct dri_screen *screen, const struct gl_config * visual
    drawable->flush_frontbuffer = drisw_flush_frontbuffer;
    drawable->update_tex_buffer = drisw_update_tex_buffer;
    drawable->swap_buffers = drisw_swap_buffers;
+   drawable->swap_buffers_with_damage = drisw_swap_buffers_with_damage;
 
    return drawable;
 }
 
 static const __DRIconfig **
-drisw_init_screen(struct dri_screen *screen)
+drisw_init_screen(struct dri_screen *screen, bool implicit)
 {
    const __DRIswrastLoaderExtension *loader = screen->swrast_loader;
    const __DRIconfig **configs;
@@ -562,7 +598,7 @@ drisw_init_screen(struct dri_screen *screen)
       success = pipe_loader_sw_probe_dri(&screen->dev, lf);
 
    if (success)
-      pscreen = pipe_loader_create_screen(screen->dev);
+      pscreen = pipe_loader_create_screen(screen->dev, implicit);
 
    if (!pscreen)
       goto fail;
@@ -578,6 +614,10 @@ drisw_init_screen(struct dri_screen *screen)
    }
    else
       screen->extensions = drisw_screen_extensions;
+#ifdef HAVE_LIBDRM
+   if (pscreen->resource_create_with_modifiers && (pscreen->get_param(pscreen, PIPE_CAP_DMABUF) & DRM_PRIME_CAP_EXPORT))
+      screen->extensions[0] = &driVkImageExtension.base;
+#endif
    screen->lookup_egl_image = dri2_lookup_egl_image;
 
    const __DRIimageLookupExtension *image = screen->dri2.image;
@@ -616,11 +656,12 @@ const __DRIcopySubBufferExtension driSWCopySubBufferExtension = {
 };
 
 static const struct __DRImesaCoreExtensionRec mesaCoreExtension = {
-   .base = { __DRI_MESA, 1 },
+   .base = { __DRI_MESA, 2 },
    .version_string = MESA_INTERFACE_VERSION_STRING,
    .createNewScreen = driCreateNewScreen2,
    .createContext = driCreateContextAttribs,
    .initScreen = drisw_init_screen,
+   .createNewScreen3 = driCreateNewScreen3,
 };
 
 /* This is the table of extensions that the loader will dlsym() for. */

@@ -905,6 +905,7 @@ _mesa_get_color_read_format(struct gl_context *ctx,
          return GL_RGB;
       case MESA_FORMAT_RG_FLOAT32:
       case MESA_FORMAT_RG_FLOAT16:
+      case MESA_FORMAT_RG_SNORM8:
       case MESA_FORMAT_RG_UNORM8:
          return GL_RG;
       case MESA_FORMAT_RG_SINT32:

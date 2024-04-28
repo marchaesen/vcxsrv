@@ -48,9 +48,13 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include <assert.h>
 #include <X11/X.h>
 #include <X11/Xmd.h>
 #include <X11/Xproto.h>
+
+#include "dix/gc_priv.h"
+
 #include "misc.h"
 #include "resource.h"
 #include "gcstruct.h"
@@ -59,11 +63,9 @@ SOFTWARE.
 #include "scrnintstr.h"
 #include "region.h"
 #include "dixstruct.h"
-
 #include "privates.h"
 #include "dix.h"
 #include "xace.h"
-#include <assert.h>
 
 extern FontPtr defaultFont;
 
@@ -421,10 +423,10 @@ static const struct {
     RESTYPE type;
     Mask access_mode;
 } xidfields[] = {
-    {GCTile, RT_PIXMAP, DixReadAccess},
-    {GCStipple, RT_PIXMAP, DixReadAccess},
-    {GCFont, RT_FONT, DixUseAccess},
-    {GCClipMask, RT_PIXMAP, DixReadAccess},
+    {GCTile,     X11_RESTYPE_PIXMAP, DixReadAccess},
+    {GCStipple,  X11_RESTYPE_PIXMAP, DixReadAccess},
+    {GCFont,     X11_RESTYPE_FONT,   DixUseAccess},
+    {GCClipMask, X11_RESTYPE_PIXMAP, DixReadAccess},
 };
 
 int
@@ -547,8 +549,8 @@ CreateGC(DrawablePtr pDrawable, BITS32 mask, XID *pval, int *pStatus,
     }
 
     /* security creation/labeling check */
-    *pStatus = XaceHook(XACE_RESOURCE_ACCESS, client, gcid, RT_GC, pGC,
-                        RT_NONE, NULL, DixCreateAccess | DixSetAttrAccess);
+    *pStatus = XaceHook(XACE_RESOURCE_ACCESS, client, gcid, X11_RESTYPE_GC, pGC,
+                        X11_RESTYPE_NONE, NULL, DixCreateAccess | DixSetAttrAccess);
     if (*pStatus != Success)
         goto out;
 
@@ -770,14 +772,16 @@ FreeGC(void *value, XID gid)
     GCPtr pGC = (GCPtr) value;
 
     CloseFont(pGC->font, (Font) 0);
-    (*pGC->funcs->DestroyClip) (pGC);
+    if (pGC->funcs)
+        (*pGC->funcs->DestroyClip) (pGC);
 
     if (!pGC->tileIsPixel)
         (*pGC->pScreen->DestroyPixmap) (pGC->tile.pixmap);
     if (pGC->stipple)
         (*pGC->pScreen->DestroyPixmap) (pGC->stipple);
 
-    (*pGC->funcs->DestroyGC) (pGC);
+    if (pGC->funcs)
+        (*pGC->funcs->DestroyGC) (pGC);
     if (pGC->dash != DefaultDash)
         free(pGC->dash);
     dixFreeObjectWithPrivates(pGC, PRIVATE_GC);

@@ -333,7 +333,7 @@ gmem_stateobj_init(struct fd_screen *screen, struct gmem_key *key)
          tpp_x += 1;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    tpp_x = debug_get_num_option("TPP_X", tpp_x);
    tpp_y = debug_get_num_option("TPP_Y", tpp_x);
 #endif
@@ -480,9 +480,9 @@ gmem_key_init(struct fd_batch *batch, bool assume_zs, bool no_scis_opt)
 
    if (has_zs || assume_zs) {
       struct fd_resource *rsc = fd_resource(pfb->zsbuf->texture);
-      key->zsbuf_cpp[0] = rsc->layout.cpp;
+      key->zsbuf_cpp[0] = rsc->layout.cpp * pfb->samples;
       if (rsc->stencil)
-         key->zsbuf_cpp[1] = rsc->stencil->layout.cpp;
+         key->zsbuf_cpp[1] = rsc->stencil->layout.cpp * pfb->samples;
 
       /* If we clear z or s but not both, and we are using z24s8 (ie.
        * !separate_stencil) then we need to restore the other, even if

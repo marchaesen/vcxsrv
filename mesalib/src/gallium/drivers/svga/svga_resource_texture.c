@@ -1460,7 +1460,7 @@ svga_texture_transfer_map_upload(struct svga_context *svga,
    upload_size = st->base.layer_stride * st->base.box.depth;
    upload_size = align(upload_size, 16);
 
-#ifdef DEBUG
+#if MESA_DEBUG
    if (util_format_is_compressed(texture->format)) {
       unsigned blockw, blockh, bytesPerBlock;
 

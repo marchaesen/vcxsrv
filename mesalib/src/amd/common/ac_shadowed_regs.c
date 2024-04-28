@@ -732,7 +732,7 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
 
    switch (type) {
    case SI_REG_RANGE_UCONFIG:
-      if (gfx_level == GFX11)
+      if (gfx_level == GFX11 || gfx_level == GFX11_5)
          RETURN(Gfx11UserConfigShadowRange);
       else if (gfx_level == GFX10_3)
          RETURN(Gfx103UserConfigShadowRange);
@@ -742,7 +742,7 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
          RETURN(Gfx9UserConfigShadowRange);
       break;
    case SI_REG_RANGE_CONTEXT:
-      if (gfx_level == GFX11)
+      if (gfx_level == GFX11 || gfx_level == GFX11_5)
          RETURN(Gfx11ContextShadowRange);
       else if (gfx_level == GFX10_3)
          RETURN(Gfx103ContextShadowRange);
@@ -752,7 +752,7 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
          RETURN(Gfx9ContextShadowRange);
       break;
    case SI_REG_RANGE_SH:
-      if (gfx_level == GFX11)
+      if (gfx_level == GFX11 || gfx_level == GFX11_5)
          RETURN(Gfx11ShShadowRange);
       else if (gfx_level == GFX10_3 || gfx_level == GFX10)
          RETURN(Gfx10ShShadowRange);
@@ -762,7 +762,7 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
          RETURN(Gfx9ShShadowRange);
       break;
    case SI_REG_RANGE_CS_SH:
-      if (gfx_level == GFX11)
+      if (gfx_level == GFX11 || gfx_level == GFX11_5)
          RETURN(Gfx11CsShShadowRange);
       else if (gfx_level == GFX10_3 || gfx_level == GFX10)
          RETURN(Gfx10CsShShadowRange);
@@ -3498,7 +3498,7 @@ void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf
    unsigned reg_offset = R_02835C_PA_SC_TILE_STEERING_OVERRIDE;
    uint32_t reg_value = info->pa_sc_tile_steering_override;
 
-   if (info->gfx_level >= GFX11) {
+   if (info->gfx_level == GFX11 || info->gfx_level == GFX11_5) {
       gfx11_emulate_clear_state(cs, 1, &reg_offset, &reg_value, set_context_reg_seq_array);
    } else if (info->gfx_level == GFX10_3) {
       gfx103_emulate_clear_state(cs, 1, &reg_offset, &reg_value, set_context_reg_seq_array);

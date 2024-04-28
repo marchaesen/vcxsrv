@@ -1,25 +1,8 @@
 /*
  * Copyright 2008 Corbin Simpson <MostAwesomeDude@gmail.com>
  * Copyright 2010 Marek Olšák <maraeo@gmail.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "compiler/nir/nir.h"
 #include "util/format/u_format.h"
@@ -503,7 +486,6 @@ static int r300_get_video_param(struct pipe_screen *screen,
    .lower_ftrunc = true,                      \
    .lower_insert_byte = true,                 \
    .lower_insert_word = true,                 \
-   .lower_rotate = true,                      \
    .lower_uniforms_to_ubo = true,             \
    .lower_vector_cmp = true,                  \
    .no_integers = true,                       \
@@ -539,6 +521,14 @@ static const nir_shader_compiler_options r300_vs_compiler_options = {
    .max_unroll_iterations = 32,
 };
 
+static const nir_shader_compiler_options r400_vs_compiler_options = {
+   COMMON_NIR_OPTIONS,
+   .lower_fsat = true, /* No fsat in pre-r500 VS */
+
+   /* Note: has HW loops support, but only 256 ALU instructions. */
+   .max_unroll_iterations = 32,
+};
+
 static const nir_shader_compiler_options r300_fs_compiler_options = {
    COMMON_NIR_OPTIONS,
    .lower_fpow = true, /* POW is only in the VS */
@@ -564,10 +554,14 @@ r300_get_compiler_options(struct pipe_screen *pscreen,
        else
          return &r500_fs_compiler_options;
    } else {
-      if (shader == PIPE_SHADER_VERTEX)
+      if (shader == PIPE_SHADER_VERTEX) {
+         if (r300screen->caps.is_r400)
+            return &r400_vs_compiler_options;
+
          return &r300_vs_compiler_options;
-       else
+      } else {
          return &r300_fs_compiler_options;
+      }
    }
 }
 

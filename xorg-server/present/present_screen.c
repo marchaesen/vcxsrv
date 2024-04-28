@@ -187,6 +187,7 @@ present_screen_priv_init(ScreenPtr screen)
     wrap(screen_priv, screen, ClipNotify, present_clip_notify);
 
     dixSetPrivate(&screen->devPrivates, &present_screen_private_key, screen_priv);
+    screen_priv->pScreen = screen;
 
     return screen_priv;
 }

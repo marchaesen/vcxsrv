@@ -115,7 +115,7 @@ nir_lower_tex_shadow_impl(nir_builder *b, nir_instr *instr, void *options)
    nir_def *one = nir_imm_float(b, 1.0);
    nir_def *zero = nir_imm_float(b, 0.0);
 
-   nir_def *lookup[6] = { result, NULL, NULL, NULL, zero, one };
+   nir_def *lookup[6] = { result, zero, zero, one, zero, one };
    nir_def *r[4] = { result, result, result, result };
 
    if (sampler_binding < state->n_states) {

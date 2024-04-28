@@ -47,8 +47,9 @@
 #include "xe/iris_batch.h"
 
 #include "common/intel_aux_map.h"
-#include "common/intel_defines.h"
 #include "intel/common/intel_gem.h"
+#include "intel/compiler/brw_compiler.h"
+#include "intel/compiler/elk/elk_compiler.h"
 #include "intel/ds/intel_tracepoints.h"
 #include "util/hash_table.h"
 #include "util/u_debug.h"
@@ -232,10 +233,18 @@ iris_init_batch(struct iris_context *ice,
       const unsigned decode_flags = INTEL_BATCH_DECODE_DEFAULT_FLAGS |
          (INTEL_DEBUG(DEBUG_COLOR) ? INTEL_BATCH_DECODE_IN_COLOR : 0);
 
-      intel_batch_decode_ctx_init(&batch->decoder, &screen->compiler->isa,
-                                  screen->devinfo,
-                                  stderr, decode_flags, NULL,
-                                  decode_get_bo, decode_get_state_size, batch);
+      if (screen->brw) {
+         intel_batch_decode_ctx_init_brw(&batch->decoder, &screen->brw->isa,
+                                         screen->devinfo,
+                                         stderr, decode_flags, NULL,
+                                         decode_get_bo, decode_get_state_size, batch);
+      } else {
+         assert(screen->elk);
+         intel_batch_decode_ctx_init_elk(&batch->decoder, &screen->elk->isa,
+                                         screen->devinfo,
+                                         stderr, decode_flags, NULL,
+                                         decode_get_bo, decode_get_state_size, batch);
+      }
       batch->decoder.dynamic_base = IRIS_MEMZONE_DYNAMIC_START;
       batch->decoder.instruction_base = IRIS_MEMZONE_SHADER_START;
       batch->decoder.surface_base = IRIS_MEMZONE_BINDER_START;
@@ -377,7 +386,6 @@ iris_use_pinned_bo(struct iris_batch *batch,
                    struct iris_bo *bo,
                    bool writable, enum iris_domain access)
 {
-   assert(iris_get_backing_bo(bo)->real.kflags & EXEC_OBJECT_PINNED);
    assert(bo != batch->bo);
 
    /* Never mark the workaround BO with EXEC_OBJECT_WRITE.  We don't care
@@ -418,8 +426,8 @@ create_batch(struct iris_batch *batch)
    /* TODO: We probably could suballocate batches... */
    batch->bo = iris_bo_alloc(bufmgr, "command buffer",
                              BATCH_SZ + BATCH_RESERVED, 8,
-                             IRIS_MEMZONE_OTHER, BO_ALLOC_NO_SUBALLOC);
-   iris_get_backing_bo(batch->bo)->real.kflags |= EXEC_OBJECT_CAPTURE;
+                             IRIS_MEMZONE_OTHER,
+                             BO_ALLOC_NO_SUBALLOC | BO_ALLOC_CAPTURE);
    batch->map = iris_bo_map(NULL, batch->bo, MAP_READ | MAP_WRITE);
    batch->map_next = batch->map;
 
@@ -862,11 +870,12 @@ iris_batch_name_to_string(enum iris_batch_name name)
    return names[name];
 }
 
-static inline bool
-context_or_exec_queue_was_banned(struct iris_bufmgr *bufmgr, int ret)
+bool
+iris_batch_is_banned(struct iris_bufmgr *bufmgr, int ret)
 {
    enum intel_kmd_type kmd_type = iris_bufmgr_get_device_info(bufmgr)->kmd_type;
 
+   assert(ret < 0);
    /* In i915 EIO means our context is banned, while on Xe ECANCELED means
     * our exec queue was banned
     */
@@ -960,7 +969,7 @@ _iris_batch_flush(struct iris_batch *batch, const char *file, int line)
     * has been lost and needs to be re-initialized.  If this succeeds,
     * dubiously claim success...
     */
-   if (ret && context_or_exec_queue_was_banned(bufmgr, ret)) {
+   if (ret && iris_batch_is_banned(bufmgr, ret)) {
       enum pipe_reset_status status = iris_batch_check_for_reset(batch);
 
       if (status != PIPE_NO_RESET || ice->context_reset_signaled)
@@ -975,7 +984,7 @@ _iris_batch_flush(struct iris_batch *batch, const char *file, int line)
    }
 
    if (ret < 0) {
-#ifdef DEBUG
+#if MESA_DEBUG
       const bool color = INTEL_DEBUG(DEBUG_COLOR);
       fprintf(stderr, "%siris: Failed to submit batchbuffer: %-80s%s\n",
               color ? "\e[1;41m" : "", strerror(-ret), color ? "\e[0m" : "");

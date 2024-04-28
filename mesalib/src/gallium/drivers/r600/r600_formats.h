@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MIT
 #ifndef R600_FORMATS_H
 #define R600_FORMATS_H
 

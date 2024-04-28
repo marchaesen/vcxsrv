@@ -106,9 +106,13 @@ Equipment Corporation.
 #endif
 
 #include <X11/X.h>
+#include <X11/Xproto.h>
+
+#include "dix/dix_priv.h"
+#include "dix/eventconvert.h"
+
 #include "misc.h"
 #include "resource.h"
-#include <X11/Xproto.h>
 #include "windowstr.h"
 #include "inputstr.h"
 #include "inpututils.h"
@@ -145,7 +149,6 @@ Equipment Corporation.
 
 #include "eventstr.h"
 #include "enterleave.h"
-#include "eventconvert.h"
 #include "mi.h"
 
 /* Extension events type numbering starts at EXTENSION_EVENT_BASE.  */
@@ -3245,60 +3248,6 @@ WindowsRestructured(void)
     }
 }
 
-#ifdef PANORAMIX
-/* This was added to support reconfiguration under Xdmx.  The problem is
- * that if the 0th screen (i.e., screenInfo.screens[0]) is moved to an origin
- * other than 0,0, the information in the private sprite structure must
- * be updated accordingly, or XYToWindow (and other routines) will not
- * compute correctly. */
-void
-ReinitializeRootWindow(WindowPtr win, int xoff, int yoff)
-{
-    GrabPtr grab;
-    DeviceIntPtr pDev;
-    SpritePtr pSprite;
-
-    if (noPanoramiXExtension)
-        return;
-
-    pDev = inputInfo.devices;
-    while (pDev) {
-        if (DevHasCursor(pDev)) {
-            pSprite = pDev->spriteInfo->sprite;
-            pSprite->hot.x -= xoff;
-            pSprite->hot.y -= yoff;
-
-            pSprite->hotPhys.x -= xoff;
-            pSprite->hotPhys.y -= yoff;
-
-            pSprite->hotLimits.x1 -= xoff;
-            pSprite->hotLimits.y1 -= yoff;
-            pSprite->hotLimits.x2 -= xoff;
-            pSprite->hotLimits.y2 -= yoff;
-
-            if (RegionNotEmpty(&pSprite->Reg1))
-                RegionTranslate(&pSprite->Reg1, xoff, yoff);
-            if (RegionNotEmpty(&pSprite->Reg2))
-                RegionTranslate(&pSprite->Reg2, xoff, yoff);
-
-            /* FIXME: if we call ConfineCursorToWindow, must we do anything else? */
-            if ((grab = pDev->deviceGrab.grab) && grab->confineTo) {
-                if (grab->confineTo->drawable.pScreen
-                    != pSprite->hotPhys.pScreen)
-                    pSprite->hotPhys.x = pSprite->hotPhys.y = 0;
-                ConfineCursorToWindow(pDev, grab->confineTo, TRUE, TRUE);
-            }
-            else
-                ConfineCursorToWindow(pDev,
-                                      pSprite->hotPhys.pScreen->root,
-                                      TRUE, FALSE);
-
-        }
-        pDev = pDev->next;
-    }
-}
-#endif
-
 /**
  * Initialize a sprite for the given device and set it to some sane values. If
  * the device already has a sprite alloc'd, don't realloc but just reset to
@@ -4585,7 +4534,7 @@ EventSelectForWindow(WindowPtr pWin, ClientPtr client, Mask mask)
     check = (mask & ManagerMask);
     if (check) {
         rc = XaceHook(XACE_RESOURCE_ACCESS, client, pWin->drawable.id,
-                      RT_WINDOW, pWin, RT_NONE, NULL, DixManageAccess);
+                      X11_RESTYPE_WINDOW, pWin, X11_RESTYPE_NONE, NULL, DixManageAccess);
         if (rc != Success)
             return rc;
     }
@@ -4610,7 +4559,7 @@ EventSelectForWindow(WindowPtr pWin, ClientPtr client, Mask mask)
             if (SameClient(others, client)) {
                 check = others->mask;
                 if (mask == 0) {
-                    FreeResource(others->resource, RT_NONE);
+                    FreeResource(others->resource, X11_RESTYPE_NONE);
                     return Success;
                 }
                 else
@@ -4628,7 +4577,7 @@ EventSelectForWindow(WindowPtr pWin, ClientPtr client, Mask mask)
         others->resource = FakeClientID(client->index);
         others->next = pWin->optional->otherClients;
         pWin->optional->otherClients = others;
-        if (!AddResource(others->resource, RT_OTHERCLIENT, (void *) pWin))
+        if (!AddResource(others->resource, X11_RESTYPE_OTHERCLIENT, (void *) pWin))
             return BadAlloc;
     }
  maskSet:
@@ -5116,7 +5065,7 @@ ProcChangeActivePointerGrab(ClientPtr client)
         newCursor = NullCursor;
     else {
         int rc = dixLookupResourceByType((void **) &newCursor, stuff->cursor,
-                                         RT_CURSOR, client, DixUseAccess);
+                                         X11_RESTYPE_CURSOR, client, DixUseAccess);
 
         if (rc != Success) {
             client->errorValue = stuff->cursor;
@@ -5233,7 +5182,7 @@ GrabDevice(ClientPtr client, DeviceIntPtr dev,
     if (curs == None)
         cursor = NullCursor;
     else {
-        rc = dixLookupResourceByType((void **) &cursor, curs, RT_CURSOR,
+        rc = dixLookupResourceByType((void **) &cursor, curs, X11_RESTYPE_CURSOR,
                                      client, DixUseAccess);
         if (rc != Success) {
             client->errorValue = curs;
@@ -5770,7 +5719,7 @@ ProcGrabButton(ClientPtr client)
         cursor = NullCursor;
     else {
         rc = dixLookupResourceByType((void **) &cursor, stuff->cursor,
-                                     RT_CURSOR, client, DixUseAccess);
+                                     X11_RESTYPE_CURSOR, client, DixUseAccess);
         if (rc != Success) {
             client->errorValue = stuff->cursor;
             return rc;
@@ -5957,9 +5906,9 @@ DeleteWindowFromAnyEvents(WindowPtr pWin, Bool freeResources)
         if (pWin->dontPropagate)
             DontPropagateRefCnts[pWin->dontPropagate]--;
         while ((oc = wOtherClients(pWin)))
-            FreeResource(oc->resource, RT_NONE);
+            FreeResource(oc->resource, X11_RESTYPE_NONE);
         while ((passive = wPassiveGrabs(pWin)))
-            FreeResource(passive->resource, RT_NONE);
+            FreeResource(passive->resource, X11_RESTYPE_NONE);
     }
 
     DeleteWindowFromAnyExtEvents(pWin, freeResources);
@@ -6024,7 +5973,7 @@ ProcRecolorCursor(ClientPtr client)
     REQUEST(xRecolorCursorReq);
 
     REQUEST_SIZE_MATCH(xRecolorCursorReq);
-    rc = dixLookupResourceByType((void **) &pCursor, stuff->cursor, RT_CURSOR,
+    rc = dixLookupResourceByType((void **) &pCursor, stuff->cursor, X11_RESTYPE_CURSOR,
                                  client, DixWriteAccess);
     if (rc != Success) {
         client->errorValue = stuff->cursor;

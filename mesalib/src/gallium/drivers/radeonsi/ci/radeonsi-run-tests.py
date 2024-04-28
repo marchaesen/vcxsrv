@@ -53,8 +53,6 @@ path_above_mesa = os.path.realpath(os.path.join(os.path.dirname(__file__), *['..
 
 parser.add_argument("--piglit-path", type=str, help="Path to piglit source folder.")
 parser.add_argument("--glcts-path", type=str, help="Path to GLCTS source folder.")
-parser.add_argument("--escts-path", type=str, help="Path to GLES CTS source folder.")
-parser.add_argument("--deqp-path", type=str, help="Path to dEQP source folder.")
 parser.add_argument(
     "--parent-path",
     type=str,
@@ -161,19 +159,15 @@ parser.add_argument(
 args = parser.parse_args(sys.argv[1:])
 piglit_path = args.piglit_path
 glcts_path = args.glcts_path
-escts_path = args.escts_path
-deqp_path = args.deqp_path
 
 if args.parent_path:
-    if args.piglit_path or args.glcts_path or args.deqp_path:
+    if args.piglit_path or args.glcts_path:
         parser.print_help()
         sys.exit(0)
     piglit_path = os.path.join(args.parent_path, "piglit")
     glcts_path = os.path.join(args.parent_path, "glcts")
-    escts_path = os.path.join(args.parent_path, "escts")
-    deqp_path = os.path.join(args.parent_path, "deqp")
 else:
-    if not args.piglit_path or not args.glcts_path or not args.escts_path or not args.deqp_path:
+    if not args.piglit_path or not args.glcts_path:
         parser.print_help()
         sys.exit(0)
 
@@ -424,15 +418,15 @@ if args.glcts:
         "--deqp",
         "{}/build/external/openglcts/modules/glcts".format(glcts_path),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-master.txt".format(
+        "{}/external/openglcts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-main.txt".format(
             glcts_path
         ),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass_single/4.6.1.x/gl46-khr-single.txt".format(
+        "{}/external/openglcts/data/mustpass/gl/khronos_mustpass_single/4.6.1.x/gl46-khr-single.txt".format(
             glcts_path
         ),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-gtf-master.txt".format(
+        "{}/external/openglcts/data/mustpass/gl/khronos_mustpass/4.6.1.x/gl46-gtf-main.txt".format(
             glcts_path
         ),
         "--output",
@@ -466,22 +460,22 @@ if args.escts:
         "--tests-per-group",
         "100",
         "--deqp",
-        "{}/build/external/openglcts/modules/glcts".format(escts_path),
+        "{}/build_es/external/openglcts/modules/glcts".format(glcts_path),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles2-khr-master.txt".format(
-            escts_path
+        "{}/external/openglcts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles2-khr-main.txt".format(
+            glcts_path
         ),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles3-khr-master.txt".format(
-            escts_path
+        "{}/external/openglcts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles3-khr-main.txt".format(
+            glcts_path
         ),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles31-khr-master.txt".format(
-            escts_path
+        "{}/external/openglcts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles31-khr-main.txt".format(
+            glcts_path
         ),
         "--caselist",
-        "{}/build/external/openglcts/modules/gl_cts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles32-khr-master.txt".format(
-            escts_path
+        "{}/external/openglcts/data/mustpass/gles/khronos_mustpass/3.2.6.x/gles32-khr-main.txt".format(
+            glcts_path
         ),
         "--output",
         out,
@@ -525,12 +519,12 @@ if args.deqp:
         suite.write("[[deqp]]\n")
         suite.write(
             'deqp = "{}"\n'.format(
-                "{}/build/modules/{subtest}/deqp-{subtest}".format(deqp_path, subtest=k)
+                "{}/build/modules/{subtest}/deqp-{subtest}".format(glcts_path, subtest=k)
             )
         )
         suite.write(
             'caselists = ["{}"]\n'.format(
-                "{}/android/cts/main/{}-master.txt".format(deqp_path, k)
+                "{}/external/openglcts/data/mustpass/{}/aosp_mustpass/3.2.6.x/{}-main.txt".format(glcts_path, "egl" if k == "egl" else "gles", k)
             )
         )
         if os.path.exists(baseline):

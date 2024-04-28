@@ -98,7 +98,8 @@ void st_CopyTexSubImage(struct gl_context *ctx, GLuint dims,
 GLboolean st_AllocTextureStorage(struct gl_context *ctx,
                                  struct gl_texture_object *texObj,
                                  GLsizei levels, GLsizei width,
-                                 GLsizei height, GLsizei depth);
+                                 GLsizei height, GLsizei depth,
+                                 const char *func);
 GLboolean st_TestProxyTexImage(struct gl_context *ctx, GLenum target,
                                GLuint numLevels, GLint level,
                                mesa_format format, GLuint numSamples,
@@ -116,7 +117,8 @@ GLboolean st_SetTextureStorageForMemoryObject(struct gl_context *ctx,
                                               struct gl_memory_object *memObj,
                                               GLsizei levels, GLsizei width,
                                               GLsizei height, GLsizei depth,
-                                              GLuint64 offset);
+                                              GLuint64 offset,
+                                              const char *func);
 
 GLboolean st_GetSparseTextureVirtualPageSize(struct gl_context *ctx,
                                              GLenum target, mesa_format format,

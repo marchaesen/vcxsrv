@@ -101,7 +101,9 @@ enum tu6_ubwc_compat_type {
    TU6_UBWC_R8G8B8A8_UNORM,
    TU6_UBWC_R8G8B8A8_INT,
    TU6_UBWC_B8G8R8A8_UNORM,
+   TU6_UBWC_R16G16_UNORM,
    TU6_UBWC_R16G16_INT,
+   TU6_UBWC_R16G16B16A16_UNORM,
    TU6_UBWC_R16G16B16A16_INT,
    TU6_UBWC_R32_INT,
    TU6_UBWC_R32G32_INT,
@@ -110,12 +112,17 @@ enum tu6_ubwc_compat_type {
 };
 
 static enum tu6_ubwc_compat_type
-tu6_ubwc_compat_mode(VkFormat format)
+tu6_ubwc_compat_mode(const struct fd_dev_info *info, VkFormat format)
 {
    switch (format) {
    case VK_FORMAT_R8G8_UNORM:
    case VK_FORMAT_R8G8_SRGB:
-      return TU6_UBWC_R8G8_UNORM;
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R8G8_INT : TU6_UBWC_R8G8_UNORM;
+
+   case VK_FORMAT_R8G8_SNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R8G8_INT : TU6_UBWC_UNKNOWN_COMPAT;
 
    case VK_FORMAT_R8G8_UINT:
    case VK_FORMAT_R8G8_SINT:
@@ -125,7 +132,12 @@ tu6_ubwc_compat_mode(VkFormat format)
    case VK_FORMAT_R8G8B8A8_SRGB:
    case VK_FORMAT_A8B8G8R8_UNORM_PACK32:
    case VK_FORMAT_A8B8G8R8_SRGB_PACK32:
-      return TU6_UBWC_R8G8B8A8_UNORM;
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R8G8B8A8_INT : TU6_UBWC_R8G8B8A8_UNORM;
+
+   case VK_FORMAT_R8G8B8A8_SNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R8G8B8A8_INT : TU6_UBWC_UNKNOWN_COMPAT;
 
    case VK_FORMAT_R8G8B8A8_UINT:
    case VK_FORMAT_R8G8B8A8_SINT:
@@ -133,9 +145,25 @@ tu6_ubwc_compat_mode(VkFormat format)
    case VK_FORMAT_A8B8G8R8_SINT_PACK32:
       return TU6_UBWC_R8G8B8A8_INT;
 
+   case VK_FORMAT_R16G16_UNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R16G16_INT : TU6_UBWC_R16G16_UNORM;
+
+   case VK_FORMAT_R16G16_SNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R16G16_INT : TU6_UBWC_UNKNOWN_COMPAT;
+
    case VK_FORMAT_R16G16_UINT:
    case VK_FORMAT_R16G16_SINT:
       return TU6_UBWC_R16G16_INT;
+
+   case VK_FORMAT_R16G16B16A16_UNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R16G16B16A16_INT : TU6_UBWC_R16G16B16A16_UNORM;
+
+   case VK_FORMAT_R16G16B16A16_SNORM:
+      return info->a7xx.ubwc_unorm_snorm_int_compatible ?
+         TU6_UBWC_R16G16B16A16_INT : TU6_UBWC_UNKNOWN_COMPAT;
 
    case VK_FORMAT_R16G16B16A16_UINT:
    case VK_FORMAT_R16G16B16A16_SINT:
@@ -172,7 +200,8 @@ tu6_ubwc_compat_mode(VkFormat format)
 }
 
 bool
-tu6_mutable_format_list_ubwc_compatible(const VkImageFormatListCreateInfo *fmt_list)
+tu6_mutable_format_list_ubwc_compatible(const struct fd_dev_info *info,
+                                        const VkImageFormatListCreateInfo *fmt_list)
 {
    if (!fmt_list || !fmt_list->viewFormatCount)
       return false;
@@ -184,12 +213,12 @@ tu6_mutable_format_list_ubwc_compatible(const VkImageFormatListCreateInfo *fmt_l
       return true;
 
    enum tu6_ubwc_compat_type type =
-      tu6_ubwc_compat_mode(fmt_list->pViewFormats[0]);
+      tu6_ubwc_compat_mode(info, fmt_list->pViewFormats[0]);
    if (type == TU6_UBWC_UNKNOWN_COMPAT)
       return false;
 
    for (uint32_t i = 1; i < fmt_list->viewFormatCount; i++) {
-      if (tu6_ubwc_compat_mode(fmt_list->pViewFormats[i]) != type)
+      if (tu6_ubwc_compat_mode(info, fmt_list->pViewFormats[i]) != type)
          return false;
    }
 
@@ -373,7 +402,7 @@ tu_GetPhysicalDeviceFormatProperties2(
    VkFormat format,
    VkFormatProperties2 *pFormatProperties)
 {
-   TU_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
 
    VkFormatProperties3 local_props3;
    VkFormatProperties3 *props3 =
@@ -484,7 +513,8 @@ tu_get_image_format_properties(
             const VkImageFormatListCreateInfo *format_list =
                vk_find_struct_const(info->pNext,
                                     IMAGE_FORMAT_LIST_CREATE_INFO);
-            if (!tu6_mutable_format_list_ubwc_compatible(format_list))
+            if (!tu6_mutable_format_list_ubwc_compatible(physical_device->info,
+                                                         format_list))
                return VK_ERROR_FORMAT_NOT_SUPPORTED;
          }
 
@@ -683,7 +713,7 @@ tu_GetPhysicalDeviceImageFormatProperties2(
    const VkPhysicalDeviceImageFormatInfo2 *base_info,
    VkImageFormatProperties2 *base_props)
 {
-   TU_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
+   VK_FROM_HANDLE(tu_physical_device, physical_device, physicalDevice);
    const VkPhysicalDeviceExternalImageFormatInfo *external_info = NULL;
    const VkPhysicalDeviceImageViewImageFormatInfoEXT *image_view_info = NULL;
    VkExternalImageFormatProperties *external_props = NULL;

@@ -24,44 +24,11 @@ shaders@point-vertex-id gl_vertexid,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Fail
 shaders@point-vertex-id gl_vertexid gl_instanceid,Fail
 spec@arb_base_instance@arb_base_instance-drawarrays,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 d=s=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 ds=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 1024 s=d=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 d=s=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 ds=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 146 s=d=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 d=s=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 ds=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 273 s=d=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 d=s=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 ds=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 292 s=d=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 d=s=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 ds=z32f_s8,Fail
-spec@arb_depth_buffer_float@depthstencil-render-miplevels 585 s=d=z32f_s8,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-blit,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-copypixels,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-24_8,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-32f_24_8_rev,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-float-and-ushort,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-24_8,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-32f_24_8_rev,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-readpixels-float-and-ushort,Fail
-spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-blit,Fail
-spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-copypixels,Fail
-spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-drawpixels,Fail
-spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-readpixels,Fail
 spec@arb_depth_clamp@depth-clamp-range,Fail
 spec@arb_direct_state_access@gettextureimage-formats,Fail
 spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth gl_depth32f_stencil8,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit depth_stencil gl_depth32f_stencil8,Fail
-spec@arb_framebuffer_object@arb_framebuffer_object-depth-stencil-blit stencil gl_depth32f_stencil8,Fail
 spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
-spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small,Fail
-spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_DEPTH_STENCIL,Fail
-spec@arb_pixel_buffer_object@fbo-pbo-readpixels-small@GL_DEPTH32F_STENCIL8-GL_STENCIL_INDEX,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
 spec@arb_sample_shading@samplemask 2@0.250000 mask_in_one,Fail
 spec@arb_sample_shading@samplemask 2@0.500000 mask_in_one,Fail
@@ -538,3 +505,5 @@ spec@!opengl 3.1@primitive-restart-xfb flush,Fail
 spec@!opengl 3.1@primitive-restart-xfb generated,Fail
 spec@!opengl 3.1@primitive-restart-xfb written,Fail
 spec@!opengl es 3.0@gles-3.0-transform-feedback-uniform-buffer-object,Fail
+
+dEQP-GLES31.functional.texture.border_clamp.range_clamp.linear_float_color,Fail

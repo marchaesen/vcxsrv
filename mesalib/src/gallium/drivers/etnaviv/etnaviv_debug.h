@@ -43,6 +43,7 @@ enum etna_dbg {
    ETNA_DBG_DUMP_SHADERS    = BITFIELD_BIT(5),
    ETNA_DRM_MSGS            = BITFIELD_BIT(6), /* Debug messages from DRM */
    ETNA_DBG_PERF            = BITFIELD_BIT(7),
+   ETNA_DBG_ML_MSGS         = BITFIELD_BIT(8),
 
    /* Bypasses */
    ETNA_DBG_NO_TS           = BITFIELD_BIT(12), /* Disable TS */
@@ -59,8 +60,10 @@ enum etna_dbg {
    ETNA_DBG_DEQP            = BITFIELD_BIT(23), /* Hacks to run dEQP GLES3 tests */
    ETNA_DBG_NOCACHE         = BITFIELD_BIT(24), /* Disable shader cache */
    ETNA_DBG_LINEAR_PE       = BITFIELD_BIT(25), /* Enable linear PE */
-   ETNA_DBG_MSAA            = BITFIELD_BIT(26), /* Enable MSAA */
+   ETNA_DBG_NO_MSAA         = BITFIELD_BIT(26), /* Disable MSAA */
    ETNA_DBG_SHARED_TS       = BITFIELD_BIT(27), /* Enable TS sharing */
+   ETNA_DBG_NPU_PARALLEL    = BITFIELD_BIT(28), /* Enable parallelism inside NPU batches (unsafe) */
+   ETNA_DBG_NPU_NO_BATCHING = BITFIELD_BIT(29), /* Disable batching NPU jobs */
 };
 
 extern int etna_mesa_debug; /* set in etnaviv_screen.c from ETNA_MESA_DEBUG */

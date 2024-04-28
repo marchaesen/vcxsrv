@@ -13,10 +13,6 @@
 
 #include "vn_common.h"
 
-#include "venus-protocol/vn_protocol_driver_defines.h"
-
-#include "vn_cs.h"
-#include "vn_renderer.h"
 #include "vn_renderer_util.h"
 
 /* require and request at least Vulkan 1.1 at both instance and device levels
@@ -51,10 +47,6 @@ struct vn_instance {
       struct vn_ring *ring;
       struct list_head tls_rings;
 
-      /* to synchronize renderer/ring */
-      mtx_t roundtrip_mutex;
-      uint64_t roundtrip_next;
-
       struct vn_watchdog watchdog;
    } ring;
 
@@ -68,6 +60,8 @@ struct vn_instance {
     */
    uint32_t renderer_api_version;
    uint32_t renderer_version;
+
+   bool engine_is_zink;
 
    struct {
       mtx_t mutex;
@@ -83,22 +77,6 @@ VK_DEFINE_HANDLE_CASTS(vn_instance,
                        base.base.base,
                        VkInstance,
                        VK_OBJECT_TYPE_INSTANCE)
-
-VkResult
-vn_instance_submit_roundtrip(struct vn_instance *instance,
-                             uint64_t *roundtrip_seqno);
-
-void
-vn_instance_wait_roundtrip(struct vn_instance *instance,
-                           uint64_t roundtrip_seqno);
-
-static inline void
-vn_instance_roundtrip(struct vn_instance *instance)
-{
-   uint64_t roundtrip_seqno;
-   if (vn_instance_submit_roundtrip(instance, &roundtrip_seqno) == VK_SUCCESS)
-      vn_instance_wait_roundtrip(instance, roundtrip_seqno);
-}
 
 static inline struct vn_renderer_shmem *
 vn_instance_cs_shmem_alloc(struct vn_instance *instance,

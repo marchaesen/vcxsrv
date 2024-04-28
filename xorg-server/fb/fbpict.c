@@ -30,7 +30,7 @@
 #include <string.h>
 
 #include "fb.h"
-
+#include "glyphstr_priv.h"
 #include "picturestr.h"
 #include "mipict.h"
 #include "fbpict.h"

@@ -105,6 +105,55 @@ template = """\
 
 #include "${header}"
 
+#include <stdint.h>
+#include <util/bitset.h>
+
+#define BITMASK_WORDS BITSET_WORDS(${isa.bitsize})
+
+typedef struct {
+    BITSET_WORD bitset[BITMASK_WORDS];
+} bitmask_t;
+
+
+#define BITSET_FORMAT ${isa.format()}
+#define BITSET_VALUE(v) ${isa.value()}
+
+static inline void
+next_instruction(bitmask_t *instr, BITSET_WORD *start)
+{
+    %for i in range(0, int(isa.bitsize / 32)):
+    instr->bitset[${i}] = *(start + ${i});
+    %endfor
+}
+
+static inline uint64_t
+bitmask_to_uint64_t(bitmask_t mask)
+{
+%   if isa.bitsize <= 32:
+    return mask.bitset[0];
+%   else:
+    return ((uint64_t)mask.bitset[1] << 32) | mask.bitset[0];
+%   endif
+}
+
+static inline bitmask_t
+uint64_t_to_bitmask(uint64_t val)
+{
+    bitmask_t mask = {
+        .bitset[0] = val & 0xffffffff,
+%   if isa.bitsize > 32:
+        .bitset[1] = (val >> 32) & 0xffffffff,
+%   endif
+    };
+
+    return mask;
+}
+
+#include "isaspec_decode_decl.h"
+
+static uint64_t
+isa_decode_field(struct decode_scope *scope, const char *field_name);
+
 /*
  * enum tables, these don't have any link back to other tables so just
  * dump them up front before the bitset tables
@@ -163,7 +212,7 @@ static const struct isa_bitset bitset_${bitset.get_c_name()}_gen_${bitset.gen_mi
 %endfor
 
 %for root_name, root in isa.roots.items():
-const struct isa_bitset *${root.get_c_name()}[];
+static const struct isa_bitset *${root.get_c_name()}[];
 %endfor
 
 /*
@@ -255,7 +304,7 @@ static const struct isa_bitset bitset_${bitset.get_c_name()}_gen_${bitset.gen_mi
  */
 
 %for root_name, root in isa.roots.items():
-const struct isa_bitset *${root.get_c_name()}[] = {
+static const struct isa_bitset *${root.get_c_name()}[] = {
 %   for leaf_name, leafs in isa.leafs.items():
 %      for leaf in leafs:
 %         if leaf.get_root() == root:
@@ -300,6 +349,20 @@ static void decode_${bitset.get_c_name()}_gen_${bitset.gen_min}(void *out, struc
 }
 %endfor
 
+void ${prefix}_isa_disasm(void *bin, int sz, FILE *out, const struct isa_decode_options *options)
+{
+    isa_disasm(bin, sz, out, options);
+}
+
+bool ${prefix}_isa_decode(void *out, void *bin, const struct isa_decode_options *options)
+{
+    return isa_decode(out, bin, options);
+}
+
+uint32_t ${prefix}_isa_get_gpu_id(struct decode_scope *scope)
+{
+    return isa_get_gpu_id(scope);
+}
 """
 
 header = """\
@@ -328,51 +391,27 @@ header = """\
 #ifndef _${guard}_
 #define _${guard}_
 
-#include <stdint.h>
-#include <util/bitset.h>
+#include "compiler/isaspec/isaspec.h"
 
-#define BITMASK_WORDS BITSET_WORDS(${isa.bitsize})
+#ifdef __cplusplus
+extern "C" {
+#endif
 
-typedef struct {
-    BITSET_WORD bitset[BITMASK_WORDS];
-} bitmask_t;
+void ${prefix}_isa_disasm(void *bin, int sz, FILE *out, const struct isa_decode_options *options);
+bool ${prefix}_isa_decode(void *out, void *bin, const struct isa_decode_options *options);
 
+struct decode_scope;
 
-#define BITSET_FORMAT ${isa.format()}
-#define BITSET_VALUE(v) ${isa.value()}
+uint32_t ${prefix}_isa_get_gpu_id(struct decode_scope *scope);
 
-static inline void
-next_instruction(bitmask_t *instr, BITSET_WORD *start)
-{
-    %for i in range(0, int(isa.bitsize / 32)):
-    instr->bitset[${i}] = *(start + ${i});
-    %endfor
+/**
+ * Allows to use gpu_id in expr functions
+ */
+#define ISA_GPU_ID() ${prefix}_isa_get_gpu_id(scope)
+
+#ifdef __cplusplus
 }
-
-static inline uint64_t
-bitmask_to_uint64_t(bitmask_t mask)
-{
-%   if isa.bitsize <= 32:
-    return mask.bitset[0];
-%   else:
-    return ((uint64_t)mask.bitset[1] << 32) | mask.bitset[0];
-%   endif
-}
-
-static inline bitmask_t
-uint64_t_to_bitmask(uint64_t val)
-{
-    bitmask_t mask = {
-        .bitset[0] = val & 0xffffffff,
-%   if isa.bitsize > 32:
-        .bitset[1] = (val >> 32) & 0xffffffff,
-%   endif
-    };
-
-    return mask;
-}
-
-#include "isaspec_decode_decl.h"
+#endif
 
 #endif /* _${guard}_ */
 
@@ -380,6 +419,9 @@ uint64_t_to_bitmask(uint64_t val)
 
 def guard(p):
     return os.path.basename(p).upper().replace("-", "_").replace(".", "_")
+
+def prefix(p):
+    return os.path.basename(p).lower().replace("-", "_").replace(".", "_").split('_')[0]
 
 def main():
     parser = argparse.ArgumentParser()
@@ -394,10 +436,10 @@ def main():
     try:
         with open(args.out_c, 'w', encoding='utf-8') as f:
             out_h_basename = os.path.basename(args.out_h)
-            f.write(Template(template).render(isa=isa, s=s, header=out_h_basename))
+            f.write(Template(template).render(isa=isa, s=s, header=out_h_basename, prefix=prefix(args.out_h)))
 
         with open(args.out_h, 'w', encoding='utf-8') as f:
-            f.write(Template(header).render(isa=isa, guard=guard(args.out_h)))
+            f.write(Template(header).render(isa=isa, guard=guard(args.out_h), prefix=prefix(args.out_h)))
 
     except Exception:
         # In the event there's an error, this imports some helpers from mako

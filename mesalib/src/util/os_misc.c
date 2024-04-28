@@ -82,7 +82,7 @@ os_log_message(const char *message)
    static FILE *fout = NULL;
 
    if (!fout) {
-#ifdef DEBUG
+#if MESA_DEBUG
       /* one-time init */
       const char *filename = os_get_option("GALLIUM_LOG_FILE");
       if (filename) {

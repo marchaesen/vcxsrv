@@ -14,6 +14,8 @@
 #include <xorg-config.h>
 #endif
 
+#include "os/osdep.h"
+
 #include "misc.h"
 #include "xf86.h"
 #include "xf86_OSproc.h"

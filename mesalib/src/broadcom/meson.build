@@ -61,7 +61,7 @@ libv3d_neon = static_library(
   'v3d_neon',
   'common/v3d_tiling.c',
   include_directories : [
-    inc_src, inc_include, inc_gallium, inc_gallium_aux, inc_broadcom,
+    inc_src, inc_include, inc_broadcom,
   ],
   c_args : [v3d_args, v3d_neon_c_args],
   gnu_symbol_visibility : 'hidden',

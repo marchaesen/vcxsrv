@@ -36,9 +36,11 @@
 #include "main/glthread.h"
 #include "main/glthread_marshal.h"
 #include "main/hash.h"
+#include "main/pixelstore.h"
 #include "util/u_atomic.h"
 #include "util/u_thread.h"
 #include "util/u_cpu_detect.h"
+#include "util/thread_sched.h"
 
 #include "state_tracker/st_context.h"
 
@@ -126,7 +128,7 @@ glthread_unmarshal_batch(void *job, void *gdata, int thread_index)
     */
    bool lock_mutexes = ctx->GLThread.LockGlobalMutexes;
    if (lock_mutexes) {
-      _mesa_HashLockMutex(shared->BufferObjects);
+      _mesa_HashLockMutex(&shared->BufferObjects);
       ctx->BufferObjectsLocked = true;
       simple_mtx_lock(&shared->TexMutex);
       ctx->TexturesLocked = true;
@@ -143,7 +145,7 @@ glthread_unmarshal_batch(void *job, void *gdata, int thread_index)
       ctx->TexturesLocked = false;
       simple_mtx_unlock(&shared->TexMutex);
       ctx->BufferObjectsLocked = false;
-      _mesa_HashUnlockMutex(shared->BufferObjects);
+      _mesa_HashUnlockMutex(&shared->BufferObjects);
    }
 
    assert(pos == used);
@@ -154,6 +156,32 @@ glthread_unmarshal_batch(void *job, void *gdata, int thread_index)
    _mesa_glthread_signal_call(&ctx->GLThread.LastDListChangeBatchIndex, batch_index);
 
    p_atomic_inc(&ctx->GLThread.stats.num_batches);
+}
+
+static void
+glthread_apply_thread_sched_policy(struct gl_context *ctx, bool initialization)
+{
+   struct glthread_state *glthread = &ctx->GLThread;
+
+   if (!glthread->thread_sched_enabled)
+      return;
+
+   /* Apply our thread scheduling policy for better multithreading
+    * performance.
+    */
+   if (initialization || ++glthread->pin_thread_counter % 128 == 0) {
+      int cpu = util_get_current_cpu();
+
+      if (cpu >= 0 &&
+          util_thread_sched_apply_policy(glthread->queue.threads[0],
+                                         UTIL_THREAD_GLTHREAD, cpu,
+                                         &glthread->thread_sched_state)) {
+         /* If it's successful, apply the policy to the driver threads too. */
+         ctx->pipe->set_context_param(ctx->pipe,
+                                      PIPE_CONTEXT_PARAM_UPDATE_THREAD_SCHEDULING,
+                                      cpu);
+      }
+   }
 }
 
 static void
@@ -195,23 +223,19 @@ _mesa_glthread_init(struct gl_context *ctx)
       return;
    }
 
-   glthread->VAOs = _mesa_NewHashTable();
-   if (!glthread->VAOs) {
-      util_queue_destroy(&glthread->queue);
-      return;
-   }
-
+   _mesa_InitHashTable(&glthread->VAOs);
    _mesa_glthread_reset_vao(&glthread->DefaultVAO);
    glthread->CurrentVAO = &glthread->DefaultVAO;
 
    ctx->MarshalExec = _mesa_alloc_dispatch_table(true);
    if (!ctx->MarshalExec) {
-      _mesa_DeleteHashTable(glthread->VAOs);
+      _mesa_DeinitHashTable(&glthread->VAOs, NULL, NULL);
       util_queue_destroy(&glthread->queue);
       return;
    }
 
    _mesa_glthread_init_dispatch(ctx, ctx->MarshalExec);
+   _mesa_init_pixelstore_attrib(ctx, &glthread->Unpack);
 
    for (unsigned i = 0; i < MARSHAL_MAX_BATCHES; i++) {
       glthread->batches[i].ctx = ctx;
@@ -224,9 +248,6 @@ _mesa_glthread_init(struct gl_context *ctx)
    _mesa_glthread_init_call_fence(&glthread->LastProgramChangeBatch);
    _mesa_glthread_init_call_fence(&glthread->LastDListChangeBatchIndex);
 
-   /* glthread takes over all L3 pinning */
-   ctx->st->pin_thread_counter = ST_L3_PINNING_DISABLED;
-
    _mesa_glthread_enable(ctx);
 
    /* Execute the thread initialization function in the thread. */
@@ -236,6 +257,11 @@ _mesa_glthread_init(struct gl_context *ctx)
                       glthread_thread_initialization, NULL, 0);
    util_queue_fence_wait(&fence);
    util_queue_fence_destroy(&fence);
+
+   glthread->thread_sched_enabled = ctx->pipe->set_context_param &&
+                                    util_thread_scheduler_enabled();
+   util_thread_scheduler_init_state(&glthread->thread_sched_state);
+   glthread_apply_thread_sched_policy(ctx, true);
 }
 
 static void
@@ -257,8 +283,7 @@ _mesa_glthread_destroy(struct gl_context *ctx)
       for (unsigned i = 0; i < MARSHAL_MAX_BATCHES; i++)
          util_queue_fence_destroy(&glthread->batches[i].fence);
 
-      _mesa_HashDeleteAll(glthread->VAOs, free_vao, NULL);
-      _mesa_DeleteHashTable(glthread->VAOs);
+      _mesa_DeinitHashTable(&glthread->VAOs, free_vao, NULL);
       _mesa_glthread_release_upload_buffer(ctx);
    }
 }
@@ -272,6 +297,9 @@ void _mesa_glthread_enable(struct gl_context *ctx)
 
    ctx->GLThread.enabled = true;
    ctx->GLApi = ctx->MarshalExec;
+
+   /* glthread takes over all thread scheduling. */
+   ctx->st->pin_thread_counter = ST_THREAD_SCHEDULER_DISABLED;
 
    /* Update the dispatch only if the dispatch is current. */
    if (_glapi_get_dispatch() == ctx->Dispatch.Current) {
@@ -289,6 +317,10 @@ void _mesa_glthread_disable(struct gl_context *ctx)
    ctx->GLThread.enabled = false;
    ctx->GLApi = ctx->Dispatch.Current;
 
+   /* Re-enable thread scheduling in st/mesa when glthread is disabled. */
+   if (ctx->pipe->set_context_param && util_thread_scheduler_enabled())
+      ctx->st->pin_thread_counter = 0;
+
    /* Update the dispatch only if the dispatch is current. */
    if (_glapi_get_dispatch() == ctx->MarshalExec) {
        _glapi_set_dispatch(ctx->GLApi);
@@ -299,6 +331,26 @@ void _mesa_glthread_disable(struct gl_context *ctx)
     */
    if (ctx->API != API_OPENGL_CORE)
       _mesa_glthread_unbind_uploaded_vbos(ctx);
+}
+
+static void
+glthread_finalize_batch(struct glthread_state *glthread,
+                        unsigned *num_items_counter)
+{
+   struct glthread_batch *next = glthread->next_batch;
+
+   /* Mark the end of the batch, but don't increment "used". */
+   struct marshal_cmd_base *last =
+      (struct marshal_cmd_base *)&next->buffer[glthread->used];
+   last->cmd_id = NUM_DISPATCH_CMD;
+
+   p_atomic_add(num_items_counter, glthread->used);
+   next->used = glthread->used;
+   glthread->used = 0;
+
+   glthread->LastCallList = NULL;
+   glthread->LastBindBuffer1 = NULL;
+   glthread->LastBindBuffer2 = NULL;
 }
 
 void
@@ -316,47 +368,16 @@ _mesa_glthread_flush_batch(struct gl_context *ctx)
    if (!glthread->used)
       return; /* the batch is empty */
 
-   /* Pin threads regularly to the same Zen CCX that the main thread is
-    * running on. The main thread can move between CCXs.
-    */
-   if (util_get_cpu_caps()->num_L3_caches > 1 &&
-       /* driver support */
-       ctx->pipe->set_context_param &&
-       ++glthread->pin_thread_counter % 128 == 0) {
-      int cpu = util_get_current_cpu();
-
-      if (cpu >= 0) {
-         uint16_t L3_cache = util_get_cpu_caps()->cpu_to_L3[cpu];
-         if (L3_cache != U_CPU_INVALID_L3) {
-            util_set_thread_affinity(glthread->queue.threads[0],
-                                     util_get_cpu_caps()->L3_affinity_mask[L3_cache],
-                                     NULL, util_get_cpu_caps()->num_cpu_mask_bits);
-            ctx->pipe->set_context_param(ctx->pipe,
-                                         PIPE_CONTEXT_PARAM_PIN_THREADS_TO_L3_CACHE,
-                                         L3_cache);
-         }
-      }
-   }
+   glthread_apply_thread_sched_policy(ctx, false);
+   glthread_finalize_batch(glthread, &glthread->stats.num_offloaded_items);
 
    struct glthread_batch *next = glthread->next_batch;
-
-   /* Mark the end of the batch, but don't increment "used". */
-   struct marshal_cmd_base *last =
-      (struct marshal_cmd_base *)&next->buffer[glthread->used];
-   last->cmd_id = NUM_DISPATCH_CMD;
-
-   p_atomic_add(&glthread->stats.num_offloaded_items, glthread->used);
-   next->used = glthread->used;
 
    util_queue_add_job(&glthread->queue, next, &next->fence,
                       glthread_unmarshal_batch, NULL, 0);
    glthread->last = glthread->next;
    glthread->next = (glthread->next + 1) % MARSHAL_MAX_BATCHES;
    glthread->next_batch = &glthread->batches[glthread->next];
-   glthread->used = 0;
-
-   glthread->LastCallList = NULL;
-   glthread->LastBindBuffer = NULL;
 }
 
 /**
@@ -389,18 +410,10 @@ _mesa_glthread_finish(struct gl_context *ctx)
       synced = true;
    }
 
+   glthread_apply_thread_sched_policy(ctx, false);
+
    if (glthread->used) {
-      /* Mark the end of the batch, but don't increment "used". */
-      struct marshal_cmd_base *last =
-         (struct marshal_cmd_base *)&next->buffer[glthread->used];
-      last->cmd_id = NUM_DISPATCH_CMD;
-
-      p_atomic_add(&glthread->stats.num_direct_items, glthread->used);
-      next->used = glthread->used;
-      glthread->used = 0;
-
-      glthread->LastCallList = NULL;
-      glthread->LastBindBuffer = NULL;
+      glthread_finalize_batch(glthread, &glthread->stats.num_direct_items);
 
       /* Since glthread_unmarshal_batch changes the dispatch to direct,
        * restore it after it's done.
@@ -457,4 +470,57 @@ _mesa_glthread_invalidate_zsbuf(struct gl_context *ctx)
       return false;
    _mesa_marshal_InternalInvalidateFramebufferAncillaryMESA();
    return true;
+}
+
+void
+_mesa_glthread_PixelStorei(struct gl_context *ctx, GLenum pname, GLint param)
+{
+   switch (pname) {
+   case GL_UNPACK_SWAP_BYTES:
+      ctx->GLThread.Unpack.SwapBytes = !!param;
+      break;
+   case GL_UNPACK_LSB_FIRST:
+      ctx->GLThread.Unpack.LsbFirst = !!param;
+      break;
+   case GL_UNPACK_ROW_LENGTH:
+      if (param >= 0)
+         ctx->GLThread.Unpack.RowLength = param;
+      break;
+   case GL_UNPACK_IMAGE_HEIGHT:
+      if (param >= 0)
+         ctx->GLThread.Unpack.ImageHeight = param;
+      break;
+   case GL_UNPACK_SKIP_PIXELS:
+      if (param >= 0)
+         ctx->GLThread.Unpack.SkipPixels = param;
+      break;
+   case GL_UNPACK_SKIP_ROWS:
+      if (param >= 0)
+         ctx->GLThread.Unpack.SkipRows = param;
+      break;
+   case GL_UNPACK_SKIP_IMAGES:
+      if (param >= 0)
+         ctx->GLThread.Unpack.SkipImages = param;
+      break;
+   case GL_UNPACK_ALIGNMENT:
+      if (param >= 1 && param <= 8 && util_is_power_of_two_nonzero(param))
+         ctx->GLThread.Unpack.Alignment = param;
+      break;
+   case GL_UNPACK_COMPRESSED_BLOCK_WIDTH:
+      if (param >= 0)
+         ctx->GLThread.Unpack.CompressedBlockWidth = param;
+      break;
+   case GL_UNPACK_COMPRESSED_BLOCK_HEIGHT:
+      if (param >= 0)
+         ctx->GLThread.Unpack.CompressedBlockHeight = param;
+      break;
+   case GL_UNPACK_COMPRESSED_BLOCK_DEPTH:
+      if (param >= 0)
+         ctx->GLThread.Unpack.CompressedBlockDepth = param;
+      break;
+   case GL_UNPACK_COMPRESSED_BLOCK_SIZE:
+      if (param >= 0)
+         ctx->GLThread.Unpack.CompressedBlockSize = param;
+      break;
+   }
 }

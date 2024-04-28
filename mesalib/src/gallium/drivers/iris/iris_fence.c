@@ -155,7 +155,7 @@ clear_stale_syncobjs(struct iris_batch *batch)
                                struct iris_batch_fence, i);
       assert(fence->flags & IRIS_BATCH_FENCE_WAIT);
 
-      if (iris_wait_syncobj(bufmgr, *syncobj, 0))
+      if (iris_wait_syncobj(bufmgr, *syncobj, 0) == false)
          continue;
 
       /* This sync object has already passed, there's no need to continue
@@ -225,7 +225,7 @@ iris_wait_syncobj(struct iris_bufmgr *bufmgr,
       .count_handles = 1,
       .timeout_nsec = timeout_nsec,
    };
-   return intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &args);
+   return intel_ioctl(fd, DRM_IOCTL_SYNCOBJ_WAIT, &args) == 0;
 }
 
 #define CSI "\e["

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <database xmlns="http://nouveau.freedesktop.org/"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
+xsi:schemaLocation="https://gitlab.freedesktop.org/freedreno/ rules-fd.xsd">
 <import file="freedreno_copyright.xml"/>
 <import file="mdp/mdp_common.xml"/>
 
@@ -594,7 +594,7 @@ xsi:schemaLocation="http://nouveau.freedesktop.org/ rules-ng.xsd">
 		<value name="DS_MTHD_PIXEL_DROP" value="1"/>
 	</enum>
 
-	<array doffsets="mdp5_cfg->wb.base[0],mdp5_cfg->wb.base[1],mdp5_cfg->wb.base[2],mdp5_cfg->wb.base[3],,mdp5_cfg->wb.base[4]" name="WB" length="5" stride="0x400">
+	<array doffsets="mdp5_cfg->wb.base[0],mdp5_cfg->wb.base[1],mdp5_cfg->wb.base[2],mdp5_cfg->wb.base[3],mdp5_cfg->wb.base[4]" name="WB" length="5" stride="0x400">
 		<reg32 offset="0x000" name="DST_FORMAT">
 			<bitfield name="DSTC0_OUT" low="0" high="1" type="uint"/>
 			<bitfield name="DSTC1_OUT" low="2" high="3" type="uint"/>

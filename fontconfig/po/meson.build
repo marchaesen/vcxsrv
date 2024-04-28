@@ -1,3 +1,3 @@
-i18n.gettext(meson.project_name() + '-conf',
-    args: '--directory=' + meson.project_source_root()
+i18n.gettext(meson.project_name(),
+    args: gettext_args + ['--directory=' + meson.project_source_root()]
 )

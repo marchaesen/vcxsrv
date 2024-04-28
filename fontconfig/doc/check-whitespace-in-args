@@ -1,0 +1,6 @@
+#! /bin/sh
+
+set -e
+
+top_srcdir=${top_srcdir:-..}
+${top_srcdir}/doc/check-whitespace-in-args.py ${top_srcdir}/doc

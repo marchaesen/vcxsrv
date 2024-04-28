@@ -50,6 +50,7 @@ struct wrbuf {
 
    uint64_t iova;
    uint64_t size;
+   uint64_t clear;
    const char *name;
 };
 
@@ -180,10 +181,11 @@ rd_write_wrbuffer(FILE *out, struct wrbuf *wrbuf)
 {
    uint32_t name_len = strlen(wrbuf->name) + 1;
    struct rd_section section = {.type = RD_WRBUFFER,
-                                .size = (uint32_t)(sizeof(uint32_t) * 2) + name_len};
+                                .size = (uint32_t)(sizeof(uint64_t) * 3) + name_len};
    fwrite(&section, sizeof(section), 1, out);
    fwrite(&wrbuf->iova, sizeof(uint64_t), 1, out);
    fwrite(&wrbuf->size, sizeof(uint64_t), 1, out);
+   fwrite(&wrbuf->clear, sizeof(uint64_t), 1, out);
    fwrite(wrbuf->name, sizeof(char), name_len, out);
 }
 
@@ -192,7 +194,7 @@ print_usage(const char *name)
 {
    /* clang-format off */
    fprintf(stderr, "Usage:\n\n"
-           "\t%s [OPTSIONS]... FILE...\n\n"
+           "\t%s [OPTIONS]... FILE...\n\n"
            "Options:\n"
            "\t    --vastart=offset\n"
            "\t    --vasize=size\n"
@@ -265,7 +267,9 @@ replay_context_init(struct replay_context *ctx, struct fd_dev_id *dev_id,
    ((uint64_t *)ctx->cp_log->mem)[1] = sizeof(uint64_t);
    ctx->cp_log->cur = ctx->cp_log->total_size;
 
-   struct ir3_compiler_options options{};
+   struct ir3_compiler_options options{
+      .disable_cache = true,
+   };
    ctx->compiler =
       ir3_compiler_create(NULL, dev_id, fd_dev_info_raw(dev_id), &options);
    ctx->compiled_shaders = _mesa_hash_table_u64_create(ctx->mem_ctx);
@@ -407,13 +411,22 @@ gpu_print(struct replay_context *ctx, struct cmdstream *_cs, uint64_t iova,
    end_ib();
 }
 
+/* This function is used to read a buffer from the GPU into a file.
+ * The buffer can optionally be cleared to 0xdeadbeef at the start
+ * of the cmdstream by setting the clear parameter to true.
+ *
+ * Note: Unlike gpu_print, this function isn't sequenced, it will
+ * read the state of the buffer at the end of the cmdstream, not
+ * at the point of the call.
+ */
 static void
 gpu_read_into_file(struct replay_context *ctx, struct cmdstream *_cs,
-                    uint64_t iova, uint64_t size, const char *name)
+                    uint64_t iova, uint64_t size, bool clear, const char *name)
 {
    struct wrbuf *wrbuf = (struct wrbuf *) calloc(1, sizeof(struct wrbuf));
    wrbuf->iova = iova;
    wrbuf->size = size;
+   wrbuf->clear = clear;
    wrbuf->name = strdup(name);
 
    assert(wrbuf->iova != 0);

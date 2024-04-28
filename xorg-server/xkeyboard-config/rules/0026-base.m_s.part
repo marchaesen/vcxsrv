@@ -45,8 +45,6 @@
   trust_slimline =      +inet(media_nav_acpi_common)
   vsonku306     =       +inet(microsoftprooem)
   $inetkbds     =       +inet(%m)
-  $maclaptop    =       +inet(apple)+level3(enter_switch)
   $applealu     =       +inet(apple)
-  $macs	        =       +inet(apple)
   sun_type7_jp_usb	=	+sun_vndr/solaris(defaults_type7jp)
   $sun			=		+sun_vndr/solaris(defaults)

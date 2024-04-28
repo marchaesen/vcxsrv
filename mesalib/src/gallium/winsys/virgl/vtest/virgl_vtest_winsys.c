@@ -21,6 +21,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 #include <stdio.h>
+#include "util/macros.h"
 #include "util/u_surface.h"
 #include "util/u_memory.h"
 #include "util/format/u_format.h"
@@ -630,6 +631,7 @@ static void virgl_fence_reference(struct virgl_winsys *vws,
 }
 
 static void virgl_vtest_flush_frontbuffer(struct virgl_winsys *vws,
+                                          UNUSED struct virgl_cmd_buf *cmdbuf,
                                           struct virgl_hw_res *res,
                                           unsigned level, unsigned layer,
                                           void *winsys_drawable_handle,
@@ -659,7 +661,7 @@ static void virgl_vtest_flush_frontbuffer(struct virgl_winsys *vws,
                                      level, true);
 
    vtws->sws->displaytarget_display(vtws->sws, res->dt, winsys_drawable_handle,
-                                    sub_box);
+                                    !!sub_box, sub_box);
 }
 
 static void

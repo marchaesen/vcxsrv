@@ -120,19 +120,19 @@
   <function name="ClearBufferiv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLint *" count="_mesa_buffer_enum_to_count(buffer)"/>
+    <param name="value" type="const GLint *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
   <function name="ClearBufferuiv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLuint *" count="_mesa_buffer_enum_to_count(buffer)"/>
+    <param name="value" type="const GLuint *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
   <function name="ClearBufferfv" es2="3.0" no_error="true" exec="dlist">
     <param name="buffer" type="GLenum"/>
     <param name="drawbuffer" type="GLint"/>
-    <param name="value" type="const GLfloat *" count="_mesa_buffer_enum_to_count(buffer)"/>
+    <param name="value" type="const GLfloat *" marshal_count="_mesa_buffer_enum_to_count(buffer)"/>
   </function>
 
   <function name="ClearBufferfi" es2="3.0" no_error="true" exec="dlist">
@@ -451,13 +451,13 @@
   <function name="TexParameterIiv" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
-    <param name="params" type="const GLint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+    <param name="params" type="const GLint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
   </function>
 
   <function name="TexParameterIuiv" es2="3.2" exec="dlist">
     <param name="target" type="GLenum"/>
     <param name="pname" type="GLenum"/>
-    <param name="params" type="const GLuint *" count="_mesa_tex_param_enum_to_count(pname)"/>
+    <param name="params" type="const GLuint *" marshal_count="_mesa_tex_param_enum_to_count(pname)"/>
   </function>
 
   <function name="GetTexParameterIiv" es2="3.2">

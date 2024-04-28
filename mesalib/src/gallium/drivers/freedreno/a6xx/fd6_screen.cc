@@ -163,9 +163,9 @@ fd6_screen_init(struct pipe_screen *pscreen)
    screen->max_rts = A6XX_MAX_RENDER_TARGETS;
 
    uint32_t depth_cache_size =
-      screen->info->num_ccu * screen->info->a6xx.sysmem_per_ccu_cache_size;
+      screen->info->num_ccu * screen->info->a6xx.sysmem_per_ccu_depth_cache_size;
    uint32_t color_cache_size =
-      (screen->info->num_ccu * screen->info->a6xx.sysmem_per_ccu_cache_size) /
+      (screen->info->num_ccu * screen->info->a6xx.sysmem_per_ccu_color_cache_size) /
       (1 << screen->info->a6xx.gmem_ccu_color_cache_fraction);
 
    screen->ccu_offset_bypass = depth_cache_size;

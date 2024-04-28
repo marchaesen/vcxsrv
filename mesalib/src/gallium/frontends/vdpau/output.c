@@ -497,10 +497,9 @@ vlVdpOutputSurfacePutBitsYCbCr(VdpOutputSurface surface,
       struct pipe_sampler_view *sv = sampler_views[i];
       if (!sv) continue;
 
-      struct pipe_box dst_box = {
-         0, 0, 0,
-         sv->texture->width0, sv->texture->height0, 1
-      };
+      struct pipe_box dst_box;
+      u_box_3d(0, 0, 0,
+               sv->texture->width0, sv->texture->height0, 1, &dst_box);
 
       pipe->texture_subdata(pipe, sv->texture, 0, PIPE_MAP_WRITE, &dst_box,
                             source_data[i], source_pitches[i], 0);

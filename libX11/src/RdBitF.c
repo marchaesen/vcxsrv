@@ -129,9 +129,6 @@ XReadBitmapFileData (
     int hx = -1;			/* x hotspot */
     int hy = -1;			/* y hotspot */
 
-#ifdef __UNIXOS2__
-    filename = __XOS2RedirRoot(filename);
-#endif
     if (!(fstream = fopen(filename, "r")))
 	return BitmapOpenFailed;
 

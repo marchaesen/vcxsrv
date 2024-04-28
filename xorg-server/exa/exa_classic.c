@@ -33,7 +33,7 @@
 
 /* This file holds the classic exa specific implementation. */
 
-static _X_INLINE void *
+static inline void *
 ExaGetPixmapAddress(PixmapPtr p)
 {
     ExaPixmapPriv(p);

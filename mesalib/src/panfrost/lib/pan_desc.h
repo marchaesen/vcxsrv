@@ -79,7 +79,12 @@ struct pan_tiler_context {
       mali_ptr bifrost;
       struct {
          bool disable;
-         struct panfrost_bo *polygon_list;
+         bool no_hierarchical_tiling;
+         mali_ptr polygon_list;
+         struct {
+            mali_ptr start;
+            unsigned size;
+         } heap;
       } midgard;
    };
 };
@@ -111,6 +116,7 @@ struct pan_fb_info {
       unsigned minx, miny, maxx, maxy;
    } extent;
    unsigned nr_samples;
+   unsigned force_samples; /* samples used for rasterization */
    unsigned rt_count;
    struct pan_fb_color_attachment rts[8];
    struct pan_fb_zs_attachment zs;
@@ -123,6 +129,12 @@ struct pan_fb_info {
    union {
       struct pan_fb_bifrost_info bifrost;
    };
+
+   /* Optimal tile buffer size. */
+   unsigned tile_buf_budget;
+
+   /* Sample position array. */
+   mali_ptr sample_positions;
 
    /* Only used on Valhall */
    bool sprite_coord_origin;
@@ -140,15 +152,6 @@ static inline unsigned
 pan_wls_adjust_size(unsigned wls_size)
 {
    return util_next_power_of_two(MAX2(wls_size, 128));
-}
-
-static inline unsigned
-pan_wls_mem_size(const struct panfrost_device *dev,
-                 const struct pan_compute_dim *dim, unsigned wls_size)
-{
-   unsigned instances = pan_wls_instances(dim);
-
-   return pan_wls_adjust_size(wls_size) * instances * dev->core_id_range;
 }
 
 #ifdef PAN_ARCH
@@ -176,8 +179,7 @@ void GENX(pan_emit_tls)(const struct pan_tls_info *info, void *out);
 
 int GENX(pan_select_crc_rt)(const struct pan_fb_info *fb, unsigned tile_size);
 
-unsigned GENX(pan_emit_fbd)(const struct panfrost_device *dev,
-                            const struct pan_fb_info *fb,
+unsigned GENX(pan_emit_fbd)(const struct pan_fb_info *fb,
                             const struct pan_tls_info *tls,
                             const struct pan_tiler_context *tiler_ctx,
                             void *out);

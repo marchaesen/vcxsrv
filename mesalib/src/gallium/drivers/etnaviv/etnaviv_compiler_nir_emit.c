@@ -40,10 +40,10 @@ enum {
 
 /* info to translate a nir op to etna_inst */
 struct etna_op_info {
-   uint8_t opcode; /* INST_OPCODE_ */
+   enum isa_opc opcode;
    uint8_t src; /* SRC_ enum  */
-   uint8_t cond; /* INST_CONDITION_ */
-   uint8_t type; /* INST_TYPE_ */
+   enum isa_cond cond;
+   enum isa_type type;
 };
 
 static const struct etna_op_info etna_ops[] = {
@@ -51,10 +51,10 @@ static const struct etna_op_info etna_ops[] = {
 #undef TRUE
 #undef FALSE
 #define OPCT(nir, op, src, cond, type) [nir_op_##nir] = { \
-   INST_OPCODE_##op, \
+   ISA_OPC_##op, \
    SRC_##src, \
-   INST_CONDITION_##cond, \
-   INST_TYPE_##type \
+   ISA_COND_##cond, \
+   ISA_TYPE_##type \
 }
 #define OPC(nir, op, src, cond) OPCT(nir, op, src, cond, F32)
 #define IOPC(nir, op, src, cond) OPCT(nir, op, src, cond, S32)
@@ -155,7 +155,7 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
    case nir_op_fsin:
    case nir_op_fcos:
       if (c->specs->has_new_transcendentals)
-         inst.tex.amode = 1;
+         inst.rounding = ISA_ROUNDING_RTZ;
       FALLTHROUGH;
    case nir_op_frsq:
    case nir_op_frcp:
@@ -182,7 +182,7 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
    }
 
    /* set the "true" value for CMP instructions */
-   if (inst.opcode == INST_OPCODE_CMP)
+   if (inst.opcode == ISA_OPC_CMP)
       inst.src[2] = etna_immediate_int(-1);
 
    for (unsigned j = 0; j < 3; j++) {
@@ -213,10 +213,10 @@ etna_emit_tex(struct etna_compile *c, nir_texop op, unsigned texid, unsigned dst
       inst.src[2] = src2;
 
    switch (op) {
-   case nir_texop_tex: inst.opcode = INST_OPCODE_TEXLD; break;
-   case nir_texop_txb: inst.opcode = INST_OPCODE_TEXLDB; break;
-   case nir_texop_txd: inst.opcode = INST_OPCODE_TEXLDD; break;
-   case nir_texop_txl: inst.opcode = INST_OPCODE_TEXLDL; break;
+   case nir_texop_tex: inst.opcode = ISA_OPC_TEXLD; break;
+   case nir_texop_txb: inst.opcode = ISA_OPC_TEXLDB; break;
+   case nir_texop_txd: inst.opcode = ISA_OPC_TEXLDD; break;
+   case nir_texop_txl: inst.opcode = ISA_OPC_TEXLDL; break;
    default:
       compile_error(c, "Unhandled NIR tex type: %d\n", op);
    }
@@ -228,14 +228,14 @@ void
 etna_emit_jump(struct etna_compile *c, unsigned block, struct etna_inst_src condition)
 {
    if (!condition.use) {
-      emit_inst(c, &(struct etna_inst) {.opcode = INST_OPCODE_BRANCH, .imm = block });
+      emit_inst(c, &(struct etna_inst) {.opcode = ISA_OPC_BRANCH, .imm = block });
       return;
    }
 
    struct etna_inst inst = {
-      .opcode = INST_OPCODE_BRANCH,
-      .cond = INST_CONDITION_NOT,
-      .type = INST_TYPE_U32,
+      .opcode = ISA_OPC_BRANCH,
+      .cond = ISA_COND_NOT,
+      .type = ISA_TYPE_U32,
       .src[0] = condition,
       .imm = block,
    };
@@ -247,14 +247,14 @@ void
 etna_emit_discard(struct etna_compile *c, struct etna_inst_src condition)
 {
    if (!condition.use) {
-      emit_inst(c, &(struct etna_inst) { .opcode = INST_OPCODE_TEXKILL });
+      emit_inst(c, &(struct etna_inst) { .opcode = ISA_OPC_TEXKILL });
       return;
    }
 
    struct etna_inst inst = {
-      .opcode = INST_OPCODE_TEXKILL,
-      .cond = INST_CONDITION_NZ,
-      .type = (c->specs->halti < 2) ? INST_TYPE_F32 : INST_TYPE_U32,
+      .opcode = ISA_OPC_TEXKILL,
+      .cond = ISA_COND_NZ,
+      .type = (c->specs->halti < 2) ? ISA_TYPE_F32 : ISA_TYPE_U32,
       .src[0] = condition,
    };
    inst.src[0].swiz = INST_SWIZ_BROADCAST(inst.src[0].swiz & 3);

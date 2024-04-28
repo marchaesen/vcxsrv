@@ -99,7 +99,7 @@ static uint32_t pvr_transfer_frag_shader_key(
    uint32_t sample_cnt_bits = util_last_bit(util_logbase2(max_multisample));
    uint32_t hash = 0U;
 
-#if defined(DEBUG)
+#if MESA_DEBUG
    uint32_t max_shift = 0U;
 #   define shift_hash(hash, num)   \
       do {                         \

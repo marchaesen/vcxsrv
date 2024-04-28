@@ -373,11 +373,7 @@ XkbGetXlibControls(Display *dpy)
 unsigned int
 XkbXlibControlsImplemented(void)
 {
-#ifdef __sgi
-    return XkbLC_AllControls;
-#else
     return XkbLC_AllControls & ~XkbLC_AllComposeControls;
-#endif
 }
 
 Bool

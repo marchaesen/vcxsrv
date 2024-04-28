@@ -136,8 +136,12 @@ lower_non_uniform_tex_access(const nir_lower_non_uniform_access_options *options
          num_handles++;
    }
 
-   if (num_handles == 0)
+   if (num_handles == 0) {
+      /* nu_handle_init() returned false because the handles are uniform. */
+      tex->texture_non_uniform = false;
+      tex->sampler_non_uniform = false;
       return false;
+   }
 
    b->cursor = nir_instr_remove(&tex->instr);
 
@@ -177,8 +181,10 @@ lower_non_uniform_access_intrin(const nir_lower_non_uniform_access_options *opti
       return false;
 
    struct nu_handle handle;
-   if (!nu_handle_init(&handle, &intrin->src[handle_src]))
+   if (!nu_handle_init(&handle, &intrin->src[handle_src])) {
+      nir_intrinsic_set_access(intrin, nir_intrinsic_access(intrin) & ~ACCESS_NON_UNIFORM);
       return false;
+   }
 
    b->cursor = nir_instr_remove(&intrin->instr);
 

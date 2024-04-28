@@ -48,7 +48,7 @@ $ADB shell setenforce 0
 # deqp
 
 $ADB push /deqp/modules/egl/deqp-egl-android /data/.
-$ADB push /deqp/assets/gl_cts/data/mustpass/egl/aosp_mustpass/3.2.6.x/egl-master.txt /data/.
+$ADB push /deqp/assets/gl_cts/data/mustpass/egl/aosp_mustpass/3.2.6.x/egl-main.txt /data/
 $ADB push /deqp-runner/deqp-runner /data/.
 
 # download Android Mesa from S3

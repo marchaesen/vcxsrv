@@ -103,7 +103,7 @@ nir_gather_types(nir_function_impl *impl,
    do {
       progress = false;
 
-      nir_foreach_block(block, impl) {
+      nir_foreach_block_unstructured(block, impl) {
          nir_foreach_instr(instr, block) {
             switch (instr->type) {
             case nir_instr_type_alu: {

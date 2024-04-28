@@ -15,26 +15,33 @@ is" without express or implied warranty.
 #ifndef XNESTCURSOR_H
 #define XNESTCURSOR_H
 
+#include <X11/Xdefs.h>
+
 #include "mipointrst.h"
 
 typedef struct {
     miPointerSpriteFuncPtr spriteFuncs;
 } xnestCursorFuncRec, *xnestCursorFuncPtr;
 
-extern DevPrivateKeyRec xnestCursorScreenKeyRec;
+// stores xnestCursorFuncRec in screen
+extern DevPrivateKeyRec xnestScreenCursorFuncKeyRec;
 
-#define xnestCursorScreenKey (&xnestCursorScreenKeyRec)
 extern xnestCursorFuncRec xnestCursorFuncs;
 
 typedef struct {
     Cursor cursor;
 } xnestPrivCursor;
 
+// stores xnestPrivCursor per screen's cursor
+extern DevScreenPrivateKeyRec xnestScreenCursorPrivKeyRec;
+
 #define xnestGetCursorPriv(pCursor, pScreen) ((xnestPrivCursor *) \
-    dixLookupScreenPrivate(&(pCursor)->devPrivates, CursorScreenKey, pScreen))
+    dixLookupScreenPrivate(&(pCursor)->devPrivates, \
+                           &xnestScreenCursorPrivKeyRec, pScreen))
 
 #define xnestSetCursorPriv(pCursor, pScreen, v) \
-    dixSetScreenPrivate(&(pCursor)->devPrivates, CursorScreenKey, pScreen, v)
+    dixSetScreenPrivate(&(pCursor)->devPrivates, \
+                        &xnestScreenCursorPrivKeyRec, pScreen, v)
 
 #define xnestCursor(pCursor, pScreen) \
   (xnestGetCursorPriv(pCursor, pScreen)->cursor)

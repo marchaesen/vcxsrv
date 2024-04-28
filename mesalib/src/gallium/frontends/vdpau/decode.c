@@ -35,6 +35,13 @@
 #include "vl/vl_codec.h"
 #include "vdpau_private.h"
 
+#define AV1_KEY_FRAME           0
+#define AV1_REFS_PER_FRAME      7
+#define AV1_NUM_REF_FRAMES      8
+#define AV1_PRIMARY_REF_NONE    AV1_REFS_PER_FRAME
+#define AV1_SUPERRES_DENOM_MIN  9
+#define AV1_SUPERRES_NUM        8
+
 /**
  * Create a VdpDecoder.
  */
@@ -219,7 +226,7 @@ vlVdpGetReferenceFrame(VdpVideoSurface handle, struct pipe_video_buffer **ref_fr
  */
 static VdpStatus
 vlVdpDecoderRenderMpeg12(struct pipe_mpeg12_picture_desc *picture,
-                         VdpPictureInfoMPEG1Or2 *picture_info)
+                         const VdpPictureInfoMPEG1Or2 *picture_info)
 {
    VdpStatus r;
 
@@ -260,7 +267,7 @@ vlVdpDecoderRenderMpeg12(struct pipe_mpeg12_picture_desc *picture,
  */
 static VdpStatus
 vlVdpDecoderRenderMpeg4(struct pipe_mpeg4_picture_desc *picture,
-                        VdpPictureInfoMPEG4Part2 *picture_info)
+                        const VdpPictureInfoMPEG4Part2 *picture_info)
 {
    VdpStatus r;
    unsigned i;
@@ -299,7 +306,7 @@ vlVdpDecoderRenderMpeg4(struct pipe_mpeg4_picture_desc *picture,
 
 static VdpStatus
 vlVdpDecoderRenderVC1(struct pipe_vc1_picture_desc *picture,
-                      VdpPictureInfoVC1 *picture_info)
+                      const VdpPictureInfoVC1 *picture_info)
 {
    VdpStatus r;
 
@@ -348,7 +355,8 @@ vlVdpDecoderRenderVC1(struct pipe_vc1_picture_desc *picture,
 
 static VdpStatus
 vlVdpDecoderRenderH264(struct pipe_h264_picture_desc *picture,
-                       VdpPictureInfoH264 *picture_info, unsigned level_idc)
+                       const VdpPictureInfoH264 *picture_info,
+                       unsigned level_idc)
 {
    unsigned i;
 
@@ -413,7 +421,7 @@ vlVdpDecoderRenderH264(struct pipe_h264_picture_desc *picture,
 
 static VdpStatus
 vlVdpDecoderRenderH265(struct pipe_h265_picture_desc *picture,
-                       VdpPictureInfoHEVC *picture_info)
+                       const VdpPictureInfoHEVC *picture_info)
 {
    unsigned i;
 
@@ -524,6 +532,432 @@ vlVdpDecoderRenderH265(struct pipe_h265_picture_desc *picture,
 }
 
 static void
+copyArrayInt8FromShort(int8_t *dest, const short *src, unsigned count) {
+   unsigned i;
+
+   for (i = 0; i < count; ++i) {
+      *dest = *src;
+      ++dest;
+      ++src;
+   }
+}
+
+static void
+copyAV1ScalingPoints(uint8_t *value, uint8_t *scaling, const unsigned char point[][2], unsigned count) {
+   unsigned i;
+
+   for (i = 0; i < count; ++i) {
+      *value = (*point)[0];
+      ++value;
+      *scaling = (*point)[1];
+      ++scaling;
+      ++point;
+   }
+}
+
+static uint8_t
+indexOfAV1RefFrame(uint32_t frame, const unsigned int *ref_frame_map) {
+    uint8_t i;
+
+    for (i = 0; i < AV1_NUM_REF_FRAMES; ++i) {
+       if (frame == *ref_frame_map) {
+          break;
+       }
+       ++ref_frame_map;
+    }
+
+    return i;
+}
+
+static void
+copyAV1TileInfo(struct pipe_av1_picture_desc *picture,
+                const VdpPictureInfoAV1 *picture_info)
+{
+   uint32_t sbCols, sbRows;
+   uint32_t startSb, i;
+   int32_t width_sb, height_sb;
+   uint32_t MiCols = ((picture_info->width + 7) >> 3) << 1;
+   uint32_t MiRows = ((picture_info->height + 7) >> 3) << 1;
+
+   if (picture_info->use_superres) {
+      const uint32_t superres_scale_denominator = picture_info->coded_denom + AV1_SUPERRES_DENOM_MIN;
+      const uint32_t width = ((picture_info->width * 8) + (superres_scale_denominator / 2))
+         / superres_scale_denominator;
+      MiCols = (((width - 1) + 8) >> 3) << 1;
+   }
+
+   sbCols = picture_info->use_128x128_superblock ? ((MiCols + 31) >> 5) : ((MiCols + 15) >> 4);
+   sbRows = picture_info->use_128x128_superblock ? ((MiRows + 31) >> 5) : ((MiRows + 15) >> 4);
+
+   width_sb = sbCols;
+   height_sb = sbRows;
+
+   startSb = 0;
+   for (i = 0; startSb < sbCols; ++i) {
+      const uint32_t tile_width = picture_info->tile_widths[i];
+      picture->picture_parameter.width_in_sbs[i] = tile_width;
+
+      picture->picture_parameter.tile_col_start_sb[i] = startSb;
+      startSb += tile_width;
+      width_sb -= tile_width;
+   }
+   picture->picture_parameter.tile_col_start_sb[i] = startSb + width_sb;
+
+   startSb = 0;
+   for (i = 0; startSb < sbRows; ++i) {
+      const uint32_t tile_height = picture_info->tile_heights[i];
+      picture->picture_parameter.height_in_sbs[i] = tile_height;
+
+      picture->picture_parameter.tile_row_start_sb[i] = startSb;
+      startSb += tile_height;
+      height_sb -= tile_height;
+   }
+   picture->picture_parameter.tile_row_start_sb[i] = startSb + height_sb;
+}
+
+static VdpStatus
+vlVdpDecoderRenderAV1(struct pipe_av1_picture_desc *picture,
+                      VdpVideoSurface target,
+                      const VdpPictureInfoAV1 *picture_info)
+{
+   unsigned i, j;
+
+   picture->film_grain_target = NULL;
+
+   picture->picture_parameter.profile = picture_info->profile;
+   picture->picture_parameter.order_hint_bits_minus_1 = picture_info->order_hint_bits_minus1;
+   picture->picture_parameter.bit_depth_idx = picture_info->bit_depth_minus8 >> 1;
+
+   picture->picture_parameter.seq_info_fields.use_128x128_superblock =
+      picture_info->use_128x128_superblock;
+   picture->picture_parameter.seq_info_fields.enable_filter_intra =
+      picture_info->enable_filter_intra;
+   picture->picture_parameter.seq_info_fields.enable_intra_edge_filter =
+      picture_info->enable_intra_edge_filter;
+   picture->picture_parameter.seq_info_fields.enable_interintra_compound =
+      picture_info->enable_interintra_compound;
+   picture->picture_parameter.seq_info_fields.enable_masked_compound =
+      picture_info->enable_masked_compound;
+
+   picture->picture_parameter.seq_info_fields.enable_dual_filter =
+      picture_info->enable_dual_filter;
+   picture->picture_parameter.seq_info_fields.enable_order_hint =
+      picture_info->enable_order_hint;
+   picture->picture_parameter.seq_info_fields.enable_jnt_comp =
+      picture_info->enable_jnt_comp;
+   picture->picture_parameter.seq_info_fields.enable_cdef =
+      picture_info->enable_cdef;
+   picture->picture_parameter.seq_info_fields.mono_chrome =
+      picture_info->mono_chrome;
+   picture->picture_parameter.seq_info_fields.ref_frame_mvs =
+      picture_info->enable_order_hint;
+   picture->picture_parameter.seq_info_fields.film_grain_params_present =
+      picture_info->enable_fgs;
+
+   picture->picture_parameter.current_frame_id = target;
+   picture->picture_parameter.frame_width = picture_info->width;
+   picture->picture_parameter.frame_height = picture_info->height;
+   picture->picture_parameter.max_width = picture_info->width;
+   picture->picture_parameter.max_height = picture_info->height;
+
+   for (i = 0; i < AV1_NUM_REF_FRAMES; ++i) {
+      if (picture_info->frame_type == AV1_KEY_FRAME && picture_info->show_frame) {
+         picture->ref[i] = NULL;
+      } else {
+         VdpStatus ret = vlVdpGetReferenceFrame(picture_info->ref_frame_map[i], &picture->ref[i]);
+         if (ret != VDP_STATUS_OK) {
+            return ret;
+         }
+      }
+   }
+
+   for (i = 0; i < AV1_REFS_PER_FRAME; ++i) {
+      const uint8_t idx = indexOfAV1RefFrame(picture_info->ref_frame[i].index,
+                                             picture_info->ref_frame_map);
+      if (idx == AV1_NUM_REF_FRAMES) {
+         return VDP_STATUS_ERROR;
+      }
+      picture->picture_parameter.ref_frame_idx[i] = idx;
+   }
+
+   if (picture_info->primary_ref_frame == VDP_INVALID_HANDLE) {
+      picture->picture_parameter.primary_ref_frame = AV1_PRIMARY_REF_NONE;
+   } else {
+      const uint8_t *ref_index = picture->picture_parameter.ref_frame_idx;
+      const uint8_t idx = indexOfAV1RefFrame(picture_info->primary_ref_frame,
+                                             picture_info->ref_frame_map);
+      if (idx == AV1_NUM_REF_FRAMES) {
+         return VDP_STATUS_ERROR;
+      }
+
+      for (i = 0; i < AV1_REFS_PER_FRAME; ++i) {
+         if (idx == *ref_index) {
+            break;
+         }
+         ++ref_index;
+      }
+      picture->picture_parameter.primary_ref_frame = i;
+   }
+
+   picture->picture_parameter.refresh_frame_flags = 0x01;
+   picture->picture_parameter.order_hint = picture_info->frame_offset;
+
+   // Segment Info
+   picture->picture_parameter.seg_info.segment_info_fields.enabled =
+      picture_info->segmentation_enabled;
+   picture->picture_parameter.seg_info.segment_info_fields.update_map =
+      picture_info->segmentation_update_map;
+   picture->picture_parameter.seg_info.segment_info_fields.update_data =
+      picture_info->segmentation_update_data;
+   picture->picture_parameter.seg_info.segment_info_fields.temporal_update =
+      picture_info->segmentation_temporal_update;
+   memcpy(picture->picture_parameter.seg_info.feature_data,
+          picture_info->segmentation_feature_data,
+          sizeof(picture->picture_parameter.seg_info.feature_data));
+   memcpy(picture->picture_parameter.seg_info.feature_mask,
+          picture_info->segmentation_feature_mask,
+          sizeof(picture->picture_parameter.seg_info.feature_mask));
+
+   // Film Grain Info
+   if (picture_info->enable_fgs) {
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.apply_grain =
+         picture_info->apply_grain;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.chroma_scaling_from_luma =
+         picture_info->chroma_scaling_from_luma;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.grain_scaling_minus_8 =
+         picture_info->scaling_shift_minus8;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.ar_coeff_lag =
+         picture_info->ar_coeff_lag;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.ar_coeff_shift_minus_6 =
+         picture_info->ar_coeff_shift_minus6;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.grain_scale_shift =
+         picture_info->grain_scale_shift;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.overlap_flag =
+         picture_info->overlap_flag;
+      picture->picture_parameter.film_grain_info.film_grain_info_fields.clip_to_restricted_range =
+         picture_info->clip_to_restricted_range;
+
+      picture->picture_parameter.film_grain_info.grain_seed =
+         picture_info->random_seed;
+      picture->picture_parameter.film_grain_info.num_y_points =
+         picture_info->num_y_points;
+      picture->picture_parameter.film_grain_info.num_cb_points =
+         picture_info->num_cb_points;
+      picture->picture_parameter.film_grain_info.num_cr_points =
+         picture_info->num_cr_points;
+      picture->picture_parameter.film_grain_info.cb_mult =
+         picture_info->cb_mult;
+      picture->picture_parameter.film_grain_info.cb_luma_mult =
+         picture_info->cb_luma_mult;
+      picture->picture_parameter.film_grain_info.cb_offset =
+         picture_info->cb_offset;
+      picture->picture_parameter.film_grain_info.cr_mult =
+         picture_info->cr_mult;
+      picture->picture_parameter.film_grain_info.cr_luma_mult =
+         picture_info->cr_luma_mult;
+      picture->picture_parameter.film_grain_info.cr_offset =
+         picture_info->cr_offset;
+
+      copyAV1ScalingPoints(
+         picture->picture_parameter.film_grain_info.point_y_value,
+         picture->picture_parameter.film_grain_info.point_y_scaling,
+         picture_info->scaling_points_y,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.point_y_value));
+      copyAV1ScalingPoints(
+         picture->picture_parameter.film_grain_info.point_cb_value,
+         picture->picture_parameter.film_grain_info.point_cb_scaling,
+         picture_info->scaling_points_cb,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.point_cb_value));
+      copyAV1ScalingPoints(
+         picture->picture_parameter.film_grain_info.point_cr_value,
+         picture->picture_parameter.film_grain_info.point_cr_scaling,
+         picture_info->scaling_points_cr,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.point_cr_value));
+
+      copyArrayInt8FromShort(
+         picture->picture_parameter.film_grain_info.ar_coeffs_y,
+         picture_info->ar_coeffs_y,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.ar_coeffs_y));
+      copyArrayInt8FromShort(
+         picture->picture_parameter.film_grain_info.ar_coeffs_cb,
+         picture_info->ar_coeffs_cb,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.ar_coeffs_cb));
+      copyArrayInt8FromShort(
+         picture->picture_parameter.film_grain_info.ar_coeffs_cr,
+         picture_info->ar_coeffs_cr,
+         ARRAY_SIZE(picture->picture_parameter.film_grain_info.ar_coeffs_cr));
+   }
+
+   // Picture Info
+   picture->picture_parameter.pic_info_fields.frame_type =
+      picture_info->frame_type;
+   picture->picture_parameter.pic_info_fields.show_frame =
+      picture_info->show_frame;
+   picture->picture_parameter.pic_info_fields.showable_frame = 1;
+   picture->picture_parameter.pic_info_fields.error_resilient_mode = 1;
+   picture->picture_parameter.pic_info_fields.disable_cdf_update =
+      picture_info->disable_cdf_update;
+   picture->picture_parameter.pic_info_fields.allow_screen_content_tools =
+      picture_info->allow_screen_content_tools;
+   picture->picture_parameter.pic_info_fields.force_integer_mv =
+      picture_info->force_integer_mv;
+   picture->picture_parameter.pic_info_fields.allow_intrabc =
+      picture_info->allow_intrabc;
+   picture->picture_parameter.pic_info_fields.use_superres =
+      picture_info->use_superres;
+   picture->picture_parameter.pic_info_fields.allow_high_precision_mv =
+      picture_info->allow_high_precision_mv;
+   picture->picture_parameter.pic_info_fields.is_motion_mode_switchable =
+      picture_info->switchable_motion_mode;
+   picture->picture_parameter.pic_info_fields.use_ref_frame_mvs =
+      picture_info->use_ref_frame_mvs;
+   picture->picture_parameter.pic_info_fields.disable_frame_end_update_cdf =
+      picture_info->disable_frame_end_update_cdf;
+   picture->picture_parameter.pic_info_fields.uniform_tile_spacing_flag = 0;
+   picture->picture_parameter.pic_info_fields.allow_warped_motion =
+      picture_info->allow_warped_motion;
+   picture->picture_parameter.pic_info_fields.large_scale_tile = 0;
+
+   picture->picture_parameter.superres_scale_denominator =
+      picture_info->use_superres ? picture_info->coded_denom + AV1_SUPERRES_DENOM_MIN : AV1_SUPERRES_NUM;
+
+   // Loop Filter
+   picture->picture_parameter.interp_filter = picture_info->interp_filter;
+   memcpy(picture->picture_parameter.filter_level,
+          picture_info->loop_filter_level,
+          sizeof(picture->picture_parameter.filter_level));
+   picture->picture_parameter.filter_level_u =
+      picture_info->loop_filter_level_u;
+   picture->picture_parameter.filter_level_v =
+      picture_info->loop_filter_level_v;
+   picture->picture_parameter.loop_filter_info_fields.sharpness_level =
+      picture_info->loop_filter_sharpness;
+   picture->picture_parameter.loop_filter_info_fields.mode_ref_delta_enabled =
+      picture_info->loop_filter_delta_enabled;
+   picture->picture_parameter.loop_filter_info_fields.mode_ref_delta_update =
+      picture_info->loop_filter_delta_update;
+   memcpy(picture->picture_parameter.ref_deltas,
+          picture_info->loop_filter_ref_deltas,
+          sizeof(picture->picture_parameter.ref_deltas));
+   memcpy(picture->picture_parameter.mode_deltas,
+          picture_info->loop_filter_mode_deltas,
+          sizeof(picture->picture_parameter.mode_deltas));
+
+   // Tile Info
+   picture->picture_parameter.tile_cols = picture_info->num_tile_cols;
+   picture->picture_parameter.tile_rows = picture_info->num_tile_rows;
+   picture->picture_parameter.context_update_tile_id =
+      picture_info->context_update_tile_id;
+   copyAV1TileInfo(picture, picture_info);
+
+   // Quantization Parameters
+   picture->picture_parameter.base_qindex = picture_info->base_qindex;
+   picture->picture_parameter.y_dc_delta_q = picture_info->qp_y_dc_delta_q;
+   picture->picture_parameter.u_dc_delta_q = picture_info->qp_u_dc_delta_q;
+   picture->picture_parameter.u_ac_delta_q = picture_info->qp_u_ac_delta_q;
+   picture->picture_parameter.v_dc_delta_q = picture_info->qp_v_dc_delta_q;
+   picture->picture_parameter.v_ac_delta_q = picture_info->qp_v_ac_delta_q;
+
+   // QMatrix
+   picture->picture_parameter.qmatrix_fields.using_qmatrix =
+      picture_info->using_qmatrix;
+   if (picture_info->using_qmatrix) {
+      picture->picture_parameter.qmatrix_fields.qm_y = picture_info->qm_y;
+      picture->picture_parameter.qmatrix_fields.qm_u = picture_info->qm_u;
+      picture->picture_parameter.qmatrix_fields.qm_v = picture_info->qm_v;
+   } else {
+      picture->picture_parameter.qmatrix_fields.qm_y = 0x0f;
+      picture->picture_parameter.qmatrix_fields.qm_u = 0x0f;
+      picture->picture_parameter.qmatrix_fields.qm_v = 0x0f;
+   }
+
+   // Mode Control Fields
+   picture->picture_parameter.mode_control_fields.delta_q_present_flag =
+      picture_info->delta_q_present;
+   picture->picture_parameter.mode_control_fields.log2_delta_q_res =
+      picture_info->delta_q_res;
+   picture->picture_parameter.mode_control_fields.delta_lf_present_flag =
+      picture_info->delta_lf_present;
+   picture->picture_parameter.mode_control_fields.log2_delta_lf_res =
+      picture_info->delta_lf_res;
+   picture->picture_parameter.mode_control_fields.delta_lf_multi =
+      picture_info->delta_lf_multi;
+   picture->picture_parameter.mode_control_fields.tx_mode =
+      picture_info->tx_mode;
+   picture->picture_parameter.mode_control_fields.reference_select =
+      picture_info->reference_mode;
+   picture->picture_parameter.mode_control_fields.reduced_tx_set_used =
+      picture_info->reduced_tx_set;
+   picture->picture_parameter.mode_control_fields.skip_mode_present =
+      picture_info->skip_mode;
+
+   // CDEF
+   picture->picture_parameter.cdef_damping_minus_3 =
+      picture_info->cdef_damping_minus_3;
+   picture->picture_parameter.cdef_bits = picture_info->cdef_bits;
+   for (i = 0; i < ARRAY_SIZE(picture->picture_parameter.cdef_y_strengths); ++i) {
+      picture->picture_parameter.cdef_y_strengths[i] =
+         ((picture_info->cdef_y_strength[i] & 0xf) << 2) +
+         (picture_info->cdef_y_strength[i] >> 4);
+      picture->picture_parameter.cdef_uv_strengths[i] =
+         ((picture_info->cdef_uv_strength[i] & 0xf) << 2) +
+         (picture_info->cdef_uv_strength[i] >> 4);
+   }
+
+   // Loop Restoration
+   picture->picture_parameter.loop_restoration_fields.yframe_restoration_type =
+      picture_info->lr_type[0];
+   picture->picture_parameter.loop_restoration_fields.cbframe_restoration_type =
+      picture_info->lr_type[1];
+   picture->picture_parameter.loop_restoration_fields.crframe_restoration_type =
+      picture_info->lr_type[2];
+   picture->picture_parameter.loop_restoration_fields.lr_unit_shift =
+      picture_info->lr_unit_size[0] - 1;
+   picture->picture_parameter.loop_restoration_fields.lr_uv_shift =
+      picture_info->lr_unit_size[0] - picture_info->lr_unit_size[1];
+
+   if (picture_info->lr_type[0] || picture_info->lr_type[1] || picture_info->lr_type[2]) {
+      const uint8_t unit_shift = 6 + picture->picture_parameter.loop_restoration_fields.lr_unit_shift;
+
+      picture->picture_parameter.lr_unit_size[0] = (1 << unit_shift);
+      picture->picture_parameter.lr_unit_size[1] =
+         1 << (unit_shift - picture->picture_parameter.loop_restoration_fields.lr_uv_shift);
+      picture->picture_parameter.lr_unit_size[2] =
+         picture->picture_parameter.lr_unit_size[1];
+   } else {
+      for (i = 0; i < ARRAY_SIZE(picture->picture_parameter.lr_unit_size); ++i) {
+         picture->picture_parameter.lr_unit_size[i] = (1 << 8);
+      }
+   }
+
+   // Global Motion
+   for (i = 0; i < AV1_REFS_PER_FRAME; ++i) {
+      picture->picture_parameter.wm[i].invalid = picture_info->global_motion[i].invalid;
+      picture->picture_parameter.wm[i].wmtype = picture_info->global_motion[i].wmtype;
+
+      // VDPAU only has 6 wmmat[] elements, whereas Gallium provides 8.
+      for (j = 0; j < ARRAY_SIZE(picture_info->global_motion[0].wmmat); ++j) {
+         picture->picture_parameter.wm[i].wmmat[j] = picture_info->global_motion[i].wmmat[j];
+      }
+   }
+
+   picture->picture_parameter.matrix_coefficients = 0;
+
+   // Tile Information
+   picture->slice_parameter.slice_count =
+      picture_info->num_tile_rows * picture_info->num_tile_cols;
+   for (i = 0; i < picture->slice_parameter.slice_count; ++i) {
+      const uint32_t start_offset = picture_info->tile_info[i * 2];
+
+      picture->slice_parameter.slice_data_offset[i] = start_offset;
+      picture->slice_parameter.slice_data_size[i] =
+         picture_info->tile_info[i * 2 + 1] - start_offset;
+   }
+
+   return VDP_STATUS_OK;
+}
+
+static void
 vlVdpDecoderFixVC1Startcode(uint32_t *num_buffers, const void *buffers[], unsigned sizes[])
 {
    static const uint8_t vc1_startcode[] = { 0x00, 0x00, 0x01, 0x0D };
@@ -592,6 +1026,7 @@ vlVdpDecoderRender(VdpDecoder decoder,
       struct pipe_vc1_picture_desc vc1;
       struct pipe_h264_picture_desc h264;
       struct pipe_h265_picture_desc h265;
+      struct pipe_av1_picture_desc av1;
    } desc;
    bool picture_interlaced = false;
 
@@ -643,6 +1078,9 @@ vlVdpDecoderRender(VdpDecoder decoder,
    case PIPE_VIDEO_FORMAT_HEVC:
       desc.h265.pps = &pps_h265;
       ret = vlVdpDecoderRenderH265(&desc.h265, (VdpPictureInfoHEVC *)picture_info);
+      break;
+   case PIPE_VIDEO_FORMAT_AV1:
+      ret = vlVdpDecoderRenderAV1(&desc.av1, target, (VdpPictureInfoAV1 *)picture_info);
       break;
    default:
       return VDP_STATUS_INVALID_DECODER_PROFILE;

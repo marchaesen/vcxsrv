@@ -213,81 +213,72 @@ _mesa_glthread_BindBuffer(struct gl_context *ctx, GLenum target, GLuint buffer)
    }
 }
 
-/* This can hold up to 2 BindBuffer calls. This is used to eliminate
- * duplicated BindBuffer calls, which are plentiful in viewperf2020/catia.
- * In this example, the first 2 calls are eliminated by glthread by keeping
- * track of the last 2 BindBuffer calls and overwriting them if the target
- * matches.
- *
- *   glBindBuffer(GL_ARRAY_BUFFER, 0);
- *   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
- *   glBindBuffer(GL_ARRAY_BUFFER, 6);
- *   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 7);
- */
 struct marshal_cmd_BindBuffer
 {
    struct marshal_cmd_base cmd_base;
-   GLenum16 target[2];
-   GLuint buffer[2];
+   GLenum16 target;
+   GLuint buffer;
 };
 
 uint32_t
 _mesa_unmarshal_BindBuffer(struct gl_context *ctx,
                            const struct marshal_cmd_BindBuffer *restrict cmd)
 {
-   CALL_BindBuffer(ctx->Dispatch.Current, (cmd->target[0], cmd->buffer[0]));
-
-   if (cmd->target[1])
-      CALL_BindBuffer(ctx->Dispatch.Current, (cmd->target[1], cmd->buffer[1]));
-
-   const unsigned cmd_size = (align(sizeof(struct marshal_cmd_BindBuffer), 8) / 8);
-   assert (cmd_size == cmd->cmd_base.cmd_size);
-   return cmd_size;
+   CALL_BindBuffer(ctx->Dispatch.Current, (cmd->target, cmd->buffer));
+   return align(sizeof(struct marshal_cmd_BindBuffer), 8) / 8;
 }
 
 void GLAPIENTRY
 _mesa_marshal_BindBuffer(GLenum target, GLuint buffer)
 {
    GET_CURRENT_CONTEXT(ctx);
-   struct glthread_state *glthread = &ctx->GLThread;
-   struct marshal_cmd_BindBuffer *last = glthread->LastBindBuffer;
-
    _mesa_glthread_BindBuffer(ctx, target, buffer);
 
-   /* If the last call is BindBuffer... */
-   if (_mesa_glthread_call_is_last(glthread, &last->cmd_base)) {
+   struct glthread_state *glthread = &ctx->GLThread;
+   struct marshal_cmd_BindBuffer *last1 = glthread->LastBindBuffer1;
+   struct marshal_cmd_BindBuffer *last2 = glthread->LastBindBuffer2;
+   int cmd_size = sizeof(struct marshal_cmd_BindBuffer);
+
+   /* Eliminate duplicated BindBuffer calls, which are plentiful
+    * in viewperf2020/catia. In this example, the first 2 calls are eliminated
+    * by glthread by keeping track of the last 2 BindBuffer calls and
+    * overwriting them if the target matches.
+    *
+    *   glBindBuffer(GL_ARRAY_BUFFER, 0);
+    *   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+    *   glBindBuffer(GL_ARRAY_BUFFER, 6);
+    *   glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 7);
+    *
+    * If the last call is BindBuffer...
+    * last2 is more recent. last1 is before last2.
+    */
+   if (_mesa_glthread_call_is_last(glthread, &last2->cmd_base,
+                                   align(cmd_size, 8) / 8)) {
       /* If the target is in the last call and unbinding the buffer, overwrite
        * the buffer ID there.
-       *
-       * We can't optimize out binding non-zero buffers because binding also
-       * creates the GL objects (like glCreateBuffers), which can't be skipped.
        */
-      if (target == last->target[0] && !last->buffer[0]) {
-         last->buffer[0] = buffer;
-         return;
-      }
-      if (target == last->target[1] && !last->buffer[1]) {
-         last->buffer[1] = buffer;
-         return;
-      }
-
-      /* If the last call has an unused buffer field, add this call to it. */
-      if (last->target[1] == 0) {
-         last->target[1] = MIN2(target, 0xffff); /* clamped to 0xffff (invalid enum) */
-         last->buffer[1] = buffer;
+      if (target == last2->target) {
+         /* We can't overwrite binding non-zero buffers because binding also
+          * creates the GL objects (like glCreateBuffers), which can't be skipped.
+          */
+         if (!last2->buffer) {
+            last2->buffer = buffer;
+            return;
+         }
+      } else if (last1 + 1 == last2 && target == last1->target &&
+                 !last1->buffer) {
+         last1->buffer = buffer;
          return;
       }
    }
 
-   int cmd_size = sizeof(struct marshal_cmd_BindBuffer);
    struct marshal_cmd_BindBuffer *cmd =
       _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_BindBuffer, cmd_size);
+   cmd->target = MIN2(target, 0xffff); /* clamped to 0xffff (invalid enum) */
+   cmd->buffer = buffer;
 
-   cmd->target[0] = MIN2(target, 0xffff); /* clamped to 0xffff (invalid enum) */
-   cmd->target[1] = 0;
-   cmd->buffer[0] = buffer;
-
-   glthread->LastBindBuffer = cmd;
+   glthread->LastBindBuffer1 = last2;
+   glthread->LastBindBuffer2 = cmd;
 }
 
 void
@@ -319,6 +310,7 @@ _mesa_glthread_DeleteBuffers(struct gl_context *ctx, GLsizei n,
 struct marshal_cmd_BufferData
 {
    struct marshal_cmd_base cmd_base;
+   uint16_t num_slots;
    GLuint target_or_name;
    GLsizeiptr size;
    GLenum usage;
@@ -355,7 +347,7 @@ _mesa_unmarshal_BufferData(struct gl_context *ctx,
       CALL_BufferData(ctx->Dispatch.Current,
                       (target_or_name, size, data, usage));
    }
-   return cmd->cmd_base.cmd_size;
+   return cmd->num_slots;
 }
 
 uint32_t
@@ -401,7 +393,7 @@ _mesa_marshal_BufferData_merged(GLuint target_or_name, GLsizeiptr size,
    struct marshal_cmd_BufferData *cmd =
       _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_BufferData,
                                       cmd_size);
-
+   cmd->num_slots = align(cmd_size, 8) / 8;
    cmd->target_or_name = target_or_name;
    cmd->size = size;
    cmd->usage = usage;
@@ -445,6 +437,7 @@ _mesa_marshal_NamedBufferDataEXT(GLuint buffer, GLsizeiptr size,
 struct marshal_cmd_BufferSubData
 {
    struct marshal_cmd_base cmd_base;
+   uint16_t num_slots;
    GLenum target_or_name;
    GLintptr offset;
    GLsizeiptr size;
@@ -472,7 +465,7 @@ _mesa_unmarshal_BufferSubData(struct gl_context *ctx,
       CALL_BufferSubData(ctx->Dispatch.Current,
                          (target_or_name, offset, size, data));
    }
-   return cmd->cmd_base.cmd_size;
+   return cmd->num_slots;
 }
 
 uint32_t
@@ -542,6 +535,7 @@ _mesa_marshal_BufferSubData_merged(GLuint target_or_name, GLintptr offset,
    struct marshal_cmd_BufferSubData *cmd =
       _mesa_glthread_allocate_command(ctx, DISPATCH_CMD_BufferSubData,
                                       cmd_size);
+   cmd->num_slots = align(cmd_size, 8) / 8;
    cmd->target_or_name = target_or_name;
    cmd->offset = offset;
    cmd->size = size;

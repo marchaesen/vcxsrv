@@ -53,7 +53,7 @@ inserted into the set (due to allocation failure). Otherwise returns FcTrue.
 @FUNC@          FcFontSetList
 @TYPE1@         FcConfig *                      @ARG1@          config
 @TYPE2@         FcFontSet **                    @ARG2@          sets
-@TYPE3@         int                             @ARG3@          nsets
+@TYPE3@         int%                            @ARG3@          nsets
 @TYPE4@         FcPattern *                     @ARG4@          pattern
 @TYPE5@         FcObjectSet *                   @ARG5@          object_set
 @PURPOSE@       List fonts from a set of font sets
@@ -70,7 +70,7 @@ to be up to date, and used.
 @FUNC@          FcFontSetMatch
 @TYPE1@         FcConfig *                      @ARG1@          config
 @TYPE2@         FcFontSet **                    @ARG2@          sets
-@TYPE3@         int                             @ARG3@          nsets
+@TYPE3@         int%                            @ARG3@          nsets
 @TYPE4@         FcPattern *                     @ARG4@          pattern
 @TYPE5@         FcResult *                      @ARG5@          result
 @PURPOSE@       Return the best font from a set of font sets
@@ -101,12 +101,12 @@ change at any time.
 @FUNC@          FcFontSetSort
 @TYPE1@         FcConfig *                      @ARG1@          config
 @TYPE2@         FcFontSet **                    @ARG2@          sets
-@TYPE3@         int                             @ARG3@          nsets
+@TYPE3@         int%                            @ARG3@          nsets
 @TYPE4@         FcPattern *                     @ARG4@          pattern
 @TYPE5@         FcBool%                         @ARG5@          trim
 @TYPE6@         FcCharSet **                    @ARG6@          csp
 @TYPE7@         FcResult *                      @ARG7@          result
-@PURPOSE@       Add to a font set
+@PURPOSE@       Return list of matching fonts
 @DESC@
 Returns the list of fonts from <parameter>sets</parameter>
 sorted by closeness to <parameter>pattern</parameter>.

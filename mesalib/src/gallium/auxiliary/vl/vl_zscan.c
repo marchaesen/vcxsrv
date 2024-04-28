@@ -314,13 +314,11 @@ vl_zscan_layout(struct pipe_context *pipe, const int layout[64], unsigned blocks
    unsigned x, y, i, pitch;
    float *f;
 
-   struct pipe_box rect =
-   {
-      0, 0, 0,
-      VL_BLOCK_WIDTH * blocks_per_line,
-      VL_BLOCK_HEIGHT,
-      1
-   };
+   struct pipe_box rect;
+   u_box_3d(0, 0, 0,
+            VL_BLOCK_WIDTH * blocks_per_line,
+            VL_BLOCK_HEIGHT,
+            1, &rect);
 
    assert(pipe && layout && blocks_per_line);
 
@@ -496,13 +494,11 @@ vl_zscan_upload_quant(struct vl_zscan *zscan, struct vl_zscan_buffer *buffer,
    unsigned x, y, i, pitch;
    uint8_t *data;
 
-   struct pipe_box rect =
-   {
-      0, 0, intra ? 1 : 0,
-      VL_BLOCK_WIDTH,
-      VL_BLOCK_HEIGHT,
-      1
-   };
+   struct pipe_box rect;
+   u_box_3d(0, 0, intra ? 1 : 0,
+            VL_BLOCK_WIDTH,
+            VL_BLOCK_HEIGHT,
+            1, &rect);
 
    assert(buffer);
    assert(matrix);

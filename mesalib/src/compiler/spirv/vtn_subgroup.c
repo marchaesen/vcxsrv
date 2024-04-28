@@ -327,7 +327,6 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
    }
 
    case SpvOpGroupNonUniformRotateKHR: {
-      const mesa_scope scope = vtn_translate_scope(b, vtn_constant_uint(b, w[3]));
       const uint32_t cluster_size = count > 6 ? vtn_constant_uint(b, w[6]) : 0;
       vtn_fail_if(cluster_size && !IS_POT(cluster_size),
                   "Behavior is undefined unless ClusterSize is at least 1 and a power of 2.");
@@ -336,7 +335,7 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       struct vtn_ssa_value *delta = vtn_ssa_value(b, w[5]);
       vtn_push_nir_ssa(b, w[2],
          vtn_build_subgroup_instr(b, nir_intrinsic_rotate,
-                                  value, delta->def, scope, cluster_size)->def);
+                                  value, delta->def, cluster_size, 0)->def);
       break;
    }
 
@@ -377,6 +376,17 @@ vtn_handle_subgroup(struct vtn_builder *b, SpvOp opcode,
       }
       vtn_push_ssa_value(b, w[2],
          vtn_build_subgroup_instr(b, op, vtn_ssa_value(b, w[4]), NULL, 0, 0));
+      break;
+   }
+
+   case SpvOpGroupNonUniformQuadAllKHR: {
+      nir_def *dest = nir_quad_vote_all(&b->nb, 1, vtn_get_nir_ssa(b, w[3]));
+      vtn_push_nir_ssa(b, w[2], dest);
+      break;
+   }
+   case SpvOpGroupNonUniformQuadAnyKHR: {
+      nir_def *dest = nir_quad_vote_any(&b->nb, 1, vtn_get_nir_ssa(b, w[3]));
+      vtn_push_nir_ssa(b, w[2], dest);
       break;
    }
 

@@ -27,14 +27,18 @@
 #include <xorg-config.h>
 #endif
 
+#include <errno.h>
 #include <X11/X.h>
 #include <X11/Xmd.h>
 
+#include "os/cmdline.h"
+#include "os/osdep.h"
+
 #include "compiler.h"
 #include "linux.h"
-
 #include "xf86.h"
 #include "xf86Priv.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 
 #include <sys/stat.h>
@@ -386,7 +390,7 @@ xf86ProcessArgument(int argc, char *argv[], int i)
 
     if (!strcmp(argv[i], "-masterfd")) {
         CHECK_FOR_REQUIRED_ARGUMENT();
-        if (xf86PrivsElevated())
+        if (PrivsElevated())
             FatalError("\nCannot specify -masterfd when server is setuid/setgid\n");
         if (sscanf(argv[++i], "%d", &xf86DRMMasterFd) != 1) {
             UseMsg();

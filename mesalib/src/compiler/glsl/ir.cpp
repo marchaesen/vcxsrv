@@ -255,6 +255,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = op0->type;
       break;
 
+   case ir_unop_f162i:
    case ir_unop_f2i:
    case ir_unop_b2i:
    case ir_unop_u2i:
@@ -284,6 +285,11 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_f2f16:
    case ir_unop_f2fmp:
    case ir_unop_b2f16:
+   case ir_unop_i2f16:
+   case ir_unop_u2f16:
+   case ir_unop_d2f16:
+   case ir_unop_i642f16:
+   case ir_unop_u642f16:
       this->type = glsl_simple_type(GLSL_TYPE_FLOAT16, op0->type->vector_elements, 1);
       break;
 
@@ -321,6 +327,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       this->type = glsl_simple_type(GLSL_TYPE_BOOL, op0->type->vector_elements, 1);
       break;
 
+   case ir_unop_f162d:
    case ir_unop_f2d:
    case ir_unop_i2d:
    case ir_unop_u2d:
@@ -330,6 +337,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
       break;
 
    case ir_unop_i2u:
+   case ir_unop_f162u:
    case ir_unop_f2u:
    case ir_unop_d2u:
    case ir_unop_bitcast_f2u:
@@ -341,6 +349,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
    case ir_unop_i2i64:
    case ir_unop_u2i64:
    case ir_unop_b2i64:
+   case ir_unop_f162i64:
    case ir_unop_f2i64:
    case ir_unop_d2i64:
    case ir_unop_u642i64:
@@ -349,6 +358,7 @@ ir_expression::ir_expression(int op, ir_rvalue *op0)
 
    case ir_unop_i2u64:
    case ir_unop_u2u64:
+   case ir_unop_f162u64:
    case ir_unop_f2u64:
    case ir_unop_d2u64:
    case ir_unop_i642u64:
@@ -2202,7 +2212,7 @@ ir_function::has_user_signature()
 ir_rvalue *
 ir_rvalue::error_value(void *mem_ctx)
 {
-   ir_rvalue *v = new(mem_ctx) ir_rvalue(ir_type_unset);
+   ir_rvalue *v = new(mem_ctx) ir_rvalue(ir_type_error);
 
    v->type = &glsl_type_builtin_error;
    return v;
@@ -2211,6 +2221,14 @@ ir_rvalue::error_value(void *mem_ctx)
 
 void
 visit_exec_list(exec_list *list, ir_visitor *visitor)
+{
+   foreach_in_list(ir_instruction, node, list) {
+      node->accept(visitor);
+   }
+}
+
+void
+visit_exec_list_safe(exec_list *list, ir_visitor *visitor)
 {
    foreach_in_list_safe(ir_instruction, node, list) {
       node->accept(visitor);

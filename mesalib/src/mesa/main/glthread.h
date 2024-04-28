@@ -56,6 +56,7 @@
 #include "util/u_queue.h"
 #include "compiler/shader_enums.h"
 #include "main/config.h"
+#include "main/hash.h"
 #include "util/glheader.h"
 
 #ifdef __cplusplus
@@ -64,8 +65,28 @@ extern "C" {
 
 struct gl_context;
 struct gl_buffer_object;
-struct _mesa_HashTable;
 struct _glapi_table;
+
+/**
+ * Client pixel packing/unpacking attributes
+ */
+struct gl_pixelstore_attrib
+{
+   GLint Alignment;
+   GLint RowLength;
+   GLint SkipPixels;
+   GLint SkipRows;
+   GLint ImageHeight;
+   GLint SkipImages;
+   GLboolean SwapBytes;
+   GLboolean LsbFirst;
+   GLboolean Invert;        /**< GL_MESA_pack_invert */
+   GLint CompressedBlockWidth;   /**< GL_ARB_compressed_texture_pixel_storage */
+   GLint CompressedBlockHeight;
+   GLint CompressedBlockDepth;
+   GLint CompressedBlockSize;
+   struct gl_buffer_object *BufferObj; /**< GL_ARB_pixel_buffer_object */
+};
 
 /* Used by both glthread and gl_context. */
 union gl_vertex_format_user {
@@ -89,11 +110,6 @@ union gl_vertex_format_user {
       .Integer = integer, \
       .Doubles = doubles \
    }}
-
-struct glthread_attrib_binding {
-   struct gl_buffer_object *buffer; /**< where non-VBO data was uploaded */
-   int offset;                      /**< offset to uploaded non-VBO data */
-};
 
 struct glthread_attrib {
    /* Per attrib: */
@@ -190,6 +206,7 @@ struct glthread_state
    /** Whether GLThread is enabled. */
    bool enabled;
    bool inside_begin_end;
+   bool thread_sched_enabled;
 
    /** Display lists. */
    GLenum16 ListMode; /**< Zero if not inside display list, else list mode. */
@@ -198,6 +215,7 @@ struct glthread_state
 
    /** For L3 cache pinning. */
    unsigned pin_thread_counter;
+   unsigned thread_sched_state;
 
    /** The ring of batches in memory. */
    struct glthread_batch batches[MARSHAL_MAX_BATCHES];
@@ -228,7 +246,7 @@ struct glthread_state
    GLuint _RestartIndex[4]; /**< Restart index for index_size = 1,2,4. */
 
    /** Vertex Array objects tracked by glthread independently of Mesa. */
-   struct _mesa_HashTable *VAOs;
+   struct _mesa_HashTable VAOs;
    struct glthread_vao *CurrentVAO;
    struct glthread_vao *LastLookedUpVAO;
    struct glthread_vao DefaultVAO;
@@ -277,11 +295,14 @@ struct glthread_state
 
    /** The last added call of the given function. */
    struct marshal_cmd_CallList *LastCallList;
-   struct marshal_cmd_BindBuffer *LastBindBuffer;
+   struct marshal_cmd_BindBuffer *LastBindBuffer1;
+   struct marshal_cmd_BindBuffer *LastBindBuffer2;
 
    /** Global mutex update info. */
    unsigned GlobalLockUpdateBatchCounter;
    bool LockGlobalMutexes;
+
+   struct gl_pixelstore_attrib Unpack;
 };
 
 void _mesa_glthread_init(struct gl_context *ctx);
@@ -381,6 +402,8 @@ void _mesa_glthread_UnrollDrawElements(struct gl_context *ctx,
                                        GLenum mode, GLsizei count, GLenum type,
                                        const GLvoid *indices, GLint basevertex);
 void _mesa_glthread_unbind_uploaded_vbos(struct gl_context *ctx);
+void _mesa_glthread_PixelStorei(struct gl_context *ctx, GLenum pname,
+                                GLint param);
 
 #ifdef __cplusplus
 }

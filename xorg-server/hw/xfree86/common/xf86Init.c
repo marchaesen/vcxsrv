@@ -36,6 +36,7 @@
 
 #include <stdlib.h>
 #include <errno.h>
+#include <sys/stat.h>
 
 #undef HAS_UTSNAME
 #if !defined(WIN32)
@@ -47,20 +48,24 @@
 #include <X11/Xmd.h>
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
+
+#include "config/dbus-core.h"
+#include "dix/screenint_priv.h"
+#include "os/cmdline.h"
+#include "os/osdep.h"
+
 #include "input.h"
 #include "servermd.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
 #include "mi.h"
-#include "dbus-core.h"
 #include "systemd-logind.h"
-
 #include "loaderProcs.h"
 
-#define XF86_OS_PRIVS
 #include "xf86.h"
 #include "xf86Priv.h"
 #include "xf86Config.h"
+#include "xf86_os_support.h"
 #include "xf86_OSlib.h"
 #include "xf86cmap.h"
 #include "xorgVersion.h"
@@ -185,12 +190,6 @@ xf86PrintBanner(void)
     xf86ErrorFVerb(0, "\tBefore reporting problems, check "
                    "" __VENDORDWEBSUPPORT__ "\n"
                    "\tto make sure that you have the latest version.\n");
-}
-
-Bool
-xf86PrivsElevated(void)
-{
-    return PrivsElevated();
 }
 
 Bool
@@ -926,7 +925,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     /* First the options that are not allowed with elevated privileges */
     if (!strcmp(argv[i], "-modulepath")) {
         CHECK_FOR_REQUIRED_ARGUMENTS(1);
-        if (xf86PrivsElevated())
+        if (PrivsElevated())
               FatalError("\nInvalid argument -modulepath "
                 "with elevated privileges\n");
         xf86ModulePath = argv[i + 1];
@@ -935,7 +934,7 @@ ddxProcessArgument(int argc, char **argv, int i)
     }
     if (!strcmp(argv[i], "-logfile")) {
         CHECK_FOR_REQUIRED_ARGUMENTS(1);
-        if (xf86PrivsElevated())
+        if (PrivsElevated())
               FatalError("\nInvalid argument -logfile "
                 "with elevated privileges\n");
         xf86LogFile = argv[i + 1];

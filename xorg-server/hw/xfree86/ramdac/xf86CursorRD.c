@@ -18,6 +18,7 @@
 #include "inputstr.h"
 
 DevPrivateKeyRec xf86CursorScreenKeyRec;
+DevScreenPrivateKeyRec xf86ScreenCursorBitsKeyRec;
 
 /* sprite functions */
 
@@ -66,6 +67,10 @@ xf86InitCursor(ScreenPtr pScreen, xf86CursorInfoPtr infoPtr)
 
     ScreenPriv = calloc(1, sizeof(xf86CursorScreenRec));
     if (!ScreenPriv)
+        return FALSE;
+
+    if (!dixRegisterScreenPrivateKey(&xf86ScreenCursorBitsKeyRec, pScreen,
+                                     PRIVATE_CURSOR, 0))
         return FALSE;
 
     dixSetPrivate(&pScreen->devPrivates, xf86CursorScreenKey, ScreenPriv);
@@ -273,8 +278,8 @@ xf86CursorRealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs)
                                                xf86CursorScreenKey);
 
     if (CursorRefCount(pCurs) <= 1)
-        dixSetScreenPrivate(&pCurs->devPrivates, CursorScreenKey, pScreen,
-                            NULL);
+        dixSetScreenPrivate(&pCurs->devPrivates, &xf86ScreenCursorBitsKeyRec,
+                            pScreen, NULL);
 
     return (*ScreenPriv->spriteFuncs->RealizeCursor) (pDev, pScreen, pCurs);
 }
@@ -288,9 +293,9 @@ xf86CursorUnrealizeCursor(DeviceIntPtr pDev, ScreenPtr pScreen, CursorPtr pCurs)
 
     if (CursorRefCount(pCurs) <= 1) {
         free(dixLookupScreenPrivate
-             (&pCurs->devPrivates, CursorScreenKey, pScreen));
-        dixSetScreenPrivate(&pCurs->devPrivates, CursorScreenKey, pScreen,
-                            NULL);
+             (&pCurs->devPrivates, &xf86ScreenCursorBitsKeyRec, pScreen));
+        dixSetScreenPrivate(&pCurs->devPrivates, &xf86ScreenCursorBitsKeyRec,
+                            pScreen, NULL);
     }
 
     return (*ScreenPriv->spriteFuncs->UnrealizeCursor) (pDev, pScreen, pCurs);

@@ -42,25 +42,27 @@
 #include "compiler/nir/nir.h"
 #include "compiler/nir/nir_builder.h"
 #include "compiler/nir/nir_serialize.h"
-#include "intel/compiler/brw_compiler.h"
-#include "intel/compiler/brw_nir.h"
-#include "intel/compiler/brw_prim.h"
+#include "intel/compiler/elk/elk_compiler.h"
+#include "intel/compiler/elk/elk_nir.h"
+#include "intel/compiler/elk/elk_prim.h"
+#include "intel/compiler/elk/elk_reg.h"
+#include "intel/compiler/intel_nir.h"
 #include "crocus_context.h"
 #include "nir/tgsi_to_nir.h"
 #include "program/prog_instruction.h"
 
 #define KEY_INIT_NO_ID()                              \
-   .base.tex.swizzles[0 ... BRW_MAX_SAMPLERS - 1] = 0x688
+   .base.tex.swizzles[0 ... ELK_MAX_SAMPLERS - 1] = 0x688
 #define KEY_INIT()                                                        \
    .base.program_string_id = ish->program_id,                             \
    .base.limit_trig_input_range = screen->driconf.limit_trig_input_range, \
    KEY_INIT_NO_ID()
 
 static void
-crocus_sanitize_tex_key(struct brw_sampler_prog_key_data *key)
+crocus_sanitize_tex_key(struct elk_sampler_prog_key_data *key)
 {
    key->gather_channel_quirk_mask = 0;
-   for (unsigned s = 0; s < BRW_MAX_SAMPLERS; s++) {
+   for (unsigned s = 0; s < ELK_MAX_SAMPLERS; s++) {
       key->swizzles[s] = SWIZZLE_NOOP;
       key->gfx6_gather_wa[s] = 0;
    }
@@ -88,10 +90,10 @@ static uint8_t
 gfx6_gather_workaround(enum pipe_format pformat)
 {
    switch (pformat) {
-   case PIPE_FORMAT_R8_SINT: return WA_SIGN | WA_8BIT;
-   case PIPE_FORMAT_R8_UINT: return WA_8BIT;
-   case PIPE_FORMAT_R16_SINT: return WA_SIGN | WA_16BIT;
-   case PIPE_FORMAT_R16_UINT: return WA_16BIT;
+   case PIPE_FORMAT_R8_SINT: return ELK_WA_SIGN | ELK_WA_8BIT;
+   case PIPE_FORMAT_R8_UINT: return ELK_WA_8BIT;
+   case PIPE_FORMAT_R16_SINT: return ELK_WA_SIGN | ELK_WA_16BIT;
+   case PIPE_FORMAT_R16_UINT: return ELK_WA_16BIT;
    default:
       /* Note that even though PIPE_FORMAT_R32_SINT and
        * PIPE_FORMAT_R32_UINThave format overrides in
@@ -102,26 +104,26 @@ gfx6_gather_workaround(enum pipe_format pformat)
 }
 
 static const unsigned crocus_gfx6_swizzle_for_offset[4] = {
-   BRW_SWIZZLE4(0, 1, 2, 3),
-   BRW_SWIZZLE4(1, 2, 3, 3),
-   BRW_SWIZZLE4(2, 3, 3, 3),
-   BRW_SWIZZLE4(3, 3, 3, 3)
+   ELK_SWIZZLE4(0, 1, 2, 3),
+   ELK_SWIZZLE4(1, 2, 3, 3),
+   ELK_SWIZZLE4(2, 3, 3, 3),
+   ELK_SWIZZLE4(3, 3, 3, 3)
 };
 
 static void
 gfx6_gs_xfb_setup(const struct pipe_stream_output_info *so_info,
-                  struct brw_gs_prog_data *gs_prog_data)
+                  struct elk_gs_prog_data *gs_prog_data)
 {
    /* Make sure that the VUE slots won't overflow the unsigned chars in
     * prog_data->transform_feedback_bindings[].
     */
-   STATIC_ASSERT(BRW_VARYING_SLOT_COUNT <= 256);
+   STATIC_ASSERT(ELK_VARYING_SLOT_COUNT <= 256);
 
    /* Make sure that we don't need more binding table entries than we've
     * set aside for use in transform feedback.  (We shouldn't, since we
     * set aside enough binding table entries to have one per component).
     */
-   assert(so_info->num_outputs <= BRW_MAX_SOL_BINDINGS);
+   assert(so_info->num_outputs <= ELK_MAX_SOL_BINDINGS);
 
    gs_prog_data->num_transform_feedback_bindings = so_info->num_outputs;
    for (unsigned i = 0; i < so_info->num_outputs; i++) {
@@ -134,7 +136,7 @@ gfx6_gs_xfb_setup(const struct pipe_stream_output_info *so_info,
 
 static void
 gfx6_ff_gs_xfb_setup(const struct pipe_stream_output_info *so_info,
-                     struct brw_ff_gs_prog_key *key)
+                     struct elk_ff_gs_prog_key *key)
 {
    key->num_transform_feedback_bindings = so_info->num_outputs;
    for (unsigned i = 0; i < so_info->num_outputs; i++) {
@@ -151,7 +153,7 @@ crocus_populate_sampler_prog_key_data(struct crocus_context *ice,
                                       gl_shader_stage stage,
                                       struct crocus_uncompiled_shader *ish,
                                       bool uses_texture_gather,
-                                      struct brw_sampler_prog_key_data *key)
+                                      struct elk_sampler_prog_key_data *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    uint32_t mask = ish->nir->info.textures_used[0];
@@ -216,7 +218,7 @@ crocus_populate_sampler_prog_key_data(struct crocus_context *ice,
 
 static void
 crocus_lower_swizzles(struct nir_shader *nir,
-                      const struct brw_sampler_prog_key_data *key_tex)
+                      const struct elk_sampler_prog_key_data *key_tex)
 {
    struct nir_lower_tex_options tex_options = {
       .lower_invalid_implicit_lod = true,
@@ -361,7 +363,7 @@ crocus_fix_edge_flags(nir_shader *nir)
  * VARYING_SLOT_* in our copy's output->register_index fields.
  *
  * We also fix up VARYING_SLOT_{LAYER,VIEWPORT,PSIZ} to select the Y/Z/W
- * components of our VUE header.  See brw_vue_map.c for the layout.
+ * components of our VUE header.  See elk_vue_map.c for the layout.
  */
 static void
 update_so_info(struct pipe_stream_output_info *so_info,
@@ -412,10 +414,10 @@ setup_vec4_image_sysval(uint32_t *sysvals, uint32_t idx,
    assert(offset % sizeof(uint32_t) == 0);
 
    for (unsigned i = 0; i < n; ++i)
-      sysvals[i] = BRW_PARAM_IMAGE(idx, offset / sizeof(uint32_t) + i);
+      sysvals[i] = ELK_PARAM_IMAGE(idx, offset / sizeof(uint32_t) + i);
 
    for (unsigned i = n; i < 4; ++i)
-      sysvals[i] = BRW_PARAM_BUILTIN_ZERO;
+      sysvals[i] = ELK_PARAM_BUILTIN_ZERO;
 }
 
 /**
@@ -427,15 +429,15 @@ static void
 crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                       void *mem_ctx,
                       nir_shader *nir,
-                      struct brw_stage_prog_data *prog_data,
-                      enum brw_param_builtin **out_system_values,
+                      struct elk_stage_prog_data *prog_data,
+                      enum elk_param_builtin **out_system_values,
                       unsigned *out_num_system_values,
                       unsigned *out_num_cbufs)
 {
    const unsigned CROCUS_MAX_SYSTEM_VALUES =
-      PIPE_MAX_SHADER_IMAGES * BRW_IMAGE_PARAM_SIZE;
-   enum brw_param_builtin *system_values =
-      rzalloc_array(mem_ctx, enum brw_param_builtin, CROCUS_MAX_SYSTEM_VALUES);
+      PIPE_MAX_SHADER_IMAGES * ISL_IMAGE_PARAM_SIZE;
+   enum elk_param_builtin *system_values =
+      rzalloc_array(mem_ctx, enum elk_param_builtin, CROCUS_MAX_SYSTEM_VALUES);
    unsigned num_system_values = 0;
 
    unsigned patch_vert_idx = -1;
@@ -511,7 +513,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
 
             for (int i = 0; i < 4; i++) {
                system_values[ucp_idx[ucp] + i] =
-                  BRW_PARAM_BUILTIN_CLIP_PLANE(ucp, i);
+                  ELK_PARAM_BUILTIN_CLIP_PLANE(ucp, i);
             }
 
             b.cursor = nir_before_instr(instr);
@@ -523,7 +525,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                patch_vert_idx = num_system_values++;
 
             system_values[patch_vert_idx] =
-               BRW_PARAM_BUILTIN_PATCH_VERTICES_IN;
+               ELK_PARAM_BUILTIN_PATCH_VERTICES_IN;
 
             b.cursor = nir_before_instr(instr);
             offset = nir_imm_int(&b, patch_vert_idx * sizeof(uint32_t));
@@ -536,7 +538,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
 
             for (int i = 0; i < 4; i++) {
                system_values[tess_outer_default_idx + i] =
-                  BRW_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
+                  ELK_PARAM_BUILTIN_TESS_LEVEL_OUTER_X + i;
             }
 
             b.cursor = nir_before_instr(instr);
@@ -551,7 +553,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
 
             for (int i = 0; i < 2; i++) {
                system_values[tess_inner_default_idx + i] =
-                  BRW_PARAM_BUILTIN_TESS_LEVEL_INNER_X + i;
+                  ELK_PARAM_BUILTIN_TESS_LEVEL_INNER_X + i;
             }
 
             b.cursor = nir_before_instr(instr);
@@ -572,31 +574,31 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                   const unsigned img = var->data.binding + i;
 
                   img_idx[img] = num_system_values;
-                  num_system_values += BRW_IMAGE_PARAM_SIZE;
+                  num_system_values += ISL_IMAGE_PARAM_SIZE;
 
                   uint32_t *img_sv = &system_values[img_idx[img]];
 
                   setup_vec4_image_sysval(
-                     img_sv + BRW_IMAGE_PARAM_OFFSET_OFFSET, img,
-                     offsetof(struct brw_image_param, offset), 2);
+                     img_sv + ISL_IMAGE_PARAM_OFFSET_OFFSET, img,
+                     offsetof(struct isl_image_param, offset), 2);
                   setup_vec4_image_sysval(
-                     img_sv + BRW_IMAGE_PARAM_SIZE_OFFSET, img,
-                     offsetof(struct brw_image_param, size), 3);
+                     img_sv + ISL_IMAGE_PARAM_SIZE_OFFSET, img,
+                     offsetof(struct isl_image_param, size), 3);
                   setup_vec4_image_sysval(
-                     img_sv + BRW_IMAGE_PARAM_STRIDE_OFFSET, img,
-                     offsetof(struct brw_image_param, stride), 4);
+                     img_sv + ISL_IMAGE_PARAM_STRIDE_OFFSET, img,
+                     offsetof(struct isl_image_param, stride), 4);
                   setup_vec4_image_sysval(
-                     img_sv + BRW_IMAGE_PARAM_TILING_OFFSET, img,
-                     offsetof(struct brw_image_param, tiling), 3);
+                     img_sv + ISL_IMAGE_PARAM_TILING_OFFSET, img,
+                     offsetof(struct isl_image_param, tiling), 3);
                   setup_vec4_image_sysval(
-                     img_sv + BRW_IMAGE_PARAM_SWIZZLING_OFFSET, img,
-                     offsetof(struct brw_image_param, swizzling), 2);
+                     img_sv + ISL_IMAGE_PARAM_SWIZZLING_OFFSET, img,
+                     offsetof(struct isl_image_param, swizzling), 2);
                }
             }
 
             b.cursor = nir_before_instr(instr);
             offset = nir_iadd_imm(&b,
-                                  get_aoa_deref_offset(&b, deref, BRW_IMAGE_PARAM_SIZE * 4),
+                                  get_aoa_deref_offset(&b, deref, ISL_IMAGE_PARAM_SIZE * 4),
                                   img_idx[var->data.binding] * 4 +
                                   nir_intrinsic_base(intrin) * 16);
             break;
@@ -608,7 +610,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
                num_system_values += 3;
                for (int i = 0; i < 3; i++) {
                   system_values[variable_group_size_idx + i] =
-                     BRW_PARAM_BUILTIN_WORK_GROUP_SIZE_X + i;
+                     ELK_PARAM_BUILTIN_WORK_GROUP_SIZE_X + i;
                }
             }
 
@@ -654,7 +656,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
       unsigned sysval_cbuf_index = num_cbufs;
       num_cbufs++;
 
-      system_values = reralloc(mem_ctx, system_values, enum brw_param_builtin,
+      system_values = reralloc(mem_ctx, system_values, enum elk_param_builtin,
                                num_system_values);
 
       nir_foreach_block(block, impl) {
@@ -676,7 +678,7 @@ crocus_setup_uniforms(ASSERTED const struct intel_device_info *devinfo,
          }
       }
 
-      /* We need to fold the new iadds for brw_nir_analyze_ubo_ranges */
+      /* We need to fold the new iadds for elk_nir_analyze_ubo_ranges */
       nir_opt_constant_folding(nir);
    } else {
       ralloc_free(system_values);
@@ -823,7 +825,7 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
                            unsigned num_render_targets,
                            unsigned num_system_values,
                            unsigned num_cbufs,
-                           const struct brw_sampler_prog_key_data *key)
+                           const struct elk_sampler_prog_key_data *key)
 {
    const struct shader_info *info = &nir->info;
 
@@ -849,11 +851,11 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
    } else if (info->stage == MESA_SHADER_COMPUTE) {
       bt->sizes[CROCUS_SURFACE_GROUP_CS_WORK_GROUPS] = 1;
    } else if (info->stage == MESA_SHADER_GEOMETRY) {
-      /* In gfx6 we reserve the first BRW_MAX_SOL_BINDINGS entries for transform
+      /* In gfx6 we reserve the first ELK_MAX_SOL_BINDINGS entries for transform
        * feedback surfaces.
        */
       if (devinfo->ver == 6) {
-         bt->sizes[CROCUS_SURFACE_GROUP_SOL] = BRW_MAX_SOL_BINDINGS;
+         bt->sizes[CROCUS_SURFACE_GROUP_SOL] = ELK_MAX_SOL_BINDINGS;
          bt->used_mask[CROCUS_SURFACE_GROUP_SOL] = (uint64_t)-1;
       }
    }
@@ -959,7 +961,7 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
    }
 
    /* Apply the binding table indices.  The backend compiler is not expected
-    * to change those, as we haven't set any of the *_start entries in brw
+    * to change those, as we haven't set any of the *_start entries in elk
     * binding_table.
     */
    nir_builder b = nir_builder_create(impl);
@@ -980,12 +982,12 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
 
             if (is_gather && devinfo->ver == 6 && key->gfx6_gather_wa[tex->texture_index]) {
                b.cursor = nir_after_instr(instr);
-               enum gfx6_gather_sampler_wa wa = key->gfx6_gather_wa[tex->texture_index];
-               int width = (wa & WA_8BIT) ? 8 : 16;
+               enum elk_gfx6_gather_sampler_wa wa = key->gfx6_gather_wa[tex->texture_index];
+               int width = (wa & ELK_WA_8BIT) ? 8 : 16;
 
                nir_def *val = nir_fmul_imm(&b, &tex->def, (1 << width) - 1);
                val = nir_f2u32(&b, val);
-               if (wa & WA_SIGN) {
+               if (wa & ELK_WA_SIGN) {
                   val = nir_ishl_imm(&b, val, 32 - width);
                   val = nir_ishr_imm(&b, val, 32 - width);
                }
@@ -1049,15 +1051,15 @@ crocus_setup_binding_table(const struct intel_device_info *devinfo,
 static void
 crocus_debug_recompile(struct crocus_context *ice,
                        struct shader_info *info,
-                       const struct brw_base_prog_key *key)
+                       const struct elk_base_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *) ice->ctx.screen;
-   const struct brw_compiler *c = screen->compiler;
+   const struct elk_compiler *c = screen->compiler;
 
    if (!info)
       return;
 
-   brw_shader_perf_log(c, &ice->dbg, "Recompiling %s shader for program %s: %s\n",
+   elk_shader_perf_log(c, &ice->dbg, "Recompiling %s shader for program %s: %s\n",
                        _mesa_shader_stage_to_string(info->stage),
                        info->name ? info->name : "(no identifier)",
                        info->label ? info->label : "");
@@ -1065,7 +1067,7 @@ crocus_debug_recompile(struct crocus_context *ice,
    const void *old_key =
       crocus_find_previous_compile(ice, info->stage, key->program_string_id);
 
-   brw_debug_key_recompile(c, &ice->dbg, info->stage, old_key, key);
+   elk_debug_key_recompile(c, &ice->dbg, info->stage, old_key, key);
 }
 
 /**
@@ -1087,7 +1089,7 @@ last_vue_stage(struct crocus_context *ice)
 
 static GLbitfield64
 crocus_vs_outputs_written(struct crocus_context *ice,
-                          const struct brw_vs_prog_key *key,
+                          const struct elk_vs_prog_key *key,
                           GLbitfield64 user_varyings)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
@@ -1155,17 +1157,17 @@ crocus_lower_default_edgeflags(struct nir_shader *nir)
 static struct crocus_compiled_shader *
 crocus_compile_vs(struct crocus_context *ice,
                   struct crocus_uncompiled_shader *ish,
-                  const struct brw_vs_prog_key *key)
+                  const struct elk_vs_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    const struct intel_device_info *devinfo = &screen->devinfo;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_vs_prog_data *vs_prog_data =
-      rzalloc(mem_ctx, struct brw_vs_prog_data);
-   struct brw_vue_prog_data *vue_prog_data = &vs_prog_data->base;
-   struct brw_stage_prog_data *prog_data = &vue_prog_data->base;
-   enum brw_param_builtin *system_values;
+   struct elk_vs_prog_data *vs_prog_data =
+      rzalloc(mem_ctx, struct elk_vs_prog_data);
+   struct elk_vue_prog_data *vue_prog_data = &vs_prog_data->base;
+   struct elk_stage_prog_data *prog_data = &vue_prog_data->base;
+   enum elk_param_builtin *system_values;
    unsigned num_system_values;
    unsigned num_cbufs;
 
@@ -1202,23 +1204,23 @@ crocus_compile_vs(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
+      elk_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
    uint64_t outputs_written =
       crocus_vs_outputs_written(ice, key, nir->info.outputs_written);
-   brw_compute_vue_map(devinfo,
+   elk_compute_vue_map(devinfo,
                        &vue_prog_data->vue_map, outputs_written,
                        nir->info.separate_shader, /* pos slots */ 1);
 
    /* Don't tell the backend about our clip plane constants, we've already
     * lowered them in NIR and we don't want it doing it again.
     */
-   struct brw_vs_prog_key key_no_ucp = *key;
+   struct elk_vs_prog_key key_no_ucp = *key;
    key_no_ucp.nr_userclip_plane_consts = 0;
    key_no_ucp.copy_edgeflag = false;
    crocus_sanitize_tex_key(&key_no_ucp.base.tex);
 
-   struct brw_compile_vs_params params = {
+   struct elk_compile_vs_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -1229,7 +1231,7 @@ crocus_compile_vs(struct crocus_context *ice,
       .edgeflag_is_last = devinfo->ver < 6,
    };
    const unsigned *program =
-      brw_compile_vs(compiler, &params);
+      elk_compile_vs(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile vertex shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -1275,7 +1277,7 @@ crocus_update_compiled_vs(struct crocus_context *ice)
       ice->shaders.uncompiled[MESA_SHADER_VERTEX];
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct brw_vs_prog_key key = { KEY_INIT() };
+   struct elk_vs_prog_key key = { KEY_INIT() };
 
    if (ish->nos & (1ull << CROCUS_NOS_TEXTURES))
       crocus_populate_sampler_prog_key_data(ice, devinfo, MESA_SHADER_VERTEX, ish,
@@ -1301,7 +1303,7 @@ crocus_update_compiled_vs(struct crocus_context *ice)
                                 CROCUS_STAGE_DIRTY_CONSTANTS_VS;
       shs->sysvals_need_upload = true;
 
-      const struct brw_vs_prog_data *vs_prog_data =
+      const struct elk_vs_prog_data *vs_prog_data =
          (void *) shader->prog_data;
       const bool uses_draw_params = vs_prog_data->uses_firstvertex ||
                                     vs_prog_data->uses_baseinstance;
@@ -1380,17 +1382,17 @@ get_unified_tess_slots(const struct crocus_context *ice,
 static struct crocus_compiled_shader *
 crocus_compile_tcs(struct crocus_context *ice,
                    struct crocus_uncompiled_shader *ish,
-                   const struct brw_tcs_prog_key *key)
+                   const struct elk_tcs_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_tcs_prog_data *tcs_prog_data =
-      rzalloc(mem_ctx, struct brw_tcs_prog_data);
-   struct brw_vue_prog_data *vue_prog_data = &tcs_prog_data->base;
-   struct brw_stage_prog_data *prog_data = &vue_prog_data->base;
+   struct elk_tcs_prog_data *tcs_prog_data =
+      rzalloc(mem_ctx, struct elk_tcs_prog_data);
+   struct elk_vue_prog_data *vue_prog_data = &tcs_prog_data->base;
+   struct elk_stage_prog_data *prog_data = &vue_prog_data->base;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   enum brw_param_builtin *system_values = NULL;
+   enum elk_param_builtin *system_values = NULL;
    unsigned num_system_values = 0;
    unsigned num_cbufs = 0;
 
@@ -1401,7 +1403,7 @@ crocus_compile_tcs(struct crocus_context *ice,
    if (ish) {
       nir = nir_shader_clone(mem_ctx, ish->nir);
    } else {
-      nir = brw_nir_create_passthrough_tcs(mem_ctx, compiler, key);
+      nir = elk_nir_create_passthrough_tcs(mem_ctx, compiler, key);
    }
 
    crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
@@ -1411,12 +1413,12 @@ crocus_compile_tcs(struct crocus_context *ice,
    crocus_setup_binding_table(devinfo, nir, &bt, /* num_render_targets */ 0,
                               num_system_values, num_cbufs, &key->base.tex);
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
+      elk_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
-   struct brw_tcs_prog_key key_clean = *key;
+   struct elk_tcs_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
-   struct brw_compile_tcs_params params = {
+   struct elk_compile_tcs_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -1426,7 +1428,7 @@ crocus_compile_tcs(struct crocus_context *ice,
       .prog_data = tcs_prog_data,
    };
 
-   const unsigned *program = brw_compile_tcs(compiler, &params);
+   const unsigned *program = elk_compile_tcs(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile control shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -1473,7 +1475,7 @@ crocus_update_compiled_tcs(struct crocus_context *ice)
 
    const struct shader_info *tes_info =
       crocus_get_shader_info(ice, MESA_SHADER_TESS_EVAL);
-   struct brw_tcs_prog_key key = {
+   struct elk_tcs_prog_key key = {
       KEY_INIT_NO_ID(),
       .base.program_string_id = tcs ? tcs->program_id : 0,
       ._tes_primitive_mode = tes_info->tess._primitive_mode,
@@ -1514,16 +1516,16 @@ crocus_update_compiled_tcs(struct crocus_context *ice)
 static struct crocus_compiled_shader *
 crocus_compile_tes(struct crocus_context *ice,
                    struct crocus_uncompiled_shader *ish,
-                   const struct brw_tes_prog_key *key)
+                   const struct elk_tes_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_tes_prog_data *tes_prog_data =
-      rzalloc(mem_ctx, struct brw_tes_prog_data);
-   struct brw_vue_prog_data *vue_prog_data = &tes_prog_data->base;
-   struct brw_stage_prog_data *prog_data = &vue_prog_data->base;
-   enum brw_param_builtin *system_values;
+   struct elk_tes_prog_data *tes_prog_data =
+      rzalloc(mem_ctx, struct elk_tes_prog_data);
+   struct elk_vue_prog_data *vue_prog_data = &tes_prog_data->base;
+   struct elk_stage_prog_data *prog_data = &vue_prog_data->base;
+   enum elk_param_builtin *system_values;
    const struct intel_device_info *devinfo = &screen->devinfo;
    unsigned num_system_values;
    unsigned num_cbufs;
@@ -1551,16 +1553,16 @@ crocus_compile_tes(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
+      elk_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
-   struct brw_vue_map input_vue_map;
-   brw_compute_tess_vue_map(&input_vue_map, key->inputs_read,
+   struct intel_vue_map input_vue_map;
+   elk_compute_tess_vue_map(&input_vue_map, key->inputs_read,
                             key->patch_inputs_read);
 
-   struct brw_tes_prog_key key_clean = *key;
+   struct elk_tes_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
-   struct brw_compile_tes_params params = {
+   struct elk_compile_tes_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -1571,7 +1573,7 @@ crocus_compile_tes(struct crocus_context *ice,
       .input_vue_map = &input_vue_map,
    };
 
-   const unsigned *program = brw_compile_tes(compiler, &params);
+   const unsigned *program = elk_compile_tes(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile evaluation shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -1616,7 +1618,7 @@ crocus_update_compiled_tes(struct crocus_context *ice)
    struct crocus_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_TESS_EVAL];
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   struct brw_tes_prog_key key = { KEY_INIT() };
+   struct elk_tes_prog_key key = { KEY_INIT() };
    const struct intel_device_info *devinfo = &screen->devinfo;
 
    if (ish->nos & (1ull << CROCUS_NOS_TEXTURES))
@@ -1657,17 +1659,17 @@ crocus_update_compiled_tes(struct crocus_context *ice)
 static struct crocus_compiled_shader *
 crocus_compile_gs(struct crocus_context *ice,
                   struct crocus_uncompiled_shader *ish,
-                  const struct brw_gs_prog_key *key)
+                  const struct elk_gs_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    const struct intel_device_info *devinfo = &screen->devinfo;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_gs_prog_data *gs_prog_data =
-      rzalloc(mem_ctx, struct brw_gs_prog_data);
-   struct brw_vue_prog_data *vue_prog_data = &gs_prog_data->base;
-   struct brw_stage_prog_data *prog_data = &vue_prog_data->base;
-   enum brw_param_builtin *system_values;
+   struct elk_gs_prog_data *gs_prog_data =
+      rzalloc(mem_ctx, struct elk_gs_prog_data);
+   struct elk_vue_prog_data *vue_prog_data = &gs_prog_data->base;
+   struct elk_stage_prog_data *prog_data = &vue_prog_data->base;
+   enum elk_param_builtin *system_values;
    unsigned num_system_values;
    unsigned num_cbufs;
 
@@ -1694,18 +1696,18 @@ crocus_compile_gs(struct crocus_context *ice,
                               num_system_values, num_cbufs, &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
+      elk_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
-   brw_compute_vue_map(devinfo,
+   elk_compute_vue_map(devinfo,
                        &vue_prog_data->vue_map, nir->info.outputs_written,
                        nir->info.separate_shader, /* pos slots */ 1);
 
    if (devinfo->ver == 6)
       gfx6_gs_xfb_setup(&ish->stream_output, gs_prog_data);
-   struct brw_gs_prog_key key_clean = *key;
+   struct elk_gs_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
-   struct brw_compile_gs_params params = {
+   struct elk_compile_gs_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -1715,7 +1717,7 @@ crocus_compile_gs(struct crocus_context *ice,
       .prog_data = gs_prog_data,
    };
 
-   const unsigned *program = brw_compile_gs(compiler, &params);
+   const unsigned *program = elk_compile_gs(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile geometry shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -1765,7 +1767,7 @@ crocus_update_compiled_gs(struct crocus_context *ice)
    if (ish) {
       struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
       const struct intel_device_info *devinfo = &screen->devinfo;
-      struct brw_gs_prog_key key = { KEY_INIT() };
+      struct elk_gs_prog_key key = { KEY_INIT() };
 
       if (ish->nos & (1ull << CROCUS_NOS_TEXTURES))
          crocus_populate_sampler_prog_key_data(ice, devinfo, MESA_SHADER_GEOMETRY, ish,
@@ -1797,16 +1799,16 @@ crocus_update_compiled_gs(struct crocus_context *ice)
 static struct crocus_compiled_shader *
 crocus_compile_fs(struct crocus_context *ice,
                   struct crocus_uncompiled_shader *ish,
-                  const struct brw_wm_prog_key *key,
-                  struct brw_vue_map *vue_map)
+                  const struct elk_wm_prog_key *key,
+                  struct intel_vue_map *vue_map)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_wm_prog_data *fs_prog_data =
-      rzalloc(mem_ctx, struct brw_wm_prog_data);
-   struct brw_stage_prog_data *prog_data = &fs_prog_data->base;
-   enum brw_param_builtin *system_values;
+   struct elk_wm_prog_data *fs_prog_data =
+      rzalloc(mem_ctx, struct elk_wm_prog_data);
+   struct elk_stage_prog_data *prog_data = &fs_prog_data->base;
+   enum elk_param_builtin *system_values;
    const struct intel_device_info *devinfo = &screen->devinfo;
    unsigned num_system_values;
    unsigned num_cbufs;
@@ -1823,7 +1825,7 @@ crocus_compile_fs(struct crocus_context *ice,
     * intrinsics to CROCUS_SURFACE_GROUP_RENDER_TARGET_READ on Gen8 for
     * non-coherent framebuffer fetches.
     */
-   brw_nir_lower_fs_outputs(nir);
+   elk_nir_lower_fs_outputs(nir);
 
    /* lower swizzles before binding table */
    crocus_lower_swizzles(nir, &key->base.tex);
@@ -1836,12 +1838,12 @@ crocus_compile_fs(struct crocus_context *ice,
                               &key->base.tex);
 
    if (can_push_ubo(devinfo))
-      brw_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
+      elk_nir_analyze_ubo_ranges(compiler, nir, prog_data->ubo_ranges);
 
-   struct brw_wm_prog_key key_clean = *key;
+   struct elk_wm_prog_key key_clean = *key;
    crocus_sanitize_tex_key(&key_clean.base.tex);
 
-   struct brw_compile_fs_params params = {
+   struct elk_compile_fs_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -1855,7 +1857,7 @@ crocus_compile_fs(struct crocus_context *ice,
       .vue_map = vue_map,
    };
    const unsigned *program =
-      brw_compile_fs(compiler, &params);
+      elk_compile_fs(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile fragment shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -1896,7 +1898,7 @@ crocus_update_compiled_fs(struct crocus_context *ice)
    struct crocus_shader_state *shs = &ice->state.shaders[MESA_SHADER_FRAGMENT];
    struct crocus_uncompiled_shader *ish =
       ice->shaders.uncompiled[MESA_SHADER_FRAGMENT];
-   struct brw_wm_prog_key key = { KEY_INIT() };
+   struct elk_wm_prog_key key = { KEY_INIT() };
 
    if (ish->nos & (1ull << CROCUS_NOS_TEXTURES))
       crocus_populate_sampler_prog_key_data(ice, devinfo, MESA_SHADER_FRAGMENT, ish,
@@ -1945,13 +1947,13 @@ crocus_update_compiled_fs(struct crocus_context *ice)
  */
 static void
 update_last_vue_map(struct crocus_context *ice,
-                    struct brw_stage_prog_data *prog_data)
+                    struct elk_stage_prog_data *prog_data)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct brw_vue_prog_data *vue_prog_data = (void *) prog_data;
-   struct brw_vue_map *vue_map = &vue_prog_data->vue_map;
-   struct brw_vue_map *old_map = ice->shaders.last_vue_map;
+   struct elk_vue_prog_data *vue_prog_data = (void *) prog_data;
+   struct intel_vue_map *vue_map = &vue_prog_data->vue_map;
+   struct intel_vue_map *old_map = ice->shaders.last_vue_map;
    const uint64_t changed_slots =
       (old_map ? old_map->slots_valid : 0ull) ^ vue_map->slots_valid;
 
@@ -2013,7 +2015,7 @@ crocus_update_pull_constant_descriptors(struct crocus_context *ice,
 /**
  * Get the prog_data for a given stage, or NULL if the stage is disabled.
  */
-static struct brw_vue_prog_data *
+static struct elk_vue_prog_data *
 get_vue_prog_data(struct crocus_context *ice, gl_shader_stage stage)
 {
    if (!ice->shaders.prog[stage])
@@ -2023,18 +2025,18 @@ get_vue_prog_data(struct crocus_context *ice, gl_shader_stage stage)
 }
 
 static struct crocus_compiled_shader *
-crocus_compile_clip(struct crocus_context *ice, struct brw_clip_prog_key *key)
+crocus_compile_clip(struct crocus_context *ice, struct elk_clip_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx;
    unsigned program_size;
    mem_ctx = ralloc_context(NULL);
 
-   struct brw_clip_prog_data *clip_prog_data =
-      rzalloc(mem_ctx, struct brw_clip_prog_data);
+   struct elk_clip_prog_data *clip_prog_data =
+      rzalloc(mem_ctx, struct elk_clip_prog_data);
 
-   const unsigned *program = brw_compile_clip(compiler, mem_ctx, key, clip_prog_data,
+   const unsigned *program = elk_compile_clip(compiler, mem_ctx, key, clip_prog_data,
                                               ice->shaders.last_vue_map, &program_size);
 
    if (program == NULL) {
@@ -2048,7 +2050,7 @@ crocus_compile_clip(struct crocus_context *ice, struct brw_clip_prog_key *key)
    struct crocus_compiled_shader *shader =
       crocus_upload_shader(ice, CROCUS_CACHE_CLIP, sizeof(*key), key, program,
                            program_size,
-                           (struct brw_stage_prog_data *)clip_prog_data, sizeof(*clip_prog_data),
+                           (struct elk_stage_prog_data *)clip_prog_data, sizeof(*clip_prog_data),
                            NULL, NULL, 0, 0, &bt);
    ralloc_free(mem_ctx);
    return shader;
@@ -2057,11 +2059,11 @@ static void
 crocus_update_compiled_clip(struct crocus_context *ice)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   struct brw_clip_prog_key key;
+   struct elk_clip_prog_key key;
    struct crocus_compiled_shader *old = ice->shaders.clip_prog;
    memset(&key, 0, sizeof(key));
 
-   const struct brw_wm_prog_data *wm_prog_data = brw_wm_prog_data(ice->shaders.prog[MESA_SHADER_FRAGMENT]->prog_data);
+   const struct elk_wm_prog_data *wm_prog_data = elk_wm_prog_data(ice->shaders.prog[MESA_SHADER_FRAGMENT]->prog_data);
    if (wm_prog_data) {
       key.contains_flat_varying = wm_prog_data->contains_flat_varying;
       key.contains_noperspective_varying =
@@ -2079,31 +2081,31 @@ crocus_update_compiled_clip(struct crocus_context *ice)
       key.nr_userclip = util_logbase2(rs_state->clip_plane_enable) + 1;
 
    if (screen->devinfo.ver == 5)
-      key.clip_mode = BRW_CLIP_MODE_KERNEL_CLIP;
+      key.clip_mode = ELK_CLIP_MODE_KERNEL_CLIP;
    else
-      key.clip_mode = BRW_CLIP_MODE_NORMAL;
+      key.clip_mode = ELK_CLIP_MODE_NORMAL;
 
    if (key.primitive == MESA_PRIM_TRIANGLES) {
       if (rs_state->cull_face == PIPE_FACE_FRONT_AND_BACK)
-         key.clip_mode = BRW_CLIP_MODE_REJECT_ALL;
+         key.clip_mode = ELK_CLIP_MODE_REJECT_ALL;
       else {
-         uint32_t fill_front = BRW_CLIP_FILL_MODE_CULL;
-         uint32_t fill_back = BRW_CLIP_FILL_MODE_CULL;
+         uint32_t fill_front = ELK_CLIP_FILL_MODE_CULL;
+         uint32_t fill_back = ELK_CLIP_FILL_MODE_CULL;
          uint32_t offset_front = 0;
          uint32_t offset_back = 0;
 
          if (!(rs_state->cull_face & PIPE_FACE_FRONT)) {
             switch (rs_state->fill_front) {
             case PIPE_POLYGON_MODE_FILL:
-               fill_front = BRW_CLIP_FILL_MODE_FILL;
+               fill_front = ELK_CLIP_FILL_MODE_FILL;
                offset_front = 0;
                break;
             case PIPE_POLYGON_MODE_LINE:
-               fill_front = BRW_CLIP_FILL_MODE_LINE;
+               fill_front = ELK_CLIP_FILL_MODE_LINE;
                offset_front = rs_state->offset_line;
                break;
             case PIPE_POLYGON_MODE_POINT:
-               fill_front = BRW_CLIP_FILL_MODE_POINT;
+               fill_front = ELK_CLIP_FILL_MODE_POINT;
                offset_front = rs_state->offset_point;
                break;
             }
@@ -2112,15 +2114,15 @@ crocus_update_compiled_clip(struct crocus_context *ice)
          if (!(rs_state->cull_face & PIPE_FACE_BACK)) {
             switch (rs_state->fill_back) {
             case PIPE_POLYGON_MODE_FILL:
-               fill_back = BRW_CLIP_FILL_MODE_FILL;
+               fill_back = ELK_CLIP_FILL_MODE_FILL;
                offset_back = 0;
                break;
             case PIPE_POLYGON_MODE_LINE:
-               fill_back = BRW_CLIP_FILL_MODE_LINE;
+               fill_back = ELK_CLIP_FILL_MODE_LINE;
                offset_back = rs_state->offset_line;
                break;
             case PIPE_POLYGON_MODE_POINT:
-               fill_back = BRW_CLIP_FILL_MODE_POINT;
+               fill_back = ELK_CLIP_FILL_MODE_POINT;
                offset_back = rs_state->offset_point;
                break;
             }
@@ -2133,7 +2135,7 @@ crocus_update_compiled_clip(struct crocus_context *ice)
             /* Most cases the fixed function units will handle.  Cases where
              * one or more polygon faces are unfilled will require help:
              */
-            key.clip_mode = BRW_CLIP_MODE_CLIP_NON_REJECTED;
+            key.clip_mode = ELK_CLIP_MODE_CLIP_NON_REJECTED;
 
             if (offset_back || offset_front) {
                double mrd = 0.0;
@@ -2150,7 +2152,7 @@ crocus_update_compiled_clip(struct crocus_context *ice)
                key.offset_ccw = offset_front;
                key.offset_cw = offset_back;
                if (rs_state->light_twoside &&
-                   key.fill_cw != BRW_CLIP_FILL_MODE_CULL)
+                   key.fill_cw != ELK_CLIP_FILL_MODE_CULL)
                   key.copy_bfc_cw = 1;
             } else {
                key.fill_cw = fill_front;
@@ -2158,7 +2160,7 @@ crocus_update_compiled_clip(struct crocus_context *ice)
                key.offset_cw = offset_front;
                key.offset_ccw = offset_back;
                if (rs_state->light_twoside &&
-                   key.fill_ccw != BRW_CLIP_FILL_MODE_CULL)
+                   key.fill_ccw != ELK_CLIP_FILL_MODE_CULL)
                   key.copy_bfc_ccw = 1;
             }
          }
@@ -2177,18 +2179,18 @@ crocus_update_compiled_clip(struct crocus_context *ice)
 }
 
 static struct crocus_compiled_shader *
-crocus_compile_sf(struct crocus_context *ice, struct brw_sf_prog_key *key)
+crocus_compile_sf(struct crocus_context *ice, struct elk_sf_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx;
    unsigned program_size;
    mem_ctx = ralloc_context(NULL);
 
-   struct brw_sf_prog_data *sf_prog_data =
-      rzalloc(mem_ctx, struct brw_sf_prog_data);
+   struct elk_sf_prog_data *sf_prog_data =
+      rzalloc(mem_ctx, struct elk_sf_prog_data);
 
-   const unsigned *program = brw_compile_sf(compiler, mem_ctx, key, sf_prog_data,
+   const unsigned *program = elk_compile_sf(compiler, mem_ctx, key, sf_prog_data,
                                             ice->shaders.last_vue_map, &program_size);
 
    if (program == NULL) {
@@ -2202,7 +2204,7 @@ crocus_compile_sf(struct crocus_context *ice, struct brw_sf_prog_key *key)
    struct crocus_compiled_shader *shader =
       crocus_upload_shader(ice, CROCUS_CACHE_SF, sizeof(*key), key, program,
                            program_size,
-                           (struct brw_stage_prog_data *)sf_prog_data, sizeof(*sf_prog_data),
+                           (struct elk_stage_prog_data *)sf_prog_data, sizeof(*sf_prog_data),
                            NULL, NULL, 0, 0, &bt);
    ralloc_free(mem_ctx);
    return shader;
@@ -2211,7 +2213,7 @@ crocus_compile_sf(struct crocus_context *ice, struct brw_sf_prog_key *key)
 static void
 crocus_update_compiled_sf(struct crocus_context *ice)
 {
-   struct brw_sf_prog_key key;
+   struct elk_sf_prog_key key;
    struct crocus_compiled_shader *old = ice->shaders.sf_prog;
    memset(&key, 0, sizeof(key));
 
@@ -2221,21 +2223,21 @@ crocus_update_compiled_sf(struct crocus_context *ice)
    case MESA_PRIM_TRIANGLES:
    default:
       if (key.attrs & BITFIELD64_BIT(VARYING_SLOT_EDGE))
-         key.primitive = BRW_SF_PRIM_UNFILLED_TRIS;
+         key.primitive = ELK_SF_PRIM_UNFILLED_TRIS;
       else
-         key.primitive = BRW_SF_PRIM_TRIANGLES;
+         key.primitive = ELK_SF_PRIM_TRIANGLES;
       break;
    case MESA_PRIM_LINES:
-      key.primitive = BRW_SF_PRIM_LINES;
+      key.primitive = ELK_SF_PRIM_LINES;
       break;
    case MESA_PRIM_POINTS:
-      key.primitive = BRW_SF_PRIM_POINTS;
+      key.primitive = ELK_SF_PRIM_POINTS;
       break;
    }
 
    struct pipe_rasterizer_state *rs_state = crocus_get_rast_state(ice);
    key.userclip_active = rs_state->clip_plane_enable != 0;
-   const struct brw_wm_prog_data *wm_prog_data = brw_wm_prog_data(ice->shaders.prog[MESA_SHADER_FRAGMENT]->prog_data);
+   const struct elk_wm_prog_data *wm_prog_data = elk_wm_prog_data(ice->shaders.prog[MESA_SHADER_FRAGMENT]->prog_data);
    if (wm_prog_data) {
       key.contains_flat_varying = wm_prog_data->contains_flat_varying;
       memcpy(key.interp_mode, wm_prog_data->interp_mode, sizeof(key.interp_mode));
@@ -2270,18 +2272,18 @@ crocus_update_compiled_sf(struct crocus_context *ice)
 }
 
 static struct crocus_compiled_shader *
-crocus_compile_ff_gs(struct crocus_context *ice, struct brw_ff_gs_prog_key *key)
+crocus_compile_ff_gs(struct crocus_context *ice, struct elk_ff_gs_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   struct brw_compiler *compiler = screen->compiler;
+   struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx;
    unsigned program_size;
    mem_ctx = ralloc_context(NULL);
 
-   struct brw_ff_gs_prog_data *ff_gs_prog_data =
-      rzalloc(mem_ctx, struct brw_ff_gs_prog_data);
+   struct elk_ff_gs_prog_data *ff_gs_prog_data =
+      rzalloc(mem_ctx, struct elk_ff_gs_prog_data);
 
-   const unsigned *program = brw_compile_ff_gs_prog(compiler, mem_ctx, key, ff_gs_prog_data,
+   const unsigned *program = elk_compile_ff_gs_prog(compiler, mem_ctx, key, ff_gs_prog_data,
                                                     ice->shaders.last_vue_map, &program_size);
 
    if (program == NULL) {
@@ -2294,16 +2296,16 @@ crocus_compile_ff_gs(struct crocus_context *ice, struct brw_ff_gs_prog_key *key)
    memset(&bt, 0, sizeof(bt));
 
    if (screen->devinfo.ver == 6) {
-      bt.sizes[CROCUS_SURFACE_GROUP_SOL] = BRW_MAX_SOL_BINDINGS;
+      bt.sizes[CROCUS_SURFACE_GROUP_SOL] = ELK_MAX_SOL_BINDINGS;
       bt.used_mask[CROCUS_SURFACE_GROUP_SOL] = (uint64_t)-1;
 
-      bt.size_bytes = BRW_MAX_SOL_BINDINGS * 4;
+      bt.size_bytes = ELK_MAX_SOL_BINDINGS * 4;
    }
 
    struct crocus_compiled_shader *shader =
       crocus_upload_shader(ice, CROCUS_CACHE_FF_GS, sizeof(*key), key, program,
                            program_size,
-                           (struct brw_stage_prog_data *)ff_gs_prog_data, sizeof(*ff_gs_prog_data),
+                           (struct elk_stage_prog_data *)ff_gs_prog_data, sizeof(*ff_gs_prog_data),
                            NULL, NULL, 0, 0, &bt);
    ralloc_free(mem_ctx);
    return shader;
@@ -2314,7 +2316,7 @@ crocus_update_compiled_ff_gs(struct crocus_context *ice)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct brw_ff_gs_prog_key key;
+   struct elk_ff_gs_prog_key key;
    struct crocus_compiled_shader *old = ice->shaders.ff_gs_prog;
    memset(&key, 0, sizeof(key));
 
@@ -2328,7 +2330,7 @@ crocus_update_compiled_ff_gs(struct crocus_context *ice)
    key.pv_first = rs_state->flatshade_first;
 
    if (key.primitive == _3DPRIM_QUADLIST && !rs_state->flatshade) {
-      /* Provide consistenbbbbbt primitive order with brw_set_prim's
+      /* Provide consistenbbbbbt primitive order with elk_set_prim's
        * optimization of single quads to trifans.
        */
       key.pv_first = true;
@@ -2361,7 +2363,7 @@ crocus_update_compiled_ff_gs(struct crocus_context *ice)
          ice->state.dirty |= CROCUS_DIRTY_GEN6_URB;
       ice->shaders.ff_gs_prog = shader;
       if (shader) {
-         const struct brw_ff_gs_prog_data *gs_prog_data = (struct brw_ff_gs_prog_data *)ice->shaders.ff_gs_prog->prog_data;
+         const struct elk_ff_gs_prog_data *gs_prog_data = (struct elk_ff_gs_prog_data *)ice->shaders.ff_gs_prog->prog_data;
          ice->state.last_xfb_verts_per_prim = gs_prog_data->svbi_postincrement_value;
       }
    }
@@ -2383,7 +2385,7 @@ crocus_update_compiled_shaders(struct crocus_context *ice)
    struct crocus_screen *screen = (void *) ice->ctx.screen;
    const uint64_t stage_dirty = ice->state.stage_dirty;
 
-   struct brw_vue_prog_data *old_prog_datas[4];
+   struct elk_vue_prog_data *old_prog_datas[4];
    if (!(ice->state.dirty & CROCUS_DIRTY_GEN6_URB)) {
       for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++)
          old_prog_datas[i] = get_vue_prog_data(ice, i);
@@ -2421,15 +2423,15 @@ crocus_update_compiled_shaders(struct crocus_context *ice)
       bool points_or_lines = false;
 
       if (gs) {
-         const struct brw_gs_prog_data *gs_prog_data = (void *) gs->prog_data;
+         const struct elk_gs_prog_data *gs_prog_data = (void *) gs->prog_data;
          points_or_lines =
             gs_prog_data->output_topology == _3DPRIM_POINTLIST ||
             gs_prog_data->output_topology == _3DPRIM_LINESTRIP;
       } else if (tes) {
-         const struct brw_tes_prog_data *tes_data = (void *) tes->prog_data;
+         const struct elk_tes_prog_data *tes_data = (void *) tes->prog_data;
          points_or_lines =
-            tes_data->output_topology == BRW_TESS_OUTPUT_TOPOLOGY_LINE ||
-            tes_data->output_topology == BRW_TESS_OUTPUT_TOPOLOGY_POINT;
+            tes_data->output_topology == INTEL_TESS_OUTPUT_TOPOLOGY_LINE ||
+            tes_data->output_topology == INTEL_TESS_OUTPUT_TOPOLOGY_POINT;
       }
 
       if (ice->shaders.output_topology_is_points_or_lines != points_or_lines) {
@@ -2476,8 +2478,8 @@ crocus_update_compiled_shaders(struct crocus_context *ice)
    /* Changing shader interfaces may require a URB configuration. */
    if (!(ice->state.dirty & CROCUS_DIRTY_GEN6_URB)) {
       for (int i = MESA_SHADER_VERTEX; i <= MESA_SHADER_GEOMETRY; i++) {
-         struct brw_vue_prog_data *old = old_prog_datas[i];
-         struct brw_vue_prog_data *new = get_vue_prog_data(ice, i);
+         struct elk_vue_prog_data *old = old_prog_datas[i];
+         struct elk_vue_prog_data *new = get_vue_prog_data(ice, i);
          if (!!old != !!new ||
              (new && new->urb_entry_size != old->urb_entry_size)) {
             ice->state.dirty |= CROCUS_DIRTY_GEN6_URB;
@@ -2498,22 +2500,22 @@ crocus_update_compiled_shaders(struct crocus_context *ice)
 static struct crocus_compiled_shader *
 crocus_compile_cs(struct crocus_context *ice,
                   struct crocus_uncompiled_shader *ish,
-                  const struct brw_cs_prog_key *key)
+                  const struct elk_cs_prog_key *key)
 {
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
-   const struct brw_compiler *compiler = screen->compiler;
+   const struct elk_compiler *compiler = screen->compiler;
    void *mem_ctx = ralloc_context(NULL);
-   struct brw_cs_prog_data *cs_prog_data =
-      rzalloc(mem_ctx, struct brw_cs_prog_data);
-   struct brw_stage_prog_data *prog_data = &cs_prog_data->base;
-   enum brw_param_builtin *system_values;
+   struct elk_cs_prog_data *cs_prog_data =
+      rzalloc(mem_ctx, struct elk_cs_prog_data);
+   struct elk_stage_prog_data *prog_data = &cs_prog_data->base;
+   enum elk_param_builtin *system_values;
    const struct intel_device_info *devinfo = &screen->devinfo;
    unsigned num_system_values;
    unsigned num_cbufs;
 
    nir_shader *nir = nir_shader_clone(mem_ctx, ish->nir);
 
-   NIR_PASS_V(nir, brw_nir_lower_cs_intrinsics);
+   NIR_PASS_V(nir, elk_nir_lower_cs_intrinsics, devinfo, cs_prog_data);
 
    crocus_setup_uniforms(devinfo, mem_ctx, nir, prog_data, &system_values,
                          &num_system_values, &num_cbufs);
@@ -2522,7 +2524,7 @@ crocus_compile_cs(struct crocus_context *ice,
    crocus_setup_binding_table(devinfo, nir, &bt, /* num_render_targets */ 0,
                               num_system_values, num_cbufs, &key->base.tex);
 
-   struct brw_compile_cs_params params = {
+   struct elk_compile_cs_params params = {
       .base = {
          .mem_ctx = mem_ctx,
          .nir = nir,
@@ -2533,7 +2535,7 @@ crocus_compile_cs(struct crocus_context *ice,
    };
 
    const unsigned *program =
-      brw_compile_cs(compiler, &params);
+      elk_compile_cs(compiler, &params);
    if (program == NULL) {
       dbg_printf("Failed to compile compute shader: %s\n", params.base.error_str);
       ralloc_free(mem_ctx);
@@ -2569,7 +2571,7 @@ crocus_update_compiled_cs(struct crocus_context *ice)
       ice->shaders.uncompiled[MESA_SHADER_COMPUTE];
    struct crocus_screen *screen = (struct crocus_screen *)ice->ctx.screen;
    const struct intel_device_info *devinfo = &screen->devinfo;
-   struct brw_cs_prog_key key = { KEY_INIT() };
+   struct elk_cs_prog_key key = { KEY_INIT() };
 
    if (ish->nos & (1ull << CROCUS_NOS_TEXTURES))
       crocus_populate_sampler_prog_key_data(ice, devinfo, MESA_SHADER_COMPUTE, ish,
@@ -2606,14 +2608,14 @@ crocus_update_compiled_compute_shader(struct crocus_context *ice)
 }
 
 void
-crocus_fill_cs_push_const_buffer(struct brw_cs_prog_data *cs_prog_data,
+crocus_fill_cs_push_const_buffer(struct elk_cs_prog_data *cs_prog_data,
                                  unsigned threads,
                                  uint32_t *dst)
 {
-   assert(brw_cs_push_const_total_size(cs_prog_data, threads) > 0);
+   assert(elk_cs_push_const_total_size(cs_prog_data, threads) > 0);
    assert(cs_prog_data->push.cross_thread.size == 0);
    assert(cs_prog_data->push.per_thread.dwords == 1);
-   assert(cs_prog_data->base.param[0] == BRW_PARAM_BUILTIN_SUBGROUP_ID);
+   assert(cs_prog_data->base.param[0] == ELK_PARAM_BUILTIN_SUBGROUP_ID);
    for (unsigned t = 0; t < threads; t++)
       dst[8 * t] = t;
 }
@@ -2671,11 +2673,11 @@ crocus_create_uncompiled_shader(struct pipe_context *ctx,
    else
      ish->needs_edge_flag = false;
 
-   struct brw_nir_compiler_opts opts = {};
-   brw_preprocess_nir(screen->compiler, nir, &opts);
+   struct elk_nir_compiler_opts opts = {};
+   elk_preprocess_nir(screen->compiler, nir, &opts);
 
-   NIR_PASS_V(nir, brw_nir_lower_storage_image,
-              &(struct brw_nir_lower_storage_image_opts) {
+   NIR_PASS_V(nir, elk_nir_lower_storage_image,
+              &(struct elk_nir_lower_storage_image_opts) {
                  .devinfo = devinfo,
                  .lower_loads = true,
                  .lower_stores = true,
@@ -2741,7 +2743,7 @@ crocus_create_vs_state(struct pipe_context *ctx,
       ish->nos |= (1ull << CROCUS_NOS_VERTEX_ELEMENTS);
 
    if (screen->precompile) {
-      struct brw_vs_prog_key key = { KEY_INIT() };
+      struct elk_vs_prog_key key = { KEY_INIT() };
 
       if (!crocus_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
          crocus_compile_vs(ice, ish, &key);
@@ -2761,7 +2763,7 @@ crocus_create_tcs_state(struct pipe_context *ctx,
 
    ish->nos |= (1ull << CROCUS_NOS_TEXTURES);
    if (screen->precompile) {
-      struct brw_tcs_prog_key key = {
+      struct elk_tcs_prog_key key = {
          KEY_INIT(),
          // XXX: make sure the linker fills this out from the TES...
          ._tes_primitive_mode =
@@ -2795,7 +2797,7 @@ crocus_create_tes_state(struct pipe_context *ctx,
       ish->nos |= (1ull << CROCUS_NOS_RASTERIZER);
 
    if (screen->precompile) {
-      struct brw_tes_prog_key key = {
+      struct elk_tes_prog_key key = {
          KEY_INIT(),
          // XXX: not ideal, need TCS output/TES input unification
          .inputs_read = info->inputs_read,
@@ -2823,7 +2825,7 @@ crocus_create_gs_state(struct pipe_context *ctx,
       ish->nos |= (1ull << CROCUS_NOS_RASTERIZER);
 
    if (screen->precompile) {
-      struct brw_gs_prog_key key = { KEY_INIT() };
+      struct elk_gs_prog_key key = { KEY_INIT() };
 
       if (!crocus_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
          crocus_compile_gs(ice, ish, &key);
@@ -2849,7 +2851,7 @@ crocus_create_fs_state(struct pipe_context *ctx,
 
    /* The program key needs the VUE map if there are > 16 inputs or gen4/5 */
    if (screen->devinfo.ver < 6 || util_bitcount64(ish->nir->info.inputs_read &
-                                                  BRW_FS_VARYING_INPUT_MASK) > 16) {
+                                                  ELK_FS_VARYING_INPUT_MASK) > 16) {
       ish->nos |= (1ull << CROCUS_NOS_LAST_VUE_MAP);
    }
 
@@ -2860,10 +2862,10 @@ crocus_create_fs_state(struct pipe_context *ctx,
            BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK));
 
       bool can_rearrange_varyings =
-         screen->devinfo.ver > 6 && util_bitcount64(info->inputs_read & BRW_FS_VARYING_INPUT_MASK) <= 16;
+         screen->devinfo.ver > 6 && util_bitcount64(info->inputs_read & ELK_FS_VARYING_INPUT_MASK) <= 16;
 
       const struct intel_device_info *devinfo = &screen->devinfo;
-      struct brw_wm_prog_key key = {
+      struct elk_wm_prog_key key = {
          KEY_INIT(),
          .nr_color_regions = util_bitcount(color_outputs),
          .coherent_fb_fetch = false,
@@ -2872,9 +2874,9 @@ crocus_create_fs_state(struct pipe_context *ctx,
          can_rearrange_varyings ? 0 : info->inputs_read | VARYING_BIT_POS,
       };
 
-      struct brw_vue_map vue_map;
+      struct intel_vue_map vue_map;
       if (devinfo->ver < 6) {
-         brw_compute_vue_map(devinfo, &vue_map,
+         elk_compute_vue_map(devinfo, &vue_map,
                              info->inputs_read | VARYING_BIT_POS,
                              false, /* pos slots */ 1);
       }
@@ -2900,7 +2902,7 @@ crocus_create_compute_state(struct pipe_context *ctx,
    // XXX: disallow more than 64KB of shared variables
 
    if (screen->precompile) {
-      struct brw_cs_prog_key key = { KEY_INIT() };
+      struct elk_cs_prog_key key = { KEY_INIT() };
 
       if (!crocus_disk_cache_retrieve(ice, ish, &key, sizeof(key)))
          crocus_compile_cs(ice, ish, &key);
@@ -3074,7 +3076,7 @@ crocus_bind_fs_state(struct pipe_context *ctx, void *state)
 
    const unsigned color_bits =
       BITFIELD64_BIT(FRAG_RESULT_COLOR) |
-      BITFIELD64_RANGE(FRAG_RESULT_DATA0, BRW_MAX_DRAW_BUFFERS);
+      BITFIELD64_RANGE(FRAG_RESULT_DATA0, ELK_MAX_DRAW_BUFFERS);
 
    /* Fragment shader outputs influence HasWriteableRT */
    if (!old_ish || !new_ish ||

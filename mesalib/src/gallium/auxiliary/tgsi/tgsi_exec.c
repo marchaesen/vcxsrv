@@ -411,7 +411,7 @@ static void
 micro_exp2(union tgsi_exec_channel *dst,
            const union tgsi_exec_channel *src)
 {
-#if DEBUG
+#if MESA_DEBUG
    /* Inf is okay for this instruction, so clamp it to silence assertions. */
    unsigned i;
    union tgsi_exec_channel clamped;
@@ -426,7 +426,7 @@ micro_exp2(union tgsi_exec_channel *dst,
       }
    }
    src = &clamped;
-#endif /* DEBUG */
+#endif /* MESA_DEBUG */
 
    dst->f[0] = powf(2.0f, src->f[0]);
    dst->f[1] = powf(2.0f, src->f[1]);
@@ -973,7 +973,7 @@ static const union tgsi_exec_channel M128Vec = {
    {-128.0f, -128.0f, -128.0f, -128.0f}
 };
 
-#ifdef DEBUG
+#if MESA_DEBUG
 static void
 print_chan(const char *msg, const union tgsi_exec_channel *chan)
 {
@@ -983,7 +983,7 @@ print_chan(const char *msg, const union tgsi_exec_channel *chan)
 #endif
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 static void
 print_temp(const struct tgsi_exec_machine *mach, unsigned index)
 {
@@ -1233,7 +1233,7 @@ tgsi_exec_machine_create(enum pipe_shader_type shader_type)
          goto fail;
    }
 
-#ifdef DEBUG
+#if MESA_DEBUG
    /* silence warnings */
    (void) print_chan;
    (void) print_temp;

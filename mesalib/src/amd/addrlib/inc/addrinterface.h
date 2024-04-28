@@ -23,8 +23,8 @@ extern "C"
 {
 #endif
 
-#define ADDRLIB_VERSION_MAJOR 8
-#define ADDRLIB_VERSION_MINOR 9
+#define ADDRLIB_VERSION_MAJOR 9
+#define ADDRLIB_VERSION_MINOR 0
 #define ADDRLIB_VERSION ((ADDRLIB_VERSION_MAJOR << 16) | ADDRLIB_VERSION_MINOR)
 
 /// Virtually all interface functions need ADDR_HANDLE as first parameter
@@ -32,6 +32,13 @@ typedef VOID*   ADDR_HANDLE;
 
 /// Client handle used in callbacks
 typedef VOID*   ADDR_CLIENT_HANDLE;
+
+typedef struct _ADDR_EXTENT3D
+{
+    UINT_32  width;
+    UINT_32  height;
+    UINT_32  depth;  // also slices for 2D images
+} ADDR_EXTENT3D;
 
 /**
 * /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,6 +51,8 @@ typedef VOID*   ADDR_CLIENT_HANDLE;
 *    typedef ADDR_E_RETURNCODE (ADDR_API* ADDR_DEBUGPRINT)(
 *         const ADDR_DEBUGPRINT_INPUT* pInput);
 *
+**/
+/**
 * /////////////////////////////////////////////////////////////////////////////////////////////////
 * //                               Create/Destroy/Config functions
 * /////////////////////////////////////////////////////////////////////////////////////////////////
@@ -78,11 +87,15 @@ typedef VOID*   ADDR_CLIENT_HANDLE;
 *     AddrComputeFmaskAddrFromCoord()
 *     AddrComputeFmaskCoordFromAddr()
 *
+**/
+/**
 * /////////////////////////////////////////////////////////////////////////////////////////////////
 * //                               Element/Utility functions
 * /////////////////////////////////////////////////////////////////////////////////////////////////
 *     ElemFlt32ToDepthPixel()
 *     ElemFlt32ToColorPixel()
+**/
+/**
 *     AddrExtractBankPipeSwizzle()
 *     AddrCombineBankPipeSwizzle()
 *     AddrComputeSliceSwizzle()
@@ -418,7 +431,6 @@ ADDR_E_RETURNCODE ADDR_API AddrCreate(
 */
 ADDR_E_RETURNCODE ADDR_API AddrDestroy(
     ADDR_HANDLE hLib);
-
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1498,7 +1510,6 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeFmaskCoordFromAddr(
     ADDR_COMPUTE_FMASK_COORDFROMADDR_OUTPUT*        pOut);
 
 
-
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 //                          Element/utility functions
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1819,7 +1830,6 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeBaseSwizzle(
     ADDR_HANDLE                             hLib,
     const ADDR_COMPUTE_BASE_SWIZZLE_INPUT*  pIn,
     ADDR_COMPUTE_BASE_SWIZZLE_OUTPUT*       pOut);
-
 
 
 /**
@@ -2329,7 +2339,6 @@ ADDR_E_RETURNCODE ADDR_API AddrComputeDccInfo(
     ADDR_COMPUTE_DCCINFO_OUTPUT*            pOut);
 
 
-
 /**
 ****************************************************************************************************
 *   ADDR_GET_MAX_ALIGNMENTS_OUTPUT
@@ -2395,7 +2404,7 @@ ADDR_E_RETURNCODE ADDR_API AddrGetMaxMetaAlignments(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                    Surface functions for Gfx9
+//                                    Surface functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -2449,7 +2458,7 @@ typedef struct _ADDR2_COMPUTE_SURFACE_INFO_INPUT
     UINT_32               size;              ///< Size of this structure in bytes
 
     ADDR2_SURFACE_FLAGS   flags;             ///< Surface flags
-    AddrSwizzleMode       swizzleMode;       ///< Swizzle Mode for Gfx9
+    AddrSwizzleMode       swizzleMode;       ///< Swizzle Mode for Addr2
     AddrResourceType      resourceType;      ///< Surface type
     AddrFormat            format;            ///< Surface format
     UINT_32               bpp;               ///< bits per pixel
@@ -2578,7 +2587,7 @@ typedef struct _ADDR2_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT
     UINT_32             sample;          ///< Sample index, use fragment index for EQAA
     UINT_32             mipId;           ///< the mip ID in mip chain
 
-    AddrSwizzleMode     swizzleMode;     ///< Swizzle mode for Gfx9
+    AddrSwizzleMode     swizzleMode;     ///< Swizzle mode for Addr2
     ADDR2_SURFACE_FLAGS flags;           ///< Surface flags
     AddrResourceType    resourceType;    ///< Surface type
     UINT_32             bpp;             ///< Bits per pixel
@@ -2644,7 +2653,7 @@ typedef struct _ADDR2_COMPUTE_SURFACE_COORDFROMADDR_INPUT
     UINT_32             bitPosition;     ///< Bit position in addr. 0-7. for surface bpp < 8,
                                          ///  e.g. FMT_1;
 
-    AddrSwizzleMode     swizzleMode;     ///< Swizzle mode for Gfx9
+    AddrSwizzleMode     swizzleMode;     ///< Swizzle mode for Addr2
     ADDR2_SURFACE_FLAGS flags;           ///< Surface flags
     AddrResourceType    resourceType;    ///< Surface type
     UINT_32             bpp;             ///< Bits per pixel
@@ -2696,7 +2705,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeSurfaceCoordFromAddr(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                   HTile functions for Gfx9
+//                                   HTile functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -2944,7 +2953,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeHtileCoordFromAddr(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                     C-mask functions for Gfx9
+//                                     C-mask functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -3169,7 +3178,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeCmaskCoordFromAddr(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                     F-mask functions for Gfx9
+//                                     F-mask functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -3374,7 +3383,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeFmaskCoordFromAddr(
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                     DCC key functions for Gfx9
+//                                     DCC key functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -3552,7 +3561,7 @@ ADDR_E_RETURNCODE ADDR_API Addr2ComputeDccAddrFromCoord(
     ADDR2_COMPUTE_DCC_ADDRFROMCOORD_OUTPUT*        pOut);
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
-//                                     Misc functions for Gfx9
+//                                     Misc functions for Addr2
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /**
@@ -3709,7 +3718,7 @@ typedef struct _ADDR2_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT
 {
     UINT_32               size;              ///< Size of this structure in bytes
     ADDR2_SURFACE_FLAGS   flags;             ///< Surface flags
-    AddrSwizzleMode       swizzleMode;       ///< Swizzle Mode for Gfx9
+    AddrSwizzleMode       swizzleMode;       ///< Swizzle Mode for Addr2
     AddrResourceType      resourceType;      ///< Surface type
     AddrFormat            format;            ///< Surface format
     UINT_32               width;             ///< Width of mip0 in texels (not in compressed block)

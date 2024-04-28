@@ -36,8 +36,6 @@
 #include "util/u_math.h"
 #include "util/u_memory.h"
 
-#include "hw/common.xml.h"
-
 #include "drm-uapi/drm_fourcc.h"
 
 static struct etna_resource *
@@ -57,8 +55,8 @@ etna_render_handle_incompatible(struct pipe_context *pctx,
     * and has multi tiling when required.
     */
    if ((res->layout != ETNA_LAYOUT_LINEAR ||
-        (VIV_FEATURE(screen, chipMinorFeatures2, LINEAR_PE) &&
-         (!VIV_FEATURE(screen, chipFeatures, FAST_CLEAR) ||
+        (VIV_FEATURE(screen, ETNA_FEATURE_LINEAR_PE) &&
+         (!VIV_FEATURE(screen, ETNA_FEATURE_FAST_CLEAR) ||
           res->levels[level].stride % min_tilesize == 0))) &&
        (!need_multitiled || (res->layout & ETNA_LAYOUT_BIT_MULTI)))
       return res;
@@ -111,7 +109,7 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
     * indicate the tile status module bypasses the memory
     * offset and MMU. */
 
-   if (VIV_FEATURE(screen, chipFeatures, FAST_CLEAR) &&
+   if (VIV_FEATURE(screen, ETNA_FEATURE_FAST_CLEAR) &&
        !rsc->ts_bo &&
        /* needs to be RS/BLT compatible for transfer_map/unmap */
        (rsc->levels[level].padded_width & ETNA_RS_WIDTH_MASK) == 0 &&
@@ -162,7 +160,7 @@ etna_create_surface(struct pipe_context *pctx, struct pipe_resource *prsc,
           * Currently uses a fixed row size of 64 bytes. Some benchmarking with
           * different sizes may be in order. */
          struct etna_bo *ts_bo = etna_resource(surf->base.texture)->ts_bo;
-         etna_compile_rs_state(ctx, &surf->clear_command, &(struct rs_state) {
+         etna_compile_rs_state(ctx, &surf->ts_clear_command, &(struct rs_state) {
             .source_format = RS_FORMAT_A8R8G8B8,
             .dest_format = RS_FORMAT_A8R8G8B8,
             .dest = ts_bo,

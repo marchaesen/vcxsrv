@@ -116,13 +116,13 @@ winInstallColormap(ColormapPtr pColormap)
     winScreenPriv(pScreen);
     ColormapPtr oldpmap = pScreenPriv->pcmapInstalled;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winInstallColormap\n");
 #endif
 
     /* Did the colormap actually change? */
     if (pColormap != oldpmap) {
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winInstallColormap - Colormap has changed, attempt "
                  "to install.\n");
 #endif
@@ -157,7 +157,7 @@ winUninstallColormap(ColormapPtr pmap)
     winScreenPriv(pmap->pScreen);
     ColormapPtr curpmap = pScreenPriv->pcmapInstalled;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winUninstallColormap\n");
 #endif
 
@@ -178,7 +178,7 @@ winUninstallColormap(ColormapPtr pmap)
     /* Install the default cmap in place of the cmap to be uninstalled */
     if (pmap->mid != pmap->pScreen->defColormap) {
         dixLookupResourceByType((void *) &curpmap, pmap->pScreen->defColormap,
-                                RT_COLORMAP, NullClient, DixUnknownAccess);
+                                X11_RESTYPE_COLORMAP, NullClient, DixUnknownAccess);
         (*pmap->pScreen->InstallColormap) (curpmap);
     }
 }
@@ -194,7 +194,7 @@ winStoreColors(ColormapPtr pmap, int ndef, xColorItem * pdefs)
     int i;
     unsigned short nRed, nGreen, nBlue;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     if (ndef != 1)
         winDebug("winStoreColors - ndef: %d\n", ndef);
 #endif
@@ -216,7 +216,7 @@ winStoreColors(ColormapPtr pmap, int ndef, xColorItem * pdefs)
         pCmapPriv->rgbColors[pdefs[0].pixel + i].rgbGreen = nGreen;
         pCmapPriv->rgbColors[pdefs[0].pixel + i].rgbBlue = nBlue;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winStoreColors - nRed %d nGreen %d nBlue %d\n",
                  nRed, nGreen, nBlue);
 #endif
@@ -237,7 +237,7 @@ winResolveColor(unsigned short *pred,
                 unsigned short *pgreen,
                 unsigned short *pblue, VisualPtr pVisual)
 {
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winResolveColor ()\n");
 #endif
 
@@ -253,7 +253,7 @@ winCreateColormap(ColormapPtr pmap)
 
     winScreenPriv(pScreen);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCreateColormap\n");
 #endif
 
@@ -311,7 +311,7 @@ winDestroyColormap(ColormapPtr pColormap)
     free(pCmapPriv);
     winSetCmapPriv(pColormap, NULL);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winDestroyColormap - Returning\n");
 #endif
 }
@@ -338,7 +338,7 @@ winGetPaletteDIB(ScreenPtr pScreen, ColormapPtr pcmap)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winGetPaletteDIB - Retrieved %d colors from DIB\n",
              uiColorsRetrieved);
 #endif
@@ -359,7 +359,7 @@ winGetPaletteDIB(ScreenPtr pScreen, ColormapPtr pcmap)
         nGreen = rgbColors[i].rgbGreen << 8;
         nBlue = rgbColors[i].rgbBlue << 8;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winGetPaletteDIB - Allocating a color: %u; "
                  "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
 #endif
@@ -421,7 +421,7 @@ winGetPaletteDD(ScreenPtr pScreen, ColormapPtr pcmap)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winGetPaletteDD - uiSystemPaletteEntries %d\n",
              uiSystemPaletteEntries);
 #endif
@@ -444,7 +444,7 @@ winGetPaletteDD(ScreenPtr pScreen, ColormapPtr pcmap)
         nRed = ppeColors[i].peRed << 8;
         nGreen = ppeColors[i].peGreen << 8;
         nBlue = ppeColors[i].peBlue << 8;
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winGetPaletteDD - Allocating a color: %u; "
                  "%d %d %d\n", (unsigned int)pixel, nRed, nGreen, nBlue);
 #endif
@@ -493,7 +493,7 @@ winCreateDefColormap(ScreenPtr pScreen)
     ColormapPtr pcmap = NULL;
     Pixel wp, bp;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCreateDefColormap\n");
 #endif
 
@@ -514,7 +514,7 @@ winCreateDefColormap(ScreenPtr pScreen)
      * to be changed by clients.
      */
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCreateDefColormap - defColormap: %lu\n", pScreen->defColormap);
 #endif
 
@@ -533,7 +533,7 @@ winCreateDefColormap(ScreenPtr pScreen)
         return FALSE;
     }
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCreateDefColormap - Created a colormap\n");
 #endif
 
@@ -594,7 +594,7 @@ winCreateDefColormap(ScreenPtr pScreen)
     /* Install the created colormap */
     (*pScreen->InstallColormap) (pcmap);
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winCreateDefColormap - Returning\n");
 #endif
 

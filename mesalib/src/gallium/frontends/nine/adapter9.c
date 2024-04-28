@@ -1,24 +1,7 @@
 /*
  * Copyright 2011 Joakim Sindholt <opensource@zhasha.com>
- *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * on the rights to use, copy, modify, merge, publish, distribute, sub
- * license, and/or sell copies of the Software, and to permit persons to whom
- * the Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NON-INFRINGEMENT. IN NO EVENT SHALL
- * THE AUTHOR(S) AND/OR THEIR SUPPLIERS BE LIABLE FOR ANY CLAIM,
- * DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
- * OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
- * USE OR OTHER DEALINGS IN THE SOFTWARE. */
+ * SPDX-License-Identifier: MIT
+ */
 
 #include "adapter9.h"
 #include "device9ex.h"
@@ -29,6 +12,7 @@
 #include "util/u_math.h"
 #include "util/format/u_format.h"
 #include "util/u_dump.h"
+#include "nir.h"
 
 #include "pipe/p_screen.h"
 
@@ -55,12 +39,12 @@ NineAdapter9_ctor( struct NineAdapter9 *This,
 
     This->ctx = pCTX;
     if (!hal->get_param(hal, PIPE_CAP_CLIP_HALFZ)) {
-        ERR("Driver doesn't support d3d9 coordinates\n");
-        return D3DERR_DRIVERINTERNALERROR;
-    }
-    if (This->ctx->ref &&
-        !This->ctx->ref->get_param(This->ctx->ref, PIPE_CAP_CLIP_HALFZ)) {
-        ERR("Warning: Sotware rendering driver doesn't support d3d9 coordinates\n");
+        WARN_ONCE("Driver doesn't natively support d3d9 coordinates\n");
+        const nir_shader_compiler_options *options = hal->get_compiler_options(hal, PIPE_SHADER_IR_NIR, PIPE_SHADER_VERTEX);
+        if(!options->compact_arrays){
+            ERR("Driver doesn't support emulating d3d9 coordinates\n");
+            return D3DERR_DRIVERINTERNALERROR;
+        }
     }
     /* Old cards had tricks to bypass some restrictions to implement
      * everything and fit tight the requirements: number of constants,
@@ -87,7 +71,7 @@ NineAdapter9_ctor( struct NineAdapter9 *This,
                               PIPE_SHADER_CAP_MAX_INPUTS) < 10 ||
         hal->get_shader_param(hal, PIPE_SHADER_FRAGMENT,
                               PIPE_SHADER_CAP_MAX_TEXTURE_SAMPLERS) < 16) {
-        ERR("Your card is not supported by Gallium Nine. Minimum requirement "
+        ERR("Your device is not supported by Gallium Nine. Minimum requirement "
             "is >= r500, >= nv50, >= i965\n");
         return D3DERR_DRIVERINTERNALERROR;
     }
@@ -100,7 +84,7 @@ NineAdapter9_ctor( struct NineAdapter9 *This,
                               PIPE_SHADER_CAP_MAX_TEMPS) < 40 ||
         hal->get_shader_param(hal, PIPE_SHADER_FRAGMENT,
                               PIPE_SHADER_CAP_MAX_INPUTS) < 20) /* we don't pack inputs as much as we could */
-        ERR("Your card is at the limit of Gallium Nine requirements. Some games "
+        WARN_ONCE("Your device is at the limit of Gallium Nine requirements. Some games "
             "may run into issues because requirements are too tight\n");
     return D3D_OK;
 }

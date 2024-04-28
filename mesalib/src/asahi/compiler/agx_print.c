@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: MIT
  */
 
+#include "agx_builder.h"
 #include "agx_compiler.h"
 
 static void
@@ -26,9 +27,12 @@ agx_print_sized(char prefix, unsigned value, enum agx_size size, FILE *fp)
    unreachable("Invalid size");
 }
 
-static void
+void
 agx_print_index(agx_index index, bool is_float, FILE *fp)
 {
+   if (index.memory)
+      fprintf(fp, "m");
+
    switch (index.type) {
    case AGX_INDEX_NULL:
       fprintf(fp, "_");
@@ -67,6 +71,17 @@ agx_print_index(agx_index index, bool is_float, FILE *fp)
 
    case AGX_INDEX_REGISTER:
       agx_print_sized('r', index.value, index.size, fp);
+
+      if (agx_channels(index) > 1) {
+         unsigned last = index.value + agx_size_align_16(index.size) *
+                                          (agx_channels(index) - 1);
+
+         fprintf(fp, "...");
+
+         if (index.memory)
+            fprintf(fp, "m");
+         agx_print_sized('r', last, index.size, fp);
+      }
       break;
 
    default:
@@ -88,11 +103,34 @@ agx_print_index(agx_index index, bool is_float, FILE *fp)
       fprintf(fp, ".neg");
 }
 
+static struct agx_opcode_info
+agx_get_opcode_info_for_print(const agx_instr *I)
+{
+   struct agx_opcode_info info = agx_opcodes_info[I->op];
+
+   if (I->op == AGX_OPCODE_BITOP) {
+      const char *bitops[16] = {
+         [AGX_BITOP_NOR] = "nor",     [AGX_BITOP_ANDN2] = "andn2",
+         [AGX_BITOP_ANDN1] = "andn1", [AGX_BITOP_XOR] = "xor",
+         [AGX_BITOP_NAND] = "nand",   [AGX_BITOP_AND] = "and",
+         [AGX_BITOP_XNOR] = "xnor",   [AGX_BITOP_ORN2] = "orn2",
+         [AGX_BITOP_ORN1] = "orn1",   [AGX_BITOP_OR] = "or",
+      };
+
+      if (bitops[I->truth_table] != NULL) {
+         info.name = bitops[I->truth_table];
+         info.immediates &= ~AGX_IMMEDIATE_TRUTH_TABLE;
+      }
+   }
+
+   return info;
+}
+
 void
 agx_print_instr(const agx_instr *I, FILE *fp)
 {
    assert(I->op < AGX_NUM_OPCODES);
-   struct agx_opcode_info info = agx_opcodes_info[I->op];
+   struct agx_opcode_info info = agx_get_opcode_info_for_print(I);
    bool print_comma = false;
 
    fprintf(fp, "   ");

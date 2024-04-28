@@ -42,9 +42,11 @@
                    marshal             NMTOKEN #IMPLIED
                    marshal_sync        CDATA #IMPLIED>
                    marshal_count       CDATA #IMPLIED>
+                   marshal_large_count CDATA #IMPLIED>
                    marshal_call_before CDATA #IMPLIED>
                    marshal_call_after  CDATA #IMPLIED>
                    marshal_struct      CDATA #IMPLIED>
+                   marshal_no_error    CDATA #IMPLIED>
 <!ATTLIST size     name                NMTOKEN #REQUIRED
                    count               NMTOKEN #IMPLIED
                    mode                (get | set) "set">
@@ -134,8 +136,16 @@ param:
         generated but a custom implementation will be present in marshal.c.
      marshal_sync - an expression that, if it evaluates true, causes glthread
         to sync and execute the call directly.
-     marshal_count - same as count, but variable_param is ignored. Used by
-        glthread.
+     marshal_count - alternative to using "count" for pointer parameters.
+        It contains an expression computing the size of the array pointed to
+        by the pointer parameter. The maximum size must be small enough that
+        it always fits into a glthread batch, so that glthread never has to
+        sync and execute directly.
+     marshal_large_count - alternative to using "count" for pointer parameters.
+        It contains an expression computing the size of the array pointed to
+        by the pointer parameter. It can be an arbitrary size, which may cause
+        glthread to flush, sync, and execute directly if the size is greater
+        than the maximum call size that fits in a glthread batch.
      marshal_call_before - insert the string at the beginning of the marshal
         function
      marshal_call_after - insert the string at the end of the marshal function
@@ -143,6 +153,8 @@ param:
         header file instead of the C file. It's done even with
         marshal="custom", in which case you don't have to define the structure
         manually.
+     marshal_no_error - indicate that a no_error marshal function will be
+        generated, only useful with marshal="custom"
 
 glx:
      rop - Opcode value for "render" commands

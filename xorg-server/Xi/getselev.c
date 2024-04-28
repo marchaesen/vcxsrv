@@ -56,11 +56,13 @@ SOFTWARE.
 
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
+
+#include "dix/dix_priv.h"
+
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window struct     */
 #include "exglobals.h"
 #include "swaprep.h"
-
 #include "getprop.h"
 #include "getselev.h"
 

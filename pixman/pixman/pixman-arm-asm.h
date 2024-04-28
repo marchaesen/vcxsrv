@@ -50,6 +50,12 @@
 #endif
 .endm
 
+.macro pixman_syntax_unified
+#ifdef ASM_HAVE_SYNTAX_UNIFIED
+	.syntax unified
+#endif
+.endm
+
 .macro pixman_end_asm_function
 #ifdef ASM_HAVE_FUNC_DIRECTIVE
 	.endfunc

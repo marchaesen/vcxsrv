@@ -32,8 +32,9 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#include "config/dbus-core.h"
+
 #include "os.h"
-#include "dbus-core.h"
 #include "linux.h"
 #include "xf86.h"
 #include "xf86platformBus.h"

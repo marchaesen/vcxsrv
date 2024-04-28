@@ -17,6 +17,24 @@ zink-lvp:
   script: |
     xvfb-run --server-args='-noreset' bash -c ". $SCRIPTS_DIR/setup-test-env.sh && ${XVFB_SCRIPT}"
 
+zink-venus-lvp:
+  extends:
+    - .test-gl
+    - .deqp-test
+    - .zink-venus-lvp-test
+  variables:
+    DEQP_SUITE: zink-venus-lvp
+    DEQP_FRACTION: 8
+    PIGLIT_NO_WINDOW: 1
+    # Enable validation (except for on piglit, see deqp-zink-venus-lvp.toml), logging
+    # to stdout and aborting on unknown failures.
+    ZINK_DEBUG: validation
+    LP_NUM_THREADS: 2
+    CROSVM_MEMORY: 12288
+    CROSVM_CPU: $FDO_CI_CONCURRENT
+  script:
+    - xvfb-run --server-args='-noreset' bash -c "./install/crosvm-runner.sh ./install/deqp-runner.sh"
+
 zink-anv-tgl:
   extends:
     - .zink-anv-test
@@ -60,7 +78,7 @@ zink-anv-tgl-traces-restricted:
     - .zink-anv-rules-restricted
   variables:
     PIGLIT_TRACES_FILE: traces-zink-restricted.yml
-    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${CI_JOB_JWT_FILE}
+    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${S3_JWT_FILE}
   allow_failure: true
 
 zink-tu-a618:
@@ -69,12 +87,19 @@ zink-tu-a618:
     - .zink-turnip-rules
     - .zink-test
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
-  parallel: 2
   variables:
+    DEQP_FRACTION: 2
     DEQP_SUITE: zink-freedreno-a618
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
     GPU_VERSION: zink-freedreno-a618
+
+zink-tu-a618-full:
+  extends:
+    - zink-tu-a618
+    - .collabora-turnip-manual-rules
+  variables:
+    DEQP_FRACTION: 1
 
 zink-tu-a618-traces:
   extends:

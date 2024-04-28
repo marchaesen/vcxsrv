@@ -28,6 +28,9 @@ const struct si_reg *ac_find_register(enum amd_gfx_level gfx_level, enum radeon_
       table_size = ARRAY_SIZE(gfx11_reg_table);
       break;
    case GFX10_3:
+      table = gfx103_reg_table;
+      table_size = ARRAY_SIZE(gfx103_reg_table);
+      break;
    case GFX10:
       table = gfx10_reg_table;
       table_size = ARRAY_SIZE(gfx10_reg_table);
@@ -196,6 +199,41 @@ bool ac_vm_fault_occurred(enum amd_gfx_level gfx_level, uint64_t *old_dmesg_time
 #endif
 }
 
+char *
+ac_get_umr_waves(const struct radeon_info *info, enum amd_ip_type ring)
+{
+   /* TODO: Dump compute ring. */
+   if (ring != AMD_IP_GFX)
+      return NULL;
+
+#ifndef _WIN32
+   char *data;
+   size_t size;
+   FILE *f = open_memstream(&data, &size);
+   if (!f)
+      return NULL;
+
+   char cmd[256];
+   sprintf(cmd, "umr --by-pci %04x:%02x:%02x.%01x -O bits,halt_waves -go 0 -wa %s -go 1 2>&1", info->pci.domain,
+           info->pci.bus, info->pci.dev, info->pci.func, info->gfx_level >= GFX10 ? "gfx_0.0.0" : "gfx");
+
+   char line[2048];
+   FILE *p = popen(cmd, "r");
+   if (p) {
+      while (fgets(line, sizeof(line), p))
+         fputs(line, f);
+      fprintf(f, "\n");
+      pclose(p);
+   }
+
+   fclose(f);
+
+   return data;
+#else
+   return NULL;
+#endif
+}
+
 static int compare_wave(const void *p1, const void *p2)
 {
    struct ac_wave_info *w1 = (struct ac_wave_info *)p1;
@@ -230,49 +268,124 @@ static int compare_wave(const void *p1, const void *p2)
    return 0;
 }
 
+#define AC_UMR_REGISTERS_LINE "Main Registers"
+
+static bool
+ac_read_umr_register(const char **_scan, const char *name, uint32_t *value)
+{
+   const char *scan = *_scan;
+   if (strncmp(scan, name, MIN2(strlen(scan), strlen(name))))
+      return false;
+
+   scan += strlen(name);
+   scan += strlen(": ");
+
+   *value = strtoul(scan, NULL, 16);
+   *_scan = scan + 8;
+   return true;
+}
+
 /* Return wave information. "waves" should be a large enough array. */
 unsigned ac_get_wave_info(enum amd_gfx_level gfx_level, const struct radeon_info *info,
+                          const char *wave_dump,
                           struct ac_wave_info waves[AC_MAX_WAVES_PER_CHIP])
 {
 #ifdef _WIN32
    return 0;
 #else
-   char line[2000], cmd[256];
-   unsigned num_waves = 0;
-
-   sprintf(cmd, "umr --by-pci %04x:%02x:%02x.%01x -O halt_waves -wa %s",
-           info->pci.domain, info->pci.bus, info->pci.dev, info->pci.func,
-           gfx_level >= GFX10 ? "gfx_0.0.0" : "gfx");
-
-   FILE *p = popen(cmd, "r");
-   if (!p)
-      return 0;
-
-   if (!fgets(line, sizeof(line), p) || strncmp(line, "SE", 2) != 0) {
-      pclose(p);
-      return 0;
+   char *dump = NULL;
+   if (!wave_dump) {
+      dump = ac_get_umr_waves(info, AMD_IP_GFX);
+      wave_dump = dump;
    }
 
-   while (fgets(line, sizeof(line), p)) {
-      struct ac_wave_info *w;
-      uint32_t pc_hi, pc_lo, exec_hi, exec_lo;
+   unsigned num_waves = 0;
+
+   while (true) {
+      const char *end = strchr(wave_dump, '\n');
+      if (!end)
+         break;
+
+      if (strncmp(wave_dump, AC_UMR_REGISTERS_LINE, strlen(AC_UMR_REGISTERS_LINE))) {
+         wave_dump = end + 1;
+         continue;
+      }
 
       assert(num_waves < AC_MAX_WAVES_PER_CHIP);
-      w = &waves[num_waves];
+      struct ac_wave_info *w = &waves[num_waves];
+      memset(w, 0, sizeof(struct ac_wave_info));
+      num_waves++;
 
-      if (sscanf(line, "%u %u %u %u %u %x %x %x %x %x %x %x", &w->se, &w->sh, &w->cu, &w->simd,
-                 &w->wave, &w->status, &pc_hi, &pc_lo, &w->inst_dw0, &w->inst_dw1, &exec_hi,
-                 &exec_lo) == 12) {
-         w->pc = ((uint64_t)pc_hi << 32) | pc_lo;
-         w->exec = ((uint64_t)exec_hi << 32) | exec_lo;
-         w->matched = false;
-         num_waves++;
+      while (true) {
+         const char *end2 = strchr(wave_dump, '\n');
+         if (!end2)
+            break;
+         if (end2 - wave_dump < 2)
+            break;
+
+         const char *scan = wave_dump;
+         while (scan < end2) {
+            if (strncmp(scan, "ix", MIN2(strlen(scan), strlen("ix")))) {
+               scan++;
+               continue;
+            }
+
+            scan += strlen("ix");
+
+            bool progress = false;
+
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_STATUS", &w->status);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_PC_LO", &w->pc_lo);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_PC_HI", &w->pc_hi);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_EXEC_LO", &w->exec_lo);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_EXEC_HI", &w->exec_hi);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_INST_DW0", &w->inst_dw0);
+            progress |= ac_read_umr_register(&scan, "SQ_WAVE_INST_DW1", &w->inst_dw1);
+
+            uint32_t wave;
+            if (ac_read_umr_register(&scan, "SQ_WAVE_HW_ID", &wave)) {
+               w->se = G_000050_SE_ID(wave);
+               w->sh = G_000050_SH_ID(wave);
+               w->cu = G_000050_CU_ID(wave);
+               w->simd = G_000050_SIMD_ID(wave);
+               w->wave = G_000050_WAVE_ID(wave);
+
+               progress = true;
+            }
+
+            if (ac_read_umr_register(&scan, "SQ_WAVE_HW_ID1", &wave)) {
+               w->se = G_00045C_SE_ID(wave);
+               w->sh = G_00045C_SA_ID(wave);
+               w->cu = G_00045C_WGP_ID(wave);
+               w->simd = G_00045C_SIMD_ID(wave);
+               w->wave = G_00045C_WAVE_ID(wave);
+
+               progress = true;
+            }
+
+            /* Skip registers we do not handle. */
+            if (!progress) {
+               while (scan < end2) {
+                  if (*scan == '|') {
+                     progress = true;
+                     break;
+                  }
+                  scan++;
+               }
+            }
+
+            if (!progress)
+               break;
+         }
+
+         wave_dump = end2 + 1;
       }
    }
 
    qsort(waves, num_waves, sizeof(struct ac_wave_info), compare_wave);
 
-   pclose(p);
+   free(dump);
+
    return num_waves;
 #endif
 }

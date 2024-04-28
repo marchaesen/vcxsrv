@@ -31,6 +31,59 @@
 #include "ir3_nir.h"
 #include "ir3_shader.h"
 
+
+nir_def *
+ir3_get_driver_ubo(nir_builder *b, struct ir3_driver_ubo *ubo)
+{
+   /* Pick a UBO index to use as our constant data.  Skip UBO 0 since that's
+    * reserved for gallium's cb0.
+    */
+   if (ubo->idx == -1) {
+      if (b->shader->info.num_ubos == 0)
+         b->shader->info.num_ubos++;
+      ubo->idx = b->shader->info.num_ubos++;
+   } else {
+      assert(ubo->idx != 0);
+      /* Binning shader shared ir3_driver_ubo definitions but not shader info */
+      b->shader->info.num_ubos = MAX2(b->shader->info.num_ubos, ubo->idx + 1);
+   }
+
+   return nir_imm_int(b, ubo->idx);
+}
+
+nir_def *
+ir3_load_driver_ubo(nir_builder *b, unsigned components,
+                    struct ir3_driver_ubo *ubo,
+                    unsigned offset)
+{
+   ubo->size = MAX2(ubo->size, offset + components);
+
+   return nir_load_ubo(b, components, 32, ir3_get_driver_ubo(b, ubo),
+                       nir_imm_int(b, offset * sizeof(uint32_t)),
+                       .align_mul = 16,
+                       .align_offset = (offset % 4) * sizeof(uint32_t),
+                       .range_base = offset * sizeof(uint32_t),
+                       .range = components * sizeof(uint32_t));
+}
+
+nir_def *
+ir3_load_driver_ubo_indirect(nir_builder *b, unsigned components,
+                             struct ir3_driver_ubo *ubo,
+                             unsigned base, nir_def *offset,
+                             unsigned range)
+{
+   ubo->size = MAX2(ubo->size, base + components + range * 4);
+
+   return nir_load_ubo(b, components, 32, ir3_get_driver_ubo(b, ubo),
+                       nir_iadd(b, nir_imul24(b, offset, nir_imm_int(b, 16)),
+                                nir_imm_int(b, base * sizeof(uint32_t))),
+                       .align_mul = 16,
+                       .align_offset = (base % 4) * sizeof(uint32_t),
+                       .range_base = base * sizeof(uint32_t),
+                       .range = components * sizeof(uint32_t) +
+                        (range - 1) * 16);
+}
+
 static bool
 ir3_nir_should_vectorize_mem(unsigned align_mul, unsigned align_offset,
                              unsigned bit_size, unsigned num_components,
@@ -740,6 +793,11 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
       progress |= OPT(s, nir_opt_constant_folding);
    }
 
+   OPT(s, ir3_nir_opt_subgroups, so);
+
+   if (so->compiler->load_shader_consts_via_preamble)
+      progress |= OPT(s, ir3_nir_lower_driver_params_to_ubo, so);
+
    /* Do the preamble before analysing UBO ranges, because it's usually
     * higher-value and because it can result in eliminating some indirect UBO
     * accesses where otherwise we'd have to push the whole range. However we
@@ -749,6 +807,13 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
    if (so->compiler->has_preamble &&
        !(ir3_shader_debug & IR3_DBG_NOPREAMBLE))
       progress |= OPT(s, ir3_nir_opt_preamble, so);
+
+   if (so->compiler->load_shader_consts_via_preamble)
+      progress |= OPT(s, ir3_nir_lower_driver_params_to_ubo, so);
+
+   /* TODO: ldg.k might also work on a6xx */
+   if (so->compiler->gen >= 7)
+      progress |= OPT(s, ir3_nir_lower_const_global_loads, so);
 
    if (!so->binning_pass)
       OPT_V(s, ir3_nir_analyze_ubo_ranges, so);
@@ -794,7 +859,7 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
           * coordinates that had been upconverted to 32-bits just for the
           * sampler to just be 16-bit texture sources.
           */
-         struct nir_fold_tex_srcs_options fold_srcs_options = {
+         struct nir_opt_tex_srcs_options opt_srcs_options = {
             .sampler_dims = ~0,
             .src_types = (1 << nir_tex_src_coord) |
                          (1 << nir_tex_src_lod) |
@@ -806,17 +871,17 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
                          (1 << nir_tex_src_ddx) |
                          (1 << nir_tex_src_ddy),
          };
-         struct nir_fold_16bit_tex_image_options fold_16bit_options = {
+         struct nir_opt_16bit_tex_image_options opt_16bit_options = {
             .rounding_mode = nir_rounding_mode_rtz,
-            .fold_tex_dest_types = nir_type_float,
+            .opt_tex_dest_types = nir_type_float,
             /* blob dumps have no half regs on pixel 2's ldib or stib, so only enable for a6xx+. */
-            .fold_image_dest_types = so->compiler->gen >= 6 ?
+            .opt_image_dest_types = so->compiler->gen >= 6 ?
                                         nir_type_float | nir_type_uint | nir_type_int : 0,
-            .fold_image_store_data = so->compiler->gen >= 6,
-            .fold_srcs_options_count = 1,
-            .fold_srcs_options = &fold_srcs_options,
+            .opt_image_store_data = so->compiler->gen >= 6,
+            .opt_srcs_options_count = 1,
+            .opt_srcs_options = &opt_srcs_options,
          };
-         OPT(s, nir_fold_16bit_tex_image, &fold_16bit_options);
+         OPT(s, nir_opt_16bit_tex_image, &opt_16bit_options);
       }
       OPT_V(s, nir_opt_constant_folding);
       OPT_V(s, nir_copy_prop);
@@ -840,6 +905,75 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
     */
    if (!so->binning_pass)
       ir3_setup_const_state(s, so, ir3_const_state(so));
+}
+
+bool
+ir3_get_driver_param_info(const nir_shader *shader, nir_intrinsic_instr *intr,
+                          struct driver_param_info *param_info)
+{
+   switch (intr->intrinsic) {
+   case nir_intrinsic_load_base_workgroup_id:
+      param_info->offset = IR3_DP_BASE_GROUP_X;
+      break;
+   case nir_intrinsic_load_num_workgroups:
+      param_info->offset = IR3_DP_NUM_WORK_GROUPS_X;
+      break;
+   case nir_intrinsic_load_workgroup_size:
+      param_info->offset = IR3_DP_LOCAL_GROUP_SIZE_X;
+      break;
+   case nir_intrinsic_load_subgroup_size:
+      assert(shader->info.stage == MESA_SHADER_COMPUTE ||
+             shader->info.stage == MESA_SHADER_FRAGMENT);
+      if (shader->info.stage == MESA_SHADER_COMPUTE) {
+         param_info->offset = IR3_DP_CS_SUBGROUP_SIZE;
+      } else {
+         param_info->offset = IR3_DP_FS_SUBGROUP_SIZE;
+      }
+      break;
+   case nir_intrinsic_load_subgroup_id_shift_ir3:
+      param_info->offset = IR3_DP_SUBGROUP_ID_SHIFT;
+      break;
+   case nir_intrinsic_load_work_dim:
+      param_info->offset = IR3_DP_WORK_DIM;
+      break;
+   case nir_intrinsic_load_base_vertex:
+   case nir_intrinsic_load_first_vertex:
+      param_info->offset = IR3_DP_VTXID_BASE;
+      break;
+   case nir_intrinsic_load_is_indexed_draw:
+      param_info->offset = IR3_DP_IS_INDEXED_DRAW;
+      break;
+   case nir_intrinsic_load_draw_id:
+      param_info->offset = IR3_DP_DRAWID;
+      break;
+   case nir_intrinsic_load_base_instance:
+      param_info->offset = IR3_DP_INSTID_BASE;
+      break;
+   case nir_intrinsic_load_user_clip_plane: {
+      uint32_t idx = nir_intrinsic_ucp_id(intr);
+      param_info->offset = IR3_DP_UCP0_X + 4 * idx;
+      break;
+   }
+   case nir_intrinsic_load_tess_level_outer_default:
+      param_info->offset = IR3_DP_HS_DEFAULT_OUTER_LEVEL_X;
+      break;
+   case nir_intrinsic_load_tess_level_inner_default:
+      param_info->offset = IR3_DP_HS_DEFAULT_INNER_LEVEL_X;
+      break;
+   case nir_intrinsic_load_frag_size_ir3:
+      param_info->offset = IR3_DP_FS_FRAG_SIZE;
+      break;
+   case nir_intrinsic_load_frag_offset_ir3:
+      param_info->offset = IR3_DP_FS_FRAG_OFFSET;
+      break;
+   case nir_intrinsic_load_frag_invocation_count:
+      param_info->offset = IR3_DP_FS_FRAG_INVOCATION_COUNT;
+      break;
+   default:
+      return false;
+   }
+
+   return true;
 }
 
 static void
@@ -875,83 +1009,15 @@ ir3_nir_scan_driver_consts(struct ir3_compiler *compiler, nir_shader *shader, st
                   layout->image_dims.count += 3; /* three const per */
                }
                break;
-            case nir_intrinsic_load_base_vertex:
-            case nir_intrinsic_load_first_vertex:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_VTXID_BASE + 1);
-               break;
-            case nir_intrinsic_load_is_indexed_draw:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_IS_INDEXED_DRAW + 1);
-               break;
-            case nir_intrinsic_load_base_instance:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_INSTID_BASE + 1);
-               break;
-            case nir_intrinsic_load_user_clip_plane:
-               idx = nir_intrinsic_ucp_id(intr);
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_UCP0_X + (idx + 1) * 4);
-               break;
-            case nir_intrinsic_load_num_workgroups:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_NUM_WORK_GROUPS_Z + 1);
-               break;
-            case nir_intrinsic_load_workgroup_id:
-               if (!compiler->has_shared_regfile) {
-                  layout->num_driver_params =
-                     MAX2(layout->num_driver_params, IR3_DP_WORKGROUP_ID_Z + 1);
-               }
-               break;
-            case nir_intrinsic_load_workgroup_size:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_LOCAL_GROUP_SIZE_Z + 1);
-               break;
-            case nir_intrinsic_load_base_workgroup_id:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_BASE_GROUP_Z + 1);
-               break;
-            case nir_intrinsic_load_subgroup_size: {
-               assert(shader->info.stage == MESA_SHADER_COMPUTE ||
-                      shader->info.stage == MESA_SHADER_FRAGMENT);
-               enum ir3_driver_param size = shader->info.stage == MESA_SHADER_COMPUTE ?
-                  IR3_DP_CS_SUBGROUP_SIZE : IR3_DP_FS_SUBGROUP_SIZE;
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, size + 1);
-               break;
-            }
-            case nir_intrinsic_load_subgroup_id_shift_ir3:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_SUBGROUP_ID_SHIFT + 1);
-               break;
-            case nir_intrinsic_load_draw_id:
-               layout->num_driver_params =
-                  MAX2(layout->num_driver_params, IR3_DP_DRAWID + 1);
-               break;
-            case nir_intrinsic_load_tess_level_outer_default:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_HS_DEFAULT_OUTER_LEVEL_W + 1);
-               break;
-            case nir_intrinsic_load_tess_level_inner_default:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_HS_DEFAULT_INNER_LEVEL_Y + 1);
-               break;
-            case nir_intrinsic_load_frag_size_ir3:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_FS_FRAG_SIZE + 2 +
-                                                (nir_intrinsic_range(intr) - 1) * 4);
-               break;
-            case nir_intrinsic_load_frag_offset_ir3:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_FS_FRAG_OFFSET + 2 +
-                                                (nir_intrinsic_range(intr) - 1) * 4);
-               break;
-            case nir_intrinsic_load_frag_invocation_count:
-               layout->num_driver_params = MAX2(layout->num_driver_params,
-                                                IR3_DP_FS_FRAG_INVOCATION_COUNT + 1);
-               break;
             default:
                break;
+            }
+
+            struct driver_param_info param_info;
+            if (ir3_get_driver_param_info(shader, intr, &param_info)) {
+               layout->num_driver_params =
+                  MAX2(layout->num_driver_params,
+                       param_info.offset + nir_intrinsic_dest_components(intr));
             }
          }
       }
@@ -994,10 +1060,11 @@ ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,
    assert((const_state->ubo_state.size % 16) == 0);
    unsigned constoff = v->shader_options.num_reserved_user_consts +
       const_state->ubo_state.size / 16 +
-      const_state->preamble_size;
+      const_state->preamble_size +
+      const_state->global_size;
    unsigned ptrsz = ir3_pointer_size(compiler);
 
-   if (const_state->num_ubos > 0) {
+   if (const_state->num_ubos > 0 && compiler->gen < 6) {
       const_state->offsets.ubo = constoff;
       constoff += align(const_state->num_ubos * ptrsz, 4) / 4;
    }
@@ -1041,6 +1108,26 @@ ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,
       constoff += align(IR3_MAX_SO_BUFFERS * ptrsz, 4) / 4;
    }
 
+   if (!compiler->load_shader_consts_via_preamble) {
+      switch (v->type) {
+      case MESA_SHADER_TESS_CTRL:
+      case MESA_SHADER_TESS_EVAL:
+         const_state->offsets.primitive_param = constoff;
+         constoff += 2;
+
+         const_state->offsets.primitive_map = constoff;
+         break;
+      case MESA_SHADER_GEOMETRY:
+         const_state->offsets.primitive_param = constoff;
+         constoff += 1;
+
+         const_state->offsets.primitive_map = constoff;
+         break;
+      default:
+         break;
+      }
+   }
+
    switch (v->type) {
    case MESA_SHADER_VERTEX:
       const_state->offsets.primitive_param = constoff;
@@ -1048,17 +1135,9 @@ ir3_setup_const_state(nir_shader *nir, struct ir3_shader_variant *v,
       break;
    case MESA_SHADER_TESS_CTRL:
    case MESA_SHADER_TESS_EVAL:
-      const_state->offsets.primitive_param = constoff;
-      constoff += 2;
-
-      const_state->offsets.primitive_map = constoff;
       constoff += DIV_ROUND_UP(v->input_size, 4);
       break;
    case MESA_SHADER_GEOMETRY:
-      const_state->offsets.primitive_param = constoff;
-      constoff += 1;
-
-      const_state->offsets.primitive_map = constoff;
       constoff += DIV_ROUND_UP(v->input_size, 4);
       break;
    default:

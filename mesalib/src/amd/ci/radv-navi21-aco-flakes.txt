@@ -1,16 +1,21 @@
-dEQP-VK.pipeline.monolithic.image.suballocation.sampling_type.separate.view_type.2d.format.a2b10g10r10_uint_pack32.count_4.size.13x23
-dEQP-VK.pipeline.monolithic.image.suballocation.sampling_type.combined.view_type.cube_array.format.r8g8_sint.count_4.size.13x13_array_of_36
-
-# Came with the split of the test lists in CI
-dEQP-VK.rasterization.primitives_multisample_2_bit.static_stipple.bresenham_line_strip_wide
-
-dEQP-VK.draw.renderpass.multi_draw.mosaic.indexed_mixed.max_draws.stride_extra_12.2_instances_base_3.with_tess.multiview.offset_6
-
-# Too many of these tests to follow, so let's cast a broad net
-dEQP-VK.pipeline.*line_stipple_enable
-dEQP-VK.pipeline.*line_stipple_params
+dEQP-VK.query_pool.statistics_query.host_query_reset.geometry_shader_(invocations|primitives).secondary.(32|64)bits_.*
 
 # New CTS flakes in 1.3.6.3
 dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.(single|multi)threaded_compilation.*_check_(all|capture_replay)_handles
 
-dEQP-VK.query_pool.statistics_query.host_query_reset.geometry_shader_invocations.secondary.32bits_triangle_list_clear_depth
+dEQP-VK.shader_object.binding.mesh_swap_task
+
+dEQP-VK.binding_model.shader_access.secondary_cmd_buf.with_template.storage_image.vertex.multiple_descriptor_sets.multiple_contiguous_descriptors.cube_array
+dEQP-VK.draw.renderpass.instanced.dynamic_state_draw_vk_primitive_topology_line_list_attrib_divisor_20
+dEQP-VK.glsl.builtin.function.integer.imulextended.ivec3_highp_fragment
+dEQP-VK.pipeline.fast_linked_library.image_view.view_type.1d_array.format.a1b5g5r5_unorm_pack16_khr.subresource_range.lod_mip_levels
+dEQP-VK.pipeline.monolithic.sampler.separate_stencil_usage.view_type.cube_array.format.d32_sfloat_s8_uint.mipmap.nearest.lod.equal_min_3_max_3
+dEQP-VK.pipeline.shader_object_linked_binary.image.suballocation.sampling_type.separate.view_type.1d_array.format.r8_srgb.count_1.size.443x1_array_of_3
+dEQP-VK.pipeline.shader_object_unlinked_binary.image.suballocation.sampling_type.combined.view_type.1d.format.r8_unorm.count_8.size.443x1
+dEQP-VK.pipeline.shader_object_unlinked_binary.image.suballocation.sampling_type.separate.view_type.1d_array.format.a1b5g5r5_unorm_pack16_khr.count_8.size.443x1_array_of_6
+dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.misc.maintenance5
+
+# New CTS flakes in 1.3.8.0
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_pot_same_format_clear
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_pot_same_format_noclear

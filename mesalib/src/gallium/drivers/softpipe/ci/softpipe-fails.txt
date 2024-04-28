@@ -1128,9 +1128,6 @@ spec@arb_transform_feedback3@arb_transform_feedback3-ext_interleaved_two_bufs_vs
 # error: main:90: eglChooseConfig() returned no configs
 spec@egl 1.4@eglterminate then unbind context,Fail
 
-# "No such file or directory (os error 2)"
-spec@egl_ext_protected_content@conformance,Fail
-
 # "eglChooseConfig() failed"
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
@@ -1245,7 +1242,6 @@ spec@glsl-1.50@execution@primitive-id-no-gs-quads,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-strip,Fail
 spec@glsl-1.50@execution@primitive-id-no-gs-strip-first-vertex,Fail
 spec@glsl-es-3.00@execution@varying-struct-centroid_gles3,Fail
-spec@intel_performance_query@intel_performance_query-issue_2235,Fail
 
 spec@khr_texture_compression_astc@miptree-gl srgb-fp,Fail
 spec@khr_texture_compression_astc@miptree-gl srgb-fp@sRGB decode full precision,Fail
@@ -1283,3 +1279,13 @@ spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_si
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rg8ui_texture_buffer_size_via_sampler,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_image,Fail
 spec@arb_texture_buffer_object@texture-buffer-size-clamp@rgba8ui_texture_buffer_size_via_sampler,Fail
+
+# uprev Piglit in Mesa
+spec@glsl-1.40@uniform_buffer@two-stages,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_COMBINED_DIMENSIONS,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_DEPTH,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_HEIGHT,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_LAYERS,Fail
+spec@arb_internalformat_query2@max dimensions related pname checks@GL_MAX_WIDTH,Fail
+

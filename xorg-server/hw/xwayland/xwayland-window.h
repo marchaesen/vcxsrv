@@ -41,6 +41,7 @@
 #include <xf86drm.h>
 
 #include "xwayland-types.h"
+#include "xwayland-dmabuf.h"
 
 struct xwl_wl_surface {
     OsTimerPtr wl_surface_destroy_timer;
@@ -48,59 +49,41 @@ struct xwl_wl_surface {
     struct xorg_list link;
 };
 
-struct xwl_format_table_entry {
-    uint32_t format;
-    uint32_t pad;
-    uint64_t modifier;
-};
-
-struct xwl_device_formats {
-    drmDevice *drm_dev;
-    int supports_scanout;
-    uint32_t num_formats;
-    struct xwl_format *formats;
-};
-
-struct xwl_format_table {
-    /* This is mmapped from the fd given to us by the compositor */
-    int len;
-    struct xwl_format_table_entry *entry;
-};
-
-/*
- * Helper struct for sharing dmabuf feedback logic between
- * a screen and a window. The screen will get the default
- * feedback, and a window will get a per-surface feedback.
- */
-struct xwl_dmabuf_feedback {
-    struct zwp_linux_dmabuf_feedback_v1 *dmabuf_feedback;
-    struct xwl_format_table format_table;
-    drmDevice *main_dev;
-    /*
-     * This will be filled in during wl events and copied to
-     * dev_formats on dmabuf_feedback.tranche_done
-     */
-    struct xwl_device_formats tmp_tranche;
-    int feedback_done;
-    int dev_formats_len;
-    struct xwl_device_formats *dev_formats;
-    /*
-     * This flag is used to identify if the feedback
-     * has been resent. If this is true, then the xwayland
-     * clients need to be sent PresentCompleteModeSuboptimalCopy
-     * to tell them to re-request modifiers.
-     */
-    int unprocessed_feedback_pending;
+struct xwl_window_output {
+    struct xorg_list link;
+    struct xwl_output *xwl_output;
 };
 
 struct xwl_window {
     struct xwl_screen *xwl_screen;
     struct wl_surface *surface;
     struct wp_viewport *viewport;
-    float scale_x, scale_y;
+    float viewport_scale_x, viewport_scale_y;
+    int surface_scale;
     struct xdg_surface *xdg_surface;
     struct xdg_toplevel *xdg_toplevel;
-    WindowPtr window;
+
+    /* Top-level window for the Wayland surface:
+     * - With rootful, the root window itself
+     * - With rootless, a direct child of the root window
+     * Mainly useful when the top-level window is needed, can also be used for
+     * the X dimensions of the Wayland surface though.
+     */
+    WindowPtr toplevel;
+
+    /* The window associated with the Wayland surface:
+     * - If the top-level window has descendants which:
+     *   - Cover it completely
+     *   - Have no alpha channel
+     *   - Use a different window pixmap than their parent for storage
+     *   then the surface window is the lowest-level such descendant.
+     * - Otherwise it's the top-level window itself.
+     * Mainly useful for code dealing with (buffers for) the Wayland surface,
+     * can also be used for the X dimensions of the Wayland surface though.
+     */
+    WindowPtr surface_window;
+    RegionPtr surface_window_damage;
+
     struct xorg_list link_damage;
     struct xorg_list link_window;
     struct wl_callback *frame_callback;
@@ -110,10 +93,8 @@ struct xwl_window {
     OsTimerPtr window_buffers_timer;
     struct wl_output *wl_output;
     struct wl_output *wl_output_fullscreen;
-#ifdef GLAMOR_HAS_GBM
+    struct xorg_list xwl_output_list;
     struct xorg_list frame_callback_list;
-    Bool present_flipped;
-#endif
 #ifdef XWL_HAS_LIBDECOR
     struct libdecor_frame *libdecor_frame;
 #endif
@@ -122,30 +103,38 @@ struct xwl_window {
     /* If TRUE, the window buffer format supports scanout with implicit modifier */
     Bool has_implicit_scanout_support;
     struct wp_tearing_control_v1 *tearing_control;
+    struct wp_fractional_scale_v1 *fractional_scale;
+    int fractional_scale_numerator;
+    struct wp_linux_drm_syncobj_surface_v1 *surface_sync;
 };
 
 struct xwl_window *xwl_window_get(WindowPtr window);
+RegionPtr xwl_window_get_damage_region(struct xwl_window *xwl_window);
 struct xwl_window *xwl_window_from_window(WindowPtr window);
 
 Bool is_surface_from_xwl_window(struct wl_surface *surface);
 
 void xwl_window_update_property(struct xwl_window *xwl_window,
                                 PropertyStateRec *propstate);
-Bool xwl_window_has_viewport_enabled(struct xwl_window *xwl_window);
 Bool xwl_window_is_toplevel(WindowPtr window);
 void xwl_window_check_resolution_change_emulation(struct xwl_window *xwl_window);
 void xwl_window_rootful_update_title(struct xwl_window *xwl_window);
 void xwl_window_rootful_update_fullscreen(struct xwl_window *xwl_window,
                                           struct xwl_output *xwl_output);
 void xwl_window_set_window_pixmap(WindowPtr window, PixmapPtr pixmap);
+void xwl_window_update_surface_window(struct xwl_window *xwl_window);
 
+void xwl_window_leave_output(struct xwl_window *xwl_window,
+                             struct xwl_output *xwl_output);
+int xwl_window_get_max_output_scale(struct xwl_window *xwl_window);
 Bool xwl_realize_window(WindowPtr window);
 Bool xwl_unrealize_window(WindowPtr window);
 Bool xwl_change_window_attributes(WindowPtr window, unsigned long mask);
-void xwl_resize_window(WindowPtr window,
-                       int x, int y,
-                       unsigned int width, unsigned int height,
-                       WindowPtr sib);
+void xwl_clip_notify(WindowPtr window, int dx, int dy);
+int xwl_config_notify(WindowPtr window,
+                      int x, int y,
+                      int width, int height, int bw,
+                      WindowPtr sib);
 void xwl_move_window(WindowPtr window,
                      int x, int y,
                      WindowPtr next_sib,
@@ -156,9 +145,5 @@ void xwl_window_create_frame_callback(struct xwl_window *xwl_window);
 void xwl_window_surface_do_destroy(struct xwl_wl_surface *xwl_wl_surface);
 
 Bool xwl_window_init(void);
-
-void xwl_dmabuf_feedback_destroy(struct xwl_dmabuf_feedback *xwl_feedback);
-void xwl_dmabuf_feedback_clear_dev_formats(struct xwl_dmabuf_feedback *xwl_feedback);
-void xwl_device_formats_destroy(struct xwl_device_formats *dev_formats);
 
 #endif /* XWAYLAND_WINDOW_H */

@@ -8,7 +8,7 @@ $depsInstallPath="C:\mesa-deps"
 
 Write-Host "Downloading DirectX 12 Agility SDK at:"
 Get-Date
-Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.610.2 -OutFile 'agility.zip'
+Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.D3D12/1.613.2 -OutFile 'agility.zip'
 Expand-Archive -Path 'agility.zip' -DestinationPath 'C:\agility'
 # Copy Agility SDK into mesa-deps\bin\D3D12
 New-Item -ErrorAction SilentlyContinue -ItemType Directory -Path $depsInstallPath\bin -Name 'D3D12'
@@ -18,7 +18,7 @@ Remove-Item -Recurse 'C:\agility'
 
 Write-Host "Downloading Updated WARP at:"
 Get-Date
-Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.9 -OutFile 'warp.zip'
+Invoke-WebRequest -Uri https://www.nuget.org/api/v2/package/Microsoft.Direct3D.WARP/1.0.11 -OutFile 'warp.zip'
 Expand-Archive -Path 'warp.zip' -DestinationPath 'C:\warp'
 # Copy WARP into mesa-deps\bin
 Copy-Item 'C:\warp\build\native\amd64\d3d10warp.dll' -Destination $depsInstallPath\bin
@@ -27,7 +27,7 @@ Remove-Item -Recurse 'C:\warp'
 
 Write-Host "Downloading DirectXShaderCompiler release at:"
 Get-Date
-Invoke-WebRequest -Uri https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.7.2207/dxc_2022_07_18.zip -OutFile 'DXC.zip'
+Invoke-WebRequest -Uri https://github.com/microsoft/DirectXShaderCompiler/releases/download/v1.8.2403/dxc_2024_03_07.zip -OutFile 'DXC.zip'
 Expand-Archive -Path 'DXC.zip' -DestinationPath 'C:\DXC'
 # No more need to get dxil.dll from the VS install
 Copy-Item 'C:\DXC\bin\x64\*.dll' -Destination 'C:\Windows\System32'

@@ -5,29 +5,15 @@
  * based in part on anv driver which is:
  * Copyright © 2015 Intel Corporation
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
-#include "radv_private.h"
+#include "vk_log.h"
 
-#include "vk_sampler.h"
+#include "radv_sampler.h"
+#include "radv_device.h"
+#include "radv_entrypoints.h"
+#include "radv_physical_device.h"
 
 static unsigned
 radv_tex_wrap(VkSamplerAddressMode address_mode)
@@ -47,6 +33,7 @@ radv_tex_wrap(VkSamplerAddressMode address_mode)
       unreachable("illegal tex wrap mode");
       break;
    }
+   return 0;
 }
 
 static unsigned
@@ -73,6 +60,7 @@ radv_tex_compare(VkCompareOp op)
       unreachable("illegal compare mode");
       break;
    }
+   return 0;
 }
 
 static unsigned
@@ -194,14 +182,15 @@ radv_unregister_border_color(struct radv_device *device, uint32_t slot)
 static void
 radv_init_sampler(struct radv_device *device, struct radv_sampler *sampler, const VkSamplerCreateInfo *pCreateInfo)
 {
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_instance *instance = radv_physical_device_instance(pdev);
    uint32_t max_aniso = radv_get_max_anisotropy(device, pCreateInfo);
    uint32_t max_aniso_ratio = radv_tex_aniso_filter(max_aniso);
-   bool compat_mode =
-      device->physical_device->rad_info.gfx_level == GFX8 || device->physical_device->rad_info.gfx_level == GFX9;
+   bool compat_mode = pdev->info.gfx_level == GFX8 || pdev->info.gfx_level == GFX9;
    unsigned filter_mode = radv_tex_filter_mode(sampler->vk.reduction_mode);
    unsigned depth_compare_func = V_008F30_SQ_TEX_DEPTH_COMPARE_NEVER;
    bool trunc_coord = ((pCreateInfo->minFilter == VK_FILTER_NEAREST && pCreateInfo->magFilter == VK_FILTER_NEAREST) ||
-                       device->physical_device->rad_info.conformant_trunc_coord) &&
+                       pdev->info.conformant_trunc_coord) &&
                       !device->disable_trunc_coord;
    bool uses_border_color = pCreateInfo->addressModeU == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
                             pCreateInfo->addressModeV == VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER ||
@@ -236,26 +225,25 @@ radv_init_sampler(struct radv_device *device, struct radv_sampler *sampler, cons
                         S_008F30_ANISO_THRESHOLD(max_aniso_ratio >> 1) | S_008F30_ANISO_BIAS(max_aniso_ratio) |
                         S_008F30_DISABLE_CUBE_WRAP(disable_cube_wrap) | S_008F30_COMPAT_MODE(compat_mode) |
                         S_008F30_FILTER_MODE(filter_mode) | S_008F30_TRUNC_COORD(trunc_coord));
-   sampler->state[1] = (S_008F34_MIN_LOD(radv_float_to_ufixed(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
-                        S_008F34_MAX_LOD(radv_float_to_ufixed(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
+   sampler->state[1] = (S_008F34_MIN_LOD(util_unsigned_fixed(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
+                        S_008F34_MAX_LOD(util_unsigned_fixed(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
                         S_008F34_PERF_MIP(max_aniso_ratio ? max_aniso_ratio + 6 : 0));
    sampler->state[2] = (S_008F38_XY_MAG_FILTER(radv_tex_filter(pCreateInfo->magFilter, max_aniso)) |
                         S_008F38_XY_MIN_FILTER(radv_tex_filter(pCreateInfo->minFilter, max_aniso)) |
                         S_008F38_MIP_FILTER(radv_tex_mipfilter(pCreateInfo->mipmapMode)));
    sampler->state[3] = S_008F3C_BORDER_COLOR_TYPE(radv_tex_bordercolor(border_color));
 
-   if (device->physical_device->rad_info.gfx_level >= GFX10) {
-      sampler->state[2] |= S_008F38_LOD_BIAS(radv_float_to_sfixed(CLAMP(pCreateInfo->mipLodBias, -32, 31), 8)) |
-                           S_008F38_ANISO_OVERRIDE_GFX10(device->instance->drirc.disable_aniso_single_level);
+   if (pdev->info.gfx_level >= GFX10) {
+      sampler->state[2] |= S_008F38_LOD_BIAS(util_signed_fixed(CLAMP(pCreateInfo->mipLodBias, -32, 31), 8)) |
+                           S_008F38_ANISO_OVERRIDE_GFX10(instance->drirc.disable_aniso_single_level);
    } else {
-      sampler->state[2] |= S_008F38_LOD_BIAS(radv_float_to_sfixed(CLAMP(pCreateInfo->mipLodBias, -16, 16), 8)) |
-                           S_008F38_DISABLE_LSB_CEIL(device->physical_device->rad_info.gfx_level <= GFX8) |
-                           S_008F38_FILTER_PREC_FIX(1) |
-                           S_008F38_ANISO_OVERRIDE_GFX8(device->instance->drirc.disable_aniso_single_level &&
-                                                        device->physical_device->rad_info.gfx_level >= GFX8);
+      sampler->state[2] |=
+         S_008F38_LOD_BIAS(util_signed_fixed(CLAMP(pCreateInfo->mipLodBias, -16, 16), 8)) |
+         S_008F38_DISABLE_LSB_CEIL(pdev->info.gfx_level <= GFX8) | S_008F38_FILTER_PREC_FIX(1) |
+         S_008F38_ANISO_OVERRIDE_GFX8(instance->drirc.disable_aniso_single_level && pdev->info.gfx_level >= GFX8);
    }
 
-   if (device->physical_device->rad_info.gfx_level >= GFX11) {
+   if (pdev->info.gfx_level >= GFX11) {
       sampler->state[3] |= S_008F3C_BORDER_COLOR_PTR_GFX11(border_color_ptr);
    } else {
       sampler->state[3] |= S_008F3C_BORDER_COLOR_PTR_GFX6(border_color_ptr);
@@ -266,7 +254,7 @@ VKAPI_ATTR VkResult VKAPI_CALL
 radv_CreateSampler(VkDevice _device, const VkSamplerCreateInfo *pCreateInfo, const VkAllocationCallbacks *pAllocator,
                    VkSampler *pSampler)
 {
-   RADV_FROM_HANDLE(radv_device, device, _device);
+   VK_FROM_HANDLE(radv_device, device, _device);
    struct radv_sampler *sampler;
 
    sampler = vk_sampler_create(&device->vk, pCreateInfo, pAllocator, sizeof(*sampler));
@@ -283,8 +271,8 @@ radv_CreateSampler(VkDevice _device, const VkSamplerCreateInfo *pCreateInfo, con
 VKAPI_ATTR void VKAPI_CALL
 radv_DestroySampler(VkDevice _device, VkSampler _sampler, const VkAllocationCallbacks *pAllocator)
 {
-   RADV_FROM_HANDLE(radv_device, device, _device);
-   RADV_FROM_HANDLE(radv_sampler, sampler, _sampler);
+   VK_FROM_HANDLE(radv_device, device, _device);
+   VK_FROM_HANDLE(radv_sampler, sampler, _sampler);
 
    if (!sampler)
       return;

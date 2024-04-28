@@ -21,7 +21,7 @@
  * USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-#include "util/u_box.h"
+#include "util/box.h"
 #include "util/u_inlines.h"
 
 #include "virtio-gpu/virgl_protocol.h"
@@ -372,7 +372,7 @@ virgl_transfer_queue_extend_buffer(struct virgl_transfer_queue *queue,
    assert(queued->base.resource->target == PIPE_BUFFER);
    assert(queued->hw_res_map);
 
-   memcpy(queued->hw_res_map + offset, data, size);
+   memcpy((uint8_t *)queued->hw_res_map + offset, data, size);
    u_box_union_2d(&queued->base.box, &queued->base.box, &box);
    queued->offset = queued->base.box.x;
 

@@ -24,7 +24,7 @@
 #ifndef VK_PIPELINE_H
 #define VK_PIPELINE_H
 
-#include "vulkan/vulkan_core.h"
+#include "vk_object.h"
 #include "vk_util.h"
 
 #include <stdbool.h>
@@ -32,6 +32,7 @@
 struct nir_shader;
 struct nir_shader_compiler_options;
 struct spirv_to_nir_options;
+struct vk_command_buffer;
 struct vk_device;
 
 #ifdef __cplusplus
@@ -59,6 +60,13 @@ vk_pipeline_shader_stage_to_nir(struct vk_device *device,
                                 const struct spirv_to_nir_options *spirv_options,
                                 const struct nir_shader_compiler_options *nir_options,
                                 void *mem_ctx, struct nir_shader **nir_out);
+
+enum gl_subgroup_size
+vk_get_subgroup_size(uint32_t spirv_version,
+                     gl_shader_stage stage,
+                     const void *info_pNext,
+                     bool allow_varying,
+                     bool require_full);
 
 struct vk_pipeline_robustness_state {
    VkPipelineRobustnessBufferBehaviorEXT storage_buffers;
@@ -138,6 +146,62 @@ vk_graph_pipeline_create_flags(const VkExecutionGraphPipelineCreateInfoAMDX *inf
       return info->flags;
 }
 #endif
+
+struct vk_pipeline_ops;
+
+struct vk_pipeline {
+   struct vk_object_base base;
+
+   const struct vk_pipeline_ops *ops;
+
+   VkPipelineBindPoint bind_point;
+   VkPipelineCreateFlags2KHR flags;
+};
+
+VK_DEFINE_NONDISP_HANDLE_CASTS(vk_pipeline, base, VkPipeline,
+                               VK_OBJECT_TYPE_PIPELINE);
+
+struct vk_pipeline_ops {
+   void (*destroy)(struct vk_device *device,
+                   struct vk_pipeline *pipeline,
+                   const VkAllocationCallbacks *pAllocator);
+
+   VkResult (*get_executable_properties)(struct vk_device *device,
+                                         struct vk_pipeline *pipeline,
+                                         uint32_t *executable_count,
+                                         VkPipelineExecutablePropertiesKHR *properties);
+
+   VkResult (*get_executable_statistics)(struct vk_device *device,
+                                         struct vk_pipeline *pipeline,
+                                         uint32_t executable_index,
+                                         uint32_t *statistic_count,
+                                         VkPipelineExecutableStatisticKHR *statistics);
+
+   VkResult (*get_internal_representations)(
+      struct vk_device *device,
+      struct vk_pipeline *pipeline,
+      uint32_t executable_index,
+      uint32_t *internal_representation_count,
+      VkPipelineExecutableInternalRepresentationKHR* internal_representations);
+
+   void (*cmd_bind)(struct vk_command_buffer *cmd_buffer,
+                    struct vk_pipeline *pipeline);
+};
+
+void *vk_pipeline_zalloc(struct vk_device *device,
+                         const struct vk_pipeline_ops *ops,
+                         VkPipelineBindPoint bind_point,
+                         VkPipelineCreateFlags2KHR flags,
+                         const VkAllocationCallbacks *alloc,
+                         size_t size);
+
+void vk_pipeline_free(struct vk_device *device,
+                      const VkAllocationCallbacks *alloc,
+                      struct vk_pipeline *pipeline);
+
+void
+vk_cmd_unbind_pipelines_for_stages(struct vk_command_buffer *cmd_buffer,
+                                   VkShaderStageFlags stages);
 
 #ifdef __cplusplus
 }

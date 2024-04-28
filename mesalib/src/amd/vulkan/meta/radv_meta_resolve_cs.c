@@ -1,24 +1,7 @@
 /*
  * Copyright © 2016 Dave Airlie
  *
- * Permission is hereby granted, free of charge, to any person obtaining a
- * copy of this software and associated documentation files (the "Software"),
- * to deal in the Software without restriction, including without limitation
- * the rights to use, copy, modify, merge, publish, distribute, sublicense,
- * and/or sell copies of the Software, and to permit persons to whom the
- * Software is furnished to do so, subject to the following conditions:
- *
- * The above copyright notice and this permission notice (including the next
- * paragraph) shall be included in all copies or substantial portions of the
- * Software.
- *
- * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
- * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
- * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
- * THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
- * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
- * FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS
- * IN THE SOFTWARE.
+ * SPDX-License-Identifier: MIT
  */
 
 #include <assert.h>
@@ -27,11 +10,13 @@
 #include "nir/nir_builder.h"
 #include "nir/nir_format_convert.h"
 
+#include "radv_entrypoints.h"
+#include "radv_formats.h"
 #include "radv_meta.h"
-#include "radv_private.h"
 #include "sid.h"
 #include "vk_common_entrypoints.h"
 #include "vk_format.h"
+#include "vk_shader_module.h"
 
 static nir_def *
 radv_meta_build_resolve_srgb_conversion(nir_builder *b, nir_def *input)
@@ -414,7 +399,7 @@ radv_device_finish_meta_resolve_compute_state(struct radv_device *device)
 static VkPipeline *
 radv_get_resolve_pipeline(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_iview)
 {
-   struct radv_device *device = cmd_buffer->device;
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_state *state = &device->meta_state;
    uint32_t samples = src_iview->image->vk.samples;
    uint32_t samples_log2 = ffs(samples) - 1;
@@ -445,7 +430,7 @@ static void
 emit_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image_view *src_iview, struct radv_image_view *dst_iview,
              const VkOffset2D *src_offset, const VkOffset2D *dst_offset, const VkExtent2D *resolve_extent)
 {
-   struct radv_device *device = cmd_buffer->device;
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    VkPipeline *pipeline;
 
    radv_meta_push_descriptor_set(cmd_buffer, VK_PIPELINE_BIND_POINT_COMPUTE,
@@ -496,7 +481,7 @@ emit_depth_stencil_resolve(struct radv_cmd_buffer *cmd_buffer, struct radv_image
                            const VkExtent3D *resolve_extent, VkImageAspectFlags aspects,
                            VkResolveModeFlagBits resolve_mode)
 {
-   struct radv_device *device = cmd_buffer->device;
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const uint32_t samples = src_iview->image->vk.samples;
    const uint32_t samples_log2 = ffs(samples) - 1;
    VkPipeline *pipeline;
@@ -581,6 +566,7 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
                                 VkImageLayout src_image_layout, struct radv_image *dst_image, VkFormat dst_format,
                                 VkImageLayout dst_image_layout, const VkImageResolve2 *region)
 {
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    struct radv_meta_saved_state saved_state;
 
    /* For partial resolves, DCC should be decompressed before resolving
@@ -588,9 +574,8 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
     */
    uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->qf, cmd_buffer->qf);
 
-   if (!radv_image_use_dcc_image_stores(cmd_buffer->device, dst_image) &&
-       radv_layout_dcc_compressed(cmd_buffer->device, dst_image, region->dstSubresource.mipLevel, dst_image_layout,
-                                  queue_mask) &&
+   if (!radv_image_use_dcc_image_stores(device, dst_image) &&
+       radv_layout_dcc_compressed(device, dst_image, region->dstSubresource.mipLevel, dst_image_layout, queue_mask) &&
        (region->dstOffset.x || region->dstOffset.y || region->dstOffset.z ||
         region->extent.width != dst_image->vk.extent.width || region->extent.height != dst_image->vk.extent.height ||
         region->extent.depth != dst_image->vk.extent.depth)) {
@@ -622,7 +607,7 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
    for (uint32_t layer = 0; layer < src_layer_count; ++layer) {
 
       struct radv_image_view src_iview;
-      radv_image_view_init(&src_iview, cmd_buffer->device,
+      radv_image_view_init(&src_iview, device,
                            &(VkImageViewCreateInfo){
                               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                               .image = radv_image_to_handle(src_image),
@@ -640,7 +625,7 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
                            0, NULL);
 
       struct radv_image_view dst_iview;
-      radv_image_view_init(&dst_iview, cmd_buffer->device,
+      radv_image_view_init(&dst_iview, device,
                            &(VkImageViewCreateInfo){
                               .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                               .image = radv_image_to_handle(dst_image),
@@ -666,9 +651,8 @@ radv_meta_resolve_compute_image(struct radv_cmd_buffer *cmd_buffer, struct radv_
 
    radv_meta_restore(&saved_state, cmd_buffer);
 
-   if (!radv_image_use_dcc_image_stores(cmd_buffer->device, dst_image) &&
-       radv_layout_dcc_compressed(cmd_buffer->device, dst_image, region->dstSubresource.mipLevel, dst_image_layout,
-                                  queue_mask)) {
+   if (!radv_image_use_dcc_image_stores(device, dst_image) &&
+       radv_layout_dcc_compressed(device, dst_image, region->dstSubresource.mipLevel, dst_image_layout, queue_mask)) {
 
       cmd_buffer->state.flush_bits |= RADV_CMD_FLAG_CS_PARTIAL_FLUSH | RADV_CMD_FLAG_INV_VCACHE;
 
@@ -700,6 +684,7 @@ void
 radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkImageAspectFlags aspects,
                                         VkResolveModeFlagBits resolve_mode)
 {
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
    const struct radv_rendering_state *render = &cmd_buffer->state.render;
    VkRect2D resolve_area = render->area;
    struct radv_meta_saved_state saved_state;
@@ -738,7 +723,7 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
    struct radv_image *dst_image = dst_iview->image;
 
    struct radv_image_view tsrc_iview;
-   radv_image_view_init(&tsrc_iview, cmd_buffer->device,
+   radv_image_view_init(&tsrc_iview, device,
                         &(VkImageViewCreateInfo){
                            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                            .image = radv_image_to_handle(src_image),
@@ -756,7 +741,7 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
                         0, NULL);
 
    struct radv_image_view tdst_iview;
-   radv_image_view_init(&tdst_iview, cmd_buffer->device,
+   radv_image_view_init(&tdst_iview, device,
                         &(VkImageViewCreateInfo){
                            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
                            .image = radv_image_to_handle(dst_image),
@@ -782,7 +767,7 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
 
    uint32_t queue_mask = radv_image_queue_family_mask(dst_image, cmd_buffer->qf, cmd_buffer->qf);
 
-   if (radv_layout_is_htile_compressed(cmd_buffer->device, dst_image, dst_layout, queue_mask)) {
+   if (radv_layout_is_htile_compressed(device, dst_image, dst_layout, queue_mask)) {
       VkImageSubresourceRange range = {0};
       range.aspectMask = aspects;
       range.baseMipLevel = dst_iview->vk.base_mip_level;
@@ -790,7 +775,7 @@ radv_depth_stencil_resolve_rendering_cs(struct radv_cmd_buffer *cmd_buffer, VkIm
       range.baseArrayLayer = dst_iview->vk.base_array_layer;
       range.layerCount = layer_count;
 
-      uint32_t htile_value = radv_get_htile_initial_value(cmd_buffer->device, dst_image);
+      uint32_t htile_value = radv_get_htile_initial_value(device, dst_image);
 
       cmd_buffer->state.flush_bits |= radv_clear_htile(cmd_buffer, dst_image, &range, htile_value);
    }

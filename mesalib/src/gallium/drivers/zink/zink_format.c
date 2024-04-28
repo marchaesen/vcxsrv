@@ -152,6 +152,8 @@ zink_format_get_emulated_alpha(enum pipe_format format)
    if (util_format_is_luminance(format))
       return util_format_luminance_to_red(format);
    if (util_format_is_luminance_alpha(format)) {
+      if (util_format_is_srgb(format))
+         return format;
       if (format == PIPE_FORMAT_LATC2_UNORM)
          return PIPE_FORMAT_RGTC2_UNORM;
       if (format == PIPE_FORMAT_LATC2_SNORM)

@@ -450,6 +450,8 @@ interval_add(struct ir3_reg_ctx *_ctx, struct ir3_reg_interval *_interval)
    unsigned size = reg_size(interval->interval.reg);
    if (interval->interval.reg->flags & IR3_REG_SHARED) {
       ctx->cur_pressure.shared += size;
+      if (interval->interval.reg->flags & IR3_REG_HALF)
+         ctx->cur_pressure.shared_half += size;
    } else {
       if (interval->interval.reg->flags & IR3_REG_HALF) {
          ctx->cur_pressure.half += size;
@@ -477,6 +479,8 @@ interval_delete(struct ir3_reg_ctx *_ctx, struct ir3_reg_interval *_interval)
    unsigned size = reg_size(interval->interval.reg);
    if (interval->interval.reg->flags & IR3_REG_SHARED) {
       ctx->cur_pressure.shared -= size;
+      if (interval->interval.reg->flags & IR3_REG_HALF)
+         ctx->cur_pressure.shared_half -= size;
    } else {
       if (interval->interval.reg->flags & IR3_REG_HALF) {
          ctx->cur_pressure.half -= size;
@@ -574,12 +578,17 @@ insert_dst(struct ra_spill_ctx *ctx, struct ir3_register *dst)
       physreg_t physreg = ra_reg_get_physreg(dst);
       physreg_t max = physreg + reg_size(dst);
 
-      if (interval->interval.reg->flags & IR3_REG_SHARED)
+      if (interval->interval.reg->flags & IR3_REG_SHARED) {
          ctx->max_pressure.shared = MAX2(ctx->max_pressure.shared, max);
-      else if (interval->interval.reg->flags & IR3_REG_HALF)
+         if (interval->interval.reg->flags & IR3_REG_HALF) {
+            ctx->max_pressure.shared_half = MAX2(ctx->max_pressure.shared_half,
+                                                 max);
+         }
+      } else if (interval->interval.reg->flags & IR3_REG_HALF) {
          ctx->max_pressure.half = MAX2(ctx->max_pressure.half, max);
-      else
+      } else {
          ctx->max_pressure.full = MAX2(ctx->max_pressure.full, max);
+      }
    }
 }
 
@@ -673,13 +682,13 @@ get_spill_slot(struct ra_spill_ctx *ctx, struct ir3_register *reg)
    if (reg->merge_set) {
       if (reg->merge_set->spill_slot == ~0) {
          reg->merge_set->spill_slot = ALIGN_POT(ctx->spill_slot,
-                                                reg->merge_set->alignment);
+                                                reg->merge_set->alignment * 2);
          ctx->spill_slot = reg->merge_set->spill_slot + reg->merge_set->size * 2;
       }
       return reg->merge_set->spill_slot + reg->merge_set_offset * 2;
    } else {
       if (reg->spill_slot == ~0) {
-         reg->spill_slot = ALIGN_POT(ctx->spill_slot, reg_elem_size(reg));
+         reg->spill_slot = ALIGN_POT(ctx->spill_slot, reg_elem_size(reg) * 2);
          ctx->spill_slot = reg->spill_slot + reg_size(reg) * 2;
       }
       return reg->spill_slot;
@@ -1024,6 +1033,7 @@ update_max_pressure(struct ra_spill_ctx *ctx)
    d("\tfull: %u", ctx->cur_pressure.full);
    d("\thalf: %u", ctx->cur_pressure.half);
    d("\tshared: %u", ctx->cur_pressure.shared);
+   d("\tshared half: %u", ctx->cur_pressure.shared_half);
 
    ctx->max_pressure.full =
       MAX2(ctx->max_pressure.full, ctx->cur_pressure.full);
@@ -1031,6 +1041,8 @@ update_max_pressure(struct ra_spill_ctx *ctx)
       MAX2(ctx->max_pressure.half, ctx->cur_pressure.half);
    ctx->max_pressure.shared =
       MAX2(ctx->max_pressure.shared, ctx->cur_pressure.shared);
+   ctx->max_pressure.shared_half =
+      MAX2(ctx->max_pressure.shared_half, ctx->cur_pressure.shared_half);
 }
 
 static void
@@ -1193,20 +1205,23 @@ is_last_pcopy_src(struct ir3_instruction *pcopy, unsigned src_n)
 static void
 handle_pcopy(struct ra_spill_ctx *ctx, struct ir3_instruction *pcopy)
 {
-   foreach_dst (dst, pcopy) {
+   ra_foreach_dst (dst, pcopy) {
       struct ra_spill_interval *dst_interval = ctx->intervals[dst->name];
       ra_spill_interval_init(dst_interval, dst);
    }
 
    foreach_src_n (src, i, pcopy) {
-      d("processing src %u", i);
       struct ir3_register *dst = pcopy->dsts[i];
+      if (!(dst->flags & IR3_REG_SSA))
+         continue;
+
+      d("processing src %u", i);
 
       /* Skip the intermediate copy for cases where the source is merged with
        * the destination. Crucially this means that we also don't reload/spill
        * it if it's been spilled, because it shares the same spill slot.
        */
-      if (src->def && src->def->merge_set &&
+      if ((src->flags & IR3_REG_SSA) && src->def->merge_set &&
           src->def->merge_set == dst->merge_set &&
           src->def->merge_set_offset == dst->merge_set_offset) {
          struct ra_spill_interval *src_interval = ctx->intervals[src->def->name];
@@ -1221,7 +1236,7 @@ handle_pcopy(struct ra_spill_ctx *ctx, struct ir3_instruction *pcopy)
             dst_interval->cant_spill = false;
             dst_interval->dst = src_interval->dst;
          }
-      } else if (src->def) {
+      } else if (src->flags & IR3_REG_SSA) {
          struct ra_spill_interval *temp_interval =
             create_temp_interval(ctx, dst);
          struct ir3_register *temp = temp_interval->interval.reg;
@@ -1251,15 +1266,17 @@ handle_pcopy(struct ra_spill_ctx *ctx, struct ir3_instruction *pcopy)
 
    foreach_src_n (src, i, pcopy) {
       struct ir3_register *dst = pcopy->dsts[i];
+      if (!(dst->flags & IR3_REG_SSA))
+         continue;
 
-      if (src->def && src->def->merge_set &&
+      if ((src->flags & IR3_REG_SSA) && src->def->merge_set &&
           src->def->merge_set == dst->merge_set &&
           src->def->merge_set_offset == dst->merge_set_offset)
          continue;
 
       struct ra_spill_interval *dst_interval = ctx->intervals[dst->name];
 
-      if (!src->def) {
+      if (!(src->flags & IR3_REG_SSA)) {
          dst_interval->cant_spill = true;
          ra_spill_ctx_insert(ctx, dst_interval);
          limit(ctx, pcopy);
@@ -1292,6 +1309,9 @@ handle_pcopy(struct ra_spill_ctx *ctx, struct ir3_instruction *pcopy)
 static void
 handle_input_phi(struct ra_spill_ctx *ctx, struct ir3_instruction *instr)
 {
+   if (!(instr->dsts[0]->flags & IR3_REG_SSA))
+      return;
+
    init_dst(ctx, instr->dsts[0]);
    insert_dst(ctx, instr->dsts[0]);
    finish_dst(ctx, instr->dsts[0]);
@@ -1300,6 +1320,9 @@ handle_input_phi(struct ra_spill_ctx *ctx, struct ir3_instruction *instr)
 static void
 remove_input_phi(struct ra_spill_ctx *ctx, struct ir3_instruction *instr)
 {
+   if (!(instr->dsts[0]->flags & IR3_REG_SSA))
+      return;
+
    if (instr->opc == OPC_META_TEX_PREFETCH) {
       ra_foreach_src (src, instr)
          remove_src(ctx, instr, src);
@@ -1623,6 +1646,9 @@ static void
 rewrite_phi(struct ra_spill_ctx *ctx, struct ir3_instruction *phi,
             struct ir3_block *block)
 {
+   if (!(phi->dsts[0]->flags & IR3_REG_SSA))
+      return;
+
    if (!ctx->intervals[phi->dsts[0]->name]->interval.inserted) {
       phi->flags |= IR3_INSTR_UNUSED;
       return;
@@ -1808,7 +1834,8 @@ handle_block(struct ra_spill_ctx *ctx, struct ir3_block *block)
    }
 
    if (ctx->spilling) {
-      if (block->predecessors_count == 1) {
+      if (block->predecessors_count == 1 &&
+          block->predecessors[0]->successors[1]) {
          spill_single_pred_live_in(ctx, block);
       } else {
          spill_live_ins(ctx, block);
@@ -1977,8 +2004,25 @@ cleanup_dead(struct ir3 *ir)
 {
    foreach_block (block, &ir->block_list) {
       foreach_instr_safe (instr, &block->instr_list) {
-         if (instr->flags & IR3_INSTR_UNUSED)
-            list_delinit(&instr->node);
+         if (instr->flags & IR3_INSTR_UNUSED) {
+            if (instr->opc == OPC_META_PARALLEL_COPY) {
+               /* There may be non-SSA shared copies, we need to preserve these.
+                */
+               for (unsigned i = 0; i < instr->dsts_count;) {
+                  if (instr->dsts[i]->flags & IR3_REG_SSA) {
+                     instr->dsts[i] = instr->dsts[--instr->dsts_count];
+                     instr->srcs[i] = instr->srcs[--instr->srcs_count];
+                  } else {
+                     i++;
+                  }
+               }
+
+               if (instr->dsts_count == 0)
+                  list_delinit(&instr->node);
+            } else {
+               list_delinit(&instr->node);
+            }
+         }
       }
    }
 }
@@ -2072,6 +2116,7 @@ ir3_calc_pressure(struct ir3_shader_variant *v, struct ir3_liveness *live,
    assert(ctx->cur_pressure.full == 0);
    assert(ctx->cur_pressure.half == 0);
    assert(ctx->cur_pressure.shared == 0);
+   assert(ctx->cur_pressure.shared_half == 0);
 
    *max_pressure = ctx->max_pressure;
    ralloc_free(ctx);

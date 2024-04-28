@@ -35,10 +35,6 @@
 #define GLAMOR_DEBUG_TEXTURE_DOWNLOAD         2
 #define GLAMOR_DEBUG_TEXTURE_DYNAMIC_UPLOAD   3
 
-extern void
-AbortServer(void)
-    _X_NORETURN;
-
 #define GLAMOR_PANIC(_format_, ...)			\
   do {							\
     LogMessageVerb(X_NONE, 0, "Glamor Fatal Error"	\

@@ -27,6 +27,17 @@ constexpr unsigned num_nodes = 16;
 using mask_t = uint16_t;
 static_assert(std::numeric_limits<mask_t>::digits >= num_nodes);
 
+struct VOPDInfo {
+   VOPDInfo() : is_opy_only(0), is_dst_odd(0), src_banks(0), has_literal(0), is_commutative(0) {}
+   uint16_t is_opy_only : 1;
+   uint16_t is_dst_odd : 1;
+   uint16_t src_banks : 10; /* 0-3: src0, 4-7: src1, 8-9: src2 */
+   uint16_t has_literal : 1;
+   uint16_t is_commutative : 1;
+   aco_opcode op = aco_opcode::num_opcodes;
+   uint32_t literal = 0;
+};
+
 struct InstrInfo {
    Instruction* instr;
    int32_t priority;
@@ -46,12 +57,21 @@ struct RegisterInfo {
 
 struct SchedILPContext {
    Program* program;
+   bool is_vopd = false;
    InstrInfo nodes[num_nodes];
    RegisterInfo regs[512];
    mask_t non_reorder_mask = 0; /* bitmask of instruction nodes which should not be reordered. */
    mask_t active_mask = 0;      /* bitmask of valid instruction nodes. */
    uint8_t next_non_reorderable = UINT8_MAX; /* index of next node which should not be reordered. */
    uint8_t last_non_reorderable = UINT8_MAX; /* index of last node which should not be reordered. */
+
+   /* VOPD scheduler: */
+   VOPDInfo vopd[num_nodes];
+   VOPDInfo prev_vopd_info;
+   InstrInfo prev_info;
+
+   mask_t vopd_odd_mask = 0;
+   mask_t vopd_even_mask = 0;
 };
 
 /**
@@ -98,6 +118,154 @@ can_reorder(const Instruction* const instr)
    return true;
 }
 
+VOPDInfo
+get_vopd_info(const Instruction* instr)
+{
+   if (instr->format != Format::VOP1 && instr->format != Format::VOP2)
+      return VOPDInfo();
+
+   VOPDInfo info;
+   info.is_commutative = true;
+   switch (instr->opcode) {
+   case aco_opcode::v_fmac_f32: info.op = aco_opcode::v_dual_fmac_f32; break;
+   case aco_opcode::v_fmaak_f32: info.op = aco_opcode::v_dual_fmaak_f32; break;
+   case aco_opcode::v_fmamk_f32:
+      info.op = aco_opcode::v_dual_fmamk_f32;
+      info.is_commutative = false;
+      break;
+   case aco_opcode::v_mul_f32: info.op = aco_opcode::v_dual_mul_f32; break;
+   case aco_opcode::v_add_f32: info.op = aco_opcode::v_dual_add_f32; break;
+   case aco_opcode::v_sub_f32: info.op = aco_opcode::v_dual_sub_f32; break;
+   case aco_opcode::v_subrev_f32: info.op = aco_opcode::v_dual_subrev_f32; break;
+   case aco_opcode::v_mul_legacy_f32: info.op = aco_opcode::v_dual_mul_dx9_zero_f32; break;
+   case aco_opcode::v_mov_b32: info.op = aco_opcode::v_dual_mov_b32; break;
+   case aco_opcode::v_cndmask_b32:
+      info.op = aco_opcode::v_dual_cndmask_b32;
+      info.is_commutative = false;
+      break;
+   case aco_opcode::v_max_f32: info.op = aco_opcode::v_dual_max_f32; break;
+   case aco_opcode::v_min_f32: info.op = aco_opcode::v_dual_min_f32; break;
+   case aco_opcode::v_dot2c_f32_f16: info.op = aco_opcode::v_dual_dot2acc_f32_f16; break;
+   case aco_opcode::v_add_u32:
+      info.op = aco_opcode::v_dual_add_nc_u32;
+      info.is_opy_only = true;
+      break;
+   case aco_opcode::v_lshlrev_b32:
+      info.op = aco_opcode::v_dual_lshlrev_b32;
+      info.is_opy_only = true;
+      info.is_commutative = false;
+      break;
+   case aco_opcode::v_and_b32:
+      info.op = aco_opcode::v_dual_and_b32;
+      info.is_opy_only = true;
+      break;
+   default: return VOPDInfo();
+   }
+
+   /* Each instruction may use at most one SGPR. */
+   if (instr->opcode == aco_opcode::v_cndmask_b32 && instr->operands[0].isOfType(RegType::sgpr))
+      return VOPDInfo();
+
+   info.is_dst_odd = instr->definitions[0].physReg().reg() & 0x1;
+
+   static const unsigned bank_mask[3] = {0x3, 0x3, 0x1};
+   bool has_sgpr = false;
+   for (unsigned i = 0; i < instr->operands.size(); i++) {
+      unsigned port = (instr->opcode == aco_opcode::v_fmamk_f32 && i == 1) ? 2 : i;
+      if (instr->operands[i].isOfType(RegType::vgpr))
+         info.src_banks |= 1 << (port * 4 + (instr->operands[i].physReg().reg() & bank_mask[port]));
+
+      /* Check all operands because of fmaak/fmamk. */
+      if (instr->operands[i].isLiteral()) {
+         assert(!info.has_literal || info.literal == instr->operands[i].constantValue());
+         info.has_literal = true;
+         info.literal = instr->operands[i].constantValue();
+      }
+
+      /* Check all operands because of cndmask. */
+      has_sgpr |= !instr->operands[i].isConstant() && instr->operands[i].isOfType(RegType::sgpr);
+   }
+
+   /* An instruction can't use both a literal and an SGPR. */
+   if (has_sgpr && info.has_literal)
+      return VOPDInfo();
+
+   info.is_commutative &= instr->operands[0].isOfType(RegType::vgpr);
+
+   return info;
+}
+
+bool
+is_vopd_compatible(const VOPDInfo& a, const VOPDInfo& b)
+{
+   if ((a.is_opy_only && b.is_opy_only) || (a.is_dst_odd == b.is_dst_odd))
+      return false;
+
+   /* Both can use a literal, but it must be the same literal. */
+   if (a.has_literal && b.has_literal && a.literal != b.literal)
+      return false;
+
+   /* The rest is checking src VGPR bank compatibility. */
+   if ((a.src_banks & b.src_banks) == 0)
+      return true;
+
+   if (!a.is_commutative && !b.is_commutative)
+      return false;
+
+   uint16_t src0 = a.src_banks & 0xf;
+   uint16_t src1 = a.src_banks & 0xf0;
+   uint16_t src2 = a.src_banks & 0x300;
+   uint16_t a_src_banks = (src0 << 4) | (src1 >> 4) | src2;
+   if ((a_src_banks & b.src_banks) != 0)
+      return false;
+
+   /* If we have to turn v_mov_b32 into v_add_u32 but there is already an OPY-only instruction,
+    * we can't do it.
+    */
+   if (a.op == aco_opcode::v_dual_mov_b32 && !b.is_commutative && b.is_opy_only)
+      return false;
+   if (b.op == aco_opcode::v_dual_mov_b32 && !a.is_commutative && a.is_opy_only)
+      return false;
+
+   return true;
+}
+
+bool
+can_use_vopd(const SchedILPContext& ctx, unsigned idx)
+{
+   VOPDInfo cur_vopd = ctx.vopd[idx];
+   Instruction* first = ctx.nodes[idx].instr;
+   Instruction* second = ctx.prev_info.instr;
+
+   if (!second)
+      return false;
+
+   if (ctx.prev_vopd_info.op == aco_opcode::num_opcodes || cur_vopd.op == aco_opcode::num_opcodes)
+      return false;
+
+   if (!is_vopd_compatible(ctx.prev_vopd_info, cur_vopd))
+      return false;
+
+   assert(first->definitions.size() == 1);
+   assert(first->definitions[0].size() == 1);
+   assert(second->definitions.size() == 1);
+   assert(second->definitions[0].size() == 1);
+
+   /* Check for WaW dependency. */
+   if (first->definitions[0].physReg() == second->definitions[0].physReg())
+      return false;
+
+   /* Check for RaW dependency. */
+   for (Operand op : second->operands) {
+      assert(op.size() == 1);
+      if (first->definitions[0].physReg() == op.physReg())
+         return false;
+   }
+
+   /* WaR dependencies are not a concern. */
+   return true;
+}
+
 unsigned
 get_latency(const Instruction* const instr)
 {
@@ -137,6 +305,16 @@ add_entry(SchedILPContext& ctx, Instruction* const instr, const uint32_t idx)
    const mask_t mask = BITFIELD_BIT(idx);
    bool reorder = can_reorder(instr);
    ctx.active_mask |= mask;
+
+   if (ctx.is_vopd) {
+      VOPDInfo vopd = get_vopd_info(entry.instr);
+
+      ctx.vopd[idx] = vopd;
+      ctx.vopd_odd_mask &= ~mask;
+      ctx.vopd_odd_mask |= vopd.is_dst_odd ? mask : 0;
+      ctx.vopd_even_mask &= ~mask;
+      ctx.vopd_even_mask |= vopd.is_dst_odd || vopd.op == aco_opcode::num_opcodes ? 0 : mask;
+   }
 
    for (const Operand& op : instr->operands) {
       assert(op.isFixed());
@@ -206,8 +384,10 @@ add_entry(SchedILPContext& ctx, Instruction* const instr, const uint32_t idx)
          reg_info.has_direct_dependency = 1;
          reg_info.direct_dependency = idx;
 
-         /* Add latency information for the next register read. */
-         reg_info.latency = get_latency(instr);
+         if (!ctx.is_vopd) {
+            /* Add latency information for the next register read. */
+            reg_info.latency = get_latency(instr);
+         }
       }
    }
 
@@ -225,7 +405,7 @@ add_entry(SchedILPContext& ctx, Instruction* const instr, const uint32_t idx)
 
       /* Just don't reorder these at all. */
       if (!is_memory_instr(instr) || instr->definitions.empty() ||
-          get_sync_info(instr).semantics & semantic_volatile) {
+          get_sync_info(instr).semantics & semantic_volatile || ctx.is_vopd) {
          /* Add all previous instructions as dependencies. */
          entry.dependency_mask = ctx.active_mask;
       }
@@ -343,7 +523,7 @@ collect_clause_dependencies(const SchedILPContext& ctx, const uint8_t next, mask
  * Returns the index of the next instruction to be selected.
  */
 unsigned
-select_instruction(const SchedILPContext& ctx)
+select_instruction_ilp(const SchedILPContext& ctx)
 {
    mask_t mask = ctx.active_mask;
 
@@ -377,6 +557,185 @@ select_instruction(const SchedILPContext& ctx)
    return idx;
 }
 
+bool
+compare_nodes_vopd(const SchedILPContext& ctx, int num_vopd_odd_minus_even, bool* use_vopd,
+                   unsigned current, unsigned candidate)
+{
+   if (can_use_vopd(ctx, candidate)) {
+      /* If we can form a VOPD instruction, always prefer to do so. */
+      if (!*use_vopd) {
+         *use_vopd = true;
+         return true;
+      }
+   } else {
+      if (*use_vopd)
+         return false;
+
+      /* Neither current nor candidate can form a VOPD instruction with the previously scheduled
+       * instruction. */
+      VOPDInfo current_vopd = ctx.vopd[current];
+      VOPDInfo candidate_vopd = ctx.vopd[candidate];
+
+      /* Delay scheduling VOPD-capable instructions in case an opportunity appears later. */
+      bool current_vopd_capable = current_vopd.op != aco_opcode::num_opcodes;
+      bool candidate_vopd_capable = candidate_vopd.op != aco_opcode::num_opcodes;
+      if (current_vopd_capable != candidate_vopd_capable)
+         return !candidate_vopd_capable;
+
+      /* If we have to select from VOPD-capable instructions, prefer maintaining a balance of
+       * odd/even instructions, in case selecting this instruction fails to make a pair.
+       */
+      if (current_vopd_capable && num_vopd_odd_minus_even != 0) {
+         assert(candidate_vopd_capable);
+         bool prefer_vopd_dst_odd = num_vopd_odd_minus_even > 0;
+         if (current_vopd.is_dst_odd != candidate_vopd.is_dst_odd)
+            return prefer_vopd_dst_odd ? candidate_vopd.is_dst_odd : !candidate_vopd.is_dst_odd;
+      }
+   }
+
+   return ctx.nodes[candidate].priority > ctx.nodes[current].priority;
+}
+
+unsigned
+select_instruction_vopd(const SchedILPContext& ctx, bool* use_vopd)
+{
+   *use_vopd = false;
+
+   mask_t mask = ctx.active_mask;
+   if (ctx.next_non_reorderable != UINT8_MAX)
+      mask = ctx.nodes[ctx.next_non_reorderable].dependency_mask;
+
+   if (mask == 0)
+      return ctx.next_non_reorderable;
+
+   int num_vopd_odd_minus_even =
+      (int)util_bitcount(ctx.vopd_odd_mask & mask) - (int)util_bitcount(ctx.vopd_even_mask & mask);
+
+   unsigned cur = -1u;
+   u_foreach_bit (i, mask) {
+      const InstrInfo& candidate = ctx.nodes[i];
+
+      /* Check if the candidate has pending dependencies. */
+      if (candidate.dependency_mask)
+         continue;
+
+      if (cur == -1u) {
+         cur = i;
+         *use_vopd = can_use_vopd(ctx, i);
+      } else if (compare_nodes_vopd(ctx, num_vopd_odd_minus_even, use_vopd, cur, i)) {
+         cur = i;
+      }
+   }
+
+   assert(cur != -1u);
+   return cur;
+}
+
+void
+get_vopd_opcode_operands(Instruction* instr, const VOPDInfo& info, bool swap, aco_opcode* op,
+                         unsigned* num_operands, Operand* operands)
+{
+   *op = info.op;
+   *num_operands += instr->operands.size();
+   std::copy(instr->operands.begin(), instr->operands.end(), operands);
+
+   if (swap && info.op == aco_opcode::v_dual_mov_b32) {
+      *op = aco_opcode::v_dual_add_nc_u32;
+      (*num_operands)++;
+      operands[0] = Operand::zero();
+      operands[1] = instr->operands[0];
+   } else if (swap) {
+      if (info.op == aco_opcode::v_dual_sub_f32)
+         *op = aco_opcode::v_dual_subrev_f32;
+      else if (info.op == aco_opcode::v_dual_subrev_f32)
+         *op = aco_opcode::v_dual_sub_f32;
+      std::swap(operands[0], operands[1]);
+   }
+}
+
+Instruction*
+create_vopd_instruction(const SchedILPContext& ctx, unsigned idx)
+{
+   Instruction* x = ctx.prev_info.instr;
+   Instruction* y = ctx.nodes[idx].instr;
+   VOPDInfo x_info = ctx.prev_vopd_info;
+   VOPDInfo y_info = ctx.vopd[idx];
+
+   bool swap_x = false, swap_y = false;
+   if (x_info.src_banks & y_info.src_banks) {
+      assert(x_info.is_commutative || y_info.is_commutative);
+      /* Avoid swapping v_mov_b32 because it will become an OPY-only opcode. */
+      if (x_info.op == aco_opcode::v_dual_mov_b32 && !y_info.is_commutative) {
+         swap_x = true;
+         x_info.is_opy_only = true;
+      } else {
+         swap_x = x_info.is_commutative && x_info.op != aco_opcode::v_dual_mov_b32;
+         swap_y = y_info.is_commutative && !swap_x;
+      }
+   }
+
+   if (x_info.is_opy_only) {
+      std::swap(x, y);
+      std::swap(x_info, y_info);
+      std::swap(swap_x, swap_y);
+   }
+
+   aco_opcode x_op, y_op;
+   unsigned num_operands = 0;
+   Operand operands[6];
+   get_vopd_opcode_operands(x, x_info, swap_x, &x_op, &num_operands, operands);
+   get_vopd_opcode_operands(y, y_info, swap_y, &y_op, &num_operands, operands + num_operands);
+
+   Instruction* instr = create_instruction(x_op, Format::VOPD, num_operands, 2);
+   instr->vopd().opy = y_op;
+   instr->definitions[0] = x->definitions[0];
+   instr->definitions[1] = y->definitions[0];
+   std::copy(operands, operands + num_operands, instr->operands.begin());
+
+   return instr;
+}
+
+template <typename It>
+void
+do_schedule(SchedILPContext& ctx, It& insert_it, It& remove_it, It instructions_begin,
+            It instructions_end)
+{
+   for (unsigned i = 0; i < num_nodes; i++) {
+      if (remove_it == instructions_end)
+         break;
+
+      add_entry(ctx, (remove_it++)->get(), i);
+   }
+
+   ctx.prev_info.instr = NULL;
+   bool use_vopd = false;
+
+   while (ctx.active_mask) {
+      unsigned next_idx =
+         ctx.is_vopd ? select_instruction_vopd(ctx, &use_vopd) : select_instruction_ilp(ctx);
+      Instruction* next_instr = ctx.nodes[next_idx].instr;
+
+      if (use_vopd) {
+         std::prev(insert_it)->reset(create_vopd_instruction(ctx, next_idx));
+         ctx.prev_info.instr = NULL;
+      } else {
+         (insert_it++)->reset(next_instr);
+         ctx.prev_info = ctx.nodes[next_idx];
+         ctx.prev_vopd_info = ctx.vopd[next_idx];
+      }
+
+      remove_entry(ctx, next_instr, next_idx);
+      ctx.nodes[next_idx].instr = NULL;
+
+      if (remove_it != instructions_end) {
+         add_entry(ctx, (remove_it++)->get(), next_idx);
+      } else if (ctx.last_non_reorderable != UINT8_MAX) {
+         ctx.nodes[ctx.last_non_reorderable].potential_clause = false;
+         ctx.last_non_reorderable = UINT8_MAX;
+      }
+   }
+}
+
 } // namespace
 
 void
@@ -386,29 +745,26 @@ schedule_ilp(Program* program)
 
    for (Block& block : program->blocks) {
       auto it = block.instructions.begin();
-      for (unsigned i = 0; i < num_nodes; i++) {
-         if (it == block.instructions.end())
-            break;
-
-         add_entry(ctx, (it++)->get(), i);
-      }
-
       auto insert_it = block.instructions.begin();
-      while (insert_it != block.instructions.end()) {
-         unsigned next_idx = select_instruction(ctx);
-         Instruction* next_instr = ctx.nodes[next_idx].instr;
-         remove_entry(ctx, next_instr, next_idx);
-         (insert_it++)->reset(next_instr);
-         ctx.nodes[next_idx].instr = NULL;
+      do_schedule(ctx, insert_it, it, block.instructions.begin(), block.instructions.end());
+      block.instructions.resize(insert_it - block.instructions.begin());
+   }
+}
 
-         if (it != block.instructions.end()) {
-            add_entry(ctx, (it++)->get(), next_idx);
-         } else if (ctx.last_non_reorderable != UINT8_MAX) {
-            ctx.nodes[ctx.last_non_reorderable].potential_clause = false;
-            ctx.last_non_reorderable = UINT8_MAX;
-         }
-      }
-      assert(it == block.instructions.end());
+void
+schedule_vopd(Program* program)
+{
+   if (program->gfx_level < GFX11 || program->wave_size != 32)
+      return;
+
+   SchedILPContext ctx = {program};
+   ctx.is_vopd = true;
+
+   for (Block& block : program->blocks) {
+      auto it = block.instructions.rbegin();
+      auto insert_it = block.instructions.rbegin();
+      do_schedule(ctx, insert_it, it, block.instructions.rbegin(), block.instructions.rend());
+      block.instructions.erase(block.instructions.begin(), insert_it.base());
    }
 }
 

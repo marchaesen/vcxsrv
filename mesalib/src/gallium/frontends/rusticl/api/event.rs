@@ -1,6 +1,7 @@
 use crate::api::icd::*;
 use crate::api::types::*;
 use crate::api::util::*;
+use crate::core::context::*;
 use crate::core::event::*;
 use crate::core::queue::*;
 
@@ -16,7 +17,7 @@ use std::sync::Arc;
 #[cl_info_entrypoint(cl_get_event_info)]
 impl CLInfo<cl_event_info> for cl_event {
     fn query(&self, q: cl_event_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
-        let event = self.get_ref()?;
+        let event = Event::ref_from_raw(*self)?;
         Ok(match *q {
             CL_EVENT_COMMAND_EXECUTION_STATUS => cl_prop::<cl_int>(event.status()),
             CL_EVENT_CONTEXT => {
@@ -32,7 +33,7 @@ impl CLInfo<cl_event_info> for cl_event {
                 };
                 cl_prop::<cl_command_queue>(cl_command_queue::from_ptr(ptr))
             }
-            CL_EVENT_REFERENCE_COUNT => cl_prop::<cl_uint>(self.refcnt()?),
+            CL_EVENT_REFERENCE_COUNT => cl_prop::<cl_uint>(Event::refcnt(*self)?),
             CL_EVENT_COMMAND_TYPE => cl_prop::<cl_command_type>(event.cmd_type),
             _ => return Err(CL_INVALID_VALUE),
         })
@@ -42,7 +43,7 @@ impl CLInfo<cl_event_info> for cl_event {
 #[cl_info_entrypoint(cl_get_event_profiling_info)]
 impl CLInfo<cl_profiling_info> for cl_event {
     fn query(&self, q: cl_profiling_info, _: &[u8]) -> CLResult<Vec<MaybeUninit<u8>>> {
-        let event = self.get_ref()?;
+        let event = Event::ref_from_raw(*self)?;
         if event.cmd_type == CL_COMMAND_USER {
             // CL_PROFILING_INFO_NOT_AVAILABLE [...] if event is a user event object.
             return Err(CL_PROFILING_INFO_NOT_AVAILABLE);
@@ -62,23 +63,23 @@ impl CLInfo<cl_profiling_info> for cl_event {
 
 #[cl_entrypoint]
 fn create_user_event(context: cl_context) -> CLResult<cl_event> {
-    let c = context.get_arc()?;
-    Ok(cl_event::from_arc(Event::new_user(c)))
+    let c = Context::arc_from_raw(context)?;
+    Ok(Event::new_user(c).into_cl())
 }
 
 #[cl_entrypoint]
 fn retain_event(event: cl_event) -> CLResult<()> {
-    event.retain()
+    Event::retain(event)
 }
 
 #[cl_entrypoint]
 fn release_event(event: cl_event) -> CLResult<()> {
-    event.release()
+    Event::release(event)
 }
 
 #[cl_entrypoint]
 fn wait_for_events(num_events: cl_uint, event_list: *const cl_event) -> CLResult<()> {
-    let evs = cl_event::get_arc_vec_from_arr(event_list, num_events)?;
+    let evs = Event::arcs_from_arr(event_list, num_events)?;
 
     // CL_INVALID_VALUE if num_events is zero or event_list is NULL.
     if evs.is_empty() {
@@ -118,7 +119,7 @@ fn set_event_callback(
     pfn_event_notify: Option<FuncEventCB>,
     user_data: *mut ::std::os::raw::c_void,
 ) -> CLResult<()> {
-    let e = event.get_ref()?;
+    let e = Event::ref_from_raw(event)?;
 
     // CL_INVALID_VALUE [...] if command_exec_callback_type is not CL_SUBMITTED, CL_RUNNING, or CL_COMPLETE.
     if ![CL_SUBMITTED, CL_RUNNING, CL_COMPLETE].contains(&(command_exec_callback_type as cl_uint)) {
@@ -136,7 +137,7 @@ fn set_event_callback(
 
 #[cl_entrypoint]
 fn set_user_event_status(event: cl_event, execution_status: cl_int) -> CLResult<()> {
-    let e = event.get_ref()?;
+    let e = Event::ref_from_raw(event)?;
 
     // CL_INVALID_VALUE if the execution_status is not CL_COMPLETE or a negative integer value.
     if execution_status != CL_COMPLETE as cl_int && execution_status > 0 {
@@ -162,7 +163,12 @@ pub fn create_and_queue(
     work: EventSig,
 ) -> CLResult<()> {
     let e = Event::new(&q, cmd_type, deps, work);
-    cl_event::leak_ref(event, &e);
+    if !event.is_null() {
+        // SAFETY: we check for null and valid API use is to pass in a valid pointer
+        unsafe {
+            event.write(Arc::clone(&e).into_cl());
+        }
+    }
     q.queue(e);
     if block {
         q.flush(true)?;

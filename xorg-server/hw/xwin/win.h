@@ -48,8 +48,8 @@
 #endif
 
 /* Turn debug messages on or off */
-#ifndef CYGDEBUG
-#define CYGDEBUG				NO
+#ifndef ENABLE_DEBUG
+#define ENABLE_DEBUG				NO
 #endif
 
 #define WIN_DEFAULT_BPP				0
@@ -193,7 +193,7 @@
  * Debugging macros
  */
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
 #define DEBUG_MSG(str,...) \
 if (fDebugProcMsg) \
 { \
@@ -208,19 +208,19 @@ if (fDebugProcMsg) \
 #define DEBUG_MSG(str,...)
 #endif
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
 #define DEBUG_FN_NAME(str) PTSTR szFunctionName = str
 #else
 #define DEBUG_FN_NAME(str)
 #endif
 
-#if CYGDEBUG || YES
+#if ENABLE_DEBUG || YES
 #define DEBUGVARS BOOL fDebugProcMsg = FALSE
 #else
 #define DEBUGVARS
 #endif
 
-#if CYGDEBUG || YES
+#if ENABLE_DEBUG || YES
 #define DEBUGPROC_MSG fDebugProcMsg = TRUE
 #else
 #define DEBUGPROC_MSG
@@ -740,11 +740,9 @@ void
  * winerror.c
  */
 
-#ifdef DDXOSVERRORF
 void
 OsVendorVErrorF(const char *pszFormat, va_list va_args)
 _X_ATTRIBUTE_PRINTF(1, 0);
-#endif
 
 void
 winMessageBoxF(const char *pszError, UINT uType, ...)
@@ -1037,6 +1035,9 @@ winCreateMsgWindowThread(void);
  */
 void
 winOS(void);
+
+Bool
+winValidateArgs(void);
 
 /*
  * END DDX and DIX Function Prototypes

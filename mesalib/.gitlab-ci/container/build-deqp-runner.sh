@@ -3,29 +3,37 @@
 
 # When changing this file, you need to bump the following
 # .gitlab-ci/image-tags.yml tags:
-# DEBIAN_BASE_TAG
 # DEBIAN_X86_64_TEST_ANDROID_TAG
+# DEBIAN_X86_64_TEST_GL_TAG
+# DEBIAN_X86_64_TEST_VK_TAG
 # KERNEL_ROOTFS_TAG
 
 set -ex
 
+DEQP_RUNNER_VERSION=0.18.0
+
+DEQP_RUNNER_GIT_URL="${DEQP_RUNNER_GIT_URL:-https://gitlab.freedesktop.org/mesa/deqp-runner.git}"
+
 if [ -n "${DEQP_RUNNER_GIT_TAG}${DEQP_RUNNER_GIT_REV}" ]; then
     # Build and install from source
-    DEQP_RUNNER_CARGO_ARGS="--git ${DEQP_RUNNER_GIT_URL:-https://gitlab.freedesktop.org/anholt/deqp-runner.git}"
+    DEQP_RUNNER_CARGO_ARGS="--git $DEQP_RUNNER_GIT_URL"
 
     if [ -n "${DEQP_RUNNER_GIT_TAG}" ]; then
         DEQP_RUNNER_CARGO_ARGS="--tag ${DEQP_RUNNER_GIT_TAG} ${DEQP_RUNNER_CARGO_ARGS}"
+        DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_TAG"
     else
         DEQP_RUNNER_CARGO_ARGS="--rev ${DEQP_RUNNER_GIT_REV} ${DEQP_RUNNER_CARGO_ARGS}"
+        DEQP_RUNNER_GIT_CHECKOUT="$DEQP_RUNNER_GIT_REV"
     fi
 
     DEQP_RUNNER_CARGO_ARGS="${DEQP_RUNNER_CARGO_ARGS} ${EXTRA_CARGO_ARGS}"
 else
     # Install from package registry
-    DEQP_RUNNER_CARGO_ARGS="--version 0.16.0 ${EXTRA_CARGO_ARGS} -- deqp-runner"
+    DEQP_RUNNER_CARGO_ARGS="--version ${DEQP_RUNNER_VERSION} ${EXTRA_CARGO_ARGS} -- deqp-runner"
+    DEQP_RUNNER_GIT_CHECKOUT="v$DEQP_RUNNER_VERSION"
 fi
 
-if [ -z "$ANDROID_NDK_HOME" ]; then
+if [[ "$RUST_TARGET" != *-android ]]; then
     cargo install --locked  \
         -j ${FDO_CI_CONCURRENT:-4} \
         --root /usr/local \
@@ -33,7 +41,7 @@ if [ -z "$ANDROID_NDK_HOME" ]; then
 else
     mkdir -p /deqp-runner
     pushd /deqp-runner
-    git clone --branch v0.18.0 --depth 1 https://gitlab.freedesktop.org/anholt/deqp-runner.git deqp-runner-git
+    git clone --branch "$DEQP_RUNNER_GIT_CHECKOUT" --depth 1 "$DEQP_RUNNER_GIT_URL" deqp-runner-git
     pushd deqp-runner-git
 
     cargo install --locked  \
@@ -41,10 +49,10 @@ else
         --root /usr/local --version 2.10.0 \
         cargo-ndk
 
-    rustup target add x86_64-linux-android
-    RUSTFLAGS='-C target-feature=+crt-static' cargo ndk --target x86_64-linux-android build
+    rustup target add $RUST_TARGET
+    RUSTFLAGS='-C target-feature=+crt-static' cargo ndk --target $RUST_TARGET build --release
 
-    mv target/x86_64-linux-android/debug/deqp-runner /deqp-runner
+    mv target/$RUST_TARGET/release/deqp-runner /deqp-runner
 
     cargo uninstall --locked  \
         --root /usr/local \

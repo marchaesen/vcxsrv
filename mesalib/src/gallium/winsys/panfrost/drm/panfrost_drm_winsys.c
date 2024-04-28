@@ -119,9 +119,9 @@ free_dumb:
 }
 
 struct pipe_screen *
-panfrost_drm_screen_create(int fd)
+panfrost_drm_screen_create(int fd, const struct pipe_screen_config *config)
 {
-   return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), NULL, NULL,
+   return u_pipe_screen_lookup_or_create(os_dupfd_cloexec(fd), config, NULL,
                                          panfrost_create_screen);
 }
 

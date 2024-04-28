@@ -76,6 +76,12 @@ enum radeon_micro_mode
 #define RADEON_SURF_NO_TEXTURE            (1ull << 34)
 #define RADEON_SURF_NO_STENCIL_ADJUST     (1ull << 35)
 
+enum radeon_enc_hevc_surface_alignment
+{
+   RADEON_ENC_HEVC_SURFACE_LOG2_WIDTH_ALIGNMENT = 6,
+   RADEON_ENC_HEVC_SURFACE_LOG2_HEIGHT_ALIGNMENT = 4,
+};
+
 struct legacy_surf_level {
    uint32_t offset_256B;   /* divided by 256, the hw can only do 40-bit addresses */
    uint32_t slice_size_dw; /* in dwords; max = 4GB / 4. */
@@ -308,6 +314,8 @@ struct radeon_surf {
    uint8_t has_stencil : 1;
    /* This might be true even if micro_tile_mode isn't displayable or rotated. */
    uint8_t is_displayable : 1;
+   /* Thick tiling means 3D tiles. Use 3D compute workgroups for blits. (4x4x4 works well) */
+   uint8_t thick_tiling : 1;
    uint8_t first_mip_tail_level : 4;
 
    /* These are return values. Some of them can be set by the caller, but
@@ -492,26 +500,26 @@ unsigned ac_get_cb_format(enum amd_gfx_level gfx_level, enum pipe_format format)
 
 #ifdef AC_SURFACE_INCLUDE_NIR
 nir_def *ac_nir_dcc_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                        unsigned bpe, struct gfx9_meta_equation *equation,
-                                        nir_def *dcc_pitch, nir_def *dcc_height,
-                                        nir_def *dcc_slice_size,
-                                        nir_def *x, nir_def *y, nir_def *z,
-                                        nir_def *sample, nir_def *pipe_xor);
+                                    unsigned bpe, const struct gfx9_meta_equation *equation,
+                                    nir_def *dcc_pitch, nir_def *dcc_height,
+                                    nir_def *dcc_slice_size,
+                                    nir_def *x, nir_def *y, nir_def *z,
+                                    nir_def *sample, nir_def *pipe_xor);
 
 nir_def *ac_nir_cmask_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                        struct gfx9_meta_equation *equation,
-                                        nir_def *cmask_pitch, nir_def *cmask_height,
-                                        nir_def *cmask_slice_size,
-                                        nir_def *x, nir_def *y, nir_def *z,
-                                        nir_def *pipe_xor,
-                                        nir_def **bit_position);
+                                      const struct gfx9_meta_equation *equation,
+                                      nir_def *cmask_pitch, nir_def *cmask_height,
+                                      nir_def *cmask_slice_size,
+                                      nir_def *x, nir_def *y, nir_def *z,
+                                      nir_def *pipe_xor,
+                                      nir_def **bit_position);
 
 nir_def *ac_nir_htile_addr_from_coord(nir_builder *b, const struct radeon_info *info,
-                                          struct gfx9_meta_equation *equation,
-                                          nir_def *htile_pitch,
-                                          nir_def *htile_slice_size,
-                                          nir_def *x, nir_def *y, nir_def *z,
-                                          nir_def *pipe_xor);
+                                      const struct gfx9_meta_equation *equation,
+                                      nir_def *htile_pitch,
+                                      nir_def *htile_slice_size,
+                                      nir_def *x, nir_def *y, nir_def *z,
+                                      nir_def *pipe_xor);
 #endif
 
 #ifdef __cplusplus

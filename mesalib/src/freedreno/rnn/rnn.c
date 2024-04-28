@@ -44,9 +44,12 @@
 #include "util/u_debug.h"
 
 static char *catstr (char *a, char *b) {
+	char *res;
+
 	if (!a)
 		return b;
-	return aprintf("%s_%s", a, b);
+
+	return asprintf(&res, "%s_%s", a, b) < 0 ? NULL : res;
 }
 
 static int strdiff (const char *a, const char *b) {

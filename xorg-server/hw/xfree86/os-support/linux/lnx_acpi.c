@@ -2,11 +2,6 @@
 #include "xorg-config.h"
 #endif
 
-#include "os.h"
-#include "xf86.h"
-#include "xf86Priv.h"
-#define XF86_OS_PRIVS
-#include "xf86_OSproc.h"
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/socket.h>
@@ -14,6 +9,12 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <errno.h>
+
+#include "os.h"
+#include "xf86.h"
+#include "xf86Priv.h"
+#include "xf86_os_support.h"
+#include "xf86_OSproc.h"
 
 #define ACPI_SOCKET  "/var/run/acpid.socket"
 

@@ -50,7 +50,7 @@ struct vmw_buffer_desc {
 };
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 
 struct pb_buffer *
 vmw_pb_buffer(struct svga_winsys_buffer *buffer);

@@ -31,6 +31,14 @@
     - !reference [.lavapipe-rules, rules]
     - !reference [.zink-common-rules, rules]
 
+.zink-lvp-venus-rules:
+  stage: layered-backends
+  rules:
+    - !reference [.test, rules]
+    - !reference [.lavapipe-rules, rules]
+    - !reference [.venus-rules, rules]
+    - !reference [.zink-common-rules, rules]
+
 .zink-anv-rules:
   stage: layered-backends
   rules:
@@ -94,6 +102,7 @@
   variables:
     MESA_LOADER_DRIVER_OVERRIDE: "zink"
     FLAKES_CHANNEL: "#zink-ci"
+    MESA_VK_ABORT_ON_DEVICE_LOSS: 0
 
 .zink-trace-test:
   extends:
@@ -119,9 +128,26 @@
     # Fix non-conformant llvmpipe filter defaults
     GALLIVM_PERF: "no_quad_lod"
 
+.zink-venus-lvp-test:
+  extends:
+    - .zink-lvp-venus-rules
+    - .zink-test
+  variables:
+    LIBGL_ALWAYS_SOFTWARE: "true"
+    LVP_POISON_MEMORY: "1"
+    GPU_VERSION: zink-venus-lvp
+    # Fix non-conformant llvmpipe filter defaults
+    GALLIVM_PERF: "no_quad_lod"
+    VK_DRIVER: virtio
+    GALLIUM_DRIVER: "zink"
+    CROSVM_GALLIUM_DRIVER: "llvmpipe"
+    CROSVM_VK_DRIVER: "lvp"
+    CROSVM_GPU_ARGS: "vulkan=true,gles=false,backend=virglrenderer,egl=true,surfaceless=true,fixed-blob-mapping=false"
+
 .zink-anv-test:
   extends:
-    - .anv-tgl-test
+    - .lava-acer-cp514-2h-1160g7-volteer:x86_64
+    - .anv-test
     - .zink-anv-rules
     - .zink-test
   variables:
@@ -133,12 +159,14 @@
   extends:
     - .zink-test
     - .test-radv
-    - .b2c-test-gl
+    - .b2c-x86_64-test-gl
   variables:
     DEQP_SUITE: zink-radv
     HWCI_TEST_SCRIPT: ./install/deqp-runner.sh
+    B2C_KERNEL_URL: https://fs.mupuf.org/linux-6.6-b2c-radv-ci # 6.6
     B2C_JOB_SUCCESS_REGEX: 'Execution is over, pipeline status: 0'
     B2C_TIMEOUT_OVERALL_MINUTES: 20
 
     # Disable reporting, since DUTs don't have internet access
     FLAKES_CHANNEL: ""
+

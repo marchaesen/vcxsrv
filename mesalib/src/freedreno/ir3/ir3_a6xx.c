@@ -338,18 +338,21 @@ emit_intrinsic_load_global_ir3(struct ir3_context *ctx,
 
    struct ir3_instruction *load;
 
-   bool const_offset_in_bounds = nir_src_is_const(intr->src[1]) &&
-                                 nir_src_as_int(intr->src[1]) < (1 << 10) &&
-                                 nir_src_as_int(intr->src[1]) > -(1 << 10);
+   unsigned shift = ctx->compiler->gen >= 7 ? 2 : 0;
+   bool const_offset_in_bounds =
+      nir_src_is_const(intr->src[1]) &&
+      nir_src_as_int(intr->src[1]) < ((1 << 10) >> shift) &&
+      nir_src_as_int(intr->src[1]) > -((1 << 10) >> shift);
 
    if (const_offset_in_bounds) {
-      load = ir3_LDG(b, addr, 0, create_immed(b, nir_src_as_int(intr->src[1])),
+      load = ir3_LDG(b, addr, 0,
+                     create_immed(b, nir_src_as_int(intr->src[1]) << shift),
                      0, create_immed(b, dest_components), 0);
    } else {
       offset = ir3_get_src(ctx, &intr->src[1])[0];
-      if (ctx->compiler->gen >= 7) {
+      if (shift) {
          /* A7XX TODO: Move to NIR for it to be properly optimized? */
-         offset = ir3_SHL_B(b, offset, 0, create_immed(b, 2), 0);
+         offset = ir3_SHL_B(b, offset, 0, create_immed(b, shift), 0);
       }
       load =
          ir3_LDG_A(b, addr, 0, offset, 0, create_immed(b, 0), 0,

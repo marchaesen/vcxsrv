@@ -95,7 +95,6 @@ cso_set_vertex_elements(struct cso_context *ctx,
 
 void cso_set_vertex_buffers(struct cso_context *ctx,
                             unsigned count,
-                            unsigned unbind_trailing_count,
                             bool take_ownership,
                             const struct pipe_vertex_buffer *buffers);
 
@@ -111,7 +110,6 @@ enum cso_unbind_flags {
    CSO_UNBIND_FS_IMAGE0 = (1 << 2),
    CSO_UNBIND_VS_CONSTANTS = (1 << 3),
    CSO_UNBIND_FS_CONSTANTS = (1 << 4),
-   CSO_UNBIND_VERTEX_BUFFER0 = (1 << 5),
 };
 
 /*
@@ -205,8 +203,6 @@ void
 cso_set_vertex_buffers_and_elements(struct cso_context *ctx,
                                     const struct cso_velems_state *velems,
                                     unsigned vb_count,
-                                    unsigned unbind_trailing_vb_count,
-                                    bool take_ownership,
                                     bool uses_user_vertex_buffers,
                                     const struct pipe_vertex_buffer *vbuffers);
 
@@ -222,7 +218,7 @@ cso_draw_arrays(struct cso_context *cso, unsigned mode, unsigned start, unsigned
 
 static ALWAYS_INLINE void
 cso_draw_vbo(struct cso_context *cso,
-             struct pipe_draw_info *info,
+             const struct pipe_draw_info *info,
              unsigned drawid_offset,
              const struct pipe_draw_indirect_info *indirect,
              const struct pipe_draw_start_count_bias *draws,

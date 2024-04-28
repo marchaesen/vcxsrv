@@ -292,10 +292,10 @@ TEST_F(MergeFlow, DeletePointlessDiscard)
    CASE(
       {
          bi_fadd_f32_to(b, bi_register(0), bi_register(0), bi_register(0));
-         bi_tex_single_to(b, bi_register(0), bi_register(4), bi_register(8),
-                          bi_register(12), false, BI_DIMENSION_2D,
-                          BI_REGISTER_FORMAT_F32, false, false,
-                          BI_VA_LOD_MODE_COMPUTED_LOD, BI_WRITE_MASK_RGBA, 4);
+         bi_tex_single_to(
+            b, bi_register(0), bi_register(4), bi_register(8), bi_register(12),
+            false, BI_DIMENSION_2D, BI_REGISTER_FORMAT_F32, false, false,
+            BI_VA_LOD_MODE_COMPUTED_LOD, false, BI_WRITE_MASK_RGBA, 4);
          flow(DISCARD);
          flow(WAIT0);
          flow(WAIT0126);
@@ -311,7 +311,7 @@ TEST_F(MergeFlow, DeletePointlessDiscard)
          I = bi_tex_single_to(
             b, bi_register(0), bi_register(4), bi_register(8), bi_register(12),
             false, BI_DIMENSION_2D, BI_REGISTER_FORMAT_F32, false, false,
-            BI_VA_LOD_MODE_COMPUTED_LOD, BI_WRITE_MASK_RGBA, 4);
+            BI_VA_LOD_MODE_COMPUTED_LOD, false, BI_WRITE_MASK_RGBA, 4);
          I->flow = VA_FLOW_WAIT0126;
          I = bi_atest_to(b, bi_register(0), bi_register(4), bi_register(5),
                          atest);

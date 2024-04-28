@@ -1,6 +1,5 @@
 # See https://gitlab.freedesktop.org/mesa/mesa/-/merge_requests/9049
 dEQP-VK.pipeline.timestamp.calibrated.calibration_test,Fail
-dEQP-VK.pipeline.monolithic.timestamp.calibrated.calibration_test,Fail
 
 
 # introduced around the time of:
@@ -39,4 +38,6 @@ dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_miss_buffers3_sets1,Cr
 dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_rgen_buffers1_sets3,Crash
 dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_rgen_buffers1_sets3_imm_samplers,Crash
 dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_sect_buffers8_sets1,Crash
-dEQP-VK.binding_model.descriptor_buffer.multiple.graphics_tesc_buffers1_sets3,Crash
+
+# New CTS failures in 1.3.8.0
+dEQP-VK.texture.mipmap.2d.image_view_min_lod.base_level.nearest_linear_integer_texel_coord,Fail

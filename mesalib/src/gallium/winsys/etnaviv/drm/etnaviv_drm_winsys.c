@@ -29,7 +29,6 @@
 #include "util/u_screen.h"
 
 #include "etnaviv/etnaviv_screen.h"
-#include "etnaviv/hw/common.xml.h"
 #include "etnaviv_drm_public.h"
 
 #include <stdio.h>
@@ -39,8 +38,8 @@ static struct pipe_screen *
 screen_create(int gpu_fd, const struct pipe_screen_config *config, struct renderonly *ro)
 {
    struct etna_device *dev;
-   struct etna_gpu *gpu;
-   uint64_t val;
+   struct etna_gpu *gpu = NULL;
+   struct etna_gpu *npu = NULL;
    int i;
 
    dev = etna_device_new_dup(gpu_fd);
@@ -49,22 +48,41 @@ screen_create(int gpu_fd, const struct pipe_screen_config *config, struct render
       return NULL;
    }
 
-   for (i = 0;; i++) {
-      gpu = etna_gpu_new(dev, i);
-      if (!gpu) {
-         fprintf(stderr, "Error creating gpu\n");
-         return NULL;
-      }
+   for (i = 0; !gpu || !npu; i++) {
+      struct etna_core_info *info;
+      struct etna_gpu *core = etna_gpu_new(dev, i);
 
-      /* Look for a 3D capable GPU */
-      int ret = etna_gpu_get_param(gpu, ETNA_GPU_FEATURES_0, &val);
-      if (ret == 0 && (val & chipFeatures_PIPE_3D))
+      if (!core)
          break;
 
-      etna_gpu_del(gpu);
+      info = etna_gpu_get_core_info(core);
+      switch (info->type) {
+      case ETNA_CORE_GPU:
+         /* Look for a 3D capable GPU */
+         if (!gpu && etna_core_has_feature(info, ETNA_FEATURE_PIPE_3D)) {
+            gpu = core;
+            continue;
+         }
+         break;
+      case ETNA_CORE_NPU:
+         if (!npu) {
+            npu = core;
+            continue;
+         }
+         break;
+      default:
+         unreachable("invalid core type");
+      }
+
+      etna_gpu_del(core);
    }
 
-   return etna_screen_create(dev, gpu, ro);
+   if (!gpu && !npu) {
+      fprintf(stderr, "Error creating gpu or npu\n");
+      return NULL;
+   }
+
+   return etna_screen_create(dev, gpu, npu, ro);
 }
 
 struct pipe_screen *

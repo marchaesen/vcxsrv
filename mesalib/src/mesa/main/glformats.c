@@ -2270,19 +2270,11 @@ _mesa_base_tex_format(const struct gl_context *ctx, GLint internalFormat)
    case GL_RGBA12:
    case GL_RGBA16:
       return GL_RGBA;
+   case GL_BGRA:
+   case GL_BGRA8_EXT:
+      return GL_RGBA;
    default:
       ; /* fallthrough */
-   }
-
-   /* GL_BGRA can be an internal format *only* in OpenGL ES (1.x or 2.0).
-    */
-   if (_mesa_is_gles(ctx)) {
-      switch (internalFormat) {
-      case GL_BGRA:
-         return GL_RGBA;
-      default:
-         ; /* fallthrough */
-      }
    }
 
    if (_mesa_has_ARB_ES2_compatibility(ctx) ||
@@ -2753,7 +2745,7 @@ gles_effective_internal_format_for_format_and_type(GLenum format,
  * are required for complete checking between format and type.
  */
 static GLenum
-_mesa_gles_check_internalformat(const struct gl_context *ctx,
+_mesa_gles_check_internalformat(struct gl_context *ctx,
                                 GLenum internalFormat)
 {
    switch (internalFormat) {
@@ -2908,6 +2900,22 @@ _mesa_gles_check_internalformat(const struct gl_context *ctx,
       if (!_mesa_is_gles3(ctx))
          return GL_INVALID_VALUE;
       return GL_NO_ERROR;
+
+   case GL_BGRA8_EXT: {
+      /* This is technically speaking out-of-spec. But too many
+       * applications seems to depend on it, so let's allow it
+       * together with a small complaint */
+      static bool warned = false;
+      if (!warned) {
+         _mesa_warning(ctx,
+            "internalformat = GL_BGRA8_EXT invalid by spec, but too many "
+            "applications depend on it to error. Please fix the software "
+            "that causes this problem.");
+         warned = true;
+      }
+      return GL_NO_ERROR;
+      }
+
    default:
       return GL_INVALID_VALUE;
    }
@@ -2919,7 +2927,7 @@ _mesa_gles_check_internalformat(const struct gl_context *ctx,
  * \return error code, or GL_NO_ERROR.
  */
 GLenum
-_mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
+_mesa_gles_error_check_format_and_type(struct gl_context *ctx,
                                        GLenum format, GLenum type,
                                        GLenum internalFormat)
 {
@@ -2988,6 +2996,7 @@ _mesa_gles_error_check_format_and_type(const struct gl_context *ctx,
       if (type != GL_UNSIGNED_BYTE ||
               (internalFormat != GL_BGRA &&
                internalFormat != GL_RGBA8 &&
+               internalFormat != GL_BGRA8_EXT &&
                internalFormat != GL_SRGB8_ALPHA8))
          return GL_INVALID_OPERATION;
       break;
@@ -4035,6 +4044,13 @@ _mesa_is_es3_color_renderable(const struct gl_context *ctx,
    case GL_RGBA16_SNORM:
       return _mesa_has_EXT_texture_norm16(ctx) &&
              _mesa_has_EXT_render_snorm(ctx);
+   case GL_BGRA:
+      assert(_mesa_has_EXT_texture_format_BGRA8888(ctx));
+      return true;
+   case GL_BGRA8_EXT:
+      assert(_mesa_has_EXT_texture_format_BGRA8888(ctx) &&
+             _mesa_has_EXT_texture_storage(ctx));
+      return true;
    default:
       return false;
    }
@@ -4093,6 +4109,13 @@ _mesa_is_es3_texture_filterable(const struct gl_context *ctx,
        *     for the R32F, RG32F, RGB32F, and RGBA32F formats."
        */
       return _mesa_has_OES_texture_float_linear(ctx);
+   case GL_BGRA:
+      assert(_mesa_has_EXT_texture_format_BGRA8888(ctx));
+      return true;
+   case GL_BGRA8_EXT:
+      assert(_mesa_has_EXT_texture_format_BGRA8888(ctx) &&
+             _mesa_has_EXT_texture_storage(ctx));
+      return true;
    default:
       return false;
    }

@@ -39,6 +39,7 @@
  */
 
 #include "pan_minmax_cache.h"
+#include "util/macros.h"
 
 bool
 panfrost_minmax_cache_get(struct panfrost_minmax_cache *cache, unsigned start,
@@ -94,13 +95,10 @@ panfrost_minmax_cache_add(struct panfrost_minmax_cache *cache, unsigned start,
 
 void
 panfrost_minmax_cache_invalidate(struct panfrost_minmax_cache *cache,
-                                 struct pipe_transfer *transfer)
+                                 size_t offset, size_t size)
 {
    /* Ensure there is a cache to invalidate and a write */
    if (!cache)
-      return;
-
-   if (!(transfer->usage & PIPE_MAP_WRITE))
       return;
 
    unsigned valid_count = 0;
@@ -112,8 +110,8 @@ panfrost_minmax_cache_invalidate(struct panfrost_minmax_cache *cache,
       uint32_t count = key >> 32;
 
       /* 1D range intersection */
-      bool invalid = MAX2(transfer->box.x, start) <
-                     MIN2(transfer->box.x + transfer->box.width, start + count);
+      bool invalid = MAX2(offset, start) <
+                     MIN2(offset + size, start + count);
       if (!invalid) {
          cache->keys[valid_count] = key;
          cache->values[valid_count] = cache->values[i];

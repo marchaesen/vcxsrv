@@ -17,7 +17,9 @@ is" without express or implied warranty.
 #endif
 
 #include <X11/X.h>
+#include <X11/Xdefs.h>
 #include <X11/Xproto.h>
+
 #include "screenint.h"
 #include "input.h"
 #include "misc.h"
@@ -208,10 +210,11 @@ xnestCollectEvents(void)
         case MapNotify:
         case ReparentNotify:
         case UnmapNotify:
+        case NoExpose:
             break;
 
         default:
-            ErrorF("xnest warning: unhandled event\n");
+            ErrorF("xnest warning: unhandled event: %d\n", X.type);
             break;
         }
     }

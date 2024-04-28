@@ -60,9 +60,8 @@ fill_cbv_descriptors(struct d3d12_context *ctx,
    struct d3d12_descriptor_handle table_start;
    d2d12_descriptor_heap_get_next_handle(batch->view_heap, &table_start);
 
-   for (unsigned i = 0; i < shader->num_cb_bindings; i++) {
-      unsigned binding = shader->cb_bindings[i].binding;
-      struct pipe_constant_buffer *buffer = &ctx->cbufs[stage][binding];
+   for (unsigned i = shader->begin_ubo_binding; i < shader->end_ubo_binding; i++) {
+      struct pipe_constant_buffer *buffer = &ctx->cbufs[stage][i];
 
       D3D12_CONSTANT_BUFFER_VIEW_DESC cbv_desc = {};
       if (buffer && buffer->buffer) {
@@ -474,7 +473,7 @@ check_descriptors_left(struct d3d12_context *ctx, bool compute)
       if (!shader)
          continue;
 
-      needed_descs += shader->current->num_cb_bindings;
+      needed_descs += shader->current->end_ubo_binding;
       needed_descs += shader->current->end_srv_binding - shader->current->begin_srv_binding;
       needed_descs += shader->current->nir->info.num_ssbos;
       needed_descs += shader->current->nir->info.num_images;
@@ -514,7 +513,7 @@ update_shader_stage_root_parameters(struct d3d12_context *ctx,
    uint64_t dirty = ctx->shader_dirty[stage];
    assert(shader);
 
-   if (shader->num_cb_bindings > 0) {
+   if (shader->end_ubo_binding - shader->begin_ubo_binding > 0) {
       if (dirty & D3D12_SHADER_DIRTY_CONSTBUF) {
          assert(num_root_descriptors < MAX_DESCRIPTOR_TABLES);
          root_desc_tables[num_root_descriptors] = fill_cbv_descriptors(ctx, shader, stage);
@@ -858,7 +857,7 @@ update_draw_auto(struct d3d12_context *ctx,
    d3d12_stream_output_target *target = (d3d12_stream_output_target *)so_arg;
 
    ctx->transform_state_vars[0] = ctx->gfx_pipeline_state.ves->strides[0];
-   ctx->transform_state_vars[1] = ctx->vbs[0].buffer_offset - so_arg->buffer_offset;
+   ctx->transform_state_vars[1] = 0;
    
    pipe_shader_buffer new_cs_ssbo;
    new_cs_ssbo.buffer = target->fill_buffer;
@@ -1292,7 +1291,7 @@ update_dispatch_indirect_with_sysvals(struct d3d12_context *ctx,
        ctx->compute_state == nullptr)
       return false;
 
-   if (!BITSET_TEST(ctx->compute_state->current->nir->info.system_values_read, SYSTEM_VALUE_NUM_WORKGROUPS))
+   if (!BITSET_TEST(ctx->compute_state->initial->info.system_values_read, SYSTEM_VALUE_NUM_WORKGROUPS))
       return false;
 
    if (ctx->current_predication)
@@ -1309,7 +1308,8 @@ update_dispatch_indirect_with_sysvals(struct d3d12_context *ctx,
    output_buf_templ.usage = PIPE_USAGE_DEFAULT;
    *indirect_out = ctx->base.screen->resource_create(ctx->base.screen, &output_buf_templ);
 
-   struct pipe_box src_box = { (int)*indirect_offset_inout, 0, 0, sizeof(uint32_t) * 3, 1, 1 };
+   struct pipe_box src_box;
+   u_box_3d((int)*indirect_offset_inout, 0, 0, sizeof(uint32_t) * 3, 1, 1, &src_box);
    ctx->base.resource_copy_region(&ctx->base, *indirect_out, 0, 0, 0, 0, indirect_in, 0, &src_box);
    ctx->base.resource_copy_region(&ctx->base, *indirect_out, 0, src_box.width, 0, 0, indirect_in, 0, &src_box);
 

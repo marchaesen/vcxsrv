@@ -3,8 +3,6 @@ dEQP-VK.spirv_assembly.instruction.compute.float_controls.fp32.input_args.tanh_d
 dEQP-VK.spirv_assembly.instruction.graphics.float_controls.fp32.input_args.tanh_denorm_flush_to_zero_frag,Fail
 dEQP-VK.spirv_assembly.instruction.graphics.float_controls.fp32.input_args.tanh_denorm_flush_to_zero_vert,Fail
 
-dEQP-VK.draw.renderpass.shader_invocation.helper_invocation,Fail
-
 dEQP-VK.pipeline.monolithic.multisample.storage_image.64x64_1.r32g32b32a32_sfloat.samples_8,Fail
 dEQP-VK.pipeline.monolithic.multisample.storage_image.64x64_1.r8g8b8a8_unorm.samples_8,Fail
 dEQP-VK.pipeline.monolithic.multisample.storage_image.64x64_4.r32g32b32a32_sfloat.samples_8,Fail

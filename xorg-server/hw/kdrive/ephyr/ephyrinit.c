@@ -26,6 +26,10 @@
 #ifdef HAVE_DIX_CONFIG_H
 #include <dix-config.h>
 #endif
+
+#include "os/cmdline.h"
+#include "os/osdep.h"
+
 #include "ephyr.h"
 #include "ephyrlog.h"
 #include "glx_extinit.h"

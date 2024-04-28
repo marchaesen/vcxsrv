@@ -43,7 +43,6 @@ typedef struct _syncScreenFuncs {
     SyncScreenDestroyFenceFunc DestroyFence;
 } SyncScreenFuncsRec, *SyncScreenFuncsPtr;
 
-
 extern _X_EXPORT void
 miSyncScreenCreateFence(ScreenPtr pScreen, SyncFence * pFence,
                         Bool initially_triggered);
@@ -65,37 +64,17 @@ typedef struct _syncFenceFuncs {
 } SyncFenceFuncsRec, *SyncFenceFuncsPtr;
 
 extern _X_EXPORT void
-
 miSyncInitFence(ScreenPtr pScreen, SyncFence * pFence,
                 Bool initially_triggered);
+
 extern _X_EXPORT void
  miSyncDestroyFence(SyncFence * pFence);
+
 extern _X_EXPORT void
  miSyncTriggerFence(SyncFence * pFence);
 
 extern _X_EXPORT SyncScreenFuncsPtr miSyncGetScreenFuncs(ScreenPtr pScreen);
 extern _X_EXPORT Bool
  miSyncSetup(ScreenPtr pScreen);
-
-Bool
-miSyncFenceCheckTriggered(SyncFence * pFence);
-
-void
-miSyncFenceSetTriggered(SyncFence * pFence);
-
-void
-miSyncFenceReset(SyncFence * pFence);
-
-void
-miSyncFenceAddTrigger(SyncTrigger * pTrigger);
-
-void
-miSyncFenceDeleteTrigger(SyncTrigger * pTrigger);
-
-int
-miSyncInitFenceFromFD(DrawablePtr pDraw, SyncFence *pFence, int fd, BOOL initially_triggered);
-
-int
-miSyncFDFromFence(DrawablePtr pDraw, SyncFence *pFence);
 
 #endif                          /* _MISYNC_H_ */

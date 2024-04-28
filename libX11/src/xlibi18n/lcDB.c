@@ -345,15 +345,6 @@ read_line(
 
 	cur += len;
 	str[cur] = '\0';
-#ifdef __UNIXOS2__  /* Take out carriage returns under OS/2 */
-	if (cur>1) {
-	   if (str[cur-2] == '\r' && str[cur-1] == '\n') {
-	      str[cur-2] = '\n';
-	      str[cur-1] = '\0';
-	      cur--;
-	   }
-	}
-#endif
 	if (!quoted && cur > 1 && str[cur - 2] == SYM_BACKSLASH &&
 	    (str[cur - 1] == SYM_NEWLINE || str[cur-1] == SYM_CR)) {
 	    /* the line is ended backslash followed by newline.
@@ -1289,11 +1280,7 @@ _XlcCreateLocaleDataBase(
     if (name == NULL)
 	return (XPointer)NULL;
 
-#ifndef __UNIXOS2__
     name_q = XrmStringToQuark(name);
-#else
-    name_q = XrmStringToQuark((char*)__XOS2RedirRoot(name));
-#endif
     for (list = _db_list; list; list = list->next) {
 	if (name_q == list->name_q) {
 	    list->ref_count++;

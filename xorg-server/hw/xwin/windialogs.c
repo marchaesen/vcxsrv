@@ -413,14 +413,14 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
     static winPrivScreenPtr s_pScreenPriv = NULL;
     static winScreenInfo *s_pScreenInfo = NULL;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winChangeDepthDlgProc\n");
 #endif
 
     /* Branch on message type */
     switch (message) {
     case WM_INITDIALOG:
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG\n");
 #endif
 
@@ -428,13 +428,13 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         s_pScreenPriv = (winPrivScreenPtr) lParam;
         s_pScreenInfo = s_pScreenPriv->pScreenInfo;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - s_pScreenPriv: %p, "
                  "s_pScreenInfo: %p\n",
                  s_pScreenPriv, s_pScreenInfo);
 #endif
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winChangeDepthDlgProc - WM_INITDIALOG - orig bpp: %u, "
                  "current bpp: %d\n",
                  (unsigned int)s_pScreenInfo->dwBPP,
@@ -446,7 +446,7 @@ winChangeDepthDlgProc(HWND hwndDialog, UINT message,
         return TRUE;
 
     case WM_DISPLAYCHANGE:
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winChangeDepthDlgProc - WM_DISPLAYCHANGE - orig bpp: %u, "
                  "new bpp: %d\n",
                  (unsigned int)s_pScreenInfo->dwBPP,
@@ -542,14 +542,14 @@ winAboutDlgProc(HWND hwndDialog, UINT message, WPARAM wParam, LPARAM lParam)
 {
     static winPrivScreenPtr s_pScreenPriv = NULL;
 
-#if CYGDEBUG
+#if ENABLE_DEBUG
     winDebug("winAboutDlgProc\n");
 #endif
 
     /* Branch on message type */
     switch (message) {
     case WM_INITDIALOG:
-#if CYGDEBUG
+#if ENABLE_DEBUG
         winDebug("winAboutDlgProc - WM_INITDIALOG\n");
 #endif
 

@@ -29,9 +29,11 @@
 #include "util/xmlconfig.h"
 #include "vk_device.h"
 #include "vk_physical_device.h"
+#include "vk_log.h"
 #include "vk_util.h"
 #include "drm-uapi/drm_fourcc.h"
 #include "drm-uapi/dma-buf.h"
+#include "util/libsync.h"
 
 #include <errno.h>
 #include <time.h>
@@ -229,6 +231,190 @@ fail_close_sync_file:
    return result;
 }
 
+VkResult
+wsi_create_image_explicit_sync_drm(const struct wsi_swapchain *chain,
+                                   struct wsi_image *image)
+{
+   /* Cleanup of any failures is handled by the caller in wsi_create_image
+    * calling wsi_destroy_image -> wsi_destroy_image_explicit_sync_drm. */
+
+   VK_FROM_HANDLE(vk_device, device, chain->device);
+   const struct wsi_device *wsi = chain->wsi;
+   VkResult result = VK_SUCCESS;
+   int ret = 0;
+
+   const VkExportSemaphoreCreateInfo semaphore_export_info = {
+      .sType = VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO,
+      /* This is a syncobj fd for any drivers using syncobj. */
+      .handleTypes = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
+   };
+
+   const VkSemaphoreTypeCreateInfo semaphore_type_info = {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+      .pNext = &semaphore_export_info,
+      .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+   };
+
+   const VkSemaphoreCreateInfo semaphore_info = {
+      .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+      .pNext = &semaphore_type_info,
+   };
+
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      result = wsi->CreateSemaphore(chain->device,
+                                    &semaphore_info,
+                                    &chain->alloc,
+                                    &image->explicit_sync[i].semaphore);
+      if (result != VK_SUCCESS)
+         return result;
+
+      const VkSemaphoreGetFdInfoKHR semaphore_get_info = {
+         .sType = VK_STRUCTURE_TYPE_SEMAPHORE_GET_FD_INFO_KHR,
+         .semaphore = image->explicit_sync[i].semaphore,
+         .handleType = VK_EXTERNAL_SEMAPHORE_HANDLE_TYPE_OPAQUE_FD_BIT,
+      };
+
+      result = wsi->GetSemaphoreFdKHR(chain->device, &semaphore_get_info, &image->explicit_sync[i].fd);
+      if (result != VK_SUCCESS)
+         return result;
+   }
+
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      ret = drmSyncobjFDToHandle(device->drm_fd, image->explicit_sync[i].fd, &image->explicit_sync[i].handle);
+      if (ret != 0)
+         return VK_ERROR_FEATURE_NOT_PRESENT;
+   }
+
+   return VK_SUCCESS;
+}
+
+void
+wsi_destroy_image_explicit_sync_drm(const struct wsi_swapchain *chain,
+                                    struct wsi_image *image)
+{
+   VK_FROM_HANDLE(vk_device, device, chain->device);
+   const struct wsi_device *wsi = chain->wsi;
+
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      if (image->explicit_sync[i].handle != 0) {
+         drmSyncobjDestroy(device->drm_fd, image->explicit_sync[i].handle);
+         image->explicit_sync[i].handle = 0;
+      }
+
+      if (image->explicit_sync[i].fd >= 0) {
+         close(image->explicit_sync[i].fd);
+         image->explicit_sync[i].fd = -1;
+      }
+
+      if (image->explicit_sync[i].semaphore != VK_NULL_HANDLE) {
+         wsi->DestroySemaphore(chain->device, image->explicit_sync[i].semaphore, &chain->alloc);
+         image->explicit_sync[i].semaphore = VK_NULL_HANDLE;
+      }
+   }
+}
+
+static VkResult
+wsi_create_sync_imm(struct vk_device *device, struct vk_sync **sync_out)
+{
+   const struct vk_sync_type *sync_type =
+      get_sync_file_sync_type(device, VK_SYNC_FEATURE_CPU_WAIT);
+   struct vk_sync *sync = NULL;
+   VkResult result;
+
+   result = vk_sync_create(device, sync_type, VK_SYNC_IS_SHAREABLE, 0, &sync);
+   if (result != VK_SUCCESS)
+      goto error;
+
+   result = vk_sync_signal(device, sync, 0);
+   if (result != VK_SUCCESS)
+      goto error;
+
+   *sync_out = sync;
+   goto done;
+
+error:
+   vk_sync_destroy(device, sync);
+done:
+   return result;
+}
+
+VkResult
+wsi_create_sync_for_image_syncobj(const struct wsi_swapchain *chain,
+                                  const struct wsi_image *image,
+                                  enum vk_sync_features req_features,
+                                  struct vk_sync **sync_out)
+{
+   VK_FROM_HANDLE(vk_device, device, chain->device);
+   const struct vk_sync_type *sync_type =
+      get_sync_file_sync_type(device, VK_SYNC_FEATURE_CPU_WAIT);
+   VkResult result = VK_SUCCESS;
+   struct vk_sync *sync = NULL;
+   int sync_file_fds[WSI_ES_COUNT] = { -1, -1 };
+   uint32_t tmp_handles[WSI_ES_COUNT] = { 0, 0 };
+   int merged_sync_fd = -1;
+   if (sync_type == NULL)
+      return VK_ERROR_FEATURE_NOT_PRESENT;
+
+   if (image->explicit_sync[WSI_ES_RELEASE].timeline == 0) {
+      /* Signal immediately, there is no release to forward. */
+      return wsi_create_sync_imm(device, sync_out);
+   }
+
+   /* Transfer over to a new sync file with a
+    * surrogate handle.
+    */
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      if (drmSyncobjCreate(device->drm_fd, 0, &tmp_handles[i])) {
+         result = vk_errorf(NULL, VK_ERROR_OUT_OF_DEVICE_MEMORY, "Failed to create temp syncobj. Errno: %d - %s", errno, strerror(errno));
+         goto fail;
+      }
+
+      if (drmSyncobjTransfer(device->drm_fd, tmp_handles[i], 0,
+                             image->explicit_sync[i].handle, image->explicit_sync[i].timeline, 0)) {
+         result = vk_errorf(NULL, VK_ERROR_OUT_OF_DEVICE_MEMORY, "Failed to transfer syncobj. Was the timeline point materialized? Errno: %d - %s", errno, strerror(errno));
+         goto fail;
+      }
+      if (drmSyncobjExportSyncFile(device->drm_fd, tmp_handles[i], &sync_file_fds[i])) {
+         result = vk_errorf(NULL, VK_ERROR_OUT_OF_DEVICE_MEMORY, "Failed to export sync file. Errno: %d - %s", errno, strerror(errno));
+         goto fail;
+      }
+   }
+
+   merged_sync_fd = sync_merge("acquire merged sync", sync_file_fds[WSI_ES_ACQUIRE], sync_file_fds[WSI_ES_RELEASE]);
+   if (merged_sync_fd < 0) {
+      result = vk_errorf(NULL, VK_ERROR_OUT_OF_DEVICE_MEMORY, "Failed to merge acquire + release sync timelines. Errno: %d - %s", errno, strerror(errno));
+      goto fail;
+   }
+
+   result = vk_sync_create(device, sync_type, VK_SYNC_IS_SHAREABLE, 0, &sync);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   result = vk_sync_import_sync_file(device, sync, merged_sync_fd);
+   if (result != VK_SUCCESS)
+      goto fail;
+
+   *sync_out = sync;
+   goto done;
+
+fail:
+   if (sync)
+      vk_sync_destroy(device, sync);
+done:
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      if (tmp_handles[i])
+         drmSyncobjDestroy(device->drm_fd, tmp_handles[i]);
+   }
+   for (uint32_t i = 0; i < WSI_ES_COUNT; i++) {
+      if (sync_file_fds[i] >= 0)
+         close(sync_file_fds[i]);
+   }
+   if (merged_sync_fd >= 0)
+      close(merged_sync_fd);
+   return result;
+}
+
+
 bool
 wsi_common_drm_devices_equal(int fd_a, int fd_b)
 {
@@ -309,9 +495,7 @@ wsi_create_native_image_mem(const struct wsi_swapchain *chain,
 static VkResult
 wsi_configure_native_image(const struct wsi_swapchain *chain,
                            const VkSwapchainCreateInfoKHR *pCreateInfo,
-                           uint32_t num_modifier_lists,
-                           const uint32_t *num_modifiers,
-                           const uint64_t *const *modifiers,
+                           const struct wsi_drm_image_params *params,
                            struct wsi_image_info *info)
 {
    const struct wsi_device *wsi = chain->wsi;
@@ -323,7 +507,9 @@ wsi_configure_native_image(const struct wsi_swapchain *chain,
    if (result != VK_SUCCESS)
       return result;
 
-   if (num_modifier_lists == 0) {
+   info->explicit_sync = params->explicit_sync;
+
+   if (params->num_modifier_lists == 0) {
       /* If we don't have modifiers, fall back to the legacy "scanout" flag */
       info->wsi.scanout = true;
    } else {
@@ -402,8 +588,8 @@ wsi_configure_native_image(const struct wsi_swapchain *chain,
       }
 
       uint32_t max_modifier_count = 0;
-      for (uint32_t l = 0; l < num_modifier_lists; l++)
-         max_modifier_count = MAX2(max_modifier_count, num_modifiers[l]);
+      for (uint32_t l = 0; l < params->num_modifier_lists; l++)
+         max_modifier_count = MAX2(max_modifier_count, params->num_modifiers[l]);
 
       uint64_t *image_modifiers =
          vk_alloc(&chain->alloc, sizeof(*image_modifiers) * max_modifier_count,
@@ -412,13 +598,13 @@ wsi_configure_native_image(const struct wsi_swapchain *chain,
          goto fail_oom;
 
       uint32_t image_modifier_count = 0;
-      for (uint32_t l = 0; l < num_modifier_lists; l++) {
+      for (uint32_t l = 0; l < params->num_modifier_lists; l++) {
          /* Walk the modifier lists and construct a list of supported
           * modifiers.
           */
-         for (uint32_t i = 0; i < num_modifiers[l]; i++) {
-            if (get_modifier_props(info, modifiers[l][i]))
-               image_modifiers[image_modifier_count++] = modifiers[l][i];
+         for (uint32_t i = 0; i < params->num_modifiers[l]; i++) {
+            if (get_modifier_props(info, params->modifiers[l][i]))
+               image_modifiers[image_modifier_count++] = params->modifiers[l][i];
          }
 
          /* We only want to take the modifiers from the first list */
@@ -484,7 +670,7 @@ wsi_create_native_image_mem(const struct wsi_swapchain *chain,
    const struct wsi_memory_allocate_info memory_wsi_info = {
       .sType = VK_STRUCTURE_TYPE_WSI_MEMORY_ALLOCATE_INFO_MESA,
       .pNext = NULL,
-      .implicit_sync = true,
+      .implicit_sync = !info->explicit_sync,
    };
    const VkExportMemoryAllocateInfo memory_export_info = {
       .sType = VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO,
@@ -572,8 +758,7 @@ wsi_create_prime_image_mem(const struct wsi_swapchain *chain,
 {
    VkResult result =
       wsi_create_buffer_blit_context(chain, info, image,
-                                     VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT,
-                                     true);
+                                     VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT);
    if (result != VK_SUCCESS)
       return result;
 
@@ -590,14 +775,20 @@ wsi_create_prime_image_mem(const struct wsi_swapchain *chain,
 static VkResult
 wsi_configure_prime_image(UNUSED const struct wsi_swapchain *chain,
                           const VkSwapchainCreateInfoKHR *pCreateInfo,
-                          bool use_modifier,
-                          wsi_memory_type_select_cb select_buffer_memory_type,
+                          const struct wsi_drm_image_params *params,
                           struct wsi_image_info *info)
 {
+   bool use_modifier = params->num_modifier_lists > 0;
+   wsi_memory_type_select_cb select_buffer_memory_type =
+      params->same_gpu ? wsi_select_device_memory_type :
+                           prime_select_buffer_memory_type;
+
    VkResult result = wsi_configure_image(chain, pCreateInfo,
                                          0 /* handle_types */, info);
    if (result != VK_SUCCESS)
       return result;
+
+   info->explicit_sync = params->explicit_sync;
 
    wsi_configure_buffer_image(chain, pCreateInfo,
                               WSI_PRIME_LINEAR_STRIDE_ALIGN, 4096,
@@ -633,17 +824,172 @@ wsi_drm_configure_image(const struct wsi_swapchain *chain,
    assert(params->base.image_type == WSI_IMAGE_TYPE_DRM);
 
    if (chain->blit.type == WSI_SWAPCHAIN_BUFFER_BLIT) {
-      bool use_modifier = params->num_modifier_lists > 0;
-      wsi_memory_type_select_cb select_buffer_memory_type =
-         params->same_gpu ? wsi_select_device_memory_type :
-                            prime_select_buffer_memory_type;
-      return wsi_configure_prime_image(chain, pCreateInfo, use_modifier,
-                                       select_buffer_memory_type, info);
+      return wsi_configure_prime_image(chain, pCreateInfo,
+                                       params,
+                                       info);
    } else {
       return wsi_configure_native_image(chain, pCreateInfo,
-                                        params->num_modifier_lists,
-                                        params->num_modifiers,
-                                        params->modifiers,
+                                        params,
                                         info);
    }
+}
+
+enum wsi_explicit_sync_state_flags
+{
+   WSI_ES_STATE_RELEASE_MATERIALIZED = (1u << 0),
+   WSI_ES_STATE_RELEASE_SIGNALLED    = (1u << 1),
+   WSI_ES_STATE_ACQUIRE_SIGNALLED    = (1u << 2),
+};
+
+/* Levels of "freeness"
+ * 0 -> Acquire Signalled + Release Signalled
+ * 1 -> Acquire Signalled + Release Materialized
+ * 2 -> Release Signalled
+ * 3 -> Release Materialized
+ */
+static const uint32_t wsi_explicit_sync_free_levels[] = {
+   (WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_ACQUIRE_SIGNALLED),
+   (WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_ACQUIRE_SIGNALLED),
+   (WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_RELEASE_SIGNALLED),
+   (WSI_ES_STATE_RELEASE_MATERIALIZED),
+};
+
+static uint32_t
+wsi_drm_image_explicit_sync_state(struct vk_device *device, struct wsi_image *image)
+{
+   if (image->explicit_sync[WSI_ES_RELEASE].timeline == 0) {
+      /* This image has never been used in a timeline.
+       * It must be free.
+       */
+      return WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED | WSI_ES_STATE_ACQUIRE_SIGNALLED;
+   }
+
+   uint64_t points[WSI_ES_COUNT] = { 0 };
+   uint32_t handles[WSI_ES_COUNT] = {
+      image->explicit_sync[WSI_ES_ACQUIRE].handle,
+      image->explicit_sync[WSI_ES_RELEASE].handle
+   };
+   int ret = drmSyncobjQuery(device->drm_fd, handles, points, WSI_ES_COUNT);
+   if (ret)
+      return 0;
+
+   uint32_t flags = 0;
+   if (points[WSI_ES_ACQUIRE] >= image->explicit_sync[WSI_ES_ACQUIRE].timeline) {
+      flags |= WSI_ES_STATE_ACQUIRE_SIGNALLED;
+   }
+
+   if (points[WSI_ES_RELEASE] >= image->explicit_sync[WSI_ES_RELEASE].timeline) {
+      flags |= WSI_ES_STATE_RELEASE_SIGNALLED | WSI_ES_STATE_RELEASE_MATERIALIZED;
+   } else {
+      uint32_t first_signalled;
+      ret = drmSyncobjTimelineWait(device->drm_fd, &handles[WSI_ES_RELEASE], &image->explicit_sync[WSI_ES_RELEASE].timeline, 1, 0, DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE, &first_signalled);
+      if (ret == 0)
+         flags |= WSI_ES_STATE_RELEASE_MATERIALIZED;
+   }
+
+   return flags;
+}
+
+static uint64_t
+wsi_drm_rel_timeout_to_abs(uint64_t rel_timeout_ns)
+{
+   uint64_t cur_time_ns = os_time_get_nano();
+
+   /* Syncobj timeouts are signed */
+   return rel_timeout_ns > INT64_MAX - cur_time_ns
+      ? INT64_MAX
+      : cur_time_ns + rel_timeout_ns;
+}
+
+VkResult
+wsi_drm_wait_for_explicit_sync_release(struct wsi_swapchain *chain,
+                                       uint32_t image_count,
+                                       struct wsi_image **images,
+                                       uint64_t rel_timeout_ns,
+                                       uint32_t *image_index)
+{
+#ifdef HAVE_LIBDRM
+   STACK_ARRAY(uint32_t, handles, image_count);
+   STACK_ARRAY(uint64_t, points, image_count);
+   STACK_ARRAY(uint32_t, indices, image_count);
+   STACK_ARRAY(uint32_t, flags, image_count);
+   VK_FROM_HANDLE(vk_device, device, chain->device);
+   int ret = 0;
+
+   /* We don't need to wait for the merged timeline on the CPU,
+    * only on the GPU side of things.
+    *
+    * We already know that the CPU side for the acquire has materialized,
+    * for all images in this array.
+    * That's what "busy"/"free" essentially represents.
+    */
+   uint32_t unacquired_image_count = 0;
+   for (uint32_t i = 0; i < image_count; i++) {
+      if (images[i]->acquired)
+         continue;
+
+      flags[unacquired_image_count] = wsi_drm_image_explicit_sync_state(device, images[i]);
+      handles[unacquired_image_count] = images[i]->explicit_sync[WSI_ES_RELEASE].handle;
+      points[unacquired_image_count] = images[i]->explicit_sync[WSI_ES_RELEASE].timeline;
+      indices[unacquired_image_count] = i;
+      unacquired_image_count++;
+   }
+
+   /* Handle the case where there are no images to possible acquire. */
+   if (!unacquired_image_count) {
+      ret = -ETIME;
+      goto done;
+   }
+
+   /* Find the most optimal image using the free levels above. */
+   for (uint32_t free_level_idx = 0; free_level_idx < ARRAY_SIZE(wsi_explicit_sync_free_levels); free_level_idx++) {
+      uint32_t free_level = wsi_explicit_sync_free_levels[free_level_idx];
+
+      uint64_t present_serial = UINT64_MAX;
+      for (uint32_t i = 0; i < unacquired_image_count; i++) {
+         /* Pick the image that was presented longest ago inside
+          * of this free level, so it has the highest chance of
+          * being totally free the soonest.
+          */
+         if ((flags[i] & free_level) == free_level &&
+             images[indices[i]]->present_serial < present_serial) {
+            *image_index = indices[i];
+            present_serial = images[indices[i]]->present_serial;
+         }
+      }
+      if (present_serial != UINT64_MAX)
+         goto done;
+   }
+
+   /* Use DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE so we do not need to wait for the
+    * compositor's GPU work to be finished to acquire on the CPU side.
+    *
+    * We will forward the GPU signal to the VkSemaphore/VkFence of the acquire.
+    */
+   uint32_t first_signalled;
+   ret = drmSyncobjTimelineWait(device->drm_fd, handles, points, unacquired_image_count,
+                                wsi_drm_rel_timeout_to_abs(rel_timeout_ns),
+                                DRM_SYNCOBJ_WAIT_FLAGS_WAIT_AVAILABLE,
+                                &first_signalled);
+
+   /* Return the first image that materialized. */
+   if (ret != 0)
+      goto done;
+
+   *image_index = indices[first_signalled];
+done:
+   STACK_ARRAY_FINISH(flags);
+   STACK_ARRAY_FINISH(indices);
+   STACK_ARRAY_FINISH(points);
+   STACK_ARRAY_FINISH(handles);
+
+   if (ret == 0)
+      return VK_SUCCESS;
+   else if (ret == -ETIME)
+      return rel_timeout_ns ? VK_TIMEOUT : VK_NOT_READY;
+   else
+      return VK_ERROR_OUT_OF_DATE_KHR;
+#else
+   return VK_ERROR_FEATURE_NOT_PRESENT;
+#endif
 }

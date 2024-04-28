@@ -475,7 +475,7 @@ try_setup_point(struct lp_setup_context *setup,
      if (!point)
         return false;
 
-#ifdef DEBUG
+#if MESA_DEBUG
       point->v[0][0] = v0[0][0];
       point->v[0][1] = v0[0][1];
 #endif
@@ -554,7 +554,7 @@ try_setup_point(struct lp_setup_context *setup,
          lp_setup_alloc_rectangle(scene, key->num_inputs);
       if (!point)
          return false;
-#ifdef DEBUG
+#if MESA_DEBUG
       point->v[0][0] = v0[0][0];
       point->v[0][1] = v0[0][1];
 #endif

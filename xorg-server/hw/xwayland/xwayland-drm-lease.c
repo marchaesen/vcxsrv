@@ -31,6 +31,7 @@
 #include <xf86drmMode.h>
 #endif
 
+#include "randrstr_priv.h"
 #include "xwayland-drm-lease.h"
 #include "xwayland-screen.h"
 #include "xwayland-output.h"
@@ -188,7 +189,11 @@ lease_connector_handle_name(void *data,
                             struct wp_drm_lease_connector_v1 *wp_drm_lease_connector_v1,
                             const char *name)
 {
-    /* This space is deliberately left blank */
+    struct xwl_output *xwl_output = data;
+    char rr_output_name[MAX_OUTPUT_NAME] = { 0 };
+
+    snprintf(rr_output_name, MAX_OUTPUT_NAME, "lease-%s", name);
+    xwl_output_set_name(xwl_output, rr_output_name);
 }
 
 static void
@@ -346,16 +351,13 @@ drm_lease_device_handle_connector(void *data,
     struct xwl_drm_lease_device *lease_device = data;
     struct xwl_screen *xwl_screen = lease_device->xwl_screen;
     struct xwl_output *xwl_output;
-    char name[256];
+    char name[MAX_OUTPUT_NAME] = { 0 };
 
     xwl_output = calloc(1, sizeof *xwl_output);
     if (xwl_output == NULL) {
         ErrorF("%s ENOMEM\n", __func__);
         return;
     }
-
-    snprintf(name, sizeof name, "XWAYLAND%d",
-             xwl_screen_get_next_output_serial(xwl_screen));
 
     xwl_output->lease_device = lease_device;
     xwl_output->xwl_screen = xwl_screen;
@@ -367,7 +369,11 @@ drm_lease_device_handle_connector(void *data,
     }
     RRCrtcSetRotations(xwl_output->randr_crtc, ALL_ROTATIONS);
     xwl_output->randr_output = RROutputCreate(xwl_screen->screen,
-                                              name, strlen(name), xwl_output);
+                                              name, MAX_OUTPUT_NAME, xwl_output);
+    snprintf(name, MAX_OUTPUT_NAME, "XWAYLAND%d",
+             xwl_screen_get_next_output_serial(xwl_screen));
+    xwl_output_set_name(xwl_output, name);
+
     if (!xwl_output->randr_output) {
         ErrorF("Failed creating RandR Output\n");
         goto err;

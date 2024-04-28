@@ -39,6 +39,7 @@
 #define U_DEBUG_H_
 
 #include <stdarg.h>
+#include <stdlib.h>
 #include <string.h>
 #if !defined(_WIN32)
 #include <sys/types.h>
@@ -132,7 +133,7 @@ debug_printf(const char *format, ...) _util_printf_format(1,2);
 static inline void
 debug_printf(const char *format, ...)
 {
-#ifdef DEBUG
+#if MESA_DEBUG
    va_list ap;
    va_start(ap, format);
    _debug_vprintf(format, ap);
@@ -160,7 +161,7 @@ debug_printf(const char *format, ...)
    } while (0)
 
 
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_vprintf(_format, _ap) _debug_vprintf(_format, _ap)
 #else
 #define debug_vprintf(_format, _ap) ((void)0)
@@ -180,11 +181,11 @@ debug_disable_win32_error_dialogs(void);
 /**
  * Hard-coded breakpoint.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_break() os_break()
-#else /* !DEBUG */
+#else /* !MESA_DEBUG */
 #define debug_break() ((void)0)
-#endif /* !DEBUG */
+#endif /* MESA_DEBUG */
 
 
 void
@@ -194,7 +195,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 /**
  * Output the current function name.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_checkpoint() \
    _debug_printf("%s\n", __func__)
 #else
@@ -206,7 +207,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 /**
  * Output the full source code position.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_checkpoint_full() \
    _debug_printf("%s:%u:%s\n", __FILE__, __LINE__, __func__)
 #else
@@ -218,7 +219,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 /**
  * Output a warning message. Muted on release version.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_warning(__msg) \
    _debug_printf("%s:%u:%s: warning: %s\n", __FILE__, __LINE__, __func__, __msg)
 #else
@@ -230,7 +231,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 /**
  * Emit a warning message, but only once.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_warn_once(__msg) \
    do { \
       static bool warned = false; \
@@ -249,7 +250,7 @@ debug_get_version_option(const char *name, unsigned *major, unsigned *minor);
 /**
  * Output an error message. Not muted on release version.
  */
-#ifdef DEBUG
+#if MESA_DEBUG
 #define debug_error(__msg) \
    _debug_printf("%s:%u:%s: error: %s\n", __FILE__, __LINE__, __func__, __msg)
 #else
@@ -394,14 +395,21 @@ debug_get_option_ ## suffix (void) \
 }
 
 static inline bool
-__check_suid(void)
+__normal_user(void)
 {
-#if !defined(_WIN32)
-   if (geteuid() != getuid())
-      return true;
+#if defined(_WIN32)
+   return true;
+#else
+   return geteuid() == getuid() && getegid() == getgid();
 #endif
-   return false;
 }
+
+#ifndef HAVE_SECURE_GETENV
+static inline char *secure_getenv(const char *name)
+{
+   return getenv(name);
+}
+#endif
 
 #define DEBUG_GET_ONCE_BOOL_OPTION(sufix, name, dfault) \
 static bool \

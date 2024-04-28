@@ -15,6 +15,8 @@ is" without express or implied warranty.
 #ifndef XNESTPIXMAP_H
 #define XNESTPIXMAP_H
 
+#include <X11/Xdefs.h>
+
 extern DevPrivateKeyRec xnestPixmapPrivateKeyRec;
 
 #define xnestPixmapPrivateKey (&xnestPixmapPrivateKeyRec)

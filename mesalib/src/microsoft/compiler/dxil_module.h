@@ -132,7 +132,7 @@ enum dxil_opt_flags {
 };
 
 struct dxil_features {
-   unsigned doubles : 1,
+   uint64_t doubles : 1,
             cs_4x_raw_sb : 1,
             uavs_at_every_stage : 1,
             use_64uavs : 1,
@@ -162,7 +162,9 @@ struct dxil_features {
             unnamed : 1,
             atomic_int64_heap_resource : 1,
             advanced_texture_ops : 1,
-            writable_msaa : 1;
+            writable_msaa : 1,
+            sample_cmp_bias_gradient : 1,
+            extended_command_info : 1;
 };
 
 struct dxil_shader_info {

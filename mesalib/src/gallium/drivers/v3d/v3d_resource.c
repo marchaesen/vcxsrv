@@ -236,6 +236,7 @@ v3d_map_usage_prep(struct pipe_context *pctx,
 
         if (usage & PIPE_MAP_WRITE) {
                 rsc->writes++;
+                rsc->graphics_written = true;
                 rsc->initialized_buffers = ~0;
         }
 }

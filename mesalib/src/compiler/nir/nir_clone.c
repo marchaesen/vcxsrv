@@ -216,6 +216,7 @@ clone_alu(clone_state *state, const nir_alu_instr *alu)
 {
    nir_alu_instr *nalu = nir_alu_instr_create(state->ns, alu->op);
    nalu->exact = alu->exact;
+   nalu->fp_fast_math = alu->fp_fast_math;
    nalu->no_signed_wrap = alu->no_signed_wrap;
    nalu->no_unsigned_wrap = alu->no_unsigned_wrap;
 
@@ -300,6 +301,7 @@ clone_intrinsic(clone_state *state, const nir_intrinsic_instr *itr)
 
    nitr->num_components = itr->num_components;
    memcpy(nitr->const_index, itr->const_index, sizeof(nitr->const_index));
+   nitr->name = ralloc_strdup(state->ns, itr->name);
 
    for (unsigned i = 0; i < num_srcs; i++)
       __clone_src(state, &nitr->instr, &nitr->src[i], &itr->src[i]);
@@ -667,6 +669,16 @@ nir_function_clone(nir_shader *ns, const nir_function *fxn)
    nfxn->is_preamble = fxn->is_preamble;
    nfxn->should_inline = fxn->should_inline;
    nfxn->dont_inline = fxn->dont_inline;
+   nfxn->is_subroutine = fxn->is_subroutine;
+   nfxn->num_subroutine_types = fxn->num_subroutine_types;
+   nfxn->subroutine_index = fxn->subroutine_index;
+   if (fxn->num_subroutine_types) {
+      nfxn->subroutine_types = ralloc_array(ns, const struct glsl_type *,
+                                            fxn->num_subroutine_types);
+      for (unsigned i = 0; i < fxn->num_subroutine_types; i++) {
+         nfxn->subroutine_types[i] = fxn->subroutine_types[i];
+      }
+   }
 
    /* At first glance, it looks like we should clone the function_impl here.
     * However, call instructions need to be able to reference at least the
@@ -696,18 +708,13 @@ clone_printf_info(void *mem_ctx, const nir_shader *s)
       const u_printf_info *src_info = &s->printf_info[i];
 
       infos[i].num_args = src_info->num_args;
-      infos[i].arg_sizes = ralloc_size(mem_ctx,
-                                       sizeof(infos[i].arg_sizes[0]) *
-                                       src_info->num_args);
-      memcpy(infos[i].arg_sizes, src_info->arg_sizes,
-             sizeof(infos[i].arg_sizes[0]) * src_info->num_args);
+      infos[i].arg_sizes = ralloc_memdup(mem_ctx, src_info->arg_sizes,
+                                         sizeof(infos[i].arg_sizes[0]) * src_info->num_args);
 
 
       infos[i].string_size = src_info->string_size;
-      infos[i].strings = ralloc_size(mem_ctx,
-                                     src_info->string_size);
-      memcpy(infos[i].strings, src_info->strings,
-             src_info->string_size);
+      infos[i].strings = ralloc_memdup(mem_ctx, src_info->strings,
+                                       src_info->string_size);
    }
 
    return infos;
@@ -750,14 +757,13 @@ nir_shader_clone(void *mem_ctx, const nir_shader *s)
 
    ns->constant_data_size = s->constant_data_size;
    if (s->constant_data_size > 0) {
-      ns->constant_data = ralloc_size(ns, s->constant_data_size);
-      memcpy(ns->constant_data, s->constant_data, s->constant_data_size);
+      ns->constant_data = ralloc_memdup(ns, s->constant_data,
+                                        s->constant_data_size);
    }
 
    if (s->xfb_info) {
       size_t size = nir_xfb_info_size(s->xfb_info->output_count);
-      ns->xfb_info = ralloc_size(ns, size);
-      memcpy(ns->xfb_info, s->xfb_info, size);
+      ns->xfb_info = ralloc_memdup(ns, s->xfb_info, size);
    }
 
    if (s->printf_info_count > 0) {

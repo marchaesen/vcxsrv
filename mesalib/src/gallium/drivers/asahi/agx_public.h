@@ -2,8 +2,7 @@
  * Copyright 2010 Red Hat Inc.
  * SPDX-License-Identifier: MIT
  */
-#ifndef AGX_PUBLIC_H
-#define AGX_PUBLIC_H
+#pragma once
 
 #ifdef __cplusplus
 extern "C" {
@@ -17,6 +16,4 @@ struct pipe_screen *agx_screen_create(int fd, struct renderonly *ro,
 
 #ifdef __cplusplus
 }
-#endif
-
 #endif

@@ -84,6 +84,8 @@
 #include <sys/sysctl.h>
 #endif
 
+#include "os/auth.h"
+
 /**
  * Try to determine a PID for a client from its connection
  * information. This should be called only once when new client has

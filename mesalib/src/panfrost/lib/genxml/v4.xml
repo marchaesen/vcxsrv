@@ -462,19 +462,6 @@
     <field name="Color Mask" size="4" start="0:28" type="uint"/>
   </struct>
 
-  <struct name="Blend" size="4" align="16">
-    <field name="Load Destination" size="1" start="0:0" type="bool" default="false"/>
-    <field name="Blend Shader" size="1" start="0:1" type="bool" default="false"/>
-    <field name="Blend Shader Contains Discard" size="1" start="0:2" type="bool" default="false"/>
-    <field name="Alpha To One" size="1" start="0:8" type="bool"/>
-    <field name="Enable" size="1" start="0:9" type="bool" default="true"/>
-    <field name="sRGB" size="1" start="0:10" type="bool" default="false"/>
-    <field name="Round to FB precision" size="1" start="0:11" type="bool" default="false"/>
-    <field name="Shader PC" size="64" start="2:0" type="address"/>
-    <field name="Equation" size="32" start="2:0" type="Blend Equation"/>
-    <field name="Constant" size="32" start="3:0" type="float"/>
-  </struct>
-
   <struct name="Invocation">
     <!-- Dynamic bitfield containing WorkGroupSize.xyz, NumWorkGroups.xyz
       The number of bits allocated for each number is based on the *_shift
@@ -992,12 +979,16 @@
     <field name="Job Task Split" size="4" start="0:26" type="uint"/>
   </struct>
 
+  <struct name="Compute Padding" size="2">
+  </struct>
+
   <!-- Compute job also covers vertex and geometry operations -->
   <aggregate name="Compute Job" align="64">
     <section name="Header" offset="0" type="Job Header"/>
     <section name="Invocation" offset="32" type="Invocation"/>
     <section name="Parameters" offset="40" type="Compute Job Parameters"/>
     <section name="Draw" offset="64" type="Draw"/>
+    <section name="Compute padding" offset="184" type="Compute Padding"/>
   </aggregate>
 
   <struct name="Primitive Size">

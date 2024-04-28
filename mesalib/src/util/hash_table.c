@@ -960,3 +960,49 @@ _mesa_hash_table_u64_remove(struct hash_table_u64 *ht, uint64_t key)
       FREE(_key);
    }
 }
+
+
+/*
+ * Iterates in order ("freed key", "deleted key", regular entries...)
+ */
+struct hash_entry_u64
+_mesa_hash_table_u64_next_entry(struct hash_table_u64 *ht,
+                                struct hash_entry_u64 *ent)
+{
+   /* First entry: freed key */
+   if (!ent && ht->freed_key_data) {
+      return (struct hash_entry_u64){
+         .key = FREED_KEY_VALUE,
+         .data = ht->freed_key_data,
+      };
+   }
+
+   /* Second entry: deleted key */
+   if ((!ent || ent->key == FREED_KEY_VALUE) && ht->deleted_key_data) {
+      return (struct hash_entry_u64){
+         .key = DELETED_KEY_VALUE,
+         .data = ht->deleted_key_data,
+      };
+   }
+
+   /* All other entries: regular */
+   struct hash_entry *next =
+      _mesa_hash_table_next_entry(ht->table, ent ? ent->_entry : NULL);
+
+   if (!next)
+      return (struct hash_entry_u64){.data = NULL};
+
+   uint64_t key;
+   if (sizeof(void *) == 8) {
+      key = (uintptr_t)next->key;
+   } else {
+      const struct hash_key_u64 *_key = next->key;
+      key = _key->value;
+   }
+
+   return (struct hash_entry_u64){
+      .key = key,
+      .data = next->data,
+      ._entry = next,
+   };
+}

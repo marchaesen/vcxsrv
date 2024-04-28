@@ -3,10 +3,9 @@
  * SPDX-License-Identifier: MIT
  */
 
-#ifndef AGX_USC_H
-#define AGX_USC_H
+#pragma once
 
-#include "asahi/lib/agx_pack.h"
+#include "asahi/genxml/agx_pack.h"
 #include "asahi/lib/pool.h"
 
 /* Opaque structure representing a USC program being constructed */
@@ -63,6 +62,14 @@ agx_usc_builder_validate(struct agx_usc_builder *b, size_t size)
         it; it = false, (b)->head += AGX_USC_##struct_name##_LENGTH)           \
       agx_pack((b)->head, USC_##struct_name, template)
 
+#define agx_usc_push_blob(b, blob, length)                                     \
+   for (bool it = agx_usc_builder_validate((b), length); it;                   \
+        it = false, (b)->head += length)                                       \
+      memcpy((b)->head, blob, length);
+
+#define agx_usc_push_packed(b, struct_name, packed)                            \
+   agx_usc_push_blob(b, packed.opaque, AGX_USC_##struct_name##_LENGTH);
+
 static void
 agx_usc_uniform(struct agx_usc_builder *b, unsigned start_halfs,
                 unsigned size_halfs, uint64_t buffer)
@@ -100,5 +107,3 @@ agx_usc_shared_none(struct agx_usc_builder *b)
       cfg.bytes_per_threadgroup = 65536;
    }
 }
-
-#endif
