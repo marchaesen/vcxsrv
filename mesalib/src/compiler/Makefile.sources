@@ -91,7 +91,6 @@ LIBGLSL_FILES = \
 	glsl/link_varyings.h \
 	glsl/list.h \
 	glsl/lower_builtins.cpp \
-	glsl/lower_discard_flow.cpp \
 	glsl/lower_instructions.cpp \
 	glsl/lower_jumps.cpp \
 	glsl/lower_mat_op_to_vec.cpp \
@@ -104,7 +103,6 @@ LIBGLSL_FILES = \
 	glsl/opt_dead_builtin_variables.cpp \
 	glsl/opt_dead_code.cpp \
 	glsl/opt_dead_code_local.cpp \
-	glsl/opt_dead_functions.cpp \
 	glsl/opt_flatten_nested_if_blocks.cpp \
 	glsl/opt_flip_matrices.cpp \
 	glsl/opt_function_inlining.cpp \
