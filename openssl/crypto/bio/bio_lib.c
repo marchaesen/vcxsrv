@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -817,7 +817,7 @@ BIO *BIO_find_type(BIO *bio, int type)
         ERR_raise(ERR_LIB_BIO, ERR_R_PASSED_NULL_PARAMETER);
         return NULL;
     }
-    mask = type & 0xff;
+    mask = type & BIO_TYPE_MASK;
     do {
         if (bio->method != NULL) {
             mt = bio->method->type;

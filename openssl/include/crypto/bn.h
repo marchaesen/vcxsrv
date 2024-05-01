@@ -1,5 +1,5 @@
 /*
- * Copyright 2014-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2014-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -116,7 +116,8 @@ OSSL_LIB_CTX *ossl_bn_get_libctx(BN_CTX *ctx);
 
 extern const BIGNUM ossl_bn_inv_sqrt_2;
 
-#if defined(OPENSSL_SYS_LINUX) && !defined(FIPS_MODULE) && defined (__s390x__)
+#if defined(OPENSSL_SYS_LINUX) && !defined(FIPS_MODULE) && defined (__s390x__) \
+    && !defined (OPENSSL_NO_ASM)
 # define S390X_MOD_EXP
 #endif
 

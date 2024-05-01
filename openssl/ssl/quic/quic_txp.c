@@ -1,5 +1,5 @@
 /*
- * Copyright 2022-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -481,7 +481,9 @@ OSSL_QUIC_TX_PACKETISER *ossl_quic_tx_packetiser_new(const OSSL_QUIC_TX_PACKETIS
                              get_sstream_by_id, txp,
                              on_regen_notify, txp,
                              on_confirm_notify, txp,
-                             on_sstream_updated, txp)) {
+                             on_sstream_updated, txp,
+                             args->get_qlog_cb,
+                             args->get_qlog_cb_arg)) {
         OPENSSL_free(txp);
         return NULL;
     }
@@ -623,6 +625,14 @@ void ossl_quic_tx_packetiser_set_ack_tx_cb(OSSL_QUIC_TX_PACKETISER *txp,
 {
     txp->ack_tx_cb      = cb;
     txp->ack_tx_cb_arg  = cb_arg;
+}
+
+void ossl_quic_tx_packetiser_set_qlog_cb(OSSL_QUIC_TX_PACKETISER *txp,
+                                         QLOG *(*get_qlog_cb)(void *arg),
+                                         void *get_qlog_cb_arg)
+{
+    ossl_quic_fifd_set_qlog_cb(&txp->fifd, get_qlog_cb, get_qlog_cb_arg);
+
 }
 
 int ossl_quic_tx_packetiser_discard_enc_level(OSSL_QUIC_TX_PACKETISER *txp,
@@ -1872,7 +1882,7 @@ static int txp_generate_pre_token(OSSL_QUIC_TX_PACKETISER *txp,
             pf = &f;
             pf->is_app      = 0;
             pf->frame_type  = 0;
-            pf->error_code  = QUIC_ERR_APPLICATION_ERROR;
+            pf->error_code  = OSSL_QUIC_ERR_APPLICATION_ERROR;
             pf->reason      = NULL;
             pf->reason_len  = 0;
         }
@@ -2811,6 +2821,7 @@ static int txp_generate_for_el(OSSL_QUIC_TX_PACKETISER *txp,
     tpkt->ackm_pkt.is_pto_probe     = 0;
     tpkt->ackm_pkt.is_mtu_probe     = 0;
     tpkt->ackm_pkt.time             = txp->args.now(txp->args.now_arg);
+    tpkt->pkt_type                  = pkt->phdr.type;
 
     /* Done. */
     return rc;

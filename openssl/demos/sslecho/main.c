@@ -1,5 +1,5 @@
 /*
- *  Copyright 2022-2023 The OpenSSL Project Authors. All Rights Reserved.
+ *  Copyright 2022-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  *  Licensed under the Apache License 2.0 (the "License").  You may not use
  *  this file except in compliance with the License.  You can obtain a copy
@@ -12,6 +12,7 @@
 #include <string.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/in.h>
 #include <openssl/ssl.h>
 #include <openssl/err.h>
 #include <signal.h>
@@ -156,7 +157,7 @@ int main(int argc, char **argv)
     signal(SIGPIPE, SIG_IGN);
 
     /* Splash */
-    printf("\nsslecho : Simple Echo Client/Server (OpenSSL 3.0.1-dev) : %s : %s\n\n", __DATE__,
+    printf("\nsslecho : Simple Echo Client/Server : %s : %s\n\n", __DATE__,
     __TIME__);
 
     /* Need to know if client or server */
