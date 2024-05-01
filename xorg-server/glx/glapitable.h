@@ -532,7 +532,7 @@ struct _glapi_table
    void (GLAPIENTRYP DisableVertexAttribArray)(GLuint index); /* 488 */
    void (GLAPIENTRYP DrawBuffers)(GLsizei n, const GLenum *bufs); /* 489 */
    void (GLAPIENTRYP EnableVertexAttribArray)(GLuint index); /* 490 */
-   void (GLAPIENTRYP GetActiveAttrib)(GLuint program, GLuint index, GLsizei  bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name); /* 491 */
+   void (GLAPIENTRYP GetActiveAttrib)(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name); /* 491 */
    void (GLAPIENTRYP GetActiveUniform)(GLuint program, GLuint index, GLsizei bufSize, GLsizei *length, GLint *size, GLenum *type, GLchar *name); /* 492 */
    void (GLAPIENTRYP GetAttachedShaders)(GLuint program, GLsizei maxCount, GLsizei *count, GLuint *obj); /* 493 */
    GLint (GLAPIENTRYP GetAttribLocation)(GLuint program, const GLchar *name); /* 494 */
@@ -938,8 +938,8 @@ struct _glapi_table
    GLuint (GLAPIENTRYP GetProgramResourceIndex)(GLuint program, GLenum programInterface, const GLchar *name); /* 894 */
    GLint (GLAPIENTRYP GetProgramResourceLocation)(GLuint program, GLenum programInterface, const GLchar *name); /* 895 */
    GLint (GLAPIENTRYP GetProgramResourceLocationIndex)(GLuint program, GLenum programInterface, const GLchar *name); /* 896 */
-   void (GLAPIENTRYP GetProgramResourceName)(GLuint program, GLenum programInterface, GLuint index, GLsizei  bufSize, GLsizei *length, GLchar *name); /* 897 */
-   void (GLAPIENTRYP GetProgramResourceiv)(GLuint program, GLenum programInterface, GLuint index, GLsizei  propCount, const GLenum *props, GLsizei  bufSize, GLsizei *length, GLint *params); /* 898 */
+   void (GLAPIENTRYP GetProgramResourceName)(GLuint program, GLenum programInterface, GLuint index, GLsizei bufSize, GLsizei *length, GLchar *name); /* 897 */
+   void (GLAPIENTRYP GetProgramResourceiv)(GLuint program, GLenum programInterface, GLuint index, GLsizei propCount, const GLenum *props, GLsizei bufSize, GLsizei *length, GLint *params); /* 898 */
    void (GLAPIENTRYP ShaderStorageBlockBinding)(GLuint program, GLuint shaderStorageBlockIndex, GLuint shaderStorageBlockBinding); /* 899 */
    void (GLAPIENTRYP TexBufferRange)(GLenum target, GLenum internalformat, GLuint buffer, GLintptr offset, GLsizeiptr size); /* 900 */
    void (GLAPIENTRYP TexStorage2DMultisample)(GLenum target, GLsizei samples, GLenum internalformat, GLsizei width, GLsizei height, GLboolean fixedsamplelocations); /* 901 */
@@ -1710,8 +1710,10 @@ struct _glapi_table
    void (GLAPIENTRYP MultiDrawArraysUserBuf)(void); /* 1666 */
    void (GLAPIENTRYP MultiDrawElementsUserBuf)(GLintptr indexBuf, GLenum mode, const GLsizei *count, GLenum type, const GLvoid * const *indices, GLsizei primcount, const GLint *basevertex); /* 1667 */
    void (GLAPIENTRYP DrawArraysInstancedBaseInstanceDrawID)(void); /* 1668 */
-   void (GLAPIENTRYP DrawElementsInstancedBaseVertexBaseInstanceDrawID)(void); /* 1669 */
+   void (GLAPIENTRYP DrawElementsInstancedBaseVertexBaseInstanceDrawID)(GLenum mode, GLsizei count, GLenum type, const GLvoid *indices, GLsizei instance_count, GLint basevertex, GLuint baseinstance, GLuint drawid); /* 1669 */
    void (GLAPIENTRYP InternalInvalidateFramebufferAncillaryMESA)(void); /* 1670 */
+   void (GLAPIENTRYP DrawElementsPacked)(GLenum mode, GLenum type, GLushort count, GLushort indices); /* 1671 */
+   void (GLAPIENTRYP DrawElementsUserBufPacked)(const GLvoid *cmd); /* 1672 */
 };
 
 #ifdef __cplusplus
