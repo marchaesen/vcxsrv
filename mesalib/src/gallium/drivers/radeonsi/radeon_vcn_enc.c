@@ -1191,7 +1191,7 @@ static void radeon_enc_begin_frame(struct pipe_video_codec *encoder,
       enc->si = CALLOC_STRUCT(rvid_buffer);
       if (!enc->si ||
           !enc->stream_handle ||
-          !si_vid_create_buffer(enc->screen, enc->si, 128 * 1024, PIPE_USAGE_STAGING)) {
+          !si_vid_create_buffer(enc->screen, enc->si, 128 * 1024, PIPE_USAGE_DEFAULT)) {
          RVID_ERR("Can't create session buffer.\n");
          goto error;
       }

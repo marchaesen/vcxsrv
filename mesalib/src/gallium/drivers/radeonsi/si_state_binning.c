@@ -321,7 +321,7 @@ static void gfx10_get_bin_sizes(struct si_context *sctx, unsigned cb_target_enab
       const unsigned mmrt = num_fragments == 1 ? 1 : (ps_iter_sample ? num_fragments : 2);
 
       cColor += tex->surface.bpe * mmrt;
-      if (num_samples >= 2 /* if FMASK is bound */) {
+      if (num_samples >= 2 && tex->surface.fmask_offset) {
          const unsigned fragmentsLog2 = util_logbase2(num_fragments);
          const unsigned samplesLog2 = util_logbase2(num_samples);
 

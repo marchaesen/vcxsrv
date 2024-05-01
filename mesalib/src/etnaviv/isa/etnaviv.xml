@@ -7,7 +7,7 @@ SPDX-License-Identifier: MIT
 <isa>
 
 <template name="INSTR_ALU">
-	{NAME}{SAT}{COND}{SKPHP}{TYPE}{PMODE}{THREAD}{RMODE}
+	{NAME}{DST_FULL}{SAT}{COND}{SKPHP}{TYPE}{PMODE}{THREAD}{RMODE}
 </template>
 
 <template name="INSTR_TEX">
@@ -19,11 +19,7 @@ SPDX-License-Identifier: MIT
 </template>
 
 <template name="INSTR_LOAD_STORE">
-	{NAME}{COND}{SKPHP}{DENORM}{LOCAL}{TYPE}{PMODE}
-</template>
-
-<template name="INSTR_LOAD_STORE_WITH_LEFT_SHIFT">
-	{NAME}{COND}{SKPHP}{DENORM}{LOCAL}.ls{LEFT_SHIFT}{TYPE}{PMODE}
+	{NAME}{COND}{SKPHP}{DENORM}{LOCAL}{TYPE}{LEFT_SHIFT}{PMODE}
 </template>
 
 <enum name="#cond">
@@ -105,7 +101,7 @@ SPDX-License-Identifier: MIT
 	<value val="12" display=".__zw"/>
 	<value val="13" display=".x_zw"/>
 	<value val="14" display="._yzw"/>
-	<value val="15" display=""/> <!-- xyzw -->
+	<value val="15" name="xyzw" display=""/> <!-- xyzw -->
 </enum>
 
 <bitset name="#instruction-dst" size="14">
@@ -148,11 +144,16 @@ SPDX-License-Identifier: MIT
 	<encode type="struct etna_inst *" case-prefix="ISA_OPC_">
 		<map name="TYPE_BIT01">src->type &amp; 0x3</map>
 		<map name="TYPE_BIT2">(src->type &amp; 0x4) &gt; 2</map>
-		<map name="LOW_HALF">src->sel_bit0</map>
-		<map name="HIGH_HALF">src->sel_bit1</map>
+		<map name="LOW_HALF">(src->thread &amp; 0x1)</map>
+		<map name="HIGH_HALF">(src->thread &amp; 0x2) &gt; 1</map>
 		<map name="COND">src->cond</map>
 		<map name="RMODE">src->rounding</map>
 		<map name="SAT">src->sat</map>
+		<map name="PMODE">!src->pmode</map>
+		<map name="SKPHP">src->skphp</map>
+		<map name="DENORM">src->denorm</map>
+		<map name="LOCAL">src->local</map>
+		<map name="LEFT_SHIFT">src->left_shift</map>
 		<map name="DST_USE">src->dst.use</map>
 		<map name="DST">&amp;src->dst</map>
 		<map name="DST_FULL">src->dst_full</map>
@@ -176,13 +177,6 @@ SPDX-License-Identifier: MIT
 		<map name="TEX_ID">src->tex.id</map>
 		<map name="TEX_SWIZ">src->tex.swiz</map>
 		<map name="TARGET">src->imm</map>
-
-		<!-- sane defaults -->
-		<map name="PMODE">1</map>
-		<map name="SKPHP">0</map>
-		<map name="LOCAL">0</map>
-		<map name="DENORM">0</map>
-		<map name="LEFT_SHIFT">0</map>
 	</encode>
 </bitset>
 
@@ -843,9 +837,25 @@ SPDX-License-Identifier: MIT
        <field name="SRC1_RGROUP" low="96" high="98" type="#reg_group"/>
 </bitset>
 
-<expr name="#instruction-has-left-shift">
-	({LEFT_SHIFT} != 0)
-</expr>
+<bitset name="#left-shift" size="2">
+	<field name="LEFT_SHIFT" low="0" high="1" type="uint"/>
+
+	<override>
+		<expr>
+			{LEFT_SHIFT} != 0
+		</expr>
+		<display>
+			.ls{LEFT_SHIFT}
+		</display>
+	</override>
+
+	<display>
+	</display>
+
+	<encode type="unsigned int">
+		<map name="LEFT_SHIFT">src</map>
+	</encode>
+</bitset>
 
 <bitset name="#instruction-load" extends="#instruction">
 	<field name="DST_USE" pos="12" type="bool"/>
@@ -857,7 +867,7 @@ SPDX-License-Identifier: MIT
 	<pattern low="27" high="31">00000</pattern> <!-- TEX_ID -->
 	<pattern low="32" high="33">00</pattern> <!-- RMODE -->
 	<field name="PMODE" pos="34" type="bool_inv" display=".pack"/>
-	<field name="LEFT_SHIFT" low="35" high="36" type="uint"/>
+	<field name="LEFT_SHIFT" low="35" high="36" type="#left-shift"/>
 	<pattern low="37" high="38">00</pattern>
 	<field name="SKPHP" pos="39" type="bool" display=".skpHp"/>
 	<field name="LOCAL" pos="40" type="bool" display=".local"/>
@@ -876,12 +886,6 @@ SPDX-License-Identifier: MIT
 	<display>
 		{INSTR_LOAD_STORE} {DST:align=18}, {SRC0}, {SRC1}, void
 	</display>
-
-	<override expr="#instruction-has-left-shift">
-		<display>
-			{INSTR_LOAD_STORE_WITH_LEFT_SHIFT} {DST:align=18}, {SRC0}, {SRC1}, void
-		</display>
-	</override>
 
 	<!-- SRC0 -->
 	<pattern pos="43">1</pattern> <!-- SRC0_USE -->
@@ -923,7 +927,7 @@ SPDX-License-Identifier: MIT
 	<pattern low="27" high="31">xxxxx</pattern>
 	<pattern low="32" high="33">xx</pattern>
 	<field name="PMODE" pos="34" type="bool_inv" display=".pack"/>
-	<field name="LEFT_SHIFT" low="35" high="36" type="uint"/>
+	<field name="LEFT_SHIFT" low="35" high="36" type="#left-shift"/>
 	<pattern low="37" high="38">00</pattern>
 	<field name="SKPHP" pos="39" type="bool" display=".skpHp"/>
 	<field name="LOCAL" pos="40" type="bool" display=".local"/>
@@ -942,12 +946,6 @@ SPDX-License-Identifier: MIT
 	<display>
 		{INSTR_LOAD_STORE} {:align=18}mem{COMPS}, {SRC0}, {SRC1}, {SRC2}
 	</display>
-
-	<override expr="#instruction-has-left-shift">
-		<display>
-			{INSTR_LOAD_STORE_WITH_LEFT_SHIFT} {:align=18}mem{COMPS}, {SRC0}, {SRC1}, {SRC2}
-		</display>
-	</override>
 
 	<!-- SRC0 -->
 	<pattern pos="43">1</pattern> <!-- SRC0_USE -->

@@ -40,11 +40,11 @@
 
 #include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/exevents_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
 #include "extnsionst.h"
-#include "exevents.h"
 #include "exglobals.h"
 #include "scrnintstr.h"
 #include "xkbsrv.h"

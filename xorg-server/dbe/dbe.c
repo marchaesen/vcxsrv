@@ -45,7 +45,7 @@
 
 #include "scrnintstr.h"
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "gcstruct.h"
 #include "dixstruct.h"
 #include "dbestruct.h"

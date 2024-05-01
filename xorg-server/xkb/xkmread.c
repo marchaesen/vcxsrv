@@ -43,7 +43,7 @@
 #include "xkbsrv.h"
 #include "xkbgeom.h"
 
-Atom
+static Atom
 XkbInternAtom(char *str, Bool only_if_exists)
 {
     if (str == NULL)

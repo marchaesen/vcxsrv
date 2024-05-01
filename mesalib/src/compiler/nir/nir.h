@@ -1307,6 +1307,7 @@ typedef enum {
    nir_atomic_op_fcmpxchg,
    nir_atomic_op_inc_wrap,
    nir_atomic_op_dec_wrap,
+   nir_atomic_op_ordered_add_gfx12_amd,
 } nir_atomic_op;
 
 static inline nir_alu_type
@@ -1333,6 +1334,7 @@ nir_atomic_op_type(nir_atomic_op op)
    case nir_atomic_op_umax:
    case nir_atomic_op_inc_wrap:
    case nir_atomic_op_dec_wrap:
+   case nir_atomic_op_ordered_add_gfx12_amd:
       return nir_type_uint;
    }
 

@@ -43,14 +43,17 @@ in this Software without prior written authorization from The Open Group.
 #include <fcntl.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/shmproto.h>
+#include <X11/Xfuncproto.h>
 
+#include "dix/dix_priv.h"
 #include "os/auth.h"
 #include "os/busfault.h"
 #include "os/osdep.h"
 
 #include "misc.h"
 #include "os.h"
-#include "dixstruct.h"
+#include "dixstruct_priv.h"
 #include "resource.h"
 #include "scrnintstr.h"
 #include "windowstr.h"
@@ -60,9 +63,7 @@ in this Software without prior written authorization from The Open Group.
 #include "servermd.h"
 #include "shmint.h"
 #include "xace.h"
-#include <X11/extensions/shmproto.h>
-#include <X11/Xfuncproto.h>
-#include <sys/mman.h>
+#include "extinit_priv.h"
 #include "protocol-versions.h"
 
 /* Needed for Solaris cross-zone shared memory extension */
@@ -96,10 +97,6 @@ in this Software without prior written authorization from The Open Group.
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #endif
-
-#include "dix/dix_priv.h"
-
-#include "extinit.h"
 
 typedef struct _ShmScrPrivateRec {
     CloseScreenProcPtr CloseScreen;

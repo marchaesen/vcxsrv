@@ -36,15 +36,16 @@ from The Open Group.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"           /* DeviceIntPtr      */
-#include "windowstr.h"          /* window structure  */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
-#include "exevents.h"
+
+#include "dix/exevents_priv.h"
+
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "windowstr.h"          /* window structure  */
 #include "exglobals.h"
 #include "xkbsrv.h"
 #include "xkbstr.h"
-
 #include "queryst.h"
 
 /***********************************************************************

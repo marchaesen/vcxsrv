@@ -79,7 +79,7 @@ PERFORMANCE OF THIS SOFTWARE.
 #include <sys/time.h>
 #endif
 
-#include "extinit.h"
+#include "extinit_priv.h"
 
 /*
  * Local Global Variables

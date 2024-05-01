@@ -45,7 +45,7 @@ struct tu_userspace_fence_cmds {
    struct tu_userspace_fence_cmd cmds[64];
 };
 
-struct tu_queue_submit {
+struct tu_virtio_queue_submit {
    struct vk_queue_submit *vk_submit;
    struct tu_u_trace_submission_data *u_trace_submission_data;
 
@@ -750,7 +750,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
                               const uint32_t nr_in_syncobjs,
                               const uint32_t nr_out_syncobjs,
                               uint32_t perf_pass_index,
-                              struct tu_queue_submit *new_submit)
+                              struct tu_virtio_queue_submit *new_submit)
 {
    VkResult result;
 
@@ -759,7 +759,7 @@ tu_queue_submit_create_locked(struct tu_queue *queue,
 
    struct vk_command_buffer **vk_cmd_buffers = vk_submit->command_buffers;
 
-   memset(new_submit, 0, sizeof(struct tu_queue_submit));
+   memset(new_submit, 0, sizeof(struct tu_virtio_queue_submit));
 
    new_submit->cmd_buffers = (struct tu_cmd_buffer **) vk_cmd_buffers;
    new_submit->nr_cmd_buffers = vk_submit->command_buffer_count;
@@ -855,7 +855,7 @@ fail_cmds:
 }
 
 static void
-tu_queue_submit_finish(struct tu_queue *queue, struct tu_queue_submit *submit)
+tu_queue_submit_finish(struct tu_queue *queue, struct tu_virtio_queue_submit *submit)
 {
    vk_free(&queue->device->vk.alloc, submit->cmds);
    vk_free(&queue->device->vk.alloc, submit->in_syncobjs);
@@ -880,7 +880,7 @@ tu_fill_msm_gem_submit(struct tu_device *dev,
 
 static void
 tu_queue_build_msm_gem_submit_cmds(struct tu_queue *queue,
-                                   struct tu_queue_submit *submit,
+                                   struct tu_virtio_queue_submit *submit,
                                    struct tu_cs *autotune_cs)
 {
    struct tu_device *dev = queue->device;
@@ -979,7 +979,7 @@ setup_fence_cmds(struct tu_device *dev)
 }
 
 static VkResult
-tu_queue_submit_locked(struct tu_queue *queue, struct tu_queue_submit *submit)
+tu_queue_submit_locked(struct tu_queue *queue, struct tu_virtio_queue_submit *submit)
 {
    struct tu_virtio_device *vdev = queue->device->vdev;
 
@@ -1153,7 +1153,7 @@ virtio_queue_submit(struct tu_queue *queue, struct vk_queue_submit *submit)
    MESA_TRACE_FUNC();
    uint32_t perf_pass_index = queue->device->perfcntrs_pass_cs ?
                               submit->perf_pass_index : ~0;
-   struct tu_queue_submit submit_req;
+   struct tu_virtio_queue_submit submit_req;
 
    if (TU_DEBUG(LOG_SKIP_GMEM_OPS)) {
       tu_dbg_log_gmem_load_store_skips(queue->device);

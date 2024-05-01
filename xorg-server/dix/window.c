@@ -101,6 +101,7 @@ Equipment Corporation.
 #endif
 
 #include "dix/dix_priv.h"
+#include "dix/exevents_priv.h"
 #include "os/auth.h"
 
 #include "misc.h"
@@ -131,10 +132,8 @@ Equipment Corporation.
 #endif
 #include "selection.h"
 #include "inpututils.h"
-
 #include "privates.h"
 #include "xace.h"
-#include "exevents.h"
 
 #include <X11/Xatom.h>          /* must come after server includes */
 

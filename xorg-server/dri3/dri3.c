@@ -21,7 +21,7 @@
  */
 
 #include "dri3_priv.h"
-
+#include "extinit_priv.h"
 #include <drm_fourcc.h>
 
 static int dri3_request;

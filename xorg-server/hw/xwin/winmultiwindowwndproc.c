@@ -41,6 +41,9 @@
 #undef GC
 
 #include "win.h"
+
+#include "dix/dix_priv.h"
+
 #include "dixevents.h"
 #include "winmultiwindowclass.h"
 #include "winprefs.h"

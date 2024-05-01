@@ -261,7 +261,7 @@ init_buffers(struct vl_compositor *c)
            vertex_elems[1].vertex_buffer_index = 0;
            vertex_elems[1].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;
            vertex_elems[2].src_offset = sizeof(struct vertex2f) + sizeof(struct vertex4f);
-           vertex_elems[1].src_stride = VL_COMPOSITOR_VB_STRIDE;
+           vertex_elems[2].src_stride = VL_COMPOSITOR_VB_STRIDE;
            vertex_elems[2].instance_divisor = 0;
            vertex_elems[2].vertex_buffer_index = 0;
            vertex_elems[2].src_format = PIPE_FORMAT_R32G32B32A32_FLOAT;

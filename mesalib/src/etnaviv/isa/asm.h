@@ -21,6 +21,7 @@
 #define SWIZ_Z(z) (((z) & 0x03) << 4)
 #define SWIZ_W(w) (((w) & 0x03) << 6)
 
+/* clang-format off */
 /* Broadcast swizzle to all four components */
 #define INST_SWIZ_BROADCAST(x) \
         (SWIZ_X(x) | SWIZ_Y(x) | SWIZ_Z(x) | SWIZ_W(x))
@@ -35,6 +36,7 @@
                   ISA_SWIZ_##c1, \
                   ISA_SWIZ_##c2, \
                   ISA_SWIZ_##c3)
+/* clang-format on */
 
 /*** operands ***/
 
@@ -77,11 +79,15 @@ struct etna_inst {
    enum isa_opc opcode;
    enum isa_type type;
    enum isa_rounding rounding;
-   enum isa_cond cond : 5;
-   unsigned sat       : 1;                 /* saturate result between 0..1 */
-   unsigned sel_bit0  : 1;                 /* select low half mediump */
-   unsigned sel_bit1  : 1;                 /* select high half mediump */
-   unsigned dst_full  : 1;                 /* write to highp register */
+   enum isa_cond cond     : 5;
+   unsigned sat           : 1; /* saturate result between 0..1 */
+   enum isa_thread thread : 2; /* select low/high half mediump */
+   unsigned dst_full      : 1; /* write to highp register */
+   unsigned pmode         : 1;
+   unsigned skphp         : 1;
+   unsigned denorm        : 1;
+   unsigned local         : 1;
+   unsigned left_shift    : 2;
    struct etna_inst_dst dst;               /* destination operand */
    struct etna_inst_tex tex;               /* texture operand */
    struct etna_inst_src src[ETNA_NUM_SRC]; /* source operand */

@@ -1134,6 +1134,12 @@ enum gl_access_qualifier
     * if MMU faults are suppressed for the load.
     */
    ACCESS_CAN_SPECULATE = (1 << 12),
+
+   /**
+    * Whether coherency with CP (command processor) or GE (geometry engine)
+    * is required.
+    */
+   ACCESS_CP_GE_COHERENT_AMD = (1 << 13),
 };
 
 /**

@@ -54,12 +54,13 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "inputstr.h"           /* DeviceIntPtr      */
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
-#include "exevents.h"
-#include "exglobals.h"
 
+#include "dix/exevents_priv.h"
+
+#include "inputstr.h"           /* DeviceIntPtr      */
+#include "exglobals.h"
 #include "gtmotion.h"
 
 /***********************************************************************

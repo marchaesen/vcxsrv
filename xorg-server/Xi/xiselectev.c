@@ -30,11 +30,11 @@
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/exevents_priv.h"
 
 #include "dixstruct.h"
 #include "windowstr.h"
 #include "exglobals.h"
-#include "exevents.h"
 #include "inpututils.h"
 #include "xiselectev.h"
 

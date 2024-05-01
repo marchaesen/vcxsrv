@@ -52,7 +52,6 @@ DEALINGS IN THE SOFTWARE.
 #include <dix-config.h>
 #endif
 
-#include "os.h"
 #include <stdio.h>
 #include <ctype.h>
 #include <math.h>
@@ -60,10 +59,13 @@ DEALINGS IN THE SOFTWARE.
 #include <X11/Xproto.h>
 #define	XK_CYRILLIC
 #include <X11/keysym.h>
+
+#include "xkb/xkbsrv_priv.h"
+
+#include "os.h"
 #include "misc.h"
 #include "inputstr.h"
 #include "eventstr.h"
-#include <xkbsrv.h>
 #include "xkbgeom.h"
 
 /***====================================================================***/

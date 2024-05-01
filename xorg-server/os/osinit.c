@@ -64,11 +64,11 @@ SOFTWARE.
 #include "os/osdep.h"
 
 #include "misc.h"
-
 #include "os.h"
 #include "opaque.h"
 #include "misc.h"
 #include "dixstruct.h"
+#include "dixstruct_priv.h"
 
 #if !defined(SYSV) && !defined(WIN32)
 #include <sys/resource.h>

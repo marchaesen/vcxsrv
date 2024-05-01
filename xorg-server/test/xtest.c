@@ -37,7 +37,7 @@
 #include "scrnintstr.h"
 #include "windowstr.h"
 #include "exevents.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "xkbsrv.h"
 #include "xserver-properties.h"
 #include "syncsrv.h"

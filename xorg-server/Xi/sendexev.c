@@ -54,14 +54,15 @@ SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include <X11/extensions/XI.h>
+#include <X11/extensions/XIproto.h>
+
+#include "dix/exevents_priv.h"
+
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* Window            */
 #include "extnsionst.h"         /* EventSwapPtr      */
-#include <X11/extensions/XI.h>
-#include <X11/extensions/XIproto.h>
-#include "exevents.h"
 #include "exglobals.h"
-
 #include "grabdev.h"
 #include "sendexev.h"
 

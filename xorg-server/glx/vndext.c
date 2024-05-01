@@ -35,6 +35,7 @@
 #include <dixstruct.h>
 #include <extnsionst.h>
 #include <glx_extinit.h>
+#include "extinit_priv.h"
 
 #include <GL/glxproto.h>
 #include "vndservervendor.h"

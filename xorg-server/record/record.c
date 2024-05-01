@@ -40,7 +40,7 @@ and Jim Haggerty of Metheus.
 
 #include "dixstruct.h"
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include <X11/extensions/recordproto.h>
 #include "set.h"
 #include "swaprep.h"

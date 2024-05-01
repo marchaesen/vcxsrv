@@ -1101,7 +1101,8 @@ bool ac_query_gpu_info(int fd, void *dev_p, struct radeon_info *info,
       info->num_tcc_blocks = info->max_tcc_blocks;
    }
 
-   info->tcc_rb_non_coherent = !util_is_power_of_two_or_zero(info->num_tcc_blocks);
+   info->tcc_rb_non_coherent = !util_is_power_of_two_or_zero(info->num_tcc_blocks) &&
+                               info->num_rb != info->num_tcc_blocks;
 
    if (info->drm_minor >= 52) {
       info->sqc_inst_cache_size = device_info.sqc_inst_cache_size * 1024;

@@ -184,6 +184,8 @@ struct radv_physical_device {
    bool video_encode_enabled;
 
    struct radv_physical_device_cache_key cache_key;
+
+   uint32_t tess_distribution_mode;
 };
 
 VK_DEFINE_HANDLE_CASTS(radv_physical_device, vk.base, VkPhysicalDevice, VK_OBJECT_TYPE_PHYSICAL_DEVICE)

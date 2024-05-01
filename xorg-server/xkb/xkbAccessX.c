@@ -28,20 +28,22 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#if !defined(WIN32)
+#include <sys/time.h>
+#endif
 #include <stdio.h>
 #include <math.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
-#include "exglobals.h"
 #include <X11/extensions/XIproto.h>
+
+#include "xkb/xkbsrv_priv.h"
+
+#include "exglobals.h"
 #include "inputstr.h"
 #include "eventstr.h"
 #include "inpututils.h"
-#include <xkbsrv.h>
-#if !defined(WIN32)
-#include <sys/time.h>
-#endif
 
 int XkbDfltRepeatDelay = 660;
 int XkbDfltRepeatInterval = 40;

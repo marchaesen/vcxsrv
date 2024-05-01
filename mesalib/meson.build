@@ -127,9 +127,9 @@ with_gles2 = get_option('gles2') \
   .require(with_shared_glapi, error_message : 'OpengGL ES 2.x requires shared-glapi') \
   .allowed()
 
-pre_args += '-DHAVE_OPENGL=@0@'.format(with_opengl ? '1' : '0')
-pre_args += '-DHAVE_OPENGL_ES_1=@0@'.format(with_gles1 ? '1' : '0')
-pre_args += '-DHAVE_OPENGL_ES_2=@0@'.format(with_gles2 ? '1' : '0')
+pre_args += '-DHAVE_OPENGL=@0@'.format(with_opengl.to_int())
+pre_args += '-DHAVE_OPENGL_ES_1=@0@'.format(with_gles1.to_int())
+pre_args += '-DHAVE_OPENGL_ES_2=@0@'.format(with_gles2.to_int())
 
 with_any_opengl = with_opengl or with_gles1 or with_gles2
 # Only build shared_glapi if at least one OpenGL API is enabled
@@ -554,9 +554,7 @@ _glvnd = get_option('glvnd') \
            error_message: '''EGL lib suffix can't be used with libglvnd''')
 dep_glvnd = dependency('libglvnd', version : '>= 1.3.2', required : _glvnd)
 with_glvnd = dep_glvnd.found()
-if with_glvnd
-  pre_args += '-DUSE_LIBGLVND=1'
-endif
+pre_args += '-DUSE_LIBGLVND=@0@'.format(with_glvnd.to_int())
 glvnd_vendor_name = get_option('glvnd-vendor-name')
 
 if with_vulkan_icd_dir == ''
@@ -683,10 +681,8 @@ else
   with_gallium_omx = _omx
 endif
 
-pre_args += [
-  '-DENABLE_ST_OMX_BELLAGIO=' + (with_gallium_omx == 'bellagio' ? '1' : '0'),
-  '-DENABLE_ST_OMX_TIZONIA=' + (with_gallium_omx == 'tizonia' ? '1' : '0'),
-]
+pre_args += '-DENABLE_ST_OMX_BELLAGIO=@0@'.format((with_gallium_omx == 'bellagio').to_int())
+pre_args += '-DENABLE_ST_OMX_TIZONIA=@0@'.format((with_gallium_omx == 'tizonia').to_int())
 
 
 omx_drivers_path = get_option('omx-libs-path')
@@ -883,7 +879,7 @@ if with_shared_glapi and not with_glx_indirect_rendering
   # Imply !defined(GLX_INDIRECT_RENDERING)
   with_glapi_export_proto_entry_points = true
 endif
-pre_args += '-DGLAPI_EXPORT_PROTO_ENTRY_POINTS=@0@'.format(with_glapi_export_proto_entry_points ? '1' : '0')
+pre_args += '-DGLAPI_EXPORT_PROTO_ENTRY_POINTS=@0@'.format(with_glapi_export_proto_entry_points.to_int())
 
 with_android_stub = get_option('android-stub')
 if with_android_stub and not with_platform_android
@@ -959,21 +955,16 @@ endif
 
 # Define MESA_DEBUG to 1 for debug builds only (debugoptimized is not included on this one);
 # otherwise define MESA_DEBUG to 0
-pre_args += '-DMESA_DEBUG=' + (with_mesa_debug ? '1' : '0')
+pre_args += '-DMESA_DEBUG=@0@'.format(with_mesa_debug.to_int())
 
 with_split_debug = get_option('split-debug') \
-  .disable_if(not cc.compiles('''#include<stdio.h>
-                                 int main() {
-                                 printf("\n");
-                                 };''',
-                    args : '-gsplit-dwarf',
-                    name : 'split-dwarf support'),
+  .disable_if(not cc.has_argument('-gsplit-dwarf'),
     error_message : 'split-debug requires compiler -gsplit-dwarf support') \
   .disable_if(not cc.has_link_argument('-Wl,--gdb-index'),
     error_message : 'split-debug requires the linker argument -Wl,--gdb-index')
 
 if with_split_debug.allowed() and get_option('debug')
-  add_project_arguments('-gsplit-dwarf', langauge : ['c', 'cpp'])
+  add_project_arguments('-gsplit-dwarf', language : ['c', 'cpp'])
   add_project_link_arguments('-Wl,--gdb-index', language : ['c', 'cpp'])
 endif
 
@@ -1830,8 +1821,8 @@ elif with_clc
 else
   draw_with_llvm = false
 endif
-pre_args += '-DLLVM_AVAILABLE=' + (with_llvm ? '1' : '0')
-pre_args += '-DDRAW_LLVM_AVAILABLE=' + (with_llvm and draw_with_llvm ? '1' : '0')
+pre_args += '-DLLVM_AVAILABLE=@0@'.format(with_llvm.to_int())
+pre_args += '-DDRAW_LLVM_AVAILABLE=@0@'.format((with_llvm and draw_with_llvm).to_int())
 
 with_opencl_spirv = (_opencl != 'disabled' and get_option('opencl-spirv')) or with_clc
 if with_opencl_spirv
@@ -1932,7 +1923,7 @@ if get_option('b_sanitize') == 'thread'
   # meson versions prior to 1.4 will warn "Consider using the built-in option for sanitizers ..." 
   # later on because it only checks whether the option starts with "-fsanitize",
   # but there is no built-in option for adding a blacklist
-  tsan_blacklist = '-fsanitize-blacklist=@0@'.format(join_paths(meson.project_source_root(), 'tsan-blacklist.txt'))
+  tsan_blacklist = '-fsanitize-blacklist=@0@'.format(join_paths(meson.project_source_root(), 'build-support', 'tsan-blacklist.txt'))
   if cc.has_argument(tsan_blacklist)
     pre_args += tsan_blacklist
   else

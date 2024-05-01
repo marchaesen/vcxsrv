@@ -27,7 +27,8 @@
 #include "dix-config.h"
 #endif
 
-#include "exevents.h"
+#include "dix/exevents_priv.h"
+
 #include "exglobals.h"
 #include "misc.h"
 #include "input.h"

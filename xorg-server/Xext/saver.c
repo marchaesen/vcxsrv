@@ -66,7 +66,7 @@ in this Software without prior written authorization from the X Consortium.
 #include "dpmsproc.h"
 #endif
 #include "protocol-versions.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 
 static int ScreenSaverEventBase = 0;
 

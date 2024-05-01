@@ -813,13 +813,9 @@ static int gfx6_compute_level(ADDR_HANDLE addrlib, const struct ac_surf_config *
    case ADDR_TM_PRT_TILED_THIN1:
       surf_level->mode = RADEON_SURF_MODE_1D;
       break;
-   case ADDR_TM_2D_TILED_THIN1:
-   case ADDR_TM_PRT_2D_TILED_THIN1:
-   case ADDR_TM_PRT_TILED_THICK:
+   default:
       surf_level->mode = RADEON_SURF_MODE_2D;
       break;
-   default:
-      assert(0);
    }
 
    if (is_stencil)
@@ -1168,6 +1164,8 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
    case RADEON_SURF_MODE_1D:
       if (surf->flags & RADEON_SURF_PRT)
          AddrSurfInfoIn.tileMode = ADDR_TM_PRT_TILED_THIN1;
+      else if (config->is_3d)
+         AddrSurfInfoIn.tileMode = ADDR_TM_1D_TILED_THICK;
       else
          AddrSurfInfoIn.tileMode = ADDR_TM_1D_TILED_THIN1;
       break;
@@ -1178,8 +1176,17 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
          } else {
             AddrSurfInfoIn.tileMode = ADDR_TM_PRT_2D_TILED_THIN1;
          }
-      } else
-         AddrSurfInfoIn.tileMode = ADDR_TM_2D_TILED_THIN1;
+      } else {
+         if (config->is_3d) {
+            /* GFX6 doesn't have 3D_TILED_XTHICK. */
+            if (info->gfx_level >= GFX7)
+               AddrSurfInfoIn.tileMode = ADDR_TM_3D_TILED_XTHICK;
+            else
+               AddrSurfInfoIn.tileMode = ADDR_TM_2D_TILED_XTHICK;
+         } else {
+            AddrSurfInfoIn.tileMode = ADDR_TM_2D_TILED_THIN1;
+         }
+      }
       break;
    default:
       assert(0);
@@ -1219,7 +1226,7 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
    /* Only degrade the tile mode for space if TC-compatible HTILE hasn't been
     * requested, because TC-compatible HTILE requires 2D tiling.
     */
-   AddrSurfInfoIn.flags.opt4Space = !AddrSurfInfoIn.flags.tcCompatible &&
+   AddrSurfInfoIn.flags.opt4Space = !AddrSurfInfoIn.flags.tcCompatible && !config->is_3d &&
                                     !AddrSurfInfoIn.flags.fmask && config->info.samples <= 1 &&
                                     !(surf->flags & RADEON_SURF_FORCE_SWIZZLE_MODE);
 
@@ -1506,7 +1513,21 @@ static int gfx6_compute_surface(ADDR_HANDLE addrlib, const struct radeon_info *i
    surf->is_displayable = surf->is_linear || surf->micro_tile_mode == RADEON_MICRO_MODE_DISPLAY ||
                           surf->micro_tile_mode == RADEON_MICRO_MODE_RENDER;
 
-   surf->thick_tiling = AddrSurfInfoOut.blockSlices > 1;
+   surf->thick_tiling = AddrSurfInfoOut.tileMode == ADDR_TM_1D_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_2D_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_2B_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_3D_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_3B_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_2D_TILED_XTHICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_3D_TILED_XTHICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_PRT_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_PRT_2D_TILED_THICK ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_PRT_3D_TILED_THICK ||
+                        /* Not thick per se, but these also benefit from the 3D access pattern
+                         * due to pipe rotation between slices.
+                         */
+                        AddrSurfInfoOut.tileMode == ADDR_TM_3D_TILED_THIN1 ||
+                        AddrSurfInfoOut.tileMode == ADDR_TM_PRT_3D_TILED_THIN1;
 
    /* The rotated micro tile mode doesn't work if both CMASK and RB+ are
     * used at the same time. This case is not currently expected to occur
@@ -2018,6 +2039,7 @@ static int gfx9_compute_miptree(struct ac_addrlib *addrlib, const struct radeon_
          use_dcc = ac_modifier_has_dcc(surf->modifier);
       } else {
          use_dcc = info->has_graphics && !(surf->flags & RADEON_SURF_DISABLE_DCC) && !compressed &&
+                   !config->is_3d &&
                    is_dcc_supported_by_CB(info, in->swizzleMode) &&
                    (!in->flags.display ||
                     gfx9_is_dcc_supported_by_DCN(info, config, surf, !in->flags.metaRbUnaligned,

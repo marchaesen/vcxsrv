@@ -39,17 +39,17 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
 #include <X11/Xatom.h>
+#include <X11/extensions/XKMformat.h>
 
 #include "os/cmdline.h"
+#include "xkb/xkbsrv_priv.h"
 
 #include "misc.h"
 #include "inputstr.h"
 #include "opaque.h"
 #include "property.h"
 #include "scrnintstr.h"
-#include <xkbsrv.h>
 #include "xkbgeom.h"
-#include <X11/extensions/XKMformat.h>
 #include "xkbfile.h"
 
 #define	CREATE_ATOM(s)	MakeAtom(s,sizeof(s)-1,1)

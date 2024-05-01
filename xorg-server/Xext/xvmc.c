@@ -13,7 +13,7 @@
 #include "resource.h"
 #include "scrnintstr.h"
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "servermd.h"
 #include <X11/Xfuncproto.h>
 #include "xvdix.h"

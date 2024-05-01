@@ -332,6 +332,32 @@ xwl_cursor_warped_to(DeviceIntPtr device,
     xwl_seat_emulate_pointer_warp(xwl_seat, xwl_window, sprite, x, y);
 }
 
+static void
+xwl_set_shape(WindowPtr window,
+              int kind)
+{
+    ScreenPtr screen = window->drawable.pScreen;
+    struct xwl_screen *xwl_screen;
+    struct xwl_window *xwl_window;
+
+    xwl_screen = xwl_screen_get(screen);
+    xwl_window = xwl_window_from_window(window);
+
+    screen->SetShape = xwl_screen->SetShape;
+    (*screen->SetShape) (window, kind);
+    xwl_screen->SetShape = screen->SetShape;
+    screen->SetShape = xwl_set_shape;
+
+    if (!xwl_window)
+        return;
+
+    if (kind == ShapeInput) {
+        xwl_window_set_input_region(xwl_window, wInputShape(window));
+        if (xwl_window->allow_commits)
+            wl_surface_commit(xwl_window->surface);
+    }
+}
+
 static struct xwl_window *
 find_matching_input_output_window(struct xwl_screen *xwl_screen,
                                   WindowPtr window)
@@ -1124,6 +1150,9 @@ xwl_screen_init(ScreenPtr pScreen, int argc, char **argv)
 
     xwl_screen->SetWindowPixmap = pScreen->SetWindowPixmap;
     pScreen->SetWindowPixmap = xwl_window_set_window_pixmap;
+
+    xwl_screen->SetShape = pScreen->SetShape;
+    pScreen->SetShape = xwl_set_shape;
 
     pScreen->CursorWarpedTo = xwl_cursor_warped_to;
     pScreen->CursorConfinedTo = xwl_cursor_confined_to;

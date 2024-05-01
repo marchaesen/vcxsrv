@@ -58,8 +58,9 @@ SOFTWARE.
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 
-#include "exglobals.h"
+#include "dix/dix_priv.h"
 
+#include "exglobals.h"
 #include "allowev.h"
 #include "dixevents.h"
 

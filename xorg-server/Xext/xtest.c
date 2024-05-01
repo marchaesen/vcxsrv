@@ -38,6 +38,7 @@
 #include <X11/extensions/XIproto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/exevents_priv.h"
 #include "os/osdep.h"
 
 #include "misc.h"
@@ -55,10 +56,9 @@
 #include "exglobals.h"
 #include "mipointer.h"
 #include "xserver-properties.h"
-#include "exevents.h"
 #include "eventstr.h"
 #include "inpututils.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 
 /* XTest events are sent during request processing and may be interrupted by
  * a SIGIO. We need a separate event list to avoid events overwriting each

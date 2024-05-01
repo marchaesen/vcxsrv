@@ -50,6 +50,9 @@ SOFTWARE.
 
 #include <X11/X.h>
 #include <X11/Xmd.h>
+
+#include "dix/dix_priv.h"
+
 #include "servermd.h"
 #include "scrnintstr.h"
 #include "dixstruct.h"
