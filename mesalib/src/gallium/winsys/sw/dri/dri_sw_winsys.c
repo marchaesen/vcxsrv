@@ -377,7 +377,7 @@ dri_sw_displaytarget_display(struct sw_winsys *ws,
    for (unsigned i = 0; i < nboxes; i++) {
       unsigned offset = dri_sw_dt->stride * box[i].y;
       unsigned offset_x = box[i].x * blsize;
-      char *data = dri_sw_dt->data + offset;
+      char *data = (char*)dri_sw_dt->data + offset;
       x = box[i].x;
       y = box[i].y;
       width = box[i].width;

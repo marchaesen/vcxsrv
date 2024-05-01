@@ -207,11 +207,11 @@ CheckAuthorization(unsigned int name_length,
          */
 
         if (loadauth > 0) {
-            DisableLocalHost(); /* got at least one */
+            DisableLocalAccess(); /* got at least one */
             loaded = TRUE;
         }
         else if (loadauth == 0 || !loaded)
-            EnableLocalHost();
+            EnableLocalAccess();
     }
     if (name_length) {
         for (i = 0; i < NUM_AUTHORIZATION; i++) {

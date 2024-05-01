@@ -29,3 +29,5 @@ endif
 CSRCS = $(filter %.c,$(librandr_la_SOURCES))
 
 DEFINES += PIXMAN_API=
+
+INCLUDES += ..

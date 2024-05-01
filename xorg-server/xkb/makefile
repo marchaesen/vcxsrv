@@ -1,5 +1,7 @@
 DEFINES += HAVE_XKB_CONFIG_H PIXMAN_API=
 
+INCLUDES += ..
+
 DDX_SRCS = \
         ddxBeep.c \
         ddxCtrls.c \

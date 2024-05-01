@@ -560,6 +560,10 @@
 /* Have epoll_create1() */
 #undef HAVE_EPOLL_CREATE1
 
+#define X_REGISTRY_RESOURCE 1
+#define X_REGISTRY_REQUEST 1
+
+
 #include <X11/Xwinsock.h>
 #include <X11/Xwindows.h>
 #if NTDDI_VERSION < NTDDI_VISTA

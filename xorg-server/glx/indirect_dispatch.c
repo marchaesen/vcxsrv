@@ -1234,7 +1234,7 @@ void __glXDisp_TexGendv(GLbyte * pc)
 
 #ifdef __GLX_ALIGN64
     const GLuint compsize = __glTexGendv_size(pname);
-    const GLuint cmdlen = 12 + safe_pad(safe_mul(compsize, 1 * sizeof(GLdouble))) - 4;
+    const GLuint cmdlen = 12 + safe_pad(compsize * 1 * sizeof(GLdouble)) - 4;
     if ((unsigned long)(pc) & 7) {
         (void) memmove(pc-4, pc, cmdlen);
         pc -= 4;

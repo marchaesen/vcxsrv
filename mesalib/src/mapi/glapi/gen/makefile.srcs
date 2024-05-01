@@ -222,34 +222,34 @@ $(MESA_DIR)/main/api_hw_select_init.h: api_hw_select_init_h.py apiexec.py $(COMM
 	$(PYTHON_GEN) $(srcdir)/api_hw_select_init_h.py -f $(srcdir)/gl_API.xml > $@
 
 $(MESA_DIR)/main/unmarshal_table.c: gl_unmarshal_table.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_unmarshal_table.py $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_unmarshal_table.py $(srcdir)/gl_and_es_API.xml 8 > $@
 
 $(MESA_DIR)/main/marshal_generated0.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 0 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 0 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated1.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 1 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 1 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated2.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 2 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 2 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated3.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 3 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 3 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated4.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 4 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 4 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated5.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 5 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 5 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated6.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 6 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 6 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated7.c: gl_marshal.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 7 8 > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal.py $(srcdir)/gl_and_es_API.xml 7 8 8 > $@
 
 $(MESA_DIR)/main/marshal_generated.h: gl_marshal_h.py marshal_XML.py $(COMMON)
-	$(PYTHON_GEN) $(srcdir)/gl_marshal_h.py -f $(srcdir)/gl_and_es_API.xml > $@
+	$(PYTHON_GEN) $(srcdir)/gl_marshal_h.py $(srcdir)/gl_and_es_API.xml 8 > $@
 
 $(MESA_DIR)/main/dispatch.h: gl_table.py $(COMMON)
 	$(PYTHON_GEN) $(srcdir)/gl_table.py -f $(srcdir)/gl_and_es_API.xml -m remap_table > $@

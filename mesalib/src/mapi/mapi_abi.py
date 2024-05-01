@@ -44,7 +44,7 @@ class ABIEntry(object):
     """Represent an ABI entry."""
 
     _match_c_param = re.compile(
-            '^(?P<type>[\w\s*]+?)(?P<name>\w+)(\[(?P<array>\d+)\])?$')
+            r'^(?P<type>[\w\s*]+?)(?P<name>\w+)(\[(?P<array>\d+)\])?$')
 
     def __init__(self, cols, attrs, xml_data = None):
         self._parse(cols)

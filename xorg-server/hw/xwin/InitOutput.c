@@ -116,14 +116,12 @@ static PixmapFormatRec g_PixmapFormats[] = {
     {32, 32, BITMAP_SCANLINE_PAD}
 };
 
-#ifdef GLXEXT
-#ifdef XWIN_WINDOWS_DRI
+#if defined(GLXEXT) && defined(XWIN_WINDOWS_DRI)
 static Bool noDriExtension;
 
 static const ExtensionModule xwinExtensions[] = {
   { WindowsDRIExtensionInit, "Windows-DRI", &noDriExtension },
 };
-#endif
 #endif
 
 /*

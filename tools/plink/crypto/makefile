@@ -50,5 +50,6 @@ CSRCS = \
   sha1-common.c \
   sha1-select.c \
   sha1-sw.c \
-  xdmauth.c
+  xdmauth.c \
+	rfc6979.c
 

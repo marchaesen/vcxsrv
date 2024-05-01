@@ -3,7 +3,7 @@ DEFINES += FONTDEBUG XSERVER_DTRACE
 endif
 DEFINES += PIXMAN_API=
 
-INCLUDES += ..\composite ..\miext\sync
+INCLUDES += ..\composite ..\miext\sync ..
 
 LIBRARY=libdix
 libmain_la_SOURCES =    \
@@ -12,6 +12,7 @@ libmain_la_SOURCES =    \
 libdix_la_SOURCES = 	\
 	atom.c		\
 	colormap.c	\
+	color.c	\
 	cursor.c	\
 	devices.c	\
 	dispatch.c	\

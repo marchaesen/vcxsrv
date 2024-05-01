@@ -107,11 +107,9 @@ XmuScanline *XmuNewScanline(int, int, int);
 void XmuDestroyScanlineList(XmuScanline*);
 XmuArea *XmuOptimizeArea(XmuArea *area);
 
-#ifndef notdef
 XmuScanline *XmuScanlineOrSegment(XmuScanline*, XmuSegment*);
 XmuScanline *XmuScanlineAndSegment(XmuScanline*, XmuSegment*);
 XmuScanline *XmuScanlineXorSegment(XmuScanline*, XmuSegment*);
-#endif /* notdef */
 
 #ifndef _SYSUTIL_H_
 int XmuSnprintf(char *str, int size, _Xconst char *fmt, ...)

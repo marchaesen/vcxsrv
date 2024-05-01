@@ -1,4 +1,3 @@
-
 LIBRARY=librender
 
 CSRCS =	\
@@ -15,3 +14,5 @@ CSRCS =	\
 	render.c
 
 DEFINES += PIXMAN_API=
+
+INCLUDES += ..

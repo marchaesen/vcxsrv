@@ -31,7 +31,7 @@ panoramiXSwap.c
 
 LIBRARY=libxext
 
-INCLUDES += ..\hw\xfree86\dixmods\extmod ..\composite ..\miext\sync
+INCLUDES += ..\hw\xfree86\dixmods\extmod ..\composite ..\miext\sync ..
 
 DEFINES += PIXMAN_API=
 

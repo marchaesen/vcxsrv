@@ -151,6 +151,12 @@ int System(const char *cmdline);
 static inline void Fclose(void *f) { fclose(f); }
 static inline void *Fopen(const char *a, const char *b) { return fopen(a,b); }
 
+typedef void (*OsSigHandlerPtr) (int sig);
+
+/* install signal handler */
+OsSigHandlerPtr OsSignal(int sig, OsSigHandlerPtr handler);
+
+extern void (*OsVendorVErrorFProc) (const char *, va_list args);
 #else /* WIN32 */
 
 int System(const char *);
@@ -158,8 +164,6 @@ void *Popen(const char *, const char *);
 void *Fopen(const char *, const char *);
 int Fclose(void *f);
 int Pclose(void *f);
-
-#endif /* WIN32 */
 
 void AutoResetServer(int sig);
 
@@ -197,5 +201,7 @@ void ListenToAllClients(void);
 
 /* allow DDX to force using another clock */
 void ForceClockId(clockid_t forced_clockid);
+
+#endif /* WIN32 */
 
 #endif                          /* _OSDEP_H_ */

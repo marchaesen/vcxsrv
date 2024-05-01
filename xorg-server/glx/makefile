@@ -48,6 +48,6 @@ libglxvnd_la_SOURCES = \
 
 CSRCS += $(libglxvnd_la_SOURCES)
 
-INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES) $(MHMAKECONF)\gl\include
+INCLUDES := $(MHMAKECONF)\mesalib\include . ../composite $(INCLUDES) $(MHMAKECONF)\gl\include ..
 
 load_makefile IS64=0 NORELDBG=1 $(MHMAKECONF)\mesalib\src\mapi\glapi\gen\makefile.srcs

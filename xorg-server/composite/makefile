@@ -8,4 +8,6 @@ CSRCS = 	\
 	compoverlay.c		\
 	compwindow.c		
 
-DEFINES+= PIXMAN_API=
+DEFINES += PIXMAN_API=
+
+INCLUDES += ..

@@ -61,7 +61,7 @@ class PrintGlEnums(gl_XML.gl_print_base):
         return
 
     def print_code(self):
-        print("""
+        print(r"""
 typedef int (*cfunc)(const void *, const void *);
 
 /**

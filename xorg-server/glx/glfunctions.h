@@ -1703,7 +1703,9 @@
 #define glMultiDrawArraysUserBuf() CALL_MultiDrawArraysUserBuf(GET_DISPATCH(), ())
 #define glMultiDrawElementsUserBuf(a1, a2, a3, a4, a5, a6, a7) CALL_MultiDrawElementsUserBuf(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7))
 #define glDrawArraysInstancedBaseInstanceDrawID() CALL_DrawArraysInstancedBaseInstanceDrawID(GET_DISPATCH(), ())
-#define glDrawElementsInstancedBaseVertexBaseInstanceDrawID() CALL_DrawElementsInstancedBaseVertexBaseInstanceDrawID(GET_DISPATCH(), ())
+#define glDrawElementsInstancedBaseVertexBaseInstanceDrawID(a1, a2, a3, a4, a5, a6, a7, a8) CALL_DrawElementsInstancedBaseVertexBaseInstanceDrawID(GET_DISPATCH(), (a1, a2, a3, a4, a5, a6, a7, a8))
 #define glInternalInvalidateFramebufferAncillaryMESA() CALL_InternalInvalidateFramebufferAncillaryMESA(GET_DISPATCH(), ())
+#define glDrawElementsPacked(a1, a2, a3, a4) CALL_DrawElementsPacked(GET_DISPATCH(), (a1, a2, a3, a4))
+#define glDrawElementsUserBufPacked(a1) CALL_DrawElementsUserBufPacked(GET_DISPATCH(), (a1))
 
 #endif /* !defined( __GLFUNCTIONS_H__ ) */

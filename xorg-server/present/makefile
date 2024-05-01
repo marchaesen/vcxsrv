@@ -13,3 +13,5 @@ CSRCS = \
 LIBRARY=libpresent
 
 DEFINES += PIXMAN_API=
+
+INCLUDES += .. ../dri3

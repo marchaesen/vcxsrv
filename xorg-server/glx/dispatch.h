@@ -65,7 +65,7 @@
     } while(0)
 
 /* total number of offsets below */
-#define _gloffset_COUNT 1671
+#define _gloffset_COUNT 1673
 
 #define _gloffset_NewList 0
 #define _gloffset_EndList 1
@@ -475,7 +475,7 @@
 #define _gloffset_MultiTexCoord4iv 405
 #define _gloffset_MultiTexCoord4s 406
 #define _gloffset_MultiTexCoord4sv 407
-#define driDispatchRemapTable_size 1263
+#define driDispatchRemapTable_size 1265
 SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 
 #define CompressedTexImage1D_remap_index 0
@@ -1741,6 +1741,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define DrawArraysInstancedBaseInstanceDrawID_remap_index 1260
 #define DrawElementsInstancedBaseVertexBaseInstanceDrawID_remap_index 1261
 #define InternalInvalidateFramebufferAncillaryMESA_remap_index 1262
+#define DrawElementsPacked_remap_index 1263
+#define DrawElementsUserBufPacked_remap_index 1264
 
 #define _gloffset_CompressedTexImage1D driDispatchRemapTable[CompressedTexImage1D_remap_index]
 #define _gloffset_CompressedTexImage2D driDispatchRemapTable[CompressedTexImage2D_remap_index]
@@ -3005,6 +3007,8 @@ SERVEXTERN int driDispatchRemapTable[ driDispatchRemapTable_size ];
 #define _gloffset_DrawArraysInstancedBaseInstanceDrawID driDispatchRemapTable[DrawArraysInstancedBaseInstanceDrawID_remap_index]
 #define _gloffset_DrawElementsInstancedBaseVertexBaseInstanceDrawID driDispatchRemapTable[DrawElementsInstancedBaseVertexBaseInstanceDrawID_remap_index]
 #define _gloffset_InternalInvalidateFramebufferAncillaryMESA driDispatchRemapTable[InternalInvalidateFramebufferAncillaryMESA_remap_index]
+#define _gloffset_DrawElementsPacked driDispatchRemapTable[DrawElementsPacked_remap_index]
+#define _gloffset_DrawElementsUserBufPacked driDispatchRemapTable[DrawElementsUserBufPacked_remap_index]
 
 typedef void (GLAPIENTRYP _glptr_NewList)(GLuint, GLenum);
 #define CALL_NewList(disp, parameters) (* GET_NewList(disp)) parameters
@@ -6934,11 +6938,11 @@ typedef void (GLAPIENTRYP _glptr_EnableVertexAttribArray)(GLuint);
    SET_by_offset(disp, _gloffset_EnableVertexAttribArray, fn); \
 } while (0)
 
-typedef void (GLAPIENTRYP _glptr_GetActiveAttrib)(GLuint, GLuint, GLsizei , GLsizei *, GLint *, GLenum *, GLchar *);
+typedef void (GLAPIENTRYP _glptr_GetActiveAttrib)(GLuint, GLuint, GLsizei, GLsizei *, GLint *, GLenum *, GLchar *);
 #define CALL_GetActiveAttrib(disp, parameters) (* GET_GetActiveAttrib(disp)) parameters
 #define GET_GetActiveAttrib(disp) ((_glptr_GetActiveAttrib)(GET_by_offset((disp), _gloffset_GetActiveAttrib)))
 #define SET_GetActiveAttrib(disp, func) do { \
-   void (GLAPIENTRYP fn)(GLuint, GLuint, GLsizei , GLsizei *, GLint *, GLenum *, GLchar *) = func; \
+   void (GLAPIENTRYP fn)(GLuint, GLuint, GLsizei, GLsizei *, GLint *, GLenum *, GLchar *) = func; \
    SET_by_offset(disp, _gloffset_GetActiveAttrib, fn); \
 } while (0)
 
@@ -10182,19 +10186,19 @@ typedef GLint (GLAPIENTRYP _glptr_GetProgramResourceLocationIndex)(GLuint, GLenu
    SET_by_offset(disp, _gloffset_GetProgramResourceLocationIndex, fn); \
 } while (0)
 
-typedef void (GLAPIENTRYP _glptr_GetProgramResourceName)(GLuint, GLenum, GLuint, GLsizei , GLsizei *, GLchar *);
+typedef void (GLAPIENTRYP _glptr_GetProgramResourceName)(GLuint, GLenum, GLuint, GLsizei, GLsizei *, GLchar *);
 #define CALL_GetProgramResourceName(disp, parameters) (* GET_GetProgramResourceName(disp)) parameters
 #define GET_GetProgramResourceName(disp) ((_glptr_GetProgramResourceName)(GET_by_offset((disp), _gloffset_GetProgramResourceName)))
 #define SET_GetProgramResourceName(disp, func) do { \
-   void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint, GLsizei , GLsizei *, GLchar *) = func; \
+   void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint, GLsizei, GLsizei *, GLchar *) = func; \
    SET_by_offset(disp, _gloffset_GetProgramResourceName, fn); \
 } while (0)
 
-typedef void (GLAPIENTRYP _glptr_GetProgramResourceiv)(GLuint, GLenum, GLuint, GLsizei , const GLenum *, GLsizei , GLsizei *, GLint *);
+typedef void (GLAPIENTRYP _glptr_GetProgramResourceiv)(GLuint, GLenum, GLuint, GLsizei, const GLenum *, GLsizei, GLsizei *, GLint *);
 #define CALL_GetProgramResourceiv(disp, parameters) (* GET_GetProgramResourceiv(disp)) parameters
 #define GET_GetProgramResourceiv(disp) ((_glptr_GetProgramResourceiv)(GET_by_offset((disp), _gloffset_GetProgramResourceiv)))
 #define SET_GetProgramResourceiv(disp, func) do { \
-   void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint, GLsizei , const GLenum *, GLsizei , GLsizei *, GLint *) = func; \
+   void (GLAPIENTRYP fn)(GLuint, GLenum, GLuint, GLsizei, const GLenum *, GLsizei, GLsizei *, GLint *) = func; \
    SET_by_offset(disp, _gloffset_GetProgramResourceiv, fn); \
 } while (0)
 
@@ -16358,11 +16362,11 @@ typedef void (GLAPIENTRYP _glptr_DrawArraysInstancedBaseInstanceDrawID)(void);
    SET_by_offset(disp, _gloffset_DrawArraysInstancedBaseInstanceDrawID, fn); \
 } while (0)
 
-typedef void (GLAPIENTRYP _glptr_DrawElementsInstancedBaseVertexBaseInstanceDrawID)(void);
+typedef void (GLAPIENTRYP _glptr_DrawElementsInstancedBaseVertexBaseInstanceDrawID)(GLenum, GLsizei, GLenum, const GLvoid *, GLsizei, GLint, GLuint, GLuint);
 #define CALL_DrawElementsInstancedBaseVertexBaseInstanceDrawID(disp, parameters) (* GET_DrawElementsInstancedBaseVertexBaseInstanceDrawID(disp)) parameters
 #define GET_DrawElementsInstancedBaseVertexBaseInstanceDrawID(disp) ((_glptr_DrawElementsInstancedBaseVertexBaseInstanceDrawID)(GET_by_offset((disp), _gloffset_DrawElementsInstancedBaseVertexBaseInstanceDrawID)))
 #define SET_DrawElementsInstancedBaseVertexBaseInstanceDrawID(disp, func) do { \
-   void (GLAPIENTRYP fn)(void) = func; \
+   void (GLAPIENTRYP fn)(GLenum, GLsizei, GLenum, const GLvoid *, GLsizei, GLint, GLuint, GLuint) = func; \
    SET_by_offset(disp, _gloffset_DrawElementsInstancedBaseVertexBaseInstanceDrawID, fn); \
 } while (0)
 
@@ -16372,6 +16376,22 @@ typedef void (GLAPIENTRYP _glptr_InternalInvalidateFramebufferAncillaryMESA)(voi
 #define SET_InternalInvalidateFramebufferAncillaryMESA(disp, func) do { \
    void (GLAPIENTRYP fn)(void) = func; \
    SET_by_offset(disp, _gloffset_InternalInvalidateFramebufferAncillaryMESA, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_DrawElementsPacked)(GLenum, GLenum, GLushort, GLushort);
+#define CALL_DrawElementsPacked(disp, parameters) (* GET_DrawElementsPacked(disp)) parameters
+#define GET_DrawElementsPacked(disp) ((_glptr_DrawElementsPacked)(GET_by_offset((disp), _gloffset_DrawElementsPacked)))
+#define SET_DrawElementsPacked(disp, func) do { \
+   void (GLAPIENTRYP fn)(GLenum, GLenum, GLushort, GLushort) = func; \
+   SET_by_offset(disp, _gloffset_DrawElementsPacked, fn); \
+} while (0)
+
+typedef void (GLAPIENTRYP _glptr_DrawElementsUserBufPacked)(const GLvoid *);
+#define CALL_DrawElementsUserBufPacked(disp, parameters) (* GET_DrawElementsUserBufPacked(disp)) parameters
+#define GET_DrawElementsUserBufPacked(disp) ((_glptr_DrawElementsUserBufPacked)(GET_by_offset((disp), _gloffset_DrawElementsUserBufPacked)))
+#define SET_DrawElementsUserBufPacked(disp, func) do { \
+   void (GLAPIENTRYP fn)(const GLvoid *) = func; \
+   SET_by_offset(disp, _gloffset_DrawElementsUserBufPacked, fn); \
 } while (0)
 
 

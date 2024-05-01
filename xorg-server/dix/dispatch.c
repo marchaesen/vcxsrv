@@ -101,12 +101,11 @@ Equipment Corporation.
 #include <version-config.h>
 #endif
 
-#include <stddef.h>
-
 #ifdef CreateWindow
 #undef CreateWindow
 #endif
 
+#include <stddef.h>
 #include <X11/fonts/fontstruct.h>
 #include <X11/fonts/libxfont2.h>
 

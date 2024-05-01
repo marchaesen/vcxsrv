@@ -157,7 +157,8 @@ MESA_UTIL_FILES := \
         u_worklist.c \
         streaming-load-memcpy.c \
 	texcompress_astc_luts_wrap.cpp \
-	texcompress_astc_luts.cpp
+	texcompress_astc_luts.cpp \
+	thread_sched.c
 
 
 MESA_UTIL_GENERATED_FILES = \

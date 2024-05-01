@@ -5,7 +5,7 @@ DEFINES = WIN32 SWRAST_DRI_EXPORT INSERVER _USE_MATH_DEFINES __STDC_CONSTANT_MAC
 PACKAGE_VERSION:=\"$(strip $(shell cat $(top_srcdir)/VERSION))\"
 DEFINES += PACKAGE_VERSION=$(PACKAGE_VERSION)
 
-INCLUDES += $(MHMAKECONF)/include ../../auxiliary ../../auxiliary/util ../../auxiliary/driver_rbug ../../include ../../.. $(top_srcdir)/include ../../frontends/dri \
+INCLUDES += $(MHMAKECONF)/include ../../../loader ../../auxiliary ../../auxiliary/util ../../auxiliary/driver_rbug ../../include ../../.. $(top_srcdir)/include ../../frontends/dri \
   ../../../util ../../../mesa ../../drivers ../../../mapi ../../../compiler/nir ../../winsys ../../../$(OBJDIR)
 
 LIBRARY = libgallium

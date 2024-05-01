@@ -8,7 +8,7 @@ XDMCP=1
 NEED_STRLCAT=1
 NEED_STRNDUP=1
 
-INCLUDES+=../dix
+INCLUDES += ../dix ..
 DEFINES += PIXMAN_API=
 
 SECURERPC_SRCS = rpcauth.c
@@ -42,6 +42,9 @@ libos_la_SOURCES = 	\
 	xstrans.c	\
 	xprintf.c	\
 	reallocarray.c  \
+	alloc.c  \
+	fmt.c \
+	string.c \
 	$(XORG_SRCS)
 
 if SECURE_RPC

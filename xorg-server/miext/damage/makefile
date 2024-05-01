@@ -5,3 +5,5 @@ LIBRARY = libdamage
 CSRCS =damage.c
 
 DEFINES += PIXMAN_API=
+
+INCLUDES += ../..

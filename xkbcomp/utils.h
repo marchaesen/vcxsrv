@@ -141,6 +141,8 @@ uInformation(const char * /* s */ , ...
 #include <strings.h>
 #include <string.h>
 
+#define strncasecmp _strnicmp
+
 #define	NullString	((char *)NULL)
 
 #define	uStringText(s)		((s)==NullString?"<NullString>":(s))

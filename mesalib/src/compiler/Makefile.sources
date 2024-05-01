@@ -117,7 +117,12 @@ LIBGLSL_FILES = \
         flsl/string_to_uint_map.cpp \
         flsl/string_to_uint_map.h \
 	glsl/serialize.cpp \
-	glsl/serialize.h
+	glsl/serialize.h \
+	glsl/gl_nir_lower_discard_flow.c \
+	glsl/gl_nir_detect_function_recursion.c \
+	glsl/gl_nir_link_interface_blocks.c \
+	glsl/gl_nir_link_interface_blocks.c
+
 
 LIBGLSL_SHADER_CACHE_FILES = \
 	glsl/shader_cache.cpp \
@@ -349,7 +354,9 @@ NIR_FILES = \
 	nir/nir_opt_shrink_stores.c \
 	nir_lower_sysvals_to_varyings.c \
         nir/nir_opt_fragdepth.c \
-	nir/nir_gather_types.c
+	nir/nir_gather_types.c \
+	nir_opt_varyings.c \
+	nir/nir_use_dominance.c
 
 SPIRV_GENERATED_FILES = \
 	spirv/spirv_info.c \

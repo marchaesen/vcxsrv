@@ -8,3 +8,5 @@ CSRCS = cursor.c	\
 LIBRARY=libxfixes
 
 DEFINES += PIXMAN_API=
+
+INCLUDES += ..

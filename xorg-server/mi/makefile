@@ -30,6 +30,6 @@ CSRCS=miarc.c		\
 
 LIBRARY=libmi
 
-INCLUDES+=../composite
+INCLUDES += ../composite ..
 
 DEFINES +=  PIXMAN_API=

@@ -261,9 +261,7 @@ Bool isThereSomething(Bool are_ready)
         int pollerr;
         int timeout=0;
         /* deal with any blocked jobs */
-        if (workQueue) {
-            ProcessWorkQueue();
-        }
+        ProcessWorkQueue();
 
         timeout = check_timers();
         are_ready = clients_are_ready();

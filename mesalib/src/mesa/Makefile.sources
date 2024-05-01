@@ -265,6 +265,7 @@ MAIN_FILES = \
 	main/viewport.c \
 	main/viewport.h \
 	main/glthread_list.c \
+	main/glthread_pixels.c \
 	$(MAIN_ES_FILES)
 
 MATH_FILES = \

@@ -56,3 +56,4 @@ LIBRARY=libXi
 
 DEFINES += PIXMAN_API=
 
+INCLUDES += ..
