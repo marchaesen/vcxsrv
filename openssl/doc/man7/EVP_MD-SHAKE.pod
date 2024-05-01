@@ -25,14 +25,14 @@ provider, and includes the following varieties:
 
 Known names are "KECCAK-KMAC-128" and "KECCAK-KMAC128".  This is used
 by L<EVP_MAC-KMAC128(7)>.  Using the notation from NIST FIPS 202
-(Section 6.2), we have KECCAK-KMAC-128(M, d) = KECCAK[256](M || 00, d)
+(Section 6.2), we have S<KECCAK-KMAC-128(M, d)> = S<KECCAK[256](M || 00, d)>
 (see the description of KMAC128 in Appendix A of NIST SP 800-185).
 
 =item KECCAK-KMAC-256
 
 Known names are "KECCAK-KMAC-256" and "KECCAK-KMAC256".  This is used
 by L<EVP_MAC-KMAC256(7)>.  Using the notation from NIST FIPS 202
-(Section 6.2), we have KECCAK-KMAC-256(M, d) = KECCAK[512](M || 00, d)
+(Section 6.2), we have S<KECCAK-KMAC-256(M, d)> = S<KECCAK[512](M || 00, d)>
 (see the description of KMAC256 in Appendix A of NIST SP 800-185).
 
 =item SHAKE-128
@@ -70,7 +70,20 @@ For backwards compatibility reasons the default xoflen length for SHAKE-256 is
 32 (bytes) which results in a security strength of only 128 bits. To ensure the
 maximum security strength of 256 bits, the xoflen should be set to at least 64.
 
+This parameter may be used when calling either EVP_DigestFinal_ex() or
+EVP_DigestFinal(), since these functions were not designed to handle variable
+length output. It is recommended to either use EVP_DigestSqueeze() or
+EVP_DigestFinalXOF() instead.
+
 =back
+
+=head1 NOTES
+
+For SHAKE-128, to ensure the maximum security strength of 128 bits, the output
+length passed to EVP_DigestFinalXOF() should be at least 32.
+
+For SHAKE-256, to ensure the maximum security strength of 256 bits, the output
+length passed to EVP_DigestFinalXOF() should be at least 64.
 
 =head1 SEE ALSO
 

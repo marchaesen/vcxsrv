@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -25,6 +25,7 @@
 #ifndef OPENSSL_NO_DSA
 # include <openssl/dsa.h>
 #endif
+#include "internal/e_os.h"    /* For isatty() */
 
 #undef POSTFIX
 #define POSTFIX ".srl"
@@ -43,7 +44,7 @@ typedef enum OPTION_choice {
     OPT_INFORM, OPT_OUTFORM, OPT_KEYFORM, OPT_REQ, OPT_CAFORM,
     OPT_CAKEYFORM, OPT_VFYOPT, OPT_SIGOPT, OPT_DAYS, OPT_PASSIN, OPT_EXTFILE,
     OPT_EXTENSIONS, OPT_IN, OPT_OUT, OPT_KEY, OPT_SIGNKEY, OPT_CA, OPT_CAKEY,
-    OPT_CASERIAL, OPT_SET_SERIAL, OPT_NEW, OPT_FORCE_PUBKEY, OPT_SUBJ,
+    OPT_CASERIAL, OPT_SET_SERIAL, OPT_NEW, OPT_FORCE_PUBKEY, OPT_ISSU, OPT_SUBJ,
     OPT_ADDTRUST, OPT_ADDREJECT, OPT_SETALIAS, OPT_CERTOPT, OPT_DATEOPT, OPT_NAMEOPT,
     OPT_EMAIL, OPT_OCSP_URI, OPT_SERIAL, OPT_NEXT_SERIAL,
     OPT_MODULUS, OPT_PUBKEY, OPT_X509TOREQ, OPT_TEXT, OPT_HASH,
@@ -138,7 +139,9 @@ const OPTIONS x509_options[] = {
      "Number of days until newly generated certificate expires - default 30"},
     {"preserve_dates", OPT_PRESERVE_DATES, '-',
      "Preserve existing validity dates"},
-    {"subj", OPT_SUBJ, 's', "Set or override certificate subject (and issuer)"},
+    {"set_issuer", OPT_ISSU, 's', "Set or override certificate issuer"},
+    {"set_subject", OPT_SUBJ, 's', "Set or override certificate subject (and issuer)"},
+    {"subj", OPT_SUBJ, 's', "Alias for -set_subject"},
     {"force_pubkey", OPT_FORCE_PUBKEY, '<',
      "Key to be placed in new certificate or certificate request"},
     {"clrext", OPT_CLREXT, '-',
@@ -262,8 +265,8 @@ int x509_main(int argc, char **argv)
     EVP_PKEY *privkey = NULL, *CAkey = NULL, *pubkey = NULL;
     EVP_PKEY *pkey;
     int newcert = 0;
-    char *subj = NULL, *digest = NULL;
-    X509_NAME *fsubj = NULL;
+    char *issu = NULL, *subj = NULL, *digest = NULL;
+    X509_NAME *fissu = NULL, *fsubj = NULL;
     const unsigned long chtype = MBSTRING_ASC;
     const int multirdn = 1;
     STACK_OF(ASN1_OBJECT) *trust = NULL, *reject = NULL;
@@ -424,6 +427,9 @@ int x509_main(int argc, char **argv)
             break;
         case OPT_FORCE_PUBKEY:
             pubkeyfile = opt_arg();
+            break;
+        case OPT_ISSU:
+            issu = opt_arg();
             break;
         case OPT_SUBJ:
             subj = opt_arg();
@@ -651,6 +657,9 @@ int x509_main(int argc, char **argv)
             goto err;
         }
     }
+    if (issu != NULL
+            && (fissu = parse_name(issu, chtype, multirdn, "issuer")) == NULL)
+        goto end;
     if (subj != NULL
             && (fsubj = parse_name(subj, chtype, multirdn, "subject")) == NULL)
         goto end;
@@ -701,7 +710,7 @@ int x509_main(int argc, char **argv)
     }
 
     if (reqfile) {
-        if (infile == NULL)
+        if (infile == NULL && isatty(fileno_stdin()))
             BIO_printf(bio_err,
                        "Warning: Reading cert request from stdin since no -in option is given\n");
         req = load_csr_autofmt(infile, informat, vfyopts,
@@ -754,7 +763,7 @@ int x509_main(int argc, char **argv)
             }
         }
     } else {
-        if (infile == NULL)
+        if (infile == NULL && isatty(fileno_stdin()))
             BIO_printf(bio_err,
                        "Warning: Reading certificate from stdin since no -in or -new option is given\n");
         x = load_cert_pass(infile, informat, 1, passin, "certificate");
@@ -830,8 +839,13 @@ int x509_main(int argc, char **argv)
     if (reqfile || newcert || privkey != NULL || CAfile != NULL) {
         if (!preserve_dates && !set_cert_times(x, NULL, NULL, days))
             goto end;
-        if (!X509_set_issuer_name(x, X509_get_subject_name(issuer_cert)))
-            goto end;
+        if (fissu != NULL) {
+            if (!X509_set_issuer_name(x, fissu))
+                goto end;
+        } else {
+            if (!X509_set_issuer_name(x, X509_get_subject_name(issuer_cert)))
+                goto end;
+        }
     }
 
     X509V3_set_ctx(&ext_ctx, issuer_cert, x, NULL, NULL, X509V3_CTX_REPLACE);
@@ -1079,6 +1093,7 @@ int x509_main(int argc, char **argv)
     NCONF_free(extconf);
     BIO_free_all(out);
     X509_STORE_free(ctx);
+    X509_NAME_free(fissu);
     X509_NAME_free(fsubj);
     X509_REQ_free(req);
     X509_free(x);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2015-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2015-2024 The OpenSSL Project Authors. All Rights Reserved.
  * Copyright (c) 2013-2014 Timo Teräs <timo.teras@gmail.com>
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
@@ -44,9 +44,6 @@
 
 # ifndef PATH_MAX
 #  define PATH_MAX 4096
-# endif
-# ifndef NAME_MAX
-#  define NAME_MAX 255
 # endif
 # define MAX_COLLISIONS  256
 
@@ -269,7 +266,7 @@ static int do_file(const char *filename, const char *fullpath, enum Hash h)
 
     if (sk_X509_INFO_num(inf) != 1) {
         BIO_printf(bio_err,
-                   "%s: warning: skipping %s,"
+                   "%s: warning: skipping %s, "
                    "it does not contain exactly one certificate or CRL\n",
                    opt_getprog(), filename);
         /* This is not an error. */
@@ -356,10 +353,10 @@ static int do_dir(const char *dirname, enum Hash h)
     struct stat st;
     unsigned char idmask[MAX_COLLISIONS / 8];
     int n, numfiles, nextid, dirlen, buflen, errs = 0;
-    size_t i;
+    size_t i, fname_max_len = 20; /* maximum length of "%08x.r%d" */
     const char *pathsep = "";
     const char *filename;
-    char *buf, *copy = NULL;
+    char *buf = NULL, *copy = NULL;
     STACK_OF(OPENSSL_STRING) *files = NULL;
 
     if (app_access(dirname, W_OK) < 0) {
@@ -371,8 +368,6 @@ static int do_dir(const char *dirname, enum Hash h)
         pathsep = "/";
         dirlen++;
     }
-    buflen = dirlen + NAME_MAX + 1;
-    buf = app_malloc(buflen, "filename buffer");
 
     if (verbose)
         BIO_printf(bio_out, "Doing %s\n", dirname);
@@ -383,16 +378,24 @@ static int do_dir(const char *dirname, enum Hash h)
         goto err;
     }
     while ((filename = OPENSSL_DIR_read(&d, dirname)) != NULL) {
+        size_t fname_len = strlen(filename);
+
         if ((copy = OPENSSL_strdup(filename)) == NULL
                 || sk_OPENSSL_STRING_push(files, copy) == 0) {
             OPENSSL_free(copy);
+            OPENSSL_DIR_end(&d);
             BIO_puts(bio_err, "out of memory\n");
             errs = 1;
             goto err;
         }
+        if (fname_len > fname_max_len)
+            fname_max_len = fname_len;
     }
     OPENSSL_DIR_end(&d);
     sk_OPENSSL_STRING_sort(files);
+
+    buflen = dirlen + fname_max_len + 1;
+    buf = app_malloc(buflen, "filename buffer");
 
     numfiles = sk_OPENSSL_STRING_num(files);
     for (n = 0; n < numfiles; ++n) {

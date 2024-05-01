@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2019-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -159,7 +159,7 @@ static const PROV_CIPHER_HW aes_xts_t4 = {                                     \
 if (SPARC_AES_CAPABLE)                                                         \
     return &aes_xts_t4;
 
-#elif defined(__riscv) && __riscv_xlen == 64
+#elif defined(OPENSSL_CPUID_OBJ) && defined(__riscv) && __riscv_xlen == 64
 
 static int cipher_hw_aes_xts_rv64i_zknd_zkne_initkey(PROV_CIPHER_CTX *ctx,
                                                      const unsigned char *key,
@@ -175,17 +175,77 @@ static int cipher_hw_aes_xts_rv64i_zknd_zkne_initkey(PROV_CIPHER_CTX *ctx,
     return 1;
 }
 
+static int cipher_hw_aes_xts_rv64i_zvbb_zvkg_zvkned_initkey(
+    PROV_CIPHER_CTX *ctx, const unsigned char *key, size_t keylen)
+{
+    PROV_AES_XTS_CTX *xctx = (PROV_AES_XTS_CTX *)ctx;
+    OSSL_xts_stream_fn stream_enc = NULL;
+    OSSL_xts_stream_fn stream_dec = NULL;
+
+    /* Zvkned only supports 128 and 256 bit keys. */
+    if (keylen * 8 == 128 * 2 || keylen * 8 == 256 * 2) {
+        XTS_SET_KEY_FN(rv64i_zvkned_set_encrypt_key,
+                       rv64i_zvkned_set_decrypt_key, rv64i_zvkned_encrypt,
+                       rv64i_zvkned_decrypt,
+                       rv64i_zvbb_zvkg_zvkned_aes_xts_encrypt,
+                       rv64i_zvbb_zvkg_zvkned_aes_xts_decrypt);
+    } else {
+        XTS_SET_KEY_FN(AES_set_encrypt_key, AES_set_encrypt_key,
+                       rv64i_zvkned_encrypt, rv64i_zvkned_decrypt,
+                       stream_enc, stream_dec);
+    }
+    return 1;
+}
+
+static int cipher_hw_aes_xts_rv64i_zvkned_initkey(PROV_CIPHER_CTX *ctx,
+                                                  const unsigned char *key,
+                                                  size_t keylen)
+{
+    PROV_AES_XTS_CTX *xctx = (PROV_AES_XTS_CTX *)ctx;
+    OSSL_xts_stream_fn stream_enc = NULL;
+    OSSL_xts_stream_fn stream_dec = NULL;
+
+    /* Zvkned only supports 128 and 256 bit keys. */
+    if (keylen * 8 == 128 * 2 || keylen * 8 == 256 * 2) {
+        XTS_SET_KEY_FN(rv64i_zvkned_set_encrypt_key,
+                       rv64i_zvkned_set_decrypt_key,
+                       rv64i_zvkned_encrypt, rv64i_zvkned_decrypt,
+                       stream_enc, stream_dec);
+    } else {
+        XTS_SET_KEY_FN(AES_set_encrypt_key, AES_set_encrypt_key,
+                       rv64i_zvkned_encrypt, rv64i_zvkned_decrypt,
+                       stream_enc, stream_dec);
+    }
+    return 1;
+}
+
 # define PROV_CIPHER_HW_declare_xts()                                          \
 static const PROV_CIPHER_HW aes_xts_rv64i_zknd_zkne = {                        \
     cipher_hw_aes_xts_rv64i_zknd_zkne_initkey,                                 \
     NULL,                                                                      \
     cipher_hw_aes_xts_copyctx                                                  \
+};                                                                             \
+static const PROV_CIPHER_HW aes_xts_rv64i_zvkned = {                           \
+    cipher_hw_aes_xts_rv64i_zvkned_initkey,                                    \
+    NULL,                                                                      \
+    cipher_hw_aes_xts_copyctx                                                  \
+};                                                                             \
+static const PROV_CIPHER_HW aes_xts_rv64i_zvbb_zvkg_zvkned = {                 \
+    cipher_hw_aes_xts_rv64i_zvbb_zvkg_zvkned_initkey,                          \
+    NULL,                                                                      \
+    cipher_hw_aes_xts_copyctx                                                  \
 };
+
 # define PROV_CIPHER_HW_select_xts()                                           \
-if (RISCV_HAS_ZKND_AND_ZKNE())                                                 \
+if (RISCV_HAS_ZVBB() && RISCV_HAS_ZVKG() && RISCV_HAS_ZVKNED() &&              \
+    riscv_vlen() >= 128)                                                       \
+    return &aes_xts_rv64i_zvbb_zvkg_zvkned;                                    \
+if (RISCV_HAS_ZVKNED() && riscv_vlen() >= 128)                                 \
+    return &aes_xts_rv64i_zvkned;                                              \
+else if (RISCV_HAS_ZKND_AND_ZKNE())                                            \
     return &aes_xts_rv64i_zknd_zkne;
 
-#elif defined(__riscv) && __riscv_xlen == 32
+#elif defined(OPENSSL_CPUID_OBJ) && defined(__riscv) && __riscv_xlen == 32
 
 static int cipher_hw_aes_xts_rv32i_zknd_zkne_initkey(PROV_CIPHER_CTX *ctx,
                                                      const unsigned char *key,
@@ -225,7 +285,7 @@ static const PROV_CIPHER_HW aes_xts_rv32i_zbkb_zknd_zkne = {                   \
 # define PROV_CIPHER_HW_select_xts()                                           \
 if (RISCV_HAS_ZBKB_AND_ZKND_AND_ZKNE())                                        \
     return &aes_xts_rv32i_zbkb_zknd_zkne;                                      \
-if (RISCV_HAS_ZKND_ZKNE())                                                     \
+if (RISCV_HAS_ZKND_AND_ZKNE())                                                 \
     return &aes_xts_rv32i_zknd_zkne;
 # else
 /* The generic case */

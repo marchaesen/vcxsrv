@@ -1,5 +1,5 @@
 #! /usr/bin/env perl
-# Copyright 2023 The OpenSSL Project Authors. All Rights Reserved.
+# Copyright 2023-2024 The OpenSSL Project Authors. All Rights Reserved.
 #
 # Licensed under the Apache License 2.0 (the "License").  You may not use
 # this file except in compliance with the License.  You can obtain a copy
@@ -348,6 +348,7 @@ my %params = (
     'PKEY_PARAM_RSA_MASKGENFUNC' =>      '*PKEY_PARAM_MASKGENFUNC',
     'PKEY_PARAM_RSA_MGF1_DIGEST' =>      '*PKEY_PARAM_MGF1_DIGEST',
     'PKEY_PARAM_RSA_PSS_SALTLEN' =>      "saltlen",
+    'PKEY_PARAM_RSA_DERIVE_FROM_PQ'    =>     "rsa-derive-from-pq",
 
 # EC, X25519 and X448 Key generation parameters
     'PKEY_PARAM_DHKEM_IKM' =>        "dhkem-ikm",
@@ -562,7 +563,7 @@ sub generate_trie {
     my $nodes = 0;
     my $chars = 0;
 
-    foreach my $name (keys %params) {
+    foreach my $name (sort keys %params) {
         my $val = $params{$name};
         if (substr($val, 0, 1) ne '*') {
             my $cursor = \%trie;
