@@ -13178,11 +13178,11 @@ typedef void (GLAPIENTRYP _glptr_GetTexGenxvOES)(GLenum, GLenum, GLfixed *);
    SET_by_offset(disp, _gloffset_GetTexGenxvOES, fn); \
 } while (0)
 
-typedef void (GLAPIENTRYP _glptr_TexGenxOES)(GLenum, GLenum, GLint);
+typedef void (GLAPIENTRYP _glptr_TexGenxOES)(GLenum, GLenum, GLfixed);
 #define CALL_TexGenxOES(disp, parameters) (* GET_TexGenxOES(disp)) parameters
 #define GET_TexGenxOES(disp) ((_glptr_TexGenxOES)(GET_by_offset((disp), _gloffset_TexGenxOES)))
 #define SET_TexGenxOES(disp, func) do { \
-   void (GLAPIENTRYP fn)(GLenum, GLenum, GLint) = func; \
+   void (GLAPIENTRYP fn)(GLenum, GLenum, GLfixed) = func; \
    SET_by_offset(disp, _gloffset_TexGenxOES, fn); \
 } while (0)
 

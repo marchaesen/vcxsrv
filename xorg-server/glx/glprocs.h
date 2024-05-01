@@ -2731,7 +2731,7 @@ void GLAPIENTRY gl_dispatch_stub_1266(GLuint id, GLsizei len, const GLubyte *nam
 void GLAPIENTRY gl_dispatch_stub_1267(GLuint id, GLsizei len, const GLubyte *name, GLfloat x, GLfloat y, GLfloat z, GLfloat w);
 void GLAPIENTRY gl_dispatch_stub_1268(GLuint id, GLsizei len, const GLubyte *name, const GLfloat *v);
 void GLAPIENTRY gl_dispatch_stub_1270(GLenum coord, GLenum pname, GLfixed *params);
-void GLAPIENTRY gl_dispatch_stub_1271(GLenum coord, GLenum pname, GLint param);
+void GLAPIENTRY gl_dispatch_stub_1271(GLenum coord, GLenum pname, GLfixed param);
 void GLAPIENTRY gl_dispatch_stub_1272(GLenum coord, GLenum pname, const GLfixed *params);
 void GLAPIENTRY gl_dispatch_stub_1273(GLclampd zmin, GLclampd zmax);
 void GLAPIENTRY gl_dispatch_stub_1276(GLsizei len, const GLvoid *string);
