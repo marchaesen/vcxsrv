@@ -4,4 +4,4 @@ LIBRARY=libdamageext
 
 DEFINES += PIXMAN_API=
 
-INCLUDES += ..
+INCLUDES += .. ../dix

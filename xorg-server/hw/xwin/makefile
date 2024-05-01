@@ -90,7 +90,7 @@ CSRCS := $(CSRCS:%.l=%.c)
 
 DEFINES += $(DEFS:-D%=%) HAVE_XWIN_CONFIG_H PTW32_STATIC_LIB RELOCATE_PROJECTROOT READ_FONTDIRS PIXMAN_API=
 
-INCLUDES += winclipboard ..\.. ..\..\miext\rootless
+INCLUDES += winclipboard ..\.. ..\..\dix ..\..\miext\rootless
 
 INCLUDES += $(OBJDIR)
 
