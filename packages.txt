@@ -1,7 +1,7 @@
 bdftopcf-1.1
 encodings-1.0.7
 evieext-1.1.1
-expat-2.5.0
+expat-2.6.2
 font-adobe-100dpi-1.0.4
 font-adobe-75dpi-1.0.4
 font-adobe-utopia-100dpi-1.0.5
