@@ -214,8 +214,6 @@ radv_shader_object_init_compute(struct radv_shader_object *shader_obj, struct ra
    struct radv_shader_binary *cs_binary;
    struct radv_shader_stage stage = {0};
 
-   assert(pCreateInfo->flags == 0);
-
    radv_shader_stage_init(pCreateInfo, &stage);
 
    struct radv_shader *cs_shader = radv_compile_cs(device, NULL, &stage, true, false, false, &cs_binary);

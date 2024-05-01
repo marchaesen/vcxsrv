@@ -28,21 +28,25 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include <dix-config.h>
 #endif
 
+#include <ctype.h>
 #include <stdio.h>
 #include <math.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/keysym.h>
+
+#include "dix/dix_priv.h"
+#include "xkb/xkbsrv_priv.h"
+
 #include "misc.h"
 #include "inputstr.h"
 #include "exevents.h"
 #include "eventstr.h"
-#include <xkbsrv.h>
-#include <ctype.h>
 #include "mi.h"
 #include "mipointer.h"
 #include "inpututils.h"
 #include "dixgrabs.h"
+
 #define EXTENSION_EVENT_BASE 64
 
 DevPrivateKeyRec xkbDevicePrivateKeyRec;

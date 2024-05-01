@@ -85,6 +85,24 @@ ir3_load_driver_ubo_indirect(nir_builder *b, unsigned components,
 }
 
 static bool
+ir3_nir_should_scalarize_mem(const nir_instr *instr, const void *data)
+{
+   const struct ir3_compiler *compiler = data;
+   const nir_intrinsic_instr *intrin = nir_instr_as_intrinsic(instr);
+
+   /* Scalarize load_ssbo's that we could otherwise lower to isam,
+    * as the tex cache benefit outweighs the benefit of vectorizing
+    */
+   if ((intrin->intrinsic == nir_intrinsic_load_ssbo) &&
+       (nir_intrinsic_access(intrin) & ACCESS_CAN_REORDER) &&
+       compiler->has_isam_ssbo) {
+      return true;
+   }
+
+   return false;
+}
+
+static bool
 ir3_nir_should_vectorize_mem(unsigned align_mul, unsigned align_offset,
                              unsigned bit_size, unsigned num_components,
                              nir_intrinsic_instr *low,
@@ -707,7 +725,8 @@ ir3_nir_lower_variant(struct ir3_shader_variant *so, nir_shader *s)
 
    bool progress = false;
 
-   NIR_PASS_V(s, nir_lower_io_to_scalar, nir_var_mem_ssbo, NULL, NULL);
+   NIR_PASS_V(s, nir_lower_io_to_scalar, nir_var_mem_ssbo,
+              ir3_nir_should_scalarize_mem, so->compiler);
 
    if (so->key.has_gs || so->key.tessellation) {
       switch (so->type) {

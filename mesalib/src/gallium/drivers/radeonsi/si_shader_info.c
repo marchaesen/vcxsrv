@@ -320,6 +320,20 @@ static void scan_io_usage(const nir_shader *nir, struct si_shader_info *info,
       for (unsigned i = 0; i < num_slots; i++) {
          unsigned loc = driver_location + i;
 
+         /* Call the translation functions to validate the semantic (call assertions in them). */
+         if (nir->info.stage != MESA_SHADER_FRAGMENT &&
+             semantic != VARYING_SLOT_EDGE) {
+            if (semantic == VARYING_SLOT_TESS_LEVEL_INNER ||
+                semantic == VARYING_SLOT_TESS_LEVEL_OUTER ||
+                (semantic >= VARYING_SLOT_PATCH0 && semantic <= VARYING_SLOT_PATCH31)) {
+               ac_shader_io_get_unique_index_patch(semantic);
+               ac_shader_io_get_unique_index_patch(semantic + i);
+            } else {
+               si_shader_io_get_unique_index(semantic);
+               si_shader_io_get_unique_index(semantic + i);
+            }
+         }
+
          info->output_semantic[loc] = semantic + i;
 
          if (is_output_load) {

@@ -32,7 +32,7 @@
 #include "geint.h"
 #include "geext.h"
 #include "protocol-versions.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 
 DevPrivateKeyRec GEClientPrivateKeyRec;
 

@@ -30,7 +30,7 @@
 #include <xwin-config.h>
 #endif
 #include "win.h"
-#include "dixstruct.h"
+#include "dixstruct_priv.h"
 #include "inputstr.h"
 
 /*

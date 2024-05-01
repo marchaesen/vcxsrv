@@ -284,8 +284,6 @@ extern _X_EXPORT DevPrivateKeyRec xkbDevicePrivateKeyRec;
 
 #define XKBDEVICEINFO(dev) ((xkbDeviceInfoPtr)dixLookupPrivate(&(dev)->devPrivates, xkbDevicePrivateKey))
 
-extern void xkbUnwrapProc(DeviceIntPtr, DeviceHandleProc, void *);
-
 /***====================================================================***/
 
 /***====================================================================***/
@@ -492,8 +490,6 @@ extern _X_EXPORT void XkbUpdateIndicators(DeviceIntPtr /* keybd */ ,
                                           XkbEventCausePtr      /* cause */
     );
 
-extern void XkbForceUpdateDeviceLEDs(DeviceIntPtr /* keybd */);
-
 extern _X_EXPORT void XkbUpdateAllDeviceIndicators(XkbChangesPtr /* changes */,
                                                    XkbEventCausePtr /* cause */
     );
@@ -639,10 +635,6 @@ extern _X_EXPORT void XkbHandleActions(DeviceIntPtr /* dev */ ,
                                        DeviceIntPtr /* kbd */ ,
                                        DeviceEvent *    /* event */
     );
-
-extern void XkbPushLockedStateToSlaves(DeviceIntPtr /* master */,
-                                       int /* evtype */,
-                                       int /* key */);
 
 extern _X_EXPORT Bool XkbEnableDisableControls(XkbSrvInfoPtr /* xkbi */ ,
                                                unsigned long /* change */ ,
@@ -820,28 +812,11 @@ extern _X_EXPORT void XkbSendNewKeyboardNotify(DeviceIntPtr /* kbd */ ,
                                                xkbNewKeyboardNotify *   /* pNKN */
     );
 
-extern Bool XkbCopyKeymap(XkbDescPtr /* dst */ ,
-                          XkbDescPtr /* src */ );
-
 extern _X_EXPORT Bool XkbCopyDeviceKeymap(DeviceIntPtr /* dst */,
 					  DeviceIntPtr /* src */);
 
 extern _X_EXPORT Bool XkbDeviceApplyKeymap(DeviceIntPtr /* dst */ ,
                                            XkbDescPtr /* src */ );
-
-extern void XkbFilterEvents(ClientPtr /* pClient */ ,
-                            int /* nEvents */ ,
-                            xEvent * /* xE */ );
-
-extern int XkbGetEffectiveGroup(XkbSrvInfoPtr /* xkbi */ ,
-                                XkbStatePtr /* xkbstate */ ,
-                                CARD8 /* keycode */ );
-
-extern void XkbMergeLockedPtrBtns(DeviceIntPtr /* master */ );
-
-extern void XkbFakeDeviceButton(DeviceIntPtr /* dev */ ,
-                                int /* press */ ,
-                                int /* button */ );
 
 extern _X_EXPORT void XkbCopyControls(XkbDescPtr /* dst */ ,
                                       XkbDescPtr /* src */ );

@@ -43,12 +43,14 @@
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2proto.h>
+
+#include "dix/exevents_priv.h"
+
 #include "inputstr.h"
 #include "windowstr.h"
 #include "extinit.h"            /* for XInputExtensionInit */
 #include "scrnintstr.h"
 #include "xiselectev.h"
-#include "exevents.h"
 
 #include "protocol-common.h"
 

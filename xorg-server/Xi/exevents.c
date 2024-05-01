@@ -84,20 +84,20 @@ SOFTWARE.
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/geproto.h>
 #include <X11/extensions/XI.h>
 #include <X11/extensions/XIproto.h>
 #include <X11/extensions/XI2proto.h>
-#include <X11/extensions/geproto.h>
 #include <X11/extensions/XKBproto.h>
 
 #include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/exevents_priv.h"
 
 #include "inputstr.h"
 #include "windowstr.h"
 #include "miscstruct.h"
 #include "region.h"
-#include "exevents.h"
 #include "extnsionst.h"
 #include "exglobals.h"
 #include "eventstr.h"

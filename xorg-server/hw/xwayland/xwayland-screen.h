@@ -80,6 +80,7 @@ struct xwl_screen {
     ChangeWindowAttributesProcPtr ChangeWindowAttributes;
     MoveWindowProcPtr MoveWindow;
     SourceValidateProcPtr SourceValidate;
+    SetShapeProcPtr SetShape;
 
     int (*GrabServer) (ClientPtr client);
     int (*UngrabServer) (ClientPtr client);

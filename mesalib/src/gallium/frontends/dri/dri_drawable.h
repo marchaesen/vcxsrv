@@ -91,6 +91,7 @@ struct dri_drawable
    struct kopper_loader_info info;
    __DRIimage   *image; //texture_from_pixmap
    bool is_window;
+   bool window_valid;
    bool has_modifiers;
 
    /* hooks filled in by dri2 & drisw */

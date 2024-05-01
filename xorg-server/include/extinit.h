@@ -55,107 +55,64 @@ OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
 #ifdef COMPOSITE
 extern _X_EXPORT Bool noCompositeExtension;
-extern void CompositeExtensionInit(void);
 #endif
 
 #ifdef DAMAGE
 extern _X_EXPORT Bool noDamageExtension;
-extern void DamageExtensionInit(void);
 #endif
 
 #if defined(DBE)
 extern _X_EXPORT Bool noDbeExtension;
-extern void DbeExtensionInit(void);
 #endif
 
 #if defined(DPMSExtension)
 extern _X_EXPORT Bool noDPMSExtension;
-extern void DPMSExtensionInit(void);
 #endif
-
-extern Bool noGEExtension;
-extern void GEExtensionInit(void);
 
 #ifdef GLXEXT
 extern _X_EXPORT Bool noGlxExtension;
-extern void GlxExtensionInit(void);
 #endif
 
 #ifdef PANORAMIX
 extern _X_EXPORT Bool noPanoramiXExtension;
-extern void PanoramiXExtensionInit(void);
 #endif
 
 #ifdef RANDR
 extern _X_EXPORT Bool noRRExtension;
-extern void RRExtensionInit(void);
-#endif
-
-#if defined(XRECORD)
-extern void RecordExtensionInit(void);
 #endif
 
 extern _X_EXPORT Bool noRenderExtension;
-extern void RenderExtensionInit(void);
 
 #if defined(RES)
 extern _X_EXPORT Bool noResExtension;
-extern void ResExtensionInit(void);
 #endif
 
 #if defined(SCREENSAVER)
 extern _X_EXPORT Bool noScreenSaverExtension;
-extern void ScreenSaverExtensionInit(void);
 #endif
 
 extern _X_EXPORT Bool noShapeExtension;
-extern void ShapeExtensionInit(void);
 
 #ifdef MITSHM
 extern _X_EXPORT Bool noMITShmExtension;
-extern void ShmExtensionInit(void);
 #endif
-
-extern void SyncExtensionInit(void);
-
-extern void XCMiscExtensionInit(void);
 
 #ifdef XCSECURITY
 extern _X_EXPORT Bool noSecurityExtension;
-extern void SecurityExtensionInit(void);
 #endif
 
 #ifdef XF86BIGFONT
 extern _X_EXPORT Bool noXFree86BigfontExtension;
-extern void XFree86BigfontExtensionInit(void);
 #endif
 
-extern void BigReqExtensionInit(void);
-
 extern _X_EXPORT Bool noXFixesExtension;
-extern void XFixesExtensionInit(void);
-
-extern void XInputExtensionInit(void);
-
-extern void XkbExtensionInit(void);
 
 #if defined(XSELINUX)
 extern _X_EXPORT Bool noSELinuxExtension;
-extern void SELinuxExtensionInit(void);
-#endif
-
-#ifdef XTEST
-extern void XTestExtensionInit(void);
 #endif
 
 #if defined(XV)
 extern _X_EXPORT Bool noXvExtension;
-extern void XvExtensionInit(void);
-extern void XvMCExtensionInit(void);
-#endif
-
-#if defined(DRI3)
-extern void dri3_extension_init(void);
 #endif
 
 #if defined(PRESENT)

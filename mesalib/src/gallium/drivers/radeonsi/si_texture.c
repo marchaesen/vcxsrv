@@ -280,11 +280,40 @@ static int si_init_surface(struct si_screen *sscreen, struct radeon_surf *surfac
           */
          if (sscreen->info.family == CHIP_RAVEN && ptex->nr_storage_samples >= 2 && bpe < 4)
             flags |= RADEON_SURF_DISABLE_DCC;
+
+         /* Vega10 fails these 2x and 4x MSAA tests with DCC:
+          *    piglit/bin/ext_framebuffer_multisample-formats 2 GL_EXT_texture_snorm
+          *    piglit/bin/ext_framebuffer_multisample-formats 4 GL_EXT_texture_snorm
+          */
+         if ((ptex->nr_storage_samples == 2 || ptex->nr_storage_samples == 4) && bpe <= 2 &&
+             util_format_is_snorm(ptex->format))
+            flags |= RADEON_SURF_DISABLE_DCC;
+
+         /* Vega10 fails these MSAA tests with DCC:
+          *    piglit/bin/ext_framebuffer_multisample-formats 2 GL_ARB_texture_float
+          *    piglit/bin/ext_framebuffer_multisample-formats 2 GL_ARB_texture_rg-float
+          */
+         if (ptex->nr_storage_samples == 2 && bpe == 2 && util_format_is_float(ptex->format))
+            flags |= RADEON_SURF_DISABLE_DCC;
+
+         /* We allow S8_UINT as a color format, and piglit/draw-pixels fails if we enable DCC. */
+         if (ptex->format == PIPE_FORMAT_S8_UINT)
+            flags |= RADEON_SURF_DISABLE_DCC;
          break;
 
       case GFX10:
       case GFX10_3:
          if (ptex->nr_storage_samples >= 2 && !sscreen->options.dcc_msaa)
+            flags |= RADEON_SURF_DISABLE_DCC;
+
+         /* Navi10 fails these MSAA tests with DCC:
+          *    piglit/bin/arb_sample_shading-samplemask 2 all all
+          *    piglit/bin/arb_sample_shading-samplemask 4 all all
+          *    piglit/bin/ext_framebuffer_multisample-formats 2 GL_ARB_texture_float
+          *    piglit/bin/ext_framebuffer_multisample-formats 2 GL_EXT_texture_integer
+          */
+         if (sscreen->info.gfx_level == GFX10 &&
+             (ptex->nr_storage_samples == 2 || ptex->nr_storage_samples == 4))
             flags |= RADEON_SURF_DISABLE_DCC;
          break;
 

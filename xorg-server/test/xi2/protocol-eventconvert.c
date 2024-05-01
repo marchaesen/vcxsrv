@@ -28,14 +28,14 @@
 #endif
 
 #include <stdint.h>
+#include <X11/extensions/XI2proto.h>
 
+#include "dix/exevents_priv.h"
 #include "dix/eventconvert.h"
 
 #include "inputstr.h"
 #include "eventstr.h"
-#include "exevents.h"
 #include "inpututils.h"
-#include <X11/extensions/XI2proto.h>
 
 #include "protocol-common.h"
 

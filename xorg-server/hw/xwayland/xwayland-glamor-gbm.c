@@ -960,7 +960,7 @@ xwl_glamor_dmabuf_import_sync_file(PixmapPtr pixmap, int sync_file)
 #endif /* GBM_BO_FD_FOR_PLANE */
         struct dma_buf_import_sync_file import_args = { 0 };
         import_args.fd = sync_file;
-        import_args.flags = DMA_BUF_SYNC_READ;
+        import_args.flags = DMA_BUF_SYNC_WRITE;
         drmIoctl(plane_fd, DMA_BUF_IOCTL_IMPORT_SYNC_FILE, &import_args);
         close(plane_fd);
     }

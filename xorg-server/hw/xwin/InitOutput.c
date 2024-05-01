@@ -32,6 +32,7 @@ from The Open Group.
 #include <xwin-config.h>
 #endif
 
+#include "dix/dix_priv.h"
 #include "os/osdep.h"
 
 #include "win.h"
@@ -64,6 +65,7 @@ typedef WINAPI HRESULT(*SHGETFOLDERPATHPROC) (HWND hwndOwner,
 
 #include "winmonitors.h"
 #include "nonsdk_extinit.h"
+#include "extinit_priv.h"
 #include "pseudoramiX/pseudoramiX.h"
 
 #include "glx_extinit.h"

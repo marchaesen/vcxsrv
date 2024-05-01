@@ -143,6 +143,7 @@ Bool xwl_destroy_window(WindowPtr window);
 void xwl_window_post_damage(struct xwl_window *xwl_window);
 void xwl_window_create_frame_callback(struct xwl_window *xwl_window);
 void xwl_window_surface_do_destroy(struct xwl_wl_surface *xwl_wl_surface);
+void xwl_window_set_input_region(struct xwl_window *xwl_window, RegionPtr input_shape);
 
 Bool xwl_window_init(void);
 

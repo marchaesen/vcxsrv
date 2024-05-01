@@ -35,10 +35,12 @@
 #include <xwin-config.h>
 #endif
 #include "win.h"
+
+#include "dix/dix_priv.h"
+
 #include "winkeybd.h"
 #include "winconfig.h"
 #include "winmsg.h"
-
 #include "xkbsrv.h"
 
 /* C does not have a logical XOR operator, so we use a macro instead */

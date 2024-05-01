@@ -6,8 +6,17 @@
       when: never
     - !reference [.gl-rules, rules]
     - changes: &llvmpipe_file_list
-      - src/gallium/drivers/llvmpipe/**/*
-      - src/gallium/winsys/sw/**/*
+        - src/gallium/drivers/llvmpipe/*
+        - src/gallium/drivers/llvmpipe/ci/gitlab-ci.yml
+        - src/gallium/drivers/llvmpipe/ci/gitlab-ci-inc.yml
+        - src/gallium/drivers/llvmpipe/ci/deqp-$DEQP_SUITE.toml
+        - src/gallium/drivers/llvmpipe/ci/$GPU_VERSION-fails.txt
+        - src/gallium/drivers/llvmpipe/ci/$GPU_VERSION-flakes.txt
+        - src/gallium/drivers/llvmpipe/ci/$GPU_VERSION-skips.txt
+        - src/gallium/drivers/llvmpipe/ci/$PIGLIT_TRACES_FILE
+        - src/gallium/winsys/sw/**/*
+        - src/gallium/auxiliary/draw/**/*
+        - src/gallium/auxiliary/gallivm/**/*
       when: on_success
 
 .llvmpipe-manual-rules:

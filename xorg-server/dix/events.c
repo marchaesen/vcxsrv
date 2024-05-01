@@ -107,9 +107,17 @@ Equipment Corporation.
 
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/ge.h>
+#include <X11/extensions/XI.h>
+#include <X11/extensions/XI2.h>
+#include <X11/extensions/XKBproto.h>
+#include <X11/extensions/XIproto.h>
+#include <X11/extensions/XI2proto.h>
 
 #include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/exevents_priv.h"
+#include "xkb/xkbsrv_priv.h"
 
 #include "misc.h"
 #include "resource.h"
@@ -118,35 +126,22 @@ Equipment Corporation.
 #include "inpututils.h"
 #include "scrnintstr.h"
 #include "cursorstr.h"
-
 #include "dixstruct.h"
 #ifdef PANORAMIX
 #include "panoramiX.h"
 #include "panoramiXsrv.h"
 #endif
 #include "globals.h"
-
-#include <X11/extensions/XKBproto.h>
-#include "xkbsrv.h"
 #include "xace.h"
 #include "probes.h"
-
-#include <X11/extensions/XIproto.h>
-#include <X11/extensions/XI2proto.h>
-#include <X11/extensions/XI.h>
-#include <X11/extensions/XI2.h>
 #include "exglobals.h"
-#include "exevents.h"
 #include "extnsionst.h"
-
 #include "dixevents.h"
 #include "dixgrabs.h"
 #include "dispatch.h"
-
-#include <X11/extensions/ge.h>
 #include "geext.h"
 #include "geint.h"
-
+#include "dixstruct_priv.h"
 #include "eventstr.h"
 #include "enterleave.h"
 #include "mi.h"

@@ -39,7 +39,7 @@ Equipment Corporation.
 #include "opaque.h"
 #include <X11/extensions/dpmsproto.h>
 #include "dpmsproc.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "scrnintstr.h"
 #include "windowstr.h"
 #include "protocol-versions.h"

@@ -248,7 +248,7 @@
     <function name="TexGenxOES" es1="1.0" desktop="false">
         <param name="coord" type="GLenum"/>
         <param name="pname" type="GLenum"/>
-        <param name="param" type="GLint"/>
+        <param name="param" type="GLfixed"/>
     </function>
 
     <function name="TexGenxvOES" es1="1.0" desktop="false">

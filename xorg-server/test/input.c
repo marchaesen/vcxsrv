@@ -30,17 +30,18 @@
 
 #include <stdint.h>
 #include <X11/X.h>
-#include "misc.h"
-#include "resource.h"
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2proto.h>
 #include <X11/Xatom.h>
+
+#include "dix/dix_priv.h"
+#include "dix/eventconvert.h"
+#include "dix/exevents_priv.h"
+
+#include "misc.h"
+#include "resource.h"
 #include "windowstr.h"
 #include "inputstr.h"
-#include "exevents.h"
-
-#include "dix/eventconvert.h"
-
 #include "exglobals.h"
 #include "dixgrabs.h"
 #include "eventstr.h"

@@ -41,17 +41,20 @@
 #include <xorg-config.h>
 #endif
 
+#include <string.h>
 #include <X11/X.h>
 #include <X11/Xproto.h>
+#include <X11/extensions/xf86dgaproto.h>
 
+#include "dix/dix_priv.h"
 #include "dix/eventconvert.h"
+#include "dix/exevents_priv.h"
 
 #include "xf86.h"
 #include "xf86str.h"
 #include "xf86Priv.h"
 #include "dgaproc.h"
 #include "dgaproc_priv.h"
-#include <X11/extensions/xf86dgaproto.h>
 #include "colormapst.h"
 #include "pixmapstr.h"
 #include "inputstr.h"
@@ -61,12 +64,9 @@
 #include "xkbsrv.h"
 #include "xf86Xinput.h"
 #include "exglobals.h"
-#include "exevents.h"
 #include "eventstr.h"
 #include "xf86Extensions.h"
-
 #include "mi.h"
-
 #include "misc.h"
 #include "dixstruct.h"
 #include "dixevents.h"
@@ -76,8 +76,6 @@
 #include "swaprep.h"
 #include "dgaproc.h"
 #include "protocol-versions.h"
-
-#include <string.h>
 
 #define DGA_PROTOCOL_OLD_SUPPORT 1
 

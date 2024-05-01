@@ -22,6 +22,7 @@ issues:
         'dzn': 'dozen'
         'egl': 'EGL'
         'etnaviv': 'etnaviv'
+        'etnaviv/nn': ['etnaviv', 'teflon']
         'freedreno': 'freedreno'
         'freedreno/ir3': ['freedreno', 'ir3']
         'gallium': 'gallium'
@@ -70,6 +71,7 @@ issues:
         'spirv' : 'SPIR-V'
         'swr' : 'swr'
         'swrast' : 'swrast'
+        'teflon' : 'teflon'
         'tegra' : 'tegra'
         'tgsi' : 'TGSI'
         'turnip': 'turnip'
@@ -163,6 +165,7 @@ merge_requests:
         '^src/gallium/drivers/crocus/' : ['crocus']
         '^src/gallium/drivers/d3d12/' : ['d3d12']
         '^src/gallium/drivers/etnaviv/' : ['etnaviv']
+        '^src/gallium/drivers/etnaviv/etnaviv_ml_.*': ['teflon']
         '^src/gallium/drivers/freedreno/' : ['freedreno']
         '^src/gallium/drivers/grate/' : ['tegra']
         '^src/gallium/drivers/i915/' : ['i915g']
@@ -194,6 +197,7 @@ merge_requests:
         '^src/gallium/frontends/omx/' : ['omx']
         '^src/gallium/frontends/osmesa/' : ['osmesa']
         '^src/gallium/frontends/rusticl/' : ['Rusticl']
+        '^src/gallium/frontends/teflon/' : ['teflon']
         '^src/gallium/frontends/va/' : ['VA-API']
         '^src/gallium/frontends/vdpau/' : ['VDPAU']
         '^src/gallium/frontends/wgl/' : ['wgl']

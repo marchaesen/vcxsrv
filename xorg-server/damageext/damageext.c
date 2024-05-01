@@ -30,7 +30,8 @@
 #include "damageextint.h"
 #include "damagestr.h"
 #include "protocol-versions.h"
-#include "extinit.h"
+#include "extinit_priv.h"
+#include "dixstruct_priv.h"
 
 #ifdef PANORAMIX
 #include "panoramiX.h"

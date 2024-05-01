@@ -72,6 +72,7 @@ atomic_op_to_alu(nir_atomic_op op)
    case nir_atomic_op_fcmpxchg:
    case nir_atomic_op_inc_wrap:
    case nir_atomic_op_dec_wrap:
+   case nir_atomic_op_ordered_add_gfx12_amd:
       return nir_num_opcodes;
    }
 

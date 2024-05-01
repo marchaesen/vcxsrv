@@ -67,6 +67,7 @@ struct xwl_output {
     struct wp_drm_lease_connector_v1 *lease_connector;
     struct xwl_drm_lease *lease;
     struct xwl_drm_lease_device *lease_device;
+    Bool withdrawn_connector;
 };
 
 /* Per client per output emulated randr/vidmode resolution info. */

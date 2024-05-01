@@ -27,6 +27,7 @@
 #include <dix-config.h>
 #endif
 
+#include "dix/dix_priv.h"
 #include "os/cmdline.h"
 #include "os/osdep.h"
 

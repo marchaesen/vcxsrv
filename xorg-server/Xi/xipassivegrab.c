@@ -37,12 +37,12 @@
 #include <X11/extensions/XI2proto.h>
 
 #include "dix/dix_priv.h"
+#include "dix/exevents_priv.h"
 
 #include "inputstr.h"           /* DeviceIntPtr      */
 #include "windowstr.h"          /* window structure  */
 #include "swaprep.h"
 #include "exglobals.h"          /* BadDevice */
-#include "exevents.h"
 #include "xipassivegrab.h"
 #include "dixgrabs.h"
 #include "misc.h"

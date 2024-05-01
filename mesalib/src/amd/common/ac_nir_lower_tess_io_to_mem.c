@@ -750,17 +750,18 @@ hs_store_tess_factors_for_tessellator(nir_builder *b, enum amd_gfx_level gfx_lev
       /* LINES reversal */
       nir_def *t = nir_vec2(b, nir_channel(b, tf_outer, 1), nir_channel(b, tf_outer, 0));
       nir_store_buffer_amd(b, t, tessfactor_ring, tess_factors_offset, tess_factors_base, zero,
-                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT);
+                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT | ACCESS_CP_GE_COHERENT_AMD);
    } else if (prim_mode == TESS_PRIMITIVE_TRIANGLES) {
       nir_def *t = nir_vec4(b, nir_channel(b, tf_outer, 0), nir_channel(b, tf_outer, 1),
                                nir_channel(b, tf_outer, 2), nir_channel(b, tf_inner, 0));
       nir_store_buffer_amd(b, t, tessfactor_ring, tess_factors_offset, tess_factors_base, zero,
-                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT);
+                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT | ACCESS_CP_GE_COHERENT_AMD);
    } else {
       nir_store_buffer_amd(b, tf_outer, tessfactor_ring, tess_factors_offset, tess_factors_base, zero,
-                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT);
+                           .base = tess_factors_const_offset, .access = ACCESS_COHERENT | ACCESS_CP_GE_COHERENT_AMD);
       nir_store_buffer_amd(b, tf_inner, tessfactor_ring, tess_factors_offset, tess_factors_base, zero,
-                           .base = tess_factors_const_offset + 4u * outer_comps, .access = ACCESS_COHERENT);
+                           .base = tess_factors_const_offset + 4u * outer_comps,
+                           .access = ACCESS_COHERENT | ACCESS_CP_GE_COHERENT_AMD);
    }
 }
 

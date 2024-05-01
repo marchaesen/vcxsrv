@@ -126,7 +126,7 @@ task_write_draw_ring(nir_builder *b,
 
    nir_store_buffer_amd(b, store_val, ring, vector_off, scalar_off, zero,
                         .base = const_off, .memory_modes = nir_var_shader_out,
-                        .access = ACCESS_COHERENT);
+                        .access = ACCESS_COHERENT | ACCESS_CP_GE_COHERENT_AMD);
 }
 
 static bool

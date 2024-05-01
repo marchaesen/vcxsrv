@@ -132,6 +132,7 @@ Equipment Corporation.
 #include "xkbsrv.h"
 #include "client.h"
 #include "xfixesint.h"
+#include "dixstruct_priv.h"
 
 // temporary workaround for win32/mingw32 name clash
 #undef CreateWindow

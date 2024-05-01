@@ -41,7 +41,7 @@ from The Open Group.
 #include "dixstruct.h"
 #include "extnsionst.h"
 #include "opaque.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 
 static int
 ProcBigReqDispatch(ClientPtr client)

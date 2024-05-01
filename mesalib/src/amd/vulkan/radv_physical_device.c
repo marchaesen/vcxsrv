@@ -2167,6 +2167,15 @@ radv_physical_device_try_create(struct radv_instance *instance, drmDevicePtr drm
    ac_get_task_info(&pdev->info, &pdev->task_info);
    radv_get_binning_settings(pdev, &pdev->binning_settings);
 
+   if (pdev->info.has_distributed_tess) {
+      if (pdev->info.family == CHIP_FIJI || pdev->info.family >= CHIP_POLARIS10)
+         pdev->tess_distribution_mode = V_028B6C_TRAPEZOIDS;
+      else
+         pdev->tess_distribution_mode = V_028B6C_DONUTS;
+   } else {
+      pdev->tess_distribution_mode = V_028B6C_NO_DIST;
+   }
+
    *pdev_out = pdev;
 
    return VK_SUCCESS;

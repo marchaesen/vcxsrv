@@ -404,8 +404,6 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 
 static float si_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
 {
-   struct si_screen *sscreen = (struct si_screen *)pscreen;
-
    switch (param) {
    case PIPE_CAPF_MIN_LINE_WIDTH:
    case PIPE_CAPF_MIN_LINE_WIDTH_AA:
@@ -426,8 +424,10 @@ static float si_get_paramf(struct pipe_screen *pscreen, enum pipe_capf param)
    case PIPE_CAPF_MAX_TEXTURE_ANISOTROPY:
       return 16.0f;
    case PIPE_CAPF_MAX_TEXTURE_LOD_BIAS:
-      /* This is the maximum value of the LOD_BIAS sampler field. */
-      return sscreen->info.gfx_level >= GFX10 ? 31 : 16;
+      /* The hw can do 31, but this test fails if we use that:
+       *    KHR-GL46.texture_lod_bias.texture_lod_bias_all
+       */
+      return 16;
    case PIPE_CAPF_MIN_CONSERVATIVE_RASTER_DILATE:
    case PIPE_CAPF_MAX_CONSERVATIVE_RASTER_DILATE:
    case PIPE_CAPF_CONSERVATIVE_RASTER_DILATE_GRANULARITY:

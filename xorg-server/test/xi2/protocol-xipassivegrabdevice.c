@@ -35,11 +35,13 @@
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2proto.h>
+
+#include "dix/exevents_priv.h"
+
 #include "inputstr.h"
 #include "windowstr.h"
 #include "scrnintstr.h"
 #include "xipassivegrab.h"
-#include "exevents.h"
 #include "exglobals.h"
 
 #include "protocol-common.h"

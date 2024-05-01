@@ -103,7 +103,7 @@ SOFTWARE.
 
 #include "misc.h"               /* for typedef of pointer */
 #include "opaque.h"
-#include "dixstruct.h"
+#include "dixstruct_priv.h"
 #include "xace.h"
 
 #ifdef HAVE_GETPEERUCRED

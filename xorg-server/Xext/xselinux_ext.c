@@ -28,7 +28,7 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 #include "windowstr.h"
 #include "propertyst.h"
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "xselinuxint.h"
 
 #define CTX_DEV offsetof(SELinuxSubjectRec, dev_create_sid)

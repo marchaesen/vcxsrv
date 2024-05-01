@@ -57,6 +57,8 @@ SOFTWARE.
 
 #undef DEBUG_COMMUNICATION
 
+#include "dixstruct_priv.h"
+
 #ifdef WIN32
 #include <X11/Xwinsock.h>
 #endif

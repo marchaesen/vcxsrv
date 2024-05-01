@@ -50,19 +50,19 @@ SOFTWARE.
 #endif
 
 #include <X11/X.h>
-#include "misc.h"
 #include <X11/Xproto.h>
 #include <X11/extensions/XI2.h>
 
 #include "dix/dix_priv.h"
+#include "dix/exevents_priv.h"
 #include "os/auth.h"
 
+#include "misc.h"
 #include "windowstr.h"
 #include "inputstr.h"
 #include "cursorstr.h"
 #include "dixgrabs.h"
 #include "xace.h"
-#include "exevents.h"
 #include "exglobals.h"
 #include "inpututils.h"
 #include "client.h"

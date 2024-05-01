@@ -116,6 +116,7 @@ __stdcall unsigned long GetTickCount(void);
 #include "picture.h"
 #include "miinitext.h"
 #include "present.h"
+#include "dixstruct_priv.h"
 
 Bool noTestExtensions;
 

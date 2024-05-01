@@ -7,9 +7,18 @@
     - !reference [.vulkan-rules, rules]
     - !reference [.gallium-core-rules, rules]
     - changes: &lavapipe_file_list
-      - src/gallium/drivers/llvmpipe/**/*
-      - src/gallium/frontends/lavapipe/**/*
-      - src/gallium/winsys/sw/**/*
+        - src/gallium/drivers/llvmpipe/*
+        - src/gallium/frontends/lavapipe/*
+        - src/gallium/frontends/lavapipe/ci/gitlab-ci.yml
+        - src/gallium/frontends/lavapipe/ci/gitlab-ci-inc.yml
+        - src/gallium/frontends/lavapipe/ci/deqp-$DEQP_SUITE.toml
+        - src/gallium/frontends/lavapipe/ci/$GPU_VERSION-fails.txt
+        - src/gallium/frontends/lavapipe/ci/$GPU_VERSION-flakes.txt
+        - src/gallium/frontends/lavapipe/ci/$GPU_VERSION-skips.txt
+        - src/gallium/frontends/lavapipe/ci/$PIGLIT_TRACES_FILE
+        - src/gallium/winsys/sw/**/*
+        - src/gallium/auxiliary/draw/**/*
+        - src/gallium/auxiliary/gallivm/**/*
       when: on_success
 
 .lavapipe-manual-rules:

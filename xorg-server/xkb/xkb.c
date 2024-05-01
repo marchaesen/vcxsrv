@@ -40,7 +40,7 @@ THE USE OR PERFORMANCE OF THIS SOFTWARE.
 #include "inputstr.h"
 #include <xkbsrv.h>
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "xace.h"
 #include "xkb-procs.h"
 #include "protocol-versions.h"

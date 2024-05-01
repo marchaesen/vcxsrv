@@ -1559,6 +1559,8 @@ system_value("pipeline_stat_query_enabled_amd", dest_comp=1, bit_sizes=[1])
 system_value("prim_gen_query_enabled_amd", dest_comp=1, bit_sizes=[1])
 # Whether NGG should execute shader query for primitive streamouted.
 system_value("prim_xfb_query_enabled_amd", dest_comp=1, bit_sizes=[1])
+# 64-bit memory address to struct {uint32_t ordered_id; uint32_t dwords_written;}[4]
+system_value("xfb_state_address_gfx12_amd", dest_comp=1, bit_sizes=[64])
 # Merged wave info. Bits 0-7 are the ES thread count, 8-15 are the GS thread count, 16-24 is the
 # GS Wave ID, 24-27 is the wave index in the workgroup, and 28-31 is the workgroup size in waves.
 system_value("merged_wave_info_amd", dest_comp=1)
@@ -1686,6 +1688,24 @@ system_value("ordered_id_amd", 1)
 # WRITE_MASK = mask for counter channel to update
 intrinsic("ordered_xfb_counter_add_gfx11_amd", dest_comp=0, src_comp=[1, 0], indices=[WRITE_MASK], bit_sizes=[32])
 
+# Add dwords_written[] to global streamout offsets.
+# * Exactly 4 lanes must be active, one for each buffer binding.
+# * Disabled buffers must set dwords_written=0 for their lane, but the lane
+#   must be enabled.
+# * This is implemented with inline assembly, which is why some parameters
+#   appear trivial or redundant.
+#
+# Inputs:
+#   exec = 0xf (set by the caller using nir_push_if)
+#   src[0] = 64-bit SGPR atomic base address (use nir_load_xfb_state_address_gfx12_amd)
+#   src[1] = 32-bit VGPR voffset, set in 4 lanes (always local_invocation_index * 8)
+#   src[2] = 32-bit SGPR ordered_id (use nir_load_ordered_id_amd)
+#   src[3] = 64-bit VGPR atomic src, set in 4 lanes
+#            (always pack_64_2x32_split(ordered_id, "dwords written per workgroup" for each buffer))
+#
+# dst = 32-bit VGPR of the previous value of dwords_writtenN in memory, returned in 4 lanes
+intrinsic("ordered_xfb_counter_add_gfx12_amd", dest_comp=1, src_comp=[1, 1, 1, 1], bit_sizes=[32])
+
 # Subtract from global streamout buffer offsets. Used to fix up the offsets
 # when we overflow streamout buffers.
 # src[] = { offsets }
@@ -1741,6 +1761,14 @@ intrinsic("cmat_muladd_amd", src_comp=[16, 16, 0], dest_comp=0, bit_sizes=src2,
 
 # Get the debug log buffer descriptor.
 intrinsic("load_debug_log_desc_amd", bit_sizes=[32], dest_comp=4, flags=[CAN_ELIMINATE, CAN_REORDER])
+
+# s_sleep BASE (sleep for 64*BASE cycles). BASE must be in [0, 0xffff].
+# BASE=0 is valid but isn't useful.
+# GFX12+: If BASE & 0x8000, sleep forever (until wakeup, trap, or kill).
+intrinsic("sleep_amd", indices=[BASE])
+
+# s_nop BASE (sleep for BASE+1 cycles, BASE must be in [0, 15]).
+intrinsic("nop_amd", indices=[BASE])
 
 system_value("ray_tracing_stack_base_lvp", 1)
 

@@ -176,17 +176,6 @@ static void si_launch_grid_internal(struct si_context *sctx, const struct pipe_g
          sctx->flags |= sctx->gfx_level <= GFX8 ? SI_CONTEXT_WB_L2 : 0;
          /* Make sure image stores are visible to all CUs. */
          sctx->flags |= SI_CONTEXT_INV_VCACHE;
-         /* Make sure RBs see our DCC changes. */
-         if (sctx->gfx_level >= GFX10 && sctx->screen->info.tcc_rb_non_coherent) {
-            unsigned enabled_mask = sctx->images[PIPE_SHADER_COMPUTE].enabled_mask;
-            while (enabled_mask) {
-               int i = u_bit_scan(&enabled_mask);
-               if (sctx->images[PIPE_SHADER_COMPUTE].views[i].access & SI_IMAGE_ACCESS_ALLOW_DCC_STORE) {
-                  sctx->flags |= SI_CONTEXT_INV_L2;
-                  break;
-               }
-            }
-         }
       } else {
          /* Make sure buffer stores are visible to all CUs. */
          sctx->flags |= SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE | SI_CONTEXT_PFP_SYNC_ME;
@@ -615,6 +604,21 @@ static void si_launch_grid_internal_images(struct si_context *sctx,
    }
 
    si_launch_grid_internal(sctx, info, shader, flags | SI_OP_CS_IMAGE);
+
+   /* Make sure RBs see our DCC stores if RBs and TCCs (L2 instances) are non-coherent. */
+   if (flags & SI_OP_SYNC_AFTER && sctx->gfx_level >= GFX10 &&
+       sctx->screen->info.tcc_rb_non_coherent) {
+      for (unsigned i = 0; i < num_images; i++) {
+         if (vi_dcc_enabled((struct si_texture*)images[i].resource, images[i].u.tex.level) &&
+             images[i].access & PIPE_IMAGE_ACCESS_WRITE &&
+             (sctx->screen->always_allow_dcc_stores ||
+              images[i].access & SI_IMAGE_ACCESS_ALLOW_DCC_STORE)) {
+            sctx->flags |= SI_CONTEXT_INV_L2;
+            si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
+            break;
+         }
+      }
+   }
 
    /* Restore images. */
    sctx->b.set_shader_images(&sctx->b, PIPE_SHADER_COMPUTE, 0, num_images, 0, saved_image);

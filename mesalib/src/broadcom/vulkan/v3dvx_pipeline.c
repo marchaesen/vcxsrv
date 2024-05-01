@@ -616,7 +616,7 @@ pack_shader_state_attribute_record(struct v3dv_pipeline *pipeline,
       attr.read_as_int_uint = desc->channel[0].pure_integer;
 
       attr.instance_divisor = MIN2(pipeline->vb[binding].instance_divisor,
-                                   0xffff);
+                                   V3D_MAX_VERTEX_ATTRIB_DIVISOR);
       attr.type = get_attr_type(desc);
    }
 }

@@ -178,12 +178,6 @@ extern _X_EXPORT int XkbFindKeycodeByName(XkbDescPtr /* xkb */ ,
 
 /***====================================================================***/
 
-extern _X_EXPORT Atom XkbInternAtom(char * /* name */ ,
-                                    Bool        /* onlyIfExists */
-    );
-
-/***====================================================================***/
-
 #ifdef _XKBGEOM_H_
 
 #define	XkbDW_Unknown	0

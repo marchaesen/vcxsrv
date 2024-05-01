@@ -30,6 +30,7 @@ enum PACKED ${prefix}_${name} {
 #endif
 """
 
+import argparse
 import sys, os
 sys.path.append(os.path.dirname(os.path.abspath(__file__)) + "/../../compiler/isaspec")
 
@@ -37,7 +38,14 @@ from mako.template import Template
 from isa import ISA
 
 def main():
-    isa = ISA(sys.argv[1])
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--xml', required=True, type=str, action="store",
+                        help='source isaspec xml file')
+    parser.add_argument('--output', required=True, type=str, action="store",
+                        help='output C header file')
+    args = parser.parse_args()
+
+    isa = ISA(args.xml)
     prefix = 'isa'
     enums = {}
 
@@ -65,7 +73,8 @@ def main():
     opc = dict(sorted(opc.items(), key=lambda item: int(item[1])))
     enums['opc'] = opc
 
-    print(Template(template).render(prefix=prefix, enums=enums))
+    with open(args.output, "w", encoding="UTF-8") as fh:
+        fh.write(Template(template).render(prefix=prefix, enums=enums))
 
 if __name__ == '__main__':
     main()

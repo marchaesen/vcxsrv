@@ -23,7 +23,7 @@
 #include "pixmapstr.h"
 #include "windowstr.h"
 #include "gcstruct.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "protocol-versions.h"
 #include "client.h"
 #include "list.h"

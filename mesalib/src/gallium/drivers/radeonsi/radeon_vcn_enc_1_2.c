@@ -222,7 +222,9 @@ static void radeon_enc_deblocking_filter_hevc(struct radeon_encoder *enc)
 
 static void radeon_enc_quality_params(struct radeon_encoder *enc)
 {
-   enc->enc_pic.quality_params.vbaq_mode = enc->enc_pic.quality_modes.vbaq_mode;
+   enc->enc_pic.quality_params.vbaq_mode =
+      enc->enc_pic.rc_session_init.rate_control_method != RENCODE_RATE_CONTROL_METHOD_NONE ?
+      enc->enc_pic.quality_modes.vbaq_mode : 0;
    enc->enc_pic.quality_params.scene_change_sensitivity = 0;
    enc->enc_pic.quality_params.scene_change_min_idr_interval = 0;
    enc->enc_pic.quality_params.two_pass_search_center_map_mode =
@@ -780,7 +782,12 @@ static void radeon_enc_nalu_vps(struct radeon_encoder *enc)
    radeon_enc_code_fixed_bits(enc, 0x0, 2);
    radeon_enc_code_fixed_bits(enc, enc->enc_pic.general_tier_flag, 1);
    radeon_enc_code_fixed_bits(enc, enc->enc_pic.general_profile_idc, 5);
-   radeon_enc_code_fixed_bits(enc, 0x60000000, 32);
+
+   if (enc->enc_pic.general_profile_idc == 2)
+      radeon_enc_code_fixed_bits(enc, 0x20000000, 32);
+   else
+      radeon_enc_code_fixed_bits(enc, 0x60000000, 32);
+
    radeon_enc_code_fixed_bits(enc, 0xb0000000, 32);
    radeon_enc_code_fixed_bits(enc, 0x0, 16);
    radeon_enc_code_fixed_bits(enc, enc->enc_pic.general_level_idc, 8);

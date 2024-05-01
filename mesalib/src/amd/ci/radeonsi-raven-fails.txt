@@ -5,25 +5,14 @@ glx@glx-swap-pixmap-bad,Fail
 glx@glx_arb_create_context_es2_profile@invalid opengl es version,Fail
 glx@glx_arb_create_context_no_error@no error,Fail
 glx@glx_arb_create_context_robustness@invalid reset notification strategy,Fail
-spec@!opengl 1.0@gl-1.0-drawpixels-stencil-test,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_tes_linked,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=4,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=6,Fail
-spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=8,Fail
-spec@!opengl 1.1@draw-pixels,Fail
-spec@!opengl 1.1@stencil-drawpixels,Fail
-spec@!opengl 1.4@copy-pixels,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-front pv-last,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims pv-last,Fail
-spec@arb_depth_buffer_float@fbo-depthstencil-gl_depth32f_stencil8-drawpixels-float-and-ushort,Fail
-spec@arb_depth_buffer_float@fbo-stencil-gl_depth32f_stencil8-drawpixels,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat4-mat4,Fail
 spec@arb_gpu_shader_fp64@execution@conversion@frag-conversion-explicit-dmat4x2-mat4x2,Fail
@@ -51,15 +40,9 @@ spec@egl_chromium_sync_control@conformance@eglGetSyncValuesCHROMIUM_msc_and_sbc_
 spec@egl_khr_surfaceless_context@viewport,Fail
 spec@egl_mesa_configless_context@basic,Fail
 spec@ext_framebuffer_blit@fbo-blit-check-limits,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index1-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index16-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index4-drawpixels,Fail
-spec@ext_framebuffer_object@fbo-stencil-gl_stencil_index8-drawpixels,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y210,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y212,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_y216,Fail
-spec@ext_packed_depth_stencil@fbo-depthstencil-gl_depth24_stencil8-drawpixels-float-and-ushort,Fail
-spec@ext_packed_depth_stencil@fbo-stencil-gl_depth24_stencil8-drawpixels,Fail
 spec@glsl-1.50@execution@geometry@primitive-types gl_triangle_strip_adjacency,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency other,Fail

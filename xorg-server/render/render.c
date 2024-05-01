@@ -43,7 +43,7 @@
 #include "pixmapstr.h"
 #include "colormapst.h"
 #include "extnsionst.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 #include "servermd.h"
 #include "picturestr_priv.h"
 #include "glyphstr_priv.h"

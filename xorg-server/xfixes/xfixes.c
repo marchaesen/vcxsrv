@@ -48,7 +48,7 @@
 
 #include "xfixesint.h"
 #include "protocol-versions.h"
-#include "extinit.h"
+#include "extinit_priv.h"
 
 static unsigned char XFixesReqCode;
 int XFixesEventBase;
