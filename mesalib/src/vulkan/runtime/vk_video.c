@@ -1731,7 +1731,8 @@ emit_nalu_h265_header(struct vl_bitstream_encoder *enc,
 
 static void
 encode_h265_profile_tier_level(struct vl_bitstream_encoder *enc,
-                               const StdVideoH265ProfileTierLevel *ptl)
+                               const StdVideoH265ProfileTierLevel *ptl,
+                               unsigned int max_sub_layers_minus1)
 {
    vl_bitstream_put_bits(enc, 2, 0);
    vl_bitstream_put_bits(enc, 1, ptl->flags.general_tier_flag);
@@ -1747,6 +1748,11 @@ encode_h265_profile_tier_level(struct vl_bitstream_encoder *enc,
    vl_bitstream_put_bits(enc, 31, 0);
    vl_bitstream_put_bits(enc, 13, 0);
    vl_bitstream_put_bits(enc, 8, vk_video_get_h265_level(ptl->general_level_idc));
+
+   if (max_sub_layers_minus1 > 0) {
+      /* sub_layer_(profile|level)_present_flag, plus padding */
+      vl_bitstream_put_bits(enc, 16, 0);
+   }
 }
 
 void
@@ -1769,16 +1775,16 @@ vk_video_encode_h265_vps(const StdVideoH265VideoParameterSet *vps,
    vl_bitstream_put_bits(&enc, 1, vps->flags.vps_temporal_id_nesting_flag);
    vl_bitstream_put_bits(&enc, 16, 0xffff);
 
-   encode_h265_profile_tier_level(&enc, vps->pProfileTierLevel);
+   encode_h265_profile_tier_level(&enc, vps->pProfileTierLevel, vps->vps_max_sub_layers_minus1);
 
    vl_bitstream_put_bits(&enc, 1, vps->flags.vps_sub_layer_ordering_info_present_flag);
 
-   for (int i = 0; i <= vps->vps_max_sub_layers_minus1; i++) {
+   int i = vps->flags.vps_sub_layer_ordering_info_present_flag ? 0 : vps->vps_max_sub_layers_minus1;
+   for (; i <= vps->vps_max_sub_layers_minus1; i++) {
       vl_bitstream_exp_golomb_ue(&enc, vps->pDecPicBufMgr->max_dec_pic_buffering_minus1[i]);
       vl_bitstream_exp_golomb_ue(&enc, vps->pDecPicBufMgr->max_num_reorder_pics[i]);
       vl_bitstream_exp_golomb_ue(&enc, vps->pDecPicBufMgr->max_latency_increase_plus1[i]);
    }
-
 
    vl_bitstream_put_bits(&enc, 6, 0);//vps->vps_max_layer_id);
    vl_bitstream_exp_golomb_ue(&enc, 0);//vps->vps_num_layer_sets_minus1);
@@ -1856,7 +1862,7 @@ vk_video_encode_h265_sps(const StdVideoH265SequenceParameterSet *sps,
    vl_bitstream_put_bits(&enc, 3, sps->sps_max_sub_layers_minus1);
    vl_bitstream_put_bits(&enc, 1, sps->flags.sps_temporal_id_nesting_flag);
 
-   encode_h265_profile_tier_level(&enc, sps->pProfileTierLevel);
+   encode_h265_profile_tier_level(&enc, sps->pProfileTierLevel, sps->sps_max_sub_layers_minus1);
 
    vl_bitstream_exp_golomb_ue(&enc, sps->sps_seq_parameter_set_id);
    vl_bitstream_exp_golomb_ue(&enc, sps->chroma_format_idc);
@@ -1879,7 +1885,8 @@ vk_video_encode_h265_sps(const StdVideoH265SequenceParameterSet *sps,
    vl_bitstream_exp_golomb_ue(&enc, sps->log2_max_pic_order_cnt_lsb_minus4);
    vl_bitstream_put_bits(&enc, 1, sps->flags.sps_sub_layer_ordering_info_present_flag);
 
-   for (int i = 0; i <= sps->sps_max_sub_layers_minus1; i++) {
+   int i = sps->flags.sps_sub_layer_ordering_info_present_flag ? 0 : sps->sps_max_sub_layers_minus1;
+   for (; i <= sps->sps_max_sub_layers_minus1; i++) {
       vl_bitstream_exp_golomb_ue(&enc, sps->pDecPicBufMgr->max_dec_pic_buffering_minus1[i]);
       vl_bitstream_exp_golomb_ue(&enc, sps->pDecPicBufMgr->max_num_reorder_pics[i]);
       vl_bitstream_exp_golomb_ue(&enc, sps->pDecPicBufMgr->max_latency_increase_plus1[i]);

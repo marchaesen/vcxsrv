@@ -72,7 +72,7 @@ struct tu_knl {
    VkResult (*bo_init_dmabuf)(struct tu_device *dev, struct tu_bo **out_bo,
                               uint64_t size, int prime_fd);
    int (*bo_export_dmabuf)(struct tu_device *dev, struct tu_bo *bo);
-   VkResult (*bo_map)(struct tu_device *dev, struct tu_bo *bo);
+   VkResult (*bo_map)(struct tu_device *dev, struct tu_bo *bo, void *placed_addr);
    void (*bo_allow_dump)(struct tu_device *dev, struct tu_bo *bo);
    void (*bo_finish)(struct tu_device *dev, struct tu_bo *bo);
    void (*bo_set_metadata)(struct tu_device *dev, struct tu_bo *bo,
@@ -140,7 +140,10 @@ void
 tu_bo_finish(struct tu_device *dev, struct tu_bo *bo);
 
 VkResult
-tu_bo_map(struct tu_device *dev, struct tu_bo *bo);
+tu_bo_map(struct tu_device *dev, struct tu_bo *bo, void *placed_addr);
+
+VkResult
+tu_bo_unmap(struct tu_device *dev, struct tu_bo *bo, bool reserve);
 
 void tu_bo_allow_dump(struct tu_device *dev, struct tu_bo *bo);
 

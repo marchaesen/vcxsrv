@@ -297,6 +297,164 @@ opt_loop_last_block(nir_block *block, bool is_trivial_continue, bool is_trivial_
 }
 
 static bool
+block_contains_work(nir_block *block)
+{
+   if (!nir_cf_node_is_last(&block->cf_node))
+      return true;
+   if (exec_list_is_empty(&block->instr_list))
+      return false;
+
+   /* Return false if the block contains only move-instructions. */
+   nir_foreach_instr(instr, block) {
+      if (instr->type != nir_instr_type_alu ||
+          !nir_op_is_vec_or_mov(nir_instr_as_alu(instr)->op))
+         return true;
+   }
+   return false;
+}
+
+static bool
+can_constant_fold(nir_scalar scalar, nir_block *loop_header)
+{
+   if (nir_scalar_is_const(scalar))
+      return true;
+
+   if (nir_scalar_is_alu(scalar)) {
+      for (unsigned i = 0; i < nir_op_infos[nir_scalar_alu_op(scalar)].num_inputs; i++) {
+         if (nir_op_infos[nir_scalar_alu_op(scalar)].input_sizes[i] > 1 ||
+             !can_constant_fold(nir_scalar_chase_alu_src(scalar, i), loop_header))
+            return false;
+      }
+      return true;
+   }
+
+   if (scalar.def->parent_instr->type == nir_instr_type_phi) {
+      /* If this is a phi from anything but the loop header, we cannot constant-fold. */
+      if (scalar.def->parent_instr->block != loop_header)
+         return false;
+
+      nir_block *preheader = nir_block_cf_tree_prev(loop_header);
+      nir_phi_instr *phi = nir_instr_as_phi(scalar.def->parent_instr);
+      nir_phi_src *src = nir_phi_get_src_from_block(phi, preheader);
+      return can_constant_fold(nir_get_scalar(src->src.ssa, 0), loop_header);
+   }
+
+   return false;
+}
+
+/**
+ * This optimization tries to peel the first loop break.
+ *
+ * This optimization turns:
+ *
+ *     loop {
+ *        do_work_1();
+ *        if (cond) {
+ *           break;
+ *        } else {
+ *        }
+ *        do_work_2();
+ *     }
+ *
+ * into:
+ *
+ *     do_work_1();
+ *     if (cond) {
+ *     } else {
+ *        loop {
+ *           do_work_2();
+ *           do_work_1();
+ *           if (cond) {
+ *              break;
+ *           } else {
+ *           }
+ *        }
+ *     }
+ *
+ * nir_opt_dead_cf() can later remove the outer IF statement, again.
+ *
+ */
+static bool
+opt_loop_peel_initial_break(nir_loop *loop)
+{
+   nir_block *header_block = nir_loop_first_block(loop);
+   nir_block *prev_block = nir_cf_node_cf_tree_prev(&loop->cf_node);
+   nir_block *exit_block = nir_cf_node_cf_tree_next(&loop->cf_node);
+
+   /* The loop must have exactly one continue block. */
+   if (header_block->predecessors->entries != 2)
+      return false;
+
+   nir_cf_node *if_node = nir_cf_node_next(&header_block->cf_node);
+   if (!if_node || if_node->type != nir_cf_node_if)
+      return false;
+
+   nir_if *nif = nir_cf_node_as_if(if_node);
+   nir_block *last_then = nir_if_last_then_block(nif);
+   if (!nir_block_ends_in_break(last_then) ||
+       !is_block_empty(nir_if_first_else_block(nif)))
+      return false;
+
+   /* Check that there is actual work to be done after the initial break. */
+   if (!block_contains_work(nir_cf_node_cf_tree_next(if_node)))
+      return false;
+
+   /* For now, we restrict this optimization to cases where the outer IF
+    * can be constant-folded.
+    *
+    * Note: If this restriction is lifted, it might recurse infinitely.
+    *       Prevent by e.g. restricting to single-exit loops.
+    */
+   if (!can_constant_fold(nir_get_scalar(nif->condition.ssa, 0), header_block))
+      return false;
+
+   /* Even though this if statement has a jump on one side, we may still have
+    * phis afterwards.  Single-source phis can be produced by loop unrolling
+    * or dead control-flow passes and are perfectly legal.  Run a quick phi
+    * removal on the block after the if to clean up any such phis.
+    */
+   nir_opt_remove_phis_block(nir_cf_node_cf_tree_next(if_node));
+
+   /* We need LCSSA because we are going to wrap the loop into an IF. */
+   nir_convert_loop_to_lcssa(loop);
+
+   /* Lower loop header and LCSSA-phis to regs. */
+   nir_lower_phis_to_regs_block(header_block);
+   nir_lower_ssa_defs_to_regs_block(header_block);
+   nir_lower_phis_to_regs_block(exit_block);
+
+   /* Extract the loop header including the first break. */
+   nir_cf_list tmp;
+   nir_cf_extract(&tmp, nir_before_block(header_block),
+                  nir_after_cf_node(if_node));
+   header_block = nir_loop_first_block(loop);
+
+   /* Clone and re-insert at the continue block. */
+   nir_block *cont_block = NULL;
+   set_foreach(header_block->predecessors, pred_entry) {
+      if (pred_entry->key != prev_block) {
+         cont_block = (nir_block *)pred_entry->key;
+         break;
+      }
+   }
+   assert(cont_block);
+   struct hash_table *remap_table = _mesa_pointer_hash_table_create(NULL);
+   nir_cf_list_clone_and_reinsert(&tmp, &loop->cf_node, nir_after_block(cont_block), remap_table);
+   _mesa_hash_table_destroy(remap_table, NULL);
+
+   /* Remove the break and insert before the loop. */
+   nir_cf_reinsert(&tmp, nir_after_block(prev_block));
+   nir_instr_remove_v(nir_block_last_instr(last_then));
+
+   /* Finally, extract the entire loop and insert into the else-branch. */
+   nir_cf_extract(&tmp, nir_before_cf_node(&loop->cf_node),
+                  nir_after_cf_node(&loop->cf_node));
+   nir_cf_reinsert(&tmp, nir_after_block(nir_if_first_else_block(nif)));
+
+   return true;
+}
+
+static bool
 opt_loop_cf_list(struct exec_list *cf_list)
 {
    bool progress = false;
@@ -322,6 +480,7 @@ opt_loop_cf_list(struct exec_list *cf_list)
          assert(!nir_loop_has_continue_construct(loop));
          progress |= opt_loop_cf_list(&loop->body);
          progress |= opt_loop_last_block(nir_loop_last_block(loop), true, false);
+         progress |= opt_loop_peel_initial_break(loop);
          break;
       }
 

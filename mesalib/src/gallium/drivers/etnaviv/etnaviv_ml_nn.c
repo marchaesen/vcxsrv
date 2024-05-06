@@ -510,20 +510,19 @@ etna_ml_lower_add(struct etna_ml_subgraph *subgraph,
                                   operation->weight_scale);
 }
 
-#define ACCUM_BUFFER_DEPTH 64
-#define INPUT_BUFFER_DEPTH 12
 #define MAX_TILE_WIDTH 64
 
 static unsigned
 calc_superblocks(struct etna_context *ctx, const struct etna_operation *operation, unsigned tile_y, unsigned interleave_mode)
 {
    unsigned nn_core_count = ctx->screen->specs.nn_core_count;
+   unsigned nn_accum_buffer_depth = ctx->screen->specs.nn_accum_buffer_depth;
    unsigned output_channels = operation->addition ? 1 : operation->output_channels;
    unsigned kernels_per_core = DIV_ROUND_UP(output_channels, nn_core_count);
-   unsigned foo = (ACCUM_BUFFER_DEPTH * interleave_mode) / tile_y;
+   unsigned foo = (nn_accum_buffer_depth * interleave_mode) / tile_y;
 
    if (operation->weight_width == 1)
-      foo = MIN2(foo, ACCUM_BUFFER_DEPTH / 3);
+      foo = MIN2(foo, nn_accum_buffer_depth / 3);
 
    foo = MIN2(foo, kernels_per_core);
    foo = MIN2(foo, 127);
@@ -591,6 +590,8 @@ calc_addition_sizes(unsigned *input_width, unsigned *input_height, unsigned *inp
 static unsigned
 calculate_tiling(struct etna_context *ctx, const struct etna_operation *operation, unsigned *tile_width_out, unsigned *tile_height_out)
 {
+   unsigned nn_input_buffer_depth = ctx->screen->specs.nn_input_buffer_depth;
+   unsigned nn_accum_buffer_depth = ctx->screen->specs.nn_accum_buffer_depth;
    unsigned input_width = operation->input_width;
    unsigned input_height = operation->input_height;
    unsigned input_channels = operation->input_channels;
@@ -614,8 +615,8 @@ calculate_tiling(struct etna_context *ctx, const struct etna_operation *operatio
    tile_width = MIN2(output_width, 64);
    interleave_mode = calc_interleave_mode(tile_width, operation->weight_height);
 
-   tile_height = INPUT_BUFFER_DEPTH * interleave_mode - operation->weight_height + 1;
-   tile_height = MIN2(tile_height, interleave_mode * ACCUM_BUFFER_DEPTH);
+   tile_height = nn_input_buffer_depth * interleave_mode - operation->weight_height + 1;
+   tile_height = MIN2(tile_height, interleave_mode * nn_accum_buffer_depth);
    tile_height = MIN2(tile_height, output_height);
 
    if (operation->stride > 1 && tile_height % 2 > 0)

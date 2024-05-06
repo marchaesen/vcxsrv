@@ -101,6 +101,18 @@ vk_image_init(struct vk_device *device,
 #endif
 
 #if DETECT_OS_ANDROID
+   if (image->external_handle_types &
+             VK_EXTERNAL_MEMORY_HANDLE_TYPE_ANDROID_HARDWARE_BUFFER_BIT_ANDROID)
+      image->android_buffer_type = ANDROID_BUFFER_HARDWARE;
+
+   const VkNativeBufferANDROID *native_buffer =
+      vk_find_struct_const(pCreateInfo->pNext, NATIVE_BUFFER_ANDROID);
+
+   if (native_buffer != NULL) {
+      assert(image->android_buffer_type == ANDROID_BUFFER_NONE);
+      image->android_buffer_type = ANDROID_BUFFER_NATIVE;
+   }
+
    const VkExternalFormatANDROID *ext_format =
       vk_find_struct_const(pCreateInfo->pNext, EXTERNAL_FORMAT_ANDROID);
    if (ext_format && ext_format->externalFormat != 0) {
@@ -147,6 +159,12 @@ vk_image_destroy(struct vk_device *device,
                  const VkAllocationCallbacks *alloc,
                  struct vk_image *image)
 {
+#if DETECT_OS_ANDROID
+   if (image->anb_memory) {
+      device->dispatch_table.FreeMemory(
+         (VkDevice)device, image->anb_memory, alloc);
+   }
+#endif
    vk_object_free(device, alloc, image);
 }
 

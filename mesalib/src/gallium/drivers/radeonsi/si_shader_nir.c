@@ -208,9 +208,10 @@ static void si_late_optimize_16bit_samplers(struct si_screen *sscreen, nir_shade
       },
    };
    struct nir_opt_16bit_tex_image_options opt_16bit_options = {
-      .rounding_mode = nir_rounding_mode_rtz,
-      .opt_tex_dest_types = nir_type_float,
-      .opt_image_dest_types = nir_type_float,
+      .rounding_mode = nir_rounding_mode_undef,
+      .opt_tex_dest_types = nir_type_float | nir_type_int | nir_type_uint,
+      .opt_image_dest_types = nir_type_float | nir_type_int | nir_type_uint,
+      .integer_dest_saturates = true,
       .opt_image_store_data = true,
       .opt_image_srcs = true,
       .opt_srcs_options_count = has_g16 ? 2 : 1,

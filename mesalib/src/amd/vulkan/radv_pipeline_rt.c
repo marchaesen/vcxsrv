@@ -1031,7 +1031,7 @@ radv_rt_pipeline_create(VkDevice _device, VkPipelineCache _cache, const VkRayTra
       compute_rt_stack_size(pCreateInfo, pipeline);
       compile_rt_prolog(device, pipeline);
 
-      radv_compute_pipeline_init(device, &pipeline->base, pipeline_layout, pipeline->prolog);
+      radv_compute_pipeline_init(&pipeline->base, pipeline_layout, pipeline->prolog);
    }
 
    /* write shader VAs into group handles */

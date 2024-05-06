@@ -498,14 +498,13 @@ unsigned
 get_subdword_operand_stride(amd_gfx_level gfx_level, const aco_ptr<Instruction>& instr,
                             unsigned idx, RegClass rc)
 {
+   assert(gfx_level >= GFX8);
    if (instr->isPseudo()) {
       /* v_readfirstlane_b32 cannot use SDWA */
       if (instr->opcode == aco_opcode::p_as_uniform)
          return 4;
-      else if (gfx_level >= GFX8)
-         return rc.bytes() % 2 == 0 ? 2 : 1;
       else
-         return 4;
+         return rc.bytes() % 2 == 0 ? 2 : 1;
    }
 
    assert(rc.bytes() <= 2);
@@ -608,13 +607,13 @@ get_subdword_definition_info(Program* program, const aco_ptr<Instruction>& instr
 {
    amd_gfx_level gfx_level = program->gfx_level;
 
+   assert(gfx_level >= GFX8);
+
    if (instr->isPseudo()) {
       if (instr->opcode == aco_opcode::p_interp_gfx11)
          return std::make_pair(4u, 4u);
-      else if (gfx_level >= GFX8)
-         return std::make_pair(rc.bytes() % 2 == 0 ? 2 : 1, rc.bytes());
       else
-         return std::make_pair(4, rc.size() * 4u);
+         return std::make_pair(rc.bytes() % 2 == 0 ? 2 : 1, rc.bytes());
    }
 
    if (instr->isVALU()) {
@@ -2050,16 +2049,12 @@ handle_pseudo(ra_ctx& ctx, const RegisterFile& reg_file, Instruction* instr)
    }
    /* if all operands are constant, no need to care either */
    bool reads_linear = false;
-   bool reads_subdword = false;
    for (Operand& op : instr->operands) {
       if (op.isTemp() && op.getTemp().regClass().is_linear())
          reads_linear = true;
-      if (op.isTemp() && op.regClass().is_subdword())
-         reads_subdword = true;
    }
-   bool needs_scratch_reg = (writes_linear && reads_linear && reg_file[scc]) ||
-                            (ctx.program->gfx_level <= GFX7 && reads_subdword);
-   if (!needs_scratch_reg)
+
+   if (!writes_linear || !reads_linear || !reg_file[scc])
       return;
 
    instr->pseudo().needs_scratch_reg = true;
@@ -2072,10 +2067,6 @@ handle_pseudo(ra_ctx& ctx, const RegisterFile& reg_file, Instruction* instr)
       reg = ctx.max_used_sgpr + 1;
       for (; reg < ctx.program->max_reg_demand.sgpr && reg_file[PhysReg{(unsigned)reg}]; reg++)
          ;
-      if (reg == ctx.program->max_reg_demand.sgpr) {
-         assert(reads_subdword && reg_file[m0] == 0);
-         reg = m0;
-      }
    }
 
    adjust_max_used_regs(ctx, s1, reg);

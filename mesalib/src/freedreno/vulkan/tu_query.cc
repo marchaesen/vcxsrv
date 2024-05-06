@@ -320,7 +320,7 @@ tu_CreateQueryPool(VkDevice _device,
       return result;
    }
 
-   result = tu_bo_map(device, pool->bo);
+   result = tu_bo_map(device, pool->bo, NULL);
    if (result != VK_SUCCESS) {
       tu_bo_finish(device, pool->bo);
       vk_object_free(&device->vk, pAllocator, pool);

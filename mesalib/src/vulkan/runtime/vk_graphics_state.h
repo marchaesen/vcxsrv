@@ -1187,8 +1187,7 @@ vk_dynamic_graphics_state_clear_dirty(struct vk_dynamic_graphics_state *d)
 static inline bool
 vk_dynamic_graphics_state_any_dirty(const struct vk_dynamic_graphics_state *d)
 {
-   return BITSET_TEST_RANGE(d->dirty,
-      0, MESA_VK_DYNAMIC_GRAPHICS_STATE_ENUM_MAX - 1);
+   return !BITSET_IS_EMPTY(d->dirty);
 }
 
 /** Copies all set state from src to dst

@@ -484,6 +484,14 @@ SPDX-License-Identifier: MIT
 	</field>
 	<field name="SRC2_AMODE" low="121" high="123" type="#reg_addressing_mode"/>
 	<field name="SRC2_RGROUP" low="124" high="126" type="#reg_group"/>
+
+	<encode type="struct etna_inst *" case-prefix="ISA_OPC_">
+		<map name="SRC2">&amp;src->src[0]</map>
+		<map name="SRC2_USE">rc->src[0].use</map>
+		<map name="SRC2_REG">src->src[0].reg</map>
+		<map name="SRC2_RGROUP">src->src[0].rgroup</map>
+		<map name="SRC2_AMODE">src->src[0].amode</map>
+	</encode>
 </bitset>
 
 <bitset name="#instruction-alu-src0-src1" extends="#instruction-alu">
@@ -558,6 +566,14 @@ SPDX-License-Identifier: MIT
 	</field>
 	<field name="SRC2_AMODE" low="121" high="123" type="#reg_addressing_mode"/>
 	<field name="SRC2_RGROUP" low="124" high="126" type="#reg_group"/>
+
+	<encode type="struct etna_inst *" case-prefix="ISA_OPC_">
+		<map name="SRC2">&amp;src->src[1]</map>
+		<map name="SRC2_USE">rc->src[1].use</map>
+		<map name="SRC2_REG">src->src[1].reg</map>
+		<map name="SRC2_RGROUP">src->src[1].rgroup</map>
+		<map name="SRC2_AMODE">src->src[1].amode</map>
+	</encode>
 </bitset>
 
 <bitset name="#instruction-alu-src1-src2" extends="#instruction-alu">
@@ -595,6 +611,19 @@ SPDX-License-Identifier: MIT
 	</field>
 	<field name="SRC2_AMODE" low="121" high="123" type="#reg_addressing_mode"/>
 	<field name="SRC2_RGROUP" low="124" high="126" type="#reg_group"/>
+
+	<encode type="struct etna_inst *" case-prefix="ISA_OPC_">
+		<map name="SRC1">&amp;src->src[0]</map>
+		<map name="SRC1_USE">rc->src[0].use</map>
+		<map name="SRC1_REG">src->src[0].reg</map>
+		<map name="SRC1_RGROUP">src->src[0].rgroup</map>
+		<map name="SRC1_AMODE">src->src[0].amode</map>
+		<map name="SRC2">&amp;src->src[1]</map>
+		<map name="SRC2_USE">rc->src[1].use</map>
+		<map name="SRC2_REG">src->src[1].reg</map>
+		<map name="SRC2_RGROUP">src->src[1].rgroup</map>
+		<map name="SRC2_AMODE">src->src[1].amode</map>
+	</encode>
 </bitset>
 
 <bitset name="#instruction-alu-src0-src1-src2" extends="#instruction-alu">

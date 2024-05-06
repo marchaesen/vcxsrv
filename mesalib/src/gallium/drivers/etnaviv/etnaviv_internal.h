@@ -157,6 +157,10 @@ struct etna_specs {
    unsigned axi_sram_size;
    /* Number of bits for zero run-length compression */
    unsigned nn_zrl_bits;
+   /* Input buffer size, determines tile size */
+   unsigned nn_input_buffer_depth;
+   /* Accumulation buffer size, determines tile size */
+   unsigned nn_accum_buffer_depth;
 };
 
 /* Compiled Gallium state. All the different compiled state atoms are woven

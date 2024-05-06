@@ -1698,6 +1698,8 @@ optimizations.extend([
    (('ishr', 'a@32', 24), ('extract_i8', a, 3), '!options->lower_extract_byte'),
    (('ishr', 'a@64', 56), ('extract_i8', a, 7), '!options->lower_extract_byte'),
    (('iand', 0xff, a), ('extract_u8', a, 0), '!options->lower_extract_byte'),
+   (('ishr', ('iand', a, 0x0000ff00),  8), ('extract_u8', a, 1), '!options->lower_extract_byte'),
+   (('ishr', ('iand', a, 0x00ff0000), 16), ('extract_u8', a, 2), '!options->lower_extract_byte'),
 
    # Common pattern in many Vulkan CTS tests that read 8-bit integers from a
    # storage buffer.
@@ -1720,6 +1722,16 @@ optimizations.extend([
    (('extract_u8', ('extract_i8', a, b), 0), ('extract_u8', a, b)),
    (('extract_u8', ('extract_u8', a, b), 0), ('extract_u8', a, b)),
 
+   # The extract_X8(a & 0xff) patterns aren't included because the iand will
+   # already be converted to extract_u8.
+   (('extract_i8', ('iand', a, 0x0000ff00), 1), ('extract_i8', a, 1)),
+   (('extract_i8', ('iand', a, 0x00ff0000), 2), ('extract_i8', a, 2)),
+   (('extract_i8', ('iand', a, 0xff000000), 3), ('extract_i8', a, 3)),
+
+   (('extract_u8', ('iand', a, 0x0000ff00), 1), ('extract_u8', a, 1)),
+   (('extract_u8', ('iand', a, 0x00ff0000), 2), ('extract_u8', a, 2)),
+   (('extract_u8', ('iand', a, 0xff000000), 3), ('extract_u8', a, 3)),
+
     # Word extraction
    (('ushr', ('ishl', 'a@32', 16), 16), ('extract_u16', a, 0), '!options->lower_extract_word'),
    (('ushr', 'a@32', 16), ('extract_u16', a, 1), '!options->lower_extract_word'),
@@ -1738,6 +1750,11 @@ optimizations.extend([
 
    (('extract_u16', ('extract_i16', a, b), 0), ('extract_u16', a, b)),
    (('extract_u16', ('extract_u16', a, b), 0), ('extract_u16', a, b)),
+
+   # The extract_X16(a & 0xff) patterns aren't included because the iand will
+   # already be converted to extract_u8.
+   (('extract_i16', ('iand', a, 0x00ff0000), 1), ('extract_u8', a, 2), '!options->lower_extract_byte'), # extract_u8 is correct
+   (('extract_u16', ('iand', a, 0x00ff0000), 1), ('extract_u8', a, 2), '!options->lower_extract_byte'),
 
    # Lower pack/unpack
    (('pack_64_2x32_split', a, b), ('ior', ('u2u64', a), ('ishl', ('u2u64', b), 32)), 'options->lower_pack_64_2x32_split'),
@@ -1800,6 +1817,10 @@ optimizations.extend([
    # Reduce intermediate precision with int64.
    (('u2u32', ('iadd(is_used_once)', 'a@64', b)),
     ('iadd', ('u2u32', a), ('u2u32', b))),
+
+   # Lowered pack followed by lowered unpack, for the high bits
+   (('u2u32', ('ushr', ('ior', ('ishl', a, 32), ('u2u64', b)), 32)), ('u2u32', a)),
+   (('u2u16', ('ushr', ('ior', ('ishl', a, 16), ('u2u32', b)), 16)), ('u2u16', a)),
 ])
 
 # After the ('extract_u8', a, 0) pattern, above, triggers, there will be

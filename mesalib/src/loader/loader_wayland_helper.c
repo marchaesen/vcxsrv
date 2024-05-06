@@ -23,6 +23,8 @@
 #include <poll.h>
 #include <errno.h>
 
+#include "util/perf/cpu_trace.h"
+
 #include "loader_wayland_helper.h"
 
 #ifndef HAVE_WL_DISPATCH_QUEUE_TIMEOUT
@@ -141,3 +143,23 @@ wl_display_create_queue_with_name(struct wl_display *display, const char *name)
    return wl_display_create_queue(display);
 }
 #endif
+
+int
+loader_wayland_dispatch(struct wl_display *wl_display,
+                        struct wl_event_queue *queue,
+                        struct timespec *end_time)
+{
+   struct timespec current_time;
+   struct timespec remaining_timeout;
+
+   MESA_TRACE_FUNC();
+
+   if (!end_time)
+      return wl_display_dispatch_queue(wl_display, queue);
+
+   clock_gettime(CLOCK_MONOTONIC, &current_time);
+   timespec_sub_saturate(&remaining_timeout, end_time, &current_time);
+   return wl_display_dispatch_queue_timeout(wl_display,
+                                            queue,
+                                            &remaining_timeout);
+}

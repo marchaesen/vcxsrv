@@ -659,7 +659,8 @@ public:
    constexpr void setTemp(Temp t) noexcept
    {
       assert(!isConstant_);
-      isTemp_ = true;
+      if (t.id() != 0)
+         isTemp_ = true;
       data_.temp = t;
    }
 
@@ -2113,6 +2114,7 @@ void select_ps_prolog(Program* program, void* pinfo, ac_shader_config* config,
                       const struct aco_shader_info* info, const struct ac_shader_args* args);
 
 void lower_phis(Program* program);
+void lower_subdword(Program* program);
 void calc_min_waves(Program* program);
 void update_vgpr_sgpr_demand(Program* program, const RegisterDemand new_demand);
 live live_var_analysis(Program* program);

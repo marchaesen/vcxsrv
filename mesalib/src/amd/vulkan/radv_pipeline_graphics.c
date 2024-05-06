@@ -38,11 +38,6 @@
 #include "aco_interface.h"
 #include "sid.h"
 
-struct radv_blend_state {
-   uint32_t spi_shader_col_format;
-   uint32_t cb_shader_mask;
-};
-
 static bool
 radv_is_static_vrs_enabled(const struct vk_graphics_pipeline_state *state)
 {
@@ -247,21 +242,6 @@ radv_pipeline_needs_ps_epilog(const struct vk_graphics_pipeline_state *state,
       return true;
 
    return false;
-}
-
-static struct radv_blend_state
-radv_pipeline_init_blend_state(struct radv_graphics_pipeline *pipeline)
-{
-   const struct radv_shader *ps = pipeline->base.shaders[MESA_SHADER_FRAGMENT];
-   struct radv_blend_state blend = {0};
-
-   if (!ps || ps->info.has_epilog)
-      return blend;
-
-   blend.cb_shader_mask = ac_get_cb_shader_mask(ps->info.ps.spi_shader_col_format);
-   blend.spi_shader_col_format = ps->info.ps.spi_shader_col_format;
-
-   return blend;
 }
 
 static bool
@@ -2776,18 +2756,6 @@ done:
 }
 
 void
-radv_emit_blend_state(struct radeon_cmdbuf *ctx_cs, const struct radv_shader *ps, uint32_t spi_shader_col_format,
-                      uint32_t cb_shader_mask)
-{
-   if (ps && ps->info.has_epilog)
-      return;
-
-   radeon_set_context_reg(ctx_cs, R_028714_SPI_SHADER_COL_FORMAT, spi_shader_col_format);
-
-   radeon_set_context_reg(ctx_cs, R_02823C_CB_SHADER_MASK, cb_shader_mask);
-}
-
-void
 radv_emit_vgt_gs_mode(const struct radv_device *device, struct radeon_cmdbuf *ctx_cs,
                       const struct radv_shader *last_vgt_api_shader)
 {
@@ -3745,8 +3713,7 @@ gfx103_emit_vrs_state(const struct radv_device *device, struct radeon_cmdbuf *ct
 
 static void
 radv_pipeline_emit_pm4(const struct radv_device *device, struct radv_graphics_pipeline *pipeline,
-                       const struct radv_blend_state *blend, uint32_t vgt_gs_out_prim_type,
-                       const struct vk_graphics_pipeline_state *state)
+                       uint32_t vgt_gs_out_prim_type, const struct vk_graphics_pipeline_state *state)
 
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
@@ -3763,7 +3730,6 @@ radv_pipeline_emit_pm4(const struct radv_device *device, struct radv_graphics_pi
    const struct radv_vgt_shader_key vgt_shader_key =
       radv_get_vgt_shader_key(device, pipeline->base.shaders, pipeline->base.gs_copy_shader);
 
-   radv_emit_blend_state(ctx_cs, ps, blend->spi_shader_col_format, blend->cb_shader_mask);
    radv_emit_vgt_gs_mode(device, ctx_cs, pipeline->base.shaders[pipeline->last_vgt_api_stage]);
 
    if (radv_pipeline_has_stage(pipeline, MESA_SHADER_VERTEX)) {
@@ -3950,7 +3916,7 @@ radv_pipeline_init_vgt_gs_out(struct radv_graphics_pipeline *pipeline, const str
 
 static void
 radv_pipeline_init_extra(struct radv_graphics_pipeline *pipeline,
-                         const struct radv_graphics_pipeline_create_info *extra, struct radv_blend_state *blend_state,
+                         const struct radv_graphics_pipeline_create_info *extra,
                          const struct vk_graphics_pipeline_state *state, uint32_t *vgt_gs_out_prim_type)
 {
    if (extra->custom_blend_mode == V_028808_CB_ELIMINATE_FAST_CLEAR ||
@@ -3961,7 +3927,7 @@ radv_pipeline_init_extra(struct radv_graphics_pipeline *pipeline,
       /* According to the CB spec states, CB_SHADER_MASK should be set to enable writes to all four
        * channels of MRT0.
        */
-      blend_state->cb_shader_mask = 0xf;
+      pipeline->cb_shader_mask = 0xf;
 
       pipeline->custom_blend_mode = extra->custom_blend_mode;
    }
@@ -4102,32 +4068,15 @@ radv_graphics_pipeline_init(struct radv_graphics_pipeline *pipeline, struct radv
       radv_pipeline_init_input_assembly_state(device, pipeline);
    radv_pipeline_init_dynamic_state(device, pipeline, &state, pCreateInfo);
 
-   struct radv_blend_state blend = radv_pipeline_init_blend_state(pipeline);
-
-   /* Copy the non-compacted SPI_SHADER_COL_FORMAT which is used to emit RBPLUS state. */
-   pipeline->col_format_non_compacted = blend.spi_shader_col_format;
-
-   struct radv_shader *ps = pipeline->base.shaders[MESA_SHADER_FRAGMENT];
-   bool enable_mrt_compaction = ps && !ps->info.has_epilog && !ps->info.ps.mrt0_is_dual_src;
-   if (enable_mrt_compaction) {
-      /* Make sure to clear color attachments without exports because MRT holes are removed during
-       * compilation for optimal performance.
-       */
-      blend.spi_shader_col_format =
-         radv_compact_spi_shader_col_format(blend.spi_shader_col_format & ps->info.ps.colors_written);
-
-      /* In presence of MRT holes (ie. the FS exports MRT1 but not MRT0), the compiler will remap
-       * them, so that only MRT0 is exported and the driver will compact SPI_SHADER_COL_FORMAT to
-       * match what the FS actually exports. Though, to make sure the hw remapping works as
-       * expected, we should also clear color attachments without exports in CB_SHADER_MASK.
-       */
-      blend.cb_shader_mask &= ps->info.ps.colors_written;
+   const struct radv_shader *ps = pipeline->base.shaders[MESA_SHADER_FRAGMENT];
+   if (ps && !ps->info.has_epilog) {
+      pipeline->spi_shader_col_format = ps->info.ps.spi_shader_col_format;
+      pipeline->cb_shader_mask = ps->info.ps.cb_shader_mask;
    }
 
    unsigned custom_blend_mode = extra ? extra->custom_blend_mode : 0;
-   if (radv_needs_null_export_workaround(device, ps, custom_blend_mode) && !blend.spi_shader_col_format) {
-      blend.spi_shader_col_format = V_028714_SPI_SHADER_32_R;
-      pipeline->col_format_non_compacted = V_028714_SPI_SHADER_32_R;
+   if (radv_needs_null_export_workaround(device, ps, custom_blend_mode) && !pipeline->spi_shader_col_format) {
+      pipeline->spi_shader_col_format = V_028714_SPI_SHADER_32_R;
    }
 
    if (!radv_pipeline_has_stage(pipeline, MESA_SHADER_MESH))
@@ -4147,10 +4096,10 @@ radv_graphics_pipeline_init(struct radv_graphics_pipeline *pipeline, struct radv
    pipeline->base.dynamic_offset_count = pipeline->layout.dynamic_offset_count;
 
    if (extra) {
-      radv_pipeline_init_extra(pipeline, extra, &blend, &state, &vgt_gs_out_prim_type);
+      radv_pipeline_init_extra(pipeline, extra, &state, &vgt_gs_out_prim_type);
    }
 
-   radv_pipeline_emit_pm4(device, pipeline, &blend, vgt_gs_out_prim_type, &state);
+   radv_pipeline_emit_pm4(device, pipeline, vgt_gs_out_prim_type, &state);
 
    return result;
 }

@@ -140,6 +140,7 @@ struct wsi_wl_image {
    int shm_fd;
    void *shm_ptr;
    unsigned shm_size;
+   uint64_t flow_id;
 
    struct wp_linux_drm_syncobj_timeline_v1 *wl_syncobj_timeline[WSI_ES_COUNT];
 };
@@ -158,6 +159,14 @@ struct wsi_wl_surface {
    struct wsi_wl_swapchain *chain;
    struct wl_surface *surface;
    struct wsi_wl_display *display;
+
+   /* This has no functional use, and is here only for perfetto */
+   struct {
+      const VkAllocationCallbacks *pAllocator;
+      char *latency_str;
+      uint64_t presenting;
+      uint64_t presentation_track_id;
+   } analytics;
 
    struct zwp_linux_dmabuf_feedback_v1 *wl_dmabuf_feedback;
    struct dmabuf_feedback dmabuf_feedback, pending_dmabuf_feedback;
@@ -227,6 +236,15 @@ find_format(struct u_vector *formats, VkFormat format)
          return f;
 
    return NULL;
+}
+
+static char *
+stringify_wayland_id(uint32_t id)
+{
+   char *out;
+
+   asprintf(&out, "wl%d", id);
+   return out;
 }
 
 static struct wsi_wl_format *
@@ -1326,6 +1344,14 @@ wsi_wl_surface_get_present_rectangles(VkIcdSurfaceBase *surface,
    return vk_outarray_status(&out);
 }
 
+static void
+wsi_wl_surface_analytics_fini(struct wsi_wl_surface *wsi_wl_surface)
+{
+   const VkAllocationCallbacks *pAllocator = wsi_wl_surface->analytics.pAllocator;
+
+   vk_free(pAllocator, wsi_wl_surface->analytics.latency_str);
+}
+
 void
 wsi_wl_surface_destroy(VkIcdSurfaceBase *icd_surface, VkInstance _instance,
                        const VkAllocationCallbacks *pAllocator)
@@ -1348,6 +1374,8 @@ wsi_wl_surface_destroy(VkIcdSurfaceBase *icd_surface, VkInstance _instance,
 
    if (wsi_wl_surface->display)
       wsi_wl_display_destroy(wsi_wl_surface->display);
+
+   wsi_wl_surface_analytics_fini(wsi_wl_surface);
 
    vk_free2(&instance->alloc, pAllocator, wsi_wl_surface);
 }
@@ -1562,8 +1590,31 @@ fail:
    return VK_ERROR_OUT_OF_HOST_MEMORY;
 }
 
+static void
+wsi_wl_surface_analytics_init(struct wsi_wl_surface *wsi_wl_surface,
+                              const VkAllocationCallbacks *pAllocator)
+{
+   uint64_t wl_id;
+   char *track_name;
+
+   wl_id = wl_proxy_get_id((struct wl_proxy *) wsi_wl_surface->surface);
+
+   wsi_wl_surface->analytics.pAllocator = pAllocator;
+   wl_id = wl_proxy_get_id((struct wl_proxy *) wsi_wl_surface->surface);
+   track_name = vk_asprintf(pAllocator, VK_SYSTEM_ALLOCATION_SCOPE_OBJECT,
+                            "wl%" PRIu64 " presentation", wl_id);
+   wsi_wl_surface->analytics.presentation_track_id = util_perfetto_new_track(track_name);
+   vk_free(pAllocator, track_name);
+
+   wsi_wl_surface->analytics.latency_str =
+      vk_asprintf(pAllocator,
+                  VK_SYSTEM_ALLOCATION_SCOPE_OBJECT,
+                  "wl%" PRIu64 " latency", wl_id);
+}
+
 static VkResult wsi_wl_surface_init(struct wsi_wl_surface *wsi_wl_surface,
-                                    struct wsi_device *wsi_device)
+                                    struct wsi_device *wsi_device,
+                                    const VkAllocationCallbacks *pAllocator)
 {
    struct wsi_wayland *wsi =
       (struct wsi_wayland *)wsi_device->wsi[VK_ICD_WSI_PLATFORM_WAYLAND];
@@ -1607,6 +1658,7 @@ static VkResult wsi_wl_surface_init(struct wsi_wl_surface *wsi_wl_surface,
          goto fail;
    }
 
+   wsi_wl_surface_analytics_init(wsi_wl_surface, pAllocator);
    return VK_SUCCESS;
 
 fail:
@@ -1655,8 +1707,11 @@ struct wsi_wl_present_id {
     * which uses frame callback to signal DRI3 COMPLETE. */
    struct wl_callback *frame;
    uint64_t present_id;
+   uint64_t flow_id;
+   uint64_t submission_time;
    const VkAllocationCallbacks *alloc;
    struct wsi_wl_swapchain *chain;
+   int buffer_id;
    struct wl_list link;
 };
 
@@ -1689,9 +1744,7 @@ wsi_wl_swapchain_set_present_mode(struct wsi_swapchain *wsi_chain,
 }
 
 static VkResult
-wsi_wl_swapchain_wait_for_present(struct wsi_swapchain *wsi_chain,
-                                  uint64_t present_id,
-                                  uint64_t timeout)
+dispatch_present_id_queue(struct wsi_swapchain *wsi_chain, struct timespec *end_time)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
 
@@ -1700,9 +1753,80 @@ wsi_wl_swapchain_wait_for_present(struct wsi_swapchain *wsi_chain,
     * so calling present wait on a retired swapchain cannot interfere with a non-retired swapchain. */
    struct wl_display *wl_display = chain->wsi_wl_surface->display->wl_display;
 
+   VkResult ret;
+   int err;
+
+   /* PresentWait can be called concurrently.
+    * If there is contention on this mutex, it means there is currently a dispatcher in flight holding the lock.
+    * The lock is only held while there is forward progress processing events from Wayland,
+    * so there should be no problem locking without timeout.
+    * We would like to be able to support timeout = 0 to query the current max_completed count.
+    * A timedlock with no timeout can be problematic in that scenario. */
+   err = pthread_mutex_lock(&chain->present_ids.lock);
+   if (err != 0)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+
+   /* Someone else is dispatching events; wait for them to update the chain
+    * status and wake us up. */
+   if (chain->present_ids.dispatch_in_progress) {
+      err = pthread_cond_timedwait(&chain->present_ids.list_advanced,
+                                   &chain->present_ids.lock, end_time);
+      pthread_mutex_unlock(&chain->present_ids.lock);
+
+      if (err == ETIMEDOUT)
+         return VK_TIMEOUT;
+      else if (err != 0)
+         return VK_ERROR_OUT_OF_DATE_KHR;
+
+      return VK_SUCCESS;
+   }
+
+   /* Whether or not we were dispatching the events before, we are now. */
+   assert(!chain->present_ids.dispatch_in_progress);
+   chain->present_ids.dispatch_in_progress = true;
+
+   /* We drop the lock now - we're still protected by dispatch_in_progress,
+    * and holding the lock while dispatch_queue_timeout waits in poll()
+    * might delay other threads unnecessarily.
+    *
+    * We'll pick up the lock again in the dispatched functions.
+    */
+   pthread_mutex_unlock(&chain->present_ids.lock);
+
+   ret = loader_wayland_dispatch(wl_display,
+                                 chain->present_ids.queue,
+                                 end_time);
+
+   pthread_mutex_lock(&chain->present_ids.lock);
+
+   /* Wake up other waiters who may have been unblocked by the events
+    * we just read. */
+   pthread_cond_broadcast(&chain->present_ids.list_advanced);
+
+   assert(chain->present_ids.dispatch_in_progress);
+   chain->present_ids.dispatch_in_progress = false;
+
+   pthread_cond_broadcast(&chain->present_ids.list_advanced);
+   pthread_mutex_unlock(&chain->present_ids.lock);
+
+   if (ret == -1)
+      return VK_ERROR_OUT_OF_DATE_KHR;
+   if (ret == 0)
+      return VK_TIMEOUT;
+   return VK_SUCCESS;
+}
+
+static VkResult
+wsi_wl_swapchain_wait_for_present(struct wsi_swapchain *wsi_chain,
+                                  uint64_t present_id,
+                                  uint64_t timeout)
+{
+   struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
    struct timespec end_time;
    VkResult ret;
    int err;
+
+   MESA_TRACE_FUNC();
 
    uint64_t atimeout;
    if (timeout == 0 || timeout == UINT64_MAX)
@@ -1735,89 +1859,23 @@ wsi_wl_swapchain_wait_for_present(struct wsi_swapchain *wsi_chain,
    VkResult timeout_result = assumed_success_at < atimeout ? VK_SUCCESS : VK_TIMEOUT;
    timespec_from_nsec(&end_time, MIN2(atimeout, assumed_success_at));
 
-   /* PresentWait can be called concurrently.
-    * If there is contention on this mutex, it means there is currently a dispatcher in flight holding the lock.
-    * The lock is only held while there is forward progress processing events from Wayland,
-    * so there should be no problem locking without timeout.
-    * We would like to be able to support timeout = 0 to query the current max_completed count.
-    * A timedlock with no timeout can be problematic in that scenario. */
-   err = pthread_mutex_lock(&chain->present_ids.lock);
-   if (err != 0)
-      return VK_ERROR_OUT_OF_DATE_KHR;
-
-   if (chain->present_ids.max_completed >= present_id) {
-      pthread_mutex_unlock(&chain->present_ids.lock);
-      return VK_SUCCESS;
-   }
-
-   /* Someone else is dispatching events; wait for them to update the chain
-    * status and wake us up. */
-   while (chain->present_ids.dispatch_in_progress) {
-      err = pthread_cond_timedwait(&chain->present_ids.list_advanced,
-                                   &chain->present_ids.lock, &end_time);
-
-      if (err == ETIMEDOUT) {
-         pthread_mutex_unlock(&chain->present_ids.lock);
-         return timeout_result;
-      } else if (err != 0) {
-         pthread_mutex_unlock(&chain->present_ids.lock);
-         return VK_ERROR_OUT_OF_DATE_KHR;
-      }
-
-      if (chain->present_ids.max_completed >= present_id) {
-         pthread_mutex_unlock(&chain->present_ids.lock);
-         return VK_SUCCESS;
-      }
-
-      /* Whoever was previously dispatching the events isn't anymore, so we
-       * will take over and fall through below. */
-      if (!chain->present_ids.dispatch_in_progress)
-         break;
-   }
-
-   assert(!chain->present_ids.dispatch_in_progress);
-   chain->present_ids.dispatch_in_progress = true;
-
-   /* Whether or not we were dispatching the events before, we are now. */
    while (1) {
-      if (chain->present_ids.max_completed >= present_id) {
-         ret = VK_SUCCESS;
-         break;
-      }
-      /* We drop the lock now - we're still protected by dispatch_in_progress,
-       * and holding the lock while dispatch_queue_timeout waits in poll()
-       * might delay other threads unnecessarily.
-       *
-       * We'll pick up the lock again in the dispatched functions.
-       */
+      err = pthread_mutex_lock(&chain->present_ids.lock);
+      if (err != 0)
+         return VK_ERROR_OUT_OF_DATE_KHR;
+
+      bool completed = chain->present_ids.max_completed >= present_id;
       pthread_mutex_unlock(&chain->present_ids.lock);
 
-      struct timespec current_time, remaining_timeout;
-      clock_gettime(CLOCK_MONOTONIC, &current_time);
-      timespec_sub_saturate(&remaining_timeout, &end_time, &current_time);
-      ret = wl_display_dispatch_queue_timeout(wl_display,
-                                              chain->present_ids.queue,
-                                              &remaining_timeout);
-      pthread_mutex_lock(&chain->present_ids.lock);
-      if (ret == -1) {
-         ret = VK_ERROR_OUT_OF_DATE_KHR;
-         break;
-      }
-      if (ret == 0) {
-         ret = timeout_result;
-         break;
-      }
+      if (completed)
+         return VK_SUCCESS;
 
-      /* Wake up other waiters who may have been unblocked by the events
-       * we just read. */
-      pthread_cond_broadcast(&chain->present_ids.list_advanced);
+      ret = dispatch_present_id_queue(wsi_chain, &end_time);
+      if (ret == VK_TIMEOUT)
+         return timeout_result;
+      if (ret != VK_SUCCESS)
+         return ret;
    }
-
-   assert(chain->present_ids.dispatch_in_progress);
-   chain->present_ids.dispatch_in_progress = false;
-   pthread_cond_broadcast(&chain->present_ids.list_advanced);
-   pthread_mutex_unlock(&chain->present_ids.lock);
-   return ret;
 }
 
 static VkResult
@@ -1826,6 +1884,9 @@ wsi_wl_swapchain_acquire_next_image_explicit(struct wsi_swapchain *wsi_chain,
                                              uint32_t *image_index)
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
+   uint64_t id = 0;
+
+   MESA_TRACE_FUNC_FLOW(&id);
 
    /* See comments in queue_present() */
    if (chain->retired)
@@ -1842,6 +1903,9 @@ wsi_wl_swapchain_acquire_next_image_explicit(struct wsi_swapchain *wsi_chain,
                                                             image_index);
    STACK_ARRAY_FINISH(images);
 
+   if (result == VK_SUCCESS)
+      chain->images[*image_index].flow_id = id;
+
    return result;
 }
 
@@ -1853,6 +1917,9 @@ wsi_wl_swapchain_acquire_next_image_implicit(struct wsi_swapchain *wsi_chain,
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
    struct timespec start_time, end_time;
    struct timespec rel_timeout;
+   uint64_t id = 0;
+
+   MESA_TRACE_FUNC_FLOW(&id);
 
    /* See comments in queue_present() */
    if (chain->retired)
@@ -1871,18 +1938,15 @@ wsi_wl_swapchain_acquire_next_image_implicit(struct wsi_swapchain *wsi_chain,
             /* We found a non-busy image */
             *image_index = i;
             chain->images[i].busy = true;
+            chain->images[i].flow_id = id;
             return (chain->suboptimal ? VK_SUBOPTIMAL_KHR : VK_SUCCESS);
          }
       }
 
-      struct timespec current_time, remaining_timeout;
-      clock_gettime(CLOCK_MONOTONIC, &current_time);
-      timespec_sub_saturate(&remaining_timeout, &end_time, &current_time);
-
       /* Try to dispatch potential events. */
-      int ret = wl_display_dispatch_queue_timeout(wsi_wl_surface->display->wl_display,
-                                                  wsi_wl_surface->display->queue,
-                                                  &remaining_timeout);
+      int ret = loader_wayland_dispatch(wsi_wl_surface->display->wl_display,
+                                        wsi_wl_surface->display->queue,
+                                        &end_time);
       if (ret == -1)
          return VK_ERROR_OUT_OF_DATE_KHR;
 
@@ -1912,6 +1976,38 @@ wsi_wl_presentation_update_present_id(struct wsi_wl_present_id *id)
 }
 
 static void
+trace_present(const struct wsi_wl_present_id *id,
+              uint64_t presentation_time)
+{
+   struct wsi_wl_swapchain *chain = id->chain;
+   struct wsi_wl_surface *surface = chain->wsi_wl_surface;
+   char *buffer_name;
+
+   MESA_TRACE_SET_COUNTER(surface->analytics.latency_str,
+                          (presentation_time - id->submission_time) / 1000000.0);
+
+   /* Close the previous image display interval first, if there is one. */
+   if (surface->analytics.presenting && util_perfetto_is_tracing_enabled()) {
+      buffer_name = stringify_wayland_id(surface->analytics.presenting);
+      MESA_TRACE_TIMESTAMP_END(buffer_name,
+                               surface->analytics.presentation_track_id,
+                               presentation_time);
+      free(buffer_name);
+   }
+
+   surface->analytics.presenting = id->buffer_id;
+
+   if (util_perfetto_is_tracing_enabled()) {
+      buffer_name = stringify_wayland_id(id->buffer_id);
+      MESA_TRACE_TIMESTAMP_BEGIN(buffer_name,
+                                 surface->analytics.presentation_track_id,
+                                 id->flow_id,
+                                 presentation_time);
+      free(buffer_name);
+   }
+}
+
+static void
 presentation_handle_presented(void *data,
                               struct wp_presentation_feedback *feedback,
                               uint32_t tv_sec_hi, uint32_t tv_sec_lo,
@@ -1920,6 +2016,16 @@ presentation_handle_presented(void *data,
                               uint32_t flags)
 {
    struct wsi_wl_present_id *id = data;
+   struct timespec presentation_ts;
+   uint64_t presentation_time;
+
+   MESA_TRACE_FUNC_FLOW(&id->flow_id);
+
+   presentation_ts.tv_sec = ((uint64_t)tv_sec_hi << 32) + tv_sec_lo;
+   presentation_ts.tv_nsec = tv_nsec;
+   presentation_time = timespec_to_nsec(&presentation_ts);
+   trace_present(id, presentation_time);
+
    wsi_wl_presentation_update_present_id(id);
    wp_presentation_feedback_destroy(feedback);
 }
@@ -1929,6 +2035,9 @@ presentation_handle_discarded(void *data,
                               struct wp_presentation_feedback *feedback)
 {
    struct wsi_wl_present_id *id = data;
+
+   MESA_TRACE_FUNC_FLOW(&id->flow_id);
+
    wsi_wl_presentation_update_present_id(id);
    wp_presentation_feedback_destroy(feedback);
 }
@@ -1975,6 +2084,16 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
 {
    struct wsi_wl_swapchain *chain = (struct wsi_wl_swapchain *)wsi_chain;
    bool queue_dispatched = false;
+   uint64_t flow_id = chain->images[image_index].flow_id;
+
+   MESA_TRACE_FUNC_FLOW(&flow_id);
+
+   /* In case we're sending presentation feedback requests, make sure the
+    * queue their events are in is dispatched.
+    */
+   struct timespec instant = {0};
+   if (dispatch_present_id_queue(wsi_chain, &instant) == VK_ERROR_OUT_OF_DATE_KHR)
+      return VK_ERROR_OUT_OF_DATE_KHR;
 
    /* While the specification suggests we can keep presenting already acquired
     * images on a retired swapchain, there is no requirement to support that.
@@ -2048,13 +2167,18 @@ wsi_wl_swapchain_queue_present(struct wsi_swapchain *wsi_chain,
       chain->fifo_ready = true;
    }
 
-   if (present_id > 0) {
+   if (present_id > 0 || util_perfetto_is_tracing_enabled()) {
       struct wsi_wl_present_id *id =
          vk_zalloc(chain->wsi_wl_surface->display->wsi_wl->alloc, sizeof(*id), sizeof(uintptr_t),
                    VK_SYSTEM_ALLOCATION_SCOPE_OBJECT);
       id->chain = chain;
       id->present_id = present_id;
       id->alloc = chain->wsi_wl_surface->display->wsi_wl->alloc;
+      id->flow_id = flow_id;
+      id->buffer_id =
+         wl_proxy_get_id((struct wl_proxy *)chain->images[image_index].buffer);
+
+      id->submission_time = os_time_get_nano();
 
       pthread_mutex_lock(&chain->present_ids.lock);
 
@@ -2362,7 +2486,7 @@ wsi_wl_surface_create_swapchain(VkIcdSurfaceBase *icd_surface,
    chain->wsi_wl_surface = wsi_wl_surface;
    wsi_wl_surface->chain = chain;
 
-   result = wsi_wl_surface_init(wsi_wl_surface, wsi_device);
+   result = wsi_wl_surface_init(wsi_wl_surface, wsi_device, pAllocator);
    if (result != VK_SUCCESS)
       goto fail;
 

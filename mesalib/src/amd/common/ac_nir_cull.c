@@ -6,6 +6,7 @@
  */
 
 #include "ac_nir.h"
+#include "ac_nir_helpers.h"
 #include "nir_builder.h"
 
 /* This code is adapted from ac_llvm_cull.c, hence the copyright to AMD. */

@@ -914,6 +914,11 @@ gather_shader_info_fs(const struct radv_device *device, const nir_shader *nir,
    if (!info->has_epilog) {
       info->ps.mrt0_is_dual_src = gfx_state->ps.epilog.mrt0_is_dual_src;
       info->ps.spi_shader_col_format = gfx_state->ps.epilog.spi_shader_col_format;
+
+      /* Clear color attachments that aren't exported by the FS to match IO shader arguments. */
+      info->ps.spi_shader_col_format &= info->ps.colors_written;
+
+      info->ps.cb_shader_mask = ac_get_cb_shader_mask(info->ps.spi_shader_col_format);
    }
 
    const bool export_alpha_and_mrtz =

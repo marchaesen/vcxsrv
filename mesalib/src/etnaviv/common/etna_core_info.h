@@ -92,6 +92,8 @@ struct etna_core_npu_info {
    unsigned on_chip_sram_size;         /* Size of on-chip SRAM */
    unsigned axi_sram_size;             /* Size of SRAM behind AXI */
    unsigned nn_zrl_bits;               /* Number of bits for zero run-length compression */
+   unsigned nn_input_buffer_depth;     /* Input buffer size, determines tile size */
+   unsigned nn_accum_buffer_depth;     /* Accumulation buffer size, determines tile size */
 };
 
 struct etna_core_info {

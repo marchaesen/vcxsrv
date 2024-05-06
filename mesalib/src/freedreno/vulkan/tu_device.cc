@@ -244,6 +244,7 @@ get_device_extensions(const struct tu_physical_device *device,
       .EXT_inline_uniform_block = true,
       .EXT_line_rasterization = true,
       .EXT_load_store_op_none = true,
+      .EXT_map_memory_placed = true,
       .EXT_memory_budget = true,
       .EXT_multi_draw = true,
       .EXT_mutable_descriptor_type = true,
@@ -553,6 +554,11 @@ tu_get_features(struct tu_physical_device *pdevice,
 
    /* VK_EXT_image_view_min_lod */
    features->minLod = true;
+
+   /* VK_EXT_map_memory_placed */
+   features->memoryMapPlaced = true,
+   features->memoryMapRangePlaced = false,
+   features->memoryUnmapReserve = true,
 
    /* VK_EXT_multi_draw */
    features->multiDraw = true;
@@ -1004,6 +1010,11 @@ tu_get_properties(struct tu_physical_device *pdevice,
    memcpy(props->shaderModuleIdentifierAlgorithmUUID,
           vk_shaderModuleIdentifierAlgorithmUUID,
           sizeof(props->shaderModuleIdentifierAlgorithmUUID));
+
+   /* VK_EXT_map_memory_placed */
+   uint64_t os_page_size = 4096;
+   os_get_page_size(&os_page_size);
+   props->minPlacedMemoryMapAlignment = os_page_size,
 
    /* VK_EXT_multi_draw */
    props->maxMultiDrawCount = 2048;
@@ -1689,7 +1700,7 @@ tu_trace_read_ts(struct u_trace_context *utctx,
       tu_device_wait_u_trace(device, submission_data->syncobj);
    }
 
-   if (tu_bo_map(device, bo) != VK_SUCCESS) {
+   if (tu_bo_map(device, bo, NULL) != VK_SUCCESS) {
       return U_TRACE_NO_TIMESTAMP;
    }
 
@@ -2325,7 +2336,7 @@ tu_CreateDevice(VkPhysicalDevice physicalDevice,
       goto fail_global_bo;
    }
 
-   result = tu_bo_map(device, device->global_bo);
+   result = tu_bo_map(device, device->global_bo, NULL);
    if (result != VK_SUCCESS) {
       vk_startup_errorf(device->instance, result, "BO map");
       goto fail_global_bo_map;
@@ -2876,11 +2887,17 @@ tu_MapMemory2KHR(VkDevice _device, const VkMemoryMapInfoKHR *pMemoryMapInfo, voi
       return VK_SUCCESS;
    }
 
-   if (!mem->bo->map) {
-      result = tu_bo_map(device, mem->bo);
-      if (result != VK_SUCCESS)
-         return result;
+   void *placed_addr = NULL;
+   if (pMemoryMapInfo->flags & VK_MEMORY_MAP_PLACED_BIT_EXT) {
+      const VkMemoryMapPlacedInfoEXT *placed_info =
+         vk_find_struct_const(pMemoryMapInfo->pNext, MEMORY_MAP_PLACED_INFO_EXT);
+      assert(placed_info != NULL);
+      placed_addr = placed_info->pPlacedAddress;
    }
+
+   result = tu_bo_map(device, mem->bo, placed_addr);
+   if (result != VK_SUCCESS)
+      return result;
 
    *ppData = (char *) mem->bo->map + pMemoryMapInfo->offset;
    return VK_SUCCESS;
@@ -2889,8 +2906,13 @@ tu_MapMemory2KHR(VkDevice _device, const VkMemoryMapInfoKHR *pMemoryMapInfo, voi
 VKAPI_ATTR VkResult VKAPI_CALL
 tu_UnmapMemory2KHR(VkDevice _device, const VkMemoryUnmapInfoKHR *pMemoryUnmapInfo)
 {
-   /* TODO: unmap here instead of waiting for FreeMemory */
-   return VK_SUCCESS;
+   VK_FROM_HANDLE(tu_device, device, _device);
+   VK_FROM_HANDLE(tu_device_memory, mem, pMemoryUnmapInfo->memory);
+
+   if (mem == NULL)
+      return VK_SUCCESS;
+
+   return tu_bo_unmap(device, mem->bo, pMemoryUnmapInfo->flags & VK_MEMORY_UNMAP_RESERVE_BIT_EXT);
 }
 
 static void
@@ -3006,7 +3028,7 @@ tu_CreateEvent(VkDevice _device,
    if (result != VK_SUCCESS)
       goto fail_alloc;
 
-   result = tu_bo_map(device, event->bo);
+   result = tu_bo_map(device, event->bo, NULL);
    if (result != VK_SUCCESS)
       goto fail_map;
 

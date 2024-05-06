@@ -562,7 +562,7 @@ msm_bo_init(struct tu_device *dev,
    if (result == VK_SUCCESS &&
        (mem_property & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) &&
        !(mem_property & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
-      tu_bo_map(dev, bo);
+      tu_bo_map(dev, bo, NULL);
 
       /* Cached non-coherent memory may already have dirty cache lines,
        * we should clean the cache lines before GPU got the chance to
@@ -631,17 +631,15 @@ msm_bo_init_dmabuf(struct tu_device *dev,
 }
 
 static VkResult
-msm_bo_map(struct tu_device *dev, struct tu_bo *bo)
+msm_bo_map(struct tu_device *dev, struct tu_bo *bo, void *placed_addr)
 {
-   if (bo->map)
-      return VK_SUCCESS;
-
    uint64_t offset = tu_gem_info(dev, bo->gem_handle, MSM_INFO_GET_OFFSET);
    if (!offset)
       return vk_error(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY);
 
    /* TODO: Should we use the wrapper os_mmap() like Freedreno does? */
-   void *map = mmap(0, bo->size, PROT_READ | PROT_WRITE, MAP_SHARED,
+   void *map = mmap(placed_addr, bo->size, PROT_READ | PROT_WRITE,
+                    MAP_SHARED | (placed_addr != NULL ? MAP_FIXED : 0),
                     dev->fd, offset);
    if (map == MAP_FAILED)
       return vk_error(dev, VK_ERROR_MEMORY_MAP_FAILED);
@@ -942,7 +940,7 @@ tu_queue_submit_locked(struct tu_queue *queue, struct tu_msm_queue_submit *submi
          uint32_t buf[3] = { iova, tu_bo->size, iova >> 32 };
          fd_rd_output_write_section(rd_output, RD_GPUADDR, buf, 12);
          if (bo.flags & MSM_SUBMIT_BO_DUMP || FD_RD_DUMP(FULL)) {
-            msm_bo_map(device, tu_bo); /* note: this would need locking to be safe */
+            tu_bo_map(device, tu_bo, NULL); /* note: this would need locking to be safe */
             fd_rd_output_write_section(rd_output, RD_BUFFER_CONTENTS, tu_bo->map, tu_bo->size);
          }
       }

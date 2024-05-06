@@ -77,7 +77,7 @@ enum radv_dynamic_state_bits {
    RADV_DYNAMIC_ALL = (1ull << 51) - 1,
 };
 
-enum radv_cmd_dirty_bits {
+enum radv_cmd_dirty_dynamic_bits {
    /* Keep the dynamic state dirty bits in sync with
     * enum radv_dynamic_state_bits */
    RADV_CMD_DIRTY_DYNAMIC_VIEWPORT = 1ull << 0,
@@ -132,18 +132,23 @@ enum radv_cmd_dirty_bits {
    RADV_CMD_DIRTY_DYNAMIC_SAMPLE_LOCATIONS_ENABLE = 1ull << 49,
    RADV_CMD_DIRTY_DYNAMIC_ALPHA_TO_ONE_ENABLE = 1ull << 50,
    RADV_CMD_DIRTY_DYNAMIC_ALL = (1ull << 51) - 1,
-   RADV_CMD_DIRTY_PIPELINE = 1ull << 51,
-   RADV_CMD_DIRTY_INDEX_BUFFER = 1ull << 52,
-   RADV_CMD_DIRTY_FRAMEBUFFER = 1ull << 53,
-   RADV_CMD_DIRTY_VERTEX_BUFFER = 1ull << 54,
-   RADV_CMD_DIRTY_STREAMOUT_BUFFER = 1ull << 55,
-   RADV_CMD_DIRTY_GUARDBAND = 1ull << 56,
-   RADV_CMD_DIRTY_RBPLUS = 1ull << 57,
-   RADV_CMD_DIRTY_SHADER_QUERY = 1ull << 58,
-   RADV_CMD_DIRTY_OCCLUSION_QUERY = 1ull << 59,
-   RADV_CMD_DIRTY_DB_SHADER_CONTROL = 1ull << 60,
-   RADV_CMD_DIRTY_STREAMOUT_ENABLE = 1ull << 61,
-   RADV_CMD_DIRTY_GRAPHICS_SHADERS = 1ull << 62,
+};
+
+enum radv_cmd_dirty_bits {
+   RADV_CMD_DIRTY_PIPELINE = 1ull << 0,
+   RADV_CMD_DIRTY_INDEX_BUFFER = 1ull << 1,
+   RADV_CMD_DIRTY_FRAMEBUFFER = 1ull << 2,
+   RADV_CMD_DIRTY_VERTEX_BUFFER = 1ull << 3,
+   RADV_CMD_DIRTY_STREAMOUT_BUFFER = 1ull << 4,
+   RADV_CMD_DIRTY_GUARDBAND = 1ull << 5,
+   RADV_CMD_DIRTY_RBPLUS = 1ull << 6,
+   RADV_CMD_DIRTY_SHADER_QUERY = 1ull << 7,
+   RADV_CMD_DIRTY_OCCLUSION_QUERY = 1ull << 8,
+   RADV_CMD_DIRTY_DB_SHADER_CONTROL = 1ull << 9,
+   RADV_CMD_DIRTY_STREAMOUT_ENABLE = 1ull << 10,
+   RADV_CMD_DIRTY_GRAPHICS_SHADERS = 1ull << 11,
+   RADV_CMD_DIRTY_COLOR_OUTPUT = 1ull << 12,
+   RADV_CMD_DIRTY_ALL = (1ull << 13) - 1,
 };
 
 enum radv_cmd_flush_bits {
@@ -289,7 +294,8 @@ struct radv_cmd_state {
    unsigned vb_size;
 
    bool predicating;
-   uint64_t dirty;
+   uint64_t dirty_dynamic;
+   uint32_t dirty;
 
    VkShaderStageFlags active_stages;
    struct radv_shader *shaders[MESA_VULKAN_SHADER_STAGES];
@@ -413,7 +419,8 @@ struct radv_cmd_state {
    unsigned tess_num_patches;
    unsigned tess_lds_size;
 
-   unsigned col_format_non_compacted;
+   unsigned spi_shader_col_format;
+   unsigned cb_shader_mask;
 
    /* Binning state */
    unsigned last_pa_sc_binner_cntl_0;

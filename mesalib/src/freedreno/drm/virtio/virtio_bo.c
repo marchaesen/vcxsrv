@@ -44,7 +44,7 @@ virtio_bo_mmap(struct fd_bo *bo)
       });
    }
 
-   return vdrm_bo_map(vdrm, bo->handle, bo->size);
+   return vdrm_bo_map(vdrm, bo->handle, bo->size, NULL);
 }
 
 static int

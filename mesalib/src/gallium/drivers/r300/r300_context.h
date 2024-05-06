@@ -19,6 +19,7 @@
 #include "r300_defines.h"
 #include "r300_screen.h"
 #include "compiler/radeon_regalloc.h"
+#include "compiler/radeon_code.h"
 
 struct u_upload_mgr;
 struct r300_context;
@@ -253,7 +254,7 @@ struct r300_constant_buffer {
     /* Buffer of constants */
     uint32_t *ptr;
     /* Remapping table. */
-    unsigned *remap_table;
+    struct const_remap *remap_table;
     /* const buffer base */
     uint32_t buffer_base;
 };

@@ -9,7 +9,7 @@ set -ex
 # FEDORA_X86_64_BUILD_TAG
 # KERNEL_ROOTFS_TAG
 
-MOLD_VERSION="2.4.1"
+MOLD_VERSION="2.31.0"
 
 git clone -b v"$MOLD_VERSION" --single-branch --depth 1 https://github.com/rui314/mold.git
 pushd mold

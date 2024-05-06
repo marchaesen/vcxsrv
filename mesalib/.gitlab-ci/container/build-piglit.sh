@@ -8,7 +8,7 @@ set -ex
 # DEBIAN_X86_64_TEST_VK_TAG
 # KERNEL_ROOTFS_TAG
 
-REV="f7ece74a107a2f99b2f494d978c84f8d51faa703"
+REV="7aa7bc1b01d57b4b091c4fc82a94a6ff47f38ebf"
 
 git clone https://gitlab.freedesktop.org/mesa/piglit.git --single-branch --no-checkout /piglit
 pushd /piglit

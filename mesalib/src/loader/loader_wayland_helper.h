@@ -40,4 +40,9 @@ wl_display_create_queue_with_name(struct wl_display *display,
                                   const char *name);
 #endif
 
+int
+loader_wayland_dispatch(struct wl_display *display,
+                        struct wl_event_queue *queue,
+                        struct timespec *end_time);
+
 #endif

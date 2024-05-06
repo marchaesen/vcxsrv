@@ -376,12 +376,6 @@ spec@!opengl 1.0@gl-1.0-blend-func,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag,Fail
 spec@!opengl 1.0@gl-1.0-edgeflag-quads,Fail
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback@GL_2D,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback@GL_3D,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback@GL_3D_COLOR,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback@GL_3D_COLOR_TEXTURE,Fail
-spec@!opengl 1.0@gl-1.0-rendermode-feedback@GL_4D_COLOR_TEXTURE,Fail
 spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
 
 spec@!opengl 1.1@depthstencil-default_fb-blit samples=2,Fail
@@ -407,11 +401,6 @@ spec@!opengl 1.1@getteximage-formats,Fail
 spec@!opengl 1.1@getteximage-simple,Fail
 spec@!opengl 1.1@gl-1.1-read-pixels-after-display-list,Fail
 spec@!opengl 1.1@gl-1.2-texture-base-level,Fail
-spec@!opengl 1.1@gl_select - alpha-test enabled,Fail
-spec@!opengl 1.1@gl_select - depth-test enabled,Fail
-spec@!opengl 1.1@gl_select - no test function,Fail
-spec@!opengl 1.1@gl_select - scissor-test enabled,Fail
-spec@!opengl 1.1@gl_select - stencil-test enabled,Fail
 spec@!opengl 1.1@line-aa-width,Fail
 spec@!opengl 1.1@line-smooth-stipple,Fail
 spec@!opengl 1.1@linestipple,Fail

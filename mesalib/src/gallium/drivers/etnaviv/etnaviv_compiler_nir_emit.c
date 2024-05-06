@@ -27,21 +27,9 @@
 #include "etnaviv_compiler_nir.h"
 #include "util/compiler.h"
 
-/* to map nir srcs should to etna_inst srcs */
-enum {
-   SRC_0_1_2 = (0 << 0) | (1 << 2) | (2 << 4),
-   SRC_0_1_X = (0 << 0) | (1 << 2) | (3 << 4),
-   SRC_0_X_X = (0 << 0) | (3 << 2) | (3 << 4),
-   SRC_0_X_1 = (0 << 0) | (3 << 2) | (1 << 4),
-   SRC_0_1_0 = (0 << 0) | (1 << 2) | (0 << 4),
-   SRC_X_X_0 = (3 << 0) | (3 << 2) | (0 << 4),
-   SRC_0_X_0 = (0 << 0) | (3 << 2) | (0 << 4),
-};
-
 /* info to translate a nir op to etna_inst */
 struct etna_op_info {
    enum isa_opc opcode;
-   uint8_t src; /* SRC_ enum  */
    enum isa_cond cond;
    enum isa_type type;
 };
@@ -50,85 +38,84 @@ static const struct etna_op_info etna_ops[] = {
    [0 ... nir_num_opcodes - 1] = {0xff},
 #undef TRUE
 #undef FALSE
-#define OPCT(nir, op, src, cond, type) [nir_op_##nir] = { \
+#define OPCT(nir, op, cond, type) [nir_op_##nir] = { \
    ISA_OPC_##op, \
-   SRC_##src, \
    ISA_COND_##cond, \
    ISA_TYPE_##type \
 }
-#define OPC(nir, op, src, cond) OPCT(nir, op, src, cond, F32)
-#define IOPC(nir, op, src, cond) OPCT(nir, op, src, cond, S32)
-#define UOPC(nir, op, src, cond) OPCT(nir, op, src, cond, U32)
-#define OP(nir, op, src) OPC(nir, op, src, TRUE)
-#define IOP(nir, op, src) IOPC(nir, op, src, TRUE)
-#define UOP(nir, op, src) UOPC(nir, op, src, TRUE)
-   OP(mov, MOV, X_X_0), OP(fneg, MOV, X_X_0), OP(fabs, MOV, X_X_0), OP(fsat, MOV, X_X_0),
-   OP(fmul, MUL, 0_1_X), OP(fadd, ADD, 0_X_1), OP(ffma, MAD, 0_1_2),
-   OP(fdot2, DP2, 0_1_X), OP(fdot3, DP3, 0_1_X), OP(fdot4, DP4, 0_1_X),
-   OPC(fmin, SELECT, 0_1_0, GT), OPC(fmax, SELECT, 0_1_0, LT),
-   OP(ffract, FRC, X_X_0), OP(frcp, RCP, X_X_0), OP(frsq, RSQ, X_X_0),
-   OP(fsqrt, SQRT, X_X_0), OP(fsin, SIN, X_X_0), OP(fcos, COS, X_X_0),
-   OP(fsign, SIGN, X_X_0), OP(ffloor, FLOOR, X_X_0), OP(fceil, CEIL, X_X_0),
-   OP(flog2, LOG, X_X_0), OP(fexp2, EXP, X_X_0),
-   OPC(seq, SET, 0_1_X, EQ), OPC(sne, SET, 0_1_X, NE), OPC(sge, SET, 0_1_X, GE), OPC(slt, SET, 0_1_X, LT),
-   OPC(fcsel, SELECT, 0_1_2, NZ),
-   OP(fdiv, DIV, 0_1_X),
-   OP(fddx, DSX, 0_X_0), OP(fddy, DSY, 0_X_0),
+#define OPC(nir, op, cond) OPCT(nir, op, cond, F32)
+#define IOPC(nir, op, cond) OPCT(nir, op, cond, S32)
+#define UOPC(nir, op, cond) OPCT(nir, op, cond, U32)
+#define OP(nir, op) OPC(nir, op, TRUE)
+#define IOP(nir, op) IOPC(nir, op, TRUE)
+#define UOP(nir, op) UOPC(nir, op, TRUE)
+   OP(mov, MOV), OP(fneg, MOV), OP(fabs, MOV), OP(fsat, MOV),
+   OP(fmul, MUL), OP(fadd, ADD), OP(ffma, MAD),
+   OP(fdot2, DP2), OP(fdot3, DP3), OP(fdot4, DP4),
+   OPC(fmin, SELECT, GT), OPC(fmax, SELECT, LT),
+   OP(ffract, FRC), OP(frcp, RCP), OP(frsq, RSQ),
+   OP(fsqrt, SQRT), OP(fsin, SIN), OP(fcos, COS),
+   OP(fsign, SIGN), OP(ffloor, FLOOR), OP(fceil, CEIL),
+   OP(flog2, LOG), OP(fexp2, EXP),
+   OPC(seq, SET, EQ), OPC(sne, SET, NE), OPC(sge, SET, GE), OPC(slt, SET, LT),
+   OPC(fcsel, SELECT, NZ),
+   OP(fdiv, DIV),
+   OP(fddx, DSX), OP(fddy, DSY),
 
    /* type convert */
-   IOP(i2f32, I2F, 0_X_X),
-   IOP(i2i32, I2I, 0_X_X),
-   OPCT(i2i16, I2I, 0_X_X, TRUE, S16),
-   OPCT(i2i8,  I2I, 0_X_X, TRUE, S8),
-   UOP(u2f32, I2F, 0_X_X),
-   UOP(u2u32, I2I, 0_X_X),
-   OPCT(u2u16, I2I, 0_X_X, TRUE, U16),
-   OPCT(u2u8,  I2I, 0_X_X, TRUE, U8),
-   IOP(f2i32, F2I, 0_X_X),
-   OPCT(f2i16, F2I, 0_X_X, TRUE, S16),
-   OPCT(f2i8,  F2I, 0_X_X, TRUE, S8),
-   UOP(f2u32, F2I, 0_X_X),
-   OPCT(f2u16, F2I, 0_X_X, TRUE, U16),
-   OPCT(f2u8,  F2I, 0_X_X, TRUE, U8),
-   UOP(b2f32, AND, 0_X_X), /* AND with fui(1.0f) */
-   UOP(b2i32, AND, 0_X_X), /* AND with 1 */
+   IOP(i2f32, I2F),
+   IOP(i2i32, I2I),
+   OPCT(i2i16, I2I, TRUE, S16),
+   OPCT(i2i8,  I2I, TRUE, S8),
+   UOP(u2f32, I2F),
+   UOP(u2u32, I2I),
+   OPCT(u2u16, I2I, TRUE, U16),
+   OPCT(u2u8,  I2I, TRUE, U8),
+   IOP(f2i32, F2I),
+   OPCT(f2i16, F2I, TRUE, S16),
+   OPCT(f2i8,  F2I, TRUE, S8),
+   UOP(f2u32, F2I),
+   OPCT(f2u16, F2I, TRUE, U16),
+   OPCT(f2u8,  F2I, TRUE, U8),
+   UOP(b2f32, AND), /* AND with fui(1.0f) */
+   UOP(b2i32, AND), /* AND with 1 */
 
    /* arithmetic */
-   IOP(iadd, ADD, 0_X_1),
-   IOP(imul, IMULLO0, 0_1_X),
-   /* IOP(imad, IMADLO0, 0_1_2), */
-   IOP(ineg, ADD, X_X_0), /* ADD 0, -x */
-   IOP(iabs, IABS, X_X_0),
-   IOP(isign, SIGN, X_X_0),
-   IOPC(imin, SELECT, 0_1_0, GT),
-   IOPC(imax, SELECT, 0_1_0, LT),
-   UOPC(umin, SELECT, 0_1_0, GT),
-   UOPC(umax, SELECT, 0_1_0, LT),
+   IOP(iadd, ADD),
+   IOP(imul, IMULLO0),
+   /* IOP(imad, IMADLO0), */
+   IOP(ineg, ADD), /* ADD 0, -x */
+   IOP(iabs, IABS),
+   IOP(isign, SIGN),
+   IOPC(imin, SELECT, GT),
+   IOPC(imax, SELECT, LT),
+   UOPC(umin, SELECT, GT),
+   UOPC(umax, SELECT, LT),
 
    /* select */
-   UOPC(b32csel, SELECT, 0_1_2, NZ),
+   UOPC(b32csel, SELECT, NZ),
 
    /* compare with int result */
-    OPC(feq32, CMP, 0_1_X, EQ),
-    OPC(fneu32, CMP, 0_1_X, NE),
-    OPC(fge32, CMP, 0_1_X, GE),
-    OPC(flt32, CMP, 0_1_X, LT),
-   IOPC(ieq32, CMP, 0_1_X, EQ),
-   IOPC(ine32, CMP, 0_1_X, NE),
-   IOPC(ige32, CMP, 0_1_X, GE),
-   IOPC(ilt32, CMP, 0_1_X, LT),
-   UOPC(uge32, CMP, 0_1_X, GE),
-   UOPC(ult32, CMP, 0_1_X, LT),
+    OPC(feq32, CMP, EQ),
+    OPC(fneu32, CMP, NE),
+    OPC(fge32, CMP, GE),
+    OPC(flt32, CMP, LT),
+   IOPC(ieq32, CMP, EQ),
+   IOPC(ine32, CMP, NE),
+   IOPC(ige32, CMP, GE),
+   IOPC(ilt32, CMP, LT),
+   UOPC(uge32, CMP, GE),
+   UOPC(ult32, CMP, LT),
 
    /* bit ops */
-   IOP(ior,  OR,  0_X_1),
-   IOP(iand, AND, 0_X_1),
-   IOP(ixor, XOR, 0_X_1),
-   IOP(inot, NOT, X_X_0),
-   IOP(ishl, LSHIFT, 0_X_1),
-   IOP(ishr, RSHIFT, 0_X_1),
-   UOP(ushr, RSHIFT, 0_X_1),
-   UOP(uclz, LEADZERO, 0_X_X),
+   IOP(ior,  OR),
+   IOP(iand, AND),
+   IOP(ixor, XOR),
+   IOP(inot, NOT),
+   IOP(ishl, LSHIFT),
+   IOP(ishr, RSHIFT),
+   UOP(ushr, RSHIFT),
+   UOP(uclz, LEADZERO),
 };
 
 void
@@ -147,6 +134,10 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
       .cond = ei.cond,
       .dst = dst,
       .sat = saturate,
+      .src[0] = src[0],
+      .src[1] = src[1],
+      .src[2] = src[2],
+
    };
 
    switch (op) {
@@ -163,19 +154,33 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
    case nir_op_fsqrt:
    case nir_op_imul:
       /* scalar instructions we want src to be in x component */
-      src[0].swiz = inst_swiz_compose(src[0].swiz, swiz_scalar);
-      src[1].swiz = inst_swiz_compose(src[1].swiz, swiz_scalar);
+      inst.src[0].swiz = inst_swiz_compose(src[0].swiz, swiz_scalar);
+      inst.src[1].swiz = inst_swiz_compose(src[1].swiz, swiz_scalar);
       break;
    /* deal with instructions which don't have 1:1 mapping */
+   case nir_op_fddx:
+   case nir_op_fddy:
+      inst.src[1] = src[0];
+      break;
+   case nir_op_fmin:
+   case nir_op_fmax:
+   case nir_op_imin:
+   case nir_op_imax:
+   case nir_op_umin:
+   case nir_op_umax:
+      inst.src[2] = src[0];
+      break;
    case nir_op_b2f32:
-      inst.src[2] = etna_immediate_float(1.0f);
+      inst.src[1] = etna_immediate_float(1.0f);
       break;
    case nir_op_b2i32:
-      inst.src[2] = etna_immediate_int(1);
+      inst.src[1] = etna_immediate_int(1);
       break;
    case nir_op_ineg:
+      /* ADD 0, -x */
       inst.src[0] = etna_immediate_int(0);
-      src[0].neg = 1;
+      inst.src[1] = src[0];
+      inst.src[1].neg = 1;
       break;
    default:
       break;
@@ -184,12 +189,6 @@ etna_emit_alu(struct etna_compile *c, nir_op op, struct etna_inst_dst dst,
    /* set the "true" value for CMP instructions */
    if (inst.opcode == ISA_OPC_CMP)
       inst.src[2] = etna_immediate_int(-1);
-
-   for (unsigned j = 0; j < 3; j++) {
-      unsigned i = ((ei.src >> j*2) & 3);
-      if (i < 3)
-         inst.src[j] = src[i];
-   }
 
    emit_inst(c, &inst);
 }

@@ -85,7 +85,8 @@ v3d_nir_store_output(nir_builder *b, int base, nir_def *offset,
                 offset = nir_imm_int(b, 0);
         }
 
-        nir_store_output(b, chan, offset, .base = base, .write_mask = 0x1, .component = 0);
+        nir_store_output(b, chan, offset, .base = base, .write_mask = 0x1, .component = 0,
+                         .src_type = nir_type_uint | chan->bit_size);
 }
 
 static int
