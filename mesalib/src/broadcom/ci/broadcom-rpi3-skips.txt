@@ -17,6 +17,7 @@ dEQP-GLES2.functional.fragment_ops.scissor.outside_render_line
 dEQP-GLES2.functional.shaders.loops.*dynamic.*vertex
 
 # Slow tests (> 1 minute to run)
+spec@!opengl 1.0@depth-clear-precision-check
 spec@!opengl 1.1@streaming-texture-leak
 
 # Versions / Extensions not supported

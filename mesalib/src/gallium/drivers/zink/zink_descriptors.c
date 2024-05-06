@@ -795,14 +795,6 @@ pool_destroy(struct zink_screen *screen, struct zink_descriptor_pool *pool)
    FREE(pool);
 }
 
-static void
-multi_pool_destroy(struct zink_screen *screen, struct zink_descriptor_pool_multi *mpool)
-{
-   if (mpool->pool)
-      pool_destroy(screen, mpool->pool);
-   FREE(mpool);
-}
-
 static bool
 clear_multi_pool_overflow(struct zink_screen *screen, struct util_dynarray *overflowed_pools)
 {
@@ -813,6 +805,24 @@ clear_multi_pool_overflow(struct zink_screen *screen, struct util_dynarray *over
       found = true;
    }
    return found;
+}
+
+static void
+deinit_multi_pool_overflow(struct zink_screen *screen, struct zink_descriptor_pool_multi *mpool)
+{
+   for (unsigned i = 0; i < 2; i++) {
+      clear_multi_pool_overflow(screen, &mpool->overflowed_pools[i]);
+      util_dynarray_fini(&mpool->overflowed_pools[i]);
+   }
+}
+
+static void
+multi_pool_destroy(struct zink_screen *screen, struct zink_descriptor_pool_multi *mpool)
+{
+   deinit_multi_pool_overflow(screen, mpool);
+   if (mpool->pool)
+      pool_destroy(screen, mpool->pool);
+   FREE(mpool);
 }
 
 static VkDescriptorPool
@@ -1477,15 +1487,6 @@ zink_context_invalidate_descriptor_state_compact(struct zink_context *ctx, gl_sh
    }
 }
 
-static void
-deinit_multi_pool_overflow(struct zink_screen *screen, struct zink_descriptor_pool_multi *mpool)
-{
-   for (unsigned i = 0; i < 2; i++) {
-      clear_multi_pool_overflow(screen, &mpool->overflowed_pools[i]);
-      util_dynarray_fini(&mpool->overflowed_pools[i]);
-   }
-}
-
 /* called during batch state destroy */
 void
 zink_batch_descriptor_deinit(struct zink_screen *screen, struct zink_batch_state *bs)
@@ -1493,10 +1494,8 @@ zink_batch_descriptor_deinit(struct zink_screen *screen, struct zink_batch_state
    for (unsigned i = 0; i < ZINK_DESCRIPTOR_BASE_TYPES; i++) {
       for (unsigned j = 0; j < bs->dd.pools[i].capacity / sizeof(struct zink_descriptor_pool_multi *); j++) {
          struct zink_descriptor_pool_multi **mppool = util_dynarray_element(&bs->dd.pools[i], struct zink_descriptor_pool_multi *, j);
-         if (mppool && *mppool) {
-            deinit_multi_pool_overflow(screen, *mppool);
+         if (mppool && *mppool)
             multi_pool_destroy(screen, *mppool);
-         }
       }
       util_dynarray_fini(&bs->dd.pools[i]);
    }

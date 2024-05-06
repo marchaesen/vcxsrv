@@ -1155,10 +1155,6 @@ spec@khr_texture_compression_astc@miptree-gles ldr@LDR Profile,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb,Fail
 spec@khr_texture_compression_astc@miptree-gles srgb-fp,Fail
 spec@oes_compressed_etc1_rgb8_texture@miptree,Fail
-spec@!opengl 1.0@depth-clear-precision-check,Fail
-spec@!opengl 1.0@depth-clear-precision-check@depth16,Fail
-spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
-
 spec@glsl-1.10@execution@variable-indexing@vs-output-array-vec2-index-wr-no-unroll,Fail
 
 spec@ext_framebuffer_multisample@accuracy 2 depth_draw depthstencil,Fail

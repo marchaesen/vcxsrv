@@ -287,7 +287,7 @@ tu_CreateDescriptorSetLayout(
          return vk_error(device, result);
       }
 
-      result = tu_bo_map(device, set_layout->embedded_samplers);
+      result = tu_bo_map(device, set_layout->embedded_samplers, NULL);
       if (result != VK_SUCCESS) {
          tu_bo_finish(device, set_layout->embedded_samplers);
          vk_object_free(&device->vk, pAllocator, set_layout);
@@ -805,7 +805,7 @@ tu_CreateDescriptorPool(VkDevice _device,
          if (ret)
             goto fail_alloc;
 
-         ret = tu_bo_map(device, pool->bo);
+         ret = tu_bo_map(device, pool->bo, NULL);
          if (ret)
             goto fail_map;
       } else {

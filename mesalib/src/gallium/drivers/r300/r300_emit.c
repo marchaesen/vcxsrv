@@ -212,9 +212,15 @@ void r300_emit_fs_constants(struct r300_context* r300, unsigned size, void *stat
     OUT_CS_REG_SEQ(R300_PFS_PARAM_0_X, count * 4);
     if (buf->remap_table){
         for (i = 0; i < count; i++) {
-            float *data = (float*)&buf->ptr[buf->remap_table[i]*4];
-            for (j = 0; j < 4; j++)
-                OUT_CS(pack_float24(data[j]));
+            for (j = 0; j < 4; j++) {
+                unsigned swz = buf->remap_table[i].swizzle[j];
+                unsigned index = buf->remap_table[i].index[j];
+                if (index == -1)
+                    OUT_CS(pack_float24(0.0f));
+                else {
+                    OUT_CS(pack_float24(*(float*)&buf->ptr[index * 4 + swz]));
+                }
+            }
         }
     } else {
         for (i = 0; i < count; i++)
@@ -277,7 +283,11 @@ void r500_emit_fs_constants(struct r300_context* r300, unsigned size, void *stat
     OUT_CS_ONE_REG(R500_GA_US_VECTOR_DATA, count * 4);
     if (buf->remap_table){
         for (unsigned i = 0; i < count; i++) {
-            uint32_t *data = &buf->ptr[buf->remap_table[i]*4];
+            uint32_t data[4] = {};
+            for (unsigned chan = 0; chan < 4; chan++){
+                if (buf->remap_table[i].swizzle[chan] != RC_SWIZZLE_UNUSED)
+                data[chan] = buf->ptr[buf->remap_table[i].index[chan] * 4 + buf->remap_table[i].swizzle[chan]];
+            }
             OUT_CS_TABLE(data, 4);
         }
     } else {
@@ -1162,9 +1172,14 @@ void r300_emit_vs_constants(struct r300_context* r300,
                    R500_PVS_CONST_START : R300_PVS_CONST_START) + buf->buffer_base);
         OUT_CS_ONE_REG(R300_VAP_PVS_UPLOAD_DATA, count * 4);
         if (buf->remap_table){
+            uint32_t *data = buf->ptr;
             for (i = 0; i < count; i++) {
-                uint32_t *data = &buf->ptr[buf->remap_table[i]*4];
-                OUT_CS_TABLE(data, 4);
+                uint32_t constant[4];
+                for (unsigned chan = 0; chan < 4; chan++) {
+                    constant[chan] = data[buf->remap_table[i].index[chan] * 4 +
+                                           buf->remap_table[i].swizzle[chan]];
+                }
+                OUT_CS_TABLE(constant, 4);
             }
         } else {
             OUT_CS_TABLE(buf->ptr, count * 4);

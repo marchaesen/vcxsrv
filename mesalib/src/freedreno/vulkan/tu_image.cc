@@ -825,7 +825,7 @@ tu_BindImageMemory2(VkDevice _device,
 
          if (image->vk.usage & VK_IMAGE_USAGE_FRAGMENT_DENSITY_MAP_BIT_EXT) {
             if (!mem->bo->map) {
-               VkResult result = tu_bo_map(device, mem->bo);
+               VkResult result = tu_bo_map(device, mem->bo, NULL);
                if (result != VK_SUCCESS)
                   return result;
             }

@@ -203,6 +203,7 @@ struct radv_shader_info {
       unsigned spi_ps_input;
       unsigned colors_written;
       unsigned spi_shader_col_format;
+      unsigned cb_shader_mask;
       uint8_t color0_written;
       bool load_provoking_vtx;
       bool load_rasterization_prim;
@@ -248,6 +249,16 @@ struct radv_shader_info {
 
    struct radv_legacy_gs_info gs_ring_info;
    struct gfx10_ngg_info ngg_info;
+
+   /* Precomputed register values. */
+   struct {
+      struct {
+         uint32_t compute_num_thread_x;
+         uint32_t compute_num_thread_y;
+         uint32_t compute_num_thread_z;
+         uint32_t compute_resource_limits;
+      } cs;
+   } regs;
 };
 
 void radv_nir_shader_info_init(gl_shader_stage stage, gl_shader_stage next_stage, struct radv_shader_info *info);

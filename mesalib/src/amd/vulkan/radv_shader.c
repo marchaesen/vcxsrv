@@ -147,8 +147,9 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively)
       NIR_LOOP_PASS(progress, skip, shader, nir_copy_prop);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_remove_phis);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_dce);
+      NIR_LOOP_PASS(progress, skip, shader, nir_opt_dead_cf);
       bool opt_loop_progress = false;
-      NIR_LOOP_PASS(opt_loop_progress, skip, shader, nir_opt_loop);
+      NIR_LOOP_PASS_NOT_IDEMPOTENT(opt_loop_progress, skip, shader, nir_opt_loop);
       if (opt_loop_progress) {
          progress = true;
          NIR_LOOP_PASS(progress, skip, shader, nir_copy_prop);
@@ -156,7 +157,6 @@ radv_optimize_nir(struct nir_shader *shader, bool optimize_conservatively)
          NIR_LOOP_PASS(progress, skip, shader, nir_opt_dce);
       }
       NIR_LOOP_PASS_NOT_IDEMPOTENT(progress, skip, shader, nir_opt_if, nir_opt_if_optimize_phi_true_false);
-      NIR_LOOP_PASS(progress, skip, shader, nir_opt_dead_cf);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_cse);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_peephole_select, 8, true, true);
       NIR_LOOP_PASS(progress, skip, shader, nir_opt_constant_folding);
@@ -1461,6 +1461,33 @@ radv_open_rtld_binary(struct radv_device *device, const struct radv_shader_binar
 }
 #endif
 
+static void
+radv_precompute_registers_hw_cs(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_shader_info *info = &binary->info;
+
+   info->regs.cs.compute_resource_limits = radv_get_compute_resource_limits(pdev, info);
+   info->regs.cs.compute_num_thread_x = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[0]);
+   info->regs.cs.compute_num_thread_y = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[1]);
+   info->regs.cs.compute_num_thread_z = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[2]);
+}
+
+static void
+radv_precompute_registers(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_shader_info *info = &binary->info;
+
+   switch (info->stage) {
+   case MESA_SHADER_COMPUTE:
+   case MESA_SHADER_TASK:
+      radv_precompute_registers_hw_cs(device, binary);
+      break;
+   default:
+      break;
+   }
+}
+
 static bool
 radv_postprocess_binary_config(struct radv_device *device, struct radv_shader_binary *binary,
                                const struct radv_shader_args *args)
@@ -1766,6 +1793,9 @@ radv_postprocess_binary_config(struct radv_device *device, struct radv_shader_bi
    } else {
       config->rsrc1 |= S_00B128_VGPR_COMP_CNT(vgpr_comp_cnt);
    }
+
+   /* Precompute register values for faster emission. */
+   radv_precompute_registers(device, binary);
 
    return true;
 }
@@ -2259,6 +2289,7 @@ radv_shader_part_create(struct radv_device *device, struct radv_shader_part_bina
    shader_part->disasm_string = binary->disasm_size ? strdup((const char *)(binary->data + binary->code_size)) : NULL;
 
    shader_part->spi_shader_col_format = binary->info.spi_shader_col_format;
+   shader_part->cb_shader_mask = binary->info.cb_shader_mask;
    shader_part->spi_shader_z_format = binary->info.spi_shader_z_format;
 
    /* Allocate memory and upload. */
@@ -2778,6 +2809,7 @@ radv_create_ps_epilog(struct radv_device *device, const struct radv_ps_epilog_ke
    aco_compile_ps_epilog(&ac_opts, &ac_info, &ac_epilog_info, &args.ac, &radv_aco_build_shader_part, (void **)&binary);
 
    binary->info.spi_shader_col_format = key->spi_shader_col_format;
+   binary->info.cb_shader_mask = ac_get_cb_shader_mask(key->spi_shader_col_format);
    binary->info.spi_shader_z_format = key->spi_shader_z_format;
 
    epilog = radv_shader_part_create(device, binary, info.wave_size);

@@ -196,7 +196,7 @@ radv_meta_restore(const struct radv_meta_saved_state *state, struct radv_cmd_buf
 
       /* Restore all dynamic states. */
       cmd_buffer->state.dynamic = state->dynamic;
-      cmd_buffer->state.dirty |= RADV_DYNAMIC_ALL;
+      cmd_buffer->state.dirty_dynamic |= RADV_DYNAMIC_ALL;
 
       /* Re-emit the guardband state because meta operations changed dynamic states. */
       cmd_buffer->state.dirty |= RADV_CMD_DIRTY_GUARDBAND;

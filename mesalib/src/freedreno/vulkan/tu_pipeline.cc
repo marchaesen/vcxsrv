@@ -3091,7 +3091,8 @@ static const enum mesa_vk_dynamic_graphics_state tu_ds_state[] = {
 template <chip CHIP>
 static unsigned
 tu6_ds_size(struct tu_device *dev,
-                 const struct vk_depth_stencil_state *ds)
+                 const struct vk_depth_stencil_state *ds,
+                 const struct vk_render_pass_state *rp)
 {
    return 13;
 }
@@ -3099,12 +3100,15 @@ tu6_ds_size(struct tu_device *dev,
 template <chip CHIP>
 static void
 tu6_emit_ds(struct tu_cs *cs,
-            const struct vk_depth_stencil_state *ds)
+            const struct vk_depth_stencil_state *ds,
+            const struct vk_render_pass_state *rp)
 {
+   bool stencil_test_enable =
+      ds->stencil.test_enable && rp->attachments & MESA_VK_RP_ATTACHMENT_STENCIL_BIT;
    tu_cs_emit_regs(cs, A6XX_RB_STENCIL_CONTROL(
-      .stencil_enable = ds->stencil.test_enable,
-      .stencil_enable_bf = ds->stencil.test_enable,
-      .stencil_read = ds->stencil.test_enable,
+      .stencil_enable = stencil_test_enable,
+      .stencil_enable_bf = stencil_test_enable,
+      .stencil_read = stencil_test_enable,
       .func = tu6_compare_func((VkCompareOp)ds->stencil.front.op.compare),
       .fail = tu6_stencil_op((VkStencilOp)ds->stencil.front.op.fail),
       .zpass = tu6_stencil_op((VkStencilOp)ds->stencil.front.op.pass),
@@ -3113,7 +3117,7 @@ tu6_emit_ds(struct tu_cs *cs,
       .fail_bf = tu6_stencil_op((VkStencilOp)ds->stencil.back.op.fail),
       .zpass_bf = tu6_stencil_op((VkStencilOp)ds->stencil.back.op.pass),
       .zfail_bf = tu6_stencil_op((VkStencilOp)ds->stencil.back.op.depth_fail)));
-   tu_cs_emit_regs(cs, A6XX_GRAS_SU_STENCIL_CNTL(ds->stencil.test_enable));
+   tu_cs_emit_regs(cs, A6XX_GRAS_SU_STENCIL_CNTL(stencil_test_enable));
 
    tu_cs_emit_regs(cs, A6XX_RB_STENCILMASK(
       .mask = ds->stencil.front.compare_mask,
@@ -3333,8 +3337,10 @@ tu_pipeline_builder_emit_state(struct tu_pipeline_builder *builder,
                    builder->graphics_state.vp,
                    builder->graphics_state.rp->view_mask != 0,
                    pipeline->program.per_view_viewport);
-   DRAW_STATE(ds, TU_DYNAMIC_STATE_DS,
-              builder->graphics_state.ds);
+   DRAW_STATE_COND(ds, TU_DYNAMIC_STATE_DS,
+              attachments_valid,
+              builder->graphics_state.ds,
+              builder->graphics_state.rp);
    DRAW_STATE_COND(rb_depth_cntl, TU_DYNAMIC_STATE_RB_DEPTH_CNTL,
                    attachments_valid,
                    builder->graphics_state.ds,
@@ -3519,8 +3525,10 @@ tu_emit_draw_state(struct tu_cmd_buffer *cmd)
                    &cmd->vk.dynamic_graphics_state.vp,
                    cmd->state.vk_rp.view_mask != 0,
                    cmd->state.per_view_viewport);
-   DRAW_STATE(ds, TU_DYNAMIC_STATE_DS,
-              &cmd->vk.dynamic_graphics_state.ds);
+   DRAW_STATE_COND(ds, TU_DYNAMIC_STATE_DS,
+              cmd->state.dirty & TU_CMD_DIRTY_SUBPASS,
+              &cmd->vk.dynamic_graphics_state.ds,
+              &cmd->state.vk_rp);
    DRAW_STATE_COND(rb_depth_cntl, TU_DYNAMIC_STATE_RB_DEPTH_CNTL,
                    cmd->state.dirty & TU_CMD_DIRTY_SUBPASS,
                    &cmd->vk.dynamic_graphics_state.ds,
@@ -3865,11 +3873,11 @@ tu_fill_render_pass_state(struct vk_render_pass_state *rp,
    rp->attachments = MESA_VK_RP_ATTACHMENT_NONE;
    if (a != VK_ATTACHMENT_UNUSED) {
       VkFormat ds_format = pass->attachments[a].format;
-      if (vk_format_has_depth(ds_format)) {
+      if (vk_format_has_depth(ds_format) && subpass->depth_used) {
          rp->depth_attachment_format = ds_format;
          rp->attachments |= MESA_VK_RP_ATTACHMENT_DEPTH_BIT;
       }
-      if (vk_format_has_stencil(ds_format)) {
+      if (vk_format_has_stencil(ds_format) && subpass->stencil_used) {
          rp->stencil_attachment_format = ds_format;
          rp->attachments |= MESA_VK_RP_ATTACHMENT_STENCIL_BIT;
       }

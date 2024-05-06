@@ -354,6 +354,9 @@ typedef struct shader_info {
     */
    bool maximally_reconverges:1;
 
+   /* Use ACO instead of LLVM on AMD. */
+   bool use_aco_amd:1;
+
    /**
      * Set if this shader uses legacy (DX9 or ARB assembly) math rules.
      *

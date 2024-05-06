@@ -1423,13 +1423,15 @@ nir_lower_ms_txf_to_fragment_fetch(nir_builder *b, nir_tex_instr *tex)
    /* Obtain new sample index. */
    int ms_index = nir_tex_instr_src_index(tex, nir_tex_src_ms_index);
    assert(ms_index >= 0);
-   nir_src sample = tex->src[ms_index].src;
+   nir_def *sample = tex->src[ms_index].src.ssa;
    nir_def *new_sample = nir_ubfe(b, &fmask_fetch->def,
-                                  nir_ishl_imm(b, sample.ssa, 2), nir_imm_int(b, 3));
+                                  nir_u2u32(b, nir_ishl_imm(b, sample, 2)),
+                                  nir_imm_int(b, 3));
 
    /* Update instruction. */
    tex->op = nir_texop_fragment_fetch_amd;
-   nir_src_rewrite(&tex->src[ms_index].src, new_sample);
+   nir_src_rewrite(&tex->src[ms_index].src,
+                   nir_u2uN(b, new_sample, sample->bit_size));
 }
 
 static void

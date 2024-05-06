@@ -164,7 +164,7 @@ tu_cs_add_bo(struct tu_cs *cs, uint32_t size)
       return result;
    }
 
-   result = tu_bo_map(cs->device, new_bo);
+   result = tu_bo_map(cs->device, new_bo, NULL);
    if (result != VK_SUCCESS) {
       tu_bo_finish(cs->device, new_bo);
       return result;

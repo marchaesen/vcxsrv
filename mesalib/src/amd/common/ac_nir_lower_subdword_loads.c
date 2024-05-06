@@ -23,6 +23,7 @@
 
 #include "util/u_math.h"
 #include "ac_nir.h"
+#include "nir_builder.h"
 
 static bool
 lower_subdword_loads(nir_builder *b, nir_instr *instr, void *data)

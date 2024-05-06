@@ -34,10 +34,8 @@ using namespace clover;
 namespace {
    class box {
    public:
-      box(const resource::vector &origin, const resource::vector &size) :
-        pipe({ (int)origin[0], (int16_t)origin[1],
-               (int16_t)origin[2], (int)size[0],
-               (int16_t)size[1], (int16_t)size[2] }) {
+      box(const resource::vector &origin, const resource::vector &size) {
+         u_box_3d(origin[0], origin[1], origin[2], size[0], size[1], size[2], &pipe);
       }
 
       operator const pipe_box *() {

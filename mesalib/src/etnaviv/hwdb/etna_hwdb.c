@@ -112,6 +112,8 @@ etna_query_feature_db(struct etna_core_info *info)
       info->npu.on_chip_sram_size = db->VIP_SRAM_SIZE;
       info->npu.axi_sram_size = db->AXI_SRAM_SIZE;
       info->npu.nn_zrl_bits = db->NN_ZRL_BITS;
+      info->npu.nn_accum_buffer_depth = db->NNAccumBufferDepth;
+      info->npu.nn_input_buffer_depth = db->NNInputBufferDepth;
    }
 
    return true;

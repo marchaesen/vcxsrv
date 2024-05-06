@@ -114,12 +114,13 @@ lower_image_to_fragment_mask_load(nir_builder *b, nir_intrinsic_instr *intrin)
 
    /* extract real color buffer index from fmask buffer */
    nir_def *sample_index_old = intrin->src[2].ssa;
-   nir_def *fmask_offset = nir_ishl_imm(b, sample_index_old, 2);
+   nir_def *fmask_offset = nir_u2u32(b, nir_ishl_imm(b, sample_index_old, 2));
    nir_def *fmask_width = nir_imm_int(b, 3);
    nir_def *sample_index_new = nir_ubfe(b, fmask, fmask_offset, fmask_width);
 
    /* fix color buffer load */
-   nir_src_rewrite(&intrin->src[2], sample_index_new);
+   nir_src_rewrite(&intrin->src[2],
+                   nir_u2uN(b, sample_index_new, sample_index_old->bit_size));
 
    /* Mark uses fmask to prevent lower this intrinsic again. */
    enum gl_access_qualifier access = nir_intrinsic_access(intrin);

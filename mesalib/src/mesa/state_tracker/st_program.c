@@ -635,7 +635,7 @@ static const struct nir_shader_compiler_options draw_nir_options = {
 static struct nir_shader *
 get_nir_shader(struct st_context *st, struct gl_program *prog, bool is_draw)
 {
-   if (!is_draw && prog->nir) {
+   if ((!is_draw || !st->ctx->Const.PackedDriverUniformStorage) && prog->nir) {
       nir_shader *nir = prog->nir;
 
       /* The first shader variant takes ownership of NIR, so that there is
@@ -651,7 +651,8 @@ get_nir_shader(struct st_context *st, struct gl_program *prog, bool is_draw)
    const struct nir_shader_compiler_options *options =
       is_draw ? &draw_nir_options : st_get_nir_compiler_options(st, prog->info.stage);
 
-   if (is_draw && (!prog->shader_program || prog->shader_program->data->LinkStatus != LINKING_SKIPPED)) {
+   if (is_draw && st->ctx->Const.PackedDriverUniformStorage &&
+       (!prog->shader_program || prog->shader_program->data->LinkStatus != LINKING_SKIPPED)) {
       assert(prog->base_serialized_nir);
       blob_reader_init(&blob_reader, prog->base_serialized_nir, prog->base_serialized_nir_size);
    } else {

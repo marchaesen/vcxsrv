@@ -1053,10 +1053,28 @@ retry:
     }
 
     if (flip_pending && vblank->flip && !notify_only) {
+        present_vblank_ptr flip_queued_last;
+
+        flip_queued_last = xorg_list_last_entry(&xwl_present_window->flip_queue,
+                                                present_vblank_rec, event_queue);
+
+        /* Do mailbox handling for queued flips, to prevent the flip queue from
+         * growing unbounded.
+         */
+        if (flip_queued_last != flip_pending &&
+            (flip_queued_last->sync_flip
+#ifdef DRI3
+             || vblank->acquire_syncobj
+#endif
+             )) {
+            xorg_list_del(&flip_queued_last->event_queue);
+            present_vblank_scrap(flip_queued_last);
+            xwl_present_re_execute(flip_queued_last);
+        }
+
         DebugPresent(("\tr %" PRIu64 " %p (pending %p)\n",
                       vblank->event_id, vblank, flip_pending));
         xorg_list_append(&vblank->event_queue, &xwl_present_window->flip_queue);
-        vblank->flip_ready = TRUE;
         return;
     }
 

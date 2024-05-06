@@ -801,10 +801,10 @@ void r3xx_compile_vertex_program(struct r300_vertex_program_compiler *c)
 		{"native rewrite",		1, 1,		rc_local_transform,		alu_rewrite},
 		{"unused channels",		1, opt,		rc_mark_unused_channels,	NULL},
 		{"dataflow optimize",		1, opt,		rc_optimize,			NULL},
+		{"dead constants",		1, 1,		rc_remove_unused_constants,	&c->code->constants_remap_table},
 		/* This pass must be done after optimizations. */
 		{"source conflict resolve",	1, 1,		rc_local_transform,		resolve_src_conflicts},
 		{"register allocation",		1, opt,		allocate_temporary_registers,	NULL},
-		{"dead constants",		1, 1,		rc_remove_unused_constants,	&c->code->constants_remap_table},
 		{"lower control flow opcodes",	1, is_r500,	rc_vert_fc,			NULL},
 		{"final code validation",	0, 1,		rc_validate_final_shader,	NULL},
 		{"machine code generation",	0, 1,		translate_vertex_program,	NULL},

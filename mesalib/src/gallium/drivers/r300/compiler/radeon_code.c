@@ -77,7 +77,7 @@ unsigned rc_constants_add_state(struct rc_constant_list * c, unsigned state0, un
 
 	memset(&constant, 0, sizeof(constant));
 	constant.Type = RC_CONSTANT_STATE;
-	constant.Size = 4;
+	constant.UseMask = RC_MASK_XYZW;
 	constant.u.State[0] = state0;
 	constant.u.State[1] = state1;
 
@@ -103,7 +103,7 @@ unsigned rc_constants_add_immediate_vec4(struct rc_constant_list * c, const floa
 
 	memset(&constant, 0, sizeof(constant));
 	constant.Type = RC_CONSTANT_IMMEDIATE;
-	constant.Size = 4;
+	constant.UseMask = RC_MASK_XYZW;
 	memcpy(constant.u.Immediate, data, sizeof(float) * 4);
 
 	return rc_constants_add(c, &constant);
@@ -116,50 +116,82 @@ unsigned rc_constants_add_immediate_vec4(struct rc_constant_list * c, const floa
  */
 unsigned rc_constants_add_immediate_scalar(struct rc_constant_list * c, float data, unsigned * swizzle)
 {
-	unsigned index;
+	unsigned index, free_comp;
 	int free_index = -1;
 	struct rc_constant constant;
 
 	for(index = 0; index < c->Count; ++index) {
 		if (c->Constants[index].Type == RC_CONSTANT_IMMEDIATE) {
 			unsigned comp;
-			for(comp = 0; comp < c->Constants[index].Size; ++comp) {
-				if (c->Constants[index].u.Immediate[comp] == data) {
-					*swizzle = RC_MAKE_SWIZZLE_SMEAR(comp);
-					return index;
+			for(comp = 0; comp < 4; ++comp) {
+				if (c->Constants[index].UseMask & 1 << comp) {
+					if (c->Constants[index].u.Immediate[comp] == data) {
+						*swizzle = RC_MAKE_SWIZZLE_SMEAR(comp);
+						return index;
+					}
+				} else {
+					if (free_index == -1) {
+						free_index = index;
+						free_comp = comp;
+					}
 				}
 			}
-
-			if (c->Constants[index].Size < 4)
-				free_index = index;
 		}
 	}
 
 	if (free_index >= 0) {
-		unsigned comp = c->Constants[free_index].Size++;
-		c->Constants[free_index].u.Immediate[comp] = data;
-		*swizzle = RC_MAKE_SWIZZLE_SMEAR(comp);
+		c->Constants[free_index].u.Immediate[free_comp] = data;
+		c->Constants[free_index].UseMask |= 1 << free_comp;
+		*swizzle = RC_MAKE_SWIZZLE_SMEAR(free_comp);
 		return free_index;
 	}
 
 	memset(&constant, 0, sizeof(constant));
 	constant.Type = RC_CONSTANT_IMMEDIATE;
-	constant.Size = 1;
+	constant.UseMask = RC_MASK_X;
 	constant.u.Immediate[0] = data;
 	*swizzle = RC_SWIZZLE_XXXX;
 
 	return rc_constants_add(c, &constant);
 }
 
-void rc_constants_print(struct rc_constant_list * c)
+static char swizzle_char(unsigned swz)
 {
-	unsigned int i;
-	for(i = 0; i < c->Count; i++) {
+	switch (swz) {
+	case RC_SWIZZLE_X:
+		return 'x';
+	case RC_SWIZZLE_Y:
+		return 'y';
+	case RC_SWIZZLE_Z:
+		return 'z';
+	case RC_SWIZZLE_W:
+		return 'w';
+	default:
+		return 'u';
+	}
+}
+
+void rc_constants_print(struct rc_constant_list *c, struct const_remap *r)
+{
+	for (unsigned i = 0; i < c->Count; i++) {
 		if (c->Constants[i].Type == RC_CONSTANT_IMMEDIATE) {
-			float * values = c->Constants[i].u.Immediate;
-			fprintf(stderr, "CONST[%u] = "
-				"{ %10.4f %10.4f %10.4f %10.4f }\n",
-				i, values[0],values[1], values[2], values[3]);
+			float *values = c->Constants[i].u.Immediate;
+			fprintf(stderr, "CONST[%u] = {", i);
+			for (unsigned chan = 0; chan < 4; chan++) {
+				if (c->Constants[i].UseMask & 1 << chan)
+					fprintf(stderr, "%11.6f ", values[chan]);
+				else
+					fprintf(stderr, "     unused ");
+			}
+			fprintf(stderr, "}\n");
+		}
+		if (r && c->Constants[i].Type == RC_CONSTANT_EXTERNAL) {
+			fprintf(stderr, "CONST[%u] = {", i);
+			for (unsigned chan = 0; chan < 4; chan++) {
+				fprintf(stderr, "CONST[%i].%c ", r[i].index[chan],
+					swizzle_char(r[i].swizzle[chan]));
+			}
+			fprintf(stderr, " }\n");
 		}
 	}
 }

@@ -92,6 +92,7 @@ amd_common_files = files(
   'ac_msgpack.h',
   'ac_nir.c',
   'ac_nir.h',
+  'ac_nir_helpers.h',
   'ac_nir_opt_outputs.c',
   'ac_nir_cull.c',
   'ac_nir_lower_esgs_io_to_mem.c',

@@ -354,6 +354,7 @@ struct radv_shader_binary_rtld {
 struct radv_shader_part_binary {
    struct {
       uint32_t spi_shader_col_format;
+      uint32_t cb_shader_mask;
       uint32_t spi_shader_z_format;
    } info;
 
@@ -452,6 +453,7 @@ struct radv_shader_part {
    uint32_t rsrc1;
    bool nontrivial_divisors;
    uint32_t spi_shader_col_format;
+   uint32_t cb_shader_mask;
    uint32_t spi_shader_z_format;
    uint64_t upload_seq;
 

@@ -4332,7 +4332,7 @@ static inline nir_function *
 nir_shader_get_function_for_name(const nir_shader *shader, const char *name)
 {
    nir_foreach_function(func, shader) {
-      if (strcmp(func->name, name) == 0)
+      if (func->name && strcmp(func->name, name) == 0)
          return func;
    }
 
@@ -6315,6 +6315,7 @@ struct nir_opt_16bit_tex_image_options {
    nir_rounding_mode rounding_mode;
    nir_alu_type opt_tex_dest_types;
    nir_alu_type opt_image_dest_types;
+   bool integer_dest_saturates;
    bool opt_image_store_data;
    bool opt_image_srcs;
    unsigned opt_srcs_options_count;

@@ -889,7 +889,7 @@ get_iteration(nir_op cond_op, nir_const_value initial, nir_const_value step,
    }
 
    uint64_t iter_u64 = nir_const_value_as_uint(iter, iter_bit_size);
-   return iter_u64 > INT_MAX ? -1 : (int)iter_u64;
+   return iter_u64 > u_intN_max(iter_bit_size) ? -1 : (int)iter_u64;
 }
 
 static int32_t

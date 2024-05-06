@@ -10,6 +10,7 @@
 #include "common/sid.h"
 
 #include "nir_control_flow.h"
+#include "nir_builder.h"
 
 #include <vector>
 

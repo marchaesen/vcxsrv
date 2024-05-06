@@ -341,7 +341,7 @@ xwl_set_shape(WindowPtr window,
     struct xwl_window *xwl_window;
 
     xwl_screen = xwl_screen_get(screen);
-    xwl_window = xwl_window_from_window(window);
+    xwl_window = xwl_window_get(window);
 
     screen->SetShape = xwl_screen->SetShape;
     (*screen->SetShape) (window, kind);

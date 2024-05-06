@@ -976,8 +976,11 @@ tu_CreateRenderPass2(VkDevice _device,
       uint32_t a = desc->pDepthStencilAttachment ?
          desc->pDepthStencilAttachment->attachment : VK_ATTACHMENT_UNUSED;
       subpass->depth_stencil_attachment.attachment = a;
-      if (a != VK_ATTACHMENT_UNUSED)
+      subpass->depth_used = a != VK_ATTACHMENT_UNUSED;
+      subpass->stencil_used = a != VK_ATTACHMENT_UNUSED;
+      if (a != VK_ATTACHMENT_UNUSED) {
          tu_subpass_use_attachment(pass, i, a, pCreateInfo);
+      }
    }
 
    tu_render_pass_patch_input_gmem(pass);
@@ -1125,6 +1128,9 @@ tu_setup_dynamic_render_pass(struct tu_cmd_buffer *cmd_buffer,
          att->clear_views = info->viewMask;
          subpass->depth_stencil_attachment.attachment = a++;
 
+         subpass->depth_used = (bool) info->pDepthAttachment;
+         subpass->stencil_used = (bool) info->pStencilAttachment;
+
          attachment_set_ops(
             device, att,
             info->pDepthAttachment ? info->pDepthAttachment->loadOp
@@ -1251,9 +1257,15 @@ tu_setup_dynamic_inheritance(struct tu_cmd_buffer *cmd_buffer,
          info->depthAttachmentFormat : info->stencilAttachmentFormat;
       att->samples = info->rasterizationSamples;
       subpass->depth_stencil_attachment.attachment = a++;
+      subpass->depth_used =
+         info->depthAttachmentFormat != VK_FORMAT_UNDEFINED;
+      subpass->stencil_used =
+         info->stencilAttachmentFormat != VK_FORMAT_UNDEFINED;
       att->cond_load_allowed = att->cond_store_allowed = true;
    } else {
       subpass->depth_stencil_attachment.attachment = VK_ATTACHMENT_UNUSED;
+      subpass->depth_used = false;
+      subpass->stencil_used = false;
    }
 
    tu_render_pass_calc_views(pass);

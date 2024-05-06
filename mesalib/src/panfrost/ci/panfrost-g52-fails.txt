@@ -21,30 +21,6 @@ spec@arb_direct_state_access@gettextureimage-formats init-by-rendering,Fail
 spec@arb_framebuffer_object@fbo-luminance-alpha,Fail
 spec@arb_framebuffer_srgb@fbo-fast-clear,Fail
 spec@arb_point_sprite@arb_point_sprite-mipmap,Fail
-spec@arb_sample_shading@samplemask 2@0.250000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2@0.500000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2@1.000000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2 all@0.250000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2 all@0.500000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2 all@1.000000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2 all,Fail
-spec@arb_sample_shading@samplemask 2 all@noms mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2 all@sample mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2,Fail
-spec@arb_sample_shading@samplemask 2@noms mask_in_one,Fail
-spec@arb_sample_shading@samplemask 2@sample mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4@0.250000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4@0.500000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4@1.000000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4 all@0.250000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4 all@0.500000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4 all@1.000000 mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4 all,Fail
-spec@arb_sample_shading@samplemask 4 all@noms mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4 all@sample mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4,Fail
-spec@arb_sample_shading@samplemask 4@noms mask_in_one,Fail
-spec@arb_sample_shading@samplemask 4@sample mask_in_one,Fail
 spec@arb_shader_draw_parameters@drawid-indirect-baseinstance,Fail
 spec@arb_shader_draw_parameters@drawid-indirect-basevertex,Fail
 spec@arb_shader_draw_parameters@drawid-indirect,Fail

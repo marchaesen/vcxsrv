@@ -512,7 +512,8 @@ vc4_nir_store_sample_mask(struct vc4_compile *c, nir_builder *b,
         sample_mask->data.location = FRAG_RESULT_SAMPLE_MASK;
 
         nir_store_output(b, val, nir_imm_int(b, 0),
-                         .base = sample_mask->data.driver_location);
+                         .base = sample_mask->data.driver_location,
+                         .src_type = nir_type_uint | val->bit_size);
 }
 
 static void

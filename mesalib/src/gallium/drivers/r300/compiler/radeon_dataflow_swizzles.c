@@ -566,5 +566,5 @@ void rc_dataflow_swizzles(struct radeon_compiler * c, void *user)
 		}
 	}
 	if (c->Debug & RC_DBG_LOG)
-		rc_constants_print(&c->Program.Constants);
+		rc_constants_print(&c->Program.Constants, NULL);
 }

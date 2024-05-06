@@ -547,7 +547,7 @@ emit_ps_color_export(nir_builder *b, lower_ps_state *s, gl_frag_result slot, uns
       switch (spi_shader_col_format) {
       case V_028714_SPI_SHADER_FP16_ABGR:
          if (type_size == 32)
-            pack_op = nir_op_pack_half_2x16;
+            pack_op = nir_op_pack_half_2x16_rtz_split;
          break;
       case V_028714_SPI_SHADER_UINT16_ABGR:
          if (type_size == 32) {
@@ -606,9 +606,13 @@ emit_ps_color_export(nir_builder *b, lower_ps_state *s, gl_frag_result slot, uns
 
          lo = lo ? lo : nir_undef(b, 1, type_size);
          hi = hi ? hi : nir_undef(b, 1, type_size);
-         nir_def *vec = nir_vec2(b, lo, hi);
 
-         outputs[i] = nir_build_alu1(b, pack_op, vec);
+         if (nir_op_infos[pack_op].num_inputs == 2) {
+            outputs[i] = nir_build_alu2(b, pack_op, lo, hi);
+         } else {
+            nir_def *vec = nir_vec2(b, lo, hi);
+            outputs[i] = nir_build_alu1(b, pack_op, vec);
+         }
 
          if (s->options->gfx_level >= GFX11)
             write_mask |= BITFIELD_BIT(i);

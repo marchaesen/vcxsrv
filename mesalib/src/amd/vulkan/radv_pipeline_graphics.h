@@ -88,8 +88,8 @@ struct radv_graphics_pipeline {
 
    VkShaderStageFlags active_stages;
 
-   /* Used for rbplus */
-   uint32_t col_format_non_compacted;
+   uint32_t spi_shader_col_format;
+   uint32_t cb_shader_mask;
 
    struct radv_dynamic_state dynamic_state;
 
@@ -578,9 +578,6 @@ void radv_graphics_shaders_compile(struct radv_device *device, struct vk_pipelin
                                    struct radv_retained_shaders *retained_shaders, bool noop_fs,
                                    struct radv_shader **shaders, struct radv_shader_binary **binaries,
                                    struct radv_shader **gs_copy_shader, struct radv_shader_binary **gs_copy_binary);
-
-void radv_emit_blend_state(struct radeon_cmdbuf *ctx_cs, const struct radv_shader *ps, uint32_t spi_shader_col_format,
-                           uint32_t cb_shader_mask);
 
 void radv_emit_vgt_gs_mode(const struct radv_device *device, struct radeon_cmdbuf *ctx_cs,
                            const struct radv_shader *last_vgt_api_shader);

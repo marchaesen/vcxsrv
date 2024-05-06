@@ -44,7 +44,7 @@ struct vdrm_device_funcs {
    uint32_t (*bo_create)(struct vdrm_device *vdev, size_t size, uint32_t blob_flags,
                          uint64_t blob_id, struct vdrm_ccmd_req *req);
    int (*bo_wait)(struct vdrm_device *vdev, uint32_t handle);
-   void *(*bo_map)(struct vdrm_device *vdev, uint32_t handle, size_t size);
+   void *(*bo_map)(struct vdrm_device *vdev, uint32_t handle, size_t size, void *placed_addr);
    int (*bo_export_dmabuf)(struct vdrm_device *vdev, uint32_t handle);
    void (*bo_close)(struct vdrm_device *vdev, uint32_t handle);
 
@@ -134,9 +134,9 @@ vdrm_bo_wait(struct vdrm_device *vdev, uint32_t handle)
 }
 
 static inline void *
-vdrm_bo_map(struct vdrm_device *vdev, uint32_t handle, size_t size)
+vdrm_bo_map(struct vdrm_device *vdev, uint32_t handle, size_t size, void *placed_addr)
 {
-   return vdev->funcs->bo_map(vdev, handle, size);
+   return vdev->funcs->bo_map(vdev, handle, size, placed_addr);
 }
 
 static inline int
