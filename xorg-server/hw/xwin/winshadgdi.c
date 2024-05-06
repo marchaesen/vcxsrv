@@ -106,7 +106,7 @@ winQueryScreenDIBFormat(ScreenPtr pScreen, BITMAPINFOHEADER * pbmih)
     }
 
     /* Initialize our bitmap info header */
-    memset(pbmih, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD), 1);
+    memset(pbmih, 0, sizeof(BITMAPINFOHEADER) + 256 * sizeof(RGBQUAD));
     pbmih->biSize = sizeof(BITMAPINFOHEADER);
 
     /* Get the biBitCount */
