@@ -1,6 +1,7 @@
 OBJS+=$(CSRCS:%.c=$(OBJDIR)$/%$(OBJEXT))
 OBJS:=$(OBJS:%.cc=$(OBJDIR)$/%$(OBJEXT))
 OBJS:=$(OBJS:%.cpp=$(OBJDIR)$/%$(OBJEXT))
+OBJS:=$(OBJS:%.masm=$(OBJDIR)$/%$(OBJEXT))
 
 RESOBJS:=$(RESOURCES:%.rc=$(OBJDIR)$/%.res)
 
@@ -124,6 +125,9 @@ $(OBJDIR)\%$(OBJEXT) : %.cc
 
 $(OBJDIR)\%$(OBJEXT) : %.cpp
 	$(CC) $(CCFLAGS) /EHsc $(COMMONCFLAGS)
+
+$(OBJDIR)\%$(OBJEXT) : %.masm
+	ml64 /nologo /Zi /c /Cp /Cx /Fo $@ $<
 
 $(OBJDIR)\%.res : %.rc
 	$(RC) $(RCFLAGS) $(RCDEFINES:%=-d "%") $(RCINCLUDES:%=-i %) -Fo$(relpath $@) $<

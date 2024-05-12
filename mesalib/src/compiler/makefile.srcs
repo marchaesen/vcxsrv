@@ -79,8 +79,8 @@ nir/nir_intrinsics.c: nir/nir_intrinsics.py nir/nir_intrinsics_c.py
 nir/nir_intrinsics_indices.h: nir/nir_intrinsics.py nir/nir_intrinsics_indices_h.py
 	$(PYTHON_GEN) $(srcdir)/nir/nir_intrinsics_indices_h.py --outdir nir
 
-spirv/spirv_info.c: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
-	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_c.py $(srcdir)/spirv/spirv.core.grammar.json $@
+spirv/spirv_info.c spirv/spirv_info.h: spirv/spirv_info_c.py spirv/spirv.core.grammar.json
+	$(PYTHON_GEN) $(srcdir)/spirv/spirv_info_gen.py --json $(srcdir)/spirv/spirv.core.grammar.json --out-h spirv/spirv_info.h --out-c spirv/spirv_info.c
 
 spirv/vtn_gather_types.c: spirv/vtn_gather_types_c.py spirv/spirv.core.grammar.json
 	$(PYTHON_GEN) $(srcdir)/spirv/vtn_gather_types_c.py $(srcdir)/spirv/spirv.core.grammar.json $@

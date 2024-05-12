@@ -40,6 +40,8 @@ CSRCS += $(notdir $(subst /,$/,$(libxmlconfig_la_SOURCES)))
 
 CSRCS := $(CSRCS:%.h=)
 
-vpath %.c sha1:format:../gallium/auxiliary/indices:.:../gallium/auxiliary/util
+vpath %.c sha1:format:blake3:../gallium/auxiliary/indices:.:../gallium/auxiliary/util
+
+vpath %.masm blake3
 
 load_makefile IS64=0 NORELDBG=1 makefile.srcs
