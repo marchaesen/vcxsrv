@@ -548,7 +548,7 @@ parseArgs(int argc, char *argv[])
                     WARN("Changing root directory to \"%s\"\n", rootDir);
                 }
                 XkbAddDirectoryToPath(rootDir);
-                if (!XkbAddDirectoryToPath(rootDir) && (warningLevel>0)) {
+                if (XkbAddDirectoryToPath(rootDir) && (warningLevel>0)) {
                     XkbAddDirectoryToPath(".");
                 } else if (warningLevel > 0)
                 {
