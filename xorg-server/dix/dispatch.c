@@ -485,16 +485,13 @@ Bool isThereSomething(Bool are_ready);
 void DispatchQueuedEvents(Bool wait)
 {
     static int reentrantcheck;
-    static int maxDoCount;
     if (!wait)
     {
         if (reentrantcheck)
         {
-            maxDoCount = -1;
             return;
         }
         reentrantcheck=1;
-        maxDoCount = 10;
     }
     while (1)
     {
@@ -512,11 +509,6 @@ void DispatchQueuedEvents(Bool wait)
         else
         {
             if (!isThereSomething(clients_are_ready()))
-            {
-                reentrantcheck=0;
-                return;
-            }
-            else if (maxDoCount-- < 0)
             {
                 reentrantcheck=0;
                 return;

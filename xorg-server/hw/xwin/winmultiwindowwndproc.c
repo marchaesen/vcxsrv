@@ -432,7 +432,7 @@ CheckForAlpha(HWND hWnd, WindowPtr pWin, winScreenInfo *pScreenInfo)
     else if (useDwmEnableBlurBehindWindow)
         {
             HRESULT rc;
-            WINBOOL enabled;
+            BOOL enabled;
 
             rc = DwmIsCompositionEnabled(&enabled);
             if ((rc == S_OK) && enabled)
@@ -619,6 +619,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
          * since we repaint the entire region anyhow
          * This avoids some flickering when resizing.
          */
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         return TRUE;
 
     case WM_PAINT:
@@ -1097,6 +1099,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         return 0;
 
     case WM_SIZING:
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         /* Need to legalize the size according to WM_NORMAL_HINTS */
         /* for applications like xterm */
         return ValidateSizing(hwnd, pWin, wParam, lParam);
@@ -1144,29 +1148,36 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
                 raiseWinIfNeeded(pWin, pWinPos->hwndInsertAfter);
             }
         }
-    }
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         /*
          * Pass the message to DefWindowProc to let the function
          * break down WM_WINDOWPOSCHANGED to WM_MOVE and WM_SIZE.
          */
-        break;
+    }
+    break;
 
     case WM_ENTERSIZEMOVE:
         SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, TRUE);
         SetTimer(hwnd, UPDATETIMER, 10, NULL);
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         return 0;
 
     case WM_TIMER:
-        DispatchQueuedEvents(0);
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         return 0;
 
     case WM_EXITSIZEMOVE:
         /* Adjust the X Window to the moved Windows window */
         SetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE, FALSE);
-        winAdjustXWindow(pWin, hwnd);
         KillTimer(hwnd, UPDATETIMER);
         if (pWin)
+        {
+            winAdjustXWindow(pWin, hwnd);
             winAdjustXWindowState(s_pScreenPriv, &wmMsg);
+        }
         return 0;
 
     case WM_SIZE:
@@ -1214,7 +1225,9 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         winPositionWindowMultiWindow(pWin, x, y);
         s_pScreen->PositionWindow = saved;
     }
-        return 0;
+    if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+        DispatchQueuedEvents(0);
+    return 0;
 
     case WM_MOUSEACTIVATE:
 
@@ -1241,6 +1254,8 @@ winTopLevelWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
         /* This message is only sent on Vista/W7 */
         CheckForAlpha(hwnd, pWin, s_pScreenInfo);
 
+        if (GetWindowLongPtr(hwnd, WND_IDX_ENTEREDSIZEMOVE))
+            DispatchQueuedEvents(0);
         return 0;
     default:
         break;
