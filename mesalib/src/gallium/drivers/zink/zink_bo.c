@@ -751,7 +751,7 @@ static void
 track_freed_sparse_bo(struct zink_context *ctx, struct zink_sparse_backing *backing)
 {
    pipe_reference(NULL, &backing->bo->base.base.reference);
-   util_dynarray_append(&ctx->batch.state->freed_sparse_backing_bos, struct zink_bo*, backing->bo);
+   util_dynarray_append(&ctx->bs->freed_sparse_backing_bos, struct zink_bo*, backing->bo);
 }
 
 static VkSemaphore

@@ -104,6 +104,7 @@ has_ss_src(struct ir3_instruction *instr)
    return node->has_ss_src;
 }
 
+#ifndef NDEBUG
 static void
 sched_dag_validate_cb(const struct dag_node *node, void *data)
 {
@@ -111,6 +112,7 @@ sched_dag_validate_cb(const struct dag_node *node, void *data)
 
    ir3_print_instr(n->instr);
 }
+#endif
 
 static void
 schedule(struct ir3_postsched_ctx *ctx, struct ir3_instruction *instr)
@@ -642,7 +644,9 @@ sched_dag_init(struct ir3_postsched_ctx *ctx)
       }
    }
 
+#ifndef NDEBUG
    dag_validate(ctx->dag, sched_dag_validate_cb, NULL);
+#endif
 
    // TODO do we want to do this after reverse-dependencies?
    dag_traverse_bottom_up(ctx->dag, sched_dag_max_delay_cb, NULL);

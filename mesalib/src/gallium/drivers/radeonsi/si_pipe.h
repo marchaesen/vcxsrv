@@ -464,6 +464,7 @@ struct si_surface {
    /* Color registers. */
    unsigned cb_color_info;
    unsigned cb_color_view;
+   unsigned cb_color_view2;
    unsigned cb_color_attrib;
    unsigned cb_color_attrib2;                      /* GFX9 and later */
    unsigned cb_color_attrib3;                      /* GFX10 and later */
@@ -474,18 +475,33 @@ struct si_surface {
    unsigned spi_shader_col_format_blend_alpha : 8; /* blending with alpha. */
 
    /* DB registers. */
-   uint64_t db_depth_base; /* DB_Z_READ/WRITE_BASE */
-   uint64_t db_stencil_base;
-   uint64_t db_htile_data_base;
-   unsigned db_depth_info;
-   unsigned db_z_info;
-   unsigned db_z_info2; /* GFX9 only */
    unsigned db_depth_view;
    unsigned db_depth_size;
-   unsigned db_depth_slice;
+   unsigned db_z_info;
    unsigned db_stencil_info;
-   unsigned db_stencil_info2; /* GFX9 only */
-   unsigned db_htile_surface;
+   uint64_t db_depth_base; /* DB_Z_READ/WRITE_BASE */
+   uint64_t db_stencil_base;
+
+   union {
+      struct {
+         uint64_t db_htile_data_base;
+         unsigned db_depth_info;
+         unsigned db_z_info2; /* GFX9 only */
+         unsigned db_depth_slice;
+         unsigned db_stencil_info2; /* GFX9 only */
+         unsigned db_htile_surface;
+      } gfx6;
+
+      struct {
+         uint64_t hiz_base;
+         unsigned hiz_info;
+         unsigned hiz_size_xy;
+         uint64_t his_base;
+         unsigned his_info;
+         unsigned his_size_xy;
+         unsigned db_depth_view1;
+      } gfx12;
+   } u;
 };
 
 struct si_mmio_counter {
@@ -712,7 +728,7 @@ struct si_screen {
    struct util_idalloc_mt buffer_ids;
    struct util_vertex_state_cache vertex_state_cache;
 
-   struct si_resource *attribute_ring;
+   struct si_resource *attribute_pos_prim_ring;
 
    simple_mtx_t tess_ring_lock;
    struct pipe_resource *tess_rings;
@@ -805,6 +821,7 @@ struct si_framebuffer {
    bool has_dcc_msaa;
    bool disable_vrs_flat_shading;
    bool has_stencil;
+   bool has_hiz_his;
 };
 
 enum si_quant_mode
@@ -834,6 +851,7 @@ struct si_streamout_target {
    /* The buffer where BUFFER_FILLED_SIZE is stored. */
    struct si_resource *buf_filled_size;
    unsigned buf_filled_size_offset;
+   unsigned buf_filled_size_draw_count_offset;
    bool buf_filled_size_valid;
 
    unsigned stride_in_dw;
@@ -968,6 +986,12 @@ struct gfx11_reg_pair {
    uint32_t reg_value[2];
 };
 
+/* A pair of values for SET_*_REG_PAIRS. */
+struct gfx12_reg {
+   uint32_t reg_offset;
+   uint32_t reg_value;
+};
+
 typedef void (*pipe_draw_vertex_state_func)(struct pipe_context *ctx,
                                             struct pipe_vertex_state *vstate,
                                             uint32_t partial_velem_mask,
@@ -1070,10 +1094,17 @@ struct si_context {
    /* Gfx11+: Buffered SH registers for SET_SH_REG_PAIRS_*. */
    unsigned num_buffered_gfx_sh_regs;
    unsigned num_buffered_compute_sh_regs;
-   struct {
-      struct gfx11_reg_pair buffered_gfx_sh_regs[32];
-      struct gfx11_reg_pair buffered_compute_sh_regs[32];
-   } gfx11;
+   union {
+      struct {
+         struct gfx11_reg_pair buffered_gfx_sh_regs[32];
+         struct gfx11_reg_pair buffered_compute_sh_regs[32];
+      } gfx11;
+
+      struct {
+         struct gfx12_reg buffered_gfx_sh_regs[64];
+         struct gfx12_reg buffered_compute_sh_regs[64];
+      } gfx12;
+   };
 
    /* Atom declarations. */
    struct si_framebuffer framebuffer;
@@ -1117,6 +1148,7 @@ struct si_context {
       struct si_shader_ctx_state shaders[SI_NUM_GRAPHICS_SHADERS];
    };
    struct si_cs_shader_state cs_shader_state;
+   bool compute_ping_pong_launch;
    /* if current tcs set by user */
    bool is_user_tcs;
 
@@ -1186,6 +1218,7 @@ struct si_context {
 
    /* DB render state. */
    unsigned ps_db_shader_control;
+   unsigned ps_pa_sc_hisz_control;
    unsigned dbcb_copy_sample;
    bool dbcb_depth_copy_enabled : 1;
    bool dbcb_stencil_copy_enabled : 1;
@@ -1922,7 +1955,7 @@ static inline void si_make_CB_shader_coherent(struct si_context *sctx, unsigned 
    sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_INV_VCACHE;
    sctx->force_shader_coherency.with_cb = false;
 
-   if (sctx->gfx_level >= GFX10) {
+   if (sctx->gfx_level >= GFX10 && sctx->gfx_level < GFX12) {
       if (sctx->screen->info.tcc_rb_non_coherent)
          sctx->flags |= SI_CONTEXT_INV_L2;
       else if (shaders_read_metadata)
@@ -1936,7 +1969,7 @@ static inline void si_make_CB_shader_coherent(struct si_context *sctx, unsigned 
          sctx->flags |= SI_CONTEXT_INV_L2;
       else if (shaders_read_metadata)
          sctx->flags |= SI_CONTEXT_INV_L2_METADATA;
-   } else {
+   } else if (sctx->gfx_level <= GFX8) {
       /* GFX6-GFX8 */
       sctx->flags |= SI_CONTEXT_INV_L2;
    }
@@ -1950,7 +1983,7 @@ static inline void si_make_DB_shader_coherent(struct si_context *sctx, unsigned 
    sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_DB | SI_CONTEXT_INV_VCACHE;
    sctx->force_shader_coherency.with_db = false;
 
-   if (sctx->gfx_level >= GFX10) {
+   if (sctx->gfx_level >= GFX10 && sctx->gfx_level < GFX12) {
       if (sctx->screen->info.tcc_rb_non_coherent)
          sctx->flags |= SI_CONTEXT_INV_L2;
       else if (shaders_read_metadata)
@@ -1964,7 +1997,7 @@ static inline void si_make_DB_shader_coherent(struct si_context *sctx, unsigned 
          sctx->flags |= SI_CONTEXT_INV_L2;
       else if (shaders_read_metadata)
          sctx->flags |= SI_CONTEXT_INV_L2_METADATA;
-   } else {
+   } else if (sctx->gfx_level <= GFX8) {
       /* GFX6-GFX8 */
       sctx->flags |= SI_CONTEXT_INV_L2;
    }
@@ -1979,13 +2012,17 @@ static inline bool si_can_sample_zs(struct si_texture *tex, bool stencil_sampler
 
 static inline bool si_htile_enabled(struct si_texture *tex, unsigned level, unsigned zs_mask)
 {
+   struct si_screen *sscreen = (struct si_screen *)tex->buffer.b.b.screen;
+
+   /* Gfx12 should never call this. */
+   assert(sscreen->info.gfx_level < GFX12);
+
    if (zs_mask == PIPE_MASK_S && (tex->htile_stencil_disabled || !tex->surface.has_stencil))
       return false;
 
    if (!tex->is_depth || !tex->surface.meta_offset)
       return false;
 
-   struct si_screen *sscreen = (struct si_screen *)tex->buffer.b.b.screen;
    if (sscreen->info.gfx_level >= GFX8) {
       return level < tex->surface.num_meta_levels;
    } else {
@@ -2000,6 +2037,11 @@ static inline bool si_htile_enabled(struct si_texture *tex, unsigned level, unsi
 static inline bool vi_tc_compat_htile_enabled(struct si_texture *tex, unsigned level,
                                               unsigned zs_mask)
 {
+   struct si_screen *sscreen = (struct si_screen *)tex->buffer.b.b.screen;
+
+   /* Gfx12 should never call this. */
+   assert(sscreen->info.gfx_level < GFX12);
+
    assert(!tex->tc_compatible_htile || tex->surface.meta_offset);
    return tex->tc_compatible_htile && si_htile_enabled(tex, level, zs_mask);
 }

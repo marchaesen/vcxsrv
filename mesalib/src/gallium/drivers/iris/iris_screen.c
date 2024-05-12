@@ -49,10 +49,12 @@
 #include "iris_context.h"
 #include "iris_defines.h"
 #include "iris_fence.h"
+#include "iris_perf.h"
 #include "iris_pipe.h"
 #include "iris_resource.h"
 #include "iris_screen.h"
 #include "compiler/glsl_types.h"
+#include "intel/common/intel_debug_identifier.h"
 #include "intel/common/intel_gem.h"
 #include "intel/common/intel_l3_config.h"
 #include "intel/common/intel_uuid.h"
@@ -662,6 +664,7 @@ iris_get_timestamp(struct pipe_screen *pscreen)
 void
 iris_screen_destroy(struct iris_screen *screen)
 {
+   intel_perf_free(screen->perf_cfg);
    iris_destroy_screen_measure(screen);
    util_queue_destroy(&screen->shader_compiler_queue);
    glsl_type_singleton_decref();

@@ -530,8 +530,10 @@ static void encode(struct radeon_encoder *enc)
 
    enc->encode_headers(enc);
    enc->ctx(enc);
+   enc->ctx_override(enc);
    enc->bitstream(enc);
    enc->feedback(enc);
+   enc->metadata(enc);
    enc->encode_statistics(enc);
    enc->intra_refresh(enc);
    enc->qp_map(enc);
@@ -552,6 +554,8 @@ void radeon_enc_2_0_init(struct radeon_encoder *enc)
    enc->ctx = radeon_enc_ctx;
    enc->op_preset = radeon_enc_op_preset;
    enc->quality_params = radeon_enc_quality_params;
+   enc->ctx_override = radeon_enc_dummy;
+   enc->metadata = radeon_enc_dummy;
 
    if (u_reduce_video_profile(enc->base.profile) == PIPE_VIDEO_FORMAT_HEVC) {
       enc->deblocking_filter = radeon_enc_loop_filter_hevc;

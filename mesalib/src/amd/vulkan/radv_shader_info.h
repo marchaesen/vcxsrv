@@ -54,9 +54,10 @@ struct radv_streamout_info {
 };
 
 struct radv_legacy_gs_info {
-   uint32_t vgt_gs_onchip_cntl;
-   uint32_t vgt_gs_max_prims_per_subgroup;
-   uint32_t vgt_esgs_ring_itemsize;
+   uint32_t gs_inst_prims_in_subgroup;
+   uint32_t es_verts_per_subgroup;
+   uint32_t gs_prims_per_subgroup;
+   uint32_t esgs_itemsize;
    uint32_t lds_size;
    uint32_t esgs_ring_size;
    uint32_t gsvs_ring_size;
@@ -208,7 +209,6 @@ struct radv_shader_info {
       bool load_provoking_vtx;
       bool load_rasterization_prim;
       bool force_sample_iter_shading_rate;
-      uint32_t db_shader_control; /* DB_SHADER_CONTROL without intrinsic rate overrides */
    } ps;
    struct {
       bool uses_grid_size;
@@ -253,11 +253,57 @@ struct radv_shader_info {
    /* Precomputed register values. */
    struct {
       struct {
+         uint32_t spi_shader_late_alloc_vs;
+         uint32_t spi_shader_pgm_rsrc3_vs;
+         uint32_t vgt_reuse_off;
+      } vs;
+
+      struct {
+         uint32_t vgt_esgs_ring_itemsize;
+         uint32_t vgt_gs_instance_cnt;
+         uint32_t vgt_gs_max_prims_per_subgroup;
+         uint32_t vgt_gs_vert_itemsize[4];
+         uint32_t vgt_gsvs_ring_itemsize;
+         uint32_t vgt_gsvs_ring_offset[3];
+      } gs;
+
+      struct {
+         uint32_t ge_cntl; /* Not fully precomputed. */
+         uint32_t ge_max_output_per_subgroup;
+         uint32_t ge_ngg_subgrp_cntl;
+         uint32_t spi_shader_idx_format;
+         uint32_t vgt_primitiveid_en;
+      } ngg;
+
+      struct {
+         uint32_t spi_shader_gs_meshlet_dim;
+         uint32_t spi_shader_gs_meshlet_exp_alloc;
+      } ms;
+
+      struct {
+         uint32_t db_shader_control;
+         uint32_t pa_sc_shader_control;
+         uint32_t spi_ps_in_control;
+         uint32_t spi_shader_z_format;
+      } ps;
+
+      struct {
          uint32_t compute_num_thread_x;
          uint32_t compute_num_thread_y;
          uint32_t compute_num_thread_z;
          uint32_t compute_resource_limits;
       } cs;
+
+      /* Common registers between stages. */
+      uint32_t vgt_gs_max_vert_out;
+      uint32_t vgt_gs_onchip_cntl;
+      uint32_t spi_shader_pgm_rsrc3_gs;
+      uint32_t spi_shader_pgm_rsrc4_gs;
+      uint32_t ge_pc_alloc;
+      uint32_t pa_cl_vs_out_cntl;
+      uint32_t spi_vs_out_config;
+      uint32_t spi_shader_pos_format;
+      uint32_t vgt_gs_instance_cnt;
    } regs;
 };
 

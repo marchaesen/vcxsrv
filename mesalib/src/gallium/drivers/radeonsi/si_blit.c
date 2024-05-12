@@ -193,6 +193,8 @@ static void si_blit_decompress_zs_planes_in_place(struct si_context *sctx,
    unsigned layer, max_layer, checked_last_layer;
    unsigned fully_decompressed_mask = 0;
 
+   assert(sctx->gfx_level < GFX12);
+
    if (!level_mask)
       return;
 
@@ -286,6 +288,8 @@ static void si_decompress_depth(struct si_context *sctx, struct si_texture *tex,
    unsigned level_mask = u_bit_consecutive(first_level, last_level - first_level + 1);
    unsigned levels_z = 0;
    unsigned levels_s = 0;
+
+   assert(sctx->gfx_level < GFX12);
 
    if (required_planes & PIPE_MASK_Z) {
       levels_z = level_mask & tex->dirty_level_mask;
@@ -401,6 +405,8 @@ static bool si_decompress_sampler_depth_textures(struct si_context *sctx,
    unsigned mask = textures->needs_depth_decompress_mask;
    bool need_flush = false;
 
+   assert(sctx->gfx_level < GFX12);
+
    while (mask) {
       struct pipe_sampler_view *view;
       struct si_sampler_view *sview;
@@ -436,6 +442,9 @@ static void si_blit_decompress_color(struct si_context *sctx, struct si_texture 
    void *custom_blend;
    unsigned layer, checked_last_layer, max_layer;
    unsigned level_mask = u_bit_consecutive(first_level, last_level - first_level + 1);
+
+   /* No decompression is ever needed on Gfx12. */
+   assert(sctx->gfx_level < GFX12);
 
    if (!need_dcc_decompress)
       level_mask &= tex->dirty_level_mask;
@@ -624,6 +633,8 @@ static void si_check_render_feedback_texture(struct si_context *sctx, struct si_
 {
    bool render_feedback = false;
 
+   assert(sctx->gfx_level < GFX12);
+
    if (!vi_dcc_enabled(tex, first_level))
       return;
 
@@ -652,6 +663,8 @@ static void si_check_render_feedback_textures(struct si_context *sctx, struct si
 {
    uint32_t mask = textures->enabled_mask & in_use_mask;
 
+   assert(sctx->gfx_level < GFX12);
+
    while (mask) {
       const struct pipe_sampler_view *view;
       struct si_texture *tex;
@@ -674,6 +687,8 @@ static void si_check_render_feedback_images(struct si_context *sctx, struct si_i
 {
    uint32_t mask = images->enabled_mask & in_use_mask;
 
+   assert(sctx->gfx_level < GFX12);
+
    while (mask) {
       const struct pipe_image_view *view;
       struct si_texture *tex;
@@ -693,6 +708,8 @@ static void si_check_render_feedback_images(struct si_context *sctx, struct si_i
 
 static void si_check_render_feedback_resident_textures(struct si_context *sctx)
 {
+   assert(sctx->gfx_level < GFX12);
+
    util_dynarray_foreach (&sctx->resident_tex_handles, struct si_texture_handle *, tex_handle) {
       struct pipe_sampler_view *view;
       struct si_texture *tex;
@@ -710,6 +727,8 @@ static void si_check_render_feedback_resident_textures(struct si_context *sctx)
 
 static void si_check_render_feedback_resident_images(struct si_context *sctx)
 {
+   assert(sctx->gfx_level < GFX12);
+
    util_dynarray_foreach (&sctx->resident_img_handles, struct si_image_handle *, img_handle) {
       struct pipe_image_view *view;
       struct si_texture *tex;
@@ -727,6 +746,8 @@ static void si_check_render_feedback_resident_images(struct si_context *sctx)
 
 static void si_check_render_feedback(struct si_context *sctx)
 {
+   assert(sctx->gfx_level < GFX12);
+
    if (!sctx->need_check_render_feedback)
       return;
 
@@ -896,6 +917,9 @@ void si_decompress_subresource(struct pipe_context *ctx, struct pipe_resource *t
    struct si_context *sctx = (struct si_context *)ctx;
    struct si_texture *stex = (struct si_texture *)tex;
 
+   if (sctx->gfx_level >= GFX12)
+      return;
+
    if (stex->db_compatible) {
       planes &= PIPE_MASK_Z | PIPE_MASK_S;
 
@@ -930,16 +954,6 @@ void si_decompress_subresource(struct pipe_context *ctx, struct pipe_resource *t
                                need_fmask_expand);
    }
 }
-
-struct texture_orig_info {
-   unsigned format;
-   unsigned width0;
-   unsigned height0;
-   unsigned npix_x;
-   unsigned npix_y;
-   unsigned npix0_x;
-   unsigned npix0_y;
-};
 
 void si_resource_copy_region(struct pipe_context *ctx, struct pipe_resource *dst,
                              unsigned dst_level, unsigned dstx, unsigned dsty, unsigned dstz,
@@ -1334,7 +1348,7 @@ static void si_flush_resource(struct pipe_context *ctx, struct pipe_resource *re
    struct si_context *sctx = (struct si_context *)ctx;
    struct si_texture *tex = (struct si_texture *)res;
 
-   if (res->target == PIPE_BUFFER)
+   if (sctx->gfx_level >= GFX12 || res->target == PIPE_BUFFER)
       return;
 
    if (!tex->is_depth && (tex->cmask_buffer || vi_dcc_enabled(tex, 0))) {
@@ -1350,6 +1364,8 @@ static void si_flush_resource(struct pipe_context *ctx, struct pipe_resource *re
 
 void si_flush_implicit_resources(struct si_context *sctx)
 {
+   assert(sctx->gfx_level < GFX12);
+
    hash_table_foreach(sctx->dirty_implicit_resources, entry) {
       si_flush_resource(&sctx->b, entry->data);
       pipe_resource_reference((struct pipe_resource **)&entry->data, NULL);
@@ -1359,6 +1375,7 @@ void si_flush_implicit_resources(struct si_context *sctx)
 
 void si_decompress_dcc(struct si_context *sctx, struct si_texture *tex)
 {
+   assert(sctx->gfx_level < GFX12);
    assert(!tex->is_depth);
 
    /* If graphics is disabled, we can't decompress DCC, but it shouldn't

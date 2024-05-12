@@ -1422,6 +1422,7 @@ static void radeon_enc_headers_hevc(struct radeon_encoder *enc)
    }
    enc->slice_header(enc);
    enc->encode_params(enc);
+   enc->encode_params_codec_spec(enc);
 }
 
 static void encode(struct radeon_encoder *enc)
@@ -1638,6 +1639,7 @@ void radeon_enc_1_2_init(struct radeon_encoder *enc)
       enc->nalu_vps = radeon_enc_nalu_vps;
       enc->slice_header = radeon_enc_slice_header_hevc;
       enc->encode_headers = radeon_enc_headers_hevc;
+      enc->encode_params_codec_spec = radeon_enc_dummy;
    }
 
    enc->cmd.session_info = RENCODE_IB_PARAM_SESSION_INFO;

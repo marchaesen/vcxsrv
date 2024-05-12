@@ -968,7 +968,7 @@ struct __DRIswrastExtensionRec {
    int (*queryBufferAge)(__DRIdrawable *drawable);
 
    /**
-    * createNewScreen() with the driver extensions passed in and implicit load flag.
+    * createNewScreen() with the driver extensions passed in and driver_name_is_inferred load flag.
     *
     * \since version 6
     */
@@ -976,7 +976,7 @@ struct __DRIswrastExtensionRec {
                                     const __DRIextension **loader_extensions,
                                     const __DRIextension **driver_extensions,
                                     const __DRIconfig ***driver_configs,
-                                    bool implicit,
+                                    bool driver_name_is_inferred,
                                     void *loaderPrivate);
 
 };
@@ -995,7 +995,7 @@ typedef __DRIscreen *
                              const __DRIextension **extensions,
                              const __DRIextension **driver_extensions,
                              const __DRIconfig ***driver_configs,
-                             bool implicit,
+                             bool driver_name_is_inferred,
                              void *loaderPrivate);
 
 typedef __DRIdrawable *
@@ -1253,7 +1253,7 @@ struct __DRIdri2ExtensionRec {
    __DRIcreateNewScreen2Func            createNewScreen2;
 
    /**
-    * createNewScreen with the driver's extension list passed in and implicit load flag.
+    * createNewScreen with the driver's extension list passed in and driver_name_is_inferred load flag.
     *
     * \since version 5
     */

@@ -171,6 +171,9 @@ struct radeon_enc_pic {
    rvcn_enc_h264_encode_params_t h264_enc_params;
    rvcn_enc_h264_deblocking_filter_t h264_deblock;
    rvcn_enc_hevc_deblocking_filter_t hevc_deblock;
+   rvcn_enc_hevc_encode_params_t hevc_enc_params;
+   rvcn_enc_av1_encode_params_t av1_enc_params;
+   rvcn_enc_av1_tile_config_t av1_tile_config;
    rvcn_enc_rate_ctl_per_picture_t rc_per_pic;
    rvcn_enc_quality_params_t quality_params;
    rvcn_enc_encode_context_buffer_t ctx_buf;
@@ -182,6 +185,7 @@ struct radeon_enc_pic {
    rvcn_enc_input_format_t enc_input_format;
    rvcn_enc_output_format_t enc_output_format;
    rvcn_enc_qp_map_t enc_qp_map;
+   rvcn_enc_metadata_buffer_t metadata;
 };
 
 struct radeon_encoder {
@@ -229,6 +233,9 @@ struct radeon_encoder {
    void (*encode_statistics)(struct radeon_encoder *enc);
    void (*obu_instructions)(struct radeon_encoder *enc);
    void (*cdf_default_table)(struct radeon_encoder *enc);
+   void (*ctx_override)(struct radeon_encoder *enc);
+   void (*metadata)(struct radeon_encoder *enc);
+   void (*tile_config)(struct radeon_encoder *enc);
    /* mq is used for preversing multiple queue ibs */
    void (*mq_begin)(struct radeon_encoder *enc);
    void (*mq_encode)(struct radeon_encoder *enc);
@@ -254,6 +261,7 @@ struct radeon_encoder {
    struct rvid_buffer *dpb;
    struct rvid_buffer *cdf;
    struct rvid_buffer *roi;
+   struct rvid_buffer *meta;
    struct radeon_enc_pic enc_pic;
    struct pb_buffer_lean *stats;
    rvcn_enc_cmd_t cmd;
@@ -275,6 +283,7 @@ struct radeon_encoder {
    bool need_rc_per_pic;
    unsigned dpb_size;
    unsigned roi_size;
+   unsigned metadata_size;
    rvcn_enc_picture_info_t dpb_info[RENCODE_MAX_NUM_RECONSTRUCTED_PICTURES];
    unsigned max_ltr_idx;
 
@@ -317,6 +326,8 @@ void radeon_enc_2_0_init(struct radeon_encoder *enc);
 void radeon_enc_3_0_init(struct radeon_encoder *enc);
 
 void radeon_enc_4_0_init(struct radeon_encoder *enc);
+
+void radeon_enc_5_0_init(struct radeon_encoder *enc);
 
 void radeon_enc_av1_bs_instruction_type(struct radeon_encoder *enc,
                                         unsigned int inst, unsigned int obu_type);

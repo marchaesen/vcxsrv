@@ -466,7 +466,7 @@ _XimExtension(
     	} else {
     	    buf_size = len;
 	    preply = Xmalloc(buf_size);
-    	    ret_code = _XimRead(im, &len, reply, buf_size,
+    	    ret_code = _XimRead(im, &len, preply, buf_size,
     					_XimQueryExtensionCheck, 0);
     	    if(ret_code != XIM_TRUE) {
 		Xfree(preply);

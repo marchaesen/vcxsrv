@@ -196,7 +196,8 @@ precompile_all_outputs(nir_shader *s,
                        uint8_t *num_outputs)
 {
         nir_foreach_shader_out_variable(var, s) {
-                const int array_len = MAX2(glsl_get_length(var->type), 1);
+                const int array_len = glsl_type_is_vector_or_scalar(var->type) ?
+                        1 : MAX2(glsl_get_length(var->type), 1);
                 for (int j = 0; j < array_len; j++) {
                         const int slot = var->data.location + j;
                         const int num_components =
@@ -601,12 +602,25 @@ v3d_setup_shared_precompile_key(struct v3d_uncompiled_shader *uncompiled,
 {
         nir_shader *s = uncompiled->base.ir.nir;
 
+        /* The shader may have gaps in the texture bindings, so figure out
+         * the largest binding in use and setup the number of textures and
+         * samplers from there instead of just the texture count from shader
+         * info.
+         */
+        key->num_tex_used = 0;
+        key->num_samplers_used = 0;
+        for (int i = V3D_MAX_TEXTURE_SAMPLERS - 1; i >= 0; i--) {
+                if (s->info.textures_used[0] & (1 << i)) {
+                        key->num_tex_used = i + 1;
+                        key->num_samplers_used = i + 1;
+                        break;
+                }
+        }
+
         /* Note that below we access they key's texture and sampler fields
          * using the same index. On OpenGL they are the same (they are
          * combined)
          */
-        key->num_tex_used = s->info.num_textures;
-        key->num_samplers_used = s->info.num_textures;
         for (int i = 0; i < s->info.num_textures; i++) {
                 key->sampler[i].return_size = 16;
                 key->sampler[i].return_channels = 2;

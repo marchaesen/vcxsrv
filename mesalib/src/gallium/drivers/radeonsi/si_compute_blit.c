@@ -422,13 +422,19 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
          compute_min_size = 4 * 1024;
       }
 
-      /* TODO: use compute for unaligned big sizes */
+      /* TODO: use compute for 8-bit and 16-bit clear values */
       if (method == SI_AUTO_SELECT_CLEAR_METHOD &&
+          /* CP DMA doesn't support the render condition. */
           (flags & SI_OP_CS_RENDER_COND_ENABLE ||
+           /* CP DMA doesn't support large clear value sizes. */
            clear_value_size > 4 ||
-           (clear_value_size == 4 && offset % 4 == 0 && size > compute_min_size))) {
+           /* Use compute if CP DMA is non-coherent. */
+           (sctx->screen->info.cp_sdma_ge_use_system_memory_scope &&
+            clear_value_size >= 4) ||
+           /* Use compute if the size is large enough. */
+           (clear_value_size == 4 && offset % 4 == 0 && size > compute_min_size)))
          method = SI_COMPUTE_CLEAR_METHOD;
-      }
+
       if (method == SI_COMPUTE_CLEAR_METHOD) {
          si_compute_do_clear_or_copy(sctx, dst, offset, NULL, 0, aligned_size, clear_value,
                                      clear_value_size, flags, coher);
@@ -484,8 +490,9 @@ void si_copy_buffer(struct si_context *sctx, struct pipe_resource *dst, struct p
    /* Only use compute for VRAM copies on dGPUs. */
    /* TODO: use compute for unaligned big sizes */
    if (sctx->screen->info.has_dedicated_vram && si_resource(dst)->domains & RADEON_DOMAIN_VRAM &&
-       si_resource(src)->domains & RADEON_DOMAIN_VRAM && size > compute_min_size &&
-       dst_offset % 4 == 0 && src_offset % 4 == 0 && size % 4 == 0) {
+       si_resource(src)->domains & RADEON_DOMAIN_VRAM &&
+       dst_offset % 4 == 0 && src_offset % 4 == 0 && size % 4 == 0 &&
+       (size > compute_min_size || sctx->screen->info.cp_sdma_ge_use_system_memory_scope)) {
       si_compute_do_clear_or_copy(sctx, dst, dst_offset, src, src_offset, size, NULL, 0,
                                   flags, coher);
    } else {
@@ -810,6 +817,8 @@ bool si_compute_copy_image(struct si_context *sctx, struct pipe_resource *dst, u
 
 void si_retile_dcc(struct si_context *sctx, struct si_texture *tex)
 {
+   assert(sctx->gfx_level < GFX12);
+
    /* Set the DCC buffer. */
    assert(tex->surface.meta_offset && tex->surface.meta_offset <= UINT_MAX);
    assert(tex->surface.display_dcc_offset && tex->surface.display_dcc_offset <= UINT_MAX);

@@ -47,7 +47,13 @@ dump_mem_pool_reg_write(unsigned reg, uint32_t data, unsigned context,
       }
       rnn_reginfo_free(info);
    } else {
-      printf("\t\twrite %s (%05x) context %d\n", regname(reg, 1), reg, context);
+      printf("\t\twrite %s (%05x)", regname(reg, 1), reg);
+
+      if (is_a6xx()) {
+         printf(" context %d", context);
+      }
+
+      printf("\n");
       dump_register_val(&r, 2);
    }
 }
@@ -133,7 +139,7 @@ dump_cp_mem_pool(uint32_t *mempool)
    const int num_blocks = small_mem_pool ? 0x30 : 0x80;
 
    /* Number of queues */
-   const unsigned num_queues = 6;
+   const unsigned num_queues = is_a6xx() ? 6 : 7;
 
    /* Unfortunately the per-queue state is a little more complicated than
     * a simple pair of begin/end pointers. Instead of a single beginning
@@ -198,31 +204,31 @@ dump_cp_mem_pool(uint32_t *mempool)
          uint32_t chunk : 3;
          uint32_t first_block : 32 - 3;
       } writer[6];
-      uint32_t padding1[2]; /* Mirrors of writer[4], writer[5] */
+      uint32_t padding1[2]; /* Mirror of writer[5] */
 
       uint32_t unk1;
       uint32_t padding2[7]; /* Mirrors of unk1 */
 
-      uint32_t writer_second_block[6];
-      uint32_t padding3[2];
+      uint32_t writer_second_block[7];
+      uint32_t padding3[1];
 
-      uint32_t unk2[6];
-      uint32_t padding4[2];
+      uint32_t unk2[7];
+      uint32_t padding4[1];
 
       struct {
          uint32_t chunk : 3;
          uint32_t first_block : 32 - 3;
-      } reader[6];
-      uint32_t padding5[2]; /* Mirrors of reader[4], reader[5] */
+      } reader[7];
+      uint32_t padding5[1]; /* Mirror of reader[5] */
 
       uint32_t unk3;
       uint32_t padding6[7]; /* Mirrors of unk3 */
 
-      uint32_t reader_second_block[6];
-      uint32_t padding7[2];
+      uint32_t reader_second_block[7];
+      uint32_t padding7[1];
 
-      uint32_t block_count[6];
-      uint32_t padding[2];
+      uint32_t block_count[7];
+      uint32_t padding[1];
 
       uint32_t unk4;
       uint32_t padding9[7]; /* Mirrors of unk4 */
@@ -254,9 +260,12 @@ dump_cp_mem_pool(uint32_t *mempool)
    }
 
    for (int queue = 0; queue < num_queues; queue++) {
-      const char *cluster_names[6] = {"FE",   "SP_VS", "PC_VS",
-                                      "GRAS", "SP_PS", "PS"};
-      printf("\tCLUSTER_%s:\n\n", cluster_names[queue]);
+      const char *cluster_names_a6xx[6] = {"FE",   "SP_VS", "PC_VS",
+                                           "GRAS", "SP_PS", "PS"};
+      const char *cluster_names_a7xx[7] = {"FE",   "SP_VS", "PC_VS",
+                                           "GRAS", "SP_PS", "VPC_PS", "PS"};
+      printf("\tCLUSTER_%s:\n\n",
+             is_a6xx() ? cluster_names_a6xx[queue] : cluster_names_a7xx[queue]);
 
       if (verbose) {
          printf("\t\twriter_first_block: 0x%x\n",

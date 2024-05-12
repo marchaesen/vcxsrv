@@ -1789,22 +1789,22 @@ link_intrastage_shaders(void *mem_ctx,
       }
    }
 
-   /* Set the linked source SHA1. */
+   /* Set the linked source BLAKE3. */
    if (num_shaders == 1) {
-      memcpy(linked->linked_source_sha1, shader_list[0]->compiled_source_sha1,
-             SHA1_DIGEST_LENGTH);
+      memcpy(linked->linked_source_blake3, shader_list[0]->compiled_source_blake3,
+             BLAKE3_OUT_LEN);
    } else {
-      struct mesa_sha1 sha1_ctx;
-      _mesa_sha1_init(&sha1_ctx);
+      struct mesa_blake3 blake3_ctx;
+      _mesa_blake3_init(&blake3_ctx);
 
       for (unsigned i = 0; i < num_shaders; i++) {
          if (shader_list[i] == NULL)
             continue;
 
-         _mesa_sha1_update(&sha1_ctx, shader_list[i]->compiled_source_sha1,
-                           SHA1_DIGEST_LENGTH);
+         _mesa_blake3_update(&blake3_ctx, shader_list[i]->compiled_source_blake3,
+                             BLAKE3_OUT_LEN);
       }
-      _mesa_sha1_final(&sha1_ctx, linked->linked_source_sha1);
+      _mesa_blake3_final(&blake3_ctx, linked->linked_source_blake3);
    }
 
    return linked;

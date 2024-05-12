@@ -622,7 +622,7 @@ void si_nir_scan_shader(struct si_screen *sscreen, const struct nir_shader *nir,
 
    /* Get options from shader profiles. */
    for (unsigned i = 0; i < ARRAY_SIZE(si_shader_profiles); i++) {
-      if (_mesa_printed_sha1_equal(info->base.source_sha1, si_shader_profiles[i].sha1)) {
+      if (_mesa_printed_blake3_equal(info->base.source_blake3, si_shader_profiles[i].blake3)) {
          info->options = si_shader_profiles[i].options;
          break;
       }
@@ -668,10 +668,12 @@ void si_nir_scan_shader(struct si_screen *sscreen, const struct nir_shader *nir,
    info->uses_base_instance = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_BASE_INSTANCE);
    info->uses_invocationid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_INVOCATION_ID);
    info->uses_grid_size = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_NUM_WORKGROUPS);
-   info->uses_tg_size = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_NUM_SUBGROUPS) ||
-                        BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_LOCAL_INVOCATION_INDEX) ||
-                        BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SUBGROUP_ID) ||
-                        si_should_clear_lds(sscreen, nir);
+   info->uses_tg_size = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_NUM_SUBGROUPS);
+   if (sscreen->info.gfx_level < GFX12) {
+      info->uses_tg_size |= BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_LOCAL_INVOCATION_INDEX) ||
+                            BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_SUBGROUP_ID) ||
+                            si_should_clear_lds(sscreen, nir);
+   }
    info->uses_variable_block_size = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_WORKGROUP_SIZE);
    info->uses_drawid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_DRAW_ID);
    info->uses_primid = BITSET_TEST(nir->info.system_values_read, SYSTEM_VALUE_PRIMITIVE_ID) ||

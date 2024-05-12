@@ -257,7 +257,7 @@ if not args.slow:
 
 
 def gfx_level_to_str(cl):
-    supported = ["gfx6", "gfx7", "gfx8", "gfx9", "gfx10", "gfx10_3", "gfx11"]
+    supported = ["gfx6", "gfx7", "gfx8", "gfx9", "gfx10", "gfx10_3", "gfx11", "gfx12"]
     if 8 <= cl and cl < 8 + len(supported):
         return supported[cl - 8]
     return supported[-1]

@@ -106,9 +106,9 @@ clear_in_rp(struct pipe_context *pctx,
    }
    cr.baseArrayLayer = 0;
    cr.layerCount = util_framebuffer_get_num_layers(fb);
-   struct zink_batch *batch = &ctx->batch;
-   assert(batch->in_rp);
-   VKCTX(CmdClearAttachments)(batch->state->cmdbuf, num_attachments, attachments, 1, &cr);
+   assert(ctx->in_rp);
+   VKCTX(CmdClearAttachments)(ctx->bs->cmdbuf, num_attachments, attachments, 1, &cr);
+   ctx->bs->has_work = true;
    /*
        Rendering within a subpass containing a feedback loop creates a data race, except in the following
        cases:
@@ -155,7 +155,6 @@ zink_clear(struct pipe_context *pctx,
    struct zink_context *ctx = zink_context(pctx);
    struct zink_screen *screen = zink_screen(pctx->screen);
    struct pipe_framebuffer_state *fb = &ctx->fb_state;
-   struct zink_batch *batch = &ctx->batch;
    bool needs_rp = false;
 
    if (scissor_state) {
@@ -202,7 +201,7 @@ zink_clear(struct pipe_context *pctx,
                                    x, y, w, h, ctx->render_condition_active);
    }
 
-   if (batch->in_rp) {
+   if (ctx->in_rp) {
       if (buffers & PIPE_CLEAR_DEPTHSTENCIL && (ctx->zsbuf_unused || ctx->zsbuf_readonly)) {
          /* this will need a layout change */
          assert(!ctx->track_renderpasses);
@@ -292,7 +291,7 @@ zink_clear(struct pipe_context *pctx,
             ctx->dynamic_fb.tc_info.zsbuf_clear = true;
       }
    }
-   assert(!ctx->batch.in_rp);
+   assert(!ctx->in_rp);
    ctx->rp_changed |= ctx->rp_clears_enabled != rp_clears_enabled;
 }
 
@@ -475,7 +474,7 @@ zink_clear_texture_dynamic(struct pipe_context *pctx,
 
    zink_blit_barriers(ctx, NULL, res, full_clear);
    VkCommandBuffer cmdbuf = zink_get_cmdbuf(ctx, NULL, res);
-   if (cmdbuf == ctx->batch.state->cmdbuf && ctx->batch.in_rp)
+   if (cmdbuf == ctx->bs->cmdbuf && ctx->in_rp)
       zink_batch_no_rp(ctx);
 
    if (res->aspect & VK_IMAGE_ASPECT_COLOR_BIT) {
@@ -505,7 +504,7 @@ zink_clear_texture_dynamic(struct pipe_context *pctx,
       VKCTX(CmdClearAttachments)(cmdbuf, 1, &clear_att, 1, &rect);
    }
    VKCTX(CmdEndRendering)(cmdbuf);
-   zink_batch_reference_resource_rw(&ctx->batch, res, true);
+   zink_batch_reference_resource_rw(ctx, res, true);
    /* this will never destroy the surface */
    pipe_surface_reference(&surf, NULL);
 }
@@ -591,7 +590,7 @@ zink_clear_buffer(struct pipe_context *pctx,
        */
       zink_resource_buffer_transfer_dst_barrier(ctx, res, offset, size);
       VkCommandBuffer cmdbuf = zink_get_cmdbuf(ctx, NULL, res);
-      zink_batch_reference_resource_rw(&ctx->batch, res, true);
+      zink_batch_reference_resource_rw(ctx, res, true);
       VKCTX(CmdFillBuffer)(cmdbuf, res->obj->buffer, offset, size, *(uint32_t*)clear_value);
       return;
    }
@@ -697,29 +696,28 @@ fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, i
 {
    if (!zink_fb_clear_enabled(ctx, i))
       return;
-   if (ctx->batch.in_rp)
+   if (ctx->in_rp)
       zink_clear_framebuffer(ctx, BITFIELD_BIT(i));
    else {
       struct zink_resource *res = zink_resource(pres);
       bool queries_disabled = ctx->queries_disabled;
-      VkCommandBuffer cmdbuf = ctx->batch.state->cmdbuf;
+      VkCommandBuffer cmdbuf = ctx->bs->cmdbuf;
       /* slightly different than the u_blitter handling:
        * this can be called recursively while unordered_blitting=true
        */
       bool can_reorder = zink_screen(ctx->base.screen)->info.have_KHR_dynamic_rendering &&
                          !ctx->render_condition_active &&
                          !ctx->unordered_blitting &&
-                         zink_get_cmdbuf(ctx, NULL, res) == ctx->batch.state->reordered_cmdbuf;
+                         zink_get_cmdbuf(ctx, NULL, res) == ctx->bs->reordered_cmdbuf;
       if (can_reorder) {
          /* set unordered_blitting but NOT blitting:
           * let begin_rendering handle layouts
           */
          ctx->unordered_blitting = true;
          /* for unordered clears, swap the unordered cmdbuf for the main one for the whole op to avoid conditional hell */
-         ctx->batch.state->cmdbuf = ctx->batch.state->reordered_cmdbuf;
+         ctx->bs->cmdbuf = ctx->bs->reordered_cmdbuf;
          ctx->rp_changed = true;
          ctx->queries_disabled = true;
-         ctx->batch.state->has_barriers = true;
       }
       /* this will automatically trigger all the clears */
       zink_batch_rp(ctx);
@@ -728,7 +726,7 @@ fb_clears_apply_internal(struct zink_context *ctx, struct pipe_resource *pres, i
          ctx->unordered_blitting = false;
          ctx->rp_changed = true;
          ctx->queries_disabled = queries_disabled;
-         ctx->batch.state->cmdbuf = cmdbuf;
+         ctx->bs->cmdbuf = cmdbuf;
       }
    }
    zink_fb_clear_reset(ctx, i);

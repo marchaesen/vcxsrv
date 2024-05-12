@@ -900,6 +900,9 @@ void ac_compute_late_alloc(const struct radeon_info *info, bool ngg, bool ngg_cu
    *late_alloc_wave64 = 0; /* The limit is per SA. */
    *cu_mask = 0xffff;
 
+   /* This should never be called on gfx12. Gfx12 doesn't need to mask CUs for late alloc. */
+   assert(info->gfx_level < GFX12);
+
    /* CU masking can decrease performance and cause a hang with <= 2 CUs per SA. */
    if (info->min_good_cu_per_sa <= 2)
       return;
@@ -1127,6 +1130,16 @@ uint32_t ac_apply_cu_en(uint32_t value, uint32_t clear_mask, unsigned value_shif
    /* The value being set. */
    uint32_t cu_en = (value & cu_en_mask) >> cu_en_shift;
 
+   uint32_t set_cu_en = info->spi_cu_en;
+
+   if (info->gfx_level >= GFX12 && clear_mask == 0) {
+      /* The CU mask has 32 bits and is per SE, not per SA. This math doesn't work with
+       * asymmetric WGP harvesting because SA0 doesn't always end on the same bit.
+       */
+      set_cu_en &= BITFIELD_MASK(info->max_good_cu_per_sa);
+      set_cu_en |= set_cu_en << info->max_good_cu_per_sa;
+   }
+
    /* AND the field by spi_cu_en. */
    uint32_t spi_cu_en = info->spi_cu_en >> value_shift;
    return (value & ~cu_en_mask) |
@@ -1227,7 +1240,28 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
 
    bool scope_is_device = access & (ACCESS_COHERENT | ACCESS_VOLATILE);
 
-   if (info->gfx_level >= GFX11) {
+   if (info->gfx_level >= GFX12) {
+      if (access & ACCESS_CP_GE_COHERENT_AMD) {
+         result.gfx12.scope = info->cp_sdma_ge_use_system_memory_scope ?
+                                 gfx12_scope_memory : gfx12_scope_device;
+      } else if (scope_is_device) {
+         result.gfx12.scope = gfx12_scope_device;
+      } else {
+         result.gfx12.scope = gfx12_scope_cu;
+      }
+
+      if (access & ACCESS_NON_TEMPORAL) {
+         if (access & ACCESS_TYPE_LOAD) {
+            /* Don't use non_temporal for SMEM because it can't set regular_temporal for MALL. */
+            if (!(access & ACCESS_TYPE_SMEM))
+               result.gfx12.temporal_hint = gfx12_load_near_non_temporal_far_regular_temporal;
+         } else if (access & ACCESS_TYPE_STORE) {
+            result.gfx12.temporal_hint = gfx12_store_near_non_temporal_far_regular_temporal;
+         } else {
+            result.gfx12.temporal_hint = gfx12_atomic_non_temporal;
+         }
+      }
+   } else if (info->gfx_level >= GFX11) {
       /* GFX11 simplified it and exposes what is actually useful.
        *
        * GLC means device scope for loads only. (stores and atomics are always device scope)
@@ -1309,16 +1343,21 @@ union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
          result.value |= ac_glc;
    }
 
-   if (access & ACCESS_IS_SWIZZLED_AMD)
-      result.value |= ac_swizzled;
+   if (access & ACCESS_IS_SWIZZLED_AMD) {
+      if (info->gfx_level >= GFX12)
+         result.gfx12.swizzled = true;
+      else
+         result.value |= ac_swizzled;
+   }
 
    return result;
 }
 
-unsigned ac_get_all_edge_flag_bits(void)
+unsigned ac_get_all_edge_flag_bits(enum amd_gfx_level gfx_level)
 {
-   /* This will be extended in the future. */
-   return (1u << 9) | (1u << 19) | (1u << 29);
+   return gfx_level >= GFX12 ?
+            ((1u << 8) | (1u << 17) | (1u << 26)) :
+            ((1u << 9) | (1u << 19) | (1u << 29));
 }
 
 /**

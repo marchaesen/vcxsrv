@@ -113,6 +113,7 @@ files_libradeonsi = files(
   'radeon_vcn_enc_2_0.c',
   'radeon_vcn_enc_3_0.c',
   'radeon_vcn_enc_4_0.c',
+  'radeon_vcn_enc_5_0.c',
   'radeon_video.c',
   'radeon_video.h',
 )
@@ -144,7 +145,7 @@ if with_llvm
 endif
 
 radeonsi_gfx_libs = []
-foreach ver : ['6', '7', '8', '9', '10', '103', '11', '115']
+foreach ver : ['6', '7', '8', '9', '10', '103', '11', '115', '12']
   radeonsi_gfx_libs += static_library(
     'radeonsi_gfx@0@'.format(ver),
     ['si_state_draw.cpp'],

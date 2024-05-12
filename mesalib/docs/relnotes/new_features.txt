@@ -1,0 +1,2 @@
+VK_KHR_dynamic_rendering_local_read on RADV
+VK_EXT_legacy_vertex_attributes on lavapipe

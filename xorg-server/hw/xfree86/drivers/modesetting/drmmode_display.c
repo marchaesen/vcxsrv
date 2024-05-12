@@ -63,9 +63,9 @@ static PixmapPtr drmmode_create_pixmap_header(ScreenPtr pScreen, int width, int 
                                               void *pPixData);
 
 static const struct drm_color_ctm ctm_identity = { {
-    1UL << 32, 0, 0,
-    0, 1UL << 32, 0,
-    0, 0, 1UL << 32
+    1ULL << 32, 0, 0,
+    0, 1ULL << 32, 0,
+    0, 0, 1ULL << 32
 } };
 
 static Bool ctm_is_identity(const struct drm_color_ctm *ctm)

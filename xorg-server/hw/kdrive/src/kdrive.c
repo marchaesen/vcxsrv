@@ -26,6 +26,7 @@
 
 #include "dix/screenint_priv.h"
 #include "os/cmdline.h"
+#include "os/ddx_priv.h"
 
 #include "os/osdep.h"
 
@@ -33,6 +34,7 @@
 #include <mivalidate.h>
 #include <dixstruct.h>
 #include "privates.h"
+
 #ifdef RANDR
 #include <randrstr.h>
 #endif

@@ -35,6 +35,8 @@
 #include <unistd.h>
 #include <pthread.h>
 
+#include "os/ddx_priv.h"
+
 #include "inputstr.h"
 #include "opaque.h"
 #include "osdep.h"

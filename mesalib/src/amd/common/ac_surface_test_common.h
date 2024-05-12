@@ -135,6 +135,20 @@ static void init_gfx11(struct radeon_info *info)
    info->gb_addr_config = 0x00000040; /* Other fields are set by test cases. */
 }
 
+static void init_gfx12(struct radeon_info *info)
+{
+   info->family = CHIP_GFX1200;
+   info->gfx_level = GFX12;
+   info->family_id = FAMILY_GFX12;
+   info->chip_external_rev = 0x01;
+   info->has_graphics = true;
+   info->tcc_cache_line_size = 256;
+   info->has_rbplus = true;
+   info->rbplus_allowed = true;
+
+   info->gb_addr_config = 0; /* Other fields are set by test cases. */
+}
+
 struct testcase {
    const char *name;
    gpu_init_func init;
@@ -172,6 +186,7 @@ static struct testcase testcases[] = {
    {"gfx11_4pipe_2pkr", init_gfx11, 1, 2},
    {"gfx11_4pipe_1pkr", init_gfx11, 0, 2},
    {"gfx11_2pipe_1pkr", init_gfx11, 0, 1},
+   {"gfx12_16pipe", init_gfx12, 4, 4},
 };
 
 static struct radeon_info get_radeon_info(struct testcase *testcase)
@@ -198,6 +213,7 @@ static struct radeon_info get_radeon_info(struct testcase *testcase)
    case GFX10:
    case GFX10_3:
    case GFX11:
+   case GFX12:
       info.gb_addr_config = (info.gb_addr_config &
                              C_0098F8_NUM_PIPES &
                              C_0098F8_NUM_PKRS) |

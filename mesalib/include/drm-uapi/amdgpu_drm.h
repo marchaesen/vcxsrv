@@ -392,7 +392,7 @@ struct drm_amdgpu_gem_userptr {
 #define AMDGPU_TILING_NUM_BANKS_SHIFT			21
 #define AMDGPU_TILING_NUM_BANKS_MASK			0x3
 
-/* GFX9 and later: */
+/* GFX9 - GFX11: */
 #define AMDGPU_TILING_SWIZZLE_MODE_SHIFT		0
 #define AMDGPU_TILING_SWIZZLE_MODE_MASK			0x1f
 #define AMDGPU_TILING_DCC_OFFSET_256B_SHIFT		5
@@ -405,6 +405,13 @@ struct drm_amdgpu_gem_userptr {
 #define AMDGPU_TILING_DCC_INDEPENDENT_128B_MASK		0x1
 #define AMDGPU_TILING_SCANOUT_SHIFT			63
 #define AMDGPU_TILING_SCANOUT_MASK			0x1
+
+/* GFX12 and later: */
+#define AMDGPU_TILING_GFX12_SWIZZLE_MODE_SHIFT			0
+#define AMDGPU_TILING_GFX12_SWIZZLE_MODE_MASK			0x7
+/* bit gap */
+#define AMDGPU_TILING_GFX12_SCANOUT_SHIFT			63
+#define AMDGPU_TILING_GFX12_SCANOUT_MASK			0x1
 
 /* Set/Get helpers for tiling flags. */
 #define AMDGPU_TILING_SET(field, value) \

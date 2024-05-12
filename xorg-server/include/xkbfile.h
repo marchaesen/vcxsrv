@@ -36,9 +36,6 @@
 #define	XkbXKBFile	2
 #define	XkbMessage	3
 
-#define	XkbMapDefined		(1<<0)
-#define	XkbStateDefined		(1<<1)
-
 typedef void (*XkbFileAddOnFunc) (FILE * /* file */ ,
                                   XkbDescPtr /* result */ ,
                                   Bool /* topLevel */ ,
@@ -49,32 +46,32 @@ typedef void (*XkbFileAddOnFunc) (FILE * /* file */ ,
 
 /***====================================================================***/
 
-#define	_XkbSuccess			0
+#define	_XkbSuccess			0	/* unused */
 #define	_XkbErrMissingNames		1
 #define	_XkbErrMissingTypes		2
 #define	_XkbErrMissingReqTypes		3
 #define	_XkbErrMissingSymbols		4
-#define	_XkbErrMissingVMods		5
-#define	_XkbErrMissingIndicators	6
+#define	_XkbErrMissingVMods		5	/* unused */
+#define	_XkbErrMissingIndicators	6	/* unused */
 #define	_XkbErrMissingCompatMap		7
-#define	_XkbErrMissingSymInterps	8
+#define	_XkbErrMissingSymInterps	8	/* unused */
 #define	_XkbErrMissingGeometry		9
-#define	_XkbErrIllegalDoodad		10
-#define	_XkbErrIllegalTOCType		11
+#define	_XkbErrIllegalDoodad		10	/* unused */
+#define	_XkbErrIllegalTOCType		11	/* unused */
 #define	_XkbErrIllegalContents		12
-#define	_XkbErrEmptyFile		13
-#define	_XkbErrFileNotFound		14
-#define	_XkbErrFileCannotOpen		15
+#define	_XkbErrEmptyFile		13	/* unused */
+#define	_XkbErrFileNotFound		14	/* unused */
+#define	_XkbErrFileCannotOpen		15	/* unused */
 #define	_XkbErrBadValue			16
 #define	_XkbErrBadMatch			17
 #define	_XkbErrBadTypeName		18
 #define	_XkbErrBadTypeWidth		19
 #define	_XkbErrBadFileType		20
 #define	_XkbErrBadFileVersion		21
-#define	_XkbErrBadFileFormat		22
+#define	_XkbErrBadFileFormat		22	/* unused */
 #define	_XkbErrBadAlloc			23
 #define	_XkbErrBadLength		24
-#define	_XkbErrXReqFailure		25
+#define	_XkbErrXReqFailure		25	/* unused */
 #define	_XkbErrBadImplementation	26
 
 /***====================================================================***/
@@ -165,8 +162,6 @@ extern _X_EXPORT char *XkbBehaviorText(XkbDescPtr /* xkb */ ,
 #define	XkbKSIsLower(k)		(_XkbKSCheckCase(k)&_XkbKSLower)
 #define	XkbKSIsUpper(k)		(_XkbKSCheckCase(k)&_XkbKSUpper)
 #define XkbKSIsKeypad(k)	(((k)>=XK_KP_Space)&&((k)<=XK_KP_Equal))
-#define	XkbKSIsDeadKey(k)	\
-		(((k)>=XK_dead_grave)&&((k)<=XK_dead_semivoiced_sound))
 
 extern _X_EXPORT unsigned _XkbKSCheckCase(KeySym        /* sym */
     );
@@ -175,25 +170,6 @@ extern _X_EXPORT int XkbFindKeycodeByName(XkbDescPtr /* xkb */ ,
                                           char * /* name */ ,
                                           Bool  /* use_aliases */
     );
-
-/***====================================================================***/
-
-#ifdef _XKBGEOM_H_
-
-#define	XkbDW_Unknown	0
-#define	XkbDW_Doodad	1
-#define	XkbDW_Section	2
-typedef struct _XkbDrawable {
-    int type;
-    int priority;
-    union {
-        XkbDoodadPtr doodad;
-        XkbSectionPtr section;
-    } u;
-    struct _XkbDrawable *next;
-} XkbDrawableRec, *XkbDrawablePtr;
-
-#endif
 
 /***====================================================================***/
 

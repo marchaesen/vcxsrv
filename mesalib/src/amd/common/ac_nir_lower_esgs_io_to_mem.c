@@ -238,14 +238,37 @@ gs_per_vertex_input_vertex_offset_gfx9(nir_builder *b, lower_esgs_io_state *st,
 }
 
 static nir_def *
+gs_per_vertex_input_vertex_offset_gfx12(nir_builder *b, lower_esgs_io_state *st,
+                                        nir_src *vertex_src)
+{
+   if (nir_src_is_const(*vertex_src)) {
+      unsigned vertex = nir_src_as_uint(*vertex_src);
+      return nir_ubfe_imm(b, gs_get_vertex_offset(b, st, vertex / 3),
+                          (vertex % 3) * 9, 8);
+   }
+
+   nir_def *bitoffset = nir_imul_imm(b, nir_umod_imm(b, vertex_src->ssa, 3), 9);
+   nir_def *lt3 = nir_ult(b, vertex_src->ssa, nir_imm_int(b, 3));
+
+   return nir_bcsel(b, lt3,
+                    nir_ubfe(b, gs_get_vertex_offset(b, st, 0), bitoffset, nir_imm_int(b, 8)),
+                    nir_ubfe(b, gs_get_vertex_offset(b, st, 1), bitoffset, nir_imm_int(b, 8)));
+}
+
+static nir_def *
 gs_per_vertex_input_offset(nir_builder *b,
                            lower_esgs_io_state *st,
                            nir_intrinsic_instr *instr)
 {
    nir_src *vertex_src = nir_get_io_arrayed_index_src(instr);
-   nir_def *vertex_offset = st->gfx_level >= GFX9
-      ? gs_per_vertex_input_vertex_offset_gfx9(b, st, vertex_src)
-      : gs_per_vertex_input_vertex_offset_gfx6(b, st, vertex_src);
+   nir_def *vertex_offset;
+
+   if (st->gfx_level >= GFX12)
+      vertex_offset = gs_per_vertex_input_vertex_offset_gfx12(b, st, vertex_src);
+   else if (st->gfx_level >= GFX9)
+      vertex_offset = gs_per_vertex_input_vertex_offset_gfx9(b, st, vertex_src);
+   else
+      vertex_offset = gs_per_vertex_input_vertex_offset_gfx6(b, st, vertex_src);
 
    /* Gfx6-8 can't emulate VGT_ESGS_RING_ITEMSIZE because it uses the register to determine
     * the allocation size of the ESGS ring buffer in memory.

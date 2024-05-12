@@ -225,8 +225,8 @@ radv_init_sampler(struct radv_device *device, struct radv_sampler *sampler, cons
                         S_008F30_ANISO_THRESHOLD(max_aniso_ratio >> 1) | S_008F30_ANISO_BIAS(max_aniso_ratio) |
                         S_008F30_DISABLE_CUBE_WRAP(disable_cube_wrap) | S_008F30_COMPAT_MODE(compat_mode) |
                         S_008F30_FILTER_MODE(filter_mode) | S_008F30_TRUNC_COORD(trunc_coord));
-   sampler->state[1] = (S_008F34_MIN_LOD(util_unsigned_fixed(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
-                        S_008F34_MAX_LOD(util_unsigned_fixed(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
+   sampler->state[1] = (S_008F34_MIN_LOD_GFX6(util_unsigned_fixed(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
+                        S_008F34_MAX_LOD_GFX6(util_unsigned_fixed(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
                         S_008F34_PERF_MIP(max_aniso_ratio ? max_aniso_ratio + 6 : 0));
    sampler->state[2] = (S_008F38_XY_MAG_FILTER(radv_tex_filter(pCreateInfo->magFilter, max_aniso)) |
                         S_008F38_XY_MIN_FILTER(radv_tex_filter(pCreateInfo->minFilter, max_aniso)) |

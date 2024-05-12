@@ -5796,6 +5796,12 @@ bool nir_lower_is_helper_invocation(nir_shader *shader);
 bool nir_lower_single_sampled(nir_shader *shader);
 
 typedef struct nir_lower_subgroups_options {
+   /* In addition to the boolean lowering options below, this optional callback
+    * will filter instructions for lowering if non-NULL. The data passed will be
+    * this options struct itself.
+    */
+   nir_instr_filter_cb filter;
+
    uint8_t subgroup_size;
    uint8_t ballot_bit_size;
    uint8_t ballot_components;
@@ -5818,6 +5824,7 @@ typedef struct nir_lower_subgroups_options {
    bool lower_rotate_to_shuffle : 1;
    bool lower_ballot_bit_count_to_mbcnt_amd : 1;
    bool lower_inverse_ballot : 1;
+   bool lower_reduce : 1;
    bool lower_boolean_reduce : 1;
    bool lower_boolean_shuffle : 1;
 } nir_lower_subgroups_options;

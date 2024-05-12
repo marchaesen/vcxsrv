@@ -372,7 +372,7 @@ kernel+rootfs_arm32:
     - .container+build-rules
   variables:
     FDO_DISTRIBUTION_TAG: "${MESA_IMAGE_TAG}--${MESA_ROOTFS_TAG}--${KERNEL_TAG}--${MESA_TEMPLATES_COMMIT}"
-    ARTIFACTS_PREFIX: "https://${S3_HOST}/mesa-lava"
+    ARTIFACTS_PREFIX: "https://${S3_HOST}/${S3_KERNEL_BUCKET}"
     ARTIFACTS_SUFFIX: "${MESA_ROOTFS_TAG}--${KERNEL_TAG}--${MESA_ARTIFACTS_TAG}--${MESA_TEMPLATES_COMMIT}"
     MESA_ARTIFACTS_TAG: *debian-arm64_build
     MESA_ROOTFS_TAG: *kernel-rootfs

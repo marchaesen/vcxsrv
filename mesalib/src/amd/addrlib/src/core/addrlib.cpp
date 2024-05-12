@@ -220,6 +220,9 @@ ADDR_E_RETURNCODE Lib::Create(
                     case FAMILY_GFX1103:
                         pLib = Gfx11HwlInit(&client);
                         break;
+                    case FAMILY_GFX12:
+                        pLib = Gfx12HwlInit(&client);
+                        break;
                     default:
                         ADDR_ASSERT_ALWAYS();
                         break;

@@ -2074,7 +2074,7 @@ iris_compile_tcs(struct iris_screen *screen,
          assert(screen->elk);
          nir = elk_nir_create_passthrough_tcs(mem_ctx, screen->elk, &elk_key);
       }
-      source_hash = *(uint32_t*)nir->info.source_sha1;
+      source_hash = *(uint32_t*)nir->info.source_blake3;
    }
 
    iris_setup_uniforms(devinfo, mem_ctx, nir, 0, &system_values,
@@ -3198,8 +3198,8 @@ iris_create_uncompiled_shader(struct iris_screen *screen,
       update_so_info(&ish->stream_output, nir->info.outputs_written);
    }
 
-   /* Use lowest dword of source shader sha1 for shader hash. */
-   ish->source_hash = *(uint32_t*)nir->info.source_sha1;
+   /* Use lowest dword of source shader blake3 for shader hash. */
+   ish->source_hash = *(uint32_t*)nir->info.source_blake3;
 
    if (screen->disk_cache) {
       /* Serialize the NIR to a binary blob that we can hash for the disk

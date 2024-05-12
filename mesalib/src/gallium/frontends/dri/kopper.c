@@ -111,10 +111,12 @@ static const __DRIextension *drivk_sw_screen_extensions[] = {
 };
 
 static const __DRIconfig **
-kopper_init_screen(struct dri_screen *screen, bool implicit)
+kopper_init_screen(struct dri_screen *screen, bool driver_name_is_inferred)
 {
    const __DRIconfig **configs;
    struct pipe_screen *pscreen = NULL;
+
+   (void) mtx_init(&screen->opencl_func_mutex, mtx_plain);
 
    if (!screen->kopper_loader) {
       fprintf(stderr, "mesa: Kopper interface not found!\n"
@@ -136,10 +138,10 @@ kopper_init_screen(struct dri_screen *screen, bool implicit)
 #endif
 
    if (success)
-      pscreen = pipe_loader_create_screen(screen->dev, implicit);
+      pscreen = pipe_loader_create_screen(screen->dev, driver_name_is_inferred);
 
    if (!pscreen)
-      goto fail;
+      return NULL;
 
    dri_init_options(screen);
    screen->unwrapped_screen = trace_screen_unwrap(pscreen);
@@ -172,7 +174,7 @@ kopper_init_screen(struct dri_screen *screen, bool implicit)
 
    return configs;
 fail:
-   dri_release_screen(screen);
+   pipe_loader_release(&screen->dev, 1);
    return NULL;
 }
 

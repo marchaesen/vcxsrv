@@ -32,7 +32,7 @@
 #include "compiler/shader_enums.h"
 #include "util/half_float.h"
 #include "util/memstream.h"
-#include "util/mesa-sha1.h"
+#include "util/mesa-blake3.h"
 #include "vulkan/vulkan_core.h"
 #include "nir.h"
 
@@ -2410,8 +2410,8 @@ print_shader_info(const struct shader_info *info, FILE *fp)
 {
    fprintf(fp, "shader: %s\n", gl_shader_stage_name(info->stage));
 
-   fprintf(fp, "source_sha1: {");
-   _mesa_sha1_print(fp, info->source_sha1);
+   fprintf(fp, "source_blake3: {");
+   _mesa_blake3_print(fp, info->source_blake3);
    fprintf(fp, "}\n");
 
    if (info->name)

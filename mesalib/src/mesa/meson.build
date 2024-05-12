@@ -195,6 +195,8 @@ files_libmesa = files(
   'main/shaderobj.h',
   'main/shared.c',
   'main/shared.h',
+  'main/spirv_capabilities.c',
+  'main/spirv_capabilities.h',
   'main/spirv_extensions.c',
   'main/spirv_extensions.h',
   'main/state.c',

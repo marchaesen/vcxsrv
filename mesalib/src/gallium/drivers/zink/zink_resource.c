@@ -1763,9 +1763,9 @@ add_resource_bind(struct zink_context *ctx, struct zink_resource *res, unsigned 
       ctx->base.resource_copy_region(&ctx->base, &res->base.b, i, 0, 0, 0, &staging.base.b, i, &box);
    }
    if (old_obj->exportable) {
-      simple_mtx_lock(&ctx->batch.state->exportable_lock);
-      _mesa_set_remove_key(&ctx->batch.state->dmabuf_exports, &staging);
-      simple_mtx_unlock(&ctx->batch.state->exportable_lock);
+      simple_mtx_lock(&ctx->bs->exportable_lock);
+      _mesa_set_remove_key(&ctx->bs->dmabuf_exports, &staging);
+      simple_mtx_unlock(&ctx->bs->exportable_lock);
    }
    zink_resource_object_reference(screen, &old_obj, NULL);
    return true;
@@ -2137,7 +2137,7 @@ invalidate_buffer(struct zink_context *ctx, struct zink_resource *res)
    }
    bool needs_bda = !!res->obj->bda;
    /* this ref must be transferred before rebind or else BOOM */
-   zink_batch_reference_resource_move(&ctx->batch, res);
+   zink_batch_reference_resource_move(ctx, res);
    res->obj = new_obj;
    res->queue = VK_QUEUE_FAMILY_IGNORED;
    if (needs_bda)

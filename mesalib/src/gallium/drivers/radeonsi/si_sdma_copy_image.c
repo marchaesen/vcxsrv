@@ -57,6 +57,7 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
 {
    bool is_v5 = sctx->gfx_level >= GFX10;
    bool is_v5_2 = sctx->gfx_level >= GFX10_3;
+   bool is_v7 = sctx->gfx_level >= GFX12;
    unsigned bpp = sdst->surface.bpe;
    uint64_t dst_address = sdst->buffer.gpu_address + sdst->surface.u.gfx9.surf_offset;
    uint64_t src_address = ssrc->buffer.gpu_address + ssrc->surface.u.gfx9.surf_offset;
@@ -111,17 +112,27 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
       uint64_t tiled_address = tiled == ssrc ? src_address : dst_address;
       uint64_t linear_address = linear == ssrc ? src_address : dst_address;
       struct radeon_cmdbuf *cs = sctx->sdma_cs;
-      /* Only SDMA 5 supports DCC with SDMA */
-      bool dcc = vi_dcc_enabled(tiled, 0) && is_v5;
       assert(tiled->buffer.b.b.depth0 == 1);
+      bool dcc = false;
+
+      if (is_v7) {
+         /* Check if everything fits into the bitfields */
+         if (!(tiled_width <= (1 << 16) && tiled_height <= (1 << 16) &&
+               linear_pitch <= (1 << 16) && linear_slice_pitch <= (1ull << 32) &&
+               copy_width <= (1 << 16) && copy_height <= (1 << 16)))
+            return false;
+      } else {
+         /* Only SDMA 5 supports DCC with SDMA */
+         dcc = is_v5 && vi_dcc_enabled(tiled, 0);
+
+         /* Check if everything fits into the bitfields */
+         if (!(tiled_width <= (1 << 14) && tiled_height <= (1 << 14) &&
+               linear_pitch <= (1 << 14) && linear_slice_pitch <= (1 << 28) &&
+               copy_width <= (1 << 14) && copy_height <= (1 << 14)))
+            return false;
+      }
 
       linear_address += linear->surface.u.gfx9.offset[0];
-
-      /* Check if everything fits into the bitfields */
-      if (!(tiled_width <= (1 << 14) && tiled_height <= (1 << 14) &&
-            linear_pitch <= (1 << 14) && linear_slice_pitch <= (1 << 28) &&
-            copy_width <= (1 << 14) && copy_height <= (1 << 14)))
-         return false;
 
       radeon_begin(cs);
       radeon_emit(
@@ -138,7 +149,7 @@ static bool si_sdma_v4_v5_copy_texture(struct si_context *sctx, struct si_textur
       radeon_emit((tiled_height - 1));
       radeon_emit(util_logbase2(bpp) |
                   tiled->surface.u.gfx9.swizzle_mode << 3 |
-                  tiled->surface.u.gfx9.resource_type << 9 |
+                  (is_v7 ? 0 : tiled->surface.u.gfx9.resource_type << 9) |
                   (is_v5 ? tiled->buffer.b.b.last_level : tiled->surface.u.gfx9.epitch) << 16);
       radeon_emit((uint32_t)linear_address);
       radeon_emit((uint32_t)(linear_address >> 32));
@@ -409,6 +420,7 @@ bool si_sdma_copy_image(struct si_context *sctx, struct si_texture *dst, struct 
       case GFX10_3:
       case GFX11:
       case GFX11_5:
+      case GFX12:
          if (!si_sdma_v4_v5_copy_texture(sctx, dst, src))
             return false;
          break;

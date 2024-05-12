@@ -63,15 +63,6 @@ struct nearest_sampler {
 };
 
 
-struct linear_interp {
-   alignas(16) uint32_t out[64];
-   __m128i a0;
-   __m128i dadx;
-   __m128i dady;
-   int width;                   /* rounded up to multiple of 4 */
-   bool is_constant;
-};
-
 /* Organize all the information needed for blending in one place.
  * Could have blend function pointer here, but we currently always
  * know which one we want to call.

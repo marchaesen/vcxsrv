@@ -78,8 +78,7 @@ zink-anv-tgl-traces-restricted:
     - .zink-anv-rules-restricted
   variables:
     PIGLIT_TRACES_FILE: traces-zink-restricted.yml
-    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-private --jwt-file=${S3_JWT_FILE}
-  allow_failure: true
+    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=${S3_TRACIE_PRIVATE_BUCKET} --jwt-file=${S3_JWT_FILE}
 
 zink-tu-a618:
   extends:

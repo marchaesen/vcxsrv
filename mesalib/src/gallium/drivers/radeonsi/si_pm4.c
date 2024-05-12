@@ -14,6 +14,13 @@
 static void si_pm4_set_reg_custom(struct si_pm4_state *state, unsigned reg, uint32_t val,
                                   unsigned opcode, unsigned idx);
 
+static bool opcode_is_pairs(unsigned opcode)
+{
+   return opcode == PKT3_SET_CONTEXT_REG_PAIRS ||
+          opcode == PKT3_SET_SH_REG_PAIRS ||
+          opcode == PKT3_SET_UCONFIG_REG_PAIRS;
+}
+
 static bool opcode_is_pairs_packed(unsigned opcode)
 {
    return opcode == PKT3_SET_CONTEXT_REG_PAIRS_PACKED ||
@@ -39,9 +46,13 @@ static unsigned regular_opcode_to_pairs(struct si_pm4_state *state, unsigned opc
 
    switch (opcode) {
    case PKT3_SET_CONTEXT_REG:
-      return info->has_set_context_pairs_packed ? PKT3_SET_CONTEXT_REG_PAIRS_PACKED : opcode;
+      return info->has_set_context_pairs_packed ? PKT3_SET_CONTEXT_REG_PAIRS_PACKED :
+             info->has_set_context_pairs ? PKT3_SET_CONTEXT_REG_PAIRS : opcode;
    case PKT3_SET_SH_REG:
-      return info->has_set_sh_pairs_packed ? PKT3_SET_SH_REG_PAIRS_PACKED : opcode;
+      return info->has_set_sh_pairs_packed ? PKT3_SET_SH_REG_PAIRS_PACKED :
+             info->has_set_sh_pairs ? PKT3_SET_SH_REG_PAIRS : opcode;
+   case PKT3_SET_UCONFIG_REG:
+      return info->has_set_uconfig_pairs ? PKT3_SET_UCONFIG_REG_PAIRS : opcode;
    }
 
    return opcode;
@@ -192,7 +203,8 @@ static void si_pm4_cmd_end(struct si_pm4_state *state, bool predicate)
    count = state->ndw - state->last_pm4 - 2;
    /* All SET_*_PAIRS* packets on the gfx queue must set RESET_FILTER_CAM. */
    bool reset_filter_cam = !state->is_compute_queue &&
-                           opcode_is_pairs_packed(state->last_opcode);
+                           (opcode_is_pairs(state->last_opcode) ||
+                            opcode_is_pairs_packed(state->last_opcode));
 
    state->pm4[state->last_pm4] = PKT3(state->last_opcode, count, predicate) |
                                  PKT3_RESET_FILTER_CAM_S(reset_filter_cam);
@@ -226,6 +238,13 @@ static void si_pm4_set_reg_custom(struct si_pm4_state *state, unsigned reg, uint
          si_pm4_cmd_begin(state, opcode); /* reserve space for the header */
          state->ndw++; /* reserve space for the register count, it will be set at the end */
       }
+   } else if (opcode_is_pairs(opcode)) {
+      assert(idx == 0);
+
+      if (opcode != state->last_opcode)
+         si_pm4_cmd_begin(state, opcode);
+
+      state->pm4[state->ndw++] = reg;
    } else if (opcode != state->last_opcode || reg != (state->last_reg + 1) ||
               idx != state->last_idx) {
       si_pm4_cmd_begin(state, opcode);

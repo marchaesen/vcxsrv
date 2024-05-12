@@ -491,7 +491,7 @@ emit_alu(struct etna_compile *c, nir_alu_instr * alu)
       break;
    }
 
-   hw_src srcs[3];
+   hw_src srcs[3] = {0};
 
    for (int i = 0; i < info->num_inputs; i++) {
       nir_alu_src *asrc = &alu->src[i];

@@ -219,6 +219,9 @@ typedef enum SpvExecutionMode_ {
     SpvExecutionModeStreamingInterfaceINTEL = 6154,
     SpvExecutionModeRegisterMapInterfaceINTEL = 6160,
     SpvExecutionModeNamedBarrierCountINTEL = 6417,
+    SpvExecutionModeMaximumRegistersINTEL = 6461,
+    SpvExecutionModeMaximumRegistersIdINTEL = 6462,
+    SpvExecutionModeNamedMaximumRegistersINTEL = 6463,
     SpvExecutionModeMax = 0x7fffffff,
 } SpvExecutionMode;
 
@@ -544,6 +547,7 @@ typedef enum SpvDecoration_ {
     SpvDecorationNoUnsignedWrap = 4470,
     SpvDecorationWeightTextureQCOM = 4487,
     SpvDecorationBlockMatchTextureQCOM = 4488,
+    SpvDecorationBlockMatchSamplerQCOM = 4499,
     SpvDecorationExplicitInterpAMD = 4999,
     SpvDecorationNodeSharesPayloadLimitsWithAMDX = 5019,
     SpvDecorationNodeMaxPayloadsAMDX = 5020,
@@ -1079,6 +1083,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityTextureSampleWeightedQCOM = 4484,
     SpvCapabilityTextureBoxFilterQCOM = 4485,
     SpvCapabilityTextureBlockMatchQCOM = 4486,
+    SpvCapabilityTextureBlockMatch2QCOM = 4498,
     SpvCapabilityFloat16ImageAMD = 5008,
     SpvCapabilityImageGatherBiasLodAMD = 5009,
     SpvCapabilityFragmentMaskAMD = 5010,
@@ -1152,7 +1157,9 @@ typedef enum SpvCapability_ {
     SpvCapabilityShaderInvocationReorderNV = 5383,
     SpvCapabilityBindlessTextureNV = 5390,
     SpvCapabilityRayQueryPositionFetchKHR = 5391,
+    SpvCapabilityAtomicFloat16VectorNV = 5404,
     SpvCapabilityRayTracingDisplacementMicromapNV = 5409,
+    SpvCapabilityRawAccessChainsNV = 5414,
     SpvCapabilitySubgroupShuffleINTEL = 5568,
     SpvCapabilitySubgroupBufferBlockIOINTEL = 5569,
     SpvCapabilitySubgroupImageBlockIOINTEL = 5570,
@@ -1226,6 +1233,7 @@ typedef enum SpvCapability_ {
     SpvCapabilityGroupUniformArithmeticKHR = 6400,
     SpvCapabilityMaskedGatherScatterINTEL = 6427,
     SpvCapabilityCacheControlsINTEL = 6441,
+    SpvCapabilityRegisterLimitsINTEL = 6460,
     SpvCapabilityMax = 0x7fffffff,
 } SpvCapability;
 
@@ -1393,6 +1401,23 @@ typedef enum SpvStoreCacheControl_ {
     SpvStoreCacheControlStreamingINTEL = 3,
     SpvStoreCacheControlMax = 0x7fffffff,
 } SpvStoreCacheControl;
+
+typedef enum SpvNamedMaximumNumberOfRegisters_ {
+    SpvNamedMaximumNumberOfRegistersAutoINTEL = 0,
+    SpvNamedMaximumNumberOfRegistersMax = 0x7fffffff,
+} SpvNamedMaximumNumberOfRegisters;
+
+typedef enum SpvRawAccessChainOperandsShift_ {
+    SpvRawAccessChainOperandsRobustnessPerComponentNVShift = 0,
+    SpvRawAccessChainOperandsRobustnessPerElementNVShift = 1,
+    SpvRawAccessChainOperandsMax = 0x7fffffff,
+} SpvRawAccessChainOperandsShift;
+
+typedef enum SpvRawAccessChainOperandsMask_ {
+    SpvRawAccessChainOperandsMaskNone = 0,
+    SpvRawAccessChainOperandsRobustnessPerComponentNVMask = 0x00000001,
+    SpvRawAccessChainOperandsRobustnessPerElementNVMask = 0x00000002,
+} SpvRawAccessChainOperandsMask;
 
 typedef enum SpvOp_ {
     SpvOpNop = 0,
@@ -1783,6 +1808,10 @@ typedef enum SpvOp_ {
     SpvOpImageBoxFilterQCOM = 4481,
     SpvOpImageBlockMatchSSDQCOM = 4482,
     SpvOpImageBlockMatchSADQCOM = 4483,
+    SpvOpImageBlockMatchWindowSSDQCOM = 4500,
+    SpvOpImageBlockMatchWindowSADQCOM = 4501,
+    SpvOpImageBlockMatchGatherSSDQCOM = 4502,
+    SpvOpImageBlockMatchGatherSADQCOM = 4503,
     SpvOpGroupIAddNonUniformAMD = 5000,
     SpvOpGroupFAddNonUniformAMD = 5001,
     SpvOpGroupFMinNonUniformAMD = 5002,
@@ -1867,6 +1896,7 @@ typedef enum SpvOp_ {
     SpvOpConvertUToSampledImageNV = 5395,
     SpvOpConvertSampledImageToUNV = 5396,
     SpvOpSamplerImageAddressingModeNV = 5397,
+    SpvOpRawAccessChainNV = 5398,
     SpvOpSubgroupShuffleINTEL = 5571,
     SpvOpSubgroupShuffleDownINTEL = 5572,
     SpvOpSubgroupShuffleUpINTEL = 5573,
@@ -2516,6 +2546,10 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpImageBoxFilterQCOM: *hasResult = true; *hasResultType = true; break;
     case SpvOpImageBlockMatchSSDQCOM: *hasResult = true; *hasResultType = true; break;
     case SpvOpImageBlockMatchSADQCOM: *hasResult = true; *hasResultType = true; break;
+    case SpvOpImageBlockMatchWindowSSDQCOM: *hasResult = true; *hasResultType = true; break;
+    case SpvOpImageBlockMatchWindowSADQCOM: *hasResult = true; *hasResultType = true; break;
+    case SpvOpImageBlockMatchGatherSSDQCOM: *hasResult = true; *hasResultType = true; break;
+    case SpvOpImageBlockMatchGatherSADQCOM: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupIAddNonUniformAMD: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupFAddNonUniformAMD: *hasResult = true; *hasResultType = true; break;
     case SpvOpGroupFMinNonUniformAMD: *hasResult = true; *hasResultType = true; break;
@@ -2597,6 +2631,7 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
     case SpvOpConvertUToSampledImageNV: *hasResult = true; *hasResultType = true; break;
     case SpvOpConvertSampledImageToUNV: *hasResult = true; *hasResultType = true; break;
     case SpvOpSamplerImageAddressingModeNV: *hasResult = false; *hasResultType = false; break;
+    case SpvOpRawAccessChainNV: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupShuffleINTEL: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupShuffleDownINTEL: *hasResult = true; *hasResultType = true; break;
     case SpvOpSubgroupShuffleUpINTEL: *hasResult = true; *hasResultType = true; break;
@@ -2856,3 +2891,4 @@ inline void SpvHasResultAndType(SpvOp opcode, bool *hasResult, bool *hasResultTy
 #endif /* SPV_ENABLE_UTILITY_CODE */
 
 #endif
+

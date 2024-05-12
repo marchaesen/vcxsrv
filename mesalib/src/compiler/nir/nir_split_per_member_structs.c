@@ -24,12 +24,6 @@
 #include "nir.h"
 #include "nir_deref.h"
 
-struct split_struct_state {
-   void *dead_ctx;
-
-   struct hash_table *var_to_member_map;
-};
-
 static nir_variable *
 find_var_member(struct nir_variable *var, unsigned member,
                 struct hash_table *var_to_member_map)

@@ -30,10 +30,14 @@ enum
    AC_ADDR_SPACE_CONST_32BIT = 6, /* same as CONST, but the pointer type has 32 bits */
 };
 
-#define AC_WAIT_LGKM   (1 << 0) /* LDS, GDS, constant, message */
-#define AC_WAIT_VLOAD  (1 << 1) /* VMEM load/sample instructions */
-#define AC_WAIT_VSTORE (1 << 2) /* VMEM store instructions */
-#define AC_WAIT_EXP    (1 << 3) /* EXP instructions */
+/* Fine-grained wait flags for GFX12, older chips merge them. */
+#define AC_WAIT_DS     (1 << 0) /* s_wait_dscnt (GFX12) or lgkmcnt (GFX6-11): LDS (all gens), GDS (GFX6-11) */
+#define AC_WAIT_KM     (1 << 1) /* s_wait_kmcnt (GFX12) or lgkmcnt (GFX6-11): SMEM, message */
+#define AC_WAIT_EXP    (1 << 2) /* s_wait_expcnt: Exports */
+#define AC_WAIT_LOAD   (1 << 3) /* s_wait_loadcnt (GFX12) or vmcnt (GFX6-11): VMEM loads */
+#define AC_WAIT_STORE  (1 << 4) /* s_wait_storecnt (GFX12) or vscnt (GFX10-11) or vmcnt (GFX6-9): VMEM stores */
+#define AC_WAIT_SAMPLE (1 << 5) /* s_wait_samplecnt (GFX12) or vmcnt (GFX6-11): VMEM sample/gather */
+#define AC_WAIT_BVH    (1 << 6) /* s_wait_bvhcnt (GFX12) or vmcnt (GFX6-11): BVH */
 
 struct ac_llvm_flow;
 struct ac_llvm_compiler;

@@ -793,6 +793,7 @@ a7xx_base = A6XXProps(
         line_width_min = 1.0,
         line_width_max = 127.5,
         has_scalar_alu = True,
+        has_coherent_ubwc_flag_caches = True,
     )
 
 a7xx_725 = A7XXProps(

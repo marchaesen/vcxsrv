@@ -54,6 +54,18 @@ extern bool verbose;
 extern struct cffdec_options options;
 
 static inline bool
+have_rem_info(void)
+{
+   return options.info->chip == 6 || options.info->chip == 7;
+}
+
+static inline bool
+is_a7xx(void)
+{
+   return options.info->chip == 7;
+}
+
+static inline bool
 is_a6xx(void)
 {
    return options.info->chip == 6;

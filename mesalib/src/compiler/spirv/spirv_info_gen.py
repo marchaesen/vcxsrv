@@ -34,16 +34,16 @@ def collect_data(spirv, kind):
             operands = x
             break
 
-    # There are some duplicate values in some of the tables (thanks guys!), so
-    # filter them out.
-    seen = set()
-    values = []
+    values = {}
     for x in operands["enumerants"]:
-        if x["value"] not in seen:
-            seen.add(x["value"])
-            values.append(x["enumerant"])
+        name = x["enumerant"]
+        val = x["value"]
+        if val not in values:
+            values[val] = [name]
+        else:
+            values[val].append(name)
 
-    return (kind, values, operands["category"])
+    return (kind, list(values.values()), operands["category"])
 
 def collect_opcodes(spirv):
     seen = set()
@@ -56,22 +56,102 @@ def collect_opcodes(spirv):
         opcode = x["opcode"]
         name = x["opname"]
         assert name.startswith("Op")
-        values.append(name[2:])
+        values.append([name[2:]])
         seen.add(opcode)
 
     return ("Op", values, None)
 
 def parse_args():
     p = argparse.ArgumentParser()
-    p.add_argument("json")
-    p.add_argument("out")
+    p.add_argument('--out-c', required=True, help='Output C file.')
+    p.add_argument('--out-h', required=True, help='Output H file.')
+    p.add_argument('--json', required=True, help='SPIR-V JSON file.')
     return p.parse_args()
 
-TEMPLATE  = Template("""\
+TEMPLATE_H  = Template("""\
+/* DO NOT EDIT - This file is generated automatically by spirv_info_c.py script */
+
+""" + COPYRIGHT + """\
+
+#ifndef _SPIRV_INFO_H_
+#define _SPIRV_INFO_H_
+
+#include <stdbool.h>
+
+#include "compiler/spirv/spirv.h"
+
+% for kind,values,category in info:
+% if kind == "Capability":
+struct spirv_capabilities {
+    % for names in values:
+    % if len(names) == 1:
+   bool ${names[0]};
+    % else:
+   union {
+    % for name in names:
+      bool ${name};
+    % endfor
+   };
+    % endif
+    % endfor
+};
+% endif
+% endfor
+
+bool spirv_capabilities_get(const struct spirv_capabilities *caps,
+                            SpvCapability cap);
+void spirv_capabilities_set(struct spirv_capabilities *caps,
+                            SpvCapability cap, bool enabled);
+
+% for kind,values,category in info:
+% if category == "BitEnum":
+const char *spirv_${kind.lower()}_to_string(Spv${kind}Mask v);
+% else:
+const char *spirv_${kind.lower()}_to_string(Spv${kind} v);
+% endif
+% endfor
+
+#endif /* SPIRV_INFO_H */
+""")
+
+TEMPLATE_C  = Template("""\
 /* DO NOT EDIT - This file is generated automatically by spirv_info_c.py script */
 
 """ + COPYRIGHT + """\
 #include "spirv_info.h"
+
+#include "util/macros.h"
+
+% for kind,values,category in info:
+% if kind == "Capability":
+bool
+spirv_capabilities_get(const struct spirv_capabilities *caps,
+                       SpvCapability cap)
+{
+   switch (cap) {
+    % for names in values:
+   case SpvCapability${names[0]}: return caps->${names[0]};
+    % endfor
+   default:
+      return false;
+   }
+}
+
+void
+spirv_capabilities_set(struct spirv_capabilities *caps,
+                       SpvCapability cap, bool enabled)
+{
+   switch (cap) {
+    % for names in values:
+   case SpvCapability${names[0]}: caps->${names[0]} = enabled; break;
+    % endfor
+   default:
+      unreachable("Unknown capability");
+   }
+}
+% endif
+% endfor
+
 % for kind,values,category in info:
 
 % if category == "BitEnum":
@@ -79,11 +159,11 @@ const char *
 spirv_${kind.lower()}_to_string(Spv${kind}Mask v)
 {
    switch (v) {
-    % for name in values:
-    %if name != "None":
-   case Spv${kind}${name}Mask: return "Spv${kind}${name}";
+    % for names in values:
+    %if names[0] != "None":
+   case Spv${kind}${names[0]}Mask: return "Spv${kind}${names[0]}";
     % else:
-   case Spv${kind}MaskNone: return "Spv${kind}${name}";
+   case Spv${kind}MaskNone: return "Spv${kind}${names[0]}";
     % endif
     % endfor
    }
@@ -95,8 +175,8 @@ const char *
 spirv_${kind.lower()}_to_string(Spv${kind} v)
 {
    switch (v) {
-    % for name in values:
-   case Spv${kind}${name}: return "Spv${kind}${name}";
+    % for names in values:
+   case Spv${kind}${names[0]}: return "Spv${kind}${names[0]}";
     % endfor
    case Spv${kind}Max: break; /* silence warnings about unhandled enums. */
    }
@@ -128,5 +208,7 @@ if __name__ == "__main__":
         collect_opcodes(spirv_info),
     ]
 
-    with open(pargs.out, 'w', encoding='utf-8') as f:
-        f.write(TEMPLATE.render(info=info))
+    with open(pargs.out_h, 'w', encoding='utf-8') as f:
+        f.write(TEMPLATE_H.render(info=info))
+    with open(pargs.out_c, 'w', encoding='utf-8') as f:
+        f.write(TEMPLATE_C.render(info=info))

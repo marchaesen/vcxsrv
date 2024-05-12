@@ -335,9 +335,9 @@ struct vpe_debug_options {
         uint32_t assert_when_not_support : 1;
         uint32_t bypass_gamcor           : 1;
         uint32_t bypass_ogam             : 1;
-        uint32_t force_tf_calculation    : 1;
         uint32_t bypass_dpp_gamut_remap  : 1;
         uint32_t bypass_post_csc         : 1;
+        uint32_t bypass_blndgam          : 1;
         uint32_t clamping_setting        : 1;
         uint32_t expansion_mode          : 1;
         uint32_t bypass_per_pixel_alpha  : 1;
@@ -360,9 +360,9 @@ struct vpe_debug_options {
     uint32_t assert_when_not_support : 1;
     uint32_t bypass_gamcor           : 1;
     uint32_t bypass_ogam             : 1;
-    uint32_t force_tf_calculation    : 1;
     uint32_t bypass_dpp_gamut_remap  : 1;
     uint32_t bypass_post_csc         : 1;
+    uint32_t bypass_blndgam          : 1;
     uint32_t clamping_setting        : 1;
     uint32_t bypass_per_pixel_alpha  : 1;
     uint32_t dpp_crc_ctrl            : 1;

@@ -36,6 +36,7 @@
 #include <compiler/nir/nir_builder.h>
 #include <compiler/nir/nir_serialize.h>
 #include <compiler/spirv/nir_spirv.h>
+#include <compiler/spirv/spirv_info.h>
 #include <util/u_math.h>
 #include <util/hex.h>
 
@@ -199,8 +200,25 @@ clover_lower_nir(nir_shader *nir, std::vector<binary::argument> &args,
       clover_lower_nir_filter, clover_lower_nir_instr, &state);
 }
 
+static spirv_capabilities
+create_spirv_caps(const device &dev)
+{
+   struct spirv_capabilities caps = {};
+   caps.Addresses = true;
+   caps.Float64 = true;
+   caps.Int8 = true;
+   caps.Int16 = true;
+   caps.Int64 = true;
+   caps.Kernel = true;
+   caps.ImageBasic = dev.image_support();
+   caps.Int64Atomics = dev.has_int64_atomics();
+   return caps;
+}
+
 static spirv_to_nir_options
-create_spirv_options(const device &dev, std::string &r_log)
+create_spirv_options(const device &dev,
+                     spirv_capabilities &caps,
+                     std::string &r_log)
 {
    struct spirv_to_nir_options spirv_options = {};
    spirv_options.environment = NIR_SPIRV_OPENCL;
@@ -215,17 +233,10 @@ create_spirv_options(const device &dev, std::string &r_log)
       spirv_options.temp_addr_format = nir_address_format_32bit_offset_as_64bit;
       spirv_options.constant_addr_format = nir_address_format_64bit_global;
    }
-   spirv_options.caps.address = true;
-   spirv_options.caps.float64 = true;
-   spirv_options.caps.int8 = true;
-   spirv_options.caps.int16 = true;
-   spirv_options.caps.int64 = true;
-   spirv_options.caps.kernel = true;
-   spirv_options.caps.kernel_image = dev.image_support();
-   spirv_options.caps.int64_atomics = dev.has_int64_atomics();
+   spirv_options.capabilities = &caps;
    spirv_options.debug.func = &debug_function;
    spirv_options.debug.private_data = &r_log;
-   spirv_options.caps.printf = true;
+   spirv_options.printf = true;
    return spirv_options;
 }
 
@@ -253,7 +264,8 @@ void clover::nir::check_for_libclc(const device &dev)
 
 nir_shader *clover::nir::load_libclc_nir(const device &dev, std::string &r_log)
 {
-   spirv_to_nir_options spirv_options = create_spirv_options(dev, r_log);
+   spirv_capabilities caps = create_spirv_caps(dev);
+   spirv_to_nir_options spirv_options = create_spirv_options(dev, caps, r_log);
    auto *compiler_options = dev_get_nir_compiler_options(dev);
 
    return nir_load_libclc_shader(dev.address_bits(), dev.clc_cache,
@@ -272,7 +284,8 @@ can_remove_var(nir_variable *var, void *data)
 binary clover::nir::spirv_to_nir(const binary &mod, const device &dev,
                                  std::string &r_log)
 {
-   spirv_to_nir_options spirv_options = create_spirv_options(dev, r_log);
+   spirv_capabilities caps = create_spirv_caps(dev);
+   spirv_to_nir_options spirv_options = create_spirv_options(dev, caps, r_log);
    std::shared_ptr<nir_shader> nir = dev.clc_nir;
    spirv_options.clc_shader = nir.get();
 

@@ -242,6 +242,7 @@ get_device_extensions(const struct tu_physical_device *device,
       .EXT_image_view_min_lod = true,
       .EXT_index_type_uint8 = true,
       .EXT_inline_uniform_block = true,
+      .EXT_legacy_vertex_attributes = true,
       .EXT_line_rasterization = true,
       .EXT_load_store_op_none = true,
       .EXT_map_memory_placed = true,
@@ -916,7 +917,7 @@ tu_get_properties(struct tu_physical_device *pdevice,
    props->lineWidthRange[1] = pdevice->info->a6xx.line_width_max;
    props->pointSizeGranularity = 	0.0625;
    props->lineWidthGranularity =
-      pdevice->info->a6xx.line_width_max == 1.0 ? 1.0 : 0.5;
+      pdevice->info->a6xx.line_width_max == 1.0 ? 0.0 : 0.5;
    props->strictLines = true;
    props->standardSampleLocations = true;
    props->optimalBufferCopyOffsetAlignment = 128;
@@ -1066,6 +1067,9 @@ tu_get_properties(struct tu_physical_device *pdevice,
    props->resourceDescriptorBufferAddressSpaceSize = ~0ull;
    props->descriptorBufferAddressSpaceSize = ~0ull;
    props->combinedImageSamplerDensityMapDescriptorSize = 2 * A6XX_TEX_CONST_DWORDS * 4;
+
+   /* VK_EXT_legacy_vertex_attributes */
+   props->nativeUnalignedPerformance = true,
 
    /* VK_EXT_fragment_density_map*/
    props->minFragmentDensityTexelSize = (VkExtent2D) { MIN_FDM_TEXEL_SIZE, MIN_FDM_TEXEL_SIZE };
@@ -2550,6 +2554,7 @@ fail_queues:
    }
 
    u_rwlock_destroy(&device->dma_bo_lock);
+   tu_drm_device_finish(device);
    vk_device_finish(&device->vk);
    vk_free(&device->vk.alloc, device);
    return result;

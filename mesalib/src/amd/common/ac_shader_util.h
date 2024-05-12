@@ -47,7 +47,7 @@ enum {
    ACCESS_MAY_STORE_SUBDWORD   = BITFIELD_BIT(31),
 };
 
-/* The meaning of these enums is different between chips. They match LLVM definitions,
+/* GFX6-11. The meaning of these enums is different between chips. They match LLVM definitions,
  * but they can also be used by ACO. Use ac_get_hw_cache_flags to get these.
  */
 enum ac_cache_flags
@@ -58,10 +58,107 @@ enum ac_cache_flags
    ac_swizzled = BITFIELD_BIT(3),
 };
 
+/* Cache-agnostic scope flags. */
+enum gfx12_scope
+{
+   /* Memory access is coherent within a workgroup in CU mode.
+    * There is no coherency between VMEM and SMEM.
+    */
+   gfx12_scope_cu,
+
+   /* Memory access is coherent within an SE.
+    * If there is no SE cache, this resolves to the device scope in the gfx domain.
+    */
+   gfx12_scope_se,
+
+   /* Memory access is globally coherent within the device for all gfx blocks except CP and GE
+    * depending on the chip (see below). This is referred to as the device scope. It's not coherent
+    * with non-gfx blocks like DCN and VCN.
+    *
+    * If there a single global GL2 cache:
+    *    - The device scope in the gfx domain resolves to GL2 scope in hw.
+    *    - Memory access is cached in GL2.
+    *    - radeon_info::cp_sdma_ge_use_system_memory_scope says whether CP, SDMA, and GE are
+    *      not coherent. If true, some features need special handling. The list of the features
+    *      and the suggested programming is:
+    *      * tess factor ring for GE: use ACCESS_CP_GE_COHERENT_AMD (it selects the correct scope
+    *        automatically)
+    *      * query results accessed by shaders: Range-invalidate GL2 before the shaders
+    *      * vertex indices for GE: flush GL2 after buffer stores, but don't invalidate
+    *      * draw indirect for CP: flush GL2 after buffer stores, but don't invalidate
+    *      * shader uploads via SDMA: invalidate GL2 at the beginning of IBs
+    *      * PRIME buffer read by SDMA: the kernel flushes GL2 at the end of IBs
+    *      * CP DMA clears/copies: use compute shaders or range-flush/invalidate GL2 around it
+    *      * CP DMA prefetch: no change
+    *      * COPY_DATA - FILLED_SIZE state for streamout, range-flush/invalidate GL2
+    *      * WRITE_DATA - bindless descriptors: range-invalidate GL2
+    *
+    * If there is a separate GL2 cache per SE:
+    *    - The device scope resolves to memory scope in hw.
+    *    - Memory access is cached in MALL if MALL (infinity cache) is present.
+    *    - radeon_info::cp_sdma_ge_use_system_memory_scope is always false in this case.
+    */
+   gfx12_scope_device,
+
+   /* Memory scope. It's cached if MALL is present. This is called "system scope" in the ISA
+    * documentation.
+    */
+   gfx12_scope_memory,
+};
+
+enum gfx12_load_temporal_hint
+{
+   /* VMEM and SMEM */
+   gfx12_load_regular_temporal,
+   gfx12_load_non_temporal,
+   gfx12_load_high_temporal,
+   /* VMEM$ treats SCOPE=3 and TH=3 as MALL bypass on GFX12. Don't use this combination in shaders. */
+   gfx12_load_last_use_discard,
+   /* VMEM only, far means the last level cache, near means other caches. */
+   gfx12_load_near_non_temporal_far_regular_temporal,
+   gfx12_load_near_regular_temporal_far_non_temporal,
+   gfx12_load_near_non_temporal_far_high_temporal,
+   gfx12_load_reserved,
+};
+
+enum gfx12_store_temporal_hint
+{
+   gfx12_store_regular_temporal,
+   gfx12_store_non_temporal,
+   gfx12_store_high_temporal,
+   gfx12_store_high_temporal_stay_dirty,
+   gfx12_store_near_non_temporal_far_regular_temporal,
+   gfx12_store_near_regular_temporal_far_non_temporal,
+   gfx12_store_near_non_temporal_far_high_temporal,
+   gfx12_store_near_non_temporal_far_writeback,
+};
+
+enum gfx12_atomic_temporal_hint
+{
+   gfx12_atomic_return = BITFIELD_BIT(0),
+   gfx12_atomic_non_temporal = BITFIELD_BIT(1),
+   gfx12_atomic_accum_deferred_scope = BITFIELD_BIT(2), /* requires no return */
+};
+
+enum gfx12_speculative_data_read
+{
+   gfx12_spec_read_auto,
+   gfx12_spec_read_force_on,
+   gfx12_spec_read_force_off,
+};
+
 union ac_hw_cache_flags
 {
-   /* NOTE: This will contain more fields in the future. */
-   enum ac_cache_flags value;
+   struct {
+      /* This matches LLVM, but it can also be used by ACO for translation of ac_memop_flags. */
+      uint8_t temporal_hint:3;   /* gfx12_{load,store,atomic}_temporal_hint */
+      uint8_t scope:2;           /* gfx12_scope */
+      uint8_t _reserved:1;
+      uint8_t swizzled:1;        /* for swizzled buffer access (attribute ring) */
+      uint8_t _pad:1;
+   } gfx12;
+
+   uint8_t value; /* ac_cache_flags (GFX6-11) or the gfx12 structure */
 };
 
 enum ac_image_dim
@@ -234,7 +331,7 @@ enum gl_access_qualifier ac_get_mem_access_flags(const nir_intrinsic_instr *inst
 union ac_hw_cache_flags ac_get_hw_cache_flags(const struct radeon_info *info,
                                               enum gl_access_qualifier access);
 
-unsigned ac_get_all_edge_flag_bits(void);
+unsigned ac_get_all_edge_flag_bits(enum amd_gfx_level gfx_level);
 
 unsigned ac_shader_io_get_unique_index_patch(unsigned semantic);
 

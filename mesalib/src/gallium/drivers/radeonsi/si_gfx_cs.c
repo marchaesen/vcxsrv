@@ -140,6 +140,13 @@ void si_flush_gfx_cs(struct si_context *ctx, unsigned flags, struct pipe_fence_h
       if (ctx->streamout.begin_emitted) {
          si_emit_streamout_end(ctx);
          ctx->streamout.suspended = true;
+
+         /* Make sure streamout is idle because the next process might change
+          * GE_GS_ORDERED_ID_BASE (which must not be changed when streamout is busy)
+          * and make this process guilty of hanging.
+          */
+         if (ctx->gfx_level >= GFX12)
+            wait_flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
       }
    }
 
@@ -268,6 +275,7 @@ static void si_add_gds_to_buffer_list(struct si_context *sctx)
 
 void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
 {
+   assert(ctx->gfx_level < GFX12);
    STATIC_ASSERT(SI_NUM_ALL_TRACKED_REGS <= sizeof(ctx->tracked_regs.reg_saved_mask) * 8);
 
    ctx->tracked_regs.reg_value[SI_TRACKED_DB_RENDER_CONTROL] = 0;
@@ -311,6 +319,7 @@ void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_PS_INPUT_ADDR] = 0;
 
    ctx->tracked_regs.reg_value[SI_TRACKED_DB_EQAA] = 0;
+   ctx->tracked_regs.reg_value[SI_TRACKED_DB_RENDER_OVERRIDE2] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_DB_SHADER_CONTROL] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_CB_SHADER_MASK] = 0xffffffff;
    ctx->tracked_regs.reg_value[SI_TRACKED_CB_TARGET_MASK] = 0xffffffff;
@@ -359,7 +368,6 @@ void si_set_tracked_regs_to_clear_state(struct si_context *ctx)
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_GS_VERT_ITEMSIZE_2] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_GS_VERT_ITEMSIZE_3] = 0;
 
-   ctx->tracked_regs.reg_value[SI_TRACKED_DB_RENDER_OVERRIDE2] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_SPI_VS_OUT_CONFIG] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_VGT_PRIMITIVEID_EN] = 0;
    ctx->tracked_regs.reg_value[SI_TRACKED_CB_DCC_CONTROL] = 0;
@@ -477,8 +485,8 @@ void si_begin_new_gfx_cs(struct si_context *ctx, bool first_cs)
    si_mark_atom_dirty(ctx, &ctx->atoms.s.cache_flush);
    si_mark_atom_dirty(ctx, &ctx->atoms.s.spi_ge_ring_state);
 
-   if (ctx->screen->attribute_ring) {
-      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, ctx->screen->attribute_ring,
+   if (ctx->screen->attribute_pos_prim_ring) {
+      radeon_add_to_buffer_list(ctx, &ctx->gfx_cs, ctx->screen->attribute_pos_prim_ring,
                                 RADEON_USAGE_READWRITE | RADEON_PRIO_SHADER_RINGS);
    }
    if (ctx->border_color_buffer) {
@@ -816,23 +824,27 @@ void gfx10_emit_cache_flush(struct si_context *ctx, struct radeon_cmdbuf *cs)
     */
    if (flags & SI_CONTEXT_INV_L2) {
       /* Writeback and invalidate everything in L2. */
-      gcr_cntl |= S_586_GL2_INV(1) | S_586_GL2_WB(1) | S_586_GLM_INV(1) | S_586_GLM_WB(1);
+      gcr_cntl |= S_586_GL2_INV(1) | S_586_GL2_WB(1) |
+                  (ctx->gfx_level < GFX12 ? S_586_GLM_INV(1) | S_586_GLM_WB(1) : 0);
       ctx->num_L2_invalidates++;
    } else if (flags & SI_CONTEXT_WB_L2) {
-      gcr_cntl |= S_586_GL2_WB(1) | S_586_GLM_WB(1) | S_586_GLM_INV(1);
+      gcr_cntl |= S_586_GL2_WB(1) |
+                  (ctx->gfx_level < GFX12 ? S_586_GLM_WB(1) | S_586_GLM_INV(1) : 0);
    } else if (flags & SI_CONTEXT_INV_L2_METADATA) {
+      assert(ctx->gfx_level < GFX12);
       gcr_cntl |= S_586_GLM_INV(1) | S_586_GLM_WB(1);
    }
 
    if (flags & (SI_CONTEXT_FLUSH_AND_INV_CB | SI_CONTEXT_FLUSH_AND_INV_DB)) {
-      if (flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
+      if (ctx->gfx_level < GFX12 && flags & SI_CONTEXT_FLUSH_AND_INV_CB) {
          /* Flush CMASK/FMASK/DCC. Will wait for idle later. */
          radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
          radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_CB_META) | EVENT_INDEX(0));
       }
 
       /* Gfx11 can't flush DB_META and should use a TS event instead. */
-      if (ctx->gfx_level != GFX11 && flags & SI_CONTEXT_FLUSH_AND_INV_DB) {
+      if (ctx->gfx_level < GFX12 && ctx->gfx_level != GFX11 &&
+          flags & SI_CONTEXT_FLUSH_AND_INV_DB) {
          /* Flush HTILE. Will wait for idle later. */
          radeon_emit(PKT3(PKT3_EVENT_WRITE, 0, 0));
          radeon_emit(EVENT_TYPE(V_028A90_FLUSH_AND_INV_DB_META) | EVENT_INDEX(0));

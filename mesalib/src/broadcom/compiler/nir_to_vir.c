@@ -2196,14 +2196,10 @@ driver_location_compare(const nir_variable *a, const nir_variable *b)
 }
 
 static struct qreg
-ntq_emit_vpm_read(struct v3d_compile *c,
-                  uint32_t *num_components_queued,
-                  uint32_t *remaining,
-                  uint32_t vpm_index)
+ntq_emit_vpm_read(struct v3d_compile *c, uint32_t num_components)
 {
         return vir_LDVPMV_IN(c,
-                             vir_uniform_ui(c,
-                                            (*num_components_queued)++));
+                             vir_uniform_ui(c, num_components));
 }
 
 static void
@@ -2237,8 +2233,7 @@ ntq_setup_vs_inputs(struct v3d_compile *c)
                 }
         }
 
-        unsigned num_components = 0;
-        uint32_t vpm_components_queued = 0;
+        uint32_t vpm_components = 0;
         bool uses_iid = BITSET_TEST(c->s->info.system_values_read,
                                     SYSTEM_VALUE_INSTANCE_ID) ||
                         BITSET_TEST(c->s->info.system_values_read,
@@ -2250,27 +2245,14 @@ ntq_setup_vs_inputs(struct v3d_compile *c)
                         BITSET_TEST(c->s->info.system_values_read,
                                     SYSTEM_VALUE_VERTEX_ID_ZERO_BASE);
 
-        num_components += uses_iid;
-        num_components += uses_biid;
-        num_components += uses_vid;
+        if (uses_iid)
+                c->iid = ntq_emit_vpm_read(c, vpm_components++);
 
-        for (int i = 0; i < ARRAY_SIZE(c->vattr_sizes); i++)
-                num_components += c->vattr_sizes[i];
+        if (uses_biid)
+                c->biid = ntq_emit_vpm_read(c, vpm_components++);
 
-        if (uses_iid) {
-                c->iid = ntq_emit_vpm_read(c, &vpm_components_queued,
-                                           &num_components, ~0);
-        }
-
-        if (uses_biid) {
-                c->biid = ntq_emit_vpm_read(c, &vpm_components_queued,
-                                            &num_components, ~0);
-        }
-
-        if (uses_vid) {
-                c->vid = ntq_emit_vpm_read(c, &vpm_components_queued,
-                                           &num_components, ~0);
-        }
+        if (uses_vid)
+                c->vid = ntq_emit_vpm_read(c, vpm_components++);
 
         /* The actual loads will happen directly in nir_intrinsic_load_input
          */

@@ -32,6 +32,7 @@ static struct pb_buffer_lean *radeon_jpeg_get_decode_param(struct radeon_decoder
       case PIPE_FORMAT_IYUV:
       case PIPE_FORMAT_YV12:
       case PIPE_FORMAT_Y8_U8_V8_444_UNORM:
+      case PIPE_FORMAT_Y8_U8_V8_440_UNORM:
       case PIPE_FORMAT_R8_G8_B8_UNORM:
          chromav = (struct si_texture *)((struct vl_video_buffer *)target)->resources[2];
          dec->jpg.dt_chromav_top_offset = chromav->surface.u.gfx9.surf_offset;

@@ -15,6 +15,7 @@
 #include "addrinterface.h"
 #include "addrlib1.h"
 #include "addrlib2.h"
+#include "addrlib3.h"
 
 #include "addrcommon.h"
 
@@ -1948,4 +1949,204 @@ BOOL_32 Addr2BlockTypeWithinMemoryBudget(
     }
 
     return accept;
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////
+//                                    Surface functions for Addr3
+////////////////////////////////////////////////////////////////////////////////////////////////////
+
+/**
+****************************************************************************************************
+*   Addr3ComputeSurfaceInfo
+*
+*   @brief
+*       Calculate surface width/height/depth/alignments and suitable tiling mode
+*
+*   @return
+*       ADDR_OK if successful, otherwise an error code of ADDR_E_RETURNCODE
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3ComputeSurfaceInfo(
+    ADDR_HANDLE                                hLib, ///< address lib handle
+    const ADDR3_COMPUTE_SURFACE_INFO_INPUT*    pIn,  ///< [in] surface information
+    ADDR3_COMPUTE_SURFACE_INFO_OUTPUT*         pOut) ///< [out] surface parameters and alignments
+{
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeSurfaceInfo(pIn, pOut);
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr3GetPossibleSwizzleModes
+*
+*   @brief
+*       Get valid swizzle mode options given image input for further optimal selection
+*
+*   @return
+*       ADDR_OK if successful, otherwise an error code of ADDR_PARAMSIZEMISMATCH
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3GetPossibleSwizzleModes(
+    ADDR_HANDLE                                    hLib, ///< address lib handle
+    const ADDR3_GET_POSSIBLE_SWIZZLE_MODE_INPUT*   pIn,  ///< [in] surface information
+    ADDR3_GET_POSSIBLE_SWIZZLE_MODE_OUTPUT*        pOut) ///< [out] allowable swizzle mdoes
+{
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->GetPossibleSwizzleModes(pIn, pOut);
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr3ComputeSurfaceAddrFromCoord
+*
+*   @brief
+*       Compute surface address according to coordinates
+*
+*   @return
+*       ADDR_OK if successful, otherwise an error code of ADDR_E_RETURNCODE
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3ComputeSurfaceAddrFromCoord(
+    ADDR_HANDLE                                         hLib, ///< address lib handle
+    const ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_INPUT*    pIn,  ///< [in] surface info and coordinates
+    ADDR3_COMPUTE_SURFACE_ADDRFROMCOORD_OUTPUT*         pOut) ///< [out] surface address
+{
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    ADDR_E_RETURNCODE returnCode = ADDR_OK;
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeSurfaceAddrFromCoord(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr3ComputePipeBankXor
+*
+*   @brief
+*       Calculate a valid bank pipe xor value for client to use.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3ComputePipeBankXor(
+    ADDR_HANDLE                            hLib, ///< handle of addrlib
+    const ADDR3_COMPUTE_PIPEBANKXOR_INPUT* pIn,  ///< [in] input
+    ADDR3_COMPUTE_PIPEBANKXOR_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputePipeBankXor(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr3ComputeNonBlockCompressedView
+*
+*   @brief
+*       Compute non-block-compressed view for a given mipmap level/slice.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3ComputeNonBlockCompressedView(
+    ADDR_HANDLE                                       hLib, ///< handle of addrlib
+    const ADDR3_COMPUTE_NONBLOCKCOMPRESSEDVIEW_INPUT* pIn,  ///< [in] input
+    ADDR3_COMPUTE_NONBLOCKCOMPRESSEDVIEW_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeNonBlockCompressedView(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
+}
+
+/**
+****************************************************************************************************
+*   Addr3ComputeSubResourceOffsetForSwizzlePattern
+*
+*   @brief
+*       Calculate sub resource offset for swizzle pattern.
+****************************************************************************************************
+*/
+VOID ADDR_API Addr3ComputeSubResourceOffsetForSwizzlePattern(
+    ADDR_HANDLE                                                     hLib, ///< handle of addrlib
+    const ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_INPUT* pIn,  ///< [in] input
+    ADDR3_COMPUTE_SUBRESOURCE_OFFSET_FORSWIZZLEPATTERN_OUTPUT*      pOut) ///< [out] output
+{
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        pLib->ComputeSubResourceOffsetForSwizzlePattern(pIn, pOut);
+    }
+}
+
+/**
+****************************************************************************************************
+*   Addr3ComputeSlicePipeBankXor
+*
+*   @brief
+*       Calculate slice pipe bank xor value based on base pipe bank xor and slice id.
+****************************************************************************************************
+*/
+ADDR_E_RETURNCODE ADDR_API Addr3ComputeSlicePipeBankXor(
+    ADDR_HANDLE                                  hLib, ///< handle of addrlib
+    const ADDR3_COMPUTE_SLICE_PIPEBANKXOR_INPUT* pIn,  ///< [in] input
+    ADDR3_COMPUTE_SLICE_PIPEBANKXOR_OUTPUT*      pOut) ///< [out] output
+{
+    ADDR_E_RETURNCODE returnCode;
+
+    V3::Lib* pLib = V3::Lib::GetLib(hLib);
+
+    if (pLib != NULL)
+    {
+        returnCode = pLib->ComputeSlicePipeBankXor(pIn, pOut);
+    }
+    else
+    {
+        returnCode = ADDR_ERROR;
+    }
+
+    return returnCode;
 }

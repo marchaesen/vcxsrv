@@ -79,6 +79,7 @@ libradv_files = files(
   'nir/radv_nir_lower_view_index.c',
   'nir/radv_nir_lower_viewport_to_zero.c',
   'nir/radv_nir_lower_vs_inputs.c',
+  'nir/radv_nir_remap_color_attachment.c',
   'nir/radv_nir_rt_common.c',
   'nir/radv_nir_rt_shader.c',
   'winsys/null/radv_null_bo.c',

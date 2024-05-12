@@ -14,7 +14,7 @@ export LLVM_VERSION="${LLVM_VERSION:=15}"
 
 check_minio()
 {
-    S3_PATH="${S3_HOST}/mesa-lava/$1/${DISTRIBUTION_TAG}/${DEBIAN_ARCH}"
+    S3_PATH="${S3_HOST}/${S3_KERNEL_BUCKET}/$1/${DISTRIBUTION_TAG}/${DEBIAN_ARCH}"
     if curl -L --retry 4 -f --retry-delay 60 -s -X HEAD \
       "https://${S3_PATH}/done"; then
         echo "Remote files are up-to-date, skip rebuilding them."

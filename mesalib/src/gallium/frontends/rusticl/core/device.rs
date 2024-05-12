@@ -892,6 +892,16 @@ impl Device {
         v.into_iter().map(|v| v as usize).collect()
     }
 
+    pub fn max_grid_size(&self) -> Vec<u64> {
+        let v: Vec<u64> = self
+            .screen
+            .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_GRID_SIZE);
+
+        v.into_iter()
+            .map(|a| min(a, Platform::dbg().max_grid_size))
+            .collect()
+    }
+
     pub fn max_clock_freq(&self) -> cl_uint {
         self.screen
             .compute_param(pipe_compute_cap::PIPE_COMPUTE_CAP_MAX_CLOCK_FREQUENCY)

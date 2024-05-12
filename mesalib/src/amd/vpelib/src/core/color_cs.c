@@ -140,13 +140,13 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
     const int         hw_sat_max      = 200;
     const int         hw_contrast_min = 0;
     const int         hw_contrast_max = 200;
-    const int         hw_bright_min   = -1000;
-    const int         hw_bright_max   = 1000;
+    const int         hw_bright_min   = -460;
+    const int         hw_bright_max   = 460;
     if (icsc) {
         hue = vpe_fixpt_mul(
             vpe_fixpt_from_fraction(
                 get_hw_value_from_sw_value(vpe_adjust->hue.current, vpe_adjust->hue.min,
-                    vpe_adjust->hue.max, -hw_hue_min, hw_hue_max),
+                    vpe_adjust->hue.max, hw_hue_min, hw_hue_max),
                 180),
             vpe_fixpt_pi);
 
@@ -170,7 +170,7 @@ static void color_adjustments_to_fixed_point(const struct vpe_color_adjustments 
         hue = vpe_fixpt_mul(
             vpe_fixpt_from_fraction(
                 get_hw_value_from_sw_value(vpe_adjust->hue.current, vpe_adjust->hue.min,
-                    vpe_adjust->hue.max, -hw_hue_min, hw_hue_max),
+                    vpe_adjust->hue.max, hw_hue_min, hw_hue_max),
                 180),
             vpe_fixpt_pi);
 

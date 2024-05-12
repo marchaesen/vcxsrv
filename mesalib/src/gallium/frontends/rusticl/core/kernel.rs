@@ -2,6 +2,7 @@ use crate::api::icd::*;
 use crate::core::device::*;
 use crate::core::event::*;
 use crate::core::memory::*;
+use crate::core::platform::*;
 use crate::core::program::*;
 use crate::core::queue::*;
 use crate::impl_cl_type_trait;
@@ -21,6 +22,7 @@ use rusticl_opencl_gen::*;
 use std::cmp;
 use std::collections::HashMap;
 use std::convert::TryInto;
+use std::mem::size_of;
 use std::os::raw::c_void;
 use std::ptr;
 use std::slice;
@@ -60,6 +62,8 @@ pub enum InternalKernelArgType {
     FormatArray,
     OrderArray,
     WorkDim,
+    WorkGroupOffsets,
+    NumWorkgroups,
 }
 
 #[derive(Hash, PartialEq, Eq, Clone)]
@@ -220,6 +224,8 @@ impl InternalKernelArg {
             InternalKernelArgType::FormatArray => bin.push(4),
             InternalKernelArgType::OrderArray => bin.push(5),
             InternalKernelArgType::WorkDim => bin.push(6),
+            InternalKernelArgType::WorkGroupOffsets => bin.push(7),
+            InternalKernelArgType::NumWorkgroups => bin.push(8),
         }
 
         bin
@@ -242,6 +248,8 @@ impl InternalKernelArg {
             4 => InternalKernelArgType::FormatArray,
             5 => InternalKernelArgType::OrderArray,
             6 => InternalKernelArgType::WorkDim,
+            7 => InternalKernelArgType::WorkGroupOffsets,
+            8 => InternalKernelArgType::NumWorkgroups,
             _ => return None,
         };
 
@@ -307,16 +315,17 @@ pub struct Kernel {
 
 impl_cl_type_trait!(cl_kernel, Kernel, CL_INVALID_KERNEL);
 
-fn create_kernel_arr<T>(vals: &[usize], val: T) -> [T; 3]
+fn create_kernel_arr<T>(vals: &[usize], val: T) -> CLResult<[T; 3]>
 where
     T: std::convert::TryFrom<usize> + Copy,
     <T as std::convert::TryFrom<usize>>::Error: std::fmt::Debug,
 {
     let mut res = [val; 3];
     for (i, v) in vals.iter().enumerate() {
-        res[i] = (*v).try_into().expect("64 bit work groups not supported");
+        res[i] = (*v).try_into().ok().ok_or(CL_OUT_OF_RESOURCES)?;
     }
-    res
+
+    Ok(res)
 }
 
 fn opt_nir(nir: &mut NirShader, dev: &Device, has_explicit_types: bool) {
@@ -401,18 +410,21 @@ fn lower_and_optimize_nir(
     args: &[spirv::SPIRVKernelArg],
     lib_clc: &NirShader,
 ) -> (Vec<KernelArg>, Vec<InternalKernelArg>) {
-    let address_bits_base_type;
     let address_bits_ptr_type;
     let global_address_format;
     let shared_address_format;
 
+    let host_bits_base_type = if size_of::<usize>() == 8 {
+        glsl_base_type::GLSL_TYPE_UINT64
+    } else {
+        glsl_base_type::GLSL_TYPE_UINT
+    };
+
     if dev.address_bits() == 64 {
-        address_bits_base_type = glsl_base_type::GLSL_TYPE_UINT64;
         address_bits_ptr_type = unsafe { glsl_uint64_t_type() };
         global_address_format = nir_address_format::nir_address_format_64bit_global;
         shared_address_format = nir_address_format::nir_address_format_32bit_offset_as_64bit;
     } else {
-        address_bits_base_type = glsl_base_type::GLSL_TYPE_UINT;
         address_bits_ptr_type = unsafe { glsl_uint_type() };
         global_address_format = nir_address_format::nir_address_format_32bit_global;
         shared_address_format = nir_address_format::nir_address_format_32bit_offset;
@@ -526,6 +538,7 @@ fn lower_and_optimize_nir(
     nir_pass!(nir, nir_lower_system_values);
     let mut compute_options = nir_lower_compute_system_values_options::default();
     compute_options.set_has_base_global_invocation_id(true);
+    compute_options.set_has_base_workgroup_id(true);
     nir_pass!(nir, nir_lower_compute_system_values, &compute_options);
     nir.gather_info();
 
@@ -533,14 +546,45 @@ fn lower_and_optimize_nir(
         internal_args.push(InternalKernelArg {
             kind: InternalKernelArgType::GlobalWorkOffsets,
             offset: 0,
-            size: (3 * dev.address_bits() / 8) as usize,
+            size: 3 * size_of::<usize>(),
         });
         lower_state.base_global_invoc_id_loc = args.len() + internal_args.len() - 1;
         nir.add_var(
             nir_variable_mode::nir_var_uniform,
-            unsafe { glsl_vector_type(address_bits_base_type, 3) },
+            unsafe { glsl_vector_type(host_bits_base_type, 3) },
             lower_state.base_global_invoc_id_loc,
             "base_global_invocation_id",
+        );
+    }
+
+    if nir.reads_sysval(gl_system_value::SYSTEM_VALUE_BASE_WORKGROUP_ID) {
+        internal_args.push(InternalKernelArg {
+            kind: InternalKernelArgType::WorkGroupOffsets,
+            offset: 0,
+            size: 3 * size_of::<usize>(),
+        });
+        lower_state.base_workgroup_id_loc = args.len() + internal_args.len() - 1;
+        nir.add_var(
+            nir_variable_mode::nir_var_uniform,
+            unsafe { glsl_vector_type(host_bits_base_type, 3) },
+            lower_state.base_workgroup_id_loc,
+            "base_workgroup_id",
+        );
+    }
+
+    if nir.reads_sysval(gl_system_value::SYSTEM_VALUE_NUM_WORKGROUPS) {
+        internal_args.push(InternalKernelArg {
+            kind: InternalKernelArgType::NumWorkgroups,
+            offset: 0,
+            size: 12,
+        });
+
+        lower_state.num_workgroups_loc = args.len() + internal_args.len() - 1;
+        nir.add_var(
+            nir_variable_mode::nir_var_uniform,
+            unsafe { glsl_vector_type(glsl_base_type::GLSL_TYPE_UINT, 3) },
+            lower_state.num_workgroups_loc,
+            "num_workgroups",
         );
     }
 
@@ -866,27 +910,23 @@ impl Kernel {
         }
     }
 
-    fn optimize_local_size(&self, d: &Device, grid: &mut [u32; 3], block: &mut [u32; 3]) {
+    fn optimize_local_size(&self, d: &Device, grid: &mut [usize; 3], block: &mut [u32; 3]) {
         if !block.contains(&0) {
             for i in 0..3 {
                 // we already made sure everything is fine
-                grid[i] /= block[i];
+                grid[i] /= block[i] as usize;
             }
             return;
         }
 
-        let mut usize_grid = [0usize; 3];
         let mut usize_block = [0usize; 3];
-
         for i in 0..3 {
-            usize_grid[i] = grid[i] as usize;
             usize_block[i] = block[i] as usize;
         }
 
-        self.suggest_local_size(d, 3, &mut usize_grid, &mut usize_block);
+        self.suggest_local_size(d, 3, grid, &mut usize_block);
 
         for i in 0..3 {
-            grid[i] = usize_grid[i] as u32;
             block[i] = usize_block[i] as u32;
         }
     }
@@ -902,9 +942,10 @@ impl Kernel {
         offsets: &[usize],
     ) -> CLResult<EventSig> {
         let nir_kernel_build = self.builds.get(q.device).unwrap().clone();
-        let mut block = create_kernel_arr::<u32>(block, 1);
-        let mut grid = create_kernel_arr::<u32>(grid, 1);
-        let offsets = create_kernel_arr::<u64>(offsets, 0);
+        let mut block = create_kernel_arr::<u32>(block, 1)?;
+        let mut grid = create_kernel_arr::<usize>(grid, 1)?;
+        let offsets = create_kernel_arr::<usize>(offsets, 0)?;
+        let mut workgroup_id_offset_loc = None;
         let mut input: Vec<u8> = Vec::new();
         let mut resource_info = Vec::new();
         // Set it once so we get the alignment padding right
@@ -918,10 +959,12 @@ impl Kernel {
         let mut tex_orders: Vec<u16> = Vec::new();
         let mut img_formats: Vec<u16> = Vec::new();
         let mut img_orders: Vec<u16> = Vec::new();
-        let null_ptr: &[u8] = if q.device.address_bits() == 64 {
-            &[0; 8]
+
+        let host_null_v3 = &[0u8; 3 * size_of::<usize>()];
+        let null_ptr = if q.device.address_bits() == 64 {
+            [0u8; 8].as_slice()
         } else {
-            &[0; 4]
+            [0u8; 4].as_slice()
         };
 
         self.optimize_local_size(q.device, &mut grid, &mut block);
@@ -1040,17 +1083,11 @@ impl Kernel {
                     ));
                 }
                 InternalKernelArgType::GlobalWorkOffsets => {
-                    if q.device.address_bits() == 64 {
-                        input.extend_from_slice(unsafe { as_byte_slice(&offsets) });
-                    } else {
-                        input.extend_from_slice(unsafe {
-                            as_byte_slice(&[
-                                offsets[0] as u32,
-                                offsets[1] as u32,
-                                offsets[2] as u32,
-                            ])
-                        });
-                    }
+                    input.extend_from_slice(unsafe { as_byte_slice(&offsets) });
+                }
+                InternalKernelArgType::WorkGroupOffsets => {
+                    workgroup_id_offset_loc = Some(input.len());
+                    input.extend_from_slice(host_null_v3);
                 }
                 InternalKernelArgType::PrintfBuffer => {
                     let buf = Arc::new(
@@ -1082,6 +1119,11 @@ impl Kernel {
                 }
                 InternalKernelArgType::WorkDim => {
                     input.extend_from_slice(&[work_dim as u8; 1]);
+                }
+                InternalKernelArgType::NumWorkgroups => {
+                    input.extend_from_slice(unsafe {
+                        as_byte_slice(&[grid[0] as u32, grid[1] as u32, grid[2] as u32])
+                    });
                 }
             }
         }
@@ -1132,7 +1174,42 @@ impl Kernel {
             ctx.set_global_binding(resources.as_slice(), &mut globals);
             ctx.update_cb0(&input);
 
-            ctx.launch_grid(work_dim, block, grid, variable_local_size as u32);
+            let hw_max_grid: Vec<usize> = q
+                .device
+                .max_grid_size()
+                .into_iter()
+                .map(|val| val.try_into().unwrap_or(usize::MAX))
+                // clamped as pipe_launch_grid::grid is only u32
+                .map(|val| cmp::min(val, u32::MAX as usize))
+                .collect();
+
+            for z in 0..div_round_up(grid[2], hw_max_grid[2]) {
+                for y in 0..div_round_up(grid[1], hw_max_grid[1]) {
+                    for x in 0..div_round_up(grid[0], hw_max_grid[0]) {
+                        if let Some(workgroup_id_offset_loc) = workgroup_id_offset_loc {
+                            let this_offsets =
+                                [x * hw_max_grid[0], y * hw_max_grid[1], z * hw_max_grid[2]];
+
+                            input[workgroup_id_offset_loc
+                                ..workgroup_id_offset_loc + (size_of::<usize>() * 3)]
+                                .copy_from_slice(unsafe { as_byte_slice(&this_offsets) });
+                        }
+
+                        let this_grid = [
+                            cmp::min(hw_max_grid[0], grid[0] - hw_max_grid[0] * x) as u32,
+                            cmp::min(hw_max_grid[1], grid[1] - hw_max_grid[1] * y) as u32,
+                            cmp::min(hw_max_grid[2], grid[2] - hw_max_grid[2] * z) as u32,
+                        ];
+
+                        ctx.update_cb0(&input);
+                        ctx.launch_grid(work_dim, block, this_grid, variable_local_size as u32);
+
+                        if Platform::dbg().sync_every_event {
+                            ctx.flush().wait();
+                        }
+                    }
+                }
+            }
 
             ctx.clear_global_binding(globals.len() as u32);
             ctx.clear_shader_images(iviews.len() as u32);

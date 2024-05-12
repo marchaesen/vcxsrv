@@ -10,6 +10,25 @@
 #include "nir_builder.h"
 #include "nir_xfb_info.h"
 
+/* Sleep for the given number of clock cycles. */
+void
+ac_nir_sleep(nir_builder *b, unsigned num_cycles)
+{
+   /* s_sleep can only sleep for N*64 cycles. */
+   if (num_cycles >= 64) {
+      nir_sleep_amd(b, num_cycles / 64);
+      num_cycles &= 63;
+   }
+
+   /* Use s_nop to sleep for the remaining cycles. */
+   while (num_cycles) {
+      unsigned nop_cycles = MIN2(num_cycles, 16);
+
+      nir_nop_amd(b, nop_cycles - 1);
+      num_cycles -= nop_cycles;
+   }
+}
+
 /* Load argument with index start from arg plus relative_index. */
 nir_def *
 ac_nir_load_arg_at_offset(nir_builder *b, const struct ac_shader_args *ac_args,

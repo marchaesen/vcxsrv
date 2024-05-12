@@ -309,6 +309,12 @@ err_free_bo:
 static void
 panthor_kmod_bo_free(struct pan_kmod_bo *bo)
 {
+   struct panthor_kmod_bo *panthor_bo =
+      container_of(bo, struct panthor_kmod_bo, base);
+
+   if (!bo->exclusive_vm)
+      drmSyncobjDestroy(bo->dev->fd, panthor_bo->sync.handle);
+
    drmCloseBufferHandle(bo->dev->fd, bo->handle);
    pan_kmod_dev_free(bo->dev, bo);
 }

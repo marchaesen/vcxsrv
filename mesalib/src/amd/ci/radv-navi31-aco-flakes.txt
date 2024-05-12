@@ -1,11 +1,5 @@
-# New CTS flakes in 1.3.6.3
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.multithreaded_compilation.*_check_all_handles
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.multithreaded_compilation.*_check_capture_replay_handles
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.singlethreaded_compilation.*_check_all_handles
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.singlethreaded_compilation.*_check_capture_replay_handles
 
 dEQP-VK.memory.mapping.suballocation.sub.1048577.offset_0.size_1048575.subinvalidate_overlapping
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.misc.maintenance5
 
 # Nightly run expectations update
 dEQP-VK.memory.mapping.suballocation.sub.1048577.offset_0.size_1048575.subinvalidate_overlapping

@@ -65,9 +65,11 @@ void ac_parse_shader_binary_config(const char *data, size_t nbytes, unsigned wav
          conf->num_shared_vgprs = G_00B8A0_SHARED_VGPR_CNT(value);
          conf->rsrc3 = value;
          break;
+      case R_02865C_SPI_PS_INPUT_ENA:
       case R_0286CC_SPI_PS_INPUT_ENA:
          conf->spi_ps_input_ena = value;
          break;
+      case R_028660_SPI_PS_INPUT_ADDR:
       case R_0286D0_SPI_PS_INPUT_ADDR:
          conf->spi_ps_input_addr = value;
          break;

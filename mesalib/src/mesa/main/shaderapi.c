@@ -1154,7 +1154,7 @@ get_shader_source(struct gl_context *ctx, GLuint shader, GLsizei maxLength,
  */
 static void
 set_shader_source(struct gl_shader *sh, const GLchar *source,
-                  const uint8_t original_sha1[SHA1_DIGEST_LENGTH])
+                  const blake3_hash original_blake3)
 {
    assert(sh);
 
@@ -1173,7 +1173,7 @@ set_shader_source(struct gl_shader *sh, const GLchar *source,
        * fallback.
        */
       sh->FallbackSource = sh->Source;
-      memcpy(sh->fallback_source_sha1, sh->source_sha1, SHA1_DIGEST_LENGTH);
+      memcpy(sh->fallback_source_blake3, sh->source_blake3, BLAKE3_OUT_LEN);
       sh->Source = source;
    } else {
       /* free old shader source string and install new one */
@@ -1181,7 +1181,7 @@ set_shader_source(struct gl_shader *sh, const GLchar *source,
       sh->Source = source;
    }
 
-   memcpy(sh->source_sha1, original_sha1, SHA1_DIGEST_LENGTH);
+   memcpy(sh->source_blake3, original_blake3, BLAKE3_OUT_LEN);
 }
 
 static void
@@ -2145,8 +2145,8 @@ shader_source(struct gl_context *ctx, GLuint shaderObj, GLsizei count,
    source[totalLength - 2] = '\0';
 
    /* Compute the original source sha1 before shader replacement. */
-   uint8_t original_sha1[SHA1_DIGEST_LENGTH];
-   _mesa_sha1_compute(source, strlen(source), original_sha1);
+   blake3_hash original_blake3;
+   _mesa_blake3_compute(source, strlen(source), original_blake3);
 
 #ifdef ENABLE_SHADER_CACHE
    GLcharARB *replacement;
@@ -2154,16 +2154,16 @@ shader_source(struct gl_context *ctx, GLuint shaderObj, GLsizei count,
    /* Dump original shader source to MESA_SHADER_DUMP_PATH and replace
     * if corresponding entry found from MESA_SHADER_READ_PATH.
     */
-   _mesa_dump_shader_source(sh->Stage, source, original_sha1);
+   _mesa_dump_shader_source(sh->Stage, source, original_blake3);
 
-   replacement = _mesa_read_shader_source(sh->Stage, source, original_sha1);
+   replacement = _mesa_read_shader_source(sh->Stage, source, original_blake3);
    if (replacement) {
       free(source);
       source = replacement;
    }
 #endif /* ENABLE_SHADER_CACHE */
 
-   set_shader_source(sh, source, original_sha1);
+   set_shader_source(sh, source, original_blake3);
 
    free(offsets);
 }

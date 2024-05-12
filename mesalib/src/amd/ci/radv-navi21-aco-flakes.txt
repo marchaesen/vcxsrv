@@ -1,8 +1,5 @@
 dEQP-VK.query_pool.statistics_query.host_query_reset.geometry_shader_(invocations|primitives).secondary.(32|64)bits_.*
 
-# New CTS flakes in 1.3.6.3
-dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.(single|multi)threaded_compilation.*_check_(all|capture_replay)_handles
-
 dEQP-VK.shader_object.binding.mesh_swap_task
 
 dEQP-VK.binding_model.shader_access.secondary_cmd_buf.with_template.storage_image.vertex.multiple_descriptor_sets.multiple_contiguous_descriptors.cube_array
@@ -14,6 +11,11 @@ dEQP-VK.pipeline.shader_object_linked_binary.image.suballocation.sampling_type.s
 dEQP-VK.pipeline.shader_object_unlinked_binary.image.suballocation.sampling_type.combined.view_type.1d.format.r8_unorm.count_8.size.443x1
 dEQP-VK.pipeline.shader_object_unlinked_binary.image.suballocation.sampling_type.separate.view_type.1d_array.format.a1b5g5r5_unorm_pack16_khr.count_8.size.443x1_array_of_6
 dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.misc.maintenance5
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.gpu.boxes.stride_3.offset_7.use_libs.isect_or_miss
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.gpu.boxes.stride_5.offset_7.use_libs.any_or_miss
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.gpu.triangles.stride_3.offset_7.use_libs.any
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.gpu.triangles.stride_3.offset_7.use_libs.any
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.misc.miss_maintenance5
 
 # New CTS flakes in 1.3.8.0
 dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image

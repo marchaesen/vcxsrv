@@ -9,13 +9,6 @@
 #include "vk_command_pool.h"
 #include "vk_common_entrypoints.h"
 
-struct blit_region {
-   VkOffset3D src_offset;
-   VkExtent3D src_extent;
-   VkOffset3D dst_offset;
-   VkExtent3D dst_extent;
-};
-
 static VkResult build_pipeline(struct radv_device *device, VkImageAspectFlagBits aspect, enum glsl_sampler_dim tex_dim,
                                VkFormat format, VkPipeline *pipeline);
 

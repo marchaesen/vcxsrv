@@ -2155,6 +2155,13 @@ struct drm_i915_gem_context_param {
 };
 
 /*
+ * I915_CONTEXT_PARAM_CONTEXT_IMAGE:
+ *
+ * Allows userspace to provide own context images.
+ */
+#define I915_CONTEXT_PARAM_CONTEXT_IMAGE	0xe
+
+/*
  * Context SSEU programming
  *
  * It may be necessary for either functional or performance reason to configure
@@ -2548,6 +2555,24 @@ struct i915_context_param_engines {
 	__u64 extensions; \
 	struct i915_engine_class_instance engines[N__]; \
 } __attribute__((packed)) name__
+
+struct i915_gem_context_param_context_image {
+	/** @engine: Engine class & instance to be configured. */
+	struct i915_engine_class_instance engine;
+
+	/** @flags: One of the supported flags or zero. */
+	__u32 flags;
+#define I915_CONTEXT_IMAGE_FLAG_ENGINE_INDEX (1u << 0)
+
+	/** @size: Size of the image blob pointed to by @image. */
+	__u32 size;
+
+	/** @mbz: Must be zero. */
+	__u32 mbz;
+
+	/** @image: Userspace memory containing the context image. */
+	__u64 image;
+} __attribute__((packed));
 
 /**
  * struct drm_i915_gem_context_create_ext_setparam - Context parameter

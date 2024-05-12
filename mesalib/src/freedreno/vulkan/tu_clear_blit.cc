@@ -1735,6 +1735,54 @@ copy_format(VkFormat vk_format, VkImageAspectFlags aspect_mask)
    }
 }
 
+/* Copies/fills/updates for buffers are happening through CCU but need
+ * additional synchronization when write range is not aligned to 64 bytes.
+ * Because dst buffer access uses either R8_UNORM or R32_UINT and they are not
+ * coherent between each other in CCU since format seem to be a part of a
+ * cache key.
+ *
+ * See: https://gitlab.khronos.org/vulkan/vulkan/-/issues/3306
+ *
+ * The synchronization with writes from UCHE (e.g. with SSBO stores) are
+ * solved by the fact that UCHE has byte level dirtiness tracking and that CCU
+ * flush would happen always before UCHE flush for such case (e.g. both
+ * renderpass and dispatch would flush pending CCU write).
+ *
+ * Additionally see:
+ * https://gitlab.khronos.org/vulkan/vulkan/-/issues/3398#note_400111
+ */
+template <chip CHIP>
+static void
+handle_buffer_unaligned_store(struct tu_cmd_buffer *cmd,
+                              uint64_t dst_va,
+                              uint64_t size,
+                              bool *unaligned_store)
+{
+   if (*unaligned_store)
+      return;
+
+   if ((dst_va & 63) || (size & 63)) {
+      tu_flush_for_access(&cmd->state.cache, TU_ACCESS_NONE,
+                          TU_ACCESS_CCU_COLOR_INCOHERENT_WRITE);
+      /* Wait for invalidations to land. */
+      cmd->state.cache.flush_bits |= TU_CMD_FLAG_WAIT_FOR_IDLE;
+      tu_emit_cache_flush<CHIP>(cmd);
+      *unaligned_store = true;
+   }
+}
+
+template <chip CHIP>
+static void
+after_buffer_unaligned_buffer_store(struct tu_cmd_buffer *cmd,
+                                    bool unaligned_store)
+{
+   if (unaligned_store) {
+      tu_flush_for_access(&cmd->state.cache,
+                          TU_ACCESS_CCU_COLOR_INCOHERENT_WRITE,
+                          TU_ACCESS_NONE);
+   }
+}
+
 template <chip CHIP>
 void
 tu6_clear_lrz(struct tu_cmd_buffer *cmd,
@@ -2147,7 +2195,8 @@ static void
 tu_copy_image_to_buffer(struct tu_cmd_buffer *cmd,
                         struct tu_image *src_image,
                         struct tu_buffer *dst_buffer,
-                        const VkBufferImageCopy2 *info)
+                        const VkBufferImageCopy2 *info,
+                        bool *unaligned_store)
 {
    struct tu_cs *cs = &cmd->cs;
    uint32_t layers = MAX2(info->imageExtent.depth,
@@ -2181,6 +2230,10 @@ tu_copy_image_to_buffer(struct tu_cmd_buffer *cmd,
 
    uint32_t pitch = dst_width * util_format_get_blocksize(dst_format);
    uint32_t layer_size = pitch * dst_height;
+
+   handle_buffer_unaligned_store<CHIP>(cmd,
+                                       dst_buffer->iova + info->bufferOffset,
+                                       layer_size * layers, unaligned_store);
 
    ops->setup(cmd, cs, src_format, dst_format, VK_IMAGE_ASPECT_COLOR_BIT, blit_param, false, false,
               VK_SAMPLE_COUNT_1_BIT);
@@ -2221,9 +2274,13 @@ tu_CmdCopyImageToBuffer2(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_image, src_image, pCopyImageToBufferInfo->srcImage);
    VK_FROM_HANDLE(tu_buffer, dst_buffer, pCopyImageToBufferInfo->dstBuffer);
 
+   bool unaligned_store = false;
    for (unsigned i = 0; i < pCopyImageToBufferInfo->regionCount; ++i)
       tu_copy_image_to_buffer<CHIP>(cmd, src_image, dst_buffer,
-                              pCopyImageToBufferInfo->pRegions + i);
+                              pCopyImageToBufferInfo->pRegions + i,
+                              &unaligned_store);
+
+   after_buffer_unaligned_buffer_store<CHIP>(cmd, unaligned_store);
 }
 TU_GENX(tu_CmdCopyImageToBuffer2);
 
@@ -2492,12 +2549,15 @@ copy_buffer(struct tu_cmd_buffer *cmd,
             uint64_t dst_va,
             uint64_t src_va,
             uint64_t size,
-            uint32_t block_size)
+            uint32_t block_size,
+            bool *unaligned_store)
 {
    const struct blit_ops *ops = &r2d_ops<CHIP>;
    struct tu_cs *cs = &cmd->cs;
    enum pipe_format format = block_size == 4 ? PIPE_FORMAT_R32_UINT : PIPE_FORMAT_R8_UNORM;
    uint64_t blocks = size / block_size;
+
+   handle_buffer_unaligned_store<CHIP>(cmd, dst_va, size, unaligned_store);
 
    ops->setup(cmd, cs, format, format, VK_IMAGE_ASPECT_COLOR_BIT, 0, false, false,
               VK_SAMPLE_COUNT_1_BIT);
@@ -2529,13 +2589,16 @@ tu_CmdCopyBuffer2(VkCommandBuffer commandBuffer,
    VK_FROM_HANDLE(tu_buffer, src_buffer, pCopyBufferInfo->srcBuffer);
    VK_FROM_HANDLE(tu_buffer, dst_buffer, pCopyBufferInfo->dstBuffer);
 
+   bool unaligned_store = false;
    for (unsigned i = 0; i < pCopyBufferInfo->regionCount; ++i) {
       const VkBufferCopy2 *region = &pCopyBufferInfo->pRegions[i];
       copy_buffer<CHIP>(cmd,
                   dst_buffer->iova + region->dstOffset,
                   src_buffer->iova + region->srcOffset,
-                  region->size, 1);
+                  region->size, 1, &unaligned_store);
    }
+
+   after_buffer_unaligned_buffer_store<CHIP>(cmd, unaligned_store);
 }
 TU_GENX(tu_CmdCopyBuffer2);
 
@@ -2557,8 +2620,11 @@ tu_CmdUpdateBuffer(VkCommandBuffer commandBuffer,
       return;
    }
 
+   bool unaligned_store = false;
    memcpy(tmp.map, pData, dataSize);
-   copy_buffer<CHIP>(cmd, buffer->iova + dstOffset, tmp.iova, dataSize, 4);
+   copy_buffer<CHIP>(cmd, buffer->iova + dstOffset, tmp.iova, dataSize, 4, &unaligned_store);
+
+   after_buffer_unaligned_buffer_store<CHIP>(cmd, unaligned_store);
 }
 TU_GENX(tu_CmdUpdateBuffer);
 
@@ -2579,6 +2645,9 @@ tu_CmdFillBuffer(VkCommandBuffer commandBuffer,
 
    uint64_t dst_va = buffer->iova + dstOffset;
    uint32_t blocks = fillSize / 4;
+
+   bool unaligned_store = false;
+   handle_buffer_unaligned_store<CHIP>(cmd, dst_va, fillSize, &unaligned_store);
 
    ops->setup(cmd, cs, PIPE_FORMAT_R32_UINT, PIPE_FORMAT_R32_UINT,
               VK_IMAGE_ASPECT_COLOR_BIT, 0, true, false,
@@ -2601,6 +2670,8 @@ tu_CmdFillBuffer(VkCommandBuffer commandBuffer,
    }
 
    ops->teardown(cmd, cs);
+
+   after_buffer_unaligned_buffer_store<CHIP>(cmd, unaligned_store);
 }
 TU_GENX(tu_CmdFillBuffer);
 

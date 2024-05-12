@@ -14,6 +14,7 @@ use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
+use std::sync::Weak;
 use std::time::Duration;
 
 // we assert that those are a continous range of numbers so we won't have to use HashMaps
@@ -47,7 +48,8 @@ pub struct Event {
     pub context: Arc<Context>,
     pub queue: Option<Arc<Queue>>,
     pub cmd_type: cl_command_type,
-    pub deps: Vec<Arc<Event>>,
+    // using a Weak ref so we don't cause stack overflows in the `drop` impl
+    pub deps: Vec<Weak<Event>>,
     state: Mutex<EventMutState>,
     cv: Condvar,
 }
@@ -61,6 +63,7 @@ impl Event {
         deps: Vec<Arc<Event>>,
         work: EventSig,
     ) -> Arc<Event> {
+        let deps = deps.iter().map(Arc::downgrade).collect();
         Arc::new(Self {
             base: CLObjectBase::new(RusticlTypes::Event),
             context: queue.context.clone(),
@@ -228,14 +231,18 @@ impl Event {
         }
     }
 
-    fn deep_unflushed_deps_impl<'a>(&'a self, result: &mut HashSet<&'a Event>) {
+    pub fn deps(&self) -> impl Iterator<Item = Arc<Self>> + Clone + '_ {
+        self.deps.iter().filter_map(Weak::upgrade)
+    }
+
+    fn deep_unflushed_deps_impl(self: &Arc<Self>, result: &mut HashSet<Arc<Event>>) {
         if self.status() <= CL_SUBMITTED as i32 {
             return;
         }
 
         // only scan dependencies if it's a new one
-        if result.insert(self) {
-            for e in &self.deps {
+        if result.insert(Arc::clone(self)) {
+            for e in self.deps() {
                 e.deep_unflushed_deps_impl(result);
             }
         }
@@ -243,7 +250,7 @@ impl Event {
 
     /// does a deep search and returns a list of all dependencies including `events` which haven't
     /// been flushed out yet
-    pub fn deep_unflushed_deps(events: &[Arc<Event>]) -> HashSet<&Event> {
+    pub fn deep_unflushed_deps(events: &[Arc<Event>]) -> HashSet<Arc<Event>> {
         let mut result = HashSet::new();
 
         for e in events {

@@ -434,7 +434,7 @@ static void si_flush_all_queues(struct pipe_context *ctx,
    struct si_fine_fence fine = {};
    unsigned rflags = PIPE_FLUSH_ASYNC;
 
-   if (!(flags & PIPE_FLUSH_DEFERRED)) {
+   if (sctx->gfx_level < GFX12 && !(flags & PIPE_FLUSH_DEFERRED)) {
       si_flush_implicit_resources(sctx);
    }
 

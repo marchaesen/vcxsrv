@@ -5982,7 +5982,7 @@ visit_load_constant(isel_context* ctx, nir_intrinsic_instr* instr)
       S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
       S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
    if (ctx->options->gfx_level >= GFX10) {
-      desc_type |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
+      desc_type |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
                    S_008F0C_RESOURCE_LEVEL(ctx->options->gfx_level < GFX11);
    } else {
@@ -7591,7 +7591,7 @@ get_scratch_resource(isel_context* ctx)
       S_008F0C_ADD_TID_ENABLE(1) | S_008F0C_INDEX_STRIDE(ctx->program->wave_size == 64 ? 3 : 2);
 
    if (ctx->program->gfx_level >= GFX10) {
-      rsrc_conf |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
+      rsrc_conf |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
                    S_008F0C_RESOURCE_LEVEL(ctx->program->gfx_level < GFX11);
    } else if (ctx->program->gfx_level <=
@@ -12689,8 +12689,14 @@ select_ps_epilog(Program* program, void* pinfo, ac_shader_config* config,
    } else {
       for (unsigned i = 0; i < MAX_DRAW_BUFFERS; i++) {
          struct aco_export_mrt* mrt = &mrts[mrt_num];
-         if (export_fs_mrt_color(&ctx, einfo, colors[i], i, mrt))
+         const uint8_t cb_idx = einfo->color_map[i];
+
+         if (cb_idx == 0xff || !einfo->colors[cb_idx].used)
+            continue;
+
+         if (export_fs_mrt_color(&ctx, einfo, colors[cb_idx], i, mrt)) {
             mrt->target += mrt_num++;
+         }
       }
    }
 

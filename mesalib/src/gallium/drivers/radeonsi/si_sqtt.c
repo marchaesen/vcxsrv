@@ -98,7 +98,7 @@ static void si_emit_sqtt_start(struct si_context *sctx,
                         S_0367B4_SA_SEL(0) | S_0367B4_WGP_SEL(wgp) |
                         S_0367B4_SIMD_SEL(0));
             radeon_emit(S_0367B8_REG_INCLUDE(token_mask) |
-                        S_0367B8_TOKEN_EXCLUDE(V_008D18_TOKEN_EXCLUDE_PERF));
+                        S_0367B8_TOKEN_EXCLUDE_GFX11(V_008D18_TOKEN_EXCLUDE_PERF));
          } else {
             radeon_set_privileged_config_reg(
                R_008D04_SQ_THREAD_TRACE_BUF0_SIZE,

@@ -26,7 +26,9 @@
 
 #include "compiler/nir/nir_xfb_info.h"
 #include "compiler/spirv/nir_spirv.h"
+#include "vk_device.h"
 #include "vk_log.h"
+#include "vk_physical_device.h"
 #include "vk_util.h"
 
 #define SPIR_V_MAGIC_NUMBER 0x07230203
@@ -126,7 +128,11 @@ vk_spirv_to_nir(struct vk_device *device,
    assert(spirv_size_B >= 4 && spirv_size_B % 4 == 0);
    assert(spirv_data[0] == SPIR_V_MAGIC_NUMBER);
 
+   const struct spirv_capabilities spirv_caps =
+      vk_physical_device_get_spirv_capabilities(device->physical);
+
    struct spirv_to_nir_options spirv_options_local = *spirv_options;
+   spirv_options_local.capabilities = &spirv_caps;
    spirv_options_local.debug.func = spirv_nir_debug;
    spirv_options_local.debug.private_data = (void *)device;
    spirv_options_local.subgroup_size = subgroup_size;

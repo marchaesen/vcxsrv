@@ -193,6 +193,40 @@ radeon_set_privileged_config_reg(struct radeon_cmdbuf *cs, unsigned reg, unsigne
    radeon_emit(cs, 0); /* unused */
 }
 
+#define radeon_opt_set_context_reg(cmdbuf, reg, reg_enum, value)                                                       \
+   do {                                                                                                                \
+      struct radv_cmd_buffer *__cmdbuf = (cmdbuf);                                                                     \
+      struct radv_tracked_regs *__tracked_regs = &__cmdbuf->tracked_regs;                                              \
+      const uint32_t __value = (value);                                                                                \
+      if (!BITSET_TEST(__tracked_regs->reg_saved_mask, (reg_enum)) ||                                                  \
+          __tracked_regs->reg_value[(reg_enum)] != __value) {                                                          \
+         radeon_set_context_reg(__cmdbuf->cs, reg, __value);                                                           \
+         BITSET_SET(__tracked_regs->reg_saved_mask, (reg_enum));                                                       \
+         __tracked_regs->reg_value[(reg_enum)] = __value;                                                              \
+         __cmdbuf->state.context_roll_without_scissor_emitted = true;                                                  \
+      }                                                                                                                \
+   } while (0)
+
+#define radeon_opt_set_context_reg3(cmdbuf, reg, reg_enum, v1, v2, v3)                                                 \
+   do {                                                                                                                \
+      struct radv_cmd_buffer *__cmdbuf = (cmdbuf);                                                                     \
+      struct radv_tracked_regs *__tracked_regs = &__cmdbuf->tracked_regs;                                              \
+      const uint32_t __v1 = (v1), __v2 = (v2), __v3 = (v3);                                                            \
+      if (!BITSET_TEST_RANGE_INSIDE_WORD(__tracked_regs->reg_saved_mask, (reg_enum), (reg_enum) + 2, 0x7) ||           \
+          __tracked_regs->reg_value[(reg_enum)] != __v1 || __tracked_regs->reg_value[(reg_enum) + 1] != __v2 ||        \
+          __tracked_regs->reg_value[(reg_enum) + 2] != __v3) {                                                         \
+         radeon_set_context_reg_seq(cmdbuf->cs, reg, 3);                                                               \
+         radeon_emit(cmdbuf->cs, __v1);                                                                                \
+         radeon_emit(cmdbuf->cs, __v2);                                                                                \
+         radeon_emit(cmdbuf->cs, __v3);                                                                                \
+         BITSET_SET_RANGE_INSIDE_WORD(__tracked_regs->reg_saved_mask, (reg_enum), (reg_enum) + 2);                     \
+         __tracked_regs->reg_value[(reg_enum)] = __v1;                                                                 \
+         __tracked_regs->reg_value[(reg_enum) + 1] = __v2;                                                             \
+         __tracked_regs->reg_value[(reg_enum) + 2] = __v3;                                                             \
+         cmdbuf->state.context_roll_without_scissor_emitted = true;                                                    \
+      }                                                                                                                \
+   } while (0)
+
 ALWAYS_INLINE static void
 radv_cp_wait_mem(struct radeon_cmdbuf *cs, const enum radv_queue_family qf, const uint32_t op, const uint64_t va,
                  const uint32_t ref, const uint32_t mask)

@@ -1115,6 +1115,7 @@ _XimEncodeICATTRIBUTE(
 
     *ret_len = 0;
     for (p = arg; p && p->name; p++) {
+	len = 0;
 	buf_s = (CARD16 *)buf;
 	if (!(res = _XimGetResourceListRec(res_list, res_num, p->name))) {
 	    if (_XimSetInnerICAttributes(ic, top, p, mode))

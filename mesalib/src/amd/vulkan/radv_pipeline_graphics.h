@@ -117,8 +117,14 @@ struct radv_graphics_pipeline {
    /* Whether the pipeline uses out-of-order rasterization. */
    bool uses_out_of_order_rast;
 
+   /* Whether the pipeline uses VRS. */
+   bool uses_vrs;
+
    /* Whether the pipeline uses a VRS attachment. */
    bool uses_vrs_attachment;
+
+   /* Whether the pipeline uses VRS coarse shading internally. */
+   bool uses_vrs_coarse_shading;
 
    /* For graphics pipeline library */
    bool retain_shaders;
@@ -555,6 +561,7 @@ struct radv_shader *radv_get_shader(struct radv_shader *const *shaders, gl_shade
 struct radv_ps_epilog_state {
    uint8_t color_attachment_count;
    VkFormat color_attachment_formats[MAX_RTS];
+   uint8_t color_attachment_mappings[MAX_RTS];
 
    uint32_t color_write_mask;
    uint32_t color_blend_enable;
@@ -633,7 +640,7 @@ void gfx103_emit_vgt_draw_payload_cntl(struct radeon_cmdbuf *ctx_cs, const struc
                                        bool enable_vrs);
 
 void gfx103_emit_vrs_state(const struct radv_device *device, struct radeon_cmdbuf *ctx_cs, const struct radv_shader *ps,
-                           bool enable_vrs, bool enable_vrs_coarse_shading, bool force_vrs_per_vertex);
+                           bool enable_vrs_coarse_shading, bool force_vrs_per_vertex);
 
 uint32_t radv_get_vgt_gs_out(struct radv_shader **shaders, uint32_t primitive_topology);
 

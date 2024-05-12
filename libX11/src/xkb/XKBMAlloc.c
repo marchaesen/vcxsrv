@@ -795,7 +795,7 @@ XkbResizeKeyActions(XkbDescPtr xkb, int key, int needed)
     register int i, nActs;
     XkbAction *newActs;
 
-    if (needed == 0) {
+    if (needed <= 0) {
         xkb->server->key_acts[key] = 0;
         return NULL;
     }

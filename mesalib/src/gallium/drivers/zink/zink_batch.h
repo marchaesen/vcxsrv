@@ -54,28 +54,28 @@ void
 zink_batch_state_clear_resources(struct zink_screen *screen, struct zink_batch_state *bs);
 
 void
-zink_reset_batch(struct zink_context *ctx, struct zink_batch *batch);
+zink_reset_batch(struct zink_context *ctx);
 void
-zink_start_batch(struct zink_context *ctx, struct zink_batch *batch);
+zink_start_batch(struct zink_context *ctx);
 
 void
-zink_end_batch(struct zink_context *ctx, struct zink_batch *batch);
+zink_end_batch(struct zink_context *ctx);
 
 void
-zink_batch_add_wait_semaphore(struct zink_batch *batch, VkSemaphore sem);
+zink_batch_add_wait_semaphore(struct zink_context *ctx, VkSemaphore sem);
 
 void
-zink_batch_reference_resource_rw(struct zink_batch *batch,
+zink_batch_reference_resource_rw(struct zink_context *ctx,
                                  struct zink_resource *res,
                                  bool write);
 void
-zink_batch_reference_resource(struct zink_batch *batch, struct zink_resource *res);
+zink_batch_reference_resource(struct zink_context *ctx, struct zink_resource *res);
 
 bool
-zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resource *res);
+zink_batch_reference_resource_move(struct zink_context *ctx, struct zink_resource *res);
 
 void
-zink_batch_reference_program(struct zink_batch *batch,
+zink_batch_reference_program(struct zink_context *ctx,
                              struct zink_program *pg);
 
 void

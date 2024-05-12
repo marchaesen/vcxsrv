@@ -800,7 +800,9 @@ enum uniform_type
 static void
 write_program_resource_data(struct blob *metadata,
                             struct gl_shader_program *prog,
-                            struct gl_program_resource *res)
+                            struct gl_program_resource *res,
+                            struct string_to_uint_map *uniform_idx_map,
+                            struct string_to_uint_map *blk_idx_map)
 {
    struct gl_linked_shader *sh;
 
@@ -828,23 +830,13 @@ write_program_resource_data(struct blob *metadata,
       break;
    }
    case GL_UNIFORM_BLOCK:
-      for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
-         if (strcmp(((gl_uniform_block *)res->Data)->name.string,
-                    prog->data->UniformBlocks[i].name.string) == 0) {
-            blob_write_uint32(metadata, i);
-            break;
-         }
-      }
+   case GL_SHADER_STORAGE_BLOCK: {
+      unsigned i;
+      string_to_uint_map_get(blk_idx_map, &i,
+                             ((gl_uniform_block *)res->Data)->name.string);
+      blob_write_uint32(metadata, i);
       break;
-   case GL_SHADER_STORAGE_BLOCK:
-      for (unsigned i = 0; i < prog->data->NumShaderStorageBlocks; i++) {
-         if (strcmp(((gl_uniform_block *)res->Data)->name.string,
-                    prog->data->ShaderStorageBlocks[i].name.string) == 0) {
-            blob_write_uint32(metadata, i);
-            break;
-         }
-      }
-      break;
+   }
    case GL_BUFFER_VARIABLE:
    case GL_VERTEX_SUBROUTINE_UNIFORM:
    case GL_GEOMETRY_SUBROUTINE_UNIFORM:
@@ -856,13 +848,11 @@ write_program_resource_data(struct blob *metadata,
       if (((gl_uniform_storage *)res->Data)->builtin ||
           res->Type != GL_UNIFORM) {
          blob_write_uint32(metadata, uniform_not_remapped);
-         for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
-            if (strcmp(((gl_uniform_storage *)res->Data)->name.string,
-                       prog->data->UniformStorage[i].name.string) == 0) {
-               blob_write_uint32(metadata, i);
-               break;
-            }
-         }
+
+         unsigned i;
+         string_to_uint_map_get(uniform_idx_map, &i,
+                                ((gl_uniform_storage *)res->Data)->name.string);
+         blob_write_uint32(metadata, i);
       } else {
          blob_write_uint32(metadata, uniform_remapped);
          blob_write_uint32(metadata, ((gl_uniform_storage *)res->Data)->remap_location);
@@ -993,14 +983,43 @@ write_program_resource_list(struct blob *metadata,
 {
    blob_write_uint32(metadata, prog->data->NumProgramResourceList);
 
+   struct string_to_uint_map *uniform_idx_map = string_to_uint_map_ctor();
+   struct string_to_uint_map *ubo_idx_map = string_to_uint_map_ctor();
+   struct string_to_uint_map *ssbo_idx_map = string_to_uint_map_ctor();
+
+   for (unsigned i = 0; i < prog->data->NumUniformBlocks; i++) {
+      string_to_uint_map_put(ubo_idx_map, i,
+                             prog->data->UniformBlocks[i].name.string);
+   }
+
+   for (unsigned i = 0; i < prog->data->NumShaderStorageBlocks; i++) {
+      string_to_uint_map_put(ssbo_idx_map, i,
+                             prog->data->ShaderStorageBlocks[i].name.string);
+   }
+
+   for (unsigned i = 0; i < prog->data->NumUniformStorage; i++) {
+      string_to_uint_map_put(uniform_idx_map, i,
+                             prog->data->UniformStorage[i].name.string);
+   }
+
    for (unsigned i = 0; i < prog->data->NumProgramResourceList; i++) {
       blob_write_uint32(metadata, prog->data->ProgramResourceList[i].Type);
+
+      struct string_to_uint_map *blk_idx_map =
+         prog->data->ProgramResourceList[i].Type == GL_UNIFORM_BLOCK ?
+            ubo_idx_map : ssbo_idx_map;
+
       write_program_resource_data(metadata, prog,
-                                  &prog->data->ProgramResourceList[i]);
+                                  &prog->data->ProgramResourceList[i],
+                                  uniform_idx_map, blk_idx_map);
       blob_write_bytes(metadata,
                        &prog->data->ProgramResourceList[i].StageReferences,
                        sizeof(prog->data->ProgramResourceList[i].StageReferences));
    }
+
+   string_to_uint_map_dtor(uniform_idx_map);
+   string_to_uint_map_dtor(ubo_idx_map);
+   string_to_uint_map_dtor(ssbo_idx_map);
 }
 
 static void

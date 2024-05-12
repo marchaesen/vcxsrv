@@ -38,6 +38,21 @@
 #define M_PI_4f ((float) M_PI_4)
 #endif
 
+/**
+ * Some fp16 instructions (i.e., asin and acos) are lowered as fp32. In these cases the
+ * generated fp32 instructions need the same fp_fast_math settings as fp16.
+ */
+static void
+propagate_fp16_fast_math_to_fp32(struct nir_builder *b)
+{
+   static_assert(FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32 ==
+                 (FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16 << 1),
+                 "FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP32 is not "
+                 "FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16 << 1.");
+
+   b->fp_fast_math |= (b->fp_fast_math & FLOAT_CONTROLS_SIGNED_ZERO_INF_NAN_PRESERVE_FP16) << 1;
+}
+
 static nir_def *build_det(nir_builder *b, nir_def **col, unsigned cols);
 
 /* Computes the determinate of the submatrix given by taking src and
@@ -163,7 +178,14 @@ build_asin(nir_builder *b, nir_def *x, float p0, float p1, bool piecewise)
        * approximation in 32-bit math and then we convert the result back to
        * 16-bit.
        */
-      return nir_f2f16(b, build_asin(b, nir_f2f32(b, x), p0, p1, piecewise));
+      const uint32_t save = b->fp_fast_math;
+      propagate_fp16_fast_math_to_fp32(b);
+
+      nir_def *result =
+         nir_f2f16(b, build_asin(b, nir_f2f32(b, x), p0, p1, piecewise));
+
+      b->fp_fast_math = save;
+      return result;
    }
    nir_def *one = nir_imm_floatN_t(b, 1.0f, x->bit_size);
    nir_def *half = nir_imm_floatN_t(b, 0.5f, x->bit_size);

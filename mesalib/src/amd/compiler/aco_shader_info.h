@@ -47,6 +47,7 @@ struct aco_vs_prolog_info {
 
 struct aco_ps_epilog_info {
    struct ac_arg colors[MAX_DRAW_BUFFERS];
+   uint8_t color_map[MAX_DRAW_BUFFERS];
 
    uint32_t spi_shader_col_format;
 

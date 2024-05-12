@@ -711,6 +711,9 @@ int main(int argc, char **argv)
    for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
       struct radeon_info info = get_radeon_info(&testcases[i]);
 
+      if (info.gfx_level >= GFX12)
+         continue;
+
       run_dcc_address_test(testcases[i].name, &info, full);
    }
 
@@ -718,8 +721,8 @@ int main(int argc, char **argv)
    for (unsigned i = 0; i < ARRAY_SIZE(testcases); ++i) {
       struct radeon_info info = get_radeon_info(&testcases[i]);
 
-      /* Only GFX10+ is currently supported. */
-      if (info.gfx_level < GFX10)
+      /* Only GFX10+ is currently supported. GFX12 doesn't have HTILE. */
+      if (info.gfx_level < GFX10 || info.gfx_level >= GFX12)
          continue;
 
       run_htile_address_test(testcases[i].name, &info, full);

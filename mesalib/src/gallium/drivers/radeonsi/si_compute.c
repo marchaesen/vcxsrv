@@ -178,7 +178,7 @@ static void si_create_compute_state_async(void *job, void *gdata, int thread_ind
       shader->config.rsrc1 = S_00B848_VGPRS((shader->config.num_vgprs - 1) /
                                             ((shader->wave_size == 32 ||
                                               sscreen->info.wave64_vgpr_alloc_granularity == 8) ? 8 : 4)) |
-                             S_00B848_DX10_CLAMP(1) |
+                             S_00B848_DX10_CLAMP(sscreen->info.gfx_level < GFX12) |
                              S_00B848_MEM_ORDERED(si_shader_mem_ordered(shader)) |
                              S_00B848_FLOAT_MODE(shader->config.float_mode);
 
@@ -499,15 +499,36 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
    radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, shader->bo,
                              RADEON_USAGE_READ | RADEON_PRIO_SHADER_BINARY);
 
-   if (sctx->screen->info.has_set_sh_pairs_packed) {
+   if (sctx->gfx_level >= GFX12) {
+      unsigned rsrc3 = S_00B8A0_INST_PREF_SIZE_GFX12(si_get_shader_prefetch_size(shader));
+
+      gfx12_push_compute_sh_reg(R_00B830_COMPUTE_PGM_LO, shader_va >> 8);
+      gfx12_opt_push_compute_sh_reg(R_00B848_COMPUTE_PGM_RSRC1,
+                                    SI_TRACKED_COMPUTE_PGM_RSRC1, config->rsrc1);
+      gfx12_opt_push_compute_sh_reg(R_00B84C_COMPUTE_PGM_RSRC2,
+                                    SI_TRACKED_COMPUTE_PGM_RSRC2, rsrc2);
+      gfx12_opt_push_compute_sh_reg(R_00B8A0_COMPUTE_PGM_RSRC3,
+                                    SI_TRACKED_COMPUTE_PGM_RSRC3, rsrc3);
+      gfx12_opt_push_compute_sh_reg(R_00B860_COMPUTE_TMPRING_SIZE,
+                                    SI_TRACKED_COMPUTE_TMPRING_SIZE, tmpring_size);
+      if (shader->scratch_bo) {
+         gfx12_opt_push_compute_sh_reg(R_00B840_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
+                                       SI_TRACKED_COMPUTE_DISPATCH_SCRATCH_BASE_LO,
+                                       sctx->compute_scratch_buffer->gpu_address >> 8);
+         gfx12_opt_push_compute_sh_reg(R_00B844_COMPUTE_DISPATCH_SCRATCH_BASE_HI,
+                                       SI_TRACKED_COMPUTE_DISPATCH_SCRATCH_BASE_HI,
+                                       sctx->compute_scratch_buffer->gpu_address >> 40);
+      }
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
+      unsigned rsrc3 = S_00B8A0_INST_PREF_SIZE_GFX11(si_get_shader_prefetch_size(shader));
+
       gfx11_push_compute_sh_reg(R_00B830_COMPUTE_PGM_LO, shader_va >> 8);
       gfx11_opt_push_compute_sh_reg(R_00B848_COMPUTE_PGM_RSRC1,
                                     SI_TRACKED_COMPUTE_PGM_RSRC1, config->rsrc1);
       gfx11_opt_push_compute_sh_reg(R_00B84C_COMPUTE_PGM_RSRC2,
                                     SI_TRACKED_COMPUTE_PGM_RSRC2, rsrc2);
       gfx11_opt_push_compute_sh_reg(R_00B8A0_COMPUTE_PGM_RSRC3,
-                                    SI_TRACKED_COMPUTE_PGM_RSRC3,
-                                    S_00B8A0_INST_PREF_SIZE(si_get_shader_prefetch_size(shader)));
+                                    SI_TRACKED_COMPUTE_PGM_RSRC3, rsrc3);
       gfx11_opt_push_compute_sh_reg(R_00B860_COMPUTE_TMPRING_SIZE,
                                     SI_TRACKED_COMPUTE_TMPRING_SIZE, tmpring_size);
       if (shader->scratch_bo) {
@@ -539,7 +560,7 @@ static bool si_switch_compute_shader(struct si_context *sctx, struct si_compute 
       if (sctx->gfx_level >= GFX11) {
          radeon_opt_set_sh_reg(sctx, R_00B8A0_COMPUTE_PGM_RSRC3,
                                SI_TRACKED_COMPUTE_PGM_RSRC3,
-                               S_00B8A0_INST_PREF_SIZE(si_get_shader_prefetch_size(shader)));
+                               S_00B8A0_INST_PREF_SIZE_GFX11(si_get_shader_prefetch_size(shader)));
       }
       radeon_end();
    }
@@ -735,7 +756,24 @@ static void si_setup_nir_user_data(struct si_context *sctx, const struct pipe_gr
       }
    }
 
-   if (sctx->screen->info.has_set_sh_pairs_packed) {
+   if (sctx->gfx_level >= GFX12) {
+      if (sel->info.uses_grid_size && !info->indirect) {
+         gfx12_push_compute_sh_reg(grid_size_reg, info->grid[0]);
+         gfx12_push_compute_sh_reg(grid_size_reg + 4, info->grid[1]);
+         gfx12_push_compute_sh_reg(grid_size_reg + 8, info->grid[2]);
+      }
+
+      if (sel->info.uses_variable_block_size) {
+         uint32_t value = info->block[0] | (info->block[1] << 10) | (info->block[2] << 20);
+         gfx12_push_compute_sh_reg(block_size_reg, value);
+      }
+
+      if (sel->info.base.cs.user_data_components_amd) {
+         unsigned num = sel->info.base.cs.user_data_components_amd;
+         for (unsigned i = 0; i < num; i++)
+            gfx12_push_compute_sh_reg(cs_user_data_reg + i * 4, sctx->cs_user_data[i]);
+      }
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
       if (sel->info.uses_grid_size && !info->indirect) {
          gfx11_push_compute_sh_reg(grid_size_reg, info->grid[0]);
          gfx11_push_compute_sh_reg(grid_size_reg + 4, info->grid[1]);
@@ -776,6 +814,76 @@ static void si_setup_nir_user_data(struct si_context *sctx, const struct pipe_gr
    }
 }
 
+static bool si_get_2d_interleave_size(const struct pipe_grid_info *info,
+                                      unsigned *log_x, unsigned *log_y)
+{
+   /* The following code produces this behavior:
+    *
+    *     WG size     |   WG block/SE  | Thread block/SE
+    *  ( 1, 32) =  32 |  (16,  1) = 16 | ( 16, 32) = 512
+    *  ( 2, 16) =  32 |  ( 8,  2) = 16 | ( 16, 32) = 512
+    *  ( 2, 32) =  64 |  (16,  1) = 16 | ( 32, 32) = 1024
+    *  ( 4,  8) =  32 |  ( 4,  4) = 16 | ( 16, 32) = 512
+    *  ( 4, 16) =  64 |  ( 8,  2) = 16 | ( 32, 32) = 1024
+    *  ( 4, 32) = 128 |  ( 8,  1) =  8 | ( 32, 32) = 1024
+    *  ( 8,  4) =  32 |  ( 2,  8) = 16 | ( 16, 32) = 512
+    *  ( 8,  8) =  64 |  ( 4,  4) = 16 | ( 32, 32) = 1024
+    *  ( 8, 16) = 128 |  ( 4,  2) =  8 | ( 32, 32) = 1024
+    *  ( 8, 32) = 256 |  ( 4,  1) =  4 | ( 32, 32) = 1024
+    *  (16,  2) =  32 |  ( 1, 16) = 16 | ( 16, 32) = 512
+    *  (16,  4) =  64 |  ( 2,  8) = 16 | ( 32, 32) = 1024
+    *  (16,  8) = 128 |  ( 2,  4) =  8 | ( 32, 32) = 1024
+    *  (16, 16) = 256 |  ( 2,  2) =  4 | ( 32, 32) = 1024
+    *  (16, 32) = 512 |  ( 2,  1) =  2 | ( 32, 32) = 1024
+    *  (32,  1) =  32 |  ( 1, 16) = 16 | ( 32, 16) = 512
+    *  (32,  2) =  64 |  ( 1, 16) = 16 | ( 32, 32) = 1024
+    *  (32,  4) = 128 |  ( 1,  8) =  8 | ( 32, 32) = 1024
+    *  (32,  8) = 256 |  ( 1,  4) =  4 | ( 32, 32) = 1024
+    *  (32, 16) = 512 |  ( 1,  2) =  2 | ( 32, 32) = 1024
+    *
+    * For 3D workgroups, the total 2D thread count is divided by Z.
+    * Example with Z=8, showing only a 2D slice of the grid:
+    *
+    *     WG size     |   WG block/SE  | Thread block/SE
+    *  ( 1, 32) =  32 |  ( 4,  1) =  4 | (  4, 32) = 128
+    *  ( 2, 16) =  32 |  ( 4,  1) =  4 | (  8, 16) = 128
+    *  ( 2, 32) =  64 |  ( 2,  1) =  2 | (  4, 32) = 128
+    *  ( 4,  8) =  32 |  ( 2,  2) =  4 | (  8, 16) = 128
+    *  ( 4, 16) =  64 |  ( 2,  1) =  2 | (  8, 16) = 128
+    *  ( 8,  4) =  32 |  ( 1,  4) =  4 | (  8, 16) = 128
+    *  ( 8,  8) =  64 |  ( 1,  2) =  2 | (  8, 16) = 128
+    *  (16,  2) =  32 |  ( 1,  4) =  4 | ( 16,  8) = 128
+    *  (16,  4) =  64 |  ( 1,  2) =  2 | ( 16,  8) = 128
+    *  (32,  1) =  32 |  ( 1,  4) =  4 | ( 32,  4) = 128
+    *  (32,  2) =  64 |  ( 1,  2) =  2 | ( 32,  4) = 128
+    *
+    * It tries to find a WG block size that corresponds to (N, N) or (N, 2*N) threads,
+    * but it's limited by the maximum WGs/SE, which is 16, and the number of threads/SE,
+    * which we set to 1024.
+    */
+   unsigned max_threads_per_se = 1024;
+   unsigned threads_per_threadgroup = info->block[0] * info->block[1] * info->block[2];
+   unsigned workgroups_per_se = MIN2(max_threads_per_se / threads_per_threadgroup, 16);
+   unsigned log_workgroups_per_se = util_logbase2(workgroups_per_se);
+
+   if (!log_workgroups_per_se)
+      return false;
+
+   assert(log_workgroups_per_se <= 4);
+
+   *log_x = MIN2(log_workgroups_per_se, 4);
+   *log_y = log_workgroups_per_se - *log_x;
+
+   while (*log_x > 0 && *log_y < 4 &&
+          info->block[0] * (1 << *log_x) > info->block[1] * (1 << *log_y)) {
+      (*log_x)--;
+      (*log_y)++;
+   }
+
+   assert(*log_x + *log_y <= 4);
+   return true;
+}
+
 static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_grid_info *info)
 {
    struct si_screen *sscreen = sctx->screen;
@@ -807,7 +915,11 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
                                      sctx->cs_max_waves_per_sh,
                                      threadgroups_per_cu);
 
-   if (sctx->screen->info.has_set_sh_pairs_packed) {
+   if (sctx->gfx_level >= GFX12) {
+      gfx12_opt_push_compute_sh_reg(R_00B854_COMPUTE_RESOURCE_LIMITS,
+                                    SI_TRACKED_COMPUTE_RESOURCE_LIMITS,
+                                    compute_resource_limits);
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
       gfx11_opt_push_compute_sh_reg(R_00B854_COMPUTE_RESOURCE_LIMITS,
                                     SI_TRACKED_COMPUTE_RESOURCE_LIMITS,
                                     compute_resource_limits);
@@ -830,8 +942,13 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
    bool partial_block_en = last_block[0] || last_block[1] || last_block[2];
    uint32_t num_threads[3];
 
-   num_threads[0] = S_00B81C_NUM_THREAD_FULL(info->block[0]);
-   num_threads[1] = S_00B820_NUM_THREAD_FULL(info->block[1]);
+   if (sctx->gfx_level >= GFX12) {
+      num_threads[0] = S_00B81C_NUM_THREAD_FULL_GFX12(info->block[0]);
+      num_threads[1] = S_00B820_NUM_THREAD_FULL_GFX12(info->block[1]);
+   } else {
+      num_threads[0] = S_00B81C_NUM_THREAD_FULL_GFX6(info->block[0]);
+      num_threads[1] = S_00B820_NUM_THREAD_FULL_GFX6(info->block[1]);
+   }
    num_threads[2] = S_00B824_NUM_THREAD_FULL(info->block[2]);
 
    if (partial_block_en) {
@@ -849,7 +966,82 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
       dispatch_initiator |= S_00B800_PARTIAL_TG_EN(1);
    }
 
-   if (sctx->screen->info.has_set_sh_pairs_packed) {
+   if (sctx->gfx_level >= GFX12) {
+      /* Set PING_PONG_EN for every other dispatch.
+       * Only allowed on a gfx queue, and PARTIAL_TG_EN and USE_THREAD_DIMENSIONS must be 0.
+       */
+      if (sctx->has_graphics && !partial_block_en) {
+         dispatch_initiator |= S_00B800_PING_PONG_EN(sctx->compute_ping_pong_launch);
+         sctx->compute_ping_pong_launch ^= 1;
+      }
+
+      /* Thread tiling within a workgroup. */
+      switch (sctx->cs_shader_state.program->shader.selector->info.base.cs.derivative_group) {
+      case DERIVATIVE_GROUP_LINEAR:
+         break;
+      case DERIVATIVE_GROUP_QUADS:
+         num_threads[0] |= S_00B81C_INTERLEAVE_BITS_X(1); /* 2x2 */
+         num_threads[1] |= S_00B820_INTERLEAVE_BITS_Y(1);
+         break;
+      case DERIVATIVE_GROUP_NONE:
+         /* These are the only legal combinations. */
+         if (info->block[0] % 8 == 0 && info->block[1] % 8 == 0) {
+            num_threads[0] |= S_00B81C_INTERLEAVE_BITS_X(3); /* 8x8 */
+            num_threads[1] |= S_00B820_INTERLEAVE_BITS_Y(3);
+         } else if (info->block[0] % 4 == 0 && info->block[1] % 8 == 0) {
+            num_threads[0] |= S_00B81C_INTERLEAVE_BITS_X(2); /* 4x8 */
+            num_threads[1] |= S_00B820_INTERLEAVE_BITS_Y(3);
+         } else if (info->block[0] % 4 == 0 && info->block[1] % 4 == 0) {
+            num_threads[0] |= S_00B81C_INTERLEAVE_BITS_X(2); /* 4x4 */
+            num_threads[1] |= S_00B820_INTERLEAVE_BITS_Y(2);
+         } else if (info->block[0] % 2 == 0 && info->block[1] % 2 == 0) {
+            num_threads[0] |= S_00B81C_INTERLEAVE_BITS_X(1); /* 2x2 */
+            num_threads[1] |= S_00B820_INTERLEAVE_BITS_Y(1);
+         }
+         break;
+      }
+
+      /* How many threads should go to 1 SE before moving onto the next if INTERLEAVE_2D_EN == 0.
+       * Only these values are valid: 0 (disabled), 64, 128, 256, 512
+       * 64 = RT, 256 = non-RT (run benchmarks to be sure)
+       */
+      unsigned dispatch_interleave = S_00B8BC_INTERLEAVE_1D(256);
+      unsigned log_x, log_y;
+
+      /* Launch a 2D subgrid on each SE instead of a 1D subgrid. If enabled, INTERLEAVE_1D is
+       * ignored and each SE gets 1 subgrid up to a certain number of threads.
+       *
+       * Constraints:
+       * - Only supported by the gfx queue.
+       * - Max 16 workgroups per SE can be launched, max 4 in each dimension.
+       * - PARTIAL_TG_EN, USE_THREAD_DIMENSIONS, and ORDERED_APPEND_ENBL must be 0.
+       */
+      if (sctx->has_graphics && !partial_block_en &&
+          (info->indirect || info->grid[1] >= 4) && MIN2(info->block[0], info->block[1]) >= 4 &&
+          si_get_2d_interleave_size(info, &log_x, &log_y)) {
+         dispatch_interleave = S_00B8BC_INTERLEAVE_1D(1) || /* 1D is disabled */
+                               S_00B8BC_INTERLEAVE_2D_X_SIZE(log_x) |
+                               S_00B8BC_INTERLEAVE_2D_Y_SIZE(log_y);
+         dispatch_initiator |= S_00B800_INTERLEAVE_2D_EN(1);
+      }
+
+      if (sctx->has_graphics) {
+         radeon_opt_set_sh_reg_idx(sctx, R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
+                                   SI_TRACKED_COMPUTE_DISPATCH_INTERLEAVE, 2, dispatch_interleave);
+      } else {
+         gfx12_opt_push_compute_sh_reg(R_00B8BC_COMPUTE_DISPATCH_INTERLEAVE,
+                                       SI_TRACKED_COMPUTE_DISPATCH_INTERLEAVE, dispatch_interleave);
+      }
+   }
+
+   if (sctx->gfx_level >= GFX12) {
+      gfx12_opt_push_compute_sh_reg(R_00B81C_COMPUTE_NUM_THREAD_X,
+                                    SI_TRACKED_COMPUTE_NUM_THREAD_X, num_threads[0]);
+      gfx12_opt_push_compute_sh_reg(R_00B820_COMPUTE_NUM_THREAD_Y,
+                                    SI_TRACKED_COMPUTE_NUM_THREAD_Y, num_threads[1]);
+      gfx12_opt_push_compute_sh_reg(R_00B824_COMPUTE_NUM_THREAD_Z,
+                                    SI_TRACKED_COMPUTE_NUM_THREAD_Z, num_threads[2]);
+   } else if (sctx->screen->info.has_set_sh_pairs_packed) {
       gfx11_opt_push_compute_sh_reg(R_00B81C_COMPUTE_NUM_THREAD_X,
                                     SI_TRACKED_COMPUTE_NUM_THREAD_X, num_threads[0]);
       gfx11_opt_push_compute_sh_reg(R_00B820_COMPUTE_NUM_THREAD_Y,
@@ -862,7 +1054,7 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
                              num_threads[0], num_threads[1], num_threads[2]);
    }
 
-   if (sctx->gfx_level >= GFX11) {
+   if (sctx->gfx_level >= GFX12 || sctx->screen->info.has_set_sh_pairs_packed) {
       radeon_end();
       si_emit_buffered_compute_sh_regs(sctx);
       radeon_begin_again(cs);
@@ -879,11 +1071,21 @@ static void si_emit_dispatch_packets(struct si_context *sctx, const struct pipe_
       radeon_emit(base_va);
       radeon_emit(base_va >> 32);
 
-      radeon_emit(PKT3(PKT3_DISPATCH_INDIRECT, 1, render_cond_bit) | PKT3_SHADER_TYPE_S(1));
+      unsigned pkt = PKT3_DISPATCH_INDIRECT;
+
+      if (sctx->gfx_level >= GFX12 && G_00B800_INTERLEAVE_2D_EN(dispatch_initiator))
+          pkt = PKT3_DISPATCH_INDIRECT_INTERLEAVED;
+
+      radeon_emit(PKT3(pkt, 1, render_cond_bit) | PKT3_SHADER_TYPE_S(1));
       radeon_emit(info->indirect_offset);
       radeon_emit(dispatch_initiator);
    } else {
-      radeon_emit(PKT3(PKT3_DISPATCH_DIRECT, 3, render_cond_bit) | PKT3_SHADER_TYPE_S(1));
+      unsigned pkt = PKT3_DISPATCH_DIRECT;
+
+      if (sctx->gfx_level >= GFX12 && G_00B800_INTERLEAVE_2D_EN(dispatch_initiator))
+         pkt = PKT3_DISPATCH_DIRECT_INTERLEAVED;
+
+      radeon_emit(PKT3(pkt, 3, render_cond_bit) | PKT3_SHADER_TYPE_S(1));
       radeon_emit(info->grid[0]);
       radeon_emit(info->grid[1]);
       radeon_emit(info->grid[2]);
@@ -968,17 +1170,23 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
             si_make_CB_shader_coherent(sctx, 0,
                                        sctx->framebuffer.CB_has_shader_readable_metadata,
                                        sctx->framebuffer.all_DCC_pipe_aligned);
+
+          if (sctx->gfx_level == GFX12 &&
+              (sctx->force_shader_coherency.with_db ||
+               si_check_needs_implicit_sync(sctx, RADEON_USAGE_DB_NEEDS_IMPLICIT_SYNC)))
+             si_make_DB_shader_coherent(sctx, 0, false, false);
       }
 
       if (sctx->gfx_level < GFX11)
          gfx6_decompress_textures(sctx, 1 << PIPE_SHADER_COMPUTE);
-      else
+      else if (sctx->gfx_level < GFX12)
          gfx11_decompress_textures(sctx, 1 << PIPE_SHADER_COMPUTE);
    }
 
    if (info->indirect) {
-      /* Indirect buffers use TC L2 on GFX9, but not older hw. */
-      if (sctx->gfx_level <= GFX8 && si_resource(info->indirect)->TC_L2_dirty) {
+      /* Indirect buffers use TC L2 on GFX9-GFX11, but not other hw. */
+      if ((sctx->gfx_level <= GFX8 || sctx->gfx_level == GFX12) &&
+          si_resource(info->indirect)->TC_L2_dirty) {
          sctx->flags |= SI_CONTEXT_WB_L2;
          si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
          si_resource(info->indirect)->TC_L2_dirty = false;
@@ -1054,17 +1262,19 @@ static void si_launch_grid(struct pipe_context *ctx, const struct pipe_grid_info
       si_log_compute_state(sctx, sctx->log);
    }
 
-   /* Mark displayable DCC as dirty for bound images. */
-   unsigned display_dcc_store_mask = sctx->images[PIPE_SHADER_COMPUTE].display_dcc_store_mask &
-                               BITFIELD_MASK(program->sel.info.base.num_images);
-   while (display_dcc_store_mask) {
-      struct si_texture *tex = (struct si_texture *)
-         sctx->images[PIPE_SHADER_COMPUTE].views[u_bit_scan(&display_dcc_store_mask)].resource;
+   if (sctx->gfx_level < GFX12) {
+      /* Mark displayable DCC as dirty for bound images. */
+      unsigned display_dcc_store_mask = sctx->images[PIPE_SHADER_COMPUTE].display_dcc_store_mask &
+                                  BITFIELD_MASK(program->sel.info.base.num_images);
+      while (display_dcc_store_mask) {
+         struct si_texture *tex = (struct si_texture *)
+            sctx->images[PIPE_SHADER_COMPUTE].views[u_bit_scan(&display_dcc_store_mask)].resource;
 
-      si_mark_display_dcc_dirty(sctx, tex);
+         si_mark_display_dcc_dirty(sctx, tex);
+      }
+
+      /* TODO: Bindless images don't set displayable_dcc_dirty after image stores. */
    }
-
-   /* TODO: Bindless images don't set displayable_dcc_dirty after image stores. */
 
    sctx->compute_is_busy = true;
    sctx->num_compute_calls++;
@@ -1127,4 +1337,40 @@ void si_init_compute_functions(struct si_context *sctx)
    sctx->b.set_compute_resources = si_set_compute_resources;
    sctx->b.set_global_binding = si_set_global_binding;
    sctx->b.launch_grid = si_launch_grid;
+
+#if 0 /* test for si_get_2d_interleave_size */
+   static bool visited = false;
+   if (visited)
+      return;
+
+   visited = true;
+   struct pipe_grid_info info = {};
+   info.grid[0] = info.grid[1] = info.grid[2] = 1024;
+   info.block[2] = 1;
+
+   for (unsigned block_3d = 0; block_3d < 2; block_3d++) {
+      printf("    WG size     |   WG block/SE  | Thread block/SE\n");
+
+      for (unsigned x = 1; x <= 32; x *= 2) {
+         for (unsigned y = 1; y <= 32; y *= 2) {
+            info.block[0] = x;
+            info.block[1] = y;
+            info.block[2] = block_3d ? 8 : 1;
+
+            if ((x * y) % 32)
+               continue;
+
+            unsigned log_x, log_y;
+            if (!si_get_2d_interleave_size(&info, &log_x, &log_y))
+               continue;
+
+            printf(" (%2u, %2u) = %3u |  (%2u, %2u) = %2u | (%3u,%3u) = %u\n",
+                   info.block[0], info.block[1], info.block[0] * info.block[1],
+                   1 << log_x, 1 << log_y, (1 << log_x) * (1 << log_y),
+                   info.block[0] * (1 << log_x), info.block[1] * (1 << log_y),
+                   info.block[0] * (1 << log_x) * info.block[1] * (1 << log_y));
+         }
+      }
+   }
+#endif
 }

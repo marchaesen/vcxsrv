@@ -584,6 +584,7 @@ xwl_send_event_to_ei(struct xwl_ei_client *xwl_ei_client,
                 } else if (detail == 7) {
                     ei_device_scroll_discrete(ei_device, SCROLL_STEP, 0);
                 }
+                ei_device_frame(ei_device, ei_now(ei));
             }
             break;
         case KeyPress:

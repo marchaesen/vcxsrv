@@ -400,13 +400,15 @@ pervertex_lds_addr(nir_builder *b, nir_def *vertex_idx, unsigned per_vtx_bytes)
 
 static nir_def *
 emit_pack_ngg_prim_exp_arg(nir_builder *b, unsigned num_vertices_per_primitives,
-                           nir_def *vertex_indices[3], nir_def *is_null_prim)
+                           nir_def *vertex_indices[3], nir_def *is_null_prim,
+                           enum amd_gfx_level gfx_level)
 {
    nir_def *arg = nir_load_initial_edgeflags_amd(b);
 
    for (unsigned i = 0; i < num_vertices_per_primitives; ++i) {
       assert(vertex_indices[i]);
-      arg = nir_ior(b, arg, nir_ishl_imm(b, vertex_indices[i], 10u * i));
+      arg = nir_ior(b, arg, nir_ishl_imm(b, vertex_indices[i],
+                                         (gfx_level >= GFX12 ? 9u : 10u) * i));
    }
 
    if (is_null_prim) {
@@ -486,11 +488,16 @@ ngg_nogs_init_vertex_indices_vars(nir_builder *b, nir_function_impl *impl, lower
    for (unsigned v = 0; v < s->options->num_vertices_per_primitive; ++v) {
       s->gs_vtx_indices_vars[v] = nir_local_variable_create(impl, glsl_uint_type(), "gs_vtx_addr");
 
-      nir_def *vtx = s->options->passthrough ?
-         nir_ubfe_imm(b, nir_load_packed_passthrough_primitive_amd(b),
-                      10 * v, 9) :
-         nir_ubfe_imm(b, nir_load_gs_vertex_offset_amd(b, .base = v / 2u),
-                      (v & 1u) * 16u, 16u);
+      nir_def *vtx;
+
+      if (s->options->gfx_level >= GFX12) {
+         vtx = nir_ubfe_imm(b, nir_load_packed_passthrough_primitive_amd(b), 9 * v, 8);
+      } else if (s->options->passthrough) {
+         vtx = nir_ubfe_imm(b, nir_load_packed_passthrough_primitive_amd(b), 10 * v, 9);
+      } else {
+         vtx = nir_ubfe_imm(b, nir_load_gs_vertex_offset_amd(b, .base = v / 2u),
+                            (v & 1u) * 16u, 16u);
+      }
 
       nir_store_var(b, s->gs_vtx_indices_vars[v], vtx, 0x1);
    }
@@ -499,7 +506,7 @@ ngg_nogs_init_vertex_indices_vars(nir_builder *b, nir_function_impl *impl, lower
 static nir_def *
 emit_ngg_nogs_prim_exp_arg(nir_builder *b, lower_ngg_nogs_state *s)
 {
-   if (s->options->passthrough) {
+   if (s->options->gfx_level >= GFX12 || s->options->passthrough) {
       return nir_load_packed_passthrough_primitive_amd(b);
    } else {
       nir_def *vtx_idx[3] = {0};
@@ -507,7 +514,8 @@ emit_ngg_nogs_prim_exp_arg(nir_builder *b, lower_ngg_nogs_state *s)
       for (unsigned v = 0; v < s->options->num_vertices_per_primitive; ++v)
          vtx_idx[v] = nir_load_var(b, s->gs_vtx_indices_vars[v]);
 
-      return emit_pack_ngg_prim_exp_arg(b, s->options->num_vertices_per_primitive, vtx_idx, NULL);
+      return emit_pack_ngg_prim_exp_arg(b, s->options->num_vertices_per_primitive, vtx_idx, NULL,
+                                        s->options->gfx_level);
    }
 }
 
@@ -563,7 +571,7 @@ emit_ngg_nogs_prim_export(nir_builder *b, lower_ngg_nogs_state *s, nir_def *arg)
                             .memory_semantics = NIR_MEMORY_ACQ_REL,
                             .memory_modes = nir_var_mem_shared);
 
-         unsigned edge_flag_bits = ac_get_all_edge_flag_bits();
+         unsigned edge_flag_bits = ac_get_all_edge_flag_bits(s->options->gfx_level);
          nir_def *mask = nir_imm_intN_t(b, ~edge_flag_bits, 32);
 
          unsigned edge_flag_offset = 0;
@@ -578,7 +586,11 @@ emit_ngg_nogs_prim_export(nir_builder *b, lower_ngg_nogs_state *s, nir_def *arg)
             nir_def *vtx_idx = nir_load_var(b, s->gs_vtx_indices_vars[i]);
             nir_def *addr = pervertex_lds_addr(b, vtx_idx, s->pervertex_lds_bytes);
             nir_def *edge = nir_load_shared(b, 1, 32, addr, .base = edge_flag_offset);
-            mask = nir_ior(b, mask, nir_ishl_imm(b, edge, 9 + i * 10));
+
+            if (s->options->gfx_level >= GFX12)
+               mask = nir_ior(b, mask, nir_ishl_imm(b, edge, 8 + i * 9));
+            else
+               mask = nir_ior(b, mask, nir_ishl_imm(b, edge, 9 + i * 10));
          }
          arg = nir_iand(b, arg, mask);
       }
@@ -1032,7 +1044,7 @@ compact_vertices_after_culling(nir_builder *b,
 
       nir_def *prim_exp_arg =
          emit_pack_ngg_prim_exp_arg(b, s->options->num_vertices_per_primitive,
-                                    exporter_vtx_indices, NULL);
+                                    exporter_vtx_indices, NULL, s->options->gfx_level);
       nir_store_var(b, prim_exp_arg_var, prim_exp_arg, 0x1u);
    }
    nir_pop_if(b, if_gs_accepted);
@@ -1806,10 +1818,23 @@ ngg_nogs_store_xfb_outputs_to_lds(nir_builder *b, lower_ngg_nogs_state *s)
    }
 }
 
+static nir_def *
+write_values_to_lanes(nir_builder *b, nir_def **values, unsigned lane_mask)
+{
+   nir_def *lanes = nir_imm_int(b, 0);
+
+   u_foreach_bit(i, lane_mask) {
+      lanes = nir_write_invocation_amd(b, lanes, values[i], nir_imm_int(b, i));
+   }
+   return lanes;
+}
+
 static void
 ngg_build_streamout_buffer_info(nir_builder *b,
                                 nir_xfb_info *info,
+                                enum amd_gfx_level gfx_level,
                                 bool has_xfb_prim_query,
+                                bool use_gfx12_xfb_intrinsic,
                                 nir_def *scratch_base,
                                 nir_def *tid_in_tg,
                                 nir_def *gen_prim[4],
@@ -1856,16 +1881,165 @@ ngg_build_streamout_buffer_info(nir_builder *b,
             workgroup_buffer_sizes[buffer] = undef;
       }
 
-      nir_def *ordered_id = nir_load_ordered_id_amd(b);
+      nir_def *buffer_offsets = NULL, *xfb_state_address = NULL;
+
       /* Get current global offset of buffer and increase by amount of
        * workgroup buffer size. This is an ordered operation sorted by
        * ordered_id; Each buffer info is in a channel of a vec4.
        */
-      nir_def *buffer_offsets =
-         nir_ordered_xfb_counter_add_gfx11_amd(b, ordered_id,
-                                               nir_vec(b, workgroup_buffer_sizes, 4),
-                                               /* mask of buffers to update */
-                                               .write_mask = info->buffers_written);
+      if (gfx_level >= GFX12) {
+         nir_pop_if(b, if_invocation_0);
+
+         for (unsigned buffer = 0; buffer < 4; buffer++)
+            workgroup_buffer_sizes[buffer] = nir_if_phi(b, workgroup_buffer_sizes[buffer], undef);
+
+         nir_if *if_4lanes = nir_push_if(b, nir_ult_imm(b, tid_in_tg, 4));
+         {
+            /* Move workgroup buffer sizes from SGPRs to the first 4 lanes. */
+            nir_def *workgroup_buffer_size_per_lane =
+               write_values_to_lanes(b, workgroup_buffer_sizes, info->buffers_written);
+            nir_def *ordered_id = nir_load_ordered_id_amd(b);
+
+            /* The atomic value for the 4 lanes is:
+             *    lane 0: uvec2(ordered_id, workgroup_buffer_size0)
+             *    lane 1: uvec2(ordered_id, workgroup_buffer_size1)
+             *    lane 2: uvec2(ordered_id, workgroup_buffer_size2)
+             *    lane 3: uvec2(ordered_id, workgroup_buffer_size3)
+             */
+            nir_def *atomic_src = nir_pack_64_2x32_split(b, ordered_id,
+                                                         workgroup_buffer_size_per_lane);
+
+            /* The memory layout of the xfb state is:
+             *    struct {
+             *       unsigned ordered_id;
+             *       unsigned dwords_written0;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written1;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written2;
+             *       unsigned ordered_id;
+             *       unsigned dwords_written3;
+             *    };
+             *
+             * Notes:
+             * - global_atomic_ordered_add_b64 is semantically a 64-bit atomic, requiring 8-byte
+             *   address alignment, even though it operates on a pair of 32-bit values.
+             * - The whole structure is updated at once by issuing the atomic from 4 lanes
+             *   with 8-byte address increments.
+             * - The whole structure should be entirely within one 64B block of memory
+             *   for performance. (the address bits above 64B should not differ between lanes)
+             */
+            nir_def *voffset = nir_imul_imm(b, tid_in_tg, 8);
+            xfb_state_address = nir_iadd(b, nir_load_xfb_state_address_gfx12_amd(b),
+                                         nir_u2u64(b, voffset));
+            nir_def *buffer_offset_per_lane;
+
+            /* The gfx12 intrinsic inserts hand-written assembly producing better code than current
+             * LLVM.
+             */
+            if (use_gfx12_xfb_intrinsic) {
+               buffer_offset_per_lane =
+                  nir_ordered_xfb_counter_add_gfx12_amd(b, nir_load_xfb_state_address_gfx12_amd(b),
+                                                        voffset, ordered_id, atomic_src);
+            } else {
+               /* The NIR version of the above using nir_atomic_op_ordered_add_gfx12_amd. */
+               enum { NUM_ATOMICS_IN_FLIGHT = 6 };
+               unsigned atomic_latency = 230; /* TODO: set the correct value depending on the chip */
+
+               /* Set the sleep time to latency/num_atomics minus some lost time estimate due to wave
+                * scheduling.
+                */
+               unsigned sleep_time = MAX2(1, atomic_latency / NUM_ATOMICS_IN_FLIGHT);
+               if (sleep_time > 10)
+                  sleep_time -= 10;
+
+               nir_variable *result_ring[NUM_ATOMICS_IN_FLIGHT] = {0};
+               for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT; i++)
+                  result_ring[i] = nir_local_variable_create(b->impl, glsl_uint64_t_type(), "result");
+
+               /* Issue the first N-1 atomics. The shader must not wait because we want them to be
+                * pipelined. It will only wait for the oldest atomic in the NIR loop.
+                */
+               for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT - 1; i++) {
+                  nir_store_var(b, result_ring[i],
+                                nir_global_atomic(b, 64, xfb_state_address, atomic_src,
+                                                  .atomic_op = nir_atomic_op_ordered_add_gfx12_amd), 0x1);
+               }
+
+               nir_variable *buffer_offset_per_lane_var =
+                  nir_local_variable_create(b->impl, glsl_uint_type(), "buffer_offset_per_lane");
+
+               nir_loop *loop = nir_push_loop(b);
+               {
+                  for (unsigned i = 0; i < NUM_ATOMICS_IN_FLIGHT; i++) {
+                     int issue_index = (NUM_ATOMICS_IN_FLIGHT - 1 + i) % NUM_ATOMICS_IN_FLIGHT;
+                     int read_index = i;
+
+                     /* Issue (or repeat) the atomic. */
+                     nir_store_var(b, result_ring[issue_index],
+                                   nir_global_atomic(b, 64, xfb_state_address, atomic_src,
+                                                     .atomic_op = nir_atomic_op_ordered_add_gfx12_amd), 0x1);
+
+                     /* Break if the oldest atomic succeeded in incrementing the offsets. */
+                     nir_def *oldest_result = nir_load_var(b, result_ring[read_index]);
+                     nir_def *loaded_ordered_id = nir_unpack_64_2x32_split_x(b, oldest_result);
+                     nir_def *loaded_dwords_written = nir_unpack_64_2x32_split_y(b, oldest_result);
+
+                     /* Debug: Write the vec4 into a shader log ring buffer. */
+#if 0
+                     ac_nir_store_debug_log_amd(b, nir_vec4(b, nir_u2u32(b, nir_load_xfb_state_address_gfx12_amd(b)),
+                                                            ordered_id, loaded_ordered_id,
+                                                            loaded_dwords_written));
+#endif
+
+                     /* This results in better code than using ballot with LLVM. */
+                     loaded_ordered_id = nir_read_invocation(b, loaded_ordered_id, nir_imm_int(b, 0));
+
+                     nir_if *if_break = nir_push_if(b, nir_ieq(b, loaded_ordered_id, ordered_id));
+                     {
+                        nir_store_var(b, buffer_offset_per_lane_var, loaded_dwords_written, 0x1);
+                        nir_jump(b, nir_jump_break);
+                     }
+                     nir_pop_if(b, if_break);
+
+                     /* Sleep and try again. */
+                     ac_nir_sleep(b, sleep_time);
+                  }
+               }
+               nir_pop_loop(b, loop);
+
+               buffer_offset_per_lane = nir_load_var(b, buffer_offset_per_lane_var);
+            }
+
+            /* Move the buffer offsets from the 4 lanes to lane 0. */
+            nir_def *offset[4] = {undef, undef, undef, undef};
+
+            for (unsigned buffer = 0; buffer < 4; buffer++) {
+               if (info->buffers_written & BITFIELD_BIT(buffer)) {
+                  if (!buffer) {
+                     offset[buffer] = buffer_offset_per_lane;
+                  } else {
+                     offset[buffer] = nir_quad_swizzle_amd(b, buffer_offset_per_lane,
+                                                           .swizzle_mask = BITFIELD_BIT(buffer));
+                  }
+               }
+            }
+            buffer_offsets = nir_vec(b, offset, 4);
+         }
+         nir_pop_if(b, if_4lanes);
+
+         xfb_state_address = nir_if_phi(b, xfb_state_address, nir_undef(b, 1, 64));
+         buffer_offsets = nir_if_phi(b, buffer_offsets, nir_undef(b, 4, 32));
+
+         if_invocation_0 = nir_push_if(b, nir_ieq_imm(b, tid_in_tg, 0));
+      } else {
+         nir_def *ordered_id = nir_load_ordered_id_amd(b);
+         buffer_offsets =
+            nir_ordered_xfb_counter_add_gfx11_amd(b, ordered_id,
+                                                  nir_vec(b, workgroup_buffer_sizes, 4),
+                                                  /* mask of buffers to update */
+                                                  .write_mask = info->buffers_written);
+      }
 
       nir_def *emit_prim[4];
       memcpy(emit_prim, gen_prim, 4 * sizeof(nir_def *));
@@ -1909,13 +2083,39 @@ ngg_build_streamout_buffer_info(nir_builder *b,
       /* We have to fix up the streamout offsets if we overflowed because they determine
        * the vertex count for DrawTransformFeedback.
        */
-      nir_if *if_any_overflow = nir_push_if(b, any_overflow);
-      {
+      if (gfx_level >= GFX12) {
+         nir_pop_if(b, if_invocation_0);
+
+         any_overflow = nir_if_phi(b, any_overflow, nir_undef(b, 1, 1));
+         for (unsigned buffer = 0; buffer < 4; buffer++)
+            overflow_amount[buffer] = nir_if_phi(b, overflow_amount[buffer], undef);
+         for (unsigned stream = 0; stream < 4; stream++) {
+            if (emit_prim[stream])
+               emit_prim[stream] = nir_if_phi(b, emit_prim[stream], undef);
+         }
+
+         nir_if *if_any_overflow_4_lanes =
+            nir_push_if(b, nir_iand(b, any_overflow, nir_ult_imm(b, tid_in_tg, 4)));
+         {
+            /* Move overflow amounts from SGPRs to the first 4 lanes. */
+            nir_def *overflow_amount_per_lane =
+               write_values_to_lanes(b, overflow_amount, info->buffers_written);
+
+            nir_def *address_per_lane = nir_iadd(b, xfb_state_address,
+                                                 nir_imm_intN_t(b, 4, 64));
+            nir_global_atomic(b, 32, address_per_lane, nir_ineg(b, overflow_amount_per_lane),
+                              .atomic_op = nir_atomic_op_iadd);
+         }
+         nir_pop_if(b, if_any_overflow_4_lanes);
+
+         if_invocation_0 = nir_push_if(b, nir_ieq_imm(b, tid_in_tg, 0));
+      } else {
+         nir_if *if_any_overflow = nir_push_if(b, any_overflow);
          nir_xfb_counter_sub_gfx11_amd(b, nir_vec(b, overflow_amount, 4),
                                        /* mask of buffers to update */
                                        .write_mask = info->buffers_written);
+         nir_pop_if(b, if_any_overflow);
       }
-      nir_pop_if(b, if_any_overflow);
 
       /* Save to LDS for being accessed by other waves in this workgroup. */
       for (unsigned stream = 0; stream < 4; stream++) {
@@ -2065,8 +2265,8 @@ ngg_nogs_build_streamout(nir_builder *b, lower_ngg_nogs_state *s)
    nir_def *so_buffer[4] = {0};
    nir_def *prim_stride[4] = {0};
    nir_def *tid_in_tg = nir_load_local_invocation_index(b);
-   ngg_build_streamout_buffer_info(b, info, s->options->has_xfb_prim_query,
-                                   lds_scratch_base, tid_in_tg,
+   ngg_build_streamout_buffer_info(b, info, s->options->gfx_level, s->options->has_xfb_prim_query,
+                                   s->options->use_gfx12_xfb_intrinsic, lds_scratch_base, tid_in_tg,
                                    gen_prim_per_stream, prim_stride,
                                    so_buffer, buffer_offsets,
                                    emit_prim_per_stream);
@@ -2932,7 +3132,7 @@ ngg_gs_export_primitives(nir_builder *b, nir_def *max_num_out_prims, nir_def *ti
    }
 
    nir_def *arg = emit_pack_ngg_prim_exp_arg(b, s->num_vertices_per_primitive, vtx_indices,
-                                                 is_null_prim);
+                                             is_null_prim, s->options->gfx_level);
    ac_nir_export_primitive(b, arg, NULL);
    nir_pop_if(b, if_prim_export_thread);
 }
@@ -3271,9 +3471,9 @@ ngg_gs_build_streamout(nir_builder *b, lower_ngg_gs_state *s)
    nir_def *buffer_offsets[4] = {0};
    nir_def *so_buffer[4] = {0};
    nir_def *prim_stride[4] = {0};
-   ngg_build_streamout_buffer_info(b, info, s->options->has_xfb_prim_query,
-                                   s->lds_addr_gs_scratch, tid_in_tg, gen_prim,
-                                   prim_stride, so_buffer, buffer_offsets, emit_prim);
+   ngg_build_streamout_buffer_info(b, info, s->options->gfx_level, s->options->has_xfb_prim_query,
+                                   s->options->use_gfx12_xfb_intrinsic, s->lds_addr_gs_scratch, tid_in_tg,
+                                   gen_prim, prim_stride, so_buffer, buffer_offsets, emit_prim);
 
    for (unsigned stream = 0; stream < 4; stream++) {
       if (!(info->streams_written & BITFIELD_BIT(stream)))
@@ -4200,7 +4400,7 @@ ms_prim_exp_arg_ch1(nir_builder *b, nir_def *invocation_index, nir_def *num_vtx,
       indices[i] = nir_umin(b, indices[i], max_vtx_idx);
    }
 
-   return emit_pack_ngg_prim_exp_arg(b, s->vertices_per_prim, indices, cull_flag);
+   return emit_pack_ngg_prim_exp_arg(b, s->vertices_per_prim, indices, cull_flag, s->gfx_level);
 }
 
 static nir_def *

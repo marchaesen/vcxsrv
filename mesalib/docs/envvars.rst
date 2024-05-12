@@ -1085,6 +1085,11 @@ Rusticl environment variables
    - ``sync`` waits on the GPU to complete after every event
    - ``validate`` validates any internally generated SPIR-Vs, e.g. through compiling OpenCL C code
 
+.. envvar:: RUSTICL_MAX_WORK_GROUPS
+
+   Limits the amount of threads per dimension in a work-group. Useful for splitting up long running
+   tasks to increase responsiveness or to simulate the lowering of huge global sizes for testing.
+
 .. _clc-env-var:
 
 clc environment variables

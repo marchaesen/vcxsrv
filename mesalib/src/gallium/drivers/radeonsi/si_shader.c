@@ -254,7 +254,10 @@ static void declare_vb_descriptor_input_sgprs(struct si_shader_args *args,
 static void declare_vs_input_vgprs(struct si_shader_args *args, struct si_shader *shader)
 {
    ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.vertex_id);
-   if (shader->key.ge.as_ls) {
+
+   if (shader->selector->screen->info.gfx_level >= GFX12) {
+      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.instance_id);
+   } else if (shader->key.ge.as_ls) {
       if (shader->selector->screen->info.gfx_level >= GFX11) {
          ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, NULL); /* user VGPR */
          ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, NULL); /* user VGPR */
@@ -520,11 +523,17 @@ void si_init_shader_args(struct si_shader *shader, struct si_shader_args *args)
       }
 
       /* VGPRs (first GS, then VS/TES) */
-      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[0]);
-      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[1]);
-      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_prim_id);
-      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_invocation_id);
-      ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[2]);
+      if (sel->screen->info.gfx_level >= GFX12) {
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[0]);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_prim_id);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[1]);
+      } else {
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[0]);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[1]);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_prim_id);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_invocation_id);
+         ac_add_arg(&args->ac, AC_ARG_VGPR, 1, AC_ARG_INT, &args->ac.gs_vtx_offset[2]);
+      }
 
       if (stage == MESA_SHADER_VERTEX) {
          declare_vs_input_vgprs(args, shader);
@@ -543,7 +552,7 @@ void si_init_shader_args(struct si_shader *shader, struct si_shader_args *args)
          /* ES return values are inputs to GS. */
          for (i = 0; i < 8 + GFX9_GS_NUM_USER_SGPR; i++)
             ac_add_return(&args->ac, AC_ARG_SGPR);
-         for (i = 0; i < 5; i++)
+         for (i = 0; i < (sel->screen->info.gfx_level >= GFX12 ? 3 : 5); i++)
             ac_add_return(&args->ac, AC_ARG_VGPR);
       }
       break;
@@ -706,7 +715,13 @@ void si_init_shader_args(struct si_shader *shader, struct si_shader_args *args)
       /* Hardware SGPRs. */
       for (i = 0; i < 3; i++) {
          if (shader->selector->info.uses_block_id[i]) {
-            ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, &args->ac.workgroup_ids[i]);
+            /* GFX12 loads workgroup IDs into ttmp registers, so they are not input SGPRs, but we
+             * still need to set this to indicate that they are enabled (for ac_nir_to_llvm).
+             */
+            if (sel->screen->info.gfx_level >= GFX12)
+               args->ac.workgroup_ids[i].used = true;
+            else
+               ac_add_arg(&args->ac, AC_ARG_SGPR, 1, AC_ARG_INT, &args->ac.workgroup_ids[i]);
          }
       }
       if (shader->selector->info.uses_tg_size)
@@ -854,8 +869,9 @@ unsigned si_get_shader_prefetch_size(struct si_shader *shader)
 
    /* INST_PREF_SIZE uses 128B granularity.
     * - GFX11: max 128 * 63 = 8064
+    * - GFX12: max 128 * 255 = 32640
     */
-   unsigned max_pref_size = 63;
+   unsigned max_pref_size = shader->selector->screen->info.gfx_level >= GFX12 ? 255 : 63;
    unsigned exec_size_gran128 = DIV_ROUND_UP(exec_size, 128);
 
    return MIN2(max_pref_size, exec_size_gran128);
@@ -1451,8 +1467,8 @@ static void si_dump_shader_key(const struct si_shader *shader, FILE *f)
    gl_shader_stage stage = shader->selector->stage;
 
    fprintf(f, "SHADER KEY\n");
-   fprintf(f, "  source_sha1 = {");
-   _mesa_sha1_print(f, shader->selector->info.base.source_sha1);
+   fprintf(f, "  source_blake3 = {");
+   _mesa_blake3_print(f, shader->selector->info.base.source_blake3);
    fprintf(f, "}\n");
 
    switch (stage) {
@@ -1547,6 +1563,7 @@ static void si_dump_shader_key(const struct si_shader *shader, FILE *f)
       fprintf(f, "  opt.kill_clip_distances = 0x%x\n", key->ge.opt.kill_clip_distances);
       fprintf(f, "  opt.ngg_culling = 0x%x\n", key->ge.opt.ngg_culling);
       fprintf(f, "  opt.remove_streamout = 0x%x\n", key->ge.opt.remove_streamout);
+      fprintf(f, "  mono.remove_streamout = 0x%x\n", key->ge.mono.remove_streamout);
    }
 
    if (stage <= MESA_SHADER_GEOMETRY)
@@ -1865,6 +1882,7 @@ static void si_lower_ngg(struct si_shader *shader, nir_shader *nir)
       .kill_pointsize = key->ge.opt.kill_pointsize,
       .kill_layer = key->ge.opt.kill_layer,
       .force_vrs = sel->screen->options.vrs2x2,
+      .use_gfx12_xfb_intrinsic = true,
    };
 
    if (nir->info.stage == MESA_SHADER_VERTEX ||

@@ -173,8 +173,8 @@ void si_llvm_create_func(struct si_shader_context *ctx, const char *name, LLVMTy
                                            ctx->screen->info.address32_hi);
    }
 
-   if (ctx->stage <= MESA_SHADER_GEOMETRY && ctx->shader->key.ge.as_ngg &&
-       si_shader_uses_streamout(ctx->shader))
+   if (ctx->screen->info.gfx_level < GFX12 && ctx->stage <= MESA_SHADER_GEOMETRY &&
+       ctx->shader->key.ge.as_ngg && si_shader_uses_streamout(ctx->shader))
       ac_llvm_add_target_dep_function_attr(ctx->main_fn.value, "amdgpu-gds-size", 256);
 
    ac_llvm_set_workgroup_size(ctx->main_fn.value, max_workgroup_size);
@@ -704,7 +704,7 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
          if (!shader->key.ge.opt.same_patch_vertices ||
              shader->selector->info.base.inputs_read &
              ~shader->selector->info.tcs_vgpr_only_inputs) {
-            ac_build_waitcnt(&ctx->ac, AC_WAIT_LGKM);
+            ac_build_waitcnt(&ctx->ac, AC_WAIT_DS);
 
             /* If both input and output patches are wholly in one wave, we don't need a barrier.
              * That's true when both VS and TCS have the same number of patch vertices and
@@ -715,7 +715,7 @@ static bool si_llvm_translate_nir(struct si_shader_context *ctx, struct si_shade
                ac_build_s_barrier(&ctx->ac, ctx->stage);
          }
       } else if (ctx->stage == MESA_SHADER_GEOMETRY) {
-         ac_build_waitcnt(&ctx->ac, AC_WAIT_LGKM);
+         ac_build_waitcnt(&ctx->ac, AC_WAIT_DS);
          ac_build_s_barrier(&ctx->ac, ctx->stage);
       }
    }

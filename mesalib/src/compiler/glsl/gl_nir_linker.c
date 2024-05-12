@@ -79,7 +79,10 @@ gl_nir_opts(nir_shader *nir)
       NIR_PASS(progress, nir, nir_copy_prop);
       NIR_PASS(progress, nir, nir_opt_remove_phis);
       NIR_PASS(progress, nir, nir_opt_dce);
-      if (nir_opt_loop(nir)) {
+
+      bool opt_loop_progress = false;
+      NIR_PASS(opt_loop_progress, nir, nir_opt_loop);
+      if (opt_loop_progress) {
          progress = true;
          NIR_PASS(progress, nir, nir_copy_prop);
          NIR_PASS(progress, nir, nir_opt_dce);

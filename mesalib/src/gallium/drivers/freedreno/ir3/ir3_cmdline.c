@@ -51,6 +51,7 @@
 #include "compiler/glsl/glsl_to_nir.h"
 #include "compiler/glsl/standalone.h"
 #include "compiler/spirv/nir_spirv.h"
+#include "compiler/spirv/spirv_info.h"
 
 #include "pipe/p_context.h"
 
@@ -228,16 +229,17 @@ debug_func(void *priv, enum nir_spirv_debug_level level, size_t spirv_offset,
 static nir_shader *
 load_spirv(const char *filename, const char *entry, gl_shader_stage stage)
 {
-   const struct spirv_to_nir_options spirv_options = {
+   const struct spirv_capabilities spirv_caps = {
       /* these caps are just make-believe */
-      .caps = {
-         .draw_parameters = true,
-         .float64 = true,
-         .image_read_without_format = true,
-         .image_write_without_format = true,
-         .int64 = true,
-         .variable_pointers = true,
-      },
+      .DrawParameters = true,
+      .Float64 = true,
+      .StorageImageReadWithoutFormat = true,
+      .StorageImageWriteWithoutFormat = true,
+      .Int64 = true,
+      .VariablePointers = true,
+   };
+   const struct spirv_to_nir_options spirv_options = {
+      .capabilities = &spirv_caps,
       .debug = {
          .func = debug_func,
       }

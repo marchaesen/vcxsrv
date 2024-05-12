@@ -67,10 +67,17 @@ struct slot_info {
    unsigned index;
 };
 
+struct walk_varyings_data {
+   struct pan_shader_info *info;
+   struct slot_info *slots;
+};
+
 static bool
 walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
 {
-   struct slot_info *slots = data;
+   struct walk_varyings_data *wv_data = data;
+   struct pan_shader_info *info = wv_data->info;
+   struct slot_info *slots = wv_data->slots;
 
    if (instr->type != nir_instr_type_intrinsic)
       return false;
@@ -113,8 +120,9 @@ walk_varyings(UNUSED nir_builder *b, nir_instr *instr, void *data)
     * only to determine the type, and the GL linker uses the type from the
     * fragment shader instead.
     */
-   bool flat = (intr->intrinsic != nir_intrinsic_load_interpolated_input);
-   nir_alu_type type = flat ? nir_type_uint : nir_type_float;
+   bool flat = intr->intrinsic != nir_intrinsic_load_interpolated_input;
+   bool auto32 = !info->quirk_no_auto32;
+   nir_alu_type type = (flat && auto32) ? nir_type_uint : nir_type_float;
 
    /* Demote interpolated float varyings to fp16 where possible. We do not
     * demote flat varyings, including integer varyings, due to various
@@ -161,7 +169,8 @@ pan_nir_collect_varyings(nir_shader *s, struct pan_shader_info *info)
       return;
 
    struct slot_info slots[64] = {0};
-   nir_shader_instructions_pass(s, walk_varyings, nir_metadata_all, slots);
+   struct walk_varyings_data wv_data = {info, slots};
+   nir_shader_instructions_pass(s, walk_varyings, nir_metadata_all, &wv_data);
 
    struct pan_shader_varying *varyings = (s->info.stage == MESA_SHADER_VERTEX)
                                             ? info->varyings.output

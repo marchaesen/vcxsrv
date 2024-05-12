@@ -71,7 +71,13 @@ extern "C" {
  *
  * This version of the extension cleans up a bug introduced in version 9
  */
-#define VK_ANDROID_NATIVE_BUFFER_SPEC_VERSION 10
+/*
+ * NOTE ON VK_ANDROID_NATIVE_BUFFER_SPEC_VERSION 11
+ *
+ * This version of the extension deprecates the last of grallocusage and
+ * extends VkNativeBufferANDROID to support passing AHardwareBuffer*
+ */
+#define VK_ANDROID_NATIVE_BUFFER_SPEC_VERSION 11
 #define VK_ANDROID_NATIVE_BUFFER_EXTENSION_NAME "VK_ANDROID_native_buffer"
 
 #define VK_ANDROID_NATIVE_BUFFER_ENUM(type, id) \
@@ -117,6 +123,9 @@ typedef struct {
  * usage: gralloc usage requested when the buffer was allocated
  * usage2: gralloc usage requested when the buffer was allocated
  * usage3: gralloc usage requested when the buffer was allocated
+ * ahb: The AHardwareBuffer* from the actual ANativeWindowBuffer. Caller
+ *      maintains ownership of resource. AHardwareBuffer pointer is only valid
+ *      for the duration of the function call
  */
 typedef struct {
     VkStructureType                   sType;
@@ -127,6 +136,7 @@ typedef struct {
     int                               usage; /* DEPRECATED in SPEC_VERSION 6 */
     VkNativeBufferUsage2ANDROID       usage2; /* DEPRECATED in SPEC_VERSION 9 */
     uint64_t                          usage3; /* ADDED in SPEC_VERSION 9 */
+    struct AHardwareBuffer*           ahb; /* ADDED in SPEC_VERSION 11 */
 } VkNativeBufferANDROID;
 
 /*
@@ -162,6 +172,8 @@ typedef struct {
  * pNext: NULL or a pointer to a structure extending this structure
  * format: value specifying the format the image will be created with
  * imageUsage: bitmask of VkImageUsageFlagBits describing intended usage
+ *
+ * DEPRECATED in SPEC_VERSION 10
  */
 typedef struct {
     VkStructureType                   sType;
@@ -178,6 +190,8 @@ typedef struct {
  * format: value specifying the format the image will be created with
  * imageUsage: bitmask of VkImageUsageFlagBits describing intended usage
  * swapchainImageUsage: is a bitmask of VkSwapchainImageUsageFlagsANDROID
+ *
+ * DEPRECATED in SPEC_VERSION 11
  */
 typedef struct {
     VkStructureType                   sType;
@@ -209,7 +223,7 @@ typedef VkResult (VKAPI_PTR *PFN_vkGetSwapchainGrallocUsage3ANDROID)(
     const VkGrallocUsageInfoANDROID*  grallocUsageInfo,
     uint64_t*                         grallocUsage);
 
-/* ADDED in SPEC_VERSION 10 */
+/* DEPRECATED in SPEC_VERSION 11 */
 typedef VkResult (VKAPI_PTR *PFN_vkGetSwapchainGrallocUsage4ANDROID)(
     VkDevice                          device,
     const VkGrallocUsageInfo2ANDROID* grallocUsageInfo,
@@ -256,7 +270,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainGrallocUsage3ANDROID(
     uint64_t*                         grallocUsage
 );
 
-/* ADDED in SPEC_VERSION 10 */
+/* DEPRECATED in SPEC_VERSION 11 */
 VKAPI_ATTR VkResult VKAPI_CALL vkGetSwapchainGrallocUsage4ANDROID(
     VkDevice                          device,
     const VkGrallocUsageInfo2ANDROID* grallocUsageInfo,

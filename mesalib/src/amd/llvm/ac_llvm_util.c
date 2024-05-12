@@ -34,6 +34,8 @@ static void ac_init_llvm_target(void)
       /* error messages prefix */
       "mesa",
       "-amdgpu-atomic-optimizations=true",
+      /* image_msaa_load currently doesn't work with LLVM + GFX12 */
+      "-amdgpu-enable-image-intrinsic-optimizer=false",
    };
 
    ac_reset_llvm_all_options_occurrences();

@@ -62,6 +62,8 @@ vl_video_buffer_adjust_size(unsigned *width, unsigned *height, unsigned plane,
          *height = align(*height, 2) / 2;
       } else if (chroma_format == PIPE_VIDEO_CHROMA_FORMAT_422) {
          *width = align(*width, 2) / 2;
+      } else if (chroma_format == PIPE_VIDEO_CHROMA_FORMAT_440) {
+         *height = align(*height, 2) / 2;
       }
    }
 }

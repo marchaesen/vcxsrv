@@ -175,6 +175,14 @@ struct fd_dev_info {
       /* See ir3_compiler::has_scalar_alu. */
       bool has_scalar_alu;
 
+      /* Whether writing to UBWC attachment and reading the same image as input
+       * attachment or as a texture reads correct values from the image.
+       * If this is false, we may read stale values from the flag buffer,
+       * thus reading incorrect values from the image.
+       * Happens with VK_EXT_attachment_feedback_loop_layout.
+       */
+      bool has_coherent_ubwc_flag_caches;
+
       struct {
          uint32_t PC_POWER_CNTL;
          uint32_t TPL1_DBG_ECO_CNTL;

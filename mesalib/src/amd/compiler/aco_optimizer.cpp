@@ -5017,8 +5017,6 @@ select_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
       fma->valu().neg[0] = instr->valu().neg[0];
       fma->operands[1] = Operand::c32(fui(1.0f));
       fma->operands[2] = Operand::zero();
-      /* fma_mix is only dual issued if dst and acc type match */
-      fma->valu().opsel_hi[2] = is_f2f16;
       fma->valu().neg[2] = true;
       instr.reset(fma);
       ctx.info[instr->definitions[0].tempId()].label = 0;
@@ -5241,6 +5239,62 @@ unswizzle_vop3p_literals(opt_ctx& ctx, aco_ptr<Instruction>& instr)
    }
 }
 
+static void
+opt_fma_mix_acc(opt_ctx& ctx, aco_ptr<Instruction>& instr)
+{
+   /* fma_mix is only dual issued on gfx11 if dst and acc type match */
+   bool f2f16 = instr->opcode == aco_opcode::v_fma_mixlo_f16;
+
+   if (instr->valu().opsel_hi[2] == f2f16 || instr->isDPP())
+      return;
+
+   bool is_add = false;
+   for (unsigned i = 0; i < 2; i++) {
+      uint32_t one = instr->valu().opsel_hi[i] ? 0x3800 : 0x3f800000;
+      is_add = instr->operands[i].constantEquals(one) && !instr->valu().neg[i] &&
+               !instr->valu().opsel_lo[i];
+      if (is_add) {
+         instr->valu().swapOperands(0, i);
+         break;
+      }
+   }
+
+   if (is_add && instr->valu().opsel_hi[1] == f2f16) {
+      instr->valu().swapOperands(1, 2);
+      return;
+   }
+
+   unsigned literal_count = instr->operands[0].isLiteral() + instr->operands[1].isLiteral() +
+                            instr->operands[2].isLiteral();
+
+   if (!f2f16 || literal_count > 1)
+      return;
+
+   /* try to convert constant operand to fp16 */
+   for (unsigned i = 2 - is_add; i < 3; i++) {
+      if (!instr->operands[i].isConstant())
+         continue;
+
+      float value = uif(instr->operands[i].constantValue());
+      uint16_t fp16_val = _mesa_float_to_half(value);
+      bool is_denorm = (fp16_val & 0x7fff) != 0 && (fp16_val & 0x7fff) <= 0x3ff;
+
+      if (_mesa_half_to_float(fp16_val) != value ||
+          (is_denorm && !(ctx.fp_mode.denorm16_64 & fp_denorm_keep_in)))
+         continue;
+
+      instr->valu().swapOperands(i, 2);
+
+      Operand op16 = Operand::c16(fp16_val);
+      assert(!op16.isLiteral() || instr->operands[2].isLiteral());
+
+      instr->operands[2] = op16;
+      instr->valu().opsel_lo[2] = false;
+      instr->valu().opsel_hi[2] = true;
+      return;
+   }
+}
+
 void
 apply_literals(opt_ctx& ctx, aco_ptr<Instruction>& instr)
 {
@@ -5334,6 +5388,9 @@ apply_literals(opt_ctx& ctx, aco_ptr<Instruction>& instr)
 
    if (instr->isVOP3P())
       unswizzle_vop3p_literals(ctx, instr);
+
+   if (instr->opcode == aco_opcode::v_fma_mixlo_f16 || instr->opcode == aco_opcode::v_fma_mix_f32)
+      opt_fma_mix_acc(ctx, instr);
 
    ctx.instructions.emplace_back(std::move(instr));
 }

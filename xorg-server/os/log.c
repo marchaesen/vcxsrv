@@ -87,10 +87,10 @@ OR PERFORMANCE OF THIS SOFTWARE.
 #include <time.h>
 #include <X11/Xos.h>
 
-#include "os/osdep.h"
-
 #include "os/audit.h"
+#include "os/ddx_priv.h"
 #include "os/fmt.h"
+#include "os/osdep.h"
 
 #include "input.h"
 #include "opaque.h"

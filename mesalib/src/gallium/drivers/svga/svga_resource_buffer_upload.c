@@ -30,12 +30,6 @@ struct svga_3d_update_gb_image {
    SVGA3dCmdUpdateGBImage body;
 };
 
-struct svga_3d_invalidate_gb_image {
-   SVGA3dCmdHeader header;
-   SVGA3dCmdInvalidateGBImage body;
-};
-
-
 static void
 svga_buffer_upload_ranges(struct svga_context *, struct svga_buffer *);
 

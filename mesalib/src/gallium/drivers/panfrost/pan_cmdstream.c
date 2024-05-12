@@ -646,6 +646,7 @@ panfrost_emit_frag_shader_meta(struct panfrost_batch *batch)
    struct panfrost_compiled_shader *ss = ctx->prog[PIPE_SHADER_FRAGMENT];
 
    panfrost_batch_add_bo(batch, ss->bin.bo, PIPE_SHADER_FRAGMENT);
+   panfrost_batch_add_bo(batch, ss->state.bo, PIPE_SHADER_FRAGMENT);
 
    struct panfrost_ptr xfer;
 

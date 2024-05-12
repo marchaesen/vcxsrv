@@ -29,7 +29,6 @@
 #include "vpe10_cm_common.h"
 #include "fixed31_32.h"
 #include "conversion.h"
-#include "color_pwl.h"
 
 #define CTX_BASE mpc
 #define CTX      vpe10_mpc
@@ -1143,7 +1142,8 @@ void vpe10_mpc_program_1dlut(struct mpc *mpc, const struct pwl_params *params, e
 {
     PROGRAM_ENTRY();
 
-    if (params == NULL) {
+    if ((params == NULL) || (vpe_priv == NULL) ||
+        (vpe_priv->init.debug.bypass_blndgam == true)) { // the bypass flag is used in debug mode to skip this block entirely
         REG_SET(VPMPCC_MCM_1DLUT_CONTROL, REG_DEFAULT(VPMPCC_MCM_1DLUT_CONTROL),
             VPMPCC_MCM_1DLUT_MODE, 0);
 
@@ -1275,18 +1275,10 @@ void vpe10_mpc_set_output_transfer_func(struct mpc *mpc, struct output_ctx *outp
     if (ret == false && output_ctx->output_tf) {
         // No support HWPWL as it is legacy
         if (output_ctx->output_tf->type == TF_TYPE_DISTRIBUTED_POINTS) {
-            if (!output_ctx->output_tf->use_pre_calculated_table ||
-                mpc->vpe_priv->init.debug.force_tf_calculation) {
-                vpe10_cm_helper_translate_curve_to_hw_format( // this is cm3.0 version instead 1.0
-                                                              // as DCN3.2
-                    output_ctx->output_tf, &mpc->regamma_params, false);
-                params = &mpc->regamma_params;
-            } else {
-                vpe10_cm_get_tf_pwl_params(output_ctx->output_tf, &params, CM_REGAM);
-                VPE_ASSERT(params != NULL);
-                if (params == NULL)
-                    return;
-            }
+            vpe10_cm_helper_translate_curve_to_hw_format( // this is cm3.0 version instead 1.0
+                                                          // as DCN3.2
+                output_ctx->output_tf, &mpc->regamma_params, false);
+            params = &mpc->regamma_params;
         }
         /* there are no ROM LUTs in OUTGAM */
         if (output_ctx->output_tf->type == TF_TYPE_PREDEFINED)
@@ -1304,22 +1296,13 @@ void vpe10_mpc_set_blend_lut(struct mpc *mpc, const struct transfer_func *blend_
 
         gamma_type = blend_tf->cm_gamma_type;
 
-        if (blend_tf->use_pre_calculated_table) {
-            vpe10_cm_get_tf_pwl_params(blend_tf, &blend_lut, gamma_type);
+        if (gamma_type == CM_DEGAM)
+            vpe10_cm_helper_translate_curve_to_degamma_hw_format(
+                blend_tf, &mpc->blender_params); // TODO should init regamma_params first
+        else
+            vpe10_cm_helper_translate_curve_to_hw_format(blend_tf, &mpc->blender_params, false);
 
-            VPE_ASSERT(blend_lut != NULL);
-            if (blend_lut == NULL)
-                return;
-        } else {
-            if (gamma_type == CM_DEGAM)
-                vpe10_cm_helper_translate_curve_to_degamma_hw_format(
-                    blend_tf, &mpc->blender_params); // TODO should init regamma_params first
-            else
-                vpe10_cm_helper_translate_curve_to_hw_format(
-                    blend_tf, &mpc->blender_params, false);
-
-            blend_lut = &mpc->blender_params;
-        }
+        blend_lut = &mpc->blender_params;
     }
 
     mpc->funcs->program_1dlut(mpc, blend_lut, gamma_type);

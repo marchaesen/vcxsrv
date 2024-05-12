@@ -130,7 +130,10 @@
 #define RENCDOE_AV1_REFS_PER_FRAME                                                  7
 #define RENCODE_AV1_SDB_FRAME_CONTEXT_SIZE                                          947200
 #define RENCODE_AV1_FRAME_CONTEXT_CDF_TABLE_SIZE                                    22528
-#define RENCODE_AV1_CDEF_ALGORITHM_FRAME_CONTEXT_SIZE                               (64 * 8 * 2)
+#define RENCODE_AV1_CDEF_ALGORITHM_FRAME_CONTEXT_SIZE                               (64 * 8 * 3)
+#define RENCODE_AV1_CDEF_MAX_NUM                                                    8
+#define RENCODE_MAX_METADATA_BUFFER_SIZE_PER_FRAME                                  1024
+#define RENCODE_INVALID_COLOC_OFFSET                                                0XFFFFFFFF
 
 #define RENCODE_PICTURE_TYPE_B                                                      0
 #define RENCODE_PICTURE_TYPE_P                                                      1
@@ -262,6 +265,7 @@ typedef struct rvcn_enc_h264_spec_misc_s {
    uint32_t constrained_intra_pred_flag;
    uint32_t cabac_enable;
    uint32_t cabac_init_idc;
+   uint32_t transform_8x8_mode;
    uint32_t half_pel_enabled;
    uint32_t quarter_pel_enabled;
    uint32_t profile_idc;
@@ -293,7 +297,43 @@ typedef struct rvcn_enc_av1_spec_misc_s {
    uint32_t disable_cdf_update;
    uint32_t disable_frame_end_update_cdf;
    uint32_t num_tiles_per_picture;
+   /* for vcn5 */
+   uint32_t cdef_bits;
+   uint32_t cdef_damping_minus3;
+   uint32_t cdef_y_pri_strength[RENCODE_AV1_CDEF_MAX_NUM];
+   uint32_t cdef_y_sec_strength[RENCODE_AV1_CDEF_MAX_NUM];
+   uint32_t cdef_uv_pri_strength[RENCODE_AV1_CDEF_MAX_NUM];
+   uint32_t cdef_uv_sec_strength[RENCODE_AV1_CDEF_MAX_NUM];
+   uint32_t delta_q_y_dc;
+   uint32_t delta_q_u_dc;
+   uint32_t delta_q_u_ac;
+   uint32_t delta_q_v_dc;
+   uint32_t delta_q_v_ac;
 } rvcn_enc_av1_spec_misc_t;
+
+/* vcn5 */
+typedef struct rvcn_enc_av1_tile_group_s {
+   uint32_t start;
+   uint32_t end;
+} rvcn_enc_av1_tile_group_t;
+
+#define RENCODE_AV1_TILE_CONFIG_MAX_NUM_COLS            2
+#define RENCODE_AV1_TILE_CONFIG_MAX_NUM_ROWS            16
+#define RENCODE_AV1_CONTEXT_UPDATE_TILE_ID_MODE_DEFAULT 2
+/* vcn5 */
+typedef struct rvcn_enc_av1_tile_config_s {
+   bool     uniform_tile_spacing;
+   uint32_t num_tile_cols;
+   uint32_t num_tile_rows;
+   uint32_t tile_widths[RENCODE_AV1_TILE_CONFIG_MAX_NUM_COLS];
+   uint32_t tile_height[RENCODE_AV1_TILE_CONFIG_MAX_NUM_ROWS];
+   uint32_t num_tile_groups;
+   rvcn_enc_av1_tile_group_t tile_groups[RENCODE_AV1_TILE_CONFIG_MAX_NUM_COLS
+                                       * RENCODE_AV1_TILE_CONFIG_MAX_NUM_ROWS];
+   uint32_t context_update_tile_id_mode;
+   uint32_t context_update_tile_id;
+   uint32_t tile_size_bytes_minus_1;
+} rvcn_enc_av1_tile_config_t;
 
 typedef struct rvcn_enc_rate_ctl_session_init_s {
    uint32_t rate_control_method;
@@ -377,10 +417,13 @@ typedef struct rvcn_enc_encode_params_s {
    uint32_t reconstructed_picture_index;
 } rvcn_enc_encode_params_t;
 
+#define RENCODE_H264_MAX_REFERENCE_LIST_SIZE   32
 typedef struct rvcn_enc_h264_encode_params_s {
    uint32_t input_picture_structure;
    uint32_t input_pic_order_cnt;
    uint32_t interlaced_mode;
+   uint32_t is_reference;
+   /* for vcn1 - vcn4 */
    uint32_t reference_picture_structure;
    uint32_t reference_picture1_index;
    rvcn_enc_h264_reference_picture_info_t picture_info_l0_reference_picture0;
@@ -388,8 +431,29 @@ typedef struct rvcn_enc_h264_encode_params_s {
    rvcn_enc_h264_reference_picture_info_t picture_info_l0_reference_picture1;
    uint32_t l1_reference_picture0_index;
    rvcn_enc_h264_reference_picture_info_t picture_info_l1_reference_picture0;
-   uint32_t is_reference;
+   /* for vcn5*/
+   uint32_t is_long_term;
+   uint32_t ref_list0[RENCODE_H264_MAX_REFERENCE_LIST_SIZE];
+   uint32_t num_active_references_l0;
+   uint32_t ref_list1[RENCODE_H264_MAX_REFERENCE_LIST_SIZE];
+   uint32_t num_active_references_l1;
+   struct {
+      uint32_t list;
+      uint32_t list_index;
+   } lsm_reference_pictures[2];
 } rvcn_enc_h264_encode_params_t;
+
+#define RENCODE_HEVC_MAX_REFERENCE_LIST_SIZE   15
+typedef struct rvcn_enc_hevc_encode_params_s {
+   uint32_t ref_list0[RENCODE_HEVC_MAX_REFERENCE_LIST_SIZE];
+   uint32_t num_active_references_l0;
+   uint32_t lsm_reference_pictures_list_index;
+} rvcn_enc_hevc_encode_params_t;
+
+typedef struct rvcn_enc_av1_encode_params_s {
+   uint32_t ref_frames[RENCDOE_AV1_REFS_PER_FRAME];
+   uint32_t lsm_reference_frame_index[2];
+} rvcn_enc_av1_encode_params_t;
 
 typedef struct rvcn_enc_h264_deblocking_filter_s {
    uint32_t disable_deblocking_filter_idc;
@@ -417,13 +481,33 @@ typedef struct rvcn_enc_intra_refresh_s {
 typedef struct rvcn_enc_reconstructed_picture_s {
    uint32_t luma_offset;
    uint32_t chroma_offset;
+   uint32_t luma_addr_hi;
+   uint32_t luma_addr_lo;
+   uint32_t luma_pitch;
+   uint32_t chroma_addr_hi;
+   uint32_t chroma_addr_lo;
+   uint32_t chroma_pitch;
+   uint32_t chroma_v_addr_hi;
+   uint32_t chroma_v_addr_lo;
+   uint32_t chroma_v_offset;
+   uint32_t chroma_v_pitch;
+   uint32_t swizzle_mode;
+   uint32_t frame_context_buffer_addr_hi;
+   uint32_t frame_context_buffer_addr_lo;
+   uint32_t frame_context_buffer_offset;
    union {
       struct
       {
          uint32_t av1_cdf_frame_context_offset;
          uint32_t av1_cdef_algorithm_context_offset;
       } av1;
+      /* vcn5 only */
+      struct
+      {
+         uint32_t colloc_buffer_offset;
+      } h264;
    };
+   uint32_t encode_metadata_offset; /* vcn5 only */
 } rvcn_enc_reconstructed_picture_t;
 
 typedef struct rvcn_enc_picture_info_s
@@ -450,9 +534,9 @@ typedef struct rvcn_enc_pre_encode_input_picture_s {
 typedef struct rvcn_enc_encode_context_buffer_s {
    uint32_t encode_context_address_hi;
    uint32_t encode_context_address_lo;
-   uint32_t swizzle_mode;
-   uint32_t rec_luma_pitch;
-   uint32_t rec_chroma_pitch;
+   uint32_t swizzle_mode;     /* vcn1 - vcn4 */
+   uint32_t rec_luma_pitch;   /* vcn1 - vcn4 */
+   uint32_t rec_chroma_pitch; /* vcn1 - vcn4 */
    uint32_t num_reconstructed_pictures;
    rvcn_enc_reconstructed_picture_t reconstructed_pictures[RENCODE_MAX_NUM_RECONSTRUCTED_PICTURES];
    uint32_t pre_encode_picture_luma_pitch;
@@ -462,12 +546,18 @@ typedef struct rvcn_enc_encode_context_buffer_s {
    rvcn_enc_pre_encode_input_picture_t pre_encode_input_picture;
    uint32_t two_pass_search_center_map_offset;
    union {
-      uint32_t colloc_buffer_offset;
+      uint32_t colloc_buffer_offset; /* vcn5 */
       struct {
-         uint32_t av1_sdb_intermedidate_context_offset;
+         uint32_t av1_sdb_intermediate_context_offset;
       } av1;
    };
 } rvcn_enc_encode_context_buffer_t;
+
+typedef struct rvcn_enc_metadata_buffer_s {
+   uint32_t metadata_buffer_address_hi;
+   uint32_t metadata_buffer_address_lo;
+   uint32_t two_pass_search_center_map_offset;
+} rvcn_enc_metadata_buffer_t;
 
 typedef struct rvcn_enc_video_bitstream_buffer_s {
    uint32_t mode;
@@ -544,10 +634,14 @@ typedef struct rvcn_enc_cmd_s {
    uint32_t spec_misc_av1;
    uint32_t bitstream_instruction_av1;
    uint32_t cdf_default_table_av1;
+   uint32_t enc_params_av1;
+   uint32_t tile_config_av1;
    uint32_t input_format;
    uint32_t output_format;
    uint32_t enc_statistics;
    uint32_t enc_qp_map;
+   uint32_t metadata;
+   uint32_t ctx_override;
 } rvcn_enc_cmd_t;
 
 typedef struct rvcn_enc_quality_modes_s
@@ -597,6 +691,7 @@ typedef struct rvcn_enc_output_format_s
 {
    uint32_t output_color_volume;
    uint32_t output_color_range;
+   uint32_t output_chroma_subsampling;
    uint32_t output_chroma_location;  /* chroma location to luma */
    uint32_t output_color_bit_depth;
 } rvcn_enc_output_format_t;

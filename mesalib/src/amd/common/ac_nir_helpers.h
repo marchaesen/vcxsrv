@@ -133,6 +133,9 @@ ac_nir_cull_primitive(nir_builder *b,
                       ac_nir_cull_accepted accept_func,
                       void *state);
 
+void
+ac_nir_sleep(nir_builder *b, unsigned num_cycles);
+
 #ifdef __cplusplus
 }
 #endif
