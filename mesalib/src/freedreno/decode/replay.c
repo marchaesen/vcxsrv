@@ -393,10 +393,10 @@ device_dump_wrbuf(struct device *dev)
       uint64_t offset = wrbuf->iova - buf->iova;
       uint64_t size = MIN2(wrbuf->size, buf->size - offset);
       if (size != wrbuf->size) {
-         fprintf(stderr, "Warning: Clamping buffer %s as it's smaller than expected (0x%lx < 0x%lx)\n", wrbuf->name, size, wrbuf->size);
+         fprintf(stderr, "Warning: Clamping buffer %s as it's smaller than expected (0x%" PRIx64 " < 0x%" PRIx64 ")\n", wrbuf->name, size, wrbuf->size);
       }
 
-      printf("Dumping %s (0x%lx - 0x%lx)\n", wrbuf->name, wrbuf->iova, wrbuf->iova + size);
+      printf("Dumping %s (0x%" PRIx64 " - 0x%" PRIx64 ")\n", wrbuf->name, wrbuf->iova, wrbuf->iova + size);
 
       fwrite(buf->map + offset, size, 1, f);
 

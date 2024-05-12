@@ -893,7 +893,7 @@ dzn_GetImageMemoryRequirements2(VkDevice _device,
       container_of(device->vk.physical, struct dzn_physical_device, vk);
 
    vk_foreach_struct_const(ext, pInfo->pNext) {
-      dzn_debug_ignored_stype(ext->sType);
+      vk_debug_ignored_stype(ext->sType);
    }
 
    vk_foreach_struct(ext, pMemoryRequirements->pNext) {
@@ -908,7 +908,7 @@ dzn_GetImageMemoryRequirements2(VkDevice _device,
       }
 
       default:
-         dzn_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }

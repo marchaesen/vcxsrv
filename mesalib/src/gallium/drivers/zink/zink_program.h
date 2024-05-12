@@ -446,7 +446,7 @@ static inline bool
 zink_shader_uses_samples(const struct zink_shader *zs)
 {
    assert(zs->info.stage == MESA_SHADER_FRAGMENT);
-   return zs->uses_sample || zs->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK);
+   return zs->info.fs.uses_sample_qualifier || zs->info.outputs_written & BITFIELD64_BIT(FRAG_RESULT_SAMPLE_MASK);
 }
 
 static inline uint32_t

@@ -633,6 +633,11 @@ vlVaQuerySurfaceAttributes(VADriverContextP ctx, VAConfigID config_id,
          attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
          attribs[i].value.value.i = VA_FOURCC_YUY2;
          i++;
+         attribs[i].type = VASurfaceAttribPixelFormat;
+         attribs[i].value.type = VAGenericValueTypeInteger;
+         attribs[i].flags = VA_SURFACE_ATTRIB_GETTABLE | VA_SURFACE_ATTRIB_SETTABLE;
+         attribs[i].value.value.i = VA_FOURCC_422V;
+         i++;
       }
 
       if (config->rt_format & VA_RT_FORMAT_YUV444) {

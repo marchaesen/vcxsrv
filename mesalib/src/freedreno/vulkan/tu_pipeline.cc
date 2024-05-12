@@ -3634,10 +3634,13 @@ tu_pipeline_builder_parse_rasterization_order(
        * both input and color attachments from one fragment to the next,
        * in rasterization order, without explicit synchronization.
        */
-      sysmem_prim_mode = FLUSH_PER_OVERLAP_AND_OVERWRITE;
+      if (builder->device->physical_device->info->a6xx.has_coherent_ubwc_flag_caches)
+         sysmem_prim_mode = FLUSH_PER_OVERLAP;
+      else
+         sysmem_prim_mode = FLUSH_PER_OVERLAP_AND_OVERWRITE;
       gmem_prim_mode = FLUSH_PER_OVERLAP;
       pipeline->prim_order.sysmem_single_prim_mode = true;
-   } else {
+   } else if (!builder->device->physical_device->info->a6xx.has_coherent_ubwc_flag_caches) {
       /* If there is a feedback loop, then the shader can read the previous value
        * of a pixel being written out. It can also write some components and then
        * read different components without a barrier in between. This is a

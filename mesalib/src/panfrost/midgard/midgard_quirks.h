@@ -66,11 +66,19 @@
 
 #define MIDGARD_NO_OOO (1 << 5)
 
+/* Disable auto32 type (apparently broken on T60x). */
+
+#define MIDGARD_NO_AUTO32 (1 << 6)
+
 static inline unsigned
 midgard_get_quirks(unsigned gpu_id)
 {
    switch (gpu_id) {
    case 0x600:
+      return MIDGARD_OLD_BLEND | MIDGARD_BROKEN_BLEND_LOADS |
+             MIDGARD_BROKEN_LOD | MIDGARD_NO_UPPER_ALU | MIDGARD_NO_OOO |
+             MIDGARD_NO_AUTO32;
+
    case 0x620:
       return MIDGARD_OLD_BLEND | MIDGARD_BROKEN_BLEND_LOADS |
              MIDGARD_BROKEN_LOD | MIDGARD_NO_UPPER_ALU | MIDGARD_NO_OOO;

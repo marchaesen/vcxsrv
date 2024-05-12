@@ -127,6 +127,7 @@ typedef struct {
    bool disable_streamout;
    bool has_gen_prim_query;
    bool has_xfb_prim_query;
+   bool use_gfx12_xfb_intrinsic;
    bool has_gs_invocations_query;
    bool has_gs_primitives_query;
    bool kill_pointsize;

@@ -51,7 +51,7 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    struct si_screen *sscreen = (struct si_screen *)pscreen;
 
    /* Gfx8 (Polaris11) hangs, so don't enable this on Gfx8 and older chips. */
-   bool enable_sparse = sscreen->info.gfx_level >= GFX9 &&
+   bool enable_sparse = sscreen->info.gfx_level >= GFX9 && sscreen->info.gfx_level < GFX12 &&
       sscreen->info.has_sparse_vm_mappings;
 
    switch (param) {
@@ -324,23 +324,21 @@ static int si_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 
    /* Texturing. */
    case PIPE_CAP_MAX_TEXTURE_2D_SIZE:
-      return 16384;
+      /* TODO: Gfx12 supports 64K textures, but Gallium can't represent them at the moment. */
+      return sscreen->info.gfx_level >= GFX12 ? 32768 : 16384;
    case PIPE_CAP_MAX_TEXTURE_CUBE_LEVELS:
       if (!sscreen->info.has_3d_cube_border_color_mipmap)
          return 0;
-      return 15; /* 16384 */
+      return sscreen->info.gfx_level >= GFX12 ? 16 : 15; /* 32K : 16K */
    case PIPE_CAP_MAX_TEXTURE_3D_LEVELS:
       if (!sscreen->info.has_3d_cube_border_color_mipmap)
          return 0;
-      if (sscreen->info.gfx_level >= GFX10)
-         return 14;
-      /* textures support 8192, but layered rendering supports 2048 */
-      return 12;
+      /* This is limited by maximums that both the texture unit and layered rendering support. */
+      return sscreen->info.gfx_level >= GFX12 ? 15 : /* 16K */
+             sscreen->info.gfx_level >= GFX10 ? 14 : 12; /* 8K : 2K */
    case PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS:
-      if (sscreen->info.gfx_level >= GFX10)
-         return 8192;
-      /* textures support 8192, but layered rendering supports 2048 */
-      return 2048;
+      /* This is limited by maximums that both the texture unit and layered rendering support. */
+      return sscreen->info.gfx_level >= GFX10 ? 8192 : 2048;
 
    /* Sparse texture */
    case PIPE_CAP_MAX_SPARSE_TEXTURE_SIZE:
@@ -1064,6 +1062,7 @@ static bool si_vid_is_format_supported(struct pipe_screen *screen, enum pipe_for
       case PIPE_FORMAT_Y8_400_UNORM:
          return true;
       case PIPE_FORMAT_Y8_U8_V8_444_UNORM:
+      case PIPE_FORMAT_Y8_U8_V8_440_UNORM:
          if (sscreen->info.vcn_ip_version >= VCN_2_0_0)
             return true;
          else
@@ -1362,7 +1361,7 @@ static unsigned si_varying_expression_max_cost(nir_shader *producer, nir_shader 
    unsigned num_profiles = si_get_num_shader_profiles();
 
    for (unsigned i = 0; i < num_profiles; i++) {
-      if (_mesa_printed_sha1_equal(consumer->info.source_sha1, si_shader_profiles[i].sha1)) {
+      if (_mesa_printed_blake3_equal(consumer->info.source_blake3, si_shader_profiles[i].blake3)) {
          if (si_shader_profiles[i].options & SI_PROFILE_NO_OPT_UNIFORM_VARYINGS)
             return 0; /* only propagate constants */
          break;

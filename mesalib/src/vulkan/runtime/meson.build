@@ -153,6 +153,17 @@ vk_physical_device_properties = custom_target(
   depend_files : vk_physical_device_properties_gen_depend_files,
 )
 
+vk_physical_device_spirv_caps = custom_target(
+  'vk_physical_device_spirv_caps',
+  input : [vk_physical_device_spirv_caps_gen, vk_api_xml],
+  output : 'vk_physical_device_spirv_caps.c',
+  command : [
+    prog_python, '@INPUT0@', '--xml', '@INPUT1@',
+    '--out-c', '@OUTPUT0@', '--beta', with_vulkan_beta.to_string()
+  ],
+  depend_files : vk_physical_device_spirv_caps_gen_depend_files,
+)
+
 vk_synchronization_helpers = custom_target(
   'vk_synchronization_helpers',
   input : [vk_synchronization_helpers_gen, vk_api_xml],
@@ -183,6 +194,7 @@ vulkan_lite_runtime_files += [
   vk_format_info,
   vk_physical_device_features,
   vk_physical_device_properties,
+  vk_physical_device_spirv_caps,
   vk_synchronization_helpers,
 ]
 
@@ -230,6 +242,7 @@ libvulkan_lite_instance = static_library(
 # - idep_vulkan_runtime
 idep_vulkan_lite_runtime_headers = declare_dependency(
   sources : [
+    spirv_info_h,
     vk_cmd_enqueue_entrypoints[0],
     vk_cmd_queue[1],
     vk_common_entrypoints[0],

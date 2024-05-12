@@ -117,10 +117,26 @@ struct ac_shader_args {
     *    [20:28]  vertex index 2
     *    [29]     edgeflag 2
     *    [31]     0 (valid prim)
+    *
+    * GFX12+: [0-1] 2x uint32 with the following bitfields matching the prim export except
+    * the GS invocation ID, which is 0 without a user GS, so it doesn't have to be masked
+    * out for the prim export:
+    * [0]:
+    *    [0:7]    vertex index 0
+    *    [8]      edgeflag 0
+    *    [9:16]   vertex index 1
+    *    [17]     edgeflag 1
+    *    [18:25]  vertex index 2
+    *    [26]     edgeflag 2
+    *    [27:31]  GS invocation ID
+    * [1]:
+    *    [0:7]    vertex index 3
+    *    [9:16]   vertex index 4
+    *    [18:25]  vertex index 5
     */
    struct ac_arg gs_vtx_offset[6];
    struct ac_arg gs_prim_id;
-   struct ac_arg gs_invocation_id;
+   struct ac_arg gs_invocation_id; /* GFX6-11 only. GFX12+ uses gs_vtx_offset[0]. */
 
    /* Streamout */
    struct ac_arg streamout_config;
@@ -147,6 +163,7 @@ struct ac_shader_args {
    /* CS */
    struct ac_arg local_invocation_ids;
    struct ac_arg num_work_groups;
+   /* GFX6-11 only. GFX12+ uses read only SGPRs {TTMP9[0:31], TTMP7[0:15], TTMP7[16:31]}. */
    struct ac_arg workgroup_ids[3];
    struct ac_arg tg_size;
 

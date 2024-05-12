@@ -95,9 +95,6 @@ struct resource {
 
     void (*get_bufs_req)(struct vpe_priv *vpe_priv, struct vpe_bufs_req *req);
 
-    void (*get_tf_pwl_params)(const struct transfer_func *output_tf, struct pwl_params **lut_params,
-        enum cm_type vpe_cm_type);
-
     // Indicates the nominal range hdr input content should be in during processing.
     int internal_hdr_normalization;
 

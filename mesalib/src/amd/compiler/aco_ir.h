@@ -173,26 +173,56 @@ struct float_mode {
    }
 };
 
+enum wait_type {
+   wait_type_exp = 0,
+   wait_type_lgkm = 1,
+   wait_type_vm = 2,
+   /* GFX10+ */
+   wait_type_vs = 3,
+   wait_type_num = 4,
+};
+
+struct Instruction;
+
 struct wait_imm {
    static const uint8_t unset_counter = 0xff;
 
-   uint8_t vm;
    uint8_t exp;
    uint8_t lgkm;
+   uint8_t vm;
    uint8_t vs;
 
    wait_imm();
    wait_imm(uint16_t vm_, uint16_t exp_, uint16_t lgkm_, uint16_t vs_);
-   wait_imm(enum amd_gfx_level chip, uint16_t packed);
 
    uint16_t pack(enum amd_gfx_level chip) const;
+
+   static wait_imm max(enum amd_gfx_level gfx_level);
+
+   bool unpack(enum amd_gfx_level gfx_level, const Instruction* instr);
 
    bool combine(const wait_imm& other);
 
    bool empty() const;
 
    void print(FILE* output) const;
+
+   uint8_t& operator[](size_t i)
+   {
+      assert(i < wait_type_num);
+      return *((uint8_t*)this + i);
+   }
+
+   const uint8_t& operator[](size_t i) const
+   {
+      assert(i < wait_type_num);
+      return *((uint8_t*)this + i);
+   }
 };
+static_assert(offsetof(wait_imm, exp) == wait_type_exp);
+static_assert(offsetof(wait_imm, lgkm) == wait_type_lgkm);
+static_assert(offsetof(wait_imm, vm) == wait_type_vm);
+static_assert(offsetof(wait_imm, vs) == wait_type_vs);
 
 /* s_wait_event immediate bits. */
 enum wait_event_imm : uint16_t {

@@ -158,7 +158,7 @@ python-test:
     exclude:
       - results/*.shader_cache
   variables:
-    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=mesa-tracie-public --jwt-file=${S3_JWT_FILE}
+    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=${S3_TRACIE_PUBLIC_BUCKET} --jwt-file=${S3_JWT_FILE}
     # until we overcome Infrastructure issues, give traces extra 5 min before timeout
     DEVICE_HANGING_TIMEOUT_SEC: 600
   script:

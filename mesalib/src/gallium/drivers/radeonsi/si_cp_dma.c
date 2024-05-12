@@ -74,6 +74,9 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       /* GDS increments the address, not CP. */
       command |= S_415_DAS(V_415_REGISTER) | S_415_DAIC(V_415_NO_INCREMENT);
    } else if (sctx->gfx_level >= GFX7 && cache_policy != L2_BYPASS) {
+      /* GFX12: DST_CACHE_POLICY is changed to DST_TEMPORAL, but the behavior is the same
+       * for values of 0 and 1.
+       */
       header |=
          S_501_DST_SEL(V_501_DST_ADDR_TC_L2) | S_501_DST_CACHE_POLICY(cache_policy == L2_STREAM);
    }
@@ -85,6 +88,9 @@ static void si_emit_cp_dma(struct si_context *sctx, struct radeon_cmdbuf *cs, ui
       /* Both of these are required for GDS. It does increment the address. */
       command |= S_415_SAS(V_415_REGISTER) | S_415_SAIC(V_415_NO_INCREMENT);
    } else if (sctx->gfx_level >= GFX7 && cache_policy != L2_BYPASS) {
+      /* GFX12: SRC_CACHE_POLICY is changed to SRC_TEMPORAL, but the behavior is the same
+       * for values of 0 and 1.
+       */
       header |=
          S_501_SRC_SEL(V_501_SRC_ADDR_TC_L2) | S_501_SRC_CACHE_POLICY(cache_policy == L2_STREAM);
    }
@@ -190,6 +196,10 @@ void si_cp_dma_clear_buffer(struct si_context *sctx, struct radeon_cmdbuf *cs,
 
    if (user_flags & SI_OP_SYNC_PS_BEFORE)
       sctx->flags |= SI_CONTEXT_PS_PARTIAL_FLUSH;
+
+   /* TODO: Range-invalidate GL2 or always use compute shaders */
+   if (sctx->screen->info.cp_sdma_ge_use_system_memory_scope)
+      sctx->flags |= SI_CONTEXT_INV_L2;
 
    /* Mark the buffer range of destination as valid (initialized),
     * so that transfer_map knows it should wait for the GPU when mapping
@@ -352,6 +362,10 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
 
    if ((dst || src) && !(user_flags & SI_OP_SKIP_CACHE_INV_BEFORE))
          sctx->flags |= si_get_flush_flags(sctx, coher, cache_policy);
+
+   /* TODO: Range-flush GL2 for src and range-invalidate GL2 for dst, or always use compute shaders */
+   if (sctx->screen->info.cp_sdma_ge_use_system_memory_scope)
+      sctx->flags |= SI_CONTEXT_INV_L2;
 
    if (sctx->flags)
       si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);

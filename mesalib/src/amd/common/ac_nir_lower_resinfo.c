@@ -23,13 +23,17 @@ static nir_def *handle_null_desc(nir_builder *b, nir_def *desc, nir_def *value)
    return nir_bcsel(b, is_null, nir_imm_int(b, 0), value);
 }
 
-static nir_def *query_samples(nir_builder *b, nir_def *desc, enum glsl_sampler_dim dim)
+static nir_def *query_samples(nir_builder *b, nir_def *desc, enum glsl_sampler_dim dim,
+                              enum amd_gfx_level gfx_level)
 {
    nir_def *samples;
 
    if (dim == GLSL_SAMPLER_DIM_MS) {
       /* LAST_LEVEL contains log2(num_samples). */
-      samples = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL);
+      if (gfx_level >= GFX12)
+         samples = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL_GFX12);
+      else
+         samples = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL_GFX10);
       samples = nir_ishl(b, nir_imm_int(b, 1), samples);
    } else {
       samples = nir_imm_int(b, 1);
@@ -38,10 +42,17 @@ static nir_def *query_samples(nir_builder *b, nir_def *desc, enum glsl_sampler_d
    return handle_null_desc(b, desc, samples);
 }
 
-static nir_def *query_levels(nir_builder *b, nir_def *desc)
+static nir_def *query_levels(nir_builder *b, nir_def *desc, enum amd_gfx_level gfx_level)
 {
-   nir_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
-   nir_def *last_level = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL);
+   nir_def *base_level, *last_level;
+
+   if (gfx_level >= GFX12) {
+      base_level = get_field(b, desc, 1, ~C_00A004_BASE_LEVEL);
+      last_level = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL_GFX12);
+   } else {
+      base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
+      last_level = get_field(b, desc, 3, ~C_00A00C_LAST_LEVEL_GFX10);
+   }
 
    nir_def *levels = nir_iadd_imm(b, nir_isub(b, last_level, base_level), 1);
 
@@ -85,11 +96,18 @@ lower_query_size(nir_builder *b, nir_def *desc, nir_src *lod,
       }
       if (has_height)
          height = get_field(b, desc, 2, ~C_00A008_HEIGHT);
-      if (has_depth)
-         depth = get_field(b, desc, 4, ~C_00A010_DEPTH);
+      if (has_depth) {
+         if (gfx_level >= GFX12)
+            depth = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX12);
+         else
+            depth = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX10);
+      }
 
       if (is_array) {
-         last_array = get_field(b, desc, 4, ~C_00A010_DEPTH);
+         if (gfx_level >= GFX12)
+            last_array = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX12);
+         else
+            last_array = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX10);
          base_array = get_field(b, desc, 4, ~C_00A010_BASE_ARRAY);
       }
    } else {
@@ -139,7 +157,13 @@ lower_query_size(nir_builder *b, nir_def *desc, nir_src *lod,
 
    /* Minify the dimensions according to base_level + lod. */
    if (dim != GLSL_SAMPLER_DIM_MS && dim != GLSL_SAMPLER_DIM_RECT) {
-      nir_def *base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
+      nir_def *base_level;
+
+      if (gfx_level >= GFX12)
+         base_level = get_field(b, desc, 1, ~C_00A004_BASE_LEVEL);
+      else
+         base_level = get_field(b, desc, 3, ~C_00A00C_BASE_LEVEL);
+
       nir_def *level = lod ? nir_iadd(b, base_level, lod->ssa) : base_level;
 
       if (has_width)
@@ -165,11 +189,18 @@ lower_query_size(nir_builder *b, nir_def *desc, nir_src *lod,
 
    /* Special case for sliced storage 3D views which shouldn't be minified. */
    if (gfx_level >= GFX10 && has_depth) {
-      nir_def *uav3d =
-         nir_ieq_imm(b, get_field(b, desc, 5, ~C_00A014_ARRAY_PITCH), 1);
+      nir_def *uav3d, *uav_depth;
+
+      if (gfx_level >= GFX12) {
+         uav_depth = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX12);
+         uav3d = nir_ieq_imm(b, get_field(b, desc, 5, ~C_00A014_UAV3D), 1);
+      } else {
+         uav_depth = get_field(b, desc, 4, ~C_00A010_DEPTH_GFX10);
+         uav3d = nir_ieq_imm(b, get_field(b, desc, 5, ~C_00A014_ARRAY_PITCH), 1);
+      }
+
       nir_def *layers_3d =
-         nir_isub(b, get_field(b, desc, 4, ~C_00A010_DEPTH),
-                     get_field(b, desc, 4, ~C_00A010_BASE_ARRAY));
+         nir_isub(b, uav_depth, get_field(b, desc, 4, ~C_00A010_BASE_ARRAY));
       layers_3d = nir_iadd_imm(b, layers_3d, 1);
       depth = nir_bcsel(b, uav3d, layers_3d, depth);
    }
@@ -255,7 +286,7 @@ static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
       case nir_intrinsic_image_samples:
       case nir_intrinsic_image_deref_samples:
       case nir_intrinsic_bindless_image_samples:
-         result = query_samples(b, desc, dim);
+         result = query_samples(b, desc, dim, gfx_level);
          break;
 
       default:
@@ -308,10 +339,10 @@ static bool lower_resinfo(nir_builder *b, nir_instr *instr, void *data)
                                       gfx_level);
             break;
          case nir_texop_query_levels:
-            result = query_levels(b, desc);
+            result = query_levels(b, desc, gfx_level);
             break;
          case nir_texop_texture_samples:
-            result = query_samples(b, desc, tex->sampler_dim);
+            result = query_samples(b, desc, tex->sampler_dim, gfx_level);
             break;
          default:
             unreachable("shouldn't get here");

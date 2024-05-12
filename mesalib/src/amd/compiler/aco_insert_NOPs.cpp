@@ -898,14 +898,14 @@ handle_instruction_gfx10(State& state, NOP_ctx_gfx10& ctx, aco_ptr<Instruction>&
       if (instr->isFlat() || instr->isDS())
          mark_read_regs_exec(state, instr, ctx.sgprs_read_by_DS);
    } else if (instr->isSALU() || instr->isSMEM()) {
-      if (instr->opcode == aco_opcode::s_waitcnt) {
-         wait_imm imm(state.program->gfx_level, instr->salu().imm);
+      wait_imm imm;
+      if (imm.unpack(state.program->gfx_level, instr.get())) {
          if (imm.vm == 0)
             ctx.sgprs_read_by_VMEM.reset();
          if (imm.lgkm == 0)
             ctx.sgprs_read_by_DS.reset();
-      } else if (instr->opcode == aco_opcode::s_waitcnt_vscnt && instr->salu().imm == 0) {
-         ctx.sgprs_read_by_VMEM_store.reset();
+         if (imm.vs == 0)
+            ctx.sgprs_read_by_VMEM_store.reset();
       } else if (vm_vsrc == 0) {
          ctx.sgprs_read_by_VMEM.reset();
          ctx.sgprs_read_by_DS.reset();
@@ -981,15 +981,10 @@ handle_instruction_gfx10(State& state, NOP_ctx_gfx10& ctx, aco_ptr<Instruction>&
          bld.sop1(aco_opcode::s_mov_b32, Definition(sgpr_null, s1), Operand::zero());
       }
    } else if (instr->isSALU()) {
-      /* Reducing lgkmcnt count to 0 always mitigates the hazard. */
-      if (instr->opcode == aco_opcode::s_waitcnt_lgkmcnt) {
-         const SALU_instruction& sopk = instr->salu();
-         if (sopk.imm == 0 && sopk.operands[0].physReg() == sgpr_null)
-            ctx.sgprs_read_by_SMEM.reset();
-      } else if (instr->opcode == aco_opcode::s_waitcnt) {
-         wait_imm imm(state.program->gfx_level, instr->salu().imm);
-         if (imm.lgkm == 0)
-            ctx.sgprs_read_by_SMEM.reset();
+      wait_imm imm;
+      if (imm.unpack(state.program->gfx_level, instr.get()) && imm.lgkm == 0) {
+         /* Reducing lgkmcnt count to 0 always mitigates the hazard. */
+         ctx.sgprs_read_by_SMEM.reset();
       } else if (instr->format != Format::SOPP && instr->definitions.size()) {
          /* SALU can mitigate the hazard */
          ctx.sgprs_read_by_SMEM.reset();
@@ -1515,18 +1510,18 @@ handle_instruction_gfx11(State& state, NOP_ctx_gfx11& ctx, aco_ptr<Instruction>&
       for (Operand& op : instr->operands)
          fill_vgpr_bitset(ctx.vgpr_used_by_ds, op.physReg(), op.bytes());
    }
+   wait_imm imm;
    if (instr->isVALU() || instr->isEXP() || vm_vsrc == 0) {
       ctx.vgpr_used_by_vmem_load.reset();
       ctx.vgpr_used_by_vmem_store.reset();
       ctx.vgpr_used_by_ds.reset();
-   } else if (instr->opcode == aco_opcode::s_waitcnt) {
-      wait_imm imm(GFX11, instr->salu().imm);
+   } else if (imm.unpack(state.program->gfx_level, instr.get())) {
       if (imm.vm == 0)
          ctx.vgpr_used_by_vmem_load.reset();
       if (imm.lgkm == 0)
          ctx.vgpr_used_by_ds.reset();
-   } else if (instr->opcode == aco_opcode::s_waitcnt_vscnt && instr->salu().imm == 0) {
-      ctx.vgpr_used_by_vmem_store.reset();
+      if (imm.vs == 0)
+         ctx.vgpr_used_by_vmem_store.reset();
    }
    if (instr->isLDSDIR()) {
       if (ctx.vgpr_used_by_vmem_load[instr->definitions[0].physReg().reg() - 256] ||

@@ -707,6 +707,8 @@ static void si_fast_clear(struct si_context *sctx, unsigned *buffers,
    unsigned clear_types = 0;
    unsigned num_pixels = fb->width * fb->height;
 
+   assert(sctx->gfx_level < GFX12);
+
    /* This function is broken in BE, so just disable this path for now */
 #if UTIL_ARCH_BIG_ENDIAN
    return;
@@ -1149,9 +1151,9 @@ static void si_fast_clear(struct si_context *sctx, unsigned *buffers,
    si_execute_clears(sctx, info, num_clears, clear_types, sctx->render_cond_enabled);
 }
 
-static void si_clear(struct pipe_context *ctx, unsigned buffers,
-                     const struct pipe_scissor_state *scissor_state,
-                     const union pipe_color_union *color, double depth, unsigned stencil)
+static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
+                       const struct pipe_scissor_state *scissor_state,
+                       const union pipe_color_union *color, double depth, unsigned stencil)
 {
    struct si_context *sctx = (struct si_context *)ctx;
    struct pipe_framebuffer_state *fb = &sctx->framebuffer.state;
@@ -1268,6 +1270,44 @@ static void si_clear(struct pipe_context *ctx, unsigned buffers,
       sctx->db_stencil_disable_expclear = false;
       zstex->stencil_cleared_level_mask_once |= BITFIELD_BIT(zsbuf->u.tex.level);
       si_mark_atom_dirty(sctx, &sctx->atoms.s.db_render_state);
+   }
+}
+
+static void gfx12_clear(struct pipe_context *ctx, unsigned buffers,
+                        const struct pipe_scissor_state *scissor_state,
+                        const union pipe_color_union *color, double depth, unsigned stencil)
+{
+   struct si_context *sctx = (struct si_context *)ctx;
+   struct pipe_framebuffer_state *fb = &sctx->framebuffer.state;
+   struct pipe_surface *zsbuf = fb->zsbuf;
+   struct si_texture *zstex = zsbuf ? (struct si_texture *)zsbuf->texture : NULL;
+
+   /* Unset clear flags for non-existent buffers. */
+   for (unsigned i = 0; i < 8; i++) {
+      if (i >= fb->nr_cbufs || !fb->cbufs[i])
+         buffers &= ~(PIPE_CLEAR_COLOR0 << i);
+   }
+   if (!zsbuf)
+      buffers &= ~PIPE_CLEAR_DEPTHSTENCIL;
+   else if (!util_format_has_stencil(util_format_description(zsbuf->format)))
+      buffers &= ~PIPE_CLEAR_STENCIL;
+
+   if (unlikely(sctx->sqtt_enabled)) {
+      if (buffers & PIPE_CLEAR_COLOR)
+         sctx->sqtt_next_event = EventCmdClearColorImage;
+      else if (buffers & PIPE_CLEAR_DEPTHSTENCIL)
+         sctx->sqtt_next_event = EventCmdClearDepthStencilImage;
+   }
+
+   si_blitter_begin(sctx, SI_CLEAR);
+   util_blitter_clear(sctx->blitter, fb->width, fb->height, util_framebuffer_get_num_layers(fb),
+                      buffers, color, depth, stencil, sctx->framebuffer.nr_samples > 1);
+   si_blitter_end(sctx);
+
+   /* This is only used by the driver, not the hw. */
+   if (buffers & PIPE_CLEAR_DEPTH) {
+      zstex->depth_cleared_level_mask |= BITFIELD_BIT(zsbuf->u.tex.level);
+      zstex->depth_clear_value[zsbuf->u.tex.level] = depth;
    }
 }
 
@@ -1459,7 +1499,11 @@ void si_init_clear_functions(struct si_context *sctx)
    sctx->b.clear_texture = u_default_clear_texture;
 
    if (sctx->has_graphics) {
-      sctx->b.clear = si_clear;
+      if (sctx->gfx_level >= GFX12)
+         sctx->b.clear = gfx12_clear;
+      else
+         sctx->b.clear = gfx6_clear;
+
       sctx->b.clear_depth_stencil = si_clear_depth_stencil;
    }
 }

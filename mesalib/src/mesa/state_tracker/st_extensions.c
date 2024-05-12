@@ -1802,36 +1802,16 @@ void st_init_extensions(struct pipe_screen *screen,
    }
 
    if (extensions->ARB_gl_spirv) {
-      struct spirv_supported_capabilities *spirv_caps = &consts->SpirVCapabilities;
-
-      spirv_caps->atomic_storage             = extensions->ARB_shader_atomic_counters;
-      spirv_caps->demote_to_helper_invocation = extensions->EXT_demote_to_helper_invocation;
-      spirv_caps->draw_parameters            = extensions->ARB_shader_draw_parameters;
-      spirv_caps->derivative_group           = extensions->NV_compute_shader_derivatives;
-      spirv_caps->float64                    = extensions->ARB_gpu_shader_fp64;
-      spirv_caps->geometry_streams           = extensions->ARB_gpu_shader5;
-      spirv_caps->image_ms_array             = extensions->ARB_shader_image_load_store &&
-                                               consts->MaxImageSamples > 1;
-      spirv_caps->image_read_without_format  = extensions->EXT_shader_image_load_formatted;
-      spirv_caps->image_write_without_format = extensions->ARB_shader_image_load_store;
-      spirv_caps->int64                      = extensions->ARB_gpu_shader_int64;
-      spirv_caps->int64_atomics              = extensions->NV_shader_atomic_int64;
-      spirv_caps->post_depth_coverage        = extensions->ARB_post_depth_coverage;
-      spirv_caps->shader_clock               = extensions->ARB_shader_clock;
-      spirv_caps->shader_viewport_index_layer = extensions->ARB_shader_viewport_layer_array;
-      spirv_caps->stencil_export             = extensions->ARB_shader_stencil_export;
-      spirv_caps->storage_image_ms           = extensions->ARB_shader_image_load_store &&
-                                               consts->MaxImageSamples > 1;
-      spirv_caps->subgroup_ballot            = extensions->ARB_shader_ballot;
-      spirv_caps->subgroup_vote              = extensions->ARB_shader_group_vote;
-      spirv_caps->tessellation               = extensions->ARB_tessellation_shader;
-      spirv_caps->transform_feedback         = extensions->ARB_transform_feedback3;
-      spirv_caps->variable_pointers          =
-         screen->get_param(screen, PIPE_CAP_GL_SPIRV_VARIABLE_POINTERS);
-      spirv_caps->integer_functions2         = extensions->INTEL_shader_integer_functions2;
-
       consts->SpirVExtensions = CALLOC_STRUCT(spirv_supported_extensions);
-      _mesa_fill_supported_spirv_extensions(consts->SpirVExtensions, spirv_caps);
+      consts->SpirVExtensions->supported[SPV_KHR_shader_draw_parameters] =
+         extensions->ARB_shader_draw_parameters;
+      consts->SpirVExtensions->supported[SPV_KHR_storage_buffer_storage_class] = true;
+      consts->SpirVExtensions->supported[SPV_KHR_variable_pointers] =
+         screen->get_param(screen, PIPE_CAP_GL_SPIRV_VARIABLE_POINTERS);
+      consts->SpirVExtensions->supported[SPV_KHR_shader_ballot] =
+         extensions->ARB_shader_ballot;
+      consts->SpirVExtensions->supported[SPV_KHR_subgroup_vote] =
+         extensions->ARB_shader_group_vote;
    }
 
    consts->AllowDrawOutOfOrder =

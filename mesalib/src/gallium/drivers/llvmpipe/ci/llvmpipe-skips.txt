@@ -13,6 +13,7 @@ KHR-GL45.texture_swizzle.functional
 KHR-GL45.texture_swizzle.smoke
 arb_pipeline_statistics_query-comp
 gl-1.0-blend-func
+KHR-Single-GL45.arrays_of_arrays_gl.AtomicUsage
 
 # this is just broken.
 KHR-GL45.shader_ballot_tests.ShaderBallotFunctionRead

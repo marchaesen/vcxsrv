@@ -138,15 +138,19 @@ _XimPendingFilter(
 static Bool
 _XimProtoKeypressFilter(
     Xic		 ic,
-    XKeyEvent	*ev)
+    XKeyEvent	*ev,
+    Window	 w)
 {
     Xim		im = (Xim)ic->core.im;
 
-    if (IS_FABRICATED(im)) {
+    if (_XimIsFabricatedSerial(im, ev)) {
 	_XimPendingFilter(ic);
-	UNMARK_FABRICATED(im);
+	_XimUnfabricateSerial(im, ic, ev);
 	return NOTFILTERD;
     }
+    /* w=0 is used for _XimIsFabricatedSerial() only */
+    if (!w)
+	return NOTFILTERD;
 
     if (IS_NEGLECT_EVENT(ic, KeyPressMask))
 	return FILTERD;
@@ -193,21 +197,25 @@ _XimFilterKeypress(
     XEvent		*ev,
     XPointer		 client_data)
 {
-    return _XimProtoKeypressFilter((Xic)client_data, (XKeyEvent *)ev );
+    return _XimProtoKeypressFilter((Xic)client_data, (XKeyEvent *)ev, w);
 }
 
 static Bool
 _XimProtoKeyreleaseFilter(
     Xic		 ic,
-    XKeyEvent	*ev)
+    XKeyEvent	*ev,
+    Window	 w)
 {
     Xim		im = (Xim)ic->core.im;
 
-    if (IS_FABRICATED(im)) {
+    if (_XimIsFabricatedSerial(im, ev)) {
 	_XimPendingFilter(ic);
-	UNMARK_FABRICATED(im);
+	_XimUnfabricateSerial(im, ic, ev);
 	return NOTFILTERD;
     }
+    /* w=0 is used for _XimIsFabricatedSerial() only */
+    if (!w)
+	return NOTFILTERD;
 
     if (IS_NEGLECT_EVENT(ic, KeyReleaseMask))
 	return FILTERD;
@@ -254,7 +262,7 @@ _XimFilterKeyrelease(
     XEvent		*ev,
     XPointer		 client_data)
 {
-    return _XimProtoKeyreleaseFilter((Xic)client_data, (XKeyEvent *)ev);
+    return _XimProtoKeyreleaseFilter((Xic)client_data, (XKeyEvent *)ev, w);
 }
 
 static void
@@ -263,6 +271,11 @@ _XimRegisterKeyPressFilter(
 {
     if (ic->core.focus_window) {
 	if (!(ic->private.proto.registed_filter_event & KEYPRESS_MASK)) {
+	    _XRegisterFilterByType (ic->core.im->core.display,
+				    0,
+				    KeyPress, KeyPress,
+				    _XimFilterKeypress,
+				    (XPointer)ic);
 	    _XRegisterFilterByType (ic->core.im->core.display,
 				    ic->core.focus_window,
 				    KeyPress, KeyPress,
@@ -280,6 +293,11 @@ _XimRegisterKeyReleaseFilter(
 {
     if (ic->core.focus_window) {
 	if (!(ic->private.proto.registed_filter_event & KEYRELEASE_MASK)) {
+	    _XRegisterFilterByType (ic->core.im->core.display,
+				    0,
+				    KeyRelease, KeyRelease,
+				    _XimFilterKeyrelease,
+				    (XPointer)ic);
 	    _XRegisterFilterByType (ic->core.im->core.display,
 				    ic->core.focus_window,
 				    KeyRelease, KeyRelease,
@@ -301,6 +319,10 @@ _XimUnregisterKeyPressFilter(
 				ic->core.focus_window,
 				_XimFilterKeypress,
 				(XPointer)ic);
+	    _XUnregisterFilter (ic->core.im->core.display,
+				0,
+				_XimFilterKeypress,
+				(XPointer)ic);
 	    ic->private.proto.registed_filter_event &= ~KEYPRESS_MASK;
 	}
     }
@@ -315,6 +337,10 @@ _XimUnregisterKeyReleaseFilter(
 	if (ic->private.proto.registed_filter_event & KEYRELEASE_MASK) {
 	    _XUnregisterFilter (ic->core.im->core.display,
 				ic->core.focus_window,
+				_XimFilterKeyrelease,
+				(XPointer)ic);
+	    _XUnregisterFilter (ic->core.im->core.display,
+				0,
 				_XimFilterKeyrelease,
 				(XPointer)ic);
 	    ic->private.proto.registed_filter_event &= ~KEYRELEASE_MASK;

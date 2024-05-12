@@ -287,14 +287,6 @@ pub trait BaseCLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, 
     }
 }
 
-pub trait CLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, ERR> + 'a>:
-    Sized + BaseCLObject<'a, ERR, CL>
-{
-    fn as_cl(&self) -> CL {
-        CL::from_ptr(self)
-    }
-}
-
 pub trait ArcedCLObject<'a, const ERR: i32, CL: ReferenceCountedAPIPointer<Self, ERR> + 'a>:
     Sized + BaseCLObject<'a, ERR, CL>
 {
@@ -424,7 +416,6 @@ macro_rules! impl_cl_type_trait_base {
 
     ($cl: ident, $t: ident, [$($types: ident),+], $err: ident, $($field:ident).+) => {
         $crate::impl_cl_type_trait_base!(@BASE $cl, $t, [$($types),+], $err, $($field).+);
-        impl $crate::api::icd::CLObject<'_, $err, $cl> for $t {}
     };
 
     ($cl: ident, $t: ident, [$($types: ident),+], $err: ident) => {

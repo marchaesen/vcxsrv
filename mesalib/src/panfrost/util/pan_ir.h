@@ -288,6 +288,9 @@ struct pan_shader_info {
 
    uint32_t ubo_mask;
 
+   /* Quirk for GPUs that does not support auto32 types. */
+   bool quirk_no_auto32;
+
    union {
       struct bifrost_shader_info bifrost;
       struct midgard_shader_info midgard;

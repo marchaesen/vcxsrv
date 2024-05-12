@@ -302,7 +302,7 @@ static void gfx10_get_bin_sizes(struct si_context *sctx, unsigned cb_target_enab
       ((FcReadTags * num_rbs / num_pipes) * (FcTagSize * num_pipes));
 
    const unsigned minBinSizeX = 128;
-   const unsigned minBinSizeY = 64;
+   const unsigned minBinSizeY = sctx->gfx_level >= GFX12 ? 128 : 64;
 
    const unsigned num_fragments = sctx->framebuffer.nr_color_samples;
    const unsigned num_samples = sctx->framebuffer.nr_samples;
@@ -390,7 +390,19 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
 
    radeon_begin(&sctx->gfx_cs);
 
-   if (sctx->gfx_level >= GFX10) {
+   if (sctx->gfx_level >= GFX12) {
+      struct uvec2 bin_size = {128, 128};
+
+      radeon_opt_set_context_reg(sctx, R_028C44_PA_SC_BINNER_CNTL_0,
+                                 SI_TRACKED_PA_SC_BINNER_CNTL_0,
+                                 S_028C44_BINNING_MODE(V_028C44_BINNING_DISABLED) |
+                                 S_028C44_BIN_SIZE_X_EXTEND(util_logbase2(bin_size.x) - 5) |
+                                 S_028C44_BIN_SIZE_Y_EXTEND(util_logbase2(bin_size.y) - 5) |
+                                 S_028C44_DISABLE_START_OF_PRIM(1) |
+                                 S_028C44_FPOVS_PER_BATCH(63) |
+                                 S_028C44_OPTIMAL_BIN_SELECTION(1) |
+                                 S_028C44_FLUSH_ON_BINNING_TRANSITION(1));
+   } else if (sctx->gfx_level >= GFX10) {
       struct uvec2 bin_size = {};
       struct uvec2 bin_size_extend = {};
       unsigned binning_disabled =
@@ -435,6 +447,7 @@ void si_emit_dpbb_state(struct si_context *sctx, unsigned index)
    struct si_state_dsa *dsa = sctx->queued.named.dsa;
    unsigned db_shader_control = sctx->ps_db_shader_control;
    unsigned optimal_bin_selection = !sctx->queued.named.rasterizer->bottom_edge_rule;
+   unsigned pa_sc_hisz_control = sctx->ps_pa_sc_hisz_control;
 
    assert(sctx->gfx_level >= GFX9);
 
@@ -449,8 +462,10 @@ void si_emit_dpbb_state(struct si_context *sctx, unsigned index)
       G_02880C_COVERAGE_TO_MASK_ENABLE(db_shader_control) || blend->alpha_to_coverage;
 
    bool db_can_reject_z_trivially = !G_02880C_Z_EXPORT_ENABLE(db_shader_control) ||
-                                    G_02880C_CONSERVATIVE_Z_EXPORT(db_shader_control) ||
-                                    G_02880C_DEPTH_BEFORE_SHADER(db_shader_control);
+                                    G_02880C_DEPTH_BEFORE_SHADER(db_shader_control) ||
+                                    (sctx->gfx_level >= GFX12 ?
+                                        G_028BBC_CONSERVATIVE_Z_EXPORT(pa_sc_hisz_control) :
+                                        G_02880C_CONSERVATIVE_Z_EXPORT(db_shader_control));
 
    /* Disable DPBB when it's believed to be inefficient. */
    if (sscreen->info.max_render_backends > 4 && ps_can_kill && db_can_reject_z_trivially &&

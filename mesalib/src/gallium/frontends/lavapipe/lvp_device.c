@@ -197,6 +197,7 @@ static const struct vk_device_extension_table lvp_device_extensions_supported = 
    .EXT_index_type_uint8                  = true,
    .EXT_inline_uniform_block              = true,
    .EXT_load_store_op_none                = true,
+   .EXT_legacy_vertex_attributes          = true,
    .EXT_memory_budget                     = true,
 #if DETECT_OS_LINUX
    .EXT_memory_priority                   = true,
@@ -642,6 +643,9 @@ lvp_get_features(const struct lvp_physical_device *pdevice,
 
       /* VK_EXT_memory_priority */
       .memoryPriority = true,
+
+      /* VK_EXT_legacy_vertex_attributes */
+      .legacyVertexAttributes = true,
 
       /* VK_EXT_pageable_device_local_memory */
       .pageableDeviceLocalMemory = true,
@@ -1123,6 +1127,9 @@ lvp_get_properties(const struct lvp_physical_device *device, struct vk_propertie
       .maxDescriptorSetAccelerationStructures = MAX_DESCRIPTORS,
       .maxDescriptorSetUpdateAfterBindAccelerationStructures = MAX_DESCRIPTORS,
       .minAccelerationStructureScratchOffsetAlignment = 128,
+
+      /* VK_EXT_legacy_vertex_attributes */
+      .nativeUnalignedPerformance = true,
 
       /* VK_KHR_ray_tracing_pipeline */
       .shaderGroupHandleSize = LVP_RAY_TRACING_GROUP_HANDLE_SIZE,

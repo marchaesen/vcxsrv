@@ -143,9 +143,22 @@ static void si_get_sample_position(struct pipe_context *ctx, unsigned sample_cou
 }
 
 static void si_emit_max_4_sample_locs(struct si_context *sctx, uint64_t centroid_priority,
-                                      uint32_t sample_locs)
+                                      uint32_t sample_locs, uint32_t max_sample_dist)
 {
-   if (sctx->screen->info.has_set_context_pairs_packed) {
+   if (sctx->gfx_level >= GFX12) {
+      radeon_begin(&sctx->gfx_cs);
+      gfx12_begin_context_regs();
+      gfx12_set_context_reg(R_028BF0_PA_SC_CENTROID_PRIORITY_0, centroid_priority);
+      gfx12_set_context_reg(R_028BF4_PA_SC_CENTROID_PRIORITY_1, centroid_priority >> 32);
+      gfx12_set_context_reg(R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0, sample_locs);
+      gfx12_set_context_reg(R_028C08_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y0_0, sample_locs);
+      gfx12_set_context_reg(R_028C18_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y1_0, sample_locs);
+      gfx12_set_context_reg(R_028C28_PA_SC_AA_SAMPLE_LOCS_PIXEL_X1Y1_0, sample_locs);
+      gfx12_set_context_reg(R_028C5C_PA_SC_SAMPLE_PROPERTIES,
+                            S_028C5C_MAX_SAMPLE_DIST(max_sample_dist));
+      gfx12_end_context_regs();
+      radeon_end();
+   } else if (sctx->screen->info.has_set_context_pairs_packed) {
       radeon_begin(&sctx->gfx_cs);
       gfx11_begin_packed_context_regs();
       gfx11_set_context_reg(R_028BD4_PA_SC_CENTROID_PRIORITY_0, centroid_priority);
@@ -170,12 +183,24 @@ static void si_emit_max_4_sample_locs(struct si_context *sctx, uint64_t centroid
 }
 
 static void si_emit_max_16_sample_locs(struct si_context *sctx, uint64_t centroid_priority,
-                                       const uint32_t *sample_locs, unsigned num_samples)
+                                       const uint32_t *sample_locs, unsigned num_samples,
+                                       uint32_t max_sample_dist)
 {
    radeon_begin(&sctx->gfx_cs);
-   radeon_set_context_reg_seq(R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
-   radeon_emit(centroid_priority);
-   radeon_emit(centroid_priority >> 32);
+
+   if (sctx->gfx_level >= GFX12) {
+      gfx12_begin_context_regs();
+      gfx12_set_context_reg(R_028BF0_PA_SC_CENTROID_PRIORITY_0, centroid_priority);
+      gfx12_set_context_reg(R_028BF4_PA_SC_CENTROID_PRIORITY_1, centroid_priority >> 32);
+      gfx12_set_context_reg(R_028C5C_PA_SC_SAMPLE_PROPERTIES,
+                            S_028C5C_MAX_SAMPLE_DIST(max_sample_dist));
+      gfx12_end_context_regs();
+   } else {
+      radeon_set_context_reg_seq(R_028BD4_PA_SC_CENTROID_PRIORITY_0, 2);
+      radeon_emit(centroid_priority);
+      radeon_emit(centroid_priority >> 32);
+   }
+
    radeon_set_context_reg_seq(R_028BF8_PA_SC_AA_SAMPLE_LOCS_PIXEL_X0Y0_0,
                               num_samples == 8 ? 14 : 16);
    radeon_emit_array(sample_locs, 4);
@@ -204,24 +229,27 @@ static void si_emit_sample_locations(struct si_context *sctx, unsigned index)
     * to non-MSAA.
     */
    if (nr_samples != sctx->sample_locs_num_samples) {
+      unsigned max_sample_dist = si_msaa_max_distance[util_logbase2(nr_samples)];
+
       switch (nr_samples) {
       default:
       case 1:
-         si_emit_max_4_sample_locs(sctx, centroid_priority_1x, sample_locs_1x);
+         si_emit_max_4_sample_locs(sctx, centroid_priority_1x, sample_locs_1x, max_sample_dist);
          break;
       case 2:
-         si_emit_max_4_sample_locs(sctx, centroid_priority_2x, sample_locs_2x);
+         si_emit_max_4_sample_locs(sctx, centroid_priority_2x, sample_locs_2x, max_sample_dist);
          break;
       case 4:
-         si_emit_max_4_sample_locs(sctx, centroid_priority_4x, sample_locs_4x);
+         si_emit_max_4_sample_locs(sctx, centroid_priority_4x, sample_locs_4x, max_sample_dist);
          break;
       case 8:
-         si_emit_max_16_sample_locs(sctx, centroid_priority_8x, sample_locs_8x, 8);
+         si_emit_max_16_sample_locs(sctx, centroid_priority_8x, sample_locs_8x, 8, max_sample_dist);
          break;
       case 16:
-         si_emit_max_16_sample_locs(sctx, centroid_priority_16x, sample_locs_16x, 16);
+         si_emit_max_16_sample_locs(sctx, centroid_priority_16x, sample_locs_16x, 16, max_sample_dist);
          break;
       }
+
       sctx->sample_locs_num_samples = nr_samples;
    }
 

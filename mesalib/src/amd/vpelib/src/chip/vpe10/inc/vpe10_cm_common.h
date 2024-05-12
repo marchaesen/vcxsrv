@@ -25,7 +25,6 @@
 
 #include "color.h"
 #include "hw_shared.h"
-#include "color_pwl.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -126,9 +125,6 @@ bool vpe10_cm_helper_translate_curve_to_hw_format(
 
 bool vpe10_cm_helper_translate_curve_to_degamma_hw_format(
     const struct transfer_func *output_tf, struct pwl_params *lut_params);
-
-void vpe10_cm_get_tf_pwl_params(const struct transfer_func *output_tf,
-    struct pwl_params **lut_params, enum cm_type vpe_cm_type);
 
 #ifdef __cplusplus
 }

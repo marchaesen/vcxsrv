@@ -496,6 +496,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .KHR_draw_indirect_count = true,
       .KHR_driver_properties = true,
       .KHR_dynamic_rendering = true,
+      .KHR_dynamic_rendering_local_read = true,
       .KHR_external_fence = true,
       .KHR_external_fence_fd = true,
       .KHR_external_memory = true,
@@ -1211,6 +1212,9 @@ radv_physical_device_get_features(const struct radv_physical_device *pdev, struc
       .nestedCommandBuffer = true,
       .nestedCommandBufferRendering = true,
       .nestedCommandBufferSimultaneousUse = true,
+
+      /* VK_KHR_dynamic_rendering_local_read */
+      .dynamicRenderingLocalRead = true,
    };
 }
 

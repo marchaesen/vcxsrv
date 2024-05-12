@@ -190,7 +190,7 @@ debian-build-testing:
     .gitlab-ci/run-shellcheck.sh
     section_switch yamllint "yamllint"
     .gitlab-ci/run-yamllint.sh
-    section_switch meson "meson"
+    section_end
     .gitlab-ci/meson/build.sh
     .gitlab-ci/prepare-artifacts.sh
   timeout: 15m
@@ -207,7 +207,6 @@ shader-db:
   before_script:
     - !reference [.download_s3, before_script]
   script: |
-    section_switch shader-db "shader-db"
     .gitlab-ci/run-shader-db.sh
   artifacts:
     paths:

@@ -154,9 +154,9 @@ radv_set_mutable_tex_desc_fields(struct radv_device *device, struct radv_image *
       if (plane->surface.blk_w == 2)
          pitch *= 2;
 
-      state[4] &= C_00A010_DEPTH & C_00A010_PITCH_MSB;
-      state[4] |= S_00A010_DEPTH(pitch - 1) | /* DEPTH contains low bits of PITCH. */
-                  S_00A010_PITCH_MSB((pitch - 1) >> 13);
+      state[4] &= C_00A010_DEPTH_GFX10 & C_00A010_PITCH_MSB_GFX103;
+      state[4] |= S_00A010_DEPTH_GFX10(pitch - 1) | /* DEPTH contains low bits of PITCH. */
+                  S_00A010_PITCH_MSB_GFX103((pitch - 1) >> 13);
    }
 
    if (gfx_level >= GFX10) {
@@ -273,19 +273,19 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
       depth = image->vk.array_layers / 6;
 
    state[0] = 0;
-   state[1] = S_00A004_FORMAT(img_format) | S_00A004_WIDTH_LO(width - 1);
+   state[1] = S_00A004_FORMAT_GFX10(img_format) | S_00A004_WIDTH_LO(width - 1);
    state[2] = S_00A008_WIDTH_HI((width - 1) >> 2) | S_00A008_HEIGHT(height - 1) |
               S_00A008_RESOURCE_LEVEL(pdev->info.gfx_level < GFX11);
    state[3] = S_00A00C_DST_SEL_X(radv_map_swizzle(swizzle[0])) | S_00A00C_DST_SEL_Y(radv_map_swizzle(swizzle[1])) |
               S_00A00C_DST_SEL_Z(radv_map_swizzle(swizzle[2])) | S_00A00C_DST_SEL_W(radv_map_swizzle(swizzle[3])) |
               S_00A00C_BASE_LEVEL(image->vk.samples > 1 ? 0 : first_level) |
-              S_00A00C_LAST_LEVEL(image->vk.samples > 1 ? util_logbase2(image->vk.samples) : last_level) |
+              S_00A00C_LAST_LEVEL_GFX10(image->vk.samples > 1 ? util_logbase2(image->vk.samples) : last_level) |
               S_00A00C_BC_SWIZZLE(gfx9_border_color_swizzle(desc)) | S_00A00C_TYPE(type);
    /* Depth is the the last accessible layer on gfx9+. The hw doesn't need
     * to know the total number of layers.
     */
    state[4] =
-      S_00A010_DEPTH(type == V_008F1C_SQ_RSRC_IMG_3D ? depth - 1 : last_layer) | S_00A010_BASE_ARRAY(first_layer);
+      S_00A010_DEPTH_GFX10(type == V_008F1C_SQ_RSRC_IMG_3D ? depth - 1 : last_layer) | S_00A010_BASE_ARRAY(first_layer);
    state[5] = S_00A014_ARRAY_PITCH(0) | S_00A014_PERF_MOD(4);
    state[6] = 0;
    state[7] = 0;
@@ -297,8 +297,8 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
        * In SRV mode, BASE_ARRAY is ignored and DEPTH is the last slice of mipmap level 0.
        * In UAV mode, BASE_ARRAY is the first slice and DEPTH is the last slice of the bound level.
        */
-      state[4] &= C_00A010_DEPTH;
-      state[4] |= S_00A010_DEPTH(!is_storage_image ? depth - 1 : u_minify(depth, first_level) - 1);
+      state[4] &= C_00A010_DEPTH_GFX10;
+      state[4] |= S_00A010_DEPTH_GFX10(!is_storage_image ? depth - 1 : u_minify(depth, first_level) - 1);
       state[5] |= S_00A014_ARRAY_PITCH(is_storage_image);
    } else if (sliced_3d) {
       unsigned total = u_minify(depth, first_level);
@@ -312,7 +312,7 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
       unsigned last_slice = first_slice + slice_count - 1;
 
       state[4] = 0;
-      state[4] |= S_00A010_DEPTH(last_slice) | S_00A010_BASE_ARRAY(first_slice);
+      state[4] |= S_00A010_DEPTH_GFX10(last_slice) | S_00A010_BASE_ARRAY(first_slice);
       state[5] |= S_00A014_ARRAY_PITCH(1);
    }
 
@@ -322,8 +322,8 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
 
    unsigned min_lod_clamped = util_unsigned_fixed(CLAMP(min_lod, 0, 15), 8);
    if (pdev->info.gfx_level >= GFX11) {
-      state[1] |= S_00A004_MAX_MIP(max_mip);
-      state[5] |= S_00A014_MIN_LOD_LO(min_lod_clamped);
+      state[1] |= S_00A004_MAX_MIP_GFX11(max_mip);
+      state[5] |= S_00A014_MIN_LOD_LO_GFX11(min_lod_clamped);
       state[6] |= S_00A018_MIN_LOD_HI(min_lod_clamped >> 5);
    } else {
       state[1] |= S_00A004_MIN_LOD(min_lod_clamped);
@@ -367,7 +367,8 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
          }
 
          fmask_state[0] = (va >> 8) | image->planes[0].surface.fmask_tile_swizzle;
-         fmask_state[1] = S_00A004_BASE_ADDRESS_HI(va >> 40) | S_00A004_FORMAT(format) | S_00A004_WIDTH_LO(width - 1);
+         fmask_state[1] =
+            S_00A004_BASE_ADDRESS_HI(va >> 40) | S_00A004_FORMAT_GFX10(format) | S_00A004_WIDTH_LO(width - 1);
          fmask_state[2] =
             S_00A008_WIDTH_HI((width - 1) >> 2) | S_00A008_HEIGHT(height - 1) | S_00A008_RESOURCE_LEVEL(1);
          fmask_state[3] =
@@ -375,7 +376,7 @@ gfx10_make_texture_descriptor(struct radv_device *device, struct radv_image *ima
             S_00A00C_DST_SEL_Z(V_008F1C_SQ_SEL_X) | S_00A00C_DST_SEL_W(V_008F1C_SQ_SEL_X) |
             S_00A00C_SW_MODE(image->planes[0].surface.u.gfx9.color.fmask_swizzle_mode) |
             S_00A00C_TYPE(radv_tex_dim(image->vk.image_type, view_type, image->vk.array_layers, 0, false, false));
-         fmask_state[4] = S_00A010_DEPTH(last_layer) | S_00A010_BASE_ARRAY(first_layer);
+         fmask_state[4] = S_00A010_DEPTH_GFX10(last_layer) | S_00A010_BASE_ARRAY(first_layer);
          fmask_state[5] = 0;
          fmask_state[6] = S_00A018_META_PIPE_ALIGNED(1);
          fmask_state[7] = 0;

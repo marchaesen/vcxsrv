@@ -9,7 +9,7 @@ deqp_args = [
     "--deqp-visibility=hidden",
 ]
 version_check = "GL ES 3.1.*git"
-renderer_check = "V3D"
+renderer_check = "V3D 4.2.14"
 
 [[deqp]]
 deqp = "/deqp/modules/gles3/deqp-gles3"

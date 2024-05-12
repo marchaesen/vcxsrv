@@ -544,8 +544,8 @@ st_link_glsl_to_nir(struct gl_context *ctx,
          prog->nir = glsl_to_nir(&st->ctx->Const, shader_program, shader->Stage, options);
       }
 
-      memcpy(prog->nir->info.source_sha1, shader->linked_source_sha1,
-             SHA1_DIGEST_LENGTH);
+      memcpy(prog->nir->info.source_blake3, shader->linked_source_blake3,
+             BLAKE3_OUT_LEN);
 
       nir_shader_gather_info(prog->nir, nir_shader_get_entrypoint(prog->nir));
       if (!st->ctx->SoftFP64 && ((prog->nir->info.bit_sizes_int | prog->nir->info.bit_sizes_float) & 64) &&

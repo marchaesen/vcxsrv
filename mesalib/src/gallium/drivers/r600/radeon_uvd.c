@@ -397,6 +397,9 @@ static struct ruvd_h264 get_h264_msg(struct ruvd_decoder *dec, struct pipe_h264_
 	case PIPE_VIDEO_CHROMA_FORMAT_444:
 		result.chroma_format = 3;
 		break;
+	case PIPE_VIDEO_CHROMA_FORMAT_440:
+		result.chroma_format = 4;
+		break;
 	}
 
 	result.pps_info_flags = 0;

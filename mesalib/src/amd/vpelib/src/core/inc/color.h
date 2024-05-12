@@ -57,19 +57,13 @@ enum color_depth {
     COLOR_DEPTH_COUNT
 };
 
-/*
-* Special comment for TRANSFER_FUNC_LINEAR_0_125, 
-  Inside of the pipeline, vpe operates in 0 - 1 nominal range.
-  For degamma operations, 0_125 refers to input normalization and for regam, 0_125 refers to output normalization. 
- */
  enum color_transfer_func {
     TRANSFER_FUNC_UNKNOWN,
     TRANSFER_FUNC_SRGB,
     TRANSFER_FUNC_BT709,
     TRANSFER_FUNC_BT1886,
     TRANSFER_FUNC_PQ2084,
-    TRANSFER_FUNC_LINEAR_0_1,
-    TRANSFER_FUNC_LINEAR_0_125, 
+    TRANSFER_FUNC_LINEAR,
     TRANSFER_FUNC_NORMALIZED_PQ,
     TRANSFER_FUNC_HLG
 };
@@ -161,7 +155,6 @@ struct transfer_func {
         struct pwl_params                       pwl;
         struct transfer_func_distributed_points tf_pts;
     };
-    bool use_pre_calculated_table;
 };
 
 enum color_white_point_type {

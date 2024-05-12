@@ -236,7 +236,11 @@ spirv_verify_gl_specialization_constants(
     * need to print the warnings now, would be done later, on the real
     * spirv_to_nir
     */
-   const struct spirv_to_nir_options options = { .debug.func = NULL};
+   const struct spirv_capabilities spirv_caps = { false, };
+   const struct spirv_to_nir_options options = {
+      .capabilities = &spirv_caps,
+      .debug.func = NULL,
+   };
    const uint32_t *word_end = words + word_count;
 
    struct vtn_builder *b = vtn_create_builder(words, word_count,

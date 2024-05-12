@@ -31,6 +31,7 @@
 #include "util/u_dynarray.h"
 #include "nir_spirv.h"
 #include "spirv.h"
+#include "spirv_info.h"
 #include "vtn_generator_ids.h"
 
 extern uint32_t mesa_spirv_debug;
@@ -671,6 +672,9 @@ struct vtn_builder {
    enum vtn_generator generator_id;
    SpvSourceLanguage source_lang;
 
+   struct spirv_capabilities supported_capabilities;
+   struct spirv_capabilities enabled_capabilities;
+
    /* True if we need to fix up CS OpControlBarrier */
    bool wa_glslang_cs_barrier;
 
@@ -680,9 +684,6 @@ struct vtn_builder {
    /* True if we need to ignore OpReturn after OpEmitMeshTasksEXT. */
    bool wa_ignore_return_after_emit_mesh_tasks;
 
-   /* True if DemoteToHelperInvocation capability is used by the shader. */
-   bool uses_demote_to_helper_invocation;
-
    /* Workaround discard bugs in HLSL -> SPIR-V compilers */
    bool convert_discard_to_demote;
 
@@ -690,8 +691,6 @@ struct vtn_builder {
    const char *entry_point_name;
    struct vtn_value *entry_point;
    struct vtn_value *workgroup_size_builtin;
-   bool variable_pointers;
-   bool image_gather_bias_lod;
 
    uint32_t *interface_ids;
    size_t interface_ids_count;

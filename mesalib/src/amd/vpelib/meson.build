@@ -48,7 +48,6 @@ vpe_files = files(
   'src/core/inc/reg_helper.h',
   'src/core/inc/vpe_priv.h',
   'src/core/inc/vpe_command.h',
-  'src/core/inc/color_pwl.h',
   'src/core/inc/color_gamut.h',
   'src/core/inc/vpe_assert.h',
   'src/core/inc/vpec.h',

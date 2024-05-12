@@ -215,3 +215,6 @@ spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yuv420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvu420,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-sample_yvyu,Fail
 spec@ext_image_dma_buf_import@ext_image_dma_buf_import-transcode-nv12-as-r8-gr88,Fail
+
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/11127
+KHR-GL46.blend_equation_advanced.test_coherency.multiplySequence,Fail

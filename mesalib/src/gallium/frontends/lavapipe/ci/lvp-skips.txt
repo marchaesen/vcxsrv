@@ -33,6 +33,10 @@ dEQP-VK.ray_query.watertightness.singlehit.tesc.triangles
 dEQP-VK.ray_query.watertightness.singlehit.tese.triangles
 dEQP-VK.ray_query.watertightness.singlehit.vert.triangles
 
+dEQP-VK.ray_query.builtin.instancecustomindex.tesc.triangles
+dEQP-VK.ray_query.builtin.primitiveid.tesc.aabbs
+dEQP-VK.ray_query.builtin.primitiveid.tese.triangles
+
 dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_14
 dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_AABB_15
 dEQP-VK.ray_tracing_pipeline.misc.recursiveTraces_tri_14

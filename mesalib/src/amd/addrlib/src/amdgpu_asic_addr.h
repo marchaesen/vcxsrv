@@ -32,6 +32,7 @@
 #define FAMILY_RMB     0x92 //# 146 / Rembrandt
 #define FAMILY_RPL     0x95 //# 149 / Raphael
 #define FAMILY_MDN     0x97 //# 151 / Mendocino
+#define FAMILY_GFX12   0x98
 
 // AMDGPU_FAMILY_IS(familyId, familyName)
 #define FAMILY_IS(f, fn)     (f == FAMILY_##fn)
@@ -47,6 +48,7 @@
 #define FAMILY_IS_NV(f)      FAMILY_IS(f, NV)
 #define FAMILY_IS_RMB(f)     FAMILY_IS(f, RMB)
 #define FAMILY_IS_NV3(f)     FAMILY_IS(f, NV3)
+#define FAMILY_IS_GFX12(f)   FAMILY_IS(f, GFX12)
 
 #define AMDGPU_UNKNOWN          0xFF
 
@@ -106,6 +108,9 @@
 #define AMDGPU_REMBRANDT_RANGE  0x01, 0xFF //# 01 <= x < 255
 #define AMDGPU_RAPHAEL_RANGE    0x01, 0xFF //# 1 <= x < max
 #define AMDGPU_MENDOCINO_RANGE  0x01, 0xFF //# 1 <= x < max
+
+#define AMDGPU_GFX1200_RANGE    0x40, 0x50
+#define AMDGPU_GFX1201_RANGE    0x50, 0xFF
 
 #define AMDGPU_EXPAND_FIX(x) x
 #define AMDGPU_RANGE_HELPER(val, min, max) ((val >= min) && (val < max))
@@ -178,5 +183,7 @@
 #define ASICREV_IS_REMBRANDT(r)        ASICREV_IS(r, REMBRANDT)
 #define ASICREV_IS_RAPHAEL(r)          ASICREV_IS(r, RAPHAEL)
 #define ASICREV_IS_MENDOCINO(r)        ASICREV_IS(r, MENDOCINO)
+
+#define ASICREV_IS_GFX1200(r)          ASICREV_IS(r, GFX1200)
 
 #endif // _AMDGPU_ASIC_ADDR_H

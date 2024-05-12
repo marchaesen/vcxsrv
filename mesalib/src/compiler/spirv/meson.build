@@ -25,12 +25,14 @@ vtn_gather_types_c = custom_target(
   command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
 )
 
-spirv_info_c = custom_target(
-  'spirv_info.c',
-  input : files('spirv_info_c.py', 'spirv.core.grammar.json'),
-  output : 'spirv_info.c',
-  command : [prog_python, '@INPUT0@', '@INPUT1@', '@OUTPUT@'],
+spirv_info = custom_target(
+  'spirv_info',
+  input : files('spirv_info_gen.py', 'spirv.core.grammar.json'),
+  output : ['spirv_info.h', 'spirv_info.c'],
+  command : [prog_python, '@INPUT0@', '--json', '@INPUT1@',
+             '--out-h', '@OUTPUT0@', '--out-c', '@OUTPUT1@'],
 )
+spirv_info_h = spirv_info[0]
 
 vtn_generator_ids_h = custom_target(
   'vtn_generator_ids.h',
@@ -46,7 +48,6 @@ files_libvtn = files(
   'gl_spirv.c',
   'nir_spirv.h',
   'spirv.h',
-  'spirv_info.h',
   'spirv_to_nir.c',
   'vtn_alu.c',
   'vtn_amd.c',
@@ -63,7 +64,7 @@ files_libvtn = files(
 libvtn = static_library(
   'vtn',
   [files_libvtn,
-   spirv_info_c,
+   spirv_info,
    vtn_gather_types_c,
    vtn_generator_ids_h,
   ],

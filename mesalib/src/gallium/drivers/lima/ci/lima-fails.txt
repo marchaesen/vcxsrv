@@ -50,6 +50,8 @@ wayland-dEQP-EGL.functional.image.modify.renderbuffer_depth16_renderbuffer_clear
 wayland-dEQP-EGL.functional.render.multi_context.gles2.rgb888_window,Fail
 wayland-dEQP-EGL.functional.render.multi_thread.gles2.rgb888_window,Fail
 wayland-dEQP-EGL.functional.wide_color.window_fp16_default_colorspace,Fail
+wayland-dEQP-EGL.functional.wide_color.window_8888_colorspace_srgb,Fail
+wayland-dEQP-EGL.functional.wide_color.window_888_colorspace_srgb,Fail
 
 x11-dEQP-EGL.functional.create_context.no_config,Fail
 x11-dEQP-EGL.functional.image.modify.renderbuffer_depth16_renderbuffer_clear_depth,Fail

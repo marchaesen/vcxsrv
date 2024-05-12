@@ -3,7 +3,6 @@ dEQP-VK.query_pool.performance_query.query_compute,Fail
 dEQP-VK.query_pool.performance_query.query_compute_copy,Fail
 dEQP-VK.query_pool.performance_query.query_graphic,Fail
 dEQP-VK.query_pool.performance_query.query_graphic_copy,Fail
+
 # This seems to be a Vulkan Loader issue. Can be fixed by compiling the loader from the Github repo.
 dEQP-VK.api.get_device_proc_addr.non_enabled,Fail
-# This is a bug in CTS: https://gitlab.khronos.org/Tracker/vk-gl-cts/-/issues/5096
-dEQP-VK.api.command_buffers.many_indirect_draws_on_secondary,Fail

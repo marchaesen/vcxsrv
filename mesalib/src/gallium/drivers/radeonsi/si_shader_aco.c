@@ -323,6 +323,7 @@ si_aco_build_ps_epilog(struct aco_compiler_options *options,
       .skip_null_export = options->gfx_level >= GFX10 && !key->ps_epilog.uses_discard,
       .broadcast_last_cbuf = key->ps_epilog.states.last_cbuf,
       .alpha_func = key->ps_epilog.states.alpha_func,
+      .color_map = { 0, 1, 2, 3, 4, 5, 6, 7 },
    };
 
    struct si_shader_args args;

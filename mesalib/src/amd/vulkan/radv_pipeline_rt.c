@@ -1159,8 +1159,12 @@ radv_GetRayTracingCaptureReplayShaderGroupHandlesKHR(VkDevice device, VkPipeline
       uint32_t recursive_shader = rt_pipeline->groups[firstGroup + i].recursive_shader;
       if (recursive_shader != VK_SHADER_UNUSED_KHR) {
          struct radv_shader *shader = rt_pipeline->stages[recursive_shader].shader;
-         if (shader)
-            data[i].recursive_shader_alloc = radv_serialize_shader_arena_block(shader->alloc);
+         if (shader) {
+            data[i].recursive_shader_alloc.offset = shader->alloc->offset;
+            data[i].recursive_shader_alloc.size = shader->alloc->size;
+            data[i].recursive_shader_alloc.arena_va = shader->alloc->arena->bo->va;
+            data[i].recursive_shader_alloc.arena_size = shader->alloc->arena->size;
+         }
       }
       data[i].non_recursive_idx = rt_pipeline->groups[firstGroup + i].handle.any_hit_index;
    }

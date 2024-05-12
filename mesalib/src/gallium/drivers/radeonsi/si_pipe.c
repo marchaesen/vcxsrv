@@ -715,6 +715,9 @@ static struct pipe_context *si_create_context(struct pipe_screen *screen, unsign
       case GFX11_5:
          si_init_draw_functions_GFX11_5(sctx);
          break;
+      case GFX12:
+         si_init_draw_functions_GFX12(sctx);
+         break;
       default:
          unreachable("unhandled gfx level");
       }
@@ -978,7 +981,7 @@ static void si_destroy_screen(struct pipe_screen *pscreen)
              sscreen->num_disk_shader_cache_misses);
    }
 
-   si_resource_reference(&sscreen->attribute_ring, NULL);
+   si_resource_reference(&sscreen->attribute_pos_prim_ring, NULL);
    pipe_resource_reference(&sscreen->tess_rings, NULL);
    pipe_resource_reference(&sscreen->tess_rings_tmz, NULL);
 
@@ -1456,7 +1459,8 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
    sscreen->use_monolithic_shaders = (sscreen->debug_flags & DBG(MONOLITHIC_SHADERS)) != 0;
 
    sscreen->barrier_flags.cp_to_L2 = SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE;
-   if (sscreen->info.gfx_level <= GFX8) {
+
+   if (sscreen->info.gfx_level <= GFX8 || sscreen->info.cp_sdma_ge_use_system_memory_scope) {
       sscreen->barrier_flags.cp_to_L2 |= SI_CONTEXT_INV_L2;
       sscreen->barrier_flags.L2_to_cp |= SI_CONTEXT_WB_L2;
    }
@@ -1490,14 +1494,15 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
    }
 
    if (sscreen->info.gfx_level >= GFX11) {
-      unsigned attr_ring_size = sscreen->info.attribute_ring_size_per_se * sscreen->info.max_se;
-      sscreen->attribute_ring = si_aligned_buffer_create(&sscreen->b,
-                                                         PIPE_RESOURCE_FLAG_UNMAPPABLE |
-                                                         SI_RESOURCE_FLAG_32BIT |
-                                                         SI_RESOURCE_FLAG_DRIVER_INTERNAL |
-                                                         SI_RESOURCE_FLAG_DISCARDABLE,
-                                                         PIPE_USAGE_DEFAULT,
-                                                         attr_ring_size, 2 * 1024 * 1024);
+      sscreen->attribute_pos_prim_ring =
+         si_aligned_buffer_create(&sscreen->b,
+                                  PIPE_RESOURCE_FLAG_UNMAPPABLE |
+                                  SI_RESOURCE_FLAG_32BIT |
+                                  SI_RESOURCE_FLAG_DRIVER_INTERNAL |
+                                  SI_RESOURCE_FLAG_DISCARDABLE,
+                                  PIPE_USAGE_DEFAULT,
+                                  sscreen->info.total_attribute_pos_prim_ring_size,
+                                  2 * 1024 * 1024);
    }
 
    /* Create the auxiliary context. This must be done last. */
@@ -1535,16 +1540,18 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
    if (test_flags & (DBG(TEST_VMFAULT_CP) | DBG(TEST_VMFAULT_SHADER)))
       si_test_vmfault(sscreen, test_flags);
 
-   if (test_flags & DBG(TEST_GDS))
-      si_test_gds((struct si_context *)sscreen->aux_context.general.ctx);
+   if (sscreen->info.gfx_level < GFX12) {
+      if (test_flags & DBG(TEST_GDS))
+         si_test_gds((struct si_context *)sscreen->aux_context.general.ctx);
 
-   if (test_flags & DBG(TEST_GDS_MM)) {
-      si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
-                                    32 * 1024, 4, RADEON_DOMAIN_GDS);
-   }
-   if (test_flags & DBG(TEST_GDS_OA_MM)) {
-      si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
-                                    4, 1, RADEON_DOMAIN_OA);
+      if (test_flags & DBG(TEST_GDS_MM)) {
+         si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
+                                       32 * 1024, 4, RADEON_DOMAIN_GDS);
+      }
+      if (test_flags & DBG(TEST_GDS_OA_MM)) {
+         si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
+                                       4, 1, RADEON_DOMAIN_OA);
+      }
    }
 
    ac_print_nonshadowed_regs(sscreen->info.gfx_level, sscreen->info.family);

@@ -351,7 +351,7 @@ ac_translate_nir_to_llvm(struct ac_llvm_compiler *ac_llvm, const struct radv_nir
           * and contains a barrier, it will wait there and then
           * reach s_endpgm.
           */
-         ac_build_waitcnt(&ctx.ac, AC_WAIT_LGKM);
+         ac_build_waitcnt(&ctx.ac, AC_WAIT_DS);
          ac_build_s_barrier(&ctx.ac, shaders[shader_idx]->info.stage);
       }
 

@@ -1194,37 +1194,11 @@ can_swap_operands(aco_ptr<Instruction>& instr, aco_opcode* new_op, unsigned idx0
    }
 }
 
-wait_imm::wait_imm() : vm(unset_counter), exp(unset_counter), lgkm(unset_counter), vs(unset_counter)
+wait_imm::wait_imm() : exp(unset_counter), lgkm(unset_counter), vm(unset_counter), vs(unset_counter)
 {}
 wait_imm::wait_imm(uint16_t vm_, uint16_t exp_, uint16_t lgkm_, uint16_t vs_)
-    : vm(vm_), exp(exp_), lgkm(lgkm_), vs(vs_)
+    : exp(exp_), lgkm(lgkm_), vm(vm_), vs(vs_)
 {}
-
-wait_imm::wait_imm(enum amd_gfx_level gfx_level, uint16_t packed) : vs(unset_counter)
-{
-   if (gfx_level >= GFX11) {
-      vm = (packed >> 10) & 0x3f;
-      lgkm = (packed >> 4) & 0x3f;
-      exp = packed & 0x7;
-   } else {
-      vm = packed & 0xf;
-      if (gfx_level >= GFX9)
-         vm |= (packed >> 10) & 0x30;
-
-      exp = (packed >> 4) & 0x7;
-
-      lgkm = (packed >> 8) & 0xf;
-      if (gfx_level >= GFX10)
-         lgkm |= (packed >> 8) & 0x30;
-   }
-
-   if (vm == (gfx_level >= GFX9 ? 0x3f : 0xf))
-      vm = wait_imm::unset_counter;
-   if (exp == 0x7)
-      exp = wait_imm::unset_counter;
-   if (lgkm == (gfx_level >= GFX10 ? 0x3f : 0xf))
-      lgkm = wait_imm::unset_counter;
-}
 
 uint16_t
 wait_imm::pack(enum amd_gfx_level gfx_level) const
@@ -1257,35 +1231,102 @@ wait_imm::pack(enum amd_gfx_level gfx_level) const
    return imm;
 }
 
+wait_imm
+wait_imm::max(enum amd_gfx_level gfx_level)
+{
+   wait_imm imm;
+   imm.vm = gfx_level >= GFX9 ? 63 : 15;
+   imm.exp = 7;
+   imm.lgkm = gfx_level >= GFX10 ? 63 : 15;
+   imm.vs = gfx_level >= GFX10 ? 63 : 0;
+   return imm;
+}
+
+bool
+wait_imm::unpack(enum amd_gfx_level gfx_level, const Instruction* instr)
+{
+   if (!instr->isSALU() || (!instr->operands.empty() && instr->operands[0].physReg() != sgpr_null))
+      return false;
+
+   aco_opcode op = instr->opcode;
+   uint16_t packed = instr->salu().imm;
+
+   if (op == aco_opcode::s_waitcnt_expcnt) {
+      exp = std::min<uint8_t>(exp, packed);
+   } else if (op == aco_opcode::s_waitcnt_lgkmcnt) {
+      lgkm = std::min<uint8_t>(lgkm, packed);
+   } else if (op == aco_opcode::s_waitcnt_vmcnt) {
+      vm = std::min<uint8_t>(vm, packed);
+   } else if (op == aco_opcode::s_waitcnt_vscnt) {
+      vs = std::min<uint8_t>(vs, packed);
+   } else if (op == aco_opcode::s_waitcnt) {
+      uint8_t vm2, lgkm2, exp2;
+      if (gfx_level >= GFX11) {
+         vm2 = (packed >> 10) & 0x3f;
+         lgkm2 = (packed >> 4) & 0x3f;
+         exp2 = packed & 0x7;
+      } else {
+         vm2 = packed & 0xf;
+         if (gfx_level >= GFX9)
+            vm2 |= (packed >> 10) & 0x30;
+
+         exp2 = (packed >> 4) & 0x7;
+
+         lgkm2 = (packed >> 8) & 0xf;
+         if (gfx_level >= GFX10)
+            lgkm2 |= (packed >> 8) & 0x30;
+      }
+
+      if (vm2 == (gfx_level >= GFX9 ? 0x3f : 0xf))
+         vm2 = wait_imm::unset_counter;
+      if (exp2 == 0x7)
+         exp2 = wait_imm::unset_counter;
+      if (lgkm2 == (gfx_level >= GFX10 ? 0x3f : 0xf))
+         lgkm2 = wait_imm::unset_counter;
+
+      vm = std::min(vm, vm2);
+      exp = std::min(exp, exp2);
+      lgkm = std::min(lgkm, lgkm2);
+   } else {
+      return false;
+   }
+   return true;
+}
+
 bool
 wait_imm::combine(const wait_imm& other)
 {
-   bool changed = other.vm < vm || other.exp < exp || other.lgkm < lgkm || other.vs < vs;
-   vm = std::min(vm, other.vm);
-   exp = std::min(exp, other.exp);
-   lgkm = std::min(lgkm, other.lgkm);
-   vs = std::min(vs, other.vs);
+   bool changed = false;
+   for (unsigned i = 0; i < wait_type_num; i++) {
+      if (other[i] < (*this)[i])
+         changed = true;
+      (*this)[i] = std::min((*this)[i], other[i]);
+   }
    return changed;
 }
 
 bool
 wait_imm::empty() const
 {
-   return vm == unset_counter && exp == unset_counter && lgkm == unset_counter &&
-          vs == unset_counter;
+   for (unsigned i = 0; i < wait_type_num; i++) {
+      if ((*this)[i] != unset_counter)
+         return false;
+   }
+   return true;
 }
 
 void
 wait_imm::print(FILE* output) const
 {
-   if (exp != unset_counter)
-      fprintf(output, "exp: %u\n", exp);
-   if (vm != unset_counter)
-      fprintf(output, "vm: %u\n", vm);
-   if (lgkm != unset_counter)
-      fprintf(output, "lgkm: %u\n", lgkm);
-   if (vs != unset_counter)
-      fprintf(output, "vs: %u\n", vs);
+   const char* names[wait_type_num];
+   names[wait_type_exp] = "exp";
+   names[wait_type_vm] = "vm";
+   names[wait_type_lgkm] = "lgkm";
+   names[wait_type_vs] = "vs";
+   for (unsigned i = 0; i < wait_type_num; i++) {
+      if ((*this)[i] != unset_counter)
+         fprintf(output, "%s: %u\n", names[i], (*this)[i]);
+   }
 }
 
 bool

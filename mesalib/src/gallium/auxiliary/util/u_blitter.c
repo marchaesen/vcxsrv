@@ -2014,6 +2014,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
                                unsigned dst_sample)
 {
    struct blitter_context_priv *ctx = (struct blitter_context_priv*)blitter;
+   unsigned count = 0;
    struct pipe_context *pipe = ctx->base.pipe;
    enum pipe_texture_target src_target = src->target;
    unsigned src_samples = src->texture->nr_samples;
@@ -2038,7 +2039,7 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
 
    /* Return if there is nothing to do. */
    if (!dst_has_color && !dst_has_depth && !dst_has_stencil) {
-      return;
+      goto out;
    }
 
    bool is_scaled = dstbox->width != abs(srcbox->width) ||
@@ -2170,7 +2171,6 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
    }
 
    /* Set samplers. */
-   unsigned count = 0;
    if (src_has_depth && src_has_stencil &&
        (dst_has_color || (dst_has_depth && dst_has_stencil))) {
       /* Setup two samplers, one for depth and the other one for stencil. */
@@ -2223,7 +2223,8 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
    do_blits(ctx, dst, dstbox, src, src_width0, src_height0,
             srcbox, dst_has_depth || dst_has_stencil, use_txf, sample0_only,
             dst_sample);
-
+   util_blitter_unset_running_flag(blitter);
+out:
    util_blitter_restore_vertex_states(blitter);
    util_blitter_restore_fragment_states(blitter);
    util_blitter_restore_textures_internal(blitter, count);
@@ -2232,7 +2233,6 @@ void util_blitter_blit_generic(struct blitter_context *blitter,
       pipe->set_scissor_states(pipe, 0, 1, &ctx->base.saved_scissor);
    }
    util_blitter_restore_render_cond(blitter);
-   util_blitter_unset_running_flag(blitter);
 }
 
 void

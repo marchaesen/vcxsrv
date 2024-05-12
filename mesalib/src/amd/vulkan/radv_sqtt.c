@@ -35,7 +35,8 @@ radv_sqtt_queue_events_enabled(void)
 static uint32_t
 gfx11_get_sqtt_ctrl(const struct radv_device *device, bool enable)
 {
-   return S_0367B0_MODE(enable) | S_0367B0_HIWATER(5) | S_0367B0_UTIL_TIMER(1) | S_0367B0_RT_FREQ(2) | /* 4096 clk */
+   return S_0367B0_MODE(enable) | S_0367B0_HIWATER(5) | S_0367B0_UTIL_TIMER_GFX11(1) |
+          S_0367B0_RT_FREQ(2) | /* 4096 clk */
           S_0367B0_DRAW_EVENT_EN(1) | S_0367B0_SPI_STALL_EN(1) | S_0367B0_SQ_STALL_EN(1) | S_0367B0_REG_AT_HWM(2);
 }
 
@@ -135,7 +136,7 @@ radv_emit_sqtt_start(const struct radv_device *device, struct radeon_cmdbuf *cs,
                              V_0367B8_TOKEN_EXCLUDE_VALUINST | V_0367B8_TOKEN_EXCLUDE_IMMEDIATE |
                              V_0367B8_TOKEN_EXCLUDE_INST;
          }
-         sqtt_token_mask |= S_0367B8_TOKEN_EXCLUDE(token_exclude) | S_0367B8_BOP_EVENTS_TOKEN_INCLUDE(1);
+         sqtt_token_mask |= S_0367B8_TOKEN_EXCLUDE_GFX11(token_exclude) | S_0367B8_BOP_EVENTS_TOKEN_INCLUDE_GFX11(1);
 
          radeon_set_perfctr_reg(gfx_level, qf, cs, R_0367B8_SQ_THREAD_TRACE_TOKEN_MASK, sqtt_token_mask);
 

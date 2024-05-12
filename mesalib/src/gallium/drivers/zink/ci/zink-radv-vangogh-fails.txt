@@ -186,3 +186,19 @@ spec@!opengl 1.0@gl-1.0-polygon-line-aa,Fail
 # Regression noticed in https://gitlab.freedesktop.org/mesa/mesa/-/pipelines/891104
 spec@arb_viewport_array@display-list,Fail
 
+# https://gitlab.freedesktop.org/mesa/mesa/-/issues/11127
+dEQP-GLES31.functional.blend_equation_advanced.msaa.colorburn,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.colordodge,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.darken,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.difference,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.exclusion,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hardlight,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_color,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_hue,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_luminosity,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.hsl_saturation,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.lighten,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.multiply,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.overlay,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.screen,Fail
+dEQP-GLES31.functional.blend_equation_advanced.msaa.softlight,Fail

@@ -23,6 +23,9 @@
 #ifndef MESA_BLAKE3_H
 #define MESA_BLAKE3_H
 
+#include <stdlib.h>
+#include <stdio.h>
+#include <stdbool.h>
 #include "blake3/blake3.h"
 
 #ifdef __cplusplus
@@ -30,6 +33,8 @@ extern "C" {
 #endif
 
 #define mesa_blake3 blake3_hasher
+#define BLAKE3_OUT_LEN32 (BLAKE3_OUT_LEN / 4)
+#define BLAKE3_HEX_LEN (2 * BLAKE3_OUT_LEN + 1)
 
 typedef uint8_t blake3_hash[BLAKE3_OUT_LEN];
 
@@ -60,9 +65,15 @@ _mesa_blake3_hex_to_blake3(unsigned char *buf, const char *hex);
 void
 _mesa_blake3_compute(const void *data, size_t size, blake3_hash result);
 
+void
+_mesa_blake3_print(FILE *f, const blake3_hash blake3);
+
+bool
+_mesa_printed_blake3_equal(const blake3_hash blake3,
+                           const uint32_t printed_blake3[BLAKE3_OUT_LEN32]);
+
 #ifdef __cplusplus
 } /* extern C */
 #endif
-
 
 #endif

@@ -688,7 +688,7 @@ parse_omit_name(
 
     length = strlen (pattern);
 
-    if (length > XLFD_MAX_LEN)
+    if (length > XLFD_MAX_LEN - 1)
 	return -1;
 
     strcpy(buf, pattern);

@@ -251,7 +251,7 @@ bool vpe10_cm_helper_translate_curve_to_hw_format(
         seg_distr[i] = 1;
         region_start = -MAX_LOW_POINT;
         region_end   = 1;
-    } else if (output_tf->tf == TRANSFER_FUNC_LINEAR_0_125) {
+    } else if (output_tf->tf == TRANSFER_FUNC_LINEAR) {
 
         int num_regions_linear = MAX_LOW_POINT + 3;
 
@@ -517,32 +517,6 @@ bool vpe10_cm_helper_translate_curve_to_degamma_hw_format(
     cm_helper_convert_to_custom_float(rgb_resulted, lut_params->corner_points, hw_points, false);
 
     return true;
-}
-
-void vpe10_cm_get_tf_pwl_params(
-    const struct transfer_func *output_tf, struct pwl_params **lut_params, enum cm_type vpe_cm_type)
-{
-    int table_index = 0;
-
-    switch (output_tf->tf) {
-    case TRANSFER_FUNC_SRGB:
-        table_index = 0;
-        break;
-    case TRANSFER_FUNC_BT1886:
-        table_index = 1;
-        break;
-    case TRANSFER_FUNC_PQ2084:
-        table_index = 2;
-        break;
-    case TRANSFER_FUNC_BT709:
-    case TRANSFER_FUNC_LINEAR_0_125:
-        table_index = 3;
-        break;
-    default:
-        *lut_params = NULL;
-        return;
-    }
-    *lut_params = &tf_pwl_param_table[vpe_cm_type][table_index];
 }
 
 #define REG_FIELD_VALUE_CM(field, value)                                                           \

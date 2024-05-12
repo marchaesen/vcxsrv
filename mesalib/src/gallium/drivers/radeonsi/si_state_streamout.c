@@ -67,6 +67,9 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
    if (!old_num_targets && !num_targets)
       return;
 
+   if (sctx->gfx_level >= GFX12)
+      si_set_internal_shader_buffer(sctx, SI_STREAMOUT_STATE_BUF, NULL);
+
    /* We are going to unbind the buffers. Mark which caches need to be flushed. */
    if (old_num_targets && sctx->streamout.begin_emitted) {
       /* Stop streamout. */
@@ -97,6 +100,11 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
        */
       sctx->flags |= SI_CONTEXT_INV_SCACHE | SI_CONTEXT_INV_VCACHE |
                      SI_CONTEXT_VS_PARTIAL_FLUSH | SI_CONTEXT_PFP_SYNC_ME;
+
+      /* Make the streamout state buffer available to the CP for resuming and DrawTF. */
+      if (sctx->screen->info.cp_sdma_ge_use_system_memory_scope)
+         sctx->flags |= SI_CONTEXT_WB_L2;
+
       si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
    }
 
@@ -105,7 +113,7 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
     *    spec@ext_transform_feedback@immediate-reuse-index-buffer
     *    spec@ext_transform_feedback@immediate-reuse-uniform-buffer
     */
-   if (sctx->gfx_level >= GFX11 && old_num_targets)
+   if (sctx->gfx_level >= GFX11 && sctx->gfx_level < GFX12 && old_num_targets)
       si_flush_gfx_cs(sctx, 0, NULL);
 
    /* Streamout buffers must be bound in 2 places:
@@ -129,11 +137,55 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
 
       /* Allocate space for the filled buffer size. */
       struct si_streamout_target *t = sctx->streamout.targets[i];
-      if (!t->buf_filled_size) {
-         unsigned buf_filled_size_size = sctx->gfx_level >= GFX11 ? 8 : 4;
-         u_suballocator_alloc(&sctx->allocator_zeroed_memory, buf_filled_size_size, 4,
-                              &t->buf_filled_size_offset,
-                              (struct pipe_resource **)&t->buf_filled_size);
+
+      if (sctx->gfx_level >= GFX12) {
+         bool first_target = util_bitcount(enabled_mask) == 1;
+
+         /* The first enabled streamout target will contain the ordered ID/offset buffer for all
+          * targets.
+          */
+         if (first_target && !append_bitmask) {
+            /* The layout is:
+             *    struct {
+             *       struct {
+             *          uint32_t ordered_id; // equal for all buffers
+             *          uint32_t dwords_written;
+             *       } buffer[4];
+             *    };
+             *
+             * The buffer must be initialized to 0 and the address must be aligned to 64
+             * because it's faster when the atomic doesn't straddle a 64B block boundary.
+             */
+            unsigned alloc_size = 32;
+            unsigned alignment = 64;
+
+            si_resource_reference(&t->buf_filled_size, NULL);
+            u_suballocator_alloc(&sctx->allocator_zeroed_memory, alloc_size, alignment,
+                                 &t->buf_filled_size_offset,
+                                 (struct pipe_resource **)&t->buf_filled_size);
+
+            /* Offset to dwords_written of the first enabled streamout buffer. */
+            t->buf_filled_size_draw_count_offset = t->buf_filled_size_offset + i * 8 + 4;
+         }
+
+         if (first_target) {
+            struct pipe_shader_buffer sbuf;
+            sbuf.buffer = &t->buf_filled_size->b.b;
+            sbuf.buffer_offset = t->buf_filled_size_offset;
+            sbuf.buffer_size = 32; /* unused, the shader only uses the low 32 bits of the address */
+
+            si_set_internal_shader_buffer(sctx, SI_STREAMOUT_STATE_BUF, &sbuf);
+         }
+      } else {
+         /* GFX6-11 */
+         if (!t->buf_filled_size) {
+            unsigned alloc_size = sctx->gfx_level >= GFX11 ? 8 : 4;
+
+            u_suballocator_alloc(&sctx->allocator_zeroed_memory, alloc_size, 4,
+                                 &t->buf_filled_size_offset,
+                                 (struct pipe_resource **)&t->buf_filled_size);
+            t->buf_filled_size_draw_count_offset = t->buf_filled_size_offset;
+         }
       }
 
       /* Bind it to the shader. */
@@ -155,6 +207,11 @@ static void si_set_streamout_targets(struct pipe_context *ctx, unsigned num_targ
       si_so_target_reference(&sctx->streamout.targets[i], NULL);
       si_set_internal_shader_buffer(sctx, SI_VS_STREAMOUT_BUF0 + i, NULL);
    }
+
+   /* Either streamout is being resumed for all targets or none. Required by how we implement it
+    * for GFX12.
+    */
+   assert(!append_bitmask || enabled_mask == append_bitmask);
 
    if (!!sctx->streamout.enabled_mask != !!enabled_mask)
       sctx->do_update_shaders = true; /* to keep/remove streamout shader code as an optimization */
@@ -219,6 +276,7 @@ static void si_emit_streamout_begin(struct si_context *sctx, unsigned index)
 {
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
    struct si_streamout_target **t = sctx->streamout.targets;
+   bool first_target = true;
 
    if (sctx->gfx_level < GFX11)
       si_flush_vgt_streamout(sctx);
@@ -229,7 +287,22 @@ static void si_emit_streamout_begin(struct si_context *sctx, unsigned index)
 
       t[i]->stride_in_dw = sctx->streamout.stride_in_dw[i];
 
-      if (sctx->gfx_level >= GFX11) {
+      if (sctx->gfx_level >= GFX12) {
+         /* Only the first streamout target holds information. */
+         if (first_target) {
+            if (sctx->streamout.append_bitmask & (1 << i)) {
+               si_cp_copy_data(sctx, cs, COPY_DATA_REG, NULL,
+                               R_0309B0_GE_GS_ORDERED_ID_BASE >> 2, COPY_DATA_SRC_MEM,
+                               t[i]->buf_filled_size, t[i]->buf_filled_size_offset);
+            } else {
+               radeon_begin(cs);
+               radeon_set_uconfig_reg(R_0309B0_GE_GS_ORDERED_ID_BASE, 0);
+               radeon_end();
+            }
+
+            first_target = false;
+         }
+      } else if (sctx->gfx_level >= GFX11) {
          if (sctx->streamout.append_bitmask & (1 << i)) {
             /* Restore the register value. */
             si_cp_copy_data(sctx, cs, COPY_DATA_REG, NULL,
@@ -288,6 +361,14 @@ void si_emit_streamout_end(struct si_context *sctx)
 {
    struct radeon_cmdbuf *cs = &sctx->gfx_cs;
    struct si_streamout_target **t = sctx->streamout.targets;
+
+   if (sctx->gfx_level >= GFX12) {
+      /* Nothing to do. The streamout state buffer already contains the next ordered ID, which
+       * is the only thing we need to restore.
+       */
+      sctx->streamout.begin_emitted = false;
+      return;
+   }
 
    if (sctx->gfx_level >= GFX11) {
       /* Wait for streamout to finish before reading GDS_STRMOUT registers. */

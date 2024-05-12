@@ -8,6 +8,7 @@
 #include "compiler/clc/clc.h"
 #include "compiler/glsl_types.h"
 #include "compiler/spirv/nir_spirv.h"
+#include "compiler/spirv/spirv_info.h"
 #include "util/build_id.h"
 #include "util/disk_cache.h"
 #include "util/macros.h"
@@ -26,36 +27,40 @@
 #include "util/u_math.h"
 #include <sys/mman.h>
 
-struct spirv_to_nir_options spirv_options = {
-   .environment = NIR_SPIRV_OPENCL,
-   .caps =
-      {
-         .address = true,
-         .float16 = true,
-         .float64 = true,
-         .groups = true,
-         .image_write_without_format = true,
-         .int8 = true,
-         .int16 = true,
-         .int64 = true,
-         .int64_atomics = false,
-         .kernel = true,
-         .linkage = true,
-         .float_controls = true,
-         .generic_pointers = true,
-         .storage_8bit = true,
-         .storage_16bit = true,
-         .subgroup_arithmetic = true,
-         .subgroup_basic = true,
-         .subgroup_ballot = true,
-         .subgroup_dispatch = true,
-         .subgroup_quad = true,
-         .subgroup_shuffle = true,
-         .subgroup_vote = true,
+static const struct spirv_capabilities spirv_caps = {
+   .Addresses = true,
+   .Float16 = true,
+   .Float64 = true,
+   .Groups = true,
+   .StorageImageWriteWithoutFormat = true,
+   .Int8 = true,
+   .Int16 = true,
+   .Int64 = true,
+   .Int64Atomics = true,
+   .Kernel = true,
+   .Linkage = true, /* We receive linked kernel from clc */
+   .DenormFlushToZero = true,
+   .DenormPreserve = true,
+   .SignedZeroInfNanPreserve = true,
+   .RoundingModeRTE = true,
+   .RoundingModeRTZ = true,
+   .GenericPointer = true,
+   .GroupNonUniform = true,
+   .GroupNonUniformArithmetic = true,
+   .GroupNonUniformClustered = true,
+   .GroupNonUniformBallot = true,
+   .GroupNonUniformQuad = true,
+   .GroupNonUniformShuffle = true,
+   .GroupNonUniformVote = true,
+   .SubgroupDispatch = true,
 
-         .intel_subgroup_shuffle = true,
-         .intel_subgroup_buffer_block_io = true,
-      },
+   .SubgroupShuffleINTEL = true,
+   .SubgroupBufferBlockIOINTEL = true,
+};
+
+static const struct spirv_to_nir_options spirv_options = {
+   .environment = NIR_SPIRV_OPENCL,
+   .capabilities = &spirv_caps,
    .shared_addr_format = nir_address_format_62bit_generic,
    .global_addr_format = nir_address_format_62bit_generic,
    .temp_addr_format = nir_address_format_62bit_generic,

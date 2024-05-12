@@ -149,6 +149,10 @@ typedef struct _XimProtoPrivateRec {
     XimTransRegDispatcher	 register_dispatcher;
     XimTransCallDispatcher	 call_dispatcher;
     XPointer			 spec;
+
+    unsigned long		 fabricated_serial;
+    Time			 fabricated_time;
+    Bool			 enable_fabricated_order;
 } XimProtoPrivateRec;
 
 /*
@@ -306,5 +310,21 @@ typedef struct _XicProtoPrivateRec {
 
 #define XIM_MAXIMNAMELEN 64
 #define XIM_MAXLCNAMELEN 64
+
+Bool
+_XimFabricateSerial(
+    Xim                  im,
+    XKeyEvent           *event);
+
+Bool
+_XimUnfabricateSerial(
+    Xim                  im,
+    Xic                  ic,
+    XKeyEvent           *event);
+
+Bool
+_XimIsFabricatedSerial(
+    Xim                  im,
+    XKeyEvent           *event);
 
 #endif /* _XIMINTP_H */

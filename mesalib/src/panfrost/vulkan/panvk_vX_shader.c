@@ -235,10 +235,6 @@ panvk_per_arch(shader_create)(struct panvk_device *dev, gl_shader_stage stage,
 
    /* TODO these are made-up */
    const struct spirv_to_nir_options spirv_options = {
-      .caps =
-         {
-            .variable_pointers = true,
-         },
       .ubo_addr_format = nir_address_format_32bit_index_offset,
       .ssbo_addr_format = dev->vk.enabled_features.robustBufferAccess
                              ? nir_address_format_64bit_bounded_global

@@ -438,7 +438,7 @@
                                                 <menu key="menu" title="OtherViews" id="380">
                                                     <items>
                                                         <menuItem title="מהצג" state="on" tag="-1" id="384"/>
-                                                        <menuItem title="‭?‬256‮ ‬צבעים" tag="8" id="435"/>
+                                                        <menuItem title="‭‬צבעים" tag="8" id="435"/>
                                                         <menuItem title="‏אלפים" tag="15" id="383"/>
                                                         <menuItem title="‏מיליונים" tag="24" id="381"/>
                                                     </items>

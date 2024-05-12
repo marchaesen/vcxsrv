@@ -721,6 +721,8 @@ void ac_get_reg_ranges(enum amd_gfx_level gfx_level, enum radeon_family family,
                        enum ac_reg_range_type type, unsigned *num_ranges,
                        const struct ac_reg_range **ranges)
 {
+   assert(gfx_level < GFX12);
+
 #define RETURN(array)                                                                              \
    do {                                                                                            \
       *ranges = array;                                                                             \
@@ -3494,6 +3496,8 @@ static void gfx11_emulate_clear_state(struct radeon_cmdbuf *cs, unsigned num_reg
 void ac_emulate_clear_state(const struct radeon_info *info, struct radeon_cmdbuf *cs,
                             set_context_reg_seq_array_fn set_context_reg_seq_array)
 {
+   assert(info->gfx_level < GFX12);
+
    /* Set context registers same as CLEAR_STATE to initialize shadow memory. */
    unsigned reg_offset = R_02835C_PA_SC_TILE_STEERING_OVERRIDE;
    uint32_t reg_value = info->pa_sc_tile_steering_override;

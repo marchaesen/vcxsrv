@@ -2286,7 +2286,6 @@ struct v3dv_pipeline {
    bool sample_rate_shading;
    uint32_t sample_mask;
 
-   bool primitive_restart;
    bool negative_one_to_one;
 
    /* Accessed by binding. So vb[binding]->stride is the stride of the vertex
@@ -2349,12 +2348,6 @@ struct v3dv_pipeline {
       uint32_t color_write_masks;
    } blend;
 
-   /* Depth bias */
-   struct {
-      bool enabled;
-      bool is_z16;
-   } depth_bias;
-
    struct {
       void *mem_ctx;
       struct util_dynarray data; /* Array of v3dv_pipeline_executable_data */
@@ -2400,9 +2393,6 @@ const nir_shader_compiler_options *v3dv_pipeline_get_nir_options(void);
 
 uint32_t v3dv_physical_device_vendor_id(const struct v3dv_physical_device *dev);
 uint32_t v3dv_physical_device_device_id(const struct v3dv_physical_device *dev);
-
-#define v3dv_debug_ignored_stype(sType) \
-   mesa_logd("%s: ignored VkStructureType %u:%s\n\n", __func__, (sType), vk_StructureType_to_str(sType))
 
 const uint8_t *v3dv_get_format_swizzle(struct v3dv_device *device, VkFormat f,
                                        uint8_t plane);

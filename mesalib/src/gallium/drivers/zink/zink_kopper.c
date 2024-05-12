@@ -622,7 +622,7 @@ kill_swapchain(struct zink_context *ctx, struct zink_resource *res)
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    /* dead swapchain */
    mesa_loge("zink: swapchain killed %p\n", res);
-   zink_batch_reference_resource(&ctx->batch, res);
+   zink_batch_reference_resource(ctx, res);
    struct pipe_resource *pres = screen->base.resource_create(&screen->base, &res->base.b);
    zink_resource_object_reference(screen, &res->obj, zink_resource(pres)->obj);
    res->layout = VK_IMAGE_LAYOUT_UNDEFINED;
@@ -665,7 +665,7 @@ zink_kopper_acquire(struct zink_context *ctx, struct zink_resource *res, uint64_
       kill_swapchain(ctx, res);
    }
    bool is_kill = is_swapchain_kill(ret);
-   zink_batch_usage_set(&cdt->swapchain->batch_uses, ctx->batch.state);
+   zink_batch_usage_set(&cdt->swapchain->batch_uses, ctx->bs);
    return !is_kill;
 }
 
@@ -985,7 +985,7 @@ zink_kopper_acquire_readback(struct zink_context *ctx, struct zink_resource *res
       res->base.b.width0 = ctx->swapchain_size.width;
       res->base.b.height0 = ctx->swapchain_size.height;
    }
-   zink_batch_usage_set(&cdt->swapchain->batch_uses, ctx->batch.state);
+   zink_batch_usage_set(&cdt->swapchain->batch_uses, ctx->bs);
    *readback = res;
    return true;
 }

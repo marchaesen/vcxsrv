@@ -179,7 +179,6 @@ enum vpe_status vpe11_construct_resource(struct vpe_priv *vpe_priv, struct resou
     res->program_frontend                  = vpe10_program_frontend;
     res->program_backend                   = vpe10_program_backend;
     res->get_bufs_req                      = vpe10_get_bufs_req;
-    res->get_tf_pwl_params                 = vpe10_cm_get_tf_pwl_params;
 
     return VPE_STATUS_OK;
 err:

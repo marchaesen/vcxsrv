@@ -96,6 +96,7 @@ struct radv_ps_epilog_key {
    uint8_t enable_mrt_output_nan_fixup;
 
    uint32_t colors_written;
+   uint8_t color_map[MAX_RTS];
    bool mrt0_is_dual_src;
    bool export_depth;
    bool export_stencil;
@@ -549,8 +550,6 @@ union radv_shader_arena_block *radv_replay_shader_arena_block(struct radv_device
                                                               const struct radv_serialized_shader_arena_block *src,
                                                               void *ptr);
 
-struct radv_serialized_shader_arena_block radv_serialize_shader_arena_block(union radv_shader_arena_block *block);
-
 void radv_free_shader_memory(struct radv_device *device, union radv_shader_arena_block *alloc);
 
 struct radv_shader *radv_create_trap_handler_shader(struct radv_device *device);
@@ -707,5 +706,8 @@ void radv_shader_combine_cfg_tes_gs(const struct radv_shader *tes, const struct 
                                     uint32_t *rsrc2_out);
 
 const struct radv_userdata_info *radv_get_user_sgpr(const struct radv_shader *shader, int idx);
+
+void radv_precompute_registers_hw_ngg(struct radv_device *device, const struct ac_shader_config *config,
+                                      struct radv_shader_info *info);
 
 #endif /* RADV_SHADER_H */

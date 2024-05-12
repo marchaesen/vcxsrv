@@ -159,7 +159,7 @@ zink_fence_finish(struct zink_screen *screen, struct pipe_context *pctx, struct 
 
    if (pctx && mfence->deferred_ctx == pctx) {
       if (mfence->fence == ctx->deferred_fence) {
-         zink_context(pctx)->batch.has_work = true;
+         zink_context(pctx)->bs->has_work = true;
          /* this must be the current batch */
          pctx->flush(pctx, NULL, !timeout_ns ? PIPE_FLUSH_ASYNC : 0);
          if (!timeout_ns)
@@ -236,10 +236,10 @@ zink_fence_server_signal(struct pipe_context *pctx, struct pipe_fence_handle *pf
    struct zink_context *ctx = zink_context(pctx);
    struct zink_tc_fence *mfence = (struct zink_tc_fence *)pfence;
 
-   assert(!ctx->batch.state->signal_semaphore);
-   ctx->batch.state->signal_semaphore = mfence->sem;
-   ctx->batch.has_work = true;
-   struct zink_batch_state *bs = ctx->batch.state;
+   assert(!ctx->bs->signal_semaphore);
+   ctx->bs->signal_semaphore = mfence->sem;
+   ctx->bs->has_work = true;
+   struct zink_batch_state *bs = ctx->bs;
    /* this must produce a synchronous flush that completes before the function returns */
    pctx->flush(pctx, NULL, 0);
    if (zink_screen(ctx->base.screen)->threaded_submit)
@@ -258,10 +258,10 @@ zink_fence_server_sync(struct pipe_context *pctx, struct pipe_fence_handle *pfen
    mfence->deferred_ctx = pctx;
    /* this will be applied on the next submit */
    VkPipelineStageFlags flag = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-   util_dynarray_append(&ctx->batch.state->wait_semaphores, VkSemaphore, mfence->sem);
-   util_dynarray_append(&ctx->batch.state->wait_semaphore_stages, VkPipelineStageFlags, flag);
+   util_dynarray_append(&ctx->bs->wait_semaphores, VkSemaphore, mfence->sem);
+   util_dynarray_append(&ctx->bs->wait_semaphore_stages, VkPipelineStageFlags, flag);
    pipe_reference(NULL, &mfence->reference);
-   util_dynarray_append(&ctx->batch.state->fences, struct zink_tc_fence*, mfence);
+   util_dynarray_append(&ctx->bs->fences, struct zink_tc_fence*, mfence);
 
    /* transfer the external wait sempahore ownership to the next submit */
    mfence->sem = VK_NULL_HANDLE;

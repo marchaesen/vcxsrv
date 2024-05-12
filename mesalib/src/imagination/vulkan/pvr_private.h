@@ -1526,30 +1526,6 @@ VK_DEFINE_NONDISP_HANDLE_CASTS(pvr_render_pass,
                                VkRenderPass,
                                VK_OBJECT_TYPE_RENDER_PASS)
 
-/**
- * Warn on ignored extension structs.
- *
- * The Vulkan spec requires us to ignore unsupported or unknown structs in
- * a pNext chain. In debug mode, emitting warnings for ignored structs may
- * help us discover structs that we should not have ignored.
- *
- *
- * From the Vulkan 1.0.38 spec:
- *
- *    Any component of the implementation (the loader, any enabled layers,
- *    and drivers) must skip over, without processing (other than reading the
- *    sType and pNext members) any chained structures with sType values not
- *    defined by extensions supported by that component.
- */
-#define pvr_debug_ignored_stype(sType)                  \
-   do {                                                 \
-      const VkStructureType _type = (sType);            \
-      mesa_logd("%s: ignored VkStructureType %s(%u)\n", \
-                __func__,                               \
-                vk_StructureType_to_str(_type),         \
-                _type);                                 \
-   } while (0)
-
 #define PVR_CHECK_COMMAND_BUFFER_BUILDING_STATE(cmd_buffer)                  \
    do {                                                                      \
       struct pvr_cmd_buffer *const _cmd_buffer = (cmd_buffer);               \

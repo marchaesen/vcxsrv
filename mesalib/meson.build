@@ -2265,6 +2265,12 @@ endif
 # as GCC LTO drops them. See: https://bugs.freedesktop.org/show_bug.cgi?id=109391
 gcc_lto_quirk = (cc.get_id() == 'gcc') ? ['-fno-lto'] : []
 
+# As of GCC 13.2.1, Venus build with optimization level plain/0 and LTO does not
+# compile properly: https://gitlab.freedesktop.org/mesa/mesa/-/issues/11006
+if with_virtio_vk and cc.get_id() == 'gcc' and (get_option('optimization') == '0' or get_option('optimization') == 'plain') and get_option('b_lto') == true
+  error('Venus does not compile properly with GCC + optimization level plain/0 + LTO.')
+endif
+
 devenv = environment()
 
 dir_compiler_nir = join_paths(meson.current_source_dir(), 'src/compiler/nir/')

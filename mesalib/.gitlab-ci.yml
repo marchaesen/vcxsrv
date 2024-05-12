@@ -33,7 +33,7 @@ workflow:
     # merge pipeline
     - if: &is-merge-attempt $GITLAB_USER_LOGIN == "marge-bot" && $CI_PIPELINE_SOURCE == "merge_request_event"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${KERNEL_TAG}
+        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         MESA_CI_PERFORMANCE_ENABLED: 1
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: ""  # Empty tags are ignored by gitlab
     # post-merge pipeline
@@ -41,24 +41,24 @@ workflow:
     # nightly pipeline
     - if: &is-scheduled-pipeline $CI_PIPELINE_SOURCE == "schedule"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${KERNEL_TAG}
+        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         JOB_PRIORITY: 50
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
     # pipeline for direct pushes that bypassed the CI
     - if: &is-direct-push $CI_PROJECT_NAMESPACE == "mesa" && $CI_PIPELINE_SOURCE == "push" && $GITLAB_USER_LOGIN != "marge-bot"
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${KERNEL_TAG}
+        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         JOB_PRIORITY: 40
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
     # pre-merge or fork pipeline
     - if: $FORCE_KERNEL_TAG != null
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
+        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${FORCE_KERNEL_TAG}
         JOB_PRIORITY: 50
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
     - if: $FORCE_KERNEL_TAG == null
       variables:
-        KERNEL_IMAGE_BASE: https://${S3_HOST}/mesa-lava/${KERNEL_REPO}/${KERNEL_TAG}
+        KERNEL_IMAGE_BASE: https://${S3_HOST}/${S3_KERNEL_BUCKET}/${KERNEL_REPO}/${KERNEL_TAG}
         JOB_PRIORITY: 50
         VALVE_INFRA_VANGOGH_JOB_PRIORITY: priority:low
 
@@ -74,12 +74,22 @@ variables:
           set +o xtrace
   S3_JWT_FILE: /s3_jwt
   S3_HOST: s3.freedesktop.org
+  # This bucket is used to fetch the kernel image
+  S3_KERNEL_BUCKET: mesa-rootfs
+  # Bucket for git cache
+  S3_GITCACHE_BUCKET: git-cache
+  # Bucket for the pipeline artifacts pushed to S3
+  S3_ARTIFACTS_BUCKET: artifacts
+  # Buckets for traces
+  S3_TRACIE_RESULTS_BUCKET: mesa-tracie-results
+  S3_TRACIE_PUBLIC_BUCKET: mesa-tracie-public
+  S3_TRACIE_PRIVATE_BUCKET: mesa-tracie-private
   # per-pipeline artifact storage on MinIO
-  PIPELINE_ARTIFACTS_BASE: ${S3_HOST}/artifacts/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}
+  PIPELINE_ARTIFACTS_BASE: ${S3_HOST}/${S3_ARTIFACTS_BUCKET}/${CI_PROJECT_PATH}/${CI_PIPELINE_ID}
   # per-job artifact storage on MinIO
   JOB_ARTIFACTS_BASE: ${PIPELINE_ARTIFACTS_BASE}/${CI_JOB_ID}
   # reference images stored for traces
-  PIGLIT_REPLAY_REFERENCE_IMAGES_BASE: "${S3_HOST}/mesa-tracie-results/$FDO_UPSTREAM_REPO"
+  PIGLIT_REPLAY_REFERENCE_IMAGES_BASE: "${S3_HOST}/${S3_TRACIE_RESULTS_BUCKET}/$FDO_UPSTREAM_REPO"
   # For individual CI farm status see .ci-farms folder
   # Disable farm with   `git mv .ci-farms{,-disabled}/$farm_name`
   # Re-enable farm with `git mv .ci-farms{-disabled,}/$farm_name`

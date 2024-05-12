@@ -513,7 +513,6 @@ static bool calculate_curve(struct vpe_priv *vpe_priv, enum color_transfer_func 
     struct calculate_buffer *cal_buffer)
 {
     int                                      hdr_norm = vpe_priv->resource.internal_hdr_normalization;
-    int                                      y_norm;
     struct fixed31_32                        combined_scale;
 
     bool ret = false;
@@ -530,14 +529,8 @@ static bool calculate_curve(struct vpe_priv *vpe_priv, enum color_transfer_func 
         build_pq(MAX_HW_POINTS, coordinates_x, x_scale, y_scale, rgb_regamma);
         ret = true;
         break;
-    case TRANSFER_FUNC_LINEAR_0_125:
-    case TRANSFER_FUNC_LINEAR_0_1:
-        if (trans == TRANSFER_FUNC_LINEAR_0_1)
-            y_norm = 1;
-        else
-            y_norm = CCCS_NORM;
-        
-        combined_scale = vpe_fixpt_div_int(vpe_fixpt_from_int(y_norm), hdr_norm);
+    case TRANSFER_FUNC_LINEAR:
+        combined_scale = vpe_fixpt_div_int(vpe_fixpt_one, hdr_norm);
         combined_scale = vpe_fixpt_mul(combined_scale,  y_scale);
         combined_scale = vpe_fixpt_mul(combined_scale, x_scale);
         for (int i = 0; i < MAX_HW_POINTS; i++) {
@@ -567,7 +560,6 @@ bool vpe_color_calculate_degamma_params(struct vpe_priv *vpe_priv, struct fixed3
     enum color_transfer_func                 tf       = input_tf->tf;
     int                                      hdr_norm = vpe_priv->resource.internal_hdr_normalization;
     bool                                     ret      = false;
-    int                                      x_norm;
     struct fixed31_32                        scale_combined;
     struct fixed31_32                        output;
 
@@ -586,15 +578,8 @@ bool vpe_color_calculate_degamma_params(struct vpe_priv *vpe_priv, struct fixed3
         build_degamma(MAX_HW_POINTS_DEGAMMA, coordinates_x_degamma, tf, x_scale, y_scale, tf_pts);
         ret = true;
         break;
-    case TRANSFER_FUNC_LINEAR_0_1:
-    case TRANSFER_FUNC_LINEAR_0_125:
-        if (tf == TRANSFER_FUNC_LINEAR_0_1)
-            x_norm = 1;
-        else
-            x_norm = CCCS_NORM;
-
-        scale_combined = vpe_fixpt_div_int(vpe_fixpt_from_int(hdr_norm), x_norm);
-        scale_combined = vpe_fixpt_mul(scale_combined, x_scale);
+    case TRANSFER_FUNC_LINEAR:
+        scale_combined = vpe_fixpt_mul(vpe_fixpt_from_int(hdr_norm), x_scale);
         scale_combined = vpe_fixpt_mul(scale_combined, y_scale);
 
         for (int i = 0; i < MAX_HW_POINTS_DEGAMMA; i ++) {

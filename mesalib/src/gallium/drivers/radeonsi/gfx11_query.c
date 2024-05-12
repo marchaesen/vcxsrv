@@ -345,6 +345,10 @@ static void gfx11_sh_query_get_result_resource(struct si_context *sctx, struct s
    grid.grid[1] = 1;
    grid.grid[2] = 1;
 
+   /* TODO: Range-invalidate GL2 */
+   if (sctx->screen->info.cp_sdma_ge_use_system_memory_scope)
+      sctx->flags |= SI_CONTEXT_INV_L2;
+
    struct gfx11_sh_query_buffer *qbuf = query->first;
    for (;;) {
       unsigned begin = qbuf == query->first ? query->first_begin : 0;

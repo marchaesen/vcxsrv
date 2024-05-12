@@ -37,6 +37,9 @@ extern const unsigned a5xx_num_perfcntr_groups;
 extern const struct fd_perfcntr_group a6xx_perfcntr_groups[];
 extern const unsigned a6xx_num_perfcntr_groups;
 
+extern const struct fd_perfcntr_group a7xx_perfcntr_groups[];
+extern const unsigned a7xx_num_perfcntr_groups;
+
 const struct fd_perfcntr_group *
 fd_perfcntrs(const struct fd_dev_id *id, unsigned *count)
 {
@@ -50,6 +53,9 @@ fd_perfcntrs(const struct fd_dev_id *id, unsigned *count)
    case 6:
       *count = a6xx_num_perfcntr_groups;
       return a6xx_perfcntr_groups;
+   case 7:
+      *count = a7xx_num_perfcntr_groups;
+      return a7xx_perfcntr_groups;
    default:
       *count = 0;
       return NULL;

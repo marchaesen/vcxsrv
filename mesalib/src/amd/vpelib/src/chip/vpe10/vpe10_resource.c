@@ -351,7 +351,6 @@ enum vpe_status vpe10_construct_resource(struct vpe_priv *vpe_priv, struct resou
     res->program_frontend                  = vpe10_program_frontend;
     res->program_backend                   = vpe10_program_backend;
     res->get_bufs_req                      = vpe10_get_bufs_req;
-    res->get_tf_pwl_params                 = vpe10_cm_get_tf_pwl_params;
 
     return VPE_STATUS_OK;
 err:
@@ -407,6 +406,9 @@ bool vpe10_check_output_color_space(struct vpe_priv *vpe_priv, enum vpe_surface_
 
     vpe_color_get_color_space_and_tf(vcs, &cs, &tf);
     if (cs == COLOR_SPACE_UNKNOWN || tf == TRANSFER_FUNC_UNKNOWN)
+        return false;
+
+    if (vpe_is_fp16(format) && tf != TRANSFER_FUNC_LINEAR)
         return false;
 
     return true;
@@ -959,12 +961,12 @@ void vpe10_create_stream_ops_config(struct vpe_priv *vpe_priv, uint32_t pipe_idx
     if (ops == VPE_CMD_OPS_BG_VSCF_INPUT) {
         blndcfg.bg_color = vpe_get_visual_confirm_color(stream_ctx->stream.surface_info.format,
             stream_ctx->stream.surface_info.cs, vpe_priv->output_ctx.cs,
-            vpe_priv->output_ctx.output_tf,
+            vpe_priv->output_ctx.output_tf, vpe_priv->output_ctx.surface.format,
             (stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut));
     } else if (ops == VPE_CMD_OPS_BG_VSCF_OUTPUT) {
         blndcfg.bg_color = vpe_get_visual_confirm_color(vpe_priv->output_ctx.surface.format,
             vpe_priv->output_ctx.surface.cs, vpe_priv->output_ctx.cs,
-            vpe_priv->output_ctx.output_tf,
+            vpe_priv->output_ctx.output_tf, vpe_priv->output_ctx.surface.format,
             false); // 3DLUT should only affect input visual confirm
     } else {
         blndcfg.bg_color = vpe_priv->output_ctx.bg_color;

@@ -54,7 +54,9 @@ static nir_def *build_attr_ring_desc(nir_builder *b, struct si_shader *shader,
                   S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
                   S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
                   S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-                  S_008F0C_FORMAT(V_008F0C_GFX11_FORMAT_32_32_32_32_FLOAT) |
+                  (sel->screen->info.gfx_level >= GFX12 ?
+                     S_008F0C_FORMAT_GFX12(V_008F0C_GFX11_FORMAT_32_32_32_32_FLOAT) :
+                     S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_32_32_32_FLOAT)) |
                   S_008F0C_INDEX_STRIDE(2) /* 32 elements */),
    };
 
@@ -138,11 +140,14 @@ static nir_def *build_tess_ring_desc(nir_builder *b, struct si_screen *screen,
       S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) |
       S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
 
-   if (screen->info.gfx_level >= GFX11) {
-      rsrc3 |= S_008F0C_FORMAT(V_008F0C_GFX11_FORMAT_32_FLOAT) |
+   if (screen->info.gfx_level >= GFX12) {
+      rsrc3 |= S_008F0C_FORMAT_GFX12(V_008F0C_GFX11_FORMAT_32_FLOAT) |
+               S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
+   } else if (screen->info.gfx_level >= GFX11) {
+      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) |
                S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
    } else if (screen->info.gfx_level >= GFX10) {
-      rsrc3 |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
+      rsrc3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
                S_008F0C_RESOURCE_LEVEL(1);
    } else {
@@ -234,7 +239,7 @@ static void build_gsvs_ring_desc(nir_builder *b, struct lower_abi_state *s)
 
          if (sel->screen->info.gfx_level >= GFX10) {
             rsrc3 |=
-               S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
+               S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) |
                S_008F0C_RESOURCE_LEVEL(1);
          } else {
@@ -474,6 +479,12 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
       replacement = si_nir_load_internal_binding(b, args, slot, 4);
       break;
    }
+   case nir_intrinsic_load_xfb_state_address_gfx12_amd: {
+      nir_def *address = si_nir_load_internal_binding(b, args, SI_STREAMOUT_STATE_BUF, 1);
+      nir_def *address32_hi = nir_imm_int(b, s->shader->selector->screen->info.address32_hi);
+      replacement = nir_pack_64_2x32_split(b, address, address32_hi);
+      break;
+   }
    case nir_intrinsic_atomic_add_gs_emit_prim_count_amd:
    case nir_intrinsic_atomic_add_shader_invocation_count_amd: {
       enum pipe_statistics_query_index index =
@@ -613,7 +624,8 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
       break;
    }
    case nir_intrinsic_load_layer_id:
-      replacement = ac_nir_unpack_arg(b, &args->ac, args->ac.ancillary, 16, 13);
+      replacement = ac_nir_unpack_arg(b, &args->ac, args->ac.ancillary,
+                                      16, sel->screen->info.gfx_level >= GFX12 ? 14 : 13);
       break;
    case nir_intrinsic_load_color0:
    case nir_intrinsic_load_color1: {
@@ -680,21 +692,26 @@ static bool lower_intrinsic(nir_builder *b, nir_instr *instr, struct lower_abi_s
          /* Line primitives and blits don't need edge flags. */
          replacement = nir_imm_int(b, 0);
       } else if (shader->selector->stage == MESA_SHADER_VERTEX) {
-         /* Use the following trick to extract the edge flags:
-          *   extracted = v_and_b32 gs_invocation_id, 0x700 ; get edge flags at bits 8, 9, 10
-          *   shifted = v_mul_u32_u24 extracted, 0x80402u   ; shift the bits: 8->9, 9->19, 10->29
-          *   result = v_and_b32 shifted, 0x20080200        ; remove garbage
-          */
-         nir_def *tmp = ac_nir_load_arg(b, &args->ac, args->ac.gs_invocation_id);
-         tmp = nir_iand_imm(b, tmp, 0x700);
-         tmp = nir_imul_imm(b, tmp, 0x80402);
-         replacement = nir_iand_imm(b, tmp, 0x20080200);
+         if (sel->screen->info.gfx_level >= GFX12) {
+            replacement = nir_iand_imm(b, ac_nir_load_arg(b, &args->ac, args->ac.gs_vtx_offset[0]),
+                                       ac_get_all_edge_flag_bits(sel->screen->info.gfx_level));
+         } else {
+            /* Use the following trick to extract the edge flags:
+             *   extracted = v_and_b32 gs_invocation_id, 0x700 ; get edge flags at bits 8, 9, 10
+             *   shifted = v_mul_u32_u24 extracted, 0x80402u   ; shift the bits: 8->9, 9->19, 10->29
+             *   result = v_and_b32 shifted, 0x20080200        ; remove garbage
+             */
+            nir_def *tmp = ac_nir_load_arg(b, &args->ac, args->ac.gs_invocation_id);
+            tmp = nir_iand_imm(b, tmp, 0x700);
+            tmp = nir_imul_imm(b, tmp, 0x80402);
+            replacement = nir_iand_imm(b, tmp, 0x20080200);
+         }
       } else {
          /* Edge flags are always enabled when polygon mode is enabled, so we always have to
           * return valid edge flags if the primitive type is not lines and if we are not blitting
           * because the shader doesn't know when polygon mode is enabled.
           */
-         replacement = nir_imm_int(b, ac_get_all_edge_flag_bits());
+         replacement = nir_imm_int(b, ac_get_all_edge_flag_bits(sel->screen->info.gfx_level));
       }
       break;
    case nir_intrinsic_load_packed_passthrough_primitive_amd:

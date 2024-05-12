@@ -422,6 +422,7 @@ PIPE_FORMAT_Y8_UNORM              , other,   1, 1, 1,  un8,     ,     ,     , x0
 PIPE_FORMAT_Y8_U8_V8_422_UNORM    , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_Y8_U8V8_422_UNORM     , planar2, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_Y8_U8_V8_444_UNORM    , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
+PIPE_FORMAT_Y8_U8_V8_440_UNORM    , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 
 PIPE_FORMAT_Y16_U16_V16_420_UNORM , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv
 PIPE_FORMAT_Y16_U16_V16_422_UNORM , planar3, 1, 1, 1,     ,     ,     ,     , xyzw, yuv

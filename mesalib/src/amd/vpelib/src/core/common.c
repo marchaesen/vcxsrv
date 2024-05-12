@@ -321,12 +321,9 @@ enum vpe_status vpe_check_output_support(struct vpe *vpe, const struct vpe_build
     }
 
     // pitch
-    if ((surface_info->plane_size.surface_pitch *
-            vpe_get_element_size_in_bytes(surface_info->format, 0) %
-            vpe->caps->plane_caps.pitch_alignment) ||
-        ((uint32_t)(surface_info->plane_size.surface_size.x +
-                    (int32_t)surface_info->plane_size.surface_size.width) >
-            surface_info->plane_size.surface_pitch)) {
+    if ((uint32_t)(surface_info->plane_size.surface_size.x +
+                   (int32_t)surface_info->plane_size.surface_size.width) >
+        surface_info->plane_size.surface_pitch) {
         vpe_log("pitch alignment not supported %lu. %lu\n", surface_info->plane_size.surface_pitch,
             vpe->caps->plane_caps.pitch_alignment);
         return VPE_STATUS_PITCH_ALIGNMENT_NOT_SUPPORTED;
@@ -356,12 +353,9 @@ enum vpe_status vpe_check_output_support(struct vpe *vpe, const struct vpe_build
     }
 
     if (surface_info->address.type == VPE_PLN_ADDR_TYPE_VIDEO_PROGRESSIVE) {
-        if (((uint32_t)surface_info->plane_size.chroma_pitch *
-                vpe_get_element_size_in_bytes(surface_info->format, 1) %
-                vpe->caps->plane_caps.pitch_alignment) ||
-            ((uint32_t)(surface_info->plane_size.chroma_size.x +
-                        (int32_t)surface_info->plane_size.chroma_size.width) >
-                surface_info->plane_size.chroma_pitch)) {
+        if ((uint32_t)(surface_info->plane_size.chroma_size.x +
+                       (int32_t)surface_info->plane_size.chroma_size.width) >
+            surface_info->plane_size.chroma_pitch) {
             vpe_log("chroma pitch alignment not supported %u. %u\n",
                 surface_info->plane_size.chroma_pitch, vpe->caps->plane_caps.pitch_alignment);
             return VPE_STATUS_PITCH_ALIGNMENT_NOT_SUPPORTED;
@@ -430,12 +424,9 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
     }
 
     // pitch & address
-    if ((surface_info->plane_size.surface_pitch *
-            vpe_get_element_size_in_bytes(surface_info->format, 0) %
-            vpe->caps->plane_caps.pitch_alignment) ||
-        ((uint32_t)(surface_info->plane_size.surface_size.x +
-                    (int32_t)surface_info->plane_size.surface_size.width) >
-            surface_info->plane_size.surface_pitch)) {
+    if ((uint32_t)(surface_info->plane_size.surface_size.x +
+                   (int32_t)surface_info->plane_size.surface_size.width) >
+        surface_info->plane_size.surface_pitch) {
 
         vpe_log("pitch alignment not supported %d. %d\n", surface_info->plane_size.surface_pitch,
             vpe->caps->plane_caps.pitch_alignment);
@@ -451,12 +442,9 @@ enum vpe_status vpe_check_input_support(struct vpe *vpe, const struct vpe_stream
         }
 
         if (vpe_is_dual_plane_format(surface_info->format)) {
-            if ((surface_info->plane_size.chroma_pitch *
-                    vpe_get_element_size_in_bytes(surface_info->format, 1) %
-                    vpe->caps->plane_caps.pitch_alignment) ||
-                ((uint32_t)(surface_info->plane_size.chroma_size.x +
-                            (int32_t)surface_info->plane_size.chroma_size.width) >
-                    surface_info->plane_size.chroma_pitch)) {
+            if ((uint32_t)(surface_info->plane_size.chroma_size.x +
+                           (int32_t)surface_info->plane_size.chroma_size.width) >
+                surface_info->plane_size.chroma_pitch) {
                 vpe_log("chroma pitch alignment not supported %d. %d\n",
                     surface_info->plane_size.chroma_pitch, vpe->caps->plane_caps.pitch_alignment);
                 return VPE_STATUS_PITCH_ALIGNMENT_NOT_SUPPORTED;

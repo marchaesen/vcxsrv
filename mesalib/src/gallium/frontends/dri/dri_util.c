@@ -100,7 +100,7 @@ __DRIscreen *
 driCreateNewScreen3(int scrn, int fd,
                     const __DRIextension **loader_extensions,
                     const __DRIextension **driver_extensions,
-                    const __DRIconfig ***driver_configs, bool implicit, void *data)
+                    const __DRIconfig ***driver_configs, bool driver_name_is_inferred, void *data)
 {
     static const __DRIextension *emptyExtensionList[] = { NULL };
     struct dri_screen *screen;
@@ -137,7 +137,7 @@ driCreateNewScreen3(int scrn, int fd,
     driParseConfigFiles(&screen->optionCache, &screen->optionInfo, screen->myNum,
                         "dri2", NULL, NULL, NULL, 0, NULL, 0);
 
-    *driver_configs = mesa->initScreen(screen, implicit);
+    *driver_configs = mesa->initScreen(screen, driver_name_is_inferred);
     if (*driver_configs == NULL) {
         dri_destroy_screen(screen);
         return NULL;
@@ -226,10 +226,10 @@ driSWRastCreateNewScreen2(int scrn, const __DRIextension **extensions,
 static __DRIscreen *
 driSWRastCreateNewScreen3(int scrn, const __DRIextension **extensions,
                           const __DRIextension **driver_extensions,
-                          const __DRIconfig ***driver_configs, bool implicit, void *data)
+                          const __DRIconfig ***driver_configs, bool driver_name_is_inferred, void *data)
 {
    return driCreateNewScreen3(scrn, -1, extensions, driver_extensions,
-                               driver_configs, implicit, data);
+                               driver_configs, driver_name_is_inferred, data);
 }
 
 /**

@@ -113,11 +113,13 @@ lower_buffer_shared(nir_builder *b, nir_intrinsic_instr *instr)
 static bool
 lower_image(nir_builder *b,
             nir_intrinsic_instr *instr,
-            const nir_lower_robust_access_options *opts)
+            const nir_lower_robust_access_options *opts, bool deref)
 {
    enum glsl_sampler_dim dim = nir_intrinsic_image_dim(instr);
    bool atomic = (instr->intrinsic == nir_intrinsic_image_atomic ||
-                  instr->intrinsic == nir_intrinsic_image_atomic_swap);
+                  instr->intrinsic == nir_intrinsic_image_atomic_swap ||
+                  instr->intrinsic == nir_intrinsic_image_deref_atomic ||
+                  instr->intrinsic == nir_intrinsic_image_deref_atomic_swap);
    if (!opts->lower_image &&
        !(opts->lower_buffer_image && dim == GLSL_SAMPLER_DIM_BUF) &&
        !(opts->lower_image_atomic && atomic))
@@ -132,10 +134,13 @@ lower_image(nir_builder *b,
    if (dim == GLSL_SAMPLER_DIM_CUBE && !is_array)
       size_components -= 1;
 
-   nir_def *size =
-      nir_image_size(b, size_components, 32,
-                     instr->src[0].ssa, nir_imm_int(b, 0),
-                     .image_array = is_array, .image_dim = dim);
+   nir_def *size = nir_image_size(b, size_components, 32,
+                                  instr->src[0].ssa, nir_imm_int(b, 0),
+                                  .image_array = is_array, .image_dim = dim);
+   if (deref) {
+      nir_instr_as_intrinsic(size->parent_instr)->intrinsic =
+         nir_intrinsic_image_deref_size;
+   }
 
    if (dim == GLSL_SAMPLER_DIM_CUBE) {
       nir_def *z = is_array ? nir_imul_imm(b, nir_channel(b, size, 2), 6)
@@ -164,7 +169,13 @@ lower(nir_builder *b, nir_instr *instr, void *_opts)
    case nir_intrinsic_image_store:
    case nir_intrinsic_image_atomic:
    case nir_intrinsic_image_atomic_swap:
-      return lower_image(b, intr, opts);
+      return lower_image(b, intr, opts, false);
+
+   case nir_intrinsic_image_deref_load:
+   case nir_intrinsic_image_deref_store:
+   case nir_intrinsic_image_deref_atomic:
+   case nir_intrinsic_image_deref_atomic_swap:
+      return lower_image(b, intr, opts, true);
 
    case nir_intrinsic_load_ubo:
       if (opts->lower_ubo) {

@@ -33,6 +33,9 @@ vk_cts_commits_to_backport=(
 
     # Remove "unused shader stages" tests
     7dac86c6bbd15dec91d7d9a98cd6dd57c11092a7
+
+    # Emit point size from "many indirect draws" test
+    771e56d1c4d03e073ddb7f1200ad6d57e0a0c979
 )
 
 # shellcheck disable=SC2034
@@ -70,6 +73,8 @@ gles_cts_commits_to_backport=(
 
 # shellcheck disable=SC2034
 gles_cts_patch_files=(
+  # Correct detection mechanism for EGL_EXT_config_select_group extension
+  build-deqp-egl_Correct-EGL_EXT_config_select_group-extension-query.patch
 )
 
 if [ "${DEQP_TARGET}" = 'android' ]; then

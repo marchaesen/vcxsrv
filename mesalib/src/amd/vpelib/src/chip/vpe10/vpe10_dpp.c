@@ -332,7 +332,7 @@ void vpe10_dpp_cnv_program_pre_dgam(struct dpp *dpp, enum color_transfer_func tr
     PROGRAM_ENTRY();
 
     switch (tr) {
-    case TRANSFER_FUNC_LINEAR_0_125:
+    case TRANSFER_FUNC_LINEAR:
         pre_degam_en = 0; // bypass
         break;
     case TRANSFER_FUNC_SRGB:

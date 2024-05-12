@@ -1118,7 +1118,7 @@ static void radeon_enc_ctx(struct radeon_encoder *enc)
 
    RADEON_ENC_CS(enc->enc_pic.ctx_buf.two_pass_search_center_map_offset);
    if (is_av1)
-      RADEON_ENC_CS(enc->enc_pic.ctx_buf.av1.av1_sdb_intermedidate_context_offset);
+      RADEON_ENC_CS(enc->enc_pic.ctx_buf.av1.av1_sdb_intermediate_context_offset);
    else
       RADEON_ENC_CS(enc->enc_pic.ctx_buf.colloc_buffer_offset);
    RADEON_ENC_END();
@@ -1127,6 +1127,7 @@ static void radeon_enc_ctx(struct radeon_encoder *enc)
 static void radeon_enc_header_av1(struct radeon_encoder *enc)
 {
    enc->obu_instructions(enc);
+   enc->tile_config(enc);
    enc->encode_params(enc);
    enc->cdf_default_table(enc);
 
@@ -1154,6 +1155,7 @@ void radeon_enc_4_0_init(struct radeon_encoder *enc)
       /* begin function need to set these two functions to dummy */
       enc->slice_control = radeon_enc_dummy;
       enc->deblocking_filter = radeon_enc_dummy;
+      enc->tile_config = radeon_enc_dummy;
       enc->cmd.cdf_default_table_av1 = RENCODE_IB_PARAM_CDF_DEFAULT_TABLE_BUFFER;
       enc->cmd.bitstream_instruction_av1 = RENCODE_AV1_IB_PARAM_BITSTREAM_INSTRUCTION;
       enc->cmd.spec_misc_av1 = RENCODE_AV1_IB_PARAM_SPEC_MISC;

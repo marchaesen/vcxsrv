@@ -1266,12 +1266,32 @@ emit_varying_read(compiler_context *ctx, unsigned dest, unsigned offset,
    ins.load_store.arg_reg = REGISTER_LDST_ZERO;
    ins.load_store.index_format = midgard_index_address_u32;
 
-   /* For flat shading, we always use .u32 and require 32-bit mode. For
-    * smooth shading, we use the appropriate floating-point type.
+   /* For flat shading, for GPUs supporting auto32, we always use .u32 and
+    * require 32-bit mode. For smooth shading, we use the appropriate
+    * floating-point type.
     *
     * This could be optimized, but it makes it easy to check correctness.
     */
-   if (flat) {
+   if (ctx->quirks & MIDGARD_NO_AUTO32) {
+      switch (type) {
+      case nir_type_uint32:
+      case nir_type_bool32:
+         ins.op = midgard_op_ld_vary_32u;
+         break;
+      case nir_type_int32:
+         ins.op = midgard_op_ld_vary_32i;
+         break;
+      case nir_type_float32:
+         ins.op = midgard_op_ld_vary_32;
+         break;
+      case nir_type_float16:
+         ins.op = midgard_op_ld_vary_16;
+         break;
+      default:
+         unreachable("Attempted to load unknown type");
+         break;
+      }
+   } else if (flat) {
       assert(nir_alu_type_get_type_size(type) == 32);
       ins.op = midgard_op_ld_vary_32u;
    } else {
@@ -2891,6 +2911,7 @@ midgard_compile_shader_nir(nir_shader *nir,
    ctx->ssa_constants = _mesa_hash_table_u64_create(ctx);
 
    /* Collect varyings after lowering I/O */
+   info->quirk_no_auto32 = (ctx->quirks & MIDGARD_NO_AUTO32);
    pan_nir_collect_varyings(nir, info);
 
    /* Optimisation passes */

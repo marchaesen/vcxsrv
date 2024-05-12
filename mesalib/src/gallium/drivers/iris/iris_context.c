@@ -30,6 +30,7 @@
 #include "util/format/u_format.h"
 #include "util/u_upload_mgr.h"
 #include "iris_context.h"
+#include "iris_perf.h"
 #include "iris_resource.h"
 #include "iris_screen.h"
 #include "iris_utrace.h"
@@ -218,6 +219,7 @@ iris_destroy_context(struct pipe_context *ctx)
 
    blorp_finish(&ice->blorp);
 
+   intel_perf_free_context(ice->perf_ctx);
    if (ctx->stream_uploader)
       u_upload_destroy(ctx->stream_uploader);
    if (ctx->const_uploader)
@@ -299,7 +301,11 @@ iris_create_context(struct pipe_screen *pscreen, void *priv, unsigned flags)
    ctx->screen = pscreen;
    ctx->priv = priv;
 
-   ctx->stream_uploader = u_upload_create_default(ctx);
+   ctx->stream_uploader = u_upload_create(ctx, 1024 * 1024 * 2,
+                                          PIPE_BIND_VERTEX_BUFFER |
+                                          PIPE_BIND_INDEX_BUFFER |
+                                          PIPE_BIND_CONSTANT_BUFFER,
+                                          PIPE_USAGE_STREAM, 0);
    if (!ctx->stream_uploader) {
       ralloc_free(ice);
       return NULL;

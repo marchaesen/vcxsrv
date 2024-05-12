@@ -97,7 +97,6 @@ __stdcall unsigned long GetTickCount(void);
 #include <sys/stat.h>
 #include <ctype.h>              /* for isspace */
 #include <stdarg.h>
-
 #include <stdlib.h>             /* for malloc() */
 
 #if defined(TCPCONN)
@@ -109,6 +108,7 @@ __stdcall unsigned long GetTickCount(void);
 #include "dix/dix_priv.h"
 #include "os/auth.h"
 #include "os/cmdline.h"
+#include "os/ddx_priv.h"
 #include "os/osdep.h"
 
 #include "dixstruct.h"

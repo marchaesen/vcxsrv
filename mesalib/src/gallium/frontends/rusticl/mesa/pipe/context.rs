@@ -8,6 +8,7 @@ use mesa_rust_gen::pipe_fd_type::*;
 use mesa_rust_gen::*;
 use mesa_rust_util::has_required_feature;
 
+use std::mem::size_of;
 use std::os::raw::*;
 use std::ptr;
 use std::ptr::*;
@@ -414,6 +415,37 @@ impl PipeContext {
                 false,
                 if data.is_empty() { ptr::null() } else { &cb },
             )
+        }
+    }
+
+    pub fn set_constant_buffer_stream(&self, idx: u32, data: &[u8]) {
+        let mut cb = pipe_constant_buffer {
+            buffer: ptr::null_mut(),
+            buffer_offset: 0,
+            buffer_size: data.len() as u32,
+            user_buffer: ptr::null_mut(),
+        };
+
+        unsafe {
+            let stream = self.pipe.as_ref().stream_uploader;
+            u_upload_data(
+                stream,
+                0,
+                data.len() as u32,
+                size_of::<[u64; 16]>() as u32,
+                data.as_ptr().cast(),
+                &mut cb.buffer_offset,
+                &mut cb.buffer,
+            );
+            u_upload_unmap(stream);
+
+            self.pipe.as_ref().set_constant_buffer.unwrap()(
+                self.pipe.as_ptr(),
+                pipe_shader_type::PIPE_SHADER_COMPUTE,
+                idx,
+                false,
+                &cb,
+            );
         }
     }
 

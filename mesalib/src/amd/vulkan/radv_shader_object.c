@@ -144,6 +144,9 @@ radv_shader_object_init_graphics(struct radv_shader_object *shader_obj, struct r
    if (pdev->info.gfx_level >= GFX11)
       gfx_state.ps.exports_mrtz_via_epilog = true;
 
+   for (uint32_t i = 0; i < MAX_RTS; i++)
+      gfx_state.ps.epilog.color_map[i] = i;
+
    struct radv_shader *shader = NULL;
    struct radv_shader_binary *binary = NULL;
 
@@ -419,6 +422,9 @@ radv_shader_object_create_linked(VkDevice _device, uint32_t createInfoCount, con
 
    if (pdev->info.gfx_level >= GFX11)
       gfx_state.ps.exports_mrtz_via_epilog = true;
+
+   for (uint32_t i = 0; i < MAX_RTS; i++)
+      gfx_state.ps.epilog.color_map[i] = i;
 
    for (unsigned i = 0; i < createInfoCount; i++) {
       const VkShaderCreateInfoEXT *pCreateInfo = &pCreateInfos[i];

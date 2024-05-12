@@ -339,81 +339,14 @@ radv_shader_spirv_to_nir(struct radv_device *device, const struct radv_shader_st
          .device = device,
          .object = stage->spirv.object,
       };
-      const bool has_fragment_shader_interlock = radv_has_pops(pdev);
+      const struct spirv_capabilities spirv_caps =
+         vk_physical_device_get_spirv_capabilities(device->vk.physical);
       const struct spirv_to_nir_options spirv_options = {
-         .caps =
-            {
-               .amd_fragment_mask = true,
-               .amd_gcn_shader = true,
-               .amd_image_gather_bias_lod = true,
-               .amd_image_read_write_lod = true,
-               .amd_shader_ballot = true,
-               .amd_shader_explicit_vertex_parameter = true,
-               .amd_trinary_minmax = true,
-               .demote_to_helper_invocation = true,
-               .derivative_group = true,
-               .descriptor_array_dynamic_indexing = true,
-               .descriptor_array_non_uniform_indexing = true,
-               .descriptor_indexing = true,
-               .device_group = true,
-               .draw_parameters = true,
-               .float_controls = true,
-               .float16 = pdev->info.has_packed_math_16bit,
-               .float32_atomic_add = true,
-               .float32_atomic_min_max = true,
-               .float64 = true,
-               .float64_atomic_min_max = true,
-               .fragment_barycentric = true,
-               .fragment_fully_covered = true,
-               .fragment_shader_pixel_interlock = has_fragment_shader_interlock,
-               .fragment_shader_sample_interlock = has_fragment_shader_interlock,
-               .geometry_streams = true,
-               .groups = true,
-               .image_atomic_int64 = true,
-               .image_ms_array = true,
-               .image_read_without_format = true,
-               .image_write_without_format = true,
-               .int8 = true,
-               .int16 = true,
-               .int64 = true,
-               .int64_atomics = true,
-               .integer_functions2 = true,
-               .mesh_shading = true,
-               .min_lod = true,
-               .multiview = true,
-               .physical_storage_buffer_address = true,
-               .post_depth_coverage = true,
-               .quad_control = true,
-               .ray_cull_mask = true,
-               .ray_query = true,
-               .ray_tracing = true,
-               .ray_tracing_position_fetch = true,
-               .ray_traversal_primitive_culling = true,
-               .runtime_descriptor_array = true,
-               .shader_clock = true,
-               .shader_viewport_index_layer = true,
-               .sparse_residency = true,
-               .stencil_export = true,
-               .storage_8bit = true,
-               .storage_16bit = true,
-               .storage_image_ms = true,
-               .subgroup_arithmetic = true,
-               .subgroup_ballot = true,
-               .subgroup_basic = true,
-               .subgroup_quad = true,
-               .subgroup_rotate = true,
-               .subgroup_shuffle = true,
-               .subgroup_uniform_control_flow = true,
-               .subgroup_vote = true,
-               .tessellation = true,
-               .transform_feedback = true,
-               .variable_pointers = true,
-               .vk_memory_model = true,
-               .vk_memory_model_device_scope = true,
-               .fragment_shading_rate = pdev->info.gfx_level >= GFX10_3,
-               .workgroup_memory_explicit_layout = true,
-               .cooperative_matrix = true,
-            },
+         .amd_gcn_shader = true,
+         .amd_shader_ballot = true,
+         .amd_shader_explicit_vertex_parameter = true,
+         .amd_trinary_minmax = true,
+         .capabilities = &spirv_caps,
          .ubo_addr_format = nir_address_format_vec2_index_32bit_offset,
          .ssbo_addr_format = nir_address_format_vec2_index_32bit_offset,
          .phys_ssbo_addr_format = nir_address_format_64bit_global,
@@ -906,6 +839,7 @@ alloc_block_obj(struct radv_device *device)
 static void
 free_block_obj(struct radv_device *device, union radv_shader_arena_block *block)
 {
+   list_del(&block->pool);
    list_add(&block->pool, &device->shader_block_obj_pool);
 }
 
@@ -1196,7 +1130,6 @@ radv_free_shader_memory(struct radv_device *device, union radv_shader_arena_bloc
          remove_hole(free_list, hole_prev);
 
       hole_prev->size += hole->size;
-      list_del(&hole->list);
       free_block_obj(device, hole);
 
       hole = hole_prev;
@@ -1209,7 +1142,6 @@ radv_free_shader_memory(struct radv_device *device, union radv_shader_arena_bloc
 
       hole_next->offset -= hole->size;
       hole_next->size += hole->size;
-      list_del(&hole->list);
       free_block_obj(device, hole);
 
       hole = hole_next;
@@ -1221,24 +1153,24 @@ radv_free_shader_memory(struct radv_device *device, union radv_shader_arena_bloc
 
       radv_bo_destroy(device, NULL, arena->bo);
       list_del(&arena->list);
+
+      if (device->capture_replay_arena_vas) {
+         struct hash_entry *arena_entry = NULL;
+         hash_table_foreach (device->capture_replay_arena_vas->table, entry) {
+            if (entry->data == arena) {
+               arena_entry = entry;
+               break;
+            }
+         }
+         _mesa_hash_table_remove(device->capture_replay_arena_vas->table, arena_entry);
+      }
+
       free(arena);
    } else if (free_list) {
       add_hole(free_list, hole);
    }
 
    mtx_unlock(&device->shader_arena_mutex);
-}
-
-struct radv_serialized_shader_arena_block
-radv_serialize_shader_arena_block(union radv_shader_arena_block *block)
-{
-   struct radv_serialized_shader_arena_block serialized_block = {
-      .offset = block->offset,
-      .size = block->size,
-      .arena_va = block->arena->bo->va,
-      .arena_size = block->arena->size,
-   };
-   return serialized_block;
 }
 
 union radv_shader_arena_block *
@@ -1462,23 +1394,341 @@ radv_open_rtld_binary(struct radv_device *device, const struct radv_shader_binar
 #endif
 
 static void
+radv_precompute_registers_hw_vs(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_shader_info *info = &binary->info;
+
+   /* VS is required to export at least one param. */
+   const uint32_t nparams = MAX2(info->outinfo.param_exports, 1);
+   info->regs.spi_vs_out_config = S_0286C4_VS_EXPORT_COUNT(nparams - 1);
+   if (pdev->info.gfx_level >= GFX10) {
+      info->regs.spi_vs_out_config |= S_0286C4_NO_PC_EXPORT(info->outinfo.param_exports == 0);
+   }
+
+   info->regs.spi_shader_pos_format =
+      S_02870C_POS0_EXPORT_FORMAT(V_02870C_SPI_SHADER_4COMP) |
+      S_02870C_POS1_EXPORT_FORMAT(info->outinfo.pos_exports > 1 ? V_02870C_SPI_SHADER_4COMP
+                                                                : V_02870C_SPI_SHADER_NONE) |
+      S_02870C_POS2_EXPORT_FORMAT(info->outinfo.pos_exports > 2 ? V_02870C_SPI_SHADER_4COMP
+                                                                : V_02870C_SPI_SHADER_NONE) |
+      S_02870C_POS3_EXPORT_FORMAT(info->outinfo.pos_exports > 3 ? V_02870C_SPI_SHADER_4COMP : V_02870C_SPI_SHADER_NONE);
+
+   const bool misc_vec_ena = info->outinfo.writes_pointsize || info->outinfo.writes_layer ||
+                             info->outinfo.writes_viewport_index || info->outinfo.writes_primitive_shading_rate;
+   const unsigned clip_dist_mask = info->outinfo.clip_dist_mask;
+   const unsigned cull_dist_mask = info->outinfo.cull_dist_mask;
+   const unsigned total_mask = clip_dist_mask | cull_dist_mask;
+
+   info->regs.pa_cl_vs_out_cntl =
+      S_02881C_USE_VTX_POINT_SIZE(info->outinfo.writes_pointsize) |
+      S_02881C_USE_VTX_RENDER_TARGET_INDX(info->outinfo.writes_layer) |
+      S_02881C_USE_VTX_VIEWPORT_INDX(info->outinfo.writes_viewport_index) |
+      S_02881C_USE_VTX_VRS_RATE(info->outinfo.writes_primitive_shading_rate) |
+      S_02881C_VS_OUT_MISC_VEC_ENA(misc_vec_ena) |
+      S_02881C_VS_OUT_MISC_SIDE_BUS_ENA(misc_vec_ena ||
+                                        (pdev->info.gfx_level >= GFX10_3 && info->outinfo.pos_exports > 1)) |
+      S_02881C_VS_OUT_CCDIST0_VEC_ENA((total_mask & 0x0f) != 0) |
+      S_02881C_VS_OUT_CCDIST1_VEC_ENA((total_mask & 0xf0) != 0) | total_mask << 8 | clip_dist_mask;
+
+   if (pdev->info.gfx_level <= GFX8)
+      info->regs.vs.vgt_reuse_off = info->outinfo.writes_viewport_index;
+
+   unsigned late_alloc_wave64, cu_mask;
+   ac_compute_late_alloc(&pdev->info, false, false, binary->config.scratch_bytes_per_wave > 0, &late_alloc_wave64,
+                         &cu_mask);
+
+   if (pdev->info.gfx_level >= GFX7) {
+      info->regs.vs.spi_shader_pgm_rsrc3_vs =
+         ac_apply_cu_en(S_00B118_CU_EN(cu_mask) | S_00B118_WAVE_LIMIT(0x3F), C_00B118_CU_EN, 0, &pdev->info);
+      info->regs.vs.spi_shader_late_alloc_vs = S_00B11C_LIMIT(late_alloc_wave64);
+
+      if (pdev->info.gfx_level >= GFX10) {
+         const uint32_t oversub_pc_lines = late_alloc_wave64 ? pdev->info.pc_lines / 4 : 0;
+
+         info->regs.ge_pc_alloc =
+            S_030980_OVERSUB_EN(oversub_pc_lines > 0) | S_030980_NUM_PC_LINES(oversub_pc_lines - 1);
+
+         /* Required programming for tessellation (legacy pipeline only). */
+         if (binary->info.stage == MESA_SHADER_TESS_EVAL) {
+            info->regs.vgt_gs_onchip_cntl = S_028A44_ES_VERTS_PER_SUBGRP(250) | S_028A44_GS_PRIMS_PER_SUBGRP(126) |
+                                            S_028A44_GS_INST_PRIMS_IN_SUBGRP(126);
+         }
+      }
+   }
+}
+
+static void
+radv_precompute_registers_hw_gs(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_shader_info *info = &binary->info;
+
+   info->regs.gs.vgt_esgs_ring_itemsize = info->gs_ring_info.esgs_itemsize;
+
+   info->regs.gs.vgt_gs_max_prims_per_subgroup =
+      S_028A94_MAX_PRIMS_PER_SUBGROUP(info->gs_ring_info.gs_inst_prims_in_subgroup);
+
+   info->regs.vgt_gs_onchip_cntl = S_028A44_ES_VERTS_PER_SUBGRP(info->gs_ring_info.es_verts_per_subgroup) |
+                                   S_028A44_GS_PRIMS_PER_SUBGRP(info->gs_ring_info.gs_prims_per_subgroup) |
+                                   S_028A44_GS_INST_PRIMS_IN_SUBGRP(info->gs_ring_info.gs_inst_prims_in_subgroup);
+
+   const uint32_t gs_max_out_vertices = info->gs.vertices_out;
+   const uint8_t max_stream = info->gs.max_stream;
+   const uint8_t *num_components = info->gs.num_stream_output_components;
+
+   uint32_t offset = num_components[0] * gs_max_out_vertices;
+   info->regs.gs.vgt_gsvs_ring_offset[0] = offset;
+
+   if (max_stream >= 1)
+      offset += num_components[1] * gs_max_out_vertices;
+   info->regs.gs.vgt_gsvs_ring_offset[1] = offset;
+
+   if (max_stream >= 2)
+      offset += num_components[2] * gs_max_out_vertices;
+   info->regs.gs.vgt_gsvs_ring_offset[2] = offset;
+
+   if (max_stream >= 3)
+      offset += num_components[3] * gs_max_out_vertices;
+   info->regs.gs.vgt_gsvs_ring_itemsize = offset;
+
+   for (uint32_t i = 0; i < 4; i++)
+      info->regs.gs.vgt_gs_vert_itemsize[i] = (max_stream >= i) ? num_components[i] : 0;
+
+   const uint32_t gs_num_invocations = info->gs.invocations;
+   info->regs.gs.vgt_gs_instance_cnt =
+      S_028B90_CNT(MIN2(gs_num_invocations, 127)) | S_028B90_ENABLE(gs_num_invocations > 0);
+
+   info->regs.spi_shader_pgm_rsrc3_gs =
+      ac_apply_cu_en(S_00B21C_CU_EN(0xffff) | S_00B21C_WAVE_LIMIT(0x3F), C_00B21C_CU_EN, 0, &pdev->info);
+
+   if (pdev->info.gfx_level >= GFX10) {
+      info->regs.spi_shader_pgm_rsrc4_gs =
+         ac_apply_cu_en(S_00B204_CU_EN_GFX10(0xffff) | S_00B204_SPI_SHADER_LATE_ALLOC_GS_GFX10(0), C_00B204_CU_EN_GFX10,
+                        16, &pdev->info);
+   }
+
+   info->regs.vgt_gs_max_vert_out = info->gs.vertices_out;
+}
+
+void
+radv_precompute_registers_hw_ngg(struct radv_device *device, const struct ac_shader_config *config,
+                                 struct radv_shader_info *info)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
+   const bool no_pc_export = info->outinfo.param_exports == 0 && info->outinfo.prim_param_exports == 0;
+   const unsigned num_params = MAX2(info->outinfo.param_exports, 1);
+   const unsigned num_prim_params = info->outinfo.prim_param_exports;
+
+   info->regs.spi_vs_out_config = S_0286C4_VS_EXPORT_COUNT(num_params - 1) |
+                                  S_0286C4_PRIM_EXPORT_COUNT(num_prim_params) | S_0286C4_NO_PC_EXPORT(no_pc_export);
+
+   unsigned idx_format = V_028708_SPI_SHADER_1COMP;
+   if (info->outinfo.writes_layer_per_primitive || info->outinfo.writes_viewport_index_per_primitive ||
+       info->outinfo.writes_primitive_shading_rate_per_primitive)
+      idx_format = V_028708_SPI_SHADER_2COMP;
+
+   info->regs.ngg.spi_shader_idx_format = S_028708_IDX0_EXPORT_FORMAT(idx_format);
+
+   info->regs.spi_shader_pos_format =
+      S_02870C_POS0_EXPORT_FORMAT(V_02870C_SPI_SHADER_4COMP) |
+      S_02870C_POS1_EXPORT_FORMAT(info->outinfo.pos_exports > 1 ? V_02870C_SPI_SHADER_4COMP
+                                                                : V_02870C_SPI_SHADER_NONE) |
+      S_02870C_POS2_EXPORT_FORMAT(info->outinfo.pos_exports > 2 ? V_02870C_SPI_SHADER_4COMP
+                                                                : V_02870C_SPI_SHADER_NONE) |
+      S_02870C_POS3_EXPORT_FORMAT(info->outinfo.pos_exports > 3 ? V_02870C_SPI_SHADER_4COMP : V_02870C_SPI_SHADER_NONE);
+
+   const bool misc_vec_ena = info->outinfo.writes_pointsize || info->outinfo.writes_layer ||
+                             info->outinfo.writes_viewport_index || info->outinfo.writes_primitive_shading_rate;
+   const unsigned clip_dist_mask = info->outinfo.clip_dist_mask;
+   const unsigned cull_dist_mask = info->outinfo.cull_dist_mask;
+   const unsigned total_mask = clip_dist_mask | cull_dist_mask;
+
+   info->regs.pa_cl_vs_out_cntl =
+      S_02881C_USE_VTX_POINT_SIZE(info->outinfo.writes_pointsize) |
+      S_02881C_USE_VTX_RENDER_TARGET_INDX(info->outinfo.writes_layer) |
+      S_02881C_USE_VTX_VIEWPORT_INDX(info->outinfo.writes_viewport_index) |
+      S_02881C_USE_VTX_VRS_RATE(info->outinfo.writes_primitive_shading_rate) |
+      S_02881C_VS_OUT_MISC_VEC_ENA(misc_vec_ena) |
+      S_02881C_VS_OUT_MISC_SIDE_BUS_ENA(misc_vec_ena ||
+                                        (pdev->info.gfx_level >= GFX10_3 && info->outinfo.pos_exports > 1)) |
+      S_02881C_VS_OUT_CCDIST0_VEC_ENA((total_mask & 0x0f) != 0) |
+      S_02881C_VS_OUT_CCDIST1_VEC_ENA((total_mask & 0xf0) != 0) | total_mask << 8 | clip_dist_mask;
+
+   info->regs.ngg.vgt_primitiveid_en = S_028A84_NGG_DISABLE_PROVOK_REUSE(info->outinfo.export_prim_id);
+
+   const uint32_t gs_num_invocations = info->stage == MESA_SHADER_GEOMETRY ? info->gs.invocations : 1;
+
+   if (pdev->info.gfx_level < GFX11) {
+      info->regs.vgt_gs_onchip_cntl = S_028A44_ES_VERTS_PER_SUBGRP(info->ngg_info.hw_max_esverts) |
+                                      S_028A44_GS_PRIMS_PER_SUBGRP(info->ngg_info.max_gsprims) |
+                                      S_028A44_GS_INST_PRIMS_IN_SUBGRP(info->ngg_info.max_gsprims * gs_num_invocations);
+   }
+
+   info->regs.ngg.ge_max_output_per_subgroup = S_0287FC_MAX_VERTS_PER_SUBGROUP(info->ngg_info.max_out_verts);
+
+   info->regs.ngg.ge_ngg_subgrp_cntl =
+      S_028B4C_PRIM_AMP_FACTOR(info->ngg_info.prim_amp_factor) | S_028B4C_THDS_PER_SUBGRP(0); /* for fast launch */
+
+   info->regs.vgt_gs_instance_cnt =
+      S_028B90_CNT(gs_num_invocations) | S_028B90_ENABLE(gs_num_invocations > 1) |
+      S_028B90_EN_MAX_VERT_OUT_PER_GS_INSTANCE(info->ngg_info.max_vert_out_per_gs_instance);
+
+   if (pdev->info.gfx_level >= GFX11) {
+      info->regs.ngg.ge_cntl = S_03096C_PRIMS_PER_SUBGRP(info->ngg_info.max_gsprims) |
+                               S_03096C_VERTS_PER_SUBGRP(info->ngg_info.hw_max_esverts) |
+                               S_03096C_PRIM_GRP_SIZE_GFX11(252);
+   } else {
+      info->regs.ngg.ge_cntl = S_03096C_PRIM_GRP_SIZE_GFX10(info->ngg_info.max_gsprims) |
+                               S_03096C_VERT_GRP_SIZE(info->ngg_info.hw_max_esverts);
+   }
+
+   unsigned late_alloc_wave64, cu_mask;
+   ac_compute_late_alloc(&pdev->info, true, info->has_ngg_culling, config->scratch_bytes_per_wave > 0,
+                         &late_alloc_wave64, &cu_mask);
+
+   info->regs.spi_shader_pgm_rsrc3_gs =
+      ac_apply_cu_en(S_00B21C_CU_EN(cu_mask) | S_00B21C_WAVE_LIMIT(0x3F), C_00B21C_CU_EN, 0, &pdev->info);
+
+   if (pdev->info.gfx_level >= GFX11) {
+      info->regs.spi_shader_pgm_rsrc4_gs =
+         ac_apply_cu_en(S_00B204_CU_EN_GFX11(0x1) | S_00B204_SPI_SHADER_LATE_ALLOC_GS_GFX10(late_alloc_wave64),
+                        C_00B204_CU_EN_GFX11, 16, &pdev->info);
+   } else {
+      info->regs.spi_shader_pgm_rsrc4_gs =
+         ac_apply_cu_en(S_00B204_CU_EN_GFX10(0xffff) | S_00B204_SPI_SHADER_LATE_ALLOC_GS_GFX10(late_alloc_wave64),
+                        C_00B204_CU_EN_GFX10, 16, &pdev->info);
+   }
+
+   uint32_t oversub_pc_lines = late_alloc_wave64 ? pdev->info.pc_lines / 4 : 0;
+   if (info->has_ngg_culling) {
+      unsigned oversub_factor = 2;
+
+      if (info->outinfo.param_exports > 4)
+         oversub_factor = 4;
+      else if (info->outinfo.param_exports > 2)
+         oversub_factor = 3;
+
+      oversub_pc_lines *= oversub_factor;
+   }
+
+   info->regs.ge_pc_alloc = S_030980_OVERSUB_EN(oversub_pc_lines > 0) | S_030980_NUM_PC_LINES(oversub_pc_lines - 1);
+
+   info->regs.vgt_gs_max_vert_out = info->gs.vertices_out;
+}
+
+static void
+radv_precompute_registers_hw_ms(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_shader_info *info = &binary->info;
+
+   radv_precompute_registers_hw_ngg(device, &binary->config, &binary->info);
+
+   info->regs.vgt_gs_max_vert_out = pdev->mesh_fast_launch_2 ? info->ngg_info.max_out_verts : info->workgroup_size;
+
+   info->regs.ms.spi_shader_gs_meshlet_dim = S_00B2B0_MESHLET_NUM_THREAD_X(info->cs.block_size[0] - 1) |
+                                             S_00B2B0_MESHLET_NUM_THREAD_Y(info->cs.block_size[1] - 1) |
+                                             S_00B2B0_MESHLET_NUM_THREAD_Z(info->cs.block_size[2] - 1) |
+                                             S_00B2B0_MESHLET_THREADGROUP_SIZE(info->workgroup_size - 1);
+
+   info->regs.ms.spi_shader_gs_meshlet_exp_alloc =
+      S_00B2B4_MAX_EXP_VERTS(info->ngg_info.max_out_verts) | S_00B2B4_MAX_EXP_PRIMS(info->ngg_info.prim_amp_factor);
+}
+
+static void
+radv_precompute_registers_hw_fs(struct radv_device *device, struct radv_shader_binary *binary)
+{
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   struct radv_shader_info *info = &binary->info;
+
+   unsigned conservative_z_export = V_02880C_EXPORT_ANY_Z;
+   if (info->ps.depth_layout == FRAG_DEPTH_LAYOUT_GREATER)
+      conservative_z_export = V_02880C_EXPORT_GREATER_THAN_Z;
+   else if (info->ps.depth_layout == FRAG_DEPTH_LAYOUT_LESS)
+      conservative_z_export = V_02880C_EXPORT_LESS_THAN_Z;
+
+   const unsigned z_order =
+      info->ps.early_fragment_test || !info->ps.writes_memory ? V_02880C_EARLY_Z_THEN_LATE_Z : V_02880C_LATE_Z;
+
+   /* It shouldn't be needed to export gl_SampleMask when MSAA is disabled, but this appears to break Project Cars
+    * (DXVK). See https://bugs.freedesktop.org/show_bug.cgi?id=109401
+    */
+   const bool mask_export_enable = info->ps.writes_sample_mask;
+   const bool disable_rbplus = pdev->info.has_rbplus && !pdev->info.rbplus_allowed;
+
+   info->regs.ps.db_shader_control =
+      S_02880C_Z_EXPORT_ENABLE(info->ps.writes_z) | S_02880C_STENCIL_TEST_VAL_EXPORT_ENABLE(info->ps.writes_stencil) |
+      S_02880C_KILL_ENABLE(info->ps.can_discard) | S_02880C_MASK_EXPORT_ENABLE(mask_export_enable) |
+      S_02880C_CONSERVATIVE_Z_EXPORT(conservative_z_export) | S_02880C_Z_ORDER(z_order) |
+      S_02880C_DEPTH_BEFORE_SHADER(info->ps.early_fragment_test) |
+      S_02880C_PRE_SHADER_DEPTH_COVERAGE_ENABLE(info->ps.post_depth_coverage) |
+      S_02880C_EXEC_ON_HIER_FAIL(info->ps.writes_memory) | S_02880C_EXEC_ON_NOOP(info->ps.writes_memory) |
+      S_02880C_DUAL_QUAD_DISABLE(disable_rbplus) | S_02880C_PRIMITIVE_ORDERED_PIXEL_SHADER(info->ps.pops);
+
+   const bool param_gen = pdev->info.gfx_level >= GFX11 && !info->ps.num_interp && binary->config.lds_size;
+
+   info->regs.ps.spi_ps_in_control = S_0286D8_NUM_INTERP(info->ps.num_interp) |
+                                     S_0286D8_NUM_PRIM_INTERP(info->ps.num_prim_interp) |
+                                     S_0286D8_PS_W32_EN(info->wave_size == 32) | S_0286D8_PARAM_GEN(param_gen);
+
+   info->regs.ps.spi_shader_z_format = ac_get_spi_shader_z_format(
+      info->ps.writes_z, info->ps.writes_stencil, info->ps.writes_sample_mask, info->ps.writes_mrt0_alpha);
+
+   if (pdev->info.gfx_level >= GFX9 && pdev->info.gfx_level < GFX11)
+      info->regs.ps.pa_sc_shader_control = S_028C40_LOAD_COLLISION_WAVEID(info->ps.pops);
+}
+
+static void
 radv_precompute_registers_hw_cs(struct radv_device *device, struct radv_shader_binary *binary)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
    struct radv_shader_info *info = &binary->info;
 
    info->regs.cs.compute_resource_limits = radv_get_compute_resource_limits(pdev, info);
-   info->regs.cs.compute_num_thread_x = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[0]);
-   info->regs.cs.compute_num_thread_y = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[1]);
-   info->regs.cs.compute_num_thread_z = S_00B81C_NUM_THREAD_FULL(info->cs.block_size[2]);
+   info->regs.cs.compute_num_thread_x = S_00B81C_NUM_THREAD_FULL_GFX6(info->cs.block_size[0]);
+   info->regs.cs.compute_num_thread_y = S_00B81C_NUM_THREAD_FULL_GFX6(info->cs.block_size[1]);
+   info->regs.cs.compute_num_thread_z = S_00B81C_NUM_THREAD_FULL_GFX6(info->cs.block_size[2]);
 }
 
 static void
 radv_precompute_registers(struct radv_device *device, struct radv_shader_binary *binary)
 {
-   const struct radv_shader_info *info = &binary->info;
+   struct radv_shader_info *info = &binary->info;
 
    switch (info->stage) {
+   case MESA_SHADER_VERTEX:
+      if (!info->vs.as_ls && !info->vs.as_es) {
+         if (info->is_ngg) {
+            radv_precompute_registers_hw_ngg(device, &binary->config, &binary->info);
+         } else {
+            radv_precompute_registers_hw_vs(device, binary);
+         }
+      }
+      break;
+   case MESA_SHADER_TESS_EVAL:
+      if (!info->tes.as_es) {
+         if (info->is_ngg) {
+            radv_precompute_registers_hw_ngg(device, &binary->config, &binary->info);
+         } else {
+            radv_precompute_registers_hw_vs(device, binary);
+         }
+      }
+      break;
+   case MESA_SHADER_GEOMETRY:
+      if (info->is_ngg) {
+         radv_precompute_registers_hw_ngg(device, &binary->config, &binary->info);
+      } else {
+         radv_precompute_registers_hw_gs(device, binary);
+      }
+      break;
+   case MESA_SHADER_MESH:
+      radv_precompute_registers_hw_ms(device, binary);
+      break;
+   case MESA_SHADER_FRAGMENT:
+      radv_precompute_registers_hw_fs(device, binary);
+      break;
    case MESA_SHADER_COMPUTE:
    case MESA_SHADER_TASK:
       radv_precompute_registers_hw_cs(device, binary);

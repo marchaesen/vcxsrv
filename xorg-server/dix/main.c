@@ -90,6 +90,7 @@ Equipment Corporation.
 #include "os/audit.h"
 #include "os/auth.h"
 #include "os/cmdline.h"
+#include "os/ddx_priv.h"
 #include "os/osdep.h"
 
 #include "scrnintstr.h"

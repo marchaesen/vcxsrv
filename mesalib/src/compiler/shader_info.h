@@ -26,7 +26,7 @@
 #define SHADER_INFO_H
 
 #include "util/bitset.h"
-#include "util/sha1/sha1.h"
+#include "util/mesa-blake3.h"
 #include "shader_enums.h"
 #include <stdint.h>
 
@@ -37,102 +37,6 @@ extern "C" {
 #define MAX_XFB_BUFFERS        4
 #define MAX_INLINABLE_UNIFORMS 4
 
-struct spirv_supported_capabilities {
-   bool address;
-   bool amd_fragment_mask;
-   bool amd_gcn_shader;
-   bool amd_image_gather_bias_lod;
-   bool amd_image_read_write_lod;
-   bool amd_shader_ballot;
-   bool amd_shader_explicit_vertex_parameter;
-   bool amd_trinary_minmax;
-   bool atomic_storage;
-   bool cooperative_matrix;
-   bool demote_to_helper_invocation;
-   bool derivative_group;
-   bool descriptor_array_dynamic_indexing;
-   bool descriptor_array_non_uniform_indexing;
-   bool descriptor_indexing;
-   bool device_group;
-   bool draw_parameters;
-   bool float_controls;
-   bool float_controls2;
-   bool float16_atomic_add;
-   bool float16_atomic_min_max;
-   bool float16;
-   bool float32_atomic_add;
-   bool float32_atomic_min_max;
-   bool float64_atomic_add;
-   bool float64_atomic_min_max;
-   bool float64;
-   bool fragment_barycentric;
-   bool fragment_density;
-   bool fragment_fully_covered;
-   bool fragment_shader_pixel_interlock;
-   bool fragment_shader_sample_interlock;
-   bool fragment_shading_rate;
-   bool generic_pointers;
-   bool geometry_streams;
-   bool groups;
-   bool image_atomic_int64;
-   bool image_ms_array;
-   bool image_read_without_format;
-   bool image_write_without_format;
-   bool int16;
-   bool int64_atomics;
-   bool int64;
-   bool int8;
-   bool integer_functions2;
-   bool kernel_image_read_write;
-   bool kernel_image;
-   bool kernel;
-   bool linkage;
-   bool literal_sampler;
-   bool mesh_shading_nv;
-   bool mesh_shading;
-   bool min_lod;
-   bool multiview;
-   bool per_view_attributes_nv;
-   bool physical_storage_buffer_address;
-   bool post_depth_coverage;
-   bool printf;
-   bool quad_control;
-   bool ray_cull_mask;
-   bool ray_query;
-   bool ray_tracing;
-   bool ray_traversal_primitive_culling;
-   bool ray_tracing_position_fetch;
-   bool runtime_descriptor_array;
-   bool shader_clock;
-   bool shader_enqueue;
-   bool shader_sm_builtins_nv;
-   bool shader_viewport_index_layer;
-   bool shader_viewport_mask_nv;
-   bool sparse_residency;
-   bool stencil_export;
-   bool storage_16bit;
-   bool storage_8bit;
-   bool storage_image_ms;
-   bool subgroup_arithmetic;
-   bool subgroup_ballot;
-   bool subgroup_basic;
-   bool subgroup_dispatch;
-   bool subgroup_quad;
-   bool subgroup_rotate;
-   bool subgroup_shuffle;
-   bool subgroup_uniform_control_flow;
-   bool subgroup_vote;
-   bool tessellation;
-   bool transform_feedback;
-   bool variable_pointers;
-   bool vk_memory_model_device_scope;
-   bool vk_memory_model;
-   bool workgroup_memory_explicit_layout;
-
-   bool intel_subgroup_shuffle;
-   bool intel_subgroup_buffer_block_io;
-};
-
 typedef struct shader_info {
    const char *name;
 
@@ -142,8 +46,8 @@ typedef struct shader_info {
    /* Shader is internal, and should be ignored by things like NIR_DEBUG=print */
    bool internal;
 
-   /* SHA1 of the original source, used by shader detection in drivers. */
-   uint8_t source_sha1[SHA1_DIGEST_LENGTH];
+   /* BLAKE3 of the original source, used by shader detection in drivers. */
+   blake3_hash source_blake3;
 
    /** The shader stage, such as MESA_SHADER_VERTEX. */
    gl_shader_stage stage:8;

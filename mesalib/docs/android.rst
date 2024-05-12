@@ -34,8 +34,8 @@ Then, create your Meson cross file to use it, something like this
 
     [host_machine]
     system = 'android'
-    cpu_family = 'arm'
-    cpu = 'aarch64'
+    cpu_family = 'aarch64'
+    cpu = 'armv8'
     endian = 'little'
 
 Now, use that cross file for your Android build directory (as in this

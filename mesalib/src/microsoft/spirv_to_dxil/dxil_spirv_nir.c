@@ -27,39 +27,60 @@
 #include "dxil_nir_lower_int_cubemaps.h"
 #include "shader_enums.h"
 #include "spirv/nir_spirv.h"
+#include "spirv/spirv_info.h"
 #include "util/blob.h"
 #include "dxil_spirv_nir.h"
 
 #include "git_sha1.h"
 #include "vulkan/vulkan.h"
 
+static const struct spirv_capabilities
+spirv_caps = {
+   .DrawParameters = true,
+   .MultiView = true,
+   .GroupNonUniform = true,
+   .GroupNonUniformBallot = true,
+   .GroupNonUniformVote = true,
+   .GroupNonUniformShuffle = true,
+   .GroupNonUniformQuad = true,
+   .GroupNonUniformArithmetic = true,
+   .InputAttachmentArrayDynamicIndexingEXT = true,
+   .UniformTexelBufferArrayDynamicIndexingEXT = true,
+   .StorageTexelBufferArrayDynamicIndexingEXT = true,
+   .DenormFlushToZero = true,
+   .DenormPreserve = true,
+   .SignedZeroInfNanPreserve = true,
+   .RoundingModeRTE = true,
+   .RoundingModeRTZ = true,
+   .Float16 = true,
+   .Int16 = true,
+   .StorageBuffer8BitAccess = true,
+   .UniformAndStorageBuffer8BitAccess = true,
+   .StoragePushConstant8 = true,
+   .StorageUniformBufferBlock16 = true,
+   .StorageUniform16 = true,
+   .StoragePushConstant16 = true,
+   .StorageInputOutput16 = true,
+   .ShaderNonUniformEXT = true,
+   .RuntimeDescriptorArray = true,
+   .UniformBufferArrayNonUniformIndexingEXT = true,
+   .SampledImageArrayNonUniformIndexingEXT = true,
+   .StorageBufferArrayNonUniformIndexingEXT = true,
+   .StorageImageArrayNonUniformIndexingEXT = true,
+   .InputAttachmentArrayNonUniformIndexingEXT = true,
+   .UniformTexelBufferArrayNonUniformIndexingEXT = true,
+   .StorageTexelBufferArrayNonUniformIndexingEXT = true,
+   .StorageImageReadWithoutFormat = true,
+   .StorageImageWriteWithoutFormat = true,
+   .Int64 = true,
+   .Float64 = true,
+   .Tessellation = true,
+   .PhysicalStorageBufferAddresses = true,
+};
+
 static const struct spirv_to_nir_options
 spirv_to_nir_options = {
-   .caps = {
-      .draw_parameters = true,
-      .multiview = true,
-      .subgroup_basic = true,
-      .subgroup_ballot = true,
-      .subgroup_vote = true,
-      .subgroup_shuffle = true,
-      .subgroup_quad = true,
-      .subgroup_arithmetic = true,
-      .descriptor_array_dynamic_indexing = true,
-      .float_controls = true,
-      .float16 = true,
-      .int16 = true,
-      .storage_16bit = true,
-      .storage_8bit = true,
-      .descriptor_indexing = true,
-      .runtime_descriptor_array = true,
-      .descriptor_array_non_uniform_indexing = true,
-      .image_read_without_format = true,
-      .image_write_without_format = true,
-      .int64 = true,
-      .float64 = true,
-      .tessellation = true,
-      .physical_storage_buffer_address = true,
-   },
+   .capabilities = &spirv_caps,
    .ubo_addr_format = nir_address_format_32bit_index_offset,
    .ssbo_addr_format = nir_address_format_32bit_index_offset,
    .shared_addr_format = nir_address_format_logical,

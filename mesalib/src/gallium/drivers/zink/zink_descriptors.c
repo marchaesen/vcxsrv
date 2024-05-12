@@ -1070,9 +1070,9 @@ static void
 enlarge_db(struct zink_context *ctx)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
    /* ensure current db surives */
-   zink_batch_reference_resource(&ctx->batch, bs->dd.db);
+   zink_batch_reference_resource(ctx, bs->dd.db);
    /* rebinding a db mid-batch is extremely costly: if we start with a factor
     * 16 and then half the factor with each new allocation. It shouldn't need to
     * do this more than twice. */
@@ -1085,7 +1085,7 @@ static void
 update_separable(struct zink_context *ctx, struct zink_program *pg)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
 
    unsigned use_buffer = 0;
    VkDescriptorGetInfoEXT info;
@@ -1157,7 +1157,7 @@ static void
 zink_descriptors_update_masked_buffer(struct zink_context *ctx, bool is_compute, uint8_t changed_sets, uint8_t bind_sets)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
    struct zink_program *pg = is_compute ? &ctx->curr_compute->base : &ctx->curr_program->base;
 
    /* skip if no descriptors are updated */
@@ -1233,7 +1233,7 @@ void
 zink_descriptors_update_masked(struct zink_context *ctx, bool is_compute, uint8_t changed_sets, uint8_t bind_sets)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
    struct zink_program *pg = is_compute ? &ctx->curr_compute->base : &ctx->curr_program->base;
    VkDescriptorSet desc_sets[ZINK_DESCRIPTOR_BASE_TYPES];
 
@@ -1247,7 +1247,7 @@ zink_descriptors_update_masked(struct zink_context *ctx, bool is_compute, uint8_
       return;
    }
    /* no flushing allowed: sets are allocated to the batch, so this breaks everything */
-   assert(ctx->batch.state == bs);
+   assert(ctx->bs == bs);
 
    u_foreach_bit(type, changed_sets) {
       assert(type + 1 < pg->num_dsl);
@@ -1285,7 +1285,7 @@ zink_descriptors_update_masked(struct zink_context *ctx, bool is_compute, uint8_
 static void
 bind_bindless_db(struct zink_context *ctx, struct zink_program *pg)
 {
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    unsigned index = 1;
    VkDeviceSize offset = 0;
@@ -1306,7 +1306,7 @@ bind_bindless_db(struct zink_context *ctx, struct zink_program *pg)
 void
 zink_descriptors_update(struct zink_context *ctx, bool is_compute)
 {
-   struct zink_batch_state *bs = ctx->batch.state;
+   struct zink_batch_state *bs = ctx->bs;
    struct zink_program *pg = is_compute ? &ctx->curr_compute->base : &ctx->curr_program->base;
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    bool have_KHR_push_descriptor = screen->info.have_KHR_push_descriptor;
@@ -1454,7 +1454,7 @@ zink_descriptors_update(struct zink_context *ctx, bool is_compute)
       if (zink_descriptor_mode == ZINK_DESCRIPTOR_MODE_DB) {
          bind_bindless_db(ctx, pg);
       } else {
-         VKCTX(CmdBindDescriptorSets)(ctx->batch.state->cmdbuf, is_compute ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS,
+         VKCTX(CmdBindDescriptorSets)(ctx->bs->cmdbuf, is_compute ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS,
                                     pg->layout, screen->desc_set_id[ZINK_DESCRIPTOR_BINDLESS], 1, &ctx->dd.t.bindless_set,
                                     0, NULL);
       }

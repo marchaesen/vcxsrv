@@ -29,6 +29,8 @@
 #include "vk_physical_device_features.h"
 #include "vk_physical_device_properties.h"
 
+#include "compiler/spirv/spirv_info.h"
+
 #include "util/list.h"
 
 #ifdef __cplusplus
@@ -144,6 +146,9 @@ vk_physical_device_finish(struct vk_physical_device *physical_device);
 VkResult
 vk_physical_device_check_device_features(struct vk_physical_device *physical_device,
                                          const VkDeviceCreateInfo *pCreateInfo);
+
+struct spirv_capabilities
+vk_physical_device_get_spirv_capabilities(const struct vk_physical_device *pdev);
 
 #ifdef __cplusplus
 }

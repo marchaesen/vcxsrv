@@ -1203,7 +1203,7 @@ load_scratch_resource(spill_ctx& ctx, Builder& bld, bool apply_scratch_offset)
       S_008F0C_ADD_TID_ENABLE(1) | S_008F0C_INDEX_STRIDE(ctx.program->wave_size == 64 ? 3 : 2);
 
    if (ctx.program->gfx_level >= GFX10) {
-      rsrc_conf |= S_008F0C_FORMAT(V_008F0C_GFX10_FORMAT_32_FLOAT) |
+      rsrc_conf |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) |
                    S_008F0C_RESOURCE_LEVEL(ctx.program->gfx_level < GFX11);
    } else if (ctx.program->gfx_level <= GFX7) {

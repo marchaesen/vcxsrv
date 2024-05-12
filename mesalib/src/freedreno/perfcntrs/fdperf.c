@@ -65,23 +65,17 @@ struct counter_group {
    struct {
       const struct fd_perfcntr_counter *counter;
       uint16_t select_val;
-      volatile uint32_t *val_hi;
-      volatile uint32_t *val_lo;
+      bool is_gpufreq_counter;
    } counter[MAX_CNTR_PER_GROUP];
 
-   /* last sample time: */
-   uint32_t stime[MAX_CNTR_PER_GROUP];
-   /* for now just care about the low 32b value.. at least then we don't
-    * have to really care that we can't sample both hi and lo regs at the
-    * same time:
-    */
-   uint32_t last[MAX_CNTR_PER_GROUP];
-   /* current value, ie. by how many did the counter increase in last
-    * sampling period divided by the sampling period:
-    */
-   float current[MAX_CNTR_PER_GROUP];
    /* name of currently selected counters (for UI): */
    const char *label[MAX_CNTR_PER_GROUP];
+
+   uint64_t value[MAX_CNTR_PER_GROUP];
+   uint64_t value_delta[MAX_CNTR_PER_GROUP];
+
+   uint64_t sample_time[MAX_CNTR_PER_GROUP];
+   uint64_t sample_time_delta[MAX_CNTR_PER_GROUP];
 };
 
 static struct {
@@ -107,7 +101,7 @@ static void restore_counter_groups(void);
  * helpers
  */
 
-static uint32_t
+static uint64_t
 gettime_us(void)
 {
    struct timespec ts;
@@ -125,12 +119,12 @@ sleep_us(uint32_t us)
    clock_nanosleep(CLOCK_MONOTONIC, 0, &ts, NULL);
 }
 
-static uint32_t
-delta(uint32_t a, uint32_t b)
+static uint64_t
+delta(uint64_t a, uint64_t b)
 {
    /* deal with rollover: */
    if (a > b)
-      return 0xffffffff - a + b;
+      return 0xffffffffffffffffull - a + b;
    else
       return b - a;
 }
@@ -201,13 +195,24 @@ flush_ring(void)
 }
 
 static void
-select_counter(struct counter_group *group, int ctr, int n)
+select_counter(struct counter_group *group, int ctr, int countable_val)
 {
-   assert(n < group->group->num_countables);
    assert(ctr < group->group->num_counters);
 
-   group->label[ctr] = group->group->countables[n].name;
-   group->counter[ctr].select_val = n;
+   unsigned countable_idx = UINT32_MAX;
+   for (unsigned i = 0; i < group->group->num_countables; i++) {
+      if (countable_val != group->group->countables[i].selector)
+         continue;
+
+      countable_idx = i;
+      break;
+   }
+
+   if (countable_idx >= group->group->num_countables)
+      return;
+
+   group->label[ctr] = group->group->countables[countable_idx].name;
+   group->counter[ctr].select_val = countable_val;
 
    if (!dev.submit) {
       dev.submit = fd_submit_new(dev.pipe);
@@ -244,7 +249,7 @@ select_counter(struct counter_group *group, int ctr, int n)
       }
 
       OUT_PKT0(ring, group->group->counters[ctr].select_reg, 1);
-      OUT_RING(ring, n);
+      OUT_RING(ring, countable_val);
 
       if (group->group->counters[ctr].enable) {
          OUT_PKT0(ring, group->group->counters[ctr].enable, 1);
@@ -254,6 +259,7 @@ select_counter(struct counter_group *group, int ctr, int n)
       break;
    case 5:
    case 6:
+   case 7:
       OUT_PKT7(ring, CP_WAIT_FOR_IDLE, 0);
 
       if (group->group->counters[ctr].enable) {
@@ -270,7 +276,7 @@ select_counter(struct counter_group *group, int ctr, int n)
       }
 
       OUT_PKT4(ring, group->group->counters[ctr].select_reg, 1);
-      OUT_RING(ring, n);
+      OUT_RING(ring, countable_val);
 
       if (group->group->counters[ctr].enable) {
          OUT_PKT4(ring, group->group->counters[ctr].enable, 1);
@@ -279,21 +285,30 @@ select_counter(struct counter_group *group, int ctr, int n)
 
       break;
    }
+}
 
-   group->last[ctr] = *group->counter[ctr].val_lo;
-   group->stime[ctr] = gettime_us();
+static uint64_t load_counter_value(struct counter_group *group, int ctr)
+{
+   /* We can read the counter register value as an uint64_t, as long as the
+    * lo/hi addresses are neighboring and the lo address is 8-byte-aligned.
+    * This currently holds for all counters exposed in perfcounter groups.
+    */
+   const struct fd_perfcntr_counter *counter = group->counter[ctr].counter;
+   assert(counter->counter_reg_lo + 1 == counter->counter_reg_hi);
+   assert(!((counter->counter_reg_lo * 4) % 8));
+   return *((uint64_t *) (dev.io + counter->counter_reg_lo * 4));
 }
 
 static void
-resample_counter(struct counter_group *group, int ctr)
+resample_counter(struct counter_group *group, int ctr, uint64_t sample_time)
 {
-   uint32_t val = *group->counter[ctr].val_lo;
-   uint32_t t = gettime_us();
-   uint32_t dt = delta(group->stime[ctr], t);
-   uint32_t dval = delta(group->last[ctr], val);
-   group->current[ctr] = (float)dval * 1000000.0 / (float)dt;
-   group->last[ctr] = val;
-   group->stime[ctr] = t;
+   uint64_t previous_value = group->value[ctr];
+   group->value[ctr] = load_counter_value(group, ctr);
+   group->value_delta[ctr] = delta(previous_value, group->value[ctr]);
+
+   uint64_t previous_sample_time = group->sample_time[ctr];
+   group->sample_time[ctr] = sample_time;
+   group->sample_time_delta[ctr] = delta(previous_sample_time, sample_time);
 }
 
 /* sample all the counters: */
@@ -311,7 +326,7 @@ resample(void)
    for (unsigned i = 0; i < dev.ngroups; i++) {
       struct counter_group *group = &dev.groups[i];
       for (unsigned j = 0; j < group->group->num_counters; j++) {
-         resample_counter(group, j);
+         resample_counter(group, j, current_time);
       }
    }
 }
@@ -331,20 +346,16 @@ static int max_rows, current_cntr = 1;
 static void
 redraw_footer(WINDOW *win)
 {
-   char *footer;
-   int n;
-
-   n = asprintf(&footer, " fdperf: %s (%.2fMHz..%.2fMHz)",
-                fd_dev_name(dev.dev_id), ((float)dev.min_freq) / 1000000.0,
-                ((float)dev.max_freq) / 1000000.0);
+   char footer[128];
+   int n = snprintf(footer, sizeof(footer), " fdperf: %s (%.2fMHz..%.2fMHz)",
+                    fd_dev_name(dev.dev_id), ((float)dev.min_freq) / 1000000.0,
+                    ((float)dev.max_freq) / 1000000.0);
 
    wmove(win, h - 1, 0);
    wattron(win, COLOR_PAIR(COLOR_FOOTER));
    waddstr(win, footer);
    whline(win, ' ', w - n);
    wattroff(win, COLOR_PAIR(COLOR_FOOTER));
-
-   free(footer);
 }
 
 static void
@@ -378,7 +389,7 @@ redraw_counter_label(WINDOW *win, int row, const char *name, bool selected)
 static void
 redraw_counter_value_cycles(WINDOW *win, float val)
 {
-   char *str;
+   char str[32];
    int x = getcurx(win);
    int valwidth = w - x;
    int barwidth, n;
@@ -395,7 +406,7 @@ redraw_counter_value_cycles(WINDOW *win, float val)
     */
    barwidth = MIN2(barwidth, valwidth - 1);
 
-   n = asprintf(&str, "%.2f%%", 100.0 * val);
+   n = snprintf(str, sizeof(str), "%.2f%%", 100.0 * val);
    wattron(win, COLOR_PAIR(COLOR_INVERSE));
    waddnstr(win, str, barwidth);
    if (barwidth > n) {
@@ -406,25 +417,17 @@ redraw_counter_value_cycles(WINDOW *win, float val)
    if (barwidth < n)
       waddstr(win, str + barwidth);
    whline(win, ' ', w - getcurx(win));
-
-   free(str);
 }
 
 static void
-redraw_counter_value_raw(WINDOW *win, float val)
+redraw_counter_value(WINDOW *win, int row, struct counter_group *group, int ctr)
 {
-   char *str;
-   (void)asprintf(&str, "%'.2f", val);
+   char str[32];
+   int n = snprintf(str, sizeof(str), "%" PRIu64 " ", group->value_delta[ctr]);
+
+   whline(win, ' ', 24 - n);
+   wmove(win, row, getcurx(win) + 24 - n);
    waddstr(win, str);
-   whline(win, ' ', w - getcurx(win));
-   free(str);
-}
-
-static void
-redraw_counter(WINDOW *win, int row, struct counter_group *group, int ctr,
-               bool selected)
-{
-   redraw_counter_label(win, row, group->label[ctr], selected);
 
    /* quick hack, if the label has "CYCLE" in the name, it is
     * probably a cycle counter ;-)
@@ -440,10 +443,36 @@ redraw_counter(WINDOW *win, int row, struct counter_group *group, int ctr,
     * shader as a306 we might need to scale the result..
     */
    if (strstr(group->label[ctr], "CYCLE") ||
-       strstr(group->label[ctr], "BUSY") || strstr(group->label[ctr], "IDLE"))
-      redraw_counter_value_cycles(win, group->current[ctr]);
-   else
-      redraw_counter_value_raw(win, group->current[ctr]);
+       strstr(group->label[ctr], "BUSY") || strstr(group->label[ctr], "IDLE")) {
+      float cycles_val = (float) group->value_delta[ctr] * 1000000.0 /
+                         (float) group->sample_time_delta[ctr];
+      redraw_counter_value_cycles(win, cycles_val);
+   } else {
+      whline(win, ' ', w - getcurx(win));
+   }
+}
+
+static void
+redraw_counter(WINDOW *win, int row, struct counter_group *group, int ctr,
+               bool selected)
+{
+   redraw_counter_label(win, row, group->label[ctr], selected);
+   redraw_counter_value(win, row, group, ctr);
+}
+
+static void
+redraw_gpufreq_counter(WINDOW *win, int row)
+{
+   redraw_counter_label(win, row, "Freq (MHz)", false);
+
+   struct counter_group *group = &dev.groups[0];
+   float freq_val = (float) group->value_delta[0] / (float) group->sample_time_delta[0];
+
+   char str[32];
+   snprintf(str, sizeof(str), "%.2f", freq_val);
+
+   waddstr(win, str);
+   whline(win, ' ', w - getcurx(win));
 }
 
 static void
@@ -467,8 +496,7 @@ redraw(WINDOW *win)
       struct counter_group *group = &dev.groups[i];
       unsigned j = 0;
 
-      /* NOTE skip CP the first CP counter */
-      if (i == 0)
+      if (group->counter[0].is_gpufreq_counter)
          j++;
 
       if (j < group->group->num_counters) {
@@ -491,8 +519,7 @@ redraw(WINDOW *win)
    row++;
 
    /* Draw GPU freq row: */
-   redraw_counter_label(win, row, "Freq (MHz)", false);
-   redraw_counter_value_raw(win, dev.groups[0].current[0] / 1000000.0);
+   redraw_gpufreq_counter(win, row);
    row++;
 
    redraw_footer(win);
@@ -509,8 +536,7 @@ current_counter(int *ctr)
       struct counter_group *group = &dev.groups[i];
       unsigned j = 0;
 
-      /* NOTE skip the first CP counter (CP_ALWAYS_COUNT) */
-      if (i == 0)
+      if (group->counter[0].is_gpufreq_counter)
          j++;
 
       /* account for group header: */
@@ -644,7 +670,10 @@ static void
 main_ui(void)
 {
    WINDOW *mainwin;
-   uint32_t last_time = gettime_us();
+   uint64_t last_time = gettime_us();
+
+   /* Run an initial sample to set up baseline counter values. */
+   resample();
 
    /* curses setup: */
    mainwin = initscr();
@@ -693,7 +722,7 @@ main_ui(void)
       /* restore the counters every 0.5s in case the GPU has suspended,
        * in which case the current selected countables will have reset:
        */
-      uint32_t t = gettime_us();
+      uint64_t t = gettime_us();
       if (delta(last_time, t) > 500000) {
          restore_counter_groups();
          flush_ring();
@@ -719,23 +748,24 @@ dump_counters(void)
       const struct counter_group *group = &dev.groups[i];
       for (unsigned j = 0; j < group->group->num_counters; j++) {
          const char *label = group->label[j];
-         float val = group->current[j];
-
-         /* we did not config the first CP counter */
-         if (i == 0 && j == 0)
-            label = group->group->countables[0].name;
+         float val = (float) group->value_delta[j] * 1000000.0 /
+                     (float) group->sample_time_delta[j];
 
          int n = printf("%s: ", label) - 2;
          while (n++ < ctr_width)
+            fputc(' ', stdout);
+
+         n = printf("%" PRIu64, group->value_delta[j]);
+         while (n++ < 24)
             fputc(' ', stdout);
 
          if (strstr(label, "CYCLE") ||
              strstr(label, "BUSY") ||
              strstr(label, "IDLE")) {
             val = val / dev.max_freq * 100.0f;
-            printf("%.2f%%\n", val);
+            printf(" %.2f%%\n", val);
          } else {
-            printf("%'.2f\n", val);
+            printf("\n");
          }
       }
    }
@@ -746,13 +776,12 @@ restore_counter_groups(void)
 {
    for (unsigned i = 0; i < dev.ngroups; i++) {
       struct counter_group *group = &dev.groups[i];
-      unsigned j = 0;
 
-      /* NOTE skip CP the first CP counter */
-      if (i == 0)
-         j++;
-
-      for (; j < group->group->num_counters; j++) {
+      for (unsigned j = 0; j < group->group->num_counters; j++) {
+         /* This should also write the CP_ALWAYS_COUNT selectable value into
+          * the reserved CP counter we use for GPU frequency measurement,
+          * avoiding someone else writing a different value there.
+          */
          select_counter(group, j, group->counter[j].select_val);
       }
    }
@@ -768,22 +797,39 @@ setup_counter_groups(const struct fd_perfcntr_group *groups)
 
       max_rows += group->group->num_counters + 1;
 
-      /* the first CP counter is hidden: */
+      /* We reserve the first counter of the CP group (first in the list) for
+       * measuring GPU frequency that's displayed in the footer.
+       */
       if (i == 0) {
+         /* We won't be displaying the private counter alongside others. We
+          * also won't be displaying the group header if we're taking over
+          * the only counter (e.g. on a2xx).
+          */
          max_rows--;
-         if (group->group->num_counters <= 1)
+         if (groups[0].num_counters < 2)
             max_rows--;
+
+         /* Enforce the CP_ALWAYS_COUNT countable for this counter. */
+         unsigned always_count_index = UINT32_MAX;
+         for (unsigned i = 0; i < groups[0].num_countables; ++i) {
+            if (strcmp(groups[0].countables[i].name, "PERF_CP_ALWAYS_COUNT"))
+               continue;
+
+            always_count_index = i;
+            break;
+         }
+
+         if (always_count_index < groups[0].num_countables) {
+            group->counter[0].select_val = groups[0].countables[always_count_index].selector;
+            group->counter[0].is_gpufreq_counter = true;
+         }
       }
 
       for (unsigned j = 0; j < group->group->num_counters; j++) {
          group->counter[j].counter = &group->group->counters[j];
 
-         group->counter[j].val_hi =
-            dev.io + (group->counter[j].counter->counter_reg_hi * 4);
-         group->counter[j].val_lo =
-            dev.io + (group->counter[j].counter->counter_reg_lo * 4);
-
-         group->counter[j].select_val = j;
+         if (!group->counter[j].is_gpufreq_counter)
+            group->counter[j].select_val = j;
       }
 
       for (unsigned j = 0; j < group->group->num_countables; j++) {
@@ -805,16 +851,14 @@ config_save(void)
 {
    for (unsigned i = 0; i < dev.ngroups; i++) {
       struct counter_group *group = &dev.groups[i];
-      unsigned j = 0;
-
-      /* NOTE skip CP the first CP counter */
-      if (i == 0)
-         j++;
-
       config_setting_t *sect =
          config_setting_get_member(setting, group->group->name);
 
-      for (; j < group->group->num_counters; j++) {
+      for (unsigned j = 0; j < group->group->num_counters; j++) {
+         /* Don't save the GPU frequency measurement counter. */
+         if (group->counter[j].is_gpufreq_counter)
+            continue;
+
          char name[] = "counter0000";
          sprintf(name, "counter%d", j);
          config_setting_t *s = config_setting_lookup(sect, name);
@@ -828,8 +872,6 @@ config_save(void)
 static void
 config_restore(void)
 {
-   char *str;
-
    config_init(&cfg);
 
    /* Read the file. If there is an error, report it and exit. */
@@ -840,22 +882,16 @@ config_restore(void)
    config_setting_t *root = config_root_setting(&cfg);
 
    /* per device settings: */
-   (void)asprintf(&str, "%s", fd_dev_name(dev.dev_id));
-   setting = config_setting_get_member(root, str);
+   char device_name[64];
+   snprintf(device_name, sizeof(device_name), "%s", fd_dev_name(dev.dev_id));
+   setting = config_setting_get_member(root, device_name);
    if (!setting)
-      setting = config_setting_add(root, str, CONFIG_TYPE_GROUP);
-   free(str);
+      setting = config_setting_add(root, device_name, CONFIG_TYPE_GROUP);
    if (!setting)
       return;
 
    for (unsigned i = 0; i < dev.ngroups; i++) {
       struct counter_group *group = &dev.groups[i];
-      unsigned j = 0;
-
-      /* NOTE skip CP the first CP counter */
-      if (i == 0)
-         j++;
-
       config_setting_t *sect =
          config_setting_get_member(setting, group->group->name);
 
@@ -864,7 +900,11 @@ config_restore(void)
             config_setting_add(setting, group->group->name, CONFIG_TYPE_GROUP);
       }
 
-      for (; j < group->group->num_counters; j++) {
+      for (unsigned j = 0; j < group->group->num_counters; j++) {
+         /* Don't restore the GPU frequency measurement counter. */
+         if (group->counter[j].is_gpufreq_counter)
+            continue;
+
          char name[] = "counter0000";
          sprintf(name, "counter%d", j);
          config_setting_t *s = config_setting_lookup(sect, name);

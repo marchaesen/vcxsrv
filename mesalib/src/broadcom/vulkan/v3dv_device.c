@@ -202,6 +202,7 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .EXT_load_store_op_none               = true,
       .EXT_inline_uniform_block             = true,
       .EXT_extended_dynamic_state           = true,
+      .EXT_extended_dynamic_state2          = true,
       .EXT_external_memory_dma_buf          = true,
       .EXT_host_query_reset                 = true,
       .EXT_image_drm_format_modifier        = true,
@@ -411,6 +412,17 @@ get_features(const struct v3dv_physical_device *physical_device,
 
       /* VK_EXT_extended_dynamic_state */
       .extendedDynamicState = true,
+
+      /* VK_EXT_extended_dynamic_state2 */
+      .extendedDynamicState2 = true,
+      /* We don't support extendedDynamicState2LogicOp as that would require
+       * compile shader variants after the pipeline creation.
+       */
+      .extendedDynamicState2LogicOp = false,
+      /* We don't support extendedDynamicState2PatchControlPoints as we don't
+       * support Tessellation Shaders
+       */
+      .extendedDynamicState2PatchControlPoints = false,
 
       /* VK_KHR_pipeline_executable_properties */
       .pipelineExecutableInfo = true,
@@ -1525,7 +1537,7 @@ v3dv_GetPhysicalDeviceQueueFamilyProperties2(VkPhysicalDevice physicalDevice,
       p->queueFamilyProperties = v3dv_queue_family_properties;
 
       vk_foreach_struct(s, p->pNext) {
-         v3dv_debug_ignored_stype(s->sType);
+         vk_debug_ignored_stype(s->sType);
       }
    }
 }
@@ -1565,7 +1577,7 @@ v3dv_GetPhysicalDeviceMemoryProperties2(VkPhysicalDevice physicalDevice,
          break;
       }
       default:
-         v3dv_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }
@@ -2137,7 +2149,7 @@ v3dv_AllocateMemory(VkDevice _device,
           */
          break;
       default:
-         v3dv_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }
@@ -2290,7 +2302,7 @@ get_image_memory_requirements(struct v3dv_image *image,
          break;
       }
       default:
-         v3dv_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }
@@ -2313,7 +2325,7 @@ v3dv_GetImageMemoryRequirements2(VkDevice device,
          break;
       }
       default:
-         v3dv_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }
@@ -2515,7 +2527,7 @@ get_buffer_memory_requirements(struct v3dv_buffer *buffer,
          break;
       }
       default:
-         v3dv_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }

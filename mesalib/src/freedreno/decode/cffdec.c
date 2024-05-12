@@ -62,7 +62,7 @@ static inline unsigned
 regcnt(void)
 {
    if (options->info->chip >= 5)
-      return 0xffff;
+      return 0x3ffff;
    else
       return 0x7fff;
 }
@@ -293,7 +293,7 @@ parse_dword_addr(uint32_t dword, uint32_t *gpuaddr, uint32_t *flags,
    *flags = dword & mask;
 }
 
-static uint32_t type0_reg_vals[0xffff + 1];
+static uint32_t type0_reg_vals[0x3ffff + 1];
 static uint8_t type0_reg_rewritten[sizeof(type0_reg_vals) /
                                    8]; /* written since last draw */
 static uint8_t type0_reg_written[sizeof(type0_reg_vals) / 8];

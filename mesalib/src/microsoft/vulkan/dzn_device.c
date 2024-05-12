@@ -1264,7 +1264,7 @@ dzn_physical_device_get_format_properties(struct dzn_physical_device *pdev,
    VkFormatProperties *base_props = &properties->formatProperties;
 
    vk_foreach_struct(ext, properties->pNext) {
-      dzn_debug_ignored_stype(ext->sType);
+      vk_debug_ignored_stype(ext->sType);
    }
 
    if (dfmt_info.Format == DXGI_FORMAT_UNKNOWN) {
@@ -1391,7 +1391,7 @@ dzn_physical_device_get_image_format_properties(struct dzn_physical_device *pdev
          usage |= ((const VkImageStencilUsageCreateInfo *)s)->stencilUsage;
          break;
       default:
-         dzn_debug_ignored_stype(s->sType);
+         vk_debug_ignored_stype(s->sType);
          break;
       }
    }
@@ -1406,7 +1406,7 @@ dzn_physical_device_get_image_format_properties(struct dzn_physical_device *pdev
          external_props->externalMemoryProperties = (VkExternalMemoryProperties) { 0 };
          break;
       default:
-         dzn_debug_ignored_stype(s->sType);
+         vk_debug_ignored_stype(s->sType);
          break;
       }
    }
@@ -1912,7 +1912,7 @@ dzn_GetPhysicalDeviceQueueFamilyProperties2(VkPhysicalDevice physicalDevice,
          p->queueFamilyProperties = pdev->queue_families[i].props;
 
          vk_foreach_struct(ext, pQueueFamilyProperties->pNext) {
-            dzn_debug_ignored_stype(ext->sType);
+            vk_debug_ignored_stype(ext->sType);
          }
       }
    }
@@ -1935,7 +1935,7 @@ dzn_GetPhysicalDeviceMemoryProperties2(VkPhysicalDevice physicalDevice,
                                          &pMemoryProperties->memoryProperties);
 
    vk_foreach_struct(ext, pMemoryProperties->pNext) {
-      dzn_debug_ignored_stype(ext->sType);
+      vk_debug_ignored_stype(ext->sType);
    }
 }
 
@@ -2650,7 +2650,7 @@ dzn_device_memory_create(struct dzn_device *device,
          break;
       }
       default:
-         dzn_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }
@@ -3277,7 +3277,7 @@ dzn_GetBufferMemoryRequirements2(VkDevice dev,
       }
 
       default:
-         dzn_debug_ignored_stype(ext->sType);
+         vk_debug_ignored_stype(ext->sType);
          break;
       }
    }

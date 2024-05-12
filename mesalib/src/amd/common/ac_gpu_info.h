@@ -118,8 +118,11 @@ struct radeon_info {
    bool has_taskmesh_indirect0_bug;
    bool sdma_supports_sparse;      /* Whether SDMA can safely access sparse resources. */
    bool sdma_supports_compression; /* Whether SDMA supports DCC and HTILE. */
+   bool has_set_context_pairs;
    bool has_set_context_pairs_packed;
+   bool has_set_sh_pairs;
    bool has_set_sh_pairs_packed;
+   bool has_set_uconfig_pairs;
 
    /* conformant_trunc_coord is equal to TA_CNTL2.TRUNCATE_COORD_MODE, which exists since gfx11.
     *
@@ -167,6 +170,7 @@ struct radeon_info {
    uint32_t max_tcc_blocks;
    uint32_t tcc_cache_line_size;
    bool tcc_rb_non_coherent; /* whether L2 inv is needed for render->texture transitions */
+   bool cp_sdma_ge_use_system_memory_scope;
    unsigned pc_lines;
    uint32_t lds_size_per_workgroup;
    uint32_t lds_alloc_granularity;
@@ -258,7 +262,14 @@ struct radeon_info {
    uint32_t max_vgpr_alloc;
    uint32_t wave64_vgpr_alloc_granularity;
    uint32_t max_scratch_waves;
-   uint32_t attribute_ring_size_per_se;
+
+   /* Pos, prim, and attribute rings. */
+   uint32_t attribute_ring_size_per_se;   /* GFX11+ */
+   uint32_t pos_ring_size_per_se;         /* GFX12+ */
+   uint32_t prim_ring_size_per_se;        /* GFX12+ */
+   uint32_t pos_ring_offset;              /* GFX12+ */
+   uint32_t prim_ring_offset;             /* GFX12+ */
+   uint32_t total_attribute_pos_prim_ring_size; /* GFX11+ */
 
    /* Render backends (color + depth blocks). */
    uint32_t r300_num_gb_pipes;

@@ -75,7 +75,9 @@ void si_init_cp_reg_shadowing(struct si_context *sctx)
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, sctx->shadowing.csa,
                                    RADEON_USAGE_READWRITE | RADEON_PRIO_DESCRIPTORS);
       si_pm4_emit_commands(sctx, shadowing_preamble);
-      ac_emulate_clear_state(&sctx->screen->info, &sctx->gfx_cs, si_set_context_reg_array);
+
+      if (sctx->gfx_level < GFX12)
+         ac_emulate_clear_state(&sctx->screen->info, &sctx->gfx_cs, si_set_context_reg_array);
 
       /* TODO: Gfx11 fails GLCTS if we don't re-emit the preamble at the beginning of every IB. */
       /* TODO: Skipping this may have made register shadowing slower on Gfx11. */
@@ -87,7 +89,8 @@ void si_init_cp_reg_shadowing(struct si_context *sctx)
          sctx->cs_preamble_state = NULL;
       }
 
-      si_set_tracked_regs_to_clear_state(sctx);
+      if (sctx->gfx_level < GFX12)
+         si_set_tracked_regs_to_clear_state(sctx);
 
       /* Setup preemption. The shadowing preamble will be executed as a preamble IB,
        * which will load register values from memory on a context switch.

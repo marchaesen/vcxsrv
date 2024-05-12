@@ -1085,6 +1085,7 @@ sched_dag_max_delay_cb(struct dag_node *node, void *state)
    n->max_delay = MAX2(n->max_delay, max_delay + n->delay);
 }
 
+#ifndef NDEBUG
 static void
 sched_dag_validate_cb(const struct dag_node *node, void *data)
 {
@@ -1092,6 +1093,7 @@ sched_dag_validate_cb(const struct dag_node *node, void *data)
 
    ir3_print_instr(n->instr);
 }
+#endif
 
 static void
 sched_dag_init(struct ir3_sched_ctx *ctx)
@@ -1101,7 +1103,9 @@ sched_dag_init(struct ir3_sched_ctx *ctx)
    foreach_instr (instr, &ctx->unscheduled_list)
       sched_node_init(ctx, instr);
 
+#ifndef NDEBUG
    dag_validate(ctx->dag, sched_dag_validate_cb, NULL);
+#endif
 
    foreach_instr (instr, &ctx->unscheduled_list)
       sched_node_add_deps(ctx, instr);

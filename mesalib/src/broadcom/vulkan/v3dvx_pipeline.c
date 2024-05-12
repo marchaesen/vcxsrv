@@ -151,12 +151,6 @@ pack_cfg_bits(struct v3dv_pipeline *pipeline,
       ms_info && ms_info->rasterizationSamples > VK_SAMPLE_COUNT_1_BIT;
 
    v3dvx_pack(pipeline->cfg_bits, CFG_BITS, config) {
-      /* Even if rs_info->depthBiasEnabled is true, we can decide to not
-       * enable it, like if there isn't a depth/stencil attachment with the
-       * pipeline.
-       */
-      config.enable_depth_offset = pipeline->depth_bias.enabled;
-
       /* This is required to pass line rasterization tests in CTS while
        * exposing, at least, a minimum of 4-bits of subpixel precision
        * (the minimum requirement).
@@ -300,10 +294,8 @@ pack_stencil_cfg(struct v3dv_pipeline *pipeline,
 {
    assert(sizeof(pipeline->stencil_cfg) == 2 * cl_packet_length(STENCIL_CFG));
 
-   if ((!ds_info || !ds_info->stencilTestEnable) &&
-       (!BITSET_TEST(state->dynamic, MESA_VK_DYNAMIC_DS_STENCIL_TEST_ENABLE))) {
+   if (!ds_info || !ds_info->stencilTestEnable)
       return;
-   }
 
    const struct vk_render_pass_state *ri = &pipeline->rendering_info;
    if (ri->stencil_attachment_format == VK_FORMAT_UNDEFINED)

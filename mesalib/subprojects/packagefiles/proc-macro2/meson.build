@@ -41,6 +41,15 @@ endif
 if rc.version().version_compare('< 1.57')
   rust_args += ['--cfg', 'no_is_available']
 endif
+if rc.version().version_compare('< 1.66')
+  rust_args += ['--cfg', 'no_source_text']
+endif
+if rc.version().version_compare('< 1.79')
+  rust_args += [
+    '--cfg', 'no_literal_byte_character',
+    '--cfg', 'no_literal_c_string',
+    ]
+endif
 
 u_ind = subproject('unicode-ident').get_variable('lib')
 

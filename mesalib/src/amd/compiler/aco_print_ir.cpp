@@ -275,13 +275,17 @@ print_instr_format_specific(enum amd_gfx_level gfx_level, const Instruction* ins
       uint16_t imm = instr->salu().imm;
       switch (instr->opcode) {
       case aco_opcode::s_waitcnt: {
-         wait_imm unpacked(gfx_level, imm);
-         if (unpacked.vm != wait_imm::unset_counter)
-            fprintf(output, " vmcnt(%d)", unpacked.vm);
-         if (unpacked.exp != wait_imm::unset_counter)
-            fprintf(output, " expcnt(%d)", unpacked.exp);
-         if (unpacked.lgkm != wait_imm::unset_counter)
-            fprintf(output, " lgkmcnt(%d)", unpacked.lgkm);
+         wait_imm unpacked;
+         unpacked.unpack(gfx_level, instr);
+         const char* names[wait_type_num];
+         names[wait_type_exp] = "expcnt";
+         names[wait_type_vm] = "vmcnt";
+         names[wait_type_lgkm] = "lgkmcnt";
+         names[wait_type_vs] = "vscnt";
+         for (unsigned i = 0; i < wait_type_num; i++) {
+            if (unpacked[i] != wait_imm::unset_counter)
+               fprintf(output, " %s(%d)", names[i], unpacked[i]);
+         }
          break;
       }
       case aco_opcode::s_waitcnt_depctr: {

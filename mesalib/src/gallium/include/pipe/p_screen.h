@@ -810,7 +810,7 @@ struct pipe_screen {
  * Global configuration options for screen creation.
  */
 struct pipe_screen_config {
-   bool implicit_driver_load;
+   bool driver_name_is_inferred;
    struct driOptionCache *options;
    const struct driOptionCache *options_info;
 };

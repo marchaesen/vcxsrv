@@ -897,7 +897,8 @@ prog_to_nir(const struct gl_context *ctx, const struct gl_program *prog,
    s->info.separate_shader = true;
    s->info.io_lowered = false;
    s->info.internal = false;
-   memcpy(s->info.source_sha1, c->build.shader->info.source_sha1, 20);
+
+   memcpy(s->info.source_blake3, c->build.shader->info.source_blake3, BLAKE3_OUT_LEN);
 
    /* ARB_vp: */
    if (prog->arb.IsPositionInvariant) {

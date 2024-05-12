@@ -100,6 +100,31 @@ XFilterEvent(
 	    }
 	}
     }
+    for (p = ev->xany.display->im_filters; p != NULL; p = p->next) {
+	/* Java sometimes calls XFilterEvent() with window=0 and ev come from
+	 * XNextEvent() when users type some keys quickly and switch multiple
+	 * input focuses in a Java window with the keys.
+	 * But XKeyEvent filters need to receive the event with window=0 for
+	 * _XimPendingFilter() and _XimUnfabricateSerial() to clear the
+	 * fowarded XKeyEvent with XIM_FORWARD_EVENT.
+	 *
+	 * The case of p->window == 0 is checkekd after all cases of p->window
+	 * != 0 are checked because all input contexts share
+	 * Display->im_filters but each input context has
+	 * Xic->private.proto.registed_filter_event for the filters
+	 * and same p->filter could be registerd to Display->im_filters twice
+	 * with different p->window.
+	 */
+	if (p->window == 0 && window == 0) {
+	    if ((mask & p->event_mask) ||
+		(ev->type >= p->start_type && ev->type <= p->end_type)) {
+		UnlockDisplay(ev->xany.display);
+		ret = (*(p->filter))(ev->xany.display, p->window, ev,
+				      p->client_data);
+		return(ret);
+	    }
+	}
+    }
     UnlockDisplay(ev->xany.display);
 #endif
     return(False);

@@ -331,22 +331,6 @@ void r600_pipe_shader_destroy(struct pipe_context *ctx UNUSED, struct r600_pipe_
 		free(shader->shader.arrays);
 }
 
-struct r600_shader_src {
-	unsigned				sel;
-	unsigned				swizzle[4];
-	unsigned				neg;
-	unsigned				abs;
-	unsigned				rel;
-	unsigned				kc_bank;
-	bool					kc_rel; /* true if cache bank is indexed */
-	uint32_t				value[4];
-};
-
-struct eg_interp {
-	bool					enabled;
-	unsigned				ij_index;
-};
-
 struct r600_shader_ctx {
 	unsigned				type;
 	unsigned				temp_reg;

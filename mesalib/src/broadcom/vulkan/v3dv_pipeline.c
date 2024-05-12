@@ -161,25 +161,6 @@ v3dv_DestroyPipeline(VkDevice _device,
 }
 
 static const struct spirv_to_nir_options default_spirv_options =  {
-   .caps = {
-      .device_group = true,
-      .float_controls = true,
-      .multiview = true,
-      .storage_8bit = true,
-      .storage_16bit = true,
-      .subgroup_ballot = true,
-      .subgroup_basic = true,
-      .subgroup_quad = true,
-      .subgroup_shuffle = true,
-      .subgroup_vote = true,
-      .variable_pointers = true,
-      .vk_memory_model = true,
-      .vk_memory_model_device_scope = true,
-      .physical_storage_buffer_address = true,
-      .workgroup_memory_explicit_layout = true,
-      .image_read_without_format = true,
-      .demote_to_helper_invocation = true,
-    },
    .ubo_addr_format = nir_address_format_32bit_index_offset,
    .ssbo_addr_format = nir_address_format_32bit_index_offset,
    .phys_ssbo_addr_format = nir_address_format_2x32bit_global,
@@ -1102,10 +1083,10 @@ static const enum pipe_logicop vk_to_pipe_logicop[] = {
 };
 
 static bool
-enable_line_smooth(uint8_t topology,
+enable_line_smooth(struct v3dv_pipeline *pipeline,
                    const VkPipelineRasterizationStateCreateInfo *rs_info)
 {
-   if (!rs_info || rs_info->rasterizerDiscardEnable)
+   if (!pipeline->rasterization_enabled)
       return false;
 
    const VkPipelineRasterizationLineStateCreateInfoKHR *ls_info =
@@ -1115,7 +1096,11 @@ enable_line_smooth(uint8_t topology,
    if (!ls_info)
       return false;
 
-   switch(topology) {
+   /* Although topology is dynamic now, the topology class can't change
+    * because we don't support dynamicPrimitiveTopologyUnrestricted, so we can
+    * use the static topology from the pipeline for this.
+    */
+   switch(pipeline->topology) {
    case MESA_PRIM_LINES:
    case MESA_PRIM_LINE_LOOP:
    case MESA_PRIM_LINE_STRIP:
@@ -1203,22 +1188,18 @@ pipeline_populate_v3d_fs_key(struct v3d_fs_key *key,
    key->has_gs = has_geometry_shader;
 
    const VkPipelineColorBlendStateCreateInfo *cb_info =
-      !pCreateInfo->pRasterizationState->rasterizerDiscardEnable ?
+      p_stage->pipeline->rasterization_enabled ?
       pCreateInfo->pColorBlendState : NULL;
 
    key->logicop_func = cb_info && cb_info->logicOpEnable == VK_TRUE ?
                        vk_to_pipe_logicop[cb_info->logicOp] :
                        PIPE_LOGICOP_COPY;
 
-   const bool raster_enabled =
-      pCreateInfo->pRasterizationState &&
-      !pCreateInfo->pRasterizationState->rasterizerDiscardEnable;
-
    /* Multisample rasterization state must be ignored if rasterization
     * is disabled.
     */
    const VkPipelineMultisampleStateCreateInfo *ms_info =
-      raster_enabled ? pCreateInfo->pMultisampleState : NULL;
+      p_stage->pipeline->rasterization_enabled ? pCreateInfo->pMultisampleState : NULL;
    if (ms_info) {
       assert(ms_info->rasterizationSamples == VK_SAMPLE_COUNT_1_BIT ||
              ms_info->rasterizationSamples == VK_SAMPLE_COUNT_4_BIT);
@@ -1230,7 +1211,8 @@ pipeline_populate_v3d_fs_key(struct v3d_fs_key *key,
       key->sample_alpha_to_one = ms_info->alphaToOneEnable;
    }
 
-   key->line_smoothing = enable_line_smooth(topology, pCreateInfo->pRasterizationState);
+   key->line_smoothing = enable_line_smooth(p_stage->pipeline,
+                                            pCreateInfo->pRasterizationState);
 
    /* This is intended for V3D versions before 4.1, otherwise we just use the
     * tile buffer load/store swap R/B bit.
@@ -1988,16 +1970,12 @@ pipeline_populate_graphics_key(struct v3dv_pipeline *pipeline,
 
    key->line_smooth = pipeline->line_smooth;
 
-   const bool raster_enabled =
-      pCreateInfo->pRasterizationState &&
-      !pCreateInfo->pRasterizationState->rasterizerDiscardEnable;
-
    const VkPipelineInputAssemblyStateCreateInfo *ia_info =
       pCreateInfo->pInputAssemblyState;
    key->topology = vk_to_mesa_prim[ia_info->topology];
 
    const VkPipelineColorBlendStateCreateInfo *cb_info =
-      raster_enabled ? pCreateInfo->pColorBlendState : NULL;
+      pipeline->rasterization_enabled ? pCreateInfo->pColorBlendState : NULL;
 
    key->logicop_func = cb_info && cb_info->logicOpEnable == VK_TRUE ?
       vk_to_pipe_logicop[cb_info->logicOp] :
@@ -2007,7 +1985,7 @@ pipeline_populate_graphics_key(struct v3dv_pipeline *pipeline,
     * is disabled.
     */
    const VkPipelineMultisampleStateCreateInfo *ms_info =
-      raster_enabled ? pCreateInfo->pMultisampleState : NULL;
+      pipeline->rasterization_enabled ? pCreateInfo->pMultisampleState : NULL;
    if (ms_info) {
       assert(ms_info->rasterizationSamples == VK_SAMPLE_COUNT_1_BIT ||
              ms_info->rasterizationSamples == VK_SAMPLE_COUNT_4_BIT);
@@ -2189,6 +2167,11 @@ write_creation_feedback(struct v3dv_pipeline *pipeline,
    }
 }
 
+/* Note that although PrimitiveTopology is now dynamic, it is still safe to
+ * compute the gs_input/output_primitive from the topology saved at the
+ * pipeline, as the topology class will not change, because we don't support
+ * dynamicPrimitiveTopologyUnrestricted
+ */
 static enum mesa_prim
 multiview_gs_input_primitive_from_pipeline(struct v3dv_pipeline *pipeline)
 {
@@ -2658,26 +2641,6 @@ stencil_op_is_no_op(struct vk_stencil_test_face_state *stencil)
           stencil->op.compare == VK_COMPARE_OP_ALWAYS;
 }
 
-static void
-enable_depth_bias(struct v3dv_pipeline *pipeline,
-                  const VkPipelineRasterizationStateCreateInfo *rs_info)
-{
-   pipeline->depth_bias.enabled = false;
-   pipeline->depth_bias.is_z16 = false;
-
-   if (!rs_info || !rs_info->depthBiasEnable)
-      return;
-
-   /* Check the depth/stencil attachment description for the subpass used with
-    * this pipeline.
-    */
-   VkFormat ds_format = pipeline->rendering_info.depth_attachment_format;
-   if (ds_format == VK_FORMAT_D16_UNORM)
-      pipeline->depth_bias.is_z16 = true;
-
-   pipeline->depth_bias.enabled = true;
-}
-
 /* Computes the ez_state based on a given vk_dynamic_graphics_state.  Note
  * that the parameter dyn doesn't need to be pipeline->dynamic_graphics_state,
  * as this method can be used by the cmd_buffer too.
@@ -2843,8 +2806,7 @@ static VkResult
 pipeline_init_dynamic_state(struct v3dv_device *device,
                             struct v3dv_pipeline *pipeline,
                             struct vk_graphics_pipeline_state *pipeline_state,
-                            const VkGraphicsPipelineCreateInfo *pCreateInfo,
-                            const VkPipelineColorWriteCreateInfoEXT *cw_info)
+                            const VkGraphicsPipelineCreateInfo *pCreateInfo)
 {
    VkResult result = VK_SUCCESS;
    struct vk_graphics_pipeline_all_state all;
@@ -2872,11 +2834,13 @@ pipeline_init_dynamic_state(struct v3dv_device *device,
 
    v3dv_dyn->color_write_enable =
       (1ull << (4 * V3D_MAX_RENDER_TARGETS(device->devinfo.ver))) - 1;
-   if (cw_info && BITSET_TEST(dyn->set, MESA_VK_DYNAMIC_CB_COLOR_WRITE_ENABLES)) {
+   if (pipeline_state->cb) {
+      const uint8_t color_writes = pipeline_state->cb->color_write_enables;
       v3dv_dyn->color_write_enable = 0;
-      for (uint32_t i = 0; i < cw_info->attachmentCount; i++)
+      for (uint32_t i = 0; i < pipeline_state->cb->attachment_count; i++) {
          v3dv_dyn->color_write_enable |=
-            cw_info->pColorWriteEnables[i] ? (0xfu << (i * 4)) : 0;
+            (color_writes & BITFIELD_BIT(i)) ? (0xfu << (i * 4)) : 0;
+      }
    }
 
    return result;
@@ -2911,12 +2875,23 @@ pipeline_init(struct v3dv_pipeline *pipeline,
       pCreateInfo->pInputAssemblyState;
    pipeline->topology = vk_to_mesa_prim[ia_info->topology];
 
-   /* If rasterization is not enabled, various CreateInfo structs must be
-    * ignored.
+   struct vk_graphics_pipeline_state pipeline_state = { };
+   result = pipeline_init_dynamic_state(device, pipeline, &pipeline_state,
+                                        pCreateInfo);
+
+   if (result != VK_SUCCESS) {
+      /* Caller would already destroy the pipeline, and we didn't allocate any
+       * extra info. We don't need to do anything else.
+       */
+      return result;
+   }
+
+   /* If rasterization is disabled, we just disable it through the CFG_BITS
+    * packet, so for building the pipeline we always assume it is enabled
     */
    const bool raster_enabled =
-      pCreateInfo->pRasterizationState &&
-      !pCreateInfo->pRasterizationState->rasterizerDiscardEnable;
+      (pipeline_state.rs && !pipeline_state.rs->rasterizer_discard_enable) ||
+      BITSET_TEST(pipeline_state.dynamic, MESA_VK_DYNAMIC_RS_RASTERIZER_DISCARD_ENABLE);
 
    pipeline->rasterization_enabled = raster_enabled;
 
@@ -2947,22 +2922,6 @@ pipeline_init(struct v3dv_pipeline *pipeline,
    const VkPipelineMultisampleStateCreateInfo *ms_info =
       raster_enabled ? pCreateInfo->pMultisampleState : NULL;
 
-   const VkPipelineColorWriteCreateInfoEXT *cw_info =
-      cb_info ? vk_find_struct_const(cb_info->pNext,
-                                     PIPELINE_COLOR_WRITE_CREATE_INFO_EXT) :
-                NULL;
-
-   struct vk_graphics_pipeline_state pipeline_state = { };
-   result = pipeline_init_dynamic_state(device, pipeline, &pipeline_state,
-                                        pCreateInfo, cw_info);
-
-   if (result != VK_SUCCESS) {
-      /* Caller would already destroy the pipeline, and we didn't allocate any
-       * extra info. We don't need to do anything else.
-       */
-      return result;
-   }
-
    const VkPipelineViewportDepthClipControlCreateInfoEXT *depth_clip_control =
       vp_info ? vk_find_struct_const(vp_info->pNext,
                                      PIPELINE_VIEWPORT_DEPTH_CLIP_CONTROL_CREATE_INFO_EXT) :
@@ -2971,8 +2930,6 @@ pipeline_init(struct v3dv_pipeline *pipeline,
    if (depth_clip_control)
       pipeline->negative_one_to_one = depth_clip_control->negativeOneToOne;
 
-   enable_depth_bias(pipeline, rs_info);
-
    v3dv_X(device, pipeline_pack_state)(pipeline, cb_info, ds_info,
                                        rs_info, pv_info, ls_info,
                                        ms_info,
@@ -2980,10 +2937,7 @@ pipeline_init(struct v3dv_pipeline *pipeline,
 
    pipeline_set_sample_mask(pipeline, ms_info);
    pipeline_set_sample_rate_shading(pipeline, ms_info);
-   pipeline->line_smooth = enable_line_smooth(pipeline->topology, rs_info);
-
-   pipeline->primitive_restart =
-      pCreateInfo->pInputAssemblyState->primitiveRestartEnable;
+   pipeline->line_smooth = enable_line_smooth(pipeline, rs_info);
 
    result = pipeline_compile_graphics(pipeline, cache, pCreateInfo, pAllocator);
 

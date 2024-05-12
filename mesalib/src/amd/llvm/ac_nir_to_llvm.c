@@ -1827,6 +1827,7 @@ translate_atomic_op_str(nir_atomic_op op)
    case nir_atomic_op_cmpxchg:  return "cmpswap";
    case nir_atomic_op_inc_wrap: return "inc";
    case nir_atomic_op_dec_wrap: return "dec";
+   case nir_atomic_op_ordered_add_gfx12_amd: return "ordered.add";
    default: abort();
    }
 }
@@ -2070,6 +2071,9 @@ static LLVMValueRef visit_global_atomic(struct ac_nir_context *ctx,
       LLVMValueRef data1 = get_src(ctx, instr->src[2]);
       result = ac_build_atomic_cmp_xchg(&ctx->ac, addr, data, data1, sync_scope);
       result = LLVMBuildExtractValue(ctx->ac.builder, result, 0, "");
+   } else if (nir_op == nir_atomic_op_ordered_add_gfx12_amd) {
+      result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.global.atomic.ordered.add.b64", ctx->ac.i64,
+                                  (LLVMValueRef[]){addr, data}, 2, 0);
    } else if (is_float) {
       const char *op = translate_atomic_op_str(nir_op);
       char name[64], type[8];
@@ -2574,7 +2578,9 @@ static void emit_demote(struct ac_nir_context *ctx, const nir_intrinsic_instr *i
 static LLVMValueRef visit_load_subgroup_id(struct ac_nir_context *ctx)
 {
    if (gl_shader_stage_is_compute(ctx->stage)) {
-      if (ctx->ac.gfx_level >= GFX10_3)
+      if (ctx->ac.gfx_level >= GFX12)
+         return ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.wave.id", ctx->ac.i32, NULL, 0, 0);
+      else if (ctx->ac.gfx_level >= GFX10_3)
          return ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->tg_size), 20, 5);
       else
          return ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->tg_size), 6, 6);
@@ -3002,8 +3008,15 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       LLVMValueRef values[3] = {ctx->ac.i32_0, ctx->ac.i32_0, ctx->ac.i32_0};
 
       for (int i = 0; i < 3; i++) {
-         if (ctx->args->workgroup_ids[i].used)
-            values[i] = ac_get_arg(&ctx->ac, ctx->args->workgroup_ids[i]);
+         if (ctx->args->workgroup_ids[i].used) {
+            if (ctx->ac.gfx_level >= GFX12) {
+               char intr_name[256];
+               snprintf(intr_name, sizeof(intr_name), "llvm.amdgcn.workgroup.id.%c", "xyz"[i]);
+               values[i] = ac_build_intrinsic(&ctx->ac, intr_name, ctx->ac.i32, NULL, 0, 0);
+            } else {
+               values[i] = ac_get_arg(&ctx->ac, ctx->args->workgroup_ids[i]);
+            }
+         }
       }
       result = ac_build_gather_values(&ctx->ac, values, 3);
       break;
@@ -3060,6 +3073,8 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       assert(ctx->stage == MESA_SHADER_TESS_CTRL || ctx->stage == MESA_SHADER_GEOMETRY);
       if (ctx->stage == MESA_SHADER_TESS_CTRL) {
          result = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->tcs_rel_ids), 8, 5);
+      } else if (ctx->ac.gfx_level >= GFX12) {
+         result = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->gs_vtx_offset[0]), 27, 5);
       } else if (ctx->ac.gfx_level >= GFX10) {
          result = ac_unpack_param(&ctx->ac, ac_get_arg(&ctx->ac, ctx->args->gs_invocation_id), 0, 7);
       } else {
@@ -3206,9 +3221,9 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
 
       unsigned wait_flags = 0;
       if (modes & (nir_var_mem_global | nir_var_mem_ssbo | nir_var_image))
-         wait_flags |= AC_WAIT_VLOAD | AC_WAIT_VSTORE;
+         wait_flags |= AC_WAIT_LOAD | AC_WAIT_STORE;
       if (modes & nir_var_mem_shared)
-         wait_flags |= AC_WAIT_LGKM;
+         wait_flags |= AC_WAIT_DS;
 
       if (wait_flags)
          ac_build_waitcnt(&ctx->ac, wait_flags);
@@ -3424,6 +3439,17 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       offset = LLVMBuildSelect(ctx->ac.builder, cond, offset, size, "");
 
       LLVMValueRef ptr = ac_build_gep0(&ctx->ac, ctx->constant_data, offset);
+
+      /* TODO: LLVM doesn't sign-extend the result of s_getpc_b64 correctly, causing hangs.
+       * Do it manually here.
+       */
+      if (ctx->ac.gfx_level == GFX12) {
+         LLVMValueRef addr = LLVMBuildPtrToInt(ctx->ac.builder, ptr, ctx->ac.i64, "");
+         addr = LLVMBuildOr(ctx->ac.builder, addr,
+                            LLVMConstInt(ctx->ac.i64, 0xffff000000000000ull, 0), "");
+         ptr = LLVMBuildIntToPtr(ctx->ac.builder, addr, LLVMTypeOf(ptr), "");
+      }
+
       LLVMTypeRef comp_type = LLVMIntTypeInContext(ctx->ac.context, instr->def.bit_size);
       LLVMTypeRef vec_type = instr->def.num_components == 1
                                 ? comp_type
@@ -3622,7 +3648,7 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
       /* Set release=0 to start a GDS mutex. Set done=0 because it's not the last one. */
       ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.ds.ordered.add", ctx->ac.i32,
                          args, ARRAY_SIZE(args), 0);
-      ac_build_waitcnt(&ctx->ac, AC_WAIT_LGKM);
+      ac_build_waitcnt(&ctx->ac, AC_WAIT_DS);
 
       LLVMValueRef global_count[4];
       LLVMValueRef count_vec = get_src(ctx, instr->src[1]);
@@ -3642,7 +3668,7 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
          }
       }
 
-      ac_build_waitcnt(&ctx->ac, AC_WAIT_LGKM);
+      ac_build_waitcnt(&ctx->ac, AC_WAIT_DS);
 
       /* Set release=1 to end a GDS mutex. Set done=1 because it's the last one. */
       args[6] = args[7] = ctx->ac.i1true;
@@ -3667,6 +3693,100 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
                                2, 0);
          }
       }
+      break;
+   }
+   case nir_intrinsic_ordered_xfb_counter_add_gfx12_amd: {
+      const unsigned num_atomics = 6; /* max 8, using v0..v15 as temporaries */
+      char code[2048];
+      char *ptr = code;
+
+      /* Assembly outputs:
+       *    i32 VGPR $0 = dwordsWritten (set in 4 lanes)
+       *
+       * Assembly inputs:
+       *    EXEC = 0xf (4 lanes, set by nir_push_if())
+       *    i64 SGPR $1 = atomic base address
+       *    i32 VGPR $2 = voffset = 8 * threadIDInGroup
+       *    i32 SGPR $3 = orderedID
+       *    i64 VGPR $4 = {orderedID, numDwords} (set in 4 lanes)
+       */
+
+      /* Issue (num_atomics - 1) atomics to initialize the results.
+       * There are no s_sleeps here because the atomics must be pipelined.
+       */
+      for (int i = 0; i < num_atomics - 1; i++) {
+         /* global_atomic_ordered_add_b64 dst, offset, data, address */
+         ptr += sprintf(ptr,
+                        "global_atomic_ordered_add_b64 v[%u:%u], $2, $4, $1 th:TH_ATOMIC_RETURN\n",
+                        i * 2,
+                        i * 2 + 1);
+      }
+
+      /* This is an infinite while loop with breaks. The loop body executes "num_atomics"
+       * atomics and the same number of conditional breaks.
+       *
+       * It's pipelined such that we only wait for the oldest atomic, so there is always
+       * "num_atomics" atomics in flight while the shader is waiting.
+       */
+      unsigned inst_block_size = 3 + 1 + 3 + 2; /* size of the next sprintf in dwords */
+
+      for (unsigned i = 0; i < num_atomics; i++) {
+         unsigned issue_index = (num_atomics - 1 + i) % num_atomics;
+         unsigned read_index = i;
+
+         /* result = dwords_written */
+         ptr += sprintf(ptr,
+                        /* Issue (or repeat) the attempt. */
+                        "global_atomic_ordered_add_b64 v[%u:%u], $2, $4, $1 th:TH_ATOMIC_RETURN\n"
+                        "s_wait_loadcnt 0x%x\n"
+                        /* if (result[check_index].ordered_id == ordered_id) {
+                         *    dwords_written = result[check_index].dwords_written;
+                         *    break;
+                         * }
+                         */
+                        "v_cmp_eq_u32 %s, $3, v%u\n"
+                        "v_mov_b32 $0, v%u\n"
+                        "s_cbranch_vccnz 0x%x\n"
+                        /* This is roughly "atomic_latency / num_atomics - latency_of_last_5_instructions" cycles. */
+                        "s_nop 15\n"
+                        "s_nop 10\n",
+                        issue_index * 2,
+                        issue_index * 2 + 1,
+                        num_atomics - 1, /* wait count */
+                        ctx->ac.wave_size == 32 ? "vcc_lo" : "vcc",
+                        read_index * 2, /* v_cmp_eq: src1 */
+                        read_index * 2 + 1, /* output */
+                        inst_block_size * (num_atomics - i - 1) + 3); /* forward s_cbranch as loop break */
+      }
+
+      /* Jump to the beginning of the loop. */
+      ptr += sprintf(ptr,
+                     "s_branch 0x%x\n"
+                     "s_wait_loadcnt 0x0\n",
+                     (inst_block_size * -(int)num_atomics - 1) & 0xffff);
+
+      LLVMTypeRef param_types[] = {ctx->ac.i64, ctx->ac.i32, ctx->ac.i32, ctx->ac.i64};
+      LLVMTypeRef calltype = LLVMFunctionType(ctx->ac.i32, param_types, 4, false);
+
+      /* =v means a VGPR output, =& means the dst register must be different from src registers,
+       * s means an SGPR input, v means a VGPR input, ~{reg} means that the register is clobbered
+       */
+      char constraint[128];
+      snprintf(constraint, sizeof(constraint), "=&v,s,v,s,v,~{%s},~{v[0:%u]}",
+               ctx->ac.wave_size == 32 ? "vcc_lo" : "vcc",
+               num_atomics * 2 - 1);
+
+      LLVMValueRef inlineasm = LLVMConstInlineAsm(calltype, code, constraint, true, false);
+
+      LLVMValueRef args[] = {
+         get_src(ctx, instr->src[0]),
+         get_src(ctx, instr->src[1]),
+         get_src(ctx, instr->src[2]),
+         get_src(ctx, instr->src[3]),
+      };
+      result = LLVMBuildCall2(ctx->ac.builder, calltype, inlineasm, args, 4, "");
+
+      assert(ptr < code + sizeof(code));
       break;
    }
    case nir_intrinsic_export_amd: {
@@ -3709,6 +3829,16 @@ static bool visit_intrinsic(struct ac_nir_context *ctx, nir_intrinsic_instr *ins
 
       result = ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.image.bvh.intersect.ray.i64.v3f32",
                                   ctx->ac.v4i32, args, ARRAY_SIZE(args), 0);
+      break;
+   }
+   case nir_intrinsic_sleep_amd: {
+      LLVMValueRef arg = LLVMConstInt(ctx->ac.i32, nir_intrinsic_base(instr), 0);
+      ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.s.sleep", ctx->ac.voidt, &arg, 1, 0);
+      break;
+   }
+   case nir_intrinsic_nop_amd: {
+      LLVMValueRef arg = LLVMConstInt(ctx->ac.i32, nir_intrinsic_base(instr), 0);
+      ac_build_intrinsic(&ctx->ac, "llvm.amdgcn.s.nop", ctx->ac.voidt, &arg, 1, 0);
       break;
    }
    default:

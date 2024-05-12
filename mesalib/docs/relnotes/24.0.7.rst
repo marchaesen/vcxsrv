@@ -1,0 +1,155 @@
+Mesa 24.0.7 Release Notes / 2024-05-08
+======================================
+
+Mesa 24.0.7 is a bug fix release which fixes bugs found since the 24.0.6 release.
+
+Mesa 24.0.7 implements the OpenGL 4.6 API, but the version reported by
+glGetString(GL_VERSION) or glGetIntegerv(GL_MAJOR_VERSION) /
+glGetIntegerv(GL_MINOR_VERSION) depends on the particular driver being used.
+Some drivers don't support all the features required in OpenGL 4.6. OpenGL
+4.6 is **only** available if requested at context creation.
+Compatibility contexts may report a lower version depending on each driver.
+
+Mesa 24.0.7 implements the Vulkan 1.3 API, but the version reported by
+the apiVersion property of the VkPhysicalDeviceProperties struct
+depends on the particular driver being used.
+
+SHA256 checksum
+---------------
+
+::
+
+    7454425f1ed4a6f1b5b107e1672b30c88b22ea0efea000ae2c7d96db93f6c26a  mesa-24.0.7.tar.xz
+
+
+New features
+------------
+
+- None
+
+
+Bug fixes
+---------
+
+- mesa 24 intel A770 KOTOR black shadow smoke scenes
+- Graphical glitches in RPCS3 after updating Vulkan Intel drivers
+- [R600] OpenGL and VDPAU regression in Mesa 23.3.0 - some bitmaps get distorted.
+- VAAPI radeonsi: VBAQ broken with HEVC
+- radv: vkCmdWaitEvents2 is broken
+- Zink: enabled extensions and features may not match
+
+
+Changes
+-------
+
+Boris Brezillon (3):
+
+- panfrost: do not write outside num_wg_sysval
+- panfrost: Add the BO containing fragment program descriptor to the batch
+- pan/kmod: Make default allocator thread-safe
+
+Constantine Shablia (2):
+
+- pan/bi: fix 1D array tex coord lowering
+- panfrost: report correct MAX_VARYINGS
+
+Daniel Schürmann (1):
+
+- aco/ra: fix kill flags after renaming fixed Operands
+
+David Rosca (5):
+
+- radeonsi/vcn: Allocate session buffer in VRAM
+- radeonsi/vcn: Fix 10bit HEVC VPS general_profile_compatibility_flags
+- radeonsi/vcn: Only enable VBAQ with rate control mode
+- frontends/va: Fix AV1 slice_data_offset with multiple slice data buffers
+- Revert "radeonsi/vcn: AV1 skip the redundant bs resize"
+
+Eric Engestrom (6):
+
+- docs: add sha256sum for 24.0.6
+- .pick_status.json: Update to 86281ef15fca378ef48bcb072a762168e537820d
+- .pick_status.json: Mark 0666a715c7210558017ce717f6b0b947c679a68e as denominated
+- .pick_status.json: Update to 603982ea802b3846e91a943b413a7baf430e875d
+- .pick_status.json: Update to 9666756f603f0285d8a93ef93db1c7ec702b671f
+- .pick_status.json: Update to b8e79d2769b4a4aed7e2103cf0405acc5bdadb86
+
+Erik Faye-Lund (2):
+
+- panfrost: correct first-tracking for signature
+- panvk: avoid dereferencing a null-pointer
+
+Georg Lehmann (1):
+
+- radv, radeonsi: don't use D16 for f2f16_rtz
+
+Gert Wollny (1):
+
+- zink/kopper: Wait for last QueuePresentKHR to finish before acquiring for readback
+
+Ian Romanick (1):
+
+- intel/brw: Fix optimize_extract_to_float for i2f of unsigned extract
+
+Iván Briano (2):
+
+- anv: check requirements for VK_IMAGE_USAGE_FRAGMENT_SHADING_RATE
+- anv: fix casting to graphics_pipeline_base
+
+Karol Herbst (2):
+
+- nir: fix nir_shader_get_function_for_name for functions without names.
+- rusticl: use stream uploader for cb0 if prefered
+
+Kenneth Graunke (1):
+
+- isl: Set MOCS to uncached for Gfx12.0 blitter sources/destinations
+
+Konstantin Seurer (1):
+
+- radv: Handle all dependencies of CmdWaitEvents2
+
+Lionel Landwerlin (2):
+
+- anv: disable dual source blending state if not used in shader
+- intel/brw: fixup wm_prog_data_barycentric_modes()
+
+Mike Blumenkrantz (8):
+
+- zink: reconstruct features pnext after determining extension support
+- glthread: check for invalid primitive modes in DrawElementsBaseVertex
+- zink: prune zink_shader::programs under lock
+- zink: fully wait on all program fences during ctx destroy
+- kopper: fix bufferage/swapinterval handling for non-window swapchains
+- zink: slightly better swapinterval failure handling
+- zink: clean up accidental debug print
+- zink: add a tu flake
+
+Patrick Lerda (1):
+
+- gallium/auxiliary/vl: fix typo which negatively impacts the src_stride initialization
+
+Rohan Garg (1):
+
+- anv: formatting fix when printing pipe controls
+
+Samuel Pitoiset (1):
+
+- radv: fix image format properties with fragment shading rate usage
+
+Sviatoslav Peleshko (1):
+
+- anv: Fix descriptor sampler offsets assignment
+
+Tapani Pälli (1):
+
+- iris: change stream uploader default size to 2MB
+
+Yiwei Zhang (2):
+
+- venus: avoid client allocators for ring internals
+- venus: fix to destroy all pipeline handles on early error paths
+
+Yusuf Khan (1):
+
+- nouveau: Fix crash when destination or source screen fences are null

@@ -188,14 +188,16 @@ zink_reset_batch_state(struct zink_context *ctx, struct zink_batch_state *bs)
     * before the state is reused
     */
    bs->fence.submitted = false;
-   bs->has_barriers = false;
-   bs->has_unsync = false;
    if (bs->fence.batch_id)
       zink_screen_update_last_finished(screen, bs->fence.batch_id);
    bs->fence.batch_id = 0;
    bs->usage.usage = 0;
    bs->next = NULL;
    bs->last_added_obj = NULL;
+
+   bs->has_work = false;
+   bs->has_reordered_work = false;
+   bs->has_unsync = false;
 }
 
 /* this is where deferred resource unrefs occur */
@@ -407,6 +409,7 @@ create_batch_state(struct zink_context *ctx)
 
    cnd_init(&bs->usage.flush);
    mtx_init(&bs->usage.mtx, mtx_plain);
+   simple_mtx_init(&bs->ref_lock, mtx_plain);
    simple_mtx_init(&bs->exportable_lock, mtx_plain);
    memset(&bs->buffer_indices_hashlist, -1, sizeof(bs->buffer_indices_hashlist));
 
@@ -434,7 +437,7 @@ find_unused_state(struct zink_batch_state *bs)
 
 /* find a "free" batch state */
 static struct zink_batch_state *
-get_batch_state(struct zink_context *ctx, struct zink_batch *batch)
+get_batch_state(struct zink_context *ctx)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
    struct zink_batch_state *bs = NULL;
@@ -472,7 +475,7 @@ get_batch_state(struct zink_context *ctx, struct zink_batch *batch)
    if (bs) {
       zink_reset_batch_state(ctx, bs);
    } else {
-      if (!batch->state) {
+      if (!ctx->bs) {
          /* this is batch init, so create a few more states for later use */
          for (int i = 0; i < 3; i++) {
             struct zink_batch_state *state = create_batch_state(ctx);
@@ -489,26 +492,24 @@ get_batch_state(struct zink_context *ctx, struct zink_batch *batch)
    return bs;
 }
 
-/* reset the batch object: get a new state and unset 'has_work' to disable flushing */
+/* reset the batch object: get a new state and unset 'state->has_work' to disable flushing */
 void
-zink_reset_batch(struct zink_context *ctx, struct zink_batch *batch)
+zink_reset_batch(struct zink_context *ctx)
 {
-   batch->state = get_batch_state(ctx, batch);
-   assert(batch->state);
-
-   batch->has_work = false;
+   ctx->bs = get_batch_state(ctx);
+   assert(ctx->bs);
 }
 
 void
 zink_batch_bind_db(struct zink_context *ctx)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   struct zink_batch *batch = &ctx->batch;
+   struct zink_batch_state *bs = ctx->bs;
    unsigned count = 1;
    VkDescriptorBufferBindingInfoEXT infos[2] = {0};
    infos[0].sType = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-   infos[0].address = batch->state->dd.db->obj->bda;
-   infos[0].usage = batch->state->dd.db->obj->vkusage;
+   infos[0].address = bs->dd.db->obj->bda;
+   infos[0].usage = bs->dd.db->obj->vkusage;
    assert(infos[0].usage);
 
    if (ctx->dd.bindless_init) {
@@ -518,19 +519,20 @@ zink_batch_bind_db(struct zink_context *ctx)
       assert(infos[1].usage);
       count++;
    }
-   VKSCR(CmdBindDescriptorBuffersEXT)(batch->state->cmdbuf, count, infos);
-   VKSCR(CmdBindDescriptorBuffersEXT)(batch->state->reordered_cmdbuf, count, infos);
-   batch->state->dd.db_bound = true;
+   VKSCR(CmdBindDescriptorBuffersEXT)(bs->cmdbuf, count, infos);
+   VKSCR(CmdBindDescriptorBuffersEXT)(bs->reordered_cmdbuf, count, infos);
+   bs->dd.db_bound = true;
 }
 
 /* called on context creation and after flushing an old batch */
 void
-zink_start_batch(struct zink_context *ctx, struct zink_batch *batch)
+zink_start_batch(struct zink_context *ctx)
 {
    struct zink_screen *screen = zink_screen(ctx->base.screen);
-   zink_reset_batch(ctx, batch);
+   zink_reset_batch(ctx);
+   struct zink_batch_state *bs = ctx->bs;
 
-   batch->state->usage.unflushed = true;
+   bs->usage.unflushed = true;
 
    VkCommandBufferBeginInfo cbbi = {0};
    cbbi.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
@@ -538,26 +540,22 @@ zink_start_batch(struct zink_context *ctx, struct zink_batch *batch)
 
    VkResult result;
    VRAM_ALLOC_LOOP(result,
-      VKCTX(BeginCommandBuffer)(batch->state->cmdbuf, &cbbi),
+      VKCTX(BeginCommandBuffer)(bs->cmdbuf, &cbbi),
       if (result != VK_SUCCESS)
          mesa_loge("ZINK: vkBeginCommandBuffer failed (%s)", vk_Result_to_str(result));
    );
    VRAM_ALLOC_LOOP(result,
-      VKCTX(BeginCommandBuffer)(batch->state->reordered_cmdbuf, &cbbi),
+      VKCTX(BeginCommandBuffer)(bs->reordered_cmdbuf, &cbbi),
       if (result != VK_SUCCESS)
          mesa_loge("ZINK: vkBeginCommandBuffer failed (%s)", vk_Result_to_str(result));
    );
    VRAM_ALLOC_LOOP(result,
-      VKCTX(BeginCommandBuffer)(batch->state->unsynchronized_cmdbuf, &cbbi),
+      VKCTX(BeginCommandBuffer)(bs->unsynchronized_cmdbuf, &cbbi),
       if (result != VK_SUCCESS)
          mesa_loge("ZINK: vkBeginCommandBuffer failed (%s)", vk_Result_to_str(result));
    );
 
-   batch->state->fence.completed = false;
-   if (ctx->last_batch_state) {
-      struct zink_batch_state *last_state = ctx->last_batch_state;
-      batch->last_batch_usage = &last_state->usage;
-   }
+   bs->fence.completed = false;
 
 #ifdef HAVE_RENDERDOC_APP_H
    if (VKCTX(CmdInsertDebugUtilsLabelEXT) && screen->renderdoc_api) {
@@ -567,9 +565,9 @@ zink_start_batch(struct zink_context *ctx, struct zink_batch *batch)
       capture_label.pNext = NULL;
       capture_label.pLabelName = "vr-marker,frame_end,type,application";
       memset(capture_label.color, 0, sizeof(capture_label.color));
-      VKCTX(CmdInsertDebugUtilsLabelEXT)(batch->state->unsynchronized_cmdbuf, &capture_label);
-      VKCTX(CmdInsertDebugUtilsLabelEXT)(batch->state->reordered_cmdbuf, &capture_label);
-      VKCTX(CmdInsertDebugUtilsLabelEXT)(batch->state->cmdbuf, &capture_label);
+      VKCTX(CmdInsertDebugUtilsLabelEXT)(bs->unsynchronized_cmdbuf, &capture_label);
+      VKCTX(CmdInsertDebugUtilsLabelEXT)(bs->reordered_cmdbuf, &capture_label);
+      VKCTX(CmdInsertDebugUtilsLabelEXT)(bs->cmdbuf, &capture_label);
    }
 
    unsigned renderdoc_frame = p_atomic_read(&screen->renderdoc_frame);
@@ -585,9 +583,9 @@ zink_start_batch(struct zink_context *ctx, struct zink_batch *batch)
       zink_batch_bind_db(ctx);
    /* zero init for unordered blits */
    if (screen->info.have_EXT_attachment_feedback_loop_dynamic_state) {
-      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->batch.state->cmdbuf, 0);
-      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->batch.state->reordered_cmdbuf, 0);
-      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->batch.state->unsynchronized_cmdbuf, 0);
+      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->bs->cmdbuf, 0);
+      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->bs->reordered_cmdbuf, 0);
+      VKCTX(CmdSetAttachmentFeedbackLoopEnableEXT)(ctx->bs->unsynchronized_cmdbuf, 0);
    }
 }
 
@@ -610,7 +608,10 @@ post_submit(void *data, void *gdata, int thread_index)
       zink_screen_timeline_wait(screen, bs->fence.batch_id - 2500, OS_TIMEOUT_INFINITE);
    }
    /* this resets the buffer hashlist for the state's next use */
-   memset(&bs->buffer_indices_hashlist, -1, sizeof(bs->buffer_indices_hashlist));
+   if (bs->hashlist_min != UINT16_MAX)
+      /* only reset a min/max region */
+      memset(&bs->buffer_indices_hashlist[bs->hashlist_min], -1, (bs->hashlist_max - bs->hashlist_min + 1) * sizeof(int16_t));
+   bs->hashlist_min = bs->hashlist_max = UINT16_MAX;
 }
 
 typedef enum {
@@ -674,9 +675,10 @@ submit_queue(void *data, void *gdata, int thread_index)
    unsigned c = 0;
    if (bs->has_unsync)
       cmdbufs[c++] = bs->unsynchronized_cmdbuf;
-   if (bs->has_barriers)
+   if (bs->has_reordered_work)
       cmdbufs[c++] = bs->reordered_cmdbuf;
-   cmdbufs[c++] = bs->cmdbuf;
+   if (bs->has_work)
+      cmdbufs[c++] = bs->cmdbuf;
    si[ZINK_SUBMIT_CMDBUF].pCommandBuffers = cmdbufs;
    si[ZINK_SUBMIT_CMDBUF].commandBufferCount = c;
    /* assorted signal submit from wsi/externals */
@@ -703,15 +705,17 @@ submit_queue(void *data, void *gdata, int thread_index)
 
 
    VkResult result;
-   VRAM_ALLOC_LOOP(result,
-      VKSCR(EndCommandBuffer)(bs->cmdbuf),
-      if (result != VK_SUCCESS) {
-         mesa_loge("ZINK: vkEndCommandBuffer failed (%s)", vk_Result_to_str(result));
-         bs->is_device_lost = true;
-         goto end;
-      }
-   );
-   if (bs->has_barriers) {
+   if (bs->has_work) {
+      VRAM_ALLOC_LOOP(result,
+         VKSCR(EndCommandBuffer)(bs->cmdbuf),
+         if (result != VK_SUCCESS) {
+            mesa_loge("ZINK: vkEndCommandBuffer failed (%s)", vk_Result_to_str(result));
+            bs->is_device_lost = true;
+            goto end;
+         }
+      );
+   }
+   if (bs->has_reordered_work) {
       if (bs->unordered_write_access) {
          VkMemoryBarrier mb;
          mb.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
@@ -778,10 +782,10 @@ end:
 
 /* called during flush */
 void
-zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
+zink_end_batch(struct zink_context *ctx)
 {
    if (!ctx->queries_disabled)
-      zink_suspend_queries(ctx, batch);
+      zink_suspend_queries(ctx);
 
 
    struct zink_screen *screen = zink_screen(ctx->base.screen);
@@ -811,7 +815,7 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
          ctx->oom_flush = true;
    }
 
-   bs = batch->state;
+   bs = ctx->bs;
    if (ctx->last_batch_state)
       ctx->last_batch_state->next = bs;
    else {
@@ -820,15 +824,15 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
    }
    ctx->last_batch_state = bs;
    ctx->batch_states_count++;
-   batch->work_count = 0;
+   ctx->work_count = 0;
 
    /* this is swapchain presentation semaphore handling */
-   if (batch->swapchain) {
-      if (zink_kopper_acquired(batch->swapchain->obj->dt, batch->swapchain->obj->dt_idx) && !batch->swapchain->obj->present) {
-         batch->state->present = zink_kopper_present(screen, batch->swapchain);
-         batch->state->swapchain = batch->swapchain;
+   if (ctx->swapchain) {
+      if (zink_kopper_acquired(ctx->swapchain->obj->dt, ctx->swapchain->obj->dt_idx) && !ctx->swapchain->obj->present) {
+         bs->present = zink_kopper_present(screen, ctx->swapchain);
+         bs->swapchain = ctx->swapchain;
       }
-      batch->swapchain = NULL;
+      ctx->swapchain = NULL;
    }
 
    if (screen->device_lost)
@@ -878,8 +882,9 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
       for (; res; res = zink_resource(res->base.b.next)) {
          VkSemaphore sem = zink_create_exportable_semaphore(screen);
          if (sem)
-            util_dynarray_append(&ctx->batch.state->signal_semaphores, VkSemaphore, sem);
+            util_dynarray_append(&ctx->bs->signal_semaphores, VkSemaphore, sem);
       }
+      bs->has_work = true;
    }
 
    if (screen->threaded_submit) {
@@ -895,6 +900,13 @@ zink_end_batch(struct zink_context *ctx, struct zink_batch *batch)
       screen->renderdoc_capturing = false;
    }
 #endif
+}
+
+ALWAYS_INLINE static void
+batch_hashlist_update(struct zink_batch_state *bs, unsigned hash)
+{
+   bs->hashlist_min = bs->hashlist_min == UINT16_MAX ? hash : MIN2(hash, bs->hashlist_min);
+   bs->hashlist_max = bs->hashlist_max == UINT16_MAX ? hash : MAX2(hash, bs->hashlist_max);
 }
 
 static int
@@ -920,6 +932,7 @@ batch_find_resource(struct zink_batch_state *bs, struct zink_resource_object *ob
           * will collide here: ^ and here:   ^,
           * meaning that we should get very few collisions in the end. */
          bs->buffer_indices_hashlist[hash] = i & (BUFFER_HASHLIST_SIZE-1);
+         batch_hashlist_update(bs, hash);
          return i;
       }
    }
@@ -927,25 +940,25 @@ batch_find_resource(struct zink_batch_state *bs, struct zink_resource_object *ob
 }
 
 void
-zink_batch_reference_resource_rw(struct zink_batch *batch, struct zink_resource *res, bool write)
+zink_batch_reference_resource_rw(struct zink_context *ctx, struct zink_resource *res, bool write)
 {
    /* if the resource already has usage of any sort set for this batch, */
-   if (!zink_resource_usage_matches(res, batch->state) ||
+   if (!zink_resource_usage_matches(res, ctx->bs) ||
        /* or if it's bound somewhere */
        !zink_resource_has_binds(res))
       /* then it already has a batch ref and doesn't need one here */
-      zink_batch_reference_resource(batch, res);
-   zink_batch_resource_usage_set(batch, res, write, res->obj->is_buffer);
+      zink_batch_reference_resource(ctx, res);
+   zink_batch_resource_usage_set(ctx->bs, res, write, res->obj->is_buffer);
 }
 
 void
-zink_batch_add_wait_semaphore(struct zink_batch *batch, VkSemaphore sem)
+zink_batch_add_wait_semaphore(struct zink_context *ctx, VkSemaphore sem)
 {
-   util_dynarray_append(&batch->state->acquires, VkSemaphore, sem);
+   util_dynarray_append(&ctx->bs->acquires, VkSemaphore, sem);
 }
 
 static bool
-batch_ptr_add_usage(struct zink_batch *batch, struct set *s, void *ptr)
+batch_ptr_add_usage(struct zink_context *ctx, struct set *s, void *ptr)
 {
    bool found = false;
    _mesa_set_search_or_add(s, ptr, &found);
@@ -954,9 +967,9 @@ batch_ptr_add_usage(struct zink_batch *batch, struct set *s, void *ptr)
 
 /* this is a vague, handwave-y estimate */
 ALWAYS_INLINE static void
-check_oom_flush(struct zink_context *ctx, const struct zink_batch *batch)
+check_oom_flush(struct zink_context *ctx)
 {
-   const VkDeviceSize resource_size = batch->state->resource_size;
+   const VkDeviceSize resource_size = ctx->bs->resource_size;
    if (resource_size >= zink_screen(ctx->base.screen)->clamp_video_mem) {
        ctx->oom_flush = true;
        ctx->oom_stall = true;
@@ -965,31 +978,31 @@ check_oom_flush(struct zink_context *ctx, const struct zink_batch *batch)
 
 /* this adds a ref (batch tracking) */
 void
-zink_batch_reference_resource(struct zink_batch *batch, struct zink_resource *res)
+zink_batch_reference_resource(struct zink_context *ctx, struct zink_resource *res)
 {
-   if (!zink_batch_reference_resource_move(batch, res))
+   if (!zink_batch_reference_resource_move(ctx, res))
       zink_resource_object_reference(NULL, NULL, res->obj);
 }
 
 /* this adds batch usage */
 bool
-zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resource *res)
+zink_batch_reference_resource_move(struct zink_context *ctx, struct zink_resource *res)
 {
-   struct zink_batch_state *bs = batch->state;
+   struct zink_batch_state *bs = ctx->bs;
 
-   simple_mtx_lock(&batch->ref_lock);
+   simple_mtx_lock(&bs->ref_lock);
    /* swapchains are special */
    if (zink_is_swapchain(res)) {
       struct zink_resource_object **swapchains = bs->swapchain_obj.data;
       unsigned count = util_dynarray_num_elements(&bs->swapchain_obj, struct zink_resource_object*);
       for (unsigned i = 0; i < count; i++) {
          if (swapchains[i] == res->obj) {
-            simple_mtx_unlock(&batch->ref_lock);
+            simple_mtx_unlock(&bs->ref_lock);
             return true;
          }
       }
       util_dynarray_append(&bs->swapchain_obj, struct zink_resource_object*, res->obj);
-      simple_mtx_unlock(&batch->ref_lock);
+      simple_mtx_unlock(&bs->ref_lock);
       return false;
    }
    /* Fast exit for no-op calls.
@@ -997,7 +1010,7 @@ zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resourc
     * are outside of the winsys.
     */
    if (res->obj == bs->last_added_obj) {
-      simple_mtx_unlock(&batch->ref_lock);
+      simple_mtx_unlock(&bs->ref_lock);
       return true;
    }
 
@@ -1014,7 +1027,7 @@ zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resourc
    }
    int idx = batch_find_resource(bs, res->obj, list);
    if (idx >= 0) {
-      simple_mtx_unlock(&batch->ref_lock);
+      simple_mtx_unlock(&bs->ref_lock);
       return true;
    }
 
@@ -1033,6 +1046,7 @@ zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resourc
    list->objs[idx] = res->obj;
    unsigned hash = bo->unique_id & (BUFFER_HASHLIST_SIZE-1);
    bs->buffer_indices_hashlist[hash] = idx & 0x7fff;
+   batch_hashlist_update(bs, hash);
    bs->last_added_obj = res->obj;
    if (!(res->base.b.flags & PIPE_RESOURCE_FLAG_SPARSE)) {
       bs->resource_size += res->obj->size;
@@ -1047,23 +1061,23 @@ zink_batch_reference_resource_move(struct zink_batch *batch, struct zink_resourc
        *   performing unbind finishes.
        */
    }
-   check_oom_flush(batch->state->ctx, batch);
-   batch->has_work = true;
-   simple_mtx_unlock(&batch->ref_lock);
+   check_oom_flush(bs->ctx);
+   simple_mtx_unlock(&bs->ref_lock);
    return false;
 }
 
 /* this is how programs achieve deferred deletion */
 void
-zink_batch_reference_program(struct zink_batch *batch,
+zink_batch_reference_program(struct zink_context *ctx,
                              struct zink_program *pg)
 {
-   if (zink_batch_usage_matches(pg->batch_uses, batch->state) ||
-       !batch_ptr_add_usage(batch, &batch->state->programs, pg))
+   struct zink_batch_state *bs = ctx->bs;
+   if (zink_batch_usage_matches(pg->batch_uses, bs) ||
+       !batch_ptr_add_usage(ctx, &bs->programs, pg))
       return;
    pipe_reference(NULL, &pg->reference);
-   zink_batch_usage_set(&pg->batch_uses, batch->state);
-   batch->has_work = true;
+   zink_batch_usage_set(&pg->batch_uses, bs);
+   bs->has_work = true;
 }
 
 /* a fast (hopefully) way to check whether a given batch has completed */
@@ -1106,7 +1120,7 @@ batch_usage_wait(struct zink_context *ctx, struct zink_batch_usage *u, bool tryw
    if (!zink_batch_usage_exists(u))
       return;
    if (zink_batch_usage_is_unflushed(u)) {
-      if (likely(u == &ctx->batch.state->usage))
+      if (likely(u == &ctx->bs->usage))
          ctx->base.flush(&ctx->base, NULL, PIPE_FLUSH_HINT_FINISH);
       else { //multi-context
          mtx_lock(&u->mtx);

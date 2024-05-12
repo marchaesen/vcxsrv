@@ -7,6 +7,7 @@
 #include <string.h>
 #include <xf86drm.h>
 
+#include "util/u_memory.h"
 #include "util/macros.h"
 #include "pan_kmod.h"
 
@@ -31,28 +32,19 @@ static void *
 default_zalloc(const struct pan_kmod_allocator *allocator, size_t size,
                UNUSED bool transient)
 {
-   return rzalloc_size(allocator, size);
+   return os_calloc(1, size);
 }
 
 static void
 default_free(const struct pan_kmod_allocator *allocator, void *data)
 {
-   return ralloc_free(data);
+   os_free(data);
 }
 
-static const struct pan_kmod_allocator *
-create_default_allocator(void)
-{
-   struct pan_kmod_allocator *allocator =
-      rzalloc(NULL, struct pan_kmod_allocator);
-
-   if (allocator) {
-      allocator->zalloc = default_zalloc;
-      allocator->free = default_free;
-   }
-
-   return allocator;
-}
+static const struct pan_kmod_allocator default_allocator = {
+   .zalloc = default_zalloc,
+   .free = default_free,
+};
 
 struct pan_kmod_dev *
 pan_kmod_dev_create(int fd, uint32_t flags,
@@ -64,28 +56,18 @@ pan_kmod_dev_create(int fd, uint32_t flags,
    if (!version)
       return NULL;
 
-   if (!allocator) {
-      allocator = create_default_allocator();
-      if (!allocator)
-         goto out_free_version;
-   }
+   if (!allocator)
+      allocator = &default_allocator;
 
    for (unsigned i = 0; i < ARRAY_SIZE(drivers); i++) {
       if (!strcmp(drivers[i].name, version->name)) {
          const struct pan_kmod_ops *ops = drivers[i].ops;
 
          dev = ops->dev_create(fd, flags, version, allocator);
-         if (dev)
-            goto out_free_version;
-
          break;
       }
    }
 
-   if (allocator->zalloc == default_zalloc)
-      ralloc_free((void *)allocator);
-
-out_free_version:
    drmFreeVersion(version);
    return dev;
 }
@@ -93,12 +75,7 @@ out_free_version:
 void
 pan_kmod_dev_destroy(struct pan_kmod_dev *dev)
 {
-   const struct pan_kmod_allocator *allocator = dev->allocator;
-
    dev->ops->dev_destroy(dev);
-
-   if (allocator->zalloc == default_zalloc)
-      ralloc_free((void *)allocator);
 }
 
 struct pan_kmod_bo *

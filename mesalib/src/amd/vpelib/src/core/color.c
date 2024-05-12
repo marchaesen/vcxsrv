@@ -32,7 +32,6 @@
 #include "common.h"
 #include "custom_float.h"
 #include "color_test_values.h"
-#include "color_pwl.h"
 #include "3dlut_builder.h"
 #include "shaper_builder.h"
 
@@ -155,9 +154,10 @@ static bool color_update_regamma_tf(struct vpe_priv *vpe_priv,
     struct fixed31_32 y_scale, struct fixed31_32 y_bias, bool can_bypass,
     struct transfer_func* output_tf)
 {
-    struct pwl_params *params      = NULL;
-   
-    if (can_bypass) {
+    struct pwl_params *params = NULL;
+    bool               ret    = true;
+
+    if (can_bypass || output_transfer_function == TRANSFER_FUNC_HLG) {
         output_tf->type = TF_TYPE_BYPASS;
         return true;
     }
@@ -172,8 +172,7 @@ static bool color_update_regamma_tf(struct vpe_priv *vpe_priv,
     case TRANSFER_FUNC_BT709:
     case TRANSFER_FUNC_BT1886:
     case TRANSFER_FUNC_PQ2084:
-    case TRANSFER_FUNC_LINEAR_0_125:
-    case TRANSFER_FUNC_LINEAR_0_1:
+    case TRANSFER_FUNC_LINEAR:
         output_tf->tf = output_transfer_function;
         break;
     default:
@@ -181,25 +180,10 @@ static bool color_update_regamma_tf(struct vpe_priv *vpe_priv,
         break;
     }
 
-    if (!vpe_priv->init.debug.force_tf_calculation &&
-        x_scale.value == vpe_fixpt_one.value &&
-        y_scale.value == vpe_fixpt_one.value &&
-        y_bias.value == vpe_fixpt_zero.value)
-        vpe_priv->resource.get_tf_pwl_params(output_tf, &params, CM_REGAM);
+    ret = vpe_color_calculate_regamma_params(
+        vpe_priv, x_scale, y_scale, &vpe_priv->cal_buffer, output_tf);
 
-    if (params)
-        output_tf->use_pre_calculated_table = true;
-    else
-        output_tf->use_pre_calculated_table = false;
-
-    if (!output_tf->use_pre_calculated_table)
-        vpe_color_calculate_regamma_params(vpe_priv,
-            x_scale,
-            y_scale,
-            &vpe_priv->cal_buffer,
-            output_tf);
-
-    return true;
+    return ret;
 }
 
 static bool color_update_degamma_tf(struct vpe_priv *vpe_priv,
@@ -210,7 +194,7 @@ static bool color_update_degamma_tf(struct vpe_priv *vpe_priv,
     bool               ret    = true;
     struct pwl_params *params = NULL;
 
-    if (can_bypass) {
+    if (can_bypass || color_input_tf == TRANSFER_FUNC_HLG) {
         input_tf->type = TF_TYPE_BYPASS;
         return true;
     }
@@ -225,8 +209,7 @@ static bool color_update_degamma_tf(struct vpe_priv *vpe_priv,
     case TRANSFER_FUNC_BT1886:
     case TRANSFER_FUNC_PQ2084:
     case TRANSFER_FUNC_NORMALIZED_PQ:
-    case TRANSFER_FUNC_LINEAR_0_1:
-    case TRANSFER_FUNC_LINEAR_0_125:
+    case TRANSFER_FUNC_LINEAR:
         input_tf->tf = color_input_tf;
         break;
     default:
@@ -234,23 +217,7 @@ static bool color_update_degamma_tf(struct vpe_priv *vpe_priv,
         break;
     }
 
-    if (!vpe_priv->init.debug.force_tf_calculation &&
-        x_scale.value == vpe_fixpt_one.value       &&
-        y_scale.value == vpe_fixpt_one.value       &&
-        y_bias.value  == vpe_fixpt_zero.value)
-        vpe_priv->resource.get_tf_pwl_params(input_tf, &params, CM_DEGAM);
-
-    if (params)
-        input_tf->use_pre_calculated_table = true;
-    else
-        input_tf->use_pre_calculated_table = false;
-
-    if (!input_tf->use_pre_calculated_table) {
-        vpe_color_calculate_degamma_params(vpe_priv,
-            x_scale,
-            y_scale,
-            input_tf);
-    }
+    ret = vpe_color_calculate_degamma_params(vpe_priv, x_scale, y_scale, input_tf);
 
     return ret;
 }
@@ -421,7 +388,7 @@ static enum vpe_status vpe_update_blnd_gamma(
     bool                     can_bypass    = false;
     bool                     lut3d_enabled = false;
     enum color_space         cs            = COLOR_SPACE_2020_RGB_FULLRANGE;
-    enum color_transfer_func tf            = TRANSFER_FUNC_LINEAR_0_1;
+    enum color_transfer_func tf            = TRANSFER_FUNC_LINEAR;
     enum vpe_status          status        = VPE_STATUS_OK;
 
     is_studio = (param->dst_surface.cs.range == VPE_COLOR_RANGE_STUDIO);
@@ -445,12 +412,15 @@ static enum vpe_status vpe_update_blnd_gamma(
     //If studio out -> No choice but to blend in NL
     if (!vpe_is_HDR(output_ctx->tf) || is_studio) {
         if (lut3d_enabled) {
-            tf = TRANSFER_FUNC_LINEAR_0_1;
+            tf = TRANSFER_FUNC_LINEAR;
         }
         else {
             tf = output_ctx->tf;
         }
 
+        if (vpe_is_fp16(param->dst_surface.format)) {
+            y_scale = vpe_fixpt_mul_int(y_scale, CCCS_NORM);
+        }
         color_update_regamma_tf(vpe_priv,
             tf,
             x_scale,
@@ -511,19 +481,19 @@ static enum vpe_status vpe_update_output_gamma(
     struct output_ctx *output_ctx = &vpe_priv->output_ctx;
     bool               is_studio  = (param->dst_surface.cs.range == VPE_COLOR_RANGE_STUDIO);
     enum vpe_status    status     = VPE_STATUS_OK;
+    struct fixed31_32  y_scale    = vpe_fixpt_one;
+
+    if (vpe_is_fp16(param->dst_surface.format)) {
+        y_scale = vpe_fixpt_mul_int(y_scale, CCCS_NORM);
+    }
 
     if (vpe_is_HDR(output_ctx->tf) && !is_studio)
         can_bypass = false; //Blending is done in linear light so ogam needs to handle the regam
     else
         can_bypass = true;
 
-    color_update_regamma_tf(vpe_priv,
-        output_ctx->tf,
-        vpe_fixpt_one,
-        vpe_fixpt_one,
-        vpe_fixpt_zero,
-        can_bypass,
-        output_tf);
+    color_update_regamma_tf(
+        vpe_priv, output_ctx->tf, vpe_fixpt_one, y_scale, vpe_fixpt_zero, can_bypass, output_tf);
 
     return status;
 }
@@ -673,6 +643,7 @@ enum vpe_status vpe_color_update_color_space_and_tf(
     struct fixed31_32  new_matrix_scaling_factor;
     struct output_ctx *output_ctx                = &vpe_priv->output_ctx;
     enum vpe_status    status                    = VPE_STATUS_OK;
+    struct fixed31_32 y_scale                    = vpe_fixpt_one;
 
     status = vpe_allocate_cm_memory(vpe_priv, param);
     if (status == VPE_STATUS_OK) {
@@ -710,9 +681,13 @@ enum vpe_status vpe_color_update_color_space_and_tf(
             }
 
             if (stream_ctx->dirty_bits.transfer_function) {
+                if (vpe_is_fp16(stream_ctx->stream.surface_info.format)) {
+                    y_scale = vpe_fixpt_div_int(y_scale, CCCS_NORM);
+                }
+
                 color_update_degamma_tf(vpe_priv, stream_ctx->tf,
                     vpe_priv->stream_ctx->tf_scaling_factor,
-                    vpe_fixpt_one,
+                    y_scale,
                     vpe_fixpt_zero,
                     stream_ctx->stream.tm_params.UID != 0 || stream_ctx->stream.tm_params.enable_3dlut, // By Pass degamma if 3DLUT is enabled
                     stream_ctx->input_tf);
@@ -776,7 +751,7 @@ enum vpe_status vpe_color_update_shaper(
     shaper_in.use_const_hdr_mult = false; // can't be true. Fix is required.
 
     shaper_func->type = TF_TYPE_HWPWL;
-    shaper_func->tf   = TRANSFER_FUNC_LINEAR_0_1;
+    shaper_func->tf   = TRANSFER_FUNC_LINEAR;
     return vpe_build_shaper(&shaper_in, &shaper_func->pwl);
 }
 
@@ -887,7 +862,7 @@ void vpe_color_get_color_space_and_tf(
         *tf = TRANSFER_FUNC_NORMALIZED_PQ;
         break;
     case VPE_TF_G10:
-        *tf = TRANSFER_FUNC_LINEAR_0_125;
+        *tf = TRANSFER_FUNC_LINEAR;
         break;
     case VPE_TF_SRGB:
         *tf = TRANSFER_FUNC_SRGB;
@@ -932,6 +907,10 @@ void vpe_color_get_color_space_and_tf(
         }
     } else {
         switch (vcs->primaries) {
+        case VPE_PRIMARIES_BT601:
+            *cs = colorRange == VPE_COLOR_RANGE_FULL ? COLOR_SPACE_YCBCR601
+                                                     : COLOR_SPACE_YCBCR601_LIMITED;
+            break;
         case VPE_PRIMARIES_BT709:
             if (vcs->tf == VPE_TF_G10) {
                 *cs = COLOR_SPACE_MSREF_SCRGB;
@@ -991,7 +970,7 @@ void vpe_convert_full_range_color_enum(enum color_space *cs)
 bool vpe_is_HDR(enum color_transfer_func tf)
 {
 
-    return (tf == TRANSFER_FUNC_PQ2084 || tf == TRANSFER_FUNC_LINEAR_0_125 || tf == TRANSFER_FUNC_HLG);
+    return (tf == TRANSFER_FUNC_PQ2084 || tf == TRANSFER_FUNC_HLG || tf == TRANSFER_FUNC_LINEAR);
 }
 
 /*

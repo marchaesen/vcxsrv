@@ -81,7 +81,6 @@ struct radv_queue_state {
 
 struct radv_queue {
    struct vk_queue vk;
-   struct radv_device *device;
    struct radeon_winsys_ctx *hw_ctx;
    enum radeon_ctx_priority priority;
    struct radv_queue_state state;
