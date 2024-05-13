@@ -23,10 +23,12 @@ CCFLAGS   += -c -GF -Gy -FS #-Wall
 LINK      ?= link /nologo
 LINKFLAGS += /INCREMENTAL:NO
 ifeq ($(IS64),1)
+AS=ml64
 LINKFLAGS += /MACHINE:X64
 OBJDIREXTRA=64
 SSLSUFFIX=64
 else
+AS=ml
 LINKFLAGS += /MACHINE:X86
 SSLSUFFIX=32
 endif
@@ -95,11 +97,19 @@ all: $(OBJDIR)
 
 ifeq ($(DEBUG),1)
 PTHREADLIB:=$(MHMAKECONF)\pthreads\libpthreadVC3d$(OBJDIREXTRA).lib
+ifeq ($(IS64),1)
 FREETYPELIB:=$(MHMAKECONF)\freetype\objs\x$(OBJDIREXTRA)\Debug\freetype.lib
+else
+FREETYPELIB:=$(MHMAKECONF)\freetype\objs\Win32\Debug\freetype.lib
+endif
 OPENSSLLIB:=$(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\debug$(SSLSUFFIX)\libcrypto.lib
 else
 PTHREADLIB:=$(MHMAKECONF)\pthreads\libpthreadVC3$(OBJDIREXTRA).lib
+ifeq ($(IS64),1)
 FREETYPELIB:=$(MHMAKECONF)\freetype\objs\x$(OBJDIREXTRA)\Release\freetype.lib
+else
+FREETYPELIB:=$(MHMAKECONF)\freetype\objs\Win32\Release\freetype.lib
+endif
 OPENSSLLIB:=$(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libssl.lib $(MHMAKECONF)\openssl\release$(SSLSUFFIX)\libcrypto.lib
 endif
 LIBXMLLIB:=$(MHMAKECONF)\libxml2\lib$(OBJDIREXTRA)\libxml2-2.lib

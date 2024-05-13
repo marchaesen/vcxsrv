@@ -373,7 +373,8 @@ UTIL_ALIGN_STACK
 static inline bool
 sse2_has_daz(void)
 {
-   alignas(16) struct {
+   struct __declspec(align(16))
+   {
       uint32_t pad1[7];
       uint32_t mxcsr_mask;
       uint32_t pad2[128-8];

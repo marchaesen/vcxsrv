@@ -127,7 +127,7 @@ $(OBJDIR)\%$(OBJEXT) : %.cpp
 	$(CC) $(CCFLAGS) /EHsc $(COMMONCFLAGS)
 
 $(OBJDIR)\%$(OBJEXT) : %.masm
-	ml64 /nologo /Zi /c /Cp /Cx /Fo $@ $<
+	$(AS) /nologo /Zi /c /Cp /Cx /Fo $@ $<
 
 $(OBJDIR)\%.res : %.rc
 	$(RC) $(RCFLAGS) $(RCDEFINES:%=-d "%") $(RCINCLUDES:%=-i %) -Fo$(relpath $@) $<
