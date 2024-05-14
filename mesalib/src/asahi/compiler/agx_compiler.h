@@ -309,15 +309,8 @@ typedef struct {
    /* Must be first */
    struct list_head link;
 
-   /* The sources list.
-    *
-    * As a special case to workaround ordering issues when translating phis, if
-    * nr_srcs == 0 and the opcode is PHI, holds a pointer to the NIR phi node.
-    */
-   union {
-      agx_index *src;
-      nir_phi_instr *phi;
-   };
+   /* The sources list. */
+   agx_index *src;
 
    /* Data flow */
    agx_index *dest;
@@ -347,7 +340,13 @@ typedef struct {
       enum agx_round round;
       enum agx_atomic_opc atomic_opc;
       enum agx_lod_mode lod_mode;
+      enum agx_simd_op simd_op;
       struct agx_block *target;
+
+      /* As a special case to workaround ordering issues when translating phis,
+       * if nr_srcs == 0 and the opcode is PHI, points to the NIR phi.
+       */
+      nir_phi_instr *phi;
    };
 
    /* For local access */
@@ -455,6 +454,11 @@ typedef struct {
 
    /* Has r0l been zeroed yet due to control flow? */
    bool any_cf;
+
+   /* Do we need r0h zero throughout the program to handle quad-divergent
+    * shuffle?
+    */
+   bool any_quad_divergent_shuffle;
 
    /* Number of nested control flow structures within the innermost loop. Since
     * NIR is just loop and if-else, this is the number of nested if-else
@@ -586,12 +590,23 @@ agx_start_block(agx_context *ctx)
    return first;
 }
 
+static inline agx_block *
+agx_end_block(agx_context *ctx)
+{
+   agx_block *last = list_last_entry(&ctx->blocks, agx_block, link);
+   assert(agx_num_successors(last) == 0);
+   return last;
+}
+
 void agx_block_add_successor(agx_block *block, agx_block *successor);
 
 /* Iterators for AGX IR */
 
 #define agx_foreach_block(ctx, v)                                              \
    list_for_each_entry(agx_block, v, &ctx->blocks, link)
+
+#define agx_foreach_block_safe(ctx, v)                                         \
+   list_for_each_entry_safe(agx_block, v, &ctx->blocks, link)
 
 #define agx_foreach_block_rev(ctx, v)                                          \
    list_for_each_entry_rev(agx_block, v, &ctx->blocks, link)
@@ -786,6 +801,18 @@ typedef struct {
    };
 } agx_cursor;
 
+static inline bool
+agx_cursors_equal(agx_cursor a, agx_cursor b)
+{
+   if (a.option != b.option)
+      return false;
+
+   if (a.option == agx_cursor_after_block)
+      return a.block == b.block;
+   else
+      return a.instr == b.instr;
+}
+
 static inline agx_cursor
 agx_after_block(agx_block *block)
 {
@@ -936,6 +963,7 @@ void agx_print_instr(const agx_instr *I, FILE *fp);
 void agx_print_block(const agx_block *block, FILE *fp);
 void agx_print_shader(const agx_context *ctx, FILE *fp);
 void agx_optimizer(agx_context *ctx);
+void agx_lower_divergent_shuffle(agx_context *ctx);
 void agx_lower_pseudo(agx_context *ctx);
 void agx_lower_spill(agx_context *ctx);
 void agx_lower_uniform_sources(agx_context *ctx);

@@ -350,7 +350,7 @@ static void si_emit_streamout_begin(struct si_context *sctx, unsigned index)
             radeon_emit(t[i]->b.buffer_offset >> 2); /* buffer offset in DW */
             radeon_emit(0);                          /* unused */
          }
-         radeon_end_update_context_roll(sctx);
+         radeon_end_update_context_roll();
       }
    }
 
@@ -406,7 +406,7 @@ void si_emit_streamout_end(struct si_context *sctx)
           * buffer bound. This ensures that the primitives-emitted query
           * won't increment. */
          radeon_set_context_reg(R_028AD0_VGT_STRMOUT_BUFFER_SIZE_0 + 16 * i, 0);
-         radeon_end_update_context_roll(sctx);
+         radeon_end_update_context_roll();
 
          radeon_add_to_buffer_list(sctx, &sctx->gfx_cs, t[i]->buf_filled_size,
                                    RADEON_USAGE_WRITE | RADEON_PRIO_SO_FILLED_SIZE);

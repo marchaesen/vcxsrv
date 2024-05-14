@@ -44,22 +44,6 @@ print_copies(const struct agx_copy *copies, unsigned nr)
  * suffices for its internal use for register allocation.
  */
 
-static agx_index
-scratch_slot(agx_context *ctx, enum agx_size size)
-{
-   /* Reserve scratch slots. scratch_size is in bytes, spill_pcopy_base and
-    * agx_memory_register are in memory registers (16-bit elements).
-    */
-   if (!ctx->has_spill_pcopy_reserved) {
-      ctx->scratch_size = align(ctx->scratch_size, 16);
-      ctx->spill_pcopy_base = ctx->scratch_size / 2;
-      ctx->scratch_size += 8;
-      ctx->has_spill_pcopy_reserved = true;
-   }
-
-   return agx_memory_register(ctx->spill_pcopy_base, size);
-}
-
 static void
 do_copy(agx_builder *b, const struct agx_copy *copy)
 {
@@ -69,16 +53,11 @@ do_copy(agx_builder *b, const struct agx_copy *copy)
 
    if (copy->dest_mem && copy->src.memory) {
       /* Memory-memory copies need to be lowered to memory-register and
-       * register-memory, spilling a GPR to an auxiliary memory slot. This
-       * avoids needing reserving a scratch register for this edge case.
+       * register-memory, using a reserved scratch register.
        */
-      agx_index scratch_reg = agx_register(0, copy->src.size);
-      agx_index scratch_mem = scratch_slot(b->shader, copy->src.size);
-
-      agx_mov_to(b, scratch_mem, scratch_reg);
+      agx_index scratch_reg = agx_register(2, copy->src.size);
       agx_mov_to(b, scratch_reg, copy->src);
       agx_mov_to(b, dst, scratch_reg);
-      agx_mov_to(b, scratch_reg, scratch_mem);
    } else if (copy->src.type == AGX_INDEX_IMMEDIATE) {
       agx_mov_imm_to(b, dst, copy->src.value);
    } else {
@@ -119,21 +98,13 @@ do_swap(agx_builder *b, const struct agx_copy *copy)
    /* Memory-memory swaps need to be lowered */
    assert(x.memory == y.memory);
    if (x.memory) {
-      agx_index temp1 = agx_register(0, copy->src.size);
-      agx_index temp2 =
-         agx_register(agx_size_align_16(copy->src.size), copy->src.size);
+      agx_index temp1 = agx_register(4, copy->src.size);
+      agx_index temp2 = agx_register(6, copy->src.size);
 
-      agx_index scratch_reg2 = agx_register(0, copy->src.size);
-      agx_index scratch_mem2 = scratch_slot(b->shader, copy->src.size);
-      scratch_reg2.channels_m1++;
-      scratch_mem2.channels_m1++;
-
-      agx_mov_to(b, scratch_mem2, scratch_reg2);
       agx_mov_to(b, temp1, x);
       agx_mov_to(b, temp2, y);
       agx_mov_to(b, y, temp1);
       agx_mov_to(b, x, temp2);
-      agx_mov_to(b, scratch_reg2, scratch_mem2);
       return;
    }
 

@@ -29,13 +29,6 @@ agx_bucket(struct agx_device *dev, unsigned size)
    return &dev->bo_cache.buckets[agx_bucket_index(size)];
 }
 
-static bool
-agx_bo_wait(struct agx_bo *bo, int64_t timeout_ns)
-{
-   /* TODO: When we allow parallelism we'll need to implement this for real */
-   return true;
-}
-
 static void
 agx_bo_cache_remove_locked(struct agx_device *dev, struct agx_bo *bo)
 {
@@ -69,11 +62,6 @@ agx_bo_cache_fetch(struct agx_device *dev, size_t size, size_t align,
 
       if (align > entry->align)
          continue;
-
-      /* If the oldest BO in the cache is busy, likely so is
-       * everything newer, so bail. */
-      if (!agx_bo_wait(entry, dontwait ? 0 : INT64_MAX))
-         break;
 
       /* This one works, use it */
       agx_bo_cache_remove_locked(dev, entry);

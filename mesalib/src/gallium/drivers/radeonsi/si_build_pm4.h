@@ -36,7 +36,7 @@
 #define radeon_emit(value)  __cs_buf[__cs_num++] = (value)
 #define radeon_packets_added()  (__cs_num != __cs_num_initial)
 
-#define radeon_end_update_context_roll(_unused) do { \
+#define radeon_end_update_context_roll() do { \
    radeon_end(); \
    if (radeon_packets_added()) \
       sctx->context_roll = true; \
@@ -202,35 +202,34 @@
    radeon_set_reg(reg, 0, value, SI_CONFIG, PKT3_SET_CONFIG_REG)
 
 /* Packet building helpers for CONTEXT registers. */
-/* TODO: Remove the _unused parameters everywhere. */
 #define radeon_set_context_reg_seq(reg, num) \
    radeon_set_reg_seq(reg, num, 0, SI_CONTEXT, PKT3_SET_CONTEXT_REG, 0)
 
 #define radeon_set_context_reg(reg, value) \
    radeon_set_reg(reg, 0, value, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg(_unused, reg, reg_enum, value) \
+#define radeon_opt_set_context_reg(reg, reg_enum, value) \
    radeon_opt_set_reg(reg, reg_enum, 0, value, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg_idx(_unused, reg, reg_enum, idx, value) \
+#define radeon_opt_set_context_reg_idx(reg, reg_enum, idx, value) \
    radeon_opt_set_reg(reg, reg_enum, idx, value, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg2(_unused, reg, reg_enum, v1, v2) \
+#define radeon_opt_set_context_reg2(reg, reg_enum, v1, v2) \
    radeon_opt_set_reg2(reg, reg_enum, v1, v2, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg3(_unused, reg, reg_enum, v1, v2, v3) \
+#define radeon_opt_set_context_reg3(reg, reg_enum, v1, v2, v3) \
    radeon_opt_set_reg3(reg, reg_enum, v1, v2, v3, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg4(_unused, reg, reg_enum, v1, v2, v3, v4) \
+#define radeon_opt_set_context_reg4(reg, reg_enum, v1, v2, v3, v4) \
    radeon_opt_set_reg4(reg, reg_enum, v1, v2, v3, v4, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_reg5(_unused, reg, reg_enum, v1, v2, v3, v4, v5) \
+#define radeon_opt_set_context_reg5(reg, reg_enum, v1, v2, v3, v4, v5) \
    radeon_opt_set_reg5(reg, reg_enum, v1, v2, v3, v4, v5, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
 #define radeon_opt_set_context_reg6(reg, reg_enum, v1, v2, v3, v4, v5, v6) \
    radeon_opt_set_reg6(reg, reg_enum, v1, v2, v3, v4, v5, v6, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
-#define radeon_opt_set_context_regn(_unused, reg, values, saved_values, num) \
+#define radeon_opt_set_context_regn(reg, values, saved_values, num) \
    radeon_opt_set_regn(reg, values, saved_values, num, SI_CONTEXT, PKT3_SET_CONTEXT_REG)
 
 /* Packet building helpers for SH registers. */
@@ -240,28 +239,28 @@
 #define radeon_set_sh_reg(reg, value) \
    radeon_set_reg(reg, 0, value, SI_SH, PKT3_SET_SH_REG)
 
-#define radeon_opt_set_sh_reg(_unused, reg, reg_enum, value) \
+#define radeon_opt_set_sh_reg(reg, reg_enum, value) \
    radeon_opt_set_reg(reg, reg_enum, 0, value, SI_SH, PKT3_SET_SH_REG)
 
-#define radeon_opt_set_sh_reg2(_unused, reg, reg_enum, v1, v2) \
+#define radeon_opt_set_sh_reg2(reg, reg_enum, v1, v2) \
    radeon_opt_set_reg2(reg, reg_enum, v1, v2, SI_SH, PKT3_SET_SH_REG)
 
-#define radeon_opt_set_sh_reg3(_unused, reg, reg_enum, v1, v2, v3) \
+#define radeon_opt_set_sh_reg3(reg, reg_enum, v1, v2, v3) \
    radeon_opt_set_reg3(reg, reg_enum, v1, v2, v3, SI_SH, PKT3_SET_SH_REG)
 
-#define radeon_opt_set_sh_reg_idx(_unused, reg, reg_enum, idx, value) do { \
+#define radeon_opt_set_sh_reg_idx(reg, reg_enum, idx, value) do { \
    assert(sctx->gfx_level >= GFX10); \
    radeon_opt_set_reg(reg, reg_enum, idx, value, SI_SH, PKT3_SET_SH_REG_INDEX); \
 } while (0)
 
-#define radeon_emit_32bit_pointer(_unused, va) do { \
+#define radeon_emit_32bit_pointer(va) do { \
    assert((va) == 0 || ((va) >> 32) == sctx->screen->info.address32_hi); \
    radeon_emit(va); \
 } while (0)
 
-#define radeon_emit_one_32bit_pointer(_unused, desc, sh_base) do { \
+#define radeon_emit_one_32bit_pointer(desc, sh_base) do { \
    radeon_set_sh_reg_seq((sh_base) + (desc)->shader_userdata_offset, 1); \
-   radeon_emit_32bit_pointer(_unused, (desc)->gpu_address); \
+   radeon_emit_32bit_pointer((desc)->gpu_address); \
 } while (0)
 
 /* Packet building helpers for UCONFIG registers. */
@@ -276,17 +275,17 @@
 #define radeon_set_uconfig_reg(reg, value) \
    radeon_set_reg(reg, 0, value, CIK_UCONFIG, PKT3_SET_UCONFIG_REG)
 
-#define radeon_opt_set_uconfig_reg(_unused, reg, reg_enum, value) \
+#define radeon_opt_set_uconfig_reg(reg, reg_enum, value) \
    radeon_opt_set_reg(reg, reg_enum, 0, value, CIK_UCONFIG, PKT3_SET_UCONFIG_REG)
 
 #define RESOLVE_PKT3_SET_UCONFIG_REG_INDEX \
    (GFX_VERSION >= GFX10 || (GFX_VERSION == GFX9 && sctx->screen->info.me_fw_version >= 26) ? \
     PKT3_SET_UCONFIG_REG_INDEX : PKT3_SET_UCONFIG_REG)
 
-#define radeon_set_uconfig_reg_idx(_unused, _unused2, reg, idx, value) \
+#define radeon_set_uconfig_reg_idx(reg, idx, value) \
    radeon_set_reg(reg, idx, value, CIK_UCONFIG, RESOLVE_PKT3_SET_UCONFIG_REG_INDEX)
 
-#define radeon_opt_set_uconfig_reg_idx(_unused, _unused2, reg, reg_enum, idx, value) \
+#define radeon_opt_set_uconfig_reg_idx(reg, reg_enum, idx, value) \
    radeon_opt_set_reg(reg, reg_enum, idx, value, CIK_UCONFIG, RESOLVE_PKT3_SET_UCONFIG_REG_INDEX)
 
 #define radeon_set_privileged_config_reg(reg, value) do { \

@@ -10,11 +10,11 @@ use mesa_rust_util::static_assert;
 use rusticl_opencl_gen::*;
 
 use std::collections::HashSet;
+use std::mem;
 use std::sync::Arc;
 use std::sync::Condvar;
 use std::sync::Mutex;
 use std::sync::MutexGuard;
-use std::sync::Weak;
 use std::time::Duration;
 
 // we assert that those are a continous range of numbers so we won't have to use HashMaps
@@ -48,8 +48,7 @@ pub struct Event {
     pub context: Arc<Context>,
     pub queue: Option<Arc<Queue>>,
     pub cmd_type: cl_command_type,
-    // using a Weak ref so we don't cause stack overflows in the `drop` impl
-    pub deps: Vec<Weak<Event>>,
+    pub deps: Vec<Arc<Event>>,
     state: Mutex<EventMutState>,
     cv: Condvar,
 }
@@ -63,7 +62,6 @@ impl Event {
         deps: Vec<Arc<Event>>,
         work: EventSig,
     ) -> Arc<Event> {
-        let deps = deps.iter().map(Arc::downgrade).collect();
         Arc::new(Self {
             base: CLObjectBase::new(RusticlTypes::Event),
             context: queue.context.clone(),
@@ -231,18 +229,14 @@ impl Event {
         }
     }
 
-    pub fn deps(&self) -> impl Iterator<Item = Arc<Self>> + Clone + '_ {
-        self.deps.iter().filter_map(Weak::upgrade)
-    }
-
-    fn deep_unflushed_deps_impl(self: &Arc<Self>, result: &mut HashSet<Arc<Event>>) {
+    fn deep_unflushed_deps_impl<'a>(&'a self, result: &mut HashSet<&'a Event>) {
         if self.status() <= CL_SUBMITTED as i32 {
             return;
         }
 
         // only scan dependencies if it's a new one
-        if result.insert(Arc::clone(self)) {
-            for e in self.deps() {
+        if result.insert(self) {
+            for e in &self.deps {
                 e.deep_unflushed_deps_impl(result);
             }
         }
@@ -250,7 +244,7 @@ impl Event {
 
     /// does a deep search and returns a list of all dependencies including `events` which haven't
     /// been flushed out yet
-    pub fn deep_unflushed_deps(events: &[Arc<Event>]) -> HashSet<Arc<Event>> {
+    pub fn deep_unflushed_deps(events: &[Arc<Event>]) -> HashSet<&Event> {
         let mut result = HashSet::new();
 
         for e in events {
@@ -266,6 +260,27 @@ impl Event {
             .iter()
             .filter_map(|e| e.queue.clone())
             .collect()
+    }
+}
+
+impl Drop for Event {
+    // implement drop in order to prevent stack overflows of long dependency chains.
+    //
+    // This abuses the fact that `Arc::into_inner` only succeeds when there is one strong reference
+    // so we turn a recursive drop chain into a drop list for events having no other references.
+    fn drop(&mut self) {
+        if self.deps.is_empty() {
+            return;
+        }
+
+        let mut deps_list = vec![mem::take(&mut self.deps)];
+        while let Some(deps) = deps_list.pop() {
+            for dep in deps {
+                if let Some(mut dep) = Arc::into_inner(dep) {
+                    deps_list.push(mem::take(&mut dep.deps));
+                }
+            }
+        }
     }
 }
 

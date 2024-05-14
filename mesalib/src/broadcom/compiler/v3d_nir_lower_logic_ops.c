@@ -211,9 +211,10 @@ v3d_nir_get_tlb_color(nir_builder *b, struct v3d_compile *c, int rt, int sample)
         for (int i = 0; i < 4; i++) {
                 if (i < num_components) {
                         color[i] =
-                                nir_load_tlb_color_v3d(b, 1, 32, nir_imm_int(b, rt),
-                                                       .base = sample,
-                                                       .component = i);
+                                nir_load_tlb_color_brcm(b, 1, 32,
+                                                        nir_imm_int(b, rt),
+                                                        .base = sample,
+                                                        .component = i);
                 } else {
                         /* These will be DCEd */
                         color[i] = nir_imm_int(b, 0);

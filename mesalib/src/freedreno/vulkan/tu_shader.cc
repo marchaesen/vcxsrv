@@ -542,6 +542,12 @@ lower_tex_ycbcr(const struct tu_pipeline_layout *layout,
    if (ycbcr_sampler->ycbcr_model == VK_SAMPLER_YCBCR_MODEL_CONVERSION_RGB_IDENTITY)
       return;
 
+   /* Skip if not actually a YCbCr format.  CtsGraphics, for example, tries to create
+    * YcbcrConversions for RGB formats.
+    */
+   if (!vk_format_get_ycbcr_info(ycbcr_sampler->format))
+      return;
+
    builder->cursor = nir_after_instr(&tex->instr);
 
    uint8_t bits = vk_format_get_component_bits(ycbcr_sampler->format,

@@ -190,8 +190,10 @@ TEST_F(Optimizer, Copyprop)
 TEST_F(Optimizer, InlineHazards)
 {
    NEGCASE32({
+      agx_index zero = agx_mov_imm(b, AGX_SIZE_32, 0);
       agx_instr *I = agx_collect_to(b, out, 4);
-      I->src[0] = agx_mov_imm(b, AGX_SIZE_32, 0);
+
+      I->src[0] = zero;
       I->src[1] = wy;
       I->src[2] = wz;
       I->src[3] = wz;

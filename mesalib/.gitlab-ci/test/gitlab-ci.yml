@@ -123,31 +123,17 @@ python-test:
     paths:
       - results/
 
-.vkd3d-proton-test:
+.b2c-vkd3d-proton-test:
   artifacts:
     when: on_failure
     name: "mesa_${CI_JOB_NAME}"
     paths:
       - results/vkd3d-proton.log
-  script:
-    - ./install/vkd3d-proton/run.sh
-
-.piglit-test:
-  artifacts:
-    name: "mesa_${CI_JOB_NAME}"
-    paths:
-      - results
-    reports:
-      junit: results/junit.xml
   variables:
-    PIGLIT_NO_WINDOW: 1
-    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
-  script:
-    - install/piglit/piglit-runner.sh
+    HWCI_TEST_SCRIPT: ./install/vkd3d-proton/run.sh
+    B2C_JOB_SUCCESS_REGEX: 'vkd3d-proton execution: SUCCESS\r$'
 
 .piglit-traces-test:
-  extends:
-    - .piglit-test
   artifacts:
     when: on_failure
     name: "mesa_${CI_JOB_NAME}"
@@ -158,9 +144,11 @@ python-test:
     exclude:
       - results/*.shader_cache
   variables:
-    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=${S3_TRACIE_PUBLIC_BUCKET} --jwt-file=${S3_JWT_FILE}
     # until we overcome Infrastructure issues, give traces extra 5 min before timeout
     DEVICE_HANGING_TIMEOUT_SEC: 600
+    PIGLIT_REPLAY_EXTRA_ARGS: --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=${S3_TRACIE_PUBLIC_BUCKET} --jwt-file=${S3_JWT_FILE}
+    PIGLIT_NO_WINDOW: 1
+    HWCI_TEST_SCRIPT: "/install/piglit/piglit-runner.sh"
   script:
     - section_start variables "Variables passed through:"
     - install/common/generate-env.sh

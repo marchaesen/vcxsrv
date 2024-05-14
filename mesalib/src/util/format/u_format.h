@@ -554,6 +554,12 @@ static inline bool
 util_format_is_srgb(enum pipe_format format)
 {
    const struct util_format_description *desc = util_format_description(format);
+
+   assert(desc);
+   if (!desc) {
+      return false;
+   }
+
    return desc->colorspace == UTIL_FORMAT_COLORSPACE_SRGB;
 }
 

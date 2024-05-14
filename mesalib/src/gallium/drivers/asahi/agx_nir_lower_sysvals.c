@@ -192,9 +192,15 @@ lower_intrinsic(nir_builder *b, nir_intrinsic_instr *intr,
       return load_sysval_root(b, 1, 16, &u->no_epilog_discard);
    case nir_intrinsic_load_clip_z_coeff_agx:
       return nir_f2f32(b, load_sysval_root(b, 1, 16, &u->clip_z_coeff));
+   case nir_intrinsic_load_depth_never_agx:
+      /* TODO: Do we need this workaround for anything in GL? */
+      return nir_imm_intN_t(b, 0, 16);
    case nir_intrinsic_load_uvs_index_agx:
       return load_sysval_root(
          b, 1, 16, &u->uvs_index[nir_intrinsic_io_semantics(intr).location]);
+   case nir_intrinsic_load_is_first_fan_agx:
+      /* TODO: Plumb this so we can stop using geometry shaders for this case */
+      return nir_imm_false(b);
    default:
       break;
    }
@@ -372,45 +378,41 @@ lay_out_uniforms(struct agx_compiled_shader *shader, struct state *state)
          DIV_ROUND_UP(BITSET_LAST_BIT(shader->attrib_components_read), 4);
 
       struct agx_draw_uniforms *u = NULL;
-      shader->push[shader->push_range_count++] = (struct agx_push_range){
-         .uniform = 0,
-         .table = AGX_SYSVAL_TABLE_ROOT,
-         .offset = (uintptr_t)&u->attrib_base,
-         .length = 4 * count,
-      };
 
-      shader->push[shader->push_range_count++] = (struct agx_push_range){
-         .uniform = 4 * count,
-         .table = AGX_SYSVAL_TABLE_ROOT,
-         .offset = (uintptr_t)&u->attrib_clamp,
-         .length = 2 * count,
-      };
+      if (count) {
+         shader->push[shader->push_range_count++] = (struct agx_push_range){
+            .uniform = 0,
+            .table = AGX_SYSVAL_TABLE_ROOT,
+            .offset = (uintptr_t)&u->attrib_base,
+            .length = 4 * count,
+         };
+
+         shader->push[shader->push_range_count++] = (struct agx_push_range){
+            .uniform = 4 * count,
+            .table = AGX_SYSVAL_TABLE_ROOT,
+            .offset = (uintptr_t)&u->attrib_clamp,
+            .length = 2 * count,
+         };
+      }
 
       shader->push[shader->push_range_count++] = (struct agx_push_range){
          .uniform = 6 * count,
          .table = AGX_SYSVAL_TABLE_PARAMS,
-         .offset = 4,
-         .length = 2,
+         .offset = 0,
+         .length = 4,
       };
 
-      uniform = (6 * count) + 2;
+      uniform = (6 * count) + 4;
 
       if (state->hw_stage == PIPE_SHADER_COMPUTE) {
          shader->push[shader->push_range_count++] = (struct agx_push_range){
-            .uniform = (6 * count) + 2,
-            .table = AGX_SYSVAL_TABLE_PARAMS,
-            .offset = 0,
-            .length = 2,
-         };
-
-         shader->push[shader->push_range_count++] = (struct agx_push_range){
-            .uniform = (6 * count) + 4,
+            .uniform = (6 * count) + 8,
             .table = AGX_SYSVAL_TABLE_ROOT,
             .offset = (uintptr_t)&u->input_assembly,
             .length = 4,
          };
 
-         uniform = (6 * count) + 8;
+         uniform = (6 * count) + 12;
       }
    } else if (state->stage == PIPE_SHADER_FRAGMENT) {
       struct agx_draw_uniforms *u = NULL;

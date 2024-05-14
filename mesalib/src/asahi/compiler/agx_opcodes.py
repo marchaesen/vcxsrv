@@ -168,6 +168,21 @@ INTERPOLATION = enum("interpolation", {
     3: 'sample_register',
 })
 
+SIMD_OP = enum("simd_op", {
+    0b00000: 'and',
+    0b00001: 'fadd',
+    0b00010: 'or',
+    0b00011: 'fmul',
+    0b00100: 'xor',
+    0b00101: 'fmin',
+    0b00111: 'fmax',
+    0b10000: 'iadd',
+    0b10100: 'smin',
+    0b10110: 'smax',
+    0b11100: 'umin',
+    0b11110: 'umax',
+})
+
 FUNOP = lambda x: (x << 28)
 FUNOP_MASK = FUNOP((1 << 14) - 1)
 
@@ -246,21 +261,24 @@ op("asr",
       encoding_32 = (0x2E | L | (0x1 << 26), 0x7F | L | (0x3 << 26), 8, _),
       srcs = 2)
 
-def subgroup_op(name, op1, op2):
-    exact      = 0b01101111 | L | (op1 << 47) | (op2 << 26)
-    exact_mask = 0b11111111 | L | (1   << 47) | (0xFFFF << 26)
+def subgroup_op(name, opc):
+    exact      = 0b01101111 | L | (opc << 29)
+    exact_mask = 0b11111111 | L | (0x3 << 29)
 
-    op(name, encoding_32 = (exact, exact_mask, 6, _), srcs = 1)
+    op(name, encoding_32 = (exact, exact_mask, 6, _), srcs = 1, imms = [SIMD_OP])
 
-subgroup_op("simd_prefix_iadd", 1, 0b0000000000011000)
-subgroup_op("simd_iadd", 1, 0b0000000000001000)
-
-op("simd_shuffle",
-    encoding_32 = (0b01101111 | (1 << 26),
-                   0xFF | L | (1 << 47) | (3 << 38) | (3 << 26), 6, _),
-    srcs = 2)
+subgroup_op("quad_reduce", 0x0)
+subgroup_op("simd_reduce", 0x1)
+subgroup_op("quad_prefix", 0x2)
+subgroup_op("simd_prefix", 0x3)
 
 for window, w_bit in [('quad_', 0), ('', 1)]:
+    for s, shuffle in enumerate(['', '_xor', '_up', '_down']):
+        op(f"{window}shuffle{shuffle}",
+            encoding_32 = (0b01101111 | (w_bit << 26) | (s << 38),
+                           0xFF | L | (1 << 47) | (3 << 38) | (3 << 26), 6, _),
+            srcs = 2)
+
     # Pseudo-instruction ballotting a boolean
     op(f"{window}ballot", _, srcs = 1)
 

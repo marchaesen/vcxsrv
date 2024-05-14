@@ -12,6 +12,8 @@
 
 #include "tu_common.h"
 
+#define TU_MAX_PLANE_COUNT 3
+
 #define tu_image_view_stencil(iview, x) \
    ((iview->view.x & ~A6XX_##x##_COLOR_FORMAT__MASK) | A6XX_##x##_COLOR_FORMAT(FMT6_8_UINT))
 
@@ -25,11 +27,6 @@ struct tu_image
    struct fdl_layout layout[3];
    uint64_t total_size;
 
-#if DETECT_OS_ANDROID
-   /* For VK_ANDROID_native_buffer, the WSI image owns the memory, */
-   VkDeviceMemory owned_memory;
-#endif
-
    /* Set when bound */
    struct tu_bo *bo;
    uint64_t iova;
@@ -42,6 +39,9 @@ struct tu_image
    uint32_t lrz_offset;
    uint32_t lrz_fc_offset;
    uint32_t lrz_fc_size;
+
+   bool ubwc_enabled;
+   bool force_linear_tile;
 };
 VK_DEFINE_NONDISP_HANDLE_CASTS(tu_image, vk.base, VkImage, VK_OBJECT_TYPE_IMAGE)
 
@@ -131,5 +131,9 @@ tu_fragment_density_map_sample(const struct tu_image_view *fdm,
                                uint32_t x, uint32_t y,
                                uint32_t width, uint32_t height,
                                uint32_t layers, struct tu_frag_area *areas);
+
+VkResult
+tu_image_update_layout(struct tu_device *device, struct tu_image *image,
+                       uint64_t modifier, const VkSubresourceLayout *plane_layouts);
 
 #endif /* TU_IMAGE_H */

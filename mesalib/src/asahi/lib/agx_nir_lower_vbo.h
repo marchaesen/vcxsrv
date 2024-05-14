@@ -21,13 +21,16 @@ extern "C" {
  * be small so it can be embedded into a shader key.
  */
 struct agx_attribute {
+   /* If instanced, Zero means all get the same value (Vulkan semantics). */
    uint32_t divisor;
    uint32_t stride;
    uint16_t src_offset;
-   uint8_t buf;
 
    /* pipe_format, all vertex formats should be <= 255 */
    uint8_t format;
+
+   unsigned buf   : 7;
+   bool instanced : 1;
 };
 
 bool agx_nir_lower_vbo(nir_shader *shader, struct agx_attribute *attribs);

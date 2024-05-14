@@ -247,6 +247,13 @@ struct fd_dev_info {
        * fully compatible.
        */
       bool ubwc_unorm_snorm_int_compatible;
+
+      /* Blob doesn't use hw binning with GS on all a6xx and a7xx, however
+       * in Turnip it worked without issues until a750. On a750 there are CTS
+       * failures when e.g. dEQP-VK.subgroups.arithmetic.framebuffer.* in
+       * parallel with "forcebin". It is exacerbated by using "syncdraw".
+       */
+      bool no_gs_hw_binning_quirk;
    } a7xx;
 };
 

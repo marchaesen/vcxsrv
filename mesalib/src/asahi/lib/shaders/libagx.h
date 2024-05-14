@@ -44,6 +44,12 @@ uint ballot(bool cond);
 #define AGX_STATIC_ASSERT(_COND)                                               \
    typedef char static_assertion_##__line__[(_COND) ? 1 : -1]
 
+static inline uint
+align(uint x, uint y)
+{
+   return (x + y - 1) & ~(y - 1);
+}
+
 #endif
 
 #endif

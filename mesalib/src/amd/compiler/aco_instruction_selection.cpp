@@ -12076,11 +12076,6 @@ unsigned
 load_vb_descs(Builder& bld, PhysReg dest, Operand base, unsigned start, unsigned max)
 {
    unsigned count = MIN2((bld.program->dev.sgpr_limit - dest.reg()) / 4u, max);
-
-   unsigned num_loads = (count / 4u) + util_bitcount(count & 0x3);
-   if (bld.program->gfx_level >= GFX10 && num_loads > 1)
-      bld.sopp(aco_opcode::s_clause, num_loads - 1);
-
    for (unsigned i = 0; i < count;) {
       unsigned size = 1u << util_logbase2(MIN2(count - i, 4));
 
@@ -12364,6 +12359,193 @@ get_next_vgpr(unsigned size, unsigned* num, int *offset = NULL)
    return PhysReg(256 + reg);
 }
 
+struct UnalignedVsAttribLoad {
+   /* dst/scratch are PhysReg converted to unsigned */
+   unsigned dst;
+   unsigned scratch;
+   bool d16;
+   const struct ac_vtx_format_info* vtx_info;
+};
+
+struct UnalignedVsAttribLoadState {
+   unsigned max_vgprs;
+   unsigned initial_num_vgprs;
+   unsigned* num_vgprs;
+   unsigned overflow_num_vgprs;
+   aco::small_vec<UnalignedVsAttribLoad, 16> current_loads;
+};
+
+void
+convert_unaligned_vs_attrib(Builder& bld, UnalignedVsAttribLoad load)
+{
+   PhysReg dst(load.dst);
+   PhysReg scratch(load.scratch);
+   const struct ac_vtx_format_info* vtx_info = load.vtx_info;
+   unsigned dfmt = vtx_info->hw_format[0] & 0xf;
+   unsigned nfmt = vtx_info->hw_format[0] >> 4;
+
+   unsigned size = vtx_info->chan_byte_size ? vtx_info->chan_byte_size : vtx_info->element_size;
+   if (load.d16) {
+      bld.vop3(aco_opcode::v_lshl_or_b32, Definition(dst, v1), Operand(scratch, v1),
+               Operand::c32(8), Operand(dst, v1));
+   } else {
+      for (unsigned i = 1; i < size; i++) {
+         PhysReg byte_reg = scratch.advance(i * 4 - 4);
+         if (bld.program->gfx_level >= GFX9) {
+            bld.vop3(aco_opcode::v_lshl_or_b32, Definition(dst, v1), Operand(byte_reg, v1),
+                     Operand::c32(i * 8), Operand(dst, v1));
+         } else {
+            bld.vop2(aco_opcode::v_lshlrev_b32, Definition(byte_reg, v1), Operand::c32(i * 8),
+                     Operand(byte_reg, v1));
+            bld.vop2(aco_opcode::v_or_b32, Definition(dst, v1), Operand(dst, v1),
+                     Operand(byte_reg, v1));
+         }
+      }
+   }
+
+   unsigned num_channels = vtx_info->chan_byte_size ? 1 : vtx_info->num_channels;
+   PhysReg chan[4] = {dst, dst.advance(4), dst.advance(8), dst.advance(12)};
+
+   if (dfmt == V_008F0C_BUF_DATA_FORMAT_10_11_11) {
+      bld.vop3(aco_opcode::v_bfe_u32, Definition(chan[2], v1), Operand(dst, v1), Operand::c32(22),
+               Operand::c32(10));
+      bld.vop3(aco_opcode::v_bfe_u32, Definition(chan[1], v1), Operand(dst, v1), Operand::c32(11),
+               Operand::c32(11));
+      bld.vop3(aco_opcode::v_bfe_u32, Definition(chan[0], v1), Operand(dst, v1), Operand::c32(0),
+               Operand::c32(11));
+      bld.vop2(aco_opcode::v_lshlrev_b32, Definition(chan[2], v1), Operand::c32(5),
+               Operand(chan[2], v1));
+      bld.vop2(aco_opcode::v_lshlrev_b32, Definition(chan[1], v1), Operand::c32(4),
+               Operand(chan[1], v1));
+      bld.vop2(aco_opcode::v_lshlrev_b32, Definition(chan[0], v1), Operand::c32(4),
+               Operand(chan[0], v1));
+   } else if (dfmt == V_008F0C_BUF_DATA_FORMAT_2_10_10_10) {
+      aco_opcode bfe = aco_opcode::v_bfe_u32;
+      switch (nfmt) {
+      case V_008F0C_BUF_NUM_FORMAT_SNORM:
+      case V_008F0C_BUF_NUM_FORMAT_SSCALED:
+      case V_008F0C_BUF_NUM_FORMAT_SINT: bfe = aco_opcode::v_bfe_i32; break;
+      default: break;
+      }
+
+      bool swapxz = G_008F0C_DST_SEL_X(vtx_info->dst_sel) != V_008F0C_SQ_SEL_X;
+      bld.vop3(bfe, Definition(chan[3], v1), Operand(dst, v1), Operand::c32(30), Operand::c32(2));
+      bld.vop3(bfe, Definition(chan[2], v1), Operand(dst, v1), Operand::c32(swapxz ? 0 : 20),
+               Operand::c32(10));
+      bld.vop3(bfe, Definition(chan[1], v1), Operand(dst, v1), Operand::c32(10), Operand::c32(10));
+      bld.vop3(bfe, Definition(chan[0], v1), Operand(dst, v1), Operand::c32(swapxz ? 20 : 0),
+               Operand::c32(10));
+   } else if (dfmt == V_008F0C_BUF_DATA_FORMAT_8 || dfmt == V_008F0C_BUF_DATA_FORMAT_16) {
+      unsigned bits = dfmt == V_008F0C_BUF_DATA_FORMAT_8 ? 8 : 16;
+      switch (nfmt) {
+      case V_008F0C_BUF_NUM_FORMAT_SNORM:
+      case V_008F0C_BUF_NUM_FORMAT_SSCALED:
+      case V_008F0C_BUF_NUM_FORMAT_SINT:
+         bld.vop3(aco_opcode::v_bfe_i32, Definition(dst, v1), Operand(dst, v1), Operand::c32(0),
+                  Operand::c32(bits));
+         break;
+      default: break;
+      }
+   }
+
+   if (nfmt == V_008F0C_BUF_NUM_FORMAT_FLOAT &&
+       (dfmt == V_008F0C_BUF_DATA_FORMAT_16 || dfmt == V_008F0C_BUF_DATA_FORMAT_10_11_11)) {
+      for (unsigned i = 0; i < num_channels; i++)
+         bld.vop1(aco_opcode::v_cvt_f32_f16, Definition(chan[i], v1), Operand(chan[i], v1));
+   } else if (nfmt == V_008F0C_BUF_NUM_FORMAT_USCALED || nfmt == V_008F0C_BUF_NUM_FORMAT_UNORM) {
+      for (unsigned i = 0; i < num_channels; i++)
+         bld.vop1(aco_opcode::v_cvt_f32_u32, Definition(chan[i], v1), Operand(chan[i], v1));
+   } else if (nfmt == V_008F0C_BUF_NUM_FORMAT_SSCALED || nfmt == V_008F0C_BUF_NUM_FORMAT_SNORM) {
+      for (unsigned i = 0; i < num_channels; i++)
+         bld.vop1(aco_opcode::v_cvt_f32_i32, Definition(chan[i], v1), Operand(chan[i], v1));
+   }
+
+   std::array<unsigned, 4> chan_max;
+   switch (dfmt) {
+   case V_008F0C_BUF_DATA_FORMAT_2_10_10_10: chan_max = {1023, 1023, 1023, 3}; break;
+   case V_008F0C_BUF_DATA_FORMAT_8: chan_max = {255, 255, 255, 255}; break;
+   case V_008F0C_BUF_DATA_FORMAT_16: chan_max = {65535, 65535, 65535, 65535}; break;
+   }
+
+   if (nfmt == V_008F0C_BUF_NUM_FORMAT_UNORM) {
+      for (unsigned i = 0; i < num_channels; i++)
+         bld.vop2(aco_opcode::v_mul_f32, Definition(chan[i], v1),
+                  Operand::c32(fui(1.0 / chan_max[i])), Operand(chan[i], v1));
+   } else if (nfmt == V_008F0C_BUF_NUM_FORMAT_SNORM) {
+      for (unsigned i = 0; i < num_channels; i++) {
+         bld.vop2(aco_opcode::v_mul_f32, Definition(chan[i], v1),
+                  Operand::c32(fui(1.0 / (chan_max[i] >> 1))), Operand(chan[i], v1));
+         bld.vop2(aco_opcode::v_max_f32, Definition(chan[i], v1), Operand::c32(0xbf800000),
+                  Operand(chan[i], v1));
+      }
+   }
+}
+
+void
+convert_current_unaligned_vs_attribs(Builder& bld, UnalignedVsAttribLoadState* state)
+{
+   if (state->current_loads.empty())
+      return;
+
+   wait_imm vm_imm;
+   vm_imm.vm = 0;
+   bld.sopp(aco_opcode::s_waitcnt, vm_imm.pack(bld.program->gfx_level));
+
+   for (UnalignedVsAttribLoad load : state->current_loads)
+      convert_unaligned_vs_attrib(bld, load);
+   state->current_loads.clear();
+
+   state->overflow_num_vgprs = state->initial_num_vgprs;
+   state->num_vgprs = &state->overflow_num_vgprs;
+}
+
+void
+load_unaligned_vs_attrib(Builder& bld, PhysReg dst, Operand desc, Operand index, uint32_t offset,
+                         const struct ac_vtx_format_info* vtx_info,
+                         UnalignedVsAttribLoadState* state)
+{
+   unsigned size = vtx_info->chan_byte_size ? vtx_info->chan_byte_size : vtx_info->element_size;
+
+   UnalignedVsAttribLoad load;
+   load.dst = dst;
+   load.vtx_info = vtx_info;
+   load.d16 = bld.program->gfx_level >= GFX9 && !bld.program->dev.sram_ecc_enabled && size == 4;
+
+   unsigned num_scratch_vgprs = load.d16 ? 1 : (size - 1);
+   if (!vtx_info->chan_byte_size) {
+      /* When chan_byte_size==0, we're loading the entire attribute, so we can use the last 3
+       * components of the destination.
+       */
+      assert(num_scratch_vgprs <= 3);
+      load.scratch = dst.advance(4);
+   } else {
+      if (*state->num_vgprs + num_scratch_vgprs > state->max_vgprs)
+         convert_current_unaligned_vs_attribs(bld, state);
+
+      load.scratch = get_next_vgpr(num_scratch_vgprs, state->num_vgprs, NULL);
+   }
+
+   PhysReg scratch(load.scratch);
+   if (load.d16) {
+      bld.mubuf(aco_opcode::buffer_load_ubyte_d16, Definition(dst, v1), desc, index,
+                Operand::c32(0u), offset, false, false, true);
+      bld.mubuf(aco_opcode::buffer_load_ubyte_d16_hi, Definition(dst, v1), desc, index,
+                Operand::c32(0u), offset + 2, false, false, true);
+      bld.mubuf(aco_opcode::buffer_load_ubyte_d16, Definition(scratch, v1), desc, index,
+                Operand::c32(0u), offset + 1, false, false, true);
+      bld.mubuf(aco_opcode::buffer_load_ubyte_d16_hi, Definition(scratch, v1), desc, index,
+                Operand::c32(0u), offset + 3, false, false, true);
+   } else {
+      for (unsigned i = 0; i < size; i++) {
+         Definition def(i ? scratch.advance(i * 4 - 4) : dst, v1);
+         bld.mubuf(aco_opcode::buffer_load_ubyte, def, desc, index, Operand::c32(0u), offset + i,
+                   false, false, true);
+      }
+   }
+
+   state->current_loads.push_back(load);
+}
+
 void
 select_vs_prolog(Program* program, const struct aco_vs_prolog_info* pinfo, ac_shader_config* config,
                  const struct aco_compiler_options* options, const struct aco_shader_info* info,
@@ -12442,6 +12624,11 @@ select_vs_prolog(Program* program, const struct aco_vs_prolog_info* pinfo, ac_sh
 
    const struct ac_vtx_format_info* vtx_info_table =
       ac_get_vtx_format_info_table(GFX8, CHIP_POLARIS10);
+
+   UnalignedVsAttribLoadState unaligned_state;
+   unaligned_state.max_vgprs = MAX2(84, num_vgprs + 8);
+   unaligned_state.initial_num_vgprs = num_vgprs;
+   unaligned_state.num_vgprs = &num_vgprs;
 
    unsigned num_sgprs = 0;
    for (unsigned loc = 0; loc < pinfo->num_attributes;) {
@@ -12525,19 +12712,13 @@ select_vs_prolog(Program* program, const struct aco_vs_prolog_info* pinfo, ac_sh
             unsigned dfmt = vtx_info->hw_format[0] & 0xf;
             unsigned nfmt = vtx_info->hw_format[0] >> 4;
 
-            for (unsigned j = 0; j < vtx_info->num_channels; j++) {
+            for (unsigned j = 0; j < (vtx_info->chan_byte_size ? vtx_info->num_channels : 1); j++) {
                bool post_shuffle = pinfo->post_shuffle & (1u << loc);
                unsigned offset = vtx_info->chan_byte_size * (post_shuffle && j < 3 ? 2 - j : j);
 
-               /* Use MUBUF to workaround hangs for byte-aligned dword loads. The Vulkan spec
-                * doesn't require this to work, but some GL CTS tests over Zink do this anyway.
-                * MTBUF can hang, but MUBUF doesn't (probably gives garbage, but GL CTS doesn't
-                * care).
-                */
-               if (dfmt == V_008F0C_BUF_DATA_FORMAT_32)
-                  bld.mubuf(aco_opcode::buffer_load_dword, Definition(dest.advance(j * 4u), v1),
-                            Operand(cur_desc, s4), fetch_index, Operand::c32(0u), offset, false,
-                            false, true);
+               if ((pinfo->unaligned_mask & (1u << loc)) && vtx_info->chan_byte_size <= 4)
+                  load_unaligned_vs_attrib(bld, dest.advance(j * 4u), Operand(cur_desc, s4),
+                                           fetch_index, offset, vtx_info, &unaligned_state);
                else if (vtx_info->chan_byte_size == 8)
                   bld.mtbuf(aco_opcode::tbuffer_load_format_xy,
                             Definition(dest.advance(j * 8u), v2), Operand(cur_desc, s4),
@@ -12546,18 +12727,6 @@ select_vs_prolog(Program* program, const struct aco_vs_prolog_info* pinfo, ac_sh
                   bld.mtbuf(aco_opcode::tbuffer_load_format_x, Definition(dest.advance(j * 4u), v1),
                             Operand(cur_desc, s4), fetch_index, Operand::c32(0u), dfmt, nfmt,
                             offset, false, true);
-            }
-            uint32_t one =
-               nfmt == V_008F0C_BUF_NUM_FORMAT_UINT || nfmt == V_008F0C_BUF_NUM_FORMAT_SINT
-                  ? 1u
-                  : 0x3f800000u;
-            /* 22.1.1. Attribute Location and Component Assignment of Vulkan 1.3 specification:
-             * For 64-bit data types, no default attribute values are provided. Input variables must
-             * not use more components than provided by the attribute.
-             */
-            for (unsigned j = vtx_info->num_channels; vtx_info->chan_byte_size != 8 && j < 4; j++) {
-               bld.vop1(aco_opcode::v_mov_b32, Definition(dest.advance(j * 4u), v1),
-                        Operand::c32(j == 3 ? one : 0u));
             }
 
             unsigned slots = vtx_info->chan_byte_size == 8 && vtx_info->num_channels > 2 ? 2 : 1;
@@ -12571,6 +12740,36 @@ select_vs_prolog(Program* program, const struct aco_vs_prolog_info* pinfo, ac_sh
          }
       }
    }
+
+   uint32_t constant_mask = pinfo->misaligned_mask;
+   while (constant_mask) {
+      unsigned loc = u_bit_scan(&constant_mask);
+      const struct ac_vtx_format_info* vtx_info = &vtx_info_table[pinfo->formats[loc]];
+
+      /* 22.1.1. Attribute Location and Component Assignment of Vulkan 1.3 specification:
+       * For 64-bit data types, no default attribute values are provided. Input variables must
+       * not use more components than provided by the attribute.
+       */
+      if (vtx_info->chan_byte_size == 8) {
+         if (vtx_info->num_channels > 2)
+            u_bit_scan(&constant_mask);
+         continue;
+      }
+
+      assert(vtx_info->has_hw_format & 0x1);
+      unsigned nfmt = vtx_info->hw_format[0] >> 4;
+
+      uint32_t one = nfmt == V_008F0C_BUF_NUM_FORMAT_UINT || nfmt == V_008F0C_BUF_NUM_FORMAT_SINT
+                        ? 1u
+                        : 0x3f800000u;
+      PhysReg dest(attributes_start.reg() + loc * 4u);
+      for (unsigned j = vtx_info->num_channels; j < 4; j++) {
+         bld.vop1(aco_opcode::v_mov_b32, Definition(dest.advance(j * 4u), v1),
+                  Operand::c32(j == 3 ? one : 0u));
+      }
+   }
+
+   convert_current_unaligned_vs_attribs(bld, &unaligned_state);
 
    if (pinfo->alpha_adjust_lo | pinfo->alpha_adjust_hi) {
       wait_imm vm_imm;

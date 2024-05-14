@@ -2255,7 +2255,7 @@ void si_shader_change_notify(struct si_context *sctx)
          \
          radeon_set_sh_reg_seq(sh_offset, count); \
          for (int i = 0; i < count; i++) \
-            radeon_emit_32bit_pointer(sctx->screen, descs[i].gpu_address); \
+            radeon_emit_32bit_pointer(descs[i].gpu_address); \
       } \
    } \
 } while (0)
@@ -2295,31 +2295,31 @@ static void si_emit_global_shader_pointers(struct si_context *sctx, struct si_de
    radeon_begin(&sctx->gfx_cs);
 
    if (sctx->gfx_level >= GFX11) {
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
    } else if (sctx->gfx_level >= GFX10) {
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
       /* HW VS stage only used in non-NGG mode. */
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
    } else if (sctx->gfx_level == GFX9 && sctx->shadowing.registers) {
       /* We can't use the COMMON registers with register shadowing. */
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B330_SPI_SHADER_USER_DATA_ES_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B430_SPI_SHADER_USER_DATA_LS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B330_SPI_SHADER_USER_DATA_ES_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B430_SPI_SHADER_USER_DATA_LS_0);
    } else if (sctx->gfx_level == GFX9) {
       /* Broadcast it to all shader stages. */
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B530_SPI_SHADER_USER_DATA_COMMON_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B530_SPI_SHADER_USER_DATA_COMMON_0);
    } else {
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B330_SPI_SHADER_USER_DATA_ES_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
-      radeon_emit_one_32bit_pointer(sctx, descs, R_00B530_SPI_SHADER_USER_DATA_LS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B030_SPI_SHADER_USER_DATA_PS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B130_SPI_SHADER_USER_DATA_VS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B330_SPI_SHADER_USER_DATA_ES_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B230_SPI_SHADER_USER_DATA_GS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B430_SPI_SHADER_USER_DATA_HS_0);
+      radeon_emit_one_32bit_pointer(descs, R_00B530_SPI_SHADER_USER_DATA_LS_0);
    }
    radeon_end();
 }
@@ -2498,7 +2498,7 @@ void si_emit_compute_shader_pointers(struct si_context *sctx)
                                           R_00B900_COMPUTE_USER_DATA_0, compute);
 
       if (sctx->compute_bindless_pointer_dirty) {
-         radeon_emit_one_32bit_pointer(sctx, &sctx->bindless_descriptors,
+         radeon_emit_one_32bit_pointer(&sctx->bindless_descriptors,
                                        R_00B900_COMPUTE_USER_DATA_0);
          sctx->compute_bindless_pointer_dirty = false;
       }

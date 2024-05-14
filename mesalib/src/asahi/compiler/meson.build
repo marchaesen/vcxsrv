@@ -17,6 +17,7 @@ libasahi_agx_files = files(
   'agx_nir_lower_subgroups.c',
   'agx_nir_opt_preamble.c',
   'agx_lower_64bit.c',
+  'agx_lower_divergent_shuffle.c',
   'agx_lower_parallel_copy.c',
   'agx_lower_pseudo.c',
   'agx_lower_spill.c',

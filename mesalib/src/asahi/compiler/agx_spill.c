@@ -1119,12 +1119,9 @@ agx_spill(agx_context *ctx, unsigned k)
 {
    void *memctx = ralloc_context(NULL);
 
-   /* If control flow is used, we force the nesting counter (r0l) live
-    * throughout the shader. Just subtract that from our limit so we can forget
-    * about it while spilling.
-    */
-   if (ctx->any_cf)
-      k--;
+   /* Reserve the bottom registers as temporaries for memory-memory swaps */
+   ctx->has_spill_pcopy_reserved = true;
+   k -= 8;
 
    uint8_t *channels = rzalloc_array(memctx, uint8_t, ctx->alloc);
    dist_t *next_uses = rzalloc_array(memctx, dist_t, ctx->alloc);

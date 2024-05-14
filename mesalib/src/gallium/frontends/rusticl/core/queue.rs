@@ -127,17 +127,16 @@ impl Queue {
                     let mut flushed = Vec::new();
 
                     for e in new_events {
-                        let deps_iter = e.deps();
-
                         // If we hit any deps from another queue, flush so we don't risk a dead
-                        // lock. Also clone the iter here as we'll iterate again later
-                        if deps_iter.clone().any(|ev| ev.queue != e.queue) {
-                            // this flush _has_ to happen before we wait on any of the deps
+                        // lock.
+                        if e.deps.iter().any(|ev| ev.queue != e.queue) {
                             flush_events(&mut flushed, &ctx);
                         }
 
                         // We have to wait on user events or events from other queues.
-                        let err = deps_iter
+                        let err = e
+                            .deps
+                            .iter()
                             .filter(|ev| ev.is_user() || ev.queue != e.queue)
                             .map(|e| e.wait())
                             .find(|s| *s < 0);

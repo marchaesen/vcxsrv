@@ -1033,7 +1033,8 @@ vlVaRenderPicture(VADriverContextP ctx, VAContextID context_id, VABufferID *buff
 
       case VASliceDataBufferType:
          vaStatus = handleVASliceDataBufferType(context, buf);
-         slice_offset += buf->size;
+         if (slice_idx)
+            slice_offset += buf->size;
          break;
 
       case VAProcPipelineParameterBufferType:

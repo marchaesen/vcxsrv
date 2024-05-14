@@ -21,6 +21,8 @@
 
 #include <fcntl.h>
 
+#include "vulkan/vulkan_android.h"
+
 #include "util/mesa-sha1.h"
 #include "vk_descriptors.h"
 #include "vk_util.h"
@@ -1668,7 +1670,9 @@ tu_CreateSamplerYcbcrConversion(
    if (!conversion)
       return vk_error(device, VK_ERROR_OUT_OF_HOST_MEMORY);
 
-   conversion->format = pCreateInfo->format;
+   conversion->format =
+      vk_select_android_external_format(pCreateInfo->pNext, pCreateInfo->format);
+
    conversion->ycbcr_model = pCreateInfo->ycbcrModel;
    conversion->ycbcr_range = pCreateInfo->ycbcrRange;
    conversion->components = pCreateInfo->components;

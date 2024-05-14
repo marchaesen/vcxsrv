@@ -76,6 +76,7 @@ agx_usc_uniform(struct agx_usc_builder *b, unsigned start_halfs,
 {
    assert((start_halfs + size_halfs) <= (1 << 9) && "uniform file overflow");
    assert(size_halfs <= 64 && "caller's responsibility to split");
+   assert(size_halfs > 0 && "no empty uniforms");
 
    if (start_halfs & BITFIELD_BIT(8)) {
       agx_usc_pack(b, UNIFORM_HIGH, cfg) {

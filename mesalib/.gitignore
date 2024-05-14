@@ -1,3 +1,4 @@
+.cache
 .vscode*
 *.pyc
 *.pyo

@@ -522,6 +522,7 @@ namespace {
       LLVMRunPasses(wrap(&mod), opt_str, tm, opts);
 
       LLVMDisposeTargetMachine(tm);
+      LLVMDisposePassBuilderOptions(opts);
    }
 
    std::unique_ptr<Module>

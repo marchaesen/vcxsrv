@@ -31,12 +31,13 @@
 #include <stdio.h>
 #include <ctype.h>
 #include <stdlib.h>
-
 #include <X11/Xos.h>
-
 #include <X11/X.h>
 #include <X11/Xproto.h>
 #include <X11/extensions/XKMformat.h>
+
+#include "xkb/xkbtext_priv.h"
+
 #include "misc.h"
 #include "inputstr.h"
 #include "dix.h"

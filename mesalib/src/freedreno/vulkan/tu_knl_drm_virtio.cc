@@ -412,14 +412,16 @@ tu_free_zombie_vma_locked(struct tu_device *dev, bool wait)
          last_signaled_fence = vma->fence;
       }
 
-      set_iova(dev, vma->res_id, 0);
-
       u_vector_remove(&dev->zombie_vmas);
 
-      struct tu_zombie_vma *vma2 = (struct tu_zombie_vma *)
-            u_vector_add(&vdev->zombie_vmas_stage_2);
+      if (vma->gem_handle) {
+         set_iova(dev, vma->res_id, 0);
 
-      *vma2 = *vma;
+         struct tu_zombie_vma *vma2 =
+            (struct tu_zombie_vma *) u_vector_add(&vdev->zombie_vmas_stage_2);
+
+         *vma2 = *vma;
+      }
    }
 
    /* And _then_ close the GEM handles: */
@@ -434,18 +436,43 @@ tu_free_zombie_vma_locked(struct tu_device *dev, bool wait)
    return VK_SUCCESS;
 }
 
+static bool
+tu_restore_from_zombie_vma_locked(struct tu_device *dev,
+                                  uint32_t gem_handle,
+                                  uint64_t *iova)
+{
+   struct tu_zombie_vma *vma;
+   u_vector_foreach (vma, &dev->zombie_vmas) {
+      if (vma->gem_handle == gem_handle) {
+         *iova = vma->iova;
+
+         /* mark to skip later vdrm bo and iova cleanup */
+         vma->gem_handle = 0;
+         return true;
+      }
+   }
+
+   return false;
+}
+
 static VkResult
-virtio_allocate_userspace_iova(struct tu_device *dev,
-                               uint64_t size,
-                               uint64_t client_iova,
-                               enum tu_bo_alloc_flags flags,
-                               uint64_t *iova)
+virtio_allocate_userspace_iova_locked(struct tu_device *dev,
+                                      uint32_t gem_handle,
+                                      uint64_t size,
+                                      uint64_t client_iova,
+                                      enum tu_bo_alloc_flags flags,
+                                      uint64_t *iova)
 {
    VkResult result;
 
-   mtx_lock(&dev->vma_mutex);
-
    *iova = 0;
+
+   if (flags & TU_BO_ALLOC_DMABUF) {
+      assert(gem_handle);
+
+      if (tu_restore_from_zombie_vma_locked(dev, gem_handle, iova))
+         return VK_SUCCESS;
+   }
 
    tu_free_zombie_vma_locked(dev, false);
 
@@ -459,8 +486,6 @@ virtio_allocate_userspace_iova(struct tu_device *dev,
       tu_free_zombie_vma_locked(dev, true);
       result = tu_allocate_userspace_iova(dev, size, client_iova, flags, iova);
    }
-
-   mtx_unlock(&dev->vma_mutex);
 
    return result;
 }
@@ -571,12 +596,8 @@ virtio_bo_init(struct tu_device *dev,
          .size = size,
    };
    VkResult result;
-
-   result = virtio_allocate_userspace_iova(dev, size, client_iova,
-                                           flags, &req.iova);
-   if (result != VK_SUCCESS) {
-      return result;
-   }
+   uint32_t res_id;
+   struct tu_bo *bo;
 
    if (mem_property & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) {
       if (mem_property & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) {
@@ -601,6 +622,16 @@ virtio_bo_init(struct tu_device *dev,
    if (flags & TU_BO_ALLOC_GPU_READ_ONLY)
       req.flags |= MSM_BO_GPU_READONLY;
 
+   assert(!(flags & TU_BO_ALLOC_DMABUF));
+
+   mtx_lock(&dev->vma_mutex);
+   result = virtio_allocate_userspace_iova_locked(dev, 0, size, client_iova,
+                                                  flags, &req.iova);
+   mtx_unlock(&dev->vma_mutex);
+
+   if (result != VK_SUCCESS)
+      return result;
+
    /* tunneled cmds are processed separately on host side,
     * before the renderer->get_blob() callback.. the blob_id
     * is used to link the created bo to the get_blob() call
@@ -611,27 +642,28 @@ virtio_bo_init(struct tu_device *dev,
       vdrm_bo_create(vdev->vdrm, size, blob_flags, req.blob_id, &req.hdr);
 
    if (!handle) {
-      util_vma_heap_free(&dev->vma, req.iova, size);
-      return vk_error(dev, VK_ERROR_OUT_OF_DEVICE_MEMORY);
+      result = VK_ERROR_OUT_OF_DEVICE_MEMORY;
+      goto fail;
    }
 
-   uint32_t res_id = vdrm_handle_to_res_id(vdev->vdrm, handle);
-   struct tu_bo* bo = tu_device_lookup_bo(dev, res_id);
+   res_id = vdrm_handle_to_res_id(vdev->vdrm, handle);
+   bo = tu_device_lookup_bo(dev, res_id);
    assert(bo && bo->gem_handle == 0);
 
    bo->res_id = res_id;
 
    result = tu_bo_init(dev, bo, handle, size, req.iova, flags, name);
-   if (result != VK_SUCCESS)
+   if (result != VK_SUCCESS) {
       memset(bo, 0, sizeof(*bo));
-   else
-      *out_bo = bo;
+      goto fail;
+   }
+
+   *out_bo = bo;
 
    /* We don't use bo->name here because for the !TU_DEBUG=bo case bo->name is NULL. */
    tu_bo_set_kernel_name(dev, bo, name);
 
-   if (result == VK_SUCCESS &&
-       (mem_property & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) &&
+   if ((mem_property & VK_MEMORY_PROPERTY_HOST_CACHED_BIT) &&
        !(mem_property & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT)) {
       tu_bo_map(dev, bo, NULL);
 
@@ -644,6 +676,12 @@ virtio_bo_init(struct tu_device *dev,
       tu_sync_cache_bo(dev, bo, 0, VK_WHOLE_SIZE, TU_MEM_SYNC_CACHE_TO_GPU);
    }
 
+   return VK_SUCCESS;
+
+fail:
+   mtx_lock(&dev->vma_mutex);
+   util_vma_heap_free(&dev->vma, req.iova, size);
+   mtx_unlock(&dev->vma_mutex);
    return result;
 }
 
@@ -666,11 +704,6 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
    /* iova allocation needs to consider the object's *real* size: */
    size = real_size;
 
-   uint64_t iova;
-   result = virtio_allocate_userspace_iova(dev, size, 0, TU_BO_ALLOC_NO_FLAGS, &iova);
-   if (result != VK_SUCCESS)
-      return result;
-
    /* Importing the same dmabuf several times would yield the same
     * gem_handle. Thus there could be a race when destroying
     * BO and importing the same dmabuf from different threads.
@@ -678,8 +711,10 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
     * to happen in parallel.
     */
    u_rwlock_wrlock(&dev->dma_bo_lock);
+   mtx_lock(&dev->vma_mutex);
 
    uint32_t handle, res_id;
+   uint64_t iova;
 
    handle = vdrm_dmabuf_to_handle(vdrm, prime_fd);
    if (!handle) {
@@ -689,6 +724,7 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
 
    res_id = vdrm_handle_to_res_id(vdrm, handle);
    if (!res_id) {
+      /* XXX gem_handle potentially leaked here since no refcnt */
       result = vk_error(dev, VK_ERROR_INVALID_EXTERNAL_HANDLE);
       goto out_unlock;
    }
@@ -705,21 +741,25 @@ virtio_bo_init_dmabuf(struct tu_device *dev,
 
    bo->res_id = res_id;
 
-   result = tu_bo_init(dev, bo, handle, size, iova,
-                       TU_BO_ALLOC_NO_FLAGS, "dmabuf");
-   if (result != VK_SUCCESS)
-      memset(bo, 0, sizeof(*bo));
-   else
-      *out_bo = bo;
-
-out_unlock:
-   u_rwlock_wrunlock(&dev->dma_bo_lock);
+   result = virtio_allocate_userspace_iova_locked(dev, handle, size, 0,
+                                                  TU_BO_ALLOC_DMABUF, &iova);
    if (result != VK_SUCCESS) {
-      mtx_lock(&dev->vma_mutex);
-      util_vma_heap_free(&dev->vma, iova, size);
-      mtx_unlock(&dev->vma_mutex);
+      vdrm_bo_close(dev->vdev->vdrm, handle);
+      goto out_unlock;
    }
 
+   result =
+      tu_bo_init(dev, bo, handle, size, iova, TU_BO_ALLOC_NO_FLAGS, "dmabuf");
+   if (result != VK_SUCCESS) {
+      util_vma_heap_free(&dev->vma, iova, size);
+      memset(bo, 0, sizeof(*bo));
+   } else {
+      *out_bo = bo;
+   }
+
+out_unlock:
+   mtx_unlock(&dev->vma_mutex);
+   u_rwlock_wrunlock(&dev->dma_bo_lock);
    return result;
 }
 

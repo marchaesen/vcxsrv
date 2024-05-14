@@ -1,0 +1,8 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "quick_shader"
+process_isolation = true
+  [piglit.env]
+  PIGLIT_PLATFORM = "mixed_glx_egl"
+
+

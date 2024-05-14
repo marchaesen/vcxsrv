@@ -4855,14 +4855,10 @@ zink_resource_commit(struct pipe_context *pctx, struct pipe_resource *pres, unsi
    if (zink_resource_has_unflushed_usage(res))
       zink_flush_queue(ctx);
 
-   VkSemaphore sem = VK_NULL_HANDLE;
-   bool ret = zink_bo_commit(ctx, res, level, box, commit, &sem);
+   bool ret = zink_bo_commit(ctx, res, level, box, commit, &ctx->bs->sparse_semaphore);
    if (ret) {
-      if (sem) {
-         zink_batch_add_wait_semaphore(ctx, sem);
-         zink_batch_reference_resource_rw(ctx, res, true);
-         ctx->bs->has_work = true;
-      }
+      zink_batch_reference_resource_rw(ctx, res, true);
+      ctx->bs->has_work = true;
    } else {
       check_device_lost(ctx);
    }

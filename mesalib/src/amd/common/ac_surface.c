@@ -1644,6 +1644,16 @@ static int gfx9_get_preferred_swizzle_mode(ADDR_HANDLE addrlib, const struct rad
          sin.forbiddenBlock.gfx11.thick256KB = 1;
       }
       sin.forbiddenBlock.linear = 1;
+   } else if (surf->flags & RADEON_SURF_PREFER_4K_ALIGNMENT) {
+      sin.forbiddenBlock.macroThin64KB = 1;
+      sin.forbiddenBlock.macroThick64KB = 1;
+   }
+
+   if (surf->flags & (RADEON_SURF_PREFER_64K_ALIGNMENT | RADEON_SURF_PREFER_4K_ALIGNMENT)) {
+      if (info->gfx_level >= GFX11) {
+         sin.forbiddenBlock.gfx11.thin256KB = 1;
+         sin.forbiddenBlock.gfx11.thick256KB = 1;
+      }
    }
 
    if (surf->flags & RADEON_SURF_FORCE_MICRO_TILE_MODE) {

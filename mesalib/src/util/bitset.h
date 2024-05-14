@@ -209,7 +209,8 @@ __bitset_shl(BITSET_WORD *x, unsigned amount, unsigned n)
  */
 #define BITSET_TEST_RANGE_INSIDE_WORD(x, b, e, mask) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \
-   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) == mask) : \
+   (((x)[BITSET_BITWORD(b)] & BITSET_RANGE(b, e)) == \
+   (((BITSET_WORD)mask) << (b % BITSET_WORDBITS))) : \
    (assert (!"BITSET_TEST_RANGE: bit range crosses word boundary"), 0))
 #define BITSET_SET_RANGE_INSIDE_WORD(x, b, e) \
    (BITSET_BITWORD(b) == BITSET_BITWORD(e) ? \

@@ -931,13 +931,13 @@ static void si_emit_rasterizer_prim_state(struct si_context *sctx)
                             rast_prim == MESA_PRIM_LINES_ADJACENCY;
       /* 0 = no reset, 1 = reset per prim, 2 = reset per packet */
       if (GFX_VERSION >= GFX12) {
-         radeon_opt_set_context_reg(sctx, R_028A44_PA_SC_LINE_STIPPLE_RESET,
+         radeon_opt_set_context_reg(R_028A44_PA_SC_LINE_STIPPLE_RESET,
                                     SI_TRACKED_PA_SC_LINE_STIPPLE_RESET,
                                     S_028A44_AUTO_RESET_CNTL(reset_per_prim ? 1 : 2));
       } else {
          struct si_state_rasterizer *rs = sctx->queued.named.rasterizer;
 
-         radeon_opt_set_context_reg(sctx, R_028A0C_PA_SC_LINE_STIPPLE,
+         radeon_opt_set_context_reg(R_028A0C_PA_SC_LINE_STIPPLE,
                                     SI_TRACKED_PA_SC_LINE_STIPPLE,
                                     rs->pa_sc_line_stipple |
                                     S_028A0C_AUTO_RESET_CNTL(reset_per_prim ? 1 : 2));
@@ -946,16 +946,16 @@ static void si_emit_rasterizer_prim_state(struct si_context *sctx)
 
    if (NGG || HAS_GS) {
       if (GFX_VERSION >= GFX11) {
-         radeon_opt_set_uconfig_reg(sctx, R_030998_VGT_GS_OUT_PRIM_TYPE,
+         radeon_opt_set_uconfig_reg(R_030998_VGT_GS_OUT_PRIM_TYPE,
                                     SI_TRACKED_VGT_GS_OUT_PRIM_TYPE_UCONFIG, sctx->gs_out_prim);
       } else {
-         radeon_opt_set_context_reg(sctx, R_028A6C_VGT_GS_OUT_PRIM_TYPE,
+         radeon_opt_set_context_reg(R_028A6C_VGT_GS_OUT_PRIM_TYPE,
                                     SI_TRACKED_VGT_GS_OUT_PRIM_TYPE, sctx->gs_out_prim);
       }
    }
 
    if (GFX_VERSION == GFX9)
-      radeon_end_update_context_roll(sctx);
+      radeon_end_update_context_roll();
    else
       radeon_end();
 }
@@ -1070,14 +1070,14 @@ static void si_emit_ia_multi_vgt_param(struct si_context *sctx,
       if (prim != sctx->last_prim)
          BITSET_CLEAR(sctx->tracked_regs.reg_saved_mask, SI_TRACKED_IA_MULTI_VGT_PARAM_UCONFIG);
 
-      radeon_opt_set_uconfig_reg_idx(sctx, GFX_VERSION, R_030960_IA_MULTI_VGT_PARAM,
+      radeon_opt_set_uconfig_reg_idx(R_030960_IA_MULTI_VGT_PARAM,
                                      SI_TRACKED_IA_MULTI_VGT_PARAM_UCONFIG,
                                      4, ia_multi_vgt_param);
    } else if (GFX_VERSION >= GFX7) {
-      radeon_opt_set_context_reg_idx(sctx, R_028AA8_IA_MULTI_VGT_PARAM,
+      radeon_opt_set_context_reg_idx(R_028AA8_IA_MULTI_VGT_PARAM,
                                      SI_TRACKED_IA_MULTI_VGT_PARAM, 1, ia_multi_vgt_param);
    } else {
-      radeon_opt_set_context_reg(sctx, R_028AA8_IA_MULTI_VGT_PARAM,
+      radeon_opt_set_context_reg(R_028AA8_IA_MULTI_VGT_PARAM,
                                  SI_TRACKED_IA_MULTI_VGT_PARAM, ia_multi_vgt_param);
    }
    radeon_end();
@@ -1109,7 +1109,7 @@ static void si_emit_draw_registers(struct si_context *sctx,
       if (GFX_VERSION >= GFX10)
          radeon_set_uconfig_reg(R_030908_VGT_PRIMITIVE_TYPE, vgt_prim);
       else if (GFX_VERSION >= GFX7)
-         radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION, R_030908_VGT_PRIMITIVE_TYPE, 1, vgt_prim);
+         radeon_set_uconfig_reg_idx(R_030908_VGT_PRIMITIVE_TYPE, 1, vgt_prim);
       else
          radeon_set_config_reg(R_008958_VGT_PRIMITIVE_TYPE, vgt_prim);
 
@@ -1329,8 +1329,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
          }
 
          if (GFX_VERSION >= GFX9) {
-            radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION,
-                                       R_03090C_VGT_INDEX_TYPE, 2, index_type);
+            radeon_set_uconfig_reg_idx(R_03090C_VGT_INDEX_TYPE, 2, index_type);
          } else {
             radeon_emit(PKT3(PKT3_INDEX_TYPE, 0, 0));
             radeon_emit(index_type);
@@ -1361,8 +1360,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
       if (GFX_VERSION >= GFX7)
          sctx->last_index_size = -1;
       if (GFX_VERSION == GFX10_3 && disable_instance_packing != sctx->disable_instance_packing) {
-         radeon_set_uconfig_reg_idx(sctx->screen, GFX_VERSION,
-                                    R_03090C_VGT_INDEX_TYPE, 2,
+         radeon_set_uconfig_reg_idx(R_03090C_VGT_INDEX_TYPE, 2,
                                     S_028A7C_DISABLE_INSTANCE_PACKING(disable_instance_packing));
          sctx->disable_instance_packing = disable_instance_packing;
       }
@@ -1497,14 +1495,14 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
             }
          } else {
             if (set_base_instance) {
-               radeon_opt_set_sh_reg3(sctx, sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
+               radeon_opt_set_sh_reg3(sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
                                       tracked_base_vertex_reg, base_vertex, drawid_base,
                                       info->start_instance);
             } else if (set_draw_id) {
-               radeon_opt_set_sh_reg2(sctx, sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
+               radeon_opt_set_sh_reg2(sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
                                       tracked_base_vertex_reg, base_vertex, drawid_base);
             } else {
-               radeon_opt_set_sh_reg(sctx, sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
+               radeon_opt_set_sh_reg(sh_base_reg + SI_SGPR_BASE_VERTEX * 4,
                                      tracked_base_vertex_reg, base_vertex);
             }
          }

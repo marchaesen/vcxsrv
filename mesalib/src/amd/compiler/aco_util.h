@@ -1019,8 +1019,7 @@ using bitarray8 = bitfield_array<uint8_t, 0, 8, uint8_t>;
  */
 template <typename T, uint32_t Size> class small_vec {
 public:
-   static_assert(std::is_trivially_copyable<T>::value);
-   static_assert(std::is_trivially_destructible<T>::value);
+   static_assert(std::is_trivial<T>::value);
 
    using value_type = T;
    using pointer = value_type*;

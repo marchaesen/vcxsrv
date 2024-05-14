@@ -6,12 +6,6 @@
 
 #include "geometry.h"
 
-static uint
-align(uint x, uint y)
-{
-   return (x + y - 1) & ~(y - 1);
-}
-
 /* Compatible with util/u_math.h */
 static inline uint
 util_logbase2_ceil(uint n)
@@ -472,19 +466,18 @@ libagx_gs_setup_indirect(global struct agx_geometry_params *p,
    uint vertex_count = in_draw[0];
    uint instance_count = in_draw[1];
 
+   ia->verts_per_instance = vertex_count;
+
    /* Calculate number of primitives input into the GS */
    uint prim_per_instance = u_decomposed_prims_for_vertices(mode, vertex_count);
    p->input_primitives = prim_per_instance * instance_count;
-   p->input_vertices = vertex_count;
 
-   /* Invoke VS as (vertices, instances, 1); GS as (primitives, instances, 1) */
+   /* Invoke VS as (vertices, instances); GS as (primitives, instances) */
    p->vs_grid[0] = vertex_count;
    p->vs_grid[1] = instance_count;
-   p->vs_grid[2] = 1;
 
    p->gs_grid[0] = prim_per_instance;
    p->gs_grid[1] = instance_count;
-   p->gs_grid[2] = 1;
 
    p->primitives_log2 = util_logbase2_ceil(prim_per_instance);
 
@@ -522,7 +515,7 @@ libagx_work_group_scan_inclusive_add(uint x, local uint *scratch)
    uint sg_id = get_sub_group_id();
 
    /* Partial prefix sum of the subgroup */
-   uint sg = sub_group_scan_exclusive_add(x) + x;
+   uint sg = sub_group_scan_inclusive_add(x);
 
    /* Reduction (sum) for the subgroup */
    uint sg_sum = sub_group_broadcast(sg, 31);
@@ -551,11 +544,10 @@ libagx_work_group_scan_inclusive_add(uint x, local uint *scratch)
 }
 
 kernel void
-libagx_prefix_sum(global uint *buffer, uint len, uint words)
+libagx_prefix_sum(global uint *buffer, uint len, uint words, uint word)
 {
    local uint scratch[32];
    uint tid = get_local_id(0);
-   uint word = get_group_id(0);
 
    /* Main loop: complete workgroups processing 1024 values at once */
    uint i, count = 0;
@@ -594,4 +586,10 @@ libagx_vertex_output_address(uintptr_t buffer, uint64_t mask, uint vtx,
                              gl_varying_slot location)
 {
    return buffer + libagx_tcs_in_offs(vtx, location, mask);
+}
+
+unsigned
+libagx_input_vertices(constant struct agx_ia_state *ia)
+{
+   return ia->verts_per_instance;
 }

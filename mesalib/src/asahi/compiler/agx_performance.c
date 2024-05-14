@@ -92,9 +92,13 @@ struct alu_timing op_timings[] = {
    [AGX_OPCODE_RSQRT]         = { IC, 6, 4 },
    [AGX_OPCODE_SRSQRT]        = { IC, 6, 4 },
 
-   [AGX_OPCODE_SIMD_PREFIX_IADD] = { SCIB, 18, 18 },
-   [AGX_OPCODE_SIMD_IADD]        = { SCIB, 24, 24 },
-   [AGX_OPCODE_SIMD_SHUFFLE]     = { SCIB, 5, 2   },
+   // XXX: check this
+   [AGX_OPCODE_SIMD_PREFIX]      = { SCIB, 18, 18 },
+   [AGX_OPCODE_SIMD_REDUCE]      = { SCIB, 24, 24 },
+   [AGX_OPCODE_QUAD_PREFIX]      = { SCIB, 18, 18 },
+   [AGX_OPCODE_QUAD_REDUCE]      = { SCIB, 24, 24 },
+   [AGX_OPCODE_SHUFFLE]          = { SCIB, 5, 2   },
+   [AGX_OPCODE_QUAD_SHUFFLE]     = { SCIB, 5, 2   },
 
    [AGX_OPCODE_ICMP_BALLOT]      = { SCIB, 5, 2   },
    [AGX_OPCODE_FCMP_BALLOT]      = { SCIB, 5, 2   },

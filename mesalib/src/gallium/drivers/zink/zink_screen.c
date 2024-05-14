@@ -742,7 +742,7 @@ zink_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
       return 1;
 
    case PIPE_CAP_VERTEX_ATTRIB_ELEMENT_ALIGNED_ONLY:
-      return 1;
+      return !screen->info.have_EXT_legacy_vertex_attributes;
 
    case PIPE_CAP_GL_CLAMP:
       return 0;
@@ -3031,6 +3031,7 @@ init_driver_workarounds(struct zink_screen *screen)
    switch (screen->info.driver_props.driverID) {
    case VK_DRIVER_ID_MESA_TURNIP:
    case VK_DRIVER_ID_MESA_VENUS:
+   case VK_DRIVER_ID_MESA_NVK:
       screen->driver_workarounds.can_do_invalid_linear_modifier = true;
       break;
    default:

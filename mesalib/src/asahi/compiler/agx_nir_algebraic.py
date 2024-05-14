@@ -86,7 +86,7 @@ lower_pack = [
 lower_selects = []
 for T, sizes, one in [('f', [16, 32], 1.0),
                       ('i', [8, 16, 32], 1),
-                      ('b', [32], -1)]:
+                      ('b', [16, 32], -1)]:
     for size in sizes:
         lower_selects.extend([
             ((f'b2{T}{size}', ('inot', 'a@1')), ('bcsel', a, 0, one)),
@@ -106,6 +106,12 @@ opt_selects = [
         (('bcsel', ('iand(is_used_once)', a, b), c, d),
          ('bcsel', a, ('bcsel', b, c, d), d)),
 ]
+
+# When the ior/iand is used multiple times, we can instead fuse the other way.
+opt_selects.extend([
+        (('iand', 'a@1', b), ('bcsel', a, b, False)),
+        (('ior', 'a@1', b), ('bcsel', a, True, b)),
+])
 
 fuse_extr = []
 for start in range(32):

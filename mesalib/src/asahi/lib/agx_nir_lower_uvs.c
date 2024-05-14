@@ -8,6 +8,7 @@
 #include "util/bitscan.h"
 #include "util/macros.h"
 #include "agx_compile.h"
+#include "agx_helpers.h"
 #include "agx_pack.h"
 #include "agx_uvs.h"
 #include "nir_builder_opcodes.h"
@@ -149,7 +150,7 @@ agx_nir_lower_uvs(nir_shader *s, struct agx_unlinked_uvs_layout *layout)
 
    for (unsigned i = 0; i < ARRAY_SIZE(layout->components); ++i) {
       if (i != VARYING_SLOT_POS && i != VARYING_SLOT_PSIZ &&
-          layout->components[i]) {
+          i != VARYING_SLOT_LAYER && layout->components[i]) {
 
          layout->written |= BITFIELD64_BIT(i);
          sizes[UVS_VARYINGS] += layout->components[i];
@@ -248,5 +249,95 @@ agx_assign_uvs(struct agx_varyings_vs *varyings,
       cfg.smooth = 0;
       cfg.flat = 0;
       cfg.linear = 0;
+   }
+}
+
+static inline enum agx_shade_model
+translate_flat_shade_model(unsigned provoking_vertex)
+{
+   static_assert(AGX_SHADE_MODEL_FLAT_VERTEX_0 == 0, "hw");
+   static_assert(AGX_SHADE_MODEL_FLAT_VERTEX_2 == 2, "hw");
+
+   assert(provoking_vertex <= 2);
+
+   if (provoking_vertex == 1)
+      return AGX_SHADE_MODEL_FLAT_VERTEX_1;
+   else
+      return (enum agx_shade_model)provoking_vertex;
+}
+
+void
+agx_link_varyings_vs_fs(void *out, struct agx_varyings_vs *vs,
+                        unsigned nr_user_indices, struct agx_varyings_fs *fs,
+                        unsigned provoking_vertex, uint8_t sprite_coord_enable,
+                        bool *generate_primitive_id)
+{
+   assert(fs->nr_bindings > 0);
+
+   *generate_primitive_id = false;
+
+   struct agx_cf_binding_header_packed *header = out;
+   struct agx_cf_binding_packed *bindings = (void *)(header + 1);
+
+   unsigned user_base = 1 + (fs->reads_z ? 1 : 0);
+   unsigned nr_slots = user_base + nr_user_indices;
+
+   agx_pack(header, CF_BINDING_HEADER, cfg) {
+      cfg.number_of_32_bit_slots = nr_slots;
+      cfg.number_of_coefficient_registers = fs->nr_cf;
+   }
+
+   for (unsigned i = 0; i < fs->nr_bindings; ++i) {
+      struct agx_cf_binding b = fs->bindings[i];
+
+      agx_pack(bindings + i, CF_BINDING, cfg) {
+         cfg.base_coefficient_register = b.cf_base;
+         cfg.components = b.count;
+
+         if (b.smooth) {
+            cfg.shade_model = b.perspective ? AGX_SHADE_MODEL_PERSPECTIVE
+                                            : AGX_SHADE_MODEL_LINEAR;
+         } else {
+            cfg.shade_model = translate_flat_shade_model(provoking_vertex);
+         }
+
+         if (b.slot == VARYING_SLOT_PNTC ||
+             (b.slot >= VARYING_SLOT_TEX0 && b.slot <= VARYING_SLOT_TEX7 &&
+              (sprite_coord_enable &
+               BITFIELD_BIT(b.slot - VARYING_SLOT_TEX0)))) {
+
+            assert(b.offset == 0);
+            cfg.source = AGX_COEFFICIENT_SOURCE_POINT_COORD;
+         } else if (b.slot == VARYING_SLOT_PRIMITIVE_ID &&
+                    !vs->slots[VARYING_SLOT_PRIMITIVE_ID]) {
+            cfg.source = AGX_COEFFICIENT_SOURCE_PRIMITIVE_ID;
+            *generate_primitive_id = true;
+         } else if (b.slot == VARYING_SLOT_POS) {
+            assert(b.offset >= 2 && "gl_Position.xy are not varyings");
+            assert(fs->reads_z || b.offset != 2);
+
+            if (b.offset == 2) {
+               cfg.source = AGX_COEFFICIENT_SOURCE_FRAGCOORD_Z;
+               cfg.base_slot = 1;
+            } else {
+               assert(!b.perspective && "W must not be perspective divided");
+            }
+         } else {
+            unsigned vs_index = vs->slots[b.slot];
+            assert(b.offset < 4);
+
+            /* Varyings not written by vertex shader are undefined but we can't
+             * crash */
+            if (vs_index) {
+               assert(vs_index >= 4 &&
+                      "gl_Position should have been the first 4 slots");
+
+               cfg.base_slot = user_base + (vs_index - 4) + b.offset;
+            }
+         }
+
+         assert(cfg.base_coefficient_register + cfg.components <= fs->nr_cf &&
+                "overflowed coefficient registers");
+      }
    }
 }

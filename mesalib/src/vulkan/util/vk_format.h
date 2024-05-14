@@ -264,6 +264,9 @@ VkClearColorValue
 vk_swizzle_color_value(VkClearColorValue color,
                        VkComponentMapping swizzle, bool is_int);
 
+VkFormat
+vk_select_android_external_format(const void *next, VkFormat default_format);
+
 #ifdef __cplusplus
 }
 #endif

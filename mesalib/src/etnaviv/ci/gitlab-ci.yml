@@ -79,14 +79,13 @@ gc2000_gles2_asan:
 
 gc2000_piglit:
   extends:
-    - .piglit-test
+    - .baremetal-deqp-test
     - .baremetal-test-arm32
     - .austriancoder-imx6q-cubox-i:arm32
     - .etnaviv-manual-rules
   variables:
+    DEQP_SUITE: etnaviv-gc2000-piglit
     FLAKES_CHANNEL: "#etnaviv-ci"
-    PIGLIT_PLATFORM: gbm
-    PIGLIT_PROFILES: gpu
     TEST_PHASE_TIMEOUT: 40
   timeout: 40m
 

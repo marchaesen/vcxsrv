@@ -10,12 +10,37 @@ a306_gl:
     FDO_CI_CONCURRENT: 6
   parallel: 5
 
+a306_piglit:
+  extends:
+    - .baremetal-deqp-test
+    - .a306-test
+    - .google-freedreno-manual-rules
+  variables:
+    DEQP_SUITE: freedreno-a306-piglit
+    HWCI_START_WESTON: 1
+
+# Something happened and now this hangchecks and doesn't recover.  Unkown when
+# it started.
+.a306_piglit_gl:
+  extends:
+    - .baremetal-deqp-test
+    - .a306-test
+    - .google-freedreno-manual-rules
+  variables:
+    BM_KERNEL_EXTRA_ARGS: "msm.num_hw_submissions=1"
+    DEQP_SUITE: freedreno-a306-piglit-quick-gl
+    FDO_CI_CONCURRENT: 3
+    HWCI_START_WESTON: 1
+
 a306_piglit_shader:
   extends:
-    - .a306_piglit
+    - .baremetal-deqp-test
+    - .a306-test
+    - .google-freedreno-manual-rules
   variables:
-    PIGLIT_PROFILES: quick_shader
+    DEQP_SUITE: freedreno-a306-piglit-quick-shader
     FDO_CI_CONCURRENT: 6
+    HWCI_START_WESTON: 1
 
 a306-traces:
   extends:
@@ -31,7 +56,6 @@ a530_gl:
     - .a530-test
   variables:
     DEQP_SUITE: freedreno-a530
-    PIGLIT_PLATFORM: gbm
     FDO_CI_CONCURRENT: 3  # if 4, sometimes "deqp-gles31, not enough memory for the allocation" appears
   parallel: 6
 
@@ -108,16 +132,15 @@ a618_skqp:
 
 a618_piglit:
   extends:
-    - .piglit-test
-    - .lava-piglit:arm64
+    - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
     - .collabora-freedreno-rules
     # Note that piglit has GL+VK integration testing.
     - .collabora-freedreno-turnip-rules
   variables:
+    DEQP_SUITE: freedreno-a618-piglit
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
-    PIGLIT_PROFILES: gpu
 
 a618-traces:
   extends:
@@ -269,6 +292,7 @@ a630-traces-restricted:
   variables:
     PIGLIT_TRACES_FILE: restricted-traces-freedreno.yml
     PIGLIT_REPLAY_EXTRA_ARGS: "--download-caching-proxy-url=http://10.42.0.1:8888/cache/?uri= --db-path ${CI_PROJECT_DIR}/replayer-db/ --minio_bucket=${S3_TRACIE_PRIVATE_BUCKET} --jwt-file=${S3_JWT_FILE}"
+  allow_failure: true
 
 a630-traces-performance:
   extends:

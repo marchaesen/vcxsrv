@@ -7501,6 +7501,8 @@ iris_upload_dirty_render_state(struct iris_context *ice,
       bool points_or_lines = cso_rast->fill_mode_point_or_line ||
          (gs_or_tes ? ice->shaders.output_topology_is_points_or_lines
                     : ice->state.prim_is_points_or_lines);
+      const struct intel_vue_map *last =
+         &iris_vue_data(ice->shaders.last_vue_shader)->vue_map;
 
       uint32_t dynamic_clip[GENX(3DSTATE_CLIP_length)];
       iris_pack_command(GENX(3DSTATE_CLIP), &dynamic_clip, cl) {
@@ -7517,7 +7519,8 @@ iris_upload_dirty_render_state(struct iris_context *ice,
 
          cl.NonPerspectiveBarycentricEnable = fs_data->uses_nonperspective_interp_modes;
 
-         cl.ForceZeroRTAIndexEnable = cso_fb->layers <= 1;
+         cl.ForceZeroRTAIndexEnable = cso_fb->layers <= 1 ||
+                                      !(last->slots_valid & VARYING_BIT_LAYER);
          cl.MaximumVPIndex = ice->state.num_viewports - 1;
       }
       iris_emit_merge(batch, cso_rast->clip, dynamic_clip,

@@ -204,36 +204,6 @@
     <value name="4" value="1"/>
   </enum>
 
-  <!-- Beginning of software-defined metadata used to implement image atomics
-     and multisampled image writes. For atomics, information could be
-     recovered from the PBE descriptor, but it is convenient to compute on the
-     CPU where we have ail.
-
-     This descriptor (or a pointer to it, if the extended form is used) is stashed
-     in the last 8 bytes of a PBE descriptor. Ordinarily used for
-     acceleration buffers or linear layer stride. We forbid atomics and
-     multisampled writes to compressed images and linear 2D arrays, leaving this
-     area free.
-   -->
-
-  <struct name="Atomic (software)" size="16">
-    <field name="Base" size="33" start="0" type="address" modifier="shr(7)"/>
-    <field name="Tile width" size="3" start="33" type="uint" modifier="log2" default="1"/>
-    <field name="Tile height" size="3" start="36" type="uint" modifier="log2" default="1"/>
-    <field name="Tiles per row" size="15" start="39" type="uint"/>
-    <field name="Sample count" size="2" start="54" type="uint" modifier="log2" default="1"/>
-
-    <!-- Extended fields begin here -->
-    <field name="Layer stride (pixels)" size="32" start="64" type="uint"/>
-  </struct>
-
-  <struct name="PBE Buffer (software)" size="8">
-     <!-- Not necessarily aligned -->
-     <field name="Base" size="40" start="0" type="address"/>
-  </struct>
-
-  <!-- End of software defined data structures -->
-
   <struct name="PBE" size="24">
     <field name="Dimension" size="4" start="0" type="Texture dimension" default="2D"/>
     <field name="Layout" size="2" start="4" type="Layout"/>
@@ -279,8 +249,16 @@
     <field name="Depth (linear)" size="11" start="128" type="uint" modifier="minus(1)" default="1"/>
     <field name="Layer stride (linear)" size="27" start="139" type="uint" modifier="shr(7)"/>
 
-    <!-- If neither, for software use -->
-    <field name="Software-defined" size="64" start="128" type="hex"/>
+    <!-- If neither, for software use to accelerate atomics and multisampled
+         writes. These are forbidden for compressed images and linear 2D arrays,
+         leaving this area free.
+    -->
+    <field name="Level offset (sw)" size="27" start="128" type="uint" modifier="shr(7)"/>
+    <field name="Aligned width MSAA (sw)" size="15" start="128" type="uint"/>
+    <field name="Tile width (sw)" size="3" start="155" type="uint" modifier="log2" default="1"/>
+    <field name="Tile height (sw)" size="3" start="158" type="uint" modifier="log2" default="1"/>
+    <field name="Layer stride (sw)" size="27" start="161" type="uint" modifier="shr(7)"/>
+    <field name="Sample count log2 (sw)" size="2" start="188" type="uint"/>
   </struct>
 
   <struct name="Texture" size="24">
@@ -552,15 +530,15 @@
     <field name="Flat shading vertex" size="2" start="7" type="PPP Vertex"/>
     <field name="Depth clip" size="1" start="10" type="bool"/>
     <field name="Depth clamp" size="1" start="11" type="bool"/>
+    <field name="Primitive MSAA" size="1" start="15" type="bool"/>
     <field name="Front face CCW" size="1" start="16" type="bool"/>
     <field name="Rasterizer discard" size="1" start="17" type="bool"/>
   </struct>
 
   <struct name="Cull 2" size="4">
-    <field name="Unknown 2" size="8" start="0" type="hex" default="0xa0"/>
+    <field name="Unknown 5" size="1" start="5" type="bool" default="true"/>
     <field name="Draw clipped edges" size="1" start="9" type="bool"/>
     <field name="Needs Primitive ID" size="1" start="12" type="bool"/>
-    <field name="Primitive MSAA" size="1" start="15" type="bool"/>
     <field name="Rasterizer discard" size="1" start="17" type="bool"/>
   </struct>
 

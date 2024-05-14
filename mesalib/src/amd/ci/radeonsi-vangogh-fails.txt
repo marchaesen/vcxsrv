@@ -110,6 +110,11 @@ KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Fail
 KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
 
+# Regression in the commit range 0549649b..1b8cf06f
+# src/compiler/nir/nir_opt_varyings.c:1255: gather_outputs: Assertion `!nir_src_is_const(offset) || nir_src_as_uint(offset) == 0' failed.
+KHR-GL46.tessellation_shader.tessellation_shader_tessellation.max_in_out_attributes,Crash
+KHR-GLES31.core.tessellation_shader.tessellation_shader_tessellation.max_in_out_attributes,Crash
+
 spec@!opengl 1.0@gl-1.0-user-clip-all-planes,Fail
 spec@!opengl 1.0@rasterpos,Fail
 spec@!opengl 1.0@rasterpos@glsl_vs_gs_linked,Fail

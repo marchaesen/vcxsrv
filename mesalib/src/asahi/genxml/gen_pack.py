@@ -515,6 +515,7 @@ class Group(object):
         # First, verify there is no garbage in unused bits
         words = {}
         self.collect_words(self.fields, 0, '', words)
+        print('    bool valid = true;')
 
         print('#ifndef __OPENCL_VERSION__')
         for index in range(self.length // 4):
@@ -526,7 +527,16 @@ class Group(object):
             ALL_ONES = 0xffffffff
 
             if mask != ALL_ONES:
-                TMPL = '   if (((const uint32_t *) cl)[{}] & {}) fprintf(fp, "XXX: Unknown field of {} unpacked at word {}: got %X, bad mask %X\\n", ((const uint32_t *) cl)[{}], ((const uint32_t *) cl)[{}] & {});'
+                TMPL = '''
+   if (((const uint32_t *) cl)[{}] & {}) {{
+      valid = false;
+
+      if (fp != NULL) {{
+          fprintf(fp, "XXX: Unknown field of {} unpacked at word {}: got %X, bad mask %X\\n",
+                  ((const uint32_t *) cl)[{}], ((const uint32_t *) cl)[{}] & {});
+      }}
+   }}
+                '''
                 print(TMPL.format(index, hex(mask ^ ALL_ONES), self.label, index, index, index, hex(mask ^ ALL_ONES)))
         print('#endif')
 
@@ -709,12 +719,13 @@ class Parser(object):
                                                                    words))
 
     def emit_unpack_function(self, name, group):
-        print("static inline void")
+        print("static inline bool")
         print("%s_unpack(FILE_TYPE *fp, CONSTANT uint8_t * restrict cl,\n%sstruct %s * restrict values)\n{" %
               (name.upper(), ' ' * (len(name) + 8), name))
 
         group.emit_unpack_function()
 
+        print("   return valid;\n")
         print("}\n")
 
     def emit_print_function(self, name, group):

@@ -290,6 +290,7 @@ struct radv_vs_input_state {
    uint32_t offsets[MAX_VERTEX_ATTRIBS];
    uint8_t formats[MAX_VERTEX_ATTRIBS];
    uint8_t format_align_req_minus_1[MAX_VERTEX_ATTRIBS];
+   uint8_t component_align_req_minus_1[MAX_VERTEX_ATTRIBS];
    uint8_t format_sizes[MAX_VERTEX_ATTRIBS];
 
    bool bindings_match_attrib;
@@ -311,6 +312,7 @@ struct radv_vs_prolog_key {
    uint8_t formats[MAX_VERTEX_ATTRIBS];
    unsigned num_attributes;
    uint32_t misaligned_mask;
+   uint32_t unaligned_mask;
    bool as_ls;
    bool is_ngg;
    bool wave32;

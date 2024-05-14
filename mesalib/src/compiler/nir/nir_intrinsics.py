@@ -1774,14 +1774,14 @@ system_value("ray_tracing_stack_base_lvp", 1)
 
 system_value("shader_call_data_offset_lvp", 1)
 
-# V3D-specific instrinc for tile buffer color reads.
+# Broadcom-specific instrinc for tile buffer color reads.
 #
 # The hardware requires that we read the samples and components of a pixel
 # in order, so we cannot eliminate or remove any loads in a sequence.
 #
 # src[] = { render_target }
 # BASE = sample index
-load("tlb_color_v3d", [1], [BASE, COMPONENT], [])
+load("tlb_color_brcm", [1], [BASE, COMPONENT], [])
 
 # V3D-specific instrinc for per-sample tile buffer color writes.
 #
@@ -1801,13 +1801,20 @@ intrinsic("load_fep_w_v3d", dest_comp=1, flags=[CAN_ELIMINATE, CAN_REORDER])
 
 # Active invocation index within the subgroup.
 # Equivalent to popcount(ballot(true) & ((1 << subgroup_invocation) - 1))
-system_value("active_subgroup_invocation_agx", 1)
+intrinsic("load_active_subgroup_invocation_agx", dest_comp=1, flags=[CAN_ELIMINATE])
+
+# Like ballot() but only within a quad.
+intrinsic("quad_ballot_agx", src_comp=[1], dest_comp=1, flags=[CAN_ELIMINATE])
 
 # With [0, 1] clipping, no transform is needed on the output z' = z. But with [-1,
 # 1] clipping, we need to transform z' = (z + w) / 2. We express both cases as a
 # lerp between z and w, where this is the lerp coefficient: 0 for [0, 1] and 0.5
 # for [-1, 1].
 system_value("clip_z_coeff_agx", 1)
+
+# True if drawing triangle fans with first vertex provoking, false otherwise.
+# This affects flatshading, which is defined weirdly for fans with first.
+system_value("is_first_fan_agx", 1, bit_sizes=[1])
 
 # mesa_prim for the input topology (in a geometry shader)
 system_value("input_topology_agx", 1)
@@ -1972,6 +1979,10 @@ system_value("sample_positions_agx", 1, bit_sizes=[32])
 # In a non-monolithic fragment shader part, returns whether this shader part is
 # responsible for Z/S testing after its final discard. ~0/0 boolean.
 system_value("shader_part_tests_zs_agx", 1, bit_sizes=[16])
+
+# Returns whether the API depth test is NEVER. We emulate this in shader when
+# fragment side effects are used to ensure the fragment shader executes.
+system_value("depth_never_agx", 1, bit_sizes=[16])
 
 # In a fragment shader, returns the log2 of the number of samples in the
 # tilebuffer. This is the unprocessed value written in the corresponding USC

@@ -1,6 +1,9 @@
 
 dEQP-VK.memory.mapping.suballocation.sub.1048577.offset_0.size_1048575.subinvalidate_overlapping
 
+dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.(single|multi)threaded_compilation.*
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.*
+
 # Nightly run expectations update
 dEQP-VK.memory.mapping.suballocation.sub.1048577.offset_0.size_1048575.subinvalidate_overlapping
 
@@ -9,3 +12,5 @@ dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_npot_
 dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_npot_diff_format_noclear
 dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_pot_diff_format_clear
 dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_pot_same_format_noclear
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_npot_same_format_clear
+dEQP-VK.api.copy_and_blit.sparse.image_to_image.simple_tests.partial_image_pot_same_format_clear

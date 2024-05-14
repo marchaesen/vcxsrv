@@ -57,8 +57,8 @@ blend_depends_on_dst_color(struct vc4_compile *c)
 static nir_def *
 vc4_nir_get_dst_color(nir_builder *b, int sample)
 {
-        return nir_load_input(b, 1, 32, nir_imm_int(b, 0),
-                              .base = VC4_NIR_TLB_COLOR_READ_INPUT + sample);
+        return nir_load_tlb_color_brcm(b, 1, 32, nir_imm_int(b, 0),
+                                       .base = sample);
 }
 
 static nir_def *
@@ -574,18 +574,10 @@ vc4_nir_lower_blend_block(nir_block *block, struct vc4_compile *c)
                 if (intr->intrinsic != nir_intrinsic_store_output)
                         continue;
 
-                nir_variable *output_var = NULL;
-                nir_foreach_shader_out_variable(var, c->s) {
-                        if (var->data.driver_location ==
-                            nir_intrinsic_base(intr)) {
-                                output_var = var;
-                                break;
-                        }
-                }
-                assert(output_var);
+                unsigned loc = nir_intrinsic_io_semantics(intr).location;
 
-                if (output_var->data.location != FRAG_RESULT_COLOR &&
-                    output_var->data.location != FRAG_RESULT_DATA0) {
+                if (loc != FRAG_RESULT_COLOR &&
+                    loc != FRAG_RESULT_DATA0) {
                         continue;
                 }
 

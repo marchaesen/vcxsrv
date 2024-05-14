@@ -493,6 +493,10 @@ agx_pack_alu(struct util_dynarray *emission, agx_instr *I)
       raw |= (uint64_t)(I->bfi_mask & 0x3) << 38;
       raw |= (uint64_t)((I->bfi_mask >> 2) & 0x3) << 50;
       raw |= (uint64_t)((I->bfi_mask >> 4) & 0x1) << 63;
+   } else if (info.immediates & AGX_IMMEDIATE_SIMD_OP) {
+      raw |= (uint64_t)(I->simd_op & 0x1) << 28;
+      raw |= (uint64_t)((I->simd_op >> 1) & 0x7) << 38;
+      raw |= (uint64_t)((I->simd_op >> 4) & 0x1) << 47;
    } else if (info.immediates & AGX_IMMEDIATE_SR) {
       raw |= (uint64_t)(I->sr & 0x3F) << 16;
       raw |= (uint64_t)(I->sr >> 6) << 26;

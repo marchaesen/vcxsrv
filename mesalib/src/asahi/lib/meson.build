@@ -37,6 +37,8 @@ libagx_shader_files = files(
   'shaders/libagx.h',
   'shaders/geometry.cl',
   'shaders/geometry.h',
+  'shaders/query.cl',
+  'shaders/query.h',
   'shaders/tessellation.cl',
   'shaders/tessellator.cl',
   'shaders/texture.cl',

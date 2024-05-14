@@ -15,13 +15,13 @@
 struct tu_u_trace_syncobj;
 struct vdrm_bo;
 
-enum tu_bo_alloc_flags
-{
+enum tu_bo_alloc_flags {
    TU_BO_ALLOC_NO_FLAGS = 0,
    TU_BO_ALLOC_ALLOW_DUMP = 1 << 0,
    TU_BO_ALLOC_GPU_READ_ONLY = 1 << 1,
    TU_BO_ALLOC_REPLAYABLE = 1 << 2,
    TU_BO_ALLOC_INTERNAL_RESOURCE = 1 << 3,
+   TU_BO_ALLOC_DMABUF = 1 << 4,
 };
 
 /* Define tu_timeline_sync type based on drm syncobj for a point type

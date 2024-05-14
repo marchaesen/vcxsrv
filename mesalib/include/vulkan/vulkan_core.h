@@ -69,7 +69,7 @@ extern "C" {
 #define VK_API_VERSION_1_0 VK_MAKE_API_VERSION(0, 1, 0, 0)// Patch version should always be set to 0
 
 // Version of this file
-#define VK_HEADER_VERSION 284
+#define VK_HEADER_VERSION 285
 
 // Complete version of this file
 #define VK_HEADER_VERSION_COMPLETE VK_MAKE_API_VERSION(0, 1, 3, VK_HEADER_VERSION)
@@ -1114,6 +1114,9 @@ typedef enum VkStructureType {
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAW_ACCESS_CHAINS_FEATURES_NV = 1000555000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_ATOMIC_FLOAT16_VECTOR_FEATURES_NV = 1000563000,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_VALIDATION_FEATURES_NV = 1000568000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_FEATURES_MESA = 1000575000,
+    VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_IMAGE_ALIGNMENT_CONTROL_PROPERTIES_MESA = 1000575001,
+    VK_STRUCTURE_TYPE_IMAGE_ALIGNMENT_CONTROL_CREATE_INFO_MESA = 1000575002,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTER_FEATURES = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VARIABLE_POINTERS_FEATURES,
     VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETER_FEATURES = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_DRAW_PARAMETERS_FEATURES,
     VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT = VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT,
@@ -19166,6 +19169,30 @@ typedef struct VkPhysicalDeviceRayTracingValidationFeaturesNV {
     void*              pNext;
     VkBool32           rayTracingValidation;
 } VkPhysicalDeviceRayTracingValidationFeaturesNV;
+
+
+
+// VK_MESA_image_alignment_control is a preprocessor guard. Do not pass it to API calls.
+#define VK_MESA_image_alignment_control 1
+#define VK_MESA_IMAGE_ALIGNMENT_CONTROL_SPEC_VERSION 1
+#define VK_MESA_IMAGE_ALIGNMENT_CONTROL_EXTENSION_NAME "VK_MESA_image_alignment_control"
+typedef struct VkPhysicalDeviceImageAlignmentControlFeaturesMESA {
+    VkStructureType    sType;
+    void*              pNext;
+    VkBool32           imageAlignmentControl;
+} VkPhysicalDeviceImageAlignmentControlFeaturesMESA;
+
+typedef struct VkPhysicalDeviceImageAlignmentControlPropertiesMESA {
+    VkStructureType    sType;
+    void*              pNext;
+    uint32_t           supportedImageAlignmentMask;
+} VkPhysicalDeviceImageAlignmentControlPropertiesMESA;
+
+typedef struct VkImageAlignmentControlCreateInfoMESA {
+    VkStructureType    sType;
+    const void*        pNext;
+    uint32_t           maximumRequestedAlignment;
+} VkImageAlignmentControlCreateInfoMESA;
 
 
 

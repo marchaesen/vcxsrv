@@ -273,7 +273,8 @@ agx_nir_lower_tes(nir_shader *tes, const nir_shader *libagx)
 
       nir_store_output(&b, nir_imm_float(&b, 1.0), nir_imm_int(&b, 0),
                        .io_semantics.location = VARYING_SLOT_PSIZ,
-                       .write_mask = nir_component_mask(1), .range = 1);
+                       .write_mask = nir_component_mask(1), .range = 1,
+                       .src_type = nir_type_float32);
 
       tes->info.outputs_written |= VARYING_BIT_PSIZ;
    }

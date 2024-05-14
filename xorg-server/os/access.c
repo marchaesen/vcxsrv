@@ -107,7 +107,7 @@ SOFTWARE.
 
 #if defined(TCPCONN)
 #include <netinet/in.h>
-#endif                          /* TCPCONN || STREAMSCONN */
+#endif                          /* TCPCONN */
 
 #ifdef HAVE_GETPEERUCRED
 #include <ucred.h>
@@ -560,7 +560,7 @@ DefineSelf(int fd)
             selfhosts = host;
         }
     }
-#endif                          /* !TCPCONN && !STREAMSCONN && !UNIXCONN */
+#endif                          /* !TCPCONN && !UNIXCONN */
 }
 
 #else
@@ -947,7 +947,7 @@ ResetHosts(const char *display)
         struct sockaddr sa;
 #if defined(TCPCONN)
         struct sockaddr_in in;
-#endif                          /* TCPCONN || STREAMSCONN */
+#endif                          /* TCPCONN */
     } saddr;
 #endif
     int family = 0;
@@ -1081,7 +1081,7 @@ ResetHosts(const char *display)
                 }
 #endif                          /* IPv6 */
             }
-#endif                          /* TCPCONN || STREAMSCONN */
+#endif                          /* TCPCONN */
             family = FamilyWild;
         }
         fclose(fd);

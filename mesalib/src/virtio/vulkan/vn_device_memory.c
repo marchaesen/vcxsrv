@@ -30,15 +30,7 @@ vn_device_memory_alloc_simple(struct vn_device *dev,
 {
    VkDevice dev_handle = vn_device_to_handle(dev);
    VkDeviceMemory mem_handle = vn_device_memory_to_handle(mem);
-
-   /* Workaround dEQP-VK.wsi.android.swapchain.simulate_oom.* test failures on
-    * turnip where excessive imports can fail, and venus has to propagate oom.
-    */
-   const bool force_sync =
-      mem->base.base.import_handle_type ==
-         VK_EXTERNAL_MEMORY_HANDLE_TYPE_DMA_BUF_BIT_EXT &&
-      dev->physical_device->renderer_driver_id == VK_DRIVER_ID_MESA_TURNIP;
-   if (VN_PERF(NO_ASYNC_MEM_ALLOC) || force_sync) {
+   if (VN_PERF(NO_ASYNC_MEM_ALLOC)) {
       return vn_call_vkAllocateMemory(dev->primary_ring, dev_handle,
                                       alloc_info, NULL, &mem_handle);
    }

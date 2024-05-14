@@ -64,6 +64,7 @@ radv_aco_convert_vs_prolog_key(struct aco_vs_prolog_info *aco_info, const struct
    ASSIGN_FIELD_CP(formats);
    ASSIGN_FIELD(num_attributes);
    ASSIGN_FIELD(misaligned_mask);
+   ASSIGN_FIELD(unaligned_mask);
    ASSIGN_FIELD(is_ngg);
    ASSIGN_FIELD(next_stage);
 

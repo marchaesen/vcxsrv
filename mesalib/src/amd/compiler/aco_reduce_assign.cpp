@@ -103,11 +103,16 @@ setup_reduce_temp(Program* program)
                 * would insert at the end instead of using this one. */
             } else {
                assert(last_top_level_block_idx < block.index);
-               /* insert before the branch at last top level block */
+               /* insert after p_logical_end of the last top-level block */
                std::vector<aco_ptr<Instruction>>& instructions =
                   program->blocks[last_top_level_block_idx].instructions;
-               instructions.insert(std::next(instructions.begin(), instructions.size() - 1),
-                                   std::move(create));
+               auto insert_point =
+                  std::find_if(instructions.rbegin(), instructions.rend(),
+                               [](const auto& iter) {
+                                  return iter->opcode == aco_opcode::p_logical_end;
+                               })
+                     .base();
+               instructions.insert(insert_point, std::move(create));
                inserted_at = last_top_level_block_idx;
             }
          }
@@ -146,8 +151,13 @@ setup_reduce_temp(Program* program)
                assert(last_top_level_block_idx < block.index);
                std::vector<aco_ptr<Instruction>>& instructions =
                   program->blocks[last_top_level_block_idx].instructions;
-               instructions.insert(std::next(instructions.begin(), instructions.size() - 1),
-                                   std::move(create));
+               auto insert_point =
+                  std::find_if(instructions.rbegin(), instructions.rend(),
+                               [](const auto& iter) {
+                                  return iter->opcode == aco_opcode::p_logical_end;
+                               })
+                     .base();
+               instructions.insert(insert_point, std::move(create));
                vtmp_inserted_at = last_top_level_block_idx;
             }
          }

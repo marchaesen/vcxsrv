@@ -38,16 +38,17 @@ For a vertex shader reading $n$ attributes, the following layout is used:
 * The first $n$ 64-bit uniforms are the base addresses of each attribute.
 * The next $n$ 32-bit uniforms are the associated clamps (sizes). Presently
   robustness is always used.
-* The next 32-bit uniform is the base instance. This must always be reserved
-  because it is unknown at vertex shader compile-time whether any attribute will
-  use instancing.
-* For a hardware compute shader, the next 32-bit uniform is the base/first
-  vertex.
+* The next 2x32-bit uniform is the base vertex and base instance. This must
+  always be reserved because it is unknown at vertex shader compile-time whether
+  any attribute will use instancing. Reserving also the base vertex allows us to
+  push both conveniently with a single USC Uniform word.
+* The next 16-bit is the draw ID.
+* For a hardware compute shader, the next 48-bit is padding.
 * For a hardware compute shader, the next 64-bit uniform is a pointer to the
   input assembly buffer.
 
-In total, the first $6n + 2$ 16-bit uniform slots are reserved for a hardware
-vertex shader, or $6n + 8$ for a hardware compute shader.
+In total, the first $6n + 5$ 16-bit uniform slots are reserved for a hardware
+vertex shader, or $6n + 12$ for a hardware compute shader.
 
 ## Fragment
 

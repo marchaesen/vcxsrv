@@ -5,24 +5,30 @@
 
 #include "agx_compiler.h"
 
-/* SSA-based scalar dead code elimination */
-
+/**
+ * SSA-based scalar dead code elimination.
+ * This pass assumes that no loop header phis are dead.
+ */
 void
 agx_dce(agx_context *ctx, bool partial)
 {
-   bool progress;
-   do {
-      progress = false;
+   BITSET_WORD *seen = calloc(BITSET_WORDS(ctx->alloc), sizeof(BITSET_WORD));
 
-      BITSET_WORD *seen = calloc(BITSET_WORDS(ctx->alloc), sizeof(BITSET_WORD));
-
-      agx_foreach_instr_global(ctx, I) {
-         agx_foreach_ssa_src(I, s) {
-            BITSET_SET(seen, I->src[s].value);
+   agx_foreach_block(ctx, block) {
+      if (block->loop_header) {
+         agx_foreach_phi_in_block(block, I) {
+            agx_foreach_ssa_src(I, s) {
+               BITSET_SET(seen, I->src[s].value);
+            }
          }
       }
+   }
 
-      agx_foreach_instr_global_safe_rev(ctx, I) {
+   agx_foreach_block_rev(ctx, block) {
+      agx_foreach_instr_in_block_safe_rev(block, I) {
+         if (block->loop_header && I->op == AGX_OPCODE_PHI)
+            break;
+
          bool needed = false;
 
          agx_foreach_ssa_dest(I, d) {
@@ -35,16 +41,18 @@ agx_dce(agx_context *ctx, bool partial)
                needed = true;
             } else if (partial) {
                I->dest[d] = agx_null();
-               progress = true;
             }
          }
 
          if (!needed && agx_opcodes_info[I->op].can_eliminate) {
             agx_remove_instruction(I);
-            progress = true;
+         } else {
+            agx_foreach_ssa_src(I, s) {
+               BITSET_SET(seen, I->src[s].value);
+            }
          }
       }
+   }
 
-      free(seen);
-   } while (progress);
+   free(seen);
 }

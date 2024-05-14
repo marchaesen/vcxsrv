@@ -220,22 +220,11 @@ vc4_nir_lower_fs_input(struct vc4_compile *c, nir_builder *b,
 {
         b->cursor = nir_after_instr(&intr->instr);
 
-        if (nir_intrinsic_base(intr) >= VC4_NIR_TLB_COLOR_READ_INPUT &&
-            nir_intrinsic_base(intr) < (VC4_NIR_TLB_COLOR_READ_INPUT +
-                                        VC4_MAX_SAMPLES)) {
-                /* This doesn't need any lowering. */
-                return;
-        }
-
-        nir_variable *input_var =
-                nir_find_variable_with_driver_location(c->s, nir_var_shader_in,
-                                                       nir_intrinsic_base(intr));
-        assert(input_var);
-
+        unsigned int location = nir_intrinsic_io_semantics(intr).location;
         int comp = nir_intrinsic_component(intr);
 
         /* Lower away point coordinates, and fix up PNTC. */
-        if (util_varying_is_point_coord(input_var->data.location,
+        if (util_varying_is_point_coord(location,
                                         c->fs_key->point_sprite_mask)) {
                 assert(intr->num_components == 1);
 
@@ -274,14 +263,11 @@ static void
 vc4_nir_lower_output(struct vc4_compile *c, nir_builder *b,
                      nir_intrinsic_instr *intr)
 {
-        nir_variable *output_var =
-                nir_find_variable_with_driver_location(c->s, nir_var_shader_out,
-                                                       nir_intrinsic_base(intr));
-        assert(output_var);
+        unsigned int location = nir_intrinsic_io_semantics(intr).location;
 
         if (c->stage == QSTAGE_COORD &&
-            output_var->data.location != VARYING_SLOT_POS &&
-            output_var->data.location != VARYING_SLOT_PSIZ) {
+            location != VARYING_SLOT_POS &&
+            location != VARYING_SLOT_PSIZ) {
                 nir_instr_remove(&intr->instr);
                 return;
         }

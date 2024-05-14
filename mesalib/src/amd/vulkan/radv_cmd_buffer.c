@@ -31,6 +31,7 @@
 #include "vk_util.h"
 
 #include "ac_debug.h"
+#include "ac_nir.h"
 #include "ac_shader_args.h"
 
 #include "aco_interface.h"
@@ -407,6 +408,9 @@ radv_reset_tracked_regs(struct radv_cmd_buffer *cmd_buffer)
    /* Mark all registers as unknown. */
    memset(tracked_regs->reg_value, 0, RADV_NUM_ALL_TRACKED_REGS * sizeof(uint32_t));
    BITSET_ZERO(tracked_regs->reg_saved_mask);
+
+   /* 0xffffffff is an impossible value for SPI_PS_INPUT_CNTL_n registers */
+   memset(tracked_regs->spi_ps_input_cntl, 0xff, sizeof(uint32_t) * 32);
 }
 
 static void
@@ -1915,6 +1919,838 @@ radv_emit_compute_shader(const struct radv_physical_device *pdev, struct radeon_
 }
 
 static void
+radv_emit_vgt_gs_mode(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader_info *info = &cmd_buffer->state.last_vgt_shader->info;
+   unsigned vgt_primitiveid_en = 0;
+   uint32_t vgt_gs_mode = 0;
+
+   if (info->is_ngg)
+      return;
+
+   if (info->stage == MESA_SHADER_GEOMETRY) {
+      vgt_gs_mode = ac_vgt_gs_mode(info->gs.vertices_out, pdev->info.gfx_level);
+   } else if (info->outinfo.export_prim_id || info->uses_prim_id) {
+      vgt_gs_mode = S_028A40_MODE(V_028A40_GS_SCENARIO_A);
+      vgt_primitiveid_en |= S_028A84_PRIMITIVEID_EN(1);
+   }
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028A84_VGT_PRIMITIVEID_EN, RADV_TRACKED_VGT_PRIMITIVEID_EN,
+                              vgt_primitiveid_en);
+   radeon_opt_set_context_reg(cmd_buffer, R_028A40_VGT_GS_MODE, RADV_TRACKED_VGT_GS_MODE, vgt_gs_mode);
+}
+
+static void
+radv_emit_hw_vs(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *shader)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const uint64_t va = radv_shader_get_va(shader);
+
+   radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B120_SPI_SHADER_PGM_LO_VS, 4);
+   radeon_emit(cmd_buffer->cs, va >> 8);
+   radeon_emit(cmd_buffer->cs, S_00B124_MEM_BASE(va >> 40));
+   radeon_emit(cmd_buffer->cs, shader->config.rsrc1);
+   radeon_emit(cmd_buffer->cs, shader->config.rsrc2);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_0286C4_SPI_VS_OUT_CONFIG, RADV_TRACKED_SPI_VS_OUT_CONFIG,
+                              shader->info.regs.spi_vs_out_config);
+   radeon_opt_set_context_reg(cmd_buffer, R_02870C_SPI_SHADER_POS_FORMAT, RADV_TRACKED_SPI_SHADER_POS_FORMAT,
+                              shader->info.regs.spi_shader_pos_format);
+   radeon_opt_set_context_reg(cmd_buffer, R_02881C_PA_CL_VS_OUT_CNTL, RADV_TRACKED_PA_CL_VS_OUT_CNTL,
+                              shader->info.regs.pa_cl_vs_out_cntl);
+
+   if (pdev->info.gfx_level <= GFX8)
+      radeon_opt_set_context_reg(cmd_buffer, R_028AB4_VGT_REUSE_OFF, RADV_TRACKED_VGT_REUSE_OFF,
+                                 shader->info.regs.vs.vgt_reuse_off);
+
+   if (pdev->info.gfx_level >= GFX7) {
+      radeon_set_sh_reg_idx(pdev, cmd_buffer->cs, R_00B118_SPI_SHADER_PGM_RSRC3_VS, 3,
+                            shader->info.regs.vs.spi_shader_pgm_rsrc3_vs);
+      radeon_set_sh_reg(cmd_buffer->cs, R_00B11C_SPI_SHADER_LATE_ALLOC_VS,
+                        shader->info.regs.vs.spi_shader_late_alloc_vs);
+
+      if (pdev->info.gfx_level >= GFX10) {
+         radeon_set_uconfig_reg(cmd_buffer->cs, R_030980_GE_PC_ALLOC, shader->info.regs.ge_pc_alloc);
+
+         if (shader->info.stage == MESA_SHADER_TESS_EVAL) {
+            radeon_opt_set_context_reg(cmd_buffer, R_028A44_VGT_GS_ONCHIP_CNTL, RADV_TRACKED_VGT_GS_ONCHIP_CNTL,
+                                       shader->info.regs.vgt_gs_onchip_cntl);
+         }
+      }
+   }
+}
+
+static void
+radv_emit_hw_es(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *shader)
+{
+   const uint64_t va = radv_shader_get_va(shader);
+
+   radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B320_SPI_SHADER_PGM_LO_ES, 4);
+   radeon_emit(cmd_buffer->cs, va >> 8);
+   radeon_emit(cmd_buffer->cs, S_00B324_MEM_BASE(va >> 40));
+   radeon_emit(cmd_buffer->cs, shader->config.rsrc1);
+   radeon_emit(cmd_buffer->cs, shader->config.rsrc2);
+}
+
+static void
+radv_emit_hw_ls(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *shader)
+{
+   const uint64_t va = radv_shader_get_va(shader);
+
+   radeon_set_sh_reg(cmd_buffer->cs, R_00B520_SPI_SHADER_PGM_LO_LS, va >> 8);
+
+   radeon_set_sh_reg(cmd_buffer->cs, R_00B528_SPI_SHADER_PGM_RSRC1_LS, shader->config.rsrc1);
+}
+
+static void
+radv_emit_hw_ngg(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *es, const struct radv_shader *shader)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const uint64_t va = radv_shader_get_va(shader);
+   gl_shader_stage es_type;
+   const struct gfx10_ngg_info *ngg_state = &shader->info.ngg_info;
+
+   if (shader->info.stage == MESA_SHADER_GEOMETRY) {
+      if (shader->info.merged_shader_compiled_separately) {
+         es_type = es->info.stage;
+      } else {
+         es_type = shader->info.gs.es_type;
+      }
+   } else {
+      es_type = shader->info.stage;
+   }
+
+   if (!shader->info.merged_shader_compiled_separately) {
+      radeon_set_sh_reg(cmd_buffer->cs, R_00B320_SPI_SHADER_PGM_LO_ES, va >> 8);
+
+      radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B228_SPI_SHADER_PGM_RSRC1_GS, 2);
+      radeon_emit(cmd_buffer->cs, shader->config.rsrc1);
+      radeon_emit(cmd_buffer->cs, shader->config.rsrc2);
+   }
+
+   const struct radv_vs_output_info *outinfo = &shader->info.outinfo;
+
+   const bool es_enable_prim_id = outinfo->export_prim_id || (es && es->info.uses_prim_id);
+   bool break_wave_at_eoi = false;
+
+   if (es_type == MESA_SHADER_TESS_EVAL) {
+      if (es_enable_prim_id || (shader->info.uses_prim_id))
+         break_wave_at_eoi = true;
+   }
+
+   radeon_opt_set_context_reg(cmd_buffer, R_0286C4_SPI_VS_OUT_CONFIG, RADV_TRACKED_SPI_VS_OUT_CONFIG,
+                              shader->info.regs.spi_vs_out_config);
+
+   radeon_opt_set_context_reg2(cmd_buffer, R_028708_SPI_SHADER_IDX_FORMAT, RADV_TRACKED_SPI_SHADER_IDX_FORMAT,
+                               shader->info.regs.ngg.spi_shader_idx_format, shader->info.regs.spi_shader_pos_format);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_02881C_PA_CL_VS_OUT_CNTL, RADV_TRACKED_PA_CL_VS_OUT_CNTL,
+                              shader->info.regs.pa_cl_vs_out_cntl);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028A84_VGT_PRIMITIVEID_EN, RADV_TRACKED_VGT_PRIMITIVEID_EN,
+                              shader->info.regs.ngg.vgt_primitiveid_en | S_028A84_PRIMITIVEID_EN(es_enable_prim_id));
+
+   radeon_opt_set_context_reg(cmd_buffer, R_0287FC_GE_MAX_OUTPUT_PER_SUBGROUP, RADV_TRACKED_GE_MAX_OUTPUT_PER_SUBGROUP,
+                              shader->info.regs.ngg.ge_max_output_per_subgroup);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028B4C_GE_NGG_SUBGRP_CNTL, RADV_TRACKED_GE_NGG_SUBGRP_CNTL,
+                              shader->info.regs.ngg.ge_ngg_subgrp_cntl);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028B90_VGT_GS_INSTANCE_CNT, RADV_TRACKED_VGT_GS_INSTANCE_CNT,
+                              shader->info.regs.vgt_gs_instance_cnt);
+
+   uint32_t ge_cntl = shader->info.regs.ngg.ge_cntl;
+   if (pdev->info.gfx_level >= GFX11) {
+      ge_cntl |= S_03096C_BREAK_PRIMGRP_AT_EOI(break_wave_at_eoi);
+   } else {
+      ge_cntl |= S_03096C_BREAK_WAVE_AT_EOI(break_wave_at_eoi);
+
+      /* Bug workaround for a possible hang with non-tessellation cases.
+       * Tessellation always sets GE_CNTL.VERT_GRP_SIZE = 0
+       *
+       * Requirement: GE_CNTL.VERT_GRP_SIZE = VGT_GS_ONCHIP_CNTL.ES_VERTS_PER_SUBGRP - 5
+       */
+      if (pdev->info.gfx_level == GFX10 && es_type != MESA_SHADER_TESS_EVAL && ngg_state->hw_max_esverts != 256) {
+         ge_cntl &= C_03096C_VERT_GRP_SIZE;
+
+         if (ngg_state->hw_max_esverts > 5) {
+            ge_cntl |= S_03096C_VERT_GRP_SIZE(ngg_state->hw_max_esverts - 5);
+         }
+      }
+
+      radeon_opt_set_context_reg(cmd_buffer, R_028A44_VGT_GS_ONCHIP_CNTL, RADV_TRACKED_VGT_GS_ONCHIP_CNTL,
+                                 shader->info.regs.vgt_gs_onchip_cntl);
+   }
+
+   radeon_set_uconfig_reg(cmd_buffer->cs, R_03096C_GE_CNTL, ge_cntl);
+
+   radeon_set_sh_reg_idx(pdev, cmd_buffer->cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS, 3,
+                         shader->info.regs.spi_shader_pgm_rsrc3_gs);
+   radeon_set_sh_reg_idx(pdev, cmd_buffer->cs, R_00B204_SPI_SHADER_PGM_RSRC4_GS, 3,
+                         shader->info.regs.spi_shader_pgm_rsrc4_gs);
+
+   radeon_set_uconfig_reg(cmd_buffer->cs, R_030980_GE_PC_ALLOC, shader->info.regs.ge_pc_alloc);
+}
+
+static void
+radv_emit_hw_hs(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *shader)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const uint64_t va = radv_shader_get_va(shader);
+
+   if (pdev->info.gfx_level >= GFX9) {
+      if (pdev->info.gfx_level >= GFX10) {
+         radeon_set_sh_reg(cmd_buffer->cs, R_00B520_SPI_SHADER_PGM_LO_LS, va >> 8);
+      } else {
+         radeon_set_sh_reg(cmd_buffer->cs, R_00B410_SPI_SHADER_PGM_LO_LS, va >> 8);
+      }
+
+      radeon_set_sh_reg(cmd_buffer->cs, R_00B428_SPI_SHADER_PGM_RSRC1_HS, shader->config.rsrc1);
+   } else {
+      radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B420_SPI_SHADER_PGM_LO_HS, 4);
+      radeon_emit(cmd_buffer->cs, va >> 8);
+      radeon_emit(cmd_buffer->cs, S_00B424_MEM_BASE(va >> 40));
+      radeon_emit(cmd_buffer->cs, shader->config.rsrc1);
+      radeon_emit(cmd_buffer->cs, shader->config.rsrc2);
+   }
+}
+
+static void
+radv_emit_vertex_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *vs = cmd_buffer->state.shaders[MESA_SHADER_VERTEX];
+
+   if (vs->info.merged_shader_compiled_separately) {
+      assert(vs->info.next_stage == MESA_SHADER_TESS_CTRL || vs->info.next_stage == MESA_SHADER_GEOMETRY);
+
+      const struct radv_userdata_info *loc = &vs->info.user_sgprs_locs.shader_data[AC_UD_NEXT_STAGE_PC];
+      const struct radv_shader *next_stage = cmd_buffer->state.shaders[vs->info.next_stage];
+      const uint32_t base_reg = vs->info.user_data_0;
+
+      assert(loc->sgpr_idx != -1 && loc->num_sgprs == 1);
+
+      if (!vs->info.vs.has_prolog) {
+         uint32_t rsrc1, rsrc2;
+
+         if (vs->info.next_stage == MESA_SHADER_TESS_CTRL) {
+            radv_shader_combine_cfg_vs_tcs(vs, next_stage, &rsrc1, NULL);
+
+            if (pdev->info.gfx_level >= GFX10) {
+               radeon_set_sh_reg(cmd_buffer->cs, R_00B520_SPI_SHADER_PGM_LO_LS, vs->va >> 8);
+            } else {
+               radeon_set_sh_reg(cmd_buffer->cs, R_00B410_SPI_SHADER_PGM_LO_LS, vs->va >> 8);
+            }
+
+            radeon_set_sh_reg(cmd_buffer->cs, R_00B428_SPI_SHADER_PGM_RSRC1_HS, rsrc1);
+         } else {
+            radv_shader_combine_cfg_vs_gs(vs, next_stage, &rsrc1, &rsrc2);
+
+            if (pdev->info.gfx_level >= GFX10) {
+               radeon_set_sh_reg(cmd_buffer->cs, R_00B320_SPI_SHADER_PGM_LO_ES, vs->va >> 8);
+            } else {
+               radeon_set_sh_reg(cmd_buffer->cs, R_00B210_SPI_SHADER_PGM_LO_ES, vs->va >> 8);
+            }
+
+            unsigned lds_size;
+            if (next_stage->info.is_ngg) {
+               lds_size = DIV_ROUND_UP(next_stage->info.ngg_info.lds_size, pdev->info.lds_encode_granularity);
+            } else {
+               lds_size = next_stage->info.gs_ring_info.lds_size;
+            }
+
+            radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B228_SPI_SHADER_PGM_RSRC1_GS, 2);
+            radeon_emit(cmd_buffer->cs, rsrc1);
+            radeon_emit(cmd_buffer->cs, rsrc2 | S_00B22C_LDS_SIZE(lds_size));
+         }
+      }
+
+      radv_emit_shader_pointer(device, cmd_buffer->cs, base_reg + loc->sgpr_idx * 4, next_stage->va, false);
+      return;
+   }
+
+   if (vs->info.vs.as_ls)
+      radv_emit_hw_ls(cmd_buffer, vs);
+   else if (vs->info.vs.as_es)
+      radv_emit_hw_es(cmd_buffer, vs);
+   else if (vs->info.is_ngg)
+      radv_emit_hw_ngg(cmd_buffer, NULL, vs);
+   else
+      radv_emit_hw_vs(cmd_buffer, vs);
+}
+
+static void
+radv_emit_tess_ctrl_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_shader *tcs = cmd_buffer->state.shaders[MESA_SHADER_TESS_CTRL];
+
+   if (tcs->info.merged_shader_compiled_separately) {
+      /* When VS+TCS are compiled separately on GFX9+, the VS will jump to the TCS and everything is
+       * emitted as part of the VS.
+       */
+      return;
+   }
+
+   radv_emit_hw_hs(cmd_buffer, tcs);
+}
+
+static void
+radv_emit_tess_eval_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *tes = cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL];
+
+   if (tes->info.merged_shader_compiled_separately) {
+      assert(tes->info.next_stage == MESA_SHADER_GEOMETRY);
+
+      const struct radv_userdata_info *loc = &tes->info.user_sgprs_locs.shader_data[AC_UD_NEXT_STAGE_PC];
+      const struct radv_shader *gs = cmd_buffer->state.shaders[MESA_SHADER_GEOMETRY];
+      const uint32_t base_reg = tes->info.user_data_0;
+      uint32_t rsrc1, rsrc2;
+
+      assert(loc->sgpr_idx != -1 && loc->num_sgprs == 1);
+
+      radv_shader_combine_cfg_tes_gs(tes, gs, &rsrc1, &rsrc2);
+
+      radeon_set_sh_reg(cmd_buffer->cs, R_00B210_SPI_SHADER_PGM_LO_ES, tes->va >> 8);
+
+      unsigned lds_size;
+      if (gs->info.is_ngg) {
+         lds_size = DIV_ROUND_UP(gs->info.ngg_info.lds_size, pdev->info.lds_encode_granularity);
+      } else {
+         lds_size = gs->info.gs_ring_info.lds_size;
+      }
+
+      radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B228_SPI_SHADER_PGM_RSRC1_GS, 2);
+      radeon_emit(cmd_buffer->cs, rsrc1);
+      radeon_emit(cmd_buffer->cs, rsrc2 | S_00B22C_LDS_SIZE(lds_size));
+
+      radv_emit_shader_pointer(device, cmd_buffer->cs, base_reg + loc->sgpr_idx * 4, gs->va, false);
+      return;
+   }
+
+   if (tes->info.is_ngg) {
+      radv_emit_hw_ngg(cmd_buffer, NULL, tes);
+   } else if (tes->info.tes.as_es) {
+      radv_emit_hw_es(cmd_buffer, tes);
+   } else {
+      radv_emit_hw_vs(cmd_buffer, tes);
+   }
+}
+
+static void
+radv_emit_hw_gs(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *gs)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_legacy_gs_info *gs_state = &gs->info.gs_ring_info;
+   const uint64_t va = radv_shader_get_va(gs);
+
+   radeon_opt_set_context_reg3(cmd_buffer, R_028A60_VGT_GSVS_RING_OFFSET_1, RADV_TRACKED_VGT_GSVS_RING_OFFSET_1,
+                               gs->info.regs.gs.vgt_gsvs_ring_offset[0], gs->info.regs.gs.vgt_gsvs_ring_offset[1],
+                               gs->info.regs.gs.vgt_gsvs_ring_offset[2]);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028AB0_VGT_GSVS_RING_ITEMSIZE, RADV_TRACKED_VGT_GSVS_RING_ITEMSIZE,
+                              gs->info.regs.gs.vgt_gsvs_ring_itemsize);
+
+   radeon_opt_set_context_reg4(cmd_buffer, R_028B5C_VGT_GS_VERT_ITEMSIZE, RADV_TRACKED_VGT_GS_VERT_ITEMSIZE,
+                               gs->info.regs.gs.vgt_gs_vert_itemsize[0], gs->info.regs.gs.vgt_gs_vert_itemsize[1],
+                               gs->info.regs.gs.vgt_gs_vert_itemsize[2], gs->info.regs.gs.vgt_gs_vert_itemsize[3]);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028B90_VGT_GS_INSTANCE_CNT, RADV_TRACKED_VGT_GS_INSTANCE_CNT,
+                              gs->info.regs.gs.vgt_gs_instance_cnt);
+
+   if (pdev->info.gfx_level >= GFX9) {
+      if (!gs->info.merged_shader_compiled_separately) {
+
+         if (pdev->info.gfx_level >= GFX10) {
+            radeon_set_sh_reg(cmd_buffer->cs, R_00B320_SPI_SHADER_PGM_LO_ES, va >> 8);
+         } else {
+            radeon_set_sh_reg(cmd_buffer->cs, R_00B210_SPI_SHADER_PGM_LO_ES, va >> 8);
+         }
+
+         radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B228_SPI_SHADER_PGM_RSRC1_GS, 2);
+         radeon_emit(cmd_buffer->cs, gs->config.rsrc1);
+         radeon_emit(cmd_buffer->cs, gs->config.rsrc2 | S_00B22C_LDS_SIZE(gs_state->lds_size));
+      }
+
+      radeon_opt_set_context_reg(cmd_buffer, R_028A44_VGT_GS_ONCHIP_CNTL, RADV_TRACKED_VGT_GS_ONCHIP_CNTL,
+                                 gs->info.regs.vgt_gs_onchip_cntl);
+      radeon_opt_set_context_reg(cmd_buffer, R_028A94_VGT_GS_MAX_PRIMS_PER_SUBGROUP,
+                                 RADV_TRACKED_VGT_GS_MAX_PRIMS_PER_SUBGROUP,
+                                 gs->info.regs.gs.vgt_gs_max_prims_per_subgroup);
+   } else {
+      radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B220_SPI_SHADER_PGM_LO_GS, 4);
+      radeon_emit(cmd_buffer->cs, va >> 8);
+      radeon_emit(cmd_buffer->cs, S_00B224_MEM_BASE(va >> 40));
+      radeon_emit(cmd_buffer->cs, gs->config.rsrc1);
+      radeon_emit(cmd_buffer->cs, gs->config.rsrc2);
+
+      /* GFX6-8: ESGS offchip ring buffer is allocated according to VGT_ESGS_RING_ITEMSIZE.
+       * GFX9+: Only used to set the GS input VGPRs, emulated in shaders.
+       */
+      radeon_opt_set_context_reg(cmd_buffer, R_028AAC_VGT_ESGS_RING_ITEMSIZE, RADV_TRACKED_VGT_ESGS_RING_ITEMSIZE,
+                                 gs->info.regs.gs.vgt_esgs_ring_itemsize);
+   }
+
+   radeon_set_sh_reg_idx(pdev, cmd_buffer->cs, R_00B21C_SPI_SHADER_PGM_RSRC3_GS, 3,
+                         gs->info.regs.spi_shader_pgm_rsrc3_gs);
+
+   if (pdev->info.gfx_level >= GFX10) {
+      radeon_set_sh_reg_idx(pdev, cmd_buffer->cs, R_00B204_SPI_SHADER_PGM_RSRC4_GS, 3,
+                            gs->info.regs.spi_shader_pgm_rsrc4_gs);
+   }
+}
+
+static void
+radv_emit_geometry_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_shader *gs = cmd_buffer->state.shaders[MESA_SHADER_GEOMETRY];
+   const struct radv_shader *es = cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL]
+                                     ? cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL]
+                                     : cmd_buffer->state.shaders[MESA_SHADER_VERTEX];
+   if (gs->info.is_ngg) {
+      radv_emit_hw_ngg(cmd_buffer, es, gs);
+   } else {
+      radv_emit_hw_gs(cmd_buffer, gs);
+      radv_emit_hw_vs(cmd_buffer, cmd_buffer->state.gs_copy_shader);
+   }
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028B38_VGT_GS_MAX_VERT_OUT, RADV_TRACKED_VGT_GS_MAX_VERT_OUT,
+                              gs->info.regs.vgt_gs_max_vert_out);
+
+   if (gs->info.merged_shader_compiled_separately) {
+      const struct radv_userdata_info *vgt_esgs_ring_itemsize = radv_get_user_sgpr(gs, AC_UD_VGT_ESGS_RING_ITEMSIZE);
+
+      assert(vgt_esgs_ring_itemsize->sgpr_idx != -1 && vgt_esgs_ring_itemsize->num_sgprs == 1);
+
+      radeon_set_sh_reg(cmd_buffer->cs, gs->info.user_data_0 + vgt_esgs_ring_itemsize->sgpr_idx * 4,
+                        es->info.esgs_itemsize / 4);
+
+      if (gs->info.is_ngg) {
+         const struct radv_userdata_info *ngg_lds_layout = radv_get_user_sgpr(gs, AC_UD_NGG_LDS_LAYOUT);
+
+         assert(ngg_lds_layout->sgpr_idx != -1 && ngg_lds_layout->num_sgprs == 1);
+         assert(!(gs->info.ngg_info.esgs_ring_size & 0xffff0000) && !(gs->info.ngg_info.scratch_lds_base & 0xffff0000));
+
+         radeon_set_sh_reg(cmd_buffer->cs, gs->info.user_data_0 + ngg_lds_layout->sgpr_idx * 4,
+                           SET_SGPR_FIELD(NGG_LDS_LAYOUT_GS_OUT_VERTEX_BASE, gs->info.ngg_info.esgs_ring_size) |
+                              SET_SGPR_FIELD(NGG_LDS_LAYOUT_SCRATCH_BASE, gs->info.ngg_info.scratch_lds_base));
+      }
+   }
+}
+
+static void
+radv_emit_vgt_gs_out(struct radv_cmd_buffer *cmd_buffer, uint32_t vgt_gs_out_prim_type)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
+   if (pdev->info.gfx_level >= GFX11) {
+      radeon_set_uconfig_reg(cmd_buffer->cs, R_030998_VGT_GS_OUT_PRIM_TYPE, vgt_gs_out_prim_type);
+   } else {
+      radeon_opt_set_context_reg(cmd_buffer, R_028A6C_VGT_GS_OUT_PRIM_TYPE, RADV_TRACKED_VGT_GS_OUT_PRIM_TYPE,
+                                 vgt_gs_out_prim_type);
+   }
+}
+
+static void
+radv_emit_mesh_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *ms = cmd_buffer->state.shaders[MESA_SHADER_MESH];
+   const uint32_t gs_out = radv_conv_gl_prim_to_gs_out(ms->info.ms.output_prim);
+
+   radv_emit_hw_ngg(cmd_buffer, NULL, ms);
+   radeon_opt_set_context_reg(cmd_buffer, R_028B38_VGT_GS_MAX_VERT_OUT, RADV_TRACKED_VGT_GS_MAX_VERT_OUT,
+                              ms->info.regs.vgt_gs_max_vert_out);
+   radeon_set_uconfig_reg_idx(pdev, cmd_buffer->cs, R_030908_VGT_PRIMITIVE_TYPE, 1, V_008958_DI_PT_POINTLIST);
+
+   if (pdev->mesh_fast_launch_2) {
+      radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B2B0_SPI_SHADER_GS_MESHLET_DIM, 2);
+      radeon_emit(cmd_buffer->cs, ms->info.regs.ms.spi_shader_gs_meshlet_dim);
+      radeon_emit(cmd_buffer->cs, ms->info.regs.ms.spi_shader_gs_meshlet_exp_alloc);
+   }
+
+   radv_emit_vgt_gs_out(cmd_buffer, gs_out);
+}
+
+enum radv_ps_in_type {
+   radv_ps_in_interpolated,
+   radv_ps_in_flat,
+   radv_ps_in_explicit,
+   radv_ps_in_explicit_strict,
+   radv_ps_in_interpolated_fp16,
+   radv_ps_in_interpolated_fp16_hi,
+   radv_ps_in_per_prim_gfx103,
+   radv_ps_in_per_prim_gfx11,
+};
+
+static uint32_t
+offset_to_ps_input(const uint32_t offset, const enum radv_ps_in_type type)
+{
+   assert(offset != AC_EXP_PARAM_UNDEFINED);
+
+   if (offset >= AC_EXP_PARAM_DEFAULT_VAL_0000 && offset <= AC_EXP_PARAM_DEFAULT_VAL_1111) {
+      /* The input is a DEFAULT_VAL constant. */
+      return S_028644_OFFSET(0x20) | S_028644_DEFAULT_VAL(offset - AC_EXP_PARAM_DEFAULT_VAL_0000);
+   }
+
+   assert(offset <= AC_EXP_PARAM_OFFSET_31);
+   uint32_t ps_input_cntl = S_028644_OFFSET(offset);
+
+   switch (type) {
+   case radv_ps_in_explicit_strict:
+      /* Rotate parameter cache contents to strict vertex order. */
+      ps_input_cntl |= S_028644_ROTATE_PC_PTR(1);
+      FALLTHROUGH;
+   case radv_ps_in_explicit:
+      /* Force parameter cache to be read in passthrough mode. */
+      ps_input_cntl |= S_028644_OFFSET(1 << 5);
+      FALLTHROUGH;
+   case radv_ps_in_flat:
+      ps_input_cntl |= S_028644_FLAT_SHADE(1);
+      break;
+   case radv_ps_in_interpolated_fp16_hi:
+      ps_input_cntl |= S_028644_ATTR1_VALID(1);
+      FALLTHROUGH;
+   case radv_ps_in_interpolated_fp16:
+      /* These must be set even if only the high 16 bits are used. */
+      ps_input_cntl |= S_028644_FP16_INTERP_MODE(1) | S_028644_ATTR0_VALID(1);
+      break;
+   case radv_ps_in_per_prim_gfx11:
+      ps_input_cntl |= S_028644_PRIM_ATTR(1);
+      break;
+   case radv_ps_in_interpolated:
+   case radv_ps_in_per_prim_gfx103:
+      break;
+   }
+
+   return ps_input_cntl;
+}
+
+static void
+slot_to_ps_input(const struct radv_vs_output_info *outinfo, unsigned slot, uint32_t *ps_input_cntl, unsigned *ps_offset,
+                 const bool use_default_0, const enum radv_ps_in_type type)
+{
+   unsigned vs_offset = outinfo->vs_output_param_offset[slot];
+
+   if (vs_offset == AC_EXP_PARAM_UNDEFINED) {
+      if (use_default_0)
+         vs_offset = AC_EXP_PARAM_DEFAULT_VAL_0000;
+      else
+         return;
+   }
+
+   ps_input_cntl[*ps_offset] = offset_to_ps_input(vs_offset, type);
+   ++(*ps_offset);
+}
+
+static void
+input_mask_to_ps_inputs(const struct radv_vs_output_info *outinfo, const struct radv_shader *ps, uint32_t input_mask,
+                        uint32_t *ps_input_cntl, unsigned *ps_offset, const enum radv_ps_in_type default_type)
+{
+   u_foreach_bit (i, input_mask) {
+      unsigned vs_offset = outinfo->vs_output_param_offset[VARYING_SLOT_VAR0 + i];
+      if (vs_offset == AC_EXP_PARAM_UNDEFINED) {
+         ps_input_cntl[*ps_offset] = S_028644_OFFSET(0x20);
+         ++(*ps_offset);
+         continue;
+      }
+
+      enum radv_ps_in_type type = default_type;
+
+      if (ps->info.ps.flat_shaded_mask & BITFIELD_BIT(*ps_offset))
+         type = radv_ps_in_flat;
+      else if (ps->info.ps.explicit_shaded_mask & BITFIELD_BIT(*ps_offset))
+         type = radv_ps_in_explicit;
+      else if (ps->info.ps.explicit_strict_shaded_mask & BITFIELD_BIT(*ps_offset))
+         type = radv_ps_in_explicit_strict;
+      else if (ps->info.ps.float16_hi_shaded_mask & BITFIELD_BIT(*ps_offset))
+         type = radv_ps_in_interpolated_fp16_hi;
+      else if (ps->info.ps.float16_shaded_mask & BITFIELD_BIT(*ps_offset))
+         type = radv_ps_in_interpolated_fp16;
+
+      ps_input_cntl[*ps_offset] = offset_to_ps_input(vs_offset, type);
+      ++(*ps_offset);
+   }
+}
+
+static void
+radv_emit_ps_inputs(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *ps = cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT];
+   const struct radv_shader *last_vgt_shader = cmd_buffer->state.last_vgt_shader;
+   const struct radv_vs_output_info *outinfo = &last_vgt_shader->info.outinfo;
+   const bool mesh = last_vgt_shader->info.stage == MESA_SHADER_MESH;
+   const bool gfx11plus = pdev->info.gfx_level >= GFX11;
+   const enum radv_ps_in_type per_prim = gfx11plus ? radv_ps_in_per_prim_gfx11 : radv_ps_in_per_prim_gfx103;
+
+   uint32_t ps_input_cntl[32];
+   unsigned ps_offset = 0;
+
+   if (!mesh) {
+      if (ps->info.ps.prim_id_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_PRIMITIVE_ID, ps_input_cntl, &ps_offset, false, radv_ps_in_flat);
+
+      if (ps->info.ps.layer_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_LAYER, ps_input_cntl, &ps_offset, true, radv_ps_in_flat);
+
+      if (ps->info.ps.viewport_index_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_VIEWPORT, ps_input_cntl, &ps_offset, true, radv_ps_in_flat);
+   }
+
+   if (ps->info.ps.has_pcoord)
+      ps_input_cntl[ps_offset++] = S_028644_PT_SPRITE_TEX(1) | S_028644_OFFSET(0x20);
+
+   if (ps->info.ps.input_clips_culls_mask & 0x0f)
+      slot_to_ps_input(outinfo, VARYING_SLOT_CLIP_DIST0, ps_input_cntl, &ps_offset, false, radv_ps_in_interpolated);
+
+   if (ps->info.ps.input_clips_culls_mask & 0xf0)
+      slot_to_ps_input(outinfo, VARYING_SLOT_CLIP_DIST1, ps_input_cntl, &ps_offset, false, radv_ps_in_interpolated);
+
+   input_mask_to_ps_inputs(outinfo, ps, ps->info.ps.input_mask, ps_input_cntl, &ps_offset, radv_ps_in_interpolated);
+
+   /* Per-primitive PS inputs: the HW needs these to be last. */
+   if (mesh) {
+      if (ps->info.ps.prim_id_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_PRIMITIVE_ID, ps_input_cntl, &ps_offset, false, per_prim);
+
+      if (ps->info.ps.layer_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_LAYER, ps_input_cntl, &ps_offset, true, per_prim);
+
+      if (ps->info.ps.viewport_index_input)
+         slot_to_ps_input(outinfo, VARYING_SLOT_VIEWPORT, ps_input_cntl, &ps_offset, true, per_prim);
+   }
+
+   input_mask_to_ps_inputs(outinfo, ps, ps->info.ps.input_per_primitive_mask, ps_input_cntl, &ps_offset, per_prim);
+
+   radeon_opt_set_context_regn(cmd_buffer, R_028644_SPI_PS_INPUT_CNTL_0, ps_input_cntl,
+                               cmd_buffer->tracked_regs.spi_ps_input_cntl, ps_offset);
+}
+
+static void
+radv_emit_fragment_shader(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *ps = cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT];
+   const uint64_t va = radv_shader_get_va(ps);
+
+   radeon_set_sh_reg_seq(cmd_buffer->cs, R_00B020_SPI_SHADER_PGM_LO_PS, 4);
+   radeon_emit(cmd_buffer->cs, va >> 8);
+   radeon_emit(cmd_buffer->cs, S_00B024_MEM_BASE(va >> 40));
+   radeon_emit(cmd_buffer->cs, ps->config.rsrc1);
+   radeon_emit(cmd_buffer->cs, ps->config.rsrc2);
+
+   radeon_opt_set_context_reg2(cmd_buffer, R_0286CC_SPI_PS_INPUT_ENA, RADV_TRACKED_SPI_PS_INPUT_ENA,
+                               ps->config.spi_ps_input_ena, ps->config.spi_ps_input_addr);
+
+   radeon_opt_set_context_reg(cmd_buffer, R_0286D8_SPI_PS_IN_CONTROL, RADV_TRACKED_SPI_PS_IN_CONTROL,
+                              ps->info.regs.ps.spi_ps_in_control);
+   radeon_opt_set_context_reg(cmd_buffer, R_028710_SPI_SHADER_Z_FORMAT, RADV_TRACKED_SPI_SHADER_Z_FORMAT,
+                              ps->info.regs.ps.spi_shader_z_format);
+
+   if (pdev->info.gfx_level >= GFX9 && pdev->info.gfx_level < GFX11)
+      radeon_opt_set_context_reg(cmd_buffer, R_028C40_PA_SC_SHADER_CONTROL, RADV_TRACKED_PA_SC_SHADER_CONTROL,
+                                 ps->info.regs.ps.pa_sc_shader_control);
+}
+
+static void
+radv_emit_vgt_reuse(struct radv_cmd_buffer *cmd_buffer, const struct radv_vgt_shader_key *key)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *tes = radv_get_shader(cmd_buffer->state.shaders, MESA_SHADER_TESS_EVAL);
+
+   if (pdev->info.gfx_level == GFX10_3) {
+      /* Legacy Tess+GS should disable reuse to prevent hangs on GFX10.3. */
+      const bool has_legacy_tess_gs = key->tess && key->gs && !key->ngg;
+
+      radeon_opt_set_context_reg(cmd_buffer, R_028AB4_VGT_REUSE_OFF, RADV_TRACKED_VGT_REUSE_OFF,
+                                 S_028AB4_REUSE_OFF(has_legacy_tess_gs));
+   }
+
+   if (pdev->info.family >= CHIP_POLARIS10 && pdev->info.gfx_level < GFX10) {
+      unsigned vtx_reuse_depth = 30;
+      if (tes && tes->info.tes.spacing == TESS_SPACING_FRACTIONAL_ODD) {
+         vtx_reuse_depth = 14;
+      }
+      radeon_opt_set_context_reg(cmd_buffer, R_028C58_VGT_VERTEX_REUSE_BLOCK_CNTL,
+                                 RADV_TRACKED_VGT_VERTEX_REUSE_BLOCK_CNTL, S_028C58_VTX_REUSE_DEPTH(vtx_reuse_depth));
+   }
+}
+
+static void
+radv_emit_vgt_shader_config(struct radv_cmd_buffer *cmd_buffer, const struct radv_vgt_shader_key *key)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   uint32_t stages = 0;
+
+   if (key->tess) {
+      stages |= S_028B54_LS_EN(V_028B54_LS_STAGE_ON) | S_028B54_HS_EN(1) | S_028B54_DYNAMIC_HS(1);
+
+      if (key->gs)
+         stages |= S_028B54_ES_EN(V_028B54_ES_STAGE_DS) | S_028B54_GS_EN(1);
+      else if (key->ngg)
+         stages |= S_028B54_ES_EN(V_028B54_ES_STAGE_DS);
+      else
+         stages |= S_028B54_VS_EN(V_028B54_VS_STAGE_DS);
+   } else if (key->gs) {
+      stages |= S_028B54_ES_EN(V_028B54_ES_STAGE_REAL) | S_028B54_GS_EN(1);
+   } else if (key->mesh) {
+      assert(!key->ngg_passthrough);
+      unsigned gs_fast_launch = pdev->mesh_fast_launch_2 ? 2 : 1;
+      stages |=
+         S_028B54_GS_EN(1) | S_028B54_GS_FAST_LAUNCH(gs_fast_launch) | S_028B54_NGG_WAVE_ID_EN(key->mesh_scratch_ring);
+   } else if (key->ngg) {
+      stages |= S_028B54_ES_EN(V_028B54_ES_STAGE_REAL);
+   }
+
+   if (key->ngg) {
+      stages |= S_028B54_PRIMGEN_EN(1) | S_028B54_NGG_WAVE_ID_EN(key->ngg_streamout) |
+                S_028B54_PRIMGEN_PASSTHRU_EN(key->ngg_passthrough) |
+                S_028B54_PRIMGEN_PASSTHRU_NO_MSG(key->ngg_passthrough && pdev->info.family >= CHIP_NAVI23);
+   } else if (key->gs) {
+      stages |= S_028B54_VS_EN(V_028B54_VS_STAGE_COPY_SHADER);
+   }
+
+   if (pdev->info.gfx_level >= GFX9)
+      stages |= S_028B54_MAX_PRIMGRP_IN_WAVE(2);
+
+   if (pdev->info.gfx_level >= GFX10) {
+      stages |= S_028B54_HS_W32_EN(key->hs_wave32) | S_028B54_GS_W32_EN(key->gs_wave32) |
+                S_028B54_VS_W32_EN(pdev->info.gfx_level < GFX11 && key->vs_wave32);
+      /* Legacy GS only supports Wave64. Read it as an implication. */
+      assert(!(key->gs && !key->ngg) || !key->gs_wave32);
+   }
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028B54_VGT_SHADER_STAGES_EN, RADV_TRACKED_VGT_SHADER_STAGES_EN, stages);
+}
+
+static void
+gfx103_emit_vgt_draw_payload_cntl(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_shader *mesh_shader = cmd_buffer->state.shaders[MESA_SHADER_MESH];
+   const bool enable_vrs = cmd_buffer->state.uses_vrs;
+   bool enable_prim_payload = false;
+
+   /* Enables the second channel of the primitive export instruction.
+    * This channel contains: VRS rate x, y, viewport and layer.
+    */
+   if (mesh_shader) {
+      const struct radv_vs_output_info *outinfo = &mesh_shader->info.outinfo;
+
+      enable_prim_payload = (outinfo->writes_viewport_index_per_primitive || outinfo->writes_layer_per_primitive ||
+                             outinfo->writes_primitive_shading_rate_per_primitive);
+   }
+
+   radeon_opt_set_context_reg(cmd_buffer, R_028A98_VGT_DRAW_PAYLOAD_CNTL, RADV_TRACKED_VGT_DRAW_PAYLOAD_CNTL,
+                              S_028A98_EN_VRS_RATE(enable_vrs) | S_028A98_EN_PRIM_PAYLOAD(enable_prim_payload));
+}
+
+static void
+gfx103_emit_vrs_state(struct radv_cmd_buffer *cmd_buffer)
+{
+   const struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_shader *ps = cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT];
+   const bool force_vrs_per_vertex = cmd_buffer->state.last_vgt_shader->info.force_vrs_per_vertex;
+   const bool enable_vrs_coarse_shading = cmd_buffer->state.uses_vrs_coarse_shading;
+   uint32_t mode = V_028064_SC_VRS_COMB_MODE_PASSTHRU;
+   uint8_t rate_x = 0, rate_y = 0;
+
+   if (enable_vrs_coarse_shading) {
+      /* When per-draw VRS is not enabled at all, try enabling VRS coarse shading 2x2 if the driver
+       * determined that it's safe to enable.
+       */
+      mode = V_028064_SC_VRS_COMB_MODE_OVERRIDE;
+      rate_x = rate_y = 1;
+   } else if (force_vrs_per_vertex) {
+      /* Otherwise, if per-draw VRS is not enabled statically, try forcing per-vertex VRS if
+       * requested by the user. Note that vkd3d-proton always has to declare VRS as dynamic because
+       * in DX12 it's fully dynamic.
+       */
+      radeon_opt_set_context_reg(cmd_buffer, R_028848_PA_CL_VRS_CNTL, RADV_TRACKED_PA_CL_VRS_CNTL,
+                                 S_028848_SAMPLE_ITER_COMBINER_MODE(V_028848_SC_VRS_COMB_MODE_OVERRIDE) |
+                                    S_028848_VERTEX_RATE_COMBINER_MODE(V_028848_SC_VRS_COMB_MODE_OVERRIDE));
+
+      /* If the shader is using discard, turn off coarse shading because discard at 2x2 pixel
+       * granularity degrades quality too much. MIN allows sample shading but not coarse shading.
+       */
+      mode = ps->info.ps.can_discard ? V_028064_SC_VRS_COMB_MODE_MIN : V_028064_SC_VRS_COMB_MODE_PASSTHRU;
+   }
+
+   if (pdev->info.gfx_level < GFX11) {
+      radeon_opt_set_context_reg(cmd_buffer, R_028064_DB_VRS_OVERRIDE_CNTL, RADV_TRACKED_DB_VRS_OVERRIDE_CNTL,
+                                 S_028064_VRS_OVERRIDE_RATE_COMBINER_MODE(mode) | S_028064_VRS_OVERRIDE_RATE_X(rate_x) |
+                                    S_028064_VRS_OVERRIDE_RATE_Y(rate_y));
+   }
+}
+
+static void
+radv_emit_graphics_shaders(struct radv_cmd_buffer *cmd_buffer)
+{
+   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
+   const struct radv_physical_device *pdev = radv_device_physical(device);
+
+   radv_foreach_stage(s, cmd_buffer->state.active_stages & RADV_GRAPHICS_STAGE_BITS)
+   {
+      switch (s) {
+      case MESA_SHADER_VERTEX:
+         radv_emit_vertex_shader(cmd_buffer);
+         break;
+      case MESA_SHADER_TESS_CTRL:
+         radv_emit_tess_ctrl_shader(cmd_buffer);
+         break;
+      case MESA_SHADER_TESS_EVAL:
+         radv_emit_tess_eval_shader(cmd_buffer);
+         break;
+      case MESA_SHADER_GEOMETRY:
+         radv_emit_geometry_shader(cmd_buffer);
+         break;
+      case MESA_SHADER_FRAGMENT:
+         radv_emit_fragment_shader(cmd_buffer);
+         radv_emit_ps_inputs(cmd_buffer);
+         break;
+      case MESA_SHADER_MESH:
+         radv_emit_mesh_shader(cmd_buffer);
+         break;
+      case MESA_SHADER_TASK:
+         radv_emit_compute_shader(pdev, cmd_buffer->gang.cs, cmd_buffer->state.shaders[MESA_SHADER_TASK]);
+         break;
+      default:
+         unreachable("invalid bind stage");
+      }
+   }
+
+   const struct radv_vgt_shader_key vgt_shader_cfg_key =
+      radv_get_vgt_shader_key(device, cmd_buffer->state.shaders, cmd_buffer->state.gs_copy_shader);
+
+   radv_emit_vgt_gs_mode(cmd_buffer);
+   radv_emit_vgt_reuse(cmd_buffer, &vgt_shader_cfg_key);
+   radv_emit_vgt_shader_config(cmd_buffer, &vgt_shader_cfg_key);
+
+   if (pdev->info.gfx_level >= GFX10_3) {
+      gfx103_emit_vgt_draw_payload_cntl(cmd_buffer);
+      gfx103_emit_vrs_state(cmd_buffer);
+   }
+
+   cmd_buffer->state.dirty &= ~RADV_CMD_DIRTY_GRAPHICS_SHADERS;
+}
+
+static void
 radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
 {
    struct radv_graphics_pipeline *pipeline = cmd_buffer->state.graphics_pipeline;
@@ -1948,15 +2784,7 @@ radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
          cmd_buffer->state.dirty |= RADV_CMD_DIRTY_FRAMEBUFFER;
    }
 
-   radeon_emit_array(cmd_buffer->cs, pipeline->base.cs.buf, pipeline->base.cs.cdw);
-
-   if (!cmd_buffer->state.emitted_graphics_pipeline ||
-       cmd_buffer->state.emitted_graphics_pipeline->base.ctx_cs.cdw != pipeline->base.ctx_cs.cdw ||
-       cmd_buffer->state.emitted_graphics_pipeline->base.ctx_cs_hash != pipeline->base.ctx_cs_hash ||
-       memcmp(cmd_buffer->state.emitted_graphics_pipeline->base.ctx_cs.buf, pipeline->base.ctx_cs.buf,
-              pipeline->base.ctx_cs.cdw * 4)) {
-      radeon_emit_array(cmd_buffer->cs, pipeline->base.ctx_cs.buf, pipeline->base.ctx_cs.cdw);
-   }
+   radv_emit_graphics_shaders(cmd_buffer);
 
    if (device->pbb_allowed) {
       const struct radv_binning_settings *settings = &pdev->binning_settings;
@@ -1974,14 +2802,9 @@ radv_emit_graphics_pipeline(struct radv_cmd_buffer *cmd_buffer)
    if (pipeline->sqtt_shaders_reloc) {
       /* Emit shaders relocation because RGP requires them to be contiguous in memory. */
       radv_sqtt_emit_relocated_shaders(cmd_buffer, pipeline);
-   }
 
-   struct radv_shader *task_shader = cmd_buffer->state.shaders[MESA_SHADER_TASK];
-   if (task_shader) {
-      radv_emit_compute_shader(pdev, cmd_buffer->gang.cs, task_shader);
-
-      /* Relocate the task shader because RGP requires shaders to be contiguous in memory. */
-      if (pipeline->sqtt_shaders_reloc) {
+      struct radv_shader *task_shader = cmd_buffer->state.shaders[MESA_SHADER_TASK];
+      if (task_shader) {
          const struct radv_sqtt_shaders_reloc *reloc = pipeline->sqtt_shaders_reloc;
          const uint64_t va = reloc->va[MESA_SHADER_TASK];
 
@@ -2340,7 +3163,7 @@ radv_emit_primitive_topology(struct radv_cmd_buffer *cmd_buffer)
       radeon_set_config_reg(cmd_buffer->cs, R_008958_VGT_PRIMITIVE_TYPE, d->vk.ia.primitive_topology);
    }
 
-   radv_emit_vgt_gs_out(device, cmd_buffer->cs, vgt_gs_out_prim_type);
+   radv_emit_vgt_gs_out(cmd_buffer, vgt_gs_out_prim_type);
 
    if (loc->sgpr_idx == -1)
       return;
@@ -3921,15 +4744,16 @@ lookup_vs_prolog(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *v
    uint32_t zero_divisors = state->zero_divisors & attribute_mask;
    *nontrivial_divisors = state->nontrivial_divisors & attribute_mask;
    uint32_t misaligned_mask = cmd_buffer->state.vbo_misaligned_mask;
+   uint32_t unaligned_mask = cmd_buffer->state.vbo_unaligned_mask;
    if (cmd_buffer->state.vbo_misaligned_mask_invalid) {
-      assert(pdev->info.gfx_level == GFX6 || pdev->info.gfx_level >= GFX10);
-
+      bool misalignment_possible = pdev->info.gfx_level == GFX6 || pdev->info.gfx_level >= GFX10;
       u_foreach_bit (index, cmd_buffer->state.vbo_misaligned_mask_invalid & attribute_mask) {
          uint8_t binding = state->bindings[index];
          if (!(cmd_buffer->state.vbo_bound_mask & BITFIELD_BIT(binding)))
             continue;
 
-         uint8_t req = state->format_align_req_minus_1[index];
+         uint8_t format_req = state->format_align_req_minus_1[index];
+         uint8_t component_req = state->component_align_req_minus_1[index];
          uint64_t vb_offset = cmd_buffer->vertex_bindings[binding].offset;
          uint64_t vb_stride;
 
@@ -3940,14 +4764,19 @@ lookup_vs_prolog(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *v
          }
 
          VkDeviceSize offset = vb_offset + state->offsets[index];
-         if ((offset & req) || (vb_stride & req))
+
+         if (misalignment_possible && ((offset | vb_stride) & format_req))
             misaligned_mask |= BITFIELD_BIT(index);
+         if ((offset | vb_stride) & component_req)
+            unaligned_mask |= BITFIELD_BIT(index);
       }
       cmd_buffer->state.vbo_misaligned_mask = misaligned_mask;
+      cmd_buffer->state.vbo_unaligned_mask = unaligned_mask;
       cmd_buffer->state.vbo_misaligned_mask_invalid &= ~attribute_mask;
    }
-   misaligned_mask |= state->nontrivial_formats;
+   misaligned_mask |= state->nontrivial_formats | unaligned_mask;
    misaligned_mask &= attribute_mask;
+   unaligned_mask &= attribute_mask;
 
    const bool can_use_simple_input =
       cmd_buffer->state.shaders[MESA_SHADER_VERTEX] &&
@@ -3982,12 +4811,13 @@ lookup_vs_prolog(struct radv_cmd_buffer *cmd_buffer, const struct radv_shader *v
    key.zero_divisors = zero_divisors;
    /* If the attribute is aligned, post shuffle is implemented using DST_SEL instead. */
    key.post_shuffle = state->post_shuffle & misaligned_mask;
-   key.alpha_adjust_hi = state->alpha_adjust_hi & attribute_mask;
-   key.alpha_adjust_lo = state->alpha_adjust_lo & attribute_mask;
+   key.alpha_adjust_hi = state->alpha_adjust_hi & attribute_mask & ~unaligned_mask;
+   key.alpha_adjust_lo = state->alpha_adjust_lo & attribute_mask & ~unaligned_mask;
    u_foreach_bit (index, misaligned_mask)
       key.formats[index] = state->formats[index];
    key.num_attributes = num_attributes;
    key.misaligned_mask = misaligned_mask;
+   key.unaligned_mask = unaligned_mask;
    key.as_ls = as_ls;
    key.is_ngg = vs_shader->info.is_ngg;
    key.wave32 = vs_shader->info.wave_size == 32;
@@ -6176,7 +7006,6 @@ radv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer, uint32_t firstBinding,
 {
    VK_FROM_HANDLE(radv_cmd_buffer, cmd_buffer, commandBuffer);
    struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   const struct radv_physical_device *pdev = radv_device_physical(device);
    struct radv_vertex_binding *vb = cmd_buffer->vertex_bindings;
    const struct radv_vs_input_state *state = &cmd_buffer->state.dynamic_vs_input;
 
@@ -6184,7 +7013,6 @@ radv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer, uint32_t firstBinding,
     * stride from the pipeline. */
 
    assert(firstBinding + bindingCount <= MAX_VBS);
-   enum amd_gfx_level chip = pdev->info.gfx_level;
 
    if (firstBinding + bindingCount > cmd_buffer->used_vertex_bindings)
       cmd_buffer->used_vertex_bindings = firstBinding + bindingCount;
@@ -6217,9 +7045,10 @@ radv_CmdBindVertexBuffers2(VkCommandBuffer commandBuffer, uint32_t firstBinding,
       }
    }
 
-   if ((chip == GFX6 || chip >= GFX10) && misaligned_mask_invalid) {
+   if (misaligned_mask_invalid) {
       cmd_buffer->state.vbo_misaligned_mask_invalid = misaligned_mask_invalid;
       cmd_buffer->state.vbo_misaligned_mask &= ~misaligned_mask_invalid;
+      cmd_buffer->state.vbo_unaligned_mask &= ~misaligned_mask_invalid;
    }
 
    cmd_buffer->state.dirty |= RADV_CMD_DIRTY_VERTEX_BUFFER;
@@ -6639,8 +7468,6 @@ radv_mark_descriptor_sets_dirty(struct radv_cmd_buffer *cmd_buffer, VkPipelineBi
 static void
 radv_bind_vs_input_state(struct radv_cmd_buffer *cmd_buffer, const struct radv_graphics_pipeline *pipeline)
 {
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   const struct radv_physical_device *pdev = radv_device_physical(device);
    const struct radv_shader *vs_shader = radv_get_shader(cmd_buffer->state.shaders, MESA_SHADER_VERTEX);
    const struct radv_vs_input_state *src = &pipeline->vs_input_state;
 
@@ -6654,10 +7481,9 @@ radv_bind_vs_input_state(struct radv_cmd_buffer *cmd_buffer, const struct radv_g
 
    cmd_buffer->state.dynamic_vs_input = *src;
 
-   if (pdev->info.gfx_level == GFX6 || pdev->info.gfx_level >= GFX10) {
-      cmd_buffer->state.vbo_misaligned_mask = 0;
-      cmd_buffer->state.vbo_misaligned_mask_invalid = src->attribute_mask;
-   }
+   cmd_buffer->state.vbo_misaligned_mask = 0;
+   cmd_buffer->state.vbo_unaligned_mask = 0;
+   cmd_buffer->state.vbo_misaligned_mask_invalid = src->attribute_mask;
 
    cmd_buffer->state.dirty_dynamic |= RADV_CMD_DIRTY_DYNAMIC_VERTEX_INPUT;
 }
@@ -7584,6 +8410,7 @@ radv_CmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingD
       bindings[pVertexBindingDescriptions[i].binding] = &pVertexBindingDescriptions[i];
 
    state->vbo_misaligned_mask = 0;
+   state->vbo_unaligned_mask = 0;
    state->vbo_misaligned_mask_invalid = 0;
 
    vs_state->attribute_mask = 0;
@@ -7625,8 +8452,11 @@ radv_CmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingD
       const struct ac_vtx_format_info *vtx_info = &vtx_info_table[format];
 
       vs_state->formats[loc] = format;
-      uint8_t align_req_minus_1 = vtx_info->chan_byte_size >= 4 ? 3 : (vtx_info->element_size - 1);
-      vs_state->format_align_req_minus_1[loc] = align_req_minus_1;
+      uint8_t format_align_req_minus_1 = vtx_info->chan_byte_size >= 4 ? 3 : (vtx_info->element_size - 1);
+      vs_state->format_align_req_minus_1[loc] = format_align_req_minus_1;
+      uint8_t component_align_req_minus_1 =
+         MIN2(vtx_info->chan_byte_size ? vtx_info->chan_byte_size : vtx_info->element_size, 4) - 1;
+      vs_state->component_align_req_minus_1[loc] = component_align_req_minus_1;
       vs_state->format_sizes[loc] = vtx_info->element_size;
       vs_state->alpha_adjust_lo |= (vtx_info->alpha_adjust & 0x1) << loc;
       vs_state->alpha_adjust_hi |= (vtx_info->alpha_adjust >> 1) << loc;
@@ -7636,13 +8466,13 @@ radv_CmdSetVertexInputEXT(VkCommandBuffer commandBuffer, uint32_t vertexBindingD
       if (!(vtx_info->has_hw_format & BITFIELD_BIT(vtx_info->num_channels - 1)))
          vs_state->nontrivial_formats |= BITFIELD_BIT(loc);
 
-      if ((chip == GFX6 || chip >= GFX10) && state->vbo_bound_mask & BITFIELD_BIT(attrib->binding)) {
-         if (binding->stride & align_req_minus_1) {
+      if (state->vbo_bound_mask & BITFIELD_BIT(attrib->binding)) {
+         uint32_t stride = binding->stride;
+         uint64_t offset = cmd_buffer->vertex_bindings[attrib->binding].offset + vs_state->offsets[loc];
+         if ((chip == GFX6 || chip >= GFX10) && ((stride | offset) & format_align_req_minus_1))
             state->vbo_misaligned_mask |= BITFIELD_BIT(loc);
-         } else if ((cmd_buffer->vertex_bindings[attrib->binding].offset + vs_state->offsets[loc]) &
-                    align_req_minus_1) {
-            state->vbo_misaligned_mask |= BITFIELD_BIT(loc);
-         }
+         if ((stride | offset) & component_align_req_minus_1)
+            state->vbo_unaligned_mask |= BITFIELD_BIT(loc);
       }
    }
 
@@ -8093,6 +8923,9 @@ radv_CmdExecuteCommands(VkCommandBuffer commandBuffer, uint32_t commandBufferCou
          BITSET_SET(primary->tracked_regs.reg_saved_mask, reg);
          primary->tracked_regs.reg_value[reg] = secondary->tracked_regs.reg_value[reg];
       }
+
+      memcpy(primary->tracked_regs.spi_ps_input_cntl, secondary->tracked_regs.spi_ps_input_cntl,
+             sizeof(primary->tracked_regs.spi_ps_input_cntl));
    }
 
    /* After executing commands from secondary buffers we have to dirty
@@ -9234,7 +10067,7 @@ radv_need_late_scissor_emission(struct radv_cmd_buffer *cmd_buffer, const struct
    /* Index, vertex and streamout buffers don't change context regs.
     * We assume that any other dirty flag causes context rolls.
     */
-   uint64_t used_states = ~RADV_CMD_DIRTY_ALL;
+   uint64_t used_states = RADV_CMD_DIRTY_ALL;
    used_states &= ~(RADV_CMD_DIRTY_INDEX_BUFFER | RADV_CMD_DIRTY_VERTEX_BUFFER | RADV_CMD_DIRTY_STREAMOUT_BUFFER);
 
    return cmd_buffer->state.dirty & used_states;
@@ -9473,86 +10306,6 @@ radv_cmdbuf_get_last_vgt_api_stage(const struct radv_cmd_buffer *cmd_buffer)
       return MESA_SHADER_MESH;
 
    return util_last_bit(cmd_buffer->state.active_stages & BITFIELD_MASK(MESA_SHADER_FRAGMENT)) - 1;
-}
-
-static void
-radv_emit_graphics_shaders(struct radv_cmd_buffer *cmd_buffer)
-{
-   struct radv_device *device = radv_cmd_buffer_device(cmd_buffer);
-   const struct radv_physical_device *pdev = radv_device_physical(device);
-   const struct radv_shader *last_vgt_shader = cmd_buffer->state.last_vgt_shader;
-   struct radeon_cmdbuf *cs = cmd_buffer->cs;
-
-   radv_foreach_stage(s, cmd_buffer->state.active_stages & RADV_GRAPHICS_STAGE_BITS)
-   {
-      switch (s) {
-      case MESA_SHADER_VERTEX: {
-         const struct radv_shader *vs = cmd_buffer->state.shaders[MESA_SHADER_VERTEX];
-         struct radv_shader *next_stage = NULL;
-
-         if (vs->info.merged_shader_compiled_separately) {
-            assert(vs->info.next_stage == MESA_SHADER_TESS_CTRL || vs->info.next_stage == MESA_SHADER_GEOMETRY);
-            next_stage = cmd_buffer->state.shaders[vs->info.next_stage];
-         }
-
-         radv_emit_vertex_shader(device, cs, cs, vs, next_stage);
-         break;
-      }
-      case MESA_SHADER_TESS_CTRL:
-         radv_emit_tess_ctrl_shader(device, cs, cmd_buffer->state.shaders[MESA_SHADER_TESS_CTRL]);
-         break;
-      case MESA_SHADER_TESS_EVAL: {
-         const struct radv_shader *tes = cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL];
-         struct radv_shader *gs = NULL;
-
-         if (tes->info.merged_shader_compiled_separately) {
-            assert(tes->info.next_stage == MESA_SHADER_GEOMETRY);
-            gs = cmd_buffer->state.shaders[MESA_SHADER_GEOMETRY];
-         }
-
-         radv_emit_tess_eval_shader(device, cs, cs, tes, gs);
-         break;
-      }
-      case MESA_SHADER_GEOMETRY: {
-         struct radv_shader *es = cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL]
-                                     ? cmd_buffer->state.shaders[MESA_SHADER_TESS_EVAL]
-                                     : cmd_buffer->state.shaders[MESA_SHADER_VERTEX];
-
-         radv_emit_geometry_shader(device, cs, cs, cmd_buffer->state.shaders[MESA_SHADER_GEOMETRY], es,
-                                   cmd_buffer->state.gs_copy_shader);
-         break;
-      }
-      case MESA_SHADER_FRAGMENT:
-         radv_emit_fragment_shader(device, cs, cs, cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT]);
-         radv_emit_ps_inputs(device, cs, last_vgt_shader, cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT]);
-         break;
-      case MESA_SHADER_MESH:
-         radv_emit_mesh_shader(device, cs, cs, cmd_buffer->state.shaders[MESA_SHADER_MESH]);
-         break;
-      case MESA_SHADER_TASK:
-         radv_emit_compute_shader(pdev, cmd_buffer->gang.cs, cmd_buffer->state.shaders[MESA_SHADER_TASK]);
-         break;
-      default:
-         unreachable("invalid bind stage");
-      }
-   }
-
-   /* Emit graphics states related to shaders. */
-   const struct radv_vgt_shader_key vgt_shader_cfg_key =
-      radv_get_vgt_shader_key(device, cmd_buffer->state.shaders, cmd_buffer->state.gs_copy_shader);
-
-   radv_emit_vgt_gs_mode(device, cs, last_vgt_shader);
-   radv_emit_vgt_reuse(device, cs, radv_get_shader(cmd_buffer->state.shaders, MESA_SHADER_TESS_EVAL),
-                       &vgt_shader_cfg_key);
-   radv_emit_vgt_shader_config(device, cs, &vgt_shader_cfg_key);
-
-   if (pdev->info.gfx_level >= GFX10_3) {
-      gfx103_emit_vgt_draw_payload_cntl(cs, cmd_buffer->state.shaders[MESA_SHADER_MESH], cmd_buffer->state.uses_vrs);
-      gfx103_emit_vrs_state(device, cs, cmd_buffer->state.shaders[MESA_SHADER_FRAGMENT],
-                            cmd_buffer->state.uses_vrs_coarse_shading, last_vgt_shader->info.force_vrs_per_vertex);
-   }
-
-   cmd_buffer->state.dirty &= ~RADV_CMD_DIRTY_GRAPHICS_SHADERS;
 }
 
 static void
