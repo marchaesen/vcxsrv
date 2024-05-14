@@ -84,6 +84,23 @@ lower(nir_builder *b, nir_intrinsic_instr *intr, void *_)
       return true;
    }
 
+   case nir_intrinsic_load_helper_invocation: {
+      /* When sample shading is enabled, we may execute helper invocations for
+       * samples that are not covered. Mask so that load_helper_invocation
+       * returns the right thing. By extension, this ensures we don't execute
+       * stores for non-covered samples.
+       */
+      if (!b->shader->info.fs.uses_sample_shading)
+         return false;
+
+      b->cursor = nir_instr_remove(&intr->instr);
+      nir_def *active = nir_load_active_samples_agx(b);
+      nir_def *mask = nir_u2uN(b, nir_load_sample_mask(b), active->bit_size);
+      nir_def *def = nir_ieq_imm(b, nir_iand(b, mask, active), 0);
+      nir_def_rewrite_uses(&intr->def, def);
+      return true;
+   }
+
    case nir_intrinsic_load_barycentric_sample: {
       /* Lower fragment varyings with "sample" interpolation to
        * interpolateAtSample() with the sample ID. If multisampling is disabled,

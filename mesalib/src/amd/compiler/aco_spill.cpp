@@ -1604,10 +1604,16 @@ assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr)
                      instructions.emplace_back(std::move(create));
                   } else {
                      assert(last_top_level_block_idx < block.index);
-                     /* insert before the branch at last top level block */
+                     /* insert after p_logical_end of the last top-level block */
                      std::vector<aco_ptr<Instruction>>& block_instrs =
                         ctx.program->blocks[last_top_level_block_idx].instructions;
-                     block_instrs.insert(std::prev(block_instrs.end()), std::move(create));
+                     auto insert_point =
+                        std::find_if(block_instrs.rbegin(), block_instrs.rend(),
+                                     [](const auto& iter) {
+                                        return iter->opcode == aco_opcode::p_logical_end;
+                                     })
+                           .base();
+                     block_instrs.insert(insert_point, std::move(create));
                   }
                }
 
@@ -1644,10 +1650,16 @@ assign_spill_slots(spill_ctx& ctx, unsigned spills_to_vgpr)
                      instructions.emplace_back(std::move(create));
                   } else {
                      assert(last_top_level_block_idx < block.index);
-                     /* insert before the branch at last top level block */
+                     /* insert after p_logical_end of the last top-level block */
                      std::vector<aco_ptr<Instruction>>& block_instrs =
                         ctx.program->blocks[last_top_level_block_idx].instructions;
-                     block_instrs.insert(std::prev(block_instrs.end()), std::move(create));
+                     auto insert_point =
+                        std::find_if(block_instrs.rbegin(), block_instrs.rend(),
+                                     [](const auto& iter) {
+                                        return iter->opcode == aco_opcode::p_logical_end;
+                                     })
+                           .base();
+                     block_instrs.insert(insert_point, std::move(create));
                   }
                }
 

@@ -2378,6 +2378,10 @@ typedef enum nir_texop {
    nir_texop_sampler_descriptor_amd,
    /** Returns the sampler's LOD bias */
    nir_texop_lod_bias_agx,
+   /** Returns a bool indicating that the sampler uses a custom border colour */
+   nir_texop_has_custom_border_color_agx,
+   /** Returns the sampler's custom border colour (if has_custom_border_agx) */
+   nir_texop_custom_border_color_agx,
    /** Maps to TXQ.DIMENSION */
    nir_texop_hdr_dim_nv,
    /** Maps to TXQ.TEXTURE_TYPE */

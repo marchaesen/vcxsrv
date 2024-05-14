@@ -190,7 +190,7 @@ debian-build-testing:
     .gitlab-ci/run-shellcheck.sh
     section_switch yamllint "yamllint"
     .gitlab-ci/run-yamllint.sh
-    section_end
+    section_end yamllint
     .gitlab-ci/meson/build.sh
     .gitlab-ci/prepare-artifacts.sh
   timeout: 15m

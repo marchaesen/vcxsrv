@@ -52,7 +52,17 @@
  *       sample_mask ~0, ~discarded
  *       sample_mask ~0, ~0         <-- incorrect: depth/stencil tests run twice
  *
- * 4. zs_emit may be used in the shader exactly once to trigger tests.
+ * 4. Conversely, if a sample is tested, future sample_mask instructions may not
+ *    discard that sample. The following code is invalid:
+ *
+ *      sample_mask ~0, ~0
+ *      sample_mask discarded, 0
+ *      st_tile
+ *
+ *    To implement the semantic of "force early tests with discard", manual
+ *    colour masking must be used. It's a weird case, but CTS does it.
+ *
+ * 5. zs_emit may be used in the shader exactly once to trigger tests.
  * sample_mask with 0 may be used to discard early.
  *
  * This pass lowers discard_agx to sample_mask instructions satisfying these

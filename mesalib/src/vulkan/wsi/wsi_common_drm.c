@@ -718,7 +718,7 @@ wsi_create_native_image_mem(const struct wsi_swapchain *chain,
 
       for (uint32_t p = 0; p < image->num_planes; p++) {
          const VkImageSubresource image_subresource = {
-            .aspectMask = VK_IMAGE_ASPECT_PLANE_0_BIT << p,
+            .aspectMask = VK_IMAGE_ASPECT_MEMORY_PLANE_0_BIT_EXT << p,
             .mipLevel = 0,
             .arrayLayer = 0,
          };

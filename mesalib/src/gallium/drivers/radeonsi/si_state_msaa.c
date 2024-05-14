@@ -269,7 +269,7 @@ static void si_emit_sample_locations(struct si_context *sctx, unsigned index)
       assert(sctx->family >= CHIP_POLARIS10);
 
       radeon_begin(cs);
-      radeon_opt_set_context_reg(sctx, R_028830_PA_SU_SMALL_PRIM_FILTER_CNTL,
+      radeon_opt_set_context_reg(R_028830_PA_SU_SMALL_PRIM_FILTER_CNTL,
                                  SI_TRACKED_PA_SU_SMALL_PRIM_FILTER_CNTL,
                                  S_028830_SMALL_PRIM_FILTER_ENABLE(small_prim_filter_enable) |
                                  /* Small line culling doesn't work on Polaris10-12. */

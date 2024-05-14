@@ -187,36 +187,50 @@ agx_write_registers(const agx_instr *I, unsigned d)
    }
 }
 
+struct dim_info {
+   unsigned comps;
+   bool array;
+};
+
+static struct dim_info
+agx_dim_info(enum agx_dim dim)
+{
+   switch (dim) {
+   case AGX_DIM_1D:
+      return (struct dim_info){1, false};
+   case AGX_DIM_1D_ARRAY:
+      return (struct dim_info){1, true};
+   case AGX_DIM_2D:
+      return (struct dim_info){2, false};
+   case AGX_DIM_2D_ARRAY:
+      return (struct dim_info){2, true};
+   case AGX_DIM_2D_MS:
+      return (struct dim_info){3, false};
+   case AGX_DIM_3D:
+      return (struct dim_info){3, false};
+   case AGX_DIM_CUBE:
+      return (struct dim_info){3, false};
+   case AGX_DIM_CUBE_ARRAY:
+      return (struct dim_info){3, true};
+   case AGX_DIM_2D_MS_ARRAY:
+      return (struct dim_info){2, true};
+   default:
+      unreachable("invalid dim");
+   }
+}
+
 /*
- * Return number of registers required for coordinates for a
- * texture/image instruction. We handle layer + sample index as 32-bit even when
- * only the lower 16-bits are present.
+ * Return number of registers required for coordinates for a texture/image
+ * instruction. We handle layer + sample index as 32-bit even when only the
+ * lower 16-bits are present. LOD queries do not take a layer.
  */
 static unsigned
 agx_coordinate_registers(const agx_instr *I)
 {
-   switch (I->dim) {
-   case AGX_DIM_1D:
-      return 2 * 1;
-   case AGX_DIM_1D_ARRAY:
-      return 2 * 2;
-   case AGX_DIM_2D:
-      return 2 * 2;
-   case AGX_DIM_2D_ARRAY:
-      return 2 * 3;
-   case AGX_DIM_2D_MS:
-      return 2 * 3;
-   case AGX_DIM_3D:
-      return 2 * 3;
-   case AGX_DIM_CUBE:
-      return 2 * 3;
-   case AGX_DIM_CUBE_ARRAY:
-      return 2 * 4;
-   case AGX_DIM_2D_MS_ARRAY:
-      return 2 * 3;
-   }
+   struct dim_info dim = agx_dim_info(I->dim);
+   bool has_array = !I->query_lod;
 
-   unreachable("Invalid texture dimension");
+   return 2 * (dim.comps + (has_array && dim.array));
 }
 
 static unsigned

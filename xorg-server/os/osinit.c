@@ -66,7 +66,6 @@ SOFTWARE.
 #include "misc.h"
 #include "os.h"
 #include "opaque.h"
-#include "misc.h"
 #include "dixstruct.h"
 #include "dixstruct_priv.h"
 

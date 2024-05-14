@@ -191,7 +191,9 @@ ForEachMacros:
   - agx_push
   - agx_usc_pack
   - agx_ppp_push
+  - agx_ppp_push_merged
   - agx_foreach_block
+  - agx_foreach_block_safe
   - agx_foreach_block_from
   - agx_foreach_block_from_rev
   - agx_foreach_block_rev

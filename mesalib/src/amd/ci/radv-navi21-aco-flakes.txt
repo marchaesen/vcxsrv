@@ -1,5 +1,8 @@
 dEQP-VK.query_pool.statistics_query.host_query_reset.geometry_shader_(invocations|primitives).secondary.(32|64)bits_.*
 
+dEQP-VK.ray_tracing_pipeline.pipeline_library.configurations.(single|multi)threaded_compilation.*
+dEQP-VK.ray_tracing_pipeline.pipeline_no_null_shaders_flag.*
+
 dEQP-VK.shader_object.binding.mesh_swap_task
 
 dEQP-VK.binding_model.shader_access.secondary_cmd_buf.with_template.storage_image.vertex.multiple_descriptor_sets.multiple_contiguous_descriptors.cube_array

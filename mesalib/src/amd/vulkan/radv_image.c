@@ -605,10 +605,13 @@ radv_get_surface_flags(struct radv_device *device, struct radv_image *image, uns
                        const VkImageCreateInfo *pCreateInfo, VkFormat image_format)
 {
    const struct radv_physical_device *pdev = radv_device_physical(device);
+   const struct radv_instance *instance = radv_physical_device_instance(pdev);
    uint64_t flags;
    unsigned array_mode = radv_choose_tiling(device, pCreateInfo, image_format);
    VkFormat format = radv_image_get_plane_format(pdev, image, plane_id);
    const struct util_format_description *desc = vk_format_description(format);
+   const VkImageAlignmentControlCreateInfoMESA *alignment =
+         vk_find_struct_const(pCreateInfo->pNext, IMAGE_ALIGNMENT_CONTROL_CREATE_INFO_MESA);
    bool is_depth, is_stencil;
 
    is_depth = util_format_has_depth(desc);
@@ -691,6 +694,24 @@ radv_get_surface_flags(struct radv_device *device, struct radv_image *image, uns
       flags |= RADEON_SURF_VRS_RATE | RADEON_SURF_DISABLE_DCC;
    if (!(pCreateInfo->usage & (VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT)))
       flags |= RADEON_SURF_NO_TEXTURE;
+
+   if (alignment && alignment->maximumRequestedAlignment && !(instance->debug_flags & RADV_DEBUG_FORCE_COMPRESS)) {
+      bool is_4k_capable;
+
+      if (!vk_format_is_depth_or_stencil(image_format)) {
+         is_4k_capable =
+               !(pCreateInfo->usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT) && (flags & RADEON_SURF_DISABLE_DCC) &&
+               (flags & RADEON_SURF_NO_FMASK);
+      } else {
+         /* Depth-stencil format without DEPTH_STENCIL usage does not work either. */
+         is_4k_capable = false;
+      }
+
+      if (is_4k_capable && alignment->maximumRequestedAlignment <= 4096)
+         flags |= RADEON_SURF_PREFER_4K_ALIGNMENT;
+      if (alignment->maximumRequestedAlignment <= 64 * 1024)
+         flags |= RADEON_SURF_PREFER_64K_ALIGNMENT;
+   }
 
    return flags;
 }

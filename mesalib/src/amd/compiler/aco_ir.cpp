@@ -669,6 +669,7 @@ get_gfx11_true16_mask(aco_opcode op)
    case aco_opcode::v_sin_f16:
    case aco_opcode::v_sqrt_f16:
    case aco_opcode::v_trunc_f16:
+   case aco_opcode::v_swap_b16:
    case aco_opcode::v_mov_b16: return 0x1 | 0x8;
    case aco_opcode::v_add_f16:
    case aco_opcode::v_fmaak_f16:

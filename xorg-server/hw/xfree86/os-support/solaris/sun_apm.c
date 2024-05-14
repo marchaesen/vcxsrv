@@ -54,6 +54,7 @@
 #endif
 
 #include <errno.h>
+#include <sys/srn.h>
 #include <X11/X.h>
 
 #include "os.h"
@@ -63,34 +64,11 @@
 #include "xf86_OSproc.h"
 #include "xf86_OSlib.h"
 
-#ifndef PLEASE_FIX_THIS
-#define APM_STANDBY_REQ 0xa01
-#define APM_SUSPEND_REQ 0xa02
-#define APM_NORMAL_RESUME 0xa03
-#define APM_CRIT_RESUME 0xa04
-#define APM_BATTERY_LOW 0xa05
-#define APM_POWER_CHANGE 0xa06
-#define APM_UPDATE_TIME 0xa07
-#define APM_CRIT_SUSPEND_REQ 0xa08
-#define APM_USER_STANDBY_REQ 0xa09
-#define APM_USER_SUSPEND_REQ 0xa0a
-#define APM_SYS_STANDBY_RESUME 0xa0b
-#define APM_IOC_NEXTEVENT 0xa0c
-#define APM_IOC_RESUME 0xa0d
-#define APM_IOC_SUSPEND 0xa0e
-#define APM_IOC_STANDBY 0xa0f
-#endif
-
 typedef struct apm_event_info {
     int type;
 } apm_event_info;
 
-/*
- This may be replaced with a better device name
- very soon...
-*/
 #define APM_DEVICE "/dev/srn"
-#define APM_DEVICE1 "/dev/apm"
 
 static void *APMihPtr = NULL;
 static void sunCloseAPM(void);
@@ -99,20 +77,17 @@ static struct {
     u_int apmBsd;
     pmEvent xf86;
 } sunToXF86Array[] = {
-    {APM_STANDBY_REQ, XF86_APM_SYS_STANDBY},
-    {APM_SUSPEND_REQ, XF86_APM_SYS_SUSPEND},
-    {APM_NORMAL_RESUME, XF86_APM_NORMAL_RESUME},
-    {APM_CRIT_RESUME, XF86_APM_CRITICAL_RESUME},
-    {APM_BATTERY_LOW, XF86_APM_LOW_BATTERY},
-    {APM_POWER_CHANGE, XF86_APM_POWER_STATUS_CHANGE},
-    {APM_UPDATE_TIME, XF86_APM_UPDATE_TIME},
-    {APM_CRIT_SUSPEND_REQ, XF86_APM_CRITICAL_SUSPEND},
-    {APM_USER_STANDBY_REQ, XF86_APM_USER_STANDBY},
-    {APM_USER_SUSPEND_REQ, XF86_APM_USER_SUSPEND},
-    {APM_SYS_STANDBY_RESUME, XF86_APM_STANDBY_RESUME},
-#ifdef APM_CAPABILITY_CHANGE
-    {APM_CAPABILITY_CHANGE, XF86_APM_CAPABILITY_CHANGED},
-#endif
+    {SRN_STANDBY_REQ, XF86_APM_SYS_STANDBY},
+    {SRN_SUSPEND_REQ, XF86_APM_SYS_SUSPEND},
+    {SRN_NORMAL_RESUME, XF86_APM_NORMAL_RESUME},
+    {SRN_CRIT_RESUME, XF86_APM_CRITICAL_RESUME},
+    {SRN_BATTERY_LOW, XF86_APM_LOW_BATTERY},
+    {SRN_POWER_CHANGE, XF86_APM_POWER_STATUS_CHANGE},
+    {SRN_UPDATE_TIME, XF86_APM_UPDATE_TIME},
+    {SRN_CRIT_SUSPEND_REQ, XF86_APM_CRITICAL_SUSPEND},
+    {SRN_USER_STANDBY_REQ, XF86_APM_USER_STANDBY},
+    {SRN_USER_SUSPEND_REQ, XF86_APM_USER_SUSPEND},
+    {SRN_SYS_STANDBY_RESUME, XF86_APM_STANDBY_RESUME},
 };
 
 static pmEvent
@@ -139,9 +114,9 @@ sunPMGetEventFromOS(int fd, pmEvent * events, int num)
 
     for (i = 0; i < num; i++) {
 
-        if (ioctl(fd, APM_IOC_NEXTEVENT, &sunEvent) < 0) {
+        if (ioctl(fd, SRN_IOC_NEXTEVENT, &sunEvent) < 0) {
             if (errno != EAGAIN) {
-                xf86Msg(X_WARNING, "sunPMGetEventFromOS: APM_IOC_NEXTEVENT"
+                xf86Msg(X_WARNING, "sunPMGetEventFromOS: SRN_IOC_NEXTEVENT"
                         " %s\n", strerror(errno));
             }
             break;
@@ -159,7 +134,7 @@ sunPMConfirmEventToOs(int fd, pmEvent event)
 /* XXX: NOT CURRENTLY RETURNED FROM OS */
     case XF86_APM_SYS_STANDBY:
     case XF86_APM_USER_STANDBY:
-        if (ioctl(fd, APM_IOC_STANDBY, NULL) == 0)
+        if (ioctl(fd, SRN_IOC_STANDBY, NULL) == 0)
             return PM_WAIT;     /* should we stop the Xserver in standby, too? */
         else
             return PM_NONE;
@@ -167,10 +142,10 @@ sunPMConfirmEventToOs(int fd, pmEvent event)
     case XF86_APM_CRITICAL_SUSPEND:
     case XF86_APM_USER_SUSPEND:
         xf86Msg(X_WARNING, "Got SUSPENDED\n");
-        if (ioctl(fd, APM_IOC_SUSPEND, NULL) == 0)
+        if (ioctl(fd, SRN_IOC_SUSPEND, NULL) == 0)
             return PM_CONTINUE;
         else {
-            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_SUSPEND"
+            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: SRN_IOC_SUSPEND"
                     " %s\n", strerror(errno));
             return PM_FAILED;
         }
@@ -180,10 +155,10 @@ sunPMConfirmEventToOs(int fd, pmEvent event)
     case XF86_APM_STANDBY_FAILED:
     case XF86_APM_SUSPEND_FAILED:
         xf86Msg(X_WARNING, "Got RESUME\n");
-        if (ioctl(fd, APM_IOC_RESUME, NULL) == 0)
+        if (ioctl(fd, SRN_IOC_RESUME, NULL) == 0)
             return PM_CONTINUE;
         else {
-            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: APM_IOC_RESUME"
+            xf86Msg(X_WARNING, "sunPMConfirmEventToOs: SRN_IOC_RESUME"
                     " %s\n", strerror(errno));
             return PM_FAILED;
         }
@@ -202,9 +177,7 @@ xf86OSPMOpen(void)
     }
 
     if ((fd = open(APM_DEVICE, O_RDWR)) == -1) {
-        if ((fd = open(APM_DEVICE1, O_RDWR)) == -1) {
-            return NULL;
-        }
+        return NULL;
     }
     xf86PMGetEventFromOs = sunPMGetEventFromOS;
     xf86PMConfirmEventToOs = sunPMConfirmEventToOs;

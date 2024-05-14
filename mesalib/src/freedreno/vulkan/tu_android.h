@@ -12,16 +12,4 @@
 
 #include "tu_common.h"
 
-VkResult
-tu_gralloc_info(struct tu_device *device,
-                const VkNativeBufferANDROID *gralloc_info,
-                int *dma_buf,
-                uint64_t *modifier);
-
-VkResult
-tu_import_memory_from_gralloc_handle(VkDevice device_h,
-                                     int dma_buf,
-                                     const VkAllocationCallbacks *alloc,
-                                     VkImage image_h);
-
 #endif /* TU_ANDROID_H */

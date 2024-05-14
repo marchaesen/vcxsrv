@@ -106,17 +106,6 @@
 #include <sys/vt.h>
 #endif
 
-#if defined(__sun)
-#include <sys/kbd.h>
-#include <sys/kbio.h>
-
-/* undefine symbols from <sys/kbd.h> we don't need that conflict with enum
-   definitions in parser/xf86tokens.h */
-#undef STRING
-#undef LEFTALT
-#undef RIGHTALT
-#endif                          /* __sun */
-
 #if !defined(VT_ACKACQ)
 #define VT_ACKACQ 2
 #endif                          /* !VT_ACKACQ */

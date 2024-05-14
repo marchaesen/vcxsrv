@@ -76,6 +76,8 @@ enum radeon_micro_mode
  * color surface in gfx9_compute_surface(). */
 #define RADEON_SURF_NO_TEXTURE            (1ull << 34)
 #define RADEON_SURF_NO_STENCIL_ADJUST     (1ull << 35)
+#define RADEON_SURF_PREFER_4K_ALIGNMENT   (1ull << 36)
+#define RADEON_SURF_PREFER_64K_ALIGNMENT  (1ull << 37)
 
 enum radeon_enc_hevc_surface_alignment
 {

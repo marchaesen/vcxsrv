@@ -177,6 +177,12 @@ agx_calc_register_demand(agx_context *ctx)
       if (ctx->any_cf)
          demand++;
 
+      if (ctx->any_quad_divergent_shuffle)
+         demand++;
+
+      if (ctx->has_spill_pcopy_reserved)
+         demand = 8;
+
       /* Everything live-in */
       {
          int i;
@@ -299,18 +305,28 @@ find_best_region_to_evict(struct ra_ctx *rctx, enum ra_class cls, unsigned size,
    unsigned best_base = ~0;
    unsigned best_moves = ~0;
 
+   /* Beginning region evictability condition */
+   bool r0_evictable =
+      !rctx->shader->any_cf && !rctx->shader->has_spill_pcopy_reserved;
+
+   assert(!(r0_evictable && rctx->shader->any_quad_divergent_shuffle));
+
    for (unsigned base = 0; base + size <= rctx->bound[cls]; base += size) {
-      /* r0l is unevictable, skip it. By itself, this does not pose a problem.
-       * We are allocating n registers, but the region containing r0l has at
-       * most n-1 free. Since there are at least n free registers total, there
-       * is at least 1 free register outside this region. Thus the region
-       * containing that free register contains at most n-1 occupied registers.
-       * In the worst case, those n-1 occupied registers are moved to the region
-       * with r0l and then the n free registers are used for the destination.
-       * Thus, we do not need extra registers to handle "single point"
-       * unevictability.
+      /* The first k registers are preallocated and unevictable, so must be
+       * skipped. By itself, this does not pose a problem. We are allocating n
+       * registers, but this region has at most n-k free.  Since there are at
+       * least n free registers total, there is at least k free registers
+       * outside this region. Choose any such free register. The region
+       * containing it has at most n-1 occupied registers. In the worst case,
+       * n-k of those registers are are moved to the beginning region and the
+       * remaining (n-1)-(n-k) = k-1 registers are moved to the k-1 free
+       * registers in other regions, given there are k free registers total.
+       * These recursive shuffles work out because everything is power-of-two
+       * sized and naturally aligned, so the sizes shuffled are strictly
+       * descending. So, we do not need extra registers to handle "single
+       * region" unevictability.
        */
-      if (base == 0 && rctx->shader->any_cf)
+      if (base == 0 && !r0_evictable)
          continue;
 
       /* Do not evict the same register multiple times. It's not necessary since
@@ -509,6 +525,8 @@ insert_copies_for_clobbered_killed(struct ra_ctx *rctx, unsigned reg,
     * have to move it.  find_best_region_to_evict knows better than to try.
     */
    assert(!(reg == 0 && rctx->shader->any_cf) && "r0l is never moved");
+   assert(!(reg == 1 && rctx->shader->any_quad_divergent_shuffle) &&
+          "r0h is never moved");
 
    /* Consider the destination clobbered for the purpose of source collection.
     * This way, killed sources already in the destination will be preserved
@@ -1068,6 +1086,17 @@ agx_ra_assign_local(struct ra_ctx *rctx)
     */
    if (rctx->shader->any_cf)
       BITSET_SET(used_regs_gpr, 0);
+
+   /* Force the zero r0h live throughout shaders using divergent shuffles. */
+   if (rctx->shader->any_quad_divergent_shuffle) {
+      assert(rctx->shader->any_cf);
+      BITSET_SET(used_regs_gpr, 1);
+   }
+
+   /* Reserve bottom registers as temporaries for parallel copy lowering */
+   if (rctx->shader->has_spill_pcopy_reserved) {
+      BITSET_SET_RANGE(used_regs_gpr, 0, 7);
+   }
 
    agx_foreach_instr_in_block(block, I) {
       rctx->instr = I;

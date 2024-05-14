@@ -60,8 +60,11 @@ struct agx_interp_info {
    uint64_t flat;
    uint64_t linear;
 };
+static_assert(sizeof(struct agx_interp_info) == 16, "packed");
 
 struct agx_shader_info {
+   enum pipe_shader_type stage;
+
    union agx_varyings varyings;
 
    /* Number of uniforms */
@@ -84,6 +87,9 @@ struct agx_shader_info {
 
    /* Does the shader read the tilebuffer? */
    bool reads_tib;
+
+   /* Does the shader require early fragment tests? */
+   bool early_fragment_tests;
 
    /* Does the shader potentially draw to a nonzero viewport? */
    bool nonzero_viewport;
@@ -111,6 +117,9 @@ struct agx_shader_info {
 
    /* Reads base vertex/instance */
    bool uses_base_param;
+
+   /* Uses txf and hence needs a txf sampler mapped */
+   bool uses_txf;
 
    /* Number of 16-bit registers used by the main shader and preamble
     * respectively.
@@ -221,9 +230,11 @@ struct agx_shader_key {
 struct agx_interp_info agx_gather_interp_info(nir_shader *nir);
 uint64_t agx_gather_texcoords(nir_shader *nir);
 
+void agx_link_libagx(nir_shader *nir, const nir_shader *libagx);
 void agx_preprocess_nir(nir_shader *nir, const nir_shader *libagx);
 bool agx_nir_lower_discard_zs_emit(nir_shader *s);
 bool agx_nir_lower_sample_mask(nir_shader *s);
+bool agx_nir_lower_interpolation(nir_shader *s);
 
 bool agx_nir_lower_cull_distance_fs(struct nir_shader *s,
                                     unsigned nr_distances);
@@ -262,12 +273,21 @@ static const nir_shader_compiler_options agx_nir_options = {
    .lower_ffract = true,
    .lower_ldexp = true,
    .lower_pack_half_2x16 = true,
+   .lower_pack_unorm_2x16 = true,
+   .lower_pack_snorm_2x16 = true,
+   .lower_pack_unorm_4x8 = true,
+   .lower_pack_snorm_4x8 = true,
    .lower_pack_64_2x32 = true,
    .lower_unpack_half_2x16 = true,
+   .lower_unpack_unorm_2x16 = true,
+   .lower_unpack_snorm_2x16 = true,
+   .lower_unpack_unorm_4x8 = true,
+   .lower_unpack_snorm_4x8 = true,
    .lower_extract_byte = true,
    .lower_insert_byte = true,
    .lower_insert_word = true,
    .has_cs_global_id = true,
+   .lower_device_index_to_zero = true,
    .lower_hadd = true,
    .vectorize_io = true,
    .use_interpolated_input_intrinsics = true,

@@ -303,6 +303,7 @@ impl SPIRVBin {
         spirv_capabilities {
             Addresses: true,
             Float16: true,
+            Float16Buffer: true,
             Float64: true,
             GenericPointer: true,
             Groups: true,
@@ -316,6 +317,7 @@ impl SPIRVBin {
             ImageReadWrite: true,
             Linkage: true,
             LiteralSampler: true,
+            Vector16: true,
             ..Default::default()
         }
     }

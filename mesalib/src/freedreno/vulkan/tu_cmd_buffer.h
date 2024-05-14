@@ -276,6 +276,7 @@ struct tu_render_pass_state
 {
    bool xfb_used;
    bool has_tess;
+   bool has_gs;
    bool has_prim_generated_query_in_rp;
    bool disable_gmem;
    bool sysmem_single_prim_mode;
@@ -504,6 +505,7 @@ struct tu_cmd_state
    bool pipeline_feedback_loop_ds;
    bool pipeline_sysmem_single_prim_mode;
    bool pipeline_has_tess;
+   bool pipeline_has_gs;
    bool pipeline_disable_gmem;
 
    bool pipeline_blend_lrz, pipeline_bandwidth;

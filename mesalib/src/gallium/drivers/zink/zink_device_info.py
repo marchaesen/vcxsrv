@@ -111,6 +111,7 @@ EXTENSIONS = [
               features=True),
     Extension("VK_EXT_shader_subgroup_ballot"),
     Extension("VK_EXT_shader_subgroup_vote"),
+    Extension("VK_EXT_legacy_vertex_attributes", alias="legacyverts", features=True, properties=True),
     Extension("VK_EXT_shader_atomic_float",
               alias="atomic_float",
               features=True),

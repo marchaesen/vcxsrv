@@ -286,25 +286,6 @@
   tags:
     - google-freedreno-db410c
 
-# New jobs. Leave it as manual for now.
-.a306_piglit:
-  extends:
-    - .piglit-test
-    - .a306-test
-    - .google-freedreno-manual-rules
-  variables:
-    HWCI_START_XORG: 1
-
-# Something happened and now this hangchecks and doesn't recover.  Unkown when
-# it started.
-.a306_piglit_gl:
-  extends:
-    - .a306_piglit
-  variables:
-    PIGLIT_PROFILES: quick_gl
-    BM_KERNEL_EXTRA_ARGS: "msm.num_hw_submissions=1"
-    FDO_CI_CONCURRENT: 3
-
 # 8 devices (2023-04-15)
 .a530-test:
   extends:

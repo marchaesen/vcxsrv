@@ -610,6 +610,8 @@ struct zink_batch_state {
    struct util_dynarray wait_semaphore_stages; //external wait semaphores
    struct util_dynarray fd_wait_semaphores; //dmabuf wait semaphores
    struct util_dynarray fd_wait_semaphore_stages; //dmabuf wait semaphores
+   struct util_dynarray tracked_semaphores; //semaphores which are just tracked
+   VkSemaphore sparse_semaphore; //current sparse wait semaphore
    struct util_dynarray fences; //zink_tc_fence refs
    simple_mtx_t ref_lock;
 
@@ -1279,6 +1281,7 @@ struct zink_resource_object {
    // }
 
 
+   unsigned miptail_commits;
    VkDeviceSize offset, size, alignment;
    uint64_t vkflags;
    uint64_t vkusage;

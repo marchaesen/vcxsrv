@@ -322,43 +322,67 @@ tu_free_zombie_vma_locked(struct tu_device *dev, bool wait)
          last_signaled_fence = vma->fence;
       }
 
-      /* Ensure that internal kernel's vma is freed. */
-      struct drm_msm_gem_info req = {
-         .handle = vma->gem_handle,
-         .info = MSM_INFO_SET_IOVA,
-         .value = 0,
-      };
+      if (vma->gem_handle) {
+         /* Ensure that internal kernel's vma is freed. */
+         struct drm_msm_gem_info req = {
+            .handle = vma->gem_handle,
+            .info = MSM_INFO_SET_IOVA,
+            .value = 0,
+         };
 
-      int ret =
-         drmCommandWriteRead(dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
-      if (ret < 0) {
-         mesa_loge("MSM_INFO_SET_IOVA(0) failed! %d (%s)", ret,
-                   strerror(errno));
-         return VK_ERROR_UNKNOWN;
+         int ret =
+            drmCommandWriteRead(dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
+         if (ret < 0) {
+            mesa_loge("MSM_INFO_SET_IOVA(0) failed! %d (%s)", ret,
+                      strerror(errno));
+            return VK_ERROR_UNKNOWN;
+         }
+
+         tu_gem_close(dev, vma->gem_handle);
+
+         util_vma_heap_free(&dev->vma, vma->iova, vma->size);
       }
 
-      tu_gem_close(dev, vma->gem_handle);
-
-      util_vma_heap_free(&dev->vma, vma->iova, vma->size);
       u_vector_remove(&dev->zombie_vmas);
    }
 
    return VK_SUCCESS;
 }
 
+static bool
+tu_restore_from_zombie_vma_locked(struct tu_device *dev,
+                                  uint32_t gem_handle,
+                                  uint64_t *iova)
+{
+   struct tu_zombie_vma *vma;
+   u_vector_foreach (vma, &dev->zombie_vmas) {
+      if (vma->gem_handle == gem_handle) {
+         *iova = vma->iova;
+
+         /* mark to skip later gem and iova cleanup */
+         vma->gem_handle = 0;
+         return true;
+      }
+   }
+
+   return false;
+}
+
 static VkResult
-msm_allocate_userspace_iova(struct tu_device *dev,
-                            uint32_t gem_handle,
-                            uint64_t size,
-                            uint64_t client_iova,
-                            enum tu_bo_alloc_flags flags,
-                            uint64_t *iova)
+msm_allocate_userspace_iova_locked(struct tu_device *dev,
+                                   uint32_t gem_handle,
+                                   uint64_t size,
+                                   uint64_t client_iova,
+                                   enum tu_bo_alloc_flags flags,
+                                   uint64_t *iova)
 {
    VkResult result;
 
-   mtx_lock(&dev->vma_mutex);
-
    *iova = 0;
+
+   if ((flags & TU_BO_ALLOC_DMABUF) &&
+       tu_restore_from_zombie_vma_locked(dev, gem_handle, iova))
+      return VK_SUCCESS;
 
    tu_free_zombie_vma_locked(dev, false);
 
@@ -373,8 +397,6 @@ msm_allocate_userspace_iova(struct tu_device *dev,
       result = tu_allocate_userspace_iova(dev, size, client_iova, flags, iova);
    }
 
-   mtx_unlock(&dev->vma_mutex);
-
    if (result != VK_SUCCESS)
       return result;
 
@@ -387,6 +409,7 @@ msm_allocate_userspace_iova(struct tu_device *dev,
    int ret =
       drmCommandWriteRead(dev->fd, DRM_MSM_GEM_INFO, &req, sizeof(req));
    if (ret < 0) {
+      util_vma_heap_free(&dev->vma, *iova, size);
       mesa_loge("MSM_INFO_SET_IOVA failed! %d (%s)", ret, strerror(errno));
       return VK_ERROR_OUT_OF_HOST_MEMORY;
    }
@@ -421,8 +444,8 @@ tu_bo_init(struct tu_device *dev,
    assert(!client_iova || dev->physical_device->has_set_iova);
 
    if (dev->physical_device->has_set_iova) {
-      result = msm_allocate_userspace_iova(dev, gem_handle, size, client_iova,
-                                           flags, &iova);
+      result = msm_allocate_userspace_iova_locked(dev, gem_handle, size,
+                                                  client_iova, flags, &iova);
    } else {
       result = tu_allocate_kernel_iova(dev, gem_handle, &iova);
    }
@@ -446,6 +469,8 @@ tu_bo_init(struct tu_device *dev,
       if (!new_ptr) {
          dev->bo_count--;
          mtx_unlock(&dev->bo_mutex);
+         if (dev->physical_device->has_set_iova)
+            util_vma_heap_free(&dev->vma, iova, size);
          tu_gem_close(dev, gem_handle);
          return VK_ERROR_OUT_OF_HOST_MEMORY;
       }
@@ -509,6 +534,20 @@ tu_bo_set_kernel_name(struct tu_device *dev, struct tu_bo *bo, const char *name)
    }
 }
 
+static inline void
+msm_vma_lock(struct tu_device *dev)
+{
+   if (dev->physical_device->has_set_iova)
+      mtx_lock(&dev->vma_mutex);
+}
+
+static inline void
+msm_vma_unlock(struct tu_device *dev)
+{
+   if (dev->physical_device->has_set_iova)
+      mtx_unlock(&dev->vma_mutex);
+}
+
 static VkResult
 msm_bo_init(struct tu_device *dev,
             struct tu_bo **out_bo,
@@ -544,8 +583,14 @@ msm_bo_init(struct tu_device *dev,
    struct tu_bo* bo = tu_device_lookup_bo(dev, req.handle);
    assert(bo && bo->gem_handle == 0);
 
+   assert(!(flags & TU_BO_ALLOC_DMABUF));
+
+   msm_vma_lock(dev);
+
    VkResult result =
       tu_bo_init(dev, bo, req.handle, size, client_iova, flags, name);
+
+   msm_vma_unlock(dev);
 
    if (result == VK_SUCCESS) {
       *out_bo = bo;
@@ -598,11 +643,13 @@ msm_bo_init_dmabuf(struct tu_device *dev,
     * to happen in parallel.
     */
    u_rwlock_wrlock(&dev->dma_bo_lock);
+   msm_vma_lock(dev);
 
    uint32_t gem_handle;
    int ret = drmPrimeFDToHandle(dev->fd, prime_fd,
                                 &gem_handle);
    if (ret) {
+      msm_vma_unlock(dev);
       u_rwlock_wrunlock(&dev->dma_bo_lock);
       return vk_error(dev, VK_ERROR_INVALID_EXTERNAL_HANDLE);
    }
@@ -611,6 +658,7 @@ msm_bo_init_dmabuf(struct tu_device *dev,
 
    if (bo->refcnt != 0) {
       p_atomic_inc(&bo->refcnt);
+      msm_vma_unlock(dev);
       u_rwlock_wrunlock(&dev->dma_bo_lock);
 
       *out_bo = bo;
@@ -618,13 +666,14 @@ msm_bo_init_dmabuf(struct tu_device *dev,
    }
 
    VkResult result =
-      tu_bo_init(dev, bo, gem_handle, size, 0, TU_BO_ALLOC_NO_FLAGS, "dmabuf");
+      tu_bo_init(dev, bo, gem_handle, size, 0, TU_BO_ALLOC_DMABUF, "dmabuf");
 
    if (result != VK_SUCCESS)
       memset(bo, 0, sizeof(*bo));
    else
       *out_bo = bo;
 
+   msm_vma_unlock(dev);
    u_rwlock_wrunlock(&dev->dma_bo_lock);
 
    return result;

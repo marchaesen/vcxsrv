@@ -880,21 +880,21 @@ emit_vop3_instruction(asm_context& ctx, std::vector<uint32_t>& out, Instruction*
     */
    if (instr->definitions.size() == 2 && instr->isVOPC())
       assert(ctx.gfx_level <= GFX9 && instr->definitions[1].physReg() == exec);
-   else if (instr->definitions.size() == 2)
+   else if (instr->definitions.size() == 2 && instr->opcode != aco_opcode::v_swap_b16)
       encoding |= reg(ctx, instr->definitions[1]) << 8;
    encoding |= reg(ctx, instr->definitions[0], 8);
    out.push_back(encoding);
    encoding = 0;
-   if (instr->opcode == aco_opcode::v_interp_mov_f32) {
-      encoding = 0x3 & instr->operands[0].constantValue();
-   } else if (instr->opcode == aco_opcode::v_writelane_b32_e64) {
-      encoding |= reg(ctx, instr->operands[0]) << 0;
-      encoding |= reg(ctx, instr->operands[1]) << 9;
-      /* Encoding src2 works fine with hardware but breaks some disassemblers. */
-   } else {
-      for (unsigned i = 0; i < instr->operands.size(); i++)
-         encoding |= reg(ctx, instr->operands[i]) << (i * 9);
-   }
+
+   unsigned num_ops = instr->operands.size();
+   /* Encoding implicit sources works fine with hardware but breaks some disassemblers. */
+   if (instr->opcode == aco_opcode::v_writelane_b32_e64)
+      num_ops = 2;
+   else if (instr->opcode == aco_opcode::v_swap_b16)
+      num_ops = 1;
+
+   for (unsigned i = 0; i < num_ops; i++)
+      encoding |= reg(ctx, instr->operands[i]) << (i * 9);
    encoding |= vop3.omod << 27;
    for (unsigned i = 0; i < 3; i++)
       encoding |= vop3.neg[i] << (29 + i);

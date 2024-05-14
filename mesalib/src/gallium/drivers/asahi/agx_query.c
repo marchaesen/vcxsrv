@@ -46,8 +46,6 @@ is_timer(struct agx_query *query)
    }
 }
 
-#define AGX_MAX_OCCLUSION_QUERIES (65536)
-
 struct agx_oq_heap {
    /* The GPU allocation itself */
    struct agx_bo *bo;

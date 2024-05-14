@@ -6,6 +6,7 @@
 
 #include "agx_device.h"
 #include <inttypes.h>
+#include "util/ralloc.h"
 #include "util/timespec.h"
 #include "agx_bo.h"
 #include "agx_compile.h"
@@ -29,6 +30,33 @@
 /* TODO: Linux UAPI. Dummy defines to get some things to compile. */
 #define ASAHI_BIND_READ  0
 #define ASAHI_BIND_WRITE 0
+
+/* clang-format off */
+static const struct debug_named_value agx_debug_options[] = {
+   {"trace",     AGX_DBG_TRACE,    "Trace the command stream"},
+   {"no16",      AGX_DBG_NO16,     "Disable 16-bit support"},
+   {"perf",      AGX_DBG_PERF,     "Print performance warnings"},
+#ifndef NDEBUG
+   {"dirty",     AGX_DBG_DIRTY,    "Disable dirty tracking"},
+#endif
+   {"compblit",  AGX_DBG_COMPBLIT, "Enable compute blitter"},
+   {"precompile",AGX_DBG_PRECOMPILE,"Precompile shaders for shader-db"},
+   {"nocompress",AGX_DBG_NOCOMPRESS,"Disable lossless compression"},
+   {"nocluster", AGX_DBG_NOCLUSTER,"Disable vertex clustering"},
+   {"sync",      AGX_DBG_SYNC,     "Synchronously wait for all submissions"},
+   {"stats",     AGX_DBG_STATS,    "Show command execution statistics"},
+   {"resource",  AGX_DBG_RESOURCE, "Log resource operations"},
+   {"batch",     AGX_DBG_BATCH,    "Log batches"},
+   {"nowc",      AGX_DBG_NOWC,     "Disable write-combining"},
+   {"synctvb",   AGX_DBG_SYNCTVB,  "Synchronous TVB growth"},
+   {"smalltile", AGX_DBG_SMALLTILE,"Force 16x16 tiles"},
+   {"feedback",  AGX_DBG_FEEDBACK, "Debug feedback loops"},
+   {"nomsaa",    AGX_DBG_NOMSAA,   "Force disable MSAA"},
+   {"noshadow",  AGX_DBG_NOSHADOW, "Force disable resource shadowing"},
+   {"scratch",   AGX_DBG_SCRATCH,  "Debug scratch memory usage"},
+   DEBUG_NAMED_VALUE_END
+};
+/* clang-format on */
 
 void
 agx_bo_free(struct agx_device *dev, struct agx_bo *bo)
@@ -83,6 +111,7 @@ agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
    struct agx_bo *bo;
    unsigned handle = 0;
 
+   assert(size > 0);
    size = ALIGN_POT(size, dev->params.vm_page_size);
 
    /* executable implies low va */
@@ -122,8 +151,6 @@ agx_bo_alloc(struct agx_device *dev, size_t size, size_t align,
       agx_bo_free(dev, bo);
       return NULL;
    }
-
-   bo->guid = bo->handle; /* TODO: We don't care about guids */
 
    uint32_t bind = ASAHI_BIND_READ;
    if (!(flags & AGX_BO_READONLY)) {
@@ -308,6 +335,9 @@ agx_get_params(struct agx_device *dev, void *buf, size_t size)
 bool
 agx_open_device(void *memctx, struct agx_device *dev)
 {
+   dev->debug =
+      debug_get_flags_option("ASAHI_MESA_DEBUG", agx_debug_options, 0);
+
    ssize_t params_size = -1;
 
    /* TODO: Linux UAPI */
@@ -357,9 +387,8 @@ agx_open_device(void *memctx, struct agx_device *dev)
 void
 agx_close_device(struct agx_device *dev)
 {
-   if (dev->helper)
-      agx_bo_unreference(dev->helper);
-
+   ralloc_free((void *)dev->libagx);
+   agx_bo_unreference(dev->helper);
    agx_bo_cache_evict_all(dev);
    util_sparse_array_finish(&dev->bo_map);
 

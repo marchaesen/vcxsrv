@@ -2801,6 +2801,10 @@ update_last_vue_map(struct iris_context *ice,
          ice->state.stage_dirty_for_nos[IRIS_NOS_LAST_VUE_MAP];
    }
 
+   if (changed_slots & VARYING_BIT_LAYER) {
+      ice->state.dirty |= IRIS_DIRTY_CLIP;
+   }
+
    if (changed_slots || (old_map && old_map->separate != vue_map->separate)) {
       ice->state.dirty |= IRIS_DIRTY_SBE;
    }

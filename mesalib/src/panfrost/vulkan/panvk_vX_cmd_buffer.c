@@ -433,8 +433,8 @@ panvk_cmd_prepare_ubos(struct panvk_cmd_buffer *cmdbuf,
          panvk_per_arch(pipeline_layout_ubo_start)(pipeline->layout, s, false);
 
       if (!set) {
-         unsigned all_ubos = set_layout->num_ubos + set_layout->num_dyn_ubos;
-         memset(&ubo_descs[ubo_start], 0, all_ubos * sizeof(*ubo_descs));
+         memset(&ubo_descs[ubo_start], 0,
+                set_layout->num_ubos * sizeof(*ubo_descs));
       } else {
          memcpy(&ubo_descs[ubo_start], set->ubos,
                 set_layout->num_ubos * sizeof(*ubo_descs));

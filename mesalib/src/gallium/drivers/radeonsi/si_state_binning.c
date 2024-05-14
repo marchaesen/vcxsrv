@@ -393,7 +393,7 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
    if (sctx->gfx_level >= GFX12) {
       struct uvec2 bin_size = {128, 128};
 
-      radeon_opt_set_context_reg(sctx, R_028C44_PA_SC_BINNER_CNTL_0,
+      radeon_opt_set_context_reg(R_028C44_PA_SC_BINNER_CNTL_0,
                                  SI_TRACKED_PA_SC_BINNER_CNTL_0,
                                  S_028C44_BINNING_MODE(V_028C44_BINNING_DISABLED) |
                                  S_028C44_BIN_SIZE_X_EXTEND(util_logbase2(bin_size.x) - 5) |
@@ -417,7 +417,7 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
       if (bin_size.y >= 32)
          bin_size_extend.y = util_logbase2(bin_size.y) - 5;
 
-      radeon_opt_set_context_reg(sctx, R_028C44_PA_SC_BINNER_CNTL_0,
+      radeon_opt_set_context_reg(R_028C44_PA_SC_BINNER_CNTL_0,
                                  SI_TRACKED_PA_SC_BINNER_CNTL_0,
                                  S_028C44_BINNING_MODE(binning_disabled) |
                                  S_028C44_BIN_SIZE_X(bin_size.x == 16) |
@@ -429,7 +429,7 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
                                  S_028C44_OPTIMAL_BIN_SELECTION(optimal_bin_selection) |
                                  S_028C44_FLUSH_ON_BINNING_TRANSITION(1));
    } else {
-      radeon_opt_set_context_reg(sctx, R_028C44_PA_SC_BINNER_CNTL_0,
+      radeon_opt_set_context_reg(R_028C44_PA_SC_BINNER_CNTL_0,
                                  SI_TRACKED_PA_SC_BINNER_CNTL_0,
                                  S_028C44_BINNING_MODE(V_028C44_DISABLE_BINNING_USE_LEGACY_SC) |
                                  S_028C44_DISABLE_START_OF_PRIM(1) |
@@ -437,7 +437,7 @@ static void si_emit_dpbb_disable(struct si_context *sctx)
                                                                       sctx->family == CHIP_VEGA20 ||
                                                                       sctx->family >= CHIP_RAVEN2));
    }
-   radeon_end_update_context_roll(sctx);
+   radeon_end_update_context_roll();
 }
 
 void si_emit_dpbb_state(struct si_context *sctx, unsigned index)
@@ -512,7 +512,7 @@ void si_emit_dpbb_state(struct si_context *sctx, unsigned index)
       bin_size_extend.y = util_logbase2(bin_size.y) - 5;
 
    radeon_begin(&sctx->gfx_cs);
-   radeon_opt_set_context_reg(sctx, R_028C44_PA_SC_BINNER_CNTL_0, SI_TRACKED_PA_SC_BINNER_CNTL_0,
+   radeon_opt_set_context_reg(R_028C44_PA_SC_BINNER_CNTL_0, SI_TRACKED_PA_SC_BINNER_CNTL_0,
                               S_028C44_BINNING_MODE(V_028C44_BINNING_ALLOWED) |
                               S_028C44_BIN_SIZE_X(bin_size.x == 16) |
                               S_028C44_BIN_SIZE_Y(bin_size.y == 16) |
@@ -526,5 +526,5 @@ void si_emit_dpbb_state(struct si_context *sctx, unsigned index)
                               S_028C44_FLUSH_ON_BINNING_TRANSITION(sctx->family == CHIP_VEGA12 ||
                                                                    sctx->family == CHIP_VEGA20 ||
                                                                    sctx->family >= CHIP_RAVEN2));
-   radeon_end_update_context_roll(sctx);
+   radeon_end_update_context_roll();
 }

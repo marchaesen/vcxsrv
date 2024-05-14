@@ -20,5 +20,8 @@ IncludeCategories:
   - Regex:           '.*'
     Priority:        1
 
+ForEachMacros:
+  - u_vector_foreach
+
 SpaceAfterCStyleCast: true
 SpaceBeforeCpp11BracedList: true

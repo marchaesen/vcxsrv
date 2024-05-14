@@ -29,13 +29,6 @@
 
 #include "xkbstr.h"
 
-/***====================================================================***/
-
-#define	XkbXKMFile	0
-#define	XkbCFile	1
-#define	XkbXKBFile	2
-#define	XkbMessage	3
-
 typedef void (*XkbFileAddOnFunc) (FILE * /* file */ ,
                                   XkbDescPtr /* result */ ,
                                   Bool /* topLevel */ ,
@@ -77,84 +70,6 @@ typedef void (*XkbFileAddOnFunc) (FILE * /* file */ ,
 /***====================================================================***/
 
 _XFUNCPROTOBEGIN
-
-extern _X_EXPORT char *XkbIndentText(unsigned   /* size */
-    );
-
-extern _X_EXPORT char *XkbAtomText(Atom /* atm */ ,
-                                   unsigned     /* format */
-    );
-
-extern _X_EXPORT char *XkbKeysymText(KeySym /* sym */ ,
-                                     unsigned   /* format */
-    );
-
-extern _X_EXPORT char *XkbStringText(char * /* str */ ,
-                                     unsigned   /* format */
-    );
-
-extern _X_EXPORT char *XkbKeyNameText(char * /* name */ ,
-                                      unsigned  /* format */
-    );
-
-extern _X_EXPORT char *XkbModIndexText(unsigned /* ndx */ ,
-                                       unsigned /* format */
-    );
-
-extern _X_EXPORT char *XkbModMaskText(unsigned /* mask */ ,
-                                      unsigned  /* format */
-    );
-
-extern _X_EXPORT char *XkbVModIndexText(XkbDescPtr /* xkb */ ,
-                                        unsigned /* ndx */ ,
-                                        unsigned        /* format */
-    );
-
-extern _X_EXPORT char *XkbVModMaskText(XkbDescPtr /* xkb */ ,
-                                       unsigned /* modMask */ ,
-                                       unsigned /* mask */ ,
-                                       unsigned /* format */
-    );
-
-extern _X_EXPORT char *XkbConfigText(unsigned /* config */ ,
-                                     unsigned   /* format */
-    );
-
-extern _X_EXPORT const char *XkbSIMatchText(unsigned /* type */ ,
-                                            unsigned    /* format */
-    );
-
-extern _X_EXPORT char *XkbIMWhichStateMaskText(unsigned /* use_which */ ,
-                                               unsigned /* format */
-    );
-
-extern _X_EXPORT char *XkbControlsMaskText(unsigned /* ctrls */ ,
-                                           unsigned     /* format */
-    );
-
-extern _X_EXPORT char *XkbGeomFPText(int /* val */ ,
-                                     unsigned   /* format */
-    );
-
-extern _X_EXPORT char *XkbDoodadTypeText(unsigned /* type */ ,
-                                         unsigned       /* format */
-    );
-
-extern _X_EXPORT const char *XkbActionTypeText(unsigned /* type */ ,
-                                               unsigned /* format */
-    );
-
-extern _X_EXPORT char *XkbActionText(XkbDescPtr /* xkb */ ,
-                                     XkbAction * /* action */ ,
-                                     unsigned   /* format */
-    );
-
-extern _X_EXPORT char *XkbBehaviorText(XkbDescPtr /* xkb */ ,
-                                       XkbBehavior * /* behavior */ ,
-                                       unsigned /* format */
-    );
-
-/***====================================================================***/
 
 #define	_XkbKSLower	(1<<0)
 #define	_XkbKSUpper	(1<<1)

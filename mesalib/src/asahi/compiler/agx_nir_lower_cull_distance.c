@@ -107,7 +107,7 @@ agx_nir_lower_cull_distance_fs(nir_shader *s, unsigned nr_distances)
    }
 
    /* Emulate primitive culling by discarding fragments */
-   nir_discard_if(b, culled);
+   nir_demote_if(b, culled);
 
    s->info.inputs_read |= BITFIELD64_RANGE(VARYING_SLOT_CULL_PRIMITIVE,
                                            DIV_ROUND_UP(nr_distances, 4));

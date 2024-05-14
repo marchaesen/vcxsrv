@@ -120,6 +120,7 @@ merge_requests:
         '^.*/ci/.*-(fails|flakes|skips)\.txt': ['CI-Expectations']
         '^.*/ci/(restricted-)?traces-.*\.yml': ['CI-Expectations', 'trace']
         '^.*/ci/.*-validation-settings\.txt': ['CI-Expectations']
+        '^.*/ci/.*-vkd3d\.txt': ['CI-Expectations']
         '^.gitlab-ci/windows/': ['Windows']
         '^bin/__init__.py$': ['maintainer-scripts']
         '^bin/gen_release_notes': ['maintainer-scripts']

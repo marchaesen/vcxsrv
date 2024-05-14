@@ -1676,8 +1676,7 @@ ntq_emit_color_read(struct vc4_compile *c, nir_intrinsic_instr *instr)
         /* Reads of the per-sample color need to be done in
          * order.
          */
-        int sample_index = (nir_intrinsic_base(instr) -
-                            VC4_NIR_TLB_COLOR_READ_INPUT);
+        int sample_index = nir_intrinsic_base(instr);
         for (int i = 0; i <= sample_index; i++) {
                 if (c->color_reads[i].file == QFILE_NULL) {
                         c->color_reads[i] =
@@ -1694,12 +1693,6 @@ ntq_emit_load_input(struct vc4_compile *c, nir_intrinsic_instr *instr)
         assert(instr->num_components == 1);
         assert(nir_src_is_const(instr->src[0]) &&
                "vc4 doesn't support indirect inputs");
-
-        if (c->stage == QSTAGE_FRAG &&
-            nir_intrinsic_base(instr) >= VC4_NIR_TLB_COLOR_READ_INPUT) {
-                ntq_emit_color_read(c, instr);
-                return;
-        }
 
         uint32_t offset = nir_intrinsic_base(instr) +
                           nir_src_as_uint(instr->src[0]);
@@ -1790,6 +1783,10 @@ ntq_emit_intrinsic(struct vc4_compile *c, nir_intrinsic_instr *instr)
 
         case nir_intrinsic_load_input:
                 ntq_emit_load_input(c, instr);
+                break;
+
+        case nir_intrinsic_load_tlb_color_brcm:
+                ntq_emit_color_read(c, instr);
                 break;
 
         case nir_intrinsic_store_output:

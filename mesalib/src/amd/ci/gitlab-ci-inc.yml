@@ -14,6 +14,7 @@
         - src/amd/ci/$GPU_VERSION-flakes.txt
         - src/amd/ci/$GPU_VERSION-skips.txt
         - src/amd/ci/$PIGLIT_TRACES_FILE
+        - src/amd/ci/$VKD3D_PROTON_RESULTS-vkd3d.txt
         - src/amd/common/**/*
         - src/amd/llvm/**/*
         - src/amd/registers/**/*
@@ -378,17 +379,11 @@
     DEQP_VER: vk
 
 ############### vkd3d-proton
-.vkd3d-test-valve:
-  extends:
-    - .b2c-test-radv-vk
-  variables:
-    B2C_JOB_SUCCESS_REGEX: 'vkd3d-proton execution: SUCCESS\r$'
-    HWCI_TEST_SCRIPT: ./install/vkd3d-proton/run.sh
-
 .vkd3d-kabini-valve:
   extends:
-    - .vkd3d-test-valve
+    - .b2c-test-radv-vk
+    - .b2c-vkd3d-proton-test
     - .kabini-test-valve
     - .radv-valve-manual-rules
   variables:
-    VKD3D_PROTON_RESULTS: radv-kabini-vkd3d
+    VKD3D_PROTON_RESULTS: radv-kabini

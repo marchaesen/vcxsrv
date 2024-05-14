@@ -357,6 +357,8 @@ aco_compile_vs_prolog(const struct aco_compiler_options* options,
    select_vs_prolog(program.get(), pinfo, &config, options, info, args);
    validate(program.get());
    insert_NOPs(program.get());
+   if (program->gfx_level >= GFX10)
+      form_hard_clauses(program.get());
 
    if (options->dump_shader)
       aco_print_program(program.get(), stderr);

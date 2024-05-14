@@ -73,13 +73,12 @@ static const uint8_t sample_loop_footer[] = {
 #define SAMPLE_LOOP_FOOTER_COUNT_SHIFT (4)
 /* clang-format on */
 
-struct agx_linked_shader *
-agx_fast_link(void *memctx, struct agx_device *dev, bool fragment,
-              struct agx_shader_part *main, struct agx_shader_part *prolog,
-              struct agx_shader_part *epilog, unsigned nr_samples_shaded)
+void
+agx_fast_link(struct agx_linked_shader *linked, struct agx_device *dev,
+              bool fragment, struct agx_shader_part *main,
+              struct agx_shader_part *prolog, struct agx_shader_part *epilog,
+              unsigned nr_samples_shaded)
 {
-   struct agx_linked_shader *linked = rzalloc(memctx, struct agx_linked_shader);
-
    size_t size = 0;
    unsigned nr_gprs = 0, scratch_size = 0;
    bool reads_tib = false, writes_sample_mask = false,
@@ -110,6 +109,7 @@ agx_fast_link(void *memctx, struct agx_device *dev, bool fragment,
       writes_sample_mask |= part->info.writes_sample_mask;
       disable_tri_merging |= part->info.disable_tri_merging;
       linked->uses_base_param |= part->info.uses_base_param;
+      linked->uses_txf |= part->info.uses_txf;
       tag_write_disable &= part->info.tag_write_disable;
    }
 
@@ -237,6 +237,4 @@ agx_fast_link(void *memctx, struct agx_device *dev, bool fragment,
          cfg.frag_coord_z = linked->cf.reads_z;
       }
    }
-
-   return linked;
 }

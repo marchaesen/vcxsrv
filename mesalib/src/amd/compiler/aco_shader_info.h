@@ -41,6 +41,7 @@ struct aco_vs_prolog_info {
 
    unsigned num_attributes;
    uint32_t misaligned_mask;
+   uint32_t unaligned_mask;
    bool is_ngg;
    gl_shader_stage next_stage;
 };

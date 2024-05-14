@@ -1140,6 +1140,11 @@ enum gl_access_qualifier
     * is required.
     */
    ACCESS_CP_GE_COHERENT_AMD = (1 << 13),
+
+   /* Guarantee that an image_load is in bounds so we can skip robustness code
+    * on AGX, used for some internal shaders.
+    */
+   ACCESS_IN_BOUNDS_AGX = (1 << 14),
 };
 
 /**

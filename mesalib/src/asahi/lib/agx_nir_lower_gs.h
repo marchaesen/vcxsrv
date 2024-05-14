@@ -23,10 +23,6 @@ struct nir_def *agx_load_per_vertex_input(struct nir_builder *b,
                                           nir_intrinsic_instr *intr,
                                           struct nir_def *vertex);
 
-struct nir_def *agx_vertex_id_for_topology_class(struct nir_builder *b,
-                                                 struct nir_def *vert,
-                                                 enum mesa_prim clas);
-
 bool agx_nir_lower_index_buffer(struct nir_shader *s, unsigned index_size_B,
                                 bool patches);
 

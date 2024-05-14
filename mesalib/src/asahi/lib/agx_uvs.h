@@ -29,22 +29,6 @@ enum uvs_group {
  * qualifiers.
  */
 struct agx_unlinked_uvs_layout {
-   /* Offset of each group in the UVS in words. */
-   uint8_t group_offs[UVS_NUM_GROUP];
-
-   /* Size of the UVS allocation in words. >= last group_offs element */
-   uint8_t size;
-
-   /* Size of the UVS_VARYINGS */
-   uint8_t user_size;
-
-   /* Number of 32-bit components written for each slot. TODO: Model 16-bit.
-    *
-    * Invariant: sum_{slot} (components[slot]) =
-    *            group_offs[PSIZ] - group_offs[VARYINGS]
-    */
-   uint8_t components[VARYING_SLOT_MAX];
-
    /* Bit i set <===> components[i] != 0 && i != POS && i != PSIZ. For fast
     * iteration of user varyings.
     */
@@ -55,7 +39,26 @@ struct agx_unlinked_uvs_layout {
 
    /* Partial data structure, must be merged with FS selects */
    struct agx_output_select_packed osel;
+
+   /* Offset of each group in the UVS in words. */
+   uint8_t group_offs[UVS_NUM_GROUP];
+
+   /* Size of the UVS allocation in words. >= last group_offs element */
+   uint8_t size;
+
+   /* Size of the UVS_VARYINGS */
+   uint8_t user_size;
+
+   uint8_t pad;
+
+   /* Number of 32-bit components written for each slot. TODO: Model 16-bit.
+    *
+    * Invariant: sum_{slot} (components[slot]) =
+    *            group_offs[PSIZ] - group_offs[VARYINGS]
+    */
+   uint8_t components[VARYING_SLOT_MAX];
 };
+static_assert(sizeof(struct agx_unlinked_uvs_layout) == 88, "packed");
 
 bool agx_nir_lower_uvs(struct nir_shader *s,
                        struct agx_unlinked_uvs_layout *layout);
@@ -77,3 +80,12 @@ struct agx_varyings_vs {
 void agx_assign_uvs(struct agx_varyings_vs *varyings,
                     struct agx_unlinked_uvs_layout *layout, uint64_t flat_mask,
                     uint64_t linear_mask);
+
+struct agx_varyings_fs;
+
+void agx_link_varyings_vs_fs(void *out, struct agx_varyings_vs *vs,
+                             unsigned nr_user_indices,
+                             struct agx_varyings_fs *fs,
+                             unsigned provoking_vertex,
+                             uint8_t sprite_coord_enable,
+                             bool *generate_primitive_id);

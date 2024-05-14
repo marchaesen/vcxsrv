@@ -974,6 +974,7 @@ VOP1 = {
    ("v_cvt_i32_i16",              False, False, dst(1), src(1), op(gfx11=0x6a)),
    ("v_cvt_u32_u16",              False, False, dst(1), src(1), op(gfx11=0x6b)),
    ("v_mov_b16",                  True, False, dst(1), src(1), op(gfx11=0x1c)),
+   ("v_swap_b16",                 False, False, dst(1, 1), src(1, 1), op(gfx11=0x66)),
 }
 for (name, in_mod, out_mod, defs, ops, num, cls) in default_class(VOP1, InstrClass.Valu32):
    insn(name, num, Format.VOP1, cls, in_mod, out_mod, definitions = defs, operands = ops)

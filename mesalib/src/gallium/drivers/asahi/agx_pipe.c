@@ -57,33 +57,6 @@
 #define DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED (3)
 #endif
 
-/* clang-format off */
-static const struct debug_named_value agx_debug_options[] = {
-   {"trace",     AGX_DBG_TRACE,    "Trace the command stream"},
-   {"no16",      AGX_DBG_NO16,     "Disable 16-bit support"},
-   {"perf",      AGX_DBG_PERF,     "Print performance warnings"},
-#ifndef NDEBUG
-   {"dirty",     AGX_DBG_DIRTY,    "Disable dirty tracking"},
-#endif
-   {"compblit",  AGX_DBG_COMPBLIT, "Enable compute blitter"},
-   {"precompile",AGX_DBG_PRECOMPILE,"Precompile shaders for shader-db"},
-   {"nocompress",AGX_DBG_NOCOMPRESS,"Disable lossless compression"},
-   {"nocluster", AGX_DBG_NOCLUSTER,"Disable vertex clustering"},
-   {"sync",      AGX_DBG_SYNC,     "Synchronously wait for all submissions"},
-   {"stats",     AGX_DBG_STATS,    "Show command execution statistics"},
-   {"resource",  AGX_DBG_RESOURCE, "Log resource operations"},
-   {"batch",     AGX_DBG_BATCH,    "Log batches"},
-   {"nowc",      AGX_DBG_NOWC,     "Disable write-combining"},
-   {"synctvb",   AGX_DBG_SYNCTVB,  "Synchronous TVB growth"},
-   {"smalltile", AGX_DBG_SMALLTILE,"Force 16x16 tiles"},
-   {"feedback",  AGX_DBG_FEEDBACK, "Debug feedback loops"},
-   {"nomsaa",    AGX_DBG_NOMSAA,   "Force disable MSAA"},
-   {"noshadow",  AGX_DBG_NOSHADOW, "Force disable resource shadowing"},
-   {"scratch",   AGX_DBG_SCRATCH,  "Debug scratch memory usage"},
-   DEBUG_NAMED_VALUE_END
-};
-/* clang-format on */
-
 uint64_t agx_best_modifiers[] = {
    DRM_FORMAT_MOD_APPLE_TWIDDLED_COMPRESSED,
    DRM_FORMAT_MOD_APPLE_TWIDDLED,
@@ -1532,6 +1505,21 @@ agx_get_name(struct pipe_screen *pscreen)
    return dev->name;
 }
 
+static void
+agx_query_memory_info(struct pipe_screen *pscreen,
+                      struct pipe_memory_info *info)
+{
+   uint64_t mem_B = 0;
+   os_get_total_physical_memory(&mem_B);
+
+   uint64_t mem_kB = mem_B / 1024;
+
+   *info = (struct pipe_memory_info){
+      .total_device_memory = mem_kB,
+      .avail_device_memory = mem_kB,
+   };
+}
+
 static int
 agx_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
 {
@@ -1566,6 +1554,7 @@ agx_get_param(struct pipe_screen *pscreen, enum pipe_cap param)
    case PIPE_CAP_QUERY_TIMESTAMP:
    case PIPE_CAP_QUERY_TIME_ELAPSED:
    case PIPE_CAP_QUERY_SO_OVERFLOW:
+   case PIPE_CAP_QUERY_MEMORY_INFO:
    case PIPE_CAP_PRIMITIVE_RESTART:
    case PIPE_CAP_PRIMITIVE_RESTART_FIXED_INDEX:
    case PIPE_CAP_ANISOTROPIC_FILTER:
@@ -2199,10 +2188,6 @@ agx_screen_create(int fd, struct renderonly *ro,
 
    screen = &agx_screen->pscreen;
 
-   /* Set debug before opening */
-   agx_screen->dev.debug =
-      debug_get_flags_option("ASAHI_MESA_DEBUG", agx_debug_options, 0);
-
    /* parse driconf configuration now for device specific overrides */
    driParseConfigFiles(config->options, config->options_info, 0, "asahi", NULL,
                        NULL, NULL, 0, NULL, 0);
@@ -2233,6 +2218,7 @@ agx_screen_create(int fd, struct renderonly *ro,
    screen->get_paramf = agx_get_paramf;
    screen->is_format_supported = agx_is_format_supported;
    screen->query_dmabuf_modifiers = agx_query_dmabuf_modifiers;
+   screen->query_memory_info = agx_query_memory_info;
    screen->is_dmabuf_modifier_supported = agx_is_dmabuf_modifier_supported;
    screen->context_create = agx_create_context;
    screen->resource_from_handle = agx_resource_from_handle;

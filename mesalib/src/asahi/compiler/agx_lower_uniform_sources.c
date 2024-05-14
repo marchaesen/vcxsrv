@@ -53,6 +53,12 @@ agx_instr_accepts_uniform(enum agx_opcode op, unsigned src_index,
    case AGX_OPCODE_ITERPROJ:
    case AGX_OPCODE_STACK_LOAD:
    case AGX_OPCODE_STACK_STORE:
+   case AGX_OPCODE_BALLOT:
+   case AGX_OPCODE_FCMP_BALLOT:
+   case AGX_OPCODE_ICMP_BALLOT:
+   case AGX_OPCODE_QUAD_BALLOT:
+   case AGX_OPCODE_FCMP_QUAD_BALLOT:
+   case AGX_OPCODE_ICMP_QUAD_BALLOT:
       return false;
    default:
       return !is_64;

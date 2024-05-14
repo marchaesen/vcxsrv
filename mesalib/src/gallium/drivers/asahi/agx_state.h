@@ -235,7 +235,7 @@ struct agx_compiled_shader {
    /* For a vertex shader, the mask of vertex attributes read. Used to key the
     * prolog so the prolog doesn't write components not actually read.
     */
-   BITSET_DECLARE(attrib_components_read, VERT_ATTRIB_MAX * 4);
+   BITSET_DECLARE(attrib_components_read, AGX_MAX_ATTRIBS * 4);
 
    struct agx_fs_epilog_link_info epilog_key;
 
