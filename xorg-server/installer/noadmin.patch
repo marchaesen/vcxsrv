@@ -1,0 +1,247 @@
+diff --git a/xorg-server/installer/vcxsrv-64-debug.nsi b/xorg-server/installer/vcxsrv-64-debug.nsi
+index 1f1f3f20cf..7a3b39eead 100644
+--- a/xorg-server/installer/vcxsrv-64-debug.nsi
++++ b/xorg-server/installer/vcxsrv-64-debug.nsi
+@@ -26,10 +26,10 @@
+ Name "${NAME}"
+ 
+ ; The file to write
+-OutFile "vcxsrv-64-debug.${VERSION}.installer.exe"
++OutFile "vcxsrv-64-debug.${VERSION}.installer.noadmin.exe"
+ 
+ ; The default installation directory
+-InstallDir $programfiles64\VcXsrv
++InstallDir C:\VcXsrv
+ 
+ SetCompressor /SOLID lzma
+ 
+@@ -45,8 +45,8 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
+ 
+-; Request application privileges for Windows Vista
+-RequestExecutionLevel admin
++; Request application privileges for user
++RequestExecutionLevel user
+ 
+ ;--------------------------------
+ InstType "Full"
+@@ -71,7 +71,7 @@ XPStyle on
+ ; The stuff to install
+ Section "VcXsrv debug exe and dlls"
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SectionIn RO
+   SectionIn 1 2 3
+@@ -195,7 +195,7 @@ SectionEnd
+ Section "Fonts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -209,7 +209,7 @@ SectionEnd
+ Section "Start Menu Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -223,7 +223,7 @@ SectionEnd
+ Section "Desktop Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -240,7 +240,7 @@ Section "Uninstall"
+ 
+   SetRegView 64
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   ; Remove registry keys
+   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv"
+diff --git a/xorg-server/installer/vcxsrv-64.nsi b/xorg-server/installer/vcxsrv-64.nsi
+index eed77b32ee..5b2529f5bc 100644
+--- a/xorg-server/installer/vcxsrv-64.nsi
++++ b/xorg-server/installer/vcxsrv-64.nsi
+@@ -27,10 +27,10 @@
+ Name "${NAME}"
+ 
+ ; The file to write
+-OutFile "vcxsrv-64.${VERSION}.installer.exe"
++OutFile "vcxsrv-64.${VERSION}.installer.noadmin.exe"
+ 
+ ; The default installation directory
+-InstallDir $programfiles64\VcXsrv
++InstallDir C:\VcXsrv
+ 
+ SetCompressor /SOLID lzma
+ 
+@@ -46,8 +46,8 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
+ 
+-; Request application privileges for Windows Vista
+-RequestExecutionLevel admin
++; Request user privileges
++RequestExecutionLevel user
+ 
+ ;--------------------------------
+ InstType "Full"
+@@ -72,7 +72,7 @@ XPStyle on
+ ; The stuff to install
+ Section "VcXsrv (required)"
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SectionIn RO
+   SectionIn 1 2 3
+@@ -196,7 +196,7 @@ SectionEnd
+ Section "Fonts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -210,7 +210,7 @@ SectionEnd
+ Section "Start Menu Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -224,7 +224,7 @@ SectionEnd
+ Section "Desktop Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetRegView 64
+ 
+@@ -241,7 +241,7 @@ Section "Uninstall"
+ 
+   SetRegView 64
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   ; Remove registry keys
+   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv"
+diff --git a/xorg-server/installer/vcxsrv-debug.nsi b/xorg-server/installer/vcxsrv-debug.nsi
+index 151c59d912..5345bb6a50 100644
+--- a/xorg-server/installer/vcxsrv-debug.nsi
++++ b/xorg-server/installer/vcxsrv-debug.nsi
+@@ -23,10 +23,10 @@
+ Name "${NAME}"
+ 
+ ; The file to write
+-OutFile "vcxsrv-debug.${VERSION}.installer.exe"
++OutFile "vcxsrv-debug.${VERSION}.installer.noadmin.exe"
+ 
+ ; The default installation directory
+-InstallDir $PROGRAMFILES32\VcXsrv
++InstallDir C:\VcXsrv
+ 
+ SetCompressor /SOLID lzma
+ 
+@@ -42,8 +42,8 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
+ 
+-; Request application privileges for Windows Vista
+-RequestExecutionLevel admin
++; Request application privileges for user
++RequestExecutionLevel user
+ 
+ ;--------------------------------
+ InstType "Full"
+diff --git a/xorg-server/installer/vcxsrv.nsi b/xorg-server/installer/vcxsrv.nsi
+index 6ccd469a4f..911552ff9e 100644
+--- a/xorg-server/installer/vcxsrv.nsi
++++ b/xorg-server/installer/vcxsrv.nsi
+@@ -27,10 +27,10 @@
+ Name "${NAME}"
+ 
+ ; The file to write
+-OutFile "vcxsrv.${VERSION}.installer.exe"
++OutFile "vcxsrv.${VERSION}.installer.noadmin.exe"
+ 
+ ; The default installation directory
+-InstallDir $PROGRAMFILES32\VcXsrv
++InstallDir C:\VcXsrv
+ 
+ SetCompressor /SOLID lzma
+ 
+@@ -46,8 +46,8 @@ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileDescription" "VcXsrv windows xserver"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "FileVersion" "${VERSION}"
+ VIAddVersionKey /LANG=${LANG_ENGLISH} "ProductVersion" "${VERSION}"
+ 
+-; Request application privileges for Windows Vista
+-RequestExecutionLevel admin
++; Request application privileges for user
++RequestExecutionLevel user
+ 
+ ;--------------------------------
+ InstType "Full"
+@@ -72,7 +72,7 @@ XPStyle on
+ ; The stuff to install
+ Section "VcXsrv (required)"
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SectionIn RO
+   SectionIn 1 2 3
+@@ -193,7 +193,7 @@ SectionEnd
+ Section "Fonts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetOutPath $INSTDIR\fonts
+   CreateDirectory "$INSTDIR\VcXsrv"
+@@ -205,7 +205,7 @@ SectionEnd
+ Section "Start Menu Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetOutPath $INSTDIR
+   CreateShortCut "$INSTDIR\Uninstall VcXsrv.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+@@ -217,7 +217,7 @@ SectionEnd
+ Section "Desktop Shortcuts"
+   SectionIn 1 3
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   SetOutPath $INSTDIR
+   CreateShortCut "$DESKTOP\XLaunch.lnk" "$INSTDIR\xlaunch.exe" "" "$INSTDIR\xlaunch.exe" 0
+@@ -230,7 +230,7 @@ SectionEnd
+ 
+ Section "Uninstall"
+ 
+-  SetShellVarContext All
++  SetShellVarContext current
+ 
+   ; Remove registry keys
+   DeleteRegKey HKLM "Software\Microsoft\Windows\CurrentVersion\Uninstall\VcXsrv"

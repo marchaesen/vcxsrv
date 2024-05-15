@@ -196,7 +196,7 @@ Section "Fonts"
   SetShellVarContext All
 
   SetOutPath $INSTDIR\fonts
-  CreateDirectory "$SMPROGRAMS\VcXsrv"
+  CreateDirectory "$INSTDIR\VcXsrv"
   File /r "..\fonts\*.*"
 
 SectionEnd
@@ -208,9 +208,8 @@ Section "Start Menu Shortcuts"
   SetShellVarContext All
 
   SetOutPath $INSTDIR
-  CreateDirectory "$SMPROGRAMS\VcXsrv"
-  CreateShortCut "$SMPROGRAMS\VcXsrv\Uninstall VcXsrv.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
-  CreateShortCut "$SMPROGRAMS\VcXsrv\XLaunch.lnk" "$INSTDIR\xlaunch.exe" "" "$INSTDIR\xlaunch.exe" 0
+  CreateShortCut "$INSTDIR\Uninstall VcXsrv.lnk" "$INSTDIR\uninstall.exe" "" "$INSTDIR\uninstall.exe" 0
+  CreateShortCut "$INSTDIR\XLaunch.lnk" "$INSTDIR\xlaunch.exe" "" "$INSTDIR\xlaunch.exe" 0
 
 SectionEnd
 
@@ -295,12 +294,10 @@ Section "Uninstall"
   RMDir /r "$INSTDIR\bitmaps"
 
   ; Remove shortcuts, if any
-  Delete "$SMPROGRAMS\VcXsrv\*.*"
   Delete "$DESKTOP\VcXsrv.lnk"
   Delete "$DESKTOP\XLaunch.lnk"
 
   ; Remove directories used
-  RMDir "$SMPROGRAMS\VcXsrv"
   RMDir "$INSTDIR"
 
 SectionEnd
