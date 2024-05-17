@@ -971,7 +971,10 @@ class CMyWizard : public CWizard
 int main(int argc, char **argv)
 {
     try {
-        InitCommonControls();
+        INITCOMMONCONTROLSEX icex;
+        icex.dwSize = sizeof(icex);
+        icex.dwICC = ICC_WIN95_CLASSES;
+        InitCommonControlsEx(&icex);
         CMyWizard dialog;
 
         bool skip_wizard = false;
