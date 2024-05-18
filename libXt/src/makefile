@@ -60,5 +60,5 @@ CSRCS = \
 	Vendor.c \
 	StringDefs.c
 
-load_makefile IS64=1 NORELDBG=1 makefile.srcs
+load_makefile NORELDBG=1 makefile.srcs
 
