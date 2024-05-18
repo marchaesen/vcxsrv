@@ -173,7 +173,7 @@ if [[ "$IS64" == "1" ]]; then
 	fi
 
 	cd xorg-server/installer
-	cmd.exe /c packageall.bat nox86
+	./packageall.sh nox86
 
 else
 
@@ -200,7 +200,7 @@ else
   	fi
 
   	cd xorg-server/installer
-  	cmd.exe /c packageall.bat nox64
+  	./packageall.sh nox64
   fi
 
 fi
