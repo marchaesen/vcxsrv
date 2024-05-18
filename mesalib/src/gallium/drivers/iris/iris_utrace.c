@@ -168,7 +168,8 @@ void iris_utrace_flush(struct iris_batch *batch, uint64_t submission_id)
 {
    struct intel_ds_flush_data *flush_data = malloc(sizeof(*flush_data));
    intel_ds_flush_data_init(flush_data, &batch->ds, submission_id);
-   intel_ds_queue_flush_data(&batch->ds, &batch->trace, flush_data, false);
+   intel_ds_queue_flush_data(&batch->ds, &batch->trace, flush_data,
+                             U_TRACE_FRAME_UNKNOWN, false);
 }
 
 void iris_utrace_init(struct iris_context *ice)

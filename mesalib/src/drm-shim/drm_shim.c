@@ -66,6 +66,7 @@ bool drm_shim_debug;
  */
 DIR *fake_dev_dri = (void *)&opendir_set;
 
+REAL_FUNCTION_POINTER(access);
 REAL_FUNCTION_POINTER(close);
 REAL_FUNCTION_POINTER(closedir);
 REAL_FUNCTION_POINTER(dup);
@@ -219,6 +220,7 @@ init_shim(void)
                                   _mesa_hash_string,
                                   _mesa_key_string_equal);
 
+   GET_FUNCTION_POINTER(access);
    GET_FUNCTION_POINTER(close);
    GET_FUNCTION_POINTER(closedir);
    GET_FUNCTION_POINTER(dup);
@@ -324,6 +326,22 @@ PUBLIC FILE *fopen(const char *path, const char *mode)
 }
 PUBLIC FILE *fopen64(const char *path, const char *mode)
    __attribute__((alias("fopen")));
+
+/* Intercepts access(render_node_path) to trick drmGetMinorType */
+PUBLIC int access(const char *path, int mode)
+{
+   init_shim();
+
+   if (hide_drm_device_path(path)) {
+      errno = ENOENT;
+      return -1;
+   }
+
+   if (strcmp(path, render_node_path) != 0)
+      return real_access(path, mode);
+
+   return 0;
+}
 
 /* Intercepts open(render_node_path) to redirect it to the simulator. */
 PUBLIC int open(const char *path, int flags, ...)

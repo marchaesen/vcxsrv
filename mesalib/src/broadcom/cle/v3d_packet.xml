@@ -1211,6 +1211,69 @@
     <field name="Coordinate Shader Uniforms Address" size="32" start="28b" type="address"/>
   </struct>
 
+  <!-- This one is exclusive to 2712D0 (V3D 7.1.10) -->
+  <struct name="GL Shader State Record Draw Index" min_ver="71">
+    <field name="Point size in shaded vertex data" size="1" start="0" type="bool"/>
+    <field name="Enable clipping" size="1" start="1" type="bool"/>
+
+    <field name="Vertex ID read by coordinate shader" size="1" start="2" type="bool"/>
+    <field name="Instance ID read by coordinate shader" size="1" start="3" type="bool"/>
+    <field name="Base Instance ID read by coordinate shader" size="1" start="4" type="bool"/>
+    <field name="cs_basevertex" size="1" start="5" type="bool"/>
+    <field name="cs_drawindex" size="1" start="6" type="bool"/>
+
+    <field name="Vertex ID read by vertex shader" size="1" start="7" type="bool"/>
+    <field name="Instance ID read by vertex shader" size="1" start="8" type="bool"/>
+    <field name="Base Instance ID read by vertex shader" size="1" start="9" type="bool"/>
+    <field name="vs_basevertex" size="1" start="10" type="bool"/>
+    <field name="vs_drawindex" size="1" start="11" type="bool"/>
+
+    <field name="Fragment shader does Z writes" size="1" start="12" type="bool"/>
+    <field name="Turn off early-z test" size="1" start="13" type="bool"/>
+
+    <field name="Fragment shader uses real pixel centre W in addition to centroid W2" size="1" start="15" type="bool"/>
+    <field name="Enable Sample Rate Shading" size="1" start="16" type="bool"/>
+    <field name="Any shader reads hardware-written Primitive ID" size="1" start="17" type="bool"/>
+    <field name="Insert Primitive ID as first varying to fragment shader" size="1" start="18" type="bool"/>
+    <field name="Turn off scoreboard" size="1" start="19" type="bool"/>
+    <field name="Do scoreboard wait on first thread switch" size="1" start="20" type="bool"/>
+    <field name="Disable implicit point/line varyings" size="1" start="21" type="bool"/>
+    <field name="No prim pack" size="1" start="22" type="bool"/>
+    <field name="Never defer FEP depth writes" size="1" start="23" type="bool"/>
+
+    <field name="Number of varyings in Fragment Shader" size="8" start="3b" type="uint"/>
+
+    <field name="Coordinate Shader output VPM segment size" size="4" start="4b" type="uint"/>
+    <field name="Min Coord Shader output segments required in play in addition to VCM cache size" size="4" start="36" type="uint"/>
+
+    <field name="Coordinate Shader input VPM segment size" size="4" start="5b" type="uint"/>
+    <field name="Min Coord Shader input segments required in play" size="4" start="44" type="uint" minus_one="true"/>
+
+    <field name="Vertex Shader output VPM segment size" size="4" start="6b" type="uint"/>
+    <field name="Min Vertex Shader output segments required in play in addition to VCM cache size" size="4" start="52" type="uint"/>
+
+    <field name="Vertex Shader input VPM segment size" size="4" start="7b" type="uint"/>
+    <field name="Min Vertex Shader input segments required in play" size="4" start="60" type="uint" minus_one="true"/>
+
+    <field name="Fragment Shader Code Address" size="29" start="67" type="address"/>
+    <field name="Fragment Shader 4-way threadable" size="1" start="64" type="bool"/>
+    <field name="Fragment Shader start in final thread section" size="1" start="65" type="bool"/>
+    <field name="Fragment Shader Propagate NaNs" size="1" start="66" type="bool"/>
+    <field name="Fragment Shader Uniforms Address" size="32" start="12b" type="address"/>
+
+    <field name="Vertex Shader Code Address" size="29" start="131" type="address"/>
+    <field name="Vertex Shader 4-way threadable" size="1" start="128" type="bool"/>
+    <field name="Vertex Shader start in final thread section" size="1" start="129" type="bool"/>
+    <field name="Vertex Shader Propagate NaNs" size="1" start="130" type="bool"/>
+    <field name="Vertex Shader Uniforms Address" size="32" start="20b" type="address"/>
+
+    <field name="Coordinate Shader Code Address" size="29" start="195" type="address"/>
+    <field name="Coordinate Shader 4-way threadable" size="1" start="192" type="bool"/>
+    <field name="Coordinate Shader start in final thread section" size="1" start="193" type="bool"/>
+    <field name="Coordinate Shader Propagate NaNs" size="1" start="194" type="bool"/>
+    <field name="Coordinate Shader Uniforms Address" size="32" start="28b" type="address"/>
+  </struct>
+
   <struct name="Geometry Shader State Record">
     <field name="Geometry Bin Mode Shader Code Address" size="29" start="3" type="address"/>
     <field name="Geometry Bin Mode Shader 4-way threadable" size="1" start="0" type="bool"/>

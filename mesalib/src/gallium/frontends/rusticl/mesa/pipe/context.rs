@@ -659,6 +659,7 @@ impl PipeContext {
 
 impl Drop for PipeContext {
     fn drop(&mut self) {
+        self.flush().wait();
         unsafe {
             self.pipe.as_ref().destroy.unwrap()(self.pipe.as_ptr());
         }

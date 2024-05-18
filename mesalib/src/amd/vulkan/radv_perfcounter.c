@@ -470,7 +470,8 @@ radv_emit_select(struct radv_cmd_buffer *cmd_buffer, struct ac_pc_block *block, 
       return;
 
    for (idx = 0; idx < count; ++idx) {
-      radeon_set_perfctr_reg(gfx_level, qf, cs, regs->select0[idx], G_REG_SEL(selectors[idx]) | regs->select_or);
+      radeon_set_uconfig_perfctr_reg(gfx_level, qf, cs, regs->select0[idx],
+                                     G_REG_SEL(selectors[idx]) | regs->select_or);
    }
 
    for (idx = 0; idx < regs->num_spm_counters; idx++) {

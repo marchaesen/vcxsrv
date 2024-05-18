@@ -409,11 +409,11 @@ vn_device_update_shader_cache_id(struct vn_device *dev)
     * and not utilized by venus.
     */
 #if !DETECT_OS_ANDROID && defined(ENABLE_SHADER_CACHE)
-   const VkPhysicalDeviceProperties *vulkan_1_0_props =
-      &dev->physical_device->properties.vulkan_1_0;
+   const uint8_t *device_uuid =
+      dev->physical_device->base.base.properties.pipelineCacheUUID;
 
    char uuid[VK_UUID_SIZE * 2 + 1];
-   mesa_bytes_to_hex(uuid, vulkan_1_0_props->pipelineCacheUUID, VK_UUID_SIZE);
+   mesa_bytes_to_hex(uuid, device_uuid, VK_UUID_SIZE);
 
    struct disk_cache *cache = disk_cache_create("venus", uuid, 0);
    if (!cache)
@@ -568,8 +568,8 @@ vn_CreateDevice(VkPhysicalDevice physicalDevice,
    }
 
    if (VN_DEBUG(LOG_CTX_INFO)) {
-      vn_log(instance, "%s", physical_dev->properties.vulkan_1_0.deviceName);
-      vn_log(instance, "%s", physical_dev->properties.vulkan_1_2.driverInfo);
+      vn_log(instance, "%s", physical_dev->base.base.properties.deviceName);
+      vn_log(instance, "%s", physical_dev->base.base.properties.driverInfo);
    }
 
    vn_tls_set_async_pipeline_create();

@@ -20,10 +20,11 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$INSTALL/lib/:/vkd3d-proton-tests/x64/"
 
 # Sanity check to ensure that our environment is sufficient to make our tests
 # run against the Mesa built by CI, rather than any installed distro version.
-MESA_VERSION=$(sed 's/\./\\./g' "$INSTALL/VERSION")
+MESA_VERSION=$(cat "$INSTALL/VERSION")
 
 # Set the Vulkan driver to use.
-export VK_DRIVER_FILES="$INSTALL/share/vulkan/icd.d/${VK_DRIVER}_icd.x86_64.json"
+ARCH=$(uname -m)
+export VK_DRIVER_FILES="$INSTALL/share/vulkan/icd.d/${VK_DRIVER}_icd.$ARCH.json"
 
 # Set environment for Wine.
 export WINEDEBUG="-all"
@@ -38,9 +39,10 @@ quiet() {
 }
 
 set +e
-if ! vulkaninfo | tee /tmp/version.txt | grep "\"Mesa $MESA_VERSION\(\s\|$\)\"";
+if ! vulkaninfo | tee /tmp/version.txt | grep -F "Mesa $MESA_VERSION";
 then
     printf "%s\n" "Found $(cat /tmp/version.txt), expected $MESA_VERSION"
+    exit 1
 fi
 set -e
 

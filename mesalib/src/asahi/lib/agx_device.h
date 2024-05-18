@@ -11,6 +11,7 @@
 #include "util/vma.h"
 #include "agx_bo.h"
 #include "agx_formats.h"
+#include "decode.h"
 
 enum agx_dbg {
    AGX_DBG_TRACE = BITFIELD_BIT(0),
@@ -121,6 +122,8 @@ struct agx_device {
    } bo_cache;
 
    struct agx_bo *helper;
+
+   struct agxdecode_ctx *agxdecode;
 };
 
 bool agx_open_device(void *memctx, struct agx_device *dev);

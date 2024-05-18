@@ -31,7 +31,7 @@
     - !reference [.lavapipe-rules, rules]
     - !reference [.zink-common-rules, rules]
 
-.zink-lvp-venus-rules:
+.zink-venus-lvp-rules:
   stage: layered-backends
   rules:
     - !reference [.test, rules]
@@ -130,7 +130,7 @@
 
 .zink-venus-lvp-test:
   extends:
-    - .zink-lvp-venus-rules
+    - .zink-venus-lvp-rules
     - .zink-test
   variables:
     LIBGL_ALWAYS_SOFTWARE: "true"

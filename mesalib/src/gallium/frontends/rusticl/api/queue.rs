@@ -61,7 +61,7 @@ fn supported_command_queue_properties(
         return false;
     }
 
-    if properties & profiling != 0 && !dev.has_timestamp {
+    if properties & profiling != 0 && !dev.caps.has_timestamp {
         return false;
     }
 

@@ -463,6 +463,8 @@ fn lower_and_optimize_nir(
     nir_pass!(nir, nir_dedup_inline_samplers);
 
     let printf_opts = nir_lower_printf_options {
+        ptr_bit_size: 0,
+        use_printf_base_identifier: false,
         max_buffer_size: dev.printf_buffer_size() as u32,
     };
     nir_pass!(nir, nir_lower_printf, &printf_opts);

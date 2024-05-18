@@ -134,18 +134,6 @@ can_fast_clear_color(struct iris_context *ice,
     */
    if (level > 0 && util_format_get_blocksizebits(p_res->format) == 8 &&
        p_res->width0 % 64) {
-      assert(res->surf.samples == 1);
-      return false;
-   }
-
-   /* TODO: Fast clearing higher miplevels on 8 bpp single sampled TILE64
-    * resources for certain widths seems broken.
-    */
-   if (level > 0 && util_format_get_blocksizebits(p_res->format) == 8 &&
-       res->surf.tiling == ISL_TILING_64) {
-      assert(res->surf.samples == 1);
-      perf_debug(&ice->dbg, "Slow clearing higher miplevels for single sampled "
-                            "8 bpp resource");
       return false;
    }
 

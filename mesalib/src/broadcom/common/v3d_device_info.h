@@ -52,4 +52,10 @@ typedef int (*v3d_ioctl_fun)(int fd, unsigned long request, void *arg);
 bool
 v3d_get_device_info(int fd, struct v3d_device_info* devinfo, v3d_ioctl_fun fun);
 
+static inline bool
+v3d_device_has_draw_index(struct v3d_device_info *devinfo)
+{
+        return devinfo->ver > 71 || (devinfo->ver == 71 && devinfo->rev >= 10);
+}
+
 #endif

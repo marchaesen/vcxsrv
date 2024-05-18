@@ -238,6 +238,7 @@ private:
          auto store = nir_store_output(b, clip_i, intr->src[1].ssa);
          nir_intrinsic_set_write_mask(store, 0xf);
          nir_intrinsic_set_base(store, clip_vertex_index);
+         nir_intrinsic_set_src_type(store, nir_type_float32);
          nir_io_semantics semantic = nir_intrinsic_io_semantics(intr);
          semantic.location = VARYING_SLOT_CLIP_DIST0 + i;
          semantic.no_varying = 1;

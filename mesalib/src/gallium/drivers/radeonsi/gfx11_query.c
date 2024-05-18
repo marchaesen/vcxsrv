@@ -322,7 +322,8 @@ static void gfx11_sh_query_get_result_resource(struct si_context *sctx, struct s
       consts.config = 1;
    }
 
-   if (result_type == PIPE_QUERY_TYPE_I64 || result_type == PIPE_QUERY_TYPE_U64)
+   bool is_result_64bit = result_type == PIPE_QUERY_TYPE_I64 || result_type == PIPE_QUERY_TYPE_U64;
+   if (is_result_64bit)
       consts.config |= 8;
 
    constant_buffer.buffer_size = sizeof(consts);
@@ -370,7 +371,7 @@ static void gfx11_sh_query_get_result_resource(struct si_context *sctx, struct s
       if (qbuf == query->last) {
          ssbo[2].buffer = resource;
          ssbo[2].buffer_offset = offset;
-         ssbo[2].buffer_size = 8;
+         ssbo[2].buffer_size = is_result_64bit ? 8 : 4;
       }
 
       sctx->b.set_constant_buffer(&sctx->b, PIPE_SHADER_COMPUTE, 0, false, &constant_buffer);

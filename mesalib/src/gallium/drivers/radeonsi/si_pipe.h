@@ -46,12 +46,6 @@ struct ac_llvm_compiler;
 /* Alignment for optimal CP DMA performance. */
 #define SI_CPDMA_ALIGNMENT 32
 
-/* Tunables for compute-based clear_buffer and copy_buffer: */
-#define SI_COMPUTE_CLEAR_DW_PER_THREAD 4
-#define SI_COMPUTE_COPY_DW_PER_THREAD  4
-/* L2 LRU is recommended because the compute shader can finish sooner due to fewer L2 evictions. */
-#define SI_COMPUTE_DST_CACHE_POLICY    L2_LRU
-
 /* Pipeline & streamout query controls. */
 #define SI_CONTEXT_START_PIPELINE_STATS  (1 << 0)
 #define SI_CONTEXT_STOP_PIPELINE_STATS   (1 << 1)
@@ -106,23 +100,13 @@ struct ac_llvm_compiler;
 
 #define SI_RESOURCE_FLAG_FORCE_LINEAR      (PIPE_RESOURCE_FLAG_DRV_PRIV << 0)
 #define SI_RESOURCE_FLAG_FLUSHED_DEPTH     (PIPE_RESOURCE_FLAG_DRV_PRIV << 1)
-#define SI_RESOURCE_FLAG_FORCE_MSAA_TILING (PIPE_RESOURCE_FLAG_DRV_PRIV << 2)
-#define SI_RESOURCE_FLAG_DISABLE_DCC       (PIPE_RESOURCE_FLAG_DRV_PRIV << 3)
+#define SI_RESOURCE_FLAG_GL2_BYPASS        (PIPE_RESOURCE_FLAG_DRV_PRIV << 2)
+#define SI_RESOURCE_FLAG_DISCARDABLE       (PIPE_RESOURCE_FLAG_DRV_PRIV << 3) /* Discard instead of evict. */
 #define SI_RESOURCE_FLAG_DRIVER_INTERNAL   (PIPE_RESOURCE_FLAG_DRV_PRIV << 4)
 #define SI_RESOURCE_FLAG_READ_ONLY         (PIPE_RESOURCE_FLAG_DRV_PRIV << 5)
 #define SI_RESOURCE_FLAG_32BIT             (PIPE_RESOURCE_FLAG_DRV_PRIV << 6)
 #define SI_RESOURCE_FLAG_CLEAR             (PIPE_RESOURCE_FLAG_DRV_PRIV << 7)
 #define SI_RESOURCE_AUX_PLANE              (PIPE_RESOURCE_FLAG_DRV_PRIV << 8)
-/* Set a micro tile mode: */
-#define SI_RESOURCE_FLAG_FORCE_MICRO_TILE_MODE (PIPE_RESOURCE_FLAG_DRV_PRIV << 9)
-#define SI_RESOURCE_FLAG_MICRO_TILE_MODE_SHIFT (util_logbase2(PIPE_RESOURCE_FLAG_DRV_PRIV) + 10)
-#define SI_RESOURCE_FLAG_MICRO_TILE_MODE_SET(x)                                                    \
-   (((x)&0x3) << SI_RESOURCE_FLAG_MICRO_TILE_MODE_SHIFT)
-#define SI_RESOURCE_FLAG_MICRO_TILE_MODE_GET(x)                                                    \
-   (((x) >> SI_RESOURCE_FLAG_MICRO_TILE_MODE_SHIFT) & 0x3)
-#define SI_RESOURCE_FLAG_GL2_BYPASS        (PIPE_RESOURCE_FLAG_DRV_PRIV << 12)
-/* Discard instead of evict. */
-#define SI_RESOURCE_FLAG_DISCARDABLE       (PIPE_RESOURCE_FLAG_DRV_PRIV << 13)
 
 enum si_has_gs {
    GS_OFF,
@@ -269,9 +253,7 @@ enum
    DBG_TEST_VMFAULT_CP,
    DBG_TEST_VMFAULT_SHADER,
    DBG_TEST_DMA_PERF,
-   DBG_TEST_GDS,
-   DBG_TEST_GDS_MM,
-   DBG_TEST_GDS_OA_MM,
+   DBG_TEST_MEM_PERF,
 };
 
 #define DBG_ALL_SHADERS (((1 << (DBG_CS + 1)) - 1))
@@ -1595,7 +1577,6 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
                            struct pipe_resource *src, uint64_t dst_offset, uint64_t src_offset,
                            unsigned size, unsigned user_flags, enum si_coherency coher,
                            enum si_cache_policy cache_policy);
-void si_test_gds(struct si_context *sctx);
 void si_cp_write_data(struct si_context *sctx, struct si_resource *buf, unsigned offset,
                       unsigned size, unsigned dst_sel, unsigned engine, const void *data);
 void si_cp_copy_data(struct si_context *sctx, struct radeon_cmdbuf *cs, unsigned dst_sel,
@@ -1733,11 +1714,10 @@ void *si_create_blit_cs(struct si_context *sctx, const union si_compute_blit_sha
 void *si_get_blitter_vs(struct si_context *sctx, enum blitter_attrib_type type,
                         unsigned num_layers);
 void *si_create_dma_compute_shader(struct si_context *sctx, unsigned num_dwords_per_thread,
-                                   bool dst_stream_cache_policy, bool is_copy);
+                                   bool is_clear);
 void *si_create_ubyte_to_ushort_compute_shader(struct si_context *sctx);
 void *si_create_clear_buffer_rmw_cs(struct si_context *sctx);
 void *si_clear_render_target_shader(struct si_context *sctx, enum pipe_texture_target type);
-void *si_clear_12bytes_buffer_shader(struct si_context *sctx);
 void *si_create_fmask_expand_cs(struct si_context *sctx, unsigned num_samples, bool is_array);
 void *si_create_query_result_cs(struct si_context *sctx);
 void *gfx11_create_sh_query_result_cs(struct si_context *sctx);
@@ -1750,8 +1730,10 @@ void si_gfx11_destroy_query(struct si_context *sctx);
 void si_test_image_copy_region(struct si_screen *sscreen);
 void si_test_blit(struct si_screen *sscreen, unsigned test_flags);
 
-/* si_test_clearbuffer.c */
+/* si_test_dma_perf.c */
 void si_test_dma_perf(struct si_screen *sscreen);
+
+void si_test_mem_perf(struct si_screen *sscreen);
 
 /* si_uvd.c */
 struct pipe_video_codec *si_uvd_create_decoder(struct pipe_context *context,

@@ -6865,7 +6865,6 @@ iris_upload_dirty_render_state(struct iris_context *ice,
       struct iris_blend_state *cso_blend = ice->state.cso_blend;
       struct pipe_framebuffer_state *cso_fb = &ice->state.framebuffer;
       struct iris_depth_stencil_alpha_state *cso_zsa = ice->state.cso_zsa;
-      const int header_dwords = GENX(BLEND_STATE_length);
 
       bool color_blend_zero = false;
       bool alpha_blend_zero = false;
@@ -6881,7 +6880,7 @@ iris_upload_dirty_render_state(struct iris_context *ice,
       uint32_t *blend_map =
          stream_state(batch, ice->state.dynamic_uploader,
                       &ice->state.last_res.blend,
-                      4 * (header_dwords + rt_dwords), 64, &blend_offset);
+                      96, 64, &blend_offset);
 
       /* Copy of blend entries for merging dynamic changes. */
       uint32_t blend_entries[4 * rt_dwords];

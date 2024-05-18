@@ -442,7 +442,7 @@ fn validate_image_desc(
     } else if desc.image_type == CL_MEM_OBJECT_IMAGE1D_BUFFER {
         devs.iter().map(|d| d.image_buffer_size()).min()
     } else {
-        devs.iter().map(|d| d.image_2d_size()).min()
+        devs.iter().map(|d| d.caps.image_2d_size as usize).min()
     }
     .unwrap();
     let max_array = devs.iter().map(|d| d.image_array_size()).min().unwrap();
@@ -743,7 +743,7 @@ fn create_image_with_properties(
     // CL_DEVICE_IMAGE_SUPPORT specified in the Device Queries table is CL_FALSE).
     c.devs
         .iter()
-        .find(|d| d.image_supported())
+        .find(|d| d.caps.has_images)
         .ok_or(CL_INVALID_OPERATION)?;
 
     let (format, elem_size) = validate_image_format(image_format)?;
@@ -939,7 +939,7 @@ fn create_sampler_impl(
     // CL_DEVICE_IMAGE_SUPPORT specified in the Device Queries table is CL_FALSE).
     c.devs
         .iter()
-        .find(|d| d.image_supported())
+        .find(|d| d.caps.has_images)
         .ok_or(CL_INVALID_OPERATION)?;
 
     // CL_INVALID_VALUE if addressing_mode, filter_mode, normalized_coords or a combination of these

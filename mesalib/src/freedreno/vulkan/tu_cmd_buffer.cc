@@ -1721,6 +1721,44 @@ tu_set_input_attachments(struct tu_cmd_buffer *cmd, const struct tu_subpass *sub
 }
 
 static void
+tu_trace_start_render_pass(struct tu_cmd_buffer *cmd)
+{
+   if (!u_trace_enabled(&cmd->device->trace_context))
+      return;
+
+   uint32_t load_cpp = 0;
+   uint32_t store_cpp = 0;
+   uint32_t clear_cpp = 0;
+   bool has_depth = false;
+   for (uint32_t i = 0; i < cmd->state.pass->attachment_count; i++) {
+      const struct tu_render_pass_attachment *attachment =
+         &cmd->state.pass->attachments[i];
+      if (attachment->load) {
+         load_cpp += attachment->cpp;
+      }
+
+      if (attachment->store) {
+         store_cpp += attachment->cpp;
+      }
+
+      if (attachment->clear_mask) {
+         clear_cpp += attachment->cpp;
+      }
+
+      has_depth |= vk_format_has_depth(attachment->format);
+   }
+
+   uint32_t max_samples = 0;
+   for (uint32_t i = 0; i < cmd->state.pass->subpass_count; i++) {
+      max_samples = MAX2(max_samples, cmd->state.pass->subpasses[i].samples);
+   }
+
+   trace_start_render_pass(&cmd->trace, &cmd->cs, cmd->state.framebuffer,
+                           cmd->state.tiling, max_samples, clear_cpp,
+                           load_cpp, store_cpp, has_depth);
+}
+
+static void
 tu_emit_renderpass_begin(struct tu_cmd_buffer *cmd)
 {
    /* We need to re-emit any draw states that are patched in order for them to
@@ -2024,7 +2062,10 @@ tu_cmd_render_tiles(struct tu_cmd_buffer *cmd,
 
    tu6_tile_render_end<CHIP>(cmd, &cmd->cs, autotune_result);
 
-   trace_end_render_pass(&cmd->trace, &cmd->cs);
+   trace_end_render_pass(&cmd->trace, &cmd->cs, true,
+                         cmd->state.rp.drawcall_count,
+                         cmd->state.rp.drawcall_bandwidth_per_sample_sum /
+                            cmd->state.rp.drawcall_count);
 
    /* We have trashed the dynamically-emitted viewport, scissor, and FS params
     * via the patchpoints, so we need to re-emit them if they are reused for a
@@ -2061,7 +2102,10 @@ tu_cmd_render_sysmem(struct tu_cmd_buffer *cmd,
 
    tu6_sysmem_render_end<CHIP>(cmd, &cmd->cs, autotune_result);
 
-   trace_end_render_pass(&cmd->trace, &cmd->cs);
+   trace_end_render_pass(&cmd->trace, &cmd->cs, false,
+                         cmd->state.rp.drawcall_count,
+                         cmd->state.rp.drawcall_bandwidth_per_sample_sum /
+                            cmd->state.rp.drawcall_count);
 }
 
 template <chip CHIP>
@@ -4198,8 +4242,7 @@ tu_CmdBeginRenderPass2(VkCommandBuffer commandBuffer,
 
    tu_choose_gmem_layout(cmd);
 
-   trace_start_render_pass(&cmd->trace, &cmd->cs, cmd->state.framebuffer,
-                           cmd->state.tiling);
+   tu_trace_start_render_pass(cmd);
 
    /* Note: because this is external, any flushes will happen before draw_cs
     * gets called. However deferred flushes could have to happen later as part
@@ -4344,8 +4387,7 @@ tu_CmdBeginRendering(VkCommandBuffer commandBuffer,
    }
 
    if (!resuming)
-      trace_start_render_pass(&cmd->trace, &cmd->cs, cmd->state.framebuffer,
-                              cmd->state.tiling);
+      tu_trace_start_render_pass(cmd);
 
    if (!resuming || cmd->state.suspend_resume == SR_NONE) {
       cmd->trace_renderpass_start = u_trace_end_iterator(&cmd->trace);

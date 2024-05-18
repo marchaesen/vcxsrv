@@ -192,7 +192,7 @@ void si_launch_grid_internal_ssbos(struct si_context *sctx, struct pipe_grid_inf
                                    unsigned writeable_bitmask)
 {
    if (!(flags & SI_OP_SKIP_CACHE_INV_BEFORE)) {
-      sctx->flags |= si_get_flush_flags(sctx, coher, SI_COMPUTE_DST_CACHE_POLICY);
+      sctx->flags |= si_get_flush_flags(sctx, coher, L2_LRU);
       si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
    }
 
@@ -232,6 +232,23 @@ void si_launch_grid_internal_ssbos(struct si_context *sctx, struct pipe_grid_inf
       pipe_resource_reference(&saved_sb[i].buffer, NULL);
 }
 
+static unsigned
+set_work_size(struct pipe_grid_info *info, unsigned block_x, unsigned block_y, unsigned block_z,
+              unsigned work_x, unsigned work_y, unsigned work_z)
+{
+   info->block[0] = block_x;
+   info->block[1] = block_y;
+   info->block[2] = block_z;
+
+   unsigned work[3] = {work_x, work_y, work_z};
+   for (int i = 0; i < 3; ++i) {
+      info->last_block[i] = work[i] % info->block[i];
+      info->grid[i] = DIV_ROUND_UP(work[i], info->block[i]);
+   }
+
+   return work_z > 1 ? 3 : (work_y > 1 ? 2 : 1);
+}
+
 /**
  * Clear a buffer using read-modify-write with a 32-bit write bitmask.
  * The clear value has 32 bits.
@@ -247,20 +264,11 @@ void si_compute_clear_buffer_rmw(struct si_context *sctx, struct pipe_resource *
    assert(dst->target != PIPE_BUFFER || dst_offset + size <= dst->width0);
 
    /* Use buffer_load_dwordx4 and buffer_store_dwordx4 per thread. */
-   unsigned dwords_per_instruction = 4;
-   unsigned block_size = 64; /* it's always 64x1x1 */
-   unsigned dwords_per_wave = dwords_per_instruction * block_size;
-
-   unsigned num_dwords = size / 4;
-   unsigned num_instructions = DIV_ROUND_UP(num_dwords, dwords_per_instruction);
+   unsigned dwords_per_thread = 4;
+   unsigned num_threads = DIV_ROUND_UP(size, dwords_per_thread * 4);
 
    struct pipe_grid_info info = {};
-   info.block[0] = MIN2(block_size, num_instructions);
-   info.block[1] = 1;
-   info.block[2] = 1;
-   info.grid[0] = DIV_ROUND_UP(num_dwords, dwords_per_wave);
-   info.grid[1] = 1;
-   info.grid[2] = 1;
+   set_work_size(&info, 64, 1, 1, num_threads, 1, 1);
 
    struct pipe_shader_buffer sb = {};
    sb.buffer = dst;
@@ -277,39 +285,6 @@ void si_compute_clear_buffer_rmw(struct si_context *sctx, struct pipe_resource *
                                  1, &sb, 0x1);
 }
 
-static void si_compute_clear_12bytes_buffer(struct si_context *sctx, struct pipe_resource *dst,
-                                            unsigned dst_offset, unsigned size,
-                                            const uint32_t *clear_value, unsigned flags,
-                                            enum si_coherency coher)
-{
-   assert(dst_offset % 4 == 0);
-   assert(size % 4 == 0);
-   unsigned size_12 = DIV_ROUND_UP(size, 12);
-
-   struct pipe_shader_buffer sb = {0};
-   sb.buffer = dst;
-   sb.buffer_offset = dst_offset;
-   sb.buffer_size = size;
-
-   memcpy(sctx->cs_user_data, clear_value, 12);
-
-   struct pipe_grid_info info = {0};
-
-   if (!sctx->cs_clear_12bytes_buffer)
-      sctx->cs_clear_12bytes_buffer = si_clear_12bytes_buffer_shader(sctx);
-
-   info.block[0] = 64;
-   info.last_block[0] = size_12 % 64;
-   info.block[1] = 1;
-   info.block[2] = 1;
-   info.grid[0] = DIV_ROUND_UP(size_12, 64);
-   info.grid[1] = 1;
-   info.grid[2] = 1;
-
-   si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_clear_12bytes_buffer, flags, coher,
-                                 1, &sb, 0x1);
-}
-
 static void si_compute_do_clear_or_copy(struct si_context *sctx, struct pipe_resource *dst,
                                         unsigned dst_offset, struct pipe_resource *src,
                                         unsigned src_offset, unsigned size,
@@ -323,63 +298,37 @@ static void si_compute_do_clear_or_copy(struct si_context *sctx, struct pipe_res
    assert(dst->target != PIPE_BUFFER || dst_offset + size <= dst->width0);
    assert(!src || src_offset + size <= src->width0);
 
-   /* The memory accesses are coalesced, meaning that the 1st instruction writes
-    * the 1st contiguous block of data for the whole wave, the 2nd instruction
-    * writes the 2nd contiguous block of data, etc.
-    */
-   unsigned dwords_per_thread =
-      src ? SI_COMPUTE_COPY_DW_PER_THREAD : SI_COMPUTE_CLEAR_DW_PER_THREAD;
-   unsigned instructions_per_thread = MAX2(1, dwords_per_thread / 4);
-   unsigned dwords_per_instruction = dwords_per_thread / instructions_per_thread;
-   /* The shader declares the block size like this: */
-   unsigned block_size = si_determine_wave_size(sctx->screen, NULL);
-   unsigned dwords_per_wave = dwords_per_thread * block_size;
-
-   unsigned num_dwords = size / 4;
-   unsigned num_instructions = DIV_ROUND_UP(num_dwords, dwords_per_instruction);
+   bool is_copy = src != NULL;
+   unsigned dwords_per_thread = clear_value_size == 12 ? 3 : 4;
+   unsigned num_threads = DIV_ROUND_UP(size, dwords_per_thread * 4);
 
    struct pipe_grid_info info = {};
-   info.block[0] = MIN2(block_size, num_instructions);
-   info.block[1] = 1;
-   info.block[2] = 1;
-   info.grid[0] = DIV_ROUND_UP(num_dwords, dwords_per_wave);
-   info.grid[1] = 1;
-   info.grid[2] = 1;
+   set_work_size(&info, 64, 1, 1, num_threads, 1, 1);
 
    struct pipe_shader_buffer sb[2] = {};
-   sb[0].buffer = dst;
-   sb[0].buffer_offset = dst_offset;
-   sb[0].buffer_size = size;
+   sb[is_copy].buffer = dst;
+   sb[is_copy].buffer_offset = dst_offset;
+   sb[is_copy].buffer_size = size;
 
-   bool shader_dst_stream_policy = SI_COMPUTE_DST_CACHE_POLICY != L2_LRU;
-
-   if (src) {
-      sb[1].buffer = src;
-      sb[1].buffer_offset = src_offset;
-      sb[1].buffer_size = size;
-
-      if (!sctx->cs_copy_buffer) {
-         sctx->cs_copy_buffer = si_create_dma_compute_shader(
-            sctx, SI_COMPUTE_COPY_DW_PER_THREAD, shader_dst_stream_policy, true);
-      }
-
-      si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_copy_buffer, flags, coher,
-                                    2, sb, 0x1);
+   if (is_copy) {
+      sb[0].buffer = src;
+      sb[0].buffer_offset = src_offset;
+      sb[0].buffer_size = size;
    } else {
       assert(clear_value_size >= 4 && clear_value_size <= 16 &&
-             util_is_power_of_two_or_zero(clear_value_size));
+             (clear_value_size == 12 || util_is_power_of_two_or_zero(clear_value_size)));
 
       for (unsigned i = 0; i < 4; i++)
          sctx->cs_user_data[i] = clear_value[i % (clear_value_size / 4)];
-
-      if (!sctx->cs_clear_buffer) {
-         sctx->cs_clear_buffer = si_create_dma_compute_shader(
-            sctx, SI_COMPUTE_CLEAR_DW_PER_THREAD, shader_dst_stream_policy, false);
-      }
-
-      si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_clear_buffer, flags, coher,
-                                    1, sb, 0x1);
    }
+
+   void **shader = is_copy ? &sctx->cs_copy_buffer :
+                   clear_value_size == 12 ? &sctx->cs_clear_12bytes_buffer : &sctx->cs_clear_buffer;
+   if (!*shader)
+      *shader = si_create_dma_compute_shader(sctx, dwords_per_thread, !is_copy);
+
+   si_launch_grid_internal_ssbos(sctx, &info, *shader, flags, coher, is_copy ? 2 : 1, sb,
+                                 is_copy ? 0x2 : 0x1);
 }
 
 void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
@@ -402,11 +351,6 @@ void si_clear_buffer(struct si_context *sctx, struct pipe_resource *dst,
    uint32_t clamped;
    if (util_lower_clearsize_to_dword(clear_value, (int*)&clear_value_size, &clamped))
       clear_value = &clamped;
-
-   if (clear_value_size == 12) {
-      si_compute_clear_12bytes_buffer(sctx, dst, offset, size, clear_value, flags, coher);
-      return;
-   }
 
    uint64_t aligned_size = size & ~3ull;
    if (aligned_size >= 4) {
@@ -518,13 +462,7 @@ void si_compute_shorten_ubyte_buffer(struct si_context *sctx, struct pipe_resour
    si_improve_sync_flags(sctx, dst, src, &flags);
 
    struct pipe_grid_info info = {};
-   info.block[0] = si_determine_wave_size(sctx->screen, NULL);
-   info.block[1] = 1;
-   info.block[2] = 1;
-   info.grid[0] = DIV_ROUND_UP(size, info.block[0]);
-   info.grid[1] = 1;
-   info.grid[2] = 1;
-   info.last_block[0] = size % info.block[0];
+   set_work_size(&info, 64, 1, 1, size, 1, 1);
 
    struct pipe_shader_buffer sb[2] = {};
    sb[0].buffer = dst;
@@ -537,23 +475,6 @@ void si_compute_shorten_ubyte_buffer(struct si_context *sctx, struct pipe_resour
 
    si_launch_grid_internal_ssbos(sctx, &info, sctx->cs_ubyte_to_ushort, flags, coher,
                                  2, sb, 0x1);
-}
-
-static unsigned
-set_work_size(struct pipe_grid_info *info, unsigned block_x, unsigned block_y, unsigned block_z,
-              unsigned work_x, unsigned work_y, unsigned work_z)
-{
-   info->block[0] = block_x;
-   info->block[1] = block_y;
-   info->block[2] = block_z;
-
-   unsigned work[3] = {work_x, work_y, work_z};
-   for (int i = 0; i < 3; ++i) {
-      info->last_block[i] = work[i] % info->block[i];
-      info->grid[i] = DIV_ROUND_UP(work[i], info->block[i]);
-   }
-
-   return work_z > 1 ? 3 : (work_y > 1 ? 2 : 1);
 }
 
 static void si_launch_grid_internal_images(struct si_context *sctx,
@@ -848,14 +769,7 @@ void si_retile_dcc(struct si_context *sctx, struct si_texture *tex)
    unsigned height = DIV_ROUND_UP(tex->buffer.b.b.height0, tex->surface.u.gfx9.color.dcc_block_height);
 
    struct pipe_grid_info info = {};
-   info.block[0] = 8;
-   info.block[1] = 8;
-   info.block[2] = 1;
-   info.last_block[0] = width % info.block[0];
-   info.last_block[1] = height % info.block[1];
-   info.grid[0] = DIV_ROUND_UP(width, info.block[0]);
-   info.grid[1] = DIV_ROUND_UP(height, info.block[1]);
-   info.grid[2] = 1;
+   set_work_size(&info, 8, 8, 1, width, height, 1);
 
    si_launch_grid_internal_ssbos(sctx, &info, *shader, SI_OP_SYNC_BEFORE,
                                  SI_COHERENCY_CB_META, 1, &sb, 0x1);
@@ -901,14 +815,7 @@ void gfx9_clear_dcc_msaa(struct si_context *sctx, struct pipe_resource *res, uin
    unsigned depth = DIV_ROUND_UP(tex->buffer.b.b.array_size, tex->surface.u.gfx9.color.dcc_block_depth);
 
    struct pipe_grid_info info = {};
-   info.block[0] = 8;
-   info.block[1] = 8;
-   info.block[2] = 1;
-   info.last_block[0] = width % info.block[0];
-   info.last_block[1] = height % info.block[1];
-   info.grid[0] = DIV_ROUND_UP(width, info.block[0]);
-   info.grid[1] = DIV_ROUND_UP(height, info.block[1]);
-   info.grid[2] = depth;
+   set_work_size(&info, 8, 8, 1, width, height, depth);
 
    si_launch_grid_internal_ssbos(sctx, &info, *shader, flags, coher, 1, &sb, 0x1);
 }
@@ -954,14 +861,7 @@ void si_compute_expand_fmask(struct pipe_context *ctx, struct pipe_resource *tex
 
    /* Dispatch compute. */
    struct pipe_grid_info info = {0};
-   info.block[0] = 8;
-   info.last_block[0] = tex->width0 % 8;
-   info.block[1] = 8;
-   info.last_block[1] = tex->height0 % 8;
-   info.block[2] = 1;
-   info.grid[0] = DIV_ROUND_UP(tex->width0, 8);
-   info.grid[1] = DIV_ROUND_UP(tex->height0, 8);
-   info.grid[2] = is_array ? tex->array_size : 1;
+   set_work_size(&info, 8, 8, 1, tex->width0, tex->height0, is_array ? tex->array_size : 1);
 
    si_launch_grid_internal(sctx, &info, *shader, SI_OP_SYNC_BEFORE_AFTER);
 

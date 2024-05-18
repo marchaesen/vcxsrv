@@ -434,53 +434,6 @@ void si_cp_dma_copy_buffer(struct si_context *sctx, struct pipe_resource *dst,
       sctx->num_cp_dma_calls++;
 }
 
-void si_test_gds(struct si_context *sctx)
-{
-   struct pipe_context *ctx = &sctx->b;
-   struct pipe_resource *src, *dst;
-   unsigned r[4] = {};
-   unsigned offset = debug_get_num_option("OFFSET", 16);
-
-   src = pipe_buffer_create(ctx->screen, 0, PIPE_USAGE_DEFAULT, 16);
-   dst = pipe_buffer_create(ctx->screen, 0, PIPE_USAGE_DEFAULT, 16);
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, src, 0, 4, 0xabcdef01, SI_OP_SYNC_BEFORE_AFTER,
-                          SI_COHERENCY_SHADER, L2_BYPASS);
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, src, 4, 4, 0x23456789, SI_OP_SYNC_BEFORE_AFTER,
-                          SI_COHERENCY_SHADER, L2_BYPASS);
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, src, 8, 4, 0x87654321, SI_OP_SYNC_BEFORE_AFTER,
-                          SI_COHERENCY_SHADER, L2_BYPASS);
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, src, 12, 4, 0xfedcba98, SI_OP_SYNC_BEFORE_AFTER,
-                          SI_COHERENCY_SHADER, L2_BYPASS);
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, dst, 0, 16, 0xdeadbeef, SI_OP_SYNC_BEFORE_AFTER,
-                          SI_COHERENCY_SHADER, L2_BYPASS);
-
-   si_cp_dma_copy_buffer(sctx, NULL, src, offset, 0, 16, SI_OP_SYNC_BEFORE_AFTER,
-                         SI_COHERENCY_NONE, L2_BYPASS);
-   si_cp_dma_copy_buffer(sctx, dst, NULL, 0, offset, 16, SI_OP_SYNC_BEFORE_AFTER,
-                         SI_COHERENCY_NONE, L2_BYPASS);
-
-   pipe_buffer_read(ctx, dst, 0, sizeof(r), r);
-   printf("GDS copy  = %08x %08x %08x %08x -> %s\n", r[0], r[1], r[2], r[3],
-          r[0] == 0xabcdef01 && r[1] == 0x23456789 && r[2] == 0x87654321 && r[3] == 0xfedcba98
-             ? "pass"
-             : "fail");
-
-   si_cp_dma_clear_buffer(sctx, &sctx->gfx_cs, NULL, offset, 16, 0xc1ea4146,
-                          SI_OP_SYNC_BEFORE_AFTER, SI_COHERENCY_NONE, L2_BYPASS);
-   si_cp_dma_copy_buffer(sctx, dst, NULL, 0, offset, 16, SI_OP_SYNC_BEFORE_AFTER,
-                         SI_COHERENCY_NONE, L2_BYPASS);
-
-   pipe_buffer_read(ctx, dst, 0, sizeof(r), r);
-   printf("GDS clear = %08x %08x %08x %08x -> %s\n", r[0], r[1], r[2], r[3],
-          r[0] == 0xc1ea4146 && r[1] == 0xc1ea4146 && r[2] == 0xc1ea4146 && r[3] == 0xc1ea4146
-             ? "pass"
-             : "fail");
-
-   pipe_resource_reference(&src, NULL);
-   pipe_resource_reference(&dst, NULL);
-   exit(0);
-}
-
 void si_cp_write_data(struct si_context *sctx, struct si_resource *buf, unsigned offset,
                       unsigned size, unsigned dst_sel, unsigned engine, const void *data)
 {

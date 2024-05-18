@@ -45,6 +45,7 @@ tu_default_tps = []
 #
 
 def begin_end_tp(name, args=[], tp_struct=None, tp_print=None,
+                 end_args=[], end_tp_struct=None, end_tp_print=None,
                  tp_default_enabled=True, marker_tp=True,
                  queue_tp=True):
     global tu_default_tps
@@ -59,7 +60,10 @@ def begin_end_tp(name, args=[], tp_struct=None, tp_print=None,
                tp_markers='tu_cs_trace_start' if marker_tp else None)
     Tracepoint('end_{0}'.format(name),
                toggle_name=name,
+               args=end_args,
+               tp_struct=end_tp_struct,
                tp_perfetto='tu_perfetto_end_{0}'.format(name),
+               tp_print=end_tp_print if queue_tp else None,
                tp_markers='tu_cs_trace_end' if marker_tp else None)
 
 begin_end_tp('cmd_buffer',
@@ -69,14 +73,23 @@ begin_end_tp('cmd_buffer',
 
 begin_end_tp('render_pass',
     args=[ArgStruct(type='const struct tu_framebuffer *', var='fb'),
-          ArgStruct(type='const struct tu_tiling_config *', var='tiling')],
-    tp_struct=[Arg(type='uint16_t', name='width',        var='fb->width',                                    c_format='%u'),
-               Arg(type='uint16_t', name='height',       var='fb->height',                                   c_format='%u'),
-               Arg(type='uint8_t',  name='attachment_count', var='fb->attachment_count',                     c_format='%u'),
-            #    Arg(type='uint8_t',  name='samples',      var='fb->samples',                                  c_format='%u'),
-               Arg(type='uint16_t', name='numberOfBins', var='tiling->tile_count.width * tiling->tile_count.height', c_format='%u'),
-               Arg(type='uint16_t', name='binWidth',     var='tiling->tile0.width',                                  c_format='%u'),
-               Arg(type='uint16_t', name='binHeight',    var='tiling->tile0.height',                                 c_format='%u')])
+          ArgStruct(type='const struct tu_tiling_config *', var='tiling'),
+          Arg(type='uint8_t',  var='maxSamples',  c_format='%u'),
+          Arg(type='uint8_t',  var='clearCPP',    c_format='%u'),
+          Arg(type='uint8_t',  var='loadCPP',     c_format='%u'),
+          Arg(type='uint8_t',  var='storeCPP',    c_format='%u'),
+          Arg(type='bool',     var='hasDepth',    c_format='%s', to_prim_type='({} ? "true" : "false")'),],
+    tp_struct=[Arg(type='uint16_t', name='width',               var='fb->width',                                            c_format='%u'),
+               Arg(type='uint16_t', name='height',              var='fb->height',                                           c_format='%u'),
+               Arg(type='uint8_t',  name='attachment_count',    var='fb->attachment_count',                                 c_format='%u'),
+               Arg(type='uint16_t', name='numberOfBins',        var='tiling->tile_count.width * tiling->tile_count.height', c_format='%u'),
+               Arg(type='uint16_t', name='binWidth',            var='tiling->tile0.width',                                  c_format='%u'),
+               Arg(type='uint16_t', name='binHeight',           var='tiling->tile0.height',                                 c_format='%u'),],
+    # Args known only at the end of the renderpass:
+    end_args=[Arg(type='bool',                                  var='tiledRender',                                          c_format='%s', to_prim_type='({} ? "true" : "false")'),
+              Arg(type='uint32_t',                              var='drawCount',                                            c_format='%u'),
+              Arg(type='uint32_t',                              var='avgPerSampleBandwidth',                                c_format='%u'),])
+
 
 begin_end_tp('binning_ib')
 begin_end_tp('draw_ib_sysmem')

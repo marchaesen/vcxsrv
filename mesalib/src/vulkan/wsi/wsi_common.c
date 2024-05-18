@@ -1316,7 +1316,7 @@ static VkResult wsi_signal_present_id_timeline(struct wsi_swapchain *swapchain,
 }
 
 static VkResult
-handle_trace(VkQueue queue, struct vk_device *device)
+handle_trace(VkQueue queue, struct vk_device *device, uint32_t current_frame)
 {
    struct vk_instance *instance = device->physical->instance;
    if (!instance->trace_mode)
@@ -1325,8 +1325,6 @@ handle_trace(VkQueue queue, struct vk_device *device)
    simple_mtx_lock(&device->trace_mtx);
 
    bool frame_trigger = device->current_frame == instance->trace_frame;
-   if (device->current_frame <= instance->trace_frame)
-      device->current_frame++;
 
    bool file_trigger = false;
 #ifndef _WIN32
@@ -1359,7 +1357,9 @@ wsi_common_queue_present(const struct wsi_device *wsi,
                          int queue_family_index,
                          const VkPresentInfoKHR *pPresentInfo)
 {
-   VkResult final_result = handle_trace(queue, vk_device_from_handle(device));
+   struct vk_device *dev = vk_device_from_handle(device);
+   uint32_t current_frame = p_atomic_fetch_add(&dev->current_frame, 1);
+   VkResult final_result = handle_trace(queue, dev, current_frame);
 
    STACK_ARRAY(VkPipelineStageFlags, stage_flags,
                MAX2(1, pPresentInfo->waitSemaphoreCount));

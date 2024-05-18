@@ -904,21 +904,33 @@ static void *pre_upload_binary(struct si_screen *sscreen, struct si_shader *shad
                                unsigned binary_size, bool dma_upload,
                                struct si_context **upload_ctx,
                                struct pipe_resource **staging,
-                               unsigned *staging_offset)
+                               unsigned *staging_offset,
+                               int64_t bo_offset)
 {
    unsigned aligned_size = ac_align_shader_binary_for_prefetch(&sscreen->info, binary_size);
 
-   si_resource_reference(&shader->bo, NULL);
-   shader->bo = si_aligned_buffer_create(
-      &sscreen->b,
-      SI_RESOURCE_FLAG_DRIVER_INTERNAL | SI_RESOURCE_FLAG_32BIT |
-      (dma_upload || sscreen->info.cpdma_prefetch_writes_memory ? 0 : SI_RESOURCE_FLAG_READ_ONLY) |
-      (dma_upload ? PIPE_RESOURCE_FLAG_UNMAPPABLE : 0),
-      PIPE_USAGE_IMMUTABLE, align(aligned_size, SI_CPDMA_ALIGNMENT), 256);
-   if (!shader->bo)
-      return NULL;
+   if (bo_offset >= 0) {
+      /* sqtt needs to upload shaders as a pipeline, where all shaders
+       * are contiguous in memory.
+       * In this case, bo_offset will be positive and we don't have to
+       * realloc a new bo.
+       */
+      shader->gpu_address = shader->bo->gpu_address + bo_offset;
+      dma_upload = false;
+   } else {
+      si_resource_reference(&shader->bo, NULL);
+      shader->bo = si_aligned_buffer_create(
+         &sscreen->b,
+         SI_RESOURCE_FLAG_DRIVER_INTERNAL | SI_RESOURCE_FLAG_32BIT |
+         (dma_upload || sscreen->info.cpdma_prefetch_writes_memory ? 0 : SI_RESOURCE_FLAG_READ_ONLY) |
+         (dma_upload ? PIPE_RESOURCE_FLAG_UNMAPPABLE : 0),
+         PIPE_USAGE_IMMUTABLE, align(aligned_size, SI_CPDMA_ALIGNMENT), 256);
+      if (!shader->bo)
+         return NULL;
 
-   shader->gpu_address = shader->bo->gpu_address;
+      shader->gpu_address = shader->bo->gpu_address;
+      bo_offset = 0;
+   }
 
    if (dma_upload) {
       /* First upload into a staging buffer. */
@@ -934,7 +946,7 @@ static void *pre_upload_binary(struct si_screen *sscreen, struct si_shader *shad
    } else {
       return sscreen->ws->buffer_map(sscreen->ws,
          shader->bo->buf, NULL,
-         PIPE_MAP_READ_WRITE | PIPE_MAP_UNSYNCHRONIZED | RADEON_MAP_TEMPORARY);
+         PIPE_MAP_READ_WRITE | PIPE_MAP_UNSYNCHRONIZED | RADEON_MAP_TEMPORARY) + bo_offset;
    }
 }
 
@@ -983,28 +995,29 @@ static void post_upload_binary(struct si_screen *sscreen, struct si_shader *shad
    }
 }
 
-static bool upload_binary_elf(struct si_screen *sscreen, struct si_shader *shader,
-                              uint64_t scratch_va, bool dma_upload)
+static int upload_binary_elf(struct si_screen *sscreen, struct si_shader *shader,
+                             uint64_t scratch_va, bool dma_upload, int64_t bo_offset)
 {
    struct ac_rtld_binary binary;
    if (!si_shader_binary_open(sscreen, shader, &binary))
-      return false;
+      return -1;
 
    struct si_context *upload_ctx = NULL;
    struct pipe_resource *staging = NULL;
    unsigned staging_offset = 0;
 
    void *rx_ptr = pre_upload_binary(sscreen, shader, binary.rx_size, dma_upload,
-                                    &upload_ctx, &staging, &staging_offset);
+                                    &upload_ctx, &staging, &staging_offset,
+                                    bo_offset);
    if (!rx_ptr)
-      return false;
+      return -1;
 
    /* Upload. */
    struct ac_rtld_upload_info u = {};
    u.binary = &binary;
    u.get_external_symbol = si_get_external_symbol;
    u.cb_data = &scratch_va;
-   u.rx_va = shader->bo->gpu_address;
+   u.rx_va = shader->gpu_address;
    u.rx_ptr = rx_ptr;
 
    int size = ac_rtld_upload(&u);
@@ -1014,7 +1027,7 @@ static bool upload_binary_elf(struct si_screen *sscreen, struct si_shader *shade
 
    ac_rtld_close(&binary);
 
-   return size >= 0;
+   return size;
 }
 
 static void calculate_needed_lds_size(struct si_screen *sscreen, struct si_shader *shader)
@@ -1043,8 +1056,8 @@ static void calculate_needed_lds_size(struct si_screen *sscreen, struct si_shade
    }
 }
 
-static bool upload_binary_raw(struct si_screen *sscreen, struct si_shader *shader,
-                              uint64_t scratch_va, bool dma_upload)
+static int upload_binary_raw(struct si_screen *sscreen, struct si_shader *shader,
+                             uint64_t scratch_va, bool dma_upload, int64_t bo_offset)
 {
    struct si_shader_binary *bin[4];
    unsigned num_bin = get_shader_binaries(shader, bin);
@@ -1061,9 +1074,10 @@ static bool upload_binary_raw(struct si_screen *sscreen, struct si_shader *shade
    unsigned staging_offset = 0;
 
    void *rx_ptr = pre_upload_binary(sscreen, shader, code_size, dma_upload,
-                                    &upload_ctx, &staging, &staging_offset);
+                                    &upload_ctx, &staging, &staging_offset,
+                                    bo_offset);
    if (!rx_ptr)
-      return false;
+      return -1;
 
    unsigned exec_offset = 0, data_offset = exec_size;
    for (unsigned i = 0; i < num_bin; i++) {
@@ -1096,21 +1110,28 @@ static bool upload_binary_raw(struct si_screen *sscreen, struct si_shader *shade
                       upload_ctx, staging, staging_offset);
 
    calculate_needed_lds_size(sscreen, shader);
-   return true;
+   return code_size;
 }
 
-bool si_shader_binary_upload(struct si_screen *sscreen, struct si_shader *shader,
-                             uint64_t scratch_va)
+int si_shader_binary_upload_at(struct si_screen *sscreen, struct si_shader *shader,
+                               uint64_t scratch_va, int64_t bo_offset)
 {
    bool dma_upload = !(sscreen->debug_flags & DBG(NO_DMA_SHADERS)) &&
-                     sscreen->info.has_dedicated_vram && !sscreen->info.all_vram_visible;
+                     sscreen->info.has_dedicated_vram && !sscreen->info.all_vram_visible &&
+                     bo_offset < 0;
 
    if (shader->binary.type == SI_SHADER_BINARY_ELF) {
-      return upload_binary_elf(sscreen, shader, scratch_va, dma_upload);
+      return upload_binary_elf(sscreen, shader, scratch_va, dma_upload, bo_offset);
    } else {
       assert(shader->binary.type == SI_SHADER_BINARY_RAW);
-      return upload_binary_raw(sscreen, shader, scratch_va, dma_upload);
+      return upload_binary_raw(sscreen, shader, scratch_va, dma_upload, bo_offset);
    }
+}
+
+int si_shader_binary_upload(struct si_screen *sscreen, struct si_shader *shader,
+                            uint64_t scratch_va)
+{
+   return si_shader_binary_upload_at(sscreen, shader, scratch_va, -1);
 }
 
 static void print_disassembly(const char *disasm, size_t nbytes,
@@ -2619,7 +2640,7 @@ si_nir_generate_gs_copy_shader(struct si_screen *sscreen,
 
    if (ok) {
       assert(!shader->config.scratch_bytes_per_wave);
-      ok = si_shader_binary_upload(sscreen, shader, 0);
+      ok = si_shader_binary_upload(sscreen, shader, 0) >= 0;
       si_shader_dump(sscreen, shader, debug, stderr, true);
    }
    ralloc_free(nir);
@@ -3481,7 +3502,7 @@ bool si_create_shader_variant(struct si_screen *sscreen, struct ac_llvm_compiler
    si_fix_resource_usage(sscreen, shader);
 
    /* Upload. */
-   bool ok = si_shader_binary_upload(sscreen, shader, 0);
+   bool ok = si_shader_binary_upload(sscreen, shader, 0) >= 0;
    si_shader_dump(sscreen, shader, debug, stderr, true);
 
    if (!ok)

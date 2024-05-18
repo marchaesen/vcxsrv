@@ -264,6 +264,9 @@ agx_bo_import(struct agx_device *dev, int fd)
    }
    pthread_mutex_unlock(&dev->bo_map_lock);
 
+   if (dev->debug & AGX_DBG_TRACE)
+      agxdecode_track_alloc(dev->agxdecode, bo);
+
    return bo;
 
 error:
@@ -338,6 +341,8 @@ agx_open_device(void *memctx, struct agx_device *dev)
    dev->debug =
       debug_get_flags_option("ASAHI_MESA_DEBUG", agx_debug_options, 0);
 
+   dev->agxdecode = agxdecode_new_context();
+
    ssize_t params_size = -1;
 
    /* TODO: Linux UAPI */
@@ -391,6 +396,7 @@ agx_close_device(struct agx_device *dev)
    agx_bo_unreference(dev->helper);
    agx_bo_cache_evict_all(dev);
    util_sparse_array_finish(&dev->bo_map);
+   agxdecode_destroy_context(dev->agxdecode);
 
    util_vma_heap_finish(&dev->main_heap);
    util_vma_heap_finish(&dev->usc_heap);

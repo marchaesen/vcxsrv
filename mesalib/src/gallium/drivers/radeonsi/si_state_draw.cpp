@@ -368,28 +368,15 @@ static bool si_update_shaders(struct si_context *sctx)
             for (int i = 0; i < SI_NUM_GRAPHICS_SHADERS; i++) {
                struct si_shader *shader = sctx->shaders[i].current;
                if (sctx->shaders[i].cso && shader) {
-                  struct ac_rtld_binary binary;
-                  si_shader_binary_open(sctx->screen, shader, &binary);
+                  si_resource_reference(&shader->bo, bo);
 
-                  struct ac_rtld_upload_info u = {};
-                  u.binary = &binary;
-                  u.get_external_symbol = si_get_external_symbol;
-                  u.cb_data = &scratch_va;
-                  u.rx_va = bo->gpu_address + offset;
-                  u.rx_ptr = ptr + offset;
-
-                  int size = ac_rtld_upload(&u);
-                  ac_rtld_close(&binary);
-
+                  int size = si_shader_binary_upload_at(sctx->screen, shader, scratch_va, offset);
                   pipeline->offset[i] = offset;
-
-                  shader->gpu_address = u.rx_va;
-
                   offset += align(size, 256);
 
                   struct si_pm4_state *pm4 = &shader->pm4;
 
-                  uint64_t va_low = (pipeline->bo->gpu_address + pipeline->offset[i]) >> 8;
+                  uint64_t va_low = shader->gpu_address >> 8;
                   uint32_t reg = pm4->spi_shader_pgm_lo_reg;
                   si_pm4_set_reg(&pipeline->pm4, reg, va_low);
                }
@@ -1696,7 +1683,7 @@ static void si_emit_draw_packets(struct si_context *sctx, const struct pipe_draw
 /* Return false if not bound. */
 template<amd_gfx_level GFX_VERSION>
 static void ALWAYS_INLINE si_set_vb_descriptor(struct si_vertex_elements *velems,
-                                               struct pipe_vertex_buffer *vb,
+                                               const struct pipe_vertex_buffer *vb,
                                                unsigned index, /* vertex element index */
                                                uint32_t *desc) /* where to upload descriptors */
 {
@@ -1727,7 +1714,7 @@ static void ALWAYS_INLINE si_set_vb_descriptor(struct si_vertex_elements *velems
 #if GFX_VER == 6 /* declare this function only once because it supports all chips. */
 
 void si_set_vertex_buffer_descriptor(struct si_screen *sscreen, struct si_vertex_elements *velems,
-                                     struct pipe_vertex_buffer *vb, unsigned element_index,
+                                     const struct pipe_vertex_buffer *vb, unsigned element_index,
                                      uint32_t *out)
 {
    switch (sscreen->info.gfx_level) {
@@ -1891,7 +1878,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
             /* the first iteration always executes */
             do {
                unsigned vbo_index = velems->vertex_buffer_index[i];
-               struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbo_index];
+               const struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbo_index];
                uint32_t *desc;
 
                radeon_emit_array_get_ptr(4, &desc);
@@ -1906,7 +1893,7 @@ static bool si_upload_and_prefetch_VB_descriptors(struct si_context *sctx,
             /* the first iteration always executes */
             do {
                unsigned vbo_index = velems->vertex_buffer_index[i];
-               struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbo_index];
+               const struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbo_index];
                uint32_t *desc = &ptr[(i - num_vbos_in_user_sgprs) * 4];
 
                si_set_vb_descriptor<GFX_VERSION>(velems, vb, i, desc);

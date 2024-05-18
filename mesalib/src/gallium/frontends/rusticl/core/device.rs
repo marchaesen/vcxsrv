@@ -39,14 +39,57 @@ pub struct Device {
     pub clc_versions: Vec<cl_name_version>,
     pub custom: bool,
     pub embedded: bool,
-    pub has_timestamp: bool, // Cached to keep API fast
     pub extension_string: String,
     pub extensions: Vec<cl_name_version>,
     pub spirv_extensions: Vec<CString>,
     pub clc_features: Vec<cl_name_version>,
     pub formats: HashMap<cl_image_format, HashMap<cl_mem_object_type, cl_mem_flags>>,
     pub lib_clc: NirShader,
+    pub caps: DeviceCaps,
     helper_ctx: Mutex<PipeContext>,
+}
+
+pub struct DeviceCaps {
+    pub has_images: bool,
+    pub has_timestamp: bool,
+    pub image_2d_size: u32,
+    pub max_read_images: u32,
+    pub max_write_images: u32,
+    pub timer_resolution: u32,
+}
+
+impl DeviceCaps {
+    fn new(screen: &PipeScreen) -> Self {
+        let cap_timestamp = screen.param(pipe_cap::PIPE_CAP_QUERY_TIMESTAMP) != 0;
+        let timer_resolution = screen.param(pipe_cap::PIPE_CAP_TIMER_RESOLUTION) as u32;
+
+        let max_write_images =
+            Self::shader_param(screen, pipe_shader_cap::PIPE_SHADER_CAP_MAX_SHADER_IMAGES) as u32;
+        let max_read_images =
+            Self::shader_param(screen, pipe_shader_cap::PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS) as u32;
+        let image_2d_size = screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_2D_SIZE) as u32;
+
+        let has_images =
+            // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
+            max_read_images >= 8 &&
+            // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
+            max_write_images >= 8 &&
+            // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
+            image_2d_size >= 2048;
+
+        Self {
+            has_images: has_images,
+            has_timestamp: cap_timestamp && timer_resolution > 0,
+            image_2d_size: has_images.then_some(image_2d_size).unwrap_or_default(),
+            max_read_images: has_images.then_some(max_read_images).unwrap_or_default(),
+            max_write_images: has_images.then_some(max_write_images).unwrap_or_default(),
+            timer_resolution: timer_resolution,
+        }
+    }
+
+    fn shader_param(screen: &PipeScreen, cap: pipe_shader_cap) -> i32 {
+        screen.shader_param(pipe_shader_type::PIPE_SHADER_COMPUTE, cap)
+    }
 }
 
 pub trait HelperContextWrapper {
@@ -230,6 +273,7 @@ impl Device {
         }
 
         let mut d = Self {
+            caps: DeviceCaps::new(&screen),
             base: CLObjectBase::new(RusticlTypes::Device),
             helper_ctx: Mutex::new(helper_ctx),
             screen: screen,
@@ -238,7 +282,6 @@ impl Device {
             clc_versions: Vec::new(),
             custom: false,
             embedded: false,
-            has_timestamp: false,
             extension_string: String::from(""),
             extensions: Vec::new(),
             spirv_extensions: Vec::new(),
@@ -254,10 +297,6 @@ impl Device {
 
         // check if we have to report it as a custom device
         d.custom = d.check_custom();
-
-        let cap_timestamp = d.screen.param(pipe_cap::PIPE_CAP_QUERY_TIMESTAMP);
-        let cap_timestamp_res = d.timer_resolution();
-        d.has_timestamp = cap_timestamp != 0 && cap_timestamp_res > 0;
 
         // query supported extensions
         d.fill_extensions();
@@ -275,6 +314,11 @@ impl Device {
     }
 
     fn fill_format_tables(&mut self) {
+        // no need to do this if we don't support images
+        if !self.caps.has_images {
+            return;
+        }
+
         for f in FORMATS {
             let mut fs = HashMap::new();
             for t in CL_IMAGE_TYPES {
@@ -419,15 +463,15 @@ impl Device {
     }
 
     fn check_embedded_profile(&self) -> bool {
-        if self.image_supported() {
+        if self.caps.has_images {
             // The minimum value is 16 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             if self.max_samplers() < 16 ||
             // The minimum value is 128 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-            self.image_read_count() < 128 ||
+            self.caps.max_read_images < 128 ||
             // The minimum value is 64 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-            self.image_write_count() < 64 ||
+            self.caps.max_write_images < 64 ||
             // The minimum value is 16384 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-            self.image_2d_size() < 16384 ||
+            self.caps.image_2d_size < 16384 ||
             // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             self.image_array_size() < 2048 ||
             // The minimum value is 65536 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
@@ -470,7 +514,7 @@ impl Device {
         let mut res = CLVersion::Cl3_0;
 
         if self.embedded {
-            if self.image_supported() {
+            if self.caps.has_images {
                 let supports_array_writes = !FORMATS
                     .iter()
                     .filter(|f| f.req_for_embeded_read_or_write)
@@ -484,7 +528,7 @@ impl Device {
         }
 
         // TODO: check image 1D, 1Dbuffer, 1Darray and 2Darray support explicitly
-        if self.image_supported() {
+        if self.caps.has_images {
             // The minimum value is 256 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
             if self.image_array_size() < 256 ||
             // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
@@ -604,7 +648,7 @@ impl Device {
             add_feat(1, 0, 0, "__opencl_c_int64");
         }
 
-        if self.image_supported() {
+        if self.caps.has_images {
             add_feat(1, 0, 0, "__opencl_c_images");
 
             if self.image2d_from_buffer_supported() {
@@ -798,81 +842,81 @@ impl Device {
         }
     }
 
-    pub fn image_2d_size(&self) -> usize {
-        self.screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_2D_SIZE) as usize
-    }
-
     pub fn image_3d_size(&self) -> usize {
-        1 << (self.screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_3D_LEVELS) - 1)
+        if self.caps.has_images {
+            1 << (self.screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_3D_LEVELS) - 1)
+        } else {
+            0
+        }
     }
 
     pub fn image_3d_supported(&self) -> bool {
-        self.screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_3D_LEVELS) != 0
+        self.caps.has_images && self.screen.param(pipe_cap::PIPE_CAP_MAX_TEXTURE_3D_LEVELS) != 0
     }
 
     pub fn image_array_size(&self) -> usize {
-        self.screen
-            .param(pipe_cap::PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS) as usize
+        if self.caps.has_images {
+            self.screen
+                .param(pipe_cap::PIPE_CAP_MAX_TEXTURE_ARRAY_LAYERS) as usize
+        } else {
+            0
+        }
     }
 
     pub fn image_pitch_alignment(&self) -> cl_uint {
-        self.screen
-            .param(pipe_cap::PIPE_CAP_LINEAR_IMAGE_PITCH_ALIGNMENT) as u32
+        if self.caps.has_images {
+            self.screen
+                .param(pipe_cap::PIPE_CAP_LINEAR_IMAGE_PITCH_ALIGNMENT) as u32
+        } else {
+            0
+        }
     }
 
     pub fn image_base_address_alignment(&self) -> cl_uint {
-        self.screen
-            .param(pipe_cap::PIPE_CAP_LINEAR_IMAGE_BASE_ADDRESS_ALIGNMENT) as u32
+        if self.caps.has_images {
+            self.screen
+                .param(pipe_cap::PIPE_CAP_LINEAR_IMAGE_BASE_ADDRESS_ALIGNMENT) as u32
+        } else {
+            0
+        }
     }
 
     pub fn image_buffer_size(&self) -> usize {
-        min(
-            // the CTS requires it to not exceed `CL_MAX_MEM_ALLOC_SIZE`
-            self.max_mem_alloc(),
-            self.screen
-                .param(pipe_cap::PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT) as cl_ulong,
-        ) as usize
-    }
-
-    pub fn image_read_count(&self) -> cl_uint {
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_SAMPLER_VIEWS) as cl_uint
+        if self.caps.has_images {
+            min(
+                // the CTS requires it to not exceed `CL_MAX_MEM_ALLOC_SIZE`
+                self.max_mem_alloc(),
+                self.screen
+                    .param(pipe_cap::PIPE_CAP_MAX_TEXEL_BUFFER_ELEMENTS_UINT)
+                    as cl_ulong,
+            ) as usize
+        } else {
+            0
+        }
     }
 
     pub fn image2d_from_buffer_supported(&self) -> bool {
         self.image_pitch_alignment() != 0 && self.image_base_address_alignment() != 0
     }
 
-    pub fn image_supported(&self) -> bool {
-        // TODO check CL_DEVICE_IMAGE_SUPPORT reqs
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_SHADER_IMAGES) != 0 &&
-      // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-      self.image_read_count() >= 8 &&
-      // The minimum value is 8 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-      self.image_write_count() >= 8 &&
-      // The minimum value is 2048 if CL_DEVICE_IMAGE_SUPPORT is CL_TRUE
-      self.image_2d_size() >= 2048
-    }
-
     pub fn image_read_write_supported(&self) -> bool {
-        !FORMATS
-            .iter()
-            .filter(|f| f.req_for_full_read_and_write)
-            .map(|f| self.formats.get(&f.cl_image_format).unwrap())
-            .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
-            .any(|f| *f & cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE) == 0)
+        self.caps.has_images
+            && !FORMATS
+                .iter()
+                .filter(|f| f.req_for_full_read_and_write)
+                .map(|f| self.formats.get(&f.cl_image_format).unwrap())
+                .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
+                .any(|f| *f & cl_mem_flags::from(CL_MEM_KERNEL_READ_AND_WRITE) == 0)
     }
 
     pub fn image_3d_write_supported(&self) -> bool {
-        !FORMATS
-            .iter()
-            .filter(|f| f.req_for_full_read_or_write)
-            .map(|f| self.formats.get(&f.cl_image_format).unwrap())
-            .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
-            .any(|f| *f & cl_mem_flags::from(CL_MEM_WRITE_ONLY) == 0)
-    }
-
-    pub fn image_write_count(&self) -> cl_uint {
-        self.shader_param(pipe_shader_cap::PIPE_SHADER_CAP_MAX_SHADER_IMAGES) as cl_uint
+        self.caps.has_images
+            && !FORMATS
+                .iter()
+                .filter(|f| f.req_for_full_read_or_write)
+                .map(|f| self.formats.get(&f.cl_image_format).unwrap())
+                .map(|f| f.get(&CL_MEM_OBJECT_IMAGE3D).unwrap())
+                .any(|f| *f & cl_mem_flags::from(CL_MEM_WRITE_ONLY) == 0)
     }
 
     pub fn little_endian(&self) -> bool {
@@ -1003,10 +1047,6 @@ impl Device {
         self.screen.param(pipe_cap::PIPE_CAP_SYSTEM_SVM) == 1
     }
 
-    pub fn timer_resolution(&self) -> usize {
-        self.screen.param(pipe_cap::PIPE_CAP_TIMER_RESOLUTION) as usize
-    }
-
     pub fn unified_memory(&self) -> bool {
         self.screen.param(pipe_cap::PIPE_CAP_UMA) == 1
     }
@@ -1049,7 +1089,7 @@ impl Device {
             fp16: self.fp16_supported(),
             fp64: self.fp64_supported(),
             int64: self.int64_supported(),
-            images: self.image_supported(),
+            images: self.caps.has_images,
             images_read_write: self.image_read_write_supported(),
             images_write_3d: self.image_3d_write_supported(),
             integer_dot_product: true,

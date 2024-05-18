@@ -146,10 +146,6 @@ spec@!opengl 1.0@depth-clear-precision-check@depth32,Fail
 spec@!opengl 1.0@depth-clear-precision-check@depth24_stencil8,Fail
 spec@!opengl 1.0@depth-clear-precision-check,Fail
 
-# MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
-spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
-spec@!opengl 2.0@gl-2.0-edgeflag,Crash
-
 spec@!opengl 1.0@rasterpos,Crash
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 
@@ -160,22 +156,12 @@ spec@!opengl 1.1@depthstencil-default_fb-drawpixels-32f_24_8_rev samples=4,Fail
 spec@!opengl 1.1@depthstencil-default_fb-drawpixels-float-and-ushort samples=2,Fail
 spec@!opengl 1.1@depthstencil-default_fb-readpixels-32f_24_8_rev samples=2,Fail
 
-spec@!opengl 1.1@line-smooth-stipple,Fail
-
-spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
-spec@!opengl 1.1@linestipple@Line strip,Fail
-spec@!opengl 1.1@linestipple@Line loop,Fail
-spec@!opengl 1.1@linestipple@Factor 2x,Fail
-spec@!opengl 1.1@linestipple@Factor 3x,Fail
-spec@!opengl 1.1@linestipple,Fail
-
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@ppgtt_memory_alignment,Crash
 
 spec@!opengl 1.4@copy-pixels,Fail
 
 spec@!opengl 2.0@max-samplers border,Fail
-spec@!opengl 2.1@polygon-stipple-fs,Fail
 
 spec@!opengl 3.0@clearbuffer-depth,Fail
 spec@!opengl 3.0@clearbuffer-stencil,Fail
@@ -345,4 +331,5 @@ spec@arb_uniform_buffer_object@execution@std140-array-struct-array-struct,Fail
 
 # uprev Piglit in Mesa
 spec@glsl-1.40@uniform_buffer@two-stages,Fail
-
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail

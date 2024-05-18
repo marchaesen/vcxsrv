@@ -925,13 +925,6 @@ vtest_init_renderer_info(struct vtest *vtest)
 {
    struct vn_renderer_info *info = &vtest->base.info;
 
-   info->drm.has_primary = false;
-   info->drm.primary_major = 0;
-   info->drm.primary_minor = 0;
-   info->drm.has_render = false;
-   info->drm.render_major = 0;
-   info->drm.render_minor = 0;
-
    info->pci.vendor_id = VTEST_PCI_VENDOR_ID;
    info->pci.device_id = VTEST_PCI_DEVICE_ID;
 

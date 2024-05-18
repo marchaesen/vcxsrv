@@ -1868,6 +1868,7 @@ label_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
       if (!ctx.program->needs_wqm)
          ctx.info[instr->definitions[0].tempId()].set_constant(ctx.program->gfx_level, 0u);
       break;
+   case aco_opcode::v_mul_f64_e64:
    case aco_opcode::v_mul_f64: ctx.info[instr->definitions[0].tempId()].set_mul(instr.get()); break;
    case aco_opcode::v_mul_f16:
    case aco_opcode::v_mul_f32:
@@ -3298,7 +3299,8 @@ combine_clamp(opt_ctx& ctx, aco_ptr<Instruction>& instr, aco_opcode min, aco_opc
 void
 apply_sgprs(opt_ctx& ctx, aco_ptr<Instruction>& instr)
 {
-   bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64 ||
+   bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64_e64 ||
+                     instr->opcode == aco_opcode::v_lshlrev_b64 ||
                      instr->opcode == aco_opcode::v_lshrrev_b64 ||
                      instr->opcode == aco_opcode::v_ashrrev_i64;
 
@@ -4242,7 +4244,8 @@ combine_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
                 instr->opcode == aco_opcode::v_subrev_f32;
    bool mad16 = instr->opcode == aco_opcode::v_add_f16 || instr->opcode == aco_opcode::v_sub_f16 ||
                 instr->opcode == aco_opcode::v_subrev_f16;
-   bool mad64 = instr->opcode == aco_opcode::v_add_f64;
+   bool mad64 =
+      instr->opcode == aco_opcode::v_add_f64_e64 || instr->opcode == aco_opcode::v_add_f64;
    if (is_add_mix || mad16 || mad32 || mad64) {
       Instruction* mul_instr = nullptr;
       unsigned add_op_idx = 0;
@@ -5075,7 +5078,8 @@ select_instruction(opt_ctx& ctx, aco_ptr<Instruction>& instr)
    }
 
    /* don't go over the constant bus limit */
-   bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64 ||
+   bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64_e64 ||
+                     instr->opcode == aco_opcode::v_lshlrev_b64 ||
                      instr->opcode == aco_opcode::v_lshrrev_b64 ||
                      instr->opcode == aco_opcode::v_ashrrev_i64;
    unsigned const_bus_limit = instr->isVALU() ? 1 : UINT32_MAX;
@@ -5378,7 +5382,7 @@ apply_literals(opt_ctx& ctx, aco_ptr<Instruction>& instr)
       }
    }
 
-   if (instr->isSOPC())
+   if (instr->isSOPC() && ctx.program->gfx_level < GFX12)
       try_convert_sopc_to_sopk(instr);
 
    /* allow more s_addk_i32 optimizations if carry isn't used */

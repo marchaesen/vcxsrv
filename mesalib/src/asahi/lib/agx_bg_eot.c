@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: MIT
  */
 
-#include "agx_meta.h"
+#include "agx_bg_eot.h"
 #include "agx_compile.h"
 #include "agx_device.h" /* for AGX_MEMORY_TYPE_SHADER */
 #include "agx_nir_passes.h"
@@ -26,10 +26,10 @@ lower_tex_handle_to_u0(nir_builder *b, nir_intrinsic_instr *intr, void *data)
    return true;
 }
 
-static struct agx_meta_shader *
-agx_compile_meta_shader(struct agx_meta_cache *cache, nir_shader *shader,
-                        struct agx_shader_key *key,
-                        struct agx_tilebuffer_layout *tib)
+static struct agx_bg_eot_shader *
+agx_compile_bg_eot_shader(struct agx_bg_eot_cache *cache, nir_shader *shader,
+                          struct agx_shader_key *key,
+                          struct agx_tilebuffer_layout *tib)
 {
    agx_nir_lower_texture(shader);
    agx_preprocess_nir(shader, cache->dev->libagx);
@@ -46,7 +46,7 @@ agx_compile_meta_shader(struct agx_meta_cache *cache, nir_shader *shader,
 
    key->libagx = cache->dev->libagx;
 
-   struct agx_meta_shader *res = rzalloc(cache->ht, struct agx_meta_shader);
+   struct agx_bg_eot_shader *res = rzalloc(cache->ht, struct agx_bg_eot_shader);
    struct agx_shader_part bin;
    agx_compile_shader_nir(shader, key, NULL, &bin);
 
@@ -60,10 +60,10 @@ agx_compile_meta_shader(struct agx_meta_cache *cache, nir_shader *shader,
 }
 
 static nir_def *
-build_background_op(nir_builder *b, enum agx_meta_op op, unsigned rt,
+build_background_op(nir_builder *b, enum agx_bg_eot_op op, unsigned rt,
                     unsigned nr, bool msaa, bool layered)
 {
-   if (op == AGX_META_OP_LOAD) {
+   if (op == AGX_BG_LOAD) {
       nir_def *coord = nir_u2u32(b, nir_load_pixel_coord(b));
 
       if (layered) {
@@ -99,15 +99,15 @@ build_background_op(nir_builder *b, enum agx_meta_op op, unsigned rt,
 
       return nir_trim_vector(b, &tex->def, nr);
    } else {
-      assert(op == AGX_META_OP_CLEAR);
+      assert(op == AGX_BG_CLEAR);
 
       return nir_load_preamble(b, nr, 32, 4 + (rt * 8));
    }
 }
 
-static struct agx_meta_shader *
-agx_build_background_shader(struct agx_meta_cache *cache,
-                            struct agx_meta_key *key)
+static struct agx_bg_eot_shader *
+agx_build_background_shader(struct agx_bg_eot_cache *cache,
+                            struct agx_bg_eot_key *key)
 {
    nir_builder b = nir_builder_init_simple_shader(
       MESA_SHADER_FRAGMENT, &agx_nir_options, "agx_background");
@@ -119,7 +119,7 @@ agx_build_background_shader(struct agx_meta_cache *cache,
    };
 
    for (unsigned rt = 0; rt < ARRAY_SIZE(key->op); ++rt) {
-      if (key->op[rt] == AGX_META_OP_NONE)
+      if (key->op[rt] == AGX_BG_EOT_NONE)
          continue;
 
       unsigned nr = util_format_get_nr_components(key->tib.logical_format[rt]);
@@ -137,12 +137,12 @@ agx_build_background_shader(struct agx_meta_cache *cache,
       b.shader->info.outputs_written |= BITFIELD64_BIT(FRAG_RESULT_DATA0 + rt);
    }
 
-   return agx_compile_meta_shader(cache, b.shader, &compiler_key, &key->tib);
+   return agx_compile_bg_eot_shader(cache, b.shader, &compiler_key, &key->tib);
 }
 
-static struct agx_meta_shader *
-agx_build_end_of_tile_shader(struct agx_meta_cache *cache,
-                             struct agx_meta_key *key)
+static struct agx_bg_eot_shader *
+agx_build_end_of_tile_shader(struct agx_bg_eot_cache *cache,
+                             struct agx_bg_eot_key *key)
 {
    nir_builder b = nir_builder_init_simple_shader(MESA_SHADER_COMPUTE,
                                                   &agx_nir_options, "agx_eot");
@@ -151,7 +151,7 @@ agx_build_end_of_tile_shader(struct agx_meta_cache *cache,
       (key->tib.nr_samples > 1) ? GLSL_SAMPLER_DIM_MS : GLSL_SAMPLER_DIM_2D;
 
    for (unsigned rt = 0; rt < ARRAY_SIZE(key->op); ++rt) {
-      if (key->op[rt] == AGX_META_OP_NONE)
+      if (key->op[rt] == AGX_BG_EOT_NONE)
          continue;
 
       /* The end-of-tile shader is unsuitable to handle spilled render targets.
@@ -161,7 +161,7 @@ agx_build_end_of_tile_shader(struct agx_meta_cache *cache,
       if (key->tib.spilled[rt])
          continue;
 
-      assert(key->op[rt] == AGX_META_OP_STORE);
+      assert(key->op[rt] == AGX_EOT_STORE);
       unsigned offset_B = agx_tilebuffer_offset_B(&key->tib, rt);
 
       nir_def *layer = nir_undef(&b, 1, 16);
@@ -178,20 +178,21 @@ agx_build_end_of_tile_shader(struct agx_meta_cache *cache,
       .reserved_preamble = key->reserved_preamble,
    };
 
-   return agx_compile_meta_shader(cache, b.shader, &compiler_key, NULL);
+   return agx_compile_bg_eot_shader(cache, b.shader, &compiler_key, NULL);
 }
 
-struct agx_meta_shader *
-agx_get_meta_shader(struct agx_meta_cache *cache, struct agx_meta_key *key)
+struct agx_bg_eot_shader *
+agx_get_bg_eot_shader(struct agx_bg_eot_cache *cache,
+                      struct agx_bg_eot_key *key)
 {
    struct hash_entry *ent = _mesa_hash_table_search(cache->ht, key);
    if (ent)
       return ent->data;
 
-   struct agx_meta_shader *ret = NULL;
+   struct agx_bg_eot_shader *ret = NULL;
 
    for (unsigned rt = 0; rt < ARRAY_SIZE(key->op); ++rt) {
-      if (key->op[rt] == AGX_META_OP_STORE) {
+      if (key->op[rt] == AGX_EOT_STORE) {
          ret = agx_build_end_of_tile_shader(cache, key);
          break;
       }
@@ -205,18 +206,18 @@ agx_get_meta_shader(struct agx_meta_cache *cache, struct agx_meta_key *key)
    return ret;
 }
 
-DERIVE_HASH_TABLE(agx_meta_key);
+DERIVE_HASH_TABLE(agx_bg_eot_key);
 
 void
-agx_meta_init(struct agx_meta_cache *cache, struct agx_device *dev)
+agx_bg_eot_init(struct agx_bg_eot_cache *cache, struct agx_device *dev)
 {
    agx_pool_init(&cache->pool, dev, AGX_BO_EXEC | AGX_BO_LOW_VA, true);
-   cache->ht = agx_meta_key_table_create(NULL);
+   cache->ht = agx_bg_eot_key_table_create(NULL);
    cache->dev = dev;
 }
 
 void
-agx_meta_cleanup(struct agx_meta_cache *cache)
+agx_bg_eot_cleanup(struct agx_bg_eot_cache *cache)
 {
    agx_pool_cleanup(&cache->pool);
    _mesa_hash_table_destroy(cache->ht, NULL);

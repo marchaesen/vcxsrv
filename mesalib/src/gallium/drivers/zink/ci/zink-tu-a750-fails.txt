@@ -323,10 +323,6 @@ spec@arb_shader_image_load_store@coherency@Vertex-Geometry shader/'volatile' qua
 spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
 spec@arb_tessellation_shader@execution@tcs-input-read-mat,Fail
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec4-index-rd,Crash
 spec@arb_texture_buffer_object@formats (fs- arb),Fail
 spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA16,Fail
 spec@arb_texture_buffer_object@formats (fs- arb)@GL_ALPHA16F_ARB,Fail

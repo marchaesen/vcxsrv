@@ -5,6 +5,8 @@
 
 #include "vn_ring.h"
 
+#include <sys/resource.h>
+
 #include "venus-protocol/vn_protocol_driver_transport.h"
 
 #include "vn_cs.h"
@@ -318,8 +320,22 @@ vn_ring_create(struct vn_instance *instance,
    mtx_init(&ring->roundtrip_mutex, mtx_plain);
    ring->roundtrip_next = 1;
 
+   /* VkRingPriorityInfoMESA support requires
+    * VK_MESA_VENUS_PROTOCOL_SPEC_VERSION >= 2  */
+   int prio = 0;
+   bool ring_priority = false;
+   if (instance->renderer->info.vk_mesa_venus_protocol_spec_version >= 2) {
+      errno = 0;
+      prio = getpriority(PRIO_PROCESS, 0);
+      ring_priority = !(prio == -1 && errno);
+   }
+   const struct VkRingPriorityInfoMESA priority_info = {
+      .sType = VK_STRUCTURE_TYPE_RING_PRIORITY_INFO_MESA,
+      .priority = prio,
+   };
    const struct VkRingMonitorInfoMESA monitor_info = {
       .sType = VK_STRUCTURE_TYPE_RING_MONITOR_INFO_MESA,
+      .pNext = ring_priority ? &priority_info : NULL,
       .maxReportingPeriodMicroseconds = VN_WATCHDOG_REPORT_PERIOD_US,
    };
    const struct VkRingCreateInfoMESA info = {

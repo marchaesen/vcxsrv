@@ -183,6 +183,9 @@ get_perf_info(const Program& program, const Instruction& instr)
       case instr_class::valu_double_transcendental:
          return {24, WAIT_USE(valu, 16), WAIT_USE(valu_complex, 16)};
       case instr_class::salu: return {2, WAIT_USE(scalar, 1)};
+      case instr_class::sfpu: return {4, WAIT_USE(scalar, 1)};
+      case instr_class::valu_pseudo_scalar_trans:
+         return {7, WAIT_USE(valu, 1), WAIT_USE(valu_complex, 1)};
       case instr_class::smem: return {0, WAIT_USE(scalar, 1)};
       case instr_class::branch:
       case instr_class::sendmsg: return {0, WAIT_USE(branch_sendmsg, 1)};

@@ -30,7 +30,7 @@ For rendering errors, attach screenshots of the problem and (if possible) of how
 
 - Backtrace (for crashes)
 - Output of `dmesg`
-- Hang reports: Run with `RADV_DEBUG=hang` and attach the files created in `$HOME/radv_dumps_*/`
+- Hang reports: Follow the steps described [here](https://docs.mesa3d.org/drivers/amd/hang-debugging.html#radv-debug-hang) and attach the files created in `$HOME/radv_dumps_*/`.
 
 ### Steps to reproduce
 

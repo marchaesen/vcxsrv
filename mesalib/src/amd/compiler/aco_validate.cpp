@@ -418,7 +418,8 @@ validate_ir(Program* program)
 
             /* check num sgprs for VALU */
             if (instr->isVALU()) {
-               bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64 ||
+               bool is_shift64 = instr->opcode == aco_opcode::v_lshlrev_b64_e64 ||
+                                 instr->opcode == aco_opcode::v_lshlrev_b64 ||
                                  instr->opcode == aco_opcode::v_lshrrev_b64 ||
                                  instr->opcode == aco_opcode::v_ashrrev_i64;
                unsigned const_bus_limit = 1;

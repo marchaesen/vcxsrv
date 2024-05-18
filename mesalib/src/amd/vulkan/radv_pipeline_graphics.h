@@ -562,10 +562,6 @@ radv_normalize_blend_factor(VkBlendOp op, VkBlendFactor *src_factor, VkBlendFact
    }
 }
 
-bool radv_pipeline_has_ngg(const struct radv_graphics_pipeline *pipeline);
-
-bool radv_pipeline_has_gs_copy_shader(const struct radv_pipeline *pipeline);
-
 void radv_blend_remove_dst(VkBlendOp *func, VkBlendFactor *src_factor, VkBlendFactor *dst_factor,
                            VkBlendFactor expected_dst, VkBlendFactor replacement_src);
 

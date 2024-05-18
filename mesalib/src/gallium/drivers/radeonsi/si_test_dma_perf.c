@@ -1,13 +1,12 @@
 /*
- * Copyright 2018 Advanced Micro Devices, Inc.
+ * Copyright 2024 Advanced Micro Devices, Inc.
  *
  * SPDX-License-Identifier: MIT
  */
 
-/* This file implements tests on the si_clearbuffer function. */
-
 #include "si_pipe.h"
 #include "si_query.h"
+#include "util/streaming-load-memcpy.h"
 
 #define MIN_SIZE   512
 #define MAX_SIZE   (128 * 1024 * 1024)
@@ -120,8 +119,7 @@ void si_test_dma_perf(struct si_screen *sscreen)
 
          void *compute_shader = NULL;
          if (test_cs) {
-            compute_shader = si_create_dma_compute_shader(sctx, cs_dwords_per_thread,
-                                              cache_policy == L2_STREAM, is_copy);
+            compute_shader = si_create_dma_compute_shader(sctx, cs_dwords_per_thread, is_copy);
          }
 
          double score = 0;
@@ -193,12 +191,12 @@ void si_test_dma_perf(struct si_screen *sscreen)
                   info.grid[2] = 1;
 
                   struct pipe_shader_buffer sb[2] = {};
-                  sb[0].buffer = dst;
-                  sb[0].buffer_size = size;
+                  sb[is_copy].buffer = dst;
+                  sb[is_copy].buffer_size = size;
 
                   if (is_copy) {
-                     sb[1].buffer = src;
-                     sb[1].buffer_size = size;
+                     sb[0].buffer = src;
+                     sb[0].buffer_size = size;
                   } else {
                      for (unsigned i = 0; i < 4; i++)
                         sctx->cs_user_data[i] = clear_value;
@@ -429,5 +427,112 @@ void si_test_dma_perf(struct si_screen *sscreen)
    puts("}");
 
    ctx->destroy(ctx);
+   exit(0);
+}
+
+void
+si_test_mem_perf(struct si_screen *sscreen)
+{
+   struct radeon_winsys *ws = sscreen->ws;
+   const size_t buffer_size = 16 * 1024 * 1024;
+   const enum radeon_bo_domain domains[] = { 0, RADEON_DOMAIN_VRAM, RADEON_DOMAIN_GTT };
+   const uint64_t flags[] = { 0, RADEON_FLAG_GTT_WC };
+   const int n_loops = 2;
+   char *title[] = { "Write To", "Read From", "Stream From" };
+   char *domain_str[] = { "RAM", "VRAM", "GTT" };
+
+   for (int i = 0; i < 3; i++) {
+      printf("| %12s", title[i]);
+
+      printf(" | Size (kB) | Flags |");
+      for (int l = 0; l < n_loops; l++)
+          printf(" Run %d (MB/s) |", l + 1);
+      printf("\n");
+
+      printf("|--------------|-----------|-------|");
+      for (int l = 0; l < n_loops; l++)
+          printf("--------------|");
+      printf("\n");
+      for (int j = 0; j < ARRAY_SIZE(domains); j++) {
+         enum radeon_bo_domain domain = domains[j];
+         for (int k = 0; k < ARRAY_SIZE(flags); k++) {
+            if (k && domain != RADEON_DOMAIN_GTT)
+               continue;
+
+            struct pb_buffer_lean *bo = NULL;
+            void *ptr = NULL;
+
+            if (domains[j]) {
+               bo = ws->buffer_create(ws, buffer_size, 4096, domains[j],
+                                      RADEON_FLAG_NO_INTERPROCESS_SHARING | RADEON_FLAG_NO_SUBALLOC |
+                                      flags[k]);
+               if (!bo)
+                  continue;
+
+               ptr = ws->buffer_map(ws, bo, NULL, RADEON_MAP_TEMPORARY | (i ? PIPE_MAP_READ : PIPE_MAP_WRITE));
+               if (!ptr) {
+                  radeon_bo_reference(ws, &bo, NULL);
+                  continue;
+               }
+            } else {
+               ptr = malloc(buffer_size);
+            }
+
+            printf("| %12s |", domain_str[j]);
+
+            printf("%10zu |", buffer_size / 1024);
+
+            printf(" %5s |", domain == RADEON_DOMAIN_VRAM ? "(WC)" : (k == 0 ? "" : "WC "));
+
+            int *cpu = calloc(1, buffer_size);
+            memset(cpu, 'c', buffer_size);
+            fflush(stdout);
+
+            int64_t before, after;
+
+            for (int loop = 0; loop < n_loops; loop++) {
+               before = os_time_get_nano();
+
+               switch (i) {
+               case 0:
+                  memcpy(ptr, cpu, buffer_size);
+                  break;
+               case 1:
+                  memcpy(cpu, ptr, buffer_size);
+                  break;
+               case 2:
+               default:
+                  util_streaming_load_memcpy(cpu, ptr, buffer_size);
+                  break;
+               }
+
+               after = os_time_get_nano();
+
+               /* Pretend to do something with the result to make sure it's
+                * not skipped.
+                */
+               if (debug_get_num_option("AMD_DEBUG", 0) == 0x123)
+                   assert(memcmp(ptr, cpu, buffer_size));
+
+               float dt = (after - before) / (1000000000.0);
+               float bandwidth = (buffer_size / (1024 * 1024)) / dt;
+
+               printf("%13.3f |", bandwidth);
+            }
+            printf("\n");
+
+            free(cpu);
+            if (bo) {
+               ws->buffer_unmap(ws, bo);
+               radeon_bo_reference(ws, &bo, NULL);
+            } else {
+               free(ptr);
+            }
+         }
+      }
+      printf("\n");
+   }
+
+
    exit(0);
 }

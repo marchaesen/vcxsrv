@@ -126,9 +126,7 @@ static const struct debug_named_value test_options[] = {
    {"testvmfaultcp", DBG(TEST_VMFAULT_CP), "Invoke a CP VM fault test and exit."},
    {"testvmfaultshader", DBG(TEST_VMFAULT_SHADER), "Invoke a shader VM fault test and exit."},
    {"testdmaperf", DBG(TEST_DMA_PERF), "Test DMA performance"},
-   {"testgds", DBG(TEST_GDS), "Test GDS."},
-   {"testgdsmm", DBG(TEST_GDS_MM), "Test GDS memory management."},
-   {"testgdsoamm", DBG(TEST_GDS_OA_MM), "Test GDS OA memory management."},
+   {"testmemperf", DBG(TEST_MEM_PERF), "Test map + memcpy perf using the winsys."},
 
    DEBUG_NAMED_VALUE_END /* must be last */
 };
@@ -1089,38 +1087,6 @@ static void si_test_vmfault(struct si_screen *sscreen, uint64_t test_flags)
    exit(0);
 }
 
-static void si_test_gds_memory_management(struct si_context *sctx, unsigned alloc_size,
-                                          unsigned alignment, enum radeon_bo_domain domain)
-{
-   struct radeon_winsys *ws = sctx->ws;
-   struct radeon_cmdbuf cs[8];
-   struct pb_buffer_lean *gds_bo[ARRAY_SIZE(cs)];
-
-   for (unsigned i = 0; i < ARRAY_SIZE(cs); i++) {
-      ws->cs_create(&cs[i], sctx->ctx, AMD_IP_COMPUTE, NULL, NULL);
-      gds_bo[i] = ws->buffer_create(ws, alloc_size, alignment, domain, 0);
-      assert(gds_bo[i]);
-   }
-
-   for (unsigned iterations = 0; iterations < 20000; iterations++) {
-      for (unsigned i = 0; i < ARRAY_SIZE(cs); i++) {
-         /* This clears GDS with CP DMA.
-          *
-          * We don't care if GDS is present. Just add some packet
-          * to make the GPU busy for a moment.
-          */
-         si_cp_dma_clear_buffer(
-            sctx, &cs[i], NULL, 0, alloc_size, 0,
-            SI_OP_CPDMA_SKIP_CHECK_CS_SPACE, 0,
-            0);
-
-         ws->cs_add_buffer(&cs[i], gds_bo[i], RADEON_USAGE_READWRITE, domain);
-         ws->cs_flush(&cs[i], PIPE_FLUSH_ASYNC, NULL);
-      }
-   }
-   exit(0);
-}
-
 static void si_disk_cache_create(struct si_screen *sscreen)
 {
    /* Don't use the cache if shader dumping is enabled. */
@@ -1537,22 +1503,11 @@ static struct pipe_screen *radeonsi_screen_create_impl(struct radeon_winsys *ws,
       si_test_dma_perf(sscreen);
    }
 
+   if (test_flags & DBG(TEST_MEM_PERF))
+      si_test_mem_perf(sscreen);
+
    if (test_flags & (DBG(TEST_VMFAULT_CP) | DBG(TEST_VMFAULT_SHADER)))
       si_test_vmfault(sscreen, test_flags);
-
-   if (sscreen->info.gfx_level < GFX12) {
-      if (test_flags & DBG(TEST_GDS))
-         si_test_gds((struct si_context *)sscreen->aux_context.general.ctx);
-
-      if (test_flags & DBG(TEST_GDS_MM)) {
-         si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
-                                       32 * 1024, 4, RADEON_DOMAIN_GDS);
-      }
-      if (test_flags & DBG(TEST_GDS_OA_MM)) {
-         si_test_gds_memory_management((struct si_context *)sscreen->aux_context.general.ctx,
-                                       4, 1, RADEON_DOMAIN_OA);
-      }
-   }
 
    ac_print_nonshadowed_regs(sscreen->info.gfx_level, sscreen->info.family);
 

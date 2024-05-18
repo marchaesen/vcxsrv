@@ -182,6 +182,9 @@ struct vk_subpass {
 
    /** VkMultisampledRenderToSingleSampledInfoEXT for this subpass */
    VkMultisampledRenderToSingleSampledInfoEXT mrtss;
+
+   /** True if legacy dithering is enabled for this subpass. */
+   bool legacy_dithering_enabled;
 };
 
 /***/

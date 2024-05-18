@@ -289,6 +289,7 @@ void u_trace_clone_append(struct u_trace_iterator begin_it,
 void u_trace_disable_event_range(struct u_trace_iterator begin_it,
                                  struct u_trace_iterator end_it);
 
+#define U_TRACE_FRAME_UNKNOWN -1
 /**
  * Flush traces to the parent trace-context.  At this point, the expectation
  * is that all the tracepoints are "executed" by the GPU following any
@@ -303,7 +304,10 @@ void u_trace_disable_event_range(struct u_trace_iterator begin_it,
  * This should typically be called when the corresponding cmdstream
  * (containing the timestamp reads) is flushed to the kernel.
  */
-void u_trace_flush(struct u_trace *ut, void *flush_data, bool free_data);
+void u_trace_flush(struct u_trace *ut,
+                   void *flush_data,
+                   uint32_t frame_nr,
+                   bool free_data);
 
 #ifdef HAVE_PERFETTO
 static ALWAYS_INLINE bool

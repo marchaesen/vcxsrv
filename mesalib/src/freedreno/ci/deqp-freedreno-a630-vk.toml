@@ -2,7 +2,7 @@
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 fraction = 60
 renderer_check = "Turnip Adreno .* 630"
 
@@ -11,7 +11,7 @@ renderer_check = "Turnip Adreno .* 630"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 prefix = "gmem-"
 fraction = 150
 [deqp.env]
@@ -21,7 +21,7 @@ TU_DEBUG = "gmem,forcebin"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "gmem-unaligned-"
 fraction = 10
@@ -32,7 +32,7 @@ TU_DEBUG = "gmem,unaligned_store"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass.*"]
 prefix = "bypass-"
 fraction = 30
@@ -43,7 +43,7 @@ TU_DEBUG = "sysmem"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.*"]
 prefix = "spill-"
 fraction = 10
@@ -54,7 +54,7 @@ IR3_SHADER_DEBUG = "spillall"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 include = ["dEQP-VK.renderpass2.*"]
 prefix = "dynamic-"
 fraction = 10
@@ -65,7 +65,7 @@ TU_DEBUG = "dynamic"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt"]
 prefix = "stale-regs-"
 fraction = 200
 [deqp.env]

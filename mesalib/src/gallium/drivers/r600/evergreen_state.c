@@ -2120,7 +2120,8 @@ static void evergreen_emit_vertex_buffers(struct r600_context *rctx,
 {
 	struct radeon_cmdbuf *cs = &rctx->b.gfx.cs;
 	struct r600_fetch_shader *shader = (struct r600_fetch_shader*)rctx->vertex_fetch_shader.cso;
-	uint32_t dirty_mask = state->dirty_mask & shader->buffer_mask;
+	uint32_t buffer_mask = shader ? shader->buffer_mask : ~0;
+	uint32_t dirty_mask = state->dirty_mask & buffer_mask;
 
 	while (dirty_mask) {
 		struct pipe_vertex_buffer *vb;
@@ -2159,7 +2160,7 @@ static void evergreen_emit_vertex_buffers(struct r600_context *rctx,
 		radeon_emit(cs, radeon_add_to_buffer_list(&rctx->b, &rctx->b.gfx, rbuffer,
 						      RADEON_USAGE_READ | RADEON_PRIO_VERTEX_BUFFER));
 	}
-	state->dirty_mask &= ~shader->buffer_mask;
+	state->dirty_mask &= ~buffer_mask;
 }
 
 static void evergreen_fs_emit_vertex_buffers(struct r600_context *rctx, struct r600_atom * atom)

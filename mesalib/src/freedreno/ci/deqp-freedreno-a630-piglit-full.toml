@@ -1,0 +1,7 @@
+[[piglit]]
+piglit_folder = "/piglit"
+profile = "gpu"
+process_isolation = true
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-skips.txt"]
+  [piglit.env]
+  PIGLIT_NO_WINDOW = "1"

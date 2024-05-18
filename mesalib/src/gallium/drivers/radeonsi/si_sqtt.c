@@ -36,10 +36,8 @@ static bool si_sqtt_init_bo(struct si_context *sctx)
                   1 << SQTT_BUFFER_ALIGN_SHIFT);
    size += sctx->sqtt->buffer_size * (uint64_t)max_se;
 
-   sctx->sqtt->pipeline_bos = _mesa_hash_table_u64_create(NULL);
-
    sctx->sqtt->bo =
-      ws->buffer_create(ws, size, 4096, RADEON_DOMAIN_VRAM,
+      ws->buffer_create(ws, size, 4096, RADEON_DOMAIN_GTT,
                         RADEON_FLAG_NO_INTERPROCESS_SHARING |
                            RADEON_FLAG_GTT_WC | RADEON_FLAG_NO_SUBALLOC);
    if (!sctx->sqtt->bo)
@@ -457,7 +455,7 @@ static void si_sqtt_start(struct si_context *sctx, struct radeon_cmdbuf *cs)
 
    if (sctx->spm.bo) {
       si_pc_emit_spm_reset(cs);
-      si_pc_emit_shaders(cs, 0x7f);
+      si_pc_emit_shaders(cs, ac_sqtt_get_shader_mask(&sctx->screen->info));
       si_emit_spm_setup(sctx, cs);
    }
 
@@ -562,11 +560,28 @@ static void si_end_sqtt(struct si_context *sctx, struct radeon_cmdbuf *rcs)
    sctx->ws->cs_flush(cs, 0, &sctx->last_sqtt_fence);
 }
 
+static bool
+si_sqtt_resize_bo(struct si_context *sctx)
+{
+   /* Destroy the previous thread trace BO. */
+   struct pb_buffer_lean *bo = sctx->sqtt->bo;
+   radeon_bo_reference(sctx->screen->ws, &bo, NULL);
+
+   /* Double the size of the thread trace buffer per SE. */
+   sctx->sqtt->buffer_size *= 2;
+
+   fprintf(stderr,
+           "Failed to get the thread trace because the buffer "
+           "was too small, resizing to %d KB\n",
+           sctx->sqtt->buffer_size / 1024);
+
+   /* Re-create the thread trace BO. */
+   return si_sqtt_init_bo(sctx);
+}
+
 static bool si_get_sqtt_trace(struct si_context *sctx,
                               struct ac_sqtt_trace *sqtt)
 {
-   unsigned max_se = sctx->screen->info.max_se;
-
    memset(sqtt, 0, sizeof(*sqtt));
 
    sctx->sqtt->ptr =
@@ -576,34 +591,17 @@ static bool si_get_sqtt_trace(struct si_context *sctx,
       return false;
 
    if (!ac_sqtt_get_trace(sctx->sqtt, &sctx->screen->info, sqtt)) {
-      void *sqtt_ptr = sctx->sqtt->ptr;
-
-      for (unsigned se = 0; se < max_se; se++) {
-         uint64_t info_offset = ac_sqtt_get_info_offset(se);
-         void *info_ptr = sqtt_ptr + info_offset;
-         struct ac_sqtt_data_info *info = (struct ac_sqtt_data_info *)info_ptr;
-
-         if (ac_sqtt_se_is_disabled(&sctx->screen->info, se))
-            continue;
-
-         if (!ac_is_sqtt_complete(&sctx->screen->info, sctx->sqtt, info)) {
-            uint32_t expected_size =
-               ac_get_expected_buffer_size(&sctx->screen->info, info);
-            uint32_t available_size = (info->cur_offset * 32) / 1024;
-
-            fprintf(stderr,
-                    "Failed to get the thread trace "
-                    "because the buffer is too small. The "
-                    "hardware needs %d KB but the "
-                    "buffer size is %d KB.\n",
-                    expected_size, available_size);
-            fprintf(stderr, "Please update the buffer size with "
-                            "AMD_THREAD_TRACE_BUFFER_SIZE=<size_in_kbytes>\n");
-            return false;
+      if (!si_sqtt_resize_bo(sctx)) {
+         fprintf(stderr, "radeonsi: Failed to resize the SQTT buffer.\n");
+      } else {
+         for (int i = 0; i < ARRAY_SIZE(sctx->sqtt->start_cs); i++) {
+            sctx->screen->ws->cs_destroy(sctx->sqtt->start_cs[i]);
+            sctx->screen->ws->cs_destroy(sctx->sqtt->stop_cs[i]);
          }
+         si_sqtt_init_cs(sctx);
       }
+      return false;
    }
-
    return true;
 }
 
@@ -649,6 +647,8 @@ bool si_init_sqtt(struct si_context *sctx)
 
    if (!si_sqtt_init_bo(sctx))
       return false;
+
+   sctx->sqtt->pipeline_bos = _mesa_hash_table_u64_create(NULL);
 
    ac_sqtt_init(sctx->sqtt);
 
@@ -795,6 +795,9 @@ void si_handle_sqtt(struct si_context *sctx, struct radeon_cmdbuf *rcs)
             sctx->ws->buffer_unmap(sctx->ws, sctx->spm.bo);
       } else {
          fprintf(stderr, "Failed to read the trace\n");
+         if (!sctx->sqtt->trigger_file) {
+            sctx->sqtt->start_frame = num_frames + 10;
+         }
       }
    }
 
@@ -1043,7 +1046,7 @@ si_sqtt_add_code_object(struct si_context *sctx,
    record->pipeline_hash[0] = pipeline->code_hash;
    record->pipeline_hash[1] = pipeline->code_hash;
 
-   for (unsigned i = 0; i < PIPE_SHADER_TYPES; i++) {
+   for (unsigned i = 0; i < MESA_VULKAN_SHADER_STAGES; i++) {
       struct si_shader *shader;
       enum rgp_hardware_stages hw_stage;
 
@@ -1052,7 +1055,7 @@ si_sqtt_add_code_object(struct si_context *sctx,
             continue;
          shader = &sctx->cs_shader_state.program->shader;
          hw_stage = RGP_HW_STAGE_CS;
-      } else if (i != PIPE_SHADER_COMPUTE) {
+      } else if (i <= PIPE_SHADER_FRAGMENT) {
          if (!sctx->shaders[i].cso || !sctx->shaders[i].current)
             continue;
          shader = sctx->shaders[i].current;
@@ -1069,21 +1072,25 @@ si_sqtt_add_code_object(struct si_context *sctx,
       memcpy(code, shader->binary.uploaded_code, shader->binary.uploaded_code_size);
 
       uint64_t va = pipeline->bo->gpu_address + pipeline->offset[i];
-      unsigned gl_shader_stage = tgsi_processor_to_shader_stage(i);
-      record->shader_data[gl_shader_stage].hash[0] = _mesa_hash_data(code, shader->binary.uploaded_code_size);
-      record->shader_data[gl_shader_stage].hash[1] = record->shader_data[gl_shader_stage].hash[0];
-      record->shader_data[gl_shader_stage].code_size = shader->binary.uploaded_code_size;
-      record->shader_data[gl_shader_stage].code = code;
-      record->shader_data[gl_shader_stage].vgpr_count = shader->config.num_vgprs;
-      record->shader_data[gl_shader_stage].sgpr_count = shader->config.num_sgprs;
-      record->shader_data[gl_shader_stage].base_address = va & 0xffffffffffff;
-      record->shader_data[gl_shader_stage].elf_symbol_offset = 0;
-      record->shader_data[gl_shader_stage].hw_stage = hw_stage;
-      record->shader_data[gl_shader_stage].is_combined = false;
-      record->shader_data[gl_shader_stage].scratch_memory_size = shader->config.scratch_bytes_per_wave;
-      record->shader_data[gl_shader_stage].wavefront_size = shader->wave_size;
+      unsigned lds_increment = sctx->gfx_level >= GFX11 && i == MESA_SHADER_FRAGMENT ?
+         1024 : sctx->screen->info.lds_encode_granularity;
 
-      record->shader_stages_mask |= 1 << gl_shader_stage;
+      memset(record->shader_data[i].rt_shader_name, 0, sizeof(record->shader_data[i].rt_shader_name));
+      record->shader_data[i].hash[0] = _mesa_hash_data(code, shader->binary.uploaded_code_size);
+      record->shader_data[i].hash[1] = record->shader_data[i].hash[0];
+      record->shader_data[i].code_size = shader->binary.uploaded_code_size;
+      record->shader_data[i].code = code;
+      record->shader_data[i].vgpr_count = shader->config.num_vgprs;
+      record->shader_data[i].sgpr_count = shader->config.num_sgprs;
+      record->shader_data[i].base_address = va & 0xffffffffffff;
+      record->shader_data[i].elf_symbol_offset = 0;
+      record->shader_data[i].hw_stage = hw_stage;
+      record->shader_data[i].is_combined = false;
+      record->shader_data[i].scratch_memory_size = shader->config.scratch_bytes_per_wave;
+      record->shader_data[i].lds_size = shader->config.lds_size * lds_increment;
+      record->shader_data[i].wavefront_size = shader->wave_size;
+
+      record->shader_stages_mask |= 1 << i;
       record->num_shaders_combined++;
    }
 

@@ -134,13 +134,26 @@ a618_piglit:
   extends:
     - .lava-test-deqp:arm64
     - .lava-sc7180-trogdor-lazor-limozeen:arm64
-    - .collabora-freedreno-rules
     # Note that piglit has GL+VK integration testing.
     - .collabora-freedreno-turnip-rules
   variables:
     DEQP_SUITE: freedreno-a618-piglit
     FLAKES_CHANNEL: "#freedreno-ci"
     HWCI_START_WESTON: 1
+
+a618_piglit_full:
+  extends:
+    - .lava-test-deqp:arm64
+    - .lava-sc7180-trogdor-lazor-limozeen:arm64
+    # Note that piglit has GL+VK integration testing.
+    - .collabora-freedreno-turnip-manual-rules
+  timeout: 60m
+  variables:
+    DEQP_SUITE: freedreno-a618-piglit-full
+    FLAKES_CHANNEL: "#freedreno-ci"
+    HWCI_START_WESTON: 1
+    JOB_TIMEOUT: 60
+    TEST_PHASE_TIMEOUT: 60
 
 a618-traces:
   extends:
@@ -271,6 +284,18 @@ a630_piglit:
   variables:
     HWCI_START_WESTON: 1
     DEQP_SUITE: freedreno-a630-piglit
+
+a630_piglit_full:
+  extends:
+    - .baremetal-deqp-test
+    - .a630-test
+    # Note that piglit has GL+VK integration testing.
+    - .google-freedreno-turnip-manual-rules
+  timeout: 60m
+  variables:
+    HWCI_START_WESTON: 1
+    DEQP_SUITE: freedreno-a630-piglit-full
+    TEST_PHASE_TIMEOUT: 60
 
 a630-traces:
   extends:

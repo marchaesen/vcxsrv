@@ -24,80 +24,14 @@
 #include "util/format_srgb.h"
 #include "util/half_float.h"
 #include "ac_drm_fourcc.h"
+#include "ac_formats.h"
 
 uint32_t
 radv_translate_buffer_dataformat(const struct util_format_description *desc, int first_non_void)
 {
-   unsigned type;
-   int i;
-
    assert(util_format_get_num_planes(desc->format) == 1);
 
-   if (desc->format == PIPE_FORMAT_R11G11B10_FLOAT)
-      return V_008F0C_BUF_DATA_FORMAT_10_11_11;
-
-   if (first_non_void < 0)
-      return V_008F0C_BUF_DATA_FORMAT_INVALID;
-   type = desc->channel[first_non_void].type;
-
-   if (type == UTIL_FORMAT_TYPE_FIXED)
-      return V_008F0C_BUF_DATA_FORMAT_INVALID;
-   if (desc->nr_channels == 4 && desc->channel[0].size == 10 && desc->channel[1].size == 10 &&
-       desc->channel[2].size == 10 && desc->channel[3].size == 2)
-      return V_008F0C_BUF_DATA_FORMAT_2_10_10_10;
-
-   /* See whether the components are of the same size. */
-   for (i = 0; i < desc->nr_channels; i++) {
-      if (desc->channel[first_non_void].size != desc->channel[i].size)
-         return V_008F0C_BUF_DATA_FORMAT_INVALID;
-   }
-
-   switch (desc->channel[first_non_void].size) {
-   case 8:
-      switch (desc->nr_channels) {
-      case 1:
-         return V_008F0C_BUF_DATA_FORMAT_8;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_8_8;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_8_8_8_8;
-      }
-      break;
-   case 16:
-      switch (desc->nr_channels) {
-      case 1:
-         return V_008F0C_BUF_DATA_FORMAT_16;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_16_16;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_16_16_16_16;
-      }
-      break;
-   case 32:
-      /* From the Southern Islands ISA documentation about MTBUF:
-       * 'Memory reads of data in memory that is 32 or 64 bits do not
-       * undergo any format conversion.'
-       */
-      if (type != UTIL_FORMAT_TYPE_FLOAT && !desc->channel[first_non_void].pure_integer)
-         return V_008F0C_BUF_DATA_FORMAT_INVALID;
-
-      switch (desc->nr_channels) {
-      case 1:
-         return V_008F0C_BUF_DATA_FORMAT_32;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_32_32;
-      case 3:
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32_32;
-      }
-      break;
-   case 64:
-      if (type != UTIL_FORMAT_TYPE_FLOAT && desc->nr_channels == 1)
-         return V_008F0C_BUF_DATA_FORMAT_32_32;
-   }
-
-   return V_008F0C_BUF_DATA_FORMAT_INVALID;
+   return ac_translate_buffer_dataformat(desc, first_non_void);
 }
 
 uint32_t
@@ -105,33 +39,7 @@ radv_translate_buffer_numformat(const struct util_format_description *desc, int 
 {
    assert(util_format_get_num_planes(desc->format) == 1);
 
-   if (desc->format == PIPE_FORMAT_R11G11B10_FLOAT)
-      return V_008F0C_BUF_NUM_FORMAT_FLOAT;
-
-   if (first_non_void < 0)
-      return ~0;
-
-   switch (desc->channel[first_non_void].type) {
-   case UTIL_FORMAT_TYPE_SIGNED:
-      if (desc->channel[first_non_void].normalized)
-         return V_008F0C_BUF_NUM_FORMAT_SNORM;
-      else if (desc->channel[first_non_void].pure_integer)
-         return V_008F0C_BUF_NUM_FORMAT_SINT;
-      else
-         return V_008F0C_BUF_NUM_FORMAT_SSCALED;
-      break;
-   case UTIL_FORMAT_TYPE_UNSIGNED:
-      if (desc->channel[first_non_void].normalized)
-         return V_008F0C_BUF_NUM_FORMAT_UNORM;
-      else if (desc->channel[first_non_void].pure_integer)
-         return V_008F0C_BUF_NUM_FORMAT_UINT;
-      else
-         return V_008F0C_BUF_NUM_FORMAT_USCALED;
-      break;
-   case UTIL_FORMAT_TYPE_FLOAT:
-   default:
-      return V_008F0C_BUF_NUM_FORMAT_FLOAT;
-   }
+   return ac_translate_buffer_numformat(desc, first_non_void);
 }
 
 static bool
@@ -530,20 +438,61 @@ radv_is_storage_image_format_supported(const struct radv_physical_device *pdev, 
    }
 }
 
+static bool
+radv_is_buffer_dataformat_supported(const struct util_format_description *desc, int first_non_void)
+{
+   uint32_t data_format, type;
+
+   data_format = ac_translate_buffer_dataformat(desc, first_non_void);
+   if (data_format == V_008F0C_BUF_DATA_FORMAT_INVALID)
+      return false;
+
+   assert(first_non_void >= 0);
+
+   type = desc->channel[first_non_void].type;
+
+   if (type == UTIL_FORMAT_TYPE_FIXED)
+      return V_008F0C_BUF_DATA_FORMAT_INVALID;
+
+   if (desc->channel[first_non_void].size <= 16 && desc->nr_channels == 3 &&
+       desc->format != PIPE_FORMAT_R11G11B10_FLOAT)
+      return false;
+
+   /* From the Southern Islands ISA documentation about MTBUF:
+    * 'Memory reads of data in memory that is 32 or 64 bits do not
+    * undergo any format conversion.'
+    */
+   if (desc->channel[first_non_void].size == 32 && type != UTIL_FORMAT_TYPE_FLOAT &&
+       !desc->channel[first_non_void].pure_integer)
+      return false;
+
+   if (desc->channel[first_non_void].size == 64 && (type == UTIL_FORMAT_TYPE_FLOAT || desc->nr_channels != 1))
+      return false;
+
+   return true;
+}
+
 bool
 radv_is_buffer_format_supported(VkFormat format, bool *scaled)
 {
    const struct util_format_description *desc = vk_format_description(format);
-   unsigned data_format, num_format;
+   unsigned num_format;
+
    if (format == VK_FORMAT_UNDEFINED)
       return false;
 
-   data_format = radv_translate_buffer_dataformat(desc, vk_format_get_first_non_void_channel(format));
-   num_format = radv_translate_buffer_numformat(desc, vk_format_get_first_non_void_channel(format));
+   const int first_non_void = vk_format_get_first_non_void_channel(format);
+   if (first_non_void < 0)
+      return false;
 
+   if (!radv_is_buffer_dataformat_supported(desc, first_non_void))
+      return false;
+
+   num_format = radv_translate_buffer_numformat(desc, first_non_void);
    if (scaled)
       *scaled = (num_format == V_008F0C_BUF_NUM_FORMAT_SSCALED) || (num_format == V_008F0C_BUF_NUM_FORMAT_USCALED);
-   return data_format != V_008F0C_BUF_DATA_FORMAT_INVALID && num_format != ~0;
+
+   return true;
 }
 
 bool

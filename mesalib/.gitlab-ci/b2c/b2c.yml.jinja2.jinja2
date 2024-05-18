@@ -5,17 +5,25 @@ target:
   id: '{{ ci_runner_id }}'
 
 timeouts:
+
   first_console_activity:  # This limits the time it can take to receive the first console log
-    minutes: {{ timeout_first_minutes }}
-    retries: {{ timeout_first_retries }}
+    minutes: {{ timeout_first_console_activity_minutes | default(0, true) }}
+    seconds: {{ timeout_first_console_activity_seconds | default(0, true) }}
+    retries: {{ timeout_first_console_activity_retries }}
+
   console_activity:        # Reset every time we receive a message from the logs
-    minutes: {{ timeout_minutes }}
-    retries: {{ timeout_retries }}
+    minutes: {{ timeout_console_activity_minutes | default(0, true) }}
+    seconds: {{ timeout_console_activity_seconds | default(0, true) }}
+    retries: {{ timeout_console_activity_retries }}
+
   boot_cycle:
-    minutes: {{ timeout_boot_minutes }}
+    minutes: {{ timeout_boot_minutes | default(0, true) }}
+    seconds: {{ timeout_boot_seconds | default(0, true) }}
     retries: {{ timeout_boot_retries }}
+
   overall:                 # Maximum time the job can take, not overrideable by the "continue" deployment
-    minutes: {{ timeout_overall_minutes }}
+    minutes: {{ timeout_overall_minutes | default(0, true) }}
+    seconds: {{ timeout_overall_seconds | default(0, true) }}
     retries: 0
     # no retries possible here
 

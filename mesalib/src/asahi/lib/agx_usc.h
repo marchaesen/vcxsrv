@@ -6,20 +6,19 @@
 #pragma once
 
 #include "asahi/genxml/agx_pack.h"
-#include "asahi/lib/pool.h"
 
 /* Opaque structure representing a USC program being constructed */
 struct agx_usc_builder {
-   struct agx_ptr T;
    uint8_t *head;
 
 #ifndef NDEBUG
+   uint8_t *begin;
    size_t size;
 #endif
 };
 
-static struct agx_usc_builder
-agx_alloc_usc_control(struct agx_pool *pool, unsigned num_reg_bindings)
+static inline unsigned
+agx_usc_size(unsigned num_reg_bindings)
 {
    STATIC_ASSERT(AGX_USC_UNIFORM_HIGH_LENGTH == AGX_USC_UNIFORM_LENGTH);
    STATIC_ASSERT(AGX_USC_TEXTURE_LENGTH == AGX_USC_UNIFORM_LENGTH);
@@ -33,24 +32,27 @@ agx_alloc_usc_control(struct agx_pool *pool, unsigned num_reg_bindings)
    size += MAX2(AGX_USC_NO_PRESHADER_LENGTH, AGX_USC_PRESHADER_LENGTH);
    size += AGX_USC_FRAGMENT_PROPERTIES_LENGTH;
 
-   struct agx_usc_builder b = {
-      .T = agx_pool_alloc_aligned(pool, size, 64),
+   return size;
+}
+
+static struct agx_usc_builder
+agx_usc_builder(void *out, ASSERTED size_t size)
+{
+   return (struct agx_usc_builder){
+      .head = out,
 
 #ifndef NDEBUG
+      .begin = out,
       .size = size,
 #endif
    };
-
-   b.head = (uint8_t *)b.T.cpu;
-
-   return b;
 }
 
 static bool
 agx_usc_builder_validate(struct agx_usc_builder *b, size_t size)
 {
 #ifndef NDEBUG
-   assert(((b->head - (uint8_t *)b->T.cpu) + size) <= b->size);
+   assert(((b->head - b->begin) + size) <= b->size);
 #endif
 
    return true;
@@ -91,13 +93,6 @@ agx_usc_uniform(struct agx_usc_builder *b, unsigned start_halfs,
          cfg.buffer = buffer;
       }
    }
-}
-
-static uint32_t
-agx_usc_fini(struct agx_usc_builder *b)
-{
-   assert(b->T.gpu <= (1ull << 32) && "pipelines must be in low memory");
-   return b->T.gpu;
 }
 
 static void

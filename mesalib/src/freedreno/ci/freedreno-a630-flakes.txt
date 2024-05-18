@@ -204,10 +204,6 @@ KHR-GLES31.core.shader_image_load_store.basic-allTargets-atomicFS
 
 KHR-GL46.shader_image_load_store.basic-allTargets-atomic
 
-# intermittently crashing with a sig11, maybe starting around 2023-01-18.
-# One log had the kernel complaining about allocating memory.
-spec@!opengl 1.1@max-texture-size
-
 # First seen 2023-05-05
 gmem-unaligned-dEQP-VK.renderpass.suballocation.load_store_op_none.depthstencil_d32_sfloat_s8_uint_load_op_depth_load_stencil_none_store_op_depth_store_stencil_none_stencil_write_off
 

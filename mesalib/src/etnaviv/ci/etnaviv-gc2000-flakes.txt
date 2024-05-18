@@ -238,3 +238,10 @@ spec@ati_texture_compression_3dc@texwrap formats@GL_COMPRESSED_LUMINANCE_ALPHA_3
 spec@ati_texture_compression_3dc@texwrap formats@GL_COMPRESSED_LUMINANCE_ALPHA_3DC_ATI- swizzled
 spec@glsl-1.10@execution@copy-propagation@glsl-fs-copy-propagation-texcoords-1
 
+# regularly repeated flake
+spec@khr_texture_compression_astc@miptree-gles ldr
+spec@khr_texture_compression_astc@miptree-gles ldr@LDR Profile
+
+# bit more random flakes
+spec@arb_depth_texture@depth-tex-modes
+shaders@glsl-fs-texturecube

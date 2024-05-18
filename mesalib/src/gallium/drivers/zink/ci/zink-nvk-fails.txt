@@ -435,10 +435,6 @@ spec@arb_shading_language_packing@execution@built-in-functions@fs-packhalf2x16,F
 spec@arb_shading_language_packing@execution@built-in-functions@vs-packhalf2x16,Fail
 spec@arb_sync@clientwaitsync-timeout,Fail
 spec@arb_sync@clientwaitsync-timeout@read,Fail
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec4-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-float-index-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec2-index-invalid-rd,Crash
 spec@arb_tessellation_shader@execution@variable-indexing@tes-patch-input-array-vec2-index-rd,Crash

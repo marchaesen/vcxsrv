@@ -126,22 +126,32 @@
 
 # For piglit and skqp test jobs that run both GL and VK tests.
 .google-freedreno-turnip-rules:
+  stage: freedreno
   rules:
     - !reference [.test, rules]
     - !reference [.google-freedreno-rules, rules]
     - !reference [.google-turnip-rules, rules]
 
 .google-freedreno-turnip-manual-rules:
+  stage: freedreno
   rules:
     - !reference [.test, rules]
     - !reference [.google-freedreno-manual-rules, rules]
     - !reference [.google-turnip-manual-rules, rules]
 
 .collabora-freedreno-turnip-rules:
+  stage: freedreno
   rules:
     - !reference [.test, rules]
     - !reference [.collabora-freedreno-rules, rules]
     - !reference [.collabora-turnip-rules, rules]
+
+.collabora-freedreno-turnip-manual-rules:
+  stage: freedreno
+  rules:
+    - !reference [.test, rules]
+    - !reference [.collabora-freedreno-manual-rules, rules]
+    - !reference [.collabora-turnip-manual-rules, rules]
 
 .google-freedreno-rules-restricted:
   stage: freedreno

@@ -566,10 +566,13 @@ tu_get_features(struct tu_physical_device *pdevice,
    /* VK_EXT_image_view_min_lod */
    features->minLod = true;
 
+   /* VK_EXT_legacy_vertex_attributes */
+   features->legacyVertexAttributes = true;
+
    /* VK_EXT_map_memory_placed */
-   features->memoryMapPlaced = true,
-   features->memoryMapRangePlaced = false,
-   features->memoryUnmapReserve = true,
+   features->memoryMapPlaced = true;
+   features->memoryMapRangePlaced = false;
+   features->memoryUnmapReserve = true;
 
    /* VK_EXT_multi_draw */
    features->multiDraw = true;

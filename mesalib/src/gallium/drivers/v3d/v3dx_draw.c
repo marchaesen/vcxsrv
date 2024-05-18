@@ -472,6 +472,230 @@ v3d_emit_tes_gs_shader_params(struct v3d_job *job,
 }
 
 static void
+emit_shader_state_record(struct v3d_context *v3d,
+                         struct v3d_job *job,
+                         const struct pipe_draw_info *info,
+                         struct v3d_vertex_stateobj *vtx,
+                         struct v3d_cl_reloc cs_uniforms,
+                         struct v3d_cl_reloc vs_uniforms,
+                         struct v3d_cl_reloc fs_uniforms,
+                         struct vpm_config *vpm_cfg_bin,
+                         struct vpm_config *vpm_cfg)
+{
+#if V3D_VERSION >= 71
+        /* 2712D0 (V3D 7.1.10) has included draw index and base vertex,
+         * shuffling all the fields in the packet. Since the versioning
+         * framework doesn't handle revision numbers, the XML has a
+         * different shader state record packet including the new fields
+         * and we decide at run time which packet we need to emit.
+         */
+        if (v3d_device_has_draw_index(&v3d->screen->devinfo)) {
+                cl_emit(&job->indirect, GL_SHADER_STATE_RECORD_DRAW_INDEX, shader) {
+                        shader.enable_clipping = true;
+                        shader.point_size_in_shaded_vertex_data =
+                                (info->mode == MESA_PRIM_POINTS &&
+                                 v3d->rasterizer->base.point_size_per_vertex);
+                        shader.fragment_shader_does_z_writes =
+                                v3d->prog.fs->prog_data.fs->writes_z;
+                        shader.turn_off_early_z_test =
+                                v3d->prog.fs->prog_data.fs->disable_ez;
+                        shader.fragment_shader_uses_real_pixel_centre_w_in_addition_to_centroid_w2 =
+                                v3d->prog.fs->prog_data.fs->uses_center_w;
+                        shader.any_shader_reads_hardware_written_primitive_id =
+                                (v3d->prog.gs && v3d->prog.gs->prog_data.gs->uses_pid) ||
+                                v3d->prog.fs->prog_data.fs->uses_pid;
+                        shader.insert_primitive_id_as_first_varying_to_fragment_shader =
+                                !v3d->prog.gs && v3d->prog.fs->prog_data.fs->uses_pid;
+                        shader.do_scoreboard_wait_on_first_thread_switch =
+                                v3d->prog.fs->prog_data.fs->lock_scoreboard_on_first_thrsw;
+                        shader.disable_implicit_point_line_varyings =
+                                !v3d->prog.fs->prog_data.fs->uses_implicit_point_line_varyings;
+                        shader.number_of_varyings_in_fragment_shader =
+                                v3d->prog.fs->prog_data.fs->num_inputs;
+                        shader.coordinate_shader_code_address =
+                                cl_address(v3d_resource(v3d->prog.cs->resource)->bo,
+                                           v3d->prog.cs->offset);
+                        shader.vertex_shader_code_address =
+                                cl_address(v3d_resource(v3d->prog.vs->resource)->bo,
+                                           v3d->prog.vs->offset);
+                        shader.fragment_shader_code_address =
+                                cl_address(v3d_resource(v3d->prog.fs->resource)->bo,
+                                           v3d->prog.fs->offset);
+                        shader.coordinate_shader_input_vpm_segment_size =
+                                v3d->prog.cs->prog_data.vs->vpm_input_size;
+                        shader.vertex_shader_input_vpm_segment_size =
+                                v3d->prog.vs->prog_data.vs->vpm_input_size;
+                        shader.coordinate_shader_output_vpm_segment_size =
+                                v3d->prog.cs->prog_data.vs->vpm_output_size;
+                        shader.vertex_shader_output_vpm_segment_size =
+                                v3d->prog.vs->prog_data.vs->vpm_output_size;
+                        shader.coordinate_shader_uniforms_address = cs_uniforms;
+                        shader.vertex_shader_uniforms_address = vs_uniforms;
+                        shader.fragment_shader_uniforms_address = fs_uniforms;
+                        shader.min_coord_shader_input_segments_required_in_play =
+                                vpm_cfg_bin->As;
+                        shader.min_vertex_shader_input_segments_required_in_play =
+                                vpm_cfg->As;
+                        shader.min_coord_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+                                vpm_cfg_bin->Ve;
+                        shader.min_vertex_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+                                vpm_cfg->Ve;
+                        shader.coordinate_shader_4_way_threadable =
+                                v3d->prog.cs->prog_data.vs->base.threads == 4;
+                        shader.vertex_shader_4_way_threadable =
+                                v3d->prog.vs->prog_data.vs->base.threads == 4;
+                        shader.fragment_shader_4_way_threadable =
+                                v3d->prog.fs->prog_data.fs->base.threads == 4;
+                        shader.coordinate_shader_start_in_final_thread_section =
+                                v3d->prog.cs->prog_data.vs->base.single_seg;
+                        shader.vertex_shader_start_in_final_thread_section =
+                                v3d->prog.vs->prog_data.vs->base.single_seg;
+                        shader.fragment_shader_start_in_final_thread_section =
+                                v3d->prog.fs->prog_data.fs->base.single_seg;
+                        shader.vertex_id_read_by_coordinate_shader =
+                                v3d->prog.cs->prog_data.vs->uses_vid;
+                        shader.instance_id_read_by_coordinate_shader =
+                                v3d->prog.cs->prog_data.vs->uses_iid;
+                        shader.vertex_id_read_by_vertex_shader =
+                                v3d->prog.vs->prog_data.vs->uses_vid;
+                        shader.instance_id_read_by_vertex_shader =
+                                v3d->prog.vs->prog_data.vs->uses_iid;
+                }
+                return;
+        }
+#endif
+
+        assert(!v3d_device_has_draw_index(&v3d->screen->devinfo));
+        cl_emit(&job->indirect, GL_SHADER_STATE_RECORD, shader) {
+                shader.enable_clipping = true;
+                /* V3D_DIRTY_PRIM_MODE | V3D_DIRTY_RASTERIZER */
+                shader.point_size_in_shaded_vertex_data =
+                        (info->mode == MESA_PRIM_POINTS &&
+                         v3d->rasterizer->base.point_size_per_vertex);
+
+                /* Must be set if the shader modifies Z, discards, or modifies
+                 * the sample mask.  For any of these cases, the fragment
+                 * shader needs to write the Z value (even just discards).
+                 */
+                shader.fragment_shader_does_z_writes =
+                        v3d->prog.fs->prog_data.fs->writes_z;
+
+                /* Set if the EZ test must be disabled (due to shader side
+                 * effects and the early_z flag not being present in the
+                 * shader).
+                 */
+                shader.turn_off_early_z_test =
+                        v3d->prog.fs->prog_data.fs->disable_ez;
+
+                shader.fragment_shader_uses_real_pixel_centre_w_in_addition_to_centroid_w2 =
+                        v3d->prog.fs->prog_data.fs->uses_center_w;
+
+                shader.any_shader_reads_hardware_written_primitive_id =
+                        (v3d->prog.gs && v3d->prog.gs->prog_data.gs->uses_pid) ||
+                        v3d->prog.fs->prog_data.fs->uses_pid;
+                shader.insert_primitive_id_as_first_varying_to_fragment_shader =
+                        !v3d->prog.gs && v3d->prog.fs->prog_data.fs->uses_pid;
+
+                shader.do_scoreboard_wait_on_first_thread_switch =
+                        v3d->prog.fs->prog_data.fs->lock_scoreboard_on_first_thrsw;
+                shader.disable_implicit_point_line_varyings =
+                        !v3d->prog.fs->prog_data.fs->uses_implicit_point_line_varyings;
+
+                shader.number_of_varyings_in_fragment_shader =
+                        v3d->prog.fs->prog_data.fs->num_inputs;
+
+                shader.coordinate_shader_code_address =
+                        cl_address(v3d_resource(v3d->prog.cs->resource)->bo,
+                                   v3d->prog.cs->offset);
+                shader.vertex_shader_code_address =
+                        cl_address(v3d_resource(v3d->prog.vs->resource)->bo,
+                                   v3d->prog.vs->offset);
+                shader.fragment_shader_code_address =
+                        cl_address(v3d_resource(v3d->prog.fs->resource)->bo,
+                                   v3d->prog.fs->offset);
+
+#if V3D_VERSION == 42
+                shader.coordinate_shader_propagate_nans = true;
+                shader.vertex_shader_propagate_nans = true;
+                shader.fragment_shader_propagate_nans = true;
+
+                /* XXX: Use combined input/output size flag in the common
+                 * case.
+                 */
+                shader.coordinate_shader_has_separate_input_and_output_vpm_blocks =
+                        v3d->prog.cs->prog_data.vs->separate_segments;
+                shader.vertex_shader_has_separate_input_and_output_vpm_blocks =
+                        v3d->prog.vs->prog_data.vs->separate_segments;
+                shader.coordinate_shader_input_vpm_segment_size =
+                        v3d->prog.cs->prog_data.vs->separate_segments ?
+                        v3d->prog.cs->prog_data.vs->vpm_input_size : 1;
+                shader.vertex_shader_input_vpm_segment_size =
+                        v3d->prog.vs->prog_data.vs->separate_segments ?
+                        v3d->prog.vs->prog_data.vs->vpm_input_size : 1;
+#endif
+                /* On V3D 7.1 there isn't a specific flag to set if we are using
+                 * shared/separate segments or not. We just set the value of
+                 * vpm_input_size to 0, and set output to the max needed. That should be
+                 * already properly set on prog_data_vs_bin
+                 */
+#if V3D_VERSION == 71
+                shader.coordinate_shader_input_vpm_segment_size =
+                        v3d->prog.cs->prog_data.vs->vpm_input_size;
+                shader.vertex_shader_input_vpm_segment_size =
+                        v3d->prog.vs->prog_data.vs->vpm_input_size;
+#endif
+
+                shader.coordinate_shader_output_vpm_segment_size =
+                        v3d->prog.cs->prog_data.vs->vpm_output_size;
+                shader.vertex_shader_output_vpm_segment_size =
+                        v3d->prog.vs->prog_data.vs->vpm_output_size;
+
+                shader.coordinate_shader_uniforms_address = cs_uniforms;
+                shader.vertex_shader_uniforms_address = vs_uniforms;
+                shader.fragment_shader_uniforms_address = fs_uniforms;
+
+                shader.min_coord_shader_input_segments_required_in_play =
+                        vpm_cfg_bin->As;
+                shader.min_vertex_shader_input_segments_required_in_play =
+                        vpm_cfg->As;
+
+                shader.min_coord_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+                        vpm_cfg_bin->Ve;
+                shader.min_vertex_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+                        vpm_cfg->Ve;
+
+                shader.coordinate_shader_4_way_threadable =
+                        v3d->prog.cs->prog_data.vs->base.threads == 4;
+                shader.vertex_shader_4_way_threadable =
+                        v3d->prog.vs->prog_data.vs->base.threads == 4;
+                shader.fragment_shader_4_way_threadable =
+                        v3d->prog.fs->prog_data.fs->base.threads == 4;
+
+                shader.coordinate_shader_start_in_final_thread_section =
+                        v3d->prog.cs->prog_data.vs->base.single_seg;
+                shader.vertex_shader_start_in_final_thread_section =
+                        v3d->prog.vs->prog_data.vs->base.single_seg;
+                shader.fragment_shader_start_in_final_thread_section =
+                        v3d->prog.fs->prog_data.fs->base.single_seg;
+
+                shader.vertex_id_read_by_coordinate_shader =
+                        v3d->prog.cs->prog_data.vs->uses_vid;
+                shader.instance_id_read_by_coordinate_shader =
+                        v3d->prog.cs->prog_data.vs->uses_iid;
+                shader.vertex_id_read_by_vertex_shader =
+                        v3d->prog.vs->prog_data.vs->uses_vid;
+                shader.instance_id_read_by_vertex_shader =
+                        v3d->prog.vs->prog_data.vs->uses_iid;
+
+#if V3D_VERSION == 42
+                shader.address_of_default_attribute_values =
+                        cl_address(v3d_resource(vtx->defaults)->bo,
+                                   vtx->defaults_offset);
+#endif
+        }
+}
+
+static void
 v3d_emit_gl_shader_state(struct v3d_context *v3d,
                          const struct pipe_draw_info *info)
 {
@@ -580,133 +804,9 @@ v3d_emit_gl_shader_state(struct v3d_context *v3d,
                                               vpm_cfg.Gv);
         }
 
-        cl_emit(&job->indirect, GL_SHADER_STATE_RECORD, shader) {
-                shader.enable_clipping = true;
-                /* V3D_DIRTY_PRIM_MODE | V3D_DIRTY_RASTERIZER */
-                shader.point_size_in_shaded_vertex_data =
-                        (info->mode == MESA_PRIM_POINTS &&
-                         v3d->rasterizer->base.point_size_per_vertex);
-
-                /* Must be set if the shader modifies Z, discards, or modifies
-                 * the sample mask.  For any of these cases, the fragment
-                 * shader needs to write the Z value (even just discards).
-                 */
-                shader.fragment_shader_does_z_writes =
-                        v3d->prog.fs->prog_data.fs->writes_z;
-
-                /* Set if the EZ test must be disabled (due to shader side
-                 * effects and the early_z flag not being present in the
-                 * shader).
-                 */
-                shader.turn_off_early_z_test =
-                        v3d->prog.fs->prog_data.fs->disable_ez;
-
-                shader.fragment_shader_uses_real_pixel_centre_w_in_addition_to_centroid_w2 =
-                        v3d->prog.fs->prog_data.fs->uses_center_w;
-
-                shader.any_shader_reads_hardware_written_primitive_id =
-                        (v3d->prog.gs && v3d->prog.gs->prog_data.gs->uses_pid) ||
-                        v3d->prog.fs->prog_data.fs->uses_pid;
-                shader.insert_primitive_id_as_first_varying_to_fragment_shader =
-                        !v3d->prog.gs && v3d->prog.fs->prog_data.fs->uses_pid;
-
-                shader.do_scoreboard_wait_on_first_thread_switch =
-                        v3d->prog.fs->prog_data.fs->lock_scoreboard_on_first_thrsw;
-                shader.disable_implicit_point_line_varyings =
-                        !v3d->prog.fs->prog_data.fs->uses_implicit_point_line_varyings;
-
-                shader.number_of_varyings_in_fragment_shader =
-                        v3d->prog.fs->prog_data.fs->num_inputs;
-
-                shader.coordinate_shader_code_address =
-                        cl_address(v3d_resource(v3d->prog.cs->resource)->bo,
-                                   v3d->prog.cs->offset);
-                shader.vertex_shader_code_address =
-                        cl_address(v3d_resource(v3d->prog.vs->resource)->bo,
-                                   v3d->prog.vs->offset);
-                shader.fragment_shader_code_address =
-                        cl_address(v3d_resource(v3d->prog.fs->resource)->bo,
-                                   v3d->prog.fs->offset);
-
-#if V3D_VERSION == 42
-                shader.coordinate_shader_propagate_nans = true;
-                shader.vertex_shader_propagate_nans = true;
-                shader.fragment_shader_propagate_nans = true;
-
-                /* XXX: Use combined input/output size flag in the common
-                 * case.
-                 */
-                shader.coordinate_shader_has_separate_input_and_output_vpm_blocks =
-                        v3d->prog.cs->prog_data.vs->separate_segments;
-                shader.vertex_shader_has_separate_input_and_output_vpm_blocks =
-                        v3d->prog.vs->prog_data.vs->separate_segments;
-                shader.coordinate_shader_input_vpm_segment_size =
-                        v3d->prog.cs->prog_data.vs->separate_segments ?
-                        v3d->prog.cs->prog_data.vs->vpm_input_size : 1;
-                shader.vertex_shader_input_vpm_segment_size =
-                        v3d->prog.vs->prog_data.vs->separate_segments ?
-                        v3d->prog.vs->prog_data.vs->vpm_input_size : 1;
-#endif
-                /* On V3D 7.1 there isn't a specific flag to set if we are using
-                 * shared/separate segments or not. We just set the value of
-                 * vpm_input_size to 0, and set output to the max needed. That should be
-                 * already properly set on prog_data_vs_bin
-                 */
-#if V3D_VERSION == 71
-                shader.coordinate_shader_input_vpm_segment_size =
-                        v3d->prog.cs->prog_data.vs->vpm_input_size;
-                shader.vertex_shader_input_vpm_segment_size =
-                        v3d->prog.vs->prog_data.vs->vpm_input_size;
-#endif
-
-                shader.coordinate_shader_output_vpm_segment_size =
-                        v3d->prog.cs->prog_data.vs->vpm_output_size;
-                shader.vertex_shader_output_vpm_segment_size =
-                        v3d->prog.vs->prog_data.vs->vpm_output_size;
-
-                shader.coordinate_shader_uniforms_address = cs_uniforms;
-                shader.vertex_shader_uniforms_address = vs_uniforms;
-                shader.fragment_shader_uniforms_address = fs_uniforms;
-
-                shader.min_coord_shader_input_segments_required_in_play =
-                        vpm_cfg_bin.As;
-                shader.min_vertex_shader_input_segments_required_in_play =
-                        vpm_cfg.As;
-
-                shader.min_coord_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
-                        vpm_cfg_bin.Ve;
-                shader.min_vertex_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
-                        vpm_cfg.Ve;
-
-                shader.coordinate_shader_4_way_threadable =
-                        v3d->prog.cs->prog_data.vs->base.threads == 4;
-                shader.vertex_shader_4_way_threadable =
-                        v3d->prog.vs->prog_data.vs->base.threads == 4;
-                shader.fragment_shader_4_way_threadable =
-                        v3d->prog.fs->prog_data.fs->base.threads == 4;
-
-                shader.coordinate_shader_start_in_final_thread_section =
-                        v3d->prog.cs->prog_data.vs->base.single_seg;
-                shader.vertex_shader_start_in_final_thread_section =
-                        v3d->prog.vs->prog_data.vs->base.single_seg;
-                shader.fragment_shader_start_in_final_thread_section =
-                        v3d->prog.fs->prog_data.fs->base.single_seg;
-
-                shader.vertex_id_read_by_coordinate_shader =
-                        v3d->prog.cs->prog_data.vs->uses_vid;
-                shader.instance_id_read_by_coordinate_shader =
-                        v3d->prog.cs->prog_data.vs->uses_iid;
-                shader.vertex_id_read_by_vertex_shader =
-                        v3d->prog.vs->prog_data.vs->uses_vid;
-                shader.instance_id_read_by_vertex_shader =
-                        v3d->prog.vs->prog_data.vs->uses_iid;
-
-#if V3D_VERSION == 42
-                shader.address_of_default_attribute_values =
-                        cl_address(v3d_resource(vtx->defaults)->bo,
-                                   vtx->defaults_offset);
-#endif
-        }
+        emit_shader_state_record(v3d, job, info, vtx,
+                                 cs_uniforms, vs_uniforms, fs_uniforms,
+                                 &vpm_cfg_bin, &vpm_cfg);
 
         bool cs_loaded_any = false;
         const bool cs_uses_builtins = v3d->prog.cs->prog_data.vs->uses_iid ||

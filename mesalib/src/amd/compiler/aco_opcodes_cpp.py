@@ -40,6 +40,11 @@ extern const aco::Info instr_info = {
       ${instructions[name].op.gfx11},
       % endfor
    },
+   {
+      % for name in opcode_names:
+      ${instructions[name].op.gfx12},
+      % endfor
+   },
    std::bitset<${len(opcode_names)}>("${can_use_input_modifiers}"),
    std::bitset<${len(opcode_names)}>("${can_use_output_modifiers}"),
    std::bitset<${len(opcode_names)}>("${is_atomic}"),

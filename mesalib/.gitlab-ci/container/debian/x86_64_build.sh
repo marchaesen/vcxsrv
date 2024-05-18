@@ -85,7 +85,7 @@ python3 -m pip install --break-system-packages -r .gitlab-ci/lava/requirements.t
 
 # install bindgen
 RUSTFLAGS='-L native=/usr/local/lib' cargo install \
-  bindgen-cli --version 0.62.0 \
+  bindgen-cli --version 0.65.1 \
   --locked \
   -j ${FDO_CI_CONCURRENT:-4} \
   --root /usr/local

@@ -18,6 +18,8 @@
 #include "util/u_upload_mgr.h"
 #include "util/u_blend.h"
 
+#include "ac_descriptors.h"
+#include "ac_formats.h"
 #include "gfx10_format_table.h"
 
 static unsigned si_map_swizzle(unsigned swizzle)
@@ -2459,76 +2461,9 @@ static uint32_t si_translate_buffer_dataformat(struct pipe_screen *screen,
                                                const struct util_format_description *desc,
                                                int first_non_void)
 {
-   int i;
-
    assert(((struct si_screen *)screen)->info.gfx_level <= GFX9);
 
-   if (desc->format == PIPE_FORMAT_R11G11B10_FLOAT)
-      return V_008F0C_BUF_DATA_FORMAT_10_11_11;
-
-   assert(first_non_void >= 0);
-
-   if (desc->nr_channels == 4 && desc->channel[0].size == 10 && desc->channel[1].size == 10 &&
-       desc->channel[2].size == 10 && desc->channel[3].size == 2)
-      return V_008F0C_BUF_DATA_FORMAT_2_10_10_10;
-
-   /* See whether the components are of the same size. */
-   for (i = 0; i < desc->nr_channels; i++) {
-      if (desc->channel[first_non_void].size != desc->channel[i].size)
-         return V_008F0C_BUF_DATA_FORMAT_INVALID;
-   }
-
-   switch (desc->channel[first_non_void].size) {
-   case 8:
-      switch (desc->nr_channels) {
-      case 1:
-      case 3: /* 3 loads */
-         return V_008F0C_BUF_DATA_FORMAT_8;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_8_8;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_8_8_8_8;
-      }
-      break;
-   case 16:
-      switch (desc->nr_channels) {
-      case 1:
-      case 3: /* 3 loads */
-         return V_008F0C_BUF_DATA_FORMAT_16;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_16_16;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_16_16_16_16;
-      }
-      break;
-   case 32:
-      switch (desc->nr_channels) {
-      case 1:
-         return V_008F0C_BUF_DATA_FORMAT_32;
-      case 2:
-         return V_008F0C_BUF_DATA_FORMAT_32_32;
-      case 3:
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32;
-      case 4:
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32_32;
-      }
-      break;
-   case 64:
-      /* Legacy double formats. */
-      switch (desc->nr_channels) {
-      case 1: /* 1 load */
-         return V_008F0C_BUF_DATA_FORMAT_32_32;
-      case 2: /* 1 load */
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32_32;
-      case 3: /* 3 loads */
-         return V_008F0C_BUF_DATA_FORMAT_32_32;
-      case 4: /* 2 loads */
-         return V_008F0C_BUF_DATA_FORMAT_32_32_32_32;
-      }
-      break;
-   }
-
-   return V_008F0C_BUF_DATA_FORMAT_INVALID;
+   return ac_translate_buffer_dataformat(desc, first_non_void);
 }
 
 static uint32_t si_translate_buffer_numformat(struct pipe_screen *screen,
@@ -2537,33 +2472,7 @@ static uint32_t si_translate_buffer_numformat(struct pipe_screen *screen,
 {
    assert(((struct si_screen *)screen)->info.gfx_level <= GFX9);
 
-   if (desc->format == PIPE_FORMAT_R11G11B10_FLOAT)
-      return V_008F0C_BUF_NUM_FORMAT_FLOAT;
-
-   assert(first_non_void >= 0);
-
-   switch (desc->channel[first_non_void].type) {
-   case UTIL_FORMAT_TYPE_SIGNED:
-   case UTIL_FORMAT_TYPE_FIXED:
-      if (desc->channel[first_non_void].size >= 32 || desc->channel[first_non_void].pure_integer)
-         return V_008F0C_BUF_NUM_FORMAT_SINT;
-      else if (desc->channel[first_non_void].normalized)
-         return V_008F0C_BUF_NUM_FORMAT_SNORM;
-      else
-         return V_008F0C_BUF_NUM_FORMAT_SSCALED;
-      break;
-   case UTIL_FORMAT_TYPE_UNSIGNED:
-      if (desc->channel[first_non_void].size >= 32 || desc->channel[first_non_void].pure_integer)
-         return V_008F0C_BUF_NUM_FORMAT_UINT;
-      else if (desc->channel[first_non_void].normalized)
-         return V_008F0C_BUF_NUM_FORMAT_UNORM;
-      else
-         return V_008F0C_BUF_NUM_FORMAT_USCALED;
-      break;
-   case UTIL_FORMAT_TYPE_FLOAT:
-   default:
-      return V_008F0C_BUF_NUM_FORMAT_FLOAT;
-   }
+   return ac_translate_buffer_numformat(desc, first_non_void);
 }
 
 static unsigned si_is_vertex_format_supported(struct pipe_screen *screen, enum pipe_format format,
@@ -5467,7 +5376,8 @@ static bool wrap_mode_uses_border_color(unsigned wrap, bool linear_filter)
 
 static uint32_t si_translate_border_color(struct si_context *sctx,
                                           const struct pipe_sampler_state *state,
-                                          const union pipe_color_union *color, bool is_integer)
+                                          const union pipe_color_union *color, bool is_integer,
+                                          uint32_t *border_color_ptr)
 {
    bool linear_filter = state->min_img_filter != PIPE_TEX_FILTER_NEAREST ||
                         state->mag_img_filter != PIPE_TEX_FILTER_NEAREST;
@@ -5475,16 +5385,16 @@ static uint32_t si_translate_border_color(struct si_context *sctx,
    if (!wrap_mode_uses_border_color(state->wrap_s, linear_filter) &&
        !wrap_mode_uses_border_color(state->wrap_t, linear_filter) &&
        !wrap_mode_uses_border_color(state->wrap_r, linear_filter))
-      return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK);
+      return V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK;
 
 #define simple_border_types(elt)                                                                   \
    do {                                                                                            \
       if (color->elt[0] == 0 && color->elt[1] == 0 && color->elt[2] == 0 && color->elt[3] == 0)    \
-         return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK);              \
+         return V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK;                                          \
       if (color->elt[0] == 0 && color->elt[1] == 0 && color->elt[2] == 0 && color->elt[3] == 1)    \
-         return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_BLACK);             \
+         return V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_BLACK;                                         \
       if (color->elt[0] == 1 && color->elt[1] == 1 && color->elt[2] == 1 && color->elt[3] == 1)    \
-         return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_WHITE);             \
+         return V_008F3C_SQ_TEX_BORDER_COLOR_OPAQUE_WHITE;                                         \
    } while (false)
 
    if (is_integer)
@@ -5510,7 +5420,7 @@ static uint32_t si_translate_border_color(struct si_context *sctx,
                          "This is a hardware limitation.\n");
          printed = true;
       }
-      return S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK);
+      return V_008F3C_SQ_TEX_BORDER_COLOR_TRANS_BLACK;
    }
 
    if (i == sctx->border_color_count) {
@@ -5520,9 +5430,9 @@ static uint32_t si_translate_border_color(struct si_context *sctx,
       sctx->border_color_count++;
    }
 
-   return (sctx->screen->info.gfx_level >= GFX11 ? S_008F3C_BORDER_COLOR_PTR_GFX11(i):
-                                                    S_008F3C_BORDER_COLOR_PTR_GFX6(i)) |
-          S_008F3C_BORDER_COLOR_TYPE(V_008F3C_SQ_TEX_BORDER_COLOR_REGISTER);
+   *border_color_ptr = i;
+
+   return V_008F3C_SQ_TEX_BORDER_COLOR_REGISTER;
 }
 
 static inline int S_FIXED(float value, unsigned frac_bits)
@@ -5561,7 +5471,6 @@ static void *si_create_sampler_state(struct pipe_context *ctx,
    struct si_sampler_state *rstate = CALLOC_STRUCT(si_sampler_state);
    unsigned max_aniso = sscreen->force_aniso >= 0 ? sscreen->force_aniso : state->max_anisotropy;
    unsigned max_aniso_ratio = si_tex_aniso_filter(max_aniso);
-   unsigned perf_mip = max_aniso_ratio ? max_aniso_ratio + 6 : 0;
    bool trunc_coord = (state->min_img_filter == PIPE_TEX_FILTER_NEAREST &&
                        state->mag_img_filter == PIPE_TEX_FILTER_NEAREST &&
                        state->compare_mode == PIPE_TEX_COMPARE_NONE) ||
@@ -5586,42 +5495,33 @@ static void *si_create_sampler_state(struct pipe_context *ctx,
 #ifndef NDEBUG
    rstate->magic = SI_SAMPLER_STATE_MAGIC;
 #endif
-   rstate->val[0] =
-      (S_008F30_CLAMP_X(si_tex_wrap(state->wrap_s)) | S_008F30_CLAMP_Y(si_tex_wrap(state->wrap_t)) |
-       S_008F30_CLAMP_Z(si_tex_wrap(state->wrap_r)) | S_008F30_MAX_ANISO_RATIO(max_aniso_ratio) |
-       S_008F30_DEPTH_COMPARE_FUNC(si_tex_compare(state->compare_mode, state->compare_func)) |
-       S_008F30_FORCE_UNNORMALIZED(state->unnormalized_coords) |
-       S_008F30_ANISO_THRESHOLD(max_aniso_ratio >> 1) | S_008F30_ANISO_BIAS(max_aniso_ratio) |
-       S_008F30_DISABLE_CUBE_WRAP(!state->seamless_cube_map) |
-       S_008F30_TRUNC_COORD(trunc_coord));
-   rstate->val[1] = 0;
-   rstate->val[2] = (S_008F38_XY_MAG_FILTER(si_tex_filter(state->mag_img_filter, max_aniso)) |
-                     S_008F38_XY_MIN_FILTER(si_tex_filter(state->min_img_filter, max_aniso)) |
-                     S_008F38_MIP_FILTER(si_tex_mipfilter(state->min_mip_filter)));
-   rstate->val[3] = si_translate_border_color(sctx, state, &state->border_color,
-                                              state->border_color_is_integer);
 
-   if (sscreen->info.gfx_level >= GFX12) {
-      rstate->val[1] |= S_008F34_MIN_LOD_GFX12(S_FIXED(CLAMP(state->min_lod, 0, 17), 8)) |
-                        S_008F34_MAX_LOD_GFX12(S_FIXED(CLAMP(state->max_lod, 0, 17), 8));
-      rstate->val[2] |= S_008F38_PERF_MIP_LO(perf_mip);
-      rstate->val[3] |= S_008F3C_PERF_MIP_HI(perf_mip >> 2);
-   } else {
-      rstate->val[1] |= S_008F34_MIN_LOD_GFX6(S_FIXED(CLAMP(state->min_lod, 0, 15), 8)) |
-                        S_008F34_MAX_LOD_GFX6(S_FIXED(CLAMP(state->max_lod, 0, 15), 8)) |
-                        S_008F34_PERF_MIP(perf_mip);
-   }
+   unsigned border_color_ptr = 0;
+   unsigned border_color_type =
+      si_translate_border_color(sctx, state, &state->border_color,
+                                state->border_color_is_integer,
+                                &border_color_ptr);
 
-   if (sscreen->info.gfx_level >= GFX10) {
-      rstate->val[2] |= S_008F38_LOD_BIAS(S_FIXED(CLAMP(state->lod_bias, -32, 31), 8)) |
-                        S_008F38_ANISO_OVERRIDE_GFX10(1);
-   } else {
-      rstate->val[0] |= S_008F30_COMPAT_MODE(sctx->gfx_level >= GFX8);
-      rstate->val[2] |= S_008F38_LOD_BIAS(S_FIXED(CLAMP(state->lod_bias, -16, 16), 8)) |
-                        S_008F38_DISABLE_LSB_CEIL(sctx->gfx_level <= GFX8) |
-                        S_008F38_FILTER_PREC_FIX(1) |
-                        S_008F38_ANISO_OVERRIDE_GFX8(sctx->gfx_level >= GFX8);
-   }
+   struct ac_sampler_state ac_state = {
+      .address_mode_u = si_tex_wrap(state->wrap_s),
+      .address_mode_v = si_tex_wrap(state->wrap_t),
+      .address_mode_w = si_tex_wrap(state->wrap_r),
+      .max_aniso_ratio = max_aniso_ratio,
+      .depth_compare_func = si_tex_compare(state->compare_mode, state->compare_func),
+      .unnormalized_coords = state->unnormalized_coords,
+      .cube_wrap = state->seamless_cube_map,
+      .trunc_coord = trunc_coord,
+      .mag_filter = si_tex_filter(state->mag_img_filter, max_aniso),
+      .min_filter = si_tex_filter(state->min_img_filter, max_aniso),
+      .mip_filter = si_tex_mipfilter(state->min_mip_filter),
+      .min_lod = state->min_lod,
+      .max_lod = state->max_lod,
+      .lod_bias = state->lod_bias,
+      .border_color_type = border_color_type,
+      .border_color_ptr = border_color_ptr,
+   };
+
+   ac_build_sampler_descriptor(sscreen->info.gfx_level, &ac_state, rstate->val);
 
    /* Create sampler resource for upgraded depth textures. */
    memcpy(rstate->upgraded_depth_val, rstate->val, sizeof(rstate->val));
@@ -5636,8 +5536,16 @@ static void *si_create_sampler_state(struct pipe_context *ctx,
       if (sscreen->info.gfx_level <= GFX9)
          rstate->upgraded_depth_val[3] |= S_008F3C_UPGRADED_DEPTH(1);
    } else {
-      rstate->upgraded_depth_val[3] =
-         si_translate_border_color(sctx, state, &clamped_border_color, false);
+      border_color_ptr = 0;
+      border_color_type = si_translate_border_color(sctx, state, &clamped_border_color, false, &border_color_ptr);
+
+      rstate->upgraded_depth_val[3] = S_008F3C_BORDER_COLOR_TYPE(border_color_type);
+
+      if (sscreen->info.gfx_level >= GFX11) {
+         rstate->upgraded_depth_val[3] |= S_008F3C_BORDER_COLOR_PTR_GFX11(border_color_ptr);
+      } else {
+         rstate->upgraded_depth_val[3] |= S_008F3C_BORDER_COLOR_PTR_GFX6(border_color_ptr);
+      }
    }
 
    return rstate;

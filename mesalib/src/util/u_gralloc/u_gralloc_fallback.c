@@ -107,6 +107,9 @@ fallback_gralloc_get_buffer_info(struct u_gralloc *gralloc,
    int stride = 0;
    int fds[3];
 
+   if (hnd->handle->numFds == 0)
+      return -EINVAL;
+
    if (is_hal_format_yuv(hnd->hal_format)) {
       int ret = fallback_gralloc_get_yuv_info(gralloc, hnd, out);
       /*
@@ -125,11 +128,7 @@ fallback_gralloc_get_buffer_info(struct u_gralloc *gralloc,
     * color compression state buffer, but the rest of the code isn't ready
     * yet to deal with modifiers:
     */
-   num_planes = get_native_buffer_fds(hnd->handle, fds);
-   if (num_planes == 0)
-      return -EINVAL;
-
-   assert(num_planes == 1);
+   num_planes = 1;
 
    drm_fourcc = get_fourcc_from_hal_format(hnd->hal_format);
    if (drm_fourcc == -1) {
@@ -148,6 +147,15 @@ fallback_gralloc_get_buffer_info(struct u_gralloc *gralloc,
    out->num_planes = num_planes;
    out->fds[0] = fds[0];
    out->strides[0] = stride;
+
+#ifdef HAS_FREEDRENO
+   uint32_t gmsm = ('g' << 24) | ('m' << 16) | ('s' << 8) | 'm';
+   if (hnd->handle->numInts >= 2 && hnd->handle->data[hnd->handle->numFds] == gmsm) {
+      /* This UBWC flag was introduced in a5xx. */
+      bool ubwc = hnd->handle->data[hnd->handle->numFds + 1] & 0x08000000;
+      out->modifier = ubwc ? DRM_FORMAT_MOD_QCOM_COMPRESSED : DRM_FORMAT_MOD_LINEAR;
+   }
+#endif
 
    return 0;
 }

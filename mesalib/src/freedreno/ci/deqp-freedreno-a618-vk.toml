@@ -2,7 +2,7 @@
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a618-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a618-premerge-skips.txt"]
 renderer_check = "Turnip Adreno .* 618"
 fraction = 2
 
@@ -11,7 +11,7 @@ fraction = 2
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a618-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a618-premerge-skips.txt"]
 prefix = "gmem-"
 fraction = 15
 [deqp.env]
@@ -20,7 +20,7 @@ TU_DEBUG = "gmem,forcebin"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a618-premerge-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a618-premerge-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.*", "dEQP-VK.subgroups.ballot*"]
 prefix = "spill-"
 [deqp.env]

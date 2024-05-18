@@ -34,16 +34,24 @@ lower_printf_intrin(nir_builder *b, nir_intrinsic_instr *prntf, void *_options)
    if (prntf->intrinsic != nir_intrinsic_printf)
       return false;
 
+   b->cursor = nir_before_instr(&prntf->instr);
+
    nir_def *fmt_str_id = prntf->src[0].ssa;
+   if (options && options->use_printf_base_identifier) {
+      fmt_str_id = nir_iadd(b,
+                            nir_load_printf_base_identifier(b),
+                            fmt_str_id);
+   }
+
    nir_deref_instr *args = nir_src_as_deref(prntf->src[1]);
    assert(args->deref_type == nir_deref_type_var);
 
-   const unsigned ptr_bit_size = nir_get_ptr_bitsize(b->shader);
+   const unsigned ptr_bit_size = options->ptr_bit_size != 0 ?
+      options->ptr_bit_size : nir_get_ptr_bitsize(b->shader);
 
    /* Atomic add a buffer size counter to determine where to write.  If
     * overflowed, return -1, otherwise, store the arguments and return 0.
     */
-   b->cursor = nir_before_instr(&prntf->instr);
    nir_def *buffer_addr = nir_load_printf_buffer_address(b, ptr_bit_size);
    nir_deref_instr *buffer =
       nir_build_deref_cast(b, buffer_addr, nir_var_mem_global,
@@ -123,4 +131,97 @@ nir_lower_printf(nir_shader *nir, const nir_lower_printf_options *options)
    return nir_shader_intrinsics_pass(nir, lower_printf_intrin,
                                      nir_metadata_none,
                                      (void *)options);
+}
+
+void
+nir_printf_fmt(nir_builder *b,
+               bool use_printf_base_identifier,
+               unsigned ptr_bit_size,
+               const char *fmt, ...)
+{
+   b->shader->printf_info_count++;
+   b->shader->printf_info = reralloc(b->shader,
+                                     b->shader->printf_info,
+                                     u_printf_info,
+                                     b->shader->printf_info_count);
+
+   u_printf_info *info =
+      &b->shader->printf_info[b->shader->printf_info_count - 1];
+
+   *info = (u_printf_info) {
+      .strings = ralloc_strdup(b->shader, fmt),
+      .string_size = strlen(fmt) + 1,
+   };
+
+   va_list ap;
+   size_t pos = 0;
+   size_t args_size = 0;
+
+   va_start(ap, fmt);
+   while ((pos = util_printf_next_spec_pos(fmt, pos)) != -1) {
+      unsigned arg_size;
+      switch (fmt[pos]) {
+      case 'c': arg_size = 1; break;
+      case 'd': arg_size = 4; break;
+      case 'e': arg_size = 4; break;
+      case 'E': arg_size = 4; break;
+      case 'f': arg_size = 4; break;
+      case 'F': arg_size = 4; break;
+      case 'G': arg_size = 4; break;
+      case 'a': arg_size = 4; break;
+      case 'A': arg_size = 4; break;
+      case 'i': arg_size = 4; break;
+      case 'u': arg_size = 4; break;
+      case 'x': arg_size = 4; break;
+      case 'X': arg_size = 4; break;
+      case 'p': arg_size = 8; break;
+      default:  unreachable("invalid");
+      }
+
+      nir_def *def = va_arg(ap, nir_def*);
+      assert(def->bit_size / 8 == arg_size);
+
+      info->num_args++;
+      info->arg_sizes = reralloc(b->shader,
+                                 info->arg_sizes,
+                                 unsigned, info->num_args);
+      info->arg_sizes[info->num_args - 1] = arg_size;
+
+      args_size += arg_size;
+   }
+   va_end(ap);
+
+   nir_def *buffer_addr =
+      nir_load_printf_buffer_address(
+         b, ptr_bit_size ? ptr_bit_size : nir_get_ptr_bitsize(b->shader));
+   nir_def *buffer_offset =
+      nir_global_atomic(b, 32, buffer_addr,
+                        nir_imm_int(b, args_size + sizeof(uint32_t)),
+                        .atomic_op = nir_atomic_op_iadd);
+
+   /* Identifier */
+   nir_def *identifier =
+      use_printf_base_identifier ?
+      nir_iadd_imm(b,
+                   nir_load_printf_base_identifier(b),
+                   b->shader->printf_info_count) :
+      nir_imm_int(b, b->shader->printf_info_count);
+
+   nir_def *store_addr =
+      nir_iadd(b, buffer_addr, nir_i2iN(b, buffer_offset,
+                                           buffer_addr->bit_size));
+   nir_store_global(b, store_addr, 4, identifier, 0x1);
+
+   /* Arguments */
+   va_start(ap, fmt);
+   unsigned store_offset = sizeof(uint32_t);
+   for (unsigned a = 0; a < info->num_args; a++) {
+      nir_def *def = va_arg(ap, nir_def*);
+
+      nir_store_global(b, nir_iadd_imm(b, store_addr, store_offset),
+                       4, def, 0x1);
+
+      store_offset += info->arg_sizes[a];
+   }
+   va_end(ap);
 }

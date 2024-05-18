@@ -46,20 +46,6 @@ glx@glx-swap-pixmap-bad,Fail
 # "../src/freedreno/ir3/ir3_shader.h:968:ir3_link_add: Assertion `i < ARRAY_SIZE(l->var)' failed."
 shaders@glsl-max-varyings >max_varying_components,Crash
 
-# "MESA: error: unknown vertex shader output name: VARYING_SLOT_EDGE
-#  gl-2.0-edgeflag: ../src/freedreno/ir3/ir3_context.c:411: ir3_context_error: Assertion `!""' failed."
-shaders@point-vertex-id divisor,Crash
-shaders@point-vertex-id gl_instanceid,Crash
-shaders@point-vertex-id gl_instanceid divisor,Crash
-shaders@point-vertex-id gl_vertexid,Crash
-shaders@point-vertex-id gl_vertexid divisor,Crash
-shaders@point-vertex-id gl_vertexid gl_instanceid,Crash
-shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Crash
-spec@!opengl 2.0@gl-2.0-edgeflag,Crash
-spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Crash
-spec@!opengl 1.0@gl-1.0-edgeflag,Crash
-spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
-
 spec@arb_depth_buffer_float@fbo-clear-formats stencil,Fail
 spec@arb_depth_buffer_float@fbo-clear-formats stencil@GL_DEPTH32F_STENCIL8,Fail
 spec@arb_depth_buffer_float@fbo-generatemipmap-formats,Fail
@@ -252,12 +238,6 @@ spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 # crash in tgsi exec doing st_freedback_draw_vbo().
 spec@!opengl 1.0@rasterpos,Crash
 
-spec@!opengl 1.1@linestipple@Factor 2x,Fail
-spec@!opengl 1.1@linestipple@Factor 3x,Fail
-spec@!opengl 1.1@linestipple,Fail
-spec@!opengl 1.1@linestipple@Line loop,Fail
-spec@!opengl 1.1@linestipple@Line strip,Fail
-spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
 spec@!opengl 1.1@polygon-mode-facing,Fail
 spec@!opengl 1.1@polygon-mode,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 0: Expected white pixel on bottom edge,Fail
@@ -278,7 +258,6 @@ spec@!opengl 1.4@gl-1.4-polygon-offset,Fail
 
 spec@!opengl 2.1@pbo,Fail
 spec@!opengl 2.1@pbo@test_polygon_stip,Fail
-spec@!opengl 2.1@polygon-stipple-fs,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-back pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims cull-front pv-first,Fail
 spec@!opengl 3.2@gl-3.2-adj-prims line cull-back pv-first,Fail
@@ -302,6 +281,22 @@ spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_GEOMETRY_SHADER_PR
 spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_CONTROL_SHADER_PATCHES,Fail
 spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TESS_EVALUATION_SHADER_INVOCATIONS,Fail
 spec@arb_query_buffer_object@coherency@indirect-draw-count-GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,Fail
+
+spec@arb_gpu_shader5@arb_gpu_shader5-interpolateatsample-dynamically-nonuniform,Fail
+spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams,Fail
+spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations,Fail
+spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams-without-invocations spirv,Fail
+spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams@arb_gpu_shader5-xfb-streams,Fail
+spec@arb_gpu_shader5@arb_gpu_shader5-xfb-streams@arb_gpu_shader5-xfb-streams-blocks,Fail
+spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-vs-getuniformdv,Crash
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4-dmat4,Fail
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat4,Fail
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-inverse-dmat4,Fail
+spec@arb_gpu_shader_fp64@uniform_buffers@fs-ubo-load.indirect.3,Fail
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat4,Fail
+
+spec@glsl-4.00@execution@built-in-functions@fs-inverse-dmat4,Fail
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4-dmat4,Fail
 
 # skqp failure:
 # SRGBReadWritePixels FAILED (7 errors)
@@ -359,3 +354,8 @@ gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_s
 gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_1.pgq_32bit_xfb_64bit.triangle_fan.indirect,Fail
 gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.32bit.line_list.indirect,Fail
 gmem-dEQP-VK.transform_feedback.primitives_generated_query.concurrent.pipeline_statistics_3.pgq_32bit_xfb_64bit.line_list_with_adjacency.indirect,Fail
+
+# uprev Piglit in Mesa
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int16,Fail
+spec@glsl-1.30@execution@fs-uint-to-float-of-extract-int8,Fail
+

@@ -3074,6 +3074,7 @@ nir_tex_instr_result_size(const nir_tex_instr *instr)
       case GLSL_SAMPLER_DIM_RECT:
       case GLSL_SAMPLER_DIM_EXTERNAL:
       case GLSL_SAMPLER_DIM_SUBPASS:
+      case GLSL_SAMPLER_DIM_SUBPASS_MS:
          ret = 2;
          break;
       case GLSL_SAMPLER_DIM_3D:

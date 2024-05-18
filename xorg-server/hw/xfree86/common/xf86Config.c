@@ -893,7 +893,7 @@ configServerFlags(XF86ConfFlagsPtr flagsconf, XF86OptionPtr layoutopts)
         rules = "base";
 
     /* Xkb default options. */
-    XkbInitRules(&set, rules, "pc105", "us", NULL, NULL);
+    XkbInitRules(&set, rules, XKB_DFLT_MODEL, XKB_DFLT_LAYOUT, NULL, NULL);
     XkbSetRulesDflts(&set);
     XkbFreeRMLVOSet(&set, FALSE);
 

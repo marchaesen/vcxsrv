@@ -717,7 +717,7 @@ si_spm_init_bo(struct si_context *sctx)
 
    sctx->spm.bo = ws->buffer_create(
       ws, size, 4096,
-      RADEON_DOMAIN_VRAM,
+      RADEON_DOMAIN_GTT,
       RADEON_FLAG_NO_INTERPROCESS_SHARING |
          RADEON_FLAG_GTT_WC |
          RADEON_FLAG_NO_SUBALLOC);

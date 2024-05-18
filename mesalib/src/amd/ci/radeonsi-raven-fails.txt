@@ -47,23 +47,14 @@ spec@glsl-1.50@execution@geometry@primitive-types gl_triangle_strip_adjacency,Fa
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency ffs,Fail
 spec@glsl-1.50@execution@geometry@tri-strip-ordering-with-prim-restart gl_triangle_strip_adjacency other,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2x3-mat2x3,Fail
-spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat2x4-mat2x4,Fail
 spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat3-mat3,Fail
-spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dmat3x4-mat3x4,Fail
-spec@glsl-4.00@execution@conversion@frag-conversion-explicit-dvec3-vec3,Fail
 spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dmat2-mat2,Fail
 spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dmat2x4-mat2x4,Fail
 spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dmat3x2-mat3x2,Fail
-spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dmat4-mat4,Fail
-spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dvec3-vec3,Fail
 spec@glsl-4.00@execution@conversion@geom-conversion-explicit-dvec4-vec4,Fail
-spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dmat2-mat2,Fail
-spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dmat2x3-mat2x3,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dmat3x4-mat3x4,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dmat4x2-mat4x2,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dmat4x3-mat4x3,Fail
-spec@glsl-4.00@execution@conversion@vert-conversion-explicit-double-float,Fail
-spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec2-vec2,Fail
 spec@glsl-4.00@execution@conversion@vert-conversion-explicit-dvec4-vec4,Fail
 spec@glsl-es-3.00@execution@built-in-functions@fs-packhalf2x16,Fail
 spec@glsl-es-3.00@execution@built-in-functions@vs-packhalf2x16,Fail
