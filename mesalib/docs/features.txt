@@ -666,7 +666,7 @@ Khronos extensions that are not part of any Vulkan version:
   VK_KHR_map_memory2                                    DONE (anv, nvk, radv, tu)
   VK_EXT_map_memory_placed                              DONE (anv, nvk, radv, tu)
   VK_MESA_image_alignment_control                       DONE (radv)
-
+  VK_EXT_legacy_dithering                               DONE (anv)
 
 
 Clover OpenCL 1.0 -- all DONE:

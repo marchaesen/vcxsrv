@@ -1348,24 +1348,26 @@ virtgpu_init_renderer_info(struct virtgpu *gpu)
 {
    struct vn_renderer_info *info = &gpu->base.info;
 
-   info->drm.has_primary = gpu->has_primary;
-   info->drm.primary_major = gpu->primary_major;
-   info->drm.primary_minor = gpu->primary_minor;
-   info->drm.has_render = true;
-   info->drm.render_major = gpu->render_major;
-   info->drm.render_minor = gpu->render_minor;
+   info->drm.props = (VkPhysicalDeviceDrmPropertiesEXT){
+      .hasPrimary = gpu->has_primary,
+      .hasRender = true,
+      .primaryMajor = gpu->primary_major,
+      .primaryMinor = gpu->primary_minor,
+      .renderMajor = gpu->render_major,
+      .renderMinor = gpu->render_minor,
+   };
 
    info->pci.vendor_id = VIRTGPU_PCI_VENDOR_ID;
    info->pci.device_id = VIRTGPU_PCI_DEVICE_ID;
 
    if (gpu->bustype == DRM_BUS_PCI) {
       info->pci.has_bus_info = true;
-      info->pci.domain = gpu->pci_bus_info.domain;
-      info->pci.bus = gpu->pci_bus_info.bus;
-      info->pci.device = gpu->pci_bus_info.dev;
-      info->pci.function = gpu->pci_bus_info.func;
-   } else {
-      info->pci.has_bus_info = false;
+      info->pci.props = (VkPhysicalDevicePCIBusInfoPropertiesEXT){
+         .pciDomain = gpu->pci_bus_info.domain,
+         .pciBus = gpu->pci_bus_info.bus,
+         .pciDevice = gpu->pci_bus_info.dev,
+         .pciFunction = gpu->pci_bus_info.func,
+      };
    }
 
    info->has_dma_buf_import = true;

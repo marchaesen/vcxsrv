@@ -702,7 +702,7 @@ radv_physical_device_get_supported_extensions(const struct radv_physical_device 
       .GOOGLE_hlsl_functionality1 = true,
       .GOOGLE_user_type = true,
       .INTEL_shader_integer_functions2 = true,
-      .MESA_image_alignment_control = true,
+      .MESA_image_alignment_control = pdev->info.gfx_level >= GFX9 && pdev->info.gfx_level <= GFX11_5,
       .NV_compute_shader_derivatives = true,
       .NV_device_generated_commands = !pdev->use_llvm && instance->drirc.enable_dgc,
       .NV_device_generated_commands_compute = !pdev->use_llvm && instance->drirc.enable_dgc,

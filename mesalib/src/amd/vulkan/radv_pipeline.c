@@ -762,12 +762,12 @@ radv_get_executable_count(struct radv_pipeline *pipeline)
       if (!pipeline->shaders[i])
          continue;
 
-      if (i == MESA_SHADER_GEOMETRY && !radv_pipeline_has_ngg(radv_pipeline_to_graphics(pipeline))) {
-         ret += 2u;
-      } else {
+      ret += 1u;
+      if (i == MESA_SHADER_GEOMETRY && pipeline->gs_copy_shader) {
          ret += 1u;
       }
    }
+
    return ret;
 }
 
@@ -800,7 +800,7 @@ radv_get_shader_from_executable_index(struct radv_pipeline *pipeline, int index,
 
       --index;
 
-      if (i == MESA_SHADER_GEOMETRY && !radv_pipeline_has_ngg(radv_pipeline_to_graphics(pipeline))) {
+      if (i == MESA_SHADER_GEOMETRY && pipeline->gs_copy_shader) {
          if (!index) {
             *stage = i;
             return pipeline->gs_copy_shader;

@@ -232,6 +232,44 @@ radv_queue_submit_empty(struct radv_queue *queue, struct vk_queue_submit *submis
 }
 
 static void
+radv_set_ring_buffer(const struct radv_physical_device *pdev, struct radeon_winsys_bo *bo, uint32_t offset,
+                     uint32_t ring_size, bool add_tid, bool swizzle_enable, bool oob_select_raw, uint32_t element_size,
+                     uint32_t index_stride, uint32_t desc[4])
+{
+   const uint8_t oob_select = oob_select_raw ? V_008F0C_OOB_SELECT_RAW : V_008F0C_OOB_SELECT_DISABLED;
+   const uint64_t va = radv_buffer_get_va(bo) + offset;
+
+   uint32_t rsrc_word1 = S_008F04_BASE_ADDRESS_HI(va >> 32);
+   if (pdev->info.gfx_level >= GFX11) {
+      rsrc_word1 |= S_008F04_SWIZZLE_ENABLE_GFX11(swizzle_enable);
+   } else {
+      rsrc_word1 |= S_008F04_SWIZZLE_ENABLE_GFX6(swizzle_enable);
+   }
+
+   uint32_t rsrc_word3 = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
+                         S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
+                         S_008F0C_INDEX_STRIDE(index_stride) | S_008F0C_ADD_TID_ENABLE(add_tid);
+
+   if (pdev->info.gfx_level >= GFX11) {
+      rsrc_word3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(oob_select);
+   } else if (pdev->info.gfx_level >= GFX10) {
+      rsrc_word3 |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(oob_select) |
+                    S_008F0C_RESOURCE_LEVEL(1);
+   } else {
+      /* DATA_FORMAT is STRIDE[14:17] for MUBUF with ADD_TID_ENABLE=1 */
+      const uint32_t data_format = pdev->info.gfx_level >= GFX8 && add_tid ? 0 : V_008F0C_BUF_DATA_FORMAT_32;
+
+      rsrc_word3 |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(data_format) |
+                    S_008F0C_ELEMENT_SIZE(element_size);
+   }
+
+   desc[0] = va;
+   desc[1] = rsrc_word1;
+   desc[2] = ring_size;
+   desc[3] = rsrc_word3;
+}
+
+static void
 radv_fill_shader_rings(struct radv_device *device, uint32_t *desc, struct radeon_winsys_bo *scratch_bo,
                        uint32_t esgs_ring_size, struct radeon_winsys_bo *esgs_ring_bo, uint32_t gsvs_ring_size,
                        struct radeon_winsys_bo *gsvs_ring_bo, struct radeon_winsys_bo *tess_rings_bo,
@@ -256,212 +294,55 @@ radv_fill_shader_rings(struct radv_device *device, uint32_t *desc, struct radeon
    desc += 4;
 
    if (esgs_ring_bo) {
-      uint64_t esgs_va = radv_buffer_get_va(esgs_ring_bo);
-
       /* stride 0, num records - size, add tid, swizzle, elsize4,
          index stride 64 */
-      desc[0] = esgs_va;
-      desc[1] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32);
-      desc[2] = esgs_ring_size;
-      desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-                S_008F0C_INDEX_STRIDE(3) | S_008F0C_ADD_TID_ENABLE(1);
-
-      if (pdev->info.gfx_level >= GFX11)
-         desc[1] |= S_008F04_SWIZZLE_ENABLE_GFX11(1);
-      else
-         desc[1] |= S_008F04_SWIZZLE_ENABLE_GFX6(1);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[3] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[3] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      } else if (pdev->info.gfx_level >= GFX8) {
-         /* DATA_FORMAT is STRIDE[14:17] for MUBUF with ADD_TID_ENABLE=1 */
-         desc[3] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(0) | S_008F0C_ELEMENT_SIZE(1);
-      } else {
-         desc[3] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-                    S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) | S_008F0C_ELEMENT_SIZE(1);
-      }
+      radv_set_ring_buffer(pdev, esgs_ring_bo, 0, esgs_ring_size, true, true, false, 1, 3, &desc[0]);
 
       /* GS entry for ES->GS ring */
       /* stride 0, num records - size, elsize0,
          index stride 0 */
-      desc[4] = esgs_va;
-      desc[5] = S_008F04_BASE_ADDRESS_HI(esgs_va >> 32);
-      desc[6] = esgs_ring_size;
-      desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[7] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[7] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      } else {
-         desc[7] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-      }
+      radv_set_ring_buffer(pdev, esgs_ring_bo, 0, esgs_ring_size, false, false, false, 0, 0, &desc[4]);
    }
 
    desc += 8;
 
    if (gsvs_ring_bo) {
-      uint64_t gsvs_va = radv_buffer_get_va(gsvs_ring_bo);
-
       /* VS entry for GS->VS ring */
       /* stride 0, num records - size, elsize0,
          index stride 0 */
-      desc[0] = gsvs_va;
-      desc[1] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32);
-      desc[2] = gsvs_ring_size;
-      desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[3] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[3] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      } else {
-         desc[3] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-      }
+      radv_set_ring_buffer(pdev, gsvs_ring_bo, 0, gsvs_ring_size, false, false, false, 0, 0, &desc[0]);
 
       /* stride gsvs_itemsize, num records 64
          elsize 4, index stride 16 */
       /* shader will patch stride and desc[2] */
-      desc[4] = gsvs_va;
-      desc[5] = S_008F04_BASE_ADDRESS_HI(gsvs_va >> 32);
-      desc[6] = 0;
-      desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W) |
-                S_008F0C_INDEX_STRIDE(1) | S_008F0C_ADD_TID_ENABLE(true);
-
-      if (pdev->info.gfx_level >= GFX11)
-         desc[5] |= S_008F04_SWIZZLE_ENABLE_GFX11(1);
-      else
-         desc[5] |= S_008F04_SWIZZLE_ENABLE_GFX6(1);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[7] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[7] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      } else if (pdev->info.gfx_level >= GFX8) {
-         /* DATA_FORMAT is STRIDE[14:17] for MUBUF with ADD_TID_ENABLE=1 */
-         desc[7] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(0) | S_008F0C_ELEMENT_SIZE(1);
-      } else {
-         desc[7] |= S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) |
-                    S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32) | S_008F0C_ELEMENT_SIZE(1);
-      }
+      radv_set_ring_buffer(pdev, gsvs_ring_bo, 0, 0, true, true, false, 1, 1, &desc[4]);
    }
 
    desc += 8;
 
    if (tess_rings_bo) {
-      uint64_t tess_va = radv_buffer_get_va(tess_rings_bo);
-      uint64_t tess_offchip_va = tess_va + pdev->hs.tess_offchip_ring_offset;
+      radv_set_ring_buffer(pdev, tess_rings_bo, 0, pdev->hs.tess_factor_ring_size, false, false, true, 0, 0, &desc[0]);
 
-      desc[0] = tess_va;
-      desc[1] = S_008F04_BASE_ADDRESS_HI(tess_va >> 32);
-      desc[2] = pdev->hs.tess_factor_ring_size;
-      desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[3] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[3] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
-      } else {
-         desc[3] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-      }
-
-      desc[4] = tess_offchip_va;
-      desc[5] = S_008F04_BASE_ADDRESS_HI(tess_offchip_va >> 32);
-      desc[6] = pdev->hs.tess_offchip_ring_size;
-      desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[7] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_FLOAT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW);
-      } else if (pdev->info.gfx_level >= GFX10) {
-         desc[7] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_FLOAT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_RAW) | S_008F0C_RESOURCE_LEVEL(1);
-      } else {
-         desc[7] |=
-            S_008F0C_NUM_FORMAT(V_008F0C_BUF_NUM_FORMAT_FLOAT) | S_008F0C_DATA_FORMAT(V_008F0C_BUF_DATA_FORMAT_32);
-      }
+      radv_set_ring_buffer(pdev, tess_rings_bo, pdev->hs.tess_offchip_ring_offset, pdev->hs.tess_offchip_ring_size,
+                           false, false, true, 0, 0, &desc[4]);
    }
 
    desc += 8;
 
    if (task_rings_bo) {
-      uint64_t task_va = radv_buffer_get_va(task_rings_bo);
-      uint64_t task_draw_ring_va = task_va + pdev->task_info.draw_ring_offset;
-      uint64_t task_payload_ring_va = task_va + pdev->task_info.payload_ring_offset;
+      radv_set_ring_buffer(pdev, task_rings_bo, pdev->task_info.draw_ring_offset,
+                           pdev->task_info.num_entries * AC_TASK_DRAW_ENTRY_BYTES, false, false, false, 0, 0, &desc[0]);
 
-      desc[0] = task_draw_ring_va;
-      desc[1] = S_008F04_BASE_ADDRESS_HI(task_draw_ring_va >> 32);
-      desc[2] = pdev->task_info.num_entries * AC_TASK_DRAW_ENTRY_BYTES;
-      desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[3] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_UINT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else {
-         assert(pdev->info.gfx_level >= GFX10_3);
-         desc[3] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_UINT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      }
-
-      desc[4] = task_payload_ring_va;
-      desc[5] = S_008F04_BASE_ADDRESS_HI(task_payload_ring_va >> 32);
-      desc[6] = pdev->task_info.num_entries * AC_TASK_PAYLOAD_ENTRY_BYTES;
-      desc[7] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[7] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_UINT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else {
-         assert(pdev->info.gfx_level >= GFX10_3);
-         desc[7] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_UINT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      }
+      radv_set_ring_buffer(pdev, task_rings_bo, pdev->task_info.payload_ring_offset,
+                           pdev->task_info.num_entries * AC_TASK_PAYLOAD_ENTRY_BYTES, false, false, false, 0, 0,
+                           &desc[4]);
    }
 
    desc += 8;
 
    if (mesh_scratch_ring_bo) {
-      uint64_t va = radv_buffer_get_va(mesh_scratch_ring_bo);
-
-      desc[0] = va;
-      desc[1] = S_008F04_BASE_ADDRESS_HI(va >> 32);
-      desc[2] = RADV_MESH_SCRATCH_NUM_ENTRIES * RADV_MESH_SCRATCH_ENTRY_BYTES;
-      desc[3] = S_008F0C_DST_SEL_X(V_008F0C_SQ_SEL_X) | S_008F0C_DST_SEL_Y(V_008F0C_SQ_SEL_Y) |
-                S_008F0C_DST_SEL_Z(V_008F0C_SQ_SEL_Z) | S_008F0C_DST_SEL_W(V_008F0C_SQ_SEL_W);
-
-      if (pdev->info.gfx_level >= GFX11) {
-         desc[3] |=
-            S_008F0C_FORMAT_GFX10(V_008F0C_GFX11_FORMAT_32_UINT) | S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED);
-      } else {
-         assert(pdev->info.gfx_level >= GFX10_3);
-         desc[3] |= S_008F0C_FORMAT_GFX10(V_008F0C_GFX10_FORMAT_32_UINT) |
-                    S_008F0C_OOB_SELECT(V_008F0C_OOB_SELECT_DISABLED) | S_008F0C_RESOURCE_LEVEL(1);
-      }
+      radv_set_ring_buffer(pdev, mesh_scratch_ring_bo, 0, RADV_MESH_SCRATCH_NUM_ENTRIES * RADV_MESH_SCRATCH_ENTRY_BYTES,
+                           false, false, false, 0, 0, &desc[0]);
    }
 
    desc += 4;
@@ -1079,20 +960,20 @@ radv_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
    if (pdev->info.gfx_level >= GFX7) {
       if (pdev->info.gfx_level >= GFX10 && pdev->info.gfx_level < GFX11) {
          /* Logical CUs 16 - 31 */
-         radeon_set_sh_reg_idx(pdev, cs, R_00B104_SPI_SHADER_PGM_RSRC4_VS, 3,
+         radeon_set_sh_reg_idx(&pdev->info, cs, R_00B104_SPI_SHADER_PGM_RSRC4_VS, 3,
                                ac_apply_cu_en(S_00B104_CU_EN(0xffff), C_00B104_CU_EN, 16, &pdev->info));
       }
 
       if (pdev->info.gfx_level >= GFX10) {
-         radeon_set_sh_reg_idx(pdev, cs, R_00B404_SPI_SHADER_PGM_RSRC4_HS, 3,
+         radeon_set_sh_reg_idx(&pdev->info, cs, R_00B404_SPI_SHADER_PGM_RSRC4_HS, 3,
                                ac_apply_cu_en(S_00B404_CU_EN(0xffff), C_00B404_CU_EN, 16, &pdev->info));
-         radeon_set_sh_reg_idx(pdev, cs, R_00B004_SPI_SHADER_PGM_RSRC4_PS, 3,
+         radeon_set_sh_reg_idx(&pdev->info, cs, R_00B004_SPI_SHADER_PGM_RSRC4_PS, 3,
                                ac_apply_cu_en(S_00B004_CU_EN(cu_mask_ps >> 16), C_00B004_CU_EN, 16, &pdev->info));
       }
 
       if (pdev->info.gfx_level >= GFX9) {
          radeon_set_sh_reg_idx(
-            pdev, cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, 3,
+            &pdev->info, cs, R_00B41C_SPI_SHADER_PGM_RSRC3_HS, 3,
             ac_apply_cu_en(S_00B41C_CU_EN(0xffff) | S_00B41C_WAVE_LIMIT(0x3F), C_00B41C_CU_EN, 0, &pdev->info));
       } else {
          radeon_set_sh_reg(
@@ -1110,7 +991,7 @@ radv_emit_graphics(struct radv_device *device, struct radeon_cmdbuf *cs)
                                 S_028A44_ES_VERTS_PER_SUBGRP(64) | S_028A44_GS_PRIMS_PER_SUBGRP(4));
       }
 
-      radeon_set_sh_reg_idx(pdev, cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS, 3,
+      radeon_set_sh_reg_idx(&pdev->info, cs, R_00B01C_SPI_SHADER_PGM_RSRC3_PS, 3,
                             ac_apply_cu_en(S_00B01C_CU_EN(cu_mask_ps) | S_00B01C_WAVE_LIMIT_GFX7(0x3F) |
                                               S_00B01C_LDS_GROUP_SIZE_GFX11(pdev->info.gfx_level >= GFX11),
                                            C_00B01C_CU_EN, 0, &pdev->info));

@@ -110,13 +110,6 @@ vk_pnext_iterator_next(struct vk_pnext_iterator *iter)
       for (const VkBaseInStructure *__e = (VkBaseInStructure *)__iter.pos; \
            __e; __e = (VkBaseInStructure *)vk_pnext_iterator_next(&__iter))
 
-static inline void
-vk_copy_struct_guts(VkBaseOutStructure *dst, VkBaseInStructure *src, size_t struct_size)
-{
-   STATIC_ASSERT(sizeof(*dst) == sizeof(*src));
-   memcpy(dst + 1, src + 1, struct_size - sizeof(VkBaseOutStructure));
-}
-
 /**
  * A wrapper for a Vulkan output array. A Vulkan output array is one that
  * follows the convention of the parameters to

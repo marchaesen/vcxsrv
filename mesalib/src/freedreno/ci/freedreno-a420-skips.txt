@@ -37,3 +37,11 @@ fbo-maxsize
 max-texture-size
 tex3d-maxsize
 copypixels-draw-sync
+
+# Unsupported legacy gl features
+.*edgeflag.*
+.*stipple.*
+# uses edgeflags:
+shaders@point-vertex-id.*
+# uses stipple:
+spec@!opengl 1.0@gl-1.0-no-op-paths

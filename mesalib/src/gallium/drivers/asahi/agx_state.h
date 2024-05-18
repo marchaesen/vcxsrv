@@ -29,8 +29,8 @@
 #include "util/disk_cache.h"
 #include "util/hash_table.h"
 #include "util/u_range.h"
+#include "agx_bg_eot.h"
 #include "agx_helpers.h"
-#include "agx_meta.h"
 #include "agx_nir_passes.h"
 
 #ifdef __GLIBC__
@@ -686,7 +686,7 @@ struct agx_context {
    struct util_dynarray global_buffers;
 
    struct hash_table *generic_meta;
-   struct agx_meta_cache meta;
+   struct agx_bg_eot_cache bg_eot;
 
    bool any_faults;
 
@@ -1108,8 +1108,13 @@ struct agx_encoder agx_encoder_allocate(struct agx_batch *batch,
 
 void agx_batch_init_state(struct agx_batch *batch);
 
-uint64_t agx_build_meta(struct agx_batch *batch, bool store,
-                        bool partial_render);
+struct asahi_bg_eot {
+   uint64_t usc;
+   struct agx_counts_packed counts;
+};
+
+struct asahi_bg_eot agx_build_bg_eot(struct agx_batch *batch, bool store,
+                                     bool partial_render);
 
 /* Query management */
 uint16_t agx_get_oq_index(struct agx_batch *batch, struct agx_query *query);

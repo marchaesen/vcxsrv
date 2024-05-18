@@ -106,3 +106,11 @@ glx@glx-visuals-stencil.*
 # Faults in a way that makes other tests flaky
 # msm_mdp 901000.display-controller: [drm:a5xx_irq] *ERROR* gpu fault ring 2 fence bc846 status 800001C1 rb 004a/004a ib1 000000000634F000/0000 ib2 000000000AA27000/0000
 KHR-GLES31.core.texture_buffer.texture_buffer_atomic_functions
+
+# Unsupported legacy gl features
+.*edgeflag.*
+.*stipple.*
+# uses edgeflags:
+shaders@point-vertex-id.*
+# uses stipple:
+spec@!opengl 1.0@gl-1.0-no-op-paths

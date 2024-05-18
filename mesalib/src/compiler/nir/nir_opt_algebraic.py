@@ -1744,6 +1744,16 @@ optimizations.extend([
    (('ibfe', a,  0, 16), ('extract_i16', a, 0), '!options->lower_extract_word'),
    (('ibfe', a, 16, 16), ('extract_i16', a, 1), '!options->lower_extract_word'),
 
+   # Collapse nop packing.
+   (('unpack_32_4x8', ('pack_32_4x8', a)), a),
+   (('unpack_32_2x16', ('pack_32_2x16', a)), a),
+   (('unpack_64_4x16', ('pack_64_4x16', a)), a),
+   (('unpack_64_2x32', ('pack_64_2x32', a)), a),
+   (('pack_32_4x8', ('unpack_32_4x8', a)), a),
+   (('pack_32_2x16', ('unpack_32_2x16', a)), a),
+   (('pack_64_4x16', ('unpack_64_4x16', a)), a),
+   (('pack_64_2x32', ('unpack_64_2x32', a)), a),
+
    # Packing a u8vec4 to write to an SSBO.
    (('ior', ('ishl', ('u2u32', 'a@8'), 24), ('ior', ('ishl', ('u2u32', 'b@8'), 16), ('ior', ('ishl', ('u2u32', 'c@8'), 8), ('u2u32', 'd@8')))),
     ('pack_32_4x8', ('vec4', d, c, b, a)), 'options->has_pack_32_4x8'),
@@ -1995,7 +2005,8 @@ optimizations.extend([
    (('imul_32x16', a, b), ('imul', a, ('extract_i16', b, 0)), 'options->lower_mul_32x16'),
    (('umul_32x16', a, b), ('imul', a, ('extract_u16', b, 0)), 'options->lower_mul_32x16'),
 
-   (('uadd_sat@64', a, b), ('bcsel', ('ult', ('iadd', a, b), a), -1, ('iadd', a, b)), 'options->lower_uadd_sat || (options->lower_int64_options & nir_lower_iadd64) != 0'),
+   (('uadd_sat@64', a, b), ('bcsel', ('ult', ('iadd', a, b), a), -1, ('iadd', a, b)),
+    'options->lower_uadd_sat || (options->lower_int64_options & (nir_lower_iadd64 | nir_lower_uadd_sat64)) != 0'),
    (('uadd_sat', a, b), ('bcsel', ('ult', ('iadd', a, b), a), -1, ('iadd', a, b)), 'options->lower_uadd_sat'),
    (('usub_sat', a, b), ('bcsel', ('ult', a, b), 0, ('isub', a, b)), 'options->lower_usub_sat'),
    (('usub_sat@64', a, b), ('bcsel', ('ult', a, b), 0, ('isub', a, b)), '(options->lower_int64_options & nir_lower_usub_sat64) != 0'),
@@ -2330,7 +2341,7 @@ optimizations.extend([
 for bit_size in [8, 16, 32, 64]:
    cond = '!options->lower_uadd_sat'
    if bit_size == 64:
-      cond += ' && !(options->lower_int64_options & nir_lower_iadd64)'
+      cond += ' && !(options->lower_int64_options & (nir_lower_iadd64 | nir_lower_uadd_sat64))'
    add = 'iadd@' + str(bit_size)
 
    optimizations += [

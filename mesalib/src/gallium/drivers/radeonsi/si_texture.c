@@ -252,9 +252,6 @@ static int si_init_surface(struct si_screen *sscreen, struct radeon_surf *surfac
       /* Disable DCC? (it can't be disabled if modifiers are used) */
       if (sscreen->info.gfx_level >= GFX8 && modifier == DRM_FORMAT_MOD_INVALID && !is_imported) {
          /* Global options that disable DCC. */
-         if (ptex->flags & SI_RESOURCE_FLAG_DISABLE_DCC)
-            flags |= RADEON_SURF_DISABLE_DCC;
-
          if (ptex->nr_samples >= 2 && sscreen->debug_flags & DBG(NO_DCC_MSAA))
             flags |= RADEON_SURF_DISABLE_DCC;
 
@@ -340,23 +337,6 @@ static int si_init_surface(struct si_screen *sscreen, struct radeon_surf *surfac
 
       if (sscreen->debug_flags & DBG(NO_FMASK))
          flags |= RADEON_SURF_NO_FMASK;
-
-      if (sscreen->info.gfx_level == GFX9 && (ptex->flags & SI_RESOURCE_FLAG_FORCE_MICRO_TILE_MODE)) {
-         flags |= RADEON_SURF_FORCE_MICRO_TILE_MODE;
-         surface->micro_tile_mode = SI_RESOURCE_FLAG_MICRO_TILE_MODE_GET(ptex->flags);
-      }
-
-      if (ptex->flags & SI_RESOURCE_FLAG_FORCE_MSAA_TILING) {
-         /* GFX11 shouldn't get here because the flag is only used by the CB MSAA resolving
-          * that GFX11 doesn't have.
-          */
-         assert(sscreen->info.gfx_level <= GFX10_3);
-
-         flags |= RADEON_SURF_FORCE_SWIZZLE_MODE;
-
-         if (sscreen->info.gfx_level >= GFX10)
-            surface->u.gfx9.swizzle_mode = ADDR_SW_64KB_R_X;
-      }
 
       if (ptex->flags & PIPE_RESOURCE_FLAG_SPARSE) {
          flags |= RADEON_SURF_NO_FMASK |
@@ -1279,7 +1259,6 @@ static enum radeon_surf_mode si_choose_tiling(struct si_screen *sscreen,
                                               bool tc_compatible_htile)
 {
    const struct util_format_description *desc = util_format_description(templ->format);
-   bool force_tiling = templ->flags & SI_RESOURCE_FLAG_FORCE_MSAA_TILING;
    bool is_depth_stencil = util_format_is_depth_or_stencil(templ->format) &&
                            !(templ->flags & SI_RESOURCE_FLAG_FLUSHED_DEPTH);
 
@@ -1300,7 +1279,7 @@ static enum radeon_surf_mode si_choose_tiling(struct si_screen *sscreen,
    /* Handle common candidates for the linear mode.
     * Compressed textures and DB surfaces must always be tiled.
     */
-   if (!force_tiling && !is_depth_stencil && !util_format_is_compressed(templ->format)) {
+   if (!is_depth_stencil && !util_format_is_compressed(templ->format)) {
       if (sscreen->debug_flags & DBG(NO_TILING) ||
           (templ->bind & PIPE_BIND_SCANOUT && sscreen->debug_flags & DBG(NO_DISPLAY_TILING)))
          return RADEON_SURF_MODE_LINEAR_ALIGNED;

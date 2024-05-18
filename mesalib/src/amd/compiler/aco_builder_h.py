@@ -557,7 +557,7 @@ formats = [("pseudo", [Format.PSEUDO], list(itertools.product(range(5), range(6)
            ("smem", [Format.SMEM], [(0, 4), (0, 3), (1, 0), (1, 3), (1, 2), (1, 1), (0, 0)]),
            ("ds", [Format.DS], [(1, 1), (1, 2), (1, 3), (0, 3), (0, 4)]),
            ("ldsdir", [Format.LDSDIR], [(1, 1)]),
-           ("mubuf", [Format.MUBUF], [(0, 4), (1, 3)]),
+           ("mubuf", [Format.MUBUF], [(0, 4), (1, 3), (1, 4)]),
            ("mtbuf", [Format.MTBUF], [(0, 4), (1, 3)]),
            ("mimg", [Format.MIMG], itertools.product([0, 1], [3, 4, 5, 6, 7])),
            ("exp", [Format.EXP], [(0, 4), (0, 5)]),
@@ -594,9 +594,9 @@ formats = [("pseudo", [Format.PSEUDO], list(itertools.product(range(5), range(6)
            ("vop1_e64_dpp8", [Format.VOP1, Format.VOP3, Format.DPP8], itertools.product([1], [1])),
            ("vop2_e64_dpp8", [Format.VOP2, Format.VOP3, Format.DPP8], itertools.product([1, 2], [2, 3])),
            ("vopc_e64_dpp8", [Format.VOPC, Format.VOP3, Format.DPP8], itertools.product([1, 2], [2])),
-           ("flat", [Format.FLAT], [(0, 3), (1, 2)]),
-           ("global", [Format.GLOBAL], [(0, 3), (1, 2)]),
-           ("scratch", [Format.SCRATCH], [(0, 3), (1, 2)])]
+           ("flat", [Format.FLAT], [(0, 3), (1, 2), (1, 3)]),
+           ("global", [Format.GLOBAL], [(0, 3), (1, 2), (1, 3)]),
+           ("scratch", [Format.SCRATCH], [(0, 3), (1, 2), (1, 3)])]
 formats = [(f if len(f) == 5 else f + ('',)) for f in formats]
 %>\\
 % for name, formats, shapes, extra_field_setup in formats:

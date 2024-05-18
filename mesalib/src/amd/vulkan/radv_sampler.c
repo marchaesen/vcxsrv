@@ -10,6 +10,8 @@
 
 #include "vk_log.h"
 
+#include "ac_descriptors.h"
+
 #include "radv_sampler.h"
 #include "radv_device.h"
 #include "radv_entrypoints.h"
@@ -186,7 +188,6 @@ radv_init_sampler(struct radv_device *device, struct radv_sampler *sampler, cons
    const struct radv_instance *instance = radv_physical_device_instance(pdev);
    uint32_t max_aniso = radv_get_max_anisotropy(device, pCreateInfo);
    uint32_t max_aniso_ratio = radv_tex_aniso_filter(max_aniso);
-   bool compat_mode = pdev->info.gfx_level == GFX8 || pdev->info.gfx_level == GFX9;
    unsigned filter_mode = radv_tex_filter_mode(sampler->vk.reduction_mode);
    unsigned depth_compare_func = V_008F30_SQ_TEX_DEPTH_COMPARE_NEVER;
    bool trunc_coord = ((pCreateInfo->minFilter == VK_FILTER_NEAREST && pCreateInfo->magFilter == VK_FILTER_NEAREST) ||
@@ -217,37 +218,28 @@ radv_init_sampler(struct radv_device *device, struct radv_sampler *sampler, cons
    /* If we don't have a custom color, set the ptr to 0 */
    border_color_ptr = sampler->border_color_slot != RADV_BORDER_COLOR_COUNT ? sampler->border_color_slot : 0;
 
-   sampler->state[0] = (S_008F30_CLAMP_X(radv_tex_wrap(pCreateInfo->addressModeU)) |
-                        S_008F30_CLAMP_Y(radv_tex_wrap(pCreateInfo->addressModeV)) |
-                        S_008F30_CLAMP_Z(radv_tex_wrap(pCreateInfo->addressModeW)) |
-                        S_008F30_MAX_ANISO_RATIO(max_aniso_ratio) | S_008F30_DEPTH_COMPARE_FUNC(depth_compare_func) |
-                        S_008F30_FORCE_UNNORMALIZED(pCreateInfo->unnormalizedCoordinates ? 1 : 0) |
-                        S_008F30_ANISO_THRESHOLD(max_aniso_ratio >> 1) | S_008F30_ANISO_BIAS(max_aniso_ratio) |
-                        S_008F30_DISABLE_CUBE_WRAP(disable_cube_wrap) | S_008F30_COMPAT_MODE(compat_mode) |
-                        S_008F30_FILTER_MODE(filter_mode) | S_008F30_TRUNC_COORD(trunc_coord));
-   sampler->state[1] = (S_008F34_MIN_LOD_GFX6(util_unsigned_fixed(CLAMP(pCreateInfo->minLod, 0, 15), 8)) |
-                        S_008F34_MAX_LOD_GFX6(util_unsigned_fixed(CLAMP(pCreateInfo->maxLod, 0, 15), 8)) |
-                        S_008F34_PERF_MIP(max_aniso_ratio ? max_aniso_ratio + 6 : 0));
-   sampler->state[2] = (S_008F38_XY_MAG_FILTER(radv_tex_filter(pCreateInfo->magFilter, max_aniso)) |
-                        S_008F38_XY_MIN_FILTER(radv_tex_filter(pCreateInfo->minFilter, max_aniso)) |
-                        S_008F38_MIP_FILTER(radv_tex_mipfilter(pCreateInfo->mipmapMode)));
-   sampler->state[3] = S_008F3C_BORDER_COLOR_TYPE(radv_tex_bordercolor(border_color));
+   struct ac_sampler_state ac_state = {
+      .address_mode_u = radv_tex_wrap(pCreateInfo->addressModeU),
+      .address_mode_v = radv_tex_wrap(pCreateInfo->addressModeV),
+      .address_mode_w = radv_tex_wrap(pCreateInfo->addressModeW),
+      .max_aniso_ratio = max_aniso_ratio,
+      .depth_compare_func = depth_compare_func,
+      .unnormalized_coords = pCreateInfo->unnormalizedCoordinates ? 1 : 0,
+      .cube_wrap = !disable_cube_wrap,
+      .trunc_coord = trunc_coord,
+      .filter_mode = filter_mode,
+      .mag_filter = radv_tex_filter(pCreateInfo->magFilter, max_aniso),
+      .min_filter = radv_tex_filter(pCreateInfo->minFilter, max_aniso),
+      .mip_filter = radv_tex_mipfilter(pCreateInfo->mipmapMode),
+      .min_lod = pCreateInfo->minLod,
+      .max_lod = pCreateInfo->maxLod,
+      .lod_bias = pCreateInfo->mipLodBias,
+      .aniso_single_level = !instance->drirc.disable_aniso_single_level,
+      .border_color_type = radv_tex_bordercolor(border_color),
+      .border_color_ptr = border_color_ptr,
+   };
 
-   if (pdev->info.gfx_level >= GFX10) {
-      sampler->state[2] |= S_008F38_LOD_BIAS(util_signed_fixed(CLAMP(pCreateInfo->mipLodBias, -32, 31), 8)) |
-                           S_008F38_ANISO_OVERRIDE_GFX10(instance->drirc.disable_aniso_single_level);
-   } else {
-      sampler->state[2] |=
-         S_008F38_LOD_BIAS(util_signed_fixed(CLAMP(pCreateInfo->mipLodBias, -16, 16), 8)) |
-         S_008F38_DISABLE_LSB_CEIL(pdev->info.gfx_level <= GFX8) | S_008F38_FILTER_PREC_FIX(1) |
-         S_008F38_ANISO_OVERRIDE_GFX8(instance->drirc.disable_aniso_single_level && pdev->info.gfx_level >= GFX8);
-   }
-
-   if (pdev->info.gfx_level >= GFX11) {
-      sampler->state[3] |= S_008F3C_BORDER_COLOR_PTR_GFX11(border_color_ptr);
-   } else {
-      sampler->state[3] |= S_008F3C_BORDER_COLOR_PTR_GFX6(border_color_ptr);
-   }
+   ac_build_sampler_descriptor(pdev->info.gfx_level, &ac_state, sampler->state);
 }
 
 VKAPI_ATTR VkResult VKAPI_CALL

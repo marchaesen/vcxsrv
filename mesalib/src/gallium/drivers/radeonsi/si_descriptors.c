@@ -1446,6 +1446,11 @@ static void si_set_shader_buffer(struct si_context *sctx, struct si_buffer_resou
    }
 
    struct si_resource *buf = si_resource(sbuffer->buffer);
+   /* Allow the size to be aligned to a dword even if the buffer size is less because we need
+    * it for the clear/copy_buffer shader. It's safe because memory is allocated at a higher
+    * granularity than 4 bytes.
+    */
+   assert(sbuffer->buffer_offset + sbuffer->buffer_size <= align(buf->bo_size, 4));
    uint64_t va = buf->gpu_address + sbuffer->buffer_offset;
 
    desc[0] = va;

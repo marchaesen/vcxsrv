@@ -817,7 +817,7 @@ fd_gmem_render_tiles(struct fd_batch *batch)
 
    flush_ring(batch);
 
-   u_trace_flush(&batch->trace, NULL, false);
+   u_trace_flush(&batch->trace, NULL, U_TRACE_FRAME_UNKNOWN, false);
 }
 
 /* Determine a worst-case estimate (ie. assuming we don't eliminate an

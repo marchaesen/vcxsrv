@@ -128,14 +128,8 @@ if bindgen_version == 'unknown'
   error('Failed to detect bindgen version. If you are using bindgen 0.69.0, please either update to 0.69.1 or downgrade to 0.68.1. You can install the latest version for your user with `cargo install bindgen-cli`.')
 endif
 
-if bindgen_version.version_compare('< 0.62')
-  error('rusticl requires bindgen 0.62 or newer. If your distribution does not ship a recent enough version, you can install the latest version for your user with `cargo install bindgen-cli`.')
-endif
-
 if bindgen_version.version_compare('< 0.65')
-  rusticl_bindgen_args += [
-    '--size_t-is-usize',
-  ]
+  error('rusticl requires bindgen 0.65 or newer. If your distribution does not ship a recent enough version, you can install the latest version for your user with `cargo install bindgen-cli`.')
 endif
 
 rusticl_bindgen_c_args = [
@@ -240,48 +234,6 @@ rusticl_llvm_gen = static_library(
   ],
 )
 
-rusticl_system_bindings_wrapper = static_library(
-  'system_bindings',
-  [
-    'rusticl_system_bindings.c',
-    'rusticl_system_bindings.h',
-  ],
-  gnu_symbol_visibility : 'hidden',
-  include_directories : [
-    inc_include,
-  ],
-  c_args : [
-    pre_args,
-  ],
-)
-
-rusticl_mesa_bindings_inline_wrapper = static_library(
-  'mesa_bindings_inline_wrapper',
-  [
-    'rusticl_mesa_inline_bindings_wrapper.c',
-    'rusticl_mesa_inline_bindings_wrapper.h',
-    'rusticl_nir.c',
-    'rusticl_nir.h',
-    sha1_h,
-  ],
-  gnu_symbol_visibility : 'hidden',
-  include_directories : [
-    inc_gallium,
-    inc_gallium_aux,
-    inc_include,
-    inc_nir,
-    inc_src,
-  ],
-  c_args : [
-    pre_args,
-    cl_c_args,
-  ],
-  dependencies: [
-    idep_nir_headers,
-    dep_valgrind,
-  ],
-)
-
 rusticl_libc_bindings_rs = rust.bindgen(
   input : 'rusticl_libc_bindings.h',
   output : 'rusticl_libc_bindings.rs',
@@ -301,9 +253,10 @@ rusticl_libc_bindings_rs = rust.bindgen(
   ]
 )
 
-rusticl_mesa_bindings_rs = rust.bindgen(
+rusticl_mesa_bindings = rust.bindgen(
   input : 'rusticl_mesa_bindings.h',
   output : 'rusticl_mesa_bindings.rs',
+  output_inline_wrapper : 'rusticl_mesa_bindings.c',
   include_directories : [
     inc_gallium,
     inc_gallium_aux,
@@ -381,6 +334,36 @@ rusticl_mesa_bindings_rs = rust.bindgen(
   ],
 )
 
+rusticl_c = static_library(
+  'rusticl_c',
+  [
+    'rusticl_nir.c',
+    'rusticl_nir.h',
+    'rusticl_system_bindings.c',
+    'rusticl_system_bindings.h',
+    rusticl_mesa_bindings[1],
+    'rusticl_mesa_bindings.h',
+    sha1_h,
+  ],
+  gnu_symbol_visibility : 'hidden',
+  include_directories : [
+    inc_gallium,
+    inc_gallium_aux,
+    inc_include,
+    inc_nir,
+    inc_src,
+  ],
+  c_args : [
+    pre_args,
+    cl_c_args,
+    cc.get_supported_arguments('-Wno-missing-prototypes'),
+  ],
+  dependencies: [
+    idep_nir_headers,
+    dep_valgrind,
+  ],
+)
+
 idep_rusticl_gen = declare_dependency(
   sources: [
     rusticl_opencl_bindings_rs,
@@ -389,7 +372,7 @@ idep_rusticl_gen = declare_dependency(
 
 libmesa_rust_gen = static_library(
   'mesa_rust_gen',
-  rusticl_mesa_bindings_rs,
+  rusticl_mesa_bindings[0],
   gnu_symbol_visibility : 'hidden',
   link_with: [
     libgallium,
@@ -435,8 +418,7 @@ libmesa_rust = static_library(
     libc_rust_gen,
     libmesa_rust_gen,
     libmesa_rust_util,
-    rusticl_mesa_bindings_inline_wrapper,
-    rusticl_system_bindings_wrapper,
+    rusticl_c,
   ]
 )
 

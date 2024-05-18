@@ -40,9 +40,15 @@
 # repository's container registry, so that the image from the main
 # repository's registry will be used there as well.
 
-.debian-container:
+.debian-container-version:
   variables:
     FDO_DISTRIBUTION_VERSION: bookworm-slim
+
+.debian-container:
+  extends:
+    - .fdo.container-build@debian
+    - .container
+    - .debian-container-version
 
 .container:
   stage: container
@@ -63,8 +69,6 @@
 # Debian based x86_64 build image base
 debian/x86_64_build-base:
   extends:
-    - .fdo.container-build@debian
-    - .container
     - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_build-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}"
@@ -76,7 +80,7 @@ debian/x86_64_build-base:
 .use-debian/x86_64_build-base:
   extends:
     - .fdo.container-build@debian
-    - .debian-container
+    - .debian-container-version
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: ${DEBIAN_X86_64_BUILD_BASE_IMAGE}
@@ -178,14 +182,15 @@ debian/android_build:
 
 # Debian based x86_64 test image base
 debian/x86_64_test-base:
-  extends: debian/x86_64_build-base
+  extends:
+    - .debian-container
   variables:
     MESA_IMAGE_TAG: &debian-x86_64_test-base "${DEBIAN_BASE_TAG}--${PKG_REPO_REV}--${KERNEL_TAG}"
 
 .use-debian/x86_64_test-base:
   extends:
     - .fdo.container-build@debian
-    - .debian-container
+    - .debian-container-version
     - .use-base-image
   variables:
     MESA_BASE_IMAGE: ${DEBIAN_X86_64_TEST_BASE_IMAGE}
@@ -247,7 +252,7 @@ debian/arm64_build:
   extends:
     - .fdo.container-build@debian
     - .container
-    - .debian-container
+    - .debian-container-version
   tags:
     - aarch64
   variables:
@@ -318,7 +323,7 @@ fedora/x86_64_build:
 .kernel+rootfs:
   extends:
     - .container+build-rules
-    - .debian-container
+    - .debian-container-version
   stage: container
   variables:
     GIT_STRATEGY: fetch
@@ -367,7 +372,7 @@ kernel+rootfs_arm32:
   extends:
     - .fdo.container-build@debian
     - .container
-    - .debian-container
+    - .debian-container-version
     # Don't want the .container rules
     - .container+build-rules
   variables:

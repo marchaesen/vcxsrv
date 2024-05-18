@@ -142,6 +142,10 @@ struct vk_properties {
 % endfor
 };
 
+void
+vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
+                                         const VkBaseInStructure *pProperties);
+
 #ifdef __cplusplus
 }
 #endif
@@ -169,10 +173,10 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
 % endfor
 
    vk_foreach_struct(ext, pProperties->pNext) {
-      switch (ext->sType) {
+      switch ((int32_t)ext->sType) {
 % for property_struct in property_structs:
 % if property_struct.is_android:
-#ifdef ANDROID
+#if DETECT_OS_ANDROID
 % endif
 % if property_struct.name not in SPECIALIZED_PROPERTY_STRUCTS:
       case ${property_struct.s_type}: {
@@ -183,7 +187,7 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
          break;
       }
 % if property_struct.is_android:
-#endif /* ANDROID */
+#endif /* DETECT_OS_ANDROID */
 % endif
 % endif
 % endfor
@@ -223,6 +227,60 @@ vk_common_GetPhysicalDeviceProperties2(VkPhysicalDevice physicalDevice,
       }
    }
 }
+
+void
+vk_set_physical_device_properties_struct(struct vk_properties *all_properties,
+                                         const VkBaseInStructure *pProperties)
+{
+   switch ((int32_t)pProperties->sType) {
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2: {
+         const VkPhysicalDeviceProperties *properties = &((const VkPhysicalDeviceProperties2 *)pProperties)->properties;
+% for prop in pdev_properties:
+         ${copy_property("all_properties->" + prop.actual_name, "properties->" + prop.name, prop.decl)}
+% endfor
+         break;
+      }
+
+% for property_struct in property_structs:
+% if property_struct.is_android:
+#if DETECT_OS_ANDROID
+% endif
+% if property_struct.name not in SPECIALIZED_PROPERTY_STRUCTS:
+      case ${property_struct.s_type}: {
+         const ${property_struct.c_type} *properties = (const ${property_struct.c_type} *)pProperties;
+% for prop in property_struct.properties:
+         ${copy_property("all_properties->" + prop.actual_name, "properties->" + prop.name, prop.decl, "properties." + prop.length)}
+% endfor
+         break;
+      }
+% if property_struct.is_android:
+#endif /* DETECT_OS_ANDROID */
+% endif
+% endif
+% endfor
+
+      /* Don't assume anything with this struct type, and just copy things over */
+      case VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_HOST_IMAGE_COPY_PROPERTIES_EXT: {
+         VkPhysicalDeviceHostImageCopyPropertiesEXT *properties = (void *)pProperties;
+
+         memcpy(all_properties->pCopySrcLayouts, properties->pCopySrcLayouts,
+                sizeof(VkImageLayout) * properties->copySrcLayoutCount);
+         all_properties->copySrcLayoutCount = properties->copySrcLayoutCount;
+
+         memcpy(all_properties->pCopyDstLayouts, properties->pCopyDstLayouts,
+                sizeof(VkImageLayout) * properties->copySrcLayoutCount);
+         all_properties->copyDstLayoutCount = properties->copyDstLayoutCount;
+
+         memcpy(all_properties->optimalTilingLayoutUUID, properties->optimalTilingLayoutUUID, VK_UUID_SIZE);
+         all_properties->identicalMemoryTypeRequirements = properties->identicalMemoryTypeRequirements;
+         break;
+      }
+
+      default:
+         break;
+      }
+}
+
 """)
 
 def get_pdev_properties(doc, struct_name):

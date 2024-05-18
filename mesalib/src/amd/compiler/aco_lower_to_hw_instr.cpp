@@ -230,14 +230,14 @@ get_reduce_opcode(amd_gfx_level gfx_level, ReduceOp op)
    case ior32: return aco_opcode::v_or_b32;
    case iadd64: return aco_opcode::num_opcodes;
    case imul64: return aco_opcode::num_opcodes;
-   case fadd64: return aco_opcode::v_add_f64;
-   case fmul64: return aco_opcode::v_mul_f64;
+   case fadd64: return aco_opcode::v_add_f64_e64;
+   case fmul64: return aco_opcode::v_mul_f64_e64;
    case imin64: return aco_opcode::num_opcodes;
    case imax64: return aco_opcode::num_opcodes;
    case umin64: return aco_opcode::num_opcodes;
    case umax64: return aco_opcode::num_opcodes;
-   case fmin64: return aco_opcode::v_min_f64;
-   case fmax64: return aco_opcode::v_max_f64;
+   case fmin64: return aco_opcode::v_min_f64_e64;
+   case fmax64: return aco_opcode::v_max_f64_e64;
    case iand64: return aco_opcode::num_opcodes;
    case ior64: return aco_opcode::num_opcodes;
    case ixor64: return aco_opcode::num_opcodes;

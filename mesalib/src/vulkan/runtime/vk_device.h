@@ -428,13 +428,6 @@ PFN_vkVoidFunction
 vk_device_get_proc_addr(const struct vk_device *device,
                         const char *name);
 
-bool vk_get_physical_device_core_1_1_property_ext(struct VkBaseOutStructure *ext,
-                                                     const VkPhysicalDeviceVulkan11Properties *core);
-bool vk_get_physical_device_core_1_2_property_ext(struct VkBaseOutStructure *ext,
-                                                     const VkPhysicalDeviceVulkan12Properties *core);
-bool vk_get_physical_device_core_1_3_property_ext(struct VkBaseOutStructure *ext,
-                                                     const VkPhysicalDeviceVulkan13Properties *core);
-
 #ifdef __cplusplus
 }
 #endif

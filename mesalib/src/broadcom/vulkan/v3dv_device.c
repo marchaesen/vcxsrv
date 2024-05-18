@@ -44,6 +44,7 @@
 #include "compiler/v3d_compiler.h"
 
 #include "drm-uapi/v3d_drm.h"
+#include "vk_android.h"
 #include "vk_drm_syncobj.h"
 #include "vk_util.h"
 #include "git_sha1.h"
@@ -55,6 +56,8 @@
 
 #if DETECT_OS_ANDROID
 #include "vk_android.h"
+#include <vndk/hardware_buffer.h>
+#include "util/u_gralloc/u_gralloc.h"
 #endif
 
 #ifdef VK_USE_PLATFORM_XCB_KHR
@@ -228,12 +231,14 @@ get_device_extensions(const struct v3dv_physical_device *device,
       .EXT_texel_buffer_alignment           = true,
       .EXT_tooling_info                     = true,
       .EXT_vertex_attribute_divisor         = true,
-#if DETECT_OS_ANDROID
-      .ANDROID_external_memory_android_hardware_buffer = true,
-      .ANDROID_native_buffer                = true,
-      .EXT_queue_family_foreign             = true,
-#endif
    };
+#if DETECT_OS_ANDROID
+   if (vk_android_get_ugralloc() != NULL) {
+      ext->ANDROID_external_memory_android_hardware_buffer = true;
+      ext->ANDROID_native_buffer = true;
+      ext->EXT_queue_family_foreign = true;
+   }
+#endif
 }
 
 static void
@@ -585,6 +590,16 @@ v3dv_CreateInstance(const VkInstanceCreateInfo *pCreateInfo,
 
    VG(VALGRIND_CREATE_MEMPOOL(instance, 0, false));
 
+#if DETECT_OS_ANDROID
+   struct u_gralloc *u_gralloc = vk_android_init_ugralloc();
+
+   if (u_gralloc && u_gralloc_get_type(u_gralloc) == U_GRALLOC_TYPE_FALLBACK) {
+      mesa_logw(
+         "v3dv: Gralloc is not supported. Android extensions are disabled.");
+      vk_android_destroy_ugralloc();
+   }
+#endif
+
    *pInstance = v3dv_instance_to_handle(instance);
 
    return VK_SUCCESS;
@@ -639,6 +654,10 @@ v3dv_DestroyInstance(VkInstance _instance,
 
    if (!instance)
       return;
+
+#if DETECT_OS_ANDROID
+   vk_android_destroy_ugralloc();
+#endif
 
    VG(VALGRIND_DESTROY_MEMPOOL(instance));
 
@@ -1748,11 +1767,6 @@ v3dv_CreateDevice(VkPhysicalDevice physicalDevice,
       return vk_error(NULL, result);
    }
 
-#if DETECT_OS_ANDROID
-   device->gralloc = u_gralloc_create(U_GRALLOC_TYPE_AUTO);
-   assert(device->gralloc);
-#endif
-
    device->instance = instance;
    device->pdevice = physical_device;
 
@@ -1819,9 +1833,6 @@ fail:
    v3dv_event_free_resources(device);
    v3dv_query_free_resources(device);
    vk_device_finish(&device->vk);
-#if DETECT_OS_ANDROID
-   u_gralloc_destroy(&device->gralloc);
-#endif
    vk_free(&device->vk.alloc, device);
 
    return result;
@@ -1860,9 +1871,6 @@ v3dv_DestroyDevice(VkDevice _device,
    mtx_destroy(&device->query_mutex);
 
    vk_device_finish(&device->vk);
-#if DETECT_OS_ANDROID
-   u_gralloc_destroy(&device->gralloc);
-#endif
    vk_free2(&device->vk.alloc, pAllocator, device);
 }
 
@@ -2424,38 +2432,26 @@ v3dv_BindImageMemory2(VkDevice _device,
                       const VkBindImageMemoryInfo *pBindInfos)
 {
    for (uint32_t i = 0; i < bindInfoCount; i++) {
-#if DETECT_OS_ANDROID
-      V3DV_FROM_HANDLE(v3dv_device_memory, mem, pBindInfos[i].memory);
-      V3DV_FROM_HANDLE(v3dv_device, device, _device);
-      if (mem != NULL && mem->vk.ahardware_buffer) {
-         AHardwareBuffer_Desc description;
-         const native_handle_t *handle = AHardwareBuffer_getNativeHandle(mem->vk.ahardware_buffer);
+      /* This section is removed by the optimizer for non-ANDROID builds */
+      V3DV_FROM_HANDLE(v3dv_image, image, pBindInfos[i].image);
+      if (vk_image_is_android_hardware_buffer(&image->vk)) {
+         V3DV_FROM_HANDLE(v3dv_device, device, _device);
+         V3DV_FROM_HANDLE(v3dv_device_memory, mem, pBindInfos[i].memory);
 
-         V3DV_FROM_HANDLE(v3dv_image, image, pBindInfos[i].image);
-         AHardwareBuffer_describe(mem->vk.ahardware_buffer, &description);
-
-         struct u_gralloc_buffer_handle gr_handle = {
-            .handle = handle,
-            .pixel_stride = description.stride,
-            .hal_format = description.format,
-         };
-
-         VkResult result = v3dv_gralloc_to_drm_explicit_layout(
-            device->gralloc,
-            &gr_handle,
-            image->android_explicit_layout,
-            image->android_plane_layouts,
-            V3DV_MAX_PLANE_COUNT);
+         VkImageDrmFormatModifierExplicitCreateInfoEXT eci;
+         VkSubresourceLayout a_plane_layouts[V3DV_MAX_PLANE_COUNT];
+         VkResult result = vk_android_get_ahb_layout(mem->vk.ahardware_buffer,
+                                                     &eci, a_plane_layouts,
+                                                     V3DV_MAX_PLANE_COUNT);
          if (result != VK_SUCCESS)
             return result;
 
-         result = v3dv_update_image_layout(
-            device, image, image->android_explicit_layout->drmFormatModifier,
-            /* disjoint = */ false, image->android_explicit_layout);
+         result = v3dv_update_image_layout(device, image,
+                                           eci.drmFormatModifier,
+                                           /* disjoint = */ false, &eci);
          if (result != VK_SUCCESS)
             return result;
       }
-#endif
 
       const VkBindImageMemorySwapchainInfoKHR *swapchain_info =
          vk_find_struct_const(pBindInfos->pNext,

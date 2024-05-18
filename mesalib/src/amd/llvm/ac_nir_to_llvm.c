@@ -1924,8 +1924,9 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx, nir_intrinsic_
    LLVMValueRef results[4];
    for (int i = 0; i < num_components;) {
       int num_elems = num_components - i;
-      if (elem_size_bytes < 4 && nir_intrinsic_align(instr) % 4 != 0)
-         num_elems = 1;
+      /* Multi-component subdword loads are lowered by ac_nir_lower_subdword_loads. */
+      assert(elem_size_bytes >= 4 || num_elems == 1);
+
       if (num_elems * elem_size_bytes > 16)
          num_elems = 16 / elem_size_bytes;
       int load_bytes = num_elems * elem_size_bytes;
@@ -1942,16 +1943,13 @@ static LLVMValueRef visit_load_buffer(struct ac_nir_context *ctx, nir_intrinsic_
          ret = ac_build_buffer_load_short(&ctx->ac, rsrc, voffset, ctx->ac.i32_0,
                                            access);
       } else {
-         int num_channels = util_next_power_of_two(load_bytes) / 4;
+         assert(elem_size_bytes >= 4);
+         int num_channels = load_bytes / 4;
          bool can_speculate = access & ACCESS_CAN_REORDER;
 
          ret = ac_build_buffer_load(&ctx->ac, rsrc, num_channels, NULL, voffset, ctx->ac.i32_0,
                                     ctx->ac.f32, access, can_speculate, false);
       }
-
-      LLVMTypeRef byte_vec = LLVMVectorType(ctx->ac.i8, ac_get_type_size(LLVMTypeOf(ret)));
-      ret = LLVMBuildBitCast(ctx->ac.builder, ret, byte_vec, "");
-      ret = ac_trim_vector(&ctx->ac, ret, load_bytes);
 
       LLVMTypeRef ret_type = LLVMVectorType(def_elem_type, num_elems);
       ret = LLVMBuildBitCast(ctx->ac.builder, ret, ret_type, "");

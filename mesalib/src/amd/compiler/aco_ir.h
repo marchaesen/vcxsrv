@@ -1467,7 +1467,8 @@ struct LDSDIR_instruction : public Instruction {
    uint8_t attr : 6;
    uint8_t attr_chan : 2;
    uint32_t wait_vdst : 4;
-   uint32_t padding : 28;
+   uint32_t wait_vsrc : 1;
+   uint32_t padding : 27;
 };
 static_assert(sizeof(LDSDIR_instruction) == sizeof(Instruction) + 8, "Unexpected padding");
 
@@ -2250,6 +2251,7 @@ typedef struct {
    const int16_t opcode_gfx9[static_cast<int>(aco_opcode::num_opcodes)];
    const int16_t opcode_gfx10[static_cast<int>(aco_opcode::num_opcodes)];
    const int16_t opcode_gfx11[static_cast<int>(aco_opcode::num_opcodes)];
+   const int16_t opcode_gfx12[static_cast<int>(aco_opcode::num_opcodes)];
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> can_use_input_modifiers;
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> can_use_output_modifiers;
    const std::bitset<static_cast<int>(aco_opcode::num_opcodes)> is_atomic;

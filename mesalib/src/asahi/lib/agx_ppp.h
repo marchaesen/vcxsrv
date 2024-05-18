@@ -51,7 +51,13 @@ agx_ppp_update_size(struct AGX_PPP_HEADER *present)
    PPP_CASE(varying_counts_16, VARYING_COUNTS);
    PPP_CASE(cull, CULL);
    PPP_CASE(cull_2, CULL_2);
-   PPP_CASE(fragment_shader, FRAGMENT_SHADER);
+
+   if (present->fragment_shader) {
+      size +=
+         AGX_FRAGMENT_SHADER_WORD_0_LENGTH + AGX_FRAGMENT_SHADER_WORD_1_LENGTH +
+         AGX_FRAGMENT_SHADER_WORD_2_LENGTH + AGX_FRAGMENT_SHADER_WORD_3_LENGTH;
+   }
+
    PPP_CASE(occlusion_query, FRAGMENT_OCCLUSION_QUERY);
    PPP_CASE(occlusion_query_2, FRAGMENT_OCCLUSION_QUERY_2);
    PPP_CASE(output_unknown, OUTPUT_UNKNOWN);

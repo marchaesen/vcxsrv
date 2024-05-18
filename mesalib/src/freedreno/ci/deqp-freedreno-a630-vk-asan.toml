@@ -2,7 +2,7 @@
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
 fraction = 1000
 renderer_check = "Turnip Adreno .* 630"
 [deqp.env]
@@ -13,7 +13,7 @@ ASAN_OPTIONS = "detect_leaks=0"
 [[deqp]]
 deqp = "/deqp/external/vulkancts/modules/vulkan/deqp-vk"
 caselists = ["/deqp/mustpass/vk-main.txt"]
-skips = ["install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
+skips = ["install/freedreno-a6xx-skips.txt", "install/freedreno-a630-premerge-skips.txt", "install/freedreno-a630-asan-skips.txt"]
 include = ["dEQP-VK.graphicsfuzz.barrier-in-loop-with-break"]
 prefix = "spill-"
 [deqp.env]

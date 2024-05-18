@@ -176,6 +176,15 @@ bool si_alloc_resource(struct si_screen *sscreen, struct si_resource *res)
    util_range_set_empty(&res->valid_buffer_range);
    res->TC_L2_dirty = false;
 
+   if (res->b.b.target != PIPE_BUFFER && !(res->b.b.flags & SI_RESOURCE_AUX_PLANE)) {
+      /* The buffer is shared with other planes. */
+      struct si_resource *plane = (struct si_resource *)res->b.b.next;
+      for (; plane; plane = (struct si_resource *)plane->b.b.next) {
+         radeon_bo_reference(sscreen->ws, &plane->buf, res->buf);
+         plane->gpu_address = res->gpu_address;
+      }
+   }
+
    /* Print debug information. */
    if (sscreen->debug_flags & DBG(VM) && res->b.b.target == PIPE_BUFFER) {
       fprintf(stderr, "VM start=0x%" PRIX64 "  end=0x%" PRIX64 " | Buffer %" PRIu64 " bytes | Flags: ",

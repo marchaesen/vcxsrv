@@ -1,0 +1,89 @@
+# Note: skips lists for CI are just a list of lines that, when
+# non-zero-length and not starting with '#', will regex match to
+# delete lines from the test list.  Be careful.
+#
+# This file lists tests to skip for _all_ a6xx devices
+
+# 60s timeout
+KHR-GLES31.core.tessellation_shader.tessellation_control_to_tessellation_evaluation.gl_MaxPatchVertices_Position_PointSize
+KHR-GL46.copy_image.functional
+
+# Slow tests
+spec@arb_compute_shader@local-id-explosion
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-inverse-dmat4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-dmat4x3-dmat4x3
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat3x4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-div-double-dmat4x3
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat2x4-dmat4x2
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat4-dmat3x4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat4x3-dmat4
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-smoothstep-double-double-dvec4
+spec@arb_gpu_shader_fp64@execution@vs-decrement-dvec
+spec@egl 1.4@eglquerysurface egl_bad_attribute
+spec@egl_chromium_sync_control@conformance
+spec@egl_khr_gl_colorspace@linear
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat2x3-dmat2x3
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat2x4-dmat2x4
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4x3-dmat4x3
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-dmat4-dmat4
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat2x4
+spec@glsl-4.00@execution@built-in-functions@fs-op-div-double-dmat4
+spec@glsl-4.00@execution@built-in-functions@fs-op-mult-dmat2x4-dmat3x2
+spec@glsl-4.00@execution@built-in-functions@fs-op-mult-dmat4-dmat4
+spec@glsl-4.10@execution@conversion@frag-conversion-implicit-mat4-dmat4-zero-sign
+spec@glsl-4.10@execution@conversion@frag-conversion-implicit-mat4x3-dmat4x3-zero-sign
+
+# Timeout
+spec@arb_gpu_shader_fp64@execution@built-in-functions@fs-op-mult-dmat4-dmat4
+
+# These take most of a minute to run
+spec@!opengl 3.0@clearbuffer-depth-cs-probe
+spec@ext_texture_array@fbo-depth-array depth-clear
+spec@ext_texture_array@fbo-depth-array depth-draw
+spec@ext_texture_array@fbo-depth-array fs-writes-depth
+spec@ext_texture_array@fbo-depth-array fs-writes-stencil
+spec@ext_texture_array@fbo-depth-array stencil-clear
+spec@ext_texture_array@fbo-depth-array stencil-draw
+spec@ext_transform_feedback@max-varyings
+spec@!opengl 1.0@gl-1.0-blend-func
+
+# TC Timeouts
+spec@arb_sync@clientwaitsync-timeout
+spec@arb_texture_buffer_object@bufferstorage
+spec@arb_uniform_buffer_object@bufferstorage
+spec@arb_buffer_storage@bufferstorage-persistent read
+spec@arb_buffer_storage@bufferstorage-persistent read client-storage
+spec@arb_buffer_storage@bufferstorage-persistent read coherent
+spec@arb_buffer_storage@bufferstorage-persistent read coherent client-storage
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read client-storage
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent
+spec@arb_buffer_storage@bufferstorage-persistent_gles3 read coherent client-storage
+
+# Only run the FS versions of build-in-functions, the VS and GS variants
+# don't add additional useful coverage.  And in some cases (GS+fp64) the
+# compile times are somewhat long.
+.*built-in-functions@[vg]s.*
+.*conversion@vert.*
+.*@conversion@geom.*
+
+# Don't bother trying, it just causes more OoM havoc than it is
+# worth:
+spec@!opengl 1.1@max-texture-size
+
+# These are redundant with arb_copy_image, so skip them to cut down
+# on CI runtime:
+spec@nv_copy_image@nv_copy_image.*
+
+# Legacy gl features unsupported by hw.  We _could_ emulate it with a GS
+# at the cost of extra per-draw overhead for all users.
+#
+# If we find any non-piglit users of these features, then maybe a driconf
+# way to force fall-over to zink for that app could make sense.  Until
+# then, just pretend that this stuff doesn't exist:
+.*edgeflag.*
+.*stipple.*
+# uses edgeflags:
+shaders@point-vertex-id.*
+# uses stipple:
+spec@!opengl 1.0@gl-1.0-no-op-paths

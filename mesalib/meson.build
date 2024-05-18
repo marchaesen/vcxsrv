@@ -832,8 +832,8 @@ if with_gallium_rusticl
     error('rusticl requires at least one gallium driver.')
   endif
 
-  if meson.version().version_compare('< 1.3.1')
-    error('rusticl requires meson 1.3.1 or newer')
+  if meson.version().version_compare('< 1.4.0')
+    error('rusticl requires meson 1.4.0 or newer')
   endif
 
   add_languages('rust', required: true)

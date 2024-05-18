@@ -192,7 +192,7 @@ agx_bo_unreference(struct agx_bo *bo)
       assert(!p_atomic_read_relaxed(&bo->writer_syncobj));
 
       if (dev->debug & AGX_DBG_TRACE)
-         agxdecode_track_free(bo);
+         agxdecode_track_free(dev->agxdecode, bo);
 
       if (!agx_bo_cache_put(bo))
          agx_bo_free(dev, bo);
@@ -242,7 +242,7 @@ agx_bo_create_aligned(struct agx_device *dev, unsigned size, unsigned align,
    p_atomic_set(&bo->refcnt, 1);
 
    if (dev->debug & AGX_DBG_TRACE)
-      agxdecode_track_alloc(bo);
+      agxdecode_track_alloc(dev->agxdecode, bo);
 
    return bo;
 }

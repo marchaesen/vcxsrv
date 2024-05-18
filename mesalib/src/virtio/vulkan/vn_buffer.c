@@ -62,7 +62,7 @@ vn_buffer_get_max_buffer_size(struct vn_physical_device *physical_dev)
     */
    static const uint64_t safe_max_buffer_size = 1ULL << 30;
    return physical_dev->base.base.supported_features.maintenance4
-             ? physical_dev->properties.vulkan_1_3.maxBufferSize
+             ? physical_dev->base.base.properties.maxBufferSize
              : safe_max_buffer_size;
 }
 

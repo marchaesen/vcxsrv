@@ -186,6 +186,7 @@ void vlVaHandleSliceParameterBufferH264(vlVaContext *context, vlVaBuffer *buf)
    assert(context->desc.h264.slice_count < max_pipe_h264_slices);
 
    context->desc.h264.slice_parameter.slice_info_present = true;
+   context->desc.h264.slice_parameter.slice_type[context->desc.h264.slice_count] = h264->slice_type;
    context->desc.h264.slice_parameter.slice_data_size[context->desc.h264.slice_count] = h264->slice_data_size;
    context->desc.h264.slice_parameter.slice_data_offset[context->desc.h264.slice_count] = h264->slice_data_offset;
 

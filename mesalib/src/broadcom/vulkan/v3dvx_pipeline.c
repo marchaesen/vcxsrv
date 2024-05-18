@@ -357,6 +357,10 @@ v3dX(pipeline_pack_state)(struct v3dv_pipeline *pipeline,
 static void
 pack_shader_state_record(struct v3dv_pipeline *pipeline)
 {
+   /* To siplify the code we ignore here GL_SHADER_STATE_RECORD_DRAW_INDEX
+    * used with 2712D0, since we know that has the same size as the regular
+    * version.
+    */
    assert(sizeof(pipeline->shader_state_record) >=
           cl_packet_length(GL_SHADER_STATE_RECORD));
 
@@ -369,6 +373,14 @@ pack_shader_state_record(struct v3dv_pipeline *pipeline)
    struct v3d_vs_prog_data *prog_data_vs_bin =
       pipeline->shared_data->variants[BROADCOM_SHADER_VERTEX_BIN]->prog_data.vs;
 
+   bool point_size_in_shaded_vertex_data;
+   if (!pipeline->has_gs) {
+      point_size_in_shaded_vertex_data = pipeline->topology == MESA_PRIM_POINTS;
+   } else {
+      struct v3d_gs_prog_data *prog_data_gs =
+         pipeline->shared_data->variants[BROADCOM_SHADER_GEOMETRY]->prog_data.gs;
+         point_size_in_shaded_vertex_data = prog_data_gs->writes_psiz;
+   }
 
    /* Note: we are not packing addresses, as we need the job (see
     * cl_pack_emit_reloc). Additionally uniforms can't be filled up at this
@@ -376,17 +388,62 @@ pack_shader_state_record(struct v3dv_pipeline *pipeline)
     * pipeline (like viewport), . Would need to be filled later, so we are
     * doing a partial prepacking.
     */
+#if V3D_VERSION >= 71
+   /* 2712D0 (V3D 7.1.10) has included draw index and base vertex, shuffling all
+    * the fields in the packet. Since the versioning framework doesn't handle
+    * revision numbers, the XML has a different shader state record packet
+    * including the new fields and we device at run time which packet we need
+    * to emit.
+    */
+   if (v3d_device_has_draw_index(&pipeline->device->devinfo)) {
+      v3dvx_pack(pipeline->shader_state_record, GL_SHADER_STATE_RECORD_DRAW_INDEX, shader) {
+         shader.enable_clipping = true;
+         shader.point_size_in_shaded_vertex_data = point_size_in_shaded_vertex_data;
+         shader.fragment_shader_does_z_writes = prog_data_fs->writes_z;
+         shader.turn_off_early_z_test = prog_data_fs->disable_ez;
+         shader.fragment_shader_uses_real_pixel_centre_w_in_addition_to_centroid_w2 =
+            prog_data_fs->uses_center_w;
+         shader.enable_sample_rate_shading =
+            pipeline->sample_rate_shading ||
+            (pipeline->msaa && prog_data_fs->force_per_sample_msaa);
+         shader.any_shader_reads_hardware_written_primitive_id = false;
+         shader.do_scoreboard_wait_on_first_thread_switch =
+            prog_data_fs->lock_scoreboard_on_first_thrsw;
+         shader.disable_implicit_point_line_varyings =
+            !prog_data_fs->uses_implicit_point_line_varyings;
+         shader.number_of_varyings_in_fragment_shader = prog_data_fs->num_inputs;
+         shader.coordinate_shader_input_vpm_segment_size = prog_data_vs_bin->vpm_input_size;
+         shader.vertex_shader_input_vpm_segment_size = prog_data_vs->vpm_input_size;
+         shader.coordinate_shader_output_vpm_segment_size = prog_data_vs_bin->vpm_output_size;
+         shader.vertex_shader_output_vpm_segment_size = prog_data_vs->vpm_output_size;
+         shader.min_coord_shader_input_segments_required_in_play =
+            pipeline->vpm_cfg_bin.As;
+         shader.min_vertex_shader_input_segments_required_in_play =
+            pipeline->vpm_cfg.As;
+         shader.min_coord_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+            pipeline->vpm_cfg_bin.Ve;
+         shader.min_vertex_shader_output_segments_required_in_play_in_addition_to_vcm_cache_size =
+            pipeline->vpm_cfg.Ve;
+         shader.coordinate_shader_4_way_threadable = prog_data_vs_bin->base.threads == 4;
+         shader.vertex_shader_4_way_threadable = prog_data_vs->base.threads == 4;
+         shader.fragment_shader_4_way_threadable = prog_data_fs->base.threads == 4;
+         shader.coordinate_shader_start_in_final_thread_section = prog_data_vs_bin->base.single_seg;
+         shader.vertex_shader_start_in_final_thread_section = prog_data_vs->base.single_seg;
+         shader.fragment_shader_start_in_final_thread_section = prog_data_fs->base.single_seg;
+         shader.vertex_id_read_by_coordinate_shader = prog_data_vs_bin->uses_vid;
+         shader.base_instance_id_read_by_coordinate_shader = prog_data_vs_bin->uses_biid;
+         shader.instance_id_read_by_coordinate_shader = prog_data_vs_bin->uses_iid;
+         shader.vertex_id_read_by_vertex_shader = prog_data_vs->uses_vid;
+         shader.base_instance_id_read_by_vertex_shader = prog_data_vs->uses_biid;
+         shader.instance_id_read_by_vertex_shader = prog_data_vs->uses_iid;
+      }
+      return;
+   }
+#endif
+
    v3dvx_pack(pipeline->shader_state_record, GL_SHADER_STATE_RECORD, shader) {
       shader.enable_clipping = true;
-
-      if (!pipeline->has_gs) {
-         shader.point_size_in_shaded_vertex_data =
-            pipeline->topology == MESA_PRIM_POINTS;
-      } else {
-         struct v3d_gs_prog_data *prog_data_gs =
-            pipeline->shared_data->variants[BROADCOM_SHADER_GEOMETRY]->prog_data.gs;
-         shader.point_size_in_shaded_vertex_data = prog_data_gs->writes_psiz;
-      }
+      shader.point_size_in_shaded_vertex_data = point_size_in_shaded_vertex_data;
 
       /* Must be set if the shader modifies Z, discards, or modifies
        * the sample mask.  For any of these cases, the fragment

@@ -72,18 +72,12 @@ radv_pipeline_has_color_attachments(const struct vk_render_pass_state *rp)
    return false;
 }
 
-bool
+static bool
 radv_pipeline_has_ngg(const struct radv_graphics_pipeline *pipeline)
 {
    struct radv_shader *shader = pipeline->base.shaders[pipeline->last_vgt_api_stage];
 
    return shader->info.is_ngg;
-}
-
-bool
-radv_pipeline_has_gs_copy_shader(const struct radv_pipeline *pipeline)
-{
-   return !!pipeline->gs_copy_shader;
 }
 
 /**

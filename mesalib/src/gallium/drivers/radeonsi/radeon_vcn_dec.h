@@ -125,6 +125,7 @@ struct radeon_decoder {
       } bts;
       uint8_t index;
       unsigned ref_size;
+      unsigned num_refs;
       uint8_t ref_list[16];
    } ref_codec;
 

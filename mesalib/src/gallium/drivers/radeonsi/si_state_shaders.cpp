@@ -246,7 +246,8 @@ static uint32_t *si_get_shader_binary(struct si_shader *shader)
                    align(sizeof(shader->info), 4) +
                    4 + 4 + align(shader->binary.code_size, 4) +
                    4 + shader->binary.num_symbols * 8 +
-                   4 + align(llvm_ir_size, 4);
+                   4 + align(llvm_ir_size, 4) +
+                   4 + align(shader->binary.disasm_size, 4);
    uint32_t *buffer = (uint32_t*)CALLOC(1, size);
    if (!buffer)
       return NULL;
@@ -264,6 +265,7 @@ static uint32_t *si_get_shader_binary(struct si_shader *shader)
    ptr = write_chunk(ptr, shader->binary.code_buffer, shader->binary.code_size);
    ptr = write_chunk(ptr, shader->binary.symbols, shader->binary.num_symbols * 8);
    ptr = write_chunk(ptr, shader->binary.llvm_ir_string, llvm_ir_size);
+   ptr = write_chunk(ptr, shader->binary.disasm_string, shader->binary.disasm_size);
    assert((char *)ptr - (char *)buffer == (ptrdiff_t)size);
 
    /* Compute CRC32. */
@@ -293,6 +295,8 @@ static bool si_load_shader_binary(struct si_shader *shader, void *binary)
    ptr = read_chunk(ptr, (void **)&shader->binary.symbols, &chunk_size);
    shader->binary.num_symbols = chunk_size / 8;
    ptr = read_chunk(ptr, (void **)&shader->binary.llvm_ir_string, &chunk_size);
+   ptr = read_chunk(ptr, (void **)&shader->binary.disasm_string, &chunk_size);
+   shader->binary.disasm_size = chunk_size;
 
    if (!shader->is_gs_copy_shader &&
        shader->selector->stage == MESA_SHADER_GEOMETRY && !shader->key.ge.as_ngg) {
@@ -2293,7 +2297,7 @@ void si_vs_key_update_inputs(struct si_context *sctx)
          unsigned i = u_bit_scan(&mask);
          unsigned log_hw_load_size = 1 + ((elts->hw_load_is_dword >> i) & 1);
          unsigned vbidx = elts->vertex_buffer_index[i];
-         struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbidx];
+         const struct pipe_vertex_buffer *vb = &sctx->vertex_buffer[vbidx];
          unsigned align_mask = (1 << log_hw_load_size) - 1;
          if (vb->buffer_offset & align_mask) {
             fix |= 1 << i;

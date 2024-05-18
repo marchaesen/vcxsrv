@@ -161,6 +161,7 @@ nir_lower_cl_images(nir_shader *shader, bool lower_image_derefs, bool lower_samp
          assert(var->data.location > last_loc);
          last_loc = var->data.location;
          var->data.driver_location = num_samplers++;
+         var->data.binding = var->data.driver_location;
       } else {
          /* CL shouldn't have any sampled images */
          assert(!glsl_type_is_sampler(var->type));

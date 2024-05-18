@@ -14,6 +14,7 @@ KHR-Single-GL46.enhanced_layouts.xfb_global_buffer
 KHR-Single-GL46.arrays_of_arrays_gl.SubroutineFunctionCalls1
 KHR-GL46.direct_state_access.framebuffers_texture_layer_attachment
 KHR-GL46.sparse_buffer_tests.BufferStorageTest
+KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor
 
 # Definitely shouldn't take this long, but times out at 3 minutes.
 glx@glx-visuals-depth$

@@ -39,6 +39,7 @@
 #include "util/u_screen.h"
 #include "util/u_upload_mgr.h"
 #include "util/xmlconfig.h"
+#include "agx_bg_eot.h"
 #include "agx_device.h"
 #include "agx_disk_cache.h"
 #include "agx_fence.h"
@@ -1277,9 +1278,13 @@ agx_flush_batch(struct agx_context *ctx, struct agx_batch *batch)
    uint8_t stop[5 + 64] = {0x00, 0x00, 0x00, 0xc0, 0x00};
    memcpy(batch->vdm.current, stop, sizeof(stop));
 
-   uint64_t pipeline_background = agx_build_meta(batch, false, false);
-   uint64_t pipeline_background_partial = agx_build_meta(batch, false, true);
-   uint64_t pipeline_store = agx_build_meta(batch, true, false);
+   struct asahi_bg_eot pipeline_background =
+      agx_build_bg_eot(batch, false, false);
+
+   struct asahi_bg_eot pipeline_background_partial =
+      agx_build_bg_eot(batch, false, true);
+
+   struct asahi_bg_eot pipeline_store = agx_build_bg_eot(batch, true, false);
 
    bool clear_pipeline_textures =
       agx_tilebuffer_spills(&batch->tilebuffer_layout);
@@ -1347,7 +1352,7 @@ agx_destroy_context(struct pipe_context *pctx)
 
    util_unreference_framebuffer_state(&ctx->framebuffer);
 
-   agx_meta_cleanup(&ctx->meta);
+   agx_bg_eot_cleanup(&ctx->bg_eot);
    agx_destroy_meta_shaders(ctx);
 
    agx_bo_unreference(ctx->result_buf);
@@ -1451,7 +1456,7 @@ agx_create_context(struct pipe_screen *screen, void *priv, unsigned flags)
    agx_init_query_functions(pctx);
    agx_init_streamout_functions(pctx);
 
-   agx_meta_init(&ctx->meta, agx_device(screen));
+   agx_bg_eot_init(&ctx->bg_eot, agx_device(screen));
    agx_init_meta_shaders(ctx);
 
    ctx->blitter = util_blitter_create(pctx);

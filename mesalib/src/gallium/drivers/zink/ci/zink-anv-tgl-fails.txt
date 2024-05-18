@@ -453,10 +453,6 @@ spec@arb_shader_image_load_store@early-z@occlusion query test/early-z pass,Fail
 spec@arb_shader_texture_lod@execution@arb_shader_texture_lod-texgradcube,Fail
 
 # "../src/gallium/drivers/zink/zink_compiler.c:2071: assign_producer_var_io: Assertion `*reserved < MAX_VARYING' failed."
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-float-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec2-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec3-index-rd,Crash
-spec@arb_tessellation_shader@execution@variable-indexing@tes-both-input-array-vec4-index-rd,Crash
 
 # "arb_texture_buffer_object-formats: ../src/gallium/drivers/zink/zink_context.c:807: create_bvci: Assertion `bvci.format' failed."
 spec@arb_texture_buffer_object@formats (vs- arb),Crash
@@ -584,8 +580,28 @@ spec@arb_gpu_shader_fp64@execution@arb_gpu_shader_fp64-gs-getuniformdv,Crash
 
 spec@arb_fragment_layer_viewport@layer-no-gs,Fail
 
-# sparse_backing_alloc: Assertion `bo->u.sparse.num_backing_pages < DIV_ROUND_UP(bo->base.size, ZINK_SPARSE_BUFFER_PAGE_SIZE)' failed
+# Crashes with VUID-VkSparseMemoryBind-size-01102 due to 2D_3D compability
+# issues.
 KHR-GL46.sparse_texture_tests.SparseTextureCommitment,Crash
+
+# Test fails because it expects 1D images to have 2D block shapes
+KHR-GL46.sparse_texture2_tests.StandardPageSizesTestCase,Fail
+
+# Issue 11073 constains a big explanation on why this fails. The test is using a
+# 2D_3D compatible format that ends up being marked by Anv as "everything is
+# miptail" and the test is not expecting that.
+KHR-GL46.sparse_texture2_tests.UncommittedRegionsAccess,Fail
+
+# glcts: ../../src/intel/vulkan/anv_sparse.c:970: vk_bind_to_anv_vm_bind: Assertion `vk_bind->memoryOffset + vk_bind->size <= anv_bind.bo->size' failed.
+# Also related to https://gitlab.freedesktop.org/mesa/mesa/-/issues/11073
+KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupColor,Crash
+
+# Error detected at x,y,z: expected [a] got [b]
+KHR-GL46.sparse_texture_clamp_tests.SparseTextureClampLookupResidency,Fail
+KHR-GL46.sparse_texture2_tests.SparseTexture2Commitment,Fail
+
+# This one crashes in CI but just fails in other TGL machines.
+KHR-GL46.sparse_texture2_tests.SparseTexture2Lookup,Crash
 
 # uprev Piglit in Mesa
 spec@arb_shader_storage_buffer_object@max-ssbo-size@fs,Crash

@@ -452,6 +452,8 @@ print_instr_format_specific(enum amd_gfx_level gfx_level, const Instruction* ins
          fprintf(output, " attr%u.%c", ldsdir.attr, "xyzw"[ldsdir.attr_chan]);
       if (ldsdir.wait_vdst != 15)
          fprintf(output, " wait_vdst:%u", ldsdir.wait_vdst);
+      if (ldsdir.wait_vsrc != 1)
+         fprintf(output, " wait_vsrc:%u", ldsdir.wait_vsrc);
       print_sync(ldsdir.sync, output);
       break;
    }

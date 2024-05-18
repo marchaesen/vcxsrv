@@ -54,3 +54,11 @@ spec@arb_framebuffer_srgb@arb_framebuffer_srgb-srgb_conformance
 spec@arb_framebuffer_srgb@blit renderbuffer linear
 spec@arb_framebuffer_srgb@blit texture srgb
 spec@!opengl 1.1@dlist-fdo3129-01
+
+# Unsupported legacy gl features
+.*edgeflag.*
+.*stipple.*
+# uses edgeflags:
+shaders@point-vertex-id.*
+# uses stipple:
+spec@!opengl 1.0@gl-1.0-no-op-paths

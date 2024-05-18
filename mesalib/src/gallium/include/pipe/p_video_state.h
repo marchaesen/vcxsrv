@@ -413,6 +413,7 @@ struct pipe_h264_picture_desc
    {
       bool slice_info_present;
       uint32_t slice_count;
+      uint8_t slice_type[128];
       uint32_t slice_data_size[128];
       uint32_t slice_data_offset[128];
       enum pipe_slice_buffer_placement_type slice_data_flag[128];

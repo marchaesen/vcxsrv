@@ -67,11 +67,6 @@
 
 #include "util/detect_os.h"
 
-#if DETECT_OS_ANDROID
-#include <vndk/hardware_buffer.h>
-#include "util/u_gralloc/u_gralloc.h"
-#endif
-
 #include "v3dv_limits.h"
 
 #include "common/v3d_device_info.h"
@@ -599,10 +594,6 @@ struct v3dv_device {
 
    void *device_address_mem_ctx;
    struct util_dynarray device_address_bo_list; /* Array of struct v3dv_bo * */
-
-#if DETECT_OS_ANDROID
-   struct u_gralloc *gralloc;
-#endif
 };
 
 struct v3dv_device_memory {
@@ -740,15 +731,6 @@ struct v3dv_image {
     * This holds a tiled copy of the image we can use for that purpose.
     */
    struct v3dv_image *shadow;
-
-#if DETECT_OS_ANDROID
-   /* Image is backed by VK_ANDROID_native_buffer, */
-   bool is_native_buffer_memory;
-   /* Image is backed by VK_ANDROID_external_memory_android_hardware_buffer */
-   bool is_ahb;
-   VkImageDrmFormatModifierExplicitCreateInfoEXT *android_explicit_layout;
-   VkSubresourceLayout *android_plane_layouts;
-#endif
 };
 
 VkResult
@@ -2696,20 +2678,5 @@ v3dv_compute_ez_state(struct vk_dynamic_graphics_state *dyn,
                       bool *incompatible_ez_test);
 
 uint32_t v3dv_pipeline_primitive(VkPrimitiveTopology vk_prim);
-
-#if DETECT_OS_ANDROID
-VkResult
-v3dv_gralloc_to_drm_explicit_layout(struct u_gralloc *gralloc,
-                                    struct u_gralloc_buffer_handle *in_hnd,
-                                    VkImageDrmFormatModifierExplicitCreateInfoEXT *out,
-                                    VkSubresourceLayout *out_layouts,
-                                    int max_planes);
-
-VkResult
-v3dv_import_native_buffer_fd(VkDevice device_h,
-                             int dma_buf,
-                             const VkAllocationCallbacks *alloc,
-                             VkImage image_h);
-#endif /* DETECT_OS_ANDROID */
 
 #endif /* V3DV_PRIVATE_H */

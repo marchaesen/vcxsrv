@@ -598,7 +598,8 @@ VkResult radv_device_init_vrs_state(struct radv_device *device);
 
 unsigned radv_get_default_max_sample_dist(int log_samples);
 
-void radv_emit_default_sample_locations(struct radeon_cmdbuf *cs, int nr_samples);
+void radv_emit_default_sample_locations(const struct radv_physical_device *pdev, struct radeon_cmdbuf *cs,
+                                        int nr_samples);
 
 bool radv_get_memory_fd(struct radv_device *device, struct radv_device_memory *memory, int *pFD);
 

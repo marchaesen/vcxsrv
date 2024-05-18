@@ -690,7 +690,7 @@ void si_update_tess_io_layout_state(struct si_context *sctx);
 void si_cp_dma_prefetch(struct si_context *sctx, struct pipe_resource *buf,
                         unsigned offset, unsigned size);
 void si_set_vertex_buffer_descriptor(struct si_screen *sscreen, struct si_vertex_elements *velems,
-                                     struct pipe_vertex_buffer *vb, unsigned element_index,
+                                     const struct pipe_vertex_buffer *vb, unsigned element_index,
                                      uint32_t *out);
 void si_emit_buffered_compute_sh_regs(struct si_context *sctx);
 void si_init_draw_functions_GFX6(struct si_context *sctx);

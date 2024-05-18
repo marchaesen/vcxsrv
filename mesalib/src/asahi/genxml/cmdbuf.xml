@@ -386,10 +386,11 @@
 
   <struct name="Counts" size="4">
     <field name="Unknown 0" size="1" start="0" type="hex" default="0"/>
-    <field name="Uniforms" size="3" start="1" type="uint" modifier="groups(64)"/>
-    <field name="Texture states" size="5" start="4" type="uint" modifier="groups(8)"/>
-    <field name="Sampler states" size="3" start="9" type="Sampler states"/>
-    <field name="Preshader GPRs" size="4" start="12" type="uint" modifier="groups(16)"/>
+    <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
+    <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
+    <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
+    <field name="Preshader register count" size="4" start="12" type="uint" modifier="groups(16)"/>
+    <field name="CF binding count" size="7" start="16" type="uint"/>
 
     <!-- Only for fragment shaders -->
     <field name="Unknown" size="16" start="16" type="hex"/>
@@ -595,22 +596,29 @@
     <field name="Depth bias" size="16" start="16" type="uint"/>
   </struct>
 
-  <struct name="Fragment shader" size="16">
+  <struct name="Fragment Shader Word 0" size="4">
     <field name="Unknown 0" size="1" start="0" type="hex" default="0"/>
     <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
     <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
     <field name="Preshader register count" size="4" start="12" type="uint" modifier="groups(16)"/>
     <field name="CF binding count" size="7" start="16" type="uint"/>
-    <field name="Unknown 1:0" size="2" start="1:0" type="hex"/>
-    <field name="Pipeline" size="26" start="1:6" type="address" modifier="shr(6)"/>
-
-    <field name="CF bindings" size="30" start="2:2" type="address" modifier="shr(2)"/>
-    <!-- Seems to be set to small values depending on textures? and pushed
-         uniforms? Needs investigation -->
-    <field name="Unknown 3:0" start="3:0" size="4" type="hex"/>
   </struct>
 
+  <struct name="Fragment Shader Word 1" size="4">
+    <field name="Unknown 1:0" size="2" start="0" type="hex"/>
+    <field name="Pipeline" size="26" start="6" type="address" modifier="shr(6)"/>
+  </struct>
+
+  <struct name="Fragment Shader Word 2" size="4">
+    <field name="CF bindings" size="30" start="2" type="address" modifier="shr(2)"/>
+  </struct>
+
+  <struct name="Fragment Shader Word 3" size="4">
+    <!-- Seems to be set to small values depending on textures? and pushed
+         uniforms? Needs investigation -->
+    <field name="Unknown" start="0" size="4" type="hex"/>
+  </struct>
   <!-- PPP state ends -->
 
   <!-- USC state starts -->
@@ -1003,14 +1011,17 @@
     <value name="Indirect local" value="2"/>
   </enum>
 
-  <struct name="CDM Launch" size="8">
+  <struct name="CDM Launch Word 0" size="4">
     <field name="Uniform register count" size="3" start="1" type="uint" modifier="groups(64)"/>
     <field name="Texture state register count" size="5" start="4" type="uint" modifier="groups(8)"/>
     <field name="Sampler state register count" size="3" start="9" type="Sampler states"/>
     <field name="Preshader register count" size="4" start="12" type="uint" modifier="groups(16)"/>
     <field name="Mode" size="2" start="27" type="CDM Mode"/>
     <field name="Block Type" size="3" start="29" type="CDM Block Type" default="Launch"/>
-    <field name="Pipeline" size="26" start="1:6" type="address" modifier="shr(6)"/>
+  </struct>
+
+  <struct name="CDM Launch Word 1" size="4">
+    <field name="Pipeline" size="26" start="6" type="address" modifier="shr(6)"/>
   </struct>
 
   <struct name="CDM Unk G14X" size="8">

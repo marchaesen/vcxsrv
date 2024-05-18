@@ -276,17 +276,6 @@ spec@arb_stencil_texturing@glblitframebuffer corrupts state@gl_texture_2d_multis
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic,Fail
 spec@arb_framebuffer_no_attachments@arb_framebuffer_no_attachments-atomic@MS4,Fail
 
-# Line/polygon Stippling
-spec@!opengl 1.1@linestipple,Fail
-spec@!opengl 1.1@linestipple@Factor 2x,Fail
-spec@!opengl 1.1@linestipple@Factor 3x,Fail
-spec@!opengl 1.1@linestipple@Line loop,Fail
-spec@!opengl 1.1@linestipple@Line strip,Fail
-spec@!opengl 1.1@linestipple@Restarting lines within a single Begin-End block,Fail
-spec@!opengl 2.1@pbo,Fail
-spec@!opengl 2.1@pbo@test_polygon_stip,Fail
-spec@!opengl 2.1@polygon-stipple-fs,Fail
-
 # Need to specify more formats as renderable (L/I/LA formats are all renderable on e.g. nouveau)
 spec@ext_packed_float@query-rgba-signed-components,Fail
 
@@ -317,8 +306,6 @@ shaders@point-vertex-id gl_vertexid,Crash
 shaders@point-vertex-id gl_vertexid divisor,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid,Crash
 shaders@point-vertex-id gl_vertexid gl_instanceid divisor,Crash
-spec@!opengl 1.0@gl-1.0-edgeflag,Crash
-spec@!opengl 1.0@gl-1.0-edgeflag-quads,Crash
 spec@!opengl 1.0@gl-1.0-no-op-paths,Fail
 spec@!opengl 1.0@gl-1.0-scissor-offscreen,Fail
 spec@!opengl 1.0@rasterpos,Crash
@@ -342,8 +329,6 @@ spec@!opengl 1.1@polygon-mode-offset@config 4: Expected white pixel on top edge,
 spec@!opengl 1.1@polygon-mode-offset@config 5: Expected blue pixel in center,Fail
 spec@!opengl 1.1@polygon-mode-offset@config 6: Expected blue pixel in center,Fail
 spec@!opengl 1.4@copy-pixels,Fail
-spec@!opengl 2.0@gl-2.0-edgeflag,Crash
-spec@!opengl 2.0@gl-2.0-edgeflag-immediate,Crash
 spec@!opengl 2.0@occlusion-query-discard,Crash
 spec@!opengl 3.0@gl-3.0-texture-integer,Fail
 spec@!opengl 3.1@primitive-restart-xfb flush,Fail

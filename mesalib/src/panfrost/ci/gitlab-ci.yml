@@ -219,7 +219,7 @@ panfrost-t860-traces:arm64:
     - .lava-rk3399-gru-kevin:arm64
     - .panfrost-traces
 
-.panfrost-g52-gl:arm64:
+panfrost-g52-gl:arm64:
   parallel: 3
   extends:
     - .lava-test-deqp:arm64
@@ -231,7 +231,7 @@ panfrost-t860-traces:arm64:
     DEQP_SUITE: panfrost-g52
     PAN_MESA_DEBUG: "deqp,sync,indirect"
 
-.panfrost-g52-vk:arm64:
+panfrost-g52-vk:arm64:
   parallel: 2
   extends:
     - .lava-test-deqp:arm64
@@ -246,7 +246,7 @@ panfrost-t860-traces:arm64:
     DEQP_SUITE: panfrost-g52-vk
     HWCI_START_WESTON: 1
 
-.panfrost-g52-piglit-gles2:arm64:
+panfrost-g52-piglit-gles2:arm64:
   extends:
     - .lava-piglit:arm64
     - .panfrost-bifrost-rules

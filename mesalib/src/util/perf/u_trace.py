@@ -60,6 +60,9 @@ class Tracepoint(object):
         self.args = args
         if tp_struct is None:
            tp_struct = args
+        else:
+           tp_struct += [x for x in args if isinstance(x, TracepointArg)]
+
         self.tp_struct = tp_struct
         self.has_variable_arg = False
         for arg in self.tp_struct:

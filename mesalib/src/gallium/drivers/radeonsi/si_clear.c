@@ -1159,7 +1159,6 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
    struct pipe_framebuffer_state *fb = &sctx->framebuffer.state;
    struct pipe_surface *zsbuf = fb->zsbuf;
    struct si_texture *zstex = zsbuf ? (struct si_texture *)zsbuf->texture : NULL;
-   bool needs_db_flush = false;
 
    /* Unset clear flags for non-existent buffers. */
    for (unsigned i = 0; i < 8; i++) {
@@ -1202,7 +1201,8 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
             if ((zstex->depth_clear_value[level] != 0) != (depth != 0)) {
                /* ZRANGE_PRECISION register of a bound surface will change so we
                 * must flush the DB caches. */
-               needs_db_flush = true;
+               sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_DB;
+               si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
             }
             /* Update DB_DEPTH_CLEAR. */
             zstex->depth_clear_value[level] = depth;
@@ -1236,11 +1236,8 @@ static void gfx6_clear(struct pipe_context *ctx, unsigned buffers,
       /* TODO: This hack fixes dEQP-GLES[23].functional.fragment_ops.random.* on Navi31.
        * The root cause is unknown.
        */
-      if (sctx->gfx_level == GFX11 || sctx->gfx_level == GFX11_5)
-         needs_db_flush = true;
-
-      if (needs_db_flush) {
-         sctx->flags |= SI_CONTEXT_FLUSH_AND_INV_DB;
+      if (sctx->gfx_level == GFX11 || sctx->gfx_level == GFX11_5) {
+         sctx->flags |= SI_CONTEXT_VS_PARTIAL_FLUSH;
          si_mark_atom_dirty(sctx, &sctx->atoms.s.cache_flush);
       }
    }

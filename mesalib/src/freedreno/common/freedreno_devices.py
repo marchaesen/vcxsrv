@@ -812,6 +812,14 @@ a7xx_740 = A7XXProps(
         supports_ibo_ubwc = True,
     )
 
+a7xx_740_a32 = A7XXProps(
+        cmdbuf_start_a725_quirk = True,
+        stsc_duplication_quirk = True,
+        has_event_write_sample_count = True,
+        ubwc_unorm_snorm_int_compatible = True,
+        supports_ibo_ubwc = True,
+    )
+
 a7xx_750 = A7XXProps(
         has_event_write_sample_count = True,
         load_inline_uniforms_via_preamble_ldgk = True,
@@ -1011,6 +1019,91 @@ add_gpus([
             [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_80F4, 0x00000000],
         ],
     ))
+
+# Values from blob v744.19
+add_gpus([
+    GPUId(chip_id=0x43050a00, name="FDA32"), # Adreno A32 (G3x Gen 2)
+    GPUId(chip_id=0xffff43050a00, name="FDA32"),
+], A6xxGPUInfo(
+    CHIP.A7XX,
+    [a7xx_base, a7xx_740_a32],
+    num_ccu = 6,
+    tile_align_w = 96,
+    tile_align_h = 32,
+    num_vsc_pipes = 32,
+    cs_shared_mem_size = 32 * 1024,
+    wave_granularity = 2,
+    fibers_per_sp = 128 * 2 * 16,
+    magic_regs = dict(
+        # PC_POWER_CNTL = 7,
+        TPL1_DBG_ECO_CNTL = 0x13100000,
+        GRAS_DBG_ECO_CNTL = 0x00004800,
+        SP_CHICKEN_BITS = 0x10001400,
+        UCHE_CLIENT_PF = 0x00000084,
+        # Blob uses 0x1f or 0x1f1f, however these values cause vertices
+        # corruption in some tests.
+        PC_MODE_CNTL = 0x0000003f,
+        SP_DBG_ECO_CNTL = 0x10000000,
+        RB_DBG_ECO_CNTL = 0x00000000,
+        RB_DBG_ECO_CNTL_blit = 0x00000000,  # is it even needed?
+        # HLSQ_DBG_ECO_CNTL = 0x0,
+        RB_UNKNOWN_8E01 = 0x0,
+        VPC_DBG_ECO_CNTL = 0x02000000,
+        UCHE_UNKNOWN_0E12 = 0x40000000,
+
+        RB_UNKNOWN_8E06 = 0x02080000,
+    ),
+    raw_magic_regs = [
+        [A6XXRegs.REG_A6XX_UCHE_CACHE_WAYS, 0x00040004],
+        [A6XXRegs.REG_A6XX_TPL1_DBG_ECO_CNTL1, 0x00000700],
+
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE08, 0x00400400],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE09, 0x00430820],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE0A, 0x00000000],
+        [A6XXRegs.REG_A7XX_UCHE_UNKNOWN_0E10, 0x00000000],
+        [A6XXRegs.REG_A7XX_UCHE_UNKNOWN_0E11, 0x00000080],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE6C, 0x00000000],
+        [A6XXRegs.REG_A6XX_PC_DBG_ECO_CNTL, 0x00100000],
+        [A6XXRegs.REG_A7XX_PC_UNKNOWN_9E24, 0x21585600],
+        [A6XXRegs.REG_A7XX_VFD_UNKNOWN_A600, 0x00008000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE06, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE6A, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE6B, 0x00000080],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AE73, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AB02, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AB01, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_AB22, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_B310, 0x00000000],
+
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_8120, 0x09510840],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_8121, 0x00000a62],
+
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_8009, 0x00000000],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_800A, 0x00000000],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_800B, 0x00000000],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_800C, 0x00000000],
+
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE2,   0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE2+1, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE4,   0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE4+1, 0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE6,   0x00000000],
+        [A6XXRegs.REG_A7XX_SP_UNKNOWN_0CE6+1, 0x00000000],
+
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_80A7, 0x00000000],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_810B, 0x3],
+
+        [A6XXRegs.REG_A7XX_HLSQ_UNKNOWN_A9AC, 0x00000000],
+        [A6XXRegs.REG_A7XX_RB_UNKNOWN_8E79,   0x00000000],
+        [A6XXRegs.REG_A7XX_RB_UNKNOWN_8899,   0x00000000],
+        [A6XXRegs.REG_A7XX_RB_UNKNOWN_88F5,   0x00000000],
+
+        # Shading rate group
+        [A6XXRegs.REG_A6XX_RB_UNKNOWN_88F4,   0x00000000],
+        [A6XXRegs.REG_A7XX_HLSQ_UNKNOWN_A9AD, 0x00000000],
+        [A6XXRegs.REG_A7XX_GRAS_UNKNOWN_80F4, 0x00000000],
+    ],
+))
 
 add_gpus([
         GPUId(chip_id=0x43051401, name="FD750"), # KGSL, no speedbin data
