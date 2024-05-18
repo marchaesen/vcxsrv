@@ -32,6 +32,10 @@ OutFile "vcxsrv.${VERSION}.installer.exe"
 ; The default installation directory
 InstallDir $PROGRAMFILES32\VcXsrv
 
+Function .onInit
+StrCpy $InstDir $PROGRAMFILES32\VcXsrv
+FunctionEnd
+
 SetCompressor /SOLID lzma
 
 ; Registry key to check for directory (so if you install again, it will
