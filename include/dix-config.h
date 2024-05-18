@@ -14,7 +14,7 @@
 #define BIGREQS 1
 
 /* Builder address */
-#define BUILDERADDR "marha@users.sourceforge.net"
+#define BUILDERADDR "https://github.com/marchaesen"
 
 /* Operating System Name */
 #define OSNAME "Win32"
@@ -376,7 +376,7 @@
 #undef XORG_RELEASE
 
 /* Current Xorg version */
-#define XORG_VERSION_CURRENT (((21) * 10000000) + ((1) * 100000) + ((10) * 1000) + 0)
+#define XORG_VERSION_CURRENT (((21) * 10000000) + ((1) * 100000) + ((13) * 1000) + 0)
 
 /* Xorg release date */
 #define XORG_DATE "7 April 2020"

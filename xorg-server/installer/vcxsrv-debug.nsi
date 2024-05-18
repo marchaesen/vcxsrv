@@ -1,6 +1,6 @@
 /*  This file is part of vcxsrv.
  *
- *  Copyright (C) 2014 marha@users.sourceforge.net
+ *  Copyright (C) 2024 https://github.com/marchaesen
  *
  *  vcxsrv is free software: you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -17,7 +17,7 @@
 */
 ;--------------------------------
 !define NAME "VcXsrv"
-!define VERSION "21.1.10.0"
+!define VERSION "21.1.13.0"
 
 ; The name of the installer
 Name "${NAME}"
