@@ -784,7 +784,7 @@ static int helper_init(struct helper *h, const char *script_name,
         goto err;
 
     /* Set title for qlog purposes. */
-    snprintf(title, sizeof(title), "quic_multistream_test: %s", script_name);
+    BIO_snprintf(title, sizeof(title), "quic_multistream_test: %s", script_name);
     if (!TEST_true(ossl_quic_set_diag_title(h->c_ctx, title)))
         goto err;
 
@@ -2376,6 +2376,7 @@ static const struct script_op script_10[] = {
 static const struct script_op script_11_child[] = {
     OP_C_ACCEPT_STREAM_WAIT (a)
     OP_C_READ_EXPECT        (a, "foo", 3)
+    OP_SLEEP                (10)
     OP_C_EXPECT_FIN         (a)
 
     OP_END
@@ -5827,7 +5828,7 @@ static int test_script(int idx)
     }
 #endif
 
-    snprintf(script_name, sizeof(script_name), "script %d", script_idx + 1);
+    BIO_snprintf(script_name, sizeof(script_name), "script %d", script_idx + 1);
 
     TEST_info("Running script %d (order=%d, blocking=%d)", script_idx + 1,
               free_order, blocking);
@@ -5912,8 +5913,8 @@ static ossl_unused int test_dyn_frame_types(int idx)
             s[i].arg2 = forbidden_frame_types[idx].expected_err;
         }
 
-    snprintf(script_name, sizeof(script_name),
-             "dyn script %d", idx);
+    BIO_snprintf(script_name, sizeof(script_name),
+                 "dyn script %d", idx);
 
     return run_script(dyn_frame_types_script, script_name, 0, 0);
 }
@@ -5922,6 +5923,10 @@ OPT_TEST_DECLARE_USAGE("certfile privkeyfile\n")
 
 int setup_tests(void)
 {
+#if defined (_PUT_MODEL_)
+    return TEST_skip("QUIC is not supported by this build");
+#endif
+
     if (!test_skip_common_options()) {
         TEST_error("Error parsing test options\n");
         return 0;

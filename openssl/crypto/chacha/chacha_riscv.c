@@ -2,7 +2,7 @@
  * This file is dual-licensed, meaning that you can use it under your
  * choice of either of the following two licenses:
  *
- * Copyright 2023-2023 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 2023-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -40,15 +40,16 @@
 #include "crypto/chacha.h"
 #include "crypto/riscv_arch.h"
 
-void ChaCha20_ctr32_zvkb(unsigned char *out, const unsigned char *inp,
-                         size_t len, const unsigned int key[8],
-                         const unsigned int counter[4]);
+void ChaCha20_ctr32_zbb_zvkb(unsigned char *out, const unsigned char *inp,
+                             size_t len, const unsigned int key[8],
+                             const unsigned int counter[4]);
 
 void ChaCha20_ctr32(unsigned char *out, const unsigned char *inp, size_t len,
                     const unsigned int key[8], const unsigned int counter[4])
 {
-    if (RISCV_HAS_ZVKB() && riscv_vlen() >= 128) {
-        ChaCha20_ctr32_zvkb(out, inp, len, key, counter);
+    if (len > CHACHA_BLK_SIZE && RISCV_HAS_ZVKB() && RISCV_HAS_ZBB() &&
+        riscv_vlen() >= 128) {
+        ChaCha20_ctr32_zbb_zvkb(out, inp, len, key, counter);
     } else {
         ChaCha20_ctr32_c(out, inp, len, key, counter);
     }

@@ -7,8 +7,6 @@
  * https://www.openssl.org/source/license.html
  */
 
-#define _XOPEN_SOURCE_EXTENDED   /* To get a definition of strdup() */
-
 #include "internal/e_os.h"
 #include <stdio.h>
 #include <string.h>
@@ -478,6 +476,9 @@ int OPENSSL_INIT_set_config_appname(OPENSSL_INIT_SETTINGS *settings,
 
 void OPENSSL_INIT_free(OPENSSL_INIT_SETTINGS *settings)
 {
+    if (settings == NULL)
+        return;
+
     free(settings->filename);
     free(settings->appname);
     free(settings);

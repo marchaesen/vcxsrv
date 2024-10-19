@@ -1,5 +1,5 @@
 /*
- * Copyright 1995-2021 The OpenSSL Project Authors. All Rights Reserved.
+ * Copyright 1995-2024 The OpenSSL Project Authors. All Rights Reserved.
  *
  * Licensed under the Apache License 2.0 (the "License").  You may not use
  * this file except in compliance with the License.  You can obtain a copy
@@ -26,9 +26,6 @@ static int wsa_init_done = 0;
 # if defined __TANDEM
 #  include <unistd.h>
 #  include <sys/time.h> /* select */
-#  if defined(OPENSSL_TANDEM_FLOSS)
-#   include <floss.h(floss_select)>
-#  endif
 # elif defined _WIN32
 #  include <winsock.h> /* for type fd_set */
 # else
@@ -435,7 +432,11 @@ int BIO_socket_wait(int fd, int for_read, time_t max_time)
     struct timeval tv;
     time_t now;
 
+#ifdef _WIN32
+    if ((SOCKET)fd == INVALID_SOCKET)
+#else
     if (fd < 0 || fd >= FD_SETSIZE)
+#endif
         return -1;
     if (max_time == 0)
         return 1;

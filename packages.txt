@@ -59,7 +59,7 @@ libxcb git version
 libxkbfile-1.1.2
 mesa git version
 mkfontscale git version
-openssl-3.3.0
+openssl-3.3.2
 pixman git version
 pthreads-w32 git version
 terminus-font-4.49.1
